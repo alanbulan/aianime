@@ -5,14 +5,14 @@ interface CanvasNodeFrameOptions {
   dashed?: boolean;
 }
 
-export const CANVAS_NODE_PANEL_SURFACE_CLASS = "bg-[#242426]/95";
-export const CANVAS_NODE_INPUT_SURFACE_CLASS = "bg-[#282828]";
+export const CANVAS_NODE_PANEL_SURFACE_CLASS = "bg-card/95";
+export const CANVAS_NODE_INPUT_SURFACE_CLASS = "bg-muted";
 export const CANVAS_NODE_INPUT_BODY_FRAME_CLASS =
-  "border-white/12 shadow-[0_8px_20px_rgba(0,0,0,0.24)] hover:border-white/18 focus-within:border-white/24";
+  "border-border shadow-md hover:border-foreground/20 focus-within:border-primary/45";
 export const CANVAS_NODE_INPUT_FRAME_CLASS =
-  "border-white/8 shadow-[0_10px_24px_rgba(0,0,0,0.28)] hover:border-white/14 focus-within:border-white/18";
+  "border-border shadow-lg hover:border-foreground/18 focus-within:border-primary/40";
 export const CANVAS_NODE_INPUT_BODY_SELECTED_FRAME_CLASS =
-  "border-white/26 shadow-[0_10px_24px_rgba(0,0,0,0.28)]";
+  "border-primary/45 shadow-lg";
 export const CANVAS_NODE_INPUT_PLACEHOLDER_CLASS =
   "canvas-node-input-placeholder placeholder:text-[var(--canvas-node-input-placeholder)]";
 
@@ -37,9 +37,9 @@ export function canvasNodeFrameClass({
   const borderStyle = dashed ? "border-dashed" : "border-solid";
   const transition = "transition-colors duration-200 ease-out";
   if (selected) {
-    return `${borderStyle} ${transition} border-white/34`;
+    return `${borderStyle} ${transition} border-primary/55`;
   }
   return mainline
-    ? `${borderStyle} ${transition} border-white/16 hover:border-white/24`
-    : `${borderStyle} ${transition} border-white/10 hover:border-white/18`;
+    ? `${borderStyle} ${transition} border-foreground/20 hover:border-foreground/32`
+    : `${borderStyle} ${transition} border-border hover:border-foreground/24`;
 }

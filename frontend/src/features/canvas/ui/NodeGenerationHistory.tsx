@@ -388,7 +388,7 @@ export function NodeGenerationHistory({
         {onRefresh && (
           <button
             type="button"
-            className="nodrag inline-flex h-5 w-5 items-center justify-center rounded text-text-muted transition-colors hover:bg-white/[0.08] hover:text-text-dark"
+            className="nodrag inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             onClick={(event) => {
               event.stopPropagation();
               onRefresh();
@@ -439,7 +439,7 @@ export function NodeGenerationHistory({
                 active
                   ? 'border-[rgb(var(--accent-rgb))]'
                   : completed
-                    ? 'border-white/10 hover:border-[rgb(var(--accent-rgb))]'
+                    ? 'border-border hover:border-[rgb(var(--accent-rgb))]'
                     : 'border-rose-500/40'
               } ${restorable ? 'cursor-pointer' : 'cursor-default'}`}
             >
@@ -466,7 +466,7 @@ export function NodeGenerationHistory({
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <span className="flex h-full w-full items-center justify-center bg-white/[0.04]">
+                <span className="flex h-full w-full items-center justify-center bg-muted">
                   <MediaFallbackIcon mediaType={record.media_type} />
                 </span>
               )}

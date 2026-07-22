@@ -147,21 +147,21 @@ const SEEDANCE2_PROMPT_GUIDANCE_TEMPLATES = [
 const VIDEO_GRID_CLASS =
   "grid grid-cols-[auto_minmax(260px,1fr)] items-start gap-x-4 gap-y-3";
 const VIDEO_PREVIEW_CLASS =
-  "relative flex h-[220px] w-auto max-w-full justify-self-start items-center justify-center overflow-hidden rounded-[10px] border border-white/[0.075] bg-white/[0.022]";
+  "relative flex h-[220px] w-auto max-w-full justify-self-start items-center justify-center overflow-hidden rounded-[10px] border border-border bg-muted";
 const VIDEO_CANDIDATES_CLASS =
   "flex max-h-[220px] flex-wrap content-start gap-2 overflow-y-auto pr-1";
 const SEEDANCE2_CONTROL_CLASS =
-  "rounded-[8px] border-white/[0.095] bg-white/[0.025] text-sm shadow-none focus-visible:border-white/[0.16] focus-visible:ring-white/10 dark:border-white/[0.095] dark:bg-white/[0.025]";
+  "rounded-[8px] border-border bg-muted text-sm shadow-none focus-visible:border-primary/45 focus-visible:ring-primary/10";
 const VIDEO_PARAM_CONTROL_CLASS =
-  "!h-[30px] rounded-[7px] border border-white/[0.13] bg-white/[0.018] px-2.5 text-[12px] font-normal leading-none text-foreground/86 shadow-none transition-colors hover:border-white/[0.22] hover:bg-white/[0.035] focus-visible:border-white/[0.24] focus-visible:ring-white/10 dark:border-white/[0.13] dark:bg-white/[0.018] [&>svg]:size-3.5";
+  "!h-[30px] rounded-[7px] border border-border bg-muted px-2.5 text-[12px] font-normal leading-none text-foreground/86 shadow-none transition-colors hover:border-foreground/25 hover:bg-accent focus-visible:border-primary/45 focus-visible:ring-primary/10 [&>svg]:size-3.5";
 const VIDEO_PARAM_ACTION_CLASS =
-  "!h-[30px] gap-1.5 rounded-[7px] border border-white/[0.13] bg-white/[0.018] px-2.5 text-[12px] font-normal leading-none text-foreground/86 shadow-none transition-[background-color,border-color,color,transform] hover:border-white/[0.22] hover:bg-white/[0.035] hover:text-foreground active:scale-95 disabled:border-white/[0.07] disabled:bg-white/[0.012] disabled:text-muted-foreground/45 dark:border-white/[0.13] dark:bg-white/[0.018] dark:hover:bg-white/[0.035] [&_svg]:size-3.5";
+  "!h-[30px] gap-1.5 rounded-[7px] border border-border bg-muted px-2.5 text-[12px] font-normal leading-none text-foreground/86 shadow-none transition-[background-color,border-color,color,transform] hover:border-foreground/25 hover:bg-accent hover:text-foreground active:scale-95 disabled:border-border disabled:bg-muted disabled:text-muted-foreground/45 [&_svg]:size-3.5";
 const SEEDANCE2_TEXTAREA_CLASS =
-  "rounded-[8px] border-white/[0.095] bg-white/[0.025] text-sm shadow-none focus-visible:border-white/[0.16] focus-visible:ring-white/10 dark:border-white/[0.095] dark:bg-white/[0.025]";
+  "rounded-[8px] border-border bg-muted text-sm shadow-none focus-visible:border-primary/45 focus-visible:ring-primary/10";
 const SEEDANCE2_SECONDARY_ACTION_CLASS =
-  "h-7 gap-1 rounded-[7px] border-white/[0.11] bg-white/[0.03] px-2.5 text-[12px] font-normal text-foreground/76 shadow-none hover:border-white/[0.18] hover:bg-white/[0.055] hover:text-foreground disabled:border-white/[0.07] disabled:bg-white/[0.018] disabled:text-muted-foreground/45 dark:border-white/[0.11] dark:bg-white/[0.03]";
+  "h-7 gap-1 rounded-[7px] border-border bg-muted px-2.5 text-[12px] font-normal text-foreground/76 shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground disabled:border-border disabled:bg-muted disabled:text-muted-foreground/45";
 const SEEDANCE2_PILL_ACTION_CLASS =
-  "h-6 rounded-full border border-white/[0.075] bg-white/[0.018] px-2 text-[11px] font-normal text-muted-foreground/78 shadow-none hover:border-white/[0.14] hover:bg-white/[0.04] hover:text-foreground";
+  "h-6 rounded-full border border-border bg-muted px-2 text-[11px] font-normal text-muted-foreground shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground";
 const SEEDANCE2_SEGMENTED_OPTION_CLASS =
   "h-7 rounded-[7px] border px-1.5 text-xs font-normal shadow-none transition-[background-color,border-color,color] duration-150";
 const SEEDANCE2_COLLAPSE_TRIGGER_CLASS =
@@ -1175,7 +1175,7 @@ export function VideoPane({
 
     if (seedance2MentionOpen) {
       return (
-        <div className="rounded-[8px] border border-white/[0.075] bg-white/[0.025] p-1.5">
+        <div className="rounded-[8px] border border-border bg-muted p-1.5">
           <div className="mb-1 text-[10px] font-medium text-muted-foreground/78">
             {t("episode.workbench.video.seedance2MentionCandidates")}
           </div>
@@ -1191,7 +1191,7 @@ export function VideoPane({
                   "h-6 rounded-[6px] border px-1.5 text-[10px] font-normal shadow-none",
                   index === mentionActiveIndex
                     ? "border-primary/35 bg-primary/[0.10] text-primary hover:bg-primary/[0.14] hover:text-primary"
-                    : "border-white/[0.075] bg-white/[0.018] text-muted-foreground/78 hover:border-white/[0.14] hover:bg-white/[0.04] hover:text-foreground",
+                    : "border-border bg-card text-muted-foreground hover:border-foreground/25 hover:bg-accent hover:text-foreground",
                 )}
                 onMouseEnter={() => setMentionActiveIndex(index)}
                 onClick={() => handleSelectMention(field, asset.reference_label)}
@@ -1392,7 +1392,7 @@ export function VideoPane({
             onClick={(event) => event.stopPropagation()}
             aria-label={t("common.download")}
             title={t("common.download")}
-            className="absolute right-2 top-2 z-10 inline-flex size-7 items-center justify-center rounded-[7px] border border-white/[0.12] bg-black/55 text-foreground/85 backdrop-blur-sm transition hover:border-white/[0.22] hover:bg-black/70 hover:text-foreground"
+            className="absolute right-2 top-2 z-10 inline-flex size-7 items-center justify-center rounded-[7px] border border-white/[0.18] bg-black/65 text-white/90 backdrop-blur-sm transition hover:border-white/30 hover:bg-black/80 hover:text-white"
           >
             <Download className="size-3.5" />
           </a>
@@ -1486,7 +1486,7 @@ export function VideoPane({
       {!showPromptConfig && (
         <div
           className={cn(
-            "col-span-2 rounded-[10px] border border-white/[0.055] bg-white/[0.012] p-3",
+            "col-span-2 rounded-[10px] border border-border bg-card p-3",
             showHappyHorseConfig && "order-3",
           )}
         >
@@ -1739,7 +1739,7 @@ export function VideoPane({
       {!showPromptConfig && showReferenceDetails && (
         <div
           className={cn(
-            "col-span-2 rounded-[10px] border border-white/[0.055] bg-white/[0.012]",
+            "col-span-2 rounded-[10px] border border-border bg-card",
             showHappyHorseConfig && "order-1",
           )}
         >
@@ -1761,12 +1761,12 @@ export function VideoPane({
               <Library className="size-3.5 text-muted-foreground/78" />
               <span>{t("episode.workbench.video.seedance2ReferenceDetails")}</span>
             </Button>
-            <span className="inline-flex h-5 items-center rounded-full border border-white/[0.075] bg-white/[0.025] px-2 text-[11px] leading-none text-muted-foreground/78">
+            <span className="inline-flex h-5 items-center rounded-full border border-border bg-muted px-2 text-[11px] leading-none text-muted-foreground">
               {referenceCropImageItems.length}
             </span>
           </div>
           {seedance2ReferencesOpen && (
-            <div className="border-t border-white/[0.055] p-3">
+            <div className="border-t border-border p-3">
               {referenceCropImageItems.length > 0 ? (
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(6.75rem,6.75rem))] gap-2">
                   {referenceCropImageItems.map((asset) => {
@@ -1775,7 +1775,7 @@ export function VideoPane({
                       <div
                         key={asset.key}
                         data-seedance2-reference-tile
-                        className="group/reference-tile relative w-[6.75rem] overflow-hidden rounded-[7px] border border-white/[0.075] bg-white/[0.018] transition-[border-color,background-color,box-shadow] duration-200 hover:border-white/[0.14] hover:bg-white/[0.032]"
+                        className="group/reference-tile relative w-[6.75rem] overflow-hidden rounded-[7px] border border-border bg-muted transition-[border-color,background-color,box-shadow] duration-200 hover:border-foreground/25 hover:bg-accent"
                         style={{ aspectRatio: ratioToCss(spec.sketchAspect) }}
                         title={asset.note || asset.label}
                       >
@@ -1787,7 +1787,7 @@ export function VideoPane({
                             decoding="async"
                           />
                         ) : (
-                          <div className="absolute inset-0 flex items-center justify-center bg-white/[0.025]">
+                          <div className="absolute inset-0 flex items-center justify-center bg-muted">
                             <ImageIcon className="size-6 text-muted-foreground/70" />
                           </div>
                         )}
@@ -1825,7 +1825,7 @@ export function VideoPane({
                   })}
                 </div>
               ) : (
-                <p className="rounded-[8px] border border-dashed border-white/[0.075] bg-white/[0.015] p-2 text-xs text-muted-foreground/78">
+                <p className="rounded-[8px] border border-dashed border-border bg-muted p-2 text-xs text-muted-foreground">
                   {t("episode.workbench.video.seedance2ReferenceEmpty")}
                 </p>
               )}
@@ -1835,7 +1835,7 @@ export function VideoPane({
       )}
 
       {showPromptConfig && (
-        <div className="col-span-2 space-y-4 rounded-[10px] border border-white/[0.055] bg-white/[0.016] p-3">
+        <div className="col-span-2 space-y-4 rounded-[10px] border border-border bg-card p-3">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
             <Settings2 className="size-3.5 text-muted-foreground/78" />
             <Label className="text-xs font-medium text-foreground/82">
@@ -1868,20 +1868,20 @@ export function VideoPane({
                 }
               />
             )}
-            <span className="inline-flex h-5 max-w-full items-center rounded-full border border-white/[0.075] bg-white/[0.025] px-2 text-[11px] leading-none text-muted-foreground/78">
+            <span className="inline-flex h-5 max-w-full items-center rounded-full border border-border bg-muted px-2 text-[11px] leading-none text-muted-foreground">
               {t("episode.workbench.video.seedance2ReferenceStats", {
                 selected: seedance2StatusData?.assets.selected ?? 0,
                 missing: seedance2StatusData?.assets.missing ?? 0,
               })}
             </span>
-            <span className="inline-flex h-5 max-w-full items-center rounded-full border border-white/[0.075] bg-white/[0.025] px-2 text-[11px] leading-none text-muted-foreground/78">
+            <span className="inline-flex h-5 max-w-full items-center rounded-full border border-border bg-muted px-2 text-[11px] leading-none text-muted-foreground">
               {t("episode.workbench.video.videoVersions", {
                 count: candidates.length,
               })}
             </span>
           </div>
 
-          <div className="rounded-[10px] border border-white/[0.055] bg-white/[0.012]">
+          <div className="rounded-[10px] border border-border bg-card">
             <div className="flex items-center gap-2 px-3 py-2">
               <Button
                 type="button"
@@ -1900,7 +1900,7 @@ export function VideoPane({
                 <Library className="size-3.5 text-muted-foreground/78" />
                 <span>{t("episode.workbench.video.seedance2ReferenceDetails")}</span>
               </Button>
-              <span className="inline-flex h-5 items-center rounded-full border border-white/[0.075] bg-white/[0.025] px-2 text-[11px] leading-none text-muted-foreground/78">
+              <span className="inline-flex h-5 items-center rounded-full border border-border bg-muted px-2 text-[11px] leading-none text-muted-foreground">
                 {t("episode.workbench.video.seedance2ReferenceStats", {
                   selected: seedance2StatusData?.assets.selected ?? 0,
                   missing: seedance2StatusData?.assets.missing ?? 0,
@@ -1934,7 +1934,7 @@ export function VideoPane({
               />
             </div>
             {seedance2ReferencesOpen && (
-              <div className="border-t border-white/[0.055] p-3">
+              <div className="border-t border-border p-3">
                 {modelReferenceAssetItems.length > 0 ? (
                   <div className="grid grid-cols-[repeat(auto-fill,minmax(6.75rem,6.75rem))] gap-2">
                     {modelReferenceAssetItems.map((asset) => {
@@ -1989,7 +1989,7 @@ export function VideoPane({
                             }
                           }}
                           className={cn(
-                            "group/reference-tile relative aspect-square w-[6.75rem] overflow-hidden rounded-[7px] border border-white/[0.075] bg-white/[0.018] transition-[border-color,background-color,box-shadow] duration-200 hover:border-white/[0.14] hover:bg-white/[0.032]",
+                            "group/reference-tile relative aspect-square w-[6.75rem] overflow-hidden rounded-[7px] border border-border bg-muted transition-[border-color,background-color,box-shadow] duration-200 hover:border-foreground/25 hover:bg-accent",
                             canInsertReference &&
                               "cursor-grab active:cursor-grabbing hover:shadow-[0_8px_22px_rgba(0,0,0,0.28)]",
                           )}
@@ -2012,7 +2012,7 @@ export function VideoPane({
                               decoding="async"
                             />
                           ) : (
-                            <div className="absolute inset-0 flex items-center justify-center bg-white/[0.025]">
+                            <div className="absolute inset-0 flex items-center justify-center bg-muted">
                               {asset.media_type === "audio" ? (
                                 <Mic className="size-6 text-muted-foreground/70" />
                               ) : (
@@ -2106,7 +2106,7 @@ export function VideoPane({
                     })}
                   </div>
                 ) : (
-                  <p className="rounded-[8px] border border-dashed border-white/[0.075] bg-white/[0.015] p-2 text-xs text-muted-foreground/78">
+                  <p className="rounded-[8px] border border-dashed border-border bg-muted p-2 text-xs text-muted-foreground">
                     {t("episode.workbench.video.seedance2ReferenceEmpty")}
                   </p>
                 )}
@@ -2114,7 +2114,7 @@ export function VideoPane({
             )}
           </div>
 
-          <div className="grid gap-3 rounded-[10px] border border-white/[0.055] bg-white/[0.012] p-3 md:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr]">
+          <div className="grid gap-3 rounded-[10px] border border-border bg-card p-3 md:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr]">
             <Seedance2Field
               label={t("episode.workbench.video.mode")}
               htmlFor={`${seedance2Id}-mode`}
@@ -2292,8 +2292,8 @@ export function VideoPane({
                         className={cn(
                           SEEDANCE2_SEGMENTED_OPTION_CLASS,
                           active
-                            ? "border-cyan-400/45 bg-cyan-400/12 text-cyan-100"
-                            : "border-white/[0.075] bg-white/[0.018] text-muted-foreground/75 hover:border-white/[0.14] hover:bg-white/[0.045] hover:text-foreground",
+                            ? "border-primary/45 bg-primary/10 text-primary"
+                            : "border-border bg-muted text-muted-foreground hover:border-foreground/25 hover:bg-accent hover:text-foreground",
                         )}
                         onClick={() =>
                           updateSeedance2Draft("scene_optimize", style)
@@ -2313,7 +2313,7 @@ export function VideoPane({
             <div
               data-seedance2-returned-last-frame
               data-testid="seedance2-returned-last-frame-panel"
-              className="inline-flex w-fit max-w-full flex-col rounded-[8px] border border-white/[0.055] bg-white/[0.012] p-1.5"
+              className="inline-flex w-fit max-w-full flex-col rounded-[8px] border border-border bg-card p-1.5"
             >
               <div className="mb-1 flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
                 <ImageIcon className="size-3" />
@@ -2322,7 +2322,7 @@ export function VideoPane({
                   <a
                     href={seedance2ReturnedLastFrameSrc}
                     download
-                    className="ml-auto inline-flex h-6 items-center gap-1 rounded-[6px] border border-white/[0.095] bg-white/[0.03] px-2 text-[10px] text-foreground/78 hover:border-white/[0.16] hover:bg-white/[0.055] hover:text-foreground"
+                    className="ml-auto inline-flex h-6 items-center gap-1 rounded-[6px] border border-border bg-muted px-2 text-[10px] text-foreground/78 hover:border-foreground/25 hover:bg-accent hover:text-foreground"
                   >
                     <Download className="size-3" />
                     {t("common.download")}
@@ -2332,10 +2332,10 @@ export function VideoPane({
               <div
                 data-testid="seedance2-returned-last-frame-box"
                 className={cn(
-                  "relative w-[7.5rem] max-w-full overflow-hidden rounded-[7px] bg-white/[0.02]",
+                  "relative w-[7.5rem] max-w-full overflow-hidden rounded-[7px] bg-muted",
                   seedance2ReturnedLastFrameSrc && seedance2ReturnedLastFrameAsset
-                    ? "border border-white/[0.075]"
-                    : "border border-dashed border-white/[0.075]",
+                    ? "border border-border"
+                    : "border border-dashed border-border",
                 )}
                 style={{ aspectRatio: seedance2ReturnedLastFrameAspectCss }}
               >
@@ -2358,7 +2358,7 @@ export function VideoPane({
 
           <div
             data-testid="seedance2-prompt-panel"
-            className="rounded-[10px] border border-white/[0.055] bg-white/[0.012] p-3"
+            className="rounded-[10px] border border-border bg-card p-3"
           >
             <div className="grid gap-3">
               <Seedance2Field
@@ -2830,7 +2830,7 @@ function Seedance2AudioTrimDialog({
 
   return (
     <Dialog open={asset !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-4 overflow-hidden rounded-2xl border border-white/8 bg-background/68 p-7 shadow-none backdrop-blur-3xl sm:max-w-lg">
+      <DialogContent className="gap-4 overflow-hidden rounded-2xl border border-border bg-popover p-7 text-popover-foreground shadow-2xl sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{t("episode.workbench.video.seedance2AssetAudioTrimTitle")}</DialogTitle>
         </DialogHeader>
@@ -2874,7 +2874,7 @@ function Seedance2AudioTrimDialog({
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="h-10 rounded-md border-white/18 bg-white/[0.06] px-4 text-sm font-normal text-foreground/80 hover:border-white/28 hover:bg-white/[0.1] hover:text-foreground"
+            className="h-10 rounded-md border-border bg-muted px-4 text-sm font-normal text-foreground/80 hover:border-foreground/25 hover:bg-accent hover:text-foreground"
           >
             {t("common.cancel")}
           </Button>
@@ -2981,8 +2981,8 @@ function Seedance2SummaryPill({
       className={cn(
         "inline-flex h-5 max-w-full items-center rounded-full border px-2 text-[11px] leading-none",
         active
-          ? "border-primary/35 bg-primary/[0.07] text-primary/90"
-          : "border-white/[0.075] bg-white/[0.025] text-muted-foreground/78",
+          ? "border-primary/35 bg-primary/[0.07] text-primary"
+          : "border-border bg-muted text-muted-foreground",
       )}
     >
       <span

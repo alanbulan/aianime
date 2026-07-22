@@ -81,9 +81,9 @@ const NO_PROP_MARKER = "__NO_PROP__";
 const NONE_SENTINEL = "__none__";
 const MENTION_LIMIT = 8;
 const BEAT_CONTEXT_SELECT_CLASS =
-  "!h-8 !rounded-[6px] !border-white/10 !bg-black/20 !px-2 !text-xs !text-amber-50 hover:!border-amber-200/25 focus-visible:!border-amber-300/40";
+  "!h-8 !rounded-[6px] !border-border !bg-muted !px-2 !text-xs !text-foreground hover:!border-amber-500/45 focus-visible:!border-amber-500/55";
 const BEAT_CONTEXT_SELECT_MENU_CLASS =
-  "!z-[260] !border-amber-100/12 !bg-[#17120a] text-amber-50 shadow-[0_14px_34px_rgba(0,0,0,0.5)]";
+  "!z-[260] !border-border !bg-popover text-popover-foreground shadow-xl";
 
 type MentionKind = "identity" | "prop";
 
@@ -1132,17 +1132,17 @@ export const BeatContextNode = memo(
         />
 
         <div
-          className="flex h-full flex-col overflow-hidden rounded-[var(--node-radius)] border border-amber-300/20 bg-[rgba(27,23,17,0.72)] text-amber-50 shadow-[0_14px_40px_rgba(0,0,0,0.28)] backdrop-blur-[1px]"
+          className="flex h-full flex-col overflow-hidden rounded-[var(--node-radius)] border border-amber-500/35 bg-card text-foreground shadow-lg"
           onWheel={stopCanvasWheel}
         >
-          <div className="border-b border-amber-200/10 px-4 py-3">
+          <div className="border-b border-border px-4 py-3">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-200/80">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-700 dark:text-amber-300">
                   {t("node.beatContextNode.heading", { defaultValue: "镜头上下文" })}
                 </div>
                 {!isStandaloneContext && (
-                  <div className="mt-1 text-sm font-semibold text-amber-50">
+                  <div className="mt-1 text-sm font-semibold text-foreground">
                     EP{episode ?? "?"} / Beat {beat ?? "?"}
                   </div>
                 )}
@@ -1152,7 +1152,7 @@ export const BeatContextNode = memo(
             {workbenchTarget && (
               <button
                 type="button"
-                className="mt-3 inline-flex items-center gap-1 rounded-full border border-cyan-200/25 bg-cyan-300/10 px-3 py-1.5 text-xs font-medium text-cyan-50 hover:bg-cyan-300/20 disabled:cursor-not-allowed disabled:opacity-50"
+                className="mt-3 inline-flex items-center gap-1 rounded-full border border-primary/35 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={openingWorkbench}
                 onClick={(event) => {
                   event.stopPropagation();
@@ -1179,7 +1179,7 @@ export const BeatContextNode = memo(
             stopPropagation 防止点击/拖拽 input 触发节点拖拽。
           */}
             <section>
-              <div className="mb-2 font-semibold text-amber-100">
+              <div className="mb-2 font-semibold text-foreground">
                 {t("node.beatContextNode.fields.visual", { defaultValue: "起始画面" })}
               </div>
               <div className="relative">
@@ -1242,11 +1242,11 @@ export const BeatContextNode = memo(
                     setMentionContext(null);
                     saveVisualDraft();
                   }}
-                  className="w-full resize-y rounded-[8px] border border-white/10 bg-black/30 p-2 text-amber-50/90 outline-none focus:border-amber-300/40 focus:bg-black/40"
+                  className="w-full resize-y rounded-[8px] border border-border bg-muted p-2 text-foreground outline-none focus:border-amber-500/55"
                 />
                 {mentionContext && filteredMentionCandidates.length > 0 && (
                   <div
-                    className="absolute left-2 top-full z-50 mt-1 max-h-56 min-w-[240px] overflow-auto rounded-lg border border-amber-100/15 bg-[#17120a]/95 p-1 shadow-xl backdrop-blur"
+                    className="absolute left-2 top-full z-50 mt-1 max-h-56 min-w-[240px] overflow-auto rounded-lg border border-border bg-popover/95 p-1 shadow-xl backdrop-blur"
                     onMouseDown={(event) => {
                       event.preventDefault();
                       event.stopPropagation();
@@ -1261,8 +1261,8 @@ export const BeatContextNode = memo(
                           type="button"
                           className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors ${
                             index === mentionActiveIndex
-                              ? "bg-amber-300/15 text-amber-50"
-                              : "text-amber-100/75 hover:bg-white/10 hover:text-amber-50"
+                              ? "bg-amber-500/15 text-amber-800 dark:text-amber-200"
+                              : "text-popover-foreground/75 hover:bg-muted hover:text-popover-foreground"
                           }`}
                           onMouseEnter={() => setMentionActiveIndex(index)}
                           onClick={() => insertMention(candidate)}
@@ -1271,7 +1271,7 @@ export const BeatContextNode = memo(
                           <span className="min-w-0 flex-1 truncate">
                             {candidate.label}
                           </span>
-                          <span className="shrink-0 rounded bg-black/25 px-1.5 py-0.5 font-mono text-[10px] text-amber-100/55">
+                          <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
                             {candidate.token}
                           </span>
                         </button>
@@ -1283,8 +1283,8 @@ export const BeatContextNode = memo(
             </section>
             {!isStandaloneContext && (
               <section className="grid grid-cols-2 gap-2">
-                <div className="rounded-[8px] border border-white/10 bg-black/15 p-2">
-                  <div className="mb-1.5 text-amber-100/70">
+                <div className="rounded-[8px] border border-border bg-muted p-2">
+                  <div className="mb-1.5 text-muted-foreground">
                     {t("node.beatContextNode.fields.scene", { defaultValue: "场景" })}
                   </div>
                   <div
@@ -1322,8 +1322,8 @@ export const BeatContextNode = memo(
                     </UiSelect>
                   </div>
                 </div>
-                <div className="rounded-[8px] border border-white/10 bg-black/15 p-2">
-                  <div className="mb-1.5 text-amber-100/70">
+                <div className="rounded-[8px] border border-border bg-muted p-2">
+                  <div className="mb-1.5 text-muted-foreground">
                     {t("node.beatContextNode.fields.time", { defaultValue: "时间" })}
                   </div>
                   <div
@@ -1358,8 +1358,8 @@ export const BeatContextNode = memo(
               </section>
             )}
             <section className="grid grid-cols-2 gap-2">
-              <div className="rounded-[8px] border border-white/10 bg-black/15 p-2">
-                <div className="mb-1.5 text-amber-100/70">
+              <div className="rounded-[8px] border border-border bg-muted p-2">
+                <div className="mb-1.5 text-muted-foreground">
                   {t("node.beatContextNode.fields.identities", { defaultValue: "出场身份" })}
                 </div>
                 <SelectableTokenGroup
@@ -1379,8 +1379,8 @@ export const BeatContextNode = memo(
                   onToggle={toggleIdentity}
                 />
               </div>
-              <div className="rounded-[8px] border border-white/10 bg-black/15 p-2">
-                <div className="mb-1.5 text-amber-100/70">
+              <div className="rounded-[8px] border border-border bg-muted p-2">
+                <div className="mb-1.5 text-muted-foreground">
                   {t("node.beatContextNode.fields.props", { defaultValue: "出场道具" })}
                 </div>
                 <SelectableTokenGroup
@@ -1401,20 +1401,20 @@ export const BeatContextNode = memo(
                 />
               </div>
             </section>
-            <section className="flex flex-wrap gap-1.5 text-[10px] text-amber-100/80">
-              <span className="rounded-full bg-white/10 px-2 py-1">
+            <section className="flex flex-wrap gap-1.5 text-[10px] text-muted-foreground">
+              <span className="rounded-full bg-muted px-2 py-1">
                 {t("node.beatContextNode.assets.background", { defaultValue: "背景" })} {snapshot.selectedBackgroundExists ? t("node.beatContextNode.assets.selected", { defaultValue: "已选" }) : t("node.beatContextNode.assets.unselected", { defaultValue: "未选" })}
               </span>
-              <span className="rounded-full bg-white/10 px-2 py-1">
+              <span className="rounded-full bg-muted px-2 py-1">
                 {t("node.beatContextNode.assets.sketch", { defaultValue: "草图" })} {snapshot.currentSketchExists ? t("node.beatContextNode.assets.exists", { defaultValue: "已有" }) : t("node.beatContextNode.assets.missing", { defaultValue: "缺失" })}
               </span>
-              <span className="rounded-full bg-white/10 px-2 py-1">
+              <span className="rounded-full bg-muted px-2 py-1">
                 {t("node.beatContextNode.assets.frame", { defaultValue: "分镜" })} {snapshot.currentFrameExists ? t("node.beatContextNode.assets.exists", { defaultValue: "已有" }) : t("node.beatContextNode.assets.missing", { defaultValue: "缺失" })}
               </span>
             </section>
           </div>
 
-          <div className="flex items-center justify-between gap-2 border-t border-amber-200/15 px-4 py-2 text-[10px] text-amber-100/65">
+          <div className="flex items-center justify-between gap-2 border-t border-border px-4 py-2 text-[10px] text-muted-foreground">
             <div className="flex min-w-0 items-center gap-2">
               <RefreshCw
                 className={`h-3 w-3 ${isSyncing ? "animate-spin" : ""}`}
@@ -1445,7 +1445,7 @@ export const BeatContextNode = memo(
             {!isStandaloneContext && (
               <button
                 type="button"
-                className="shrink-0 rounded-full border border-amber-200/20 bg-amber-200/10 px-2 py-1 text-[10px] text-amber-50 hover:bg-amber-200/20 disabled:cursor-not-allowed disabled:opacity-50"
+                className="shrink-0 rounded-full border border-amber-500/35 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-700 hover:bg-amber-500/20 dark:text-amber-200 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={isSyncing}
                 onClick={(event) => {
                   event.stopPropagation();
@@ -1523,7 +1523,7 @@ function SelectableTokenGroup({
         : t("node.beatContextNode.palette.propColor", {
             defaultValue: "道具颜色",
           });
-    const chipClassName = `inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-md border px-2 py-1 text-left text-[11px] transition-colors ${isSelected ? (stale ? "border-red-300/35 bg-red-400/10 text-red-100" : "border-cyan-200/45 bg-cyan-300/12 text-cyan-50") : "border-white/10 bg-white/[0.03] text-amber-100/65 hover:border-white/20 hover:text-amber-50"}`;
+    const chipClassName = `inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-md border px-2 py-1 text-left text-[11px] transition-colors ${isSelected ? (stale ? "border-destructive/35 bg-destructive/10 text-destructive" : "border-primary/45 bg-primary/12 text-primary") : "border-border bg-muted/70 text-foreground/70 hover:border-foreground/25 hover:text-foreground"}`;
     return (
       <button
         key={id}
@@ -1595,7 +1595,7 @@ function ContextColorPalette({
   const { t } = useTranslation();
   return (
     <span
-      className="absolute left-0 top-full z-50 mt-2 block w-[310px] rounded-2xl border border-white/12 bg-[#111419]/95 p-4 text-xs text-white/70 shadow-2xl backdrop-blur-xl"
+      className="absolute left-0 top-full z-50 mt-2 block w-[310px] rounded-2xl border border-border bg-popover/95 p-4 text-xs text-popover-foreground/75 shadow-2xl backdrop-blur-xl"
       onClick={(event) => event.stopPropagation()}
       onPointerDown={(event) => event.stopPropagation()}
     >
@@ -1631,7 +1631,7 @@ function PaletteSection({
 }) {
   return (
     <span className={`block ${className}`}>
-      <span className="mb-2 block font-semibold text-white/55">{title}</span>
+      <span className="mb-2 block font-semibold text-muted-foreground">{title}</span>
       <span className="flex flex-wrap gap-3">
         {colors.map((color) => (
           <span
@@ -1639,7 +1639,7 @@ function PaletteSection({
             role="button"
             tabIndex={0}
             aria-label={`${labelPrefix} ${color}`}
-            className="inline-flex h-9 w-9 cursor-pointer rounded-full border border-white/15 bg-[#20242b] p-1 shadow-[0_0_0_1px_rgba(0,0,0,0.35)] transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"
+            className="inline-flex h-9 w-9 cursor-pointer rounded-full border border-border bg-muted p-1 shadow-sm transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
             onClick={(event) => {
               event.stopPropagation();
               onSelect(color);

@@ -63,7 +63,7 @@ export function CharacterImageSourceSelect({
       <SelectTrigger
         aria-label={t("characters.imageSource.label")}
         className={cn(
-          "h-8 gap-0 rounded-[8px] border-white/10 bg-transparent px-3 text-xs font-normal shadow-none hover:bg-white/[0.04] dark:bg-transparent",
+          "h-8 gap-0 rounded-[8px] border-border bg-transparent px-3 text-xs font-normal shadow-none hover:bg-muted",
           className,
         )}
         disabled={isDisabled}
@@ -71,20 +71,20 @@ export function CharacterImageSourceSelect({
         <span className="shrink-0 text-muted-foreground">
           {t("characters.imageSource.label")}
         </span>
-        <span className="shrink-0 text-muted-foreground/50">&nbsp;·&nbsp;</span>
+        <span className="shrink-0 text-muted-foreground">&nbsp;·&nbsp;</span>
         <SelectValue>
           {selectedLabel || t("characters.imageSource.loading")}
         </SelectValue>
       </SelectTrigger>
       <SelectContent
         alignItemWithTrigger={false}
-        className="rounded-md border border-white/10 bg-popover p-1 shadow-xl shadow-black/20 ring-0"
+        className="rounded-md border border-border bg-popover p-1 shadow-xl ring-0"
       >
         {optionEntries.map(([value, label]) => (
           <SelectItem
             key={value}
             value={value}
-            className="min-h-8 gap-2 rounded-sm px-2 py-1.5 text-xs focus:bg-white/8 focus:text-current"
+            className="min-h-8 gap-2 rounded-sm px-2 py-1.5 text-xs focus:bg-muted focus:text-current"
           >
             {label}
           </SelectItem>

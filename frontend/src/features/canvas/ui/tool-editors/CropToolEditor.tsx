@@ -357,8 +357,8 @@ export function CropToolEditor({ plugin, sourceImageUrl, options, onOptionsChang
               type="button"
               className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
                 active
-                  ? 'border-white/[0.18] bg-white/[0.10] text-text-dark'
-                  : 'border-white/[0.12] text-text-dark/55 hover:bg-white/[0.06] hover:text-text-dark'
+                  ? 'border-primary/45 bg-accent text-accent-foreground'
+                  : 'border-border bg-muted text-muted-foreground hover:border-foreground/25 hover:bg-accent hover:text-foreground'
               }`}
               onClick={() =>
                 onOptionsChange({
@@ -376,8 +376,8 @@ export function CropToolEditor({ plugin, sourceImageUrl, options, onOptionsChang
           type="button"
           className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
             aspectMode === 'custom'
-              ? 'border-white/[0.18] bg-white/[0.10] text-text-dark'
-              : 'border-white/[0.12] text-text-dark/55 hover:bg-white/[0.06] hover:text-text-dark'
+              ? 'border-primary/45 bg-accent text-accent-foreground'
+              : 'border-border bg-muted text-muted-foreground hover:border-foreground/25 hover:bg-accent hover:text-foreground'
           }`}
           onClick={() =>
             onOptionsChange({
@@ -405,15 +405,17 @@ export function CropToolEditor({ plugin, sourceImageUrl, options, onOptionsChang
               });
             }}
             placeholder="输入比例，如 3:2 或 1.5"
-            className="h-8 w-[220px] rounded-[8px] border border-white/[0.10] bg-bg-dark/42 px-3 text-sm text-text-dark outline-none transition-colors placeholder:text-text-dark/52 focus:border-white/[0.18]"
+            className="h-8 w-[220px] rounded-[8px] border border-border bg-muted px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary/45"
           />
-          {customRatioError && <span className="text-xs text-red-400">{customRatioError}</span>}
+          {customRatioError && (
+            <span className="text-xs text-red-700 dark:text-red-300">{customRatioError}</span>
+          )}
         </div>
       )}
 
       <div
         ref={viewportRef}
-        className="relative h-[min(46vh,450px)] rounded-[10px] border border-white/[0.10] bg-[#111214]/80"
+        className="relative h-[min(46vh,450px)] rounded-[10px] border border-border bg-[#0b0d10]"
       >
         <div className="flex h-full w-full items-center justify-center p-3">
           {renderedImageSize && (

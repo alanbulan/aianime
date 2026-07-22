@@ -116,12 +116,12 @@ const STORYBOARD_GEN_NODE_MIN_HEIGHT_PX = 470;
 const STORYBOARD_GEN_HEADER_ADJUST = { x: 0, y: 0, scale: 1 };
 const STORYBOARD_GEN_ICON_ADJUST = { x: 0, y: 0, scale: 0.95 };
 const STORYBOARD_GEN_TITLE_ADJUST = { x: 0, y: 0, scale: 1 };
-const GRID_CONTROL_CONTAINER_CLASS = 'flex h-7 items-center gap-1 rounded-full border border-white/14 bg-[#282828]/62 px-1.5';
-const GRID_CONTROL_LABEL_CLASS = 'text-[13px] font-medium text-text-dark/82';
-const GRID_CONTROL_BUTTON_CLASS = 'flex h-5 w-5 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-white/10 hover:text-text-dark';
+const GRID_CONTROL_CONTAINER_CLASS = 'flex h-7 items-center gap-1 rounded-full border border-border bg-muted px-1.5';
+const GRID_CONTROL_LABEL_CLASS = 'text-[13px] font-medium text-foreground/82';
+const GRID_CONTROL_BUTTON_CLASS = 'flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground';
 const GRID_CONTROL_ICON_CLASS = 'h-2 w-2';
-const GRID_CONTROL_VALUE_CLASS = 'min-w-[18px] text-center text-[11px] font-semibold text-text-dark';
-const GRID_SUMMARY_CLASS = 'mr-2 flex h-7 items-center text-[13px] font-normal text-text-dark/72';
+const GRID_CONTROL_VALUE_CLASS = 'min-w-[18px] text-center text-[11px] font-semibold text-foreground';
+const GRID_SUMMARY_CLASS = 'mr-2 flex h-7 items-center text-[13px] font-normal text-foreground/72';
 const FRAME_GRID_GAP_PX = 8;
 const CONFIG_ROW_HEIGHT_PX = 28;
 const CONFIG_ROW_MARGIN_BOTTOM_PX = 12;
@@ -135,35 +135,35 @@ const GRID_LINE_THICKNESS_PERCENT = 0.4;
 const RATIO_CONTROL_MODE_BUTTON_CLASS =
   'flex h-5 items-center rounded-full border px-1.5 text-[9px] transition-colors';
 const STORYBOARD_GEN_BOTTOM_PANEL_CLASS =
-  '!border-white/[0.2] !bg-[#191b20]/96 shadow-[0_18px_48px_rgba(0,0,0,0.56)]';
+  '!border-border !bg-popover/96 shadow-2xl';
 const STORYBOARD_GEN_TRIGGER_CLASS =
-  '!h-9 !rounded-md !border-transparent !bg-transparent !px-2.5 !text-[14px] !shadow-none text-text-dark/90 hover:!bg-white/[0.065] hover:!text-white';
+  '!h-9 !rounded-md !border-transparent !bg-transparent !px-2.5 !text-[14px] !shadow-none text-foreground/90 hover:!bg-muted hover:!text-foreground';
 const STORYBOARD_GEN_MODEL_CHIP_CLASS = '!w-auto !justify-start !shrink-0 !mr-1';
 const STORYBOARD_GEN_PARAMS_CHIP_CLASS = '!w-auto !justify-start !shrink-0 !gap-2';
 const STORYBOARD_GEN_GENERATE_BUTTON_CLASS =
-  '!h-9 !rounded-md !border-transparent !bg-transparent !px-2.5 !text-[14px] !gap-1.5 !text-text-dark/94 hover:!bg-white/[0.065] hover:!text-white';
+  '!h-9 !rounded-md !border-transparent !bg-transparent !px-2.5 !text-[14px] !gap-1.5 !text-foreground/94 hover:!bg-muted hover:!text-foreground';
 const STORYBOARD_GEN_ACTION_ICON_CLASS = 'h-3.5 w-3.5';
 const STORYBOARD_GEN_PROVIDER_OPTION_CLASS =
   'min-w-[122px] px-4 text-center !rounded-full !text-[13px] !h-9';
 const STORYBOARD_GEN_PROVIDER_ACTIVE_CLASS =
-  '!border-white/30 !bg-white/[0.08] !text-text-dark !shadow-none';
+  '!border-primary/45 !bg-primary/12 !text-foreground !shadow-none';
 const STORYBOARD_GEN_PROVIDER_INACTIVE_CLASS =
-  '!border-white/18 !bg-black/18 !text-text-muted hover:!border-white/34 hover:!bg-white/[0.075] hover:!text-text-dark';
+  '!border-border !bg-muted/70 !text-muted-foreground hover:!border-foreground/30 hover:!bg-muted hover:!text-foreground';
 const STORYBOARD_GEN_MODEL_OPTION_CLASS =
   '!min-h-0 !min-w-0 !justify-start !rounded-none !border-transparent !bg-transparent !px-0 !py-1 !text-left !text-[14px]';
-const STORYBOARD_GEN_MODEL_ACTIVE_CLASS = '!text-white';
-const STORYBOARD_GEN_MODEL_INACTIVE_CLASS = '!text-text-muted hover:!text-text-dark';
+const STORYBOARD_GEN_MODEL_ACTIVE_CLASS = '!text-foreground';
+const STORYBOARD_GEN_MODEL_INACTIVE_CLASS = '!text-muted-foreground hover:!text-foreground';
 const STORYBOARD_GEN_PARAM_GROUP_CLASS =
-  'rounded-[8px] border border-white/18 bg-[#0f1116]/74 p-1';
+  'rounded-[8px] border border-border bg-muted/70 p-1';
 const STORYBOARD_GEN_PARAM_ACTIVE_CLASS =
-  'rounded-[5px] border border-white/24 bg-white/[0.13] text-white shadow-[0_8px_18px_rgba(0,0,0,0.2)]';
+  'rounded-[5px] border border-primary/35 bg-primary/12 text-foreground shadow-sm';
 const STORYBOARD_GEN_PARAM_INACTIVE_CLASS =
-  'rounded-[7px] text-text-muted hover:bg-white/[0.065] hover:text-text-dark';
+  'rounded-[7px] text-muted-foreground hover:bg-muted hover:text-foreground';
 const STORYBOARD_GEN_EXTRA_PARAMS_GROUP_CLASS = 'space-y-2';
 const STORYBOARD_GEN_EXTRA_PARAM_ITEM_CLASS = 'space-y-2 p-0';
-const STORYBOARD_GEN_EXTRA_PARAM_LABEL_CLASS = 'text-[13px] font-medium leading-none text-text-dark';
+const STORYBOARD_GEN_EXTRA_PARAM_LABEL_CLASS = 'text-[13px] font-medium leading-none text-foreground';
 const STORYBOARD_GEN_EXTRA_PARAM_FIELD_CLASS =
-  'h-9 rounded-[8px] !border-white/20 bg-[#0f1116]/72 text-sm hover:!border-white/34 focus:!border-white/42';
+  'h-9 rounded-[8px] !border-border bg-background text-sm hover:!border-foreground/30 focus:!border-primary/45';
 const FRIENDLY_ASPECT_RATIO_CANDIDATES = [
   '1:1',
   '16:9',
@@ -294,7 +294,7 @@ function renderFrameDescriptionWithHighlights(description: string, maxImageCount
     segments.push(
       <span
         key={`ref-${matchStart}`}
-        className="relative z-0 text-white [text-shadow:0.24px_0_currentColor,-0.24px_0_currentColor] before:absolute before:-inset-x-[4px] before:-inset-y-[1px] before:-z-10 before:rounded-[7px] before:bg-accent/55 before:content-['']"
+        className="relative z-0 text-accent-foreground before:absolute before:-inset-x-[4px] before:-inset-y-[1px] before:-z-10 before:rounded-[7px] before:bg-accent before:content-['']"
       >
         {matchText}
       </span>
@@ -1497,12 +1497,12 @@ export const StoryboardGenNode = memo(({ id, data, selected, width, height }: St
 
         <div className="flex min-w-0 items-center justify-end gap-1.5">
           {showStoryboardGenAdvancedRatioControls && (
-            <div className="flex h-7 items-center rounded-full border border-white/22 bg-[#282828]/88 p-0.5">
+            <div className="flex h-7 items-center rounded-full border border-border bg-muted p-0.5">
               <button
                 type="button"
                 className={`${RATIO_CONTROL_MODE_BUTTON_CLASS} ${ratioControlMode === 'overall'
-                  ? 'border-accent/55 bg-accent/18 text-text-dark'
-                  : 'border-transparent bg-transparent text-text-muted hover:bg-white/5'
+                  ? 'border-primary/45 bg-card text-foreground shadow-sm'
+                  : 'border-transparent bg-transparent text-muted-foreground hover:bg-accent'
                   }`}
                 onClick={(event) => {
                   event.stopPropagation();
@@ -1514,8 +1514,8 @@ export const StoryboardGenNode = memo(({ id, data, selected, width, height }: St
               <button
                 type="button"
                 className={`${RATIO_CONTROL_MODE_BUTTON_CLASS} ${ratioControlMode === 'cell'
-                  ? 'border-accent/55 bg-accent/18 text-text-dark'
-                  : 'border-transparent bg-transparent text-text-muted hover:bg-white/5'
+                  ? 'border-primary/45 bg-card text-foreground shadow-sm'
+                  : 'border-transparent bg-transparent text-muted-foreground hover:bg-accent'
                   }`}
                 onClick={(event) => {
                   event.stopPropagation();
@@ -1534,11 +1534,11 @@ export const StoryboardGenNode = memo(({ id, data, selected, width, height }: St
 
       {showStoryboardGenAdvancedRatioControls && (
         <div
-          className="mx-auto mb-2 flex shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.035] px-2 py-1 text-[10px] leading-none text-text-muted"
+          className="mx-auto mb-2 flex shrink-0 items-center justify-center rounded-full border border-border bg-muted px-2 py-1 text-[10px] leading-none text-muted-foreground"
           style={{ width: `${frameLayout.paramsRowWidth}px` }}
         >
           <span>{t('node.storyboardGen.cellAspectRatio')}: {resolvedAspectRatios.cellAspectRatioLabel}</span>
-          <span className="mx-1.5 text-white/22">|</span>
+          <span className="mx-1.5 text-border">|</span>
           <span>{t('node.storyboardGen.overallAspectRatio')}: {resolvedAspectRatios.overallAspectRatioLabel}</span>
         </div>
       )}
@@ -1558,7 +1558,7 @@ export const StoryboardGenNode = memo(({ id, data, selected, width, height }: St
             return (
               <div
                 key={frame.id}
-                className="relative overflow-hidden rounded-[8px] border border-white/18 bg-[#17181b]/92 transition-colors focus-within:border-white/34 hover:border-white/28"
+                className="relative overflow-hidden rounded-[8px] border border-border bg-background transition-colors focus-within:border-primary/45 hover:border-foreground/30"
                 style={{ aspectRatio: frameLayout.cellAspectRatio }}
               >
                 <div
@@ -1566,7 +1566,7 @@ export const StoryboardGenNode = memo(({ id, data, selected, width, height }: St
                     frameHighlightRefs.current[frame.id] = element;
                   }}
                   aria-hidden="true"
-                  className="ui-scrollbar pointer-events-none absolute inset-0 overflow-y-auto overflow-x-hidden text-[11px] leading-4 text-text-dark"
+                  className="ui-scrollbar pointer-events-none absolute inset-0 overflow-y-auto overflow-x-hidden text-[11px] leading-4 text-foreground"
                   style={{ scrollbarGutter: 'stable' }}
                 >
                   <div className="min-h-full whitespace-pre-wrap break-words px-2 py-2 text-left">
@@ -1598,7 +1598,7 @@ export const StoryboardGenNode = memo(({ id, data, selected, width, height }: St
                     index: String(index + 1).padStart(2, '0'),
                   })}
                   wrap="soft"
-                  className={`ui-scrollbar nodrag nowheel relative z-10 h-full w-full resize-none overflow-y-auto overflow-x-hidden bg-transparent px-2 py-2 text-left text-[11px] leading-4 text-transparent caret-text-dark focus:border-accent/50 focus:outline-none whitespace-pre-wrap break-words ${CANVAS_NODE_INPUT_PLACEHOLDER_CLASS}`}
+                  className={`ui-scrollbar nodrag nowheel relative z-10 h-full w-full resize-none overflow-y-auto overflow-x-hidden bg-transparent px-2 py-2 text-left text-[11px] leading-4 text-transparent caret-text-dark focus:border-primary/50 focus:outline-none whitespace-pre-wrap break-words ${CANVAS_NODE_INPUT_PLACEHOLDER_CLASS}`}
                   style={{ scrollbarGutter: 'stable' }}
                 />
               </div>
@@ -1609,7 +1609,7 @@ export const StoryboardGenNode = memo(({ id, data, selected, width, height }: St
 
       {showImagePicker && incomingImageItems.length > 0 && (
         <div
-          className="nowheel absolute z-30 w-[120px] overflow-hidden rounded-xl border border-[rgba(255,255,255,0.16)] bg-surface-dark shadow-xl"
+          className="nowheel absolute z-30 w-[120px] overflow-hidden rounded-xl border border-border bg-popover shadow-xl"
           style={{ left: pickerAnchor.left, top: pickerAnchor.top }}
           onMouseDown={(event) => event.stopPropagation()}
           onWheelCapture={(event) => event.stopPropagation()}
@@ -1627,8 +1627,8 @@ export const StoryboardGenNode = memo(({ id, data, selected, width, height }: St
                   insertImageReference(imageIndex);
                 }}
                 onMouseEnter={() => setPickerActiveIndex(imageIndex)}
-                className={`flex w-full items-center gap-2 border border-transparent bg-bg-dark/70 px-2 py-2 text-left text-sm text-text-dark transition-colors hover:border-[rgba(255,255,255,0.18)] ${pickerActiveIndex === imageIndex
-                  ? 'border-[rgba(255,255,255,0.24)] bg-bg-dark'
+                className={`flex w-full items-center gap-2 border border-transparent bg-popover px-2 py-2 text-left text-sm text-popover-foreground transition-colors hover:border-foreground/25 hover:bg-muted ${pickerActiveIndex === imageIndex
+                  ? 'border-primary/45 bg-muted'
                   : ''
                   }`}
               >
@@ -1646,7 +1646,7 @@ export const StoryboardGenNode = memo(({ id, data, selected, width, height }: St
         </div>
       )}
 
-      {error && <div className="mb-1.5 shrink-0 text-[10px] text-red-400 break-words [overflow-wrap:anywhere]">{error}</div>}
+      {error && <div className="mb-1.5 shrink-0 text-[10px] text-red-700 break-words [overflow-wrap:anywhere] dark:text-red-300">{error}</div>}
 
       {/* AI Parameters */}
       <div
@@ -1736,13 +1736,13 @@ export const StoryboardGenNode = memo(({ id, data, selected, width, height }: St
         type="target"
         id="target"
         position={Position.Left}
-        className="!h-2 !w-2 !border-surface-dark !bg-[rgb(148,163,184)]"
+        className="!h-2 !w-2 !border-surface-dark !bg-muted-foreground"
       />
       <Handle
         type="source"
         id="source"
         position={Position.Right}
-        className="!h-2 !w-2 !border-surface-dark !bg-[rgb(148,163,184)]"
+        className="!h-2 !w-2 !border-surface-dark !bg-muted-foreground"
       />
       <NodeResizeHandle
         minWidth={baseFrameLayout.nodeWidth}

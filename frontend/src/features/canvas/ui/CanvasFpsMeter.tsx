@@ -44,10 +44,10 @@ export function CanvasFpsMeter() {
     fps == null
       ? 'text-text-muted'
       : fps >= 50
-        ? 'text-emerald-400'
+        ? 'text-emerald-700 dark:text-emerald-300'
         : fps >= 30
-          ? 'text-amber-400'
-          : 'text-red-400';
+          ? 'text-amber-700 dark:text-amber-300'
+          : 'text-red-700 dark:text-red-300';
 
   return (
     <div
@@ -66,14 +66,14 @@ export function CanvasFpsMeter() {
         className={`${CANVAS_CONTROL_ICON_BUTTON_CLASS} ${
           enabled
             ? CANVAS_CONTROL_ICON_BUTTON_ACTIVE_CLASS
-            : 'text-text-muted hover:bg-white/10 hover:text-text'
+            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
         }`}
         aria-pressed={enabled}
         aria-label={enabled ? '关闭 FPS 显示' : '开启 FPS 显示'}
       >
         <Activity className="h-3.5 w-3.5" />
       </button>
-      <span className="pointer-events-none absolute right-0 top-full mt-1.5 whitespace-nowrap rounded-md border border-[rgba(255,255,255,0.12)] bg-bg-dark/95 px-2 py-1 text-[11px] text-text-dark opacity-0 shadow-lg transition-opacity duration-100 group-hover:opacity-100">
+      <span className="pointer-events-none absolute right-0 top-full mt-1.5 whitespace-nowrap rounded-md border border-border bg-popover/95 px-2 py-1 text-[11px] text-popover-foreground opacity-0 shadow-lg transition-opacity duration-100 group-hover:opacity-100">
         {enabled ? '关闭 FPS 显示' : '开启 FPS 显示'}
       </span>
     </div>

@@ -228,7 +228,7 @@ export function BeatCardGrid({
 
       {beats.length > 0 && (
         <div
-          className="mt-6 mb-2 flex items-center gap-3 px-6 text-muted-foreground/50"
+          className="mt-6 mb-2 flex items-center gap-3 px-6 text-muted-foreground"
           aria-hidden
         >
           <span className="h-px flex-1 bg-gradient-to-r from-transparent to-white/[0.08]" />

@@ -257,7 +257,7 @@ export const VideoClipPanel = memo(function VideoClipPanel({
     >
       <button
         type="button"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-text-dark/80 transition-colors hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-55"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-foreground/80 transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-55"
         onClick={onExit}
         disabled={isSubmitting}
         title="退出剪辑"
@@ -275,14 +275,14 @@ export const VideoClipPanel = memo(function VideoClipPanel({
 
       <div
         ref={trackRef}
-        className="relative h-14 flex-1 select-none overflow-hidden rounded-md bg-bg-dark/80"
+        className="relative h-14 flex-1 select-none overflow-hidden rounded-md bg-[#0b0d10]"
       >
         {/* thumbnail strip */}
         <div className="absolute inset-0 flex">
           {Array.from({ length: THUMB_COUNT }).map((_, index) => (
             <div
               key={index}
-              className="h-full flex-1 bg-bg-dark/70"
+              className="h-full flex-1 bg-[#0b0d10]"
               style={{
                 backgroundImage: thumbs[index] ? `url(${thumbs[index]})` : undefined,
                 backgroundSize: 'cover',
@@ -293,12 +293,12 @@ export const VideoClipPanel = memo(function VideoClipPanel({
         </div>
 
         {thumbsState === 'loading' && thumbs.length === 0 && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-[11px] text-text-muted/70">
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-[11px] text-white/65">
             提取画面帧中…
           </div>
         )}
         {thumbsState === 'error' && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-[11px] text-text-muted/70">
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-[11px] text-white/65">
             画面帧加载失败
           </div>
         )}
@@ -361,7 +361,7 @@ export const VideoClipPanel = memo(function VideoClipPanel({
       </button>
       <button
         type="button"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-black transition-colors hover:bg-white/90 disabled:cursor-not-allowed disabled:bg-white/30 disabled:text-text-muted"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-colors hover:bg-foreground/90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
         onClick={handleSubmit}
         disabled={!totalMs || selectionMs < MIN_CLIP_MS || isSubmitting}
         title={isSubmitting ? '剪辑中…' : '提交剪辑'}

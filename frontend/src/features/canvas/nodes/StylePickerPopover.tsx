@@ -45,13 +45,13 @@ export function StylePickerPopover({
       onClick={(event) => event.stopPropagation()}
     >
       <div className="flex h-11 shrink-0 items-center justify-between px-4">
-        <span className="text-sm font-medium text-text-dark">风格</span>
+        <span className="text-sm font-medium text-foreground">风格</span>
         <div className="flex items-center gap-1">
           {selectedId && (
             <button
               type="button"
               onClick={() => onSelect(null)}
-              className="h-7 rounded-md px-2 text-[11px] font-medium text-text-dark/78 transition-colors hover:bg-white/[0.08] hover:text-text-dark"
+              className="h-7 rounded-md px-2 text-[11px] font-medium text-foreground/78 transition-colors hover:bg-muted hover:text-foreground"
             >
               清除
             </button>
@@ -59,7 +59,7 @@ export function StylePickerPopover({
           <button
             type="button"
             onClick={onClose}
-            className="flex size-6 items-center justify-center rounded-md text-text-muted/90 transition-colors hover:bg-white/[0.08] hover:text-text-dark"
+            className="flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             aria-label="关闭"
           >
             <X className="size-3.5" />
@@ -80,7 +80,7 @@ export function StylePickerPopover({
         )}
         {grouped.map((group) => (
           <div key={group.key} className="mb-2.5 last:mb-0">
-            <div className="pb-1.5 pt-1 text-[11px] font-semibold leading-none text-text-dark/50">
+            <div className="pb-1.5 pt-1 text-[11px] font-semibold leading-none text-muted-foreground">
               {group.label}
             </div>
             <div className="flex flex-col gap-0.5">
@@ -94,8 +94,8 @@ export function StylePickerPopover({
                     title={item.style_prompt}
                     className={`-mx-2 flex min-h-8 items-center justify-between gap-2 rounded-[6px] px-2 py-1.5 text-left text-xs font-medium leading-snug transition-colors ${
                       isActive
-                        ? 'bg-white/[0.13] text-text-dark ring-1 ring-white/24'
-                        : 'text-text-dark/76 hover:bg-white/[0.11] hover:text-text-dark'
+                        ? 'bg-primary/12 text-foreground ring-1 ring-primary/30'
+                        : 'text-foreground/76 hover:bg-muted hover:text-foreground'
                     }`}
                   >
                     <span className="truncate">{item.label}</span>

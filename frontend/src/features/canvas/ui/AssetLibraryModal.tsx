@@ -26,13 +26,13 @@ import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData'
 import { Button } from '@/components/ui/button';
 
 const ASSET_LIBRARY_MODAL_CLASS =
-  'relative flex h-[min(720px,82vh)] w-[min(1120px,92vw)] flex-col overflow-hidden rounded-[10px] border border-white/[0.12] bg-[#15161b]/96 shadow-[0_18px_48px_rgba(0,0,0,0.45)] backdrop-blur-md';
+  'relative flex h-[min(720px,82vh)] w-[min(1120px,92vw)] flex-col overflow-hidden rounded-[10px] border border-border bg-background/96 shadow-2xl backdrop-blur-md';
 const ASSET_LIBRARY_CARD_CLASS =
-  'overflow-hidden rounded-[12px] border border-white/[0.10] bg-white/[0.04] transition-colors';
+  'overflow-hidden rounded-[12px] border border-border bg-card transition-colors';
 const ASSET_LIBRARY_CARD_HOVER_CLASS =
-  'hover:border-white/[0.18] hover:bg-white/[0.06]';
+  'hover:border-foreground/25 hover:bg-muted';
 const ASSET_LIBRARY_UPLOAD_CARD_CLASS =
-  'flex aspect-square flex-col items-center justify-center gap-3 rounded-[12px] border border-dashed border-white/[0.12] bg-white/[0.04] px-4 text-text-dark transition-colors hover:border-white/[0.18] hover:bg-white/[0.06]';
+  'flex aspect-square flex-col items-center justify-center gap-3 rounded-[12px] border border-dashed border-border bg-card px-4 text-foreground transition-colors hover:border-foreground/25 hover:bg-muted';
 
 export type AssetLibraryMedia = FreezoneAssetLibraryMedia;
 
@@ -524,14 +524,14 @@ export function AssetLibraryModal({
         {/* Title bar */}
         <div className="flex shrink-0 items-center justify-between px-5 py-4">
           <div className="flex items-center gap-2">
-            <h2 className="text-base font-semibold text-text-dark">资产库</h2>
+            <h2 className="text-base font-semibold text-foreground">资产库</h2>
           </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => void handleSyncFromMainline()}
               disabled={!project || isSyncing}
-              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-white/[0.08] px-3 text-xs font-medium text-text-dark transition-colors hover:bg-white/[0.14] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-muted px-3 text-xs font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
               title="打开时已自动同步；如主线新增了人物 / 场景 / 道具，可点此重新同步"
             >
               {isSyncing ? (
@@ -544,7 +544,7 @@ export function AssetLibraryModal({
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-text-muted/90 transition-colors hover:bg-white/[0.08] hover:text-text-dark"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               title="关闭"
             >
               <X className="h-4 w-4" />
@@ -554,7 +554,7 @@ export function AssetLibraryModal({
 
         {/* Tabs + counter */}
         <div className="flex shrink-0 items-center justify-between px-5 pb-4">
-          <div className="flex items-center gap-1 rounded-lg bg-white/[0.04] p-0.5">
+          <div className="flex items-center gap-1 rounded-lg bg-muted p-0.5">
             {tabs.map((tab) => (
               <button
                 key={tab.key}
@@ -562,8 +562,8 @@ export function AssetLibraryModal({
                 onClick={() => setActiveTabKey(tab.key)}
                 className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                   tab.key === activeTabKey
-                    ? 'bg-white/[0.12] text-text-dark'
-                    : 'text-text-muted/80 hover:text-text-dark'
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 {tab.label}
@@ -572,14 +572,14 @@ export function AssetLibraryModal({
           </div>
           <div className="flex items-center gap-3 text-xs text-text-muted/85">
             <span>
-              已录入 <span className="text-text-dark">{totalCount}</span> 个
+              已录入 <span className="text-foreground">{totalCount}</span> 个
             </span>
-            <span className="h-3 w-px bg-white/10" />
+            <span className="h-3 w-px bg-border" />
             <span>
               已选{' '}
               <span
                 className={
-                  activeSelectedCount > 0 ? 'text-primary' : 'text-text-dark'
+                  activeSelectedCount > 0 ? 'text-primary' : 'text-foreground'
                 }
               >
                 {activeSelectedCount}
@@ -595,12 +595,12 @@ export function AssetLibraryModal({
         {/* Grid */}
         <div className="ui-scrollbar relative flex-1 overflow-y-auto px-5 pb-2">
           {isDragging && activeTab?.allowUpload && (
-            <div className="pointer-events-none absolute inset-x-5 inset-y-0 z-10 flex items-center justify-center rounded-[8px] border border-dashed border-accent/60 bg-accent/10 text-sm text-text-dark">
+            <div className="pointer-events-none absolute inset-x-5 inset-y-0 z-10 flex items-center justify-center rounded-[8px] border border-dashed border-primary/60 bg-primary/10 text-sm text-foreground">
               松开以上传{activeTab?.label ?? '文件'}
             </div>
           )}
           {libraryError && (
-            <div className="mb-3 rounded-md bg-red-500/10 px-3 py-2 text-[12px] text-red-400">
+            <div className="mb-3 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-[12px] text-destructive">
               加载失败：{libraryError}
             </div>
           )}
@@ -618,7 +618,7 @@ export function AssetLibraryModal({
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={!project}
-                    className="inline-flex h-8 items-center justify-center rounded-md bg-white/[0.10] px-4 text-xs font-medium text-text-dark transition-colors hover:bg-white/[0.16] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex h-8 items-center justify-center rounded-md bg-muted px-4 text-xs font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Upload className="mr-1.5 h-3.5 w-3.5" />
                     本地上传
@@ -659,7 +659,7 @@ export function AssetLibraryModal({
                     draggable={false}
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-white/[0.03] text-text-muted/50">
+                  <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
                     {p.media === 'video' ? (
                       <VideoIcon className="h-8 w-8" />
                     ) : (
@@ -675,9 +675,9 @@ export function AssetLibraryModal({
                     </>
                   ) : (
                     <>
-                      <div className="text-[11px] text-red-300">上传失败</div>
+                      <div className="text-[11px] text-red-200">上传失败</div>
                       {p.error && (
-                        <div className="px-2 text-[10px] text-red-200/80 line-clamp-2 text-center">
+                        <div className="px-2 text-center text-[10px] text-red-100/90 line-clamp-2">
                           {p.error}
                         </div>
                       )}
@@ -709,7 +709,7 @@ export function AssetLibraryModal({
                   key={entry.id ?? `idx-${idx}`}
                   className={`group relative aspect-square ${ASSET_LIBRARY_CARD_CLASS} ${
                     selected
-                      ? 'border-accent/70 ring-1 ring-accent/45'
+                      ? 'border-primary/70 ring-1 ring-primary/45'
                       : ASSET_LIBRARY_CARD_HOVER_CLASS
                   } cursor-pointer`}
                   onClick={() => {
@@ -733,7 +733,7 @@ export function AssetLibraryModal({
                       preload="metadata"
                     />
                   ) : (
-                    <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-white/[0.03] text-text-muted/70">
+                    <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-muted text-muted-foreground">
                       <Music className="h-9 w-9" />
                       <audio
                         src={resolveImageDisplayUrl(entry.url)}
@@ -762,7 +762,7 @@ export function AssetLibraryModal({
                     }
                     className={`absolute left-2 top-2 inline-flex h-5 w-5 items-center justify-center rounded-full border transition-colors ${
                       selected
-                        ? 'border-accent bg-accent text-white'
+                        ? 'border-primary bg-primary text-primary-foreground'
                         : 'border-white/70 bg-black/35 text-transparent hover:border-white'
                     } ${disabledSelect ? 'cursor-not-allowed opacity-40' : ''}`}
                   >
@@ -820,7 +820,7 @@ export function AssetLibraryModal({
         <div className="flex shrink-0 items-center justify-end gap-3 px-5 pb-3 pt-2">
           <Button
             size="sm"
-            className="bg-white px-4 text-[#15161b] hover:bg-white/90"
+            className="bg-foreground px-4 text-background hover:bg-foreground/90"
             disabled={!hasSelection}
             onClick={handleConfirm}
           >

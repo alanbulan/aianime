@@ -229,9 +229,9 @@ const IMAGE_PARAM_LABEL_CLASS =
 const IMAGE_PARAM_BUTTON_BASE_CLASS =
   'inline-flex h-8 items-center justify-center rounded-md text-xs transition-colors';
 const IMAGE_PARAM_ACTIVE_BUTTON_CLASS =
-  'bg-white/[0.13] text-text-dark ring-1 ring-white/24';
+  'bg-accent text-accent-foreground ring-1 ring-primary/30';
 const IMAGE_PARAM_IDLE_BUTTON_CLASS =
-  'bg-white/[0.07] text-text-muted/95 hover:bg-white/[0.11] hover:text-text-dark';
+  'bg-muted text-muted-foreground hover:bg-accent hover:text-foreground';
 const IMAGE_PARAM_ROW_CLASS = 'mb-4 flex gap-2';
 const NODE_COUNT_OPTION_BASE_CLASS =
   'flex w-full items-center justify-center rounded-[6px] px-3 py-1.5 text-xs transition-colors';
@@ -1233,13 +1233,13 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
         type="target"
         position={Position.Left}
         id="target"
-        className="!h-2 !w-2 !border-0 !bg-[rgb(148,163,184)]"
+        className="!h-2 !w-2 !border-0 !bg-muted-foreground"
       />
       <Handle
         type="source"
         position={Position.Right}
         id="source"
-        className="!h-2 !w-2 !border-0 !bg-[rgb(148,163,184)]"
+        className="!h-2 !w-2 !border-0 !bg-muted-foreground"
       />
 
       {/* 画册展开时隐藏浮动标题和分辨率角标——画册容器自带「画册 · N 张」头部，
@@ -1427,7 +1427,7 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
           // error banner shows — placeholder + upload affordances would clutter it.
           <div className="h-full w-full" />
         ) : (
-          <div className="flex h-full w-full items-center px-8 text-text-muted/55">
+          <div className="flex h-full w-full items-center px-8 text-text-muted">
             {isUploading ? (
               <div className="flex w-full flex-col items-center justify-center gap-2">
                 <Loader2 className="h-7 w-7 animate-spin opacity-70" />
@@ -1451,7 +1451,7 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
                     }}
                     onPointerDown={(event) => event.stopPropagation()}
                     title="新建一个上游图片节点用作参考"
-                    className="nodrag -mx-2 inline-flex items-center gap-3 rounded-lg px-2 py-2 text-sm text-text-dark transition-colors hover:bg-white/[0.08]"
+                    className="nodrag -mx-2 inline-flex items-center gap-3 rounded-lg px-2 py-2 text-sm text-foreground transition-colors hover:bg-muted"
                   >
                     <Upload className="h-4 w-4 text-text-muted/90" />
                     <span>图生图</span>
@@ -1485,19 +1485,19 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
         )}
 
         {!isGenerating && generationError && (
-          <div className="nodrag absolute inset-x-5 top-1/2 z-10 flex -translate-y-1/2 flex-col items-center text-center">
-            <div className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-red-200">
-              <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-red-300/90" />
+          <div className="nodrag absolute inset-x-5 top-1/2 z-10 flex -translate-y-1/2 flex-col items-center rounded-lg border border-destructive/35 bg-card/95 px-4 py-3 text-center shadow-lg">
+            <div className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-destructive">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-destructive" />
               <span>{t("node.imageNode.generationFailed")}</span>
             </div>
             <div
-              className="mt-1 max-h-12 max-w-full overflow-y-auto break-words text-[11px] leading-4 text-red-100/76 [overflow-wrap:anywhere]"
+              className="mt-1 max-h-12 max-w-full overflow-y-auto break-words text-[11px] leading-4 text-destructive [overflow-wrap:anywhere]"
               title={generationError}
             >
               {generationError}
             </div>
             {generationErrorRequestId && (
-              <div className="mt-1 flex max-w-full items-center justify-center gap-1.5 text-[10px] text-text-muted/58">
+              <div className="mt-1 flex max-w-full items-center justify-center gap-1.5 text-[10px] text-text-muted">
                 <span className="shrink-0">{t("node.imageNode.requestId")}</span>
                 <code className="min-w-0 max-w-[160px] truncate font-mono" title={generationErrorRequestId}>
                   {generationErrorRequestId}
@@ -1510,7 +1510,7 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
                     void handleCopyErrorDetails();
                   }}
                   onPointerDown={(event) => event.stopPropagation()}
-                  className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-text-muted/70 transition-colors hover:bg-white/10 hover:text-text-dark"
+                  className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 >
                   <Copy className="h-3 w-3" />
                 </button>
@@ -1535,15 +1535,15 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
         // （组合一起走）。按下时记录起点，cell 的 onClick 据此区分「点击选主图」
         // 和「拖动后松手」（React Flow 拖完浏览器仍会补发 click）。
         <div
-          className="nowheel absolute -left-3 -top-3 z-[80] cursor-grab rounded-2xl border border-white/15 bg-white/[0.045] p-3 shadow-[0_16px_48px_rgba(0,0,0,0.4)] backdrop-blur-[2px] active:cursor-grabbing"
+          className="nowheel absolute -left-3 -top-3 z-[80] cursor-grab rounded-2xl border border-border bg-card p-3 shadow-xl active:cursor-grabbing"
           style={{ width: resolvedWidth * 2 + 12 + 24 }}
           onClick={(event) => event.stopPropagation()}
           onPointerDownCapture={(event) => {
             albumPointerDownPosRef.current = { x: event.clientX, y: event.clientY };
           }}
         >
-          <div className="mb-2 flex items-center gap-1.5 px-1 text-[12px] font-medium text-white/60">
-            <ImageIcon className="h-3.5 w-3.5 text-white/45" />
+          <div className="mb-2 flex items-center gap-1.5 px-1 text-[12px] font-medium text-muted-foreground">
+            <ImageIcon className="h-3.5 w-3.5 text-muted-foreground" />
             画册 · {albumTotalSlots} 张
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -1568,10 +1568,10 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
                   }
                   handleSetAlbumMainImage(url);
                 }}
-                className={`group/albumcell relative cursor-pointer overflow-hidden rounded-[var(--node-radius)] border bg-[#1b1b1d] shadow-[0_12px_32px_rgba(0,0,0,0.45)] transition-colors ${
+                className={`group/albumcell relative cursor-pointer overflow-hidden rounded-[var(--node-radius)] border bg-[#0b0d10] shadow-[0_12px_32px_rgba(0,0,0,0.45)] transition-colors ${
                   isMain
-                    ? 'border-accent/80 ring-2 ring-accent/40'
-                    : 'border-white/12 hover:border-white/35'
+                    ? 'border-primary/80 ring-2 ring-primary/40'
+                    : 'border-border hover:border-foreground/35'
                 }`}
                 style={{ width: resolvedWidth, height: resolvedHeight }}
               >
@@ -1616,7 +1616,7 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
           {Array.from({ length: albumPendingCount }, (_, index) => (
             <div
               key={`album-pending-${index}`}
-              className="relative flex items-center justify-center overflow-hidden rounded-[var(--node-radius)] border border-white/10 bg-[#1b1b1d] shadow-[0_12px_32px_rgba(0,0,0,0.45)]"
+              className="relative flex items-center justify-center overflow-hidden rounded-[var(--node-radius)] border border-border bg-[#0b0d10] shadow-[0_12px_32px_rgba(0,0,0,0.45)]"
               style={{ width: resolvedWidth, height: resolvedHeight }}
             >
               <div className="flex flex-col items-center gap-2 text-text-muted/70">
@@ -1906,7 +1906,7 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
       {refHover && refPreviewStyle
         && createPortal(
           <div
-            className="pointer-events-none fixed z-[10001] overflow-hidden rounded-lg border border-white/15 bg-surface-dark/95 shadow-xl"
+            className="pointer-events-none fixed z-[10001] overflow-hidden rounded-lg border border-border bg-surface-dark/95 shadow-xl"
             style={{
               left: refPreviewStyle.left,
               top: refPreviewStyle.top,
@@ -2354,7 +2354,7 @@ function CountSelect({ value, onChange }: CountSelectProps) {
                 className={`${NODE_COUNT_OPTION_BASE_CLASS} ${
                   isActive
                     ? IMAGE_PARAM_ACTIVE_BUTTON_CLASS
-                    : 'text-text-muted/95 hover:bg-white/[0.11] hover:text-text-dark'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >
                 {option}张

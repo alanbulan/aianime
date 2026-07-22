@@ -176,13 +176,13 @@ export function CoverEditor({
   const tabClass = (active: boolean) =>
     `rounded-md px-3 py-1.5 text-sm transition-colors ${
       active
-        ? "bg-white/12 text-text-dark"
-        : "text-text-muted hover:bg-white/[0.06] hover:text-text-dark"
+        ? "bg-accent text-accent-foreground"
+        : "text-muted-foreground hover:bg-muted hover:text-foreground"
     }`;
 
   return createPortal(
     <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="w-[640px] max-w-[92vw] rounded-2xl border border-border-dark bg-surface-dark p-5 shadow-2xl">
+      <div className="w-[640px] max-w-[92vw] rounded-2xl border border-border bg-popover p-5 text-popover-foreground shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-text-dark">
             {t("videoCompose.cover.title")}
@@ -191,7 +191,7 @@ export function CoverEditor({
             type="button"
             onClick={onCancel}
             disabled={busy}
-            className="rounded-full p-1 text-text-muted transition-colors hover:bg-white/[0.08] hover:text-text-dark disabled:opacity-50"
+            className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
             aria-label={t("common.close")}
           >
             <X className="h-4 w-4" />
@@ -199,7 +199,7 @@ export function CoverEditor({
         </div>
 
         {/* Tabs */}
-        <div className="mb-4 inline-flex gap-1 rounded-lg bg-bg-dark p-1">
+        <div className="mb-4 inline-flex gap-1 rounded-lg bg-muted p-1">
           <button
             type="button"
             disabled={!canPickFrame}
@@ -234,7 +234,7 @@ export function CoverEditor({
               className="h-full w-full object-contain"
             />
           ) : (
-            <label className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-2 text-text-muted transition-colors hover:bg-white/[0.04]">
+            <label className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white">
               <ImageUp className="h-7 w-7" />
               <span className="text-xs">{t("videoCompose.cover.uploadHint")}</span>
               <input
@@ -267,7 +267,7 @@ export function CoverEditor({
         ) : (
           uploadPreview && (
             <div className="mt-4">
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-border-dark px-3 py-1.5 text-xs text-text-dark transition-colors hover:bg-white/[0.06]">
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-border bg-muted px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-accent">
                 <ImageUp className="h-4 w-4" />
                 {t("videoCompose.cover.reupload")}
                 <input
@@ -282,7 +282,7 @@ export function CoverEditor({
         )}
 
         {error && (
-          <div className="mt-3 rounded-md bg-red-500/10 px-3 py-2 text-xs text-red-200">
+          <div className="mt-3 rounded-md border border-destructive/25 bg-destructive/10 px-3 py-2 text-xs text-destructive">
             {t("videoCompose.cover.error")}: {error}
           </div>
         )}
@@ -292,7 +292,7 @@ export function CoverEditor({
             type="button"
             disabled={busy}
             onClick={onCancel}
-            className="rounded-md border border-border-dark px-4 py-1.5 text-sm text-text-dark transition-colors hover:bg-white/[0.06] disabled:opacity-50"
+            className="rounded-md border border-border bg-muted px-4 py-1.5 text-sm text-foreground transition-colors hover:bg-accent disabled:opacity-50"
           >
             {t("common.cancel")}
           </button>

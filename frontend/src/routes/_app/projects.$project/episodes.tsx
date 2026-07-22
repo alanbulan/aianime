@@ -130,7 +130,7 @@ function EpisodeHeaderLayout({
         {slotActive && (
           <div
             ref={setSlotTarget}
-            className="flex min-h-0 w-full min-w-0 justify-center border-b border-border/30 bg-white/[0.04] px-9 py-3 shadow-[inset_0_1px_0_hsl(var(--border)/0.3)]"
+            className="flex min-h-0 w-full min-w-0 justify-center border-b border-border bg-muted px-9 py-3 shadow-sm"
           />
         )}
       </div>
@@ -174,7 +174,7 @@ function EpisodeTitleSwitcher({
           render={
             <button
               type="button"
-              className="group inline-flex max-w-full items-center gap-2 rounded-[8px] px-1.5 py-1 text-left transition-colors hover:bg-white/[0.045] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+              className="group inline-flex max-w-full items-center gap-2 rounded-[8px] px-1.5 py-1 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
               aria-label={t("episode.list.switchEpisode")}
             />
           }
@@ -186,7 +186,7 @@ function EpisodeTitleSwitcher({
       <DropdownMenuContent
         align="start"
         sideOffset={8}
-        className="w-80 max-h-[min(72vh,30rem)] overflow-hidden border border-white/15 bg-background/95 p-1.5 text-foreground shadow-none ring-0 backdrop-blur-2xl"
+        className="w-80 max-h-[min(72vh,30rem)] overflow-hidden border border-border bg-popover/95 p-1.5 text-popover-foreground shadow-xl ring-0 backdrop-blur-2xl"
       >
         <DropdownMenuGroup>
           <DropdownMenuLabel className="px-2 py-1.5 text-[11px]">
@@ -213,8 +213,8 @@ function EpisodeTitleSwitcher({
                     if (!isCurrent) onSelectEpisode(episode.number);
                   }}
                   className={cn(
-                    "my-1 items-start gap-3 rounded-[7px] px-2 py-2.5 hover:bg-white/[0.06] focus:bg-white/[0.06]",
-                    isCurrent && "bg-white/[0.06] text-foreground",
+                    "my-1 items-start gap-3 rounded-[7px] px-2 py-2.5 hover:bg-muted focus:bg-muted",
+                    isCurrent && "bg-muted text-foreground",
                   )}
                 >
                   <span className="min-w-0 flex-1">
@@ -307,7 +307,7 @@ function TopBar({
     : t("episode.list.subtitle");
 
   return (
-    <div className="flex shrink-0 flex-col gap-3 border-b border-border/30 bg-background px-9 py-5 lg:flex-row lg:items-center lg:justify-between">
+    <div className="flex shrink-0 flex-col gap-3 border-b border-border bg-background px-9 py-5 lg:flex-row lg:items-center lg:justify-between">
       <div className="flex min-w-0 items-start gap-3">
         <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
           <Clapperboard className="size-[18px]" />
@@ -352,8 +352,8 @@ function TopBar({
             {t("episode.list.replanEpisodes")}
             <CreditCostInline
               display={planCostDisplay}
-              className="text-black"
-              iconClassName="text-black drop-shadow-none [&_path]:fill-current"
+              className="text-primary-foreground"
+              iconClassName="text-primary-foreground drop-shadow-none [&_path]:fill-current"
             />
           </Button>
         )}
@@ -372,8 +372,8 @@ function TopBar({
             {t("episode.list.planEpisodes")}
             <CreditCostInline
               display={planCostDisplay}
-              className="text-black"
-              iconClassName="text-black drop-shadow-none [&_path]:fill-current"
+              className="text-primary-foreground"
+              iconClassName="text-primary-foreground drop-shadow-none [&_path]:fill-current"
             />
           </Button>
         )}
@@ -491,7 +491,7 @@ function EpisodePlanShortcut({
   onClick: () => void;
 }) {
   return (
-    <div className="group flex min-w-0 items-center gap-2 rounded-[8px] bg-white/[0.025] px-2 py-1 transition-colors hover:bg-white/[0.045]">
+    <div className="group flex min-w-0 items-center gap-2 rounded-[8px] bg-muted px-2 py-1 transition-colors hover:bg-accent">
       <span className="flex min-w-0 flex-1 items-center gap-1.5 text-[11px] text-muted-foreground">
         {icon}
         <span className="truncate">{summary}</span>
@@ -713,8 +713,8 @@ function EpisodeListItem({
         }
       }}
       className={cn(
-        "flex h-full min-h-[13rem] w-full flex-col gap-2 rounded-[10px] border border-white/[0.06] bg-white/[0.025] p-3 text-left transition-all duration-200 ease-out",
-        "hover:scale-[1.01] hover:border-white/[0.12] hover:bg-white/[0.04]",
+        "flex h-full min-h-[13rem] w-full flex-col gap-2 rounded-[10px] border border-border bg-card p-3 text-left transition-all duration-200 ease-out",
+        "hover:scale-[1.01] hover:border-foreground/25 hover:bg-muted",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
       )}
     >
@@ -739,7 +739,7 @@ function EpisodeListItem({
 
       <div className="grid gap-1.5 pt-1">
         <EpisodePlanShortcut
-          icon={<Users className="size-3.5 shrink-0 text-sky-400" />}
+          icon={<Users className="size-3.5 shrink-0 text-sky-700 dark:text-sky-300" />}
           summary={identityLabel}
           actionLabel={
             identityCount > 0
@@ -752,7 +752,7 @@ function EpisodeListItem({
           onClick={handlePlanIdentities}
         />
         <EpisodePlanShortcut
-          icon={<MapPinned className="size-3.5 shrink-0 text-emerald-400" />}
+          icon={<MapPinned className="size-3.5 shrink-0 text-emerald-700 dark:text-emerald-300" />}
           summary={sceneLabel}
           actionLabel={
             sceneCount > 0
@@ -765,7 +765,7 @@ function EpisodeListItem({
           onClick={handlePlanScenes}
         />
         <EpisodePlanShortcut
-          icon={<Package className="size-3.5 shrink-0 text-amber-400" />}
+          icon={<Package className="size-3.5 shrink-0 text-amber-700 dark:text-amber-300" />}
           summary={propLabel}
           actionLabel={
             propCount > 0
@@ -789,7 +789,7 @@ function EpisodeListItem({
             onSelect();
           }}
           onMouseDown={(event) => event.stopPropagation()}
-          className="h-8 w-full justify-center gap-1.5 rounded-[8px] border-white/10 bg-white/[0.025] px-3 text-xs font-normal text-foreground shadow-none hover:border-primary/45 hover:bg-primary/12 hover:text-primary"
+          className="h-8 w-full justify-center gap-1.5 rounded-[8px] border-border bg-muted px-3 text-xs font-normal text-foreground shadow-none hover:border-primary/45 hover:bg-primary/12 hover:text-primary"
         >
           {t("episode.list.viewDetails")}
           <ArrowRight className="size-3.5" />
@@ -1009,7 +1009,7 @@ function EpisodesPage() {
         ) : (
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             {!isLoading && (
-              <div className="shrink-0 border-b border-border/30 bg-background px-3 py-3 lg:px-9">
+              <div className="shrink-0 border-b border-border bg-background px-3 py-3 lg:px-9">
                 <EpisodeStatsStrip
                   stats={stats}
                   totalCharacters={totalCharacters}
@@ -1022,7 +1022,7 @@ function EpisodesPage() {
                 <EpisodeListSkeleton label={t("common.loading")} />
               ) : displayEpisodes.length === 0 ? (
                 <div className="mx-auto mt-16 flex max-w-md flex-col items-center gap-3 text-center">
-                  <div className="flex size-16 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.035]">
+                  <div className="flex size-16 items-center justify-center rounded-full border border-border bg-muted">
                     <Clapperboard className="size-6 text-muted-foreground" />
                   </div>
                   <h2 className="text-sm font-semibold text-foreground">
@@ -1036,7 +1036,7 @@ function EpisodesPage() {
                     size="sm"
                     onClick={handlePlan}
                     disabled={planPending}
-                    className="mt-2 h-8 gap-1.5 rounded-[8px] border-white/10 bg-transparent px-3 text-xs font-normal shadow-none hover:bg-white/[0.04] dark:bg-transparent"
+                    className="mt-2 h-8 gap-1.5 rounded-[8px] border-border bg-transparent px-3 text-xs font-normal shadow-none hover:bg-muted"
                   >
                     {planPending ? (
                       <Loader2 className="size-3.5 animate-spin" />

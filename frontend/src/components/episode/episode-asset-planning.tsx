@@ -112,9 +112,9 @@ const PROP_TYPE_VALUES = [
 ] as const;
 
 const PROMOTE_FIELD_CLASS =
-  "rounded-[9px] border-white/10 bg-white/[0.05] shadow-none focus-visible:border-white/24 focus-visible:ring-0 dark:bg-white/[0.05]";
+  "rounded-[9px] border-border bg-muted shadow-none focus-visible:border-primary/45 focus-visible:ring-0";
 const ASSET_PLAN_ACTION_BUTTON_CLASS =
-  "!h-6 shrink-0 gap-1 !rounded-[6px] !border !border-white/[0.14] !bg-white/[0.03] px-2 text-[11px] font-normal text-foreground/75 shadow-none hover:!border-white/[0.24] hover:!bg-white/[0.07] hover:text-foreground disabled:!border-white/[0.08] disabled:!bg-white/[0.02] [&_svg]:!size-3";
+  "!h-6 shrink-0 gap-1 !rounded-[6px] !border !border-border !bg-muted px-2 text-[11px] font-normal text-foreground/75 shadow-none hover:!border-foreground/25 hover:!bg-accent hover:text-foreground disabled:!border-border disabled:!bg-muted disabled:text-muted-foreground/50 [&_svg]:!size-3";
 
 function isErrorResponse(value: unknown): value is ErrorResponse {
   return Boolean(
@@ -219,7 +219,7 @@ export function EpisodeAssetPlanning({
       {selectedCategory === "scenes" && (
         <AssetPlanningRow
           className="w-full"
-          icon={<MapPinned className="size-3.5 text-emerald-400" />}
+          icon={<MapPinned className="size-3.5 text-emerald-700 dark:text-emerald-300" />}
           title={labels.scenes}
           emptyLabel={labels.noScenes}
           items={scenes}
@@ -233,7 +233,7 @@ export function EpisodeAssetPlanning({
       {selectedCategory === "props" && (
         <AssetPlanningRow
           className="w-full"
-          icon={<Package className="size-3.5 text-amber-400" />}
+          icon={<Package className="size-3.5 text-amber-700 dark:text-amber-300" />}
           title={labels.props}
           emptyLabel={labels.noProps}
           items={props.map((item) => item.prop_id.trim())}
@@ -297,7 +297,7 @@ function AssetPlanningRow({
   return (
     <div
       className={cn(
-        "flex h-[128px] min-w-0 flex-col overflow-hidden rounded-[10px] border border-white/[0.06] bg-white/[0.02] px-4 pb-4 pt-3",
+        "flex h-[128px] min-w-0 flex-col overflow-hidden rounded-[10px] border border-border bg-card px-4 pb-4 pt-3",
         className,
       )}
     >
@@ -328,14 +328,14 @@ function AssetPlanningRow({
               <Badge
                 key={item}
                 variant="outline"
-                className="max-w-40 truncate border-white/15 bg-white/[0.02]"
+                className="max-w-40 truncate border-border bg-muted"
               >
                 {item}
               </Badge>
             ),
           )
         ) : (
-          <span className="text-xs italic text-muted-foreground/60">
+          <span className="text-xs italic text-muted-foreground">
             {emptyLabel}
           </span>
         )}
@@ -375,13 +375,13 @@ function IdentityAssetCard({
   return (
     <div
       className={cn(
-        "flex h-[128px] min-w-0 flex-col overflow-hidden rounded-[10px] border border-white/[0.06] bg-white/[0.02] px-4 pb-4 pt-3",
+        "flex h-[128px] min-w-0 flex-col overflow-hidden rounded-[10px] border border-border bg-card px-4 pb-4 pt-3",
         className,
       )}
     >
       <div className="mb-3 flex h-6 shrink-0 items-center justify-between gap-3">
         <div className="inline-flex min-w-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">
-          <UsersRound className="size-3.5 text-sky-400" />
+          <UsersRound className="size-3.5 text-sky-700 dark:text-sky-300" />
           <span>{title}</span>
         </div>
         <Button
@@ -410,7 +410,7 @@ function IdentityAssetCard({
             />
           ))
         ) : (
-          <span className="text-xs italic text-muted-foreground/60">
+          <span className="text-xs italic text-muted-foreground">
             {emptyLabel}
           </span>
         )}
@@ -456,7 +456,7 @@ function CharacterIdentityBadges({
                 "flex max-w-full items-center gap-2 rounded-[8px] border px-2.5 py-1 text-xs transition-colors",
                 isDefault
                   ? "border-primary/60 bg-primary/10 text-foreground"
-                  : "border-white/12 bg-white/[0.03] text-muted-foreground",
+                  : "border-border bg-muted text-muted-foreground",
               )}
             >
               <span className="truncate">{identity.identity_name}</span>
@@ -504,13 +504,13 @@ function EpisodePropBadge({
     <span className="inline-flex max-w-full items-center gap-1">
       <Badge
         variant="outline"
-        className="max-w-40 truncate border-white/15 bg-white/[0.02]"
+        className="max-w-40 truncate border-border bg-muted"
       >
         {propId}
       </Badge>
       {existsInGlobal ? (
         <span
-          className="inline-flex size-5 items-center justify-center rounded-full text-emerald-400"
+          className="inline-flex size-5 items-center justify-center rounded-full text-emerald-700 dark:text-emerald-300"
           title={labels.propInGlobal}
           aria-label={labels.propInGlobal}
         >
@@ -532,7 +532,7 @@ function EpisodePropBadge({
           aria-label={labels.promoteProp}
           title={labels.promoteProp}
           onClick={onPromote}
-          className="text-white/60 hover:bg-white/[0.06] hover:text-white/82"
+          className="text-muted-foreground hover:bg-muted hover:text-foreground"
         >
           <Upload className="size-3.5" />
         </Button>
@@ -570,7 +570,7 @@ function PropPromotionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         overlayClassName="bg-black/8 supports-backdrop-filter:backdrop-blur-sm"
-        className="gap-5 overflow-hidden rounded-2xl border border-white/10 bg-black/35 bg-[linear-gradient(135deg,rgba(255,255,255,0.045),rgba(255,255,255,0.012))] p-7 shadow-none backdrop-blur-2xl sm:max-w-[560px]"
+        className="gap-5 overflow-hidden rounded-2xl border border-border bg-popover p-7 text-popover-foreground shadow-2xl sm:max-w-[560px]"
       >
         <DialogHeader className="gap-3">
           <DialogTitle>{labels.promotePropTitle(draft.name)}</DialogTitle>
@@ -578,7 +578,7 @@ function PropPromotionDialog({
         <div className="grid gap-5 pt-1">
           <div className="grid gap-2.5">
             <Label>{labels.promotePropName}</Label>
-            <div className="flex h-8 w-full cursor-default items-center rounded-[9px] border border-white/10 bg-white/[0.035] px-2.5 text-sm text-foreground/82">
+            <div className="flex h-8 w-full cursor-default items-center rounded-[9px] border border-border bg-muted px-2.5 text-sm text-foreground/82">
               {draft.name}
             </div>
           </div>

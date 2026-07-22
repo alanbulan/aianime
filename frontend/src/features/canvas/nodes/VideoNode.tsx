@@ -289,9 +289,9 @@ const VIDEO_PARAM_LABEL_CLASS =
 const VIDEO_PARAM_BUTTON_BASE_CLASS =
   "inline-flex items-center justify-center rounded px-2 py-2 text-xs transition-colors";
 const VIDEO_PARAM_ACTIVE_BUTTON_CLASS =
-  "bg-white/[0.13] text-text-dark ring-1 ring-white/24";
+  "bg-primary/12 text-foreground ring-1 ring-primary/30";
 const VIDEO_PARAM_IDLE_BUTTON_CLASS =
-  "bg-white/[0.07] text-text-muted/95 hover:bg-white/[0.11] hover:text-text-dark";
+  "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground";
 const VIDEO_PARAM_ROW_CLASS = "mb-4 gap-2";
 const VIDEO_COUNT_OPTION_BASE_CLASS =
   "block w-full rounded-[6px] px-3 py-1.5 text-left text-xs transition-colors";
@@ -300,8 +300,8 @@ const VIDEO_MODE_POPOVER_CLASS =
 // 禁用模式的 hover 提示气泡：悬浮在菜单右侧，深色圆角小胶囊，与设计稿一致。
 const VIDEO_MODE_TOOLTIP_CLASS =
   "pointer-events-none absolute left-full top-1/2 z-[10001] ml-2 -translate-y-1/2 " +
-  "whitespace-nowrap rounded-md bg-[#1f1f22] px-2.5 py-1.5 text-[11px] font-medium " +
-  "text-white/90 shadow-lg ring-1 ring-white/10";
+  "whitespace-nowrap rounded-md border border-border bg-popover px-2.5 py-1.5 text-[11px] font-medium " +
+  "text-popover-foreground/90 shadow-lg";
 const DEFAULT_DURATION_MIN = 5;
 const DEFAULT_DURATION_MAX = 15;
 
@@ -2623,13 +2623,13 @@ export const VideoNode = memo(
           type="target"
           position={Position.Left}
           id="target"
-          className="!h-2 !w-2 !border-0 !bg-[rgb(148,163,184)]"
+          className="!h-2 !w-2 !border-0 !bg-muted-foreground"
         />
         <Handle
           type="source"
           position={Position.Right}
           id="source"
-          className="!h-2 !w-2 !border-0 !bg-[rgb(148,163,184)]"
+          className="!h-2 !w-2 !border-0 !bg-muted-foreground"
         />
 
         {/* 画册展开时隐藏浮动标题和分辨率角标——画册容器自带头部（与图片节点一致）。 */}
@@ -2791,19 +2791,19 @@ export const VideoNode = memo(
               />
             </div>
           ) : hasGenerationError ? (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-2 px-4 text-red-300">
+            <div className="flex h-full w-full flex-col items-center justify-center gap-2 px-4 text-destructive">
               <AlertTriangle className="h-7 w-7 opacity-90" />
-              <span className="text-center text-[12px] font-medium leading-5 text-red-200">
+              <span className="text-center text-[12px] font-medium leading-5 text-destructive">
                 视频生成失败
               </span>
-              <span className="max-h-[64px] overflow-y-auto break-words text-center text-[11px] leading-5 text-red-200/90 [overflow-wrap:anywhere]">
+              <span className="max-h-[64px] overflow-y-auto break-words text-center text-[11px] leading-5 text-destructive [overflow-wrap:anywhere]">
                 {generationError}
               </span>
               {generationErrorRequestId && (
                 <div className="flex w-full max-w-[240px] items-center gap-1 rounded bg-red-500/10 px-2 py-1">
-                  <span className="shrink-0 text-[10px] text-red-300/70">请求ID</span>
+                  <span className="shrink-0 text-[10px] text-destructive">请求ID</span>
                   <code
-                    className="min-w-0 flex-1 truncate font-mono text-[10px] text-red-200"
+                    className="min-w-0 flex-1 truncate font-mono text-[10px] text-destructive"
                     title={generationErrorRequestId}
                   >
                     {generationErrorRequestId}
@@ -2843,7 +2843,7 @@ export const VideoNode = memo(
                         event.stopPropagation();
                         spawnFrameUploads("firstLastFrame");
                       }}
-                      className="nodrag -mx-2 inline-flex items-center gap-3 rounded-lg px-2 py-2 text-sm text-text-dark transition-colors hover:bg-white/[0.08]"
+                      className="nodrag -mx-2 inline-flex items-center gap-3 rounded-lg px-2 py-2 text-sm text-foreground transition-colors hover:bg-muted"
                     >
                       <Layers className="h-4 w-4 text-text-muted/90" />
                       <span>首尾帧生成视频</span>
@@ -2854,7 +2854,7 @@ export const VideoNode = memo(
                         event.stopPropagation();
                         spawnFrameUploads("firstFrame");
                       }}
-                      className="nodrag -mx-2 inline-flex items-center gap-3 rounded-lg px-2 py-2 text-sm text-text-dark transition-colors hover:bg-white/[0.08]"
+                      className="nodrag -mx-2 inline-flex items-center gap-3 rounded-lg px-2 py-2 text-sm text-foreground transition-colors hover:bg-muted"
                     >
                       <Sparkles className="h-4 w-4 text-text-muted/90" />
                       <span>首帧生成视频</span>
@@ -2867,8 +2867,8 @@ export const VideoNode = memo(
           )}
 
           {videoSource && videoLoadError && !isGenerating && !isUploading && (
-            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 bg-bg-dark/70 px-4 text-center text-red-200">
-              <AlertTriangle className="h-6 w-6 text-red-300" />
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/70 px-4 text-center text-red-100">
+              <AlertTriangle className="h-6 w-6 text-red-200" />
               <span className="text-[12px] font-medium">视频加载失败</span>
             </div>
           )}
@@ -2942,15 +2942,15 @@ export const VideoNode = memo(
             主视频并收拢；hover 出现「应用到画布」+ 下载；按住可拖动整个节点。 */}
         {albumExpanded && hasAlbum && (
           <div
-            className="nowheel absolute -left-3 -top-3 z-[80] cursor-grab rounded-2xl border border-white/15 bg-white/[0.045] p-3 shadow-[0_16px_48px_rgba(0,0,0,0.4)] backdrop-blur-[2px] active:cursor-grabbing"
+            className="nowheel absolute -left-3 -top-3 z-[80] cursor-grab rounded-2xl border border-border bg-card p-3 shadow-xl active:cursor-grabbing"
             style={{ width: resolvedWidth * 2 + 12 + 24 }}
             onClick={(event) => event.stopPropagation()}
             onPointerDownCapture={(event) => {
               albumPointerDownPosRef.current = { x: event.clientX, y: event.clientY };
             }}
           >
-            <div className="mb-2 flex items-center gap-1.5 px-1 text-[12px] font-medium text-white/60">
-              <VideoIcon className="h-3.5 w-3.5 text-white/45" />
+            <div className="mb-2 flex items-center gap-1.5 px-1 text-[12px] font-medium text-muted-foreground">
+              <VideoIcon className="h-3.5 w-3.5 text-muted-foreground" />
               画册 · {albumTotalSlots} 条
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -2974,10 +2974,10 @@ export const VideoNode = memo(
                       }
                       handleSetAlbumMainVideo(url);
                     }}
-                    className={`group/albumcell relative cursor-pointer overflow-hidden rounded-[var(--node-radius)] border bg-[#1b1b1d] shadow-[0_12px_32px_rgba(0,0,0,0.45)] transition-colors ${
+                    className={`group/albumcell relative cursor-pointer overflow-hidden rounded-[var(--node-radius)] border bg-[#0b0d10] shadow-[0_12px_32px_rgba(0,0,0,0.45)] transition-colors ${
                       isMain
-                        ? 'border-accent/80 ring-2 ring-accent/40'
-                        : 'border-white/12 hover:border-white/35'
+                        ? 'border-primary/80 ring-2 ring-primary/40'
+                        : 'border-border hover:border-foreground/35'
                     }`}
                     style={{ width: resolvedWidth, height: resolvedHeight }}
                   >
@@ -3030,7 +3030,7 @@ export const VideoNode = memo(
               {Array.from({ length: albumPendingCount }, (_, index) => (
                 <div
                   key={`album-pending-${index}`}
-                  className="relative flex items-center justify-center overflow-hidden rounded-[var(--node-radius)] border border-white/10 bg-[#1b1b1d] shadow-[0_12px_32px_rgba(0,0,0,0.45)]"
+                  className="relative flex items-center justify-center overflow-hidden rounded-[var(--node-radius)] border border-border bg-[#0b0d10] shadow-[0_12px_32px_rgba(0,0,0,0.45)]"
                   style={{ width: resolvedWidth, height: resolvedHeight }}
                 >
                   <div className="flex flex-col items-center gap-2 text-text-muted/70">
@@ -3065,7 +3065,7 @@ export const VideoNode = memo(
               }}
             />
             {clipError && (
-              <div className="rounded-md bg-red-500/15 px-3 py-1.5 text-[11px] text-red-300 break-words [overflow-wrap:anywhere]">
+              <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-[11px] text-red-700 break-words [overflow-wrap:anywhere] dark:text-red-300">
                 剪辑失败：{clipError}
               </div>
             )}
@@ -3232,7 +3232,7 @@ export const VideoNode = memo(
                         className={`relative inline-flex h-3.5 w-6 shrink-0 items-center rounded-full transition-colors ${
                           humanReview
                             ? "bg-[rgb(var(--accent-rgb))]"
-                            : "bg-white/15"
+                            : "bg-input"
                         }`}
                       >
                         <span
@@ -3568,7 +3568,7 @@ function GenModeSelect({ value, modelId, upstreamCounts, onChange }: GenModeSele
                       ? VIDEO_PARAM_ACTIVE_BUTTON_CLASS
                       : isDisabled
                         ? "cursor-not-allowed text-text-muted/40"
-                        : "text-text-muted/95 hover:bg-white/[0.11] hover:text-text-dark"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`}
                 >
                   {t(tab.labelKey)}
@@ -3778,7 +3778,7 @@ function VideoConfigChip({
                   }
                 }}
                 aria-label={t("node.videoNode.duration.title")}
-                className="h-7 w-12 rounded border border-white/12 bg-white/[0.07] px-1.5 text-center text-xs tabular-nums text-text-dark outline-none transition-colors focus:border-white/28 focus:bg-white/[0.11] [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                className="h-7 w-12 rounded border border-border bg-muted px-1.5 text-center text-xs tabular-nums text-foreground outline-none transition-colors focus:border-primary/45 focus:bg-accent [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
               />
               <span className="text-[11px] text-text-muted/80">s</span>
             </div>
@@ -3814,7 +3814,7 @@ function VideoConfigChip({
           <div className={VIDEO_PARAM_LABEL_CLASS}>
             {t("node.videoNode.audio.title")}
           </div>
-          <div className="flex items-center justify-between rounded-md bg-white/[0.045] px-2.5 py-1.5">
+          <div className="flex items-center justify-between rounded-md border border-border bg-muted px-2.5 py-1.5">
             <span className="text-xs font-medium text-text-dark/88">
               {generateAudio
                 ? t("node.videoNode.audio.on")
@@ -3828,8 +3828,8 @@ function VideoConfigChip({
               onClick={() => onChange({ generateAudio: !generateAudio })}
               className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors ${
                 generateAudio
-                  ? "border-white/24 bg-white/[0.18]"
-                  : "border-white/10 bg-white/[0.08]"
+                  ? "border-primary/45 bg-primary"
+                  : "border-border bg-input"
               }`}
             >
               <span
@@ -4046,7 +4046,7 @@ function CountPicker({ value, onChange }: CountPickerProps) {
                 className={`${VIDEO_COUNT_OPTION_BASE_CLASS} ${
                   isActive
                     ? VIDEO_PARAM_ACTIVE_BUTTON_CLASS
-                    : "text-text-muted/95 hover:bg-white/[0.11] hover:text-text-dark"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
               >
                 {t("node.videoNode.count.format", { count: option })}
@@ -4356,7 +4356,7 @@ function ReferenceImageChip({
             className="pointer-events-none fixed z-[400] -translate-y-full"
             style={{ left: pos.left, top: pos.top, width: PREVIEW_W }}
           >
-            <div className="overflow-hidden rounded-xl border border-white/15 bg-surface-dark/95 shadow-2xl backdrop-blur-sm">
+            <div className="overflow-hidden rounded-xl border border-border bg-surface-dark/95 shadow-2xl backdrop-blur-sm">
               <img
                 src={resolveImageDisplayUrl(item.imageUrl)}
                 alt={label}
@@ -4432,7 +4432,7 @@ function ReferenceVideoChip({ item, index, onFocus, onDetach }: ReferenceVideoCh
             className="pointer-events-none fixed z-[400] -translate-y-full"
             style={{ left: pos.left, top: pos.top, width: PREVIEW_W }}
           >
-            <div className="overflow-hidden rounded-xl border border-white/15 bg-surface-dark/95 shadow-2xl backdrop-blur-sm">
+            <div className="overflow-hidden rounded-xl border border-border bg-surface-dark/95 shadow-2xl backdrop-blur-sm">
               {/* hover 时 autoplay + loop + muted —— 不弹声音不打扰其它正在
                   播放的 audio chip。 */}
               <video
@@ -4529,13 +4529,13 @@ function ReferenceAudioChip({
       }}
       className={`group/refmedia nodrag relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md border transition-colors ${
         isPlaying
-          ? "border-accent/60 bg-[rgb(var(--accent-rgb)/0.15)]"
-          : "border-white/10 bg-white/[0.04] hover:border-white/30"
+          ? "border-primary/60 bg-[rgb(var(--accent-rgb)/0.15)]"
+          : "border-border bg-muted hover:border-foreground/30"
       }`}
       title={label}
     >
       {isPlaying ? (
-        <Pause className="h-4 w-4 text-accent" />
+        <Pause className="h-4 w-4 text-primary" />
       ) : (
         <Music className="h-4 w-4 text-text-dark/90" />
       )}
@@ -4644,7 +4644,7 @@ function VideoPlayerControls({
   const sliderBg = `linear-gradient(to right, rgb(var(--accent-rgb)) 0%, rgb(var(--accent-rgb)) ${progressPct}%, rgba(255,255,255,0.18) ${progressPct}%, rgba(255,255,255,0.18) 100%)`;
 
   return (
-    <div className="nodrag absolute inset-x-0 bottom-0 z-20 flex items-center gap-2.5 bg-gradient-to-t from-black/75 via-black/45 to-transparent px-3 pb-2 pt-6 text-text-dark">
+    <div className="nodrag absolute inset-x-0 bottom-0 z-20 flex items-center gap-2.5 bg-gradient-to-t from-black/75 via-black/45 to-transparent px-3 pb-2 pt-6 text-white">
       <button
         type="button"
         onClick={(event) => {
@@ -4652,7 +4652,7 @@ function VideoPlayerControls({
           event.stopPropagation();
           togglePlay();
         }}
-        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-text-dark/90 transition-colors hover:bg-white/[0.12] hover:text-text-dark"
+        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white/90 transition-colors hover:bg-white/[0.12] hover:text-white"
         title={
           isPlaying
             ? t("node.videoNode.player.pause", { defaultValue: "暂停" })
@@ -4666,7 +4666,7 @@ function VideoPlayerControls({
         )}
       </button>
 
-      <span className="shrink-0 text-[11px] tabular-nums text-text-dark/85">
+      <span className="shrink-0 text-[11px] tabular-nums text-white/85">
         {formatTime(currentTime)}
       </span>
 
@@ -4682,14 +4682,14 @@ function VideoPlayerControls({
         style={{ background: sliderBg }}
       />
 
-      <span className="shrink-0 text-[11px] tabular-nums text-text-dark/85">
+      <span className="shrink-0 text-[11px] tabular-nums text-white/85">
         {formatTime(duration)}
       </span>
 
       <button
         type="button"
         onClick={toggleMute}
-        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-text-dark/90 transition-colors hover:bg-white/[0.12] hover:text-text-dark"
+        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white/90 transition-colors hover:bg-white/[0.12] hover:text-white"
         title={
           isMuted
             ? t("node.videoNode.player.unmute", { defaultValue: "取消静音" })
@@ -4715,8 +4715,8 @@ function VideoPlayerControls({
           title={t("node.videoNode.frame.captureCurrent")}
           className={`inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
             isCapturingFrame
-              ? "cursor-not-allowed text-text-muted/60"
-              : "text-text-dark/90 hover:bg-white/[0.12] hover:text-text-dark"
+              ? "cursor-not-allowed text-white/45"
+              : "text-white/90 hover:bg-white/[0.12] hover:text-white"
           }`}
         >
           {isCapturingFrame ? (
@@ -4727,18 +4727,18 @@ function VideoPlayerControls({
         </button>
 
         {isHoveringFrame && !isCapturingFrame && (
-          <div className="absolute bottom-full right-0 flex flex-col gap-1 rounded-lg border border-white/10 bg-surface-dark/95 p-1 text-xs shadow-2xl backdrop-blur-md">
+          <div className="absolute bottom-full right-0 flex flex-col gap-1 rounded-lg border border-white/15 bg-black/85 p-1 text-xs text-white shadow-2xl backdrop-blur-md">
             <button
               type="button"
               onClick={() => onCapture("first")}
-              className="whitespace-nowrap rounded-md px-3 py-1.5 text-left text-text-dark transition-colors hover:bg-white/[0.08]"
+              className="whitespace-nowrap rounded-md px-3 py-1.5 text-left text-white transition-colors hover:bg-white/[0.12]"
             >
               {t("node.videoNode.frame.captureFirst")}
             </button>
             <button
               type="button"
               onClick={() => onCapture("last")}
-              className="whitespace-nowrap rounded-md px-3 py-1.5 text-left text-text-dark transition-colors hover:bg-white/[0.08]"
+              className="whitespace-nowrap rounded-md px-3 py-1.5 text-left text-white transition-colors hover:bg-white/[0.12]"
             >
               {t("node.videoNode.frame.captureLast")}
             </button>

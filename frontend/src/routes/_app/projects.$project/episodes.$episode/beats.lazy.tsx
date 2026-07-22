@@ -688,11 +688,11 @@ function BeatsTabContent() {
             className="group relative z-10 w-1.5 shrink-0 cursor-col-resize touch-none select-none"
             title={t("episode.workbench.view.dragToResize")}
           >
-            <div className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-white/[0.055] transition-colors group-hover:bg-primary/60 group-active:bg-primary/80" />
+            <div className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border transition-colors group-hover:bg-primary/60 group-active:bg-primary/80" />
           </div>
           <section className="min-w-0 flex-1 overflow-hidden">
             <div className="flex h-full min-h-0 flex-col">
-              <div className="flex min-h-10 shrink-0 items-center justify-between gap-3 border-b border-white/[0.055] px-3 py-2">
+              <div className="flex min-h-10 shrink-0 items-center justify-between gap-3 border-b border-border px-3 py-2">
                 {detailBeatDisplayNumber !== null ? (
                   <span className="font-mono text-xs font-medium leading-none tabular-nums text-primary">
                     {t("episode.workbench.view.activeBeat", {
@@ -707,7 +707,7 @@ function BeatsTabContent() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="h-6 gap-1 rounded-[5px] bg-transparent px-1.5 text-[11px] font-medium text-foreground/75 shadow-none hover:bg-white/[0.04] hover:text-foreground dark:bg-transparent"
+                    className="h-6 gap-1 rounded-[5px] bg-transparent px-1.5 text-[11px] font-medium text-foreground/75 shadow-none hover:bg-muted hover:text-foreground"
                     onClick={() => void handleRebuildPoolIndex()}
                     disabled={rebuildPoolIndex.isPending}
                     title={t("episode.workbench.pool.rebuildIndex")}
@@ -772,9 +772,9 @@ function BeatsTabContent() {
       </div>
       <Dialog open={gridGalleryOpen} onOpenChange={setGridGalleryOpen}>
         <DialogContent
-          closeButtonClassName="top-0 -right-9 z-50 bg-transparent text-white/45 hover:bg-transparent hover:text-white/72 focus-visible:bg-transparent"
+          closeButtonClassName="top-0 -right-9 z-50 bg-transparent text-muted-foreground hover:bg-transparent hover:text-foreground focus-visible:bg-transparent"
           overlayClassName="bg-black/8 supports-backdrop-filter:backdrop-blur-sm"
-          className="h-[min(calc(100vh-3rem),760px)] w-[min(calc(100vw-1rem),1440px)] max-w-none sm:max-w-none overflow-visible rounded-2xl border border-white/10 bg-black/35 bg-[linear-gradient(135deg,rgba(255,255,255,0.045),rgba(255,255,255,0.012))] p-0 shadow-none backdrop-blur-2xl"
+          className="h-[min(calc(100vh-3rem),760px)] w-[min(calc(100vw-1rem),1440px)] max-w-none overflow-visible rounded-2xl border border-border bg-popover/95 p-0 shadow-2xl backdrop-blur-2xl sm:max-w-none"
         >
           <DialogHeader className="sr-only">
             <DialogTitle>{t("episode.workbench.sketchGrid.title")}</DialogTitle>
@@ -792,9 +792,9 @@ function BeatsTabContent() {
       </Dialog>
       <Dialog open={renderGridGalleryOpen} onOpenChange={setRenderGridGalleryOpen}>
         <DialogContent
-          closeButtonClassName="top-0 -right-9 z-50 bg-transparent text-white/45 hover:bg-transparent hover:text-white/72 focus-visible:bg-transparent"
+          closeButtonClassName="top-0 -right-9 z-50 bg-transparent text-muted-foreground hover:bg-transparent hover:text-foreground focus-visible:bg-transparent"
           overlayClassName="bg-black/8 supports-backdrop-filter:backdrop-blur-sm"
-          className="h-[min(calc(100vh-3rem),760px)] w-[min(calc(100vw-1rem),1440px)] max-w-none sm:max-w-none overflow-visible rounded-2xl border border-white/10 bg-black/35 bg-[linear-gradient(135deg,rgba(255,255,255,0.045),rgba(255,255,255,0.012))] p-0 shadow-none backdrop-blur-2xl"
+          className="h-[min(calc(100vh-3rem),760px)] w-[min(calc(100vw-1rem),1440px)] max-w-none overflow-visible rounded-2xl border border-border bg-popover/95 p-0 shadow-2xl backdrop-blur-2xl sm:max-w-none"
         >
           <DialogHeader className="sr-only">
             <DialogTitle>{t("episode.workbench.renderGrid.title")}</DialogTitle>
@@ -826,10 +826,10 @@ function BeatsTabContent() {
               {sketchPlanItems.map((item) => (
                 <div
                   key={item.id}
-                  className={`flex w-[170px] shrink-0 flex-col gap-1 rounded-[6px] border bg-white/[0.05] p-2 text-xs backdrop-blur-sm ${
+                  className={`flex w-[170px] shrink-0 flex-col gap-1 rounded-[6px] border bg-muted p-2 text-xs backdrop-blur-sm ${
                     lockedSketchItemIds.has(item.id)
-                      ? "border-white/10 opacity-50"
-                      : "border-white/10"
+                      ? "border-border opacity-50"
+                      : "border-border"
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -845,7 +845,7 @@ function BeatsTabContent() {
                     </span>
                   </div>
                   <div
-                    className="truncate text-emerald-400"
+                    className="truncate text-emerald-700 dark:text-emerald-300"
                     title={item.sceneIds.join(" / ")}
                   >
                     {item.sceneIds.join(" / ") ||

@@ -394,7 +394,7 @@ export function CharacterVoicePanel({
   };
 
   return (
-    <section className="rounded-[10px] border border-white/[0.06] bg-white/[0.018] p-4">
+    <section className="rounded-[10px] border border-border bg-card p-4">
       <div className="flex flex-wrap items-start justify-between gap-3 pb-3">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-foreground">
@@ -416,7 +416,7 @@ export function CharacterVoicePanel({
           {t("characters.voiceSamples.loadFailed")}
         </p>
       ) : (
-        <div className="mt-3 divide-y divide-white/[0.06]">
+        <div className="mt-3 divide-y divide-border">
           {rows.map(({ displaySlot, actionSlot, label }) => {
             const hasVoice = Boolean(actionSlot.path);
             const audioSrc = resolveMediaUrl(actionSlot.url);
@@ -542,7 +542,7 @@ export function CharacterVoicePanel({
       />
 
       <Dialog open={Boolean(recordSlot)} onOpenChange={closeRecordDialog}>
-        <DialogContent className="gap-4 rounded-2xl border border-white/[0.08] bg-zinc-950/30 p-5 shadow-2xl shadow-black/40 backdrop-blur-2xl sm:max-w-lg">
+        <DialogContent className="gap-4 rounded-2xl border border-border bg-popover/95 p-5 shadow-2xl backdrop-blur-2xl sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-lg font-medium tracking-tight text-foreground">
               {t("characters.voiceSamples.recordTitle", {
@@ -554,14 +554,14 @@ export function CharacterVoicePanel({
             <p className="text-sm leading-5 text-muted-foreground/80">
               {t("characters.voiceSamples.recordHint")}
             </p>
-            <div className="rounded-[10px] border border-white/[0.08] bg-white/[0.04] p-3 text-sm text-muted-foreground/76">
+            <div className="rounded-[10px] border border-border bg-muted p-3 text-sm text-muted-foreground">
               {recordStatus}
             </div>
             {recordedDataUrl && (
               <audio src={recordedDataUrl} controls className="h-9 w-full" />
             )}
             {recordedDuration !== null && (
-              <p className="text-xs text-muted-foreground/65">
+              <p className="text-xs text-muted-foreground">
                 {t("characters.voiceSamples.recordedDuration", {
                   seconds: recordedDuration.toFixed(1),
                 })}
@@ -574,7 +574,7 @@ export function CharacterVoicePanel({
               variant="outline"
               onClick={startRecording}
               disabled={recording || recordVoice.isPending}
-              className="h-9 rounded-md border-white/[0.10] bg-white/[0.04] px-4 text-sm font-normal text-foreground/80 shadow-none hover:border-white/[0.18] hover:bg-white/[0.07] hover:text-foreground"
+              className="h-9 rounded-md border-border bg-muted px-4 text-sm font-normal text-foreground/80 shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground"
             >
               <Mic className="size-4" />
               {t("characters.voiceSamples.startRecord")}
@@ -584,7 +584,7 @@ export function CharacterVoicePanel({
               variant="outline"
               onClick={stopRecording}
               disabled={!recording}
-              className="h-9 rounded-md border-white/[0.10] bg-white/[0.04] px-4 text-sm font-normal text-foreground/80 shadow-none hover:border-white/[0.18] hover:bg-white/[0.07] hover:text-foreground"
+              className="h-9 rounded-md border-border bg-muted px-4 text-sm font-normal text-foreground/80 shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground"
             >
               <Square className="size-4" />
               {t("characters.voiceSamples.stopRecord")}
@@ -607,7 +607,7 @@ export function CharacterVoicePanel({
       </Dialog>
 
       <Dialog open={Boolean(trimSlot)} onOpenChange={(open) => !open && setTrimSlot(null)}>
-        <DialogContent className="gap-4 rounded-2xl border border-white/[0.08] bg-zinc-950/30 p-5 shadow-2xl shadow-black/40 backdrop-blur-2xl sm:max-w-lg">
+        <DialogContent className="gap-4 rounded-2xl border border-border bg-popover/95 p-5 shadow-2xl backdrop-blur-2xl sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-lg font-medium tracking-tight text-foreground">
               {t("characters.voiceSamples.trimTitle", {
@@ -633,7 +633,7 @@ export function CharacterVoicePanel({
                   step="0.1"
                   value={trimStart}
                   onChange={(event) => setTrimStart(event.target.value)}
-                  className="h-10 rounded-[8px] border-white/[0.10] bg-white/[0.04] text-sm shadow-none focus:border-white/[0.18]"
+                  className="h-10 rounded-[8px] border-border bg-muted text-sm shadow-none focus:border-primary/45"
                 />
               </div>
               <div className="space-y-1.5">
@@ -647,7 +647,7 @@ export function CharacterVoicePanel({
                   step="0.1"
                   value={trimDuration}
                   onChange={(event) => setTrimDuration(event.target.value)}
-                  className="h-10 rounded-[8px] border-white/[0.10] bg-white/[0.04] text-sm shadow-none focus:border-white/[0.18]"
+                  className="h-10 rounded-[8px] border-border bg-muted text-sm shadow-none focus:border-primary/45"
                 />
               </div>
             </div>
@@ -657,7 +657,7 @@ export function CharacterVoicePanel({
               type="button"
               variant="outline"
               onClick={() => setTrimSlot(null)}
-              className="h-9 rounded-md border-white/[0.10] bg-white/[0.04] px-4 text-sm font-normal text-foreground/80 shadow-none hover:border-white/[0.18] hover:bg-white/[0.07] hover:text-foreground"
+              className="h-9 rounded-md border-border bg-muted px-4 text-sm font-normal text-foreground/80 shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground"
             >
               {t("common.cancel")}
             </Button>

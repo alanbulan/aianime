@@ -53,7 +53,7 @@ import {
 } from "@/components/ui/tooltip";
 
 const TOOLBAR_CONTROL_CLASS =
-  "h-[26px] gap-1.5 rounded-[6px] border border-white/10 bg-transparent px-2 py-0 text-[11px] font-medium text-foreground/85 transition-colors hover:border-primary/40 hover:bg-white/[0.04] hover:text-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring disabled:text-muted-foreground/50";
+  "h-[26px] gap-1.5 rounded-[6px] border border-border bg-muted px-2 py-0 text-[11px] font-medium text-foreground/85 transition-colors hover:border-primary/40 hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring disabled:text-muted-foreground/50";
 
 interface BatchBarProps {
   project: string;
@@ -346,7 +346,7 @@ export function BatchBar({
                   className={cn(
                     TOOLBAR_CONTROL_CLASS,
                     audioUnavailableForVideoBackend &&
-                      "cursor-not-allowed border-white/[0.06] text-muted-foreground/45 hover:border-white/[0.06] hover:bg-transparent hover:text-muted-foreground/45",
+                      "cursor-not-allowed border-border text-muted-foreground/45 hover:border-border hover:bg-muted hover:text-muted-foreground/45",
                   )}
                 />
               }
@@ -370,7 +370,7 @@ export function BatchBar({
                 side="bottom"
                 sideOffset={8}
                 showArrow={false}
-                className="border border-white/10 bg-background/95 text-foreground shadow-none"
+                className="border border-border bg-popover text-popover-foreground shadow-lg"
               >
                 {t("episode.workbench.batch.genAudioUnavailableForVideoModel")}
               </TooltipContent>
@@ -397,7 +397,7 @@ export function BatchBar({
               }}
               className={cn(
                 confirmCostDisplay &&
-                  "relative border-[3px] border-[#007A87] bg-transparent pr-9 transition-transform hover:border-[#007A87] hover:bg-transparent active:scale-95 dark:border-[#007A87] dark:hover:border-[#007A87]",
+                  "relative border-[3px] border-primary bg-transparent pr-9 transition-transform hover:border-primary hover:bg-transparent active:scale-95",
               )}
             >
               {t("common.confirmExecute")}

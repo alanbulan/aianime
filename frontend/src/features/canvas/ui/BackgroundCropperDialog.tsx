@@ -238,8 +238,8 @@ export function BackgroundCropperDialog({
                 onClick={() => setSelectedAspectRatio(option)}
                 className={`rounded-[8px] border px-3 py-1.5 text-xs font-medium transition ${
                   selectedAspectRatio === option
-                    ? 'border-cyan-200 bg-cyan-200 text-slate-950'
-                    : 'border-white/10 bg-white/[0.04] text-text-secondary hover:border-white/20 hover:bg-white/[0.08]'
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-border bg-muted text-muted-foreground hover:border-foreground/25 hover:bg-accent hover:text-foreground'
                 }`}
               >
                 {option}
@@ -248,7 +248,7 @@ export function BackgroundCropperDialog({
           </div>
         )}
         {displaySrc && (
-          <div className="flex items-center justify-center rounded-md border border-[rgba(255,255,255,0.08)] bg-black/40 p-2">
+          <div className="flex items-center justify-center rounded-md border border-border bg-[#0b0d10] p-2">
             <ReactCrop
               className="[&_.ReactCrop__crop-selection]:!border-2 [&_.ReactCrop__crop-selection]:!border-cyan-200 [&_.ReactCrop__crop-selection]:shadow-[inset_0_0_0_1px_rgba(0,0,0,0.75),0_0_0_1px_rgba(0,0,0,0.75)]"
               crop={crop}

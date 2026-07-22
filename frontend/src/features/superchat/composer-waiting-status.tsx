@@ -120,7 +120,7 @@ export function ComposerWaitingStatus({
   return (
     <div
       className={cn(
-        "flex h-7 w-full items-center px-1 text-xs text-foreground/55 transition-[opacity,translate]",
+        "flex h-7 w-full items-center px-1 text-xs text-muted-foreground transition-[opacity,translate]",
         shown
           ? "translate-y-0 opacity-100 duration-[260ms] ease-out"
           : "pointer-events-none translate-y-[2px] opacity-0 duration-150 ease-in",
@@ -133,7 +133,7 @@ export function ComposerWaitingStatus({
         <span className="flex w-full max-w-[360px] min-w-0 items-center gap-2" aria-hidden="true">
           <span
             className={cn(
-              "flex h-3 w-[14px] shrink-0 items-center justify-center gap-[2px] text-foreground/40 transition-[opacity,scale] duration-200 motion-reduce:transition-none",
+              "flex h-3 w-[14px] shrink-0 items-center justify-center gap-[2px] text-muted-foreground transition-[opacity,scale] duration-200 motion-reduce:transition-none",
               phase === "entering" ? "scale-90 opacity-40" : "scale-100 opacity-100",
             )}
           >

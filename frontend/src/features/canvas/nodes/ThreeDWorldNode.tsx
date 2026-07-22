@@ -563,7 +563,7 @@ function ReferenceImageThumb({
         }}
         onMouseEnter={showPreview}
         onMouseLeave={hidePreview}
-        className="group nodrag relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[8px] border border-white/10 bg-white/[0.04] transition-colors hover:border-white/30"
+        className="group nodrag relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[8px] border border-border bg-muted transition-colors hover:border-foreground/30"
         title="引用上游图片"
       >
         <img
@@ -580,7 +580,7 @@ function ReferenceImageThumb({
             className="pointer-events-none fixed z-[400] -translate-y-full"
             style={{ left: previewPos.left, top: previewPos.top, width: PREVIEW_W }}
           >
-            <div className="overflow-hidden rounded-xl border border-white/15 bg-surface-dark/95 shadow-2xl backdrop-blur-sm">
+            <div className="overflow-hidden rounded-xl border border-border bg-surface-dark/95 shadow-2xl backdrop-blur-sm">
               <img
                 src={resolveImageDisplayUrl(item.url)}
                 alt="上游图片引用预览"
@@ -644,7 +644,7 @@ function OpsPanel({
         <div className="flex flex-wrap items-center gap-1.5">
           {referenceImages.length > 1 ? (
             <label
-              className="inline-flex h-8 items-center gap-1 rounded-md border border-white/10 bg-white/[0.04] px-2 text-[11px] text-text-muted"
+              className="inline-flex h-8 items-center gap-1 rounded-md border border-border bg-muted px-2 text-[11px] text-muted-foreground"
               onPointerDown={(event) => event.stopPropagation()}
             >
               <select
@@ -655,7 +655,7 @@ function OpsPanel({
                 className="nodrag max-w-[160px] bg-transparent text-[11px] text-text-muted focus:text-text-dark focus:outline-none"
               >
                 {referenceImages.map((item, index) => (
-                  <option key={item.nodeId} value={item.nodeId} className="bg-surface-dark text-text-dark">
+                  <option key={item.nodeId} value={item.nodeId} className="bg-popover text-popover-foreground">
                     {item.displayName || `图片 ${index + 1}`}
                   </option>
                 ))}
@@ -689,7 +689,7 @@ function OpsPanel({
 
       <div className="flex items-center justify-end gap-2">
         <label
-          className="inline-flex h-7 items-center gap-1 rounded-full border border-white/20 bg-white/[0.08] pl-2.5 pr-1 text-[11px] text-text-dark/90 transition-colors hover:border-white/30 hover:bg-white/[0.12] hover:text-text-dark"
+          className="inline-flex h-7 items-center gap-1 rounded-full border border-border bg-muted pl-2.5 pr-1 text-[11px] text-foreground/90 transition-colors hover:border-foreground/30 hover:bg-accent hover:text-foreground"
           onPointerDown={(event) => event.stopPropagation()}
         >
           <select
@@ -700,7 +700,7 @@ function OpsPanel({
             className="nodrag bg-transparent pr-1 text-[11px] text-text-dark/90 focus:text-text-dark focus:outline-none"
           >
             {DIRECTOR_IMAGE_SOURCE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value} className="bg-surface-dark text-text-dark">
+              <option key={option.value} value={option.value} className="bg-popover text-popover-foreground">
                 {t(option.labelKey)}
               </option>
             ))}
@@ -715,7 +715,7 @@ function OpsPanel({
           }}
           onPointerDown={(event) => event.stopPropagation()}
           title={hasUpstream ? t('nodeToolbar.generateDirectorWorld') : t('nodeToolbar.connectImageSource')}
-          className="inline-flex h-7 items-center gap-1.5 rounded-full bg-white px-2.5 text-[11px] font-medium text-bg-dark transition-colors hover:bg-white/90 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-text-muted"
+          className="inline-flex h-7 items-center gap-1.5 rounded-full bg-foreground px-2.5 text-[11px] font-medium text-background transition-colors hover:bg-foreground/90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
         >
           {isGenerating ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1287,9 +1287,8 @@ export const ThreeDWorldNode = memo(({ id, data, selected, width, height }: Thre
   return (
     <div
       className={`
-        director-world-node group relative overflow-visible rounded-[var(--node-radius)] border bg-[#0f0f0f] p-0 transition-colors duration-150
+        director-world-node group relative overflow-visible rounded-[var(--node-radius)] border bg-[#0b0d10] p-0 transition-colors duration-150
         ${canvasNodeFrameClass({ selected, mainline: hasMainlineContext })}
-        ${selected ? '' : 'border-white/18 hover:border-white/26'}
       `}
       style={containerStyle}
       onClick={handleNodeClick}
@@ -1308,7 +1307,7 @@ export const ThreeDWorldNode = memo(({ id, data, selected, width, height }: Thre
       {/* 预览区：PLY 就绪前显示 Saturn 占位（上游内容只以「引用」形式出现在 OpsPanel
           输入框上方）；PLY 就绪后用上游图片作为节点缩略图。生成中叠一层 spinner，
           风格对齐 ImageNode / VideoNode。Phase 2 接 inline 3D viewer 后再替换为内嵌渲染。 */}
-      <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-[var(--node-radius)] bg-[#0f0f0f] text-text-muted/60">
+      <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-[var(--node-radius)] bg-[#0b0d10] text-white/55">
         {previewThumb ? (
           <img
             src={resolveImageDisplayUrl(previewThumb)}
@@ -1428,13 +1427,13 @@ export const ThreeDWorldNode = memo(({ id, data, selected, width, height }: Thre
         type="target"
         id="target"
         position={Position.Left}
-        className="!h-2 !w-2 !border-surface-dark !bg-[rgb(148,163,184)]"
+        className="!h-2 !w-2 !border-surface-dark !bg-muted-foreground"
       />
       <Handle
         type="source"
         id="source"
         position={Position.Right}
-        className="!h-2 !w-2 !border-surface-dark !bg-[rgb(148,163,184)]"
+        className="!h-2 !w-2 !border-surface-dark !bg-muted-foreground"
       />
       <NodeResizeHandle
         minWidth={280}

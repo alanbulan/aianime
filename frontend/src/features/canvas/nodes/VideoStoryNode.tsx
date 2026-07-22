@@ -80,12 +80,12 @@ function StoryCell({ row, col, onCommit }: StoryCellProps) {
     // 关键帧是图片列，沿用只读 —— 替换需要文件选择器 / URL 输入，是另一
     // 条交互，等用户后续提（同 scriptNode 角色图列的处理）。
     const url = typeof value === 'string' ? value : null;
-    if (!url) return <span className="text-text-muted/60">—</span>;
+    if (!url) return <span className="text-text-muted/80">—</span>;
     return (
       <img
         src={resolveImageDisplayUrl(url)}
         alt="keyframe"
-        className="h-16 w-auto rounded border border-[rgba(255,255,255,0.08)] object-cover"
+        className="h-16 w-auto rounded border border-border object-cover"
         draggable={false}
       />
     );
@@ -100,7 +100,7 @@ function StoryCell({ row, col, onCommit }: StoryCellProps) {
 
   if (!onCommit) {
     if (initialText.length === 0) {
-      return <span className="text-text-muted/60">—</span>;
+      return <span className="text-text-muted/80">—</span>;
     }
     return (
       <span className={col.wide ? 'whitespace-pre-wrap' : ''}>{initialText}</span>
@@ -118,14 +118,14 @@ interface StoryTableProps {
 
 function StoryTable({ rows, compact, onCellCommit }: StoryTableProps) {
   return (
-    <div className="ui-scrollbar h-full w-full overflow-auto rounded border border-[rgba(255,255,255,0.08)]">
+    <div className="ui-scrollbar h-full w-full overflow-auto rounded border border-border">
       <table className="min-w-full border-collapse text-left text-[12px] text-text-dark">
-        <thead className="sticky top-0 z-10 bg-bg-dark/95 backdrop-blur">
+        <thead className="sticky top-0 z-10 bg-muted/95 backdrop-blur">
           <tr>
             {COLUMNS.map((col) => (
               <th
                 key={col.key as string}
-                className={`${col.widthClass} border-b border-[rgba(255,255,255,0.1)] px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-text-muted`}
+                className={`${col.widthClass} border-b border-border px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-text-muted`}
               >
                 {col.label}
               </th>
@@ -136,7 +136,7 @@ function StoryTable({ rows, compact, onCellCommit }: StoryTableProps) {
           {rows.map((row, idx) => (
             <tr
               key={idx}
-              className="border-b border-[rgba(255,255,255,0.06)] align-top hover:bg-bg-dark/40"
+              className="border-b border-border align-top hover:bg-muted"
             >
               {COLUMNS.map((col) => (
                 <td
@@ -170,11 +170,11 @@ function EmptyStoryState({ rawResult }: { rawResult?: Record<string, unknown> | 
         <div className="text-[12px] leading-5 text-text-muted/80">
           返回内容中没有可用分镜行。原始返回已保留为辅助信息，可用于排查接口结果。
         </div>
-        <details className="w-full rounded-md border border-white/[0.08] bg-bg-dark/45 text-left">
+        <details className="w-full rounded-md border border-border bg-muted text-left">
           <summary className="cursor-pointer list-none px-3 py-2 text-[11px] font-medium text-text-dark/82 transition-colors hover:text-text-dark">
             查看原始返回
           </summary>
-          <pre className="ui-scrollbar max-h-[120px] overflow-auto border-t border-white/[0.06] p-3 text-[11px] leading-5 text-text-muted/86">
+          <pre className="ui-scrollbar max-h-[120px] overflow-auto border-t border-border p-3 text-[11px] leading-5 text-muted-foreground">
 {rawResult ? JSON.stringify(rawResult, null, 2) : '(空)'}
           </pre>
         </details>
@@ -187,9 +187,9 @@ function ErrorStoryState({ message }: { message: string }) {
   return (
     <div className="flex h-full w-full items-center justify-center p-6">
       <div className="flex max-w-[420px] flex-col items-center gap-3 text-center">
-        <AlertTriangle className="h-7 w-7 text-red-300/90" />
-        <div className="text-sm font-medium text-red-200">解析失败</div>
-        <div className="max-h-[88px] overflow-auto break-words text-[12px] leading-5 text-red-200/82 [overflow-wrap:anywhere]">
+        <AlertTriangle className="h-7 w-7 text-destructive" />
+        <div className="text-sm font-medium text-destructive">解析失败</div>
+        <div className="max-h-[88px] overflow-auto break-words text-[12px] leading-5 text-destructive [overflow-wrap:anywhere]">
           {message}
         </div>
       </div>
@@ -258,7 +258,7 @@ export const VideoStoryNode = memo(({ id, data, selected, width, height }: Video
         type="target"
         position={Position.Left}
         id="target"
-        className="!h-2 !w-2 !border-0 !bg-[rgb(148,163,184)]"
+        className="!h-2 !w-2 !border-0 !bg-muted-foreground"
       />
 
       <NodeHeader
@@ -279,12 +279,12 @@ export const VideoStoryNode = memo(({ id, data, selected, width, height }: Video
       <div
         className={`relative flex h-full w-full flex-col overflow-hidden rounded-[var(--node-radius)] border ${CANVAS_NODE_PANEL_SURFACE_CLASS} transition-colors ${cardToneClass}`}
       >
-        <div className="flex items-center justify-between border-b border-[rgba(255,255,255,0.08)] px-3 py-2">
+        <div className="flex items-center justify-between border-b border-border px-3 py-2">
           <div className="flex items-center gap-2 text-[12px] text-text-muted">
             {isAnalyzing ? (
               <span>解析中…</span>
             ) : hasError ? (
-              <span className="text-red-300">解析失败</span>
+              <span className="text-destructive">解析失败</span>
             ) : hasRows ? (
               <span>{rows.length} 条分镜</span>
             ) : (
@@ -293,7 +293,7 @@ export const VideoStoryNode = memo(({ id, data, selected, width, height }: Video
           </div>
           <button
             type="button"
-            className="inline-flex h-6 items-center gap-1 rounded border border-[rgba(255,255,255,0.18)] bg-bg-dark/60 px-2 text-[11px] text-text-dark hover:border-[rgba(255,255,255,0.32)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-[rgba(255,255,255,0.18)]"
+            className="inline-flex h-6 items-center gap-1 rounded border border-border bg-muted px-2 text-[11px] text-foreground hover:border-foreground/30 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-border"
             onClick={(event) => {
               event.stopPropagation();
               setIsFullscreen(true);
@@ -328,10 +328,10 @@ export const VideoStoryNode = memo(({ id, data, selected, width, height }: Video
 
       {typeof document !== 'undefined' && isFullscreen && createPortal(
         <div
-          className="fixed inset-0 z-[220] flex flex-col bg-black/85 p-6"
+          className="fixed inset-0 z-[220] flex flex-col bg-background/95 p-6 backdrop-blur-sm"
           onClick={(event) => event.stopPropagation()}
         >
-          <div className="mb-3 flex items-center justify-between text-text-dark">
+          <div className="mb-3 flex items-center justify-between text-foreground">
             <div className="flex items-center gap-3">
               <FileVideo2 className="h-5 w-5" />
               <span className="text-base font-medium">{resolvedTitle}</span>
@@ -339,14 +339,14 @@ export const VideoStoryNode = memo(({ id, data, selected, width, height }: Video
             </div>
             <button
               type="button"
-              className="inline-flex h-8 items-center gap-1 rounded border border-[rgba(255,255,255,0.2)] bg-bg-dark/60 px-3 text-sm text-text-dark hover:border-[rgba(255,255,255,0.36)]"
+              className="inline-flex h-8 items-center gap-1 rounded border border-border bg-muted px-3 text-sm text-foreground hover:border-foreground/30 hover:bg-accent"
               onClick={() => setIsFullscreen(false)}
             >
               <X className="h-4 w-4" />
               关闭
             </button>
           </div>
-          <div className="flex-1 overflow-hidden rounded-lg border border-[rgba(255,255,255,0.12)] bg-surface-dark/95">
+          <div className="flex-1 overflow-hidden rounded-lg border border-border bg-card">
             <StoryTable rows={rows} onCellCommit={handleCellCommit} />
           </div>
         </div>,

@@ -45,7 +45,7 @@ export function StageProgressPanel({
   const percent = Math.round(progress * 100);
 
   return (
-    <div className="border-b border-border bg-card/30">
+    <div className="border-b border-border bg-card">
       <div
         role="status"
         aria-live="polite"
@@ -82,14 +82,14 @@ export function StageProgressPanel({
       {logs.length > 0 && (
         <div
           aria-hidden="true"
-          className="max-h-32 overflow-y-auto border-t border-border bg-background/40 p-2"
+          className="max-h-32 overflow-y-auto border-t border-border bg-muted p-2"
         >
           {logs.map((log, i) => (
             <p
               key={i}
               className="font-mono text-xs leading-tight text-muted-foreground"
             >
-              <span className="mr-2 text-muted-foreground/50">
+              <span className="mr-2 text-muted-foreground">
                 [{String(i + 1).padStart(2, "0")}]
               </span>
               {log}

@@ -83,11 +83,11 @@ const PAINT_FILL = 'rgba(239, 68, 68, 0.55)';
 const PAINT_STROKE = 'rgba(239, 68, 68, 0.55)';
 const RESULT_STACK_GAP = 24;
 const ERASE_TOOLBAR_CLASS =
-  'flex items-center gap-1 rounded-full border border-white/[0.12] bg-[#282828]/95 px-1.5 py-1 shadow-[0_10px_24px_rgba(0,0,0,0.32)] backdrop-blur-md';
+  'flex items-center gap-1 rounded-full border border-border bg-popover/95 px-1.5 py-1 shadow-xl backdrop-blur-md';
 const ERASE_TOOLBAR_BUTTON_CLASS =
   'nodrag inline-flex h-8 w-8 items-center justify-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50';
 const ERASE_SLIDER_CLASS =
-  'nodrag nopan h-0.5 w-24 cursor-pointer appearance-none rounded-full [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#5b8cff] [&::-webkit-slider-thumb]:shadow-none [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#5b8cff]';
+  'nodrag nopan h-0.5 w-24 cursor-pointer appearance-none rounded-full [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:shadow-none [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-primary';
 
 function imageModelSupportsQuality(apiModel: string | null | undefined): boolean {
   if (!apiModel) return false;
@@ -590,7 +590,7 @@ export const EraseOverlay = memo(({ node, imageSource, onClose }: EraseOverlayPr
   }, [tool]);
   const brushPercent = ((brushSize - BRUSH_MIN) / (BRUSH_MAX - BRUSH_MIN)) * 100;
   const brushSliderStyle = {
-    background: `linear-gradient(to right, #5b8cff 0%, #5b8cff ${brushPercent}%, rgba(255,255,255,0.28) ${brushPercent}%, rgba(255,255,255,0.28) 100%)`,
+    background: `linear-gradient(to right, rgb(var(--accent-rgb)) 0%, rgb(var(--accent-rgb)) ${brushPercent}%, rgb(var(--text-rgb) / 0.24) ${brushPercent}%, rgb(var(--text-rgb) / 0.24) 100%)`,
   };
 
   return (
@@ -648,7 +648,7 @@ export const EraseOverlay = memo(({ node, imageSource, onClose }: EraseOverlayPr
         >
           <button
             type="button"
-            className={`${ERASE_TOOLBAR_BUTTON_CLASS} text-text-dark/72 hover:bg-white/[0.08] hover:text-text-dark`}
+            className={`${ERASE_TOOLBAR_BUTTON_CLASS} text-muted-foreground hover:bg-muted hover:text-foreground`}
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => {
               event.stopPropagation();
@@ -737,7 +737,11 @@ export const EraseOverlay = memo(({ node, imageSource, onClose }: EraseOverlayPr
             onChange={setNumImages}
           />
 
-          {error && <span className="max-w-[160px] truncate px-1 text-xs text-red-400">{error}</span>}
+          {error && (
+            <span className="max-w-[160px] truncate px-1 text-xs text-red-700 dark:text-red-300">
+              {error}
+            </span>
+          )}
           <CreditCostPill
             display={creditCost.data?.data.display}
             className={NODE_CREDIT_PILL_FLAT_CLASS}
@@ -761,7 +765,7 @@ export const EraseOverlay = memo(({ node, imageSource, onClose }: EraseOverlayPr
 EraseOverlay.displayName = 'EraseOverlay';
 
 function ToolbarDivider() {
-  return <span className="mx-1 h-5 w-px bg-white/15" aria-hidden />;
+  return <span className="mx-1 h-5 w-px bg-border" aria-hidden />;
 }
 
 function ToolBtn({
@@ -788,8 +792,8 @@ function ToolBtn({
       className={
         `${ERASE_TOOLBAR_BUTTON_CLASS} ` +
         (active
-          ? 'text-[#5b8cff]'
-          : 'text-text-dark/42 hover:bg-white/[0.08] hover:text-text-dark/72')
+          ? 'text-primary'
+          : 'text-muted-foreground/75 hover:bg-muted hover:text-foreground')
       }
     >
       {children}
@@ -819,7 +823,7 @@ function IconBtn({
       disabled={disabled}
       title={title}
       aria-label={title}
-      className={`${ERASE_TOOLBAR_BUTTON_CLASS} text-text-dark/72 hover:bg-white/[0.08] hover:text-text-dark disabled:opacity-30`}
+      className={`${ERASE_TOOLBAR_BUTTON_CLASS} text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30`}
     >
       {children}
     </button>
@@ -872,7 +876,7 @@ function EraseDropdown<T extends string | number>({
           event.stopPropagation();
           setIsOpen((prev) => !prev);
         }}
-        className="inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-xs font-medium text-text-dark transition-colors hover:bg-white/[0.08]"
+        className="inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
       >
         <span>{renderLabel(value)}</span>
         <ChevronDown className="h-3 w-3 text-text-muted" />
@@ -881,7 +885,7 @@ function EraseDropdown<T extends string | number>({
         <div
           ref={popoverRef}
           role="listbox"
-          className="absolute bottom-full left-1/2 z-50 mb-2 min-w-[96px] -translate-x-1/2 rounded-xl border border-white/10 bg-surface-dark/95 p-1 shadow-2xl backdrop-blur-md"
+          className="absolute bottom-full left-1/2 z-50 mb-2 min-w-[96px] -translate-x-1/2 rounded-xl border border-border bg-popover/95 p-1 shadow-2xl backdrop-blur-md"
           onClick={(event) => event.stopPropagation()}
         >
           <div className="mb-1 px-2 py-1 text-[11px] uppercase tracking-wide text-text-muted">
@@ -902,7 +906,7 @@ function EraseDropdown<T extends string | number>({
                 className={`flex w-full items-center rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
                   isActive
                     ? 'bg-[rgb(var(--accent-rgb))] text-white'
-                    : 'text-text-muted hover:bg-white/[0.08] hover:text-text-dark'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >
                 {renderLabel(option)}

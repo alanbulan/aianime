@@ -99,7 +99,7 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
 
 function Keycap({ token }: { token: string }) {
   return (
-    <kbd className="inline-flex h-6 min-w-[24px] items-center justify-center rounded-md border border-white/[0.12] bg-white/[0.06] px-1.5 text-[12px] font-medium leading-none text-white/82">
+    <kbd className="inline-flex h-6 min-w-[24px] items-center justify-center rounded-md border border-border bg-muted px-1.5 text-[12px] font-medium leading-none text-foreground/85">
       {token}
     </kbd>
   );
@@ -123,25 +123,25 @@ export function CanvasShortcutsPanel({ onClose }: CanvasShortcutsPanelProps) {
   }, [onClose]);
 
   return (
-    <div className="relative w-[min(900px,calc(100vw-24px))] overflow-hidden rounded-[18px] border border-white/[0.10] bg-[#101217]/85 shadow-2xl backdrop-blur-2xl">
+    <div className="relative w-[min(900px,calc(100vw-24px))] overflow-hidden rounded-[18px] border border-border bg-popover/95 shadow-xl backdrop-blur-2xl">
       <button
         type="button"
         onClick={onClose}
         aria-label={t('common.close')}
-        className="absolute right-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full text-white/55 transition-colors hover:bg-white/10 hover:text-white"
+        className="absolute right-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
       >
         <X className="h-4 w-4" />
       </button>
       <div className="ui-scrollbar grid max-h-[70vh] grid-cols-2 gap-x-8 gap-y-6 overflow-y-auto px-7 py-6 md:grid-cols-4">
         {SHORTCUT_GROUPS.map((group) => (
           <div key={group.titleKey} className="min-w-0">
-            <div className="mb-3 text-[13px] font-semibold leading-none text-cyan-300/90">
+            <div className="mb-3 text-[13px] font-semibold leading-none text-primary">
               {t(group.titleKey)}
             </div>
             <div className="flex flex-col gap-3">
               {group.rows.map((row, rowIndex) => (
                 <div key={rowIndex} className="flex items-center justify-between gap-3">
-                  <span className="truncate text-[13px] leading-5 text-white/72">
+                  <span className="truncate text-[13px] leading-5 text-foreground/75">
                     {t(row.labelKey)}
                   </span>
                   <span className="flex shrink-0 items-center gap-1">
@@ -153,14 +153,14 @@ export function CanvasShortcutsPanel({ onClose }: CanvasShortcutsPanelProps) {
                       <span
                         title={row.noteKey ? t(row.noteKey) : undefined}
                         aria-label={row.noteKey ? t(row.noteKey) : undefined}
-                        className="inline-flex items-center gap-1 text-white/60"
+                        className="inline-flex items-center gap-1 text-foreground/65"
                       >
                         {row.noteIcons.map((Icon, index) => (
                           <Icon key={index} className={row.noteIconClassName ?? 'h-[18px] w-[18px]'} />
                         ))}
                       </span>
                     ) : row.noteKey ? (
-                      <span className="whitespace-nowrap text-[12px] leading-5 text-white/45">
+                      <span className="whitespace-nowrap text-[12px] leading-5 text-muted-foreground">
                         {t(row.noteKey)}
                       </span>
                     ) : null}

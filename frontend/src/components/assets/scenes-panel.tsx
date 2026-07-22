@@ -231,13 +231,13 @@ function SceneDialog({
       ? t("assets.scenes.newPlate", { defaultValue: "添加场景变体" })
       : t("assets.scenes.newScene");
   const SCENE_DIALOG_INPUT_CLASS =
-    "h-11 rounded-[8px] border-white/12 bg-white/[0.04] px-3 text-sm placeholder:text-muted-foreground/70 focus-visible:border-white/25 focus-visible:ring-2 focus-visible:ring-white/8 dark:bg-white/[0.04]";
+    "h-11 rounded-[8px] border-border bg-muted px-3 text-sm placeholder:text-muted-foreground focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/10";
   const SCENE_DIALOG_SELECT_TRIGGER_CLASS =
-    "!h-11 !w-full min-w-0 overflow-hidden rounded-[8px] border-white/12 bg-white/[0.04] !px-3 !py-0 text-sm leading-none focus-visible:border-white/25 focus-visible:ring-2 focus-visible:ring-white/8 dark:bg-white/[0.04] *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:truncate *:data-[slot=select-value]:leading-none";
+    "!h-11 !w-full min-w-0 overflow-hidden rounded-[8px] border-border bg-muted !px-3 !py-0 text-sm leading-none focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/10 *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:truncate *:data-[slot=select-value]:leading-none";
   const SCENE_DIALOG_DISPLAY_CLASS =
-    "flex h-11 min-w-0 items-center rounded-[8px] border border-white/12 bg-white/[0.04] px-3 text-sm dark:bg-white/[0.04]";
+    "flex h-11 min-w-0 items-center rounded-[8px] border border-border bg-muted px-3 text-sm";
   const SCENE_DIALOG_TEXTAREA_CLASS =
-    "rounded-[8px] border-white/12 bg-white/[0.04] px-3 py-2 text-sm placeholder:text-muted-foreground/70 focus-visible:border-white/25 focus-visible:ring-2 focus-visible:ring-white/8 dark:bg-white/[0.04]";
+    "rounded-[8px] border-border bg-muted px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/10";
   const sceneTimeChoices = useMemo(
     () => timeOfDayOptions(draft.time_of_day),
     [draft.time_of_day],
@@ -296,7 +296,7 @@ function SceneDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] gap-4 overflow-hidden rounded-2xl border border-white/8 bg-background/68 px-7 pb-4 pt-7 shadow-none backdrop-blur-3xl sm:max-w-4xl">
+      <DialogContent className="max-h-[92vh] gap-4 overflow-hidden rounded-2xl border border-border bg-popover/95 px-7 pb-4 pt-7 shadow-xl backdrop-blur-3xl sm:max-w-4xl">
         <DialogHeader className="gap-2">
           <DialogTitle className="flex items-center gap-2 text-lg font-medium tracking-tight">
             <span>{title}</span>
@@ -482,13 +482,13 @@ function SceneDialog({
             <AssetBeatReferences
               project={project}
               references={references}
-              className="border-t border-border/60 pt-4"
+              className="border-t border-border pt-4"
             />
           )}
           {initial &&
             (coOccurrence.identities.length > 0 ||
               coOccurrence.props.length > 0) && (
-              <div className="grid gap-3 border-t border-border/60 pt-4">
+              <div className="grid gap-3 border-t border-border pt-4">
                 {coOccurrence.identities.length > 0 && (
                   <CoOccurrenceRow
                     label={t("assets.common.coIdentities")}
@@ -510,7 +510,7 @@ function SceneDialog({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="h-10 w-18 rounded-md border-white/18 bg-white/[0.06] px-0 text-sm font-normal text-foreground/80 hover:border-white/28 hover:bg-white/[0.1] hover:text-foreground"
+            className="h-10 w-18 rounded-md border-border bg-muted px-0 text-sm font-normal text-foreground/80 hover:border-foreground/30 hover:bg-accent hover:text-foreground"
           >
             {t("common.cancel")}
           </Button>
@@ -1066,10 +1066,10 @@ function SceneGroupListItem({
         "flex w-full min-w-0 items-center gap-3 rounded-[10px] border p-2 text-left transition",
         selected
           ? "border-primary/35 bg-primary/[0.075] text-foreground"
-          : "border-white/[0.06] bg-white/[0.018] text-foreground/82 hover:border-white/[0.12] hover:bg-white/[0.035]",
+          : "border-border bg-card text-foreground/82 hover:border-foreground/25 hover:bg-muted",
       ].join(" ")}
     >
-      <div className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-[8px] border border-white/[0.08] bg-black/20">
+      <div className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-[8px] border border-border bg-black/20">
         {previewUrl ? (
           <img
             src={previewUrl}
@@ -1310,8 +1310,8 @@ export function ScenesPanel({
           {t("assets.scenes.build")}
           <CreditCostInline
             display={buildScenesCostDisplay}
-            className="text-black"
-            iconClassName="text-black drop-shadow-none [&_path]:fill-current"
+            className="text-primary-foreground"
+            iconClassName="text-primary-foreground drop-shadow-none [&_path]:fill-current"
           />
         </Button>
       </AssetHeaderActions>
@@ -1349,7 +1349,7 @@ export function ScenesPanel({
         </div>
       ) : (
         <div className="min-h-0 flex-1 overflow-hidden bg-background lg:flex">
-          <aside className="flex max-h-[42vh] w-full shrink-0 flex-col overflow-hidden border-b border-border/30 bg-background lg:max-h-none lg:w-80 lg:border-b-0 lg:border-r">
+          <aside className="flex max-h-[42vh] w-full shrink-0 flex-col overflow-hidden border-b border-border bg-background lg:max-h-none lg:w-80 lg:border-b-0 lg:border-r">
             <div className="px-3 pb-2 pt-3">
               <div className="flex min-w-0 items-center gap-2">
                 <AssetSearchBox
@@ -1400,7 +1400,7 @@ export function ScenesPanel({
                       <h3 className="truncate text-sm font-semibold text-foreground">
                         {selectedGroup.baseName}
                       </h3>
-                      <span className="rounded-[5px] bg-white/[0.11] px-1 py-0 text-[11px] font-medium leading-5 tabular-nums text-white/72">
+                      <span className="rounded-[5px] bg-muted px-1 py-0 text-[11px] font-medium leading-5 tabular-nums text-muted-foreground">
                         {selectedGroup.scenes.length}
                       </span>
                     </div>
@@ -1431,7 +1431,7 @@ export function ScenesPanel({
                               defaultValue:
                                 "场景变体即「同一个地点的不同状态」",
                             })}
-                            className="h-8 gap-1 rounded-[8px] border-white/10 bg-transparent px-3 text-xs font-normal shadow-none hover:bg-white/[0.04] dark:bg-transparent"
+                            className="h-8 gap-1 rounded-[8px] border-border bg-transparent px-3 text-xs font-normal shadow-none hover:bg-muted"
                           />
                         }
                       >

@@ -50,13 +50,13 @@
 }
 
 .sliding-tabs__trigger:hover {
-  background: rgb(255 255 255 / 0.055);
+  background: var(--muted);
   color: var(--foreground);
 }
 
 .sliding-tabs__trigger:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.72);
+  box-shadow: 0 0 0 2px var(--ring);
 }
 
 .sliding-tabs__trigger[data-active="true"] {

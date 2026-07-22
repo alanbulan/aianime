@@ -731,7 +731,7 @@ export function PanoCaptureSurface({
 
   return (
     <div className={cn("flex h-full min-h-0 flex-col bg-background", className)}>
-      <div className="flex shrink-0 flex-col gap-3 border-b border-border/60 px-4 py-3">
+      <div className="flex shrink-0 flex-col gap-3 border-b border-border px-4 py-3">
         {/* 标题行右侧给弹窗自带的关闭按钮(右上角)留出空间,避免文字被盖住。 */}
         <div className="min-w-0 pr-14">
           <div className="truncate text-sm font-medium">{manifest.display_name}</div>
@@ -740,7 +740,7 @@ export function PanoCaptureSurface({
             {contextLabels.map((label) => (
               <span
                 key={label}
-                className="rounded border border-border/70 bg-muted/60 px-1.5 py-0.5 text-[11px] text-muted-foreground"
+                className="rounded border border-border bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground"
               >
                 {label}
               </span>
@@ -779,7 +779,7 @@ export function PanoCaptureSurface({
           )}
         </div>
       </div>
-      <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-border/60 px-4 py-2 text-xs">
+      <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-border px-4 py-2 text-xs">
         <div className="rounded-md bg-muted px-2 py-1 tabular-nums text-muted-foreground">
           yaw {liveCamera.yawDeg.toFixed(1)}° · pitch {liveCamera.pitchDeg.toFixed(1)}° · fov{" "}
           {liveFov}° · {fovToFocal(liveCamera.fovDeg)}mm
@@ -863,7 +863,7 @@ export function PanoCaptureSurface({
           重置截图框
         </Button>
       </div>
-      <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-border/60 px-4 py-2 text-xs">
+      <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-border px-4 py-2 text-xs">
         <label className="flex min-w-[240px] items-center gap-2 text-muted-foreground">
           Front yaw
           <input
@@ -1011,7 +1011,7 @@ export function PanoCaptureSurface({
         </div>
         {saveResult && (
           <div className="pointer-events-auto absolute bottom-3 right-3 z-10 max-w-[min(460px,calc(100%-24px))] rounded-lg border border-emerald-500/40 bg-background/90 p-3 text-xs shadow-lg backdrop-blur">
-            <div className="font-medium text-emerald-600">
+            <div className="font-medium text-emerald-700 dark:text-emerald-300">
               已保存 {saveResult.anchor_id || "截图"}
             </div>
             <div className="mt-1 break-all text-muted-foreground">

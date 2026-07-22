@@ -72,7 +72,7 @@ function CharacterIdentityGroup({
                 "flex cursor-pointer items-center gap-2 rounded-[8px] border px-2.5 py-1.5 text-xs transition-colors",
                 isSelected
                   ? "border-primary/65 bg-primary/10 text-foreground"
-                  : "border-white/12 bg-white/[0.03] text-muted-foreground hover:border-white/20 hover:bg-white/[0.06] hover:text-foreground",
+                  : "border-border bg-muted text-muted-foreground hover:border-foreground/25 hover:bg-accent hover:text-foreground",
               )}
             >
               <label className="flex cursor-pointer items-center gap-1.5">
@@ -184,7 +184,7 @@ export function IdentityPickerDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         overlayClassName="bg-black/8 supports-backdrop-filter:backdrop-blur-sm"
-        className="gap-4 overflow-hidden rounded-2xl border border-white/10 bg-black/35 bg-[linear-gradient(135deg,rgba(255,255,255,0.045),rgba(255,255,255,0.012))] p-7 shadow-none backdrop-blur-2xl sm:max-w-xl"
+        className="gap-4 overflow-hidden rounded-2xl border border-border bg-popover p-7 text-popover-foreground shadow-2xl sm:max-w-xl"
       >
         <DialogHeader className="gap-2">
           <DialogTitle className="text-lg font-medium tracking-tight">
@@ -216,7 +216,7 @@ export function IdentityPickerDialog({
             size="sm"
             onClick={onPlan}
             disabled={planPending}
-            className="mr-auto h-8 gap-1.5 rounded-[8px] border-white/12 bg-white/[0.05] px-3 text-sm font-normal text-foreground/82 shadow-none hover:border-white/24 hover:bg-white/[0.08] hover:text-foreground [&_svg]:text-foreground/75"
+            className="mr-auto h-8 gap-1.5 rounded-[8px] border-border bg-muted px-3 text-sm font-normal text-foreground/82 shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground [&_svg]:text-foreground/75"
           >
             {planPending ? (
               <Loader2 className="size-3.5 animate-spin" />
@@ -230,7 +230,7 @@ export function IdentityPickerDialog({
             variant="ghost"
             size="sm"
             onClick={() => onOpenChange(false)}
-            className="h-8 rounded-[8px] px-3 text-sm font-normal text-foreground/75 hover:bg-white/[0.06] hover:text-foreground"
+            className="h-8 rounded-[8px] px-3 text-sm font-normal text-foreground/75 hover:bg-muted hover:text-foreground"
           >
             {t("common.cancel")}
           </Button>

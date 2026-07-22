@@ -25,7 +25,7 @@ interface NodeSideActionRailProps {
 // 操作工具条一致地一起变大；仅保留 min=0.6 下限，避免缩到 minZoom(0.1) 时点不准。
 
 export const NODE_SIDE_ACTION_BUTTON_CLASS =
-  'nodrag inline-flex h-8 items-center gap-1.5 rounded-[12px] border border-white/10 bg-[#242426]/95 px-3 text-xs font-medium text-text-dark backdrop-blur-xl transition-colors hover:border-white/18 hover:bg-[#29292b]/95 hover:text-white disabled:cursor-not-allowed disabled:opacity-50';
+  'nodrag inline-flex h-8 items-center gap-1.5 rounded-[12px] border border-border bg-popover/95 px-3 text-xs font-medium text-popover-foreground backdrop-blur-xl transition-colors hover:border-foreground/25 hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50';
 
 export const NODE_SIDE_ACTION_ICON_CLASS = 'h-3.5 w-3.5 text-text-muted/90';
 

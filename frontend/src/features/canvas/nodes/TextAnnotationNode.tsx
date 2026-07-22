@@ -498,13 +498,13 @@ export const TextAnnotationNode = memo(({
         type="target"
         position={Position.Left}
         id="target"
-        className="!h-2 !w-2 !border-0 !bg-[rgb(148,163,184)]"
+        className="!h-2 !w-2 !border-0 !bg-muted-foreground"
       />
       <Handle
         type="source"
         position={Position.Right}
         id="source"
-        className="!h-2 !w-2 !border-0 !bg-[rgb(148,163,184)]"
+        className="!h-2 !w-2 !border-0 !bg-muted-foreground"
       />
 
       <NodeHeader
@@ -568,22 +568,22 @@ export const TextAnnotationNode = memo(({
                     h2: ({ ...props }) => <h2 className="mb-1 mt-2 text-sm font-semibold" {...props} />,
                     h3: ({ ...props }) => <h3 className="mb-1 mt-1 text-sm font-semibold" {...props} />,
                     p: ({ ...props }) => <p className="my-1" {...props} />,
-                    strong: ({ ...props }) => <strong className="font-semibold text-text-dark" {...props} />,
+                    strong: ({ ...props }) => <strong className="font-semibold text-foreground" {...props} />,
                     em: ({ ...props }) => <em className="italic" {...props} />,
                     ul: ({ ...props }) => <ul className="my-1 ml-5 list-disc" {...props} />,
                     ol: ({ ...props }) => <ol className="my-1 ml-5 list-decimal" {...props} />,
                     li: ({ ...props }) => <li className="my-0.5" {...props} />,
                     code: ({ ...props }) => (
-                      <code className="rounded bg-white/10 px-1 py-0.5 text-xs" {...props} />
+                      <code className="rounded bg-muted px-1 py-0.5 text-xs" {...props} />
                     ),
-                    hr: () => <hr className="my-2 border-white/10" />,
+                    hr: () => <hr className="my-2 border-border" />,
                   }}
                 >
                   {content}
                 </ReactMarkdown>
               </div>
             ) : (
-              <AlignJustify className="h-12 w-12 stroke-[1.5] text-text-muted/40" />
+              <AlignJustify className="h-12 w-12 stroke-[1.5] text-text-muted" />
             )}
             {isGenerating && (
               <NodeGenerationOverlay
@@ -606,7 +606,7 @@ export const TextAnnotationNode = memo(({
             >
               {upstreamImageUrl && (
                 <div className="flex shrink-0 items-center px-3 pt-3">
-                  <div className="group relative h-9 w-9 overflow-hidden rounded-md border border-white/10">
+                  <div className="group relative h-9 w-9 overflow-hidden rounded-md border border-border">
                     <img
                       src={resolveImageDisplayUrl(upstreamImageUrl)}
                       alt=""
@@ -727,15 +727,15 @@ export const TextAnnotationNode = memo(({
                   h2: ({ ...props }) => <h2 className="mb-1 mt-2 text-sm font-semibold" {...props} />,
                   h3: ({ ...props }) => <h3 className="mb-1 mt-1 text-sm font-semibold" {...props} />,
                   p: ({ ...props }) => <p className="my-1" {...props} />,
-                  strong: ({ ...props }) => <strong className="font-semibold text-text-dark" {...props} />,
+                  strong: ({ ...props }) => <strong className="font-semibold text-foreground" {...props} />,
                   em: ({ ...props }) => <em className="italic" {...props} />,
                   ul: ({ ...props }) => <ul className="my-1 ml-5 list-disc" {...props} />,
                   ol: ({ ...props }) => <ol className="my-1 ml-5 list-decimal" {...props} />,
                   li: ({ ...props }) => <li className="my-0.5" {...props} />,
                   code: ({ ...props }) => (
-                    <code className="rounded bg-white/10 px-1 py-0.5 text-xs" {...props} />
+                    <code className="rounded bg-muted px-1 py-0.5 text-xs" {...props} />
                   ),
-                  hr: () => <hr className="my-2 border-white/10" />,
+                  hr: () => <hr className="my-2 border-border" />,
                 }}
               >
                 {content}
@@ -743,7 +743,7 @@ export const TextAnnotationNode = memo(({
             </div>
           ) : isSystemManaged ? (
             <div className="flex min-h-0 flex-1 items-center justify-center py-4">
-              <AlignJustify className="h-12 w-12 stroke-[1.5] text-text-muted/40" />
+              <AlignJustify className="h-12 w-12 stroke-[1.5] text-text-muted" />
             </div>
           ) : pickerDismissed ? (
             // 已选过模式的纯文本节点：空内容时显示占位文案、点击进入编辑，不再显示 picker。
@@ -773,7 +773,7 @@ export const TextAnnotationNode = memo(({
                         event.stopPropagation();
                         handlePickMode(item.key);
                       }}
-                      className="-mx-2 inline-flex items-center gap-3 rounded-lg px-2 py-2 text-sm text-text-dark transition-colors hover:bg-white/[0.08]"
+                      className="-mx-2 inline-flex items-center gap-3 rounded-lg px-2 py-2 text-sm text-foreground transition-colors hover:bg-muted"
                     >
                       <Icon className="h-4 w-4 text-text-muted/90" />
                       <span>{t(item.labelKey)}</span>

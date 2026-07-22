@@ -107,9 +107,9 @@ const BEAT_SLOT_KINDS: PushTargetKind[] = [
 ];
 
 const COMMIT_FIELD_BORDER_CLASS =
-  "!border-[rgba(255,255,255,0.13)] hover:!border-[rgba(255,255,255,0.22)] focus-visible:!border-[rgb(var(--accent-rgb)/0.55)]";
+  "!border-border hover:!border-foreground/25 focus-visible:!border-primary/55";
 const COMMIT_SELECT_MENU_CLASS =
-  "!z-[260] !border-[rgba(255,255,255,0.14)] !bg-[#101217] shadow-[0_18px_44px_rgba(0,0,0,0.55)]";
+  "!z-[260] !border-border !bg-popover text-popover-foreground shadow-2xl";
 
 function renderCommitSuccessMessage(target: PushTarget, result: PushResult): string {
   if (target.kind === "director_render") {
@@ -629,14 +629,14 @@ export function CommitDialog({
       >
         <header className="flex items-start gap-3 px-5 pb-2 pt-4">
           <div className="min-w-0 flex-1">
-            <h2 className="text-[15px] font-semibold leading-tight text-text-dark">提交到主线资产</h2>
+            <h2 className="text-[15px] font-semibold leading-tight text-foreground">提交到主线资产</h2>
             <p className="mt-0.5 truncate text-xs text-text-muted">项目：{project}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="text-text-muted transition hover:text-text-dark disabled:opacity-30"
+            className="text-muted-foreground transition hover:text-foreground disabled:opacity-30"
             aria-label="关闭"
           >
             <X className="h-4 w-4" />
@@ -644,7 +644,7 @@ export function CommitDialog({
         </header>
 
         <div className="ui-scrollbar flex-1 space-y-4 overflow-y-auto px-5 pb-4 pt-2">
-          <div className="flex items-center gap-3 rounded-lg border border-[rgba(255,255,255,0.13)] bg-[var(--ui-surface-field)] p-2">
+          <div className="flex items-center gap-3 rounded-lg border border-border bg-[var(--ui-surface-field)] p-2">
             {mediaType === "video" ? (
               <video
                 src={sourceUrl}
@@ -653,11 +653,11 @@ export function CommitDialog({
                 className="h-14 w-14 shrink-0 rounded-full object-cover"
               />
             ) : mediaType === "audio" ? (
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded bg-black/30 text-[10px] uppercase tracking-[0.08em] text-text-muted">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded bg-muted text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
                 {commitSourceBadge}
               </div>
             ) : mediaType === "model" ? (
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded bg-black/30 text-[10px] uppercase tracking-[0.08em] text-text-muted">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded bg-muted text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
                 {commitSourceBadge}
               </div>
             ) : previewUrl ? (
@@ -668,18 +668,18 @@ export function CommitDialog({
                 loading="lazy"
               />
             ) : (
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded bg-black/30 text-[10px] uppercase tracking-[0.08em] text-text-muted">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded bg-muted text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
                 {commitSourceBadge}
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <div className="mt-0.5 truncate text-sm font-medium text-text-dark">{commitSourceTitle}</div>
+              <div className="mt-0.5 truncate text-sm font-medium text-foreground">{commitSourceTitle}</div>
               <div className="mt-0.5 truncate text-xs text-text-muted/88">{commitSourceSubtitle}</div>
             </div>
           </div>
 
           {noTargetYet && (
-            <div className="rounded-lg border border-amber-500/25 bg-amber-500/[0.07] px-3 py-2.5 text-xs leading-relaxed text-amber-200/90">
+            <div className="rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2.5 text-xs leading-relaxed text-amber-800 dark:text-amber-200">
               {noModelSourceForSlotCommit
                 ? "无来源没有可提交的 3D 世界素材；请切换到具体世界来源后再提交到主线槽位。"
                 : "当前 3D 世界没有可提交到该槽位的素材。"}
@@ -719,8 +719,8 @@ export function CommitDialog({
                         onClick={() => setKind(slotKind)}
                         className={`inline-flex h-7 items-center rounded-md border px-2.5 text-[11px] font-medium transition-colors ${
                           active
-                            ? "border-accent bg-accent text-white"
-                            : "border-[color:var(--ui-border-soft)] bg-[var(--ui-surface-field)] text-text-muted hover:border-[color:var(--ui-border-strong)] hover:text-text-dark"
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-[color:var(--ui-border-soft)] bg-[var(--ui-surface-field)] text-muted-foreground hover:border-[color:var(--ui-border-strong)] hover:text-foreground"
                         }`}
                       >
                         {shortKindLabel(slotKind)}
@@ -875,7 +875,7 @@ export function CommitDialog({
 
           {isGlobalSlot && (
             <Section title="影响预览">
-              <div className="rounded-lg border border-amber-500/30 bg-amber-500/[0.08] p-3 text-xs">
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs">
                 {impactLoading ? (
                   <div className="flex items-center gap-2 text-text-muted">
                     <Loader2 className="h-3 w-3 animate-spin" />
@@ -883,7 +883,7 @@ export function CommitDialog({
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-center gap-1.5 font-semibold text-amber-300">
+                    <div className="flex items-center gap-1.5 font-semibold text-amber-700 dark:text-amber-300">
                       <AlertTriangle className="h-3.5 w-3.5" />
                       将影响 {impactBeats.length} 个镜头
                     </div>
@@ -909,7 +909,7 @@ export function CommitDialog({
                         onChange={(e) => setMarkStale(e.target.checked)}
                         className="sr-only peer"
                       />
-                      <span className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded border border-[rgba(255,255,255,0.22)] bg-bg-dark/60 text-transparent transition-colors peer-checked:border-amber-400/70 peer-checked:bg-amber-400/25 peer-checked:text-amber-200">
+                      <span className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded border border-border bg-background text-transparent transition-colors peer-checked:border-amber-500/70 peer-checked:bg-amber-500/20 peer-checked:text-amber-600 dark:peer-checked:text-amber-300">
                         <svg
                           viewBox="0 0 16 16"
                           className="h-3 w-3"
@@ -932,13 +932,13 @@ export function CommitDialog({
             </Section>
           )}
 
-          <div className="flex items-start gap-2 px-1 text-[11px] leading-relaxed text-amber-100/70">
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-200/55" />
+          <div className="flex items-start gap-2 px-1 text-[11px] leading-relaxed text-amber-700 dark:text-amber-200">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-300" />
             <span>将覆盖「{targetLabel}」已有资产；原文件会保留在历史记录中。</span>
           </div>
 
           {error && (
-            <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs leading-relaxed text-red-300 break-words">
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs leading-relaxed text-destructive break-words">
               {error}
             </div>
           )}
@@ -953,7 +953,7 @@ export function CommitDialog({
             size="sm"
             onClick={handleSubmit}
             disabled={!ready}
-            className="!h-9 rounded-full !bg-[rgb(var(--accent-rgb))] px-4 text-white hover:!bg-[rgb(var(--accent-rgb)/0.88)]"
+            className="!h-9 rounded-full !bg-primary px-4 text-primary-foreground hover:!bg-primary/90"
           >
             {submitting ? (
               <>

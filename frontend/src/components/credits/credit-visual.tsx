@@ -3,7 +3,7 @@ import { createContext, useContext, useId } from "react";
 
 import { cn } from "@/lib/utils";
 
-export const CREDIT_VALUE_CLASS = "tabular-nums text-white";
+export const CREDIT_VALUE_CLASS = "tabular-nums";
 
 // When true (set by a provider — e.g. the canvas root), credit cost badges
 // render nothing. Lets us hide credits inside the canvas without touching the
@@ -97,7 +97,7 @@ export function CreditCostPill({
     <span
       className={cn(
         "pointer-events-none inline-flex h-7 items-center gap-0.5 rounded-md px-1.5 text-[11px] font-medium",
-        disabled ? "bg-white/5 text-text-muted/40" : "bg-white/[0.08]",
+        disabled ? "bg-muted text-muted-foreground/45" : "bg-muted text-foreground/80",
         !disabled && CREDIT_VALUE_CLASS,
         className,
       )}

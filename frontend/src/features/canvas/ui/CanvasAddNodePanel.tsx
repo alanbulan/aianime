@@ -142,7 +142,7 @@ export function CanvasAddNodePanel({
       onPointerLeave={scheduleSkillPanelClose}
     >
       <div
-        className="w-[360px] max-w-[calc(100vw-32px)] overflow-hidden rounded-[18px] border border-white/[0.10] bg-[#101217]/72 backdrop-blur-2xl"
+        className="w-[360px] max-w-[calc(100vw-32px)] overflow-hidden rounded-[18px] border border-border bg-popover/95 shadow-xl backdrop-blur-2xl"
       >
         <div className="ui-scrollbar max-h-[min(560px,70vh)] overflow-y-auto px-5 py-5 [scrollbar-gutter:stable]">
           <CanvasMenuSectionHeader label={t('node.menu.sectionAddNode')} className="pb-4" />
@@ -156,8 +156,8 @@ export function CanvasAddNodePanel({
                   <div key={group.provider}>
                     <button
                       type="button"
-                      className={`${CANVAS_MENU_ROW_CLASS} hover:bg-white/[0.075] ${
-                        activeSkillProvider === group.provider ? 'bg-white/[0.075]' : ''
+                      className={`${CANVAS_MENU_ROW_CLASS} hover:bg-muted ${
+                        activeSkillProvider === group.provider ? 'bg-muted' : ''
                       }`}
                       onMouseEnter={() => {
                         cancelSkillPanelClose();
@@ -169,19 +169,19 @@ export function CanvasAddNodePanel({
                       }}
                       onClick={() => setActiveSkillProvider(group.provider)}
                     >
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cyan-300/[0.12]">
-                        <Sparkles className="h-4 w-4 text-cyan-200" />
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/12">
+                        <Sparkles className="h-4 w-4 text-primary" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-[14px] leading-5 text-white/82">
+                        <div className="truncate text-[14px] leading-5 text-popover-foreground/85">
                           {skillProviderLabels[group.provider]}
                         </div>
-                        <div className="text-[11px] leading-4 text-white/35">
+                        <div className="text-[11px] leading-4 text-muted-foreground">
                           {group.items.length} 个技能
                         </div>
                       </div>
                       <ChevronRight
-                        className="h-4 w-4 shrink-0 text-white/35"
+                        className="h-4 w-4 shrink-0 text-muted-foreground"
                       />
                     </button>
                   </div>
@@ -194,11 +194,11 @@ export function CanvasAddNodePanel({
       {activeSkillGroup && (
         <div
           ref={skillPanelRef}
-          className="absolute left-[calc(100%+8px)] top-0 w-[420px] max-w-[calc(100vw-32px)] overflow-hidden rounded-[18px] border border-white/[0.10] bg-[#101217]/85 shadow-2xl backdrop-blur-2xl"
+          className="absolute left-[calc(100%+8px)] top-0 w-[420px] max-w-[calc(100vw-32px)] overflow-hidden rounded-[18px] border border-border bg-popover/95 shadow-xl backdrop-blur-2xl"
           onPointerEnter={cancelSkillPanelClose}
           onPointerLeave={scheduleSkillPanelClose}
         >
-          <div className="px-5 pb-3 pt-5 text-[15px] font-semibold leading-none text-white/62">
+          <div className="px-5 pb-3 pt-5 text-[15px] font-semibold leading-none text-popover-foreground/70">
             {skillProviderLabels[activeSkillGroup.provider]}
           </div>
           <div className="ui-scrollbar max-h-[420px] overflow-y-auto px-3 pb-4 [scrollbar-gutter:stable]">
@@ -206,17 +206,17 @@ export function CanvasAddNodePanel({
               <button
                 key={skill.id}
                 type="button"
-                className="flex w-full items-start gap-3 rounded-lg px-2 py-2.5 text-left transition-colors hover:bg-white/[0.04]"
+                className="flex w-full items-start gap-3 rounded-lg px-2 py-2.5 text-left transition-colors hover:bg-muted"
                 onClick={() => handlePickSkill(skill)}
               >
-                <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cyan-300/[0.12]">
-                  <Sparkles className="h-4 w-4 text-cyan-200" />
+                <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/12">
+                  <Sparkles className="h-4 w-4 text-primary" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[14px] leading-5 text-white/82">
+                  <div className="truncate text-[14px] leading-5 text-popover-foreground/85">
                     {translateSkillName(skill, t)}
                   </div>
-                  <div className="mt-0.5 line-clamp-2 text-[12px] leading-4 text-white/35">
+                  <div className="mt-0.5 line-clamp-2 text-[12px] leading-4 text-muted-foreground">
                     {translateSkillDescription(skill, t) || skill.id}
                   </div>
                 </div>

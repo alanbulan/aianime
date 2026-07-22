@@ -42,7 +42,7 @@ export const CanvasToolbar = memo(({ isLocked, onToggleLock }: CanvasToolbarProp
           ${
             isLocked
               ? 'cursor-not-allowed bg-border-dark text-text-muted'
-              : 'bg-accent text-white hover:bg-accent/80'
+              : 'bg-primary text-primary-foreground hover:bg-primary/85'
           }
         `}
       >
@@ -85,7 +85,7 @@ export const CanvasToolbar = memo(({ isLocked, onToggleLock }: CanvasToolbarProp
         className="rounded p-1.5 transition-colors hover:bg-bg-dark"
         title={isLocked ? t('canvas.toolbar.unlock') : t('canvas.toolbar.lock')}
       >
-        {isLocked ? <Lock className="h-4 w-4 text-accent" /> : <Unlock className="h-4 w-4 text-text-muted" />}
+        {isLocked ? <Lock className="h-4 w-4 text-primary" /> : <Unlock className="h-4 w-4 text-text-muted" />}
       </button>
 
       <button
@@ -94,7 +94,7 @@ export const CanvasToolbar = memo(({ isLocked, onToggleLock }: CanvasToolbarProp
         className="rounded p-1.5 transition-colors hover:bg-red-500/10 disabled:opacity-50"
         title={t('common.delete')}
       >
-        <Trash2 className="h-4 w-4 text-red-500" />
+        <Trash2 className="h-4 w-4 text-destructive" />
       </button>
     </div>
   );

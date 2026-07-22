@@ -143,7 +143,7 @@ export function BatchCommitDialog({
               return (
                 <li
                   key={it.id}
-                  className="flex items-center gap-3 px-2 py-2 rounded bg-bg-dark/50"
+                  className="flex items-center gap-3 rounded bg-muted px-2 py-2"
                 >
                   {it.previewUrl ? (
                     <img
@@ -153,7 +153,7 @@ export function BatchCommitDialog({
                       loading="lazy"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded bg-bg-dark shrink-0" />
+                    <div className="h-10 w-10 shrink-0 rounded bg-background" />
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="text-sm text-text truncate">{it.label}</div>
@@ -188,7 +188,7 @@ export function BatchCommitDialog({
                 type="button"
                 onClick={() => runCommit("all")}
                 disabled={submitting || sendable.length === 0}
-                className="px-4 py-1.5 rounded-lg bg-accent/90 hover:bg-accent text-white text-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? `提交中 (${succeeded + failed}/${sendable.length})...` : `提交 ${sendable.length} 张`}
               </button>
@@ -198,7 +198,7 @@ export function BatchCommitDialog({
                 type="button"
                 onClick={() => runCommit("failed")}
                 disabled={submitting}
-                className="px-4 py-1.5 rounded-lg bg-yellow-600/90 hover:bg-yellow-500 text-white text-sm transition"
+                className="rounded-lg bg-warning px-4 py-1.5 text-sm text-warning-foreground transition hover:bg-warning/85"
               >
                 重试失败 {failed} 张
               </button>
@@ -214,14 +214,14 @@ function StatusBadge({ state }: { state: RowState }) {
   if (state.status === "pending")
     return <span className="text-xs text-text-muted shrink-0">待提交</span>;
   if (state.status === "running")
-    return <span className="text-xs text-accent shrink-0">提交中...</span>;
+    return <span className="text-xs text-primary shrink-0">提交中...</span>;
   if (state.status === "ok")
-    return <span className="text-xs text-emerald-400 shrink-0">✓ 完成</span>;
+    return <span className="shrink-0 text-xs text-emerald-700 dark:text-emerald-300">✓ 完成</span>;
   if (state.status === "skipped")
     return <span className="text-xs text-text-muted/70 shrink-0">跳过</span>;
   return (
     <span
-      className="text-xs text-red-400 shrink-0 cursor-help"
+      className="shrink-0 cursor-help text-xs text-red-700 dark:text-red-300"
       title={state.error ?? ""}
     >
       ✗ 失败

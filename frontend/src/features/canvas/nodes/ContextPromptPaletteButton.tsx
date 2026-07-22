@@ -164,7 +164,7 @@ function PaletteSection({
   if (entries.length === 0) return null;
   return (
     <section className="py-1 first:pt-0 last:pb-0">
-      <div className="mb-1.5 px-0.5 text-[11px] font-semibold text-text-dark/72">
+      <div className="mb-1.5 px-0.5 text-[11px] font-semibold text-foreground/72">
         {title}
       </div>
       <div className="flex flex-wrap gap-2">
@@ -173,8 +173,8 @@ function PaletteSection({
             key={`${entry.kind}:${entry.id}`}
             type="button"
             className={entry.named
-              ? "inline-flex max-w-full items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-text-dark/84 transition-colors hover:border-white/22 hover:bg-white/[0.09] hover:text-text-dark"
-              : "inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-text-dark/84 transition-colors hover:border-white/22 hover:bg-white/[0.09] hover:text-text-dark"
+              ? "inline-flex max-w-full items-center gap-1.5 rounded-full border border-border bg-muted px-2 py-1 text-[11px] text-foreground/84 transition-colors hover:border-foreground/25 hover:bg-accent hover:text-foreground"
+              : "inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-muted text-foreground/84 transition-colors hover:border-foreground/25 hover:bg-accent hover:text-foreground"
             }
             title={entry.named ? `${entry.label} · ${entry.color}` : entry.color}
             aria-label={entry.named ? `${entry.label} · ${entry.color}` : entry.color}

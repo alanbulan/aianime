@@ -88,10 +88,10 @@ const CROP_SOURCE_ANCHORS = new Set(["master", "reverse", "director_env_only"]);
 const RENDER_GRID_CLASS =
   "grid grid-cols-[auto_minmax(260px,1fr)] items-start gap-x-4 gap-y-3";
 const RENDER_PREVIEW_CLASS =
-  "flex h-[220px] w-auto max-w-full justify-self-start cursor-zoom-in items-center justify-center overflow-hidden rounded-[10px] border border-white/[0.075] bg-white/[0.022] transition-[border-color,background-color,opacity] hover:border-white/[0.14] hover:bg-white/[0.04] hover:opacity-95";
+  "flex h-[220px] w-auto max-w-full justify-self-start cursor-zoom-in items-center justify-center overflow-hidden rounded-[10px] border border-border bg-card transition-[border-color,background-color,opacity] hover:border-foreground/25 hover:bg-muted hover:opacity-95";
 const RENDER_PREVIEW_IMAGE_CLASS = "h-full w-full object-cover";
 const RENDER_EMPTY_CLASS =
-  "flex h-[220px] w-auto max-w-full justify-self-start items-center justify-center rounded-[10px] border border-dashed border-white/[0.075] bg-white/[0.018] text-xs text-muted-foreground/70";
+  "flex h-[220px] w-auto max-w-full justify-self-start items-center justify-center rounded-[10px] border border-dashed border-border bg-muted text-xs text-muted-foreground";
 const RENDER_CANDIDATES_CLASS =
   "flex max-h-[220px] flex-wrap content-start gap-2 overflow-y-auto pr-1";
 const RELIGHT_BADGE_CLASS =
@@ -393,7 +393,7 @@ export function RenderSection({
 
   return (
     <div className="flex flex-col gap-3">
-      <section className="rounded-[10px] border border-white/[0.055] bg-white/[0.016] p-3">
+      <section className="rounded-[10px] border border-border bg-card p-3">
         <div className={RENDER_GRID_CLASS}>
           {/* Left: preview image (with a live progress overlay while generating) */}
           <div className="relative justify-self-start">
@@ -674,7 +674,7 @@ function RenderRelightBadge({
         title="Relight：按 beat 时间重新打光，不改变场景结构。"
         className={cn(
           RELIGHT_BADGE_CLASS,
-          "border-amber-300/35 bg-amber-300/[0.08] text-amber-200/90",
+          "border-amber-500/35 bg-amber-500/10 text-amber-800 dark:text-amber-200",
         )}
       >
         <SunMedium className="size-3.5" />
@@ -687,7 +687,7 @@ function RenderRelightBadge({
       title="锁图光：使用场景图自带光线，不重新打光。"
       className={cn(
         RELIGHT_BADGE_CLASS,
-        "border-emerald-300/30 bg-emerald-300/[0.07] text-emerald-200/88",
+        "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
       )}
     >
       <Lock className="size-3.5" />
@@ -857,11 +857,11 @@ function RenderBackgroundReferencePanel({
       : undefined;
 
   return (
-    <section className="col-span-2 rounded-[10px] border border-white/[0.055] bg-white/[0.016] p-3">
+    <section className="col-span-2 rounded-[10px] border border-border bg-card p-3">
       <div className="grid items-start gap-3 md:grid-cols-[auto_minmax(0,1fr)]">
         <div className="min-w-0">
           <div
-            className="max-w-[min(180px,28vw)] overflow-hidden rounded-[8px] border border-white/[0.075] bg-white/[0.02]"
+            className="max-w-[min(180px,28vw)] overflow-hidden rounded-[8px] border border-border bg-muted"
           >
             {currentSrc ? (
               <img
@@ -886,7 +886,7 @@ function RenderBackgroundReferencePanel({
             <div className="flex min-w-0 items-center text-[12px] font-medium text-foreground/76">
               <span className="truncate">{t("episode.workbench.render.backgroundTitle")}</span>
             </div>
-            <span className="inline-flex h-5 max-w-full items-center rounded-full border border-primary/35 bg-primary/[0.07] px-2 text-[11px] font-medium leading-none text-primary/88">
+            <span className="inline-flex h-5 max-w-full items-center rounded-full border border-primary/35 bg-primary/[0.07] px-2 text-[11px] font-medium leading-none text-primary">
               {t("episode.workbench.render.backgroundCurrent", {
                 label: currentLabel,
               })}
@@ -911,8 +911,8 @@ function RenderBackgroundReferencePanel({
                     onClick={() => onChoose(item.id)}
                     title={item.path || itemLabel}
                     className={cn(
-                      "h-7 gap-1 rounded-[7px] border-white/[0.13] bg-white/[0.035] px-2.5 text-[12px] font-normal text-foreground/76 shadow-none hover:border-white/[0.22] hover:bg-white/[0.06] hover:text-foreground disabled:border-white/[0.09] disabled:bg-white/[0.02] disabled:text-muted-foreground/55 dark:bg-white/[0.035]",
-                      isActive && "border-primary/45 bg-primary/[0.075] text-primary/90 hover:border-primary/60 hover:bg-primary/[0.11] hover:text-primary",
+                      "h-7 gap-1 rounded-[7px] border-border bg-muted px-2.5 text-[12px] font-normal text-foreground/76 shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground disabled:border-border disabled:bg-muted/50 disabled:text-muted-foreground/55",
+                      isActive && "border-primary/45 bg-primary/[0.075] text-primary hover:border-primary/60 hover:bg-primary/[0.11] hover:text-primary",
                     )}
                   >
                     {choosing && isActive ? <Loader2 className="size-3 animate-spin" /> : null}
@@ -926,7 +926,7 @@ function RenderBackgroundReferencePanel({
                       aria-label={cropActionLabel}
                       title={cropActionLabel}
                       disabled={disabled || !item.exists || croppingAnchorId !== null}
-                      className="size-7 rounded-[7px] border-white/[0.13] bg-white/[0.035] text-foreground/70 shadow-none hover:border-white/[0.22] hover:bg-white/[0.06] hover:text-foreground disabled:border-white/[0.09] disabled:bg-white/[0.02] disabled:text-muted-foreground/55 dark:bg-white/[0.035]"
+                      className="size-7 rounded-[7px] border-border bg-muted text-foreground/70 shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground disabled:border-border disabled:bg-muted/50 disabled:text-muted-foreground/55"
                       onClick={() => {
                         setCropNaturalSize(null);
                         setCropTarget({
@@ -964,7 +964,7 @@ function RenderBackgroundReferencePanel({
               variant="outline"
               onClick={() => uploadInputRef.current?.click()}
               disabled={disabled || uploading}
-              className="h-7 gap-1 rounded-[7px] border-white/[0.13] bg-white/[0.035] px-2.5 text-[12px] font-normal text-foreground/76 shadow-none hover:border-white/[0.22] hover:bg-white/[0.06] hover:text-foreground disabled:border-white/[0.09] disabled:bg-white/[0.02] disabled:text-muted-foreground/55 dark:bg-white/[0.035]"
+              className="h-7 gap-1 rounded-[7px] border-border bg-muted px-2.5 text-[12px] font-normal text-foreground/76 shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground disabled:border-border disabled:bg-muted/50 disabled:text-muted-foreground/55"
             >
               {uploading ? <Loader2 className="size-3 animate-spin" /> : <Upload className="size-3" />}
               {t("episode.workbench.render.backgroundUpload")}
@@ -979,7 +979,7 @@ function RenderBackgroundReferencePanel({
                 variant="outline"
                 onClick={onOpenDirectorWorld}
                 disabled={disabled}
-                className="h-7 gap-1 rounded-[7px] border-white/[0.13] bg-white/[0.035] px-2.5 text-[12px] font-normal text-foreground/76 shadow-none hover:border-white/[0.22] hover:bg-white/[0.06] hover:text-foreground disabled:border-white/[0.09] disabled:bg-white/[0.02] disabled:text-muted-foreground/55 dark:bg-white/[0.035]"
+                className="h-7 gap-1 rounded-[7px] border-border bg-muted px-2.5 text-[12px] font-normal text-foreground/76 shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground disabled:border-border disabled:bg-muted/50 disabled:text-muted-foreground/55"
               >
                 <ImageIcon className="size-3" />
                 {t("episode.workbench.render.backgroundOpen360")}

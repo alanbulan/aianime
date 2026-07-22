@@ -671,7 +671,7 @@ export function BatchPanel({
 
       <div className="min-h-0 flex-1 overflow-y-auto p-3">
         <div className="space-y-2">
-          <h4 className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
+          <h4 className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
             {t("episode.workbench.batch.batchRegen")}
           </h4>
 
@@ -711,7 +711,7 @@ export function BatchPanel({
                 size="sm"
                 disabled={actionDisabled.sketch || sketchPlanUnlockedCount === 0}
                 onClick={openSketchPlan}
-                className="relative h-7 gap-1 rounded-[8px] border-[3px] border-[#007A87] px-2 pr-9 text-[11px] transition-transform hover:border-[#007A87] hover:bg-transparent active:scale-95 dark:border-[#007A87] dark:hover:border-[#007A87]"
+                className="relative h-7 gap-1 rounded-[8px] border-[3px] border-primary px-2 pr-9 text-[11px] transition-transform hover:border-primary hover:bg-transparent active:scale-95"
               >
                 <Grid2X2 className="size-3" />
                 {t("episode.workbench.batch.autoCombine", {
@@ -744,7 +744,7 @@ export function BatchPanel({
                   {sketchPlanItems.map((item) => (
                     <div
                       key={item.id}
-                      className={`flex w-[170px] shrink-0 flex-col gap-1 rounded-[6px] border border-white/10 bg-white/[0.05] p-2 text-xs ${
+                      className={`flex w-[170px] shrink-0 flex-col gap-1 rounded-[6px] border border-border bg-muted p-2 text-xs ${
                         lockedSketchItemIds.has(item.id) ? "opacity-50" : ""
                       }`}
                     >
@@ -761,7 +761,7 @@ export function BatchPanel({
                         </span>
                       </div>
                       <div
-                        className="truncate text-emerald-400"
+                        className="truncate text-emerald-700 dark:text-emerald-300"
                         title={item.sceneIds.join(" / ")}
                       >
                         {item.sceneIds.join(" / ") ||
@@ -877,7 +877,7 @@ export function BatchPanel({
 
         </div>
 
-        <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground/50">
+        <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground">
           {t("episode.workbench.batch.batchHint")}
         </p>
       </div>

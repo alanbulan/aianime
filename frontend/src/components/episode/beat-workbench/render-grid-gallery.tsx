@@ -84,7 +84,7 @@ export function RenderGridGallery({
   };
 
   return (
-    <section className="flex h-full min-h-0 w-full flex-col bg-background/50 px-4 py-3">
+    <section className="flex h-full min-h-0 w-full flex-col bg-background px-4 py-3">
       <div className="mb-2 flex items-center justify-between gap-2">
         <h2 className="text-xs font-semibold text-muted-foreground">
           {t("episode.workbench.renderGrid.titleWithCount", {
@@ -270,12 +270,12 @@ function RenderGridCard({
   };
 
   return (
-    <article className="flex min-w-0 flex-col gap-2 rounded-md border border-white/10 bg-transparent p-2">
+    <article className="flex min-w-0 flex-col gap-2 rounded-md border border-border bg-card p-2">
       <button
         type="button"
         disabled={!gridUrl}
         onClick={() => gridUrl && window.open(gridUrl, "_blank", "noopener,noreferrer")}
-        className="overflow-hidden rounded border border-white/10 bg-black/20 disabled:cursor-default"
+        className="overflow-hidden rounded border border-border bg-black/20 disabled:cursor-default"
         style={{ aspectRatio: gridAspectCss(group.cols, group.rows, cellAspect) }}
       >
         {gridUrl ? (

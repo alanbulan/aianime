@@ -221,12 +221,12 @@ const PASTE_TEXT_MAX_LENGTH = 1000;
 const HIDDEN_IMPORTED_PREVIEW_KEY_PREFIX =
   "ai-anime-ingest-hidden-imported-preview:";
 const COMPACT_SELECT_TRIGGER_CLASS =
-  "h-8 w-full rounded-[8px] border-white/10 bg-transparent px-2.5 text-xs dark:bg-transparent md:w-auto md:min-w-max";
+  "h-8 w-full rounded-[8px] border-border bg-transparent px-2.5 text-xs md:w-auto md:min-w-max";
 const COMPACT_SELECT_CONTENT_CLASS =
-  "min-w-max rounded-md p-1 shadow-xl shadow-black/20 data-[align-trigger=true]:animate-in [&_[data-slot=select-item]]:min-h-8 [&_[data-slot=select-item]]:rounded-sm [&_[data-slot=select-item]]:px-2 [&_[data-slot=select-item]]:py-1.5 [&_[data-slot=select-item]]:text-xs [&_[data-slot=select-item]:focus]:bg-white/8 [&_[data-slot=select-item]:focus]:text-current [&_[data-slot=select-item]_svg]:size-3.5";
-const INGEST_SURFACE_CLASS = "border-white/[0.08] bg-white/[0.04] shadow-none";
-const INGEST_SURFACE_SUBTLE_CLASS = "border-white/[0.06] bg-white/[0.03] shadow-none";
-const INGEST_DIVIDER_CLASS = "border-white/[0.06]";
+  "min-w-max rounded-md border border-border bg-popover p-1 shadow-xl data-[align-trigger=true]:animate-in [&_[data-slot=select-item]]:min-h-8 [&_[data-slot=select-item]]:rounded-sm [&_[data-slot=select-item]]:px-2 [&_[data-slot=select-item]]:py-1.5 [&_[data-slot=select-item]]:text-xs [&_[data-slot=select-item]:focus]:bg-muted [&_[data-slot=select-item]:focus]:text-current [&_[data-slot=select-item]_svg]:size-3.5";
+const INGEST_SURFACE_CLASS = "border-border bg-card shadow-none";
+const INGEST_SURFACE_SUBTLE_CLASS = "border-border bg-muted shadow-none";
+const INGEST_DIVIDER_CLASS = "border-border";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -319,12 +319,12 @@ function UploadZone({
       }}
       className={cn(
         "group flex cursor-pointer flex-col items-center justify-center gap-5 rounded-lg px-6 py-16 text-center transition-colors sm:flex-row sm:gap-8 sm:text-left",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/10",
-        dragging ? "bg-white/[0.04]" : "hover:bg-white/[0.02]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+        dragging ? "bg-muted" : "hover:bg-muted",
         className,
       )}
     >
-      <div className="flex h-[72px] w-14 -rotate-[6deg] items-center justify-center rounded-[10px] bg-white/[0.08] text-muted-foreground transition-all duration-300 ease-out group-hover:rotate-0 group-hover:bg-white/[0.1]">
+      <div className="flex h-[72px] w-14 -rotate-[6deg] items-center justify-center rounded-[10px] bg-muted text-muted-foreground transition-all duration-300 ease-out group-hover:rotate-0 group-hover:bg-accent">
         <Plus className="size-7 stroke-[1.25px]" />
       </div>
       <div className="space-y-1.5 sm:-mt-1">
@@ -365,7 +365,7 @@ function UploadingOverlay() {
       aria-label={t("ingest.uploadingTitle")}
       className="fixed inset-0 z-[1000] flex items-center justify-center bg-background/80 px-6 text-foreground backdrop-blur-md"
     >
-      <div className="flex w-full max-w-sm flex-col items-center rounded-2xl border border-border/60 bg-card/95 px-8 py-10 text-center shadow-2xl shadow-black/50">
+      <div className="flex w-full max-w-sm flex-col items-center rounded-2xl border border-border bg-card px-8 py-10 text-center shadow-2xl shadow-black/30">
         <div className="relative mb-6 flex size-14 items-center justify-center">
           <span
             className="absolute inset-0 animate-ping rounded-full bg-primary/10"
@@ -421,7 +421,7 @@ function FormatCheckWarning({
   if (variant === "plain") {
     return (
       <div className={cn("flex items-start gap-1.5", className)}>
-        <AlertTriangle className="mt-px size-3.5 shrink-0 text-foreground/45" />
+        <AlertTriangle className="mt-px size-3.5 shrink-0 text-muted-foreground" />
         <div className="min-w-0">
           <span>{formatCheck.summary || t("aiAssistant.formatCheck.title")}</span>
           {detailsButton}
@@ -433,11 +433,11 @@ function FormatCheckWarning({
   return (
     <div
       className={cn(
-        "flex items-start gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2",
+        "flex items-start gap-2 rounded-md border border-border bg-muted px-3 py-2",
         className,
       )}
     >
-      <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-foreground/45" />
+      <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
       <div className="min-w-0 text-xs leading-5 text-foreground/70">
         <span>{formatCheck.summary || t("aiAssistant.formatCheck.title")}</span>
         {detailsButton}
@@ -491,8 +491,8 @@ function UploadedFileCard({
   const statusStyles: Record<IngestFileStatus, string> = {
     uploaded: "border-primary/30 bg-primary/10 text-primary",
     importing: "border-primary/30 bg-primary/10 text-primary",
-    completed: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
-    stopped: "border-muted-foreground/25 bg-muted/40 text-muted-foreground",
+    completed: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    stopped: "border-muted-foreground/35 bg-muted text-muted-foreground",
     failed: "border-destructive/35 bg-destructive/10 text-destructive",
   };
   const statusIcon =
@@ -641,7 +641,7 @@ function SelectedFileCard({
           type="button"
           onClick={onDelete}
           aria-label="Remove selected file"
-          className="absolute right-2 top-2 flex size-6 items-center justify-center rounded-full border border-white/10 bg-black/25 text-foreground/70 transition-colors hover:bg-black/35 hover:text-foreground"
+          className="absolute right-2 top-2 flex size-6 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white/80 transition-colors hover:bg-black/70 hover:text-white"
         >
           <X className="size-3" />
         </button>
@@ -652,7 +652,7 @@ function SelectedFileCard({
           {name}
         </p>
         <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
-          <FileText className="size-4 text-sky-400" />
+          <FileText className="size-4 text-sky-700 dark:text-sky-300" />
           <span>{extension}</span>
         </div>
         {error && (
@@ -683,7 +683,7 @@ function InputModeToggle({
   return (
     <div
       className={cn(
-        "inline-flex h-8 items-center rounded-[8px] border border-white/10 bg-transparent p-1 text-xs",
+        "inline-flex h-8 items-center rounded-[8px] border border-border bg-transparent p-1 text-xs",
         className,
       )}
     >
@@ -831,7 +831,7 @@ function ChapterPreviewSkeleton() {
           <Skeleton className="h-3 w-16" />
           <Skeleton className="ml-auto h-3 w-10" />
         </div>
-        <div className="divide-y divide-white/[0.05]">
+        <div className="divide-y divide-border">
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
@@ -1311,7 +1311,7 @@ export function IngestPageContent({ project }: { project: string }) {
   return (
     <div className="-m-6 flex h-[calc(100%+3rem)] flex-col overflow-hidden">
       {uploadMutation.isPending && <UploadingOverlay />}
-      <div className="flex shrink-0 flex-col gap-3 border-b border-border/30 bg-background px-9 py-5 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex shrink-0 flex-col gap-3 border-b border-border bg-background px-9 py-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <FishSymbol className="size-[18px]" />
@@ -1333,7 +1333,7 @@ export function IngestPageContent({ project }: { project: string }) {
             <motion.section
               layout
               transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
-              className="rounded-2xl bg-white/[0.05] p-4"
+              className="rounded-2xl bg-muted p-4"
             >
               <div
                 className={cn(
@@ -1385,7 +1385,7 @@ export function IngestPageContent({ project }: { project: string }) {
                       }
                       maxLength={PASTE_TEXT_MAX_LENGTH}
                       placeholder={t("ingest.pastePlaceholder")}
-                      className="h-[152px] resize-none rounded-[10px] border-white/10 bg-black/25 p-4 text-sm leading-6 placeholder:text-muted-foreground/55 focus-visible:border-white/25 focus-visible:ring-2 focus-visible:ring-white/8 md:text-sm dark:bg-black/25 [field-sizing:fixed]"
+                      className="h-[152px] resize-none rounded-[10px] border-border bg-muted p-4 text-sm leading-6 placeholder:text-muted-foreground focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/10 md:text-sm [field-sizing:fixed]"
                     />
                     <div className="mt-1.5 flex items-center justify-between gap-3 text-xs leading-4 text-muted-foreground/70">
                       <span className="min-w-0 truncate">{sourceHint}</span>
@@ -1582,7 +1582,7 @@ export function IngestPageContent({ project }: { project: string }) {
                     variant="outline"
                     onClick={handleSaveSettings}
                     disabled={!settingsChanged || updateProject.isPending || ingestStarted}
-                    className="h-8 gap-1.5 rounded-[8px] border-white/10 bg-transparent px-3 text-xs font-normal shadow-none transition-colors hover:bg-white/8"
+                    className="h-8 gap-1.5 rounded-[8px] border-border bg-transparent px-3 text-xs font-normal shadow-none transition-colors hover:bg-muted"
                   >
                     {updateProject.isPending && !startIngestMutation.isPending ? (
                       <Loader2 className="size-3 animate-spin" />
@@ -1672,7 +1672,7 @@ export function IngestPageContent({ project }: { project: string }) {
 
               {/* Preview — empty state (file uploaded but no chapters detected) */}
               {chaptersData && chapterCount === 0 && (
-                <div className="rounded-lg border border-dashed border-white/[0.08] bg-white/[0.025] p-8 text-center text-sm text-muted-foreground">
+                <div className="rounded-lg border border-dashed border-border bg-muted p-8 text-center text-sm text-muted-foreground">
                   {t("ingest.emptyPreview")}
                 </div>
               )}
@@ -1702,7 +1702,7 @@ export function IngestPageContent({ project }: { project: string }) {
                       label={t("ingest.statTotalChars")}
                       value={
                         totalCharsUnknown
-                          ? <span className="text-muted-foreground/60">—</span>
+                          ? <span className="text-muted-foreground">—</span>
                           : totalChars.toLocaleString()
                       }
                     />
@@ -1710,7 +1710,7 @@ export function IngestPageContent({ project }: { project: string }) {
                       label={t("ingest.statBillableChars")}
                       value={
                         totalCharsUnknown
-                          ? <span className="text-muted-foreground/60">—</span>
+                          ? <span className="text-muted-foreground">—</span>
                           : billableChars.toLocaleString()
                       }
                     />
@@ -1791,7 +1791,7 @@ export function IngestPageContent({ project }: { project: string }) {
                         {t("ingest.tableCharCount")}
                       </span>
                     </div>
-                    <div className="divide-y divide-white/[0.05]">
+                    <div className="divide-y divide-border">
                       {chapters.slice(0, 20).map((ch) => (
                         <div
                           key={ch.number}
@@ -1842,7 +1842,7 @@ export function IngestPageContent({ project }: { project: string }) {
                             key={i}
                             className="font-mono text-xs text-muted-foreground"
                           >
-                            <span className="mr-2 text-muted-foreground/50">
+                            <span className="mr-2 text-muted-foreground">
                               [{String(i + 1).padStart(2, "0")}]
                             </span>
                             {log}

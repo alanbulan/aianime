@@ -71,7 +71,7 @@ export function PropAssetCard({
     : "";
 
   return (
-    <Card size="sm" className="rounded-[10px] bg-white/[0.03] shadow-none">
+    <Card size="sm" className="rounded-[10px] border-border bg-card shadow-none">
       {/* Header: title + status chips inline, action icons on right */}
       <CardHeader className="gap-2">
         <div className="flex min-w-0 items-center justify-between gap-3">
@@ -152,7 +152,7 @@ export function PropAssetCard({
             className="aspect-[16/9] w-full rounded-[8px]"
           />
         ) : (
-          <div className="flex aspect-[16/9] w-full flex-col items-center justify-center gap-2 rounded-[8px] border border-dashed border-border bg-muted/20 text-muted-foreground">
+          <div className="flex aspect-[16/9] w-full flex-col items-center justify-center gap-2 rounded-[8px] border border-dashed border-border bg-muted text-muted-foreground">
             <Package className="size-6" />
             <span className="text-xs">{t("assets.props.noReference")}</span>
           </div>

@@ -212,7 +212,7 @@ export function NodeHeader({
             }
           }}
           className={joinClasses(
-            'nodrag nowheel h-6 min-w-[70px] w-full max-w-full rounded border border-[rgba(15,23,42,0.22)] bg-[rgba(255,255,255,0.86)] px-2 text-[13px] font-normal text-text-dark outline-none focus:border-accent/70 dark:border-[rgba(255,255,255,0.24)] dark:bg-black/30',
+            'nodrag nowheel h-6 min-w-[70px] w-full max-w-full rounded border border-border bg-background/90 px-2 text-[13px] font-normal text-text-dark outline-none focus:border-primary/70 dark:bg-black/30',
             titleClassName
           )}
         />
@@ -291,4 +291,3 @@ export function NodeHeader({
     </div>
   );
 }
-

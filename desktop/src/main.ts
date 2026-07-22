@@ -78,7 +78,7 @@ async function createMainWindow(localBackend: LocalBackend): Promise<void> {
     show: false,
     frame: false,
     autoHideMenuBar: true,
-    backgroundColor: "#111111",
+    backgroundColor: "#0b0d10",
     webPreferences: {
       preload: join(import.meta.dirname, "preload.cjs"),
       contextIsolation: true,

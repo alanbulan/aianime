@@ -84,11 +84,11 @@ export function BackToNodesHint() {
 
   return (
     <div className="pointer-events-none absolute bottom-6 left-1/2 z-[130] -translate-x-1/2">
-      <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-white/10 bg-[#1f1f1f]/95 py-1.5 pl-4 pr-1.5 text-xs text-white/85 shadow-lg shadow-black/40 backdrop-blur">
+      <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-border bg-popover/95 py-1.5 pl-4 pr-1.5 text-xs text-popover-foreground/85 shadow-xl backdrop-blur">
         <span className="whitespace-nowrap">{t('canvas.backToNodes.hint')}</span>
         <button
           type="button"
-          className="whitespace-nowrap rounded-full bg-white px-3.5 py-1.5 text-xs font-medium text-black transition hover:bg-white/90"
+          className="whitespace-nowrap rounded-full bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground transition hover:bg-primary/85"
           onClick={handleBackToNodes}
         >
           {t('canvas.backToNodes.button')}

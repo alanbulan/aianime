@@ -51,7 +51,7 @@ function AlertDialogContent({
         data-slot="alert-dialog-content"
         data-size={size}
         className={cn(
-          "group/alert-dialog-content fixed top-1/2 left-1/2 z-50 grid w-[min(calc(100vw-2rem),500px)] max-w-none -translate-x-1/2 -translate-y-1/2 gap-0 overflow-hidden rounded-2xl border border-white/10 bg-background/72 p-7 text-popover-foreground shadow-none duration-100 outline-none backdrop-blur-2xl data-[size=sm]:w-[min(calc(100vw-2rem),440px)] data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "group/alert-dialog-content fixed top-1/2 left-1/2 z-50 grid w-[min(calc(100vw-2rem),500px)] max-w-none -translate-x-1/2 -translate-y-1/2 gap-0 overflow-hidden rounded-2xl border border-border bg-popover/95 p-7 text-popover-foreground shadow-2xl duration-100 outline-none backdrop-blur-2xl data-[size=sm]:w-[min(calc(100vw-2rem),440px)] data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className
         )}
         {...props}
@@ -170,7 +170,7 @@ function AlertDialogCancel({
     <AlertDialogPrimitive.Close
       data-slot="alert-dialog-cancel"
       className={cn(
-        "h-10 min-w-18 rounded-md border-white/18 bg-white/[0.06] px-4 text-sm font-normal text-foreground/80 shadow-none hover:border-white/28 hover:bg-white/[0.1] hover:text-foreground",
+        "h-10 min-w-18 rounded-md border-border bg-muted px-4 text-sm font-normal text-foreground/80 shadow-none hover:border-foreground/30 hover:bg-accent hover:text-foreground",
         className
       )}
       render={<Button variant={variant} size={size} />}

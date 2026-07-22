@@ -697,7 +697,7 @@ export const PromptMentionEditor = forwardRef<PromptMentionEditorHandle, PromptM
           && createPortal(
             <div
               ref={popoverRef}
-              className="ui-scrollbar fixed z-[10000] flex min-w-[200px] max-w-[280px] flex-col overflow-y-auto rounded-lg border border-white/10 bg-surface-dark/95 shadow-xl backdrop-blur-sm"
+              className="ui-scrollbar fixed z-[10000] flex min-w-[200px] max-w-[280px] flex-col overflow-y-auto rounded-lg border border-border bg-popover/95 shadow-xl backdrop-blur-sm"
               style={{
                 ...popoverStyle,
                 maxHeight: POPOVER_MAX_VISIBLE * POPOVER_ROW_PX,
@@ -721,8 +721,8 @@ export const PromptMentionEditor = forwardRef<PromptMentionEditorHandle, PromptM
                   onMouseEnter={() => setActiveIdx(idx)}
                   className={`flex items-center gap-2 px-2.5 py-1.5 text-left text-xs transition-colors ${
                     idx === activeIdx
-                      ? 'bg-white/[0.08] text-text-dark'
-                      : 'text-text-muted hover:bg-white/[0.05] hover:text-text-dark'
+                      ? 'bg-muted text-popover-foreground'
+                      : 'text-muted-foreground hover:bg-muted hover:text-popover-foreground'
                   }`}
                 >
                   {candidate.imageUrl ? (
@@ -742,7 +742,7 @@ export const PromptMentionEditor = forwardRef<PromptMentionEditorHandle, PromptM
                       draggable={false}
                     />
                   ) : (
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-white/[0.06] text-[13px] text-accent">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-muted text-[13px] text-primary">
                       ♪
                     </span>
                   )}
@@ -756,7 +756,7 @@ export const PromptMentionEditor = forwardRef<PromptMentionEditorHandle, PromptM
         {hover && previewStyle
           && createPortal(
             <div
-              className="pointer-events-none fixed z-[10001] -translate-y-full overflow-hidden rounded-lg border border-white/15 bg-surface-dark/95 shadow-xl"
+              className="pointer-events-none fixed z-[10001] -translate-y-full overflow-hidden rounded-lg border border-border bg-popover/95 shadow-xl"
               style={{
                 left: previewStyle.left,
                 top: previewStyle.top,

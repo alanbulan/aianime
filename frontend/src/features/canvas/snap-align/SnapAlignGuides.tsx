@@ -30,7 +30,7 @@ export function SnapAlignGuides() {
             x2={xScreen}
             y1={0}
             y2="100%"
-            stroke="rgb(96, 165, 250)"
+            stroke="rgb(var(--accent-rgb))"
             strokeWidth={1}
             strokeDasharray="6 6"
           />
@@ -45,7 +45,7 @@ export function SnapAlignGuides() {
             y2={yScreen}
             x1={0}
             x2="100%"
-            stroke="rgb(96, 165, 250)"
+            stroke="rgb(var(--accent-rgb))"
             strokeWidth={1}
             strokeDasharray="6 6"
           />

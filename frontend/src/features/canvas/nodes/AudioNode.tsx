@@ -279,13 +279,13 @@ export const AudioNode = memo(({ id, data, selected, width, height }: AudioNodeP
         type="target"
         position={Position.Left}
         id="target"
-        className="!h-2 !w-2 !border-0 !bg-[rgb(148,163,184)]"
+        className="!h-2 !w-2 !border-0 !bg-muted-foreground"
       />
       <Handle
         type="source"
         position={Position.Right}
         id="source"
-        className="!h-2 !w-2 !border-0 !bg-[rgb(148,163,184)]"
+        className="!h-2 !w-2 !border-0 !bg-muted-foreground"
       />
 
       <NodeHeader
@@ -330,12 +330,12 @@ export const AudioNode = memo(({ id, data, selected, width, height }: AudioNodeP
         ) : hasGenerationError ? (
           // 失败态：与 ImageGenNode/VideoNode 一致（headline + 可滚动错误文本 + 共用重试按钮）。
           <div className="nodrag flex flex-col items-center px-5 text-center">
-            <div className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-red-200">
-              <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-red-300/90" />
+            <div className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-destructive">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-destructive" />
               <span>生成失败</span>
             </div>
             <div
-              className="mt-1 max-h-12 max-w-full overflow-y-auto break-words text-[11px] leading-4 text-red-100/76 [overflow-wrap:anywhere]"
+              className="mt-1 max-h-12 max-w-full overflow-y-auto break-words text-[11px] leading-4 text-destructive [overflow-wrap:anywhere]"
               title={generationError}
             >
               {generationError}

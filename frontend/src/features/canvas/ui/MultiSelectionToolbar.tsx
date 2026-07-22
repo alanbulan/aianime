@@ -43,11 +43,11 @@ const ARRANGE_GAP = 32;
 // Fallback height when a node has not been measured yet.
 const DEFAULT_NODE_HEIGHT = 320;
 const MULTI_TOOLBAR_BUTTON_CLASS =
-  'flex h-9 items-center gap-1.5 rounded-[12px] px-3 text-sm text-text-dark transition-colors hover:bg-[rgba(255,255,255,0.075)]';
+  'flex h-9 items-center gap-1.5 rounded-[12px] px-3 text-sm text-foreground transition-colors hover:bg-muted';
 const MULTI_TOOLBAR_SEPARATOR_CLASS =
-  'mx-1 h-4 w-px shrink-0 bg-[rgba(255,255,255,0.14)]';
+  'mx-1 h-4 w-px shrink-0 bg-border';
 const MULTI_TOOLBAR_MENU_ITEM_CLASS =
-  'flex h-11 w-full items-center gap-2.5 rounded-[10px] px-3 text-left text-sm text-text-dark transition-colors hover:bg-[rgba(255,255,255,0.075)]';
+  'flex h-11 w-full items-center gap-2.5 rounded-[10px] px-3 text-left text-sm text-foreground transition-colors hover:bg-muted';
 
 type ArrangeMode = 'graph' | 'horizontal' | 'vertical';
 
@@ -351,7 +351,7 @@ export const MultiSelectionToolbar = memo(() => {
           与通用节点工具栏(NodeActionToolbar)一致封在 1，避免放大画布时反而变大。 */}
       <ZoomScaledToolbar origin="bottom left" mode="counter" counterMax={1}>
       <div ref={arrangeMenuRef} className="relative" onClick={(event) => event.stopPropagation()}>
-        <div className="flex items-center gap-1.5 rounded-[18px] border border-white/10 bg-[#242426]/95 px-2 py-1.5 text-sm shadow-[0_10px_24px_rgba(0,0,0,0.28)] backdrop-blur-2xl [&_svg]:h-4 [&_svg]:w-4">
+        <div className="flex items-center gap-1.5 rounded-[18px] border border-border bg-popover/95 px-2 py-1.5 text-sm shadow-xl backdrop-blur-2xl [&_svg]:h-4 [&_svg]:w-4">
           <button
             type="button"
             className={MULTI_TOOLBAR_BUTTON_CLASS}
@@ -403,7 +403,7 @@ export const MultiSelectionToolbar = memo(() => {
             </button>
 
             {groupMenuOpen && (
-              <div className="absolute right-0 top-full mt-2 min-w-[160px] overflow-hidden rounded-xl border border-white/10 bg-[#242426]/95 p-1.5 text-text-dark shadow-none backdrop-blur-3xl">
+              <div className="absolute right-0 top-full mt-2 min-w-[160px] overflow-hidden rounded-xl border border-border bg-popover/95 p-1.5 text-popover-foreground shadow-xl backdrop-blur-3xl">
                 <button
                   type="button"
                   className={MULTI_TOOLBAR_MENU_ITEM_CLASS}
@@ -431,7 +431,7 @@ export const MultiSelectionToolbar = memo(() => {
                     <span>合并分镜组</span>
                   </button>
                   {!canMergeStoryboard ? (
-                    <div className="pointer-events-none absolute right-0 top-full z-10 mt-1.5 hidden w-max max-w-[240px] rounded-lg border border-white/10 bg-[#1c1c1e]/95 px-3 py-1.5 text-xs leading-relaxed text-white/80 shadow-[0_10px_24px_rgba(0,0,0,0.35)] backdrop-blur-2xl group-hover/sb:block">
+                    <div className="pointer-events-none absolute right-0 top-full z-10 mt-1.5 hidden w-max max-w-[240px] rounded-lg border border-border bg-popover/95 px-3 py-1.5 text-xs leading-relaxed text-popover-foreground/80 shadow-lg backdrop-blur-2xl group-hover/sb:block">
                       分镜组仅支持图片节点，且组内节点数量不可超过25个
                     </div>
                   ) : null}
@@ -445,7 +445,7 @@ export const MultiSelectionToolbar = memo(() => {
           <button
             type="button"
             disabled={deletableIds.length === 0}
-            className={`${MULTI_TOOLBAR_BUTTON_CLASS} hover:text-rose-100 disabled:cursor-not-allowed disabled:opacity-50`}
+            className={`${MULTI_TOOLBAR_BUTTON_CLASS} hover:text-destructive disabled:cursor-not-allowed disabled:opacity-50`}
             onClick={handleBatchDelete}
             title={
               deletableIds.length === 0
@@ -460,7 +460,7 @@ export const MultiSelectionToolbar = memo(() => {
 
         {arrangeMenuOpen && (
           <div
-            className="absolute left-0 top-full mt-2 min-w-[150px] overflow-hidden rounded-xl border border-white/10 bg-[#242426]/95 p-1.5 text-text-dark shadow-none backdrop-blur-3xl"
+            className="absolute left-0 top-full mt-2 min-w-[150px] overflow-hidden rounded-xl border border-border bg-popover/95 p-1.5 text-popover-foreground shadow-xl backdrop-blur-3xl"
             onMouseEnter={openArrangeMenu}
             onMouseLeave={scheduleArrangeMenuClose}
           >

@@ -23,6 +23,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { CreditBalanceBadge } from "@/components/layout/credit-balance-badge";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { BRAND_NAME, BrandMark } from "@/components/brand";
 import { SettingsDialog } from "@/components/settings/settings-dialog";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/auth-store";
@@ -182,13 +184,14 @@ export function Header() {
         isDesktop ? "h-full shrink-0" : "min-w-0 flex-1 shrink-0"
       }`}
     >
+      <ThemeToggle className="size-[32px]" />
       {ceRuntime ? (
         <div ref={settingsAnchorRef} className="relative">
           <Button
             type="button"
             variant="ghost"
             size="icon-sm"
-            className="relative size-[32px] text-sidebar-foreground/82 transition-colors duration-150 ease-[var(--ease-out-quint)] hover:bg-white/[0.05] hover:text-white aria-expanded:bg-white/[0.05] aria-expanded:text-white"
+            className="relative size-[32px] text-muted-foreground transition-colors duration-150 ease-[var(--ease-out-quint)] hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground"
             aria-label={
               hasSettingsWarning ? t("header.settingsWithWarning") : t("header.settings")
             }
@@ -225,7 +228,7 @@ export function Header() {
           className="size-[28px] rounded-full p-0 hover:bg-transparent"
           aria-label={t("header.account.open")}
         >
-          <span className="flex size-[26px] items-center justify-center overflow-hidden rounded-full border border-white/[0.10] bg-white/[0.07] text-[11px] font-normal text-white/72">
+          <span className="flex size-[26px] items-center justify-center overflow-hidden rounded-full border border-border bg-muted text-[11px] font-medium text-muted-foreground">
             {avatarUrl ? (
               <img src={avatarUrl} alt="" className="size-full object-cover" />
             ) : (
@@ -238,7 +241,7 @@ export function Header() {
   );
 
   return (
-    <div className="relative z-20 shrink-0 bg-background/58 text-sidebar-foreground backdrop-blur-xl">
+    <div className="relative z-20 shrink-0 border-b border-border bg-background text-foreground">
       {!isDesktop || project ? (
         <header className="relative flex h-[48px] items-center justify-between gap-3 px-4">
         <div className="flex min-w-0 flex-1 items-center">
@@ -255,17 +258,17 @@ export function Header() {
                   }
                 >
                   <span className="flex items-center gap-2">
-                    <span className="flex size-6 items-center justify-center rounded bg-foreground text-[10px] font-semibold text-background">
-                      AI
+                    <BrandMark className="h-6 w-10" />
+                    <span className="truncate whitespace-nowrap text-sm font-semibold text-foreground">
+                      {BRAND_NAME}
                     </span>
-                    <span className="truncate text-sm font-semibold text-foreground">AI anime</span>
                   </span>
                 </TooltipTrigger>
                 <TooltipContent
                   side="bottom"
                   sideOffset={10}
                   showArrow={false}
-                  className="border border-white/10 bg-background/95 text-foreground shadow-none"
+                  className="border border-border bg-background/95 text-foreground shadow-none"
                 >
                   {t("app.logoHomeTooltip")}
                 </TooltipContent>
@@ -426,16 +429,16 @@ function AccountPanel({
       onMouseEnter={onEnter}
       onMouseLeave={onClose}
     >
-      <div className="rounded-[14px] border border-white/[0.08] bg-[#202020]/78 p-2.5 text-slate-100 shadow-[0_18px_50px_rgba(0,0,0,0.36)] backdrop-blur-xl">
-        <div className="mb-2.5 flex h-[50px] items-center gap-2.5 rounded-[10px] bg-white/[0.07] px-2.5">
-          <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/[0.10] bg-white/[0.07] text-xs font-normal text-white/72">
+      <div className="rounded-[12px] border border-border bg-popover p-2.5 text-popover-foreground shadow-xl">
+        <div className="mb-2.5 flex h-[50px] items-center gap-2.5 rounded-[10px] bg-muted px-2.5">
+          <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-card text-xs font-normal text-foreground/75">
             {avatarUrl ? (
               <img src={avatarUrl} alt="" className="size-full object-cover" />
             ) : (
               avatarInitial
             )}
           </span>
-          <span className="min-w-0 truncate text-[15px] font-medium text-white">
+          <span className="min-w-0 truncate text-[15px] font-medium text-foreground">
             {displayName}
           </span>
         </div>
@@ -497,18 +500,18 @@ function AccountMenuRow({
   return (
     <button
       type="button"
-      className="flex h-9 w-full items-center gap-2 rounded-[8px] px-1.5 text-left text-[13px] font-normal text-slate-100 transition-colors duration-150 hover:bg-white/[0.05]"
+      className="flex h-9 w-full items-center gap-2 rounded-[8px] px-1.5 text-left text-[13px] font-normal text-popover-foreground transition-colors duration-150 hover:bg-muted"
       onClick={onClick}
     >
-      <span className="ml-1 flex size-3.5 shrink-0 items-center justify-center text-slate-100/58" aria-hidden="true">
+      <span className="ml-1 flex size-3.5 shrink-0 items-center justify-center text-muted-foreground" aria-hidden="true">
         {icon}
       </span>
       <span className="min-w-0 flex-1 truncate">{label}</span>
       {meta ? (
-        <span className="max-w-16 truncate text-[11px] text-slate-400">{meta}</span>
+        <span className="max-w-16 truncate text-[11px] text-muted-foreground">{meta}</span>
       ) : null}
       <ChevronRight
-        className={`mr-1 size-3.5 shrink-0 text-slate-100/88 transition-transform duration-150 ${
+        className={`mr-1 size-3.5 shrink-0 text-foreground/85 transition-transform duration-150 ${
           active ? "rotate-90" : ""
         }`}
       />
@@ -528,11 +531,11 @@ function PreferenceOption({
   return (
     <button
       type="button"
-      className="flex h-7 w-full items-center justify-between rounded-[7px] px-2 text-left text-[11px] text-slate-100/78 transition-colors duration-150 hover:bg-white/[0.05] hover:text-white"
+      className="flex h-7 w-full items-center justify-between rounded-[7px] px-2 text-left text-[11px] text-popover-foreground/78 transition-colors duration-150 hover:bg-muted hover:text-popover-foreground"
       onClick={onClick}
     >
       <span>{label}</span>
-      {active ? <Check className="size-3.5 text-cyan-300" /> : null}
+      {active ? <Check className="size-3.5 text-primary" /> : null}
     </button>
   );
 }

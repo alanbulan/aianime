@@ -56,7 +56,7 @@ export function ProjectStyleChip({ project, className }: ProjectStyleChipProps) 
       aria-label={text}
       title={t("characters.projectStyle.configureHint")}
       className={cn(
-        "rounded-md border border-white/10 bg-white/[0.03] px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground",
+        "rounded-md border border-border bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground",
         className,
       )}
     >

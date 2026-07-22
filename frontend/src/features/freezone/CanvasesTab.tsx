@@ -186,7 +186,7 @@ export function CanvasesTab({
     <div className="flex h-full min-h-0 flex-col">
       {error && (
         <div className="px-3 pb-2 pt-3">
-          <div className="rounded border border-red-500/30 bg-red-500/10 px-2 py-1 text-[11px] text-red-300">
+          <div className="rounded border border-destructive/30 bg-destructive/10 px-2 py-1 text-[11px] text-destructive">
             {error}
           </div>
         </div>
@@ -194,7 +194,7 @@ export function CanvasesTab({
 
       <div className="ui-scrollbar-hidden flex-1 min-h-0 overflow-y-auto px-3 pt-1 space-y-0">
         <form onSubmit={handleCreateCanvas} className="pb-2 pt-3">
-          <div className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] p-2">
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-muted p-2">
             <input
               value={newCanvasName}
               onChange={(event) => {
@@ -204,12 +204,12 @@ export function CanvasesTab({
               maxLength={40}
               placeholder={t("freezone.canvases.createPlaceholder")}
               disabled={creatingCanvas}
-              className="h-7 min-w-0 flex-1 bg-transparent px-1 text-xs text-white/82 outline-none placeholder:text-white/34 disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-7 min-w-0 flex-1 bg-transparent px-1 text-xs text-foreground outline-none placeholder:text-muted-foreground/70 disabled:cursor-not-allowed disabled:opacity-60"
             />
             <button
               type="submit"
               disabled={creatingCanvas || !newCanvasName.trim()}
-              className="inline-flex h-7 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/[0.045] px-2.5 text-[11px] font-medium text-white/72 transition hover:border-white/18 hover:bg-white/[0.075] hover:text-white disabled:cursor-not-allowed disabled:opacity-45"
+              className="inline-flex h-7 shrink-0 items-center justify-center rounded-md border border-border bg-card px-2.5 text-[11px] font-medium text-foreground/75 transition hover:border-foreground/25 hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45"
               title={t("freezone.canvases.createTitle")}
             >
               {creatingCanvas ? t("freezone.canvases.createBusy") : t("freezone.canvases.create")}
@@ -295,7 +295,7 @@ export function CanvasesTab({
 
 function CanvasSectionTitle({ label, className }: { label: string; className?: string }) {
   return (
-    <div className={`pb-2 pt-4 text-xs font-semibold text-white/72 ${className ?? ""}`}>
+    <div className={`pb-2 pt-4 text-xs font-semibold text-foreground/75 ${className ?? ""}`}>
       {label}
     </div>
   );
@@ -324,12 +324,12 @@ function CollapsibleCanvasSection({
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center justify-between py-2 text-left text-xs font-semibold text-white/72 hover:text-white"
+        className="flex w-full items-center justify-between py-2 text-left text-xs font-semibold text-foreground/75 hover:text-foreground"
         aria-expanded={expanded}
         title={expanded ? collapseTitle : expandTitle}
       >
         <span>{title}</span>
-        <span className="inline-flex items-center gap-2 text-[11px] text-white/40">
+        <span className="inline-flex items-center gap-2 text-[11px] text-muted-foreground">
           {count}
           <Icon className="h-3.5 w-3.5" />
         </span>
@@ -393,10 +393,10 @@ function CanvasListItem({
               "relative flex h-[80px] w-[60px] items-center justify-center overflow-hidden rounded-[6px] border " +
               (isCurrent
                 ? "border-primary/30 bg-primary/[0.12]"
-                : "border-white/[0.08] bg-white/[0.04]")
+                : "border-border bg-muted")
             }
           >
-            <Icon className={"h-5 w-5 " + (isCurrent ? "text-primary" : "text-white/50")} />
+            <Icon className={"h-5 w-5 " + (isCurrent ? "text-primary" : "text-muted-foreground")} />
           </div>
         </button>
         <div className="min-w-0 flex-1">
@@ -409,13 +409,13 @@ function CanvasListItem({
             <span
               className={
                 "block max-w-full truncate text-sm font-medium " +
-                (isCurrent ? "text-white" : "text-white/60")
+                (isCurrent ? "text-foreground" : "text-muted-foreground")
               }
             >
               {summary}
             </span>
             {relative ? (
-              <span className={`mt-2 block truncate text-[11px] leading-snug tabular-nums ${isCurrent ? "text-white/55" : "text-white/40"}`}>
+              <span className="mt-2 block truncate text-[11px] leading-snug tabular-nums text-muted-foreground">
                 {relative}
               </span>
             ) : null}
@@ -427,7 +427,7 @@ function CanvasListItem({
                 type="button"
                 onClick={onRestoreMainline}
                 disabled={restoringMainline}
-                className="inline-flex h-6 items-center justify-center gap-1 rounded-md border border-white/10 bg-white/[0.035] px-2 text-[10px] font-medium text-white/72 transition hover:border-white/18 hover:bg-white/[0.06] hover:text-white disabled:cursor-default disabled:opacity-50"
+                className="inline-flex h-6 items-center justify-center gap-1 rounded-md border border-border bg-muted px-2 text-[10px] font-medium text-foreground/75 transition hover:border-foreground/25 hover:bg-accent hover:text-foreground disabled:cursor-default disabled:opacity-50"
                 title={t("freezone.canvases.restoreTitle")}
               >
                 <RotateCcw className="h-3 w-3" />
@@ -442,7 +442,7 @@ function CanvasListItem({
                 void onDelete(item);
               }}
               disabled={deleting}
-              className="inline-flex h-6 items-center justify-center gap-1 rounded-md border border-red-400/20 bg-red-500/[0.04] px-2 text-[10px] font-medium text-red-200/80 transition hover:border-red-300/35 hover:bg-red-500/[0.08] hover:text-red-100 disabled:opacity-50"
+              className="inline-flex h-6 items-center justify-center gap-1 rounded-md border border-destructive/30 bg-destructive/10 px-2 text-[10px] font-medium text-destructive transition hover:border-destructive/45 hover:bg-destructive/20 disabled:opacity-50"
               title={t("freezone.canvases.deleteTitle")}
             >
               <Trash2 className="h-3 w-3" />
@@ -461,7 +461,7 @@ function CanvasListItem({
             onSwitch(sourceCanvasId);
           }}
           title={t("freezone.canvases.sourceCanvasTitle", { canvasId: sourceCanvasId })}
-          className="tap-button h-6 px-2 text-[10px] border-amber-300/35 text-amber-200 hover:bg-amber-300/15 hover:text-amber-100"
+          className="tap-button h-6 px-2 text-[10px] border-amber-500/35 text-amber-700 hover:bg-amber-500/15 hover:text-amber-800 dark:text-amber-200 dark:hover:text-amber-100"
         >
           {t("freezone.canvases.sourceCanvas")}
         </button>

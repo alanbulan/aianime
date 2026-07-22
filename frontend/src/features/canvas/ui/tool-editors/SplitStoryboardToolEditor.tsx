@@ -11,7 +11,7 @@ const DEFAULT_LINE_THICKNESS_PERCENT = 0.5;
 const MAX_LINE_THICKNESS_PERCENT = 20;
 const LEGACY_DEFAULT_LINE_THICKNESS_PX = 6;
 const SPLIT_RANGE_CLASS =
-  'h-0.5 w-full cursor-pointer appearance-none rounded-full [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#5b8cff] [&::-webkit-slider-thumb]:shadow-none [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#5b8cff]';
+  'h-0.5 w-full cursor-pointer appearance-none rounded-full [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:shadow-none [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-primary';
 
 interface OverlayRect {
   x: number;
@@ -208,7 +208,7 @@ function NumberStepper({ label, value, min, max, onChange }: NumberStepperProps)
           max={max}
           step={1}
           onChange={(event) => onChange(Number(event.target.value))}
-          className="h-8 rounded-[8px] border-white/[0.10] bg-bg-dark/42 text-center"
+          className="h-8 rounded-[8px] border-border bg-muted text-center"
         />
         <button
           type="button"
@@ -425,7 +425,7 @@ export function SplitStoryboardToolEditor({ sourceImageUrl, options, onOptionsCh
     <div className="grid h-full min-h-0 gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
       <div className="min-h-0">
         <div
-          className="relative flex h-full min-h-[420px] items-center justify-center overflow-hidden rounded-[10px] border border-white/[0.10] bg-[#111214]/80 p-3"
+          className="relative flex h-full min-h-[420px] items-center justify-center overflow-hidden rounded-[10px] border border-border bg-[#0b0d10] p-3"
         >
           <div ref={previewAreaRef} className="relative flex h-full w-full items-center justify-center">
             <div
@@ -480,7 +480,7 @@ export function SplitStoryboardToolEditor({ sourceImageUrl, options, onOptionsCh
         </div>
       </div>
 
-      <div className="h-full space-y-4 rounded-[10px] border border-white/[0.10] bg-[#111214]/72 p-3.5">
+      <div className="h-full space-y-4 rounded-[10px] border border-border bg-card p-3.5">
         <div className="text-sm font-medium text-text-dark">分格参数</div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
@@ -517,15 +517,15 @@ export function SplitStoryboardToolEditor({ sourceImageUrl, options, onOptionsCh
             onChange={(event) => updateOptions({ lineThicknessPercent: Number(event.target.value) })}
             className={SPLIT_RANGE_CLASS}
             style={{
-              background: `linear-gradient(to right, #5b8cff 0%, #5b8cff ${
+              background: `linear-gradient(to right, rgb(var(--accent-rgb)) 0%, rgb(var(--accent-rgb)) ${
                 maxLineThicknessPercent > 0
                   ? (lineThicknessPercent / maxLineThicknessPercent) * 100
                   : 0
-              }%, rgba(255,255,255,0.28) ${
+              }%, rgb(var(--text-rgb) / 0.24) ${
                 maxLineThicknessPercent > 0
                   ? (lineThicknessPercent / maxLineThicknessPercent) * 100
                   : 0
-              }%, rgba(255,255,255,0.28) 100%)`,
+              }%, rgb(var(--text-rgb) / 0.24) 100%)`,
             }}
           />
           <UiInput
@@ -535,11 +535,11 @@ export function SplitStoryboardToolEditor({ sourceImageUrl, options, onOptionsCh
             max={Math.max(0, maxLineThicknessPercent)}
             step={0.1}
             onChange={(event) => updateOptions({ lineThicknessPercent: Number(event.target.value) })}
-            className="h-8 rounded-[8px] border-white/[0.10] bg-bg-dark/42"
+            className="h-8 rounded-[8px] border-border bg-muted"
           />
         </div>
 
-        <div className="rounded-[8px] border border-white/[0.10] bg-bg-dark/42 px-3 py-2 text-xs text-text-muted">
+        <div className="rounded-[8px] border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
           <div className="flex items-center justify-between">
             <span>输出小格数量</span>
             <span className="font-medium text-text-dark">{rows * cols}</span>
@@ -559,7 +559,7 @@ export function SplitStoryboardToolEditor({ sourceImageUrl, options, onOptionsCh
         </div>
 
         {hasLayoutError && (
-          <div className="rounded-[8px] border border-red-400/35 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+          <div className="rounded-[8px] border border-red-500/35 bg-red-500/10 px-3 py-2 text-xs text-red-700 dark:text-red-300">
             当前分隔线过粗，导致可抽取区域不足。请减少线宽或降低行列数。
           </div>
         )}

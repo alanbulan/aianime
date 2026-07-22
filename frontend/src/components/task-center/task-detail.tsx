@@ -238,7 +238,7 @@ export function TaskDetail() {
             </div>
           ) : null}
           {debugRows.length ? (
-            <details className="mt-3 rounded border border-border/60 bg-background/40 p-2">
+            <details className="mt-3 rounded border border-border bg-muted p-2">
               <summary className="cursor-pointer text-muted-foreground">调试信息</summary>
               <div className="mt-2 grid gap-1 font-mono text-[11px]">
                 {debugRows.map(([label, value]) => (

@@ -1,7 +1,7 @@
 {
   "app": {
-    "title": "AI anime",
-    "subtitle": "AI anime candidate generation and asset commit workbench",
+    "title": "AI\u00a0anime",
+    "subtitle": "AI\u00a0anime candidate generation and asset commit workbench",
     "routeError": {
       "title": "Page failed to load",
       "description": "Refresh the page and try again."
@@ -41,20 +41,20 @@
       "lineLabel": "Line {{line}}",
       "noIssues": "No specific issues found"
     },
-    "title": "AI anime Assistant",
-    "description": "Open AI anime Assistant beside the current creation page.",
-    "toggle": "Expand or collapse AI anime Assistant",
-    "close": "Collapse AI anime Assistant",
+    "title": "AI\u00a0anime Assistant",
+    "description": "Open AI\u00a0anime Assistant beside the current creation page.",
+    "toggle": "Expand or collapse AI\u00a0anime Assistant",
+    "close": "Collapse AI\u00a0anime Assistant",
     "resize": "Drag to resize chat",
     "openExternal": "Open in new window",
-    "iframeTitle": "AI anime Assistant",
+    "iframeTitle": "AI\u00a0anime Assistant",
     "newChat": "New chat",
     "expandSessions": "Expand sessions",
     "collapseSessions": "Collapse sessions",
     "sessionActions": "Session actions",
     "deleteSessionConfirm": "Delete this conversation?",
     "noSessions": "No sessions yet",
-    "chatTitle": "AI anime Assistant",
+    "chatTitle": "AI\u00a0anime Assistant",
     "globalScope": "Global",
     "connected": "Connected",
     "connecting": "Connecting",
@@ -64,11 +64,11 @@
     "emptyTitle": "Start a conversation",
     "emptyDescription": "Ask about project progress, failed tasks, or have the assistant organize your creative plan.",
     "syncingHistoryTitle": "Initializing conversation",
-    "syncingHistoryDescription": "Connecting to AI anime Assistant and syncing chat history. Please wait.",
-    "disclaimer": "AI anime Assistant can make mistakes. Check key story, character, and asset details.",
-    "placeholder": "After uploading a script, ask AI anime Assistant to advance episodes, visuals, audio, or final video",
+    "syncingHistoryDescription": "Connecting to AI\u00a0anime Assistant and syncing chat history. Please wait.",
+    "disclaimer": "AI\u00a0anime Assistant can make mistakes. Check key story, character, and asset details.",
+    "placeholder": "After uploading a script, ask AI\u00a0anime Assistant to advance episodes, visuals, audio, or final video",
     "waiting": "Waiting for chat service...",
-    "waitingResponse": "Waiting for AI anime Assistant",
+    "waitingResponse": "Waiting for AI\u00a0anime Assistant",
     "waitingResponses": [
       "Understanding what you want to move forward",
       "Reviewing the current conversation context",
@@ -128,19 +128,19 @@
     "ingestAutomationUploading": "Uploading novel: {{filename}}",
     "ingestAutomationStarted": "Started novel ingest: {{filename}}",
     "ingestAutomationFailed": "Novel upload or ingest failed: {{message}}",
-    "ingestAutomationNoProject": "Open a project before uploading a novel through AI anime Assistant.",
+    "ingestAutomationNoProject": "Open a project before uploading a novel through AI\u00a0anime Assistant.",
     "ingestAutomationMissingFile": "Could not read the uploaded novel file. Select it again.",
     "attachmentOnlyPrompt": "Please analyze the file I uploaded.",
     "attachmentAnalysisUploading": "Uploading file for analysis: {{filename}}",
-    "settingsHint": "Account and login are managed by AI anime. These settings only control chat display and attachment behavior."
+    "settingsHint": "Account and login are managed by AI\u00a0anime. These settings only control chat display and attachment behavior."
   },
   "freezone": {
     "chat": {
-      "title": "AI anime Assistant",
-      "description": "Open AI anime Assistant beside the canvas.",
-      "toggle": "Open AI anime Assistant",
-      "close": "Collapse AI anime Assistant",
-      "resize": "Drag to resize AI anime Assistant"
+      "title": "AI\u00a0anime Assistant",
+      "description": "Open AI\u00a0anime Assistant beside the canvas.",
+      "toggle": "Open AI\u00a0anime Assistant",
+      "close": "Collapse AI\u00a0anime Assistant",
+      "resize": "Drag to resize AI\u00a0anime Assistant"
     },
     "canvases": {
       "defaultSection": "Default canvas",
@@ -243,8 +243,8 @@
     "production": "Production",
     "tools": "Tools",
     "creationMode": "Creation Mode",
-    "workspace": "AI anime Workspace",
-    "workspaceMenu": "AI anime Workspace Menu",
+    "workspace": "AI\u00a0anime Workspace",
+    "workspaceMenu": "AI\u00a0anime Workspace Menu",
     "ingest": "Story Source",
     "assets": "Asset Library",
     "characters": "Characters",
@@ -258,8 +258,8 @@
     "styles": "Visual Style",
     "tasks": "Task Center",
     "taskCenter": "Task Center",
-    "aiAssistant": "AI anime Assistant",
-    "freezone": "AI anime Canvas"
+    "aiAssistant": "AI\u00a0anime Assistant",
+    "freezone": "AI\u00a0anime Canvas"
   },
   "characters": {
     "title": "Characters",
@@ -1387,9 +1387,9 @@
       "insertBeforeShort": "Pre",
       "insertAfter": "Insert manual shot after Beat #{{n}}",
       "insertAfterShort": "Post",
-      "openFreezone": "Open AI anime Canvas Beat Workbench",
+      "openFreezone": "Open AI\u00a0anime Canvas Beat Workbench",
       "openFreezoneTip": "Edit in Freezone",
-      "openFreezoneFailed": "Failed to open AI anime Canvas",
+      "openFreezoneFailed": "Failed to open AI\u00a0anime Canvas",
       "markedProps": "Props {{count}}",
       "detectedProps": "Detected props {{count}}"
     },
@@ -3319,7 +3319,7 @@
         "adminUsername": "Admin Username"
       },
       "official": {
-        "description": "Enter the AI anime Cloud API Key, then save.",
+        "description": "Enter the AI\u00a0anime Cloud API Key, then save.",
         "save": "Save & Enable",
         "enable": "Switch to Official",
         "saved": "Saved and switched to the official channel.",
@@ -3327,7 +3327,7 @@
         "missingFields": "Please fill in the API Key."
       },
       "custom": {
-        "description": "The desktop app uses a local SQLite-backed NewAPI. AI anime connects the database, creates a runtime token, and enables the local channel automatically.",
+        "description": "The desktop app uses a local SQLite-backed NewAPI. AI\u00a0anime connects the database, creates a runtime token, and enables the local channel automatically.",
         "init": "Initialize Local NewAPI",
         "repair": "Check & Repair",
         "initialized": "Local NewAPI is ready.",
@@ -3346,7 +3346,7 @@
         "setupConfirmPassword": "Confirm Password",
         "setupPasswordPlaceholder": "At least 8 characters",
         "setupConfirmPasswordPlaceholder": "Enter it again",
-        "setupPasswordOnlyOnce": "This username and password are sent to your NewAPI instance only when creating the first admin on a fresh NewAPI install. If NewAPI is already initialized, entering a password here will not change the existing admin password. AI anime does not save the password or use it for later operations; keep it for logging into the NewAPI admin console after first-time setup.",
+        "setupPasswordOnlyOnce": "This username and password are sent to your NewAPI instance only when creating the first admin on a fresh NewAPI install. If NewAPI is already initialized, entering a password here will not change the existing admin password. AI\u00a0anime does not save the password or use it for later operations; keep it for logging into the NewAPI admin console after first-time setup.",
         "setupRequired": "Local NewAPI has not been initialized yet. Enter the setup password and confirmation, then try again.",
         "setupAlreadyInitializedPasswordIgnored": "Your NewAPI instance is already initialized. This run did not call the NewAPI setup endpoint and did not change the existing admin password; the password you entered was ignored and cleared.",
         "setupPasswordMissingUsername": "Enter the admin username.",
@@ -3398,7 +3398,7 @@
         "multimodalRequiredBadge": "Multimodal required",
         "cogneeDescription": "Novel import and knowledge retrieval require both an understanding model and an embedding model; together they form the Cognee novel knowledge base.",
         "groups": {
-          "canvas": "AI anime Canvas",
+          "canvas": "AI\u00a0anime Canvas",
           "import": "Import",
           "assets": "Assets",
           "production": "Production",
@@ -3407,7 +3407,7 @@
           "novelImport": "Import · Novel Knowledge Base (Cognee)"
         },
         "features": {
-          "HERMES": "AI anime Assistant chat model",
+          "HERMES": "AI\u00a0anime Assistant chat model",
           "GLOBAL_VIDEO_OPTIMIZER": "Optimize video prompts from visuals",
           "SEEDANCE2_PROMPT_COMPOSER": "Compose video generation prompts",
           "GLOBAL_VIDEO_IDENTITY_DETECTOR": "Detect character and prop markers in sketches",
@@ -3487,7 +3487,7 @@
       "configured": "Configured",
       "notConfigured": "Not configured",
       "warningIconLabel": "Reference media storage is not configured",
-      "notConfiguredImpact": "Reference media storage is not configured. Text-only flows and text-to-image usually still work; features that need to upload local reference images will fail, including AI anime Canvas reference images, character references, identity images, image-to-image, video first frames, and image-to-video. Configure Aliyun OSS or Cloudinary.",
+      "notConfiguredImpact": "Reference media storage is not configured. Text-only flows and text-to-image usually still work; features that need to upload local reference images will fail, including AI\u00a0anime Canvas reference images, character references, identity images, image-to-image, video first frames, and image-to-video. Configure Aliyun OSS or Cloudinary.",
       "showSecret": "Show",
       "hideSecret": "Hide",
       "fieldsHint": "Saved values are stored in the local CE settings database; full AccessKeys are not returned, so re-enter them when updating.",

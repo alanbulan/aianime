@@ -166,7 +166,7 @@ export function CanvasQuickActionBar({
             </div>
           )}
 
-          <div className="flex h-12 items-center gap-2.5 rounded-[12px] border border-white/[0.08] bg-[#11151d]/95 px-1.5 shadow-[0_14px_36px_rgba(0,0,0,0.42)] backdrop-blur-md">
+          <div className="flex h-12 items-center gap-2.5 rounded-[12px] border border-border bg-popover/95 px-1.5 shadow-xl backdrop-blur-md">
             {ACTIONS.map((action) => {
               const { key, icon: Icon, labelKey, tooltipKey, primary } = action;
               const active = openPanel === key;
@@ -184,8 +184,8 @@ export function CanvasQuickActionBar({
                     aria-pressed={active}
                     className={`flex h-9 w-9 items-center justify-center rounded-[10px] transition-colors ${
                       filled
-                        ? 'bg-white text-[#15171c] shadow-[0_2px_8px_rgba(0,0,0,0.22)]'
-                        : 'text-white/52 hover:bg-white/[0.09] hover:text-white/82'
+                        ? 'bg-foreground text-background shadow-sm'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                     }`}
                   >
                     <Icon
@@ -198,7 +198,7 @@ export function CanvasQuickActionBar({
                   </button>
                   {tooltipKey && (
                     <span
-                      className={`pointer-events-none absolute left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-[6px] border border-white/[0.08] bg-[#11151d]/95 px-2 py-1 text-[11px] leading-none text-white/78 opacity-0 shadow-[0_8px_24px_rgba(0,0,0,0.32)] transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 ${
+                      className={`pointer-events-none absolute left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-[6px] border border-border bg-popover/95 px-2 py-1 text-[11px] leading-none text-popover-foreground/80 opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 ${
                         isTop ? 'top-full mt-2' : 'bottom-full mb-2'
                       }`}
                     >

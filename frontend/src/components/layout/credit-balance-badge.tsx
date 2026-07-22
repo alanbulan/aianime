@@ -56,7 +56,7 @@ export function CreditBalanceBadge() {
           side="bottom"
           sideOffset={10}
           showArrow={false}
-          className="border border-white/10 bg-background/95 text-foreground shadow-none"
+          className="border border-border bg-popover text-popover-foreground shadow-lg"
         >
           {tooltipLabel}
         </TooltipContent>

@@ -177,7 +177,7 @@ export function CanvasDebugPanel({
         <button
           type="button"
           onClick={() => onOpenChange(!open)}
-          className="inline-flex h-6 items-center gap-1 rounded-full bg-white/[0.035] px-2 text-[10px] font-normal text-foreground/68 transition-colors backdrop-blur-sm hover:bg-white/[0.065] hover:text-foreground/86"
+          className="inline-flex h-6 items-center gap-1 rounded-full border border-border bg-muted px-2 text-[10px] font-normal text-foreground/75 transition-colors hover:bg-accent hover:text-foreground"
           title="画布调试面板（仅开发用）"
         >
           <Wrench className="h-2.5 w-2.5 text-foreground/64" />
@@ -189,9 +189,9 @@ export function CanvasDebugPanel({
           )}
         </button>
         {open && (
-          <div className="w-[360px] max-h-[70vh] overflow-y-auto rounded-md border border-white/[0.12] bg-surface text-[12px] shadow-lg backdrop-blur-sm">
+          <div className="max-h-[70vh] w-[360px] overflow-y-auto rounded-md border border-border bg-popover text-[12px] text-popover-foreground shadow-lg">
             {/* ----- Hook state ----- */}
-            <section className="border-b border-white/[0.10] px-3 py-2 space-y-1">
+            <section className="space-y-1 border-b border-border px-3 py-2">
               <header className="text-[10px] uppercase tracking-wider text-foreground/58">
                 Hook state
               </header>
@@ -202,14 +202,14 @@ export function CanvasDebugPanel({
             </section>
 
             {/* ----- Server state ----- */}
-            <section className="border-b border-white/[0.10] px-3 py-2 space-y-1">
+            <section className="space-y-1 border-b border-border px-3 py-2">
               <header className="flex items-center justify-between text-[10px] uppercase tracking-wider text-foreground/58">
                 <span>Server snapshot</span>
                 <button
                   type="button"
                   onClick={() => void refreshRemote()}
                   disabled={remoteLoading}
-                  className="rounded border border-white/[0.16] px-1.5 py-0.5 text-[10px] text-foreground/86 hover:bg-white/[0.06] disabled:opacity-50"
+                  className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] text-foreground/86 hover:bg-accent disabled:opacity-50"
                 >
                   {remoteLoading ? "..." : "GET"}
                 </button>
@@ -231,7 +231,7 @@ export function CanvasDebugPanel({
                 </div>
               )}
               {remoteError && (
-                <div className="text-red-300 text-[11px]">{remoteError}</div>
+                <div className="text-destructive text-[11px]">{remoteError}</div>
               )}
             </section>
 
@@ -243,13 +243,13 @@ export function CanvasDebugPanel({
                   type="button"
                   onClick={() => void refreshHistory()}
                   disabled={historyLoading}
-                  className="rounded border border-white/[0.16] px-1.5 py-0.5 text-[10px] text-foreground/86 hover:bg-white/[0.06] disabled:opacity-50"
+                  className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] text-foreground/86 hover:bg-accent disabled:opacity-50"
                 >
                   {historyLoading ? "..." : "拉取"}
                 </button>
               </header>
               {historyError && (
-                <div className="rounded border border-amber-400/40 bg-amber-400/10 px-2 py-1 text-[11px] text-amber-100">
+                <div className="rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-800 dark:text-amber-200">
                   {historyError}
                 </div>
               )}
@@ -264,7 +264,7 @@ export function CanvasDebugPanel({
                     return (
                       <li
                         key={reactKey}
-                        className="flex items-start gap-1.5 rounded border border-white/[0.10] px-2 py-1.5"
+                        className="flex items-start gap-1.5 rounded border border-border bg-muted px-2 py-1.5"
                       >
                         <div className="flex-1 min-w-0">
                           <div
@@ -293,7 +293,7 @@ export function CanvasDebugPanel({
                           disabled={
                             busyHistoryId === entryHistoryId || !entryHistoryId
                           }
-                          className="shrink-0 inline-flex items-center gap-1 rounded border border-amber-300/40 bg-amber-300/10 px-1.5 py-0.5 text-[10px] text-amber-100 hover:bg-amber-300/20 disabled:opacity-50"
+                          className="shrink-0 inline-flex items-center gap-1 rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-800 hover:bg-amber-500/20 dark:text-amber-200 disabled:opacity-50"
                           title={entryHistoryId ? "恢复此版本" : "缺少 history_id，无法恢复"}
                         >
                           <RotateCcw className="h-3 w-3" />
@@ -305,7 +305,7 @@ export function CanvasDebugPanel({
                 </ul>
               )}
             </section>
-            <footer className="border-t border-white/[0.10] px-3 py-1.5 text-[10px] text-foreground/54">
+            <footer className="border-t border-border px-3 py-1.5 text-[10px] text-muted-foreground">
               仅调试用 · 后端 history endpoint 未部署时这里会显示"接口未上线"
             </footer>
           </div>

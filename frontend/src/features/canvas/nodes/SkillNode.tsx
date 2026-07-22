@@ -535,11 +535,11 @@ function SourceActionButton({
   return (
     <button
       type="button"
-      className={`min-h-[58px] rounded-[8px] border border-white/10 bg-black/20 px-3 py-2 text-left transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+      className={`min-h-[58px] rounded-[8px] border border-border bg-muted px-3 py-2 text-left transition hover:border-foreground/25 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
       disabled={disabled}
       onClick={onClick}
     >
-      <div className="flex items-center gap-2 text-xs font-semibold text-text-dark">
+      <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
         {icon}
         <span>{title}</span>
       </div>
@@ -558,7 +558,7 @@ const EMPHASIZED_INPUT_ROLES = new Set<string>([
 ]);
 const SKILL_INPUT_HANDLE_LEFT = -17;
 const SKILL_ROW_INPUT_HANDLE_LEFT = -30;
-const SKILL_CARD_CLASS = 'rounded-[8px] border border-white/10 bg-white/[0.04] px-3 py-2';
+const SKILL_CARD_CLASS = 'rounded-[8px] border border-border bg-muted px-3 py-2';
 
 function SkillInputHandle({
   id,
@@ -1436,18 +1436,18 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
         editable={false}
       />
 
-      <div className="flex min-h-[240px] flex-col overflow-visible rounded-[var(--node-radius)] border border-cyan-200/25 bg-[rgba(12,22,30,0.94)] text-text-dark shadow-[0_16px_44px_rgba(0,0,0,0.36)]">
-        <div className="border-b border-white/10 px-4 py-3">
+      <div className="flex min-h-[240px] flex-col overflow-visible rounded-[var(--node-radius)] border border-primary/30 bg-card text-card-foreground shadow-xl">
+        <div className="border-b border-border px-4 py-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-sm font-semibold text-white">
+              <div className="text-sm font-semibold text-foreground">
                 {localizedSkillName ?? (isLoading ? '加载技能...' : '未知技能')}
               </div>
               <div className="mt-1 line-clamp-2 text-xs leading-5 text-text-muted">
                 {localizedSkillDescription ?? loadError ?? data.skill_id}
               </div>
             </div>
-            <div className="shrink-0 rounded-full border border-cyan-200/20 bg-cyan-300/10 px-2 py-1 text-[10px] font-medium text-cyan-100">
+            <div className="shrink-0 rounded-full border border-primary/30 bg-primary/10 px-2 py-1 text-[10px] font-medium text-primary">
               {skill ? PROVIDER_LABELS[skill.provider] : 'skill'}
             </div>
           </div>
@@ -1481,7 +1481,7 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
                         className={SKILL_CARD_CLASS}
                       >
                         <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0 text-xs font-medium text-white">
+                          <div className="min-w-0 text-xs font-medium text-foreground">
                             {parameterLabel}
                           </div>
                           <button
@@ -1496,14 +1496,14 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
                             className={[
                               'relative h-6 w-11 shrink-0 rounded-full border transition',
                               isSelected
-                                ? 'border-cyan-300 bg-cyan-300'
-                                : 'border-white/15 bg-black/30 hover:bg-white/10',
+                                ? 'border-primary bg-primary'
+                                : 'border-border bg-muted hover:bg-accent',
                               isBusy ? 'cursor-not-allowed opacity-60' : '',
                             ].join(' ')}
                           >
                             <span
                               className={[
-                                'absolute top-[3px] h-[18px] w-[18px] rounded-full bg-white shadow transition-transform',
+                                'absolute top-[3px] h-[18px] w-[18px] rounded-full bg-card shadow transition-transform',
                                 isSelected ? 'translate-x-5' : 'translate-x-0.5',
                               ].join(' ')}
                             />
@@ -1519,9 +1519,9 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
                       key={entry.key}
                       className={SKILL_CARD_CLASS}
                     >
-                      <div className="mb-2 text-xs font-medium text-white">{parameterLabel}</div>
+                      <div className="mb-2 text-xs font-medium text-foreground">{parameterLabel}</div>
                       <div
-                        className="nodrag nopan grid gap-1 rounded-[6px] bg-black/35 p-1"
+                        className="nodrag nopan grid gap-1 rounded-[6px] border border-border bg-muted p-1"
                         style={{
                           gridTemplateColumns: `repeat(${optionColumnCount}, minmax(0, 1fr))`,
                         }}
@@ -1549,8 +1549,8 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
                               className={[
                                 'min-h-8 rounded-[5px] px-2 text-xs font-semibold transition active:scale-[0.99]',
                                 isSelected
-                                  ? 'bg-cyan-300 text-slate-950 shadow-sm'
-                                  : 'cursor-pointer text-white/55 hover:bg-white/10 hover:text-white',
+                                  ? 'bg-primary text-primary-foreground shadow-sm'
+                                  : 'cursor-pointer text-muted-foreground hover:bg-card hover:text-foreground',
                                 isBusy ? 'cursor-not-allowed opacity-60' : '',
                               ].join(' ')}
                             >
@@ -1589,7 +1589,7 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
                   return (
                     <div
                       key={edge.id}
-                      className="flex max-w-full items-center gap-2 text-xs text-text-dark"
+                      className="flex max-w-full items-center gap-2 text-xs text-foreground"
                     >
                       {previewUrl ? (
                         <img
@@ -1599,7 +1599,7 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
                           draggable={false}
                         />
                       ) : (
-                        <div className="flex h-6 w-6 items-center justify-center rounded-[5px] border border-white/10 bg-white/[0.04] text-text-muted">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-[5px] border border-border bg-muted text-muted-foreground">
                           <FileText className="h-3.5 w-3.5" />
                         </div>
                       )}
@@ -1637,8 +1637,8 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
 	                      id={handleId}
 	                      leftOffset={SKILL_ROW_INPUT_HANDLE_LEFT}
 	                    />
-	                    <div className="flex max-w-full items-center gap-2 text-xs text-text-dark">
-	                      <div className="flex h-6 w-6 items-center justify-center rounded-[5px] border border-white/10 bg-white/[0.04] text-text-muted">
+	                    <div className="flex max-w-full items-center gap-2 text-xs text-foreground">
+	                      <div className="flex h-6 w-6 items-center justify-center rounded-[5px] border border-border bg-muted text-muted-foreground">
 	                        <FileText className="h-3.5 w-3.5" />
 	                      </div>
 	                      <span className="truncate">
@@ -1675,10 +1675,10 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
                       <SkillInputHandle id={input.role} emphasized={emphasizedInput} />
                     ) : null}
                     <div className="flex items-center justify-between gap-2 text-xs">
-                      <span className="font-medium text-white">
+                      <span className="font-medium text-foreground">
                         {translateSkillInputLabel(input.role, input.label, t)}
                       </span>
-                      <span className={input.required ? 'text-amber-200' : 'text-text-muted'}>
+                      <span className={input.required ? 'text-amber-700 dark:text-amber-300' : 'text-text-muted'}>
                         {translateSkillRequirement(input.required, t)} · {translateSkillCardinality(input.cardinality, t)}
                       </span>
                     </div>
@@ -1697,7 +1697,7 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
                         </span>
                       ) : boundEdges.length === 0 ? (
                         <span
-                          className={`text-xs ${emphasizedInput ? 'text-cyan-200/80' : 'text-text-muted'}`}
+                          className={`text-xs ${emphasizedInput ? 'text-primary' : 'text-text-muted'}`}
                         >
                           {t('viewer.threeD.skillInputUnbound')}
                           {emphasizedInput
@@ -1714,16 +1714,16 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
             </div>
 
             {isSetSelectedBackgroundSkill && (
-              <div className="rounded-[8px] border border-amber-300/20 bg-amber-300/[0.06] p-3">
+              <div className="rounded-[8px] border border-amber-500/30 bg-amber-500/10 p-3">
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <div className="text-xs font-semibold text-amber-100">
+                  <div className="text-xs font-semibold text-amber-800 dark:text-amber-200">
                     {t('viewer.threeD.currentBackgroundSource')}
                   </div>
                   {sourcePickerBusy && (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-100/70" />
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-700 dark:text-amber-300" />
                   )}
                 </div>
-                <div className="mb-3 rounded-[8px] border border-white/10 bg-black/20 p-2">
+                <div className="mb-3 rounded-[8px] border border-border bg-muted p-2">
                   <div className="mb-1 text-[11px] text-text-muted">
                     {t('viewer.threeD.savedEnvOnlyBackground')}
                   </div>
@@ -1735,7 +1735,7 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
                       draggable={false}
                     />
                   ) : (
-                    <div className="flex h-20 items-center justify-center rounded-[6px] bg-white/[0.04] text-xs text-text-muted">
+                    <div className="flex h-20 items-center justify-center rounded-[6px] bg-card text-xs text-muted-foreground">
                       {t('viewer.threeD.noEnvOnlyBackground')}
                     </div>
                   )}
@@ -1781,13 +1781,13 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
             )}
 
             {isSetDirectorCombinedSkill && (
-              <div className="rounded-[8px] border border-cyan-300/20 bg-cyan-300/[0.06] p-3">
+              <div className="rounded-[8px] border border-primary/30 bg-primary/10 p-3">
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <div className="text-xs font-semibold text-cyan-100">
+                  <div className="text-xs font-semibold text-primary">
                     {t('viewer.threeD.directorCombinedSourceTitle')}
                   </div>
                   {sourcePickerBusy && (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin text-cyan-100/70" />
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
                   )}
                 </div>
                 <SourceActionButton
@@ -1817,7 +1817,7 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
                 {skill.outputs.map((output) => (
                   <span
                     key={output.role}
-                    className="rounded-full border border-emerald-200/20 bg-emerald-300/10 px-2 py-1 text-[11px] text-emerald-100"
+                    className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-700 dark:text-emerald-300"
                   >
                     {translateSkillOutputLabel(output.role, output.label, t)}
                   </span>
@@ -1829,7 +1829,7 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
               type="button"
               disabled={!ready || isBusy}
               onClick={handleSubmit}
-              className="mt-auto inline-flex items-center justify-center gap-2 rounded-[8px] bg-cyan-300 px-3 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-text-muted"
+              className="mt-auto inline-flex items-center justify-center gap-2 rounded-[8px] bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
             >
               {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
               {submitLabel}

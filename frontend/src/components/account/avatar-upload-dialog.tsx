@@ -100,22 +100,22 @@ export function AvatarUploadDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="w-[380px] gap-0 rounded-[18px] border border-white/[0.08] bg-[#171719]/86 p-0 text-slate-100 shadow-[0_22px_70px_rgba(0,0,0,0.42)] backdrop-blur-xl"
-        closeButtonClassName="top-3 right-3 text-slate-300 hover:bg-white/[0.06] hover:text-white"
+        className="w-[380px] gap-0 rounded-[18px] border border-border bg-popover/95 p-0 text-popover-foreground shadow-2xl backdrop-blur-xl"
+        closeButtonClassName="top-3 right-3 text-muted-foreground hover:bg-muted hover:text-foreground"
         overlayClassName="bg-black/55 backdrop-blur-sm"
       >
         <DialogHeader className="px-5 pb-3 pt-5">
-          <DialogTitle className="text-[17px] font-medium tracking-normal text-white">
+          <DialogTitle className="text-[17px] font-medium tracking-normal text-popover-foreground">
             {t("header.account.avatarDialog.title")}
           </DialogTitle>
-          <DialogDescription className="text-[12px] leading-5 text-slate-400">
+          <DialogDescription className="text-[12px] leading-5 text-muted-foreground">
             {t("header.account.avatarDialog.description")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="px-5 pb-5">
-          <div className="flex items-center gap-4 rounded-[14px] border border-white/[0.07] bg-white/[0.035] p-4">
-            <div className="flex size-[84px] shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/[0.10] bg-white/[0.07] text-[26px] font-normal text-white/72">
+          <div className="flex items-center gap-4 rounded-[14px] border border-border bg-muted p-4">
+            <div className="flex size-[84px] shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-muted text-[26px] font-normal text-foreground/75">
               {previewUrl ? (
                 <img
                   src={previewUrl}
@@ -133,12 +133,12 @@ export function AvatarUploadDialog({
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[14px] font-medium text-white">
+              <p className="truncate text-[14px] font-medium text-foreground">
                 {displayName}
               </p>
               <p
                 className={`mt-1 line-clamp-2 break-all text-[12px] leading-5 ${
-                  error ? "text-red-400" : "text-slate-400"
+                  error ? "text-destructive" : "text-muted-foreground"
                 }`}
               >
                 {error ?? fileName ?? t("header.account.avatarDialog.previewHint")}
@@ -148,20 +148,20 @@ export function AvatarUploadDialog({
 
           <button
             type="button"
-            className="mt-3 flex h-[96px] w-full flex-col items-center justify-center rounded-[14px] border border-dashed border-white/[0.14] bg-white/[0.025] text-center transition-colors duration-150 hover:border-cyan-200/35 hover:bg-white/[0.045]"
+            className="mt-3 flex h-[96px] w-full flex-col items-center justify-center rounded-[14px] border border-dashed border-border bg-muted text-center transition-colors duration-150 hover:border-primary/45 hover:bg-accent"
             onClick={() => inputRef.current?.click()}
           >
             {previewUrl ? (
-              <Upload className="size-5 text-white" />
+              <Upload className="size-5 text-foreground" />
             ) : (
-              <ImagePlus className="size-5 text-white" />
+              <ImagePlus className="size-5 text-foreground" />
             )}
-            <span className="mt-2 text-[13px] font-medium text-slate-100">
+            <span className="mt-2 text-[13px] font-medium text-foreground">
               {previewUrl
                 ? t("header.account.avatarDialog.replace")
                 : t("header.account.avatarDialog.choose")}
             </span>
-            <span className="mt-1 text-[11px] text-slate-500">
+            <span className="mt-1 text-[11px] text-muted-foreground">
               {t("header.account.avatarDialog.fileHint")}
             </span>
           </button>
@@ -178,7 +178,7 @@ export function AvatarUploadDialog({
           <Button
             type="button"
             variant="outline"
-            className="h-9 rounded-[9px] border-white/[0.10] bg-white/[0.03] px-4 text-[13px] font-normal text-slate-200 hover:bg-white/[0.06] hover:text-white"
+            className="h-9 rounded-[9px] border-border bg-muted px-4 text-[13px] font-normal text-foreground/80 hover:bg-accent hover:text-foreground"
             onClick={() => handleOpenChange(false)}
           >
             {t("common.cancel")}

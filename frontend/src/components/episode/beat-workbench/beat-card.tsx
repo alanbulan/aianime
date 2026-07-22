@@ -75,10 +75,10 @@ function BeatCardImpl({
     <article
       data-beat-number={beat.beat_number}
       className={cn(
-        "group relative flex transform-gpu flex-col overflow-hidden rounded-[8px] border bg-white/[0.025] text-left transition-all duration-150 ease-out hover:scale-[1.008]",
-        isSelected && "border-primary/65 bg-white/[0.03]",
-        isChecked && !isSelected && "border-primary/45 bg-white/[0.03]",
-        !isSelected && !isChecked && "border-white/[0.08] hover:border-white/[0.28] hover:bg-white/[0.03]",
+        "group relative flex transform-gpu flex-col overflow-hidden rounded-[8px] border bg-card text-left transition-all duration-150 ease-out hover:scale-[1.008]",
+        isSelected && "border-primary/65 bg-primary/[0.06]",
+        isChecked && !isSelected && "border-primary/45 bg-primary/[0.05]",
+        !isSelected && !isChecked && "border-border hover:border-foreground/28 hover:bg-muted",
         // Ensure text-only cards have reasonable minimum height
         !hasVisibleMedia && "min-h-[100px]",
       )}
@@ -87,7 +87,7 @@ function BeatCardImpl({
         className={cn(
           "absolute left-1.5 top-1.5 z-20 rounded-[4px] border px-2 py-1 font-mono text-[11px] font-medium leading-none tabular-nums backdrop-blur-md",
           isSelected
-            ? "border-primary/45 bg-black/55 text-primary/90"
+            ? "border-cyan-200/45 bg-black/55 text-cyan-100"
             : "border-white/[0.10] bg-black/45 text-white/78",
         )}
       >
@@ -106,7 +106,7 @@ function BeatCardImpl({
                     onDeleteManual(beat.beat_number, displayNumber);
                   }}
                   disabled={isDeletingManual}
-                  className="flex size-5 items-center justify-center rounded-[5px] border border-destructive/25 bg-destructive/[0.08] text-destructive/85 backdrop-blur transition-colors hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive disabled:cursor-wait disabled:opacity-60"
+                  className="flex size-5 items-center justify-center rounded-[5px] border border-destructive/25 bg-destructive/[0.08] text-destructive backdrop-blur transition-colors hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive disabled:cursor-wait disabled:opacity-60"
                   aria-label={t("episode.beat.deleteManualShot")}
                 />
               }
@@ -121,7 +121,7 @@ function BeatCardImpl({
               side="top"
               sideOffset={8}
               showArrow={false}
-              className="border border-white/10 bg-background/95 text-foreground shadow-none"
+              className="border border-border bg-popover/95 text-popover-foreground shadow-none"
             >
               {t("episode.beat.deleteManualShot")}
             </TooltipContent>
@@ -137,7 +137,7 @@ function BeatCardImpl({
           className={cn(
             "flex size-5 items-center justify-center rounded-[5px] border backdrop-blur transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
             isChecked
-              ? "border-primary/55 bg-black/55 text-primary/90"
+              ? "border-cyan-200/55 bg-black/55 text-cyan-100"
               : "border-white/[0.16] bg-black/35 text-transparent hover:border-white/[0.30] hover:bg-black/50",
           )}
           aria-label={isChecked ? t("episode.beat.deselect") : t("episode.beat.select")}
@@ -255,7 +255,7 @@ function BeatCardActionButton({
               onClick();
             }}
             disabled={disabled}
-            className="flex size-6 items-center justify-center rounded-[6px] border border-white/[0.18] bg-black/60 text-[12px] font-medium leading-none text-white/82 shadow-[0_8px_18px_rgba(0,0,0,0.32)] backdrop-blur transition-colors duration-100 hover:border-primary/45 hover:bg-black/72 hover:text-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-wait disabled:opacity-65 [&_svg]:size-3"
+            className="flex size-6 items-center justify-center rounded-[6px] border border-white/[0.18] bg-black/60 text-[12px] font-medium leading-none text-white/82 shadow-[0_8px_18px_rgba(0,0,0,0.32)] backdrop-blur transition-colors duration-100 hover:border-cyan-200/45 hover:bg-black/72 hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 disabled:cursor-wait disabled:opacity-65 [&_svg]:size-3"
             aria-label={ariaLabel ?? tooltip}
           />
         }
@@ -266,7 +266,7 @@ function BeatCardActionButton({
         side={tooltipSide}
         sideOffset={8}
         showArrow={false}
-        className="border border-white/10 bg-background/95 text-foreground shadow-none"
+        className="border border-border bg-popover/95 text-popover-foreground shadow-none"
       >
         {tooltip}
       </TooltipContent>
@@ -301,7 +301,7 @@ function ImageSlot({
       {resolved ? (
         <img src={resolved} alt={alt} className="h-full w-full object-cover" loading="lazy" decoding="async" />
       ) : (
-        <div className="flex h-full items-center justify-center text-[10px] text-muted-foreground/40">
+        <div className="flex h-full items-center justify-center text-[10px] text-muted-foreground">
           {placeholder}
         </div>
       )}

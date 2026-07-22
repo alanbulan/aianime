@@ -76,7 +76,7 @@ export function SketchGridGallery({
   if (groups.length === 0) return null;
 
   return (
-    <section className="flex h-full min-h-0 w-full flex-col bg-background/50 px-4 py-3">
+    <section className="flex h-full min-h-0 w-full flex-col bg-background px-4 py-3">
       <div className="mb-2 flex items-center gap-2">
         <h2 className="text-xs font-semibold text-muted-foreground">
           {t("episode.workbench.sketchGrid.titleWithCount", {
@@ -241,7 +241,7 @@ function SketchGridCard({
   };
 
   return (
-    <article className="flex min-w-0 flex-col gap-2 rounded-md border border-white/10 bg-transparent p-2">
+    <article className="flex min-w-0 flex-col gap-2 rounded-md border border-border bg-card p-2">
       <button
         type="button"
         disabled={!gridUrl && !hasFallbackPreview && !generatedPreviewUrl}
@@ -251,7 +251,7 @@ function SketchGridCard({
         }}
         className={cn(
           "overflow-hidden rounded bg-black/20 disabled:cursor-default",
-          hasPreview && "border border-white/10",
+          hasPreview && "border border-border",
         )}
         style={{ aspectRatio: gridAspectCss(group.cols, group.rows, aspectRatio) }}
       >

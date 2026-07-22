@@ -121,7 +121,7 @@ const DEFAULT_HORIZONTAL = 0;
 const DEFAULT_VERTICAL = 0;
 const DEFAULT_ZOOM: MultiAngleZoomLevel = 'medium';
 const EDITOR_PROMPT_TEXTAREA_CLASS =
-  'mb-5 mt-3.5 h-14 rounded-xl !border-white/[0.14] !bg-bg-dark/45 px-3 py-2 text-xs !text-text-dark placeholder:!text-text-dark/52 shadow-inner';
+  'mb-5 mt-3.5 h-14 rounded-xl !border-border !bg-muted px-3 py-2 text-xs !text-foreground placeholder:!text-muted-foreground shadow-none focus-visible:!border-primary/45';
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
@@ -219,10 +219,10 @@ function PresetPicker({ value, onChange }: PresetPickerProps) {
         ref={triggerRef}
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="inline-flex h-7 min-w-[70px] items-center justify-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2 text-[11px] font-medium text-text-dark transition-colors hover:bg-white/[0.08]"
+        className="inline-flex h-7 min-w-[70px] items-center justify-center gap-1 rounded-full border border-border bg-muted px-2 text-[11px] font-medium text-foreground transition-colors hover:border-foreground/25 hover:bg-accent"
       >
         {t(`multiAngleEditor.presets.${value}`)}
-        <ChevronDown className="h-2.5 w-2.5 text-text-dark/55" />
+        <ChevronDown className="h-2.5 w-2.5 text-muted-foreground" />
       </button>
       {isOpen && (
         <div
@@ -242,8 +242,8 @@ function PresetPicker({ value, onChange }: PresetPickerProps) {
                 }}
                 className={`flex h-8 w-full items-center gap-2 rounded border px-2.5 text-left text-xs transition-colors ${
                   isActive
-                    ? 'border-white/[0.16] bg-white/[0.12] text-text-dark'
-                    : 'border-transparent text-text-dark/50 hover:bg-white/[0.07] hover:text-text-dark/78'
+                    ? 'border-primary/35 bg-accent text-accent-foreground'
+                    : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >
                 {isActive ? (
@@ -290,13 +290,13 @@ function QualityPicker({ value, onChange }: QualityPickerProps) {
         ref={triggerRef}
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="inline-flex h-7 items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2 text-[11px] text-text-dark transition-colors hover:bg-white/[0.08]"
+        className="inline-flex h-7 items-center gap-1 rounded-full border border-border bg-muted px-2 text-[11px] text-foreground transition-colors hover:border-foreground/25 hover:bg-accent"
       >
-        <Sparkles className="h-3 w-3 text-text-dark/55" />
+        <Sparkles className="h-3 w-3 text-muted-foreground" />
         <span className="font-medium">{title}</span>
-        <span className="text-text-dark/35">·</span>
-        <span className="text-text-dark/50">{value}</span>
-        <ChevronDown className="h-2.5 w-2.5 text-text-dark/55" />
+        <span className="text-muted-foreground">·</span>
+        <span className="text-foreground">{value}</span>
+        <ChevronDown className="h-2.5 w-2.5 text-muted-foreground" />
       </button>
       {isOpen && (
         <div
@@ -304,7 +304,7 @@ function QualityPicker({ value, onChange }: QualityPickerProps) {
           className={`absolute left-0 top-full z-50 mt-2 w-[206px] p-2 ${NODE_FLOATING_PANEL_SURFACE_CLASS}`}
           onPointerDown={(event) => event.stopPropagation()}
         >
-          <div className="mb-1 text-[11px] uppercase tracking-wide text-text-dark/50">{title}</div>
+          <div className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">{title}</div>
           <div className="flex gap-1.5">
             {MULTI_ANGLE_IMAGE_SIZES.map((size) => {
               const isActive = value === size;
@@ -318,8 +318,8 @@ function QualityPicker({ value, onChange }: QualityPickerProps) {
                   }}
                   className={`inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border text-xs font-medium transition-colors ${
                     isActive
-                      ? 'border-white/[0.16] bg-white/[0.12] text-text-dark'
-                      : 'border-transparent bg-transparent text-text-dark/50 hover:bg-white/[0.07] hover:text-text-dark/78'
+                      ? 'border-primary/35 bg-accent text-accent-foreground'
+                      : 'border-transparent bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
                   }`}
                 >
                   {isActive && <Check className="h-3 w-3" />}
@@ -374,7 +374,7 @@ function DegreeInput({ value, min, max, onChange }: DegreeInputProps) {
           }
         }}
         onPointerDown={(event) => event.stopPropagation()}
-        className="w-7 rounded bg-transparent text-right text-xs tabular-nums text-text-dark/58 outline-none transition-colors hover:text-text-dark/78 focus:bg-white/[0.06] focus:text-text-dark"
+        className="w-7 rounded bg-transparent text-right text-xs tabular-nums text-muted-foreground outline-none transition-colors hover:text-foreground focus:bg-muted focus:text-foreground"
       />
       <span className="text-xs text-text-dark/58">°</span>
     </>
@@ -387,9 +387,9 @@ function SliderRow({ label, trailing, value, min, max, step = 1, onChange }: Sli
       <span className="w-14 shrink-0 text-right text-xs text-text-dark/86">{label}</span>
       <Slider
         className="flex-1"
-        trackClassName="h-1 bg-white/24"
-        rangeClassName="bg-[#5b8df6]"
-        thumbClassName="h-3 w-3 border-0 bg-[#5b8df6] shadow-none focus-visible:ring-[#5b8df6]/45"
+        trackClassName="h-1 bg-border"
+        rangeClassName="bg-primary"
+        thumbClassName="h-3 w-3 border-0 bg-primary shadow-none focus-visible:ring-ring/45"
         min={min}
         max={max}
         step={step}
@@ -571,7 +571,7 @@ export function MultiAngleEditorPanel({ imageSource, onClose, onSubmit }: MultiA
         <div className="flex items-center gap-2">
           <button
             type="button"
-            className="inline-flex items-center gap-1 text-xs text-text-dark/55 transition-colors hover:text-text-dark/82"
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
             onClick={handleReset}
           >
             <RotateCcw className="h-3.5 w-3.5" />
@@ -579,7 +579,7 @@ export function MultiAngleEditorPanel({ imageSource, onClose, onSubmit }: MultiA
           </button>
           <button
             type="button"
-            className="flex h-7 w-7 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-white/10 hover:text-text-dark"
+            className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             onClick={onClose}
             aria-label="close"
           >
@@ -589,7 +589,7 @@ export function MultiAngleEditorPanel({ imageSource, onClose, onSubmit }: MultiA
       </div>
 
       <div className="flex gap-6 px-6 pb-6 pt-4">
-        <div className="flex h-[254px] w-[254px] shrink-0 flex-col items-center justify-center rounded-xl border border-white/10 bg-bg-dark/40 p-3">
+        <div className="flex h-[254px] w-[254px] shrink-0 flex-col items-center justify-center rounded-xl border border-border bg-muted p-3">
           <MultiAngleSphere
             horizontalDeg={horizontalDeg}
             verticalDeg={verticalDeg}
@@ -641,12 +641,12 @@ export function MultiAngleEditorPanel({ imageSource, onClose, onSubmit }: MultiA
               role="switch"
               aria-checked={promptOverrideEnabled}
               onClick={() => setPromptOverrideEnabled((prev) => !prev)}
-              className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-rgb))] focus-visible:ring-offset-2 focus-visible:ring-offset-surface-dark ${
-                promptOverrideEnabled ? 'bg-[rgb(var(--accent-rgb))]' : 'bg-white/15'
+              className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                promptOverrideEnabled ? 'bg-primary' : 'bg-input'
               }`}
             >
               <span
-                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform ${
+                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow-sm transition-transform ${
                   promptOverrideEnabled ? 'translate-x-[18px]' : 'translate-x-0.5'
                 }`}
               />

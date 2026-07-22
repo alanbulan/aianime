@@ -51,7 +51,7 @@ export function AssetBeatReferences({
               params={{ project, episode: String(ref.episode) }}
               search={{ beat: ref.beatNumber } as never}
               hash={`beat-${ref.beatNumber}`}
-              className="inline-flex items-center rounded-[6px] border border-border bg-background/40 px-2 py-0.5 text-[11px] text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
+              className="inline-flex items-center rounded-[6px] border border-border bg-muted px-2 py-0.5 text-[11px] text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
             >
               {t("assets.common.beatRef", {
                 episode: ref.episode,

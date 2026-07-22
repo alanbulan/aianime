@@ -57,7 +57,7 @@ function FreezoneProjectRoute() {
   if (isLoading || !projects) {
     return (
       <div className="-m-6 flex h-[calc(100%+3rem)] items-center justify-center bg-bg-dark text-text-muted">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-accent border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
   }
@@ -73,7 +73,7 @@ function FreezoneProjectRoute() {
           <button
             type="button"
             onClick={() => writeUrl({ project: null, canvas: null })}
-            className="rounded-lg bg-accent/90 px-4 py-2 text-sm text-white transition hover:bg-accent"
+            className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground transition hover:bg-primary/85"
           >
             返回项目
           </button>

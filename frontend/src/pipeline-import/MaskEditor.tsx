@@ -288,7 +288,7 @@ export function MaskEditor({
                 className={
                   "px-1.5 py-0.5 rounded text-xs transition " +
                   (brushSize === s
-                    ? "bg-accent/30 text-accent"
+                    ? "bg-primary/12 text-primary"
                     : "text-text-muted hover:text-text")
                 }
               >
@@ -299,7 +299,7 @@ export function MaskEditor({
           <button
             type="button"
             onClick={clearMask}
-            className="ml-auto px-2.5 py-1 rounded text-xs text-text-muted hover:text-red-400 transition"
+            className="ml-auto rounded px-2.5 py-1 text-xs text-text-muted transition hover:text-destructive"
             title="清空蒙版"
           >
             清空
@@ -344,14 +344,14 @@ export function MaskEditor({
             placeholder="蒙版区域改成什么？例：改成蓝色长发 / 加一束阳光 / 移除背景路人..."
             rows={2}
             disabled={submitting}
-            className="w-full px-3 py-2 rounded-lg bg-bg-dark border border-border-default text-text text-sm focus:outline-none focus:border-accent transition resize-none"
+            className="w-full px-3 py-2 rounded-lg bg-bg-dark border border-border-default text-text text-sm focus:outline-none focus:border-primary transition resize-none"
           />
           <div className="flex items-center justify-between gap-3">
             <div className="text-xs text-text-muted/80 flex-1 min-w-0 truncate">
               {progressMsg ? (
-                <span className="text-accent">{progressMsg}</span>
+                <span className="text-primary">{progressMsg}</span>
               ) : error ? (
-                <span className="text-red-400">{error}</span>
+                <span className="text-red-700 dark:text-red-300">{error}</span>
               ) : (
                 <>红色 = 待编辑区域 · LingShan-G2 · 可能 30-60 秒</>
               )}
@@ -369,7 +369,7 @@ export function MaskEditor({
                 type="button"
                 onClick={handleSubmit}
                 disabled={submitting || !imageReady}
-                className="px-4 py-1.5 rounded-lg bg-accent/90 hover:bg-accent text-white text-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? "处理中..." : "Apply"}
               </button>
@@ -397,7 +397,7 @@ function ToolBtn({
       className={
         "px-2.5 py-1 rounded text-xs transition " +
         (active
-          ? "bg-accent/20 text-accent border border-accent/40"
+          ? "bg-primary/12 text-primary border border-primary/40"
           : "border border-transparent text-text-muted hover:text-text")
       }
     >

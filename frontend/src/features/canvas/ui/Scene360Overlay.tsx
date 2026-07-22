@@ -269,8 +269,8 @@ function AspectRatioDropdown({ value, onChange, label }: AspectRatioDropdownProp
                 }}
                 className={`flex w-full items-center rounded px-2.5 py-1.5 text-xs font-medium transition-colors ${
                   isActive
-                    ? 'bg-white/[0.12] text-text-dark'
-                    : 'text-text-dark/50 hover:bg-white/[0.07] hover:text-text-dark/78'
+                    ? 'bg-accent text-accent-foreground'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >
                 {ratio}

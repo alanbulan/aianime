@@ -140,8 +140,8 @@ export function SingleBeatPanel({
             <div key={id}>
               <div
                 className={cn(
-                  "sticky top-0 z-20 flex min-h-11 items-center border-b border-white/[0.055] bg-[#111111] text-sm font-semibold text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.03)] transition-colors hover:bg-white/[0.035] hover:text-foreground",
-                  isOpen && "bg-[#121212] text-foreground/90",
+                  "sticky top-0 z-20 flex min-h-11 items-center border-b border-border bg-background text-sm font-semibold text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground",
+                  isOpen && "bg-muted text-foreground/90",
                 )}
               >
                 <button
@@ -156,7 +156,7 @@ export function SingleBeatPanel({
                       isOpen && "text-muted-foreground/75",
                     )}
                   />
-                  <Icon className={cn("size-4", isOpen ? "text-primary/85" : "text-muted-foreground/85")} />
+                  <Icon className={cn("size-4", isOpen ? "text-primary" : "text-muted-foreground/85")} />
                   <span className={cn("font-semibold tracking-tight", isOpen ? "text-foreground" : "text-foreground/90")}>{t(labelKey)}</span>
                 </button>
                 {id === "video" && (
@@ -170,8 +170,8 @@ export function SingleBeatPanel({
                   className={cn(
                     "mr-3 inline-flex h-5 shrink-0 items-center gap-1.5 rounded-full border px-2 text-[10px] font-normal",
                     ready
-                      ? "border-primary/18 bg-primary/[0.09] text-primary/90"
-                      : "border-white/[0.055] bg-white/[0.045] text-muted-foreground/76",
+                      ? "border-primary/18 bg-primary/[0.09] text-primary"
+                      : "border-border bg-muted text-muted-foreground",
                   )}
                 >
                   {id === "text" && <SaveStatus scope={beatTextScope} variant="inline" />}
@@ -192,7 +192,7 @@ export function SingleBeatPanel({
                 </span>
               </div>
               <AnimatedSectionContent open={isOpen}>
-                <div className="border-b border-white/[0.04] bg-white/[0.012] px-3 py-3">
+                <div className="border-b border-border bg-card px-3 py-3">
                   {id === "text" && (
                     <TextPane
                       beat={beat}
@@ -295,7 +295,7 @@ function VideoBackendHeaderSelect({
       <Select value={value} onValueChange={(next) => onChange(next ?? "")}>
         <SelectTrigger
           aria-label={t("episode.workbench.batch.videoModel")}
-          className="!h-[26px] w-auto min-w-[150px] rounded-[7px] border-white/[0.12] bg-white/[0.018] px-2.5 text-xs font-normal text-foreground/80 shadow-none hover:border-white/[0.20] hover:bg-white/[0.035] hover:text-foreground focus-visible:border-white/[0.22] focus-visible:bg-white/[0.035] focus-visible:ring-white/10 dark:border-white/[0.12] dark:bg-white/[0.018] dark:hover:bg-white/[0.035] [&>svg]:ml-1.5 [&>svg]:size-3.5"
+          className="!h-[26px] w-auto min-w-[150px] rounded-[7px] border-border bg-muted px-2.5 text-xs font-normal text-foreground/80 shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground focus-visible:border-primary/45 focus-visible:bg-muted focus-visible:ring-primary/10 [&>svg]:ml-1.5 [&>svg]:size-3.5"
         >
           <SelectValue>
             {() => selectedBackend?.label ?? value}

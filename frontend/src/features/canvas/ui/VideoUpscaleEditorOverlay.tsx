@@ -167,10 +167,10 @@ export const VideoUpscaleEditorOverlay = memo(
           <div className="flex shrink-0 items-center justify-between gap-3 px-3 py-3">
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-text-dark/72">
+                <span className="text-xs text-foreground/75">
                   {t('node.videoUpscale.panel.resolution')}
                 </span>
-                <div className="inline-flex items-center gap-0.5 rounded border border-white/10 bg-white/[0.04] p-0.5">
+                <div className="inline-flex items-center gap-0.5 rounded border border-border bg-muted p-0.5">
                   {RESOLUTIONS.map((value) => {
                     const isActive = resolution === value;
                     return (
@@ -180,8 +180,8 @@ export const VideoUpscaleEditorOverlay = memo(
                         onClick={() => handleResolutionChange(value)}
                         className={`flex h-6 min-w-12 items-center justify-center rounded text-xs font-medium transition-colors ${
                           isActive
-                            ? 'bg-white/[0.16] text-text-dark'
-                            : 'text-text-muted/82 hover:bg-white/[0.06] hover:text-text-dark'
+                            ? 'bg-card text-foreground shadow-sm'
+                            : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                         }`}
                       >
                         {RESOLUTION_LABEL[value]}
@@ -192,7 +192,7 @@ export const VideoUpscaleEditorOverlay = memo(
               </div>
 
               <span
-                className="inline-flex h-7 items-center rounded px-1 text-xs font-medium text-text-dark/70"
+                className="inline-flex h-7 items-center rounded px-1 text-xs font-medium text-foreground/75"
                 title={t('node.videoUpscale.panel.frameInterpolationLockedHint')}
               >
                 {t('node.videoUpscale.panel.frameInterpolationNone')}
@@ -204,7 +204,7 @@ export const VideoUpscaleEditorOverlay = memo(
             <div className="flex shrink-0 items-center gap-2">
               <button
                 type="button"
-                className="h-7 rounded px-1.5 text-xs font-medium text-text-dark/72 transition-colors hover:text-text-dark"
+                className="h-7 rounded px-1.5 text-xs font-medium text-foreground/75 transition-colors hover:bg-muted hover:text-foreground"
                 onClick={handleCancel}
                 title={t('common.cancel')}
               >
@@ -269,7 +269,7 @@ function DenoisePicker({ value, onChange }: DenoisePickerProps) {
         ref={triggerRef}
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="inline-flex h-7 items-center gap-1.5 rounded px-1 text-xs font-medium text-text-dark/88 transition-colors hover:text-text-dark"
+        className="inline-flex h-7 items-center gap-1.5 rounded px-1 text-xs font-medium text-foreground/88 transition-colors hover:text-foreground"
       >
         <span>{denoiseLabel(value)}</span>
         <ChevronDown className="h-3 w-3 text-text-muted/90" />
@@ -277,7 +277,7 @@ function DenoisePicker({ value, onChange }: DenoisePickerProps) {
       {isOpen && (
         <div
           ref={popoverRef}
-          className="absolute bottom-full right-0 z-50 mb-2 w-[160px] rounded-[10px] border border-white/[0.12] bg-[#282828]/96 p-1 shadow-[0_14px_34px_rgba(0,0,0,0.42)] backdrop-blur-md"
+          className="absolute bottom-full right-0 z-50 mb-2 w-[160px] rounded-[10px] border border-border bg-popover/96 p-1 shadow-xl backdrop-blur-md"
           onPointerDown={(event) => event.stopPropagation()}
         >
           {DENOISE_OPTIONS.map((option) => {
@@ -292,8 +292,8 @@ function DenoisePicker({ value, onChange }: DenoisePickerProps) {
                 }}
                 className={`flex h-8 w-full items-center justify-between rounded-md px-2.5 text-xs font-medium transition-colors ${
                   isActive
-                    ? 'bg-white/[0.10] text-text-dark'
-                    : 'text-text-muted hover:bg-white/[0.06] hover:text-text-dark'
+                    ? 'bg-muted text-foreground'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >
                 {denoiseLabel(option)}

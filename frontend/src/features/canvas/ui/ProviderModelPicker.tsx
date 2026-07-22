@@ -289,10 +289,10 @@ export function ProviderModelPicker({
               );
               const optionClass = `${MODEL_PICKER_OPTION_BASE_CLASS} ${
                 isActive
-                  ? 'bg-white/[0.13] text-text-dark ring-1 ring-white/24'
+                  ? 'bg-primary text-primary-foreground ring-1 ring-primary/30'
                   : isDisabled
                     ? 'cursor-not-allowed text-text-muted/40'
-                    : 'text-text-muted/95 hover:bg-white/[0.11] hover:text-text-dark'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               }`;
               if (isDisabled) {
                 return (
@@ -342,7 +342,7 @@ export function ProviderModelPicker({
       )}
       {isOpen && disabledTooltip && createPortal(
         <div
-          className="pointer-events-none fixed z-[10001] max-w-[240px] rounded-lg bg-neutral-800/95 px-3 py-2 text-xs leading-5 text-white shadow-lg"
+          className="pointer-events-none fixed z-[10001] max-w-[240px] rounded-lg border border-border bg-popover/95 px-3 py-2 text-xs leading-5 text-popover-foreground shadow-lg"
           style={{ left: disabledTooltip.left, top: disabledTooltip.top }}
         >
           {disabledTooltip.reason}

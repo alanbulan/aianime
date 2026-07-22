@@ -37,7 +37,7 @@ export function RegenerateButton({
         if (isDisabled) return;
         onClick();
       }}
-      className={`nodrag inline-flex items-center justify-center gap-1.5 rounded-full border border-red-400/45 bg-red-500/15 px-3 py-1 text-xs font-medium text-red-200 transition-colors hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
+      className={`nodrag inline-flex items-center justify-center gap-1.5 rounded-full border border-destructive/45 bg-destructive/10 px-3 py-1 text-xs font-medium text-destructive transition-colors hover:bg-destructive/20 disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
     >
       {busy ? (
         <Loader2 className="h-3.5 w-3.5 animate-spin" />

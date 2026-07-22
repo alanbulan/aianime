@@ -228,7 +228,7 @@ function MiniThumb({
       onDragStart={handleDragStart}
       onContextMenu={handleContextMenu}
       onClick={onAdd}
-      className="group relative aspect-[4/3] cursor-pointer overflow-hidden rounded bg-black/40 border border-white/[0.06] hover:border-white/[0.15] hover:bg-white/[0.04] hover:scale-[1.02] transition-all duration-350"
+      className="group relative aspect-[4/3] cursor-pointer overflow-hidden rounded bg-muted border border-border hover:border-foreground/20 hover:bg-accent/60 hover:scale-[1.02] transition-all duration-350"
       title={asset.label}
     >
       {showImage ? (
@@ -242,7 +242,7 @@ function MiniThumb({
         />
       ) : isAudio ? (
         <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[rgba(21,215,232,0.15)] to-transparent rounded">
-          <AudioLines className="h-5 w-5 text-white/50" />
+          <AudioLines className="h-5 w-5 text-muted-foreground" />
         </div>
       ) : videoPosterUrl ? (
         <div className="relative h-full w-full">
@@ -260,15 +260,15 @@ function MiniThumb({
           </div>
         </div>
       ) : isVideo ? (
-        <div className="flex h-full w-full items-center justify-center rounded bg-gradient-to-br from-white/[0.08] to-transparent">
-          <Video className="h-5 w-5 text-white/45" />
+        <div className="flex h-full w-full items-center justify-center rounded bg-gradient-to-br from-foreground/[0.08] to-transparent">
+          <Video className="h-5 w-5 text-muted-foreground" />
         </div>
       ) : (
         <div className="flex h-full w-full items-center justify-center rounded">
           {imageFailed ? (
-            <ImageOff className="h-5 w-5 text-white/35" />
+            <ImageOff className="h-5 w-5 text-muted-foreground" />
           ) : (
-            <span className="text-[9px] uppercase tracking-wide text-white/30">
+            <span className="text-[9px] uppercase tracking-wide text-muted-foreground/70">
               {isThreeD ? "3gs" : asset.mediaType}
             </span>
           )}
@@ -309,8 +309,8 @@ function BeatSectionHeader({
   return (
     <div className="flex w-full items-center justify-between py-2">
       <span className="flex min-w-0 items-baseline gap-3">
-        <span className="text-[13px] font-semibold text-white/60">{primary}</span>
-        <span className="text-[12px] font-medium text-white/35">{secondary}</span>
+        <span className="text-[13px] font-semibold text-foreground/70">{primary}</span>
+        <span className="text-[12px] font-medium text-muted-foreground">{secondary}</span>
       </span>
       {action}
     </div>
@@ -348,7 +348,7 @@ function BeatRow({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-2 py-1 text-[11px] text-white/60 hover:text-white/90 transition-colors"
+        className="flex w-full items-center gap-2 py-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
       >
         <ChevronDown
           className={`h-3 w-3 shrink-0 transition-transform duration-200 ${open ? "rotate-0" : "-rotate-90"}`}
@@ -356,7 +356,7 @@ function BeatRow({
         <span className="font-medium">
           Beat {beat}
         </span>
-        <span className="text-[10px] text-white/30">({items.length})</span>
+        <span className="text-[10px] text-muted-foreground/70">({items.length})</span>
       </button>
       {open && (
         <div className="grid grid-cols-3 gap-1.5 pt-1.5">
@@ -368,7 +368,7 @@ function BeatRow({
                 onAdd={() => addAssetToCanvas(asset, allAssets.indexOf(asset))}
                 cacheToken={cacheToken}
               />
-              <span className="block text-left text-[12px] text-white/70">{label}</span>
+              <span className="block text-left text-[12px] text-foreground/70">{label}</span>
             </div>
           ))}
         </div>
@@ -412,14 +412,14 @@ function EpisodeSection({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full text-left transition-colors hover:[&_span:first-child]:text-white/75"
+        className="w-full text-left transition-colors hover:[&_span:first-child]:text-foreground/80"
       >
         <BeatSectionHeader
           primary={`第${episode}集`}
           secondary={`${beats.length} Beat`}
           action={(
             <ChevronDown
-              className={`h-3.5 w-3.5 text-white/45 transition-transform duration-200 ${open ? "rotate-0" : "-rotate-90"}`}
+              className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${open ? "rotate-0" : "-rotate-90"}`}
             />
           )}
         />
@@ -456,7 +456,7 @@ function DefaultCanvasBeatPanel({
 
   if (assets.length === 0) {
     return (
-      <div className="flex flex-1 items-center justify-center px-6 py-12 text-center text-xs text-white/25">
+      <div className="flex flex-1 items-center justify-center px-6 py-12 text-center text-xs text-muted-foreground/70">
         暂无镜头上下文素材
       </div>
     );
@@ -701,18 +701,10 @@ export function AssetLibraryPanel({
             onClick={() => setCollapsed(!collapsed)}
             aria-label={collapsed ? "展开素材抽屉" : "收起素材抽屉"}
             aria-expanded={!collapsed}
-            className={`group/btn relative flex h-10 w-10 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 ${
-              collapsed
-                ? "text-white/82 hover:text-white"
-                : "text-white/68 hover:text-white/92"
-            }`}
+            className="group/btn relative flex h-10 w-10 items-center justify-center rounded-[10px] text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
           >
             <span
-              className={`flex h-9 w-9 items-center justify-center rounded-[10px] border shadow-[0_10px_28px_rgba(0,0,0,0.30)] backdrop-blur-xl transition-[background-color,border-color,box-shadow] duration-200 ${
-                collapsed
-                  ? "border-white/18 bg-white/[0.09] group-hover/btn:border-white/26 group-hover/btn:bg-white/[0.13]"
-                  : "border-white/10 bg-white/[0.05] group-hover/btn:border-white/15 group-hover/btn:bg-white/[0.08]"
-              }`}
+              className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-border bg-card shadow-[0_10px_28px_rgb(15_23_42/0.12)] dark:shadow-[0_10px_28px_rgba(0,0,0,0.30)] transition-colors duration-200 group-hover/btn:border-primary/55 group-hover/btn:bg-accent"
             >
               {collapsed ? (
                 <ChevronRight className="h-4 w-4" />
@@ -722,7 +714,7 @@ export function AssetLibraryPanel({
             </span>
           </button>
           <span
-            className="pointer-events-none absolute left-11 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md border border-white/10 bg-[#101116]/95 px-2 py-1 text-[11px] font-medium text-white/75 opacity-0 shadow-[0_10px_24px_rgba(0,0,0,0.28)] backdrop-blur-md transition-opacity duration-150 group-hover/handle:opacity-100"
+            className="pointer-events-none absolute left-11 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-popover/95 px-2 py-1 text-[11px] font-medium text-popover-foreground/80 opacity-0 shadow-[0_10px_24px_rgb(15_23_42/0.14)] dark:shadow-[0_10px_24px_rgba(0,0,0,0.28)] backdrop-blur-md transition-opacity duration-150 group-hover/handle:opacity-100"
           >
             {collapsed ? "展开" : "收起"}
           </span>
@@ -730,7 +722,7 @@ export function AssetLibraryPanel({
 
         {/* 悬浮圆角卡片 */}
         <div
-          className={`flex flex-col min-h-0 overflow-hidden rounded-2xl border border-white/10 bg-[rgba(var(--surface-rgb)/0.86)] backdrop-blur-2xl transition-[opacity,transform] duration-[360ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform ${
+          className={`flex min-h-0 flex-col overflow-hidden rounded-[12px] border border-border bg-card text-card-foreground shadow-[0_18px_42px_rgb(15_23_42/0.12)] dark:shadow-[0_18px_42px_rgba(0,0,0,0.32)] transition-[opacity,transform] duration-[360ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform ${
             collapsed
               ? "pointer-events-none -translate-x-3 opacity-0"
               : "pointer-events-auto translate-x-0 opacity-100"
@@ -738,14 +730,14 @@ export function AssetLibraryPanel({
           style={{ width: 288, marginLeft: 16, marginTop: 16, marginBottom: 16, height: 'calc(100% - 32px)' }}
         >
           {/* ─ 分段 Tab 栏 ── */}
-          <div className="flex rounded-full border border-white/10 mx-3 mt-4 mb-1.5 p-0.5 gap-0.5">
+          <div className="flex rounded-full border border-border mx-3 mt-4 mb-1.5 p-0.5 gap-0.5">
             <button
               type="button"
               onClick={() => setPanelTab("canvases")}
               className={`flex-1 py-1.5 text-xs font-medium transition-colors rounded-full ${
                 panelTab === "canvases"
-                  ? "bg-white/[0.08] text-white"
-                  : "text-white/40 hover:text-white/65"
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:text-foreground/70"
               }`}
             >
               项目画布
@@ -755,8 +747,8 @@ export function AssetLibraryPanel({
               onClick={() => setPanelTab("library")}
               className={`flex-1 py-1.5 text-xs font-medium transition-colors rounded-full ${
                 panelTab === "library"
-                  ? "bg-white/[0.08] text-white"
-                  : "text-white/40 hover:text-white/65"
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:text-foreground/70"
               }`}
             >
               主线资产
@@ -775,8 +767,8 @@ export function AssetLibraryPanel({
                       onClick={() => setTab(item.id)}
                       className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] transition-colors ${
                         tab === item.id
-                          ? "text-white"
-                          : "text-white/35 hover:text-white/60"
+                          ? "text-foreground"
+                          : "text-muted-foreground/70 hover:text-foreground/70"
                       }`}
                     >
                       {item.label}
@@ -792,7 +784,7 @@ export function AssetLibraryPanel({
                       value={query}
                       onChange={(event) => setQuery(event.target.value)}
                       placeholder="搜索素材..."
-                      className="w-full h-7 rounded-md border border-white/[0.06] bg-white/[0.03] px-2.5 text-[11px] text-white/80 placeholder:text-white/40 focus:outline-none focus:border-white/[0.12] transition-colors"
+                      className="w-full h-7 rounded-md border border-border bg-muted px-2.5 text-[11px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring/50 transition-colors"
                     />
                   </div>
                 </div>
@@ -800,7 +792,7 @@ export function AssetLibraryPanel({
 
               {/* ─ 列表内容 ── */}
               {error ? (
-                <div className="mx-3 mt-2 rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2 text-xs text-red-400">
+                <div className="mx-3 mt-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
                   项目素材加载失败：{error}
                 </div>
               ) : tab === "beat" ? (
@@ -812,7 +804,7 @@ export function AssetLibraryPanel({
                   cacheToken={assetImageCacheToken}
                 />
               ) : filtered.length === 0 ? (
-                <div className="flex flex-1 items-center justify-center px-6 py-12 text-center text-xs text-white/25">
+                <div className="flex flex-1 items-center justify-center px-6 py-12 text-center text-xs text-muted-foreground/70">
                   当前分类没有可用素材
                 </div>
               ) : (
@@ -866,7 +858,7 @@ function BeatContextPanel({
   }
   if (canvasKind !== "beat") {
     return (
-      <div className="flex flex-1 items-center justify-center px-6 py-12 text-center text-xs text-white/25">
+      <div className="flex flex-1 items-center justify-center px-6 py-12 text-center text-xs text-muted-foreground/70">
         当前画布没有镜头上下文
       </div>
     );
@@ -909,13 +901,13 @@ function PresetBeatPanel({
       />
 
       {assets.length === 0 ? (
-        <div className="flex items-center justify-center py-12 text-xs text-white/25">
+        <div className="flex items-center justify-center py-12 text-xs text-muted-foreground/70">
           当前镜头没有可用上下文素材
         </div>
       ) : (
         groups.map((group) => (
           <div key={group.id}>
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-white/30 mb-1.5">
+            <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/80">
               {group.label}
             </div>
             <div className="grid grid-cols-3 gap-1.5">
@@ -998,14 +990,14 @@ function AssetCard({
       data-asset-media-type={replaceable ? dropMediaType ?? undefined : undefined}
       draggable={Boolean(dragPayload)}
       onDragStart={handleDragStart}
-      className={`group relative flex items-center gap-3 rounded-[8px] border border-transparent px-1.5 py-2 cursor-pointer transition-all duration-200 hover:border-white/[0.08] hover:bg-white/[0.04] ${
+      className={`group relative flex items-center gap-3 rounded-[8px] border border-transparent px-1.5 py-2 cursor-pointer transition-all duration-200 hover:border-border hover:bg-accent ${
         dragPayload ? "active:cursor-grabbing" : ""
       } ${isDropHover ? "opacity-70" : ""}`}
       onClick={onAdd}
     >
       <div
         data-drag-thumb
-        className="relative h-[80px] w-[60px] shrink-0 overflow-hidden rounded-[6px] bg-black/30 border border-white/[0.06] flex items-center justify-center transition-colors duration-200 group-hover:border-white/[0.14]"
+        className="relative h-[80px] w-[60px] shrink-0 overflow-hidden rounded-[6px] bg-muted border border-border flex items-center justify-center transition-colors duration-200 group-hover:border-foreground/20"
       >
         {showImage ? (
           <img
@@ -1017,7 +1009,7 @@ function AssetCard({
           />
         ) : isAudio ? (
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[rgba(21,215,232,0.15)] to-transparent">
-            <AudioLines className="h-5 w-5 text-white/40" />
+            <AudioLines className="h-5 w-5 text-muted-foreground" />
           </div>
         ) : videoPosterUrl ? (
           <div className="relative h-full w-full">
@@ -1034,18 +1026,18 @@ function AssetCard({
             </div>
           </div>
         ) : isVideo ? (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-white/[0.08] to-transparent">
-            <Video className="h-5 w-5 text-white/40" />
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-foreground/[0.08] to-transparent">
+            <Video className="h-5 w-5 text-muted-foreground" />
           </div>
         ) : (
-          <span className="text-[10px] uppercase tracking-wide text-white/25">
+          <span className="text-[10px] uppercase tracking-wide text-muted-foreground/70">
             {isThreeD ? "3gs" : asset.mediaType}
           </span>
         )}
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-1.5">
-          <div className="truncate text-sm font-medium text-white/80" title={asset.label}>
+          <div className="truncate text-sm font-medium text-foreground/85" title={asset.label}>
             {asset.label}
           </div>
           {typeBadge ? (
@@ -1058,7 +1050,7 @@ function AssetCard({
           ) : null}
         </div>
         <div
-          className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-white/35"
+          className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-muted-foreground/80"
           title={asset.sublabel}
         >
           {asset.sublabel || asset.role}
@@ -1066,7 +1058,7 @@ function AssetCard({
       </div>
       <button
         type="button"
-        className="tap-button h-6 px-2 text-[11px] opacity-0 transition group-hover:opacity-100 focus-visible:opacity-100 hover:border-white/20 hover:text-white/90 disabled:opacity-40 text-white/50 border border-white/10 rounded"
+        className="tap-button h-6 rounded border border-border px-2 text-[11px] text-muted-foreground opacity-0 transition hover:border-foreground/25 hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100 disabled:opacity-40"
         onClick={(e) => { e.stopPropagation(); onAdd(); }}
         title="加入画布"
         disabled={disabled}
@@ -1074,14 +1066,14 @@ function AssetCard({
         加入
       </button>
       {isConfirming && (
-        <div className="absolute inset-0 z-10 flex flex-col justify-center gap-1.5 rounded-lg bg-[#0c0c0e]/95 px-2.5 backdrop-blur-sm">
-          <div className="line-clamp-2 text-[11px] leading-snug text-white/80">
+        <div className="absolute inset-0 z-10 flex flex-col justify-center gap-1.5 rounded-lg border border-border bg-popover/95 px-2.5 backdrop-blur-sm">
+          <div className="line-clamp-2 text-[11px] leading-snug text-popover-foreground/85">
             用画布节点替换「{asset.label}」？
           </div>
           <div className="flex gap-1.5">
             <button
               type="button"
-              className="h-6 flex-1 text-[11px] border border-white/15 text-white/80 hover:bg-white/[0.06] disabled:opacity-50 rounded-md"
+              className="h-6 flex-1 rounded-md border border-border text-[11px] text-foreground/85 hover:bg-muted disabled:opacity-50"
               onClick={() => replaceCtx?.onConfirm(asset)}
               disabled={isReplacing}
             >
@@ -1089,7 +1081,7 @@ function AssetCard({
             </button>
             <button
               type="button"
-              className="h-6 flex-1 text-[11px] text-white/40 hover:text-white/70 disabled:opacity-50 rounded-md"
+              className="h-6 flex-1 rounded-md text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
               onClick={() => replaceCtx?.onCancel()}
               disabled={isReplacing}
             >
@@ -1523,56 +1515,56 @@ function sceneAssetTypeBadge(
     return {
       label: "正面图",
       title: "场景正面图",
-      className: "border-sky-300/25 bg-sky-300/10 text-sky-100/90",
+      className: "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-200",
     };
   }
   if (asset.role === "scene_reverse_master") {
     return {
       label: "背面图",
       title: "场景背面图",
-      className: "border-cyan-300/25 bg-cyan-300/10 text-cyan-100/90",
+      className: "border-cyan-500/30 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200",
     };
   }
   if (asset.role === "scene_director_pano_360") {
     return {
       label: "360图",
       title: "360 全景图",
-      className: "border-amber-300/30 bg-amber-300/10 text-amber-100/90",
+      className: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
     };
   }
   if (asset.role === SCENE_DIRECTOR_WORLD_ROLE) {
     return {
       label: "导演世界",
       title: "场景导演世界",
-      className: "border-violet-300/30 bg-violet-300/10 text-violet-100/90",
+      className: "border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300",
     };
   }
   if (asset.role === "scene_3gs_master_ply") {
     return {
       label: "正面世界",
       title: "3D 导演世界（正面）",
-      className: "border-violet-300/30 bg-violet-300/10 text-violet-100/90",
+      className: "border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300",
     };
   }
   if (asset.role === "scene_3gs_reverse_ply") {
     return {
       label: "背面世界",
       title: "3D 导演世界（背面）",
-      className: "border-fuchsia-300/30 bg-fuchsia-300/10 text-fuchsia-100/90",
+      className: "border-fuchsia-500/30 bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-300",
     };
   }
   if (asset.role === "scene_3gs_pano_ply") {
     return {
       label: "360世界",
       title: "3D 导演世界（360）",
-      className: "border-violet-300/30 bg-violet-300/10 text-violet-100/90",
+      className: "border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300",
     };
   }
   if (asset.role === "scene_3gs_custom_scene") {
     return {
       label: "自定义世界",
       title: "3D 导演世界（自定义）",
-      className: "border-rose-300/30 bg-rose-300/10 text-rose-100/90",
+      className: "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300",
     };
   }
   return null;

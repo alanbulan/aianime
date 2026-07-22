@@ -100,13 +100,13 @@ export const VideoComposeNode = memo(
           type="target"
           position={Position.Left}
           id="target"
-          className="!h-2 !w-2 !border-0 !bg-[rgb(148,163,184)]"
+          className="!h-2 !w-2 !border-0 !bg-muted-foreground"
         />
         <Handle
           type="source"
           position={Position.Right}
           id="source"
-          className="!h-2 !w-2 !border-0 !bg-[rgb(148,163,184)]"
+          className="!h-2 !w-2 !border-0 !bg-muted-foreground"
         />
 
         <NodeHeader
@@ -129,7 +129,7 @@ export const VideoComposeNode = memo(
                 event.stopPropagation();
                 handleOpen();
               }}
-              className="flex h-10 w-full items-center justify-center rounded-[12px] border border-white/15 bg-white/[0.04] px-4 text-center text-[13px] text-text-dark transition-colors hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-45"
+              className="flex h-10 w-full items-center justify-center rounded-[12px] border border-border bg-muted px-4 text-center text-[13px] text-foreground transition-colors hover:border-foreground/25 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-45"
             >
               {t("videoCompose.node.open")}
             </button>

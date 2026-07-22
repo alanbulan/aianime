@@ -35,11 +35,11 @@ export function CameraMovementPickerPopover({
       onClick={(event) => event.stopPropagation()}
     >
       <div className="flex h-10 items-center justify-between px-4">
-        <span className="text-sm font-medium text-text-dark">运镜</span>
+        <span className="text-sm font-medium text-foreground">运镜</span>
         <button
           type="button"
           onClick={onClose}
-          className="flex size-6 items-center justify-center rounded-md text-text-muted/90 transition-colors hover:bg-white/[0.08] hover:text-text-dark"
+          className="flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           aria-label="关闭"
         >
           <X className="size-3.5" />
@@ -67,7 +67,7 @@ export function CameraMovementPickerPopover({
         <button
           type="button"
           onClick={() => onConfirm(null)}
-          className="h-8 rounded-md px-3 text-[12px] font-medium text-text-dark/78 transition-colors hover:bg-white/[0.08] hover:text-text-dark"
+          className="h-8 rounded-md px-3 text-[12px] font-medium text-foreground/78 transition-colors hover:bg-muted hover:text-foreground"
         >
           清除
         </button>
@@ -75,7 +75,7 @@ export function CameraMovementPickerPopover({
           type="button"
           onClick={() => onConfirm(draftId)}
           disabled={!draftId}
-          className="h-8 min-w-[50px] rounded-md bg-primary px-3 text-[13px] text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-text-muted"
+          className="h-8 min-w-[50px] rounded-md bg-primary px-3 text-[13px] text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
         >
           使用
         </button>
@@ -118,8 +118,8 @@ function PresetCard({ preset, isSelected, onSelect }: PresetCardProps) {
       onMouseLeave={() => setIsHovering(false)}
       className={`group/card relative flex flex-col overflow-hidden rounded-[8px] border text-left transition-colors ${
         isSelected
-          ? 'border-accent bg-[rgb(var(--accent-rgb)/0.14)] shadow-[0_0_0_1px_rgb(var(--accent-rgb)/0.45),0_0_18px_rgb(var(--accent-rgb)/0.18)]'
-          : 'border-white/12 bg-white/[0.04] hover:border-white/20 hover:bg-white/[0.08]'
+          ? 'border-primary bg-[rgb(var(--accent-rgb)/0.14)] shadow-[0_0_0_1px_rgb(var(--accent-rgb)/0.45),0_0_18px_rgb(var(--accent-rgb)/0.18)]'
+          : 'border-border bg-card hover:border-foreground/25 hover:bg-muted'
       }`}
     >
       {isSelected ? (
@@ -142,7 +142,7 @@ function PresetCard({ preset, isSelected, onSelect }: PresetCardProps) {
           </div>
         )}
       </div>
-      <div className={`flex h-7 items-center justify-center px-2 text-[12px] ${isSelected ? 'text-white' : 'text-text-dark'}`}>
+      <div className={`flex h-7 items-center justify-center px-2 text-[12px] ${isSelected ? 'text-primary' : 'text-foreground'}`}>
         {preset.label}
       </div>
     </button>

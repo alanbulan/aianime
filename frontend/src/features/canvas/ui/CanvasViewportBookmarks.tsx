@@ -36,7 +36,7 @@ export function CanvasViewportBookmarks({
   // make this box the containing block for the context menu's `position: fixed`,
   // throwing its viewport-coordinate (clientX/clientY) placement off-screen.
   return (
-    <div className="pointer-events-auto flex items-center gap-0.5 rounded-sm border border-border-dark bg-surface-dark px-2 py-1 shadow-lg">
+    <div className="pointer-events-auto flex items-center gap-0.5 rounded-sm border border-border bg-card px-2 py-1 shadow-lg">
       {SLOT_INDICES.map((index) => {
         const digit = bookmarkIndexToDigit(index) ?? "";
         const filled = Boolean(bookmarks[index]);
@@ -60,10 +60,10 @@ export function CanvasViewportBookmarks({
             className={
               "flex h-6 w-6 items-center justify-center rounded-sm text-xs font-medium underline-offset-[3px] transition-colors " +
               (active
-                ? "bg-white font-semibold text-black"
+                ? "bg-foreground font-semibold text-background"
                 : filled
-                  ? "text-white underline decoration-white decoration-2 hover:bg-white/15"
-                  : "text-white/35 hover:bg-white/15 hover:text-white/80")
+                  ? "text-foreground underline decoration-foreground decoration-2 hover:bg-muted"
+                  : "text-muted-foreground/65 hover:bg-muted hover:text-foreground")
             }
           >
             {digit}

@@ -20,16 +20,28 @@ interface SocketBoundEvent {
 interface BackendLaunch {
   command: string;
   args: string[];
-  frontendDist: string;
+  frontendDist?: string;
   ffmpegPath?: string;
+}
+
+interface LocalBackendOptions {
+  repositoryRoot?: string;
+  serveFrontend?: boolean;
 }
 
 export class LocalBackend {
   readonly token = randomBytes(32).toString("hex");
+  private readonly configuredRepoRoot: string | undefined;
+  private readonly serveFrontend: boolean;
   private child: ChildProcessWithoutNullStreams | null = null;
   private logStream: WriteStream | null = null;
   private stopping = false;
   private _baseUrl: string | null = null;
+
+  constructor(options: LocalBackendOptions = {}) {
+    this.configuredRepoRoot = options.repositoryRoot;
+    this.serveFrontend = options.serveFrontend ?? true;
+  }
 
   get baseUrl(): string {
     if (!this._baseUrl) throw new Error("local backend has not started");
@@ -61,9 +73,8 @@ export class LocalBackend {
       "0",
       "--data-root",
       dataRoot,
-      "--frontend-dist",
-      launch.frontendDist,
     ];
+    if (launch.frontendDist) args.push("--frontend-dist", launch.frontendDist);
     if (launch.ffmpegPath) args.push("--ffmpeg-path", launch.ffmpegPath);
 
     const child = spawn(launch.command, args, {
@@ -131,9 +142,12 @@ export class LocalBackend {
       };
     }
 
-    const frontendDist = join(this.repoRoot(), "frontend", "dist");
-    if (!existsSync(frontendDist)) {
-      throw new Error(`frontend build not found: ${frontendDist}`);
+    let frontendDist: string | undefined;
+    if (this.serveFrontend) {
+      frontendDist = join(this.repoRoot(), "frontend", "dist");
+      if (!existsSync(frontendDist)) {
+        throw new Error(`frontend build not found: ${frontendDist}`);
+      }
     }
     const configuredFfmpeg = process.env.FFMPEG_PATH?.trim();
     const developmentFfmpeg = join(app.getAppPath(), "runtime", "ffmpeg", "ffmpeg.exe");
@@ -141,13 +155,13 @@ export class LocalBackend {
     return {
       command: process.env.AI_ANIME_UV_COMMAND?.trim() || "uv",
       args: ["run", "python", "-m", "ai_anime.desktop_server"],
-      frontendDist,
+      ...(frontendDist ? { frontendDist } : {}),
       ...(ffmpegPath ? { ffmpegPath } : {}),
     };
   }
 
   private repoRoot(): string {
-    return resolve(app.getAppPath(), "..");
+    return this.configuredRepoRoot ?? resolve(app.getAppPath(), "..");
   }
 
   private waitForSocket(child: ChildProcessWithoutNullStreams): Promise<SocketBoundEvent> {

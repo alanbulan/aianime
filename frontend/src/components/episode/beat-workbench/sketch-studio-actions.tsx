@@ -73,7 +73,7 @@ export function SketchColorLegend({
       {entries.map((e) => (
         <span
           key={e.identityId}
-          className="inline-flex h-5 max-w-[180px] items-center gap-1 rounded-full border border-border/35 bg-foreground/[0.03] px-1.5 text-[11px] leading-none"
+          className="inline-flex h-5 max-w-[180px] items-center gap-1 rounded-full border border-border bg-muted px-1.5 text-[11px] leading-none"
           title={`${e.character}${e.identity ? ` · ${e.identity}` : ""}`}
         >
           <span
@@ -86,7 +86,7 @@ export function SketchColorLegend({
             {e.identity && (
               <>
                 {" · "}
-                <span className="text-muted-foreground/50">{e.identity}</span>
+                <span className="text-muted-foreground">{e.identity}</span>
               </>
             )}
           </span>
@@ -100,7 +100,7 @@ export function SketchColorLegend({
           {propEntries.map((prop) => (
             <span
               key={prop.propId}
-              className="inline-flex h-5 max-w-[160px] items-center gap-1 rounded-full border border-border/35 bg-foreground/[0.03] px-1.5 text-[11px] leading-none"
+              className="inline-flex h-5 max-w-[160px] items-center gap-1 rounded-full border border-border bg-muted px-1.5 text-[11px] leading-none"
               title={
                 prop.description
                   ? `${prop.propId} · ${prop.description}`
@@ -222,7 +222,7 @@ export function SketchStudioActions({
           {entries.map((e) => (
             <span
               key={e.identityId}
-              className="inline-flex items-center gap-1 rounded-full border border-border/40 bg-card/50 px-1.5 py-0.5 leading-none"
+              className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-1.5 py-0.5 leading-none"
               title={`${e.character}${e.identity ? ` · ${e.identity}` : ""}`}
             >
               <span
@@ -235,7 +235,7 @@ export function SketchStudioActions({
                 {e.identity && (
                   <>
                     {" · "}
-                    <span className="text-muted-foreground/50">{e.identity}</span>
+                    <span className="text-muted-foreground">{e.identity}</span>
                   </>
                 )}
               </span>
@@ -252,7 +252,7 @@ export function SketchStudioActions({
               {propEntries.map((prop) => (
                 <span
                   key={prop.propId}
-                  className="inline-flex items-center gap-1 rounded-full border border-border/40 bg-card/50 px-1.5 py-0.5 leading-none"
+                  className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-1.5 py-0.5 leading-none"
                   title={
                     prop.description
                       ? `${prop.propId} · ${prop.description}`
@@ -274,12 +274,12 @@ export function SketchStudioActions({
 
       {/* AI检测结果 */}
       {hasVisibleDetectionSummary && (
-        <span className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/8 px-2 py-0.5 text-[11px] leading-none text-primary/90">
+        <span className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/8 px-2 py-0.5 text-[11px] leading-none text-primary">
           <Wand2 className="size-3 shrink-0" />
           <span className="font-medium">
             {t("episode.workbench.sketch.aiDetectResults")}
           </span>
-          <span className="text-primary/70">
+          <span className="text-primary">
             {t("episode.workbench.sketch.aiDetectResultCounts", {
               beats: detectionSummary.beatCount,
               identities: detectionSummary.identityCount,
@@ -301,7 +301,7 @@ export function SketchStudioActions({
               size="sm"
               variant="ghost"
               onClick={onOpenGridGallery}
-              className="h-6 gap-1 rounded-[5px] bg-transparent px-1.5 text-[11px] font-medium text-foreground/75 shadow-none hover:bg-white/[0.04] hover:text-foreground dark:bg-transparent"
+              className="h-6 gap-1 rounded-[5px] bg-transparent px-1.5 text-[11px] font-medium text-foreground/75 shadow-none hover:bg-muted hover:text-foreground"
               title={t("episode.workbench.sketch.openGridGallery")}
             >
               <Grid2X2 className="size-3" />
@@ -313,7 +313,7 @@ export function SketchStudioActions({
               size="sm"
               variant="ghost"
               onClick={onOpenRenderGridGallery}
-              className="h-6 gap-1 rounded-[5px] bg-transparent px-1.5 text-[11px] font-medium text-foreground/75 shadow-none hover:bg-white/[0.04] hover:text-foreground dark:bg-transparent"
+              className="h-6 gap-1 rounded-[5px] bg-transparent px-1.5 text-[11px] font-medium text-foreground/75 shadow-none hover:bg-muted hover:text-foreground"
               title={t("episode.workbench.renderGrid.title")}
             >
               <Grid2X2 className="size-3" />

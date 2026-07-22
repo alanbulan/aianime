@@ -32,7 +32,7 @@ export function PanelExpandButton({ expanded, onToggle, className }: PanelExpand
       }}
       onPointerDown={(event) => event.stopPropagation()}
       onMouseDown={(event) => event.stopPropagation()}
-      className={`nodrag flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${CANVAS_NODE_INPUT_SURFACE_CLASS} text-text-muted transition-colors hover:bg-white/[0.1] hover:text-text-dark ${className ?? ''}`}
+      className={`nodrag flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${CANVAS_NODE_INPUT_SURFACE_CLASS} text-muted-foreground transition-colors hover:bg-accent hover:text-foreground ${className ?? ''}`}
     >
       {expanded ? (
         <Minimize2 className="h-3.5 w-3.5" />

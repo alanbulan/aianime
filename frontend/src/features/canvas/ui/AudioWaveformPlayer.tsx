@@ -26,8 +26,6 @@ function cachePeaks(src: string, peaks: Float32Array): void {
   }
 }
 
-const ACCENT = 'rgb(56, 189, 248)';
-const TRACK = 'rgba(255, 255, 255, 0.22)';
 const PX_PER_SEC = 72; // 波形滚动缩放:每秒占用的像素宽度
 const BUCKETS_PER_SEC = 140; // 峰值采样密度
 const BAR_STEP = 3; // 相邻波形条的像素间距
@@ -160,6 +158,9 @@ export function AudioWaveformPlayer({
     }
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+    const styles = getComputedStyle(canvas);
+    const accent = styles.getPropertyValue('--primary').trim() || '#087f8c';
+    const track = styles.getPropertyValue('--muted-foreground').trim() || '#59636f';
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, cssW, cssH);
 
@@ -178,7 +179,8 @@ export function AudioWaveformPlayer({
         amp = peaks[idx];
       }
       const h = Math.max(2, amp * maxBar);
-      ctx.fillStyle = x <= center ? ACCENT : TRACK;
+      ctx.fillStyle = x <= center ? accent : track;
+      ctx.globalAlpha = x <= center ? 1 : 0.55;
       const radius = BAR_WIDTH / 2;
       const top = midY - h / 2;
       // 圆角条
@@ -186,6 +188,7 @@ export function AudioWaveformPlayer({
       ctx.roundRect(x - BAR_WIDTH / 2, top, BAR_WIDTH, h, radius);
       ctx.fill();
     }
+    ctx.globalAlpha = 1;
   }, [currentTime, duration, peaksVersion]);
 
   useEffect(() => {
@@ -197,8 +200,16 @@ export function AudioWaveformPlayer({
     const parent = canvas?.parentElement;
     if (!parent) return;
     const ro = new ResizeObserver(() => draw());
+    const themeObserver = new MutationObserver(() => draw());
     ro.observe(parent);
-    return () => ro.disconnect();
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+    return () => {
+      ro.disconnect();
+      themeObserver.disconnect();
+    };
   }, [draw]);
 
   // ---- 播放控制 ------------------------------------------------------------
@@ -295,7 +306,7 @@ export function AudioWaveformPlayer({
             className="pointer-events-none absolute inset-0 z-20"
             style={{
               background:
-                'linear-gradient(to right, #1f1f1f 0%, transparent 15%, transparent 85%, #1f1f1f 100%)',
+                'linear-gradient(to right, var(--card) 0%, transparent 15%, transparent 85%, var(--card) 100%)',
             }}
           />
           <div
@@ -318,11 +329,11 @@ export function AudioWaveformPlayer({
             {/* 中心固定播放头 */}
             <div className="group/head pointer-events-none absolute inset-y-[10%] left-1/2 z-30 flex -translate-x-1/2 flex-col items-center px-1">
               <svg width="10" height="6" viewBox="0 0 10 6" className="shrink-0">
-                <path d="M0 0h10L5 6z" fill={ACCENT} />
+                <path d="M0 0h10L5 6z" fill="var(--primary)" />
               </svg>
               <div
                 className="w-0.5 flex-1 rounded-full"
-                style={{ backgroundColor: ACCENT }}
+                style={{ backgroundColor: 'var(--primary)' }}
               />
               <div
                 className={`absolute left-1/2 top-full mt-1 flex -translate-x-1/2 flex-col items-center transition-opacity duration-150 ${
@@ -330,12 +341,9 @@ export function AudioWaveformPlayer({
                 }`}
               >
                 <svg width="8" height="4" viewBox="0 0 8 4" className="-mb-px">
-                  <path d="M0 4L4 0l4 4z" fill={ACCENT} />
+                  <path d="M0 4L4 0l4 4z" fill="var(--primary)" />
                 </svg>
-                <span
-                  className="whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-medium text-white"
-                  style={{ backgroundColor: ACCENT }}
-                >
+                <span className="whitespace-nowrap rounded-md bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
                   {timeLabel}
                 </span>
               </div>
@@ -349,7 +357,7 @@ export function AudioWaveformPlayer({
             <button
               type="button"
               aria-label="rewind 10s"
-              className="nodrag flex size-[24px] cursor-pointer items-center justify-center text-[#808080] transition-colors hover:text-white/90"
+              className="nodrag flex size-[24px] cursor-pointer items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
               onClick={(event) => {
                 event.stopPropagation();
                 seekBy(-10);
@@ -359,11 +367,11 @@ export function AudioWaveformPlayer({
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path
                 d="M11.4998 6.3747C11.4998 6.0039 11.4325 5.64145 11.3064 5.33316C11.1804 5.02488 11.0012 4.7846 10.7917 4.64271C10.5821 4.50082 10.3515 4.46369 10.129 4.53601C9.90654 4.60833 9.70217 4.78685 9.54175 5.049L6.1005 10.6743C5.88545 11.0259 5.76465 11.5028 5.76465 12C5.76465 12.4972 5.88545 12.9741 6.1005 13.3257L9.54175 18.951C9.70217 19.2132 9.90654 19.3917 10.129 19.464C10.3515 19.5363 10.5821 19.4992 10.7917 19.3573C11.0012 19.2154 11.1804 18.9751 11.3064 18.6668C11.4325 18.3586 11.4998 17.9961 11.4998 17.6253V6.3747Z"
-                fill="#A3A3A3"
+                fill="currentColor"
               />
               <path
                 d="M17.2352 6.3747C17.2352 6.0039 17.1679 5.64145 17.0418 5.33316C16.9158 5.02488 16.7367 4.7846 16.5271 4.64271C16.3175 4.50082 16.0869 4.46369 15.8644 4.53601C15.642 4.60833 15.4376 4.78685 15.2772 5.049L11.8359 10.6743C11.6209 11.0259 11.5001 11.5028 11.5001 12C11.5001 12.4972 11.6209 12.9741 11.8359 13.3257L15.2772 18.951C15.4376 19.2132 15.642 19.3917 15.8644 19.464C16.0869 19.5363 16.3175 19.4992 16.5271 19.3573C16.7367 19.2154 16.9158 18.9751 17.0418 18.6668C17.1679 18.3586 17.2352 17.9961 17.2352 17.6253V6.3747Z"
-                fill="#A3A3A3"
+                fill="currentColor"
               />
             </svg>
             </button>
@@ -371,14 +379,14 @@ export function AudioWaveformPlayer({
             <button
               type="button"
               aria-label={isPlaying ? 'pause' : 'play'}
-              className="nodrag relative flex size-[36px] cursor-pointer items-center justify-center rounded-full bg-[#E5E5E5] transition-colors hover:bg-white"
+              className="nodrag relative flex size-[36px] cursor-pointer items-center justify-center rounded-full bg-foreground text-background transition-colors hover:bg-foreground/90"
               onClick={(event) => {
                 event.stopPropagation();
                 togglePlay();
               }}
               onPointerDown={(event) => event.stopPropagation()}
             >
-            <div className="relative z-10 flex h-full w-full items-center justify-center text-[#1A1A1A]">
+            <div className="relative z-10 flex h-full w-full items-center justify-center">
               {isPlaying ? (
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                   <rect x="6" y="5" width="4" height="14" rx="1" />
@@ -402,7 +410,7 @@ export function AudioWaveformPlayer({
             <button
               type="button"
               aria-label="fast forward 10s"
-              className="nodrag flex size-[24px] cursor-pointer items-center justify-center text-[#808080] transition-colors hover:text-white/90"
+              className="nodrag flex size-[24px] cursor-pointer items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
               onClick={(event) => {
                 event.stopPropagation();
                 seekBy(10);
@@ -412,11 +420,11 @@ export function AudioWaveformPlayer({
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path
                 d="M12.5002 6.3747C12.5002 6.0039 12.5675 5.64145 12.6936 5.33316C12.8196 5.02488 12.9988 4.7846 13.2083 4.64271C13.4179 4.50082 13.6485 4.46369 13.871 4.53601C14.0935 4.60833 14.2978 4.78685 14.4583 5.049L17.8995 10.6743C18.1145 11.0259 18.2354 11.5028 18.2354 12C18.2354 12.4972 18.1145 12.9741 17.8995 13.3257L14.4583 18.951C14.2978 19.2132 14.0935 19.3917 13.871 19.464C13.6485 19.5363 13.4179 19.4992 13.2083 19.3573C12.9988 19.2154 12.8196 18.9751 12.6936 18.6668C12.5675 18.3586 12.5002 17.9961 12.5002 17.6253V6.3747Z"
-                fill="#A3A3A3"
+                fill="currentColor"
               />
               <path
                 d="M6.76476 6.3747C6.76481 6.0039 6.83211 5.64145 6.95816 5.33316C7.08421 5.02488 7.26334 4.7846 7.47291 4.64271C7.68248 4.50082 7.91308 4.46369 8.13556 4.53601C8.35804 4.60833 8.56241 4.78685 8.72283 5.049L12.1641 10.6743C12.3791 11.0259 12.4999 11.5028 12.4999 12C12.4999 12.4972 12.3791 12.9741 12.1641 13.3257L8.72283 18.951C8.56241 19.2132 8.35804 19.3917 8.13556 19.464C7.91308 19.5363 7.68248 19.4992 7.47291 19.3573C7.26334 19.2154 7.08421 18.9751 6.95816 18.6668C6.83211 18.3586 6.76481 17.9961 6.76476 17.6253V6.3747Z"
-                fill="#A3A3A3"
+                fill="currentColor"
               />
             </svg>
             </button>

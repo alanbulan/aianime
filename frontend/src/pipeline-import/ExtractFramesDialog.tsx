@@ -161,7 +161,7 @@ export function ExtractFramesDialog({
         }`}
       >
         <header className="flex items-start gap-3 border-b border-[color:var(--ui-border-soft)] px-5 py-4">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/15 text-accent">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary">
             <Clapperboard className="h-[18px] w-[18px]" />
           </div>
           <div className="min-w-0 flex-1">
@@ -233,7 +233,7 @@ export function ExtractFramesDialog({
                 disabled={submitting}
                 className="sr-only peer"
               />
-              <span className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded border border-[rgba(255,255,255,0.2)] bg-bg-dark/60 text-transparent transition-colors peer-checked:border-accent/60 peer-checked:bg-accent/20 peer-checked:text-accent">
+              <span className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded border border-border bg-background text-transparent transition-colors peer-checked:border-primary/60 peer-checked:bg-primary/12 peer-checked:text-primary">
                 <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3.5 8.5l3 3 6-7" />
                 </svg>
@@ -252,7 +252,7 @@ export function ExtractFramesDialog({
           )}
 
           {error && (
-            <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs leading-relaxed text-red-300 break-words">
+            <div className="rounded-lg border border-destructive/35 bg-destructive/10 px-3 py-2 text-xs leading-relaxed text-destructive break-words">
               {error}
             </div>
           )}
@@ -328,10 +328,10 @@ function FilePicker({ file, disabled, inputRef, onChange }: FilePickerProps) {
       className={`flex items-center gap-3 rounded-lg border border-dashed px-3 py-3 transition-colors ${
         file
           ? "border-[color:var(--ui-border-soft)] bg-[var(--ui-surface-field)]"
-          : "border-[color:var(--ui-border-soft)] bg-[var(--ui-surface-field)]/50 hover:border-accent/60"
+          : "border-[color:var(--ui-border-soft)] bg-[var(--ui-surface-field)] hover:border-primary/60"
       }`}
     >
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-accent/10 text-accent">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/12 text-primary">
         {file ? <FileVideo className="h-4 w-4" /> : <Upload className="h-4 w-4" />}
       </div>
       <div className="min-w-0 flex-1">
@@ -376,16 +376,16 @@ function ProgressBar({ progress }: { progress: ProgressState }) {
     <div className="rounded-lg border border-[color:var(--ui-border-soft)] bg-[var(--ui-surface-field)] px-3 py-2.5">
       <div className="mb-1.5 flex items-center justify-between text-xs">
         <span className="flex items-center gap-1.5 text-text-dark">
-          {!isDone && <Loader2 className="h-3 w-3 animate-spin text-accent" />}
+          {!isDone && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
           {progress.message}
         </span>
         <span className="text-[11px] tabular-nums text-text-muted">
           {isDone ? "完成" : `${pct}%`}
         </span>
       </div>
-      <div className="h-1 overflow-hidden rounded-full bg-[rgba(255,255,255,0.06)]">
+      <div className="h-1 overflow-hidden rounded-full bg-muted-foreground/30">
         <div
-          className="h-full bg-accent transition-all duration-300"
+          className="h-full bg-primary transition-all duration-300"
           style={{ width: `${pct}%` }}
         />
       </div>

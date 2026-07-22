@@ -226,14 +226,14 @@ function ProjectCard({
       role={clickable ? "button" : undefined}
       tabIndex={clickable ? 0 : undefined}
       className={cn(
-        "group relative flex h-full flex-col rounded-lg border border-border/65 bg-card/50 transition-all duration-300 ease-out",
+        "group relative flex h-full flex-col rounded-lg border border-border bg-card transition-all duration-300 ease-out",
         PROJECT_CARD_MIN_HEIGHT_CLASS,
         sm ? "p-2 pt-4" : "p-3 pt-5",
         clickable &&
-          "cursor-pointer hover:border-foreground/15 hover:bg-card/65 hover:shadow-lg hover:shadow-black/10",
+          "cursor-pointer hover:border-primary/35 hover:shadow-lg hover:shadow-black/10",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
-        isArchived && "opacity-70",
-        isDeleted && "opacity-50",
+        isArchived && "opacity-80",
+        isDeleted && "opacity-65",
       )}
     >
       <div className="mx-auto flex w-full flex-col">
@@ -251,7 +251,7 @@ function ProjectCard({
             className="translate-y-1"
           />
           {isArchived && (
-            <div className="absolute bottom-2 right-2 rounded-full bg-background/60 px-2 py-0.5 text-[10px] font-medium text-foreground backdrop-blur-sm">
+            <div className="absolute bottom-2 right-2 rounded-full bg-background/90 px-2 py-0.5 text-[10px] font-medium text-foreground shadow-sm backdrop-blur-sm">
               {t("project.archivedBadge")}
             </div>
           )}
@@ -285,7 +285,7 @@ function ProjectCard({
                 side="right"
                 align="start"
                 sideOffset={8}
-                className="w-32 rounded-md p-1 shadow-xl shadow-black/20 [&_[data-slot=dropdown-menu-item]]:min-h-8 [&_[data-slot=dropdown-menu-item]]:gap-2 [&_[data-slot=dropdown-menu-item]]:rounded-sm [&_[data-slot=dropdown-menu-item]]:px-2 [&_[data-slot=dropdown-menu-item]]:py-1.5 [&_[data-slot=dropdown-menu-item]]:text-xs [&_[data-slot=dropdown-menu-item]:focus]:bg-white/8 [&_[data-slot=dropdown-menu-item]:focus]:text-current [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:bg-white/8 [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:text-destructive [&_[data-slot=dropdown-menu-item]_svg]:size-3.5"
+                className="w-32 rounded-md border border-border p-1 shadow-xl shadow-black/20 [&_[data-slot=dropdown-menu-item]]:min-h-8 [&_[data-slot=dropdown-menu-item]]:gap-2 [&_[data-slot=dropdown-menu-item]]:rounded-sm [&_[data-slot=dropdown-menu-item]]:px-2 [&_[data-slot=dropdown-menu-item]]:py-1.5 [&_[data-slot=dropdown-menu-item]]:text-xs [&_[data-slot=dropdown-menu-item]:focus]:bg-accent [&_[data-slot=dropdown-menu-item]:focus]:text-accent-foreground [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:bg-destructive/10 [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:text-destructive [&_[data-slot=dropdown-menu-item]_svg]:size-3.5"
               >
                 <DropdownMenuGroup>
                   {isActive && (
@@ -384,7 +384,7 @@ function ProjectCard({
             </span>
             {relativeEdited ? (
               <>
-                <span className="text-muted-foreground/45" aria-hidden>
+                <span className="text-muted-foreground" aria-hidden>
                   ·
                 </span>
                 <span className="min-w-0 truncate">
@@ -397,7 +397,7 @@ function ProjectCard({
 
         {isDeleted && (
           <div className="mt-1 text-[11px] tabular-nums text-muted-foreground/80">
-            <span className="font-medium text-destructive/80">
+            <span className="font-medium text-destructive">
               {relativeDeleted
                 ? t("project.card.deletedAgo", { time: relativeDeleted })
                 : t("project.archivedBadge")}
@@ -440,16 +440,16 @@ function CreateProjectCard({ onCreate }: { onCreate: () => void }) {
       type="button"
       onClick={onCreate}
       className={cn(
-        "group flex h-full w-full flex-col items-center justify-center rounded-lg border border-white/10 bg-transparent p-3 text-center text-muted-foreground transition-all duration-300 ease-out",
+        "group flex h-full w-full flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card p-3 text-center text-muted-foreground transition-all duration-300 ease-out",
         PROJECT_CARD_MIN_HEIGHT_CLASS,
-        "hover:border-white/15 hover:bg-white/[0.03] hover:shadow-lg hover:shadow-black/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
+        "hover:border-primary/35 hover:bg-accent hover:shadow-lg hover:shadow-black/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
       )}
     >
       <Plus
-        className="mb-3 size-7 stroke-[1px] text-white/70 transition-colors group-hover:text-foreground"
+        className="mb-3 size-7 stroke-[1px] text-muted-foreground transition-colors group-hover:text-foreground"
         aria-hidden="true"
       />
-      <span className="text-sm font-normal text-white/70 transition-colors group-hover:text-foreground">
+      <span className="text-sm font-normal text-muted-foreground transition-colors group-hover:text-foreground">
         {t("project.createCard")}
       </span>
     </button>
@@ -472,7 +472,7 @@ function DashboardTabStrip({
     { value: "deleted", label: t("project.statusDeleted") },
   ];
   return (
-    <div className="inline-flex h-8 items-center rounded-full border border-border bg-background/40 p-1 text-xs">
+    <div className="inline-flex h-8 items-center rounded-full border border-border bg-card p-1 text-xs shadow-xs">
       {tabs.map((tab) => {
         const active = current === tab.value;
         return (
@@ -570,12 +570,12 @@ function ProjectRow({
       role={clickable ? "button" : undefined}
       tabIndex={clickable ? 0 : undefined}
       className={cn(
-        "group flex items-center gap-3 rounded-lg border border-border/65 bg-card/50 px-3.5 py-3 transition-colors",
+        "group flex items-center gap-3 rounded-lg border border-border bg-card px-3.5 py-3 transition-colors",
         clickable &&
-          "cursor-pointer hover:border-foreground/15 hover:bg-card/65",
+          "cursor-pointer hover:border-primary/35",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
-        isArchived && "opacity-70",
-        isDeleted && "opacity-50",
+        isArchived && "opacity-80",
+        isDeleted && "opacity-65",
       )}
     >
       <div
@@ -595,7 +595,7 @@ function ProjectRow({
         />
         <div className="absolute inset-0 flex items-center justify-center">
           <span
-            className="text-lg font-bold leading-none text-white/68 drop-shadow-[0_1px_6px_rgba(0,0,0,0.32)]"
+            className="text-lg font-bold leading-none text-white/95 drop-shadow-[0_1px_6px_rgba(0,0,0,0.55)]"
             style={{ fontFeatureSettings: '"cv01", "ss03"' }}
           >
             {initial}
@@ -610,7 +610,7 @@ function ProjectRow({
         >
           {summary.name}
         </h3>
-        <span className="hidden shrink-0 rounded-full bg-background/60 px-2 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline">
+        <span className="hidden shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline">
           {sourceLabel}
         </span>
         <span className="hidden shrink-0 rounded-full bg-primary/12 px-2 py-0.5 text-[10px] font-medium text-primary sm:inline">
@@ -649,7 +649,7 @@ function ProjectRow({
             e.stopPropagation();
             onShare();
           }}
-          className="flex shrink-0 items-center gap-1 rounded-full bg-background/55 px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+          className="flex shrink-0 items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
           aria-label={t("project.actions.share")}
         >
           <Share2 className="size-3.5" />
@@ -676,7 +676,7 @@ function ProjectRow({
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className="w-32 rounded-md p-1 shadow-xl shadow-black/20 [&_[data-slot=dropdown-menu-item]]:min-h-8 [&_[data-slot=dropdown-menu-item]]:gap-2 [&_[data-slot=dropdown-menu-item]]:rounded-sm [&_[data-slot=dropdown-menu-item]]:px-2 [&_[data-slot=dropdown-menu-item]]:py-1.5 [&_[data-slot=dropdown-menu-item]]:text-xs [&_[data-slot=dropdown-menu-item]:focus]:bg-white/8 [&_[data-slot=dropdown-menu-item]:focus]:text-current [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:bg-white/8 [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:text-destructive [&_[data-slot=dropdown-menu-item]_svg]:size-3.5"
+            className="w-32 rounded-md border border-border p-1 shadow-xl shadow-black/20 [&_[data-slot=dropdown-menu-item]]:min-h-8 [&_[data-slot=dropdown-menu-item]]:gap-2 [&_[data-slot=dropdown-menu-item]]:rounded-sm [&_[data-slot=dropdown-menu-item]]:px-2 [&_[data-slot=dropdown-menu-item]]:py-1.5 [&_[data-slot=dropdown-menu-item]]:text-xs [&_[data-slot=dropdown-menu-item]:focus]:bg-accent [&_[data-slot=dropdown-menu-item]:focus]:text-accent-foreground [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:bg-destructive/10 [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:text-destructive [&_[data-slot=dropdown-menu-item]_svg]:size-3.5"
           >
             <DropdownMenuGroup>
               {isActive && (
@@ -790,7 +790,7 @@ function ViewToggle({
     <div
       role="tablist"
       aria-label={t("project.view.toggle")}
-      className="inline-flex h-8 items-center rounded-full border border-border bg-background/40 p-1 text-xs"
+      className="inline-flex h-8 items-center rounded-full border border-border bg-card p-1 text-xs shadow-xs"
     >
       {options.map(({ value: v, labelKey, Icon }) => {
         const active = value === v;
@@ -824,11 +824,11 @@ function LoadingList() {
       {Array.from({ length: 8 }).map((_, i) => (
         <div
           key={i}
-          className="flex animate-pulse items-center gap-3 rounded-lg border border-border/60 bg-card px-3 py-2"
+          className="flex animate-pulse items-center gap-3 rounded-lg border border-border bg-card px-3 py-2"
         >
-          <div className="size-10 rounded-md bg-white/[0.04]" />
-          <div className="h-4 w-1/3 rounded bg-white/[0.05]" />
-          <div className="ml-auto h-3 w-16 rounded bg-white/[0.04]" />
+          <div className="size-10 rounded-md bg-muted" />
+          <div className="h-4 w-1/3 rounded bg-muted" />
+          <div className="ml-auto h-3 w-16 rounded bg-muted" />
         </div>
       ))}
     </div>
@@ -850,13 +850,13 @@ function LoadingGrid({ size = "md" }: { size?: "md" | "sm" }) {
         <div
           key={i}
           className={cn(
-            "flex animate-pulse flex-col rounded-xl border border-border/60 bg-card",
+            "flex animate-pulse flex-col rounded-xl border border-border bg-card",
             sm ? "p-2" : "p-3",
           )}
         >
-          <div className="mb-3 aspect-[16/10] rounded-lg bg-white/[0.04]" />
-          <div className="h-4 w-2/3 rounded bg-white/[0.05]" />
-          <div className="mt-1 h-3 w-1/3 rounded bg-white/[0.04]" />
+          <div className="mb-3 aspect-[16/10] rounded-lg bg-muted" />
+          <div className="h-4 w-2/3 rounded bg-muted" />
+          <div className="mt-1 h-3 w-1/3 rounded bg-muted" />
         </div>
       ))}
     </div>
@@ -903,7 +903,7 @@ function TabEmpty({
   description?: string;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border/60 bg-card/30 px-6 py-12 text-center">
+    <div className="flex min-h-36 flex-col items-center justify-center rounded-lg border border-border bg-card px-6 py-10 text-center shadow-xs">
       <h3 className="mb-1 text-base font-semibold text-foreground">{title}</h3>
       {description && (
         <p className="max-w-md text-sm text-muted-foreground">{description}</p>
@@ -967,7 +967,7 @@ function PurgeDialog({
             onChange={(e) => setInput(e.target.value)}
             placeholder={name}
             autoFocus
-            className="h-11 rounded-md border-white/12 bg-white/[0.04] px-3 text-sm placeholder:text-muted-foreground/60 focus-visible:border-white/25 focus-visible:ring-2 focus-visible:ring-white/8 dark:bg-white/[0.04]"
+            className="h-11 rounded-md border-border bg-muted px-3 text-sm placeholder:text-muted-foreground focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/10"
           />
         </div>
         <AlertDialogFooter>
@@ -1299,12 +1299,12 @@ function ProjectDashboard() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={t("project.searchPlaceholder")}
-                className="h-9 w-[min(15rem,calc(100vw-3rem))] rounded-full border-border bg-transparent pl-8 focus-visible:border-foreground/20 focus-visible:ring-2 focus-visible:ring-white/8 md:text-xs dark:bg-transparent"
+                className="h-9 w-[min(15rem,calc(100vw-3rem))] rounded-full border-border bg-card pl-8 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20 md:text-xs"
               />
             </div>
           )}
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-            <DialogContent className="gap-4 overflow-hidden rounded-2xl border border-white/8 bg-background/68 p-7 shadow-none backdrop-blur-3xl sm:max-w-md">
+            <DialogContent className="gap-4 overflow-hidden rounded-xl border border-border bg-popover p-7 shadow-xl sm:max-w-md">
               <DialogHeader className="gap-2">
                 <DialogTitle className="flex items-center gap-2 text-lg font-medium tracking-tight">
                   <span aria-hidden="true">✨</span>
@@ -1330,13 +1330,13 @@ function ProjectDashboard() {
                     aria-invalid={!!createNameError || undefined}
                     aria-describedby={createNameError ? "project-name-error" : undefined}
                     autoFocus
-                    className="h-11 rounded-[8px] border-white/12 bg-white/[0.04] px-3 pr-10 text-sm placeholder:text-muted-foreground/70 focus-visible:border-white/25 focus-visible:ring-2 focus-visible:ring-white/8 dark:bg-white/[0.04]"
+                    className="h-11 rounded-[8px] border-input bg-background px-3 pr-10 text-sm placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
                   />
                   {newName && (
                     <button
                       type="button"
                       onClick={() => setNewName("")}
-                      className="absolute right-2 top-1/2 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground"
+                      className="absolute right-2 top-1/2 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                       aria-label={t("project.clearName")}
                     >
                       <XIcon className="size-3.5" aria-hidden="true" />
@@ -1356,7 +1356,7 @@ function ProjectDashboard() {
                 <Button
                   variant="outline"
                   onClick={() => setCreateOpen(false)}
-                  className="h-10 w-18 rounded-md border-white/18 bg-white/[0.06] px-0 text-sm font-normal text-foreground/80 hover:border-white/28 hover:bg-white/[0.1] hover:text-foreground"
+                  className="h-10 w-18 rounded-md border-border bg-card px-0 text-sm font-normal text-foreground/80 hover:border-ring/50 hover:bg-muted hover:text-foreground"
                 >
                   {t("common.cancel")}
                 </Button>
@@ -1405,7 +1405,7 @@ function ProjectDashboard() {
               align="end"
               sideOffset={8}
               alignItemWithTrigger={false}
-              className="w-40 rounded-md p-1 shadow-xl shadow-black/20 data-[align-trigger=true]:animate-in [&_[data-slot=select-item]]:min-h-8 [&_[data-slot=select-item]]:rounded-sm [&_[data-slot=select-item]]:px-2 [&_[data-slot=select-item]]:py-1.5 [&_[data-slot=select-item]]:text-xs [&_[data-slot=select-item]:focus]:bg-white/8 [&_[data-slot=select-item]:focus]:text-current [&_[data-slot=select-item]_svg]:size-3.5"
+              className="w-40 rounded-md border border-border p-1 shadow-xl shadow-black/20 data-[align-trigger=true]:animate-in [&_[data-slot=select-item]]:min-h-8 [&_[data-slot=select-item]]:rounded-sm [&_[data-slot=select-item]]:px-2 [&_[data-slot=select-item]]:py-1.5 [&_[data-slot=select-item]]:text-xs [&_[data-slot=select-item]:focus]:bg-accent [&_[data-slot=select-item]:focus]:text-accent-foreground [&_[data-slot=select-item]_svg]:size-3.5"
             >
               {SORT_OPTIONS.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>

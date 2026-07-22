@@ -185,19 +185,19 @@ const ROLE_OPTIONS = [
 
 const ATTEMPT_WARN_THRESHOLD = 3;
 const CHARACTER_SELECT_CONTENT_CLASS =
-  "rounded-md p-1 shadow-xl shadow-black/20 data-[align-trigger=true]:animate-in [&_[data-slot=select-item]]:min-h-8 [&_[data-slot=select-item]]:rounded-sm [&_[data-slot=select-item]]:px-2 [&_[data-slot=select-item]]:py-1.5 [&_[data-slot=select-item]]:text-xs [&_[data-slot=select-item]:focus]:bg-white/8 [&_[data-slot=select-item]:focus]:text-current [&_[data-slot=select-item]_svg]:size-3.5";
+  "rounded-md border border-border bg-popover p-1 shadow-xl data-[align-trigger=true]:animate-in [&_[data-slot=select-item]]:min-h-8 [&_[data-slot=select-item]]:rounded-sm [&_[data-slot=select-item]]:px-2 [&_[data-slot=select-item]]:py-1.5 [&_[data-slot=select-item]]:text-xs [&_[data-slot=select-item]:focus]:bg-muted [&_[data-slot=select-item]:focus]:text-current [&_[data-slot=select-item]_svg]:size-3.5";
 const CHARACTER_INPUT_CLASS =
-  "!h-9 rounded-[8px] border-white/10 bg-white/[0.025] px-3 text-sm shadow-none placeholder:text-muted-foreground/60 focus-visible:border-white/20 focus-visible:ring-2 focus-visible:ring-white/8 dark:bg-white/[0.025]";
+  "!h-9 rounded-[8px] border-border bg-muted px-3 text-sm shadow-none placeholder:text-muted-foreground focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/10";
 const CHARACTER_TEXTAREA_CLASS =
-  "w-full resize-none rounded-[8px] border border-white/10 bg-white/[0.025] p-2.5 text-sm leading-relaxed shadow-none placeholder:text-muted-foreground/60 focus-visible:border-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/8";
+  "w-full resize-none rounded-[8px] border border-border bg-muted p-2.5 text-sm leading-relaxed shadow-none placeholder:text-muted-foreground focus-visible:border-primary/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/10";
 const CHARACTER_SELECT_TRIGGER_CLASS =
-  "!h-9 w-full rounded-[8px] border-white/10 bg-white/[0.025] px-3 text-sm shadow-none focus-visible:border-white/20 focus-visible:ring-2 focus-visible:ring-white/8 dark:bg-white/[0.025]";
+  "!h-9 w-full rounded-[8px] border-border bg-muted px-3 text-sm shadow-none focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/10";
 const CHARACTER_DIALOG_CONTENT_CLASS =
-  "gap-4 overflow-hidden rounded-2xl border border-white/8 bg-background/68 p-7 shadow-none backdrop-blur-3xl";
+  "gap-4 overflow-hidden rounded-2xl border border-border bg-popover/95 p-7 shadow-xl backdrop-blur-3xl";
 const CHARACTER_DIALOG_FOOTER_CLASS =
   "-mx-7 -mb-7 border-t-0 bg-transparent p-7 pt-3 sm:flex-row sm:justify-end";
 const CHARACTER_DIALOG_CANCEL_BUTTON_CLASS =
-  "h-10 w-18 rounded-md border-white/18 bg-white/[0.06] px-0 text-sm font-normal text-foreground/80 hover:border-white/28 hover:bg-white/[0.1] hover:text-foreground";
+  "h-10 w-18 rounded-md border-border bg-muted px-0 text-sm font-normal text-foreground/80 hover:border-foreground/30 hover:bg-accent hover:text-foreground";
 const CHARACTER_DIALOG_ACTION_BUTTON_CLASS =
   "h-10 w-18 rounded-md bg-primary px-0 text-sm font-normal text-primary-foreground shadow-lg shadow-primary/15 hover:bg-primary/90";
 
@@ -378,12 +378,12 @@ function CharacterAssetHistoryButton({
                 <LightboxImage
                   src={resolveMediaUrl(historyData.current_url) ?? ""}
                   alt={t("characters.history.current")}
-                  className="aspect-square w-full rounded-[8px] bg-white/[0.025]"
+                  className="aspect-square w-full rounded-[8px] bg-muted"
                   fit="contain"
                 />
               ) : (
-                <div className="flex aspect-square w-full items-center justify-center rounded-[8px] border border-dashed border-border bg-background/40">
-                  <ImageIcon className="size-8 text-muted-foreground/40" />
+                <div className="flex aspect-square w-full items-center justify-center rounded-[8px] border border-dashed border-border bg-muted">
+                  <ImageIcon className="size-8 text-muted-foreground" />
                 </div>
               )}
             </div>
@@ -411,7 +411,7 @@ function CharacterAssetHistoryButton({
               </div>
 
               {history.isLoading ? (
-                <div className="flex h-40 items-center justify-center rounded-[8px] border border-white/8 bg-white/[0.025] text-xs text-muted-foreground">
+                <div className="flex h-40 items-center justify-center rounded-[8px] border border-border bg-muted text-xs text-muted-foreground">
                   <Loader2 className="mr-2 size-3.5 animate-spin" />
                   {t("common.loading")}
                 </div>
@@ -420,7 +420,7 @@ function CharacterAssetHistoryButton({
                   {apiError}
                 </div>
               ) : entries.length === 0 ? (
-                <div className="flex h-40 items-center justify-center rounded-[8px] border border-dashed border-border bg-background/40 text-xs text-muted-foreground">
+                <div className="flex h-40 items-center justify-center rounded-[8px] border border-dashed border-border bg-muted text-xs text-muted-foreground">
                   {t("characters.history.empty")}
                 </div>
               ) : (
@@ -437,7 +437,7 @@ function CharacterAssetHistoryButton({
                     return (
                       <div
                         key={entry.history_id}
-                        className="rounded-[8px] border border-white/8 bg-white/[0.025] p-2"
+                        className="rounded-[8px] border border-border bg-muted p-2"
                       >
                         <LightboxImage
                           src={resolveMediaUrl(entry.url) ?? ""}
@@ -549,7 +549,7 @@ function CharactersPageHeader({
   const isCharactersTab = activeTab === "characters";
 
   return (
-    <div className="flex shrink-0 flex-col gap-3 border-b border-border/30 bg-background px-9 py-5 lg:flex-row lg:items-center lg:justify-between">
+    <div className="flex shrink-0 flex-col gap-3 border-b border-border bg-background px-9 py-5 lg:flex-row lg:items-center lg:justify-between">
       <div className="flex min-w-0 items-start gap-3">
         <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
           <Waves className="size-[18px]" />
@@ -559,7 +559,7 @@ function CharactersPageHeader({
             <h1 className="truncate text-2xl font-semibold tracking-tight text-foreground">
               {t("nav.assets")}
             </h1>
-            <span className="rounded-md border border-white/10 bg-white/[0.03] px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+            <span className="rounded-md border border-border bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
               {t(`characters.assetTabs.${activeTab}`)}
             </span>
             {isCharactersTab && <ProjectStyleChip project={project} />}
@@ -632,7 +632,7 @@ function AssetTabs({
   ];
 
   return (
-    <div className="flex shrink-0 justify-center border-b border-border/30 bg-background px-9 py-3">
+    <div className="flex shrink-0 justify-center border-b border-border bg-background px-9 py-3">
       <SlidingTabs
         items={tabs.map(({ value: tab, icon }) => ({
           value: tab,
@@ -674,7 +674,7 @@ function CharacterListItem({
       onClick={onSelect}
       className={cn(
         "flex w-full items-center gap-2.5 rounded-[8px] border px-2.5 py-2 text-left transition-colors",
-        "hover:border-white/10 hover:bg-white/[0.035]",
+        "hover:border-foreground/25 hover:bg-muted",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         selected
           ? "border-primary/50 bg-primary/[0.035]"
@@ -800,10 +800,10 @@ function CharacterHeaderRow({
     <div className="flex items-start gap-2">
       <div className="min-w-0 flex-1 flex flex-wrap items-center gap-2">
         {character.gender === "男" && (
-          <Mars className="size-4 text-sky-400" aria-hidden />
+          <Mars className="size-4 text-sky-700 dark:text-sky-300" aria-hidden />
         )}
         {character.gender === "女" && (
-          <Venus className="size-4 text-pink-400" aria-hidden />
+          <Venus className="size-4 text-pink-700 dark:text-pink-300" aria-hidden />
         )}
         <h2 className="truncate text-[19px] font-semibold tracking-tight text-foreground">
           {character.name}
@@ -814,7 +814,7 @@ function CharacterHeaderRow({
               "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold",
               character.is_main
                 ? "border border-amber-500/40 bg-amber-500/15 text-amber-700 dark:text-amber-300"
-                : "border border-border bg-background/60 text-muted-foreground",
+                : "border border-border bg-muted text-muted-foreground",
             )}
           >
             {character.is_main && <Star className="size-2.5 fill-current" />}
@@ -832,7 +832,7 @@ function CharacterHeaderRow({
           size="sm"
           onClick={handleOpenCharacterFreezone}
           disabled={freezonePending}
-          className="gap-1.5 rounded-[8px] border border-white/12 bg-white/[0.035] text-foreground shadow-none transition-colors hover:border-white/22 hover:bg-white/[0.075] hover:text-white dark:bg-white/[0.035] disabled:border-transparent disabled:bg-transparent disabled:text-muted-foreground disabled:hover:border-transparent disabled:hover:bg-transparent"
+          className="gap-1.5 rounded-[8px] border border-border bg-muted text-foreground shadow-none transition-colors hover:border-foreground/30 hover:bg-accent hover:text-foreground disabled:border-transparent disabled:bg-transparent disabled:text-muted-foreground disabled:hover:border-transparent disabled:hover:bg-transparent"
           title={t("characters.freezone.openCharacterTip")}
         >
           {freezonePending ? (
@@ -964,8 +964,8 @@ function PortraitBlock({
           className="aspect-square w-full max-w-[180px] rounded-[8px]"
         />
       ) : (
-        <div className="flex aspect-square w-full max-w-[180px] items-center justify-center rounded-[8px] border border-dashed border-border bg-background/40">
-          <ImageIcon className="size-10 text-muted-foreground/40" />
+        <div className="flex aspect-square w-full max-w-[180px] items-center justify-center rounded-[8px] border border-dashed border-border bg-muted">
+          <ImageIcon className="size-10 text-muted-foreground" />
         </div>
       )}
       <div className="flex w-full max-w-[180px] flex-col gap-1.5">
@@ -1396,7 +1396,7 @@ function IdentityCard({
   const identityCreditDialogActionClass =
     isCeRuntime()
       ? "transition-transform active:scale-95"
-      : "relative border-[3px] border-[#007A87] bg-transparent pr-9 transition-transform hover:border-[#007A87] hover:bg-transparent active:scale-95 dark:border-[#007A87] dark:hover:border-[#007A87]";
+      : "relative border-[3px] border-primary bg-transparent pr-9 transition-transform hover:border-primary hover:bg-transparent active:scale-95";
 
   useEffect(() => {
     setAppearance(identity.appearance_details ?? "");
@@ -1563,14 +1563,14 @@ function IdentityCard({
   };
 
   return (
-    <article className="@container flex flex-col gap-4 rounded-[10px] border border-white/[0.06] bg-white/[0.035] p-5 pb-3">
+    <article className="@container flex flex-col gap-4 rounded-[10px] border border-border bg-card p-5 pb-3">
       {/* Header: name + chips + delete */}
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1 flex flex-wrap items-center gap-1.5">
           <h4 className="truncate text-sm font-semibold text-foreground">
             {identity.identity_name}
           </h4>
-          <code className="truncate rounded-[5px] bg-white/[0.04] px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+          <code className="truncate rounded-[5px] bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
             {identity.identity_id}
           </code>
           {isAgeVariant && (
@@ -1588,7 +1588,7 @@ function IdentityCard({
             </span>
           )}
           {!isAgeVariant && !roleLabel && ageLabel && (
-            <span className="inline-flex items-center rounded-[6px] border border-border bg-background/40 px-1.5 py-0.5 text-xs text-muted-foreground">
+            <span className="inline-flex items-center rounded-[6px] border border-border bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
               {ageLabel}
             </span>
           )}
@@ -1600,7 +1600,7 @@ function IdentityCard({
           variant="ghost"
           onClick={() => setRenameOpen(true)}
           aria-label={t("characters.identities.renameIdentity")}
-          className="text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
+          className="text-muted-foreground hover:bg-muted hover:text-foreground"
         >
           <Pencil className="size-3.5" />
         </Button>
@@ -1650,11 +1650,11 @@ function IdentityCard({
             <LightboxImage
               src={resolveMediaUrl(identity.image_url) ?? ""}
               alt={identity.identity_name}
-              className="aspect-[4/3] w-full rounded-[8px] bg-white/[0.025]"
+              className="aspect-[4/3] w-full rounded-[8px] bg-muted"
               fit="contain"
             />
           ) : (
-            <div className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-1 rounded-[8px] border border-dashed border-border bg-background/40 text-muted-foreground/50">
+            <div className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-1 rounded-[8px] border border-dashed border-border bg-muted text-muted-foreground">
               <UserSquare2 className="size-8" />
               <span className="text-xs">
                 {t("characters.identities.heroEmpty")}
@@ -1767,7 +1767,7 @@ function IdentityCard({
       </div>
 
       {/* Refs: costume reference + age variant fields (always visible) */}
-      <div className="border-t border-white/[0.06] pt-4">
+      <div className="border-t border-border pt-4">
         <div className="mb-4 flex items-center gap-2 text-xs font-medium leading-4 text-muted-foreground">
           <Sliders className="size-3" />
           {t("characters.identities.refsTitle")}
@@ -1800,9 +1800,9 @@ function IdentityCard({
                   </Button>
                 </>
               ) : (
-                <div className="flex h-full w-full flex-1 flex-col items-center justify-center gap-1 rounded-[8px] border border-dashed border-white/10 bg-white/[0.02]">
-                  <Shirt className="size-5 text-muted-foreground/40" />
-                  <span className="text-[10px] text-muted-foreground/40">
+                <div className="flex h-full w-full flex-1 flex-col items-center justify-center gap-1 rounded-[8px] border border-dashed border-border bg-muted">
+                  <Shirt className="size-5 text-muted-foreground" />
+                  <span className="text-[10px] text-muted-foreground">
                     {t("characters.identities.costumeRef")}
                   </span>
                 </div>
@@ -1819,7 +1819,7 @@ function IdentityCard({
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-7 w-fit gap-1 rounded-[8px] border-white/10 bg-transparent px-2 text-xs font-normal shadow-none hover:bg-white/[0.04] dark:bg-transparent"
+                  className="h-7 w-fit gap-1 rounded-[8px] border-border bg-transparent px-2 text-xs font-normal shadow-none hover:bg-muted"
                   onClick={() => costumeInputRef.current?.click()}
                   disabled={uploadCostume.isPending || deleteCostume.isPending}
                 >
@@ -1840,14 +1840,14 @@ function IdentityCard({
                   historyUrl={identity.costume_history_url}
                   restoreUrl={identity.restore_url}
                   disabled={uploadCostume.isPending || deleteCostume.isPending}
-                  className="h-7 w-fit gap-1 rounded-[8px] border-white/10 bg-transparent px-2 text-xs font-normal shadow-none hover:bg-white/[0.04] dark:bg-transparent"
+                  className="h-7 w-fit gap-1 rounded-[8px] border-border bg-transparent px-2 text-xs font-normal shadow-none hover:bg-muted"
                 />
               </div>
             </div>
           </div>
 
           {/* Age variant fields */}
-          <div className="border-t border-white/[0.06] pt-5">
+          <div className="border-t border-border pt-5">
             <div className="mb-3 flex items-center gap-2 text-xs font-medium leading-4 text-muted-foreground">
               <UserSquare2 className="size-3" />
               {t("characters.identities.ageVariantTitle")}
@@ -1946,11 +1946,11 @@ function IdentityCard({
                   ) : (
                     <div
                       className={cn(
-                        "flex size-14 items-center justify-center rounded-[8px] border border-dashed border-border bg-background/40",
+                        "flex size-14 items-center justify-center rounded-[8px] border border-dashed border-border bg-muted",
                         !isAgeVariant && "opacity-50",
                       )}
                     >
-                      <UserSquare2 className="size-5 text-muted-foreground/40" />
+                      <UserSquare2 className="size-5 text-muted-foreground" />
                     </div>
                   )}
                   <TooltipProvider delay={200}>
@@ -2112,7 +2112,7 @@ function IdentityCard({
       />
 
       {/* Attempt footer (persistent across sessions) */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-white/[0.06] pt-3 text-xs tabular-nums text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border pt-3 text-xs tabular-nums text-muted-foreground">
         <span
           className={cn(
             imageAttempts >= 5
@@ -2157,7 +2157,7 @@ function IdentityCard({
       <AssetBeatReferences
         project={project}
         references={references}
-        className="border-t border-white/[0.06] pt-3"
+        className="border-t border-border pt-3"
       />
 
       {/* Dialogs — zero-height wrapper so they don't affect flex gap spacing */}
@@ -2373,14 +2373,14 @@ function IdentitiesGridSection({
   };
 
   return (
-    <section className="rounded-[10px] border border-white/[0.06] bg-white/[0.006] p-5">
+    <section className="rounded-[10px] border border-border bg-card p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Shirt className="size-4 text-muted-foreground/80" />
           <h3 className="text-sm font-semibold text-foreground">
             {t("characters.identities.title")}
           </h3>
-          <span className="rounded-[6px] bg-white/[0.04] px-1.5 py-0.5 text-xs tabular-nums text-muted-foreground">
+          <span className="rounded-[6px] bg-muted px-1.5 py-0.5 text-xs tabular-nums text-muted-foreground">
             {identities.length}
           </span>
         </div>
@@ -2389,7 +2389,7 @@ function IdentitiesGridSection({
             size="sm"
             variant="outline"
             onClick={() => setAddIdentityOpen(true)}
-            className="h-8 gap-1 rounded-[8px] border-white/10 bg-transparent px-3 text-xs font-normal shadow-none hover:bg-white/[0.04] dark:bg-transparent"
+            className="h-8 gap-1 rounded-[8px] border-border bg-transparent px-3 text-xs font-normal shadow-none hover:bg-muted"
           >
             <Plus className="size-3.5" />
             {t("characters.identities.addNew")}
@@ -2401,7 +2401,7 @@ function IdentitiesGridSection({
         <button
           type="button"
           onClick={() => setAddIdentityOpen(true)}
-          className="group flex min-h-14 w-full items-center justify-center rounded-[8px] border border-dashed border-white/10 bg-white/[0.015] px-4 text-center transition hover:border-white/18 hover:bg-white/[0.035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/10"
+          className="group flex min-h-14 w-full items-center justify-center rounded-[8px] border border-dashed border-border bg-muted px-4 text-center transition hover:border-foreground/25 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
         >
           <span className="flex items-center gap-1.5 text-xs font-medium text-foreground/72 transition group-hover:text-foreground">
             <Plus className="size-3.5 text-foreground/70 transition group-hover:text-foreground" />
@@ -2587,7 +2587,7 @@ function DetailPanel({
         ref={scrollContainerRef}
         className="@container flex-1 space-y-3 overflow-y-auto p-4"
       >
-        <section className="rounded-[10px] border border-white/[0.06] bg-white/[0.018] p-4">
+        <section className="rounded-[10px] border border-border bg-card p-4">
           <CharacterHeaderRow
             character={character}
             project={project}
@@ -2642,7 +2642,7 @@ function ProjectVoicesPanel({
   if (isNarratedFirstPerson) {
     return (
       <div className="min-h-0 flex-1 overflow-y-auto bg-background p-6">
-        <section className="w-full max-w-[640px] rounded-[10px] border border-white/[0.055] bg-white/[0.012] p-4">
+        <section className="w-full max-w-[640px] rounded-[10px] border border-border bg-card p-4">
           <div className="flex items-center gap-3">
             <Mic2 className="size-4 text-muted-foreground/78" />
             <h2 className="text-sm font-semibold text-foreground">
@@ -2663,7 +2663,7 @@ function ProjectVoicesPanel({
                 size="xs"
                 variant="outline"
                 onClick={onSelectNarratorMain}
-                className="h-7 gap-1 rounded-[7px] border-white/[0.11] bg-white/[0.03] px-2.5 text-[12px] font-normal text-foreground/76 shadow-none hover:border-white/[0.18] hover:bg-white/[0.055] hover:text-foreground dark:border-white/[0.11] dark:bg-white/[0.03] dark:hover:border-white/[0.18] dark:hover:bg-white/[0.055] dark:hover:text-foreground"
+                className="h-7 gap-1 rounded-[7px] border-border bg-muted px-2.5 text-[12px] font-normal text-foreground/76 shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground"
               >
                 {t("characters.voices.openNarratorMainVoice")}
               </Button>
@@ -2706,9 +2706,9 @@ function AddCharacterDialog({
   const roleValue = watch("role") ?? "";
   const genderValue = watch("gender") ?? "";
   const inputClass =
-    "h-10 rounded-[8px] border-white/12 bg-white/[0.04] px-3 text-sm placeholder:text-muted-foreground/70 focus-visible:border-white/25 focus-visible:ring-2 focus-visible:ring-white/8 dark:bg-white/[0.04]";
+    "h-10 rounded-[8px] border-border bg-muted px-3 text-sm placeholder:text-muted-foreground focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/10";
   const selectTriggerClass =
-    "h-10 w-full rounded-[8px] border-white/12 bg-white/[0.04] px-3 text-sm text-foreground focus-visible:border-white/25 focus-visible:ring-2 focus-visible:ring-white/8 dark:bg-white/[0.04]";
+    "h-10 w-full rounded-[8px] border-border bg-muted px-3 text-sm text-foreground focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/10";
   const labelClass = "text-xs font-medium text-muted-foreground";
 
   const onSubmit = async (data: AddCharacterForm) => {
@@ -2920,7 +2920,7 @@ function CharactersSplit({
 
   const extractingProgress = (
     <div
-      className="w-full max-w-[220px] rounded-[8px] bg-white/[0.05] p-3"
+      className="w-full max-w-[220px] rounded-[8px] bg-muted p-3"
     >
       <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
         <span className="min-w-0 truncate">
@@ -3050,7 +3050,7 @@ function CharactersSplit({
 
   return (
     <div className="min-h-0 flex-1 flex overflow-hidden bg-background">
-      <div className="flex w-80 shrink-0 flex-col overflow-hidden border-r border-border/30 bg-background">
+      <div className="flex w-80 shrink-0 flex-col overflow-hidden border-r border-border bg-background">
         {listPane}
       </div>
       <div className="min-w-0 flex-1 overflow-hidden bg-background">
@@ -3201,7 +3201,7 @@ function CharactersPageContent() {
 
       {assetTab === "characters" ? (
         <>
-          <div className="shrink-0 border-b border-border/30 bg-background px-3 py-3 lg:px-9">
+          <div className="shrink-0 border-b border-border bg-background px-3 py-3 lg:px-9">
             <CharacterStatsStrip
               characters={characters}
               mainCharacterLabel={mainCopy.label}

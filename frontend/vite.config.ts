@@ -60,6 +60,10 @@ const DEFAULT_API_TARGET = "http://127.0.0.1:8780";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const apiTarget = env.VITE_API_URL || DEFAULT_API_TARGET;
+  const desktopToken = env.VITE_DESKTOP_TOKEN?.trim();
+  const desktopHeaders = desktopToken
+    ? { "X-AI-Anime-Desktop-Token": desktopToken }
+    : undefined;
 
   return {
     plugins: [
@@ -109,6 +113,7 @@ export default defineConfig(({ mode }) => {
           target: apiTarget,
           changeOrigin: true,
           ws: true,
+          ...(desktopHeaders ? { headers: desktopHeaders } : {}),
           // 当 VITE_API_URL 指向 HTTPS 后端、而本地 dev server 走 HTTP 时，
           // 后端下发的会话 cookie 多半带 `Secure`（HTTPS + HSTS 部署的常态），
           // 浏览器会拒绝在非安全连接上写入它 —— 于是登录拿到 200/username 后
@@ -131,6 +136,7 @@ export default defineConfig(({ mode }) => {
         "/static": {
           target: apiTarget,
           changeOrigin: true,
+          ...(desktopHeaders ? { headers: desktopHeaders } : {}),
         },
       },
     },

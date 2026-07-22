@@ -257,7 +257,7 @@ export const RotateEditorOverlay = memo(
                   value={Math.round(angle)}
                   disabled={isSaving}
                   onChange={(event) => handleAngleChange(Number(event.target.value))}
-                  className="h-7 w-16 rounded-md border border-[rgba(255,255,255,0.14)] bg-bg-dark/60 px-1.5 pr-5 text-center text-xs text-text-dark outline-none focus:border-accent disabled:opacity-50"
+                  className="h-7 w-16 rounded-md border border-border bg-bg-dark px-1.5 pr-5 text-center text-xs text-text-dark outline-none focus:border-primary disabled:opacity-50"
                 />
                 <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-text-muted">
                   {t('rotateEditor.angleSuffix')}

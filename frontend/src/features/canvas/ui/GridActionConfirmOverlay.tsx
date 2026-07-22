@@ -198,14 +198,14 @@ export const GridActionConfirmOverlay = memo(
         >
           <button
             type="button"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-bg-dark/70 text-text-muted transition-colors hover:bg-bg-dark hover:text-text-dark"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             onClick={onClose}
             title={t('nodeToolbar.gridMenu.confirmBar.close')}
           >
             <X className="h-4 w-4" />
           </button>
 
-          <div className="flex min-w-0 flex-1 items-center gap-1.5 px-2 text-xs text-text-dark">
+          <div className="flex min-w-0 flex-1 items-center gap-1.5 px-2 text-xs text-foreground">
             <ImageIcon className="h-3.5 w-3.5 shrink-0 text-text-muted" />
             <span className="truncate font-medium">{request.label}</span>
           </div>
@@ -213,7 +213,7 @@ export const GridActionConfirmOverlay = memo(
 
           <button
             type="button"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-bg-dark transition-colors hover:bg-white/90"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-colors hover:bg-foreground/90"
             onClick={handleSubmit}
             title={t('nodeToolbar.gridMenu.confirmBar.submit')}
           >

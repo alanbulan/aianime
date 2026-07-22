@@ -97,7 +97,7 @@ export function ProjectSwitcher({ current }: { current: string }) {
       <DropdownMenuTrigger
         onMouseEnter={openMenu}
         onMouseLeave={scheduleClose}
-        className="inline-flex h-8 max-w-[156px] cursor-pointer items-center gap-1.5 bg-transparent px-1 text-left text-[13px] leading-none text-sidebar-foreground/90 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+        className="inline-flex h-8 max-w-[156px] cursor-pointer items-center gap-1.5 bg-transparent px-1 text-left text-[13px] leading-none text-foreground/90 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <span className="min-w-0 truncate leading-none">{currentName}</span>
         <ChevronDown className="size-3.5 shrink-0 translate-y-px text-muted-foreground" />
@@ -107,12 +107,12 @@ export function ProjectSwitcher({ current }: { current: string }) {
         sideOffset={8}
         onMouseEnter={openMenu}
         onMouseLeave={scheduleClose}
-        className="w-56 rounded-md border border-white/10 bg-popover p-1 shadow-xl shadow-black/20 ring-0"
+        className="w-56 rounded-md border border-border bg-popover p-1 shadow-xl shadow-black/20 ring-0"
       >
         <DropdownMenuGroup>
           <DropdownMenuItem
             onClick={() => navigate({ to: "/" })}
-            className="min-h-8 gap-2 rounded-sm px-2 py-1.5 text-xs focus:bg-white/8 focus:text-current"
+            className="min-h-8 gap-2 rounded-sm px-2 py-1.5 text-xs focus:bg-accent focus:text-accent-foreground"
           >
             <ArrowLeft className="size-3.5" />
             {t("project.dashboardReturn")}
@@ -132,7 +132,7 @@ export function ProjectSwitcher({ current }: { current: string }) {
                   params: { project: project.id },
                 })
               }
-              className="min-h-8 gap-2 rounded-sm px-2 py-1.5 text-xs focus:bg-white/8 focus:text-current"
+              className="min-h-8 gap-2 rounded-sm px-2 py-1.5 text-xs focus:bg-accent focus:text-accent-foreground"
             >
               <ProjectAvatar name={project.name} />
               <span className="flex-1 truncate">{project.name}</span>
@@ -164,7 +164,7 @@ export function ProjectWorkspaceMenu({ project }: { project: string }) {
     <div className="flex justify-center px-4 pb-2">
       <nav
         aria-label={t("nav.workspaceMenu")}
-        className="flex items-center gap-3 whitespace-nowrap rounded-full border border-white/[0.08] bg-white/[0.04] px-3.5 py-0.5 text-sidebar-foreground"
+        className="flex items-center gap-3 whitespace-nowrap rounded-full border border-border bg-card px-3.5 py-0.5 text-foreground shadow-xs"
       >
         {workspaceMenuItems.map((item) => {
           const target =
@@ -251,19 +251,19 @@ export function ProjectHeaderNavigation({ project }: { project: string }) {
       aria-label={t("nav.creationMode")}
       className="absolute left-1/2 top-1/2 z-30 flex -translate-x-1/2 -translate-y-1/2 items-center"
     >
-      <div className="relative flex h-8 items-center rounded-full bg-white/[0.07]">
+      <div className="relative flex h-8 items-center overflow-hidden rounded-full border border-border bg-muted">
         <span
           aria-hidden="true"
           className={cn(
-            "absolute left-0 top-1/2 h-7 w-[74px] -translate-y-1/2 rounded-full bg-foreground transition-transform duration-300 ease-[var(--ease-out-quint)]",
-            activeMode === "workspace" && "translate-x-[74px]",
+            "absolute left-0 top-1/2 h-7 w-32 -translate-y-1/2 rounded-full bg-foreground transition-transform duration-300 ease-[var(--ease-out-quint)]",
+            activeMode === "workspace" && "translate-x-32",
           )}
         />
         <button
           type="button"
           onClick={() => changeMode("canvas")}
           className={cn(
-            "relative z-10 inline-flex h-8 w-[74px] items-center justify-center gap-1.5 rounded-full text-xs font-semibold transition-colors",
+            "relative z-10 inline-flex h-8 w-32 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-2 text-xs font-semibold transition-colors",
             activeMode === "canvas"
               ? "text-background"
               : "text-muted-foreground hover:text-foreground",
@@ -277,7 +277,7 @@ export function ProjectHeaderNavigation({ project }: { project: string }) {
           type="button"
           onClick={() => changeMode("workspace")}
           className={cn(
-            "relative z-10 inline-flex h-8 w-[74px] items-center justify-center gap-1.5 rounded-full text-xs font-semibold transition-colors",
+            "relative z-10 inline-flex h-8 w-32 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-2 text-xs font-semibold transition-colors",
             activeMode === "workspace"
               ? "text-background"
               : "text-muted-foreground hover:text-foreground",

@@ -47,11 +47,11 @@ export function ScriptBeatPreview({
 
       <div className="pr-1">
         {loading ? (
-          <p className="rounded-[8px] border border-white/[0.06] px-3 py-4 text-sm text-muted-foreground">
+          <p className="rounded-[8px] border border-border bg-card px-3 py-4 text-sm text-muted-foreground">
             {labels.loading}
           </p>
         ) : beats.length === 0 ? (
-          <div className="grid min-h-[420px] place-items-center rounded-[10px] border border-white/[0.06]">
+          <div className="grid min-h-[420px] place-items-center rounded-[10px] border border-border bg-card">
             <EpisodeEmptyState
               icon={ScrollText}
               title={labels.emptyTitle}
@@ -94,7 +94,7 @@ function ScriptBeatPreviewRow({
     audioType === "dialogue" ? labels.dialogueLine : labels.narrationLine;
 
   return (
-    <li className="rounded-[8px] border border-white/[0.06] bg-white/[0.02] px-4 pb-3 pt-4">
+    <li className="rounded-[8px] border border-border bg-card px-4 pb-3 pt-4">
       <div className="mb-4 flex flex-wrap items-center gap-1.5">
         <span className="inline-flex h-5 items-center rounded-[5px] bg-accent/70 px-1.5 font-mono text-[11px] tabular-nums text-foreground/80">
           #{beat.beat_number}
@@ -103,8 +103,8 @@ function ScriptBeatPreviewRow({
           className={cn(
             "inline-flex h-5 items-center gap-1 rounded-[5px] px-1.5 text-[11px]",
             isSilent
-              ? "bg-white/[0.04] text-muted-foreground"
-              : "bg-primary/10 text-primary/90",
+              ? "bg-muted text-muted-foreground"
+              : "bg-primary/10 text-primary",
           )}
         >
           {isSilent ? (
@@ -115,7 +115,7 @@ function ScriptBeatPreviewRow({
           <span className="truncate">{labels.audioType(audioType)}</span>
         </span>
         {showNarration && (
-          <span className="inline-flex h-5 items-center gap-1 rounded-[5px] bg-white/[0.04] px-1.5 text-[11px] text-muted-foreground">
+          <span className="inline-flex h-5 items-center gap-1 rounded-[5px] bg-muted px-1.5 text-[11px] text-muted-foreground">
             <UserRound className="size-3 shrink-0" />
             <span className="truncate">{speaker}</span>
           </span>
@@ -159,13 +159,13 @@ function PreviewText({
         "min-w-0 rounded-[8px] border px-3 py-2.5",
         tone === "line"
           ? "border-primary/15 bg-primary/[0.035]"
-          : "border-white/[0.09] bg-white/[0.026]",
+          : "border-border bg-muted",
       )}
     >
       <div
         className={cn(
           "mb-2 flex items-center gap-1.5 text-xs font-medium",
-          tone === "line" ? "text-primary/85" : "text-muted-foreground",
+          tone === "line" ? "text-primary" : "text-muted-foreground",
         )}
       >
         <Icon className="size-3.5 shrink-0" />

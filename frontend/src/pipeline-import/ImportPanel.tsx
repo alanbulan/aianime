@@ -187,7 +187,7 @@ export function ImportPanel({ project, onClose, onImport }: ImportPanelProps) {
         {loading ? (
           <div className="text-sm text-text-muted py-8 text-center">加载中...</div>
         ) : error ? (
-          <div className="text-sm text-red-400 py-8 text-center">{error}</div>
+          <div className="py-8 text-center text-sm text-red-700 dark:text-red-300">{error}</div>
         ) : (
           <>
             <Section title="资产类型">
@@ -282,7 +282,7 @@ function KindToggleRow({
 }) {
   return (
     <div
-      className="flex items-center gap-2 cursor-pointer text-sm text-text-dark rounded px-1 py-1 hover:bg-bg-dark/40 transition"
+      className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-sm text-text-dark transition hover:bg-muted"
       onClick={() => onChange(!checked)}
     >
       <UiCheckbox
@@ -311,7 +311,7 @@ function CharactersList({
         return (
           <div
             key={c.name}
-            className="flex items-center gap-2 cursor-pointer text-sm text-text-dark px-2 py-1 rounded hover:bg-bg-dark/40 transition"
+            className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-sm text-text-dark transition hover:bg-muted"
             onClick={() => onToggle(c.name)}
           >
             <UiCheckbox

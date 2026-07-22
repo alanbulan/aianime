@@ -68,7 +68,7 @@ export function TaskPanel() {
     <>
       <div
         className={cn(
-          "absolute inset-x-0 top-0 bottom-9 z-30 bg-background/10 backdrop-blur-sm transition-opacity duration-500 ease-[var(--ease-out-quint)]",
+          "absolute inset-x-0 top-0 bottom-9 z-30 bg-black/20 backdrop-blur-sm transition-opacity duration-500 ease-[var(--ease-out-quint)] dark:bg-black/45",
           open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
         )}
         onClick={() => setOpen(false)}
@@ -96,7 +96,7 @@ export function TaskPanel() {
               aria-label="Resize task panel"
               data-testid="task-panel-resize-handle"
             />
-            <div className="flex shrink-0 items-center justify-between border-b border-border/40 px-3 py-2">
+            <div className="flex shrink-0 items-center justify-between border-b border-border px-3 py-2">
               <h2 className="text-xs font-semibold">{t("taskCenter.title")}</h2>
               <Button
                 variant="ghost"
@@ -108,7 +108,7 @@ export function TaskPanel() {
               </Button>
             </div>
             <div className="flex min-h-0 flex-1 overflow-hidden">
-              <div className="w-[340px] min-w-0 shrink-0 border-r border-border/40 xl:w-[380px]">
+              <div className="w-[340px] min-w-0 shrink-0 border-r border-border xl:w-[380px]">
                 <TaskList />
               </div>
               <div className="min-w-0 flex-1">

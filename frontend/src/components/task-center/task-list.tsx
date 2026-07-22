@@ -82,7 +82,7 @@ export function TaskList() {
     <div className="flex h-full flex-col">
       <div
         role="tablist"
-        className="flex shrink-0 items-center gap-1 border-b border-border/40 px-3 py-2"
+        className="flex shrink-0 items-center gap-1 border-b border-border px-3 py-2"
       >
         {FILTERS.map((f) => (
           <button
@@ -93,7 +93,7 @@ export function TaskList() {
             onClick={() => setFilter(f)}
             className={cn(
               "rounded px-2 py-1 text-xs font-normal transition-colors",
-              filter === f ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50",
+              filter === f ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted",
             )}
           >
             {t(`taskCenter.panel.filters.${f}`)} {counts[f]}

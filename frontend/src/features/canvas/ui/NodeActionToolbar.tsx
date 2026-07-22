@@ -155,13 +155,13 @@ const toolIconMap: Record<ToolIconKey, typeof Crop> = {
 const TOOLBAR_BUTTON_RADIUS_CLASS = "rounded-[12px]";
 // 扁平菜单项：去掉独立边框与胶囊背景，融入工具栏整条；仅靠 hover 高亮区分。
 const TOOLBAR_NEUTRAL_BUTTON_CLASS =
-  "!border-transparent !bg-transparent text-text-dark hover:!bg-[rgba(255,255,255,0.075)] focus:!border-transparent focus:!bg-transparent focus:!shadow-none focus-visible:!outline-none focus-visible:!ring-0 data-[state=open]:!border-transparent data-[state=open]:!shadow-none";
+  "!border-transparent !bg-transparent text-foreground hover:!bg-muted focus:!border-transparent focus:!bg-transparent focus:!shadow-none focus-visible:!outline-none focus-visible:!ring-0 data-[state=open]:!border-transparent data-[state=open]:!shadow-none";
 const TOOLBAR_TEXT_BUTTON_CLASS =
   `h-9 ${TOOLBAR_BUTTON_RADIUS_CLASS} px-3 text-sm ${TOOLBAR_NEUTRAL_BUTTON_CLASS}`;
 const TOOLBAR_MENU_CONTENT_CLASS =
-  "z-[120] border-white/10 bg-[#242426]/50 text-text-dark shadow-none backdrop-blur-3xl";
+  "z-[120] border-border bg-popover/95 text-popover-foreground shadow-xl backdrop-blur-3xl";
 const TOOLBAR_MENU_ITEM_CLASS =
-  "gap-2 rounded-[10px] text-text-dark focus:bg-[rgba(255,255,255,0.075)] focus:text-text-dark";
+  "gap-2 rounded-[10px] text-popover-foreground focus:bg-muted focus:text-popover-foreground";
 
 type BeatMainlineContext = MainlineContext & {
   projectId: string;
@@ -359,7 +359,7 @@ function ToolbarDivider() {
   return (
     <span
       aria-hidden
-      className="mx-1 h-4 w-px shrink-0 self-center bg-[rgba(255,255,255,0.14)]"
+      className="mx-1 h-4 w-px shrink-0 self-center bg-border"
     />
   );
 }
@@ -437,7 +437,7 @@ function ToolbarIconChip({
       </UiChipButton>
       <span
         role="tooltip"
-        className="pointer-events-none absolute left-1/2 top-full z-[140] mt-1.5 -translate-x-1/2 whitespace-nowrap rounded-md border border-[rgba(255,255,255,0.18)] bg-surface-dark/95 px-2 py-1 text-[11px] font-medium text-text-dark opacity-0 shadow-lg backdrop-blur-sm transition-opacity duration-150 delay-100 group-hover/iconchip:opacity-100"
+        className="pointer-events-none absolute left-1/2 top-full z-[140] mt-1.5 -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-popover/95 px-2 py-1 text-[11px] font-medium text-popover-foreground opacity-0 shadow-lg backdrop-blur-sm transition-opacity duration-150 delay-100 group-hover/iconchip:opacity-100"
       >
         {label}
       </span>
@@ -1074,7 +1074,7 @@ export const NodeActionToolbar = memo(
           <ZoomScaledToolbar origin="bottom center" mode="counter" counterMax={1}>
           {/* 节点激活时，顶部菜单从节点上沿淡入+轻微上滑浮现（而非生硬地直接出现），
               与下方操作区的入场动画呼应。motion-reduce 下退化为无动画。 */}
-          <UiPanel className="flex animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2 items-center gap-1.5 rounded-[18px] !border-white/10 !bg-[#242426]/95 px-2 py-1.5 text-sm shadow-[0_10px_24px_rgba(0,0,0,0.28)] backdrop-blur-2xl duration-200 ease-out motion-reduce:animate-none [&_svg]:h-4 [&_svg]:w-4">
+          <UiPanel className="flex animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2 items-center gap-1.5 rounded-[18px] !border-border !bg-popover/95 px-2 py-1.5 text-sm shadow-xl backdrop-blur-2xl duration-200 ease-out motion-reduce:animate-none [&_svg]:h-4 [&_svg]:w-4">
             {/* Mainline lock indicator — shown as a leading pill when the
                 node is preset-managed (or canvas-level fallback applies).
                 The chips below remain visible for spawn-style edits; the
@@ -1084,7 +1084,7 @@ export const NodeActionToolbar = memo(
             {isPresetLocked && (
               <span
                 key="mainline-lock-pill"
-                className="rounded-full bg-amber-500/15 px-3 py-1.5 text-sm text-amber-100"
+                className="rounded-full border border-amber-500/35 bg-amber-500/10 px-3 py-1.5 text-sm text-amber-800 dark:text-amber-200"
               >
                 主线投影 · 锁定
               </span>
@@ -1092,7 +1092,7 @@ export const NodeActionToolbar = memo(
             {isPresetLocked && workbenchTarget && (
               <UiChipButton
                 key="mainline-open-workbench"
-                className={`h-9 ${TOOLBAR_BUTTON_RADIUS_CLASS} border-cyan-300/45 bg-cyan-400/12 px-3 text-sm text-cyan-100 hover:bg-cyan-300/20 disabled:opacity-50`}
+                className={`h-9 ${TOOLBAR_BUTTON_RADIUS_CLASS} border-primary/45 bg-primary/10 px-3 text-sm text-primary hover:bg-primary/15 disabled:opacity-50`}
                 disabled={openingWorkbench}
                 onClick={(event) => {
                   event.stopPropagation();
@@ -1118,7 +1118,7 @@ export const NodeActionToolbar = memo(
         {!isImageEdit && canHandleImage && (
           <UiChipButton
             key="image-ai-edit"
-            className={`h-9 ${TOOLBAR_BUTTON_RADIUS_CLASS} border-[rgb(var(--accent-rgb)/0.55)] bg-[rgb(var(--accent-rgb)/0.18)] px-3 text-sm text-accent hover:bg-[rgb(var(--accent-rgb)/0.28)]`}
+            className={`h-9 ${TOOLBAR_BUTTON_RADIUS_CLASS} border-[rgb(var(--accent-rgb)/0.55)] bg-[rgb(var(--accent-rgb)/0.18)] px-3 text-sm text-primary hover:bg-[rgb(var(--accent-rgb)/0.28)]`}
             onClick={(event) => {
               event.stopPropagation();
               handleCreateAiEditNode();
@@ -1386,7 +1386,7 @@ export const NodeActionToolbar = memo(
                             key={action.key}
                             className={
                               isActive
-                                ? "gap-2 bg-[rgb(var(--accent-rgb)/0.18)] text-accent focus:bg-[rgb(var(--accent-rgb)/0.28)] focus:text-accent"
+                                ? "gap-2 bg-[rgb(var(--accent-rgb)/0.18)] text-primary focus:bg-[rgb(var(--accent-rgb)/0.28)] focus:text-primary"
                                 : TOOLBAR_MENU_ITEM_CLASS
                             }
                             onSelect={() => {
@@ -1488,7 +1488,7 @@ export const NodeActionToolbar = memo(
             key="image-copy"
             className={`h-9 ${TOOLBAR_BUTTON_RADIUS_CLASS} px-3 text-sm ${TOOLBAR_NEUTRAL_BUTTON_CLASS} ${
               isCopySuccess
-                ? '!border-emerald-400/70 !bg-emerald-500/20 !text-emerald-200 hover:!bg-emerald-500/30'
+                ? '!border-emerald-500/45 !bg-emerald-500/10 !text-emerald-700 hover:!bg-emerald-500/15 dark:!text-emerald-300'
                 : ''
             }`}
             onClick={() => {
@@ -1505,7 +1505,7 @@ export const NodeActionToolbar = memo(
                 key="storyboard-text-copy"
                 className={`${TOOLBAR_TEXT_BUTTON_CLASS} ${
                   isCopyTextSuccess
-                    ? "!border-emerald-400/70 !bg-emerald-500/20 !text-emerald-200 hover:!bg-emerald-500/30"
+                    ? "!border-emerald-500/45 !bg-emerald-500/10 !text-emerald-700 hover:!bg-emerald-500/15 dark:!text-emerald-300"
                     : ""
                 }`}
                 onClick={() => {
@@ -1521,8 +1521,8 @@ export const NodeActionToolbar = memo(
                 key="generation-error-copy"
                 className={`${TOOLBAR_TEXT_BUTTON_CLASS} ${
                   isCopyErrorSuccess
-                    ? "!border-emerald-400/70 !bg-emerald-500/20 !text-emerald-200 hover:!bg-emerald-500/30"
-                    : "!border-red-500/45 !bg-red-500/15 !text-red-200 hover:!bg-red-500/25"
+                    ? "!border-emerald-500/45 !bg-emerald-500/10 !text-emerald-700 hover:!bg-emerald-500/15 dark:!text-emerald-300"
+                    : "!border-red-500/45 !bg-red-500/10 !text-red-700 hover:!bg-red-500/15 dark:!text-red-300"
                 }`}
                 onClick={() => {
                   void handleCopyGenerationError();
@@ -2392,7 +2392,7 @@ export const NodeActionToolbar = memo(
                   </DropdownMenu>
                   <UiChipButton
                     key="group-ungroup"
-                    className={`${TOOLBAR_TEXT_BUTTON_CLASS} hover:!border-amber-400/60 hover:!bg-amber-500/20 hover:!text-amber-200`}
+                    className={`${TOOLBAR_TEXT_BUTTON_CLASS} hover:!border-amber-500/50 hover:!bg-amber-500/10 hover:!text-amber-800 dark:hover:!text-amber-200`}
                     onClick={(event) => {
                       event.stopPropagation();
                       closeDownloadMenu();
@@ -2410,7 +2410,7 @@ export const NodeActionToolbar = memo(
                 key="projection-refresh"
                 className={
                   projectionIsStale
-                    ? `${TOOLBAR_TEXT_BUTTON_CLASS} !border-amber-300/60 !bg-amber-300/15 !text-amber-100 hover:!bg-amber-300/20`
+                    ? `${TOOLBAR_TEXT_BUTTON_CLASS} !border-amber-500/50 !bg-amber-500/10 !text-amber-800 hover:!bg-amber-500/15 dark:!text-amber-200`
                     : TOOLBAR_TEXT_BUTTON_CLASS
                 }
                 title={
@@ -2435,7 +2435,7 @@ export const NodeActionToolbar = memo(
             {!isImageGenNode(node) && !isVideoNode(node) && !isAudioNode(node) && (
               <UiChipButton
                 key="node-delete"
-                className={`h-9 ${TOOLBAR_BUTTON_RADIUS_CLASS} !border-transparent !bg-transparent px-3 text-sm text-rose-200/85 hover:!bg-white/[0.08] hover:!text-rose-100`}
+                className={`h-9 ${TOOLBAR_BUTTON_RADIUS_CLASS} !border-transparent !bg-transparent px-3 text-sm text-destructive hover:!bg-destructive/10 hover:!text-destructive`}
                 onClick={(event) => {
                   event.stopPropagation();
                   closeDownloadMenu();

@@ -36,7 +36,7 @@ interface EpisodeSourceEditorProps {
 }
 
 const SCRIPT_PANEL_CONTROL_CLASS =
-  "!h-6 gap-1 !rounded-[6px] border-white/[0.12] bg-white/[0.04] px-2 text-[11px] font-normal text-foreground/78 shadow-none transition-colors hover:border-white/[0.2] hover:bg-white/[0.05] hover:text-foreground focus-visible:border-white/24 focus-visible:ring-0 focus-visible:outline-none [&_svg]:!size-3";
+  "!h-6 gap-1 !rounded-[6px] border-border bg-muted px-2 text-[11px] font-normal text-foreground/78 shadow-none transition-colors hover:border-foreground/25 hover:bg-accent hover:text-foreground focus-visible:border-primary/45 focus-visible:ring-0 focus-visible:outline-none [&_svg]:!size-3";
 
 export function EpisodeSourceEditor({
   rawContent,
@@ -106,7 +106,7 @@ export function EpisodeSourceEditor({
               <FileText className="size-3" />
               {labels.rawActionLabel}
             </DialogTrigger>
-            <DialogContent className="gap-4 overflow-hidden rounded-2xl border border-white/8 bg-background/68 p-7 shadow-none backdrop-blur-3xl sm:max-w-3xl">
+            <DialogContent className="gap-4 overflow-hidden rounded-2xl border border-border bg-popover p-7 shadow-2xl sm:max-w-3xl">
               <DialogHeader className="gap-2">
                 <DialogTitle className="text-lg font-medium tracking-tight">
                   {labels.rawLabel}
@@ -118,7 +118,7 @@ export function EpisodeSourceEditor({
                     {rawContent}
                   </p>
                 ) : (
-                  <p className="italic text-muted-foreground/60">
+                  <p className="italic text-muted-foreground">
                     {labels.noRawText}
                   </p>
                 )}
@@ -126,12 +126,12 @@ export function EpisodeSourceEditor({
             </DialogContent>
           </Dialog>
         </div>
-        <div className="rounded-[10px] border border-white/[0.06] px-2 py-4">
+        <div className="rounded-[10px] border border-border bg-card px-2 py-4">
           <ol className="space-y-3">
             {visibleLines.map((line, index) => (
               <li
                 key={index}
-                className="relative min-h-9 rounded-[7px] border border-white/[0.08] bg-white/[0.025] transition-colors focus-within:border-white/[0.2] focus-within:bg-white/[0.04] focus-within:ring-2 focus-within:ring-white/[0.08]"
+                className="relative min-h-9 rounded-[7px] border border-border bg-muted transition-colors focus-within:border-primary/45 focus-within:bg-accent focus-within:ring-2 focus-within:ring-primary/10"
               >
                 <span className="pointer-events-none absolute left-3 top-2 font-mono text-xs leading-relaxed tabular-nums text-muted-foreground">
                   {index + 1}.

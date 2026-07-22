@@ -608,13 +608,13 @@ export const ScriptNode = memo(({ id, data, selected, width, height }: ScriptNod
         type="target"
         position={Position.Left}
         id="target"
-        className="!h-2 !w-2 !border-0 !bg-[rgb(148,163,184)]"
+        className="!h-2 !w-2 !border-0 !bg-muted-foreground"
       />
       <Handle
         type="source"
         position={Position.Right}
         id="source"
-        className="!h-2 !w-2 !border-0 !bg-[rgb(148,163,184)]"
+        className="!h-2 !w-2 !border-0 !bg-muted-foreground"
       />
 
       <NodeHeader
@@ -651,9 +651,9 @@ export const ScriptNode = memo(({ id, data, selected, width, height }: ScriptNod
                 否则失败只写进 data.generationError、界面毫无反应。 */}
             {data.generationError && !isGenerating && (
               <div className="flex items-center gap-2 border-b border-red-500/25 bg-red-500/10 px-3 py-2">
-                <AlertCircle className="h-4 w-4 shrink-0 text-red-300" />
+                <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
                 <span
-                  className="min-w-0 flex-1 truncate text-[12px] leading-5 text-red-200/90"
+                  className="min-w-0 flex-1 truncate text-[12px] leading-5 text-destructive"
                   title={data.generationError}
                 >
                   {data.generationError}
@@ -685,7 +685,7 @@ export const ScriptNode = memo(({ id, data, selected, width, height }: ScriptNod
                             event.stopPropagation();
                             handlePickAction(action);
                           }}
-                          className="-mx-2 inline-flex items-center gap-3 rounded-lg px-2 py-2 text-left text-sm text-text-dark transition-colors hover:bg-white/[0.08]"
+                          className="-mx-2 inline-flex items-center gap-3 rounded-lg px-2 py-2 text-left text-sm text-foreground transition-colors hover:bg-muted"
                         >
                           <Icon className="h-4 w-4 shrink-0 text-text-muted/90" />
                           <span className="truncate">{action.label}</span>
@@ -696,9 +696,9 @@ export const ScriptNode = memo(({ id, data, selected, width, height }: ScriptNod
                 </>
               )}
               {data.generationError && !isGenerating && (
-                <div className="flex flex-col items-center gap-2 text-red-300">
+                <div className="flex flex-col items-center gap-2 text-destructive">
                   <AlertCircle className="h-6 w-6 opacity-90" />
-                  <span className="max-h-[72px] overflow-y-auto break-words text-center text-[12px] leading-5 text-red-200/90">
+                  <span className="max-h-[72px] overflow-y-auto break-words text-center text-[12px] leading-5 text-destructive">
                     {data.generationError}
                   </span>
                   <RegenerateButton
@@ -729,10 +729,10 @@ export const ScriptNode = memo(({ id, data, selected, width, height }: ScriptNod
       {hasResult && isFullscreen && typeof document !== 'undefined' &&
         createPortal(
           <div
-            className="fixed inset-0 z-[220] flex flex-col bg-black/85 p-6"
+            className="fixed inset-0 z-[220] flex flex-col bg-background/95 p-6 backdrop-blur-sm"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="mb-3 flex items-center justify-between text-text-dark">
+            <div className="mb-3 flex items-center justify-between text-foreground">
               <div className="flex items-center gap-3">
                 <FileText className="h-5 w-5" />
                 <span className="text-base font-medium">{resolvedTitle}</span>
@@ -743,14 +743,14 @@ export const ScriptNode = memo(({ id, data, selected, width, height }: ScriptNod
               </div>
               <button
                 type="button"
-                className="inline-flex h-8 items-center gap-1 rounded border border-[rgba(255,255,255,0.2)] bg-bg-dark/60 px-3 text-sm text-text-dark hover:border-[rgba(255,255,255,0.36)]"
+                className="inline-flex h-8 items-center gap-1 rounded border border-border bg-muted px-3 text-sm text-foreground hover:border-foreground/30"
                 onClick={() => setIsFullscreen(false)}
               >
                 <X className="h-4 w-4" />
                 关闭
               </button>
             </div>
-            <div className="flex-1 overflow-hidden rounded-lg border border-[rgba(255,255,255,0.12)] bg-surface-dark/95">
+            <div className="flex-1 overflow-hidden rounded-lg border border-border bg-card/95">
               <ScriptResultTable rows={rows} onCellCommit={handleCellCommit} />
             </div>
           </div>,
@@ -773,9 +773,9 @@ interface ScriptResultHeaderProps {
 
 function ScriptResultHeader({ title, onFullscreen }: ScriptResultHeaderProps) {
   return (
-    <div className="flex items-center justify-between border-b border-[rgba(255,255,255,0.08)] px-3 py-2">
+    <div className="flex items-center justify-between border-b border-border px-3 py-2">
       <div className="flex min-w-0 items-center gap-2">
-        <span className="truncate text-[13px] font-medium text-text-dark">
+        <span className="truncate text-[13px] font-medium text-foreground">
           {title || '分镜脚本'}
         </span>
       </div>
@@ -783,7 +783,7 @@ function ScriptResultHeader({ title, onFullscreen }: ScriptResultHeaderProps) {
         {/* 「脚本视图」目前只有一种视图，先放占位下拉，后续接其它视图（卡片视图等）。 */}
         <button
           type="button"
-          className="inline-flex h-6 items-center gap-1 rounded border border-[rgba(255,255,255,0.18)] bg-bg-dark/60 px-2 text-[11px] text-text-dark hover:border-[rgba(255,255,255,0.32)]"
+          className="inline-flex h-6 items-center gap-1 rounded border border-border bg-muted px-2 text-[11px] text-foreground hover:border-foreground/30"
           onClick={(event) => event.stopPropagation()}
         >
           脚本视图
@@ -791,7 +791,7 @@ function ScriptResultHeader({ title, onFullscreen }: ScriptResultHeaderProps) {
         </button>
         <button
           type="button"
-          className="inline-flex h-6 items-center gap-1 rounded border border-[rgba(255,255,255,0.18)] bg-bg-dark/60 px-2 text-[11px] text-text-dark hover:border-[rgba(255,255,255,0.32)]"
+          className="inline-flex h-6 items-center gap-1 rounded border border-border bg-muted px-2 text-[11px] text-foreground hover:border-foreground/30"
           onClick={(event) => {
             event.stopPropagation();
             onFullscreen();
@@ -817,9 +817,9 @@ const CELL_MAX_HEIGHT_PX = 196;
 
 function ScriptResultTable({ rows, onCellCommit }: ScriptResultTableProps) {
   return (
-    <div className="ui-scrollbar h-full w-full overflow-auto rounded-lg border border-[rgba(255,255,255,0.08)] bg-bg-dark/30">
+    <div className="ui-scrollbar h-full w-full overflow-auto rounded-lg border border-border bg-background">
       <table
-        className="border-collapse text-left text-[12px] text-text-dark"
+        className="border-collapse text-left text-[12px] text-foreground"
         style={{ minWidth: SCRIPT_TABLE_MIN_WIDTH, tableLayout: 'fixed' }}
       >
         <thead className="sticky top-0 z-10">
@@ -828,7 +828,7 @@ function ScriptResultTable({ rows, onCellCommit }: ScriptResultTableProps) {
               <th
                 key={col.key}
                 style={{ width: col.widthPx, minWidth: col.widthPx }}
-                className={`border-b border-r border-b-[rgba(255,255,255,0.14)] border-r-[rgba(255,255,255,0.06)] bg-bg-dark/95 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-text-muted/90 backdrop-blur last:border-r-0 ${
+                className={`border-b border-r border-border bg-muted px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground backdrop-blur last:border-r-0 ${
                   NUMERIC_COLUMN_KEYS.has(col.key) ? 'text-center' : ''
                 }`}
               >
@@ -842,7 +842,7 @@ function ScriptResultTable({ rows, onCellCommit }: ScriptResultTableProps) {
             <tr
               key={idx}
               className={`align-top transition-colors hover:bg-[rgb(var(--accent-rgb)/0.06)] ${
-                idx % 2 === 1 ? 'bg-white/[0.02]' : ''
+                idx % 2 === 1 ? 'bg-muted' : ''
               }`}
             >
               {SCRIPT_COLUMNS.map((col) => {
@@ -851,8 +851,8 @@ function ScriptResultTable({ rows, onCellCommit }: ScriptResultTableProps) {
                   <td
                     key={col.key}
                     style={{ width: col.widthPx, minWidth: col.widthPx }}
-                    className={`border-b border-r border-[rgba(255,255,255,0.05)] px-3 py-2 align-top last:border-r-0 ${
-                      numeric ? 'text-center tabular-nums text-text-dark/90' : ''
+                    className={`border-b border-r border-border px-3 py-2 align-top last:border-r-0 ${
+                      numeric ? 'text-center tabular-nums text-foreground/90' : ''
                     }`}
                   >
                     <div
@@ -898,7 +898,7 @@ function ScriptResultCell({ row, col, onCommit }: ScriptResultCellProps) {
       typeof raw === 'string' && isRenderableImageSrc(raw) ? raw : null;
     if (!url) {
       return (
-        <div className="flex h-14 w-14 items-center justify-center rounded border border-dashed border-[rgba(255,255,255,0.14)] text-text-muted/50">
+        <div className="flex h-14 w-14 items-center justify-center rounded border border-dashed border-border bg-muted text-muted-foreground">
           <ImageIcon className="h-4 w-4" />
         </div>
       );
@@ -907,7 +907,7 @@ function ScriptResultCell({ row, col, onCommit }: ScriptResultCellProps) {
       <img
         src={resolveImageDisplayUrl(url)}
         alt=""
-        className="h-14 w-14 rounded border border-[rgba(255,255,255,0.08)] object-cover"
+        className="h-14 w-14 rounded border border-border object-cover"
         draggable={false}
       />
     );
@@ -923,7 +923,7 @@ function ScriptResultCell({ row, col, onCommit }: ScriptResultCellProps) {
   if (!onCommit) {
     // 没传 onCommit 视为只读，保留旧渲染。
     if (initialText.length === 0) {
-      return <span className="text-text-muted/50">-</span>;
+      return <span className="text-text-muted">-</span>;
     }
     return (
       <span className="block whitespace-pre-wrap break-words leading-snug">{initialText}</span>
@@ -1052,7 +1052,7 @@ function ScriptOperationsPanel({
       </div>
 
       {data.generationError && !isGenerating && (
-        <div className="px-3 pb-1 text-[11px] text-red-400 break-words [overflow-wrap:anywhere]">{data.generationError}</div>
+        <div className="px-3 pb-1 text-[11px] text-red-700 break-words [overflow-wrap:anywhere] dark:text-red-300">{data.generationError}</div>
       )}
 
       <div className="flex shrink-0 items-center justify-end gap-2 px-3 pb-3 pt-1">
@@ -1095,7 +1095,7 @@ function ScriptOperationsPanel({
       </div>
 
       {hasCompletedHistoryRecords(historyRecords) && (
-        <div className="border-t border-white/[0.04] px-3 py-2">
+        <div className="border-t border-border px-3 py-2">
           <NodeGenerationHistory
             records={historyRecords}
             isLoading={historyLoading}
@@ -1211,7 +1211,7 @@ function ScriptReferenceChip({ reference, index }: ScriptReferenceChipProps) {
         type="button"
         onMouseEnter={showPreview}
         onMouseLeave={hidePreview}
-        className="nodrag relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-[7px] border border-white/10 bg-white/[0.04] transition-colors hover:border-white/30"
+        className="nodrag relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-[7px] border border-border bg-muted transition-colors hover:border-foreground/30"
         title={titleText}
       >
         {chipBody}
@@ -1227,7 +1227,7 @@ function ScriptReferenceChip({ reference, index }: ScriptReferenceChipProps) {
             className="pointer-events-none fixed z-[400] -translate-y-full"
             style={{ left: previewPos.left, top: previewPos.top, width: PREVIEW_W }}
           >
-            <div className="overflow-hidden rounded-xl border border-white/15 bg-surface-dark/95 shadow-2xl backdrop-blur-sm">
+            <div className="overflow-hidden rounded-xl border border-border bg-popover/95 shadow-2xl backdrop-blur-sm">
               {reference.kind === 'video' && reference.videoUrl ? (
                 <video
                   src={resolveImageDisplayUrl(reference.videoUrl)}

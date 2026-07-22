@@ -5,4 +5,4 @@
  * surface, a translucent white border, and restrained hover/press feedback.
  */
 export const SUBTLE_HEADER_ACTION_BUTTON_CLASS =
-  "h-8 gap-1.5 rounded-[8px] border-white/10 bg-transparent px-3 text-xs font-normal shadow-none transition-[background-color,border-color,transform] hover:border-white/15 hover:bg-white/[0.04] active:scale-95 dark:border-white/10 dark:bg-transparent dark:hover:border-white/15 dark:hover:bg-white/[0.04]";
+  "h-8 gap-1.5 rounded-[8px] border-border bg-transparent px-3 text-xs font-normal shadow-none transition-[background-color,border-color,transform] hover:border-foreground/25 hover:bg-muted active:scale-95";

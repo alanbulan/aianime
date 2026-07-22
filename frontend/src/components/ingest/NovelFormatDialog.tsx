@@ -61,19 +61,19 @@ export function NovelFormatDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl rounded-lg bg-black sm:max-w-4xl">
+      <DialogContent className="max-w-4xl rounded-lg border border-border bg-popover text-popover-foreground sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>{t("ingest.novelFormat.title")}</DialogTitle>
         </DialogHeader>
 
         {/* 滚动条做细做淡：长度由内容/视口比例决定，改不动，只能让它别抢戏。 */}
-        <ScrollArea className="max-h-[58vh] [&_[data-slot=scroll-area-scrollbar]]:w-1.5 [&_[data-slot=scroll-area-thumb]]:bg-white/15">
+        <ScrollArea className="max-h-[58vh] [&_[data-slot=scroll-area-scrollbar]]:w-1.5 [&_[data-slot=scroll-area-thumb]]:bg-muted-foreground/35">
           <div className="space-y-5 pr-3">
             <section className="space-y-2">
               <h3 className="text-xs font-medium text-muted-foreground">
                 {t("ingest.novelFormat.specLabel")}
               </h3>
-              <pre className="whitespace-pre-wrap rounded-md border border-white/10 bg-white/[0.03] px-3.5 py-3 text-[13px] leading-7 text-foreground/90">
+              <pre className="whitespace-pre-wrap rounded-md border border-border bg-muted px-3.5 py-3 text-[13px] leading-7 text-foreground/90">
                 {DRAMA_FORMAT_SPEC}
               </pre>
             </section>
@@ -82,7 +82,7 @@ export function NovelFormatDialog({
               <h3 className="text-xs font-medium text-muted-foreground">
                 {t("ingest.novelFormat.exampleLabel")}
               </h3>
-              <pre className="whitespace-pre-wrap rounded-md border border-white/10 bg-white/[0.03] px-3.5 py-3 text-[13px] leading-7 text-foreground/70">
+              <pre className="whitespace-pre-wrap rounded-md border border-border bg-muted px-3.5 py-3 text-[13px] leading-7 text-foreground/80">
                 {DRAMA_FORMAT_EXAMPLE}
               </pre>
             </section>

@@ -14,9 +14,9 @@ const COLUMN_WIDTH = 136;
 export const CAMERA_PICKER_POPOVER_WIDTH = COLUMN_WIDTH * 4 + 108;
 const CAMERA_PICKER_PANEL_CLASS =
   `nodrag nowheel flex flex-col ${NODE_FLOATING_PANEL_SURFACE_CLASS}`;
-const CAMERA_PICKER_LABEL_CLASS = 'text-[11px] font-medium text-text-dark/72';
+const CAMERA_PICKER_LABEL_CLASS = 'text-[11px] font-medium text-foreground/72';
 const CAMERA_PICKER_ARROW_CLASS =
-  'flex h-7 w-full items-center justify-center text-text-dark/72 transition-colors hover:text-text-dark disabled:cursor-not-allowed disabled:opacity-100';
+  'flex h-7 w-full items-center justify-center text-foreground/72 transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-100';
 
 interface CameraPickerPopoverProps {
   selection: ImageGenCameraSelection | null;
@@ -155,11 +155,11 @@ export function CameraPickerPopover({
       onClick={(event) => event.stopPropagation()}
     >
       <div className="flex h-11 items-center justify-between px-4">
-        <span className="text-sm font-medium text-text-dark">摄像机</span>
+        <span className="text-sm font-medium text-foreground">摄像机</span>
         <button
           type="button"
           onClick={onClose}
-          className="flex size-6 items-center justify-center rounded-md text-text-muted/90 transition-colors hover:bg-white/[0.08] hover:text-text-dark"
+          className="flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           aria-label="关闭"
         >
           <X className="size-3.5" />
@@ -228,7 +228,7 @@ export function CameraPickerPopover({
         <button
           type="button"
           onClick={() => onConfirm(null)}
-          className="h-8 rounded-md px-3 text-[12px] font-medium text-text-dark/78 transition-colors hover:bg-white/[0.08] hover:text-text-dark"
+          className="h-8 rounded-md px-3 text-[12px] font-medium text-foreground/78 transition-colors hover:bg-muted hover:text-foreground"
         >
           清除
         </button>
@@ -236,7 +236,7 @@ export function CameraPickerPopover({
           type="button"
           onClick={handleUse}
           disabled={!options}
-          className="h-8 min-w-[50px] rounded-md bg-primary px-3 text-[13px] text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-text-muted"
+          className="h-8 min-w-[50px] rounded-md bg-primary px-3 text-[13px] text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
         >
           使用
         </button>
@@ -294,7 +294,7 @@ function Column({
 
       <div className="relative w-full overflow-hidden" style={{ height: VIEWPORT_HEIGHT }}>
         <div
-          className="pointer-events-none absolute inset-x-3 z-20 rounded-[12px] border border-white/12"
+          className="pointer-events-none absolute inset-x-3 z-20 rounded-[12px] border border-border"
           style={{
             top: HIGHLIGHT_TOP,
             height: ITEM_HEIGHT,
@@ -330,7 +330,7 @@ function Column({
                   />
                 ) : (
                   <span
-                    className={`tabular-nums font-semibold leading-none text-text-dark transition-all duration-200 ${
+                    className={`tabular-nums font-semibold leading-none text-foreground transition-all duration-200 ${
                       isSelected ? 'text-[32px] opacity-100' : 'text-2xl opacity-50'
                     }`}
                   >
@@ -403,7 +403,7 @@ function Thumbnail({ src, label, kind, isSelected }: ThumbnailProps) {
 
   return (
     <div
-      className={`flex items-center justify-center rounded bg-white/[0.07] text-text-muted transition-opacity duration-100 ${sizeClass}`}
+      className={`flex items-center justify-center rounded bg-muted text-muted-foreground transition-opacity duration-100 ${sizeClass}`}
       title={label}
     >
       <FallbackIcon className={isSelected ? 'size-5' : 'size-4'} />

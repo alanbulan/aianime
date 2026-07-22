@@ -216,11 +216,11 @@ function MarkdownMessageText({ text }: { text: string }) {
           <code className="rounded bg-muted px-1 py-0.5 font-mono text-[0.92em]">{children}</code>
         ),
         pre: ({ children }) => (
-          <pre className="my-2 max-w-full overflow-x-auto rounded-md border border-border/70 bg-muted/35 p-2 text-xs leading-5">
+          <pre className="my-2 max-w-full overflow-x-auto rounded-md border border-border bg-muted p-2 text-xs leading-5">
             {children}
           </pre>
         ),
-        hr: () => <hr className="my-4 border-0 border-t border-white/[0.08]" />,
+        hr: () => <hr className="my-4 border-0 border-t border-border" />,
         blockquote: ({ children }) => (
           <blockquote className="my-2 border-l-2 border-border pl-3 text-muted-foreground">{children}</blockquote>
         ),
@@ -296,7 +296,7 @@ function HighlightedErrorText({ text }: { text: string }) {
       nodes.push(<MessageText key={`normal-${index}`} text={text.slice(cursor, start)} markdown />);
     }
     nodes.push(
-      <span key={`error-${index}`} className="text-red-300">
+      <span key={`error-${index}`} className="text-red-700 dark:text-red-300">
         {text.slice(start, end)}
       </span>,
     );
@@ -314,7 +314,7 @@ function HighlightedCompletionText({ text }: { text: string }) {
   const end = match[0].length;
   return (
     <div className="break-words leading-relaxed whitespace-pre-wrap">
-      <span className="text-emerald-300">{text.slice(0, end)}</span>
+      <span className="text-emerald-700 dark:text-emerald-300">{text.slice(0, end)}</span>
       <span>{text.slice(end)}</span>
     </div>
   );
@@ -357,7 +357,7 @@ function ChatAvatarFrame({
         isAssistant
           ? "border-transparent bg-transparent text-muted-foreground shadow-none"
           : isTool
-            ? "border-amber-500/30 bg-amber-500/10 text-amber-500"
+            ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
             : "border-primary/20 bg-primary text-primary-foreground",
       )}
       aria-hidden="true"
@@ -670,8 +670,8 @@ function KeyframeVideoPreviewCard({ item }: { item: KeyframeVideoPreviewItem }) 
   return (
     <>
       <div style={{ perspective: 800, ...cardStyle }} className="shrink-0">
-        <div className="relative h-full w-full overflow-hidden rounded-2xl bg-white/5 p-[1.5px]">
-          <div className="relative z-10 h-full w-full overflow-hidden rounded-[14px] bg-zinc-950">
+        <div className="relative h-full w-full overflow-hidden rounded-2xl bg-border p-[1.5px]">
+          <div className="relative z-10 h-full w-full overflow-hidden rounded-[14px] bg-[#0b0d10]">
             <button
               type="button"
               className={cn("relative h-full w-full cursor-pointer text-left", !playable && "cursor-default")}
@@ -764,8 +764,8 @@ function UnifiedMediaCard({
   return (
     <>
       <div className="ai-anime-unified-media-card">
-        <div className="relative h-full w-full overflow-hidden rounded-2xl bg-white/5 p-[1.5px]">
-          <div className="relative z-10 h-full w-full overflow-hidden rounded-[14px] bg-zinc-950">
+        <div className="relative h-full w-full overflow-hidden rounded-2xl bg-border p-[1.5px]">
+          <div className="relative z-10 h-full w-full overflow-hidden rounded-[14px] bg-[#0b0d10]">
             {item.kind === "audio" ? (
               <div className="relative flex h-full w-full flex-col justify-center gap-4 px-3 pb-16 pt-5">
                 <span className="mx-auto flex size-14 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white shadow-[0_12px_30px_rgba(0,0,0,0.3)]">
@@ -962,7 +962,7 @@ function JsonNode({
         ? String((value as Record<string, unknown>).title)
         : name;
     return (
-      <div className={cn("rounded-md border border-border/70 bg-background/45 p-2", depth > 0 && "ml-2")}>
+      <div className={cn("rounded-md border border-border bg-muted p-2", depth > 0 && "ml-2")}>
         {objectTitle && <div className="mb-1 text-xs font-semibold text-foreground">{objectTitle}</div>}
         <div className="space-y-1">
           {entries.map(([key, item]) => (
@@ -1005,7 +1005,7 @@ function StructuredRenderer({
         return (
           <section
             key={block.id}
-            className="w-full min-w-0 max-w-full rounded-lg border border-border/70 bg-background/35 p-2 [contain:layout]"
+            className="w-full min-w-0 max-w-full rounded-lg border border-border bg-muted p-2 [contain:layout]"
           >
             <div className="mb-2 flex items-center justify-between gap-2">
               <Badge variant="outline" className="h-5 rounded-md px-1.5 text-[10px] uppercase">
@@ -1055,7 +1055,7 @@ function SpecMediaDetailModal({
     }}>
       <DialogContent
         showCloseButton={false}
-        className="fixed inset-0 left-0 top-0 flex h-screen w-screen max-w-none translate-x-0 translate-y-0 items-center justify-center rounded-none border-none bg-black/25 p-0 text-white backdrop-blur-xl sm:max-w-none"
+        className="fixed inset-0 left-0 top-0 flex h-screen w-screen max-w-none translate-x-0 translate-y-0 items-center justify-center rounded-none border-none bg-[#0b0d10]/95 p-0 text-white backdrop-blur-xl sm:max-w-none"
       >
         <DialogTitle className="sr-only">{detail?.title || t("aiAssistant.mediaDetail")}</DialogTitle>
         <div className="absolute right-6 top-5 z-50 flex items-center gap-5">
@@ -1217,7 +1217,7 @@ const MessageBubble = memo(function MessageBubble({
     window.speechSynthesis.speak(new SpeechSynthesisUtterance(message.text));
   };
   const userActionButtonClass =
-    "size-7 rounded-md text-foreground/70 opacity-100 hover:bg-white/[0.1] hover:text-foreground";
+    "size-7 rounded-md text-foreground/70 opacity-100 hover:bg-muted hover:text-foreground";
   const userActionIconClass = "size-3.5 stroke-[2.25]";
   const actions = (
     <div
@@ -1230,7 +1230,7 @@ const MessageBubble = memo(function MessageBubble({
       <Button
         variant="ghost"
         size="icon-xs"
-        className={cn("opacity-70 hover:bg-white/[0.06] hover:text-foreground hover:opacity-100", isUser && userActionButtonClass)}
+        className={cn("opacity-70 hover:bg-muted hover:text-foreground hover:opacity-100", isUser && userActionButtonClass)}
         onClick={copyText}
         aria-label="Copy"
       >
@@ -1239,7 +1239,7 @@ const MessageBubble = memo(function MessageBubble({
       <Button
         variant="ghost"
         size="icon-xs"
-        className={cn("opacity-70 hover:bg-white/[0.06] hover:text-foreground hover:opacity-100", isUser && userActionButtonClass)}
+        className={cn("opacity-70 hover:bg-muted hover:text-foreground hover:opacity-100", isUser && userActionButtonClass)}
         onClick={speak}
         aria-label="Speak"
       >
@@ -1248,7 +1248,7 @@ const MessageBubble = memo(function MessageBubble({
       <Button
         variant="ghost"
         size="icon-xs"
-        className={cn("opacity-70 hover:bg-white/[0.06] hover:text-foreground hover:opacity-100", isUser && userActionButtonClass)}
+        className={cn("opacity-70 hover:bg-muted hover:text-foreground hover:opacity-100", isUser && userActionButtonClass)}
         onClick={() => onOpenDetail(message)}
         aria-label="Details"
       >
@@ -1257,7 +1257,7 @@ const MessageBubble = memo(function MessageBubble({
       <Button
         variant="ghost"
         size="icon-xs"
-        className={cn("opacity-70 hover:bg-white/[0.06] hover:text-foreground hover:opacity-100", isUser && userActionButtonClass)}
+        className={cn("opacity-70 hover:bg-muted hover:text-foreground hover:opacity-100", isUser && userActionButtonClass)}
         onClick={() => onTogglePin(message.id)}
         aria-label={pinned ? "Unpin" : "Pin"}
       >
@@ -1266,7 +1266,7 @@ const MessageBubble = memo(function MessageBubble({
       <Button
         variant="ghost"
         size="icon-xs"
-        className={cn("opacity-70 hover:bg-white/[0.06] hover:text-foreground hover:opacity-100", isUser && userActionButtonClass)}
+        className={cn("opacity-70 hover:bg-muted hover:text-foreground hover:opacity-100", isUser && userActionButtonClass)}
         onClick={() => onDelete(message.id)}
         aria-label="Delete"
       >
@@ -1282,7 +1282,7 @@ const MessageBubble = memo(function MessageBubble({
           <div className="group/message-actions">
             <div
               className={cn(
-                "relative rounded-[14px] border-0 bg-white/[0.12] px-4 py-2.5 text-sm leading-6 text-foreground shadow-none",
+                "relative rounded-[14px] border border-border bg-muted px-4 py-2.5 text-sm leading-6 text-foreground shadow-none",
               )}
             >
               {actions}
@@ -1318,7 +1318,7 @@ const MessageBubble = memo(function MessageBubble({
               ? "max-w-[86%] rounded-[14px] border border-amber-500/20 bg-amber-500/8 px-4 pb-3 pt-2 text-card-foreground"
               : isUser
                 ? "max-w-[86%] rounded-[14px] bg-muted px-4 pb-3 pt-2 text-foreground"
-                : "max-w-full rounded-[14px] border border-white/[0.08] bg-transparent px-4 pb-3 pt-2 text-foreground",
+                : "max-w-full rounded-[14px] border border-border bg-card px-4 pb-3 pt-2 text-foreground",
           )}
         >
         <div className="pointer-events-none absolute right-1.5 top-1.5 z-10 flex translate-y-0.5 items-center gap-0.5 rounded-full border border-border/70 bg-background/85 px-1 py-0.5 opacity-0 shadow-sm backdrop-blur transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
@@ -1659,7 +1659,7 @@ function AttachmentChip({ attachment }: { attachment: ChatAttachment }) {
   const isImage = isImageAttachment(attachment);
 
   return (
-    <span className="inline-flex max-w-44 items-center gap-1.5 rounded-md border border-border/70 bg-background/45 px-2 py-1 text-xs">
+    <span className="inline-flex max-w-44 items-center gap-1.5 rounded-md border border-border bg-muted px-2 py-1 text-xs">
       {isImage ? <Image className="size-3.5" /> : <File className="size-3.5" />}
       <span className="truncate">{attachment.fileName || attachment.mimeType || "Attachment"}</span>
     </span>
@@ -1704,7 +1704,7 @@ function ApprovalCard({
   return (
     <div className="border-b border-amber-500/20 bg-amber-500/8 px-3 py-3">
       <div className="mb-2 flex items-start gap-2">
-        <ShieldAlert className="mt-0.5 size-4 shrink-0 text-amber-500" />
+        <ShieldAlert className="mt-0.5 size-4 shrink-0 text-amber-700 dark:text-amber-300" />
         <div className="min-w-0 flex-1">
           <div className="text-sm font-medium text-foreground">{approval.title}</div>
           {remaining !== null && (
@@ -1721,7 +1721,7 @@ function ApprovalCard({
         <p className="mb-2 text-xs leading-5 text-muted-foreground">{approval.description}</p>
       )}
       {approval.command && (
-        <pre className="max-h-32 overflow-auto rounded-md border border-border/70 bg-background/60 px-2 py-1.5 text-xs whitespace-pre-wrap break-all">
+        <pre className="max-h-32 overflow-auto rounded-md border border-border bg-muted px-2 py-1.5 text-xs whitespace-pre-wrap break-all">
           {approval.command}
         </pre>
       )}
@@ -1905,7 +1905,7 @@ function SearchBar({
   }, []);
 
   return (
-    <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-4 py-2">
+    <div className="flex items-center gap-2 border-b border-border bg-muted px-4 py-2">
       <Search className="size-4 shrink-0 text-muted-foreground" />
       <Input
         ref={inputRef}
@@ -1942,7 +1942,7 @@ function PinnedPanel({
   if (messages.length === 0) return null;
 
   return (
-    <div className="border-b border-border/65 bg-muted/20 px-3 py-2">
+    <div className="border-b border-border bg-muted px-3 py-2">
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 text-xs font-medium">
           <Pin className="size-3.5" />
@@ -1958,7 +1958,7 @@ function PinnedPanel({
             key={message.id}
             type="button"
             onClick={() => onTogglePin(message.id)}
-            className="min-w-44 max-w-56 rounded-md border border-border/70 bg-background/70 px-2 py-1.5 text-left text-xs text-muted-foreground hover:text-foreground"
+            className="min-w-44 max-w-56 rounded-md border border-border bg-card px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
           >
             <div className="line-clamp-2">{message.text}</div>
           </button>
@@ -1999,7 +1999,7 @@ function MessageDetailPanel({
           </span>
         </div>
         {displayText && (
-          <pre className="mb-3 whitespace-pre-wrap break-words rounded-md border border-border/70 bg-muted/30 p-2 text-xs leading-5">
+          <pre className="mb-3 whitespace-pre-wrap break-words rounded-md border border-border bg-muted p-2 text-xs leading-5">
             {displayText}
           </pre>
         )}
@@ -2007,7 +2007,7 @@ function MessageDetailPanel({
         {message.raw !== undefined && (
           <details className="mt-3">
             <summary className="cursor-pointer text-xs text-muted-foreground">{t("aiAssistant.raw")}</summary>
-            <pre className="mt-2 whitespace-pre-wrap break-words rounded-md border border-border/70 bg-muted/30 p-2 text-[11px] leading-5">
+            <pre className="mt-2 whitespace-pre-wrap break-words rounded-md border border-border bg-muted p-2 text-[11px] leading-5">
               {JSON.stringify(message.raw, null, 2)}
             </pre>
           </details>
@@ -3167,7 +3167,7 @@ export function SuperChatPanel({
       )}
       <section className="relative z-10 flex min-w-0 flex-1 flex-col">
         {isFreezoneLayout && (
-          <div className="flex min-h-9 shrink-0 items-center gap-2 border-b border-white/[0.06] bg-black/[0.16] px-3 py-1 backdrop-blur-xl">
+          <div className="flex min-h-9 shrink-0 items-center gap-2 border-b border-border bg-card px-3 py-1">
             <div className="flex min-w-0 flex-1 items-center gap-3">
               <div className="truncate text-sm font-medium text-foreground">
                 {t("freezone.chat.title")}
@@ -3203,7 +3203,7 @@ export function SuperChatPanel({
                 onClick={onRequestClose}
                 aria-label={t("freezone.chat.close")}
                 title={t("freezone.chat.close")}
-                className="text-muted-foreground hover:bg-white/[0.08] hover:text-foreground"
+                className="text-muted-foreground hover:bg-muted hover:text-foreground"
               >
                 <X className="size-4" />
               </Button>
@@ -3313,7 +3313,7 @@ export function SuperChatPanel({
               size="icon"
               variant="secondary"
               className={cn(
-                "absolute bottom-4 left-1/2 z-30 h-9 w-9 -translate-x-1/2 rounded-full border border-white/12 bg-background/88 text-foreground shadow-lg backdrop-blur transition hover:bg-background",
+                "absolute bottom-4 left-1/2 z-30 h-9 w-9 -translate-x-1/2 rounded-full border border-border bg-card text-foreground shadow-lg transition hover:bg-muted",
                 isFreezoneLayout && "bottom-3",
               )}
               title="回到底部"
@@ -3338,10 +3338,10 @@ export function SuperChatPanel({
           <div
             ref={composerShellRef}
             className={cn(
-              "relative mx-auto w-full max-w-[760px] overflow-hidden rounded-2xl border border-white/10 bg-white/[0.022] shadow-none backdrop-blur-xl",
+              "relative mx-auto w-full max-w-[760px] overflow-hidden rounded-2xl border border-border bg-card shadow-sm",
               dragFileState === "valid" && "border-primary/70 bg-primary/5",
               dragFileState === "invalid" && "border-destructive/80 bg-destructive/10",
-              isFreezoneLayout && "max-w-none rounded-xl bg-white/[0.035]",
+              isFreezoneLayout && "max-w-none rounded-xl bg-card",
             )}
             onDragEnter={handleComposerDragEnter}
             onDragOver={handleComposerDragOver}
@@ -3374,7 +3374,7 @@ export function SuperChatPanel({
                 {attachments.map((attachment) => (
                   <span
                     key={attachment.id}
-                    className="inline-flex max-w-48 items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs"
+                    className="inline-flex max-w-48 items-center gap-1.5 rounded-md border border-border bg-muted px-2 py-1 text-xs"
                   >
                     {attachment.mimeType?.startsWith("image/") ? <Image className="size-3.5" /> : <File className="size-3.5" />}
                     <span className="truncate">{attachment.fileName}</span>
@@ -3391,8 +3391,8 @@ export function SuperChatPanel({
               </div>
             )}
             {queuedMessages.length > 0 && (
-              <div className="border-t border-white/[0.05] px-4 py-2">
-                <div className="mb-1.5 text-xs font-normal text-foreground/40">
+              <div className="border-t border-border px-4 py-2">
+                <div className="mb-1.5 text-xs font-normal text-muted-foreground">
                   {t("aiAssistant.queuedCount", { count: queuedMessages.length })}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
@@ -3402,20 +3402,20 @@ export function SuperChatPanel({
                       <div
                         key={message.id}
                         className={cn(
-                          "inline-flex max-w-full items-center overflow-hidden rounded-[6px] border border-white/[0.08] bg-white/[0.035] text-xs text-foreground/70 transition-colors hover:bg-white/[0.055] focus-within:border-white/[0.18]",
+                          "inline-flex max-w-full items-center overflow-hidden rounded-[6px] border border-border bg-muted text-xs text-foreground/70 transition-colors hover:bg-accent focus-within:border-primary/45",
                           showSelectedState && "border-primary/35 bg-primary/[0.07] text-foreground/90 focus-within:border-primary/45",
                         )}
                       >
                         <button
                           type="button"
                           onClick={() => setSelectedQueuedMessageId(message.id)}
-                          className="flex min-w-0 items-center gap-1.5 px-2 py-1 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/25"
+                          className="flex min-w-0 items-center gap-1.5 px-2 py-1 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/50"
                           aria-label={t("aiAssistant.selectQueuedMessage")}
                           aria-pressed={showSelectedState}
                         >
                           <span className="max-w-56 truncate">{message.text}</span>
                           {message.attachments.length > 0 && (
-                            <span className="shrink-0 text-foreground/45">
+                            <span className="shrink-0 text-muted-foreground">
                               {t("aiAssistant.queuedAttachments", { count: message.attachments.length })}
                             </span>
                           )}
@@ -3425,7 +3425,7 @@ export function SuperChatPanel({
                           onClick={() => {
                             setQueuedMessages((current) => current.filter((item) => item.id !== message.id));
                           }}
-                          className="mr-0.5 flex size-5 shrink-0 items-center justify-center rounded-[4px] text-foreground/35 transition-colors hover:bg-white/[0.06] hover:text-foreground/75 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/25"
+                          className="mr-0.5 flex size-5 shrink-0 items-center justify-center rounded-[4px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                           aria-label={t("aiAssistant.removeQueuedMessage")}
                         >
                           <X className="size-3" />
@@ -3512,7 +3512,7 @@ export function SuperChatPanel({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={cn("size-8 rounded-full text-white/85 hover:bg-white/[0.08] hover:text-white", recording && "text-primary")}
+                  className={cn("size-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground", recording && "text-primary")}
                   disabled={!chat.connected}
                   onClick={toggleSpeech}
                   aria-label={recording ? t("aiAssistant.stopVoice") : t("aiAssistant.voiceInput")}
@@ -3524,10 +3524,10 @@ export function SuperChatPanel({
                   type="button"
                   size="icon"
                   className={cn(
-                    "size-8 rounded-full shadow-none disabled:bg-white/30 disabled:text-black/45",
+                    "size-8 rounded-full shadow-none disabled:bg-muted disabled:text-muted-foreground/45",
                     chat.busy
-                      ? "bg-white/10 text-white hover:bg-white/15"
-                      : "bg-white text-black hover:bg-white/90",
+                      ? "bg-muted text-foreground hover:bg-accent"
+                      : "bg-foreground text-background hover:bg-foreground/90",
                   )}
                   disabled={chat.busy ? false : !canSend}
                   onClick={chat.busy ? chat.abort : submit}
@@ -3544,7 +3544,7 @@ export function SuperChatPanel({
             </div>
           </div>
           {!isFreezoneLayout && (
-            <p className="mx-auto mt-[13px] w-full max-w-[680px] text-center text-[11px] leading-4 text-white/25">
+            <p className="mx-auto mt-[13px] w-full max-w-[680px] text-center text-[11px] leading-4 text-muted-foreground/80">
               {t("aiAssistant.disclaimer")}
             </p>
           )}

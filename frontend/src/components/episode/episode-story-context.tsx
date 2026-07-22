@@ -34,7 +34,7 @@ export function EpisodeStoryContext({
   return (
     <section
       className={cn(
-        "border-y border-border/20 px-5 py-5",
+        "border-y border-border px-5 py-5",
         className,
       )}
     >
@@ -43,7 +43,7 @@ export function EpisodeStoryContext({
           {summary ? (
             <p className="whitespace-pre-wrap text-foreground/85">{summary}</p>
           ) : (
-            <p className="italic text-muted-foreground/60">{labels.noSummary}</p>
+            <p className="italic text-muted-foreground">{labels.noSummary}</p>
           )}
         </StoryBlock>
 
@@ -58,7 +58,7 @@ export function EpisodeStoryContext({
               ))}
             </ul>
           ) : (
-            <p className="italic text-muted-foreground/60">{labels.noKeyEvents}</p>
+            <p className="italic text-muted-foreground">{labels.noKeyEvents}</p>
           )}
         </StoryBlock>
 
@@ -66,7 +66,7 @@ export function EpisodeStoryContext({
           {hook ? (
             <p className="whitespace-pre-wrap text-foreground/85">{hook}</p>
           ) : (
-            <p className="italic text-muted-foreground/60">
+            <p className="italic text-muted-foreground">
               {labels.noCliffhanger}
             </p>
           )}

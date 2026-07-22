@@ -84,22 +84,22 @@ const DEFAULT_PROVIDER_OPTION_CLASS_NAME =
 const DEFAULT_MODEL_OPTION_CLASS_NAME =
   'min-h-9 min-w-[128px] max-w-full justify-center px-3 py-2 text-center';
 const DEFAULT_ACTIVE_PROVIDER_OPTION_CLASS_NAME =
-  'border-accent/50 bg-accent/15 text-text-dark';
+  'border-primary/50 bg-primary/15 text-foreground';
 const DEFAULT_INACTIVE_PROVIDER_OPTION_CLASS_NAME =
-  'border-[rgba(255,255,255,0.12)] bg-bg-dark/65 text-text-muted hover:border-[rgba(255,255,255,0.2)]';
+  'border-border bg-muted text-muted-foreground hover:border-foreground/25';
 const DEFAULT_ACTIVE_MODEL_OPTION_CLASS_NAME =
-  'border-accent/50 bg-accent/15 text-text-dark shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]';
+  'border-primary/50 bg-primary/15 text-foreground shadow-sm';
 const DEFAULT_INACTIVE_MODEL_OPTION_CLASS_NAME =
-  'border-[rgba(255,255,255,0.12)] bg-bg-dark/65 text-text-muted hover:border-[rgba(255,255,255,0.2)] hover:bg-[rgba(255,255,255,0.05)]';
+  'border-border bg-muted text-muted-foreground hover:border-foreground/25 hover:bg-accent';
 const DEFAULT_OPTION_GROUP_CLASS_NAME =
-  'rounded-xl border border-[rgba(255,255,255,0.1)] bg-bg-dark/65 p-1';
-const DEFAULT_ACTIVE_PARAM_OPTION_CLASS_NAME = 'bg-surface-dark text-text-dark';
-const DEFAULT_INACTIVE_PARAM_OPTION_CLASS_NAME = 'text-text-muted hover:bg-bg-dark';
+  'rounded-xl border border-border bg-muted p-1';
+const DEFAULT_ACTIVE_PARAM_OPTION_CLASS_NAME = 'bg-card text-foreground shadow-sm';
+const DEFAULT_INACTIVE_PARAM_OPTION_CLASS_NAME = 'text-muted-foreground hover:bg-accent';
 const DEFAULT_EXTRA_PARAMS_GROUP_CLASS_NAME =
-  'space-y-2 rounded-xl border border-[rgba(255,255,255,0.1)] bg-bg-dark/65 p-3';
+  'space-y-2 rounded-xl border border-border bg-muted p-3';
 const DEFAULT_EXTRA_PARAM_ITEM_CLASS_NAME =
-  'space-y-2 rounded-lg border border-[rgba(255,255,255,0.08)] bg-black/10 p-2';
-const DEFAULT_EXTRA_PARAM_LABEL_CLASS_NAME = 'text-xs font-medium text-text-dark';
+  'space-y-2 rounded-lg border border-border bg-card p-2';
+const DEFAULT_EXTRA_PARAM_LABEL_CLASS_NAME = 'text-xs font-medium text-foreground';
 const DEFAULT_EXTRA_PARAM_FIELD_CLASS_NAME = 'h-9 text-sm';
 
 function NanoBananaIcon({ className = '' }: { className?: string }) {
@@ -733,7 +733,7 @@ export const ModelParamsControls = memo(({
                         )}
 
                         {definition.type === 'boolean' && (
-                          <label className="flex cursor-pointer items-center gap-2 text-sm text-text-dark">
+                          <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
                             <UiCheckbox
                               checked={Boolean(resolvedValue)}
                               onCheckedChange={(checked) =>
@@ -785,14 +785,14 @@ export const ModelParamsControls = memo(({
           <UiPanel className={OTHER_PARAMS_PANEL_CLASS_NAME}>
             <div className="space-y-3">
               {showWebSearchToggle && (
-                <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-[rgba(255,255,255,0.08)] bg-bg-dark/65 px-3 py-2">
+                <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-muted px-3 py-2">
                   <UiCheckbox
                     checked={webSearchEnabled}
                     onCheckedChange={(checked) => onWebSearchToggle?.(checked)}
                     className="mt-0.5"
                   />
                   <div className="min-w-0">
-                    <div className="text-xs font-medium text-text-dark">
+                    <div className="text-xs font-medium text-foreground">
                       {webSearchLabel ?? t('modelParams.enableWebSearch')}
                     </div>
                   </div>
@@ -818,10 +818,10 @@ export const ModelParamsControls = memo(({
                 return (
                   <div
                     key={definition.key}
-                    className="space-y-2 rounded-lg border border-[rgba(255,255,255,0.08)] bg-bg-dark/65 p-3"
+                    className="space-y-2 rounded-lg border border-border bg-muted p-3"
                   >
                     <div>
-                      <div className="text-xs font-medium text-text-dark">{translatedLabel}</div>
+                      <div className="text-xs font-medium text-foreground">{translatedLabel}</div>
                       {translatedDescription && (
                         <div className="mt-0.5 text-[11px] leading-4 text-text-muted">
                           {translatedDescription}

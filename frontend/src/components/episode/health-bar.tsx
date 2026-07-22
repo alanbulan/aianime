@@ -36,7 +36,7 @@ export function HealthBar({ project, episode }: EpisodeNavProps) {
   }));
 
   return (
-    <nav className="border-b border-border/30 bg-background px-9 py-3">
+    <nav className="border-b border-border bg-background px-9 py-3">
       <SlidingTabs
         items={items}
         value={activeTab.id}

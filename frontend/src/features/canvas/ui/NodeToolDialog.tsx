@@ -29,13 +29,13 @@ import { AnnotateToolEditor } from './tool-editors/AnnotateToolEditor';
 import { SplitStoryboardToolEditor } from './tool-editors/SplitStoryboardToolEditor';
 
 const VISUAL_TOOL_MODAL_CLASS =
-  'relative flex flex-col overflow-hidden rounded-[10px] border border-white/[0.12] bg-[#15161b]/96 shadow-[0_18px_48px_rgba(0,0,0,0.45)] backdrop-blur-md';
+  'relative flex flex-col overflow-hidden rounded-[10px] border border-border bg-popover/96 shadow-2xl backdrop-blur-md';
 const VISUAL_TOOL_HEADER_BUTTON_CLASS =
-  'inline-flex h-8 w-8 items-center justify-center rounded-md text-text-dark/62 transition-colors hover:bg-white/[0.06] hover:text-text-dark disabled:opacity-30';
+  'inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-30';
 const VISUAL_TOOL_CANCEL_CLASS =
-  'inline-flex h-8 items-center px-2 text-sm font-medium text-text-dark/76 transition-colors hover:text-text-dark disabled:opacity-40';
+  'inline-flex h-8 items-center px-2 text-sm font-medium text-foreground/76 transition-colors hover:text-foreground disabled:opacity-40';
 const VISUAL_TOOL_CONFIRM_CLASS =
-  'inline-flex h-8 items-center justify-center rounded-[8px] bg-white px-4 text-sm font-medium text-bg-dark transition-colors hover:bg-white/90 disabled:cursor-not-allowed disabled:bg-white/5 disabled:text-text-muted/40';
+  'inline-flex h-8 items-center justify-center rounded-[8px] bg-foreground px-4 text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground/40';
 
 export function NodeToolDialog() {
   const { t } = useTranslation();
@@ -413,7 +413,7 @@ export function NodeToolDialog() {
           onClick={(event) => event.stopPropagation()}
         >
           <div className="flex h-14 shrink-0 items-center justify-between px-5">
-            <h2 className="flex min-w-0 items-baseline gap-2 text-base font-semibold text-text-dark">
+            <h2 className="flex min-w-0 items-baseline gap-2 text-base font-semibold text-popover-foreground">
               <span className="shrink-0">{`${resolveToolLabel(activePlugin?.type)}${t('toolDialog.suffix')}`}</span>
               {activePlugin?.editor === 'split' && (
                 <span className="truncate text-xs font-normal text-text-muted">
@@ -434,7 +434,7 @@ export function NodeToolDialog() {
 
           <div className={visualToolContentClassName}>
             {editorContent}
-            {error && <div className="mt-3 text-xs text-red-400">{error}</div>}
+            {error && <div className="mt-3 text-xs text-red-700 dark:text-red-300">{error}</div>}
           </div>
 
           <div className="flex h-14 shrink-0 items-center justify-end gap-3 px-5">
@@ -483,7 +483,7 @@ export function NodeToolDialog() {
     >
       <div className="space-y-3 max-h-[82vh] overflow-y-auto pr-1">
         {editorContent}
-        {error && <div className="text-xs text-red-400">{error}</div>}
+        {error && <div className="text-xs text-red-700 dark:text-red-300">{error}</div>}
       </div>
     </UiModal>
   );

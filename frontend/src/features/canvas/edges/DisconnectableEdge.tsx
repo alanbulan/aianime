@@ -214,11 +214,11 @@ export const DisconnectableEdge = memo(function DisconnectableEdge(props: EdgePr
 
   // 处理中的连线始终保持自己的 accent 高亮样式，不参与选中态调光。
   // hover/选中相连连线轻微点亮；常态灰色半透明；选中后无关连线再压暗一档。
-  const highlightStroke = 'rgba(205, 209, 216, 0.64)';
-  const bindingStroke = 'rgba(34,211,238,0.66)';
-  const bindingHighlightStroke = 'rgba(172, 226, 236, 0.72)';
-  const baseStroke = 'rgba(176, 176, 183, 0.45)';
-  const dimStroke = 'rgba(176, 176, 183, 0.22)';
+  const highlightStroke = 'rgb(var(--text-rgb) / 0.78)';
+  const bindingStroke = 'rgb(var(--accent-rgb) / 0.72)';
+  const bindingHighlightStroke = 'rgb(var(--accent-rgb) / 0.96)';
+  const baseStroke = 'rgb(var(--text-rgb) / 0.48)';
+  const dimStroke = 'rgb(var(--text-rgb) / 0.25)';
   const resolvedStroke = isProcessingEdge
     ? processingStroke
     : isConnectedToSelected || selected || isHovered
@@ -273,7 +273,7 @@ export const DisconnectableEdge = memo(function DisconnectableEdge(props: EdgePr
           cy={sourceY + sourceDotOffset.dy}
           r={PORT_DOT_RADIUS}
           fill={resolvedStroke}
-          stroke="rgba(9, 9, 9, 0.55)"
+          stroke="rgb(var(--bg-rgb) / 0.85)"
           strokeWidth={1}
           style={{ transition: `fill ${EDGE_ACTIVE_TRANSITION_MS}ms ease` }}
         />
@@ -282,7 +282,7 @@ export const DisconnectableEdge = memo(function DisconnectableEdge(props: EdgePr
           cy={targetY + targetDotOffset.dy}
           r={PORT_DOT_RADIUS}
           fill={resolvedStroke}
-          stroke="rgba(9, 9, 9, 0.55)"
+          stroke="rgb(var(--bg-rgb) / 0.85)"
           strokeWidth={1}
           style={{ transition: `fill ${EDGE_ACTIVE_TRANSITION_MS}ms ease` }}
         />
@@ -316,9 +316,9 @@ export const DisconnectableEdge = memo(function DisconnectableEdge(props: EdgePr
               x2="48"
               y2="0"
             >
-              <stop offset="0%" stopColor="white" stopOpacity="0" />
-              <stop offset="42%" stopColor="white" stopOpacity="0.28" />
-              <stop offset="100%" stopColor="white" stopOpacity="0.72" />
+              <stop offset="0%" stopColor="rgb(var(--text-rgb))" stopOpacity="0" />
+              <stop offset="42%" stopColor="rgb(var(--text-rgb))" stopOpacity="0.28" />
+              <stop offset="100%" stopColor="rgb(var(--text-rgb))" stopOpacity="0.72" />
             </linearGradient>
             <filter id={flowGlowId} x="-80%" y="-240%" width="260%" height="580%">
               <feGaussianBlur stdDeviation="14" />
@@ -386,7 +386,7 @@ export const DisconnectableEdge = memo(function DisconnectableEdge(props: EdgePr
           >
             <button
               type="button"
-              className="absolute left-1/2 top-0 flex h-10 w-10 -translate-x-1/2 items-center justify-center rounded-full border border-white/15 bg-[#17191d]/95 text-white/85 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_12px_28px_rgba(0,0,0,0.45)] backdrop-blur transition-[border-color,color,box-shadow] duration-150 hover:border-white/30 hover:text-white hover:shadow-[0_0_0_1px_rgba(255,255,255,0.12),0_0_22px_rgba(120,180,255,0.22),0_12px_30px_rgba(0,0,0,0.5)]"
+              className="absolute left-1/2 top-0 flex h-10 w-10 -translate-x-1/2 items-center justify-center rounded-full border border-border bg-popover/95 text-popover-foreground/85 shadow-xl backdrop-blur transition-[border-color,color,box-shadow] duration-150 hover:border-primary/45 hover:text-popover-foreground hover:shadow-[0_0_22px_rgb(var(--accent-rgb)/0.20)]"
               onClick={(event) => {
                 event.stopPropagation();
                 deleteEdge(id);

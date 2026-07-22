@@ -215,7 +215,7 @@ export function SceneAssetCard({
 
   return (
     <>
-      <Card size="sm" className="rounded-[10px] bg-white/[0.03] shadow-none">
+      <Card size="sm" className="rounded-[10px] border-border bg-card shadow-none">
         {/* Header: title + status chips inline, action icons on right */}
         <CardHeader className="gap-2">
           <div className="flex min-w-0 items-center justify-between gap-3">
@@ -447,11 +447,11 @@ export function SceneAssetCard({
 
           {/* 3D world section — full width below the image columns */}
           {canOpenStageViewer && (
-            <section className="rounded-[10px] bg-cyan-500/[0.055] p-3 md:col-span-2 xl:col-span-3">
+            <section className="rounded-[10px] border border-border bg-muted p-3 md:col-span-2 xl:col-span-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 space-y-1">
                   <div className="flex items-center gap-2 text-sm font-medium">
-                    <Package className="size-4 text-cyan-400" />
+                    <Package className="size-4 text-cyan-700 dark:text-cyan-300" />
                     {t("assets.scenes.stage.title")}
                   </div>
                 </div>

@@ -2112,10 +2112,10 @@ function ThreeDDirectorSurface({
       )}
     >
       {!panelHidden && (
-        <aside className="min-h-0 overflow-y-auto border-r border-white/[0.08] bg-[#191a1f]/94 px-4 pb-4 pt-0 text-[12px] backdrop-blur-sm">
-          <div className="sticky top-0 z-20 -mx-4 mb-2 flex items-center justify-between gap-3 bg-[#191a1f]/58 px-4 pb-3 pt-5 backdrop-blur-xl">
+        <aside className="min-h-0 overflow-y-auto border-r border-border bg-card/95 px-4 pb-4 pt-0 text-[12px] backdrop-blur-sm">
+          <div className="sticky top-0 z-20 -mx-4 mb-2 flex items-center justify-between gap-3 border-b border-border bg-card/95 px-4 pb-3 pt-5 backdrop-blur-xl">
             <div className="min-w-0">
-              <div className="truncate text-[15px] font-semibold leading-5 text-white">{t("viewer.threeD.directorWorld")}</div>
+              <div className="truncate text-[15px] font-semibold leading-5 text-foreground">{t("viewer.threeD.directorWorld")}</div>
             </div>
             <Button
               type="button"
@@ -2123,7 +2123,7 @@ function ThreeDDirectorSurface({
               size="icon"
               onClick={onClose}
               aria-label={t("viewer.threeD.close")}
-              className="h-6 w-6 shrink-0 rounded-full !bg-white/[0.10] text-white/56 transition-colors hover:!bg-white/[0.13] hover:text-white/72"
+              className="h-6 w-6 shrink-0 rounded-full !bg-muted text-muted-foreground transition-colors hover:!bg-accent hover:text-foreground"
             >
               <X className="size-3" />
             </Button>
@@ -2153,7 +2153,7 @@ function ThreeDDirectorSurface({
           </PanelSection>
 
         <PanelSection title={t("viewer.threeD.sourceCalibration.title")}>
-          <p className="text-[11px] leading-[1.7] text-white/42">
+          <p className="text-[11px] leading-[1.7] text-muted-foreground">
             {activeSourceType === "pano360"
               ? t("viewer.threeD.sourceCalibration.panoHint")
               : t("viewer.threeD.sourceCalibration.sogHint")}
@@ -2185,18 +2185,18 @@ function ThreeDDirectorSurface({
               type="button"
               size="sm"
               variant="ghost"
-              className="h-8 w-full justify-between rounded-[10px] pl-0 pr-3 text-[12px] text-white/72 hover:bg-white/[0.04] hover:text-white"
+              className="h-8 w-full justify-between rounded-[10px] pl-0 pr-3 text-[12px] text-foreground/75 hover:bg-muted hover:text-foreground"
               onClick={() => setSourceCalibrationAdvancedOpen((prev) => !prev)}
             >
               {t("viewer.threeD.sourceCalibration.advanced")}
-              <span className="text-[11px] text-white/44">
+              <span className="text-[11px] text-muted-foreground">
                 {sourceCalibrationAdvancedOpen
                   ? t("viewer.threeD.sourceCalibration.collapse")
                   : t("viewer.threeD.sourceCalibration.expand")}
               </span>
             </Button>
             {sourceCalibrationAdvancedOpen && (
-              <div className="mt-3 space-y-3 rounded-[12px] border border-white/[0.08] bg-black/20 p-3">
+              <div className="mt-3 space-y-3 rounded-[12px] border border-border bg-muted p-3">
                 <RangeField
                   label={t("viewer.threeD.sourceCalibration.xOffset", { value: sourceTransformState.xOffset.toFixed(1) })}
                   min={sourceCalibrationRanges.offsetMin}
@@ -2236,7 +2236,7 @@ function ThreeDDirectorSurface({
             type="button"
             size="sm"
             variant="outline"
-            className="mt-3 h-8 w-full rounded-[10px] !border-white/[0.10] !bg-[#242426]/68 text-[12px] !text-white/68 shadow-none hover:!border-white/[0.16] hover:!bg-[#2b2b2d]/78 hover:!text-white"
+            className="mt-3 h-8 w-full rounded-[10px] !border-border !bg-muted text-[12px] !text-foreground/75 shadow-none hover:!border-foreground/25 hover:!bg-accent hover:!text-foreground"
             onClick={resetSourceTransform}
             disabled={!viewer}
           >
@@ -2247,7 +2247,7 @@ function ThreeDDirectorSurface({
             type="button"
             size="sm"
             variant="outline"
-            className="mt-2 h-8 w-full rounded-[10px] !border-white/[0.10] !bg-[#242426]/68 text-[12px] !text-white/68 shadow-none hover:!border-white/[0.16] hover:!bg-[#2b2b2d]/78 hover:!text-white"
+            className="mt-2 h-8 w-full rounded-[10px] !border-border !bg-muted text-[12px] !text-foreground/75 shadow-none hover:!border-foreground/25 hover:!bg-accent hover:!text-foreground"
             onClick={resetCamera}
             disabled={!viewer}
           >
@@ -2257,7 +2257,7 @@ function ThreeDDirectorSurface({
         </PanelSection>
 
         <PanelSection title={t("viewer.threeD.sections.add")}>
-          <div className="rounded-[12px] border border-white/[0.08] bg-black/20 px-3 py-2 text-[12px] text-white/54">
+          <div className="rounded-[12px] border border-border bg-muted px-3 py-2 text-[12px] text-muted-foreground">
             {t("viewer.threeD.currentCreate", {
               type: toolMode === "actor" ? t("viewer.threeD.actor") : toolMode === "prop" ? t("viewer.threeD.prop") : t("viewer.threeD.staging"),
             })}
@@ -2274,13 +2274,13 @@ function ThreeDDirectorSurface({
                     ))}
                   </SelectField>
                   {actorChoices.length === 0 && (
-                    <p className="text-[12px] leading-5 text-white/54">
+                    <p className="text-[12px] leading-5 text-muted-foreground">
                       {t("viewer.threeD.noBeatActorPalette")}
                     </p>
                   )}
                 </>
               ) : (
-                <div className="flex items-center justify-between gap-2 rounded-[12px] border border-white/[0.08] bg-black/20 px-3 py-2 text-[12px] text-white/58">
+                <div className="flex items-center justify-between gap-2 rounded-[12px] border border-border bg-muted px-3 py-2 text-[12px] text-muted-foreground">
                   <span>{t("viewer.threeD.nextAnonymousActor", { label: activeActor?.label, color: actorColor })}</span>
                   <span className="h-4 w-4 shrink-0 rounded-full border border-white/20" style={{ backgroundColor: actorColor }} />
                 </div>
@@ -2349,13 +2349,13 @@ function ThreeDDirectorSurface({
                     ))}
                   </SelectField>
                   {propChoices.length === 0 && (
-                    <p className="text-[12px] leading-5 text-white/54">
+                    <p className="text-[12px] leading-5 text-muted-foreground">
                       {t("viewer.threeD.noBeatPropPalette")}
                     </p>
                   )}
                 </>
               ) : (
-                <div className="flex items-center justify-between gap-2 rounded-[12px] border border-white/[0.08] bg-black/20 px-3 py-2 text-[12px] text-white/58">
+                <div className="flex items-center justify-between gap-2 rounded-[12px] border border-border bg-muted px-3 py-2 text-[12px] text-muted-foreground">
                   <span>{t("viewer.threeD.nextAnonymousProp", { label: activeProp?.label, color: propLikeColor })}</span>
                   <span className="h-4 w-4 shrink-0 rounded-full border border-white/20" style={{ backgroundColor: propLikeColor }} />
                 </div>
@@ -2378,12 +2378,12 @@ function ThreeDDirectorSurface({
                 palette={anonymousPropPalette}
                 onChange={setPropLikeColor}
               />
-              <label className="block text-[12px] font-medium text-white/56">
+              <label className="block text-[12px] font-medium text-foreground/70">
                 {t("viewer.threeD.stagingName")}
                 <input
                   value={stagingName}
                   onChange={(event) => setStagingName(event.target.value)}
-                  className="mt-1.5 h-9 w-full rounded-[10px] border border-white/[0.10] bg-black/25 px-3 text-[12px] text-white outline-none transition-colors focus:border-white/22"
+                  className="mt-1.5 h-9 w-full rounded-[10px] border border-border bg-background px-3 text-[12px] text-foreground outline-none transition-colors focus:border-primary/45"
                 />
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -2421,7 +2421,7 @@ function ThreeDDirectorSurface({
         </PanelSection>
 
         <PanelSection title={t("viewer.threeD.sections.selection")}>
-          <div className="rounded-[12px] border border-white/[0.08] bg-black/20 px-3 py-2 text-[12px] leading-5 text-white/58">
+          <div className="rounded-[12px] border border-border bg-muted px-3 py-2 text-[12px] leading-5 text-muted-foreground">
             {selection && selectedKindLabel
               ? `${selectedKindLabel} · ${selection.label} · ${selectedPositionLabel}${selectedPoseLabel ? ` · ${selectedPoseLabel}` : ""}${selection.mounted ? ` · ${t("viewer.threeD.mountedSuffix")}` : ""}`
               : t("viewer.threeD.noSelection")}
@@ -2440,20 +2440,20 @@ function ThreeDDirectorSurface({
             </SelectField>
           )}
           {selection?.kind === "staging" && (
-            <label className="mt-2 block text-[12px] font-medium text-white/56">
+            <label className="mt-2 block text-[12px] font-medium text-foreground/70">
               {t("viewer.threeD.selectedStagingName")}
               <input
                 key={`${selection.kind}:${selection.index}`}
                 defaultValue={selection.label}
                 onChange={(event) => viewer?.setSelectedLabel(event.target.value)}
-                className="mt-1.5 h-9 w-full rounded-[10px] border border-white/[0.10] bg-black/25 px-3 text-[12px] text-white outline-none transition-colors focus:border-white/22"
+                className="mt-1.5 h-9 w-full rounded-[10px] border border-border bg-background px-3 text-[12px] text-foreground outline-none transition-colors focus:border-primary/45"
               />
             </label>
           )}
           <Button
             size="sm"
             variant="outline"
-            className="mt-2 h-9 w-full rounded-[10px] !border-white/[0.10] !bg-[#242426]/62 text-[12px] !text-white/68 shadow-none hover:!border-white/[0.16] hover:!bg-[#2b2b2d]/76 hover:!text-white"
+            className="mt-2 h-9 w-full rounded-[10px] !border-border !bg-muted text-[12px] !text-foreground/75 shadow-none hover:!border-foreground/25 hover:!bg-accent hover:!text-foreground"
             onClick={() => {
               if (!viewer) return;
               if (selection?.mounted) viewer.unmountSelected();
@@ -2478,12 +2478,12 @@ function ThreeDDirectorSurface({
         {manifest.mode === "beat" && (
           <PanelSection title={t("viewer.threeD.beatOverlay.title")}>
             {manifest.beat_context?.beat ? (
-              <div className="mb-2 rounded-[12px] border border-white/[0.08] bg-black/20 px-3 py-2 text-[12px] leading-5 text-white/58">
+              <div className="mb-2 rounded-[12px] border border-border bg-muted px-3 py-2 text-[12px] leading-5 text-muted-foreground">
                 {t("viewer.threeD.beatOverlay.currentBeat", { beat: manifest.beat_context.beat })}
               </div>
             ) : null}
             {overlayStatus?.inherited_from_beat ? (
-              <div className="rounded-[12px] border border-white/[0.08] bg-black/20 px-3 py-2 text-[12px] leading-5 text-white/58">
+              <div className="rounded-[12px] border border-border bg-muted px-3 py-2 text-[12px] leading-5 text-muted-foreground">
                 {t("viewer.threeD.beatOverlay.inheritedFromBeat", { beat: overlayStatus.inherited_from_beat })}
               </div>
             ) : null}
@@ -2503,7 +2503,7 @@ function ThreeDDirectorSurface({
                 </option>
               ))}
             </SelectField>
-            <div className="mt-2 rounded-[12px] border border-white/[0.08] bg-black/20 px-3 py-2 text-[12px] leading-5 text-white/58">
+            <div className="mt-2 rounded-[12px] border border-border bg-muted px-3 py-2 text-[12px] leading-5 text-muted-foreground">
               {t("viewer.threeD.beatOverlay.copyFlow", {
                 sourceBeat: selectedOverlayBeat || "-",
                 targetBeat: manifest.beat_context?.beat ?? "-",
@@ -2606,11 +2606,11 @@ function ThreeDDirectorSurface({
             )}
           </div>
           {exportStatus && (
-            <div className="mt-2 truncate text-[12px] leading-5 text-white/54">{exportStatus}</div>
+            <div className="mt-2 truncate text-[12px] leading-5 text-muted-foreground">{exportStatus}</div>
           )}
         </PanelSection>
 
-        <div className="mt-3 rounded-[12px] border border-white/[0.08] bg-black/20 px-3 py-2 text-[12px] leading-5 text-white/54">
+        <div className="mt-3 rounded-[12px] border border-border bg-muted px-3 py-2 text-[12px] leading-5 text-muted-foreground">
           <div>
             {t("viewer.threeD.counts", {
               actor: counts.actor,
@@ -2700,7 +2700,7 @@ function ThreeDDirectorSurface({
               ))}
               <div className="relative">
                 {quickActionsOpen ? (
-                  <div className="absolute bottom-10 right-0 w-[280px] rounded-[14px] border border-white/[0.12] bg-[#151515]/78 px-3 py-2 text-[12px] leading-5 text-white/68 shadow-[0_18px_42px_rgba(0,0,0,0.46)] backdrop-blur-2xl">
+                  <div className="absolute bottom-10 right-0 w-[280px] rounded-[14px] border border-border bg-popover/95 px-3 py-2 text-[12px] leading-5 text-popover-foreground/75 shadow-xl backdrop-blur-2xl">
                     {t("viewer.threeD.stageShortcutHint")}
                     {canWriteDirectorBundle ? (
                       <button
@@ -2755,7 +2755,7 @@ function ThreeDDirectorSurface({
                     ["Shift+Delete", t("viewer.threeD.shortcuts.safeDelete")],
                     ["H / Tab / Esc", t("viewer.threeD.shortcuts.system")],
                   ].map(([keys, label]) => (
-                    <div key={keys} className="grid grid-cols-[132px_minmax(0,1fr)] gap-3 rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2">
+                    <div key={keys} className="grid grid-cols-[132px_minmax(0,1fr)] gap-3 rounded-lg border border-border bg-muted px-3 py-2">
                       <div className="font-mono text-[11px] font-semibold text-[#fff8df]">{keys}</div>
                       <div className="leading-5">{label}</div>
                     </div>
@@ -2775,8 +2775,8 @@ function ThreeDDirectorSurface({
 
 function PanelSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="mt-3 rounded-[14px] border border-white/[0.08] bg-[#1d1e24]/78 p-3 shadow-[0_12px_30px_rgba(0,0,0,0.18)]">
-      <h3 className="mb-3 text-[12px] font-semibold leading-none text-white/72">{title}</h3>
+    <section className="mt-3 rounded-[14px] border border-border bg-muted p-3 shadow-sm">
+      <h3 className="mb-3 text-[12px] font-semibold leading-none text-foreground/75">{title}</h3>
       <div className="space-y-3">{children}</div>
     </section>
   );
@@ -2897,7 +2897,7 @@ function SelectField({
 
   return (
     <div
-      className="relative block text-[12px] font-medium text-white/56"
+      className="relative block text-[12px] font-medium text-foreground/70"
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) {
           setOpen(false);
@@ -2920,16 +2920,16 @@ function SelectField({
         onClick={() => setOpen((next) => !next)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="mt-1.5 flex h-9 w-full items-center justify-between rounded-[10px] border border-white/[0.10] bg-black/25 pl-3 pr-3 text-left text-[12px] text-white outline-none transition-colors hover:border-white/16 focus:border-white/22 disabled:cursor-not-allowed disabled:opacity-45"
+        className="mt-1.5 flex h-9 w-full items-center justify-between rounded-[10px] border border-border bg-background pl-3 pr-3 text-left text-[12px] text-foreground outline-none transition-colors hover:border-foreground/25 focus:border-primary/45 disabled:cursor-not-allowed disabled:opacity-45"
       >
         <span className="min-w-0 truncate">{selectedLabel}</span>
-        <ChevronDown className={cn("ml-3 h-4 w-4 shrink-0 text-white/62 transition-transform", open && "rotate-180")} />
+        <ChevronDown className={cn("ml-3 h-4 w-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")} />
       </button>
       {open && !disabled ? (
         <div
           role="listbox"
           aria-label={label}
-          className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-[12px] border border-white/12 bg-[#242426]/98 py-1.5 text-[12px] text-white shadow-[0_14px_34px_rgba(0,0,0,0.42)] backdrop-blur-xl"
+          className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-[12px] border border-border bg-popover/98 py-1.5 text-[12px] text-popover-foreground shadow-xl backdrop-blur-xl"
         >
           {options.map((option) => {
             const active = option.value === value;
@@ -2942,8 +2942,8 @@ function SelectField({
                   className={cn(
                     "flex h-8 w-full items-center gap-2 rounded-[9px] px-3 text-left transition-colors",
                     active
-                      ? "bg-white/[0.075] text-white ring-1 ring-white/[0.08]"
-                      : "text-white/72 hover:bg-white/[0.045] hover:text-white",
+                      ? "bg-muted text-popover-foreground ring-1 ring-border"
+                      : "text-popover-foreground/75 hover:bg-muted hover:text-popover-foreground",
                   )}
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={() => {
@@ -2951,7 +2951,7 @@ function SelectField({
                     setOpen(false);
                   }}
                 >
-                  <span className={cn("w-3 text-center text-white/82", active ? "opacity-100" : "opacity-0")}>✓</span>
+                  <span className={cn("w-3 text-center text-primary", active ? "opacity-100" : "opacity-0")}>✓</span>
                   <span className="min-w-0 truncate">{option.label}</span>
                 </button>
               </div>
@@ -2979,7 +2979,7 @@ function RangeField({
   onChange: (value: number) => void;
 }) {
   return (
-    <label className="block text-[12px] font-medium text-white/56">
+    <label className="block text-[12px] font-medium text-foreground/70">
       <span>{label}</span>
       <input
         type="range"
@@ -3041,7 +3041,7 @@ function ColorPaletteField({
   }, [pickerOpen, updatePickerPosition]);
 
   return (
-    <div className="relative rounded-[12px] border border-white/[0.08] bg-black/20 px-3 py-2 text-[12px] text-white/56">
+    <div className="relative rounded-[12px] border border-border bg-muted px-3 py-2 text-[12px] text-foreground/70">
       <div className="font-medium">{label}</div>
       <div className="mt-2 grid grid-cols-[repeat(auto-fill,minmax(24px,24px))] gap-2">
         {palette.map((preset) => {
@@ -3065,14 +3065,14 @@ function ColorPaletteField({
             ref={pickerButtonRef}
             type="button"
             onClick={() => setPickerOpen((next) => !next)}
-            className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-white/16 bg-white/[0.05] text-white/60 transition hover:border-white/44 hover:bg-white/[0.08] hover:text-white"
+            className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:border-foreground/35 hover:bg-accent hover:text-foreground"
             aria-label={label}
           >
             <Pipette className="h-3 w-3" />
           </button>
           {pickerOpen && pickerPosition && typeof document !== "undefined" ? createPortal(
             <div
-              className="fixed z-[10000] w-[220px] rounded-[14px] border border-white/[0.10] bg-[#242426]/72 p-3 shadow-[0_18px_42px_rgba(0,0,0,0.46)] backdrop-blur-2xl"
+              className="fixed z-[10000] w-[220px] rounded-[14px] border border-border bg-popover/95 p-3 shadow-xl backdrop-blur-2xl"
               style={{ left: pickerPosition.left, top: pickerPosition.top }}
             >
               <div
@@ -3103,7 +3103,7 @@ function ColorPaletteField({
                 className="dc-color-hue mt-3 h-4 w-full appearance-none bg-transparent"
               />
               <div className="mt-3 flex items-center justify-between gap-3">
-                <span className="font-mono text-[11px] uppercase text-white/50">{value}</span>
+                <span className="font-mono text-[11px] uppercase text-muted-foreground">{value}</span>
                 <span className="h-5 w-5 rounded-full border border-white/20 shadow-[0_1px_4px_rgba(0,0,0,0.35)]" style={{ backgroundColor: value }} />
               </div>
             </div>,

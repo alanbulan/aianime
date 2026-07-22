@@ -51,7 +51,7 @@ import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 // ─── style constants (aligned with characters page) ─────────────────────────
 
 const STYLES_INPUT_CLASS =
-  "h-9 rounded-[8px] border-white/10 bg-white/[0.025] px-3 text-sm shadow-none placeholder:text-muted-foreground/60 focus-visible:border-white/20 focus-visible:ring-2 focus-visible:ring-white/8 dark:bg-white/[0.025]";
+  "h-9 rounded-[8px] border-border bg-muted px-3 text-sm shadow-none placeholder:text-muted-foreground focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/10";
 const STYLE_PREVIEW_ACCEPT = "image/png,image/jpeg,image/webp,image/gif";
 const STYLE_PREVIEW_MIME_TYPES = new Set([
   "image/png",
@@ -60,7 +60,7 @@ const STYLE_PREVIEW_MIME_TYPES = new Set([
   "image/gif",
 ]);
 const STYLES_TEXTAREA_CLASS =
-  "w-full resize-none rounded-[8px] border border-white/10 bg-white/[0.025] p-2.5 text-sm leading-relaxed shadow-none placeholder:text-muted-foreground/60 focus-visible:border-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/8";
+  "w-full resize-none rounded-[8px] border border-border bg-muted p-2.5 text-sm leading-relaxed shadow-none placeholder:text-muted-foreground focus-visible:border-primary/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/10";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -190,11 +190,11 @@ function Section({
   };
 
   return (
-    <div className="rounded-[10px] border border-white/[0.085] bg-white/[0.055]">
+    <div className="rounded-[10px] border border-border bg-card">
       <button
         type="button"
         onClick={toggleOpen}
-        className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-xs font-medium text-foreground/80 hover:bg-white/[0.045]"
+        className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-xs font-medium text-foreground/80 hover:bg-muted"
       >
         <ChevronDown
           className={cn(
@@ -206,7 +206,7 @@ function Section({
         <span className="flex-1">{title}</span>
       </button>
       {open && (
-        <div className="space-y-3 border-t border-white/[0.075] bg-background/45 p-4">
+        <div className="space-y-3 border-t border-border bg-muted p-4">
           {children}
         </div>
       )}
@@ -220,7 +220,7 @@ function TopBar({ onCreate, onRefresh, refreshing }: { onCreate: () => void; onR
   const { t } = useTranslation();
 
   return (
-    <div className="flex shrink-0 flex-col gap-3 border-b border-border/30 bg-background px-9 py-5 lg:flex-row lg:items-center lg:justify-between">
+    <div className="flex shrink-0 flex-col gap-3 border-b border-border bg-background px-9 py-5 lg:flex-row lg:items-center lg:justify-between">
       <div className="flex min-w-0 items-start gap-3">
         <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
           <Paintbrush className="size-[18px]" />
@@ -277,7 +277,7 @@ function StyleListItem({
       onClick={onSelect}
       className={cn(
         "flex w-full items-center gap-2.5 rounded-[8px] border px-2.5 py-2 text-left transition-colors",
-        "hover:border-white/10 hover:bg-white/[0.035]",
+        "hover:border-foreground/25 hover:bg-muted",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         selected
           ? "border-primary/50 bg-primary/[0.035]"
@@ -289,11 +289,11 @@ function StyleListItem({
           src={previewSrc}
           alt={display}
           loading="lazy"
-          className="size-9 shrink-0 rounded-[6px] border border-white/10 object-cover"
+          className="size-9 shrink-0 rounded-[6px] border border-border object-cover"
         />
       ) : (
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-[6px] border border-white/10 bg-white/[0.025]">
-          <Paintbrush className="size-4 text-muted-foreground/50" />
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-[6px] border border-border bg-muted">
+          <Paintbrush className="size-4 text-muted-foreground" />
         </span>
       )}
       <div className="min-w-0 flex-1">
@@ -303,7 +303,7 @@ function StyleListItem({
           </span>
           {isProjectDefault && (
             <CheckCircle2
-              className="size-3.5 shrink-0 text-primary/70"
+              className="size-3.5 shrink-0 text-primary"
               aria-label={t("styles.projectDefault")}
             />
           )}
@@ -330,8 +330,8 @@ function PreviewBox({ style }: { style: Style }) {
 
   if (!preset && !style.preview_url) {
     return (
-      <div className="flex aspect-video items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-background/40 px-4 text-center">
-        <Info className="size-4 shrink-0 text-muted-foreground/60" />
+      <div className="flex aspect-video items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted px-4 text-center">
+        <Info className="size-4 shrink-0 text-muted-foreground" />
         <p className="text-xs leading-snug text-muted-foreground/80">
           {t("styles.customPreviewEmpty")}
         </p>
@@ -341,8 +341,8 @@ function PreviewBox({ style }: { style: Style }) {
 
   if (hasError) {
     return (
-      <div className="flex aspect-video items-center justify-center rounded-lg border border-border bg-background/40">
-        <ImageIcon className="size-8 text-muted-foreground/30" />
+      <div className="flex aspect-video items-center justify-center rounded-lg border border-border bg-muted">
+        <ImageIcon className="size-8 text-muted-foreground" />
       </div>
     );
   }
@@ -513,18 +513,18 @@ function StyleDetailPanel({
             setNameEditValue(editingName);
             setNameEditOpen(true);
           }}
-          className="shrink-0 inline-flex size-5 items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.04]"
+          className="inline-flex size-5 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
           aria-label="Rename style"
         >
           <Pencil className="size-3" />
         </button>
         {isProjectDefault && (
-          <span className="shrink-0 inline-flex items-center rounded-md border border-white/8 bg-white/[0.03] px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground/80">
+          <span className="inline-flex shrink-0 items-center rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
             项目默认
           </span>
         )}
         {dirty && (
-          <span className="shrink-0 inline-flex items-center rounded-md border border-amber-500/20 bg-amber-500/5 px-1.5 py-0.5 text-[10px] font-medium text-amber-500/80">
+          <span className="shrink-0 inline-flex items-center rounded-md border border-amber-500/35 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
             未保存
           </span>
         )}
@@ -532,7 +532,7 @@ function StyleDetailPanel({
 
       {/* Rename dialog */}
       <Dialog open={nameEditOpen} onOpenChange={setNameEditOpen}>
-        <DialogContent className="rounded-xl border border-white/8 bg-background/68 p-6 shadow-none backdrop-blur-3xl sm:max-w-sm">
+        <DialogContent className="rounded-xl border border-border bg-popover/95 p-6 shadow-xl backdrop-blur-3xl sm:max-w-sm">
           <DialogHeader className="gap-1.5">
             <DialogTitle className="text-sm font-medium tracking-tight">
               {t("styles.renameTitle", "重命名风格")}
@@ -542,7 +542,7 @@ function StyleDetailPanel({
             value={nameEditValue}
             onChange={(e) => setNameEditValue(e.target.value)}
             placeholder={style.name}
-            className="h-9 rounded-[8px] border-white/10 bg-white/[0.025] px-3 text-sm shadow-none placeholder:text-muted-foreground/60 focus-visible:border-white/20 focus-visible:ring-2 focus-visible:ring-white/8"
+            className="h-9 rounded-[8px] border-border bg-muted px-3 text-sm shadow-none placeholder:text-muted-foreground focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/10"
             autoFocus
             onKeyDown={(e) => {
               if (e.key === "Enter") handleRename();
@@ -554,7 +554,7 @@ function StyleDetailPanel({
               variant="outline"
               size="sm"
               onClick={() => setNameEditOpen(false)}
-              className="h-8 rounded-[8px] border-white/10 bg-transparent px-3 text-xs font-normal shadow-none hover:bg-white/[0.04]"
+              className="h-8 rounded-[8px] border-border bg-transparent px-3 text-xs font-normal shadow-none hover:bg-muted"
             >
               {t("common.cancel")}
             </Button>
@@ -651,7 +651,7 @@ function StyleDetailPanel({
       </div>
 
       {/* Actions bar */}
-      <div className="flex items-center gap-2 border-t border-border/30 bg-background px-4 py-2">
+      <div className="flex items-center gap-2 border-t border-border bg-background px-4 py-2">
         <Button
           size="sm"
           onClick={handleSave}
@@ -670,7 +670,7 @@ function StyleDetailPanel({
           size="sm"
           onClick={handleApplyToProject}
           disabled={updateProject.isPending || isProjectDefault}
-          className="h-7 gap-1.5 rounded-[8px] border-white/10 bg-transparent px-3 text-xs font-normal shadow-none hover:bg-white/[0.04] dark:bg-transparent"
+          className="h-7 gap-1.5 rounded-[8px] border-border bg-transparent px-3 text-xs font-normal shadow-none hover:bg-muted"
         >
           {updateProject.isPending ? (
             <Loader2 className="size-3 animate-spin" />
@@ -729,7 +729,7 @@ function EmptyDetail({
             <p className="text-xs text-muted-foreground">
               {t("styles.noStylesHint")}
             </p>
-            <Button onClick={onCreate} className="mt-2 gap-1.5 h-8 rounded-[8px] border-white/10 bg-transparent px-3 text-xs font-normal shadow-none hover:bg-white/[0.04]">
+            <Button onClick={onCreate} className="mt-2 h-8 gap-1.5 rounded-[8px] border-border bg-transparent px-3 text-xs font-normal shadow-none hover:bg-muted">
               <Plus className="size-3.5" />
               {t("styles.createStyle")}
             </Button>
@@ -861,7 +861,7 @@ function CreateStyleDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-4 overflow-hidden rounded-2xl border border-white/8 bg-background/68 p-7 shadow-none backdrop-blur-3xl sm:max-w-lg">
+      <DialogContent className="gap-4 overflow-hidden rounded-2xl border border-border bg-popover/95 p-7 shadow-xl backdrop-blur-3xl sm:max-w-lg">
         <DialogHeader className="gap-2">
           <DialogTitle className="flex items-center gap-2 text-lg font-medium tracking-tight">
             <span aria-hidden="true">✨</span>
@@ -881,7 +881,7 @@ function CreateStyleDialog({
                 value={id}
                 onChange={(e) => setId(e.target.value)}
                 placeholder="cyberpunk_v1"
-                className="h-9 rounded-[8px] border-white/10 bg-white/[0.025] px-3 text-sm font-mono placeholder:text-muted-foreground/60 focus-visible:border-white/20 focus-visible:ring-2 focus-visible:ring-white/8 dark:bg-white/[0.025]"
+                className="h-9 rounded-[8px] border-border bg-muted px-3 text-sm font-mono placeholder:text-muted-foreground focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/10"
                 autoFocus
               />
             </div>
@@ -893,7 +893,7 @@ function CreateStyleDialog({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder={t("styles.namePlaceholder")}
-                className="h-9 rounded-[8px] border-white/10 bg-white/[0.025] px-3 text-sm placeholder:text-muted-foreground/60 focus-visible:border-white/20 focus-visible:ring-2 focus-visible:ring-white/8 dark:bg-white/[0.025]"
+                className="h-9 rounded-[8px] border-border bg-muted px-3 text-sm placeholder:text-muted-foreground focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/10"
               />
             </div>
           </div>
@@ -908,7 +908,7 @@ function CreateStyleDialog({
               onClick={() => fileInputRef.current?.click()}
               disabled={analyzeStyle.isPending || !id.trim()}
               title={!id.trim() ? t("styles.styleIdRequiredBeforeUpload") : undefined}
-              className="h-9 w-fit rounded-[8px] border-white/10 bg-transparent px-3 text-xs font-normal shadow-none hover:bg-white/[0.04] gap-1.5 dark:bg-transparent"
+              className="h-9 w-fit gap-1.5 rounded-[8px] border-border bg-transparent px-3 text-xs font-normal shadow-none hover:bg-muted"
             >
               {analyzeStyle.isPending ? (
                 <Loader2 className="size-3.5 animate-spin" />
@@ -931,7 +931,7 @@ function CreateStyleDialog({
           </div>
 
           {previewUrl && (
-            <div className="relative overflow-hidden rounded-lg border border-white/10">
+            <div className="relative overflow-hidden rounded-lg border border-border">
               <img
                 src={previewUrl}
                 alt={t("styles.uploadedPreview")}
@@ -951,7 +951,7 @@ function CreateStyleDialog({
           )}
 
           {analyzed && (
-            <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.04] p-3">
+            <div className="space-y-2 rounded-lg border border-border bg-muted p-3">
               <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                 <Sparkles className="size-3 text-primary" />
                 {t("styles.aiExtractedHint")}
@@ -978,7 +978,7 @@ function CreateStyleDialog({
             variant="outline"
             size="sm"
             onClick={() => onOpenChange(false)}
-            className="h-10 rounded-md border-white/18 bg-white/[0.06] px-4 text-sm font-normal text-foreground/80 hover:border-white/28 hover:bg-white/[0.1] hover:text-foreground"
+            className="h-10 rounded-md border-border bg-muted px-4 text-sm font-normal text-foreground/80 hover:border-foreground/30 hover:bg-accent hover:text-foreground"
           >
             {t("common.cancel")}
           </Button>
@@ -1059,7 +1059,7 @@ function StylesPage() {
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         {/* LEFT: list */}
-        <div className="flex max-h-[45vh] w-full shrink-0 flex-col overflow-hidden border-b border-border/30 lg:max-h-none lg:w-[360px] lg:border-b-0 lg:border-r lg:border-border/30">
+        <div className="flex max-h-[45vh] w-full shrink-0 flex-col overflow-hidden border-b border-border lg:max-h-none lg:w-[360px] lg:border-b-0 lg:border-r lg:border-border">
           <div className="flex-1 overflow-y-auto p-3">
             {isLoading ? (
               <SidebarListSkeleton label={t("common.loading")} />

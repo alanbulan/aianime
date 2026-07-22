@@ -459,7 +459,7 @@ function ScriptTabContent() {
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-background">
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-border/30 px-5 py-3 text-xs">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-border px-5 py-3 text-xs">
         <EpisodeHealthSummary
           project={project}
           episode={epNum}
@@ -582,15 +582,15 @@ function ScriptTabContent() {
               role="status"
               aria-live="polite"
               aria-atomic="true"
-              className="flex min-w-[260px] max-w-[380px] items-center gap-2 rounded-[7px] border border-cyan-400/15 bg-cyan-400/[0.06] px-2.5 py-1.5 text-xs text-muted-foreground"
+              className="flex min-w-[260px] max-w-[380px] items-center gap-2 rounded-[7px] border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-xs text-muted-foreground"
             >
-              <div className="h-1.5 w-24 shrink-0 overflow-hidden rounded-full bg-white/[0.08]">
+              <div className="h-1.5 w-24 shrink-0 overflow-hidden rounded-full bg-muted">
                 <div
-                  className="h-full rounded-full bg-cyan-400 transition-[width]"
+                  className="h-full rounded-full bg-primary transition-[width]"
                   style={{ width: `${scriptProgressPercent}%` }}
                 />
               </div>
-              <span className="shrink-0 font-mono text-[11px] tabular-nums text-cyan-100">
+              <span className="shrink-0 font-mono text-[11px] tabular-nums text-primary">
                 {scriptProgressPercent}%
               </span>
               <span className="min-w-0 truncate text-foreground/80">
@@ -632,8 +632,8 @@ function ScriptTabContent() {
             {!scriptTask.started && (
               <CreditCostInline
                 display={generateScriptCostDisplay}
-                className="text-black"
-                iconClassName="text-black drop-shadow-none [&_path]:fill-current"
+                className="text-primary-foreground"
+                iconClassName="text-primary-foreground drop-shadow-none [&_path]:fill-current"
               />
             )}
           </Button>
@@ -656,7 +656,7 @@ function ScriptTabContent() {
                 >
                   <SelectTrigger
                     size="sm"
-                    className="inline-flex !h-6 w-[112px] shrink-0 items-center gap-1 !rounded-[6px] !border !border-white/[0.12] !bg-white/[0.04] px-2 text-[11px] font-normal text-foreground/78 shadow-none hover:!border-white/[0.2] hover:!bg-white/[0.05] hover:text-foreground focus-visible:!border-white/24 focus-visible:!ring-0 [&_svg]:!size-3"
+                    className="inline-flex !h-6 w-[112px] shrink-0 items-center gap-1 !rounded-[6px] !border !border-border !bg-muted px-2 text-[11px] font-normal text-foreground/78 shadow-none hover:!border-foreground/25 hover:!bg-accent hover:text-foreground focus-visible:!border-primary/45 focus-visible:!ring-0 [&_svg]:!size-3"
                   >
                     {/* base-ui Select.Value renders the raw value by default — map
                         it to the localized label so the trigger shows 中文. */}

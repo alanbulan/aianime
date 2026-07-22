@@ -148,6 +148,7 @@ const PAN_ACTIVATION_KEY_CODE = 'Space';
 // right click (2) opens the canvas context menu.
 const PAN_ON_DRAG_BUTTONS = [1];
 const NODE_SPAWN_PLUS_HIDE_DELAY_MS = 400;
+const PREVIEW_CONNECTION_STROKE = 'rgb(var(--text-rgb) / 0.82)';
 
 function resolveCenteredViewport(
   container: HTMLElement | null,
@@ -3904,7 +3905,7 @@ export function Canvas({
             end: { x: endX, y: endY },
             handleType: pendingConnectStart.handleType,
           }),
-          stroke: 'rgba(255,255,255,0.9)',
+          stroke: PREVIEW_CONNECTION_STROKE,
           strokeWidth: 1,
           strokeLinecap: 'round',
           left: 0,
@@ -4119,7 +4120,7 @@ export function Canvas({
         },
         handleType: pending.handleType,
       }),
-      stroke: 'rgba(255,255,255,0.9)',
+      stroke: PREVIEW_CONNECTION_STROKE,
       strokeWidth: 1,
       strokeLinecap: 'round',
       left: 0,
@@ -4227,7 +4228,7 @@ export function Canvas({
           end,
           handleType: pending.handleType,
         }),
-        stroke: 'rgba(255,255,255,0.9)',
+        stroke: PREVIEW_CONNECTION_STROKE,
         strokeWidth: 1,
         strokeLinecap: 'round',
         left: 0,
@@ -4371,7 +4372,7 @@ export function Canvas({
           },
           handleType: 'source',
         }),
-        stroke: 'rgba(255,255,255,0.9)',
+        stroke: PREVIEW_CONNECTION_STROKE,
         strokeWidth: 1,
         strokeLinecap: 'round',
         left: 0,
@@ -4457,9 +4458,9 @@ export function Canvas({
   const emptyHint = useMemo(() => {
     return (
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.1] bg-white/[0.06] backdrop-blur-xl px-4 py-2">
-          <MousePointerClick className="h-3.5 w-3.5 shrink-0 text-white/60" aria-hidden="true" />
-          <span className="text-sm text-white/70">
+        <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/95 px-4 py-2 text-muted-foreground shadow-sm">
+          <MousePointerClick className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <span className="text-sm">
             {t('canvas.emptyHintBeforeTab')}
             <span className="text-primary">Tab</span>
             {t('canvas.emptyHintAfterTab')}
@@ -4562,14 +4563,19 @@ export function Canvas({
         proOptions={REACT_FLOW_PRO_OPTIONS}
         className="bg-background"
       >
-        <Background variant={BackgroundVariant.Dots} gap={20} size={2} color="#4a4a4a" />
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={20}
+          size={2}
+          color="var(--canvas-grid-dot)"
+        />
         {minimapVisible && (
           <MiniMap
             position={controlsPlacement === 'top-right' ? 'top-right' : 'bottom-right'}
-            className="canvas-minimap canvas-minimap--popover nopan nowheel !border-border-dark !bg-surface-dark"
+            className="canvas-minimap canvas-minimap--popover nopan nowheel !border-border !bg-card"
             style={{ pointerEvents: 'all', zIndex: 10000 }}
-            nodeColor="rgba(120, 120, 120, 0.92)"
-            maskColor="rgba(0, 0, 0, 0.62)"
+            nodeColor="var(--canvas-minimap-node)"
+            maskColor="var(--canvas-minimap-mask)"
             pannable
             zoomable
             onMouseEnter={() => setMinimapHover(true)}
@@ -4601,7 +4607,7 @@ export function Canvas({
 
       {marqueeSelectionRect && (
         <div
-          className="pointer-events-none absolute z-[130] rounded-md border border-dashed border-white/55 bg-white/[0.04]"
+          className="pointer-events-none absolute z-[130] rounded-md border border-dashed border-foreground/55 bg-foreground/[0.04]"
           style={{
             left: marqueeSelectionRect.left,
             top: marqueeSelectionRect.top,
@@ -4613,7 +4619,7 @@ export function Canvas({
 
       {nodePlacementPreview && (
         <div
-          className="pointer-events-none absolute z-[135] select-none rounded-2xl border border-cyan-200/55 bg-[#101217]/58 shadow-[0_18px_50px_rgba(0,0,0,0.38),0_0_0_1px_rgba(255,255,255,0.06)_inset] backdrop-blur-md"
+          className="pointer-events-none absolute z-[135] select-none rounded-2xl border border-primary/45 bg-popover/90 shadow-xl backdrop-blur-md"
           style={{
             left: nodePlacementPreview.left,
             top: nodePlacementPreview.top,
@@ -4621,22 +4627,22 @@ export function Canvas({
             height: NODE_PLACEMENT_PREVIEW_HEIGHT,
           }}
         >
-          <div className="absolute inset-0 rounded-2xl bg-cyan-200/[0.035]" />
+          <div className="absolute inset-0 rounded-2xl bg-primary/10" />
           <div className="relative flex h-full flex-col justify-between p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <div className="truncate text-[15px] font-medium leading-5 text-white/86">
+                <div className="truncate text-[15px] font-medium leading-5 text-popover-foreground/90">
                   {nodePlacementPreview.label}
                 </div>
-                <div className="mt-1 text-[12px] leading-4 text-white/45">
+                <div className="mt-1 text-[12px] leading-4 text-muted-foreground">
                   {t('canvas.nodePlacement.previewHint')}
                 </div>
               </div>
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cyan-300/[0.14] text-cyan-100">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <MousePointerClick className="h-4 w-4" aria-hidden="true" />
               </div>
             </div>
-            <div className="flex items-center justify-between gap-3 text-[11px] leading-4 text-white/38">
+            <div className="flex items-center justify-between gap-3 text-[11px] leading-4 text-muted-foreground/80">
               <span>{t('canvas.nodePlacement.confirmHint')}</span>
               <span>{t('canvas.nodePlacement.cancelHint')}</span>
             </div>
@@ -4722,9 +4728,9 @@ export function Canvas({
 
       {isFileDropActive && (
         <div className="pointer-events-none absolute inset-0 z-[120] flex items-center justify-center">
-          <div className="absolute inset-3 rounded-2xl border-2 border-dashed border-accent/70 bg-accent/[0.06]" />
-          <div className="relative flex flex-col items-center gap-3 rounded-2xl bg-surface-dark/90 px-8 py-6 text-center shadow-2xl ring-1 ring-white/10">
-            <Upload className="h-8 w-8 text-accent" />
+          <div className="absolute inset-3 rounded-2xl border-2 border-dashed border-primary/70 bg-primary/[0.06]" />
+          <div className="relative flex flex-col items-center gap-3 rounded-2xl bg-surface-dark/90 px-8 py-6 text-center shadow-2xl ring-1 ring-border">
+            <Upload className="h-8 w-8 text-primary" />
             <div className="text-sm font-medium text-text-dark">释放以添加到画布</div>
             <div className="text-xs text-text-muted">支持图片、视频、音频，自动生成对应节点</div>
           </div>

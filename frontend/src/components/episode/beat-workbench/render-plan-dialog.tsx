@@ -298,7 +298,7 @@ function PlanCard({
   return (
     <div
       className={cn(
-        "flex w-[170px] shrink-0 flex-col gap-1 rounded-[6px] border border-white/10 bg-white/[0.05] p-2 text-xs backdrop-blur-sm",
+        "flex w-[170px] shrink-0 flex-col gap-1 rounded-[6px] border border-border bg-popover/95 p-2 text-xs backdrop-blur-sm",
         ironLaw && "border-amber-500/50",
       )}
     >
@@ -309,7 +309,9 @@ function PlanCard({
       <div
         className={cn(
           "truncate",
-          multiScene ? "text-orange-400" : "text-emerald-400",
+          multiScene
+            ? "text-orange-700 dark:text-orange-300"
+            : "text-emerald-700 dark:text-emerald-300",
         )}
         title={entry.location}
       >
@@ -317,7 +319,7 @@ function PlanCard({
         {entry.padding_count > 0 && ` +${entry.padding_count}空`}
       </div>
       {entry.warnings.length > 0 && (
-        <div className="text-amber-500">
+        <div className="text-amber-700 dark:text-amber-300">
           <AlertTriangle className="mr-0.5 inline size-2.5" />
           {entry.warnings[0]}
         </div>

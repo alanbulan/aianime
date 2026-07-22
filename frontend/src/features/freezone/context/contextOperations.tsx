@@ -79,17 +79,17 @@ export function ContextOperationsPanel({
   if (operations.length === 0) return null;
 
   return (
-    <div className="mb-2 rounded-xl border border-amber-300/25 bg-amber-300/10 p-2">
+    <div className="mb-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-2">
       <div className="mb-1 flex items-center justify-between gap-2">
-        <div className="text-[11px] font-medium text-amber-100">主线上下文</div>
-        <div className="text-[10px] text-amber-100/65">只在身份/场景/Beat 匹配时出现</div>
+        <div className="text-[11px] font-medium text-amber-800 dark:text-amber-200">主线上下文</div>
+        <div className="text-[10px] text-amber-700 dark:text-amber-300">只在身份/场景/Beat 匹配时出现</div>
       </div>
       <div className="flex flex-wrap gap-2">
         {operations.map((item) => (
           <button
             key={item.operation.id}
             type="button"
-            className="nodrag min-w-[180px] max-w-full rounded-lg border border-amber-200/35 bg-black/20 px-3 py-2 text-left transition hover:bg-amber-200/15"
+            className="nodrag min-w-[180px] max-w-full rounded-lg border border-amber-500/35 bg-card px-3 py-2 text-left transition hover:bg-amber-500/15"
             onMouseDown={(event) => event.stopPropagation()}
             onClick={(event) => {
               event.stopPropagation();
@@ -97,8 +97,8 @@ export function ContextOperationsPanel({
             }}
             title={item.match.reason}
           >
-            <div className="text-xs font-medium text-amber-50">{item.operation.label}</div>
-            <div className="mt-0.5 truncate text-[10px] text-amber-100/75">
+            <div className="text-xs font-medium text-amber-800 dark:text-amber-100">{item.operation.label}</div>
+            <div className="mt-0.5 truncate text-[10px] text-amber-700 dark:text-amber-300">
               {item.match.reason}
             </div>
           </button>

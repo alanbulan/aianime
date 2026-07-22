@@ -24,7 +24,11 @@ import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/lib/queries/generation-credit-cost';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
 import { CANVAS_NODE_TOOLBAR_CARD_CLASS } from './nodeFrameStyles';
-import { NODE_CREDIT_PILL_FLAT_CLASS } from './nodeControlStyles';
+import {
+  NODE_CREDIT_PILL_FLAT_CLASS,
+  NODE_GENERATE_BUTTON_BASE_CLASS,
+  NODE_GENERATE_BUTTON_ENABLED_CLASS,
+} from './nodeControlStyles';
 import { ZoomScaledToolbar } from './ZoomScaledToolbar';
 
 const UPSCALE_IMAGE_SIZES = ['1K', '2K', '4K'] as const;
@@ -207,7 +211,7 @@ export const UpscaleEditorOverlay = memo(({ node }: UpscaleEditorOverlayProps) =
           className={`w-[400px] p-4 ${CANVAS_NODE_TOOLBAR_CARD_CLASS}`}
           onClick={(event) => event.stopPropagation()}
         >
-        <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-2.5">
+        <div className="mb-3 flex items-center justify-between border-b border-border pb-2.5">
           <div className="text-sm font-semibold text-text-dark">
             {t('upscaleEditor.title')}
           </div>
@@ -238,7 +242,7 @@ export const UpscaleEditorOverlay = memo(({ node }: UpscaleEditorOverlayProps) =
           </PanelRow>
         </div>
 
-        <div className="mt-4 flex items-center justify-end gap-3 border-t border-white/10 pt-3">
+        <div className="mt-4 flex items-center justify-end gap-3 border-t border-border pt-3">
           <CreditCostPill
             display={creditCost.data?.data.display}
             className={NODE_CREDIT_PILL_FLAT_CLASS}
@@ -247,7 +251,7 @@ export const UpscaleEditorOverlay = memo(({ node }: UpscaleEditorOverlayProps) =
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-bg-dark transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            className={`${NODE_GENERATE_BUTTON_BASE_CLASS} ${NODE_GENERATE_BUTTON_ENABLED_CLASS} disabled:cursor-not-allowed disabled:opacity-50`}
             title={t('upscaleEditor.submit')}
           >
             <ArrowUp className="h-4 w-4" />
@@ -304,7 +308,7 @@ function QualityPicker({ value, onChange }: QualityPickerProps) {
         ref={triggerRef}
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs text-text-dark transition-colors hover:bg-white/[0.08]"
+        className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-xs text-foreground transition-colors hover:border-foreground/25 hover:bg-accent"
       >
         <Sparkles className="h-3.5 w-3.5 text-text-muted" />
         <span className="font-medium">{title}</span>
@@ -315,7 +319,7 @@ function QualityPicker({ value, onChange }: QualityPickerProps) {
       {isOpen && (
         <div
           ref={popoverRef}
-          className="absolute bottom-full right-0 z-50 mb-2 w-[240px] rounded-xl border border-white/10 bg-surface-dark/95 p-3 shadow-2xl backdrop-blur-md"
+          className="absolute bottom-full right-0 z-50 mb-2 w-[240px] rounded-xl border border-border bg-popover p-3 text-popover-foreground shadow-2xl"
           onPointerDown={(event) => event.stopPropagation()}
         >
           <div className="mb-1 text-[11px] uppercase tracking-wide text-text-muted">{title}</div>
@@ -332,8 +336,8 @@ function QualityPicker({ value, onChange }: QualityPickerProps) {
                   }}
                   className={`inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-full px-3 text-xs font-medium transition-colors ${
                     isActive
-                      ? 'bg-[rgb(var(--accent-rgb))] text-white'
-                      : 'bg-white/[0.06] text-text-dark hover:bg-white/[0.12]'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-foreground hover:bg-accent'
                   }`}
                 >
                   {isActive && <Check className="h-3 w-3" />}
@@ -355,7 +359,7 @@ interface ScaleFactorPickerProps {
 
 function ScaleFactorPicker({ value, onChange }: ScaleFactorPickerProps) {
   return (
-    <div className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/[0.04] p-0.5">
+    <div className="inline-flex items-center gap-1 rounded-lg border border-border bg-muted p-0.5">
       {SCALE_FACTORS.map((factor) => {
         const isActive = value === factor;
         return (
@@ -365,8 +369,8 @@ function ScaleFactorPicker({ value, onChange }: ScaleFactorPickerProps) {
             onClick={() => onChange(factor)}
             className={`flex h-7 w-12 items-center justify-center rounded-md text-xs font-medium transition-colors ${
               isActive
-                ? 'bg-white text-bg-dark'
-                : 'text-text-muted hover:bg-white/[0.06] hover:text-text-dark'
+                ? 'bg-foreground text-background'
+                : 'text-muted-foreground hover:bg-accent hover:text-foreground'
             }`}
           >
             {factor}

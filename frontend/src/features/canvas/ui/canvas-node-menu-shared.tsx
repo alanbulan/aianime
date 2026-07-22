@@ -64,7 +64,7 @@ export function CanvasMenuSectionHeader({
   className = "",
 }: CanvasMenuSectionHeaderProps) {
   return (
-    <div className={`text-[15px] font-semibold leading-none text-white/62 ${className}`}>
+    <div className={`text-[15px] font-semibold leading-none text-foreground/70 ${className}`}>
       {label}
     </div>
   );
@@ -94,14 +94,14 @@ export function CanvasAddNodeGrid({
             key={type}
             type="button"
             onMouseEnter={onItemPointerEnter}
-            className={`${CANVAS_MENU_ICON_CELL_CLASS} hover:bg-white/[0.075]`}
+            className={`${CANVAS_MENU_ICON_CELL_CLASS} hover:bg-muted`}
             style={{ transitionDelay: transitionDelayForIndex?.(index) }}
             onClick={(event) => onSelectNode(type, { x: event.clientX, y: event.clientY })}
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-300/[0.12]">
-              <Icon className="h-4 w-4 text-cyan-200" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/12">
+              <Icon className="h-4 w-4 text-primary" />
             </div>
-            <span className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[13px] leading-5 text-white/82">
+            <span className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[13px] leading-5 text-foreground/85">
               {t(definition.menuLabelKey)}
             </span>
           </button>

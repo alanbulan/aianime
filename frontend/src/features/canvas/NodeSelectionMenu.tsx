@@ -339,7 +339,7 @@ export function NodeSelectionMenu({
     >
       <div
         ref={mainPanelRef}
-        className="w-[360px] max-w-[calc(100vw-32px)] overflow-hidden rounded-[18px] border border-white/[0.10] bg-[#101217]/72 backdrop-blur-2xl"
+        className="w-[360px] max-w-[calc(100vw-32px)] overflow-hidden rounded-[18px] border border-border bg-popover/95 shadow-xl backdrop-blur-2xl"
       >
         {/*
           Inner scroll container. The outer wrapper keeps `overflow-hidden` so
@@ -362,7 +362,7 @@ export function NodeSelectionMenu({
                     onMouseEnter={scheduleSkillPanelClose}
                     className={`${CANVAS_MENU_ICON_CELL_CLASS} ${item.disabled
                         ? 'cursor-not-allowed opacity-35'
-                        : 'hover:bg-white/[0.075]'
+                        : 'hover:bg-muted'
                       }`}
                     style={{ transitionDelay: isVisible ? `${index * 30}ms` : '0ms' }}
                     onClick={(event) => {
@@ -375,10 +375,10 @@ export function NodeSelectionMenu({
                       setTimeout(() => onSelect(selectedType, clientPosition), UI_POPOVER_TRANSITION_MS + 10);
                     }}
                   >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-300/[0.12]">
-                      <Icon className="h-4 w-4 text-cyan-200" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/12">
+                      <Icon className="h-4 w-4 text-primary" />
                     </div>
-                    <span className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[13px] leading-5 text-white/82">{item.label}</span>
+                    <span className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[13px] leading-5 text-popover-foreground/85">{item.label}</span>
                   </button>
                 );
               })}
@@ -403,8 +403,8 @@ export function NodeSelectionMenu({
                     <button
                       key={group.provider}
                       type="button"
-                      className={`${CANVAS_MENU_ROW_CLASS} hover:bg-white/[0.075] ${
-                        activeSkillProvider === group.provider ? 'bg-white/[0.075]' : ''
+                      className={`${CANVAS_MENU_ROW_CLASS} hover:bg-muted ${
+                        activeSkillProvider === group.provider ? 'bg-muted' : ''
                       }`}
                       style={{ transitionDelay: isVisible ? `${(index + 10) * 30}ms` : '0ms' }}
                       onMouseEnter={() => {
@@ -417,18 +417,18 @@ export function NodeSelectionMenu({
                       }}
                       onClick={() => setActiveSkillProvider(group.provider)}
                     >
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cyan-300/[0.12]">
-                        <Sparkles className="h-4 w-4 text-cyan-200" />
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/12">
+                        <Sparkles className="h-4 w-4 text-primary" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-[14px] leading-5 text-white/82">
+                        <div className="truncate text-[14px] leading-5 text-popover-foreground/85">
                           {skillProviderLabels[group.provider]}
                         </div>
-                        <div className="text-[11px] leading-4 text-white/35">
+                        <div className="text-[11px] leading-4 text-muted-foreground">
                           {group.items.length} 个技能
                         </div>
                       </div>
-                      <ChevronRight className="h-4 w-4 shrink-0 text-white/35" />
+                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                     </button>
                   ))}
                 </>
@@ -441,7 +441,7 @@ export function NodeSelectionMenu({
       {onSelectSkill && activeSkillGroup && (
         <div
           ref={skillPanelRef}
-          className={`absolute top-0 w-[420px] max-w-[calc(100vw-32px)] overflow-hidden rounded-[18px] border border-white/[0.10] bg-[#101217]/72 backdrop-blur-2xl ${
+          className={`absolute top-0 w-[420px] max-w-[calc(100vw-32px)] overflow-hidden rounded-[18px] border border-border bg-popover/95 shadow-xl backdrop-blur-2xl ${
             skillPanelSide === 'right'
               ? 'left-[calc(100%+8px)]'
               : 'right-[calc(100%+8px)]'
@@ -449,7 +449,7 @@ export function NodeSelectionMenu({
           onPointerEnter={cancelSkillPanelClose}
           onPointerLeave={scheduleSkillPanelClose}
         >
-          <div className="px-5 pb-3 pt-5 text-[15px] font-semibold leading-none text-white/62">
+          <div className="px-5 pb-3 pt-5 text-[15px] font-semibold leading-none text-popover-foreground/70">
             {skillProviderLabels[activeSkillGroup.provider]}
           </div>
           <div className="ui-scrollbar max-h-[420px] overflow-y-auto px-3 pb-4 [scrollbar-gutter:stable]">
@@ -457,7 +457,7 @@ export function NodeSelectionMenu({
               <button
                 key={skill.id}
                 type="button"
-                className="flex w-full items-start gap-3 rounded-lg px-2 py-2.5 text-left transition-colors hover:bg-white/[0.04]"
+                className="flex w-full items-start gap-3 rounded-lg px-2 py-2.5 text-left transition-colors hover:bg-muted"
                 style={{ transitionDelay: isVisible ? `${index * 30}ms` : '0ms' }}
                 onClick={(event) => {
                   event.preventDefault();
@@ -465,14 +465,14 @@ export function NodeSelectionMenu({
                   handleSkillPick(skill);
                 }}
               >
-                <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cyan-300/[0.12]">
-                  <Sparkles className="h-4 w-4 text-cyan-200" />
+                <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/12">
+                  <Sparkles className="h-4 w-4 text-primary" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[14px] leading-5 text-white/82">
+                  <div className="truncate text-[14px] leading-5 text-popover-foreground/85">
                     {translateSkillName(skill, t)}
                   </div>
-                  <div className="mt-0.5 line-clamp-2 text-[12px] leading-4 text-white/35">
+                  <div className="mt-0.5 line-clamp-2 text-[12px] leading-4 text-muted-foreground">
                     {translateSkillDescription(skill, t) || skill.id}
                   </div>
                 </div>

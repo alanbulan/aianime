@@ -78,10 +78,10 @@ const NEW_WINDOW_MS = 10 * 60 * 1000;
 const SKETCH_GRID_CLASS =
   "grid grid-cols-[auto_minmax(260px,1fr)] items-start gap-x-4 gap-y-3";
 const SKETCH_PREVIEW_CLASS =
-  "flex h-[220px] w-auto max-w-full justify-self-start cursor-zoom-in items-center justify-center overflow-hidden rounded-[10px] border border-white/[0.075] bg-white/[0.022] transition-[border-color,background-color,opacity] hover:border-white/[0.14] hover:bg-white/[0.04] hover:opacity-95";
+  "flex h-[220px] w-auto max-w-full justify-self-start cursor-zoom-in items-center justify-center overflow-hidden rounded-[10px] border border-border bg-card transition-[border-color,background-color,opacity] hover:border-foreground/25 hover:bg-muted hover:opacity-95";
 const SKETCH_PREVIEW_IMAGE_CLASS = "h-full w-full object-cover";
 const SKETCH_EMPTY_CLASS =
-  "flex h-[220px] w-auto max-w-full justify-self-start items-center justify-center rounded-[10px] border border-dashed border-white/[0.075] bg-white/[0.018] text-xs text-muted-foreground/70";
+  "flex h-[220px] w-auto max-w-full justify-self-start items-center justify-center rounded-[10px] border border-dashed border-border bg-muted text-xs text-muted-foreground";
 const SKETCH_CANDIDATES_CLASS =
   "flex max-h-[220px] flex-wrap content-start gap-2 overflow-y-auto pr-1";
 const BACKGROUND_ANCHOR_PREVIEW_ASPECT = "16 / 9";
@@ -451,7 +451,7 @@ export function SketchSection({
               key={e.identityId}
               type="button"
               onClick={() => navigateToAsset("identity", e.identityId)}
-              className="inline-flex h-5 max-w-[180px] items-center gap-1 rounded-full border border-white/[0.075] bg-white/[0.018] px-1.5 leading-none text-[11px] transition-colors hover:border-primary/45 hover:bg-primary/[0.07]"
+              className="inline-flex h-5 max-w-[180px] items-center gap-1 rounded-full border border-border bg-muted px-1.5 text-[11px] leading-none transition-colors hover:border-primary/45 hover:bg-primary/[0.07]"
               title={`${e.character}${e.identity ? ` · ${e.identity}` : ""}`}
             >
               <span
@@ -475,7 +475,7 @@ export function SketchSection({
               key={prop.propId}
               type="button"
               onClick={() => navigateToAsset("prop", prop.propId)}
-              className="inline-flex h-5 max-w-[180px] items-center gap-1 rounded-full border border-white/[0.075] bg-white/[0.018] px-1.5 leading-none text-[11px] transition-colors hover:border-primary/45 hover:bg-primary/[0.07]"
+              className="inline-flex h-5 max-w-[180px] items-center gap-1 rounded-full border border-border bg-muted px-1.5 text-[11px] leading-none transition-colors hover:border-primary/45 hover:bg-primary/[0.07]"
               title={prop.propId}
             >
               <span
@@ -493,7 +493,7 @@ export function SketchSection({
               key={propId}
               type="button"
               onClick={() => navigateToAsset("prop", propId)}
-              className="inline-flex h-5 max-w-[180px] items-center gap-1 rounded-full border border-white/[0.075] bg-white/[0.018] px-1.5 leading-none text-[11px] transition-colors hover:border-primary/45 hover:bg-primary/[0.07]"
+              className="inline-flex h-5 max-w-[180px] items-center gap-1 rounded-full border border-border bg-muted px-1.5 text-[11px] leading-none transition-colors hover:border-primary/45 hover:bg-primary/[0.07]"
               title={propId}
             >
               <Package aria-hidden className="size-2.5 shrink-0 text-muted-foreground/70" />
@@ -556,7 +556,7 @@ export function SketchSection({
       {/* Right: casted characters + candidates + actions */}
       <div className="flex min-h-0 flex-col gap-2.5">
         {directorControlUrl && (
-          <div className="flex items-center gap-2 rounded-[8px] border border-white/[0.075] bg-white/[0.02] p-2">
+          <div className="flex items-center gap-2 rounded-[8px] border border-border bg-muted p-2">
             <button
               type="button"
               onClick={() => onPreview?.(directorControlUrl)}
@@ -571,7 +571,7 @@ export function SketchSection({
               />
             </button>
             <div className="min-w-0 flex-1">
-              <div className="truncate text-xs font-medium text-fuchsia-100">
+              <div className="truncate text-xs font-medium text-primary">
                 {t("episode.workbench.sketch.directorControl")}
               </div>
               <div className="truncate text-[11px] text-muted-foreground">
@@ -817,11 +817,11 @@ export function SketchSection({
                     "rounded-lg border p-3",
                     anchor.current
                       ? "border-amber-400/70 bg-amber-500/10"
-                      : "border-white/[0.12] bg-white/[0.045]",
+                      : "border-border bg-muted",
                   )}
                 >
                   <div
-                    className="overflow-hidden rounded-md border border-white/[0.12] bg-black/25"
+                    className="overflow-hidden rounded-md border border-border bg-black/25"
                     style={{ aspectRatio: BACKGROUND_ANCHOR_PREVIEW_ASPECT }}
                   >
                     {src ? (
@@ -842,7 +842,7 @@ export function SketchSection({
                     <div className="min-w-0">
                       <div className="truncate text-sm font-medium">{anchor.label}</div>
                       {anchor.current && (
-                        <div className="text-[11px] text-amber-300">
+                        <div className="text-[11px] text-amber-700 dark:text-amber-300">
                           {t("episode.workbench.sketch.backgroundCurrent")}
                         </div>
                       )}

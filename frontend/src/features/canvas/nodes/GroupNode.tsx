@@ -422,7 +422,7 @@ export const GroupNode = memo(({ id, data, selected }: GroupNodeProps) => {
               key={`empty-${index}`}
               type="button"
               // Click an empty slot to add an image (upload / history).
-              className="nodrag nopan absolute flex items-center justify-center rounded-lg border border-dashed border-white/[0.12] bg-white/[0.015] transition-colors hover:border-white/30 hover:bg-white/[0.04]"
+              className="nodrag nopan absolute flex items-center justify-center rounded-lg border border-dashed border-border bg-card transition-colors hover:border-foreground/30 hover:bg-muted"
               style={{ left: rect.x, top: rect.y, width: rect.width, height: rect.height }}
               onPointerDown={(event) => event.stopPropagation()}
               onClick={(event) => {
@@ -432,9 +432,9 @@ export const GroupNode = memo(({ id, data, selected }: GroupNodeProps) => {
               }}
             >
               {uploading ? (
-                <span className="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-white/60" />
+                <span className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-foreground/60" />
               ) : (
-                <Plus className="h-7 w-7 text-white/25" />
+                <Plus className="h-7 w-7 text-muted-foreground/70" />
               )}
             </button>
           ))
@@ -443,13 +443,13 @@ export const GroupNode = memo(({ id, data, selected }: GroupNodeProps) => {
       {isStoryboard && addMenuOpen && addMenuAnchor ? (
         <div
           ref={addMenuRef}
-          className="nodrag nopan nowheel absolute z-[60] flex w-52 flex-col overflow-hidden rounded-xl border border-white/10 bg-[#242426]/95 p-1.5 text-text-dark shadow-[0_12px_32px_rgba(0,0,0,0.45)] backdrop-blur-2xl"
+          className="nodrag nopan nowheel absolute z-[60] flex w-52 flex-col overflow-hidden rounded-xl border border-border bg-popover/95 p-1.5 text-popover-foreground shadow-xl backdrop-blur-2xl"
           style={{ left: addMenuAnchor.cx, top: addMenuAnchor.cy, transform: 'translate(-50%, -50%)' }}
           onPointerDown={(event) => event.stopPropagation()}
         >
           <button
             type="button"
-            className="flex h-10 items-center gap-2.5 rounded-[10px] px-3 text-left text-sm hover:bg-[rgba(255,255,255,0.075)]"
+            className="flex h-10 items-center gap-2.5 rounded-[10px] px-3 text-left text-sm hover:bg-muted"
             onClick={(event) => {
               event.stopPropagation();
               setAddMenuOpen(false);
@@ -461,7 +461,7 @@ export const GroupNode = memo(({ id, data, selected }: GroupNodeProps) => {
           </button>
           <button
             type="button"
-            className="flex h-10 items-center gap-2.5 rounded-[10px] px-3 text-left text-sm hover:bg-[rgba(255,255,255,0.075)]"
+            className="flex h-10 items-center gap-2.5 rounded-[10px] px-3 text-left text-sm hover:bg-muted"
             onClick={(event) => {
               event.stopPropagation();
               setAddMenuOpen(false);
@@ -587,8 +587,8 @@ export const GroupNode = memo(({ id, data, selected }: GroupNodeProps) => {
       ) : null}
 
       {projectionIsStale ? (
-        <div className="projection-stale-banner pointer-events-none absolute left-3 top-3 z-20 inline-flex max-w-[calc(100%-1.5rem)] items-center gap-2 rounded-lg border border-amber-300/45 bg-[#241806]/90 px-3 py-1.5 text-xs font-semibold text-amber-100 shadow-[0_10px_28px_rgba(0,0,0,0.28)] backdrop-blur-md">
-          <RefreshCw className="h-3.5 w-3.5 shrink-0 text-amber-200" />
+        <div className="projection-stale-banner pointer-events-none absolute left-3 top-3 z-20 inline-flex max-w-[calc(100%-1.5rem)] items-center gap-2 rounded-lg border border-amber-500/45 bg-amber-50/95 px-3 py-1.5 text-xs font-semibold text-amber-900 shadow-lg backdrop-blur-md dark:bg-amber-950/90 dark:text-amber-100">
+          <RefreshCw className="h-3.5 w-3.5 shrink-0 text-amber-700 dark:text-amber-200" />
           <span className="truncate">{t('freezone.projections.staleBadge')}</span>
         </div>
       ) : null}
@@ -600,13 +600,13 @@ export const GroupNode = memo(({ id, data, selected }: GroupNodeProps) => {
             type="target"
             id="target"
             position={Position.Left}
-            className="!h-2 !w-2 !border-surface-dark !bg-[rgb(148,163,184)]"
+            className="!h-2 !w-2 !border-surface-dark !bg-muted-foreground"
           />
           <Handle
             type="source"
             id="source"
             position={Position.Right}
-            className="!h-2 !w-2 !border-surface-dark !bg-[rgb(148,163,184)]"
+            className="!h-2 !w-2 !border-surface-dark !bg-muted-foreground"
           />
         </>
       ) : null}

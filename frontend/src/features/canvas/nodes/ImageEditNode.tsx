@@ -221,7 +221,7 @@ function renderPromptWithHighlights(prompt: string, maxImageCount: number): Reac
     segments.push(
       <span
         key={`ref-${matchStart}`}
-        className="relative z-0 text-white [text-shadow:0.24px_0_currentColor,-0.24px_0_currentColor] before:absolute before:-inset-x-[4px] before:-inset-y-[1px] before:-z-10 before:rounded-[7px] before:bg-accent/55 before:content-['']"
+        className="relative z-0 text-accent-foreground before:absolute before:-inset-x-[4px] before:-inset-y-[1px] before:-z-10 before:rounded-[7px] before:bg-accent before:content-['']"
       >
         {matchText}
       </span>
@@ -1046,8 +1046,8 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
       />
 
       <div className={`flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border ${CANVAS_NODE_INPUT_SURFACE_CLASS} ${CANVAS_NODE_INPUT_FRAME_CLASS}`}>
-        <div className="relative min-h-[190px] flex-[1.25] border-b border-[rgba(255,255,255,0.08)] bg-black/20">
-          <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-full bg-black/40 px-2 py-1 text-[11px] text-text-muted">
+        <div className="relative min-h-[190px] flex-[1.25] border-b border-border bg-muted">
+          <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-full bg-black/65 px-2 py-1 text-[11px] text-white/80">
             <ImageIcon className="h-3.5 w-3.5" />
             图片节点 {incomingImageItems.length > 0 ? incomingImageItems.length : ''}
           </div>
@@ -1056,7 +1056,7 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
               {incomingImageItems.slice(0, 4).map((item, index) => (
                 <div
                   key={`${item.imageUrl}-${index}`}
-                  className="group relative min-h-0 overflow-hidden rounded-xl border border-[rgba(255,255,255,0.12)] bg-black/30"
+                  className="group relative min-h-0 overflow-hidden rounded-xl border border-border bg-[#0b0d10]"
                 >
                   <CanvasNodeImage
                     src={item.displayUrl}
@@ -1066,7 +1066,7 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
                     className="h-full w-full object-contain"
                     draggable={false}
                   />
-                  <div className="absolute left-2 top-2 rounded-full border border-[rgba(255,255,255,0.12)] bg-black/55 px-2 py-0.5 text-[10px] text-text-dark">
+                  <div className="absolute left-2 top-2 rounded-full border border-white/15 bg-black/65 px-2 py-0.5 text-[10px] text-white/85">
                     {item.label}
                   </div>
                   {item.sourceNodeId && (
@@ -1079,17 +1079,17 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
                 </div>
               ))}
               {incomingImageItems.length > 4 && (
-                <div className="absolute bottom-3 left-3 rounded-full border border-[rgba(255,255,255,0.12)] bg-black/55 px-2 py-0.5 text-[11px] text-text-dark">
+                <div className="absolute bottom-3 left-3 rounded-full border border-white/15 bg-black/65 px-2 py-0.5 text-[11px] text-white/85">
                   +{incomingImageItems.length - 4} 张引用图
                 </div>
               )}
             </div>
           ) : (
-            <div className="flex h-full flex-col items-center justify-center gap-4 text-text-muted">
+            <div className="flex h-full flex-col items-center justify-center gap-4 text-muted-foreground">
               <ImageIcon className="h-12 w-12 opacity-45" />
               <button
                 type="button"
-                className="nodrag inline-flex items-center gap-2 rounded-full border border-[rgba(255,255,255,0.14)] bg-white/8 px-4 py-2 text-sm text-text-dark transition hover:bg-white/12"
+                className="nodrag inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm text-foreground transition hover:border-foreground/25 hover:bg-accent"
                 onMouseDown={(event) => event.stopPropagation()}
                 onClick={(event) => {
                   event.stopPropagation();
@@ -1104,7 +1104,7 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
                 <span className="text-[var(--canvas-node-input-helper)]">试试：</span>
                 <button
                   type="button"
-                  className="nodrag rounded-full bg-white/8 px-2 py-1 text-text-dark transition hover:bg-white/12"
+                  className="nodrag rounded-full bg-card px-2 py-1 text-foreground transition hover:bg-accent"
                   onMouseDown={(event) => event.stopPropagation()}
                   onClick={(event) => {
                     event.stopPropagation();
@@ -1115,7 +1115,7 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
                 </button>
                 <button
                   type="button"
-                  className="nodrag rounded-full bg-white/8 px-2 py-1 text-text-dark transition hover:bg-white/12"
+                  className="nodrag rounded-full bg-card px-2 py-1 text-foreground transition hover:bg-accent"
                   onMouseDown={(event) => event.stopPropagation()}
                   onClick={(event) => {
                     event.stopPropagation();
@@ -1130,7 +1130,7 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
 
           <button
             type="button"
-            className="nodrag absolute bottom-3 right-3 rounded-full border border-[rgba(255,255,255,0.14)] bg-black/45 p-2 text-text-muted transition hover:text-text-dark"
+            className="nodrag absolute bottom-3 right-3 rounded-full border border-border bg-card p-2 text-muted-foreground transition hover:bg-accent hover:text-foreground"
             onMouseDown={(event) => event.stopPropagation()}
             onClick={(event) => {
               event.stopPropagation();
@@ -1159,10 +1159,10 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
                   type="button"
                   disabled={item.disabled}
                   className={`nodrag rounded-lg border px-3 py-1.5 text-xs transition ${active
-                      ? 'border-[rgb(var(--accent-rgb)/0.55)] bg-[rgb(var(--accent-rgb)/0.18)] text-accent'
+                      ? 'border-[rgb(var(--accent-rgb)/0.55)] bg-[rgb(var(--accent-rgb)/0.18)] text-primary'
                       : item.disabled
-                        ? 'cursor-not-allowed border-[rgba(255,255,255,0.06)] bg-white/5 text-text-muted/45'
-                        : 'border-[rgba(255,255,255,0.1)] bg-white/8 text-text-muted hover:bg-white/12 hover:text-text-dark'
+                        ? 'cursor-not-allowed border-border bg-muted/50 text-muted-foreground/45'
+                        : 'border-border bg-muted text-muted-foreground hover:bg-accent hover:text-foreground'
                     }`}
                   onMouseDown={(event) => event.stopPropagation()}
                   onClick={(event) => {
@@ -1182,7 +1182,7 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
                 </button>
               );
             })}
-            <span className="mx-1 h-7 w-px bg-[rgba(255,255,255,0.14)]" />
+            <span className="mx-1 h-7 w-px bg-border" />
             {structuredCapabilities.map((capability) => {
               const active = data.capabilityId === capability.id;
               return (
@@ -1190,8 +1190,8 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
                   key={capability.id}
                   type="button"
                   className={`nodrag rounded-lg border px-3 py-1.5 text-xs transition ${active
-                      ? 'border-[rgb(var(--accent-rgb)/0.55)] bg-[rgb(var(--accent-rgb)/0.18)] text-accent'
-                      : 'border-[rgba(255,255,255,0.1)] bg-white/8 text-text-muted hover:bg-white/12 hover:text-text-dark'
+                      ? 'border-[rgb(var(--accent-rgb)/0.55)] bg-[rgb(var(--accent-rgb)/0.18)] text-primary'
+                      : 'border-border bg-muted text-muted-foreground hover:bg-accent hover:text-foreground'
                     }`}
                   onMouseDown={(event) => event.stopPropagation()}
                   onClick={(event) => {
@@ -1216,10 +1216,10 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
           </div>
 
           {capability && capability.params.length > 0 && (
-            <div className="mb-2 rounded-xl border border-[rgba(255,255,255,0.1)] bg-black/18 p-2">
+            <div className="mb-2 rounded-xl border border-border bg-muted p-2">
               <div className="mb-2 flex items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <div className="truncate text-xs font-medium text-text-dark">
+                  <div className="truncate text-xs font-medium text-foreground">
                     {capability.name}
                   </div>
                   <div className="truncate text-[10px] text-text-muted">
@@ -1228,7 +1228,7 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
                 </div>
                 <button
                   type="button"
-                  className="nodrag rounded-lg border border-[rgba(255,255,255,0.1)] px-2 py-1 text-[10px] text-text-muted transition hover:bg-white/10 hover:text-text-dark"
+                  className="nodrag rounded-lg border border-border px-2 py-1 text-[10px] text-muted-foreground transition hover:bg-accent hover:text-foreground"
                   onMouseDown={(event) => event.stopPropagation()}
                   onClick={(event) => {
                     event.stopPropagation();
@@ -1265,7 +1265,7 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
           <div className="mb-2 flex min-h-10 items-center gap-2 overflow-x-auto pb-1">
             <button
               type="button"
-              className="nodrag shrink-0 rounded-lg border border-[rgba(255,255,255,0.1)] bg-white/8 px-3 py-2 text-xs text-text-muted transition hover:bg-white/12 hover:text-text-dark"
+              className="nodrag shrink-0 rounded-lg border border-border bg-muted px-3 py-2 text-xs text-muted-foreground transition hover:bg-accent hover:text-foreground"
               onMouseDown={(event) => event.stopPropagation()}
               onClick={(event) => {
                 event.stopPropagation();
@@ -1276,7 +1276,7 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
             </button>
             <button
               type="button"
-              className="nodrag shrink-0 rounded-lg border border-[rgba(255,255,255,0.1)] bg-white/8 px-3 py-2 text-xs text-text-muted transition hover:bg-white/12 hover:text-text-dark"
+              className="nodrag shrink-0 rounded-lg border border-border bg-muted px-3 py-2 text-xs text-muted-foreground transition hover:bg-accent hover:text-foreground"
               onMouseDown={(event) => event.stopPropagation()}
               onClick={(event) => {
                 event.stopPropagation();
@@ -1287,7 +1287,7 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
             </button>
             <button
               type="button"
-              className="nodrag shrink-0 rounded-lg border border-[rgba(255,255,255,0.1)] bg-white/8 px-3 py-2 text-xs text-text-muted transition hover:bg-white/12 hover:text-text-dark"
+              className="nodrag shrink-0 rounded-lg border border-border bg-muted px-3 py-2 text-xs text-muted-foreground transition hover:bg-accent hover:text-foreground"
               onMouseDown={(event) => event.stopPropagation()}
               onClick={(event) => {
                 event.stopPropagation();
@@ -1304,14 +1304,14 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
                 text={content.text ?? ''}
                 sourceLabel={content.displayName ?? content.nodeType}
                 onDetach={detachUpstream}
-                triggerClassName="nodrag flex h-10 w-10 items-center justify-center rounded-lg bg-white/12 transition-colors hover:bg-white/20"
+                triggerClassName="nodrag flex h-10 w-10 items-center justify-center rounded-lg bg-muted transition-colors hover:bg-accent"
               />
             ))}
             {incomingImageItems.slice(0, 5).map((item, index) => (
               <button
                 key={`ref-chip-${item.imageUrl}-${index}`}
                 type="button"
-                className="group nodrag relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-[rgba(255,255,255,0.14)] bg-white/8"
+                className="group nodrag relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-border bg-muted"
                 onMouseDown={(event) => event.stopPropagation()}
                 onClick={(event) => {
                   event.stopPropagation();
@@ -1327,7 +1327,7 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
                   className="h-full w-full object-cover"
                   draggable={false}
                 />
-                <span className="absolute right-0.5 top-0.5 rounded bg-black/65 px-1 text-[9px] text-text-dark group-hover:opacity-0">
+                <span className="absolute right-0.5 top-0.5 rounded bg-black/65 px-1 text-[9px] text-white/85 group-hover:opacity-0">
                   {index + 1}
                 </span>
                 {item.sourceNodeId && (
@@ -1375,7 +1375,7 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
 
         {showImagePicker && incomingImageItems.length > 0 && (
           <div
-            className="nowheel absolute z-30 w-[120px] overflow-hidden rounded-xl border border-[rgba(255,255,255,0.16)] bg-surface-dark shadow-xl"
+            className="nowheel absolute z-30 w-[120px] overflow-hidden rounded-xl border border-border bg-popover shadow-xl"
             style={{ left: pickerAnchor.left, top: pickerAnchor.top }}
             onMouseDown={(event) => event.stopPropagation()}
             onWheelCapture={(event) => event.stopPropagation()}
@@ -1393,8 +1393,8 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
                     insertImageReference(index);
                   }}
                   onMouseEnter={() => setPickerActiveIndex(index)}
-                  className={`flex w-full items-center gap-2 border border-transparent bg-bg-dark/70 px-2 py-2 text-left text-sm text-text-dark transition-colors hover:border-[rgba(255,255,255,0.18)] ${pickerActiveIndex === index
-                      ? 'border-[rgba(255,255,255,0.24)] bg-bg-dark'
+                  className={`flex w-full items-center gap-2 border border-transparent bg-popover px-2 py-2 text-left text-sm text-popover-foreground transition-colors hover:border-foreground/25 hover:bg-muted ${pickerActiveIndex === index
+                      ? 'border-primary/45 bg-muted'
                       : ''
                     }`}
                 >
@@ -1473,19 +1473,19 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
         </UiButton>
       </div>
 
-      {error && <div className="mt-1 shrink-0 text-xs text-red-400 break-words [overflow-wrap:anywhere]">{error}</div>}
+      {error && <div className="mt-1 shrink-0 text-xs text-red-700 break-words [overflow-wrap:anywhere] dark:text-red-300">{error}</div>}
 
       <Handle
         type="target"
         id="target"
         position={Position.Left}
-        className="!h-2 !w-2 !border-surface-dark !bg-[rgb(148,163,184)]"
+        className="!h-2 !w-2 !border-surface-dark !bg-muted-foreground"
       />
       <Handle
         type="source"
         id="source"
         position={Position.Right}
-        className="!h-2 !w-2 !border-surface-dark !bg-[rgb(148,163,184)]"
+        className="!h-2 !w-2 !border-surface-dark !bg-muted-foreground"
       />
       <NodeResizeHandle
         minWidth={IMAGE_EDIT_NODE_MIN_WIDTH}
@@ -1522,7 +1522,7 @@ function InlineCapabilityParamControl({
           value={stringifyParamValue(value ?? param.defaultValue)}
           onChange={(event) => onChange(event.target.value)}
           onMouseDown={(event) => event.stopPropagation()}
-          className="w-full rounded-lg border border-[rgba(255,255,255,0.1)] bg-bg-dark px-2 py-1.5 text-xs text-text-dark outline-none"
+          className="w-full rounded-lg border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none"
         >
           {(param.options ?? []).map((option) => (
             <option key={option.value} value={option.value}>
@@ -1547,8 +1547,8 @@ function InlineCapabilityParamControl({
                 key={option.value}
                 type="button"
                 className={`rounded-full border px-2 py-1 text-[10px] transition ${active
-                    ? 'border-[rgb(var(--accent-rgb)/0.5)] bg-[rgb(var(--accent-rgb)/0.16)] text-accent'
-                    : 'border-[rgba(255,255,255,0.1)] bg-white/5 text-text-muted hover:bg-white/10 hover:text-text-dark'
+                    ? 'border-[rgb(var(--accent-rgb)/0.5)] bg-[rgb(var(--accent-rgb)/0.16)] text-primary'
+                    : 'border-border bg-muted text-muted-foreground hover:bg-accent hover:text-foreground'
                   }`}
                 onMouseDown={(event) => event.stopPropagation()}
                 onClick={(event) => {
@@ -1576,7 +1576,7 @@ function InlineCapabilityParamControl({
           checked={Boolean(value ?? param.defaultValue)}
           onChange={(event) => onChange(event.target.checked)}
           onMouseDown={(event) => event.stopPropagation()}
-          className="accent-accent"
+          className="accent-primary"
         />
         <span>{param.label}</span>
       </label>
@@ -1600,7 +1600,7 @@ function InlineCapabilityParamControl({
           value={numericValue}
           onChange={(event) => onChange(Number(event.target.value))}
           onMouseDown={(event) => event.stopPropagation()}
-          className="w-full accent-accent"
+          className="w-full accent-primary"
         />
       </label>
     );
@@ -1613,7 +1613,7 @@ function InlineCapabilityParamControl({
         value={stringifyParamValue(value ?? param.defaultValue)}
         onChange={(event) => onChange(event.target.value)}
         onMouseDown={(event) => event.stopPropagation()}
-        className="ui-scrollbar min-h-12 w-full resize-y rounded-lg border border-[rgba(255,255,255,0.1)] bg-bg-dark px-2 py-1.5 text-xs text-text-dark outline-none"
+        className="ui-scrollbar min-h-12 w-full resize-y rounded-lg border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none"
         placeholder={param.description}
       />
     </label>

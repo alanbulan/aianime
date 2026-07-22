@@ -473,7 +473,7 @@ export function SketchPoseEditorDialog({
               <div className="min-h-0 flex-1 overflow-hidden bg-black/10 p-4">
                 <div
                   ref={stageRef}
-                  className="flex h-full w-full items-center justify-center rounded-lg bg-black/20 ring-1 ring-white/[0.1]"
+                  className="flex h-full w-full items-center justify-center rounded-lg bg-black/20 ring-1 ring-border"
                   style={{
                     backgroundImage:
                       "radial-gradient(circle, rgba(148,163,184,0.12) 1px, transparent 1px)",

@@ -53,7 +53,7 @@ export function TaskRow({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex w-full items-center gap-2 border-b border-border/50 px-3 py-2 text-left text-xs hover:bg-muted/50",
+        "flex w-full items-center gap-2 border-b border-border px-3 py-2 text-left text-xs hover:bg-muted",
         selected && "bg-muted",
       )}
     >

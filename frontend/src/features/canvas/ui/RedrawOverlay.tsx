@@ -78,17 +78,17 @@ const DEFAULT_BRUSH = 40;
 const PAINT_FILL = 'rgba(239, 68, 68, 0.55)';
 const PAINT_STROKE = 'rgba(239, 68, 68, 0.55)';
 const REDRAW_MODAL_CLASS =
-  'relative flex h-[min(700px,78vh)] w-[min(860px,86vw)] flex-col overflow-hidden rounded-[10px] border border-white/[0.12] bg-[#15161b]/96 shadow-[0_18px_48px_rgba(0,0,0,0.45)] backdrop-blur-md';
+  'relative flex h-[min(700px,78vh)] w-[min(860px,86vw)] flex-col overflow-hidden rounded-[10px] border border-border bg-popover/96 shadow-2xl backdrop-blur-md';
 const REDRAW_TEXT_BUTTON_CLASS =
-  'inline-flex items-center gap-1 rounded px-1.5 text-xs text-text-dark/62 transition-colors hover:text-text-dark disabled:opacity-30';
+  'inline-flex items-center gap-1 rounded px-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-30';
 const REDRAW_SELECT_CLASS =
-  'h-7 appearance-none rounded border border-transparent bg-transparent py-0 pl-0 pr-4 text-xs text-text-dark outline-none transition-colors hover:text-white disabled:opacity-45';
+  'h-7 appearance-none rounded border border-transparent bg-transparent py-0 pl-0 pr-4 text-xs text-foreground outline-none transition-colors hover:text-foreground disabled:opacity-45';
 const REDRAW_PROMPT_CLASS =
-  'h-[72px] w-full resize-none rounded-[8px] border border-white/[0.08] bg-bg-dark/42 px-3 py-2 text-sm text-text-dark outline-none transition-colors placeholder:text-text-dark/52 focus:border-white/[0.16]';
+  'h-[72px] w-full resize-none rounded-[8px] border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary/45';
 const BRUSH_SLIDER_CLASS =
-  'h-0.5 w-24 cursor-pointer appearance-none rounded-full [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#5b8cff] [&::-webkit-slider-thumb]:shadow-none [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#5b8cff]';
+  'h-0.5 w-24 cursor-pointer appearance-none rounded-full [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:shadow-none [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-primary';
 const REDRAW_CONFIRM_BUTTON_CLASS =
-  'inline-flex h-8 items-center justify-center rounded-[8px] bg-white px-4 text-sm font-medium text-bg-dark transition-colors hover:bg-white/90 disabled:cursor-not-allowed disabled:bg-white/5 disabled:text-text-muted/40';
+  'inline-flex h-8 items-center justify-center rounded-[8px] bg-foreground px-4 text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground/40';
 
 function imageModelSupportsQuality(apiModel: string | null | undefined): boolean {
   if (!apiModel) return false;
@@ -566,7 +566,7 @@ export const RedrawOverlay = memo(({ node, imageSource, onClose }: RedrawOverlay
   const submitLabel = hasMask ? '局部重绘' : '整体重绘';
   const brushPercent = ((brushSize - BRUSH_MIN) / (BRUSH_MAX - BRUSH_MIN)) * 100;
   const brushSliderStyle = {
-    background: `linear-gradient(to right, #5b8cff 0%, #5b8cff ${brushPercent}%, rgba(255,255,255,0.28) ${brushPercent}%, rgba(255,255,255,0.28) 100%)`,
+    background: `linear-gradient(to right, rgb(var(--accent-rgb)) 0%, rgb(var(--accent-rgb)) ${brushPercent}%, rgb(var(--text-rgb) / 0.24) ${brushPercent}%, rgb(var(--text-rgb) / 0.24) 100%)`,
   };
 
   const overlay = (
@@ -645,7 +645,7 @@ export const RedrawOverlay = memo(({ node, imageSource, onClose }: RedrawOverlay
           </div>
         </div>
 
-        <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[#111214]/80 p-4 pt-14">
+        <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[#0b0d10] p-4 pt-14">
           {!imageReady && <div className="text-sm text-text-muted">加载源图...</div>}
           <div
             className={`relative max-h-full max-w-full ${imageReady ? '' : 'hidden'}`}
@@ -671,7 +671,7 @@ export const RedrawOverlay = memo(({ node, imageSource, onClose }: RedrawOverlay
           </div>
         </div>
 
-        <div className="shrink-0 space-y-3 bg-[#242426]/95 px-4 py-3">
+        <div className="shrink-0 space-y-3 border-t border-border bg-card px-4 py-3">
           <textarea
             value={prompt}
             onChange={(event) => setPrompt(event.target.value)}
@@ -684,7 +684,7 @@ export const RedrawOverlay = memo(({ node, imageSource, onClose }: RedrawOverlay
             className={`${REDRAW_PROMPT_CLASS} ${CANVAS_NODE_INPUT_PLACEHOLDER_CLASS}`}
           />
 
-          <div className="flex flex-wrap items-center gap-5 text-xs text-text-dark/58">
+          <div className="flex flex-wrap items-center gap-5 text-xs text-muted-foreground">
             <Field label="模型">
               <ProviderModelPicker
                 selectedModelId={modelId}
@@ -735,7 +735,7 @@ export const RedrawOverlay = memo(({ node, imageSource, onClose }: RedrawOverlay
             </Field>
 
             <div className="ml-auto flex items-center gap-2">
-              {error && <span className="text-red-400">{error}</span>}
+              {error && <span className="text-red-700 dark:text-red-300">{error}</span>}
               <CreditCostPill
                 display={creditCost.data?.data.display}
                 className={NODE_CREDIT_PILL_FLAT_CLASS}
@@ -789,8 +789,8 @@ function ToolBtn({
       className={
         'flex h-8 w-8 items-center justify-center rounded-full transition-colors ' +
         (active
-          ? 'text-[#5b8cff]'
-          : 'text-text-dark/42 hover:bg-white/[0.06] hover:text-text-dark/76')
+          ? 'text-primary'
+          : 'text-muted-foreground/75 hover:bg-muted hover:text-foreground')
       }
     >
       {children}
@@ -816,7 +816,7 @@ function RedrawSelect({
       <select {...props} className={REDRAW_SELECT_CLASS}>
         {children}
       </select>
-      <ChevronDown className="pointer-events-none absolute right-0 h-3 w-3 text-text-dark/52" />
+      <ChevronDown className="pointer-events-none absolute right-0 h-3 w-3 text-muted-foreground" />
     </span>
   );
 }

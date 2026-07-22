@@ -213,8 +213,8 @@ function SliderRow({ label, value, min, max, step = 0.1, unit = '°', onChange }
     onChange(Math.max(min, Math.min(max, parsed)));
   };
   return (
-    <div className="flex w-full items-center gap-2 text-[11px] text-text-dark/78">
-      <span className="w-12 shrink-0 text-left tabular-nums text-text-dark/72">{label}</span>
+    <div className="flex w-full items-center gap-2 text-[11px] text-foreground/78">
+      <span className="w-12 shrink-0 text-left tabular-nums text-foreground/72">{label}</span>
       <input
         type="range"
         min={min}
@@ -233,9 +233,9 @@ function SliderRow({ label, value, min, max, step = 0.1, unit = '°', onChange }
         value={Number.isFinite(value) ? Number(value.toFixed(2)) : 0}
         onChange={(event) => handleNumber(event.target.value)}
         onPointerDown={(event) => event.stopPropagation()}
-        className="nodrag h-7 w-[58px] rounded-[7px] border border-white/[0.14] bg-transparent px-1.5 text-right text-[11px] tabular-nums text-text-dark/92 outline-none transition-colors hover:border-white/[0.22] focus:border-white/28"
+        className="nodrag h-7 w-[58px] rounded-[7px] border border-border bg-background px-1.5 text-right text-[11px] tabular-nums text-foreground/92 outline-none transition-colors hover:border-foreground/25 focus:border-primary/45"
       />
-      <span className="w-3 text-[11px] text-text-dark/58">{unit}</span>
+      <span className="w-3 text-[11px] text-muted-foreground">{unit}</span>
     </div>
   );
 }
@@ -252,7 +252,7 @@ function ChipButton({ onClick, title, disabled, children, tone = 'default' }: Ch
   const toneClass =
     tone === 'accent'
       ? 'border-[rgb(var(--accent-rgb))]/35 bg-[rgb(var(--accent-rgb))]/14 text-[rgb(var(--accent-rgb))] hover:bg-[rgb(var(--accent-rgb))]/22'
-      : 'border-white/[0.12] bg-transparent text-text-dark/72 hover:border-white/[0.2] hover:bg-white/[0.06] hover:text-text-dark';
+      : 'border-border bg-transparent text-muted-foreground hover:border-foreground/25 hover:bg-muted hover:text-foreground';
   return (
     <button
       type="button"
@@ -288,7 +288,7 @@ function PanoToolbarButton({ onClick, title, disabled, children }: PanoToolbarBu
         onClick();
       }}
       onPointerDown={(event) => event.stopPropagation()}
-      className="nodrag inline-flex h-8 w-8 items-center justify-center rounded-full text-text-dark/72 transition-colors hover:bg-white/[0.08] hover:text-text-dark disabled:cursor-not-allowed disabled:opacity-50"
+      className="nodrag inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
     >
       {children}
     </button>
@@ -1019,7 +1019,7 @@ export const Pano360ViewerNode = memo(({ id, data, selected, width, height }: Pa
         offset={16}
         className="pointer-events-auto"
       >
-        <div className="flex items-center gap-1 rounded-full border border-white/[0.12] bg-[#282828]/95 px-1.5 py-1 shadow-[0_10px_24px_rgba(0,0,0,0.32)] backdrop-blur-md">
+        <div className="flex items-center gap-1 rounded-full border border-border bg-popover/95 px-1.5 py-1 shadow-xl backdrop-blur-md">
           <PanoToolbarButton onClick={snapCurrent} disabled={isCapturing} title="当前视角截图">
             {isCapturing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
           </PanoToolbarButton>
@@ -1029,7 +1029,7 @@ export const Pano360ViewerNode = memo(({ id, data, selected, width, height }: Pa
           <PanoToolbarButton onClick={snap4x3} disabled={isCapturing} title="12 大视角截图">
             <Grid3x3 className="h-4 w-4" />
           </PanoToolbarButton>
-          <span className="mx-1 h-5 w-px bg-white/15" aria-hidden />
+          <span className="mx-1 h-5 w-px bg-border" aria-hidden />
           {/* 用作背景源: viewer 本身是 cropper,截当前 view 16:9 区域写
               beat selected_background.png(不开 dialog)。仅在镜头上下文有效。 */}
           <PanoToolbarButton
@@ -1039,7 +1039,7 @@ export const Pano360ViewerNode = memo(({ id, data, selected, width, height }: Pa
           >
             <ImageDown className="h-4 w-4" />
           </PanoToolbarButton>
-          <span className="mx-1 h-5 w-px bg-white/15" aria-hidden />
+          <span className="mx-1 h-5 w-px bg-border" aria-hidden />
           <PanoToolbarButton onClick={resetView} title="复位视角">
             <RotateCcw className="h-4 w-4" />
           </PanoToolbarButton>
@@ -1055,7 +1055,7 @@ export const Pano360ViewerNode = memo(({ id, data, selected, width, height }: Pa
         onTitleChange={(nextTitle) => updateNodeData(id, { displayName: nextTitle })}
       />
 
-      <div className="flex h-full w-full overflow-hidden rounded-[var(--node-radius)] bg-[#282828]">
+      <div className="flex h-full w-full overflow-hidden rounded-[var(--node-radius)] bg-[#0b0d10]">
         {/* 渲染区。激活时 PSV 独占拖拽 / 滚轮（nopan nowheel + stopPropagation），
             未激活时让事件透传，画布 pan / zoom / 选中节点正常工作。 */}
         <div className="relative flex-1 min-w-0">
@@ -1145,14 +1145,14 @@ export const Pano360ViewerNode = memo(({ id, data, selected, width, height }: Pa
         {/* 右侧控制面板 */}
         {isPanelOpen ? (
           <div
-            className="pano360-control-panel nopan nowheel flex h-full w-[336px] shrink-0 flex-col gap-4 overflow-y-auto overflow-x-hidden border-l border-white/[0.08] bg-[#191a1f]/94 p-4 text-[12px] text-text-dark backdrop-blur-sm"
+            className="pano360-control-panel nopan nowheel flex h-full w-[336px] shrink-0 flex-col gap-4 overflow-y-auto overflow-x-hidden border-l border-border bg-card/95 p-4 text-[12px] text-foreground backdrop-blur-sm"
             onWheel={(event) => event.stopPropagation()}
           >
             {/* FOV */}
             <section className="flex flex-col gap-2">
-              <header className="flex items-center justify-between gap-3 text-[11px] font-medium text-text-dark/72">
+              <header className="flex items-center justify-between gap-3 text-[11px] font-medium text-foreground/72">
                 <span>视场角 FOV</span>
-                <span className="tabular-nums text-text-dark/64">{liveFov.toFixed(0)}° · {focal ?? '—'}mm</span>
+                <span className="tabular-nums text-muted-foreground">{liveFov.toFixed(0)}° · {focal ?? '—'}mm</span>
               </header>
               <SliderRow
                 label="fov"
@@ -1173,11 +1173,11 @@ export const Pano360ViewerNode = memo(({ id, data, selected, width, height }: Pa
 
             {/* 校正 */}
             <section className="flex flex-col gap-2">
-              <header className="flex items-center justify-between gap-3 text-[11px] font-medium text-text-dark/72">
+              <header className="flex items-center justify-between gap-3 text-[11px] font-medium text-foreground/72">
                 <span>球面校正</span>
                 <button
                   type="button"
-                  className="nodrag rounded-full px-2 py-1 text-[11px] text-text-dark/62 transition-colors hover:bg-white/[0.06] hover:text-text-dark"
+                  className="nodrag rounded-full px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                   onClick={(event) => {
                     event.stopPropagation();
                     resetCorrection();
@@ -1217,9 +1217,9 @@ export const Pano360ViewerNode = memo(({ id, data, selected, width, height }: Pa
 
             {/* 方向 */}
             <section className="flex flex-col gap-2">
-              <header className="flex items-center justify-between gap-3 text-[11px] font-medium text-text-dark/72">
+              <header className="flex items-center justify-between gap-3 text-[11px] font-medium text-foreground/72">
                 <span>正前方</span>
-                <span className="tabular-nums text-text-dark/64">{data.frontYawDeg.toFixed(1)}°</span>
+                <span className="tabular-nums text-muted-foreground">{data.frontYawDeg.toFixed(1)}°</span>
               </header>
               <SliderRow
                 label="front"
@@ -1242,7 +1242,7 @@ export const Pano360ViewerNode = memo(({ id, data, selected, width, height }: Pa
 
             {/* 小行星 / 截图 / 导出 */}
             <section className="flex flex-col gap-2">
-              <header className="text-[11px] font-medium text-text-dark/72">效果与导出</header>
+              <header className="text-[11px] font-medium text-foreground/72">效果与导出</header>
               <div className="flex flex-wrap gap-1.5">
                 {planetBackup ? (
                   <ChipButton onClick={exitPlanet} tone="accent">
@@ -1266,13 +1266,13 @@ export const Pano360ViewerNode = memo(({ id, data, selected, width, height }: Pa
         type="target"
         id="target"
         position={Position.Left}
-        className="!h-2 !w-2 !border-surface-dark !bg-[rgb(148,163,184)]"
+        className="!h-2 !w-2 !border-surface-dark !bg-muted-foreground"
       />
       <Handle
         type="source"
         id="source"
         position={Position.Right}
-        className="!h-2 !w-2 !border-surface-dark !bg-[rgb(148,163,184)]"
+        className="!h-2 !w-2 !border-surface-dark !bg-muted-foreground"
       />
       <NodeResizeHandle
         minWidth={900}

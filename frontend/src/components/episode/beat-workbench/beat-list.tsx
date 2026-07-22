@@ -65,7 +65,7 @@ function BeatRow({
           "group flex min-w-0 items-start gap-2 overflow-hidden border-l-2 px-3 py-2 transition-colors",
           isSelected
             ? "border-l-primary bg-primary/5"
-            : "border-l-transparent hover:bg-accent/40",
+            : "border-l-transparent hover:bg-accent",
         )}
       >
         <button
@@ -86,7 +86,7 @@ function BeatRow({
           </div>
           <p className="line-clamp-1 text-xs text-foreground">
             {preview || (
-              <span className="italic text-muted-foreground/60">
+              <span className="italic text-muted-foreground">
                 {t("episode.beat.noNarration")}
               </span>
             )}
@@ -117,6 +117,6 @@ function StageDot({
         ? "text-amber-600 dark:text-amber-300"
         : state === "failed"
           ? "text-destructive"
-          : "text-muted-foreground/40";
+          : "text-muted-foreground";
   return <Icon className={cn("size-3", color)} />;
 }

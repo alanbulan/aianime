@@ -36,7 +36,7 @@ import { cn } from "@/lib/utils";
 
 const SUPPORTED_AUDIO_ACCEPT = ".mp3,.wav,.m4a,.aac,.ogg,audio/*";
 const SECONDARY_ACTION_CLASS =
-  "h-7 gap-1 rounded-[7px] border-white/[0.11] bg-white/[0.03] px-2.5 text-[12px] font-normal text-foreground/76 shadow-none hover:border-white/[0.18] hover:bg-white/[0.055] hover:text-foreground disabled:border-white/[0.07] disabled:bg-white/[0.018] disabled:text-muted-foreground/45 dark:border-white/[0.11] dark:bg-white/[0.03] dark:hover:border-white/[0.18] dark:hover:bg-white/[0.055] dark:hover:text-foreground";
+  "h-7 gap-1 rounded-[7px] border-border bg-muted px-2.5 text-[12px] font-normal text-foreground/76 shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground disabled:border-border disabled:bg-muted disabled:text-muted-foreground/45";
 
 function dataUrlFromBlob(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -271,7 +271,7 @@ export function NarratorVoicePanel({
   };
 
   return (
-    <section className="w-full max-w-[640px] rounded-[10px] border border-white/[0.055] bg-white/[0.012] p-4">
+    <section className="w-full max-w-[640px] rounded-[10px] border border-border bg-card p-4">
       {/* Header: title + status */}
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-sm font-semibold text-foreground">
@@ -283,8 +283,8 @@ export function NarratorVoicePanel({
             className={cn(
               "inline-flex h-4 items-center rounded-full border px-1.5 text-[10px] leading-none",
               hasVoice
-                ? "border-primary/35 bg-primary/[0.07] text-primary/90"
-                : "border-white/[0.075] bg-white/[0.025] text-muted-foreground/78",
+                ? "border-primary/35 bg-primary/[0.07] text-primary"
+                : "border-border bg-muted text-muted-foreground",
             )}
           >
             <span
@@ -393,7 +393,7 @@ export function NarratorVoicePanel({
       />
 
       <Dialog open={recordOpen} onOpenChange={closeRecordDialog}>
-        <DialogContent className="gap-4 rounded-2xl border border-white/[0.08] bg-zinc-950/30 p-5 shadow-2xl shadow-black/40 backdrop-blur-2xl sm:max-w-lg">
+        <DialogContent className="gap-4 rounded-2xl border border-border bg-popover/95 p-5 shadow-2xl backdrop-blur-2xl sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-lg font-medium tracking-tight text-foreground">
               {t("episode.workbench.video.narratorVoiceRecordTitle")}
@@ -403,22 +403,22 @@ export function NarratorVoicePanel({
             <p className="text-sm leading-5 text-muted-foreground/80">
               {t("episode.workbench.video.narratorVoiceRecordHint")}
             </p>
-            <div className="rounded-[10px] border border-white/[0.08] bg-white/[0.04] p-3 text-sm text-muted-foreground/76">
+            <div className="rounded-[10px] border border-border bg-muted p-3 text-sm text-muted-foreground">
               {recordStatus}
             </div>
             {recordedDataUrl && <audio src={recordedDataUrl} controls className="h-9 w-full" />}
           </div>
           <DialogFooter className="mt-2 flex flex-col gap-2 sm:flex-row sm:justify-end sm:gap-2">
-            <Button variant="outline" onClick={() => closeRecordDialog(false)} className="h-9 rounded-md border-white/[0.10] bg-white/[0.04] px-4 text-sm font-normal text-foreground/80 shadow-none hover:border-white/[0.18] hover:bg-white/[0.07] hover:text-foreground">
+            <Button variant="outline" onClick={() => closeRecordDialog(false)} className="h-9 rounded-md border-border bg-muted px-4 text-sm font-normal text-foreground/80 shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground">
               {t("common.cancel")}
             </Button>
             {recording ? (
-              <Button type="button" variant="outline" onClick={stopRecording} className="h-9 rounded-md border-white/[0.10] bg-white/[0.04] px-4 text-sm font-normal text-foreground/80 gap-1 shadow-none hover:border-white/[0.18] hover:bg-white/[0.07] hover:text-foreground">
+              <Button type="button" variant="outline" onClick={stopRecording} className="h-9 gap-1 rounded-md border-border bg-muted px-4 text-sm font-normal text-foreground/80 shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground">
                 <Square className="size-4" />
                 {t("common.stop")}
               </Button>
             ) : (
-              <Button type="button" variant="outline" onClick={startRecording} className="h-9 rounded-md border-white/[0.10] bg-white/[0.04] px-4 text-sm font-normal text-foreground/80 gap-1 shadow-none hover:border-white/[0.18] hover:bg-white/[0.07] hover:text-foreground">
+              <Button type="button" variant="outline" onClick={startRecording} className="h-9 gap-1 rounded-md border-border bg-muted px-4 text-sm font-normal text-foreground/80 shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground">
                 <Mic className="size-4" />
                 {t("episode.workbench.video.narratorVoiceRecordStart")}
               </Button>
@@ -437,7 +437,7 @@ export function NarratorVoicePanel({
       </Dialog>
 
       <Dialog open={projectAudioOpen} onOpenChange={setProjectAudioOpen}>
-        <DialogContent className="gap-4 rounded-2xl border border-white/[0.08] bg-zinc-950/30 p-5 shadow-2xl shadow-black/40 backdrop-blur-2xl sm:max-w-lg">
+        <DialogContent className="gap-4 rounded-2xl border border-border bg-popover/95 p-5 shadow-2xl backdrop-blur-2xl sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-lg font-medium tracking-tight text-foreground">
               {t("episode.workbench.video.narratorVoiceProjectAudioTitle")}
@@ -454,12 +454,12 @@ export function NarratorVoicePanel({
               onChange={setSelectedSourcePath}
             />
           ) : (
-            <div className="rounded-[10px] border border-white/[0.08] bg-white/[0.04] p-3 text-sm text-muted-foreground/76">
+            <div className="rounded-[10px] border border-border bg-muted p-3 text-sm text-muted-foreground">
               {t("episode.workbench.video.narratorVoiceNoSources")}
             </div>
           )}
           <DialogFooter className="mt-2 flex flex-col gap-2 sm:flex-row sm:justify-end sm:gap-2">
-            <Button variant="outline" onClick={() => setProjectAudioOpen(false)} className="h-9 rounded-md border-white/[0.10] bg-white/[0.04] px-4 text-sm font-normal text-foreground/80 shadow-none hover:border-white/[0.18] hover:bg-white/[0.07] hover:text-foreground">
+            <Button variant="outline" onClick={() => setProjectAudioOpen(false)} className="h-9 rounded-md border-border bg-muted px-4 text-sm font-normal text-foreground/80 shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground">
               {t("common.cancel")}
             </Button>
             <Button
@@ -476,7 +476,7 @@ export function NarratorVoicePanel({
       </Dialog>
 
       <Dialog open={trimOpen} onOpenChange={setTrimOpen}>
-        <DialogContent className="gap-4 rounded-2xl border border-white/[0.08] bg-zinc-950/30 p-5 shadow-2xl shadow-black/40 backdrop-blur-2xl sm:max-w-md">
+        <DialogContent className="gap-4 rounded-2xl border border-border bg-popover/95 p-5 shadow-2xl backdrop-blur-2xl sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-lg font-medium tracking-tight text-foreground">
               {t("episode.workbench.video.narratorVoiceTrimTitle")}
@@ -498,7 +498,7 @@ export function NarratorVoicePanel({
                   step="0.1"
                   value={trimStart}
                   onChange={(event) => setTrimStart(event.target.value)}
-                  className="h-10 rounded-[8px] border-white/[0.10] bg-white/[0.04] text-sm shadow-none focus:border-white/[0.18]"
+                  className="h-10 rounded-[8px] border-border bg-muted text-sm shadow-none focus:border-primary/45"
                 />
               </div>
               <div className="space-y-1.5">
@@ -512,13 +512,13 @@ export function NarratorVoicePanel({
                   step="0.1"
                   value={trimDuration}
                   onChange={(event) => setTrimDuration(event.target.value)}
-                  className="h-10 rounded-[8px] border-white/[0.10] bg-white/[0.04] text-sm shadow-none focus:border-white/[0.18]"
+                  className="h-10 rounded-[8px] border-border bg-muted text-sm shadow-none focus:border-primary/45"
                 />
               </div>
             </div>
           </div>
           <DialogFooter className="mt-2 flex flex-col gap-2 sm:flex-row sm:justify-end sm:gap-2">
-            <Button variant="outline" onClick={() => setTrimOpen(false)} className="h-9 rounded-md border-white/[0.10] bg-white/[0.04] px-4 text-sm font-normal text-foreground/80 shadow-none hover:border-white/[0.18] hover:bg-white/[0.07] hover:text-foreground">
+            <Button variant="outline" onClick={() => setTrimOpen(false)} className="h-9 rounded-md border-border bg-muted px-4 text-sm font-normal text-foreground/80 shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground">
               {t("common.cancel")}
             </Button>
             <Button

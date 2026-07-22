@@ -84,28 +84,28 @@ export function GlobalErrorDialog({
       <DialogContent
         showCloseButton
         overlayClassName="bg-black/62 backdrop-blur-[2px]"
-        closeButtonClassName="top-4 right-4 size-8 rounded-full bg-black/24 text-text-muted hover:bg-white/[0.08] hover:text-text-dark"
-        className="gap-0 overflow-hidden rounded-md border border-white/12 bg-zinc-900/85 p-0 text-text-dark ring-0 backdrop-blur-2xl sm:max-w-[600px]"
+        closeButtonClassName="top-4 right-4 size-8 rounded-full bg-muted text-muted-foreground hover:bg-accent hover:text-foreground"
+        className="gap-0 overflow-hidden rounded-md border border-border bg-popover/95 p-0 text-popover-foreground ring-0 backdrop-blur-2xl sm:max-w-[600px]"
       >
         <DialogHeader className="flex-row items-start gap-3 px-5 pb-4 pr-14 pt-5">
-          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.06] text-text-muted">
+          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-muted-foreground">
             <AlertCircle className="h-4 w-4" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <DialogTitle className="text-[17px] font-semibold leading-6 text-text-dark">
+            <DialogTitle className="text-[17px] font-semibold leading-6 text-popover-foreground">
               {displayTitle}
             </DialogTitle>
-            <DialogDescription className="mt-2 text-[14px] leading-6 text-text-dark/78">
+            <DialogDescription className="mt-2 text-[14px] leading-6 text-popover-foreground/78">
               {displayMessage}
             </DialogDescription>
           </div>
         </DialogHeader>
 
         {technicalDetails && (
-          <div className="border-t border-white/[0.08] px-5 py-3">
+          <div className="border-t border-border px-5 py-3">
             <button
               type="button"
-              className="flex w-full items-center justify-between rounded-md px-1 py-1 text-left text-[12px] font-medium text-text-muted transition-colors hover:text-text-dark"
+              className="flex w-full items-center justify-between rounded-md px-1 py-1 text-left text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground"
               onClick={() => setShowDetails((value) => !value)}
             >
               <span>{t('errorDialog.technicalDetails')}</span>
@@ -115,7 +115,7 @@ export function GlobalErrorDialog({
               />
             </button>
             {showDetails && (
-              <pre className="ui-scrollbar mt-2 max-h-[180px] overflow-auto whitespace-pre-wrap break-words rounded-md border border-white/[0.12] bg-[#0b0b0b]/80 p-3 font-mono text-[12px] leading-5 text-text-dark/82">
+              <pre className="ui-scrollbar mt-2 max-h-[180px] overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted/70 p-3 font-mono text-[12px] leading-5 text-foreground/82">
                 {technicalDetails}
               </pre>
             )}
@@ -127,7 +127,7 @@ export function GlobalErrorDialog({
             <Button
               variant="ghost"
               size="sm"
-              className="rounded-md px-3 text-text-dark/82 hover:bg-white/[0.07]"
+              className="rounded-md px-3 text-foreground/82 hover:bg-muted"
               onClick={() => {
                 void handleCopy();
               }}

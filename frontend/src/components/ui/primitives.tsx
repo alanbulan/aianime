@@ -71,7 +71,7 @@ interface UiModalProps {
 
 function resolveButtonVariant(variant: ButtonVariant): string {
   if (variant === 'primary') {
-    return 'bg-accent text-white hover:bg-accent/85';
+    return 'bg-primary text-primary-foreground hover:bg-primary/90';
   }
 
   if (variant === 'ghost') {
@@ -102,7 +102,7 @@ export function UiButton({
 export function UiIconButton({ className = '', active = false, ...props }: UiIconButtonProps) {
   return (
     <button
-      className={`inline-flex h-10 w-10 items-center justify-center border ui-field transition-colors ${active ? 'border-accent/45 bg-accent/18 text-text-dark' : 'text-text-muted hover:bg-[rgba(15,23,42,0.08)] dark:hover:bg-bg-dark'} ${className}`}
+      className={`inline-flex h-10 w-10 items-center justify-center border ui-field transition-colors ${active ? 'border-primary/45 bg-primary/12 text-primary' : 'text-text-muted hover:bg-[rgba(15,23,42,0.08)] dark:hover:bg-bg-dark'} ${className}`}
       {...props}
     />
   );
@@ -112,7 +112,7 @@ export const UiChipButton = forwardRef<HTMLButtonElement, UiChipButtonProps>(
   ({ className = '', active = false, ...props }, ref) => (
     <button
       ref={ref}
-      className={`inline-flex h-10 items-center gap-2 border ui-field px-3 text-sm transition-colors ${active ? 'border-accent/45 bg-accent/15 text-text-dark' : 'text-text-dark hover:bg-[rgba(15,23,42,0.08)] dark:hover:bg-bg-dark'} ${className}`}
+      className={`inline-flex h-10 items-center gap-2 border ui-field px-3 text-sm transition-colors ${active ? 'border-primary/45 bg-primary/12 text-primary' : 'text-text-dark hover:bg-[rgba(15,23,42,0.08)] dark:hover:bg-bg-dark'} ${className}`}
       {...props}
     />
   )
@@ -132,7 +132,7 @@ export function UiPanel({ className = '', ...props }: HTMLAttributes<HTMLDivElem
 export function UiTextArea({ className = '', ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
     <textarea
-      className={`w-full resize-none border ui-field px-3 py-2.5 text-sm text-text-dark outline-none transition-colors placeholder:text-text-muted/70 focus:border-accent ${className}`}
+      className={`w-full resize-none border ui-field px-3 py-2.5 text-sm text-text-dark outline-none transition-colors placeholder:text-text-muted/70 focus:border-primary ${className}`}
       {...props}
     />
   );
@@ -142,7 +142,7 @@ export const UiTextAreaField = forwardRef<HTMLTextAreaElement, TextareaHTMLAttri
   ({ className = '', ...props }, ref) => (
     <textarea
       ref={ref}
-      className={`w-full resize-none border ui-field px-3 py-2.5 text-sm text-text-dark outline-none transition-colors placeholder:text-text-muted/70 focus:border-accent ${className}`}
+      className={`w-full resize-none border ui-field px-3 py-2.5 text-sm text-text-dark outline-none transition-colors placeholder:text-text-muted/70 focus:border-primary ${className}`}
       {...props}
     />
   )
@@ -154,7 +154,7 @@ export const UiInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInpu
   ({ className = '', ...props }, ref) => (
     <input
       ref={ref}
-      className={`w-full border ui-field px-3 py-2 text-sm text-text-dark outline-none transition-colors placeholder:text-text-muted/70 focus:border-accent ${className}`}
+      className={`w-full border ui-field px-3 py-2 text-sm text-text-dark outline-none transition-colors placeholder:text-text-muted/70 focus:border-primary ${className}`}
       {...props}
     />
   )
@@ -171,8 +171,8 @@ export const UiCheckbox = forwardRef<HTMLButtonElement, UiCheckboxProps>(
       aria-checked={checked}
       className={`inline-flex h-5 w-5 items-center justify-center rounded border transition-colors ${
         checked
-          ? 'border-accent/60 bg-accent/20 text-accent'
-          : 'border-[rgba(255,255,255,0.2)] bg-bg-dark/60 text-transparent hover:border-[rgba(255,255,255,0.32)]'
+          ? 'border-primary/60 bg-primary/12 text-primary'
+          : 'border-border bg-background text-transparent hover:border-foreground/30'
       } ${className}`}
       onClick={(event) => {
         onClick?.(event);
@@ -396,7 +396,7 @@ export function UiSelect({ className = '', menuClassName = '', children, ...prop
         aria-expanded={isOpen}
         aria-controls={listboxIdRef.current}
         disabled={disabled}
-        className={`group inline-flex h-8 w-full items-center justify-between rounded-[6px] border border-[color:var(--ui-border-soft)] bg-[var(--ui-surface-field)] px-3 text-left text-xs font-medium text-text-dark outline-none transition-[border-color,background-color,box-shadow,color] hover:border-[color:var(--ui-border-strong)] focus-visible:border-accent focus-visible:shadow-[0_0_0_2px_rgba(var(--accent-rgb),0.12)] disabled:cursor-not-allowed disabled:opacity-55 ${className}`}
+        className={`group inline-flex h-8 w-full items-center justify-between rounded-[6px] border border-[color:var(--ui-border-soft)] bg-[var(--ui-surface-field)] px-3 text-left text-xs font-medium text-text-dark outline-none transition-[border-color,background-color,box-shadow,color] hover:border-[color:var(--ui-border-strong)] focus-visible:border-primary focus-visible:shadow-[0_0_0_2px_rgba(var(--accent-rgb),0.12)] disabled:cursor-not-allowed disabled:opacity-55 ${className}`}
         onClick={() => {
           if (!disabled && parsedOptions.length > 0) {
             setIsOpen((current) => !current);
@@ -407,7 +407,7 @@ export function UiSelect({ className = '', menuClassName = '', children, ...prop
         onFocus={(event) => onFocus?.(event as never)}
       >
         <span className="min-w-0 truncate pr-3">{selectedOption?.label ?? ''}</span>
-        <span className="flex h-4 w-4 shrink-0 items-center justify-center text-text-muted transition-colors group-hover:text-text-dark group-focus-visible:text-accent">
+        <span className="flex h-4 w-4 shrink-0 items-center justify-center text-text-muted transition-colors group-hover:text-text-dark group-focus-visible:text-primary">
           <ChevronDown
             className={`h-3.5 w-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
             style={{ transitionDuration: `${UI_POPOVER_TRANSITION_MS}ms` }}
@@ -446,8 +446,8 @@ export function UiSelect({ className = '', menuClassName = '', children, ...prop
                         option.disabled
                           ? 'cursor-not-allowed opacity-40'
                           : isSelected
-                            ? 'bg-accent text-white'
-                            : 'text-text-dark hover:bg-[rgba(255,255,255,0.08)] dark:hover:bg-white/[0.06]'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-foreground hover:bg-muted'
                       }`}
                       onClick={() => {
                         if (option.disabled) {
@@ -459,7 +459,7 @@ export function UiSelect({ className = '', menuClassName = '', children, ...prop
                       }}
                     >
                       <span className="truncate">{option.label}</span>
-                      {isSelected ? <Check className="ml-3 h-3.5 w-3.5 shrink-0 text-white" /> : null}
+                      {isSelected ? <Check className="ml-3 h-3.5 w-3.5 shrink-0 text-primary-foreground" /> : null}
                     </button>
                   );
                 })}
@@ -496,8 +496,8 @@ export function UiModal({
       <UiPanel
         className={`relative transition-opacity duration-200 ${isVisible ? 'opacity-100' : 'opacity-0'} ${widthClassName}`}
       >
-        <div className="flex items-center justify-between border-b border-[rgba(255,255,255,0.1)] px-4 py-3">
-          <h2 className="text-sm font-medium text-text-dark">{title}</h2>
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <h2 className="text-sm font-medium text-foreground">{title}</h2>
           <UiIconButton className="h-8 w-8" onClick={onClose}>
             <X className="h-4 w-4" />
           </UiIconButton>
@@ -506,7 +506,7 @@ export function UiModal({
         <div className="px-4 py-4">{children}</div>
 
         {footer && (
-          <div className="flex justify-end gap-2 border-t border-[rgba(255,255,255,0.1)] px-4 py-3">
+          <div className="flex justify-end gap-2 border-t border-border px-4 py-3">
             {footer}
           </div>
         )}

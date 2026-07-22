@@ -37,7 +37,7 @@ export function ViewToggles({
 
   return (
     <div className="flex shrink-0 flex-col">
-      <div className="flex min-h-10 items-center gap-2 border-b border-white/[0.055] px-3 py-2">
+      <div className="flex min-h-10 items-center gap-2 border-b border-border px-3 py-2">
         <div className="flex min-w-0 flex-wrap items-center gap-y-1.5">
           <div className="flex items-center gap-1.5">
             {TOGGLES.map(({ id, labelKey }) => {
@@ -50,7 +50,7 @@ export function ViewToggles({
                   className={cn(
                     "inline-flex h-[22px] items-center gap-1.5 rounded-[5px] px-1.5 text-[11px] font-medium transition-colors",
                     active
-                      ? "bg-white/[0.035] text-foreground"
+                      ? "bg-muted text-foreground"
                       : "text-muted-foreground hover:bg-foreground/[0.035] hover:text-foreground",
                   )}
                 >
@@ -59,7 +59,7 @@ export function ViewToggles({
                       "flex size-3 items-center justify-center rounded-[3px] border transition-colors",
                       active
                         ? "border-primary/70 bg-primary/15 text-primary"
-                        : "border-white/[0.09] bg-foreground/[0.025] text-transparent",
+                        : "border-border bg-muted text-transparent",
                     )}
                     aria-hidden
                 >
@@ -78,14 +78,14 @@ export function ViewToggles({
               <button
                 type="button"
                 onClick={onBatchRegenSketch}
-                className="inline-flex h-[22px] items-center rounded-[5px] border border-primary/35 bg-primary/[0.07] px-2 text-[11px] font-medium text-primary/90 transition-colors hover:border-primary/55 hover:bg-primary/[0.12] hover:text-primary"
+                className="inline-flex h-[22px] items-center rounded-[5px] border border-primary/35 bg-primary/[0.07] px-2 text-[11px] font-medium text-primary transition-colors hover:border-primary/55 hover:bg-primary/[0.12] hover:text-primary"
               >
                 {t("episode.workbench.view.batchRegenSketch")}
               </button>
               <button
                 type="button"
                 onClick={onBatchRegenRender}
-                className="inline-flex h-[22px] items-center rounded-[5px] border border-primary/35 bg-primary/[0.07] px-2 text-[11px] font-medium text-primary/90 transition-colors hover:border-primary/55 hover:bg-primary/[0.12] hover:text-primary"
+                className="inline-flex h-[22px] items-center rounded-[5px] border border-primary/35 bg-primary/[0.07] px-2 text-[11px] font-medium text-primary transition-colors hover:border-primary/55 hover:bg-primary/[0.12] hover:text-primary"
               >
                 {t("episode.workbench.view.batchRegenRender")}
               </button>
@@ -98,7 +98,7 @@ export function ViewToggles({
               </button>
             </div>
           ) : (
-            <span className="ml-5 text-[11px] text-foreground/60">
+            <span className="ml-5 text-[11px] text-muted-foreground">
               {t("episode.workbench.view.selectionHint")}
             </span>
           )}

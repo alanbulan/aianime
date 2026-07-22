@@ -18,8 +18,8 @@ import type { StreamHealth, TaskState } from "@/task-center/types";
 const HEALTH_COLOR: Record<StreamHealth, string> = {
   connecting: "text-muted-foreground",
   connected: "text-success",
-  reconnecting: "text-warning",
-  polling: "text-warning",
+  reconnecting: "text-amber-700 dark:text-amber-300",
+  polling: "text-amber-700 dark:text-amber-300",
   failed: "text-destructive",
 };
 
@@ -96,7 +96,7 @@ export function TaskStatusBar() {
 
   return (
     <footer
-      className="relative z-50 flex h-9 shrink-0 cursor-pointer select-none items-center justify-between border-t border-white/[0.05] bg-background/82 px-3 text-[11px] backdrop-blur-xl transition-colors hover:bg-muted/15"
+      className="relative z-50 flex h-9 shrink-0 cursor-pointer select-none items-center justify-between border-t border-border bg-background px-3 text-[11px] transition-colors hover:bg-muted"
       role="button"
       tabIndex={0}
       aria-label={t("taskCenter.title")}
@@ -114,7 +114,7 @@ export function TaskStatusBar() {
           />
           <span>{t("taskCenter.title")}</span>
         </span>
-        <span className="shrink-0 text-muted-foreground/45" aria-hidden>
+        <span className="shrink-0 text-muted-foreground" aria-hidden>
           ·
         </span>
         {leading ? (
@@ -155,7 +155,7 @@ export function TaskStatusBar() {
               {t("taskCenter.statusBar.generationRunning")}
             </span>
             <span
-              className="h-0.5 w-16 overflow-hidden rounded-full bg-white/[0.08]"
+              className="h-0.5 w-16 overflow-hidden rounded-full bg-border"
               aria-label={t("taskCenter.statusBar.progress", { percent: progress })}
             >
               <span

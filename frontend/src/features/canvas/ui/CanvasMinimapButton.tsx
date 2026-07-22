@@ -35,7 +35,7 @@ export function CanvasMinimapButton({
         className={`${CANVAS_CONTROL_ICON_BUTTON_CLASS} ${
           pinned
             ? CANVAS_CONTROL_ICON_BUTTON_ACTIVE_CLASS
-            : 'text-text-muted hover:bg-white/10 hover:text-text'
+            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
         }`}
         aria-label="画布缩略图"
         aria-pressed={pinned}
@@ -43,7 +43,7 @@ export function CanvasMinimapButton({
         <Map className="h-3.5 w-3.5" />
       </button>
       <span
-        className={`pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md border border-[rgba(255,255,255,0.12)] bg-bg-dark/95 px-2 py-1 text-[11px] text-text-dark opacity-0 shadow-lg transition-opacity duration-100 group-hover:opacity-100 ${
+        className={`pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-popover/95 px-2 py-1 text-[11px] text-popover-foreground opacity-0 shadow-lg transition-opacity duration-100 group-hover:opacity-100 ${
           isTop ? 'top-full mt-1.5' : 'bottom-full mb-1.5'
         }`}
       >

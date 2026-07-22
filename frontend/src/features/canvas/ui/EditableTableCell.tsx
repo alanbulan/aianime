@@ -32,7 +32,7 @@ export function EditableTableCell({ value, onCommit, emptyPlaceholder = '-' }: E
       suppressContentEditableWarning
       spellCheck={false}
       data-empty-placeholder={emptyPlaceholder}
-      className="editable-table-cell nodrag nowheel -mx-1 block min-h-[1.2em] cursor-text whitespace-pre-wrap break-words rounded px-1 leading-snug outline-none focus:bg-bg-dark/60 focus:ring-1 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
+      className="editable-table-cell nodrag nowheel -mx-1 block min-h-[1.2em] cursor-text whitespace-pre-wrap break-words rounded px-1 leading-snug outline-none focus:bg-muted focus:ring-1 focus:ring-ring/50"
       onClick={(event) => event.stopPropagation()}
       onPointerDown={(event) => event.stopPropagation()}
       onBlur={(event) => {

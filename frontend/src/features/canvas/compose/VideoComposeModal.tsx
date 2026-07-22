@@ -1673,7 +1673,7 @@ export function VideoComposeModal({
   const selectedMuted = selectedClip?.clip.muted ?? false;
 
   return createPortal(
-    <div className="fixed inset-0 z-[120] flex flex-col bg-bg-dark/95 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[120] flex flex-col bg-background text-foreground">
       {/* Header */}
       <header className="flex items-center justify-between border-b border-border-dark px-5 py-3">
         <div className="flex items-center gap-2 text-text-dark">
@@ -1686,7 +1686,7 @@ export function VideoComposeModal({
             type="button"
             onClick={() => setCoverEditorOpen(true)}
             disabled={!hasExportableClips(timeline)}
-            className="flex items-center gap-2 rounded-full border border-border-dark px-3 py-1.5 text-sm text-text-dark transition-colors hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1.5 text-sm text-foreground transition-colors hover:border-foreground/25 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
           >
             {timeline.cover?.url ? (
               <img
@@ -1729,7 +1729,7 @@ export function VideoComposeModal({
             </button>
             {exportMenuOpen && canExport && !exportDialog.open && (
               <div className="absolute right-0 top-full z-30 pt-2">
-                <div className="min-w-[180px] rounded-lg border border-border-dark bg-surface-dark p-1 shadow-2xl">
+                <div className="min-w-[180px] rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-2xl">
                   <div className="px-2 py-1 text-xs text-text-muted">
                     {t("videoCompose.exportLocation")}
                   </div>
@@ -1739,7 +1739,7 @@ export function VideoComposeModal({
                       setExportMenuOpen(false);
                       setExportDialog({ open: true, location: "local", resolution: "1080p" });
                     }}
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-text-dark transition-colors hover:bg-white/8"
+                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground transition-colors hover:bg-muted"
                   >
                     <Download className="h-4 w-4" />
                     {t("videoCompose.exportToLocal")}
@@ -1750,7 +1750,7 @@ export function VideoComposeModal({
                       setExportMenuOpen(false);
                       setExportDialog({ open: true, location: "canvas", resolution: "1080p" });
                     }}
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-text-dark transition-colors hover:bg-white/8"
+                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground transition-colors hover:bg-muted"
                   >
                     <LayoutGrid className="h-4 w-4" />
                     {t("videoCompose.exportToCanvas")}
@@ -1767,7 +1767,7 @@ export function VideoComposeModal({
                     !isExporting && setExportDialog((d) => ({ ...d, open: false }))
                   }
                 />
-                <div className="absolute right-0 top-full z-[140] mt-2 w-[360px] rounded-xl border border-border-dark bg-surface-dark p-5 text-left shadow-2xl">
+                <div className="absolute right-0 top-full z-[140] mt-2 w-[360px] rounded-xl border border-border bg-popover p-5 text-left text-popover-foreground shadow-2xl">
                   <h3 className="mb-4 text-sm font-semibold text-text-dark">
                     {t("videoCompose.exportDialog.title")}
                   </h3>
@@ -1784,7 +1784,7 @@ export function VideoComposeModal({
                             location: e.target.value as "local" | "canvas",
                           }))
                         }
-                        className="min-w-[160px] rounded-md border border-border-dark bg-bg-dark px-3 py-1.5 text-sm text-text-dark outline-none"
+                        className="min-w-[160px] rounded-md border border-border bg-muted px-3 py-1.5 text-sm text-foreground outline-none focus:border-primary/45"
                       >
                         <option value="local">{t("videoCompose.exportToLocal")}</option>
                         <option value="canvas">{t("videoCompose.exportToCanvas")}</option>
@@ -1802,7 +1802,7 @@ export function VideoComposeModal({
                             resolution: e.target.value as FreezoneVideoComposeResolution,
                           }))
                         }
-                        className="min-w-[160px] rounded-md border border-border-dark bg-bg-dark px-3 py-1.5 text-sm text-text-dark outline-none"
+                        className="min-w-[160px] rounded-md border border-border bg-muted px-3 py-1.5 text-sm text-foreground outline-none focus:border-primary/45"
                       >
                         <option value="720p">720P</option>
                         <option value="1080p">1080P</option>
@@ -1815,7 +1815,7 @@ export function VideoComposeModal({
                       <select
                         value="mp4"
                         disabled
-                        className="min-w-[160px] cursor-not-allowed rounded-md border border-border-dark bg-bg-dark px-3 py-1.5 text-sm text-text-muted opacity-70 outline-none"
+                        className="min-w-[160px] cursor-not-allowed rounded-md border border-border bg-muted px-3 py-1.5 text-sm text-muted-foreground opacity-70 outline-none"
                       >
                         <option value="mp4">MP4</option>
                       </select>
@@ -1826,7 +1826,7 @@ export function VideoComposeModal({
                       type="button"
                       disabled={isExporting}
                       onClick={() => setExportDialog((d) => ({ ...d, open: false }))}
-                      className="rounded-md border border-border-dark px-4 py-1.5 text-sm text-text-dark transition-colors hover:bg-white/[0.06] disabled:opacity-50"
+                      className="rounded-md border border-border bg-muted px-4 py-1.5 text-sm text-foreground transition-colors hover:bg-accent disabled:opacity-50"
                     >
                       {t("common.cancel")}
                     </button>
@@ -1851,7 +1851,7 @@ export function VideoComposeModal({
             type="button"
             onClick={onClose}
             disabled={isExporting}
-            className="rounded-full p-1.5 text-text-muted transition-colors hover:bg-surface-dark hover:text-text-dark disabled:opacity-50"
+            className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
             aria-label={t("common.close")}
           >
             <X className="h-5 w-5" />
@@ -1860,7 +1860,7 @@ export function VideoComposeModal({
       </header>
 
       {exportError && (
-        <div className="border-b border-red-500/30 bg-red-500/10 px-5 py-2 text-xs text-red-200">
+        <div className="border-b border-destructive/30 bg-destructive/10 px-5 py-2 text-xs text-destructive">
           {t("videoCompose.error.prefix")}: {exportError}
         </div>
       )}
@@ -1877,7 +1877,7 @@ export function VideoComposeModal({
           style={{ display: videoSource ? "block" : "none" }}
         />
         {!videoSource && (
-          <div className="text-sm text-text-muted">
+          <div className="text-sm text-white/70">
             {t("videoCompose.emptyPreview")}
           </div>
         )}
@@ -1963,7 +1963,7 @@ export function VideoComposeModal({
             type="button"
             onClick={toggle}
             disabled={durationMs <= 0}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-dark text-text-dark transition-colors hover:bg-bg-dark disabled:opacity-40"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-foreground transition-colors hover:bg-accent disabled:opacity-40"
             aria-label={isPlaying ? t("videoCompose.pause") : t("videoCompose.play")}
           >
             {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
@@ -2011,7 +2011,7 @@ export function VideoComposeModal({
       </div>
 
       {/* Timeline */}
-      <div className="h-[260px] shrink-0 overflow-hidden border-t border-border-dark bg-surface-dark/40">
+      <div className="h-[260px] shrink-0 overflow-hidden border-t border-border bg-card">
         <div ref={trackScrollRef} className="ui-scrollbar-vertical h-full overflow-auto">
           <div className="relative min-h-full" style={{ width: timelineWidthPx, minWidth: "100%" }}>
             {/* Ruler */}
@@ -2142,7 +2142,7 @@ function ToolButton({
       className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-35 ${
         active
           ? "bg-primary/20 text-primary"
-          : "text-text-muted hover:bg-surface-dark hover:text-text-dark"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground"
       }`}
     >
       <Icon className="h-4 w-4" />
@@ -2158,7 +2158,7 @@ function Stepper({
   onStep: (dir: 1 | -1) => void;
 }) {
   return (
-    <div className="flex items-center gap-1 rounded-md border border-border-dark bg-bg-dark px-2 py-1">
+    <div className="flex items-center gap-1 rounded-md border border-border bg-muted px-2 py-1">
       <span className="min-w-[48px] text-right font-mono text-xs tabular-nums text-text-dark">
         {value}
       </span>
@@ -2214,7 +2214,7 @@ function SpeedPopover({
   };
 
   return (
-    <div className="absolute bottom-full left-0 z-30 mb-2 w-80 rounded-xl border border-border-dark bg-surface-dark p-4 shadow-2xl">
+    <div className="absolute bottom-full left-0 z-30 mb-2 w-80 rounded-xl border border-border bg-popover p-4 text-popover-foreground shadow-2xl">
       <div className="mb-3 flex items-center justify-between">
         <span className="text-sm font-medium text-text-dark">
           {t("videoCompose.speed")}
@@ -2307,7 +2307,7 @@ function VolumePopover({
   const effective = muted ? 0 : volume;
   const percent = Math.round(effective * 100);
   return (
-    <div className="absolute bottom-full left-0 z-30 mb-2 w-72 rounded-xl border border-border-dark bg-surface-dark p-4 shadow-2xl">
+    <div className="absolute bottom-full left-0 z-30 mb-2 w-72 rounded-xl border border-border bg-popover p-4 text-popover-foreground shadow-2xl">
       <div className="mb-3 flex items-center justify-between">
         <span className="text-sm font-medium text-text-dark">
           {t("videoCompose.volume")}
@@ -2593,7 +2593,7 @@ function TrackRow({
         data-compose-track-kind={track.kind}
       >
         {laid.length === 0 && (
-          <div className="flex h-full items-center rounded-md border border-dashed border-border-dark px-3 text-[11px] text-text-muted">
+          <div className="flex h-full items-center rounded-md border border-dashed border-border bg-muted px-3 text-[11px] text-muted-foreground">
             {t("videoCompose.trackEmpty")}
           </div>
         )}
@@ -2740,7 +2740,7 @@ function TrackRow({
         {/* 拖动时间气泡：落点起始时间码，跟着幽灵副本走。 */}
         {ghostClip && ghostLeftPx != null && (
           <div
-            className="pointer-events-none absolute top-0 z-40 -translate-y-[18px] rounded bg-cyan-500/90 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-white shadow"
+            className="pointer-events-none absolute top-0 z-40 -translate-y-[18px] rounded bg-cyan-400 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-cyan-950 shadow"
             style={{ left: ghostLeftPx }}
           >
             {formatTimecode(ghostStartMs)}
@@ -2750,7 +2750,7 @@ function TrackRow({
         {/* 裁剪时长气泡：贴在被裁边缘，实时显示裁剪后的片段时长。 */}
         {trimLaid && (
           <div
-            className="pointer-events-none absolute top-0 z-40 rounded bg-cyan-500/90 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-white shadow"
+            className="pointer-events-none absolute top-0 z-40 rounded bg-cyan-400 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-cyan-950 shadow"
             style={{
               left:
                 trimEdge === "end"
@@ -2769,4 +2769,3 @@ function TrackRow({
     </div>
   );
 }
-

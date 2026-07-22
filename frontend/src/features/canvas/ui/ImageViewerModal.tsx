@@ -124,7 +124,7 @@ export function ImageViewerModal({
 
   return (
     <div
-      className={`fixed ${UI_CONTENT_OVERLAY_INSET_CLASS} z-[100] overflow-hidden bg-[#282828] backdrop-blur-lg`}
+      className={`fixed ${UI_CONTENT_OVERLAY_INSET_CLASS} z-[100] overflow-hidden bg-[#0b0d10]`}
       style={{
         opacity: overlayOpacity,
         transition: 'opacity 400ms ease',
@@ -184,7 +184,7 @@ export function ImageViewerModal({
               <button
                 onClick={() => onNavigate('prev')}
                 disabled={currentIndex <= 0}
-                className="rounded-full bg-zinc-800/80 p-2 text-white backdrop-blur-sm transition-all duration-200 hover:bg-zinc-700/80 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-full border border-white/15 bg-black/65 p-2 text-white backdrop-blur-sm transition-all duration-200 hover:bg-black/80 disabled:cursor-not-allowed disabled:opacity-50"
                 title={t('viewer.prev', '上一张')}
               >
                 <ChevronLeft className="h-5 w-5" />
@@ -192,7 +192,7 @@ export function ImageViewerModal({
               <button
                 onClick={() => onNavigate('next')}
                 disabled={currentIndex >= imageList.length - 1}
-                className="rounded-full bg-zinc-800/80 p-2 text-white backdrop-blur-sm transition-all duration-200 hover:bg-zinc-700/80 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-full border border-white/15 bg-black/65 p-2 text-white backdrop-blur-sm transition-all duration-200 hover:bg-black/80 disabled:cursor-not-allowed disabled:opacity-50"
                 title={t('viewer.next', '下一张')}
               >
                 <ChevronRight className="h-5 w-5" />

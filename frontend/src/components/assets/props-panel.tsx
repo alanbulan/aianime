@@ -141,12 +141,12 @@ function PropDialog({
   }, [initial, open]);
 
   const title = initial ? t("assets.props.editProp") : t("assets.props.newProp");
-  const PROP_DIALOG_INPUT_CLASS = "h-11 rounded-[8px] border-white/12 bg-white/[0.04] px-3 text-sm placeholder:text-muted-foreground/70 focus-visible:border-white/25 focus-visible:ring-2 focus-visible:ring-white/8 dark:bg-white/[0.04]";
-  const PROP_DIALOG_TEXTAREA_CLASS = "rounded-[8px] border-white/12 bg-white/[0.04] px-3 py-2 text-sm placeholder:text-muted-foreground/70 focus-visible:border-white/25 focus-visible:ring-2 focus-visible:ring-white/8 dark:bg-white/[0.04]";
+  const PROP_DIALOG_INPUT_CLASS = "h-11 rounded-[8px] border-border bg-muted px-3 text-sm placeholder:text-muted-foreground focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/10";
+  const PROP_DIALOG_TEXTAREA_CLASS = "rounded-[8px] border-border bg-muted px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/10";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-4 overflow-hidden rounded-2xl border border-white/8 bg-background/68 p-7 shadow-none backdrop-blur-3xl sm:max-w-lg">
+      <DialogContent className="gap-4 overflow-hidden rounded-2xl border border-border bg-popover/95 p-7 shadow-xl backdrop-blur-3xl sm:max-w-lg">
         <DialogHeader className="gap-2">
           <DialogTitle className="flex items-center gap-2 text-lg font-medium tracking-tight">
             <span>{title}</span>
@@ -212,7 +212,7 @@ function PropDialog({
             <AssetBeatReferences
               project={project}
               references={references}
-              className="border-t border-border/60 pt-4"
+              className="border-t border-border pt-4"
             />
           )}
         </div>
@@ -220,7 +220,7 @@ function PropDialog({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="h-10 w-18 rounded-md border-white/18 bg-white/[0.06] px-0 text-sm font-normal text-foreground/80 hover:border-white/28 hover:bg-white/[0.1] hover:text-foreground"
+            className="h-10 w-18 rounded-md border-border bg-muted px-0 text-sm font-normal text-foreground/80 hover:border-foreground/30 hover:bg-accent hover:text-foreground"
           >
             {t("common.cancel")}
           </Button>

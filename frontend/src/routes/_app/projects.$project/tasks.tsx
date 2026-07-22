@@ -114,7 +114,7 @@ function TaskRow({
   return (
     <div
       className={cn(
-        "rounded-[8px] border border-white/[0.1]",
+        "rounded-[8px] border border-border",
         outOfProject && "border-dashed opacity-70",
       )}
     >
@@ -155,7 +155,7 @@ function TaskRow({
               className={cn(
                 "shrink-0 rounded-[4px] border h-5 px-2 text-[11px]",
                 task.status === "completed" && "border-primary/40 text-primary bg-transparent",
-                (task.status === "submitting" || task.status === "queued" || task.status === "pending" || task.status === "starting") && "border-white/[0.08] text-muted-foreground/80 bg-transparent",
+                (task.status === "submitting" || task.status === "queued" || task.status === "pending" || task.status === "starting") && "border-border text-muted-foreground bg-transparent",
                 task.status === "running" && "border-primary/40 text-primary bg-primary/[0.05]",
                 task.status === "failed" && "border-destructive/40 text-destructive bg-transparent",
               )}
@@ -182,7 +182,7 @@ function TaskRow({
             </div>
           ) : task.error ? (
             <div className="mt-1">
-              <span className="truncate text-[11px] text-destructive/80">
+              <span className="truncate text-[11px] text-destructive">
                 {task.error}
               </span>
             </div>
@@ -218,7 +218,7 @@ function TaskRow({
               size="icon-sm"
               onClick={onDelete}
               disabled={deleting}
-              className="text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10"
+              className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
             >
               <Trash2 className="size-3.5" />
             </Button>
@@ -236,11 +236,11 @@ function TaskRow({
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="border-t border-white/[0.06] bg-white/[0.015] px-4 py-3 space-y-4">
+            <div className="space-y-4 border-t border-border bg-muted px-4 py-3">
               {task.error && (
                 <div>
                   <p className="mb-2.5 text-xs font-medium text-destructive">Error</p>
-                  <pre className="whitespace-pre-wrap rounded-[8px] border border-white/[0.06] bg-destructive/10 p-2.5 text-xs text-destructive">
+                  <pre className="whitespace-pre-wrap rounded-[8px] border border-destructive/25 bg-destructive/10 p-2.5 text-xs text-destructive">
                     {task.error}
                   </pre>
                 </div>
@@ -250,7 +250,7 @@ function TaskRow({
                   <p className="mb-2.5 text-xs font-medium text-muted-foreground">
                     {t("tasks.logs")}
                   </p>
-                  <div className="max-h-48 overflow-auto rounded-[8px] border border-white/[0.06] bg-white/[0.04] p-2.5">
+                  <div className="max-h-48 overflow-auto rounded-[8px] border border-border bg-card p-2.5">
                     {task.logs.map((line, i) => (
                       <p key={i} className="whitespace-pre-wrap font-mono text-xs text-muted-foreground">
                         {line}
@@ -264,7 +264,7 @@ function TaskRow({
                   <p className="mb-2.5 text-xs font-medium text-muted-foreground">
                     {t("tasks.resultLog")}
                   </p>
-                  <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-[8px] border border-white/[0.06] bg-white/[0.04] p-2.5 font-mono text-xs">
+                  <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-[8px] border border-border bg-card p-2.5 font-mono text-xs">
                     {typeof task.result === "string"
                       ? task.result
                       : JSON.stringify(task.result, null, 2)}
@@ -338,7 +338,7 @@ function TasksPage() {
 
   return (
     <div className="-m-6 flex h-[calc(100%+3rem)] flex-col overflow-hidden">
-      <div className="flex shrink-0 flex-col gap-3 border-b border-border/30 bg-background px-9 py-5 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex shrink-0 flex-col gap-3 border-b border-border bg-background px-9 py-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <ListChecks className="size-[18px]" />
@@ -363,7 +363,7 @@ function TasksPage() {
             variant="outline"
             size="sm"
             onClick={async () => { await refetch(); toast.success(t("common.refreshed")); }}
-            className="h-8 gap-1.5 rounded-[8px] border-white/10 bg-transparent px-3 text-xs font-normal shadow-none transition-transform hover:bg-white/[0.04] active:scale-95 dark:bg-transparent"
+            className="h-8 gap-1.5 rounded-[8px] border-border bg-transparent px-3 text-xs font-normal shadow-none transition-transform hover:bg-muted active:scale-95"
           >
             <RefreshCw className="size-3.5" />
             {t("common.refresh")}
@@ -374,7 +374,7 @@ function TasksPage() {
               size="sm"
               onClick={handleClearCompleted}
               disabled={clearCompleted.isPending}
-              className="h-8 gap-1.5 rounded-[8px] border-white/10 bg-transparent px-3 text-xs font-normal shadow-none hover:bg-white/[0.04] dark:bg-transparent"
+              className="h-8 gap-1.5 rounded-[8px] border-border bg-transparent px-3 text-xs font-normal shadow-none hover:bg-muted"
             >
               <Trash2 className="size-3.5" />
               {t("tasks.clearCompleted")}
@@ -389,8 +389,8 @@ function TasksPage() {
           <TaskListSkeleton label={t("common.loading")} />
         ) : tasks.length === 0 ? (
           <div className="mt-16 flex flex-col items-center text-center">
-            <div className="mb-4 flex size-12 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.03]">
-              <ListChecks className="size-5 text-muted-foreground/50" />
+            <div className="mb-4 flex size-12 items-center justify-center rounded-full border border-border bg-muted">
+              <ListChecks className="size-5 text-muted-foreground" />
             </div>
             <p className="text-sm text-muted-foreground">{t("tasks.noTasks")}</p>
           </div>

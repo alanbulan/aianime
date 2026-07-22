@@ -94,7 +94,7 @@ export function VerifyChip({
         ? "border-destructive/40 bg-destructive/10 text-destructive"
         : state === "running"
           ? "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-          : "border-border bg-background/40 text-muted-foreground";
+          : "border-border bg-muted text-muted-foreground";
   const Icon =
     state === "passed"
       ? CheckCircle2
@@ -134,7 +134,7 @@ export function VerifyChip({
                 {report.characters.map((c) => (
                   <div
                     key={c.name}
-                    className="rounded-md border border-border bg-background/40 p-2 text-xs"
+                    className="rounded-md border border-border bg-muted p-2 text-xs"
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-medium">{c.name}</span>

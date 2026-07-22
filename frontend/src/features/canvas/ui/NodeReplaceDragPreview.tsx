@@ -42,7 +42,7 @@ export function NodeReplaceDragPreview() {
       <div
         className={`flex items-center gap-2 rounded-lg border p-1.5 pr-2.5 shadow-[var(--ui-shadow-panel)] backdrop-blur-md transition-colors ${
           overTarget
-            ? 'border-accent bg-[rgba(var(--accent-rgb)/0.16)]'
+            ? 'border-primary bg-[rgba(var(--accent-rgb)/0.16)]'
             : 'border-[var(--ui-border-soft)] bg-[rgba(var(--surface-rgb)/0.92)]'
         }`}
       >
@@ -55,7 +55,7 @@ export function NodeReplaceDragPreview() {
               draggable={false}
             />
           ) : activeDrag.mediaType === 'audio' ? (
-            <AudioLines className="h-5 w-5 text-accent" />
+            <AudioLines className="h-5 w-5 text-primary" />
           ) : activeDrag.mediaType === 'video' ? (
             <Film className="h-5 w-5 text-text-muted" />
           ) : activeDrag.mediaType === 'model' ? (
@@ -70,7 +70,7 @@ export function NodeReplaceDragPreview() {
           </div>
           <div
             className={`mt-0.5 flex items-center gap-1 text-[11px] leading-snug ${
-              overTarget ? 'text-accent' : 'text-text-muted'
+              overTarget ? 'text-primary' : 'text-text-muted'
             }`}
           >
             <Replace className="h-3 w-3 shrink-0" />

@@ -135,7 +135,7 @@ export function AudioPane({
               className="h-7 w-full rounded-full opacity-85 [color-scheme:dark]"
             />
           ) : (
-            <div className="flex h-7 w-full items-center rounded-[7px] border border-dashed border-white/[0.075] bg-white/[0.018] px-2.5 text-xs text-muted-foreground/72">
+            <div className="flex h-7 w-full items-center rounded-[7px] border border-dashed border-border bg-muted px-2.5 text-xs text-muted-foreground">
               {state === "generating"
                 ? t("episode.workbench.audio.generating")
                 : state === "failed"

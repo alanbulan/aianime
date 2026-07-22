@@ -1002,7 +1002,7 @@ function FreezoneChatDock({
       )}
       <aside
         className={cn(
-          "absolute bottom-4 right-4 top-4 z-40 hidden origin-right flex-col overflow-hidden rounded-[14px] border border-white/[0.12] bg-zinc-950/55 shadow-none backdrop-blur-2xl transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] lg:flex",
+          "absolute bottom-4 right-4 top-4 z-40 hidden origin-right flex-col overflow-hidden rounded-[14px] border border-border bg-popover/90 shadow-xl backdrop-blur-2xl transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] lg:flex",
           panelVisible ? "translate-x-0 scale-100 opacity-100" : "translate-x-10 scale-[0.985] opacity-0",
         )}
         style={{
@@ -1399,8 +1399,8 @@ function CanvasConflictOverlay({
   };
 
   return (
-    <div className="absolute inset-0 bg-bg-dark/60 flex items-center justify-center">
-      <div className="px-4 py-3 rounded-lg bg-surface border border-amber-400/50 text-sm text-amber-100 max-w-md flex flex-col gap-3">
+    <div className="absolute inset-0 bg-black/20 flex items-center justify-center dark:bg-black/50">
+      <div className="px-4 py-3 rounded-lg bg-surface border border-amber-500/50 text-sm text-amber-800 dark:text-amber-200 max-w-md flex flex-col gap-3">
         <div className="font-medium">画布保存冲突</div>
         <div className="text-text-muted">
           {error ?? "画布已被其他窗口或用户修改。刷新会丢弃当前本地未保存修改，另存为副本会保留当前画布。"}
@@ -1414,7 +1414,7 @@ function CanvasConflictOverlay({
           <button
             type="button"
             onClick={onRefresh}
-            className="px-3 py-1 rounded-md border border-amber-400/40 text-amber-100 hover:bg-amber-400/10 transition-colors"
+            className="px-3 py-1 rounded-md border border-amber-500/40 text-amber-700 hover:bg-amber-500/10 transition-colors dark:text-amber-200"
           >
             刷新
           </button>
@@ -1430,7 +1430,7 @@ function CanvasConflictOverlay({
                 })
                 .finally(() => setSavingCopy(false));
             }}
-            className="px-3 py-1 rounded-md border border-cyan-300/45 bg-cyan-400/18 text-cyan-50 shadow-[0_0_18px_rgba(34,211,238,0.12)] transition-colors hover:border-cyan-200/70 hover:bg-cyan-400/28 disabled:border-white/10 disabled:bg-white/[0.04] disabled:text-white/30 disabled:shadow-none"
+            className="rounded-md border border-primary/45 bg-primary px-3 py-1 text-primary-foreground shadow-none transition-colors hover:bg-primary/90 disabled:border-border disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
             title={snapshot ? undefined : t("freezone.canvases.noConflictSnapshot")}
           >
             {savingCopy ? "保存中..." : "另存为副本"}
@@ -1439,7 +1439,7 @@ function CanvasConflictOverlay({
             <button
               type="button"
               onClick={handleDownload}
-              className="px-3 py-1 rounded-md border border-[var(--ui-border-soft)] text-text hover:bg-bg-dark/50 transition-colors"
+              className="rounded-md border border-[var(--ui-border-soft)] px-3 py-1 text-text transition-colors hover:bg-muted"
               title={`下载本地修改快照（${snapshot.nodes.length} 节点 · ${snapshot.edges.length} 连线）`}
             >
               下载本地 JSON
@@ -1447,7 +1447,7 @@ function CanvasConflictOverlay({
           )}
         </div>
         {copyError && (
-          <div className="text-[11px] text-red-300">
+          <div className="text-[11px] text-destructive">
             {copyError}
           </div>
         )}
@@ -1480,9 +1480,9 @@ function BackupStatusIndicator({
     ? "本地修改已保存，但云端备份未完成。请保留页面，稍后会自动重试。"
     : "本地修改已保存，云端备份还在同步中。可以继续编辑。";
   const palette = isFailed
-    ? "border-red-500/45 bg-red-500/10 text-red-200"
-    : "border-amber-300/40 bg-amber-300/10 text-amber-100";
-  const dot = isFailed ? "bg-red-400" : "bg-amber-300 animate-pulse";
+    ? "border-destructive/45 bg-destructive/10 text-destructive"
+    : "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-200";
+  const dot = isFailed ? "bg-destructive" : "bg-amber-500 animate-pulse";
   return (
     <div
       role={isFailed ? "alert" : "status"}
@@ -1508,7 +1508,7 @@ function CanvasLoadingOverlay() {
   // 整个盖掉。所以这层遮罩必须真的吃掉指针事件，不能只是视觉上蒙一层。
   return (
     <div
-      className="absolute inset-0 z-20 cursor-wait bg-bg-dark/10 backdrop-blur-[1px]"
+      className="absolute inset-0 z-20 cursor-wait bg-background/70 backdrop-blur-[1px]"
       aria-hidden="true"
     />
   );
@@ -1522,16 +1522,16 @@ function CanvasErrorOverlay({
   onRetry: () => void;
 }) {
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-bg-dark/45 px-6">
-      <div className="flex w-full max-w-2xl flex-col gap-3 rounded-xl border border-red-400/25 bg-red-950/[0.14] px-4 py-3 text-sm shadow-[0_18px_60px_rgba(0,0,0,0.28)] backdrop-blur-xl">
-        <div className="font-medium text-red-200">画布同步失败</div>
-        <div className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words rounded-lg border border-white/[0.06] bg-black/20 px-3 py-2 text-xs leading-5 text-red-100/75">
+    <div className="absolute inset-0 flex items-center justify-center bg-black/20 px-6 dark:bg-black/45">
+      <div className="flex w-full max-w-2xl flex-col gap-3 rounded-xl border border-destructive/30 bg-card/95 px-4 py-3 text-sm shadow-[0_18px_60px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+        <div className="font-medium text-destructive">画布同步失败</div>
+        <div className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs leading-5 text-destructive">
           {error}
         </div>
         <button
           type="button"
           onClick={onRetry}
-          className="self-start rounded-lg border border-red-300/25 bg-red-950/20 px-3 py-1.5 text-xs font-medium text-red-100/80 transition-colors hover:border-red-200/40 hover:bg-red-500/10 hover:text-red-50"
+          className="self-start rounded-lg border border-destructive/35 bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive transition-colors hover:border-destructive/55 hover:bg-destructive/20"
         >
           重试
         </button>

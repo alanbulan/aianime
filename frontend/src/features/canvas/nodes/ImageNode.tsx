@@ -276,19 +276,19 @@ export const ImageNode = memo(({ id, data, selected, type, width, height }: Imag
         ) : isGenerating ? (
           <div className="h-full w-full" />
         ) : hasGenerationError ? (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-2 px-4 text-red-300">
+          <div className="flex h-full w-full flex-col items-center justify-center gap-2 px-4 text-destructive">
             <AlertTriangle className="h-7 w-7 opacity-90" />
-            <span className="text-center text-[12px] font-medium leading-5 text-red-200">
+            <span className="text-center text-[12px] font-medium leading-5 text-destructive">
               {t('node.imageNode.generationFailed')}
             </span>
-            <span className="max-h-[88px] overflow-y-auto break-words text-center text-[11px] leading-5 text-red-200/90 [overflow-wrap:anywhere]">
+            <span className="max-h-[88px] overflow-y-auto break-words text-center text-[11px] leading-5 text-destructive [overflow-wrap:anywhere]">
               {generationError}
             </span>
             {generationErrorRequestId && (
               <div className="flex w-full max-w-[240px] items-center gap-1 rounded bg-red-500/10 px-2 py-1">
-                <span className="shrink-0 text-[10px] text-red-300/70">请求ID</span>
+                <span className="shrink-0 text-[10px] text-destructive">请求ID</span>
                 <code
-                  className="min-w-0 flex-1 truncate font-mono text-[10px] text-red-200"
+                  className="min-w-0 flex-1 truncate font-mono text-[10px] text-destructive"
                   title={generationErrorRequestId}
                 >
                   {generationErrorRequestId}
@@ -334,13 +334,13 @@ export const ImageNode = memo(({ id, data, selected, type, width, height }: Imag
         type="target"
         id="target"
         position={Position.Left}
-        className="!h-2 !w-2 !border-surface-dark !bg-[rgb(148,163,184)]"
+        className="!h-2 !w-2 !border-surface-dark !bg-muted-foreground"
       />
       <Handle
         type="source"
         id="source"
         position={Position.Right}
-        className="!h-2 !w-2 !border-surface-dark !bg-[rgb(148,163,184)]"
+        className="!h-2 !w-2 !border-surface-dark !bg-muted-foreground"
       />
       <NodeResizeHandle
         minWidth={resizeMinWidth}

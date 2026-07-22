@@ -87,10 +87,10 @@ export function CommitTargetHint({
 
   const variantClass =
     hint.variant === 'typed'
-      ? 'border-amber-300/35 bg-amber-300/12 text-amber-100'
+      ? 'border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200'
       : hint.variant === 'untyped'
-        ? 'border-amber-300/20 bg-amber-300/6 text-amber-50/85'
-        : 'border-white/10 bg-black/20 text-text-muted';
+        ? 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+        : 'border-border bg-muted text-muted-foreground';
 
   return (
     <div

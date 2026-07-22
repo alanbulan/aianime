@@ -338,7 +338,7 @@ export const OutpaintEditorOverlay = memo(
           >
             <button
               type="button"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-white/[0.06] hover:text-text-dark"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               onClick={onClose}
               title={t('outpaintEditor.exit')}
             >
@@ -424,7 +424,7 @@ function AspectRatioPicker({ value, onChange }: AspectRatioPickerProps) {
         ref={triggerRef}
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-xs text-text-dark transition-colors hover:bg-white/[0.06]"
+        className="inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-xs text-foreground transition-colors hover:bg-muted"
       >
         <SelectedIcon className="h-3.5 w-3.5 text-text-muted" />
         <span className="font-medium">{t(selected.i18nKey)}</span>
@@ -433,7 +433,7 @@ function AspectRatioPicker({ value, onChange }: AspectRatioPickerProps) {
       {isOpen && (
         <div
           ref={popoverRef}
-          className="absolute bottom-full left-1/2 z-50 mb-2 w-[180px] -translate-x-1/2 rounded-xl border border-white/10 bg-surface-dark/95 p-2 shadow-2xl backdrop-blur-md"
+          className="absolute bottom-full left-1/2 z-50 mb-2 w-[180px] -translate-x-1/2 rounded-xl border border-border bg-popover p-2 text-popover-foreground shadow-2xl"
           onPointerDown={(event) => event.stopPropagation()}
         >
           <div className="mb-1 px-2 py-1 text-[11px] uppercase tracking-wide text-text-muted">
@@ -453,8 +453,8 @@ function AspectRatioPicker({ value, onChange }: AspectRatioPickerProps) {
                   }}
                   className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
                     isActive
-                      ? 'bg-white/[0.12] text-text-dark'
-                      : 'text-text-muted hover:bg-white/[0.08] hover:text-text-dark'
+                      ? 'bg-accent text-accent-foreground'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   }`}
                 >
                   <Icon className="h-3.5 w-3.5" />
@@ -510,7 +510,7 @@ function SimpleSegmentedDropdown<T extends string | number>({
         ref={triggerRef}
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-xs text-text-dark transition-colors hover:bg-white/[0.06]"
+        className="inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-xs text-foreground transition-colors hover:bg-muted"
       >
         <Sparkles className="h-3.5 w-3.5 text-text-muted" />
         <span className="font-medium">{renderLabel(value)}</span>
@@ -519,7 +519,7 @@ function SimpleSegmentedDropdown<T extends string | number>({
       {isOpen && (
         <div
           ref={popoverRef}
-          className="absolute bottom-full left-1/2 z-50 mb-2 w-[160px] -translate-x-1/2 rounded-xl border border-white/10 bg-surface-dark/95 p-2 shadow-2xl backdrop-blur-md"
+          className="absolute bottom-full left-1/2 z-50 mb-2 w-[160px] -translate-x-1/2 rounded-xl border border-border bg-popover p-2 text-popover-foreground shadow-2xl"
           onPointerDown={(event) => event.stopPropagation()}
         >
           <div className="mb-1 px-2 py-1 text-[11px] uppercase tracking-wide text-text-muted">
@@ -538,8 +538,8 @@ function SimpleSegmentedDropdown<T extends string | number>({
                   }}
                   className={`flex items-center justify-between rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
                     isActive
-                      ? 'bg-white/[0.12] text-text-dark'
-                      : 'text-text-muted hover:bg-white/[0.08] hover:text-text-dark'
+                      ? 'bg-accent text-accent-foreground'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   }`}
                 >
                   <span>{renderLabel(option)}</span>

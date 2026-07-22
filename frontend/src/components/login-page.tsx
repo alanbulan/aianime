@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { BRAND_NAME, BrandMark } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/stores/auth-store";
@@ -38,7 +39,7 @@ export function LoginPage() {
   };
 
   return (
-    <main className="relative h-full min-h-[520px] overflow-hidden bg-neutral-950">
+    <main className="relative h-full min-h-[520px] overflow-hidden bg-background">
       <img
         src="/images/login-background.png"
         alt=""
@@ -47,14 +48,12 @@ export function LoginPage() {
       />
       <div className="absolute inset-0 bg-black/45" aria-hidden="true" />
 
-      <div className="absolute left-7 top-7 z-10 flex items-center gap-3 text-white">
-        <span className="flex size-9 items-center justify-center rounded-md bg-white text-sm font-semibold text-neutral-950">
-          AI
-        </span>
-        <span className="text-xl font-semibold">AI anime</span>
+      <div className="absolute left-7 top-7 z-10 flex items-center gap-3 whitespace-nowrap text-white">
+        <BrandMark className="h-9 w-14" />
+        <span className="text-xl font-semibold">{BRAND_NAME}</span>
       </div>
 
-      <section className="absolute inset-y-0 right-0 z-10 flex w-full max-w-[460px] items-center border-l border-white/10 bg-background/94 px-8 text-foreground backdrop-blur-xl sm:px-12">
+      <section className="absolute inset-y-0 right-0 z-10 flex w-full max-w-[460px] items-center border-l border-border bg-background/94 px-8 text-foreground backdrop-blur-xl sm:px-12">
         <div className="w-full">
           <div className="mb-8 flex items-start justify-between gap-4">
             <div>

@@ -73,7 +73,7 @@ export function CanvasBookmarkContextMenu({
   return (
     <div
       ref={ref}
-      className="fixed z-[10010] min-w-[220px] rounded-lg border border-border-dark bg-surface-dark py-1 text-sm text-white shadow-xl"
+      className="fixed z-[10010] min-w-[220px] rounded-lg border border-border bg-popover py-1 text-sm text-popover-foreground shadow-xl"
       style={{ left: coords.x, top: coords.y }}
       onContextMenu={(event) => event.preventDefault()}
     >
@@ -106,10 +106,10 @@ function MenuRow({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="flex w-full items-center justify-between gap-6 px-3 py-1.5 text-left hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+      className="flex w-full items-center justify-between gap-6 px-3 py-1.5 text-left hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
     >
       <span>{label}</span>
-      {shortcut ? <span className="text-xs text-white/50">{shortcut}</span> : null}
+      {shortcut ? <span className="text-xs text-muted-foreground">{shortcut}</span> : null}
     </button>
   );
 }

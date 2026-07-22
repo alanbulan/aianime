@@ -1,6 +1,7 @@
 import { Copy, Minus, Square, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { BRAND_NAME, BrandMark } from "@/components/brand";
 
 export const DESKTOP_TITLE_BAR_HEIGHT = 36;
 
@@ -26,14 +27,12 @@ export function DesktopTitleBar() {
 
   return (
     <div
-      className="desktop-title-bar-drag relative z-[100] flex h-9 shrink-0 select-none items-center border-b border-border/70 bg-background/96 text-foreground backdrop-blur-xl"
+      className="desktop-title-bar-drag relative z-[100] flex h-9 shrink-0 select-none items-center border-b border-border bg-background text-foreground"
       onDoubleClick={() => bridge.windowControls.toggleMaximize()}
     >
       <div className="flex min-w-0 flex-1 items-center gap-2 px-3">
-        <span className="flex size-5 items-center justify-center rounded bg-foreground text-[10px] font-semibold text-background">
-          AI
-        </span>
-        <span className="truncate text-xs font-medium">AI anime</span>
+        <BrandMark className="h-5 w-8" />
+        <span className="truncate whitespace-nowrap text-xs font-medium">{BRAND_NAME}</span>
       </div>
       <div
         id="desktop-title-bar-actions"

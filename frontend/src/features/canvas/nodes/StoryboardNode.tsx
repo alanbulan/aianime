@@ -77,21 +77,21 @@ const STORYBOARD_SPLIT_HEADER_ADJUST = { x: 0, y: 0, scale: 1 };
 const STORYBOARD_SPLIT_ICON_ADJUST = { x: 0, y: 0, scale: 1 };
 const STORYBOARD_SPLIT_TITLE_ADJUST = { x: 0, y: 0, scale: 1 };
 const STORYBOARD_EXPORT_PANEL_CLASS =
-  '!border-white/[0.18] !bg-[#191b20]/92 shadow-[0_10px_28px_rgba(0,0,0,0.34)]';
+  '!border-border !bg-popover/96 shadow-xl';
 const STORYBOARD_EXPORT_FIELD_CLASS =
-  '!rounded-[6px] !border-white/[0.18] focus:!border-accent hover:!border-white/[0.28]';
+  '!rounded-[6px] !border-border focus:!border-primary hover:!border-foreground/30';
 const STORYBOARD_EXPORT_CHECKBOX_CLASS =
-  '!h-6 !w-6 !rounded-[6px] !border-white/[0.30] aria-checked:!border-white/58 aria-checked:!bg-white/[0.07] aria-checked:!text-white shadow-[0_0_0_1px_rgba(255,255,255,0.035)]';
+  '!h-6 !w-6 !rounded-[6px] !border-border aria-checked:!border-primary/55 aria-checked:!bg-primary/12 aria-checked:!text-primary shadow-sm';
 const STORYBOARD_EXPORT_TRIGGER_CLASS =
   '!h-7 !rounded-md !border !px-2.5 !text-[12px]';
 const STORYBOARD_EXPORT_TRIGGER_INACTIVE_CLASS =
-  '!border-transparent !bg-transparent !text-text-dark/86 hover:!bg-white/[0.055] hover:!text-white';
+  '!border-transparent !bg-transparent !text-foreground/86 hover:!bg-muted hover:!text-foreground';
 const STORYBOARD_EXPORT_TRIGGER_ACTIVE_CLASS =
-  '!border-accent/36 !bg-accent/14 !text-white shadow-[0_0_0_1px_rgba(var(--accent-rgb),0.08)]';
+  '!border-primary/36 !bg-primary/14 !text-foreground shadow-sm';
 const STORYBOARD_EXPORT_BUTTON_CLASS =
-  '!h-6 !rounded-md !border-white/[0.12] !bg-white/[0.045] !px-2.5 !text-[11px] !text-text-dark/90 hover:!border-white/[0.22] hover:!bg-white/[0.08] hover:!text-white';
+  '!h-6 !rounded-md !border-border !bg-muted !px-2.5 !text-[11px] !text-foreground/90 hover:!border-foreground/25 hover:!bg-accent hover:!text-foreground';
 const STORYBOARD_EXPORT_PRIMARY_BUTTON_CLASS =
-  '!h-7 !rounded-md !border-transparent !bg-transparent !px-1.5 !text-[12px] !text-text-dark/92 hover:!bg-transparent hover:!text-white';
+  '!h-7 !rounded-md !border-transparent !bg-transparent !px-1.5 !text-[12px] !text-foreground/92 hover:!bg-transparent hover:!text-foreground';
 
 function SplitResultIcon({ className }: { className?: string }) {
   return (
@@ -392,7 +392,7 @@ const FrameCard = memo(
           onSortHover(frame.id);
         }}
         onMouseDown={(event) => event.stopPropagation()}
-        className={`nodrag relative bg-bg-dark/85 transition-colors ${dragging
+        className={`nodrag relative bg-background/85 transition-colors ${dragging
           ? 'z-10 opacity-55 ring-1 ring-accent/65'
           : asDropTarget
             ? 'z-10 ring-1 ring-emerald-400/70'
@@ -400,7 +400,7 @@ const FrameCard = memo(
           }`}
       >
         <div
-          className={`group/frame relative overflow-hidden bg-surface-dark ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+          className={`group/frame relative overflow-hidden bg-card ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`}
           style={{ aspectRatio: frameAspectRatioCss }}
           onPointerDown={(event) => {
             if (event.button !== 0) {
@@ -464,7 +464,7 @@ const FrameCard = memo(
           onMouseDown={(event) => event.stopPropagation()}
           onWheelCapture={(event) => event.stopPropagation()}
           placeholder={`格 ${String(index + 1).padStart(2, '0')} 描述`}
-          className="ui-scrollbar nodrag nowheel h-10 w-full resize-none overflow-y-auto border-0 border-t border-[rgba(255,255,255,0.12)] bg-bg-dark/90 px-2 py-1 text-[10px] text-text-dark outline-none focus:border-accent"
+          className="ui-scrollbar nodrag nowheel h-10 w-full resize-none overflow-y-auto border-0 border-t border-border bg-background/90 px-2 py-1 text-[10px] text-foreground outline-none focus:border-primary"
         />
       </div>
     );
@@ -1019,7 +1019,7 @@ export const StoryboardNode = memo(({ id, data, selected, width, height }: Story
         onWheelCapture={(event) => event.stopPropagation()}
       >
         <div
-          className="grid overflow-hidden rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(255,255,255,0.14)]"
+          className="grid overflow-hidden rounded-lg border border-border bg-muted"
           style={{
             gap: `${STORYBOARD_GRID_GAP_PX}px`,
             gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`,
@@ -1051,7 +1051,7 @@ export const StoryboardNode = memo(({ id, data, selected, width, height }: Story
         ? createPortal(
           <div
             ref={pickerMenuRef}
-            className="nowheel fixed z-[140] w-[120px] overflow-hidden rounded-xl border border-[rgba(255,255,255,0.16)] bg-surface-dark shadow-xl"
+            className="nowheel fixed z-[140] w-[120px] overflow-hidden rounded-xl border border-border bg-popover shadow-xl"
             style={{ left: `${pickerState.x}px`, top: `${pickerState.y}px` }}
             onMouseDown={(event) => event.stopPropagation()}
             onWheelCapture={(event) => event.stopPropagation()}
@@ -1065,7 +1065,7 @@ export const StoryboardNode = memo(({ id, data, selected, width, height }: Story
                   <button
                     key={`${pickerState.frameId}-${item.imageUrl}`}
                     type="button"
-                    className="flex w-full items-center gap-2 border border-transparent bg-bg-dark/70 px-2 py-2 text-left text-sm text-text-dark transition-colors hover:border-[rgba(255,255,255,0.18)]"
+                    className="flex w-full items-center gap-2 border border-transparent bg-popover px-2 py-2 text-left text-sm text-popover-foreground transition-colors hover:border-foreground/25 hover:bg-muted"
                     onClick={(event) => {
                       event.stopPropagation();
                       handleReplaceFromInput(pickerState.frameId, item.imageUrl);
@@ -1102,7 +1102,7 @@ export const StoryboardNode = memo(({ id, data, selected, width, height }: Story
         >
           <div className="grid gap-2 text-xs text-text-muted/82">
             <div className="grid grid-cols-2 gap-2">
-              <label className="flex items-center gap-2 whitespace-nowrap text-text-dark/90">
+              <label className="flex items-center gap-2 whitespace-nowrap text-foreground/90">
                 <UiCheckbox
                   className={STORYBOARD_EXPORT_CHECKBOX_CLASS}
                   checked={exportOptions.showFrameIndex}
@@ -1110,7 +1110,7 @@ export const StoryboardNode = memo(({ id, data, selected, width, height }: Story
                 />
                 显示格序号
               </label>
-              <label className="flex items-center gap-2 whitespace-nowrap text-text-dark/90">
+              <label className="flex items-center gap-2 whitespace-nowrap text-foreground/90">
                 <UiCheckbox
                   className={STORYBOARD_EXPORT_CHECKBOX_CLASS}
                   checked={exportOptions.showFrameNote}
@@ -1195,7 +1195,7 @@ export const StoryboardNode = memo(({ id, data, selected, width, height }: Story
                   type="color"
                   value={exportOptions.backgroundColor}
                   onChange={(event) => patchExportOptions({ backgroundColor: event.target.value })}
-                  className="h-8 w-full rounded-[6px] border border-white/[0.22] bg-transparent p-0.5 hover:border-white/[0.34]"
+                  className="h-8 w-full rounded-[6px] border border-border bg-transparent p-0.5 hover:border-foreground/35"
                 />
               </label>
               <label className="grid min-w-0 gap-1">
@@ -1204,7 +1204,7 @@ export const StoryboardNode = memo(({ id, data, selected, width, height }: Story
                   type="color"
                   value={exportOptions.textColor}
                   onChange={(event) => patchExportOptions({ textColor: event.target.value })}
-                  className="h-8 w-full rounded-[6px] border border-white/[0.22] bg-transparent p-0.5 hover:border-white/[0.34]"
+                  className="h-8 w-full rounded-[6px] border border-border bg-transparent p-0.5 hover:border-foreground/35"
                 />
               </label>
             </div>
@@ -1267,19 +1267,19 @@ export const StoryboardNode = memo(({ id, data, selected, width, height }: Story
         </div>
       </div>
 
-      {exportError && <div className="mt-2 shrink-0 text-xs text-red-400 break-words [overflow-wrap:anywhere]">{exportError}</div>}
+      {exportError && <div className="mt-2 shrink-0 text-xs text-red-700 break-words [overflow-wrap:anywhere] dark:text-red-300">{exportError}</div>}
 
       <Handle
         type="target"
         id="target"
         position={Position.Left}
-        className="!h-2 !w-2 !border-surface-dark !bg-[rgb(148,163,184)]"
+        className="!h-2 !w-2 !border-surface-dark !bg-muted-foreground"
       />
       <Handle
         type="source"
         id="source"
         position={Position.Right}
-        className="!h-2 !w-2 !border-surface-dark !bg-[rgb(148,163,184)]"
+        className="!h-2 !w-2 !border-surface-dark !bg-muted-foreground"
       />
       <NodeResizeHandle
         minWidth={STORYBOARD_NODE_WIDTH_PX}

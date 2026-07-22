@@ -79,7 +79,7 @@ function resolutionOptions(orientation: Orientation): Resolution[] {
 }
 
 function MetaDot() {
-  return <span className="text-muted-foreground/40">·</span>;
+  return <span className="text-muted-foreground">·</span>;
 }
 
 // ── InlineSwitch — lightweight toggle switch ────────────────────────
@@ -104,8 +104,8 @@ function InlineSwitch({
           checked={checked}
           onChange={onChange}
         />
-        <span className="absolute inset-0 rounded-full bg-white/[0.1] transition-colors peer-checked:bg-primary/40" />
-        <span className="absolute left-[2px] top-[2px] h-3 w-3 rounded-full bg-white/60 transition-all peer-checked:translate-x-3" />
+        <span className="absolute inset-0 rounded-full bg-muted-foreground/30 transition-colors peer-checked:bg-primary/40" />
+        <span className="absolute left-[2px] top-[2px] h-3 w-3 rounded-full bg-card shadow-sm transition-all peer-checked:translate-x-3" />
       </span>
       <span className={cn(
         "flex items-center gap-1 text-[12px] transition-colors",
@@ -296,7 +296,7 @@ function ComposeTabContent() {
     <div className="flex h-full flex-col overflow-hidden">
       {/* Compose confirm dialog */}
       <AlertDialog open={composeConfirm} onOpenChange={setComposeConfirm}>
-        <AlertDialogContent className="max-w-[480px] rounded-2xl border-white/8 bg-background/80 p-6 shadow-none backdrop-blur-3xl">
+        <AlertDialogContent className="max-w-[480px] rounded-2xl border-border bg-popover/95 p-6 shadow-2xl backdrop-blur-3xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-center text-base font-semibold text-foreground">
               {t("episode.compose.composeTitle", { title: displayTitle })}
@@ -305,7 +305,7 @@ function ComposeTabContent() {
               {t("episode.compose.composeDesc")}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="grid grid-cols-2 gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3">
+          <div className="grid grid-cols-2 gap-3 rounded-xl border border-border bg-muted px-4 py-3">
             <div>
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
                 {t("episode.compose.beats")}
@@ -340,7 +340,7 @@ function ComposeTabContent() {
             </div>
           </div>
           <AlertDialogFooter className="gap-2 pt-2">
-            <AlertDialogCancel className="h-10 rounded-lg border-white/18 bg-white/[0.06] px-4 text-sm font-normal text-foreground/80 hover:border-white/28 hover:bg-white/[0.1] hover:text-foreground">
+            <AlertDialogCancel className="h-10 rounded-lg border-border bg-muted px-4 text-sm font-normal text-foreground/80 hover:border-foreground/30 hover:bg-accent hover:text-foreground">
               {t("common.cancel")}
             </AlertDialogCancel>
             <AlertDialogAction
@@ -460,13 +460,13 @@ function ComposeTabContent() {
             </header>
           )}
 
-          {!beatsEmpty && <hr className="border-border/30" />}
+          {!beatsEmpty && <hr className="border-border" />}
 
           {/* Config row + warning: below divider */}
           {!beatsEmpty && !resultUrl && !isComposing && (
             <div className="flex flex-col gap-5 pb-2 pt-1 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
               <div className="min-w-0 space-y-1.5">
-                <h2 className="text-base font-semibold text-amber-400">
+                <h2 className="text-base font-semibold text-amber-700 dark:text-amber-300">
                   {t("episode.compose.blockerCount", { count: counts.compose.missing.length })}
                 </h2>
                 <p className="text-xs text-muted-foreground">
@@ -478,7 +478,7 @@ function ComposeTabContent() {
                 <div className="flex items-center gap-1.5">
                   <span className="text-[12px] text-muted-foreground">{t("episode.compose.resolution")}:</span>
                   <Select value={resolution} onValueChange={handleResolutionChange}>
-                    <SelectTrigger className="!h-7 w-28 rounded-[6px] border border-white/10 bg-transparent py-0 text-[12px] font-medium text-foreground/85">
+                    <SelectTrigger className="!h-7 w-28 rounded-[6px] border border-border bg-transparent py-0 text-[12px] font-medium text-foreground/85">
                       <SelectValue>{() => resolutionLabel(resolution)}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
@@ -583,11 +583,11 @@ function BeatBlockerGrid({
           key={beatNum}
           type="button"
           onClick={() => jump(beatNum)}
-          className="group relative flex min-h-[92px] flex-col rounded-[8px] border border-white/10 bg-white/[0.03] px-6 py-3.5 text-left transition-all duration-[350ms] hover:scale-[1.015] hover:border-primary/30 hover:bg-primary/[0.06]"
+          className="group relative flex min-h-[92px] flex-col rounded-[8px] border border-border bg-card px-6 py-3.5 text-left transition-all duration-[350ms] hover:scale-[1.015] hover:border-primary/30 hover:bg-primary/[0.06]"
         >
           <ArrowUpRight className="absolute right-3 top-3 size-3.5 text-muted-foreground opacity-0 transition-opacity duration-[350ms] group-hover:opacity-100" />
           <div className="space-y-2.5">
-            <span className="block text-xs font-medium uppercase tracking-wide text-muted-foreground/60">
+            <span className="block text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {t("episode.compose.beatLabel")}
             </span>
             <span className="block text-2xl font-semibold tabular-nums leading-none text-foreground">

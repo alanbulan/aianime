@@ -33,7 +33,7 @@ export function FormatCheckDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl sm:max-w-xl rounded-lg bg-black">
+      <DialogContent className="max-w-xl rounded-lg border border-border bg-popover text-popover-foreground sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{t("aiAssistant.formatCheck.title")}</DialogTitle>
           {filename && (
@@ -58,10 +58,10 @@ export function FormatCheckDetailsDialog({
                 {issues.map((issue, index) => (
                   <li
                     key={`${issue.code}-${issue.line ?? "x"}-${index}`}
-                    className="rounded-md border bg-black p-3"
+                    className="rounded-md border border-border bg-muted p-3"
                   >
                     <div className="flex items-start gap-2">
-                      <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" />
+                      <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-700 dark:text-amber-300" />
                       <div className="min-w-0 flex-1">
                         <p className="break-words text-sm leading-6 text-foreground">
                           {issue.message}

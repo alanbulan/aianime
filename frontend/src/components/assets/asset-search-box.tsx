@@ -68,7 +68,7 @@ export function AssetSortSelect({
     >
       <SelectTrigger
         aria-label={t("assets.common.sortLabel")}
-        className="h-8 min-w-[104px] gap-1.5 rounded-[8px] border-white/10 bg-white/[0.025] px-2.5 text-xs shadow-none hover:border-white/16 hover:bg-white/[0.045]"
+        className="h-8 min-w-[104px] gap-1.5 rounded-[8px] border-border bg-muted px-2.5 text-xs shadow-none hover:border-foreground/25 hover:bg-accent"
       >
         <ArrowUpDown className="size-3.5 text-muted-foreground" />
         <span className="min-w-0 flex-1 truncate text-left">{label}</span>
@@ -121,7 +121,7 @@ export function AssetSearchBox({
       />
       <Input
         aria-label={ariaLabel}
-        className="h-8 rounded-[8px] border-white/10 bg-white/[0.025] pl-8 pr-8 text-sm shadow-none placeholder:text-muted-foreground/70 focus-visible:border-white/20 focus-visible:ring-2 focus-visible:ring-white/8"
+        className="h-8 rounded-[8px] border-border bg-muted pl-8 pr-8 text-sm shadow-none placeholder:text-muted-foreground focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/10"
         placeholder={placeholder}
         type="search"
         value={value}

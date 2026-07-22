@@ -56,7 +56,7 @@ const NONE_SENTINEL = "__none__";
 const NO_VARIANT_SENTINEL = "__NO_SCENE_VARIANT__";
 const NO_SPEAKER_MARKER = "__NO_SPEAKER__";
 const FIELD_SURFACE_CLASS =
-  "!rounded-[8px] !border-white/10 bg-white/[0.025] focus-within:!border-primary/45 focus-within:!ring-0 focus-visible:!border-primary/45 focus-visible:!ring-0";
+  "!rounded-[8px] !border-border bg-muted focus-within:!border-primary/45 focus-within:!ring-0 focus-visible:!border-primary/45 focus-visible:!ring-0";
 const INPUT_CLASS = `h-8 text-xs ${FIELD_SURFACE_CLASS}`;
 const TEXTAREA_CLASS =
   `!block !w-full !resize-none ${FIELD_SURFACE_CLASS}`;
@@ -304,7 +304,7 @@ export function InsertManualShotDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn(GLASS_DIALOG_CONTENT_CLASS, "ring-white/10 sm:max-w-2xl")}>
+      <DialogContent className={cn(GLASS_DIALOG_CONTENT_CLASS, "ring-border sm:max-w-2xl")}>
         <DialogHeader>
           <DialogTitle>{titleText}</DialogTitle>
         </DialogHeader>
@@ -327,7 +327,7 @@ export function InsertManualShotDialog({
 
           <div className="grid gap-4 md:grid-cols-[minmax(0,220px)_1fr]">
             <Field label={t("episode.workbench.insertManual.audioType")}>
-              <div className="grid grid-cols-3 gap-1 rounded-[8px] border border-white/10 bg-white/[0.025] p-1">
+              <div className="grid grid-cols-3 gap-1 rounded-[8px] border border-border bg-muted p-1">
                 {(["silence", "narration", "dialogue"] as const).map((value) => (
                   <Button
                     key={value}
@@ -634,7 +634,7 @@ function InfoBlock({ label, value }: { label: string; value: string }) {
       <Label className="text-xs font-medium text-muted-foreground">
         {label}
       </Label>
-      <div className="flex min-h-8 items-center rounded-[8px] border border-white/10 bg-white/[0.025] px-2.5 py-1 text-xs text-muted-foreground">
+      <div className="flex min-h-8 items-center rounded-[8px] border border-border bg-muted px-2.5 py-1 text-xs text-muted-foreground">
         {value}
       </div>
     </div>

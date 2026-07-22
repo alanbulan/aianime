@@ -54,7 +54,7 @@ const DEFAULT_LINE_WIDTH_PERCENT = 0.4;
 const MIN_LINE_WIDTH_PERCENT = 0.1;
 const MAX_LINE_WIDTH_PERCENT = 3;
 const ANNOTATE_RANGE_CLASS =
-  'h-0.5 w-28 cursor-pointer appearance-none rounded-full bg-[rgba(255,255,255,0.36)] accent-[#5b8cff] [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#8ec5ff] [&::-webkit-slider-thumb]:shadow-none [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#8ec5ff]';
+  'h-0.5 w-28 cursor-pointer appearance-none rounded-full bg-border accent-primary [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:shadow-none [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-primary';
 const ANNOTATE_TOOL_BUTTON_BASE_CLASS =
   'inline-flex h-7 items-center gap-1.5 px-1 text-[12px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-35';
 const ANNOTATE_ACTION_BUTTON_BASE_CLASS =
@@ -63,8 +63,8 @@ const ANNOTATE_ACTION_BUTTON_BASE_CLASS =
 function annotateActionButtonClass(enabled: boolean): string {
   return `${ANNOTATE_ACTION_BUTTON_BASE_CLASS} ${
     enabled
-      ? 'border-white/24 text-text-dark hover:border-white/34 hover:bg-white/[0.04]'
-      : 'border-white/[0.16] text-text-muted/58'
+      ? 'border-border bg-muted text-foreground hover:border-foreground/30 hover:bg-accent'
+      : 'border-border bg-muted/50 text-muted-foreground/55'
   }`;
 }
 
@@ -1207,9 +1207,9 @@ export function AnnotateToolEditor({ options, onOptionsChange, sourceImageUrl }:
         <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
           {activeStyleKind && (
             <div className="flex items-center gap-2">
-              <label className="relative inline-flex h-7 cursor-pointer items-center gap-1.5 overflow-hidden rounded-[9px] border border-white/[0.18] px-2.5 text-[12px] font-medium text-text-dark/88 transition-colors hover:border-white/28 hover:text-text-dark">
+              <label className="relative inline-flex h-7 cursor-pointer items-center gap-1.5 overflow-hidden rounded-[9px] border border-border bg-muted px-2.5 text-[12px] font-medium text-foreground transition-colors hover:border-foreground/30 hover:bg-accent">
                 <span
-                  className="h-4 w-4 rounded-[4px] border border-white/30"
+                  className="h-4 w-4 rounded-[4px] border border-foreground/30"
                   style={{ backgroundColor: color }}
                   aria-hidden="true"
                 />
@@ -1246,7 +1246,7 @@ export function AnnotateToolEditor({ options, onOptionsChange, sourceImageUrl }:
                     onChange={(event) =>
                       handleStyleInputChange({ fontSizePercent: Number(event.target.value) })
                     }
-                    className="h-7 w-20 rounded-[9px] border border-[rgba(255,255,255,0.14)] bg-bg-dark/80 px-2 text-[12px] text-text-dark outline-none"
+                    className="h-7 w-20 rounded-[9px] border border-border bg-muted px-2 text-[12px] text-foreground outline-none focus:border-primary/45"
                   />
                   <span className="text-[12px] text-text-muted/78">%</span>
                 </div>
@@ -1302,7 +1302,7 @@ export function AnnotateToolEditor({ options, onOptionsChange, sourceImageUrl }:
 
       <div
         ref={viewportRef}
-        className="relative h-[min(46vh,480px)] overflow-hidden rounded-[10px] border border-white/[0.10] bg-[#111214]/80"
+        className="relative h-[min(46vh,480px)] overflow-hidden rounded-[10px] border border-border bg-[#0b0d10]"
       >
         <div
           ref={stageHostRef}
@@ -1376,7 +1376,7 @@ export function AnnotateToolEditor({ options, onOptionsChange, sourceImageUrl }:
 
           {textEditorState && textEditorStagePos && (
             <div
-              className="absolute z-20 flex flex-col gap-2 rounded-md border border-[rgba(255,255,255,0.2)] bg-black/75 p-2 backdrop-blur-sm"
+              className="absolute z-20 flex flex-col gap-2 rounded-md border border-border bg-popover p-2 text-popover-foreground shadow-xl"
               style={{
                 left: `${textEditorStagePos.x}px`,
                 top: `${textEditorStagePos.y}px`,
@@ -1410,19 +1410,19 @@ export function AnnotateToolEditor({ options, onOptionsChange, sourceImageUrl }:
                   }
                 }}
                 rows={3}
-                className="w-full resize-none rounded border border-[rgba(255,255,255,0.18)] bg-bg-dark/90 px-2 py-1.5 text-sm text-text-dark outline-none focus:border-accent"
+                className="w-full resize-none rounded border border-border bg-muted px-2 py-1.5 text-sm text-foreground outline-none focus:border-primary/45"
               />
               <div className="flex items-center justify-end gap-2">
                 <button
                   type="button"
-                  className="rounded border border-[rgba(255,255,255,0.22)] px-2 py-1 text-xs text-text-muted hover:bg-bg-dark"
+                  className="rounded border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
                   onClick={handleCancelTextEditor}
                 >
                   取消
                 </button>
                 <button
                   type="button"
-                  className="rounded border border-accent/45 bg-accent/20 px-2 py-1 text-xs text-text-dark hover:bg-accent/30"
+                  className="rounded border border-primary/45 bg-primary/10 px-2 py-1 text-xs text-primary hover:bg-primary/15"
                   onClick={handleCommitTextEditor}
                 >
                   确认

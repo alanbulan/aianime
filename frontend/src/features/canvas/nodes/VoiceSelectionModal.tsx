@@ -145,15 +145,15 @@ export function VoiceSelectionModal({
       onClick={onClose}
     >
       <div
-        className="flex h-[620px] max-h-[88vh] w-full max-w-[760px] flex-col overflow-hidden rounded-[10px] border border-white/[0.14] bg-[#141518]/96 shadow-[0_18px_48px_rgba(0,0,0,0.48)]"
+        className="flex h-[620px] max-h-[88vh] w-full max-w-[760px] flex-col overflow-hidden rounded-[10px] border border-border bg-popover/96 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-center justify-between px-5 pb-3 pt-4">
-          <h2 className="text-[15px] font-semibold text-text-dark">音色选择</h2>
+          <h2 className="text-[15px] font-semibold text-popover-foreground">音色选择</h2>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-text-dark/70 transition-colors hover:bg-white/[0.08] hover:text-text-dark"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             title="关闭"
           >
             <X className="h-4 w-4" />
@@ -213,7 +213,7 @@ function TabsRow({ tab, onChange }: TabsRowProps) {
             className={`h-8 rounded-full px-3.5 text-[13px] font-medium transition-colors ${
               active
                 ? 'bg-[rgb(var(--accent-rgb))]/18 text-[rgb(var(--accent-rgb))]'
-                : 'text-text-muted/90 hover:bg-white/[0.06] hover:text-text-dark'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
             }`}
           >
             {t.label}
@@ -286,7 +286,7 @@ function LibraryTab({ currentRef, onPick, items, loading, error }: LibraryTabPro
           </CenteredHint>
         )}
         {!loading && error && (
-          <CenteredHint className="text-rose-400">{error}</CenteredHint>
+          <CenteredHint className="text-red-700 dark:text-red-300">{error}</CenteredHint>
         )}
         {!loading && !error && total === 0 && (
           <CenteredHint>暂无可用音色</CenteredHint>
@@ -472,7 +472,7 @@ function MyVoicesTab({
           </CenteredHint>
         )}
         {!loading && error && (
-          <CenteredHint className="text-rose-400">{error}</CenteredHint>
+          <CenteredHint className="text-red-700 dark:text-red-300">{error}</CenteredHint>
         )}
         {!loading && !error && total === 0 && (
           <EmptyState onClone={handleClone} />
@@ -544,7 +544,7 @@ function SearchBox({ value, onChange, placeholder }: SearchBoxProps) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`h-9 w-full rounded-full border border-white/[0.1] bg-transparent pl-9 pr-3 text-[13px] text-text-dark outline-none transition-colors hover:border-white/[0.14] focus:border-white/20 ${CANVAS_NODE_INPUT_PLACEHOLDER_CLASS}`}
+        className={`h-9 w-full rounded-full border border-border bg-background pl-9 pr-3 text-[13px] text-foreground outline-none transition-colors hover:border-foreground/25 focus:border-primary/45 ${CANVAS_NODE_INPUT_PLACEHOLDER_CLASS}`}
       />
     </div>
   );
@@ -586,19 +586,19 @@ interface VoiceRowProps {
 
 function VoiceRow({ title, language, gender, isActive, onSelect }: VoiceRowProps) {
   return (
-    <div className="flex h-[52px] items-center gap-3 rounded-[10px] border border-white/[0.06] bg-white/[0.035] px-3 transition-colors hover:border-white/[0.1] hover:bg-white/[0.055]">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-white/[0.06]">
+    <div className="flex h-[52px] items-center gap-3 rounded-[10px] border border-border bg-card px-3 transition-colors hover:border-foreground/25 hover:bg-muted">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-muted">
         <AudioWaveform className="h-4 w-4 text-text-muted/90" />
       </div>
-      <div className="min-w-0 flex-1 truncate text-[14px] font-medium text-text-dark">
+      <div className="min-w-0 flex-1 truncate text-[14px] font-medium text-foreground">
         {title}
       </div>
       <div className="flex shrink-0 items-center gap-1.5 text-[12px] text-text-muted">
         {language && (
-          <span className="rounded bg-white/[0.06] px-1.5 py-0.5">{language}</span>
+          <span className="rounded bg-muted px-1.5 py-0.5">{language}</span>
         )}
         {gender && (
-          <span className="rounded bg-white/[0.06] px-1.5 py-0.5">{gender}</span>
+          <span className="rounded bg-muted px-1.5 py-0.5">{gender}</span>
         )}
       </div>
       <button
@@ -607,7 +607,7 @@ function VoiceRow({ title, language, gender, isActive, onSelect }: VoiceRowProps
         disabled={isActive}
         className={`ml-1 inline-flex h-7 shrink-0 items-center justify-center rounded-full px-4 text-[12px] font-medium transition-colors ${
           isActive
-            ? 'cursor-default bg-white/[0.08] text-text-muted'
+            ? 'cursor-default bg-muted text-muted-foreground'
             : 'bg-[rgb(var(--accent-rgb))] text-bg-dark hover:bg-[rgb(var(--accent-rgb))]/90'
         }`}
       >
@@ -620,7 +620,7 @@ function VoiceRow({ title, language, gender, isActive, onSelect }: VoiceRowProps
 function EmptyState({ onClone }: { onClone: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-16 text-[13px] text-text-muted">
-      <div className="flex h-16 w-20 items-center justify-center rounded-md bg-white/[0.04]">
+      <div className="flex h-16 w-20 items-center justify-center rounded-md bg-muted">
         <svg
           viewBox="0 0 24 24"
           fill="none"
@@ -692,7 +692,7 @@ function FooterPagination({
         >
           {'>'}
         </PaginationButton>
-        <span className="ml-3 inline-flex h-7 items-center rounded-full border border-white/[0.1] bg-transparent px-2.5 text-[12px] text-text-dark">
+        <span className="ml-3 inline-flex h-7 items-center rounded-full border border-border bg-background px-2.5 text-[12px] text-foreground">
           {PAGE_SIZE} 条/页
         </span>
       </div>
@@ -725,7 +725,7 @@ function PaginationButton({
       className={`inline-flex h-7 min-w-[28px] items-center justify-center rounded-full px-1.5 text-[12px] transition-colors ${
         active
           ? 'bg-[rgb(var(--accent-rgb))]/18 text-[rgb(var(--accent-rgb))]'
-          : 'text-text-dark/85 hover:bg-white/[0.06] hover:text-text-dark'
+          : 'text-foreground/85 hover:bg-muted hover:text-foreground'
       } ${disabled ? 'cursor-not-allowed opacity-40 hover:bg-transparent' : ''}`}
     >
       {children}
@@ -761,7 +761,7 @@ function PaginationJump({
       }}
       onBlur={commit}
       placeholder={String(page)}
-      className="h-7 w-12 rounded-full border border-white/[0.1] bg-transparent px-2 text-center text-[12px] text-text-dark outline-none focus:border-white/20"
+      className="h-7 w-12 rounded-full border border-border bg-background px-2 text-center text-[12px] text-foreground outline-none focus:border-primary/45"
     />
   );
 }

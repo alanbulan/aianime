@@ -117,7 +117,7 @@ export function CompareDialog({ left, right, onClose }: CompareDialogProps) {
             step={1}
             value={Math.round(position * 100)}
             onChange={(e) => setPosition(Number(e.target.value) / 100)}
-            className="w-48 accent-accent"
+            className="w-48 accent-primary"
           />
         </footer>
       </div>

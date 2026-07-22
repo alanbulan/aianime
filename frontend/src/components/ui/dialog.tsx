@@ -71,7 +71,7 @@ function DialogContent({
               <Button
                 variant="ghost"
                 className={cn(
-                  "absolute top-3 right-3 text-muted-foreground hover:bg-white/[0.08] hover:text-foreground focus-visible:bg-white/[0.08] [&_svg]:size-4",
+                  "absolute top-3 right-3 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:bg-muted [&_svg]:size-4",
                   closeButtonClassName,
                 )}
                 size="icon-sm"

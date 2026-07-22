@@ -5,10 +5,18 @@ const { join } = require("node:path");
 const ICON_SIZE = 512;
 
 async function generateIcon() {
-  const source = join(__dirname, "..", "..", "frontend", "public", "favicon.svg");
+  const source = join(
+    __dirname,
+    "..",
+    "..",
+    "frontend",
+    "public",
+    "images",
+    "ai-anime-logo-mark.png",
+  );
   const outputDirectory = join(__dirname, "..", "build");
   const output = join(outputDirectory, "icon.png");
-  const sourceUrl = `data:image/svg+xml;base64,${readFileSync(source).toString("base64")}`;
+  const sourceUrl = `data:image/png;base64,${readFileSync(source).toString("base64")}`;
   const markup = `<!doctype html>
     <html>
       <head>

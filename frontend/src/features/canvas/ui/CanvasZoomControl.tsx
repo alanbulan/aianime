@@ -128,7 +128,7 @@ export function CanvasZoomControl({
   const isTop = placement === 'top-right';
 
   const menuItemClass =
-    'flex w-full items-center justify-between gap-6 rounded-lg px-3 py-1.5 text-left text-[13px] text-text-dark transition hover:bg-white/10';
+    'flex w-full items-center justify-between gap-6 rounded-lg px-3 py-1.5 text-left text-[13px] text-popover-foreground transition hover:bg-muted';
 
   return (
     <div
@@ -147,8 +147,8 @@ export function CanvasZoomControl({
             onClick={toggleEdgesHidden}
             className={`flex h-5 w-5 items-center justify-center rounded-full transition ${
               edgesHidden
-                ? 'bg-white/[0.16] text-text'
-                : 'text-text-muted hover:bg-white/10 hover:text-text'
+                ? 'bg-primary/15 text-foreground'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
             }`}
             aria-label={edgesToggleTitle}
             aria-pressed={edgesHidden}
@@ -156,36 +156,36 @@ export function CanvasZoomControl({
             <Waypoints className="h-3 w-3" />
           </button>
           <span
-            className={`pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md border border-[rgba(255,255,255,0.12)] bg-bg-dark/95 px-2 py-1 text-[11px] text-text-dark opacity-0 shadow-lg transition-opacity duration-100 group-hover:opacity-100 ${
+            className={`pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-popover/95 px-2 py-1 text-[11px] text-popover-foreground opacity-0 shadow-lg transition-opacity duration-100 group-hover:opacity-100 ${
               isTop ? 'top-full mt-1.5' : 'bottom-full mb-1.5'
             }`}
           >
             {edgesToggleTitle}
           </span>
         </span>
-        <span className="mx-0.5 h-3 w-px bg-white/10" aria-hidden />
+        <span className="mx-0.5 h-3 w-px bg-border" aria-hidden />
         <span className="group relative inline-flex">
           <button
             type="button"
             onClick={onOrganize}
-            className="flex h-5 w-5 items-center justify-center rounded-full text-text-muted transition hover:bg-white/10 hover:text-text"
+            className="flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
             aria-label={t('canvas.toolbar.organize')}
           >
             <Wand2 className="h-3 w-3" />
           </button>
           <span
-            className={`pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md border border-[rgba(255,255,255,0.12)] bg-bg-dark/95 px-2 py-1 text-[11px] text-text-dark opacity-0 shadow-lg transition-opacity duration-100 group-hover:opacity-100 ${
+            className={`pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-popover/95 px-2 py-1 text-[11px] text-popover-foreground opacity-0 shadow-lg transition-opacity duration-100 group-hover:opacity-100 ${
               isTop ? 'top-full mt-1.5' : 'bottom-full mb-1.5'
             }`}
           >
             {organizeTitle}
           </span>
         </span>
-        <span className="mx-0.5 h-3 w-px bg-white/10" aria-hidden />
+        <span className="mx-0.5 h-3 w-px bg-border" aria-hidden />
         <button
           type="button"
           onClick={() => (menuOpen ? setMenuOpen(false) : openMenu())}
-          className="min-w-[42px] rounded-full px-1.5 text-center text-[11px] tabular-nums text-text transition hover:bg-white/10"
+          className="min-w-[42px] rounded-full px-1.5 text-center text-[11px] tabular-nums text-foreground transition hover:bg-muted"
           aria-haspopup="menu"
           aria-expanded={menuOpen}
           aria-label={t('canvas.zoom.menuLabel')}
@@ -197,11 +197,11 @@ export function CanvasZoomControl({
       {menuOpen && (
         <div
           role="menu"
-          className={`absolute right-0 z-40 w-[200px] rounded-xl border border-white/10 bg-[#1c1c1e]/95 p-1.5 shadow-[0_12px_32px_rgba(0,0,0,0.45)] backdrop-blur-2xl ${
+          className={`absolute right-0 z-40 w-[200px] rounded-xl border border-border bg-popover/95 p-1.5 shadow-xl backdrop-blur-2xl ${
             isTop ? 'top-full mt-2' : 'bottom-full mb-2'
           }`}
         >
-          <div className="mb-1 flex items-center rounded-lg bg-white/[0.07] px-3 py-1.5">
+          <div className="mb-1 flex items-center rounded-lg bg-muted px-3 py-1.5">
             <input
               ref={inputRef}
               value={draft}
@@ -217,7 +217,7 @@ export function CanvasZoomControl({
               }}
               onBlur={commitDraft}
               inputMode="decimal"
-              className="w-full bg-transparent text-[13px] tabular-nums text-text-dark outline-none"
+              className="w-full bg-transparent text-[13px] tabular-nums text-popover-foreground outline-none"
               aria-label={t('canvas.zoom.inputLabel')}
             />
             <span className="text-[13px] text-text-muted">%</span>
@@ -234,7 +234,7 @@ export function CanvasZoomControl({
             <span>{t('canvas.zoom.fitView')}</span>
             <span className="text-[12px] text-text-muted">{MOD_KEY_LABEL} 0</span>
           </button>
-          <div className="mx-1 my-1 h-px bg-white/10" aria-hidden />
+          <div className="mx-1 my-1 h-px bg-border" aria-hidden />
           {ZOOM_PRESETS.map((preset) => (
             <button
               key={preset}

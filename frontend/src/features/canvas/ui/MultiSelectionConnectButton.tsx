@@ -156,7 +156,7 @@ export const MultiSelectionConnectButton = memo(
           type="button"
           aria-label="批量连线"
           title="批量连线：点击新建下游节点并把选中节点都连进去，或拖动连到已有节点"
-          className="nodrag flex h-8 w-8 items-center justify-center rounded-full border border-white/40 bg-surface-dark/95 text-white/85 shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_6px_18px_rgba(0,0,0,0.32)] transition-[border-color,color,box-shadow] duration-150 hover:border-white/85 hover:text-white hover:shadow-[0_0_0_1px_rgba(255,255,255,0.42),0_0_18px_rgba(255,255,255,0.22)]"
+          className="nodrag flex h-8 w-8 items-center justify-center rounded-full border border-border bg-popover/95 text-popover-foreground/85 shadow-lg transition-[border-color,color,box-shadow] duration-150 hover:border-primary/60 hover:text-popover-foreground hover:shadow-[0_0_18px_rgb(var(--accent-rgb)/0.22)]"
           onPointerDown={handlePointerDown}
           onClick={(event) => {
             event.stopPropagation();

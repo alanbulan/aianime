@@ -62,6 +62,10 @@ vi.mock("@/components/layout/credit-balance-badge", () => ({
   CreditBalanceBadge: () => <div data-testid="credit-balance" />,
 }));
 
+vi.mock("@/components/theme-toggle", () => ({
+  ThemeToggle: () => <button type="button" aria-label="Toggle theme" />,
+}));
+
 vi.mock("@/components/task-center/header-entry", () => ({
   HeaderEntry: () => <button type="button">Tasks</button>,
 }));
@@ -128,6 +132,7 @@ describe("Header runtime gating", () => {
 
     expect(screen.queryByText("AI anime")).not.toBeInTheDocument();
     expect(container.querySelector("header")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Toggle theme")).toBeInTheDocument();
     expect(screen.getByLabelText("Open account")).toBeInTheDocument();
     actionsHost.remove();
   });

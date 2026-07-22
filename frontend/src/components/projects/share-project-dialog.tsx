@@ -132,7 +132,7 @@ export function ShareProjectDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[min(42rem,calc(100vh-2rem))] flex-col overflow-hidden rounded-[16px] border border-white/8 bg-background/82 p-0 shadow-2xl backdrop-blur-3xl sm:max-w-2xl">
+      <DialogContent className="flex max-h-[min(42rem,calc(100vh-2rem))] flex-col overflow-hidden rounded-[16px] border border-border bg-popover p-0 text-popover-foreground shadow-2xl sm:max-w-2xl">
         <DialogHeader className="px-6 pb-2 pt-5">
           <DialogTitle className="flex items-center gap-2 text-lg">
             <Users className="size-5 text-primary" />
@@ -144,7 +144,7 @@ export function ShareProjectDialog({
         </DialogHeader>
 
         <div className="grid min-h-0 flex-1 content-start gap-5 overflow-y-auto px-6 pb-5 pt-2">
-          <section className="rounded-[12px] border border-border/70 bg-card/45 p-4">
+          <section className="rounded-[12px] border border-border bg-card p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
                 <div className="text-sm font-medium text-foreground">添加成员</div>
@@ -212,11 +212,11 @@ export function ShareProjectDialog({
             </div>
           </section>
 
-          <section className="rounded-[12px] border border-border/70 bg-card/45 p-4">
+          <section className="rounded-[12px] border border-border bg-card p-4">
             <div className="mb-3 text-sm font-medium text-foreground">成员</div>
             <div className="space-y-2">
               {project && (
-                <div className="flex items-center gap-3 rounded-[10px] border border-border/60 bg-background/45 px-3 py-2.5">
+                <div className="flex items-center gap-3 rounded-[10px] border border-border bg-muted px-3 py-2.5">
                   <ShieldCheck className="size-4 text-primary" />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-medium">{project.ownerUsername || "所有者"}</div>
@@ -226,13 +226,13 @@ export function ShareProjectDialog({
                 </div>
               )}
               {grants.isLoading && (
-                <div className="flex items-center gap-2 rounded-[10px] border border-border/60 bg-background/45 px-3 py-3 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 rounded-[10px] border border-border bg-muted px-3 py-3 text-sm text-muted-foreground">
                   <Loader2 className="size-4 animate-spin" />
                   加载成员
                 </div>
               )}
               {!grants.isLoading && grantRows.map((grant) => (
-                <div key={grant.id} className="flex items-center gap-3 rounded-[10px] border border-border/60 bg-background/45 px-3 py-2.5">
+                <div key={grant.id} className="flex items-center gap-3 rounded-[10px] border border-border bg-muted px-3 py-2.5">
                   <Users className="size-4 text-muted-foreground" />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-medium">{grantDisplayName(grant)}</div>

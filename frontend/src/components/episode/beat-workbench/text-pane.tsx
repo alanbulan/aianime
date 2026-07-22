@@ -56,7 +56,7 @@ type TextPaneDirtyFields = {
 };
 
 const CONTROL_CLASS =
-  "rounded-[8px] border-white/[0.09] bg-white/[0.025] text-[13px] text-foreground/88 shadow-none placeholder:text-muted-foreground/45 hover:bg-white/[0.032] focus-visible:border-white/[0.18] focus-visible:bg-white/[0.035] focus-visible:ring-0 dark:border-white/[0.09] dark:bg-white/[0.025] dark:hover:bg-white/[0.032] dark:focus-visible:border-white/[0.18] dark:focus-visible:bg-white/[0.035]";
+  "rounded-[8px] border-border bg-muted text-[13px] text-foreground/88 shadow-none placeholder:text-muted-foreground hover:bg-accent focus-visible:border-primary/45 focus-visible:bg-muted focus-visible:ring-0";
 const COMPACT_CONTROL_CLASS = cn(CONTROL_CLASS, "h-8 px-3");
 // Dropdown popup polish — open below the trigger (not item-aligned/overlapping),
 // inset padding so the highlight rounds nicely, capped height with scroll.
@@ -644,7 +644,7 @@ export function TextPane({ beat, project, episode, spineTemplate = "drama" }: Te
           </Field>
         </div>
         {scenePlateRender?.label ? (
-          <p className="col-span-full rounded-[8px] border border-white/[0.08] bg-white/[0.025] px-3 py-2 text-xs text-muted-foreground">
+          <p className="col-span-full rounded-[8px] border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
             {scenePlateRender.label}
           </p>
         ) : null}
@@ -685,7 +685,7 @@ export function TextPane({ beat, project, episode, spineTemplate = "drama" }: Te
               removedLabel={t("common.removed")}
             />
             {!hasIdentityDetectionState ? (
-              <p className="mt-1 text-xs text-amber-300/90">
+              <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
                 {t("episode.workbench.text.identityDetectionRequired")}
               </p>
             ) : null}
@@ -828,7 +828,7 @@ function IdentityBadgeGroup({
     return (
       <p
         role="status"
-        className="rounded-[8px] border border-dashed border-white/[0.09] bg-white/[0.018] px-3 py-2.5 text-[13px] text-muted-foreground/70"
+        className="rounded-[8px] border border-dashed border-border bg-muted px-3 py-2.5 text-[13px] text-muted-foreground"
       >
         {emptyMessage}
       </p>
@@ -865,7 +865,7 @@ function IdentityBadgeGroup({
                 ? stale
                   ? "border-destructive/45 bg-destructive/[0.07] text-foreground/82"
                   : "border-primary/65 bg-primary/[0.07] text-foreground/86"
-                : "border-white/[0.09] bg-white/[0.018] text-muted-foreground/70 hover:border-white/[0.16] hover:text-foreground/78",
+                : "border-border bg-muted text-muted-foreground hover:border-foreground/25 hover:bg-accent hover:text-foreground",
             )}
           >
             <button
@@ -899,7 +899,7 @@ function IdentityBadgeGroup({
 
 function MetadataSection({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-2 gap-x-4 gap-y-4 border-t border-white/[0.06] pt-4">
+    <div className="grid grid-cols-2 gap-x-4 gap-y-4 border-t border-border pt-4">
       {children}
     </div>
   );

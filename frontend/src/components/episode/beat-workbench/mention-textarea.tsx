@@ -180,7 +180,7 @@ export function MentionTextarea({
   const outerBox = cn(
     "relative w-full rounded-lg border bg-transparent transition-colors focus-within:ring-3",
     className,
-    "focus-within:border-white/[0.16] focus-within:ring-white/10",
+    "focus-within:border-primary/45 focus-within:ring-primary/10",
   );
   const textLayer = cn(
     "w-full whitespace-pre-wrap break-words",
@@ -446,7 +446,7 @@ export function MentionTextarea({
       {(mention || replaceRange) && filteredLabels.length > 0 ? (
         <div
           role="listbox"
-          className="absolute left-2 top-full z-50 mt-1 flex min-w-[180px] max-w-[280px] flex-col overflow-hidden rounded-[8px] border border-white/10 bg-popover/95 py-1 shadow-xl backdrop-blur"
+          className="absolute left-2 top-full z-50 mt-1 flex min-w-[180px] max-w-[280px] flex-col overflow-hidden rounded-[8px] border border-border bg-popover/95 py-1 shadow-xl backdrop-blur"
         >
           {filteredLabels.map((label, index) => (
             <button
@@ -463,7 +463,7 @@ export function MentionTextarea({
                 "px-2.5 py-1.5 text-left text-xs",
                 index === activeIndex
                   ? "bg-primary/15 text-primary"
-                  : "text-foreground/82 hover:bg-white/[0.06]",
+                  : "text-foreground/82 hover:bg-muted",
               )}
             >
               {label}
@@ -481,7 +481,7 @@ export function MentionTextarea({
                 width: MENTION_PREVIEW_SIZE,
               }}
             >
-              <div className="overflow-hidden rounded-xl border border-white/15 bg-surface-dark/95 shadow-2xl backdrop-blur-sm">
+              <div className="overflow-hidden rounded-xl border border-border bg-popover/95 shadow-2xl backdrop-blur-sm">
                 <img
                   src={preview.url}
                   alt=""
