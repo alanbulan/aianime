@@ -4,6 +4,8 @@ import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { ThemedToaster } from "@/components/themed-toaster";
 import { DesktopTitleBar } from "@/components/layout/desktop-title-bar";
+import { AppUpdateRequired } from "@/components/app-update-required";
+import { isChunkLoadError } from "@/lib/chunk-load-recovery";
 
 /**
  * Moves keyboard focus to the main landmark on each navigation, so
@@ -28,7 +30,13 @@ function RouteFocusManager() {
 
 function RootLayout() {
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-background">
+    <div
+      className={`flex h-dvh flex-col overflow-hidden bg-background ${
+        window.aiAnimeDesktop
+          ? "[--desktop-title-bar-height:36px]"
+          : "[--desktop-title-bar-height:0px]"
+      }`}
+    >
       <DesktopTitleBar />
       <RouteFocusManager />
       <div className="min-h-0 flex-1 overflow-hidden">
@@ -41,6 +49,10 @@ function RootLayout() {
 
 function RootErrorComponent({ error }: ErrorComponentProps) {
   const { t } = useTranslation();
+  if (isChunkLoadError(error)) {
+    return <AppUpdateRequired />;
+  }
+
   return (
     <div className="flex h-full items-center justify-center bg-background px-6 text-foreground">
       <div className="w-full max-w-lg rounded-2xl border border-destructive/30 bg-destructive/5 p-8">

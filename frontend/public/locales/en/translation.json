@@ -2,6 +2,22 @@
   "app": {
     "title": "AI\u00a0anime",
     "subtitle": "AI\u00a0anime candidate generation and asset commit workbench",
+    "updateRequired": {
+      "title": "App updated",
+      "description": "This page is referencing an expired app file. Refresh to load the latest version.",
+      "refresh": "Refresh page"
+    },
+    "updateAvailable": {
+      "title": "A new version is available",
+      "description": "Refresh the page to get the latest features and fixes.",
+      "refresh": "Refresh now",
+      "dismiss": "Dismiss"
+    },
+    "versionUpdate": {
+      "title": "New features are live",
+      "confirm": "Got it",
+      "empty": "No release notes for this version"
+    },
     "routeError": {
       "title": "Page failed to load",
       "description": "Refresh the page and try again."
@@ -13,6 +29,7 @@
     "settingsWithWarning": "Settings, missing configuration",
     "settingsWarningBubble": "Missing setup",
     "dismissSettingsWarningBubble": "Dismiss missing setup reminder",
+    "notifications": "Notifications",
     "account": {
       "open": "Open account menu",
       "changeAvatar": "Change avatar",
@@ -30,6 +47,17 @@
         "saving": "Saving…",
         "error": "Avatar upload failed, please try again"
       }
+    }
+  },
+  "notifications": {
+    "title": "Notification Center",
+    "close": "Close notification center",
+    "empty": "No notifications",
+    "upgrade": {
+      "title": "New version {{version}} available",
+      "body": "A new version is available. Review the release notes before upgrading.",
+      "open": "View release notes",
+      "skip": "Skip this version"
     }
   },
   "aiAssistant": {
@@ -225,6 +253,7 @@
   },
   "theme": {
     "toggle": "Toggle theme",
+    "system": "System",
     "light": "Light",
     "dark": "Dark"
   },
@@ -2319,7 +2348,12 @@
     "quickbar": {
       "addNode": "Add Node",
       "history": "History",
-      "shortcuts": "Shortcuts"
+      "shortcuts": "Shortcuts",
+      "help": "Help Center",
+      "viewManual": "View user manual",
+      "helpMenu": {
+        "tutorial": "Tutorial"
+      }
     },
     "trackpad": {
       "enable": "Enable trackpad panning",

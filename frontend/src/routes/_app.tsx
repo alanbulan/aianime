@@ -25,6 +25,7 @@ import { initObservability } from "@/lib/observability";
 import { TaskCenterProvider } from "@/task-center/provider";
 import { TaskStatusBar } from "@/components/task-center/status-bar";
 import { TaskPanel } from "@/components/task-center/panel";
+import { VersionUpdateDialog } from "@/features/version-update/VersionUpdateDialog";
 
 export function shouldRedirectMissingUsernameToLogin(): boolean {
   return authRequired();
@@ -163,6 +164,7 @@ function AppLayout() {
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
             <Header />
+            <VersionUpdateDialog />
             <div className="flex min-h-0 flex-1 overflow-hidden">
               <main
                 id="main-content"

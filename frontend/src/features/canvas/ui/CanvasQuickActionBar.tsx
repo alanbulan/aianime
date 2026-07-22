@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useEffect, useRef, useState, type ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Clock, Keyboard, Plus } from 'lucide-react';
+import { Clock, HelpCircle, Keyboard, Plus } from 'lucide-react';
 
 import type { CanvasNodeType } from '@/features/canvas/domain/canvasNodes';
 import type { CanvasAsset } from '@/features/canvas/domain/canvasAssets';
@@ -10,12 +10,13 @@ import type { SkillDefinition } from '@/features/freezone/context/skillRoles';
 import { CanvasAddNodePanel } from './CanvasAddNodePanel';
 import { CanvasShortcutsPanel } from './CanvasShortcutsPanel';
 import { CanvasHistoryAssetsModal } from './CanvasHistoryAssetsModal';
+import { CanvasHelpMenu } from './CanvasHelpMenu';
 
-type QuickPanel = 'add' | 'history' | 'shortcuts';
+type QuickPanel = 'add' | 'history' | 'shortcuts' | 'help';
 
 // 悬停即开 / 离开延迟关闭的轻量 popover 面板（区别于 history 那种 modal）。
 const HOVER_POPOVER_PANELS: ReadonlySet<QuickPanel> = new Set(['add']);
-const ANCHORED_POPOVER_PANELS: ReadonlySet<QuickPanel> = new Set(['add', 'shortcuts']);
+const ANCHORED_POPOVER_PANELS: ReadonlySet<QuickPanel> = new Set(['add', 'shortcuts', 'help']);
 
 interface CanvasQuickActionBarProps {
   placement?: 'bottom-right' | 'top-right';
@@ -48,6 +49,12 @@ const ACTIONS: QuickActionDef[] = [
     icon: Keyboard,
     labelKey: 'canvas.quickbar.shortcuts',
     tooltipKey: 'canvas.quickbar.shortcuts',
+  },
+  {
+    key: 'help',
+    icon: HelpCircle,
+    labelKey: 'canvas.quickbar.help',
+    tooltipKey: 'canvas.quickbar.viewManual',
   },
 ];
 
@@ -162,6 +169,14 @@ export function CanvasQuickActionBar({
             <div className={`absolute left-1/2 -translate-x-1/2 ${popoverAnchorClass}`}>
               <div className={popoverEnterClass}>
                 <CanvasShortcutsPanel onClose={() => setOpenPanel(null)} />
+              </div>
+            </div>
+          )}
+
+          {openPanel === 'help' && (
+            <div className={`absolute right-0 ${popoverAnchorClass}`}>
+              <div className={popoverEnterClass}>
+                <CanvasHelpMenu onClose={() => setOpenPanel(null)} />
               </div>
             </div>
           )}

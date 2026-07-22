@@ -2,6 +2,7 @@ import { Copy, Minus, Square, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BRAND_NAME, BrandMark } from "@/components/brand";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export const DESKTOP_TITLE_BAR_HEIGHT = 36;
 
@@ -9,6 +10,17 @@ export function DesktopTitleBar() {
   const { t } = useTranslation();
   const bridge = window.aiAnimeDesktop;
   const [maximized, setMaximized] = useState(false);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty(
+      "--desktop-title-bar-height",
+      bridge ? `${DESKTOP_TITLE_BAR_HEIGHT}px` : "0px",
+    );
+    return () => {
+      root.style.removeProperty("--desktop-title-bar-height");
+    };
+  }, [bridge]);
 
   useEffect(() => {
     if (!bridge) return;
@@ -42,6 +54,7 @@ export function DesktopTitleBar() {
         className="desktop-title-bar-controls flex h-full"
         onDoubleClick={(event) => event.stopPropagation()}
       >
+        <ThemeToggle className="h-full w-11 rounded-none" />
         <TitleBarButton
           label={t("desktopWindow.minimize")}
           onClick={() => bridge.windowControls.minimize()}

@@ -1,20 +1,27 @@
 import { ArrowRight, Eye, EyeOff, KeyRound, LoaderCircle, UserRound } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { BRAND_NAME, BrandMark } from "@/components/brand";
+import { gsap } from "gsap";
+import { RegionSelector } from "@/components/login/region-selector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { clusterConfig } from "@/lib/cluster-config";
 import { useAuthStore } from "@/stores/auth-store";
+import { useRegionStore } from "@/stores/region-store";
 
 type AuthView = "login" | "authorize";
 
 export function LoginPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const pageRef = useRef<HTMLElement | null>(null);
+  const panelRef = useRef<HTMLElement | null>(null);
+  const reducedMotion = useReducedMotion();
   const login = useAuthStore((state) => state.login);
   const authorize = useAuthStore((state) => state.authorize);
+  const regionId = useRegionStore((state) => state.selectedRegionId);
   const [view, setView] = useState<AuthView>("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -22,6 +29,30 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const needsRegion = clusterConfig.mode === "multi-region" && !regionId;
+
+  useLayoutEffect(() => {
+    const page = pageRef.current;
+    if (!page || reducedMotion) return;
+
+    const context = gsap.context(() => {
+      gsap.fromTo(
+        "[data-login-background]",
+        { scale: 1.035 },
+        { scale: 1, duration: 1.7, ease: "power2.out" },
+      );
+      gsap
+        .timeline({ defaults: { ease: "power3.out" } })
+        .fromTo(
+          panelRef.current,
+          { autoAlpha: 0, x: 32 },
+          { autoAlpha: 1, x: 0, duration: 0.78 },
+          0.08,
+        );
+    }, page);
+
+    return () => context.revert();
+  }, [reducedMotion]);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -39,31 +70,42 @@ export function LoginPage() {
   };
 
   return (
-    <main className="relative h-full min-h-[520px] overflow-hidden bg-background">
+    <main
+      ref={pageRef}
+      className="relative h-full min-h-[520px] overflow-hidden bg-background"
+    >
       <img
-        src="/images/login-background.png"
+        src="/images/login-hero-light-v2.webp"
         alt=""
         aria-hidden="true"
-        className="absolute inset-0 h-full w-full object-cover object-center"
+        data-login-background
+        className="absolute inset-0 h-full w-full object-cover object-center opacity-100 transition-opacity duration-500 dark:opacity-0"
       />
-      <div className="absolute inset-0 bg-black/45" aria-hidden="true" />
+      <img
+        src="/images/login-hero-dark-v2.webp"
+        alt=""
+        aria-hidden="true"
+        data-login-background
+        className="absolute inset-0 h-full w-full object-cover object-center opacity-0 transition-opacity duration-500 dark:opacity-100"
+      />
+      <div
+        className="absolute inset-0 bg-white/[0.08] transition-colors duration-500 dark:bg-black/30"
+        aria-hidden="true"
+      />
 
-      <div className="absolute left-7 top-7 z-10 flex items-center gap-3 whitespace-nowrap text-white">
-        <BrandMark className="h-9 w-14" />
-        <span className="text-xl font-semibold">{BRAND_NAME}</span>
-      </div>
-
-      <section className="absolute inset-y-0 right-0 z-10 flex w-full max-w-[460px] items-center border-l border-border bg-background/94 px-8 text-foreground backdrop-blur-xl sm:px-12">
+      <section
+        ref={panelRef}
+        className="absolute inset-y-0 right-0 z-10 flex w-full max-w-[460px] items-center border-l border-border bg-background px-8 text-foreground shadow-[-24px_0_64px_rgba(0,0,0,0.12)] sm:px-12"
+      >
         <div className="w-full">
-          <div className="mb-8 flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-semibold">{t("auth.accessTitle")}</h1>
-              <p className="mt-2 text-sm text-muted-foreground">{t("auth.accessSubtitle")}</p>
-            </div>
-            <ThemeToggle />
+          <div className="mb-7">
+            <h1 className="text-2xl font-semibold">{t("auth.accessTitle")}</h1>
+            <p className="mt-2 text-sm text-muted-foreground">{t("auth.accessSubtitle")}</p>
           </div>
 
-          <div className="mb-6 grid h-10 grid-cols-2 rounded-md bg-muted p-1" role="tablist">
+          <RegionSelector />
+
+          <div className="mb-6 mt-4 grid h-10 grid-cols-2 rounded-md bg-muted p-1" role="tablist">
             <AuthModeButton
               active={view === "login"}
               icon={<UserRound className="size-4" />}
@@ -137,7 +179,12 @@ export function LoginPage() {
               {error}
             </div>
 
-            <Button type="submit" className="h-10 w-full" disabled={submitting}>
+            <Button
+              type="submit"
+              className="h-10 w-full"
+              disabled={submitting || needsRegion}
+              title={needsRegion ? t("region.picker.required") : undefined}
+            >
               {submitting ? <LoaderCircle className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
               {submitting
                 ? t("auth.authenticating")

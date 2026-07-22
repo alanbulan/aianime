@@ -70,6 +70,16 @@ export default defineConfig(({ mode }) => {
       TanStackRouterVite(),
       react(),
       tailwindcss(),
+      {
+        name: "emit-version-json",
+        generateBundle() {
+          this.emitFile({
+            type: "asset",
+            fileName: "version.json",
+            source: JSON.stringify({ version: APP_VERSION, buildId: BUILD_ID }),
+          });
+        },
+      },
     ],
     define: {
       __APP_VERSION__: JSON.stringify(APP_VERSION),

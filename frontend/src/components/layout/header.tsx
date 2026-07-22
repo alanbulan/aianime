@@ -1,11 +1,12 @@
 // Copyright (c) 2026 AI anime
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode, RefObject } from "react";
 import { createPortal } from "react-dom";
 import { Link, useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import {
   AlertTriangle,
+  Bell,
   Bolt,
   Camera,
   Check,
@@ -23,7 +24,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { CreditBalanceBadge } from "@/components/layout/credit-balance-badge";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { NotificationDrawer } from "@/components/notifications/notification-drawer";
 import { BRAND_NAME, BrandMark } from "@/components/brand";
 import { SettingsDialog } from "@/components/settings/settings-dialog";
 import { useQueryClient } from "@tanstack/react-query";
@@ -32,6 +33,11 @@ import { useAppStore } from "@/stores/app-store";
 import { authRequired, isCeRuntime } from "@/lib/runtime-config";
 import { resetUserSessionState } from "@/lib/reset-region-state";
 import { useModelGatewayConfig } from "@/lib/queries/model-gateway";
+import { useReleaseNotifications } from "@/lib/queries/release-notifications";
+import {
+  markUpgradeSeen,
+  shouldShowUpgradeNudge,
+} from "@/lib/release-notification-state";
 import {
   ProjectHeaderNavigation,
   ProjectSwitcher,
@@ -43,6 +49,8 @@ export function Header() {
   const { t, i18n } = useTranslation();
   const params = useParams({ strict: false }) as { project?: string };
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const [releaseNotificationStateVersion, setReleaseNotificationStateVersion] = useState(0);
   const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
   const [accountPanelOpen, setAccountPanelOpen] = useState(false);
   const [accountPanelVisible, setAccountPanelVisible] = useState(false);
@@ -76,6 +84,10 @@ export function Header() {
     ? "zh"
     : "en";
   const modelGatewayConfig = useModelGatewayConfig(ceRuntime);
+  const releaseNotifications = useReleaseNotifications(i18n.resolvedLanguage ?? i18n.language);
+  const releaseFeed = releaseNotifications.data?.data;
+  void releaseNotificationStateVersion;
+  const hasUnreadNotification = shouldShowUpgradeNudge(releaseFeed);
   const gatewayConfig = modelGatewayConfig.data?.data;
   const hasSettingsWarning = Boolean(
     ceRuntime &&
@@ -173,6 +185,17 @@ export function Header() {
     setLanguage(lang);
   };
 
+  const openNotifications = () => {
+    closeAccountPanelNow();
+    markUpgradeSeen(releaseFeed?.latest_tag);
+    setReleaseNotificationStateVersion((version) => version + 1);
+    setNotificationOpen(true);
+  };
+
+  const handleUpgradeStateChange = useCallback(() => {
+    setReleaseNotificationStateVersion((version) => version + 1);
+  }, []);
+
   const openAvatarDialog = () => {
     closeAccountPanelNow();
     setAvatarDialogOpen(true);
@@ -184,7 +207,23 @@ export function Header() {
         isDesktop ? "h-full shrink-0" : "min-w-0 flex-1 shrink-0"
       }`}
     >
-      <ThemeToggle className="size-[32px]" />
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="relative size-[32px] text-muted-foreground hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground"
+        aria-label={t("header.notifications")}
+        aria-expanded={notificationOpen}
+        onClick={openNotifications}
+      >
+        <Bell className="size-[17px]" />
+        {hasUnreadNotification ? (
+          <span
+            className="absolute right-[7px] top-[7px] size-1.5 rounded-full bg-rose-500"
+            aria-hidden="true"
+          />
+        ) : null}
+      </Button>
       {ceRuntime ? (
         <div ref={settingsAnchorRef} className="relative">
           <Button
@@ -311,6 +350,11 @@ export function Header() {
         displayName={displayName}
         open={avatarDialogOpen}
         onOpenChange={setAvatarDialogOpen}
+      />
+      <NotificationDrawer
+        open={notificationOpen}
+        onOpenChange={setNotificationOpen}
+        onUpgradeStateChange={handleUpgradeStateChange}
       />
       {ceRuntime ? <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} /> : null}
       {settingsWarningBubble

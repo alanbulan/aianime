@@ -2,6 +2,22 @@
   "app": {
     "title": "AI\u00a0anime",
     "subtitle": "AI\u00a0anime 候选图生成与资产提交工作台",
+    "updateRequired": {
+      "title": "应用已更新",
+      "description": "当前页面引用的应用文件已经失效。请刷新页面以加载最新版本。",
+      "refresh": "刷新页面"
+    },
+    "updateAvailable": {
+      "title": "有新版本可用",
+      "description": "刷新页面即可体验最新功能与修复。",
+      "refresh": "立即刷新",
+      "dismiss": "关闭"
+    },
+    "versionUpdate": {
+      "title": "新功能已上线",
+      "confirm": "我知道了",
+      "empty": "当前版本暂无更新说明"
+    },
     "routeError": {
       "title": "页面加载失败",
       "description": "请刷新页面后重试。"
@@ -13,6 +29,7 @@
     "settingsWithWarning": "设置，有未配置项",
     "settingsWarningBubble": "有未配置项",
     "dismissSettingsWarningBubble": "关闭未配置提醒",
+    "notifications": "通知",
     "account": {
       "open": "打开个人信息",
       "changeAvatar": "更换头像",
@@ -30,6 +47,17 @@
         "saving": "保存中…",
         "error": "头像上传失败，请重试"
       }
+    }
+  },
+  "notifications": {
+    "title": "通知中心",
+    "close": "关闭通知中心",
+    "empty": "暂无通知",
+    "upgrade": {
+      "title": "有新版本 {{version}} 可用",
+      "body": "检测到新版本，可查看发布说明并安排升级。",
+      "open": "查看发布说明",
+      "skip": "跳过此版本"
     }
   },
   "aiAssistant": {
@@ -225,6 +253,7 @@
   },
   "theme": {
     "toggle": "切换主题",
+    "system": "跟随系统",
     "light": "浅色",
     "dark": "深色"
   },
@@ -2319,7 +2348,12 @@
     "quickbar": {
       "addNode": "添加节点",
       "history": "历史记录",
-      "shortcuts": "快捷键"
+      "shortcuts": "快捷键",
+      "help": "帮助中心",
+      "viewManual": "查看使用手册",
+      "helpMenu": {
+        "tutorial": "使用教程"
+      }
     },
     "trackpad": {
       "enable": "开启触控板平移",

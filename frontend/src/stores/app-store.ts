@@ -20,7 +20,7 @@ export const AI_ASSISTANT_WIDTH_MIN = 440;
 export const AI_ASSISTANT_WIDTH_DEFAULT = 640;
 export const AI_ASSISTANT_WIDTH_MAX = 760;
 
-export type Theme = "light" | "dark";
+export type Theme = "system" | "light" | "dark";
 export type DashboardView = "card" | "list";
 
 interface AppState {
@@ -68,7 +68,7 @@ export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
       language: "zh",
-      theme: "dark",
+      theme: "system",
       dashboardTab: "active",
       dashboardView: "card",
       aiAssistantOpen: false,
@@ -106,7 +106,10 @@ export const useAppStore = create<AppState>()(
         const base = (persisted ?? {}) as Record<string, unknown>;
         delete base.sidebarCollapsed;
         delete base.sidebarWidth;
-        base.theme = base.theme === "light" ? "light" : "dark";
+        base.theme =
+          base.theme === "light" || base.theme === "dark" || base.theme === "system"
+            ? base.theme
+            : "system";
         if (fromVersion < 1) {
           return {
             ...base,

@@ -71,7 +71,7 @@ describe("BeatCard", () => {
     renderBeatCard({ isChecked: true });
 
     const selectButton = screen.getByRole("button", { name: "取消选择 Beat" });
-    expect(selectButton.className).toContain("text-primary");
+    expect(selectButton.className).toContain("text-cyan-100");
     expect(selectButton.className).not.toContain("text-transparent");
   });
 

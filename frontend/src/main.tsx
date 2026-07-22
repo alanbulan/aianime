@@ -10,7 +10,14 @@ import { initDevBackendWatch } from "@/lib/dev-backend-watch";
 import { setApiQueryClient } from "@/lib/api";
 import { setAppRouter } from "@/lib/app-router";
 import { getOrCreateReactRoot } from "@/lib/react-root";
+import {
+  installChunkLoadRecovery,
+  useChunkLoadRecoveryRequired,
+} from "@/lib/chunk-load-recovery";
+import { installVersionUpdateWatch } from "@/lib/version-update-watch";
 import { installDomReconciliationGuard } from "@/lib/dom-reconciliation-guard";
+import { AppUpdateRequired } from "@/components/app-update-required";
+import { AppUpdateAvailable } from "@/components/app-update-available";
 import { config as zodConfig } from "zod/v4/core";
 import "@fontsource-variable/inter";
 import "./i18n";
@@ -65,19 +72,31 @@ declare module "@tanstack/react-router" {
 // Give the api module a handle to the QueryClient so its 400 no_region
 // handler can fan out a full cache purge via resetRegionState().
 setApiQueryClient(queryClient);
+installChunkLoadRecovery();
 // 抵御浏览器/webview 翻译插件改写 DOM 导致的 React removeChild 崩溃(整页「页面加载失败」)。
 // 必须在任何 React 渲染前打上补丁。见 dom-reconciliation-guard.ts。
 installDomReconciliationGuard();
 
+function AppRouterShell() {
+  const updateRequired = useChunkLoadRecoveryRequired();
+  return (
+    <>
+      <RouterProvider router={router} />
+      {updateRequired ? <AppUpdateRequired /> : <AppUpdateAvailable />}
+    </>
+  );
+}
+
 async function bootstrap() {
   await Promise.all([loadClusterConfig(), loadRuntimeConfig()]);
   initDevBackendWatch();
+  installVersionUpdateWatch();
   const root = getOrCreateReactRoot(document.getElementById("root")!);
   root.render(
     <StrictMode>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
-          <RouterProvider router={router} />
+          <AppRouterShell />
         </ThemeProvider>
       </QueryClientProvider>
     </StrictMode>,

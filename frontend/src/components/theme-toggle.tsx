@@ -1,60 +1,32 @@
 // Copyright (c) 2026 AI anime
-import { Moon, Sun } from "lucide-react";
+import { Monitor, Moon, Sun } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useAppStore, type Theme } from "@/stores/app-store";
-import { useResolvedTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
 
-const OPTIONS: Array<{ value: Theme; i18nKey: string; Icon: typeof Sun }> = [
-  { value: "light", i18nKey: "theme.light", Icon: Sun },
-  { value: "dark", i18nKey: "theme.dark", Icon: Moon },
-];
+const THEME_ORDER: Theme[] = ["system", "light", "dark"];
+const THEME_ICONS = { system: Monitor, light: Sun, dark: Moon } as const;
 
 export function ThemeToggle({ className }: { className?: string }) {
   const { t } = useTranslation();
   const theme = useAppStore((s) => s.theme);
   const setTheme = useAppStore((s) => s.setTheme);
-  const resolved = useResolvedTheme();
+  const Icon = THEME_ICONS[theme];
+  const currentLabel = t(`theme.${theme}`);
+  const nextTheme = THEME_ORDER[(THEME_ORDER.indexOf(theme) + 1) % THEME_ORDER.length];
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className={cn("text-muted-foreground hover:text-foreground", className)}
-            aria-label={t("theme.toggle")}
-            title={t("theme.toggle")}
-          />
-        }
-      >
-        {resolved === "dark" ? (
-          <Moon className="size-4" />
-        ) : (
-          <Sun className="size-4" />
-        )}
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {OPTIONS.map(({ value, i18nKey, Icon }) => (
-          <DropdownMenuItem
-            key={value}
-            onClick={() => setTheme(value)}
-            data-active={theme === value}
-            className="data-[active=true]:bg-accent data-[active=true]:text-accent-foreground"
-          >
-            <Icon className="size-4" />
-            {t(i18nKey)}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon-sm"
+      className={cn("text-muted-foreground hover:text-foreground", className)}
+      aria-label={`${t("theme.toggle")}: ${currentLabel}`}
+      title={`${t("theme.toggle")}: ${currentLabel}`}
+      onClick={() => setTheme(nextTheme)}
+    >
+      <Icon className="size-4" />
+    </Button>
   );
 }

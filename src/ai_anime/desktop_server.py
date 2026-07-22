@@ -62,6 +62,7 @@ def configure_environment(options: DesktopOptions) -> None:
             "AI_ANIME_EDITION": "ce",
             "AI_ANIME_DESKTOP_MODE": "1",
             "AI_ANIME_CLOUD_ADAPTER": "mock",
+            "AI_ANIME_RELEASE_FEED_ADAPTER": "mock",
             "AI_ANIME_DATA_ROOT": str(data_root),
             "AI_ANIME_OUTPUT_DIR": str(output_dir),
             "AI_ANIME_STATE_DIR": str(state_dir),

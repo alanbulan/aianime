@@ -241,8 +241,12 @@ src/ai_anime/ports/remote/
 | `AI_ANIME_CLOUD_TIMEOUT_SECONDS` | 云端请求超时 | 尚未实现 |
 | `AI_ANIME_LOCAL_USERNAME` | 模拟授权后的用户名 | 已有，仅用于本地模拟 |
 | `AI_ANIME_MOCK_STEP_DELAY_MS` | 模拟生成任务的进度间隔 | 已有，仅用于测试/演示 |
+| `AI_ANIME_RELEASE_FEED_ADAPTER=mock` | 选择发布通知实现 | 已有，桌面端当前固定为模拟数据 |
+| `AI_ANIME_RELEASE_URL` | 模拟更新通知跳转地址 | 已有，可留空 |
 
 `AI_ANIME_DESKTOP_TOKEN`、`AI_ANIME_DATA_ROOT`、`AI_ANIME_STATE_DIR` 等由桌面启动器内部生成或设置，不属于云端配置，不应放进用户配置界面。
+
+发布通知的稳定边界位于 `src/ai_anime/ports/release_feed.py`。当前桌面端注册 `MockReleaseFeed`；后续接入服务器时新增远程适配器并替换端口注册即可，前端继续使用 `/api/v1/release-notifications`。
 
 ### 5.3 错误映射
 
