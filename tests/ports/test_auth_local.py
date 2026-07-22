@@ -2,13 +2,13 @@ import time
 
 import pytest
 
-from novelvideo.ports.auth_contract import (
+from ai_anime.ports.auth_contract import (
     AgentSessionToken,
     AuthenticatedUser,
     AuthError,
     AuthFailureReason,
 )
-from novelvideo.ports.local.auth import FileAuthPort, LocalAuthSession
+from ai_anime.ports.local.auth import FileAuthPort, LocalAuthSession
 
 BROWSER_LEGACY_KEYS = {"id", "user_id", "username", "role"}
 AGENT_LEGACY_KEYS = BROWSER_LEGACY_KEYS | {
@@ -25,7 +25,7 @@ AGENT_LEGACY_KEYS = BROWSER_LEGACY_KEYS | {
 
 @pytest.mark.asyncio
 async def test_file_auth_port_returns_browser_legacy_dict(monkeypatch) -> None:
-    monkeypatch.setenv("ST_LOCAL_USERNAME", "alice")
+    monkeypatch.setenv("AI_ANIME_LOCAL_USERNAME", "alice")
     user = await FileAuthPort().verify_session("any-cookie")
 
     assert user == AuthenticatedUser(
@@ -37,7 +37,7 @@ async def test_file_auth_port_returns_browser_legacy_dict(monkeypatch) -> None:
 
 @pytest.mark.asyncio
 async def test_file_auth_port_accepts_missing_cookie_and_revoke_is_noop(monkeypatch) -> None:
-    monkeypatch.setenv("ST_LOCAL_USERNAME", "alice")
+    monkeypatch.setenv("AI_ANIME_LOCAL_USERNAME", "alice")
     port = FileAuthPort()
 
     user = await port.verify_session(None)
@@ -52,7 +52,7 @@ async def test_file_auth_port_accepts_missing_cookie_and_revoke_is_noop(monkeypa
 
 @pytest.mark.asyncio
 async def test_file_auth_port_uses_authenticated_user_legacy_serializer(monkeypatch) -> None:
-    monkeypatch.setenv("ST_LOCAL_USERNAME", "alice")
+    monkeypatch.setenv("AI_ANIME_LOCAL_USERNAME", "alice")
 
     def fake_to_legacy_dict(self):
         return {

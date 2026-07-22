@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from novelvideo.api.routes.generation import _color_assignment_requires_full_sketch_clean
-from novelvideo.generators.episode_optimizer import (
+from ai_anime.api.routes.generation import _color_assignment_requires_full_sketch_clean
+from ai_anime.generators.episode_optimizer import (
     BRIDGMAN_CHARACTER_PALETTE,
     EpisodeOptimizer,
     PROP_MARKER_PALETTE,
 )
-from novelvideo.generators.nanobanana_grid import _global_prop_marker_colors
+from ai_anime.generators.nanobanana_grid import _global_prop_marker_colors
 
 
 def _rgb_distance(a: str, b: str) -> float:

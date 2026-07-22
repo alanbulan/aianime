@@ -1,6 +1,6 @@
 import pytest
 
-from novelvideo.models import NovelCharacter
+from ai_anime.models import NovelCharacter
 
 
 class FakeCharacterStore:
@@ -26,7 +26,7 @@ class FakeCharacterStore:
 
 @pytest.mark.asyncio
 async def test_promotes_missing_scene_header_characters_to_global():
-    from novelvideo.services.character_promotion_service import (
+    from ai_anime.services.character_promotion_service import (
         promote_scene_characters_to_global,
     )
 
@@ -41,7 +41,7 @@ async def test_promotes_missing_scene_header_characters_to_global():
 
 @pytest.mark.asyncio
 async def test_skips_existing_characters_and_resolved_aliases():
-    from novelvideo.services.character_promotion_service import (
+    from ai_anime.services.character_promotion_service import (
         promote_scene_characters_to_global,
     )
 
@@ -58,7 +58,7 @@ async def test_skips_existing_characters_and_resolved_aliases():
 
 @pytest.mark.asyncio
 async def test_filters_non_specific_scene_character_labels():
-    from novelvideo.services.character_promotion_service import (
+    from ai_anime.services.character_promotion_service import (
         promote_scene_characters_to_global,
     )
 

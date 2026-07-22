@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 
@@ -12,7 +11,7 @@ import { queryKeys } from "@/lib/query-keys";
 import type { ApiResponse, ErrorResponse, OkResponse, TaskResponse } from "@/types/api";
 import type { Beat } from "@/types/episode";
 
-// Mirrors backend `PoolImage` (novelvideo/models.py) plus the route-injected
+// Mirrors backend `PoolImage` (ai_anime/models.py) plus the route-injected
 // `cell_url` / `grid_url` / `stale` fields from `GET /grids`.
 export interface PoolImage {
   id: string;

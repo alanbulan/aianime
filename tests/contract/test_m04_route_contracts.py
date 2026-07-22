@@ -9,7 +9,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from novelvideo.models import CharacterIdentity, NovelCharacter, NovelProp, StyleConfig
+from ai_anime.models import CharacterIdentity, NovelCharacter, NovelProp, StyleConfig
 
 pytestmark = pytest.mark.m04
 
@@ -168,11 +168,11 @@ class _FakeTaskBackend:
 
 @pytest.fixture()
 def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    from novelvideo import project_config
-    from novelvideo.api import auth as api_auth
-    from novelvideo.api.deps import ProjectResolution
-    from novelvideo.api.routes import characters, generation, projects, props, styles
-    from novelvideo.services.style_service import StyleService
+    from ai_anime import project_config
+    from ai_anime.api import auth as api_auth
+    from ai_anime.api.deps import ProjectResolution
+    from ai_anime.api.routes import characters, generation, projects, props, styles
+    from ai_anime.services.style_service import StyleService
 
     store = _M04Store()
     project_dir = tmp_path / "output" / "alice" / _PROJECT
@@ -286,8 +286,8 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         Path(kwargs["output_path"]).write_bytes(_png_bytes())
         return {"success": True}
 
-    import novelvideo.generators as generators_pkg
-    from novelvideo.generators import image_generator
+    import ai_anime.generators as generators_pkg
+    from ai_anime.generators import image_generator
 
     monkeypatch.setattr(
         image_generator, "generate_character_reference_unified", fake_character_reference
@@ -311,7 +311,7 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(StyleService, "save_custom_style", lambda *_, **__: True)
     monkeypatch.setattr(StyleService, "delete_custom_style", lambda *_, **__: True)
 
-    from novelvideo.generators import style_analyzer
+    from ai_anime.generators import style_analyzer
 
     class FakeStyleAnalyzer:
         async def analyze(self, content: bytes, *, mime_type: str):

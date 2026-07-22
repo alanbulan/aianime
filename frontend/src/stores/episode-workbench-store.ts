@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { quotaSafeStateStorage } from "@/lib/localStorageQuota";
@@ -206,7 +205,7 @@ export const useEpisodeWorkbenchStore = create<EpisodeWorkbenchState>()(
         }),
     }),
     {
-      name: "supertale-episode-workbench",
+      name: "ai-anime-episode-workbench",
       version: 1,
       storage: createJSONStorage(() => quotaSafeStateStorage),
       migrate: (persisted: unknown) => {

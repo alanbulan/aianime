@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 def test_voice_audio_record_upsert_and_lookup(tmp_path):
-    from novelvideo.seedance2_i2v.voice_audio_records import (
+    from ai_anime.seedance2_i2v.voice_audio_records import (
         get_seedance2_voice_audio_record,
         upsert_seedance2_voice_audio_record,
     )
@@ -41,7 +41,7 @@ def test_voice_audio_record_upsert_and_lookup(tmp_path):
 
 
 def test_classify_seedance2_voice_audio_states(tmp_path):
-    from novelvideo.seedance2_i2v.voice_audio_records import (
+    from ai_anime.seedance2_i2v.voice_audio_records import (
         classify_seedance2_voice_audio,
         upsert_seedance2_voice_audio_record,
     )
@@ -118,7 +118,7 @@ def test_classify_seedance2_voice_audio_states(tmp_path):
 
 
 def test_classify_seedance2_voice_audio_marks_text_hash_changes_stale(tmp_path):
-    from novelvideo.seedance2_i2v.voice_audio_records import (
+    from ai_anime.seedance2_i2v.voice_audio_records import (
         classify_seedance2_voice_audio,
         upsert_seedance2_voice_audio_record,
     )
@@ -166,7 +166,7 @@ def test_classify_seedance2_voice_audio_marks_text_hash_changes_stale(tmp_path):
 
 
 def test_audio_scope_attempt_count_tracks_task_starts(tmp_path):
-    from novelvideo.audio_request_usage import (
+    from ai_anime.audio_request_usage import (
         count_audio_scope_attempts,
         record_audio_generation_attempt,
         update_audio_generation_attempt,

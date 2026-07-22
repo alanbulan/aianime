@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { createFileRoute } from "@tanstack/react-router";
 
 import { SuperChatPanel } from "@/features/superchat/superchat-panel";

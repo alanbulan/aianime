@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { DEFAULT_NODE_WIDTH, type CanvasEdge, type CanvasNode } from '@/features/canvas/domain/canvasNodes';
 
 const DEFAULT_NODE_HEIGHT = 200;

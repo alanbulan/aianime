@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 // Module-level AbortController shared by ky and auth-store raw fetches.
 // The region-switch orchestrator calls abort() then resetRegionAbortController()
 // so the next region starts with a fresh controller.

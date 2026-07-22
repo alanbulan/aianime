@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 function configResponse(edition: "ce" | "ee", instanceId?: string) {
@@ -41,12 +40,12 @@ describe("dev-backend-watch", () => {
     expect(shouldWatchDevBackend(undefined)).toBe(true);
     expect(shouldWatchDevBackend("http://localhost:8780")).toBe(true);
     expect(shouldWatchDevBackend("http://127.0.0.1:8780")).toBe(true);
-    expect(shouldWatchDevBackend("https://supertale-fe-3060.cdnfg.com")).toBe(false);
+    expect(shouldWatchDevBackend("https://desktop.example.com")).toBe(false);
   });
 
   it("does not start when dev mode points at a remote API target", async () => {
     const fetch = vi.fn();
-    vi.stubEnv("VITE_API_URL", "https://supertale-fe-3060.cdnfg.com");
+    vi.stubEnv("VITE_API_URL", "https://desktop.example.com");
     vi.stubGlobal("fetch", fetch);
 
     const { initDevBackendWatch } = await import("@/lib/dev-backend-watch");

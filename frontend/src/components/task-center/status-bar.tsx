@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useMemo, type KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronUp, Zap, Circle } from "lucide-react";
@@ -40,11 +39,7 @@ function taskProgress(task: TaskState | null | undefined): number {
   return Math.max(0, Math.min(100, Math.round((task.progress || 0) * 100)));
 }
 
-type TaskStatusBarProps = {
-  onOpenPikoStation?: () => void;
-};
-
-export function TaskStatusBar({ onOpenPikoStation }: TaskStatusBarProps) {
+export function TaskStatusBar() {
   const { t } = useTranslation();
   // Subscribe to the tasks Map itself (stable reference unless updated) and
   // derive running/leading/last-completion via useMemo so each render does
@@ -175,27 +170,6 @@ export function TaskStatusBar({ onOpenPikoStation }: TaskStatusBarProps) {
         ) : null}
       </div>
       <div className="flex shrink-0 items-center gap-2 text-muted-foreground">
-        {onOpenPikoStation ? (
-          <button
-            type="button"
-            className="inline-flex h-6 items-center gap-1.5 rounded-full px-2 text-[11px] text-muted-foreground/82 transition-colors hover:bg-white/[0.07] hover:text-cyan-100"
-            title={t("pikoMiniGame.statusTooltip")}
-            onClick={(event) => {
-              event.stopPropagation();
-              onOpenPikoStation();
-            }}
-            onKeyDown={(event) => {
-              event.stopPropagation();
-            }}
-          >
-            <span className="text-cyan-200/85" aria-hidden>
-              ✦
-            </span>
-            <span className="bg-gradient-to-r from-cyan-200 via-violet-200 to-rose-200 bg-clip-text font-medium text-transparent opacity-90">
-              {t("pikoMiniGame.statusEntry")}
-            </span>
-          </button>
-        ) : null}
         <span className="ml-1.5 flex items-center gap-1">
           <Circle className={cn("size-1 fill-current", HEALTH_COLOR[health])} />
           <span className="sr-only" aria-live="polite">

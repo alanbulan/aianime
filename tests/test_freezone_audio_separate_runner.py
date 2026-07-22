@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from novelvideo.project_context import ProjectContext
+from ai_anime.project_context import ProjectContext
 
 
 def _ctx(tmp_path: Path) -> ProjectContext:
@@ -29,7 +29,7 @@ async def test_audio_separate_runner_returns_public_urls_without_internal_paths(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from novelvideo.task_backend.runners import freezone as freezone_runner
+    from ai_anime.task_backend.runners import freezone as freezone_runner
 
     ctx = _ctx(tmp_path)
     project_dir = Path(ctx.output_dir)
@@ -50,7 +50,7 @@ async def test_audio_separate_runner_returns_public_urls_without_internal_paths(
 
     monkeypatch.setattr(freezone_runner, "get_task_manager", lambda: FakeTaskManager())
     monkeypatch.setattr(
-        "novelvideo.freezone.jobs.run_freezone_audio_separate",
+        "ai_anime.freezone.jobs.run_freezone_audio_separate",
         fake_run_freezone_audio_separate,
     )
 

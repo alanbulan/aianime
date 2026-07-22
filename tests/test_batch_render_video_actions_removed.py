@@ -13,7 +13,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_render_plan_routes_are_restored_without_legacy_episode_video_route() -> None:
-    source = (REPO_ROOT / "src/novelvideo/api/routes/generation.py").read_text(
+    source = (REPO_ROOT / "src/ai_anime/api/routes/generation.py").read_text(
         encoding="utf-8"
     )
 
@@ -26,7 +26,7 @@ def test_render_plan_routes_are_restored_without_legacy_episode_video_route() ->
 
 
 def test_legacy_video_generation_task_surface_is_removed() -> None:
-    from novelvideo.task_identity import TASK_IDENTITY_SPECS
+    from ai_anime.task_identity import TASK_IDENTITY_SPECS
 
     assert "video_generation" not in TASK_IDENTITY_SPECS
-    assert importlib.util.find_spec("novelvideo.ray_tasks") is None
+    assert importlib.util.find_spec("ai_anime.ray_tasks") is None

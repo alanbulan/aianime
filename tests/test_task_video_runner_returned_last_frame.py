@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from novelvideo.project_context import ProjectContext
+from ai_anime.project_context import ProjectContext
 
 
 pytestmark = pytest.mark.m09
@@ -33,8 +33,8 @@ async def test_single_video_runner_includes_returned_last_frame_in_task_result(
     tmp_path,
     monkeypatch,
 ):
-    from novelvideo.generators.video_generator import VideoGenStatus
-    from novelvideo.task_backend.runners import video as video_runner
+    from ai_anime.generators.video_generator import VideoGenStatus
+    from ai_anime.task_backend.runners import video as video_runner
 
     class FakeTaskManager:
         def update_progress_for_project(self, *_args, **_kwargs):
@@ -58,11 +58,11 @@ async def test_single_video_runner_includes_returned_last_frame_in_task_result(
 
     monkeypatch.setattr(video_runner, "get_task_manager", lambda: FakeTaskManager())
     monkeypatch.setattr(
-        "novelvideo.generators.video_generator.create_video_generator",
+        "ai_anime.generators.video_generator.create_video_generator",
         lambda backend: FakeVideoGenerator(),
     )
     monkeypatch.setattr(
-        "novelvideo.generators.video_pool_indexer.add_video_to_pool",
+        "ai_anime.generators.video_pool_indexer.add_video_to_pool",
         lambda **_kwargs: SimpleNamespace(id="pool-1"),
     )
 
@@ -94,9 +94,9 @@ async def test_single_video_runner_preserves_seedance2_config_resolution(
     tmp_path,
     monkeypatch,
 ):
-    from novelvideo.generators.video_generator import VideoGenStatus
-    from novelvideo.seedance2_i2v.models import Seedance2I2VMode
-    from novelvideo.task_backend.runners import video as video_runner
+    from ai_anime.generators.video_generator import VideoGenStatus
+    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.task_backend.runners import video as video_runner
 
     prepare_calls = []
     generate_calls = []
@@ -134,15 +134,15 @@ async def test_single_video_runner_preserves_seedance2_config_resolution(
 
     monkeypatch.setattr(video_runner, "get_task_manager", lambda: FakeTaskManager())
     monkeypatch.setattr(
-        "novelvideo.generators.video_generator.create_video_generator",
+        "ai_anime.generators.video_generator.create_video_generator",
         lambda backend: FakeVideoGenerator(),
     )
     monkeypatch.setattr(
-        "novelvideo.seedance2_i2v.pipeline.prepare_seedance2_generation_inputs",
+        "ai_anime.seedance2_i2v.pipeline.prepare_seedance2_generation_inputs",
         fake_prepare,
     )
     monkeypatch.setattr(
-        "novelvideo.generators.video_pool_indexer.add_video_to_pool",
+        "ai_anime.generators.video_pool_indexer.add_video_to_pool",
         lambda **_kwargs: SimpleNamespace(id="pool-1"),
     )
 
@@ -182,8 +182,8 @@ async def test_single_video_runner_passes_happyhorse_references_and_audio_settin
     tmp_path,
     monkeypatch,
 ):
-    from novelvideo.generators.video_generator import ShotReference, VideoGenStatus
-    from novelvideo.task_backend.runners import video as video_runner
+    from ai_anime.generators.video_generator import ShotReference, VideoGenStatus
+    from ai_anime.task_backend.runners import video as video_runner
 
     generate_calls = []
 
@@ -207,11 +207,11 @@ async def test_single_video_runner_passes_happyhorse_references_and_audio_settin
 
     monkeypatch.setattr(video_runner, "get_task_manager", lambda: FakeTaskManager())
     monkeypatch.setattr(
-        "novelvideo.generators.video_generator.create_video_generator",
+        "ai_anime.generators.video_generator.create_video_generator",
         lambda backend, **_kwargs: FakeVideoGenerator(),
     )
     monkeypatch.setattr(
-        "novelvideo.generators.video_pool_indexer.add_video_to_pool",
+        "ai_anime.generators.video_pool_indexer.add_video_to_pool",
         lambda **_kwargs: SimpleNamespace(id="pool-1"),
     )
 

@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
 
 import {
@@ -13,10 +12,10 @@ describe("project navigation routes", () => {
     expect(PROJECT_SECTION_ROUTES.freezone).toBe("/projects/$project/freezone");
   });
 
-  it("classifies freezone as xiahua and every production section as xiaji", () => {
-    expect(projectModeFromPath("/projects/demo/freezone")).toBe("xiahua");
-    expect(projectModeFromPath("/projects/demo/ingest")).toBe("xiaji");
-    expect(projectModeFromPath("/projects/demo/tasks")).toBe("xiaji");
+  it("classifies freezone as canvas and every production section as workspace", () => {
+    expect(projectModeFromPath("/projects/demo/freezone")).toBe("canvas");
+    expect(projectModeFromPath("/projects/demo/ingest")).toBe("workspace");
+    expect(projectModeFromPath("/projects/demo/tasks")).toBe("workspace");
   });
 
   it("preserves the tasks section when switching projects", () => {

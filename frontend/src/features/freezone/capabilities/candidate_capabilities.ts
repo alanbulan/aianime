@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import type { GenerationCapability } from "./capabilityRegistry";
 import { stringifyParamValue } from "./capabilityRegistry";
 
@@ -25,9 +24,9 @@ const STYLE_PARAM = {
   key: "style",
   label: "风格",
   type: "enum" as const,
-  defaultValue: "supertale_production",
+  defaultValue: "ai_anime_production",
   options: [
-    { value: "supertale_production", label: "SuperTale 生产风格" },
+    { value: "ai_anime_production", label: "AI anime 生产风格" },
     { value: "cinematic_realistic", label: "影视写实" },
     { value: "clean_sketch", label: "干净线稿" },
     { value: "spiderverse_mixed", label: "混合媒介" },
@@ -35,7 +34,7 @@ const STYLE_PARAM = {
 };
 
 function suffix(params: Record<string, unknown>, nodePrompt?: string): string {
-  const style = stringifyParamValue(params.style) || "supertale_production";
+  const style = stringifyParamValue(params.style) || "ai_anime_production";
   const notes = stringifyParamValue(params.notes);
   return `
 
@@ -44,7 +43,7 @@ ${notes ? `Extra notes: ${notes}.` : ""}
 ${nodePrompt ? `Node note:\n${nodePrompt}` : ""}
 
 Hard requirements:
-- Production-ready SuperTale asset candidate.
+- Production-ready AI anime asset candidate.
 - No text, watermark, UI frame, contact sheet, or collage unless explicitly requested.
 - Preserve useful identity / scene / prop cues from references.`;
 }

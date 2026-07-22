@@ -14,7 +14,7 @@ class _FakeCompletedPipelineStatus:
 
 
 def test_cognee_pipeline_error_result_raises_runtime_error():
-    from novelvideo.cognee.store import CogneeStore
+    from ai_anime.cognee.store import CogneeStore
 
     result = SimpleNamespace(
         status=_FakePipelineStatus(),
@@ -26,7 +26,7 @@ def test_cognee_pipeline_error_result_raises_runtime_error():
 
 
 def test_cognee_pipeline_error_includes_nested_data_item_error():
-    from novelvideo.cognee.store import CogneeStore
+    from ai_anime.cognee.store import CogneeStore
 
     result = SimpleNamespace(
         status=_FakePipelineStatus(),
@@ -58,8 +58,8 @@ async def test_failed_graph_build_leaves_project_unimported(tmp_path, monkeypatc
     text — and the UI inferred "导入完成" from that. A failure must leave the
     project un-imported so the user can retry.
     """
-    from novelvideo.cognee.store import CogneeStore
-    from novelvideo.cognee import store as store_module
+    from ai_anime.cognee.store import CogneeStore
+    from ai_anime.cognee import store as store_module
 
     novel = tmp_path / "novel.txt"
     novel.write_text("第一章\n春深不见旧门红，内容内容内容。\n", encoding="utf-8")
@@ -72,7 +72,7 @@ async def test_failed_graph_build_leaves_project_unimported(tmp_path, monkeypatc
     )
     monkeypatch.setattr(store, "load_novel_content", lambda: saved.get("content"))
     monkeypatch.setattr(store, "_set_cognee_context", lambda *a, **k: None)
-    monkeypatch.setattr("novelvideo.cognee.config.init_cognee", lambda *a, **k: None)
+    monkeypatch.setattr("ai_anime.cognee.config.init_cognee", lambda *a, **k: None)
     monkeypatch.setenv("LLM_API_KEY", "test-key")
 
     async def fake_add(*a, **k):
@@ -94,8 +94,8 @@ async def test_failed_graph_build_leaves_project_unimported(tmp_path, monkeypatc
 @pytest.mark.asyncio
 async def test_successful_ingest_persists_novel_content(tmp_path, monkeypatch):
     """A successful ingest must persist novel content (导入完成)."""
-    from novelvideo.cognee.store import CogneeStore
-    from novelvideo.cognee import store as store_module
+    from ai_anime.cognee.store import CogneeStore
+    from ai_anime.cognee import store as store_module
 
     text = "第一章\n春深不见旧门红，内容内容内容。\n"
     novel = tmp_path / "novel.txt"
@@ -109,7 +109,7 @@ async def test_successful_ingest_persists_novel_content(tmp_path, monkeypatch):
     )
     monkeypatch.setattr(store, "load_novel_content", lambda: saved.get("content"))
     monkeypatch.setattr(store, "_set_cognee_context", lambda *a, **k: None)
-    monkeypatch.setattr("novelvideo.cognee.config.init_cognee", lambda *a, **k: None)
+    monkeypatch.setattr("ai_anime.cognee.config.init_cognee", lambda *a, **k: None)
     monkeypatch.setenv("LLM_API_KEY", "test-key")
 
     async def fake_add(*a, **k):
@@ -130,7 +130,7 @@ async def test_successful_ingest_persists_novel_content(tmp_path, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_cognee_pipeline_retry_succeeds_after_one_pipeline_error(monkeypatch):
-    from novelvideo.cognee.store import CogneeStore
+    from ai_anime.cognee.store import CogneeStore
 
     store = object.__new__(CogneeStore)
     context_calls = 0
@@ -166,7 +166,7 @@ async def test_cognee_pipeline_retry_succeeds_after_one_pipeline_error(monkeypat
 
 @pytest.mark.asyncio
 async def test_cognee_pipeline_retry_raises_after_second_pipeline_error(monkeypatch):
-    from novelvideo.cognee.store import CogneeStore
+    from ai_anime.cognee.store import CogneeStore
 
     store = object.__new__(CogneeStore)
     context_calls = 0

@@ -1,7 +1,7 @@
-from novelvideo.cognee.script_parser import parse_scenes
-from novelvideo.utils.screenplay_quality import check_screenplay_import_quality
-from novelvideo.utils.screenplay_scene_parser import parse_scene_blocks
-from novelvideo.workflows.literal_script_writing import LiteralScriptWritingWorkflow
+from ai_anime.cognee.script_parser import parse_scenes
+from ai_anime.utils.screenplay_quality import check_screenplay_import_quality
+from ai_anime.utils.screenplay_scene_parser import parse_scene_blocks
+from ai_anime.workflows.literal_script_writing import LiteralScriptWritingWorkflow
 
 
 def test_parse_one_line_scene_block_header():

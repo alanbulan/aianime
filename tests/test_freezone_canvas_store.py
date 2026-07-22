@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from novelvideo.freezone import canvas_store
-from novelvideo.freezone.canvas_lock import (
+from ai_anime.freezone import canvas_store
+from ai_anime.freezone.canvas_lock import (
     CanvasLockBusy,
     canvas_lock_path,
     canvas_write_lock,

@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 /**
  * Sentinels the backend puts in `detected_identities` / `detected_props` to say
  * "this beat deliberately has no character / no prop" — they are NOT ids, and

@@ -7,7 +7,7 @@ import {
 } from "./task-scope";
 
 // Golden values produced by the backend's own helpers
-// (novelvideo.task_scopes) so the FE hash stays byte-compatible with the
+// (ai_anime.task_scopes) so the FE hash stays byte-compatible with the
 // scope stored on task rows. If these drift, `useTaskController` reconcile
 // stops matching and loading state is lost on refresh.
 describe("task-scope hashing matches the backend", () => {

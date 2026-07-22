@@ -1,6 +1,5 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
-// AiGateway implementation that talks to SuperTale's `/api/v1/projects/<project_id>/freezone/*`
+// Copyright (c) 2026 AI anime
+// AiGateway implementation that talks to AI anime's `/api/v1/projects/<project_id>/freezone/*`
 // endpoints.
 //
 // Protocol mapping:
@@ -48,7 +47,7 @@ interface ProviderModel {
   model: string | null;
 }
 
-/** Split frontend model strings into SuperTale's provider/model pair. */
+/** Split frontend model strings into AI anime's provider/model pair. */
 const PLACEHOLDER_MODEL_TOKENS = new Set(["default", "auto", ""]);
 const SUPPORTED_PROVIDERS = new Set<FreezoneProvider>([
   "huimeng",
@@ -67,7 +66,7 @@ function splitProviderModel(input: string | undefined | null): ProviderModel {
     ? (providerToken as FreezoneProvider)
     : null;
   const rawModel = input.slice(idx + 1);
-  // SuperTale-specific model files use placeholder tokens like
+  // Model files use placeholder tokens like
   // "openrouter/default" or "huimeng/default" so the backend can fall back
   // to NANOBANANA_MODEL env. Strip those so we don't ship a bogus model name.
   const model = PLACEHOLDER_MODEL_TOKENS.has(rawModel.toLowerCase())
@@ -105,12 +104,12 @@ function currentCanvasId(): string {
   return readUrl().canvas ?? "default";
 }
 
-/** SuperTale's API uses "1:1" / "16:9" etc — pass through. */
+/** AI anime's API uses "1:1" / "16:9" etc — pass through. */
 function toAspectRatio(payload: GenerateImagePayload): string {
   return payload.aspectRatio || "1:1";
 }
 
-/** Normalize the frontend image-size enum (e.g. "1K") to SuperTale's
+/** Normalize the frontend image-size enum (e.g. "1K") to AI anime's
  * `image_size` field. We accept anything; backend currently uses "0.5K"/"1K"/"2K"/"4K". */
 function toImageSize(payload: GenerateImagePayload): string {
   const raw = (payload.size || "2K").toString();
@@ -215,7 +214,7 @@ async function awaitJobAndFetchUrl(
 
 export const freezoneAiGateway: AiGateway = {
   async setApiKey() {
-    // Cookie auth is shared with NiceGUI / supertale-fe; nothing to do.
+    // Cookie auth is shared with NiceGUI / ai-anime-fe; nothing to do.
   },
 
   async generateImage(payload) {

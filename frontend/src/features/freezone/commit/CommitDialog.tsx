@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { AlertTriangle, Loader2, X } from "lucide-react";
@@ -15,9 +14,9 @@ import {
   listEpisodes,
   listBeats,
   listScenes,
-  type SupertaleCharacter,
-  type SupertaleIdentity,
-  type SupertaleEpisodeSummary,
+  type AiAnimeCharacter,
+  type AiAnimeIdentity,
+  type AiAnimeEpisodeSummary,
 } from "@/api/projects";
 import type { SceneAsset } from "@/types/scene";
 import { UiButton, UiInput, UiPanel, UiSelect } from "@/components/ui";
@@ -285,13 +284,13 @@ export function CommitDialog({
       : "",
   );
 
-  const [episodes, setEpisodes] = useState<SupertaleEpisodeSummary[]>([]);
+  const [episodes, setEpisodes] = useState<AiAnimeEpisodeSummary[]>([]);
   const [scenes, setScenes] = useState<SceneAsset[]>([]);
   const [scenesLoading, setScenesLoading] = useState(false);
   const [beatOptions, setBeatOptions] = useState<number[]>([]);
   const [beatsLoading, setBeatsLoading] = useState(false);
-  const [characters, setCharacters] = useState<SupertaleCharacter[]>([]);
-  const [identityOptions, setIdentityOptions] = useState<SupertaleIdentity[]>([]);
+  const [characters, setCharacters] = useState<AiAnimeCharacter[]>([]);
+  const [identityOptions, setIdentityOptions] = useState<AiAnimeIdentity[]>([]);
   const [identitiesLoading, setIdentitiesLoading] = useState(false);
   const [impactBeats, setImpactBeats] = useState<ImpactBeat[]>([]);
   const [impactLoading, setImpactLoading] = useState(false);
@@ -972,12 +971,12 @@ export function CommitDialog({
   );
 }
 
-function identityOptionValue(identity: SupertaleIdentity): string {
+function identityOptionValue(identity: AiAnimeIdentity): string {
   const value = identity.identity_id || identity.id || identity.name || "";
   return String(value).trim();
 }
 
-function identityOptionLabel(identity: SupertaleIdentity): string {
+function identityOptionLabel(identity: AiAnimeIdentity): string {
   const value = identityOptionValue(identity);
   const displayName = String(identity.identity_name || identity.name || "").trim();
   if (displayName && displayName !== value) {
@@ -986,7 +985,7 @@ function identityOptionLabel(identity: SupertaleIdentity): string {
   return value;
 }
 
-function firstIdentityOptionValue(identities: SupertaleIdentity[]): string | null {
+function firstIdentityOptionValue(identities: AiAnimeIdentity[]): string | null {
   for (const identity of identities) {
     const value = identityOptionValue(identity);
     if (value) return value;
@@ -1076,9 +1075,9 @@ function looksLikeAssetFilename(value: string): boolean {
 }
 
 function identityOptionsForSelect(
-  identities: SupertaleIdentity[],
+  identities: AiAnimeIdentity[],
   currentIdentityId: string | null,
-): SupertaleIdentity[] {
+): AiAnimeIdentity[] {
   const options = identities.filter((identity) => identityOptionValue(identity));
   if (
     currentIdentityId &&

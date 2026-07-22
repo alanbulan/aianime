@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -412,15 +411,7 @@ function OfficialGatewayPanel({
   return (
     <div className="space-y-3">
       <p className="text-xs leading-relaxed text-muted-foreground">
-        {t("settings.modelConfig.official.description")}{" "}
-        <a
-          href="https://relayclaw.cdnfg.com"
-          target="_blank"
-          rel="noreferrer"
-          className="text-primary underline-offset-4 hover:underline"
-        >
-          {t("settings.modelConfig.official.registerLink")}
-        </a>
+        {t("settings.modelConfig.official.description")}
       </p>
 
       <div className="space-y-2.5">
@@ -430,7 +421,7 @@ function OfficialGatewayPanel({
           </Label>
           <div className="relative">
             <Input
-              name="relayclaw-official-api-key"
+              name="ai-anime-cloud-api-key"
               autoComplete="new-password"
               data-1p-ignore="true"
               data-lpignore="true"
@@ -1018,7 +1009,7 @@ function CogneeModelsBlock({
       <div className="mt-2">
         <FeatureModelRow
           featureId="COGNEE"
-          defaultModel="DC-cognee-LLM"
+          defaultModel="ai-anime-cognee-LLM"
           requiresVision={false}
           newApiBaseUrl={newApiBaseUrl}
           database={database}

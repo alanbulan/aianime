@@ -2,13 +2,13 @@ import pytest
 from pydantic import ValidationError
 from types import SimpleNamespace
 
-from novelvideo.models import build_scene_ref, sync_beat_asset_refs
-from novelvideo.workflows.literal_script_writing import (
+from ai_anime.models import build_scene_ref, sync_beat_asset_refs
+from ai_anime.workflows.literal_script_writing import (
     LiteralBeatMetaOutput,
     LiteralScriptWritingWorkflow,
     _content_filter_hint_matches,
 )
-from novelvideo.workflows.script_writing import create_script_writing_workflow
+from ai_anime.workflows.script_writing import create_script_writing_workflow
 
 
 def _payload(audio_type: str | None = None) -> dict:

@@ -3,9 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-from novelvideo.models import sync_beat_asset_refs
-from novelvideo.utils.asset_resolver import AssetResolver
-from novelvideo.utils.background_anchor import (
+from ai_anime.models import sync_beat_asset_refs
+from ai_anime.utils.asset_resolver import AssetResolver
+from ai_anime.utils.background_anchor import (
     background_crop_ratio_choices,
     copy_to_beat_selected_background,
     crop_to_beat_selected_background,

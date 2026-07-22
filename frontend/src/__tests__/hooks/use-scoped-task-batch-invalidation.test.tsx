@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { describe, it, expect, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";

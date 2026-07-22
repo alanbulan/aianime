@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from novelvideo.models import NovelEpisode
-from novelvideo.sqlite_store import SQLiteStore
+from ai_anime.models import NovelEpisode
+from ai_anime.sqlite_store import SQLiteStore
 
 pytestmark = pytest.mark.m03
 
@@ -85,9 +85,9 @@ class _RewriteRouteStore:
 
 @pytest.mark.asyncio
 async def test_generate_rewrite_applies_output_to_beat_source_text(monkeypatch) -> None:
-    from novelvideo.agents import content_rewriter
-    from novelvideo.api.routes import content
-    from novelvideo.api.schemas import RewriteGenerateRequest
+    from ai_anime.agents import content_rewriter
+    from ai_anime.api.routes import content
+    from ai_anime.api.schemas import RewriteGenerateRequest
 
     async def fake_rewrite_episode_content(*args, **kwargs):
         return "改写第一行\n改写第二行"
@@ -117,7 +117,7 @@ async def test_generate_rewrite_applies_output_to_beat_source_text(monkeypatch) 
 
 @pytest.mark.asyncio
 async def test_content_rewriter_uses_newapi_text_model(monkeypatch) -> None:
-    from novelvideo.agents import content_rewriter
+    from ai_anime.agents import content_rewriter
 
     calls: dict[str, object] = {}
 

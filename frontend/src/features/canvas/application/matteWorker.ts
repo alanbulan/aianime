@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 /// <reference lib="webworker" />
 //
 // 抠图(背景去除)Web Worker。

@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import type { ExtraParamDefinition, ImageModelDefinition } from '../../types';
 
 export const OPENAI_GPT_IMAGE_2_MODEL_ID = 'openai/gpt-image-2';

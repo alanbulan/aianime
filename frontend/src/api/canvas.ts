@@ -1,8 +1,7 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { apiCall } from "./client";
 
-// SuperTale-side canvas storage (`/api/v1/projects/<project_id>/freezone/canvases/*`).
+// Canvas storage lives under `/api/v1/projects/<project_id>/freezone/canvases/*`.
 // The wire format is intentionally generic: `{nodes, edges, viewport}`. The
 // backend treats the canvas graph as opaque JSON, so node/capability evolutions stay
 // client-side until a specific semantic needs indexing.
@@ -246,7 +245,7 @@ export async function getProjectionStatuses(
 /**
  * One entry in the `canvas_history/<canvas_id>/` directory. Backend writes
  * `<timestamp>_rev<n>.json` snapshots before every accepted overwrite (see
- * SuperTale2 spec §3.2). The primary key is whatever string the backend
+ * AI anime spec §3.2). The primary key is whatever string the backend
  * uses to address a single snapshot — restore calls pass it as `history_id`.
  *
  * The exact key name has shifted across backend revisions (seen as `id`,

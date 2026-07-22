@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 // Persisting + resuming task_key-based generations across page reloads.
 //
 // Most canvas generations (image / video / audio / 3D / script / 反推提示词) submit

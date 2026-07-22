@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 /**
  * Style descriptor. Two response shapes coexist:
  *  - List endpoint (`GET /styles`) returns metadata only:

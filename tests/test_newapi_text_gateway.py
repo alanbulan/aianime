@@ -1,6 +1,6 @@
 def test_identity_planner_uses_split_newapi_model_envs(monkeypatch):
-    from novelvideo.agents.identity_planner import IdentityPlanner
-    import novelvideo.agents.identity_planner as identity_planner
+    from ai_anime.agents.identity_planner import IdentityPlanner
+    import ai_anime.agents.identity_planner as identity_planner
 
     calls = []
     sentinel = object()
@@ -20,7 +20,7 @@ def test_identity_planner_uses_split_newapi_model_envs(monkeypatch):
 
 
 def test_newapi_text_model_settings_use_path_specific_thinking(monkeypatch):
-    from novelvideo.agents.identity_planner import IdentityPlanner
+    from ai_anime.agents.identity_planner import IdentityPlanner
 
     monkeypatch.setenv("IDENTITY_PLANNER_CAST_THINKING_LEVEL", "low")
     monkeypatch.setenv("IDENTITY_PLANNER_ANALYSIS_THINKING_LEVEL", "high")
@@ -37,7 +37,7 @@ def test_newapi_text_model_settings_use_path_specific_thinking(monkeypatch):
 
 
 def test_newapi_text_model_settings_empty_env_disables(monkeypatch):
-    from novelvideo.agents.identity_planner import IdentityPlanner
+    from ai_anime.agents.identity_planner import IdentityPlanner
 
     monkeypatch.setenv("IDENTITY_PLANNER_APPEARANCE_THINKING_LEVEL", "")
 
@@ -53,7 +53,7 @@ def test_newapi_text_model_settings_empty_env_disables(monkeypatch):
 def test_newapi_text_provider_default_trusts_env(monkeypatch):
     import asyncio
 
-    import novelvideo.config as config
+    import ai_anime.config as config
 
     monkeypatch.delenv("NEWAPI_TEXT_TRUST_ENV", raising=False)
 
@@ -75,7 +75,7 @@ def test_newapi_text_provider_default_trusts_env(monkeypatch):
 def test_newapi_text_provider_can_disable_system_proxy(monkeypatch):
     import asyncio
 
-    import novelvideo.config as config
+    import ai_anime.config as config
 
     monkeypatch.setenv("NEWAPI_TEXT_TRUST_ENV", "false")
 
@@ -98,7 +98,7 @@ def test_newapi_text_model_closes_owned_http_client_after_request(monkeypatch):
 
     from pydantic_ai.models.openai import OpenAIChatModel
 
-    import novelvideo.config as config
+    import ai_anime.config as config
 
     model = config._newapi_text_openai_model(
         "gpt-test",
@@ -135,7 +135,7 @@ def test_asset_compiler_scene_planner_uses_scene_newapi_env(monkeypatch):
     import asyncio
     from types import SimpleNamespace
 
-    import novelvideo.agents.asset_compiler as asset_compiler
+    import ai_anime.agents.asset_compiler as asset_compiler
 
     model_calls = []
     settings_calls = []
@@ -183,7 +183,7 @@ def test_asset_compiler_prop_planner_uses_prop_newapi_env(monkeypatch):
     import asyncio
     from types import SimpleNamespace
 
-    import novelvideo.agents.asset_compiler as asset_compiler
+    import ai_anime.agents.asset_compiler as asset_compiler
 
     model_calls = []
     settings_calls = []
@@ -232,7 +232,7 @@ def test_asset_compiler_prop_planner_uses_prop_newapi_env(monkeypatch):
 
 
 def test_literal_script_writer_uses_literal_newapi_env(monkeypatch):
-    import novelvideo.workflows.literal_script_writing as literal_script_writing
+    import ai_anime.workflows.literal_script_writing as literal_script_writing
 
     model_calls = []
     settings_calls = []
@@ -275,8 +275,8 @@ def test_literal_script_writer_uses_literal_newapi_env(monkeypatch):
 
 
 def test_ai_identity_detector_uses_newapi_detector_model_env(monkeypatch):
-    import novelvideo.config as config
-    import novelvideo.agents.global_video_optimizer as global_video_optimizer
+    import ai_anime.config as config
+    import ai_anime.agents.global_video_optimizer as global_video_optimizer
 
     model_calls = []
     settings_calls = []
@@ -310,8 +310,8 @@ def test_ai_identity_detector_uses_newapi_detector_model_env(monkeypatch):
 
 
 def test_global_video_optimizer_uses_newapi_optimizer_model_env(monkeypatch):
-    import novelvideo.config as config
-    import novelvideo.agents.global_video_optimizer as global_video_optimizer
+    import ai_anime.config as config
+    import ai_anime.agents.global_video_optimizer as global_video_optimizer
 
     model_calls = []
     settings_calls = []
@@ -345,8 +345,8 @@ def test_global_video_optimizer_uses_newapi_optimizer_model_env(monkeypatch):
 
 
 def test_global_video_optimizer_keeps_legacy_global_video_model_fallback(monkeypatch):
-    import novelvideo.config as config
-    import novelvideo.agents.global_video_optimizer as global_video_optimizer
+    import ai_anime.config as config
+    import ai_anime.agents.global_video_optimizer as global_video_optimizer
 
     model_calls = []
 
@@ -373,8 +373,8 @@ def test_global_video_optimizer_keeps_legacy_global_video_model_fallback(monkeyp
 
 
 def test_global_video_optimizer_empty_thinking_level_disables_settings(monkeypatch):
-    import novelvideo.config as config
-    import novelvideo.agents.global_video_optimizer as global_video_optimizer
+    import ai_anime.config as config
+    import ai_anime.agents.global_video_optimizer as global_video_optimizer
 
     agent_kwargs = {}
 
@@ -401,8 +401,8 @@ def test_global_video_optimizer_empty_thinking_level_disables_settings(monkeypat
 
 
 def test_seedance2_prompt_composer_uses_newapi_composer_model_env(monkeypatch):
-    import novelvideo.config as config
-    import novelvideo.seedance2_i2v.prompt as seedance2_prompt
+    import ai_anime.config as config
+    import ai_anime.seedance2_i2v.prompt as seedance2_prompt
 
     model_calls = []
     settings_calls = []
@@ -437,8 +437,8 @@ def test_seedance2_prompt_composer_uses_newapi_composer_model_env(monkeypatch):
 
 
 def test_ai_identity_detector_keeps_legacy_global_video_model_fallback(monkeypatch):
-    import novelvideo.config as config
-    import novelvideo.agents.global_video_optimizer as global_video_optimizer
+    import ai_anime.config as config
+    import ai_anime.agents.global_video_optimizer as global_video_optimizer
 
     model_calls = []
 
@@ -465,8 +465,8 @@ def test_ai_identity_detector_keeps_legacy_global_video_model_fallback(monkeypat
 
 
 def test_ai_identity_detector_can_pass_explicit_thinking_level(monkeypatch):
-    import novelvideo.config as config
-    import novelvideo.agents.global_video_optimizer as global_video_optimizer
+    import ai_anime.config as config
+    import ai_anime.agents.global_video_optimizer as global_video_optimizer
 
     agent_kwargs = {}
 

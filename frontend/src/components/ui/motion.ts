@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 export const UI_DIALOG_TRANSITION_MS = 180;
 export const UI_POPOVER_TRANSITION_MS = 140;
 

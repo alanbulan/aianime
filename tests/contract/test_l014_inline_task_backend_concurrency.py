@@ -9,22 +9,22 @@ from pathlib import Path
 
 import pytest
 
-from novelvideo.ports import registry
-from novelvideo.ports.local.tasks import InlineTaskBackend, InMemoryCancellationStore
-from novelvideo.project_context import ProjectContext
-from novelvideo.generators import tts_generator, video_composer, video_generator
-from novelvideo.generators.tts_generator import EdgeTTSGenerator, MockTTSGenerator
-from novelvideo.generators.video_composer import SceneAsset, VideoComposer
-from novelvideo.generators.video_generator import MockVideoGenerator
-from novelvideo.task_backend.cancel import TaskCancelled, TaskTimedOut, raise_if_envelope_cancel_requested
-from novelvideo.task_backend.limits import global_lane_concurrency
-from novelvideo.task_backend.registry import register_project_task_runner
-from novelvideo.task_backend.subprocesses import (
+from ai_anime.ports import registry
+from ai_anime.ports.local.tasks import InlineTaskBackend, InMemoryCancellationStore
+from ai_anime.project_context import ProjectContext
+from ai_anime.generators import tts_generator, video_composer, video_generator
+from ai_anime.generators.tts_generator import EdgeTTSGenerator, MockTTSGenerator
+from ai_anime.generators.video_composer import SceneAsset, VideoComposer
+from ai_anime.generators.video_generator import MockVideoGenerator
+from ai_anime.task_backend.cancel import TaskCancelled, TaskTimedOut, raise_if_envelope_cancel_requested
+from ai_anime.task_backend.limits import global_lane_concurrency
+from ai_anime.task_backend.registry import register_project_task_runner
+from ai_anime.task_backend.subprocesses import (
     active_subprocess_count,
     kill_task_processes,
     run_project_subprocess,
 )
-from novelvideo.task_state import TaskStateManager
+from ai_anime.task_state import TaskStateManager
 
 
 pytestmark = pytest.mark.m07
@@ -54,8 +54,8 @@ def _task_ports(monkeypatch):
     manager = TaskStateManager()
     monkeypatch.setattr(registry, "_PORTS", dict(registry._PORTS))
     registry.register_port("cancellation_store", InMemoryCancellationStore())
-    monkeypatch.setattr("novelvideo.task_state._task_manager", manager)
-    monkeypatch.setattr("novelvideo.ports.local.tasks.get_task_manager", lambda: manager)
+    monkeypatch.setattr("ai_anime.task_state._task_manager", manager)
+    monkeypatch.setattr("ai_anime.ports.local.tasks.get_task_manager", lambda: manager)
     return manager
 
 
@@ -218,7 +218,7 @@ async def test_gate2_cancel_kills_registered_process_group_and_unregisters_handl
 
 @pytest.mark.asyncio
 async def test_gate2_deadline_kills_process_group_and_marks_failed(monkeypatch, _task_ports, tmp_path):
-    monkeypatch.setenv("ST_PROJECT_TASK_TIMEOUT_S", "1")
+    monkeypatch.setenv("AI_ANIME_PROJECT_TASK_TIMEOUT_S", "1")
     ctx = _ctx(tmp_path)
     backend = InlineTaskBackend()
     script, pidfile = _spawn_tree_script(tmp_path)
@@ -362,8 +362,8 @@ async def test_gate3_world_lane_saturation_does_not_starve_default_lane(
     _task_ports,
     tmp_path,
 ):
-    monkeypatch.setenv("ST_CE_GLOBAL_MAX_ACTIVE_WORLD_TASKS", "1")
-    monkeypatch.setenv("ST_CE_GLOBAL_MAX_ACTIVE_DEFAULT_TASKS", "1")
+    monkeypatch.setenv("AI_ANIME_CE_GLOBAL_MAX_ACTIVE_WORLD_TASKS", "1")
+    monkeypatch.setenv("AI_ANIME_CE_GLOBAL_MAX_ACTIVE_DEFAULT_TASKS", "1")
     ctx = _ctx(tmp_path)
     backend = InlineTaskBackend()
     world_release = threading.Event()
@@ -396,9 +396,9 @@ async def test_gate3_same_lane_overflow_is_explicitly_queued_and_cancelable(
     _task_ports,
     tmp_path,
 ):
-    monkeypatch.setenv("ST_CE_GLOBAL_MAX_ACTIVE_WORLD_TASKS", "1")
-    monkeypatch.setenv("ST_PROJECT_MAX_ACTIVE_WORLD_TASKS", "5")
-    monkeypatch.setenv("ST_PROJECT_USER_MAX_ACTIVE_WORLD_TASKS", "5")
+    monkeypatch.setenv("AI_ANIME_CE_GLOBAL_MAX_ACTIVE_WORLD_TASKS", "1")
+    monkeypatch.setenv("AI_ANIME_PROJECT_MAX_ACTIVE_WORLD_TASKS", "5")
+    monkeypatch.setenv("AI_ANIME_PROJECT_USER_MAX_ACTIVE_WORLD_TASKS", "5")
     ctx = _ctx(tmp_path)
     backend = InlineTaskBackend()
     release = threading.Event()
@@ -435,10 +435,10 @@ async def test_gate3_global_lane_queue_overflow_raises_typed_limit_exception(
     _task_ports,
     tmp_path,
 ):
-    monkeypatch.setenv("ST_CE_GLOBAL_MAX_ACTIVE_WORLD_TASKS", "1")
-    monkeypatch.setenv("ST_CE_GLOBAL_MAX_QUEUED_WORLD_TASKS", "1")
-    monkeypatch.setenv("ST_PROJECT_MAX_ACTIVE_WORLD_TASKS", "5")
-    monkeypatch.setenv("ST_PROJECT_USER_MAX_ACTIVE_WORLD_TASKS", "5")
+    monkeypatch.setenv("AI_ANIME_CE_GLOBAL_MAX_ACTIVE_WORLD_TASKS", "1")
+    monkeypatch.setenv("AI_ANIME_CE_GLOBAL_MAX_QUEUED_WORLD_TASKS", "1")
+    monkeypatch.setenv("AI_ANIME_PROJECT_MAX_ACTIVE_WORLD_TASKS", "5")
+    monkeypatch.setenv("AI_ANIME_PROJECT_USER_MAX_ACTIVE_WORLD_TASKS", "5")
     ctx = _ctx(tmp_path)
     backend = InlineTaskBackend()
     release = threading.Event()
@@ -450,7 +450,7 @@ async def test_gate3_global_lane_queue_overflow_raises_typed_limit_exception(
     register_project_task_runner("l014_gate3_world_running_overflow", runner)
     register_project_task_runner("l014_gate3_world_queued_overflow", runner)
     register_project_task_runner("l014_gate3_world_rejected_overflow", runner)
-    from novelvideo.task_backend.limits import GlobalLaneQueueLimitExceeded
+    from ai_anime.task_backend.limits import GlobalLaneQueueLimitExceeded
 
     await backend.enqueue_project_task(
         ctx,
@@ -488,8 +488,8 @@ async def test_gate3_global_lane_queue_overflow_raises_typed_limit_exception(
 def test_gate3_global_lane_queue_limit_exception_maps_to_http_429():
     from fastapi.testclient import TestClient
 
-    from novelvideo.api.app import create_app
-    from novelvideo.task_backend.limits import GlobalLaneQueueLimitExceeded
+    from ai_anime.api.app import create_app
+    from ai_anime.task_backend.limits import GlobalLaneQueueLimitExceeded
 
     app = create_app()
 
@@ -518,8 +518,8 @@ def test_gate3_global_lane_queue_limit_exception_maps_to_http_429():
 
 @pytest.mark.asyncio
 async def test_gate3_lane_scheduler_uses_independent_global_concurrency_config(monkeypatch):
-    monkeypatch.setenv("ST_PROJECT_MAX_ACTIVE_WORLD_TASKS", "5")
-    monkeypatch.setenv("ST_CE_GLOBAL_MAX_ACTIVE_WORLD_TASKS", "1")
+    monkeypatch.setenv("AI_ANIME_PROJECT_MAX_ACTIVE_WORLD_TASKS", "5")
+    monkeypatch.setenv("AI_ANIME_CE_GLOBAL_MAX_ACTIVE_WORLD_TASKS", "1")
 
     assert global_lane_concurrency("world") == 1
 
@@ -530,9 +530,9 @@ async def test_gate3_multi_project_lane_dispatch_is_project_fair_fifo(
     _task_ports,
     tmp_path,
 ):
-    monkeypatch.setenv("ST_CE_GLOBAL_MAX_ACTIVE_WORLD_TASKS", "1")
-    monkeypatch.setenv("ST_PROJECT_MAX_ACTIVE_WORLD_TASKS", "5")
-    monkeypatch.setenv("ST_PROJECT_USER_MAX_ACTIVE_WORLD_TASKS", "5")
+    monkeypatch.setenv("AI_ANIME_CE_GLOBAL_MAX_ACTIVE_WORLD_TASKS", "1")
+    monkeypatch.setenv("AI_ANIME_PROJECT_MAX_ACTIVE_WORLD_TASKS", "5")
+    monkeypatch.setenv("AI_ANIME_PROJECT_USER_MAX_ACTIVE_WORLD_TASKS", "5")
     backend = InlineTaskBackend()
     ctx_a = _ctx(tmp_path, "proj_l014_a", requester="editor_a")
     ctx_b = _ctx(tmp_path, "proj_l014_b", requester="editor_b")

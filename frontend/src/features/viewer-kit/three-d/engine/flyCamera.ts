@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import * as pc from 'playcanvas';
 
 // 飞行 + 轨道相机：左键拖拽看向（lookCamera），右键拖拽平移（panCamera），

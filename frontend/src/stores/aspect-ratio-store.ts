@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useCallback } from "react";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -45,7 +44,7 @@ export const useAspectRatioStore = create<AspectRatioState>()(
       reset: () => set({ byProject: {} }),
     }),
     {
-      name: "supertale-aspect-ratio",
+      name: "ai-anime-aspect-ratio",
       storage: createJSONStorage(() => quotaSafeStateStorage),
     },
   ),

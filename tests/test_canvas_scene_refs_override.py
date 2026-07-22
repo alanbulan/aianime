@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from novelvideo.task_backend.runners.sketch import _scene_refs_override_from_config
+from ai_anime.task_backend.runners.sketch import _scene_refs_override_from_config
 
 
 def test_canvas_scene_ref_preserves_reference_mode_without_label_variant() -> None:

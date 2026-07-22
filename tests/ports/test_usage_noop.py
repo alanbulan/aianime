@@ -1,6 +1,6 @@
 import pytest
 
-from novelvideo.ports.local.usage import NoOpProviderInstrumentation, NoOpUsageMeter
+from ai_anime.ports.local.usage import NoOpProviderInstrumentation, NoOpUsageMeter
 
 
 @pytest.mark.asyncio

@@ -8,8 +8,8 @@ from types import SimpleNamespace
 import pytest
 from fastapi import UploadFile
 
-from novelvideo.api.schemas import CharacterUpdate
-from novelvideo.models import CharacterIdentity, NovelCharacter
+from ai_anime.api.schemas import CharacterUpdate
+from ai_anime.models import CharacterIdentity, NovelCharacter
 
 
 class _CharacterStore:
@@ -57,7 +57,7 @@ def _patch_project(
 
 @pytest.mark.asyncio
 async def test_update_character_accepts_age_group(tmp_path, monkeypatch):
-    from novelvideo.api.routes import characters
+    from ai_anime.api.routes import characters
 
     character = NovelCharacter(name="秦", age_group="youth")
     store = _CharacterStore([character])
@@ -80,7 +80,7 @@ async def test_update_character_accepts_age_group(tmp_path, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_list_characters_returns_indextts2_voice_fields(tmp_path, monkeypatch):
-    from novelvideo.api.routes import characters
+    from ai_anime.api.routes import characters
 
     voice_path = tmp_path / "assets" / "characters" / "秦" / "voices" / "voice_default.wav"
     voice_path.parent.mkdir(parents=True)
@@ -121,7 +121,7 @@ async def test_list_characters_returns_indextts2_voice_fields(tmp_path, monkeypa
 
 @pytest.mark.asyncio
 async def test_list_identities_returns_indextts2_voice_fields(tmp_path, monkeypatch):
-    from novelvideo.api.routes import characters
+    from ai_anime.api.routes import characters
 
     voice_path = tmp_path / "assets" / "characters" / "秦" / "identities" / "幼年_voice.wav"
     voice_path.parent.mkdir(parents=True)
@@ -159,7 +159,7 @@ async def test_list_identities_returns_indextts2_voice_fields(tmp_path, monkeypa
 
 @pytest.mark.asyncio
 async def test_list_character_voice_samples_returns_default_and_age_slots(tmp_path, monkeypatch):
-    from novelvideo.api.routes import characters
+    from ai_anime.api.routes import characters
 
     default_path = tmp_path / "assets" / "characters" / "秦" / "voices" / "voice_default.wav"
     child_path = tmp_path / "assets" / "characters" / "秦" / "voices" / "voice_child.wav"
@@ -210,7 +210,7 @@ async def test_list_character_voice_samples_returns_default_and_age_slots(tmp_pa
 
 @pytest.mark.asyncio
 async def test_upload_character_voice_sample_persists_default_slot(tmp_path, monkeypatch):
-    from novelvideo.api.routes import characters
+    from ai_anime.api.routes import characters
 
     character = NovelCharacter(name="秦")
     store = _CharacterStore([character])
@@ -238,7 +238,7 @@ async def test_upload_character_voice_sample_persists_default_slot(tmp_path, mon
 
 @pytest.mark.asyncio
 async def test_upload_character_voice_sample_rejects_unsupported_format(tmp_path, monkeypatch):
-    from novelvideo.api.routes import characters
+    from ai_anime.api.routes import characters
 
     character = NovelCharacter(name="秦")
     store = _CharacterStore([character])
@@ -260,7 +260,7 @@ async def test_upload_character_voice_sample_rejects_unsupported_format(tmp_path
 
 @pytest.mark.asyncio
 async def test_record_character_voice_sample_persists_age_slot(tmp_path, monkeypatch):
-    from novelvideo.api.routes import characters
+    from ai_anime.api.routes import characters
 
     character = NovelCharacter(name="秦")
     store = _CharacterStore([character])
@@ -288,7 +288,7 @@ async def test_record_character_voice_sample_persists_age_slot(tmp_path, monkeyp
 
 @pytest.mark.asyncio
 async def test_trim_character_voice_sample_updates_default_slot(tmp_path, monkeypatch):
-    from novelvideo.api.routes import characters
+    from ai_anime.api.routes import characters
 
     source = tmp_path / "assets" / "characters" / "秦" / "voices" / "voice_default.wav"
     source.parent.mkdir(parents=True)
@@ -351,7 +351,7 @@ async def test_trim_character_voice_sample_updates_default_slot(tmp_path, monkey
 
 @pytest.mark.asyncio
 async def test_delete_character_voice_sample_clears_age_slot(tmp_path, monkeypatch):
-    from novelvideo.api.routes import characters
+    from ai_anime.api.routes import characters
 
     child_path = tmp_path / "assets" / "characters" / "秦" / "voices" / "voice_child.wav"
     child_path.parent.mkdir(parents=True)

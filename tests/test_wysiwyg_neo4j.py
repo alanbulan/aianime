@@ -26,7 +26,7 @@ import pytest
 # ---------------------------------------------------------------------------
 # Imports from project
 # ---------------------------------------------------------------------------
-from novelvideo.generators.prompt_builder import (
+from ai_anime.generators.prompt_builder import (
     CharacterConfig,
     PromptComponents,
     PromptContext,
@@ -79,7 +79,7 @@ def discover_projects() -> List[Tuple[str, Path]]:
 
 async def _load_project_data_async(project_name: str, project_dir: Path):
     """Load characters, beats, sketch_colors from Neo4j via CogneeStore."""
-    from novelvideo.cognee.store import CogneeStore
+    from ai_anime.cognee.store import CogneeStore
 
     store = CogneeStore(project_name, output_dir=str(project_dir))
     try:
@@ -200,7 +200,7 @@ def build_test_character_map(
                     if did.startswith(char_name + "_") and did not in identity_ids:
                         identity_ids.append(did)
         else:
-            from novelvideo.models import extract_char_identities_from_markers
+            from ai_anime.models import extract_char_identities_from_markers
             for beat in beats:
                 vd = beat.get("visual_description", "")
                 for name, iid in extract_char_identities_from_markers(
@@ -262,7 +262,7 @@ def build_test_character_map(
 
         if not ref_path:
             try:
-                from novelvideo.utils.path_resolver import compute_portrait_path
+                from ai_anime.utils.path_resolver import compute_portrait_path
 
                 portrait = compute_portrait_path(project_dir, char_name)
                 if portrait and Path(portrait).exists():
@@ -296,7 +296,7 @@ def build_test_character_map(
                         i_portrait = identity.get("portrait_image", "")
                         if not i_portrait or not Path(i_portrait).exists():
                             try:
-                                from novelvideo.utils.path_resolver import (
+                                from ai_anime.utils.path_resolver import (
                                     compute_identity_portrait_path,
                                 )
                                 i_portrait = compute_identity_portrait_path(

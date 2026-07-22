@@ -10,8 +10,8 @@ from fastapi.testclient import TestClient
 
 @pytest.fixture()
 def projection_client(monkeypatch, tmp_path):
-    from novelvideo.api.auth import get_api_user
-    from novelvideo.api.routes import freezone
+    from ai_anime.api.auth import get_api_user
+    from ai_anime.api.routes import freezone
 
     project_dir = tmp_path / "project"
     project_dir.mkdir(parents=True, exist_ok=True)
@@ -87,7 +87,7 @@ def test_build_projection_from_preset_does_not_write_canvas(
     projection_client,
     monkeypatch,
 ) -> None:
-    from novelvideo.api.routes import freezone
+    from ai_anime.api.routes import freezone
 
     client, project_dir = projection_client
 
@@ -143,7 +143,7 @@ def test_projection_scene_asset_includes_derived_base_master_input(
     projection_client,
     monkeypatch,
 ) -> None:
-    from novelvideo.api.routes import freezone
+    from ai_anime.api.routes import freezone
 
     client, project_dir = projection_client
     base_master_path = project_dir / "assets" / "scenes" / "城市街道" / "master.png"
@@ -207,7 +207,7 @@ def test_projection_scene_asset_includes_derived_base_master_input(
 
 
 def test_projection_wraps_preset_nodes_in_group(projection_client, monkeypatch) -> None:
-    from novelvideo.api.routes import freezone
+    from ai_anime.api.routes import freezone
 
     client, project_dir = projection_client
 
@@ -287,7 +287,7 @@ def test_projection_changed_facts_bypass_idempotency_cache(
     projection_client,
     monkeypatch,
 ) -> None:
-    from novelvideo.api.routes import freezone
+    from ai_anime.api.routes import freezone
 
     client, project_dir = projection_client
     scene_prompt = {"value": "old scene prompt"}
@@ -363,7 +363,7 @@ def test_projection_force_refresh_rewrites_dirty_projection_nodes(
     projection_client,
     monkeypatch,
 ) -> None:
-    from novelvideo.api.routes import freezone
+    from ai_anime.api.routes import freezone
 
     client, project_dir = projection_client
 
@@ -447,7 +447,7 @@ def test_projection_force_refresh_preserves_existing_group_position(
     projection_client,
     monkeypatch,
 ) -> None:
-    from novelvideo.api.routes import freezone
+    from ai_anime.api.routes import freezone
 
     client, project_dir = projection_client
     scene_prompt = {"value": "mainline scene prompt"}
@@ -518,7 +518,7 @@ def test_projection_force_refresh_preserves_existing_node_layout(
     projection_client,
     monkeypatch,
 ) -> None:
-    from novelvideo.api.routes import freezone
+    from ai_anime.api.routes import freezone
 
     client, project_dir = projection_client
     scene_prompt = {"value": "mainline scene prompt"}

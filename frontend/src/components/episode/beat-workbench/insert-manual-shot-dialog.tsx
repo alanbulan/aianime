@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -71,7 +70,7 @@ const EMPTY_MANUAL_SHOT_VISUAL_DESCRIPTION = "\u200B";
 /**
  * Manual-shot insertion dialog. Mirrors the NiceGUI form at
  * sketch_studio.py:_open_insert_manual_shot_dialog — the BE wrapper
- * is `POST /beats/insert-manual` (see novelvideo.manual_shots.insert_manual_shot).
+ * is `POST /beats/insert-manual` (see ai_anime.manual_shots.insert_manual_shot).
  *
  * Layout: visual description is the primary full-width input. Read-only
  * behavior notes use info blocks, while duration / scene / time / identities

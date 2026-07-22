@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import type { CanvasEventBus, CanvasEventMap } from './ports';
 
 export class InMemoryCanvasEventBus implements CanvasEventBus {

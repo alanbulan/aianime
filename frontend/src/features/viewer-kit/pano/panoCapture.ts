@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import type { PanoCaptureResult, PanoViewerManifest } from "./panoManifest";
 
 export type PanoCaptureAspect = "16:9" | "4:3" | "1:1" | "9:16" | "2:3";

@@ -1,36 +1,18 @@
 {
   "app": {
-    "title": "SuperTale",
-    "subtitle": "SuperTale 候选图生成与资产提交工作台",
-    "updateRequired": {
-      "title": "应用已更新",
-      "description": "当前页面引用的应用文件已经失效。请刷新页面以加载最新版本。",
-      "refresh": "刷新页面"
-    },
-    "updateAvailable": {
-      "title": "有新版本可用",
-      "description": "刷新页面即可体验最新功能与修复。",
-      "refresh": "立即刷新",
-      "dismiss": "关闭"
-    },
+    "title": "AI anime",
+    "subtitle": "AI anime 候选图生成与资产提交工作台",
     "routeError": {
       "title": "页面加载失败",
       "description": "请刷新页面后重试。"
     },
-    "versionUpdate": {
-      "title": "🎉 新功能已上线",
-      "confirm": "我知道了",
-      "empty": "当前版本暂无更新说明"
-    },
     "logoHomeTooltip": "点击返回项目管理中心"
   },
   "header": {
-    "partyFounding105": "庆祝建党105周年",
     "settings": "设置",
     "settingsWithWarning": "设置，有未配置项",
     "settingsWarningBubble": "有未配置项",
     "dismissSettingsWarningBubble": "关闭未配置提醒",
-    "notifications": "通知",
     "account": {
       "open": "打开个人信息",
       "changeAvatar": "更换头像",
@@ -50,232 +32,6 @@
       }
     }
   },
-  "notifications": {
-    "title": "通知中心",
-    "close": "关闭通知中心",
-    "empty": "暂无通知",
-    "upgrade": {
-      "title": "有新版本 {{version}} 可用",
-      "body": "上游已发布新版本，可打开发布页查看并升级。",
-      "open": "去更新",
-      "skip": "跳过此版本"
-    }
-  },
-  "myBuddy": {
-    "dragHint": "拖动可调整位置",
-    "taskRunning": "任务进行中 · {{name}}",
-    "taskSuccess": "任务完成 · {{name}}",
-    "taskFailure": "任务失败 · {{name}}",
-    "companion": {
-      "entry": "搭子",
-      "title": "选择你的搭子",
-      "titleBadgeAlt": "我的OK搭子",
-      "importCta": "导入搭子",
-      "toggleVisibility": "显示搭子"
-    },
-    "import": {
-      "button": "导入",
-      "title": "导入 petdex 宠物",
-      "desc": "选择从 petdex 下载的 spritesheet.webp（必选）和 pet.json（可选），导入后即可在画廊中选用。",
-      "spritesheetTitle": "点击或拖入 spritesheet.webp",
-      "spritesheetHint": "必选 · webp / png 精灵图",
-      "jsonTitle": "点击或拖入 pet.json",
-      "jsonHint": "可选 · 用于读取名称",
-      "choose": "选择文件",
-      "replace": "更换",
-      "gridError": "精灵图尺寸 {{w}}×{{h}} 不是 {{cols}}×{{rows}} 网格的整数倍，无法正确切帧。请用标准 8×9 精灵图，或在 pet.json 里声明正确的 cols/rows。",
-      "hint": "宠物仅存在本地浏览器（IndexedDB），不上传服务器；精灵图需为 petdex 标准 8×9 网格。",
-      "confirm": "导入"
-    },
-    "gallery": {
-      "title": "选择陪伴形象",
-      "tabLibrary": "宠物库",
-      "tabMine": "我的宠物",
-      "select": "选择",
-      "selected": "已选",
-      "search": "搜索宠物名称…",
-      "loading": "加载中…",
-      "empty": "没有匹配的宠物",
-      "emptyMine": "还没有导入宠物，点「导入」添加"
-    },
-    "debug": {
-      "suffix": "调试",
-      "auto": "自动",
-      "companionPicker": "形象",
-      "festivalPreview": "节日预览",
-      "noFestival": "无节日",
-      "stateSimulation": "状态模拟",
-      "accessoryPreview": "道具预览",
-      "triggerDiveAction": "跳水",
-      "chestTrigger": "触发宝箱",
-      "chestSingle": "单宝箱",
-      "chestBatch": "多宝箱",
-      "triggerUpdateDialog": "触发更新弹窗",
-      "states": {
-        "running": "运行中气泡",
-        "success": "成功气泡",
-        "failure": "失败气泡",
-        "idle": "闲聊气泡"
-      },
-      "accessories": {
-        "none": "皇帝的新衣",
-        "goldenHoopStaff": "齐天大圣",
-        "littleKing": "小小国王",
-        "bubbleBalloon": "泡泡",
-        "cyanEnergySword": "青锋能量剑",
-        "mengnanWand": "猛男",
-        "odinHammer": "锤王",
-        "fireTippedSpear": "三太子的枪",
-        "dumbbell": "今日宜撸铁",
-        "thumbsUp": "大拇哥",
-        "codeLing": "代号-灵",
-        "codeYu": "代号-玉",
-        "codeXia": "代号-霞",
-        "codeNing": "代号-宁",
-        "founderMedal": "金色纪念勋章",
-        "redStar": "闪闪红星",
-        "darkKnightMask": "薄暮",
-        "azuMask": "阿祖的面具",
-        "redBow": "粉红色回忆",
-        "minionGoggles": "小黄护目镜",
-        "diverGoggles": "深潜护目镜",
-        "gourd": "葫芦秘宝",
-        "judyCarrot": "兔兔的午餐",
-        "pacifier": "宝宝标配",
-        "wizardHat": "魔法帽",
-        "bambooHat": "侠之大者",
-        "asgardHorns": "为了王国",
-        "garySnail": "小蜗牛",
-        "captainShield": "护你周全",
-        "lubanCompass": "鲁班罗盘",
-        "lubanTalisman": "机关符",
-        "redCape": "保你平安",
-        "ufoPet": "星际航行",
-        "ghostPet": "噜噜"
-      },
-      "accessoryFeedback": {
-        "none": "盛装出席！",
-        "goldenHoopStaff": "俺老孙来也！",
-        "littleKing": "国王驾到！",
-        "bubbleBalloon": "去公园吧",
-        "cyanEnergySword": "山猪别跑！",
-        "mengnanWand": "要猛！",
-        "odinHammer": "我锤你了啊～",
-        "fireTippedSpear": "火力全开！",
-        "dumbbell": "今日开练！",
-        "thumbsUp": "真不戳！",
-        "codeLing": "灵感上线！",
-        "codeYu": "玉势启动！",
-        "codeXia": "霞光护体！",
-        "codeNing": "宁静开挂！",
-        "founderMedal": "牌面拉满！",
-        "redStar": "红星闪闪！",
-        "darkKnightMask": "守护！",
-        "azuMask": "阿祖收手吧！",
-        "redBow": "可爱暴击！",
-        "minionGoggles": "香蕉警戒！",
-        "diverGoggles": "准备下潜？",
-        "gourd": "宝葫芦到！",
-        "judyCarrot": "午餐就绪？",
-        "pacifier": "别惹宝宝！",
-        "wizardHat": "魔力上线！",
-        "bambooHat": "侠气已满！",
-        "asgardHorns": "为了王国！",
-        "garySnail": "慢点也赢！",
-        "captainShield": "我来护你！",
-        "lubanCompass": "罗盘已启！",
-        "lubanTalisman": "机关已封！",
-        "redCape": "选我没错！",
-        "ufoPet": "啦咕咔咔～",
-        "ghostPet": "你好呀"
-      }
-    },
-    "bubbles": {
-      "walkBy": "悄悄路过～",
-      "running": {
-        "queued": "我先接住。",
-        "working": "我处理一下。",
-        "holdOn": "我在路上了。",
-        "gears": "齿轮转起来了。",
-        "onIt": "这单我接了。",
-        "readingRoom": "我看下现场。",
-        "keepWindowOpen": "窗口先别关。",
-        "checkingEdges": "边角我也看看。",
-        "smallSteps": "一步一步来。",
-        "movingPieces": "东西在动了。"
-      },
-      "success": {
-        "done": "收工，成了。",
-        "nice": "这下顺了。",
-        "landed": "稳稳落地。",
-        "tidy": "整理好了。",
-        "flag": "这步稳了。",
-        "cleared": "这一关过了。",
-        "goodShape": "看着像样了。",
-        "savedTrip": "少跑一趟。",
-        "noDrama": "没出幺蛾子。",
-        "oneLessThing": "少一件事了。"
-      },
-      "failure": {
-        "stuck": "这次卡住了。",
-        "checking": "我去查查。",
-        "retry": "先记一笔。",
-        "noted": "问题收到了。",
-        "box": "小盒子报警了。",
-        "hitSnag": "这里绊了一下。",
-        "needsLook": "这块得看一眼。",
-        "leftClue": "它留了点线索。",
-        "tryAgainLater": "等会儿再冲一次。",
-        "notClean": "这次不太干净。"
-      },
-      "idle": {
-        "watching": "我在这儿。",
-        "quiet": "这边很安静。",
-        "standingBy": "随时叫我。",
-        "idea": "灵感慢慢来。",
-        "tinyBreak": "先陪你一会儿。",
-        "noRush": "不急，慢慢来。",
-        "roomBreathes": "让页面喘口气。",
-        "stillHere": "我没掉线。",
-        "goodPause": "停一下也挺好。",
-        "mindingTop": "小角落待命。",
-        "keepRhythm": "节奏先稳住。",
-        "littleCorner": "我占个小角落。",
-        "online": "摸鱼但在线。",
-        "nextStep": "等你下一步。",
-        "smallPatrol": "小小巡逻中。",
-        "softPause": "状态保持中。"
-      },
-      "dragonBoat": {
-        "leafScent": "粽叶味飘过来了。",
-        "tightWrap": "慢慢包，别急。",
-        "waterQuiet": "这边风挺顺。",
-        "goodStroke": "小叶子值班中。",
-        "steadyBoat": "今天带点清香。"
-      }
-    },
-    "actions": {
-      "idle": "待机",
-      "peek": "探头",
-      "countStars": "数星星",
-      "sleep": "打瞌睡",
-      "carryBox": "搬箱子",
-      "stretch": "伸懒腰",
-      "watchMeteor": "看流星",
-      "readMap": "看地图",
-      "fish": "钓鱼",
-      "blowBubbles": "吹泡泡",
-      "dragonBoatPaddle": "划龙舟",
-      "zongziCheck": "抛粽子",
-      "typing": "敲键盘",
-      "flag": "举旗",
-      "repair": "检查盒子",
-      "walkBy": "悄悄路过"
-    },
-    "festivals": {
-      "dragonBoat2026": "端午 2026"
-    }
-  },
   "aiAssistant": {
     "formatCheck": {
       "title": "剧本格式检查",
@@ -285,34 +41,34 @@
       "lineLabel": "第 {{line}} 行",
       "noIssues": "未发现具体问题"
     },
-    "title": "虾导",
-    "description": "在当前创作页面旁打开虾导。",
-    "toggle": "展开或收起虾导",
-    "close": "收起虾导",
+    "title": "AI anime 助手",
+    "description": "在当前创作页面旁打开 AI anime 助手。",
+    "toggle": "展开或收起 AI anime 助手",
+    "close": "收起 AI anime 助手",
     "resize": "拖动调整聊天宽度",
     "openExternal": "在新窗口打开",
-    "iframeTitle": "虾导",
+    "iframeTitle": "AI anime 助手",
     "newChat": "新会话",
     "expandSessions": "展开会话列表",
     "collapseSessions": "收起会话列表",
     "sessionActions": "会话操作",
     "deleteSessionConfirm": "是否删除此对话？",
     "noSessions": "暂无会话",
-    "chatTitle": "虾导",
+    "chatTitle": "AI anime 助手",
     "globalScope": "全局",
     "connected": "已连接",
     "connecting": "连接中",
     "reconnecting": "重新连接中",
     "disconnected": "未连接",
-    "backendTransport": "OpenClaw / relay",
+    "backendTransport": "本地服务",
     "emptyTitle": "开始对话",
     "emptyDescription": "可以询问项目进度、任务失败原因，或让助手帮你整理创作思路。",
     "syncingHistoryTitle": "正在初始化会话",
-    "syncingHistoryDescription": "正在连接虾导并同步历史对话，请稍候。",
-    "disclaimer": "虾导可能会出错，请核对关键剧情、角色与资产信息。",
+    "syncingHistoryDescription": "正在连接 AI anime 助手并同步历史对话，请稍候。",
+    "disclaimer": "AI anime 助手可能会出错，请核对关键剧情、角色与资产信息。",
     "placeholder": "上传剧本后，说出要推进的分集、画面、配音或成片任务",
     "waiting": "等待聊天服务连接...",
-    "waitingResponse": "等待虾导回复",
+    "waitingResponse": "等待 AI anime 助手回复",
     "waitingResponses": [
       "正在理解你想推进的内容",
       "正在核对当前对话上下文",
@@ -366,28 +122,25 @@
     "closeSettings": "关闭设置",
     "showToolEvents": "显示工具事件",
     "showThinking": "显示思考过程",
-    "uploadTarget": "上传目标",
-    "uploadTargetOpenclaw": "发送到 OpenClaw",
-    "uploadTargetLocal": "仅保留在本地面板",
     "ingestAutomationUploading": "正在上传小说：{{filename}}",
     "ingestAutomationStarted": "已启动小说摄入：{{filename}}",
     "ingestAutomationFailed": "小说上传或启动失败：{{message}}",
-    "ingestAutomationNoProject": "请先进入一个项目，再从虾导上传小说生成视频。",
+    "ingestAutomationNoProject": "请先进入一个项目，再从 AI anime 助手上传小说生成视频。",
     "ingestAutomationMissingFile": "未能读取上传的小说文件，请重新选择文件。",
     "attachmentOnlyPrompt": "请分析我上传的文件。",
     "attachmentAnalysisUploading": "正在上传文件供分析：{{filename}}",
-    "settingsHint": "账号和登录由 SuperTale 管理。这里的设置只控制聊天展示和附件行为。",
+    "settingsHint": "账号和登录由 AI anime 管理。这里的设置只控制聊天展示和附件行为。",
     "tool": "工具",
     "historyTool": "历史工具",
     "showStructuredSourceWhileStreaming": "流式显示 JSON 原文"
   },
   "freezone": {
     "chat": {
-      "title": "虾导",
-      "description": "在虾画画布旁打开虾导。",
-      "toggle": "打开虾画虾导",
-      "close": "收起虾画虾导",
-      "resize": "拖动调整虾画虾导宽度"
+      "title": "AI anime 助手",
+      "description": "在 AI anime 画布旁打开 AI anime 助手。",
+      "toggle": "打开 AI anime 助手",
+      "close": "收起 AI anime 助手",
+      "resize": "拖动调整 AI anime 助手宽度"
     },
     "canvases": {
       "defaultSection": "默认画布",
@@ -473,24 +226,7 @@
   "theme": {
     "toggle": "切换主题",
     "light": "浅色",
-    "dark": "深色",
-    "system": "跟随系统"
-  },
-  "rewards": {
-    "accessoryUnlock": {
-      "prompt": "Piko发现了新玩意儿！看看是什么.",
-      "batchPrompt": "Piko发现了 {{count}} 件新玩意儿！看看是什么.",
-      "promptAria": "Piko发现新道具，点击查看",
-      "batchPromptAria": "Piko发现{{count}}件新道具，点击查看",
-      "dialogEyebrow": "Piko 找到了",
-      "batchDialogEyebrow": "Piko 找到了一批",
-      "dialogTitle": "新道具解锁！",
-      "batchDialogTitle": "{{count}} 件新道具解锁！",
-      "dialogDesc": "收下后，就能给 Piko 装上.",
-      "batchDialogDesc": "已放进搭子道具库，之后可以自由挑选.",
-      "claim": "收下道具",
-      "claimAll": "全部收下"
-    }
+    "dark": "深色"
   },
   "credits": {
     "balance": "当前积分余额",
@@ -507,23 +243,23 @@
     "production": "制作",
     "tools": "工具",
     "creationMode": "创作方式",
-    "xiaji": "虾集",
-    "xiajiMenu": "虾集菜单",
-    "ingest": "虾料",
-    "assets": "虾塘",
+    "workspace": "AI anime 工作台",
+    "workspaceMenu": "AI anime 工作台菜单",
+    "ingest": "素材导入",
+    "assets": "资产库",
     "characters": "角色",
-    "episodes": "虾镜",
+    "episodes": "分镜制作",
     "script": "脚本",
     "literalScript": "原文脚本",
     "sketches": "草图",
     "audio": "音频",
     "video": "视频",
     "compose": "合成",
-    "styles": "虾格",
-    "tasks": "虾条",
+    "styles": "风格管理",
+    "tasks": "任务中心",
     "taskCenter": "任务中心",
-    "aiAssistant": "虾导",
-    "freezone": "虾画"
+    "aiAssistant": "AI anime 助手",
+    "freezone": "AI anime 画布"
   },
   "characters": {
     "title": "角色",
@@ -779,14 +515,14 @@
       "projectQueueFull": "当前项目{{queue}}队列已满"
     },
     "freezone": {
-      "openCharacter": "虾画",
-      "openCharacterTip": "在 虾画 编辑角色资产",
-      "openPortrait": "肖像 虾画",
-      "openPortraitTip": "在 虾画 编辑角色肖像资产",
-      "openIdentity": "身份图 虾画",
-      "openIdentityTip": "在 虾画 编辑身份图资产",
-      "opened": "已打开 虾画",
-      "openFailed": "打开 虾画 失败"
+      "openCharacter": "AI anime 画布",
+      "openCharacterTip": "在 AI anime 画布 编辑角色资产",
+      "openPortrait": "肖像 AI anime 画布",
+      "openPortraitTip": "在 AI anime 画布 编辑角色肖像资产",
+      "openIdentity": "身份图 AI anime 画布",
+      "openIdentityTip": "在 AI anime 画布 编辑身份图资产",
+      "opened": "已打开 AI anime 画布",
+      "openFailed": "打开 AI anime 画布 失败"
     },
     "confirm": {
       "delete": "删除角色「{{name}}」？此操作不可撤销。",
@@ -843,99 +579,11 @@
     "signingIn": "登录中…",
     "language": "语言",
     "contactUs": "联系我们",
-    "learnMore": "了解更多",
-    "openManual": "打开使用手册",
     "learnMoreToast": "官方手册制定中，敬请期待",
-    "closeLogin": "关闭登录弹窗",
     "privacy": "隐私",
     "terms": "条款",
     "docs": "文档",
     "tagline": "把小说拍成短剧",
-    "github": {
-      "star": "Star"
-    },
-    "businessWechat": {
-      "label": "商务联系",
-      "open": "查看商务微信二维码",
-      "qrAlt": "商务微信二维码",
-      "title": "添加商务微信",
-      "subtitle": "账号申请 / 使用指导",
-      "note": "商务合作请备注，我们会优先处理"
-    },
-    "stage": {
-      "eyebrow": "短剧创作平台",
-      "headline": "创造自己的DC宇宙",
-      "headlines": {
-        "createUniverse": "开启你的创作宇宙",
-        "dramaUniverse": "开启你的短剧宇宙",
-        "storyWorld": "构建专属故事世界"
-      },
-      "headlinePrefix": "创造自己的",
-      "headlineBrand": "DC",
-      "headlineSuffix": "宇宙",
-      "subtitlePrefix": "Make Your Own",
-      "subtitleBrand": "DC",
-      "subtitleSuffix": "",
-      "start": "灵感发生",
-      "sub": "WHERE EVERY SPARK OF INSPIRATION MEETS THE POWER OF EFFORTLESS AI CREATION",
-      "version": "{{version}}",
-      "changelog": "更新日志"
-    },
-    "community": {
-      "label": "社区作品",
-      "heading": "DramaClaw TV",
-      "likes": "{{count}} 次喜欢",
-      "openWork": "打开作品「{{title}}」",
-      "works": {
-        "rainyNight": {
-          "title": "雨夜车站的第一条讯息",
-          "description": "孤独角色在霓虹雨幕中收到改变命运的来电"
-        },
-        "emberCrown": {
-          "title": "余烬王冠",
-          "description": "少年与巨兽穿越火山城,寻找失落的旧王座"
-        },
-        "paperCity": {
-          "title": "纸城翻译官",
-          "description": "一座会折叠的城市里,机器与人类交换秘密"
-        },
-        "neonPatrol": {
-          "title": "霓虹巡逻队",
-          "description": "四人小队在赛博街区追踪午夜失控事件"
-        },
-        "glassSignal": {
-          "title": "玻璃信号",
-          "description": "透明城市的广播塔收到来自未来的低频讯号"
-        },
-        "silentArcade": {
-          "title": "静音电玩城",
-          "description": "关门后的游戏厅里,旧角色开始改写自己的结局"
-        },
-        "floatingMarket": {
-          "title": "浮空集市",
-          "description": "商贩在云层之间交易记忆、地图和未完成的梦"
-        },
-        "lastTake": {
-          "title": "最后一镜",
-          "description": "片场停电前,导演必须拍下唯一能证明真相的镜头"
-        }
-      }
-    },
-    "watch": {
-      "createNow": "马上创作",
-      "previous": "切换到上一个作品",
-      "next": "切换到下一个作品",
-      "watchNow": "立即观看",
-      "play": "播放",
-      "pause": "暂停",
-      "seek": "播放进度",
-      "speed": "播放速度",
-      "quality": "1080p 原画质",
-      "mute": "静音",
-      "unmute": "取消静音",
-      "fullscreen": "全屏",
-      "exitFullscreen": "退出全屏"
-    },
     "download": {
       "label": "桌面端",
       "primary": {
@@ -943,7 +591,15 @@
         "windows": "Windows"
       },
       "aria": "下载桌面端"
-    }
+    },
+    "accessTitle": "登录 AI anime",
+    "accessSubtitle": "使用账户或授权码进入客户端",
+    "passwordLogin": "账户登录",
+    "codeAuthorization": "授权码",
+    "authorizationCode": "授权码",
+    "authorizationCodePlaceholder": "请输入授权码",
+    "authenticating": "正在验证",
+    "authorizeButton": "验证授权"
   },
   "project": {
     "create": "创建项目",
@@ -1023,7 +679,7 @@
     "noActiveDescription": "创建一个新项目，或在「归档」与「回收站」标签中查看其他项目。",
     "actions": {
       "open": "打开",
-      "openFreezone": "打开虾画",
+      "openFreezone": "打开 AI anime 画布",
       "share": "共享",
       "archive": "归档…",
       "unarchive": "取消归档",
@@ -1140,10 +796,10 @@
       "panoCaptureDescription": "选择场景 360 视角并导出截图。",
       "downloadScreenshot": "下载截图",
       "panoScreenshotDownloaded": "360 截图已下载",
-      "openFreezone": "虾画",
-      "openFreezoneTip": "在 虾画 编辑当前场景",
-      "freezoneOpened": "已打开场景 虾画",
-      "freezoneOpenFailed": "打开场景 虾画 失败",
+      "openFreezone": "AI anime 画布",
+      "openFreezoneTip": "在 AI anime 画布 编辑当前场景",
+      "freezoneOpened": "已打开场景 AI anime 画布",
+      "freezoneOpenFailed": "打开场景 AI anime 画布 失败",
       "noMaster": "未生成 正面图",
       "noReverse": "未生成 背面图",
       "noPano": "未生成 360 全景图",
@@ -1189,7 +845,7 @@
       "batchGenerate": "批量生成参考图",
       "batchStatusTitle": "批量参考图生成",
       "newProp": "新建道具",
-      "newPropHint": "AI自动提取道具需要在虾镜中按集数分集提取",
+      "newPropHint": "AI自动提取道具需要在分镜制作中按集数分集提取",
       "editProp": "编辑道具",
       "emptyTitle": "暂无道具数据",
       "emptyDescription": "新建道具，或在 beat 页把本集道具加入全局。",
@@ -1204,10 +860,10 @@
       "uploadReference": "上传道具",
       "uploadingReference": "上传中...",
       "uploadReferenceSuccess": "道具参考图已上传",
-      "openFreezone": "虾画",
-      "openFreezoneTip": "在 虾画 编辑当前道具",
-      "freezoneOpened": "已打开道具 虾画",
-      "freezoneOpenFailed": "打开道具 虾画 失败",
+      "openFreezone": "AI anime 画布",
+      "openFreezoneTip": "在 AI anime 画布 编辑当前道具",
+      "freezoneOpened": "已打开道具 AI anime 画布",
+      "freezoneOpenFailed": "打开道具 AI anime 画布 失败",
       "owner": "所属角色",
       "types": {
         "weapon": "武器",
@@ -1299,7 +955,7 @@
     "success": "成功"
   },
   "ingest": {
-    "title": "虾料",
+    "title": "素材导入",
     "subtitle": "上传剧本，开启你的创意之旅",
     "dropzoneHint": "点击或拖拽上传小说文件",
     "supportedFormats": "支持 .txt / .md / .docx，建议不超过 10MB",
@@ -1571,132 +1227,6 @@
       "copied": "已复制任务 ID"
     }
   },
-  "pikoMiniGame": {
-    "statusEntry": "Piko一下",
-    "statusTooltip": "陪 Piko 玩 1 分钟小游戏",
-    "libraryTitle": "Piko一下",
-    "librarySubtitle": "选择一个小游戏",
-    "title": "Piko一下，找回灵感",
-    "idleHint": "按空格键发射子弹",
-    "countdownHint": "准备开始咯～",
-    "start": "开始补给",
-    "playAgain": "再来一局",
-    "backToWork": "回到创作",
-    "backToLibrary": "返回游戏列表",
-    "audioOn": "开启 Piko 小游戏音效",
-    "audioOff": "关闭 Piko 小游戏音效",
-    "score": "灵感值 {{score}}",
-    "energy": "能量",
-    "ultimateReady": "能量已满，按 Q 爆发",
-    "timeLeft": "{{seconds}} 秒",
-    "activePowerUp": "{{powerUp}} 生效中",
-    "resultMeta": "Piko 击中了 {{caught}} 个灵感碎片",
-    "result": {
-      "maxCombo": "最大连击",
-      "powerUps": "道具",
-      "score": "灵感值"
-    },
-    "insight": {
-      "combo": "节奏已经接上，适合继续推进分镜。",
-      "jelly": "节奏被你放慢了，适合稳稳推进。",
-      "burst": "爆点手感不错，适合先抓高潮段。",
-      "rain": "灵感雨接住了，适合批量推进。",
-      "flow": "状态回温，可以回去轻推一段。",
-      "soft": "短休完成，脑袋先别硬拧。"
-    },
-    "powerUps": {
-      "magnet": "磁铁星",
-      "rapid": "加速糖",
-      "jelly": "时间果冻"
-    },
-    "feedback": {
-      "combo": "连击节奏稳住了",
-      "wild": "灵感风暴被你接住了",
-      "burst": "爆点被精准点亮",
-      "rain": "灵感雨刚好下到心里",
-      "high": "灵感电量满格",
-      "medium": "脑袋重新亮起来了",
-      "soft": "休息完成，状态回来了"
-    },
-    "float": {
-      "combo": "连击 x{{count}}",
-      "comboBoost": "灵感翻倍 3 秒",
-      "burst": "灵感爆点",
-      "rain": "灵感雨来了",
-      "rush": "最后冲刺",
-      "energyReady": "能量满了，按 Q",
-      "powerUp": {
-        "magnet": "磁铁星吸住灵感",
-        "rapid": "加速糖开火",
-        "jelly": "时间果冻放慢节奏"
-      },
-      "ultimate": "灵感爆发"
-    },
-    "memory": {
-      "title": "记忆翻牌",
-      "hint": "翻开相同图案完成配对",
-      "moves": "步数",
-      "cardHidden": "未翻开的卡片",
-      "cardVisible": "卡片 {{value}}",
-      "completed": "全部配对完成",
-      "resultMeta": "共用了 {{moves}} 步"
-    },
-    "breakout": {
-      "title": "打砖块",
-      "canvasLabel": "打砖块游戏区域",
-      "hint": "移动鼠标或触摸控制挡板，也可使用方向键或 A、D 键",
-      "start": "开始游戏",
-      "ready": "击碎所有砖块",
-      "lifeLost": "还有机会，继续！",
-      "won": "全部清除！",
-      "lost": "本局结束",
-      "score": "得分 {{score}}",
-      "lives": "生命 {{lives}}"
-    },
-    "rollingBall": {
-      "title": "滚动小球",
-      "canvasLabel": "滚动小球游戏区域",
-      "hint": "控制小球左右移动，落到不断滚动的平台上",
-      "start": "开始游戏",
-      "ready": "一路向下",
-      "lost": "小球掉下去了",
-      "score": "落台 {{score}}"
-    },
-    "flying": {
-      "title": "飞行的 Piko",
-      "canvasLabel": "飞行的 Piko 游戏区域",
-      "hint": "按空格、向上键或点击，让 Piko 向上飞并穿过能量门",
-      "start": "开始飞行",
-      "ready": "准备起飞",
-      "lost": "Piko 撞到能量门了",
-      "score": "穿越 {{score}}"
-    },
-    "catch": {
-      "title": "Piko 接接乐",
-      "canvasLabel": "Piko 接物游戏区域",
-      "hint": "左右移动 Piko，接住灵感星和晶体，避开红色故障块",
-      "start": "开始接取",
-      "ready": "接住掉落的灵感",
-      "finished": "灵感收集完成",
-      "lost": "Piko 需要休息一下",
-      "score": "灵感 {{score}}",
-      "status": "生命 {{lives}} · {{seconds}} 秒",
-      "result": "本局收集了 {{score}} 点灵感"
-    },
-    "leap": {
-      "title": "Piko 跃迁",
-      "canvasLabel": "Piko 跃迁游戏区域",
-      "hint": "长按空格、鼠标或屏幕蓄力，松开后跳向下一块灵感芯片",
-      "start": "开始跃迁",
-      "ready": "准备好下一跳",
-      "lost": "Piko 没有落稳",
-      "score": "跃迁 {{score}}",
-      "combo": "中心连击 ×{{combo}}",
-      "centerHint": "落在中心可获额外分数",
-      "chargeHint": "长按蓄力 · 松开跳跃",
-      "result": "本局获得 {{score}} 分"
-    }
-  },
   "literalScript": {
     "generating": "生成原文脚本中...",
     "noScript": "还没有原文脚本。点击「生成」从原文创建。",
@@ -1857,9 +1387,9 @@
       "insertBeforeShort": "前",
       "insertAfter": "在 Beat #{{n}} 后插入手工镜头",
       "insertAfterShort": "后",
-      "openFreezone": "进入虾画 Beat 工作台",
-      "openFreezoneTip": "进入虾画编辑",
-      "openFreezoneFailed": "打开虾画失败",
+      "openFreezone": "进入 AI anime 画布 Beat 工作台",
+      "openFreezoneTip": "进入 AI anime 画布编辑",
+      "openFreezoneFailed": "打开 AI anime 画布失败",
       "markedProps": "道具 {{count}}",
       "detectedProps": "出场道具 {{count}}"
     },
@@ -2228,10 +1758,10 @@
         "backgroundMissing": "还没有背景图",
         "backgroundCurrent": "当前使用",
         "backgroundSnapshotUse": "截图使用",
-        "openFreezone": "虾画编辑",
-        "openFreezoneTip": "在 虾画 编辑当前 beat 的草图",
-        "freezoneOpened": "已打开草图 虾画",
-        "freezoneOpenFailed": "打开草图 虾画 失败"
+        "openFreezone": "AI anime 画布编辑",
+        "openFreezoneTip": "在 AI anime 画布 编辑当前 beat 的草图",
+        "freezoneOpened": "已打开草图 AI anime 画布",
+        "freezoneOpenFailed": "打开草图 AI anime 画布 失败"
       },
       "sketchGrid": {
         "title": "草图网格",
@@ -2267,10 +1797,10 @@
         "versionMismatchDesc": "该渲染图基于旧版脚本生成，内容可能与当前脚本不一致。确定强制使用吗？",
         "regenTitle": "重新生成渲染图？",
         "regenDesc": "将为 Beat #{{n}} 重新生成渲染图，新渲染图进入候选池。",
-        "openFreezone": "虾画编辑",
-        "openFreezoneTip": "在 虾画 编辑当前 beat 的渲染图",
-        "freezoneOpened": "已打开虾画编辑",
-        "freezoneOpenFailed": "打开虾画编辑失败",
+        "openFreezone": "AI anime 画布编辑",
+        "openFreezoneTip": "在 AI anime 画布 编辑当前 beat 的渲染图",
+        "freezoneOpened": "已打开 AI anime 画布编辑",
+        "freezoneOpenFailed": "打开 AI anime 画布编辑失败",
         "backgroundTitle": "渲染 背景参考",
         "backgroundCurrent": "当前：{{label}}",
         "backgroundHint": "只给草图上色/材质，不改构图。",
@@ -2428,7 +1958,7 @@
         "batchRegenSketchSuccess": "已发起 {{count}} 个 beat 的草图重抽任务",
         "batchRegenRenderSuccess": "已发起 {{count}} 个 beat 的渲染图重抽任务",
         "episodeFreezone": "EP Freezone",
-        "episodeFreezoneTooltip": "打开本集虾画工作区",
+        "episodeFreezoneTooltip": "打开本集AI anime 画布工作区",
         "episodeFreezoneOpened": "已打开 EP Freezone",
         "episodeFreezoneOpenFailed": "打开 EP Freezone 失败"
       },
@@ -2446,10 +1976,10 @@
         "jumpBeat": "跳 beat {{n}}"
       },
       "actionPanel": {
-        "episodeFreezone": "本集虾画",
-        "episodeFreezoneTooltip": "在虾画中打开本集素材",
-        "episodeFreezoneOpened": "已打开本集虾画",
-        "episodeFreezoneOpenFailed": "打开本集虾画失败"
+        "episodeFreezone": "本集AI anime 画布",
+        "episodeFreezoneTooltip": "在 AI anime 画布中打开本集素材",
+        "episodeFreezoneOpened": "已打开本集AI anime 画布",
+        "episodeFreezoneOpenFailed": "打开本集AI anime 画布失败"
       }
     },
     "state": {
@@ -2789,12 +2319,7 @@
     "quickbar": {
       "addNode": "添加节点",
       "history": "历史记录",
-      "shortcuts": "快捷键",
-      "help": "帮助中心",
-      "viewManual": "查看使用手册",
-      "helpMenu": {
-        "tutorial": "使用教程"
-      }
+      "shortcuts": "快捷键"
     },
     "trackpad": {
       "enable": "开启触控板平移",
@@ -3794,16 +3319,15 @@
         "adminUsername": "管理员用户名"
       },
       "official": {
-        "description": "填入平台官方渠道 API Key 并保存，保存后自动切换为官方渠道。",
+        "description": "填入 AI anime Cloud API Key 并保存，保存后自动切换为云端渠道。",
         "save": "保存并启用",
         "enable": "切换到官方",
         "saved": "已保存并切换为官方渠道。",
-        "enabled": "已切换为官方渠道。",
-        "missingFields": "请填写 API Key。",
-        "registerLink": "请前往 RelayClaw 进行注册"
+        "enabled": "已切换为云端渠道。",
+        "missingFields": "请填写 API Key。"
       },
       "custom": {
-        "description": "CE 使用本机 SQLite NewAPI。DramaClaw 会自动连接数据库、创建运行令牌并启用本地渠道。",
+        "description": "桌面端使用本机 SQLite NewAPI。AI anime 会自动连接数据库、创建运行令牌并启用本地渠道。",
         "init": "初始化本地 NewAPI",
         "repair": "检测并修复",
         "initialized": "本地 NewAPI 已就绪。",
@@ -3822,7 +3346,7 @@
         "setupConfirmPassword": "确认密码",
         "setupPasswordPlaceholder": "至少 8 位",
         "setupConfirmPasswordPlaceholder": "再次输入密码",
-        "setupPasswordOnlyOnce": "该账号和密码只会在全新 NewAPI 首次创建管理员时提交给你的 NewAPI 实例。若 NewAPI 已经初始化，即使这里填写了密码，也不会修改已有管理员密码。DramaClaw 不会保存密码，也不会用它执行后续操作；首次初始化完成后请自行保存，用于登录 NewAPI 后台。",
+        "setupPasswordOnlyOnce": "该账号和密码只会在全新 NewAPI 首次创建管理员时提交给你的 NewAPI 实例。若 NewAPI 已经初始化，即使这里填写了密码，也不会修改已有管理员密码。AI anime 不会保存密码，也不会用它执行后续操作；首次初始化完成后请自行保存，用于登录 NewAPI 后台。",
         "setupRequired": "当前本地 NewAPI 尚未完成初始化，请填写初始化密码和确认密码后重试。",
         "setupAlreadyInitializedPasswordIgnored": "检测到你的 NewAPI 已经初始化，本次没有调用 NewAPI 初始化接口，也没有修改已有管理员密码；你刚刚填写的密码已被忽略并清空。",
         "setupPasswordMissingUsername": "请填写管理员用户名。",
@@ -3874,16 +3398,16 @@
         "multimodalRequiredBadge": "需要多模态",
         "cogneeDescription": "小说导入和知识检索需要同时配置理解模型与向量模型，两者共同构成 Cognee 小说知识库。",
         "groups": {
-          "xiahua": "虾画",
-          "xialiao": "虾料",
-          "xiatan": "虾塘",
-          "xiajing": "虾镜",
-          "xiadao": "虾导",
-          "xiage": "虾格",
-          "novelImport": "虾料 · 小说知识库（Cognee）"
+          "canvas": "AI anime 画布",
+          "import": "素材导入",
+          "assets": "资产库",
+          "production": "分镜制作",
+          "assistant": "AI anime 助手",
+          "styles": "风格管理",
+          "novelImport": "素材导入 · 小说知识库（Cognee）"
         },
         "features": {
-          "HERMES": "虾导聊天模型",
+          "HERMES": "AI anime 助手聊天模型",
           "GLOBAL_VIDEO_OPTIMIZER": "根据画面优化视频提示词",
           "SEEDANCE2_PROMPT_COMPOSER": "组合视频生成提示词",
           "GLOBAL_VIDEO_IDENTITY_DETECTOR": "识别草图中的角色与道具标记",
@@ -3963,7 +3487,7 @@
       "configured": "已配置",
       "notConfigured": "未配置",
       "warningIconLabel": "参考媒体存储未配置",
-      "notConfiguredImpact": "未配置参考媒体存储。纯文本和纯文生图通常不受影响；但需要上传本地参考图的功能会失败，例如虾画参考图、角色参考图、身份图、图生图、视频首帧和图生视频。请配置阿里云 OSS 或 Cloudinary。",
+      "notConfiguredImpact": "未配置参考媒体存储。纯文本和纯文生图通常不受影响；但需要上传本地参考图的功能会失败，例如AI anime 画布参考图、角色参考图、身份图、图生图、视频首帧和图生视频。请配置阿里云 OSS 或 Cloudinary。",
       "showSecret": "显示",
       "hideSecret": "隐藏",
       "fieldsHint": "保存后写入 CE 本地配置库；后端不会回传完整 AccessKey，如需更新请重新输入。",
@@ -4061,17 +3585,6 @@
     "getApiKeyLink": "点击这里获取密钥",
     "missingAnyApiKeyMessage": "后端 provider 未配置。",
     "openProvidersSettings": "查看 provider",
-    "aboutAppName": "Beat Workbench",
-    "aboutIntro": "SuperTale 的候选图生成、自由实验与资产提交工作台。",
-    "aboutVersionLabel": "版本",
-    "aboutVersionUnknown": "未知",
-    "aboutAuthorLabel": "作者",
-    "aboutAuthor": "痕继痕迹",
-    "aboutRepositoryLabel": "项目仓库",
-    "autoCheckUpdateOnLaunch": "启动时自动检查更新",
-    "autoCheckUpdateOnLaunchDesc": "每次打开软件自动检查一次新版本。",
-    "enableUpdateDialog": "启用更新提示弹窗",
-    "enableUpdateDialogDesc": "检测到新版本时显示更新提示弹窗。",
     "enableStoryboardGenGridPreviewShortcut": "启用宫格预览快捷键",
     "enableStoryboardGenGridPreviewShortcutDesc": "启用后，在多版本宫格节点按住 Ctrl + Alt + Shift 点击“生成”会直接输出网格预览图，不发送 AI 请求。",
     "showStoryboardGenAdvancedRatioControls": "显示宫格比例高级控制",
@@ -4091,12 +3604,7 @@
     "preferDiscountedPriceDesc": "目前仅 KIE 提供原价与折扣价两套价格参考。国内优惠价通常需要向 KIE 单独申请；启用后会优先按折扣价估算。",
     "grsaiCreditTier": "GRSAI 积分套餐档位",
     "grsaiCreditTierDesc": "GRSAI 采用积分扣费，不同充值档位对应的单次成本不同。",
-    "grsaiCreditTierOption": "¥{{price}} / {{credits}} 积分",
-    "checkUpdateNow": "立即检查更新",
-    "checkingUpdate": "正在检查更新...",
-    "checkUpdateHasUpdate": "检测到新版本。",
-    "checkUpdateUpToDate": "当前已是最新版本。",
-    "checkUpdateFailed": "检查更新失败，请稍后重试。"
+    "grsaiCreditTierOption": "¥{{price}} / {{credits}} 积分"
   },
   "pricing": {
     "nativePrice": "原币种：{{value}}",
@@ -4191,5 +3699,11 @@
     "zoom": "缩放",
     "zoomIn": "放大",
     "zoomOut": "缩小"
+  },
+  "desktopWindow": {
+    "minimize": "最小化",
+    "maximize": "最大化",
+    "restore": "还原",
+    "close": "关闭"
   }
 }

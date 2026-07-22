@@ -1,7 +1,7 @@
 import pytest
 
-from novelvideo.ports.local.project import AllowAllProjectAccess
-from novelvideo.ports.project import Principal, ProjectRecord
+from ai_anime.ports.local.project import AllowAllProjectAccess
+from ai_anime.ports.project import Principal, ProjectRecord
 
 
 def _project() -> ProjectRecord:

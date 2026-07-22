@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import pytest
 
-from novelvideo import ports
-from novelvideo.ports import registry
-from novelvideo.ports.local.project import AllowAllProjectAccess
+from ai_anime import ports
+from ai_anime.ports import registry
+from ai_anime.ports.local.project import AllowAllProjectAccess
 
 
 class FakeProjectAccess:
@@ -14,8 +14,8 @@ class FakeProjectAccess:
 
 @pytest.mark.asyncio
 async def test_01_port_registry_isolation_probe_registers_fake_after_bootstrap(monkeypatch):
-    monkeypatch.setenv("ST_EDITION", "ce")
-    monkeypatch.delenv("ST_CONTROL_PLANE_DSN", raising=False)
+    monkeypatch.setenv("AI_ANIME_EDITION", "ce")
+    monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
 
     registry.ensure_bootstrap()
     registry.register_port("project_access", FakeProjectAccess())
@@ -32,8 +32,8 @@ async def test_01_port_registry_isolation_probe_registers_fake_after_bootstrap(m
 async def test_02_port_registry_isolation_probe_restores_default_and_bootstrap_flag(
     monkeypatch,
 ):
-    monkeypatch.setenv("ST_EDITION", "ce")
-    monkeypatch.delenv("ST_CONTROL_PLANE_DSN", raising=False)
+    monkeypatch.setenv("AI_ANIME_EDITION", "ce")
+    monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
 
     registry.ensure_bootstrap()
     project_access = ports.get_project_access()

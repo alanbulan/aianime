@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from novelvideo.freezone.paths import resolve_static_url_to_path
+from ai_anime.freezone.paths import resolve_static_url_to_path
 
 
 def test_resolve_project_static_url_decodes_quoted_relpath(tmp_path: Path) -> None:

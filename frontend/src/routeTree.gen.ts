@@ -14,7 +14,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
-import { Route as WatchWorkRouteImport } from './routes/watch.$work'
 import { Route as AppProjectsProjectTasksRouteImport } from './routes/_app/projects.$project/tasks'
 import { Route as AppProjectsProjectStylesRouteImport } from './routes/_app/projects.$project/styles'
 import { Route as AppProjectsProjectIngestRouteImport } from './routes/_app/projects.$project/ingest'
@@ -63,11 +62,6 @@ const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppRoute,
-} as any)
-const WatchWorkRoute = WatchWorkRouteImport.update({
-  id: '/watch/$work',
-  path: '/watch/$work',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const AppProjectsProjectFreezoneLazyRoute =
   AppProjectsProjectFreezoneLazyRouteImport.update({
@@ -202,7 +196,6 @@ const AppProjectsProjectEpisodesEpisodeAudioLazyRoute =
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
-  '/watch/$work': typeof WatchWorkRoute
   '/projects/$project/assistant': typeof AppProjectsProjectAssistantRoute
   '/projects/$project/episodes': typeof AppProjectsProjectEpisodesRouteWithChildren
   '/projects/$project/ingest': typeof AppProjectsProjectIngestRoute
@@ -221,7 +214,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
-  '/watch/$work': typeof WatchWorkRoute
   '/': typeof AppIndexRoute
   '/projects/$project/assistant': typeof AppProjectsProjectAssistantRoute
   '/projects/$project/episodes': typeof AppProjectsProjectEpisodesRouteWithChildren
@@ -243,7 +235,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
-  '/watch/$work': typeof WatchWorkRoute
   '/_app/': typeof AppIndexRoute
   '/_app/projects/$project/assistant': typeof AppProjectsProjectAssistantRoute
   '/_app/projects/$project/episodes': typeof AppProjectsProjectEpisodesRouteWithChildren
@@ -266,7 +257,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
-    | '/watch/$work'
     | '/projects/$project/assistant'
     | '/projects/$project/episodes'
     | '/projects/$project/ingest'
@@ -285,7 +275,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
-    | '/watch/$work'
     | '/'
     | '/projects/$project/assistant'
     | '/projects/$project/episodes'
@@ -306,7 +295,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/login'
-    | '/watch/$work'
     | '/_app/'
     | '/_app/projects/$project/assistant'
     | '/_app/projects/$project/episodes'
@@ -328,7 +316,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
-  WatchWorkRoute: typeof WatchWorkRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -353,13 +340,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
-    }
-    '/watch/$work': {
-      id: '/watch/$work'
-      path: '/watch/$work'
-      fullPath: '/watch/$work'
-      preLoaderRoute: typeof WatchWorkRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/_app/projects/$project/freezone': {
       id: '/_app/projects/$project/freezone'
@@ -532,7 +512,6 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
-  WatchWorkRoute: WatchWorkRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

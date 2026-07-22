@@ -1,4 +1,4 @@
-from novelvideo.api.routes.freezone import (
+from ai_anime.api.routes.freezone import (
     _merge_projected_preset_canvas,
     _remove_projected_preset_canvas,
     _wrap_projection_payload_in_group,

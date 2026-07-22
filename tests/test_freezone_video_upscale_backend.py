@@ -5,8 +5,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from novelvideo.api.routes import freezone as freezone_routes
-from novelvideo.freezone.jobs import _video_upscale_filter
+from ai_anime.api.routes import freezone as freezone_routes
+from ai_anime.freezone.jobs import _video_upscale_filter
 
 
 def test_video_upscale_filter_uses_lanczos_and_enhancement() -> None:

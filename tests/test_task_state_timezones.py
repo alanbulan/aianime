@@ -1,8 +1,8 @@
 from datetime import timezone
 from pathlib import Path
 
-from novelvideo.project_context import ProjectContext
-from novelvideo.task_state import (
+from ai_anime.project_context import ProjectContext
+from ai_anime.task_state import (
     TaskState,
     TaskStateManager,
     parse_task_timestamp,

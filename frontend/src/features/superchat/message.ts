@@ -1,10 +1,9 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import type { ChatAttachment, ChatMessage, ChatRole } from "@/features/superchat/types";
 import { hasStructuredContent } from "@/features/superchat/spec-extract";
 
 const INTERNAL_CONTEXT_BLOCK_RE =
-  /\n?\[(DRAMACLAW_[A-Z0-9_]+)\][\s\S]*?\[\/\1\]\n?/g;
+  /\n?\[(AI_ANIME_[A-Z0-9_]+)\][\s\S]*?\[\/\1\]\n?/g;
 
 function stripInternalContextBlocks(text: string): string {
   return text.replace(INTERNAL_CONTEXT_BLOCK_RE, "\n").trim();

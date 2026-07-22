@@ -1,8 +1,8 @@
 import pytest
 from PIL import Image
 
-from novelvideo.freezone import mark_node
-from novelvideo.freezone.mark_node import build_mark_detection_task, crop_mark_focus_image
+from ai_anime.freezone import mark_node
+from ai_anime.freezone.mark_node import build_mark_detection_task, crop_mark_focus_image
 
 
 def test_build_mark_detection_task_includes_point() -> None:
@@ -40,7 +40,7 @@ async def test_mark_detection_uses_shared_freezone_vision_model(
 
     async def fake_call_freezone_vision_model(**kwargs):
         captured.update(kwargs)
-        return "DC-freezone-vision-LLM", '{"label":"老人","note":"主体人物"}'
+        return "ai-anime-freezone-vision-LLM", '{"label":"老人","note":"主体人物"}'
 
     monkeypatch.setattr(
         mark_node,
@@ -58,7 +58,7 @@ async def test_mark_detection_uses_shared_freezone_vision_model(
         "label": "老人",
         "note": "主体人物",
         "provider": "newapi",
-        "model": "DC-freezone-vision-LLM",
+        "model": "ai-anime-freezone-vision-LLM",
     }
     assert len(captured["images"]) == 2
 
@@ -73,7 +73,7 @@ async def test_mark_detection_preserves_source_image_media_type(
 
     async def fake_call_freezone_vision_model(**kwargs):
         captured.update(kwargs)
-        return "DC-freezone-vision-LLM", '{"label":"老人","note":""}'
+        return "ai-anime-freezone-vision-LLM", '{"label":"老人","note":""}'
 
     monkeypatch.setattr(
         mark_node,

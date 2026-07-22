@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 
 // Single source of truth for platform detection. `navigator.platform` is the
 // most reliable signal for desktop macOS; the userAgent fallback covers iPad

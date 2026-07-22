@@ -9,7 +9,7 @@ class FakeGenerator:
         self.fail_beats = set(fail_beats or [])
 
     async def generate(self, *, prompt, audio_url, output_path, emotion_prompt=""):
-        from novelvideo.generators.tts_generator import TTSResult
+        from ai_anime.generators.tts_generator import TTSResult
 
         beat_num = int(Path(output_path).stem.split("_")[-1])
         self.calls.append(beat_num)
@@ -32,7 +32,7 @@ class FakeStore:
         return list(self._beats)
 
     async def list_characters(self):
-        from novelvideo.models import CharacterIdentity, NovelCharacter
+        from ai_anime.models import CharacterIdentity, NovelCharacter
 
         reference = (
             Path(self.project_dir)
@@ -69,7 +69,7 @@ class FakeStoreCharacterDefaultVoice:
         return list(self._beats)
 
     async def list_characters(self):
-        from novelvideo.models import CharacterIdentity, NovelCharacter
+        from ai_anime.models import CharacterIdentity, NovelCharacter
 
         reference = (
             Path(self.project_dir)
@@ -128,14 +128,14 @@ def _beats():
 
 
 def _write_drama_first_person_project_narrator(tmp_path, project_dir, monkeypatch) -> str:
-    from novelvideo.seedance2_i2v.voice_clone import file_sha256
-    from novelvideo.project_config import set_narrator_reference_audio, update_project_config_file
+    from ai_anime.seedance2_i2v.voice_clone import file_sha256
+    from ai_anime.project_config import set_narrator_reference_audio, update_project_config_file
 
     narrator = project_dir / "assets" / "narrator" / "voice.wav"
     narrator.parent.mkdir(parents=True, exist_ok=True)
     narrator.write_bytes(b"project-narrator-reference")
     narrator_sha = file_sha256(narrator)
-    monkeypatch.setattr("novelvideo.project_config.OUTPUT_DIR", tmp_path / "state")
+    monkeypatch.setattr("ai_anime.project_config.OUTPUT_DIR", tmp_path / "state")
     set_narrator_reference_audio(
         "alice",
         "demo",
@@ -170,7 +170,7 @@ class FakeNarrationStore:
         ]
 
     async def list_characters(self):
-        from novelvideo.models import CharacterIdentity, NovelCharacter
+        from ai_anime.models import CharacterIdentity, NovelCharacter
 
         reference = (
             Path(self.project_dir)
@@ -197,7 +197,7 @@ class FakeNarrationStore:
 
 @pytest.mark.asyncio
 async def test_seedance2_voice_task_missing_only_skips_existing(tmp_path):
-    from novelvideo.seedance2_i2v.voice_audio_task import run_seedance2_voice_audio_generation
+    from ai_anime.seedance2_i2v.voice_audio_task import run_seedance2_voice_audio_generation
 
     project_dir = tmp_path / "project"
     db_path = tmp_path / "state" / "data.db"
@@ -225,7 +225,7 @@ async def test_seedance2_voice_task_missing_only_skips_existing(tmp_path):
 
 @pytest.mark.asyncio
 async def test_seedance2_voice_task_accepts_character_default_voice_fallback(tmp_path):
-    from novelvideo.seedance2_i2v.voice_audio_task import run_seedance2_voice_audio_generation
+    from ai_anime.seedance2_i2v.voice_audio_task import run_seedance2_voice_audio_generation
 
     generator = FakeGenerator()
     store = FakeStoreCharacterDefaultVoice(
@@ -251,7 +251,7 @@ async def test_seedance2_voice_task_accepts_character_default_voice_fallback(tmp
 
 @pytest.mark.asyncio
 async def test_seedance2_voice_task_redo_all_overwrites_existing(tmp_path):
-    from novelvideo.seedance2_i2v.voice_audio_task import run_seedance2_voice_audio_generation
+    from ai_anime.seedance2_i2v.voice_audio_task import run_seedance2_voice_audio_generation
 
     project_dir = tmp_path / "project"
     db_path = tmp_path / "state" / "data.db"
@@ -280,7 +280,7 @@ async def test_seedance2_voice_task_redo_all_overwrites_existing(tmp_path):
 
 @pytest.mark.asyncio
 async def test_seedance2_voice_task_stops_when_voice_hash_changed(tmp_path):
-    from novelvideo.seedance2_i2v.voice_audio_task import run_seedance2_voice_audio_generation
+    from ai_anime.seedance2_i2v.voice_audio_task import run_seedance2_voice_audio_generation
 
     store = FakeStore(
         tmp_path / "project",
@@ -303,7 +303,7 @@ async def test_seedance2_voice_task_stops_when_voice_hash_changed(tmp_path):
 
 @pytest.mark.asyncio
 async def test_seedance2_voice_task_collects_partial_failures(tmp_path):
-    from novelvideo.seedance2_i2v.voice_audio_task import run_seedance2_voice_audio_generation
+    from ai_anime.seedance2_i2v.voice_audio_task import run_seedance2_voice_audio_generation
 
     generator = FakeGenerator(fail_beats={2})
     store = FakeStore(tmp_path / "project", tmp_path / "state" / "data.db", _beats())
@@ -326,7 +326,7 @@ async def test_seedance2_voice_task_collects_partial_failures(tmp_path):
 async def test_seedance2_narration_task_drama_first_person_uses_project_narrator(
     tmp_path, monkeypatch
 ):
-    from novelvideo.seedance2_i2v.narration_audio_task import (
+    from ai_anime.seedance2_i2v.narration_audio_task import (
         run_seedance2_narration_audio_generation,
     )
 
@@ -355,15 +355,15 @@ async def test_seedance2_narration_task_drama_first_person_uses_project_narrator
 
 
 def test_seedance2_task_modules_are_available():
-    import novelvideo.seedance2_i2v.narration_audio_task as narration_audio_task
-    import novelvideo.seedance2_i2v.voice_audio_task as voice_audio_task
+    import ai_anime.seedance2_i2v.narration_audio_task as narration_audio_task
+    import ai_anime.seedance2_i2v.voice_audio_task as voice_audio_task
 
     assert hasattr(narration_audio_task, "run_seedance2_narration_audio_generation")
     assert hasattr(voice_audio_task, "run_seedance2_voice_audio_generation")
 
 
 def test_seedance2_package_exports_video_helpers():
-    import novelvideo.seedance2_i2v as seedance2_i2v
+    import ai_anime.seedance2_i2v as seedance2_i2v
 
     for name in (
         "Seedance2I2VMode",

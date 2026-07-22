@@ -12,7 +12,7 @@ class FakeAgent:
 
 
 def _capture_model_calls(monkeypatch):
-    from novelvideo import config
+    from ai_anime import config
 
     calls: list[dict[str, str | None]] = []
 
@@ -36,13 +36,13 @@ def _capture_model_calls(monkeypatch):
     ("module_name", "factory_name", "provider_env", "model_env"),
     [
         (
-            "novelvideo.agents.global_video_optimizer",
+            "ai_anime.agents.global_video_optimizer",
             "create_global_video_reviewer_agent",
             "GLOBAL_VIDEO_PROVIDER",
             "GLOBAL_VIDEO_MODEL",
         ),
         (
-            "novelvideo.agents.video_prompt_builder",
+            "ai_anime.agents.video_prompt_builder",
             "create_video_prompt_builder_agent",
             "VIDEO_PROMPT_PROVIDER",
             "VIDEO_PROMPT_MODEL",
@@ -76,7 +76,7 @@ def test_superpower_prompt_agents_use_default_model_provider_unless_overridden(
 
 def test_global_video_reviewer_superpower_can_use_feature_specific_model_override(monkeypatch):
     calls = _capture_model_calls(monkeypatch)
-    from novelvideo.agents import global_video_optimizer
+    from ai_anime.agents import global_video_optimizer
 
     monkeypatch.setattr(global_video_optimizer, "Agent", FakeAgent)
     monkeypatch.setenv("GLOBAL_VIDEO_PROVIDER", "openrouter")
@@ -93,8 +93,8 @@ def test_global_video_reviewer_superpower_can_use_feature_specific_model_overrid
 
 
 def test_keyframe_prompt_builder_uses_video_optimizer_model(monkeypatch):
-    from novelvideo import config
-    from novelvideo.agents import keyframe_prompt_builder
+    from ai_anime import config
+    from ai_anime.agents import keyframe_prompt_builder
 
     calls: list[tuple[str, str]] = []
 
@@ -112,5 +112,5 @@ def test_keyframe_prompt_builder_uses_video_optimizer_model(monkeypatch):
     keyframe_prompt_builder.create_keyframe_prompt_builder_agent()
 
     assert calls == [
-        ("KEYFRAME_PROMPT_MODEL", "DC-video-prompt-optimizer-LLM")
+        ("KEYFRAME_PROMPT_MODEL", "ai-anime-video-prompt-optimizer-LLM")
     ]

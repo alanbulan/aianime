@@ -5,14 +5,14 @@ from types import SimpleNamespace
 
 import pytest
 
-from novelvideo.api.schemas import EpisodeUpdate
-from novelvideo.models import CharacterIdentity, NovelCharacter, NovelEpisode, NovelProp
+from ai_anime.api.schemas import EpisodeUpdate
+from ai_anime.models import CharacterIdentity, NovelCharacter, NovelEpisode, NovelProp
 
 pytestmark = pytest.mark.m03
 
 
 def test_episode_plan_route_precedes_episode_detail_route():
-    from novelvideo.api.routes.episodes import router
+    from ai_anime.api.routes.episodes import router
 
     paths = [route.path for route in router.routes]
 
@@ -22,7 +22,7 @@ def test_episode_plan_route_precedes_episode_detail_route():
 
 
 def test_episode_asset_task_scope_is_stable_per_episode_and_kind():
-    from novelvideo.api.routes.episodes import _episode_asset_task_scope
+    from ai_anime.api.routes.episodes import _episode_asset_task_scope
 
     assert _episode_asset_task_scope("prop", 4) == "prop_run_ep004"
     assert _episode_asset_task_scope("prop", 4) == "prop_run_ep004"
@@ -216,7 +216,7 @@ def _patch_celery_episode_asset_planner(
 
 @pytest.mark.asyncio
 async def test_get_episode_detail_returns_nicegui_fields(tmp_path, monkeypatch):
-    from novelvideo.api.routes import episodes
+    from ai_anime.api.routes import episodes
 
     episode = NovelEpisode(
         number=1,
@@ -281,7 +281,7 @@ async def test_get_episode_detail_returns_nicegui_fields(tmp_path, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_list_episodes_returns_fields_needed_by_react_workbench(tmp_path, monkeypatch):
-    from novelvideo.api.routes import episodes
+    from ai_anime.api.routes import episodes
 
     episode = NovelEpisode(
         number=1,
@@ -336,7 +336,7 @@ async def test_list_episodes_returns_fields_needed_by_react_workbench(tmp_path, 
 
 @pytest.mark.asyncio
 async def test_patch_episode_source_fields_persists_and_returns_detail(tmp_path, monkeypatch):
-    from novelvideo.api.routes import episodes
+    from ai_anime.api.routes import episodes
 
     episode = NovelEpisode(number=1, title="第一集")
     store = _EpisodeStore(episode)
@@ -368,7 +368,7 @@ async def test_patch_episode_source_fields_persists_and_returns_detail(tmp_path,
 
 @pytest.mark.asyncio
 async def test_plan_episode_identities_enqueues_celery_task(monkeypatch):
-    from novelvideo.api.routes import episodes
+    from ai_anime.api.routes import episodes
 
     ctx = SimpleNamespace(project_id="proj_123")
     calls: list[dict] = []
@@ -424,7 +424,7 @@ async def test_plan_episode_identities_enqueues_celery_task(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_plan_episode_scenes_returns_updated_episode_detail(tmp_path, monkeypatch):
-    from novelvideo.api.routes import episodes
+    from ai_anime.api.routes import episodes
     episode = NovelEpisode(number=1, title="第一集", beat_source_text="第一行")
     store = _CogneeEpisodeStore(episode)
     _patch_project_and_cognee_store(monkeypatch, episodes, tmp_path, store)
@@ -453,7 +453,7 @@ async def test_plan_episode_scenes_returns_updated_episode_detail(tmp_path, monk
 
 @pytest.mark.asyncio
 async def test_plan_episode_scenes_enqueues_celery_task(monkeypatch):
-    from novelvideo.api.routes import episodes
+    from ai_anime.api.routes import episodes
 
     calls = _patch_celery_episode_asset_planner(monkeypatch, episodes)
 
@@ -488,7 +488,7 @@ async def test_plan_episode_scenes_enqueues_celery_task(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_plan_episode_props_returns_updated_episode_detail(tmp_path, monkeypatch):
-    from novelvideo.api.routes import episodes
+    from ai_anime.api.routes import episodes
     episode = NovelEpisode(number=1, title="第一集", beat_source_text="第一行")
     store = _CogneeEpisodeStore(episode)
     _patch_project_and_cognee_store(monkeypatch, episodes, tmp_path, store)
@@ -531,7 +531,7 @@ async def test_plan_episode_props_returns_updated_episode_detail(tmp_path, monke
 
 @pytest.mark.asyncio
 async def test_plan_episode_props_enqueues_celery_task(monkeypatch):
-    from novelvideo.api.routes import episodes
+    from ai_anime.api.routes import episodes
 
     calls = _patch_celery_episode_asset_planner(monkeypatch, episodes)
 

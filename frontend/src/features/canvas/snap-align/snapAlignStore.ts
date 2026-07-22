@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { create } from 'zustand';
 
 // 吸附对齐：节点拖动时显示蓝色虚线，指示当前位置与其它节点的边/中线对齐。

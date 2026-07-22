@@ -1,373 +1,355 @@
-<div align="center">
+# AI anime 桌面客户端
 
-<!-- TBD: replace with official logo assets/logo.svg -->
-<h1>DramaClaw</h1>
+AI anime 是一个 Windows 桌面客户端。最终安装包同时包含 React 前端、Electron 桌面壳、FastAPI 本地后端、Python 业务代码、SQLite 本地存储能力和 FFmpeg，用户不需要单独安装 Python、Node.js、数据库或媒体工具。
 
-## Make Your Own DC.
+当前版本的账户登录、授权码登录和云生成任务使用本地模拟实现。前端契约和 Python 端口已经分层，后续接入真实云端时，应保留前端同源 API，通过本地 FastAPI 统一访问云服务。
 
-<p align="left">
+## 1. 运行架构
 
-They say you're obsolete.<br/>
-Maybe it's the whole idea of "working for someone else" that's obsolete.<br/>
-<br/>
-In the age of AI, the real question isn't whether machines replace people.<br/>
-The real question is:<br/>
-Who owns the machines?<br/>
-Who owns the pipeline?<br/>
-Who owns industrialized productivity?<br/>
-<br/>
-If the answer is always Big Tech,<br/>
-then AI isn't empowerment.<br/>
-It's just a new wall.<br/>
-<br/>
-I'm Eric.<br/>
-<br/>
-This isn't a demo.<br/>
-Not a toy.<br/>
-Not a crippled edition.<br/>
-<br/>
-This is the industrialized drama-production line our own team runs every day.<br/>
-From script to storyboard, from assets to finished film — the whole chain.<br/>
-<br/>
-Because people aren't beasts of burden.<br/>
-Because creativity is humanity's last line of defense.<br/>
-<br/>
-What DramaClaw sets out to do is simple:<br/>
-<br/>
-<strong>Tear down the wall.</strong><br/>
-<br/>
-Put the industrialized drama-production power that only Big Tech had<br/>
-into the hands of ordinary creators.<br/>
-<br/>
-The code is here.<br/>
-If this resonates, leave a ⭐.<br/>
-We'll keep tearing down walls.
-
-</p>
-
-<br/>
-
-[![License](https://img.shields.io/badge/License-Elastic_2.0-blue.svg)](./LICENSES/Elastic-2.0.txt)
-[![GitHub stars](https://img.shields.io/github/stars/dramaclaw/dramaclaw?style=social)](https://github.com/dramaclaw/dramaclaw/stargazers)
-[![Release](https://img.shields.io/github/v/release/dramaclaw/dramaclaw?include_prereleases&sort=semver)](https://github.com/dramaclaw/dramaclaw/releases)
-[![Docker](https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white)](#quick-start)
-
-**English** &nbsp;|&nbsp; [简体中文](./readme/README_zh.md) &nbsp;|&nbsp; [Website](https://dramaclaw.ai) &nbsp;|&nbsp; [Docs](./docs/en/README.md) &nbsp;|&nbsp; [Quick Start](./docs/en/getting-started/quickstart.md)
-
-</div>
-
-<br/>
-
-<p align="center">
-  <img src="./assets/hero.png" alt="DramaClaw — storytellers, back in front of the camera" width="820"/>
-</p>
-
-<!--
-  Demo video — after uploading, paste the user-attachments link on its own line below.
-  How to upload: open a new Issue on github.com (don't submit it), drag the demo
-  video into the body, wait for it to finish uploading and auto-generate a
-  https://github.com/user-attachments/assets/...mp4 link, copy it here, then
-  discard the Issue. GitHub renders a URL on its own line as an inline player.
-
-  https://github.com/user-attachments/assets/REPLACE-AFTER-UPLOAD
--->
-
-<p align="center">
-  <sub>🎬 Trailer: <a href="https://www.bilibili.com/video/BV1iQV26cE4S">Bilibili</a> &nbsp;·&nbsp; <a href="https://www.youtube.com/watch?v=64apa3maxK0">YouTube</a></sub>
-</p>
-
-<br/>
-
-<div align="center">
-
-## 🎬 Made with DramaClaw
-
-<sub>Real short dramas our team produced on this very pipeline &mdash; click a link to play.</sub>
-
-<table>
-  <tr>
-    <td align="center" width="205" valign="top">
-      <img src="https://nfg-web-assets.cdnfg.com/dramaclaw/guilingsi/guilingsi-cover.png?v=2" width="185" alt="归灵司"/><br/>
-      <b>归灵司</b><br/>
-      <a href="https://nfg-web-assets.cdnfg.com/dramaclaw/guilingsi/guilingsi-ep01.mp4">▶ 第 1 集</a>
-    </td>
-    <td align="center" width="205" valign="top">
-      <img src="https://nfg-web-assets.cdnfg.com/dramaclaw/luban/luban-cover.png?v=2" width="185" alt="鲁班"/><br/>
-      <b>鲁班</b><br/>
-      <a href="https://nfg-web-assets.cdnfg.com/dramaclaw/luban/luban-ep01.mp4">▶ 第 1 集</a>
-    </td>
-    <td align="center" width="205" valign="top">
-      <img src="https://nfg-web-assets.cdnfg.com/dramaclaw/shixiong-butianle/shixiong-butianle-cover.png?v=2" width="185" alt="师兄你怎么不舔了"/><br/>
-      <b>师兄你怎么不舔了</b><br/>
-      <a href="https://nfg-web-assets.cdnfg.com/dramaclaw/shixiong-butianle/shixiong-butianle-ep01.mp4">▶ 第 1 集</a>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" width="205" valign="top">
-      <img src="https://nfg-web-assets.cdnfg.com/dramaclaw/tianmingbukeqi/tianmingbukeqi-cover.png?v=2" width="185" alt="天命不可欺"/><br/>
-      <b>天命不可欺</b><br/>
-      <a href="https://nfg-web-assets.cdnfg.com/dramaclaw/tianmingbukeqi/tianmingbukeqi-ep02.mp4">▶ 第 02 集</a> &nbsp;·&nbsp; <a href="https://nfg-web-assets.cdnfg.com/dramaclaw/tianmingbukeqi/tianmingbukeqi-ep58.mp4">第 58 集</a>
-    </td>
-    <td align="center" width="205" valign="top">
-      <img src="https://nfg-web-assets.cdnfg.com/dramaclaw/wulongxiantu/wulongxiantu-cover.png?v=2" width="185" alt="乌龙仙途"/><br/>
-      <b>乌龙仙途</b><br/>
-      <a href="https://nfg-web-assets.cdnfg.com/dramaclaw/wulongxiantu/wulongxiantu-ep01.mp4">▶ 第 1 集</a>
-    </td>
-    <td align="center" width="205" valign="top">
-      <img src="https://nfg-web-assets.cdnfg.com/dramaclaw/feiyi-zhouwu/feiyi-zhouwu-cover.png?v=2" width="185" alt="非遗㑇舞"/><br/>
-      <b>非遗㑇舞</b><br/>
-      <a href="https://nfg-web-assets.cdnfg.com/dramaclaw/feiyi-zhouwu/feiyi-zhouwu.mp4">▶ 播放</a>
-    </td>
-  </tr>
-</table>
-
-<sub>More clips:
-<a href="https://nfg-web-assets.cdnfg.com/dramaclaw/3d-anime-montage-demo/3d-anime-montage-demo.mp4">3D 动漫混剪 demo</a> &nbsp;·&nbsp;
-<a href="https://nfg-web-assets.cdnfg.com/dramaclaw/dongtai-dadou/dongtai-dadou.mp4">动态打斗</a></sub>
-
-</div>
-
-<br/>
-
-## What is DramaClaw?
-
-DramaClaw is an industrialized drama-production line whose **source is available**. Drop in a manuscript and DramaClaw takes over all the heavy lifting: extracting characters, planning episodes, generating scripts, drawing storyboards and first frames, synthesizing voice-over, and cutting the final film.
-
-It's built for creators, indie studios, and creative engineers — letting you run the whole "drama factory" on your own infrastructure, without stitching together a dozen disconnected tools or handing your material to an opaque black-box cloud service.
-
-And although it's built around drama production, the same pipeline — characters, assets, scripts, storyboards, voice-over, and compositing — carries just as well to other visual-content formats: short-form ads, e-commerce product videos, and interactive otome (romance) games.
-
-<br/>
-
-## Core Capabilities
-
-<p align="center">
-  <img src="https://nfg-web-assets.cdnfg.com/dramaclaw/readme/oss-launch.jpg?v=2" width="760" alt="DramaClaw 源码发布 · source-available launch"/>
-</p>
-
-- **Novel parsing & story graph** &mdash; parse the manuscript into a queryable graph of characters, relationships, and timeline
-- **Asset Library & identity consistency** &mdash; unified management of characters, scenes, props and voices; keep stable identities across episodes, generate character portraits and per-episode variants
-- **Episode planning & narrative pacing** &mdash; automatic chapter segmentation, beat planning, multi-episode arcs
-- **Script generation** &mdash; multiple modes (adaptive, literal, staged) with review / repair loops
-- **Storyboards & first frames** &mdash; beat-driven stylized image generation, grid splitting, image-pool selection<br/>
-  <img src="https://nfg-web-assets.cdnfg.com/dramaclaw/readme/storyboard-sketch.jpg?v=2" width="600" alt="独家线稿草图系统 · Line-art Storyboard System"/>
-- **Voice-over synthesis** &mdash; emotion-aware speech synthesis, switchable across providers
-- **Video composition & export** &mdash; assemble episodes, export video + subtitle files and the full asset pack
-- **Freezone (infinite canvas)** &mdash; node-based visual workbench: drag in project assets to generate images / video / audio, promote satisfying candidates back to the main line; the main pipeline and canvas exploration run as dual tracks<br/>
-  <img src="https://nfg-web-assets.cdnfg.com/dramaclaw/readme/dual-mode-workflow.jpg?v=2" width="600" alt="双模式工作流 · Dual-mode Workflow"/>
-- **Director World / 3GS (scene variants)** &mdash; a framable virtual set that locks spatial structure, character blocking and camera placement to keep the same location consistent across shots<br/>
-  <img src="https://nfg-web-assets.cdnfg.com/dramaclaw/readme/world-model.jpg?v=2" width="600" alt="世界模型 · World Model (3GS)"/>
-- **Xia Director (AI assistant)** &mdash; conversational production assistant that checks project progress, advances script / shot tasks, audits deliverable completeness and suggests next steps<br/>
-  <img src="https://nfg-web-assets.cdnfg.com/dramaclaw/readme/director-agent.jpg?v=2" width="600" alt="导演智能体 · Director Agent"/>
-- **Visual Style (style templates)** &mdash; upload a reference image to auto-extract style parameters and apply them across the whole project for a consistent look
-- **Task Center** &mdash; status, progress, logs and cancel / retry for background generation tasks, with resume-from-checkpoint for long runs
-
-<br/>
-
-## Pipeline at a Glance
-
-<p align="center">
-  <img src="./assets/pipeline.png" alt="DramaClaw pipeline — Ingest, Plan, Produce, Deliver" width="900"/>
-</p>
-
-Every step has its own interface — run them in order, skip steps, resume from any checkpoint, or even plug in your own orchestrator.
-
-<br/>
-
-## System Requirements
-
-DramaClaw runs all inference through a **remote OpenAI-compatible gateway** — nothing runs models on your machine — so the local footprint is light. An ordinary laptop or a small VPS is enough.
-
-| Item | Requirement |
-|---|---|
-| **CPU / RAM** | ≥ 2 vCPU / 4 GB recommended (excludes model inference — that runs on the gateway) |
-| **GPU** | Not required for the standard pipeline. Only the optional `world` extra (voxel / panorama-to-3D) needs a GPU + CUDA image |
-| **Disk** | A few GB for images plus generated media/state under the `ce-data` volume (no hard minimum) |
-| **OS** | macOS (Apple Silicon / Intel), Windows (Docker Desktop + WSL2 backend), Linux (Docker Engine + compose plugin) |
-| **Docker** | Docker + `docker compose` |
-| **Ports** | `8080` web UI · `8780` REST API · `3000` bundled gateway (self-hosted variant only) |
-| **Datastores** | None required — no Postgres, Redis, Celery or Ray. Tasks run in-process; state lives on the local filesystem (SQLite + files) |
-| **Network** | Outbound access to the model gateway (official `relayclaw.cdnfg.com`, or your own BYO endpoint) |
-
-> Local development (non-Docker) additionally needs Python 3.11–3.12 + [`uv`](https://docs.astral.sh/uv/) + `ffmpeg`. Full prerequisites in the [Self-hosting guide](docs/en/guides/self-hosting.md).
-
-<br/>
-
-## <a name="quick-start"></a>Quick Start
-
-### Docker (recommended)
-
-```bash
-git clone https://github.com/dramaclaw/dramaclaw.git
-cd dramaclaw
-
-cp .env.example .env
-# Edit .env — set PROMPT_EXPORT_PASSWORD to a non-default value.
-# NEWAPI_BASE_URL defaults to the official gateway; add your DC key here or paste it in the UI next.
-
-docker compose up -d --build   # starts two services: api / web
+```mermaid
+flowchart LR
+    UI[React 渲染层] -->|同源 /api/v1/*| API[本地 FastAPI]
+    Electron[Electron 主进程] -->|启动与回收| API
+    Electron -->|加载随机 loopback 地址| UI
+    Electron -->|自动注入桌面进程令牌| API
+    API --> Ports[Python 端口层]
+    Ports --> Local[SQLite / 本地文件 / FFmpeg]
+    Ports --> Mock[当前：模拟认证与模拟云任务]
+    Ports -. 后续 .-> Cloud[真实云端服务]
 ```
 
-Open the app at <http://localhost:8080>; the REST API is at <http://localhost:8780>. In **Settings → Model Config → Official**, paste your DC key (get one at <https://relayclaw.cdnfg.com>) and you're ready — no model mapping needed. Full steps in the [Quick Start](docs/en/getting-started/quickstart.md).
+桌面启动顺序：
 
-**No build needed** — every GitHub Release publishes multi-arch (amd64/arm64) images to Docker Hub, so a single file is enough to run:
+1. Electron 主进程生成一次性的 32 字节随机令牌。
+2. Electron 启动 PyInstaller 打包的 `ai-anime-backend.exe`。
+3. FastAPI 只绑定 `127.0.0.1`，由系统分配随机端口。
+4. FastAPI 通过标准输出发送 `AI_ANIME_DESKTOP` 事件，告知 Electron 实际端口。
+5. Electron 为该 loopback 地址的所有请求自动添加 `X-AI-Anime-Desktop-Token`。
+6. FastAPI 校验桌面进程令牌，并在同一地址提供 SPA 静态文件和 `/api/v1/*` 接口。
+7. 窗口关闭时，Electron 调用 `/__desktop/shutdown`，等待 FastAPI 正常退出后再回收进程。
 
-```bash
-curl -LO https://raw.githubusercontent.com/dramaclaw/dramaclaw/main/docker-compose.release.yml
-docker compose -f docker-compose.release.yml up -d
-# Pin a version (defaults to latest): DRAMACLAW_VERSION=1.0.1 docker compose -f docker-compose.release.yml up -d
+桌面进程令牌和用户登录会话是两套不同机制：
+
+| 机制 | 用途 | 位置 | 是否代表用户身份 |
+| --- | --- | --- | --- |
+| `X-AI-Anime-Desktop-Token` | 阻止其他本机进程直接调用随机端口上的 sidecar | Electron 与 FastAPI 之间 | 否 |
+| `ai_anime_session` | 登录后识别当前用户 | HttpOnly Cookie | 是 |
+
+接入云端时不能把桌面进程令牌当作账户令牌，也不能把云端访问令牌暴露给 React 渲染层。
+
+## 2. 项目结构
+
+```text
+ai-anime-desktop/
+├─ desktop/                         Electron 主进程与 Windows 打包
+│  ├─ src/
+│  │  ├─ main.ts                    窗口创建、CSP、导航限制、最小化/最大化/关闭 IPC
+│  │  ├─ backend.ts                 FastAPI sidecar 启动、随机令牌、健康检查和进程回收
+│  │  └─ preload.cts                向渲染层暴露最小化的窗口控制 API
+│  ├─ backend/
+│  │  ├─ entrypoint.py              PyInstaller 后端入口
+│  │  └─ ai_anime_backend.spec      FastAPI/Python 依赖收集规则
+│  ├─ scripts/
+│  │  ├─ fetch-ffmpeg.ps1           获取随包 FFmpeg
+│  │  └─ generate-icon.cjs          生成 Windows 应用图标
+│  ├─ electron-builder.yml          NSIS、资源和安装包配置
+│  └─ package.json                  Electron 开发、构建和打包命令
+│
+├─ frontend/                        React 19 + Vite 渲染层
+│  ├─ public/                       登录背景、主题初始化脚本等静态资源
+│  └─ src/
+│     ├─ components/                页面组件、主题控件、自定义标题栏
+│     ├─ routes/                    TanStack Router 页面与认证路由守卫
+│     ├─ stores/                    Zustand 客户端状态
+│     ├─ lib/                       API 适配器、查询、运行时配置和公共工具
+│     ├─ features/                  画布等业务功能模块
+│     ├─ task-center/               任务状态、进度和任务面板
+│     ├─ i18n/                      界面多语言资源
+│     └─ __tests__/                 前端单元与组件测试
+│
+├─ src/ai_anime/                    FastAPI 与 Python 业务核心
+│  ├─ desktop_server.py             桌面专用启动器和本地运行环境配置
+│  ├─ api/
+│  │  ├─ app.py                     FastAPI 应用、中间件、路由和 SPA 托管
+│  │  ├─ auth.py                    Cookie/Bearer 身份校验公共依赖
+│  │  └─ routes/auth.py             登录、授权、注销、当前用户接口
+│  ├─ ports/
+│  │  ├─ auth.py                    用户会话与代理会话端口协议
+│  │  ├─ auth_contract.py           认证 DTO、错误原因和身份模型
+│  │  ├─ cloud.py                   云生成任务请求、结果和适配器协议
+│  │  ├─ registry.py                运行时端口注册与实现选择
+│  │  └─ local/
+│  │     ├─ __init__.py             本地端口装配入口
+│  │     ├─ auth.py                 当前桌面模拟会话实现
+│  │     ├─ mock_cloud.py           当前文本/图像/音频/视频模拟云适配器
+│  │     ├─ mock_tasks.py           模拟云任务入队、进度和取消
+│  │     └─ project.py              本地 SQLite 项目注册与访问实现
+│  ├─ task_backend/                 任务状态、队列、运行器和取消逻辑
+│  ├─ workflows/                    剧本与业务工作流编排
+│  ├─ agents/                       AI 规划、生成和审查代理
+│  ├─ generators/                   图像、音频、视频等生成能力
+│  ├─ verification/                 生成结果一致性与质量校验
+│  ├─ freezone/                     自由创作业务能力
+│  ├─ director_world/               场景、空间和导演世界模型
+│  ├─ storage/                      媒体与业务数据存储辅助
+│  └─ styles/                       画面风格预设
+│
+├─ tests/                           Python API、端口、任务和桌面专项测试
+├─ pyproject.toml                   Python 项目、依赖、测试与代码检查配置
+├─ uv.lock                          Python 锁定依赖
+└─ .gitignore                       本地数据、依赖和构建产物忽略规则
 ```
 
-### Local development (uv + Python 3.11+)
+最重要的所有权边界：
 
-```bash
-git clone https://github.com/dramaclaw/dramaclaw.git
-cd dramaclaw
+| 层 | 负责 | 不负责 |
+| --- | --- | --- |
+| React | 表单、路由、展示、同源 API 调用 | 保存云端密钥、直接访问云服务 |
+| Electron | 生命周期、窗口、sidecar、Windows 打包 | 业务认证判断、生成业务逻辑 |
+| FastAPI | 本地 API、会话、云端代理、业务编排 | 原生窗口控制 |
+| Ports | 稳定协议与实现切换 | 页面展示 |
+| 云服务 | 账户、授权、余额、正式生成任务的权威状态 | 本地文件和窗口生命周期 |
 
-uv sync
-cp .env.example .env && $EDITOR .env
+## 3. 本地数据与发布物
 
-uv run novelvideo api --port 8780   # start the REST API (CE defaults to inline tasks, no Ray/Redis)
+Electron 使用 `app.getPath("userData")` 作为用户数据根目录：
+
+```text
+<userData>/
+├─ data/
+│  ├─ output/                        生成结果
+│  ├─ state/                         SQLite 和业务状态
+│  └─ runtime/                       运行时临时状态
+└─ logs/
+   └─ backend.log                    FastAPI sidecar 日志
 ```
 
-<br/>
+构建产物均不应提交：
 
-## Supported Models & Providers
+| 路径 | 内容 |
+| --- | --- |
+| `frontend/dist/` | 前端生产构建 |
+| `desktop/dist/` | Electron 主进程编译结果 |
+| `desktop/backend-dist/` | PyInstaller FastAPI sidecar |
+| `desktop/runtime/` | 随包 FFmpeg |
+| `desktop/release/` | NSIS 安装包 |
 
-DramaClaw stays model-neutral — all text/image/video/audio models connect through a single **OpenAI-compatible gateway**, in two ways:
+## 4. 当前认证契约
 
-- **DramaClaw official key (recommended)**: `docker compose up`, open <http://localhost:8080> → Settings → Model Config → Official, paste your DC key, save. Works instantly — no model mapping needed. Get a key at <https://relayclaw.cdnfg.com>.
-- **Bring your own gateway (BYO)**: point `NEWAPI_BASE_URL` at your own OpenAI-compatible endpoint and map model names (see [Configuring Models](docs/en/getting-started/configuring-models.md)).
+前端只调用本地 FastAPI，不直接调用云端。入口是 `frontend/src/lib/auth-adapter.ts`，四个接口均使用 `credentials: "include"`。
 
-> Prefer fully local? Run `docker compose -f docker-compose.selfhosted.yml up` for a bundled `newapi` gateway you configure yourself (prebuilt-image variant: `docker-compose.selfhosted.release.yml`).
+| 本地接口 | 请求 | 成功响应 | 当前实现 |
+| --- | --- | --- | --- |
+| `POST /api/v1/auth/login` | `{ "username": string, "password": string }` | `CurrentUser`，并设置 Cookie | 任意非空用户名和密码均通过 |
+| `POST /api/v1/auth/authorize` | `{ "code": string }` | `CurrentUser`，并设置 Cookie | 任意非空授权码均通过 |
+| `GET /api/v1/auth/me` | 无 | 当前 `CurrentUser` | 校验 `ai_anime_session` |
+| `POST /api/v1/auth/logout` | 无 | `{ "ok": true }` | 清除 Cookie；本地撤销实现为空操作 |
 
-| Stage                | Connected via gateway                                               |
-|----------------------|---------------------------------------------------------------------|
-| **Text / LLM**       | via OpenAI-compatible gateway (DramaClaw official key, or BYO)      |
-| **Image**            | gpt-image · nano-banana                                             |
-| **Video**            | Seedance 1.0 / 1.5 / 2.0 series · happyhorse                        |
-| **Voice-over**       | IndexTTS2                                                           |
-| **Story graph**      | Cognee                                                             |
-| **Task runtime**     | in-process inline (no Ray / Redis / Celery)                        |
-| **Storage**          | local filesystem                                                   |
+统一成功响应：
 
-<br/>
+```json
+{
+  "ok": true,
+  "data": {
+    "username": "alice",
+    "role": "owner",
+    "credit_balance": 0,
+    "credential_kind": "user"
+  }
+}
+```
 
-## Why DramaClaw?
+前端当前使用的用户字段：
 
-**Built for novel-to-short-drama.** General workflow tools can wire nodes together, but they don't know what an "episode beat" is, don't understand why a character's cross-scene identity consistency matters, and won't guard a chapter's emotional arc across image + voice + editing. DramaClaw builds all that judgment into the tool.
+| 字段 | 类型 | 要求 |
+| --- | --- | --- |
+| `username` | `string` | 必填，界面身份标识 |
+| `role` | `string` | 必填，当前没有前端枚举限制 |
+| `credit_balance` | `number` | 必填，余额显示与查询使用 |
+| `credential_kind` | `string` | 可选，普通用户建议返回 `user` |
+| `avatar_url` | `string \| null` | 可选；头像也可由独立账户接口提供 |
 
-**Every step is decomposable.** Each stage is an independent async task with its own interface. Run sequentially, skip steps, resume mid-way — the toolchain itself is the product, with no hidden black box.
+Cookie 当前属性为 `HttpOnly`、`SameSite=Lax`、`Path=/`、最长 7 天，`Secure` 由 `AI_ANIME_COOKIE_SECURE` 决定。渲染层只在 localStorage 中保存经过校验的 `username` 和 `role`，不会保存密码、授权码或 Cookie。
 
-**Self-hostable, model-neutral.** Your manuscript, your characters, your models, your servers. Use closed-source frontier models when you want the best results; switch to open-weight models when you want full control. DramaClaw won't lock you into any single vendor.
+当前模拟会话只是 `desktop.<base64(username)>`，没有签名、过期校验或云端撤销能力，只适用于本地里程碑版本，不能作为正式商业认证实现。
 
-### How DramaClaw compares
+认证调用链：
 
-The edge isn't "more generation" — it's organizing the whole short-drama production loop (script → assets → shots → canvas → final cut) into something reusable, collaborative and scalable.
+```mermaid
+sequenceDiagram
+    participant UI as React
+    participant API as 本地 FastAPI
+    participant Adapter as 认证适配器
+    participant Cloud as 云端服务
 
-<sub>Legend: ✅ Full · ◐ Partial · ○ Planned · ❌ None — competitor names partially masked; comparison based on publicly available product docs and positioning.</sub>
+    UI->>API: POST /api/v1/auth/login 或 authorize
+    API->>Adapter: 校验凭据/授权码
+    Adapter-->>API: 当前为本地模拟用户
+    Note over Adapter,Cloud: 接入后由适配器调用真实云端
+    API-->>UI: Set-Cookie: ai_anime_session + CurrentUser
+    UI->>API: GET /api/v1/auth/me
+    API-->>UI: CurrentUser 或 401
+```
 
-| Capability | L\*TV | R\*Hub | T\*Now | S\*ko | U\*dream | O\*II | J\*/K\* | **DramaClaw** |
-|---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
-| Storyboard preview (script→shots, boards) | ◐ | ✅ | ◐ | ✅ | ◐ | ❌ | ❌ | ✅ |
-| Interactive series (multi-episode, branching, IP) | ◐ | ◐ | ◐ | ✅ | ◐ | ❌ | ❌ | ✅ |
-| Asset library (characters/scenes/props/voices) | ◐ | ❌ | ◐ | ✅ | ◐ | ○ | ❌ | ✅ |
-| Scene consistency (variants, 360°, multi-state) | ✅ | ◐ | ❌ | ❌ | ○ | ❌ | ❌ | ✅ |
-| Director's world (360°/3D set, camera, framing) | ✅ | ◐ | ❌ | ❌ | ◐ | ❌ | ❌ | ✅ |
-| Final delivery (multi-shot, subtitles/SRT, pack) | ✅ | ○ | ○ | ✅ | ✅ | ❌ | ❌ | ✅ |
-| Team production (sharing, roles, tasks, cost) | ✅ | ✅ | ○ | ✅ | ○ | ○ | ○ | ✅ |
-| Infinite canvas (node-based, free exploration) | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| Dual-track (main pipeline + canvas exploration) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Custom style (templates, prompts, negatives) | ✅ | ◐ | ○ | ✅ | ◐ | ○ | ◐ | ✅ |
-| Built-in agent (assistant, skills, suggestions) | ✅ | ✅ | ✅ | ○ | ✅ | ○ | ✅ | ✅ |
-| Creative companion (persona, nudges, feedback) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Source-available (self-host, fork, customize) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+`frontend/src/stores/auth-store.ts` 对 `/auth/me` 的成功结果缓存 15 秒；相关查询每 30 秒刷新，并在窗口重新获得焦点时复核。401 或 403 会被视为会话失效并回到登录流程，网络错误与认证失败会分开处理。
 
-<br/>
+## 5. 对接真实云端认证
 
-## <a name="documentation"></a>Documentation
+推荐保持 React 的四个本地接口和 `CurrentUser` 结构不变，把本地 FastAPI 作为 BFF。这样不需要在渲染层配置云端地址、CORS 或云端密钥，也符合当前 CSP 的 `connect-src 'self'` 限制。
 
-- [**Product user manual**](https://neo-flying.feishu.cn/docx/JGNTdsjJuo748TxJkxecoYs2nth) — full UI walkthrough (Feishu)
-- [Feature overview](./docs/en/concepts/features.md)
-- [Architecture](./docs/en/concepts/architecture.md)
-- [Quick Start](./docs/en/getting-started/quickstart.md)
-- [Self-hosting guide](./docs/en/guides/self-hosting.md)
-- [Configuring model providers](./docs/en/getting-started/configuring-models.md)
-- [More docs &rarr;](./docs/en/README.md)
+### 5.1 应修改的位置
 
-<br/>
+| 文件 | 对接职责 |
+| --- | --- |
+| `src/ai_anime/api/routes/auth.py` | 将登录、授权和注销从本地直接通过改为调用认证端口 |
+| `src/ai_anime/ports/auth.py` | 保持或扩展认证协议，隔离具体管理端接口 |
+| `src/ai_anime/ports/auth_contract.py` | 放置稳定的用户、会话和错误 DTO |
+| `src/ai_anime/ports/local/auth.py` | 保留为测试/离线模拟，正式模式不注册该实现 |
+| `src/ai_anime/ports/local/__init__.py` | 根据配置注册模拟实现或远程实现 |
+| `src/ai_anime/desktop_server.py` | 当前强制模拟模式；改为读取非敏感的云端地址和适配器模式 |
 
-## Join the Community / Contribute
+建议新增但当前尚不存在：
 
-- [Report a Bug](https://github.com/dramaclaw/dramaclaw/issues/new?template=bug_report.yml)
-- [Request a Feature](https://github.com/dramaclaw/dramaclaw/issues/new?template=feature_request.yml)
-- [Join the Discussion](https://github.com/dramaclaw/dramaclaw/discussions)
-- [Contributing Guide](./CONTRIBUTING.md)
-- [Security Policy](./SECURITY.md)
+```text
+src/ai_anime/ports/remote/
+├─ auth.py                            管理端认证 HTTP 适配器
+├─ cloud.py                           云生成任务 HTTP 适配器
+└─ client.py                          HTTPS、超时、错误映射和请求追踪公共客户端
+```
 
-We continuously curate and label [`good first issue`](https://github.com/dramaclaw/dramaclaw/labels/good%20first%20issue) — a great place to start.
+### 5.2 云端适配器最小能力
 
-<br/>
+管理端实际 URL 和字段名可以不同，但本地适配器至少要统一成以下操作：
 
-## Contributors
+| 操作 | 输入 | 本地需要的输出 |
+| --- | --- | --- |
+| 账户登录 | 用户名、密码 | 用户信息、短期访问凭据、可选刷新凭据和过期时间 |
+| 授权码登录 | 授权码 | 与账户登录相同的会话结果 |
+| 查询当前用户 | 当前云会话 | `CurrentUser`，包括角色和余额 |
+| 刷新会话 | 刷新凭据 | 新访问凭据和过期时间 |
+| 注销 | 当前云会话 | 云端撤销成功或幂等完成 |
 
-The people building DramaClaw — thank you. 💜
+云端返回的令牌不得进入 `CurrentUser`，也不得返回 React。正式实现应由本地 FastAPI 保存云端会话，并向浏览器只发随机、不透明的 `ai_anime_session`。若需要跨重启保持登录，刷新凭据必须进入 Windows 安全存储；当前仓库还没有实现该持久化，不能明文写入 localStorage、普通 SQLite、日志或环境文件。
 
-<table>
-  <tr>
-    <td align="center"><a href="https://github.com/bopy-zou"><img src="https://github.com/bopy-zou.png?size=100" width="72" alt="bopy-zou"/><br/><sub>bopy-zou</sub></a></td>
-    <td align="center"><a href="https://github.com/Handanhhhy"><img src="https://github.com/Handanhhhy.png?size=100" width="72" alt="Handanhhhy"/><br/><sub>Handanhhhy</sub></a></td>
-    <td align="center"><a href="https://github.com/Hanlin-Gabriel"><img src="https://github.com/Hanlin-Gabriel.png?size=100" width="72" alt="Hanlin-Gabriel"/><br/><sub>Hanlin-Gabriel</sub></a></td>
-    <td align="center"><a href="https://github.com/ryanhuang-duat"><img src="https://github.com/ryanhuang-duat.png?size=100" width="72" alt="ryanhuang-duat"/><br/><sub>ryanhuang-duat</sub></a></td>
-    <td align="center"><a href="https://github.com/lywaterman"><img src="https://github.com/lywaterman.png?size=100" width="72" alt="lywaterman"/><br/><sub>lywaterman</sub></a></td>
-    <td align="center"><a href="https://github.com/n7s4"><img src="https://github.com/n7s4.png?size=100" width="72" alt="n7s4"/><br/><sub>n7s4</sub></a></td>
-  </tr>
-  <tr>
-    <td align="center"><a href="https://github.com/NewYuee"><img src="https://github.com/NewYuee.png?size=100" width="72" alt="NewYuee"/><br/><sub>NewYuee</sub></a></td>
-    <td align="center"><a href="https://github.com/SimonRen"><img src="https://github.com/SimonRen.png?size=100" width="72" alt="SimonRen"/><br/><sub>SimonRen</sub></a></td>
-    <td align="center"><a href="https://github.com/vkiki"><img src="https://github.com/vkiki.png?size=100" width="72" alt="vkiki"/><br/><sub>vkiki</sub></a></td>
-    <td align="center"><a href="https://github.com/wangwenqq"><img src="https://github.com/wangwenqq.png?size=100" width="72" alt="wangwenqq"/><br/><sub>wangwenqq</sub></a></td>
-    <td align="center"><a href="https://github.com/zhen2025109"><img src="https://github.com/zhen2025109.png?size=100" width="72" alt="zhen2025109"/><br/><sub>zhen2025109</sub></a></td>
-  </tr>
-</table>
+建议新增的非敏感配置名称：
 
-<br/>
+| 配置 | 用途 | 当前状态 |
+| --- | --- | --- |
+| `AI_ANIME_AUTH_ADAPTER=remote` | 选择真实认证实现 | 尚未实现 |
+| `AI_ANIME_CLOUD_ADAPTER=remote` | 选择真实生成任务实现 | 目前桌面启动器强制为 `mock` |
+| `AI_ANIME_CLOUD_BASE_URL` | 云端 HTTPS 根地址 | 尚未实现 |
+| `AI_ANIME_CLOUD_TIMEOUT_SECONDS` | 云端请求超时 | 尚未实现 |
+| `AI_ANIME_LOCAL_USERNAME` | 模拟授权后的用户名 | 已有，仅用于本地模拟 |
+| `AI_ANIME_MOCK_STEP_DELAY_MS` | 模拟生成任务的进度间隔 | 已有，仅用于测试/演示 |
 
-## Produced By
+`AI_ANIME_DESKTOP_TOKEN`、`AI_ANIME_DATA_ROOT`、`AI_ANIME_STATE_DIR` 等由桌面启动器内部生成或设置，不属于云端配置，不应放进用户配置界面。
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./assets/partners/neoflying-lab-dark.png">
-    <img src="./assets/partners/neoflying-lab.png" alt="Neo Flying AI Laboratory" height="48">
-  </picture>
-</p>
+### 5.3 错误映射
 
-<p align="center"><sub>Logo is a trademark of its respective owner, shown with permission.</sub></p>
+远程适配器应把管理端错误稳定映射到本地 HTTP 状态：
 
-<br/>
+| 本地状态 | 含义 | 前端行为 |
+| --- | --- | --- |
+| `400` | 参数格式错误 | 展示 `error` 或 `detail` |
+| `401` | 密码、授权码或会话无效 | 清理本地登录状态 |
+| `403` | 用户停用、无权限或授权受限 | 清理本地登录状态并展示原因 |
+| `409` | 授权码已使用或状态冲突 | 展示服务端原因 |
+| `429` | 请求过于频繁 | 展示限流原因 |
+| `502/503/504` | 云端不可达、维护或超时 | 保留“网络失败”和“凭据失效”的区别 |
 
-## License
+授权码兑换是有副作用的操作。除非管理端支持幂等键，否则本地适配器不应在超时后自动重复兑换。
 
-[Elastic License 2.0](./LICENSES/Elastic-2.0.txt). Free to use, modify, and redistribute — the only restriction is that you may not resell the software as a hosted service. See the [license explainer](./docs/en/license.md).
+### 5.4 对接完成检查表
 
-<br/>
+- 登录失败时不设置本地 Cookie。
+- 授权码只发送到本地 FastAPI，再由 FastAPI 发送到 HTTPS 云端。
+- `/auth/me` 的用户、角色、余额与云端权威数据一致。
+- 云端 401/403 能清理本地会话并跳转登录页。
+- 注销同时撤销云会话、清除安全存储和 HttpOnly Cookie。
+- 应用重启后的会话恢复行为符合产品定义。
+- 密码、授权码、访问令牌和刷新令牌不出现在 `backend.log`。
+- 离线、超时、限流、重复兑换和用户停用均有契约测试。
 
-## Star History
+## 6. 对接真实云生成任务
 
-<a href="https://www.star-history.com/?repos=dramaclaw%2Fdramaclaw&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=dramaclaw/dramaclaw&type=date&theme=dark&legend=top-left&sealed_token=CWTXgm9EqgQmnSFWk0inuf_iZSml5r1nclyIsUyisWgYhUzFVJdI8G61vyFACIQe14weeMtjWSxpkzWdtFqyb93uV4uaRElaXWQv2kFxFFyL8KbUQBCOBUWXDtZc81J8YlaSiBVVXeOygLYZliOK4VQo4i1Ioqkxn5js-Bq0gbqVOH_wF3GCQ_EnMGLy" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=dramaclaw/dramaclaw&type=date&legend=top-left&sealed_token=CWTXgm9EqgQmnSFWk0inuf_iZSml5r1nclyIsUyisWgYhUzFVJdI8G61vyFACIQe14weeMtjWSxpkzWdtFqyb93uV4uaRElaXWQv2kFxFFyL8KbUQBCOBUWXDtZc81J8YlaSiBVVXeOygLYZliOK4VQo4i1Ioqkxn5js-Bq0gbqVOH_wF3GCQ_EnMGLy" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=dramaclaw/dramaclaw&type=date&legend=top-left&sealed_token=CWTXgm9EqgQmnSFWk0inuf_iZSml5r1nclyIsUyisWgYhUzFVJdI8G61vyFACIQe14weeMtjWSxpkzWdtFqyb93uV4uaRElaXWQv2kFxFFyL8KbUQBCOBUWXDtZc81J8YlaSiBVVXeOygLYZliOK4VQo4i1Ioqkxn5js-Bq0gbqVOH_wF3GCQ_EnMGLy" />
- </picture>
-</a>
+生成任务的稳定边界位于 `src/ai_anime/ports/cloud.py`。`CloudAdapter.run_task()` 接收 `CloudTaskRequest`，通过回调上报进度并检查取消状态，最终返回 `CloudTaskResult`。
 
-<br/><br/>
+`CloudTaskRequest` 的主要字段：
 
-<div align="center">
-  <sub>Built for storytellers. Source, open to all.</sub>
-</div>
+| 字段 | 含义 |
+| --- | --- |
+| `task_id` | 本地任务唯一标识，用于幂等与追踪 |
+| `task_type` | 具体业务任务类型 |
+| `kind` | `text`、`image`、`video`、`audio` 或 `story` |
+| `project_id` | 本地项目标识 |
+| `episode` / `beat_num` | 剧集与节拍上下文 |
+| `scope` | 可选任务作用域 |
+| `payload` | 业务参数 |
+| `output_dir` | 云端结果下载后的本地落盘目录 |
 
-## Notices
+真实适配器可以在一次 `run_task()` 内完成“提交云任务、轮询状态、下载结果”三步，并持续调用 `report_progress()`。取消时应调用云端取消接口，并在 `is_cancelled()` 为真时停止轮询和下载。
 
-See `NOTICE` for required branding and third-party attribution notices.
+`CloudTaskResult` 至少应保留：
+
+- `provider_task_id`：云端任务 ID。
+- `provider`：云服务或适配器名称。
+- `model`：实际执行模型。
+- `kind`：结果类型。
+- `output`：业务结果；媒体文件应下载到 `output_dir` 后返回本地绝对路径。
+
+当前切换点有两处：
+
+1. `src/ai_anime/desktop_server.py` 把 `AI_ANIME_CLOUD_ADAPTER` 固定为 `mock`。
+2. `src/ai_anime/ports/local/__init__.py` 在值为 `mock` 时注册 `MockCloudAdapter` 和 `MockCloudTaskBackend`。
+
+接入时增加 `remote` 分支即可保留现有业务调用方，不需要让 React 直接理解云端任务协议。
+
+## 7. 本地开发与打包
+
+要求：Windows x64、Python 3.11 或 3.12、`uv`、Node.js 和 pnpm 11.5.0。运行和打包不需要 Docker。
+
+安装依赖：
+
+```powershell
+uv sync --group desktop
+pnpm --dir frontend install --frozen-lockfile
+pnpm --dir desktop install --frozen-lockfile
+```
+
+启动桌面开发版本：
+
+```powershell
+pnpm --dir desktop dev
+```
+
+该命令先构建前端和 Electron 主进程，再启动 Electron；FastAPI 由 Electron 自动启动。
+
+常用验证：
+
+```powershell
+uv run pytest tests/test_desktop_server.py tests/test_desktop_auth.py tests/test_mock_cloud_adapter.py
+pnpm --dir frontend test
+pnpm --dir frontend build:ce
+pnpm --dir desktop typecheck
+```
+
+构建完整 Windows 安装包：
+
+```powershell
+pnpm --dir desktop package:win
+```
+
+打包流程依次生成图标、准备 FFmpeg、构建 React、编译 Electron、用 PyInstaller 构建 FastAPI sidecar，最后由 electron-builder 生成 NSIS 安装包。输出位于 `desktop/release/`。
+
+## 8. 认证相关测试入口
+
+| 测试 | 覆盖内容 |
+| --- | --- |
+| `tests/test_desktop_auth.py` | 桌面账户登录、授权码登录、Cookie 和模式隔离 |
+| `tests/test_desktop_server.py` | loopback 限制、目录隔离、随机端口和桌面环境变量 |
+| `tests/test_mock_cloud_adapter.py` | 云任务类型、模拟产物、进度、重试和取消 |
+| `frontend/src/__tests__/lib/auth-adapter.test.ts` | 登录/授权请求契约和错误分类 |
+| `frontend/src/__tests__/lib/auth-mode.test.ts` | 前端认证模式 |
+| `frontend/src/__tests__/routes/auth-gating.test.ts` | 登录页和业务路由守卫 |
+
+真实云端适配器落地后，应在 Python 侧增加基于模拟 HTTP 服务的契约测试，覆盖请求字段、响应映射、超时、401/403、刷新、注销和敏感字段脱敏；前端现有认证契约测试应保持不变。

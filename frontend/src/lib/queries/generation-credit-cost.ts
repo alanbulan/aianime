@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useQuery } from "@tanstack/react-query";
 
 import {
@@ -19,7 +18,7 @@ export type GenerationCreditCost = {
 };
 
 export type GenerationCreditCostOptions = {
-  surface?: "supertale" | "canvas" | null;
+  surface?: "ai_anime" | "canvas" | null;
   params?: Record<string, unknown> | null;
   quantity?: number | null;
   modeKey?: string | null;

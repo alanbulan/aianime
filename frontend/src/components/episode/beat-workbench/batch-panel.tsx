@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -389,7 +388,7 @@ export function BatchPanel({
   const sketchCost = useGenerationCreditCost(
     "image_selection",
     sketchSettings.data?.data.sketch_image_selection,
-    { surface: "supertale", imageRole: "sketch", modeKey: sketchCostMode.key },
+    { surface: "ai_anime", imageRole: "sketch", modeKey: sketchCostMode.key },
   );
   const tasks = useTasks({ project, episode });
   const queueQuery = useSketchRegenQueue(project, episode);

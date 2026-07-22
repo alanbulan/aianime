@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import type { CSSProperties, ReactNode } from 'react';
 
 interface ZoomScaledToolbarProps {
@@ -40,7 +39,7 @@ interface ZoomScaledToolbarProps {
  * 注意 transform 不改变布局盒尺寸，所以 NodeToolbar 仍按原始尺寸定位；配合
  * 贴边的 transform-origin，缩放后的工具条视觉上仍停在节点对应边上。
  *
- * 缩放比例来自根元素的 `--st-canvas-zoom` CSS 变量(由 Canvas 单一写入器维护),
+ * 缩放比例来自根元素的 `--ai-anime-canvas-zoom` CSS 变量(由 Canvas 单一写入器维护),
  * 纯 CSS 跟随,不再 useStore 订阅 zoom —— 缩放时本组件不会因 zoom 变化而重渲染。
  */
 export function ZoomScaledToolbar({
@@ -53,10 +52,10 @@ export function ZoomScaledToolbar({
 }: ZoomScaledToolbarProps) {
   const scale =
     mode === 'counter'
-      ? `clamp(${counterMin}, calc(1 / var(--st-canvas-zoom, 1)), ${counterMax})`
+      ? `clamp(${counterMin}, calc(1 / var(--ai-anime-canvas-zoom, 1)), ${counterMax})`
       : min !== undefined
-        ? `max(${min}, var(--st-canvas-zoom, 1))`
-        : 'var(--st-canvas-zoom, 1)';
+        ? `max(${min}, var(--ai-anime-canvas-zoom, 1))`
+        : 'var(--ai-anime-canvas-zoom, 1)';
   return (
     <div style={{ transform: `scale(${scale})`, transformOrigin: origin }}>
       {children}

@@ -8,8 +8,8 @@ from PIL import Image
 
 @pytest.mark.asyncio
 async def test_identity_detector_task_matches_structured_list_output(monkeypatch, tmp_path):
-    from novelvideo.agents import global_video_optimizer
-    from novelvideo.agents.global_video_optimizer import BeatIdentity
+    from ai_anime.agents import global_video_optimizer
+    from ai_anime.agents.global_video_optimizer import BeatIdentity
 
     image_path = tmp_path / "grid.png"
     Image.new("RGB", (8, 8), color=(255, 0, 0)).save(image_path)

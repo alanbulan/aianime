@@ -2,7 +2,7 @@ from __future__ import annotations
 
 
 def test_image_generation_selection_normalizes_legacy_values_to_visible_newapi_options():
-    from novelvideo.config import (
+    from ai_anime.config import (
         image_generation_selection_options,
         normalize_image_generation_selection,
     )
@@ -17,7 +17,7 @@ def test_image_generation_selection_normalizes_legacy_values_to_visible_newapi_o
 
 
 def test_character_image_selection_normalizes_legacy_values_to_visible_newapi_options():
-    from novelvideo.config import (
+    from ai_anime.config import (
         character_image_selection_options,
         normalize_character_image_selection,
     )

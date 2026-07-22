@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import {
   type PointerEvent as ReactPointerEvent,
   type RefObject,
@@ -151,7 +150,7 @@ export function RenderSection({
   const renderRegenCost = useGenerationCreditCost(
     "image_selection",
     renderSettings.data?.data.render_image_selection,
-    { surface: "supertale", imageRole: "render", modeKey: "1x1_2-3" },
+    { surface: "ai_anime", imageRole: "render", modeKey: "1x1_2-3" },
   );
   const uploadRender = useUploadBeatImage(project, episode, "render");
   const backgroundAnchors = useBeatBackgroundAnchors(project, episode, beat.beat_number);

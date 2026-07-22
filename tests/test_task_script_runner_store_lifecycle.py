@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from novelvideo.project_context import ProjectContext
+from ai_anime.project_context import ProjectContext
 
 
 class _Manager:
@@ -56,9 +56,9 @@ def _ctx(tmp_path: Path) -> ProjectContext:
 
 @pytest.mark.asyncio
 async def test_beat_video_prompt_runner_closes_sqlite_store(monkeypatch, tmp_path):
-    from novelvideo.api import deps
-    from novelvideo.api.routes import scripts
-    from novelvideo.task_backend.runners import script as runner
+    from ai_anime.api import deps
+    from ai_anime.api.routes import scripts
+    from ai_anime.task_backend.runners import script as runner
 
     store = _ClosableStore()
 
@@ -87,10 +87,10 @@ async def test_beat_video_prompt_runner_closes_sqlite_store(monkeypatch, tmp_pat
 
 @pytest.mark.asyncio
 async def test_script_writer_runner_closes_cognee_store(monkeypatch, tmp_path):
-    import novelvideo.cognee as cognee
-    from novelvideo import project_config
-    from novelvideo.task_backend.runners import script as runner
-    from novelvideo.workflows import script_writing
+    import ai_anime.cognee as cognee
+    from ai_anime import project_config
+    from ai_anime.task_backend.runners import script as runner
+    from ai_anime.workflows import script_writing
 
     store = _ClosableStore()
 

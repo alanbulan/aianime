@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 // Deterministic cover art for projects — gradient + initial derived from the
 // project name. Used until the backend API returns real thumbnail/genre data.
 

@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import json
 
-from novelvideo.models import PoolIndex, VideoPoolIndex
+from ai_anime.models import PoolIndex, VideoPoolIndex
 
 
 def _configure_roots(monkeypatch, tmp_path):
-    from novelvideo.utils import state_index_files
+    from ai_anime.utils import state_index_files
 
     output_root = tmp_path / "output"
     state_root = tmp_path / "state"
@@ -17,7 +17,7 @@ def _configure_roots(monkeypatch, tmp_path):
 
 def test_save_pool_index_writes_state_sidecar_not_output(monkeypatch, tmp_path):
     output_root, state_root = _configure_roots(monkeypatch, tmp_path)
-    from novelvideo.generators.pool_indexer import save_pool_index
+    from ai_anime.generators.pool_indexer import save_pool_index
 
     grids_dir = output_root / "admin" / "demo" / "grids" / "ep001"
     grids_dir.mkdir(parents=True)
@@ -35,7 +35,7 @@ def test_save_pool_index_writes_state_sidecar_not_output(monkeypatch, tmp_path):
 
 def test_load_pool_index_lazily_moves_legacy_output_sidecar(monkeypatch, tmp_path):
     output_root, state_root = _configure_roots(monkeypatch, tmp_path)
-    from novelvideo.generators.pool_indexer import load_pool_index
+    from ai_anime.generators.pool_indexer import load_pool_index
 
     grids_dir = output_root / "admin" / "demo" / "grids" / "ep001"
     grids_dir.mkdir(parents=True)
@@ -66,7 +66,7 @@ def test_load_pool_index_lazily_moves_legacy_output_sidecar(monkeypatch, tmp_pat
 
 def test_save_video_pool_index_writes_state_sidecar_not_output(monkeypatch, tmp_path):
     output_root, state_root = _configure_roots(monkeypatch, tmp_path)
-    from novelvideo.generators.video_pool_indexer import save_video_pool_index
+    from ai_anime.generators.video_pool_indexer import save_video_pool_index
 
     videos_ep_dir = output_root / "admin" / "demo" / "videos" / "beats" / "ep001"
     videos_ep_dir.mkdir(parents=True)
@@ -85,7 +85,7 @@ def test_save_video_pool_index_writes_state_sidecar_not_output(monkeypatch, tmp_
 
 def test_load_video_pool_index_lazily_moves_legacy_output_sidecar(monkeypatch, tmp_path):
     output_root, state_root = _configure_roots(monkeypatch, tmp_path)
-    from novelvideo.generators.video_pool_indexer import load_video_pool_index
+    from ai_anime.generators.video_pool_indexer import load_video_pool_index
 
     videos_ep_dir = output_root / "admin" / "demo" / "videos" / "beats" / "ep001"
     videos_ep_dir.mkdir(parents=True)
@@ -115,7 +115,7 @@ def test_load_video_pool_index_lazily_moves_legacy_output_sidecar(monkeypatch, t
 
 def test_add_video_to_pool_keeps_media_in_output_and_index_in_state(monkeypatch, tmp_path):
     output_root, state_root = _configure_roots(monkeypatch, tmp_path)
-    from novelvideo.generators.video_pool_indexer import add_video_to_pool
+    from ai_anime.generators.video_pool_indexer import add_video_to_pool
 
     videos_ep_dir = output_root / "admin" / "demo" / "videos" / "beats" / "ep001"
     source_video = tmp_path / "source.mp4"

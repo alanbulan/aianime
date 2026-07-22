@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import {
   memo,
   useCallback,
@@ -774,7 +773,7 @@ export const Pano360ViewerNode = memo(({ id, data, selected, width, height }: Pa
     setPlanetBackup(null);
   }, [planetBackup, setFovDeg]);
 
-  // 校正参数导出为 JSON，复制到剪贴板（替代了原 viewer 的 /__dramaclaw 接口）。
+  // 校正参数导出为 JSON，复制到剪贴板（替代了原 viewer 的 /__ai_anime 接口）。
   const buildCorrectionEntry = useCallback(() => {
     const { roll, pitch, yaw } = dataRef.current.sphereCorrectionDeg;
     const front = dataRef.current.frontYawDeg;

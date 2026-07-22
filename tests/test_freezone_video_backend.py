@@ -4,15 +4,15 @@ from pathlib import Path
 
 import pytest
 
-from novelvideo.freezone.jobs import run_freezone_video_gen
-from novelvideo.generators.video_generator import (
+from ai_anime.freezone.jobs import run_freezone_video_gen
+from ai_anime.generators.video_generator import (
     HuimengVideoGenerator,
     Seedance2VideoGenerator,
     ShotReference,
     newapi_video_backend_options,
 )
-from novelvideo.generators.video_generator import VideoGenResult, VideoGenStatus
-from novelvideo.freezone.video_node import (
+from ai_anime.generators.video_generator import VideoGenResult, VideoGenStatus
+from ai_anime.freezone.video_node import (
     add_video_character_library_item,
     build_freezone_image_to_video_prompt,
     build_freezone_keyframe_video_prompt,
@@ -177,7 +177,7 @@ def test_video_model_options_and_resolution_work() -> None:
 
 
 def test_grok_video_channel_is_not_exposed_even_if_configured(monkeypatch: pytest.MonkeyPatch) -> None:
-    from novelvideo import config
+    from ai_anime import config
 
     monkeypatch.setattr(
         config,
@@ -234,7 +234,7 @@ async def test_freezone_video_gen_allows_newapi_seedance2_text_to_video(
         return FakeVideoGenerator()
 
     monkeypatch.setattr(
-        "novelvideo.generators.video_generator.create_video_generator",
+        "ai_anime.generators.video_generator.create_video_generator",
         fake_create_video_generator,
     )
 
@@ -269,7 +269,7 @@ async def test_freezone_video_gen_allows_newapi_fast_text_to_video(monkeypatch, 
         return FakeVideoGenerator()
 
     monkeypatch.setattr(
-        "novelvideo.generators.video_generator.create_video_generator",
+        "ai_anime.generators.video_generator.create_video_generator",
         fake_create_video_generator,
     )
 

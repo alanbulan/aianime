@@ -6,7 +6,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from novelvideo.models import CharacterIdentity, NovelCharacter
+from ai_anime.models import CharacterIdentity, NovelCharacter
 
 pytestmark = pytest.mark.m04
 
@@ -42,7 +42,7 @@ class _CharacterStore:
 
 
 def _client(monkeypatch, tmp_path, store: _CharacterStore):
-    from novelvideo.api.routes import characters
+    from ai_anime.api.routes import characters
 
     project_dir = tmp_path / "output" / "admin" / "demo"
     project_dir.mkdir(parents=True)

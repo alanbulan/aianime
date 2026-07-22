@@ -1,6 +1,6 @@
 import pytest
 
-from novelvideo.generators.nanobanana_grid import build_regen_plan
+from ai_anime.generators.nanobanana_grid import build_regen_plan
 
 
 pytestmark = pytest.mark.m09

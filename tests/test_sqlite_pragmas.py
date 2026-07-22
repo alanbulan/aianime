@@ -5,7 +5,7 @@ import sqlite3
 
 import aiosqlite
 
-from novelvideo.sqlite_pragmas import (
+from ai_anime.sqlite_pragmas import (
     configure_sqlite_connection,
     configure_sqlite_connection_async,
 )
@@ -26,7 +26,7 @@ def test_sync_sets_wal_and_busy_timeout(tmp_path):
 
 
 def test_autocheckpoint_zero_when_litestream(tmp_path, monkeypatch):
-    monkeypatch.setenv("ST_LITESTREAM_ENABLED", "1")
+    monkeypatch.setenv("AI_ANIME_LITESTREAM_ENABLED", "1")
     conn = sqlite3.connect(tmp_path / "litestream.db")
     configure_sqlite_connection(conn)
     assert int(_pragma(conn, "wal_autocheckpoint")) == 0
@@ -36,10 +36,10 @@ def test_autocheckpoint_zero_when_litestream(tmp_path, monkeypatch):
 def test_autocheckpoint_default_when_no_litestream(tmp_path, monkeypatch):
     for env in (None, "0"):
         if env is None:
-            monkeypatch.delenv("ST_LITESTREAM_ENABLED", raising=False)
+            monkeypatch.delenv("AI_ANIME_LITESTREAM_ENABLED", raising=False)
             suffix = "unset"
         else:
-            monkeypatch.setenv("ST_LITESTREAM_ENABLED", env)
+            monkeypatch.setenv("AI_ANIME_LITESTREAM_ENABLED", env)
             suffix = env
         conn = sqlite3.connect(tmp_path / f"t{suffix}.db")
         configure_sqlite_connection(conn)
@@ -48,17 +48,17 @@ def test_autocheckpoint_default_when_no_litestream(tmp_path, monkeypatch):
 
 
 def test_litestream_enabled_semantics(monkeypatch):
-    from novelvideo.sqlite_pragmas import litestream_enabled
+    from ai_anime.sqlite_pragmas import litestream_enabled
 
-    monkeypatch.setenv("ST_LITESTREAM_ENABLED", "1")
+    monkeypatch.setenv("AI_ANIME_LITESTREAM_ENABLED", "1")
     assert litestream_enabled() is True
     for value in ("0", "false", "no", ""):
-        monkeypatch.setenv("ST_LITESTREAM_ENABLED", value)
+        monkeypatch.setenv("AI_ANIME_LITESTREAM_ENABLED", value)
         assert litestream_enabled() is False
 
 
 def test_async_variant(tmp_path, monkeypatch):
-    monkeypatch.setenv("ST_LITESTREAM_ENABLED", "1")
+    monkeypatch.setenv("AI_ANIME_LITESTREAM_ENABLED", "1")
 
     async def run():
         db = await aiosqlite.connect(tmp_path / "a.db")

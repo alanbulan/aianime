@@ -1,11 +1,9 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { createRootRoute, Outlet, useRouterState, type ErrorComponentProps } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { AppUpdateRequired } from "@/components/app-update-required";
 import { ThemedToaster } from "@/components/themed-toaster";
-import { isChunkLoadError } from "@/lib/chunk-load-recovery";
+import { DesktopTitleBar } from "@/components/layout/desktop-title-bar";
 
 /**
  * Moves keyboard focus to the main landmark on each navigation, so
@@ -30,22 +28,21 @@ function RouteFocusManager() {
 
 function RootLayout() {
   return (
-    <>
+    <div className="flex h-dvh flex-col overflow-hidden bg-background">
+      <DesktopTitleBar />
       <RouteFocusManager />
-      <Outlet />
+      <div className="min-h-0 flex-1 overflow-hidden">
+        <Outlet />
+      </div>
       <ThemedToaster />
-    </>
+    </div>
   );
 }
 
 function RootErrorComponent({ error }: ErrorComponentProps) {
   const { t } = useTranslation();
-  if (isChunkLoadError(error)) {
-    return <AppUpdateRequired />;
-  }
-
   return (
-    <div className="flex h-dvh items-center justify-center bg-background px-6 text-foreground">
+    <div className="flex h-full items-center justify-center bg-background px-6 text-foreground">
       <div className="w-full max-w-lg rounded-2xl border border-destructive/30 bg-destructive/5 p-8">
         <h1 className="text-lg font-semibold">{t("app.routeError.title")}</h1>
         <p className="mt-3 break-words text-sm leading-6 text-muted-foreground">

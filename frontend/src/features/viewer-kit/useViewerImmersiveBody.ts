@@ -1,8 +1,7 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useEffect } from "react";
 
-const IMMERSIVE_BODY_CLASS = "st-viewer-immersive-active";
+const IMMERSIVE_BODY_CLASS = "ai-anime-viewer-immersive-active";
 
 let activeImmersiveViewers = 0;
 

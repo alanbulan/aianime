@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { describe, expect, it, vi } from "vitest";
 import type { TFunction } from "i18next";
 
@@ -46,7 +45,7 @@ describe("taskErrorMessage", () => {
   it("uses only the nested provider message in failure notifications", () => {
     const t = vi.fn((key: string) => key) as unknown as TFunction;
     const raw =
-      'DramaClawAPI image generation failed: HTTP 400: request_id=req-123; ' +
+      'AI anime API image generation failed: HTTP 400: request_id=req-123; ' +
       'body={"error":{"message":"Content failed safety review. / 内容未通过安全审核。",' +
       '"type":"content_policy_violation","code":"moderation_blocked"}}';
 

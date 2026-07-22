@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { splitImageSource } from '@/commands/image';
 
 import type { ImageSplitGateway } from '../application/ports';

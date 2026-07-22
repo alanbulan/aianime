@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 export const queryKeys = {
   currentUser: () => ["auth", "me"] as const,
   projects: () => ["projects"] as const,
@@ -91,5 +90,4 @@ export const queryKeys = {
   style: (id: string) => ["styles", "detail", id] as const,
   ttsVoices: (p: string) => ["projects", p, "tts", "voices"] as const,
   modelGateway: () => ["model-gateway", "config"] as const,
-  releaseNotifications: (locale: string) => ["release-notifications", locale] as const,
 };

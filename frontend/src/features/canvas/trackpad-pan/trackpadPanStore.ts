@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { create } from 'zustand';
 
 // 触控板平移：笔记本用户没有鼠标中键（画布默认靠中键拖动平移），开启后用触控板

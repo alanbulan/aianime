@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { create } from "zustand";
 import type { TaskState, StreamHealth } from "./types";
 import { isTerminal } from "./derivations";

@@ -3,8 +3,8 @@ from pathlib import Path
 import pytest
 from fastapi import HTTPException
 
-from novelvideo.ports.project import Principal, ProjectRecord
-from novelvideo.project_context import ProjectContext, _ctx_from_record, require_project_home_node
+from ai_anime.ports.project import Principal, ProjectRecord
+from ai_anime.project_context import ProjectContext, _ctx_from_record, require_project_home_node
 
 
 def _ctx(tmp_path: Path, *, is_home_node: bool) -> ProjectContext:
@@ -44,7 +44,7 @@ def test_require_project_home_node_rejects_remote_project(tmp_path):
 
 
 def test_ctx_from_record_treats_ce_local_home_node_as_local(monkeypatch, tmp_path):
-    import novelvideo.project_context as project_context
+    import ai_anime.project_context as project_context
 
     monkeypatch.setattr(project_context, "resolve_worker_id", lambda: "node_other")
     record = ProjectRecord(

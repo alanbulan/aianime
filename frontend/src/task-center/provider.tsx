@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useEffect, useMemo, useRef } from "react";
 import { isCancelledError, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";

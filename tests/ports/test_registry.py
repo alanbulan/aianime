@@ -4,7 +4,7 @@ import pytest
 
 
 def _registry():
-    import novelvideo.ports.registry as registry
+    import ai_anime.ports.registry as registry
 
     return importlib.reload(registry)
 
@@ -36,8 +36,8 @@ def test_get_port_fails_closed_when_unregistered() -> None:
 
 def test_ensure_bootstrap_registers_local_ports_for_explicit_ce(monkeypatch) -> None:
     registry = _registry()
-    monkeypatch.delenv("ST_CONTROL_PLANE_DSN", raising=False)
-    monkeypatch.setenv("ST_EDITION", "ce")
+    monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
+    monkeypatch.setenv("AI_ANIME_EDITION", "ce")
 
     registry.ensure_bootstrap()
 
@@ -55,8 +55,8 @@ def test_ensure_bootstrap_registers_local_ports_for_explicit_ce(monkeypatch) -> 
 
 def test_ensure_bootstrap_rejects_dsn_and_ce_conflict(monkeypatch) -> None:
     registry = _registry()
-    monkeypatch.setenv("ST_CONTROL_PLANE_DSN", "postgresql://example")
-    monkeypatch.setenv("ST_EDITION", "ce")
+    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "postgresql://example")
+    monkeypatch.setenv("AI_ANIME_EDITION", "ce")
 
     with pytest.raises(RuntimeError, match="矛盾配置"):
         registry.ensure_bootstrap()
@@ -64,8 +64,8 @@ def test_ensure_bootstrap_rejects_dsn_and_ce_conflict(monkeypatch) -> None:
 
 def test_ensure_bootstrap_dsn_without_ce_uses_ee(monkeypatch) -> None:
     registry = _registry()
-    monkeypatch.setenv("ST_CONTROL_PLANE_DSN", "postgresql://example")
-    monkeypatch.delenv("ST_EDITION", raising=False)
+    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "postgresql://example")
+    monkeypatch.delenv("AI_ANIME_EDITION", raising=False)
     called = False
 
     class EntryPoint:
@@ -89,8 +89,8 @@ def test_ensure_bootstrap_dsn_without_ce_uses_ee(monkeypatch) -> None:
 
 def test_ensure_bootstrap_reports_all_missing_ee_ports_when_entry_points_empty(monkeypatch) -> None:
     registry = _registry()
-    monkeypatch.setenv("ST_CONTROL_PLANE_DSN", "postgresql://example")
-    monkeypatch.delenv("ST_EDITION", raising=False)
+    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "postgresql://example")
+    monkeypatch.delenv("AI_ANIME_EDITION", raising=False)
     monkeypatch.setattr(registry, "entry_points", lambda *, group: [], raising=False)
 
     with pytest.raises(RuntimeError) as exc:
@@ -106,13 +106,13 @@ def test_ensure_bootstrap_reports_all_missing_ee_ports_when_entry_points_empty(m
         "lifecycle",
     ):
         assert name in message
-    assert "novelvideo.ports_bootstrap" in message
+    assert "ai_anime.ports_bootstrap" in message
 
 
 def test_ensure_bootstrap_reports_partially_registered_ee_ports(monkeypatch) -> None:
     registry = _registry()
-    monkeypatch.setenv("ST_CONTROL_PLANE_DSN", "postgresql://example")
-    monkeypatch.delenv("ST_EDITION", raising=False)
+    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "postgresql://example")
+    monkeypatch.delenv("AI_ANIME_EDITION", raising=False)
 
     class EntryPoint:
         def load(self):
@@ -131,8 +131,8 @@ def test_ensure_bootstrap_reports_partially_registered_ee_ports(monkeypatch) -> 
 
 def test_ensure_bootstrap_requires_provider_instrumentation_for_ee(monkeypatch) -> None:
     registry = _registry()
-    monkeypatch.setenv("ST_CONTROL_PLANE_DSN", "postgresql://example")
-    monkeypatch.delenv("ST_EDITION", raising=False)
+    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "postgresql://example")
+    monkeypatch.delenv("AI_ANIME_EDITION", raising=False)
 
     class EntryPoint:
         def load(self):
@@ -153,8 +153,8 @@ def test_ensure_bootstrap_requires_provider_instrumentation_for_ee(monkeypatch) 
 
 def test_ensure_bootstrap_requires_task_backend_ports_for_ee(monkeypatch) -> None:
     registry = _registry()
-    monkeypatch.setenv("ST_CONTROL_PLANE_DSN", "postgresql://example")
-    monkeypatch.delenv("ST_EDITION", raising=False)
+    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "postgresql://example")
+    monkeypatch.delenv("AI_ANIME_EDITION", raising=False)
 
     class EntryPoint:
         def load(self):
@@ -177,8 +177,8 @@ def test_ensure_bootstrap_requires_task_backend_ports_for_ee(monkeypatch) -> Non
 
 def test_ensure_bootstrap_requires_audit_sink_for_ee(monkeypatch) -> None:
     registry = _registry()
-    monkeypatch.setenv("ST_CONTROL_PLANE_DSN", "postgresql://example")
-    monkeypatch.delenv("ST_EDITION", raising=False)
+    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "postgresql://example")
+    monkeypatch.delenv("AI_ANIME_EDITION", raising=False)
 
     class EntryPoint:
         def load(self):
@@ -199,8 +199,8 @@ def test_ensure_bootstrap_requires_audit_sink_for_ee(monkeypatch) -> None:
 
 def test_ensure_bootstrap_requires_credit_quote_for_ee(monkeypatch) -> None:
     registry = _registry()
-    monkeypatch.setenv("ST_CONTROL_PLANE_DSN", "postgresql://example")
-    monkeypatch.delenv("ST_EDITION", raising=False)
+    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "postgresql://example")
+    monkeypatch.delenv("AI_ANIME_EDITION", raising=False)
 
     class EntryPoint:
         def load(self):
@@ -221,8 +221,8 @@ def test_ensure_bootstrap_requires_credit_quote_for_ee(monkeypatch) -> None:
 
 def test_ensure_bootstrap_requires_explicit_ce_without_control_plane(monkeypatch) -> None:
     registry = _registry()
-    monkeypatch.delenv("ST_CONTROL_PLANE_DSN", raising=False)
-    monkeypatch.delenv("ST_EDITION", raising=False)
+    monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
+    monkeypatch.delenv("AI_ANIME_EDITION", raising=False)
 
-    with pytest.raises(RuntimeError, match="ST_EDITION=ce"):
+    with pytest.raises(RuntimeError, match="AI_ANIME_EDITION=ce"):
         registry.ensure_bootstrap()

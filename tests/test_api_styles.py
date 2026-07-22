@@ -6,7 +6,7 @@ pytestmark = pytest.mark.m04
 
 
 def test_style_preview_upload_is_staged_and_finalized(tmp_path):
-    from novelvideo.services.style_service import StyleService
+    from ai_anime.services.style_service import StyleService
 
     staged = StyleService.stage_style_preview(tmp_path, b"image-bytes", ".png")
     assert staged.startswith("assets/styles/.staging/")
@@ -19,7 +19,7 @@ def test_style_preview_upload_is_staged_and_finalized(tmp_path):
 
 
 def test_finalizing_style_preview_removes_previous_extension(tmp_path):
-    from novelvideo.services.style_service import StyleService
+    from ai_anime.services.style_service import StyleService
 
     old_preview = tmp_path / "assets/styles/custom_drama/reference.png"
     old_preview.parent.mkdir(parents=True)
@@ -34,7 +34,7 @@ def test_finalizing_style_preview_removes_previous_extension(tmp_path):
 
 
 def test_remove_style_previews_removes_all_supported_variants(tmp_path):
-    from novelvideo.services.style_service import StyleService
+    from ai_anime.services.style_service import StyleService
 
     style_dir = tmp_path / "assets/styles/custom_drama"
     style_dir.mkdir(parents=True)
@@ -50,8 +50,8 @@ def test_remove_style_previews_removes_all_supported_variants(tmp_path):
 
 
 def test_style_reference_upload_returns_final_path_without_ai_analysis(monkeypatch, tmp_path):
-    from novelvideo.api.deps import ProjectResolution
-    from novelvideo.api.routes import styles
+    from ai_anime.api.deps import ProjectResolution
+    from ai_anime.api.routes import styles
 
     async def fake_resolve_project_scope(project, user, *, required_role="viewer"):
         assert required_role == "editor"
@@ -92,8 +92,8 @@ def test_style_reference_upload_rejects_unsupported_format(
     filename,
     content_type,
 ):
-    from novelvideo.api.deps import ProjectResolution
-    from novelvideo.api.routes import styles
+    from ai_anime.api.deps import ProjectResolution
+    from ai_anime.api.routes import styles
 
     async def fake_resolve_project_scope(project, user, *, required_role="viewer"):
         return ProjectResolution(
@@ -119,8 +119,8 @@ def test_style_reference_upload_rejects_unsupported_format(
 
 
 def test_style_reference_upload_rejects_empty_file(monkeypatch, tmp_path):
-    from novelvideo.api.deps import ProjectResolution
-    from novelvideo.api.routes import styles
+    from ai_anime.api.deps import ProjectResolution
+    from ai_anime.api.routes import styles
 
     async def fake_resolve_project_scope(project, user, *, required_role="viewer"):
         return ProjectResolution(
@@ -146,7 +146,7 @@ def test_style_reference_upload_rejects_empty_file(monkeypatch, tmp_path):
 
 
 def _client():
-    from novelvideo.api.routes import styles
+    from ai_anime.api.routes import styles
 
     app = FastAPI()
     app.include_router(styles.router)
@@ -163,9 +163,9 @@ def test_style_preview_get_returns_image_without_generation():
 
 
 def test_custom_style_list_includes_project_media_preview_url(monkeypatch, tmp_path):
-    from novelvideo.api.deps import ProjectResolution
-    from novelvideo.api.routes import styles
-    from novelvideo.services.style_service import StyleService
+    from ai_anime.api.deps import ProjectResolution
+    from ai_anime.api.routes import styles
+    from ai_anime.services.style_service import StyleService
 
     async def fake_resolve_project_scope(project, user, *, required_role="viewer"):
         return ProjectResolution(
@@ -202,10 +202,10 @@ def test_custom_style_list_includes_project_media_preview_url(monkeypatch, tmp_p
 
 
 def test_custom_style_detail_includes_project_media_preview_url(monkeypatch, tmp_path):
-    from novelvideo.api.deps import ProjectResolution
-    from novelvideo.api.routes import styles
-    from novelvideo.models import StyleConfig
-    from novelvideo.services.style_service import StyleService
+    from ai_anime.api.deps import ProjectResolution
+    from ai_anime.api.routes import styles
+    from ai_anime.models import StyleConfig
+    from ai_anime.services.style_service import StyleService
 
     async def fake_resolve_project_scope(project, user, *, required_role="viewer"):
         return ProjectResolution(
@@ -239,7 +239,7 @@ def test_custom_style_detail_includes_project_media_preview_url(monkeypatch, tmp
 
 
 def test_style_preview_post_route_still_exists(monkeypatch, tmp_path):
-    from novelvideo.generators import image_generator
+    from ai_anime.generators import image_generator
 
     preview_path = tmp_path / "preview.png"
     preview_path.write_bytes(b"\x89PNG\r\n\x1a\n")
@@ -270,9 +270,9 @@ def test_guoman_fantasy_is_listed_as_3d_animation_preset():
 
 
 def test_create_style_accepts_frontend_payload_with_top_level_id_and_name(monkeypatch, tmp_path):
-    from novelvideo.api.deps import ProjectResolution
-    from novelvideo.api.routes import styles
-    from novelvideo.services.style_service import StyleService
+    from ai_anime.api.deps import ProjectResolution
+    from ai_anime.api.routes import styles
+    from ai_anime.services.style_service import StyleService
 
     saved = []
 
@@ -324,9 +324,9 @@ def test_create_style_accepts_frontend_payload_with_top_level_id_and_name(monkey
 
 
 def test_create_style_accepts_existing_published_preview_path(monkeypatch, tmp_path):
-    from novelvideo.api.deps import ProjectResolution
-    from novelvideo.api.routes import styles
-    from novelvideo.services.style_service import StyleService
+    from ai_anime.api.deps import ProjectResolution
+    from ai_anime.api.routes import styles
+    from ai_anime.services.style_service import StyleService
 
     saved = []
 
@@ -367,9 +367,9 @@ def test_create_style_accepts_existing_published_preview_path(monkeypatch, tmp_p
 
 
 def test_create_style_associates_published_preview_without_request_path(monkeypatch, tmp_path):
-    from novelvideo.api.deps import ProjectResolution
-    from novelvideo.api.routes import styles
-    from novelvideo.services.style_service import StyleService
+    from ai_anime.api.deps import ProjectResolution
+    from ai_anime.api.routes import styles
+    from ai_anime.services.style_service import StyleService
 
     saved = []
     preview = tmp_path / "assets/styles/custom_drama/reference.webp"
@@ -409,8 +409,8 @@ def test_create_style_associates_published_preview_without_request_path(monkeypa
 
 
 def test_create_style_rejects_missing_published_preview_path(monkeypatch, tmp_path):
-    from novelvideo.api.deps import ProjectResolution
-    from novelvideo.api.routes import styles
+    from ai_anime.api.deps import ProjectResolution
+    from ai_anime.api.routes import styles
 
     async def fake_resolve_project_scope(project, user, *, required_role="viewer"):
         return ProjectResolution(
@@ -441,7 +441,7 @@ def test_create_style_rejects_missing_published_preview_path(monkeypatch, tmp_pa
 
 
 def test_config_style_helpers_do_not_fallback_to_hardcoded_presets(monkeypatch):
-    from novelvideo import config
+    from ai_anime import config
 
     class BrokenStyleService:
         @staticmethod
@@ -459,7 +459,7 @@ def test_config_style_helpers_do_not_fallback_to_hardcoded_presets(monkeypatch):
     real_import = __import__
 
     def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
-        if name == "novelvideo.services.style_service":
+        if name == "ai_anime.services.style_service":
 
             class Module:
                 StyleService = BrokenStyleService

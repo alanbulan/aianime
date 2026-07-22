@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import {
   useState,
   useCallback,
@@ -1158,7 +1157,7 @@ export function Canvas({
   }, [clearMarqueeSelection]);
 
   const persistCanvasSnapshot = useCallback(() => {
-    // supertale-fe web mode persists through useCanvasSync's Zustand
+    // ai-anime-fe web mode persists through useCanvasSync's Zustand
     // subscription. This callback is kept so canvas-local event handlers can
     // still schedule a save boundary without coupling to persistence details.
   }, []);
@@ -1195,7 +1194,7 @@ export function Canvas({
     };
   }, [openToolDialog, closeToolDialog]);
 
-  // 单一写入器:把画布缩放写进根元素的 --st-canvas-zoom CSS 变量。各浮动工具条
+  // 单一写入器:把画布缩放写进根元素的 --ai-anime-canvas-zoom CSS 变量。各浮动工具条
   // (ZoomScaledToolbar / NodeSideActionRail)改用 CSS `scale(var(...))` 跟随缩放,
   // 不再各自 useStore 订阅 zoom —— 把「每节点一份 zoom 订阅、缩放时全部重渲染」收敛
   // 成一个不触发 React 重渲染的命令式订阅。
@@ -1206,7 +1205,7 @@ export function Canvas({
       const zoom = reactFlowStore.getState().transform[2];
       if (zoom !== last) {
         last = zoom;
-        root.style.setProperty('--st-canvas-zoom', String(zoom));
+        root.style.setProperty('--ai-anime-canvas-zoom', String(zoom));
       }
     };
     write();

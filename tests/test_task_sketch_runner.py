@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from novelvideo.project_context import ProjectContext
+from ai_anime.project_context import ProjectContext
 
 
 def _ctx(tmp_path: Path) -> ProjectContext:
@@ -29,8 +29,8 @@ async def test_director_control_to_sketch_runner_logs_to_sketch_generation_task(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from novelvideo.director_world import control_frame_to_sketch
-    from novelvideo.task_backend.runners import sketch as sketch_runner
+    from ai_anime.director_world import control_frame_to_sketch
+    from ai_anime.task_backend.runners import sketch as sketch_runner
 
     ctx = _ctx(tmp_path)
     control_frame = (

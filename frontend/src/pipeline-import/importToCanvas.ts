@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { CANVAS_NODE_TYPES, DEFAULT_NODE_WIDTH } from "@/features/canvas/domain/canvasNodes";
 import { useCanvasStore } from "@/stores/canvasStore";
 import type { ImportableAsset } from "./ImportPanel";
@@ -38,7 +37,7 @@ export function importAssetsToCanvas(assets: ImportableAsset[]): void {
       previewImageUrl: asset.url,
       aspectRatio: "1:1",
       sourceFileName: asset.label,
-      // Hold onto the SuperTale provenance so a Commit back to pipeline can
+      // Hold onto the AI anime provenance so a Commit back to pipeline can
       // pre-fill its target dropdown later.
       __freezone_source: {
         kind: asset.kind,

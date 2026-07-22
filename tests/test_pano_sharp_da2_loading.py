@@ -6,7 +6,7 @@ import pytest
 
 
 def test_pano_sharp_module_imports_without_world_extra(monkeypatch):
-    from novelvideo.director_world import pano_sharp
+    from ai_anime.director_world import pano_sharp
 
     real_find_spec = importlib.util.find_spec
 
@@ -22,8 +22,8 @@ def test_pano_sharp_module_imports_without_world_extra(monkeypatch):
 
 
 def test_pano_sharp_unavailable_is_handled_task_failure():
-    from novelvideo.director_world.pano_sharp import Sharp3DUnavailable
-    from novelvideo.task_backend.run_core import _project_task_failure_for_exception
+    from ai_anime.director_world.pano_sharp import Sharp3DUnavailable
+    from ai_anime.task_backend.run_core import _project_task_failure_for_exception
 
     message, payload, handled = _project_task_failure_for_exception(Sharp3DUnavailable())
 
@@ -35,8 +35,8 @@ def test_pano_sharp_unavailable_is_handled_task_failure():
 def test_run_pano_sharp_missing_sharp_fails_before_subprocess(tmp_path, monkeypatch):
     from PIL import Image
 
-    from novelvideo import stage_asset_tasks
-    from novelvideo.director_world import pano_sharp
+    from ai_anime import stage_asset_tasks
+    from ai_anime.director_world import pano_sharp
 
     pano_path = tmp_path / "pano_360.png"
     Image.new("RGB", (8, 4), "white").save(pano_path)
@@ -63,8 +63,8 @@ def test_run_pano_sharp_missing_sharp_fails_before_subprocess(tmp_path, monkeypa
 def test_run_single_face_sharp_missing_sharp_fails_before_subprocess(tmp_path, monkeypatch):
     from PIL import Image
 
-    from novelvideo import stage_asset_tasks
-    from novelvideo.director_world import pano_sharp
+    from ai_anime import stage_asset_tasks
+    from ai_anime.director_world import pano_sharp
 
     image_path = tmp_path / "master.png"
     Image.new("RGB", (4, 4), "white").save(image_path)
@@ -90,7 +90,7 @@ def test_run_single_face_sharp_missing_sharp_fails_before_subprocess(tmp_path, m
 
 
 def _load_pano_sharp_module():
-    from novelvideo.director_world import pano_sharp
+    from ai_anime.director_world import pano_sharp
 
     return pano_sharp
 

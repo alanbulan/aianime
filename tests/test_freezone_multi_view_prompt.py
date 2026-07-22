@@ -1,5 +1,5 @@
-from novelvideo.api.schemas import FreezoneCharacterMultiViewRequest
-from novelvideo.freezone.route_helpers import build_multi_view_prompt
+from ai_anime.api.schemas import FreezoneCharacterMultiViewRequest
+from ai_anime.freezone.route_helpers import build_multi_view_prompt
 
 
 def test_multi_view_prompt_supports_extreme_close_up() -> None:

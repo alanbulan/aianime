@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import type { TaskState, StreamHealth } from "./types";
 
 export interface StreamClientOptions {
@@ -119,7 +118,7 @@ export function createStreamClient(opts: StreamClientOptions): StreamClient {
     opts.onHealth(
       reconnectAttempt === 0 && !polling ? "connecting" : polling ? "polling" : "reconnecting",
     );
-    // Cookie-backed auth: the `st_session` HttpOnly cookie travels on the
+    // Cookie-backed auth: the `ai_anime_session` HttpOnly cookie travels on the
     // EventSource connection when `withCredentials: true`. Same-origin
     // requests would send cookies without the flag, but the dev Vite proxy
     // makes this technically cross-port, so be explicit.

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from novelvideo.api.routes.freezone import _skill_background_reference_mode
+from ai_anime.api.routes.freezone import _skill_background_reference_mode
 
 
 def test_skill_background_reference_mode_accepts_supported_modes() -> None:

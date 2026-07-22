@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 /**
  * 让提示词里的 `@图片N` / `@音频N` 引用始终与「角色库」里的连线引用一一对应。
  *

@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -106,10 +105,31 @@ function renderHeader() {
 
 describe("Header runtime gating", () => {
   beforeEach(() => {
+    Object.defineProperty(window, "aiAnimeDesktop", {
+      configurable: true,
+      value: undefined,
+    });
     runtimeState.authRequired = true;
     authState.username = "local";
     authState.logout.mockReset();
     resetUserSessionStateMock.mockReset();
+  });
+
+  it("does not repeat the product brand below the desktop title bar", () => {
+    const actionsHost = document.createElement("div");
+    actionsHost.id = "desktop-title-bar-actions";
+    document.body.append(actionsHost);
+    Object.defineProperty(window, "aiAnimeDesktop", {
+      configurable: true,
+      value: {},
+    });
+
+    const { container } = renderHeader();
+
+    expect(screen.queryByText("AI anime")).not.toBeInTheDocument();
+    expect(container.querySelector("header")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Open account")).toBeInTheDocument();
+    actionsHost.remove();
   });
 
   it("renders logout in the account panel when runtime requires auth", async () => {

@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { useAppStore } from "@/stores/app-store";
 
@@ -22,9 +21,9 @@ describe("app-store: dashboardTab", () => {
     expect(useAppStore.getState().dashboardTab).toBe("active");
   });
 
-  it("persists to localStorage under 'supertale-app'", () => {
+  it("persists to localStorage under 'ai-anime-app'", () => {
     useAppStore.getState().setDashboardTab("archived");
-    const raw = window.localStorage.getItem("supertale-app");
+    const raw = window.localStorage.getItem("ai-anime-app");
     expect(raw).not.toBeNull();
     const parsed = JSON.parse(raw!);
     expect(parsed.state.dashboardTab).toBe("archived");

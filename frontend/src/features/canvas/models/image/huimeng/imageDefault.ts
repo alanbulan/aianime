@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import type { ImageModelDefinition } from '../../types';
 
 export const HUIMENG_DEFAULT_MODEL_ID = 'huimeng/default';

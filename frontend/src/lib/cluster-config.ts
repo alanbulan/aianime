@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { z } from "zod";
 
 export const ClusterMode = z.enum(["none", "multi-region"]);
@@ -36,7 +35,7 @@ export const clusterConfig: ClusterConfig = {
   regions: [],
 };
 
-const CACHE_KEY = "supertale-cluster-config-cache";
+const CACHE_KEY = "ai-anime-cluster-config-cache";
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 
 interface CacheShape {

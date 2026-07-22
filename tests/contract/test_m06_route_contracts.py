@@ -8,8 +8,8 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from novelvideo.models import CharacterIdentity, NovelCharacter, NovelEpisode, NovelProp, NovelScene
-from novelvideo.project_context import ProjectContext
+from ai_anime.models import CharacterIdentity, NovelCharacter, NovelEpisode, NovelProp, NovelScene
+from ai_anime.project_context import ProjectContext
 
 pytestmark = pytest.mark.m06
 
@@ -183,11 +183,11 @@ class _FakeTaskManager:
 
 @pytest.fixture()
 def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    from novelvideo.api import auth as api_auth
-    from novelvideo.api.deps import ProjectResolution
-    from novelvideo.api.routes import freezone, ingest
-    from novelvideo.freezone.paths import uploads_dir
-    from novelvideo.utils.path_resolver import (
+    from ai_anime.api import auth as api_auth
+    from ai_anime.api.deps import ProjectResolution
+    from ai_anime.api.routes import freezone, ingest
+    from ai_anime.freezone.paths import uploads_dir
+    from ai_anime.utils.path_resolver import (
         canonical_beat_director_env_only_path,
         canonical_beat_selected_background_path,
         canonical_identity_path,

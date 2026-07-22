@@ -1,6 +1,6 @@
 """files_sync rclone filter and command construction tests."""
 
-from novelvideo.backup.files_sync import RCLONE_FILTER, build_rclone_env, build_sync_cmd
+from ai_anime.backup.files_sync import RCLONE_FILTER, build_rclone_env, build_sync_cmd
 
 
 def test_filter_excludes_all_sqlite_and_litestream_state():
@@ -29,8 +29,8 @@ def test_build_sync_cmd_shape(tmp_path):
     filter_file = tmp_path / "filter.txt"
     cmd = build_sync_cmd(
         src="/data/state",
-        dst="oss:dramaclaw-staging/backup/3060/node-3060/files/state",
-        history_dst="oss:dramaclaw-staging/backup/3060/node-3060/files-history/20260611T040000Z",
+        dst="oss:ai-anime-staging/backup/3060/node-3060/files/state",
+        history_dst="oss:ai-anime-staging/backup/3060/node-3060/files-history/20260611T040000Z",
         filter_file=filter_file,
     )
 
@@ -56,7 +56,7 @@ def test_build_rclone_env(monkeypatch):
 
 
 def test_snapshot_copyto_natural_name(tmp_path):
-    from novelvideo.backup.files_sync import build_snapshot_copyto_cmd
+    from ai_anime.backup.files_sync import build_snapshot_copyto_cmd
 
     cmd = build_snapshot_copyto_cmd(
         src=tmp_path / "cognee_db.snapshot",

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from novelvideo.shared.billing_errors import InsufficientCreditsError
+from ai_anime.shared.billing_errors import InsufficientCreditsError
 
 pytestmark = pytest.mark.m07
 
@@ -45,7 +45,7 @@ class _FakeAsyncClient:
 
 @pytest.mark.asyncio
 async def test_reserve_tts_model_call_uses_audio_billing_kind(monkeypatch):
-    import novelvideo.generators.indextts2_fal as indextts2_fal
+    import ai_anime.generators.indextts2_fal as indextts2_fal
 
     calls: list[dict] = []
 
@@ -74,9 +74,9 @@ async def test_reserve_tts_model_call_uses_audio_billing_kind(monkeypatch):
 @pytest.mark.asyncio
 async def test_indextts2_newapi_posts_audio_speech_schema(monkeypatch, tmp_path):
     import httpx
-    import novelvideo.generators.indextts2_fal as indextts2_fal
+    import ai_anime.generators.indextts2_fal as indextts2_fal
 
-    from novelvideo.generators.indextts2_fal import IndexTTS2FalClient
+    from ai_anime.generators.indextts2_fal import IndexTTS2FalClient
 
     _FakeAsyncClient.calls = []
     reserved: list[dict] = []
@@ -160,9 +160,9 @@ async def test_indextts2_newapi_posts_audio_speech_schema(monkeypatch, tmp_path)
 @pytest.mark.asyncio
 async def test_indextts2_fal_posts_schema_and_downloads_audio(monkeypatch, tmp_path):
     import httpx
-    import novelvideo.generators.indextts2_fal as indextts2_fal
+    import ai_anime.generators.indextts2_fal as indextts2_fal
 
-    from novelvideo.generators.indextts2_fal import IndexTTS2FalClient
+    from ai_anime.generators.indextts2_fal import IndexTTS2FalClient
 
     _FakeAsyncClient.calls = []
     confirmed: list[dict] = []
@@ -234,9 +234,9 @@ async def test_indextts2_fal_posts_schema_and_downloads_audio(monkeypatch, tmp_p
 @pytest.mark.asyncio
 async def test_indextts2_refunds_reserved_credit_on_generation_failure(monkeypatch, tmp_path):
     import httpx
-    import novelvideo.generators.indextts2_fal as indextts2_fal
+    import ai_anime.generators.indextts2_fal as indextts2_fal
 
-    from novelvideo.generators.indextts2_fal import IndexTTS2FalClient
+    from ai_anime.generators.indextts2_fal import IndexTTS2FalClient
 
     _FakeAsyncClient.calls = []
     refunded: list[dict] = []
@@ -284,7 +284,7 @@ async def test_indextts2_refunds_reserved_credit_on_generation_failure(monkeypat
         {
             "reservation_id": "reservation_1",
             "source": "indextts2_newapi",
-            "error": "DramaClawAPI IndexTTS2 response missing audio bytes or URL",
+            "error": "AI anime API IndexTTS2 response missing audio bytes or URL",
             "provider_request_id": "req_tts_1",
         }
     ]
@@ -292,9 +292,9 @@ async def test_indextts2_refunds_reserved_credit_on_generation_failure(monkeypat
 
 @pytest.mark.asyncio
 async def test_indextts2_reraises_insufficient_credit(monkeypatch, tmp_path):
-    import novelvideo.generators.indextts2_fal as indextts2_fal
+    import ai_anime.generators.indextts2_fal as indextts2_fal
 
-    from novelvideo.generators.indextts2_fal import IndexTTS2FalClient
+    from ai_anime.generators.indextts2_fal import IndexTTS2FalClient
 
     async def fake_reserve(model, *, source):
         raise InsufficientCreditsError(user_id="usr_1", cost=3, balance=0)
@@ -319,7 +319,7 @@ async def test_indextts2_reraises_insufficient_credit(monkeypatch, tmp_path):
 
 @pytest.mark.asyncio
 async def test_indextts2_fal_returns_failure_without_api_key(tmp_path):
-    from novelvideo.generators.indextts2_fal import IndexTTS2FalClient
+    from ai_anime.generators.indextts2_fal import IndexTTS2FalClient
 
     result = await IndexTTS2FalClient(provider="fal", api_key="").generate(
         prompt="测试",

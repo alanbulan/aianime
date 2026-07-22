@@ -1,15 +1,14 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { apiCall } from "./client";
 import type { PushTarget } from "./push";
 import type { MainlineContext } from "@/features/freezone/context/mainlineContext";
 import type { SceneAsset } from "@/types/scene";
 
-// SuperTale `/api/v1/projects` returns a list of project summaries belonging
+// AI anime `/api/v1/projects` returns a list of project summaries belonging
 // to the authenticated user. Shape based on
-// SuperTale/src/novelvideo/api/routes/projects.py:27-44.
+// AI anime/src/ai_anime/api/routes/projects.py:27-44.
 
-export interface SupertaleProjectSummary {
+export interface AiAnimeProjectSummary {
   id: string;
   name: string;
   display_name?: string;
@@ -19,23 +18,23 @@ export interface SupertaleProjectSummary {
   [key: string]: unknown;
 }
 
-export async function listSupertaleProjects(): Promise<SupertaleProjectSummary[]> {
-  return await apiCall<SupertaleProjectSummary[]>("projects");
+export async function listAiAnimeProjects(): Promise<AiAnimeProjectSummary[]> {
+  return await apiCall<AiAnimeProjectSummary[]>("projects");
 }
 
-export interface SupertaleProjectDetail extends SupertaleProjectSummary {
+export interface AiAnimeProjectDetail extends AiAnimeProjectSummary {
   config?: Record<string, unknown>;
 }
 
-export async function getSupertaleProject(projectId: string): Promise<SupertaleProjectDetail> {
-  return await apiCall<SupertaleProjectDetail>(
+export async function getAiAnimeProject(projectId: string): Promise<AiAnimeProjectDetail> {
+  return await apiCall<AiAnimeProjectDetail>(
     `projects/${encodeURIComponent(projectId)}`,
   );
 }
 
 // ---------- Characters ---------- //
 
-export interface SupertaleIdentity {
+export interface AiAnimeIdentity {
   id: string;
   identity_id?: string;
   identity_name?: string;
@@ -47,16 +46,16 @@ export interface SupertaleIdentity {
   [key: string]: unknown;
 }
 
-export interface SupertaleCharacter {
+export interface AiAnimeCharacter {
   name: string;
   display_name?: string;
   portrait_url?: string;
-  identities?: SupertaleIdentity[];
+  identities?: AiAnimeIdentity[];
   [key: string]: unknown;
 }
 
-export async function listCharacters(projectId: string): Promise<SupertaleCharacter[]> {
-  return await apiCall<SupertaleCharacter[]>(
+export async function listCharacters(projectId: string): Promise<AiAnimeCharacter[]> {
+  return await apiCall<AiAnimeCharacter[]>(
     `projects/${encodeURIComponent(projectId)}/characters`,
   );
 }
@@ -64,8 +63,8 @@ export async function listCharacters(projectId: string): Promise<SupertaleCharac
 export async function listCharacterIdentities(
   projectId: string,
   character: string,
-): Promise<SupertaleIdentity[]> {
-  return await apiCall<SupertaleIdentity[]>(
+): Promise<AiAnimeIdentity[]> {
+  return await apiCall<AiAnimeIdentity[]>(
     `projects/${encodeURIComponent(projectId)}/characters/${encodeURIComponent(character)}/identities`,
   );
 }
@@ -80,7 +79,7 @@ export async function listScenes(projectId: string): Promise<SceneAsset[]> {
 
 // ---------- Episodes ---------- //
 
-export interface SupertaleEpisodeSummary {
+export interface AiAnimeEpisodeSummary {
   episode_num: number;
   /** 后端实际返回的集数字段是 `number`;listEpisodes 会归一到 episode_num。 */
   number?: number;
@@ -88,8 +87,8 @@ export interface SupertaleEpisodeSummary {
   [key: string]: unknown;
 }
 
-export async function listEpisodes(projectId: string): Promise<SupertaleEpisodeSummary[]> {
-  const episodes = await apiCall<SupertaleEpisodeSummary[]>(
+export async function listEpisodes(projectId: string): Promise<AiAnimeEpisodeSummary[]> {
+  const episodes = await apiCall<AiAnimeEpisodeSummary[]>(
     `projects/${encodeURIComponent(projectId)}/episodes`,
   );
   // 后端集数字段名是 `number`(见 types/episode.ts 的 Episode.number),历史类型却写成
@@ -108,7 +107,7 @@ export async function listEpisodes(projectId: string): Promise<SupertaleEpisodeS
 
 // ---------- Beats ---------- //
 
-export interface SupertaleBeat {
+export interface AiAnimeBeat {
   beat_index?: number;
   beat_number?: number;
   narration_segment?: string;
@@ -127,8 +126,8 @@ export interface SupertaleBeat {
 export async function listBeats(
   projectId: string,
   episodeNum: number,
-): Promise<SupertaleBeat[]> {
-  return await apiCall<SupertaleBeat[]>(
+): Promise<AiAnimeBeat[]> {
+  return await apiCall<AiAnimeBeat[]>(
     `projects/${encodeURIComponent(projectId)}/episodes/${episodeNum}/beats`,
   );
 }
@@ -146,8 +145,8 @@ export async function updateBeat(
   episodeNum: number,
   beatNum: number,
   payload: BeatUpdatePayload,
-): Promise<SupertaleBeat> {
-  return await apiCall<SupertaleBeat>(
+): Promise<AiAnimeBeat> {
+  return await apiCall<AiAnimeBeat>(
     `projects/${encodeURIComponent(projectId)}/episodes/${episodeNum}/beats/${beatNum}`,
     {
       method: "PATCH",
@@ -158,7 +157,7 @@ export async function updateBeat(
 
 // ---------- Static URL helpers ---------- //
 
-// SuperTale serves user assets at `/static/<user>/<project>/...`. The backend
+// AI anime serves user assets at `/static/<user>/<project>/...`. The backend
 // embeds `<user>/<project>` in URLs it returns (frame_url, video_url, identity
 // image_url, portrait_url). For assets the backend doesn't directly expose
 // (sketch, director-render combined.png), we derive a URL by rewriting the

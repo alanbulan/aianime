@@ -16,14 +16,14 @@ def narration_env(tmp_path, monkeypatch):
     output_dir = tmp_path / "output"
     state_dir.mkdir()
     output_dir.mkdir()
-    monkeypatch.setenv("NOVELVIDEO_DATA_ROOT", str(tmp_path))
-    monkeypatch.setenv("NOVELVIDEO_STATE_DIR", str(state_dir))
-    monkeypatch.setenv("NOVELVIDEO_OUTPUT_DIR", str(output_dir))
+    monkeypatch.setenv("AI_ANIME_DATA_ROOT", str(tmp_path))
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(state_dir))
+    monkeypatch.setenv("AI_ANIME_OUTPUT_DIR", str(output_dir))
 
     import importlib
-    import novelvideo.config as cfg
-    import novelvideo.utils.project_paths as pp
-    import novelvideo.project_config as pc
+    import ai_anime.config as cfg
+    import ai_anime.utils.project_paths as pp
+    import ai_anime.project_config as pc
 
     importlib.reload(cfg)
     importlib.reload(pp)
@@ -107,12 +107,12 @@ def test_indextts2_beat_audio_task_module_imports():
     """C5 unblocks top-level import of indextts2_beat_audio_task."""
     import importlib
 
-    mod = importlib.import_module("novelvideo.audio.indextts2_beat_audio_task")
+    mod = importlib.import_module("ai_anime.audio.indextts2_beat_audio_task")
     assert hasattr(mod, "run_indextts2_beat_audio_generation")
 
 
 def test_fal_config_constants_exposed():
-    from novelvideo import config as cfg
+    from ai_anime import config as cfg
 
     assert hasattr(cfg, "FAL_API_KEY")
     assert hasattr(cfg, "INDEXTTS2_FAL_ENDPOINT")
@@ -123,6 +123,6 @@ def test_fal_config_constants_exposed():
 
 def test_output_dir_alias_present_for_monkeypatching():
     """Source-branch tests monkeypatch ``project_config.OUTPUT_DIR`` to redirect roots."""
-    import novelvideo.project_config as pc
+    import ai_anime.project_config as pc
 
     assert hasattr(pc, "OUTPUT_DIR")

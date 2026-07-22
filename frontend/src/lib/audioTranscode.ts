@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 // In-browser audio format conversion for the canvas audio-node download menu.
 //
 // The backend serves the separated/generated audio in whatever container it

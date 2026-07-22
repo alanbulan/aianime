@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 // A navigation lock shared by the ky 401 handler and the region switch orchestrator.
 // Whichever path acquires it first wins; the other backs off. Browser navigation
 // (hard reload) zeroes the module state for us, so no manual release is needed.

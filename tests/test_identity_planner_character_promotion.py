@@ -1,12 +1,12 @@
 import pytest
 
-from novelvideo.agents.identity_planner import (
+from ai_anime.agents.identity_planner import (
     DefaultIdentityRequirement,
     EpisodeDefaultIdentities,
     EpisodeIdentityRequirements,
     IdentityPlanner,
 )
-from novelvideo.models import NovelCharacter, NovelEpisode
+from ai_anime.models import NovelCharacter, NovelEpisode
 
 
 class FakeIdentityStore:

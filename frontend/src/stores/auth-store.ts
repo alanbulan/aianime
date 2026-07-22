@@ -1,18 +1,11 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { quotaSafeStateStorage } from "@/lib/localStorageQuota";
 import { regionAbortController } from "@/lib/region-abort";
-import type { OkResponse } from "@/types/api";
+import { authAdapter, AuthAdapterError, type CurrentUser } from "@/lib/auth-adapter";
 
-export interface CurrentUser {
-  username: string;
-  role: string;
-  credit_balance: number;
-  credential_kind?: string;
-  avatar_url?: string | null;
-}
+export type { CurrentUser } from "@/lib/auth-adapter";
 
 interface GetCurrentUserOptions {
   clearOnNetworkFailure?: boolean;
@@ -29,6 +22,7 @@ export interface AuthState {
   role: string | null;
   avatarUrl: string | null;
   login: (username: string, password: string) => Promise<void>;
+  authorize: (code: string) => Promise<void>;
   logout: () => Promise<void>;
   validateSession: () => Promise<boolean>;
   getCurrentUser: (options?: GetCurrentUserOptions) => Promise<CurrentUser | null>;
@@ -73,32 +67,20 @@ export const useAuthStore = create<AuthState>()(
       role: null,
       avatarUrl: null,
       login: async (username: string, password: string) => {
-        // `credentials: "include"` lets the browser store the HttpOnly
-        // Set-Cookie the BE returns on success. Without it, the cookie
-        // would be silently dropped and every subsequent /api/ call would
-        // 401 despite login appearing to succeed.
-        const res = await fetch("/api/v1/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ username, password }),
-          signal: regionAbortController().signal,
-        });
-        if (!res.ok) {
-          const err = await res
-            .json()
-            .catch(() => ({ error: "Login failed" }));
-          throw new Error(err.error || err.detail || "Login failed");
-        }
-        const data = await res.json();
-        // The response body carries identity only; the HttpOnly cookie is the credential.
-        cachedCurrentUser = data.data;
+        const user = await authAdapter.login(username, password);
+        cachedCurrentUser = user;
         lastSuccessfulValidationAt = Date.now();
         set({
-          username: data.data.username,
-          role: data.data.role,
+          username: user.username,
+          role: user.role,
         });
-        // Avatar is an EE-only feature served by its own endpoint, not /auth/me.
+        void useAuthStore.getState().refreshAvatar();
+      },
+      authorize: async (code: string) => {
+        const user = await authAdapter.authorize(code);
+        cachedCurrentUser = user;
+        lastSuccessfulValidationAt = Date.now();
+        set({ username: user.username, role: user.role });
         void useAuthStore.getState().refreshAvatar();
       },
       logout: async () => {
@@ -106,11 +88,7 @@ export const useAuthStore = create<AuthState>()(
         // we still tear down the local username/role so the UI redirects to
         // /login — a phantom cookie can be cleaned up on the next login.
         try {
-          await fetch("/api/v1/auth/logout", {
-            method: "POST",
-            credentials: "include",
-            signal: regionAbortController().signal,
-          });
+          await authAdapter.logout();
         } catch {
           /* ignore — local logout proceeds regardless */
         }
@@ -131,36 +109,25 @@ export const useAuthStore = create<AuthState>()(
           currentUserInFlight ??
           (currentUserInFlight = (async (): Promise<CurrentUserFetchResult> => {
             try {
-              const res = await fetch("/api/v1/auth/me", {
-                credentials: "include",
-                signal: regionAbortController().signal,
-              });
-              if (!res.ok) {
-                // A 401/403 is the ONLY response that means the session cookie
-                // is missing or stale — the sole case that should tear auth
-                // down. Any other non-2xx (500/502/503 while the backend pod is
-                // mid-rollout, gateway errors) carries no auth signal: leave the
-                // session intact so a routine backend restart doesn't log every
-                // user out. We surface it as neither authFailure nor
-                // networkFailure so no caller — not even the strict route-guard
-                // default — clears local auth; the next poll recovers on 200.
-                if (res.status === 401 || res.status === 403) {
-                  return { user: null, authFailure: true, networkFailure: false };
-                }
-                return { user: null, authFailure: false, networkFailure: false };
-              }
-              const body = (await res.json()) as OkResponse<CurrentUser>;
-              cachedCurrentUser = body.data;
+              const user = await authAdapter.getCurrentUser();
+              cachedCurrentUser = user;
               lastSuccessfulValidationAt = Date.now();
               set({
-                username: body.data.username,
-                role: body.data.role,
+                username: user.username,
+                role: user.role,
               });
-              // NB: avatar is refreshed independently (login() + the App-root
-              // mount effect), NOT here — getCurrentUser has a 15s cache, so a
-              // cache hit would skip the refresh and leave the avatar stale.
-              return { user: body.data, authFailure: false, networkFailure: false };
-            } catch {
+              return { user, authFailure: false, networkFailure: false };
+            } catch (error) {
+              if (error instanceof AuthAdapterError) {
+                if (error.status === 401 || error.status === 403) {
+                  return { user: null, authFailure: true, networkFailure: false };
+                }
+                return {
+                  user: null,
+                  authFailure: false,
+                  networkFailure: error.status === null,
+                };
+              }
               return { user: null, authFailure: false, networkFailure: true };
             }
           })());
@@ -209,7 +176,7 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: "supertale-auth",
+      name: "ai-anime-auth",
       storage: createJSONStorage(() => quotaSafeStateStorage),
       partialize: (state) => ({
         username: state.username,

@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useEffect, useRef, useState } from "react";
 import { useReactFlow, type Viewport } from "@xyflow/react";
 import {
@@ -62,7 +61,7 @@ const DRAFT_DEBOUNCE_MS = 300;
 const LOCK_BUSY_MAX_RETRIES = 1;
 export const FREEZONE_HYDRATE_RELEASE_GRACE_MS = 50;
 /**
- * 已结算的 hydrate 结果保留多久可复用。顶栏在「虾画 / 虾集」之间来回切时会整体
+ * 已结算的 hydrate 结果保留多久可复用。顶栏在「AI anime 画布 / AI anime 工作台」之间来回切时会整体
  * 卸载再挂载画布，复用能省掉一趟往返的全量拉取。仅在期间没有任何本地编辑
  * （userEditsSinceHydrate === 0）时复用。
  *
@@ -643,7 +642,7 @@ interface CanvasSyncResult {
 }
 
 /**
- * Bind a SuperTale freezone canvas (project, canvasId) to the local
+ * Bind a AI anime freezone canvas (project, canvasId) to the local
  * `useCanvasStore`. On mount the canvas is fetched and pushed into the
  * store; subsequent edits are debounced + PUT back. F4's freezoneAiGateway
  * generates new images that flow into the store the same way upstream did.

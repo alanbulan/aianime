@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -256,7 +255,7 @@ describe("AudioPane", () => {
     const action = toastError.mock.calls[0][1].action as { onClick: () => void };
     action.onClick();
 
-    expect(window.localStorage.getItem("supertale-asset-tab:demo")).toBe("voices");
+    expect(window.localStorage.getItem("ai-anime-asset-tab:demo")).toBe("voices");
     expect(navigateMock).toHaveBeenCalledWith({
       to: "/projects/$project/characters",
       params: { project: "demo" },
@@ -296,7 +295,7 @@ describe("AudioPane", () => {
     const action = toastError.mock.calls[0][1].action as { onClick: () => void };
     action.onClick();
 
-    expect(window.localStorage.getItem("supertale-asset-tab:demo%20project")).toBe("characters");
+    expect(window.localStorage.getItem("ai-anime-asset-tab:demo%20project")).toBe("characters");
     expect(navigateMock).toHaveBeenCalledWith({
       to: "/projects/$project/characters",
       params: { project: "demo project" },

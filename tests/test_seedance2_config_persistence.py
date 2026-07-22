@@ -5,8 +5,8 @@ pytestmark = pytest.mark.m09
 
 
 async def test_update_beat_asset_persists_seedance2_config_json(tmp_path):
-    from novelvideo.models import NovelEpisode, NovelVisualBeat
-    from novelvideo.sqlite_store import SQLiteStore
+    from ai_anime.models import NovelEpisode, NovelVisualBeat
+    from ai_anime.sqlite_store import SQLiteStore
 
     store = SQLiteStore("user/project", output_dir=str(tmp_path / "out"), state_dir=str(tmp_path))
     await store.initialize()

@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import type { CanvasNode } from '@/features/canvas/domain/canvasNodes';
 
 import type { SnapAlignGuides } from './snapAlignStore';

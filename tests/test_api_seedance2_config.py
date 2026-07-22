@@ -27,9 +27,9 @@ class _FakeStore:
 
 @pytest.mark.asyncio
 async def test_update_beat_accepts_seedance2_config_json(monkeypatch, tmp_path):
-    from novelvideo.api.routes import scripts
-    from novelvideo.api.deps import ProjectResolution
-    from novelvideo.api.schemas import BeatUpdate
+    from ai_anime.api.routes import scripts
+    from ai_anime.api.deps import ProjectResolution
+    from ai_anime.api.schemas import BeatUpdate
 
     store = _FakeStore()
 

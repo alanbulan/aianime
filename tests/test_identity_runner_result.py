@@ -1,4 +1,4 @@
-from novelvideo.task_backend.runners.identity import _build_identity_planner_result
+from ai_anime.task_backend.runners.identity import _build_identity_planner_result
 
 
 def test_identity_runner_result_includes_auto_promoted_characters():

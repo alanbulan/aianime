@@ -10,8 +10,8 @@ T4 新建 FileAuthPort 时这个键集最容易悄悄变形，本测试把"拆�
 
 from __future__ import annotations
 
-from novelvideo.api.auth import AUTH_COOKIE_NAME
-from novelvideo.ports.auth_contract import AgentAuthenticatedUser, AuthenticatedUser
+from ai_anime.api.auth import AUTH_COOKIE_NAME
+from ai_anime.ports.auth_contract import AgentAuthenticatedUser, AuthenticatedUser
 
 import pytest
 
@@ -31,8 +31,8 @@ AGENT_LEGACY_KEYS = BROWSER_LEGACY_KEYS | {
 }
 
 
-def test_auth_cookie_name_is_st_session() -> None:
-    assert AUTH_COOKIE_NAME == "st_session"
+def test_auth_cookie_name_is_ai_anime_session() -> None:
+    assert AUTH_COOKIE_NAME == "ai_anime_session"
 
 
 def test_browser_legacy_dict_key_set() -> None:

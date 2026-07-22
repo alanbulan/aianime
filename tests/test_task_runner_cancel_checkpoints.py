@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from novelvideo.task_backend.cancel import TaskCancelled
+from ai_anime.task_backend.cancel import TaskCancelled
 
 
 class _FakeTaskManager:
@@ -25,7 +25,7 @@ def _write_beat_video(project_dir: Path, episode: int, beat_num: int) -> None:
 
 
 def test_stage_asset_checks_cancel_after_local_runner_returns(tmp_path, monkeypatch):
-    from novelvideo.task_backend.runners import stage_asset
+    from ai_anime.task_backend.runners import stage_asset
 
     check_count = 0
 
@@ -38,7 +38,7 @@ def test_stage_asset_checks_cancel_after_local_runner_returns(tmp_path, monkeypa
     monkeypatch.setattr(stage_asset, "raise_if_envelope_cancel_requested", fake_check)
     monkeypatch.setattr(stage_asset, "get_task_manager", lambda: _FakeTaskManager())
     monkeypatch.setattr(
-        "novelvideo.stage_asset_tasks.upload_scene_package",
+        "ai_anime.stage_asset_tasks.upload_scene_package",
         lambda *_args, **_kwargs: {"ok": True},
     )
 
@@ -60,7 +60,7 @@ def test_stage_asset_checks_cancel_after_local_runner_returns(tmp_path, monkeypa
 
 
 def test_freezone_image_to_3gs_checks_cancel_before_publishing_result(tmp_path, monkeypatch):
-    from novelvideo.task_backend.runners import stage_asset
+    from ai_anime.task_backend.runners import stage_asset
 
     source = tmp_path / "source.png"
     source.write_bytes(b"image")
@@ -78,7 +78,7 @@ def test_freezone_image_to_3gs_checks_cancel_before_publishing_result(tmp_path, 
     monkeypatch.setattr(stage_asset, "raise_if_envelope_cancel_requested", fake_check)
     monkeypatch.setattr(stage_asset, "get_task_manager", lambda: _FakeTaskManager())
     monkeypatch.setattr(
-        "novelvideo.stage_asset_tasks.run_single_face_sharp",
+        "ai_anime.stage_asset_tasks.run_single_face_sharp",
         lambda *_args, **_kwargs: {"ply_path": str(sog), "sog_path": str(sog)},
     )
 
@@ -105,7 +105,7 @@ def test_freezone_image_to_3gs_checks_cancel_before_publishing_result(tmp_path, 
 def test_stage_asset_caps_local_runner_timeout_to_task_deadline(tmp_path, monkeypatch):
     import time
 
-    from novelvideo.task_backend.runners import stage_asset
+    from ai_anime.task_backend.runners import stage_asset
 
     captured: dict[str, int] = {}
 
@@ -115,7 +115,7 @@ def test_stage_asset_caps_local_runner_timeout_to_task_deadline(tmp_path, monkey
 
     monkeypatch.setattr(stage_asset, "get_task_manager", lambda: _FakeTaskManager())
     monkeypatch.setattr(stage_asset, "raise_if_envelope_cancel_requested", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr("novelvideo.stage_asset_tasks.run_pano_sharp", fake_run_pano_sharp)
+    monkeypatch.setattr("ai_anime.stage_asset_tasks.run_pano_sharp", fake_run_pano_sharp)
 
     stage_asset.run_stage_asset(
         {
@@ -138,7 +138,7 @@ def test_stage_asset_caps_local_runner_timeout_to_task_deadline(tmp_path, monkey
 
 
 def test_compose_episode_checks_cancel_after_final_ffmpeg_returns(tmp_path, monkeypatch):
-    from novelvideo.task_backend.runners import video
+    from ai_anime.task_backend.runners import video
 
     _write_beat_video(tmp_path, episode=1, beat_num=1)
     cancel_after_final = False
@@ -177,7 +177,7 @@ def test_compose_episode_checks_cancel_after_final_ffmpeg_returns(tmp_path, monk
 def test_compose_episode_passes_deadline_timeout_to_ffmpeg(tmp_path, monkeypatch):
     import time
 
-    from novelvideo.task_backend.runners import video
+    from ai_anime.task_backend.runners import video
 
     _write_beat_video(tmp_path, episode=1, beat_num=1)
     timeouts: list[int | None] = []
@@ -218,8 +218,8 @@ def test_compose_episode_passes_deadline_timeout_to_ffmpeg(tmp_path, monkeypatch
 def test_video_ffprobe_timeout_maps_to_task_timeout(monkeypatch, tmp_path):
     import subprocess
 
-    from novelvideo.task_backend.cancel import TaskTimedOut
-    from novelvideo.task_backend.runners import video
+    from ai_anime.task_backend.cancel import TaskTimedOut
+    from ai_anime.task_backend.runners import video
 
     media = tmp_path / "beat.mp4"
     media.write_bytes(b"video")

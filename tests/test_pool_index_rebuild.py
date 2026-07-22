@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from novelvideo.models import PoolIndex
+from ai_anime.models import PoolIndex
 
 
 def _configure_roots(monkeypatch, tmp_path):
-    from novelvideo.utils import state_index_files
+    from ai_anime.utils import state_index_files
 
     output_root = tmp_path / "output"
     state_root = tmp_path / "state"
@@ -14,7 +14,7 @@ def _configure_roots(monkeypatch, tmp_path):
 
 
 def test_build_pool_index_keeps_all_timestamped_candidates(tmp_path):
-    from novelvideo.generators.pool_indexer import build_pool_index
+    from ai_anime.generators.pool_indexer import build_pool_index
 
     grids_dir = tmp_path / "grids" / "ep001"
     sketch_dir = grids_dir / "sketch"
@@ -41,7 +41,7 @@ def test_build_pool_index_keeps_all_timestamped_candidates(tmp_path):
 
 def test_rebuild_pool_index_preserves_existing_assignments(monkeypatch, tmp_path):
     output_root, _state_root = _configure_roots(monkeypatch, tmp_path)
-    from novelvideo.generators.pool_indexer import rebuild_pool_index, save_pool_index
+    from ai_anime.generators.pool_indexer import rebuild_pool_index, save_pool_index
 
     grids_dir = output_root / "admin" / "demo" / "grids" / "ep001"
     sketch_dir = grids_dir / "sketch"

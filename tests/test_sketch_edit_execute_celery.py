@@ -34,8 +34,8 @@ def _write_valid_labels(project_dir, episode_num: int = 1) -> None:
 
 @pytest.mark.asyncio
 async def test_start_sketch_edit_execute_enqueues_project_task(tmp_path, monkeypatch):
-    from novelvideo.verification import routes
-    from novelvideo.verification.schemas import SketchEditExecuteRequest
+    from ai_anime.verification import routes
+    from ai_anime.verification.schemas import SketchEditExecuteRequest
 
     _write_valid_labels(tmp_path)
     ctx = SimpleNamespace(
@@ -100,8 +100,8 @@ async def test_start_sketch_edit_execute_enqueues_project_task(tmp_path, monkeyp
 
 
 def test_sketch_edit_execute_runner_calls_existing_executor(tmp_path, monkeypatch):
-    from novelvideo.task_backend.registry import get_project_task_runner
-    import novelvideo.task_backend.runners.sketch_edit_execute as runner_module
+    from ai_anime.task_backend.registry import get_project_task_runner
+    import ai_anime.task_backend.runners.sketch_edit_execute as runner_module
 
     _write_valid_labels(tmp_path)
     calls: list[dict] = []

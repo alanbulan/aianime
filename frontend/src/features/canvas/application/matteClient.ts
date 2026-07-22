@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 // 抠图 Worker 的主线程客户端:懒加载单例 worker,做请求↔响应的 id 关联。
 // 见 ./matteWorker.ts 顶部注释:整段推理在 worker 内执行,主线程(画布)不被阻塞。
 

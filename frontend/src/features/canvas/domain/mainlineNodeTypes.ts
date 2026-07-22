@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 /**
  * Canonical mainline node fields, used across canvas / drag-in / spawn /
  * Push paths. `SlotTarget` is a deliberate alias for the existing `PushTarget`

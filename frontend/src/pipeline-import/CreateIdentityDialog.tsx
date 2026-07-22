@@ -1,8 +1,7 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useEffect, useMemo, useState } from "react";
 import { createIdentityAsset } from "@/api/assets";
-import { listCharacters, type SupertaleCharacter } from "@/api/projects";
+import { listCharacters, type AiAnimeCharacter } from "@/api/projects";
 
 interface CreateIdentityDialogProps {
   project: string;
@@ -29,7 +28,7 @@ export function CreateIdentityDialog({
   onClose,
   onSuccess,
 }: CreateIdentityDialogProps) {
-  const [characters, setCharacters] = useState<SupertaleCharacter[]>([]);
+  const [characters, setCharacters] = useState<AiAnimeCharacter[]>([]);
   const [loadingCharacters, setLoadingCharacters] = useState(true);
   const [character, setCharacter] = useState(defaultCharacter ?? "");
   const [identityName, setIdentityName] = useState("");

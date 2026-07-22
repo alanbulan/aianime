@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from novelvideo.models import NovelScene
+from ai_anime.models import NovelScene
 
 ENRICHED_ENVIRONMENT_PROMPT = "正面：临街玻璃窗\n左侧：咖啡吧台\n右侧：木质书架\n背面：入口木门"
 
@@ -71,7 +71,7 @@ def _block(location: str = "咖啡馆", time_of_day: str = "夜"):
 
 @pytest.mark.asyncio
 async def test_compile_episode_scenes_reconciles_base_scene_before_planning(monkeypatch):
-    import novelvideo.agents.asset_compiler as asset_compiler
+    import ai_anime.agents.asset_compiler as asset_compiler
 
     async def fake_enrich(**kwargs):
         return NovelScene(
@@ -123,7 +123,7 @@ async def test_compile_episode_scenes_reconciles_base_scene_before_planning(monk
 
 @pytest.mark.asyncio
 async def test_compile_episode_scenes_backfills_existing_empty_scene_prompt(monkeypatch):
-    import novelvideo.agents.asset_compiler as asset_compiler
+    import ai_anime.agents.asset_compiler as asset_compiler
 
     existing = NovelScene(name="咖啡馆", scene_type="interior", environment_prompt="")
 
@@ -167,7 +167,7 @@ async def test_compile_episode_scenes_backfills_existing_empty_scene_prompt(monk
 
 @pytest.mark.asyncio
 async def test_compile_episode_scenes_keeps_existing_prompt(monkeypatch):
-    import novelvideo.agents.asset_compiler as asset_compiler
+    import ai_anime.agents.asset_compiler as asset_compiler
 
     existing = NovelScene(
         name="咖啡馆",
@@ -206,7 +206,7 @@ async def test_compile_episode_scenes_keeps_existing_prompt(monkeypatch):
 async def test_compile_episode_scenes_creates_empty_time_plate_slot_for_repeated_time(
     monkeypatch,
 ):
-    import novelvideo.agents.asset_compiler as asset_compiler
+    import ai_anime.agents.asset_compiler as asset_compiler
 
     async def fake_enrich(**kwargs):
         return NovelScene(
@@ -256,7 +256,7 @@ async def test_compile_episode_scenes_creates_empty_time_plate_slot_for_repeated
 async def test_compile_episode_scenes_uses_narrated_fallback_without_scene_headers(
     monkeypatch, tmp_path
 ):
-    import novelvideo.agents.asset_compiler as asset_compiler
+    import ai_anime.agents.asset_compiler as asset_compiler
 
     async def fake_extract(self, source_text, episode, log):
         assert "医院走廊" in source_text
@@ -301,7 +301,7 @@ async def test_compile_episode_scenes_uses_narrated_fallback_without_scene_heade
 
 @pytest.mark.asyncio
 async def test_compile_scenes_promotes_stable_visual_states_to_pending_scenes(monkeypatch):
-    import novelvideo.agents.asset_compiler as asset_compiler
+    import ai_anime.agents.asset_compiler as asset_compiler
 
     async def fake_enrich(**kwargs):
         return NovelScene(
@@ -360,7 +360,7 @@ async def test_compile_scenes_promotes_stable_visual_states_to_pending_scenes(mo
 
 @pytest.mark.asyncio
 async def test_compile_scenes_reuses_existing_derived_scene(monkeypatch):
-    import novelvideo.agents.asset_compiler as asset_compiler
+    import ai_anime.agents.asset_compiler as asset_compiler
 
     async def fake_derived(self, scene_name, block):
         return [
@@ -406,7 +406,7 @@ async def test_compile_scenes_reuses_existing_derived_scene(monkeypatch):
 async def test_compile_episode_scenes_persists_base_and_derived_as_normal_scenes(
     monkeypatch, tmp_path
 ):
-    import novelvideo.agents.asset_compiler as asset_compiler
+    import ai_anime.agents.asset_compiler as asset_compiler
 
     async def fake_load_scene_blocks(self, episode):
         return [_block()]
@@ -464,7 +464,7 @@ async def test_compile_episode_scenes_persists_base_and_derived_as_normal_scenes
 
 @pytest.mark.asyncio
 async def test_base_scene_reconcile_does_not_create_existing_alias():
-    import novelvideo.agents.asset_compiler as asset_compiler
+    import ai_anime.agents.asset_compiler as asset_compiler
 
     store = _FakeCogneeStore(
         [
@@ -500,7 +500,7 @@ async def test_base_scene_reconcile_does_not_create_existing_alias():
 
 @pytest.mark.asyncio
 async def test_find_matching_scene_treats_independent_underscore_scene_as_base_candidate():
-    import novelvideo.agents.asset_compiler as asset_compiler
+    import ai_anime.agents.asset_compiler as asset_compiler
 
     store = _FakeCogneeStore(
         [
@@ -523,7 +523,7 @@ async def test_find_matching_scene_treats_independent_underscore_scene_as_base_c
 
 
 def test_derived_scene_normalization_filters_plain_time_but_keeps_stable_light_plate():
-    import novelvideo.agents.asset_compiler as asset_compiler
+    import ai_anime.agents.asset_compiler as asset_compiler
 
     normalized = asset_compiler.AssetCompiler._build_derived_scene_specs(
         [

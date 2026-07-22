@@ -12,7 +12,7 @@ def _size_to_bytes(value: str, unit: str) -> int:
 
 
 def test_api_middleware_allows_large_project_uploads() -> None:
-    from novelvideo.api.app import create_app
+    from ai_anime.api.app import create_app
 
     client = TestClient(create_app())
     response = client.post(
@@ -25,7 +25,7 @@ def test_api_middleware_allows_large_project_uploads() -> None:
 
 
 def test_api_middleware_keeps_small_limit_for_non_upload_json() -> None:
-    from novelvideo.api.app import create_app
+    from ai_anime.api.app import create_app
 
     client = TestClient(create_app())
     response = client.post(
@@ -38,7 +38,7 @@ def test_api_middleware_keeps_small_limit_for_non_upload_json() -> None:
 
 
 def test_freezone_audio_voice_oversize_returns_business_error() -> None:
-    from novelvideo.api.app import create_app
+    from ai_anime.api.app import create_app
 
     client = TestClient(create_app())
     body = b"x" * (6 * 1024 * 1024)

@@ -3,7 +3,7 @@ import re
 
 import pytest
 
-from novelvideo.generators.prompt_builder import (
+from ai_anime.generators.prompt_builder import (
     GridConfig,
     PromptComponents,
     PromptContext,
@@ -11,8 +11,8 @@ from novelvideo.generators.prompt_builder import (
     SketchModeStrategy,
     StyleConfig,
 )
-from novelvideo.director_world.control_frame_to_sketch import _director_augmented_beat
-from novelvideo.utils.asset_resolver import ResolvedAssetRef
+from ai_anime.director_world.control_frame_to_sketch import _director_augmented_beat
+from ai_anime.utils.asset_resolver import ResolvedAssetRef
 
 
 def _build_sketch_prompt(beats: list[dict], rows: int = 1, cols: int = 1) -> str:
@@ -498,7 +498,7 @@ async def test_prepare_batch_request_sketch_attaches_scene_refs(tmp_path):
     pytest.importorskip("google.genai")
     from PIL import Image
 
-    from novelvideo.generators.nanobanana_grid import NanoBananaGridGenerator
+    from ai_anime.generators.nanobanana_grid import NanoBananaGridGenerator
 
     project_dir = tmp_path / "output" / "admin" / "demo"
     scene_dir = project_dir / "assets" / "scenes" / "兰州拉面馆"

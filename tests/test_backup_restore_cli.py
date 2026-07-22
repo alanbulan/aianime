@@ -1,6 +1,6 @@
 """restore-cell pure command construction tests."""
 
-from novelvideo.backup.cli import build_rclone_files_cmd, build_restore_config, derive_region
+from ai_anime.backup.cli import build_rclone_files_cmd, build_restore_config, derive_region
 
 
 def test_derive_region():
@@ -10,7 +10,7 @@ def test_derive_region():
 
 def test_build_restore_config_contains_all_rels_and_region():
     cfg = build_restore_config(
-        bucket="dramaclaw-staging",
+        bucket="ai-anime-staging",
         endpoint="oss-cn-chengdu.aliyuncs.com",
         region="cn-chengdu",
         prefix="backup/3060/node-3060",
@@ -28,7 +28,7 @@ def test_build_restore_config_contains_all_rels_and_region():
 
 def test_rclone_files_cmd_excludes_sqlite(tmp_path):
     cmd = build_rclone_files_cmd(
-        bucket="dramaclaw-staging",
+        bucket="ai-anime-staging",
         prefix="backup/3060/node-3060",
         user="u1",
         project="p1",
@@ -37,5 +37,5 @@ def test_rclone_files_cmd_excludes_sqlite(tmp_path):
     )
 
     assert cmd[:2] == ["rclone", "copy"]
-    assert cmd[2] == "oss:dramaclaw-staging/backup/3060/node-3060/state/u1/p1"
+    assert cmd[2] == "oss:ai-anime-staging/backup/3060/node-3060/state/u1/p1"
     assert "--filter-from" in cmd

@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   ApprovalRequest,
@@ -52,13 +51,11 @@ function loadSettings(): SuperChatSettings {
     return {
       showToolEvents: raw.showToolEvents ?? false,
       showStructuredSourceWhileStreaming: raw.showStructuredSourceWhileStreaming ?? true,
-      uploadTarget: raw.uploadTarget === "local" ? "local" : "openclaw",
     };
   } catch {
     return {
       showToolEvents: false,
       showStructuredSourceWhileStreaming: true,
-      uploadTarget: "openclaw",
     };
   }
 }
@@ -79,8 +76,8 @@ function scopeForProject(project?: string): ChatScope {
 }
 
 function scopeSessionKey(scope: ChatScope): string {
-  if (scope.kind === "project" && scope.id) return `supertale:project:${scope.id}:main`;
-  return "supertale:home:main";
+  if (scope.kind === "project" && scope.id) return `ai_anime:project:${scope.id}:main`;
+  return "ai_anime:home:main";
 }
 
 function messageCacheKey(scopeKey: string): string {
@@ -1055,7 +1052,7 @@ export function useSuperChat({
   }, []);
 
   const sessionControl = useCallback((_command: SessionControlCommand, _args?: string) => {
-    // novelvideo's native chat endpoint does not expose external session-control commands.
+    // ai_anime's native chat endpoint does not expose external session-control commands.
   }, []);
 
   const persistMessageSet = useCallback((kind: "pinned" | "deleted", next: Set<string>) => {

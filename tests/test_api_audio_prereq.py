@@ -15,9 +15,9 @@ class _FakeStore:
 
 @pytest.mark.asyncio
 async def test_audio_generate_prereq_error_does_not_start_task(monkeypatch, tmp_path):
-    from novelvideo.api.routes import generation
-    from novelvideo.api.deps import ProjectResolution
-    from novelvideo.api.schemas import TTSGenerateRequest
+    from ai_anime.api.routes import generation
+    from ai_anime.api.deps import ProjectResolution
+    from ai_anime.api.schemas import TTSGenerateRequest
 
     async def fake_make_sqlite_store(username, project):
         assert username == "alice"

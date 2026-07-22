@@ -1,6 +1,5 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
-import { Monitor, Moon, Sun } from "lucide-react";
+// Copyright (c) 2026 AI anime
+import { Moon, Sun } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +14,6 @@ import { useResolvedTheme } from "@/components/theme-provider";
 const OPTIONS: Array<{ value: Theme; i18nKey: string; Icon: typeof Sun }> = [
   { value: "light", i18nKey: "theme.light", Icon: Sun },
   { value: "dark", i18nKey: "theme.dark", Icon: Moon },
-  { value: "system", i18nKey: "theme.system", Icon: Monitor },
 ];
 
 export function ThemeToggle() {

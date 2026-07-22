@@ -7,21 +7,21 @@ import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from novelvideo.ports.auth_contract import AuthError
+from ai_anime.ports.auth_contract import AuthError
 
 pytestmark = pytest.mark.m08
 
 
 def _run_ce_agent_route_probe() -> dict:
     env = os.environ.copy()
-    env["ST_EDITION"] = "ce"
-    env["ST_CONTROL_PLANE_DSN"] = ""
+    env["AI_ANIME_EDITION"] = "ce"
+    env["AI_ANIME_CONTROL_PLANE_DSN"] = ""
     env["REDIS_URL"] = ""
     code = """
 import json
 
 from fastapi.testclient import TestClient
-from novelvideo.api.app import create_app
+from ai_anime.api.app import create_app
 
 with TestClient(create_app()) as client:
     results = {
@@ -52,12 +52,12 @@ def test_ce_agent_key_routes_are_not_mounted() -> None:
 
 
 def test_ce_chat_http_routes_are_mounted_and_use_local_auth(monkeypatch) -> None:
-    from novelvideo.api.app import create_app
-    from novelvideo.chat import service as chat_service
-    from novelvideo.ports import registry
+    from ai_anime.api.app import create_app
+    from ai_anime.chat import service as chat_service
+    from ai_anime.ports import registry
 
-    monkeypatch.setenv("ST_EDITION", "ce")
-    monkeypatch.setenv("ST_CONTROL_PLANE_DSN", "")
+    monkeypatch.setenv("AI_ANIME_EDITION", "ce")
+    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "")
     monkeypatch.setenv("REDIS_URL", "")
     monkeypatch.setattr(registry, "_PORTS", {})
     monkeypatch.setattr(registry, "_BOOTSTRAPPED", False)
@@ -82,15 +82,15 @@ def test_ce_chat_http_routes_are_mounted_and_use_local_auth(monkeypatch) -> None
 
 
 def test_ce_chat_ws_accepts_missing_cookie_via_local_auth(monkeypatch) -> None:
-    from novelvideo.api.app import create_app
-    from novelvideo.chat import service as chat_service
-    from novelvideo.ports import registry
+    from ai_anime.api.app import create_app
+    from ai_anime.chat import service as chat_service
+    from ai_anime.ports import registry
 
     async def _no_prewarm(*_args, **_kwargs) -> None:
         return None
 
-    monkeypatch.setenv("ST_EDITION", "ce")
-    monkeypatch.setenv("ST_CONTROL_PLANE_DSN", "")
+    monkeypatch.setenv("AI_ANIME_EDITION", "ce")
+    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "")
     monkeypatch.setenv("REDIS_URL", "")
     monkeypatch.setattr(registry, "_PORTS", {})
     monkeypatch.setattr(registry, "_BOOTSTRAPPED", False)
@@ -106,10 +106,10 @@ def test_ce_chat_ws_accepts_missing_cookie_via_local_auth(monkeypatch) -> None:
 
 
 def test_chat_ws_auth_failure_reports_unauthorized(monkeypatch) -> None:
-    from novelvideo.api.app import create_app
-    from novelvideo.api.routes import chat as chat_routes
-    from novelvideo.chat import service as chat_service
-    from novelvideo.ports import registry
+    from ai_anime.api.app import create_app
+    from ai_anime.api.routes import chat as chat_routes
+    from ai_anime.chat import service as chat_service
+    from ai_anime.ports import registry
 
     async def _reject_browser_session(_raw_cookie: str | None) -> dict:
         raise HTTPException(status_code=401, detail="Invalid session")
@@ -117,8 +117,8 @@ def test_chat_ws_auth_failure_reports_unauthorized(monkeypatch) -> None:
     async def _no_prewarm(*_args, **_kwargs) -> None:
         return None
 
-    monkeypatch.setenv("ST_EDITION", "ce")
-    monkeypatch.setenv("ST_CONTROL_PLANE_DSN", "")
+    monkeypatch.setenv("AI_ANIME_EDITION", "ce")
+    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "")
     monkeypatch.setenv("REDIS_URL", "")
     monkeypatch.setattr(registry, "_PORTS", {})
     monkeypatch.setattr(registry, "_BOOTSTRAPPED", False)
@@ -127,7 +127,7 @@ def test_chat_ws_auth_failure_reports_unauthorized(monkeypatch) -> None:
 
     app = create_app()
     with TestClient(app) as client:
-        client.cookies.set("st_session", "bad-cookie")
+        client.cookies.set("ai_anime_session", "bad-cookie")
         with client.websocket_connect("/api/v1/chat/ws") as websocket:
             first_frame = websocket.receive_json()
 
@@ -136,9 +136,9 @@ def test_chat_ws_auth_failure_reports_unauthorized(monkeypatch) -> None:
 
 @pytest.mark.asyncio
 async def test_ce_chat_page_agent_session_uses_local_auth_session(monkeypatch) -> None:
-    from novelvideo.chat import service as chat_service
-    from novelvideo.ports import get_auth_session_port, registry
-    from novelvideo.ports.local import register_local_ports
+    from ai_anime.chat import service as chat_service
+    from ai_anime.ports import get_auth_session_port, registry
+    from ai_anime.ports.local import register_local_ports
 
     monkeypatch.setattr(registry, "_PORTS", {})
     monkeypatch.setattr(registry, "_BOOTSTRAPPED", False)

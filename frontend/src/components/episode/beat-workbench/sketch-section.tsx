@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -117,7 +116,7 @@ export function SketchSection({
   const sketchRegenCost = useGenerationCreditCost(
     "image_selection",
     sketchSettings.data?.data.sketch_image_selection,
-    { surface: "supertale", imageRole: "sketch", modeKey: singleSketchModeKey },
+    { surface: "ai_anime", imageRole: "sketch", modeKey: singleSketchModeKey },
   );
   const uploadSketch = useUploadBeatImage(project, episode, "sketch");
   const [stageDialogOpen, setStageDialogOpen] = useState(false);

@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useEffect, useState } from "react";
 
 /**
@@ -13,7 +12,7 @@ import { useEffect, useState } from "react";
  */
 
 const AVATAR_PATH = "/video/ai-avatar.mp4";
-const DB_NAME = "supertale-media-cache";
+const DB_NAME = "ai-anime-media-cache";
 const STORE_NAME = "blobs";
 const CACHE_KEY = "ai-avatar.mp4";
 

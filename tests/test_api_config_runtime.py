@@ -5,12 +5,12 @@ from fastapi.testclient import TestClient
 
 
 def test_runtime_config_includes_stable_instance_id(monkeypatch) -> None:
-    from novelvideo.api.routes import config
-    from novelvideo.shared import runtime_env
+    from ai_anime.api.routes import config
+    from ai_anime.shared import runtime_env
 
     monkeypatch.setattr(runtime_env, "load_project_dotenv", lambda override=False: None)
-    monkeypatch.setenv("ST_EDITION", "ce")
-    monkeypatch.delenv("ST_CONTROL_PLANE_DSN", raising=False)
+    monkeypatch.setenv("AI_ANIME_EDITION", "ce")
+    monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
 
     app = FastAPI()
     app.include_router(config.router, prefix="/api/v1")

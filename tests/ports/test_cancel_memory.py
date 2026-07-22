@@ -1,7 +1,7 @@
 import pytest
 
-from novelvideo.ports.local.tasks import InMemoryCancellationStore
-from novelvideo.ports.tasks import cancel_key
+from ai_anime.ports.local.tasks import InMemoryCancellationStore
+from ai_anime.ports.tasks import cancel_key
 
 
 def test_cancel_key_matches_existing_shape() -> None:

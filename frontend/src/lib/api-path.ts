@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 /**
  * Tagged-template for building API paths with every interpolated segment
  * percent-encoded. Use in place of raw template strings so that user-supplied

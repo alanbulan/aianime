@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 // Parse + push freezone URL params for /projects/<project_id>/freezone?canvas=<id>.
 // Mutating these routes through tanstack-router when it is registered (see
 // getAppRouter). Falling back to the raw History API is only for non-router
@@ -8,7 +7,7 @@
 import { getAppRouter } from "@/lib/app-router";
 
 export interface FreezoneUrl {
-  /** SuperTale project_id. Display names are not accepted by project-scoped APIs. */
+  /** AI anime project_id. Display names are not accepted by project-scoped APIs. */
   project: string | null;
   canvas: string | null;
 }
@@ -18,7 +17,7 @@ export interface WriteUrlOptions {
   notify?: boolean;
 }
 
-const LAST_CANVAS_PREFIX = "supertale.freezone.lastCanvas.";
+const LAST_CANVAS_PREFIX = "ai_anime.freezone.lastCanvas.";
 
 function projectFromPathname(pathname = window.location.pathname): string | null {
   const match = pathname.match(/^\/projects\/([^/]+)\/freezone(?:\/|$)/);
@@ -46,7 +45,7 @@ export function writeUrl(next: Partial<FreezoneUrl>, options: WriteUrlOptions = 
   // leaving Freezone the router already reads /characters but window.location
   // still reads /freezone. Guarding on the stale window.location would let a
   // stray canvas-sync write here navigate the user BACK to Freezone, trapping
-  // them on 虾画. Read the pathname/canvas from the router so a write that
+  // them on AI anime 画布. Read the pathname/canvas from the router so a write that
   // fires after the route has moved off Freezone simply no-ops.
   const currentPathname = router?.state.location.pathname;
   const pathProject = currentPathname

@@ -4,13 +4,13 @@ from pydantic_ai.exceptions import UnexpectedModelBehavior
 from pydantic_ai.messages import ModelResponse, RetryPromptPart, ToolCallPart
 from pydantic_ai.models.function import FunctionModel
 
-from novelvideo.agents.identity_planner import (
+from ai_anime.agents.identity_planner import (
     AppearanceDescription,
     EpisodeIdentityRequirements,
     IdentityPlanner,
     IdentityRequirement,
 )
-from novelvideo.models import CharacterIdentity, NovelCharacter
+from ai_anime.models import CharacterIdentity, NovelCharacter
 
 
 VALID_APPEARANCE = "月白色棉麻长衫配深色腰带，衣襟绣有细密云纹，长发用木簪整齐束起"

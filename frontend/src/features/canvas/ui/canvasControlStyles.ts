@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 export const CANVAS_CONTROL_GLASS_CLASS =
   'border border-[var(--ui-border-soft)] bg-[rgba(var(--surface-rgb)/0.58)] shadow-md backdrop-blur-xl';
 

@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import type { QueryClient } from "@tanstack/react-query";
 import { tryAcquireNavLock } from "@/lib/nav-lock";
 import { broadcastSwitching } from "@/lib/region-tab-sync";

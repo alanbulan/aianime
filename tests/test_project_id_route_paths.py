@@ -7,8 +7,8 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_asset_references_resolves_project_id_before_opening_store(monkeypatch, tmp_path):
-    from novelvideo.api.routes import assets
-    from novelvideo.models import NovelVisualBeat
+    from ai_anime.api.routes import assets
+    from ai_anime.models import NovelVisualBeat
 
     class Store:
         async def list_visual_beats(self):
@@ -84,7 +84,7 @@ async def test_verification_routes_resolve_project_id_before_opening_project_dir
     monkeypatch,
     tmp_path,
 ):
-    from novelvideo.verification import routes
+    from ai_anime.verification import routes
 
     ctx = SimpleNamespace(
         project_id="01PROJECTID",

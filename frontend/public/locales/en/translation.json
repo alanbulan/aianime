@@ -1,36 +1,18 @@
 {
   "app": {
-    "title": "SuperTale",
-    "subtitle": "SuperTale candidate generation and asset commit workbench",
-    "updateRequired": {
-      "title": "App updated",
-      "description": "This page is referencing an expired app file. Refresh to load the latest version.",
-      "refresh": "Refresh page"
-    },
-    "updateAvailable": {
-      "title": "A new version is available",
-      "description": "Refresh the page to get the latest features and fixes.",
-      "refresh": "Refresh now",
-      "dismiss": "Dismiss"
-    },
+    "title": "AI anime",
+    "subtitle": "AI anime candidate generation and asset commit workbench",
     "routeError": {
       "title": "Page failed to load",
       "description": "Refresh the page and try again."
     },
-    "versionUpdate": {
-      "title": "New features are live",
-      "confirm": "Got it",
-      "empty": "No release notes for this version"
-    },
     "logoHomeTooltip": "Click to return to project management center"
   },
   "header": {
-    "partyFounding105": "庆祝建党105周年",
     "settings": "Settings",
     "settingsWithWarning": "Settings, missing configuration",
     "settingsWarningBubble": "Missing setup",
     "dismissSettingsWarningBubble": "Dismiss missing setup reminder",
-    "notifications": "Notifications",
     "account": {
       "open": "Open account menu",
       "changeAvatar": "Change avatar",
@@ -50,232 +32,6 @@
       }
     }
   },
-  "notifications": {
-    "title": "Notification Center",
-    "close": "Close notification center",
-    "empty": "No notifications",
-    "upgrade": {
-      "title": "New version {{version}} available",
-      "body": "A newer upstream release is available. Open the release page to review and upgrade.",
-      "open": "Update",
-      "skip": "Skip this version"
-    }
-  },
-  "myBuddy": {
-    "dragHint": "Drag to reposition",
-    "taskRunning": "Running · {{name}}",
-    "taskSuccess": "Done · {{name}}",
-    "taskFailure": "Failed · {{name}}",
-    "companion": {
-      "entry": "Companion",
-      "title": "Choose your companion",
-      "titleBadgeAlt": "My OK buddy",
-      "importCta": "Import companion",
-      "toggleVisibility": "Show companion"
-    },
-    "import": {
-      "button": "Import",
-      "title": "Import petdex pet",
-      "desc": "Pick a spritesheet.webp (required) and pet.json (optional) downloaded from petdex; it becomes available in the gallery.",
-      "spritesheetTitle": "Click or drop spritesheet.webp",
-      "spritesheetHint": "Required · webp / png spritesheet",
-      "jsonTitle": "Click or drop pet.json",
-      "jsonHint": "Optional · used for the name",
-      "choose": "Choose file",
-      "replace": "Replace",
-      "gridError": "Spritesheet {{w}}×{{h}} isn't a multiple of a {{cols}}×{{rows}} grid, so frames won't slice correctly. Use a standard 8×9 sheet, or declare the right cols/rows in pet.json.",
-      "hint": "Pets are stored only in your browser (IndexedDB), never uploaded; the spritesheet must be petdex's standard 8×9 grid.",
-      "confirm": "Import"
-    },
-    "gallery": {
-      "title": "Choose a companion",
-      "tabLibrary": "Library",
-      "tabMine": "My pets",
-      "select": "Select",
-      "selected": "Selected",
-      "search": "Search pet name…",
-      "loading": "Loading…",
-      "empty": "No matching pets",
-      "emptyMine": "No imported pets yet — click Import to add"
-    },
-    "debug": {
-      "suffix": " Debug",
-      "auto": "Auto",
-      "companionPicker": "Companion",
-      "festivalPreview": "Festival",
-      "noFestival": "No festival",
-      "stateSimulation": "State sim",
-      "accessoryPreview": "Accessory",
-      "triggerDiveAction": "Dive",
-      "chestTrigger": "Trigger chest",
-      "chestSingle": "Single chest",
-      "chestBatch": "Batch chest",
-      "triggerUpdateDialog": "Trigger update dialog",
-      "states": {
-        "running": "Running bubble",
-        "success": "Success bubble",
-        "failure": "Failure bubble",
-        "idle": "Idle bubble"
-      },
-      "accessories": {
-        "none": "Emperor's New Clothes",
-        "goldenHoopStaff": "Great Sage Equal to Heaven",
-        "littleKing": "Little King",
-        "bubbleBalloon": "Bubble",
-        "cyanEnergySword": "Azure energy blade",
-        "mengnanWand": "Tough Guy",
-        "odinHammer": "Hammer King",
-        "fireTippedSpear": "Third prince spear",
-        "dumbbell": "Good day to lift",
-        "thumbsUp": "Thumbs Up",
-        "codeLing": "Code-Ling",
-        "codeYu": "Code-Yu",
-        "codeXia": "Code-Xia",
-        "codeNing": "Code-Ning",
-        "founderMedal": "Golden commemorative medal",
-        "redStar": "Shining Red Star",
-        "darkKnightMask": "Dusk",
-        "azuMask": "Azu's mask",
-        "redBow": "Pink Memory",
-        "minionGoggles": "Yellow buddy goggles",
-        "diverGoggles": "Deep-dive goggles",
-        "gourd": "Gourd secret treasure",
-        "judyCarrot": "Bunny's lunch",
-        "pacifier": "Baby's standard kit",
-        "wizardHat": "Wizard's hat",
-        "bambooHat": "Great chivalrous hero",
-        "asgardHorns": "For the realm",
-        "garySnail": "Little snail pal",
-        "captainShield": "Guard you well",
-        "lubanCompass": "Luban Compass",
-        "lubanTalisman": "Mechanism Talisman",
-        "redCape": "Guardian cape",
-        "ufoPet": "Interstellar Voyage",
-        "ghostPet": "Lulu"
-      },
-      "accessoryFeedback": {
-        "none": "Dressed to impress!",
-        "goldenHoopStaff": "Sage mode!",
-        "littleKing": "The king arrives!",
-        "bubbleBalloon": "Let's go to the park",
-        "cyanEnergySword": "Boar, don't run!",
-        "mengnanWand": "Go hard!",
-        "odinHammer": "For Odin!",
-        "fireTippedSpear": "Fire up!",
-        "dumbbell": "Time to lift!",
-        "thumbsUp": "Pretty neat!",
-        "codeLing": "Spark online!",
-        "codeYu": "Jade mode!",
-        "codeXia": "Glow shield!",
-        "codeNing": "Calm buff!",
-        "founderMedal": "Badge flex!",
-        "redStar": "红星闪闪！",
-        "darkKnightMask": "Night mode!",
-        "azuMask": "Mask ready!",
-        "redBow": "Cute crit!",
-        "minionGoggles": "Banana alert!",
-        "diverGoggles": "Dive ready?",
-        "gourd": "Treasure ready!",
-        "judyCarrot": "Lunch packed?",
-        "pacifier": "Tiny boss!",
-        "wizardHat": "Magic online!",
-        "bambooHat": "Hero mode!",
-        "asgardHorns": "For the realm!",
-        "garySnail": "Slow wins!",
-        "captainShield": "I guard you!",
-        "lubanCompass": "Compass active!",
-        "lubanTalisman": "Mechanism sealed!",
-        "redCape": "Pick me!",
-        "ufoPet": "Bilu kala wugulu!",
-        "ghostPet": "Hello there"
-      }
-    },
-    "bubbles": {
-      "walkBy": "Sneaking by~",
-      "running": {
-        "queued": "I have got this.",
-        "working": "Working through it.",
-        "holdOn": "I am on my way.",
-        "gears": "Gears are turning.",
-        "onIt": "I am on it.",
-        "readingRoom": "Reading the room.",
-        "keepWindowOpen": "Keep this open.",
-        "checkingEdges": "Checking the edges.",
-        "smallSteps": "One step at a time.",
-        "movingPieces": "Pieces are moving."
-      },
-      "success": {
-        "done": "Done and tidy.",
-        "nice": "That landed.",
-        "landed": "Clean finish.",
-        "tidy": "All set.",
-        "flag": "This step held.",
-        "cleared": "That one cleared.",
-        "goodShape": "This is in shape.",
-        "savedTrip": "Saved a trip.",
-        "noDrama": "No drama this time.",
-        "oneLessThing": "One less thing."
-      },
-      "failure": {
-        "stuck": "That got stuck.",
-        "checking": "I will check it.",
-        "retry": "Marked for another pass.",
-        "noted": "I saw that.",
-        "box": "The box blinked.",
-        "hitSnag": "Hit a snag here.",
-        "needsLook": "This needs a look.",
-        "leftClue": "It left a clue.",
-        "tryAgainLater": "We can try again.",
-        "notClean": "That was not clean."
-      },
-      "idle": {
-        "watching": "I am here.",
-        "quiet": "Quiet over here.",
-        "standingBy": "Call me anytime.",
-        "idea": "Ideas can take a minute.",
-        "tinyBreak": "I will hang around.",
-        "noRush": "No rush here.",
-        "roomBreathes": "Let the page breathe.",
-        "stillHere": "Still online.",
-        "goodPause": "A pause is fine.",
-        "mindingTop": "Holding this corner.",
-        "keepRhythm": "Keeping the rhythm.",
-        "littleCorner": "Taking this corner.",
-        "online": "Idle, but online.",
-        "nextStep": "Waiting for the next step.",
-        "smallPatrol": "Tiny patrol in progress.",
-        "softPause": "State is holding."
-      },
-      "dragonBoat": {
-        "leafScent": "Zongzi leaves are in the air.",
-        "tightWrap": "Wrap it slowly.",
-        "waterQuiet": "The breeze is steady.",
-        "goodStroke": "Little leaf on duty.",
-        "steadyBoat": "A clean leaf scent today."
-      }
-    },
-    "actions": {
-      "idle": "Idle",
-      "peek": "Peek",
-      "countStars": "Count stars",
-      "sleep": "Sleep",
-      "carryBox": "Carry box",
-      "stretch": "Stretch",
-      "watchMeteor": "Watch meteor",
-      "readMap": "Read map",
-      "fish": "Fishing",
-      "blowBubbles": "Blow bubbles",
-      "dragonBoatPaddle": "Dragon boat",
-      "zongziCheck": "Toss zongzi",
-      "typing": "Typing",
-      "flag": "Flag",
-      "repair": "Check box",
-      "walkBy": "Walk by"
-    },
-    "festivals": {
-      "dragonBoat2026": "Dragon Boat 2026"
-    }
-  },
   "aiAssistant": {
     "formatCheck": {
       "title": "Script Format Check",
@@ -285,34 +41,34 @@
       "lineLabel": "Line {{line}}",
       "noIssues": "No specific issues found"
     },
-    "title": "Xia Director",
-    "description": "Open Xia Director beside the current creation page.",
-    "toggle": "Expand or collapse Xia Director",
-    "close": "Collapse Xia Director",
+    "title": "AI anime Assistant",
+    "description": "Open AI anime Assistant beside the current creation page.",
+    "toggle": "Expand or collapse AI anime Assistant",
+    "close": "Collapse AI anime Assistant",
     "resize": "Drag to resize chat",
     "openExternal": "Open in new window",
-    "iframeTitle": "Xia Director",
+    "iframeTitle": "AI anime Assistant",
     "newChat": "New chat",
     "expandSessions": "Expand sessions",
     "collapseSessions": "Collapse sessions",
     "sessionActions": "Session actions",
     "deleteSessionConfirm": "Delete this conversation?",
     "noSessions": "No sessions yet",
-    "chatTitle": "Xia Director",
+    "chatTitle": "AI anime Assistant",
     "globalScope": "Global",
     "connected": "Connected",
     "connecting": "Connecting",
     "reconnecting": "Reconnecting",
     "disconnected": "Disconnected",
-    "backendTransport": "OpenClaw / relay",
+    "backendTransport": "Local service",
     "emptyTitle": "Start a conversation",
     "emptyDescription": "Ask about project progress, failed tasks, or have the assistant organize your creative plan.",
     "syncingHistoryTitle": "Initializing conversation",
-    "syncingHistoryDescription": "Connecting to Xia Director and syncing chat history. Please wait.",
-    "disclaimer": "Xia Director can make mistakes. Check key story, character, and asset details.",
-    "placeholder": "After uploading a script, ask Xia Director to advance episodes, visuals, audio, or final video",
+    "syncingHistoryDescription": "Connecting to AI anime Assistant and syncing chat history. Please wait.",
+    "disclaimer": "AI anime Assistant can make mistakes. Check key story, character, and asset details.",
+    "placeholder": "After uploading a script, ask AI anime Assistant to advance episodes, visuals, audio, or final video",
     "waiting": "Waiting for chat service...",
-    "waitingResponse": "Waiting for Xia Director",
+    "waitingResponse": "Waiting for AI anime Assistant",
     "waitingResponses": [
       "Understanding what you want to move forward",
       "Reviewing the current conversation context",
@@ -369,25 +125,22 @@
     "tool": "Tool",
     "historyTool": "History tool",
     "showStructuredSourceWhileStreaming": "Show JSON source while streaming",
-    "uploadTarget": "Upload target",
-    "uploadTargetOpenclaw": "Send to OpenClaw",
-    "uploadTargetLocal": "Local panel only",
     "ingestAutomationUploading": "Uploading novel: {{filename}}",
     "ingestAutomationStarted": "Started novel ingest: {{filename}}",
     "ingestAutomationFailed": "Novel upload or ingest failed: {{message}}",
-    "ingestAutomationNoProject": "Open a project before uploading a novel through Xia Director.",
+    "ingestAutomationNoProject": "Open a project before uploading a novel through AI anime Assistant.",
     "ingestAutomationMissingFile": "Could not read the uploaded novel file. Select it again.",
     "attachmentOnlyPrompt": "Please analyze the file I uploaded.",
     "attachmentAnalysisUploading": "Uploading file for analysis: {{filename}}",
-    "settingsHint": "Account and login are managed by SuperTale. These settings only control chat display and attachment behavior."
+    "settingsHint": "Account and login are managed by AI anime. These settings only control chat display and attachment behavior."
   },
   "freezone": {
     "chat": {
-      "title": "Xia Director",
-      "description": "Open Xia Director beside the Freezone canvas.",
-      "toggle": "Open Freezone Xia Director",
-      "close": "Collapse Freezone Xia Director",
-      "resize": "Drag to resize Freezone Xia Director"
+      "title": "AI anime Assistant",
+      "description": "Open AI anime Assistant beside the canvas.",
+      "toggle": "Open AI anime Assistant",
+      "close": "Collapse AI anime Assistant",
+      "resize": "Drag to resize AI anime Assistant"
     },
     "canvases": {
       "defaultSection": "Default canvas",
@@ -473,24 +226,7 @@
   "theme": {
     "toggle": "Toggle theme",
     "light": "Light",
-    "dark": "Dark",
-    "system": "System"
-  },
-  "rewards": {
-    "accessoryUnlock": {
-      "prompt": "Piko found something new! Tap to peek.",
-      "batchPrompt": "Piko found {{count}} new things! Tap to peek.",
-      "promptAria": "Piko found a new accessory, click to view",
-      "batchPromptAria": "Piko found {{count}} new accessories, click to view",
-      "dialogEyebrow": "Piko found",
-      "batchDialogEyebrow": "Piko found a batch",
-      "dialogTitle": "New accessory unlocked!",
-      "batchDialogTitle": "{{count}} new accessories unlocked!",
-      "dialogDesc": "Claim it, then dress up Piko.",
-      "batchDialogDesc": "They are saved to Piko's accessory library for later.",
-      "claim": "Claim",
-      "claimAll": "Claim all"
-    }
+    "dark": "Dark"
   },
   "credits": {
     "balance": "Current credit balance",
@@ -507,8 +243,8 @@
     "production": "Production",
     "tools": "Tools",
     "creationMode": "Creation Mode",
-    "xiaji": "Series",
-    "xiajiMenu": "Series Menu",
+    "workspace": "AI anime Workspace",
+    "workspaceMenu": "AI anime Workspace Menu",
     "ingest": "Story Source",
     "assets": "Asset Library",
     "characters": "Characters",
@@ -522,8 +258,8 @@
     "styles": "Visual Style",
     "tasks": "Task Center",
     "taskCenter": "Task Center",
-    "aiAssistant": "Xia Director",
-    "freezone": "Freezone"
+    "aiAssistant": "AI anime Assistant",
+    "freezone": "AI anime Canvas"
   },
   "characters": {
     "title": "Characters",
@@ -843,99 +579,11 @@
     "signingIn": "Signing in…",
     "language": "Language",
     "contactUs": "Contact us",
-    "learnMore": "Learn more",
-    "openManual": "Open user manual",
     "learnMoreToast": "Official handbook is being crafted — stay tuned!",
-    "closeLogin": "Close login dialog",
     "privacy": "Privacy",
     "terms": "Terms",
     "docs": "Docs",
     "tagline": "Turn novels into dramas",
-    "github": {
-      "star": "Star"
-    },
-    "businessWechat": {
-      "label": "Business Contact",
-      "open": "View business WeChat QR code",
-      "qrAlt": "Business WeChat QR code",
-      "title": "Add Business WeChat",
-      "subtitle": "Account access / User guide",
-      "note": "For partnerships, please add a note — we'll prioritize your request"
-    },
-    "stage": {
-      "eyebrow": "Drama creation platform",
-      "headline": "Make Your Own DC Universe",
-      "headlines": {
-        "createUniverse": "Open Your Creative Universe",
-        "dramaUniverse": "Open Your Drama Universe",
-        "storyWorld": "Build Your Story World"
-      },
-      "headlinePrefix": "Make Your Own",
-      "headlineBrand": "DC",
-      "headlineSuffix": "Universe",
-      "subtitlePrefix": "Make Your Own",
-      "subtitleBrand": "DC",
-      "subtitleSuffix": "",
-      "start": "Inspiration happens",
-      "sub": "WHERE EVERY SPARK OF INSPIRATION MEETS THE POWER OF EFFORTLESS AI CREATION",
-      "version": "{{version}}",
-      "changelog": "Changelog"
-    },
-    "community": {
-      "label": "Community works",
-      "heading": "DramaClaw TV",
-      "likes": "{{count}} likes",
-      "openWork": "Open work \"{{title}}\"",
-      "works": {
-        "rainyNight": {
-          "title": "The First Message at a Rainy Stop",
-          "description": "A lonely character receives a call that changes the night."
-        },
-        "emberCrown": {
-          "title": "Crown of Embers",
-          "description": "A boy and a beast cross a volcanic city to find a lost throne."
-        },
-        "paperCity": {
-          "title": "Translator of the Paper City",
-          "description": "Machines and humans trade secrets in a city that folds."
-        },
-        "neonPatrol": {
-          "title": "Neon Patrol",
-          "description": "A four-person crew tracks a midnight incident through cyber streets."
-        },
-        "glassSignal": {
-          "title": "Glass Signal",
-          "description": "A transparent broadcast tower receives a low-frequency note from tomorrow."
-        },
-        "silentArcade": {
-          "title": "Silent Arcade",
-          "description": "After closing time, old game characters begin rewriting their endings."
-        },
-        "floatingMarket": {
-          "title": "Floating Market",
-          "description": "Vendors trade memories, maps, and unfinished dreams between clouds."
-        },
-        "lastTake": {
-          "title": "The Last Take",
-          "description": "Before the set goes dark, a director must capture the proof."
-        }
-      }
-    },
-    "watch": {
-      "createNow": "Create now",
-      "previous": "Switch to previous work",
-      "next": "Switch to next work",
-      "watchNow": "Watch now",
-      "play": "Play",
-      "pause": "Pause",
-      "seek": "Seek",
-      "speed": "Playback speed",
-      "quality": "1080p",
-      "mute": "Mute",
-      "unmute": "Unmute",
-      "fullscreen": "Fullscreen",
-      "exitFullscreen": "Exit fullscreen"
-    },
     "download": {
       "label": "Desktop",
       "primary": {
@@ -943,7 +591,15 @@
         "windows": "Windows"
       },
       "aria": "Download the desktop app"
-    }
+    },
+    "accessTitle": "Sign in",
+    "accessSubtitle": "Use your account or authorization code",
+    "passwordLogin": "Account",
+    "codeAuthorization": "Authorization",
+    "authorizationCode": "Authorization code",
+    "authorizationCodePlaceholder": "Enter authorization code",
+    "authenticating": "Authenticating",
+    "authorizeButton": "Authorize"
   },
   "project": {
     "create": "Create Project",
@@ -1571,132 +1227,6 @@
       "copied": "Task ID copied"
     }
   },
-  "pikoMiniGame": {
-    "statusEntry": "Piko Break",
-    "statusTooltip": "Play a one-minute Piko game",
-    "libraryTitle": "Piko Break",
-    "librarySubtitle": "Choose a game",
-    "title": "Piko a bit, find your spark",
-    "idleHint": "Press Space to fire",
-    "countdownHint": "Ready to go~",
-    "start": "Start",
-    "playAgain": "Play again",
-    "backToWork": "Back to work",
-    "backToLibrary": "Back to game list",
-    "audioOn": "Turn Piko game sound on",
-    "audioOff": "Turn Piko game sound off",
-    "score": "Idea power {{score}}",
-    "energy": "Energy",
-    "ultimateReady": "Energy full. Press Q",
-    "timeLeft": "{{seconds}}s",
-    "activePowerUp": "{{powerUp}} active",
-    "resultMeta": "Piko hit {{caught}} inspiration pieces",
-    "result": {
-      "maxCombo": "Best combo",
-      "powerUps": "Power-ups",
-      "score": "Ideas"
-    },
-    "insight": {
-      "combo": "Your rhythm is back. Storyboards should move easier now.",
-      "jelly": "You slowed the rhythm down. Good time to push steadily.",
-      "burst": "Burst timing is sharp. Start with the high points.",
-      "rain": "You caught the idea rain. Batch work should flow.",
-      "flow": "The engine is warm again. Push one small section.",
-      "soft": "Break complete. No need to brute-force the brain."
-    },
-    "powerUps": {
-      "magnet": "Magnet Star",
-      "rapid": "Speed Candy",
-      "jelly": "Time Jelly"
-    },
-    "feedback": {
-      "combo": "Combo rhythm locked in",
-      "wild": "You caught the idea storm",
-      "burst": "Burst points lit up cleanly",
-      "rain": "The idea rain landed",
-      "high": "Inspiration fully charged",
-      "medium": "The lights are back on",
-      "soft": "Reset complete"
-    },
-    "float": {
-      "combo": "Combo x{{count}}",
-      "comboBoost": "Double ideas for 3s",
-      "burst": "Inspiration burst",
-      "rain": "Idea rain",
-      "rush": "Final rush",
-      "energyReady": "Energy full. Press Q",
-      "powerUp": {
-        "magnet": "Magnet Star is pulling ideas",
-        "rapid": "Speed Candy online",
-        "jelly": "Time Jelly slowed the field"
-      },
-      "ultimate": "Idea burst"
-    },
-    "memory": {
-      "title": "Memory Match",
-      "hint": "Match cards with the same symbol",
-      "moves": "Moves",
-      "cardHidden": "Face-down card",
-      "cardVisible": "Card {{value}}",
-      "completed": "All pairs matched",
-      "resultMeta": "{{moves}} moves"
-    },
-    "breakout": {
-      "title": "Breakout",
-      "canvasLabel": "Breakout game board",
-      "hint": "Move the paddle with your mouse or touch, or use Arrow keys or A and D",
-      "start": "Start game",
-      "ready": "Clear every brick",
-      "lifeLost": "Keep going!",
-      "won": "Board cleared!",
-      "lost": "Game over",
-      "score": "Score {{score}}",
-      "lives": "Lives {{lives}}"
-    },
-    "rollingBall": {
-      "title": "Rolling Ball",
-      "canvasLabel": "Rolling Ball game board",
-      "hint": "Move left and right to land on the scrolling platforms",
-      "start": "Start game",
-      "ready": "Keep rolling down",
-      "lost": "The ball slipped away",
-      "score": "Landings {{score}}"
-    },
-    "flying": {
-      "title": "Flying Piko",
-      "canvasLabel": "Flying Piko game board",
-      "hint": "Press Space, Arrow Up, or tap to fly Piko through the energy gates",
-      "start": "Start flying",
-      "ready": "Ready for takeoff",
-      "lost": "Piko hit an energy gate",
-      "score": "Gates {{score}}"
-    },
-    "catch": {
-      "title": "Piko Catch",
-      "canvasLabel": "Piko Catch game board",
-      "hint": "Move Piko left and right, catch idea stars and crystals, and avoid red glitches",
-      "start": "Start catching",
-      "ready": "Catch the falling ideas",
-      "finished": "Idea collection complete",
-      "lost": "Piko needs a quick rest",
-      "score": "Ideas {{score}}",
-      "status": "Lives {{lives}} · {{seconds}}s",
-      "result": "You collected {{score}} idea points"
-    },
-    "leap": {
-      "title": "Piko Leap",
-      "canvasLabel": "Piko Leap game board",
-      "hint": "Hold Space, mouse, or touch to charge, then release to jump to the next idea chip",
-      "start": "Start leaping",
-      "ready": "Ready for the next leap",
-      "lost": "Piko missed the landing",
-      "score": "Leap score {{score}}",
-      "combo": "Center combo ×{{combo}}",
-      "centerHint": "Land in the center for bonus points",
-      "chargeHint": "Hold to charge · release to jump",
-      "result": "You scored {{score}} points"
-    }
-  },
   "literalScript": {
     "generating": "Generating literal script...",
     "noScript": "No literal script yet. Click \"Generate\" to create from source.",
@@ -1857,9 +1387,9 @@
       "insertBeforeShort": "Pre",
       "insertAfter": "Insert manual shot after Beat #{{n}}",
       "insertAfterShort": "Post",
-      "openFreezone": "Open XiPaint Beat Workbench",
+      "openFreezone": "Open AI anime Canvas Beat Workbench",
       "openFreezoneTip": "Edit in Freezone",
-      "openFreezoneFailed": "Failed to open XiPaint",
+      "openFreezoneFailed": "Failed to open AI anime Canvas",
       "markedProps": "Props {{count}}",
       "detectedProps": "Detected props {{count}}"
     },
@@ -2789,12 +2319,7 @@
     "quickbar": {
       "addNode": "Add Node",
       "history": "History",
-      "shortcuts": "Shortcuts",
-      "help": "Help Center",
-      "viewManual": "View user manual",
-      "helpMenu": {
-        "tutorial": "Tutorial"
-      }
+      "shortcuts": "Shortcuts"
     },
     "trackpad": {
       "enable": "Enable trackpad panning",
@@ -3794,16 +3319,15 @@
         "adminUsername": "Admin Username"
       },
       "official": {
-        "description": "Enter the platform official channel API Key, then save.",
+        "description": "Enter the AI anime Cloud API Key, then save.",
         "save": "Save & Enable",
         "enable": "Switch to Official",
         "saved": "Saved and switched to the official channel.",
-        "enabled": "Switched to the official channel.",
-        "missingFields": "Please fill in the API Key.",
-        "registerLink": "Register at RelayClaw"
+        "enabled": "Switched to the cloud channel.",
+        "missingFields": "Please fill in the API Key."
       },
       "custom": {
-        "description": "CE uses a local SQLite-backed NewAPI. DramaClaw connects the database, creates a runtime token, and enables the local channel automatically.",
+        "description": "The desktop app uses a local SQLite-backed NewAPI. AI anime connects the database, creates a runtime token, and enables the local channel automatically.",
         "init": "Initialize Local NewAPI",
         "repair": "Check & Repair",
         "initialized": "Local NewAPI is ready.",
@@ -3822,7 +3346,7 @@
         "setupConfirmPassword": "Confirm Password",
         "setupPasswordPlaceholder": "At least 8 characters",
         "setupConfirmPasswordPlaceholder": "Enter it again",
-        "setupPasswordOnlyOnce": "This username and password are sent to your NewAPI instance only when creating the first admin on a fresh NewAPI install. If NewAPI is already initialized, entering a password here will not change the existing admin password. DramaClaw does not save the password or use it for later operations; keep it for logging into the NewAPI admin console after first-time setup.",
+        "setupPasswordOnlyOnce": "This username and password are sent to your NewAPI instance only when creating the first admin on a fresh NewAPI install. If NewAPI is already initialized, entering a password here will not change the existing admin password. AI anime does not save the password or use it for later operations; keep it for logging into the NewAPI admin console after first-time setup.",
         "setupRequired": "Local NewAPI has not been initialized yet. Enter the setup password and confirmation, then try again.",
         "setupAlreadyInitializedPasswordIgnored": "Your NewAPI instance is already initialized. This run did not call the NewAPI setup endpoint and did not change the existing admin password; the password you entered was ignored and cleared.",
         "setupPasswordMissingUsername": "Enter the admin username.",
@@ -3874,16 +3398,16 @@
         "multimodalRequiredBadge": "Multimodal required",
         "cogneeDescription": "Novel import and knowledge retrieval require both an understanding model and an embedding model; together they form the Cognee novel knowledge base.",
         "groups": {
-          "xiahua": "XiaHua",
-          "xialiao": "XiaLiao",
-          "xiatan": "XiaTang",
-          "xiajing": "XiaJing",
-          "xiadao": "XiaDao",
-          "xiage": "XiaGe",
-          "novelImport": "XiaLiao · Novel Knowledge Base (Cognee)"
+          "canvas": "AI anime Canvas",
+          "import": "Import",
+          "assets": "Assets",
+          "production": "Production",
+          "assistant": "Assistant",
+          "styles": "Styles",
+          "novelImport": "Import · Novel Knowledge Base (Cognee)"
         },
         "features": {
-          "HERMES": "AI Director chat model",
+          "HERMES": "AI anime Assistant chat model",
           "GLOBAL_VIDEO_OPTIMIZER": "Optimize video prompts from visuals",
           "SEEDANCE2_PROMPT_COMPOSER": "Compose video generation prompts",
           "GLOBAL_VIDEO_IDENTITY_DETECTOR": "Detect character and prop markers in sketches",
@@ -3963,7 +3487,7 @@
       "configured": "Configured",
       "notConfigured": "Not configured",
       "warningIconLabel": "Reference media storage is not configured",
-      "notConfiguredImpact": "Reference media storage is not configured. Text-only flows and text-to-image usually still work; features that need to upload local reference images will fail, including XiaHua reference images, character references, identity images, image-to-image, video first frames, and image-to-video. Configure Aliyun OSS or Cloudinary.",
+      "notConfiguredImpact": "Reference media storage is not configured. Text-only flows and text-to-image usually still work; features that need to upload local reference images will fail, including AI anime Canvas reference images, character references, identity images, image-to-image, video first frames, and image-to-video. Configure Aliyun OSS or Cloudinary.",
       "showSecret": "Show",
       "hideSecret": "Hide",
       "fieldsHint": "Saved values are stored in the local CE settings database; full AccessKeys are not returned, so re-enter them when updating.",
@@ -4061,17 +3585,6 @@
     "getApiKeyLink": "click here to get API key",
     "missingAnyApiKeyMessage": "Backend provider is not configured.",
     "openProvidersSettings": "View providers",
-    "aboutAppName": "Beat Workbench",
-    "aboutIntro": "SuperTale candidate generation, free image experimentation, and asset commit workbench.",
-    "aboutVersionLabel": "Version",
-    "aboutVersionUnknown": "Unknown",
-    "aboutAuthorLabel": "Author",
-    "aboutAuthor": "痕继痕迹",
-    "aboutRepositoryLabel": "Repository",
-    "autoCheckUpdateOnLaunch": "Auto check updates on launch",
-    "autoCheckUpdateOnLaunchDesc": "Check for updates once every time the app starts.",
-    "enableUpdateDialog": "Enable update dialog",
-    "enableUpdateDialogDesc": "Show a custom dialog when a new version is detected.",
     "enableStoryboardGenGridPreviewShortcut": "Enable grid preview shortcut",
     "enableStoryboardGenGridPreviewShortcutDesc": "When enabled, holding Ctrl + Alt + Shift and clicking Generate on multi-variant grid creates a grid preview node without sending AI request.",
     "showStoryboardGenAdvancedRatioControls": "Show advanced grid ratio controls",
@@ -4091,12 +3604,7 @@
     "preferDiscountedPriceDesc": "Currently this only applies to KIE. The discounted domestic pricing usually needs to be requested from KIE separately; when enabled, estimates prefer that discounted rate.",
     "grsaiCreditTier": "GRSAI credit pack",
     "grsaiCreditTierDesc": "GRSAI bills in credits, so the per-run estimate changes with your top-up pack.",
-    "grsaiCreditTierOption": "CNY {{price}} / {{credits}} credits",
-    "checkUpdateNow": "Check for updates now",
-    "checkingUpdate": "Checking for updates...",
-    "checkUpdateHasUpdate": "New version detected.",
-    "checkUpdateUpToDate": "You are on the latest version.",
-    "checkUpdateFailed": "Update check failed. Please try again later."
+    "grsaiCreditTierOption": "CNY {{price}} / {{credits}} credits"
   },
   "pricing": {
     "nativePrice": "Native: {{value}}",
@@ -4191,5 +3699,11 @@
     "zoom": "Zoom",
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out"
+  },
+  "desktopWindow": {
+    "minimize": "Minimize",
+    "maximize": "Maximize",
+    "restore": "Restore",
+    "close": "Close"
   }
 }

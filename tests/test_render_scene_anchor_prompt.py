@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from novelvideo.generators.prompt_builder import (
+from ai_anime.generators.prompt_builder import (
     GridConfig,
     PromptComponents,
     PromptContext,
@@ -10,7 +10,7 @@ from novelvideo.generators.prompt_builder import (
     RenderModeStrategy,
     StyleConfig,
 )
-from novelvideo.utils.asset_resolver import ResolvedAssetRef
+from ai_anime.utils.asset_resolver import ResolvedAssetRef
 
 
 pytestmark = pytest.mark.m09

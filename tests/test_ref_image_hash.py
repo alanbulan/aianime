@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from novelvideo.utils.ref_image_hash import RefImageHasher, file_sha256
+from ai_anime.utils.ref_image_hash import RefImageHasher, file_sha256
 
 
 def test_ref_image_hasher_roundtrip_and_cache(tmp_path) -> None:

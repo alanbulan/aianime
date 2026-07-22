@@ -5,9 +5,9 @@ import json
 
 import pytest
 
-from novelvideo.api.routes import freezone as freezone_routes
-from novelvideo.api.schemas import FreezoneStoryScriptGenerateData, FreezoneStoryScriptRow
-from novelvideo.freezone.text_node import (
+from ai_anime.api.routes import freezone as freezone_routes
+from ai_anime.api.schemas import FreezoneStoryScriptGenerateData, FreezoneStoryScriptRow
+from ai_anime.freezone.text_node import (
     FREEZONE_TRANSLATION_MODEL,
     FREEZONE_TRANSLATION_PROVIDER,
     FreezoneTranslationResult,
@@ -55,23 +55,23 @@ async def test_translate_freezone_text_trusts_model_detected_direction(
 
             class Response:
                 output = FreezoneTranslationResult(
-                    translated_text="生成一个 NovelVideo 节拍的故事板草图面板。",
+                    translated_text="生成一个 AI anime 节拍的故事板草图面板。",
                     source_language="en",
                     target_language="zh",
                 )
 
             return Response()
 
-    monkeypatch.setattr("novelvideo.freezone.text_node.get_freezone_translation_agent", FakeAgent)
+    monkeypatch.setattr("ai_anime.freezone.text_node.get_freezone_translation_agent", FakeAgent)
 
     translated, source_language, target_language = await translate_freezone_text(
-        text="Generate ONE storyboard sketch panel for this NovelVideo beat. 颜色法则：保留 [CM_6932]",
+        text="Generate ONE storyboard sketch panel for this AI anime beat. 颜色法则：保留 [CM_6932]",
         node_type="image",
     )
 
     assert "You must decide whether the dominant natural language" in captured["task"]
     assert "[CM_6932]" in captured["task"]
-    assert translated == "生成一个 NovelVideo 节拍的故事板草图面板。"
+    assert translated == "生成一个 AI anime 节拍的故事板草图面板。"
     assert source_language == "en"
     assert target_language == "zh"
 
@@ -91,7 +91,7 @@ async def test_translate_freezone_text_flips_invalid_same_language_result(
 
             return Response()
 
-    monkeypatch.setattr("novelvideo.freezone.text_node.get_freezone_translation_agent", FakeAgent)
+    monkeypatch.setattr("ai_anime.freezone.text_node.get_freezone_translation_agent", FakeAgent)
 
     translated, source_language, target_language = await translate_freezone_text(
         text="雨夜街头",
@@ -105,7 +105,7 @@ async def test_translate_freezone_text_flips_invalid_same_language_result(
 
 def test_translation_defaults_use_newapi_gemini_flash() -> None:
     assert FREEZONE_TRANSLATION_PROVIDER == "newapi"
-    assert FREEZONE_TRANSLATION_MODEL == "DC-freezone-translator-LLM"
+    assert FREEZONE_TRANSLATION_MODEL == "ai-anime-freezone-translator-LLM"
 
 
 def test_build_freezone_story_script_task_mentions_required_columns() -> None:

@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 // 系统各功能使用的 LLM 映射定义。
 // 每个功能对应后端一个 *_MODEL 环境变量，前端允许用户为其覆盖模型。
 // 思考强度（*_THINKING_LEVEL）与 provider 不在前端配置，后端保留默认。
@@ -22,17 +21,17 @@ export interface FeatureModelGroup {
 export const FEATURE_MODEL_GROUPS: readonly FeatureModelGroup[] = [
   {
     key: "chat",
-    features: [{ id: "HERMES", defaultModel: "DC-hermes-LLM" }],
+    features: [{ id: "HERMES", defaultModel: "ai-anime-assistant-LLM" }],
   },
   {
     key: "shot",
     features: [
       {
         id: "GLOBAL_VIDEO_OPTIMIZER",
-        defaultModel: "DC-video-prompt-optimizer-LLM",
+        defaultModel: "ai-anime-video-prompt-optimizer-LLM",
         requiresVision: true,
       },
-      { id: "SEEDANCE2_PROMPT_COMPOSER", defaultModel: "DC-seedance2-prompt-composer-LLM" },
+      { id: "SEEDANCE2_PROMPT_COMPOSER", defaultModel: "ai-anime-seedance2-prompt-composer-LLM" },
     ],
   },
   {
@@ -40,7 +39,7 @@ export const FEATURE_MODEL_GROUPS: readonly FeatureModelGroup[] = [
     features: [
       {
         id: "GLOBAL_VIDEO_IDENTITY_DETECTOR",
-        defaultModel: "DC-video-identity-detector-LLM",
+        defaultModel: "ai-anime-video-identity-detector-LLM",
         requiresVision: true,
       },
     ],
@@ -48,26 +47,26 @@ export const FEATURE_MODEL_GROUPS: readonly FeatureModelGroup[] = [
   {
     key: "episode",
     features: [
-      { id: "IDENTITY_PLANNER_CAST", defaultModel: "DC-identity-cast-planner-LLM" },
-      { id: "IDENTITY_PLANNER_ANALYSIS", defaultModel: "DC-identity-analysis-planner-LLM" },
-      { id: "IDENTITY_PLANNER_APPEARANCE", defaultModel: "DC-identity-appearance-writer-LLM" },
-      { id: "LITERAL_BEAT_META", defaultModel: "DC-literal-beat-meta-LLM" },
-      { id: "EPISODE_SCENE_PLANNER", defaultModel: "DC-episode-scene-planner-LLM" },
-      { id: "EPISODE_PROP_PLANNER", defaultModel: "DC-episode-prop-planner-LLM" },
+      { id: "IDENTITY_PLANNER_CAST", defaultModel: "ai-anime-identity-cast-planner-LLM" },
+      { id: "IDENTITY_PLANNER_ANALYSIS", defaultModel: "ai-anime-identity-analysis-planner-LLM" },
+      { id: "IDENTITY_PLANNER_APPEARANCE", defaultModel: "ai-anime-identity-appearance-writer-LLM" },
+      { id: "LITERAL_BEAT_META", defaultModel: "ai-anime-literal-beat-meta-LLM" },
+      { id: "EPISODE_SCENE_PLANNER", defaultModel: "ai-anime-episode-scene-planner-LLM" },
+      { id: "EPISODE_PROP_PLANNER", defaultModel: "ai-anime-episode-prop-planner-LLM" },
     ],
   },
   {
     key: "sceneLibrary",
-    features: [{ id: "SCENE_BUILD", defaultModel: "DC-scene-builder-LLM" }],
+    features: [{ id: "SCENE_BUILD", defaultModel: "ai-anime-scene-builder-LLM" }],
   },
   {
     key: "freezone",
     features: [
-      { id: "FREEZONE_TRANSLATION", defaultModel: "DC-freezone-translator-LLM" },
-      { id: "FREEZONE_STORY_SCRIPT", defaultModel: "DC-freezone-story-script-writer-LLM" },
+      { id: "FREEZONE_TRANSLATION", defaultModel: "ai-anime-freezone-translator-LLM" },
+      { id: "FREEZONE_STORY_SCRIPT", defaultModel: "ai-anime-freezone-story-script-writer-LLM" },
       {
         id: "FREEZONE_VISION",
-        defaultModel: "DC-freezone-vision-LLM",
+        defaultModel: "ai-anime-freezone-vision-LLM",
         requiresVision: true,
       },
     ],
@@ -77,33 +76,33 @@ export const FEATURE_MODEL_GROUPS: readonly FeatureModelGroup[] = [
     features: [
       {
         id: "STYLE_ANALYZER",
-        defaultModel: "DC-style-analyzer-LLM",
+        defaultModel: "ai-anime-style-analyzer-LLM",
         requiresVision: true,
       },
     ],
   },
   {
     key: "contentRewrite",
-    features: [{ id: "CONTENT_REWRITER", defaultModel: "DC-content-rewriter-LLM" }],
+    features: [{ id: "CONTENT_REWRITER", defaultModel: "ai-anime-content-rewriter-LLM" }],
   },
   {
     key: "screenplay",
-    features: [{ id: "SCREENPLAY_NORMALIZER", defaultModel: "DC-screenplay-normalizer-LLM" }],
+    features: [{ id: "SCREENPLAY_NORMALIZER", defaultModel: "ai-anime-screenplay-normalizer-LLM" }],
   },
   {
     key: "assetCompile",
     features: [
-      { id: "EPISODE_SCENE_RECONCILE", defaultModel: "DC-episode-scene-reconciler-LLM" },
-      { id: "NARRATED_SCENE_ASSET", defaultModel: "DC-narrated-scene-asset-planner-LLM" },
+      { id: "EPISODE_SCENE_RECONCILE", defaultModel: "ai-anime-episode-scene-reconciler-LLM" },
+      { id: "NARRATED_SCENE_ASSET", defaultModel: "ai-anime-narrated-scene-asset-planner-LLM" },
     ],
   },
   {
     key: "directorWorld",
-    features: [{ id: "STAGING_PROP", defaultModel: "DC-staging-prop-planner-LLM" }],
+    features: [{ id: "STAGING_PROP", defaultModel: "ai-anime-staging-prop-planner-LLM" }],
   },
   {
     key: "novelImport",
-    features: [{ id: "COGNEE", defaultModel: "DC-cognee-LLM" }],
+    features: [{ id: "COGNEE", defaultModel: "ai-anime-cognee-LLM" }],
   },
 ];
 
@@ -123,7 +122,7 @@ function productFeature(id: string): FeatureModelDef {
  */
 export const FEATURE_MODEL_PRODUCT_GROUPS: readonly FeatureModelGroup[] = [
   {
-    key: "xiahua",
+    key: "canvas",
     features: [
       productFeature("FREEZONE_TRANSLATION"),
       productFeature("FREEZONE_STORY_SCRIPT"),
@@ -132,12 +131,12 @@ export const FEATURE_MODEL_PRODUCT_GROUPS: readonly FeatureModelGroup[] = [
     ],
   },
   {
-    key: "xialiao",
+    key: "import",
     features: [productFeature("CONTENT_REWRITER"), productFeature("SCREENPLAY_NORMALIZER")],
   },
-  { key: "xiatan", features: [productFeature("SCENE_BUILD")] },
+  { key: "assets", features: [productFeature("SCENE_BUILD")] },
   {
-    key: "xiajing",
+    key: "production",
     features: [
       productFeature("GLOBAL_VIDEO_OPTIMIZER"),
       productFeature("SEEDANCE2_PROMPT_COMPOSER"),
@@ -152,8 +151,8 @@ export const FEATURE_MODEL_PRODUCT_GROUPS: readonly FeatureModelGroup[] = [
       productFeature("NARRATED_SCENE_ASSET"),
     ],
   },
-  { key: "xiadao", features: [productFeature("HERMES")] },
-  { key: "xiage", features: [productFeature("STYLE_ANALYZER")] },
+  { key: "assistant", features: [productFeature("HERMES")] },
+  { key: "styles", features: [productFeature("STYLE_ANALYZER")] },
 ];
 
 /** 所有功能的默认模型（去重），用作「可用模型」池的预填值。 */

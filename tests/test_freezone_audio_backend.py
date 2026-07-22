@@ -7,10 +7,10 @@ import pytest
 import respx
 from httpx import Response
 
-from novelvideo import config
-from novelvideo.api.routes import freezone as freezone_routes
-from novelvideo.freezone import audio_node
-from novelvideo.freezone.audio_node import (
+from ai_anime import config
+from ai_anime.api.routes import freezone as freezone_routes
+from ai_anime.freezone import audio_node
+from ai_anime.freezone.audio_node import (
     USER_VOICE_SCOPE,
     create_user_audio_voice,
     freezone_audio_eleven_music_output_path,
@@ -19,14 +19,14 @@ from novelvideo.freezone.audio_node import (
     resolve_user_audio_voice,
     user_audio_voices_index_path,
 )
-from novelvideo.model_gateway_settings import save_custom_newapi_gateway
+from ai_anime.model_gateway_settings import save_custom_newapi_gateway
 
 
 class FakeTTSGenerator:
     calls = []
 
     async def generate(self, *, prompt, audio_url, output_path, emotion_prompt=""):
-        from novelvideo.generators.tts_generator import TTSResult
+        from ai_anime.generators.tts_generator import TTSResult
 
         self.__class__.calls.append(
             {
@@ -43,8 +43,8 @@ class FakeTTSGenerator:
 
 def _isolate_settings_db(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(config, "STATE_DIR", str(tmp_path / "state"))
-    monkeypatch.setenv("ST_EDITION", "ce")
-    monkeypatch.delenv("ST_CONTROL_PLANE_DSN", raising=False)
+    monkeypatch.setenv("AI_ANIME_EDITION", "ce")
+    monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
     monkeypatch.delenv("MODEL_GATEWAY_MODE", raising=False)
 
 
@@ -53,7 +53,7 @@ class FakeProjectStore:
         self.project_dir = str(project_dir)
 
     async def list_characters(self):
-        from novelvideo.models import CharacterIdentity, NovelCharacter
+        from ai_anime.models import CharacterIdentity, NovelCharacter
 
         reference = (
             Path(self.project_dir)
@@ -305,15 +305,15 @@ async def test_freezone_audio_speech_drama_first_person_uses_project_narrator(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from novelvideo.project_config import set_narrator_reference_audio, update_project_config_file
-    from novelvideo.seedance2_i2v.voice_clone import file_sha256
+    from ai_anime.project_config import set_narrator_reference_audio, update_project_config_file
+    from ai_anime.seedance2_i2v.voice_clone import file_sha256
 
     project_dir = tmp_path / "output" / "alice" / "demo"
     narrator = project_dir / "assets" / "narrator" / "voice.wav"
     narrator.parent.mkdir(parents=True, exist_ok=True)
     narrator.write_bytes(b"project-narrator-reference")
     narrator_sha = file_sha256(narrator)
-    monkeypatch.setattr("novelvideo.project_config.OUTPUT_DIR", tmp_path / "state")
+    monkeypatch.setattr("ai_anime.project_config.OUTPUT_DIR", tmp_path / "state")
     monkeypatch.setattr(audio_node, "IndexTTS2FalClient", FakeTTSGenerator)
     monkeypatch.setattr(
         audio_node,

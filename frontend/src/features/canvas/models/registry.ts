@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import type {
   ImageModelDefinition,
   ImageModelRuntimeContext,
@@ -16,8 +15,8 @@ const modelModules = import.meta.glob<{ imageModel: ImageModelDefinition }>(
   { eager: true }
 );
 
-const SUPERTALE_PROVIDER_IDS = new Set(['huimeng', 'openai', 'openrouter']);
-const SUPERTALE_IMAGE_MODEL_IDS = new Set([
+const AI_ANIME_PROVIDER_IDS = new Set(['huimeng', 'openai', 'openrouter']);
+const AI_ANIME_IMAGE_MODEL_IDS = new Set([
   'huimeng/default',
   'openai/gpt-image-2',
   'openrouter/default',
@@ -26,13 +25,13 @@ const SUPERTALE_IMAGE_MODEL_IDS = new Set([
 const providers: ModelProviderDefinition[] = Object.values(providerModules)
   .map((module) => module.provider)
   .filter((provider): provider is ModelProviderDefinition => Boolean(provider))
-  .filter((provider) => SUPERTALE_PROVIDER_IDS.has(provider.id))
+  .filter((provider) => AI_ANIME_PROVIDER_IDS.has(provider.id))
   .sort((a, b) => a.id.localeCompare(b.id));
 
 const imageModels: ImageModelDefinition[] = Object.values(modelModules)
   .map((module) => module.imageModel)
   .filter((model): model is ImageModelDefinition => Boolean(model))
-  .filter((model) => SUPERTALE_IMAGE_MODEL_IDS.has(model.id))
+  .filter((model) => AI_ANIME_IMAGE_MODEL_IDS.has(model.id))
   .sort((a, b) => a.id.localeCompare(b.id));
 
 const providerMap = new Map<string, ModelProviderDefinition>(
@@ -42,7 +41,7 @@ const imageModelMap = new Map<string, ImageModelDefinition>(
   imageModels.map((model) => [model.id, model])
 );
 
-// Freezone is SuperTale-project scoped, not BYO-provider scoped. Expose only
+// Freezone is project scoped, not BYO-provider scoped. Expose only
 // backend-supported image providers; old canvas model ids are normalized by the
 // alias map below instead of keeping old provider modules in the bundle.
 export const DEFAULT_IMAGE_MODEL_ID = 'openrouter/default';

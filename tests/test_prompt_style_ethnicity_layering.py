@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 def test_default_ethnicity_instruction_is_a_fallback_not_a_hard_rule():
-    from novelvideo.generators.prompt_builder import default_ethnicity_instruction
+    from ai_anime.generators.prompt_builder import default_ethnicity_instruction
 
     instruction = default_ethnicity_instruction("Chinese")
 
@@ -17,7 +17,7 @@ def test_default_ethnicity_instruction_is_a_fallback_not_a_hard_rule():
 
 
 def test_character_default_ethnicity_instruction_allows_explicit_foreign_descriptions():
-    from novelvideo.generators.nanobanana_character import _default_ethnicity_instruction
+    from ai_anime.generators.nanobanana_character import _default_ethnicity_instruction
 
     instruction = _default_ethnicity_instruction("Chinese")
 
@@ -32,8 +32,8 @@ def test_character_default_ethnicity_instruction_allows_explicit_foreign_descrip
 
 def test_prompt_sources_do_not_contain_hard_global_ethnicity_constraints():
     files = [
-        Path("src/novelvideo/generators/prompt_builder.py"),
-        Path("src/novelvideo/generators/nanobanana_character.py"),
+        Path("src/ai_anime/generators/prompt_builder.py"),
+        Path("src/ai_anime/generators/nanobanana_character.py"),
     ]
     forbidden_literals = [
         "East Asian facial features",
@@ -50,7 +50,7 @@ def test_prompt_sources_do_not_contain_hard_global_ethnicity_constraints():
 
 
 def test_style_presets_do_not_use_hard_negative_content_constraints():
-    preset_dir = Path("src/novelvideo/styles/presets")
+    preset_dir = Path("src/ai_anime/styles/presets")
     forbidden_negative_phrases = [
         "modern clothing",
         "western architecture",
@@ -70,9 +70,9 @@ def test_style_presets_do_not_use_hard_negative_content_constraints():
 
 def test_removed_spider_verse_style_is_not_used_as_code_default():
     files = [
-        Path("src/novelvideo/generators/voxel_restyle.py"),
-        Path("src/novelvideo/stage_asset_tasks.py"),
-        Path("src/novelvideo/services/style_service.py"),
+        Path("src/ai_anime/generators/voxel_restyle.py"),
+        Path("src/ai_anime/stage_asset_tasks.py"),
+        Path("src/ai_anime/services/style_service.py"),
     ]
 
     for path in files:
@@ -93,7 +93,7 @@ def test_style_tags_do_not_encode_era_content():
         "古装",
     }
 
-    for path in Path("src/novelvideo/styles/presets").glob("*.json"):
+    for path in Path("src/ai_anime/styles/presets").glob("*.json"):
         data = json.loads(path.read_text())
         tag = data["style_tag"].upper()
         normalized = tag.replace(",", " ")
@@ -128,7 +128,7 @@ def test_live_action_style_tags_describe_grade_finish():
     }
 
     for style_id, expected in expected_tags.items():
-        path = Path(f"src/novelvideo/styles/presets/{style_id}.json")
+        path = Path(f"src/ai_anime/styles/presets/{style_id}.json")
         data = json.loads(path.read_text())
         tag = data["style_tag"]
         assert tag == expected
@@ -137,7 +137,7 @@ def test_live_action_style_tags_describe_grade_finish():
 
 
 def test_guoman_fantasy_content_bias_is_fallback_flavor():
-    path = Path("src/novelvideo/styles/presets/guoman_fantasy.json")
+    path = Path("src/ai_anime/styles/presets/guoman_fantasy.json")
     data = json.loads(path.read_text())
     instructions = data["style_instructions"]
     lowered = instructions.lower()
@@ -161,7 +161,7 @@ def test_topic_flavored_presets_defer_to_explicit_story_content():
     ]
 
     for style_id in preset_ids:
-        path = Path(f"src/novelvideo/styles/presets/{style_id}.json")
+        path = Path(f"src/ai_anime/styles/presets/{style_id}.json")
         data = json.loads(path.read_text())
         instructions = data["style_instructions"].lower()
         assert (

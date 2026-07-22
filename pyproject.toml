@@ -3,18 +3,10 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "supertale-ce"
+name = "ai-anime"
 version = "1.1.3"
-description = "SuperTale Community Edition API and video pipeline"
-readme = "README.md"
+description = "AI anime desktop API and video pipeline"
 requires-python = ">=3.11,<3.13"
-license = "Elastic-2.0"
-# License 正文按 REUSE 惯例只保留在 LICENSES/(无根 LICENSE 副本),显式指向它,
-# 避免 hatchling 默认 glob(LICENSE*)在根目录找不到文件。
-license-files = ["LICENSES/Elastic-2.0.txt"]
-authors = [
-    { name = "Eric" }
-]
 dependencies = [
     # Pin ==1.107.0 (= the version 3060 runs). pydantic-ai 2.x removed
     # Agent(output_retries=...) which the agents here still pass (scene/prop/asset
@@ -56,7 +48,7 @@ dependencies = [
 ]
 
 [project.scripts]
-novelvideo = "novelvideo.cli:app"
+ai-anime = "ai_anime.cli:app"
 
 [project.optional-dependencies]
 world = [
@@ -86,6 +78,9 @@ dev = [
     "respx>=0.22.0",
     "ruff==0.15.20",
 ]
+desktop = [
+    "pyinstaller>=6.16.0,<7.0.0",
+]
 
 [tool.ruff]
 target-version = "py311"
@@ -97,54 +92,54 @@ select = ["E4", "E7", "E9", "F"]
 
 [tool.ruff.lint.per-file-ignores]
 # wsgi 必须先执行 load_project_dotenv() 再导入 app，属有意的导入顺序依赖（永久豁免）
-"src/novelvideo/api/wsgi.py" = ["E402"]
+"src/ai_anime/api/wsgi.py" = ["E402"]
 # ―――― 以下为存量豁免基线（2026-07-07 快照：196 处 / 61 文件）――――
 # 门禁只管新增代码：新文件、以及下列文件中新增的其他规则违例会被拦截。
 # 治理旧账时：修完某文件的某规则后删除对应条目，防止回潮。
-"src/novelvideo/agents/episode_fixer.py" = ["E402"]
-"src/novelvideo/agents/episode_planner.py" = ["F401"]
-"src/novelvideo/agents/episode_reviewer.py" = ["E402", "F401", "F541"]
-"src/novelvideo/agents/global_video_optimizer.py" = ["F541"]
-"src/novelvideo/agents/keyframe_prompt_builder.py" = ["F541"]
-"src/novelvideo/agents/video_prompt_builder.py" = ["F541"]
-"src/novelvideo/api/routes/characters.py" = ["E402"]
-"src/novelvideo/api/routes/files.py" = ["E402"]
-"src/novelvideo/api/routes/freezone.py" = ["F401"]
-"src/novelvideo/api/routes/scripts.py" = ["E402"]
-"src/novelvideo/api/routes/styles.py" = ["E402"]
-"src/novelvideo/chat/hermes_sdk.py" = ["F401", "F841"]
-"src/novelvideo/cognee/pipeline.py" = ["F401", "F541", "F811"]
-"src/novelvideo/cognee/store.py" = ["E402", "F541", "F811"]
-"src/novelvideo/cognee/tools.py" = ["F401"]
-"src/novelvideo/config.py" = ["F401"]
-"src/novelvideo/director_world/scene_overlap_analyzer.py" = ["F401"]
-"src/novelvideo/director_world/sync_global_props.py" = ["F401"]
-"src/novelvideo/freezone/presets.py" = ["F841"]
-"src/novelvideo/generators/episode_optimizer.py" = ["F401"]
-"src/novelvideo/generators/grid_splitter.py" = ["F401"]
-"src/novelvideo/generators/image_generator.py" = ["F401", "F541"]
-"src/novelvideo/generators/nanobanana_character.py" = ["F401", "F541"]
-"src/novelvideo/generators/nanobanana_grid.py" = ["E722", "F401", "F541", "F811", "F841"]
-"src/novelvideo/generators/nanobanana_prop.py" = ["F401", "F541"]
-"src/novelvideo/generators/pool_indexer.py" = ["F401", "F541"]
-"src/novelvideo/generators/prompt_builder.py" = ["F522", "F541", "F841"]
-"src/novelvideo/generators/scene_reference_images.py" = ["F401"]
-"src/novelvideo/generators/sketch_color_detector.py" = ["F401", "F841"]
-"src/novelvideo/generators/tts_generator.py" = ["F401", "F541"]
-"src/novelvideo/generators/video_composer.py" = ["F401", "F841"]
-"src/novelvideo/generators/video_generator.py" = ["F401", "F841"]
-"src/novelvideo/models.py" = ["F401"]
-"src/novelvideo/task_backend/cancel.py" = ["F401"]
-"src/novelvideo/utils/identity_resolver.py" = ["F401"]
-"src/novelvideo/utils/logging.py" = ["F541", "F841"]
-"src/novelvideo/verification/cli/run_gate.py" = ["F841"]
-"src/novelvideo/verification/consistency_verifier.py" = ["E402"]
-"src/novelvideo/verification/replay_capture.py" = ["F401"]
-"src/novelvideo/verification/routes.py" = ["E402"]
-"src/novelvideo/verification/sketch_selector.py" = ["F401"]
-"src/novelvideo/verification/sketch_visual_gate.py" = ["F401"]
-"src/novelvideo/verification/training_db.py" = ["F401"]
-"src/novelvideo/verification/version_hash.py" = ["F401"]
+"src/ai_anime/agents/episode_fixer.py" = ["E402"]
+"src/ai_anime/agents/episode_planner.py" = ["F401"]
+"src/ai_anime/agents/episode_reviewer.py" = ["E402", "F401", "F541"]
+"src/ai_anime/agents/global_video_optimizer.py" = ["F541"]
+"src/ai_anime/agents/keyframe_prompt_builder.py" = ["F541"]
+"src/ai_anime/agents/video_prompt_builder.py" = ["F541"]
+"src/ai_anime/api/routes/characters.py" = ["E402"]
+"src/ai_anime/api/routes/files.py" = ["E402"]
+"src/ai_anime/api/routes/freezone.py" = ["F401"]
+"src/ai_anime/api/routes/scripts.py" = ["E402"]
+"src/ai_anime/api/routes/styles.py" = ["E402"]
+"src/ai_anime/chat/hermes_sdk.py" = ["F401", "F841"]
+"src/ai_anime/cognee/pipeline.py" = ["F401", "F541", "F811"]
+"src/ai_anime/cognee/store.py" = ["E402", "F541", "F811"]
+"src/ai_anime/cognee/tools.py" = ["F401"]
+"src/ai_anime/config.py" = ["F401"]
+"src/ai_anime/director_world/scene_overlap_analyzer.py" = ["F401"]
+"src/ai_anime/director_world/sync_global_props.py" = ["F401"]
+"src/ai_anime/freezone/presets.py" = ["F841"]
+"src/ai_anime/generators/episode_optimizer.py" = ["F401"]
+"src/ai_anime/generators/grid_splitter.py" = ["F401"]
+"src/ai_anime/generators/image_generator.py" = ["F401", "F541"]
+"src/ai_anime/generators/nanobanana_character.py" = ["F401", "F541"]
+"src/ai_anime/generators/nanobanana_grid.py" = ["E722", "F401", "F541", "F811", "F841"]
+"src/ai_anime/generators/nanobanana_prop.py" = ["F401", "F541"]
+"src/ai_anime/generators/pool_indexer.py" = ["F401", "F541"]
+"src/ai_anime/generators/prompt_builder.py" = ["F522", "F541", "F841"]
+"src/ai_anime/generators/scene_reference_images.py" = ["F401"]
+"src/ai_anime/generators/sketch_color_detector.py" = ["F401", "F841"]
+"src/ai_anime/generators/tts_generator.py" = ["F401", "F541"]
+"src/ai_anime/generators/video_composer.py" = ["F401", "F841"]
+"src/ai_anime/generators/video_generator.py" = ["F401", "F841"]
+"src/ai_anime/models.py" = ["F401"]
+"src/ai_anime/task_backend/cancel.py" = ["F401"]
+"src/ai_anime/utils/identity_resolver.py" = ["F401"]
+"src/ai_anime/utils/logging.py" = ["F541", "F841"]
+"src/ai_anime/verification/cli/run_gate.py" = ["F841"]
+"src/ai_anime/verification/consistency_verifier.py" = ["E402"]
+"src/ai_anime/verification/replay_capture.py" = ["F401"]
+"src/ai_anime/verification/routes.py" = ["E402"]
+"src/ai_anime/verification/sketch_selector.py" = ["F401"]
+"src/ai_anime/verification/sketch_visual_gate.py" = ["F401"]
+"src/ai_anime/verification/training_db.py" = ["F401"]
+"src/ai_anime/verification/version_hash.py" = ["F401"]
 "tests/contract/test_l014_inline_task_backend_concurrency.py" = ["F401"]
 "tests/test_api_assets.py" = ["F401"]
 "tests/test_api_freezone_canvas_from_preset.py" = ["F401"]
@@ -205,20 +200,17 @@ requires-dist = [
     "torchvision",
 ]
 
-[tool.supertale.external-tools.splat-transform]
+[tool.ai_anime.external-tools.splat-transform]
 description = "Compress generated 3DGS PLY assets to PlayCanvas SOG packages."
 package-manager = "npm"
 package = "@playcanvas/splat-transform"
 version = "^2.0.3"
 binary = "splat-transform"
 install = "npm install -g @playcanvas/splat-transform"
-env-override = "ST_SPLAT_TRANSFORM_BIN"
+env-override = "AI_ANIME_SPLAT_TRANSFORM_BIN"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/novelvideo"]
-
-[tool.hatch.build.targets.wheel.force-include]
-"src/novelvideo/release-notes.md" = "novelvideo/release-notes.md"
+packages = ["src/ai_anime"]
 
 [tool.hatch.metadata]
 allow-direct-references = true

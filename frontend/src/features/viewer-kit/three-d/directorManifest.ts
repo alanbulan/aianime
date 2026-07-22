@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import type { ThreeDSceneSnapshot } from "./engine/viewerApp";
 import type { DirectorWorldSourceTransform } from "./sourceTransform";
 
@@ -298,7 +297,7 @@ const THREE_GS_EXT_RE = /\.(ply|sog|splat|ksplat|spz)(\?|#|$)/i;
 
 /**
  * Build a minimal scene-mode director manifest from just a world asset URL.
- * Used by the「历史资产」world-model tab to open 虾境 straight off a generation
+ * Used by the「历史资产」world-model tab to open the 3D director straight off a generation
  * record, which only carries the output url — no node `sources` / scene edits /
  * layers. URLs ending in a 3GS extension load as a `sog` source; everything else
  * is treated as a `pano360` background. Returns null for an empty url.

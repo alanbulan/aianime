@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { describe, it, expect } from "vitest";
 import { deriveBeatStates } from "@/lib/derive-beat-states";
 import type { Beat } from "@/types/episode";

@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { displayLabel } from "@/task-center/derivations";
 import type { TaskState } from "@/task-center/types";
 

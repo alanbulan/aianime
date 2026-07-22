@@ -3,8 +3,8 @@ from __future__ import annotations
 import pytest
 from pydantic_ai.models.test import TestModel
 
-from novelvideo import config
-from novelvideo.freezone.vision_gateway import (
+from ai_anime import config
+from ai_anime.freezone.vision_gateway import (
     VisionInput,
     call_freezone_vision_model,
     image_media_type,

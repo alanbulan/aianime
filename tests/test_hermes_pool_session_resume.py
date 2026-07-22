@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from novelvideo.ports.auth_contract import AgentSessionToken
+from ai_anime.ports.auth_contract import AgentSessionToken
 
 pytestmark = pytest.mark.m08
 
@@ -53,8 +53,8 @@ def _patch_fake_hermes_pool(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
-    from novelvideo.chat import hermes_pool
-    from novelvideo.ports import registry
+    from ai_anime.chat import hermes_pool
+    from ai_anime.ports import registry
 
     calls: list[tuple[str, str | None]] = []
     started_count = 0
@@ -101,7 +101,7 @@ def test_hermes_worker_receives_effective_newapi_key_without_mutating_host_env(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from novelvideo.chat import hermes_pool
+    from ai_anime.chat import hermes_pool
 
     monkeypatch.delenv("NEWAPI_API_KEY", raising=False)
     monkeypatch.setattr(

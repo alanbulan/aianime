@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from novelvideo.generators.video_composer import SceneAsset, VideoComposer
+from ai_anime.generators.video_composer import SceneAsset, VideoComposer
 
 
 @pytest.mark.asyncio

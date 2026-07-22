@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { ImageIcon, ScrollText, UserRound, Volume2, VolumeX } from "lucide-react";
 
 import { EpisodeEmptyState } from "@/components/episode/episode-empty-state";

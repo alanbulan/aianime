@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 def test_import_novel_closes_store_after_success(monkeypatch, tmp_path: Path) -> None:
-    from novelvideo import cli
+    from ai_anime import cli
 
     novel = tmp_path / "novel.txt"
     novel.write_text("林昭走进钟楼。", encoding="utf-8")
@@ -21,7 +21,7 @@ def test_import_novel_closes_store_after_success(monkeypatch, tmp_path: Path) ->
                 "char_count": 7,
                 "characters": 1,
                 "episodes": 1,
-                "dataset": "novelvideo_foss_e2e",
+                "dataset": "ai_anime_foss_e2e",
             }
 
         async def close(self):
@@ -36,7 +36,7 @@ def test_import_novel_closes_store_after_success(monkeypatch, tmp_path: Path) ->
 
 
 def test_cognee_ingest_closes_store_after_success(monkeypatch, tmp_path: Path) -> None:
-    from novelvideo import cli
+    from ai_anime import cli
 
     novel = tmp_path / "novel.txt"
     novel.write_text("林昭走进钟楼。", encoding="utf-8")
@@ -55,7 +55,7 @@ def test_cognee_ingest_closes_store_after_success(monkeypatch, tmp_path: Path) -
                 "char_count": 7,
                 "characters": 1,
                 "episodes": 1,
-                "dataset": "novelvideo_foss_e2e",
+                "dataset": "ai_anime_foss_e2e",
             }
 
         async def close(self):

@@ -1,5 +1,5 @@
-from novelvideo.generators.prompt_builder import PromptComponents
-from novelvideo.models import (
+from ai_anime.generators.prompt_builder import PromptComponents
+from ai_anime.models import (
     NO_CHARACTER_MARKER,
     NO_PROP_MARKER,
     complete_detected_refs_from_visual_description,

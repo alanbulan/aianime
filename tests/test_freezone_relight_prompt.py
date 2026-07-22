@@ -1,7 +1,7 @@
 from pydantic import ValidationError
 
-from novelvideo.api.schemas import FreezoneRelightRequest
-from novelvideo.freezone.route_helpers import build_relight_prompt
+from ai_anime.api.schemas import FreezoneRelightRequest
+from ai_anime.freezone.route_helpers import build_relight_prompt
 
 
 def test_relight_prompt_keeps_color_hex_and_color_temperature_kelvin() -> None:

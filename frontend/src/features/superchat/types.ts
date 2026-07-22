@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 export type ClientFrame =
   | {
       type: "chat.message";
@@ -139,5 +138,4 @@ export type ApprovalRequest = {
 export type SuperChatSettings = {
   showToolEvents: boolean;
   showStructuredSourceWhileStreaming: boolean;
-  uploadTarget: "openclaw" | "local";
 };

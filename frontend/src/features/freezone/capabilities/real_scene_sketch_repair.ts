@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import type { GenerationCapability } from "./capabilityRegistry";
 import { stringifyParamValue } from "./capabilityRegistry";
 
@@ -146,7 +145,7 @@ export const realSceneSketchRepairCapability: GenerationCapability = {
     const lens = stringifyParamValue(params.lens) || "35mm";
     const lighting = stringifyParamValue(params.lighting) || "昏暗市井暖光";
 
-    const prompt = `Create a repaired real-scene storyboard sketch for the current SuperTale beat.
+    const prompt = `Create a repaired real-scene storyboard sketch for the current AI anime beat.
 
 Camera parameters:
 - shot size: ${shotType}

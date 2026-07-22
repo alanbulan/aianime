@@ -6,9 +6,9 @@ from types import SimpleNamespace
 import pytest
 from PIL import Image
 
-from novelvideo.project_context import ProjectContext
-from novelvideo.task_backend.runners import sketch as sketch_runner
-from novelvideo.task_backend.runners import render as render_runner
+from ai_anime.project_context import ProjectContext
+from ai_anime.task_backend.runners import sketch as sketch_runner
+from ai_anime.task_backend.runners import render as render_runner
 
 
 pytestmark = pytest.mark.m09
@@ -38,8 +38,8 @@ async def test_frame_skill_render_uses_canvas_sketch_input_without_mainline_sket
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from novelvideo.generators import nanobanana_grid
-    from novelvideo.generators import pool_indexer
+    from ai_anime.generators import nanobanana_grid
+    from ai_anime.generators import pool_indexer
 
     ctx = _project_ctx(tmp_path)
     canvas_sketch_path = tmp_path / "canvas" / "sketch.png"
@@ -132,8 +132,8 @@ async def test_standalone_frame_skill_render_uses_zero_based_local_panel(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from novelvideo.generators import nanobanana_grid
-    from novelvideo.generators import pool_indexer
+    from ai_anime.generators import nanobanana_grid
+    from ai_anime.generators import pool_indexer
 
     ctx = _project_ctx(tmp_path)
     canvas_sketch_path = tmp_path / "canvas" / "sketch.png"
@@ -244,8 +244,8 @@ async def test_standalone_frame_skill_render_normalizes_legacy_local_panel_paylo
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from novelvideo.generators import nanobanana_grid
-    from novelvideo.generators import pool_indexer
+    from ai_anime.generators import nanobanana_grid
+    from ai_anime.generators import pool_indexer
 
     ctx = _project_ctx(tmp_path)
     canvas_sketch_path = tmp_path / "canvas" / "sketch.png"
@@ -328,8 +328,8 @@ async def test_sketch_runner_accepts_missing_generation_time(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from novelvideo.generators import nanobanana_grid
-    from novelvideo.generators import pool_indexer
+    from ai_anime.generators import nanobanana_grid
+    from ai_anime.generators import pool_indexer
 
     ctx = _project_ctx(tmp_path)
 
@@ -393,7 +393,7 @@ async def test_regenerate_selected_beats_preserves_standalone_zero_beat_number(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from novelvideo.generators import nanobanana_grid
+    from ai_anime.generators import nanobanana_grid
 
     sketch_path = tmp_path / "canvas" / "sketch.png"
     sketch_path.parent.mkdir(parents=True, exist_ok=True)
@@ -447,7 +447,7 @@ async def test_generate_grid_render_accepts_standalone_zero_sketch_override(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from novelvideo.generators import nanobanana_grid
+    from ai_anime.generators import nanobanana_grid
 
     sketch_path = tmp_path / "canvas" / "sketch.png"
     sketch_path.parent.mkdir(parents=True, exist_ok=True)

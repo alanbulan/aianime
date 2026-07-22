@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useMutation } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { p } from "@/lib/api-path";

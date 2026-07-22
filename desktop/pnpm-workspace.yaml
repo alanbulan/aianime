@@ -1,0 +1,9 @@
+packages:
+  - "."
+
+allowBuilds:
+  electron: true
+  electron-winstaller: false
+
+minimumReleaseAgeExclude:
+  - electron@43.2.0

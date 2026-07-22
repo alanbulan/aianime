@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 
 // 记住用户上一次为视频节点选的模型，让「新建视频节点」继承该选择，而不是每次
 // 都回落到写死的 DEFAULT_VIDEO_MODEL_ID。选择只存节点自身 data.model 时，新节点

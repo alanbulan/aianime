@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import type { SketchAspectRatio } from "@/lib/queries/sketch-settings";
 import {
   SKETCH_REGEN_MODES,

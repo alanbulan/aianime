@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useCallback, useRef } from "react";
 import { useQueryClient, type QueryKey } from "@tanstack/react-query";
 

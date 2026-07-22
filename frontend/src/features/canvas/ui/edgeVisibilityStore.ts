@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { create } from 'zustand';
 
 // 连线可见性：仅控制画布是否**渲染**节点之间的连线。连线数据始终保留在

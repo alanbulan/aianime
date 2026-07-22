@@ -1,4 +1,4 @@
-"""DRAMACLAW_FRONTEND_DIST 门控的 SPA 静态伺服契约。
+"""AI_ANIME_FRONTEND_DIST 门控的 SPA 静态伺服契约。
 
 Starlette StaticFiles 未命中时是 raise HTTPException(404) 而非返回 404
 响应,SPA 回落必须捕获它;深链接/刷新客户端路由要拿到 index.html,
@@ -18,11 +18,11 @@ def spa_client(tmp_path: Path, monkeypatch):
     (dist / "assets").mkdir(parents=True)
     (dist / "index.html").write_text("<html>SPA-SHELL</html>", encoding="utf-8")
     (dist / "assets" / "app.js").write_text("console.log(1)", encoding="utf-8")
-    monkeypatch.setenv("DRAMACLAW_FRONTEND_DIST", str(dist))
+    monkeypatch.setenv("AI_ANIME_FRONTEND_DIST", str(dist))
 
     from starlette.testclient import TestClient
 
-    from novelvideo.api.app import create_app
+    from ai_anime.api.app import create_app
 
     return TestClient(create_app(), raise_server_exceptions=False)
 

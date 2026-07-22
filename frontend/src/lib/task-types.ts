@@ -1,7 +1,6 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 /**
- * Canonical backend task_type strings emitted by supertale-be.
+ * Canonical backend task_type strings emitted by ai-anime-be.
  * Verified against:
  * - FE deep-link map at `src/routes/_app/projects.$project/tasks.tsx:29-72`
  * - FE compose call at `src/routes/_app/projects.$project/episodes.$episode/compose.lazy.tsx:59`

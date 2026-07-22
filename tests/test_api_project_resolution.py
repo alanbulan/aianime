@@ -3,8 +3,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from novelvideo.api import deps
-from novelvideo.api.routes import freezone, scenes
+from ai_anime.api import deps
+from ai_anime.api.routes import freezone, scenes
 
 
 @pytest.mark.asyncio

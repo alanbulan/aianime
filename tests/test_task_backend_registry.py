@@ -3,8 +3,8 @@ from pathlib import Path
 
 
 def test_importing_runners_registers_builtin_project_task_runners():
-    import novelvideo.task_backend.runners  # noqa: F401
-    from novelvideo.task_backend.registry import (
+    import ai_anime.task_backend.runners  # noqa: F401
+    from ai_anime.task_backend.registry import (
         get_project_task_runner,
         registered_project_task_types,
     )
@@ -27,17 +27,17 @@ def test_importing_runners_registers_builtin_project_task_runners():
 
 
 def test_removed_render_plan_runner_does_not_import_deleted_scope_helper():
-    source = "src/novelvideo/task_backend/runners/render.py"
+    source = "src/ai_anime/task_backend/runners/render.py"
     text = open(source, encoding="utf-8").read()
 
     assert "render_plan_scope" not in text
 
 
 def test_every_literal_enqueued_project_task_has_registered_runner():
-    import novelvideo.task_backend.runners  # noqa: F401
-    from novelvideo.task_backend.registry import registered_project_task_types
+    import ai_anime.task_backend.runners  # noqa: F401
+    from ai_anime.task_backend.registry import registered_project_task_types
 
-    route_dir = Path("src/novelvideo/api/routes")
+    route_dir = Path("src/ai_anime/api/routes")
     enqueued: set[str] = set()
     for path in route_dir.glob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))

@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { ArrowLeft, Check, ChevronDown, Clapperboard, Sparkles } from "lucide-react";
@@ -25,9 +24,9 @@ import { useAllProjectSummaries } from "@/lib/queries/projects";
 import { getProjectCover } from "@/lib/project-cover";
 import { cn } from "@/lib/utils";
 
-const XIAJI_DEFAULT_ROUTE = PROJECT_SECTION_ROUTES.ingest;
+const WORKSPACE_DEFAULT_ROUTE = PROJECT_SECTION_ROUTES.ingest;
 
-const xiajiMenuItems = [
+const workspaceMenuItems = [
   { labelKey: "nav.ingest", to: PROJECT_SECTION_ROUTES.ingest },
   { labelKey: "nav.assets", to: PROJECT_SECTION_ROUTES.characters },
   {
@@ -149,31 +148,31 @@ export function ProjectSwitcher({ current }: { current: string }) {
 }
 
 /**
- * 「虾集」子页菜单，作为 header 的第二行渲染 —— 它必须在文档流里占真实高度，
+ * 「AI anime 工作台」子页菜单，作为 header 的第二行渲染 —— 它必须在文档流里占真实高度，
  * 而不是浮在内容之上：内容区是独立滚动容器，任何浮层都会被滚上来的内容穿过。
  */
-export function ProjectXiajiMenu({ project }: { project: string }) {
+export function ProjectWorkspaceMenu({ project }: { project: string }) {
   const { t } = useTranslation();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const rememberedEpisodeLocation = useEpisodeWorkbenchStore(
     (state) => state.lastEpisodeLocationByProject[project],
   );
 
-  if (projectModeFromPath(pathname) !== "xiaji") return null;
+  if (projectModeFromPath(pathname) !== "workspace") return null;
 
   return (
     <div className="flex justify-center px-4 pb-2">
       <nav
-        aria-label={t("nav.xiajiMenu")}
+        aria-label={t("nav.workspaceMenu")}
         className="flex items-center gap-3 whitespace-nowrap rounded-full border border-white/[0.08] bg-white/[0.04] px-3.5 py-0.5 text-sidebar-foreground"
       >
-        {xiajiMenuItems.map((item) => {
+        {workspaceMenuItems.map((item) => {
           const target =
             "rememberKey" in item && rememberedEpisodeLocation
               ? normalizeLastEpisodeLocation(project, rememberedEpisodeLocation) ?? item.to
               : item.to;
           // 高亮按栏目自身的路由判断：target 可能是带 ?query 的剧集深链，
-          // 拿它比 pathname 永远不相等（虾镜里就不会高亮）。
+          // 拿它比 pathname 永远不相等（分镜制作里就不会高亮）。
           const sectionPath = item.to.replace("$project", encodeURIComponent(project));
           const active = pathname === sectionPath || pathname.startsWith(`${sectionPath}/`);
           return (
@@ -207,11 +206,11 @@ export function ProjectHeaderNavigation({ project }: { project: string }) {
   const setLastEpisodeLocation = useEpisodeWorkbenchStore((state) => state.setLastEpisodeLocation);
   const clearLastEpisodeLocation = useEpisodeWorkbenchStore((state) => state.clearLastEpisodeLocation);
   const rememberSection = useProjectNavStore((state) => state.rememberSection);
-  const lastXiajiSection = useProjectNavStore(
-    (state) => state.lastXiajiSectionByProject[project],
+  const lastWorkspaceSection = useProjectNavStore(
+    (state) => state.lastWorkspaceSectionByProject[project],
   );
 
-  // 记住当前停留的区块（虾画 / 虾集子页），进项目和切「虾集」时按此恢复。
+  // 记住当前停留的区块（AI anime 画布 / AI anime 工作台子页），进项目和切「AI anime 工作台」时按此恢复。
   useEffect(() => {
     const section = projectSectionFromPath(pathname);
     if (isRememberedSection(section)) {
@@ -230,17 +229,17 @@ export function ProjectHeaderNavigation({ project }: { project: string }) {
     setLastEpisodeLocation(project, `${pathname}${window.location.search}`);
   }, [clearLastEpisodeLocation, pathname, project, setLastEpisodeLocation]);
 
-  const changeMode = (mode: "xiahua" | "xiaji") => {
+  const changeMode = (mode: "canvas" | "workspace") => {
     if (mode === activeMode) return;
-    if (mode === "xiahua") {
+    if (mode === "canvas") {
       navigate({ to: PROJECT_SECTION_ROUTES.freezone, params: { project } });
       return;
     }
-    // 切「虾集」时回到上次停留的子页（默认虾料）；上次在虾镜且有剧集深链则直达。
-    let target: string = lastXiajiSection
-      ? PROJECT_SECTION_ROUTES[lastXiajiSection]
-      : XIAJI_DEFAULT_ROUTE;
-    if (lastXiajiSection === "episodes" && rememberedEpisodeLocation) {
+    // 切「AI anime 工作台」时回到上次停留的子页（默认素材导入）；上次在分镜制作且有剧集深链则直达。
+    let target: string = lastWorkspaceSection
+      ? PROJECT_SECTION_ROUTES[lastWorkspaceSection]
+      : WORKSPACE_DEFAULT_ROUTE;
+    if (lastWorkspaceSection === "episodes" && rememberedEpisodeLocation) {
       target =
         normalizeLastEpisodeLocation(project, rememberedEpisodeLocation) ?? target;
     }
@@ -257,36 +256,36 @@ export function ProjectHeaderNavigation({ project }: { project: string }) {
           aria-hidden="true"
           className={cn(
             "absolute left-0 top-1/2 h-7 w-[74px] -translate-y-1/2 rounded-full bg-foreground transition-transform duration-300 ease-[var(--ease-out-quint)]",
-            activeMode === "xiaji" && "translate-x-[74px]",
+            activeMode === "workspace" && "translate-x-[74px]",
           )}
         />
         <button
           type="button"
-          onClick={() => changeMode("xiahua")}
+          onClick={() => changeMode("canvas")}
           className={cn(
             "relative z-10 inline-flex h-8 w-[74px] items-center justify-center gap-1.5 rounded-full text-xs font-semibold transition-colors",
-            activeMode === "xiahua"
+            activeMode === "canvas"
               ? "text-background"
               : "text-muted-foreground hover:text-foreground",
           )}
-          aria-pressed={activeMode === "xiahua"}
+          aria-pressed={activeMode === "canvas"}
         >
           <Sparkles className="size-3.5" />
           {t("nav.freezone")}
         </button>
         <button
           type="button"
-          onClick={() => changeMode("xiaji")}
+          onClick={() => changeMode("workspace")}
           className={cn(
             "relative z-10 inline-flex h-8 w-[74px] items-center justify-center gap-1.5 rounded-full text-xs font-semibold transition-colors",
-            activeMode === "xiaji"
+            activeMode === "workspace"
               ? "text-background"
               : "text-muted-foreground hover:text-foreground",
           )}
-          aria-pressed={activeMode === "xiaji"}
+          aria-pressed={activeMode === "workspace"}
         >
           <Clapperboard className="size-3.5" />
-          {t("nav.xiaji")}
+          {t("nav.workspace")}
         </button>
       </div>
     </nav>

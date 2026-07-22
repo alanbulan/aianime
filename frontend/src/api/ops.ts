@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { apiCall, apiClient } from "./client";
 
 // Per-node generation history -------------------------------------------- //
@@ -1680,7 +1679,7 @@ export interface ScenePanoFromMasterPayload {
  *  - 读 scene 的 master + reverse_master 文件
  *  - 跑 overlap analyzer (master/reverse 边缘融合分析)
  *  - 跑 spatial contract analyzer (空间合约)
- *  - 调 BuilderGPT/supertale_scene_360_gpt_image2.py 生成 pano_360.png
+ *  - 调 BuilderGPT/ai_anime_scene_360_gpt_image2.py 生成 pano_360.png
  *  - 写到 stage_manifest canonical 路径 (跟资产画布 pano viewer 同一份文件)
  *
  * Asset-scoped scene 360 generation uses this complex path, not the simple

@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -220,7 +219,7 @@ const ACTIVE_INGEST_STATUSES = new Set([
 
 const PASTE_TEXT_MAX_LENGTH = 1000;
 const HIDDEN_IMPORTED_PREVIEW_KEY_PREFIX =
-  "supertale-ingest-hidden-imported-preview:";
+  "ai-anime-ingest-hidden-imported-preview:";
 const COMPACT_SELECT_TRIGGER_CLASS =
   "h-8 w-full rounded-[8px] border-white/10 bg-transparent px-2.5 text-xs dark:bg-transparent md:w-auto md:min-w-max";
 const COMPACT_SELECT_CONTENT_CLASS =
@@ -975,7 +974,7 @@ export function IngestPageContent({ project }: { project: string }) {
 
   // Mount reconcile：导入实际在服务端(celery)跑。用户导入中切走再回来，本地
   // 的 ingestStarted/ingestSubmitted 全部重置、SSE 也不重连，而此时章节尚未
-  // 持久化(chapters 为空)，页面便退回空上传页——「导入中的虾料不见了」。
+  // 持久化(chapters 为空)，页面便退回空上传页——「导入中的素材导入不见了」。
   // 挂载时与服务端任务列表对账一次：若 ingest_fast 仍活跃，就重开进度视图，
   // 让 useTaskStream 重连(后端会在连接时补发运行进度)。
   //

@@ -16,8 +16,8 @@ class _FakeStore:
 
 
 def _client(monkeypatch, tmp_path) -> TestClient:
-    from novelvideo.api.routes import generation
-    from novelvideo.api.deps import ProjectResolution
+    from ai_anime.api.routes import generation
+    from ai_anime.api.deps import ProjectResolution
 
     async def fake_make_sqlite_store(username, project):
         assert username == "alice"
@@ -82,7 +82,7 @@ def test_export_zip_contains_beat_media_final_video_and_srt(monkeypatch, tmp_pat
 
 
 def test_srt_export_falls_back_when_audio_duration_probe_fails(monkeypatch, tmp_path):
-    from novelvideo.export import episode_export
+    from ai_anime.export import episode_export
 
     _write_export_assets(tmp_path)
 

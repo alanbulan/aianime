@@ -16,35 +16,35 @@ import pytest
 
 
 def test_indextts2_fal_client_module_loads():
-    mod = importlib.import_module("novelvideo.generators.indextts2_fal")
+    mod = importlib.import_module("ai_anime.generators.indextts2_fal")
     assert hasattr(mod, "IndexTTS2FalClient")
 
 
 def test_voice_audio_records_module_loads():
-    mod = importlib.import_module("novelvideo.seedance2_i2v.voice_audio_records")
+    mod = importlib.import_module("ai_anime.seedance2_i2v.voice_audio_records")
     assert hasattr(mod, "classify_seedance2_voice_audio")
     assert hasattr(mod, "upsert_seedance2_voice_audio_record")
 
 
 def test_character_voice_storage_module_loads():
-    mod = importlib.import_module("novelvideo.seedance2_i2v.character_voice_storage")
+    mod = importlib.import_module("ai_anime.seedance2_i2v.character_voice_storage")
     assert hasattr(mod, "persist_character_voice_file")
     assert hasattr(mod, "decode_recorded_audio_data_url")
 
 
 def test_voice_clone_module_loads_without_oss_client():
-    mod = importlib.import_module("novelvideo.seedance2_i2v.voice_clone")
+    mod = importlib.import_module("ai_anime.seedance2_i2v.voice_clone")
     assert hasattr(mod, "build_reference_audio_url")
     assert hasattr(mod, "MAX_REFERENCE_AUDIO_BYTES")
 
 
 def test_audio_request_usage_module_loads():
-    mod = importlib.import_module("novelvideo.audio_request_usage")
+    mod = importlib.import_module("ai_anime.audio_request_usage")
     assert mod is not None
 
 
 def test_seedance2_i2v_init_exports_stage_a_only():
-    pkg = importlib.import_module("novelvideo.seedance2_i2v")
+    pkg = importlib.import_module("ai_anime.seedance2_i2v")
     assert "classify_seedance2_voice_audio" in pkg.__all__
     assert "Seedance2VoiceAudioRecord" in pkg.__all__
 
@@ -54,7 +54,7 @@ def test_indextts2_client_refuses_missing_api_key(monkeypatch, tmp_path):
     monkeypatch.setenv("NEWAPI_API_KEY", "")
     monkeypatch.setenv("FAL_API_KEY", "")
     monkeypatch.setenv("FAL_KEY", "")
-    from novelvideo.generators.indextts2_fal import IndexTTS2FalClient
+    from ai_anime.generators.indextts2_fal import IndexTTS2FalClient
 
     client = IndexTTS2FalClient(provider="newapi", api_key="")
     result = asyncio.run(
@@ -69,7 +69,7 @@ def test_indextts2_client_refuses_missing_api_key(monkeypatch, tmp_path):
 
 
 def test_indextts2_client_rejects_empty_prompt(tmp_path):
-    from novelvideo.generators.indextts2_fal import IndexTTS2FalClient
+    from ai_anime.generators.indextts2_fal import IndexTTS2FalClient
 
     client = IndexTTS2FalClient(api_key="dummy-key-not-used")
     result = asyncio.run(
@@ -84,7 +84,7 @@ def test_indextts2_client_rejects_empty_prompt(tmp_path):
 
 
 def test_build_reference_audio_url_size_guard(tmp_path):
-    from novelvideo.seedance2_i2v.voice_clone import (
+    from ai_anime.seedance2_i2v.voice_clone import (
         MAX_REFERENCE_AUDIO_BYTES,
         build_reference_audio_url,
     )
@@ -96,7 +96,7 @@ def test_build_reference_audio_url_size_guard(tmp_path):
 
 
 def test_build_reference_audio_url_returns_data_url(tmp_path):
-    from novelvideo.seedance2_i2v.voice_clone import build_reference_audio_url
+    from ai_anime.seedance2_i2v.voice_clone import build_reference_audio_url
 
     small = tmp_path / "small.mp3"
     small.write_bytes(b"ID3\x03\x00\x00\x00fake-mp3-bytes")

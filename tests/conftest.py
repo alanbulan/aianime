@@ -7,7 +7,7 @@ import pytest
 
 @pytest.fixture(autouse=True)
 def restore_ports_registry_globals():
-    from novelvideo.ports import registry
+    from ai_anime.ports import registry
 
     ports_snapshot = dict(registry._PORTS)
     bootstrapped_snapshot = registry._BOOTSTRAPPED
@@ -21,7 +21,7 @@ def restore_ports_registry_globals():
 
 @pytest.fixture(autouse=True)
 async def close_sqlite_stores_created_by_test(monkeypatch):
-    from novelvideo.sqlite_store import SQLiteStore
+    from ai_anime.sqlite_store import SQLiteStore
 
     stores = []
     original_init = SQLiteStore.__init__
@@ -39,11 +39,11 @@ async def close_sqlite_stores_created_by_test(monkeypatch):
 
 @pytest.fixture(scope="session", autouse=True)
 def api_coverage_testclient_patch():
-    if not os.environ.get("ST_API_COVERAGE_FILE"):
+    if not os.environ.get("AI_ANIME_API_COVERAGE_FILE"):
         yield
         return
 
-    from novelvideo.shared.api_coverage import (
+    from ai_anime.shared.api_coverage import (
         install_httpx_asgi_transport_api_coverage_patch,
         install_testclient_api_coverage_patch,
     )
@@ -68,6 +68,6 @@ def app_client(request, monkeypatch):
     """
     mode = str(request.param)
     if mode == "ce":
-        monkeypatch.delenv("ST_CONTROL_PLANE_DSN", raising=False)
-        monkeypatch.setenv("ST_EDITION", "ce")
+        monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
+        monkeypatch.setenv("AI_ANIME_EDITION", "ce")
     return {"mode": mode}

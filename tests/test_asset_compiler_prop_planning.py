@@ -5,8 +5,8 @@ from types import SimpleNamespace
 import pytest
 from pydantic import ValidationError
 
-from novelvideo.utils.screenplay_quality import build_import_format_check
-from novelvideo.utils.screenplay_scene_parser import parse_scene_blocks
+from ai_anime.utils.screenplay_quality import build_import_format_check
+from ai_anime.utils.screenplay_scene_parser import parse_scene_blocks
 
 
 STANDARD_DRAMA_PROP_SCRIPT = """第1集 开始
@@ -62,7 +62,7 @@ def test_standard_drama_prop_sample_matches_current_import_format_rules():
 
 
 def test_prop_requirements_reject_model_string_list_output():
-    from novelvideo.agents.asset_compiler import BlockPropRequirements
+    from ai_anime.agents.asset_compiler import BlockPropRequirements
 
     with pytest.raises(ValidationError) as exc_info:
         BlockPropRequirements.model_validate(
@@ -79,7 +79,7 @@ def test_prop_requirements_reject_model_string_list_output():
 
 
 def test_block_prop_prompt_explicitly_forbids_string_list_and_synonym_names():
-    from novelvideo.agents.asset_compiler import BLOCK_PROP_PROMPT
+    from ai_anime.agents.asset_compiler import BLOCK_PROP_PROMPT
 
     assert "requirements 必须是对象数组" in BLOCK_PROP_PROMPT
     assert "不能是字符串" in BLOCK_PROP_PROMPT
@@ -90,7 +90,7 @@ def test_block_prop_prompt_explicitly_forbids_string_list_and_synonym_names():
 async def test_standard_drama_prop_planner_reports_string_list_validation_error(
     monkeypatch,
 ):
-    import novelvideo.agents.asset_compiler as asset_compiler
+    import ai_anime.agents.asset_compiler as asset_compiler
 
     captured: dict[str, object] = {}
 
@@ -141,7 +141,7 @@ async def test_standard_drama_prop_planner_reports_string_list_validation_error(
 
 
 def test_prop_name_must_be_exact_source_substring_or_existing_candidate():
-    from novelvideo.agents.asset_compiler import BlockPropRequirements
+    from ai_anime.agents.asset_compiler import BlockPropRequirements
 
     block_text = "沈月白：把强光手电给我。"
 
@@ -175,7 +175,7 @@ def test_prop_name_must_be_exact_source_substring_or_existing_candidate():
 
 @pytest.mark.asyncio
 async def test_short_block_reuses_prior_episode_prop_without_ai_reanalysis(monkeypatch):
-    import novelvideo.agents.asset_compiler as asset_compiler
+    import ai_anime.agents.asset_compiler as asset_compiler
 
     blocks = [
         SimpleNamespace(

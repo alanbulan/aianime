@@ -4,15 +4,15 @@ from types import SimpleNamespace
 
 import pytest
 
-from novelvideo.api.routes.freezone import (
+from ai_anime.api.routes.freezone import (
     _asset_record_from_path,
     _beat_context_asset_from_ref,
     _default_push_target_for_preset,
     _is_freezone_scene_library_role,
 )
-from novelvideo.api.schemas import PresetCanvasRequest
-from novelvideo.freezone import presets as freezone_presets
-from novelvideo.freezone.presets import (
+from ai_anime.api.schemas import PresetCanvasRequest
+from ai_anime.freezone import presets as freezone_presets
+from ai_anime.freezone.presets import (
     _add_file_ref,
     _add_scene_refs,
     _is_asset_library_reference,
@@ -22,7 +22,7 @@ from novelvideo.freezone.presets import (
     build_asset_preset_context,
     build_canvas_payload_from_context,
 )
-from novelvideo.generators.nanobanana_prop import build_prop_reference_prompt
+from ai_anime.generators.nanobanana_prop import build_prop_reference_prompt
 
 
 def test_preset_file_refs_include_media_type_for_beat_video_and_audio(tmp_path: Path) -> None:
@@ -968,7 +968,7 @@ async def test_beat_preset_current_sketch_ignores_pool_fallback(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    from novelvideo.utils import state_index_files
+    from ai_anime.utils import state_index_files
 
     monkeypatch.setattr(state_index_files, "OUTPUT_DIR", str(tmp_path))
     monkeypatch.setattr(state_index_files, "STATE_DIR", str(tmp_path / "state"))
@@ -2464,11 +2464,11 @@ async def test_character_asset_preset_style_lookup_uses_project_context(
         }
 
     monkeypatch.setattr(
-        "novelvideo.project_config.load_project_config",
+        "ai_anime.project_config.load_project_config",
         fake_load_project_config,
     )
     monkeypatch.setattr(
-        "novelvideo.config.get_style_preset",
+        "ai_anime.config.get_style_preset",
         fake_get_style_preset,
     )
 
@@ -2727,7 +2727,7 @@ def test_portrait_preset_does_not_duplicate_portrait_as_identity(tmp_path: Path)
     portrait_path.write_bytes(b"fake portrait")
 
     refs = []
-    from novelvideo.freezone.presets import _add_character_refs
+    from ai_anime.freezone.presets import _add_character_refs
 
     _add_character_refs(
         refs,

@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import type { VideoStoryRow } from '@/features/canvas/domain/canvasNodes';
 
 // Backend response shape for `freezone_analyze_video_story` (observed at runtime,

@@ -7,15 +7,15 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from novelvideo.ports.auth_contract import AuthError, AuthFailureReason
+from ai_anime.ports.auth_contract import AuthError, AuthFailureReason
 
 pytestmark = pytest.mark.m01
 
 
 def _reset_port_modules():
-    import novelvideo.ports as ports
-    import novelvideo.ports.local as local_ports
-    import novelvideo.ports.registry as registry
+    import ai_anime.ports as ports
+    import ai_anime.ports.local as local_ports
+    import ai_anime.ports.registry as registry
 
     registry = importlib.reload(registry)
     ports = importlib.reload(ports)
@@ -28,12 +28,12 @@ def _patch_roots(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     state = tmp_path / "state"
     runtime = tmp_path / "runtime"
 
-    import novelvideo.api.deps as deps
-    import novelvideo.api.routes.projects as project_routes
-    import novelvideo.config as config
-    import novelvideo.project_config as project_config
-    import novelvideo.project_context as project_context
-    import novelvideo.utils.project_paths as project_paths
+    import ai_anime.api.deps as deps
+    import ai_anime.api.routes.projects as project_routes
+    import ai_anime.config as config
+    import ai_anime.project_config as project_config
+    import ai_anime.project_context as project_context
+    import ai_anime.utils.project_paths as project_paths
 
     for module in (config, deps, project_paths):
         monkeypatch.setattr(module, "OUTPUT_DIR", str(output), raising=False)
@@ -57,21 +57,21 @@ class _RejectingAuthPort:
 
 def _ce_client(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> TestClient:
     registry, _, _ = _reset_port_modules()
-    monkeypatch.setenv("ST_CONTROL_PLANE_DSN", "")
+    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "")
     monkeypatch.setenv("REDIS_URL", "")
-    monkeypatch.setenv("ST_EDITION", "ce")
-    monkeypatch.setenv("ST_LOCAL_USERNAME", "local")
+    monkeypatch.setenv("AI_ANIME_EDITION", "ce")
+    monkeypatch.setenv("AI_ANIME_LOCAL_USERNAME", "local")
     for module_name in list(sys.modules):
-        if module_name == "novelvideo.api" or module_name.startswith("novelvideo.api."):
+        if module_name == "ai_anime.api" or module_name.startswith("ai_anime.api."):
             sys.modules.pop(module_name)
     _patch_roots(monkeypatch, tmp_path)
 
-    from novelvideo.ports.local import project as local_project
+    from ai_anime.ports.local import project as local_project
 
     monkeypatch.setattr(local_project, "resolve_worker_id", lambda: "node_local", raising=False)
     registry.ensure_bootstrap()
 
-    from novelvideo.api.app import create_app
+    from ai_anime.api.app import create_app
 
     app = create_app()
     app.router.on_startup.clear()
@@ -102,7 +102,7 @@ def test_ce_auth_me_logout_and_project_crud_contract(
         logout = client.post("/api/v1/auth/logout")
         assert logout.status_code == 200
         assert logout.json() == {"ok": True}
-        assert "st_session=" in logout.headers["set-cookie"]
+        assert "ai_anime_session=" in logout.headers["set-cookie"]
         assert "Max-Age=0" in logout.headers["set-cookie"]
 
         login = client.post("/api/v1/auth/login", json={"username": "local", "password": "x"})
@@ -130,7 +130,7 @@ def test_ee_auth_missing_and_bad_cookie_contract() -> None:
     registry, _, _ = _reset_port_modules()
     registry.register_port("auth", _RejectingAuthPort())
 
-    from novelvideo.api.app import create_app
+    from ai_anime.api.app import create_app
 
     app = create_app()
     app.router.on_startup.clear()
@@ -141,6 +141,6 @@ def test_ee_auth_missing_and_bad_cookie_contract() -> None:
         assert missing.status_code == 401
         assert missing.json()["detail"] == "Missing session or agent token"
 
-        bad = client.get("/api/v1/auth/me", cookies={"st_session": "bad-cookie"})
+        bad = client.get("/api/v1/auth/me", cookies={"ai_anime_session": "bad-cookie"})
         assert bad.status_code == 401
         assert bad.json()["detail"] == "Invalid session"

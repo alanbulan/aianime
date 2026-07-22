@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueries } from "@tanstack/react-query";
@@ -73,7 +72,7 @@ export function RenderPlanDialog({
   const renderCostQueries = useQueries({
     queries: renderCostModeKeys.map((modeKey) => ({
       queryKey: generationCreditCostQueryKey("image_selection", renderImageSelection, {
-        surface: "supertale",
+        surface: "ai_anime",
         modeKey,
         imageRole: "render",
       }),
@@ -82,7 +81,7 @@ export function RenderPlanDialog({
           .get("api/v1/generation-credit-cost", {
             searchParams: {
               kind: "image_selection",
-              surface: "supertale",
+              surface: "ai_anime",
               value: renderImageSelection ?? "",
               mode_key: modeKey,
               image_role: "render",

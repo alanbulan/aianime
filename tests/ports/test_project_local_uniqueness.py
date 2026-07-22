@@ -1,13 +1,13 @@
 import pytest
 
-from novelvideo.ports.local.project import SQLiteProjectRegistry
+from ai_anime.ports.local.project import SQLiteProjectRegistry
 
 
 @pytest.fixture
 def local_registry(monkeypatch, tmp_path):
     state = tmp_path / "state"
-    monkeypatch.setenv("NOVELVIDEO_STATE_DIR", str(state))
-    import novelvideo.config as config
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(state))
+    import ai_anime.config as config
 
     monkeypatch.setattr(config, "STATE_DIR", str(state), raising=False)
     return SQLiteProjectRegistry()
@@ -41,7 +41,7 @@ async def test_purge_deletes_registry_row_and_releases_owner_name(local_registry
 
 @pytest.mark.asyncio
 async def test_create_project_route_returns_409_for_duplicate_name(monkeypatch):
-    from novelvideo.api.routes import projects as projects_route
+    from ai_anime.api.routes import projects as projects_route
 
     class DuplicateRegistry:
         async def create_project(self, **_kwargs):

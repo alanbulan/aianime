@@ -140,8 +140,8 @@ def _client(
     usage_meter=None,
     ctx=None,
 ):
-    from novelvideo.agents import global_video_optimizer
-    from novelvideo.api.routes import generation
+    from ai_anime.agents import global_video_optimizer
+    from ai_anime.api.routes import generation
 
     async def fake_make_sqlite_store(username: str, project: str):
         assert username == "alice"
@@ -269,7 +269,7 @@ def test_detect_identities_refunds_feature_credit_when_ai_detection_fails(
     monkeypatch,
     tmp_path,
 ):
-    from novelvideo.agents import global_video_optimizer
+    from ai_anime.agents import global_video_optimizer
 
     store = _DetectStore([{"beat_number": 1, "visual_description": "{{Hero_Main}}"}])
     usage_meter = _UsageMeter()
@@ -366,7 +366,7 @@ def test_detect_identities_batches_more_than_twenty_five_sketches(monkeypatch, t
 def test_detect_identities_marks_empty_ai_result_as_no_character_and_no_prop(
     monkeypatch, tmp_path
 ):
-    from novelvideo.agents import global_video_optimizer
+    from ai_anime.agents import global_video_optimizer
 
     store = _DetectStore([{"beat_number": 1, "visual_description": ""}])
     calls: list[int] = []
@@ -398,7 +398,7 @@ def test_detect_identities_marks_empty_ai_result_as_no_character_and_no_prop(
 def test_detect_identities_marks_missing_ai_panel_result_as_no_character_and_no_prop(
     monkeypatch, tmp_path
 ):
-    from novelvideo.agents import global_video_optimizer
+    from ai_anime.agents import global_video_optimizer
 
     store = _DetectStore([{"beat_number": 1, "visual_description": ""}])
     _write_sketch(tmp_path, 1)

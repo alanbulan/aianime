@@ -27,10 +27,10 @@ class _SketchStore:
 
 
 def _client(monkeypatch, tmp_path):
-    from novelvideo.api.routes import generation
-    from novelvideo.api.deps import ProjectResolution
-    from novelvideo.generators import nanobanana_grid
-    from novelvideo.utils.path_resolver import PathResolver
+    from ai_anime.api.routes import generation
+    from ai_anime.api.deps import ProjectResolution
+    from ai_anime.generators import nanobanana_grid
+    from ai_anime.utils.path_resolver import PathResolver
 
     store = _SketchStore()
     clean_calls = []

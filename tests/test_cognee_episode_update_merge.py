@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from novelvideo.cognee import CogneeStore
-from novelvideo.models import NovelEpisode
+from ai_anime.cognee import CogneeStore
+from ai_anime.models import NovelEpisode
 
 
 @pytest.mark.asyncio

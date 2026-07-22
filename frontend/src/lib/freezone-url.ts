@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 /**
  * Reduce backend-provided links to path + query + hash, then re-anchor them onto
  * the project-scoped Freezone tab.

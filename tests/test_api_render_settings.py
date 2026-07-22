@@ -12,7 +12,7 @@ from PIL import Image
 
 
 def _client(monkeypatch, tmp_path, config: dict | None = None):
-    from novelvideo.api.routes import generation
+    from ai_anime.api.routes import generation
 
     saved: list[dict] = []
     current_config = dict(config or {})
@@ -260,7 +260,7 @@ def test_director_control_to_sketch_starts_existing_actor(monkeypatch, tmp_path)
     def fake_start_control_frame_to_sketch_task(**kwargs):
         calls.append(kwargs)
 
-    from novelvideo.api.routes import generation
+    from ai_anime.api.routes import generation
 
     monkeypatch.setattr(
         generation,
@@ -399,9 +399,9 @@ def test_beat_viewer_manifests_include_context_and_destinations(monkeypatch, tmp
             runtime_dir=str(tmp_path / "_runtime"),
         )
 
-    from novelvideo.api import viewer_manifests
-    from novelvideo.api.routes import generation
-    from novelvideo.director_world import stage_manifest
+    from ai_anime.api import viewer_manifests
+    from ai_anime.api.routes import generation
+    from ai_anime.director_world import stage_manifest
 
     monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
     monkeypatch.setattr(generation, "_resolve_generation_project", fake_resolve_project)
@@ -543,8 +543,8 @@ def test_director_stage_overlay_loads_inherits_and_saves(monkeypatch, tmp_path):
             ctx=None,
         )
 
-    from novelvideo.api.routes import generation
-    from novelvideo.director_world.store import save_beat_blocking
+    from ai_anime.api.routes import generation
+    from ai_anime.director_world.store import save_beat_blocking
 
     monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
     monkeypatch.setattr(generation, "_resolve_generation_project", fake_resolve_project)
@@ -669,7 +669,7 @@ def test_director_stage_control_frame_export_writes_images_and_meta(monkeypatch,
             ctx=None,
         )
 
-    from novelvideo.api.routes import generation
+    from ai_anime.api.routes import generation
 
     monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
     monkeypatch.setattr(generation, "_resolve_generation_project", fake_resolve_project)
@@ -797,7 +797,7 @@ def test_director_stage_control_frame_export_requires_complete_bundle(monkeypatc
             ctx=None,
         )
 
-    from novelvideo.api.routes import generation
+    from ai_anime.api.routes import generation
 
     monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
     monkeypatch.setattr(generation, "_resolve_generation_project", fake_resolve_project)
@@ -830,7 +830,7 @@ def test_beat_background_anchor_lists_and_snapshots_master(monkeypatch, tmp_path
     async def fake_make_sqlite_store(username: str, project: str):
         return store
 
-    from novelvideo.api.routes import generation
+    from ai_anime.api.routes import generation
 
     monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
 
@@ -896,7 +896,7 @@ def test_beat_background_anchor_infers_legacy_selected_source(monkeypatch, tmp_p
     async def fake_make_sqlite_store(username: str, project: str):
         return store
 
-    from novelvideo.api.routes import generation
+    from ai_anime.api.routes import generation
 
     monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
 
@@ -941,7 +941,7 @@ def test_beat_background_anchor_upload_writes_selected_background(monkeypatch, t
     async def fake_make_sqlite_store(username: str, project: str):
         return store
 
-    from novelvideo.api.routes import generation
+    from ai_anime.api.routes import generation
 
     monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
 
@@ -1059,7 +1059,7 @@ def test_sketch_regen_queue_migrates_react_items_out_of_nicegui_legacy_key(
 
 
 def test_sketch_image_usage_and_guard_return_attempt_context(monkeypatch, tmp_path):
-    from novelvideo.image_request_usage import record_image_request
+    from ai_anime.image_request_usage import record_image_request
 
     client, _saved = _client(monkeypatch, tmp_path)
     for idx in range(3):
@@ -1111,7 +1111,7 @@ def test_sketch_image_usage_and_guard_return_attempt_context(monkeypatch, tmp_pa
 
 
 def test_image_generation_guard_password_verification_matches_nicegui(monkeypatch, tmp_path):
-    from novelvideo.image_request_usage import record_image_request
+    from ai_anime.image_request_usage import record_image_request
 
     monkeypatch.setenv("PROMPT_EXPORT_PASSWORD", "secret")
     client, _saved = _client(monkeypatch, tmp_path)
@@ -1159,7 +1159,7 @@ def test_image_generation_guard_password_verification_matches_nicegui(monkeypatc
 
 
 def test_sketch_grid_preview_exposes_nicegui_thumbnail_contract(monkeypatch, tmp_path):
-    from novelvideo.generators import nanobanana_grid, pool_indexer
+    from ai_anime.generators import nanobanana_grid, pool_indexer
 
     client, _saved = _client(monkeypatch, tmp_path)
     calls: dict[str, object] = {}
@@ -1199,7 +1199,7 @@ def test_sketch_grid_preview_exposes_nicegui_thumbnail_contract(monkeypatch, tmp
 
 
 def test_sketch_grid_preview_falls_back_to_latest_pool_sketch_cells(monkeypatch, tmp_path):
-    from novelvideo.generators import nanobanana_grid, pool_indexer
+    from ai_anime.generators import nanobanana_grid, pool_indexer
 
     client, _saved = _client(monkeypatch, tmp_path)
     ep_grids_dir = tmp_path / "grids" / "ep001"

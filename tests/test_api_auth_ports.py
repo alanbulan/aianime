@@ -8,19 +8,19 @@ from starlette.requests import Request
 
 
 def _reset_modules():
-    import novelvideo.ports as ports
-    import novelvideo.ports.registry as registry
+    import ai_anime.ports as ports
+    import ai_anime.ports.registry as registry
 
     registry._PORTS.clear()
     registry._BOOTSTRAPPED = False
-    api_auth = importlib.import_module("novelvideo.api.auth")
+    api_auth = importlib.import_module("ai_anime.api.auth")
     return registry, ports, api_auth
 
 
 def _request(*, cookie: str | None = None, authorization: str | None = None) -> Request:
     headers = []
     if cookie is not None:
-        headers.append((b"cookie", f"st_session={cookie}".encode()))
+        headers.append((b"cookie", f"ai_anime_session={cookie}".encode()))
     if authorization is not None:
         headers.append((b"authorization", authorization.encode()))
     return Request(
@@ -73,9 +73,9 @@ async def test_bearer_path_without_registered_auth_session_port_returns_pinned_4
 @pytest.mark.asyncio
 async def test_verify_credential_for_request_keeps_ce_cookie_less_stream_alive(monkeypatch) -> None:
     registry, _ports, api_auth = _reset_modules()
-    monkeypatch.delenv("ST_CONTROL_PLANE_DSN", raising=False)
-    monkeypatch.setenv("ST_EDITION", "ce")
-    monkeypatch.setenv("ST_LOCAL_USERNAME", "alice")
+    monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
+    monkeypatch.setenv("AI_ANIME_EDITION", "ce")
+    monkeypatch.setenv("AI_ANIME_LOCAL_USERNAME", "alice")
     registry.ensure_bootstrap()
 
     user = await api_auth.verify_credential_for_request(_request())

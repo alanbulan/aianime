@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import type { FreezonePresetCanvasRequest } from "@/api/canvas";
 import type { CanvasEdge, CanvasNode } from "@/stores/canvasStore";
 import {

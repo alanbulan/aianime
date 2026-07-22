@@ -4,8 +4,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from novelvideo.api.schemas import IngestStart, ProjectUpdate
-from novelvideo.models import NovelEpisode
+from ai_anime.api.schemas import IngestStart, ProjectUpdate
+from ai_anime.models import NovelEpisode
 
 pytestmark = pytest.mark.m03
 
@@ -23,16 +23,16 @@ def test_project_update_accepts_aspect_ratio_values():
 
 
 def test_project_config_defaults_to_drama(tmp_path, monkeypatch):
-    monkeypatch.setenv("NOVELVIDEO_DATA_ROOT", str(tmp_path))
-    monkeypatch.setenv("NOVELVIDEO_OUTPUT_DIR", str(tmp_path / "output"))
-    monkeypatch.setenv("NOVELVIDEO_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("AI_ANIME_DATA_ROOT", str(tmp_path))
+    monkeypatch.setenv("AI_ANIME_OUTPUT_DIR", str(tmp_path / "output"))
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
 
     import importlib
 
-    import novelvideo.config as cfg
-    import novelvideo.project_config as pc
-    import novelvideo.services.style_service as style_service
-    import novelvideo.utils.project_paths as pp
+    import ai_anime.config as cfg
+    import ai_anime.project_config as pc
+    import ai_anime.services.style_service as style_service
+    import ai_anime.utils.project_paths as pp
 
     importlib.reload(cfg)
     importlib.reload(pp)
@@ -99,7 +99,7 @@ def _project_scope_resolver(tmp_path):
 
 @pytest.mark.asyncio
 async def test_update_project_saves_spine_template_before_import(monkeypatch, tmp_path):
-    from novelvideo.api.routes import projects
+    from ai_anime.api.routes import projects
 
     saved: dict = {}
 
@@ -138,7 +138,7 @@ async def test_update_project_saves_spine_template_before_import(monkeypatch, tm
 async def test_update_project_keeps_explicit_aspect_ratio_when_spine_template_changes(
     monkeypatch, tmp_path
 ):
-    from novelvideo.api.routes import projects
+    from ai_anime.api.routes import projects
 
     saved = {"spine_template": "drama", "aspect_ratio": "9:16"}
 
@@ -173,7 +173,7 @@ async def test_update_project_keeps_explicit_aspect_ratio_when_spine_template_ch
 
 @pytest.mark.asyncio
 async def test_update_project_accepts_frontend_portrait_aspect_ratio(monkeypatch, tmp_path):
-    from novelvideo.api.routes import projects
+    from ai_anime.api.routes import projects
 
     saved = {"spine_template": "drama", "aspect_ratio": "9:16"}
 
@@ -212,7 +212,7 @@ async def test_update_project_rejects_spine_template_change_after_import(
 ):
     from fastapi.responses import JSONResponse
 
-    from novelvideo.api.routes import projects
+    from ai_anime.api.routes import projects
 
     saved = {"spine_template": "drama"}
 
@@ -249,7 +249,7 @@ async def test_update_project_rejects_spine_template_change_after_import(
 async def test_start_ingest_allows_spine_template_change_during_rebuild(
     monkeypatch, tmp_path
 ):
-    from novelvideo.api.routes import ingest
+    from ai_anime.api.routes import ingest
 
     saved = {"spine_template": "drama"}
     uploads = tmp_path / "uploads"
@@ -284,7 +284,7 @@ async def test_start_ingest_allows_spine_template_change_during_rebuild(
 async def test_start_ingest_rejects_spine_template_change_without_rebuild(
     monkeypatch, tmp_path
 ):
-    from novelvideo.api.routes import ingest
+    from ai_anime.api.routes import ingest
 
     uploads = tmp_path / "uploads"
     uploads.mkdir()

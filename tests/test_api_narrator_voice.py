@@ -20,8 +20,8 @@ class DummyStore:
 
 
 def _client(monkeypatch, tmp_path):
-    from novelvideo import project_config
-    from novelvideo.api.routes import projects
+    from ai_anime import project_config
+    from ai_anime.api.routes import projects
 
     project_dir = tmp_path / "output" / "admin" / "demo"
     project_dir.mkdir(parents=True)

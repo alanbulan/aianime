@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import {
   fetchPushImpact,
   pushToPipeline,
@@ -14,7 +13,7 @@ export interface PromoteToAssetOptions {
 
 /**
  * Commit is the boundary between free canvas experiments and canonical
- * SuperTale assets. The backend endpoint is still /freezone/push; this wrapper
+ * AI anime assets. The backend endpoint is still /freezone/push; this wrapper
  * keeps UI/product code from treating it as a generic file copy.
  */
 export async function promoteToAsset(

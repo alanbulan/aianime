@@ -18,8 +18,8 @@ def _write_png(path: Path, *, width: int = 512, height: int = 768) -> None:
 def test_drama_narration_panel_sends_audio_only_when_prompt_references_it(
     tmp_path, monkeypatch
 ):
-    from novelvideo import project_config as pc
-    from novelvideo.seedance2_i2v.panel_service import build_seedance2_video_panel_state
+    from ai_anime import project_config as pc
+    from ai_anime.seedance2_i2v.panel_service import build_seedance2_video_panel_state
 
     monkeypatch.setattr(pc, "OUTPUT_DIR", tmp_path / "state")
     project_dir = tmp_path / "output" / "alice" / "project"

@@ -1,8 +1,7 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { createRoot, type Root } from "react-dom/client";
 
-const REACT_ROOT_KEY = Symbol.for("supertale.reactRoot");
+const REACT_ROOT_KEY = Symbol.for("ai_anime.reactRoot");
 
 type ReactRootContainer = (Element | DocumentFragment) & {
   [REACT_ROOT_KEY]?: Root;

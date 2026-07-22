@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from novelvideo.project_context import ProjectContext
+from ai_anime.project_context import ProjectContext
 
 
 def _project_ctx(tmp_path: Path) -> ProjectContext:
@@ -28,10 +28,10 @@ def _project_ctx(tmp_path: Path) -> ProjectContext:
 
 @pytest.mark.asyncio
 async def test_global_optimize_video_closes_cognee_store_on_success(monkeypatch, tmp_path):
-    from novelvideo import cognee
-    from novelvideo.agents import global_video_optimizer
-    from novelvideo.task_backend.runners import video
-    from novelvideo.utils.path_resolver import PathResolver
+    from ai_anime import cognee
+    from ai_anime.agents import global_video_optimizer
+    from ai_anime.task_backend.runners import video
+    from ai_anime.utils.path_resolver import PathResolver
 
     sketch_path = PathResolver(str(tmp_path), 1).sketch(1)
     sketch_path.parent.mkdir(parents=True, exist_ok=True)
@@ -102,10 +102,10 @@ async def test_global_optimize_video_closes_cognee_store_on_success(monkeypatch,
 
 @pytest.mark.asyncio
 async def test_global_optimize_video_closes_cognee_store_on_failure(monkeypatch, tmp_path):
-    from novelvideo import cognee
-    from novelvideo.agents import global_video_optimizer
-    from novelvideo.task_backend.runners import video
-    from novelvideo.utils.path_resolver import PathResolver
+    from ai_anime import cognee
+    from ai_anime.agents import global_video_optimizer
+    from ai_anime.task_backend.runners import video
+    from ai_anime.utils.path_resolver import PathResolver
 
     sketch_path = PathResolver(str(tmp_path), 1).sketch(1)
     sketch_path.parent.mkdir(parents=True, exist_ok=True)

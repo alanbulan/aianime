@@ -8,7 +8,7 @@ import httpx
 import pytest
 from fastapi import FastAPI
 
-from novelvideo.project_context import ProjectContext
+from ai_anime.project_context import ProjectContext
 
 pytestmark = pytest.mark.m07
 
@@ -33,7 +33,7 @@ def _ctx(tmp_path: Path, *, role: str = "viewer") -> ProjectContext:
 
 
 def _install_fake_project_context(monkeypatch, ctx: ProjectContext) -> None:
-    from novelvideo.api.routes import tasks as tasks_routes
+    from ai_anime.api.routes import tasks as tasks_routes
 
     async def fake_resolve_project_context(**kwargs):
         assert kwargs["project_id"] == ctx.project_id
@@ -43,7 +43,7 @@ def _install_fake_project_context(monkeypatch, ctx: ProjectContext) -> None:
 
 
 def _install_fake_task_manager(monkeypatch, tasks=None, task=None) -> None:
-    from novelvideo.api.routes import tasks as tasks_routes
+    from ai_anime.api.routes import tasks as tasks_routes
 
     class _FakeTaskManager:
         def __init__(self, payload, single):
@@ -60,8 +60,8 @@ def _install_fake_task_manager(monkeypatch, tasks=None, task=None) -> None:
 
 
 def test_stage_asset_task_display_name_includes_scene_and_step():
-    from novelvideo.api.routes.tasks import _serialize_task
-    from novelvideo.task_state import TaskState
+    from ai_anime.api.routes.tasks import _serialize_task
+    from ai_anime.task_state import TaskState
 
     task = TaskState(
         task_id="task-1",
@@ -80,8 +80,8 @@ def test_stage_asset_task_display_name_includes_scene_and_step():
 
 
 def test_serialize_task_rewrites_internal_result_paths_to_project_static_urls(tmp_path):
-    from novelvideo.api.routes.tasks import _serialize_task
-    from novelvideo.task_state import TaskState
+    from ai_anime.api.routes.tasks import _serialize_task
+    from ai_anime.task_state import TaskState
 
     ctx = _ctx(tmp_path)
     project_dir = Path(ctx.output_dir)
@@ -128,7 +128,7 @@ async def test_project_stream_emits_heartbeat_immediately(tmp_path, monkeypatch)
     _install_fake_project_context(monkeypatch, ctx)
     _install_fake_task_manager(monkeypatch, tasks=[])
 
-    from novelvideo.api.routes.tasks import stream_project_tasks
+    from ai_anime.api.routes.tasks import stream_project_tasks
 
     resp = await stream_project_tasks(
         project=ctx.project_id,
@@ -154,8 +154,8 @@ async def test_project_stream_emits_heartbeat_immediately(tmp_path, monkeypatch)
 
 @pytest.mark.asyncio
 async def test_project_stream_rejects_missing_auth():
-    from novelvideo.api import api_router
-    from novelvideo.ports import registry
+    from ai_anime.api import api_router
+    from ai_anime.ports import registry
 
     old_ports = dict(registry._PORTS)
     old_bootstrapped = registry._BOOTSTRAPPED
@@ -180,7 +180,7 @@ async def test_project_stream_rejects_missing_auth():
 
 @pytest.mark.asyncio
 async def test_project_task_stream_includes_logs(tmp_path, monkeypatch):
-    from novelvideo.task_state import TaskState
+    from ai_anime.task_state import TaskState
 
     ctx = _ctx(tmp_path)
     _install_fake_project_context(monkeypatch, ctx)
@@ -201,7 +201,7 @@ async def test_project_task_stream_includes_logs(tmp_path, monkeypatch):
         ),
     )
 
-    from novelvideo.api.routes.tasks import stream_project_task
+    from ai_anime.api.routes.tasks import stream_project_task
 
     resp = await stream_project_task(
         project=ctx.project_id,

@@ -1,6 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
-import type { Spec as SpecRenderSpec } from "dramaclaw-spec-render";
+// Copyright (c) 2026 AI anime
 import type { ChatMessage } from "@/features/superchat/types";
 
 function uiSpecTagRegex(): RegExp {
@@ -54,9 +52,11 @@ export type StructuredBlock = {
   value: unknown;
 };
 
-export type UiSpec = SpecRenderSpec & {
+export type UiSpec = {
+  type?: string;
   root: string;
   elements: Record<string, unknown>;
+  [key: string]: unknown;
 };
 
 export function isUiSpec(value: unknown): value is UiSpec {
@@ -319,7 +319,7 @@ function coerceLooseCharacterShowcase(value: unknown): UiSpec | null {
     elements[id] = {
       type: "Image",
       props: {
-        src: src || `st-unresolved:role-${index + 1}`,
+        src: src || `ai-anime-unresolved:role-${index + 1}`,
         alt: stringValue(image.alt) || name,
         maxWidth: 158,
         aspectRatio: "3/4",
@@ -594,7 +594,7 @@ function numberValue(value: unknown): number | null {
 
 function looksLikeVideoUrl(value: string): boolean {
   return /\.(mp4|webm|mov|m4v|ogg)(\?.*)?$/i.test(value)
-    || value.startsWith("st-unresolved:video");
+    || value.startsWith("ai-anime-unresolved:video");
 }
 
 function statusBadgeVariant(status: string): string {

@@ -1,4 +1,4 @@
-from novelvideo.models import NovelScene, resolve_scene_plate, resolve_scene_plate_from_records
+from ai_anime.models import NovelScene, resolve_scene_plate, resolve_scene_plate_from_records
 
 
 def test_resolve_scene_plate_prefers_variant_time_plate() -> None:

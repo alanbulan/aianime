@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import {
   useEffect,
   useId,
@@ -112,7 +111,7 @@ import {
 } from "./media-styles";
 
 const SEEDANCE2_REFERENCE_DRAG_TYPE =
-  "application/x-supertale-seedance2-reference";
+  "application/x-ai-anime-seedance2-reference";
 const SEEDANCE2_PROMPT_GUIDANCE_TEMPLATES = [
   {
     key: "subject",
@@ -535,7 +534,7 @@ export function VideoPane({
   );
   const [seedance2Draft, setSeedance2Draft] = useState(seedance2Config);
   const videoCost = useGenerationCreditCost("video_backend", defaultBackend, {
-    surface: "supertale",
+    surface: "ai_anime",
     params: {
       resolution: showSeedance2Config || showHappyHorseConfig || showGrokVideoConfig
         ? seedance2Draft.resolution

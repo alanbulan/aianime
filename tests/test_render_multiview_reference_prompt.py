@@ -2,8 +2,8 @@ import json
 
 import pytest
 
-from novelvideo.generators.nanobanana_grid import NanoBananaGridGenerator
-from novelvideo.generators.prompt_builder import (
+from ai_anime.generators.nanobanana_grid import NanoBananaGridGenerator
+from ai_anime.generators.prompt_builder import (
     CharacterConfig,
     GridConfig,
     PromptComponents,

@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Waypoints, Wand2 } from 'lucide-react';
 import { useReactFlow, useViewport } from '@xyflow/react';

@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { createLazyFileRoute } from "@tanstack/react-router";
 import {
   useCallback,
@@ -263,7 +262,7 @@ function BeatsTabContent() {
   const sketchCost = useGenerationCreditCost(
     "image_selection",
     sketchImageGenerationSelection,
-    { surface: "supertale", imageRole: "sketch", modeKey: sketchCostModeKey },
+    { surface: "ai_anime", imageRole: "sketch", modeKey: sketchCostModeKey },
   );
   const isSeedance2Backend =
     videoBackendsRes.data?.data.find((backend) => backend.value === videoBackend)

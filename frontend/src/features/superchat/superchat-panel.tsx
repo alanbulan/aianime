@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import {
   ArrowDown,
   ArrowUp,
@@ -30,11 +29,6 @@ import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { useParams } from "@tanstack/react-router";
 import { attachBorderBeam, type BorderBeamController } from "border-beam-vanilla";
-import {
-  SpecRenderer,
-  SpecRendererProvider,
-  VideoDetailModal,
-} from "dramaclaw-spec-render";
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
@@ -126,13 +120,8 @@ type IngestAutomationResult = {
   rebuild?: boolean;
 };
 
-function parseSpecMediaUrl(src: string): string | null {
-  if (src.startsWith("st-unresolved:")) return src;
-  return null;
-}
-
 function resolveSpecMediaUrl(src: string): Promise<string> {
-  if (src.startsWith("st-unresolved:")) return Promise.resolve(src);
+  if (src.startsWith("ai-anime-unresolved:")) return Promise.resolve(src);
   return Promise.resolve(resolveMediaUrl(src) ?? src);
 }
 
@@ -355,7 +344,7 @@ function ChatAvatarFrame({
 }) {
   const isAssistant = role === "assistant";
   const isTool = role === "tool";
-  const initial = label?.trim().charAt(0).toUpperCase() || (isAssistant ? "虾" : isTool ? "" : "U");
+  const initial = label?.trim().charAt(0).toUpperCase() || (isAssistant ? "AI" : isTool ? "" : "U");
   // Shared, fetch-once avatar source (see ai-avatar.ts) — null until ready so we
   // don't kick off a raw-path request from every avatar before the blob lands.
   const avatarUrl = useAiAvatarUrl();
@@ -409,6 +398,44 @@ function triggerDownload(url: string) {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+}
+
+function VideoDetailModal({
+  src,
+  poster,
+  title,
+  description,
+  open,
+  setOpen,
+}: {
+  src: string;
+  poster?: string;
+  title?: string;
+  description?: string;
+  open: boolean;
+  setOpen: (open: boolean) => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent className="max-w-5xl border-border/70 bg-background p-3 sm:max-w-5xl">
+        <DialogTitle className="sr-only">{title || "Video preview"}</DialogTitle>
+        <video
+          className="max-h-[78vh] w-full rounded-md bg-black object-contain"
+          src={src}
+          poster={poster}
+          controls
+          autoPlay
+          playsInline
+        />
+        {(title || description) && (
+          <div className="space-y-1 px-1 pb-1">
+            {title && <h3 className="text-sm font-semibold text-foreground">{title}</h3>}
+            {description && <p className="text-xs text-muted-foreground">{description}</p>}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 type KeyframeVideoPreviewItem = {
@@ -662,10 +689,10 @@ function KeyframeVideoPreviewCard({ item }: { item: KeyframeVideoPreviewItem }) 
                   draggable={false}
                 />
               ) : (
-                <span className="st-keyframe-video-placeholder block h-full w-full" />
+                <span className="ai-anime-keyframe-video-placeholder block h-full w-full" />
               )}
               {playable && (
-                <span className="st-keyframe-video-play">
+                <span className="ai-anime-keyframe-video-play">
                   <Play className="size-5 fill-white text-white" />
                 </span>
               )}
@@ -677,10 +704,10 @@ function KeyframeVideoPreviewCard({ item }: { item: KeyframeVideoPreviewItem }) 
                   </span>
                 )}
                 {item.status && (
-                  <span className="st-keyframe-video-status">{item.status}</span>
+                  <span className="ai-anime-keyframe-video-status">{item.status}</span>
                 )}
                 {item.progress !== undefined && (
-                  <span className="st-keyframe-video-progress">
+                  <span className="ai-anime-keyframe-video-progress">
                     <span style={{ width: `${item.progress}%` }} />
                   </span>
                 )}
@@ -689,7 +716,7 @@ function KeyframeVideoPreviewCard({ item }: { item: KeyframeVideoPreviewItem }) 
           </div>
         </div>
       </div>
-      {playable && (
+      {videoSrc && (
         <VideoDetailModal
           src={videoSrc}
           poster={poster}
@@ -736,7 +763,7 @@ function UnifiedMediaCard({
 
   return (
     <>
-      <div className="st-unified-media-card">
+      <div className="ai-anime-unified-media-card">
         <div className="relative h-full w-full overflow-hidden rounded-2xl bg-white/5 p-[1.5px]">
           <div className="relative z-10 h-full w-full overflow-hidden rounded-[14px] bg-zinc-950">
             {item.kind === "audio" ? (
@@ -746,13 +773,13 @@ function UnifiedMediaCard({
                 </span>
                 {src && (
                   <audio
-                    className="st-unified-media-audio w-full"
+                    className="ai-anime-unified-media-audio w-full"
                     src={src}
                     controls
                     preload="metadata"
                   />
                 )}
-                {!src && <span className="st-keyframe-video-placeholder absolute inset-0" />}
+                {!src && <span className="ai-anime-keyframe-video-placeholder absolute inset-0" />}
                 <span className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col gap-1 bg-gradient-to-t from-black/85 via-black/35 to-transparent px-3 pb-3 pt-8 text-white">
                   <span className="truncate text-sm font-semibold">{item.title}</span>
                   {item.description && (
@@ -778,10 +805,10 @@ function UnifiedMediaCard({
                     draggable={false}
                   />
                 ) : (
-                  <span className="st-keyframe-video-placeholder block h-full w-full" />
+                  <span className="ai-anime-keyframe-video-placeholder block h-full w-full" />
                 )}
                 {item.kind === "video" && playable && (
-                  <span className="st-keyframe-video-play">
+                  <span className="ai-anime-keyframe-video-play">
                     <Play className="size-5 fill-white text-white" />
                   </span>
                 )}
@@ -823,7 +850,7 @@ function UnifiedMediaGrid({
   if (items.length === 0) return null;
 
   return (
-    <div className="st-unified-media-grid">
+    <div className="ai-anime-unified-media-grid">
       {items.map((item) => (
         <UnifiedMediaCard key={item.id} item={item} onOpenMedia={onOpenMedia} />
       ))}
@@ -868,12 +895,12 @@ function KeyframeVideoPreview({ spec }: { spec: UiSpec }) {
   const items = videoItems.length > 0 ? videoItems : pendingItem ? [pendingItem] : [];
 
   if (items.length === 0) {
-    return <SpecRenderer spec={spec} />;
+    return <JsonNode value={spec} />;
   }
 
   return (
-    <div className="st-keyframe-video-preview">
-      <div className="st-keyframe-video-grid">
+    <div className="ai-anime-keyframe-video-preview">
+      <div className="ai-anime-keyframe-video-grid">
         {items.map((item) => (
           <KeyframeVideoPreviewCard key={item.id} item={item} />
         ))}
@@ -897,19 +924,13 @@ function UiSpecRenderer({
       className="chat-spec-renderer w-full min-w-0 max-w-full overflow-visible [contain:layout]"
       data-spec-type={spec.type ?? "auto"}
     >
-      <SpecRendererProvider
-        resolveMediaUrl={resolveSpecMediaUrl}
-        parseMediaUrl={parseSpecMediaUrl}
-        loadingVideoUrl="/video/loading.mp4"
-      >
-        {mediaItems.length > 0 ? (
-          <UnifiedMediaGrid spec={spec} onOpenMedia={onOpenMedia} />
-        ) : spec.type === "keyframe_video" ? (
-          <KeyframeVideoPreview spec={spec} />
-        ) : (
-          <SpecRenderer spec={spec} />
-        )}
-      </SpecRendererProvider>
+      {mediaItems.length > 0 ? (
+        <UnifiedMediaGrid spec={spec} onOpenMedia={onOpenMedia} />
+      ) : spec.type === "keyframe_video" ? (
+        <KeyframeVideoPreview spec={spec} />
+      ) : (
+        <JsonNode value={spec} />
+      )}
     </div>
   );
 }
@@ -2133,9 +2154,9 @@ function uploadedFileFromPrepared(item: PreparedIngestAttachment): UploadedInges
 
 function buildUploadedFilesContext(project: string | undefined, files: UploadedIngestFile[]): string {
   const lines = [
-    "[DRAMACLAW_UPLOADED_FILES]",
-    "If the user asks what files are currently uploaded, answer directly from this list. These files have already been uploaded to the current SuperTale_N project ingest directory.",
-    project ? `dramaclaw_project_id: ${project}` : null,
+    "[AI_ANIME_UPLOADED_FILES]",
+    "If the user asks what files are currently uploaded, answer directly from this list. These files have already been uploaded to the current AI anime project ingest directory.",
+    project ? `ai_anime_project_id: ${project}` : null,
   ].filter((line): line is string => line !== null);
 
   if (files.length === 0) {
@@ -2157,7 +2178,7 @@ function buildUploadedFilesContext(project: string | undefined, files: UploadedI
     });
   }
 
-  lines.push("[/DRAMACLAW_UPLOADED_FILES]");
+  lines.push("[/AI_ANIME_UPLOADED_FILES]");
   return lines.join("\n");
 }
 
@@ -2165,25 +2186,25 @@ function buildReingestConfirmationContext(
   pending: ReingestConfirmation,
 ): string {
   return [
-    "[DRAMACLAW_REINGEST_CONFIRMATION]",
+    "[AI_ANIME_REINGEST_CONFIRMATION]",
     `stage: ${pending.stage}`,
-    `dramaclaw_project_id: ${pending.project}`,
+    `ai_anime_project_id: ${pending.project}`,
     `filename: ${pending.filename}`,
     pending.stage === "choose_overwrite"
       ? "The current project has already ingested a script. Do not call ingest/start yet. Tell the user the current project is not empty and ask only whether they want to overwrite this project. Do not recommend creating a new project, and do not offer to create another project from the current project flow."
       : "The user chose overwrite. Do not call ingest/start yet. Ask the second confirmation and warn that overwrite/rebuild will clear existing characters, episodes, scripts, sketches, audio, videos, and other pipeline outputs. Only an exact user reply of 确定 or 继续 may proceed.",
-    "[/DRAMACLAW_REINGEST_CONFIRMATION]",
+    "[/AI_ANIME_REINGEST_CONFIRMATION]",
   ].join("\n");
 }
 
 function buildReingestCancelledContext(pending: ReingestConfirmation): string {
   return [
-    "[DRAMACLAW_REINGEST_CANCELLED]",
+    "[AI_ANIME_REINGEST_CANCELLED]",
     `stage: ${pending.stage}`,
-    `dramaclaw_project_id: ${pending.project}`,
+    `ai_anime_project_id: ${pending.project}`,
     `filename: ${pending.filename}`,
     "The overwrite/re-ingest flow was cancelled or not explicitly confirmed. Do not call any write API. Briefly tell the user no overwrite was performed.",
-    "[/DRAMACLAW_REINGEST_CANCELLED]",
+    "[/AI_ANIME_REINGEST_CANCELLED]",
   ].join("\n");
 }
 
@@ -2346,8 +2367,8 @@ async function buildAttachmentAnalysisContext(
   preparedAttachments: PreparedIngestAttachment[],
 ): Promise<string> {
   const lines = [
-    "[DRAMACLAW_ATTACHMENT_CONTEXT]",
-    "The user attached file(s). No explicit video-generation instruction was detected, so do not start the DramaClaw/SuperTale video pipeline unless the user asks for it later. Analyze the attached text when available, and ask a focused follow-up if the intent is ambiguous.",
+    "[AI_ANIME_ATTACHMENT_CONTEXT]",
+    "The user attached file(s). No explicit video-generation instruction was detected, so do not start the AI anime/AI anime video pipeline unless the user asks for it later. Analyze the attached text when available, and ask a focused follow-up if the intent is ambiguous.",
   ];
 
   for (const prepared of preparedAttachments) {
@@ -2364,17 +2385,17 @@ async function buildAttachmentAnalysisContext(
 
     if (project && isNovelAttachment(originalAttachment)) {
       if (prepared.upload) {
-        lines.push(`dramaclaw_upload_filename: ${prepared.upload.filename}`);
-        lines.push(`dramaclaw_project_id: ${project}`);
-        lines.push("dramaclaw_upload_target: supertale_ingest");
+        lines.push(`ai_anime_upload_filename: ${prepared.upload.filename}`);
+        lines.push(`ai_anime_project_id: ${project}`);
+        lines.push("ai_anime_upload_target: ai_anime_ingest");
         if (typeof prepared.upload.total_chars === "number") {
-          lines.push(`dramaclaw_total_chars: ${prepared.upload.total_chars}`);
+          lines.push(`ai_anime_total_chars: ${prepared.upload.total_chars}`);
         }
         if (typeof prepared.upload.count === "number") {
-          lines.push(`dramaclaw_chapter_count: ${prepared.upload.count}`);
+          lines.push(`ai_anime_chapter_count: ${prepared.upload.count}`);
         }
       } else if (prepared.error) {
-        lines.push(`dramaclaw_upload_error: ${prepared.error}`);
+        lines.push(`ai_anime_upload_error: ${prepared.error}`);
       }
     }
 
@@ -2397,7 +2418,7 @@ async function buildAttachmentAnalysisContext(
     }
   }
 
-  lines.push("[/DRAMACLAW_ATTACHMENT_CONTEXT]");
+  lines.push("[/AI_ANIME_ATTACHMENT_CONTEXT]");
   return lines.join("\n");
 }
 
@@ -2408,14 +2429,14 @@ function appendIngestAutomationContext(
   return [
     text,
     "",
-    "[DRAMACLAW_INGEST_AUTOMATION]",
+    "[AI_ANIME_INGEST_AUTOMATION]",
     `novel_filename: ${result.filename}`,
     result.rebuild ? "rebuild: true" : "rebuild: false",
     result.taskType ? `task_type: ${result.taskType}` : null,
     result.taskKey ? `task_key: ${result.taskKey}` : null,
     result.message ? `message: ${result.message}` : null,
-    "The uploaded novel has already been submitted to the project ingest API. Continue the DramaClaw/SuperTale video creation workflow from this task instead of asking the user to upload a novel again.",
-    "[/DRAMACLAW_INGEST_AUTOMATION]",
+    "The uploaded novel has already been submitted to the project ingest API. Continue the AI anime/AI anime video creation workflow from this task instead of asking the user to upload a novel again.",
+    "[/AI_ANIME_INGEST_AUTOMATION]",
   ].filter((line): line is string => line !== null).join("\n");
 }
 
@@ -2475,7 +2496,7 @@ export function SuperChatPanel({
   const taskEventBus = useEventBus();
   const chat = useSuperChat({
     project: params.project,
-    displayName: username || "SuperTale",
+    displayName: username || "AI anime",
   });
   const isChatInitializing = !chat.historyReady && chat.messages.length === 0 && (chat.connecting || chat.connected);
 

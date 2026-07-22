@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 export type ViewerPurpose = "mainline" | "freezone" | "asset" | "beat";
 
 export function viewerPurposeLabel(purpose: ViewerPurpose | undefined): string {

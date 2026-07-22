@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 export type SkillProvider = "freezone_mainline" | "agent" | "tool" | "workflow";
 export const SKILL_SCHEMA_VERSION = "skill.v1";
 

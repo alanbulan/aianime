@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import type { Beat } from "@/types/episode";
 import type { Task } from "@/types/task";
 import type { BeatStageState, BeatStates } from "@/types/beat-state";

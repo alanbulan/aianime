@@ -9,9 +9,9 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from novelvideo import config
-from novelvideo.model_gateway_settings import save_media_relay_config
-from novelvideo.storage import media_relay
+from ai_anime import config
+from ai_anime.model_gateway_settings import save_media_relay_config
+from ai_anime.storage import media_relay
 
 
 class FakeAuth:
@@ -42,8 +42,8 @@ class FakeBucket:
 
 @pytest.fixture(autouse=True)
 def fake_oss2(monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("ST_EDITION", "ce")
-    monkeypatch.delenv("ST_CONTROL_PLANE_DSN", raising=False)
+    monkeypatch.setenv("AI_ANIME_EDITION", "ce")
+    monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
     FakeBucket.instances.clear()
     fake_module = types.SimpleNamespace(Auth=FakeAuth, Bucket=FakeBucket)
     monkeypatch.setitem(sys.modules, "oss2", fake_module)
@@ -52,7 +52,7 @@ def fake_oss2(monkeypatch: pytest.MonkeyPatch):
 def test_aliyun_oss_relay_uploads_under_relay_prefix_and_signs_get_url() -> None:
     relay = media_relay.AliyunOSSRelay(
         endpoint="oss-cn-chengdu.aliyuncs.com",
-        bucket_name="claymore-llm-relay",
+        bucket_name="ai-anime-media-relay",
         access_key_id="ak",
         access_key_secret="sk",
     )
@@ -61,7 +61,7 @@ def test_aliyun_oss_relay_uploads_under_relay_prefix_and_signs_get_url() -> None
 
     bucket = FakeBucket.instances[0]
     assert bucket.endpoint == "https://oss-cn-chengdu.aliyuncs.com"
-    assert bucket.bucket_name == "claymore-llm-relay"
+    assert bucket.bucket_name == "ai-anime-media-relay"
     key, data = bucket.puts[0]
     assert data == b"image-bytes"
     assert re.match(r"^relay/\d{8}/[0-9a-f]{32}\.png$", key)
@@ -73,7 +73,7 @@ def test_aliyun_oss_relay_requires_credentials() -> None:
     with pytest.raises(media_relay.MediaRelayConfigError) as exc_info:
         media_relay.AliyunOSSRelay(
             endpoint="oss-cn-chengdu.aliyuncs.com",
-            bucket_name="claymore-llm-relay",
+            bucket_name="ai-anime-media-relay",
             access_key_id="",
             access_key_secret="sk",
         )
@@ -128,7 +128,7 @@ def test_get_media_relay_uses_saved_runtime_cloudinary_config(monkeypatch, tmp_p
         cloud_name="demo-cloud",
         cloudinary_api_key="api-key",
         cloudinary_api_secret="api-secret",
-        cloudinary_folder="dramaclaw-relay",
+        cloudinary_folder="ai-anime-relay",
     )
 
     relay = media_relay.get_media_relay()
@@ -137,7 +137,7 @@ def test_get_media_relay_uses_saved_runtime_cloudinary_config(monkeypatch, tmp_p
     assert relay._cloud_name == "demo-cloud"
     assert relay._api_key == "api-key"
     assert relay._api_secret == "api-secret"
-    assert relay._folder == "dramaclaw-relay"
+    assert relay._folder == "ai-anime-relay"
 
 
 def test_cloudinary_relay_uploads_bytes_with_basic_auth(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -171,14 +171,14 @@ def test_cloudinary_relay_uploads_bytes_with_basic_auth(monkeypatch: pytest.Monk
         cloud_name="demo-cloud",
         api_key="api-key",
         api_secret="api-secret",
-        folder="dramaclaw-relay",
+        folder="ai-anime-relay",
     )
 
     url = relay.upload_bytes(b"image-bytes", ext="PNG", ttl=900)
 
     assert url == "https://res.cloudinary.com/demo/image/upload/abc.png"
     assert calls[0]["url"] == "https://api.cloudinary.com/v1_1/demo-cloud/image/upload"
-    assert calls[0]["data"] == {"folder": "dramaclaw-relay"}
+    assert calls[0]["data"] == {"folder": "ai-anime-relay"}
     assert calls[0]["auth"] == ("api-key", "api-secret")
     filename, data, content_type = calls[0]["files"]["file"]
     assert filename.endswith(".png")

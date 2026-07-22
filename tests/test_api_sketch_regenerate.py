@@ -24,8 +24,8 @@ class _SketchRegenStore:
 
 
 def _client(monkeypatch, tmp_path):
-    from novelvideo.api.routes import generation
-    from novelvideo.api.deps import ProjectResolution
+    from ai_anime.api.routes import generation
+    from ai_anime.api.deps import ProjectResolution
 
     calls: list[dict] = []
 
@@ -86,7 +86,7 @@ def _client(monkeypatch, tmp_path):
 
 
 def test_sketch_selected_regen_returns_scope(monkeypatch, tmp_path):
-    from novelvideo.task_identity import selection_scope
+    from ai_anime.task_identity import selection_scope
 
     client, calls = _client(monkeypatch, tmp_path)
 

@@ -1,6 +1,6 @@
 import json
 
-from novelvideo.models import CharacterIdentity, NovelCharacter
+from ai_anime.models import CharacterIdentity, NovelCharacter
 
 
 def test_character_identity_age_group_assignment_normalizes_none():

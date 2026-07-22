@@ -16,13 +16,13 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from novelvideo.freezone.presets import canvas_id_for_preset
+from ai_anime.freezone.presets import canvas_id_for_preset
 
 
 @pytest.fixture()
 def preset_client(monkeypatch, tmp_path):
-    from novelvideo.api.auth import get_api_user
-    from novelvideo.api.routes import freezone
+    from ai_anime.api.auth import get_api_user
+    from ai_anime.api.routes import freezone
 
     project_dir = tmp_path / "project"
     project_dir.mkdir(parents=True, exist_ok=True)
@@ -153,7 +153,7 @@ def test_from_preset_scene_asset_includes_derived_base_master_input(
     preset_client,
     monkeypatch,
 ) -> None:
-    from novelvideo.api.routes import freezone
+    from ai_anime.api.routes import freezone
 
     client, project_dir = preset_client
     base_master_path = project_dir / "assets" / "scenes" / "城市街道" / "master.png"

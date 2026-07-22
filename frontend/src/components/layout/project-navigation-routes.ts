@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 
 export const PROJECT_SECTION_ROUTES = {
   freezone: "/projects/$project/freezone",
@@ -20,6 +19,6 @@ export function projectSectionFromPath(pathname: string): ProjectSection | null 
     : null;
 }
 
-export function projectModeFromPath(pathname: string): "xiahua" | "xiaji" {
-  return projectSectionFromPath(pathname) === "freezone" ? "xiahua" : "xiaji";
+export function projectModeFromPath(pathname: string): "canvas" | "workspace" {
+  return projectSectionFromPath(pathname) === "freezone" ? "canvas" : "workspace";
 }

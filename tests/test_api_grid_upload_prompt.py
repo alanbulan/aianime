@@ -8,7 +8,7 @@ import pytest
 
 
 def _client(monkeypatch, tmp_path):
-    from novelvideo.api.routes import generation
+    from ai_anime.api.routes import generation
 
     async def resolve(*args, **kwargs):
         return SimpleNamespace(
@@ -28,8 +28,8 @@ def _client(monkeypatch, tmp_path):
 
 
 def _seed_pool(grids_dir):
-    from novelvideo.generators.pool_indexer import save_pool_index
-    from novelvideo.models import GridEntry, PoolImage, PoolIndex
+    from ai_anime.generators.pool_indexer import save_pool_index
+    from ai_anime.models import GridEntry, PoolImage, PoolIndex
 
     pool = PoolIndex(episode=1)
     pool.grids.append(
@@ -62,7 +62,7 @@ def _seed_pool(grids_dir):
 
 @pytest.mark.asyncio
 async def test_list_grids_uses_local_paths_for_cache_busting(monkeypatch, tmp_path):
-    from novelvideo.api.routes import generation
+    from ai_anime.api.routes import generation
 
     grids_dir = tmp_path / "grids" / "ep001"
     (grids_dir / "render").mkdir(parents=True)
@@ -112,7 +112,7 @@ async def test_list_grids_uses_local_paths_for_cache_busting(monkeypatch, tmp_pa
 
 
 def test_upload_grid_replaces_pool_grid_path(monkeypatch, tmp_path):
-    from novelvideo.generators.pool_indexer import load_pool_index
+    from ai_anime.generators.pool_indexer import load_pool_index
 
     grids_dir = tmp_path / "grids" / "ep001"
     (grids_dir / "custom").mkdir(parents=True)
@@ -185,7 +185,7 @@ def test_export_grid_prompt_reads_pool_prompt_path(monkeypatch, tmp_path):
 
 
 def test_cut_grid_can_use_pool_grid_entry(monkeypatch, tmp_path):
-    from novelvideo.generators import pool_indexer
+    from ai_anime.generators import pool_indexer
 
     grids_dir = tmp_path / "grids" / "ep001"
     (grids_dir / "custom").mkdir(parents=True)

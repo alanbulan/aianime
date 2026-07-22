@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import type { ModelPricingDefinition } from '@/features/canvas/pricing/types';
 
 export type MediaModelType = 'image' | 'video' | 'audio';

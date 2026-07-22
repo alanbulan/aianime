@@ -22,7 +22,7 @@ import pytest
 # ---------------------------------------------------------------------------
 # Imports from project
 # ---------------------------------------------------------------------------
-from novelvideo.generators.prompt_builder import (
+from ai_anime.generators.prompt_builder import (
     CharacterConfig,
     GridConfig,
     PromptComponents,
@@ -32,8 +32,8 @@ from novelvideo.generators.prompt_builder import (
     UnifiedPromptBuilder,
     create_prompt_context,
 )
-from novelvideo.generators.nanobanana_grid import resolve_render_reference_order
-from novelvideo.services.character_ref_service import build_character_map_for_grid
+from ai_anime.generators.nanobanana_grid import resolve_render_reference_order
+from ai_anime.services.character_ref_service import build_character_map_for_grid
 
 
 # ---------------------------------------------------------------------------
@@ -178,7 +178,7 @@ def build_test_character_map(
                     if did.startswith(char_name + "_") and did not in identity_ids:
                         identity_ids.append(did)
         else:
-            from novelvideo.models import extract_char_identities_from_markers
+            from ai_anime.models import extract_char_identities_from_markers
             for beat in beats:
                 vd = beat.get("visual_description", "")
                 for name, iid in extract_char_identities_from_markers(vd, strict=False).items():
@@ -228,7 +228,7 @@ def build_test_character_map(
 
         if not ref_path:
             # Try portrait
-            from novelvideo.utils.path_resolver import compute_portrait_path
+            from ai_anime.utils.path_resolver import compute_portrait_path
             portrait = compute_portrait_path(project_dir, char_name)
             if portrait and Path(portrait).exists():
                 ref_path = portrait
@@ -243,7 +243,7 @@ def build_test_character_map(
         identity_ref_images: Dict[str, str] = {}
         identity_face_prompts_map: Dict[str, str] = {}
         if identity_ids:
-            from novelvideo.utils.path_resolver import compute_identity_portrait_path
+            from ai_anime.utils.path_resolver import compute_identity_portrait_path
             for iid in identity_ids:
                 if iid == identity_id:
                     continue

@@ -17,7 +17,7 @@ def _write_png(path: Path, *, width: int = 512, height: int = 768) -> None:
 def test_seedance2_status_exposes_returned_last_frame_asset(tmp_path):
     from types import SimpleNamespace
 
-    from novelvideo.api.routes.generation import _seedance2_returned_last_frame_status_payload
+    from ai_anime.api.routes.generation import _seedance2_returned_last_frame_status_payload
 
     project_dir = tmp_path / "output" / "alice" / "project"
     last_frame = project_dir / "videos" / "beats" / "ep001" / "returned_last_frames" / "beat_01.png"

@@ -1,6 +1,6 @@
 import pytest
 
-from novelvideo.task_backend.cancel import cancel_key
+from ai_anime.task_backend.cancel import cancel_key
 
 pytestmark = pytest.mark.m07
 

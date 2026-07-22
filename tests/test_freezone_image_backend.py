@@ -10,8 +10,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 from PIL import Image
 
-from novelvideo.api.routes import freezone as freezone_routes
-from novelvideo.api.routes.freezone import (
+from ai_anime.api.routes import freezone as freezone_routes
+from ai_anime.api.routes.freezone import (
     FREEZONE_DEFAULT_IMAGE_MODEL,
     _build_erase_prompt,
     _build_scene_360_prompt,
@@ -23,16 +23,16 @@ from novelvideo.api.routes.freezone import (
     _split_provider_and_model,
     _template_edit_aspect_ratio,
 )
-from novelvideo.api.schemas import CanvasPayload, PresetCanvasRequest, PushRequest
-from novelvideo.config import NEWAPI_IMAGE_MODEL, OPENAI_IMAGE_MODEL
-from novelvideo.freezone import image_node
-from novelvideo.freezone.presets import (
+from ai_anime.api.schemas import CanvasPayload, PresetCanvasRequest, PushRequest
+from ai_anime.config import NEWAPI_IMAGE_MODEL, OPENAI_IMAGE_MODEL
+from ai_anime.freezone import image_node
+from ai_anime.freezone.presets import (
     build_canvas_payload_from_context,
     canvas_id_for_preset,
     preset_key_for_request,
 )
-from novelvideo.freezone.route_helpers import build_camera_prompt as _build_camera_prompt
-from novelvideo.freezone.skill_registry import (
+from ai_anime.freezone.route_helpers import build_camera_prompt as _build_camera_prompt
+from ai_anime.freezone.skill_registry import (
     SKILL_SCHEMA_VERSION,
     CanvasGraphPatch,
     SkillRunOutput,
@@ -40,9 +40,9 @@ from novelvideo.freezone.skill_registry import (
     get_skill,
     list_skills,
 )
-from novelvideo.project_context import ProjectContext
-from novelvideo.task_backend.limits import ProjectUserTaskLimitExceeded
-from novelvideo.task_state import get_task_manager
+from ai_anime.project_context import ProjectContext
+from ai_anime.task_backend.limits import ProjectUserTaskLimitExceeded
+from ai_anime.task_state import get_task_manager
 
 
 def _project_ctx(tmp_path: Path) -> ProjectContext:
@@ -2136,7 +2136,7 @@ async def test_mask_edit_job_uses_reference_edit_provider_routing(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from novelvideo.freezone.jobs import run_freezone_mask_edit
+    from ai_anime.freezone.jobs import run_freezone_mask_edit
 
     project_dir = tmp_path / "project"
     base = project_dir / "base.png"
@@ -2151,7 +2151,7 @@ async def test_mask_edit_job_uses_reference_edit_provider_routing(
         Path(str(kwargs["output_path"])).write_bytes(b"png")
 
     monkeypatch.setattr(
-        "novelvideo.generators.nanobanana_grid.generate_reference_edit_image",
+        "ai_anime.generators.nanobanana_grid.generate_reference_edit_image",
         fake_generate_reference_edit_image,
     )
 
@@ -2247,8 +2247,8 @@ async def test_freezone_celery_runner_records_node_history(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from novelvideo.freezone.history import read_generation_history
-    from novelvideo.task_backend.runners import freezone as freezone_runner
+    from ai_anime.freezone.history import read_generation_history
+    from ai_anime.task_backend.runners import freezone as freezone_runner
 
     ctx = _project_ctx(tmp_path)
     project_dir = ctx.output_dir
@@ -2262,7 +2262,7 @@ async def test_freezone_celery_runner_records_node_history(
         def update_progress_for_project(self, *_args, **_kwargs):
             return None
 
-    monkeypatch.setattr("novelvideo.freezone.jobs.run_freezone_gen", fake_run_freezone_gen)
+    monkeypatch.setattr("ai_anime.freezone.jobs.run_freezone_gen", fake_run_freezone_gen)
     monkeypatch.setattr(freezone_runner, "get_task_manager", lambda: FakeTaskManager())
 
     result = await freezone_runner._run_freezone_gen_async(
@@ -2298,8 +2298,8 @@ async def test_freezone_celery_text_runner_records_project_node_history(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from novelvideo.freezone.history import read_generation_history
-    from novelvideo.task_backend.runners import freezone as freezone_runner
+    from ai_anime.freezone.history import read_generation_history
+    from ai_anime.task_backend.runners import freezone as freezone_runner
 
     ctx = _project_ctx(tmp_path)
     project_dir = ctx.output_dir
@@ -2314,7 +2314,7 @@ async def test_freezone_celery_text_runner_records_project_node_history(
             return None
 
     monkeypatch.setattr(
-        "novelvideo.freezone.text_node.translate_freezone_text",
+        "ai_anime.freezone.text_node.translate_freezone_text",
         fake_translate_freezone_text,
     )
     monkeypatch.setattr(freezone_runner, "get_task_manager", lambda: FakeTaskManager())
@@ -2350,8 +2350,8 @@ def test_freezone_image_to_3gs_runner_records_project_node_history(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from novelvideo.freezone.history import read_generation_history
-    from novelvideo.task_backend.runners import stage_asset as stage_asset_runner
+    from ai_anime.freezone.history import read_generation_history
+    from ai_anime.task_backend.runners import stage_asset as stage_asset_runner
 
     ctx = _project_ctx(tmp_path)
     project_dir = ctx.output_dir
@@ -2372,7 +2372,7 @@ def test_freezone_image_to_3gs_runner_records_project_node_history(
             return None
 
     monkeypatch.setattr(
-        "novelvideo.stage_asset_tasks.run_single_face_sharp",
+        "ai_anime.stage_asset_tasks.run_single_face_sharp",
         fake_run_single_face_sharp,
     )
     monkeypatch.setattr(stage_asset_runner, "get_task_manager", lambda: FakeTaskManager())
@@ -2940,7 +2940,7 @@ def test_standalone_unified_sketch_prompt_keeps_missing_beat_number_null(
         captured.update(kwargs)
         return SimpleNamespace()
 
-    import novelvideo.generators.prompt_builder as prompt_builder
+    import ai_anime.generators.prompt_builder as prompt_builder
 
     monkeypatch.setattr(prompt_builder, "UnifiedPromptBuilder", FakePromptBuilder)
     monkeypatch.setattr(prompt_builder, "create_prompt_context", fake_create_prompt_context)
@@ -4731,7 +4731,7 @@ async def test_skill_run_frame_uses_resolved_identity_and_prop_references(
         freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
     )
     monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
-    import novelvideo.project_config as project_config
+    import ai_anime.project_config as project_config
 
     monkeypatch.setattr(
         project_config,
@@ -5208,7 +5208,7 @@ async def test_skill_result_uses_task_result_dict_output_url(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from novelvideo.task_state import TaskState
+    from ai_anime.task_state import TaskState
 
     project_dir, _output_dir = _patch_freezone_project(monkeypatch, tmp_path)
     run_id = "freezone_gen:job_result_dict"
@@ -5321,7 +5321,7 @@ async def test_skill_result_normalizes_nested_outputs_from_task_result(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from novelvideo.task_state import TaskState
+    from ai_anime.task_state import TaskState
 
     project_dir, _output_dir = _patch_freezone_project(monkeypatch, tmp_path)
     run_id = "freezone_edit:job_nested_outputs"
@@ -5392,7 +5392,7 @@ async def test_skill_result_normalizes_output_path_from_task_result(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from novelvideo.task_state import TaskState
+    from ai_anime.task_state import TaskState
 
     project_dir, _output_dir = _patch_freezone_project(monkeypatch, tmp_path)
     output_path = project_dir / "freezone" / "_outputs" / "custom" / "path_only.webp"
@@ -5685,7 +5685,7 @@ async def test_get_node_generation_history_uses_project_context_path(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from novelvideo.freezone.history import append_generation_history
+    from ai_anime.freezone.history import append_generation_history
 
     ctx = _project_ctx(tmp_path)
     project_dir = ctx.output_dir
@@ -6097,7 +6097,7 @@ def test_all_preset_node_factories_emit_preset_managed_true() -> None:
     `data.preset_managed = True` so `_is_preset_managed_canvas_node` can rely
     on explicit ownership only.
     """
-    from novelvideo.freezone.presets import (
+    from ai_anime.freezone.presets import (
         _asset_image_node,
         _beat_context_node,
         _image_gen_node,
@@ -6129,7 +6129,7 @@ def test_all_preset_node_factories_emit_preset_managed_true() -> None:
 
 def test_is_preset_managed_canvas_node_prefers_explicit_field() -> None:
     """Explicit `preset_managed === True` is the ownership source of truth."""
-    from novelvideo.api.routes.freezone import _is_preset_managed_canvas_node
+    from ai_anime.api.routes.freezone import _is_preset_managed_canvas_node
 
     explicit = {"data": {"preset_managed": True, "user_spawned": True}}
     assert _is_preset_managed_canvas_node(explicit) is True
@@ -6137,7 +6137,7 @@ def test_is_preset_managed_canvas_node_prefers_explicit_field() -> None:
 
 def test_is_preset_managed_canvas_node_requires_explicit_preset_flag() -> None:
     """Only the explicit current protocol grants preset ownership."""
-    from novelvideo.api.routes.freezone import _is_preset_managed_canvas_node
+    from ai_anime.api.routes.freezone import _is_preset_managed_canvas_node
 
     assert _is_preset_managed_canvas_node({"data": {"workflow_kind": "mainline"}}) is False
     assert _is_preset_managed_canvas_node({"data": {"workflow_kind": "mainline_slot"}}) is False
@@ -6189,7 +6189,7 @@ def test_is_preset_managed_canvas_node_does_not_guess_from_mainline_context_only
     That context alone is not enough to prove preset ownership; otherwise a
     restore refresh can delete user-created nodes that predate user_spawned.
     """
-    from novelvideo.api.routes.freezone import _is_preset_managed_canvas_node
+    from ai_anime.api.routes.freezone import _is_preset_managed_canvas_node
 
     assert (
         _is_preset_managed_canvas_node(
@@ -6201,7 +6201,7 @@ def test_is_preset_managed_canvas_node_does_not_guess_from_mainline_context_only
 
 def test_is_preset_managed_canvas_node_explicit_false_falls_through() -> None:
     """`preset_managed: False` is not preset ownership."""
-    from novelvideo.api.routes.freezone import _is_preset_managed_canvas_node
+    from ai_anime.api.routes.freezone import _is_preset_managed_canvas_node
 
     assert (
         _is_preset_managed_canvas_node(
@@ -6522,7 +6522,7 @@ def test_beat_preset_does_not_connect_no_prop_marker_as_skill_prop_input() -> No
 
 
 def test_beat_preset_skill_role_edges_match_skill_registry_inputs() -> None:
-    from novelvideo.freezone.skill_registry import get_skill
+    from ai_anime.freezone.skill_registry import get_skill
 
     payload = _beat_skill_emit_payload()
     skill_ids_by_node_id = {
@@ -7002,7 +7002,7 @@ async def test_reverse_prompt_uses_shared_freezone_vision_model(
 
     async def fake_call_freezone_vision_model(**kwargs):
         captured.update(kwargs)
-        return "DC-freezone-vision-LLM", "白色方形主体，极简构图"
+        return "ai-anime-freezone-vision-LLM", "白色方形主体，极简构图"
 
     monkeypatch.setattr(
         image_node,

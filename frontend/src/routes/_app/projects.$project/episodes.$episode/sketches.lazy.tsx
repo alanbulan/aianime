@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { createLazyFileRoute, Navigate } from "@tanstack/react-router";
 
 // v3 redirect — the per-stage sketches page has been merged into /beats as

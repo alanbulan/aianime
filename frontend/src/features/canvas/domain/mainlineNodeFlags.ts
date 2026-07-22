@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 /**
  * Per-node derived flags for "mainline behavior" — the 5 orthogonal questions
  * that drive visual, toolbar, and Push behavior:

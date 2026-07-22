@@ -5,8 +5,8 @@ from fastapi.testclient import TestClient
 
 
 def _client(monkeypatch, tmp_path):
-    from novelvideo.api.routes import generation
-    from novelvideo.api.deps import ProjectResolution
+    from ai_anime.api.routes import generation
+    from ai_anime.api.deps import ProjectResolution
 
     async def fake_resolve_project_scope(project, user, *, required_role="viewer"):
         return ProjectResolution(
@@ -28,7 +28,7 @@ def _client(monkeypatch, tmp_path):
 
 
 def test_cut_grid_can_register_render_cells(monkeypatch, tmp_path):
-    from novelvideo.generators import pool_indexer
+    from ai_anime.generators import pool_indexer
 
     grids_dir = tmp_path / "grids" / "ep001"
     grids_dir.mkdir(parents=True)

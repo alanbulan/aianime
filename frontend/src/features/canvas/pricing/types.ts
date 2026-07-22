@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 export const PRICE_DISPLAY_CURRENCY_MODES = ['auto', 'cny', 'usd'] as const;
 export type PriceDisplayCurrencyMode = (typeof PRICE_DISPLAY_CURRENCY_MODES)[number];
 

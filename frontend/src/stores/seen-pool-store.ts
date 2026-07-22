@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { quotaSafeStateStorage } from "@/lib/localStorageQuota";
@@ -57,7 +56,7 @@ export const useSeenPoolStore = create<SeenPoolState>()(
       reset: () => set({ seen: {} }),
     }),
     {
-      name: "supertale-seen-pools",
+      name: "ai-anime-seen-pools",
       storage: createJSONStorage(() => quotaSafeStateStorage),
     },
   ),

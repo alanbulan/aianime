@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { describe, it, expect, beforeEach } from "vitest";
 import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
 import {

@@ -1,10 +1,9 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { createLazyFileRoute, useRouterState } from "@tanstack/react-router";
 import { ReactFlowProvider } from "@xyflow/react";
 import { useEffect, useMemo, useState } from "react";
 
-import type { SupertaleProjectSummary } from "@/api/projects";
+import type { AiAnimeProjectSummary } from "@/api/projects";
 import { GlobalErrorDialog } from "@/components/GlobalErrorDialog";
 import {
   subscribeOpenGlobalErrorDialog,
@@ -36,7 +35,7 @@ function FreezoneProjectRoute() {
 
   useEffect(() => subscribeOpenGlobalErrorDialog(setGlobalError), []);
 
-  const freezoneProjects = useMemo<SupertaleProjectSummary[]>(
+  const freezoneProjects = useMemo<AiAnimeProjectSummary[]>(
     () =>
       (projects ?? []).map((item) => ({
         id: item.id,

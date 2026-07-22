@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -103,7 +102,7 @@ const SORT_OPTIONS: { value: SortKey; labelKey: string }[] = [
 const PROJECT_NAME_PATTERN = /^[a-zA-Z0-9_]+$/;
 
 const PROJECT_CARD_MIN_HEIGHT_CLASS = "min-h-[12.75rem]";
-const RECENTLY_CREATED_PROJECT_KEY = "supertale-dashboard-recent-created-project";
+const RECENTLY_CREATED_PROJECT_KEY = "ai-anime-dashboard-recent-created-project";
 
 function readRecentlyCreatedProject(): string | null {
   if (typeof window === "undefined") return null;
@@ -1186,7 +1185,7 @@ function ProjectDashboard() {
     }
   };
 
-  // 进项目恢复上次停留的区块（虾画 / 虾集子页，默认虾画）；上次在虾镜且
+  // 进项目恢复上次停留的区块（AI anime 画布 / AI anime 工作台子页，默认AI anime 画布）；上次在分镜制作且
   // 有剧集深链则直达该集。
   const resolveProjectEntry = useCallback((project: string): string => {
     const section =

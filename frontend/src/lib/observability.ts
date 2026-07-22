@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useRegionStore } from "@/stores/region-store";
 
 // Today's minimal implementation: a module-level tag object updated by a

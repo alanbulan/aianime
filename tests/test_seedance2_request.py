@@ -59,7 +59,7 @@ class FakeHuimengClientWithTopLevelLastFrame(FakeHuimengClientWithLastFrame):
 
 
 def test_huimeng_seedance2_config_accepts_json_string():
-    from novelvideo.generators.video_generator import _seedance2_config_mapping
+    from ai_anime.generators.video_generator import _seedance2_config_mapping
 
     config = _seedance2_config_mapping('{"duration": 11, "final_prompt": "configured"}')
 
@@ -67,8 +67,8 @@ def test_huimeng_seedance2_config_accepts_json_string():
 
 
 def test_build_seedance2_first_frame_request_normalizes_prompt_mentions():
-    from novelvideo.seedance2_i2v.models import Seedance2I2VMode
-    from novelvideo.seedance2_i2v.request import build_seedance2_huimeng_params
+    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.seedance2_i2v.request import build_seedance2_huimeng_params
 
     params = build_seedance2_huimeng_params(
         {
@@ -88,8 +88,8 @@ def test_build_seedance2_first_frame_request_normalizes_prompt_mentions():
 
 
 def test_build_seedance2_multimodal_request_limits_reference_counts():
-    from novelvideo.seedance2_i2v.models import Seedance2I2VMode
-    from novelvideo.seedance2_i2v.request import build_seedance2_huimeng_params
+    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.seedance2_i2v.request import build_seedance2_huimeng_params
 
     with pytest.raises(ValueError, match="at most 9 images"):
         build_seedance2_huimeng_params(
@@ -104,8 +104,8 @@ def test_build_seedance2_multimodal_request_limits_reference_counts():
 
 
 def test_build_seedance2_multimodal_request_validates_prompt_reference_numbers():
-    from novelvideo.seedance2_i2v.models import Seedance2I2VMode
-    from novelvideo.seedance2_i2v.request import build_seedance2_huimeng_params
+    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.seedance2_i2v.request import build_seedance2_huimeng_params
 
     with pytest.raises(ValueError, match="图片3"):
         build_seedance2_huimeng_params(
@@ -121,8 +121,8 @@ def test_build_seedance2_multimodal_request_validates_prompt_reference_numbers()
 
 
 def test_human_review_requires_http_media_urls():
-    from novelvideo.seedance2_i2v.models import Seedance2I2VMode
-    from novelvideo.seedance2_i2v.request import build_seedance2_huimeng_params
+    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.seedance2_i2v.request import build_seedance2_huimeng_params
 
     with pytest.raises(ValueError, match="human_review requires HTTP/HTTPS"):
         build_seedance2_huimeng_params(
@@ -136,8 +136,8 @@ def test_human_review_requires_http_media_urls():
 
 
 def test_first_last_frame_request_requires_both_frames():
-    from novelvideo.seedance2_i2v.models import Seedance2I2VMode
-    from novelvideo.seedance2_i2v.request import build_seedance2_huimeng_params
+    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.seedance2_i2v.request import build_seedance2_huimeng_params
 
     with pytest.raises(ValueError, match="last_frame is required"):
         build_seedance2_huimeng_params(
@@ -152,8 +152,8 @@ def test_first_last_frame_request_requires_both_frames():
 
 
 def test_build_seedance2_request_passes_scene_optimize():
-    from novelvideo.seedance2_i2v.models import Seedance2I2VMode
-    from novelvideo.seedance2_i2v.request import build_seedance2_huimeng_params
+    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.seedance2_i2v.request import build_seedance2_huimeng_params
 
     params = build_seedance2_huimeng_params(
         {
@@ -170,7 +170,7 @@ def test_build_seedance2_request_passes_scene_optimize():
 
 
 async def test_huimeng_seedance2_generator_uses_seedance2_request_builder(tmp_path):
-    from novelvideo.generators.video_generator import (
+    from ai_anime.generators.video_generator import (
         HuimengVideoGenerator,
         ShotReference,
         VideoGenStatus,
@@ -213,12 +213,12 @@ async def test_huimeng_seedance2_generator_uses_seedance2_request_builder(tmp_pa
 async def test_huimeng_seedance2_generator_preserves_seedance2_config_switches(tmp_path):
     import json
 
-    from novelvideo.generators.video_generator import (
+    from ai_anime.generators.video_generator import (
         HuimengVideoGenerator,
         ShotReference,
         VideoGenStatus,
     )
-    from novelvideo.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
 
     client = FakeHuimengClient()
     generator = HuimengVideoGenerator(
@@ -262,12 +262,12 @@ async def test_huimeng_seedance2_generator_preserves_seedance2_config_switches(t
 async def test_huimeng_seedance2_generator_downloads_returned_last_frame(tmp_path):
     import json
 
-    from novelvideo.generators.video_generator import (
+    from ai_anime.generators.video_generator import (
         HuimengVideoGenerator,
         ShotReference,
         VideoGenStatus,
     )
-    from novelvideo.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
 
     client = FakeHuimengClientWithLastFrame()
     generator = HuimengVideoGenerator(
@@ -322,12 +322,12 @@ async def test_huimeng_seedance2_generator_reads_returned_last_frame_from_task_p
 ):
     import json
 
-    from novelvideo.generators.video_generator import (
+    from ai_anime.generators.video_generator import (
         HuimengVideoGenerator,
         ShotReference,
         VideoGenStatus,
     )
-    from novelvideo.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
 
     client = FakeHuimengClientWithTopLevelLastFrame()
     generator = HuimengVideoGenerator(
@@ -382,12 +382,12 @@ async def test_huimeng_seedance2_generator_preserves_disabled_seedance2_config_s
 ):
     import json
 
-    from novelvideo.generators.video_generator import (
+    from ai_anime.generators.video_generator import (
         HuimengVideoGenerator,
         ShotReference,
         VideoGenStatus,
     )
-    from novelvideo.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
 
     client = FakeHuimengClient()
     generator = HuimengVideoGenerator(
@@ -434,14 +434,14 @@ async def test_huimeng_seedance2_generator_presigns_local_media_for_human_review
 ):
     import json
 
-    from novelvideo import config
-    from novelvideo.generators.video_generator import (
+    from ai_anime import config
+    from ai_anime.generators.video_generator import (
         HuimengVideoGenerator,
         ShotReference,
         VideoGenStatus,
     )
-    from novelvideo.seedance2_i2v.models import Seedance2I2VMode
-    from novelvideo.utils import oss_client
+    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.utils import oss_client
 
     class FakeBucket:
         def __init__(self) -> None:
@@ -504,7 +504,7 @@ async def test_huimeng_seedance2_generator_presigns_local_media_for_human_review
 
 
 async def test_huimeng_seedance2_generator_rejects_invalid_reference_numbers(tmp_path):
-    from novelvideo.generators.video_generator import (
+    from ai_anime.generators.video_generator import (
         HuimengVideoGenerator,
         ShotReference,
         VideoGenStatus,
@@ -539,8 +539,8 @@ async def test_newapi_seedance2_generator_preserves_config_resolution_and_scene_
     import json
     from pathlib import Path
 
-    from novelvideo.generators import video_generator as video_module
-    from novelvideo.generators.video_generator import NewApiVideoGenerator, VideoGenStatus
+    from ai_anime.generators import video_generator as video_module
+    from ai_anime.generators.video_generator import NewApiVideoGenerator, VideoGenStatus
 
     captured: dict[str, object] = {}
     generator = NewApiVideoGenerator(
@@ -619,8 +619,8 @@ async def test_newapi_seedance2_generator_preserves_config_resolution_and_scene_
 async def test_newapi_happyhorse_video_generator_uses_happyhorse_payload(tmp_path, monkeypatch):
     from pathlib import Path
 
-    from novelvideo.generators import video_generator as video_module
-    from novelvideo.generators.video_generator import (
+    from ai_anime.generators import video_generator as video_module
+    from ai_anime.generators.video_generator import (
         NewApiVideoGenerator,
         ShotReference,
         VideoGenStatus,
@@ -705,11 +705,11 @@ async def test_newapi_happyhorse_video_generator_uses_happyhorse_payload(tmp_pat
     assert "generate_audio" not in metadata
 
 
-async def test_newapi_grok_video_channel_uses_relayclaw_video_payload(tmp_path, monkeypatch):
+async def test_newapi_grok_video_channel_uses_video_payload(tmp_path, monkeypatch):
     from pathlib import Path
 
-    from novelvideo.generators import video_generator as video_module
-    from novelvideo.generators.video_generator import (
+    from ai_anime.generators import video_generator as video_module
+    from ai_anime.generators.video_generator import (
         NewApiVideoGenerator,
         ShotReference,
         VideoGenStatus,
@@ -790,8 +790,8 @@ async def test_newapi_grok_video_channel_uses_relayclaw_video_payload(tmp_path, 
 async def test_newapi_video_relay_frame_input_normalizes_local_image_refs(
     tmp_path, monkeypatch
 ):
-    from novelvideo.generators import video_generator as video_module
-    from novelvideo.generators.video_generator import NewApiVideoGenerator
+    from ai_anime.generators import video_generator as video_module
+    from ai_anime.generators.video_generator import NewApiVideoGenerator
 
     frame_path = tmp_path / "frame.png"
     frame_path.write_bytes(b"fake-png")
@@ -821,8 +821,8 @@ async def test_newapi_video_relay_frame_input_normalizes_local_image_refs(
 async def test_newapi_video_seedance2_references_normalize_only_image_refs(
     tmp_path, monkeypatch
 ):
-    from novelvideo.generators import video_generator as video_module
-    from novelvideo.generators.video_generator import NewApiVideoGenerator, ShotReference
+    from ai_anime.generators import video_generator as video_module
+    from ai_anime.generators.video_generator import NewApiVideoGenerator, ShotReference
 
     image_path = tmp_path / "ref.png"
     video_path = tmp_path / "ref.mp4"

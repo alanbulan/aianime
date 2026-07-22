@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from novelvideo.director_world import staging_prop_ai
+from ai_anime.director_world import staging_prop_ai
 
 
 def test_generate_ai_staging_prop_uses_director_world_shape_hints(monkeypatch) -> None:
@@ -60,4 +60,4 @@ def test_resolve_model_config_defaults_to_staging_prop_dc_alias(monkeypatch) -> 
 
     model, _api_key, _base_url = staging_prop_ai.resolve_model_config({})
 
-    assert model == "DC-staging-prop-planner-LLM"
+    assert model == "ai-anime-staging-prop-planner-LLM"

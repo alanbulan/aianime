@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from novelvideo.cognee import scene_name_migration as migration_module
-from novelvideo.cognee.scene_name_migration import migrate_scene_names
+from ai_anime.cognee import scene_name_migration as migration_module
+from ai_anime.cognee.scene_name_migration import migrate_scene_names
 
 DIRTY = "凤鸣皇城·苏鸾寝殿 亥时"
 CANONICAL = "凤鸣皇城·苏鸾寝殿"
@@ -533,8 +533,8 @@ def test_asset_copy_failure_records_failure_and_skips_backup_and_db_write(
 
 
 def test_cli_scene_migration_report_keeps_failed_copy_count_and_detail(monkeypatch):
-    from novelvideo import cli
-    from novelvideo.cognee.scene_name_migration import SceneNameMigrationReport
+    from ai_anime import cli
+    from ai_anime.cognee.scene_name_migration import SceneNameMigrationReport
 
     printed: list[str] = []
     report = SceneNameMigrationReport(
@@ -586,19 +586,19 @@ async def test_cli_project_id_scene_migration_ignores_legacy_project_json(
         encoding="utf-8",
     )
 
-    import novelvideo.config as config
-    import novelvideo.ports as ports
-    import novelvideo.ports.registry as registry
+    import ai_anime.config as config
+    import ai_anime.ports as ports
+    import ai_anime.ports.registry as registry
 
     monkeypatch.setattr(config, "OUTPUT_DIR", str(output), raising=False)
     monkeypatch.setattr(config, "STATE_DIR", str(state), raising=False)
     monkeypatch.setattr(config, "RUNTIME_DIR", str(runtime), raising=False)
-    monkeypatch.delenv("ST_CONTROL_PLANE_DSN", raising=False)
-    monkeypatch.setenv("ST_EDITION", "ce")
+    monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
+    monkeypatch.setenv("AI_ANIME_EDITION", "ce")
     importlib.reload(registry)
     importlib.reload(ports)
 
-    from novelvideo import cli
+    from ai_anime import cli
 
     with pytest.raises(cli.typer.BadParameter, match=f"project-id not found: {project_id}"):
         await cli._resolve_scene_migration_dirs(
@@ -620,14 +620,14 @@ async def test_cli_project_id_scene_migration_uses_ee_entry_point(
     runtime = tmp_path / "runtime"
     project_id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
-    import novelvideo.ports as ports
-    import novelvideo.ports.registry as registry
-    from novelvideo.ports.project import ProjectRecord
+    import ai_anime.ports as ports
+    import ai_anime.ports.registry as registry
+    from ai_anime.ports.project import ProjectRecord
 
     registry = importlib.reload(registry)
     importlib.reload(ports)
-    monkeypatch.setenv("ST_CONTROL_PLANE_DSN", "postgresql://example")
-    monkeypatch.delenv("ST_EDITION", raising=False)
+    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "postgresql://example")
+    monkeypatch.delenv("AI_ANIME_EDITION", raising=False)
 
     class FakeProjectRegistry:
         async def get_project(self, requested_project_id: str):
@@ -667,7 +667,7 @@ async def test_cli_project_id_scene_migration_uses_ee_entry_point(
 
     monkeypatch.setattr(registry, "entry_points", lambda *, group: [EntryPoint()], raising=False)
 
-    from novelvideo import cli
+    from ai_anime import cli
 
     try:
         db_dir, asset_dir, label = await cli._resolve_scene_migration_dirs(

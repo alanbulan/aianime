@@ -1,6 +1,6 @@
 /**
  * Frontend mirror of the backend task-scope hashing in
- * `novelvideo/task_identity.py` + `novelvideo/task_scopes.py`.
+ * `ai_anime/task_identity.py` + `ai_anime/task_scopes.py`.
  *
  * The backend derives a task's `scope` as:
  *   hashed_scope(label, json.dumps(config, sort_keys=True,

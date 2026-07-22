@@ -1,4 +1,4 @@
-from novelvideo.chat import service as chat_service
+from ai_anime.chat import service as chat_service
 
 
 def test_suppresses_partial_labeled_transcript_replay_before_current_prompt():
@@ -90,9 +90,9 @@ def test_suppresses_complete_repeated_short_reply_during_streaming():
 def test_hides_internal_skill_tool_events_from_chat_cards():
     assert chat_service._is_hidden_chat_tool_event(
         "skill",
-        "→ skill view (dramaclaw)\n内容: Loading skill 'dramaclaw'",
+        "→ skill view (ai_anime)\n内容: Loading skill 'ai_anime'",
     )
     assert not chat_service._is_hidden_chat_tool_event(
-        "dramaclaw_pipeline_status",
-        "→ dramaclaw_pipeline_status\ncompleted",
+        "ai_anime_pipeline_status",
+        "→ ai_anime_pipeline_status\ncompleted",
     )

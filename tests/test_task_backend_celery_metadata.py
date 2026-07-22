@@ -1,6 +1,6 @@
 import pytest
 
-from novelvideo.task_backend.run_core import (
+from ai_anime.task_backend.run_core import (
     _completion_metadata_with_provider_task_id,
     _metrics_user_id_for_project_context,
     _resource_refs_for_task_success,

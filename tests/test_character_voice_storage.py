@@ -1,4 +1,4 @@
-"""Tests for novelvideo.seedance2_i2v.character_voice_storage."""
+"""Tests for ai_anime.seedance2_i2v.character_voice_storage."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from novelvideo.seedance2_i2v.character_voice_storage import (
+from ai_anime.seedance2_i2v.character_voice_storage import (
     AGE_GROUP_SLOTS,
     DEFAULT_SLOT,
     character_voice_path,
@@ -126,7 +126,7 @@ def test_trim_voice_sample_content_outputs_seedance2_ready_clip(tmp_path):
     import shutil
     import subprocess
 
-    from novelvideo.seedance2_i2v.character_voice_storage import (
+    from ai_anime.seedance2_i2v.character_voice_storage import (
         probe_voice_sample_duration_seconds,
         trim_voice_sample_content,
     )
@@ -169,7 +169,7 @@ def test_trim_existing_character_voice_file_rewrites_slot_with_short_clip(tmp_pa
     import shutil
     import subprocess
 
-    from novelvideo.seedance2_i2v.character_voice_storage import (
+    from ai_anime.seedance2_i2v.character_voice_storage import (
         probe_voice_sample_duration_seconds,
         trim_existing_character_voice_file,
     )

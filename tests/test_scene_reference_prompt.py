@@ -1,5 +1,5 @@
-from novelvideo.generators.scene_reference_images import build_scene_reference_prompt
-from novelvideo.models import NovelScene
+from ai_anime.generators.scene_reference_images import build_scene_reference_prompt
+from ai_anime.models import NovelScene
 
 
 def test_scene_reference_prompt_combines_base_prompt_for_variant_without_base_image():
@@ -57,8 +57,11 @@ def test_scene_reference_prompt_keeps_variant_delta_out_of_scene_description():
     assert "地面湿润有积水" not in scene_description
 
 
-async def test_scene_reference_newapi_uses_normalized_gateway_base_url(monkeypatch, tmp_path):
-    from novelvideo.generators import scene_reference_images
+async def test_scene_reference_newapi_uses_effective_gateway_base_url(monkeypatch, tmp_path):
+    from types import SimpleNamespace
+
+    from ai_anime import config as app_config
+    from ai_anime.generators import scene_reference_images
 
     captured: dict[str, str | None] = {}
 
@@ -67,10 +70,12 @@ async def test_scene_reference_newapi_uses_normalized_gateway_base_url(monkeypat
         return b"image-bytes", "", ""
 
     monkeypatch.setattr(
-        scene_reference_images,
-        "NEWAPI_BASE_URL",
-        "https://relayclaw.cdnfg.com/",
-        raising=False,
+        app_config,
+        "get_effective_newapi_gateway_config",
+        lambda: SimpleNamespace(
+            api_key="test-key",
+            base_url="https://gateway.example.com/v1",
+        ),
     )
     monkeypatch.setattr(
         scene_reference_images,
@@ -84,4 +89,4 @@ async def test_scene_reference_newapi_uses_normalized_gateway_base_url(monkeypat
         kind="master",
     )
 
-    assert captured["base_url"] == "https://relayclaw.cdnfg.com/v1"
+    assert captured["base_url"] == "https://gateway.example.com/v1"

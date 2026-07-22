@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -100,11 +99,11 @@ describe("safeLocalStorageSet", () => {
       return real.call(this, k, v);
     });
 
-    const ok = safeLocalStorageSet("supertale-app", "payload");
+    const ok = safeLocalStorageSet("ai-anime-app", "payload");
 
     expect(ok).toBe(true);
     expect(calls).toBe(3);
-    expect(window.localStorage.getItem("supertale-app")).toBe("payload");
+    expect(window.localStorage.getItem("ai-anime-app")).toBe("payload");
     unregister();
   });
 });
@@ -188,10 +187,10 @@ describe("quotaSafeStateStorage", () => {
       throw new DOMException("quota", "QuotaExceededError");
     });
 
-    quotaSafeStateStorage.setItem("supertale-app", "payload");
+    quotaSafeStateStorage.setItem("ai-anime-app", "payload");
 
     expect(reclaim).toHaveBeenCalledTimes(1);
-    expect(window.localStorage.getItem("supertale-app")).toBe("payload");
+    expect(window.localStorage.getItem("ai-anime-app")).toBe("payload");
     unregister();
   });
 

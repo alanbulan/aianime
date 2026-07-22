@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 
 // 浏览器 / webview 的「翻译此页」(Chrome、Edge、微信内置浏览器)以及部分扩展,
 // 会直接改写 React 托管的 DOM:把文本节点搬进新插入的 <font> 容器、或整段替换。

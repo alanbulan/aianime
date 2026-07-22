@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
@@ -38,7 +37,7 @@ interface AudioPaneProps {
 
 type VoiceConfigTarget = "characters" | "voices";
 
-const ASSET_TAB_STORAGE_KEY_PREFIX = "supertale-asset-tab:";
+const ASSET_TAB_STORAGE_KEY_PREFIX = "ai-anime-asset-tab:";
 
 function assetTabStorageKey(project: string): string {
   return `${ASSET_TAB_STORAGE_KEY_PREFIX}${encodeURIComponent(project)}`;

@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import ky from "ky";
 import type { QueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/auth-store";
@@ -21,7 +20,7 @@ export function setApiQueryClient(qc: QueryClient): void {
 }
 
 // Why `credentials: "include"`? The SPA authenticates via an HttpOnly cookie
-// (`st_session`) set by `POST /api/v1/auth/login`. The browser will only
+// (`ai_anime_session`) set by `POST /api/v1/auth/login`. The browser will only
 // attach that cookie to same-origin fetches automatically; we set it
 // explicitly so it also flows through the Vite dev proxy and the production
 // edge reverse-proxy with no surprises. Business APIs no longer accept
@@ -98,7 +97,7 @@ export const api = ky.create({
           if (typeof window !== "undefined" && window.location.pathname === "/login") return;
           if (!tryAcquireNavLock()) return;
           await useAuthStore.getState().logout();
-          // 硬跳转会重建内存缓存，但 supertale-* 持久化的用户级 localStorage
+          // 硬跳转会重建内存缓存，但 ai-anime-* 持久化的用户级 localStorage
           // （seen-pools / reward-events / episode-workbench 等）会存活到下一个
           // 账号的会话里 —— 与手动退出同一套用户态清理（保留区域选择）。
           if (_queryClient) {

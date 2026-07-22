@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Handle,

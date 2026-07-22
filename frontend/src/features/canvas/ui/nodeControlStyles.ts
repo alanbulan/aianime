@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 export const NODE_CONTROL_CHIP_CLASS =
   '!h-7 !gap-1.5 !rounded !border-transparent !bg-transparent !px-1 !text-xs !shadow-none text-text-dark/90 hover:!bg-transparent hover:!text-white';
 

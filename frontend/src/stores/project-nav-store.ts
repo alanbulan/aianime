@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { quotaSafeStateStorage } from "@/lib/localStorageQuota";
@@ -8,13 +7,13 @@ import type { ProjectSection } from "@/components/layout/project-navigation-rout
 
 /**
  * 记住每个项目的导航位置：
- * - lastSectionByProject：项目内最后停留的区块（虾画 freezone 或虾集各子页），
- *   进入项目时恢复到这里，而不是固定落到虾画。
- * - lastXiajiSectionByProject：最后停留的虾集子页（虾料/虾塘/虾镜/虾导/虾格），
- *   顶部切到「虾集」时恢复到这里，而不是固定落到虾料。
+ * - lastSectionByProject：项目内最后停留的区块（AI anime 画布 freezone 或AI anime 工作台各子页），
+ *   进入项目时恢复到这里，而不是固定落到AI anime 画布。
+ * - lastWorkspaceSectionByProject：最后停留的 AI anime 工作台子页（素材导入/资产库/分镜制作/AI anime 助手/风格管理），
+ *   顶部切到「AI anime 工作台」时恢复到这里，而不是固定落到素材导入。
  */
 
-/** 可被记忆的区块：虾画 + 虾集五个子页（tasks 等其它路由不参与记忆）。 */
+/** 可被记忆的区块：AI anime 画布 + AI anime 工作台五个子页（tasks 等其它路由不参与记忆）。 */
 const REMEMBERED_SECTIONS = new Set<ProjectSection>([
   "freezone",
   "ingest",
@@ -24,7 +23,7 @@ const REMEMBERED_SECTIONS = new Set<ProjectSection>([
   "styles",
 ]);
 
-export type XiajiSection = Exclude<
+export type WorkspaceSection = Exclude<
   ProjectSection,
   "freezone" | "tasks"
 >;
@@ -37,7 +36,7 @@ export function isRememberedSection(
 
 interface ProjectNavState {
   lastSectionByProject: Record<string, ProjectSection>;
-  lastXiajiSectionByProject: Record<string, XiajiSection>;
+  lastWorkspaceSectionByProject: Record<string, WorkspaceSection>;
   rememberSection: (project: string, section: ProjectSection) => void;
   reset: () => void;
 }
@@ -46,7 +45,7 @@ export const useProjectNavStore = create<ProjectNavState>()(
   persist(
     (set) => ({
       lastSectionByProject: {},
-      lastXiajiSectionByProject: {},
+      lastWorkspaceSectionByProject: {},
       rememberSection: (project, section) =>
         set((state) => {
           if (!project || !REMEMBERED_SECTIONS.has(section)) return state;
@@ -57,19 +56,19 @@ export const useProjectNavStore = create<ProjectNavState>()(
             },
           };
           if (section !== "freezone") {
-            next.lastXiajiSectionByProject = {
-              ...state.lastXiajiSectionByProject,
-              [project]: section as XiajiSection,
+            next.lastWorkspaceSectionByProject = {
+              ...state.lastWorkspaceSectionByProject,
+              [project]: section as WorkspaceSection,
             };
           }
           return next as ProjectNavState;
         }),
       reset: () =>
-        set({ lastSectionByProject: {}, lastXiajiSectionByProject: {} }),
+        set({ lastSectionByProject: {}, lastWorkspaceSectionByProject: {} }),
     }),
     {
-      name: "supertale-project-nav",
-      version: 1,
+      name: "ai-anime-project-nav",
+      version: 2,
       storage: createJSONStorage(() => quotaSafeStateStorage),
     },
   ),

@@ -10,14 +10,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from novelvideo.freezone.history import (
+from ai_anime.freezone.history import (
     MAX_HISTORY_PROMPT_CHARS,
     build_node_history_record,
     read_generation_history,
 )
-from novelvideo.project_context import ProjectContext
-from novelvideo.task_backend.runners.freezone import _append_node_history
-from novelvideo.task_backend.runners.video import _append_freezone_video_node_history
+from ai_anime.project_context import ProjectContext
+from ai_anime.task_backend.runners.freezone import _append_node_history
+from ai_anime.task_backend.runners.video import _append_freezone_video_node_history
 
 
 def _ctx(tmp_path: Path) -> ProjectContext:
@@ -165,7 +165,7 @@ def test_builder_omits_blank_prompt_and_deepcopies_result() -> None:
 
 def test_api_route_helper_persists_prompt(tmp_path: Path) -> None:
     """The API-route helper (_record_freezone_node_history) also stores prompt."""
-    from novelvideo.api.routes.freezone import _record_freezone_node_history
+    from ai_anime.api.routes.freezone import _record_freezone_node_history
 
     project_dir = tmp_path / "proj"
     rec = _record_freezone_node_history(

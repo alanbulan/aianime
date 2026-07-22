@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 // Pan-canvas device icons for the shortcuts panel. One per input method:
 // keyboard (Space + drag), trackpad (two-finger), mouse (middle button).
 // Cyan accents use the canvas highlight color (#25FFE9).

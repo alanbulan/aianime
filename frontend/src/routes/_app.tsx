@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import {
   createFileRoute,
   Outlet,
@@ -26,10 +25,6 @@ import { initObservability } from "@/lib/observability";
 import { TaskCenterProvider } from "@/task-center/provider";
 import { TaskStatusBar } from "@/components/task-center/status-bar";
 import { TaskPanel } from "@/components/task-center/panel";
-import { MyBuddyCompanion } from "@/features/companion/MyBuddyCompanion";
-import { AccessoryUnlockPrompt } from "@/features/rewards/AccessoryUnlockPrompt";
-import { VersionUpdateDialog } from "@/features/version-update/VersionUpdateDialog";
-import { PikoInspirationStation } from "@/features/piko-mini-game/PikoInspirationStation";
 
 export function shouldRedirectMissingUsernameToLogin(): boolean {
   return authRequired();
@@ -43,7 +38,6 @@ function AppLayout() {
   const validateSession = useAuthStore((s) => s.validateSession);
   const refreshAvatar = useAuthStore((s) => s.refreshAvatar);
   const [validated, setValidated] = useState(false);
-  const [pikoStationOpen, setPikoStationOpen] = useState(false);
   const validatedUsernameRef = useRef<string | null>(null);
   const params = useParams({ strict: false }) as { project?: string };
   const routeProject = params.project ?? null;
@@ -149,7 +143,7 @@ function AppLayout() {
 
   if (routeProject && projectSummaries.isLoading) {
     return (
-      <div className="flex h-dvh items-center justify-center">
+      <div className="flex h-full items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
@@ -157,7 +151,7 @@ function AppLayout() {
 
   if (!username || !validated) {
     return (
-      <div className="flex h-dvh items-center justify-center">
+      <div className="flex h-full items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
@@ -165,17 +159,10 @@ function AppLayout() {
 
   return (
     <TaskCenterProvider projectId={canonicalProject}>
-      <div className="flex h-dvh flex-col overflow-hidden">
+      <div className="flex h-full flex-col overflow-hidden">
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
             <Header />
-            <MyBuddyCompanion />
-            <AccessoryUnlockPrompt />
-            <VersionUpdateDialog />
-            <PikoInspirationStation
-              open={pikoStationOpen}
-              onClose={() => setPikoStationOpen(false)}
-            />
             <div className="flex min-h-0 flex-1 overflow-hidden">
               <main
                 id="main-content"
@@ -201,7 +188,7 @@ function AppLayout() {
               </main>
             </div>
             <TaskPanel />
-            <TaskStatusBar onOpenPikoStation={() => setPikoStationOpen(true)} />
+            <TaskStatusBar />
           </div>
         </div>
       </div>

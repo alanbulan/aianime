@@ -129,7 +129,7 @@ def _fake_enqueue(calls):
 
 
 def test_happyhorse_video_backend_options_expose_mainline_limits() -> None:
-    from novelvideo.api.routes import generation
+    from ai_anime.api.routes import generation
 
     options = {
         item.value: item.model_dump()
@@ -149,8 +149,8 @@ def test_happyhorse_video_backend_options_expose_mainline_limits() -> None:
 
 @pytest.mark.asyncio
 async def test_audio_generate_route_dispatches_indextts2(monkeypatch, tmp_path):
-    from novelvideo.api.routes import generation
-    from novelvideo.api.schemas import TTSGenerateRequest
+    from ai_anime.api.routes import generation
+    from ai_anime.api.schemas import TTSGenerateRequest
 
     calls = []
     ctx = _patch_generation_celery(monkeypatch, generation, tmp_path, _FakeStore())
@@ -186,7 +186,7 @@ async def test_audio_generate_route_dispatches_indextts2(monkeypatch, tmp_path):
 
 
 def test_audio_generate_http_route_dispatches_indextts2(monkeypatch, tmp_path):
-    from novelvideo.api.routes import generation
+    from ai_anime.api.routes import generation
 
     calls = []
 
@@ -224,7 +224,7 @@ def test_audio_generate_http_route_dispatches_indextts2(monkeypatch, tmp_path):
 
 @pytest.mark.asyncio
 async def test_single_beat_audio_route_dispatches_indextts2(monkeypatch, tmp_path):
-    from novelvideo.api.routes import generation
+    from ai_anime.api.routes import generation
 
     calls = []
     ctx = _patch_generation_celery(monkeypatch, generation, tmp_path, _FakeStore())
@@ -264,8 +264,8 @@ async def test_single_beat_audio_route_dispatches_indextts2(monkeypatch, tmp_pat
 async def test_audio_generate_without_celery_backend_errors_and_does_not_enqueue(
     monkeypatch, tmp_path
 ):
-    from novelvideo.api.routes import generation
-    from novelvideo.api.schemas import TTSGenerateRequest
+    from ai_anime.api.routes import generation
+    from ai_anime.api.schemas import TTSGenerateRequest
 
     enqueue_calls = []
 
@@ -300,7 +300,7 @@ async def test_audio_generate_without_celery_backend_errors_and_does_not_enqueue
 async def test_single_beat_audio_without_celery_backend_errors_and_does_not_enqueue(
     monkeypatch, tmp_path
 ):
-    from novelvideo.api.routes import generation
+    from ai_anime.api.routes import generation
 
     enqueue_calls = []
 
@@ -332,9 +332,9 @@ async def test_single_beat_audio_without_celery_backend_errors_and_does_not_enqu
 
 @pytest.mark.asyncio
 async def test_seedance2_single_video_passes_prepared_config_and_duration(monkeypatch, tmp_path):
-    from novelvideo.api.routes import generation
-    from novelvideo.api.schemas import SingleVideoRequest
-    from novelvideo.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.api.routes import generation
+    from ai_anime.api.schemas import SingleVideoRequest
+    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
 
     calls = []
     prepare_calls = []
@@ -396,9 +396,9 @@ async def test_seedance2_single_video_passes_prepared_config_and_duration(monkey
 async def test_seedance2_single_video_applies_return_last_frame_request_override(
     monkeypatch, tmp_path
 ):
-    from novelvideo.api.routes import generation
-    from novelvideo.api.schemas import SingleVideoRequest
-    from novelvideo.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.api.routes import generation
+    from ai_anime.api.schemas import SingleVideoRequest
+    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
 
     calls = []
     prepare_calls = []
@@ -466,9 +466,9 @@ async def test_seedance2_single_video_applies_return_last_frame_request_override
 
 @pytest.mark.asyncio
 async def test_seedance2_single_video_applies_inline_request_config_controls(monkeypatch, tmp_path):
-    from novelvideo.api.routes import generation
-    from novelvideo.api.schemas import SingleVideoRequest
-    from novelvideo.seedance2_i2v.models import Seedance2I2VMode, parse_seedance2_config
+    from ai_anime.api.routes import generation
+    from ai_anime.api.schemas import SingleVideoRequest
+    from ai_anime.seedance2_i2v.models import Seedance2I2VMode, parse_seedance2_config
 
     calls = []
     prepare_calls = []
@@ -551,8 +551,8 @@ async def test_seedance2_single_video_applies_inline_request_config_controls(mon
 
 @pytest.mark.asyncio
 async def test_happyhorse_single_video_enqueues_prepared_references(monkeypatch, tmp_path):
-    from novelvideo.api.routes import generation
-    from novelvideo.api.schemas import SingleVideoRequest
+    from ai_anime.api.routes import generation
+    from ai_anime.api.schemas import SingleVideoRequest
 
     calls = []
     prepare_calls = []
@@ -633,8 +633,8 @@ async def test_happyhorse_single_video_enqueues_prepared_references(monkeypatch,
 
 @pytest.mark.asyncio
 async def test_single_video_rejects_empty_1x_video_prompt(monkeypatch, tmp_path):
-    from novelvideo.api.routes import generation
-    from novelvideo.api.schemas import SingleVideoRequest
+    from ai_anime.api.routes import generation
+    from ai_anime.api.schemas import SingleVideoRequest
 
     store = _FakeSeedance2Store(
         [
@@ -671,8 +671,8 @@ async def test_single_video_rejects_empty_1x_video_prompt(monkeypatch, tmp_path)
 
 @pytest.mark.asyncio
 async def test_single_video_rejects_empty_1x_keyframe_prompt(monkeypatch, tmp_path):
-    from novelvideo.api.routes import generation
-    from novelvideo.api.schemas import SingleVideoRequest
+    from ai_anime.api.routes import generation
+    from ai_anime.api.schemas import SingleVideoRequest
 
     store = _FakeSeedance2Store(
         [
@@ -711,9 +711,9 @@ async def test_single_video_rejects_empty_1x_keyframe_prompt(monkeypatch, tmp_pa
 
 @pytest.mark.asyncio
 async def test_seedance2_single_video_rejects_empty_final_prompt(monkeypatch, tmp_path):
-    from novelvideo.api.routes import generation
-    from novelvideo.api.schemas import SingleVideoRequest
-    from novelvideo.seedance2_i2v.models import Seedance2I2VMode
+    from ai_anime.api.routes import generation
+    from ai_anime.api.schemas import SingleVideoRequest
+    from ai_anime.seedance2_i2v.models import Seedance2I2VMode
 
     store = _FakeSeedance2Store(
         [
@@ -765,8 +765,8 @@ async def test_seedance2_single_video_rejects_empty_final_prompt(monkeypatch, tm
 
 @pytest.mark.asyncio
 async def test_legacy_tts_generate_endpoint_is_gone():
-    from novelvideo.api.routes import generation
-    from novelvideo.api.schemas import TTSGenerateRequest
+    from ai_anime.api.routes import generation
+    from ai_anime.api.schemas import TTSGenerateRequest
 
     with pytest.raises(HTTPException) as exc:
         await generation.generate_tts(
@@ -782,8 +782,8 @@ async def test_legacy_tts_generate_endpoint_is_gone():
 
 @pytest.mark.asyncio
 async def test_legacy_tts_preview_endpoint_is_gone():
-    from novelvideo.api.routes import generation
-    from novelvideo.api.schemas import TTSPreviewRequest
+    from ai_anime.api.routes import generation
+    from ai_anime.api.schemas import TTSPreviewRequest
 
     with pytest.raises(HTTPException) as exc:
         await generation.preview_tts(
@@ -798,7 +798,7 @@ async def test_legacy_tts_preview_endpoint_is_gone():
 
 @pytest.mark.asyncio
 async def test_legacy_tts_voices_endpoint_is_gone():
-    from novelvideo.api.routes import generation
+    from ai_anime.api.routes import generation
 
     with pytest.raises(HTTPException) as exc:
         await generation.list_tts_voices(project="demo", user={"username": "alice"})

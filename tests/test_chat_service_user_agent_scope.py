@@ -6,10 +6,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from novelvideo.api.routes import chat as chat_routes
-from novelvideo.chat import backend_sdk
-from novelvideo.chat import service as chat_service
-from novelvideo.chat.store import ChatScope, chat_store
+from ai_anime.api.routes import chat as chat_routes
+from ai_anime.chat import backend_sdk
+from ai_anime.chat import service as chat_service
+from ai_anime.chat.store import ChatScope, chat_store
 
 
 @pytest.fixture
@@ -19,14 +19,14 @@ def anyio_backend():
 
 def test_chat_visible_text_redacts_local_filesystem_paths():
     content = (
-        "前端目录 ~/Works/supertale-fe，"
-        "后端目录 /Users/tao/Works/SuperTale/state/admin/.hermes。"
+        "前端目录 ~/Works/ai-anime-fe，"
+        "后端目录 /Users/tao/Works/AI anime/state/admin/.hermes。"
     )
 
     redacted = chat_service._redact_local_filesystem_paths(content)
 
-    assert "~/Works/supertale-fe" not in redacted
-    assert "/Users/tao/Works/SuperTale" not in redacted
+    assert "~/Works/ai-anime-fe" not in redacted
+    assert "/Users/tao/Works/AI anime" not in redacted
     assert redacted.count("[本地路径]") == 2
 
 
@@ -47,7 +47,7 @@ def test_infer_display_tool_call_recovers_sketch_display_promise():
         [],
     )
 
-    assert inferred == ("dramaclaw_get_sketches", {"episode": 1})
+    assert inferred == ("ai_anime_get_sketches", {"episode": 1})
 
 
 def test_infer_display_tool_call_uses_recent_context_for_short_reply():
@@ -57,7 +57,7 @@ def test_infer_display_tool_call_uses_recent_context_for_short_reply():
         ["如果您需要查看全部37个草图，我可以分页显示。"],
     )
 
-    assert inferred == ("dramaclaw_get_sketches", {"episode": 1})
+    assert inferred == ("ai_anime_get_sketches", {"episode": 1})
 
 
 def test_infer_display_tool_call_ignores_progress_status_language():
@@ -77,7 +77,7 @@ def test_infer_display_tool_call_requires_user_sketch_display_intent():
         [],
     )
 
-    assert inferred == ("dramaclaw_get_sketches", {"episode": 2})
+    assert inferred == ("ai_anime_get_sketches", {"episode": 2})
 
 
 def test_infer_display_tool_call_uses_sketch_candidate_tool_for_pool_terms():
@@ -87,7 +87,7 @@ def test_infer_display_tool_call_uses_sketch_candidate_tool_for_pool_terms():
         [],
     )
 
-    assert inferred == ("dramaclaw_get_sketch_candidates", {"episode": 1, "beat": 3})
+    assert inferred == ("ai_anime_get_sketch_candidates", {"episode": 1, "beat": 3})
 
 
 def test_extract_display_tool_call_uses_named_tool_field():
@@ -95,7 +95,7 @@ def test_extract_display_tool_call_uses_named_tool_field():
         {
             "sessionUpdate": "tool_call",
             "title": "tool",
-            "name": "dramaclaw_get_sketches",
+            "name": "ai_anime_get_sketches",
             "content": [
                 {
                     "type": "content",
@@ -105,7 +105,7 @@ def test_extract_display_tool_call_uses_named_tool_field():
         }
     )
 
-    assert inferred == ("dramaclaw_get_sketches", {"episode": 1})
+    assert inferred == ("ai_anime_get_sketches", {"episode": 1})
 
 
 def test_backend_api_get_default_uses_ipv4_loopback(monkeypatch):
@@ -127,17 +127,17 @@ def test_backend_api_get_default_uses_ipv4_loopback(monkeypatch):
         seen["url"] = req.full_url
         return FakeResponse()
 
-    monkeypatch.delenv("DRAMACLAW_API_URL", raising=False)
-    monkeypatch.delenv("SUPERTALE_API_URL", raising=False)
-    monkeypatch.delenv("NOVELVIDEO_API_URL", raising=False)
-    monkeypatch.setenv("NOVELVIDEO_API_PORT", "8780")
+    monkeypatch.delenv("AI_ANIME_API_URL", raising=False)
+    monkeypatch.delenv("AI_ANIME_API_URL", raising=False)
+    monkeypatch.delenv("AI_ANIME_API_URL", raising=False)
+    monkeypatch.setenv("AI_ANIME_API_PORT", "8780")
     monkeypatch.setattr(chat_service, "urlopen", fake_urlopen)
 
     assert chat_service._backend_api_get("/api/v1/config", "token") == {"ok": True}
     assert seen["url"] == "http://127.0.0.1:8780/api/v1/config"
 
 
-def test_backend_api_get_ignores_stale_legacy_supertale_url(monkeypatch):
+def test_backend_api_get_ignores_stale_legacy_ai_anime_url(monkeypatch):
     seen = {}
 
     class FakeResponse:
@@ -156,10 +156,10 @@ def test_backend_api_get_ignores_stale_legacy_supertale_url(monkeypatch):
         seen["url"] = req.full_url
         return FakeResponse()
 
-    monkeypatch.delenv("DRAMACLAW_API_URL", raising=False)
-    monkeypatch.delenv("NOVELVIDEO_API_URL", raising=False)
-    monkeypatch.setenv("SUPERTALE_API_URL", "http://localhost:7860")
-    monkeypatch.setenv("NOVELVIDEO_API_PORT", "8780")
+    monkeypatch.delenv("AI_ANIME_API_URL", raising=False)
+    monkeypatch.delenv("AI_ANIME_API_URL", raising=False)
+    monkeypatch.setenv("AI_ANIME_API_URL", "http://localhost:7860")
+    monkeypatch.setenv("AI_ANIME_API_PORT", "8780")
     monkeypatch.setattr(chat_service, "urlopen", fake_urlopen)
 
     assert chat_service._backend_api_get("/api/v1/config", "token") == {"ok": True}
@@ -222,8 +222,8 @@ async def test_append_chat_notification_persists_project_assistant_message(monke
 
 @pytest.mark.anyio
 async def test_deterministic_stream_redacts_local_paths(monkeypatch, tmp_path):
-    monkeypatch.setenv("NOVELVIDEO_STATE_DIR", str(tmp_path / "state"))
-    monkeypatch.setenv("NOVELVIDEO_OUTPUT_DIR", str(tmp_path / "output"))
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("AI_ANIME_OUTPUT_DIR", str(tmp_path / "output"))
     events = []
 
     async def on_event(event):
@@ -232,11 +232,11 @@ async def test_deterministic_stream_redacts_local_paths(monkeypatch, tmp_path):
     message = await chat_service._stream_deterministic_assistant_reply(
         "admin",
         "project-a",
-        "临时路径：~/Works/supertale-fe/src",
+        "临时路径：~/Works/ai-anime-fe/src",
         on_event,
     )
 
-    assert "~/Works/supertale-fe" not in message["content"]
+    assert "~/Works/ai-anime-fe" not in message["content"]
     assert message["content"] == "临时路径：[本地路径]"
     assert events[0]["type"] == "assistant_delta"
     assert events[0]["text"] == "临时路径：[本地路径]"
@@ -270,7 +270,7 @@ async def test_fallback_display_does_not_use_pool_sketch_as_current_sketch(
     specs = await chat_service._fallback_display_tool_ui_specs(
         "admin",
         "project-a",
-        "dramaclaw_get_sketches",
+        "ai_anime_get_sketches",
         {"episode": 1},
         token="token",
         project_dir=project_dir,
@@ -301,7 +301,7 @@ async def test_fallback_display_prefers_api_project_id(monkeypatch):
     specs = await chat_service._fallback_display_tool_ui_specs(
         "local",
         "chat-scope",
-        "dramaclaw_get_sketches",
+        "ai_anime_get_sketches",
         {"episode": 1, "project_id": "api-project"},
         token="token",
     )
@@ -314,8 +314,8 @@ async def test_fallback_display_prefers_api_project_id(monkeypatch):
 
 
 def test_claude_and_codex_sessions_are_scope_scoped(monkeypatch, tmp_path):
-    monkeypatch.setenv("NOVELVIDEO_STATE_DIR", str(tmp_path / "state"))
-    monkeypatch.setenv("NOVELVIDEO_OUTPUT_DIR", str(tmp_path / "output"))
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("AI_ANIME_OUTPUT_DIR", str(tmp_path / "output"))
 
     chat_service._set_claude_session_id("admin", "project-a", "claude-session-1")
     assert chat_service._get_claude_session_id("admin", "project-b") == "claude-session-1"
@@ -330,8 +330,8 @@ def test_claude_and_codex_sessions_are_scope_scoped(monkeypatch, tmp_path):
 
 
 def test_user_agent_workspace_is_not_project_workspace(monkeypatch, tmp_path):
-    monkeypatch.setenv("NOVELVIDEO_STATE_DIR", str(tmp_path / "state"))
-    monkeypatch.setenv("NOVELVIDEO_OUTPUT_DIR", str(tmp_path / "output"))
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("AI_ANIME_OUTPUT_DIR", str(tmp_path / "output"))
 
     chat_service.ensure_user_claude_workspace("admin", "project-a")
     chat_service.ensure_user_codex_workspace("admin", "project-a")
@@ -347,24 +347,24 @@ def test_user_agent_workspace_is_not_project_workspace(monkeypatch, tmp_path):
     assert not (project_workspace / ".codex").exists()
 
 
-def test_dramaclaw_mcp_server_config_is_agent_neutral():
-    servers = chat_service._dramaclaw_mcp_servers()
+def test_ai_anime_mcp_server_config_is_agent_neutral():
+    servers = chat_service._ai_anime_mcp_servers()
 
-    assert servers["dramaclaw"]["type"] == "stdio"
-    assert servers["dramaclaw"]["args"] == ["-m", "novelvideo.chat.dramaclaw_mcp"]
+    assert servers["ai_anime"]["type"] == "stdio"
+    assert servers["ai_anime"]["args"] == ["-m", "ai_anime.chat.ai_anime_mcp"]
 
 
-def test_codex_client_carries_dramaclaw_mcp_servers(tmp_path):
-    overrides = chat_service._codex_mcp_config_overrides(chat_service._dramaclaw_mcp_servers())
+def test_codex_client_carries_ai_anime_mcp_servers(tmp_path):
+    overrides = chat_service._codex_mcp_config_overrides(chat_service._ai_anime_mcp_servers())
 
     expected_command = json.dumps(__import__("sys").executable, ensure_ascii=False)
-    assert f"mcp_servers.dramaclaw.command={expected_command}" in overrides
-    assert 'mcp_servers.dramaclaw.args=["-m","novelvideo.chat.dramaclaw_mcp"]' in overrides
+    assert f"mcp_servers.ai_anime.command={expected_command}" in overrides
+    assert 'mcp_servers.ai_anime.args=["-m","ai_anime.chat.ai_anime_mcp"]' in overrides
 
     client = backend_sdk.CodexClient(
         codex_bin=Path("/usr/local/bin/codex"),
         cwd=tmp_path,
-        env={"DRAMACLAW_AGENT_TOKEN": "token"},
+        env={"AI_ANIME_AGENT_TOKEN": "token"},
         model="gpt-5.4",
         config_overrides=overrides,
     )
@@ -375,13 +375,13 @@ def test_codex_client_carries_dramaclaw_mcp_servers(tmp_path):
 
 
 def test_explicit_codex_does_not_fallback_when_unavailable(monkeypatch):
-    monkeypatch.setenv("DRAMACLAW_CHAT_BACKEND", "codex")
-    monkeypatch.delenv("SUPERTALE_CHAT_BACKEND", raising=False)
+    monkeypatch.setenv("AI_ANIME_CHAT_BACKEND", "codex")
+    monkeypatch.delenv("AI_ANIME_CHAT_BACKEND", raising=False)
     monkeypatch.setattr(chat_service, "is_codex_backend_available", lambda: False)
     monkeypatch.setattr(chat_service, "is_hermes_backend_available", lambda: True)
     monkeypatch.setattr(chat_service, "is_claude_backend_available", lambda: True)
 
-    with pytest.raises(RuntimeError, match="DRAMACLAW_CHAT_BACKEND=codex requested"):
+    with pytest.raises(RuntimeError, match="AI_ANIME_CHAT_BACKEND=codex requested"):
         chat_service._chat_backend()
 
 
@@ -411,8 +411,8 @@ def test_codex_backend_validates_explicit_binary(monkeypatch, tmp_path):
 
 
 def test_chat_run_lock_is_user_scoped(monkeypatch, tmp_path):
-    monkeypatch.setenv("NOVELVIDEO_STATE_DIR", str(tmp_path / "state"))
-    monkeypatch.setenv("NOVELVIDEO_OUTPUT_DIR", str(tmp_path / "output"))
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("AI_ANIME_OUTPUT_DIR", str(tmp_path / "output"))
 
     lock_id = chat_service._acquire_chat_run_lock("admin", "project-a")
     try:
@@ -426,7 +426,7 @@ def test_chat_run_lock_is_user_scoped(monkeypatch, tmp_path):
 
 
 def test_chat_run_lock_uses_named_agent_locks_dir(monkeypatch, tmp_path):
-    monkeypatch.setenv("NOVELVIDEO_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
 
     lock_path = chat_service._chat_run_lock_path("admin", "project-a")
 
@@ -435,7 +435,7 @@ def test_chat_run_lock_uses_named_agent_locks_dir(monkeypatch, tmp_path):
 
 
 def test_chat_run_lock_file_expires_after_ten_minutes(monkeypatch, tmp_path):
-    monkeypatch.setenv("NOVELVIDEO_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
     assert chat_service._CHAT_RUN_LOCK_TTL_SECONDS == 10 * 60
 
     lock_path = chat_service._chat_run_lock_path("admin", "project-a")
@@ -460,7 +460,7 @@ def test_chat_run_lock_file_expires_after_ten_minutes(monkeypatch, tmp_path):
 
 
 def test_chat_run_lock_uses_updated_at_for_idle_timeout(monkeypatch, tmp_path):
-    monkeypatch.setenv("NOVELVIDEO_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
 
     lock_path = chat_service._chat_run_lock_path("admin", "project-a")
     old_started_at = datetime.now(timezone.utc) - timedelta(seconds=10 * 60 + 1)
@@ -483,7 +483,7 @@ def test_chat_run_lock_uses_updated_at_for_idle_timeout(monkeypatch, tmp_path):
 
 
 def test_chat_run_lock_still_has_max_runtime(monkeypatch, tmp_path):
-    monkeypatch.setenv("NOVELVIDEO_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
 
     lock_path = chat_service._chat_run_lock_path("admin", "project-a")
     too_old_started_at = datetime.now(timezone.utc) - timedelta(
@@ -509,7 +509,7 @@ def test_chat_run_lock_still_has_max_runtime(monkeypatch, tmp_path):
 
 
 def test_chat_run_lock_heartbeat_refreshes_updated_at(monkeypatch, tmp_path):
-    monkeypatch.setenv("NOVELVIDEO_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
     atomic_writes = []
     original_atomic_write = chat_service._atomic_write_chat_run_lock_file
 
@@ -556,7 +556,7 @@ def test_chat_run_lock_heartbeat_refreshes_updated_at(monkeypatch, tmp_path):
 
 
 def test_chat_run_lock_treats_new_empty_lock_as_active(monkeypatch, tmp_path):
-    monkeypatch.setenv("NOVELVIDEO_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
     lock_path = chat_service._chat_run_lock_path("admin", "project-a")
     lock_path.write_text("", encoding="utf-8")
 
@@ -567,7 +567,7 @@ def test_chat_run_lock_treats_new_empty_lock_as_active(monkeypatch, tmp_path):
 
 
 def test_chat_run_lock_removes_old_invalid_lock(monkeypatch, tmp_path):
-    monkeypatch.setenv("NOVELVIDEO_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
     lock_path = chat_service._chat_run_lock_path("admin", "project-a")
     lock_path.write_text("", encoding="utf-8")
     old_mtime = (
@@ -587,7 +587,7 @@ def test_chat_run_lock_removes_old_invalid_lock(monkeypatch, tmp_path):
 
 @pytest.mark.anyio
 async def test_reingest_confirmation_reply_bypasses_agent_backend(monkeypatch, tmp_path):
-    monkeypatch.setenv("NOVELVIDEO_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
     monkeypatch.setattr(
         chat_service,
         "_chat_backend",
@@ -603,11 +603,11 @@ async def test_reingest_confirmation_reply_bypasses_agent_backend(monkeypatch, t
         "project-a",
         """创建视频
 
-[DRAMACLAW_REINGEST_CONFIRMATION]
+[AI_ANIME_REINGEST_CONFIRMATION]
 stage: choose_overwrite
-dramaclaw_project_id: project-a
+ai_anime_project_id: project-a
 filename: novel.docx
-[/DRAMACLAW_REINGEST_CONFIRMATION]""",
+[/AI_ANIME_REINGEST_CONFIRMATION]""",
         on_event,
     )
 
@@ -619,7 +619,7 @@ filename: novel.docx
 
 @pytest.mark.anyio
 async def test_reingest_final_confirmation_reply_bypasses_agent_backend(monkeypatch, tmp_path):
-    monkeypatch.setenv("NOVELVIDEO_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
     monkeypatch.setattr(
         chat_service,
         "_chat_backend",
@@ -634,11 +634,11 @@ async def test_reingest_final_confirmation_reply_bypasses_agent_backend(monkeypa
         "project-a",
         """覆盖
 
-[DRAMACLAW_REINGEST_CONFIRMATION]
+[AI_ANIME_REINGEST_CONFIRMATION]
 stage: confirm_clear
-dramaclaw_project_id: project-a
+ai_anime_project_id: project-a
 filename: novel.docx
-[/DRAMACLAW_REINGEST_CONFIRMATION]""",
+[/AI_ANIME_REINGEST_CONFIRMATION]""",
         on_event,
     )
 
@@ -648,7 +648,7 @@ filename: novel.docx
 
 
 def test_prompt_injects_json_render_contract(monkeypatch, tmp_path):
-    monkeypatch.setenv("NOVELVIDEO_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
 
     prompt = chat_service._prompt_with_user_context(
         "admin",
@@ -657,17 +657,17 @@ def test_prompt_injects_json_render_contract(monkeypatch, tmp_path):
     )
 
     assert "[RENDERING_CONTRACT]" in prompt
-    assert "才需要调用对应的 DramaClaw 展示工具" in prompt
+    assert "才需要调用对应的 AI anime 展示工具" in prompt
     assert "不要向用户解释内部渲染格式、渲染机制、工具调用过程或工具名" in prompt
     assert "不要用文字列表、文件名列表、Beat 名称列表或 URL 列表替代媒体展示" in prompt
     assert "必须调用对应展示工具" in prompt
     assert "若没有工具返回的可展示媒体，只说明当前暂无可展示媒体" in prompt
     assert "后端会自动把工具结果渲染为 json-render" not in prompt
     assert "不要手写、复制或粘贴 <ui-spec> JSON" not in prompt
-    assert "dramaclaw_get_character_media" in prompt
-    assert "dramaclaw_get_sketches" in prompt
-    assert "dramaclaw_get_scene_images" in prompt
-    assert "dramaclaw_get_episode_media" in prompt
+    assert "ai_anime_get_character_media" in prompt
+    assert "ai_anime_get_sketches" in prompt
+    assert "ai_anime_get_scene_images" in prompt
+    assert "ai_anime_get_episode_media" in prompt
     assert "只有在回复需要展示图片、肖像、身份图、草图、首帧、视频、音频等可视/可播放媒体时" in prompt
     assert "media_json" in prompt
     assert "不要猜测、拼接或改写静态资源路径" in prompt
@@ -744,8 +744,8 @@ def test_markdown_project_image_filters_normalized_media_item(tmp_path):
 
 
 def test_project_chat_storage_uses_resolved_project_state_dir(monkeypatch, tmp_path):
-    monkeypatch.setenv("NOVELVIDEO_STATE_DIR", str(tmp_path / "state"))
-    monkeypatch.setenv("NOVELVIDEO_OUTPUT_DIR", str(tmp_path / "output"))
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("AI_ANIME_OUTPUT_DIR", str(tmp_path / "output"))
     project_dir = tmp_path / "output" / "admin" / "demo"
     project_state_dir = tmp_path / "managed-state" / "projects" / "01KS_PROJECT_ID"
     project_dir.mkdir(parents=True)
@@ -765,7 +765,7 @@ def test_project_chat_storage_uses_resolved_project_state_dir(monkeypatch, tmp_p
 
 
 def test_project_chat_storage_creates_missing_resolved_state_dir(monkeypatch, tmp_path):
-    monkeypatch.setenv("NOVELVIDEO_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
     project_state_dir = tmp_path / "managed-state" / "missing-project"
 
     chat_service.add_user_message(
@@ -780,22 +780,22 @@ def test_project_chat_storage_creates_missing_resolved_state_dir(monkeypatch, tm
 
 
 def test_project_history_hides_trace_messages(monkeypatch, tmp_path):
-    monkeypatch.setenv("NOVELVIDEO_STATE_DIR", str(tmp_path / "state"))
-    monkeypatch.setenv("NOVELVIDEO_OUTPUT_DIR", str(tmp_path / "output"))
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("AI_ANIME_OUTPUT_DIR", str(tmp_path / "output"))
 
     chat_service.add_user_message("admin", "project-a", "你好")
-    chat_service.add_trace_message("admin", "project-a", "→ dramaclaw_pipeline_status\ncompleted")
+    chat_service.add_trace_message("admin", "project-a", "→ ai_anime_pipeline_status\ncompleted")
     chat_service.add_assistant_message("admin", "project-a", "你好！")
 
     messages = chat_service.list_messages("admin", "project-a")
 
     assert [message["role"] for message in messages] == ["user", "assistant"]
-    assert all("dramaclaw_pipeline_status" not in message["content"] for message in messages)
+    assert all("ai_anime_pipeline_status" not in message["content"] for message in messages)
 
 
 def test_project_history_defaults_to_last_50_messages(monkeypatch, tmp_path):
-    monkeypatch.setenv("NOVELVIDEO_STATE_DIR", str(tmp_path / "state"))
-    monkeypatch.setenv("NOVELVIDEO_OUTPUT_DIR", str(tmp_path / "output"))
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("AI_ANIME_OUTPUT_DIR", str(tmp_path / "output"))
 
     for index in range(60):
         chat_service.add_assistant_message("admin", "project-a", f"message-{index:02d}")
@@ -808,17 +808,17 @@ def test_project_history_defaults_to_last_50_messages(monkeypatch, tmp_path):
 
 
 def test_home_history_hides_trace_messages(monkeypatch, tmp_path):
-    monkeypatch.setenv("NOVELVIDEO_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
     scope = ChatScope(kind="home")
 
     chat_store.append_message("admin", scope, "user", "你好")
-    chat_store.append_message("admin", scope, "trace", "→ dramaclaw_pipeline_status\ncompleted")
+    chat_store.append_message("admin", scope, "trace", "→ ai_anime_pipeline_status\ncompleted")
     chat_store.append_message("admin", scope, "assistant", "你好！")
 
     messages = chat_store.list_messages("admin", scope)
 
     assert [message["role"] for message in messages] == ["user", "assistant"]
-    assert all("dramaclaw_pipeline_status" not in message["content"] for message in messages)
+    assert all("ai_anime_pipeline_status" not in message["content"] for message in messages)
 
 
 def test_json_render_reply_normalizer_unwraps_fenced_ui_spec():
@@ -1097,7 +1097,7 @@ def test_extract_tool_chat_error_maps_render_prereq_task_error():
 
     assert chat_error is not None
     assert "Render 任务没有生成可用图片" in chat_error
-    assert "虾塘" in chat_error
+    assert "资产库" in chat_error
     assert raw_error in chat_error
 
 
@@ -1171,7 +1171,7 @@ def test_append_tool_ui_specs_ignores_placeholder_ui_spec_chatter():
     content = chat_service._append_tool_ui_specs(
         "\n".join(
             [
-                "首先，调用dramaclaw_get_character_media工具获取角色肖像信息：",
+                "首先，调用ai_anime_get_character_media工具获取角色肖像信息：",
                 "<ui-spec> JSON has been generated and will be automatically rendered by the backend.",
                 "所有图片都已按规范渲染为UI画廊，您可以直接查看。",
                 "如需查看其他内容，请告诉我。",
@@ -1180,7 +1180,7 @@ def test_append_tool_ui_specs_ignores_placeholder_ui_spec_chatter():
         [spec],
     )
 
-    assert "dramaclaw_get_character_media" not in content
+    assert "ai_anime_get_character_media" not in content
     assert "automatically rendered" not in content
     assert "UI画廊" not in content
     assert "如需查看其他内容" in content

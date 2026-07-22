@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { Position } from '@xyflow/react';
 
 export const NODE_TOOLBAR_POSITION = Position.Top;

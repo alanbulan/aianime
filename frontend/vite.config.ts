@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
@@ -17,9 +16,7 @@ function datePrefix(d: Date = new Date()): string {
   return `${yy}${mm}${dd}-`;
 }
 
-// The human-facing version, shown in the status bar. It is display-only —
-// never compare it across deploys (two builds can legitimately carry the same
-// version string), that's what BUILD_ID below is for.
+// The human-facing version shown in the status bar.
 // Resolution order:
 //   1. VITE_APP_VERSION — set by release CI from the tag.
 //   2. the nearest git tag (`git describe --tags --abbrev=0`) — so a local
@@ -42,12 +39,7 @@ function resolveAppVersion(): string {
   return DEFAULT_APP_VERSION;
 }
 
-// The deploy fingerprint. MUST differ between any two builds, because the
-// running app compares it against the deployed /version.json to decide whether
-// to nudge the user to refresh (see lib/version-update-watch.ts). Prefer
-// `git describe`, and fall back to the build timestamp so even a git-less
-// build still produces a value that changes — a constant here would silently
-// disable update detection.
+// The build fingerprint is used as a cache key for localised resources.
 function resolveBuildId(): string {
   try {
     const described = execSync("git describe --tags --always --dirty", {
@@ -74,21 +66,6 @@ export default defineConfig(({ mode }) => {
       TanStackRouterVite(),
       react(),
       tailwindcss(),
-      {
-        // Emit a tiny manifest the running app polls to detect deploys. The
-        // buildId written here is the SAME compile-time constant baked into the
-        // bundle via `define` below, so the running code can compare its own
-        // BUILD_ID against the deployed version.json — no fetched baseline,
-        // hence no seed race. `version` rides along for display/debugging only.
-        name: "emit-version-json",
-        generateBundle() {
-          this.emitFile({
-            type: "asset",
-            fileName: "version.json",
-            source: JSON.stringify({ version: APP_VERSION, buildId: BUILD_ID }),
-          });
-        },
-      },
     ],
     define: {
       __APP_VERSION__: JSON.stringify(APP_VERSION),

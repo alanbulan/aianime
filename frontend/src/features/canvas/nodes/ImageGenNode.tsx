@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -1061,7 +1060,7 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
   // 用户明确要求 \"不全用 master/reverse,要截图\" — 所以走 cropper 路径,不是
   // 直接 PATCH anchor (旧实现已替换)。
   // Step C: director_combined 节点上的「打开导演世界」按钮使用
-  // supertale-fe 内置同源 viewer,不跳旧外部导演台。
+  // ai-anime-fe 内置同源 viewer,不跳旧外部导演台。
   const sourceMeta = (freezoneSource?.meta ?? {}) as Record<string, unknown>;
   const sourceEpisode = typeof sourceMeta.episode === "number"
     ? sourceMeta.episode

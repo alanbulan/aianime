@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { QueryClient } from "@tanstack/react-query";
 import {
@@ -38,25 +37,25 @@ describe("resetRegionState", () => {
     expect(qc.getQueryData(["x"])).toBeUndefined();
   });
 
-  it("localStorage sweep removes supertale-* and legacy episode workbench keys", () => {
-    localStorage.setItem("supertale-auth", JSON.stringify({ state: {} }));
-    localStorage.setItem("supertale-seen-pools", "x");
+  it("localStorage sweep removes ai-anime-* and legacy episode workbench keys", () => {
+    localStorage.setItem("ai-anime-auth", JSON.stringify({ state: {} }));
+    localStorage.setItem("ai-anime-seen-pools", "x");
     localStorage.setItem("st.episode.p1.e1.voice", "edge");
     localStorage.setItem("st.beats.toggles.p1.e1", "expanded");
     localStorage.setItem("st.beats.action-panel.sections.p1.e1", "expanded");
     resetRegionState({ queryClient: new QueryClient() });
-    expect(localStorage.getItem("supertale-auth")).toBeNull();
-    expect(localStorage.getItem("supertale-seen-pools")).toBeNull();
+    expect(localStorage.getItem("ai-anime-auth")).toBeNull();
+    expect(localStorage.getItem("ai-anime-seen-pools")).toBeNull();
     expect(localStorage.getItem("st.episode.p1.e1.voice")).toBeNull();
     expect(localStorage.getItem("st.beats.toggles.p1.e1")).toBeNull();
     expect(localStorage.getItem("st.beats.action-panel.sections.p1.e1")).toBeNull();
   });
 
-  it("localStorage sweep preserves supertale-app and i18nextLng", () => {
-    localStorage.setItem("supertale-app", JSON.stringify({ state: { language: "zh" } }));
+  it("localStorage sweep preserves ai-anime-app and i18nextLng", () => {
+    localStorage.setItem("ai-anime-app", JSON.stringify({ state: { language: "zh" } }));
     localStorage.setItem("i18nextLng", "zh");
     resetRegionState({ queryClient: new QueryClient() });
-    expect(localStorage.getItem("supertale-app")).not.toBeNull();
+    expect(localStorage.getItem("ai-anime-app")).not.toBeNull();
     expect(localStorage.getItem("i18nextLng")).toBe("zh");
   });
 });
@@ -76,26 +75,26 @@ describe("resetUserSessionState", () => {
   });
 
   it("sweeps user-scoped localStorage keys like the region reset does", () => {
-    localStorage.setItem("supertale-seen-pools", "x");
+    localStorage.setItem("ai-anime-seen-pools", "x");
     localStorage.setItem("st.episode.p1.e1.voice", "edge");
     resetUserSessionState({ queryClient: new QueryClient() });
-    expect(localStorage.getItem("supertale-seen-pools")).toBeNull();
+    expect(localStorage.getItem("ai-anime-seen-pools")).toBeNull();
     expect(localStorage.getItem("st.episode.p1.e1.voice")).toBeNull();
   });
 
   it("preserves the region selection — logout must not force a region re-pick", () => {
-    localStorage.setItem("supertale-region", JSON.stringify({ state: { selectedRegionId: "cn-1" } }));
-    localStorage.setItem("supertale-app", "keep");
+    localStorage.setItem("ai-anime-region", JSON.stringify({ state: { selectedRegionId: "cn-1" } }));
+    localStorage.setItem("ai-anime-app", "keep");
     localStorage.setItem("i18nextLng", "zh");
     resetUserSessionState({ queryClient: new QueryClient() });
-    expect(localStorage.getItem("supertale-region")).not.toBeNull();
-    expect(localStorage.getItem("supertale-app")).toBe("keep");
+    expect(localStorage.getItem("ai-anime-region")).not.toBeNull();
+    expect(localStorage.getItem("ai-anime-app")).toBe("keep");
     expect(localStorage.getItem("i18nextLng")).toBe("zh");
   });
 
   it("resetRegionState still sweeps the region key (region-switch behavior unchanged)", () => {
-    localStorage.setItem("supertale-region", "x");
+    localStorage.setItem("ai-anime-region", "x");
     resetRegionState({ queryClient: new QueryClient() });
-    expect(localStorage.getItem("supertale-region")).toBeNull();
+    expect(localStorage.getItem("ai-anime-region")).toBeNull();
   });
 });

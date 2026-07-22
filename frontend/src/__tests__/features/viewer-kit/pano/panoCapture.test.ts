@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
 
 import {
@@ -17,7 +16,7 @@ describe("pano capture camera math", () => {
     expect(zoomToFov(fovToZoom(70))).toBeCloseTo(70, 5);
   });
 
-  it("reports the same focal-length approximation as the legacy SuperTale pano viewer", () => {
+  it("reports the same focal-length approximation as the legacy AI anime pano viewer", () => {
     expect(fovToFocal(160)).toBe(3);
     expect(fovToFocal(70)).toBe(26);
     expect(fovToFocal(8)).toBe(257);

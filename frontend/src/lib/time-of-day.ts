@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 export const TIME_OF_DAY_NONE_LABEL = "无（保持场景图光线，不重打光）";
 
 export const STANDARD_TIME_OF_DAY_OPTIONS = [

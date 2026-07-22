@@ -10,8 +10,8 @@ from pathlib import Path
 
 import pytest
 
-from novelvideo.project_context import ProjectContext
-from novelvideo.task_state import TaskStateManager
+from ai_anime.project_context import ProjectContext
+from ai_anime.task_state import TaskStateManager
 
 pytestmark = pytest.mark.m07
 

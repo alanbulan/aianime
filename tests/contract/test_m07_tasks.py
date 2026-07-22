@@ -9,15 +9,15 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from novelvideo.project_context import ProjectContext
-from novelvideo.ports import registry
-from novelvideo.ports.local.project import AllowAllProjectAccess
-from novelvideo.ports.local.tasks import InlineTaskBackend, InMemoryCancellationStore
-from novelvideo.task_backend.cancel import TaskCancelled, is_cancel_requested
-from novelvideo.task_backend.limits import project_lane_effective_active_limit
-from novelvideo.task_backend.queues import QUEUE_KINDS
-from novelvideo.task_backend.registry import register_project_task_runner
-from novelvideo.task_state import TaskStateManager, get_task_manager
+from ai_anime.project_context import ProjectContext
+from ai_anime.ports import registry
+from ai_anime.ports.local.project import AllowAllProjectAccess
+from ai_anime.ports.local.tasks import InlineTaskBackend, InMemoryCancellationStore
+from ai_anime.task_backend.cancel import TaskCancelled, is_cancel_requested
+from ai_anime.task_backend.limits import project_lane_effective_active_limit
+from ai_anime.task_backend.queues import QUEUE_KINDS
+from ai_anime.task_backend.registry import register_project_task_runner
+from ai_anime.task_state import TaskStateManager, get_task_manager
 
 pytestmark = pytest.mark.m07
 
@@ -60,7 +60,7 @@ async def _single_sse_event_and_closed(response):
 
 
 async def _install_project_context(monkeypatch, ctx: ProjectContext) -> None:
-    from novelvideo.api.routes import tasks
+    from ai_anime.api.routes import tasks
 
     async def fake_resolve_project_context(**kwargs):
         assert kwargs["project_id"] == ctx.project_id
@@ -70,8 +70,8 @@ async def _install_project_context(monkeypatch, ctx: ProjectContext) -> None:
 
 
 def test_tasks_routes_are_covered_by_openapi_contract():
-    from novelvideo.api.routes import pipeline
-    from novelvideo.api.routes.tasks import router
+    from ai_anime.api.routes import pipeline
+    from ai_anime.api.routes.tasks import router
 
     app = FastAPI()
     app.include_router(router, prefix="/api/v1")
@@ -104,8 +104,8 @@ def _task_ports(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_ce_generation_submit_returns_inline_backend(monkeypatch, tmp_path):
-    from novelvideo.api.routes import episodes
-    from novelvideo.api.schemas import EpisodePlanRequest
+    from ai_anime.api.routes import episodes
+    from ai_anime.api.schemas import EpisodePlanRequest
 
     ctx = _ctx(tmp_path)
 
@@ -148,7 +148,7 @@ async def test_task_list_and_project_stream_task_updated_share_serialized_fields
     monkeypatch,
     tmp_path,
 ):
-    from novelvideo.api.routes import tasks
+    from ai_anime.api.routes import tasks
 
     ctx = _ctx(tmp_path)
     manager = TaskStateManager()
@@ -233,7 +233,7 @@ async def test_single_task_stream_uses_effective_status_and_closes_on_terminal(
     current_task,
     expected_event,
 ):
-    from novelvideo.api.routes import tasks
+    from ai_anime.api.routes import tasks
 
     ctx = _ctx(tmp_path)
     manager = TaskStateManager()
@@ -305,7 +305,7 @@ async def test_single_task_stream_missing_task_returns_structured_error(
     monkeypatch,
     tmp_path,
 ):
-    from novelvideo.api.routes import tasks
+    from ai_anime.api.routes import tasks
 
     ctx = _ctx(tmp_path)
     await _install_project_context(monkeypatch, ctx)
@@ -330,7 +330,7 @@ async def test_single_task_stream_missing_task_returns_structured_error(
 
 @pytest.mark.asyncio
 async def test_clear_completed_deletes_only_effective_completed_tasks(monkeypatch, tmp_path):
-    from novelvideo.api.routes import tasks
+    from ai_anime.api.routes import tasks
 
     ctx = _ctx(tmp_path)
     manager = TaskStateManager()
@@ -364,7 +364,7 @@ async def test_clear_completed_deletes_only_effective_completed_tasks(monkeypatc
 
 @pytest.mark.asyncio
 async def test_task_limits_shape_and_ce_single_eligible_user(monkeypatch, tmp_path):
-    from novelvideo.api.routes import tasks
+    from ai_anime.api.routes import tasks
 
     ctx = _ctx(tmp_path)
     manager = TaskStateManager()
@@ -399,7 +399,7 @@ async def test_task_limits_shape_and_ce_single_eligible_user(monkeypatch, tmp_pa
 
 @pytest.mark.asyncio
 async def test_pipeline_status_returns_m07_shape_and_step_map(monkeypatch, tmp_path):
-    from novelvideo.api.routes import pipeline
+    from ai_anime.api.routes import pipeline
 
     ctx = _ctx(tmp_path)
 
@@ -448,7 +448,7 @@ async def test_pipeline_status_returns_m07_shape_and_step_map(monkeypatch, tmp_p
 
 
 def test_m07_http_coverage_exercises_task_center_routes(monkeypatch, tmp_path):
-    from novelvideo.api.routes import pipeline, tasks
+    from ai_anime.api.routes import pipeline, tasks
 
     ctx = _ctx(tmp_path)
     manager = TaskStateManager()
@@ -580,7 +580,7 @@ async def test_m07_task_backend_read_and_stream_shapes_are_ce_ee_isomorphic(
     monkeypatch,
     tmp_path,
 ):
-    from novelvideo.api.routes import tasks
+    from ai_anime.api.routes import tasks
 
     async def collect(backend: str):
         ctx = _ctx(tmp_path / backend)
@@ -711,7 +711,7 @@ async def test_inline_cancel_is_cooperative_runner_stop(tmp_path):
 
 @pytest.mark.asyncio
 async def test_inline_backend_runs_sync_core_outside_active_event_loop(monkeypatch, tmp_path):
-    from novelvideo.ports.local import tasks as local_tasks
+    from ai_anime.ports.local import tasks as local_tasks
 
     ctx = _ctx(tmp_path)
     backend = InlineTaskBackend()

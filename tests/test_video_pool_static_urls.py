@@ -6,8 +6,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from novelvideo.models import VideoPoolEntry, VideoPoolIndex
-from novelvideo.project_context import ProjectContext
+from ai_anime.models import VideoPoolEntry, VideoPoolIndex
+from ai_anime.project_context import ProjectContext
 
 
 pytestmark = pytest.mark.m09
@@ -33,14 +33,14 @@ def _ctx(tmp_path: Path) -> ProjectContext:
 
 
 def _configure_state_roots(monkeypatch: pytest.MonkeyPatch, ctx: ProjectContext) -> None:
-    from novelvideo.utils import state_index_files
+    from ai_anime.utils import state_index_files
 
     monkeypatch.setattr(state_index_files, "OUTPUT_DIR", str(Path(ctx.output_dir).parents[1]))
     monkeypatch.setattr(state_index_files, "STATE_DIR", str(Path(ctx.state_dir).parents[1]))
 
 
 def _write_video_pool(ctx: ProjectContext, episode: int = 1) -> tuple[Path, VideoPoolEntry]:
-    from novelvideo.generators.video_pool_indexer import save_video_pool_index
+    from ai_anime.generators.video_pool_indexer import save_video_pool_index
 
     videos_ep_dir = Path(ctx.output_dir) / "videos" / "beats" / f"ep{episode:03d}"
     pool_dir = videos_ep_dir / "pool"
@@ -79,7 +79,7 @@ async def _fake_resolve(
 
 @pytest.mark.asyncio
 async def test_video_pool_list_returns_project_id_static_urls(monkeypatch, tmp_path):
-    from novelvideo.api.routes import generation
+    from ai_anime.api.routes import generation
 
     ctx = _ctx(tmp_path)
     _configure_state_roots(monkeypatch, ctx)
@@ -102,8 +102,8 @@ async def test_video_pool_list_returns_project_id_static_urls(monkeypatch, tmp_p
 
 @pytest.mark.asyncio
 async def test_video_pool_select_returns_project_id_static_url(monkeypatch, tmp_path):
-    from novelvideo.api.routes import generation
-    from novelvideo.api.schemas import VideoPoolSelectRequest
+    from ai_anime.api.routes import generation
+    from ai_anime.api.schemas import VideoPoolSelectRequest
 
     ctx = _ctx(tmp_path)
     _configure_state_roots(monkeypatch, ctx)

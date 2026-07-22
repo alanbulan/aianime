@@ -1,13 +1,11 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
-import { useCallback, useEffect, useRef, useState } from "react";
+// Copyright (c) 2026 AI anime
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode, RefObject } from "react";
 import { createPortal } from "react-dom";
 import { Link, useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import {
   AlertTriangle,
-  Bell,
   Bolt,
   Camera,
   Check,
@@ -25,41 +23,29 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { CreditBalanceBadge } from "@/components/layout/credit-balance-badge";
-import { NotificationDrawer } from "@/components/notifications/notification-drawer";
 import { SettingsDialog } from "@/components/settings/settings-dialog";
-import {
-  PetGalleryDialog,
-  type CompanionSelection,
-} from "@/features/companion/petdex/PetGalleryDialog";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAppStore } from "@/stores/app-store";
 import { authRequired, isCeRuntime } from "@/lib/runtime-config";
 import { resetUserSessionState } from "@/lib/reset-region-state";
 import { useModelGatewayConfig } from "@/lib/queries/model-gateway";
-import { useReleaseNotifications } from "@/lib/queries/release-notifications";
-import {
-  markUpgradeSeen,
-  shouldShowUpgradeNudge,
-} from "@/lib/release-notification-state";
 import {
   ProjectHeaderNavigation,
   ProjectSwitcher,
-  ProjectXiajiMenu,
+  ProjectWorkspaceMenu,
 } from "@/components/layout/project-header-navigation";
 const ACCOUNT_PANEL_TRANSITION_MS = 350;
 
 export function Header() {
   const { t, i18n } = useTranslation();
   const params = useParams({ strict: false }) as { project?: string };
-  const [companionOpen, setCompanionOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [notificationOpen, setNotificationOpen] = useState(false);
-  const [releaseNotificationStateVersion, setReleaseNotificationStateVersion] = useState(0);
   const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
   const [accountPanelOpen, setAccountPanelOpen] = useState(false);
   const [accountPanelVisible, setAccountPanelVisible] = useState(false);
   const [settingsWarningBubbleDismissed, setSettingsWarningBubbleDismissed] = useState(false);
+  const [desktopActionsHost, setDesktopActionsHost] = useState<HTMLElement | null>(null);
   const [accountPanelPosition, setAccountPanelPosition] = useState<{ top: number; right: number }>({
     top: 56,
     right: 16,
@@ -79,11 +65,6 @@ export function Header() {
     resetUserSessionState({ queryClient });
   };
   const avatarUrl = useAuthStore((s) => s.avatarUrl);
-  const companionKind = useAppStore((s) => s.companionKind);
-  const companionPet = useAppStore((s) => s.companionPet);
-  const pikoAccessory = useAppStore((s) => s.pikoAccessory);
-  const setCompanion = useAppStore((s) => s.setCompanion);
-  const setPikoAccessory = useAppStore((s) => s.setPikoAccessory);
   const setLanguage = useAppStore((s) => s.setLanguage);
   const showLogout = authRequired();
   const ceRuntime = isCeRuntime();
@@ -93,10 +74,6 @@ export function Header() {
     ? "zh"
     : "en";
   const modelGatewayConfig = useModelGatewayConfig(ceRuntime);
-  const releaseNotifications = useReleaseNotifications(i18n.resolvedLanguage ?? i18n.language);
-  const releaseFeed = releaseNotifications.data?.data;
-  void releaseNotificationStateVersion;
-  const hasUnreadNotification = shouldShowUpgradeNudge(releaseFeed);
   const gatewayConfig = modelGatewayConfig.data?.data;
   const hasSettingsWarning = Boolean(
     ceRuntime &&
@@ -109,6 +86,7 @@ export function Header() {
     hasSettingsWarning && !settingsOpen && !settingsWarningBubbleDismissed,
   );
   const project = params.project ?? null;
+  const isDesktop = Boolean(window.aiAnimeDesktop);
 
   useEffect(() => {
     return () => {
@@ -118,21 +96,18 @@ export function Header() {
     };
   }, []);
 
+  useEffect(() => {
+    setDesktopActionsHost(
+      isDesktop ? document.getElementById("desktop-title-bar-actions") : null,
+    );
+  }, [isDesktop]);
+
 
   useEffect(() => {
     if (!hasSettingsWarning) {
       setSettingsWarningBubbleDismissed(false);
     }
   }, [hasSettingsWarning]);
-
-  const handleCompanionConfirm = (
-    selection: CompanionSelection,
-    accessory: typeof pikoAccessory,
-  ) => {
-    setCompanion(selection.kind, selection.pet);
-    setPikoAccessory(accessory);
-    window.dispatchEvent(new Event("mybuddy-companion-reset"));
-  };
 
   const clearAccountCloseTimer = () => {
     if (accountCloseTimerRef.current === null) return;
@@ -196,152 +171,119 @@ export function Header() {
     setLanguage(lang);
   };
 
-  const openNotifications = () => {
-    closeAccountPanelNow();
-    markUpgradeSeen(releaseFeed?.latest_tag);
-    setReleaseNotificationStateVersion((version) => version + 1);
-    setNotificationOpen(true);
-  };
-
-  const handleUpgradeStateChange = useCallback(() => {
-    setReleaseNotificationStateVersion((version) => version + 1);
-  }, []);
-
   const openAvatarDialog = () => {
     closeAccountPanelNow();
     setAvatarDialogOpen(true);
   };
 
+  const actions = (
+    <div
+      className={`flex items-center justify-end gap-1 ${
+        isDesktop ? "h-full shrink-0" : "min-w-0 flex-1 shrink-0"
+      }`}
+    >
+      {ceRuntime ? (
+        <div ref={settingsAnchorRef} className="relative">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="relative size-[32px] text-sidebar-foreground/82 transition-colors duration-150 ease-[var(--ease-out-quint)] hover:bg-white/[0.05] hover:text-white aria-expanded:bg-white/[0.05] aria-expanded:text-white"
+            aria-label={
+              hasSettingsWarning ? t("header.settingsWithWarning") : t("header.settings")
+            }
+            aria-expanded={settingsOpen}
+            onClick={() => setSettingsOpen(true)}
+          >
+            <Bolt className="size-[17px]" />
+            {hasSettingsWarning ? (
+              <span
+                className="absolute right-[5px] top-[5px] flex size-[11px] items-center justify-center rounded-full bg-amber-400 text-black shadow-[0_0_7px_rgba(251,191,36,0.68)]"
+                aria-hidden="true"
+              >
+                <AlertTriangle className="size-[8px]" strokeWidth={3} />
+              </span>
+            ) : null}
+          </Button>
+        </div>
+      ) : null}
+      <CreditBalanceBadge />
+      <div
+        id="superchat-header-controls"
+        className="flex min-w-0 shrink items-center gap-2 empty:hidden"
+      />
+      <div
+        ref={accountAnchorRef}
+        className="relative ml-1 flex items-center"
+        onMouseEnter={openAccountPanel}
+        onMouseLeave={scheduleCloseAccountPanel}
+      >
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="size-[28px] rounded-full p-0 hover:bg-transparent"
+          aria-label={t("header.account.open")}
+        >
+          <span className="flex size-[26px] items-center justify-center overflow-hidden rounded-full border border-white/[0.10] bg-white/[0.07] text-[11px] font-normal text-white/72">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="" className="size-full object-cover" />
+            ) : (
+              avatarInitial
+            )}
+          </span>
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="relative z-20 shrink-0 bg-background/58 text-sidebar-foreground backdrop-blur-xl">
-      <header className="relative flex h-[48px] items-center justify-between gap-3 px-4">
+      {!isDesktop || project ? (
+        <header className="relative flex h-[48px] items-center justify-between gap-3 px-4">
         <div className="flex min-w-0 flex-1 items-center">
-          <TooltipProvider delay={80}>
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Link
-                    to="/"
-                    aria-label={t("app.logoHomeTooltip")}
-                    className="flex min-w-0 shrink-0 items-center"
-                  />
-                }
-              >
-                <img
-                  src="/brand/dramaclaw-wordmark.png"
-                  alt=""
-                  aria-hidden="true"
-                  className="h-[22.7px] w-auto max-w-[113px] object-contain"
-                />
-              </TooltipTrigger>
-              <TooltipContent
-                side="bottom"
-                sideOffset={10}
-                showArrow={false}
-                className="border border-white/10 bg-background/95 text-foreground shadow-none"
-              >
-                {t("app.logoHomeTooltip")}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <div className="ml-[22px] flex min-w-0 items-center gap-6">
+          {isDesktop ? null : (
+            <TooltipProvider delay={80}>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Link
+                      to="/"
+                      aria-label={t("app.logoHomeTooltip")}
+                      className="flex min-w-0 shrink-0 items-center"
+                    />
+                  }
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="flex size-6 items-center justify-center rounded bg-foreground text-[10px] font-semibold text-background">
+                      AI
+                    </span>
+                    <span className="truncate text-sm font-semibold text-foreground">AI anime</span>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="bottom"
+                  sideOffset={10}
+                  showArrow={false}
+                  className="border border-white/10 bg-background/95 text-foreground shadow-none"
+                >
+                  {t("app.logoHomeTooltip")}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          <div className={`${isDesktop ? "" : "ml-[22px]"} flex min-w-0 items-center gap-6`}>
             {project ? <ProjectSwitcher current={project} /> : null}
           </div>
         </div>
 
         {project ? <ProjectHeaderNavigation project={project} /> : null}
 
-        {/* Actions */}
-        <div className="flex min-w-0 flex-1 shrink-0 items-center justify-end gap-1">
-          {/* 设置仅在 CE 版显示,EE 版隐藏 */}
-          {ceRuntime ? (
-            <div ref={settingsAnchorRef} className="relative">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="relative size-[32px] text-sidebar-foreground/82 transition-colors duration-150 ease-[var(--ease-out-quint)] hover:bg-white/[0.05] hover:text-white aria-expanded:bg-white/[0.05] aria-expanded:text-white"
-                aria-label={
-                  hasSettingsWarning ? t("header.settingsWithWarning") : t("header.settings")
-                }
-                aria-expanded={settingsOpen}
-                onClick={() => setSettingsOpen(true)}
-              >
-                <Bolt className="size-[17px]" />
-                {hasSettingsWarning ? (
-                  <span
-                    className="absolute right-[5px] top-[5px] flex size-[11px] items-center justify-center rounded-full bg-amber-400 text-black shadow-[0_0_7px_rgba(251,191,36,0.68)]"
-                    aria-hidden="true"
-                  >
-                    <AlertTriangle className="size-[8px]" strokeWidth={3} />
-                  </span>
-                ) : null}
-              </Button>
-            </div>
-          ) : null}
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="group/notification relative size-[32px] text-sidebar-foreground/82 transition-colors duration-150 ease-[var(--ease-out-quint)] hover:bg-white/[0.05] hover:text-white aria-expanded:bg-white/[0.05] aria-expanded:text-white"
-            aria-label={t("header.notifications")}
-            aria-expanded={notificationOpen}
-            onClick={openNotifications}
-          >
-            <Bell className="size-[17px]" />
-            {hasUnreadNotification ? (
-              <span
-                className="absolute right-[8px] top-[8px] size-1 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.72)]"
-                aria-hidden="true"
-              />
-            ) : null}
-          </Button>
-          <Button
-            id="mybuddy-companion-entry"
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="companion-capsule-entry -ml-0.5 -mr-0.5 size-[32px] transition-colors duration-150 ease-[var(--ease-out-quint)] hover:bg-white/[0.06] aria-expanded:bg-white/[0.06]"
-            onClick={() => setCompanionOpen(true)}
-            aria-label={t("myBuddy.companion.entry")}
-          >
-            <img
-              src="/piko/entry/companion-capsule.png"
-              alt=""
-              aria-hidden="true"
-              className="companion-capsule-entry__icon size-[22px] object-contain [image-rendering:pixelated]"
-            />
-          </Button>
-          <CreditBalanceBadge />
-          <div
-            id="superchat-header-controls"
-            className="flex min-w-0 shrink items-center gap-2 empty:hidden"
-          />
-          <div
-            ref={accountAnchorRef}
-            className="relative ml-1 flex items-center"
-            onMouseEnter={openAccountPanel}
-            onMouseLeave={scheduleCloseAccountPanel}
-          >
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              className="size-[28px] rounded-full p-0 hover:bg-transparent"
-              aria-label={t("header.account.open")}
-            >
-              <span className="flex size-[26px] items-center justify-center overflow-hidden rounded-full border border-white/[0.10] bg-white/[0.07] text-[11px] font-normal text-white/72">
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt="" className="size-full object-cover" />
-                ) : (
-                  avatarInitial
-                )}
-              </span>
-            </Button>
-          </div>
-        </div>
-      </header>
-      {project ? <ProjectXiajiMenu project={project} /> : null}
+        {isDesktop ? <div className="min-w-0 flex-1" /> : actions}
+        </header>
+      ) : null}
+      {isDesktop && desktopActionsHost ? createPortal(actions, desktopActionsHost) : null}
+      {project ? <ProjectWorkspaceMenu project={project} /> : null}
       {accountPanelOpen
         ? createPortal(
             <AccountPanel
@@ -361,19 +303,6 @@ export function Header() {
             document.body,
           )
         : null}
-      <PetGalleryDialog
-        open={companionOpen}
-        onOpenChange={setCompanionOpen}
-        currentKind={companionKind}
-        currentPet={companionPet}
-        currentAccessory={pikoAccessory}
-        onConfirm={handleCompanionConfirm}
-      />
-      <NotificationDrawer
-        open={notificationOpen}
-        onOpenChange={setNotificationOpen}
-        onUpgradeStateChange={handleUpgradeStateChange}
-      />
       <AvatarUploadDialog
         avatarInitial={avatarInitial}
         displayName={displayName}

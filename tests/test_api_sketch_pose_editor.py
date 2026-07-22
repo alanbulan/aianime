@@ -24,7 +24,7 @@ class _PoseStore:
 
 
 def _client(monkeypatch, tmp_path):
-    from novelvideo.api.routes import generation
+    from ai_anime.api.routes import generation
 
     async def fake_make_sqlite_store(username: str, project: str):
         assert username == "alice"

@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { STANDARD_TIME_OF_DAY_OPTIONS } from "@/lib/time-of-day";
 
 export interface SceneRefLike {

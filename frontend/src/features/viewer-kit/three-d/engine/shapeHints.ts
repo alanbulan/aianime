@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 // 复刻旧 PlayCanvas 3GS 导演台的 DIRECTOR_SHAPE_HINTS：
 // 给 prop / staging 一个粗粒度的「形状语义」标签，决定默认 scale、affordances、
 // 挂载点（attachment_points）。挂载点用三维 offset（相对 prop entity 局部坐标系，

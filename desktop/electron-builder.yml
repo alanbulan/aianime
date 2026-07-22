@@ -1,0 +1,29 @@
+appId: com.ai-anime.desktop
+productName: AI anime
+copyright: Copyright (c) 2026 AI anime
+asar: true
+directories:
+  output: release
+files:
+  - dist/**/*
+  - package.json
+extraResources:
+  - from: ../frontend/dist
+    to: frontend
+  - from: backend-dist/ai-anime-backend
+    to: backend
+  - from: runtime/ffmpeg
+    to: bin
+win:
+  icon: build/icon.png
+  target:
+    - target: nsis
+      arch:
+        - x64
+  artifactName: AI-anime-${version}-${arch}-setup.${ext}
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: AI anime

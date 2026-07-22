@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { RuntimeConfigResponse } from "@/lib/runtime-config";
 
 const WATCH_INTERVAL_MS = 4_000;

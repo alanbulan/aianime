@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { beforeEach, describe, it, expect } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useSelection } from "@/hooks/use-selection";

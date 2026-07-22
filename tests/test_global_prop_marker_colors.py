@@ -1,5 +1,5 @@
-from novelvideo.generators.nanobanana_grid import _global_prop_marker_colors
-from novelvideo.models import build_prop_menu
+from ai_anime.generators.nanobanana_grid import _global_prop_marker_colors
+from ai_anime.models import build_prop_menu
 
 
 def test_global_prop_marker_colors_use_episode_marker_color_only():

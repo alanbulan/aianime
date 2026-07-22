@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 vi.mock("@/lib/cluster-config", () => ({
@@ -35,7 +34,7 @@ describe("region-store", () => {
 
   it("rehydrate preserves whatever was persisted (no sanitize at hydrate time)", async () => {
     localStorage.setItem(
-      "supertale-region",
+      "ai-anime-region",
       JSON.stringify({ state: { selectedRegionId: "gone-1" }, version: 1 }),
     );
     const { useRegionStore } = await import("@/stores/region-store");
@@ -44,7 +43,7 @@ describe("region-store", () => {
 
   it("sanitizeAgainstConfig clears a selected id that is not in clusterConfig.regions", async () => {
     localStorage.setItem(
-      "supertale-region",
+      "ai-anime-region",
       JSON.stringify({ state: { selectedRegionId: "gone-1" }, version: 1 }),
     );
     const { useRegionStore } = await import("@/stores/region-store");
@@ -54,7 +53,7 @@ describe("region-store", () => {
 
   it("sanitizeAgainstConfig keeps a selected id that IS in clusterConfig.regions", async () => {
     localStorage.setItem(
-      "supertale-region",
+      "ai-anime-region",
       JSON.stringify({ state: { selectedRegionId: "cn-1" }, version: 1 }),
     );
     const { useRegionStore } = await import("@/stores/region-store");

@@ -1,14 +1,14 @@
-"""Unit tests for novelvideo.chat.hermes_workspace."""
+"""Unit tests for ai_anime.chat.hermes_workspace."""
 
 from __future__ import annotations
 
 import pytest
 import yaml
 
-from novelvideo import config as app_config
-from novelvideo.chat import hermes_sdk
-from novelvideo.chat import hermes_workspace as hw
-from novelvideo.model_gateway_settings import (
+from ai_anime import config as app_config
+from ai_anime.chat import hermes_sdk
+from ai_anime.chat import hermes_workspace as hw
+from ai_anime.model_gateway_settings import (
     save_custom_newapi_gateway,
     save_official_newapi_key,
 )
@@ -31,25 +31,25 @@ def _enabled_toolsets(config: str) -> list[str]:
     return values
 
 
-def _dramaclaw_provider(config: dict) -> dict:
+def _ai_anime_provider(config: dict) -> dict:
     return next(
         item
         for item in config["custom_providers"]
-        if item.get("name") == "dramaclaw"
+        if item.get("name") == "ai_anime"
     )
 
 
 @pytest.fixture
 def isolated_workspace(tmp_path, monkeypatch):
-    """Redirect DRAMACLAW_ROOT/state and repo-pinned skills to a tmp tree."""
+    """Redirect AI_ANIME_ROOT/state and repo-pinned skills to a tmp tree."""
     repo_root = tmp_path / "repo"
     state_root = repo_root / "state"
     state_root.mkdir(parents=True)
-    monkeypatch.setattr(hw, "DRAMACLAW_ROOT", repo_root)
+    monkeypatch.setattr(hw, "AI_ANIME_ROOT", repo_root)
     monkeypatch.setattr(app_config, "STATE_DIR", str(state_root))
-    monkeypatch.setenv("ST_EDITION", "ce")
-    monkeypatch.delenv("ST_CONTROL_PLANE_DSN", raising=False)
-    monkeypatch.setenv("NOVELVIDEO_STATE_DIR", str(state_root))
+    monkeypatch.setenv("AI_ANIME_EDITION", "ce")
+    monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(state_root))
     for key in (
         "NEWAPI_API_KEY",
         "NEWAPI_BASE_URL",
@@ -60,10 +60,10 @@ def isolated_workspace(tmp_path, monkeypatch):
     ):
         monkeypatch.delenv(key, raising=False)
     monkeypatch.delenv("MODEL_GATEWAY_MODE", raising=False)
-    monkeypatch.delenv("ST_HERMES_SKILLS", raising=False)
+    monkeypatch.delenv("AI_ANIME_HERMES_SKILLS", raising=False)
     monkeypatch.delenv("HERMES_MODEL", raising=False)
     monkeypatch.delenv("HERMES_MODEL_DEFAULT", raising=False)
-    monkeypatch.delenv("DRAMACLAW_HERMES_MODEL", raising=False)
+    monkeypatch.delenv("AI_ANIME_HERMES_MODEL", raising=False)
     monkeypatch.delenv("HERMES_MODEL_PROVIDER", raising=False)
     monkeypatch.delenv("HERMES_MODEL_BASE_URL", raising=False)
     monkeypatch.delenv("HERMES_MODEL_API_MODE", raising=False)
@@ -76,7 +76,7 @@ def repo_skills(isolated_workspace):
     """Create a fake repo .hermes/skills tree."""
     skills = isolated_workspace / ".hermes" / "skills"
     skills.mkdir(parents=True)
-    for name in ("json-render", "dramaclaw", "other-skill"):
+    for name in ("json-render", "ai_anime", "other-skill"):
         (skills / name).mkdir()
         (skills / name / "SKILL.md").write_text(f"# {name}\n")
     return skills
@@ -87,7 +87,7 @@ def repo_plugins(isolated_workspace):
     """Create a fake repo .hermes/plugins tree."""
     plugins = isolated_workspace / ".hermes" / "plugins"
     plugins.mkdir(parents=True)
-    for name in ("dramaclaw", "other-plugin"):
+    for name in ("ai_anime", "other-plugin"):
         (plugins / name).mkdir()
         (plugins / name / "plugin.yaml").write_text(f"name: {name}\n")
     return plugins
@@ -101,19 +101,19 @@ def test_fresh_create_layout(isolated_workspace, repo_skills, repo_plugins):
     assert (home / "tmp").is_dir()
     assert (home / "skills" / "_user").is_dir()
     # Default allowlist should be symlinked in.
-    assert (home / "skills" / "dramaclaw").is_symlink()
+    assert (home / "skills" / "ai_anime").is_symlink()
     assert not (home / "skills" / "json-render").exists()
     assert not (home / "skills" / "other-skill").exists()
-    plugin_link = home / "plugins" / "dramaclaw"
+    plugin_link = home / "plugins" / "ai_anime"
     assert plugin_link.is_symlink()
     assert not (home / "plugins" / "other-plugin").exists()
     config = (home / "config.yaml").read_text()
     assert _enabled_toolsets(config) == ["hermes-acp", "memory"]
-    assert "    - dramaclaw" in config
-    assert "你是虾导" in (home / "SOUL.md").read_text()
+    assert "    - ai_anime" in config
+    assert "你是 AI anime 助手" in (home / "SOUL.md").read_text()
     memory = (home / "memories" / "MEMORY.md").read_text()
-    assert "虾导在 DramaClaw 会话中面向用户自称“虾导”" in memory
-    assert "我是虾导，DramaClaw 的小说转视频创作助手。" not in memory
+    assert "AI anime 助手在 AI anime 会话中面向用户自称“AI anime 助手”" in memory
+    assert "我是 AI anime 助手，AI anime 的小说转视频创作助手。" not in memory
 
 
 def test_hermes_initialize_timeout_allows_cold_start():
@@ -141,28 +141,28 @@ def test_hermes_detects_content_filter_error_text():
     assert hermes_sdk._has_content_filter_signal(payload)
 
 
-def test_hermes_classifies_dramaclaw_write_tools():
-    assert hermes_sdk._is_dramaclaw_write_tool("dramaclaw_generate_script")
-    assert hermes_sdk._is_dramaclaw_write_tool("dramaclaw_start_single_video")
-    assert not hermes_sdk._is_dramaclaw_write_tool("dramaclaw_pipeline_status")
-    assert not hermes_sdk._is_dramaclaw_write_tool("dramaclaw_get_task")
+def test_hermes_classifies_ai_anime_write_tools():
+    assert hermes_sdk._is_ai_anime_write_tool("ai_anime_generate_script")
+    assert hermes_sdk._is_ai_anime_write_tool("ai_anime_start_single_video")
+    assert not hermes_sdk._is_ai_anime_write_tool("ai_anime_pipeline_status")
+    assert not hermes_sdk._is_ai_anime_write_tool("ai_anime_get_task")
 
 
 def test_hermes_allows_read_tools_after_write_task():
     assert not hermes_sdk._should_stop_after_write_tool(
-        "dramaclaw_generate_script",
-        "dramaclaw_pipeline_status",
+        "ai_anime_generate_script",
+        "ai_anime_pipeline_status",
     )
     assert not hermes_sdk._should_stop_after_write_tool(
-        "dramaclaw_generate_script",
-        "dramaclaw_get_task",
+        "ai_anime_generate_script",
+        "ai_anime_get_task",
     )
 
 
 def test_hermes_stops_second_write_tool_after_write_task():
     assert hermes_sdk._should_stop_after_write_tool(
-        "dramaclaw_generate_script",
-        "dramaclaw_start_single_video",
+        "ai_anime_generate_script",
+        "ai_anime_start_single_video",
     )
 
 
@@ -174,26 +174,26 @@ def test_hermes_detects_failed_tool_update():
 
 def test_hermes_does_not_mark_read_task_failure_as_first_write_failure():
     assert not hermes_sdk._should_mark_first_write_failed(
-        "dramaclaw_generate_script",
-        "dramaclaw_get_task",
+        "ai_anime_generate_script",
+        "ai_anime_get_task",
         {"result": {"status": "failed", "error": "render failed"}},
     )
     assert hermes_sdk._should_mark_first_write_failed(
-        "dramaclaw_generate_script",
-        "dramaclaw_generate_script",
+        "ai_anime_generate_script",
+        "ai_anime_generate_script",
         {"result": {"ok": False, "error": "identity_plan_required"}},
     )
 
 
 def test_state_root_prefers_env(monkeypatch, tmp_path):
-    monkeypatch.setenv("NOVELVIDEO_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
 
     assert hw._state_root() == tmp_path / "state"
 
 
 def test_state_root_falls_back_to_repo(monkeypatch, tmp_path):
-    monkeypatch.setattr(hw, "DRAMACLAW_ROOT", tmp_path / "repo")
-    monkeypatch.delenv("NOVELVIDEO_STATE_DIR", raising=False)
+    monkeypatch.setattr(hw, "AI_ANIME_ROOT", tmp_path / "repo")
+    monkeypatch.delenv("AI_ANIME_STATE_DIR", raising=False)
 
     assert hw._state_root() == tmp_path / "repo" / "state"
 
@@ -222,13 +222,13 @@ def test_fresh_config_uses_model_env_but_keeps_newapi_transport(
 
     assert "  default: gemini-3.5-flash" in config
     parsed = yaml.safe_load(config)
-    assert parsed["model"]["provider"] == "custom:dramaclaw"
+    assert parsed["model"]["provider"] == "custom:ai_anime"
     assert parsed["model"]["default"] == "gemini-3.5-flash"
     assert parsed["model"]["context_length"] == 65536
     assert "api_key" not in parsed["model"]
-    provider = _dramaclaw_provider(parsed)
+    provider = _ai_anime_provider(parsed)
     assert provider == {
-        "name": "dramaclaw",
+        "name": "ai_anime",
         "base_url": app_config.OFFICIAL_NEWAPI_BASE_URL,
         "key_env": "NEWAPI_API_KEY",
         "api_mode": "responses",
@@ -247,7 +247,7 @@ def test_existing_config_syncs_endpoint_without_persisting_rotated_key(
     config_path = home / "config.yaml"
     first = yaml.safe_load(config_path.read_text(encoding="utf-8"))
     assert "api_key" not in first["model"]
-    assert _dramaclaw_provider(first)["base_url"] == "http://old-gateway/v1"
+    assert _ai_anime_provider(first)["base_url"] == "http://old-gateway/v1"
     assert "old-key" not in config_path.read_text(encoding="utf-8")
 
     config = config_path.read_text(encoding="utf-8") + "\ncustom_block:\n  keep: true\n"
@@ -262,8 +262,8 @@ def test_existing_config_syncs_endpoint_without_persisting_rotated_key(
     parsed = yaml.safe_load(config_path.read_text(encoding="utf-8"))
 
     assert "api_key" not in parsed["model"]
-    assert _dramaclaw_provider(parsed)["base_url"] == "http://new-gateway/v1"
-    assert _dramaclaw_provider(parsed)["key_env"] == "NEWAPI_API_KEY"
+    assert _ai_anime_provider(parsed)["base_url"] == "http://new-gateway/v1"
+    assert _ai_anime_provider(parsed)["key_env"] == "NEWAPI_API_KEY"
     assert "rotated-key" not in config_path.read_text(encoding="utf-8")
     assert parsed["custom_block"]["keep"] is True
     assert _enabled_toolsets(config_path.read_text(encoding="utf-8")) == [
@@ -294,8 +294,8 @@ def test_hermes_uses_settings_db_newapi_before_root_env(
     env_text = (home / ".env").read_text(encoding="utf-8")
 
     assert "api_key" not in parsed["model"]
-    assert _dramaclaw_provider(parsed)["base_url"] == "http://custom-gateway/v1"
-    assert _dramaclaw_provider(parsed)["key_env"] == "NEWAPI_API_KEY"
+    assert _ai_anime_provider(parsed)["base_url"] == "http://custom-gateway/v1"
+    assert _ai_anime_provider(parsed)["key_env"] == "NEWAPI_API_KEY"
     assert "custom-key" not in (home / "config.yaml").read_text(encoding="utf-8")
     assert "OPENAI_API_KEY" not in env_text
     assert "root-key" not in env_text
@@ -329,7 +329,7 @@ def test_fresh_workspace_does_not_persist_newapi_key(
     config = yaml.safe_load((home / "config.yaml").read_text(encoding="utf-8"))
 
     assert "api_key" not in config["model"]
-    assert _dramaclaw_provider(config)["key_env"] == "NEWAPI_API_KEY"
+    assert _ai_anime_provider(config)["key_env"] == "NEWAPI_API_KEY"
     assert "test-newapi-key" not in (home / "config.yaml").read_text(encoding="utf-8")
     assert "OPENAI_API_KEY" not in env_text
 
@@ -358,14 +358,14 @@ custom_providers:
     text = (home / "config.yaml").read_text(encoding="utf-8")
     config = yaml.safe_load(text)
 
-    assert config["model"]["provider"] == "custom:dramaclaw"
+    assert config["model"]["provider"] == "custom:ai_anime"
     assert "api_key" not in config["model"]
     assert "legacy-key" not in text
     assert any(
         item.get("name") == "user-provider"
         for item in config["custom_providers"]
     )
-    assert _dramaclaw_provider(config)["key_env"] == "NEWAPI_API_KEY"
+    assert _ai_anime_provider(config)["key_env"] == "NEWAPI_API_KEY"
 
 
 def test_existing_env_is_preserved(
@@ -389,17 +389,17 @@ def test_existing_env_is_preserved(
 def test_legacy_config_gets_default_plugin_block(isolated_workspace, repo_skills, repo_plugins):
     home = isolated_workspace / "state" / "admin" / ".hermes"
     home.mkdir(parents=True)
-    (home / "config.yaml").write_text("enabled_toolsets:\n  - dramaclaw\n")
+    (home / "config.yaml").write_text("enabled_toolsets:\n  - ai_anime\n")
 
     hw.ensure_user_hermes_workspace("admin")
 
     config = (home / "config.yaml").read_text()
     parsed = yaml.safe_load(config)
     assert _enabled_toolsets(config) == ["hermes-acp"]
-    assert "plugins:\n  enabled:\n    - dramaclaw" in config
-    assert parsed["model"]["default"] == "DC-hermes-LLM"
-    assert parsed["model"]["provider"] == "custom:dramaclaw"
-    assert _dramaclaw_provider(parsed)["key_env"] == "NEWAPI_API_KEY"
+    assert "plugins:\n  enabled:\n    - ai_anime" in config
+    assert parsed["model"]["default"] == "ai-anime-assistant-LLM"
+    assert parsed["model"]["provider"] == "custom:ai_anime"
+    assert _ai_anime_provider(parsed)["key_env"] == "NEWAPI_API_KEY"
 
 
 def test_legacy_identity_context_is_migrated(isolated_workspace, repo_skills, repo_plugins):
@@ -413,11 +413,11 @@ def test_legacy_identity_context_is_migrated(isolated_workspace, repo_skills, re
 
     soul = (home / "SOUL.md").read_text(encoding="utf-8")
     memory = (memories / "MEMORY.md").read_text(encoding="utf-8")
-    assert "你是虾导" in soul
+    assert "你是 AI anime 助手" in soul
     assert "You are Hermes Agent" not in soul
-    assert "我是虾导，DramaClaw 的小说转视频创作助手。" not in memory
-    assert "DramaClaw 管理的虾导会话" in memory
-    assert "DramaClaw 管理的 Hermes 会话" not in memory
+    assert "我是 AI anime 助手，AI anime 的小说转视频创作助手。" not in memory
+    assert "AI anime 管理的 AI anime 助手会话" in memory
+    assert "AI anime 管理的 Hermes 会话" not in memory
 
 
 def test_stale_symlinks_removed(isolated_workspace, repo_skills, repo_plugins):
@@ -428,16 +428,16 @@ def test_stale_symlinks_removed(isolated_workspace, repo_skills, repo_plugins):
     # Re-run; stale non-allowlisted symlink should be removed
     hw.ensure_user_hermes_workspace("admin")
     assert not (home / "skills" / "json-render").exists()
-    assert (home / "skills" / "dramaclaw").is_symlink()  # still there
+    assert (home / "skills" / "ai_anime").is_symlink()  # still there
 
 
 def test_stale_plugin_symlinks_removed(isolated_workspace, repo_skills, repo_plugins):
     home = hw.ensure_user_hermes_workspace("admin")
     import shutil
 
-    shutil.rmtree(repo_plugins / "dramaclaw")
+    shutil.rmtree(repo_plugins / "ai_anime")
     hw.ensure_user_hermes_workspace("admin")
-    assert not (home / "plugins" / "dramaclaw").exists()
+    assert not (home / "plugins" / "ai_anime").exists()
 
 
 def test_no_repo_skills_dir(isolated_workspace):

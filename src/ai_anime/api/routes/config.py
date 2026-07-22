@@ -1,0 +1,36 @@
+"""Public runtime configuration for the frontend."""
+
+from __future__ import annotations
+
+import os
+from typing import Literal
+
+from fastapi import APIRouter
+from fastapi.responses import JSONResponse
+from ulid import ULID
+
+from ai_anime.shared import runtime_env
+
+router = APIRouter()
+
+RuntimeEdition = Literal["ce", "ee"]
+_INSTANCE_ID = str(ULID())
+
+
+def _runtime_edition() -> RuntimeEdition:
+    return "ce" if runtime_env.is_ce_effective() else "ee"
+
+
+@router.get("/config")
+async def get_runtime_config():
+    edition = _runtime_edition()
+    return JSONResponse(
+        {
+            "ok": True,
+            "data": {
+                "edition": edition,
+                "auth_required": edition == "ee" or os.environ.get("AI_ANIME_DESKTOP_MODE") == "1",
+                "instance_id": _INSTANCE_ID,
+            },
+        }
+    )

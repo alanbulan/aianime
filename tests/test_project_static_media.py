@@ -5,14 +5,14 @@ from pathlib import Path
 
 import pytest
 
-from novelvideo.api.deps import make_static_url_for_context
-from novelvideo.api.app import create_app
-from novelvideo.api.routes.freezone import _asset_record_from_path
-from novelvideo.freezone.canvas_static_urls import (
+from ai_anime.api.deps import make_static_url_for_context
+from ai_anime.api.app import create_app
+from ai_anime.api.routes.freezone import _asset_record_from_path
+from ai_anime.freezone.canvas_static_urls import (
     migrate_canvas_static_urls_in_memory,
     sanitize_project_local_paths_in_memory,
 )
-from novelvideo.project_context import ProjectContext
+from ai_anime.project_context import ProjectContext
 
 
 pytestmark = pytest.mark.m09
@@ -355,7 +355,7 @@ async def test_generation_history_static_urls_are_migrated_in_memory(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from novelvideo.api.routes import freezone as freezone_routes
+    from ai_anime.api.routes import freezone as freezone_routes
 
     ctx = _ctx(tmp_path)
 

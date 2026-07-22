@@ -4,7 +4,7 @@ from importlib import import_module
 
 @pytest.mark.asyncio
 async def test_close_releases_cached_cognee_graph_engine(monkeypatch):
-    from novelvideo.cognee.store import CogneeStore
+    from ai_anime.cognee.store import CogneeStore
 
     graph_config_module = import_module("cognee.infrastructure.databases.graph.config")
     graph_engine_module = import_module("cognee.infrastructure.databases.graph.get_graph_engine")

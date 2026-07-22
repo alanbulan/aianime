@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 /**
  * Top-right floating debug dropdown for the freezone canvas. Lets the
  * developer inspect the canvas-save state machine without opening devtools:

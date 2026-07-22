@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import {
   useQuery,
   useMutation,
@@ -165,7 +164,7 @@ export interface PlanIdentitiesResult {
 /**
  * Start the per-episode identity planning background task. Returns
  * TaskResponse; completion/failure arrives via the task-center SSE stream.
- * Use `/identities/plan` because both older and newer SuperTale backends
+ * Use `/identities/plan` because both older and newer AI anime backends
  * expose it as the task-start endpoint.
  */
 export function usePlanIdentities(project: string) {

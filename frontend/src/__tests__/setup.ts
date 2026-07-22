@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import "@testing-library/jest-dom/vitest";
 
 // jsdom v29 + Node.js >=22 exposes a broken localStorage (plain object without

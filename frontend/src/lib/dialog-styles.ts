@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 export const GLASS_DIALOG_CONTENT_CLASS =
   "border border-white/[0.14] !bg-[rgba(8,16,20,0.76)] shadow-[0_28px_80px_rgba(0,0,0,0.52)] backdrop-blur-2xl supports-backdrop-filter:!bg-[rgba(8,16,20,0.64)]";
 

@@ -1,9 +1,8 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useRegionStore } from "@/stores/region-store";
 
 const CHANNEL_NAME = "region-switch";
-const PERSIST_KEY = "supertale-region";
+const PERSIST_KEY = "ai-anime-region";
 const RELOAD_DELAY_MS = 200;
 
 type Msg = { type: "switching"; newRegionId: string };
@@ -23,7 +22,7 @@ function getChannel(): BroadcastChannel {
  *     right before mutating its own region, so sibling tabs learn about it
  *     synchronously within the same browser instance.
  *  2. window "storage" event — fires in OTHER tabs when localStorage is
- *     mutated. We watch the Zustand persist key ("supertale-region") so that
+ *     mutated. We watch the Zustand persist key ("ai-anime-region") so that
  *     even without the BroadcastChannel signal we catch the switch.
  *
  * Either signal locks this tab (isLocked=true) and schedules a hard reload

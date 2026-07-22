@@ -8,9 +8,9 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from novelvideo.models import CharacterIdentity, NovelCharacter
-from novelvideo.models import NO_CHARACTER_MARKER
-from novelvideo.project_context import ProjectContext
+from ai_anime.models import CharacterIdentity, NovelCharacter
+from ai_anime.models import NO_CHARACTER_MARKER
+from ai_anime.project_context import ProjectContext
 
 pytestmark = pytest.mark.m09
 
@@ -180,11 +180,11 @@ class _FakeTaskBackend:
 
 @pytest.fixture()
 def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    from novelvideo.api import auth as api_auth
-    from novelvideo.api.deps import ProjectResolution
-    from novelvideo.api.routes import assets, files, generation
-    from novelvideo.generators.video_pool_indexer import add_video_to_pool
-    from novelvideo.seedance2_i2v import panel_service
+    from ai_anime.api import auth as api_auth
+    from ai_anime.api.deps import ProjectResolution
+    from ai_anime.api.routes import assets, files, generation
+    from ai_anime.generators.video_pool_indexer import add_video_to_pool
+    from ai_anime.seedance2_i2v import panel_service
 
     store = _M09Store()
     project_dir = tmp_path / "output" / _USER / _PROJECT
@@ -313,7 +313,7 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(assets, "get_project_dir", lambda username, project: project_dir, raising=False)
     monkeypatch.setattr(assets, "make_sqlite_store", make_store, raising=False)
 
-    from novelvideo.export import episode_export
+    from ai_anime.export import episode_export
 
     monkeypatch.setattr(episode_export, "get_audio_duration_async", srt_duration)
 

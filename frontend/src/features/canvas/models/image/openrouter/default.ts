@@ -1,11 +1,10 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import type { ImageModelDefinition } from '../../types';
 
 // `openrouter/default` is a placeholder model id; the second segment "default"
 // is treated by `freezoneAiGateway.splitProviderModel` as null → backend falls
 // back to NANOBANANA_MODEL env. We could enumerate concrete models here later
-// (e.g. openrouter/google/gemini-3-pro-image) but that needs SuperTale config
+// (e.g. openrouter/google/gemini-3-pro-image) but that needs AI anime config
 // to expose its NANOBANANA_MODEL value to the frontend, out of scope for v1.2.
 export const OPENROUTER_DEFAULT_MODEL_ID = 'openrouter/default';
 

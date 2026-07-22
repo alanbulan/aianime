@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from novelvideo.freezone.history import (
+from ai_anime.freezone.history import (
     append_generation_history,
     generation_history_path,
     read_canvas_generation_history,

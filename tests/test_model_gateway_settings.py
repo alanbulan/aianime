@@ -9,10 +9,10 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from httpx import Response
 
-from novelvideo import config
-from novelvideo.api.routes import model_gateway
-from novelvideo.official_defaults import OFFICIAL_NEWAPI_BASE_URL
-from novelvideo.model_gateway_settings import (
+from ai_anime import config
+from ai_anime.api.routes import model_gateway
+from ai_anime.official_defaults import OFFICIAL_NEWAPI_BASE_URL
+from ai_anime.model_gateway_settings import (
     MODE_CUSTOM,
     MODE_OFFICIAL,
     build_newapi_database_status,
@@ -28,8 +28,8 @@ from novelvideo.model_gateway_settings import (
     save_newapi_provider_channels,
     set_model_gateway_mode,
 )
-from novelvideo.model_gateway_runtime import refresh_model_gateway_runtime
-from novelvideo.newapi_provisioner import (
+from ai_anime.model_gateway_runtime import refresh_model_gateway_runtime
+from ai_anime.newapi_provisioner import (
     AdminToken,
     build_channel_payload,
     ensure_newapi_setup,
@@ -46,9 +46,9 @@ from novelvideo.newapi_provisioner import (
 
 def _isolate_settings_db(monkeypatch: pytest.MonkeyPatch, tmp_path):
     monkeypatch.setattr(config, "STATE_DIR", str(tmp_path / "state"))
-    monkeypatch.setenv("ST_EDITION", "ce")
+    monkeypatch.setenv("AI_ANIME_EDITION", "ce")
     for key in (
-        "ST_CONTROL_PLANE_DSN",
+        "AI_ANIME_CONTROL_PLANE_DSN",
         "MODEL_GATEWAY_MODE",
         "MODEL_GATEWAY_RUNTIME_VERSION",
         "NEWAPI_API_KEY",
@@ -64,7 +64,7 @@ def test_model_gateway_uses_explicit_custom_mode(monkeypatch, tmp_path):
         base_url="http://127.0.0.1:3000",
         api_key="sk-custom-secret",
         admin_base_url="http://127.0.0.1:3000",
-        token_name="dramaclaw-ce-runtime",
+        token_name="ai-anime-ce-runtime",
         token_id=3,
         activate=True,
     )
@@ -87,7 +87,7 @@ def test_newapi_runtime_credentials_prefer_saved_custom_gateway(monkeypatch, tmp
         base_url="http://127.0.0.1:3000",
         api_key="sk-custom-secret",
         admin_base_url="http://127.0.0.1:3000",
-        token_name="dramaclaw-ce-runtime",
+        token_name="ai-anime-ce-runtime",
         token_id=3,
         activate=True,
     )
@@ -134,11 +134,11 @@ def test_legacy_pydantic_factory_uses_ce_gateway_settings(monkeypatch, tmp_path)
 
     result = config.get_pydantic_model(
         provider_override="openrouter",
-        model_name_override="openrouter/DC-legacy-agent-LLM",
+        model_name_override="openrouter/ai-anime-legacy-agent-LLM",
     )
 
     assert result == "newapi-model"
-    assert captured["model_name"] == "DC-legacy-agent-LLM"
+    assert captured["model_name"] == "ai-anime-legacy-agent-LLM"
     assert captured["api_key"] == "sk-database-secret"
     assert captured["base_url"] == "http://new-api:3000/v1"
     assert captured["timeout_seconds"] == 300.0
@@ -146,8 +146,8 @@ def test_legacy_pydantic_factory_uses_ce_gateway_settings(monkeypatch, tmp_path)
 
 def test_legacy_pydantic_factory_uses_ee_deployment_gateway(monkeypatch, tmp_path):
     _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.setenv("ST_EDITION", "ee")
-    monkeypatch.setenv("ST_CONTROL_PLANE_DSN", "postgresql://control-plane")
+    monkeypatch.setenv("AI_ANIME_EDITION", "ee")
+    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "postgresql://control-plane")
     monkeypatch.setenv("NEWAPI_API_KEY", "sk-ee-secret")
     monkeypatch.setenv("NEWAPI_BASE_URL", "https://ee-gateway.example/v1")
     monkeypatch.setattr(config, "NEWAPI_API_KEY", "sk-ee-secret")
@@ -160,10 +160,10 @@ def test_legacy_pydantic_factory_uses_ee_deployment_gateway(monkeypatch, tmp_pat
 
     monkeypatch.setattr(config, "_newapi_text_openai_model", fake_model)
 
-    result = config.get_pydantic_model(model_name_override="DC-legacy-agent-LLM")
+    result = config.get_pydantic_model(model_name_override="ai-anime-legacy-agent-LLM")
 
     assert result == "newapi-model"
-    assert captured["model_name"] == "DC-legacy-agent-LLM"
+    assert captured["model_name"] == "ai-anime-legacy-agent-LLM"
     assert captured["api_key"] == "sk-ee-secret"
     assert captured["base_url"] == "https://ee-gateway.example/v1"
 
@@ -192,11 +192,11 @@ def test_cognee_newapi_resolution_prefers_saved_gateway(monkeypatch, tmp_path):
         activate=True,
     )
 
-    from novelvideo.cognee import config as cognee_config
+    from ai_anime.cognee import config as cognee_config
 
     assert cognee_config._resolve_llm_provider() == "newapi"
     assert (
-        cognee_config._resolve_llm_api_key("newapi", "openai/DC-model")
+        cognee_config._resolve_llm_api_key("newapi", "openai/ai-anime-model")
         == "sk-custom-secret"
     )
     assert (
@@ -206,7 +206,7 @@ def test_cognee_newapi_resolution_prefers_saved_gateway(monkeypatch, tmp_path):
 
 
 def test_cognee_provider_env_cannot_bypass_newapi(monkeypatch):
-    from novelvideo.cognee import config as cognee_config
+    from ai_anime.cognee import config as cognee_config
 
     monkeypatch.setenv("COGNEE_LLM_PROVIDER", "gemini")
     monkeypatch.setenv("COGNEE_LLM_API_KEY", "direct-secret")
@@ -218,7 +218,7 @@ def test_cognee_provider_env_cannot_bypass_newapi(monkeypatch):
 
     assert cognee_config._resolve_llm_provider() == "newapi"
     assert (
-        cognee_config._resolve_llm_api_key("newapi", "DC-cognee-LLM")
+        cognee_config._resolve_llm_api_key("newapi", "ai-anime-cognee-LLM")
         == "gateway-secret"
     )
 
@@ -226,12 +226,12 @@ def test_cognee_provider_env_cannot_bypass_newapi(monkeypatch):
 def test_cognee_embedding_provider_env_cannot_bypass_newapi(monkeypatch, tmp_path):
     _isolate_settings_db(monkeypatch, tmp_path)
     monkeypatch.setenv("COGNEE_EMBEDDING_PROVIDER", "gemini")
-    monkeypatch.setenv("COGNEE_EMBEDDING_MODEL", "DC-cognee-embedding")
+    monkeypatch.setenv("COGNEE_EMBEDDING_MODEL", "ai-anime-cognee-embedding")
 
     effective = get_effective_cognee_embedding_config(llm_provider="gemini")
 
     assert effective.provider == "newapi"
-    assert effective.model == "DC-cognee-embedding"
+    assert effective.model == "ai-anime-cognee-embedding"
 
 
 def test_ee_cognee_embedding_ignores_ce_database_config(monkeypatch, tmp_path):
@@ -241,16 +241,16 @@ def test_ee_cognee_embedding_ignores_ce_database_config(monkeypatch, tmp_path):
         upstream_model="stale-ce-embedding",
         dimension=3072,
     )
-    monkeypatch.setenv("ST_EDITION", "ee")
-    monkeypatch.setenv("ST_CONTROL_PLANE_DSN", "postgresql://control-plane")
-    monkeypatch.setenv("COGNEE_EMBEDDING_MODEL", "DC-ee-embedding")
+    monkeypatch.setenv("AI_ANIME_EDITION", "ee")
+    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "postgresql://control-plane")
+    monkeypatch.setenv("COGNEE_EMBEDDING_MODEL", "ai-anime-ee-embedding")
     monkeypatch.setenv("COGNEE_EMBEDDING_DIM", "1536")
 
     effective = get_effective_cognee_embedding_config()
 
     assert effective.source == "environment"
     assert effective.provider == "newapi"
-    assert effective.model == "DC-ee-embedding"
+    assert effective.model == "ai-anime-ee-embedding"
     assert effective.dimensions == "1536"
     assert effective.upstream_model == ""
 
@@ -366,8 +366,8 @@ def test_ce_gateway_does_not_fall_back_to_env_after_database_is_initialized(
 def test_ee_gateway_uses_environment_and_ignores_ce_settings(monkeypatch, tmp_path):
     _isolate_settings_db(monkeypatch, tmp_path)
     save_official_newapi_key(api_key="sk-ce-secret", activate=True)
-    monkeypatch.setenv("ST_EDITION", "ee")
-    monkeypatch.setenv("ST_CONTROL_PLANE_DSN", "postgresql://control-plane")
+    monkeypatch.setenv("AI_ANIME_EDITION", "ee")
+    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "postgresql://control-plane")
     monkeypatch.setenv("NEWAPI_API_KEY", "sk-ee-secret")
     monkeypatch.setenv("NEWAPI_BASE_URL", "https://ee-gateway.example/v1")
 
@@ -385,8 +385,8 @@ def test_ee_gateway_uses_environment_and_ignores_ce_settings(monkeypatch, tmp_pa
 
 def test_ee_cannot_mutate_ce_model_gateway_settings(monkeypatch, tmp_path):
     _isolate_settings_db(monkeypatch, tmp_path)
-    monkeypatch.setenv("ST_EDITION", "ee")
-    monkeypatch.setenv("ST_CONTROL_PLANE_DSN", "postgresql://control-plane")
+    monkeypatch.setenv("AI_ANIME_EDITION", "ee")
+    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "postgresql://control-plane")
     monkeypatch.setenv("NEWAPI_PROVISIONER_ENABLED", "true")
 
     app = FastAPI()
@@ -401,7 +401,7 @@ def test_ee_cannot_mutate_ce_model_gateway_settings(monkeypatch, tmp_path):
 
 
 def test_ce_runtime_refresh_never_mutates_process_environment(monkeypatch, tmp_path):
-    from novelvideo.agents import global_video_optimizer
+    from ai_anime.agents import global_video_optimizer
 
     _isolate_settings_db(monkeypatch, tmp_path)
     tracked = {
@@ -426,7 +426,7 @@ def test_ce_runtime_refresh_never_mutates_process_environment(monkeypatch, tmp_p
     assert {key: os.environ.get(key) for key in tracked} == tracked
     assert global_video_optimizer._global_video_optimizer is None
     assert (
-        "novelvideo.agents.global_video_optimizer._global_video_optimizer"
+        "ai_anime.agents.global_video_optimizer._global_video_optimizer"
         in runtime["clearedCaches"]
     )
 
@@ -446,8 +446,8 @@ def test_build_channel_payload_maps_dc_models_to_upstream_models():
         name="user-supplied-name-is-ignored",
         upstream_key="sk-upstream",
         model_mapping={
-            "DC-screenplay-normalizer-LLM": "qwen-plus",
-            "DC-staging-prop-planner-LLM": "qwen-max",
+            "ai-anime-screenplay-normalizer-LLM": "qwen-plus",
+            "ai-anime-staging-prop-planner-LLM": "qwen-max",
         },
         group="default,drama",
         priority=2,
@@ -455,16 +455,16 @@ def test_build_channel_payload_maps_dc_models_to_upstream_models():
 
     channel = payload["channel"]
     assert payload["mode"] == "single"
-    assert channel["name"] == "DC-ali"
+    assert channel["name"] == "ai-anime-ali"
     assert channel["type"] == 17
     assert (
-        channel["models"] == "DC-screenplay-normalizer-LLM,DC-staging-prop-planner-LLM"
+        channel["models"] == "ai-anime-screenplay-normalizer-LLM,ai-anime-staging-prop-planner-LLM"
     )
     assert channel["group"] == ",default,drama,"
-    assert channel["test_model"] == "DC-screenplay-normalizer-LLM"
+    assert channel["test_model"] == "ai-anime-screenplay-normalizer-LLM"
     assert channel["model_mapping"] == (
-        '{"DC-screenplay-normalizer-LLM":"qwen-plus",'
-        '"DC-staging-prop-planner-LLM":"qwen-max"}'
+        '{"ai-anime-screenplay-normalizer-LLM":"qwen-plus",'
+        '"ai-anime-staging-prop-planner-LLM":"qwen-max"}'
     )
 
 
@@ -476,7 +476,7 @@ def test_ensure_newapi_setup_creates_root_when_instance_is_fresh():
         sqlite_path="/tmp/one-api.db",
         admin_username="root",
         init_timeout_ms=1000,
-        relay_token_name="dramaclaw-ce-runtime",
+        relay_token_name="ai-anime-ce-runtime",
     )
     respx.get("http://new-api:3000/api/setup").mock(
         side_effect=[
@@ -541,7 +541,7 @@ def test_ensure_newapi_setup_requires_credentials_for_fresh_instance():
         sqlite_path="/tmp/one-api.db",
         admin_username="root",
         init_timeout_ms=1000,
-        relay_token_name="dramaclaw-ce-runtime",
+        relay_token_name="ai-anime-ce-runtime",
     )
     respx.get("http://new-api:3000/api/setup").mock(
         side_effect=[
@@ -572,7 +572,7 @@ def test_ensure_newapi_setup_finishes_setup_when_root_already_exists():
         sqlite_path="/tmp/one-api.db",
         admin_username="root",
         init_timeout_ms=1000,
-        relay_token_name="dramaclaw-ce-runtime",
+        relay_token_name="ai-anime-ce-runtime",
     )
     respx.get("http://new-api:3000/api/setup").mock(
         side_effect=[
@@ -625,7 +625,7 @@ def test_ensure_newapi_setup_skips_post_when_instance_is_initialized():
         sqlite_path="/tmp/one-api.db",
         admin_username="root",
         init_timeout_ms=1000,
-        relay_token_name="dramaclaw-ce-runtime",
+        relay_token_name="ai-anime-ce-runtime",
     )
     respx.get("http://new-api:3000/api/setup").mock(
         side_effect=[
@@ -671,7 +671,7 @@ def test_upsert_channel_merges_existing_dc_provider_channel():
         sqlite_path="/tmp/one-api.db",
         admin_username="root",
         init_timeout_ms=1000,
-        relay_token_name="dramaclaw-ce-runtime",
+        relay_token_name="ai-anime-ce-runtime",
     )
     admin = AdminToken(
         admin_user_id=1,
@@ -682,7 +682,7 @@ def test_upsert_channel_merges_existing_dc_provider_channel():
     payload = build_channel_payload(
         provider="ali",
         upstream_key="sk-upstream-new",
-        model_mapping={"DC-screenplay-normalizer-LLM": "qwen-plus"},
+        model_mapping={"ai-anime-screenplay-normalizer-LLM": "qwen-plus"},
         base_url="https://dashscope-new.example.com",
     )
 
@@ -692,7 +692,7 @@ def test_upsert_channel_merges_existing_dc_provider_channel():
             json={
                 "success": True,
                 "data": {
-                    "items": [{"id": 3, "name": "DC-ali", "type": 17}],
+                    "items": [{"id": 3, "name": "ai-anime-ali", "type": 17}],
                     "total": 1,
                 },
             },
@@ -705,12 +705,12 @@ def test_upsert_channel_merges_existing_dc_provider_channel():
                 "success": True,
                 "data": {
                     "id": 3,
-                    "name": "DC-ali",
+                    "name": "ai-anime-ali",
                     "type": 17,
                     "key": "sk-upstream-old",
                     "base_url": "https://dashscope-old.example.com",
-                    "models": "DC-old-model",
-                    "model_mapping": json.dumps({"DC-old-model": "qwen-old"}),
+                    "models": "ai-anime-old-model",
+                    "model_mapping": json.dumps({"ai-anime-old-model": "qwen-old"}),
                     "group": ",default,",
                     "status": 1,
                 },
@@ -728,13 +728,13 @@ def test_upsert_channel_merges_existing_dc_provider_channel():
     assert result["channelId"] == 3
     channel = json.loads(update_route.calls.last.request.content)
     assert channel["id"] == 3
-    assert channel["name"] == "DC-ali"
+    assert channel["name"] == "ai-anime-ali"
     assert channel["key"] == "sk-upstream-new"
     assert channel["base_url"] == "https://dashscope-new.example.com"
-    assert channel["models"] == "DC-old-model,DC-screenplay-normalizer-LLM"
+    assert channel["models"] == "ai-anime-old-model,ai-anime-screenplay-normalizer-LLM"
     assert json.loads(channel["model_mapping"]) == {
-        "DC-old-model": "qwen-old",
-        "DC-screenplay-normalizer-LLM": "qwen-plus",
+        "ai-anime-old-model": "qwen-old",
+        "ai-anime-screenplay-normalizer-LLM": "qwen-plus",
     }
 
 
@@ -746,7 +746,7 @@ def test_update_provider_channel_credentials_preserves_models_and_mapping():
         sqlite_path="/tmp/one-api.db",
         admin_username="root",
         init_timeout_ms=1000,
-        relay_token_name="dramaclaw-ce-runtime",
+        relay_token_name="ai-anime-ce-runtime",
     )
     admin = AdminToken(
         admin_user_id=1,
@@ -761,7 +761,7 @@ def test_update_provider_channel_credentials_preserves_models_and_mapping():
             json={
                 "success": True,
                 "data": {
-                    "items": [{"id": 3, "name": "DC-ali", "type": 17}],
+                    "items": [{"id": 3, "name": "ai-anime-ali", "type": 17}],
                     "total": 1,
                 },
             },
@@ -774,21 +774,21 @@ def test_update_provider_channel_credentials_preserves_models_and_mapping():
                 "success": True,
                 "data": {
                     "id": 3,
-                    "name": "DC-ali",
+                    "name": "ai-anime-ali",
                     "type": 17,
                     "key": "sk-upstream-old",
                     "base_url": "https://dashscope-old.example.com",
-                    "models": "DC-old-model,DC-screenplay-normalizer-LLM",
+                    "models": "ai-anime-old-model,ai-anime-screenplay-normalizer-LLM",
                     "model_mapping": json.dumps(
                         {
-                            "DC-old-model": "qwen-old",
-                            "DC-screenplay-normalizer-LLM": "qwen-plus",
+                            "ai-anime-old-model": "qwen-old",
+                            "ai-anime-screenplay-normalizer-LLM": "qwen-plus",
                         }
                     ),
                     "group": ",default,",
                     "priority": 2,
                     "weight": 3,
-                    "test_model": "DC-old-model",
+                    "test_model": "ai-anime-old-model",
                 },
             },
         )
@@ -811,14 +811,14 @@ def test_update_provider_channel_credentials_preserves_models_and_mapping():
     channel = json.loads(update_route.calls.last.request.content)
     assert channel["key"] == "sk-upstream-new"
     assert channel["base_url"] == "https://dashscope-new.example.com"
-    assert channel["models"] == "DC-old-model,DC-screenplay-normalizer-LLM"
+    assert channel["models"] == "ai-anime-old-model,ai-anime-screenplay-normalizer-LLM"
     assert json.loads(channel["model_mapping"]) == {
-        "DC-old-model": "qwen-old",
-        "DC-screenplay-normalizer-LLM": "qwen-plus",
+        "ai-anime-old-model": "qwen-old",
+        "ai-anime-screenplay-normalizer-LLM": "qwen-plus",
     }
     assert channel["priority"] == 2
     assert channel["weight"] == 3
-    assert channel["test_model"] == "DC-old-model"
+    assert channel["test_model"] == "ai-anime-old-model"
 
 
 @respx.mock
@@ -829,7 +829,7 @@ def test_update_provider_channel_credentials_clears_base_url_override():
         sqlite_path="/tmp/one-api.db",
         admin_username="root",
         init_timeout_ms=1000,
-        relay_token_name="dramaclaw-ce-runtime",
+        relay_token_name="ai-anime-ce-runtime",
     )
     admin = AdminToken(
         admin_user_id=1,
@@ -844,7 +844,7 @@ def test_update_provider_channel_credentials_clears_base_url_override():
             json={
                 "success": True,
                 "data": {
-                    "items": [{"id": 3, "name": "DC-ali", "type": 17}],
+                    "items": [{"id": 3, "name": "ai-anime-ali", "type": 17}],
                     "total": 1,
                 },
             },
@@ -857,14 +857,14 @@ def test_update_provider_channel_credentials_clears_base_url_override():
                 "success": True,
                 "data": {
                     "id": 3,
-                    "name": "DC-ali",
+                    "name": "ai-anime-ali",
                     "type": 17,
                     "key": "sk-upstream-old",
                     "base_url": "https://dashscope-old.example.com",
-                    "models": "DC-old-model",
-                    "model_mapping": json.dumps({"DC-old-model": "qwen-old"}),
+                    "models": "ai-anime-old-model",
+                    "model_mapping": json.dumps({"ai-anime-old-model": "qwen-old"}),
                     "group": ",default,",
-                    "test_model": "DC-old-model",
+                    "test_model": "ai-anime-old-model",
                 },
             },
         )
@@ -885,8 +885,8 @@ def test_update_provider_channel_credentials_clears_base_url_override():
     channel = json.loads(update_route.calls.last.request.content)
     assert channel["key"] == "sk-upstream-new"
     assert channel["base_url"] == ""
-    assert channel["models"] == "DC-old-model"
-    assert json.loads(channel["model_mapping"]) == {"DC-old-model": "qwen-old"}
+    assert channel["models"] == "ai-anime-old-model"
+    assert json.loads(channel["model_mapping"]) == {"ai-anime-old-model": "qwen-old"}
 
 
 @respx.mock
@@ -897,7 +897,7 @@ def test_upsert_channel_removes_same_dc_model_from_other_provider_channels():
         sqlite_path="/tmp/one-api.db",
         admin_username="root",
         init_timeout_ms=1000,
-        relay_token_name="dramaclaw-ce-runtime",
+        relay_token_name="ai-anime-ce-runtime",
     )
     admin = AdminToken(
         admin_user_id=1,
@@ -908,7 +908,7 @@ def test_upsert_channel_removes_same_dc_model_from_other_provider_channels():
     payload = build_channel_payload(
         provider="openrouter",
         upstream_key="sk-openrouter",
-        model_mapping={"DC-hermes-LLM": "google/gemini-2.5-flash"},
+        model_mapping={"ai-anime-assistant-LLM": "google/gemini-2.5-flash"},
     )
 
     respx.get("http://new-api:3000/api/channel/").mock(
@@ -919,8 +919,8 @@ def test_upsert_channel_removes_same_dc_model_from_other_provider_channels():
                     "success": True,
                     "data": {
                         "items": [
-                            {"id": 4, "name": "DC-openrouter", "type": 20},
-                            {"id": 3, "name": "DC-ali", "type": 17},
+                            {"id": 4, "name": "ai-anime-openrouter", "type": 20},
+                            {"id": 3, "name": "ai-anime-ali", "type": 17},
                         ],
                     },
                 },
@@ -931,8 +931,8 @@ def test_upsert_channel_removes_same_dc_model_from_other_provider_channels():
                     "success": True,
                     "data": {
                         "items": [
-                            {"id": 4, "name": "DC-openrouter", "type": 20},
-                            {"id": 3, "name": "DC-ali", "type": 17},
+                            {"id": 4, "name": "ai-anime-openrouter", "type": 20},
+                            {"id": 3, "name": "ai-anime-ali", "type": 17},
                         ],
                     },
                 },
@@ -946,13 +946,13 @@ def test_upsert_channel_removes_same_dc_model_from_other_provider_channels():
                 "success": True,
                 "data": {
                     "id": 4,
-                    "name": "DC-openrouter",
+                    "name": "ai-anime-openrouter",
                     "type": 20,
                     "key": "sk-old-openrouter",
                     "base_url": "https://openrouter.ai/api",
-                    "models": "DC-old-openrouter-model",
+                    "models": "ai-anime-old-openrouter-model",
                     "model_mapping": json.dumps(
-                        {"DC-old-openrouter-model": "openrouter/old"}
+                        {"ai-anime-old-openrouter-model": "openrouter/old"}
                     ),
                     "group": ",default,",
                     "status": 1,
@@ -967,20 +967,20 @@ def test_upsert_channel_removes_same_dc_model_from_other_provider_channels():
                 "success": True,
                 "data": {
                     "id": 3,
-                    "name": "DC-ali",
+                    "name": "ai-anime-ali",
                     "type": 17,
                     "key": "sk-ali",
                     "base_url": "https://dashscope.aliyuncs.com",
-                    "models": "DC-hermes-LLM,DC-screenplay-normalizer-LLM",
+                    "models": "ai-anime-assistant-LLM,ai-anime-screenplay-normalizer-LLM",
                     "model_mapping": json.dumps(
                         {
-                            "DC-hermes-LLM": "qwen-plus",
-                            "DC-screenplay-normalizer-LLM": "qwen-max",
+                            "ai-anime-assistant-LLM": "qwen-plus",
+                            "ai-anime-screenplay-normalizer-LLM": "qwen-max",
                         }
                     ),
                     "group": ",default,",
                     "status": 1,
-                    "test_model": "DC-hermes-LLM",
+                    "test_model": "ai-anime-assistant-LLM",
                 },
             },
         )
@@ -996,30 +996,30 @@ def test_upsert_channel_removes_same_dc_model_from_other_provider_channels():
     assert result["dedupedChannels"] == [
         {
             "channelId": 3,
-            "name": "DC-ali",
+            "name": "ai-anime-ali",
             "ok": True,
             "httpStatus": 200,
-            "removedModels": ["DC-hermes-LLM"],
+            "removedModels": ["ai-anime-assistant-LLM"],
         }
     ]
     target_update = json.loads(update_route.calls[0].request.content)
     assert target_update["id"] == 4
     assert json.loads(target_update["model_mapping"]) == {
-        "DC-old-openrouter-model": "openrouter/old",
-        "DC-hermes-LLM": "google/gemini-2.5-flash",
+        "ai-anime-old-openrouter-model": "openrouter/old",
+        "ai-anime-assistant-LLM": "google/gemini-2.5-flash",
     }
     stale_update = json.loads(update_route.calls[1].request.content)
     assert stale_update["id"] == 3
-    assert stale_update["models"] == "DC-screenplay-normalizer-LLM"
-    assert stale_update["test_model"] == "DC-screenplay-normalizer-LLM"
+    assert stale_update["models"] == "ai-anime-screenplay-normalizer-LLM"
+    assert stale_update["test_model"] == "ai-anime-screenplay-normalizer-LLM"
     assert json.loads(stale_update["model_mapping"]) == {
-        "DC-screenplay-normalizer-LLM": "qwen-max",
+        "ai-anime-screenplay-normalizer-LLM": "qwen-max",
     }
 
 
 def test_provisioner_enabled_by_default_and_can_be_disabled(monkeypatch):
-    monkeypatch.setenv("ST_EDITION", "ce")
-    monkeypatch.delenv("ST_CONTROL_PLANE_DSN", raising=False)
+    monkeypatch.setenv("AI_ANIME_EDITION", "ce")
+    monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
     monkeypatch.delenv("NEWAPI_PROVISIONER_ENABLED", raising=False)
     require_provisioner_enabled()
 
@@ -1032,8 +1032,8 @@ def test_provisioner_enabled_by_default_and_can_be_disabled(monkeypatch):
 
 
 def test_provisioner_is_always_disabled_in_ee(monkeypatch):
-    monkeypatch.setenv("ST_EDITION", "ee")
-    monkeypatch.setenv("ST_CONTROL_PLANE_DSN", "postgresql://control-plane")
+    monkeypatch.setenv("AI_ANIME_EDITION", "ee")
+    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "postgresql://control-plane")
     monkeypatch.setenv("NEWAPI_PROVISIONER_ENABLED", "true")
 
     with pytest.raises(PermissionError, match="not enabled"):
@@ -1317,7 +1317,7 @@ def test_custom_newapi_init_route_accepts_empty_body(monkeypatch, tmp_path):
             (),
             {
                 "admin_base_url": "http://new-api:3000",
-                "relay_token_name": "dramaclaw-ce-runtime",
+                "relay_token_name": "ai-anime-ce-runtime",
             },
         )()
 
@@ -1346,7 +1346,7 @@ def test_custom_newapi_init_route_accepts_empty_body(monkeypatch, tmp_path):
         lambda *_args, **_kwargs: {
             "created": False,
             "tokenId": 2,
-            "name": "dramaclaw-ce-runtime",
+            "name": "ai-anime-ce-runtime",
             "key": "sk-runtime-secret",
             "keyPreview": "sk-r...cret",
         },
@@ -1388,7 +1388,7 @@ def test_custom_newapi_init_route_persists_request_database_config(
             (),
             {
                 "admin_base_url": "http://new-api:3000",
-                "relay_token_name": "dramaclaw-ce-runtime",
+                "relay_token_name": "ai-anime-ce-runtime",
                 "sql_dsn": kwargs["sql_dsn"],
                 "sqlite_path": kwargs["sqlite_path"],
                 "admin_username": kwargs["admin_username"],
@@ -1420,7 +1420,7 @@ def test_custom_newapi_init_route_persists_request_database_config(
         lambda *_args, **_kwargs: {
             "created": True,
             "tokenId": 7,
-            "name": "dramaclaw-ce-runtime",
+            "name": "ai-anime-ce-runtime",
             "key": "sk-runtime-secret",
             "keyPreview": "sk-r...cret",
         },
@@ -1509,13 +1509,13 @@ def test_custom_newapi_channels_batch_reuses_admin_and_masks_keys(
                     "provider": "ali",
                     "name": "ali-text",
                     "upstreamKey": "sk-upstream-one",
-                    "modelMapping": {"DC-screenplay-normalizer-LLM": "qwen-plus"},
+                    "modelMapping": {"ai-anime-screenplay-normalizer-LLM": "qwen-plus"},
                 },
                 {
                     "provider": "deepseek",
                     "name": "deepseek-text",
                     "upstreamKey": "sk-upstream-two",
-                    "modelMapping": {"DC-hermes-LLM": "deepseek-chat"},
+                    "modelMapping": {"ai-anime-assistant-LLM": "deepseek-chat"},
                     "priority": 3,
                 },
             ],
@@ -1531,7 +1531,7 @@ def test_custom_newapi_channels_batch_reuses_admin_and_masks_keys(
     assert len(calls["payloads"]) == 2
     assert (
         data["results"][0]["sentPayload"]["channel"]["models"]
-        == "DC-screenplay-normalizer-LLM"
+        == "ai-anime-screenplay-normalizer-LLM"
     )
     assert data["results"][1]["sentPayload"]["channel"]["type"] == 43
     assert "sk-upstream-one" not in response.text
@@ -1631,7 +1631,7 @@ def test_custom_newapi_provider_channel_sync_updates_newapi_and_local_config(
                 "mode": "single",
                 "channel": {
                     "id": 7,
-                    "name": "DC-ali",
+                    "name": "ai-anime-ali",
                     "key": upstream_key,
                     "base_url": base_url,
                 },
@@ -1736,7 +1736,7 @@ def test_custom_newapi_provider_channel_sync_allows_clearing_saved_base_url(
                 "mode": "single",
                 "channel": {
                     "id": 7,
-                    "name": "DC-ali",
+                    "name": "ai-anime-ali",
                     "key": upstream_key,
                     "base_url": base_url,
                 },
@@ -1821,7 +1821,7 @@ def test_custom_newapi_provider_channel_sync_does_not_save_when_newapi_update_fa
                 "mode": "single",
                 "channel": {
                     "id": 7,
-                    "name": "DC-ali",
+                    "name": "ai-anime-ali",
                     "key": "sk-ali-new-upstream-secret",
                 },
             },
@@ -1910,7 +1910,7 @@ def test_custom_newapi_channels_batch_uses_saved_provider_channel_config(
             "channels": [
                 {
                     "provider": "ali",
-                    "modelMapping": {"DC-screenplay-normalizer-LLM": "qwen-plus"},
+                    "modelMapping": {"ai-anime-screenplay-normalizer-LLM": "qwen-plus"},
                 }
             ]
         },
@@ -2016,17 +2016,17 @@ def test_custom_newapi_media_models_groups_by_provider_and_persists_mapping(
     assert body["data"]["succeeded"] == 2
     assert len(payloads) == 2
     by_name = {payload["channel"]["name"]: payload["channel"] for payload in payloads}
-    assert json.loads(by_name["DC-openai"]["model_mapping"]) == {
+    assert json.loads(by_name["ai-anime-openai"]["model_mapping"]) == {
         "LingShan-G2": "gpt-image-upstream",
     }
-    assert json.loads(by_name["DC-volcengine"]["model_mapping"]) == {
+    assert json.loads(by_name["ai-anime-volcengine"]["model_mapping"]) == {
         "seedance-1.5-pro": "doubao-seedance-1-5",
         "seedance-2.0-fast": "seedance-2.0-fast",
         "index-tts-2": "index-tts-2-upstream",
         "LingShan-MU-11": "lingshan-mu-upstream",
     }
-    assert by_name["DC-openai"]["key"] == "sk-openai-upstream-secret"
-    assert by_name["DC-volcengine"]["base_url"] == "https://ark.example.com"
+    assert by_name["ai-anime-openai"]["key"] == "sk-openai-upstream-secret"
+    assert by_name["ai-anime-volcengine"]["base_url"] == "https://ark.example.com"
     assert "sk-openai-upstream-secret" not in response.text
     assert "sk-volc-upstream-secret" not in response.text
 
@@ -2149,10 +2149,10 @@ def test_custom_newapi_embedding_model_writes_mapping_and_persists_dimension(
     assert response.status_code == 200
     body = response.json()
     assert body["ok"] is True
-    assert payloads[0]["channel"]["name"] == "DC-openai"
+    assert payloads[0]["channel"]["name"] == "ai-anime-openai"
     assert payloads[0]["channel"]["key"] == "sk-openai-upstream-secret"
     assert json.loads(payloads[0]["channel"]["model_mapping"]) == {
-        "DC-cognee-embedding": "text-embedding-3-large",
+        "ai-anime-cognee-embedding": "text-embedding-3-large",
     }
     assert "dimension" not in payloads[0]["channel"]
     assert "3072" not in payloads[0]["channel"]["model_mapping"]
@@ -2165,7 +2165,7 @@ def test_custom_newapi_embedding_model_writes_mapping_and_persists_dimension(
         "upstreamModel": "text-embedding-3-large",
         "dimension": 3072,
         "batchSize": 36,
-        "internalModel": "DC-cognee-embedding",
+        "internalModel": "ai-anime-cognee-embedding",
     }
 
 
@@ -2185,7 +2185,7 @@ def test_effective_cognee_embedding_prefers_saved_custom_config(monkeypatch, tmp
 
     assert effective.source == "database"
     assert effective.provider == "newapi"
-    assert effective.model == "DC-cognee-embedding"
+    assert effective.model == "ai-anime-cognee-embedding"
     assert effective.dimensions == "3072"
     assert effective.upstream_provider == "openai"
     assert effective.upstream_model == "text-embedding-3-large"
@@ -2205,7 +2205,7 @@ def test_effective_cognee_embedding_keeps_saved_batch_size(monkeypatch, tmp_path
 
     assert effective.source == "database"
     assert effective.provider == "newapi"
-    assert effective.model == "DC-cognee-embedding"
+    assert effective.model == "ai-anime-cognee-embedding"
     assert effective.dimensions == "1024"
     assert effective.batch_size == "10"
 
@@ -2226,7 +2226,7 @@ def test_cognee_apply_embedding_env_sets_saved_batch_size(monkeypatch, tmp_path)
         batch_size=10,
     )
 
-    from novelvideo.cognee import config as cognee_config
+    from ai_anime.cognee import config as cognee_config
 
     cognee_config._apply_embedding_env("newapi", "sk-custom-secret")
 
@@ -2257,7 +2257,7 @@ def test_custom_newapi_channels_batch_reports_partial_failure(monkeypatch, tmp_p
     )
 
     def fake_upsert_channel(_cfg, _admin, payload):
-        if "DC-staging-prop-planner-LLM" in payload["channel"]["models"]:
+        if "ai-anime-staging-prop-planner-LLM" in payload["channel"]["models"]:
             return {
                 "ok": False,
                 "httpStatus": 400,
@@ -2287,13 +2287,13 @@ def test_custom_newapi_channels_batch_reports_partial_failure(monkeypatch, tmp_p
                     "provider": "ali",
                     "name": "ok-channel",
                     "upstreamKey": "sk-upstream-one",
-                    "modelMapping": {"DC-screenplay-normalizer-LLM": "qwen-plus"},
+                    "modelMapping": {"ai-anime-screenplay-normalizer-LLM": "qwen-plus"},
                 },
                 {
                     "provider": "ali",
                     "name": "bad-channel",
                     "upstreamKey": "sk-upstream-two",
-                    "modelMapping": {"DC-staging-prop-planner-LLM": "qwen-plus"},
+                    "modelMapping": {"ai-anime-staging-prop-planner-LLM": "qwen-plus"},
                 },
             ],
         },
@@ -2375,7 +2375,7 @@ def test_media_relay_config_route_persists_and_masks_cloudinary_keys(
             "cloudName": "demo-cloud",
             "apiKey": "cloudinary-api-key-secret",
             "apiSecret": "cloudinary-api-secret",
-            "apiFolder": "dramaclaw-relay",
+            "apiFolder": "ai-anime-relay",
         },
     )
 
@@ -2385,7 +2385,7 @@ def test_media_relay_config_route_persists_and_masks_cloudinary_keys(
     assert data["provider"] == "cloudinary"
     assert data["ttlSeconds"] == 900
     assert data["cloudName"] == "demo-cloud"
-    assert data["apiFolder"] == "dramaclaw-relay"
+    assert data["apiFolder"] == "ai-anime-relay"
     assert data["cloudinaryApiKeyPreview"] == "clou...cret"
     assert data["cloudinaryApiSecretPreview"] == "clou...cret"
     assert data["configured"] is True
@@ -2423,8 +2423,8 @@ def test_ee_media_relay_ignores_ce_database_config(monkeypatch, tmp_path):
         access_key_id="stale-ce-ak",
         access_key_secret="stale-ce-sk",
     )
-    monkeypatch.setenv("ST_EDITION", "ee")
-    monkeypatch.setenv("ST_CONTROL_PLANE_DSN", "postgresql://control-plane")
+    monkeypatch.setenv("AI_ANIME_EDITION", "ee")
+    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "postgresql://control-plane")
     monkeypatch.setattr(config, "OSS_RELAY_ENDPOINT", "ee.endpoint")
     monkeypatch.setattr(config, "OSS_RELAY_BUCKET", "ee-bucket")
     monkeypatch.setattr(config, "OSS_RELAY_AK", "ee-ak")

@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it } from "vitest";
 import { normalizeMessage } from "@/features/superchat/message";
 import {
@@ -148,16 +147,16 @@ describe("mergeHistorySnapshot", () => {
 });
 
 describe("normalizeMessage", () => {
-  it("strips internal DramaClaw context blocks from displayed text", () => {
+  it("strips internal AI anime context blocks from displayed text", () => {
     const normalized = normalizeMessage({
       id: "backend-user-1",
       role: "user",
       content: `上传了哪些文件了
 
-[DRAMACLAW_UPLOADED_FILES]
-dramaclaw_project_id: 01KT62KTBQCDR69WW889VHJR3N
+[AI_ANIME_UPLOADED_FILES]
+ai_anime_project_id: 01KT62KTBQCDR69WW889VHJR3N
 file_1_filename: 她与她的江山.docx
-[/DRAMACLAW_UPLOADED_FILES]`,
+[/AI_ANIME_UPLOADED_FILES]`,
       created_at: "2026-06-03T09:00:00Z",
     });
 

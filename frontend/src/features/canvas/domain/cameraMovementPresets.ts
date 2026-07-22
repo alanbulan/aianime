@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 // Camera-movement presets. Fallback list used when
 // `/freezone/video/camera-templates` is loading or unavailable. The runtime
 // source of truth is the backend endpoint, fetched via

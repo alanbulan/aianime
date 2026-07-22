@@ -4,8 +4,8 @@ import base64
 
 import pytest
 
-from novelvideo.generators import image_generator
-from novelvideo.shared.billing_errors import InsufficientCreditsError
+from ai_anime.generators import image_generator
+from ai_anime.shared.billing_errors import InsufficientCreditsError
 
 pytestmark = pytest.mark.m04
 

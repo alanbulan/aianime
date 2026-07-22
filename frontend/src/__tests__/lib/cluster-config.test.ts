@@ -1,8 +1,7 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-const CACHE_KEY = "supertale-cluster-config-cache";
+const CACHE_KEY = "ai-anime-cluster-config-cache";
 
 describe("cluster-config", () => {
   const originalMode = import.meta.env.VITE_CLUSTER_MODE;

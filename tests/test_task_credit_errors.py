@@ -3,12 +3,12 @@ import sys
 
 import pytest
 
-from novelvideo.shared.billing_errors import (
+from ai_anime.shared.billing_errors import (
     INSUFFICIENT_CREDITS_CODE,
     INSUFFICIENT_CREDITS_MESSAGE,
     InsufficientCreditsStop,
 )
-from novelvideo.shared.provider_errors import (
+from ai_anime.shared.provider_errors import (
     CONTENT_MODERATION_FAILED_CODE,
     CONTENT_MODERATION_FAILED_MESSAGE,
     INPUT_IMAGE_POLICY_FAILED_MESSAGE,
@@ -19,14 +19,14 @@ pytestmark = pytest.mark.m07
 
 
 def _import_celery_tasks(monkeypatch):
-    monkeypatch.delenv("ST_PROJECT_TASK_TIMEOUT_S", raising=False)
-    sys.modules.pop("novelvideo.task_backend.run_core", None)
-    return importlib.import_module("novelvideo.task_backend.run_core")
+    monkeypatch.delenv("AI_ANIME_PROJECT_TASK_TIMEOUT_S", raising=False)
+    sys.modules.pop("ai_anime.task_backend.run_core", None)
+    return importlib.import_module("ai_anime.task_backend.run_core")
 
 
 def test_task_serialization_exposes_error_code() -> None:
-    from novelvideo.api.routes.tasks import _serialize_task
-    from novelvideo.task_state import TaskState
+    from ai_anime.api.routes.tasks import _serialize_task
+    from ai_anime.task_state import TaskState
 
     task = TaskState(
         task_id="task_1",
@@ -131,7 +131,7 @@ def test_project_task_timeout_is_independent_from_celery_hard_limit(monkeypatch)
 
 def test_celery_task_failure_maps_cooperative_task_timeout(monkeypatch) -> None:
     celery_tasks = _import_celery_tasks(monkeypatch)
-    from novelvideo.task_backend.cancel import TaskTimedOut
+    from ai_anime.task_backend.cancel import TaskTimedOut
 
     error, metadata, handled = celery_tasks._project_task_failure_for_exception(
         TaskTimedOut(timeout_seconds=30 * 60)

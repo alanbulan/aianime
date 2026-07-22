@@ -2,9 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from novelvideo.api.routes import tasks as tasks_route
-from novelvideo.project_context import ProjectContext
-from novelvideo.task_state import TaskStateManager
+from ai_anime.api.routes import tasks as tasks_route
+from ai_anime.project_context import ProjectContext
+from ai_anime.task_state import TaskStateManager
 
 pytestmark = pytest.mark.m07
 
@@ -39,7 +39,7 @@ async def test_legacy_global_task_routes_are_not_registered():
     import httpx
     from fastapi import FastAPI
 
-    from novelvideo.api.routes.tasks import router
+    from ai_anime.api.routes.tasks import router
 
     app = FastAPI()
     app.include_router(router)
@@ -124,14 +124,14 @@ async def test_project_task_limits_reports_project_and_user_lane_capacity(
             }
             return 2
 
-    monkeypatch.setenv("ST_PROJECT_MIN_ACTIVE_DEFAULT_TASKS", "3")
-    monkeypatch.setenv("ST_PROJECT_MAX_ACTIVE_DEFAULT_TASKS", "12")
-    monkeypatch.setenv("ST_PROJECT_USER_MAX_ACTIVE_DEFAULT_TASKS", "3")
-    monkeypatch.setenv("ST_PROJECT_MIN_ACTIVE_VIDEO_TASKS", "1")
-    monkeypatch.setenv("ST_PROJECT_MAX_ACTIVE_VIDEO_TASKS", "4")
-    monkeypatch.setenv("ST_PROJECT_USER_MAX_ACTIVE_VIDEO_TASKS", "1")
+    monkeypatch.setenv("AI_ANIME_PROJECT_MIN_ACTIVE_DEFAULT_TASKS", "3")
+    monkeypatch.setenv("AI_ANIME_PROJECT_MAX_ACTIVE_DEFAULT_TASKS", "12")
+    monkeypatch.setenv("AI_ANIME_PROJECT_USER_MAX_ACTIVE_DEFAULT_TASKS", "3")
+    monkeypatch.setenv("AI_ANIME_PROJECT_MIN_ACTIVE_VIDEO_TASKS", "1")
+    monkeypatch.setenv("AI_ANIME_PROJECT_MAX_ACTIVE_VIDEO_TASKS", "4")
+    monkeypatch.setenv("AI_ANIME_PROJECT_USER_MAX_ACTIVE_VIDEO_TASKS", "1")
     monkeypatch.setattr(tasks_route, "resolve_project_context", fake_resolve_project_context)
-    from novelvideo.ports.registry import register_port
+    from ai_anime.ports.registry import register_port
 
     register_port("project_access", FakeProjectAccess())
     monkeypatch.setattr(tasks_route, "get_task_manager", lambda: manager)
@@ -158,8 +158,8 @@ async def test_project_task_limits_reports_project_and_user_lane_capacity(
 
 
 def test_project_task_serialization_exposes_localized_display_name() -> None:
-    from novelvideo.api.routes.tasks import _serialize_task
-    from novelvideo.task_state import TaskState
+    from ai_anime.api.routes.tasks import _serialize_task
+    from ai_anime.task_state import TaskState
 
     task = TaskState(
         task_id="task_scene",
@@ -176,8 +176,8 @@ def test_project_task_serialization_exposes_localized_display_name() -> None:
 
 
 def test_project_task_serialization_prefers_business_display_name() -> None:
-    from novelvideo.api.routes.tasks import _serialize_task
-    from novelvideo.task_state import TaskState
+    from ai_anime.api.routes.tasks import _serialize_task
+    from ai_anime.task_state import TaskState
 
     task = TaskState(
         task_id="task_canvas",
@@ -195,13 +195,13 @@ def test_project_task_serialization_prefers_business_display_name() -> None:
     payload = _serialize_task(task)
 
     assert payload["display_name"] == "生成草图 · EP1 / Beat 3"
-    assert payload["task_type_label"] == "虾画编辑"
+    assert payload["task_type_label"] == "AI anime 画布编辑"
     assert payload["metadata"]["source_label"] == "导演合成图"
 
 
 def test_project_task_serialization_treats_stale_full_progress_as_completed() -> None:
-    from novelvideo.api.routes.tasks import _serialize_task
-    from novelvideo.task_state import TaskState
+    from ai_anime.api.routes.tasks import _serialize_task
+    from ai_anime.task_state import TaskState
 
     task = TaskState(
         task_id="task_3gs",
@@ -221,8 +221,8 @@ def test_project_task_serialization_treats_stale_full_progress_as_completed() ->
 
 
 def test_project_task_serialization_normalizes_timestamp_fields_to_utc_z() -> None:
-    from novelvideo.api.routes.tasks import _serialize_task
-    from novelvideo.task_state import TaskState
+    from ai_anime.api.routes.tasks import _serialize_task
+    from ai_anime.task_state import TaskState
 
     task = TaskState(
         task_id="task_time",

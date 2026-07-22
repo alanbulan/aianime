@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 /**
  * 把上游节点按用户在「引用资源」行里手动拖出来的顺序（`referenceOrder`）排序。
  * 在 `referenceOrder` 里出现的节点按其下标排前面；没出现的（新连进来的）按「连接

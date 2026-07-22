@@ -4,13 +4,13 @@ from io import BytesIO
 
 from PIL import Image
 
-from novelvideo.services.background_anchor_service import (
+from ai_anime.services.background_anchor_service import (
     build_background_anchors_payload,
     crop_background_anchor_to_selected,
     save_uploaded_background_anchor_image,
     select_background_anchor,
 )
-from novelvideo.utils.background_anchor import (
+from ai_anime.utils.background_anchor import (
     ANCHOR_MASTER,
     ANCHOR_SELECTED_BACKGROUND,
 )

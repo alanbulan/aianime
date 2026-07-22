@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { AnyRouter } from "@tanstack/react-router";
 
@@ -114,7 +113,7 @@ describe("freezone url params — routes through tanstack when a router is regis
     // Real leave transition: tanstack throttles history onto a microtask, so
     // the router's location is already /characters while window.location still
     // reads the old /freezone. A stray canvas-sync write here must NOT navigate
-    // back to freezone — that was the regression that trapped users on 虾画.
+    // back to freezone — that was the regression that trapped users on AI anime 画布.
     window.history.pushState(null, "", "/projects/proj-a/freezone");
     const navigate = mockRouter("/projects/proj-a/characters");
 

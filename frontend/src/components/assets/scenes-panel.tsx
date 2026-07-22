@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Map, Plus, Sparkles } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -1015,7 +1014,7 @@ interface SceneGroup {
   scenes: SceneAsset[];
 }
 
-const SCENE_GROUP_SELECTION_STORAGE_KEY_PREFIX = "supertale-scene-group:";
+const SCENE_GROUP_SELECTION_STORAGE_KEY_PREFIX = "ai-anime-scene-group:";
 
 function sceneGroupSelectionStorageKey(project: string): string {
   return `${SCENE_GROUP_SELECTION_STORAGE_KEY_PREFIX}${encodeURIComponent(project)}`;

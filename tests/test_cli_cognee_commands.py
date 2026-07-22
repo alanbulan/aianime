@@ -7,7 +7,7 @@ cognee-profile 的 --auto-filter 分支——一旦触达即 NameError（ruff F8
 """
 from typer.testing import CliRunner
 
-from novelvideo.cli import app
+from ai_anime.cli import app
 
 runner = CliRunner()
 

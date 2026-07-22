@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { v4 as uuidv4 } from 'uuid';
 
 import type { IdGenerator } from '../application/ports';

@@ -8,7 +8,7 @@ from PIL import Image
 
 @pytest.mark.asyncio
 async def test_director_control_frame_to_sketch_accepts_newapi_provider(monkeypatch, tmp_path):
-    from novelvideo.director_world import control_frame_to_sketch as module
+    from ai_anime.director_world import control_frame_to_sketch as module
 
     project_dir = tmp_path / "output" / "admin" / "demo"
     state_dir = tmp_path / "state" / "admin" / "demo"

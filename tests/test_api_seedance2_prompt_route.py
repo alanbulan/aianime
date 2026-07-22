@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from PIL import Image
 
-from novelvideo.project_context import ProjectContext
+from ai_anime.project_context import ProjectContext
 
 
 pytestmark = pytest.mark.m09
@@ -102,8 +102,8 @@ def _client(
     ctx=None,
     usage_meter=None,
 ):
-    from novelvideo.api.routes import scripts
-    from novelvideo.api.deps import ProjectResolution
+    from ai_anime.api.routes import scripts
+    from ai_anime.api.deps import ProjectResolution
 
     sqlite_store = DummySqliteStore(beats)
 
@@ -161,7 +161,7 @@ def _project_ctx(tmp_path: Path) -> ProjectContext:
 
 
 def test_generate_seedance2_prompt_updates_config_json(monkeypatch, tmp_path):
-    from novelvideo.seedance2_i2v import panel_service
+    from ai_anime.seedance2_i2v import panel_service
 
     saved_json = json.dumps(
         {
@@ -242,7 +242,7 @@ def test_generate_seedance2_prompt_reserves_feature_credit_and_confirms(
     monkeypatch,
     tmp_path,
 ):
-    from novelvideo.seedance2_i2v import panel_service
+    from ai_anime.seedance2_i2v import panel_service
 
     saved_json = json.dumps(
         {
@@ -318,7 +318,7 @@ def test_generate_seedance2_prompt_refunds_feature_credit_on_failure(
     monkeypatch,
     tmp_path,
 ):
-    from novelvideo.seedance2_i2v import panel_service
+    from ai_anime.seedance2_i2v import panel_service
 
     async def _generate_seedance2_prompt_for_panel(**kwargs):
         raise ValueError("seedance2 prompt invalid")
@@ -396,7 +396,7 @@ def test_generate_seedance2_prompt_requires_next_beat_for_first_last_mode(
 def test_generate_beat_video_prompt_updates_first_frame_video_prompt(
     monkeypatch, tmp_path
 ):
-    from novelvideo.api.routes import scripts
+    from ai_anime.api.routes import scripts
 
     seen = {}
 
@@ -449,8 +449,8 @@ def test_generate_beat_video_prompt_enqueues_project_task_in_celery_mode(
 ):
     from types import SimpleNamespace
 
-    from novelvideo.api.deps import ProjectResolution
-    from novelvideo.api.routes import scripts
+    from ai_anime.api.deps import ProjectResolution
+    from ai_anime.api.routes import scripts
 
     ctx = _project_ctx(tmp_path)
     store = DummySqliteStore(
@@ -532,9 +532,9 @@ def test_generate_beat_video_prompt_enqueues_project_task_in_celery_mode(
 async def test_generate_beat_video_prompt_does_not_save_fallback_on_agent_failure(
     monkeypatch, tmp_path
 ):
-    from novelvideo.agents import global_video_optimizer
-    from novelvideo.api.routes import scripts
-    from novelvideo.utils.path_resolver import PathResolver
+    from ai_anime.agents import global_video_optimizer
+    from ai_anime.api.routes import scripts
+    from ai_anime.utils.path_resolver import PathResolver
 
     sketch_path = PathResolver(str(tmp_path), 1).sketch(1)
     sketch_path.parent.mkdir(parents=True, exist_ok=True)
@@ -587,9 +587,9 @@ async def test_generate_beat_video_prompt_does_not_save_fallback_on_agent_failur
 async def test_generate_beat_video_prompt_uses_superpower_single_beat_optimizer(
     monkeypatch, tmp_path
 ):
-    from novelvideo.agents import global_video_optimizer
-    from novelvideo.api.routes import scripts
-    from novelvideo.utils.path_resolver import PathResolver
+    from ai_anime.agents import global_video_optimizer
+    from ai_anime.api.routes import scripts
+    from ai_anime.utils.path_resolver import PathResolver
 
     sketch_path = PathResolver(str(tmp_path), 1).sketch(1)
     sketch_path.parent.mkdir(parents=True, exist_ok=True)
@@ -676,7 +676,7 @@ async def test_generate_beat_video_prompt_uses_superpower_single_beat_optimizer(
 
 
 def test_generate_beat_video_prompt_updates_keyframe_prompt(monkeypatch, tmp_path):
-    from novelvideo.api.routes import scripts
+    from ai_anime.api.routes import scripts
 
     seen = {}
 

@@ -3,8 +3,8 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from novelvideo.task_identity import selection_scope
-from novelvideo.verification.render_repair_context import (
+from ai_anime.task_identity import selection_scope
+from ai_anime.verification.render_repair_context import (
     build_render_repair_context,
     collect_active_render_entries,
     compute_missing_render_beats,
@@ -61,7 +61,7 @@ def test_build_render_repair_context_writes_run_artifacts(tmp_path: Path, monkey
     Image.new("RGB", (64, 64), color="white").save(frames_dir / "beat_19.png")
     Image.new("RGB", (64, 64), color="black").save(sketches_dir / "beat_19.png")
     monkeypatch.setattr(
-        "novelvideo.verification.render_repair_context.load_script_payload",
+        "ai_anime.verification.render_repair_context.load_script_payload",
         lambda _project_dir, _episode_num: {
             "beats": [{"beat_number": 19, "visual_description": "close-up lower face"}]
         },
@@ -90,7 +90,7 @@ def test_prepare_render_regen_task_plan_blocks_beats_without_render_identities(
     Image.new("RGB", (64, 64), color="white").save(frames_dir / "beat_20.png")
     Image.new("RGB", (64, 64), color="black").save(sketches_dir / "beat_20.png")
     monkeypatch.setattr(
-        "novelvideo.verification.render_repair_context.load_script_payload",
+        "ai_anime.verification.render_repair_context.load_script_payload",
         lambda _project_dir, _episode_num: {
             "beats": [
                 {

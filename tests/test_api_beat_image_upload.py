@@ -15,8 +15,8 @@ def _png_bytes() -> bytes:
 
 
 def _client(monkeypatch, tmp_path):
-    from novelvideo.api.routes import generation
-    from novelvideo.api.deps import ProjectResolution
+    from ai_anime.api.routes import generation
+    from ai_anime.api.deps import ProjectResolution
 
     async def fake_resolve_project_scope(project, user, *, required_role="viewer"):
         return ProjectResolution(

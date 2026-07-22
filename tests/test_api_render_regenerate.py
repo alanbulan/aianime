@@ -6,7 +6,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from novelvideo.models import NO_CHARACTER_MARKER
+from ai_anime.models import NO_CHARACTER_MARKER
 
 
 class _RenderRegenStore:
@@ -30,7 +30,7 @@ class _RenderRegenStore:
 
 
 def _client(monkeypatch, tmp_path):
-    from novelvideo.api.routes import generation
+    from ai_anime.api.routes import generation
 
     calls: list[dict] = []
 
@@ -105,7 +105,7 @@ def _client(monkeypatch, tmp_path):
 
 
 def _client_with_real_detection_guard(monkeypatch, tmp_path, beats: list[dict]):
-    from novelvideo.api.routes import generation
+    from ai_anime.api.routes import generation
 
     calls: list[dict] = []
     seen_character_map_beats: list[list[int]] = []
@@ -172,7 +172,7 @@ def test_render_selected_regen_returns_scope_and_passes_render_settings(
     monkeypatch,
     tmp_path,
 ):
-    from novelvideo.task_identity import selection_scope
+    from ai_anime.task_identity import selection_scope
 
     client, calls = _client(monkeypatch, tmp_path)
 
@@ -271,7 +271,7 @@ def test_render_plan_execute_checks_only_selected_beat_detection(monkeypatch, tm
 
 
 def test_render_grid_regen_passes_render_settings(monkeypatch, tmp_path):
-    from novelvideo.generators import nanobanana_grid
+    from ai_anime.generators import nanobanana_grid
 
     monkeypatch.setattr(
         nanobanana_grid,
@@ -302,7 +302,7 @@ def test_render_grid_regen_passes_render_settings(monkeypatch, tmp_path):
 
 
 def test_render_grid_regen_checks_only_selected_grid_detection(monkeypatch, tmp_path):
-    from novelvideo.generators import nanobanana_grid
+    from ai_anime.generators import nanobanana_grid
 
     monkeypatch.setattr(
         nanobanana_grid,

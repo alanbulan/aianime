@@ -5,17 +5,17 @@ from types import SimpleNamespace
 
 import pytest
 
-from novelvideo.shared.billing_errors import InsufficientCreditsError
+from ai_anime.shared.billing_errors import InsufficientCreditsError
 
 pytestmark = pytest.mark.m04
 
 
 def _isolate_settings_db(monkeypatch, tmp_path):
-    import novelvideo.config as config
+    import ai_anime.config as config
 
     state_dir = str(tmp_path / "state")
     monkeypatch.delenv("MODEL_GATEWAY_MODE", raising=False)
-    monkeypatch.setenv("NOVELVIDEO_STATE_DIR", state_dir)
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", state_dir)
     monkeypatch.setattr(config, "STATE_DIR", state_dir)
 
 
@@ -24,7 +24,7 @@ def _isolated_model_gateway(monkeypatch, tmp_path):
     _isolate_settings_db(monkeypatch, tmp_path)
     # This module tests low-level environment-driven gateway adapters. CE
     # database precedence is covered in test_model_gateway_settings.py.
-    monkeypatch.setenv("ST_CONTROL_PLANE_DSN", "postgresql://test-control-plane")
+    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "postgresql://test-control-plane")
 
 
 def _patch_scene_newapi_gateway(
@@ -33,7 +33,7 @@ def _patch_scene_newapi_gateway(
     api_key: str = "newapi-token",
     base_url: str = "http://newapi.test/v1",
 ) -> None:
-    import novelvideo.config as config
+    import ai_anime.config as config
 
     monkeypatch.setattr(
         config,
@@ -49,7 +49,7 @@ def test_dc_image_2_selection_maps_to_newapi_gpt_image2(monkeypatch, tmp_path):
     monkeypatch.setenv("NEWAPI_IMAGE_MODEL", "LingShan-G2")
     monkeypatch.setenv("DEFAULT_CHARACTER_IMAGE_SELECTION", "newapi_gpt_image2")
 
-    import novelvideo.config as config
+    import ai_anime.config as config
 
     config = importlib.reload(config)
 
@@ -70,7 +70,7 @@ def test_dc_banana_2_selection_maps_to_newapi_nanobanana2(monkeypatch, tmp_path)
     monkeypatch.setenv("NEWAPI_NANOBANANA2_MODEL", "LingShan-NB-2")
     monkeypatch.setenv("DEFAULT_CHARACTER_IMAGE_SELECTION", "newapi_nanobanana2")
 
-    import novelvideo.config as config
+    import ai_anime.config as config
 
     config = importlib.reload(config)
 
@@ -94,7 +94,7 @@ def test_fixed_asset_image_providers_default_to_newapi_when_env_is_empty(monkeyp
         monkeypatch.setenv(key, "")
     monkeypatch.setenv("NEWAPI_IMAGE_MODEL", "LingShan-G2")
 
-    import novelvideo.config as config
+    import ai_anime.config as config
 
     config = importlib.reload(config)
 
@@ -103,7 +103,7 @@ def test_fixed_asset_image_providers_default_to_newapi_when_env_is_empty(monkeyp
     assert config.SCENE_REVERSE_MASTER_IMAGE_PROVIDER == "newapi"
     assert config.SCENE_360_IMAGE_PROVIDER == "newapi"
 
-    from novelvideo.generators import nanobanana_prop, scene_reference_images
+    from ai_anime.generators import nanobanana_prop, scene_reference_images
 
     nanobanana_prop = importlib.reload(nanobanana_prop)
     scene_reference_images = importlib.reload(scene_reference_images)
@@ -115,8 +115,8 @@ def test_fixed_asset_image_providers_default_to_newapi_when_env_is_empty(monkeyp
 
 def test_newapi_sketch_config_defaults_to_dc_image2_low_quality(monkeypatch):
     import httpx
-    import novelvideo.config as config
-    from novelvideo.generators import nanobanana_grid
+    import ai_anime.config as config
+    from ai_anime.generators import nanobanana_grid
 
     posted = {}
 
@@ -192,8 +192,8 @@ def test_newapi_sketch_config_defaults_to_dc_image2_low_quality(monkeypatch):
 
 def test_newapi_sketch_config_can_use_dc_banana2_without_quality(monkeypatch):
     import httpx
-    import novelvideo.config as config
-    from novelvideo.generators import nanobanana_grid
+    import ai_anime.config as config
+    from ai_anime.generators import nanobanana_grid
 
     posted = {}
 
@@ -258,7 +258,7 @@ def test_newapi_sketch_config_can_use_dc_banana2_without_quality(monkeypatch):
 
 def test_newapi_image_call_sends_gpt_image2_params(monkeypatch):
     import httpx
-    from novelvideo.generators import nanobanana_grid
+    from ai_anime.generators import nanobanana_grid
 
     posted = {}
 
@@ -318,7 +318,7 @@ def test_newapi_image_call_sends_gpt_image2_params(monkeypatch):
 
 def test_newapi_image_call_reports_transport_exception_type(monkeypatch):
     import httpx
-    from novelvideo.generators import nanobanana_grid
+    from ai_anime.generators import nanobanana_grid
 
     class FakeAsyncClient:
         def __init__(self, *args, **kwargs):
@@ -352,7 +352,7 @@ def test_newapi_image_call_reports_transport_exception_type(monkeypatch):
 
 
 def test_newapi_image_call_reraises_insufficient_credit(monkeypatch):
-    from novelvideo.generators import nanobanana_grid
+    from ai_anime.generators import nanobanana_grid
 
     class FakeUsageMeter:
         async def reserve_current_model_call_credit(self, **_kwargs):
@@ -372,7 +372,7 @@ def test_newapi_image_call_reraises_insufficient_credit(monkeypatch):
 
 
 def test_newapi_sketch_grid_reraises_insufficient_credit(monkeypatch, tmp_path):
-    from novelvideo.generators import nanobanana_grid
+    from ai_anime.generators import nanobanana_grid
 
     async def fake_call_newapi_image_api(**_kwargs):
         raise InsufficientCreditsError(user_id="usr_1", cost=5, balance=0)
@@ -424,7 +424,7 @@ def test_newapi_sketch_grid_reraises_insufficient_credit(monkeypatch, tmp_path):
 
 def test_newapi_image_call_omits_quality_for_nanobanana2(monkeypatch):
     import httpx
-    from novelvideo.generators import nanobanana_grid
+    from ai_anime.generators import nanobanana_grid
 
     posted = {}
 
@@ -478,7 +478,7 @@ def test_newapi_image_call_omits_quality_for_nanobanana2(monkeypatch):
 
 def test_newapi_image_call_relays_reference_images(monkeypatch):
     import httpx
-    from novelvideo.generators import nanobanana_grid
+    from ai_anime.generators import nanobanana_grid
 
     posted = {}
     relayed = []
@@ -536,7 +536,7 @@ def test_newapi_image_call_relays_reference_images(monkeypatch):
 
 def test_newapi_image_call_preserves_reference_image_extensions(monkeypatch):
     import httpx
-    from novelvideo.generators import nanobanana_grid
+    from ai_anime.generators import nanobanana_grid
 
     relayed = []
 
@@ -591,7 +591,7 @@ def test_newapi_image_call_preserves_reference_image_extensions(monkeypatch):
 
 def test_newapi_image_http_error_logs_redacted_request_context(monkeypatch, caplog):
     import httpx
-    from novelvideo.generators import nanobanana_grid
+    from ai_anime.generators import nanobanana_grid
 
     posted = {}
     refunds = []
@@ -642,7 +642,7 @@ def test_newapi_image_http_error_logs_redacted_request_context(monkeypatch, capl
     monkeypatch.setattr(httpx, "AsyncClient", FakeAsyncClient)
     monkeypatch.setattr(nanobanana_grid, "upload_image_bytes", fake_upload_image_bytes)
     monkeypatch.setattr(nanobanana_grid, "get_usage_meter", lambda: FakeUsageMeter())
-    caplog.set_level(logging.WARNING, logger="novelvideo.generators.nanobanana_grid")
+    caplog.set_level(logging.WARNING, logger="ai_anime.generators.nanobanana_grid")
 
     image_bytes, _text, error = run_async(
         nanobanana_grid._call_newapi_image_api(
@@ -692,7 +692,7 @@ def test_newapi_image_http_error_logs_redacted_request_context(monkeypatch, capl
 
 def test_newapi_image_http_5xx_does_not_retry_in_app(monkeypatch):
     import httpx
-    from novelvideo.generators import nanobanana_grid
+    from ai_anime.generators import nanobanana_grid
 
     attempts = 0
 
@@ -745,7 +745,7 @@ def test_newapi_identity_image_sends_portrait_then_costume_references(
     monkeypatch,
     tmp_path,
 ):
-    from novelvideo.generators import nanobanana_character
+    from ai_anime.generators import nanobanana_character
 
     captured = {}
 
@@ -800,7 +800,7 @@ def test_newapi_identity_image_sends_portrait_then_costume_references(
 
 
 def test_newapi_character_portrait_reraises_insufficient_credit(monkeypatch, tmp_path):
-    from novelvideo.generators import nanobanana_character
+    from ai_anime.generators import nanobanana_character
 
     async def fake_call_newapi_image_api(**_kwargs):
         raise InsufficientCreditsError(user_id="usr_1", cost=5, balance=0)
@@ -831,8 +831,8 @@ def test_newapi_character_portrait_reraises_insufficient_credit(monkeypatch, tmp
 
 
 def test_newapi_character_portrait_raise_on_error_preserves_provider_detail(monkeypatch, tmp_path):
-    import novelvideo.config as config
-    from novelvideo.generators import image_generator, nanobanana_character
+    import ai_anime.config as config
+    from ai_anime.generators import image_generator, nanobanana_character
 
     async def fake_call_newapi_image_api(**_kwargs):
         return None, "", "HTTP 504: request_id=req-123; body=provider timeout"
@@ -863,8 +863,8 @@ def test_newapi_character_portrait_raise_on_error_preserves_provider_detail(monk
 
 def test_newapi_scene_master_uses_text_only_nanobanana2(monkeypatch, tmp_path):
     _isolate_settings_db(monkeypatch, tmp_path)
-    from novelvideo.generators import scene_reference_images
-    from novelvideo.models import NovelScene
+    from ai_anime.generators import scene_reference_images
+    from ai_anime.models import NovelScene
 
     captured = {}
 
@@ -918,8 +918,8 @@ def test_newapi_scene_master_uses_text_only_nanobanana2(monkeypatch, tmp_path):
 
 
 def test_newapi_scene_time_plate_master_injects_time_and_base_reference(monkeypatch, tmp_path):
-    from novelvideo.generators import scene_reference_images
-    from novelvideo.models import NovelScene
+    from ai_anime.generators import scene_reference_images
+    from ai_anime.models import NovelScene
 
     captured = {}
 
@@ -967,8 +967,8 @@ def test_newapi_scene_time_plate_master_injects_time_and_base_reference(monkeypa
 
 
 def test_newapi_scene_variant_plate_master_keeps_described_lighting(monkeypatch, tmp_path):
-    from novelvideo.generators import scene_reference_images
-    from novelvideo.models import NovelScene
+    from ai_anime.generators import scene_reference_images
+    from ai_anime.models import NovelScene
 
     captured = {}
 
@@ -1018,8 +1018,8 @@ def test_newapi_scene_variant_plate_master_keeps_described_lighting(monkeypatch,
 
 def test_newapi_reverse_master_uses_master_reference_nanobanana2(monkeypatch, tmp_path):
     _isolate_settings_db(monkeypatch, tmp_path)
-    from novelvideo.generators import scene_reference_images
-    from novelvideo.models import NovelScene
+    from ai_anime.generators import scene_reference_images
+    from ai_anime.models import NovelScene
 
     captured = {}
 
@@ -1079,8 +1079,8 @@ def test_newapi_reverse_master_uses_master_reference_nanobanana2(monkeypatch, tm
 
 def test_newapi_reverse_master_can_use_gpt_image2_quality_low(monkeypatch, tmp_path):
     _isolate_settings_db(monkeypatch, tmp_path)
-    from novelvideo.generators import scene_reference_images
-    from novelvideo.models import NovelScene
+    from ai_anime.generators import scene_reference_images
+    from ai_anime.models import NovelScene
 
     captured = {}
 
@@ -1134,8 +1134,8 @@ def test_newapi_reverse_master_can_use_gpt_image2_quality_low(monkeypatch, tmp_p
 def test_newapi_prop_reference_gpt_image2_sends_quality_medium(monkeypatch, tmp_path):
     _isolate_settings_db(monkeypatch, tmp_path)
     import httpx
-    import novelvideo.config as config
-    from novelvideo.generators import nanobanana_prop
+    import ai_anime.config as config
+    from ai_anime.generators import nanobanana_prop
 
     posted = {}
 
@@ -1200,8 +1200,8 @@ def test_newapi_prop_reference_gpt_image2_sends_quality_medium(monkeypatch, tmp_
 def test_newapi_prop_reference_nanobanana2_omits_quality(monkeypatch, tmp_path):
     _isolate_settings_db(monkeypatch, tmp_path)
     import httpx
-    import novelvideo.config as config
-    from novelvideo.generators import nanobanana_prop
+    import ai_anime.config as config
+    from ai_anime.generators import nanobanana_prop
 
     posted = {}
 
@@ -1260,8 +1260,8 @@ def test_newapi_prop_reference_nanobanana2_omits_quality(monkeypatch, tmp_path):
 
 def test_newapi_prop_reference_reraises_insufficient_credit(monkeypatch, tmp_path):
     _isolate_settings_db(monkeypatch, tmp_path)
-    import novelvideo.config as config
-    from novelvideo.generators import nanobanana_prop
+    import ai_anime.config as config
+    from ai_anime.generators import nanobanana_prop
 
     async def fake_call_newapi_image_api(**_kwargs):
         raise InsufficientCreditsError(user_id="usr_1", cost=5, balance=0)
@@ -1289,7 +1289,7 @@ def test_newapi_prop_reference_reraises_insufficient_credit(monkeypatch, tmp_pat
 
 
 def test_freezone_single_image_generation_routes_newapi(monkeypatch, tmp_path):
-    from novelvideo.generators import nanobanana_grid
+    from ai_anime.generators import nanobanana_grid
 
     captured = {}
 

@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import {
   isStaleByTtl,
   pruneLocalStorageByPrefix,
@@ -15,7 +14,7 @@ import type {
 
 export const CANVAS_DRAFT_MAX_BYTES = 1_500_000;
 const CANVAS_DRAFT_VERSION = 1;
-const CANVAS_DRAFT_PREFIX = "supertale-freezone:canvas-draft:";
+const CANVAS_DRAFT_PREFIX = "ai-anime-freezone:canvas-draft:";
 const CANVAS_DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1_000;
 
 // Sibling per-canvas keys written elsewhere (useCanvasSync). They share the

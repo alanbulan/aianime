@@ -2,7 +2,7 @@
 
 import sqlite3
 
-from novelvideo.backup.db_daily import snapshot_state_tree
+from ai_anime.backup.db_daily import snapshot_state_tree
 
 
 def _make_db(path, rows=1):
@@ -72,15 +72,15 @@ def test_failed_snapshot_keeps_yesterday_and_no_tmp(tmp_path):
 def test_main_empty_tree_is_success(tmp_path, monkeypatch):
     state = tmp_path / "state"
     state.mkdir()
-    monkeypatch.setenv("NOVELVIDEO_STATE_DIR", str(state))
-    from novelvideo.backup.db_daily import main
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(state))
+    from ai_anime.backup.db_daily import main
 
     assert main() == 0
 
 
 def test_main_missing_state_dir_fails(tmp_path, monkeypatch):
-    monkeypatch.setenv("NOVELVIDEO_STATE_DIR", str(tmp_path / "missing"))
-    from novelvideo.backup.db_daily import main
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "missing"))
+    from ai_anime.backup.db_daily import main
 
     assert main() == 1
 

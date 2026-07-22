@@ -1,11 +1,10 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { Canvas } from "@/features/canvas/Canvas";
 import { NodeReplaceDragPreview } from "@/features/canvas/ui/NodeReplaceDragPreview";
-import type { SupertaleProjectSummary } from "@/api/projects";
+import type { AiAnimeProjectSummary } from "@/api/projects";
 import {
   buildProjectionFromPreset,
   getProjectionStatuses,
@@ -84,7 +83,7 @@ import type { CanvasEdge, CanvasNode } from "@/stores/canvasStore";
 export { hasLegacyPresetCanvasMetadata } from "@/features/freezone/projections";
 
 interface FreezoneShellProps {
-  project: SupertaleProjectSummary;
+  project: AiAnimeProjectSummary;
   canvasId: string;
 }
 
@@ -327,7 +326,7 @@ function stringOrUndefined(value: unknown): string | undefined {
 }
 
 /**
- * Mounts the shared xyflow canvas inside the SuperTale Beat Workbench shell.
+ * Mounts the shared xyflow canvas inside the AI anime Beat Workbench shell.
  * Canvas switching lives inside the left AssetLibraryPanel (主线资产 / 画布 tabs).
  * Commit still lives on eligible canvas nodes. Sync status is
  * intentionally not shown — `useCanvasSync` still loads + persists via
@@ -369,8 +368,8 @@ export function FreezoneShell({ project, canvasId }: FreezoneShellProps) {
   // there is no UI bound to a syncing/removing value, so no state is kept.
   const syncingProjectionRef = useRef<string | null>(null);
   const removingProjectionRef = useRef<string | null>(null);
-  // 顶栏在「虾画 / 虾集」之间切换会整体卸载再挂载本组件，但画布数据留在全局 store 里。
-  // 如果这里从 false 起步，回到虾画就会先把画面换成「正在加载画布…」，等 hydrate 回来
+  // 顶栏在「AI anime 画布 / AI anime 工作台」之间切换会整体卸载再挂载本组件，但画布数据留在全局 store 里。
+  // 如果这里从 false 起步，回到AI anime 画布就会先把画面换成「正在加载画布…」，等 hydrate 回来
   // 才重新画出来 —— 看着就是卡。同一个画布重进时直接渲染 store 里的既有内容，
   // hydrate 期间只叠一层轻量 overlay。
   const [hasRenderedCanvas, setHasRenderedCanvas] = useState(
@@ -1019,8 +1018,8 @@ function FreezoneChatDock({
 }
 
 /**
- * 虾导入口的位置（相对容器右下角的 right/bottom 偏移，px）。
- * 注意 key 不用 `supertale-` 前缀——那个前缀会被 reset-region-state 的
+ * AI anime 助手入口的位置（相对容器右下角的 right/bottom 偏移，px）。
+ * 注意 key 不用 `ai-anime-` 前缀——那个前缀会被 reset-region-state 的
  * localStorage 清扫误删；这只是个 UI 位置偏好，跨区域保留没问题。
  */
 const CHAT_LAUNCHER_POS_STORAGE_KEY = "st.freezone.chatLauncherPos";
@@ -1186,7 +1185,7 @@ function FreezoneChatToggleButton({
       onClick={handleClick}
     >
       <img
-        src="/images/avatar-claw.png"
+        src="/images/avatar-ai-anime.png"
         alt=""
         className={cn(
           "absolute inset-0 size-full rounded-full object-cover transition-opacity duration-[350ms] ease-out",

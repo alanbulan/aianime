@@ -13,9 +13,9 @@ pytestmark = pytest.mark.m03
 
 
 def _reset_port_modules():
-    import novelvideo.ports as ports
-    import novelvideo.ports.local as local_ports
-    import novelvideo.ports.registry as registry
+    import ai_anime.ports as ports
+    import ai_anime.ports.local as local_ports
+    import ai_anime.ports.registry as registry
 
     registry = importlib.reload(registry)
     ports = importlib.reload(ports)
@@ -28,11 +28,11 @@ def _patch_roots(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     state = tmp_path / "state"
     runtime = tmp_path / "runtime"
 
-    import novelvideo.api.deps as deps
-    import novelvideo.config as config
-    import novelvideo.project_config as project_config
-    import novelvideo.project_context as project_context
-    import novelvideo.utils.project_paths as project_paths
+    import ai_anime.api.deps as deps
+    import ai_anime.config as config
+    import ai_anime.project_config as project_config
+    import ai_anime.project_context as project_context
+    import ai_anime.utils.project_paths as project_paths
 
     for module in (config, deps, project_paths):
         monkeypatch.setattr(module, "OUTPUT_DIR", str(output), raising=False)
@@ -45,7 +45,7 @@ def _patch_roots(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
 
 class _M03Store:
     def __init__(self, project_dir: Path):
-        from novelvideo.models import NovelEpisode
+        from ai_anime.models import NovelEpisode
 
         self.project_dir = str(project_dir)
         self.episode = NovelEpisode(
@@ -188,13 +188,13 @@ class _M03Store:
 def m03_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     _reset_port_modules()
     _patch_roots(monkeypatch, tmp_path)
-    monkeypatch.delenv("ST_CONTROL_PLANE_DSN", raising=False)
-    monkeypatch.setenv("ST_EDITION", "ce")
-    monkeypatch.setenv("ST_LOCAL_USERNAME", "alice")
+    monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
+    monkeypatch.setenv("AI_ANIME_EDITION", "ce")
+    monkeypatch.setenv("AI_ANIME_LOCAL_USERNAME", "alice")
 
-    from novelvideo.api import auth as api_auth
-    from novelvideo.api.deps import ProjectResolution
-    from novelvideo.api.routes import content, episodes, scripts
+    from ai_anime.api import auth as api_auth
+    from ai_anime.api.deps import ProjectResolution
+    from ai_anime.api.routes import content, episodes, scripts
 
     store = _M03Store(tmp_path)
     ctx = SimpleNamespace(project_id="proj_m03", output_dir=tmp_path, state_dir=tmp_path / "state")
@@ -244,7 +244,7 @@ def m03_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         return "改写第一行\n改写第二行"
 
     async def fake_seedance2_prompt_for_panel(**kwargs):
-        from novelvideo.seedance2_i2v.models import dump_seedance2_config
+        from ai_anime.seedance2_i2v.models import dump_seedance2_config
 
         return dump_seedance2_config(
             {
@@ -254,11 +254,11 @@ def m03_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         )
 
     monkeypatch.setattr(
-        "novelvideo.agents.content_rewriter.rewrite_episode_content",
+        "ai_anime.agents.content_rewriter.rewrite_episode_content",
         fake_rewrite_episode_content,
     )
     monkeypatch.setattr(
-        "novelvideo.seedance2_i2v.panel_service.generate_seedance2_prompt_for_panel",
+        "ai_anime.seedance2_i2v.panel_service.generate_seedance2_prompt_for_panel",
         fake_seedance2_prompt_for_panel,
     )
 

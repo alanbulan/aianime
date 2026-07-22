@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 const COOKIE_NAME = "server-region";
 const REGION_ID_RE = /^[a-z0-9][a-z0-9-]{0,31}$/;
 

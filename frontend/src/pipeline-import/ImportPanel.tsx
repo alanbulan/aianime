@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useEffect, useMemo, useState } from "react";
 import {
   listCharacters,
@@ -7,9 +6,9 @@ import {
   listBeats,
   deriveSketchUrl,
   deriveDirectorRenderUrl,
-  type SupertaleCharacter,
-  type SupertaleEpisodeSummary,
-  type SupertaleBeat,
+  type AiAnimeCharacter,
+  type AiAnimeEpisodeSummary,
+  type AiAnimeBeat,
 } from "@/api/projects";
 import {
   UiButton,
@@ -65,11 +64,11 @@ const DEFAULT_KIND_TOGGLES: KindToggles = {
 };
 
 export function ImportPanel({ project, onClose, onImport }: ImportPanelProps) {
-  const [characters, setCharacters] = useState<SupertaleCharacter[]>([]);
-  const [episodes, setEpisodes] = useState<SupertaleEpisodeSummary[]>([]);
+  const [characters, setCharacters] = useState<AiAnimeCharacter[]>([]);
+  const [episodes, setEpisodes] = useState<AiAnimeEpisodeSummary[]>([]);
   const [selectedCharacters, setSelectedCharacters] = useState<Set<string>>(new Set());
   const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
-  const [beats, setBeats] = useState<SupertaleBeat[]>([]);
+  const [beats, setBeats] = useState<AiAnimeBeat[]>([]);
   const [selectedBeats, setSelectedBeats] = useState<Set<number>>(new Set());
   const [kinds, setKinds] = useState<KindToggles>(DEFAULT_KIND_TOGGLES);
   const [loading, setLoading] = useState(true);
@@ -301,7 +300,7 @@ function CharactersList({
   selected,
   onToggle,
 }: {
-  characters: SupertaleCharacter[];
+  characters: AiAnimeCharacter[];
   selected: Set<string>;
   onToggle: (name: string) => void;
 }) {
@@ -336,7 +335,7 @@ function EpisodePicker({
   selectedEpisode,
   onSelect,
 }: {
-  episodes: SupertaleEpisodeSummary[];
+  episodes: AiAnimeEpisodeSummary[];
   selectedEpisode: number | null;
   onSelect: (ep: number) => void;
 }) {
@@ -427,9 +426,9 @@ function BeatRange({
 
 interface CollectArgs {
   project: string;
-  characters: SupertaleCharacter[];
+  characters: AiAnimeCharacter[];
   selectedCharacters: Set<string>;
-  beats: SupertaleBeat[];
+  beats: AiAnimeBeat[];
   selectedBeats: Set<number>;
   episode: number | null;
   kinds: KindToggles;

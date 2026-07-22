@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 // Pure-web download helper: fetch the URL into a blob, create an object URL,
 // and trigger a
 // `<a download>` click. If the fetch fails (e.g. cross-origin without CORS),

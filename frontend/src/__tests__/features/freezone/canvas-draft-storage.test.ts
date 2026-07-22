@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it } from "vitest";
 
 import {
@@ -126,7 +125,7 @@ describe("canvas draft storage", () => {
 
   it("ignores malformed draft JSON", () => {
     window.localStorage.setItem(
-      "supertale-freezone:canvas-draft:project-a:broken",
+      "ai-anime-freezone:canvas-draft:project-a:broken",
       "{not json",
     );
 

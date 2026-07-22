@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { describe, it, expect, beforeEach } from "vitest";
 import {
   useAppStore,
@@ -48,7 +47,7 @@ describe("app-store task panel state", () => {
       taskPanelOpen: false,
       taskPanelHeight: TASK_PANEL_HEIGHT_DEFAULT,
     });
-    expect(migrated).toMatchObject({ language: "zh", theme: "system" });
+    expect(migrated).toMatchObject({ language: "zh", theme: "dark" });
     expect(migrated).not.toHaveProperty("sidebarCollapsed");
     expect(migrated).not.toHaveProperty("sidebarWidth");
   });

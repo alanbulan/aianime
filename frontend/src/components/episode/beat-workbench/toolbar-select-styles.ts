@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 export const WORKBENCH_SELECT_TRIGGER_CLASS =
   "!h-[26px] !rounded-[6px] !border-white/10 !bg-transparent px-2 text-[11px] text-foreground shadow-none transition-colors hover:border-primary/40 hover:bg-white/[0.04] focus:ring-0 focus-visible:ring-2 focus-visible:ring-sidebar-ring [&_svg]:!size-3.5";
 

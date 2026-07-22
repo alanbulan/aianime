@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useMemo } from "react";
 import { useEpisodeBeats } from "@/lib/queries/episodes";
 import { useProject } from "@/lib/queries/projects";
@@ -68,7 +67,7 @@ function computeCounts(
   }
 
   // Compose readiness mirrors the BE actor's own pre-flight
-  // (supertale-be ray_tasks.py _run_compose_episode): only the audio and
+  // (ai-anime-be ray_tasks.py _run_compose_episode): only the audio and
   // video files per beat are required. Sketch is an upstream input to video
   // generation — once the video clip exists, compose (which concatenates
   // clips + audio) no longer needs the sketch/keyframe image.

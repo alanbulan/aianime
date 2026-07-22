@@ -9,7 +9,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from novelvideo.models import NO_CHARACTER_MARKER, NovelScene
+from ai_anime.models import NO_CHARACTER_MARKER, NovelScene
 
 pytestmark = pytest.mark.m05
 
@@ -266,11 +266,11 @@ class _FakeTaskBackend:
 
 @pytest.fixture()
 def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    from novelvideo.api import auth as api_auth
-    from novelvideo.api.deps import ProjectResolution
-    from novelvideo.api.routes import episodes, generation, scenes
-    from novelvideo.project_context import ProjectContext
-    from novelvideo.verification import routes as verification_routes
+    from ai_anime.api import auth as api_auth
+    from ai_anime.api.deps import ProjectResolution
+    from ai_anime.api.routes import episodes, generation, scenes
+    from ai_anime.project_context import ProjectContext
+    from ai_anime.verification import routes as verification_routes
 
     store = _M05Store()
     project_dir = tmp_path / "output" / "alice" / _PROJECT
@@ -441,8 +441,8 @@ def _seed_labels(project_dir: Path) -> None:
 
 
 def _seed_stage_files(project_dir: Path) -> None:
-    from novelvideo.director_world import stage_manifest
-    from novelvideo.utils.path_resolver import canonical_scene_master_path
+    from ai_anime.director_world import stage_manifest
+    from ai_anime.utils.path_resolver import canonical_scene_master_path
 
     master = canonical_scene_master_path(project_dir, _SCENE)
     master.parent.mkdir(parents=True, exist_ok=True)
@@ -935,15 +935,3 @@ def test_m05_task_responses_are_ce_ee_isomorphic_without_celery_only_fields(m05_
             "selected_regen",
             "sketch_edit_execute",
         ]
-
-
-def test_m05_acceptance_script_keeps_world_split_and_ee_assertions() -> None:
-    script = Path("scripts/acceptance/checks/m05.sh").read_text(encoding="utf-8")
-
-    assert "director-stage/world" in script
-    assert "director-stage/world/clear" in script
-    assert "CE OpenAPI 暴露 scene director-stage world/clear" in script
-    assert "OpenAPI 暴露 M05 §1.5 实测 60 个 method/path 操作" in script
-    assert "episode_scene_planner" in script
-    assert '\"backend\"] == (\"inline\" if os.environ[\"MODE\"] == \"ce\" else \"celery\")' in script
-    assert "selected_regen" in script

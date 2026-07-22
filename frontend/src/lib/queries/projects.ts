@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { api } from "@/lib/api";
@@ -64,7 +63,7 @@ export function useUpdateProject(project: string) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Project summaries + lifecycle (archive / soft-delete / restore / purge).
 //
-// All state is owned by supertale-be (stored in `project_config.json` per
+// All state is owned by ai-anime-be (stored in `project_config.json` per
 // project). The frontend fetches summaries in a single call and derives tab
 // counts + filters client-side. Mutations hit the matching POST endpoints.
 // ─────────────────────────────────────────────────────────────────────────────

@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import * as pc from 'playcanvas';
 
 import { createFlyCameraController, type FlyCameraController } from './flyCamera';
@@ -1620,7 +1619,7 @@ export async function createViewerApp(options: ViewerAppOptions): Promise<Viewer
         translateGizmoCreateFailed = true;
         return null;
       }
-      translateGizmoLayer = GizmoCtor.createLayer(app, 'SuperTale Translate Gizmo');
+      translateGizmoLayer = GizmoCtor.createLayer(app, 'AI anime Translate Gizmo');
       const gizmo = new TranslateGizmoCtor(camera.camera, translateGizmoLayer);
       gizmo.coordSpace = 'world';
       gizmo.size = 1.08;

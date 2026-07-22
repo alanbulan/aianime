@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import type { QueryClient } from "@tanstack/react-query";
 import { useAspectRatioStore } from "@/stores/aspect-ratio-store";
 import { useAuthStore } from "@/stores/auth-store";
@@ -7,11 +6,10 @@ import { useEpisodeWorkbenchStore } from "@/stores/episode-workbench-store";
 import { useSaveStatusStore } from "@/stores/save-status-store";
 import { useSeenPoolStore } from "@/stores/seen-pool-store";
 import { useTaskCenterStore } from "@/task-center/store";
-import { useRewardEventsStore } from "@/features/rewards/reward-events-store";
 
 // UX chrome keys that must survive a region switch.
 const PRESERVE_KEYS = new Set<string>([
-  "supertale-app",
+  "ai-anime-app",
   "i18nextLng",
 ]);
 
@@ -19,13 +17,13 @@ const PRESERVE_KEYS = new Set<string>([
 // 不应强迫用户重选区域。区域切换流程仍然要清它（切完会立刻写入新值）。
 const LOGOUT_PRESERVE_KEYS = new Set<string>([
   ...PRESERVE_KEYS,
-  "supertale-region",
+  "ai-anime-region",
 ]);
 
 // Prefix sweep is self-maintaining: any future region-scoped key matching
 // these prefixes is covered without updating this list.
 const SWEEP_PREFIXES = [
-  "supertale-",
+  "ai-anime-",
   "st.episode.",
   "st.beats.toggles",
   "st.beats.action-panel.sections",
@@ -41,7 +39,6 @@ function resetSessionScopedState(
   useEpisodeWorkbenchStore.getState().reset();
   useTaskCenterStore.getState().reset();
   useAspectRatioStore.getState().reset();
-  useRewardEventsStore.getState().reset();
 
   deps.queryClient.clear();
 

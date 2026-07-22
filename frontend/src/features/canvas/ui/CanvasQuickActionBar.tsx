@@ -1,8 +1,7 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useEffect, useRef, useState, type ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Clock, HelpCircle, Keyboard, Plus } from 'lucide-react';
+import { Clock, Keyboard, Plus } from 'lucide-react';
 
 import type { CanvasNodeType } from '@/features/canvas/domain/canvasNodes';
 import type { CanvasAsset } from '@/features/canvas/domain/canvasAssets';
@@ -12,12 +11,11 @@ import { CanvasAddNodePanel } from './CanvasAddNodePanel';
 import { CanvasShortcutsPanel } from './CanvasShortcutsPanel';
 import { CanvasHistoryAssetsModal } from './CanvasHistoryAssetsModal';
 
-type QuickPanel = 'add' | 'history' | 'shortcuts' | 'help';
+type QuickPanel = 'add' | 'history' | 'shortcuts';
 
 // 悬停即开 / 离开延迟关闭的轻量 popover 面板（区别于 history 那种 modal）。
 const HOVER_POPOVER_PANELS: ReadonlySet<QuickPanel> = new Set(['add']);
 const ANCHORED_POPOVER_PANELS: ReadonlySet<QuickPanel> = new Set(['add', 'shortcuts']);
-const PRODUCT_MANUAL_URL = 'https://neo-flying.feishu.cn/docx/T2UgdVA4Fo1A5KxCh0vckDz3nTg';
 
 interface CanvasQuickActionBarProps {
   placement?: 'bottom-right' | 'top-right';
@@ -33,7 +31,6 @@ interface QuickActionDef {
   icon: ComponentType<{ className?: string }>;
   labelKey: string;
   tooltipKey?: string;
-  href?: string;
   /** Rendered as the always-filled white primary button (libtv "+" style). */
   primary?: boolean;
 }
@@ -51,13 +48,6 @@ const ACTIONS: QuickActionDef[] = [
     icon: Keyboard,
     labelKey: 'canvas.quickbar.shortcuts',
     tooltipKey: 'canvas.quickbar.shortcuts',
-  },
-  {
-    key: 'help',
-    icon: HelpCircle,
-    labelKey: 'canvas.quickbar.help',
-    tooltipKey: 'canvas.quickbar.viewManual',
-    href: PRODUCT_MANUAL_URL,
   },
 ];
 
@@ -99,11 +89,6 @@ export function CanvasQuickActionBar({
 
   const handleActionClick = (action: QuickActionDef) => {
     const panel = action.key;
-    if (action.href) {
-      window.open(action.href, '_blank', 'noopener,noreferrer');
-      setOpenPanel(null);
-      return;
-    }
     if (HOVER_POPOVER_PANELS.has(panel)) {
       cancelPopoverClose();
       setOpenPanel(panel);

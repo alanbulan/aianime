@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useEffect, useRef } from "react";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -448,10 +447,10 @@ describe("ThreeDDirectorDialog", () => {
       />,
     );
 
-    expect(document.body).toHaveClass("st-viewer-immersive-active");
+    expect(document.body).toHaveClass("ai-anime-viewer-immersive-active");
 
     unmount();
-    expect(document.body).not.toHaveClass("st-viewer-immersive-active");
+    expect(document.body).not.toHaveClass("ai-anime-viewer-immersive-active");
   });
 
   it("does not stretch the frame guide away from the selected aspect ratio", () => {

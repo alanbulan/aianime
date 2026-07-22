@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { createLazyFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -153,7 +152,7 @@ import type { Character, CharacterAssetHistory, CharacterAssetHistoryEntry, Char
 type AssetTab = "characters" | "scenes" | "props" | "voices";
 
 const ASSET_TABS = ["characters", "scenes", "props", "voices"] as const;
-const ASSET_TAB_STORAGE_KEY_PREFIX = "supertale-asset-tab:";
+const ASSET_TAB_STORAGE_KEY_PREFIX = "ai-anime-asset-tab:";
 
 const TAB_BY_ASSET_TYPE: Record<AssetRefType, AssetTab> = {
   identity: "characters",
@@ -913,7 +912,7 @@ function PortraitBlock({
   const genPortrait = useGeneratePortraitAsync(project, character.name);
   const uploadPortrait = useUploadPortrait(project, character.name);
   const portraitCostRes = useGenerationCreditCost("image_selection", imageModel, {
-    surface: "supertale",
+    surface: "ai_anime",
     imageRole: "character",
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1331,7 +1330,7 @@ function IdentityCard({
   const uploadPortrait = useUploadIdentityPortrait(project, characterName);
   const genPortrait = useGenerateIdentityPortraitAsync(project, characterName);
   const identityCostRes = useGenerationCreditCost("image_selection", imageModel, {
-    surface: "supertale",
+    surface: "ai_anime",
     imageRole: "identity",
   });
   const identityImageScope = `character:${characterName}:identity:${identity.identity_name}`;

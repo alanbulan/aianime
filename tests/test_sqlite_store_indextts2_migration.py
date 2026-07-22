@@ -25,7 +25,7 @@ def _tables(db_path: str | Path) -> set[str]:
 
 @pytest.fixture
 async def initialized_store(tmp_path):
-    from novelvideo.sqlite_store import SQLiteStore
+    from ai_anime.sqlite_store import SQLiteStore
 
     output_dir = tmp_path / "output"
     state_dir = tmp_path / "state"
@@ -79,7 +79,7 @@ async def test_characters_voice_columns_added(initialized_store):
 @pytest.mark.asyncio
 async def test_idempotent_reinit_does_not_error(tmp_path):
     """Re-initializing on an existing DB must not raise (additive ALTER guard)."""
-    from novelvideo.sqlite_store import SQLiteStore
+    from ai_anime.sqlite_store import SQLiteStore
 
     output_dir = tmp_path / "output"
     state_dir = tmp_path / "state"
@@ -110,7 +110,7 @@ async def test_idempotent_reinit_does_not_error(tmp_path):
 @pytest.mark.asyncio
 async def test_add_column_if_missing_ignores_duplicate_column_race():
     """A concurrent store init can add a column after our table_info read."""
-    from novelvideo.sqlite_store import _add_column_if_missing
+    from ai_anime.sqlite_store import _add_column_if_missing
 
     class FakeCursor:
         def __init__(self, rows):
@@ -164,7 +164,7 @@ async def test_add_column_if_missing_ignores_duplicate_column_race():
 
 def test_character_voice_field_defaults_match_pydantic():
     """NovelCharacter / CharacterIdentity expose the new IndexTTS2 voice fields."""
-    from novelvideo.models import CharacterIdentity, NovelCharacter
+    from ai_anime.models import CharacterIdentity, NovelCharacter
 
     char = NovelCharacter(name="测试角色")
     assert char.reference_audio_path == ""
@@ -188,7 +188,7 @@ def test_character_voice_field_defaults_match_pydantic():
 
 
 def test_novel_visual_beat_seedance2_config_default():
-    from novelvideo.models import NovelVisualBeat
+    from ai_anime.models import NovelVisualBeat
 
     beat = NovelVisualBeat(beat_number=1, episode_number=1, narration="x", visual_description="y")
     assert beat.seedance2_config_json == "{}"

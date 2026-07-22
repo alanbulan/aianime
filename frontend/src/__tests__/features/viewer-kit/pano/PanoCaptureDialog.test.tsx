@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -70,10 +69,10 @@ describe("PanoCaptureDialog", () => {
     expect(document.querySelector('[data-slot="dialog-overlay"]')).toHaveClass(
       "supports-backdrop-filter:backdrop-blur-none",
     );
-    expect(document.body).toHaveClass("st-viewer-immersive-active");
+    expect(document.body).toHaveClass("ai-anime-viewer-immersive-active");
 
     unmount();
-    expect(document.body).not.toHaveClass("st-viewer-immersive-active");
+    expect(document.body).not.toHaveClass("ai-anime-viewer-immersive-active");
   });
 
   it("keeps the fullscreen close action inside the viewer toolbar", async () => {

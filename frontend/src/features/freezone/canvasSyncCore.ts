@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 /**
  * Pure decision logic for the Freezone canvas save protocol. Extracted from
  * `useCanvasSync` so it can be exercised in isolation by `canvasSyncCore.test.ts`
@@ -38,7 +37,7 @@ import type { CanvasMutationSource } from "@/stores/canvasStore";
  *   a fatal-error overlay.
  *
  * Source of truth: backend `MAX_NODES` / `MAX_EDGES` + 5 MB request body
- * middleware in SuperTale2's freezone routes. Keep both in sync — if the
+ * middleware in AI anime's freezone routes. Keep both in sync — if the
  * backend ever raises these limits, bump both ends.
  */
 export const MAX_NODES = 50_000;

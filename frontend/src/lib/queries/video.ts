@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { jsonWithBackendError } from "@/lib/api-errors";
@@ -222,7 +221,7 @@ export function useGlobalOptimize(project: string, episode: number) {
   });
 }
 
-// Mirrors backend `VideoPoolEntry` (novelvideo/models.py) plus route-injected
+// Mirrors backend `VideoPoolEntry` (ai_anime/models.py) plus route-injected
 // `video_url` from `GET /video-pool`.
 export interface VideoPoolEntry {
   id: string;

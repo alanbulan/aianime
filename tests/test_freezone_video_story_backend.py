@@ -4,10 +4,10 @@ from pathlib import Path
 
 import pytest
 
-from novelvideo.api.routes import freezone as freezone_routes
-from novelvideo.freezone import vision_gateway
-from novelvideo.freezone.jobs import build_video_story_analysis_prompt
-from novelvideo.freezone.jobs import run_freezone_analyze_shots
+from ai_anime.api.routes import freezone as freezone_routes
+from ai_anime.freezone import vision_gateway
+from ai_anime.freezone.jobs import build_video_story_analysis_prompt
+from ai_anime.freezone.jobs import run_freezone_analyze_shots
 
 
 def _patch_project_resolution(
@@ -54,7 +54,7 @@ async def test_video_story_analysis_uses_shared_freezone_vision_model(
 
     async def fake_call_freezone_vision_model(**kwargs):
         captured.update(kwargs)
-        return "DC-freezone-vision-LLM", '{"shots":[]}'
+        return "ai-anime-freezone-vision-LLM", '{"shots":[]}'
 
     monkeypatch.setattr(
         vision_gateway,
@@ -70,7 +70,7 @@ async def test_video_story_analysis_uses_shared_freezone_vision_model(
     )
 
     assert result["provider"] == "newapi"
-    assert result["model"] == "DC-freezone-vision-LLM"
+    assert result["model"] == "ai-anime-freezone-vision-LLM"
     assert result["video_story"] == {"shots": []}
     assert len(captured["images"]) == 1
 

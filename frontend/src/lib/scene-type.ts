@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 export const SCENE_TYPE_OPTIONS = [
   { value: "interior", label: "室内" },
   { value: "exterior", label: "室外" },

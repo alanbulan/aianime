@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import type { AnyRouter } from "@tanstack/react-router";
 
 // The app's tanstack-router singleton. Registered once from main.tsx after the

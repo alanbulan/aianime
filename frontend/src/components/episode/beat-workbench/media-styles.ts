@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 export const MEDIA_GRID_CLASS = "grid grid-cols-[minmax(0,2fr)_minmax(220px,3fr)] gap-3";
 
 export const MEDIA_PREVIEW_CLASS =

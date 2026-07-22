@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
+// Copyright (c) 2026 AI anime
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { quotaSafeStateStorage } from '@/lib/localStorageQuota';
@@ -159,7 +158,7 @@ export interface MediaModelEntry {
 
 export interface EmbeddingModelEntry {
   provider: FeatureModelProvider;
-  /** 固定内部模型名 DC-cognee-embedding 对应的上游 embedding 模型。 */
+  /** 固定内部模型名 ai-anime-cognee-embedding 对应的上游 embedding 模型。 */
   upstreamModel: string;
   /** Cognee 本地向量库维度。 */
   dimension: number;
@@ -253,8 +252,6 @@ interface SettingsState {
   themeTonePreset: ThemeTonePreset;
   accentColor: string;
   canvasEdgeRoutingMode: CanvasEdgeRoutingMode;
-  autoCheckAppUpdateOnLaunch: boolean;
-  enableUpdateDialog: boolean;
   mediaStorage: MediaStorageSettings;
   featureModelConfig: FeatureModelSettings;
   updateFeatureModel: (featureId: string, patch: Partial<FeatureModelEntry>) => void;
@@ -291,8 +288,6 @@ interface SettingsState {
   setThemeTonePreset: (preset: ThemeTonePreset) => void;
   setAccentColor: (color: string) => void;
   setCanvasEdgeRoutingMode: (mode: CanvasEdgeRoutingMode) => void;
-  setAutoCheckAppUpdateOnLaunch: (enabled: boolean) => void;
-  setEnableUpdateDialog: (enabled: boolean) => void;
 }
 
 const HEX_COLOR_PATTERN = /^#?[0-9a-fA-F]{6}$/;
@@ -535,8 +530,6 @@ export const useSettingsStore = create<SettingsState>()(
       themeTonePreset: 'neutral',
       accentColor: '#3B82F6',
       canvasEdgeRoutingMode: 'spline',
-      autoCheckAppUpdateOnLaunch: true,
-      enableUpdateDialog: true,
       mediaStorage: DEFAULT_MEDIA_STORAGE_SETTINGS,
       featureModelConfig: DEFAULT_FEATURE_MODEL_SETTINGS,
       updateFeatureModel: (featureId, patch) =>
@@ -779,8 +772,6 @@ export const useSettingsStore = create<SettingsState>()(
       setAccentColor: (color) => set({ accentColor: normalizeHexColor(color) }),
       setCanvasEdgeRoutingMode: (canvasEdgeRoutingMode) =>
         set({ canvasEdgeRoutingMode: normalizeCanvasEdgeRoutingMode(canvasEdgeRoutingMode) }),
-      setAutoCheckAppUpdateOnLaunch: (enabled) => set({ autoCheckAppUpdateOnLaunch: enabled }),
-      setEnableUpdateDialog: (enabled) => set({ enableUpdateDialog: enabled }),
     }),
     {
       name: 'settings-storage',
@@ -809,8 +800,6 @@ export const useSettingsStore = create<SettingsState>()(
           grsaiNanoBananaProModel?: string;
           hideProviderGuidePopover?: boolean;
           canvasEdgeRoutingMode?: CanvasEdgeRoutingMode | string;
-          autoCheckAppUpdateOnLaunch?: boolean;
-          enableUpdateDialog?: boolean;
           enableStoryboardGenGridPreviewShortcut?: boolean;
           showStoryboardGenAdvancedRatioControls?: boolean;
           storyboardGenAutoInferEmptyFrame?: boolean;
@@ -836,8 +825,6 @@ export const useSettingsStore = create<SettingsState>()(
             ),
             hideProviderGuidePopover: state.hideProviderGuidePopover ?? false,
             canvasEdgeRoutingMode: normalizeCanvasEdgeRoutingMode(state.canvasEdgeRoutingMode),
-            autoCheckAppUpdateOnLaunch: state.autoCheckAppUpdateOnLaunch ?? true,
-            enableUpdateDialog: state.enableUpdateDialog ?? true,
             enableStoryboardGenGridPreviewShortcut:
               state.enableStoryboardGenGridPreviewShortcut ?? false,
             showStoryboardGenAdvancedRatioControls:
@@ -864,8 +851,6 @@ export const useSettingsStore = create<SettingsState>()(
           ),
           hideProviderGuidePopover: state.hideProviderGuidePopover ?? false,
           canvasEdgeRoutingMode: normalizeCanvasEdgeRoutingMode(state.canvasEdgeRoutingMode),
-          autoCheckAppUpdateOnLaunch: state.autoCheckAppUpdateOnLaunch ?? true,
-          enableUpdateDialog: state.enableUpdateDialog ?? true,
           enableStoryboardGenGridPreviewShortcut:
             state.enableStoryboardGenGridPreviewShortcut ?? false,
           showStoryboardGenAdvancedRatioControls:
