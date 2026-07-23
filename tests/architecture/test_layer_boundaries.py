@@ -416,6 +416,22 @@ def test_asset_world_character_task_routes_delegate_to_application() -> None:
         assert legacy_implementation not in source
 
 
+def test_asset_world_character_image_runner_is_an_adapter() -> None:
+    runner = PACKAGE_ROOT / "task_backend" / "runners" / "character_image.py"
+    source = runner.read_text(encoding="utf-8")
+
+    assert "execute_character_image_task" in source
+    for implementation_detail in (
+        "CogneeStore",
+        "generate_character_reference_unified",
+        "generate_identity_image_unified",
+        "shutil",
+        "def _generate_",
+        "def _safe_asset_name",
+    ):
+        assert implementation_detail not in source
+
+
 def test_narrative_script_route_remains_an_http_adapter() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "scripts.py"
     imported_modules = _imports(route)

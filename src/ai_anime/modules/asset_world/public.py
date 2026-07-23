@@ -1,5 +1,7 @@
 """Stable application API for the Asset & World bounded context."""
 
+from typing import Any
+
 from ai_anime.modules.asset_world.application.character_asset_history import (
     CharacterAssetHistoryUseCases,
 )
@@ -84,6 +86,7 @@ from ai_anime.modules.asset_world.infrastructure.character_voice_storage import 
     voice_sample_extension,
 )
 from ai_anime.modules.asset_world.infrastructure.style_catalog import StyleService
+from ai_anime.modules.project_workspace.public import ProjectContext
 
 
 def style_catalog_use_cases() -> StyleCatalogUseCases:
@@ -122,6 +125,17 @@ def character_task_use_cases() -> CharacterTaskUseCases:
     from ai_anime.modules.asset_world.composition import character_task_use_cases as build
 
     return build()
+
+
+async def execute_character_image_task(
+    envelope: dict[str, Any],
+    context: ProjectContext,
+) -> dict[str, Any] | None:
+    from ai_anime.modules.asset_world.composition import (
+        execute_character_image_task as execute,
+    )
+
+    return await execute(envelope, context)
 
 
 def character_voice_use_cases() -> CharacterVoiceUseCases:
@@ -192,6 +206,7 @@ __all__ = [
     "character_voice_fields",
     "character_voice_use_cases",
     "clear_character_voice_file",
+    "execute_character_image_task",
     "decode_recorded_audio_data_url",
     "is_supported_voice_sample",
     "identity_voice_fields",

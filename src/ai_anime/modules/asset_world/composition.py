@@ -1,5 +1,7 @@
 """Runtime composition for the Asset & World bounded context."""
 
+from typing import Any
+
 from ai_anime.modules.asset_world.application.character_asset_history import (
     CharacterAssetHistoryUseCases,
 )
@@ -48,6 +50,7 @@ from ai_anime.modules.asset_world.infrastructure.style_generation import (
     PydanticStyleImageAnalyzer,
     UnifiedStylePreviewGenerator,
 )
+from ai_anime.modules.project_workspace.public import ProjectContext
 
 
 def style_catalog_use_cases() -> StyleCatalogUseCases:
@@ -80,6 +83,17 @@ def character_task_use_cases() -> CharacterTaskUseCases:
     from ai_anime import ports
 
     return CharacterTaskUseCases(TaskBackendCharacterTaskScheduler(ports.get_task_backend))
+
+
+async def execute_character_image_task(
+    envelope: dict[str, Any],
+    context: ProjectContext,
+) -> dict[str, Any] | None:
+    from ai_anime.modules.asset_world.infrastructure.character_image_task_runtime import (
+        execute_character_image_task as execute,
+    )
+
+    return await execute(envelope, context)
 
 
 def character_voice_use_cases() -> CharacterVoiceUseCases:
