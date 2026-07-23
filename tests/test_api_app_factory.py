@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 import pytest
@@ -47,19 +49,23 @@ async def test_app_lifespan_orders_startup_and_shutdown(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from ai_anime.api import lifespan as lifespan_module
+    from ai_anime import sqlite_pragmas
 
     events: list[str] = []
 
-    async def startup() -> None:
-        events.append("startup")
+    class Lifecycle:
+        async def on_startup(self, *, register_as_worker: bool = True) -> None:
+            assert register_as_worker is True
+            events.append("startup")
 
-    async def shutdown() -> None:
-        events.append("shutdown")
+        async def on_shutdown(self) -> None:
+            events.append("shutdown")
 
-    monkeypatch.setattr(lifespan_module, "startup_application", startup)
-    monkeypatch.setattr(lifespan_module, "shutdown_application", shutdown)
+    application = FastAPI()
+    application.state.container = SimpleNamespace(lifecycle=Lifecycle())
+    monkeypatch.setattr(sqlite_pragmas, "litestream_enabled", lambda: False)
 
-    async with lifespan_module.app_lifespan(FastAPI()):
+    async with lifespan_module.app_lifespan(application):
         events.append("serving")
 
     assert events == ["startup", "serving", "shutdown"]

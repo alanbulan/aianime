@@ -154,3 +154,12 @@ def test_api_package_does_not_eagerly_assemble_routes() -> None:
     assert "@application.middleware" not in app_source
     assert "@application.exception_handler" not in app_source
     assert "@application.on_event" not in app_source
+
+
+def test_lifespan_uses_the_application_container() -> None:
+    lifespan_source = (PACKAGE_ROOT / "api" / "lifespan.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "ai_anime.bootstrap" in lifespan_source
+    assert "ai_anime.ports.registry" not in lifespan_source

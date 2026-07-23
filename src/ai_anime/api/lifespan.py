@@ -7,18 +7,29 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import cast
 
 from fastapi import FastAPI
+
+from ai_anime.bootstrap import ApplicationContainer, build_application_container
 
 logger = logging.getLogger("ai_anime.api.app")
 
 
-async def startup_application() -> None:
-    try:
-        from ai_anime.ports.registry import ensure_bootstrap, get_port
+def application_container(application: FastAPI) -> ApplicationContainer:
+    existing = getattr(application.state, "container", None)
+    if existing is not None:
+        return cast(ApplicationContainer, existing)
 
-        ensure_bootstrap()
-        await get_port("lifecycle").on_startup(register_as_worker=True)
+    container = build_application_container()
+    application.state.container = container
+    return container
+
+
+async def startup_application(application: FastAPI) -> None:
+    try:
+        container = application_container(application)
+        await container.lifecycle.on_startup(register_as_worker=True)
 
         from ai_anime.sqlite_pragmas import litestream_enabled
 
@@ -35,21 +46,17 @@ async def startup_application() -> None:
         raise
 
 
-async def shutdown_application() -> None:
-    from ai_anime.ports.registry import PortNotRegistered, get_port
-
-    try:
-        lifecycle = get_port("lifecycle")
-    except PortNotRegistered:
+async def shutdown_application(application: FastAPI) -> None:
+    container = getattr(application.state, "container", None)
+    if container is None:
         return
-    await lifecycle.on_shutdown()
+    await cast(ApplicationContainer, container).lifecycle.on_shutdown()
 
 
 @asynccontextmanager
 async def app_lifespan(application: FastAPI) -> AsyncIterator[None]:
-    _ = application
-    await startup_application()
+    await startup_application(application)
     try:
         yield
     finally:
-        await shutdown_application()
+        await shutdown_application(application)
