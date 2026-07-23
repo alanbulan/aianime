@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -14,7 +16,7 @@ def _client(monkeypatch, tmp_path):
 
     async def fake_resolve_project_scope(project, user, *, required_role="viewer"):
         return ProjectResolution(
-            ctx=None,
+            ctx=SimpleNamespace(project_id="proj_demo", output_dir=tmp_path),
             username="alice",
             project_name="demo",
             project_dir=tmp_path,
@@ -24,13 +26,6 @@ def _client(monkeypatch, tmp_path):
         )
 
     monkeypatch.setattr(episodes, "resolve_project_scope", fake_resolve_project_scope)
-
-    def fake_make_static_url_for_context(ctx, relative_path, local_path=None):
-        return f"/static/alice/demo/{relative_path}"
-
-    monkeypatch.setattr(
-        episodes, "make_static_url_for_context", fake_make_static_url_for_context
-    )
 
     class FakeStore:
         async def get_beats_as_dicts(self, episode_num: int):
@@ -46,6 +41,11 @@ def _client(monkeypatch, tmp_path):
         return FakeStore()
 
     monkeypatch.setattr(episodes, "make_sqlite_store", fake_make_sqlite_store)
+    monkeypatch.setattr(
+        episodes,
+        "make_sqlite_store_for_context",
+        lambda ctx: fake_make_sqlite_store("alice", "demo"),
+    )
 
     app = FastAPI()
     app.include_router(episodes.router, prefix="/api/v1")
@@ -70,8 +70,12 @@ def test_get_beats_exposes_canonical_sketch_url_separately_from_frame_url(
     body = response.json()
     assert body["ok"] is True
     beat = body["data"][0]
-    assert beat["sketch_url"].endswith("/alice/demo/sketches/ep002/beat_03.png")
-    assert beat["frame_url"].endswith("/alice/demo/frames/ep002/beat_03.png")
+    assert beat["sketch_url"].split("?", 1)[0].endswith(
+        "/projects/proj_demo/sketches/ep002/beat_03.png"
+    )
+    assert beat["frame_url"].split("?", 1)[0].endswith(
+        "/projects/proj_demo/frames/ep002/beat_03.png"
+    )
 
 
 def test_get_beats_returns_empty_sketch_url_when_canonical_sketch_is_missing(

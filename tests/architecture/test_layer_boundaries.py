@@ -285,3 +285,14 @@ def test_narrative_script_route_remains_an_http_adapter() -> None:
 
     assert not forbidden_imports
     assert not forbidden_calls
+
+
+def test_narrative_episode_route_remains_an_http_adapter() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "episodes.py"
+    imported_modules = _imports(route)
+    source = route.read_text(encoding="utf-8")
+
+    assert "ai_anime.utils.media_io" not in imported_modules
+    assert "ai_anime.shared.project_media" not in imported_modules
+    assert "make_static_url_for_context" not in source
+    assert "audio_duration_jobs" not in source

@@ -9,7 +9,6 @@ from ai_anime.api.deps import (
     make_cognee_store_for_context,
     make_sqlite_store,
     make_sqlite_store_for_context,
-    make_static_url_for_context,
     resolve_project_scope,
 )
 from ai_anime.api.schemas import EpisodePlanRequest, EpisodeUpdate, InsertManualShotRequest
@@ -19,6 +18,7 @@ from ai_anime.modules.narrative_planning.public import (
     ProjectContextRequired,
     delete_manual_shot,
     episode_details_data,
+    get_episode_beats,
     get_episode_details,
     insert_manual_shot,
     list_episode_summaries,
@@ -237,86 +237,17 @@ async def get_episode_detail(project: str, episode_num: int, user: dict = Depend
 async def get_beats(project: str, episode_num: int, user: dict = Depends(get_api_user)):
     """获取指定集数的 beats。"""
     resolved = await resolve_project_scope(project, user, required_role="viewer")
-    project_dir = resolved.project_dir
-
-    # 从图谱读取 beats（统一数据源）
     store = (
         await make_sqlite_store_for_context(resolved.ctx)
         if resolved.ctx
         else await make_sqlite_store(resolved.username, resolved.project_name)
     )
-    beats = await store.get_beats_as_dicts(episode_num)
-
-    # 为每个 beat 附加 sketch_url / frame_url / video_url / audio_url.
-    # Asset files are named by beat_number. Do not use enumerate index here:
-    # manually inserted shots can have sparse/non-display-order beat numbers.
-    sketches_dir = project_dir / "sketches" / f"ep{episode_num:03d}"
-    frames_dir = project_dir / "frames" / f"ep{episode_num:03d}"
-    videos_dir = project_dir / "videos" / "beats" / f"ep{episode_num:03d}"
-    audio_dir = project_dir / "audio" / f"ep{episode_num:03d}"
-    # 收集已存在的音频，循环后并发探测时长，供前端时长控件做默认值/下限（视频时长须 >= 音频）。
-    audio_duration_jobs: list[tuple[dict, str]] = []
-    for beat in beats:
-        beat["audio_duration_seconds"] = None
-        beat_num = int(beat.get("beat_number", 0) or 0)
-        if beat_num <= 0:
-            beat["sketch_url"] = ""
-            beat["frame_url"] = ""
-            beat["video_url"] = ""
-            beat["audio_url"] = ""
-            continue
-        # sketch
-        sketch_file = f"beat_{beat_num:02d}.png"
-        if (sketches_dir / sketch_file).exists():
-            rel = f"sketches/ep{episode_num:03d}/{sketch_file}"
-            beat["sketch_url"] = make_static_url_for_context(
-                resolved.ctx,
-                rel,
-                local_path=sketches_dir / sketch_file,
-            )
-        else:
-            beat["sketch_url"] = ""
-        # frame
-        frame_file = f"beat_{beat_num:02d}.png"
-        if (frames_dir / frame_file).exists():
-            rel = f"frames/ep{episode_num:03d}/{frame_file}"
-            beat["frame_url"] = make_static_url_for_context(
-                resolved.ctx, rel, local_path=frames_dir / frame_file
-            )
-        else:
-            beat["frame_url"] = ""
-        # video
-        video_file = f"beat_{beat_num:02d}.mp4"
-        if (videos_dir / video_file).exists():
-            rel = f"videos/beats/ep{episode_num:03d}/{video_file}"
-            beat["video_url"] = make_static_url_for_context(
-                resolved.ctx, rel, local_path=videos_dir / video_file
-            )
-        else:
-            beat["video_url"] = ""
-        # audio
-        audio_file = f"beat_{beat_num:02d}.mp3"
-        if (audio_dir / audio_file).exists():
-            rel = f"audio/ep{episode_num:03d}/{audio_file}"
-            beat["audio_url"] = make_static_url_for_context(
-                resolved.ctx, rel, local_path=audio_dir / audio_file
-            )
-            audio_duration_jobs.append((beat, str(audio_dir / audio_file)))
-        else:
-            beat["audio_url"] = ""
-
-    if audio_duration_jobs:
-        import asyncio
-
-        from ai_anime.utils.media_io import get_audio_duration_async
-
-        durations = await asyncio.gather(
-            *(get_audio_duration_async(path) for _, path in audio_duration_jobs),
-            return_exceptions=True,
-        )
-        for (beat, _), value in zip(audio_duration_jobs, durations):
-            if isinstance(value, (int, float)) and value > 0:
-                beat["audio_duration_seconds"] = float(value)
+    beats = await get_episode_beats(
+        store,
+        episode_num=episode_num,
+        project_dir=resolved.project_dir,
+        project_context=resolved.ctx,
+    )
 
     return {"ok": True, "data": beats}
 

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from pathlib import Path
-from collections.abc import Sequence
 from typing import Any, Protocol
 
 from ai_anime.modules.narrative_planning.application.task_dto import (
@@ -207,6 +208,35 @@ class EpisodeRepository(Protocol):
         episode_num: int,
         **updates: Any,
     ) -> None: ...
+
+
+@dataclass(frozen=True)
+class ProjectMediaResource:
+    relative_path: str
+    local_path: Path
+
+
+class EpisodeBeatStore(Protocol):
+    async def get_beats_as_dicts(
+        self,
+        episode_number: int,
+    ) -> list[dict[str, Any]]: ...
+
+
+class EpisodeBeatMediaCatalog(Protocol):
+    def locate(
+        self,
+        episode_number: int,
+        beat_number: int,
+    ) -> Mapping[str, ProjectMediaResource]: ...
+
+
+class ProjectMediaUrlBuilder(Protocol):
+    def build(self, resource: ProjectMediaResource) -> str: ...
+
+
+class AudioDurationProbe(Protocol):
+    async def read(self, audio_path: Path) -> float: ...
 
 
 class ManualBeatStore(Protocol):

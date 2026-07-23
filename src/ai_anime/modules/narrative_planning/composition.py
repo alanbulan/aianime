@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
+from ai_anime.modules.narrative_planning.application.beat_media import (
+    EpisodeBeatMediaProjection,
+)
 from ai_anime.modules.narrative_planning.application.beat_video_prompts import (
     BeatVideoPrompts,
 )
@@ -32,6 +36,11 @@ from ai_anime.modules.narrative_planning.infrastructure import (
     beat_prompt_generators,
     content_rewriters,
 )
+from ai_anime.modules.narrative_planning.infrastructure.beat_media import (
+    AsyncAudioDurationProbe,
+    LocalEpisodeBeatMediaCatalog,
+    ProjectContextMediaUrlBuilder,
+)
 from ai_anime.modules.narrative_planning.infrastructure.sketch_workspace import (
     LocalSketchWorkspace,
 )
@@ -46,6 +55,7 @@ from ai_anime.modules.narrative_planning.infrastructure.manual_beat_assets impor
 from ai_anime.modules.narrative_planning.infrastructure.task_scheduler import (
     TaskBackendScheduler,
 )
+from ai_anime.modules.project_workspace.public import ProjectContext
 
 
 def beat_video_prompts() -> BeatVideoPrompts:
@@ -67,6 +77,17 @@ def episode_content_service() -> EpisodeContentService:
 
 def episode_catalog() -> EpisodeCatalog:
     return EpisodeCatalog()
+
+
+def episode_beat_media_projection(
+    project_dir: str | Path,
+    project_context: ProjectContext,
+) -> EpisodeBeatMediaProjection:
+    return EpisodeBeatMediaProjection(
+        media_catalog=LocalEpisodeBeatMediaCatalog(project_dir),
+        url_builder=ProjectContextMediaUrlBuilder(project_context),
+        audio_duration_probe=AsyncAudioDurationProbe(),
+    )
 
 
 def script_document_service() -> ScriptDocumentService:

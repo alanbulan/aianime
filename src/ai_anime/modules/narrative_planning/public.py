@@ -34,6 +34,7 @@ from ai_anime.modules.narrative_planning.application.narrative_tasks import (
     ProjectContextRequired,
 )
 from ai_anime.modules.narrative_planning.application.ports import (
+    EpisodeBeatStore,
     EpisodeRepository,
     ManualBeatStore,
     NarrativeContentStore,
@@ -60,6 +61,7 @@ from ai_anime.modules.narrative_planning.composition import (
     beat_video_prompts,
     create_script_writing_workflow,
     episode_catalog,
+    episode_beat_media_projection,
     episode_content_service,
     generate_seedance_prompt,
     manual_beat_service,
@@ -138,6 +140,19 @@ def get_episode_details(
     episode_num: int,
 ) -> dict[str, Any]:
     return episode_catalog().get(store, episode_num)
+
+
+async def get_episode_beats(
+    store: EpisodeBeatStore,
+    *,
+    episode_num: int,
+    project_dir: str | Path,
+    project_context: ProjectContext,
+) -> list[dict[str, Any]]:
+    return await episode_beat_media_projection(
+        project_dir,
+        project_context,
+    ).list(store, episode_num)
 
 
 async def update_episode_metadata(
@@ -377,6 +392,7 @@ __all__ = [
     "generate_episode_rewrite",
     "generate_seedance2_beat_prompt",
     "get_episode_details",
+    "get_episode_beats",
     "insert_manual_shot",
     "load_adapted_episode_content",
     "load_episode_script",
