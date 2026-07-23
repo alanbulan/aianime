@@ -241,22 +241,22 @@ function MiniThumb({
           onError={() => setImageFailed(true)}
         />
       ) : isAudio ? (
-        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[rgba(21,215,232,0.15)] to-transparent rounded">
+        <div className="flex h-full w-full items-center justify-center rounded bg-primary/10">
           <AudioLines className="h-5 w-5 text-muted-foreground" />
         </div>
       ) : videoPosterUrl ? (
         <div className="relative h-full w-full">
           <video
             src={videoPosterUrl}
-            className="h-full w-full rounded object-contain bg-black"
+            className="h-full w-full rounded bg-media object-contain"
             preload="metadata"
             muted
             playsInline
             tabIndex={-1}
             onError={() => setImageFailed(true)}
           />
-          <div className="pointer-events-none absolute bottom-1 right-1 flex h-4 w-4 items-center justify-center rounded bg-black/65 ring-1 ring-white/15">
-            <Video className="h-2.5 w-2.5 text-white/90" />
+          <div className="pointer-events-none absolute bottom-1 right-1 flex h-4 w-4 items-center justify-center rounded bg-media/65 ring-1 ring-media-foreground/15">
+            <Video className="h-2.5 w-2.5 text-media-foreground/90" />
           </div>
         </div>
       ) : isVideo ? (
@@ -704,7 +704,7 @@ export function AssetLibraryPanel({
             className="group/btn relative flex h-10 w-10 items-center justify-center rounded-[10px] text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
           >
             <span
-              className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-border bg-card shadow-[0_10px_28px_rgb(15_23_42/0.12)] dark:shadow-[0_10px_28px_rgba(0,0,0,0.30)] transition-colors duration-200 group-hover/btn:border-primary/55 group-hover/btn:bg-accent"
+              className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-border bg-card shadow-lg transition-colors duration-200 group-hover/btn:border-primary/55 group-hover/btn:bg-accent"
             >
               {collapsed ? (
                 <ChevronRight className="h-4 w-4" />
@@ -714,7 +714,7 @@ export function AssetLibraryPanel({
             </span>
           </button>
           <span
-            className="pointer-events-none absolute left-11 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-popover/95 px-2 py-1 text-[11px] font-medium text-popover-foreground/80 opacity-0 shadow-[0_10px_24px_rgb(15_23_42/0.14)] dark:shadow-[0_10px_24px_rgba(0,0,0,0.28)] backdrop-blur-md transition-opacity duration-150 group-hover/handle:opacity-100"
+            className="pointer-events-none absolute left-11 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-popover/95 px-2 py-1 text-[11px] font-medium text-popover-foreground/80 opacity-0 shadow-lg backdrop-blur-md transition-opacity duration-150 group-hover/handle:opacity-100"
           >
             {collapsed ? "展开" : "收起"}
           </span>
@@ -722,7 +722,7 @@ export function AssetLibraryPanel({
 
         {/* 悬浮圆角卡片 */}
         <div
-          className={`flex min-h-0 flex-col overflow-hidden rounded-[12px] border border-border bg-card text-card-foreground shadow-[0_18px_42px_rgb(15_23_42/0.12)] dark:shadow-[0_18px_42px_rgba(0,0,0,0.32)] transition-[opacity,transform] duration-[360ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform ${
+          className={`flex min-h-0 flex-col overflow-hidden rounded-[12px] border border-border bg-card text-card-foreground shadow-xl transition-[opacity,transform] duration-[360ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform ${
             collapsed
               ? "pointer-events-none -translate-x-3 opacity-0"
               : "pointer-events-auto translate-x-0 opacity-100"
@@ -1008,21 +1008,21 @@ function AssetCard({
             draggable={false}
           />
         ) : isAudio ? (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[rgba(21,215,232,0.15)] to-transparent">
+          <div className="flex h-full w-full items-center justify-center bg-primary/10">
             <AudioLines className="h-5 w-5 text-muted-foreground" />
           </div>
         ) : videoPosterUrl ? (
           <div className="relative h-full w-full">
             <video
               src={videoPosterUrl}
-              className="h-full w-full object-cover bg-black"
+              className="h-full w-full bg-media object-cover"
               preload="metadata"
               muted
               playsInline
               tabIndex={-1}
             />
-            <div className="pointer-events-none absolute bottom-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded bg-black/65 ring-1 ring-white/15">
-              <Video className="h-2.5 w-2.5 text-white/90" />
+            <div className="pointer-events-none absolute bottom-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded bg-media/65 ring-1 ring-media-foreground/15">
+              <Video className="h-2.5 w-2.5 text-media-foreground/90" />
             </div>
           </div>
         ) : isVideo ? (
@@ -1110,9 +1110,9 @@ function createAssetDragImage(source: HTMLElement, asset: LibraryAsset): HTMLEle
   preview.style.minHeight = "72px";
   preview.style.padding = "8px";
   preview.style.borderRadius = "10px";
-  preview.style.border = "1px solid rgba(255,255,255,0.12)";
-  preview.style.background = "rgba(24,25,30,0.92)";
-  preview.style.boxShadow = "0 14px 34px rgba(0,0,0,0.38)";
+  preview.style.border = "1px solid var(--border)";
+  preview.style.background = "var(--popover)";
+  preview.style.boxShadow = "var(--shadow-xl)";
   preview.style.backdropFilter = "blur(12px)";
   preview.style.pointerEvents = "none";
 
@@ -1138,7 +1138,8 @@ function createAssetDragImage(source: HTMLElement, asset: LibraryAsset): HTMLEle
   title.style.whiteSpace = "nowrap";
   title.style.fontSize = "13px";
   title.style.fontWeight = "600";
-  title.style.color = "rgba(255,255,255,0.88)";
+  title.style.color = "var(--popover-foreground)";
+  title.style.opacity = "0.88";
 
   const subtitle = document.createElement("div");
   subtitle.textContent = asset.sublabel || asset.role;
@@ -1147,7 +1148,8 @@ function createAssetDragImage(source: HTMLElement, asset: LibraryAsset): HTMLEle
   subtitle.style.textOverflow = "ellipsis";
   subtitle.style.whiteSpace = "nowrap";
   subtitle.style.fontSize = "11px";
-  subtitle.style.color = "rgba(255,255,255,0.42)";
+  subtitle.style.color = "var(--popover-foreground)";
+  subtitle.style.opacity = "0.62";
 
   textWrap.append(title, subtitle);
   preview.appendChild(textWrap);
@@ -1515,56 +1517,56 @@ function sceneAssetTypeBadge(
     return {
       label: "正面图",
       title: "场景正面图",
-      className: "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-200",
+      className: "border-primary/30 bg-primary/10 text-primary",
     };
   }
   if (asset.role === "scene_reverse_master") {
     return {
       label: "背面图",
       title: "场景背面图",
-      className: "border-cyan-500/30 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200",
+      className: "border-primary/30 bg-primary/10 text-primary",
     };
   }
   if (asset.role === "scene_director_pano_360") {
     return {
       label: "360图",
       title: "360 全景图",
-      className: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+      className: "border-warning/30 bg-warning/10 text-warning",
     };
   }
   if (asset.role === SCENE_DIRECTOR_WORLD_ROLE) {
     return {
       label: "导演世界",
       title: "场景导演世界",
-      className: "border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300",
+      className: "border-secondary bg-secondary text-secondary-foreground",
     };
   }
   if (asset.role === "scene_3gs_master_ply") {
     return {
       label: "正面世界",
       title: "3D 导演世界（正面）",
-      className: "border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300",
+      className: "border-secondary bg-secondary text-secondary-foreground",
     };
   }
   if (asset.role === "scene_3gs_reverse_ply") {
     return {
       label: "背面世界",
       title: "3D 导演世界（背面）",
-      className: "border-fuchsia-500/30 bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-300",
+      className: "border-secondary bg-secondary text-secondary-foreground",
     };
   }
   if (asset.role === "scene_3gs_pano_ply") {
     return {
       label: "360世界",
       title: "3D 导演世界（360）",
-      className: "border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300",
+      className: "border-secondary bg-secondary text-secondary-foreground",
     };
   }
   if (asset.role === "scene_3gs_custom_scene") {
     return {
       label: "自定义世界",
       title: "3D 导演世界（自定义）",
-      className: "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300",
+      className: "border-destructive/30 bg-destructive/10 text-destructive",
     };
   }
   return null;
