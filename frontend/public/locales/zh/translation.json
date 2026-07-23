@@ -1026,6 +1026,50 @@
       "failed": "导入失败"
     },
     "previewHeading": "小说结构预览",
+    "resultHeading": "导入结果",
+    "resultViews": {
+      "chapters": "章节预览",
+      "graph": "关系图谱"
+    },
+    "knowledgeGraph": {
+      "title": "知识图谱",
+      "stats": "{{nodes}} 个节点 · {{edges}} 条关系",
+      "visibleStats": "当前显示 {{visible}} / {{total}} 个节点",
+      "connections": "{{count}} 条关联",
+      "relationships": "关联关系",
+      "properties": "节点信息",
+      "searchPlaceholder": "搜索实体或属性",
+      "filterType": "筛选节点类型",
+      "allTypes": "全部类型",
+      "empty": "没有符合当前条件的节点",
+      "emptyHint": "清除搜索词或切换节点类型后重试。",
+      "interactionHint": "拖动画布 · 滚轮缩放 · 点击节点查看详情",
+      "truncated": "当前展示连接度较高的核心关系",
+      "zoomIn": "放大图谱",
+      "zoomOut": "缩小图谱",
+      "resetView": "重置视图",
+      "expand": "展开图谱",
+      "collapse": "收起图谱",
+      "loadFailed": "知识图谱暂时无法显示",
+      "loadFailedHint": "图谱数据仍然保留，可以稍后重试。",
+      "retry": "重新加载",
+      "types": {
+        "Entity": "实体",
+        "EntityType": "实体类型",
+        "TextSummary": "内容摘要",
+        "Document": "原文文档",
+        "DocumentChunk": "原文片段",
+        "Unknown": "其他"
+      },
+      "relations": {
+        "appears_in": "出现于",
+        "mentioned_in": "提及于",
+        "is_alias_of": "别名",
+        "same_as": "同一实体",
+        "contains": "包含",
+        "has_type": "类型"
+      }
+    },
     "scriptDetails": "剧本配置",
     "previewGenerating": "正在生成结构预览...",
     "restoredFilename": "已导入小说",

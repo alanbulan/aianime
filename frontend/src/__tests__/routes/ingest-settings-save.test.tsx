@@ -31,6 +31,8 @@ beforeAll(async () => {
             stop: "Stop",
             reupload: "Reupload",
             delete: "Delete",
+            close: "Close",
+            clear: "Clear",
           },
           ingest: {
             title: "Import Novel",
@@ -39,6 +41,41 @@ beforeAll(async () => {
             supportedFormats: "Supports .txt / .md / .docx",
             restoredFilename: "Imported novel",
             previewHeading: "Novel Structure Preview",
+            resultHeading: "Import Results",
+            resultViews: {
+              chapters: "Chapter Preview",
+              graph: "Relationship Graph",
+            },
+            knowledgeGraph: {
+              title: "Knowledge Graph",
+              stats: "{{nodes}} nodes · {{edges}} relationships",
+              visibleStats: "Showing {{visible}} of {{total}} nodes",
+              connections: "{{count}} connections",
+              relationships: "Relationships",
+              properties: "Node details",
+              searchPlaceholder: "Search entities or properties",
+              filterType: "Filter node type",
+              allTypes: "All types",
+              empty: "No matching nodes",
+              emptyHint: "Clear the filters.",
+              interactionHint: "Drag to pan",
+              truncated: "Showing core relationships",
+              zoomIn: "Zoom in",
+              zoomOut: "Zoom out",
+              resetView: "Reset view",
+              expand: "Expand graph",
+              collapse: "Collapse graph",
+              loadFailed: "Knowledge graph is unavailable",
+              loadFailedHint: "Try again later.",
+              retry: "Reload",
+              types: {
+                Entity: "Entity",
+                Unknown: "Other",
+              },
+              relations: {
+                appears_in: "appears in",
+              },
+            },
             inputMode: { upload: "Upload Novel", paste: "Paste Text" },
             sourceHint: {
               uploadActive: "Uploaded file active",
@@ -104,6 +141,7 @@ const mocks = vi.hoisted(() => ({
         data: {
           total_chars: number;
           count: number;
+          preview_only?: boolean;
           chapters: {
             number: number;
             title?: string | null;
@@ -120,6 +158,8 @@ const mocks = vi.hoisted(() => ({
   // 模拟 React Query 的 isFetchedAfterMount：默认 true（已挂载后刷到新数据）；
   // stale-cache 竞态用例把它设为 false，表示当前 data 还是挂载前的旧缓存。
   ingestTasksFetchedAfterMount: true,
+  knowledgeGraphEnabled: false,
+  refetchKnowledgeGraph: vi.fn(),
 }));
 
 vi.mock("@/components/ui/select", async () => {
@@ -196,6 +236,49 @@ vi.mock("@/lib/queries/projects", () => ({
 
 vi.mock("@/lib/queries/ingest", () => ({
   useChapters: () => ({ data: mocks.chaptersData, isFetching: false }),
+  useKnowledgeGraph: (_project: string, enabled: boolean) => {
+    mocks.knowledgeGraphEnabled = enabled;
+    return {
+      data: enabled
+        ? {
+            ok: true,
+            data: {
+              nodes: [
+                {
+                  id: "node-1",
+                  label: "林昭",
+                  type: "Entity",
+                  degree: 1,
+                  properties: { description: "雨巷少年" },
+                },
+                {
+                  id: "node-2",
+                  label: "雨巷",
+                  type: "Entity",
+                  degree: 1,
+                  properties: {},
+                },
+              ],
+              edges: [
+                {
+                  id: "edge-1",
+                  source: "node-1",
+                  target: "node-2",
+                  relation: "appears_in",
+                  properties: {},
+                },
+              ],
+              total_nodes: 2,
+              total_edges: 1,
+              truncated: false,
+            },
+          }
+        : undefined,
+      isLoading: false,
+      isError: false,
+      refetch: mocks.refetchKnowledgeGraph,
+    };
+  },
   useUploadNovel: () => ({ mutateAsync: mocks.uploadNovel, isPending: false }),
   useStartIngest: () => ({
     mutateAsync: mocks.startIngest,
@@ -263,6 +346,8 @@ beforeEach(() => {
   mocks.toastError.mockReset();
   mocks.ingestTasks = [];
   mocks.ingestTasksFetchedAfterMount = true;
+  mocks.knowledgeGraphEnabled = false;
+  mocks.refetchKnowledgeGraph.mockReset();
 });
 
 describe("IngestPage settings save", () => {
@@ -386,6 +471,56 @@ describe("IngestPage settings save", () => {
     // ...but file replacement/destructive actions are gone once import succeeded.
     expect(screen.queryByRole("button", { name: "Reupload" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+  });
+
+  it("loads the knowledge graph only after its result tab is opened", async () => {
+    const user = userEvent.setup();
+    mocks.chaptersData = {
+      ok: true,
+      data: {
+        total_chars: 10,
+        count: 1,
+        chapters: [{ number: 1, title: "第一章", char_count: 10 }],
+      },
+    };
+
+    render(
+      <Wrapper>
+        <IngestPageContent project="demo" />
+      </Wrapper>,
+    );
+
+    expect(mocks.knowledgeGraphEnabled).toBe(false);
+    await user.click(screen.getByRole("tab", { name: "Relationship Graph" }));
+
+    expect(mocks.knowledgeGraphEnabled).toBe(true);
+    expect(
+      await screen.findByRole("heading", { name: "Knowledge Graph" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("2 nodes · 1 relationships")).toBeInTheDocument();
+  });
+
+  it("does not expose the graph for an upload-only chapter preview", () => {
+    mocks.chaptersData = {
+      ok: true,
+      data: {
+        total_chars: 10,
+        count: 1,
+        preview_only: true,
+        chapters: [{ number: 1, title: "第一章", char_count: 10 }],
+      },
+    };
+
+    render(
+      <Wrapper>
+        <IngestPageContent project="demo" />
+      </Wrapper>,
+    );
+
+    expect(
+      screen.queryByRole("tab", { name: "Relationship Graph" }),
+    ).not.toBeInTheDocument();
+    expect(mocks.knowledgeGraphEnabled).toBe(false);
   });
 
   it("falls back to chapter content title and legacy char count in preview", () => {

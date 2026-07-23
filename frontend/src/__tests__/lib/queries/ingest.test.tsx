@@ -12,7 +12,12 @@ vi.mock("@/lib/api", () => ({
 }));
 
 import { BillingRuleNotConfiguredError } from "@/lib/api-errors";
-import { useStartIngest, useUploadNovel } from "@/lib/queries/ingest";
+import { queryKeys } from "@/lib/query-keys";
+import {
+  useKnowledgeGraph,
+  useStartIngest,
+  useUploadNovel,
+} from "@/lib/queries/ingest";
 
 const server = setupServer();
 
@@ -26,6 +31,61 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 
 describe("ingest query error contract", () => {
+  it("marks an uploaded chapter parse as preview-only until ingest completes", async () => {
+    server.use(
+      http.post("http://localhost:3000/api/v1/projects/demo/ingest/upload", () =>
+        HttpResponse.json({
+          ok: true,
+          data: {
+            filename: "novel.txt",
+            size: 12,
+            total_chars: 10,
+            count: 1,
+            chapters: [{ number: 1, title: "第一章", char_count: 10 }],
+          },
+        }),
+      ),
+    );
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const localWrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+
+    const { result } = renderHook(() => useUploadNovel("demo"), {
+      wrapper: localWrapper,
+    });
+    result.current.mutate(new File(["chapter"], "novel.txt", { type: "text/plain" }));
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(queryClient.getQueryData(queryKeys.chapters("demo"))).toMatchObject({
+      data: { preview_only: true },
+    });
+  });
+
+  it("loads the project knowledge graph snapshot", async () => {
+    server.use(
+      http.get("http://localhost:3000/api/v1/projects/demo/ingest/graph", () =>
+        HttpResponse.json({
+          ok: true,
+          data: {
+            nodes: [{ id: "hero", label: "林昭", type: "Entity", degree: 0, properties: {} }],
+            edges: [],
+            total_nodes: 1,
+            total_edges: 0,
+            truncated: false,
+          },
+        }),
+      ),
+    );
+
+    const { result } = renderHook(() => useKnowledgeGraph("demo"), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.data.nodes[0].label).toBe("林昭");
+  });
+
   it("rejects upload responses that return ok:false with a backend error", async () => {
     server.use(
       http.post("http://localhost:3000/api/v1/projects/demo/ingest/upload", () =>

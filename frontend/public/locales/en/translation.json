@@ -1026,6 +1026,50 @@
       "failed": "Import failed"
     },
     "previewHeading": "Novel Structure Preview",
+    "resultHeading": "Import Results",
+    "resultViews": {
+      "chapters": "Chapter Preview",
+      "graph": "Relationship Graph"
+    },
+    "knowledgeGraph": {
+      "title": "Knowledge Graph",
+      "stats": "{{nodes}} nodes · {{edges}} relationships",
+      "visibleStats": "Showing {{visible}} of {{total}} nodes",
+      "connections": "{{count}} connections",
+      "relationships": "Relationships",
+      "properties": "Node details",
+      "searchPlaceholder": "Search entities or properties",
+      "filterType": "Filter node type",
+      "allTypes": "All types",
+      "empty": "No nodes match the current filters",
+      "emptyHint": "Clear the search or choose another node type.",
+      "interactionHint": "Drag to pan · Scroll to zoom · Select a node for details",
+      "truncated": "Showing the most connected relationships",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "resetView": "Reset view",
+      "expand": "Expand graph",
+      "collapse": "Collapse graph",
+      "loadFailed": "Knowledge graph is unavailable",
+      "loadFailedHint": "The graph data is still available. Try again later.",
+      "retry": "Reload",
+      "types": {
+        "Entity": "Entity",
+        "EntityType": "Entity type",
+        "TextSummary": "Summary",
+        "Document": "Document",
+        "DocumentChunk": "Source excerpt",
+        "Unknown": "Other"
+      },
+      "relations": {
+        "appears_in": "appears in",
+        "mentioned_in": "mentioned in",
+        "is_alias_of": "alias of",
+        "same_as": "same as",
+        "contains": "contains",
+        "has_type": "has type"
+      }
+    },
     "scriptDetails": "Script details",
     "previewGenerating": "Generating structure preview...",
     "restoredFilename": "Imported novel",

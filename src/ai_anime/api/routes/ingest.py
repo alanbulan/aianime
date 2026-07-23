@@ -11,7 +11,7 @@ from ai_anime.api.chapter_preview import (
     count_billable_novel_chars,
     load_novel_text,
 )
-from ai_anime.api.deps import resolve_project_scope
+from ai_anime.api.deps import get_cognee_store, resolve_project_scope
 from ai_anime.api.schemas import IngestStart
 from ai_anime.project_config import (
     default_aspect_ratio_for_spine_template,
@@ -36,6 +36,16 @@ from ai_anime.utils.upload_safety import (
 
 logger = logging.getLogger("ai_anime.api.ingest")
 router = APIRouter()
+
+
+@router.get("/projects/{project}/ingest/graph")
+async def get_ingest_knowledge_graph(
+    project: str,
+    store=Depends(get_cognee_store),
+):
+    """返回当前项目已导入的 Cognee 知识图谱快照。"""
+    snapshot = await store.get_graph_snapshot()
+    return {"ok": True, "data": snapshot}
 
 
 def _unsupported_format_response(filename: str) -> dict:

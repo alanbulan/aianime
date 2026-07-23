@@ -15,6 +15,7 @@ import {
   FishSymbol,
   Info,
   Loader2,
+  Network,
   Play,
   Plus,
   RefreshCw,
@@ -25,12 +26,14 @@ import {
 import { useProject, useUpdateProject } from "@/lib/queries/projects";
 import {
   useChapters,
+  useKnowledgeGraph,
   useStartIngest,
   useUploadNovel,
   type FormatCheck,
   type UploadResult,
 } from "@/lib/queries/ingest";
 import { FormatCheckDetailsDialog } from "@/components/ingest/FormatCheckDetailsDialog";
+import { KnowledgeGraphVisualization } from "@/components/ingest/KnowledgeGraphVisualization";
 import { NovelFormatDialog } from "@/components/ingest/NovelFormatDialog";
 import { useStyles } from "@/lib/queries/styles";
 import { useCancelTask, useTasks } from "@/lib/queries/tasks";
@@ -49,6 +52,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { isCeRuntime } from "@/lib/runtime-config";
 import {
   Select,
@@ -848,6 +852,30 @@ function ChapterPreviewSkeleton() {
   );
 }
 
+function KnowledgeGraphSkeleton() {
+  const { t } = useTranslation();
+
+  return (
+    <div
+      role="status"
+      aria-busy="true"
+      aria-label={t("common.loading")}
+      className="h-[520px] overflow-hidden rounded-lg border border-border bg-card"
+    >
+      <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+        <Skeleton className="size-8 rounded-md" />
+        <div className="space-y-2">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-2.5 w-40" />
+        </div>
+      </div>
+      <div className="flex h-[430px] items-center justify-center bg-muted/35">
+        <Skeleton className="size-64 rounded-full opacity-45" />
+      </div>
+    </div>
+  );
+}
+
 // ─── main component ──────────────────────────────────────────────────────────
 
 function IngestPage() {
@@ -874,6 +902,7 @@ export function IngestPageContent({ project }: { project: string }) {
     useState<IngestFileStatus>("uploaded");
   const [ingestError, setIngestError] = useState<string | null>(null);
   const [ingestLogs, setIngestLogs] = useState<string[]>([]);
+  const [resultView, setResultView] = useState<"chapters" | "graph">("chapters");
   const [formatCheckDetails, setFormatCheckDetails] = useState<{
     formatCheck: FormatCheck;
     filename: string;
@@ -885,6 +914,7 @@ export function IngestPageContent({ project }: { project: string }) {
 
   useEffect(() => {
     setHideImportedPreview(readHiddenImportedPreview(project));
+    setResultView("chapters");
   }, [project]);
 
   // Chapters are the durable project-level fact we can restore from after
@@ -895,6 +925,7 @@ export function IngestPageContent({ project }: { project: string }) {
   );
   const chaptersData = chaptersRes?.data;
   const hasImportedContent = (chaptersData?.chapters?.length ?? 0) > 0;
+  const isUploadOnlyPreview = Boolean(chaptersData?.preview_only);
 
   const pastedBillableChars = useMemo(
     () => countBillableNovelChars(pastedText.trim()),
@@ -941,6 +972,12 @@ export function IngestPageContent({ project }: { project: string }) {
   const [ingestStarted, setIngestStarted] = useState(false);
   const [reimporting, setReimporting] = useState(false);
   const [reuploadConfirmOpen, setReuploadConfirmOpen] = useState(false);
+  const canViewKnowledgeGraph =
+    hasImportedContent && !isUploadOnlyPreview && !ingestStarted;
+  const knowledgeGraph = useKnowledgeGraph(
+    project,
+    canViewKnowledgeGraph && resultView === "graph",
+  );
   const cancelTask = useCancelTask();
   const taskStream = useTaskStream({
     taskType: "ingest_fast",
@@ -963,6 +1000,9 @@ export function IngestPageContent({ project }: { project: string }) {
         queryKey: queryKeys.chapters(project),
         type: "active",
       });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.knowledgeGraph(project),
+      });
       toast.success(t("common.generate") + " ✓");
     },
     onError: (error) => {
@@ -971,6 +1011,12 @@ export function IngestPageContent({ project }: { project: string }) {
       setIngestError(error);
     },
   });
+
+  useEffect(() => {
+    if (!canViewKnowledgeGraph && resultView === "graph") {
+      setResultView("chapters");
+    }
+  }, [canViewKnowledgeGraph, resultView]);
 
   // Mount reconcile：导入实际在服务端(celery)跑。用户导入中切走再回来，本地
   // 的 ingestStarted/ingestSubmitted 全部重置、SSE 也不重连，而此时章节尚未
@@ -1681,7 +1727,7 @@ export function IngestPageContent({ project }: { project: string }) {
               {chaptersData && chapterCount > 0 && (
                 <div className="space-y-4">
                   <h2 className="text-lg font-semibold text-foreground">
-                    {t("ingest.previewHeading")}
+                    {t("ingest.resultHeading")}
                   </h2>
 
                   {/* Stat cards */}
@@ -1782,49 +1828,105 @@ export function IngestPageContent({ project }: { project: string }) {
                     </div>
                   </div>
 
-                  {/* Chapter table */}
-                  <div className={cn("overflow-hidden rounded-lg border", INGEST_SURFACE_SUBTLE_CLASS)}>
-                    <div className={cn("grid grid-cols-[4rem_1fr_5rem] items-center gap-2 border-b px-4 py-2.5 text-xs font-medium uppercase tracking-wider text-muted-foreground", INGEST_DIVIDER_CLASS)}>
-                      <span>{t("ingest.tableChapterNo")}</span>
-                      <span>{t("ingest.tableTitle")}</span>
-                      <span className="text-right">
-                        {t("ingest.tableCharCount")}
-                      </span>
-                    </div>
-                    <div className="divide-y divide-border">
-                      {chapters.slice(0, 20).map((ch) => (
-                        <div
-                          key={ch.number}
-                          className="grid grid-cols-[4rem_1fr_5rem] items-center gap-2 px-4 py-2.5 text-xs"
-                        >
-                          <span className="tabular-nums text-muted-foreground">
-                            {ch.number}
-                          </span>
-                          <span className="truncate text-foreground">
-                            {chapterTitle(ch.number, ch.title, ch.content)}
-                          </span>
-                          <span className="text-right tabular-nums text-muted-foreground">
-                            {(() => {
-                              const count =
-                                ch.word_count ??
-                                ch.char_count ??
-                                ch.content?.length;
-                              return count != null
-                                ? count.toLocaleString()
-                                : "—";
-                            })()}
+                  <Tabs
+                    value={resultView}
+                    onValueChange={(value) =>
+                      setResultView(value as "chapters" | "graph")
+                    }
+                    className="gap-3"
+                  >
+                    <TabsList aria-label={t("ingest.resultHeading")}>
+                      <TabsTrigger value="chapters" className="gap-1.5 px-3 text-xs">
+                        <FileText className="size-3.5" />
+                        {t("ingest.resultViews.chapters")}
+                      </TabsTrigger>
+                      {canViewKnowledgeGraph ? (
+                        <TabsTrigger value="graph" className="gap-1.5 px-3 text-xs">
+                          <Network className="size-3.5" />
+                          {t("ingest.resultViews.graph")}
+                        </TabsTrigger>
+                      ) : null}
+                    </TabsList>
+
+                    <TabsContent value="chapters">
+                      <div className={cn("overflow-hidden rounded-lg border", INGEST_SURFACE_SUBTLE_CLASS)}>
+                        <div className={cn("grid grid-cols-[4rem_1fr_5rem] items-center gap-2 border-b px-4 py-2.5 text-xs font-medium uppercase tracking-wider text-muted-foreground", INGEST_DIVIDER_CLASS)}>
+                          <span>{t("ingest.tableChapterNo")}</span>
+                          <span>{t("ingest.tableTitle")}</span>
+                          <span className="text-right">
+                            {t("ingest.tableCharCount")}
                           </span>
                         </div>
-                      ))}
-                      {chapterCount > 20 && (
-                        <div className="px-4 py-2.5 text-center text-xs text-muted-foreground">
-                          {t("ingest.moreChapters", {
-                            count: chapterCount - 20,
-                          })}
+                        <div className="divide-y divide-border">
+                          {chapters.slice(0, 20).map((ch) => (
+                            <div
+                              key={ch.number}
+                              className="grid grid-cols-[4rem_1fr_5rem] items-center gap-2 px-4 py-2.5 text-xs"
+                            >
+                              <span className="tabular-nums text-muted-foreground">
+                                {ch.number}
+                              </span>
+                              <span className="truncate text-foreground">
+                                {chapterTitle(ch.number, ch.title, ch.content)}
+                              </span>
+                              <span className="text-right tabular-nums text-muted-foreground">
+                                {(() => {
+                                  const count =
+                                    ch.word_count ??
+                                    ch.char_count ??
+                                    ch.content?.length;
+                                  return count != null
+                                    ? count.toLocaleString()
+                                    : "—";
+                                })()}
+                              </span>
+                            </div>
+                          ))}
+                          {chapterCount > 20 && (
+                            <div className="px-4 py-2.5 text-center text-xs text-muted-foreground">
+                              {t("ingest.moreChapters", {
+                                count: chapterCount - 20,
+                              })}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  </div>
+                      </div>
+                    </TabsContent>
+
+                    {canViewKnowledgeGraph ? (
+                      <TabsContent value="graph">
+                        {knowledgeGraph.isLoading ? <KnowledgeGraphSkeleton /> : null}
+                        {knowledgeGraph.data?.data ? (
+                          <KnowledgeGraphVisualization graph={knowledgeGraph.data.data} />
+                        ) : null}
+                        {knowledgeGraph.isError ? (
+                          <div className="flex min-h-32 items-center justify-between gap-4 rounded-lg border border-warning/45 bg-warning/10 p-4">
+                            <div className="flex min-w-0 items-start gap-3">
+                              <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" />
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-foreground">
+                                  {t("ingest.knowledgeGraph.loadFailed")}
+                                </p>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                  {t("ingest.knowledgeGraph.loadFailedHint")}
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => knowledgeGraph.refetch()}
+                              className="shrink-0"
+                            >
+                              <RefreshCw className="size-3.5" />
+                              {t("ingest.knowledgeGraph.retry")}
+                            </Button>
+                          </div>
+                        ) : null}
+                      </TabsContent>
+                    ) : null}
+                  </Tabs>
                 </div>
               )}
 
