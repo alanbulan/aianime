@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { FormatCheck } from "@/lib/queries/ingest";
+import type { FormatCheck } from "@/modules/story_intake/domain/types";
 
 type FormatCheckDetailsDialogProps = {
   formatCheck: FormatCheck | null;

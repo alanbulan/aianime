@@ -1,10 +1,10 @@
-// Compatibility export while callers migrate to Story Intake's public API.
 export {
+  IngestPageContent,
   useChapters,
   useKnowledgeGraph,
   useStartIngest,
   useUploadNovel,
-} from "@/modules/story_intake/public";
+} from "@/modules/story_intake/composition";
 export type {
   ChaptersResult,
   FormatCheck,
@@ -14,4 +14,4 @@ export type {
   KnowledgeGraphSnapshot,
   StartIngestionParams,
   UploadResult,
-} from "@/modules/story_intake/public";
+} from "@/modules/story_intake/domain/types";

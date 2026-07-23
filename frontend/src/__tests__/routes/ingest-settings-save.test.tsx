@@ -234,55 +234,60 @@ vi.mock("@/lib/queries/projects", () => ({
   }),
 }));
 
-vi.mock("@/lib/queries/ingest", () => ({
-  useChapters: () => ({ data: mocks.chaptersData, isFetching: false }),
-  useKnowledgeGraph: (_project: string, enabled: boolean) => {
-    mocks.knowledgeGraphEnabled = enabled;
-    return {
-      data: enabled
-        ? {
-            ok: true,
-            data: {
-              nodes: [
-                {
-                  id: "node-1",
-                  label: "林昭",
-                  type: "Entity",
-                  degree: 1,
-                  properties: { description: "雨巷少年" },
-                },
-                {
-                  id: "node-2",
-                  label: "雨巷",
-                  type: "Entity",
-                  degree: 1,
-                  properties: {},
-                },
-              ],
-              edges: [
-                {
-                  id: "edge-1",
-                  source: "node-1",
-                  target: "node-2",
-                  relation: "appears_in",
-                  properties: {},
-                },
-              ],
-              total_nodes: 2,
-              total_edges: 1,
-              truncated: false,
-            },
-          }
-        : undefined,
-      isLoading: false,
-      isError: false,
-      refetch: mocks.refetchKnowledgeGraph,
-    };
-  },
-  useUploadNovel: () => ({ mutateAsync: mocks.uploadNovel, isPending: false }),
-  useStartIngest: () => ({
-    mutateAsync: mocks.startIngest,
-    isPending: false,
+vi.mock("@/modules/story_intake/application/query-hooks", () => ({
+  createStoryIntakeQueryHooks: () => ({
+    useChapters: () => ({ data: mocks.chaptersData, isFetching: false }),
+    useKnowledgeGraph: (_project: string, enabled: boolean) => {
+      mocks.knowledgeGraphEnabled = enabled;
+      return {
+        data: enabled
+          ? {
+              ok: true,
+              data: {
+                nodes: [
+                  {
+                    id: "node-1",
+                    label: "林昭",
+                    type: "Entity",
+                    degree: 1,
+                    properties: { description: "雨巷少年" },
+                  },
+                  {
+                    id: "node-2",
+                    label: "雨巷",
+                    type: "Entity",
+                    degree: 1,
+                    properties: {},
+                  },
+                ],
+                edges: [
+                  {
+                    id: "edge-1",
+                    source: "node-1",
+                    target: "node-2",
+                    relation: "appears_in",
+                    properties: {},
+                  },
+                ],
+                total_nodes: 2,
+                total_edges: 1,
+                truncated: false,
+              },
+            }
+          : undefined,
+        isLoading: false,
+        isError: false,
+        refetch: mocks.refetchKnowledgeGraph,
+      };
+    },
+    useUploadNovel: () => ({
+      mutateAsync: mocks.uploadNovel,
+      isPending: false,
+    }),
+    useStartIngest: () => ({
+      mutateAsync: mocks.startIngest,
+      isPending: false,
+    }),
   }),
 }));
 

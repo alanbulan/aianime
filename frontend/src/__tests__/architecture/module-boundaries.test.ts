@@ -18,7 +18,6 @@ const LEGACY_ROUTE_DATA_IMPORT_MAX: Record<string, number> = {
   "routes/_app/projects.$project/episodes.$episode/script.lazy.tsx": 5,
   "routes/_app/projects.$project/episodes.tsx": 3,
   "routes/_app/projects.$project/freezone.lazy.tsx": 2,
-  "routes/_app/projects.$project/ingest.tsx": 5,
   "routes/_app/projects.$project/styles.tsx": 3,
   "routes/_app/projects.$project/tasks.tsx": 1,
 };
@@ -94,6 +93,21 @@ describe("frontend architecture boundaries", () => {
       if (count > allowed) failures.push(`${relativePath}: ${count} > ${allowed}`);
     }
     expect(failures).toEqual([]);
+  });
+
+  it("keeps the migrated Story Intake route as an adapter", () => {
+    const route = readFileSync(
+      resolve(SRC_ROOT, "routes/_app/projects.$project/ingest.tsx"),
+      "utf8",
+    );
+
+    expect(route).toContain(
+      'import { IngestPageContent } from "@/modules/story_intake/public";',
+    );
+    expect(route).toContain("Route.useParams()");
+    expect(route).not.toContain("useState(");
+    expect(route).not.toContain("useQuery(");
+    expect(route).not.toContain("useMutation(");
   });
 
   it("keeps new modules on the declared dependency direction", () => {
