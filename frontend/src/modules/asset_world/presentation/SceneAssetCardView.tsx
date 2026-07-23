@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { PanoCaptureDialog } from "@/features/viewer-kit/pano/PanoCaptureDialog";
+import { ThreeDDirectorDialog } from "@/features/viewer-kit/three-d/ThreeDDirectorDialog";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -33,9 +35,10 @@ import type {
   ScenePanoSource,
   SceneStage3gsFile,
   SceneStagePlySource,
-} from "@/modules/asset_world/public";
+} from "@/modules/asset_world/domain/scene";
+import type { SceneAssetCardController } from "@/modules/asset_world/application/use-scene-asset-card-controller";
 
-interface SceneAssetCardProps {
+export interface SceneAssetCardViewProps {
   scene: SceneAsset;
   referenceCount?: number;
   masterRunning?: boolean;
@@ -156,7 +159,7 @@ function StagePlyBadge({
   );
 }
 
-export function SceneAssetCard({
+export function SceneAssetCardView({
   scene,
   referenceCount = 0,
   masterRunning = false,
@@ -187,7 +190,7 @@ export function SceneAssetCard({
   onUploadCustomPackage,
   onDeleteCustomPackage,
   onGenerateStagePly,
-}: SceneAssetCardProps) {
+}: SceneAssetCardViewProps) {
   const { t } = useTranslation();
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
   const [previewLabel, setPreviewLabel] = useState("");
@@ -588,6 +591,152 @@ export function SceneAssetCard({
           />
         </div>
       )}
+    </>
+  );
+}
+
+export function SceneAssetCardControllerView({
+  controller,
+}: {
+  controller: SceneAssetCardController;
+}) {
+  const { t } = useTranslation();
+  const {
+    customDeleting,
+    customInputRef,
+    customUploading,
+    freezonePending,
+    handleClearDirectorWorld,
+    handleDeleteCustom,
+    handleDeleteMaster,
+    handleDeletePano,
+    handleGenerateMaster,
+    handleGeneratePano,
+    handleGenerateReverse,
+    handleGenerateStagePly,
+    handleOpenFreezone,
+    handleOpenStageViewer,
+    handlePanoCapture,
+    handleSaveDirectorWorld,
+    masterCost,
+    masterInputRef,
+    masterPlyRunning,
+    masterRunning,
+    onDelete,
+    onEdit,
+    openPanoDialog,
+    openUploadCustom,
+    openUploadMaster,
+    openUploadPano,
+    panoCost,
+    panoDialogOpen,
+    panoInputRef,
+    panoManifest,
+    panoPlyRunning,
+    panoRunning,
+    referenceCount,
+    reverseCost,
+    reversePlyRunning,
+    reverseRunning,
+    scene,
+    sceneDirectorManifest,
+    setPanoDialogOpen,
+    setStageDialogOpen,
+    stageBusy,
+    stageDialogOpen,
+    uploadCustomFile,
+    uploadMasterFile,
+    uploadPanoFile,
+  } = controller;
+
+  return (
+    <>
+      <SceneAssetCardView
+        scene={scene}
+        referenceCount={referenceCount}
+        masterRunning={masterRunning}
+        reverseRunning={reverseRunning}
+        panoRunning={panoRunning}
+        stageBusy={stageBusy}
+        masterPlyRunning={masterPlyRunning}
+        reversePlyRunning={reversePlyRunning}
+        panoPlyRunning={panoPlyRunning}
+        customUploading={customUploading}
+        customDeleting={customDeleting}
+        masterCost={masterCost}
+        reverseCost={reverseCost}
+        panoCost={panoCost}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onUploadMaster={openUploadMaster}
+        onGenerateMaster={() => void handleGenerateMaster()}
+        onDeleteMaster={() => void handleDeleteMaster()}
+        onGenerateReverse={() => void handleGenerateReverse()}
+        onUploadPano={openUploadPano}
+        onGeneratePano={(source) => void handleGeneratePano(source)}
+        onDeletePano={() => void handleDeletePano()}
+        onOpenPanoViewer={openPanoDialog}
+        onOpenStageViewer={() => void handleOpenStageViewer()}
+        onOpenFreezone={() => void handleOpenFreezone()}
+        freezonePending={freezonePending}
+        onUploadCustomPackage={openUploadCustom}
+        onDeleteCustomPackage={() => void handleDeleteCustom()}
+        onGenerateStagePly={(source) => void handleGenerateStagePly(source)}
+      />
+      <input
+        ref={masterInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(event) => {
+          void uploadMasterFile(event.target.files?.[0]);
+          event.currentTarget.value = "";
+        }}
+      />
+      <input
+        ref={panoInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(event) => {
+          void uploadPanoFile(event.target.files?.[0]);
+          event.currentTarget.value = "";
+        }}
+      />
+      <input
+        ref={customInputRef}
+        type="file"
+        accept=".ply,.sog,.splat,.ksplat"
+        className="hidden"
+        onChange={(event) => {
+          void uploadCustomFile(event.target.files?.[0]);
+          event.currentTarget.value = "";
+        }}
+      />
+      <PanoCaptureDialog
+        open={panoDialogOpen}
+        onOpenChange={setPanoDialogOpen}
+        manifest={panoManifest}
+        title={`${scene.name} 360`}
+        description={t("assets.scenes.panoCaptureDescription")}
+        viewerPurpose="asset"
+        captureLabel={t("assets.scenes.downloadScreenshot")}
+        onCapture={handlePanoCapture}
+      />
+      <ThreeDDirectorDialog
+        open={stageDialogOpen}
+        onOpenChange={setStageDialogOpen}
+        manifest={sceneDirectorManifest}
+        title={`${scene.name} ${t("viewer.threeD.directorWorld")}`}
+        description={t("viewer.threeD.sceneDirectorWorldDescription")}
+        viewerPurpose="asset"
+        initialScene={sceneDirectorManifest?.scene ?? null}
+        initialScenesBySourceId={
+          sceneDirectorManifest?.scenes_by_source_id ?? null
+        }
+        onSaveScene={handleSaveDirectorWorld}
+        onClearScene={handleClearDirectorWorld}
+      />
     </>
   );
 }

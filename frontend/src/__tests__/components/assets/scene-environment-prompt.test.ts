@@ -4,7 +4,7 @@ import { describe, it, expect } from "vitest";
 import {
   parseEnvironmentPrompt,
   serializeEnvironmentPrompt,
-} from "@/components/assets/scene-environment-prompt";
+} from "@/modules/asset_world/public";
 
 const FULL_PROMPT = [
   "正面：核心视觉是一张长条木质工作桌。",

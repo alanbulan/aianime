@@ -7,7 +7,7 @@ import { I18nextProvider, initReactI18next } from "react-i18next";
 import i18next from "i18next";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { SceneAssetCard } from "@/components/assets/scene-asset-card";
+import { SceneAssetCardView as SceneAssetCard } from "@/modules/asset_world/presentation/SceneAssetCardView";
 import type { SceneAsset } from "@/modules/asset_world/public";
 
 const runtimeState = vi.hoisted(() => ({ isCeRuntime: true }));
@@ -128,31 +128,37 @@ describe("M05 CE generation credit cost gating", () => {
   });
 
   it("routes every named M05 cost display through CreditCostInline", () => {
-    expect(source("src/components/assets/scene-asset-card.tsx")).toEqual(
+    expect(source("src/modules/asset_world/presentation/SceneAssetCardView.tsx")).toEqual(
       expect.stringContaining("<CreditCostInline display={masterCost} />"),
     );
-    expect(source("src/components/assets/scene-asset-card.tsx")).toEqual(
+    expect(source("src/modules/asset_world/presentation/SceneAssetCardView.tsx")).toEqual(
       expect.stringContaining("<CreditCostInline display={reverseCost} />"),
     );
-    expect(source("src/components/assets/scene-asset-card.tsx")).toEqual(
+    expect(source("src/modules/asset_world/presentation/SceneAssetCardView.tsx")).toEqual(
       expect.stringContaining("<CreditCostInline display={panoCost} />"),
     );
-    expect(source("src/components/assets/scenes-panel.tsx")).toEqual(
-      expect.stringContaining("masterCost={masterCost.data?.data.display}"),
+    const sceneCardController = source(
+      "src/modules/asset_world/application/use-scene-asset-card-controller.ts",
     );
-    expect(source("src/components/assets/scenes-panel.tsx")).toEqual(
-      expect.stringContaining("reverseCost={reverseCost.data?.data.display}"),
+    expect(sceneCardController).toEqual(
+      expect.stringContaining("masterCost: masterCost.data?.data.display"),
     );
-    expect(source("src/components/assets/scenes-panel.tsx")).toEqual(
-      expect.stringContaining("panoCost={panoCost.data?.data.display}"),
+    expect(sceneCardController).toEqual(
+      expect.stringContaining("reverseCost: reverseCost.data?.data.display"),
     );
-    expect(source("src/components/assets/scenes-panel.tsx")).toEqual(
-      expect.stringContaining('useGenerationCreditCost("feature", "build_scenes")'),
+    expect(sceneCardController).toEqual(
+      expect.stringContaining("panoCost: panoCost.data?.data.display"),
     );
-    expect(source("src/components/assets/scenes-panel.tsx")).toEqual(
+    const scenesController = source(
+      "src/modules/asset_world/application/use-scenes-panel-controller.ts",
+    );
+    expect(scenesController).toEqual(
+      expect.stringContaining('"build_scenes"'),
+    );
+    expect(scenesController).toEqual(
       expect.stringContaining("buildScenesCost.error instanceof BillingRuleNotConfiguredError"),
     );
-    expect(source("src/components/assets/scenes-panel.tsx")).toEqual(
+    expect(source("src/modules/asset_world/presentation/ScenesPanelView.tsx")).toEqual(
       expect.stringMatching(/<CreditCostInline\s+display=\{buildScenesCostDisplay\}/),
     );
     expect(source("src/components/episode/beat-workbench/sketch-section.tsx")).toEqual(
@@ -178,8 +184,10 @@ describe("M05 CE generation credit cost gating", () => {
 
   it("does not add CE runtime forks to M05 business paths or the cost query hook", () => {
     const businessPaths = [
-      "src/components/assets/scene-asset-card.tsx",
-      "src/components/assets/scenes-panel.tsx",
+      "src/modules/asset_world/application/use-scene-asset-card-controller.ts",
+      "src/modules/asset_world/application/use-scenes-panel-controller.ts",
+      "src/modules/asset_world/presentation/SceneAssetCardView.tsx",
+      "src/modules/asset_world/presentation/ScenesPanelView.tsx",
       "src/components/episode/beat-workbench/sketch-section.tsx",
       "src/components/episode/beat-workbench/render-section.tsx",
       "src/components/episode/beat-workbench/batch-panel.tsx",

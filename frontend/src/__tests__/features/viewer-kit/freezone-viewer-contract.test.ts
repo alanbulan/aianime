@@ -34,17 +34,22 @@ describe("freezone viewer contracts", () => {
   });
 
   it("keeps the asset pano viewer on the legacy pano capture dialog", () => {
-    const scenesPanel = read("src/components/assets/scenes-panel.tsx");
+    const controller = read(
+      "src/modules/asset_world/application/use-scene-asset-card-controller.ts",
+    );
+    const view = read(
+      "src/modules/asset_world/presentation/SceneAssetCardView.tsx",
+    );
 
-    expect(scenesPanel).toContain("PanoCaptureDialog");
-    expect(scenesPanel).toContain("useScenePanoManifest");
-    expect(scenesPanel).toContain("setPanoDialogOpen(true)");
-    expect(scenesPanel).toContain("handleScenePanoCapture");
-    expect(scenesPanel).toContain("onOpenPanoViewer={() => setPanoDialogOpen(true)}");
-    expect(scenesPanel).toContain("async function handleOpenStageViewer()");
-    expect(scenesPanel).toContain("await stageManifest.refetch()");
-    expect(scenesPanel).toContain("setStageDialogOpen(true)");
-    expect(scenesPanel).toContain("onOpenStageViewer={handleOpenStageViewer}");
+    expect(view).toContain("PanoCaptureDialog");
+    expect(controller).toContain("useScenePanoManifest");
+    expect(controller).toContain("openPanoDialog: () => setPanoDialogOpen(true)");
+    expect(controller).toContain("handlePanoCapture");
+    expect(view).toContain("onOpenPanoViewer={openPanoDialog}");
+    expect(controller).toContain("const handleOpenStageViewer = async () =>");
+    expect(controller).toContain("await stageManifest.refetch()");
+    expect(controller).toContain("setStageDialogOpen(true)");
+    expect(view).toContain("onOpenStageViewer={() => void handleOpenStageViewer()}");
   });
 
   it("keeps ThreeDWorldNode freezone mode optional and separate from mainline beat overlay requirements", () => {
@@ -475,7 +480,9 @@ describe("freezone viewer contracts", () => {
   });
 
   it("uses the backend scene Director World manifest as the single source of truth", () => {
-    const scenesPanel = read("src/components/assets/scenes-panel.tsx");
+    const scenesPanel = read(
+      "src/modules/asset_world/application/use-scene-asset-card-controller.ts",
+    );
 
     expect(scenesPanel).toContain("useSceneDirectorStageManifest");
     expect(scenesPanel).toContain("const sceneDirectorManifest = stageManifest.data?.ok");

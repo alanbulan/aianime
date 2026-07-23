@@ -68,3 +68,58 @@ export interface ScenePlatePreview {
     label: string;
   };
 }
+
+export interface SceneGroup {
+  baseName: string;
+  scenes: SceneAsset[];
+}
+
+export function sceneGroupsFromAssets(
+  scenes: readonly SceneAsset[],
+): SceneGroup[] {
+  const groups = new Map<string, SceneAsset[]>();
+  for (const scene of scenes) {
+    const baseName =
+      scene.base_scene_id?.trim() ||
+      scene.derived_from_scene?.trim() ||
+      scene.name;
+    const group = groups.get(baseName) ?? [];
+    group.push(scene);
+    groups.set(baseName, group);
+  }
+  return Array.from(groups, ([baseName, groupScenes]) => ({
+    baseName,
+    scenes: groupScenes,
+  }));
+}
+
+export function composeScenePlateName(input: {
+  base_scene_id?: string;
+  variant_id?: string;
+  time_of_day?: string;
+}): string {
+  return [input.base_scene_id, input.variant_id, input.time_of_day]
+    .map((value) => String(value ?? "").trim())
+    .filter(Boolean)
+    .join("_");
+}
+
+export function isScenePlate(
+  input:
+    | {
+        base_scene_id?: string;
+        derived_from_scene?: string;
+        variant_id?: string;
+        time_of_day?: string;
+      }
+    | null
+    | undefined,
+): boolean {
+  if (!input) return false;
+  return Boolean(
+    input.base_scene_id?.trim() ||
+      input.derived_from_scene?.trim() ||
+      input.variant_id?.trim() ||
+      input.time_of_day?.trim(),
+  );
+}

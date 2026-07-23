@@ -5,49 +5,13 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import type { AssetSortKey } from "@/modules/asset_world/public";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
-
-type Searchable = (string | null | undefined)[];
-
-/** Case-insensitive substring match across the given fields. */
-export function filterBySearch<T>(
-  items: readonly T[],
-  query: string,
-  fields: (item: T) => Searchable,
-): T[] {
-  const needle = query.trim().toLowerCase();
-  if (!needle) return [...items];
-  return items.filter((item) =>
-    fields(item)
-      .filter(Boolean)
-      .some((value) => String(value).toLowerCase().includes(needle)),
-  );
-}
-
-export type AssetSortKey = "name" | "usage";
-
-/** Shared sort: by name (A→Z) or by usage count (desc, name tiebreak). */
-export function sortAssets<T>(
-  items: readonly T[],
-  sortKey: AssetSortKey,
-  nameOf: (item: T) => string,
-  countOf: (item: T) => number,
-): T[] {
-  const copy = [...items];
-  if (sortKey === "usage") {
-    copy.sort(
-      (a, b) => countOf(b) - countOf(a) || nameOf(a).localeCompare(nameOf(b)),
-    );
-  } else {
-    copy.sort((a, b) => nameOf(a).localeCompare(nameOf(b)));
-  }
-  return copy;
-}
 
 export function AssetSortSelect({
   value,

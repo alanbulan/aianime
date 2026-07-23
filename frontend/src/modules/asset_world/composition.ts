@@ -3,9 +3,11 @@ import { createElement } from "react";
 import { CharacterImageSourceSelect } from "@/components/assets/character-image-source-select";
 import { NarratorVoicePanel } from "@/components/episode/beat-workbench/narrator-voice-panel";
 import { PropsPanel } from "@/components/assets/props-panel";
-import { ScenesPanel } from "@/components/assets/scenes-panel";
 import { TaskControllerProvider } from "@/components/episode/task-controller-provider";
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
+import { useAssetFocus } from "@/hooks/use-asset-focus";
+import { useNavigateToAsset } from "@/hooks/use-assets-deep-link";
+import { downloadBlobAsFile } from "@/lib/browserDownload";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import { isCeRuntime } from "@/lib/runtime-config";
 import { useAssetReferenceIndex } from "@/modules/asset_world/application/use-asset-reference-index";
@@ -27,6 +29,15 @@ import {
 } from "@/modules/asset_world/application/use-identity-card-controller";
 import { createUseStyleDetailController } from "@/modules/asset_world/application/use-style-detail-controller";
 import { createUseStylesPageController } from "@/modules/asset_world/application/use-styles-page-controller";
+import {
+  createUseSceneAssetCardController,
+  type SceneAssetCardControllerOptions,
+} from "@/modules/asset_world/application/use-scene-asset-card-controller";
+import {
+  createUseSceneDialogController,
+  type SceneDialogControllerOptions,
+} from "@/modules/asset_world/application/use-scene-dialog-controller";
+import { createUseScenesPanelController } from "@/modules/asset_world/application/use-scenes-panel-controller";
 import type {
   Character,
   CharacterAssetKind,
@@ -43,6 +54,10 @@ import { httpAssetWorldGateway } from "@/modules/asset_world/infrastructure/http
 import { httpImageSourceGateway } from "@/modules/asset_world/infrastructure/http-image-source-gateway";
 import { httpPropGateway } from "@/modules/asset_world/infrastructure/http-prop-gateway";
 import { httpSceneGateway } from "@/modules/asset_world/infrastructure/http-scene-gateway";
+import {
+  readStoredSceneGroupSelection,
+  writeStoredSceneGroupSelection,
+} from "@/modules/asset_world/infrastructure/scene-group-storage";
 import { stylePreviewUrl } from "@/modules/asset_world/infrastructure/style-preview-url";
 import {
   AddCharacterDialogView,
@@ -54,6 +69,9 @@ import {
   IdentityCardView,
 } from "@/modules/asset_world/presentation/CharactersPageView";
 import { CharacterVoicePanelView } from "@/modules/asset_world/presentation/CharacterVoicePanelView";
+import { SceneAssetCardControllerView } from "@/modules/asset_world/presentation/SceneAssetCardView";
+import { SceneDialogView } from "@/modules/asset_world/presentation/SceneDialogView";
+import { ScenesPanelView } from "@/modules/asset_world/presentation/ScenesPanelView";
 import {
   CreateStyleDialogView,
   StyleDetailView,
@@ -71,6 +89,34 @@ const imageSourceQueries = createImageSourceQueryHooks(
 );
 const propQueries = createPropQueryHooks(httpPropGateway);
 const sceneQueries = createSceneQueryHooks(httpSceneGateway);
+const useScenesPanelController = createUseScenesPanelController(
+  sceneQueries,
+  imageSourceQueries,
+  {
+    readStoredSceneGroupSelection,
+    useAssetFocus,
+    useAssetReferenceIndex,
+    useGenerationCreditCost,
+    writeStoredSceneGroupSelection,
+  },
+);
+const useSceneDialogController = createUseSceneDialogController({
+  useNavigateToAsset,
+});
+const useSceneAssetCardController = createUseSceneAssetCardController(
+  sceneQueries,
+  {
+    downloadBlob: downloadBlobAsFile,
+    openSceneFreezone: async (project, sceneName) => {
+      await openPresetProjectionInMyCanvas(project, {
+        scope: "asset",
+        asset_kind: "scene",
+        asset_id: sceneName,
+      });
+    },
+    useGenerationCreditCost,
+  },
+);
 
 export const {
   useBatchGeneratePropReferences,
@@ -111,6 +157,43 @@ export { useAssetReferenceIndex };
 export async function listScenes(project: string): Promise<SceneAsset[]> {
   const response = await httpSceneGateway.listScenes(project);
   return response.data;
+}
+
+function SceneDialogContent(options: SceneDialogControllerOptions) {
+  const controller = useSceneDialogController(options);
+  return createElement(SceneDialogView, { controller });
+}
+
+function SceneAssetCardContent(options: SceneAssetCardControllerOptions) {
+  const controller = useSceneAssetCardController(options);
+  return createElement(SceneAssetCardControllerView, { controller });
+}
+
+export function ScenesPanelContent({
+  focusId,
+  project,
+}: {
+  focusId?: string | null;
+  project: string;
+}) {
+  const controller = useScenesPanelController({ focusId, project });
+  return createElement(ScenesPanelView, {
+    controller,
+    dialogContent: createElement(SceneDialogContent, controller.dialog),
+    imageSourceControl: createElement(CharacterImageSourceSelect, {
+      kind: "scene",
+      project,
+    }),
+    renderSceneCard: (scene: SceneAsset) =>
+      createElement(SceneAssetCardContent, {
+        imageSourceSelection: controller.imageSourceSelection,
+        onDelete: () => void controller.deleteScene(scene),
+        onEdit: () => controller.openEditScene(scene),
+        project,
+        referenceCount: controller.referenceCountForScene(scene),
+        scene,
+      }),
+  });
 }
 
 export const {
@@ -489,7 +572,7 @@ function CharactersPageBody({ project }: { project: string }) {
         controller.assetTab === "props" ? controller.assetFocusId : null,
       project,
     }),
-    scenesContent: createElement(ScenesPanel, {
+    scenesContent: createElement(ScenesPanelContent, {
       focusId:
         controller.assetTab === "scenes" ? controller.assetFocusId : null,
       project,

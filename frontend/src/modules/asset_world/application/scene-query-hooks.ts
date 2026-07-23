@@ -291,3 +291,5 @@ export function createSceneQueryHooks(gateway: SceneGateway) {
     useUploadScenePano,
   };
 }
+
+export type SceneQueryHooks = ReturnType<typeof createSceneQueryHooks>;

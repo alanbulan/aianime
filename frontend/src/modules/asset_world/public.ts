@@ -1,5 +1,6 @@
 export {
   CharactersPageContent,
+  ScenesPanelContent,
   StylesPageContent,
   listScenes,
   useAssetReferenceIndex,
@@ -84,6 +85,11 @@ export type {
   SceneGateway,
   ScenePayload,
 } from "@/modules/asset_world/application/scene-gateway";
+export type { AssetSortKey } from "@/modules/asset_world/domain/asset-collection";
+export {
+  filterAssets,
+  sortAssets,
+} from "@/modules/asset_world/domain/asset-collection";
 export type {
   AssetReferenceIndex,
   AssetRefType,
@@ -112,6 +118,14 @@ export {
 } from "@/modules/asset_world/domain/character";
 export type { CharacterMainCopy } from "@/modules/asset_world/domain/character";
 export type { PropAsset } from "@/modules/asset_world/domain/prop";
+export {
+  parseEnvironmentPrompt,
+  serializeEnvironmentPrompt,
+} from "@/modules/asset_world/domain/scene-environment";
+export type {
+  SceneEnvironmentSectionKey,
+  SceneEnvironmentSections,
+} from "@/modules/asset_world/domain/scene-environment";
 export type {
   SceneAsset,
   ScenePanoSource,

@@ -99,3 +99,5 @@ export function createPropQueryHooks(gateway: PropGateway) {
     useUploadPropReference,
   };
 }
+
+export type PropQueryHooks = ReturnType<typeof createPropQueryHooks>;

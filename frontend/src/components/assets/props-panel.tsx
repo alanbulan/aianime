@@ -13,9 +13,6 @@ import {
   AssetResultCount,
   AssetSearchBox,
   AssetSortSelect,
-  filterBySearch,
-  sortAssets,
-  type AssetSortKey,
 } from "@/components/assets/asset-search-box";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import { useAssetFocus } from "@/hooks/use-asset-focus";
@@ -54,6 +51,8 @@ import { cn } from "@/lib/utils";
 import {
   useAssetImageSourceSelection,
   useAssetReferenceIndex,
+  filterAssets,
+  sortAssets,
   useBatchGeneratePropReferences,
   useCreateProp,
   useDeleteProp,
@@ -62,6 +61,7 @@ import {
   useUpdateProp,
   useUploadPropReference,
   type BeatReference,
+  type AssetSortKey,
   type PropAsset,
   type PropPayload,
 } from "@/modules/asset_world/public";
@@ -355,7 +355,7 @@ export function PropsPanel({
   const [searchQuery, setSearchQuery] = useState("");
   const [sortKey, setSortKey] = useState<AssetSortKey>("name");
   const items = useMemo(() => {
-    const filtered = filterBySearch(allItems, searchQuery, (prop) => [
+    const filtered = filterAssets(allItems, searchQuery, (prop) => [
       prop.name,
       prop.prop_type,
       prop.description,

@@ -32,6 +32,8 @@ vi.mock("@/lib/queries/generation-credit-cost", () => ({
 }));
 
 vi.mock("@/modules/asset_world/public", () => ({
+  filterAssets: (items: unknown[]) => items,
+  sortAssets: (items: unknown[]) => [...items],
   useAssetImageSourceSelection: () => ({
     data: {
       ok: true,

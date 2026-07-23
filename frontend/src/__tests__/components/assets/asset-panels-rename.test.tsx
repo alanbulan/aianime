@@ -49,7 +49,7 @@ vi.mock("@/features/viewer-kit/three-d/ThreeDDirectorDialog", () => ({
 }));
 
 import { PropsPanel } from "@/components/assets/props-panel";
-import { ScenesPanel } from "@/components/assets/scenes-panel";
+import { ScenesPanelContent as ScenesPanel } from "@/modules/asset_world/public";
 import {
   AssetHeaderActionsSlotProvider,
   AssetHeaderActionsTarget,
