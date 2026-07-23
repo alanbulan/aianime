@@ -257,6 +257,7 @@ def test_narrative_planning_callers_use_the_public_api() -> None:
             failures.append(f"{relative}: {imported}")
 
     assert not _python_files(PACKAGE_ROOT / "workflows")
+    assert not (PACKAGE_ROOT / "manual_shots.py").exists()
     assert not failures, "\n".join(failures)
 
 

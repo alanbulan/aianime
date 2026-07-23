@@ -58,7 +58,7 @@ from ai_anime.models import (
     collect_prop_marker_ids_from_beat,
     real_detected_identities,
 )
-from ai_anime.manual_shots import beat_order_value
+from ai_anime.modules.narrative_planning.public import beat_order_value
 from ai_anime.services.style_service import StyleService
 from ai_anime.utils.asset_resolver import AssetResolver
 from ai_anime.image_request_usage import (

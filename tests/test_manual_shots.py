@@ -11,7 +11,7 @@ def test_selection_scope_is_order_sensitive():
 
 
 def test_manual_shot_order_helpers_keep_inserted_beat_between_neighbors():
-    from ai_anime.manual_shots import sort_beats_for_display
+    from ai_anime.modules.narrative_planning.domain import sort_beats_for_display
 
     beats = [
         {"beat_number": 1, "shot_order": 10},
@@ -23,7 +23,7 @@ def test_manual_shot_order_helpers_keep_inserted_beat_between_neighbors():
 
 
 def test_manual_shot_insert_order_uses_integer_slots():
-    from ai_anime.manual_shots import calculate_insert_order
+    from ai_anime.modules.narrative_planning.domain import calculate_insert_order
 
     assert calculate_insert_order(None, 10) == 5
     assert calculate_insert_order(None, 2) == 1
@@ -35,7 +35,7 @@ def test_manual_shot_insert_order_uses_integer_slots():
 
 
 def test_manual_shot_duration_prefers_user_duration_over_audio():
-    from ai_anime.manual_shots import resolve_target_video_duration
+    from ai_anime.modules.narrative_planning.public import resolve_target_video_duration
 
     beat = {"beat_number": 41, "duration_seconds": 3.0, "is_manual_shot": True}
 
@@ -43,7 +43,7 @@ def test_manual_shot_duration_prefers_user_duration_over_audio():
 
 
 def test_manual_shot_segments_only_include_missing_manual_sketches(tmp_path):
-    from ai_anime.manual_shots import missing_manual_shot_segments
+    from ai_anime.modules.narrative_planning.public import missing_manual_shot_segments
 
     def _scene(scene_id):
         return {"scene_id": scene_id}
@@ -66,7 +66,9 @@ def test_manual_shot_segments_only_include_missing_manual_sketches(tmp_path):
 
 
 def test_storyboard_manual_sketch_beats_exclude_manual_space_maps():
-    from ai_anime.manual_shots import storyboard_beats_for_manual_sketches
+    from ai_anime.modules.narrative_planning.public import (
+        storyboard_beats_for_manual_sketches,
+    )
 
     beats = [
         {"beat_number": 1, "visual_description": "普通镜头"},
@@ -90,7 +92,7 @@ def test_storyboard_manual_sketch_beats_exclude_manual_space_maps():
 
 def test_manual_sketch_mode_reuses_normal_sketch_grid_split():
     from ai_anime.generators.nanobanana_grid import sketch_scene_grid_split as sketch_location_grid_split
-    from ai_anime.manual_shots import choose_manual_sketch_mode_key
+    from ai_anime.modules.narrative_planning.public import choose_manual_sketch_mode_key
 
     for count in range(1, 9):
         beats = [
@@ -101,103 +103,6 @@ def test_manual_sketch_mode_reuses_normal_sketch_grid_split():
         assert choose_manual_sketch_mode_key(count) == sketch_location_grid_split(beats)[0][
             "mode_key"
         ]
-
-
-def test_srt_timing_advances_across_silent_manual_shots():
-    from ai_anime.manual_shots import build_subtitle_timing_entries
-
-    beats = [
-        {"beat_number": 1, "narration_segment": "第一句", "audio_duration": 5.0},
-        {
-            "beat_number": 41,
-            "narration_segment": "",
-            "duration_seconds": 3.0,
-            "is_manual_shot": True,
-        },
-        {"beat_number": 2, "narration_segment": "第二句", "audio_duration": 4.0},
-    ]
-
-    entries = build_subtitle_timing_entries(
-        beats,
-        duration_lookup=lambda beat: beat.get("audio_duration"),
-    )
-
-    assert entries == [
-        (1, 0.0, 5.0, "第一句"),
-        (2, 8.0, 12.0, "第二句"),
-    ]
-
-
-def test_video_prereqs_allow_manual_shot_without_audio():
-    from ai_anime.manual_shots import split_video_generation_prereqs
-
-    beats = [
-        {"beat_number": 1},
-        {"beat_number": 41, "is_manual_shot": True, "audio_type": "silence"},
-        {"beat_number": 2},
-    ]
-    statuses = {
-        1: {"frame_exists": True, "audio_exists": True},
-        41: {"frame_exists": True, "audio_exists": False},
-        2: {"frame_exists": True, "audio_exists": False},
-    }
-
-    ready, missing_frames, missing_audio = split_video_generation_prereqs(
-        beats,
-        status_lookup=lambda beat_num: statuses[beat_num],
-    )
-
-    assert [beat["beat_number"] for beat in ready] == [1, 41]
-    assert missing_frames == []
-    assert missing_audio == [2]
-
-
-def test_video_prereqs_require_audio_for_manual_narration_and_dialogue():
-    from ai_anime.manual_shots import split_video_generation_prereqs
-
-    beats = [
-        {"beat_number": 41, "is_manual_shot": True, "audio_type": "narration"},
-        {"beat_number": 42, "is_manual_shot": True, "audio_type": "dialogue"},
-        {"beat_number": 43, "is_manual_shot": True, "audio_type": "silence"},
-    ]
-    statuses = {
-        41: {"frame_exists": True, "audio_exists": False},
-        42: {"frame_exists": True, "audio_exists": False},
-        43: {"frame_exists": True, "audio_exists": False},
-    }
-
-    ready, missing_frames, missing_audio = split_video_generation_prereqs(
-        beats,
-        status_lookup=lambda beat_num: statuses[beat_num],
-    )
-
-    assert [beat["beat_number"] for beat in ready] == [43]
-    assert missing_frames == []
-    assert missing_audio == [41, 42]
-
-
-def test_video_prereqs_allow_silence_and_legacy_action_without_audio():
-    from ai_anime.manual_shots import split_video_generation_prereqs
-
-    beats = [
-        {"beat_number": 1, "audio_type": "silence"},
-        {"beat_number": 2, "audio_type": "action"},
-        {"beat_number": 3, "audio_type": "narration"},
-    ]
-    statuses = {
-        1: {"frame_exists": True, "audio_exists": False},
-        2: {"frame_exists": True, "audio_exists": False},
-        3: {"frame_exists": True, "audio_exists": False},
-    }
-
-    ready, missing_frames, missing_audio = split_video_generation_prereqs(
-        beats,
-        status_lookup=lambda beat_num: statuses[beat_num],
-    )
-
-    assert [beat["beat_number"] for beat in ready] == [1, 2]
-    assert missing_frames == []
-    assert missing_audio == [3]
 
 
 @pytest.mark.asyncio
@@ -250,7 +155,7 @@ async def test_sqlite_manual_shot_fields_roundtrip_and_sort(tmp_path):
 @pytest.mark.skip(reason="v2.0: location/set_description/dump_set_description不存在；scene_ref 替代")
 @pytest.mark.asyncio
 async def test_insert_manual_shot_inherits_previous_scene_and_uses_new_asset_id(tmp_path):
-    from ai_anime.manual_shots import insert_manual_shot
+    from ai_anime.modules.narrative_planning.public import insert_manual_shot
     from ai_anime.models import NovelEpisode, NovelVisualBeat, dump_set_description
     from ai_anime.sqlite_store import SQLiteStore
 
@@ -306,7 +211,7 @@ async def test_insert_manual_shot_inherits_previous_scene_and_uses_new_asset_id(
 @pytest.mark.skip(reason="v2.0: location/set_description/dump_set_description不存在；scene_ref 替代")
 @pytest.mark.asyncio
 async def test_insert_manual_shot_accepts_dialog_defaults_and_overrides(tmp_path):
-    from ai_anime.manual_shots import insert_manual_shot
+    from ai_anime.modules.narrative_planning.public import insert_manual_shot
     from ai_anime.models import NovelEpisode, NovelVisualBeat, dump_set_description
     from ai_anime.sqlite_store import SQLiteStore
 
@@ -361,7 +266,7 @@ async def test_insert_manual_shot_accepts_dialog_defaults_and_overrides(tmp_path
 
 @pytest.mark.asyncio
 async def test_insert_manual_shot_derives_identities_from_own_visual_description(tmp_path):
-    from ai_anime.manual_shots import insert_manual_shot
+    from ai_anime.modules.narrative_planning.public import insert_manual_shot
     from ai_anime.models import NovelEpisode, NovelVisualBeat
     from ai_anime.sqlite_store import SQLiteStore
 
@@ -403,7 +308,7 @@ async def test_insert_manual_shot_derives_identities_from_own_visual_description
 
 @pytest.mark.asyncio
 async def test_insert_manual_shot_persists_explicit_detected_props(tmp_path):
-    from ai_anime.manual_shots import insert_manual_shot
+    from ai_anime.modules.narrative_planning.public import insert_manual_shot
     from ai_anime.models import NovelEpisode, NovelVisualBeat
     from ai_anime.sqlite_store import SQLiteStore
 
@@ -442,7 +347,7 @@ async def test_insert_manual_shot_persists_explicit_detected_props(tmp_path):
 
 @pytest.mark.asyncio
 async def test_insert_manual_shot_derives_props_from_visual_description_markers(tmp_path):
-    from ai_anime.manual_shots import insert_manual_shot
+    from ai_anime.modules.narrative_planning.public import insert_manual_shot
     from ai_anime.models import NovelEpisode, NovelVisualBeat
     from ai_anime.sqlite_store import SQLiteStore
 
@@ -480,7 +385,7 @@ async def test_insert_manual_shot_derives_props_from_visual_description_markers(
 
 @pytest.mark.asyncio
 async def test_insert_manual_shot_accepts_scene_ref_and_optional_narration(tmp_path):
-    from ai_anime.manual_shots import insert_manual_shot
+    from ai_anime.modules.narrative_planning.public import insert_manual_shot
     from ai_anime.models import NovelEpisode, NovelVisualBeat
     from ai_anime.sqlite_store import SQLiteStore
 
@@ -525,7 +430,7 @@ async def test_insert_manual_shot_accepts_scene_ref_and_optional_narration(tmp_p
 
 @pytest.mark.asyncio
 async def test_insert_manual_shot_persists_audio_type_and_speaker(tmp_path):
-    from ai_anime.manual_shots import insert_manual_shot
+    from ai_anime.modules.narrative_planning.public import insert_manual_shot
     from ai_anime.models import NovelEpisode, NovelVisualBeat
     from ai_anime.sqlite_store import SQLiteStore
 
@@ -572,7 +477,7 @@ async def test_insert_manual_shot_persists_audio_type_and_speaker(tmp_path):
 
 @pytest.mark.asyncio
 async def test_insert_manual_shot_accepts_dialogue_without_speaker(tmp_path):
-    from ai_anime.manual_shots import insert_manual_shot
+    from ai_anime.modules.narrative_planning.public import insert_manual_shot
     from ai_anime.models import NovelEpisode, NovelVisualBeat
     from ai_anime.sqlite_store import SQLiteStore
 
@@ -619,7 +524,7 @@ async def test_insert_manual_shot_accepts_dialogue_without_speaker(tmp_path):
 
 @pytest.mark.asyncio
 async def test_insert_manual_shot_at_front_allocates_order_before_first_beat(tmp_path):
-    from ai_anime.manual_shots import insert_manual_shot
+    from ai_anime.modules.narrative_planning.public import insert_manual_shot
     from ai_anime.models import NovelEpisode, NovelVisualBeat
     from ai_anime.sqlite_store import SQLiteStore
 
@@ -662,7 +567,7 @@ async def test_insert_manual_shot_at_front_allocates_order_before_first_beat(tmp
 
 @pytest.mark.asyncio
 async def test_insert_manual_shot_does_not_reuse_existing_asset_number(tmp_path):
-    from ai_anime.manual_shots import insert_manual_shot
+    from ai_anime.modules.narrative_planning.public import insert_manual_shot
     from ai_anime.models import NovelEpisode, NovelVisualBeat
     from ai_anime.sqlite_store import SQLiteStore
 
@@ -703,7 +608,7 @@ async def test_insert_manual_shot_does_not_reuse_existing_asset_number(tmp_path)
 
 @pytest.mark.asyncio
 async def test_delete_manual_shot_removes_only_manual_beat(tmp_path):
-    from ai_anime.manual_shots import delete_manual_shot
+    from ai_anime.modules.narrative_planning.public import delete_manual_shot
     from ai_anime.models import NovelEpisode, NovelVisualBeat
     from ai_anime.sqlite_store import SQLiteStore
 
@@ -740,15 +645,31 @@ async def test_delete_manual_shot_removes_only_manual_beat(tmp_path):
         ]
     )
 
+    removed_paths = [
+        project_dir / "sketches" / "ep001" / "beat_41.png",
+        project_dir / "frames" / "ep001" / "beat_41.png",
+        project_dir / "renders" / "ep001" / "beat_41.png",
+        project_dir / "grids" / "ep001" / "sketch" / "cells" / "beat_41_a.png",
+        project_dir / "grids" / "ep001" / "render" / "cells" / "beat_41_b.png",
+    ]
+    retained_path = (
+        project_dir / "grids" / "ep001" / "sketch" / "cells" / "beat_42_a.png"
+    )
+    for path in [*removed_paths, retained_path]:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"asset")
+
     refreshed = await delete_manual_shot(store, episode_number=1, beat_number=41)
 
     assert [beat["beat_number"] for beat in refreshed] == [1, 2]
     assert [beat["beat_number"] for beat in await store.get_beats_as_dicts(1)] == [1, 2]
+    assert all(not path.exists() for path in removed_paths)
+    assert retained_path.exists()
 
 
 @pytest.mark.asyncio
 async def test_delete_manual_shot_rejects_normal_beat(tmp_path):
-    from ai_anime.manual_shots import delete_manual_shot
+    from ai_anime.modules.narrative_planning.public import delete_manual_shot
     from ai_anime.models import NovelEpisode, NovelVisualBeat
     from ai_anime.sqlite_store import SQLiteStore
 

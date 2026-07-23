@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.modules.narrative_planning.public import resolve_target_video_duration
 from ai_anime.task_backend.cancel import (
     TaskTimedOut,
     await_envelope_with_cancel_watch,
@@ -303,7 +304,6 @@ async def _run_video_generation_async(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
-    from ai_anime.manual_shots import resolve_target_video_duration
     from ai_anime.utils.path_resolver import PathResolver
 
     payload = envelope.get("payload") or {}

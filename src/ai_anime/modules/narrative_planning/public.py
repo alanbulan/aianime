@@ -1,5 +1,6 @@
 """Stable application API exposed by Narrative Planning."""
 
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -25,12 +26,16 @@ from ai_anime.modules.narrative_planning.application.literal_script_writing impo
     SceneBlock,
     split_literal_source_text,
 )
+from ai_anime.modules.narrative_planning.application.manual_beats import (
+    InsertManualBeatCommand,
+)
 from ai_anime.modules.narrative_planning.application.narrative_tasks import (
     IdentityPlanRequired,
     ProjectContextRequired,
 )
 from ai_anime.modules.narrative_planning.application.ports import (
     EpisodeRepository,
+    ManualBeatStore,
     NarrativeContentStore,
     NarrativeScriptStore,
     SeedancePromptStore,
@@ -57,6 +62,9 @@ from ai_anime.modules.narrative_planning.composition import (
     episode_catalog,
     episode_content_service,
     generate_seedance_prompt,
+    manual_beat_service,
+    manual_sketch_catalog,
+    manual_sketch_mode_key,
     schedule_beat_video_prompt,
     schedule_episode_planning,
     script_document_service,
@@ -68,6 +76,11 @@ from ai_anime.modules.narrative_planning.domain import (
     FinalBeatTransitionNotAllowed,
     RawEpisodeContentMissing,
     ScriptNotFound,
+    beat_order_value,
+    group_missing_manual_shot_segments,
+    pick_beats_by_number,
+    resolve_target_video_duration,
+    storyboard_beats_for_manual_sketches,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 
@@ -138,6 +151,66 @@ async def update_episode_metadata(
         episode_num=episode_num,
         updates=updates,
     )
+
+
+async def insert_manual_shot(
+    store: ManualBeatStore,
+    *,
+    episode_number: int,
+    after_beat_number: int | None,
+    visual_description: str,
+    duration_seconds: float | None = None,
+    scene_ref: dict[str, Any] | None = None,
+    time_of_day: str | None = None,
+    detected_identities: Sequence[str] | None = None,
+    detected_props: Sequence[str] | None = None,
+    audio_type: str | None = "silence",
+    speaker: str | None = None,
+    narration_segment: str | None = None,
+) -> dict[str, Any]:
+    return await manual_beat_service(store).insert(
+        store,
+        InsertManualBeatCommand(
+            episode_number=episode_number,
+            after_beat_number=after_beat_number,
+            visual_description=visual_description,
+            duration_seconds=duration_seconds,
+            scene_ref=scene_ref,
+            time_of_day=time_of_day,
+            detected_identities=detected_identities,
+            detected_props=detected_props,
+            audio_type=audio_type,
+            speaker=speaker,
+            narration_segment=narration_segment,
+        ),
+    )
+
+
+async def delete_manual_shot(
+    store: ManualBeatStore,
+    *,
+    episode_number: int,
+    beat_number: int,
+) -> list[dict[str, Any]]:
+    return await manual_beat_service(store).delete(
+        store,
+        episode_number=episode_number,
+        beat_number=beat_number,
+    )
+
+
+def missing_manual_shot_segments(
+    beats: list[dict[str, Any]],
+    sketches_dir: str | Path,
+) -> list[list[int]]:
+    return group_missing_manual_shot_segments(
+        beats,
+        sketch_exists=manual_sketch_catalog(str(sketches_dir)).exists,
+    )
+
+
+def choose_manual_sketch_mode_key(count: int) -> str:
+    return manual_sketch_mode_key(count)
 
 
 async def load_episode_script(
@@ -293,26 +366,34 @@ __all__ = [
     "SeedancePromptRejected",
     "ScriptNotFound",
     "ScriptStoreSyncFailed",
+    "beat_order_value",
+    "choose_manual_sketch_mode_key",
     "clear_adapted_episode_content",
     "create_script_writing_workflow",
     "enqueue_beat_video_prompt_generation",
     "episode_details_data",
+    "delete_manual_shot",
     "generate_and_save_beat_video_prompt",
     "generate_episode_rewrite",
     "generate_seedance2_beat_prompt",
     "get_episode_details",
+    "insert_manual_shot",
     "load_adapted_episode_content",
     "load_episode_script",
     "load_raw_episode_content",
     "list_episode_summaries",
+    "missing_manual_shot_segments",
+    "pick_beats_by_number",
     "resolve_beat_video_prompt_target",
     "save_adapted_episode_content",
     "save_episode_script",
     "save_raw_episode_content",
+    "resolve_target_video_duration",
     "serialize_episode_items",
     "start_episode_script_generation",
     "start_episode_planning",
     "split_literal_source_text",
+    "storyboard_beats_for_manual_sketches",
     "update_episode_script_beat",
     "update_episode_metadata",
 ]

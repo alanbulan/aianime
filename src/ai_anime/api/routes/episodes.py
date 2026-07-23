@@ -17,8 +17,10 @@ from ai_anime.ports import get_task_backend, get_usage_meter
 from ai_anime.modules.narrative_planning.public import (
     EpisodeNotFound,
     ProjectContextRequired,
+    delete_manual_shot,
     episode_details_data,
     get_episode_details,
+    insert_manual_shot,
     list_episode_summaries,
     serialize_episode_items,
     start_episode_planning,
@@ -329,8 +331,6 @@ async def delete_manual_shot_route(
     """删除手工插入的 beat。普通主流程 beat 不允许从这里删。"""
     resolved = await resolve_project_scope(project, user, required_role="editor")
 
-    from ai_anime.manual_shots import delete_manual_shot
-
     store = (
         await make_sqlite_store_for_context(resolved.ctx)
         if resolved.ctx
@@ -362,8 +362,6 @@ async def insert_manual_shot_route(
     visual_description = (body.visual_description or "").strip()
     if not visual_description:
         return {"ok": False, "error": "visual_description 不能为空"}
-
-    from ai_anime.manual_shots import insert_manual_shot
 
     store = (
         await make_sqlite_store_for_context(resolved.ctx)

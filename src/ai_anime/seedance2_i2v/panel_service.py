@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from ai_anime.manual_shots import resolve_target_video_duration
+from ai_anime.modules.narrative_planning.public import resolve_target_video_duration
 from ai_anime.project_config import load_project_config_file, set_narrator_reference_audio
 from ai_anime.seedance2_i2v.assets import (
     Seedance2ResolvedAsset,

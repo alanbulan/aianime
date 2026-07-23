@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from collections.abc import Sequence
 from typing import Any, Protocol
 
 from ai_anime.modules.narrative_planning.application.task_dto import (
@@ -205,4 +206,36 @@ class EpisodeRepository(Protocol):
         self,
         episode_num: int,
         **updates: Any,
+    ) -> None: ...
+
+
+class ManualBeatStore(Protocol):
+    async def get_beats_as_dicts(
+        self,
+        episode_number: int,
+    ) -> list[dict[str, Any]]: ...
+
+    async def update_beat_asset(
+        self,
+        episode_number: int,
+        beat_number: int,
+        **updates: Any,
+    ) -> bool: ...
+
+    async def add_visual_beats(self, beats: Sequence[Any]) -> None: ...
+
+    async def delete_manual_beat(
+        self,
+        episode_number: int,
+        beat_number: int,
+    ) -> bool: ...
+
+
+class ManualBeatAssetWorkspace(Protocol):
+    def existing_beat_numbers(self, episode_number: int) -> set[int]: ...
+
+    def delete_beat_artifacts(
+        self,
+        episode_number: int,
+        beat_number: int,
     ) -> None: ...

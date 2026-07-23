@@ -14,6 +14,9 @@ from ai_anime.modules.narrative_planning.application.episodes import (
 from ai_anime.modules.narrative_planning.application.literal_script_writing import (
     LiteralScriptWritingWorkflow,
 )
+from ai_anime.modules.narrative_planning.application.manual_beats import (
+    ManualBeatService,
+)
 from ai_anime.modules.narrative_planning.application.narrative_tasks import (
     ScheduleBeatVideoPrompt,
     ScheduleEpisodePlanning,
@@ -34,6 +37,11 @@ from ai_anime.modules.narrative_planning.infrastructure.sketch_workspace import 
 )
 from ai_anime.modules.narrative_planning.infrastructure.seedance_prompt_gateway import (
     SeedancePanelPromptGateway,
+)
+from ai_anime.modules.narrative_planning.infrastructure.manual_beat_assets import (
+    LocalManualBeatAssetWorkspace,
+    LocalManualSketchCatalog,
+    choose_manual_sketch_mode_key,
 )
 from ai_anime.modules.narrative_planning.infrastructure.task_scheduler import (
     TaskBackendScheduler,
@@ -63,6 +71,20 @@ def episode_catalog() -> EpisodeCatalog:
 
 def script_document_service() -> ScriptDocumentService:
     return ScriptDocumentService()
+
+
+def manual_beat_service(store: Any) -> ManualBeatService:
+    return ManualBeatService(
+        LocalManualBeatAssetWorkspace(getattr(store, "project_dir", None))
+    )
+
+
+def manual_sketch_catalog(sketches_dir: str) -> LocalManualSketchCatalog:
+    return LocalManualSketchCatalog(sketches_dir)
+
+
+def manual_sketch_mode_key(count: int) -> str:
+    return choose_manual_sketch_mode_key(count)
 
 
 def narrative_task_scheduler() -> TaskBackendScheduler:

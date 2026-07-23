@@ -68,7 +68,13 @@ from ai_anime.generators.nanobanana_grid import (
     hash_plan,
 )
 from ai_anime.generators.render_identity_guard import render_ai_detection_error
-from ai_anime.manual_shots import pick_beats_by_number
+from ai_anime.modules.narrative_planning.public import (
+    choose_manual_sketch_mode_key,
+    missing_manual_shot_segments,
+    pick_beats_by_number,
+    resolve_target_video_duration,
+    storyboard_beats_for_manual_sketches,
+)
 from ai_anime.render_plan.ref_image_hash import RefImageHasher
 from ai_anime.seedance2_i2v.pipeline import (
     is_huimeng_seedance2_backend,
@@ -814,7 +820,6 @@ async def _prepare_seedance2_api_beat(
     ratio: str | None = None,
     prop_menu: list[Any] | None = None,
 ) -> Any:
-    from ai_anime.manual_shots import resolve_target_video_duration
     from ai_anime.seedance2_i2v.models import parse_seedance2_config
 
     beat_num = int(beat.get("beat_number") or index + 1)
@@ -4187,11 +4192,6 @@ async def generate_missing_manual_sketches(
     exist, groups adjacent missing manual beats by scene, and dispatches one
     `sketch_regen` task per group. Normal beats are never regenerated here.
     """
-    from ai_anime.manual_shots import (
-        choose_manual_sketch_mode_key,
-        missing_manual_shot_segments,
-        storyboard_beats_for_manual_sketches,
-    )
     from ai_anime.task_identity import selection_scope
 
     resolved = await _resolve_generation_project(project, user, required_role="editor")
@@ -4337,8 +4337,6 @@ async def generate_single_video(
     prompt = _legacy_video_prompt_for_mode(beat, video_mode)
 
     # 音频时长
-    from ai_anime.manual_shots import resolve_target_video_duration
-
     audio_duration = await _api_audio_duration_seconds(
         output_dir, episode_num, beat_num
     )
