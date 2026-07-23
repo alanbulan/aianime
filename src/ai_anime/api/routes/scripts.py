@@ -4,7 +4,6 @@
 """
 
 import logging
-from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -27,6 +26,10 @@ from ai_anime.api.schemas import (
     ScriptSaveRequest,
 )
 from ai_anime.models import sync_beat_asset_refs
+from ai_anime.modules.narrative_planning.public import (
+    generate_and_save_beat_video_prompt,
+    resolve_beat_video_prompt_target,
+)
 from ai_anime.ports import get_task_backend, get_usage_meter
 from ai_anime.task_identity import project_task_state_key
 
@@ -45,210 +48,6 @@ def _requester_user_id_for_billing(resolved: Any, user: dict) -> str:
         or user.get("username")
         or ""
     )
-
-
-async def _audio_duration_seconds(output_dir: str | Path, episode: int, beat_num: int):
-    from ai_anime.utils.media_io import get_audio_duration_async
-    from ai_anime.utils.path_resolver import PathResolver
-
-    audio_path = PathResolver(str(output_dir), episode).audio(beat_num)
-    if not audio_path.exists():
-        return None
-    return await get_audio_duration_async(str(audio_path))
-
-
-def _first_existing_path(*paths: Path) -> str:
-    for path in paths:
-        if path.exists():
-            return str(path)
-    return ""
-
-
-async def _generate_single_beat_video_prompt(
-    *,
-    store: Any | None = None,
-    output_dir: str | Path,
-    project_name: str = "",
-    episode: int,
-    beat: dict[str, Any],
-    all_beats: list[dict[str, Any]] | None = None,
-    prev_beat: dict[str, Any] | None = None,
-    next_beat: dict[str, Any] | None = None,
-    language: str = "en",
-) -> str:
-    """为 1.x 首帧视频模式生成单 Beat SuperPower 运动提示词。"""
-    from ai_anime.agents.global_video_optimizer import (
-        _build_color_appearance_map,
-        get_global_video_optimizer,
-    )
-    from ai_anime.utils.path_resolver import PathResolver
-
-    beat_num = int(beat.get("beat_number") or 0)
-    paths = PathResolver(str(output_dir), episode)
-    sketch_image_path = _first_existing_path(paths.sketch(beat_num), paths.frame(beat_num))
-    if not sketch_image_path:
-        raise ValueError(f"Beat {beat_num} 缺少草图或首帧，请先生成草图或预览")
-
-    beats = list(all_beats or [beat])
-    characters = []
-    if store is not None and hasattr(store, "get_all_characters"):
-        characters = [
-            c.model_dump() if hasattr(c, "model_dump") else dict(c)
-            for c in (store.get_all_characters() or [])
-        ]
-
-    character_color_map = _build_color_appearance_map(
-        beats,
-        characters,
-        str(output_dir),
-        project_name,
-        episode=episode,
-        cognee_store=store,
-    )
-    result = await get_global_video_optimizer().optimize_single_beat(
-        beat=beat,
-        sketch_image_path=sketch_image_path,
-        character_color_map=character_color_map,
-        language=language,
-        prev_beat=prev_beat,
-        next_beat=next_beat,
-        prev_prompt=None,
-        total_beats=len(beats),
-    )
-    return str(result.get("prompt") or "").strip()
-
-
-async def _generate_single_beat_keyframe_prompt(
-    *,
-    output_dir: str | Path,
-    episode: int,
-    beat: dict[str, Any],
-    next_beat: dict[str, Any],
-    language: str = "en",
-) -> str:
-    """为 1.x 首尾帧模式生成单 Beat 过渡提示词。"""
-    from ai_anime.agents.keyframe_prompt_builder import get_keyframe_prompt_builder
-    from ai_anime.models import format_beat_narration
-    from ai_anime.utils.path_resolver import PathResolver
-
-    beat_num = int(beat.get("beat_number") or 0)
-    next_beat_num = int(next_beat.get("beat_number") or beat_num + 1)
-    paths = PathResolver(str(output_dir), episode)
-    first_frame_path = _first_existing_path(paths.frame(beat_num), paths.sketch(beat_num))
-    last_frame_path = _first_existing_path(
-        paths.frame(next_beat_num), paths.sketch(next_beat_num)
-    )
-    if not first_frame_path:
-        raise ValueError(f"Beat {beat_num} 缺少首帧或草图，请先生成预览或草图")
-    if not last_frame_path:
-        raise ValueError(f"Beat {next_beat_num} 缺少首帧或草图，请先生成预览或草图")
-
-    audio_type = str(beat.get("audio_type") or "narration")
-    narration = str(beat.get("narration_segment") or "")
-    next_narration = str(next_beat.get("narration_segment") or "")
-    speaker = str(beat.get("speaker") or "")
-    narration_text = format_beat_narration(audio_type, speaker, narration)
-
-    return await get_keyframe_prompt_builder().build(
-        first_frame_path=first_frame_path,
-        last_frame_path=last_frame_path,
-        narration=narration_text,
-        next_narration=next_narration,
-        language=language,
-        visual_description=str(beat.get("visual_description") or ""),
-        next_visual_description=str(next_beat.get("visual_description") or ""),
-        audio_type=audio_type,
-        dialogue_line=narration if audio_type == "dialogue" else "",
-        allow_fallback=False,
-    )
-
-
-async def _resolve_beat_video_prompt_target(
-    *,
-    store: Any,
-    episode_num: int,
-    beat_num: int,
-) -> tuple[dict[str, Any], dict[str, Any] | None, str]:
-    script_data = await store.get_script_as_dict(episode_num)
-    if not script_data:
-        raise LookupError("Script not found")
-
-    beats = list(script_data.get("beats") or [])
-    target = next((beat for beat in beats if int(beat.get("beat_number") or 0) == beat_num), None)
-    if target is None:
-        raise LookupError(f"Beat {beat_num} not found")
-
-    video_mode = str(target.get("video_mode") or "first_frame")
-    next_beat = next(
-        (beat for beat in beats if int(beat.get("beat_number") or 0) == beat_num + 1),
-        None,
-    )
-    field = "keyframe_prompt" if video_mode == "keyframe" else "video_prompt"
-    if field == "keyframe_prompt" and next_beat is None:
-        raise ValueError("这是最后一个 Beat，无法生成首尾帧过渡提示词")
-    return target, next_beat, field
-
-
-async def _generate_and_save_beat_video_prompt(
-    *,
-    store: Any,
-    output_dir: str | Path,
-    project_name: str = "",
-    episode_num: int,
-    beat_num: int,
-    language: str,
-) -> dict[str, Any]:
-    script_data = await store.get_script_as_dict(episode_num)
-    if not script_data:
-        raise LookupError("Script not found")
-
-    beats = list(script_data.get("beats") or [])
-    target, next_beat, field = await _resolve_beat_video_prompt_target(
-        store=store,
-        episode_num=episode_num,
-        beat_num=beat_num,
-    )
-    prev_beat = next(
-        (beat for beat in beats if int(beat.get("beat_number") or 0) == beat_num - 1),
-        None,
-    )
-
-    if field == "keyframe_prompt":
-        prompt = await _generate_single_beat_keyframe_prompt(
-            output_dir=output_dir,
-            episode=episode_num,
-            beat=target,
-            next_beat=next_beat,
-            language=language,
-        )
-    else:
-        prompt = await _generate_single_beat_video_prompt(
-            store=store,
-            output_dir=output_dir,
-            project_name=project_name,
-            episode=episode_num,
-            beat=target,
-            all_beats=beats,
-            prev_beat=prev_beat,
-            next_beat=next_beat,
-            language=language,
-        )
-
-    target[field] = prompt
-    sync_beat_asset_refs(target)
-    saved = await store.update_beat_asset(
-        episode_number=episode_num,
-        beat_number=beat_num,
-        **{field: prompt},
-    )
-    if not saved:
-        raise RuntimeError(f"Beat {beat_num} was not updated")
-
-    return {
-        "beat": target,
-        "field": field,
-        "prompt": prompt,
-    }
 
 
 @router.get("/projects/{project}/episodes/{episode_num}/script")
@@ -417,8 +216,8 @@ async def generate_beat_video_prompt(
     )
 
     try:
-        _, _, field = await _resolve_beat_video_prompt_target(
-            store=store,
+        selection = await resolve_beat_video_prompt_target(
+            store,
             episode_num=episode_num,
             beat_num=beat_num,
         )
@@ -437,7 +236,7 @@ async def generate_beat_video_prompt(
             payload={
                 "episode": episode_num,
                 "beat_num": beat_num,
-                "field": field,
+                "field": selection.field,
                 "language": body.language,
                 "output_dir": str(resolved.output_dir),
                 "display_name": f"生成提示词 · EP{episode_num} / Beat {beat_num}",
@@ -459,8 +258,8 @@ async def generate_beat_video_prompt(
         }
 
     try:
-        data = await _generate_and_save_beat_video_prompt(
-            store=store,
+        generated = await generate_and_save_beat_video_prompt(
+            store,
             output_dir=resolved.output_dir,
             project_name=resolved.project_name,
             episode_num=episode_num,
@@ -479,7 +278,7 @@ async def generate_beat_video_prompt(
 
     return {
         "ok": True,
-        "data": data,
+        "data": generated.as_dict(),
     }
 
 

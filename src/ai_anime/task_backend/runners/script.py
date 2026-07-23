@@ -6,6 +6,10 @@ import asyncio
 from pathlib import Path
 from typing import Any
 
+from ai_anime.modules.narrative_planning.public import (
+    create_script_writing_workflow,
+    generate_and_save_beat_video_prompt,
+)
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.shared.infrastructure.project_stores import (
     make_sqlite_store_for_context,
@@ -36,8 +40,6 @@ def run_beat_video_prompt(envelope: dict[str, Any], ctx: ProjectContext) -> dict
 
 
 async def _run_beat_video_prompt(envelope: dict[str, Any], ctx: ProjectContext) -> dict[str, Any]:
-    from ai_anime.api.routes.scripts import _generate_and_save_beat_video_prompt
-
     payload = envelope.get("payload") or {}
     episode = int(envelope.get("episode") or payload.get("episode") or 0)
     beat_num = int(envelope.get("beat_num") or payload.get("beat_num") or 0)
@@ -59,8 +61,8 @@ async def _run_beat_video_prompt(envelope: dict[str, Any], ctx: ProjectContext) 
     update_progress(0.05, f"开始生成 Beat {beat_num} 视频提示词")
     store = await make_sqlite_store_for_context(ctx)
     try:
-        data = await _generate_and_save_beat_video_prompt(
-            store=store,
+        generated = await generate_and_save_beat_video_prompt(
+            store,
             output_dir=output_dir,
             project_name=ctx.project_name,
             episode_num=episode,
@@ -71,8 +73,8 @@ async def _run_beat_video_prompt(envelope: dict[str, Any], ctx: ProjectContext) 
         return {
             "episode": episode,
             "beat_num": beat_num,
-            "field": data["field"],
-            "prompt": data["prompt"],
+            "field": generated.field,
+            "prompt": generated.prompt,
         }
     finally:
         await store.close()
@@ -83,8 +85,6 @@ async def _run_script_writer(envelope: dict[str, Any], ctx: ProjectContext) -> d
     from ai_anime.generators.episode_optimizer import EpisodeOptimizer
     from ai_anime.project_config import load_project_config
     from ai_anime.utils.path_resolver import PathResolver
-    from ai_anime.workflows.script_writing import create_script_writing_workflow
-
     payload = envelope.get("payload") or {}
     episode = int(envelope.get("episode") or payload.get("episode") or 0)
     config = dict(payload.get("config") or {})

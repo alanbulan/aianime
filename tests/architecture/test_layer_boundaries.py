@@ -14,7 +14,6 @@ COMPOSITION_ROOT_FILES = {"desktop_server.py"}
 LEGACY_REVERSE_API_IMPORT_MAX = {
     ("freezone/route_helpers.py", "ai_anime.api.schemas"): 1,
     ("freezone/text_node.py", "ai_anime.api.schemas"): 1,
-    ("task_backend/runners/script.py", "ai_anime.api.routes.scripts"): 1,
     ("verification/routes.py", "ai_anime.api.auth"): 1,
     ("verification/routes.py", "ai_anime.api.deps"): 1,
 }
@@ -239,4 +238,23 @@ def test_story_intake_callers_use_the_public_api() -> None:
             failures.append(f"{relative}: {imported}")
 
     assert not (PACKAGE_ROOT / "api" / "chapter_preview.py").exists()
+    assert not failures, "\n".join(failures)
+
+
+def test_narrative_planning_callers_use_the_public_api() -> None:
+    narrative_module = PACKAGE_ROOT / "modules" / "narrative_planning"
+    failures: list[str] = []
+
+    for path in _python_files(PACKAGE_ROOT):
+        if path.is_relative_to(narrative_module):
+            continue
+        relative = _relative(path)
+        for imported in _imports(path):
+            if not imported.startswith("ai_anime.modules.narrative_planning."):
+                continue
+            if imported == "ai_anime.modules.narrative_planning.public":
+                continue
+            failures.append(f"{relative}: {imported}")
+
+    assert not _python_files(PACKAGE_ROOT / "workflows")
     assert not failures, "\n".join(failures)

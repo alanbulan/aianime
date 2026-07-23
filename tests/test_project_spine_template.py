@@ -92,7 +92,15 @@ def _legacy_resolution(tmp_path, *, username: str = "alice", project: str = "dem
 
 def _project_scope_resolver(tmp_path):
     async def resolve(*args, **kwargs):
-        return _legacy_resolution(tmp_path)
+        return SimpleNamespace(
+            ctx=_ctx(tmp_path),
+            username="alice",
+            project_name="demo",
+            project_dir=tmp_path,
+            output_dir=str(tmp_path),
+            state_dir=str(tmp_path / "state"),
+            runtime_dir=str(tmp_path / "runtime"),
+        )
 
     return resolve
 
@@ -268,14 +276,24 @@ async def test_start_ingest_allows_spine_template_change_during_rebuild(
         lambda username, project, config=None, **kwargs: saved.update(config or {}),
     )
 
+    class _TaskBackend:
+        async def enqueue_project_task(self, ctx, **kwargs):
+            return SimpleNamespace(
+                task_state=SimpleNamespace(task_id="task-ingest"),
+                backend="inline",
+                queue="inline",
+            )
+
+    monkeypatch.setattr(ingest, "get_task_backend", lambda: _TaskBackend())
+
     response = await ingest.start_ingest(
         "demo",
         IngestStart(filename="novel.txt", rebuild=True, spine_template="narrated"),
         {"username": "alice"},
     )
 
-    assert response["ok"] is False
-    assert "project context" in response["error"]
+    assert response["ok"] is True
+    assert response["task_id"] == "task-ingest"
     assert saved["spine_template"] == "narrated"
     assert saved["aspect_ratio"] == "16:9"
 

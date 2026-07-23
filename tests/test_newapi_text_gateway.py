@@ -232,7 +232,7 @@ def test_asset_compiler_prop_planner_uses_prop_newapi_env(monkeypatch):
 
 
 def test_literal_script_writer_uses_literal_newapi_env(monkeypatch):
-    import ai_anime.workflows.literal_script_writing as literal_script_writing
+    import ai_anime.modules.narrative_planning.application.literal_script_writing as literal_script_writing
 
     model_calls = []
     settings_calls = []

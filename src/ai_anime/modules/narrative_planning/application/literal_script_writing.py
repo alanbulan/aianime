@@ -1241,19 +1241,3 @@ class LiteralScriptWritingWorkflow:
                     return candidate
             return exact_base[0]
         return normalized
-
-def create_literal_script_writing_workflow(
-    cognee_store: Any,
-    sqlite_store: Any | None = None,
-    output_dir: str = "",
-    genre: str = "",
-    story_setting: str = "",
-    audio_type_mode: str = "literal",
-) -> LiteralScriptWritingWorkflow:
-    del genre, story_setting
-    return LiteralScriptWritingWorkflow(
-        cognee_store=cognee_store,
-        sqlite_store=sqlite_store or cognee_store,
-        output_dir=output_dir,
-        audio_type_mode=audio_type_mode,
-    )

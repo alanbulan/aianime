@@ -56,7 +56,6 @@ def _ctx(tmp_path: Path) -> ProjectContext:
 
 @pytest.mark.asyncio
 async def test_beat_video_prompt_runner_closes_sqlite_store(monkeypatch, tmp_path):
-    from ai_anime.api.routes import scripts
     from ai_anime.task_backend.runners import script as runner
 
     store = _ClosableStore()
@@ -64,8 +63,8 @@ async def test_beat_video_prompt_runner_closes_sqlite_store(monkeypatch, tmp_pat
     async def fake_make_sqlite_store_for_context(ctx):
         return store
 
-    async def fake_generate_and_save_beat_video_prompt(**kwargs):
-        return {"field": "video_prompt", "prompt": "camera move"}
+    async def fake_generate_and_save_beat_video_prompt(*args, **kwargs):
+        return SimpleNamespace(field="video_prompt", prompt="camera move")
 
     monkeypatch.setattr(runner, "get_task_manager", lambda: _Manager())
     monkeypatch.setattr(
@@ -74,8 +73,8 @@ async def test_beat_video_prompt_runner_closes_sqlite_store(monkeypatch, tmp_pat
         fake_make_sqlite_store_for_context,
     )
     monkeypatch.setattr(
-        scripts,
-        "_generate_and_save_beat_video_prompt",
+        runner,
+        "generate_and_save_beat_video_prompt",
         fake_generate_and_save_beat_video_prompt,
     )
 
@@ -93,7 +92,6 @@ async def test_script_writer_runner_closes_cognee_store(monkeypatch, tmp_path):
     import ai_anime.cognee as cognee
     from ai_anime import project_config
     from ai_anime.task_backend.runners import script as runner
-    from ai_anime.workflows import script_writing
 
     store = _ClosableStore()
 
@@ -115,7 +113,7 @@ async def test_script_writer_runner_closes_cognee_store(monkeypatch, tmp_path):
     monkeypatch.setattr(cognee, "CogneeStore", FakeCogneeStore)
     monkeypatch.setattr(project_config, "load_project_config", lambda *args, **kwargs: {})
     monkeypatch.setattr(
-        script_writing,
+        runner,
         "create_script_writing_workflow",
         fake_create_script_writing_workflow,
     )

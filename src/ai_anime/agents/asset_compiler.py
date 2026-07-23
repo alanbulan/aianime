@@ -21,7 +21,7 @@ from ai_anime.models import (
 )
 from ai_anime.cognee.screenplay_normalizer import normalize_time_of_day
 from ai_anime.utils.derived_scenes import compose_derived_scene_name
-from ai_anime.workflows.literal_script_writing import (
+from ai_anime.modules.narrative_planning.public import (
     LiteralScriptWritingWorkflow,
     SceneBlock,
     split_literal_source_text,

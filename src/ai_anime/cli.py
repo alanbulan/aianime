@@ -13,7 +13,9 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from ai_anime.backup.cli import backup_app
 from ai_anime.cognee import CogneeStore
 from ai_anime.config import ensure_project_dirs
-from ai_anime.workflows.script_writing import create_script_writing_workflow
+from ai_anime.modules.narrative_planning.public import (
+    create_script_writing_workflow,
+)
 from ai_anime.generators import (
     SceneAsset,
     create_image_generator,

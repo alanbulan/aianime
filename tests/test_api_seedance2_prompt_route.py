@@ -396,7 +396,9 @@ def test_generate_seedance2_prompt_requires_next_beat_for_first_last_mode(
 def test_generate_beat_video_prompt_updates_first_frame_video_prompt(
     monkeypatch, tmp_path
 ):
-    from ai_anime.api.routes import scripts
+    from ai_anime.modules.narrative_planning.infrastructure import (
+        beat_prompt_generators,
+    )
 
     seen = {}
 
@@ -405,8 +407,8 @@ def test_generate_beat_video_prompt_updates_first_frame_video_prompt(
         return "generated first frame motion prompt"
 
     monkeypatch.setattr(
-        scripts,
-        "_generate_single_beat_video_prompt",
+        beat_prompt_generators,
+        "generate_single_beat_video_prompt",
         _generate_single_beat_video_prompt,
     )
     client, store = _client(
@@ -533,7 +535,9 @@ async def test_generate_beat_video_prompt_does_not_save_fallback_on_agent_failur
     monkeypatch, tmp_path
 ):
     from ai_anime.agents import global_video_optimizer
-    from ai_anime.api.routes import scripts
+    from ai_anime.modules.narrative_planning.public import (
+        generate_and_save_beat_video_prompt,
+    )
     from ai_anime.utils.path_resolver import PathResolver
 
     sketch_path = PathResolver(str(tmp_path), 1).sketch(1)
@@ -570,8 +574,8 @@ async def test_generate_beat_video_prompt_does_not_save_fallback_on_agent_failur
     )
 
     with pytest.raises(RuntimeError, match="model unavailable"):
-        await scripts._generate_and_save_beat_video_prompt(
-            store=store,
+        await generate_and_save_beat_video_prompt(
+            store,
             output_dir=tmp_path,
             episode_num=1,
             beat_num=1,
@@ -588,7 +592,9 @@ async def test_generate_beat_video_prompt_uses_superpower_single_beat_optimizer(
     monkeypatch, tmp_path
 ):
     from ai_anime.agents import global_video_optimizer
-    from ai_anime.api.routes import scripts
+    from ai_anime.modules.narrative_planning.public import (
+        generate_and_save_beat_video_prompt,
+    )
     from ai_anime.utils.path_resolver import PathResolver
 
     sketch_path = PathResolver(str(tmp_path), 1).sketch(1)
@@ -649,8 +655,8 @@ async def test_generate_beat_video_prompt_uses_superpower_single_beat_optimizer(
         sketch_colors={"男主_青年": "#00ff00 GREEN"},
     )
 
-    result = await scripts._generate_and_save_beat_video_prompt(
-        store=store,
+    result = await generate_and_save_beat_video_prompt(
+        store,
         output_dir=tmp_path,
         project_name="demo",
         episode_num=1,
@@ -658,7 +664,7 @@ async def test_generate_beat_video_prompt_uses_superpower_single_beat_optimizer(
         language="en",
     )
 
-    assert result["prompt"] == "superpower prompt"
+    assert result.prompt == "superpower prompt"
     assert optimizer_seen["sketch_image_path"] == str(sketch_path)
     assert optimizer_seen["character_color_map"] == {
         "#00ff00 GREEN": {"appearance": "黑衣男子"}
@@ -676,7 +682,9 @@ async def test_generate_beat_video_prompt_uses_superpower_single_beat_optimizer(
 
 
 def test_generate_beat_video_prompt_updates_keyframe_prompt(monkeypatch, tmp_path):
-    from ai_anime.api.routes import scripts
+    from ai_anime.modules.narrative_planning.infrastructure import (
+        beat_prompt_generators,
+    )
 
     seen = {}
 
@@ -685,8 +693,8 @@ def test_generate_beat_video_prompt_updates_keyframe_prompt(monkeypatch, tmp_pat
         return "generated first last frame prompt"
 
     monkeypatch.setattr(
-        scripts,
-        "_generate_single_beat_keyframe_prompt",
+        beat_prompt_generators,
+        "generate_single_beat_keyframe_prompt",
         _generate_single_beat_keyframe_prompt,
     )
     client, store = _client(

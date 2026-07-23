@@ -132,9 +132,15 @@ def _patch_project_and_store(
     project_dir: Path,
     store: _EpisodeStore,
 ) -> None:
+    ctx = SimpleNamespace(
+        project_id="project_123",
+        project_name="demo",
+        output_dir=project_dir,
+    )
+
     async def resolve_project_scope(project: str, user: dict, required_role: str = "viewer"):
         return SimpleNamespace(
-            ctx=None,
+            ctx=ctx,
             username=user.get("username", "admin"),
             project_name=project,
             project_dir=project_dir,
@@ -143,11 +149,11 @@ def _patch_project_and_store(
             runtime_dir=str(project_dir),
         )
 
-    async def make_store(username: str, project: str):
+    async def make_store(_ctx):
         return store
 
     monkeypatch.setattr(module, "resolve_project_scope", resolve_project_scope)
-    monkeypatch.setattr(module, "make_sqlite_store", make_store)
+    monkeypatch.setattr(module, "make_sqlite_store_for_context", make_store)
 
 
 def _patch_project_and_cognee_store(
