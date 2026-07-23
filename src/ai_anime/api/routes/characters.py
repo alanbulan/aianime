@@ -4,6 +4,7 @@ import io
 import logging
 import re
 import shutil
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote, urlencode
@@ -61,13 +62,10 @@ from ai_anime.utils.path_resolver import (
     canonical_identity_portrait_path,
 )
 from ai_anime.modules.asset_world.public import (
-    AGE_GROUP_SLOTS as VOICE_AGE_GROUP_SLOTS,
-    ALL_SLOTS as VOICE_SAMPLE_SLOTS,
-    DEFAULT_SLOT as VOICE_DEFAULT_SLOT,
-    clear_character_voice_file,
-    decode_recorded_audio_data_url,
-    persist_character_voice_file,
-    trim_existing_character_voice_file,
+    CharacterVoiceRejected,
+    character_voice_fields,
+    character_voice_use_cases,
+    identity_voice_fields,
 )
 from ai_anime.sqlite_store import SQLiteStore
 
@@ -81,14 +79,6 @@ ASSET_IMAGE_SELECTION_CONFIG_KEYS = {
 }
 CHARACTER_IMAGE_USAGE_TASK_TYPES = ("character_portrait", "identity_image")
 CHARACTER_ASSET_KINDS = {"portrait", "identity", "identity_costume", "identity_portrait"}
-
-VOICE_SLOT_LABELS = {
-    VOICE_DEFAULT_SLOT: "默认（兜底）",
-    "child": "幼年",
-    "youth": "青年",
-    "middle": "中年",
-    "elder": "老年",
-}
 
 
 async def _resolve_character_project(
@@ -175,6 +165,13 @@ def _asset_url(ctx: ProjectContext, project_dir: Path, abs_path: str | Path) -> 
     except ValueError:
         return ""
     return make_static_url_for_context(ctx, rel_path, local_path=path)
+
+
+def _character_voice_media_url(
+    ctx: ProjectContext,
+    project_dir: Path,
+) -> Callable[[str], str]:
+    return lambda rel_path: _asset_url(ctx, project_dir, project_dir / rel_path)
 
 
 def _backup_character_asset(path: Path) -> Path | None:
@@ -309,165 +306,6 @@ def _character_asset_links(
     }
 
 
-def _voice_slot_metadata(character, slot: str) -> dict[str, str]:
-    if slot == VOICE_DEFAULT_SLOT:
-        return {
-            "path": getattr(character, "reference_audio_path", "") or "",
-            "sha256": getattr(character, "reference_audio_sha256", "") or "",
-            "updated_at": getattr(character, "reference_audio_updated_at", "") or "",
-        }
-
-    samples = getattr(character, "voice_samples_by_age_group", None) or {}
-    entry = samples.get(slot) if isinstance(samples, dict) else None
-    if not isinstance(entry, dict):
-        return {"path": "", "sha256": "", "updated_at": ""}
-    return {
-        "path": entry.get("path", "") or "",
-        "sha256": entry.get("sha256", "") or "",
-        "updated_at": entry.get("updated_at", "") or "",
-    }
-
-
-def _voice_slot_update_fields(
-    character,
-    slot: str,
-    *,
-    path: str,
-    sha256: str,
-    updated_at: str,
-) -> dict:
-    if slot == VOICE_DEFAULT_SLOT:
-        return {
-            "reference_audio_path": path,
-            "reference_audio_sha256": sha256,
-            "reference_audio_updated_at": updated_at,
-        }
-
-    samples = dict(getattr(character, "voice_samples_by_age_group", None) or {})
-    if path:
-        samples[slot] = {"path": path, "sha256": sha256, "updated_at": updated_at}
-    else:
-        samples.pop(slot, None)
-    return {"voice_samples_by_age_group": samples}
-
-
-def _voice_sample_url(
-    *,
-    ctx: ProjectContext,
-    project_dir: Path,
-    rel_path: str,
-) -> str:
-    if not rel_path:
-        return ""
-    return _asset_url(ctx, project_dir, project_dir / rel_path)
-
-
-def _voice_slot_payload(
-    *,
-    ctx: ProjectContext,
-    project_dir: Path,
-    character,
-    slot: str,
-) -> dict:
-    meta = _voice_slot_metadata(character, slot)
-    default_meta = _voice_slot_metadata(character, VOICE_DEFAULT_SLOT)
-    path = meta["path"]
-    return {
-        "slot": slot,
-        "label": VOICE_SLOT_LABELS.get(slot, slot),
-        "path": path,
-        "url": _voice_sample_url(
-            ctx=ctx,
-            project_dir=project_dir,
-            rel_path=path,
-        ),
-        "sha256": meta["sha256"],
-        "updated_at": meta["updated_at"],
-        "inherited_from_default": slot != VOICE_DEFAULT_SLOT
-        and not path
-        and bool(default_meta["path"]),
-        "required": slot == VOICE_DEFAULT_SLOT,
-    }
-
-
-def _voice_samples_payload(
-    *,
-    ctx: ProjectContext,
-    project_dir: Path,
-    character,
-) -> dict:
-    return {
-        "character": character.name,
-        "slots": [
-            _voice_slot_payload(
-                ctx=ctx,
-                project_dir=project_dir,
-                character=character,
-                slot=slot,
-            )
-            for slot in (VOICE_DEFAULT_SLOT, *VOICE_AGE_GROUP_SLOTS)
-        ],
-    }
-
-
-def _character_voice_fields(ctx: ProjectContext, project_dir: Path, character) -> dict:
-    rel_path = getattr(character, "reference_audio_path", "") or ""
-    return {
-        "reference_audio_path": rel_path,
-        "reference_audio_url": _voice_sample_url(
-            ctx=ctx,
-            project_dir=project_dir,
-            rel_path=rel_path,
-        ),
-        "reference_audio_sha256": getattr(character, "reference_audio_sha256", "") or "",
-        "reference_audio_updated_at": getattr(character, "reference_audio_updated_at", "") or "",
-        "voice_samples_by_age_group": getattr(character, "voice_samples_by_age_group", {}) or {},
-    }
-
-
-def _identity_voice_fields(ctx: ProjectContext, project_dir: Path, identity) -> dict:
-    rel_path = getattr(identity, "reference_audio_path", "") or ""
-    return {
-        "reference_audio_path": rel_path,
-        "reference_audio_url": _voice_sample_url(
-            ctx=ctx,
-            project_dir=project_dir,
-            rel_path=rel_path,
-        ),
-        "reference_audio_sha256": getattr(identity, "reference_audio_sha256", "") or "",
-        "reference_audio_updated_at": getattr(identity, "reference_audio_updated_at", "") or "",
-    }
-
-
-async def _apply_character_voice_update(
-    *,
-    ctx: ProjectContext,
-    project_dir: Path,
-    character,
-    store: SQLiteStore,
-    slot: str,
-    path: str,
-    sha256: str,
-    updated_at: str,
-) -> dict:
-    fields = _voice_slot_update_fields(
-        character,
-        slot,
-        path=path,
-        sha256=sha256,
-        updated_at=updated_at,
-    )
-    await store.update_character(character.name, **fields)
-    for key, value in fields.items():
-        setattr(character, key, value)
-    return _voice_slot_payload(
-        ctx=ctx,
-        project_dir=project_dir,
-        character=character,
-        slot=slot,
-    )
-
-
 async def _unset_other_main_characters(store: SQLiteStore, name: str) -> None:
     """Keep the project on the same single narrator-main semantics as NiceGUI."""
     for character in store.get_all_characters():
@@ -533,7 +371,12 @@ async def list_characters(
                 kind="portrait",
             )
         )
-        item.update(_character_voice_fields(ctx, project_dir, c))
+        item.update(
+            character_voice_fields(
+                c,
+                media_url=_character_voice_media_url(ctx, project_dir),
+            )
+        )
         data.append(item)
 
     return {"ok": True, "data": data}
@@ -817,7 +660,12 @@ async def get_character_identities(
                 kind="identity_portrait",
                 identity_id=getattr(ident, "identity_id", ""),
             )["history_url"]
-            item.update(_identity_voice_fields(ctx, project_dir, ident))
+            item.update(
+                identity_voice_fields(
+                    ident,
+                    media_url=_character_voice_media_url(ctx, project_dir),
+                )
+            )
             identities.append(item)
 
     return {"ok": True, "data": identities}
@@ -1002,17 +850,15 @@ async def list_character_voice_samples(
     ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_character_project(project, user, required_role="viewer")
     )
-    character = store.get_character(name)
-    if character is None:
-        return {"ok": False, "error": f"Character '{name}' not found"}
-    return {
-        "ok": True,
-        "data": _voice_samples_payload(
-            ctx=ctx,
-            project_dir=project_dir,
-            character=character,
-        ),
-    }
+    try:
+        data = character_voice_use_cases().list_samples(
+            repository=store,
+            character_name=name,
+            media_url=_character_voice_media_url(ctx, project_dir),
+        )
+    except CharacterVoiceRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.post("/projects/{project}/characters/{name}/voice-samples/{slot}/upload")
@@ -1027,38 +873,18 @@ async def upload_character_voice_sample(
     ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_character_project(project, user)
     )
-    character = store.get_character(name)
-    if character is None:
-        return {"ok": False, "error": f"Character '{name}' not found"}
-    if slot not in VOICE_SAMPLE_SLOTS:
-        return {"ok": False, "error": f"Unsupported voice slot: {slot}"}
-
-    filename = file.filename or ""
-    content = await file.read()
     try:
-        rel_path, sha256, updated_at = persist_character_voice_file(
+        data = await character_voice_use_cases().upload_sample(
+            repository=store,
             project_dir=project_dir,
             character_name=name,
             slot=slot,
-            filename=filename,
-            content=content,
+            upload=file,
+            media_url=_character_voice_media_url(ctx, project_dir),
         )
-    except ValueError as exc:
+    except CharacterVoiceRejected as exc:
         return {"ok": False, "error": str(exc)}
-
-    return {
-        "ok": True,
-        "data": await _apply_character_voice_update(
-            ctx=ctx,
-            project_dir=project_dir,
-            character=character,
-            store=store,
-            slot=slot,
-            path=rel_path,
-            sha256=sha256,
-            updated_at=updated_at,
-        ),
-    }
+    return {"ok": True, "data": data}
 
 
 @router.post("/projects/{project}/characters/{name}/voice-samples/{slot}/record")
@@ -1070,40 +896,21 @@ async def record_character_voice_sample(
     user: dict = Depends(get_api_user),
 ):
     """保存浏览器录音为角色 IndexTTS2 声线样本。"""
-    ctx, username, project_name, project_dir, _output_dir, store = await _resolve_character_project(
-        project, user
+    ctx, _username, _project_name, project_dir, _output_dir, store = (
+        await _resolve_character_project(project, user)
     )
-    character = store.get_character(name)
-    if character is None:
-        return {"ok": False, "error": f"Character '{name}' not found"}
-    if slot not in VOICE_SAMPLE_SLOTS:
-        return {"ok": False, "error": f"Unsupported voice slot: {slot}"}
-
     try:
-        content, extension = decode_recorded_audio_data_url(body.data_url)
-        rel_path, sha256, updated_at = persist_character_voice_file(
+        data = await character_voice_use_cases().record_sample(
+            repository=store,
             project_dir=project_dir,
             character_name=name,
             slot=slot,
-            filename=f"recorded{extension}",
-            content=content,
+            data_url=body.data_url,
+            media_url=_character_voice_media_url(ctx, project_dir),
         )
-    except ValueError as exc:
+    except CharacterVoiceRejected as exc:
         return {"ok": False, "error": str(exc)}
-
-    return {
-        "ok": True,
-        "data": await _apply_character_voice_update(
-            ctx=ctx,
-            project_dir=project_dir,
-            character=character,
-            store=store,
-            slot=slot,
-            path=rel_path,
-            sha256=sha256,
-            updated_at=updated_at,
-        ),
-    }
+    return {"ok": True, "data": data}
 
 
 @router.post("/projects/{project}/characters/{name}/voice-samples/{slot}/trim")
@@ -1115,40 +922,23 @@ async def trim_character_voice_sample(
     user: dict = Depends(get_api_user),
 ):
     """裁剪角色 IndexTTS2 声线样本并写回同一插槽。"""
-    ctx, username, project_name, project_dir, _output_dir, store = await _resolve_character_project(
-        project, user
+    ctx, _username, _project_name, project_dir, _output_dir, store = (
+        await _resolve_character_project(project, user)
     )
-    character = store.get_character(name)
-    if character is None:
-        return {"ok": False, "error": f"Character '{name}' not found"}
-    if slot not in VOICE_SAMPLE_SLOTS:
-        return {"ok": False, "error": f"Unsupported voice slot: {slot}"}
-
     try:
-        rel_path, sha256, updated_at = trim_existing_character_voice_file(
+        data = await character_voice_use_cases().trim_sample(
+            repository=store,
             project_dir=project_dir,
             character_name=name,
             slot=slot,
             source_path=body.source_path,
             start_seconds=body.start_seconds,
             duration_seconds=body.duration_seconds,
+            media_url=_character_voice_media_url(ctx, project_dir),
         )
-    except ValueError as exc:
+    except CharacterVoiceRejected as exc:
         return {"ok": False, "error": str(exc)}
-
-    return {
-        "ok": True,
-        "data": await _apply_character_voice_update(
-            ctx=ctx,
-            project_dir=project_dir,
-            character=character,
-            store=store,
-            slot=slot,
-            path=rel_path,
-            sha256=sha256,
-            updated_at=updated_at,
-        ),
-    }
+    return {"ok": True, "data": data}
 
 
 @router.post("/projects/{project}/characters/{name}/voice-samples/{slot}/delete")
@@ -1159,33 +949,20 @@ async def delete_character_voice_sample(
     user: dict = Depends(get_api_user),
 ):
     """清除角色 IndexTTS2 声线样本。"""
-    ctx, username, project_name, project_dir, _output_dir, store = await _resolve_character_project(
-        project, user
+    ctx, _username, _project_name, project_dir, _output_dir, store = (
+        await _resolve_character_project(project, user)
     )
-    character = store.get_character(name)
-    if character is None:
-        return {"ok": False, "error": f"Character '{name}' not found"}
-    if slot not in VOICE_SAMPLE_SLOTS:
-        return {"ok": False, "error": f"Unsupported voice slot: {slot}"}
-
-    clear_character_voice_file(
-        project_dir=project_dir,
-        character_name=name,
-        slot=slot,
-    )
-    return {
-        "ok": True,
-        "data": await _apply_character_voice_update(
-            ctx=ctx,
+    try:
+        data = await character_voice_use_cases().delete_sample(
+            repository=store,
             project_dir=project_dir,
-            character=character,
-            store=store,
+            character_name=name,
             slot=slot,
-            path="",
-            sha256="",
-            updated_at="",
-        ),
-    }
+            media_url=_character_voice_media_url(ctx, project_dir),
+        )
+    except CharacterVoiceRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.post("/projects/{project}/characters/{name}/identities")

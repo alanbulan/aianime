@@ -320,6 +320,25 @@ def test_asset_world_style_route_remains_an_http_adapter() -> None:
     assert "tempfile" not in source
 
 
+def test_asset_world_character_voice_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "characters.py"
+    source = route.read_text(encoding="utf-8")
+
+    assert "character_voice_use_cases" in source
+    for legacy_implementation in (
+        "def _voice_slot_metadata",
+        "def _voice_slot_update_fields",
+        "def _voice_slot_payload",
+        "def _voice_samples_payload",
+        "def _apply_character_voice_update",
+        "persist_character_voice_file(",
+        "trim_existing_character_voice_file(",
+        "decode_recorded_audio_data_url(",
+        "clear_character_voice_file(",
+    ):
+        assert legacy_implementation not in source
+
+
 def test_narrative_script_route_remains_an_http_adapter() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "scripts.py"
     imported_modules = _imports(route)

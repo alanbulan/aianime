@@ -1,6 +1,22 @@
 """Expected failures raised by Asset & World application services."""
 
 
+class CharacterVoiceRejected(Exception):
+    """A character voice request rejected by an expected business rule."""
+
+
+class CharacterVoiceNotFound(CharacterVoiceRejected):
+    """The requested character does not exist."""
+
+
+class InvalidCharacterVoiceInput(CharacterVoiceRejected):
+    """Uploaded, recorded, or trim input is invalid."""
+
+
+class UnsupportedCharacterVoiceSlot(CharacterVoiceRejected):
+    """The requested voice slot is not part of the supported domain set."""
+
+
 class StyleRejected(Exception):
     """A valid request rejected by a style business rule or dependency."""
 

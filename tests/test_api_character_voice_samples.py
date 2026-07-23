@@ -289,6 +289,7 @@ async def test_record_character_voice_sample_persists_age_slot(tmp_path, monkeyp
 @pytest.mark.asyncio
 async def test_trim_character_voice_sample_updates_default_slot(tmp_path, monkeypatch):
     from ai_anime.api.routes import characters
+    from ai_anime.modules.asset_world.infrastructure import character_voice_storage
 
     source = tmp_path / "assets" / "characters" / "秦" / "voices" / "voice_default.wav"
     source.parent.mkdir(parents=True)
@@ -310,10 +311,9 @@ async def test_trim_character_voice_sample_updates_default_slot(tmp_path, monkey
         return rel_path, "trimmed-sha", "2026-05-13T00:00:03+00:00"
 
     monkeypatch.setattr(
-        characters,
+        character_voice_storage,
         "trim_existing_character_voice_file",
         fake_trim_existing_character_voice_file,
-        raising=False,
     )
     body = SimpleNamespace(
         source_path="assets/characters/秦/voices/voice_default.wav",

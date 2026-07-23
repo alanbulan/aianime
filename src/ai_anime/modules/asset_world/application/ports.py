@@ -1,9 +1,54 @@
-"""Ports required by Asset & World style use cases."""
+"""Ports required by Asset & World use cases."""
 
 from __future__ import annotations
 
 from pathlib import Path
 from typing import Any, Mapping, Protocol, Sequence
+
+
+class CharacterVoiceRepository(Protocol):
+    def get_character(self, name: str) -> Any | None: ...
+
+    async def update_character(self, name: str, **updates: Any) -> Any: ...
+
+
+class CharacterVoiceUpload(Protocol):
+    filename: str | None
+
+    async def read(self) -> bytes: ...
+
+
+class CharacterVoiceFiles(Protocol):
+    def decode_recording(self, data_url: str) -> tuple[bytes, str]: ...
+
+    def persist(
+        self,
+        *,
+        project_dir: str | Path,
+        character_name: str,
+        slot: str,
+        filename: str,
+        content: bytes,
+    ) -> tuple[str, str, str]: ...
+
+    def trim(
+        self,
+        *,
+        project_dir: str | Path,
+        character_name: str,
+        slot: str,
+        source_path: str | Path,
+        start_seconds: float,
+        duration_seconds: float,
+    ) -> tuple[str, str, str]: ...
+
+    def clear(
+        self,
+        *,
+        project_dir: str | Path,
+        character_name: str,
+        slot: str,
+    ) -> bool: ...
 
 
 class StyleCatalog(Protocol):

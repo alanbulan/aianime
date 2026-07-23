@@ -1,9 +1,15 @@
 """Runtime composition for the Asset & World bounded context."""
 
+from ai_anime.modules.asset_world.application.character_voice import (
+    CharacterVoiceUseCases,
+)
 from ai_anime.modules.asset_world.application.styles import (
     AnalyzeStyle,
     StyleCatalogUseCases,
     StylePreviewUseCases,
+)
+from ai_anime.modules.asset_world.infrastructure.character_voice_storage import (
+    LocalCharacterVoiceFiles,
 )
 from ai_anime.modules.asset_world.infrastructure.style_catalog import StyleService
 from ai_anime.modules.asset_world.infrastructure.style_generation import (
@@ -14,6 +20,10 @@ from ai_anime.modules.asset_world.infrastructure.style_generation import (
 
 def style_catalog_use_cases() -> StyleCatalogUseCases:
     return StyleCatalogUseCases(StyleService)
+
+
+def character_voice_use_cases() -> CharacterVoiceUseCases:
+    return CharacterVoiceUseCases(LocalCharacterVoiceFiles())
 
 
 def style_preview_use_cases() -> StylePreviewUseCases:

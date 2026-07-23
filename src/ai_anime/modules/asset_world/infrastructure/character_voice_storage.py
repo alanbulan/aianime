@@ -18,10 +18,12 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
+from ai_anime.modules.asset_world.domain.character_voice import (
+    ALL_SLOTS,
+    DEFAULT_SLOT,
+)
+
 VOICE_SAMPLE_EXTENSIONS = (".mp3", ".wav", ".m4a", ".aac", ".ogg")
-DEFAULT_SLOT = "default"
-AGE_GROUP_SLOTS = ("child", "youth", "middle", "elder")
-ALL_SLOTS = (DEFAULT_SLOT, *AGE_GROUP_SLOTS)
 
 RECORDED_AUDIO_EXTENSION_BY_MIME = {
     "audio/webm": ".webm",
@@ -402,3 +404,58 @@ def clear_character_voice_file(
             candidate.replace(candidate.with_name(f"{candidate.stem}_{ts}{candidate.suffix}"))
             removed = True
     return removed
+
+
+class LocalCharacterVoiceFiles:
+    @staticmethod
+    def decode_recording(data_url: str) -> tuple[bytes, str]:
+        return decode_recorded_audio_data_url(data_url)
+
+    @staticmethod
+    def persist(
+        *,
+        project_dir: str | Path,
+        character_name: str,
+        slot: str,
+        filename: str,
+        content: bytes,
+    ) -> tuple[str, str, str]:
+        return persist_character_voice_file(
+            project_dir=project_dir,
+            character_name=character_name,
+            slot=slot,
+            filename=filename,
+            content=content,
+        )
+
+    @staticmethod
+    def trim(
+        *,
+        project_dir: str | Path,
+        character_name: str,
+        slot: str,
+        source_path: str | Path,
+        start_seconds: float,
+        duration_seconds: float,
+    ) -> tuple[str, str, str]:
+        return trim_existing_character_voice_file(
+            project_dir=project_dir,
+            character_name=character_name,
+            slot=slot,
+            source_path=source_path,
+            start_seconds=start_seconds,
+            duration_seconds=duration_seconds,
+        )
+
+    @staticmethod
+    def clear(
+        *,
+        project_dir: str | Path,
+        character_name: str,
+        slot: str,
+    ) -> bool:
+        return clear_character_voice_file(
+            project_dir=project_dir,
+            character_name=character_name,
+            slot=slot,
+        )

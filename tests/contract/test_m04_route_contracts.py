@@ -174,6 +174,7 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api import auth as api_auth
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.routes import characters, generation, projects, props, styles
+    from ai_anime.modules.asset_world.infrastructure import character_voice_storage
     from ai_anime.modules.asset_world.public import StyleService
 
     store = _M04Store()
@@ -286,7 +287,7 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
     monkeypatch.setattr(generation, "_collect_audio_prereq_errors", no_prereq_errors)
     monkeypatch.setattr(
-        characters,
+        character_voice_storage,
         "trim_existing_character_voice_file",
         lambda **_: (
             "assets/characters/林昭/voice/default.mp3",

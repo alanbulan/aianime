@@ -6,9 +6,11 @@ from pathlib import Path
 
 import pytest
 
-from ai_anime.modules.asset_world.infrastructure.character_voice_storage import (
+from ai_anime.modules.asset_world.domain.character_voice import (
     AGE_GROUP_SLOTS,
     DEFAULT_SLOT,
+)
+from ai_anime.modules.asset_world.infrastructure.character_voice_storage import (
     character_voice_path,
     clear_character_voice_file,
     is_supported_voice_sample,
