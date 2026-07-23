@@ -2,6 +2,7 @@ export {
   episodeBeatsQueryOptions,
   episodeDetailQueryOptions,
   episodesQueryOptions,
+  EpisodesPageContent,
   isPlanEpisodeAssetsResult,
   pipelineStatusQueryOptions,
   prefetchEpisodeBeats,

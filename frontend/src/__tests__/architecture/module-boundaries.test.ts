@@ -16,7 +16,7 @@ const LEGACY_ROUTE_DATA_IMPORT_MAX: Record<string, number> = {
   "routes/_app/projects.$project/episodes.$episode/beats.lazy.tsx": 8,
   "routes/_app/projects.$project/episodes.$episode/compose.lazy.tsx": 4,
   "routes/_app/projects.$project/episodes.$episode/script.lazy.tsx": 5,
-  "routes/_app/projects.$project/episodes.tsx": 3,
+  "routes/_app/projects.$project/episodes.tsx": 0,
   "routes/_app/projects.$project/freezone.lazy.tsx": 2,
   "routes/_app/projects.$project/styles.tsx": 3,
   "routes/_app/projects.$project/tasks.tsx": 1,
@@ -260,7 +260,6 @@ describe("frontend architecture boundaries", () => {
           ),
       )
       .map(relativeSource);
-
     expect(existsSync(resolve(SRC_ROOT, "lib/queries/ingest.ts"))).toBe(false);
     expect(internalImportFailures).toEqual([]);
     expect(directEndpointFailures).toEqual([]);
@@ -359,6 +358,13 @@ describe("frontend architecture boundaries", () => {
         ),
       )
       .map(relativeSource);
+    const applicationDataImportFailures = sourceFiles(
+      resolve(moduleRoot, "application"),
+    ).flatMap((path) =>
+      importSpecifiers(path)
+        .filter(isRawDataImport)
+        .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+    );
 
     for (const legacyPath of [
       "lib/episode-stats.ts",
@@ -369,7 +375,26 @@ describe("frontend architecture boundaries", () => {
     ]) {
       expect(existsSync(resolve(SRC_ROOT, legacyPath))).toBe(false);
     }
+    expect(applicationDataImportFailures).toEqual([]);
     expect(internalImportFailures).toEqual([]);
     expect(directEndpointFailures).toEqual([]);
+  });
+
+  it("keeps the Episodes route as an adapter", () => {
+    const route = readFileSync(
+      resolve(SRC_ROOT, "routes/_app/projects.$project/episodes.tsx"),
+      "utf8",
+    );
+
+    expect(route).toContain(
+      'import { EpisodesPageContent } from "@/modules/narrative_planning/public";',
+    );
+    expect(route).toContain("Route.useParams()");
+    expect(route).toContain("<Outlet />");
+    expect(route).not.toContain("useQueryClient");
+    expect(route).not.toContain("useEpisodes");
+    expect(route).not.toContain("usePlanEpisodes");
+    expect(route).not.toContain("useTaskController");
+    expect(route).not.toContain("useGenerationCreditCost");
   });
 });

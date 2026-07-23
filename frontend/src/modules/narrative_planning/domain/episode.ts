@@ -64,3 +64,39 @@ export function deriveEpisodeStats(episodes: Episode[]): EpisodeStats {
     ),
   };
 }
+
+export function mergeEpisodeCatalog(
+  episodes: Episode[],
+  pipelineEpisodes: PipelineEpisodeStatus[],
+  fallbackTitle: (episodeNumber: number) => string,
+): Episode[] {
+  const episodesByNumber = new Map(
+    episodes.map((episode) => [episode.number, episode]),
+  );
+  const episodeNumbers = new Set(episodesByNumber.keys());
+  for (const status of pipelineEpisodes) episodeNumbers.add(status.episode);
+
+  return Array.from(episodeNumbers)
+    .sort((left, right) => left - right)
+    .map(
+      (episodeNumber) =>
+        episodesByNumber.get(episodeNumber) ?? {
+          number: episodeNumber,
+          title: fallbackTitle(episodeNumber),
+        },
+    );
+}
+
+export function resolveSelectedEpisode(
+  episodes: Episode[],
+  selectedEpisodeNumber: number | null,
+  fallbackTitle: (episodeNumber: number) => string,
+): Episode | null {
+  if (selectedEpisodeNumber === null) return null;
+  return (
+    episodes.find((episode) => episode.number === selectedEpisodeNumber) ?? {
+      number: selectedEpisodeNumber,
+      title: fallbackTitle(selectedEpisodeNumber),
+    }
+  );
+}
