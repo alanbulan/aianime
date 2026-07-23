@@ -1,8 +1,7 @@
 import { createElement } from "react";
 
 import { CharacterImageSourceSelect } from "@/components/assets/character-image-source-select";
-import { CharacterVoicePanel } from "@/components/assets/character-voice-panel";
-import { NarratorVoicePanel } from "@/components/assets/narrator-voice-panel";
+import { NarratorVoicePanel } from "@/components/episode/beat-workbench/narrator-voice-panel";
 import { PropsPanel } from "@/components/assets/props-panel";
 import { ScenesPanel } from "@/components/assets/scenes-panel";
 import { TaskControllerProvider } from "@/components/episode/task-controller-provider";
@@ -16,6 +15,7 @@ import { createStyleQueryHooks } from "@/modules/asset_world/application/style-q
 import { createUseAddCharacterController } from "@/modules/asset_world/application/use-add-character-controller";
 import { createUseCharacterAssetHistoryController } from "@/modules/asset_world/application/use-character-asset-history-controller";
 import { createUseCharacterDetailController } from "@/modules/asset_world/application/use-character-detail-controller";
+import { createUseCharacterVoiceController } from "@/modules/asset_world/application/use-character-voice-controller";
 import { createUseCharactersPageController } from "@/modules/asset_world/application/use-characters-page-controller";
 import { createUseCreateStyleController } from "@/modules/asset_world/application/use-create-style-controller";
 import { createUseIdentitiesGridController } from "@/modules/asset_world/application/use-identities-grid-controller";
@@ -34,6 +34,7 @@ import {
   readStoredAssetTab,
   writeStoredAssetTab,
 } from "@/modules/asset_world/infrastructure/asset-tab-storage";
+import { createBrowserVoiceRecorder } from "@/modules/asset_world/infrastructure/browser-voice-recorder";
 import { httpCharacterGateway } from "@/modules/asset_world/infrastructure/http-character-gateway";
 import { httpAssetWorldGateway } from "@/modules/asset_world/infrastructure/http-asset-world-gateway";
 import { httpImageSourceGateway } from "@/modules/asset_world/infrastructure/http-image-source-gateway";
@@ -47,6 +48,7 @@ import {
   IdentitiesGridSectionView,
   IdentityCardView,
 } from "@/modules/asset_world/presentation/CharactersPageView";
+import { CharacterVoicePanelView } from "@/modules/asset_world/presentation/CharacterVoicePanelView";
 import {
   CreateStyleDialogView,
   StyleDetailView,
@@ -145,6 +147,10 @@ const useCharacterDetailController = createUseCharacterDetailController(
       }),
     useGenerationCreditCost,
   },
+);
+const useCharacterVoiceController = createUseCharacterVoiceController(
+  characterQueries,
+  { createVoiceRecorder: createBrowserVoiceRecorder },
 );
 const useIdentityCardController = createUseIdentityCardController(
   characterQueries,
@@ -359,8 +365,22 @@ function CharacterDetailContent({
       project,
     }),
     portraitHistory,
-    voiceContent: createElement(CharacterVoicePanel, { character, project }),
+    voiceContent: createElement(CharacterVoicePanelContent, {
+      character,
+      project,
+    }),
   });
+}
+
+export function CharacterVoicePanelContent({
+  character,
+  project,
+}: {
+  character: Character;
+  project: string;
+}) {
+  const controller = useCharacterVoiceController({ character, project });
+  return createElement(CharacterVoicePanelView, { controller });
 }
 
 function AddCharacterDialogContent({

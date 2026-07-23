@@ -445,6 +445,15 @@ describe("frontend architecture boundaries", () => {
         )
         .map((specifier) => `${relativeSource(path)}: ${specifier}`),
     );
+    const applicationBrowserRecordingFailures = sourceFiles(
+      resolve(moduleRoot, "application"),
+    )
+      .filter((path) =>
+        /\b(?:FileReader|MediaRecorder|navigator\.mediaDevices)\b/.test(
+          readFileSync(path, "utf8"),
+        ),
+      )
+      .map(relativeSource);
     const presentationBoundaryFailures = sourceFiles(
       resolve(moduleRoot, "presentation"),
     ).flatMap((path) =>
@@ -461,6 +470,8 @@ describe("frontend architecture boundaries", () => {
       "lib/queries/character-image-selection.ts",
       "lib/queries/characters.ts",
       "lib/character-main-copy.ts",
+      "components/assets/character-voice-panel.tsx",
+      "components/assets/narrator-voice-panel.tsx",
       "lib/queries/styles.ts",
       "lib/style-preview-url.ts",
       "types/character.ts",
@@ -470,6 +481,7 @@ describe("frontend architecture boundaries", () => {
     }
     expect(applicationDataImportFailures).toEqual([]);
     expect(applicationViewImportFailures).toEqual([]);
+    expect(applicationBrowserRecordingFailures).toEqual([]);
     expect(presentationBoundaryFailures).toEqual([]);
     expect(internalImportFailures).toEqual([]);
     expect(directAssetEndpointFailures).toEqual([]);

@@ -8,3 +8,13 @@ export function isOkDataResponse<T>(
       (value as { ok?: unknown }).ok === true,
   );
 }
+
+export function isErrorDataResponse(
+  value: unknown,
+): value is { ok: false; error?: string } {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      (value as { ok?: unknown }).ok === false,
+  );
+}

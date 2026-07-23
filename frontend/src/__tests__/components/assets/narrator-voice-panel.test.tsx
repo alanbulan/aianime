@@ -5,7 +5,7 @@ import { I18nextProvider, initReactI18next } from "react-i18next";
 import i18next from "i18next";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { NarratorVoicePanel } from "@/components/assets/narrator-voice-panel";
+import { NarratorVoicePanel } from "@/components/episode/beat-workbench/narrator-voice-panel";
 
 const i18n = i18next.createInstance();
 

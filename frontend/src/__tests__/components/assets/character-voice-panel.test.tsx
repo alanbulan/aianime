@@ -13,7 +13,7 @@ vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost:3000/" }),
 }));
 
-import { CharacterVoicePanel } from "@/components/assets/character-voice-panel";
+import { CharacterVoicePanelContent } from "@/modules/asset_world/composition";
 import type { Character } from "@/modules/asset_world/public";
 
 const server = setupServer();
@@ -75,7 +75,7 @@ function wrapper({ children }: { children: ReactNode }) {
 
 function renderPanel(character: Character) {
   return render(
-    <CharacterVoicePanel project="demo" character={character} />,
+    <CharacterVoicePanelContent project="demo" character={character} />,
     { wrapper },
   );
 }

@@ -4,8 +4,7 @@ import i18next from "i18next";
 import { I18nextProvider, initReactI18next } from "react-i18next";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { NarratorVoicePanel as AssetsNarratorVoicePanel } from "@/components/assets/narrator-voice-panel";
-import { NarratorVoicePanel as WorkbenchNarratorVoicePanel } from "@/components/episode/beat-workbench/narrator-voice-panel";
+import { NarratorVoicePanel } from "@/components/episode/beat-workbench/narrator-voice-panel";
 
 const runtimeState = vi.hoisted(() => ({ isCeRuntime: true }));
 const toastErrorMock = vi.hoisted(() => vi.fn());
@@ -113,11 +112,10 @@ describe("NarratorVoicePanel CE generation credit gating", () => {
     toastErrorMock.mockClear();
   });
 
-  it("keeps both narrator voice entry points free of credit UI, credit styling, and credit errors", () => {
+  it("keeps the narrator voice entry point free of credit UI, credit styling, and credit errors", () => {
     const { container } = render(
       <I18nextProvider i18n={i18n}>
-        <AssetsNarratorVoicePanel project="demo" />
-        <WorkbenchNarratorVoicePanel project="demo" />
+        <NarratorVoicePanel project="demo" />
       </I18nextProvider>,
     );
 

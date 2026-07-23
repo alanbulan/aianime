@@ -5,7 +5,8 @@ import { describe, expect, it } from "vitest";
 
 const workbenchSource = [
   "src/modules/asset_world/presentation/CharactersPageView.tsx",
-  "src/components/assets/character-voice-panel.tsx",
+  "src/modules/asset_world/presentation/CharacterVoicePanelView.tsx",
+  "src/modules/asset_world/application/use-character-voice-controller.ts",
 ]
   .map((path) => readFileSync(path, "utf-8"))
   .join("\n");
