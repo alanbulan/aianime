@@ -432,9 +432,9 @@ export function CharacterVoicePanel({
                     className={cn(
                       "inline-flex size-2 rounded-full",
                       hasVoice
-                        ? "bg-emerald-400"
+                        ? "bg-success"
                         : actionSlot.required
-                          ? "bg-amber-400"
+                          ? "bg-warning"
                           : "bg-muted-foreground/40",
                     )}
                   />
@@ -474,7 +474,7 @@ export function CharacterVoicePanel({
                       )}
                     </>
                   ) : actionSlot.required ? (
-                    <p className="flex items-center gap-1.5 text-[11px] text-amber-700 dark:text-amber-300">
+                    <p className="flex items-center gap-1.5 text-[11px] text-warning">
                       <AlertTriangle className="size-3.5" />
                       {t("characters.voiceSamples.missingDefault")}
                     </p>

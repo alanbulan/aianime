@@ -219,7 +219,7 @@ export function EpisodeAssetPlanning({
       {selectedCategory === "scenes" && (
         <AssetPlanningRow
           className="w-full"
-          icon={<MapPinned className="size-3.5 text-emerald-700 dark:text-emerald-300" />}
+          icon={<MapPinned className="size-3.5 text-success" />}
           title={labels.scenes}
           emptyLabel={labels.noScenes}
           items={scenes}
@@ -233,7 +233,7 @@ export function EpisodeAssetPlanning({
       {selectedCategory === "props" && (
         <AssetPlanningRow
           className="w-full"
-          icon={<Package className="size-3.5 text-amber-700 dark:text-amber-300" />}
+          icon={<Package className="size-3.5 text-warning" />}
           title={labels.props}
           emptyLabel={labels.noProps}
           items={props.map((item) => item.prop_id.trim())}
@@ -381,7 +381,7 @@ function IdentityAssetCard({
     >
       <div className="mb-3 flex h-6 shrink-0 items-center justify-between gap-3">
         <div className="inline-flex min-w-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">
-          <UsersRound className="size-3.5 text-sky-700 dark:text-sky-300" />
+          <UsersRound className="size-3.5 text-primary" />
           <span>{title}</span>
         </div>
         <Button
@@ -510,7 +510,7 @@ function EpisodePropBadge({
       </Badge>
       {existsInGlobal ? (
         <span
-          className="inline-flex size-5 items-center justify-center rounded-full text-emerald-700 dark:text-emerald-300"
+          className="inline-flex size-5 items-center justify-center rounded-full text-success"
           title={labels.propInGlobal}
           aria-label={labels.propInGlobal}
         >
@@ -569,7 +569,7 @@ function PropPromotionDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        overlayClassName="bg-black/8 supports-backdrop-filter:backdrop-blur-sm"
+        overlayClassName="bg-scrim supports-backdrop-filter:backdrop-blur-sm"
         className="gap-5 overflow-hidden rounded-2xl border border-border bg-popover p-7 text-popover-foreground shadow-2xl sm:max-w-[560px]"
       >
         <DialogHeader className="gap-3">

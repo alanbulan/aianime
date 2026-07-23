@@ -51,7 +51,7 @@ export function VersionUpdateDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent
         showCloseButton={false}
-        overlayClassName="bg-black/56 backdrop-blur-md supports-backdrop-filter:backdrop-blur-md"
+        overlayClassName="bg-scrim backdrop-blur-md supports-backdrop-filter:backdrop-blur-md"
         className="max-h-[min(84dvh,560px)] w-[min(calc(100vw-32px),360px)] gap-0 overflow-hidden rounded-[8px] border border-border bg-card p-0 text-card-foreground shadow-xl ring-0 sm:max-w-[360px]"
       >
         <div className="p-2">
@@ -66,7 +66,7 @@ export function VersionUpdateDialog() {
               preload="metadata"
               aria-hidden="true"
             />
-            <div className="absolute inset-0 bg-black/[0.04]" />
+            <div className="absolute inset-0 bg-media/[0.04]" />
           </div>
         </div>
 

@@ -183,7 +183,7 @@ export function IdentityPickerDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        overlayClassName="bg-black/8 supports-backdrop-filter:backdrop-blur-sm"
+        overlayClassName="bg-scrim supports-backdrop-filter:backdrop-blur-sm"
         className="gap-4 overflow-hidden rounded-2xl border border-border bg-popover p-7 text-popover-foreground shadow-2xl sm:max-w-xl"
       >
         <DialogHeader className="gap-2">

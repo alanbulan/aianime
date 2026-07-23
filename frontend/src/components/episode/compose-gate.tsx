@@ -59,14 +59,14 @@ export function ComposeGate({ project, episode }: ComposeGateProps) {
   };
 
   return (
-    <div className="rounded border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
-      <p className="mb-2 font-medium text-amber-700 dark:text-amber-300">
+    <div className="rounded border border-warning/40 bg-warning/10 p-3 text-xs">
+      <p className="mb-2 font-medium text-warning">
         ⚠ {t("episode.compose.blocked")}
       </p>
       <ul className="space-y-1">
         {grouped.map(({ stage, beats }) => (
           <li key={stage} className="flex items-center gap-2">
-            <span className="flex-1 text-amber-800 dark:text-amber-100">
+            <span className="flex-1 text-warning">
               · {beats.length} {t(`episode.stage.${stage}`)} (beat{" "}
               {beats.slice(0, MAX_BEATS_DISPLAYED).join(", ")}
               {beats.length > MAX_BEATS_DISPLAYED ? "..." : ""})
@@ -75,7 +75,7 @@ export function ComposeGate({ project, episode }: ComposeGateProps) {
               variant="ghost"
               size="xs"
               onClick={() => fix(stage, beats[0])}
-              className="text-xs text-amber-700 hover:text-amber-900 dark:text-amber-200 dark:hover:text-amber-100"
+              className="text-xs text-warning hover:underline"
             >
               {t("episode.workbench.jumpTo", { stage: t(`episode.stage.${stage}`) })} →
             </Button>

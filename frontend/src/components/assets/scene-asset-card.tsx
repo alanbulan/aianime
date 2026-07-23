@@ -87,7 +87,7 @@ function AssetImageSlot({
   const resolved = resolveMediaUrl(src);
   return (
     <div className="min-w-0">
-      <div className="relative aspect-video w-full overflow-hidden rounded-[8px] border border-border bg-black/20">
+      <div className="relative aspect-video w-full overflow-hidden rounded-[8px] border border-border bg-media/20">
         {resolved ? (
           <>
             {/* Blurred background fill for contain mode */}
@@ -127,7 +127,7 @@ function AssetImageSlot({
           </div>
         )}
         {/* Overlay label */}
-        <span className="absolute left-2 top-2 z-20 rounded-[6px] border border-white/10 bg-black/50 px-1.5 py-0.5 text-[11px] text-white/80 backdrop-blur-sm">
+        <span className="absolute left-2 top-2 z-20 rounded-[6px] border border-media-foreground/10 bg-media/50 px-1.5 py-0.5 text-[11px] text-media-foreground/80 backdrop-blur-sm">
           {label}
         </span>
         {/* Top-right actions */}
@@ -150,7 +150,7 @@ function StagePlyBadge({
 }) {
   if (!file?.ready) return null;
   return (
-    <span className="rounded-[6px] border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[11px] text-emerald-700 dark:text-emerald-300">
+    <span className="rounded-[6px] border border-success/30 bg-success/10 px-1.5 py-0.5 text-[11px] text-success">
       {label}
     </span>
   );
@@ -232,7 +232,7 @@ export function SceneAssetCard({
                   <span
                     className={cn(
                       ASSET_CARD_META_BADGE_CLASS,
-                      "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300",
+                      "border-primary/30 bg-primary/10 text-primary",
                     )}
                   >
                     {t("assets.scenes.derivedFrom", { base: derivedBase })}
@@ -312,7 +312,7 @@ export function SceneAssetCard({
                   onClick={(e) => { e.stopPropagation(); onDeleteMaster(); }}
                   disabled={!hasMaster}
                   aria-label={t("assets.scenes.deleteMaster")}
-                  className="size-6 rounded-[4px] bg-black/50 p-0 text-white/70 hover:bg-destructive/30 hover:text-destructive backdrop-blur-sm"
+                  className="size-6 rounded-[4px] bg-media/50 p-0 text-media-foreground/70 backdrop-blur-sm hover:bg-destructive/30 hover:text-destructive"
                 >
                   <Trash2 className="size-3" />
                 </Button>
@@ -397,7 +397,7 @@ export function SceneAssetCard({
                   onClick={(e) => { e.stopPropagation(); onDeletePano(); }}
                   disabled={!hasPano}
                   aria-label={t("assets.scenes.deletePano")}
-                  className="size-6 rounded-[4px] bg-black/50 p-0 text-white/70 hover:bg-destructive/30 hover:text-destructive backdrop-blur-sm"
+                  className="size-6 rounded-[4px] bg-media/50 p-0 text-media-foreground/70 backdrop-blur-sm hover:bg-destructive/30 hover:text-destructive"
                 >
                   <Trash2 className="size-3" />
                 </Button>
@@ -451,7 +451,7 @@ export function SceneAssetCard({
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 space-y-1">
                   <div className="flex items-center gap-2 text-sm font-medium">
-                    <Package className="size-4 text-cyan-700 dark:text-cyan-300" />
+                    <Package className="size-4 text-primary" />
                     {t("assets.scenes.stage.title")}
                   </div>
                 </div>
@@ -561,7 +561,7 @@ export function SceneAssetCard({
       </Card>
       {previewSrc && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-media/90 p-6"
           onClick={() => setPreviewSrc(null)}
         >
           <a

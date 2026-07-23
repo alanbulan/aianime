@@ -61,7 +61,7 @@ export function FormatCheckDetailsDialog({
                     className="rounded-md border border-border bg-muted p-3"
                   >
                     <div className="flex items-start gap-2">
-                      <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-700 dark:text-amber-300" />
+                      <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" />
                       <div className="min-w-0 flex-1">
                         <p className="break-words text-sm leading-6 text-foreground">
                           {issue.message}

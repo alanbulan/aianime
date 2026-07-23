@@ -131,7 +131,7 @@ export function SaveStatus({
       aria-atomic={isHeader ? "true" : undefined}
       className={cn(
         "inline-flex items-center rounded-md tabular-nums",
-        isFresh ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
+        isFresh ? "text-success" : "text-muted-foreground",
         sizing,
         className,
       )}

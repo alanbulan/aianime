@@ -42,7 +42,7 @@ function ProjectAvatar({ name }: { name: string }) {
   const { gradient, initial } = useMemo(() => getProjectCover(name), [name]);
   return (
     <span
-      className="flex size-5 shrink-0 items-center justify-center rounded text-xs font-bold text-white/95"
+      className="flex size-5 shrink-0 items-center justify-center rounded text-xs font-bold text-media-foreground/95"
       style={{ background: gradient }}
     >
       {initial}
@@ -107,7 +107,7 @@ export function ProjectSwitcher({ current }: { current: string }) {
         sideOffset={8}
         onMouseEnter={openMenu}
         onMouseLeave={scheduleClose}
-        className="w-56 rounded-md border border-border bg-popover p-1 shadow-xl shadow-black/20 ring-0"
+        className="w-56 rounded-md border border-border bg-popover p-1 shadow-xl ring-0"
       >
         <DropdownMenuGroup>
           <DropdownMenuItem

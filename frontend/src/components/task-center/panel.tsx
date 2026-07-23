@@ -68,7 +68,7 @@ export function TaskPanel() {
     <>
       <div
         className={cn(
-          "absolute inset-x-0 top-0 bottom-9 z-30 bg-black/20 backdrop-blur-sm transition-opacity duration-500 ease-[var(--ease-out-quint)] dark:bg-black/45",
+          "absolute inset-x-0 top-0 bottom-9 z-30 bg-scrim backdrop-blur-sm transition-opacity duration-500 ease-[var(--ease-out-quint)]",
           open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
         )}
         onClick={() => setOpen(false)}

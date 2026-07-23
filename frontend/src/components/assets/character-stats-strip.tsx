@@ -128,8 +128,8 @@ export function CharacterStatsStrip({
             aria-hidden="true"
             className={cn(
               "size-3.5 shrink-0 text-muted-foreground",
-              tone === "ready" && "text-emerald-600 dark:text-emerald-300",
-              tone === "warning" && "text-amber-600 dark:text-amber-300",
+              tone === "ready" && "text-success",
+              tone === "warning" && "text-warning",
             )}
           />
           <div className="flex items-center gap-5">

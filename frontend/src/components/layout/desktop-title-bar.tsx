@@ -95,7 +95,7 @@ function TitleBarButton({
       type="button"
       className={`flex h-full w-11 items-center justify-center transition-colors ${
         danger
-          ? "hover:bg-red-600 hover:text-white"
+          ? "hover:bg-destructive hover:text-destructive-foreground"
           : "text-muted-foreground hover:bg-accent hover:text-foreground"
       }`}
       aria-label={label}

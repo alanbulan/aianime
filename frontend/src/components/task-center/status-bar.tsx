@@ -18,8 +18,8 @@ import type { StreamHealth, TaskState } from "@/task-center/types";
 const HEALTH_COLOR: Record<StreamHealth, string> = {
   connecting: "text-muted-foreground",
   connected: "text-success",
-  reconnecting: "text-amber-700 dark:text-amber-300",
-  polling: "text-amber-700 dark:text-amber-300",
+  reconnecting: "text-warning",
+  polling: "text-warning",
   failed: "text-destructive",
 };
 

@@ -1069,7 +1069,7 @@ function SceneGroupListItem({
           : "border-border bg-card text-foreground/82 hover:border-foreground/25 hover:bg-muted",
       ].join(" ")}
     >
-      <div className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-[8px] border border-border bg-black/20">
+      <div className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-[8px] border border-border bg-media/20">
         {previewUrl ? (
           <img
             src={previewUrl}

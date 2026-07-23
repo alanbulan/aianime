@@ -100,7 +100,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     if (configured) {
       return (
         <span
-          className="absolute top-1 right-1 size-2 shrink-0 rounded-full bg-emerald-400 sm:static sm:ml-auto"
+          className="absolute top-1 right-1 size-2 shrink-0 rounded-full bg-success sm:static sm:ml-auto"
           aria-label={t("settings.statusConfigured", { page: label })}
           title={t("settings.statusConfigured", { page: label })}
         />
@@ -108,7 +108,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     }
     return (
       <AlertTriangle
-        className="absolute top-1 right-1 size-3.5 shrink-0 text-amber-600 dark:text-amber-400 sm:static sm:ml-auto sm:size-4"
+        className="absolute top-1 right-1 size-3.5 shrink-0 text-warning sm:static sm:ml-auto sm:size-4"
         aria-label={t("settings.statusNotConfigured", { page: label })}
       />
     );
@@ -288,7 +288,7 @@ function ModelConfigSection({ open }: { open: boolean }) {
         <span
           className={cn(
             "size-1.5 rounded-full",
-            modelGatewayMissing ? "bg-amber-400" : "bg-emerald-400",
+            modelGatewayMissing ? "bg-warning" : "bg-success",
           )}
         />
         <h3 className="font-heading text-sm font-medium text-foreground">
@@ -296,7 +296,7 @@ function ModelConfigSection({ open }: { open: boolean }) {
         </h3>
         {modelGatewayMissing ? (
           <AlertTriangle
-            className="size-3.5 text-amber-600 dark:text-amber-400"
+            className="size-3.5 text-warning"
             aria-label={t("settings.modelConfig.gatewayWarningIconLabel")}
           />
         ) : null}
@@ -315,8 +315,8 @@ function ModelConfigSection({ open }: { open: boolean }) {
         {t("settings.modelConfig.description")}
       </p>
       {modelGatewayMissing ? (
-        <div className="mt-3 flex gap-2 rounded-md border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-[11px] leading-relaxed text-amber-800 dark:text-amber-200">
-          <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-600 dark:text-amber-300" aria-hidden />
+        <div className="mt-3 flex gap-2 rounded-md border border-warning/35 bg-warning/10 px-3 py-2 text-[11px] leading-relaxed text-warning">
+          <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden />
           <p>{t("settings.modelConfig.gatewayNotConfiguredImpact")}</p>
         </div>
       ) : null}
@@ -457,7 +457,7 @@ function OfficialGatewayPanel({
                 {revealKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
             ) : savedApiKeyPreview ? (
-              <span className="absolute top-1/2 right-2 -translate-y-1/2 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300">
+              <span className="absolute top-1/2 right-2 -translate-y-1/2 rounded bg-success/10 px-1.5 py-0.5 text-[10px] font-medium text-success">
                 {t("settings.secretSavedBadge")}
               </span>
             ) : null}
@@ -579,7 +579,7 @@ function CustomGatewayPanel({
           <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
             {t("settings.modelConfig.custom.localStatusTitle")}
           </p>
-          <span className={cn("text-[11px]", customConfigured ? "text-emerald-700 dark:text-emerald-300" : "text-amber-700 dark:text-amber-300")}>
+          <span className={cn("text-[11px]", customConfigured ? "text-success" : "text-warning")}>
             {customConfigured
               ? t("settings.modelConfig.custom.localReady")
               : t("settings.modelConfig.custom.localNeedsInit")}
@@ -639,7 +639,7 @@ function CustomGatewayPanel({
         <p
           role="status"
           aria-live="polite"
-          className="rounded-md border border-amber-400/35 bg-amber-400/10 px-3 py-2 text-[11px] leading-relaxed text-amber-800 dark:text-amber-200"
+          className="rounded-md border border-warning/35 bg-warning/10 px-3 py-2 text-[11px] leading-relaxed text-warning"
         >
           {initNotice}
         </p>
@@ -1229,7 +1229,7 @@ function EmbeddingModelBlock({
             disabled={configuredProviders.length === 0}
           />
         </div>
-        <p className="mt-2 text-[11px] leading-relaxed text-amber-700 dark:text-amber-300">
+        <p className="mt-2 text-[11px] leading-relaxed text-warning">
           {t("settings.modelConfig.embeddingModel.dimensionWarning")}
         </p>
       </div>
@@ -1779,7 +1779,7 @@ function ProviderChannelRow({
               {revealed ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
             </button>
           ) : savedKeyPreview ? (
-            <span className="absolute top-1/2 right-2 -translate-y-1/2 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300">
+            <span className="absolute top-1/2 right-2 -translate-y-1/2 rounded bg-success/10 px-1.5 py-0.5 text-[10px] font-medium text-success">
               {t("settings.secretSavedBadge")}
             </span>
           ) : null}
@@ -1889,7 +1889,7 @@ function FeatureModelCapabilitySection({
     <div className="mt-4">
       <h5 className="text-[11px] font-medium text-foreground">{title}</h5>
       {hint ? (
-        <p className="mt-1 text-[11px] leading-relaxed text-amber-700 dark:text-amber-300">{hint}</p>
+        <p className="mt-1 text-[11px] leading-relaxed text-warning">{hint}</p>
       ) : null}
       <div className="mt-2 grid grid-cols-[150px_minmax(0,1fr)_auto] items-center gap-2 rounded-md border border-border/70 px-3 py-2">
         <Select
@@ -2097,7 +2097,7 @@ function FeatureModelRow({
       <span className="flex flex-wrap items-center gap-1.5 text-xs text-foreground">
         <span>{t(`settings.modelConfig.featureModels.features.${featureId}`)}</span>
         {requiresVision ? (
-          <span className="rounded border border-amber-400/40 bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+          <span className="rounded border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[10px] font-medium text-warning">
             {t("settings.modelConfig.featureModels.multimodalRequiredBadge")}
           </span>
         ) : null}
@@ -2251,7 +2251,7 @@ function MediaStorageSection() {
         <span
           className={cn(
             "size-1.5 rounded-full",
-            hasConfiguredMediaRelay ? "bg-emerald-400" : "bg-amber-400",
+            hasConfiguredMediaRelay ? "bg-success" : "bg-warning",
           )}
         />
         <h3 className="font-heading text-sm font-medium text-foreground">
@@ -2259,7 +2259,7 @@ function MediaStorageSection() {
         </h3>
         {!hasConfiguredMediaRelay ? (
           <AlertTriangle
-            className="size-3.5 text-amber-600 dark:text-amber-400"
+            className="size-3.5 text-warning"
             aria-label={t("settings.mediaStorage.warningIconLabel")}
           />
         ) : null}
@@ -2276,7 +2276,7 @@ function MediaStorageSection() {
 
       <p className="mt-3 text-xs text-muted-foreground">
         {t("settings.mediaStorage.status")}: {" "}
-        <span className={hasConfiguredMediaRelay ? "text-emerald-700 dark:text-emerald-300" : "text-amber-700 dark:text-amber-300"}>
+        <span className={hasConfiguredMediaRelay ? "text-success" : "text-warning"}>
           {hasConfiguredMediaRelay
             ? t("settings.mediaStorage.configured")
             : t("settings.mediaStorage.notConfigured")}
@@ -2288,8 +2288,8 @@ function MediaStorageSection() {
         ) : null}
       </p>
       {!hasConfiguredMediaRelay ? (
-        <div className="mt-3 flex gap-2 rounded-md border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-[11px] leading-relaxed text-amber-800 dark:text-amber-200">
-          <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-600 dark:text-amber-300" aria-hidden />
+        <div className="mt-3 flex gap-2 rounded-md border border-warning/35 bg-warning/10 px-3 py-2 text-[11px] leading-relaxed text-warning">
+          <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden />
           <p>{t("settings.mediaStorage.notConfiguredImpact")}</p>
         </div>
       ) : null}
@@ -2533,7 +2533,7 @@ function FieldRow({
             {revealed ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           </button>
         ) : hasSavedSecret ? (
-          <span className="absolute top-1/2 right-2 -translate-y-1/2 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300">
+          <span className="absolute top-1/2 right-2 -translate-y-1/2 rounded bg-success/10 px-1.5 py-0.5 text-[10px] font-medium text-success">
             {t("settings.secretSavedBadge")}
           </span>
         ) : null}
@@ -2547,7 +2547,7 @@ function CodexBridgeSection() {
   return (
     <section className="px-5 py-5">
       <div className="flex items-center gap-2">
-        <span className="size-1.5 rounded-full bg-emerald-400" />
+        <span className="size-1.5 rounded-full bg-success" />
         <h3 className="font-heading text-sm font-medium text-foreground">
           {t("settings.codexBridge.title")}
         </h3>
@@ -2565,8 +2565,8 @@ function CodexBridgeSection() {
           <span className="w-[48px] shrink-0 text-muted-foreground">
             {t("settings.codexBridge.statusLabel")}
           </span>
-          <span className="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300">
-            <span className="size-1.5 rounded-full bg-emerald-400" />
+          <span className="inline-flex items-center gap-1.5 text-success">
+            <span className="size-1.5 rounded-full bg-success" />
             {t("settings.codexBridge.statusConnected")}
           </span>
         </div>

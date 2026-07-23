@@ -102,7 +102,7 @@ export function NotificationDrawer({
       <button
         type="button"
         aria-label={t("notifications.close")}
-        className={`absolute inset-0 bg-black/60 transition-opacity duration-[260ms] ease-[var(--ease-out-quint)] ${
+        className={`absolute inset-0 bg-scrim transition-opacity duration-[260ms] ease-[var(--ease-out-quint)] ${
           visible ? "opacity-100" : "opacity-0"
         }`}
         onClick={() => onOpenChange(false)}

@@ -83,7 +83,7 @@ export function GlobalErrorDialog({
     >
       <DialogContent
         showCloseButton
-        overlayClassName="bg-black/62 backdrop-blur-[2px]"
+        overlayClassName="bg-scrim backdrop-blur-[2px]"
         closeButtonClassName="top-4 right-4 size-8 rounded-full bg-muted text-muted-foreground hover:bg-accent hover:text-foreground"
         className="gap-0 overflow-hidden rounded-md border border-border bg-popover/95 p-0 text-popover-foreground ring-0 backdrop-blur-2xl sm:max-w-[600px]"
       >

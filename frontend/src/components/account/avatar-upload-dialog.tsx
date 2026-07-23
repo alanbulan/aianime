@@ -102,7 +102,7 @@ export function AvatarUploadDialog({
       <DialogContent
         className="w-[380px] gap-0 rounded-[18px] border border-border bg-popover/95 p-0 text-popover-foreground shadow-2xl backdrop-blur-xl"
         closeButtonClassName="top-3 right-3 text-muted-foreground hover:bg-muted hover:text-foreground"
-        overlayClassName="bg-black/55 backdrop-blur-sm"
+        overlayClassName="bg-scrim backdrop-blur-sm"
       >
         <DialogHeader className="px-5 pb-3 pt-5">
           <DialogTitle className="text-[17px] font-medium tracking-normal text-popover-foreground">

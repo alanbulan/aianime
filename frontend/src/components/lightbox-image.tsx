@@ -30,7 +30,7 @@ export function LightboxImage({
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          "relative block cursor-zoom-in overflow-hidden rounded-lg border border-border bg-black/20 p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "relative block cursor-zoom-in overflow-hidden rounded-lg border border-border bg-media/20 p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           className ?? "size-36",
         )}
       >
@@ -62,7 +62,7 @@ export function LightboxImage({
       </button>
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-media/90 p-6"
           onClick={() => setOpen(false)}
         >
           <button
@@ -85,7 +85,7 @@ export function LightboxImage({
             src={src}
             alt={alt}
             decoding="async"
-            className="h-auto max-h-[70vh] w-auto max-w-[min(68vw,1040px)] rounded-[12px] object-contain shadow-2xl shadow-black/60"
+            className="h-auto max-h-[70vh] w-auto max-w-[min(68vw,1040px)] rounded-[12px] object-contain shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           />
         </div>
