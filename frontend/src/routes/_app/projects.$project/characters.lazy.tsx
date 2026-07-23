@@ -56,12 +56,12 @@ import {
   useUploadIdentityImage,
   useUploadIdentityPortrait,
   useUploadPortrait,
-} from "@/lib/queries/characters";
+} from "@/modules/asset_world/public";
 import {
   backendErrorToastMessage,
   BillingRuleNotConfiguredError,
 } from "@/shared/api/errors";
-import { useCharacterImageSelection } from "@/lib/queries/character-image-selection";
+import { useCharacterImageSelection } from "@/modules/asset_world/public";
 import { useProject } from "@/modules/project_workspace/public";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import { isCeRuntime } from "@/lib/runtime-config";
@@ -145,7 +145,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { Character, CharacterAssetHistory, CharacterAssetHistoryEntry, CharacterAssetKind, Identity, IdentityAttempts } from "@/types/character";
+import type {
+  Character,
+  CharacterAssetHistory,
+  CharacterAssetHistoryEntry,
+  CharacterAssetKind,
+  Identity,
+  IdentityAttempts,
+} from "@/modules/asset_world/public";
 
 // ─── constants ───────────────────────────────────────────────────────────────
 

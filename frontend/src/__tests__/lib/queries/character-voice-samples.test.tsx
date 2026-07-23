@@ -17,10 +17,10 @@ import {
   useRecordCharacterVoiceSample,
   useTrimCharacterVoiceSample,
   useUploadCharacterVoiceSample,
-} from "@/lib/queries/characters";
+} from "@/modules/asset_world/public";
 import { queryKeys } from "@/lib/query-keys";
 import type { OkResponse } from "@/types/api";
-import type { Character } from "@/types/character";
+import type { Character } from "@/modules/asset_world/public";
 
 const server = setupServer();
 

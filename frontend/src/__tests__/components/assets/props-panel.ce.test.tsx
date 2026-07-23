@@ -31,7 +31,7 @@ vi.mock("@/lib/queries/generation-credit-cost", () => ({
   }),
 }));
 
-vi.mock("@/lib/queries/character-image-selection", () => ({
+vi.mock("@/modules/asset_world/public", () => ({
   useAssetImageSourceSelection: () => ({
     data: {
       ok: true,

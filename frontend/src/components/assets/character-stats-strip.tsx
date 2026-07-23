@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import type { Character } from "@/types/character";
+import type { Character } from "@/modules/asset_world/public";
 
 export type CharacterStats = {
   total: number;

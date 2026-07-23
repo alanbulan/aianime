@@ -101,7 +101,7 @@ vi.mock("@/lib/queries/generation-credit-cost", () => ({
   }),
 }));
 
-vi.mock("@/lib/queries/characters", () => ({
+vi.mock("@/modules/asset_world/public", () => ({
   useCharacters: () => ({
     data: [{ name: "陆辰" }],
   }),

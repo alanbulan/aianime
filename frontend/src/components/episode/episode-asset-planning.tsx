@@ -36,10 +36,10 @@ import {
   useProps,
   type PropPayload,
 } from "@/lib/queries/props";
-import { useCharacterIdentities } from "@/lib/queries/characters";
+import { useCharacterIdentities } from "@/modules/asset_world/public";
 import { cn } from "@/lib/utils";
 import type { ErrorResponse } from "@/types/api";
-import type { Character } from "@/types/character";
+import type { Character } from "@/modules/asset_world/public";
 import type { EpisodePropMenuItem, EpisodeSceneMenuItem } from "@/modules/narrative_planning/public";
 
 interface EpisodeAssetPlanningLabels {

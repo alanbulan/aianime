@@ -19,14 +19,18 @@ import {
   useRecordCharacterVoiceSample,
   useTrimCharacterVoiceSample,
   useUploadCharacterVoiceSample,
-} from "@/lib/queries/characters";
+} from "@/modules/asset_world/public";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import type { Character, CharacterVoiceSlot, CharacterVoiceSlotId } from "@/types/character";
+import type {
+  Character,
+  CharacterVoiceSlot,
+  CharacterVoiceSlotId,
+} from "@/modules/asset_world/public";
 
 const AGE_SLOT_ORDER: CharacterVoiceSlotId[] = ["child", "youth", "middle", "elder"];
 const SUPPORTED_AUDIO_ACCEPT = ".mp3,.wav,.m4a,.aac,.ogg,audio/*";

@@ -11,9 +11,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useCharacterIdentities } from "@/lib/queries/characters";
+import { useCharacterIdentities } from "@/modules/asset_world/public";
 import { cn } from "@/lib/utils";
-import type { Character, Identity } from "@/types/character";
+import type { Character, Identity } from "@/modules/asset_world/public";
 
 type DefaultIdentityMap = Record<string, string>;
 

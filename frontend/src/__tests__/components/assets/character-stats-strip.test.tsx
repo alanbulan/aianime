@@ -6,7 +6,7 @@ import {
   CharacterStatsStrip,
   deriveCharacterStats,
 } from "@/components/assets/character-stats-strip";
-import type { Character } from "@/types/character";
+import type { Character } from "@/modules/asset_world/public";
 
 const characters: Character[] = [
   {

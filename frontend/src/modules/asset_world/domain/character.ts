@@ -105,3 +105,16 @@ export interface IdentityAttempts {
   image_attempts: number;
   portrait_attempts: number;
 }
+
+export interface CharacterImageSelection {
+  character_image_selection: string;
+  options: Record<string, string>;
+}
+
+export type AssetImageSourceKind = "character" | "scene" | "prop";
+
+export interface AssetImageSourceSelection {
+  asset_kind: AssetImageSourceKind;
+  image_source_selection: string;
+  options: Record<string, string>;
+}

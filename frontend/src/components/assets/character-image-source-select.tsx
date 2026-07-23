@@ -13,7 +13,7 @@ import {
   type AssetImageSourceKind,
   useAssetImageSourceSelection,
   useUpdateAssetImageSourceSelection,
-} from "@/lib/queries/character-image-selection";
+} from "@/modules/asset_world/public";
 import { cn } from "@/lib/utils";
 
 export type CharacterImageSourceSelectProps = {

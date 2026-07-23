@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Grid2X2, Wand2 } from "lucide-react";
 
-import { useCharacters } from "@/lib/queries/characters";
+import { useCharacters } from "@/modules/asset_world/public";
 import {
   useEpisodeBeats,
   useEpisodeDetail,

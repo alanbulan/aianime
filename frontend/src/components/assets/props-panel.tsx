@@ -22,7 +22,7 @@ import {
   type BeatReference,
 } from "@/lib/queries/asset-references";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
-import { useAssetImageSourceSelection } from "@/lib/queries/character-image-selection";
+import { useAssetImageSourceSelection } from "@/modules/asset_world/public";
 import { useAssetFocus } from "@/hooks/use-asset-focus";
 import { StageProgressPanel } from "@/components/stage-progress-panel";
 import { Button } from "@/components/ui/button";

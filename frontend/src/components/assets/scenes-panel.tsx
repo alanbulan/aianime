@@ -32,7 +32,7 @@ import {
   type SceneCoOccurrence,
 } from "@/lib/queries/asset-references";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
-import { useAssetImageSourceSelection } from "@/lib/queries/character-image-selection";
+import { useAssetImageSourceSelection } from "@/modules/asset_world/public";
 import { useAssetFocus } from "@/hooks/use-asset-focus";
 import { useNavigateToAsset } from "@/hooks/use-assets-deep-link";
 import {

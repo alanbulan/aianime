@@ -14,7 +14,7 @@ vi.mock("@/shared/api/transport", () => ({
 }));
 
 import { CharacterVoicePanel } from "@/components/assets/character-voice-panel";
-import type { Character } from "@/types/character";
+import type { Character } from "@/modules/asset_world/public";
 
 const server = setupServer();
 const i18n = i18next.createInstance();

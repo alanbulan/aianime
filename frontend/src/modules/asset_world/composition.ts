@@ -1,12 +1,16 @@
 import { createElement } from "react";
 
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
+import { createCharacterQueryHooks } from "@/modules/asset_world/application/character-query-hooks";
+import { createImageSourceQueryHooks } from "@/modules/asset_world/application/image-source-query-hooks";
 import { createStyleQueryHooks } from "@/modules/asset_world/application/style-query-hooks";
 import { createUseCreateStyleController } from "@/modules/asset_world/application/use-create-style-controller";
 import { createUseStyleDetailController } from "@/modules/asset_world/application/use-style-detail-controller";
 import { createUseStylesPageController } from "@/modules/asset_world/application/use-styles-page-controller";
 import type { Style } from "@/modules/asset_world/domain/style";
+import { httpCharacterGateway } from "@/modules/asset_world/infrastructure/http-character-gateway";
 import { httpAssetWorldGateway } from "@/modules/asset_world/infrastructure/http-asset-world-gateway";
+import { httpImageSourceGateway } from "@/modules/asset_world/infrastructure/http-image-source-gateway";
 import { stylePreviewUrl } from "@/modules/asset_world/infrastructure/style-preview-url";
 import {
   CreateStyleDialogView,
@@ -19,6 +23,46 @@ import {
 } from "@/modules/project_workspace/public";
 
 const styleQueries = createStyleQueryHooks(httpAssetWorldGateway);
+const characterQueries = createCharacterQueryHooks(httpCharacterGateway);
+const imageSourceQueries = createImageSourceQueryHooks(
+  httpImageSourceGateway,
+);
+
+export const {
+  useBuildCharacters,
+  useCharacterAssetHistory,
+  useCharacterIdentities,
+  useCharacters,
+  useCharacterVoiceSamples,
+  useCreateCharacter,
+  useCreateIdentity,
+  useDeleteCharacter,
+  useDeleteCharacterVoiceSample,
+  useDeleteIdentity,
+  useDeleteIdentityCostume,
+  useDeleteIdentityImage,
+  useGenerateIdentityImageAsync,
+  useGenerateIdentityPortraitAsync,
+  useGeneratePortraitAsync,
+  useIdentityAttempts,
+  useIdentityOwnerIndex,
+  useRecordCharacterVoiceSample,
+  useRestoreCharacterAsset,
+  useTrimCharacterVoiceSample,
+  useUpdateCharacter,
+  useUpdateIdentity,
+  useUploadCharacterVoiceSample,
+  useUploadCostumeImage,
+  useUploadIdentityImage,
+  useUploadIdentityPortrait,
+  useUploadPortrait,
+} = characterQueries;
+
+export const {
+  useAssetImageSourceSelection,
+  useCharacterImageSelection,
+  useUpdateAssetImageSourceSelection,
+} = imageSourceQueries;
 
 export const {
   stylesQueryOptions,

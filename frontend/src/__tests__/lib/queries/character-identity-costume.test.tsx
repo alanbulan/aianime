@@ -11,7 +11,7 @@ vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost:3000/" }),
 }));
 
-import { useDeleteIdentityCostume } from "@/lib/queries/characters";
+import { useDeleteIdentityCostume } from "@/modules/asset_world/public";
 
 const server = setupServer();
 

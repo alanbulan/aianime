@@ -7,7 +7,7 @@ import {
 } from "@/components/episode/beat-workbench/batch-panel";
 import { formatCreditCost } from "@/components/credits/credit-visual";
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
-import { useCharacters } from "@/lib/queries/characters";
+import { useCharacters } from "@/modules/asset_world/public";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import { useSketchSettings } from "@/lib/queries/sketch-settings";
 import {

@@ -7,8 +7,14 @@ const routeSource = readFileSync(
   "src/routes/_app/projects.$project/characters.lazy.tsx",
   "utf-8",
 );
-const characterTypes = readFileSync("src/types/character.ts", "utf-8");
-const characterQueries = readFileSync("src/lib/queries/characters.ts", "utf-8");
+const characterTypes = readFileSync(
+  "src/modules/asset_world/domain/character.ts",
+  "utf-8",
+);
+const characterQueries = readFileSync(
+  "src/modules/asset_world/application/character-query-hooks.ts",
+  "utf-8",
+);
 
 describe("character workbench IndexTTS2 cutover", () => {
   it("does not expose legacy Fish voice controls in the character workbench", () => {

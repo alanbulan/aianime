@@ -12,7 +12,7 @@ const importSpecifiersCache = new Map<string, string[]>();
 // Existing routes are migrated context by context. Their direct data imports
 // may decrease, but no route may exceed this measured baseline.
 const LEGACY_ROUTE_DATA_IMPORT_MAX: Record<string, number> = {
-  "routes/_app/projects.$project/characters.lazy.tsx": 6,
+  "routes/_app/projects.$project/characters.lazy.tsx": 3,
   "routes/_app/projects.$project/episodes.$episode/beats.lazy.tsx": 0,
   "routes/_app/projects.$project/episodes.$episode/compose.lazy.tsx": 4,
   "routes/_app/projects.$project/episodes.$episode/script.lazy.tsx": 0,
@@ -406,7 +406,7 @@ describe("frontend architecture boundaries", () => {
     expect(directEndpointFailures).toEqual([]);
   });
 
-  it("keeps Asset & World style callers on its public API", () => {
+  it("keeps Asset & World callers on its public API", () => {
     const moduleRoot = resolve(SRC_ROOT, "modules/asset_world");
     const externalSources = sourceFiles(SRC_ROOT)
       .filter((path) => !path.startsWith(moduleRoot))
@@ -420,9 +420,9 @@ describe("frontend architecture boundaries", () => {
         )
         .map((specifier) => `${relativeSource(path)}: ${specifier}`),
     );
-    const directStyleEndpointFailures = externalSources
+    const directAssetEndpointFailures = externalSources
       .filter((path) =>
-        /api\/v1\/(?:styles|projects\/[^/`$]+\/styles)/.test(
+        /api\/v1\/(?:styles|projects\/.*\/(?:styles|characters|character-image-selection|character-image-usage|image-source-selection))/.test(
           readFileSync(path, "utf8"),
         ),
       )
@@ -457,16 +457,21 @@ describe("frontend architecture boundaries", () => {
         .map((specifier) => `${relativeSource(path)}: ${specifier}`),
     );
 
-    expect(existsSync(resolve(SRC_ROOT, "lib/queries/styles.ts"))).toBe(false);
-    expect(existsSync(resolve(SRC_ROOT, "lib/style-preview-url.ts"))).toBe(
-      false,
-    );
-    expect(existsSync(resolve(SRC_ROOT, "types/style.ts"))).toBe(false);
+    for (const legacyPath of [
+      "lib/queries/character-image-selection.ts",
+      "lib/queries/characters.ts",
+      "lib/queries/styles.ts",
+      "lib/style-preview-url.ts",
+      "types/character.ts",
+      "types/style.ts",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, legacyPath))).toBe(false);
+    }
     expect(applicationDataImportFailures).toEqual([]);
     expect(applicationViewImportFailures).toEqual([]);
     expect(presentationBoundaryFailures).toEqual([]);
     expect(internalImportFailures).toEqual([]);
-    expect(directStyleEndpointFailures).toEqual([]);
+    expect(directAssetEndpointFailures).toEqual([]);
   });
 
   it("keeps the Styles route as an adapter", () => {

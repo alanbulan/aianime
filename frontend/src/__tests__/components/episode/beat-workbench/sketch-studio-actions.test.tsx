@@ -103,7 +103,7 @@ vi.mock("@/modules/narrative_planning/public", () => ({
   }),
 }));
 
-vi.mock("@/lib/queries/characters", () => ({
+vi.mock("@/modules/asset_world/public", () => ({
   useCharacters: () => ({
     data: [{ name: "Hero" }],
   }),

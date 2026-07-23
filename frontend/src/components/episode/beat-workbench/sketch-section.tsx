@@ -24,7 +24,7 @@ import {
   type ThreeDDirectorCaptureMeta,
 } from "@/features/viewer-kit/three-d/ThreeDDirectorDialog";
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
-import { useCharacters } from "@/lib/queries/characters";
+import { useCharacters } from "@/modules/asset_world/public";
 import {
   useEpisodeDetail,
   useScript,

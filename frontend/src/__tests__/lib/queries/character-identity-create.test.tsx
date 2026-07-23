@@ -12,13 +12,16 @@ vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost:3000/" }),
 }));
 
-import { useCreateIdentity } from "@/lib/queries/characters";
+import { useCreateIdentity } from "@/modules/asset_world/public";
 
 const server = setupServer();
-const querySource = readFileSync("src/lib/queries/characters.ts", "utf-8");
+const querySource = readFileSync(
+  "src/modules/asset_world/application/ports.ts",
+  "utf-8",
+);
 const createIdentitySource = querySource.slice(
-  querySource.indexOf("export function useCreateIdentity"),
-  querySource.indexOf("export function useUpdateIdentity"),
+  querySource.indexOf("export interface CreateIdentityInput"),
+  querySource.indexOf("export interface UpdateIdentityInput"),
 );
 
 beforeAll(() => server.listen());

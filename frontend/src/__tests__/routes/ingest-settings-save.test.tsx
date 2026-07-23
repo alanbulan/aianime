@@ -286,7 +286,10 @@ vi.mock("@/modules/story_intake/application/query-hooks", () => ({
   }),
 }));
 
-vi.mock("@/lib/queries/characters", () => ({
+vi.mock("@/modules/asset_world/public", async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import("@/modules/asset_world/public")
+  >()),
   useCharacters: () => ({ data: { ok: true, data: [] } }),
 }));
 

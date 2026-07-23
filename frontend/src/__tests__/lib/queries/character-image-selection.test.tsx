@@ -14,10 +14,8 @@ vi.mock("@/shared/api/transport", () => ({
 import {
   useAssetImageSourceSelection,
   useUpdateAssetImageSourceSelection,
-  useCharacterImageUsage,
   useCharacterImageSelection,
-  useUpdateCharacterImageSelection,
-} from "@/lib/queries/character-image-selection";
+} from "@/modules/asset_world/public";
 
 const server = setupServer();
 
@@ -63,71 +61,6 @@ describe("character image selection query hooks", () => {
       portrait: "Character portrait",
       identity: "Identity image",
     });
-  });
-
-  it("fetches project character image usage", async () => {
-    let requestedPath = "";
-    server.use(
-      http.get(
-        "http://localhost:3000/api/v1/projects/demo/character-image-usage",
-        ({ request }) => {
-          requestedPath = new URL(request.url).pathname;
-          return HttpResponse.json({
-            ok: true,
-            data: {
-              today_requests: 2,
-              total_requests: 8,
-            },
-          });
-        },
-      ),
-    );
-
-    const { result } = renderHook(() => useCharacterImageUsage("demo"), {
-      wrapper,
-    });
-
-    await waitFor(() => expect(result.current.data).toBeDefined());
-    expect(requestedPath).toBe("/api/v1/projects/demo/character-image-usage");
-    expect(result.current.data?.data).toEqual({
-      today_requests: 2,
-      total_requests: 8,
-    });
-  });
-
-  it("updates the project-level character image selection", async () => {
-    let requestedPath = "";
-    let patchBody: unknown = null;
-    server.use(
-      http.patch(
-        "http://localhost:3000/api/v1/projects/demo/character-image-selection",
-        async ({ request }) => {
-          requestedPath = new URL(request.url).pathname;
-          patchBody = await request.json();
-          return HttpResponse.json({
-            ok: true,
-            data: {
-              character_image_selection: "portrait",
-              options: {
-                portrait: "Character portrait",
-                identity: "Identity image",
-              },
-            },
-          });
-        },
-      ),
-    );
-
-    const { result } = renderHook(() => useUpdateCharacterImageSelection("demo"), {
-      wrapper,
-    });
-
-    result.current.mutate("portrait");
-
-    await waitFor(() => expect(result.current.data).toBeDefined());
-    expect(requestedPath).toBe("/api/v1/projects/demo/character-image-selection");
-    expect(patchBody).toEqual({ character_image_selection: "portrait" });
-    expect(result.current.data?.data.character_image_selection).toBe("portrait");
   });
 
   it("fetches an asset-kind image source selection", async () => {

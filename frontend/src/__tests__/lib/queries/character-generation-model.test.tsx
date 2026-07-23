@@ -16,7 +16,7 @@ import {
   useGenerateIdentityImageAsync,
   useGenerateIdentityPortraitAsync,
   useGeneratePortraitAsync,
-} from "@/lib/queries/characters";
+} from "@/modules/asset_world/public";
 import { useGenerateSceneMasterAsync } from "@/lib/queries/scenes";
 import { useRegenerateBeatVideo } from "@/lib/queries/video";
 

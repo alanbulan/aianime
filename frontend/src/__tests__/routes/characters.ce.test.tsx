@@ -79,27 +79,6 @@ vi.mock("@/modules/project_workspace/public", () => ({
   useUpdateProject: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
-vi.mock("@/lib/queries/character-image-selection", () => ({
-  useAssetImageSourceSelection: () => ({
-    data: {
-      ok: true,
-      data: {
-        asset_kind: "character",
-        image_source_selection: "newapi_gpt_image2",
-        options: { newapi_gpt_image2: "LingShan-G2" },
-      },
-    },
-    isLoading: false,
-    isFetching: false,
-  }),
-  useCharacterImageSelection: () => ({
-    data: { ok: true, data: { character_image_selection: "seedream" } },
-  }),
-  useUpdateAssetImageSourceSelection: mutation,
-  useUpdateCharacterImageSelection: mutation,
-  useCharacterImageUsage: () => ({ data: { ok: true, data: {} } }),
-}));
-
 vi.mock("@/lib/queries/generation-credit-cost", () => ({
   useGenerationCreditCost: () => ({
     data: { ok: true, data: { display: "12 credits", cost: 12 } },
@@ -113,7 +92,19 @@ vi.mock("@/lib/queries/asset-references", () => ({
   }),
 }));
 
-vi.mock("@/lib/queries/characters", () => ({
+vi.mock("@/modules/asset_world/public", () => ({
+  useAssetImageSourceSelection: () => ({
+    data: {
+      ok: true,
+      data: {
+        asset_kind: "character",
+        image_source_selection: "newapi_gpt_image2",
+        options: { newapi_gpt_image2: "LingShan-G2" },
+      },
+    },
+    isLoading: false,
+    isFetching: false,
+  }),
   useCharacters: () => ({
     isLoading: false,
     data: {
@@ -175,6 +166,10 @@ vi.mock("@/lib/queries/characters", () => ({
     refetch: vi.fn(),
   }),
   useIdentityOwnerIndex: () => ({ ownerOf: () => null }),
+  useCharacterImageSelection: () => ({
+    data: { ok: true, data: { character_image_selection: "seedream" } },
+  }),
+  useUpdateAssetImageSourceSelection: mutation,
 }));
 
 vi.mock("@/components/assets/character-voice-panel", () => ({

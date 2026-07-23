@@ -20,7 +20,7 @@ import {
   BillingRuleNotConfiguredError,
 } from "@/shared/api/errors";
 import { saveScopes, trackSave } from "@/stores/save-status-store";
-import type { Character } from "@/types/character";
+import type { Character } from "@/modules/asset_world/public";
 
 export type ScriptAssetPlanningCategory =
   | "identities"
