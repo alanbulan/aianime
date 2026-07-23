@@ -37,12 +37,13 @@ from ai_anime.modules.asset_world.public import (
     SceneCatalogRejected,
     UpdateSceneCommand,
     scene_catalog_use_cases,
+    scene_task_use_cases,
 )
 from ai_anime.project_config import load_project_config_file
 from ai_anime.modules.project_workspace.public import ProjectContext, resolve_project_context
 from ai_anime.sqlite_store import SQLiteStore
 from ai_anime.ports import get_task_backend
-from ai_anime.task_scopes import scene_reference_asset_scope, stage_asset_scope
+from ai_anime.task_scopes import stage_asset_scope
 from ai_anime.task_identity import project_task_state_key
 from ai_anime.utils.path_resolver import (
     canonical_scene_master_path,
@@ -554,32 +555,21 @@ async def delete_scene(
 
 @router.post("/projects/{project}/scenes/build")
 async def build_scenes(project: str, user: dict = Depends(get_api_user)):
-    ctx, username, project_name, _project_dir, output_dir, store = (
+    ctx, _username, _project_name, _project_dir, output_dir, _store = (
         await _resolve_scene_project(
             project,
             user,
             required_role="editor",
         )
     )
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type="build_scenes",
-            queue_kind="default",
-            episode=0,
-            payload={"output_dir": output_dir},
+    try:
+        scheduled = await scene_task_use_cases().schedule_build_scenes(
+            task_context=ctx,
+            output_dir=output_dir,
         )
-        return {
-            "ok": True,
-            "task_type": "build_scenes",
-            "task_id": queued.task_state.task_id,
-            "task_key": project_task_state_key("build_scenes", ctx.project_id, 0),
-            "backend": queued.backend,
-            "queue": queued.queue,
-            "message": "场景补充任务已进入队列",
-        }
-
-    return {"ok": False, "error": "场景补充需要 project context"}
+    except SceneCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, **scheduled.as_dict()}
 
 
 @router.post("/projects/{project}/scenes/{name}/master/upload")
@@ -678,51 +668,29 @@ async def _start_scene_reference_task(
     kind: str,
     model: str | None = None,
     user: dict,
-    store: SQLiteStore | None = None,
 ):
     (
         ctx,
         username,
         project_name,
-        project_dir,
+        _project_dir,
         output_dir,
-        resolved_store,
+        store,
     ) = await _resolve_scene_project(project, user)
-    store = store or resolved_store
-    scene = await _require_scene(store, name)
-    if scene is None:
-        return {"ok": False, "error": f"Scene '{name}' not found"}
 
-    scope = scene_reference_asset_scope(scene.name, kind)
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type="scene_reference_asset",
-            queue_kind="default",
-            episode=0,
-            scope=scope,
-            payload={
-                "scene_name": scene.name,
-                "kind": kind,
-                "model": str(model or "").strip(),
-                "style": _project_style(username, project_name),
-                "output_dir": output_dir,
-            },
+    try:
+        scheduled = await scene_task_use_cases().schedule_reference(
+            repository=store,
+            task_context=ctx,
+            output_dir=output_dir,
+            scene_name=name,
+            kind=kind,
+            style=_project_style(username, project_name),
+            model=model,
         )
-        return {
-            "ok": True,
-            "task_type": "scene_reference_asset",
-            "scope": scope,
-            "task_id": queued.task_state.task_id,
-            "task_key": project_task_state_key(
-                "scene_reference_asset", ctx.project_id, 0, scope=scope
-            ),
-            "backend": queued.backend,
-            "queue": queued.queue,
-            "message": f"场景「{scene.name}」{kind} 生成任务已进入队列",
-        }
-
-    return {"ok": False, "error": "场景参考图生成需要 project context"}
+    except SceneCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, **scheduled.as_dict()}
 
 
 @router.post("/projects/{project}/scenes/{name}/pano/upload")

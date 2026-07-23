@@ -9,6 +9,7 @@ from ai_anime.modules.asset_world.application.dto import (
     AssetTaskQueueReceipt,
     BatchPropReferenceGenerationTask,
     BuildCharactersTask,
+    BuildScenesTask,
     CharacterAssetHistoryEntry,
     CharacterAssetTarget,
     CharacterGenerationOptions,
@@ -20,6 +21,7 @@ from ai_anime.modules.asset_world.application.dto import (
     IdentityAssetPaths,
     IdentityGenerationAssets,
     PropReferenceGenerationTask,
+    SceneReferenceGenerationTask,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 
@@ -264,6 +266,24 @@ class SceneCatalogAssets(Protocol):
         old_name: str,
         new_name: str,
     ) -> None: ...
+
+
+class SceneTaskRepository(Protocol):
+    async def get_scene(self, name: str) -> Any | None: ...
+
+
+class SceneTaskScheduler(Protocol):
+    async def enqueue_build_scenes(
+        self,
+        task_context: ProjectContext,
+        task: BuildScenesTask,
+    ) -> AssetTaskQueueReceipt: ...
+
+    async def enqueue_scene_reference(
+        self,
+        task_context: ProjectContext,
+        task: SceneReferenceGenerationTask,
+    ) -> AssetTaskQueueReceipt: ...
 
 
 class PropCatalogRepository(Protocol):

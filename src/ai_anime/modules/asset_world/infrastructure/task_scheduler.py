@@ -9,8 +9,10 @@ from ai_anime.modules.asset_world.application.dto import (
     AssetTaskQueueReceipt,
     BatchPropReferenceGenerationTask,
     BuildCharactersTask,
+    BuildScenesTask,
     CharacterImageGenerationTask,
     PropReferenceGenerationTask,
+    SceneReferenceGenerationTask,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.task_identity import project_task_state_key
@@ -35,6 +37,29 @@ class TaskBackendAssetTaskScheduler:
         self,
         task_context: ProjectContext,
         task: CharacterImageGenerationTask,
+    ) -> AssetTaskQueueReceipt:
+        return await self._enqueue(
+            task_context,
+            task_type=task.task_type,
+            payload=task.backend_payload(),
+            scope=task.scope,
+        )
+
+    async def enqueue_build_scenes(
+        self,
+        task_context: ProjectContext,
+        task: BuildScenesTask,
+    ) -> AssetTaskQueueReceipt:
+        return await self._enqueue(
+            task_context,
+            task_type=task.task_type,
+            payload=task.backend_payload(),
+        )
+
+    async def enqueue_scene_reference(
+        self,
+        task_context: ProjectContext,
+        task: SceneReferenceGenerationTask,
     ) -> AssetTaskQueueReceipt:
         return await self._enqueue(
             task_context,

@@ -109,6 +109,16 @@ class BuildCharactersTask:
 
 
 @dataclass(frozen=True)
+class BuildScenesTask:
+    task_type: ClassVar[str] = "build_scenes"
+
+    output_dir: str | Path
+
+    def backend_payload(self) -> dict[str, Any]:
+        return {"output_dir": str(self.output_dir)}
+
+
+@dataclass(frozen=True)
 class CharacterImageGenerationTask:
     mode: str
     task_type: str
@@ -171,6 +181,27 @@ class BatchPropReferenceGenerationTask:
         return {
             "style": self.style,
             "model": self.model,
+            "output_dir": str(self.output_dir),
+        }
+
+
+@dataclass(frozen=True)
+class SceneReferenceGenerationTask:
+    task_type: ClassVar[str] = "scene_reference_asset"
+
+    scene_name: str
+    kind: str
+    style: str
+    model: str
+    output_dir: str | Path
+    scope: str
+
+    def backend_payload(self) -> dict[str, Any]:
+        return {
+            "scene_name": self.scene_name,
+            "kind": self.kind,
+            "model": self.model,
+            "style": self.style,
             "output_dir": str(self.output_dir),
         }
 

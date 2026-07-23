@@ -33,6 +33,7 @@ from ai_anime.modules.asset_world.application.prop_tasks import PropTaskUseCases
 from ai_anime.modules.asset_world.application.scene_catalog import (
     SceneCatalogUseCases,
 )
+from ai_anime.modules.asset_world.application.scene_tasks import SceneTaskUseCases
 from ai_anime.modules.asset_world.application.dto import (
     AnalyzeStyleCommand,
     CharacterGenerationOptions,
@@ -141,6 +142,12 @@ def scene_catalog_use_cases() -> SceneCatalogUseCases:
     return build()
 
 
+def scene_task_use_cases() -> SceneTaskUseCases:
+    from ai_anime.modules.asset_world.composition import scene_task_use_cases as build
+
+    return build()
+
+
 def prop_task_use_cases() -> PropTaskUseCases:
     from ai_anime.modules.asset_world.composition import prop_task_use_cases as build
 
@@ -240,6 +247,7 @@ __all__ = [
     "PropTaskUseCases",
     "SceneCatalogRejected",
     "SceneCatalogUseCases",
+    "SceneTaskUseCases",
     "RestoreCharacterAssetCommand",
     "StyleAnalysisBilling",
     "StyleCatalogUseCases",
@@ -262,6 +270,7 @@ __all__ = [
     "character_catalog_use_cases",
     "prop_catalog_use_cases",
     "scene_catalog_use_cases",
+    "scene_task_use_cases",
     "prop_task_use_cases",
     "character_generation_use_cases",
     "character_identity_use_cases",

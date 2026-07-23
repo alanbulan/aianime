@@ -266,6 +266,7 @@ class _FakeTaskBackend:
 
 @pytest.fixture()
 def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    from ai_anime import ports as ai_anime_ports
     from ai_anime.api import auth as api_auth
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.routes import episodes, generation, scenes
@@ -376,6 +377,7 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         nonlocal task_backend
         task_backend = _FakeTaskBackend(backend)
         monkeypatch.setattr(scenes, "get_task_backend", lambda: task_backend)
+        monkeypatch.setattr(ai_anime_ports, "get_task_backend", lambda: task_backend)
         monkeypatch.setattr(generation, "get_task_backend", lambda: task_backend)
         monkeypatch.setattr(episodes, "get_task_backend", lambda: task_backend)
         monkeypatch.setattr(verification_routes, "get_task_backend", lambda: task_backend)

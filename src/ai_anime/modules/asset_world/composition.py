@@ -30,6 +30,7 @@ from ai_anime.modules.asset_world.application.prop_tasks import PropTaskUseCases
 from ai_anime.modules.asset_world.application.scene_catalog import (
     SceneCatalogUseCases,
 )
+from ai_anime.modules.asset_world.application.scene_tasks import SceneTaskUseCases
 from ai_anime.modules.asset_world.application.styles import (
     AnalyzeStyle,
     StyleCatalogUseCases,
@@ -100,6 +101,12 @@ def prop_catalog_use_cases() -> PropCatalogUseCases:
 
 def scene_catalog_use_cases() -> SceneCatalogUseCases:
     return SceneCatalogUseCases(NovelSceneFactory(), LocalSceneCatalogAssets())
+
+
+def scene_task_use_cases() -> SceneTaskUseCases:
+    from ai_anime import ports
+
+    return SceneTaskUseCases(TaskBackendAssetTaskScheduler(ports.get_task_backend))
 
 
 def character_identity_use_cases() -> CharacterIdentityUseCases:

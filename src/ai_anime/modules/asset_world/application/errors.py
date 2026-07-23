@@ -37,6 +37,10 @@ class InvalidSceneInput(SceneCatalogRejected):
     """Scene input is not valid for the requested operation."""
 
 
+class SceneProjectContextRequired(SceneCatalogRejected):
+    """A scene task requires a resolved project context."""
+
+
 class PropCatalogRejected(Exception):
     """A prop catalog request rejected by an expected business rule."""
 

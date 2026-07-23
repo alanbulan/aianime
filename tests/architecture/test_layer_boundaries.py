@@ -409,6 +409,30 @@ def test_asset_world_scene_catalog_routes_delegate_to_application() -> None:
         assert legacy_implementation not in source
 
 
+def test_asset_world_scene_task_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "scenes.py"
+    source = route.read_text(encoding="utf-8")
+    tree = ast.parse(source, filename=str(route))
+    task_adapters = "\n".join(
+        ast.get_source_segment(source, node) or ""
+        for node in tree.body
+        if isinstance(node, ast.AsyncFunctionDef)
+        and node.name in {"build_scenes", "_start_scene_reference_task"}
+    )
+
+    assert "scene_task_use_cases" in task_adapters
+    assert "scene_reference_asset_scope" not in source
+    for legacy_implementation in (
+        "get_task_backend",
+        "project_task_state_key",
+        "enqueue_project_task",
+        "task_config_scope",
+        'task_type="build_scenes"',
+        'task_type="scene_reference_asset"',
+    ):
+        assert legacy_implementation not in task_adapters
+
+
 def test_asset_world_character_identity_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "characters.py"
     source = route.read_text(encoding="utf-8")
