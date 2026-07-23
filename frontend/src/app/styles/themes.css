@@ -1,0 +1,161 @@
+/* Copyright (c) 2026 AI anime */
+
+/* ═══════════════════════════════════════════════════════════
+   Theme: AI anime AI — deep neutral + electric cyan accent.
+   oklch color space for perceptual uniformity.
+   Toggle via `.dark` class on <html>.
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  --background: #f4f6f8;
+  --foreground: #171b21;
+  --card: #ffffff;
+  --card-foreground: #171b21;
+  --popover: #ffffff;
+  --popover-foreground: #171b21;
+  --primary: #077783;
+  --primary-foreground: #ffffff;
+  --secondary: #e3f1f3;
+  --secondary-foreground: #15545b;
+  --muted: #e8edf1;
+  --muted-foreground: #2b343e;
+  --accent: #e1eff1;
+  --accent-foreground: #17373b;
+  --destructive: #c63d32;
+  --destructive-foreground: #ffffff;
+  --success: #18864b;
+  --success-foreground: #ffffff;
+  --warning: #c77b08;
+  --warning-foreground: #211706;
+  --border: #a3afbb;
+  --input: #84919e;
+  --ring: #078b99;
+  --chart-1: oklch(0.6400 0.1500 205.0000);
+  --chart-2: oklch(0.5400 0.1300 210.0000);
+  --chart-3: oklch(0.6200 0.1200 195.0000);
+  --chart-4: oklch(0.7356 0.1370 232.8053);
+  --chart-5: oklch(0.7200 0.1520 150.0000);
+  --sidebar: #fbfcfd;
+  --sidebar-foreground: #171b21;
+  --sidebar-primary: #077783;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e5f2f4;
+  --sidebar-accent-foreground: #15545b;
+  --sidebar-border: #a3afbb;
+  --sidebar-ring: #078b99;
+  --radius: 1rem;
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+  --font-family-ui-default: "Noto Sans SC", "Noto Sans CJK SC", "Noto Sans CJK JP", "Microsoft YaHei", "PingFang SC", "Helvetica Neue", Arial, "Segoe UI", sans-serif;
+  --font-family-ui-macos: "PingFang SC", "PingFang TC", "Hiragino Sans GB", "Helvetica Neue", Arial, sans-serif;
+  /* Legacy canvas utilities follow the active theme. */
+  --bg-rgb: 244 246 248;
+  --surface-rgb: 255 255 255;
+  --border-rgb: 163 175 187;
+  --text-rgb: 23 27 33;
+  --text-muted-rgb: 43 52 62;
+  --accent-rgb: 7 119 131;
+  --ui-surface-panel: rgb(255 255 255 / 0.98);
+  --ui-surface-field: rgb(232 237 241 / 0.94);
+  --ui-border-soft: rgb(23 27 33 / 0.12);
+  --ui-border-strong: rgb(23 27 33 / 0.22);
+  --canvas-node-input-placeholder: rgb(43 52 62 / 0.82);
+  --canvas-node-input-helper: rgb(43 52 62 / 0.78);
+  --canvas-grid-dot: rgb(33 43 54 / 0.48);
+  --canvas-minimap-node: rgb(89 99 111 / 0.78);
+  --canvas-minimap-mask: rgb(23 27 33 / 0.12);
+  --ui-shadow-panel: 0 14px 34px rgb(15 23 42 / 0.14), 0 1px 0 rgb(255 255 255 / 0.72) inset;
+  --ui-glow-accent: 0 0 24px rgb(var(--accent-rgb) / 0.16);
+  --ui-radius-lg: 12px;
+  --ui-radius-xl: 16px;
+  --ui-radius-2xl: 20px;
+  --ui-radius-pill: 999px;
+  --node-radius: 12px;
+  --node-inner-radius: var(--node-radius);
+
+  /* Shadows — soft, diffuse for light mode */
+  --shadow-2xs: 0px 2px 10px 0px hsl(0 0% 0% / 0.05);
+  --shadow-xs: 0px 2px 10px 0px hsl(0 0% 0% / 0.05);
+  --shadow-sm: 0px 2px 10px 0px hsl(0 0% 0% / 0.10), 0px 1px 2px -1px hsl(0 0% 0% / 0.10);
+  --shadow: 0px 2px 10px 0px hsl(0 0% 0% / 0.10), 0px 1px 2px -1px hsl(0 0% 0% / 0.10);
+  --shadow-md: 0px 2px 10px 0px hsl(0 0% 0% / 0.10), 0px 2px 4px -1px hsl(0 0% 0% / 0.10);
+  --shadow-lg: 0px 2px 10px 0px hsl(0 0% 0% / 0.10), 0px 4px 6px -1px hsl(0 0% 0% / 0.10);
+  --shadow-xl: 0px 2px 10px 0px hsl(0 0% 0% / 0.10), 0px 8px 10px -1px hsl(0 0% 0% / 0.10);
+  --shadow-2xl: 0px 2px 10px 0px hsl(0 0% 0% / 0.25);
+
+  color-scheme: light;
+}
+
+.dark {
+  --background: #0b0d10;
+  --foreground: #edf0f3;
+  --card: #171a1f;
+  --card-foreground: #edf0f3;
+  --popover: #1a1d22;
+  --popover-foreground: #edf0f3;
+  --primary: #5ed0dd;
+  --primary-foreground: #071316;
+  --secondary: #18353a;
+  --secondary-foreground: #8fe1e9;
+  --muted: #20242a;
+  --muted-foreground: #b0b8c2;
+  --accent: #20363a;
+  --accent-foreground: #edf0f3;
+  --destructive: #e1685d;
+  --destructive-foreground: #ffffff;
+  --success: #4fc47c;
+  --success-foreground: #08150d;
+  --warning: #e6a23c;
+  --warning-foreground: #171006;
+  --border: #323841;
+  --input: #3a414b;
+  --ring: #5ed0dd;
+  --chart-1: oklch(0.7200 0.1450 205.0000);
+  --chart-2: oklch(0.6200 0.1200 195.0000);
+  --chart-3: oklch(0.6800 0.1150 225.0000);
+  --chart-4: oklch(0.7356 0.1370 232.8053);
+  --chart-5: oklch(0.7200 0.1520 150.0000);
+  --sidebar: #101318;
+  --sidebar-foreground: #edf0f3;
+  --sidebar-primary: #5ed0dd;
+  --sidebar-primary-foreground: #071316;
+  --sidebar-accent: #1e3337;
+  --sidebar-accent-foreground: #8fe1e9;
+  --sidebar-border: #323841;
+  --sidebar-ring: #5ed0dd;
+  --bg-rgb: 11 13 16;
+  --surface-rgb: 23 26 31;
+  --border-rgb: 50 56 65;
+  --text-rgb: 237 240 243;
+  --text-muted-rgb: 176 184 194;
+  --accent-rgb: 94 208 221;
+  --ui-surface-panel: rgb(23 26 31 / 0.98);
+  --ui-surface-field: rgb(32 36 42 / 0.96);
+  --ui-border-soft: rgb(255 255 255 / 0.10);
+  --ui-border-strong: rgb(255 255 255 / 0.18);
+  --canvas-node-input-placeholder: rgb(176 184 194 / 0.82);
+  --canvas-node-input-helper: rgb(176 184 194 / 0.78);
+  --canvas-grid-dot: rgb(220 226 234 / 0.24);
+  --canvas-minimap-node: rgb(160 168 178 / 0.76);
+  --canvas-minimap-mask: rgb(0 0 0 / 0.62);
+  --ui-shadow-panel: 0 14px 34px rgb(0 0 0 / 0.48), 0 1px 0 rgb(255 255 255 / 0.04) inset;
+  --ui-glow-accent: 0 0 24px rgb(var(--accent-rgb) / 0.24);
+  --ui-radius-lg: 12px;
+  --ui-radius-xl: 16px;
+  --ui-radius-2xl: 20px;
+  --ui-radius-pill: 999px;
+  --node-radius: 14px;
+  --node-inner-radius: var(--node-radius);
+
+  /* Shadows — deeper, higher opacity for dark mode */
+  --shadow-2xs: 0px 4px 12px 0px hsl(0 0% 0% / 0.20);
+  --shadow-xs: 0px 4px 12px 0px hsl(0 0% 0% / 0.20);
+  --shadow-sm: 0px 4px 12px 0px hsl(0 0% 0% / 0.40), 0px 1px 2px -1px hsl(0 0% 0% / 0.40);
+  --shadow: 0px 4px 12px 0px hsl(0 0% 0% / 0.40), 0px 1px 2px -1px hsl(0 0% 0% / 0.40);
+  --shadow-md: 0px 4px 12px 0px hsl(0 0% 0% / 0.40), 0px 2px 4px -1px hsl(0 0% 0% / 0.40);
+  --shadow-lg: 0px 4px 12px 0px hsl(0 0% 0% / 0.40), 0px 4px 6px -1px hsl(0 0% 0% / 0.40);
+  --shadow-xl: 0px 4px 12px 0px hsl(0 0% 0% / 0.40), 0px 8px 10px -1px hsl(0 0% 0% / 0.40);
+  --shadow-2xl: 0px 4px 12px 0px hsl(0 0% 0% / 1.00);
+
+  color-scheme: dark;
+}

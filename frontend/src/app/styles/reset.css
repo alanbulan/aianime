@@ -1,0 +1,10 @@
+/* Copyright (c) 2026 AI anime */
+@custom-variant dark (&:is(.dark *));
+
+.desktop-title-bar-drag {
+  -webkit-app-region: drag;
+}
+
+.desktop-title-bar-controls {
+  -webkit-app-region: no-drag;
+}

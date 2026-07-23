@@ -1,0 +1,246 @@
+/* Copyright (c) 2026 AI anime */
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  html.preauth-shell,
+  html.preauth-shell body,
+  html.preauth-shell #root {
+    background: #181818;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+
+  body.ai-anime-viewer-immersive-active #main-content {
+    visibility: hidden;
+  }
+
+  html {
+    @apply font-sans;
+  }
+
+  /* Scrollbar — adapts per mode */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: oklch(0.5589 0.0255 233.7233 / 0.22);
+    border-radius: 999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.5589 0.0255 233.7233 / 0.38);
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: oklch(0.6637 0.0236 235.1968 / 0.18);
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.6637 0.0236 235.1968 / 0.32);
+  }
+
+  /* Form validation shake. Three oscillations at ±6px feels like a head
+     shake; shorter or longer either reads as a glitch or as slapstick. */
+  @keyframes shake {
+
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+
+    15%,
+    45%,
+    75% {
+      transform: translateX(-6px);
+    }
+
+    30%,
+    60%,
+    90% {
+      transform: translateX(6px);
+    }
+  }
+
+  .animate-shake {
+    animation: shake var(--duration-slow) var(--ease-in-out);
+  }
+
+  @keyframes sidebar-icon-pop {
+    0% {
+      transform: scale(1) rotate(0deg);
+    }
+
+    35% {
+      transform: scale(1.14) rotate(-8deg);
+    }
+
+    70% {
+      transform: scale(0.98) rotate(5deg);
+    }
+
+    100% {
+      transform: scale(1) rotate(0deg);
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .animate-sidebar-icon-pop {
+      animation: sidebar-icon-pop 600ms var(--ease-out-quint);
+      transform-origin: center;
+    }
+  }
+
+  @keyframes superchat-avatar-border {
+
+    0%,
+    100% {
+      border-color: color-mix(in oklch, var(--border) 75%, var(--primary));
+      box-shadow: 0 0 0 0 color-mix(in oklch, var(--primary) 0%, transparent);
+    }
+
+    50% {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 18%, transparent);
+    }
+  }
+
+  .animate-superchat-avatar-border {
+    animation: superchat-avatar-border 1.5s ease-out infinite;
+  }
+
+  .dc-range::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.24);
+  }
+
+  .dc-range::-webkit-slider-thumb {
+    width: 14px;
+    height: 14px;
+    margin-top: -5px;
+    appearance: none;
+    border-radius: 999px;
+    background: #6aa8ff;
+    box-shadow: 0 0 0 0 rgb(106 168 255 / 0);
+    transition: box-shadow 120ms ease, transform 120ms ease;
+  }
+
+  .dc-range:hover::-webkit-slider-thumb {
+    box-shadow: 0 0 0 5px rgb(106 168 255 / 0.14);
+  }
+
+  .dc-range:active::-webkit-slider-thumb {
+    transform: scale(0.94);
+    box-shadow: 0 0 0 6px rgb(106 168 255 / 0.18);
+  }
+
+  .dc-range::-moz-range-track {
+    height: 4px;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.24);
+  }
+
+  .dc-range::-moz-range-progress {
+    height: 4px;
+    border-radius: 999px;
+    background: #6aa8ff;
+  }
+
+  .dc-range::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border: 0;
+    border-radius: 999px;
+    background: #6aa8ff;
+    box-shadow: 0 0 0 0 rgb(106 168 255 / 0);
+    transition: box-shadow 120ms ease, transform 120ms ease;
+  }
+
+  .dc-range:hover::-moz-range-thumb {
+    box-shadow: 0 0 0 5px rgb(106 168 255 / 0.14);
+  }
+
+  .dc-range:active::-moz-range-thumb {
+    transform: scale(0.94);
+    box-shadow: 0 0 0 6px rgb(106 168 255 / 0.18);
+  }
+
+  .dc-color-hue::-webkit-slider-runnable-track {
+    height: 8px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #ff3b30, #ffcc00, #34c759, #00c7ff, #5856d6, #ff2d55, #ff3b30);
+  }
+
+  .dc-color-hue::-webkit-slider-thumb {
+    width: 14px;
+    height: 14px;
+    margin-top: -3px;
+    appearance: none;
+    border: 2px solid rgb(255 255 255 / 0.92);
+    border-radius: 999px;
+    background: transparent;
+    box-shadow: 0 1px 5px rgb(0 0 0 / 0.42);
+  }
+
+  .dc-color-hue::-moz-range-track {
+    height: 8px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #ff3b30, #ffcc00, #34c759, #00c7ff, #5856d6, #ff2d55, #ff3b30);
+  }
+
+  .dc-color-hue::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgb(255 255 255 / 0.92);
+    border-radius: 999px;
+    background: transparent;
+    box-shadow: 0 1px 5px rgb(0 0 0 / 0.42);
+  }
+
+  @keyframes superchat-thinking-wave {
+    0%,
+    100% {
+      opacity: 0.38;
+      transform: scaleY(0.52);
+    }
+    50% {
+      opacity: 0.72;
+      transform: scaleY(0.92);
+    }
+  }
+
+  /* Accessibility: honour OS-level reduced-motion preference.
+     MotionConfig / JS libraries opt-in via matchMedia; this rule covers
+     CSS keyframes (tw-animate-css, animate-spin, custom transitions) that
+     libraries cannot suppress on their own. */
+  @media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+}

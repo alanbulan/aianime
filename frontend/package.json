@@ -11,7 +11,7 @@
     "build:ce": "tsc -b && vite build --mode ce",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:architecture": "vitest run src/__tests__/architecture/module-boundaries.test.ts",
+    "test:architecture": "vitest run src/__tests__/architecture",
     "test:watch": "vitest"
   },
   "dependencies": {
