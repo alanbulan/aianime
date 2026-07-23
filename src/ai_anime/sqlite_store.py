@@ -31,7 +31,6 @@ from ai_anime.models import (
     normalize_detected_props,
     sync_beat_asset_refs,
 )
-from ai_anime.utils.path_resolver import compute_identity_path
 
 console = Console()
 logger = logging.getLogger(__name__)
@@ -1079,27 +1078,6 @@ class SQLiteStore:
         await self._cascade_identity_change(identity_id, None)
         await self._update_character_field(char.name, "identities_json", char.identities_json)
         console.print(f"[green]已删除 {char.name} 的身份: {identity_id}[/green]")
-
-    async def delete_identity_image(self, character_name: str, identity_id: str) -> bool:
-        char = self.get_character(character_name)
-        if not char:
-            raise ValueError(f"角色 {character_name} 不存在")
-        target_identity = next((i for i in char.identities if i.identity_id == identity_id), None)
-        if not target_identity:
-            raise ValueError(f"身份 {identity_id} 不存在")
-        image_path = compute_identity_path(
-            Path(self.project_dir), character_name, target_identity.identity_name
-        )
-        if not image_path:
-            console.print(f"[yellow]身份 {identity_id} 没有图片[/yellow]")
-            return False
-        image_file = Path(image_path)
-        if image_file.exists():
-            image_file.unlink()
-            console.print(f"[green]已删除图片文件: {image_path}[/green]")
-            return True
-        console.print(f"[yellow]图片文件不存在: {image_path}[/yellow]")
-        return False
 
     async def add_episodes(self, episodes: List[NovelEpisode]) -> None:
         db = await self._ensure_db()

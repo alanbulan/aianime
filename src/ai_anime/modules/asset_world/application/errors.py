@@ -13,6 +13,10 @@ class CharacterNotFound(CharacterCatalogRejected):
     """The requested character does not exist."""
 
 
+class CharacterIdentityNotFound(CharacterCatalogRejected):
+    """The requested character identity does not exist."""
+
+
 class InvalidCharacterInput(CharacterCatalogRejected):
     """Character input is not valid for the requested operation."""
 

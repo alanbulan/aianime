@@ -1,6 +1,5 @@
 """角色列表 & 肖像/身份图生成端点。"""
 
-import io
 import logging
 import re
 import shutil
@@ -62,12 +61,13 @@ from ai_anime.modules.asset_world.public import (
     RestoreCharacterAssetCommand,
     UpdateCharacterCommand,
     UpdateIdentityCommand,
-    backup_character_asset,
     character_asset_history_use_cases,
     character_catalog_use_cases,
     character_identity_use_cases,
+    character_image_use_cases,
     character_voice_use_cases,
     find_character_identity,
+    safe_character_asset_name,
 )
 from ai_anime.sqlite_store import SQLiteStore
 
@@ -144,10 +144,6 @@ def _resolve_character_image_model(username: str, project: str, requested_model:
     if model:
         return model
     return _character_image_selection_payload(username, project)["character_image_selection"]
-
-
-def _safe_asset_name(name: str) -> str:
-    return re.sub(r'[/\\:*?"<>|]', "_", str(name or "").strip()) or "untitled"
 
 
 def _asset_url(ctx: ProjectContext, project_dir: Path, abs_path: str | Path) -> str:
@@ -793,30 +789,17 @@ async def upload_portrait(
         await _resolve_character_project(project, user)
     )
 
-    character = store.get_character(name)
-    if character is None:
-        return {"ok": False, "error": f"Character '{name}' not found"}
-
-    from PIL import Image
-
-    content = await file.read()
-    img = Image.open(io.BytesIO(content)).convert("RGB")
-
-    char_dir = project_dir / "assets" / "characters" / name
-    char_dir.mkdir(parents=True, exist_ok=True)
-
-    # 备份旧肖像
-    portrait_path = char_dir / "portrait.png"
-    if portrait_path.exists():
-        ts = datetime.now().strftime("%Y%m%d%H%M%S")
-        backup = char_dir / f"portrait_{ts}.png"
-        shutil.copy(portrait_path, backup)
-
-    img.save(str(portrait_path), format="PNG")
-
-    portrait_url = _asset_url(ctx, project_dir, portrait_path)
-
-    return {"ok": True, "data": {"portrait_url": portrait_url}}
+    try:
+        data = await character_image_use_cases().upload_character_portrait(
+            repository=store,
+            project_dir=project_dir,
+            character_name=name,
+            upload=file,
+            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+        )
+    except CharacterCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.post("/projects/{project}/characters/{name}/identities/{identity_name}/upload")
@@ -833,25 +816,18 @@ async def upload_identity_image(
         await _resolve_character_project(project, user)
     )
 
-    character = store.get_character(name)
-    if character is None:
-        return {"ok": False, "error": f"Character '{name}' not found"}
-
-    from PIL import Image
-
-    content = await file.read()
-    img = Image.open(io.BytesIO(content)).convert("RGB")
-
-    identities_dir = project_dir / "assets" / "characters" / name / "identities"
-    identities_dir.mkdir(parents=True, exist_ok=True)
-
-    img_path = identities_dir / f"{identity_name}.png"
-    backup_character_asset(img_path)
-    img.save(str(img_path), format="PNG")
-
-    image_url = _asset_url(ctx, project_dir, img_path)
-
-    return {"ok": True, "data": {"image_url": image_url}}
+    try:
+        data = await character_image_use_cases().upload_identity_image(
+            repository=store,
+            project_dir=project_dir,
+            character_name=name,
+            identity_name=identity_name,
+            upload=file,
+            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+        )
+    except CharacterCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.post("/projects/{project}/characters/{name}/identities/{identity_id}/image/delete")
@@ -861,11 +837,16 @@ async def delete_identity_image(
     identity_id: str,
     user: dict = Depends(get_api_user),
 ):
-    _ctx, _username, _project_name, _project_dir, _output_dir, store = (
+    _ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_character_project(project, user)
     )
-    deleted = await store.delete_identity_image(name, identity_id)
-    return {"ok": True, "data": {"deleted": deleted}}
+    data = await character_image_use_cases().delete_identity_image(
+        repository=store,
+        project_dir=project_dir,
+        character_name=name,
+        identity_id=identity_id,
+    )
+    return {"ok": True, "data": data}
 
 
 @router.post("/projects/{project}/characters/{name}/identities/{identity_id}/costume/upload")
@@ -876,33 +857,21 @@ async def upload_identity_costume(
     file: UploadFile = File(...),
     user: dict = Depends(get_api_user),
 ):
-    ctx, username, project_name, project_dir, _output_dir, store = (
+    ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_character_project(project, user)
     )
-    character = store.get_character(name)
-    if character is None:
-        return {"ok": False, "error": f"Character '{name}' not found"}
-    identity = find_character_identity(character, identity_id)
-    if identity is None:
-        return {"ok": False, "error": f"Identity '{identity_id}' not found"}
-
-    from PIL import Image
-
-    content = await file.read()
-    img = Image.open(io.BytesIO(content)).convert("RGB")
-    safe_name = _safe_asset_name(identity.identity_name)
-    identities_dir = project_dir / "assets" / "characters" / name / "identities"
-    identities_dir.mkdir(parents=True, exist_ok=True)
-    target = identities_dir / f"{safe_name}_costume.png"
-    if target.exists():
-        backup = identities_dir / f"{safe_name}_costume_{datetime.now():%Y%m%d%H%M%S}.png"
-        shutil.copy(target, backup)
-    img.save(str(target), format="PNG")
-    await store.update_character_identity(name, identity_id, costume_image=str(target))
-    return {
-        "ok": True,
-        "data": {"costume_image_url": _asset_url(ctx, project_dir, target)},
-    }
+    try:
+        data = await character_image_use_cases().upload_identity_costume(
+            repository=store,
+            project_dir=project_dir,
+            character_name=name,
+            identity_id=identity_id,
+            upload=file,
+            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+        )
+    except CharacterCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.post("/projects/{project}/characters/{name}/identities/{identity_id}/costume/delete")
@@ -912,38 +881,19 @@ async def delete_identity_costume(
     identity_id: str,
     user: dict = Depends(get_api_user),
 ):
-    ctx, _username, _project_name, project_dir, _output_dir, store = (
+    _ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_character_project(project, user)
     )
-    character = store.get_character(name)
-    if character is None:
-        return {"ok": False, "error": f"Character '{name}' not found"}
-    identity = find_character_identity(character, identity_id)
-    if identity is None:
-        return {"ok": False, "error": f"Identity '{identity_id}' not found"}
-
-    candidate_paths: list[Path] = []
-    computed = compute_identity_costume_path(project_dir, name, identity.identity_name)
-    if computed:
-        candidate_paths.append(Path(computed))
-    saved = str(getattr(identity, "costume_image", "") or "").strip()
-    if saved:
-        candidate_paths.append(Path(saved))
-
-    deleted = False
-    seen: set[Path] = set()
-    for path in candidate_paths:
-        if path in seen:
-            continue
-        seen.add(path)
-        if path.exists():
-            path.unlink()
-            deleted = True
-
-    await store.update_character_identity(name, identity_id, costume_image="")
-    if hasattr(identity, "costume_image"):
-        setattr(identity, "costume_image", "")
-    return {"ok": True, "data": {"deleted": deleted}}
+    try:
+        data = await character_image_use_cases().delete_identity_costume(
+            repository=store,
+            project_dir=project_dir,
+            character_name=name,
+            identity_id=identity_id,
+        )
+    except CharacterCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.post("/projects/{project}/characters/{name}/identities/{identity_id}/portrait/upload")
@@ -954,33 +904,21 @@ async def upload_identity_portrait(
     file: UploadFile = File(...),
     user: dict = Depends(get_api_user),
 ):
-    ctx, username, project_name, project_dir, _output_dir, store = (
+    ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_character_project(project, user)
     )
-    character = store.get_character(name)
-    if character is None:
-        return {"ok": False, "error": f"Character '{name}' not found"}
-    identity = find_character_identity(character, identity_id)
-    if identity is None:
-        return {"ok": False, "error": f"Identity '{identity_id}' not found"}
-
-    from PIL import Image
-
-    content = await file.read()
-    img = Image.open(io.BytesIO(content)).convert("RGB")
-    safe_name = _safe_asset_name(identity.identity_name)
-    identities_dir = project_dir / "assets" / "characters" / name / "identities"
-    identities_dir.mkdir(parents=True, exist_ok=True)
-    target = identities_dir / f"{name}_{safe_name}_portrait.png"
-    if target.exists():
-        backup = identities_dir / f"{name}_{safe_name}_portrait_{datetime.now():%Y%m%d%H%M%S}.png"
-        shutil.copy(target, backup)
-    img.save(str(target), format="PNG")
-    await store.update_character_identity(name, identity_id, portrait_image=str(target))
-    return {
-        "ok": True,
-        "data": {"portrait_image_url": _asset_url(ctx, project_dir, target)},
-    }
+    try:
+        data = await character_image_use_cases().upload_identity_portrait(
+            repository=store,
+            project_dir=project_dir,
+            character_name=name,
+            identity_id=identity_id,
+            upload=file,
+            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+        )
+    except CharacterCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.post(
@@ -1066,7 +1004,7 @@ async def generate_identity_portrait(
     from ai_anime.generators import generate_character_reference_unified
 
     config = load_project_config(username, project_name)
-    safe_name = _safe_asset_name(identity.identity_name)
+    safe_name = safe_character_asset_name(identity.identity_name)
     identities_dir = project_dir / "assets" / "characters" / name / "identities"
     identities_dir.mkdir(parents=True, exist_ok=True)
     target = identities_dir / f"{name}_{safe_name}_portrait.png"
@@ -1176,7 +1114,7 @@ async def get_identity_attempts(
     identity = find_character_identity(character, identity_id)
     if identity is None:
         return {"ok": False, "error": f"Identity '{identity_id}' not found"}
-    safe_name = _safe_asset_name(identity.identity_name)
+    safe_name = safe_character_asset_name(identity.identity_name)
     identities_dir = project_dir / "assets" / "characters" / name / "identities"
     image_attempts = len(
         [

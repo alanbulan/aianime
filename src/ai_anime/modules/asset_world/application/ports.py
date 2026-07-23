@@ -47,6 +47,69 @@ class CharacterAssetHistoryFiles(Protocol):
     def restore(self, source: Path, target: Path) -> Path | None: ...
 
 
+class CharacterImageRepository(Protocol):
+    def get_character(self, name: str) -> Any | None: ...
+
+    async def update_character_identity(
+        self,
+        character_name: str,
+        identity_id: str,
+        **updates: Any,
+    ) -> Any: ...
+
+
+class CharacterImageUpload(Protocol):
+    async def read(self) -> bytes: ...
+
+
+class CharacterImageFiles(Protocol):
+    def save_character_portrait(
+        self,
+        project_dir: Path,
+        character_name: str,
+        content: bytes,
+    ) -> Path: ...
+
+    def save_identity_image(
+        self,
+        project_dir: Path,
+        character_name: str,
+        identity_name: str,
+        content: bytes,
+    ) -> Path: ...
+
+    def delete_identity_image(
+        self,
+        project_dir: Path,
+        character_name: str,
+        identity_name: str,
+    ) -> bool: ...
+
+    def save_identity_costume(
+        self,
+        project_dir: Path,
+        character_name: str,
+        identity_name: str,
+        content: bytes,
+    ) -> Path: ...
+
+    def delete_identity_costume(
+        self,
+        project_dir: Path,
+        character_name: str,
+        identity_name: str,
+        saved_path: str,
+    ) -> bool: ...
+
+    def save_identity_portrait(
+        self,
+        project_dir: Path,
+        character_name: str,
+        identity_name: str,
+        content: bytes,
+    ) -> Path: ...
+
+
 class CharacterCatalogRepository(Protocol):
     def get_all_characters(self) -> list[Any]: ...
 

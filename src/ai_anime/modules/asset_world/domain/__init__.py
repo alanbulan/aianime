@@ -8,6 +8,7 @@ from ai_anime.modules.asset_world.domain.character_assets import (
     CHARACTER_ASSET_KINDS,
     ensure_character_asset_kind,
     find_character_identity,
+    safe_character_asset_name,
 )
 from ai_anime.modules.asset_world.domain.character_identity import identity_id_for
 from ai_anime.modules.asset_world.domain.character_voice import (
@@ -46,6 +47,7 @@ __all__ = [
     "find_character_identity",
     "identity_id_for",
     "other_main_character_names",
+    "safe_character_asset_name",
     "style_preview_extension",
     "validate_style_preview_media_type",
     "voice_slot_metadata",

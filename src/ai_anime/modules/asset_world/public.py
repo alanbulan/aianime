@@ -10,6 +10,9 @@ from ai_anime.modules.asset_world.application.character_catalog import (
 from ai_anime.modules.asset_world.application.character_identity import (
     CharacterIdentityUseCases,
 )
+from ai_anime.modules.asset_world.application.character_images import (
+    CharacterImageUseCases,
+)
 from ai_anime.modules.asset_world.application.character_voice import (
     CharacterVoiceUseCases,
     character_voice_fields,
@@ -32,6 +35,7 @@ from ai_anime.modules.asset_world.application.errors import (
     CharacterAssetHistoryNotFound,
     CharacterAssetHistoryRejected,
     CharacterCatalogRejected,
+    CharacterIdentityNotFound,
     CharacterNotFound,
     CharacterVoiceNotFound,
     CharacterVoiceRejected,
@@ -55,9 +59,7 @@ from ai_anime.modules.asset_world.domain.character_voice import (
 )
 from ai_anime.modules.asset_world.domain.character_assets import (
     find_character_identity,
-)
-from ai_anime.modules.asset_world.infrastructure.character_asset_history import (
-    backup_character_asset,
+    safe_character_asset_name,
 )
 from ai_anime.modules.asset_world.infrastructure.asset_metadata import (
     newest_path_updated_at,
@@ -107,6 +109,12 @@ def character_identity_use_cases() -> CharacterIdentityUseCases:
     return build()
 
 
+def character_image_use_cases() -> CharacterImageUseCases:
+    from ai_anime.modules.asset_world.composition import character_image_use_cases as build
+
+    return build()
+
+
 def character_voice_use_cases() -> CharacterVoiceUseCases:
     from ai_anime.modules.asset_world.composition import character_voice_use_cases as build
 
@@ -136,7 +144,9 @@ __all__ = [
     "CharacterAssetHistoryUseCases",
     "CharacterCatalogRejected",
     "CharacterCatalogUseCases",
+    "CharacterIdentityNotFound",
     "CharacterIdentityUseCases",
+    "CharacterImageUseCases",
     "CharacterNotFound",
     "CharacterVoiceNotFound",
     "CharacterVoiceRejected",
@@ -163,11 +173,11 @@ __all__ = [
     "UpdateIdentityCommand",
     "VOICE_SAMPLE_EXTENSIONS",
     "analyze_style",
-    "backup_character_asset",
     "character_asset_history_use_cases",
     "character_asset_links",
     "character_catalog_use_cases",
     "character_identity_use_cases",
+    "character_image_use_cases",
     "character_voice_fields",
     "character_voice_use_cases",
     "clear_character_voice_file",
@@ -180,6 +190,7 @@ __all__ = [
     "path_updated_at",
     "persist_character_voice_file",
     "probe_voice_sample_duration_seconds",
+    "safe_character_asset_name",
     "style_catalog_use_cases",
     "style_preview_use_cases",
     "tree_updated_at",

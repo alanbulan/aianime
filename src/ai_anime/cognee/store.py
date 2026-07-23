@@ -61,7 +61,6 @@ def _json_list_payload(values: list[str]) -> str:
 # ============================================================
 from ai_anime.utils.path_resolver import (  # noqa: F401
     compute_portrait_path,
-    compute_identity_path,
     compute_scene_reference_path,
     compute_prop_reference_path,
 )
@@ -1559,44 +1558,6 @@ class CogneeStore:
                 else:
                     ids = [x for x in ids if x != old_id]
                 await self.update_episode(ep.number, identity_ids=ids)
-
-    async def delete_identity_image(
-        self,
-        character_name: str,
-        identity_id: str,
-    ) -> bool:
-        """删除身份图片，保留身份本身。"""
-        char = self.get_character(character_name)
-        if not char:
-            raise ValueError(f"角色 {character_name} 不存在")
-
-        identities = char.identities
-        target_identity = None
-        for identity in identities:
-            if identity.identity_id == identity_id:
-                target_identity = identity
-                break
-
-        if not target_identity:
-            raise ValueError(f"身份 {identity_id} 不存在")
-
-        image_path = compute_identity_path(
-            Path(self.project_dir),
-            character_name,
-            target_identity.identity_name,
-        )
-        if not image_path:
-            console.print(f"[yellow]身份 {identity_id} 没有图片[/yellow]")
-            return False
-
-        image_file = Path(image_path)
-        if image_file.exists():
-            image_file.unlink()
-            console.print(f"[green]已删除图片文件: {image_path}[/green]")
-            return True
-
-        console.print(f"[yellow]图片文件不存在: {image_path}[/yellow]")
-        return False
 
     def get_identity_for_alias(
         self,

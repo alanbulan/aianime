@@ -109,10 +109,6 @@ class _M04Store:
         ]
         return True
 
-    async def delete_identity_image(self, name: str, identity_id: str):
-        await self.update_character_identity(name, identity_id, reference_images=[])
-        return True
-
     async def list_props(self):
         return list(self.props.values())
 

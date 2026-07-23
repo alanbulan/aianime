@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 CHARACTER_ASSET_KINDS = frozenset(
@@ -19,3 +20,7 @@ def find_character_identity(character: Any, identity_id: str) -> Any | None:
         if identity.identity_id == identity_id:
             return identity
     return None
+
+
+def safe_character_asset_name(name: str) -> str:
+    return re.sub(r'[/\\:*?"<>|]', "_", str(name or "").strip()) or "untitled"

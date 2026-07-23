@@ -388,6 +388,21 @@ def test_asset_world_character_asset_history_routes_delegate_to_application() ->
         assert legacy_implementation not in source
 
 
+def test_asset_world_character_image_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "characters.py"
+    source = route.read_text(encoding="utf-8")
+
+    assert "character_image_use_cases" in source
+    for legacy_implementation in (
+        "from PIL import Image",
+        "Image.open(io.BytesIO(",
+        "await store.delete_identity_image(",
+        "def _safe_asset_name",
+        "backup_character_asset",
+    ):
+        assert legacy_implementation not in source
+
+
 def test_narrative_script_route_remains_an_http_adapter() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "scripts.py"
     imported_modules = _imports(route)
