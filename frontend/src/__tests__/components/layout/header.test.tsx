@@ -50,7 +50,7 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("@/stores/auth-store", () => ({
+vi.mock("@/modules/identity_access/public", () => ({
   useAuthStore: () => authState,
 }));
 

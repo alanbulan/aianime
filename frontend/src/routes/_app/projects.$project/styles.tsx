@@ -28,7 +28,7 @@ import {
   useStyleDetail,
   useStyles,
 } from "@/lib/queries/styles";
-import { useProject, useUpdateProject } from "@/lib/queries/projects";
+import { useProject, useUpdateProject } from "@/modules/project_workspace/public";
 import { Button } from "@/components/ui/button";
 import { HeaderRefreshButton } from "@/components/ui/header-refresh-button";
 import {
@@ -1017,7 +1017,7 @@ function StylesPage() {
   const { data: projectRes } = useProject(project);
 
   const styles = stylesRes?.data ?? [];
-  const projectVisualStyle = projectRes?.data?.visual_style;
+  const projectVisualStyle = projectRes?.visual_style;
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);

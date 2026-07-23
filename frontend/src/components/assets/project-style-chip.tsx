@@ -2,7 +2,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useProject } from "@/lib/queries/projects";
+import { useProject } from "@/modules/project_workspace/public";
 import { useStyles } from "@/lib/queries/styles";
 import { cn } from "@/lib/utils";
 import type { Style } from "@/types/style";
@@ -40,7 +40,7 @@ export function ProjectStyleChip({ project, className }: ProjectStyleChipProps) 
   const projectQuery = useProject(project);
   const stylesQuery = useStyles(project);
   const styleId =
-    projectQuery.data?.data.visual_style?.trim() || DEFAULT_VISUAL_STYLE;
+    projectQuery.data?.visual_style?.trim() || DEFAULT_VISUAL_STYLE;
   const styles = stylesQuery.data?.data ?? [];
   const loading =
     projectQuery.isLoading || (stylesQuery.isLoading && !stylesQuery.data);

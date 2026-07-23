@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { QueryClient } from "@tanstack/react-query";
-import { useAuthStore } from "@/stores/auth-store";
+import { useAuthStore } from "@/modules/identity_access/public";
 import { useRegionStore } from "@/stores/region-store";
 import { getRegionCookie, setRegionCookie, clearRegionCookie } from "@/lib/region-cookie";
 
@@ -28,7 +28,9 @@ describe("switchRegion orchestrator", () => {
     // copies of every dependency — including the auth store singleton. Resolve
     // that same instance and spy on its logout so the assertion can observe it.
     const { switchRegion } = await import("@/lib/region-switch");
-    const { useAuthStore: freshAuthStore } = await import("@/stores/auth-store");
+    const { useAuthStore: freshAuthStore } = await import(
+      "@/modules/identity_access/public"
+    );
     const logoutSpy = vi.spyOn(freshAuthStore.getState(), "logout").mockResolvedValue();
     await switchRegion({ newRegionId: "us-1", queryClient: new QueryClient() });
     expect(logoutSpy).toHaveBeenCalled();
@@ -39,7 +41,9 @@ describe("switchRegion orchestrator", () => {
   it("times out a hanging logout after 2s and proceeds", async () => {
     vi.useFakeTimers();
     const { switchRegion } = await import("@/lib/region-switch");
-    const { useAuthStore: freshAuthStore } = await import("@/stores/auth-store");
+    const { useAuthStore: freshAuthStore } = await import(
+      "@/modules/identity_access/public"
+    );
     vi.spyOn(freshAuthStore.getState(), "logout").mockReturnValue(new Promise(() => {}));
     const p = switchRegion({ newRegionId: "us-1", queryClient: new QueryClient() });
     await vi.advanceTimersByTimeAsync(2100);
@@ -53,7 +57,9 @@ describe("switchRegion orchestrator", () => {
     const { tryAcquireNavLock } = await import("@/lib/nav-lock");
     tryAcquireNavLock(); // a prior flow holds the lock
     const { switchRegion } = await import("@/lib/region-switch");
-    const { useAuthStore: freshAuthStore } = await import("@/stores/auth-store");
+    const { useAuthStore: freshAuthStore } = await import(
+      "@/modules/identity_access/public"
+    );
     const logoutSpy = vi.spyOn(freshAuthStore.getState(), "logout");
     await switchRegion({ newRegionId: "us-1", queryClient: new QueryClient() });
     expect(logoutSpy).not.toHaveBeenCalled();

@@ -23,7 +23,7 @@ import { useTasks } from "@/lib/queries/tasks";
 import { TaskCenterProvider } from "@/task-center/provider";
 import { useTaskCenterStore } from "@/task-center/store";
 import { useAppStore } from "@/stores/app-store";
-import { useAuthStore } from "@/stores/auth-store";
+import { useAuthStore } from "@/modules/identity_access/public";
 
 // MockEventSource copy (keeps test file self-contained — upstream stream-client test uses same pattern)
 class MockEventSource {

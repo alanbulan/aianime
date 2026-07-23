@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { clusterConfig } from "@/lib/cluster-config";
-import { useAuthStore } from "@/stores/auth-store";
+import { useAuthStore } from "@/modules/identity_access/public";
 import { useRegionStore } from "@/stores/region-store";
 
 type AuthView = "login" | "authorize";

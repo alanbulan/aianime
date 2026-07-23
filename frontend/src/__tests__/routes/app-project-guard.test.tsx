@@ -34,8 +34,9 @@ const useAuthStoreMock = Object.assign(
   { getState: () => authState },
 );
 
-vi.mock("@/stores/auth-store", () => ({
+vi.mock("@/modules/identity_access/public", () => ({
   useAuthStore: useAuthStoreMock,
+  ensureAuthenticatedForAppRoute: async () => true,
 }));
 
 vi.mock("@/components/layout/header", () => ({ Header: () => null }));
@@ -45,8 +46,10 @@ vi.mock("@/stores/app-store", () => ({
     getState: () => ({ clampDimensionsToViewport: vi.fn() }),
   },
 }));
-vi.mock("@/lib/queries/projects", () => ({
+vi.mock("@/modules/project_workspace/public", () => ({
   useAllProjectSummaries: () => projectSummariesState,
+  canonicalProjectRouteParam: (project: string, projects: Array<{ id: string }>) =>
+    projects.some((candidate) => candidate.id === project) ? project : null,
 }));
 vi.mock("@/stores/region-store", () => ({
   useRegionStore: {

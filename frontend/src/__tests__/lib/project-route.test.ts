@@ -1,6 +1,9 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
-import { canonicalProjectRouteParam, replaceProjectPathParam } from "@/lib/project-route";
+import {
+  canonicalProjectRouteParam,
+  replaceProjectPathParam,
+} from "@/modules/project_workspace/domain/project-route";
 
 describe("project route canonicalization", () => {
   const projects = [

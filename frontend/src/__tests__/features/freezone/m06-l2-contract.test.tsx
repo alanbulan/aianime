@@ -19,7 +19,7 @@ import { pushToPipeline } from "@/api/push";
 import { createStreamClient } from "@/task-center/stream-client";
 import { useTaskStream } from "@/hooks/use-task-stream";
 import { useStartIngest } from "@/modules/story_intake/public";
-import { useAuthStore } from "@/stores/auth-store";
+import { useAuthStore } from "@/modules/identity_access/public";
 
 vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost/" }),

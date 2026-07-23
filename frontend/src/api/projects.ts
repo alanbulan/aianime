@@ -4,34 +4,6 @@ import type { PushTarget } from "./push";
 import type { MainlineContext } from "@/features/freezone/context/mainlineContext";
 import type { SceneAsset } from "@/types/scene";
 
-// AI anime `/api/v1/projects` returns a list of project summaries belonging
-// to the authenticated user. Shape based on
-// AI anime/src/ai_anime/api/routes/projects.py:27-44.
-
-export interface AiAnimeProjectSummary {
-  id: string;
-  name: string;
-  display_name?: string;
-  created_at?: string;
-  updated_at?: string;
-  episode_count?: number;
-  [key: string]: unknown;
-}
-
-export async function listAiAnimeProjects(): Promise<AiAnimeProjectSummary[]> {
-  return await apiCall<AiAnimeProjectSummary[]>("projects");
-}
-
-export interface AiAnimeProjectDetail extends AiAnimeProjectSummary {
-  config?: Record<string, unknown>;
-}
-
-export async function getAiAnimeProject(projectId: string): Promise<AiAnimeProjectDetail> {
-  return await apiCall<AiAnimeProjectDetail>(
-    `projects/${encodeURIComponent(projectId)}`,
-  );
-}
-
 // ---------- Characters ---------- //
 
 export interface AiAnimeIdentity {

@@ -1,8 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { LoginPage } from "@/components/login-page";
-import { useAuthStore } from "@/stores/auth-store";
-import { ensureAuthenticatedForAppRoute } from "@/lib/auth-mode";
+import {
+  ensureAuthenticatedForAppRoute,
+  useAuthStore,
+} from "@/modules/identity_access/public";
 import { clusterConfig } from "@/lib/cluster-config";
 import { getRegionCookie } from "@/lib/region-cookie";
 import { authRequired } from "@/lib/runtime-config";

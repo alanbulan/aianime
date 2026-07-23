@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useQueryClient, type QueryKey } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { useAuthStore } from "@/stores/auth-store";
+import { useAuthStore } from "@/modules/identity_access/public";
 import {
   backendErrorToastMessage,
   errorFromBackendBody,

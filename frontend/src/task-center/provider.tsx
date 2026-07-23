@@ -5,7 +5,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
-import { useAuthStore } from "@/stores/auth-store";
+import { useAuthStore } from "@/modules/identity_access/public";
 import { useAppStore } from "@/stores/app-store";
 import { queryKeys } from "@/lib/query-keys";
 import { api } from "@/shared/api/transport";

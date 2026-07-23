@@ -222,9 +222,9 @@ vi.mock("@/components/ui/select", async () => {
   };
 });
 
-vi.mock("@/lib/queries/projects", () => ({
+vi.mock("@/modules/project_workspace/public", () => ({
   useProject: () => ({
-    data: { ok: true, data: mocks.projectConfig },
+    data: mocks.projectConfig,
   }),
   useUpdateProject: () => ({
     mutateAsync: mocks.updateProject,

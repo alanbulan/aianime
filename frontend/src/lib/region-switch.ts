@@ -5,7 +5,7 @@ import { broadcastSwitching } from "@/lib/region-tab-sync";
 import { regionAbortController, resetRegionAbortController } from "@/lib/region-abort";
 import { resetRegionState } from "@/lib/reset-region-state";
 import { setRegionCookie } from "@/lib/region-cookie";
-import { useAuthStore } from "@/stores/auth-store";
+import { useAuthStore } from "@/modules/identity_access/public";
 import { useRegionStore } from "@/stores/region-store";
 
 const LOGOUT_TIMEOUT_MS = 2000;

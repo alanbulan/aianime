@@ -1,6 +1,8 @@
 // Copyright (c) 2026 AI anime
-import { isCeRuntime } from "@/lib/runtime-config";
-import type { ProjectRole, ProjectSummary } from "@/types/project";
+import type {
+  ProjectRole,
+  ProjectSummary,
+} from "@/modules/project_workspace/domain/project";
 
 const ROLE_RANK: Record<ProjectRole, number> = {
   viewer: 10,
@@ -17,10 +19,7 @@ export function roleAllows(actual: ProjectRole | undefined, required: ProjectRol
   return ROLE_RANK[actual ?? "viewer"] >= ROLE_RANK[required];
 }
 
-export function canManageProjectGrants(summary: ProjectSummary): boolean {
-  // CE 没有项目分享/grants 概念（AllowAllProjectAccess 恒返回 owner，角色门控会误显
-  // EE-only 入口）。edition 门控走运行时 isCeRuntime()，与 credit-balance-badge 同机制。
-  if (isCeRuntime()) return false;
+export function roleCanManageProjectGrants(summary: ProjectSummary): boolean {
   return roleAllows(projectRole(summary), "admin");
 }
 
@@ -44,4 +43,3 @@ export function projectRoleLabel(role: ProjectRole | undefined): string {
       return "所有者";
   }
 }
-

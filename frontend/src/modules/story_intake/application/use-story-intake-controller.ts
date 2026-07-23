@@ -13,7 +13,7 @@ import {
 } from "@/shared/api/errors";
 import { queryKeys } from "@/lib/query-keys";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
-import { useProject, useUpdateProject } from "@/lib/queries/projects";
+import { useProject, useUpdateProject } from "@/modules/project_workspace/public";
 import { useStyles } from "@/lib/queries/styles";
 import { useCancelTask, useTasks } from "@/lib/queries/tasks";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
@@ -280,7 +280,7 @@ export function createUseStoryIntakeController(
     const { data: projectRes } = useProject(project);
     const { data: stylesRes } = useStyles(project);
     const updateProject = useUpdateProject(project);
-    const config = projectRes?.data;
+    const config = projectRes;
     const normalizedDefaults = normalizeLegacyDefaults(config);
     const visualStyleOptions = useMemo(() => {
       const styles = stylesRes?.data ?? [];
@@ -304,7 +304,7 @@ export function createUseStoryIntakeController(
     const formValues = watch();
     const settingsValues = resolveIngestSettings(formValues, normalizedDefaults);
     const settingsChanged =
-      projectRes?.data !== undefined &&
+      projectRes !== undefined &&
       hasIngestSettingsChanges(settingsValues, config);
     const spineTemplateLabel =
       SPINE_TEMPLATE_OPTIONS.find((opt) => opt.value === settingsValues.spine_template)

@@ -13,14 +13,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { normalizeLastEpisodeLocation, useEpisodeWorkbenchStore } from "@/stores/episode-workbench-store";
 import {
+  isRememberedSection,
   PROJECT_SECTION_ROUTES,
   projectModeFromPath,
   projectSectionFromPath,
-} from "@/components/layout/project-navigation-routes";
-import { normalizeLastEpisodeLocation, useEpisodeWorkbenchStore } from "@/stores/episode-workbench-store";
-import { isRememberedSection, useProjectNavStore } from "@/stores/project-nav-store";
-import { useAllProjectSummaries } from "@/lib/queries/projects";
+  useAllProjectSummaries,
+  useProjectNavigationStore,
+} from "@/modules/project_workspace/public";
 import { getProjectCover } from "@/lib/project-cover";
 import { cn } from "@/lib/utils";
 
@@ -205,8 +206,10 @@ export function ProjectHeaderNavigation({ project }: { project: string }) {
   );
   const setLastEpisodeLocation = useEpisodeWorkbenchStore((state) => state.setLastEpisodeLocation);
   const clearLastEpisodeLocation = useEpisodeWorkbenchStore((state) => state.clearLastEpisodeLocation);
-  const rememberSection = useProjectNavStore((state) => state.rememberSection);
-  const lastWorkspaceSection = useProjectNavStore(
+  const rememberSection = useProjectNavigationStore(
+    (state) => state.rememberSection,
+  );
+  const lastWorkspaceSection = useProjectNavigationStore(
     (state) => state.lastWorkspaceSectionByProject[project],
   );
 

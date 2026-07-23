@@ -43,7 +43,7 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useAuthStore } from "@/stores/auth-store";
+import { useAuthStore } from "@/modules/identity_access/public";
 import { cn } from "@/lib/utils";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { api } from "@/shared/api/transport";

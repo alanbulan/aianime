@@ -3,7 +3,11 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { quotaSafeStateStorage } from "@/lib/localStorageQuota";
 
-import type { ProjectSection } from "@/components/layout/project-navigation-routes";
+import {
+  isRememberedSection,
+  type ProjectSection,
+  type WorkspaceSection,
+} from "@/modules/project_workspace/domain/project-navigation";
 
 /**
  * 记住每个项目的导航位置：
@@ -13,27 +17,6 @@ import type { ProjectSection } from "@/components/layout/project-navigation-rout
  *   顶部切到「AI anime 工作台」时恢复到这里，而不是固定落到素材导入。
  */
 
-/** 可被记忆的区块：AI anime 画布 + AI anime 工作台五个子页（tasks 等其它路由不参与记忆）。 */
-const REMEMBERED_SECTIONS = new Set<ProjectSection>([
-  "freezone",
-  "ingest",
-  "characters",
-  "episodes",
-  "assistant",
-  "styles",
-]);
-
-export type WorkspaceSection = Exclude<
-  ProjectSection,
-  "freezone" | "tasks"
->;
-
-export function isRememberedSection(
-  section: ProjectSection | null,
-): section is ProjectSection {
-  return section !== null && REMEMBERED_SECTIONS.has(section);
-}
-
 interface ProjectNavState {
   lastSectionByProject: Record<string, ProjectSection>;
   lastWorkspaceSectionByProject: Record<string, WorkspaceSection>;
@@ -41,14 +24,14 @@ interface ProjectNavState {
   reset: () => void;
 }
 
-export const useProjectNavStore = create<ProjectNavState>()(
+export const useProjectNavigationStore = create<ProjectNavState>()(
   persist(
     (set) => ({
       lastSectionByProject: {},
       lastWorkspaceSectionByProject: {},
       rememberSection: (project, section) =>
         set((state) => {
-          if (!project || !REMEMBERED_SECTIONS.has(section)) return state;
+          if (!project || !isRememberedSection(section)) return state;
           const next: Partial<ProjectNavState> = {
             lastSectionByProject: {
               ...state.lastSectionByProject,

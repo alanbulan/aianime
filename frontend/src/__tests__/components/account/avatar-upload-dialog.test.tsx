@@ -6,14 +6,14 @@ import { AvatarUploadDialog } from "@/components/account/avatar-upload-dialog";
 
 const authState = vi.hoisted(() => ({
   avatarUrl: null as string | null,
-  setAvatarUrl: vi.fn(),
+  uploadAvatar: vi.fn(),
 }));
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-vi.mock("@/stores/auth-store", () => ({
+vi.mock("@/modules/identity_access/public", () => ({
   useAuthStore: (selector?: (s: typeof authState) => unknown) =>
     selector ? selector(authState) : authState,
 }));
@@ -46,14 +46,8 @@ function selectFile() {
 describe("AvatarUploadDialog", () => {
   beforeEach(() => {
     authState.avatarUrl = null;
-    authState.setAvatarUrl.mockReset();
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => ({
-        ok: true,
-        json: async () => ({ ok: true, data: { avatar_url: "/static/avatars/u1/avatar_x.png?v=1" } }),
-      })),
-    );
+    authState.uploadAvatar.mockReset();
+    authState.uploadAvatar.mockResolvedValue(undefined);
     // jsdom lacks createObjectURL
     vi.stubGlobal("URL", {
       ...URL,
@@ -68,7 +62,7 @@ describe("AvatarUploadDialog", () => {
     expect(save).toBeDisabled();
   });
 
-  it("uploads the selected file and updates the store", async () => {
+  it("delegates the selected file to the identity boundary", async () => {
     const onOpenChange = vi.fn();
     render(
       <AvatarUploadDialog avatarInitial="A" displayName="admin" open onOpenChange={onOpenChange} />,
@@ -81,12 +75,10 @@ describe("AvatarUploadDialog", () => {
     fireEvent.click(save);
 
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith(
-        "/api/v1/account/avatar",
-        expect.objectContaining({ method: "POST", credentials: "include" }),
+      expect(authState.uploadAvatar).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "me.png", type: "image/png" }),
       );
     });
-    expect(authState.setAvatarUrl).toHaveBeenCalledWith("/static/avatars/u1/avatar_x.png?v=1");
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });

@@ -3,7 +3,7 @@ import {
   buildProjectionFromPreset,
   type FreezonePresetCanvasRequest,
 } from "@/api/canvas";
-import { useAuthStore } from "@/stores/auth-store";
+import { useAuthStore } from "@/modules/identity_access/public";
 import { getAppRouter } from "@/lib/app-router";
 import { writeUrl } from "@/lib/url-params";
 import {

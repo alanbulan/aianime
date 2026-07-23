@@ -1,7 +1,9 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ensureAuthenticatedForAppRoute, isLocalAuthMode } from "@/lib/auth-mode";
-import { useAuthStore } from "@/stores/auth-store";
+import {
+  ensureAuthenticatedForAppRoute,
+  useAuthStore,
+} from "@/modules/identity_access/public";
 
 const runtimeState = vi.hoisted(() => ({ authRequired: true }));
 
@@ -17,13 +19,7 @@ beforeEach(() => {
   localStorage.clear();
 });
 
-describe("auth mode", () => {
-  it("defaults to cookie mode", () => {
-    vi.stubEnv("VITE_AUTH_MODE", "cookie");
-
-    expect(isLocalAuthMode()).toBe(false);
-  });
-
+describe("application route authentication", () => {
   it("does not authenticate an empty auth-required runtime session", async () => {
     vi.stubEnv("VITE_AUTH_MODE", "cookie");
     runtimeState.authRequired = true;

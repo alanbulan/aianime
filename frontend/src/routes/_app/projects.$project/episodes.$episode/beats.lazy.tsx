@@ -28,7 +28,7 @@ import {
   useRebuildPoolIndex,
   useRegenerateSketches,
 } from "@/lib/queries/sketches";
-import { useProject, useUpdateProject } from "@/lib/queries/projects";
+import { useProject, useUpdateProject } from "@/modules/project_workspace/public";
 import { useProjectAspectRatio } from "@/stores/aspect-ratio-store";
 import {
   aspectRatioForOrientation,
@@ -128,7 +128,8 @@ function BeatsTabContent() {
   useRegisterEpisodeActionsSlot(beats.length > 0);
   const identityIds = episodeRes?.data?.identity_ids ?? [];
   const identityPlanReady = identityIds.length > 0;
-  const isNarratedProject = projectConfigRes.data?.data?.spine_template === "narrated";
+  const isNarratedProject =
+    projectConfigRes.data?.spine_template === "narrated";
 
   // URL deep-link
   const {
@@ -234,17 +235,17 @@ function BeatsTabContent() {
   );
   useEffect(() => {
     setVideoBackendState(
-      projectConfigRes.data?.data?.video_backend || DEFAULT_VIDEO_BACKEND,
+      projectConfigRes.data?.video_backend || DEFAULT_VIDEO_BACKEND,
     );
-  }, [projectConfigRes.data?.data?.video_backend]);
+  }, [projectConfigRes.data?.video_backend]);
   useEffect(() => {
     const persistedOrientation = orientationForAspectRatio(
-      projectConfigRes.data?.data?.aspect_ratio,
+      projectConfigRes.data?.aspect_ratio,
     );
     if (persistedOrientation && persistedOrientation !== orientation) {
       setOrientation(persistedOrientation);
     }
-  }, [orientation, projectConfigRes.data?.data?.aspect_ratio, setOrientation]);
+  }, [orientation, projectConfigRes.data?.aspect_ratio, setOrientation]);
   const handleVideoBackendChange = useCallback(
     (backend: string) => {
       if (!backend) return;

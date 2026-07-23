@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { Canvas } from "@/features/canvas/Canvas";
 import { NodeReplaceDragPreview } from "@/features/canvas/ui/NodeReplaceDragPreview";
-import type { AiAnimeProjectSummary } from "@/api/projects";
+import type { ProjectSummary } from "@/modules/project_workspace/public";
 import {
   buildProjectionFromPreset,
   getProjectionStatuses,
@@ -83,7 +83,7 @@ import type { CanvasEdge, CanvasNode } from "@/stores/canvasStore";
 export { hasLegacyPresetCanvasMetadata } from "@/features/freezone/projections";
 
 interface FreezoneShellProps {
-  project: AiAnimeProjectSummary;
+  project: ProjectSummary;
   canvasId: string;
 }
 

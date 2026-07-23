@@ -11,6 +11,25 @@ export const PROJECT_SECTION_ROUTES = {
 } as const;
 
 export type ProjectSection = keyof typeof PROJECT_SECTION_ROUTES;
+export type WorkspaceSection = Exclude<
+  ProjectSection,
+  "freezone" | "tasks"
+>;
+
+const REMEMBERED_SECTIONS = new Set<ProjectSection>([
+  "freezone",
+  "ingest",
+  "characters",
+  "episodes",
+  "assistant",
+  "styles",
+]);
+
+export function isRememberedSection(
+  section: ProjectSection | null,
+): section is ProjectSection {
+  return section !== null && REMEMBERED_SECTIONS.has(section);
+}
 
 export function projectSectionFromPath(pathname: string): ProjectSection | null {
   const segment = pathname.match(/^\/projects\/[^/]+\/([^/]+)/)?.[1];

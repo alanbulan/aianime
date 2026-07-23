@@ -21,7 +21,7 @@ import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
 import { TaskCenterProvider } from "@/task-center/provider";
 import { useTaskCenterStore } from "@/task-center/store";
 import { useAppStore } from "@/stores/app-store";
-import { useAuthStore } from "@/stores/auth-store";
+import { useAuthStore } from "@/modules/identity_access/public";
 import { useTaskSubscribe } from "@/task-center/use-task-subscribe";
 import { queryKeys } from "@/lib/query-keys";
 import type { TaskState } from "@/task-center/types";

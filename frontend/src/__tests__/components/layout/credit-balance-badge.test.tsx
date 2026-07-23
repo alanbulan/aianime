@@ -17,7 +17,7 @@ vi.mock("@/lib/runtime-config", () => ({
   isCeRuntime: () => runtimeState.isCeRuntime,
 }));
 
-vi.mock("@/stores/auth-store", () => ({
+vi.mock("@/modules/identity_access/public", () => ({
   useAuthStore: (
     selector: (state: { username: string | null; role: string | null }) => unknown,
   ) =>
@@ -25,9 +25,6 @@ vi.mock("@/stores/auth-store", () => ({
       username: authState.username,
       role: authState.username ? "viewer" : null,
     }),
-}));
-
-vi.mock("@/lib/queries/auth", () => ({
   useCurrentUser: (enabled: boolean) => ({
     data:
       enabled && currentUserState.balance !== undefined

@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { useAuthStore } from "@/stores/auth-store";
+import { useAuthStore } from "@/modules/identity_access/public";
 import { regionAbortController, resetRegionAbortController } from "@/lib/region-abort";
 
 beforeEach(() => {

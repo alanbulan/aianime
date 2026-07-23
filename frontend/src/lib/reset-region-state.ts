@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import type { QueryClient } from "@tanstack/react-query";
 import { useAspectRatioStore } from "@/stores/aspect-ratio-store";
-import { useAuthStore } from "@/stores/auth-store";
+import { useAuthStore } from "@/modules/identity_access/public";
 import { useEpisodeWorkbenchStore } from "@/stores/episode-workbench-store";
 import { useSaveStatusStore } from "@/stores/save-status-store";
 import { useSeenPoolStore } from "@/stores/seen-pool-store";

@@ -1,5 +1,5 @@
 import type { Chapter } from "@/types/episode";
-import type { SpineTemplate } from "@/types/project";
+import type { SpineTemplate } from "@/modules/project_workspace/public";
 
 export interface FormatCheckIssue {
   code: string;

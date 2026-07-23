@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { Toaster } from "sonner";
 
-import { projectSectionFromPath } from "@/components/layout/project-navigation-routes";
+import { projectSectionFromPath } from "@/modules/project_workspace/public";
 import { useAppStore } from "@/stores/app-store";
 
 const APP_HEADER_HEIGHT = 48;

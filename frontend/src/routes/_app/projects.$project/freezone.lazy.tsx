@@ -3,7 +3,6 @@ import { createLazyFileRoute, useRouterState } from "@tanstack/react-router";
 import { ReactFlowProvider } from "@xyflow/react";
 import { useEffect, useMemo, useState } from "react";
 
-import type { AiAnimeProjectSummary } from "@/api/projects";
 import { GlobalErrorDialog } from "@/components/GlobalErrorDialog";
 import {
   subscribeOpenGlobalErrorDialog,
@@ -11,9 +10,9 @@ import {
 } from "@/features/app/errorDialogEvents";
 import { FreezoneShell } from "@/features/freezone/FreezoneShell";
 import { canvasIdForFreezoneEntry } from "@/features/freezone/projections";
-import { useAllProjectSummaries } from "@/lib/queries/projects";
+import { useAllProjectSummaries } from "@/modules/project_workspace/public";
 import { readLastCanvas, writeUrl } from "@/lib/url-params";
-import { useAuthStore } from "@/stores/auth-store";
+import { useAuthStore } from "@/modules/identity_access/public";
 
 function FreezoneProjectRoute() {
   const { project } = Route.useParams();
@@ -35,23 +34,12 @@ function FreezoneProjectRoute() {
 
   useEffect(() => subscribeOpenGlobalErrorDialog(setGlobalError), []);
 
-  const freezoneProjects = useMemo<AiAnimeProjectSummary[]>(
-    () =>
-      (projects ?? []).map((item) => ({
-        id: item.id,
-        name: item.name,
-        display_name: item.name,
-        updated_at: item.updatedAt,
-        episode_count: item.episodeCount,
-      })),
-    [projects],
-  );
   const matchedProject = useMemo(
     () =>
-      freezoneProjects.find((item) => item.id === project) ??
-      freezoneProjects.find((item) => item.name === project) ??
+      projects?.find((item) => item.id === project) ??
+      projects?.find((item) => item.name === project) ??
       null,
-    [freezoneProjects, project],
+    [projects, project],
   );
 
   if (isLoading || !projects) {

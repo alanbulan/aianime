@@ -1,4 +1,7 @@
-import type { ProjectConfig, SpineTemplate } from "@/types/project";
+import type {
+  ProjectConfig,
+  SpineTemplate,
+} from "@/modules/project_workspace/public";
 
 export const INGEST_SETTING_FIELDS = [
   "spine_template",

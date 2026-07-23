@@ -11,7 +11,10 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { quotaSafeStateStorage } from "@/lib/localStorageQuota";
-import type { ProjectStatus } from "@/types/project";
+import type {
+  ProjectDashboardViewMode,
+  ProjectStatus,
+} from "@/modules/project_workspace/public";
 
 export const TASK_PANEL_HEIGHT_MIN = 200;
 export const TASK_PANEL_HEIGHT_DEFAULT = 400;
@@ -21,13 +24,11 @@ export const AI_ASSISTANT_WIDTH_DEFAULT = 640;
 export const AI_ASSISTANT_WIDTH_MAX = 760;
 
 export type Theme = "system" | "light" | "dark";
-export type DashboardView = "card" | "list";
-
 interface AppState {
   language: string;
   theme: Theme;
   dashboardTab: ProjectStatus;
-  dashboardView: DashboardView;
+  dashboardView: ProjectDashboardViewMode;
   taskPanelOpen: boolean;
   taskPanelHeight: number;
   aiAssistantOpen: boolean;
@@ -36,7 +37,7 @@ interface AppState {
   setLanguage: (lang: string) => void;
   setTheme: (theme: Theme) => void;
   setDashboardTab: (tab: ProjectStatus) => void;
-  setDashboardView: (view: DashboardView) => void;
+  setDashboardView: (view: ProjectDashboardViewMode) => void;
   setTaskPanelOpen: (open: boolean) => void;
   setTaskPanelHeight: (h: number) => void;
   setAiAssistantOpen: (open: boolean) => void;

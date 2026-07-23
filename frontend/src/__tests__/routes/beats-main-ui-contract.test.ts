@@ -156,7 +156,7 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
 
     expect(route).toContain("useProject(project)");
     expect(route).toContain("useUpdateProject(project)");
-    expect(route).toContain("projectConfigRes.data?.data?.video_backend");
+    expect(route).toContain("projectConfigRes.data?.video_backend");
     expect(route).toContain("handleVideoBackendChange");
     expect(route).toContain("video_backend: backend");
     expect(route).not.toContain('"video-backend"');
@@ -166,11 +166,13 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
     const route = read(
       "src/routes/_app/projects.$project/episodes.$episode/beats.lazy.tsx",
     );
-    const projectTypes = read("src/types/project.ts");
+    const projectTypes = read(
+      "src/modules/project_workspace/domain/project.ts",
+    );
 
     expect(projectTypes).toContain('aspect_ratio?: "2:3" | "9:16" | "16:9"');
     expect(route).toContain("orientationForAspectRatio");
-    expect(route).toContain("projectConfigRes.data?.data?.aspect_ratio");
+    expect(route).toContain("projectConfigRes.data?.aspect_ratio");
     expect(route).toContain("aspect_ratio: aspectRatioForOrientation");
   });
 
@@ -184,7 +186,9 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
     const batchPanel = read("src/components/episode/beat-workbench/batch-panel.tsx");
     const videoPane = read("src/components/episode/beat-workbench/video-pane.tsx");
     const videoQuery = read("src/lib/queries/video.ts");
-    const projectTypes = read("src/types/project.ts");
+    const projectTypes = read(
+      "src/modules/project_workspace/domain/project.ts",
+    );
 
     expect(projectTypes).toContain("use_director_render?: boolean");
     expect(videoQuery).toContain("use_director_render?: boolean");

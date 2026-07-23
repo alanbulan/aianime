@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useMemo } from "react";
 import { useEpisodeBeats } from "@/lib/queries/episodes";
-import { useProject } from "@/lib/queries/projects";
+import { useProject } from "@/modules/project_workspace/public";
 import { useTasks } from "@/lib/queries/tasks";
 import { deriveBeatStates } from "@/lib/derive-beat-states";
 import type { BeatStates, EpisodeCounts, StageCount } from "@/types/beat-state";
@@ -27,7 +27,7 @@ export function useBeatStates(project: string, episode: number): UseBeatStatesRe
   // 精品剧 (spine_template === "drama") bakes narration into the rendered video,
   // so per-beat audio is not a compose prerequisite for it.
   const configRes = useProject(project);
-  const requireAudio = configRes.data?.data?.spine_template !== "drama";
+  const requireAudio = configRes.data?.spine_template !== "drama";
 
   return useMemo(() => {
     const beats = beatsRes.data?.data ?? [];

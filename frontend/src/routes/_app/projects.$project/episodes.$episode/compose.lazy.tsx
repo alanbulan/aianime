@@ -14,7 +14,7 @@ import {
 
 import { useComposeEpisode, useFinalVideo } from "@/lib/queries/video";
 import { useEpisodeBeats, useEpisodeDetail } from "@/lib/queries/episodes";
-import { useProject, useUpdateProject } from "@/lib/queries/projects";
+import { useProject, useUpdateProject } from "@/modules/project_workspace/public";
 import { useTaskController } from "@/hooks/use-task-controller";
 import { useBeatStates } from "@/hooks/use-beat-states";
 import { queryKeys } from "@/lib/query-keys";
@@ -130,7 +130,7 @@ function ComposeTabContent() {
   const updateProject = useUpdateProject(project);
   const finalVideoRes = useFinalVideo(project, epNum);
   const canCompose = counts.compose.ready;
-  const projectConfig = projectConfigRes.data?.data;
+  const projectConfig = projectConfigRes.data;
   const orientation = orientationForAspectRatio(projectConfig?.aspect_ratio) ?? "portrait";
 
   const [addSubtitles, setAddSubtitles] = useState(true);

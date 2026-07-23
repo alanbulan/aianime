@@ -28,7 +28,7 @@ import { NotificationDrawer } from "@/components/notifications/notification-draw
 import { BRAND_NAME, BrandMark } from "@/components/brand";
 import { SettingsDialog } from "@/components/settings/settings-dialog";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAuthStore } from "@/stores/auth-store";
+import { useAuthStore } from "@/modules/identity_access/public";
 import { useAppStore } from "@/stores/app-store";
 import { authRequired, isCeRuntime } from "@/lib/runtime-config";
 import { resetUserSessionState } from "@/lib/reset-region-state";

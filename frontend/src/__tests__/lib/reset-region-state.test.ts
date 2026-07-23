@@ -5,7 +5,7 @@ import {
   resetRegionState,
   resetUserSessionState,
 } from "@/lib/reset-region-state";
-import { useAuthStore } from "@/stores/auth-store";
+import { useAuthStore } from "@/modules/identity_access/public";
 import { useSaveStatusStore } from "@/stores/save-status-store";
 import { useSeenPoolStore } from "@/stores/seen-pool-store";
 import { useEpisodeWorkbenchStore } from "@/stores/episode-workbench-store";

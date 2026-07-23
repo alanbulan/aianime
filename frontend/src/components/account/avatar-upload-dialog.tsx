@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ImagePlus, Loader2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuthStore } from "@/stores/auth-store";
+import { useAuthStore } from "@/modules/identity_access/public";
 import {
   Dialog,
   DialogContent,
@@ -32,7 +32,7 @@ export function AvatarUploadDialog({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const currentAvatarUrl = useAuthStore((s) => s.avatarUrl);
-  const setAvatarUrl = useAuthStore((s) => s.setAvatarUrl);
+  const uploadAvatar = useAuthStore((s) => s.uploadAvatar);
 
   useEffect(() => {
     return () => {
@@ -76,19 +76,7 @@ export function AvatarUploadDialog({
     setSaving(true);
     setError(null);
     try {
-      const form = new FormData();
-      form.append("file", selectedFile);
-      const res = await fetch("/api/v1/account/avatar", {
-        method: "POST",
-        credentials: "include",
-        body: form,
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.detail || t("header.account.avatarDialog.error"));
-      }
-      const body = await res.json();
-      setAvatarUrl(body.data?.avatar_url ?? null);
+      await uploadAvatar(selectedFile);
       onOpenChange(false);
       resetState();
     } catch (e) {

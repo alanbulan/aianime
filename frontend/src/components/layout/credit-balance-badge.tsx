@@ -8,10 +8,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useCurrentUser } from "@/lib/queries/auth";
+import { useAuthStore, useCurrentUser } from "@/modules/identity_access/public";
 import { isCeRuntime } from "@/lib/runtime-config";
 import { cn } from "@/lib/utils";
-import { useAuthStore } from "@/stores/auth-store";
 
 function formatFullCredits(value: number, language: string): string {
   return new Intl.NumberFormat(language, { maximumFractionDigits: 0 }).format(value);

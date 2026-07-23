@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AuthAdapterError, authAdapter } from "@/lib/auth-adapter";
+import { IdentityRequestError } from "@/modules/identity_access/application/errors";
+import { httpIdentityGateway } from "@/modules/identity_access/infrastructure/http-identity-gateway";
 import { resetRegionAbortController } from "@/lib/region-abort";
 
-describe("authAdapter", () => {
+describe("httpIdentityGateway", () => {
   beforeEach(() => {
     resetRegionAbortController();
     vi.unstubAllGlobals();
@@ -19,7 +20,9 @@ describe("authAdapter", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(authAdapter.login("alice", "secret")).resolves.toMatchObject({
+    await expect(
+      httpIdentityGateway.login("alice", "secret"),
+    ).resolves.toMatchObject({
       username: "alice",
       role: "owner",
     });
@@ -43,7 +46,7 @@ describe("authAdapter", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    await authAdapter.authorize("AUTH-001");
+    await httpIdentityGateway.authorize("AUTH-001");
 
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/v1/auth/authorize",
@@ -51,21 +54,49 @@ describe("authAdapter", () => {
     );
   });
 
+  it("uploads avatars through the identity gateway", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ok: true,
+        data: { avatar_url: "/static/avatars/alice/avatar.png" },
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const file = new File(["image"], "avatar.png", { type: "image/png" });
+
+    await expect(httpIdentityGateway.uploadAvatar(file)).resolves.toBe(
+      "/static/avatars/alice/avatar.png",
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/account/avatar",
+      expect.objectContaining({
+        method: "POST",
+        credentials: "include",
+        body: expect.any(FormData),
+      }),
+    );
+  });
+
   it("preserves an HTTP status when the error response has no JSON body", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 502 }));
 
-    const error = await authAdapter.getCurrentUser().catch((reason) => reason);
+    const error = await httpIdentityGateway
+      .getCurrentUser()
+      .catch((reason) => reason);
 
-    expect(error).toBeInstanceOf(AuthAdapterError);
+    expect(error).toBeInstanceOf(IdentityRequestError);
     expect(error).toMatchObject({ status: 502 });
   });
 
   it("marks transport failures separately from authentication failures", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
 
-    const error = await authAdapter.getCurrentUser().catch((reason) => reason);
+    const error = await httpIdentityGateway
+      .getCurrentUser()
+      .catch((reason) => reason);
 
-    expect(error).toBeInstanceOf(AuthAdapterError);
+    expect(error).toBeInstanceOf(IdentityRequestError);
     expect(error).toMatchObject({ status: null, message: "offline" });
   });
 });

@@ -16,7 +16,7 @@ import {
   useUpdateEpisode,
 } from "@/lib/queries/episodes";
 import { useCharacters } from "@/lib/queries/characters";
-import { useProject } from "@/lib/queries/projects";
+import { useProject } from "@/modules/project_workspace/public";
 import { useGenerateRewrite, useGenerateScript } from "@/lib/queries/scripts";
 import { useTaskController } from "@/hooks/use-task-controller";
 import { queryKeys } from "@/lib/query-keys";
@@ -143,7 +143,7 @@ function ScriptTabContent() {
   const sceneMenu = episodeData?.scene_menu ?? [];
   const propMenu = episodeData?.prop_menu ?? [];
   const beats = beatsRes?.data ?? [];
-  const isNarratedProject = projectRes?.data?.spine_template === "narrated";
+  const isNarratedProject = projectRes?.spine_template === "narrated";
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const [assetCategory, setAssetCategory] =

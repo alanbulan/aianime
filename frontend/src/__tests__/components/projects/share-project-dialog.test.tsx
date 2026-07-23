@@ -1,23 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { ShareProjectDialog } from "@/components/projects/share-project-dialog";
-import type { ProjectSummary } from "@/types/project";
-
-const runtimeState = vi.hoisted(() => ({ isCeRuntime: false }));
-
-vi.mock("@/lib/runtime-config", () => ({
-  isCeRuntime: () => runtimeState.isCeRuntime,
-}));
-
-vi.mock("@/lib/queries/projects", () => ({
-  useProjectGrants: () => ({ data: { data: [] } }),
-  useUserSearch: () => ({ data: { data: [] } }),
-  useAddProjectGrant: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useUpdateProjectGrant: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useDeleteProjectGrant: () => ({ mutateAsync: vi.fn(), isPending: false }),
-}));
+import type { ShareProjectController } from "@/modules/project_workspace/application/use-share-project-controller";
+import type { ProjectSummary } from "@/modules/project_workspace/domain/project";
+import { ShareProjectDialogView } from "@/modules/project_workspace/presentation/components/share-project-dialog";
 
 const project = {
   id: "p1",
@@ -26,25 +13,46 @@ const project = {
   effectiveRole: "owner",
 } as ProjectSummary;
 
-function renderDialog() {
+const controller = {
+  add: vi.fn(),
+  addPending: false,
+  changeRole: vi.fn(),
+  copyLink: vi.fn(),
+  deletePending: false,
+  existingPrincipalIds: new Set<string>(),
+  grantRows: [],
+  grantsLoading: false,
+  query: "",
+  revoke: vi.fn(),
+  role: "editor",
+  searchResults: [],
+  selectedUser: null,
+  setQuery: vi.fn(),
+  setRole: vi.fn(),
+  setSelectedUser: vi.fn(),
+  updatePending: false,
+} as unknown as ShareProjectController;
+
+function renderDialog(enabled: boolean) {
   return render(
-    <ShareProjectDialog project={project} open onOpenChange={() => {}} />,
+    <ShareProjectDialogView
+      controller={controller}
+      enabled={enabled}
+      project={project}
+      open
+      onOpenChange={() => {}}
+    />,
   );
 }
 
-describe("ShareProjectDialog (edition gating)", () => {
-  beforeEach(() => {
-    runtimeState.isCeRuntime = false;
-  });
-
-  it("renders the share dialog in EE runtime", () => {
-    renderDialog();
+describe("ShareProjectDialogView edition gating", () => {
+  it("renders when project sharing is enabled", () => {
+    renderDialog(true);
     expect(screen.getByText("共享项目")).toBeInTheDocument();
   });
 
-  it("renders nothing in CE runtime", () => {
-    runtimeState.isCeRuntime = true;
-    const { container } = renderDialog();
+  it("renders nothing when project sharing is disabled", () => {
+    const { container } = renderDialog(false);
     expect(container.firstChild).toBeNull();
     expect(screen.queryByText("共享项目")).not.toBeInTheDocument();
   });

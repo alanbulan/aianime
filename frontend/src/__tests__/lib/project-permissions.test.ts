@@ -3,9 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   canDeleteProject,
-  canManageProjectGrants,
-} from "@/lib/project-permissions";
-import type { ProjectRole, ProjectSummary } from "@/types/project";
+} from "@/modules/project_workspace/domain/project-permissions";
+import { canManageProjectGrants } from "@/modules/project_workspace/composition";
+import type {
+  ProjectRole,
+  ProjectSummary,
+} from "@/modules/project_workspace/domain/project";
 
 const runtimeState = vi.hoisted(() => ({ isCeRuntime: false }));
 

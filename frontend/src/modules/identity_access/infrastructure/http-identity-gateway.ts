@@ -1,30 +1,8 @@
 import { regionAbortController } from "@/lib/region-abort";
+import { IdentityRequestError } from "@/modules/identity_access/application/errors";
+import type { IdentityGateway } from "@/modules/identity_access/application/ports";
+import type { CurrentUser } from "@/modules/identity_access/domain/session";
 import type { OkResponse } from "@/types/api";
-
-export interface CurrentUser {
-  username: string;
-  role: string;
-  credit_balance: number;
-  credential_kind?: string;
-  avatar_url?: string | null;
-}
-
-export class AuthAdapterError extends Error {
-  constructor(
-    message: string,
-    readonly status: number | null,
-  ) {
-    super(message);
-    this.name = "AuthAdapterError";
-  }
-}
-
-export interface AuthAdapter {
-  login: (username: string, password: string) => Promise<CurrentUser>;
-  authorize: (code: string) => Promise<CurrentUser>;
-  logout: () => Promise<void>;
-  getCurrentUser: () => Promise<CurrentUser>;
-}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
@@ -35,7 +13,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       signal: regionAbortController().signal,
     });
   } catch (error) {
-    throw new AuthAdapterError(error instanceof Error ? error.message : String(error), null);
+    throw new IdentityRequestError(
+      error instanceof Error ? error.message : String(error),
+      null,
+    );
   }
 
   if (!response.ok) {
@@ -45,7 +26,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
         | { error?: string; detail?: string }
         | null;
     }
-    throw new AuthAdapterError(
+    throw new IdentityRequestError(
       body?.error || body?.detail || `Authentication failed (${response.status})`,
       response.status,
     );
@@ -54,7 +35,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export const authAdapter: AuthAdapter = {
+export const httpIdentityGateway: IdentityGateway = {
   async login(username, password) {
     const body = await request<OkResponse<CurrentUser>>("/api/v1/auth/login", {
       method: "POST",
@@ -77,5 +58,29 @@ export const authAdapter: AuthAdapter = {
   async getCurrentUser() {
     const body = await request<OkResponse<CurrentUser>>("/api/v1/auth/me");
     return body.data;
+  },
+  async getAvatarUrl() {
+    try {
+      const response = await fetch("/api/v1/account/avatar", {
+        credentials: "include",
+        signal: regionAbortController().signal,
+      });
+      if (!response.ok) return undefined;
+      const body = (await response.json()) as {
+        data?: { avatar_url?: string | null };
+      };
+      return body.data?.avatar_url ?? null;
+    } catch {
+      return undefined;
+    }
+  },
+  async uploadAvatar(file) {
+    const form = new FormData();
+    form.append("file", file);
+    const body = await request<OkResponse<{ avatar_url?: string | null }>>(
+      "/api/v1/account/avatar",
+      { method: "POST", body: form },
+    );
+    return body.data.avatar_url ?? null;
   },
 };

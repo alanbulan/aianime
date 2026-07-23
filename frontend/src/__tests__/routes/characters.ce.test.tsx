@@ -68,15 +68,12 @@ vi.mock("@/hooks/use-assets-deep-link", () => ({
   useAssetsDeepLink: () => ({ type: null, id: null, select: vi.fn() }),
 }));
 
-vi.mock("@/lib/queries/projects", () => ({
+vi.mock("@/modules/project_workspace/public", () => ({
   useProject: () => ({
     data: {
-      ok: true,
-      data: {
-        visual_style: "ink",
-        spine_template: "drama",
-        narration_style: "third_person",
-      },
+      visual_style: "ink",
+      spine_template: "drama",
+      narration_style: "third_person",
     },
   }),
   useUpdateProject: () => ({ mutateAsync: vi.fn(), isPending: false }),

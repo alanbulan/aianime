@@ -79,8 +79,8 @@ vi.mock("@/lib/queries/styles", () => ({
   useUploadStylePreview: () => ({ mutateAsync: styleMutationMocks.upload, isPending: false }),
 }));
 
-vi.mock("@/lib/queries/projects", () => ({
-  useProject: () => ({ data: { ok: true, data: { visual_style: "ink" } } }),
+vi.mock("@/modules/project_workspace/public", () => ({
+  useProject: () => ({ data: { visual_style: "ink" } }),
   useUpdateProject: mutation,
 }));
 

@@ -22,15 +22,18 @@ export interface ProjectConfig {
   sketch_aspect_padding?: boolean;
 }
 
-export type Project = string;
-
-// Project lifecycle states. Mutually exclusive.
-//   active   — working state (default)
-//   archived — parked for reference, hidden from Active view
-//   deleted  — soft-deleted, recoverable from Trash
 export type ProjectStatus = "active" | "archived" | "deleted";
 
 export type ProjectRole = "viewer" | "editor" | "admin" | "owner";
+
+export type ProjectLifecycleAction =
+  | "archive"
+  | "unarchive"
+  | "delete"
+  | "restore"
+  | "purge";
+
+export type ProjectDashboardViewMode = "card" | "list";
 
 export interface ProjectSummary {
   id: string;
@@ -46,5 +49,24 @@ export interface ProjectSummary {
   updatedAt?: string; // ISO8601 timestamp — latest mutation on the project
   episodeCount?: number; // number of planned episodes (null for Trash)
   beatCount?: number; // number of beats across all episodes (null for Trash)
-  // TODO(backend): createdAt when API returns it.
+}
+
+export interface CreatedProject {
+  id: string;
+  name: string;
+}
+
+export interface ProjectGrant {
+  id: string;
+  projectId: string;
+  principalType: "user" | "team";
+  principalId: string;
+  principalUsername?: string;
+  role: Exclude<ProjectRole, "owner">;
+  createdAt?: string;
+}
+
+export interface UserSearchResult {
+  id: string;
+  username: string;
 }

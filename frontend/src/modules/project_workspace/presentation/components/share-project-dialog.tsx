@@ -1,7 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { useMemo, useState } from "react";
 import { Copy, Loader2, ShieldCheck, Trash2, UserPlus, Users } from "lucide-react";
-import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,26 +17,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  useAddProjectGrant,
-  useDeleteProjectGrant,
-  useProjectGrants,
-  useUpdateProjectGrant,
-  useUserSearch,
-  type ProjectGrant,
-  type UserSearchResult,
-} from "@/lib/queries/projects";
-import { projectRoleLabel } from "@/lib/project-permissions";
-import { isCeRuntime } from "@/lib/runtime-config";
 import { cn } from "@/lib/utils";
-import type { ProjectRole, ProjectSummary } from "@/types/project";
+import type { ShareProjectController } from "@/modules/project_workspace/application/use-share-project-controller";
+import { projectRoleLabel } from "@/modules/project_workspace/domain/project-permissions";
+import type {
+  ProjectGrant,
+  ProjectRole,
+  ProjectSummary,
+} from "@/modules/project_workspace/domain/project";
 
 type GrantRole = Exclude<ProjectRole, "owner">;
 
 const GRANT_ROLES: GrantRole[] = ["viewer", "editor", "admin"];
 
 function grantDisplayName(grant: ProjectGrant): string {
-  return grant.principal_username || grant.principal_id;
+  return grant.principalUsername || grant.principalId;
 }
 
 function roleCaption(role: GrantRole): string {
@@ -52,83 +45,40 @@ function roleCaption(role: GrantRole): string {
   }
 }
 
-function projectLink(project: ProjectSummary): string {
-  if (typeof window === "undefined") return `/projects/${project.id}/ingest`;
-  return `${window.location.origin}/projects/${project.id}/ingest`;
-}
-
-export function ShareProjectDialog({
+export function ShareProjectDialogView({
+  controller,
+  enabled,
   project,
   open,
   onOpenChange,
 }: {
+  controller: ShareProjectController;
+  enabled: boolean;
   project: ProjectSummary | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [query, setQuery] = useState("");
-  const [selectedUser, setSelectedUser] = useState<UserSearchResult | null>(null);
-  const [role, setRole] = useState<GrantRole>("editor");
-  const projectId = project?.id ?? "";
-  const grants = useProjectGrants(projectId, open && Boolean(projectId));
-  const users = useUserSearch(query);
-  const addGrant = useAddProjectGrant(projectId);
-  const updateGrant = useUpdateProjectGrant(projectId);
-  const deleteGrant = useDeleteProjectGrant(projectId);
+  if (!enabled) return null;
 
-  const searchResults = users.data?.data ?? [];
-  const grantRows = grants.data?.data ?? [];
-  const existingPrincipalIds = useMemo(
-    () => new Set(grantRows.map((grant) => grant.principal_id)),
-    [grantRows],
-  );
-
-  const handleAdd = async () => {
-    const username = selectedUser?.username || query.trim();
-    if (!username || username.length < 3) return;
-    try {
-      await addGrant.mutateAsync({ principal_username: username, role });
-      toast.success("已更新共享成员");
-      setQuery("");
-      setSelectedUser(null);
-      setRole("editor");
-    } catch {
-      toast.error("共享失败，请确认用户存在且你有权限");
-    }
-  };
-
-  const handleCopyLink = async () => {
-    if (!project) return;
-    try {
-      await navigator.clipboard.writeText(projectLink(project));
-      toast.success("项目链接已复制");
-    } catch {
-      toast.error("复制失败");
-    }
-  };
-
-  const handleRoleChange = async (grant: ProjectGrant, nextRole: GrantRole) => {
-    if (grant.role === nextRole) return;
-    try {
-      await updateGrant.mutateAsync({ grantId: grant.id, role: nextRole });
-      toast.success("权限已更新");
-    } catch {
-      toast.error("更新权限失败");
-    }
-  };
-
-  const handleRevoke = async (grant: ProjectGrant) => {
-    try {
-      await deleteGrant.mutateAsync(grant.id);
-      toast.success("已移除共享成员");
-    } catch {
-      toast.error("移除失败");
-    }
-  };
-
-  // EE-only 入口：CE 运行时直接不渲染（防御性兜底，主门控在 canManageProjectGrants）。
-  // 守卫放在所有 hooks 之后，避免违反 Rules of Hooks。
-  if (isCeRuntime()) return null;
+  const {
+    add,
+    addPending,
+    changeRole,
+    copyLink,
+    deletePending,
+    existingPrincipalIds,
+    grantRows,
+    grantsLoading,
+    query,
+    revoke,
+    role,
+    searchResults,
+    selectedUser,
+    setQuery,
+    setRole,
+    setSelectedUser,
+    updatePending,
+  } = controller;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -150,7 +100,7 @@ export function ShareProjectDialog({
                 <div className="text-sm font-medium text-foreground">添加成员</div>
                 <div className="mt-1 text-xs text-muted-foreground">输入用户名，选择权限后加入项目。</div>
               </div>
-              <Button variant="outline" size="sm" onClick={handleCopyLink} disabled={!project}>
+              <Button variant="outline" size="sm" onClick={copyLink} disabled={!project}>
                 <Copy className="size-3.5" />
                 复制链接
               </Button>
@@ -205,8 +155,8 @@ export function ShareProjectDialog({
                   ))}
                 </SelectContent>
               </Select>
-              <Button onClick={handleAdd} disabled={addGrant.isPending || query.trim().length < 3}>
-                {addGrant.isPending ? <Loader2 className="size-4 animate-spin" /> : <UserPlus className="size-4" />}
+              <Button onClick={add} disabled={addPending || query.trim().length < 3}>
+                {addPending ? <Loader2 className="size-4 animate-spin" /> : <UserPlus className="size-4" />}
                 添加
               </Button>
             </div>
@@ -225,13 +175,13 @@ export function ShareProjectDialog({
                   <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">所有者</span>
                 </div>
               )}
-              {grants.isLoading && (
+              {grantsLoading && (
                 <div className="flex items-center gap-2 rounded-[10px] border border-border bg-muted px-3 py-3 text-sm text-muted-foreground">
                   <Loader2 className="size-4 animate-spin" />
                   加载成员
                 </div>
               )}
-              {!grants.isLoading && grantRows.map((grant) => (
+              {!grantsLoading && grantRows.map((grant) => (
                 <div key={grant.id} className="flex items-center gap-3 rounded-[10px] border border-border bg-muted px-3 py-2.5">
                   <Users className="size-4 text-muted-foreground" />
                   <div className="min-w-0 flex-1">
@@ -240,8 +190,8 @@ export function ShareProjectDialog({
                   </div>
                   <Select
                     value={grant.role}
-                    onValueChange={(value) => void handleRoleChange(grant, value as GrantRole)}
-                    disabled={updateGrant.isPending}
+                    onValueChange={(value) => void changeRole(grant, value as GrantRole)}
+                    disabled={updatePending}
                   >
                     <SelectTrigger size="sm" className="w-24 rounded-[8px]">
                       <SelectValue>
@@ -259,8 +209,8 @@ export function ShareProjectDialog({
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    onClick={() => void handleRevoke(grant)}
-                    disabled={deleteGrant.isPending}
+                    onClick={() => void revoke(grant)}
+                    disabled={deletePending}
                     aria-label="移除成员"
                   >
                     <Trash2 className="size-4 text-destructive" />

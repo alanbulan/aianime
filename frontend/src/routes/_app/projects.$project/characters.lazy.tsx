@@ -62,7 +62,7 @@ import {
   BillingRuleNotConfiguredError,
 } from "@/shared/api/errors";
 import { useCharacterImageSelection } from "@/lib/queries/character-image-selection";
-import { useProject } from "@/lib/queries/projects";
+import { useProject } from "@/modules/project_workspace/public";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import { isCeRuntime } from "@/lib/runtime-config";
 import { useMediaQuery } from "@/hooks/use-media-query";
@@ -3100,7 +3100,7 @@ function CharactersPageContent() {
   });
 
   const characters = charsRes?.data ?? [];
-  const projectConfig = projectRes?.data;
+  const projectConfig = projectRes;
   const savedImageModel =
     imageSelectionRes?.data.character_image_selection ?? "";
   const narratorMain = useMemo(

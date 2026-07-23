@@ -6,12 +6,12 @@ import { describe, expect, it } from "vitest";
 
 const SRC_ROOT = resolve(process.cwd(), "src");
 const MODULES_ROOT = resolve(SRC_ROOT, "modules");
+const sourceFilesCache = new Map<string, string[]>();
+const importSpecifiersCache = new Map<string, string[]>();
 
 // Existing routes are migrated context by context. Their direct data imports
 // may decrease, but no route may exceed this measured baseline.
 const LEGACY_ROUTE_DATA_IMPORT_MAX: Record<string, number> = {
-  "routes/_app.tsx": 1,
-  "routes/_app/index.tsx": 1,
   "routes/_app/projects.$project/characters.lazy.tsx": 6,
   "routes/_app/projects.$project/episodes.$episode/beats.lazy.tsx": 8,
   "routes/_app/projects.$project/episodes.$episode/compose.lazy.tsx": 4,
@@ -23,12 +23,16 @@ const LEGACY_ROUTE_DATA_IMPORT_MAX: Record<string, number> = {
 };
 
 function sourceFiles(root: string): string[] {
+  const cached = sourceFilesCache.get(root);
+  if (cached) return cached;
   if (!existsSync(root)) return [];
-  return readdirSync(root, { withFileTypes: true }).flatMap((entry) => {
+  const files = readdirSync(root, { withFileTypes: true }).flatMap((entry) => {
     const path = resolve(root, entry.name);
     if (entry.isDirectory()) return sourceFiles(path);
     return /\.(ts|tsx)$/.test(entry.name) ? [path] : [];
   });
+  sourceFilesCache.set(root, files);
+  return files;
 }
 
 function relativeSource(path: string): string {
@@ -36,6 +40,8 @@ function relativeSource(path: string): string {
 }
 
 function importSpecifiers(path: string): string[] {
+  const cached = importSpecifiersCache.get(path);
+  if (cached) return cached;
   const source = ts.createSourceFile(
     path,
     readFileSync(path, "utf8"),
@@ -62,6 +68,7 @@ function importSpecifiers(path: string): string[] {
     ts.forEachChild(node, visit);
   };
   visit(source);
+  importSpecifiersCache.set(path, imports);
   return imports;
 }
 
@@ -109,6 +116,24 @@ describe("frontend architecture boundaries", () => {
     expect(route).not.toContain("useState(");
     expect(route).not.toContain("useQuery(");
     expect(route).not.toContain("useMutation(");
+  });
+
+  it("keeps the app shell and Project Workspace route as adapters", () => {
+    const appRoute = readFileSync(resolve(SRC_ROOT, "routes/_app.tsx"), "utf8");
+    const projectRoute = readFileSync(
+      resolve(SRC_ROOT, "routes/_app/index.tsx"),
+      "utf8",
+    );
+
+    expect(appRoute).toContain('import { AppLayout } from "@/app/AppLayout";');
+    expect(appRoute).not.toContain("useEffect(");
+    expect(appRoute).not.toContain("useState(");
+    expect(projectRoute).toContain(
+      'import { ProjectDashboardPage } from "@/modules/project_workspace/public";',
+    );
+    expect(projectRoute).not.toContain("useQuery(");
+    expect(projectRoute).not.toContain("useMutation(");
+    expect(projectRoute).not.toContain("useState(");
   });
 
   it("keeps new modules on the declared dependency direction", () => {
@@ -239,5 +264,70 @@ describe("frontend architecture boundaries", () => {
     expect(existsSync(resolve(SRC_ROOT, "lib/queries/ingest.ts"))).toBe(false);
     expect(internalImportFailures).toEqual([]);
     expect(directEndpointFailures).toEqual([]);
+  });
+
+  it("keeps Identity & Access callers on its public API", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/identity_access");
+    const externalSources = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.startsWith(moduleRoot))
+      .filter((path) => !relativeSource(path).startsWith("__tests__/"));
+    const internalImportFailures = externalSources.flatMap((path) =>
+      importSpecifiers(path)
+        .filter(
+          (specifier) =>
+            specifier.startsWith("@/modules/identity_access/") &&
+            specifier !== "@/modules/identity_access/public",
+        )
+        .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+    );
+    const directEndpointFailures = externalSources
+      .filter((path) =>
+        /["']\/api\/v1\/(?:auth\/(?:login|authorize|logout|me)|account\/avatar)/.test(
+          readFileSync(path, "utf8"),
+        ),
+      )
+      .map(relativeSource);
+
+    expect(existsSync(resolve(SRC_ROOT, "stores/auth-store.ts"))).toBe(false);
+    expect(existsSync(resolve(SRC_ROOT, "lib/auth-adapter.ts"))).toBe(false);
+    expect(existsSync(resolve(SRC_ROOT, "lib/auth-mode.ts"))).toBe(false);
+    expect(existsSync(resolve(SRC_ROOT, "lib/queries/auth.ts"))).toBe(false);
+    expect(internalImportFailures).toEqual([]);
+    expect(directEndpointFailures).toEqual([]);
+  });
+
+  it("keeps Project Workspace callers on its public API", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/project_workspace");
+    const externalSources = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.startsWith(moduleRoot))
+      .filter((path) => !relativeSource(path).startsWith("__tests__/"));
+    const internalImportFailures = externalSources.flatMap((path) =>
+      importSpecifiers(path)
+        .filter(
+          (specifier) =>
+            specifier.startsWith("@/modules/project_workspace/") &&
+            specifier !== "@/modules/project_workspace/public",
+        )
+        .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+    );
+    const directLifecycleEndpointFailures = externalSources
+      .filter((path) =>
+        /api\/v1\/projects(?:\/summaries|\/[^/`$]+\/(?:archive|unarchive|delete|restore|purge|grants))/.test(
+          readFileSync(path, "utf8"),
+        ),
+      )
+      .map(relativeSource);
+
+    for (const legacyPath of [
+      "lib/queries/projects.ts",
+      "lib/project-route.ts",
+      "lib/project-permissions.ts",
+      "stores/project-nav-store.ts",
+      "types/project.ts",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, legacyPath))).toBe(false);
+    }
+    expect(internalImportFailures).toEqual([]);
+    expect(directLifecycleEndpointFailures).toEqual([]);
   });
 });

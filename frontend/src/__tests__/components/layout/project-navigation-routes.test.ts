@@ -5,7 +5,7 @@ import {
   PROJECT_SECTION_ROUTES,
   projectModeFromPath,
   projectSectionFromPath,
-} from "@/components/layout/project-navigation-routes";
+} from "@/modules/project_workspace/domain/project-navigation";
 
 describe("project navigation routes", () => {
   it("uses freezone as the project dashboard entry", () => {
