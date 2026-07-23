@@ -8,6 +8,22 @@ from typing import Any, Mapping
 
 
 @dataclass(frozen=True)
+class CreateCharacterCommand:
+    name: str
+    role: str = ""
+    is_main: bool = False
+    gender: str = ""
+    age_group: str = "youth"
+    description: str = ""
+    face_prompt: str = ""
+
+
+@dataclass(frozen=True)
+class UpdateCharacterCommand:
+    fields: Mapping[str, Any]
+
+
+@dataclass(frozen=True)
 class StyleScope:
     username: str
     project_name: str | None = None

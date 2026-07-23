@@ -1,4 +1,4 @@
-"""Helpers for asset metadata exposed by the REST API."""
+"""Filesystem metadata helpers for Asset & World projections."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from typing import Iterable
 
 
 def utc_iso(value: object) -> str:
-    """Return an ISO 8601 UTC timestamp string for SQLite/Python date values."""
+    """Return an ISO 8601 UTC timestamp string for date-like values."""
     if value is None:
         return ""
     if isinstance(value, datetime):
@@ -27,7 +27,12 @@ def utc_iso(value: object) -> str:
             return str(value or "")
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return (
+        dt.astimezone(timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
 
 
 def path_updated_at(path: str | Path | None) -> str:
@@ -37,7 +42,9 @@ def path_updated_at(path: str | Path | None) -> str:
     if not candidate.exists():
         return ""
     try:
-        return utc_iso(datetime.fromtimestamp(candidate.stat().st_mtime, tz=timezone.utc))
+        return utc_iso(
+            datetime.fromtimestamp(candidate.stat().st_mtime, tz=timezone.utc)
+        )
     except OSError:
         return ""
 

@@ -8,7 +8,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Query
 
-from ai_anime.api.asset_metadata import newest_updated_at, tree_updated_at, utc_iso
+from ai_anime.modules.asset_world.public import newest_updated_at, tree_updated_at, utc_iso
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import (
     make_sqlite_store,

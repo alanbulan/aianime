@@ -7,14 +7,12 @@ import shutil
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import quote, urlencode
 
 from fastapi import APIRouter, Depends, UploadFile, File
 from fastapi.responses import JSONResponse
 
 logger = logging.getLogger("ai_anime.api.characters")
 
-from ai_anime.api.asset_metadata import newest_updated_at, tree_updated_at
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import (
     make_sqlite_store,
@@ -62,10 +60,16 @@ from ai_anime.utils.path_resolver import (
     canonical_identity_portrait_path,
 )
 from ai_anime.modules.asset_world.public import (
+    CharacterCatalogRejected,
     CharacterVoiceRejected,
-    character_voice_fields,
+    CreateCharacterCommand,
+    UpdateCharacterCommand,
+    character_asset_links,
+    character_catalog_use_cases,
     character_voice_use_cases,
     identity_voice_fields,
+    newest_updated_at,
+    tree_updated_at,
 )
 from ai_anime.sqlite_store import SQLiteStore
 
@@ -289,48 +293,6 @@ async def _sync_restored_identity_asset(
         )
 
 
-def _character_asset_links(
-    *,
-    project: str,
-    character_name: str,
-    kind: str,
-    identity_id: str = "",
-) -> dict[str, str]:
-    query = {"kind": kind}
-    if identity_id:
-        query["identity_id"] = identity_id
-    base = f"/api/v1/projects/{quote(project, safe='')}/characters/{quote(character_name, safe='')}"
-    return {
-        "history_url": f"{base}/asset-history?{urlencode(query)}",
-        "restore_url": f"{base}/asset-history/restore",
-    }
-
-
-async def _unset_other_main_characters(store: SQLiteStore, name: str) -> None:
-    """Keep the project on the same single narrator-main semantics as NiceGUI."""
-    for character in store.get_all_characters():
-        if character.name != name and getattr(character, "is_main", False):
-            await store.update_character(character.name, is_main=False)
-
-
-async def _repair_duplicate_main_characters(store: SQLiteStore, characters: list) -> list:
-    """Repair legacy data that still has multiple narrator-main characters."""
-    seen_main = False
-    repaired = []
-    for character in characters:
-        if not getattr(character, "is_main", False):
-            repaired.append(character)
-            continue
-        if not seen_main:
-            seen_main = True
-            repaired.append(character)
-            continue
-        await store.update_character(character.name, is_main=False)
-        character.is_main = False
-        repaired.append(character)
-    return repaired
-
-
 @router.get("/projects/{project}/characters")
 async def list_characters(
     project: str,
@@ -341,43 +303,13 @@ async def list_characters(
         await _resolve_character_project(project, user, required_role="viewer")
     )
 
-    characters = await _repair_duplicate_main_characters(store, store.get_all_characters())
-
-    data = []
     asset_project = getattr(ctx, "project_id", "") or project
-    for c in characters:
-        abs_portrait = compute_portrait_path(project_dir, c.name)
-        item = {
-            "name": c.name,
-            "aliases": c.aliases if hasattr(c, "aliases") else [],
-            "description": c.description if hasattr(c, "description") else "",
-            "role": getattr(c, "role", ""),
-            "gender": getattr(c, "gender", ""),
-            "age_group": getattr(c, "age_group", ""),
-            "body_type": getattr(c, "body_type", ""),
-            "face_prompt": getattr(c, "face_prompt", ""),
-            "is_main": c.is_main if hasattr(c, "is_main") else False,
-            "portrait_path": abs_portrait,
-            "portrait_url": _asset_url(ctx, project_dir, abs_portrait) if abs_portrait else "",
-            "updated_at": newest_updated_at(
-                getattr(c, "updated_at", ""),
-                tree_updated_at(project_dir / "assets" / "characters" / c.name),
-            ),
-        }
-        item.update(
-            _character_asset_links(
-                project=asset_project,
-                character_name=c.name,
-                kind="portrait",
-            )
-        )
-        item.update(
-            character_voice_fields(
-                c,
-                media_url=_character_voice_media_url(ctx, project_dir),
-            )
-        )
-        data.append(item)
+    data = await character_catalog_use_cases().list_characters(
+        repository=store,
+        project_dir=project_dir,
+        asset_project=asset_project,
+        asset_url=lambda path: _asset_url(ctx, project_dir, path),
+    )
 
     return {"ok": True, "data": data}
 
@@ -394,41 +326,14 @@ async def add_character(
         await _resolve_character_project(project, user)
     )
 
-    from ai_anime.models import NovelCharacter
-
-    # 检查角色是否已存在
-    existing = store.get_character(body.name)
-    if existing is not None:
-        return {"ok": False, "error": f"Character '{body.name}' already exists"}
-
-    if body.is_main:
-        await _unset_other_main_characters(store, body.name)
-
-    char = NovelCharacter(
-        name=body.name,
-        role=body.role,
-        is_main=body.is_main,
-        gender=body.gender,
-        age_group=body.age_group,
-        description=body.description,
-        face_prompt=body.face_prompt,
-    )
-    await store.add_character(char)
-
-    return {
-        "ok": True,
-        "data": char.model_dump(
-            include={
-                "name",
-                "role",
-                "is_main",
-                "gender",
-                "age_group",
-                "description",
-                "face_prompt",
-            }
-        ),
-    }
+    try:
+        data = await character_catalog_use_cases().create_character(
+            repository=store,
+            command=CreateCharacterCommand(**body.model_dump()),
+        )
+    except CharacterCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.post("/projects/{project}/characters/build")
@@ -641,20 +546,20 @@ async def get_character_identities(
                 ),
             }
             item.update(
-                _character_asset_links(
+                character_asset_links(
                     project=asset_project,
                     character_name=target.name,
                     kind="identity",
                     identity_id=getattr(ident, "identity_id", ""),
                 )
             )
-            item["costume_history_url"] = _character_asset_links(
+            item["costume_history_url"] = character_asset_links(
                 project=asset_project,
                 character_name=target.name,
                 kind="identity_costume",
                 identity_id=getattr(ident, "identity_id", ""),
             )["history_url"]
-            item["portrait_history_url"] = _character_asset_links(
+            item["portrait_history_url"] = character_asset_links(
                 project=asset_project,
                 character_name=target.name,
                 kind="identity_portrait",
@@ -780,45 +685,16 @@ async def update_character(
         await _resolve_character_project(project, user)
     )
 
-    character = store.get_character(name)
-    if character is None:
-        return {"ok": False, "error": f"Character '{name}' not found"}
-
-    updates = body.model_dump(exclude_none=True)
-    requested_name = None
-    if "name" in updates:
-        requested_name = str(updates.pop("name") or "").strip()
-        if not requested_name:
-            return {"ok": False, "error": "Character name cannot be empty"}
-
-    updated_fields: list[str] = []
-    renamed_from = None
-    target_name = name
-
-    if requested_name and requested_name != name:
-        if store.get_character(requested_name) is not None:
-            return {"ok": False, "error": f"Character '{requested_name}' already exists"}
-        try:
-            await store.rename_character(name, requested_name)
-        except ValueError as exc:
-            return {"ok": False, "error": str(exc)}
-        target_name = requested_name
-        renamed_from = name
-        updated_fields.append("name")
-
-    if not updates and not updated_fields:
-        return {"ok": True, "data": {"message": "No fields to update"}}
-
-    if updates.get("is_main") is True:
-        await _unset_other_main_characters(store, target_name)
-
-    if updates:
-        await store.update_character(target_name, **updates)
-        updated_fields.extend(updates.keys())
-
-    data = {"name": target_name, "updated_fields": updated_fields}
-    if renamed_from:
-        data["renamed_from"] = renamed_from
+    try:
+        data = await character_catalog_use_cases().update_character(
+            repository=store,
+            character_name=name,
+            command=UpdateCharacterCommand(
+                fields=body.model_dump(exclude_none=True)
+            ),
+        )
+    except CharacterCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
     return {"ok": True, "data": data}
 
 
@@ -832,12 +708,14 @@ async def delete_character(
     _ctx, _username, _project_name, _project_dir, _output_dir, store = (
         await _resolve_character_project(project, user)
     )
-    character = store.get_character(name)
-    if character is None:
-        return {"ok": False, "error": f"Character '{name}' not found"}
-
-    await store.delete_character(name)
-    return {"ok": True, "data": {"name": name, "deleted": True}}
+    try:
+        data = await character_catalog_use_cases().delete_character(
+            repository=store,
+            character_name=name,
+        )
+    except CharacterCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.get("/projects/{project}/characters/{name}/voice-samples")

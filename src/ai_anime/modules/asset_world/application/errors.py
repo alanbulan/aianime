@@ -1,6 +1,22 @@
 """Expected failures raised by Asset & World application services."""
 
 
+class CharacterCatalogRejected(Exception):
+    """A character catalog request rejected by an expected business rule."""
+
+
+class CharacterAlreadyExists(CharacterCatalogRejected):
+    """A character name is already present in the project."""
+
+
+class CharacterNotFound(CharacterCatalogRejected):
+    """The requested character does not exist."""
+
+
+class InvalidCharacterInput(CharacterCatalogRejected):
+    """Character input is not valid for the requested operation."""
+
+
 class CharacterVoiceRejected(Exception):
     """A character voice request rejected by an expected business rule."""
 
