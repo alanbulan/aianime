@@ -23,6 +23,9 @@ from ai_anime.modules.asset_world.application.character_tasks import (
 from ai_anime.modules.asset_world.application.character_voice import (
     CharacterVoiceUseCases,
 )
+from ai_anime.modules.asset_world.application.prop_catalog import (
+    PropCatalogUseCases,
+)
 from ai_anime.modules.asset_world.application.styles import (
     AnalyzeStyle,
     StyleCatalogUseCases,
@@ -51,6 +54,11 @@ from ai_anime.modules.asset_world.infrastructure.character_image_storage import 
 from ai_anime.modules.asset_world.infrastructure.character_task_scheduler import (
     TaskBackendCharacterTaskScheduler,
 )
+from ai_anime.modules.asset_world.infrastructure.prop_catalog import (
+    LocalPropCatalogAssets,
+    NovelEpisodeLocalPropSource,
+    NovelPropFactory,
+)
 from ai_anime.modules.asset_world.infrastructure.style_catalog import StyleService
 from ai_anime.modules.asset_world.infrastructure.style_generation import (
     PydanticStyleImageAnalyzer,
@@ -71,6 +79,14 @@ def character_catalog_use_cases() -> CharacterCatalogUseCases:
     return CharacterCatalogUseCases(
         NovelCharacterFactory(),
         LocalCharacterCatalogAssets(),
+    )
+
+
+def prop_catalog_use_cases() -> PropCatalogUseCases:
+    return PropCatalogUseCases(
+        NovelPropFactory(),
+        LocalPropCatalogAssets(),
+        NovelEpisodeLocalPropSource(),
     )
 
 

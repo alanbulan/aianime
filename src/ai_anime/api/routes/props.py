@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 
-from ai_anime.modules.asset_world.public import newest_updated_at, tree_updated_at, utc_iso
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import (
     make_sqlite_store,
@@ -17,13 +15,16 @@ from ai_anime.api.deps import (
     resolve_project_scope,
 )
 from ai_anime.api.schemas import PropCreate, PropReferenceGenerateRequest, PropUpdate
-from ai_anime.models import NovelProp, build_prop_menu
+from ai_anime.modules.asset_world.public import (
+    CreatePropCommand,
+    PropCatalogRejected,
+    UpdatePropCommand,
+    prop_catalog_use_cases,
+)
 from ai_anime.project_config import load_project_config_file
-from ai_anime.sqlite_store import SQLiteStore
 from ai_anime.ports import get_task_backend
 from ai_anime.task_scopes import prop_reference_asset_scope
 from ai_anime.task_identity import project_task_state_key
-from ai_anime.utils.path_resolver import compute_prop_reference_path
 
 router = APIRouter()
 
@@ -44,97 +45,6 @@ def _asset_url(ctx, project_dir: Path, abs_path: str | Path) -> str:
     return make_static_url_for_context(ctx, rel_path, local_path=path)
 
 
-def _prop_payload(
-    prop: NovelProp,
-    *,
-    ctx,
-    project_dir: Path,
-    scope: str = "global",
-    source_episode: int | None = None,
-) -> dict[str, Any]:
-    reference_path = compute_prop_reference_path(project_dir, prop.name)
-    payload = {
-        "name": prop.name,
-        "aliases": prop.aliases,
-        "prop_type": prop.prop_type,
-        "visual_prompt": prop.visual_prompt,
-        "description": prop.description,
-        "owner": prop.owner,
-        "notes": prop.notes,
-        "updated_at": newest_updated_at(
-            getattr(prop, "updated_at", ""),
-            tree_updated_at(project_dir / "assets" / "props" / prop.name),
-        ),
-        "scope": scope,
-        "reference_path": reference_path,
-        "reference_url": (
-            _asset_url(ctx, project_dir, reference_path) if reference_path else ""
-        ),
-    }
-    if source_episode is not None:
-        payload["source_episode"] = source_episode
-    return payload
-
-
-async def _local_episode_prop_payloads(
-    *,
-    store: SQLiteStore,
-    global_prop_names: set[str],
-) -> list[dict[str, Any]]:
-    if not hasattr(store, "list_episodes"):
-        return []
-    try:
-        episodes = await store.list_episodes()
-    except Exception:
-        return []
-
-    payloads: list[dict[str, Any]] = []
-    seen_local: set[tuple[int, str]] = set()
-    for episode in episodes or []:
-        episode_number = int(getattr(episode, "number", 0) or 0)
-        episode_updated_at = utc_iso(getattr(episode, "updated_at", ""))
-        for menu_item in build_prop_menu(prop_menu=getattr(episode, "prop_menu", []) or []):
-            prop_id = str(menu_item.prop_id or "").strip()
-            if not prop_id or prop_id in global_prop_names:
-                continue
-            key = (episode_number, prop_id)
-            if key in seen_local:
-                continue
-            seen_local.add(key)
-            payloads.append(
-                {
-                    "name": prop_id,
-                    "aliases": [],
-                    "prop_type": menu_item.prop_type,
-                    "visual_prompt": menu_item.visual_prompt,
-                    "description": menu_item.description,
-                    "owner": menu_item.owner_identity_id,
-                    "notes": "",
-                    "updated_at": episode_updated_at,
-                    "scope": "local",
-                    "source_episode": episode_number,
-                    "reference_path": "",
-                    "reference_url": "",
-                }
-            )
-    return payloads
-
-
-def _rename_prop_asset_dir(project_dir: Path, old_name: str, new_name: str) -> None:
-    old_dir = project_dir / "assets" / "props" / old_name
-    new_dir = project_dir / "assets" / "props" / new_name
-    if not old_dir.exists():
-        return
-    if new_dir.exists():
-        raise ValueError(f"Target asset directory already exists: {new_dir}")
-    new_dir.parent.mkdir(parents=True, exist_ok=True)
-    shutil.move(str(old_dir), str(new_dir))
-
-
-async def _require_prop(store: SQLiteStore, name: str) -> NovelProp | None:
-    return await store.get_prop(name)
-
-
 @router.get("/projects/{project}/props")
 async def list_props(
     project: str,
@@ -148,16 +58,12 @@ async def list_props(
         else await make_sqlite_store(resolved.username, resolved.project_name)
     )
     project_dir = resolved.project_dir
-    props = await store.list_props()
-    global_names = {prop.name for prop in props}
-    data: list[dict[str, Any]] = []
-    if scope in {"global", "all"}:
-        data.extend(
-            _prop_payload(prop, ctx=resolved.ctx, project_dir=project_dir)
-            for prop in props
-        )
-    if scope in {"local", "all"}:
-        data.extend(await _local_episode_prop_payloads(store=store, global_prop_names=global_names))
+    data = await prop_catalog_use_cases().list_props(
+        repository=store,
+        project_dir=project_dir,
+        asset_url=lambda path: _asset_url(resolved.ctx, project_dir, path),
+        scope=scope,
+    )
     return {
         "ok": True,
         "data": data,
@@ -177,27 +83,16 @@ async def create_prop(
         else await make_sqlite_store(resolved.username, resolved.project_name)
     )
     project_dir = resolved.project_dir
-    name = body.name.strip()
-    if not name:
-        return {"ok": False, "error": "Prop name is required"}
-    existing = await store.get_prop(name)
-    if existing is not None:
-        return {"ok": False, "error": f"Prop '{name}' already exists"}
-
-    prop = NovelProp(
-        name=name,
-        aliases=body.aliases,
-        prop_type=body.prop_type,
-        visual_prompt=body.visual_prompt,
-        description=body.description,
-        owner=body.owner,
-        notes=body.notes,
-    )
-    await store.add_prop(prop)
-    return {
-        "ok": True,
-        "data": _prop_payload(prop, ctx=resolved.ctx, project_dir=project_dir),
-    }
+    try:
+        data = await prop_catalog_use_cases().create_prop(
+            repository=store,
+            project_dir=project_dir,
+            asset_url=lambda path: _asset_url(resolved.ctx, project_dir, path),
+            command=CreatePropCommand(**body.model_dump()),
+        )
+    except PropCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.patch("/projects/{project}/props/{name}")
@@ -214,31 +109,19 @@ async def update_prop(
         else await make_sqlite_store(resolved.username, resolved.project_name)
     )
     project_dir = resolved.project_dir
-    prop = await _require_prop(store, name)
-    if prop is None:
-        return {"ok": False, "error": f"Prop '{name}' not found"}
-
-    updates = body.model_dump(exclude_unset=True, exclude_none=True)
-    requested_name = str(updates.pop("name", "") or "").strip()
-    if requested_name and requested_name != prop.name:
-        if await store.get_prop(requested_name) is not None:
-            return {"ok": False, "error": f"Prop '{requested_name}' already exists"}
-        try:
-            _rename_prop_asset_dir(project_dir, prop.name, requested_name)
-        except ValueError as exc:
-            return {"ok": False, "error": str(exc)}
-        renamed = await store.rename_prop(prop.name, requested_name)
-        if not renamed:
-            return {"ok": False, "error": f"Prop '{prop.name}' rename failed"}
-        prop = await _require_prop(store, requested_name) or prop
-    if updates:
-        await store.update_prop(prop.name, **updates)
-        prop = await _require_prop(store, prop.name) or prop
-
-    return {
-        "ok": True,
-        "data": _prop_payload(prop, ctx=resolved.ctx, project_dir=project_dir),
-    }
+    try:
+        data = await prop_catalog_use_cases().update_prop(
+            repository=store,
+            project_dir=project_dir,
+            asset_url=lambda path: _asset_url(resolved.ctx, project_dir, path),
+            prop_name=name,
+            command=UpdatePropCommand(
+                fields=body.model_dump(exclude_unset=True, exclude_none=True)
+            ),
+        )
+    except PropCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.post("/projects/{project}/props/{name}/delete")
@@ -253,11 +136,14 @@ async def delete_prop(
         if resolved.ctx
         else await make_sqlite_store(resolved.username, resolved.project_name)
     )
-    prop = await _require_prop(store, name)
-    if prop is None:
-        return {"ok": False, "error": f"Prop '{name}' not found"}
-    deleted = await store.delete_prop(prop.name)
-    return {"ok": True, "data": {"deleted": deleted}}
+    try:
+        data = await prop_catalog_use_cases().delete_prop(
+            repository=store,
+            prop_name=name,
+        )
+    except PropCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.post("/projects/{project}/props/{name}/reference/generate-async")
@@ -279,7 +165,7 @@ async def generate_prop_reference(
     )
     style = (body.style if body else "") or _project_style(username, project_name)
     model = str(body.model if body else "").strip()
-    prop = await _require_prop(store, name)
+    prop = await store.get_prop(name)
     if prop is None:
         return {"ok": False, "error": f"Prop '{name}' not found"}
     if not (prop.visual_prompt or prop.description or prop.name):

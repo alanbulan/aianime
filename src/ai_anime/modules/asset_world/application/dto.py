@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 
 @dataclass(frozen=True)
@@ -20,6 +20,22 @@ class CreateCharacterCommand:
 
 @dataclass(frozen=True)
 class UpdateCharacterCommand:
+    fields: Mapping[str, Any]
+
+
+@dataclass(frozen=True)
+class CreatePropCommand:
+    name: str
+    aliases: Sequence[str] = ()
+    prop_type: str = "object"
+    visual_prompt: str = ""
+    description: str = ""
+    owner: str = ""
+    notes: str = ""
+
+
+@dataclass(frozen=True)
+class UpdatePropCommand:
     fields: Mapping[str, Any]
 
 

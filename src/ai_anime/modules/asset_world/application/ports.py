@@ -14,6 +14,7 @@ from ai_anime.modules.asset_world.application.dto import (
     CharacterImageGenerationTask,
     CreateCharacterCommand,
     CreateIdentityCommand,
+    CreatePropCommand,
     IdentityAssetPaths,
     IdentityGenerationAssets,
 )
@@ -224,6 +225,47 @@ class CharacterCatalogAssets(Protocol):
     def portrait_path(self, project_dir: Path, character_name: str) -> str: ...
 
     def updated_at(self, project_dir: Path, character: Any) -> str: ...
+
+
+class PropCatalogRepository(Protocol):
+    async def list_props(self) -> list[Any]: ...
+
+    async def get_prop(self, name: str) -> Any | None: ...
+
+    async def add_prop(self, prop: Any) -> Any: ...
+
+    async def update_prop(self, name: str, **updates: Any) -> Any: ...
+
+    async def rename_prop(self, old_name: str, new_name: str) -> Any: ...
+
+    async def delete_prop(self, name: str) -> Any: ...
+
+    async def list_episodes(self) -> list[Any]: ...
+
+
+class PropFactory(Protocol):
+    def create(self, command: CreatePropCommand) -> Any: ...
+
+
+class PropCatalogAssets(Protocol):
+    def reference_path(self, project_dir: Path, prop_name: str) -> str: ...
+
+    def updated_at(self, project_dir: Path, prop: Any) -> str: ...
+
+    def rename_directory(
+        self,
+        project_dir: Path,
+        old_name: str,
+        new_name: str,
+    ) -> None: ...
+
+
+class EpisodeLocalPropSource(Protocol):
+    async def list_props(
+        self,
+        repository: PropCatalogRepository,
+        global_prop_names: set[str],
+    ) -> list[dict[str, Any]]: ...
 
 
 class CharacterIdentityRepository(Protocol):

@@ -20,6 +20,11 @@ from ai_anime.modules.asset_world.domain.character_voice import (
     voice_slot_metadata,
     voice_slot_update_fields,
 )
+from ai_anime.modules.asset_world.domain.prop_catalog import (
+    PropCatalogScope,
+    includes_global_props,
+    includes_local_props,
+)
 from ai_anime.modules.asset_world.domain.styles import (
     PresetStyleDeletionForbidden,
     PresetStyleOverrideForbidden,
@@ -38,6 +43,7 @@ __all__ = [
     "duplicate_main_character_names",
     "PresetStyleDeletionForbidden",
     "PresetStyleOverrideForbidden",
+    "PropCatalogScope",
     "UnsupportedStylePreviewType",
     "VOICE_SLOT_LABELS",
     "VoiceSlotMetadata",
@@ -46,6 +52,8 @@ __all__ = [
     "ensure_character_asset_kind",
     "find_character_identity",
     "identity_id_for",
+    "includes_global_props",
+    "includes_local_props",
     "other_main_character_names",
     "safe_character_asset_name",
     "style_preview_extension",

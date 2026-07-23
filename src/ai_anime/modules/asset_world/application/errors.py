@@ -21,6 +21,22 @@ class InvalidCharacterInput(CharacterCatalogRejected):
     """Character input is not valid for the requested operation."""
 
 
+class PropCatalogRejected(Exception):
+    """A prop catalog request rejected by an expected business rule."""
+
+
+class PropAlreadyExists(PropCatalogRejected):
+    """A prop name is already present in the project."""
+
+
+class PropNotFound(PropCatalogRejected):
+    """The requested prop does not exist."""
+
+
+class InvalidPropInput(PropCatalogRejected):
+    """Prop input is not valid for the requested operation."""
+
+
 class CharacterProjectContextRequired(CharacterCatalogRejected):
     """A character task requires a resolved project context."""
 

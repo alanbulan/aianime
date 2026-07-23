@@ -26,11 +26,15 @@ from ai_anime.modules.asset_world.application.character_voice import (
     character_voice_fields,
     identity_voice_fields,
 )
+from ai_anime.modules.asset_world.application.prop_catalog import (
+    PropCatalogUseCases,
+)
 from ai_anime.modules.asset_world.application.dto import (
     AnalyzeStyleCommand,
     CharacterGenerationOptions,
     CreateCharacterCommand,
     CreateIdentityCommand,
+    CreatePropCommand,
     CreateCustomStyleCommand,
     RestoreCharacterAssetCommand,
     StyleAnalysisBilling,
@@ -38,6 +42,7 @@ from ai_anime.modules.asset_world.application.dto import (
     StyleScope,
     UpdateCharacterCommand,
     UpdateIdentityCommand,
+    UpdatePropCommand,
 )
 from ai_anime.modules.asset_world.application.errors import (
     CharacterAlreadyExists,
@@ -50,7 +55,11 @@ from ai_anime.modules.asset_world.application.errors import (
     CharacterVoiceRejected,
     InvalidCharacterVoiceInput,
     InvalidCharacterInput,
+    InvalidPropInput,
     InvalidStyleInput,
+    PropAlreadyExists,
+    PropCatalogRejected,
+    PropNotFound,
     StyleRejected,
     StyleStorageFailed,
     UnsupportedCharacterVoiceSlot,
@@ -109,6 +118,12 @@ def character_asset_history_use_cases() -> CharacterAssetHistoryUseCases:
 
 def character_catalog_use_cases() -> CharacterCatalogUseCases:
     from ai_anime.modules.asset_world.composition import character_catalog_use_cases as build
+
+    return build()
+
+
+def prop_catalog_use_cases() -> PropCatalogUseCases:
+    from ai_anime.modules.asset_world.composition import prop_catalog_use_cases as build
 
     return build()
 
@@ -191,11 +206,17 @@ __all__ = [
     "CharacterVoiceUseCases",
     "CreateCharacterCommand",
     "CreateIdentityCommand",
+    "CreatePropCommand",
     "CreateCustomStyleCommand",
     "DEFAULT_SLOT",
     "InvalidCharacterVoiceInput",
     "InvalidCharacterInput",
+    "InvalidPropInput",
     "InvalidStyleInput",
+    "PropAlreadyExists",
+    "PropCatalogRejected",
+    "PropCatalogUseCases",
+    "PropNotFound",
     "RestoreCharacterAssetCommand",
     "StyleAnalysisBilling",
     "StyleCatalogUseCases",
@@ -209,11 +230,13 @@ __all__ = [
     "UnsupportedStyleMedia",
     "UpdateCharacterCommand",
     "UpdateIdentityCommand",
+    "UpdatePropCommand",
     "VOICE_SAMPLE_EXTENSIONS",
     "analyze_style",
     "character_asset_history_use_cases",
     "character_asset_links",
     "character_catalog_use_cases",
+    "prop_catalog_use_cases",
     "character_generation_use_cases",
     "character_identity_use_cases",
     "character_image_use_cases",
