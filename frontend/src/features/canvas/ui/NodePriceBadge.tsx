@@ -8,10 +8,9 @@ export function NodePriceBadge({ label, title }: NodePriceBadgeProps) {
   return (
     <span
       title={title}
-      className="mr-2 shrink-0 text-[14px] leading-none font-normal text-[rgba(15,23,42,0.68)] dark:text-white/55"
+      className="mr-2 shrink-0 text-[14px] font-normal leading-none text-muted-foreground"
     >
       {label}
     </span>
   );
 }
-

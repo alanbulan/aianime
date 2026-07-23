@@ -42,11 +42,11 @@ export function NodeReplaceDragPreview() {
       <div
         className={`flex items-center gap-2 rounded-lg border p-1.5 pr-2.5 shadow-[var(--ui-shadow-panel)] backdrop-blur-md transition-colors ${
           overTarget
-            ? 'border-primary bg-[rgba(var(--accent-rgb)/0.16)]'
-            : 'border-[var(--ui-border-soft)] bg-[rgba(var(--surface-rgb)/0.92)]'
+            ? 'border-primary bg-primary/15'
+            : 'border-border bg-popover/95'
         }`}
       >
-        <div className="relative h-10 w-14 shrink-0 overflow-hidden rounded-md border border-[var(--ui-border-soft)]/60 bg-black/30 flex items-center justify-center">
+        <div className="relative flex h-10 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-media/30">
           {thumb ? (
             <img
               src={thumb}

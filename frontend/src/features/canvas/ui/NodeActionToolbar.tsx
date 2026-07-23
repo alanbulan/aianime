@@ -1084,7 +1084,7 @@ export const NodeActionToolbar = memo(
             {isPresetLocked && (
               <span
                 key="mainline-lock-pill"
-                className="rounded-full border border-amber-500/35 bg-amber-500/10 px-3 py-1.5 text-sm text-amber-800 dark:text-amber-200"
+                className="rounded-full border border-warning/35 bg-warning/10 px-3 py-1.5 text-sm text-warning"
               >
                 主线投影 · 锁定
               </span>
@@ -1488,7 +1488,7 @@ export const NodeActionToolbar = memo(
             key="image-copy"
             className={`h-9 ${TOOLBAR_BUTTON_RADIUS_CLASS} px-3 text-sm ${TOOLBAR_NEUTRAL_BUTTON_CLASS} ${
               isCopySuccess
-                ? '!border-emerald-500/45 !bg-emerald-500/10 !text-emerald-700 hover:!bg-emerald-500/15 dark:!text-emerald-300'
+                ? '!border-success/45 !bg-success/10 !text-success hover:!bg-success/15'
                 : ''
             }`}
             onClick={() => {
@@ -1505,7 +1505,7 @@ export const NodeActionToolbar = memo(
                 key="storyboard-text-copy"
                 className={`${TOOLBAR_TEXT_BUTTON_CLASS} ${
                   isCopyTextSuccess
-                    ? "!border-emerald-500/45 !bg-emerald-500/10 !text-emerald-700 hover:!bg-emerald-500/15 dark:!text-emerald-300"
+                    ? "!border-success/45 !bg-success/10 !text-success hover:!bg-success/15"
                     : ""
                 }`}
                 onClick={() => {
@@ -1521,8 +1521,8 @@ export const NodeActionToolbar = memo(
                 key="generation-error-copy"
                 className={`${TOOLBAR_TEXT_BUTTON_CLASS} ${
                   isCopyErrorSuccess
-                    ? "!border-emerald-500/45 !bg-emerald-500/10 !text-emerald-700 hover:!bg-emerald-500/15 dark:!text-emerald-300"
-                    : "!border-red-500/45 !bg-red-500/10 !text-red-700 hover:!bg-red-500/15 dark:!text-red-300"
+                    ? "!border-success/45 !bg-success/10 !text-success hover:!bg-success/15"
+                    : "!border-destructive/45 !bg-destructive/10 !text-destructive hover:!bg-destructive/15"
                 }`}
                 onClick={() => {
                   void handleCopyGenerationError();
@@ -2392,7 +2392,7 @@ export const NodeActionToolbar = memo(
                   </DropdownMenu>
                   <UiChipButton
                     key="group-ungroup"
-                    className={`${TOOLBAR_TEXT_BUTTON_CLASS} hover:!border-amber-500/50 hover:!bg-amber-500/10 hover:!text-amber-800 dark:hover:!text-amber-200`}
+                    className={`${TOOLBAR_TEXT_BUTTON_CLASS} hover:!border-warning/50 hover:!bg-warning/10 hover:!text-warning`}
                     onClick={(event) => {
                       event.stopPropagation();
                       closeDownloadMenu();
@@ -2410,7 +2410,7 @@ export const NodeActionToolbar = memo(
                 key="projection-refresh"
                 className={
                   projectionIsStale
-                    ? `${TOOLBAR_TEXT_BUTTON_CLASS} !border-amber-500/50 !bg-amber-500/10 !text-amber-800 hover:!bg-amber-500/15 dark:!text-amber-200`
+                    ? `${TOOLBAR_TEXT_BUTTON_CLASS} !border-warning/50 !bg-warning/10 !text-warning hover:!bg-warning/15`
                     : TOOLBAR_TEXT_BUTTON_CLASS
                 }
                 title={

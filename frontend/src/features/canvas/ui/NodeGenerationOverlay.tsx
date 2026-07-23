@@ -56,11 +56,11 @@ export function NodeGenerationOverlay({
       aria-valuenow={percent}
     >
       <div className="relative flex flex-col items-center text-center">
-        <div className="flex items-baseline leading-none text-white">
+        <div className="flex items-baseline leading-none text-media-foreground">
           <span className="text-[34px] font-semibold tabular-nums tracking-tight">
             {percent}
           </span>
-          <span className="ml-1 text-[15px] font-medium text-white/70">%</span>
+          <span className="ml-1 text-[15px] font-medium text-media-foreground/70">%</span>
         </div>
       </div>
     </div>

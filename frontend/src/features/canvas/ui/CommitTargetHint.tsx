@@ -87,9 +87,9 @@ export function CommitTargetHint({
 
   const variantClass =
     hint.variant === 'typed'
-      ? 'border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200'
+      ? 'border-warning/40 bg-warning/10 text-warning'
       : hint.variant === 'untyped'
-        ? 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+        ? 'border-warning/30 bg-warning/10 text-warning/90'
         : 'border-border bg-muted text-muted-foreground';
 
   return (

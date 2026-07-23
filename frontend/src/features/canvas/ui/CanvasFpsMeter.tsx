@@ -44,10 +44,10 @@ export function CanvasFpsMeter() {
     fps == null
       ? 'text-text-muted'
       : fps >= 50
-        ? 'text-emerald-700 dark:text-emerald-300'
+        ? 'text-success'
         : fps >= 30
-          ? 'text-amber-700 dark:text-amber-300'
-          : 'text-red-700 dark:text-red-300';
+          ? 'text-warning'
+          : 'text-destructive';
 
   return (
     <div

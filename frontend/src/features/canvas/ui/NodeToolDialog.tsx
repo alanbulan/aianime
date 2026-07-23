@@ -398,7 +398,7 @@ export function NodeToolDialog() {
 
     const dialog = (
       <div
-        className="fixed inset-0 z-[300] flex items-center justify-center bg-black/72 p-4 backdrop-blur-sm"
+        className="fixed inset-0 z-[300] flex items-center justify-center bg-scrim p-4 backdrop-blur-sm"
         onClick={() => {
           if (!isProcessing) {
             closeDialog();
@@ -434,7 +434,7 @@ export function NodeToolDialog() {
 
           <div className={visualToolContentClassName}>
             {editorContent}
-            {error && <div className="mt-3 text-xs text-red-700 dark:text-red-300">{error}</div>}
+            {error && <div className="mt-3 text-xs text-destructive">{error}</div>}
           </div>
 
           <div className="flex h-14 shrink-0 items-center justify-end gap-3 px-5">
@@ -483,7 +483,7 @@ export function NodeToolDialog() {
     >
       <div className="space-y-3 max-h-[82vh] overflow-y-auto pr-1">
         {editorContent}
-        {error && <div className="text-xs text-red-700 dark:text-red-300">{error}</div>}
+        {error && <div className="text-xs text-destructive">{error}</div>}
       </div>
     </UiModal>
   );

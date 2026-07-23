@@ -23,7 +23,7 @@ export const NODE_REFERENCE_MEDIA_CHIP_CLASS =
   'group/refmedia relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[8px] border border-border bg-muted transition-colors hover:border-foreground/30';
 
 export const NODE_REFERENCE_MEDIA_DETACH_CLASS =
-  'nodrag absolute right-1 top-1 z-10 hidden h-4 w-4 items-center justify-center rounded-full bg-black/70 text-white shadow-sm ring-1 ring-white/15 transition-colors hover:bg-red-500 group-hover/refmedia:flex';
+  'nodrag absolute right-1 top-1 z-10 hidden h-4 w-4 items-center justify-center rounded-full bg-media/70 text-media-foreground shadow-sm ring-1 ring-media-foreground/15 transition-colors hover:bg-destructive group-hover/refmedia:flex';
 
 export const NODE_INLINE_ERROR_MESSAGE_CLASS =
   'min-w-0 max-w-full overflow-hidden rounded-[8px] border border-destructive/25 bg-destructive/10 px-3 py-2 text-xs leading-5 text-destructive whitespace-pre-wrap break-words [overflow-wrap:anywhere]';

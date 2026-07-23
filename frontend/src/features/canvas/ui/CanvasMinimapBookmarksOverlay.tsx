@@ -149,7 +149,7 @@ export function CanvasMinimapBookmarksOverlay({
             return (
               <div
                 key={index}
-                className="pointer-events-none absolute flex h-4 w-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[10px] font-bold text-black shadow"
+                className="pointer-events-none absolute flex h-4 w-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-foreground text-[10px] font-bold text-background shadow"
                 style={{ left: metrics.left + px.x, top: metrics.top + px.y }}
               >
                 {bookmarkIndexToDigit(index)}
