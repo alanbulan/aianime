@@ -24,7 +24,7 @@ from ai_anime.project_config import (
     load_effective_narration_style_for_voice,
     load_narrator_reference_audio,
 )
-from ai_anime.seedance2_i2v.character_voice_storage import probe_voice_sample_duration_seconds
+from ai_anime.modules.asset_world.public import probe_voice_sample_duration_seconds
 from ai_anime.seedance2_i2v.models import Seedance2I2VMode
 from ai_anime.seedance2_i2v.spoken_dialogue import (
     speaker_display_name,

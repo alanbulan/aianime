@@ -1,4 +1,4 @@
-"""Storage helpers for character-level IndexTTS2 reference audio.
+"""Storage helpers for character-level reference audio.
 
 Writes voice sample files under ``assets/characters/{char}/voices/`` and returns
 the metadata required by ``NovelCharacter.reference_audio_*`` /

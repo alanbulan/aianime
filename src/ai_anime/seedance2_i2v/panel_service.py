@@ -18,7 +18,7 @@ from ai_anime.seedance2_i2v.assets import (
     selected_reference_paths,
     validate_seedance2_reference_image,
 )
-from ai_anime.seedance2_i2v.character_voice_storage import (
+from ai_anime.modules.asset_world.public import (
     VOICE_SAMPLE_EXTENSIONS,
     trim_voice_sample_content,
     voice_content_sha256,

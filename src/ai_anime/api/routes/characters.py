@@ -60,7 +60,7 @@ from ai_anime.utils.path_resolver import (
     canonical_identity_costume_path,
     canonical_identity_portrait_path,
 )
-from ai_anime.seedance2_i2v.character_voice_storage import (
+from ai_anime.modules.asset_world.public import (
     AGE_GROUP_SLOTS as VOICE_AGE_GROUP_SLOTS,
     ALL_SLOTS as VOICE_SAMPLE_SLOTS,
     DEFAULT_SLOT as VOICE_DEFAULT_SLOT,

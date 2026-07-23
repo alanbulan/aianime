@@ -27,7 +27,9 @@ def test_voice_audio_records_module_loads():
 
 
 def test_character_voice_storage_module_loads():
-    mod = importlib.import_module("ai_anime.seedance2_i2v.character_voice_storage")
+    mod = importlib.import_module(
+        "ai_anime.modules.asset_world.infrastructure.character_voice_storage"
+    )
     assert hasattr(mod, "persist_character_voice_file")
     assert hasattr(mod, "decode_recorded_audio_data_url")
 

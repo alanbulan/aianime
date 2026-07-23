@@ -8,7 +8,7 @@ import re
 from typing import Any
 
 from ai_anime.generators.video_generator import ShotReference
-from ai_anime.seedance2_i2v.character_voice_storage import probe_voice_sample_duration_seconds
+from ai_anime.modules.asset_world.public import probe_voice_sample_duration_seconds
 from ai_anime.seedance2_i2v.assets import (
     Seedance2ResolvedAsset,
     apply_prompt_audio_selection,

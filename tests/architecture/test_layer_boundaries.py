@@ -277,6 +277,9 @@ def test_asset_world_callers_use_the_public_api() -> None:
             failures.append(f"{relative}: {imported}")
 
     assert not (PACKAGE_ROOT / "services" / "style_service.py").exists()
+    assert not (
+        PACKAGE_ROOT / "seedance2_i2v" / "character_voice_storage.py"
+    ).exists()
     assert not failures, "\n".join(failures)
 
 

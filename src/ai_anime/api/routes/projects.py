@@ -40,7 +40,7 @@ from ai_anime.modules.project_workspace.public import (
     require_project_home_node,
     resolve_project_context,
 )
-from ai_anime.seedance2_i2v.character_voice_storage import (
+from ai_anime.modules.asset_world.public import (
     VOICE_SAMPLE_EXTENSIONS,
     decode_recorded_audio_data_url,
     is_supported_voice_sample,
