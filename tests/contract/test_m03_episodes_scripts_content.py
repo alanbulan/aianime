@@ -232,11 +232,18 @@ def m03_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setattr(module, "make_cognee_store_for_context", make_store_for_context)
         monkeypatch.setattr(module, "make_sqlite_store", make_store)
         monkeypatch.setattr(module, "make_cognee_store", make_store)
-        monkeypatch.setattr(
-            module,
-            "get_task_backend",
-            lambda: SimpleNamespace(enqueue_project_task=enqueue_project_task),
-        )
+    monkeypatch.setattr(
+        episodes,
+        "get_task_backend",
+        lambda: SimpleNamespace(enqueue_project_task=enqueue_project_task),
+    )
+    import ai_anime.ports as runtime_ports
+
+    monkeypatch.setattr(
+        runtime_ports,
+        "get_task_backend",
+        lambda: SimpleNamespace(enqueue_project_task=enqueue_project_task),
+    )
 
     async def fake_rewrite_episode_content(*args, **kwargs):
         return "改写第一行\n改写第二行"

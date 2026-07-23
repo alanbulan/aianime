@@ -29,16 +29,19 @@ from ai_anime.models import sync_beat_asset_refs
 from ai_anime.modules.narrative_planning.public import (
     BeatNotFound,
     BeatStoreUpdateFailed,
+    IdentityPlanRequired,
+    ProjectContextRequired,
     ScriptNotFound,
     ScriptStoreSyncFailed,
+    enqueue_beat_video_prompt_generation,
     generate_and_save_beat_video_prompt,
     load_episode_script,
     resolve_beat_video_prompt_target,
     save_episode_script,
+    start_episode_script_generation,
     update_episode_script_beat,
 )
-from ai_anime.ports import get_task_backend, get_usage_meter
-from ai_anime.task_identity import project_task_state_key
+from ai_anime.ports import get_usage_meter
 
 router = APIRouter()
 
@@ -97,41 +100,22 @@ async def generate_script(
         if ctx
         else await make_sqlite_store(username, project_name)
     )
-    episode = store.get_episode(episode_num)
-    if not getattr(episode, "identity_ids", None):
+    try:
+        scheduled = await start_episode_script_generation(
+            store,
+            task_context=ctx,
+            output_dir=output_dir,
+            episode_num=episode_num,
+        )
+    except IdentityPlanRequired as exc:
         return {
             "ok": False,
-            "code": "identity_plan_required",
-            "error": f"第 {episode_num} 集尚未规划角色身份，请先规划身份",
+            "code": exc.code,
+            "error": str(exc),
         }
-
-    config = {}
-
-    # 启动前清理旧 sketch 展示文件，确保即使任务失败画廊也不展示旧草图
-    from ai_anime.utils.path_resolver import PathResolver
-
-    paths = PathResolver(output_dir, episode_num)
-    paths.clean_sketches()
-
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type="script_writer",
-            queue_kind="default",
-            episode=episode_num,
-            payload={"episode": episode_num, "config": config, "output_dir": output_dir},
-        )
-        return {
-            "ok": True,
-            "task_type": "script_writer",
-            "task_id": queued.task_state.task_id,
-            "task_key": project_task_state_key("script_writer", ctx.project_id, episode_num),
-            "backend": queued.backend,
-            "queue": queued.queue,
-            "message": f"第 {episode_num} 集剧本生成任务已进入队列",
-        }
-
-    return {"ok": False, "error": "剧本生成需要 project context"}
+    except ProjectContextRequired as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, **scheduled.as_dict()}
 
 
 @router.patch("/projects/{project}/episodes/{episode_num}/beats/{beat_num}")
@@ -205,35 +189,15 @@ async def generate_beat_video_prompt(
         return {"ok": False, "error": str(exc)}
 
     if resolved.ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
+        scheduled = await enqueue_beat_video_prompt_generation(
             resolved.ctx,
-            task_type="beat_video_prompt",
-            queue_kind="default",
-            episode=episode_num,
+            episode_num=episode_num,
             beat_num=beat_num,
-            payload={
-                "episode": episode_num,
-                "beat_num": beat_num,
-                "field": selection.field,
-                "language": body.language,
-                "output_dir": str(resolved.output_dir),
-                "display_name": f"生成提示词 · EP{episode_num} / Beat {beat_num}",
-            },
+            field=selection.field,
+            language=body.language,
+            output_dir=resolved.output_dir,
         )
-        return {
-            "ok": True,
-            "task_type": "beat_video_prompt",
-            "task_id": queued.task_state.task_id,
-            "task_key": project_task_state_key(
-                "beat_video_prompt",
-                resolved.ctx.project_id,
-                episode_num,
-                beat_num=beat_num,
-            ),
-            "backend": queued.backend,
-            "queue": queued.queue,
-            "message": f"第 {episode_num} 集 Beat {beat_num} 提示词生成已入队",
-        }
+        return {"ok": True, **scheduled.as_dict()}
 
     try:
         generated = await generate_and_save_beat_video_prompt(

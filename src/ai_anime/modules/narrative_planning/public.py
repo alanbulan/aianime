@@ -20,21 +20,32 @@ from ai_anime.modules.narrative_planning.application.literal_script_writing impo
     SceneBlock,
     split_literal_source_text,
 )
+from ai_anime.modules.narrative_planning.application.narrative_tasks import (
+    IdentityPlanRequired,
+    ProjectContextRequired,
+)
 from ai_anime.modules.narrative_planning.application.ports import (
     NarrativeContentStore,
     NarrativeScriptStore,
     ScriptDocumentStore,
+    ScriptGenerationStore,
 )
 from ai_anime.modules.narrative_planning.application.script_documents import (
     BeatStoreUpdateFailed,
     SavedEpisodeScript,
     ScriptStoreSyncFailed,
 )
+from ai_anime.modules.narrative_planning.application.task_dto import (
+    BeatVideoPromptTask,
+    ScheduledNarrativeTask,
+)
 from ai_anime.modules.narrative_planning.composition import (
     beat_video_prompts,
     create_script_writing_workflow,
     episode_content_service,
+    schedule_beat_video_prompt,
     script_document_service,
+    start_script_generation,
 )
 from ai_anime.modules.narrative_planning.domain import (
     BeatNotFound,
@@ -43,6 +54,7 @@ from ai_anime.modules.narrative_planning.domain import (
     RawEpisodeContentMissing,
     ScriptNotFound,
 )
+from ai_anime.modules.project_workspace.public import ProjectContext
 
 
 async def load_raw_episode_content(
@@ -124,6 +136,42 @@ async def save_episode_script(
     )
 
 
+async def start_episode_script_generation(
+    store: ScriptGenerationStore,
+    *,
+    task_context: ProjectContext | None,
+    output_dir: str | Path,
+    episode_num: int,
+) -> ScheduledNarrativeTask:
+    return await start_script_generation().execute(
+        store,
+        task_context=task_context,
+        output_dir=output_dir,
+        episode_num=episode_num,
+    )
+
+
+async def enqueue_beat_video_prompt_generation(
+    task_context: ProjectContext,
+    *,
+    episode_num: int,
+    beat_num: int,
+    field: str,
+    language: str,
+    output_dir: str | Path,
+) -> ScheduledNarrativeTask:
+    return await schedule_beat_video_prompt().execute(
+        task_context,
+        BeatVideoPromptTask(
+            episode=episode_num,
+            beat_num=beat_num,
+            field=field,
+            language=language,
+            output_dir=output_dir,
+        ),
+    )
+
+
 async def resolve_beat_video_prompt_target(
     store: NarrativeScriptStore,
     *,
@@ -167,16 +215,20 @@ __all__ = [
     "GenerateEpisodeRewriteCommand",
     "GeneratedEpisodeRewrite",
     "GeneratedBeatVideoPrompt",
+    "IdentityPlanRequired",
     "LiteralBeatMetaOutput",
     "LiteralScriptWritingWorkflow",
     "SceneBlock",
     "SavedEpisodeContent",
     "SavedEpisodeScript",
     "RawEpisodeContentMissing",
+    "ProjectContextRequired",
+    "ScheduledNarrativeTask",
     "ScriptNotFound",
     "ScriptStoreSyncFailed",
     "clear_adapted_episode_content",
     "create_script_writing_workflow",
+    "enqueue_beat_video_prompt_generation",
     "generate_and_save_beat_video_prompt",
     "generate_episode_rewrite",
     "load_adapted_episode_content",
@@ -186,6 +238,7 @@ __all__ = [
     "save_adapted_episode_content",
     "save_episode_script",
     "save_raw_episode_content",
+    "start_episode_script_generation",
     "split_literal_source_text",
     "update_episode_script_beat",
 ]

@@ -3,6 +3,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Protocol
 
+from ai_anime.modules.narrative_planning.application.task_dto import (
+    BeatVideoPromptTask,
+    ScriptGenerationTask,
+    TaskQueueReceipt,
+)
+from ai_anime.modules.project_workspace.public import ProjectContext
+
 
 class NarrativeScriptStore(Protocol):
     async def get_script_as_dict(self, episode_num: int) -> dict[str, Any] | None: ...
@@ -93,3 +100,29 @@ class ContentRewriteGenerator(Protocol):
         beat_chars_range: tuple[int, int],
         narration_style: str,
     ) -> str: ...
+
+
+class ScriptGenerationStore(Protocol):
+    def get_episode(self, episode_num: int) -> Any | None: ...
+
+
+class SketchWorkspace(Protocol):
+    def clear_episode_sketches(
+        self,
+        output_dir: str | Path,
+        episode_num: int,
+    ) -> None: ...
+
+
+class NarrativeTaskScheduler(Protocol):
+    async def enqueue_script_generation(
+        self,
+        task_context: ProjectContext,
+        task: ScriptGenerationTask,
+    ) -> TaskQueueReceipt: ...
+
+    async def enqueue_beat_video_prompt(
+        self,
+        task_context: ProjectContext,
+        task: BeatVideoPromptTask,
+    ) -> TaskQueueReceipt: ...

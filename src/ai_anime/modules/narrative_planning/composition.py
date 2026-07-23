@@ -11,12 +11,22 @@ from ai_anime.modules.narrative_planning.application.episode_content import (
 from ai_anime.modules.narrative_planning.application.literal_script_writing import (
     LiteralScriptWritingWorkflow,
 )
+from ai_anime.modules.narrative_planning.application.narrative_tasks import (
+    ScheduleBeatVideoPrompt,
+    StartScriptGeneration,
+)
 from ai_anime.modules.narrative_planning.application.script_documents import (
     ScriptDocumentService,
 )
 from ai_anime.modules.narrative_planning.infrastructure import (
     beat_prompt_generators,
     content_rewriters,
+)
+from ai_anime.modules.narrative_planning.infrastructure.sketch_workspace import (
+    LocalSketchWorkspace,
+)
+from ai_anime.modules.narrative_planning.infrastructure.task_scheduler import (
+    TaskBackendScheduler,
 )
 
 
@@ -39,6 +49,23 @@ def episode_content_service() -> EpisodeContentService:
 
 def script_document_service() -> ScriptDocumentService:
     return ScriptDocumentService()
+
+
+def narrative_task_scheduler() -> TaskBackendScheduler:
+    from ai_anime import ports
+
+    return TaskBackendScheduler(ports.get_task_backend)
+
+
+def start_script_generation() -> StartScriptGeneration:
+    return StartScriptGeneration(
+        task_scheduler=narrative_task_scheduler(),
+        sketch_workspace=LocalSketchWorkspace(),
+    )
+
+
+def schedule_beat_video_prompt() -> ScheduleBeatVideoPrompt:
+    return ScheduleBeatVideoPrompt(narrative_task_scheduler())
 
 
 def create_script_writing_workflow(

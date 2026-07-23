@@ -451,6 +451,7 @@ def test_generate_beat_video_prompt_enqueues_project_task_in_celery_mode(
 ):
     from types import SimpleNamespace
 
+    from ai_anime import ports
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.routes import scripts
 
@@ -496,7 +497,11 @@ def test_generate_beat_video_prompt_enqueues_project_task_in_celery_mode(
         "make_sqlite_store_for_context",
         fake_make_sqlite_store_for_context,
     )
-    monkeypatch.setattr(scripts, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
+    monkeypatch.setattr(
+        ports,
+        "get_task_backend",
+        lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
+    )
 
     app = FastAPI()
     app.include_router(scripts.router)
