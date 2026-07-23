@@ -5,6 +5,14 @@ from pathlib import Path
 from ai_anime.modules.narrative_planning.application.beat_video_prompts import (
     GeneratedBeatVideoPrompt,
 )
+from ai_anime.modules.narrative_planning.application.episode_content import (
+    ClearedEpisodeContent,
+    EpisodeContentDocument,
+    EpisodeContentWriteFailed,
+    GenerateEpisodeRewriteCommand,
+    GeneratedEpisodeRewrite,
+    SavedEpisodeContent,
+)
 from ai_anime.modules.narrative_planning.application.literal_script_writing import (
     LiteralBeatMetaOutput,
     LiteralScriptWritingWorkflow,
@@ -12,18 +20,65 @@ from ai_anime.modules.narrative_planning.application.literal_script_writing impo
     split_literal_source_text,
 )
 from ai_anime.modules.narrative_planning.application.ports import (
+    NarrativeContentStore,
     NarrativeScriptStore,
 )
 from ai_anime.modules.narrative_planning.composition import (
     beat_video_prompts,
     create_script_writing_workflow,
+    episode_content_service,
 )
 from ai_anime.modules.narrative_planning.domain import (
     BeatNotFound,
     BeatVideoPromptSelection,
     FinalBeatTransitionNotAllowed,
+    RawEpisodeContentMissing,
     ScriptNotFound,
 )
+
+
+async def load_raw_episode_content(
+    store: NarrativeContentStore,
+    episode_num: int,
+) -> EpisodeContentDocument:
+    return await episode_content_service().load_raw(store, episode_num)
+
+
+async def save_raw_episode_content(
+    store: NarrativeContentStore,
+    episode_num: int,
+    content: str,
+) -> SavedEpisodeContent:
+    return await episode_content_service().save_raw(store, episode_num, content)
+
+
+async def load_adapted_episode_content(
+    store: NarrativeContentStore,
+    episode_num: int,
+) -> EpisodeContentDocument:
+    return await episode_content_service().load_adapted(store, episode_num)
+
+
+async def save_adapted_episode_content(
+    store: NarrativeContentStore,
+    episode_num: int,
+    content: str,
+) -> SavedEpisodeContent:
+    return await episode_content_service().save_adapted(store, episode_num, content)
+
+
+async def clear_adapted_episode_content(
+    store: NarrativeContentStore,
+    episode_num: int,
+) -> ClearedEpisodeContent:
+    return await episode_content_service().clear_adapted(store, episode_num)
+
+
+async def generate_episode_rewrite(
+    store: NarrativeContentStore,
+    command: GenerateEpisodeRewriteCommand,
+) -> GeneratedEpisodeRewrite:
+    return await episode_content_service().generate_rewrite(store, command)
 
 
 async def resolve_beat_video_prompt_target(
@@ -61,14 +116,27 @@ async def generate_and_save_beat_video_prompt(
 __all__ = [
     "BeatNotFound",
     "BeatVideoPromptSelection",
+    "ClearedEpisodeContent",
+    "EpisodeContentDocument",
+    "EpisodeContentWriteFailed",
     "FinalBeatTransitionNotAllowed",
+    "GenerateEpisodeRewriteCommand",
+    "GeneratedEpisodeRewrite",
     "GeneratedBeatVideoPrompt",
     "LiteralBeatMetaOutput",
     "LiteralScriptWritingWorkflow",
     "SceneBlock",
+    "SavedEpisodeContent",
+    "RawEpisodeContentMissing",
     "ScriptNotFound",
+    "clear_adapted_episode_content",
     "create_script_writing_workflow",
     "generate_and_save_beat_video_prompt",
+    "generate_episode_rewrite",
+    "load_adapted_episode_content",
+    "load_raw_episode_content",
     "resolve_beat_video_prompt_target",
+    "save_adapted_episode_content",
+    "save_raw_episode_content",
     "split_literal_source_text",
 ]

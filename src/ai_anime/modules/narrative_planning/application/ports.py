@@ -43,3 +43,34 @@ class KeyframePromptGenerator(Protocol):
         next_beat: dict[str, Any],
         language: str,
     ) -> str: ...
+
+
+class NarrativeContentStore(Protocol):
+    async def load_episode_content(self, episode_num: int) -> str: ...
+
+    async def save_episode_content(self, episode_num: int, content: str) -> None: ...
+
+    async def load_adapted_content(self, episode_num: int) -> str: ...
+
+    async def save_adapted_content(self, episode_num: int, content: str) -> None: ...
+
+    async def load_graph_state(self) -> Any: ...
+
+    def get_episode(self, episode_num: int) -> Any | None: ...
+
+    def get_all_characters(self) -> list[Any]: ...
+
+    async def update_episode(self, episode_number: int, **updates: Any) -> None: ...
+
+
+class ContentRewriteGenerator(Protocol):
+    async def __call__(
+        self,
+        raw_content: str,
+        *,
+        episode_title: str,
+        protagonist_name: str,
+        target_beats: int,
+        beat_chars_range: tuple[int, int],
+        narration_style: str,
+    ) -> str: ...

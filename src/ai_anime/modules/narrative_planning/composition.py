@@ -5,11 +5,15 @@ from typing import Any
 from ai_anime.modules.narrative_planning.application.beat_video_prompts import (
     BeatVideoPrompts,
 )
+from ai_anime.modules.narrative_planning.application.episode_content import (
+    EpisodeContentService,
+)
 from ai_anime.modules.narrative_planning.application.literal_script_writing import (
     LiteralScriptWritingWorkflow,
 )
 from ai_anime.modules.narrative_planning.infrastructure import (
     beat_prompt_generators,
+    content_rewriters,
 )
 
 
@@ -21,6 +25,12 @@ def beat_video_prompts() -> BeatVideoPrompts:
         keyframe_generator=(
             beat_prompt_generators.generate_single_beat_keyframe_prompt
         ),
+    )
+
+
+def episode_content_service() -> EpisodeContentService:
+    return EpisodeContentService(
+        rewrite_generator=content_rewriters.rewrite_episode_content,
     )
 
 
