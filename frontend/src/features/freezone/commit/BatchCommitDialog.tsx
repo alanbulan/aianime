@@ -112,7 +112,7 @@ export function BatchCommitDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-6">
       <div className="bg-surface border border-border-default rounded-2xl w-[640px] max-h-[80vh] overflow-hidden flex flex-col">
         <header className="flex items-center justify-between px-5 py-4 border-b border-border-default">
           <div>
@@ -216,12 +216,12 @@ function StatusBadge({ state }: { state: RowState }) {
   if (state.status === "running")
     return <span className="text-xs text-primary shrink-0">提交中...</span>;
   if (state.status === "ok")
-    return <span className="shrink-0 text-xs text-emerald-700 dark:text-emerald-300">✓ 完成</span>;
+    return <span className="shrink-0 text-xs text-success">✓ 完成</span>;
   if (state.status === "skipped")
     return <span className="text-xs text-text-muted/70 shrink-0">跳过</span>;
   return (
     <span
-      className="shrink-0 cursor-help text-xs text-red-700 dark:text-red-300"
+      className="shrink-0 cursor-help text-xs text-destructive"
       title={state.error ?? ""}
     >
       ✗ 失败

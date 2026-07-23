@@ -25,8 +25,8 @@
   --destructive-foreground: #ffffff;
   --success: #18864b;
   --success-foreground: #ffffff;
-  --warning: #c77b08;
-  --warning-foreground: #211706;
+  --warning: #945b08;
+  --warning-foreground: #ffffff;
   --border: #a3afbb;
   --input: #84919e;
   --ring: #078b99;
@@ -66,6 +66,9 @@
   --canvas-minimap-mask: rgb(23 27 33 / 0.12);
   --ui-shadow-panel: 0 14px 34px rgb(15 23 42 / 0.14), 0 1px 0 rgb(255 255 255 / 0.72) inset;
   --ui-glow-accent: 0 0 24px rgb(var(--accent-rgb) / 0.16);
+  --scrim: rgb(23 27 33 / 0.32);
+  --media-surface: #0b0d10;
+  --media-foreground: #f8fafc;
   --ui-radius-lg: 12px;
   --ui-radius-xl: 16px;
   --ui-radius-2xl: 20px;
@@ -140,6 +143,7 @@
   --canvas-minimap-mask: rgb(0 0 0 / 0.62);
   --ui-shadow-panel: 0 14px 34px rgb(0 0 0 / 0.48), 0 1px 0 rgb(255 255 255 / 0.04) inset;
   --ui-glow-accent: 0 0 24px rgb(var(--accent-rgb) / 0.24);
+  --scrim: rgb(0 0 0 / 0.64);
   --ui-radius-lg: 12px;
   --ui-radius-xl: 16px;
   --ui-radius-2xl: 20px;

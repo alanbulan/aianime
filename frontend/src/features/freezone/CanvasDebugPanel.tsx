@@ -249,7 +249,7 @@ export function CanvasDebugPanel({
                 </button>
               </header>
               {historyError && (
-                <div className="rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-800 dark:text-amber-200">
+                <div className="rounded border border-warning/40 bg-warning/10 px-2 py-1 text-[11px] text-warning">
                   {historyError}
                 </div>
               )}
@@ -293,7 +293,7 @@ export function CanvasDebugPanel({
                           disabled={
                             busyHistoryId === entryHistoryId || !entryHistoryId
                           }
-                          className="shrink-0 inline-flex items-center gap-1 rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-800 hover:bg-amber-500/20 dark:text-amber-200 disabled:opacity-50"
+                          className="inline-flex shrink-0 items-center gap-1 rounded border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[10px] text-warning hover:bg-warning/20 disabled:opacity-50"
                           title={entryHistoryId ? "恢复此版本" : "缺少 history_id，无法恢复"}
                         >
                           <RotateCcw className="h-3 w-3" />

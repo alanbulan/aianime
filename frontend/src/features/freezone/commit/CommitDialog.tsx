@@ -617,7 +617,7 @@ export function CommitDialog({
   return createPortal(
     <div className="fixed inset-0 z-[220] flex items-center justify-center">
       <div
-        className={`absolute inset-0 bg-black/55 backdrop-blur-[2px] transition-opacity duration-200 ${
+        className={`absolute inset-0 bg-scrim backdrop-blur-[2px] transition-opacity duration-200 ${
           isVisible ? "opacity-100" : "opacity-0"
         }`}
         onClick={submitting ? undefined : onClose}
@@ -679,7 +679,7 @@ export function CommitDialog({
           </div>
 
           {noTargetYet && (
-            <div className="rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2.5 text-xs leading-relaxed text-amber-800 dark:text-amber-200">
+            <div className="rounded-lg border border-warning/35 bg-warning/10 px-3 py-2.5 text-xs leading-relaxed text-warning">
               {noModelSourceForSlotCommit
                 ? "无来源没有可提交的 3D 世界素材；请切换到具体世界来源后再提交到主线槽位。"
                 : "当前 3D 世界没有可提交到该槽位的素材。"}
@@ -875,7 +875,7 @@ export function CommitDialog({
 
           {isGlobalSlot && (
             <Section title="影响预览">
-              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs">
+              <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-xs">
                 {impactLoading ? (
                   <div className="flex items-center gap-2 text-text-muted">
                     <Loader2 className="h-3 w-3 animate-spin" />
@@ -883,7 +883,7 @@ export function CommitDialog({
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-center gap-1.5 font-semibold text-amber-700 dark:text-amber-300">
+                    <div className="flex items-center gap-1.5 font-semibold text-warning">
                       <AlertTriangle className="h-3.5 w-3.5" />
                       将影响 {impactBeats.length} 个镜头
                     </div>
@@ -909,7 +909,7 @@ export function CommitDialog({
                         onChange={(e) => setMarkStale(e.target.checked)}
                         className="sr-only peer"
                       />
-                      <span className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded border border-border bg-background text-transparent transition-colors peer-checked:border-amber-500/70 peer-checked:bg-amber-500/20 peer-checked:text-amber-600 dark:peer-checked:text-amber-300">
+                      <span className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded border border-border bg-background text-transparent transition-colors peer-checked:border-warning/70 peer-checked:bg-warning/20 peer-checked:text-warning">
                         <svg
                           viewBox="0 0 16 16"
                           className="h-3 w-3"
@@ -932,8 +932,8 @@ export function CommitDialog({
             </Section>
           )}
 
-          <div className="flex items-start gap-2 px-1 text-[11px] leading-relaxed text-amber-700 dark:text-amber-200">
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-300" />
+          <div className="flex items-start gap-2 px-1 text-[11px] leading-relaxed text-warning">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
             <span>将覆盖「{targetLabel}」已有资产；原文件会保留在历史记录中。</span>
           </div>
 

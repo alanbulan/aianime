@@ -461,7 +461,7 @@ function CanvasListItem({
             onSwitch(sourceCanvasId);
           }}
           title={t("freezone.canvases.sourceCanvasTitle", { canvasId: sourceCanvasId })}
-          className="tap-button h-6 px-2 text-[10px] border-amber-500/35 text-amber-700 hover:bg-amber-500/15 hover:text-amber-800 dark:text-amber-200 dark:hover:text-amber-100"
+          className="tap-button h-6 border-warning/35 px-2 text-[10px] text-warning hover:bg-warning/15 hover:text-warning"
         >
           {t("freezone.canvases.sourceCanvas")}
         </button>

@@ -1399,8 +1399,8 @@ function CanvasConflictOverlay({
   };
 
   return (
-    <div className="absolute inset-0 bg-black/20 flex items-center justify-center dark:bg-black/50">
-      <div className="px-4 py-3 rounded-lg bg-surface border border-amber-500/50 text-sm text-amber-800 dark:text-amber-200 max-w-md flex flex-col gap-3">
+    <div className="absolute inset-0 flex items-center justify-center bg-scrim">
+      <div className="flex max-w-md flex-col gap-3 rounded-lg border border-warning/45 bg-card px-4 py-3 text-sm text-card-foreground shadow-lg">
         <div className="font-medium">画布保存冲突</div>
         <div className="text-text-muted">
           {error ?? "画布已被其他窗口或用户修改。刷新会丢弃当前本地未保存修改，另存为副本会保留当前画布。"}
@@ -1414,7 +1414,7 @@ function CanvasConflictOverlay({
           <button
             type="button"
             onClick={onRefresh}
-            className="px-3 py-1 rounded-md border border-amber-500/40 text-amber-700 hover:bg-amber-500/10 transition-colors dark:text-amber-200"
+            className="rounded-md border border-warning/40 px-3 py-1 text-warning transition-colors hover:bg-warning/10"
           >
             刷新
           </button>
@@ -1481,8 +1481,8 @@ function BackupStatusIndicator({
     : "本地修改已保存，云端备份还在同步中。可以继续编辑。";
   const palette = isFailed
     ? "border-destructive/45 bg-destructive/10 text-destructive"
-    : "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-200";
-  const dot = isFailed ? "bg-destructive" : "bg-amber-500 animate-pulse";
+    : "border-warning/40 bg-warning/10 text-warning";
+  const dot = isFailed ? "bg-destructive" : "bg-warning animate-pulse";
   return (
     <div
       role={isFailed ? "alert" : "status"}
@@ -1522,8 +1522,8 @@ function CanvasErrorOverlay({
   onRetry: () => void;
 }) {
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-black/20 px-6 dark:bg-black/45">
-      <div className="flex w-full max-w-2xl flex-col gap-3 rounded-xl border border-destructive/30 bg-card/95 px-4 py-3 text-sm shadow-[0_18px_60px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+    <div className="absolute inset-0 flex items-center justify-center bg-scrim px-6">
+      <div className="flex w-full max-w-2xl flex-col gap-3 rounded-xl border border-destructive/30 bg-card/95 px-4 py-3 text-sm shadow-xl backdrop-blur-xl">
         <div className="font-medium text-destructive">画布同步失败</div>
         <div className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs leading-5 text-destructive">
           {error}

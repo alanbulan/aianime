@@ -107,15 +107,15 @@ export function NodeContextBadges({ contexts, variant = "floating" }: NodeContex
   if (variant === "subtle") {
     return (
       <div className="flex max-w-full flex-wrap items-center gap-1">
-        <div className="inline-flex max-w-full items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium leading-none tracking-wide text-amber-800 dark:text-amber-200">
+        <div className="inline-flex max-w-full items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[10px] font-medium leading-none tracking-wide text-warning">
           <LinkIconDot />
           <span className="shrink-0">主线资产</span>
-          <span className="min-w-0 truncate text-amber-700 dark:text-amber-300">{badgeText(primary)}</span>
+          <span className="min-w-0 truncate text-warning/90">{badgeText(primary)}</span>
         </div>
         {visible.map((ctx, index) => (
           <span
             key={contextKey(ctx, index)}
-            className="inline-flex max-w-[220px] items-center gap-1 rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300"
+            className="inline-flex max-w-[220px] items-center gap-1 rounded-full border border-warning/25 bg-warning/10 px-2 py-0.5 text-[10px] font-medium text-warning"
           >
             {ctx.markerColor && (
               <span
@@ -127,7 +127,7 @@ export function NodeContextBadges({ contexts, variant = "floating" }: NodeContex
           </span>
         ))}
         {restCount > 0 && (
-          <span className="inline-flex items-center rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-700 dark:text-amber-300">
+          <span className="inline-flex items-center rounded-full border border-warning/25 bg-warning/10 px-2 py-0.5 text-[10px] text-warning">
             +{restCount}
           </span>
         )}
@@ -137,20 +137,20 @@ export function NodeContextBadges({ contexts, variant = "floating" }: NodeContex
 
   return (
     <div className="pointer-events-none absolute left-2 top-9 z-20 flex max-w-[calc(100%-16px)] flex-col items-start gap-1.5">
-      <div className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-cyan-200/50 bg-cyan-950/80 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-cyan-50 shadow-[0_0_18px_rgba(34,211,238,0.22)] backdrop-blur">
-        <span className="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(103,232,249,0.9)]" />
+      <div className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-primary/40 bg-popover/95 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-popover-foreground shadow-sm backdrop-blur">
+        <span className="h-1.5 w-1.5 rounded-full bg-primary" />
         <span className="shrink-0">主线资产</span>
-        <span className="min-w-0 truncate text-cyan-100/85">{badgeText(primary)}</span>
+        <span className="min-w-0 truncate text-muted-foreground">{badgeText(primary)}</span>
       </div>
       <div className="flex max-w-full flex-wrap gap-1">
         {visible.map((ctx, index) => (
         <span
           key={contextKey(ctx, index)}
-          className="inline-flex max-w-[220px] items-center gap-1 rounded-full border border-white/15 bg-black/60 px-2 py-0.5 text-[10px] font-medium text-cyan-100 shadow-sm backdrop-blur"
+          className="inline-flex max-w-[220px] items-center gap-1 rounded-full border border-border bg-popover/95 px-2 py-0.5 text-[10px] font-medium text-popover-foreground shadow-sm backdrop-blur"
         >
           {ctx.markerColor && (
             <span
-              className="h-2 w-2 rounded-full border border-white/50"
+              className="h-2 w-2 rounded-full border border-background"
               style={{ backgroundColor: ctx.markerColor }}
             />
           )}
@@ -158,7 +158,7 @@ export function NodeContextBadges({ contexts, variant = "floating" }: NodeContex
         </span>
         ))}
         {restCount > 0 && (
-          <span className="inline-flex items-center rounded-full border border-white/10 bg-black/55 px-2 py-0.5 text-[10px] text-cyan-100/80">
+          <span className="inline-flex items-center rounded-full border border-border bg-popover/95 px-2 py-0.5 text-[10px] text-muted-foreground">
             +{restCount}
           </span>
         )}
@@ -168,7 +168,7 @@ export function NodeContextBadges({ contexts, variant = "floating" }: NodeContex
 }
 
 function LinkIconDot() {
-  return <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />;
+  return <span className="h-1.5 w-1.5 rounded-full bg-warning" />;
 }
 
 export function CandidateBindingBadges({ roles }: { roles: CandidateBindingRole[] }) {
@@ -178,9 +178,9 @@ export function CandidateBindingBadges({ roles }: { roles: CandidateBindingRole[
       {roles.slice(0, 3).map((role) => (
         <span
           key={role}
-          className="inline-flex max-w-[220px] items-center gap-1 rounded-full border border-amber-200/45 bg-amber-950/80 px-2 py-0.5 text-[10px] font-semibold text-amber-50 shadow-[0_0_14px_rgba(251,191,36,0.2)] backdrop-blur"
+          className="inline-flex max-w-[220px] items-center gap-1 rounded-full border border-warning/40 bg-popover/95 px-2 py-0.5 text-[10px] font-semibold text-warning shadow-sm backdrop-blur"
         >
-          <span className="h-1.5 w-1.5 rounded-full bg-amber-300" />
+          <span className="h-1.5 w-1.5 rounded-full bg-warning" />
           {BINDING_LABELS[role]}
         </span>
       ))}

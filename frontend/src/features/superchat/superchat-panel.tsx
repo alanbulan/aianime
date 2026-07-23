@@ -296,7 +296,7 @@ function HighlightedErrorText({ text }: { text: string }) {
       nodes.push(<MessageText key={`normal-${index}`} text={text.slice(cursor, start)} markdown />);
     }
     nodes.push(
-      <span key={`error-${index}`} className="text-red-700 dark:text-red-300">
+      <span key={`error-${index}`} className="text-destructive">
         {text.slice(start, end)}
       </span>,
     );
@@ -314,7 +314,7 @@ function HighlightedCompletionText({ text }: { text: string }) {
   const end = match[0].length;
   return (
     <div className="break-words leading-relaxed whitespace-pre-wrap">
-      <span className="text-emerald-700 dark:text-emerald-300">{text.slice(0, end)}</span>
+      <span className="text-success">{text.slice(0, end)}</span>
       <span>{text.slice(end)}</span>
     </div>
   );
@@ -357,7 +357,7 @@ function ChatAvatarFrame({
         isAssistant
           ? "border-transparent bg-transparent text-muted-foreground shadow-none"
           : isTool
-            ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+            ? "border-warning/30 bg-warning/10 text-warning"
             : "border-primary/20 bg-primary text-primary-foreground",
       )}
       aria-hidden="true"
@@ -420,7 +420,7 @@ function VideoDetailModal({
       <DialogContent className="max-w-5xl border-border/70 bg-background p-3 sm:max-w-5xl">
         <DialogTitle className="sr-only">{title || "Video preview"}</DialogTitle>
         <video
-          className="max-h-[78vh] w-full rounded-md bg-black object-contain"
+          className="max-h-[78vh] w-full rounded-md bg-media object-contain"
           src={src}
           poster={poster}
           controls
@@ -671,7 +671,7 @@ function KeyframeVideoPreviewCard({ item }: { item: KeyframeVideoPreviewItem }) 
     <>
       <div style={{ perspective: 800, ...cardStyle }} className="shrink-0">
         <div className="relative h-full w-full overflow-hidden rounded-2xl bg-border p-[1.5px]">
-          <div className="relative z-10 h-full w-full overflow-hidden rounded-[14px] bg-[#0b0d10]">
+          <div className="relative z-10 h-full w-full overflow-hidden rounded-[14px] bg-media">
             <button
               type="button"
               className={cn("relative h-full w-full cursor-pointer text-left", !playable && "cursor-default")}
@@ -693,13 +693,13 @@ function KeyframeVideoPreviewCard({ item }: { item: KeyframeVideoPreviewItem }) 
               )}
               {playable && (
                 <span className="ai-anime-keyframe-video-play">
-                  <Play className="size-5 fill-white text-white" />
+                  <Play className="size-5 fill-media-foreground text-media-foreground" />
                 </span>
               )}
-              <span className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-1 bg-gradient-to-t from-black/85 via-black/35 to-transparent px-3 pb-3 pt-8 text-white">
+              <span className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-1 bg-gradient-to-t from-media/85 via-media/35 to-transparent px-3 pb-3 pt-8 text-media-foreground">
                 <span className="truncate text-sm font-semibold">{item.title}</span>
                 {item.description && (
-                  <span className="line-clamp-2 text-[11px] leading-4 text-white/80">
+                  <span className="line-clamp-2 text-[11px] leading-4 text-media-foreground/80">
                     {item.description}
                   </span>
                 )}
@@ -765,10 +765,10 @@ function UnifiedMediaCard({
     <>
       <div className="ai-anime-unified-media-card">
         <div className="relative h-full w-full overflow-hidden rounded-2xl bg-border p-[1.5px]">
-          <div className="relative z-10 h-full w-full overflow-hidden rounded-[14px] bg-[#0b0d10]">
+          <div className="relative z-10 h-full w-full overflow-hidden rounded-[14px] bg-media">
             {item.kind === "audio" ? (
               <div className="relative flex h-full w-full flex-col justify-center gap-4 px-3 pb-16 pt-5">
-                <span className="mx-auto flex size-14 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white shadow-[0_12px_30px_rgba(0,0,0,0.3)]">
+                <span className="mx-auto flex size-14 items-center justify-center rounded-full border border-media-foreground/15 bg-media-foreground/10 text-media-foreground shadow-xl">
                   <Volume2 className="size-7" />
                 </span>
                 {src && (
@@ -780,10 +780,10 @@ function UnifiedMediaCard({
                   />
                 )}
                 {!src && <span className="ai-anime-keyframe-video-placeholder absolute inset-0" />}
-                <span className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col gap-1 bg-gradient-to-t from-black/85 via-black/35 to-transparent px-3 pb-3 pt-8 text-white">
+                <span className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col gap-1 bg-gradient-to-t from-media/85 via-media/35 to-transparent px-3 pb-3 pt-8 text-media-foreground">
                   <span className="truncate text-sm font-semibold">{item.title}</span>
                   {item.description && (
-                    <span className="line-clamp-2 text-[11px] leading-4 text-white/80">
+                    <span className="line-clamp-2 text-[11px] leading-4 text-media-foreground/80">
                       {item.description}
                     </span>
                   )}
@@ -809,13 +809,13 @@ function UnifiedMediaCard({
                 )}
                 {item.kind === "video" && playable && (
                   <span className="ai-anime-keyframe-video-play">
-                    <Play className="size-5 fill-white text-white" />
+                    <Play className="size-5 fill-media-foreground text-media-foreground" />
                   </span>
                 )}
-                <span className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-1 bg-gradient-to-t from-black/85 via-black/35 to-transparent px-3 pb-3 pt-8 text-white">
+                <span className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-1 bg-gradient-to-t from-media/85 via-media/35 to-transparent px-3 pb-3 pt-8 text-media-foreground">
                   <span className="truncate text-sm font-semibold">{item.title}</span>
                   {item.description && (
-                    <span className="line-clamp-2 text-[11px] leading-4 text-white/80">
+                    <span className="line-clamp-2 text-[11px] leading-4 text-media-foreground/80">
                       {item.description}
                     </span>
                   )}
@@ -1055,13 +1055,13 @@ function SpecMediaDetailModal({
     }}>
       <DialogContent
         showCloseButton={false}
-        className="fixed inset-0 left-0 top-0 flex h-screen w-screen max-w-none translate-x-0 translate-y-0 items-center justify-center rounded-none border-none bg-[#0b0d10]/95 p-0 text-white backdrop-blur-xl sm:max-w-none"
+        className="fixed inset-0 left-0 top-0 flex h-screen w-screen max-w-none translate-x-0 translate-y-0 items-center justify-center rounded-none border-none bg-media/95 p-0 text-media-foreground backdrop-blur-xl sm:max-w-none"
       >
         <DialogTitle className="sr-only">{detail?.title || t("aiAssistant.mediaDetail")}</DialogTitle>
         <div className="absolute right-6 top-5 z-50 flex items-center gap-5">
           <button
             type="button"
-            className="text-white/45 transition hover:text-white"
+            className="text-media-foreground/45 transition hover:text-media-foreground"
             onClick={() => {
               if (downloadSrc) triggerDownload(downloadSrc);
             }}
@@ -1070,7 +1070,7 @@ function SpecMediaDetailModal({
           >
             <Download className="size-6" />
           </button>
-          <DialogClose className="text-white/45 outline-none transition hover:text-white" aria-label={t("aiAssistant.closeDetail")}>
+          <DialogClose className="text-media-foreground/45 outline-none transition hover:text-media-foreground" aria-label={t("aiAssistant.closeDetail")}>
             <X className="size-7" />
           </DialogClose>
         </div>
@@ -1078,7 +1078,7 @@ function SpecMediaDetailModal({
         {detail && (
           <div className="flex h-full w-full max-w-7xl items-center justify-center p-6">
             <div className="grid h-full w-full grid-cols-1 items-center gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-10">
-              <div className="relative mx-auto flex max-h-[82vh] max-w-full items-center justify-center overflow-hidden rounded-[28px] bg-black/45 shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
+              <div className="relative mx-auto flex max-h-[82vh] max-w-full items-center justify-center overflow-hidden rounded-[28px] bg-media shadow-2xl">
                 {detail.kind === "video" ? (
                   <video
                     className="block max-h-[82vh] max-w-full object-contain"
@@ -1098,7 +1098,7 @@ function SpecMediaDetailModal({
 
               <div className="flex min-w-0 flex-col justify-center self-center">
                 {detail.title && (
-                  <h2 className="text-[34px] font-semibold tracking-tight text-white/95">
+                  <h2 className="text-[34px] font-semibold tracking-tight text-media-foreground/95">
                     {detail.title}
                   </h2>
                 )}
@@ -1107,7 +1107,7 @@ function SpecMediaDetailModal({
                     {detail.tags.map((tag) => (
                       <span
                         key={`${tag.label}:${tag.color ?? ""}`}
-                        className="rounded border border-white/20 px-2 py-1 text-xs text-white/70"
+                        className="rounded border border-media-foreground/20 px-2 py-1 text-xs text-media-foreground/70"
                         style={tag.color ? { borderColor: tag.color, color: tag.color } : undefined}
                       >
                         {tag.label}
@@ -1118,24 +1118,24 @@ function SpecMediaDetailModal({
 
                 <div className="mt-6 space-y-0">
                   {sections.map((section, index) => (
-                    <section key={`${section.title}-${index}`} className="border-t border-white/10 py-7 first:border-t">
+                    <section key={`${section.title}-${index}`} className="border-t border-media-foreground/10 py-7 first:border-t">
                       {section.title && (
-                        <h3 className="mb-5 text-[15px] font-medium text-white/55">
+                        <h3 className="mb-5 text-[15px] font-medium text-media-foreground/55">
                           {section.title}
                         </h3>
                       )}
                       {section.items && section.items.length > 0 && (
-                        <ul className="space-y-5 text-[16px] leading-8 text-white/88">
+                        <ul className="space-y-5 text-[16px] leading-8 text-media-foreground/88">
                           {section.items.map((item, itemIndex) => (
                             <li key={`${section.title}-${itemIndex}`} className="flex gap-3">
-                              <span className="mt-[11px] size-1.5 shrink-0 rounded-full bg-white/65" />
+                              <span className="mt-[11px] size-1.5 shrink-0 rounded-full bg-media-foreground/65" />
                               <span>{item}</span>
                             </li>
                           ))}
                         </ul>
                       )}
                       {section.body && (
-                        <p className="whitespace-pre-wrap text-[16px] leading-8 text-white/88">
+                        <p className="whitespace-pre-wrap text-[16px] leading-8 text-media-foreground/88">
                           {section.body}
                         </p>
                       )}
@@ -1144,8 +1144,8 @@ function SpecMediaDetailModal({
                 </div>
 
                 {detail.candidates && detail.candidates.length > 0 && (
-                  <div className="mt-2 border-t border-white/10 pt-5">
-                    <div className="mb-3 text-[15px] font-medium text-white/55">
+                  <div className="mt-2 border-t border-media-foreground/10 pt-5">
+                    <div className="mb-3 text-[15px] font-medium text-media-foreground/55">
                       {t("aiAssistant.mediaCandidates")}
                     </div>
                     <div className="flex gap-2 overflow-x-auto pb-1">
@@ -1159,7 +1159,7 @@ function SpecMediaDetailModal({
                             src: candidate.src,
                             title: candidate.label || detail.title,
                           })}
-                          className="block w-16 shrink-0 overflow-hidden rounded-lg border border-white/15 bg-black"
+                          className="block w-16 shrink-0 overflow-hidden rounded-lg border border-media-foreground/15 bg-media"
                           title={candidate.label}
                         >
                           <img src={candidate.src} alt={candidate.label || "candidate"} className="aspect-[3/4] w-full object-cover" />
@@ -1315,7 +1315,7 @@ const MessageBubble = memo(function MessageBubble({
               ? "w-full min-w-0 overflow-visible"
               : "w-fit overflow-hidden",
             isTool
-              ? "max-w-[86%] rounded-[14px] border border-amber-500/20 bg-amber-500/8 px-4 pb-3 pt-2 text-card-foreground"
+              ? "max-w-[86%] rounded-[14px] border border-warning/20 bg-warning/10 px-4 pb-3 pt-2 text-card-foreground"
               : isUser
                 ? "max-w-[86%] rounded-[14px] bg-muted px-4 pb-3 pt-2 text-foreground"
                 : "max-w-full rounded-[14px] border border-border bg-card px-4 pb-3 pt-2 text-foreground",
@@ -1702,9 +1702,9 @@ function ApprovalCard({
     : null;
 
   return (
-    <div className="border-b border-amber-500/20 bg-amber-500/8 px-3 py-3">
+    <div className="border-b border-warning/20 bg-warning/10 px-3 py-3">
       <div className="mb-2 flex items-start gap-2">
-        <ShieldAlert className="mt-0.5 size-4 shrink-0 text-amber-700 dark:text-amber-300" />
+        <ShieldAlert className="mt-0.5 size-4 shrink-0 text-warning" />
         <div className="min-w-0 flex-1">
           <div className="text-sm font-medium text-foreground">{approval.title}</div>
           {remaining !== null && (
@@ -3176,7 +3176,7 @@ export function SuperChatPanel({
                 <span
                   className={cn(
                     "size-1.5 rounded-full",
-                    chat.connected ? "bg-emerald-400" : chat.connecting ? "bg-amber-300" : "bg-muted-foreground",
+                    chat.connected ? "bg-success" : chat.connecting ? "bg-warning" : "bg-muted-foreground",
                   )}
                   aria-hidden="true"
                 />
