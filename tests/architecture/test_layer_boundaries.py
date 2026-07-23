@@ -258,3 +258,29 @@ def test_narrative_planning_callers_use_the_public_api() -> None:
 
     assert not _python_files(PACKAGE_ROOT / "workflows")
     assert not failures, "\n".join(failures)
+
+
+def test_narrative_script_route_remains_an_http_adapter() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "scripts.py"
+    imported_modules = _imports(route)
+    forbidden_imports = {
+        imported
+        for imported in imported_modules
+        if imported == "ai_anime.ports"
+        or imported == "ai_anime.task_identity"
+        or imported.startswith("ai_anime.seedance2_i2v")
+    }
+    source = route.read_text(encoding="utf-8")
+    forbidden_calls = {
+        call
+        for call in (
+            "enqueue_project_task(",
+            "reserve_feature_start_credits(",
+            "confirm_feature_credit_reservation(",
+            "refund_feature_credit_reservation(",
+        )
+        if call in source
+    }
+
+    assert not forbidden_imports
+    assert not forbidden_calls

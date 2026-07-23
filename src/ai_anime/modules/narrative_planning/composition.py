@@ -18,12 +18,18 @@ from ai_anime.modules.narrative_planning.application.narrative_tasks import (
 from ai_anime.modules.narrative_planning.application.script_documents import (
     ScriptDocumentService,
 )
+from ai_anime.modules.narrative_planning.application.seedance_prompts import (
+    GenerateSeedancePrompt,
+)
 from ai_anime.modules.narrative_planning.infrastructure import (
     beat_prompt_generators,
     content_rewriters,
 )
 from ai_anime.modules.narrative_planning.infrastructure.sketch_workspace import (
     LocalSketchWorkspace,
+)
+from ai_anime.modules.narrative_planning.infrastructure.seedance_prompt_gateway import (
+    SeedancePanelPromptGateway,
 )
 from ai_anime.modules.narrative_planning.infrastructure.task_scheduler import (
     TaskBackendScheduler,
@@ -66,6 +72,15 @@ def start_script_generation() -> StartScriptGeneration:
 
 def schedule_beat_video_prompt() -> ScheduleBeatVideoPrompt:
     return ScheduleBeatVideoPrompt(narrative_task_scheduler())
+
+
+def generate_seedance_prompt() -> GenerateSeedancePrompt:
+    from ai_anime import ports
+
+    return GenerateSeedancePrompt(
+        gateway=SeedancePanelPromptGateway(),
+        usage_meter=ports.get_usage_meter(),
+    )
 
 
 def create_script_writing_workflow(

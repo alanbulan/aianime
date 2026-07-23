@@ -27,6 +27,7 @@ from ai_anime.modules.narrative_planning.application.narrative_tasks import (
 from ai_anime.modules.narrative_planning.application.ports import (
     NarrativeContentStore,
     NarrativeScriptStore,
+    SeedancePromptStore,
     ScriptDocumentStore,
     ScriptGenerationStore,
 )
@@ -34,6 +35,11 @@ from ai_anime.modules.narrative_planning.application.script_documents import (
     BeatStoreUpdateFailed,
     SavedEpisodeScript,
     ScriptStoreSyncFailed,
+)
+from ai_anime.modules.narrative_planning.application.seedance_prompts import (
+    GenerateSeedancePromptCommand,
+    GeneratedSeedancePrompt,
+    SeedancePromptRejected,
 )
 from ai_anime.modules.narrative_planning.application.task_dto import (
     BeatVideoPromptTask,
@@ -43,6 +49,7 @@ from ai_anime.modules.narrative_planning.composition import (
     beat_video_prompts,
     create_script_writing_workflow,
     episode_content_service,
+    generate_seedance_prompt,
     schedule_beat_video_prompt,
     script_document_service,
     start_script_generation,
@@ -172,6 +179,13 @@ async def enqueue_beat_video_prompt_generation(
     )
 
 
+async def generate_seedance2_beat_prompt(
+    store: SeedancePromptStore,
+    command: GenerateSeedancePromptCommand,
+) -> GeneratedSeedancePrompt:
+    return await generate_seedance_prompt().execute(store, command)
+
+
 async def resolve_beat_video_prompt_target(
     store: NarrativeScriptStore,
     *,
@@ -213,7 +227,9 @@ __all__ = [
     "EpisodeContentWriteFailed",
     "FinalBeatTransitionNotAllowed",
     "GenerateEpisodeRewriteCommand",
+    "GenerateSeedancePromptCommand",
     "GeneratedEpisodeRewrite",
+    "GeneratedSeedancePrompt",
     "GeneratedBeatVideoPrompt",
     "IdentityPlanRequired",
     "LiteralBeatMetaOutput",
@@ -224,6 +240,7 @@ __all__ = [
     "RawEpisodeContentMissing",
     "ProjectContextRequired",
     "ScheduledNarrativeTask",
+    "SeedancePromptRejected",
     "ScriptNotFound",
     "ScriptStoreSyncFailed",
     "clear_adapted_episode_content",
@@ -231,6 +248,7 @@ __all__ = [
     "enqueue_beat_video_prompt_generation",
     "generate_and_save_beat_video_prompt",
     "generate_episode_rewrite",
+    "generate_seedance2_beat_prompt",
     "load_adapted_episode_content",
     "load_episode_script",
     "load_raw_episode_content",

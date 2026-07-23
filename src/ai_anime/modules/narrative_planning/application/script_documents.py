@@ -8,8 +8,7 @@ from ai_anime.modules.narrative_planning.application.ports import (
     ScriptDocumentStore,
 )
 from ai_anime.modules.narrative_planning.domain import (
-    BeatNotFound,
-    ScriptNotFound,
+    select_script_beat_context,
 )
 
 
@@ -67,20 +66,11 @@ class ScriptDocumentService:
         beat_num: int,
         updates: Mapping[str, Any],
     ) -> dict[str, Any]:
-        script = await store.get_script_as_dict(episode_num)
-        if not script:
-            raise ScriptNotFound("Script not found")
-
-        target = next(
-            (
-                beat
-                for beat in script.get("beats") or []
-                if int(beat.get("beat_number") or 0) == beat_num
-            ),
-            None,
+        selection = select_script_beat_context(
+            await store.get_script_as_dict(episode_num),
+            beat_num,
         )
-        if target is None:
-            raise BeatNotFound(f"Beat {beat_num} not found")
+        target = selection.beat
 
         target.update(updates)
         sync_beat_asset_refs(target)

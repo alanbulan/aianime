@@ -126,3 +126,64 @@ class NarrativeTaskScheduler(Protocol):
         task_context: ProjectContext,
         task: BeatVideoPromptTask,
     ) -> TaskQueueReceipt: ...
+
+
+class SeedancePromptStore(Protocol):
+    async def get_script_as_dict(self, episode_num: int) -> dict[str, Any] | None: ...
+
+    async def update_beat_asset(
+        self,
+        episode_number: int,
+        beat_number: int,
+        **updates: Any,
+    ) -> bool: ...
+
+
+class SeedancePromptGateway(Protocol):
+    def mode(self, config_json: Any) -> str: ...
+
+    async def generate(
+        self,
+        *,
+        store: SeedancePromptStore,
+        episode: int,
+        beat: dict[str, Any],
+        project_dir: str | Path,
+        next_beat: dict[str, Any] | None,
+        manual_prompt_reference: str | None,
+        prompt_guidance: str | None,
+        prop_menu: list[Any],
+    ) -> str: ...
+
+    def result_fields(self, config_json: str) -> tuple[str, str]: ...
+
+
+class FeatureUsageMeter(Protocol):
+    async def reserve_feature_start_credits(
+        self,
+        **kwargs: Any,
+    ) -> dict[str, Any]: ...
+
+    async def confirm_feature_credit_reservation(
+        self,
+        reservation_id: str,
+        *,
+        metadata: dict[str, Any] | None = None,
+    ) -> None: ...
+
+    async def refund_feature_credit_reservation(
+        self,
+        reservation_id: str,
+        *,
+        metadata: dict[str, Any] | None = None,
+    ) -> None: ...
+
+    def set_llm_usage_context(
+        self,
+        user_id: str,
+        project_id: str = "",
+        resource_kind: str = "",
+        billing_metadata: dict[str, Any] | None = None,
+    ) -> None: ...
+
+    def clear_llm_usage_context(self) -> None: ...
