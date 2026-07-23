@@ -22,7 +22,7 @@ import shutil
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Any, Mapping, Optional
 
 from ai_anime.config import OUTPUT_DIR
 from ai_anime.models import StyleConfig
@@ -54,6 +54,25 @@ class StyleService:
         "hybrid": "混合媒介",
     }
     STYLE_PREVIEW_EXTENSIONS = (".png", ".jpg", ".jpeg", ".webp", ".gif")
+
+    @staticmethod
+    def build_style_config(payload: Mapping[str, Any]) -> StyleConfig:
+        return StyleConfig(**dict(payload))
+
+    @classmethod
+    def preset_preview_path(cls, style_id: str) -> Path:
+        return cls.PRESETS_DIR / f"{style_id}.png"
+
+    @staticmethod
+    def resolve_project_preview_path(
+        project_dir: str | Path,
+        preview_path: str,
+    ) -> Path | None:
+        project_root = Path(project_dir).resolve()
+        candidate = (project_root / preview_path).resolve()
+        if not candidate.is_relative_to(project_root) or not candidate.exists():
+            return None
+        return candidate
 
     @classmethod
     def _style_preview_dir(cls, project_dir: str | Path, style_id: str) -> Path:

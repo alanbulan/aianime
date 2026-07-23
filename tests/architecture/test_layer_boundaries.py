@@ -280,6 +280,43 @@ def test_asset_world_callers_use_the_public_api() -> None:
     assert not failures, "\n".join(failures)
 
 
+def test_asset_world_style_layers_do_not_depend_on_fastapi() -> None:
+    roots = (
+        PACKAGE_ROOT / "modules" / "asset_world" / "domain",
+        PACKAGE_ROOT / "modules" / "asset_world" / "application",
+    )
+    failures = [
+        _relative(path)
+        for root in roots
+        for path in _python_files(root)
+        if any(
+            imported == "fastapi" or imported.startswith("fastapi.")
+            for imported in _imports(path)
+        )
+    ]
+    assert not failures
+
+
+def test_asset_world_style_route_remains_an_http_adapter() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "styles.py"
+    imported_modules = _imports(route)
+    source = route.read_text(encoding="utf-8")
+
+    assert "ai_anime.modules.asset_world.public" in imported_modules
+    assert not {
+        imported
+        for imported in imported_modules
+        if imported.startswith("ai_anime.generators")
+        or imported == "ai_anime.models"
+        or imported == "ai_anime.ports"
+    }
+    assert "StyleService" not in source
+    assert "generate_character_reference_unified" not in source
+    assert "StyleAnalyzer" not in source
+    assert "get_usage_meter" not in source
+    assert "tempfile" not in source
+
+
 def test_narrative_script_route_remains_an_http_adapter() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "scripts.py"
     imported_modules = _imports(route)
