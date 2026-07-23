@@ -8,12 +8,15 @@ import {
 } from "@/modules/narrative_planning/application/query-hooks";
 import { createUseEpisodeListItemController } from "@/modules/narrative_planning/application/use-episode-list-item-controller";
 import { createUseEpisodesPageController } from "@/modules/narrative_planning/application/use-episodes-page-controller";
+import { createUseScriptPageController } from "@/modules/narrative_planning/application/use-script-page-controller";
 import type { Episode } from "@/modules/narrative_planning/domain/types";
 import { httpNarrativePlanningGateway } from "@/modules/narrative_planning/infrastructure/http-narrative-planning-gateway";
 import {
   EpisodeListItemView,
   EpisodesPageView,
 } from "@/modules/narrative_planning/presentation/EpisodesPageView";
+import { ScriptPageView } from "@/modules/narrative_planning/presentation/ScriptPageView";
+import { useProject } from "@/modules/project_workspace/public";
 
 export const narrativePlanningQueries = createNarrativePlanningQueryHooks(
   httpNarrativePlanningGateway,
@@ -55,6 +58,10 @@ const useEpisodesPageController = createUseEpisodesPageController(
 );
 const useEpisodeListItemController = createUseEpisodeListItemController(
   narrativePlanningQueries,
+);
+const useScriptPageController = createUseScriptPageController(
+  narrativePlanningQueries,
+  { useCharacters, useGenerationCreditCost, useProject },
 );
 
 function EpisodeListItemContent({
@@ -118,6 +125,17 @@ export function EpisodesPageContent({
     episodeContent,
     renderEpisodeListItem,
   });
+}
+
+export function ScriptPageContent({
+  episodeNumber,
+  project,
+}: {
+  episodeNumber: number;
+  project: string;
+}) {
+  const controller = useScriptPageController({ episodeNumber, project });
+  return createElement(ScriptPageView, { controller });
 }
 
 export { isPlanEpisodeAssetsResult };

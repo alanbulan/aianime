@@ -8,6 +8,7 @@ export {
   prefetchEpisodeBeats,
   prefetchEpisodeDetail,
   readPipelineStatus,
+  ScriptPageContent,
   useDeleteManualShot,
   useEpisodeBeats,
   useEpisodeDetail,

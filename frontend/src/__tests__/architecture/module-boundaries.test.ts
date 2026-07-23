@@ -15,7 +15,7 @@ const LEGACY_ROUTE_DATA_IMPORT_MAX: Record<string, number> = {
   "routes/_app/projects.$project/characters.lazy.tsx": 6,
   "routes/_app/projects.$project/episodes.$episode/beats.lazy.tsx": 8,
   "routes/_app/projects.$project/episodes.$episode/compose.lazy.tsx": 4,
-  "routes/_app/projects.$project/episodes.$episode/script.lazy.tsx": 5,
+  "routes/_app/projects.$project/episodes.$episode/script.lazy.tsx": 0,
   "routes/_app/projects.$project/episodes.tsx": 0,
   "routes/_app/projects.$project/freezone.lazy.tsx": 2,
   "routes/_app/projects.$project/styles.tsx": 3,
@@ -394,6 +394,26 @@ describe("frontend architecture boundaries", () => {
     expect(route).not.toContain("useQueryClient");
     expect(route).not.toContain("useEpisodes");
     expect(route).not.toContain("usePlanEpisodes");
+    expect(route).not.toContain("useTaskController");
+    expect(route).not.toContain("useGenerationCreditCost");
+  });
+
+  it("keeps the Script route as an adapter", () => {
+    const route = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "routes/_app/projects.$project/episodes.$episode/script.lazy.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(route).toContain(
+      'import { ScriptPageContent } from "@/modules/narrative_planning/public";',
+    );
+    expect(route).toContain("Route.useParams()");
+    expect(route).not.toContain("useQueryClient");
+    expect(route).not.toContain("useEpisodeDetail");
+    expect(route).not.toContain("useGenerateScript");
     expect(route).not.toContain("useTaskController");
     expect(route).not.toContain("useGenerationCreditCost");
   });

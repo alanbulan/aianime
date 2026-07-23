@@ -2,114 +2,77 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
+const read = (path: string) => readFileSync(path, "utf8");
+const controller = read(
+  "src/modules/narrative_planning/application/use-script-page-controller.ts",
+);
+const view = read(
+  "src/modules/narrative_planning/presentation/ScriptPageView.tsx",
+);
+const scriptPageSources = `${controller}\n${view}`;
+
 describe("script route source editor integration", () => {
   it("mounts the episode source editor and saves beat_source_text", () => {
-    const route = readFileSync(
-      "src/routes/_app/projects.$project/episodes.$episode/script.lazy.tsx",
-      "utf8",
-    );
-
-    expect(route).toContain("EpisodeSourceEditor");
-    expect(route).toContain("beat_source_text");
-    expect(route).toContain("saveScopes.episodeSource");
+    expect(view).toContain("EpisodeSourceEditor");
+    expect(controller).toContain("beat_source_text");
+    expect(controller).toContain("saveScopes.episodeSource");
   });
 
   it("mounts the beat-level script preview from episode beats", () => {
-    const route = readFileSync(
-      "src/routes/_app/projects.$project/episodes.$episode/script.lazy.tsx",
-      "utf8",
-    );
-
-    expect(route).toContain("useEpisodeBeats");
-    expect(route).toContain("ScriptBeatPreview");
-    expect(route).toContain("episode.script.previewTitle");
+    expect(controller).toContain("queries.useEpisodeBeats");
+    expect(view).toContain("ScriptBeatPreview");
+    expect(view).toContain("episode.script.previewTitle");
   });
 
   it("keeps the episode story context panel hidden on the script page", () => {
-    const route = readFileSync(
-      "src/routes/_app/projects.$project/episodes.$episode/script.lazy.tsx",
-      "utf8",
-    );
-
-    expect(route).not.toContain("EpisodeStoryContext");
-    expect(route).not.toContain("content_summary");
-    expect(route).not.toContain("key_events");
-    expect(route).not.toContain("cliffhanger");
+    expect(scriptPageSources).not.toContain("EpisodeStoryContext");
+    expect(scriptPageSources).not.toContain("content_summary");
+    expect(scriptPageSources).not.toContain("key_events");
+    expect(scriptPageSources).not.toContain("cliffhanger");
   });
 
   it("mounts episode scene and prop planning from detail menus", () => {
-    const route = readFileSync(
-      "src/routes/_app/projects.$project/episodes.$episode/script.lazy.tsx",
-      "utf8",
-    );
-
-    expect(route).toContain("EpisodeAssetPlanning");
-    expect(route).toContain("usePlanEpisodeScenes");
-    expect(route).toContain("usePlanEpisodeProps");
-    expect(route).toContain("scene_menu");
-    expect(route).toContain("prop_menu");
-    expect(route).toContain("project={project}");
+    expect(view).toContain("EpisodeAssetPlanning");
+    expect(controller).toContain("queries.usePlanEpisodeScenes");
+    expect(controller).toContain("queries.usePlanEpisodeProps");
+    expect(controller).toContain("scene_menu");
+    expect(controller).toContain("prop_menu");
+    expect(view).toContain("project={project}");
   });
 
   it("shows feature credit cost on detail scene and prop planning", () => {
-    const route = readFileSync(
-      "src/routes/_app/projects.$project/episodes.$episode/script.lazy.tsx",
-      "utf8",
-    );
-    const planning = readFileSync(
+    const planning = read(
       "src/components/episode/episode-asset-planning.tsx",
-      "utf8",
     );
 
-    expect(route).toContain(
-      'useGenerationCreditCost("feature", "episode_scene_planner")',
+    expect(controller).toContain('"episode_scene_planner"');
+    expect(controller).toContain('"episode_prop_planner"');
+    expect(controller).toContain("BillingRuleNotConfiguredError");
+    expect(view).toContain("sceneCostDisplay={planScenesCostDisplay}");
+    expect(view).toContain("propCostDisplay={planPropsCostDisplay}");
+    expect(controller).toMatch(
+      /const handlePlanScenes[\s\S]*backendErrorToastMessage\(response\.error, t\)[\s\S]*catch \(error\)[\s\S]*backendErrorToastMessage\(error, t\)/,
     );
-    expect(route).toContain(
-      'useGenerationCreditCost("feature", "episode_prop_planner")',
-    );
-    expect(route).toContain(
-      "planScenesCost.error instanceof BillingRuleNotConfiguredError",
-    );
-    expect(route).toContain(
-      "planPropsCost.error instanceof BillingRuleNotConfiguredError",
-    );
-    expect(route).toContain("sceneCostDisplay={planScenesCostDisplay}");
-    expect(route).toContain("propCostDisplay={planPropsCostDisplay}");
-    expect(route).toMatch(
-      /const handlePlanScenes[\s\S]*toast\.error\(backendErrorToastMessage\(res\.error, t\)\)[\s\S]*catch \(err\)[\s\S]*toast\.error\(backendErrorToastMessage\(err, t\)\)/,
-    );
-    expect(route).toMatch(
-      /const handlePlanProps[\s\S]*toast\.error\(backendErrorToastMessage\(res\.error, t\)\)[\s\S]*catch \(err\)[\s\S]*toast\.error\(backendErrorToastMessage\(err, t\)\)/,
+    expect(controller).toMatch(
+      /const handlePlanProps[\s\S]*backendErrorToastMessage\(response\.error, t\)[\s\S]*catch \(error\)[\s\S]*backendErrorToastMessage\(error, t\)/,
     );
     expect(planning).toContain("<CreditCostInline display={costDisplay} />");
   });
 
   it("shows feature credit cost on detail identity planning", () => {
-    const route = readFileSync(
-      "src/routes/_app/projects.$project/episodes.$episode/script.lazy.tsx",
-      "utf8",
-    );
-    const picker = readFileSync(
-      "src/components/identity-picker-dialog.tsx",
-      "utf8",
-    );
+    const picker = read("src/components/identity-picker-dialog.tsx");
 
-    expect(route).toContain('useGenerationCreditCost("feature", "identity_planner")');
-    expect(route).toContain(
-      "planIdentitiesCost.error instanceof BillingRuleNotConfiguredError",
+    expect(controller).toContain('"identity_planner"');
+    expect(controller).toContain("BillingRuleNotConfiguredError");
+    expect(view).toContain("planCostDisplay={planIdentitiesCostDisplay}");
+    expect(picker).toContain(
+      "<CreditCostInline display={planCostDisplay} />",
     );
-    expect(route).toContain("planCostDisplay={planIdentitiesCostDisplay}");
-    expect(picker).toContain("<CreditCostInline display={planCostDisplay} />");
   });
 
   it("wires episode prop promotion labels into the planning area", () => {
-    const route = readFileSync(
-      "src/routes/_app/projects.$project/episodes.$episode/script.lazy.tsx",
-      "utf8",
-    );
-
-    expect(route).toContain("episode.script.propInGlobal");
-    expect(route).toContain("episode.script.promotePropTitle");
-    expect(route).toContain("assets.props.types");
+    expect(view).toContain("episode.script.propInGlobal");
+    expect(view).toContain("episode.script.promotePropTitle");
+    expect(view).toContain("assets.props.types");
   });
 });
