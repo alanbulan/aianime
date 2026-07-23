@@ -27,28 +27,34 @@ const scriptPageSources = [
 
 describe("script workflow canonical contract", () => {
   it("uses script_writer and /script/generate for beats empty-state generation", () => {
-    const route = read(
-      "src/routes/_app/projects.$project/episodes.$episode/beats.lazy.tsx",
+    const beatsController = read(
+      "src/modules/narrative_planning/application/use-beats-page-controller.ts",
     );
+    const beatsView = read(
+      "src/modules/narrative_planning/presentation/BeatsPageView.tsx",
+    );
+    const beatsSources = `${beatsController}\n${beatsView}`;
 
-    expect(route).toContain("useGenerateScript");
-    expect(route).toContain("useEpisodeDetail");
-    expect(route).toContain("identityPlanReady");
-    expect(route).toContain("episode.script.identityRequired");
-    expect(route).toContain(
-      'useGenerationCreditCost("feature", "script_writer")',
-    );
-    expect(route).toContain(
-      "generateScriptCost.error instanceof BillingRuleNotConfiguredError",
-    );
-    expect(route).toMatch(
+    expect(beatsController).toContain("queries.useGenerateScript");
+    expect(beatsController).toContain("queries.useEpisodeDetail");
+    expect(beatsController).toContain("identityPlanReady");
+    expect(beatsController).toContain("episode.script.identityRequired");
+    expect(beatsController).toContain('"script_writer"');
+    expect(beatsController).toContain("BillingRuleNotConfiguredError");
+    expect(beatsView).toMatch(
       /<CreditCostInline\s+display=\{generateScriptCostDisplay\}/,
     );
-    expect(route).toContain("backendErrorToastMessage(err, t)");
-    expect(route).toContain('taskType: "script_writer"');
-    expect(route).toContain('alsoReconcile: ["literal_script_writer"]');
-    expect(route).not.toContain("useGenerateLiteralScript");
-    expect(route).not.toContain('taskType: "literal_script_writer"');
+    expect(beatsController).toContain(
+      "backendErrorToastMessage(error, t)",
+    );
+    expect(beatsController).toContain('taskType: "script_writer"');
+    expect(beatsController).toContain(
+      'alsoReconcile: ["literal_script_writer"]',
+    );
+    expect(beatsSources).not.toContain("useGenerateLiteralScript");
+    expect(beatsSources).not.toContain(
+      'taskType: "literal_script_writer"',
+    );
   });
 
   it("keeps the Script route limited to route parameter adaptation", () => {

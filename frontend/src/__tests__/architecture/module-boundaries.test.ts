@@ -13,7 +13,7 @@ const importSpecifiersCache = new Map<string, string[]>();
 // may decrease, but no route may exceed this measured baseline.
 const LEGACY_ROUTE_DATA_IMPORT_MAX: Record<string, number> = {
   "routes/_app/projects.$project/characters.lazy.tsx": 6,
-  "routes/_app/projects.$project/episodes.$episode/beats.lazy.tsx": 8,
+  "routes/_app/projects.$project/episodes.$episode/beats.lazy.tsx": 0,
   "routes/_app/projects.$project/episodes.$episode/compose.lazy.tsx": 4,
   "routes/_app/projects.$project/episodes.$episode/script.lazy.tsx": 0,
   "routes/_app/projects.$project/episodes.tsx": 0,
@@ -365,6 +365,30 @@ describe("frontend architecture boundaries", () => {
         .filter(isRawDataImport)
         .map((specifier) => `${relativeSource(path)}: ${specifier}`),
     );
+    const applicationViewImportFailures = sourceFiles(
+      resolve(moduleRoot, "application"),
+    ).flatMap((path) =>
+      importSpecifiers(path)
+        .filter(
+          (specifier) =>
+            specifier.startsWith("@/components/") ||
+            specifier.startsWith(
+              "@/modules/narrative_planning/presentation/",
+            ),
+        )
+        .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+    );
+    const presentationBoundaryFailures = sourceFiles(
+      resolve(moduleRoot, "presentation"),
+    ).flatMap((path) =>
+      importSpecifiers(path)
+        .filter(
+          (specifier) =>
+            isRawDataImport(specifier) ||
+            specifier === "@tanstack/react-router",
+        )
+        .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+    );
 
     for (const legacyPath of [
       "lib/episode-stats.ts",
@@ -376,6 +400,8 @@ describe("frontend architecture boundaries", () => {
       expect(existsSync(resolve(SRC_ROOT, legacyPath))).toBe(false);
     }
     expect(applicationDataImportFailures).toEqual([]);
+    expect(applicationViewImportFailures).toEqual([]);
+    expect(presentationBoundaryFailures).toEqual([]);
     expect(internalImportFailures).toEqual([]);
     expect(directEndpointFailures).toEqual([]);
   });
@@ -413,6 +439,26 @@ describe("frontend architecture boundaries", () => {
     expect(route).toContain("Route.useParams()");
     expect(route).not.toContain("useQueryClient");
     expect(route).not.toContain("useEpisodeDetail");
+    expect(route).not.toContain("useGenerateScript");
+    expect(route).not.toContain("useTaskController");
+    expect(route).not.toContain("useGenerationCreditCost");
+  });
+
+  it("keeps the Beats route as an adapter", () => {
+    const route = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "routes/_app/projects.$project/episodes.$episode/beats.lazy.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(route).toContain(
+      'import { BeatsPageContent } from "@/modules/narrative_planning/public";',
+    );
+    expect(route).toContain("Route.useParams()");
+    expect(route).toContain("useBeatsWorkbenchParam()");
+    expect(route).not.toContain("useEpisodeBeats");
     expect(route).not.toContain("useGenerateScript");
     expect(route).not.toContain("useTaskController");
     expect(route).not.toContain("useGenerationCreditCost");

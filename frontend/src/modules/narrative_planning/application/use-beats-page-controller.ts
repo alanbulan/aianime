@@ -1,0 +1,439 @@
+// Copyright (c) 2026 AI anime
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+
+import { useBeatStates } from "@/hooks/use-beat-states";
+import { useEpisodeImageTaskInvalidation } from "@/hooks/use-episode-image-task-invalidation";
+import { useSelection } from "@/hooks/use-selection";
+import { useTaskController } from "@/hooks/use-task-controller";
+import { useViewToggles } from "@/hooks/use-view-toggles";
+import {
+  aspectRatioForOrientation,
+  orientationForAspectRatio,
+} from "@/lib/aspect-ratio";
+import { queryKeys } from "@/lib/query-keys";
+import type { NarrativePlanningQueryHooks } from "@/modules/narrative_planning/application/query-hooks";
+import type {
+  BeatsSketchPlanController,
+  BeatsSketchPlanControllerOptions,
+  SketchAspectRatio,
+} from "@/modules/narrative_planning/application/use-beats-sketch-plan-controller";
+import {
+  backendErrorToastMessage,
+  BillingRuleNotConfiguredError,
+} from "@/shared/api/errors";
+import { useProjectAspectRatio } from "@/stores/aspect-ratio-store";
+
+export type BeatsTargetSection = "sketch" | "render" | "audio" | "video";
+
+interface SketchSettingsQuery {
+  data?: { data: { sketch_image_selection?: string } };
+}
+
+interface ProjectConfigQuery {
+  data?: {
+    aspect_ratio?: "2:3" | "9:16" | "16:9";
+    spine_template?: string | null;
+    video_backend?: string | null;
+  };
+}
+
+interface VideoBackendsQuery {
+  data?: {
+    data: Array<{ value: string; is_seedance2?: boolean }>;
+  };
+}
+
+interface ProjectPreferencesMutation {
+  mutateAsync(data: {
+    aspect_ratio?: "2:3" | "9:16" | "16:9";
+    video_backend?: string;
+  }): Promise<unknown>;
+}
+
+interface RebuildPoolIndexMutation {
+  isPending: boolean;
+  mutateAsync(): Promise<{ data: { image_count: number } }>;
+}
+
+interface CreditCostQuery {
+  data?: { data: { display?: string | null } };
+  error: unknown;
+}
+
+export interface BeatsPageControllerDependencies {
+  defaultVideoBackend: string;
+  openEpisodeFreezone(
+    project: string,
+    options: { scope: "episode"; episode: number },
+  ): Promise<unknown>;
+  useGenerationCreditCost(
+    kind: string,
+    value?: string | null,
+  ): CreditCostQuery;
+  useProject(project: string): ProjectConfigQuery;
+  useRebuildPoolIndex(
+    project: string,
+    episode: number,
+  ): RebuildPoolIndexMutation;
+  useSketchSettings(project: string): SketchSettingsQuery;
+  useUpdateProject(project: string): ProjectPreferencesMutation;
+  useVideoBackends(project: string): VideoBackendsQuery;
+}
+
+export interface BeatsPageControllerOptions {
+  clearFocusBeat(): void;
+  deepLinkBeat: number | null;
+  episodeNumber: number;
+  focusBeat: number | null;
+  project: string;
+  setBeat(beatNumber: number | null): void;
+  targetSection: BeatsTargetSection | null;
+}
+
+type UseBeatsSketchPlanController = (
+  options: BeatsSketchPlanControllerOptions,
+) => BeatsSketchPlanController;
+
+function creditCostDisplay(
+  query: CreditCostQuery,
+  billingRuleFallback: string,
+): string | null {
+  return (
+    query.data?.data.display ??
+    (query.error instanceof BillingRuleNotConfiguredError
+      ? billingRuleFallback
+      : null)
+  );
+}
+
+export function createUseBeatsPageController(
+  queries: NarrativePlanningQueryHooks,
+  dependencies: BeatsPageControllerDependencies,
+  useSketchPlanController: UseBeatsSketchPlanController,
+) {
+  return function useBeatsPageController(options: BeatsPageControllerOptions) {
+    const {
+      clearFocusBeat,
+      deepLinkBeat,
+      episodeNumber,
+      focusBeat,
+      project,
+      setBeat,
+      targetSection,
+    } = options;
+    const { t } = useTranslation();
+    useEpisodeImageTaskInvalidation(project, episodeNumber);
+
+    const { data: beatsResponse, isLoading } = queries.useEpisodeBeats(
+      project,
+      episodeNumber,
+    );
+    const { data: episodeResponse } = queries.useEpisodeDetail(
+      project,
+      episodeNumber,
+    );
+    const { data: sketchSettingsResponse } =
+      dependencies.useSketchSettings(project);
+    const projectConfig = dependencies.useProject(project);
+    const videoBackends = dependencies.useVideoBackends(project);
+    const updateProject = dependencies.useUpdateProject(project);
+    const rebuildPoolIndex = dependencies.useRebuildPoolIndex(
+      project,
+      episodeNumber,
+    );
+    const { states } = useBeatStates(project, episodeNumber);
+    const beats = beatsResponse?.data ?? [];
+    const identityIds = episodeResponse?.data?.identity_ids ?? [];
+    const identityPlanReady = identityIds.length > 0;
+    const isNarratedProject =
+      projectConfig.data?.spine_template === "narrated";
+
+    const appliedDeepLinkRef = useRef<string | null>(null);
+    const focusAppliedRef = useRef<number | null>(null);
+    const {
+      state: selection,
+      handleCardClick,
+      toggleCheck,
+      selectSingle,
+      clearSelection,
+    } = useSelection({ project, episode: episodeNumber });
+    const { toggles, toggle: toggleView } = useViewToggles(
+      project,
+      episodeNumber,
+    );
+
+    const [videoBackend, setVideoBackendState] = useState(
+      dependencies.defaultVideoBackend,
+    );
+    const { orientation, spec: aspectSpecValue, setOrientation } =
+      useProjectAspectRatio(project);
+    const sketchAspectRatio: SketchAspectRatio = aspectSpecValue.sketchAspect;
+    const [pendingAspect, setPendingAspect] =
+      useState<SketchAspectRatio | null>(null);
+    const hasGeneratedAssets = useMemo(
+      () =>
+        beats.some(
+          (beat) => beat.sketch_url || beat.frame_url || beat.video_url,
+        ),
+      [beats],
+    );
+
+    const applyAspect = useCallback(
+      (next: SketchAspectRatio) => {
+        const nextOrientation = next === "16:9" ? "landscape" : "portrait";
+        setOrientation(nextOrientation);
+        void updateProject
+          .mutateAsync({
+            aspect_ratio: aspectRatioForOrientation(nextOrientation),
+          })
+          .catch(() => toast.error(t("common.error")));
+      },
+      [setOrientation, t, updateProject],
+    );
+    const setSketchAspectRatio = useCallback(
+      (next: SketchAspectRatio) => {
+        const nextOrientation = next === "16:9" ? "landscape" : "portrait";
+        if (nextOrientation === orientation) return;
+        if (hasGeneratedAssets) {
+          setPendingAspect(next);
+          return;
+        }
+        applyAspect(next);
+      },
+      [applyAspect, hasGeneratedAssets, orientation],
+    );
+
+    useEffect(() => {
+      setVideoBackendState(
+        projectConfig.data?.video_backend || dependencies.defaultVideoBackend,
+      );
+    }, [projectConfig.data?.video_backend]);
+    useEffect(() => {
+      const persistedOrientation = orientationForAspectRatio(
+        projectConfig.data?.aspect_ratio,
+      );
+      if (persistedOrientation && persistedOrientation !== orientation) {
+        setOrientation(persistedOrientation);
+      }
+    }, [orientation, projectConfig.data?.aspect_ratio, setOrientation]);
+
+    const handleVideoBackendChange = useCallback(
+      (backend: string) => {
+        if (!backend) return;
+        setVideoBackendState(backend);
+        void updateProject
+          .mutateAsync({ video_backend: backend })
+          .catch(() => toast.error(t("common.error")));
+      },
+      [t, updateProject],
+    );
+
+    const imageGenerationSelection =
+      sketchSettingsResponse?.data.sketch_image_selection;
+    const isSeedance2Backend =
+      videoBackends.data?.data.find(
+        (backend) => backend.value === videoBackend,
+      )?.is_seedance2 === true;
+    const checkedBeatNumbers = useMemo(
+      () =>
+        selection.mode === "multi"
+          ? [...selection.checked].sort((left, right) => left - right)
+          : [],
+      [selection],
+    );
+    const sketchPlan = useSketchPlanController({
+      beats,
+      checkedBeatNumbers,
+      clearSelection,
+      episodeNumber,
+      imageGenerationSelection,
+      project,
+      sketchAspectRatio,
+    });
+
+    const firstBeatNumber = beats[0]?.beat_number ?? null;
+
+    // Apply URL-backed selection only when no restored workbench state exists.
+    useEffect(() => {
+      const deepLinkKey =
+        deepLinkBeat !== null && beats.length > 0
+          ? `beat:${deepLinkBeat}`
+          : targetSection !== null && firstBeatNumber !== null
+            ? `sub:${targetSection}:${firstBeatNumber}`
+            : null;
+
+      if (deepLinkKey === null) {
+        appliedDeepLinkRef.current = null;
+        return;
+      }
+      if (appliedDeepLinkRef.current === deepLinkKey) return;
+      appliedDeepLinkRef.current = deepLinkKey;
+      if (selection.mode !== "none") return;
+
+      if (deepLinkBeat !== null) selectSingle(deepLinkBeat);
+      else if (firstBeatNumber !== null) selectSingle(firstBeatNumber);
+    }, [
+      beats.length,
+      deepLinkBeat,
+      firstBeatNumber,
+      selectSingle,
+      selection.mode,
+      targetSection,
+    ]);
+
+    useEffect(() => {
+      if (focusBeat === null) {
+        focusAppliedRef.current = null;
+        return;
+      }
+      if (beats.length === 0 || focusAppliedRef.current === focusBeat) return;
+      focusAppliedRef.current = focusBeat;
+      selectSingle(focusBeat);
+      clearFocusBeat();
+    }, [beats.length, clearFocusBeat, focusBeat, selectSingle]);
+
+    useEffect(() => {
+      if (selection.mode === "single") setBeat(selection.beatNum);
+      else if (selection.mode === "none") setBeat(null);
+    }, [selection, setBeat]);
+
+    useEffect(() => {
+      if (isLoading || selection.mode !== "single") return;
+      if (
+        beats.some((beat) => beat.beat_number === selection.beatNum)
+      ) {
+        return;
+      }
+      clearSelection();
+    }, [beats, clearSelection, isLoading, selection]);
+
+    const generateScript = queries.useGenerateScript(project, episodeNumber);
+    const generateScriptCost = dependencies.useGenerationCreditCost(
+      "feature",
+      "script_writer",
+    );
+    const scriptTask = useTaskController({
+      key: { taskType: "script_writer", project, episode: episodeNumber },
+      alsoReconcile: ["literal_script_writer"],
+      invalidateKeys: [
+        queryKeys.script(project, episodeNumber),
+        queryKeys.beats(project, episodeNumber),
+        queryKeys.pipelineStatus(project),
+      ],
+    });
+
+    const handleGenerate = async () => {
+      if (!identityPlanReady) {
+        toast.error(t("episode.script.identityRequired"));
+        return;
+      }
+      try {
+        const response = await generateScript.mutateAsync({});
+        if (response.ok === false) {
+          toast.error(backendErrorToastMessage(response.error, t));
+          return;
+        }
+        scriptTask.start({ scope: response.scope });
+      } catch (error) {
+        toast.error(backendErrorToastMessage(error, t));
+      }
+    };
+
+    const [openingEpisodeFreezone, setOpeningEpisodeFreezone] = useState(false);
+    const handleOpenEpisodeFreezone = useCallback(async () => {
+      setOpeningEpisodeFreezone(true);
+      try {
+        await dependencies.openEpisodeFreezone(project, {
+          scope: "episode",
+          episode: episodeNumber,
+        });
+        toast.success(t("episode.workbench.actionPanel.episodeFreezoneOpened"));
+      } catch {
+        toast.error(
+          t("episode.workbench.actionPanel.episodeFreezoneOpenFailed"),
+        );
+      } finally {
+        setOpeningEpisodeFreezone(false);
+      }
+    }, [episodeNumber, project, t]);
+
+    const handleRebuildPoolIndex = useCallback(async () => {
+      try {
+        const response = await rebuildPoolIndex.mutateAsync();
+        toast.success(
+          t("episode.workbench.pool.rebuildSuccess", {
+            count: response.data.image_count,
+          }),
+        );
+      } catch {
+        toast.error(t("episode.workbench.pool.rebuildFailed"));
+      }
+    }, [rebuildPoolIndex, t]);
+
+    const detailBeatDisplayNumber = useMemo(() => {
+      if (selection.mode !== "single") return null;
+      const index = beats.findIndex(
+        (beat) => beat.beat_number === selection.beatNum,
+      );
+      return index >= 0 ? index + 1 : null;
+    }, [beats, selection]);
+    const spineTemplate: "narrated" | "drama" = isNarratedProject
+      ? "narrated"
+      : "drama";
+
+    return {
+      aspectRatio: orientation,
+      beats,
+      checkedBeatNumbers,
+      clearSelection,
+      detailBeatDisplayNumber,
+      episodeNumber,
+      generateDisabled:
+        !identityPlanReady || generateScript.isPending || scriptTask.started,
+      generatePending: generateScript.isPending || scriptTask.started,
+      generateScriptCostDisplay: creditCostDisplay(
+        generateScriptCost,
+        t("common.billingRuleNotConfiguredShort"),
+      ),
+      generateTitle: identityPlanReady
+        ? undefined
+        : t("episode.script.identityRequired"),
+      handleCardClick,
+      handleGenerate,
+      handleOpenEpisodeFreezone,
+      handleRebuildPoolIndex,
+      handleVideoBackendChange,
+      imageGenerationSelection,
+      isLoading,
+      isNarratedProject,
+      isSeedance2Backend,
+      onCancelPendingAspect: () => setPendingAspect(null),
+      onConfirmPendingAspect: () => {
+        if (pendingAspect) applyAspect(pendingAspect);
+        setPendingAspect(null);
+      },
+      openingEpisodeFreezone,
+      pendingAspect,
+      project,
+      rebuildPoolIndexPending: rebuildPoolIndex.isPending,
+      renderAspectMode: aspectSpecValue.renderAspect,
+      selection,
+      setSketchAspectRatio,
+      sketchAspectRatio,
+      sketchPlan,
+      spineTemplate,
+      states,
+      targetSection,
+      toggleCheck,
+      toggleView,
+      toggles,
+      videoBackend,
+    };
+  };
+}
+
+export type BeatsPageController = ReturnType<
+  ReturnType<typeof createUseBeatsPageController>
+>;

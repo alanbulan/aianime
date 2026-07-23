@@ -111,19 +111,28 @@ describe("beats sketch/render v2 contract", () => {
     const batchBar = read("src/components/episode/beat-workbench/batch-bar.tsx");
     const actionPanel = read("src/components/episode/beat-workbench/action-panel.tsx");
     const viewToggles = read("src/components/episode/beat-workbench/view-toggles.tsx");
-    const route = read("src/routes/_app/projects.$project/episodes.$episode/beats.lazy.tsx");
+    const view = read(
+      "src/modules/narrative_planning/presentation/BeatsPageView.tsx",
+    );
+    const sketchPlanController = read(
+      "src/modules/narrative_planning/application/use-beats-sketch-plan-controller.ts",
+    );
 
     expect(viewToggles).toContain("onBatchRegenSketch");
     expect(viewToggles).toContain("onBatchRegenRender");
     expect(viewToggles).toContain("episode.workbench.view.batchRegenSketch");
     expect(viewToggles).toContain("episode.workbench.view.batchRegenRender");
-    expect(route).toContain("onBatchRegenSketch={openSketchPlan}");
-    expect(route).toContain("onBatchRegenRender={openRenderPlan}");
-    expect(route).toContain("<RenderPlanDialog");
-    expect(route).toContain("aspectMode={aspectSpecValue.renderAspect}");
-    expect(route).toContain("createSketchRegenPlanItems");
-    expect(route).not.toContain("useRegenerateRenderBeats");
-    expect(route).not.toContain("bestFitMode(SKETCH_REGEN_MODES");
+    expect(view).toContain("onBatchRegenSketch={openSketchPlan}");
+    expect(view).toContain("onBatchRegenRender={openRenderPlan}");
+    expect(view).toContain("<RenderPlanDialog");
+    expect(view).toContain("aspectMode={renderAspectMode}");
+    expect(sketchPlanController).toContain(
+      "dependencies.createSketchPlanItems",
+    );
+    expect(sketchPlanController).not.toContain("useRegenerateRenderBeats");
+    expect(sketchPlanController).not.toContain(
+      "bestFitMode(SKETCH_REGEN_MODES",
+    );
 
     expect(batchBar).not.toContain("checkedBeats");
     expect(batchBar).not.toContain("dispatchSelectedSketchItems");
@@ -160,7 +169,9 @@ describe("beats sketch/render v2 contract", () => {
     const renderSettingsQuery = read("src/lib/queries/render-settings.ts");
     const queryKeys = read("src/lib/query-keys.ts");
     const sketchesQuery = read("src/lib/queries/sketches.ts");
-    const projectTypes = read("src/types/project.ts");
+    const projectTypes = read(
+      "src/modules/project_workspace/domain/project.ts",
+    );
 
     expect(batchBar).toContain("RenderModelSelect");
     expect(batchBar).toContain("<RenderModelSelect project={project} />");

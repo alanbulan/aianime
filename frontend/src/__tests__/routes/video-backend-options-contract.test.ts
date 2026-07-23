@@ -31,10 +31,16 @@ describe("video backend options alignment", () => {
   });
 
   it("defaults to the ST2 canonical video backend instead of legacy comfyui", () => {
-    const beatsRoute = read("src/routes/_app/projects.$project/episodes.$episode/beats.lazy.tsx");
+    const composition = read("src/modules/narrative_planning/composition.ts");
+    const beatsController = read(
+      "src/modules/narrative_planning/application/use-beats-page-controller.ts",
+    );
     const videoQueries = read("src/lib/queries/video.ts");
 
-    expect(beatsRoute).toContain("DEFAULT_VIDEO_BACKEND");
+    expect(composition).toContain(
+      "defaultVideoBackend: DEFAULT_VIDEO_BACKEND",
+    );
+    expect(beatsController).toContain("dependencies.defaultVideoBackend");
     expect(videoQueries).toContain("huimeng_seedance-1.0-pro-fast");
     expect(videoQueries).not.toContain('videoBackend ?? "comfyui"');
   });

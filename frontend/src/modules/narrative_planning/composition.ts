@@ -1,22 +1,45 @@
 import { createElement, type ReactNode } from "react";
 
+import {
+  createSketchRegenPlanItems,
+  getLockedSketchRegenItemIds,
+  sketchRegenModelCallCount,
+} from "@/components/episode/beat-workbench/batch-panel";
+import { formatCreditCost } from "@/components/credits/credit-visual";
+import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
 import { useCharacters } from "@/lib/queries/characters";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
+import { useSketchSettings } from "@/lib/queries/sketch-settings";
+import {
+  useRebuildPoolIndex,
+  useRegenerateSketches,
+} from "@/lib/queries/sketches";
+import { useTasks } from "@/lib/queries/tasks";
+import {
+  DEFAULT_VIDEO_BACKEND,
+  useVideoBackends,
+} from "@/lib/queries/video";
 import {
   createNarrativePlanningQueryHooks,
   isPlanEpisodeAssetsResult,
 } from "@/modules/narrative_planning/application/query-hooks";
+import { createUseBeatsPageController } from "@/modules/narrative_planning/application/use-beats-page-controller";
+import { createUseBeatsSketchPlanController } from "@/modules/narrative_planning/application/use-beats-sketch-plan-controller";
 import { createUseEpisodeListItemController } from "@/modules/narrative_planning/application/use-episode-list-item-controller";
 import { createUseEpisodesPageController } from "@/modules/narrative_planning/application/use-episodes-page-controller";
 import { createUseScriptPageController } from "@/modules/narrative_planning/application/use-script-page-controller";
 import type { Episode } from "@/modules/narrative_planning/domain/types";
 import { httpNarrativePlanningGateway } from "@/modules/narrative_planning/infrastructure/http-narrative-planning-gateway";
+import { BeatsPageView } from "@/modules/narrative_planning/presentation/BeatsPageView";
 import {
   EpisodeListItemView,
   EpisodesPageView,
 } from "@/modules/narrative_planning/presentation/EpisodesPageView";
 import { ScriptPageView } from "@/modules/narrative_planning/presentation/ScriptPageView";
-import { useProject } from "@/modules/project_workspace/public";
+import {
+  useProject,
+  useUpdateProject,
+} from "@/modules/project_workspace/public";
 
 export const narrativePlanningQueries = createNarrativePlanningQueryHooks(
   httpNarrativePlanningGateway,
@@ -62,6 +85,29 @@ const useEpisodeListItemController = createUseEpisodeListItemController(
 const useScriptPageController = createUseScriptPageController(
   narrativePlanningQueries,
   { useCharacters, useGenerationCreditCost, useProject },
+);
+const useBeatsSketchPlanController = createUseBeatsSketchPlanController({
+  createSketchPlanItems: createSketchRegenPlanItems,
+  formatCreditCost,
+  getLockedSketchItemIds: getLockedSketchRegenItemIds,
+  sketchModelCallCount: sketchRegenModelCallCount,
+  useGenerationCreditCost,
+  useRegenerateSketches,
+  useTasks,
+});
+const useBeatsPageController = createUseBeatsPageController(
+  narrativePlanningQueries,
+  {
+    defaultVideoBackend: DEFAULT_VIDEO_BACKEND,
+    openEpisodeFreezone: openPresetProjectionInMyCanvas,
+    useGenerationCreditCost,
+    useProject,
+    useRebuildPoolIndex,
+    useSketchSettings,
+    useUpdateProject,
+    useVideoBackends,
+  },
+  useBeatsSketchPlanController,
 );
 
 function EpisodeListItemContent({
@@ -136,6 +182,27 @@ export function ScriptPageContent({
 }) {
   const controller = useScriptPageController({ episodeNumber, project });
   return createElement(ScriptPageView, { controller });
+}
+
+export function BeatsPageContent({
+  clearFocusBeat,
+  deepLinkBeat,
+  episodeNumber,
+  focusBeat,
+  project,
+  setBeat,
+  targetSection,
+}: Parameters<typeof useBeatsPageController>[0]) {
+  const controller = useBeatsPageController({
+    clearFocusBeat,
+    deepLinkBeat,
+    episodeNumber,
+    focusBeat,
+    project,
+    setBeat,
+    targetSection,
+  });
+  return createElement(BeatsPageView, { controller });
 }
 
 export { isPlanEpisodeAssetsResult };
