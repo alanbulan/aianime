@@ -114,7 +114,7 @@ function StageDot({
     state === "ready"
       ? "text-primary"
       : state === "generating"
-        ? "text-amber-600 dark:text-amber-300"
+        ? "text-warning"
         : state === "failed"
           ? "text-destructive"
           : "text-muted-foreground";

@@ -761,7 +761,7 @@ export function BatchPanel({
                         </span>
                       </div>
                       <div
-                        className="truncate text-emerald-700 dark:text-emerald-300"
+                        className="truncate text-success"
                         title={item.sceneIds.join(" / ")}
                       >
                         {item.sceneIds.join(" / ") ||

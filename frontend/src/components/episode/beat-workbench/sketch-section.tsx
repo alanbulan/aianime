@@ -530,22 +530,22 @@ export function SketchSection({
         )}
         {sketchActive && (
           <div
-            className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-[10px] bg-black/55 backdrop-blur-[1px]"
+            className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-[10px] bg-media/55 backdrop-blur-[1px]"
             role="progressbar"
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={sketchPercent}
           >
-            <Loader2 aria-hidden className="size-5 animate-spin text-white/90" />
+            <Loader2 aria-hidden className="size-5 animate-spin text-media-foreground/90" />
             <div className="flex items-baseline leading-none text-white">
               <span className="text-2xl font-semibold tabular-nums tracking-tight">
                 {sketchPercent}
               </span>
-              <span className="ml-0.5 text-xs font-medium text-white/70">%</span>
+              <span className="ml-0.5 text-xs font-medium text-media-foreground/70">%</span>
             </div>
-            <div className="h-1 w-24 overflow-hidden rounded-full bg-white/20">
+            <div className="h-1 w-24 overflow-hidden rounded-full bg-media-foreground/20">
               <div
-                className="h-full rounded-full bg-white/85 transition-[width] duration-300 ease-out"
+                className="h-full rounded-full bg-media-foreground/85 transition-[width] duration-300 ease-out"
                 style={{ width: `${sketchPercent}%` }}
               />
             </div>
@@ -560,7 +560,7 @@ export function SketchSection({
             <button
               type="button"
               onClick={() => onPreview?.(directorControlUrl)}
-              className="h-14 w-14 shrink-0 overflow-hidden rounded-[6px] border border-white/[0.08] bg-black/30"
+              className="h-14 w-14 shrink-0 overflow-hidden rounded-[6px] border border-media-foreground/10 bg-media/30"
             >
               <img
                 src={directorControlUrl}
@@ -816,12 +816,12 @@ export function SketchSection({
                   className={cn(
                     "rounded-lg border p-3",
                     anchor.current
-                      ? "border-amber-400/70 bg-amber-500/10"
+                      ? "border-warning/70 bg-warning/10"
                       : "border-border bg-muted",
                   )}
                 >
                   <div
-                    className="overflow-hidden rounded-md border border-border bg-black/25"
+                    className="overflow-hidden rounded-md border border-border bg-media/25"
                     style={{ aspectRatio: BACKGROUND_ANCHOR_PREVIEW_ASPECT }}
                   >
                     {src ? (
@@ -842,7 +842,7 @@ export function SketchSection({
                     <div className="min-w-0">
                       <div className="truncate text-sm font-medium">{anchor.label}</div>
                       {anchor.current && (
-                        <div className="text-[11px] text-amber-700 dark:text-amber-300">
+                        <div className="text-[11px] text-warning">
                           {t("episode.workbench.sketch.backgroundCurrent")}
                         </div>
                       )}

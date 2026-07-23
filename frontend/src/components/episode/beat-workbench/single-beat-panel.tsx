@@ -250,7 +250,7 @@ export function SingleBeatPanel({
       {/* Image preview overlay */}
       {previewUrl && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-8"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-media/90 p-8"
           onClick={() => setPreviewUrl(null)}
         >
           <button

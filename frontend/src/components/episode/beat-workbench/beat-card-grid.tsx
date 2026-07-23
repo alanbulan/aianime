@@ -231,12 +231,12 @@ export function BeatCardGrid({
           className="mt-6 mb-2 flex items-center gap-3 px-6 text-muted-foreground"
           aria-hidden
         >
-          <span className="h-px flex-1 bg-gradient-to-r from-transparent to-white/[0.08]" />
+          <span className="h-px flex-1 bg-gradient-to-r from-transparent to-border" />
           <span className="flex items-center gap-1.5 text-[11px] font-medium tracking-wider uppercase">
             <Clapperboard className="size-3.5" />
             {t("episode.workbench.endOfBeatsCount", { count: beats.length })}
           </span>
-          <span className="h-px flex-1 bg-gradient-to-l from-transparent to-white/[0.08]" />
+          <span className="h-px flex-1 bg-gradient-to-l from-transparent to-border" />
         </div>
       )}
     </div>

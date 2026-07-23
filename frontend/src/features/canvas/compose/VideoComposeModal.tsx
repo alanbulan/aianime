@@ -2423,7 +2423,7 @@ function ClipFilmstrip({
         return (
           <div
             key={i}
-            className="h-full shrink-0 border-r border-black/20 last:border-r-0"
+            className="h-full shrink-0 border-r border-media/20 last:border-r-0"
             style={{ width: FILMSTRIP_THUMB_W }}
           >
             {frame && (

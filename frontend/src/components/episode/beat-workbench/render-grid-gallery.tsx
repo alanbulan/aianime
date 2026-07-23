@@ -275,7 +275,7 @@ function RenderGridCard({
         type="button"
         disabled={!gridUrl}
         onClick={() => gridUrl && window.open(gridUrl, "_blank", "noopener,noreferrer")}
-        className="overflow-hidden rounded border border-border bg-black/20 disabled:cursor-default"
+        className="overflow-hidden rounded border border-border bg-media/20 disabled:cursor-default"
         style={{ aspectRatio: gridAspectCss(group.cols, group.rows, cellAspect) }}
       >
         {gridUrl ? (

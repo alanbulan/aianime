@@ -250,7 +250,7 @@ function SketchGridCard({
           if (url) window.open(url, "_blank", "noopener,noreferrer");
         }}
         className={cn(
-          "overflow-hidden rounded bg-black/20 disabled:cursor-default",
+          "overflow-hidden rounded bg-media/20 disabled:cursor-default",
           hasPreview && "border border-border",
         )}
         style={{ aspectRatio: gridAspectCss(group.cols, group.rows, aspectRatio) }}

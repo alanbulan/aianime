@@ -244,7 +244,7 @@ export function MaskEditor({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-6">
       <div className="bg-surface border border-border-default rounded-2xl w-[90vw] max-w-[1200px] h-[85vh] flex flex-col overflow-hidden">
         <header className="flex items-center justify-between px-5 py-3 border-b border-border-default">
           <div>
@@ -351,7 +351,7 @@ export function MaskEditor({
               {progressMsg ? (
                 <span className="text-primary">{progressMsg}</span>
               ) : error ? (
-                <span className="text-red-700 dark:text-red-300">{error}</span>
+                <span className="text-destructive">{error}</span>
               ) : (
                 <>红色 = 待编辑区域 · LingShan-G2 · 可能 30-60 秒</>
               )}

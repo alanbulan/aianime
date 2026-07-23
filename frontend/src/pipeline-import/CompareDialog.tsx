@@ -44,7 +44,7 @@ export function CompareDialog({ left, right, onClose }: CompareDialogProps) {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-6">
       <div className="bg-surface border border-border-default rounded-2xl w-[80vw] max-w-[1100px] h-[80vh] flex flex-col overflow-hidden">
         <header className="flex items-center justify-between px-5 py-3 border-b border-border-default">
           <div>
@@ -90,7 +90,7 @@ export function CompareDialog({ left, right, onClose }: CompareDialogProps) {
                 e.preventDefault();
                 draggingRef.current = true;
               }}
-              className="absolute top-0 bottom-0 w-px bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.4)] cursor-ew-resize"
+              className="absolute bottom-0 top-0 w-px cursor-ew-resize bg-media-foreground shadow-[0_0_0_1px_rgba(0,0,0,0.4)]"
               style={{ left: `${position * 100}%`, transform: "translateX(-0.5px)" }}
               aria-label="拖动对比"
             >
@@ -99,10 +99,10 @@ export function CompareDialog({ left, right, onClose }: CompareDialogProps) {
               </span>
             </button>
 
-            <div className="absolute top-2 left-2 text-xs text-white px-2 py-1 rounded bg-black/60">
+            <div className="absolute left-2 top-2 rounded bg-media/60 px-2 py-1 text-xs text-media-foreground">
               {left.label}
             </div>
-            <div className="absolute top-2 right-2 text-xs text-white px-2 py-1 rounded bg-black/60">
+            <div className="absolute right-2 top-2 rounded bg-media/60 px-2 py-1 text-xs text-media-foreground">
               {right.label}
             </div>
           </div>

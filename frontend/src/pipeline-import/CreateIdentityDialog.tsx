@@ -87,7 +87,7 @@ export function CreateIdentityDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-6">
       <div className="w-full max-w-2xl rounded-xl border border-border-default bg-surface shadow-xl overflow-hidden">
         <div className="px-4 py-3 border-b border-border-default flex items-center justify-between">
           <div>

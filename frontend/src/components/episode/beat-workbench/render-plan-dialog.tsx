@@ -236,7 +236,7 @@ export function RenderPlanDialog({
         </AlertDialogHeader>
 
         {staleBanner && (
-          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+          <div className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">
             <AlertTriangle className="mr-1 inline size-3" />
             {t(`episode.renderPlan.stale.${staleBanner}`)}
           </div>
@@ -299,7 +299,7 @@ function PlanCard({
     <div
       className={cn(
         "flex w-[170px] shrink-0 flex-col gap-1 rounded-[6px] border border-border bg-popover/95 p-2 text-xs backdrop-blur-sm",
-        ironLaw && "border-amber-500/50",
+        ironLaw && "border-warning/50",
       )}
     >
       <div className="flex items-center justify-between">
@@ -310,8 +310,8 @@ function PlanCard({
         className={cn(
           "truncate",
           multiScene
-            ? "text-orange-700 dark:text-orange-300"
-            : "text-emerald-700 dark:text-emerald-300",
+            ? "text-warning"
+            : "text-success",
         )}
         title={entry.location}
       >
@@ -319,7 +319,7 @@ function PlanCard({
         {entry.padding_count > 0 && ` +${entry.padding_count}空`}
       </div>
       {entry.warnings.length > 0 && (
-        <div className="text-amber-700 dark:text-amber-300">
+        <div className="text-warning">
           <AlertTriangle className="mr-0.5 inline size-2.5" />
           {entry.warnings[0]}
         </div>

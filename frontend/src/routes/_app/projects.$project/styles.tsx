@@ -524,7 +524,7 @@ function StyleDetailPanel({
           </span>
         )}
         {dirty && (
-          <span className="shrink-0 inline-flex items-center rounded-md border border-amber-500/35 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+          <span className="inline-flex shrink-0 items-center rounded-md border border-warning/35 bg-warning/10 px-1.5 py-0.5 text-[10px] font-medium text-warning">
             未保存
           </span>
         )}
@@ -939,7 +939,7 @@ function CreateStyleDialog({
               />
               {analyzeStyle.isPending && (
                 <div
-                  className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/55 text-xs text-white/85 backdrop-blur-[2px]"
+                  className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-media/55 text-xs text-media-foreground/85 backdrop-blur-[2px]"
                   role="status"
                   aria-live="polite"
                 >

@@ -148,7 +148,7 @@ function UploadingOverlay() {
       aria-label={t("ingest.uploadingTitle")}
       className="fixed inset-0 z-[1000] flex items-center justify-center bg-background/80 px-6 text-foreground backdrop-blur-md"
     >
-      <div className="flex w-full max-w-sm flex-col items-center rounded-2xl border border-border bg-card px-8 py-10 text-center shadow-2xl shadow-black/30">
+      <div className="flex w-full max-w-sm flex-col items-center rounded-2xl border border-border bg-card px-8 py-10 text-center shadow-2xl">
         <div className="relative mb-6 flex size-14 items-center justify-center">
           <span
             className="absolute inset-0 animate-ping rounded-full bg-primary/10"
@@ -274,7 +274,7 @@ function UploadedFileCard({
   const statusStyles: Record<IngestFileStatus, string> = {
     uploaded: "border-primary/30 bg-primary/10 text-primary",
     importing: "border-primary/30 bg-primary/10 text-primary",
-    completed: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    completed: "border-success/30 bg-success/10 text-success",
     stopped: "border-muted-foreground/35 bg-muted text-muted-foreground",
     failed: "border-destructive/35 bg-destructive/10 text-destructive",
   };
@@ -419,12 +419,12 @@ function SelectedFileCard({
 
   return (
     <div className="flex h-full flex-col items-center justify-center px-4">
-      <div className="relative w-full max-w-[320px] rounded-lg bg-sky-500/20 px-5 py-4 pr-12 text-left">
+      <div className="relative w-full max-w-[320px] rounded-lg bg-primary/10 px-5 py-4 pr-12 text-left">
         <button
           type="button"
           onClick={onDelete}
           aria-label="Remove selected file"
-          className="absolute right-2 top-2 flex size-6 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white/80 transition-colors hover:bg-black/70 hover:text-white"
+          className="absolute right-2 top-2 flex size-6 items-center justify-center rounded-full border border-media-foreground/15 bg-media/55 text-media-foreground/80 transition-colors hover:bg-media/70 hover:text-media-foreground"
         >
           <X className="size-3" />
         </button>
@@ -435,7 +435,7 @@ function SelectedFileCard({
           {name}
         </p>
         <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
-          <FileText className="size-4 text-sky-700 dark:text-sky-300" />
+          <FileText className="size-4 text-primary" />
           <span>{extension}</span>
         </div>
         {error && (

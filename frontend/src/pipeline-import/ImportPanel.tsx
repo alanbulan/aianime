@@ -187,7 +187,7 @@ export function ImportPanel({ project, onClose, onImport }: ImportPanelProps) {
         {loading ? (
           <div className="text-sm text-text-muted py-8 text-center">加载中...</div>
         ) : error ? (
-          <div className="py-8 text-center text-sm text-red-700 dark:text-red-300">{error}</div>
+          <div className="py-8 text-center text-sm text-destructive">{error}</div>
         ) : (
           <>
             <Section title="资产类型">

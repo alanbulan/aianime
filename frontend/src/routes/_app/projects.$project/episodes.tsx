@@ -456,7 +456,7 @@ function EpisodeStatsStrip({
           <Icon
             className={cn(
               "size-3.5 shrink-0 text-muted-foreground",
-              tone === "ready" && "text-emerald-600 dark:text-emerald-300",
+              tone === "ready" && "text-success",
             )}
           />
           <div className="flex items-center gap-5">
@@ -739,7 +739,7 @@ function EpisodeListItem({
 
       <div className="grid gap-1.5 pt-1">
         <EpisodePlanShortcut
-          icon={<Users className="size-3.5 shrink-0 text-sky-700 dark:text-sky-300" />}
+          icon={<Users className="size-3.5 shrink-0 text-primary" />}
           summary={identityLabel}
           actionLabel={
             identityCount > 0
@@ -752,7 +752,7 @@ function EpisodeListItem({
           onClick={handlePlanIdentities}
         />
         <EpisodePlanShortcut
-          icon={<MapPinned className="size-3.5 shrink-0 text-emerald-700 dark:text-emerald-300" />}
+          icon={<MapPinned className="size-3.5 shrink-0 text-success" />}
           summary={sceneLabel}
           actionLabel={
             sceneCount > 0
@@ -765,7 +765,7 @@ function EpisodeListItem({
           onClick={handlePlanScenes}
         />
         <EpisodePlanShortcut
-          icon={<Package className="size-3.5 shrink-0 text-amber-700 dark:text-amber-300" />}
+          icon={<Package className="size-3.5 shrink-0 text-warning" />}
           summary={propLabel}
           actionLabel={
             propCount > 0

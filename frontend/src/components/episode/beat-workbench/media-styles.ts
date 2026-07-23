@@ -13,15 +13,15 @@ export const MEDIA_THUMB_CLASS =
   "relative shrink-0 overflow-hidden rounded-[5px] border bg-muted transition-[border-color,background-color,box-shadow,opacity] disabled:opacity-60";
 
 export const MEDIA_THUMB_ACTIVE_CLASS =
-  "border-primary/70 bg-primary/[0.06] shadow-[0_0_0_1px_rgba(20,184,166,0.24)]";
+  "border-primary/70 bg-primary/[0.06] ring-1 ring-primary/30";
 
 export const MEDIA_THUMB_IDLE_CLASS = "border-border hover:border-primary/55 hover:bg-accent";
 
 export const MEDIA_THUMB_NEW_CLASS =
-  "absolute left-0 top-0 rounded-br bg-amber-400 px-1 text-[8px] font-semibold uppercase leading-4 text-amber-950";
+  "absolute left-0 top-0 rounded-br bg-warning px-1 text-[8px] font-semibold uppercase leading-4 text-warning-foreground";
 
 export const MEDIA_THUMB_TIME_CLASS =
-  "absolute bottom-0 left-0 rounded-tr bg-black/75 px-1.5 py-0.5 text-[11px] font-medium leading-none tabular-nums text-white/90";
+  "absolute bottom-0 left-0 rounded-tr bg-media/75 px-1.5 py-0.5 text-[11px] font-medium leading-none tabular-nums text-media-foreground/90";
 
 export const MEDIA_THUMB_ACTIVE_MARK_CLASS =
   "absolute bottom-0 right-0 rounded-tl bg-primary px-1 text-[9px] leading-4 text-primary-foreground";

@@ -150,7 +150,7 @@ export function ExtractFramesDialog({
   return createPortal(
     <div className={`fixed ${UI_CONTENT_OVERLAY_INSET_CLASS} z-50 flex items-center justify-center`}>
       <div
-        className={`absolute inset-0 bg-black/55 backdrop-blur-[2px] transition-opacity duration-200 ${
+        className={`absolute inset-0 bg-scrim backdrop-blur-[2px] transition-opacity duration-200 ${
           isVisible ? "opacity-100" : "opacity-0"
         }`}
         onClick={requestClose}
