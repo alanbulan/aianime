@@ -389,6 +389,26 @@ def test_asset_world_prop_task_routes_delegate_to_application() -> None:
         assert legacy_implementation not in source
 
 
+def test_asset_world_scene_catalog_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "scenes.py"
+    source = route.read_text(encoding="utf-8")
+
+    assert "scene_catalog_use_cases" in source
+    for legacy_implementation in (
+        "def _scene_payload",
+        "def _stage_3gs_payload",
+        "def _rename_scene_asset_dirs",
+        "def _derived_scene_names_for",
+        "def _derived_scene_guard_error",
+        "def _compose_scene_asset_name",
+        "await store.add_scene(",
+        "await store.update_scene(",
+        "await store.rename_scene(",
+        "await store.delete_scene(",
+    ):
+        assert legacy_implementation not in source
+
+
 def test_asset_world_character_identity_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "characters.py"
     source = route.read_text(encoding="utf-8")

@@ -112,7 +112,7 @@ def _resolution(project_dir: Path):
 def test_scene_payload_effective_prompt_combines_base_prompt_for_variant(
     tmp_path: Path,
 ):
-    from ai_anime.api.routes.scenes import _scene_payload
+    from ai_anime.modules.asset_world.public import scene_catalog_use_cases
 
     base_scene = NovelScene(
         name="卫生间",
@@ -128,10 +128,10 @@ def test_scene_payload_effective_prompt_combines_base_prompt_for_variant(
         environment_prompt="",
     )
 
-    payload = _scene_payload(
+    payload = scene_catalog_use_cases().project_scene(
         variant_scene,
-        ctx=_ctx(tmp_path),
         project_dir=tmp_path,
+        asset_url=lambda _path: "",
         base_scene=base_scene,
     )
 
@@ -377,12 +377,12 @@ async def test_list_scenes_does_not_infer_derived_base_from_underscore_name(
 
 @pytest.mark.asyncio
 async def test_derived_scene_guard_uses_structured_base_scene_id(tmp_path):
-    from ai_anime.api.routes import scenes
+    from ai_anime.modules.asset_world.domain.scene_catalog import derived_scene_names
 
     independent_store = _SceneStore(
         [NovelScene(name="地下"), NovelScene(name="地下_主控室")]
     )
-    assert await scenes._derived_scene_names_for(independent_store, "地下") == []
+    assert derived_scene_names(await independent_store.list_scenes(), "地下") == []
 
     derived_store = _SceneStore(
         [
@@ -390,7 +390,7 @@ async def test_derived_scene_guard_uses_structured_base_scene_id(tmp_path):
             NovelScene(name="地下_主控室", base_scene_id="地下", variant_id="主控室"),
         ]
     )
-    assert await scenes._derived_scene_names_for(derived_store, "地下") == [
+    assert derived_scene_names(await derived_store.list_scenes(), "地下") == [
         "地下_主控室"
     ]
 

@@ -27,6 +27,9 @@ from ai_anime.modules.asset_world.application.prop_catalog import (
     PropCatalogUseCases,
 )
 from ai_anime.modules.asset_world.application.prop_tasks import PropTaskUseCases
+from ai_anime.modules.asset_world.application.scene_catalog import (
+    SceneCatalogUseCases,
+)
 from ai_anime.modules.asset_world.application.styles import (
     AnalyzeStyle,
     StyleCatalogUseCases,
@@ -56,6 +59,10 @@ from ai_anime.modules.asset_world.infrastructure.prop_catalog import (
     LocalPropCatalogAssets,
     NovelEpisodeLocalPropSource,
     NovelPropFactory,
+)
+from ai_anime.modules.asset_world.infrastructure.scene_catalog import (
+    LocalSceneCatalogAssets,
+    NovelSceneFactory,
 )
 from ai_anime.modules.asset_world.infrastructure.style_catalog import StyleService
 from ai_anime.modules.asset_world.infrastructure.style_generation import (
@@ -89,6 +96,10 @@ def prop_catalog_use_cases() -> PropCatalogUseCases:
         LocalPropCatalogAssets(),
         NovelEpisodeLocalPropSource(),
     )
+
+
+def scene_catalog_use_cases() -> SceneCatalogUseCases:
+    return SceneCatalogUseCases(NovelSceneFactory(), LocalSceneCatalogAssets())
 
 
 def character_identity_use_cases() -> CharacterIdentityUseCases:

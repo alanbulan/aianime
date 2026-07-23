@@ -30,12 +30,16 @@ from ai_anime.modules.asset_world.application.prop_catalog import (
     PropCatalogUseCases,
 )
 from ai_anime.modules.asset_world.application.prop_tasks import PropTaskUseCases
+from ai_anime.modules.asset_world.application.scene_catalog import (
+    SceneCatalogUseCases,
+)
 from ai_anime.modules.asset_world.application.dto import (
     AnalyzeStyleCommand,
     CharacterGenerationOptions,
     CreateCharacterCommand,
     CreateIdentityCommand,
     CreatePropCommand,
+    CreateSceneCommand,
     CreateCustomStyleCommand,
     RestoreCharacterAssetCommand,
     StyleAnalysisBilling,
@@ -44,6 +48,7 @@ from ai_anime.modules.asset_world.application.dto import (
     UpdateCharacterCommand,
     UpdateIdentityCommand,
     UpdatePropCommand,
+    UpdateSceneCommand,
 )
 from ai_anime.modules.asset_world.application.errors import (
     CharacterAlreadyExists,
@@ -61,6 +66,7 @@ from ai_anime.modules.asset_world.application.errors import (
     PropAlreadyExists,
     PropCatalogRejected,
     PropNotFound,
+    SceneCatalogRejected,
     StyleRejected,
     StyleStorageFailed,
     UnsupportedCharacterVoiceSlot,
@@ -125,6 +131,12 @@ def character_catalog_use_cases() -> CharacterCatalogUseCases:
 
 def prop_catalog_use_cases() -> PropCatalogUseCases:
     from ai_anime.modules.asset_world.composition import prop_catalog_use_cases as build
+
+    return build()
+
+
+def scene_catalog_use_cases() -> SceneCatalogUseCases:
+    from ai_anime.modules.asset_world.composition import scene_catalog_use_cases as build
 
     return build()
 
@@ -214,6 +226,7 @@ __all__ = [
     "CreateCharacterCommand",
     "CreateIdentityCommand",
     "CreatePropCommand",
+    "CreateSceneCommand",
     "CreateCustomStyleCommand",
     "DEFAULT_SLOT",
     "InvalidCharacterVoiceInput",
@@ -225,6 +238,8 @@ __all__ = [
     "PropCatalogUseCases",
     "PropNotFound",
     "PropTaskUseCases",
+    "SceneCatalogRejected",
+    "SceneCatalogUseCases",
     "RestoreCharacterAssetCommand",
     "StyleAnalysisBilling",
     "StyleCatalogUseCases",
@@ -239,12 +254,14 @@ __all__ = [
     "UpdateCharacterCommand",
     "UpdateIdentityCommand",
     "UpdatePropCommand",
+    "UpdateSceneCommand",
     "VOICE_SAMPLE_EXTENSIONS",
     "analyze_style",
     "character_asset_history_use_cases",
     "character_asset_links",
     "character_catalog_use_cases",
     "prop_catalog_use_cases",
+    "scene_catalog_use_cases",
     "prop_task_use_cases",
     "character_generation_use_cases",
     "character_identity_use_cases",

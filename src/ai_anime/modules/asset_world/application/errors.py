@@ -21,6 +21,22 @@ class InvalidCharacterInput(CharacterCatalogRejected):
     """Character input is not valid for the requested operation."""
 
 
+class SceneCatalogRejected(Exception):
+    """A scene catalog request rejected by an expected business rule."""
+
+
+class SceneAlreadyExists(SceneCatalogRejected):
+    """A scene name is already present in the project."""
+
+
+class SceneNotFound(SceneCatalogRejected):
+    """The requested scene does not exist."""
+
+
+class InvalidSceneInput(SceneCatalogRejected):
+    """Scene input is not valid for the requested operation."""
+
+
 class PropCatalogRejected(Exception):
     """A prop catalog request rejected by an expected business rule."""
 

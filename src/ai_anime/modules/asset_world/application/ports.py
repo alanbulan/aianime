@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Mapping, Protocol, Sequence
+from typing import Any, Callable, Mapping, Protocol, Sequence
 
 from ai_anime.modules.asset_world.application.dto import (
     AssetTaskQueueReceipt,
@@ -16,6 +16,7 @@ from ai_anime.modules.asset_world.application.dto import (
     CreateCharacterCommand,
     CreateIdentityCommand,
     CreatePropCommand,
+    CreateSceneCommand,
     IdentityAssetPaths,
     IdentityGenerationAssets,
     PropReferenceGenerationTask,
@@ -227,6 +228,42 @@ class CharacterCatalogAssets(Protocol):
     def portrait_path(self, project_dir: Path, character_name: str) -> str: ...
 
     def updated_at(self, project_dir: Path, character: Any) -> str: ...
+
+
+class SceneCatalogRepository(Protocol):
+    async def list_scenes(self) -> list[Any]: ...
+
+    async def get_scene(self, name: str) -> Any | None: ...
+
+    async def add_scene(self, scene: Any) -> Any: ...
+
+    async def update_scene(self, name: str, **updates: Any) -> Any: ...
+
+    async def rename_scene(self, old_name: str, new_name: str) -> Any: ...
+
+    async def delete_scene(self, name: str) -> Any: ...
+
+
+class SceneFactory(Protocol):
+    def create(self, command: CreateSceneCommand) -> Any: ...
+
+
+class SceneCatalogAssets(Protocol):
+    def project(
+        self,
+        *,
+        project_dir: Path,
+        scene: Any,
+        base_scene: Any | None,
+        asset_url: Callable[[str | Path], str],
+    ) -> dict[str, Any]: ...
+
+    def rename_directories(
+        self,
+        project_dir: Path,
+        old_name: str,
+        new_name: str,
+    ) -> None: ...
 
 
 class PropCatalogRepository(Protocol):

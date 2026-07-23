@@ -24,6 +24,26 @@ class UpdateCharacterCommand:
 
 
 @dataclass(frozen=True)
+class CreateSceneCommand:
+    name: str
+    aliases: Sequence[str] = ()
+    scene_type: str = "interior"
+    base_scene_id: str = ""
+    variant_id: str = ""
+    time_of_day: str = ""
+    environment_prompt: str = ""
+    variant_prompt: str = ""
+    description: str = ""
+    spatial_layout_image: str = ""
+    notes: str = ""
+
+
+@dataclass(frozen=True)
+class UpdateSceneCommand:
+    fields: Mapping[str, Any]
+
+
+@dataclass(frozen=True)
 class CreatePropCommand:
     name: str
     aliases: Sequence[str] = ()

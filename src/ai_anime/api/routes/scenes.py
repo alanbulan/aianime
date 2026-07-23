@@ -11,7 +11,6 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, File, Query, UploadFile
 
-from ai_anime.modules.asset_world.public import newest_updated_at, tree_updated_at
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import (
     make_sqlite_store_for_context,
@@ -31,8 +30,13 @@ from ai_anime.api.viewer_manifests import (
 from ai_anime.director_world import stage_manifest
 from ai_anime.models import (
     NovelScene,
-    build_scene_effective_prompt,
     resolve_scene_plate_from_records,
+)
+from ai_anime.modules.asset_world.public import (
+    CreateSceneCommand,
+    SceneCatalogRejected,
+    UpdateSceneCommand,
+    scene_catalog_use_cases,
 )
 from ai_anime.project_config import load_project_config_file
 from ai_anime.modules.project_workspace.public import ProjectContext, resolve_project_context
@@ -40,9 +44,6 @@ from ai_anime.sqlite_store import SQLiteStore
 from ai_anime.ports import get_task_backend
 from ai_anime.task_scopes import scene_reference_asset_scope, stage_asset_scope
 from ai_anime.task_identity import project_task_state_key
-from ai_anime.utils.derived_scenes import (
-    compose_derived_scene_name,
-)
 from ai_anime.utils.path_resolver import (
     canonical_scene_master_path,
     compute_scene_master_path,
@@ -50,22 +51,6 @@ from ai_anime.utils.path_resolver import (
 )
 
 router = APIRouter()
-
-_SCENE_TIME_TOKENS = {
-    "清晨",
-    "晨",
-    "上午",
-    "正午",
-    "午",
-    "午后",
-    "下午",
-    "黄昏",
-    "傍晚",
-    "夜晚",
-    "夜",
-    "白天",
-    "日",
-}
 
 
 def _project_style(username: str, project: str) -> str:
@@ -164,120 +149,6 @@ def _scene_360_description(scene: NovelScene) -> str:
     )
 
 
-def _stage_file_payload(
-    *,
-    ctx: ProjectContext,
-    project_dir: Path,
-    path: Path | None,
-) -> dict[str, Any]:
-    if path is None:
-        return {"ready": False, "path": "", "url": "", "size_bytes": 0, "size_mb": 0.0}
-    size_bytes = path.stat().st_size if path.exists() else 0
-    try:
-        display_path = path.relative_to(project_dir).as_posix()
-    except ValueError:
-        display_path = path.name
-    return {
-        "ready": path.exists(),
-        "path": display_path,
-        "url": _asset_url(ctx, project_dir, path),
-        "size_bytes": size_bytes,
-        "size_mb": round(size_bytes / (1024 * 1024), 1) if size_bytes else 0.0,
-    }
-
-
-def _stage_3gs_payload(
-    *,
-    ctx: ProjectContext,
-    project_dir: Path,
-    scene_name: str,
-) -> dict[str, Any]:
-    stage_dir = stage_manifest.stage_dir(project_dir, scene_name)
-    manifest = stage_manifest.load_manifest(project_dir, scene_name) or {}
-    saved_world = stage_manifest.get_scene_director_world(project_dir, scene_name)
-    saved_source_id = str(saved_world.get("active_source_id") or "").strip()
-    saved_source = saved_world.get("active_source")
-    saved_source = saved_source if isinstance(saved_source, dict) else {}
-    kind_paths = {
-        kind: stage_manifest.resolve_ply_path(project_dir, scene_name, ply_kind=kind)
-        for kind in ("custom", "master", "reverse", "pano")
-    }
-    active_path = stage_manifest.resolve_ply_path(project_dir, scene_name)
-    active_source = ""
-    if saved_source_id:
-        saved_source_type = str(saved_source.get("source_type") or "").strip()
-        saved_kind = str(
-            saved_source.get("source_kind")
-            or saved_source.get("kind")
-            or saved_source.get("label")
-            or saved_source_id
-        ).lower()
-        if (
-            saved_source_type == "pano360"
-            or "360" in saved_kind
-            or "pano" in saved_kind
-        ):
-            active_path = stage_manifest.resolve_pano_path(project_dir, scene_name)
-            active_source = "360"
-        elif "master" in saved_kind:
-            active_path = kind_paths.get("master")
-            active_source = "master"
-        elif "reverse" in saved_kind:
-            active_path = kind_paths.get("reverse")
-            active_source = "reverse"
-        elif "custom" in saved_kind:
-            active_path = kind_paths.get("custom")
-            active_source = "custom"
-    if active_path is not None and not active_source:
-        for kind, label in (
-            ("custom", "custom"),
-            ("pano", "360"),
-            ("master", "master"),
-            ("reverse", "reverse"),
-        ):
-            kind_path = kind_paths.get(kind)
-            if kind_path is not None and kind_path.resolve() == active_path.resolve():
-                active_source = label
-                break
-
-    try:
-        stage_dir_display = stage_dir.relative_to(project_dir).as_posix()
-    except ValueError:
-        stage_dir_display = stage_dir.name
-
-    return {
-        "stage_dir": stage_dir_display,
-        "manifest_ready": bool(manifest),
-        "source": str(manifest.get("source") or ""),
-        "active_source": active_source,
-        "active": _stage_file_payload(
-            ctx=ctx,
-            project_dir=project_dir,
-            path=active_path,
-        ),
-        "custom": _stage_file_payload(
-            ctx=ctx,
-            project_dir=project_dir,
-            path=kind_paths["custom"],
-        ),
-        "master": _stage_file_payload(
-            ctx=ctx,
-            project_dir=project_dir,
-            path=kind_paths["master"],
-        ),
-        "reverse": _stage_file_payload(
-            ctx=ctx,
-            project_dir=project_dir,
-            path=kind_paths["reverse"],
-        ),
-        "pano": _stage_file_payload(
-            ctx=ctx,
-            project_dir=project_dir,
-            path=kind_paths["pano"],
-        ),
-    }
-
-
 def _copy_upload_to_temp_file(file: UploadFile, *, suffix: str) -> tuple[Path, int]:
     tmp_path: Path | None = None
     try:
@@ -296,136 +167,8 @@ def _copy_upload_to_temp_file(file: UploadFile, *, suffix: str) -> tuple[Path, i
     return tmp_path, size
 
 
-def _move_dir_if_exists(old_dir: Path, new_dir: Path) -> None:
-    if not old_dir.exists():
-        return
-    if new_dir.exists():
-        raise ValueError(f"Target asset directory already exists: {new_dir}")
-    new_dir.parent.mkdir(parents=True, exist_ok=True)
-    shutil.move(str(old_dir), str(new_dir))
-
-
-def _rename_scene_asset_dirs(project_dir: Path, old_name: str, new_name: str) -> None:
-    _move_dir_if_exists(
-        project_dir / "assets" / "scenes" / old_name,
-        project_dir / "assets" / "scenes" / new_name,
-    )
-
-    old_stage_root = stage_manifest.stage_dir(project_dir, old_name).parent
-    new_stage_root = stage_manifest.stage_dir(project_dir, new_name).parent
-    _move_dir_if_exists(old_stage_root, new_stage_root)
-
-    manifest = stage_manifest.load_manifest(project_dir, new_name)
-    if manifest is not None:
-        manifest["scene_id"] = new_name
-        stage_manifest.save_manifest(project_dir, new_name, manifest)
-
-
-def _scene_payload(
-    scene: NovelScene,
-    *,
-    ctx: ProjectContext,
-    project_dir: Path,
-    derived_from_scene: str = "",
-    base_scene: NovelScene | None = None,
-) -> dict[str, Any]:
-    base_scene_id = str(
-        getattr(scene, "base_scene_id", "") or derived_from_scene or ""
-    ).strip()
-    variant_id = str(getattr(scene, "variant_id", "") or "").strip()
-    time_of_day = str(getattr(scene, "time_of_day", "") or "").strip()
-    if base_scene_id and not (variant_id or time_of_day):
-        prefix = f"{base_scene_id}_"
-        if scene.name.startswith(prefix):
-            suffix = scene.name[len(prefix) :].strip()
-            if suffix:
-                variant_candidate, sep, time_candidate = suffix.rpartition("_")
-                if sep and time_candidate in _SCENE_TIME_TOKENS:
-                    variant_id = variant_candidate
-                    time_of_day = time_candidate
-                elif suffix in _SCENE_TIME_TOKENS:
-                    time_of_day = suffix
-                else:
-                    variant_id = suffix
-    master_path = compute_scene_master_path(project_dir, scene.name)
-    reverse_master_path = compute_scene_reverse_master_path(project_dir, scene.name)
-    pano_path = stage_manifest.resolve_pano_path(project_dir, scene.name)
-    custom_scene_path = stage_manifest.resolve_ply_path(
-        project_dir, scene.name, ply_kind="custom"
-    )
-    pano_url = _asset_url(ctx, project_dir, pano_path) if pano_path is not None else ""
-
-    return {
-        "name": scene.name,
-        "aliases": scene.aliases,
-        "scene_type": scene.scene_type,
-        "base_scene_id": base_scene_id,
-        "variant_id": variant_id,
-        "time_of_day": time_of_day,
-        "environment_prompt": scene.environment_prompt,
-        "variant_prompt": getattr(scene, "variant_prompt", ""),
-        "effective_environment_prompt": build_scene_effective_prompt(scene, base_scene),
-        "description": scene.description,
-        "derived_from_scene": derived_from_scene,
-        "spatial_layout_image": scene.spatial_layout_image,
-        "notes": scene.notes,
-        "updated_at": newest_updated_at(
-            getattr(scene, "updated_at", ""),
-            tree_updated_at(project_dir / "assets" / "scenes" / scene.name),
-            tree_updated_at(stage_manifest.stage_dir(project_dir, scene.name)),
-        ),
-        "master_path": master_path,
-        "master_url": _asset_url(ctx, project_dir, master_path) if master_path else "",
-        "reverse_master_path": reverse_master_path,
-        "reverse_master_url": (
-            _asset_url(ctx, project_dir, reverse_master_path)
-            if reverse_master_path
-            else ""
-        ),
-        "pano_path": str(pano_path) if pano_path is not None else "",
-        "pano_url": pano_url,
-        "custom_scene_path": (
-            str(custom_scene_path) if custom_scene_path is not None else ""
-        ),
-        "custom_scene_url": (
-            _asset_url(ctx, project_dir, custom_scene_path)
-            if custom_scene_path is not None
-            else ""
-        ),
-        "stage_3gs": _stage_3gs_payload(
-            ctx=ctx,
-            project_dir=project_dir,
-            scene_name=scene.name,
-        ),
-    }
-
-
 async def _require_scene(store: SQLiteStore, name: str) -> NovelScene | None:
     return await store.get_scene(name)
-
-
-async def _derived_scene_names_for(store: SQLiteStore, scene_name: str) -> list[str]:
-    scenes = await store.list_scenes()
-    return sorted(
-        str(scene.name).strip()
-        for scene in scenes
-        if str(scene.name or "").strip()
-        and str(getattr(scene, "base_scene_id", "") or "").strip() == scene_name
-    )
-
-
-async def _is_derived_scene(store: SQLiteStore, scene_name: str) -> bool:
-    scene = await store.get_scene(scene_name)
-    return bool(scene and str(getattr(scene, "base_scene_id", "") or "").strip())
-
-
-async def _derived_scene_guard_error(store: SQLiteStore, scene_name: str) -> str:
-    derived_names = await _derived_scene_names_for(store, scene_name)
-    if derived_names:
-        preview = "、".join(derived_names[:5])
-        suffix = "…" if len(derived_names) > 5 else ""
-        return f"场景「{scene_name}」存在派生场景：{preview}{suffix}；请先处理派生场景"
-    return ""
 
 
 def _scene_plate_preview_payload(
@@ -490,25 +233,6 @@ def _scene_plate_preview_payload(
     }
 
 
-def _compose_scene_asset_name(
-    name: str,
-    base_scene_id: str = "",
-    variant_id: str = "",
-    time_of_day: str = "",
-) -> str:
-    base = str(base_scene_id or "").strip()
-    variant = str(variant_id or "").strip()
-    scene_time = str(time_of_day or "").strip()
-    if not base:
-        return str(name or "").strip()
-    scene_name = base
-    if variant:
-        scene_name = compose_derived_scene_name(scene_name, variant)
-    if scene_time:
-        scene_name = compose_derived_scene_name(scene_name, scene_time)
-    return scene_name
-
-
 @router.get("/projects/{project}/scenes")
 async def list_scenes(
     project: str,
@@ -517,26 +241,14 @@ async def list_scenes(
     ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_scene_project(project, user, required_role="viewer")
     )
-    scenes = await store.list_scenes()
-    scenes_by_name = {
-        scene.name: scene for scene in scenes if str(scene.name or "").strip()
-    }
+    data = await scene_catalog_use_cases().list_scenes(
+        repository=store,
+        project_dir=project_dir,
+        asset_url=lambda path: _asset_url(ctx, project_dir, path),
+    )
     return {
         "ok": True,
-        "data": [
-            _scene_payload(
-                scene,
-                ctx=ctx,
-                project_dir=project_dir,
-                derived_from_scene=str(
-                    getattr(scene, "base_scene_id", "") or ""
-                ).strip(),
-                base_scene=scenes_by_name.get(
-                    str(getattr(scene, "base_scene_id", "") or "")
-                ),
-            )
-            for scene in scenes
-        ],
+        "data": data,
     }
 
 
@@ -781,43 +493,19 @@ async def create_scene(
     body: SceneCreate,
     user: dict = Depends(get_api_user),
 ):
-    ctx, username, project_name, project_dir, _output_dir, store = (
+    ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_scene_project(project, user)
     )
-    name = _compose_scene_asset_name(
-        body.name,
-        body.base_scene_id,
-        body.variant_id,
-        body.time_of_day,
-    )
-    if not name:
-        return {"ok": False, "error": "Scene name is required"}
-    existing = await store.get_scene(name)
-    if existing is not None:
-        return {"ok": False, "error": f"Scene '{name}' already exists"}
-
-    scene = NovelScene(
-        name=name,
-        aliases=body.aliases,
-        scene_type=body.scene_type,
-        base_scene_id=body.base_scene_id.strip(),
-        variant_id=body.variant_id.strip(),
-        time_of_day=body.time_of_day.strip(),
-        environment_prompt=body.environment_prompt,
-        variant_prompt=body.variant_prompt,
-        description=body.description,
-        spatial_layout_image=body.spatial_layout_image,
-        notes=body.notes,
-    )
-    await store.add_scene(scene)
-    return {
-        "ok": True,
-        "data": _scene_payload(
-            scene,
-            ctx=ctx,
+    try:
+        data = await scene_catalog_use_cases().create_scene(
+            repository=store,
             project_dir=project_dir,
-        ),
-    }
+            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+            command=CreateSceneCommand(**body.model_dump()),
+        )
+    except SceneCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.patch("/projects/{project}/scenes/{name}")
@@ -830,52 +518,19 @@ async def update_scene(
     ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_scene_project(project, user)
     )
-    scene = await _require_scene(store, name)
-    if scene is None:
-        return {"ok": False, "error": f"Scene '{name}' not found"}
-
-    updates = body.model_dump(exclude_unset=True, exclude_none=True)
-    requested_name = str(updates.pop("name", "") or "").strip()
-    next_base = str(
-        updates.get("base_scene_id", getattr(scene, "base_scene_id", "")) or ""
-    ).strip()
-    next_variant = str(
-        updates.get("variant_id", getattr(scene, "variant_id", "")) or ""
-    ).strip()
-    next_time = str(
-        updates.get("time_of_day", getattr(scene, "time_of_day", "")) or ""
-    ).strip()
-    structured_name = _compose_scene_asset_name(
-        requested_name or scene.name, next_base, next_variant, next_time
-    )
-    if next_base:
-        requested_name = structured_name
-    if requested_name and requested_name != scene.name:
-        guard_error = await _derived_scene_guard_error(store, scene.name)
-        if guard_error:
-            return {"ok": False, "error": guard_error}
-        if await store.get_scene(requested_name) is not None:
-            return {"ok": False, "error": f"Scene '{requested_name}' already exists"}
-        try:
-            _rename_scene_asset_dirs(project_dir, scene.name, requested_name)
-        except ValueError as exc:
-            return {"ok": False, "error": str(exc)}
-        renamed = await store.rename_scene(scene.name, requested_name)
-        if not renamed:
-            return {"ok": False, "error": f"Scene '{scene.name}' rename failed"}
-        scene = await _require_scene(store, requested_name) or scene
-    if updates:
-        await store.update_scene(scene.name, **updates)
-        scene = await _require_scene(store, scene.name) or scene
-
-    return {
-        "ok": True,
-        "data": _scene_payload(
-            scene,
-            ctx=ctx,
+    try:
+        data = await scene_catalog_use_cases().update_scene(
+            repository=store,
             project_dir=project_dir,
-        ),
-    }
+            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+            scene_name=name,
+            command=UpdateSceneCommand(
+                fields=body.model_dump(exclude_unset=True, exclude_none=True)
+            ),
+        )
+    except SceneCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.post("/projects/{project}/scenes/{name}/delete")
@@ -887,14 +542,14 @@ async def delete_scene(
     _ctx, _username, _project_name, _project_dir, _output_dir, store = (
         await _resolve_scene_project(project, user)
     )
-    scene = await _require_scene(store, name)
-    if scene is None:
-        return {"ok": False, "error": f"Scene '{name}' not found"}
-    guard_error = await _derived_scene_guard_error(store, scene.name)
-    if guard_error:
-        return {"ok": False, "error": guard_error}
-    deleted = await store.delete_scene(scene.name)
-    return {"ok": True, "data": {"deleted": deleted}}
+    try:
+        data = await scene_catalog_use_cases().delete_scene(
+            repository=store,
+            scene_name=name,
+        )
+    except SceneCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.post("/projects/{project}/scenes/build")
@@ -956,10 +611,10 @@ async def upload_scene_master(
 
     return {
         "ok": True,
-        "data": _scene_payload(
+        "data": scene_catalog_use_cases().project_scene(
             scene,
-            ctx=ctx,
             project_dir=project_dir,
+            asset_url=lambda path: _asset_url(ctx, project_dir, path),
         ),
     }
 
@@ -1120,10 +775,10 @@ async def upload_scene_pano(
 
     return {
         "ok": True,
-        "data": _scene_payload(
+        "data": scene_catalog_use_cases().project_scene(
             scene,
-            ctx=ctx,
             project_dir=project_dir,
+            asset_url=lambda path: _asset_url(ctx, project_dir, path),
         ),
     }
 
@@ -1198,10 +853,10 @@ async def upload_scene_custom_package(
 
     return {
         "ok": True,
-        "data": _scene_payload(
+        "data": scene_catalog_use_cases().project_scene(
             scene,
-            ctx=ctx,
             project_dir=project_dir,
+            asset_url=lambda path: _asset_url(ctx, project_dir, path),
         ),
     }
 

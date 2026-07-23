@@ -25,6 +25,11 @@ from ai_anime.modules.asset_world.domain.prop_catalog import (
     includes_global_props,
     includes_local_props,
 )
+from ai_anime.modules.asset_world.domain.scene_catalog import (
+    compose_scene_asset_name,
+    derived_scene_names,
+    scene_identity,
+)
 from ai_anime.modules.asset_world.domain.styles import (
     PresetStyleDeletionForbidden,
     PresetStyleOverrideForbidden,
@@ -54,6 +59,9 @@ __all__ = [
     "identity_id_for",
     "includes_global_props",
     "includes_local_props",
+    "compose_scene_asset_name",
+    "derived_scene_names",
+    "scene_identity",
     "other_main_character_names",
     "safe_character_asset_name",
     "style_preview_extension",
