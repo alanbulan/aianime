@@ -89,13 +89,13 @@ export function LoginPage() {
         className="absolute inset-0 h-full w-full object-cover object-center opacity-0 transition-opacity duration-500 dark:opacity-100"
       />
       <div
-        className="absolute inset-0 bg-white/[0.08] transition-colors duration-500 dark:bg-black/30"
+        className="absolute inset-0 bg-background/10 transition-colors duration-500 dark:bg-background/30"
         aria-hidden="true"
       />
 
       <section
         ref={panelRef}
-        className="absolute inset-y-0 right-0 z-10 flex w-full max-w-[460px] items-center border-l border-border bg-background px-8 text-foreground shadow-[-24px_0_64px_rgba(0,0,0,0.12)] sm:px-12"
+        className="absolute inset-y-0 right-0 z-10 flex w-full max-w-[460px] items-center border-l border-border bg-background px-8 text-foreground shadow-xl sm:px-12"
       >
         <div className="w-full">
           <div className="mb-7">

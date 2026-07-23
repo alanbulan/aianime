@@ -219,7 +219,7 @@ export function Header() {
         <Bell className="size-[17px]" />
         {hasUnreadNotification ? (
           <span
-            className="absolute right-[7px] top-[7px] size-1.5 rounded-full bg-rose-500"
+            className="absolute right-[7px] top-[7px] size-1.5 rounded-full bg-destructive"
             aria-hidden="true"
           />
         ) : null}
@@ -240,7 +240,7 @@ export function Header() {
             <Bolt className="size-[17px]" />
             {hasSettingsWarning ? (
               <span
-                className="absolute right-[5px] top-[5px] flex size-[11px] items-center justify-center rounded-full bg-amber-400 text-black shadow-[0_0_7px_rgba(251,191,36,0.68)]"
+                className="absolute right-[5px] top-[5px] flex size-[11px] items-center justify-center rounded-full bg-warning text-warning-foreground shadow-sm"
                 aria-hidden="true"
               >
                 <AlertTriangle className="size-[8px]" strokeWidth={3} />
@@ -360,19 +360,19 @@ export function Header() {
       {settingsWarningBubble
         ? createPortal(
             <div
-              className="fixed z-[9999] w-[112px] rounded-md border border-amber-400/45 bg-amber-400 py-1 pl-2 pr-6 text-[11px] font-medium leading-none text-black shadow-[0_8px_22px_rgba(0,0,0,0.36),0_0_12px_rgba(251,191,36,0.28)]"
+              className="fixed z-[9999] w-[112px] rounded-md border border-warning/50 bg-warning py-1 pl-2 pr-6 text-[11px] font-medium leading-none text-warning-foreground shadow-lg"
               style={{ left: settingsWarningBubble.left, top: settingsWarningBubble.top }}
               role="status"
             >
               <span
-                className="absolute -top-[4px] size-2 rotate-45 border-l border-t border-amber-400/45 bg-amber-400"
+                className="absolute -top-[4px] size-2 rotate-45 border-l border-t border-warning/50 bg-warning"
                 style={{ left: settingsWarningBubble.arrowLeft }}
                 aria-hidden="true"
               />
               <span className="block truncate">{t("header.settingsWarningBubble")}</span>
               <button
                 type="button"
-                className="absolute right-1 top-1/2 flex size-4 -translate-y-1/2 items-center justify-center rounded-full text-black/70 transition-colors hover:bg-black/10 hover:text-black"
+                className="absolute right-1 top-1/2 flex size-4 -translate-y-1/2 items-center justify-center rounded-full text-warning-foreground/70 transition-colors hover:bg-warning-foreground/10 hover:text-warning-foreground"
                 aria-label={t("header.dismissSettingsWarningBubble")}
                 onClick={() => setSettingsWarningBubbleDismissed(true)}
               >

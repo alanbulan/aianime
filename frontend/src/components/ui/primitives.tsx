@@ -75,10 +75,10 @@ function resolveButtonVariant(variant: ButtonVariant): string {
   }
 
   if (variant === 'ghost') {
-    return 'bg-transparent text-text-dark hover:bg-[rgba(15,23,42,0.08)] dark:hover:bg-bg-dark/70';
+    return 'bg-transparent text-foreground hover:bg-muted';
   }
 
-  return 'bg-[rgba(15,23,42,0.08)] text-text-dark hover:bg-[rgba(15,23,42,0.14)] dark:bg-bg-dark/80 dark:hover:bg-bg-dark';
+  return 'bg-muted text-foreground hover:bg-accent';
 }
 
 function resolveButtonSize(size: ButtonSize): string {
@@ -102,7 +102,7 @@ export function UiButton({
 export function UiIconButton({ className = '', active = false, ...props }: UiIconButtonProps) {
   return (
     <button
-      className={`inline-flex h-10 w-10 items-center justify-center border ui-field transition-colors ${active ? 'border-primary/45 bg-primary/12 text-primary' : 'text-text-muted hover:bg-[rgba(15,23,42,0.08)] dark:hover:bg-bg-dark'} ${className}`}
+      className={`inline-flex h-10 w-10 items-center justify-center border ui-field transition-colors ${active ? 'border-primary/45 bg-primary/12 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'} ${className}`}
       {...props}
     />
   );
@@ -112,7 +112,7 @@ export const UiChipButton = forwardRef<HTMLButtonElement, UiChipButtonProps>(
   ({ className = '', active = false, ...props }, ref) => (
     <button
       ref={ref}
-      className={`inline-flex h-10 items-center gap-2 border ui-field px-3 text-sm transition-colors ${active ? 'border-primary/45 bg-primary/12 text-primary' : 'text-text-dark hover:bg-[rgba(15,23,42,0.08)] dark:hover:bg-bg-dark'} ${className}`}
+      className={`inline-flex h-10 items-center gap-2 border ui-field px-3 text-sm transition-colors ${active ? 'border-primary/45 bg-primary/12 text-primary' : 'text-foreground hover:bg-muted'} ${className}`}
       {...props}
     />
   )
@@ -396,7 +396,7 @@ export function UiSelect({ className = '', menuClassName = '', children, ...prop
         aria-expanded={isOpen}
         aria-controls={listboxIdRef.current}
         disabled={disabled}
-        className={`group inline-flex h-8 w-full items-center justify-between rounded-[6px] border border-[color:var(--ui-border-soft)] bg-[var(--ui-surface-field)] px-3 text-left text-xs font-medium text-text-dark outline-none transition-[border-color,background-color,box-shadow,color] hover:border-[color:var(--ui-border-strong)] focus-visible:border-primary focus-visible:shadow-[0_0_0_2px_rgba(var(--accent-rgb),0.12)] disabled:cursor-not-allowed disabled:opacity-55 ${className}`}
+        className={`group inline-flex h-8 w-full items-center justify-between rounded-[6px] border border-[color:var(--ui-border-soft)] bg-[var(--ui-surface-field)] px-3 text-left text-xs font-medium text-foreground outline-none transition-[border-color,background-color,box-shadow,color] hover:border-[color:var(--ui-border-strong)] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-55 ${className}`}
         onClick={() => {
           if (!disabled && parsedOptions.length > 0) {
             setIsOpen((current) => !current);

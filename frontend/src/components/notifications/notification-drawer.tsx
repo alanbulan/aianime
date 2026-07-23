@@ -109,7 +109,7 @@ export function NotificationDrawer({
       />
       <aside
         aria-label={t("notifications.title")}
-        className={`absolute right-0 flex w-[390px] max-w-[calc(100vw-20px)] flex-col border-l border-border bg-popover/95 text-popover-foreground shadow-[-24px_0_60px_rgba(0,0,0,0.24)] backdrop-blur-md transition-transform duration-[260ms] ease-[var(--ease-out-quint)] will-change-transform ${
+        className={`absolute right-0 flex w-[390px] max-w-[calc(100vw-20px)] flex-col border-l border-border bg-popover/95 text-popover-foreground shadow-xl backdrop-blur-md transition-transform duration-[260ms] ease-[var(--ease-out-quint)] will-change-transform ${
           visible ? "translate-x-0" : "translate-x-full"
         }`}
         style={{

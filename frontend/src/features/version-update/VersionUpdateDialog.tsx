@@ -55,7 +55,7 @@ export function VersionUpdateDialog() {
         className="max-h-[min(84dvh,560px)] w-[min(calc(100vw-32px),360px)] gap-0 overflow-hidden rounded-[8px] border border-border bg-card p-0 text-card-foreground shadow-xl ring-0 sm:max-w-[360px]"
       >
         <div className="p-2">
-          <div className="relative flex aspect-[2/1] overflow-hidden rounded-[12px] bg-[#b9e7ff]">
+          <div className="relative flex aspect-[2/1] overflow-hidden rounded-[12px] bg-muted">
             <video
               className="absolute inset-0 h-full w-full object-cover"
               src={UPDATE_HERO_VIDEO_URL}
