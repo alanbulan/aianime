@@ -7,6 +7,7 @@ from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 
 from ai_anime.models import SceneRef
 from ai_anime.freezone.slots import PushTarget
+from ai_anime.api.story_intake_schemas import IngestStart as IngestStart
 
 ProjectStatus = Literal["active", "archived", "deleted"]
 ProjectStatusFilter = Literal["all", "active", "archived", "deleted", "visible"]
@@ -113,15 +114,6 @@ class SketchSettingsUpdate(BaseModel):
 
 class BeatBackgroundAnchorUpdate(BaseModel):
     anchor_id: str
-
-
-# ── 导入 ──────────────────────────────────────────────────────────────────────
-
-
-class IngestStart(BaseModel):
-    filename: str
-    rebuild: bool = False
-    spine_template: Optional[Literal["drama", "narrated"]] = None
 
 
 # ── 角色 ──────────────────────────────────────────────────────────────────────

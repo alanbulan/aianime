@@ -1,0 +1,1 @@
+"""Story Intake infrastructure adapters."""
