@@ -293,6 +293,33 @@ async def test_upload_identity_portrait_backs_up_and_syncs_repository(
     ]
 
 
+def test_identity_attempts_counts_images_and_portraits_but_not_costumes(
+    tmp_path: Path,
+) -> None:
+    identity = _Identity(identity_id="秦_少年", identity_name="少年/战损")
+    repository = _Repository([_Character(name="秦", identities=[identity])])
+    identities_dir = tmp_path / "assets" / "characters" / "秦" / "identities"
+    identities_dir.mkdir(parents=True)
+    for filename in (
+        "少年_战损.png",
+        "少年_战损_20260603112233.png",
+        "少年_战损_costume.png",
+        "秦_少年_战损_portrait.png",
+        "秦_少年_战损_portrait_20260603112233.png",
+        "其他.png",
+    ):
+        (identities_dir / filename).write_bytes(b"image")
+
+    data = _use_cases().identity_attempts(
+        repository=repository,
+        project_dir=tmp_path,
+        character_name="秦",
+        identity_id="秦_少年",
+    )
+
+    assert data == {"image_attempts": 2, "portrait_attempts": 2}
+
+
 @pytest.mark.asyncio
 async def test_uploads_reject_missing_character_and_identity_in_english(
     tmp_path: Path,

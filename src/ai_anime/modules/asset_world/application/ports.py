@@ -113,6 +113,13 @@ class CharacterImageFiles(Protocol):
         content: bytes,
     ) -> Path: ...
 
+    def count_identity_attempts(
+        self,
+        project_dir: Path,
+        character_name: str,
+        identity_name: str,
+    ) -> dict[str, int]: ...
+
 
 class CharacterTaskRepository(Protocol):
     def get_character(self, name: str) -> Any | None: ...

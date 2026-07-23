@@ -164,3 +164,29 @@ class LocalCharacterImageFiles:
             / f"{character_name}_{safe_name}_portrait.png"
         )
         return _save_png(image, target, backup="seconds")
+
+    def count_identity_attempts(
+        self,
+        project_dir: Path,
+        character_name: str,
+        identity_name: str,
+    ) -> dict[str, int]:
+        safe_name = safe_character_asset_name(identity_name)
+        identities_dir = (
+            project_dir / "assets" / "characters" / character_name / "identities"
+        )
+        image_attempts = len(
+            [
+                path
+                for path in identities_dir.glob(f"{safe_name}*.png")
+                if not path.name.endswith("_costume.png")
+                and "_portrait" not in path.stem
+            ]
+        )
+        portrait_attempts = len(
+            list(identities_dir.glob(f"*{safe_name}_portrait*.png"))
+        )
+        return {
+            "image_attempts": image_attempts,
+            "portrait_attempts": portrait_attempts,
+        }

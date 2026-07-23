@@ -155,6 +155,21 @@ class CharacterImageUseCases:
         )
         return {"portrait_image_url": asset_url(target)}
 
+    def identity_attempts(
+        self,
+        *,
+        repository: CharacterImageRepository,
+        project_dir: Path,
+        character_name: str,
+        identity_id: str,
+    ) -> dict[str, int]:
+        identity = self._identity(repository, character_name, identity_id)
+        return self._files.count_identity_attempts(
+            project_dir,
+            character_name,
+            identity.identity_name,
+        )
+
     @staticmethod
     def _character(
         repository: CharacterImageRepository,

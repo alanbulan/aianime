@@ -1021,29 +1021,16 @@ async def get_identity_attempts(
     _ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_character_project(project, user, required_role="viewer")
     )
-    character = store.get_character(name)
-    if character is None:
-        return {"ok": False, "error": f"Character '{name}' not found"}
-    identity = find_character_identity(character, identity_id)
-    if identity is None:
-        return {"ok": False, "error": f"Identity '{identity_id}' not found"}
-    safe_name = safe_character_asset_name(identity.identity_name)
-    identities_dir = project_dir / "assets" / "characters" / name / "identities"
-    image_attempts = len(
-        [
-            p
-            for p in identities_dir.glob(f"{safe_name}*.png")
-            if not p.name.endswith("_costume.png") and "_portrait" not in p.stem
-        ]
-    )
-    portrait_attempts = len(list(identities_dir.glob(f"*{safe_name}_portrait*.png")))
-    return {
-        "ok": True,
-        "data": {
-            "image_attempts": image_attempts,
-            "portrait_attempts": portrait_attempts,
-        },
-    }
+    try:
+        data = character_image_use_cases().identity_attempts(
+            repository=store,
+            project_dir=project_dir,
+            character_name=name,
+            identity_id=identity_id,
+        )
+    except CharacterCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.post("/projects/{project}/characters/{name}/identities/{identity_id}/generate")

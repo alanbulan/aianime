@@ -399,6 +399,8 @@ def test_asset_world_character_image_routes_delegate_to_application() -> None:
         "await store.delete_identity_image(",
         "def _safe_asset_name",
         "backup_character_asset",
+        "image_attempts = len(",
+        "portrait_attempts = len(",
     ):
         assert legacy_implementation not in source
 
