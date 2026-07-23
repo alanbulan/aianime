@@ -138,20 +138,20 @@ export function SketchCropDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="gap-0 overflow-hidden rounded-none border-0 bg-black p-0 text-white ring-white/10 sm:max-w-[min(96vw,1120px)]"
+        className="gap-0 overflow-hidden rounded-none border-0 bg-media p-0 text-media-foreground ring-media-foreground/10 sm:max-w-[min(96vw,1120px)]"
       >
-        <div className="relative flex h-12 items-center border-b border-white/10 px-4">
-          <div className="flex items-center gap-2 text-sm font-medium text-white">
+        <div className="relative flex h-12 items-center border-b border-media-foreground/10 px-4">
+          <div className="flex items-center gap-2 text-sm font-medium text-media-foreground">
             <Crop className="size-4" />
             {`裁剪 ${spec.label}`}
           </div>
-          <DialogTitle className="absolute left-1/2 max-w-[52vw] -translate-x-1/2 truncate text-center text-sm font-medium text-white">
+          <DialogTitle className="absolute left-1/2 max-w-[52vw] -translate-x-1/2 truncate text-center text-sm font-medium text-media-foreground">
             {t("episode.workbench.sketch.cropTitle", { n: beatNum })}
           </DialogTitle>
           <button
             type="button"
             aria-label="关闭"
-            className="absolute right-4 flex size-7 items-center justify-center text-white/90 hover:text-white"
+            className="absolute right-4 flex size-7 items-center justify-center text-media-foreground/90 hover:text-media-foreground"
             onClick={() => onOpenChange(false)}
           >
             <X className="size-5" />
@@ -159,22 +159,22 @@ export function SketchCropDialog({
         </div>
         {!data ? (
           loadError ? (
-            <div className="flex min-h-[360px] flex-col items-center justify-center gap-3 p-6 text-center text-sm text-white/70">
-              <AlertCircle className="size-5 text-amber-300" />
+            <div className="flex min-h-[360px] flex-col items-center justify-center gap-3 p-6 text-center text-sm text-media-foreground/70">
+              <AlertCircle className="size-5 text-warning" />
               <div className="max-w-md">{loadError}</div>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 {t("common.close", "Close")}
               </Button>
             </div>
           ) : (
-            <div className="flex min-h-[360px] items-center justify-center p-6 text-sm text-white/70">
+            <div className="flex min-h-[360px] items-center justify-center p-6 text-sm text-media-foreground/70">
               <Loader2 className="mr-2 size-4 animate-spin" />
               {t("common.loading", "Loading")}
             </div>
           )
         ) : (
           <>
-            <div className="relative flex min-h-[360px] items-center justify-center bg-black p-4">
+            <div className="relative flex min-h-[360px] items-center justify-center bg-media p-4">
               <div className="relative inline-block max-h-[72vh] max-w-full">
                 <img
                   ref={imageRef}
@@ -212,15 +212,15 @@ export function SketchCropDialog({
                       dragRef.current = null;
                     }}
                   >
-                    <div className="pointer-events-none absolute inset-y-0 left-1/3 border-l border-white/30" />
-                    <div className="pointer-events-none absolute inset-y-0 left-2/3 border-l border-white/30" />
-                    <div className="pointer-events-none absolute inset-x-0 top-1/3 border-t border-white/30" />
-                    <div className="pointer-events-none absolute inset-x-0 top-2/3 border-t border-white/30" />
+                    <div className="pointer-events-none absolute inset-y-0 left-1/3 border-l border-media-foreground/30" />
+                    <div className="pointer-events-none absolute inset-y-0 left-2/3 border-l border-media-foreground/30" />
+                    <div className="pointer-events-none absolute inset-x-0 top-1/3 border-t border-media-foreground/30" />
+                    <div className="pointer-events-none absolute inset-x-0 top-2/3 border-t border-media-foreground/30" />
                   </div>
                 ) : null}
               </div>
             </div>
-            <div className="flex justify-end gap-2 border-t border-white/10 bg-black px-4 py-3">
+            <div className="flex justify-end gap-2 border-t border-media-foreground/10 bg-media px-4 py-3">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 {t("common.cancel")}
               </Button>

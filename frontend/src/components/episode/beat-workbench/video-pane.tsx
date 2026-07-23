@@ -1392,29 +1392,29 @@ export function VideoPane({
             onClick={(event) => event.stopPropagation()}
             aria-label={t("common.download")}
             title={t("common.download")}
-            className="absolute right-2 top-2 z-10 inline-flex size-7 items-center justify-center rounded-[7px] border border-white/[0.18] bg-black/65 text-white/90 backdrop-blur-sm transition hover:border-white/30 hover:bg-black/80 hover:text-white"
+            className="absolute right-2 top-2 z-10 inline-flex size-7 items-center justify-center rounded-[7px] border border-media-foreground/20 bg-media/65 text-media-foreground/90 backdrop-blur-sm transition hover:border-media-foreground/30 hover:bg-media/80 hover:text-media-foreground"
           >
             <Download className="size-3.5" />
           </a>
         )}
         {videoActive && (
           <div
-            className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 rounded-[10px] bg-black/55 backdrop-blur-[1px]"
+            className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 rounded-[10px] bg-media/55 backdrop-blur-[1px]"
             role="progressbar"
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={videoPercent}
           >
-            <Loader2 aria-hidden className="size-5 animate-spin text-white/90" />
-            <div className="flex items-baseline leading-none text-white">
+            <Loader2 aria-hidden className="size-5 animate-spin text-media-foreground/90" />
+            <div className="flex items-baseline leading-none text-media-foreground">
               <span className="text-2xl font-semibold tabular-nums tracking-tight">
                 {videoPercent}
               </span>
-              <span className="ml-0.5 text-xs font-medium text-white/70">%</span>
+              <span className="ml-0.5 text-xs font-medium text-media-foreground/70">%</span>
             </div>
-            <div className="h-1 w-24 overflow-hidden rounded-full bg-white/20">
+            <div className="h-1 w-24 overflow-hidden rounded-full bg-media-foreground/20">
               <div
-                className="h-full rounded-full bg-white/85 transition-[width] duration-300 ease-out"
+                className="h-full rounded-full bg-media-foreground/85 transition-[width] duration-300 ease-out"
                 style={{ width: `${videoPercent}%` }}
               />
             </div>
@@ -1450,7 +1450,7 @@ export function VideoPane({
                   )}
                   title={backendLabel}
                 >
-                  <div className="h-[76px] bg-black" style={{ aspectRatio: frameAspectCss }}>
+                  <div className="h-[76px] bg-media" style={{ aspectRatio: frameAspectCss }}>
                     {src && (
                       <video
                         src={src}
@@ -1463,7 +1463,7 @@ export function VideoPane({
                       />
                     )}
                   </div>
-                  <span className="absolute left-0 top-0 rounded-br bg-black/70 px-1 py-0.5 text-[9px] font-medium leading-none text-white">
+                  <span className="absolute left-0 top-0 rounded-br bg-media/70 px-1 py-0.5 text-[9px] font-medium leading-none text-media-foreground">
                     {backendLabel}
                   </span>
                   {timeLabel && (
@@ -1791,12 +1791,12 @@ export function VideoPane({
                             <ImageIcon className="size-6 text-muted-foreground/70" />
                           </div>
                         )}
-                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/78 via-black/46 to-transparent p-1.5 pt-5">
-                          <div className="truncate text-[10px] font-medium leading-3 text-white/88">
+                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-media/80 via-media/45 to-transparent p-1.5 pt-5">
+                          <div className="truncate text-[10px] font-medium leading-3 text-media-foreground/90">
                             {asset.label}
                           </div>
                           {asset.note && (
-                            <div className="truncate text-[9px] leading-3 text-white/48">
+                            <div className="truncate text-[9px] leading-3 text-media-foreground/50">
                               {asset.note}
                             </div>
                           )}
@@ -1807,7 +1807,7 @@ export function VideoPane({
                               type="button"
                               size="icon"
                               variant="ghost"
-                              className="size-6 rounded-[6px] border border-white/[0.18] bg-black/70 text-white/90 shadow-[0_4px_12px_rgba(0,0,0,0.35)] backdrop-blur-sm hover:border-white/[0.32] hover:bg-white/[0.16] hover:text-white"
+                              className="size-6 rounded-[6px] border border-media-foreground/20 bg-media/70 text-media-foreground/90 shadow-lg backdrop-blur-sm hover:border-media-foreground/30 hover:bg-media-foreground/15 hover:text-media-foreground"
                               aria-label={t("episode.workbench.video.seedance2AssetCrop")}
                               onClick={() =>
                                 setSeedance2CropIntent({
@@ -1991,7 +1991,7 @@ export function VideoPane({
                           className={cn(
                             "group/reference-tile relative aspect-square w-[6.75rem] overflow-hidden rounded-[7px] border border-border bg-muted transition-[border-color,background-color,box-shadow] duration-200 hover:border-foreground/25 hover:bg-accent",
                             canInsertReference &&
-                              "cursor-grab active:cursor-grabbing hover:shadow-[0_8px_22px_rgba(0,0,0,0.28)]",
+                              "cursor-grab active:cursor-grabbing hover:shadow-xl",
                           )}
                           title={asset.note || asset.label}
                         >
@@ -2021,7 +2021,7 @@ export function VideoPane({
                             </div>
                           )}
                           <div className="absolute inset-x-1 top-1 flex min-w-0 items-center justify-between gap-1">
-                            <span className="truncate rounded-[4px] border border-white/[0.08] bg-black/55 px-1 py-0.5 text-[10px] font-medium leading-none text-white/88 shadow-sm backdrop-blur-sm">
+                            <span className="truncate rounded-[4px] border border-media-foreground/10 bg-media/55 px-1 py-0.5 text-[10px] font-medium leading-none text-media-foreground/90 shadow-sm backdrop-blur-sm">
                               {displayReferenceLabel}
                             </span>
                             <span
@@ -2029,19 +2029,19 @@ export function VideoPane({
                                 "shrink-0 rounded-[4px] border px-1 py-0.5 text-[10px] leading-none shadow-sm backdrop-blur-sm",
                                 asset.selected
                                   ? "border-primary/35 bg-primary/18 text-primary"
-                                  : "border-white/[0.08] bg-black/50 text-white/58",
+                                  : "border-media-foreground/10 bg-media/50 text-media-foreground/60",
                               )}
                             >
                               {stateLabel}
                             </span>
                           </div>
                           {showTileText && (
-                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/78 via-black/46 to-transparent p-1.5 pt-5">
-                              <div className="truncate text-[10px] font-medium leading-3 text-white/88">
+                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-media/80 via-media/45 to-transparent p-1.5 pt-5">
+                              <div className="truncate text-[10px] font-medium leading-3 text-media-foreground/90">
                                 {asset.label}
                               </div>
                               {asset.note && (
-                                <div className="truncate text-[9px] leading-3 text-white/48">
+                                <div className="truncate text-[9px] leading-3 text-media-foreground/50">
                                   {asset.note}
                                 </div>
                               )}
@@ -2054,7 +2054,7 @@ export function VideoPane({
                                   type="button"
                                   size="icon"
                                   variant="ghost"
-                                  className="size-6 rounded-[6px] border border-white/[0.18] bg-black/70 text-white/90 shadow-[0_4px_12px_rgba(0,0,0,0.35)] backdrop-blur-sm hover:border-white/[0.32] hover:bg-white/[0.16] hover:text-white"
+                                  className="size-6 rounded-[6px] border border-media-foreground/20 bg-media/70 text-media-foreground/90 shadow-lg backdrop-blur-sm hover:border-media-foreground/30 hover:bg-media-foreground/15 hover:text-media-foreground"
                                   aria-label={t("episode.workbench.video.seedance2AssetCrop")}
                                   onClick={() =>
                                     setSeedance2CropIntent({
@@ -2074,7 +2074,7 @@ export function VideoPane({
                                   type="button"
                                   size="icon"
                                   variant="ghost"
-                                  className="size-6 rounded-[6px] border border-white/[0.18] bg-black/70 text-white/90 shadow-[0_4px_12px_rgba(0,0,0,0.35)] backdrop-blur-sm hover:border-white/[0.32] hover:bg-white/[0.16] hover:text-white"
+                                  className="size-6 rounded-[6px] border border-media-foreground/20 bg-media/70 text-media-foreground/90 shadow-lg backdrop-blur-sm hover:border-media-foreground/30 hover:bg-media-foreground/15 hover:text-media-foreground"
                                   aria-label={t("episode.workbench.video.seedance2AssetCrop")}
                                   title={t("episode.workbench.video.seedance2AssetAudioTrim")}
                                   onClick={() => {
@@ -2092,7 +2092,7 @@ export function VideoPane({
                                   size="icon"
                                   variant="ghost"
                                   disabled={deleteSeedance2Asset.isPending}
-                                  className="size-5 rounded-[5px] border border-white/[0.08] bg-black/35 text-white/58 hover:bg-destructive/15 hover:text-destructive"
+                                  className="size-5 rounded-[5px] border border-media-foreground/10 bg-media/35 text-media-foreground/60 hover:bg-destructive/15 hover:text-destructive"
                                   aria-label={t("episode.workbench.video.seedance2AssetDelete")}
                                   onClick={() => void handleDeleteSeedance2Asset(asset)}
                                 >
@@ -2701,20 +2701,20 @@ function Seedance2AssetCropDialog({
     <Dialog open={asset !== null} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="gap-0 overflow-hidden rounded-none border-0 bg-black p-0 text-white ring-white/10 sm:max-w-[min(96vw,1120px)]"
+        className="gap-0 overflow-hidden rounded-none border-0 bg-media p-0 text-media-foreground ring-media-foreground/10 sm:max-w-[min(96vw,1120px)]"
       >
-        <div className="relative flex h-12 items-center border-b border-white/10 px-4">
-          <div className="flex items-center gap-2 text-sm font-medium text-white">
+        <div className="relative flex h-12 items-center border-b border-media-foreground/10 px-4">
+          <div className="flex items-center gap-2 text-sm font-medium text-media-foreground">
             <Scissors className="size-4" />
             {`裁剪 ${cropAspect}`}
           </div>
-          <DialogTitle className="absolute left-1/2 max-w-[52vw] -translate-x-1/2 truncate text-center text-sm font-medium text-white">
+          <DialogTitle className="absolute left-1/2 max-w-[52vw] -translate-x-1/2 truncate text-center text-sm font-medium text-media-foreground">
             {t("episode.workbench.video.seedance2AssetCropTitle")}
           </DialogTitle>
           <button
             type="button"
             aria-label="关闭"
-            className="absolute right-4 flex size-7 items-center justify-center text-white/90 hover:text-white"
+            className="absolute right-4 flex size-7 items-center justify-center text-media-foreground/90 hover:text-media-foreground"
             onClick={() => onOpenChange(false)}
           >
             <X className="size-5" />
@@ -2722,7 +2722,7 @@ function Seedance2AssetCropDialog({
         </div>
         {asset && (
           <>
-            <div className="relative flex min-h-[360px] items-center justify-center bg-black p-4">
+            <div className="relative flex min-h-[360px] items-center justify-center bg-media p-4">
               {imageSrc ? (
                 <div className="relative inline-block max-h-[72vh] max-w-full">
                   <img
@@ -2766,10 +2766,10 @@ function Seedance2AssetCropDialog({
                       dragRef.current = null;
                     }}
                   >
-                    <div className="pointer-events-none absolute inset-y-0 left-1/3 border-l border-white/30" />
-                    <div className="pointer-events-none absolute inset-y-0 left-2/3 border-l border-white/30" />
-                    <div className="pointer-events-none absolute inset-x-0 top-1/3 border-t border-white/30" />
-                    <div className="pointer-events-none absolute inset-x-0 top-2/3 border-t border-white/30" />
+                    <div className="pointer-events-none absolute inset-y-0 left-1/3 border-l border-media-foreground/30" />
+                    <div className="pointer-events-none absolute inset-y-0 left-2/3 border-l border-media-foreground/30" />
+                    <div className="pointer-events-none absolute inset-x-0 top-1/3 border-t border-media-foreground/30" />
+                    <div className="pointer-events-none absolute inset-x-0 top-2/3 border-t border-media-foreground/30" />
                   </div>
                 </div>
               ) : (
@@ -2778,7 +2778,7 @@ function Seedance2AssetCropDialog({
                 </div>
               )}
             </div>
-            <div className="flex justify-end gap-2 border-t border-white/10 bg-black px-4 py-3">
+            <div className="flex justify-end gap-2 border-t border-media-foreground/10 bg-media px-4 py-3">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 {t("common.cancel")}
               </Button>

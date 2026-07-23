@@ -773,7 +773,7 @@ function BeatsTabContent() {
       <Dialog open={gridGalleryOpen} onOpenChange={setGridGalleryOpen}>
         <DialogContent
           closeButtonClassName="top-0 -right-9 z-50 bg-transparent text-muted-foreground hover:bg-transparent hover:text-foreground focus-visible:bg-transparent"
-          overlayClassName="bg-black/8 supports-backdrop-filter:backdrop-blur-sm"
+          overlayClassName="bg-scrim supports-backdrop-filter:backdrop-blur-sm"
           className="h-[min(calc(100vh-3rem),760px)] w-[min(calc(100vw-1rem),1440px)] max-w-none overflow-visible rounded-2xl border border-border bg-popover/95 p-0 shadow-2xl backdrop-blur-2xl sm:max-w-none"
         >
           <DialogHeader className="sr-only">
@@ -793,7 +793,7 @@ function BeatsTabContent() {
       <Dialog open={renderGridGalleryOpen} onOpenChange={setRenderGridGalleryOpen}>
         <DialogContent
           closeButtonClassName="top-0 -right-9 z-50 bg-transparent text-muted-foreground hover:bg-transparent hover:text-foreground focus-visible:bg-transparent"
-          overlayClassName="bg-black/8 supports-backdrop-filter:backdrop-blur-sm"
+          overlayClassName="bg-scrim supports-backdrop-filter:backdrop-blur-sm"
           className="h-[min(calc(100vh-3rem),760px)] w-[min(calc(100vw-1rem),1440px)] max-w-none overflow-visible rounded-2xl border border-border bg-popover/95 p-0 shadow-2xl backdrop-blur-2xl sm:max-w-none"
         >
           <DialogHeader className="sr-only">
@@ -845,7 +845,7 @@ function BeatsTabContent() {
                     </span>
                   </div>
                   <div
-                    className="truncate text-emerald-700 dark:text-emerald-300"
+                    className="truncate text-success"
                     title={item.sceneIds.join(" / ")}
                   >
                     {item.sceneIds.join(" / ") ||

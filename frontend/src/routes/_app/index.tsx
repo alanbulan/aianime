@@ -230,7 +230,7 @@ function ProjectCard({
         PROJECT_CARD_MIN_HEIGHT_CLASS,
         sm ? "p-2 pt-4" : "p-3 pt-5",
         clickable &&
-          "cursor-pointer hover:border-primary/35 hover:shadow-lg hover:shadow-black/10",
+          "cursor-pointer hover:border-primary/35 hover:shadow-lg",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
         isArchived && "opacity-80",
         isDeleted && "opacity-65",
@@ -285,7 +285,7 @@ function ProjectCard({
                 side="right"
                 align="start"
                 sideOffset={8}
-                className="w-32 rounded-md border border-border p-1 shadow-xl shadow-black/20 [&_[data-slot=dropdown-menu-item]]:min-h-8 [&_[data-slot=dropdown-menu-item]]:gap-2 [&_[data-slot=dropdown-menu-item]]:rounded-sm [&_[data-slot=dropdown-menu-item]]:px-2 [&_[data-slot=dropdown-menu-item]]:py-1.5 [&_[data-slot=dropdown-menu-item]]:text-xs [&_[data-slot=dropdown-menu-item]:focus]:bg-accent [&_[data-slot=dropdown-menu-item]:focus]:text-accent-foreground [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:bg-destructive/10 [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:text-destructive [&_[data-slot=dropdown-menu-item]_svg]:size-3.5"
+                className="w-32 rounded-md border border-border p-1 shadow-xl [&_[data-slot=dropdown-menu-item]]:min-h-8 [&_[data-slot=dropdown-menu-item]]:gap-2 [&_[data-slot=dropdown-menu-item]]:rounded-sm [&_[data-slot=dropdown-menu-item]]:px-2 [&_[data-slot=dropdown-menu-item]]:py-1.5 [&_[data-slot=dropdown-menu-item]]:text-xs [&_[data-slot=dropdown-menu-item]:focus]:bg-accent [&_[data-slot=dropdown-menu-item]:focus]:text-accent-foreground [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:bg-destructive/10 [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:text-destructive [&_[data-slot=dropdown-menu-item]_svg]:size-3.5"
               >
                 <DropdownMenuGroup>
                   {isActive && (
@@ -442,7 +442,7 @@ function CreateProjectCard({ onCreate }: { onCreate: () => void }) {
       className={cn(
         "group flex h-full w-full flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card p-3 text-center text-muted-foreground transition-all duration-300 ease-out",
         PROJECT_CARD_MIN_HEIGHT_CLASS,
-        "hover:border-primary/35 hover:bg-accent hover:shadow-lg hover:shadow-black/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
+        "hover:border-primary/35 hover:bg-accent hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
       )}
     >
       <Plus
@@ -595,7 +595,7 @@ function ProjectRow({
         />
         <div className="absolute inset-0 flex items-center justify-center">
           <span
-            className="text-lg font-bold leading-none text-white/95 drop-shadow-[0_1px_6px_rgba(0,0,0,0.55)]"
+            className="text-lg font-bold leading-none text-media-foreground/95 drop-shadow-md"
             style={{ fontFeatureSettings: '"cv01", "ss03"' }}
           >
             {initial}
@@ -676,7 +676,7 @@ function ProjectRow({
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className="w-32 rounded-md border border-border p-1 shadow-xl shadow-black/20 [&_[data-slot=dropdown-menu-item]]:min-h-8 [&_[data-slot=dropdown-menu-item]]:gap-2 [&_[data-slot=dropdown-menu-item]]:rounded-sm [&_[data-slot=dropdown-menu-item]]:px-2 [&_[data-slot=dropdown-menu-item]]:py-1.5 [&_[data-slot=dropdown-menu-item]]:text-xs [&_[data-slot=dropdown-menu-item]:focus]:bg-accent [&_[data-slot=dropdown-menu-item]:focus]:text-accent-foreground [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:bg-destructive/10 [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:text-destructive [&_[data-slot=dropdown-menu-item]_svg]:size-3.5"
+            className="w-32 rounded-md border border-border p-1 shadow-xl [&_[data-slot=dropdown-menu-item]]:min-h-8 [&_[data-slot=dropdown-menu-item]]:gap-2 [&_[data-slot=dropdown-menu-item]]:rounded-sm [&_[data-slot=dropdown-menu-item]]:px-2 [&_[data-slot=dropdown-menu-item]]:py-1.5 [&_[data-slot=dropdown-menu-item]]:text-xs [&_[data-slot=dropdown-menu-item]:focus]:bg-accent [&_[data-slot=dropdown-menu-item]:focus]:text-accent-foreground [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:bg-destructive/10 [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:text-destructive [&_[data-slot=dropdown-menu-item]_svg]:size-3.5"
           >
             <DropdownMenuGroup>
               {isActive && (
@@ -874,7 +874,7 @@ function FirstTimeEmpty({ onCreate }: { onCreate: () => void }) {
           style={{ background: gradient }}
         />
         <div className="absolute inset-0 flex items-center justify-center">
-          <BookOpen className="size-8 text-white/80 drop-shadow-[0_0_20px_rgba(255,255,255,0.15)]" />
+          <BookOpen className="size-8 text-media-foreground/80 drop-shadow-lg" />
         </div>
       </div>
       <h3 className="mb-5 text-xl font-bold tracking-tight text-foreground">
@@ -1405,7 +1405,7 @@ function ProjectDashboard() {
               align="end"
               sideOffset={8}
               alignItemWithTrigger={false}
-              className="w-40 rounded-md border border-border p-1 shadow-xl shadow-black/20 data-[align-trigger=true]:animate-in [&_[data-slot=select-item]]:min-h-8 [&_[data-slot=select-item]]:rounded-sm [&_[data-slot=select-item]]:px-2 [&_[data-slot=select-item]]:py-1.5 [&_[data-slot=select-item]]:text-xs [&_[data-slot=select-item]:focus]:bg-accent [&_[data-slot=select-item]:focus]:text-accent-foreground [&_[data-slot=select-item]_svg]:size-3.5"
+              className="w-40 rounded-md border border-border p-1 shadow-xl data-[align-trigger=true]:animate-in [&_[data-slot=select-item]]:min-h-8 [&_[data-slot=select-item]]:rounded-sm [&_[data-slot=select-item]]:px-2 [&_[data-slot=select-item]]:py-1.5 [&_[data-slot=select-item]]:text-xs [&_[data-slot=select-item]:focus]:bg-accent [&_[data-slot=select-item]:focus]:text-accent-foreground [&_[data-slot=select-item]_svg]:size-3.5"
             >
               {SORT_OPTIONS.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>

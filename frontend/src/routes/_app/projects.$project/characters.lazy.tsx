@@ -342,7 +342,7 @@ function CharacterAssetHistoryButton({
         title={t("characters.history.open")}
         className={cn(
           iconOnly
-            ? "size-6 rounded-[4px] border-white/10 bg-black/45 p-0 text-white/80 shadow-none hover:bg-black/60"
+            ? "size-6 rounded-[4px] border-media-foreground/10 bg-media/45 p-0 text-media-foreground/80 shadow-none hover:bg-media/60"
             : "h-7 gap-1 rounded-[8px] px-2 text-xs",
           className,
         )}
@@ -442,7 +442,7 @@ function CharacterAssetHistoryButton({
                         <LightboxImage
                           src={resolveMediaUrl(entry.url) ?? ""}
                           alt={entry.filename}
-                          className="aspect-square w-full rounded-[6px] bg-black/10"
+                          className="aspect-square w-full rounded-[6px] bg-media/10"
                           fit="contain"
                         />
                         <div className="mt-2 min-w-0 space-y-1">
@@ -813,7 +813,7 @@ function CharacterHeaderRow({
             className={cn(
               "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold",
               character.is_main
-                ? "border border-amber-500/40 bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                ? "border border-warning/40 bg-warning/15 text-warning"
                 : "border border-border bg-muted text-muted-foreground",
             )}
           >
@@ -1011,7 +1011,7 @@ function PortraitBlock({
         </p>
       )}
       {attemptCount >= ATTEMPT_WARN_THRESHOLD && (
-        <div className="flex w-full items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2.5 text-xs text-amber-700 dark:text-amber-300">
+        <div className="flex w-full items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-2.5 text-xs text-warning">
           <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
           <span>{t("characters.portrait.attemptsWarning")}</span>
         </div>
@@ -1574,7 +1574,7 @@ function IdentityCard({
             {identity.identity_id}
           </code>
           {isAgeVariant && (
-            <span className="inline-flex items-center rounded-[6px] border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-xs text-amber-700 dark:text-amber-300">
+            <span className="inline-flex items-center rounded-[6px] border border-warning/30 bg-warning/10 px-1.5 py-0.5 text-xs text-warning">
               {(() => {
                 const lk = labelKeyFor(AGE_GROUP_OPTIONS, identityAge);
                 return lk ? t(lk) : identityAge;
@@ -1583,7 +1583,7 @@ function IdentityCard({
             </span>
           )}
           {roleLabel && !isAgeVariant && (
-            <span className="inline-flex items-center rounded-[6px] border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-xs text-amber-700 dark:text-amber-300">
+            <span className="inline-flex items-center rounded-[6px] border border-warning/30 bg-warning/10 px-1.5 py-0.5 text-xs text-warning">
               {roleLabel}
             </span>
           )}
@@ -1669,7 +1669,7 @@ function IdentityCard({
               onClick={(e) => { e.stopPropagation(); setDeleteImageOpen(true); }}
               disabled={deleteIdentityImage.isPending}
               aria-label={t("characters.identities.deleteImage")}
-              className="absolute right-1.5 top-1.5 z-20 size-6 rounded-[4px] bg-black/50 p-0 text-white/70 hover:bg-destructive/30 hover:text-destructive backdrop-blur-sm"
+              className="absolute right-1.5 top-1.5 z-20 size-6 rounded-[4px] bg-media/50 p-0 text-media-foreground/70 backdrop-blur-sm hover:bg-destructive/30 hover:text-destructive"
             >
               {deleteIdentityImage.isPending ? (
                 <Loader2 className="size-3 animate-spin" />
@@ -1790,7 +1790,7 @@ function IdentityCard({
                     onClick={(e) => { e.stopPropagation(); handleDeleteCostume(); }}
                     disabled={deleteCostume.isPending || uploadCostume.isPending}
                     aria-label={t("characters.identities.deleteCostume")}
-                    className="absolute right-1 top-1 z-20 size-5 rounded-[4px] bg-black/50 p-0 text-white/70 hover:bg-destructive/30 hover:text-destructive backdrop-blur-sm"
+                    className="absolute right-1 top-1 z-20 size-5 rounded-[4px] bg-media/50 p-0 text-media-foreground/70 backdrop-blur-sm hover:bg-destructive/30 hover:text-destructive"
                   >
                     {deleteCostume.isPending ? (
                       <Loader2 className="size-2.5 animate-spin" />
@@ -2118,9 +2118,9 @@ function IdentityCard({
             imageAttempts >= 5
               ? "text-destructive"
               : imageAttempts >= 3
-                ? "text-amber-600 dark:text-amber-400"
+                ? "text-warning"
                 : imageAttempts === 2
-                  ? "text-amber-700 dark:text-amber-300"
+                  ? "text-warning"
                   : imageAttempts === 1
                     ? "text-muted-foreground"
                     : "text-muted-foreground",

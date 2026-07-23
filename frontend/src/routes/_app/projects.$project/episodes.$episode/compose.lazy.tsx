@@ -466,7 +466,7 @@ function ComposeTabContent() {
           {!beatsEmpty && !resultUrl && !isComposing && (
             <div className="flex flex-col gap-5 pb-2 pt-1 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
               <div className="min-w-0 space-y-1.5">
-                <h2 className="text-base font-semibold text-amber-700 dark:text-amber-300">
+                <h2 className="text-base font-semibold text-warning">
                   {t("episode.compose.blockerCount", { count: counts.compose.missing.length })}
                 </h2>
                 <p className="text-xs text-muted-foreground">

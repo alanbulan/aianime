@@ -87,8 +87,8 @@ function BeatCardImpl({
         className={cn(
           "absolute left-1.5 top-1.5 z-20 rounded-[4px] border px-2 py-1 font-mono text-[11px] font-medium leading-none tabular-nums backdrop-blur-md",
           isSelected
-            ? "border-cyan-200/45 bg-black/55 text-cyan-100"
-            : "border-white/[0.10] bg-black/45 text-white/78",
+            ? "border-cyan-200/45 bg-media/55 text-cyan-100"
+            : "border-media-foreground/10 bg-media/45 text-media-foreground/80",
         )}
       >
         {t("episode.beat.badge", { n: displayNumber })}
@@ -137,8 +137,8 @@ function BeatCardImpl({
           className={cn(
             "flex size-5 items-center justify-center rounded-[5px] border backdrop-blur transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
             isChecked
-              ? "border-cyan-200/55 bg-black/55 text-cyan-100"
-              : "border-white/[0.16] bg-black/35 text-transparent hover:border-white/[0.30] hover:bg-black/50",
+              ? "border-cyan-200/55 bg-media/55 text-cyan-100"
+              : "border-media-foreground/15 bg-media/35 text-transparent hover:border-media-foreground/30 hover:bg-media/50",
           )}
           aria-label={isChecked ? t("episode.beat.deselect") : t("episode.beat.select")}
         >
@@ -164,7 +164,7 @@ function BeatCardImpl({
             {shouldShowSketchOverlay && (
               <div
                 className={cn(
-                  "absolute bottom-1.5 left-1.5 w-[32%] min-w-10 max-w-16 overflow-hidden rounded-[5px] border border-white/[0.16] bg-black/50 shadow-[0_10px_26px_rgba(0,0,0,0.48)] backdrop-blur",
+                  "absolute bottom-1.5 left-1.5 w-[32%] min-w-10 max-w-16 overflow-hidden rounded-[5px] border border-media-foreground/15 bg-media/50 shadow-xl backdrop-blur",
                   aspectRatio === "landscape" && "w-[24%]",
                 )}
               >
@@ -255,7 +255,7 @@ function BeatCardActionButton({
               onClick();
             }}
             disabled={disabled}
-            className="flex size-6 items-center justify-center rounded-[6px] border border-white/[0.18] bg-black/60 text-[12px] font-medium leading-none text-white/82 shadow-[0_8px_18px_rgba(0,0,0,0.32)] backdrop-blur transition-colors duration-100 hover:border-cyan-200/45 hover:bg-black/72 hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 disabled:cursor-wait disabled:opacity-65 [&_svg]:size-3"
+            className="flex size-6 items-center justify-center rounded-[6px] border border-media-foreground/20 bg-media/60 text-[12px] font-medium leading-none text-media-foreground/80 shadow-lg backdrop-blur transition-colors duration-100 hover:border-cyan-200/45 hover:bg-media/75 hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 disabled:cursor-wait disabled:opacity-65 [&_svg]:size-3"
             aria-label={ariaLabel ?? tooltip}
           />
         }
@@ -291,7 +291,7 @@ function ImageSlot({
   return (
     <div
       className={cn(
-        "relative overflow-hidden bg-black/35",
+        "relative overflow-hidden bg-media/35",
         aspectRatio === "portrait"
           ? "aspect-[2/3]"
           : "aspect-video",

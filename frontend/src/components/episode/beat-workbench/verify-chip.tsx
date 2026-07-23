@@ -93,7 +93,7 @@ export function VerifyChip({
       : state === "failed"
         ? "border-destructive/40 bg-destructive/10 text-destructive"
         : state === "running"
-          ? "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+          ? "border-warning/40 bg-warning/10 text-warning"
           : "border-border bg-muted text-muted-foreground";
   const Icon =
     state === "passed"
@@ -141,7 +141,7 @@ export function VerifyChip({
                       <span
                         className={cn(
                           "text-xs",
-                          c.passed ? "text-primary" : "text-amber-600 dark:text-amber-400",
+                          c.passed ? "text-success" : "text-warning",
                         )}
                       >
                         {c.passed ? t("episode.workbench.verify.charPassed") : t("episode.workbench.verify.charFailed")}

@@ -470,10 +470,10 @@ export function SketchPoseEditorDialog({
                   {t("common.save", "Save")}
                 </Button>
               </div>
-              <div className="min-h-0 flex-1 overflow-hidden bg-black/10 p-4">
+              <div className="min-h-0 flex-1 overflow-hidden bg-media/10 p-4">
                 <div
                   ref={stageRef}
-                  className="flex h-full w-full items-center justify-center rounded-lg bg-black/20 ring-1 ring-border"
+                  className="flex h-full w-full items-center justify-center rounded-lg bg-media/20 ring-1 ring-border"
                   style={{
                     backgroundImage:
                       "radial-gradient(circle, rgba(148,163,184,0.12) 1px, transparent 1px)",
@@ -484,7 +484,7 @@ export function SketchPoseEditorDialog({
                   ref={canvasRef}
                   width={data.width}
                   height={data.height}
-                  className="max-h-full max-w-full rounded-md border border-border bg-background shadow-xl shadow-black/30"
+                  className="max-h-full max-w-full rounded-md border border-border bg-background shadow-xl"
                   style={{
                     width: displaySize?.w,
                     height: displaySize?.h,

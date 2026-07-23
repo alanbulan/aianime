@@ -685,7 +685,7 @@ export function TextPane({ beat, project, episode, spineTemplate = "drama" }: Te
               removedLabel={t("common.removed")}
             />
             {!hasIdentityDetectionState ? (
-              <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+              <p className="mt-1 text-xs text-warning">
                 {t("episode.workbench.text.identityDetectionRequired")}
               </p>
             ) : null}

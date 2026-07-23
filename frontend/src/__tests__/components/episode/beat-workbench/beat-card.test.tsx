@@ -62,8 +62,8 @@ describe("BeatCard", () => {
 
     const selectButton = screen.getByRole("button", { name: "选择 Beat" });
     expect(selectButton.className).toContain("text-transparent");
-    expect(selectButton.className).toContain("hover:border-white/[0.30]");
-    expect(selectButton.className).toContain("hover:bg-black/50");
+    expect(selectButton.className).toContain("hover:border-media-foreground/30");
+    expect(selectButton.className).toContain("hover:bg-media/50");
     expect(selectButton.className).not.toContain("hover:text-primary");
   });
 

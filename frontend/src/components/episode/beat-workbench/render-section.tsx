@@ -422,22 +422,22 @@ export function RenderSection({
             )}
             {renderActive && (
               <div
-                className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-[10px] bg-black/55 backdrop-blur-[1px]"
+                className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-[10px] bg-media/55 backdrop-blur-[1px]"
                 role="progressbar"
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={renderPercent}
               >
-                <Loader2 aria-hidden className="size-5 animate-spin text-white/90" />
-                <div className="flex items-baseline leading-none text-white">
+                <Loader2 aria-hidden className="size-5 animate-spin text-media-foreground/90" />
+                <div className="flex items-baseline leading-none text-media-foreground">
                   <span className="text-2xl font-semibold tabular-nums tracking-tight">
                     {renderPercent}
                   </span>
-                  <span className="ml-0.5 text-xs font-medium text-white/70">%</span>
+                  <span className="ml-0.5 text-xs font-medium text-media-foreground/70">%</span>
                 </div>
-                <div className="h-1 w-24 overflow-hidden rounded-full bg-white/20">
+                <div className="h-1 w-24 overflow-hidden rounded-full bg-media-foreground/20">
                   <div
-                    className="h-full rounded-full bg-white/85 transition-[width] duration-300 ease-out"
+                    className="h-full rounded-full bg-media-foreground/85 transition-[width] duration-300 ease-out"
                     style={{ width: `${renderPercent}%` }}
                   />
                 </div>
@@ -674,7 +674,7 @@ function RenderRelightBadge({
         title="Relight：按 beat 时间重新打光，不改变场景结构。"
         className={cn(
           RELIGHT_BADGE_CLASS,
-          "border-amber-500/35 bg-amber-500/10 text-amber-800 dark:text-amber-200",
+          "border-warning/35 bg-warning/10 text-warning",
         )}
       >
         <SunMedium className="size-3.5" />
@@ -687,7 +687,7 @@ function RenderRelightBadge({
       title="锁图光：使用场景图自带光线，不重新打光。"
       className={cn(
         RELIGHT_BADGE_CLASS,
-        "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+        "border-success/30 bg-success/10 text-success",
       )}
     >
       <Lock className="size-3.5" />
@@ -992,26 +992,26 @@ function RenderBackgroundReferencePanel({
       <Dialog open={cropTarget !== null} onOpenChange={(open) => !open && closeCropDialog()}>
         <DialogContent
           showCloseButton={false}
-          className="gap-0 overflow-hidden rounded-none border-0 bg-black p-0 text-white ring-white/10 sm:max-w-[min(96vw,1120px)]"
+          className="gap-0 overflow-hidden rounded-none border-0 bg-media p-0 text-media-foreground ring-media-foreground/10 sm:max-w-[min(96vw,1120px)]"
         >
-          <div className="relative flex h-12 items-center border-b border-white/10 px-4">
-            <div className="flex items-center gap-2 text-sm font-medium text-white">
+          <div className="relative flex h-12 items-center border-b border-media-foreground/10 px-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-media-foreground">
               <Crop className="size-4" />
               {`裁剪 ${cropAspectLabel}`}
             </div>
-            <DialogTitle className="absolute left-1/2 max-w-[52vw] -translate-x-1/2 truncate text-center text-sm font-medium text-white">
+            <DialogTitle className="absolute left-1/2 max-w-[52vw] -translate-x-1/2 truncate text-center text-sm font-medium text-media-foreground">
               {cropTitle}
             </DialogTitle>
             <button
               type="button"
               aria-label="关闭"
-              className="absolute right-4 flex size-7 items-center justify-center text-white/90 hover:text-white"
+              className="absolute right-4 flex size-7 items-center justify-center text-media-foreground/90 hover:text-media-foreground"
               onClick={closeCropDialog}
             >
               <X className="size-5" />
             </button>
           </div>
-          <div className="relative flex min-h-[360px] items-center justify-center bg-black p-4">
+          <div className="relative flex min-h-[360px] items-center justify-center bg-media p-4">
             {cropTargetSrc ? (
               <div className="relative inline-block max-h-[72vh] max-w-full">
                 <img
@@ -1063,10 +1063,10 @@ function RenderBackgroundReferencePanel({
                       cropDragRef.current = null;
                     }}
                   >
-                    <div className="pointer-events-none absolute inset-y-0 left-1/3 border-l border-white/30" />
-                    <div className="pointer-events-none absolute inset-y-0 left-2/3 border-l border-white/30" />
-                    <div className="pointer-events-none absolute inset-x-0 top-1/3 border-t border-white/30" />
-                    <div className="pointer-events-none absolute inset-x-0 top-2/3 border-t border-white/30" />
+                    <div className="pointer-events-none absolute inset-y-0 left-1/3 border-l border-media-foreground/30" />
+                    <div className="pointer-events-none absolute inset-y-0 left-2/3 border-l border-media-foreground/30" />
+                    <div className="pointer-events-none absolute inset-x-0 top-1/3 border-t border-media-foreground/30" />
+                    <div className="pointer-events-none absolute inset-x-0 top-2/3 border-t border-media-foreground/30" />
                   </div>
                 ) : null}
               </div>
@@ -1076,7 +1076,7 @@ function RenderBackgroundReferencePanel({
               </div>
             )}
           </div>
-          <div className="flex justify-end gap-2 border-t border-white/10 bg-black px-4 py-3">
+          <div className="flex justify-end gap-2 border-t border-media-foreground/10 bg-media px-4 py-3">
             <Button type="button" variant="outline" onClick={closeCropDialog}>
               {t("common.cancel")}
             </Button>
