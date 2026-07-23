@@ -41,6 +41,24 @@ class BeatVideoPromptTask:
 
 
 @dataclass(frozen=True)
+class EpisodePlanningTask:
+    target_episodes: int
+    planning_mode: str
+    output_dir: str | Path
+    state_dir: str | Path
+
+    def backend_payload(self) -> dict[str, Any]:
+        return {
+            "config": {
+                "target_episodes": self.target_episodes,
+                "planning_mode": self.planning_mode,
+            },
+            "output_dir": str(self.output_dir),
+            "state_dir": str(self.state_dir),
+        }
+
+
+@dataclass(frozen=True)
 class TaskQueueReceipt:
     task_id: str
     task_key: str

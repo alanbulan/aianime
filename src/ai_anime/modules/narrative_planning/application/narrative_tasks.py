@@ -9,6 +9,7 @@ from ai_anime.modules.narrative_planning.application.ports import (
 )
 from ai_anime.modules.narrative_planning.application.task_dto import (
     BeatVideoPromptTask,
+    EpisodePlanningTask,
     ScheduledNarrativeTask,
     ScriptGenerationTask,
 )
@@ -24,6 +25,38 @@ class IdentityPlanRequired(ValueError):
 
 class ProjectContextRequired(ValueError):
     pass
+
+
+class ScheduleEpisodePlanning:
+    def __init__(self, task_scheduler: NarrativeTaskScheduler) -> None:
+        self._task_scheduler = task_scheduler
+
+    async def execute(
+        self,
+        *,
+        task_context: ProjectContext | None,
+        target_episodes: int,
+        planning_mode: str,
+        output_dir: str | Path,
+        state_dir: str | Path,
+    ) -> ScheduledNarrativeTask:
+        if task_context is None:
+            raise ProjectContextRequired("分集规划需要 project context")
+
+        receipt = await self._task_scheduler.enqueue_episode_planning(
+            task_context,
+            EpisodePlanningTask(
+                target_episodes=target_episodes,
+                planning_mode=planning_mode,
+                output_dir=output_dir,
+                state_dir=state_dir,
+            ),
+        )
+        return ScheduledNarrativeTask.from_receipt(
+            receipt,
+            task_type="build_episodes",
+            message=f"分集规划任务已进入队列 (目标 {target_episodes} 集)",
+        )
 
 
 class StartScriptGeneration:

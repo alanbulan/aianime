@@ -5,6 +5,7 @@ from typing import Any, Protocol
 
 from ai_anime.modules.narrative_planning.application.task_dto import (
     BeatVideoPromptTask,
+    EpisodePlanningTask,
     ScriptGenerationTask,
     TaskQueueReceipt,
 )
@@ -115,6 +116,12 @@ class SketchWorkspace(Protocol):
 
 
 class NarrativeTaskScheduler(Protocol):
+    async def enqueue_episode_planning(
+        self,
+        task_context: ProjectContext,
+        task: EpisodePlanningTask,
+    ) -> TaskQueueReceipt: ...
+
     async def enqueue_script_generation(
         self,
         task_context: ProjectContext,

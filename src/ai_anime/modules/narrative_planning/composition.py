@@ -16,6 +16,7 @@ from ai_anime.modules.narrative_planning.application.literal_script_writing impo
 )
 from ai_anime.modules.narrative_planning.application.narrative_tasks import (
     ScheduleBeatVideoPrompt,
+    ScheduleEpisodePlanning,
     StartScriptGeneration,
 )
 from ai_anime.modules.narrative_planning.application.script_documents import (
@@ -79,6 +80,10 @@ def start_script_generation() -> StartScriptGeneration:
 
 def schedule_beat_video_prompt() -> ScheduleBeatVideoPrompt:
     return ScheduleBeatVideoPrompt(narrative_task_scheduler())
+
+
+def schedule_episode_planning() -> ScheduleEpisodePlanning:
+    return ScheduleEpisodePlanning(narrative_task_scheduler())
 
 
 def generate_seedance_prompt() -> GenerateSeedancePrompt:

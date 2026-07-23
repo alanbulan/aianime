@@ -7,6 +7,7 @@ import pytest
 from ai_anime.modules.narrative_planning.application.narrative_tasks import (
     IdentityPlanRequired,
     ProjectContextRequired,
+    ScheduleEpisodePlanning,
     StartScriptGeneration,
 )
 from ai_anime.modules.narrative_planning.application.task_dto import (
@@ -39,6 +40,15 @@ class _Scheduler:
         return TaskQueueReceipt(
             task_id="task-1",
             task_key="task:script_writer:1",
+            backend="inline",
+            queue="inline",
+        )
+
+    async def enqueue_episode_planning(self, task_context, task):
+        self.task = task
+        return TaskQueueReceipt(
+            task_id="task-episodes",
+            task_key="task:build_episodes:0",
             backend="inline",
             queue="inline",
         )
@@ -110,3 +120,27 @@ async def test_schedules_script_generation_with_owned_payload() -> None:
         "queue": "inline",
         "message": "第 2 集剧本生成任务已进入队列",
     }
+
+
+@pytest.mark.asyncio
+async def test_schedules_episode_planning_with_owned_payload() -> None:
+    scheduler = _Scheduler()
+    service = ScheduleEpisodePlanning(scheduler)
+
+    scheduled = await service.execute(
+        task_context=SimpleNamespace(project_id="project-1"),
+        target_episodes=12,
+        planning_mode="chapters",
+        output_dir="output",
+        state_dir="state",
+    )
+
+    assert scheduler.task.backend_payload() == {
+        "config": {
+            "target_episodes": 12,
+            "planning_mode": "chapters",
+        },
+        "output_dir": "output",
+        "state_dir": "state",
+    }
+    assert scheduled.as_dict()["task_type"] == "build_episodes"

@@ -5,6 +5,7 @@ from typing import Any
 
 from ai_anime.modules.narrative_planning.application.task_dto import (
     BeatVideoPromptTask,
+    EpisodePlanningTask,
     ScriptGenerationTask,
     TaskQueueReceipt,
 )
@@ -15,6 +16,29 @@ from ai_anime.task_identity import project_task_state_key
 class TaskBackendScheduler:
     def __init__(self, task_backend_provider: Callable[[], Any]) -> None:
         self._task_backend_provider = task_backend_provider
+
+    async def enqueue_episode_planning(
+        self,
+        task_context: ProjectContext,
+        task: EpisodePlanningTask,
+    ) -> TaskQueueReceipt:
+        queued = await self._task_backend_provider().enqueue_project_task(
+            task_context,
+            task_type="build_episodes",
+            queue_kind="default",
+            episode=0,
+            payload=task.backend_payload(),
+        )
+        return TaskQueueReceipt(
+            task_id=str(queued.task_state.task_id),
+            task_key=project_task_state_key(
+                "build_episodes",
+                task_context.project_id,
+                0,
+            ),
+            backend=queued.backend,
+            queue=queued.queue,
+        )
 
     async def enqueue_script_generation(
         self,

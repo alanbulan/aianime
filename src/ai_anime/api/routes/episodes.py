@@ -16,10 +16,12 @@ from ai_anime.api.schemas import EpisodePlanRequest, EpisodeUpdate, InsertManual
 from ai_anime.ports import get_task_backend, get_usage_meter
 from ai_anime.modules.narrative_planning.public import (
     EpisodeNotFound,
+    ProjectContextRequired,
     episode_details_data,
     get_episode_details,
     list_episode_summaries,
     serialize_episode_items,
+    start_episode_planning,
     update_episode_metadata,
 )
 from ai_anime.modules.story_intake.public import build_chapter_preview
@@ -199,30 +201,17 @@ async def plan_episodes(project: str, body: EpisodePlanRequest, user: dict = Dep
     output_dir = resolved.output_dir
     state_dir = resolved.state_dir
 
-    config = {
-        "target_episodes": body.target_episodes,
-        "planning_mode": body.planning_mode,
-    }
-
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
+    try:
+        scheduled = await start_episode_planning(
             ctx,
-            task_type="build_episodes",
-            queue_kind="default",
-            episode=0,
-            payload={"config": config, "output_dir": output_dir, "state_dir": state_dir},
+            target_episodes=body.target_episodes,
+            planning_mode=body.planning_mode,
+            output_dir=output_dir,
+            state_dir=state_dir,
         )
-        return {
-            "ok": True,
-            "task_type": "build_episodes",
-            "task_id": queued.task_state.task_id,
-            "task_key": project_task_state_key("build_episodes", ctx.project_id, 0),
-            "backend": queued.backend,
-            "queue": queued.queue,
-            "message": f"分集规划任务已进入队列 (目标 {body.target_episodes} 集)",
-        }
-
-    return {"ok": False, "error": "分集规划需要 project context"}
+    except ProjectContextRequired as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, **scheduled.as_dict()}
 
 
 @router.get("/projects/{project}/episodes/{episode_num}")

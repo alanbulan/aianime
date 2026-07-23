@@ -58,6 +58,7 @@ from ai_anime.modules.narrative_planning.composition import (
     episode_content_service,
     generate_seedance_prompt,
     schedule_beat_video_prompt,
+    schedule_episode_planning,
     script_document_service,
     start_script_generation,
 )
@@ -189,6 +190,23 @@ async def start_episode_script_generation(
     )
 
 
+async def start_episode_planning(
+    task_context: ProjectContext | None,
+    *,
+    target_episodes: int,
+    planning_mode: str,
+    output_dir: str | Path,
+    state_dir: str | Path,
+) -> ScheduledNarrativeTask:
+    return await schedule_episode_planning().execute(
+        task_context=task_context,
+        target_episodes=target_episodes,
+        planning_mode=planning_mode,
+        output_dir=output_dir,
+        state_dir=state_dir,
+    )
+
+
 async def enqueue_beat_video_prompt_generation(
     task_context: ProjectContext,
     *,
@@ -293,6 +311,7 @@ __all__ = [
     "save_raw_episode_content",
     "serialize_episode_items",
     "start_episode_script_generation",
+    "start_episode_planning",
     "split_literal_source_text",
     "update_episode_script_beat",
     "update_episode_metadata",
