@@ -59,7 +59,7 @@ from ai_anime.models import (
     real_detected_identities,
 )
 from ai_anime.modules.narrative_planning.public import beat_order_value
-from ai_anime.services.style_service import StyleService
+from ai_anime.modules.asset_world.public import StyleService
 from ai_anime.utils.asset_resolver import AssetResolver
 from ai_anime.image_request_usage import (
     infer_episode_from_path,

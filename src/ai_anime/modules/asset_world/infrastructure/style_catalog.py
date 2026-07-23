@@ -1,11 +1,11 @@
-"""风格配置管理服务 - Single Source of Truth.
+"""本地风格目录适配器 - Single Source of Truth.
 
 架构：
 - 系统预设（文件，只读）：src/ai_anime/styles/presets/*.json
 - 自定义风格（项目配置文件）：project_config.json
 
 使用方式：
-    from ai_anime.services import StyleService
+    from ai_anime.modules.asset_world.public import StyleService
 
     # 获取风格配置
     style = StyleService.get_style("chinese_period_drama", username="alice", project="demo")
@@ -40,7 +40,7 @@ class StyleService:
     """
 
     # 预设文件目录
-    PRESETS_DIR = Path(__file__).parent.parent / "styles" / "presets"
+    PRESETS_DIR = Path(__file__).resolve().parents[3] / "styles" / "presets"
 
     # 预设风格缓存（避免重复读取文件）
     _preset_cache: dict[str, StyleConfig] = {}

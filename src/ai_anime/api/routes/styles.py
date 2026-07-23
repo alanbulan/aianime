@@ -29,7 +29,7 @@ async def list_styles(
     user: dict = Depends(get_api_user),
 ):
     """列出所有风格（预设 + 自定义）。"""
-    from ai_anime.services.style_service import StyleService
+    from ai_anime.modules.asset_world.public import StyleService
 
     username = user["username"]
     project_name = project
@@ -54,7 +54,7 @@ async def get_style(
     user: dict = Depends(get_api_user),
 ):
     """获取风格详情。"""
-    from ai_anime.services.style_service import StyleService
+    from ai_anime.modules.asset_world.public import StyleService
 
     username = user["username"]
     project_name = project
@@ -79,7 +79,7 @@ async def get_style_preview(
     user: dict = Depends(get_api_user),
 ):
     """返回预设风格的参考预览图。"""
-    from ai_anime.services.style_service import StyleService
+    from ai_anime.modules.asset_world.public import StyleService
 
     username = user["username"]
     project_name = project
@@ -117,7 +117,7 @@ async def get_style_preview(
 @router.post("/styles")
 async def create_style(body: dict, user: dict = Depends(get_api_user)):
     """创建自定义风格。"""
-    from ai_anime.services.style_service import StyleService
+    from ai_anime.modules.asset_world.public import StyleService
     from ai_anime.models import StyleConfig
 
     style_id = body.get("id")
@@ -172,7 +172,7 @@ async def delete_style(
     user: dict = Depends(get_api_user),
 ):
     """删除自定义风格。"""
-    from ai_anime.services.style_service import StyleService
+    from ai_anime.modules.asset_world.public import StyleService
 
     # 不允许删除预设
     if StyleService.get_preset(style_id):
@@ -197,7 +197,7 @@ async def preview_style(
     style_id: str, body: StylePreviewRequest, user: dict = Depends(get_api_user)
 ):
     """使用指定风格生成预览图。"""
-    from ai_anime.services.style_service import StyleService
+    from ai_anime.modules.asset_world.public import StyleService
 
     username = user["username"]
     project_name = body.project
@@ -253,7 +253,7 @@ async def analyze_style(
 ):
     """上传参考图片，AI 分析并提取风格参数。"""
     resolved = await resolve_project_scope(project, user, required_role="editor")
-    from ai_anime.services.style_service import StyleService
+    from ai_anime.modules.asset_world.public import StyleService
     from ai_anime.generators.style_analyzer import StyleAnalyzer
     from ai_anime.ports import get_usage_meter
 
@@ -312,7 +312,7 @@ async def upload_style_preview(
 ):
     """立即保存自定义风格参考图，不等待 AI 风格分析。"""
     resolved = await resolve_project_scope(project, user, required_role="editor")
-    from ai_anime.services.style_service import StyleService
+    from ai_anime.modules.asset_world.public import StyleService
 
     content = await file.read()
     if not content:

@@ -174,7 +174,7 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api import auth as api_auth
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.routes import characters, generation, projects, props, styles
-    from ai_anime.services.style_service import StyleService
+    from ai_anime.modules.asset_world.public import StyleService
 
     store = _M04Store()
     project_dir = tmp_path / "output" / "alice" / _PROJECT

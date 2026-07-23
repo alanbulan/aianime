@@ -117,7 +117,7 @@ def _available_style_labels_for_config(
     project: str | None = None,
     use_project_loader: bool,
 ) -> dict[str, str]:
-    from ai_anime.services.style_service import StyleService
+    from ai_anime.modules.asset_world.public import StyleService
 
     if use_project_loader:
         return StyleService.get_style_labels(username=username, project=project)

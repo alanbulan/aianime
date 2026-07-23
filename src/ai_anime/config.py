@@ -610,7 +610,7 @@ def get_style_preset(
     """
     style = style or IMAGE_DEFAULT_STYLE
 
-    from ai_anime.services.style_service import StyleService
+    from ai_anime.modules.asset_world.public import StyleService
 
     config = StyleService.get_style(
         style,
@@ -647,7 +647,7 @@ def get_style_labels() -> dict[str, str]:
     Returns:
         {style_id: label} 字典
     """
-    from ai_anime.services.style_service import StyleService
+    from ai_anime.modules.asset_world.public import StyleService
 
     return StyleService.get_style_labels()
 
@@ -658,14 +658,14 @@ def list_available_styles() -> list[dict]:
     Returns:
         风格列表，每项包含 {id, name, label, type}
     """
-    from ai_anime.services.style_service import StyleService
+    from ai_anime.modules.asset_world.public import StyleService
 
     return StyleService.list_all_styles()
 
 
 def get_image_config() -> dict:
     """获取图像生成配置。"""
-    from ai_anime.services.style_service import StyleService
+    from ai_anime.modules.asset_world.public import StyleService
 
     all_styles = StyleService.list_all_styles()
     style_presets = {s["id"]: StyleService.get_legacy_style_preset(s["id"]) for s in all_styles}

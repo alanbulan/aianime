@@ -261,6 +261,25 @@ def test_narrative_planning_callers_use_the_public_api() -> None:
     assert not failures, "\n".join(failures)
 
 
+def test_asset_world_callers_use_the_public_api() -> None:
+    asset_world_module = PACKAGE_ROOT / "modules" / "asset_world"
+    failures: list[str] = []
+
+    for path in _python_files(PACKAGE_ROOT):
+        if path.is_relative_to(asset_world_module):
+            continue
+        relative = _relative(path)
+        for imported in _imports(path):
+            if not imported.startswith("ai_anime.modules.asset_world."):
+                continue
+            if imported == "ai_anime.modules.asset_world.public":
+                continue
+            failures.append(f"{relative}: {imported}")
+
+    assert not (PACKAGE_ROOT / "services" / "style_service.py").exists()
+    assert not failures, "\n".join(failures)
+
+
 def test_narrative_script_route_remains_an_http_adapter() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "scripts.py"
     imported_modules = _imports(route)

@@ -27,7 +27,7 @@ from pypinyin import pinyin, Style
 
 from ai_anime.config import get_style_preset, IMAGE_DEFAULT_STYLE
 from ai_anime.models import beat_scene_id, real_detected_identities, real_detected_props
-from ai_anime.services.style_service import StyleService
+from ai_anime.modules.asset_world.public import StyleService
 
 
 StyleRef: TypeAlias = "StyleConfig | str | None"

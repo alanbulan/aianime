@@ -1,0 +1,1 @@
+"""Asset & World bounded context."""

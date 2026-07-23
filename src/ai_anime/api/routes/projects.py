@@ -386,7 +386,7 @@ async def update_project(
 
     # 校验 visual_style 合法性
     if body.visual_style is not None:
-        from ai_anime.services.style_service import StyleService
+        from ai_anime.modules.asset_world.public import StyleService
 
         valid = StyleService.get_style_labels(
             username=ctx.owner_username, project=ctx.project_name

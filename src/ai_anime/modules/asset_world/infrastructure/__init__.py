@@ -1,0 +1,1 @@
+"""Asset & World infrastructure adapters."""

@@ -34,7 +34,7 @@ from ai_anime.image_request_usage import (
     record_image_request,
     update_image_request_status,
 )
-from ai_anime.services.style_service import StyleService
+from ai_anime.modules.asset_world.public import StyleService
 from ai_anime.generators.nanobanana_grid import (
     _InlineImagePart,
     _call_huimeng_image_api,

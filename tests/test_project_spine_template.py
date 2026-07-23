@@ -31,15 +31,16 @@ def test_project_config_defaults_to_drama(tmp_path, monkeypatch):
 
     import ai_anime.config as cfg
     import ai_anime.project_config as pc
-    import ai_anime.services.style_service as style_service
     import ai_anime.utils.project_paths as pp
 
     importlib.reload(cfg)
     importlib.reload(pp)
     importlib.reload(pc)
 
+    from ai_anime.modules.asset_world.public import StyleService
+
     monkeypatch.setattr(
-        style_service.StyleService,
+        StyleService,
         "get_style_labels",
         lambda username=None, project=None: {"chinese_period_drama": "古装"},
     )
