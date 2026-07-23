@@ -12,6 +12,9 @@ from ai_anime.modules.asset_world.application.character_catalog import (
 from ai_anime.modules.asset_world.application.character_identity import (
     CharacterIdentityUseCases,
 )
+from ai_anime.modules.asset_world.application.character_generation import (
+    CharacterGenerationUseCases,
+)
 from ai_anime.modules.asset_world.application.character_images import (
     CharacterImageUseCases,
 )
@@ -25,6 +28,7 @@ from ai_anime.modules.asset_world.application.character_voice import (
 )
 from ai_anime.modules.asset_world.application.dto import (
     AnalyzeStyleCommand,
+    CharacterGenerationOptions,
     CreateCharacterCommand,
     CreateIdentityCommand,
     CreateCustomStyleCommand,
@@ -115,6 +119,14 @@ def character_identity_use_cases() -> CharacterIdentityUseCases:
     return build()
 
 
+def character_generation_use_cases() -> CharacterGenerationUseCases:
+    from ai_anime.modules.asset_world.composition import (
+        character_generation_use_cases as build,
+    )
+
+    return build()
+
+
 def character_image_use_cases() -> CharacterImageUseCases:
     from ai_anime.modules.asset_world.composition import character_image_use_cases as build
 
@@ -167,6 +179,8 @@ __all__ = [
     "CharacterAssetHistoryUseCases",
     "CharacterCatalogRejected",
     "CharacterCatalogUseCases",
+    "CharacterGenerationOptions",
+    "CharacterGenerationUseCases",
     "CharacterIdentityNotFound",
     "CharacterIdentityUseCases",
     "CharacterImageUseCases",
@@ -200,6 +214,7 @@ __all__ = [
     "character_asset_history_use_cases",
     "character_asset_links",
     "character_catalog_use_cases",
+    "character_generation_use_cases",
     "character_identity_use_cases",
     "character_image_use_cases",
     "character_task_use_cases",

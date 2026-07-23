@@ -26,7 +26,7 @@ def _decoded_rgb(content: bytes) -> Image.Image:
     return Image.open(io.BytesIO(content)).convert("RGB")
 
 
-def _backup_with_seconds(path: Path) -> Path | None:
+def backup_character_asset_by_second(path: Path) -> Path | None:
     if not path.exists():
         return None
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
@@ -43,7 +43,7 @@ def _save_png(
 ) -> Path:
     target.parent.mkdir(parents=True, exist_ok=True)
     if backup == "seconds":
-        _backup_with_seconds(target)
+        backup_character_asset_by_second(target)
     elif backup == "microseconds":
         backup_character_asset(target)
     image.save(str(target), format="PNG")

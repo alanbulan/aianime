@@ -25,6 +25,10 @@ class CharacterProjectContextRequired(CharacterCatalogRejected):
     """A character task requires a resolved project context."""
 
 
+class CharacterImageGenerationRejected(CharacterCatalogRejected):
+    """A synchronous character image request cannot be completed."""
+
+
 class CharacterAssetHistoryRejected(CharacterCatalogRejected):
     """A character asset-history request is invalid."""
 

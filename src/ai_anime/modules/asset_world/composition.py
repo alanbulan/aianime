@@ -11,6 +11,9 @@ from ai_anime.modules.asset_world.application.character_catalog import (
 from ai_anime.modules.asset_world.application.character_identity import (
     CharacterIdentityUseCases,
 )
+from ai_anime.modules.asset_world.application.character_generation import (
+    CharacterGenerationUseCases,
+)
 from ai_anime.modules.asset_world.application.character_images import (
     CharacterImageUseCases,
 )
@@ -38,6 +41,9 @@ from ai_anime.modules.asset_world.infrastructure.character_asset_history import 
 from ai_anime.modules.asset_world.infrastructure.character_identity import (
     LocalCharacterIdentityAssets,
     PydanticCharacterIdentityFactory,
+)
+from ai_anime.modules.asset_world.infrastructure.character_generation import (
+    UnifiedSynchronousCharacterGeneration,
 )
 from ai_anime.modules.asset_world.infrastructure.character_image_storage import (
     LocalCharacterImageFiles,
@@ -73,6 +79,10 @@ def character_identity_use_cases() -> CharacterIdentityUseCases:
         PydanticCharacterIdentityFactory(),
         LocalCharacterIdentityAssets(),
     )
+
+
+def character_generation_use_cases() -> CharacterGenerationUseCases:
+    return CharacterGenerationUseCases(UnifiedSynchronousCharacterGeneration())
 
 
 def character_image_use_cases() -> CharacterImageUseCases:

@@ -4,11 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
 
-from ai_anime.modules.asset_world.application.errors import (
-    CharacterIdentityNotFound,
-    CharacterNotFound,
+from ai_anime.modules.asset_world.application.character_lookup import (
+    require_character,
+    require_character_identity,
 )
 from ai_anime.modules.asset_world.application.ports import (
     CharacterImageFiles,
@@ -35,7 +34,7 @@ class CharacterImageUseCases:
         upload: CharacterImageUpload,
         asset_url: AssetUrl,
     ) -> dict[str, str]:
-        self._character(repository, character_name)
+        require_character(repository, character_name)
         target = self._files.save_character_portrait(
             project_dir,
             character_name,
@@ -53,7 +52,7 @@ class CharacterImageUseCases:
         upload: CharacterImageUpload,
         asset_url: AssetUrl,
     ) -> dict[str, str]:
-        self._character(repository, character_name)
+        require_character(repository, character_name)
         target = self._files.save_identity_image(
             project_dir,
             character_name,
@@ -93,7 +92,11 @@ class CharacterImageUseCases:
         upload: CharacterImageUpload,
         asset_url: AssetUrl,
     ) -> dict[str, str]:
-        identity = self._identity(repository, character_name, identity_id)
+        identity = require_character_identity(
+            repository,
+            character_name,
+            identity_id,
+        )
         target = self._files.save_identity_costume(
             project_dir,
             character_name,
@@ -115,7 +118,11 @@ class CharacterImageUseCases:
         character_name: str,
         identity_id: str,
     ) -> dict[str, bool]:
-        identity = self._identity(repository, character_name, identity_id)
+        identity = require_character_identity(
+            repository,
+            character_name,
+            identity_id,
+        )
         deleted = self._files.delete_identity_costume(
             project_dir,
             character_name,
@@ -141,7 +148,11 @@ class CharacterImageUseCases:
         upload: CharacterImageUpload,
         asset_url: AssetUrl,
     ) -> dict[str, str]:
-        identity = self._identity(repository, character_name, identity_id)
+        identity = require_character_identity(
+            repository,
+            character_name,
+            identity_id,
+        )
         target = self._files.save_identity_portrait(
             project_dir,
             character_name,
@@ -163,32 +174,13 @@ class CharacterImageUseCases:
         character_name: str,
         identity_id: str,
     ) -> dict[str, int]:
-        identity = self._identity(repository, character_name, identity_id)
+        identity = require_character_identity(
+            repository,
+            character_name,
+            identity_id,
+        )
         return self._files.count_identity_attempts(
             project_dir,
             character_name,
             identity.identity_name,
         )
-
-    @staticmethod
-    def _character(
-        repository: CharacterImageRepository,
-        character_name: str,
-    ) -> Any:
-        character = repository.get_character(character_name)
-        if character is None:
-            raise CharacterNotFound(f"Character '{character_name}' not found")
-        return character
-
-    @classmethod
-    def _identity(
-        cls,
-        repository: CharacterImageRepository,
-        character_name: str,
-        identity_id: str,
-    ) -> Any:
-        character = cls._character(repository, character_name)
-        identity = find_character_identity(character, identity_id)
-        if identity is None:
-            raise CharacterIdentityNotFound(f"Identity '{identity_id}' not found")
-        return identity

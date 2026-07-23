@@ -418,6 +418,24 @@ def test_asset_world_character_task_routes_delegate_to_application() -> None:
         assert legacy_implementation not in source
 
 
+def test_asset_world_character_generation_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "characters.py"
+    source = route.read_text(encoding="utf-8")
+
+    assert "character_generation_use_cases" in source
+    for legacy_implementation in (
+        "generate_character_reference_unified",
+        "generate_identity_image_unified",
+        "compute_portrait_path",
+        "compute_identity_costume_path",
+        "compute_identity_portrait_path",
+        "shutil.copy",
+        "shutil.rmtree",
+        "re.sub",
+    ):
+        assert legacy_implementation not in source
+
+
 def test_asset_world_character_image_runner_is_an_adapter() -> None:
     runner = PACKAGE_ROOT / "task_backend" / "runners" / "character_image.py"
     source = runner.read_text(encoding="utf-8")

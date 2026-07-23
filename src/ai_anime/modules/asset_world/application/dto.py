@@ -156,6 +156,22 @@ class ScheduledAssetTask:
 
 
 @dataclass(frozen=True)
+class CharacterGenerationOptions:
+    style: str | None
+    ethnicity: str
+    model: str
+
+
+@dataclass(frozen=True)
+class IdentityGenerationAssets:
+    costume_image: str
+    identity_portrait: str
+    character_portrait: str
+    has_costume_image: bool
+    has_identity_portrait: bool
+
+
+@dataclass(frozen=True)
 class StyleScope:
     username: str
     project_name: str | None = None

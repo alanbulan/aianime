@@ -10,10 +10,12 @@ from ai_anime.modules.asset_world.application.dto import (
     BuildCharactersTask,
     CharacterAssetHistoryEntry,
     CharacterAssetTarget,
+    CharacterGenerationOptions,
     CharacterImageGenerationTask,
     CreateCharacterCommand,
     CreateIdentityCommand,
     IdentityAssetPaths,
+    IdentityGenerationAssets,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 
@@ -137,6 +139,67 @@ class CharacterTaskScheduler(Protocol):
         task_context: ProjectContext,
         task: CharacterImageGenerationTask,
     ) -> AssetTaskQueueReceipt: ...
+
+
+class CharacterGenerationRepository(Protocol):
+    def get_character(self, name: str) -> Any | None: ...
+
+    async def update_character_identity(
+        self,
+        character_name: str,
+        identity_id: str,
+        **updates: Any,
+    ) -> Any: ...
+
+
+class CharacterGenerationGateway(Protocol):
+    async def generate_character_portrait(
+        self,
+        *,
+        character: Any,
+        project_dir: Path,
+        output_dir: str | Path,
+        options: CharacterGenerationOptions,
+    ) -> Path | None: ...
+
+    async def generate_identity_portrait(
+        self,
+        *,
+        character: Any,
+        identity: Any,
+        project_dir: Path,
+        options: CharacterGenerationOptions,
+    ) -> Path | None: ...
+
+    def resolve_identity_assets(
+        self,
+        *,
+        character: Any,
+        identity: Any,
+        project_dir: Path,
+    ) -> IdentityGenerationAssets: ...
+
+    def prepare_identity_image_output(
+        self,
+        *,
+        character: Any,
+        identity: Any,
+        project_dir: Path,
+    ) -> Path: ...
+
+    async def generate_identity_image(
+        self,
+        *,
+        character: Any,
+        identity: Any,
+        project_dir: Path,
+        output_path: Path,
+        identity_prompt: str,
+        reference_image_path: str,
+        costume_image_path: str,
+        options: CharacterGenerationOptions,
+        usage_scope: str,
+    ) -> Any: ...
 
 
 class CharacterCatalogRepository(Protocol):

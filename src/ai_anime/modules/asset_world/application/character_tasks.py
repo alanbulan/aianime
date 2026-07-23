@@ -3,24 +3,19 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
+from ai_anime.modules.asset_world.application.character_lookup import (
+    require_character_identity,
+)
 from ai_anime.modules.asset_world.application.dto import (
     BuildCharactersTask,
     CharacterImageGenerationTask,
     ScheduledAssetTask,
 )
-from ai_anime.modules.asset_world.application.errors import (
-    CharacterIdentityNotFound,
-    CharacterNotFound,
-    CharacterProjectContextRequired,
-)
+from ai_anime.modules.asset_world.application.errors import CharacterProjectContextRequired
 from ai_anime.modules.asset_world.application.ports import (
     CharacterTaskRepository,
     CharacterTaskScheduler,
-)
-from ai_anime.modules.asset_world.domain.character_assets import (
-    find_character_identity,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 
@@ -88,7 +83,11 @@ class CharacterTaskUseCases:
         style: str,
         model: str,
     ) -> ScheduledAssetTask:
-        identity = self._identity(repository, character_name, identity_id)
+        identity = require_character_identity(
+            repository,
+            character_name,
+            identity_id,
+        )
         context = self._require_context(
             task_context,
             "身份 Portrait 生成需要 project context",
@@ -123,7 +122,11 @@ class CharacterTaskUseCases:
         style: str,
         model: str,
     ) -> ScheduledAssetTask:
-        identity = self._identity(repository, character_name, identity_id)
+        identity = require_character_identity(
+            repository,
+            character_name,
+            identity_id,
+        )
         context = self._require_context(
             task_context,
             "身份图生成需要 project context",
@@ -168,17 +171,3 @@ class CharacterTaskUseCases:
         if task_context is None:
             raise CharacterProjectContextRequired(message)
         return task_context
-
-    @staticmethod
-    def _identity(
-        repository: CharacterTaskRepository,
-        character_name: str,
-        identity_id: str,
-    ) -> Any:
-        character = repository.get_character(character_name)
-        if character is None:
-            raise CharacterNotFound(f"Character '{character_name}' not found")
-        identity = find_character_identity(character, identity_id)
-        if identity is None:
-            raise CharacterIdentityNotFound(f"Identity '{identity_id}' not found")
-        return identity
