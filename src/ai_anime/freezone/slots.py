@@ -15,7 +15,7 @@ from typing import Literal, Optional, Union
 from fastapi import HTTPException
 from pydantic import BaseModel
 
-from ai_anime.api.deps import make_sqlite_store
+from ai_anime.shared.infrastructure.project_stores import make_sqlite_store
 from ai_anime.freezone.paths import freezone_root
 from ai_anime.utils.path_resolver import (
     PathResolver,

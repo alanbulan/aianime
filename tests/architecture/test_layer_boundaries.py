@@ -13,13 +13,8 @@ COMPOSITION_ROOT_FILES = {"desktop_server.py"}
 # decrease during migration; any new file/module pair or count increase fails.
 LEGACY_REVERSE_API_IMPORT_MAX = {
     ("freezone/route_helpers.py", "ai_anime.api.schemas"): 1,
-    ("freezone/slots.py", "ai_anime.api.deps"): 1,
     ("freezone/text_node.py", "ai_anime.api.schemas"): 1,
-    ("task_backend/runners/freezone.py", "ai_anime.api.deps"): 18,
-    ("task_backend/runners/script.py", "ai_anime.api.deps"): 1,
     ("task_backend/runners/script.py", "ai_anime.api.routes.scripts"): 1,
-    ("task_backend/runners/stage_asset.py", "ai_anime.api.deps"): 2,
-    ("task_backend/runners/video.py", "ai_anime.api.deps"): 1,
     ("verification/routes.py", "ai_anime.api.auth"): 1,
     ("verification/routes.py", "ai_anime.api.deps"): 1,
 }

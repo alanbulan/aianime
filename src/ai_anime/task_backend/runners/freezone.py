@@ -117,7 +117,7 @@ def _history_model_mode_extra(payload: dict) -> dict:
 
 
 async def _run_freezone_gen_async(envelope: dict[str, Any], ctx: ProjectContext) -> dict[str, Any]:
-    from ai_anime.api.deps import make_static_url_for_context
+    from ai_anime.shared.project_media import make_static_url_for_context
     from ai_anime.freezone.jobs import ensure_freezone_dirs, run_freezone_gen
 
     payload = envelope.get("payload") or {}
@@ -170,7 +170,7 @@ async def _run_freezone_edit_async(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
-    from ai_anime.api.deps import make_static_url_for_context
+    from ai_anime.shared.project_media import make_static_url_for_context
     from ai_anime.freezone.jobs import ensure_freezone_dirs, run_freezone_edit
 
     payload = envelope.get("payload") or {}
@@ -224,7 +224,7 @@ async def _run_freezone_mask_edit_async(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
-    from ai_anime.api.deps import make_static_url_for_context
+    from ai_anime.shared.project_media import make_static_url_for_context
     from ai_anime.freezone.jobs import ensure_freezone_dirs, run_freezone_mask_edit
 
     payload = envelope.get("payload") or {}
@@ -257,7 +257,7 @@ async def _run_freezone_extract_async(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
-    from ai_anime.api.deps import make_static_url_for_context
+    from ai_anime.shared.project_media import make_static_url_for_context
     from ai_anime.freezone.jobs import ensure_freezone_dirs, run_freezone_extract_frames
 
     payload = envelope.get("payload") or {}
@@ -287,7 +287,7 @@ async def _run_freezone_analyze_async(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
-    from ai_anime.api.deps import make_static_url_for_context
+    from ai_anime.shared.project_media import make_static_url_for_context
     from ai_anime.freezone.jobs import ensure_freezone_dirs, run_freezone_analyze_shots
 
     payload = envelope.get("payload") or {}
@@ -325,7 +325,7 @@ async def _run_freezone_video_story_async(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
-    from ai_anime.api.deps import make_static_url_for_context
+    from ai_anime.shared.project_media import make_static_url_for_context
     from ai_anime.freezone.jobs import (
         ensure_freezone_dirs,
         run_freezone_analyze_shots,
@@ -404,7 +404,7 @@ async def _run_mainline_sketch_from_context_async(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
-    from ai_anime.api.deps import make_static_url_for_context
+    from ai_anime.shared.project_media import make_static_url_for_context
     from ai_anime.task_backend.runners.sketch import _run_sketch_generation_async
 
     payload = envelope.get("payload") or {}
@@ -450,7 +450,7 @@ async def _run_mainline_frame_from_context_async(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
-    from ai_anime.api.deps import make_static_url_for_context
+    from ai_anime.shared.project_media import make_static_url_for_context
     from ai_anime.task_backend.runners.render import _run_selected_regen_async
 
     payload = envelope.get("payload") or {}
@@ -504,7 +504,7 @@ async def _run_mainline_director_control_sketch_async(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
-    from ai_anime.api.deps import make_static_url_for_context
+    from ai_anime.shared.project_media import make_static_url_for_context
     from ai_anime.director_world.control_frame_to_sketch import convert_control_frame_to_sketch
     from ai_anime.freezone.paths import output_path_for_job
 
@@ -602,7 +602,7 @@ async def _run_freezone_video_erase_async(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
-    from ai_anime.api.deps import make_static_url_for_context
+    from ai_anime.shared.project_media import make_static_url_for_context
     from ai_anime.freezone.jobs import ensure_freezone_dirs, run_freezone_video_erase
 
     payload = envelope.get("payload") or {}
@@ -634,7 +634,7 @@ async def _run_freezone_video_upscale_async(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
-    from ai_anime.api.deps import make_static_url_for_context
+    from ai_anime.shared.project_media import make_static_url_for_context
     from ai_anime.freezone.jobs import ensure_freezone_dirs, run_freezone_video_upscale
 
     payload = envelope.get("payload") or {}
@@ -664,7 +664,7 @@ async def _run_freezone_audio_separate_async(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
-    from ai_anime.api.deps import make_static_url_for_context
+    from ai_anime.shared.project_media import make_static_url_for_context
     from ai_anime.freezone.jobs import ensure_freezone_dirs, run_freezone_audio_separate
 
     payload = envelope.get("payload") or {}
@@ -702,7 +702,7 @@ async def _run_freezone_video_compose_async(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
-    from ai_anime.api.deps import make_static_url_for_context
+    from ai_anime.shared.project_media import make_static_url_for_context
     from ai_anime.freezone.jobs import ensure_freezone_dirs, run_freezone_video_compose
 
     payload = envelope.get("payload") or {}
@@ -750,7 +750,7 @@ async def _run_freezone_text_translate_async(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
-    from ai_anime.api.deps import make_static_url_for_context
+    from ai_anime.shared.project_media import make_static_url_for_context
     from ai_anime.freezone.jobs import ensure_freezone_dirs
     from ai_anime.freezone.paths import outputs_dir
     from ai_anime.freezone.text_node import translate_freezone_text
@@ -804,7 +804,7 @@ async def _run_freezone_story_script_async(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
-    from ai_anime.api.deps import make_static_url_for_context
+    from ai_anime.shared.project_media import make_static_url_for_context
     from ai_anime.freezone.jobs import ensure_freezone_dirs
     from ai_anime.freezone.paths import outputs_dir
     from ai_anime.freezone.text_node import generate_freezone_story_script
@@ -854,7 +854,7 @@ async def _run_freezone_image_reverse_prompt_async(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
-    from ai_anime.api.deps import make_static_url_for_context
+    from ai_anime.shared.project_media import make_static_url_for_context
     from ai_anime.freezone.image_node import reverse_prompt_from_image
     from ai_anime.freezone.jobs import ensure_freezone_dirs
     from ai_anime.freezone.paths import outputs_dir
@@ -913,7 +913,8 @@ async def _run_freezone_audio_speech_async(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
-    from ai_anime.api.deps import make_sqlite_store_for_context, make_static_url_for_context
+    from ai_anime.shared.infrastructure.project_stores import make_sqlite_store_for_context
+    from ai_anime.shared.project_media import make_static_url_for_context
     from ai_anime.freezone.audio_node import generate_freezone_audio_speech
     from ai_anime.freezone.jobs import ensure_freezone_dirs
 
@@ -976,7 +977,7 @@ async def _run_freezone_audio_eleven_music_async(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
-    from ai_anime.api.deps import make_static_url_for_context
+    from ai_anime.shared.project_media import make_static_url_for_context
     from ai_anime.freezone.audio_node import generate_freezone_audio_eleven_music
     from ai_anime.freezone.jobs import ensure_freezone_dirs
 

@@ -19,8 +19,17 @@ from ai_anime.project_context import (
     require_project_home_node,
     resolve_project_context,
 )
+from ai_anime.shared.infrastructure.project_stores import (
+    make_cognee_store,
+    make_cognee_store_for_context,
+    make_sqlite_store,
+    make_sqlite_store_for_context,
+)
+from ai_anime.shared.project_media import (
+    make_project_static_url as make_project_static_url,
+    make_static_url_for_context as make_static_url_for_context,
+)
 from ai_anime.utils.project_paths import ProjectPaths
-from ai_anime.utils.static_urls import project_static_url
 
 if TYPE_CHECKING:
     from ai_anime.cognee import CogneeStore
@@ -149,65 +158,6 @@ def get_runtime_dir(username: str, project: str) -> str:
     return str(Path(RUNTIME_DIR) / username / project)
 
 
-async def make_cognee_store(username: str, project: str) -> "CogneeStore":
-    """按请求创建 CogneeStore 实例。
-
-    旧 API/任务路径仍直接 await 这个函数；FastAPI dependency 使用下面的
-    ``*_store_scope`` 包装，避免一次性改动所有调用点。
-    """
-    from ai_anime.cognee import CogneeStore
-
-    project_name = f"{username}/{project}"
-    output_dir = get_output_dir(username, project)
-    state_dir = get_state_dir(username, project)
-    store = CogneeStore(project_name, output_dir=output_dir, state_dir=state_dir)
-    await store.initialize()
-    return store
-
-
-async def make_sqlite_store(username: str, project: str) -> "SQLiteStore":
-    """按请求创建 SQLiteStore 实例。"""
-    from ai_anime.sqlite_store import SQLiteStore
-
-    project_name = f"{username}/{project}"
-    output_dir = get_output_dir(username, project)
-    state_dir = get_state_dir(username, project)
-    store = SQLiteStore(project_name, output_dir=output_dir, state_dir=state_dir)
-    await store.initialize()
-    await store.load_graph_state()
-    return store
-
-
-async def make_sqlite_store_for_context(ctx: ProjectContext) -> "SQLiteStore":
-    """Create a SQLiteStore from the resolved project owner/home paths."""
-    from ai_anime.sqlite_store import SQLiteStore
-
-    require_project_home_node(ctx, operation="open project SQLite store")
-    project_name = ctx.owner_project_label
-    store = SQLiteStore(
-        project_name,
-        output_dir=str(ctx.output_dir),
-        state_dir=str(ctx.state_dir),
-    )
-    await store.initialize()
-    await store.load_graph_state()
-    return store
-
-
-async def make_cognee_store_for_context(ctx: ProjectContext) -> "CogneeStore":
-    """Create a CogneeStore from the resolved project owner/home paths."""
-    from ai_anime.cognee import CogneeStore
-
-    require_project_home_node(ctx, operation="open project graph store")
-    store = CogneeStore(
-        ctx.owner_project_label,
-        output_dir=str(ctx.output_dir),
-        state_dir=str(ctx.state_dir),
-    )
-    await store.initialize()
-    return store
-
-
 async def _make_cognee_store_scope(username: str, project: str) -> AsyncIterator["CogneeStore"]:
     store = await make_cognee_store(username, project)
     try:
@@ -275,23 +225,3 @@ async def get_project_context_dependency(
     user: dict = Depends(get_api_user),
 ) -> ProjectContext:
     return await resolve_project_context(user=user, project_id=project_id)
-
-
-def make_project_static_url(
-    ctx: ProjectContext,
-    relative_path: str,
-    local_path: str | Path | None = None,
-) -> str:
-    """Build the canonical protected project static URL."""
-    resolved_local_path = (
-        local_path if local_path is not None else Path(ctx.output_dir) / relative_path
-    )
-    return project_static_url(ctx.project_id, relative_path, local_path=resolved_local_path)
-
-
-def make_static_url_for_context(
-    ctx: ProjectContext,
-    relative_path: str,
-    local_path: str | Path | None = None,
-) -> str:
-    return make_project_static_url(ctx, relative_path, local_path=local_path)

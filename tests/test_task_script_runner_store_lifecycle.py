@@ -56,7 +56,6 @@ def _ctx(tmp_path: Path) -> ProjectContext:
 
 @pytest.mark.asyncio
 async def test_beat_video_prompt_runner_closes_sqlite_store(monkeypatch, tmp_path):
-    from ai_anime.api import deps
     from ai_anime.api.routes import scripts
     from ai_anime.task_backend.runners import script as runner
 
@@ -69,7 +68,11 @@ async def test_beat_video_prompt_runner_closes_sqlite_store(monkeypatch, tmp_pat
         return {"field": "video_prompt", "prompt": "camera move"}
 
     monkeypatch.setattr(runner, "get_task_manager", lambda: _Manager())
-    monkeypatch.setattr(deps, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context)
+    monkeypatch.setattr(
+        runner,
+        "make_sqlite_store_for_context",
+        fake_make_sqlite_store_for_context,
+    )
     monkeypatch.setattr(
         scripts,
         "_generate_and_save_beat_video_prompt",

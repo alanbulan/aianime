@@ -758,7 +758,7 @@ register_project_task_runner("global_optimize_video", run_global_optimize_video)
 async def _run_freezone_video_gen_async(
     envelope: dict[str, Any], ctx: ProjectContext
 ) -> dict[str, Any]:
-    from ai_anime.api.deps import make_static_url_for_context
+    from ai_anime.shared.project_media import make_static_url_for_context
     from ai_anime.freezone.jobs import ensure_freezone_dirs, run_freezone_video_gen
 
     payload = envelope.get("payload") or {}

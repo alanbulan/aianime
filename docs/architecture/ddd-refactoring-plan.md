@@ -65,7 +65,7 @@ DDD 只用于有真实业务规则的区域。简单 CRUD 不会被强行包装�
 | --- | --- | --- |
 | FastAPI 路由过载 | `freezone.py` 约 11,059 行/71 个端点；`generation.py` 约 5,106 行/63 个端点；`characters.py` 约 1,706 行/34 个端点 | HTTP、权限、文件、业务规则、任务提交和结果映射混在同层 |
 | 路由互相依赖 | `freezone.py` 多处导入 `api.routes.generation` 的私有函数 | 路由不再是边缘适配器，形成隐式共享业务层 |
-| 后端依赖方向反转 | 非 API 业务模块中 AST 检出 28 处对 `api.auth`、`api.deps`、`api.schemas` 或具体 route 的反向导入 | 任务运行器和领域能力依赖 FastAPI 表示层，无法独立测试和复用 |
+| 后端依赖方向反转 | 阶段 0 在非 API 业务模块中 AST 检出 28 处对 `api.auth`、`api.deps`、`api.schemas` 或具体 route 的反向导入 | 任务运行器和领域能力依赖 FastAPI 表示层，无法独立测试和复用 |
 | 后端公共巨石 | `api/schemas.py`、`models.py`、`sqlite_store.py` 集中了跨领域模型和存储方法 | 修改一个领域容易影响其他领域，所有权不清晰 |
 | FastAPI 装配集中 | `api/app.py` 同时负责中间件、异常、生命周期、桌面端点、静态文件和 SPA | 应用工厂难以按环境组合和独立测试 |
 | 前端路由过载 | 19 个 route 文件中有 8 个超过 500 逻辑行；导入页约 1,880 行，角色页约 3,155 行 | route 同时承担控制器、表单、业务规则、任务状态和视图 |
@@ -462,7 +462,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 | --- | --- | --- |
 | 架构保护网 | `be88c21` 建立前后端只减不增依赖门禁；`f4c3916` 建立 UI 颜色分类门禁；普通 UI 已收敛到语义 token，媒体/渲染/领域色保留显式预算 | 随后续迁移持续下调存量 allowlist，不新增豁免 |
 | 前端应用装配 | `ae4d03d` 拆出 bootstrap、AppRoot、router shell 和 query client；`f4c3916` 将全局 CSS 拆为 reset/tokens/themes/base/portal | `shared/api` transport 与统一错误边界仍待迁移 |
-| 后端应用装配 | `api/app.py` 已收敛为组合根；lifespan、中间件、异常映射、平台静态路由和 `api/v1/router.py` 已独立；`bootstrap/ApplicationContainer` 已将 11 个必需运行时端口显式装配并接管生命周期；`api.__init__` 仅保留惰性兼容出口 | ProjectScope、静态 URL 和 store factory 的非 FastAPI 端口仍待拆分 |
+| 后端应用装配 | `api/app.py` 已收敛为组合根；lifespan、中间件、异常映射、平台静态路由和 `api/v1/router.py` 已独立；`bootstrap/ApplicationContainer` 已将 11 个必需运行时端口显式装配并接管生命周期；静态 URL 与 Store 工厂已下沉到 shared，任务 runner 不再依赖 `api.deps`；`api.__init__` 仅保留惰性兼容出口 | ProjectScope/ProjectContext 的 FastAPI 异常依赖仍待拆分 |
 | Story Intake 样板 | `cb2b856` 完成后端 domain/application/infrastructure/use-case 切片；`1078eb1` 完成前端 controller/view/domain/infrastructure 切片，route 收敛为页面适配器 | 按阶段 3 退出条件复核所有导入、任务 DTO 与缓存失效契约 |
 
 当前验证事实：
@@ -471,6 +471,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 - 后端应用工厂拆分前后 OpenAPI 完全一致：269 条路径、295 个操作，规范化 SHA-256 均为 `614f1ffc6214b35fe28604569ee4c9e1a2fb8e832b07487d11170b2c29ae93ae`。
 - 后端应用工厂、lifespan、桌面令牌、请求上限、静态媒体、SPA、异常映射和架构门禁定向测试通过。
 - ApplicationContainer 接入后，排除已记录的 CE OpenAPI 断言与默认排除的 EE 用例，后端契约 75 项全部通过。
+- 非 API 业务模块对 `ai_anime.api.*` 的反向导入由阶段 0 的 28 处降至 5 处；剩余项均保留在只减不增门禁中。
 - 后端契约套件 75 项通过；1 项既有断言失败：CE 下 `/api/v1/auth/login` 实际返回 404，但仍存在于 OpenAPI。由于拆分前后 OpenAPI 指纹一致，本批不将其伪装成本次回归，也不借结构迁移改变 API 文档契约。
 - 后端默认 Pytest 仍有阶段 0 已记录的 `examples.seedance2_fast_demo` 缺失模块收集错误，不能记为全量通过。
 
@@ -623,7 +624,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
-2. 将后端非 API -> API 的 28 处反向依赖降为 0。
+2. 将后端非 API -> API 的反向依赖从阶段 0 的 28 处（当前 5 处）降为 0。
 3. 清空前端 legacy 目录违规基线；跨模块只保留 public API。
 4. 更新 README、领域地图、运行架构和开发约束。
 5. 执行全量测试、类型检查、Ruff、桌面 typecheck、OpenAPI diff 和数据兼容验证。
@@ -664,7 +665,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 | 指标 | 当前 | 最终目标 |
 | --- | --- | --- |
-| 非 API 业务模块反向依赖 `ai_anime.api.*` | 28 处 | 0 |
+| 非 API 业务模块反向依赖 `ai_anime.api.*` | 5 处（阶段 0：28 处） | 0 |
 | route 互相导入私有实现 | 已存在 | 0 |
 | 后端超 1,000 逻辑行 route 模块 | 4 个 | 0；兼容 facade 不含实现 |
 | 前端 route 超 500 逻辑行 | 8/19 | 0；route 仅做适配 |

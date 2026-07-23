@@ -7,6 +7,9 @@ from pathlib import Path
 from typing import Any
 
 from ai_anime.project_context import ProjectContext
+from ai_anime.shared.infrastructure.project_stores import (
+    make_sqlite_store_for_context,
+)
 from ai_anime.task_backend.cancel import await_envelope_with_cancel_watch
 from ai_anime.task_backend.registry import register_project_task_runner
 from ai_anime.task_state import get_task_manager
@@ -33,7 +36,6 @@ def run_beat_video_prompt(envelope: dict[str, Any], ctx: ProjectContext) -> dict
 
 
 async def _run_beat_video_prompt(envelope: dict[str, Any], ctx: ProjectContext) -> dict[str, Any]:
-    from ai_anime.api.deps import make_sqlite_store_for_context
     from ai_anime.api.routes.scripts import _generate_and_save_beat_video_prompt
 
     payload = envelope.get("payload") or {}

@@ -26,7 +26,7 @@ def _publish_freezone_splat_result(
     project_dir: Path,
     ctx: ProjectContext,
 ) -> None:
-    from ai_anime.api.deps import make_static_url_for_context
+    from ai_anime.shared.project_media import make_static_url_for_context
 
     ply_path_text = result.get("ply_path") or result.get("sog_path")
     if not ply_path_text:
@@ -53,7 +53,7 @@ def _publish_freezone_splat_result(
 
 def run_stage_asset(envelope: dict[str, Any], ctx: ProjectContext) -> dict[str, Any] | None:
     from ai_anime import stage_asset_tasks
-    from ai_anime.api.deps import make_static_url_for_context
+    from ai_anime.shared.project_media import make_static_url_for_context
 
     payload = envelope.get("payload") or {}
     scene_name = str(payload["scene_name"])
