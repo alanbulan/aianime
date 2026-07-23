@@ -782,7 +782,7 @@ export function ThreeDDirectorDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         className="inset-0 left-0 top-0 h-dvh w-dvw max-w-none translate-x-0 translate-y-0 overflow-hidden rounded-none border-0 p-0 ring-0 data-open:zoom-in-100 data-closed:zoom-out-100 sm:max-w-none"
-        overlayClassName="bg-black/55 supports-backdrop-filter:backdrop-blur-none"
+        overlayClassName="bg-scrim supports-backdrop-filter:backdrop-blur-none"
         showCloseButton={false}
       >
         <DialogHeader className="sr-only">
@@ -2102,12 +2102,12 @@ function ThreeDDirectorSurface({
   ]);
 
   const stageToolbarGlassButtonClass =
-    "inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-[8px] bg-black/45 px-2.5 text-[12px] font-normal text-white/64 backdrop-blur-md transition-colors hover:bg-black/62 hover:text-white";
+    "inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-[8px] bg-media/45 px-2.5 text-[12px] font-normal text-media-foreground/65 backdrop-blur-md transition-colors hover:bg-media/65 hover:text-media-foreground";
 
   return (
     <div
       className={cn(
-        "grid h-full min-h-0 bg-transparent text-[#f4f4f5]",
+        "grid h-full min-h-0 bg-transparent text-foreground",
         panelHidden ? "grid-cols-[minmax(0,1fr)]" : "grid-cols-[320px_minmax(0,1fr)]",
       )}
     >
@@ -2282,7 +2282,7 @@ function ThreeDDirectorSurface({
               ) : (
                 <div className="flex items-center justify-between gap-2 rounded-[12px] border border-border bg-muted px-3 py-2 text-[12px] text-muted-foreground">
                   <span>{t("viewer.threeD.nextAnonymousActor", { label: activeActor?.label, color: actorColor })}</span>
-                  <span className="h-4 w-4 shrink-0 rounded-full border border-white/20" style={{ backgroundColor: actorColor }} />
+                  <span className="h-4 w-4 shrink-0 rounded-full border border-border" style={{ backgroundColor: actorColor }} />
                 </div>
               )}
               {manifest.mode !== "beat" && (
@@ -2357,7 +2357,7 @@ function ThreeDDirectorSurface({
               ) : (
                 <div className="flex items-center justify-between gap-2 rounded-[12px] border border-border bg-muted px-3 py-2 text-[12px] text-muted-foreground">
                   <span>{t("viewer.threeD.nextAnonymousProp", { label: activeProp?.label, color: propLikeColor })}</span>
-                  <span className="h-4 w-4 shrink-0 rounded-full border border-white/20" style={{ backgroundColor: propLikeColor }} />
+                  <span className="h-4 w-4 shrink-0 rounded-full border border-border" style={{ backgroundColor: propLikeColor }} />
                 </div>
               )}
               {manifest.mode !== "beat" && (
@@ -2466,7 +2466,7 @@ function ThreeDDirectorSurface({
           <Button
             size="sm"
             variant="outline"
-            className="mt-2 h-9 w-full rounded-[10px] !border-red-400/18 !bg-red-500/[0.07] text-[12px] !text-red-200/72 shadow-none hover:!border-red-300/30 hover:!bg-red-500/[0.11] hover:!text-red-100"
+            className="mt-2 h-9 w-full rounded-[10px] !border-destructive/30 !bg-destructive/10 text-[12px] !text-destructive shadow-none hover:!border-destructive/45 hover:!bg-destructive/15 hover:!text-destructive"
             onClick={() => viewer?.deleteSelected()}
             disabled={!selection}
           >
@@ -2591,7 +2591,7 @@ function ThreeDDirectorSurface({
               </Button>
             )}
             {sceneStatus && (
-              <div className="text-[12px] leading-5 text-amber-200/84">{sceneStatus}</div>
+              <div className="text-[12px] leading-5 text-warning">{sceneStatus}</div>
             )}
             {manifest.mode === "beat" && canWriteDirectorBundle && !autoCommitDirectorCombined && (
               <Button
@@ -2619,12 +2619,12 @@ function ThreeDDirectorSurface({
             })}
           </div>
           <div className="truncate">{status}</div>
-          {error && <div className="mt-1 text-red-300">{error}</div>}
+          {error && <div className="mt-1 text-destructive">{error}</div>}
         </div>
       </aside>
       )}
 
-      <main className="relative min-h-0 overflow-hidden bg-black/25">
+      <main className="relative min-h-0 overflow-hidden bg-media/25">
         <ThreeDStageCanvas
               splatUrl={resolveMediaUrl(activeSplatUrl) ?? activeSplatUrl}
               panoUrl={resolveMediaUrl(activePanoUrl) ?? activePanoUrl}
@@ -2642,7 +2642,7 @@ function ThreeDDirectorSurface({
             />
             <FrameGuide ref={frameGuideRef} aspect={frameAspect} />
             <Crosshair />
-            <div className="pointer-events-none absolute bottom-[24px] left-6 z-10 flex h-6 items-center gap-2 rounded-[8px] bg-black/45 px-2.5 text-[12px] font-normal text-white/64 backdrop-blur-md">
+            <div className="pointer-events-none absolute bottom-[24px] left-6 z-10 flex h-6 items-center gap-2 rounded-[8px] bg-media/45 px-2.5 text-[12px] font-normal text-media-foreground/65 backdrop-blur-md">
               <span>
                 {stageActive
                   ? t("viewer.threeD.stageInteractive")
@@ -2691,11 +2691,11 @@ function ThreeDDirectorSurface({
                   className={cn(
                     stageToolbarGlassButtonClass,
                     "max-w-[150px]",
-                    slot.active && "text-white",
+                    slot.active && "text-media-foreground",
                   )}
                 >
                   <span className="shrink-0 font-semibold">{slot.key} · {slot.title}</span>
-                  <span className="min-w-0 truncate text-white/58">{slot.value}</span>
+                  <span className="min-w-0 truncate text-media-foreground/60">{slot.value}</span>
                 </button>
               ))}
               <div className="relative">
@@ -2709,7 +2709,7 @@ function ThreeDDirectorSurface({
                           void exportControlFrames();
                           setQuickActionsOpen(false);
                         }}
-                        className="mt-2 h-8 w-full rounded-[9px] border border-white/[0.10] bg-white/[0.06] text-white/70 transition hover:bg-white/[0.10] hover:text-white"
+                        className="mt-2 h-8 w-full rounded-[9px] border border-border bg-muted text-foreground/75 transition hover:bg-accent hover:text-foreground"
                       >
                         {t("viewer.threeD.actionExportTitle")}
                       </button>
@@ -2719,7 +2719,7 @@ function ThreeDDirectorSurface({
                 <button
                   type="button"
                   onClick={() => setQuickActionsOpen((next) => !next)}
-                  className={cn(stageToolbarGlassButtonClass, quickActionsOpen && "text-white")}
+                  className={cn(stageToolbarGlassButtonClass, quickActionsOpen && "text-media-foreground")}
                 >
                   <Keyboard className="h-3.5 w-3.5 shrink-0" />
                   {t("viewer.threeD.quickActions")}
@@ -2727,15 +2727,15 @@ function ThreeDDirectorSurface({
               </div>
             </div>
             {shortcutsOpen ? (
-              <div className="absolute right-4 top-4 z-20 w-[360px] max-w-[calc(100%-2rem)] rounded-2xl border border-[#ffe28a]/35 bg-[rgba(20,16,11,0.92)] p-4 text-xs text-[#ccb98e] shadow-2xl backdrop-blur-xl">
+              <div className="absolute right-4 top-4 z-20 w-[360px] max-w-[calc(100%-2rem)] rounded-2xl border border-border bg-popover/95 p-4 text-xs text-popover-foreground/75 shadow-2xl backdrop-blur-xl">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
-                    <div className="text-sm font-semibold text-[#fff8df]">{t("viewer.threeD.shortcuts.title")}</div>
-                    <div className="mt-1 text-[11px] text-[#9f9170]">{t("viewer.threeD.shortcuts.subtitle")}</div>
+                    <div className="text-sm font-semibold text-popover-foreground">{t("viewer.threeD.shortcuts.title")}</div>
+                    <div className="mt-1 text-[11px] text-muted-foreground">{t("viewer.threeD.shortcuts.subtitle")}</div>
                   </div>
                   <button
                     type="button"
-                    className="nodrag rounded-full border border-[rgba(255,226,166,0.2)] px-2 py-1 text-[11px] text-[#fff8df] transition hover:border-[#ffe28a]/60"
+                    className="nodrag rounded-full border border-border px-2 py-1 text-[11px] text-popover-foreground transition hover:border-foreground/35 hover:bg-muted"
                     onClick={(event) => {
                       event.stopPropagation();
                       setShortcutsOpen(false);
@@ -2756,7 +2756,7 @@ function ThreeDDirectorSurface({
                     ["H / Tab / Esc", t("viewer.threeD.shortcuts.system")],
                   ].map(([keys, label]) => (
                     <div key={keys} className="grid grid-cols-[132px_minmax(0,1fr)] gap-3 rounded-lg border border-border bg-muted px-3 py-2">
-                      <div className="font-mono text-[11px] font-semibold text-[#fff8df]">{keys}</div>
+                      <div className="font-mono text-[11px] font-semibold text-popover-foreground">{keys}</div>
                       <div className="leading-5">{label}</div>
                     </div>
                   ))}
@@ -3053,8 +3053,8 @@ function ColorPaletteField({
               aria-label={preset}
               onClick={() => onChange(preset)}
               className={[
-                "h-6 w-6 rounded-full border border-white/14 shadow-[0_1px_4px_rgba(0,0,0,0.45)] transition hover:scale-105 hover:border-white/48",
-                selected ? "border-white/70 shadow-[0_0_0_3px_rgba(255,255,255,0.38),0_0_0_5px_rgba(255,255,255,0.12),0_1px_4px_rgba(0,0,0,0.45)]" : "",
+                "h-6 w-6 rounded-full border border-border shadow-sm transition hover:scale-105 hover:border-foreground/50",
+                selected ? "border-primary ring-2 ring-primary/45 ring-offset-1 ring-offset-muted" : "",
               ].join(" ")}
               style={{ backgroundColor: preset }}
             />
@@ -3076,7 +3076,7 @@ function ColorPaletteField({
               style={{ left: pickerPosition.left, top: pickerPosition.top }}
             >
               <div
-                className="relative h-[116px] cursor-crosshair overflow-hidden rounded-[10px] border border-white/[0.06] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]"
+                className="relative h-[116px] cursor-crosshair overflow-hidden rounded-[10px] border border-border shadow-inner"
                 style={{ backgroundColor: hueColor }}
                 onPointerDown={(event) => {
                   event.currentTarget.setPointerCapture?.(event.pointerId);
@@ -3089,7 +3089,7 @@ function ColorPaletteField({
                 <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,#fff,rgba(255,255,255,0))]" />
                 <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(0deg,#000,rgba(0,0,0,0))]" />
                 <span
-                  className="pointer-events-none absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.35)]"
+                  className="pointer-events-none absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-media-foreground shadow-md"
                   style={{ left: `${hsv.s * 100}%`, top: `${(1 - hsv.v) * 100}%` }}
                 />
               </div>
@@ -3104,7 +3104,7 @@ function ColorPaletteField({
               />
               <div className="mt-3 flex items-center justify-between gap-3">
                 <span className="font-mono text-[11px] uppercase text-muted-foreground">{value}</span>
-                <span className="h-5 w-5 rounded-full border border-white/20 shadow-[0_1px_4px_rgba(0,0,0,0.35)]" style={{ backgroundColor: value }} />
+                <span className="h-5 w-5 rounded-full border border-border shadow-sm" style={{ backgroundColor: value }} />
               </div>
             </div>,
             document.body,
@@ -3180,7 +3180,7 @@ const FrameGuide = forwardRef<HTMLDivElement, { aspect: FrameAspect }>(function 
           boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.16), 0 0 18px rgba(0, 0, 0, 0.42)",
         }}
       >
-        <div className="absolute left-[10px] top-2 rounded-full bg-black/45 px-2 py-1 text-[11px] font-semibold text-white/56">
+        <div className="absolute left-[10px] top-2 rounded-full bg-media/45 px-2 py-1 text-[11px] font-semibold text-media-foreground/60">
           {aspect}
         </div>
       </div>
@@ -3194,8 +3194,8 @@ function Crosshair() {
       aria-hidden="true"
       className="pointer-events-none absolute left-1/2 top-1/2 z-[5] h-[18px] w-[18px] -translate-x-1/2 -translate-y-1/2"
     >
-      <span className="absolute left-2 top-0 h-[18px] w-[2px] bg-white/85 shadow-[0_0_8px_rgba(0,0,0,0.75)]" />
-      <span className="absolute left-0 top-2 h-[2px] w-[18px] bg-white/85 shadow-[0_0_8px_rgba(0,0,0,0.75)]" />
+      <span className="absolute left-2 top-0 h-[18px] w-[2px] bg-media-foreground/85 shadow-[0_0_8px_rgba(0,0,0,0.75)]" />
+      <span className="absolute left-0 top-2 h-[2px] w-[18px] bg-media-foreground/85 shadow-[0_0_8px_rgba(0,0,0,0.75)]" />
     </div>
   );
 }
@@ -3236,7 +3236,7 @@ function SelectionBadge({
   return (
     <div
       ref={tagRef}
-      className="pointer-events-none absolute left-0 top-0 z-10 rounded-full border border-[#ffbd59]/70 bg-black/75 px-3 py-1 text-xs font-semibold text-[#fff4be] shadow-[0_8px_22px_rgba(0,0,0,0.45)]"
+      className="pointer-events-none absolute left-0 top-0 z-10 rounded-full border border-[#ffbd59]/70 bg-media/75 px-3 py-1 text-xs font-semibold text-[#fff4be] shadow-[0_8px_22px_rgba(0,0,0,0.45)]"
     >
       {selectedKindLabel} · {selection.label} · ({x.toFixed(2)}, {y.toFixed(2)}, {z.toFixed(2)})
     </div>

@@ -41,7 +41,7 @@ export function PanoCaptureDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="inset-0 left-0 top-0 h-dvh w-dvw max-w-none translate-x-0 translate-y-0 overflow-hidden rounded-none border-0 p-0 ring-0 data-open:zoom-in-100 data-closed:zoom-out-100 sm:max-w-none"
-        overlayClassName="bg-black/55 supports-backdrop-filter:backdrop-blur-none"
+        overlayClassName="bg-scrim supports-backdrop-filter:backdrop-blur-none"
         showCloseButton={false}
       >
         <DialogHeader className="sr-only">

@@ -968,13 +968,13 @@ export function PanoCaptureSurface({
           {viewerError}
         </div>
       )}
-      <div ref={viewportRef} className="relative min-h-0 flex-1 bg-black">
+      <div ref={viewportRef} className="relative min-h-0 flex-1 bg-media">
         <div ref={hostRef} className="absolute inset-0" />
         <div className="pointer-events-none absolute inset-0">
           <div
             ref={cropFrameElementRef}
             data-testid="pano-capture-frame"
-            className="pointer-events-auto absolute cursor-move touch-none overflow-hidden rounded-md border border-white/80 bg-white/[0.03] shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]"
+            className="pointer-events-auto absolute cursor-move touch-none overflow-hidden rounded-md border border-media-foreground/80 bg-media-foreground/[0.03] shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]"
             style={panoCaptureOverlayStyle(aspect, overlayBounds, activeFrame)}
             onPointerDown={(event) => beginFrameInteraction("move", event)}
             onPointerMove={moveFrameInteraction}
@@ -985,33 +985,33 @@ export function PanoCaptureSurface({
               <>
                 <div
                   data-testid="pano-guide-horizon"
-                  className="absolute left-0 right-0 top-1/2 border-t border-white/55"
+                  className="absolute left-0 right-0 top-1/2 border-t border-media-foreground/55"
                 />
                 <div data-testid="pano-guide-thirds" className="absolute inset-0">
-                  <div className="absolute bottom-0 left-1/3 top-0 border-l border-dashed border-white/35" />
-                  <div className="absolute bottom-0 right-1/3 top-0 border-l border-dashed border-white/35" />
-                  <div className="absolute left-0 right-0 top-1/3 border-t border-dashed border-white/35" />
-                  <div className="absolute bottom-1/3 left-0 right-0 border-t border-dashed border-white/35" />
+                  <div className="absolute bottom-0 left-1/3 top-0 border-l border-dashed border-media-foreground/35" />
+                  <div className="absolute bottom-0 right-1/3 top-0 border-l border-dashed border-media-foreground/35" />
+                  <div className="absolute left-0 right-0 top-1/3 border-t border-dashed border-media-foreground/35" />
+                  <div className="absolute bottom-1/3 left-0 right-0 border-t border-dashed border-media-foreground/35" />
                 </div>
                 <div
                   data-testid="pano-guide-center"
                   className="absolute left-1/2 top-1/2 size-8 -translate-x-1/2 -translate-y-1/2"
                 >
-                  <div className="absolute left-1/2 top-0 h-full border-l border-white/70" />
-                  <div className="absolute left-0 top-1/2 w-full border-t border-white/70" />
+                  <div className="absolute left-1/2 top-0 h-full border-l border-media-foreground/70" />
+                  <div className="absolute left-0 top-1/2 w-full border-t border-media-foreground/70" />
                 </div>
               </>
             )}
             <div
               data-testid="pano-capture-resize-handle"
-              className="pointer-events-auto absolute bottom-0 right-0 size-5 cursor-nwse-resize border-b-2 border-r-2 border-white/90 bg-black/30"
+              className="pointer-events-auto absolute bottom-0 right-0 size-5 cursor-nwse-resize border-b-2 border-r-2 border-media-foreground/90 bg-media/30"
               onPointerDown={(event) => beginFrameInteraction("resize", event)}
             />
           </div>
         </div>
         {saveResult && (
-          <div className="pointer-events-auto absolute bottom-3 right-3 z-10 max-w-[min(460px,calc(100%-24px))] rounded-lg border border-emerald-500/40 bg-background/90 p-3 text-xs shadow-lg backdrop-blur">
-            <div className="font-medium text-emerald-700 dark:text-emerald-300">
+          <div className="pointer-events-auto absolute bottom-3 right-3 z-10 max-w-[min(460px,calc(100%-24px))] rounded-lg border border-success/40 bg-background/90 p-3 text-xs shadow-lg backdrop-blur">
+            <div className="font-medium text-success">
               已保存 {saveResult.anchor_id || "截图"}
             </div>
             <div className="mt-1 break-all text-muted-foreground">

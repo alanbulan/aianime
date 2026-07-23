@@ -181,7 +181,7 @@ describe("freezone viewer contracts", () => {
     expect(dialog).toContain("if (activeProp) setPropLikeColor(activeProp.color)");
     expect(dialog).toContain("function ColorPaletteField");
     expect(dialog).toContain('className="mt-2 grid grid-cols-[repeat(auto-fill,minmax(24px,24px))] gap-2"');
-    expect(dialog).toContain("shadow-[0_0_0_3px_rgba(255,255,255,0.38)");
+    expect(dialog).toContain("border-primary ring-2 ring-primary/45 ring-offset-1 ring-offset-muted");
     expect(dialog).toContain("ColorPaletteField");
     expect(dialog).toContain("anonymousPropColors.length > 0");
     expect(dialog).toContain("? anonymousPropColors");

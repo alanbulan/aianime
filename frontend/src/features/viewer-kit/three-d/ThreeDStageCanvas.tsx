@@ -247,7 +247,7 @@ export function ThreeDStageCanvas({
   };
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-black">
+    <div className="relative h-full w-full overflow-hidden bg-media">
       <canvas
         ref={canvasRef}
         tabIndex={0}
@@ -259,9 +259,9 @@ export function ThreeDStageCanvas({
         <button
           type="button"
           onClick={activate}
-          className="absolute inset-0 z-10 flex items-center justify-center bg-black/35 text-[#fff8df] backdrop-blur-[1px]"
+          className="absolute inset-0 z-10 flex items-center justify-center bg-media/35 text-media-foreground backdrop-blur-[1px]"
         >
-          <span className="rounded-xl border border-[rgba(255,226,166,0.28)] bg-[rgba(20,16,11,0.86)] px-5 py-3 text-sm shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
+          <span className="rounded-xl border border-media-foreground/20 bg-media/85 px-5 py-3 text-sm shadow-2xl">
             {t("viewer.threeD.stageClickToEnter")} · {t("viewer.threeD.stageExitInteraction")}
           </span>
         </button>
