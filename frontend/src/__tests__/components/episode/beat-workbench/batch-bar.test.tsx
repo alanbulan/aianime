@@ -163,7 +163,7 @@ vi.mock("@/lib/queries/audio", () => ({
   }),
 }));
 
-vi.mock("@/lib/queries/episodes", () => ({
+vi.mock("@/modules/narrative_planning/public", () => ({
   useEpisodeBeats: () => ({
     data: {
       ok: true,
@@ -186,9 +186,6 @@ vi.mock("@/lib/queries/episodes", () => ({
   useEpisodeDetail: () => ({
     data: { ok: true, data: { identity_ids: ["Hero_Main"] } },
   }),
-}));
-
-vi.mock("@/lib/queries/scripts", () => ({
   useGenerateScript: () => ({
     mutateAsync: vi.fn(),
     isPending: false,

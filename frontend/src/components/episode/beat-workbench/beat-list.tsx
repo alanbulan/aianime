@@ -4,7 +4,7 @@ import { FileText, Mic2, Pencil, Video } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { BeatStageState, BeatStates } from "@/types/beat-state";
-import type { Beat } from "@/types/episode";
+import type { Beat } from "@/modules/narrative_planning/public";
 
 interface BeatListProps {
   beats: Beat[];

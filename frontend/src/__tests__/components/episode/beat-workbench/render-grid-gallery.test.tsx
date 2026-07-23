@@ -6,7 +6,7 @@ import i18next from "i18next";
 import { beforeAll, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 
 import { RenderGridGallery } from "@/components/episode/beat-workbench/render-grid-gallery";
-import type { Beat } from "@/types/episode";
+import type { Beat } from "@/modules/narrative_planning/public";
 
 const i18n = i18next.createInstance();
 

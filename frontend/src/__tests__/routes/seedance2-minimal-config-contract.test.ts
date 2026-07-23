@@ -8,11 +8,13 @@ const read = (path: string) => readFileSync(resolve(root, path), "utf8");
 
 describe("Seedance2 minimal config alignment", () => {
   it("keeps seedance2_config_json on Beat and BeatUpdate", () => {
-    const episodeTypes = read("src/types/episode.ts");
-    const scriptTypes = read("src/types/script.ts");
+    const narrativeTypes = read(
+      "src/modules/narrative_planning/domain/types.ts",
+    );
 
-    expect(episodeTypes).toContain("seedance2_config_json?: string");
-    expect(scriptTypes).toContain("seedance2_config_json?: string");
+    expect(
+      narrativeTypes.match(/seedance2_config_json\?: string/g),
+    ).toHaveLength(2);
   });
 
   it("shows and saves minimal Seedance2 config from the video pane", () => {

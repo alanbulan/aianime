@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { FileText } from "lucide-react";
 import { EpisodeEmptyState } from "@/components/episode/episode-empty-state";
 import type { SelectionState } from "@/hooks/use-selection";
-import type { Beat } from "@/types/episode";
+import type { Beat } from "@/modules/narrative_planning/public";
 import type { BeatStates } from "@/types/beat-state";
 import {
   DEFAULT_ACTION_PANEL_SECTIONS,

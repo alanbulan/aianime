@@ -96,7 +96,6 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "routes/_app/index.tsx": 0,
   "stores/canvasStore.ts": 2,
   "stores/settingsStore.ts": 2,
-  "types/script.ts": 1,
 };
 
 const DOMAIN_COLOR_DATA = new Set([
@@ -106,7 +105,6 @@ const DOMAIN_COLOR_DATA = new Set([
   "features/canvas/nodes/contextPromptPalette.ts",
   "lib/project-cover.ts",
   "lib/sketch-colors.ts",
-  "types/script.ts",
 ]);
 
 function sourceFiles(root: string): string[] {

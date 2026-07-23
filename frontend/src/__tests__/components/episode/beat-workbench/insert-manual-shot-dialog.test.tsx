@@ -127,7 +127,7 @@ const queryState: {
   },
 };
 
-vi.mock("@/lib/queries/episodes", () => ({
+vi.mock("@/modules/narrative_planning/public", () => ({
   useEpisodeBeats: () => ({
     data: { ok: true, data: queryState.beats },
   }),

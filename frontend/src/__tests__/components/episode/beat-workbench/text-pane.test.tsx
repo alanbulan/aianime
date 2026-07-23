@@ -68,14 +68,6 @@ const mutateAsync: Mock = vi.fn().mockResolvedValue({ ok: true, data: null });
 const mutate: Mock = vi.fn();
 const updateState = { isPending: false };
 
-vi.mock("@/lib/queries/scripts", () => ({
-  useUpdateBeat: () => ({
-    mutateAsync,
-    mutate,
-    isPending: updateState.isPending,
-  }),
-}));
-
 const episodeDetailState: {
   identity_ids: string[];
   prop_menu: { prop_id: string }[];
@@ -86,7 +78,13 @@ const episodeDetailState: {
     time_of_day?: string;
   }[];
 } = { identity_ids: [], prop_menu: [], scene_menu: [] };
-vi.mock("@/lib/queries/episodes", () => ({
+
+vi.mock("@/modules/narrative_planning/public", () => ({
+  useUpdateBeat: () => ({
+    mutateAsync,
+    mutate,
+    isPending: updateState.isPending,
+  }),
   useEpisodeDetail: () => ({
     data: {
       ok: true,
@@ -138,7 +136,7 @@ vi.mock("sonner", () => ({
 }));
 
 import { TextPane } from "@/components/episode/beat-workbench/text-pane";
-import type { Beat } from "@/types/episode";
+import type { Beat } from "@/modules/narrative_planning/public";
 
 function Wrapper({ children }: { children: ReactNode }) {
   const qc = new QueryClient({

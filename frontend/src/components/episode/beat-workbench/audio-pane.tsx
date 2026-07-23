@@ -24,7 +24,7 @@ import { useTaskController } from "@/hooks/use-task-controller";
 import { queryKeys } from "@/lib/query-keys";
 import { TASK_TYPES } from "@/lib/task-types";
 import type { BeatStageState } from "@/types/beat-state";
-import type { Beat } from "@/types/episode";
+import type { Beat } from "@/modules/narrative_planning/public";
 import { MEDIA_PRIMARY_ACTION_BUTTON_CLASS } from "./media-styles";
 
 interface AudioPaneProps {

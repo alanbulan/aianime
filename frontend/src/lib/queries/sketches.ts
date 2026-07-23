@@ -9,7 +9,7 @@ import { jsonWithBackendError } from "@/shared/api/errors";
 import { p } from "@/shared/api/path";
 import { queryKeys } from "@/lib/query-keys";
 import type { ApiResponse, ErrorResponse, OkResponse, TaskResponse } from "@/types/api";
-import type { Beat } from "@/types/episode";
+import type { Beat } from "@/modules/narrative_planning/public";
 
 // Mirrors backend `PoolImage` (ai_anime/models.py) plus the route-injected
 // `cell_url` / `grid_url` / `stale` fields from `GET /grids`.

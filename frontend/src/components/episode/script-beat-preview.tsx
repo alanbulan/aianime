@@ -3,7 +3,7 @@ import { ImageIcon, ScrollText, UserRound, Volume2, VolumeX } from "lucide-react
 
 import { EpisodeEmptyState } from "@/components/episode/episode-empty-state";
 import { cn } from "@/lib/utils";
-import type { Beat } from "@/types/episode";
+import type { Beat } from "@/modules/narrative_planning/public";
 
 export interface ScriptBeatPreviewLabels {
   title: string;

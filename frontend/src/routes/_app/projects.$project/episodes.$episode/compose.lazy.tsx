@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 import { useComposeEpisode, useFinalVideo } from "@/lib/queries/video";
-import { useEpisodeBeats, useEpisodeDetail } from "@/lib/queries/episodes";
+import { useEpisodeBeats, useEpisodeDetail } from "@/modules/narrative_planning/public";
 import { useProject, useUpdateProject } from "@/modules/project_workspace/public";
 import { useTaskController } from "@/hooks/use-task-controller";
 import { useBeatStates } from "@/hooks/use-beat-states";

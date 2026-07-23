@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { BeatCard } from "@/components/episode/beat-workbench/beat-card";
-import type { Beat } from "@/types/episode";
+import type { Beat } from "@/modules/narrative_planning/public";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({

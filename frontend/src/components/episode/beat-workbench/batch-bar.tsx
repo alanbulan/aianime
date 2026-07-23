@@ -31,7 +31,7 @@ import type { SketchAspectRatio } from "@/lib/queries/sketch-settings";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import { CreditCostInline } from "@/components/credit-cost-inline";
 import { CreditCostPill, formatCreditCost } from "@/components/credits/credit-visual";
-import type { Beat } from "@/types/episode";
+import type { Beat } from "@/modules/narrative_planning/public";
 
 import { RenderModelSelect } from "./render-settings-controls";
 import { SketchModelSelect, SketchAspectCheckbox } from "./sketch-settings-controls";

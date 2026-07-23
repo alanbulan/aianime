@@ -55,7 +55,7 @@ import { buildBeatContextNodeRefreshPatch } from "@/features/freezone/context/be
 import { syncBeatContextMainlineEdges } from "@/features/freezone/context/beatContextProjection";
 import { parseBeatContextVisualMarkers } from "@/features/freezone/context/currentBeatContext";
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
-import { useEpisodeBeats, useEpisodeDetail } from "@/lib/queries/episodes";
+import { useEpisodeBeats, useEpisodeDetail } from "@/modules/narrative_planning/public";
 import { queryKeys } from "@/lib/query-keys";
 import { sceneNameToRef, sceneRefToName } from "@/lib/scene-ref";
 import { parseColorValue } from "@/lib/sketch-colors";

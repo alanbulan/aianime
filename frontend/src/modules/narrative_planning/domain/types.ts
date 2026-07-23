@@ -36,16 +36,6 @@ export interface Episode {
   prop_menu?: EpisodePropMenuItem[];
 }
 
-export interface Chapter {
-  number: number;
-  title?: string | null;
-  start_line?: number;
-  end_line?: number;
-  content?: string;
-  word_count?: number;
-  char_count?: number;
-}
-
 export interface Beat {
   beat_number: number;
   narration_segment: string;
@@ -55,24 +45,41 @@ export interface Beat {
   location_description?: string;
   time_of_day?: string;
   speaker?: string;
-  audio_type?: string; // "silence" | "narration" | "dialogue"
+  audio_type?: string;
   video_prompt?: string;
   keyframe_prompt?: string;
-  video_mode?: string; // "first_frame" | "keyframe"
+  video_mode?: string;
   seedance2_config_json?: string;
   estimated_duration?: number;
-  /** Identity IDs detected on the sketch for this beat (color-bound). */
   detected_identities?: string[];
-  /** Prop IDs detected on the sketch for this beat (color-bound). */
   detected_props?: string[];
-  /** True for user-inserted manual shots — only these can be deleted. */
   is_manual_shot?: boolean;
   sketch_url?: string | null;
   frame_url?: string | null;
   video_url?: string | null;
   audio_url?: string | null;
-  /** 实测音频时长（秒）；视频时长须 >= 此值，用作时长控件默认值/下限。 */
   audio_duration_seconds?: number | null;
+}
+
+export interface Script {
+  beats: Beat[];
+  review_summary?: string;
+  sketch_colors?: Record<string, string>;
+}
+
+export interface BeatUpdate {
+  narration_segment?: string;
+  visual_description?: string;
+  scene_ref?: SceneRef | null;
+  time_of_day?: string;
+  video_prompt?: string;
+  keyframe_prompt?: string;
+  video_mode?: string;
+  seedance2_config_json?: string;
+  audio_type?: string;
+  speaker?: string;
+  detected_identities?: string[];
+  detected_props?: string[];
 }
 
 export interface PipelineEpisodeStatus {

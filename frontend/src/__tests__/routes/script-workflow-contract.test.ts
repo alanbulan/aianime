@@ -71,7 +71,12 @@ describe("script workflow canonical contract", () => {
   });
 
   it("keeps unsupported main-branch script endpoints out of the v2-storage query layer", () => {
-    const queries = read("src/lib/queries/scripts.ts");
+    const queries = [
+      read("src/modules/narrative_planning/application/query-hooks.ts"),
+      read(
+        "src/modules/narrative_planning/infrastructure/http-narrative-planning-gateway.ts",
+      ),
+    ].join("\n");
     const queryKeys = read("src/lib/query-keys.ts");
 
     expect(queries).not.toContain("useGenerateLiteralScript");

@@ -84,7 +84,7 @@ import {
 } from '@/features/canvas/application/resumeGeneration';
 import { readUrl } from '@/lib/url-params';
 import { useQueryClient } from '@tanstack/react-query';
-import { prefetchEpisodeBeats, prefetchEpisodeDetail } from '@/lib/queries/episodes';
+import { prefetchEpisodeBeats, prefetchEpisodeDetail } from '@/modules/narrative_planning/public';
 import {
   getConnectMenuNodeTypes,
   getDownstreamSpawnTypes,

@@ -5,7 +5,7 @@ import i18next from "i18next";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { SingleBeatPanel, type SectionId } from "@/components/episode/beat-workbench/single-beat-panel";
-import type { Beat } from "@/types/episode";
+import type { Beat } from "@/modules/narrative_planning/public";
 
 const i18n = i18next.createInstance();
 
@@ -46,7 +46,7 @@ vi.mock("@/lib/queries/sketches", () => ({
   useGridsByBeat: () => ({ byBeat: new Map(), assignments: {} }),
 }));
 
-vi.mock("@/lib/queries/episodes", () => ({
+vi.mock("@/modules/narrative_planning/public", () => ({
   useDeleteManualShot: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 

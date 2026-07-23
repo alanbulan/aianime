@@ -63,7 +63,7 @@ export async function listEpisodes(projectId: string): Promise<AiAnimeEpisodeSum
   const episodes = await apiCall<AiAnimeEpisodeSummary[]>(
     `projects/${encodeURIComponent(projectId)}/episodes`,
   );
-  // 后端集数字段名是 `number`(见 types/episode.ts 的 Episode.number),历史类型却写成
+  // 后端集数字段名是 `number`（见 narrative_planning/domain/types.ts），历史类型却写成
   // `episode_num`。这里统一归一,保证 episode_num 始终是有效数字,避免下游(CommitDialog /
   // ImportPanel)拿到 undefined → Number(undefined)=NaN → 请求 /episodes/NaN/beats。
   return episodes.map((ep) => {

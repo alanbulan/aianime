@@ -10,14 +10,15 @@ import {
   isPlanEpisodeAssetsResult,
   useEpisodeBeats,
   useEpisodeDetail,
+  useGenerateRewrite,
+  useGenerateScript,
   usePlanEpisodeProps,
   usePlanEpisodeScenes,
   usePlanIdentities,
   useUpdateEpisode,
-} from "@/lib/queries/episodes";
+} from "@/modules/narrative_planning/public";
 import { useCharacters } from "@/lib/queries/characters";
 import { useProject } from "@/modules/project_workspace/public";
-import { useGenerateRewrite, useGenerateScript } from "@/lib/queries/scripts";
 import { useTaskController } from "@/hooks/use-task-controller";
 import { queryKeys } from "@/lib/query-keys";
 import {

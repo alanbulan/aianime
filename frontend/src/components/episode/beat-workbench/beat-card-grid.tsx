@@ -6,9 +6,11 @@ import { toast } from "sonner";
 
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
 import { useResponsiveColumns } from "@/hooks/use-responsive-columns";
-import { useDeleteManualShot } from "@/lib/queries/episodes";
+import {
+  useDeleteManualShot,
+  type Beat,
+} from "@/modules/narrative_planning/public";
 import { useGridsByBeat, type PoolImage } from "@/lib/queries/sketches";
-import type { Beat } from "@/types/episode";
 import type { ViewToggleId } from "@/hooks/use-view-toggles";
 import type { SelectionState } from "@/hooks/use-selection";
 import {

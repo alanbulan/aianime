@@ -28,7 +28,7 @@ import {
   TRANSPARENT_DIALOG_FOOTER_CLASS,
 } from "@/lib/dialog-styles";
 import { cn } from "@/lib/utils";
-import { useEpisodeBeats, useEpisodeDetail, useInsertManualShot } from "@/lib/queries/episodes";
+import { useEpisodeBeats, useEpisodeDetail, useInsertManualShot } from "@/modules/narrative_planning/public";
 import {
   extractIdentityMarkers,
   extractPropMarkers,

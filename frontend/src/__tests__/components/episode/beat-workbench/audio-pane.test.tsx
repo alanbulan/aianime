@@ -8,7 +8,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 
 import { AudioPane } from "@/components/episode/beat-workbench/audio-pane";
-import type { Beat } from "@/types/episode";
+import type { Beat } from "@/modules/narrative_planning/public";
 
 const i18n = i18next.createInstance();
 const mutateRegenerate = vi.hoisted(() => vi.fn());

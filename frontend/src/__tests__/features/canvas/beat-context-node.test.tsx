@@ -60,7 +60,7 @@ vi.mock("@/features/canvas/ui/NodeHeader", () => ({
   NodeHeader: ({ titleText }: { titleText: string }) => <div>{titleText}</div>,
 }));
 
-vi.mock("@/lib/queries/episodes", () => ({
+vi.mock("@/modules/narrative_planning/public", () => ({
   useEpisodeDetail: () => ({
     data: {
       ok: true,

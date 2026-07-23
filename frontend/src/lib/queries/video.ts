@@ -6,7 +6,7 @@ import { p } from "@/shared/api/path";
 import { queryKeys } from "@/lib/query-keys";
 import { useAppStore } from "@/stores/app-store";
 import type { ErrorResponse, OkResponse, TaskResponse } from "@/types/api";
-import type { Beat } from "@/types/episode";
+import type { Beat } from "@/modules/narrative_planning/public";
 
 export const DEFAULT_VIDEO_BACKEND = "huimeng_seedance-1.0-pro-fast";
 

@@ -11,7 +11,7 @@ import {
   VideoPane,
 } from "@/components/episode/beat-workbench/video-pane";
 import { useAspectRatioStore } from "@/stores/aspect-ratio-store";
-import type { Beat } from "@/types/episode";
+import type { Beat } from "@/modules/narrative_planning/public";
 
 const i18n = i18next.createInstance();
 
@@ -556,7 +556,7 @@ vi.mock("@/lib/queries/video", () => ({
   }),
 }));
 
-vi.mock("@/lib/queries/scripts", () => ({
+vi.mock("@/modules/narrative_planning/public", () => ({
   useUpdateBeat: () => ({
     mutateAsync: updateBeatMock,
     isPending: false,

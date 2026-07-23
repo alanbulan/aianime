@@ -15,8 +15,12 @@ import {
 } from "@/components/ui/select";
 import { saveScopes, trackSave } from "@/stores/save-status-store";
 import { useNavigateToAsset } from "@/hooks/use-assets-deep-link";
-import { useUpdateBeat } from "@/lib/queries/scripts";
-import { useEpisodeDetail } from "@/lib/queries/episodes";
+import {
+  useEpisodeDetail,
+  useUpdateBeat,
+  type Beat,
+  type BeatUpdate,
+} from "@/modules/narrative_planning/public";
 import { useScenePlatePreview, useScenes } from "@/lib/queries/scenes";
 import {
   extractIdentityMarkers,
@@ -31,8 +35,6 @@ import {
 } from "@/lib/scene-ref";
 import { timeOfDayLabel, timeOfDayOptions } from "@/lib/time-of-day";
 import { cn } from "@/lib/utils";
-import type { Beat } from "@/types/episode";
-import type { BeatUpdate } from "@/types/script";
 
 interface TextPaneProps {
   beat: Beat;

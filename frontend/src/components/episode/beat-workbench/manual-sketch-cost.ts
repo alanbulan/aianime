@@ -5,7 +5,7 @@ import {
   bestFitMode,
   overflowBatchCount,
 } from "@/lib/regen-modes";
-import type { Beat } from "@/types/episode";
+import type { Beat } from "@/modules/narrative_planning/public";
 
 function missingManualSketchSceneId(beat: Beat): string {
   return beat.scene_ref?.scene_id?.trim() || beat.location?.trim() || "";

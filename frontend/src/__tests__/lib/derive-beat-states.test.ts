@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, it, expect } from "vitest";
 import { deriveBeatStates } from "@/lib/derive-beat-states";
-import type { Beat } from "@/types/episode";
+import type { Beat } from "@/modules/narrative_planning/public";
 import type { Task } from "@/types/task";
 
 function makeBeat(overrides: Partial<Beat>): Beat {

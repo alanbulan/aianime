@@ -330,4 +330,46 @@ describe("frontend architecture boundaries", () => {
     expect(internalImportFailures).toEqual([]);
     expect(directLifecycleEndpointFailures).toEqual([]);
   });
+
+  it("keeps Narrative Planning callers on its public API", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/narrative_planning");
+    const externalSources = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.startsWith(moduleRoot))
+      .filter((path) => !relativeSource(path).startsWith("__tests__/"));
+    const internalImportFailures = externalSources.flatMap((path) =>
+      importSpecifiers(path)
+        .filter(
+          (specifier) =>
+            specifier.startsWith("@/modules/narrative_planning/") &&
+            specifier !== "@/modules/narrative_planning/public",
+        )
+        .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+    );
+    const ownedEndpointPatterns = [
+      /p`api\/v1\/projects\/\$\{[^}]+\}\/episodes`/,
+      /p`api\/v1\/projects\/\$\{[^}]+\}\/episodes\/\$\{[^}]+\}`/,
+      /p`api\/v1\/projects\/\$\{[^}]+\}\/episodes\/\$\{[^}]+\}\/beats`/,
+      /p`api\/v1\/projects\/\$\{[^}]+\}\/episodes\/\$\{[^}]+\}\/script`/,
+      /p`api\/v1\/projects\/\$\{[^}]+\}\/pipeline\/status`/,
+    ];
+    const directEndpointFailures = externalSources
+      .filter((path) =>
+        ownedEndpointPatterns.some((pattern) =>
+          pattern.test(readFileSync(path, "utf8")),
+        ),
+      )
+      .map(relativeSource);
+
+    for (const legacyPath of [
+      "lib/episode-stats.ts",
+      "lib/queries/episodes.ts",
+      "lib/queries/scripts.ts",
+      "types/episode.ts",
+      "types/script.ts",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, legacyPath))).toBe(false);
+    }
+    expect(internalImportFailures).toEqual([]);
+    expect(directEndpointFailures).toEqual([]);
+  });
 });

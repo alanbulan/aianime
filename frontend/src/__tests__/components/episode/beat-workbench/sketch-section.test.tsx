@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SketchSection } from "@/components/episode/beat-workbench/sketch-section";
 import { useAspectRatioStore } from "@/stores/aspect-ratio-store";
-import type { Beat } from "@/types/episode";
+import type { Beat } from "@/modules/narrative_planning/public";
 
 const markSeenMock = vi.fn();
 const stageManifestMock = vi.fn();
@@ -54,7 +54,7 @@ vi.mock("@/lib/queries/sketches", () => ({
   useDirectorControlToSketch: () => ({ mutateAsync: directorConvertMock, isPending: false }),
 }));
 
-vi.mock("@/lib/queries/scripts", () => ({
+vi.mock("@/modules/narrative_planning/public", () => ({
   useScript: () => ({
     data: {
       ok: true,
@@ -62,6 +62,19 @@ vi.mock("@/lib/queries/scripts", () => ({
         sketch_colors: {
           "陆辰_青年时期": "#00ffff CYAN",
         },
+      },
+    },
+  }),
+  useEpisodeDetail: () => ({
+    data: {
+      ok: true,
+      data: {
+        prop_menu: [
+          {
+            prop_id: "羊皮笔记本",
+            marker_color: "#d4af37 GOLD",
+          },
+        ],
       },
     },
   }),
@@ -91,22 +104,6 @@ vi.mock("@/lib/queries/generation-credit-cost", () => ({
 vi.mock("@/lib/queries/characters", () => ({
   useCharacters: () => ({
     data: [{ name: "陆辰" }],
-  }),
-}));
-
-vi.mock("@/lib/queries/episodes", () => ({
-  useEpisodeDetail: () => ({
-    data: {
-      ok: true,
-      data: {
-        prop_menu: [
-          {
-            prop_id: "羊皮笔记本",
-            marker_color: "#d4af37 GOLD",
-          },
-        ],
-      },
-    },
   }),
 }));
 

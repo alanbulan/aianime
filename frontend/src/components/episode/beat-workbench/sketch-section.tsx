@@ -25,9 +25,12 @@ import {
 } from "@/features/viewer-kit/three-d/ThreeDDirectorDialog";
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
 import { useCharacters } from "@/lib/queries/characters";
-import { useEpisodeDetail } from "@/lib/queries/episodes";
+import {
+  useEpisodeDetail,
+  useScript,
+  type Beat,
+} from "@/modules/narrative_planning/public";
 import { useSketchSettings } from "@/lib/queries/sketch-settings";
-import { useScript } from "@/lib/queries/scripts";
 import { parseColorValue, splitIdentityId } from "@/lib/sketch-colors";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { withImageCacheBust } from "@/features/canvas/application/imageData";
@@ -72,7 +75,6 @@ import {
   MEDIA_THUMB_NEW_CLASS,
   MEDIA_THUMB_TIME_CLASS,
 } from "./media-styles";
-import type { Beat } from "@/types/episode";
 
 const NEW_WINDOW_MS = 10 * 60 * 1000;
 const SKETCH_GRID_CLASS =

@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { useMemo } from "react";
-import { useEpisodeBeats } from "@/lib/queries/episodes";
+import { useEpisodeBeats } from "@/modules/narrative_planning/public";
 import { useProject } from "@/modules/project_workspace/public";
 import { useTasks } from "@/lib/queries/tasks";
 import { deriveBeatStates } from "@/lib/derive-beat-states";

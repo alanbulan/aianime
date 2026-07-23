@@ -4,8 +4,11 @@ import { useTranslation } from "react-i18next";
 import { Grid2X2, Wand2 } from "lucide-react";
 
 import { useCharacters } from "@/lib/queries/characters";
-import { useEpisodeBeats, useEpisodeDetail } from "@/lib/queries/episodes";
-import { useScript } from "@/lib/queries/scripts";
+import {
+  useEpisodeBeats,
+  useEpisodeDetail,
+  useScript,
+} from "@/modules/narrative_planning/public";
 import { parseColorValue, splitIdentityId } from "@/lib/sketch-colors";
 import { Button } from "@/components/ui/button";
 

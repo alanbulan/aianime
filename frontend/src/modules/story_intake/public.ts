@@ -9,6 +9,7 @@ export {
 } from "@/modules/story_intake/composition";
 export type { StartedIngestion } from "@/modules/story_intake/application/ports";
 export type {
+  Chapter,
   ChaptersResult,
   FormatCheck,
   FormatCheckIssue,

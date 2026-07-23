@@ -11,7 +11,7 @@ vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost:3000/" }),
 }));
 
-import { useGenerateScript } from "@/lib/queries/scripts";
+import { useGenerateScript } from "@/modules/narrative_planning/public";
 import { BillingRuleNotConfiguredError } from "@/shared/api/errors";
 
 const server = setupServer();

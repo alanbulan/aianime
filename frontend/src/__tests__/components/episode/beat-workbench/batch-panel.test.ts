@@ -18,7 +18,7 @@ import {
   sketchRegenUsageScope,
 } from "@/components/episode/beat-workbench/batch-panel";
 import { SKETCH_REGEN_MODES, bestFitMode } from "@/lib/regen-modes";
-import type { Beat } from "@/types/episode";
+import type { Beat } from "@/modules/narrative_planning/public";
 
 function beat(overrides: Partial<Beat>): Beat {
   return {

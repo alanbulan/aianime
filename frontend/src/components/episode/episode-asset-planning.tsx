@@ -40,7 +40,7 @@ import { useCharacterIdentities } from "@/lib/queries/characters";
 import { cn } from "@/lib/utils";
 import type { ErrorResponse } from "@/types/api";
 import type { Character } from "@/types/character";
-import type { EpisodePropMenuItem, EpisodeSceneMenuItem } from "@/types/episode";
+import type { EpisodePropMenuItem, EpisodeSceneMenuItem } from "@/modules/narrative_planning/public";
 
 interface EpisodeAssetPlanningLabels {
   identities: string;

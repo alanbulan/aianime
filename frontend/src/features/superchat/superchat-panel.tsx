@@ -46,9 +46,8 @@ import {
 import { useAuthStore } from "@/modules/identity_access/public";
 import { cn } from "@/lib/utils";
 import { resolveMediaUrl } from "@/lib/media-url";
-import { api } from "@/shared/api/transport";
 import { backendErrorToastMessage } from "@/shared/api/errors";
-import { p } from "@/shared/api/path";
+import { readPipelineStatus } from "@/modules/narrative_planning/public";
 import { useSuperChat } from "@/features/superchat/use-superchat";
 import { useAiAvatarUrl } from "@/features/superchat/ai-avatar";
 import { buildChatTaskLabel } from "@/features/superchat/task-notification-label";
@@ -72,7 +71,6 @@ import {
   type StartedIngestion,
   type UploadResult,
 } from "@/modules/story_intake/public";
-import type { ErrorResponse, OkResponse } from "@/types/api";
 
 type SpecMediaDetailSection = {
   title: string;
@@ -2342,15 +2340,7 @@ async function startNovelIngest(
 }
 
 async function projectHasIngestedContent(project: string): Promise<boolean> {
-  const response = await api
-    .get(p`api/v1/projects/${project}/pipeline/status`)
-    .json<
-      | OkResponse<{ global?: { ingested?: boolean } }>
-      | ErrorResponse
-    >();
-  if (!response.ok) {
-    throw new Error(response.error);
-  }
+  const response = await readPipelineStatus(project);
   return Boolean(response.data.global?.ingested);
 }
 

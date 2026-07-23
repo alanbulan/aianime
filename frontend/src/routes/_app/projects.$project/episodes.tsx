@@ -27,8 +27,11 @@ import {
 
 import { useCharacters } from "@/lib/queries/characters";
 import {
+  deriveEpisodeStats,
   derivePipelineEpisodeStatuses,
   isPlanEpisodeAssetsResult,
+  type Episode,
+  type EpisodeStats,
   useEpisodeBeats,
   useEpisodeDetail,
   useEpisodes,
@@ -37,8 +40,7 @@ import {
   usePlanEpisodeScenes,
   usePlanEpisodes,
   usePlanIdentities,
-} from "@/lib/queries/episodes";
-import { deriveEpisodeStats, type EpisodeStats } from "@/lib/episode-stats";
+} from "@/modules/narrative_planning/public";
 import { useStageTask } from "@/hooks/use-stage-task";
 import { useTaskController } from "@/hooks/use-task-controller";
 import { TASK_TYPES } from "@/lib/task-types";
@@ -75,7 +77,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { TOP_TABS } from "@/lib/episode-nav";
-import type { Episode } from "@/types/episode";
 
 // ─── stage descriptor (shared) ──────────────────────────────────────────────
 

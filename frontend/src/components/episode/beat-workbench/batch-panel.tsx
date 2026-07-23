@@ -48,7 +48,7 @@ import {
 import { CreditCostInline } from "@/components/credit-cost-inline";
 import { formatCreditCost } from "@/components/credits/credit-visual";
 import { RenderPlanDialog } from "./render-plan-dialog";
-import type { Beat } from "@/types/episode";
+import type { Beat } from "@/modules/narrative_planning/public";
 import type { Task } from "@/types/task";
 import type { SketchAspectRatio } from "@/lib/queries/sketch-settings";
 

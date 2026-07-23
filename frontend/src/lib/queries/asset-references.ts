@@ -1,13 +1,11 @@
 // Copyright (c) 2026 AI anime
 import { useMemo } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import type { QueryFunctionContext } from "@tanstack/react-query";
 
-import { api } from "@/shared/api/transport";
-import { p } from "@/shared/api/path";
-import { queryKeys } from "@/lib/query-keys";
-import type { OkResponse } from "@/types/api";
-import type { Beat, Episode } from "@/types/episode";
+import {
+  episodeBeatsQueryOptions,
+  episodesQueryOptions,
+} from "@/modules/narrative_planning/public";
 
 /**
  * Client-side cross-asset reference index.
@@ -77,11 +75,7 @@ function extractMarkedProps(visualDescription: string): string[] {
 
 export function useAssetReferenceIndex(project: string): AssetReferenceIndex {
   const episodesRes = useQuery({
-    queryKey: queryKeys.episodes(project),
-    queryFn: ({ signal }) =>
-      api
-        .get(p`api/v1/projects/${project}/episodes`, { signal })
-        .json<OkResponse<Episode[]>>(),
+    ...episodesQueryOptions(project),
     enabled: !!project,
   });
 
@@ -92,13 +86,7 @@ export function useAssetReferenceIndex(project: string): AssetReferenceIndex {
 
   const beatQueries = useQueries({
     queries: episodeNumbers.map((episode) => ({
-      queryKey: queryKeys.beats(project, episode),
-      queryFn: ({ signal }: QueryFunctionContext) =>
-        api
-          .get(p`api/v1/projects/${project}/episodes/${episode}/beats`, {
-            signal,
-          })
-          .json<OkResponse<Beat[]>>(),
+      ...episodeBeatsQueryOptions(project, episode),
       enabled: !!project && episode > 0,
     })),
   });

@@ -11,7 +11,7 @@ import { useVideoBackends } from "@/lib/queries/video";
 import { resolveImage } from "@/lib/resolve-image";
 import { saveScopes, useSaveState } from "@/stores/save-status-store";
 import { cn } from "@/lib/utils";
-import type { Beat } from "@/types/episode";
+import type { Beat } from "@/modules/narrative_planning/public";
 import type { BeatStageState } from "@/types/beat-state";
 import {
   Select,

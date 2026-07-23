@@ -13,18 +13,22 @@ vi.mock("@/shared/api/transport", () => ({
 
 import { queryKeys } from "@/lib/query-keys";
 import { BillingRuleNotConfiguredError } from "@/shared/api/errors";
-import { deriveEpisodeStats } from "@/lib/episode-stats";
 import {
+  deriveEpisodeStats,
   derivePipelineEpisodeStatuses,
+  episodeBeatsQueryOptions,
+  episodesQueryOptions,
   isPlanEpisodeAssetsResult,
   mergeEpisodeIntoList,
+  pipelineStatusQueryOptions,
+  readPipelineStatus,
   useEpisodeDetail,
   usePlanEpisodeProps,
   usePlanEpisodeScenes,
   usePlanEpisodes,
   usePlanIdentities,
   useUpdateEpisode,
-} from "@/lib/queries/episodes";
+} from "@/modules/narrative_planning/public";
 
 const server = setupServer();
 
@@ -44,6 +48,71 @@ function wrapperWithClient(queryClient: QueryClient) {
     );
   };
 }
+
+describe("narrative planning read boundary", () => {
+  it("reads episode, beat, and pipeline data through the canonical gateway", async () => {
+    server.use(
+      http.get("http://localhost:3000/api/v1/projects/demo/episodes", () =>
+        HttpResponse.json({
+          ok: true,
+          data: [{ number: 1, title: "Episode 1" }],
+        }),
+      ),
+      http.get(
+        "http://localhost:3000/api/v1/projects/demo/episodes/1/beats",
+        () =>
+          HttpResponse.json({
+            ok: true,
+            data: [
+              {
+                beat_number: 1,
+                narration_segment: "Narration",
+                visual_description: "Visual",
+              },
+            ],
+          }),
+      ),
+      http.get(
+        "http://localhost:3000/api/v1/projects/demo/pipeline/status",
+        () =>
+          HttpResponse.json({
+            ok: true,
+            data: {
+              project: "demo",
+              global: {
+                ingested: true,
+                configured: false,
+                characters: 0,
+                episodes: 1,
+                portraits_done: false,
+              },
+              current_episode: null,
+              episode_status: null,
+              next_step: "configure",
+              next_step_name: "Configure",
+            },
+          }),
+      ),
+    );
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    const episodes = await queryClient.fetchQuery(episodesQueryOptions("demo"));
+    const beats = await queryClient.fetchQuery(
+      episodeBeatsQueryOptions("demo", 1),
+    );
+    const pipeline = await queryClient.fetchQuery(
+      pipelineStatusQueryOptions("demo"),
+    );
+    const directPipeline = await readPipelineStatus("demo");
+
+    expect(episodes.data[0]?.number).toBe(1);
+    expect(beats.data[0]?.beat_number).toBe(1);
+    expect(pipeline.data.global.ingested).toBe(true);
+    expect(directPipeline.data.next_step).toBe("configure");
+  });
+});
 
 describe("episode identity planning", () => {
   it("starts the identity planning actor task and returns TaskResponse", async () => {

@@ -57,7 +57,7 @@ beforeAll(async () => {
   });
 });
 
-vi.mock("@/lib/queries/scripts", () => ({
+vi.mock("@/modules/narrative_planning/public", () => ({
   useScript: () => ({
     data: {
       ok: true,
@@ -68,15 +68,6 @@ vi.mock("@/lib/queries/scripts", () => ({
       },
     },
   }),
-}));
-
-vi.mock("@/lib/queries/characters", () => ({
-  useCharacters: () => ({
-    data: [{ name: "Hero" }],
-  }),
-}));
-
-vi.mock("@/lib/queries/episodes", () => ({
   useEpisodeBeats: () => ({
     data: {
       ok: true,
@@ -109,6 +100,12 @@ vi.mock("@/lib/queries/episodes", () => ({
         ],
       },
     },
+  }),
+}));
+
+vi.mock("@/lib/queries/characters", () => ({
+  useCharacters: () => ({
+    data: [{ name: "Hero" }],
   }),
 }));
 

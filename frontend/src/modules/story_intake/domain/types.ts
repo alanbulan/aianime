@@ -1,5 +1,14 @@
-import type { Chapter } from "@/types/episode";
 import type { SpineTemplate } from "@/modules/project_workspace/public";
+
+export interface Chapter {
+  number: number;
+  title?: string | null;
+  start_line?: number;
+  end_line?: number;
+  content?: string;
+  word_count?: number;
+  char_count?: number;
+}
 
 export interface FormatCheckIssue {
   code: string;

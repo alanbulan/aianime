@@ -13,13 +13,16 @@ import { useTranslation } from "react-i18next";
 import { Brush, Clapperboard, Loader2, Play, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
-import { useEpisodeBeats, useEpisodeDetail } from "@/lib/queries/episodes";
+import {
+  useEpisodeBeats,
+  useEpisodeDetail,
+  useGenerateScript,
+} from "@/modules/narrative_planning/public";
 import { useBeatStates } from "@/hooks/use-beat-states";
 import { useBeatsWorkbenchParam } from "@/hooks/use-beats-workbench-param";
 import { useEpisodeImageTaskInvalidation } from "@/hooks/use-episode-image-task-invalidation";
 import { useSelection } from "@/hooks/use-selection";
 import { useViewToggles } from "@/hooks/use-view-toggles";
-import { useGenerateScript } from "@/lib/queries/scripts";
 import {
   useSketchSettings,
   type SketchAspectRatio,

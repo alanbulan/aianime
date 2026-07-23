@@ -74,7 +74,10 @@ import {
 } from "@/components/episode/beat-workbench/seedance2-mentions";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useUpdateBeat } from "@/lib/queries/scripts";
+import {
+  useUpdateBeat,
+  type Beat,
+} from "@/modules/narrative_planning/public";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -100,7 +103,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { BeatStageState } from "@/types/beat-state";
-import type { Beat } from "@/types/episode";
 import {
   MEDIA_PRIMARY_ACTION_BUTTON_CLASS,
   MEDIA_THUMB_ACTIVE_CLASS,
