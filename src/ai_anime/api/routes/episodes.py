@@ -14,6 +14,14 @@ from ai_anime.api.deps import (
 )
 from ai_anime.api.schemas import EpisodePlanRequest, EpisodeUpdate, InsertManualShotRequest
 from ai_anime.ports import get_task_backend, get_usage_meter
+from ai_anime.modules.narrative_planning.public import (
+    EpisodeNotFound,
+    episode_details_data,
+    get_episode_details,
+    list_episode_summaries,
+    serialize_episode_items,
+    update_episode_metadata,
+)
 from ai_anime.modules.story_intake.public import build_chapter_preview
 from ai_anime.task_identity import project_task_state_key
 
@@ -26,35 +34,6 @@ _EPISODE_ASSET_PLANNER_TASKS = {
     "scene": ("episode_scene_planner", "场景"),
     "prop": ("episode_prop_planner", "道具"),
 }
-
-
-def _dump_episode_items(items):
-    data = []
-    for item in items or []:
-        if hasattr(item, "model_dump"):
-            data.append(item.model_dump())
-        elif isinstance(item, dict):
-            data.append(dict(item))
-    return data
-
-
-def _episode_detail_payload(ep, episode_num: int) -> dict:
-    content_summary = getattr(ep, "content_summary", "") or getattr(ep, "summary", "") or ""
-    return {
-        "number": getattr(ep, "number", episode_num),
-        "title": getattr(ep, "title", "") or "",
-        "summary": content_summary,
-        "raw_content": getattr(ep, "raw_content", "") or "",
-        "beat_source_text": getattr(ep, "beat_source_text", "") or "",
-        "content_summary": content_summary,
-        "character_names": list(getattr(ep, "character_names", []) or []),
-        "key_events": list(getattr(ep, "key_events", []) or []),
-        "cliffhanger": getattr(ep, "cliffhanger", "") or "",
-        "identity_ids": list(getattr(ep, "identity_ids", []) or []),
-        "identity_default_map": dict(getattr(ep, "identity_default_map", {}) or {}),
-        "scene_menu": _dump_episode_items(getattr(ep, "scene_menu", []) or []),
-        "prop_menu": _dump_episode_items(getattr(ep, "prop_menu", []) or []),
-    }
 
 
 def _asset_compiler_cls():
@@ -113,7 +92,7 @@ async def _plan_episode_assets(
         if asset_kind == "scene":
             scene_menu, new_count = await compiler.compile_episode_scenes(episode, on_log=log_fn)
             episode = _find_episode(store.get_all_episodes(), episode_num) or episode
-            scene_menu_data = _dump_episode_items(scene_menu)
+            scene_menu_data = serialize_episode_items(scene_menu)
             return {
                 "ok": True,
                 "data": {
@@ -121,7 +100,7 @@ async def _plan_episode_assets(
                     "total_count": len(scene_menu_data),
                     "new_count": new_count,
                     "scene_menu": scene_menu_data,
-                    "episode": _episode_detail_payload(episode, episode_num),
+                    "episode": episode_details_data(episode, episode_num),
                     "logs": logs,
                 },
             }
@@ -134,7 +113,7 @@ async def _plan_episode_assets(
             prop_menu = await compiler.compile_episode_props(episode, on_log=log_fn)
             promoted_props = await promote_episode_props_to_global(store, prop_menu)
             episode = _find_episode(store.get_all_episodes(), episode_num) or episode
-            prop_menu_data = _dump_episode_items(prop_menu)
+            prop_menu_data = serialize_episode_items(prop_menu)
             return {
                 "ok": True,
                 "data": {
@@ -142,7 +121,7 @@ async def _plan_episode_assets(
                     "total_count": len(prop_menu_data),
                     "auto_promoted_props": promoted_props,
                     "prop_menu": prop_menu_data,
-                    "episode": _episode_detail_payload(episode, episode_num),
+                    "episode": episode_details_data(episode, episode_num),
                     "logs": logs,
                 },
             }
@@ -203,23 +182,7 @@ async def list_episodes(project: str, user: dict = Depends(get_api_user)):
     resolved = await resolve_project_scope(project, user, required_role="viewer")
 
     store = await make_sqlite_store_for_context(resolved.ctx)
-    episodes = store.get_all_episodes()
-
-    data = []
-    for ep in episodes:
-        data.append(
-            {
-                "number": ep.number if hasattr(ep, "number") else 0,
-                "title": ep.title if hasattr(ep, "title") else "",
-                "summary": (getattr(ep, "content_summary", "") or getattr(ep, "summary", "") or ""),
-                "identity_ids": list(getattr(ep, "identity_ids", []) or []),
-                "key_events": list(getattr(ep, "key_events", []) or []),
-                "scene_menu": _dump_episode_items(getattr(ep, "scene_menu", []) or []),
-                "prop_menu": _dump_episode_items(getattr(ep, "prop_menu", []) or []),
-            }
-        )
-
-    return {"ok": True, "data": data}
+    return {"ok": True, "data": list_episode_summaries(store)}
 
 
 @router.post("/projects/{project}/episodes/plan")
@@ -272,11 +235,11 @@ async def get_episode_detail(project: str, episode_num: int, user: dict = Depend
         if resolved.ctx
         else await make_sqlite_store(resolved.username, resolved.project_name)
     )
-    episode = store.get_episode(episode_num)
-    if episode is None:
-        return {"ok": False, "error": f"Episode {episode_num} not found"}
-
-    return {"ok": True, "data": _episode_detail_payload(episode, episode_num)}
+    try:
+        data = get_episode_details(store, episode_num)
+    except EpisodeNotFound as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.get("/projects/{project}/episodes/{episode_num}/beats")
@@ -588,20 +551,16 @@ async def update_episode(
         else await make_sqlite_store(resolved.username, resolved.project_name)
     )
 
-    # 确认集数存在
-    episode = store.get_episode(episode_num)
-    if episode is None:
-        return {"ok": False, "error": f"Episode {episode_num} not found"}
-
     updates = body.model_dump(exclude_none=True)
-    if not updates:
-        return {"ok": True, "data": {"message": "No fields to update"}}
-
-    await store.update_episode(episode_num, **updates)
-
-    # 返回更新后的集信息
-    ep = store.get_episode(episode_num)
-    return {"ok": True, "data": _episode_detail_payload(ep, episode_num)}
+    try:
+        data = await update_episode_metadata(
+            store,
+            episode_num=episode_num,
+            updates=updates,
+        )
+    except EpisodeNotFound as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.get("/projects/{project}/chapters")

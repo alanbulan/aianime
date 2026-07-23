@@ -14,6 +14,11 @@ from ai_anime.modules.narrative_planning.application.episode_content import (
     GeneratedEpisodeRewrite,
     SavedEpisodeContent,
 )
+from ai_anime.modules.narrative_planning.application.episodes import (
+    EpisodeNotFound,
+    episode_details_data,
+    serialize_episode_items,
+)
 from ai_anime.modules.narrative_planning.application.literal_script_writing import (
     LiteralBeatMetaOutput,
     LiteralScriptWritingWorkflow,
@@ -25,6 +30,7 @@ from ai_anime.modules.narrative_planning.application.narrative_tasks import (
     ProjectContextRequired,
 )
 from ai_anime.modules.narrative_planning.application.ports import (
+    EpisodeRepository,
     NarrativeContentStore,
     NarrativeScriptStore,
     SeedancePromptStore,
@@ -48,6 +54,7 @@ from ai_anime.modules.narrative_planning.application.task_dto import (
 from ai_anime.modules.narrative_planning.composition import (
     beat_video_prompts,
     create_script_writing_workflow,
+    episode_catalog,
     episode_content_service,
     generate_seedance_prompt,
     schedule_beat_video_prompt,
@@ -106,6 +113,30 @@ async def generate_episode_rewrite(
     command: GenerateEpisodeRewriteCommand,
 ) -> GeneratedEpisodeRewrite:
     return await episode_content_service().generate_rewrite(store, command)
+
+
+def list_episode_summaries(store: EpisodeRepository) -> list[dict[str, Any]]:
+    return episode_catalog().list(store)
+
+
+def get_episode_details(
+    store: EpisodeRepository,
+    episode_num: int,
+) -> dict[str, Any]:
+    return episode_catalog().get(store, episode_num)
+
+
+async def update_episode_metadata(
+    store: EpisodeRepository,
+    *,
+    episode_num: int,
+    updates: dict[str, Any],
+) -> dict[str, Any]:
+    return await episode_catalog().update(
+        store,
+        episode_num=episode_num,
+        updates=updates,
+    )
 
 
 async def load_episode_script(
@@ -225,6 +256,7 @@ __all__ = [
     "ClearedEpisodeContent",
     "EpisodeContentDocument",
     "EpisodeContentWriteFailed",
+    "EpisodeNotFound",
     "FinalBeatTransitionNotAllowed",
     "GenerateEpisodeRewriteCommand",
     "GenerateSeedancePromptCommand",
@@ -246,17 +278,22 @@ __all__ = [
     "clear_adapted_episode_content",
     "create_script_writing_workflow",
     "enqueue_beat_video_prompt_generation",
+    "episode_details_data",
     "generate_and_save_beat_video_prompt",
     "generate_episode_rewrite",
     "generate_seedance2_beat_prompt",
+    "get_episode_details",
     "load_adapted_episode_content",
     "load_episode_script",
     "load_raw_episode_content",
+    "list_episode_summaries",
     "resolve_beat_video_prompt_target",
     "save_adapted_episode_content",
     "save_episode_script",
     "save_raw_episode_content",
+    "serialize_episode_items",
     "start_episode_script_generation",
     "split_literal_source_text",
     "update_episode_script_beat",
+    "update_episode_metadata",
 ]

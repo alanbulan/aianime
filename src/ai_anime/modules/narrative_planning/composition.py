@@ -8,6 +8,9 @@ from ai_anime.modules.narrative_planning.application.beat_video_prompts import (
 from ai_anime.modules.narrative_planning.application.episode_content import (
     EpisodeContentService,
 )
+from ai_anime.modules.narrative_planning.application.episodes import (
+    EpisodeCatalog,
+)
 from ai_anime.modules.narrative_planning.application.literal_script_writing import (
     LiteralScriptWritingWorkflow,
 )
@@ -51,6 +54,10 @@ def episode_content_service() -> EpisodeContentService:
     return EpisodeContentService(
         rewrite_generator=content_rewriters.rewrite_episode_content,
     )
+
+
+def episode_catalog() -> EpisodeCatalog:
+    return EpisodeCatalog()
 
 
 def script_document_service() -> ScriptDocumentService:
