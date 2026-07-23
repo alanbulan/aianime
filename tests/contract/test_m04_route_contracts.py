@@ -350,8 +350,11 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     def build(backend: str = "inline"):
         task_backend = _FakeTaskBackend(backend)
         monkeypatch.setattr(app_ports, "get_task_backend", lambda tb=task_backend: tb)
-        for module in (props, generation):
-            monkeypatch.setattr(module, "get_task_backend", lambda tb=task_backend: tb)
+        monkeypatch.setattr(
+            generation,
+            "get_task_backend",
+            lambda tb=task_backend: tb,
+        )
         app = FastAPI()
         app.include_router(characters.router, prefix="/api/v1")
         app.include_router(props.router, prefix="/api/v1")

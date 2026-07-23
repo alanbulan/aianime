@@ -26,6 +26,7 @@ from ai_anime.modules.asset_world.application.character_voice import (
 from ai_anime.modules.asset_world.application.prop_catalog import (
     PropCatalogUseCases,
 )
+from ai_anime.modules.asset_world.application.prop_tasks import PropTaskUseCases
 from ai_anime.modules.asset_world.application.styles import (
     AnalyzeStyle,
     StyleCatalogUseCases,
@@ -51,9 +52,6 @@ from ai_anime.modules.asset_world.infrastructure.character_generation import (
 from ai_anime.modules.asset_world.infrastructure.character_image_storage import (
     LocalCharacterImageFiles,
 )
-from ai_anime.modules.asset_world.infrastructure.character_task_scheduler import (
-    TaskBackendCharacterTaskScheduler,
-)
 from ai_anime.modules.asset_world.infrastructure.prop_catalog import (
     LocalPropCatalogAssets,
     NovelEpisodeLocalPropSource,
@@ -63,6 +61,9 @@ from ai_anime.modules.asset_world.infrastructure.style_catalog import StyleServi
 from ai_anime.modules.asset_world.infrastructure.style_generation import (
     PydanticStyleImageAnalyzer,
     UnifiedStylePreviewGenerator,
+)
+from ai_anime.modules.asset_world.infrastructure.task_scheduler import (
+    TaskBackendAssetTaskScheduler,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 
@@ -108,7 +109,13 @@ def character_image_use_cases() -> CharacterImageUseCases:
 def character_task_use_cases() -> CharacterTaskUseCases:
     from ai_anime import ports
 
-    return CharacterTaskUseCases(TaskBackendCharacterTaskScheduler(ports.get_task_backend))
+    return CharacterTaskUseCases(TaskBackendAssetTaskScheduler(ports.get_task_backend))
+
+
+def prop_task_use_cases() -> PropTaskUseCases:
+    from ai_anime import ports
+
+    return PropTaskUseCases(TaskBackendAssetTaskScheduler(ports.get_task_backend))
 
 
 async def execute_character_image_task(

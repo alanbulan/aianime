@@ -20,11 +20,9 @@ from ai_anime.modules.asset_world.public import (
     PropCatalogRejected,
     UpdatePropCommand,
     prop_catalog_use_cases,
+    prop_task_use_cases,
 )
 from ai_anime.project_config import load_project_config_file
-from ai_anime.ports import get_task_backend
-from ai_anime.task_scopes import prop_reference_asset_scope
-from ai_anime.task_identity import project_task_state_key
 
 router = APIRouter()
 
@@ -165,41 +163,18 @@ async def generate_prop_reference(
     )
     style = (body.style if body else "") or _project_style(username, project_name)
     model = str(body.model if body else "").strip()
-    prop = await store.get_prop(name)
-    if prop is None:
-        return {"ok": False, "error": f"Prop '{name}' not found"}
-    if not (prop.visual_prompt or prop.description or prop.name):
-        return {"ok": False, "error": f"Prop '{prop.name}' has no visual prompt"}
-
-    scope = prop_reference_asset_scope(prop.name)
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type="prop_reference_asset",
-            queue_kind="default",
-            episode=0,
-            scope=scope,
-            payload={
-                "prop_name": prop.name,
-                "style": style,
-                "model": model,
-                "output_dir": output_dir,
-            },
+    try:
+        scheduled = await prop_task_use_cases().schedule_reference(
+            repository=store,
+            task_context=ctx,
+            output_dir=output_dir,
+            prop_name=name,
+            style=style,
+            model=model,
         )
-        return {
-            "ok": True,
-            "task_type": "prop_reference_asset",
-            "scope": scope,
-            "task_id": queued.task_state.task_id,
-            "task_key": project_task_state_key(
-                "prop_reference_asset", ctx.project_id, 0, scope=scope
-            ),
-            "backend": queued.backend,
-            "queue": queued.queue,
-            "message": f"道具「{prop.name}」参考图生成任务已进入队列",
-        }
-
-    return {"ok": False, "error": "道具参考图生成需要 project context"}
+    except PropCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, **scheduled.as_dict()}
 
 
 @router.post("/projects/{project}/props/reference/batch-generate")
@@ -216,22 +191,13 @@ async def batch_generate_prop_references(
     style = (body.style if body else "") or _project_style(username, project_name)
     model = str(body.model if body else "").strip()
 
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type="batch_prop_ref",
-            queue_kind="default",
-            episode=0,
-            payload={"style": style, "model": model, "output_dir": output_dir},
+    try:
+        scheduled = await prop_task_use_cases().schedule_batch_references(
+            task_context=ctx,
+            output_dir=output_dir,
+            style=style,
+            model=model,
         )
-        return {
-            "ok": True,
-            "task_type": "batch_prop_ref",
-            "task_id": queued.task_state.task_id,
-            "task_key": project_task_state_key("batch_prop_ref", ctx.project_id, 0),
-            "backend": queued.backend,
-            "queue": queued.queue,
-            "message": "批量道具参考图生成任务已进入队列",
-        }
-
-    return {"ok": False, "error": "批量道具参考图生成需要 project context"}
+    except PropCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, **scheduled.as_dict()}

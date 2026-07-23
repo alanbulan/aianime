@@ -37,6 +37,10 @@ class InvalidPropInput(PropCatalogRejected):
     """Prop input is not valid for the requested operation."""
 
 
+class PropProjectContextRequired(PropCatalogRejected):
+    """A prop task requires a resolved project context."""
+
+
 class CharacterProjectContextRequired(CharacterCatalogRejected):
     """A character task requires a resolved project context."""
 

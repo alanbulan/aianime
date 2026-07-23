@@ -374,6 +374,21 @@ def test_asset_world_prop_catalog_routes_delegate_to_application() -> None:
         assert legacy_implementation not in source
 
 
+def test_asset_world_prop_task_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "props.py"
+    source = route.read_text(encoding="utf-8")
+
+    assert "prop_task_use_cases" in source
+    for legacy_implementation in (
+        "get_task_backend",
+        "project_task_state_key",
+        "prop_reference_asset_scope",
+        "enqueue_project_task(",
+        "await store.get_prop(",
+    ):
+        assert legacy_implementation not in source
+
+
 def test_asset_world_character_identity_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "characters.py"
     source = route.read_text(encoding="utf-8")

@@ -29,6 +29,7 @@ from ai_anime.modules.asset_world.application.character_voice import (
 from ai_anime.modules.asset_world.application.prop_catalog import (
     PropCatalogUseCases,
 )
+from ai_anime.modules.asset_world.application.prop_tasks import PropTaskUseCases
 from ai_anime.modules.asset_world.application.dto import (
     AnalyzeStyleCommand,
     CharacterGenerationOptions,
@@ -128,6 +129,12 @@ def prop_catalog_use_cases() -> PropCatalogUseCases:
     return build()
 
 
+def prop_task_use_cases() -> PropTaskUseCases:
+    from ai_anime.modules.asset_world.composition import prop_task_use_cases as build
+
+    return build()
+
+
 def character_identity_use_cases() -> CharacterIdentityUseCases:
     from ai_anime.modules.asset_world.composition import character_identity_use_cases as build
 
@@ -217,6 +224,7 @@ __all__ = [
     "PropCatalogRejected",
     "PropCatalogUseCases",
     "PropNotFound",
+    "PropTaskUseCases",
     "RestoreCharacterAssetCommand",
     "StyleAnalysisBilling",
     "StyleCatalogUseCases",
@@ -237,6 +245,7 @@ __all__ = [
     "character_asset_links",
     "character_catalog_use_cases",
     "prop_catalog_use_cases",
+    "prop_task_use_cases",
     "character_generation_use_cases",
     "character_identity_use_cases",
     "character_image_use_cases",

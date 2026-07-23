@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, ClassVar, Mapping, Sequence
 
 
 @dataclass(frozen=True)
@@ -118,6 +118,41 @@ class CharacterImageGenerationTask:
             output_dir=str(self.output_dir),
         )
         return payload
+
+
+@dataclass(frozen=True)
+class PropReferenceGenerationTask:
+    task_type: ClassVar[str] = "prop_reference_asset"
+
+    prop_name: str
+    style: str
+    model: str
+    output_dir: str | Path
+    scope: str
+
+    def backend_payload(self) -> dict[str, Any]:
+        return {
+            "prop_name": self.prop_name,
+            "style": self.style,
+            "model": self.model,
+            "output_dir": str(self.output_dir),
+        }
+
+
+@dataclass(frozen=True)
+class BatchPropReferenceGenerationTask:
+    task_type: ClassVar[str] = "batch_prop_ref"
+
+    style: str
+    model: str
+    output_dir: str | Path
+
+    def backend_payload(self) -> dict[str, Any]:
+        return {
+            "style": self.style,
+            "model": self.model,
+            "output_dir": str(self.output_dir),
+        }
 
 
 @dataclass(frozen=True)

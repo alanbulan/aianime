@@ -7,6 +7,7 @@ from typing import Any, Mapping, Protocol, Sequence
 
 from ai_anime.modules.asset_world.application.dto import (
     AssetTaskQueueReceipt,
+    BatchPropReferenceGenerationTask,
     BuildCharactersTask,
     CharacterAssetHistoryEntry,
     CharacterAssetTarget,
@@ -17,6 +18,7 @@ from ai_anime.modules.asset_world.application.dto import (
     CreatePropCommand,
     IdentityAssetPaths,
     IdentityGenerationAssets,
+    PropReferenceGenerationTask,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 
@@ -266,6 +268,24 @@ class EpisodeLocalPropSource(Protocol):
         repository: PropCatalogRepository,
         global_prop_names: set[str],
     ) -> list[dict[str, Any]]: ...
+
+
+class PropTaskRepository(Protocol):
+    async def get_prop(self, name: str) -> Any | None: ...
+
+
+class PropTaskScheduler(Protocol):
+    async def enqueue_prop_reference(
+        self,
+        task_context: ProjectContext,
+        task: PropReferenceGenerationTask,
+    ) -> AssetTaskQueueReceipt: ...
+
+    async def enqueue_batch_prop_references(
+        self,
+        task_context: ProjectContext,
+        task: BatchPropReferenceGenerationTask,
+    ) -> AssetTaskQueueReceipt: ...
 
 
 class CharacterIdentityRepository(Protocol):
