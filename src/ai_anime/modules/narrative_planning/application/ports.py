@@ -17,6 +17,25 @@ class NarrativeScriptStore(Protocol):
     ) -> bool: ...
 
 
+class ScriptDocumentStore(Protocol):
+    async def get_script_as_dict(self, episode_num: int) -> dict[str, Any] | None: ...
+
+    async def update_beat_asset(
+        self,
+        episode_number: int,
+        beat_number: int,
+        **updates: Any,
+    ) -> bool: ...
+
+    async def load_graph_state(self) -> Any: ...
+
+    async def persist_beats_from_script(
+        self,
+        episode_num: int,
+        beats: list[dict[str, Any]],
+    ) -> None: ...
+
+
 class FirstFramePromptGenerator(Protocol):
     async def __call__(
         self,

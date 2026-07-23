@@ -11,6 +11,9 @@ from ai_anime.modules.narrative_planning.application.episode_content import (
 from ai_anime.modules.narrative_planning.application.literal_script_writing import (
     LiteralScriptWritingWorkflow,
 )
+from ai_anime.modules.narrative_planning.application.script_documents import (
+    ScriptDocumentService,
+)
 from ai_anime.modules.narrative_planning.infrastructure import (
     beat_prompt_generators,
     content_rewriters,
@@ -32,6 +35,10 @@ def episode_content_service() -> EpisodeContentService:
     return EpisodeContentService(
         rewrite_generator=content_rewriters.rewrite_episode_content,
     )
+
+
+def script_document_service() -> ScriptDocumentService:
+    return ScriptDocumentService()
 
 
 def create_script_writing_workflow(

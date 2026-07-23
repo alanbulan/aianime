@@ -27,8 +27,15 @@ from ai_anime.api.schemas import (
 )
 from ai_anime.models import sync_beat_asset_refs
 from ai_anime.modules.narrative_planning.public import (
+    BeatNotFound,
+    BeatStoreUpdateFailed,
+    ScriptNotFound,
+    ScriptStoreSyncFailed,
     generate_and_save_beat_video_prompt,
+    load_episode_script,
     resolve_beat_video_prompt_target,
+    save_episode_script,
+    update_episode_script_beat,
 )
 from ai_anime.ports import get_task_backend, get_usage_meter
 from ai_anime.task_identity import project_task_state_key
@@ -61,7 +68,7 @@ async def get_script(project: str, episode_num: int, user: dict = Depends(get_ap
             if resolved.ctx
             else await make_sqlite_store(resolved.username, resolved.project_name)
         )
-        script_data = await store.get_script_as_dict(episode_num)
+        script_data = await load_episode_script(store, episode_num)
         if script_data:
             return {"ok": True, "data": script_data}
     except Exception as exc:
@@ -149,46 +156,17 @@ async def update_beat(
         if resolved.ctx
         else await make_sqlite_store(resolved.username, resolved.project_name)
     )
-    script_data = await store.get_script_as_dict(episode_num)
-    if not script_data:
-        raise HTTPException(status_code=404, detail="Script not found")
-    beats = list(script_data.get("beats") or [])
-    target = next((beat for beat in beats if int(beat.get("beat_number") or 0) == beat_num), None)
-    if target is None:
-        raise HTTPException(status_code=404, detail=f"Beat {beat_num} not found")
-
     updates = body.model_dump(exclude_none=True)
-    for key, value in updates.items():
-        target[key] = value
-    sync_beat_asset_refs(target)
-
     try:
-        saved = await store.update_beat_asset(
-            episode_number=episode_num,
-            beat_number=beat_num,
-            **{
-                k: v
-                for k, v in updates.items()
-                if k
-                in (
-                    "narration_segment",
-                    "visual_description",
-                    "audio_type",
-                    "speaker",
-                    "detected_identities",
-                    "detected_props",
-                    "scene_ref",
-                    "time_of_day",
-                    "video_mode",
-                    "video_prompt",
-                    "keyframe_prompt",
-                    "seedance2_config_json",
-                )
-            },
+        target = await update_episode_script_beat(
+            store,
+            episode_num=episode_num,
+            beat_num=beat_num,
+            updates=updates,
         )
-        if not saved:
-            raise RuntimeError(f"Beat {beat_num} was not updated")
-    except Exception as exc:
+    except (ScriptNotFound, BeatNotFound) as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except BeatStoreUpdateFailed as exc:
         logger.exception(
             "Beat 保存失败: episode=%s beat=%s", episode_num, beat_num
         )
@@ -469,27 +447,20 @@ async def save_script(
         if resolved.ctx
         else await make_cognee_store(resolved.username, resolved.project_name)
     )
-    await store.load_graph_state()
-
-    normalized_beats = []
-    for beat in body.beats:
-        beat_payload = dict(beat)
-        sync_beat_asset_refs(beat_payload)
-        normalized_beats.append(beat_payload)
-
     try:
-        await store.persist_beats_from_script(episode_num, normalized_beats)
-    except Exception as e:
+        saved = await save_episode_script(
+            store,
+            episode_num=episode_num,
+            beats=body.beats,
+        )
+    except ScriptStoreSyncFailed as exc:
         logger.exception("完整脚本保存后回写图谱失败: episode=%s", episode_num)
         raise HTTPException(
             status_code=500,
-            detail=f"Script store sync failed: {e}",
-        )
+            detail=f"Script store sync failed: {exc}",
+        ) from exc
 
     return {
         "ok": True,
-        "data": {
-            "episode": episode_num,
-            "beats_count": len(body.beats),
-        },
+        "data": saved.as_dict(),
     }

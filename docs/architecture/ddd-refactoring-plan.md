@@ -443,7 +443,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 | 2. 应用装配 | 已完成 | 前后端组合根、共享基础和全局样式边界均已落地 |
 | 3. Story Intake 样板 | 已完成 | 唯一 public 边界、领域 DTO、任务协议和缓存契约均已通过退出门禁 |
 | 4. Identity / Workspace | 已完成 | 前后端 Identity / Project Workspace 已收敛到唯一 public 边界；前端 app guard、账户、项目首页和导航已迁移 |
-| 5. Narrative Planning | 进行中 | 已建立脚本工作流、Beat 视频提示词和剧集内容边界；继续迁移剧集、其余剧本能力和前端工作台 |
+| 5. Narrative Planning | 进行中 | 已建立脚本工作流、剧本文档、Beat 视频提示词和剧集内容边界；继续迁移剧集、其余剧本能力和前端工作台 |
 | 6. Asset & World | 未开始 | 角色、场景、道具与风格 |
 | 7. Production | 未开始 | 分镜、音频、视频、渲染与导出 |
 | 8. Creative Canvas | 未开始 | Freezone 与 Canvas，高风险阶段 |
@@ -468,7 +468,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 | Story Intake 样板 | `cb2b856` 完成后端 domain/application/infrastructure/use-case 切片；`1078eb1` 完成前端 controller/view/domain/infrastructure 切片；退出批次删除前端 `lib/queries/ingest.ts` 与后端 `api/chapter_preview.py`，外部调用统一走 public API；应用 DTO 接管任务 payload 往返，导入完成会刷新章节并失效图谱缓存 | 阶段 3 已关闭，不保留旧查询、旧 facade、内部路径白名单或重复导入 HTTP 实现 |
 | Identity & Access | `8b05ba2` 完成后端 domain/application/infrastructure/public 边界；本批完成前端同构分层，登录、授权、注销、会话、头像和 app guard 统一经过模块公共接口，CE 与桌面会话协议保持不变 | 阶段 4 已关闭；旧 `auth-adapter`、`auth-mode`、认证查询和 store 路径已删除，不保留兼容 facade |
 | Project Workspace | `d8ca6e3` 完成后端项目生命周期切片；本批将前端领域规则、查询 gateway、首页 controller/view、共享控制器和导航状态归入模块边界，所有生产调用方只依赖 public API | 阶段 4 已关闭；旧项目查询、类型、权限、路由、导航 store 和首页实现已删除，不保留双轨实现 |
-| Narrative Planning | 首批建立后端 domain/application/infrastructure/composition/public 切片；Beat 选择、上下文和首尾帧末尾限制已从 route 下沉，脚本写作 workflow 已迁入模块；第二批将原文/改写稿 CRUD、改写生成与归一化规则从 `content.py` 迁入同一唯一边界；route、task runner、CLI 和 AssetCompiler 统一经过 public API，旧 `ai_anime/workflows` 已删除 | 阶段 5 继续迁移 `episodes.py`、`scripts.py` 其余能力及上下文 repository/task ports；随后迁移前端 episode/script controller、view、gateway，并删除旧查询实现 |
+| Narrative Planning | 首批建立后端 domain/application/infrastructure/composition/public 切片；Beat 选择、上下文和首尾帧末尾限制已从 route 下沉，脚本写作 workflow 已迁入模块；第二批迁移原文/改写稿 CRUD、改写生成与归一化规则；第三批迁移剧本读取/覆盖保存和 Beat 编辑，并拆分专用 ScriptDocumentStore；route、task runner、CLI 和 AssetCompiler 统一经过 public API，旧 `ai_anime/workflows` 已删除 | 阶段 5 继续迁移 `episodes.py`，以及 `scripts.py` 的任务调度和 Seedance 提示词能力；随后迁移前端 episode/script controller、view、gateway，并删除旧查询实现 |
 
 当前验证事实：
 
@@ -486,6 +486,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 - Narrative Planning 首批定向回归 75 项通过；其中显式传入 8 个 M03 文件的契约回归 47 项通过，阶段 3/4 遗留测试夹具修正后的 3 项用例通过。
 - Narrative Planning 的旧 workflow 导入、task runner 对 scripts route 的反向导入及生产代码跨 public 内部路径导入均为零；全仓 Ruff `src tests` 和 `git diff --check` 通过。
 - Narrative Content 应用/适配器/架构门禁定向回归 19 项通过；8 个显式 M03 文件仍为 47 项通过，全仓 Ruff `src tests` 通过。
+- Narrative Script Document、全部显式 M03 和架构门禁合并回归 60 项通过；全仓 Ruff `src tests` 通过。
 - 后端默认 Pytest 仍有阶段 0 已记录的 `examples.seedance2_fast_demo` 缺失模块收集错误，不能记为全量通过。
 
 ### 阶段 0：确认、检查点与可复现基线
@@ -568,7 +569,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 ### 阶段 5：Narrative Planning
 
-当前进度：进行中。首批已迁移脚本写作 workflow 与 Beat 视频提示词生成/持久化能力，建立唯一 public API，并删除旧 `ai_anime/workflows`；`scripts.py` 不再持有对应业务规则，task runner 不再反向导入 route。第二批已迁移原文、改写稿和内容改写用例，`content.py` 只保留 HTTP 适配。剩余范围为 episodes、scripts 其余用例与 repository/task ports，以及前端 episode/script 的 controller、view、gateway 和旧查询清理。
+当前进度：进行中。首批已迁移脚本写作 workflow 与 Beat 视频提示词生成/持久化能力，建立唯一 public API，并删除旧 `ai_anime/workflows`；task runner 不再反向导入 route。第二批已迁移原文、改写稿和内容改写用例，`content.py` 只保留 HTTP 适配。第三批已迁移剧本读取/覆盖保存、Beat 查找/编辑和字段持久化规则。剩余范围为 episodes，以及 scripts 的任务调度、Seedance 提示词用例与相关 ports；随后处理前端 episode/script 的 controller、view、gateway 和旧查询清理。
 
 任务：
 
