@@ -1,10 +1,10 @@
 # `ai-anime-desktop` DDD 模块化重构计划
 
-> 状态：待确认
+> 状态：执行中（阶段 1）
 >
 > 制定日期：2026-07-23
 >
-> 基线：`main@016f528` 加当前未提交的知识图谱改动
+> 功能基线：`6326755`（知识图谱）；计划基线：`5a5eca8`
 >
 > 目标形态：模块化单体（Modular Monolith）+ 有界上下文 + 端口与适配器
 
@@ -49,9 +49,9 @@ DDD 只用于有真实业务规则的区域。简单 CRUD 不会被强行包装�
 
 | 项目 | 当前事实 | 对重构的影响 |
 | --- | --- | --- |
-| 分支与提交 | `main@016f528` | 计划获批后先建立独立检查点 |
-| 工作区 | 存在未提交的知识图谱前后端改动 | 不能与结构迁移混在同一提交 |
-| 远端差异 | 相对 `origin/main`：behind 5 / ahead 3 | 不自动 pull、rebase 或 merge；同步策略需单独处理 |
+| 分支与提交 | `refactor/ddd-modular-monolith@5a5eca8` | 知识图谱和计划已形成独立检查点 |
+| 工作区 | 阶段 0 完成时干净 | 后续阶段保持一批一提交 |
+| 远端差异 | 相对 `origin/main`：behind 5 / ahead 5 | 不自动 pull、rebase 或 merge；同步策略需单独处理 |
 | 前端规模 | `frontend/src` 约 865 个 TS/TSX/CSS 文件、约 20.6 万逻辑行，包含测试和生成文件 | 不能一次性移动，必须按上下文迁移 |
 | 后端规模 | `src/ai_anime` 约 317 个 Python 文件、约 13 万逻辑行 | 需要兼容出口和分阶段门禁 |
 | 后端路由 | 23 个路由模块、约 2.5 万逻辑行 | 路由层已成为主要业务承载层之一 |
@@ -65,7 +65,7 @@ DDD 只用于有真实业务规则的区域。简单 CRUD 不会被强行包装�
 | --- | --- | --- |
 | FastAPI 路由过载 | `freezone.py` 约 11,059 行/71 个端点；`generation.py` 约 5,106 行/63 个端点；`characters.py` 约 1,706 行/34 个端点 | HTTP、权限、文件、业务规则、任务提交和结果映射混在同层 |
 | 路由互相依赖 | `freezone.py` 多处导入 `api.routes.generation` 的私有函数 | 路由不再是边缘适配器，形成隐式共享业务层 |
-| 后端依赖方向反转 | 非 API 模块中静态检出 27 处对 `api.deps`、`api.schemas` 或具体 route 的反向导入 | 任务运行器和领域能力依赖 FastAPI 表示层，无法独立测试和复用 |
+| 后端依赖方向反转 | 非 API 业务模块中 AST 检出 28 处对 `api.auth`、`api.deps`、`api.schemas` 或具体 route 的反向导入 | 任务运行器和领域能力依赖 FastAPI 表示层，无法独立测试和复用 |
 | 后端公共巨石 | `api/schemas.py`、`models.py`、`sqlite_store.py` 集中了跨领域模型和存储方法 | 修改一个领域容易影响其他领域，所有权不清晰 |
 | FastAPI 装配集中 | `api/app.py` 同时负责中间件、异常、生命周期、桌面端点、静态文件和 SPA | 应用工厂难以按环境组合和独立测试 |
 | 前端路由过载 | 19 个 route 文件中有 8 个超过 500 逻辑行；导入页约 1,880 行，角色页约 3,155 行 | route 同时承担控制器、表单、业务规则、任务状态和视图 |
@@ -436,8 +436,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 | 阶段 | 状态 | 说明 |
 | --- | --- | --- |
-| 0. 确认与基线 | 待确认 | 计划获批后开始，不自动同步远端 |
-| 1. 架构保护网 | 未开始 | 建立只减不增的依赖门禁 |
+| 0. 确认与基线 | 已完成 | 功能与计划独立提交，不自动同步远端 |
+| 1. 架构保护网 | 进行中 | 建立只减不增的依赖门禁 |
 | 2. 应用装配 | 未开始 | 先做行为等价的基础拆分 |
 | 3. Story Intake 样板 | 未开始 | 首个前后端纵向切片 |
 | 4. Identity / Workspace | 未开始 | 认证与项目边界 |
@@ -447,6 +447,14 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 | 8. Creative Canvas | 未开始 | Freezone 与 Canvas，高风险阶段 |
 | 9. Supporting Contexts | 未开始 | Chat、Model、Usage、Release |
 | 10. 最终收敛 | 未开始 | 删除兼容层并执行全量门禁 |
+
+阶段 0 的实际验证基线：
+
+- 前端 TypeScript 全量检查通过。
+- Electron TypeScript 检查通过。
+- Ruff `src tests` 检查通过。
+- 前端 Vitest：276 个测试文件、1,751 项用例通过。
+- 后端默认 Pytest 在收集阶段因已删除的 `examples.seedance2_fast_demo` 遗留测试失败；这是进入重构前的已知基线问题，不能记为通过，也不在阶段 0 擅自删除测试。
 
 ### 阶段 0：确认、检查点与可复现基线
 
@@ -466,7 +474,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 任务：
 
 1. 建立 ADR：模块化单体、依赖规则、API 兼容、状态所有权、样式所有权。
-2. 新增后端 AST import boundary 测试，先以 27 处存量反向依赖作为只减不增基线。
+2. 新增后端 AST import boundary 测试，先以 28 处存量反向依赖作为只减不增基线。
 3. 新增前端 import boundary 测试，约束 routes、modules、shared 和跨模块 public API。
 4. 为硬编码 UI 颜色建立分类 allowlist，禁止新 UI chrome 颜色字面量。
 5. 增加显式 `typecheck`/architecture test 脚本，不引入新工具依赖。
@@ -597,7 +605,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
-2. 将后端非 API -> API 的 27 处反向依赖降为 0。
+2. 将后端非 API -> API 的 28 处反向依赖降为 0。
 3. 清空前端 legacy 目录违规基线；跨模块只保留 public API。
 4. 更新 README、领域地图、运行架构和开发约束。
 5. 执行全量测试、类型检查、Ruff、桌面 typecheck、OpenAPI diff 和数据兼容验证。
@@ -638,7 +646,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 | 指标 | 当前 | 最终目标 |
 | --- | --- | --- |
-| 非 API 模块反向依赖 `ai_anime.api.*` | 27 处 | 0 |
+| 非 API 业务模块反向依赖 `ai_anime.api.*` | 28 处 | 0 |
 | route 互相导入私有实现 | 已存在 | 0 |
 | 后端超 1,000 逻辑行 route 模块 | 4 个 | 0；兼容 facade 不含实现 |
 | 前端 route 超 500 逻辑行 | 8/19 | 0；route 仅做适配 |
