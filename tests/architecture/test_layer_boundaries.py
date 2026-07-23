@@ -370,6 +370,24 @@ def test_asset_world_character_identity_routes_delegate_to_application() -> None
         assert legacy_implementation not in source
 
 
+def test_asset_world_character_asset_history_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "characters.py"
+    source = route.read_text(encoding="utf-8")
+
+    assert "character_asset_history_use_cases" in source
+    for legacy_implementation in (
+        "def _identity_by_id",
+        "def _backup_character_asset",
+        "def _resolve_character_asset_path",
+        "def _history_id_for_path",
+        "def _character_asset_history_entries",
+        "def _character_asset_history_path",
+        "def _sync_restored_identity_asset",
+        "shutil.copy2(source, target)",
+    ):
+        assert legacy_implementation not in source
+
+
 def test_narrative_script_route_remains_an_http_adapter() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "scripts.py"
     imported_modules = _imports(route)

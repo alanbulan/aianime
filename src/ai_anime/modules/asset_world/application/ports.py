@@ -6,10 +6,45 @@ from pathlib import Path
 from typing import Any, Mapping, Protocol, Sequence
 
 from ai_anime.modules.asset_world.application.dto import (
+    CharacterAssetHistoryEntry,
+    CharacterAssetTarget,
     CreateCharacterCommand,
     CreateIdentityCommand,
     IdentityAssetPaths,
 )
+
+
+class CharacterAssetHistoryRepository(Protocol):
+    def get_character(self, name: str) -> Any | None: ...
+
+    async def update_character_identity(
+        self,
+        character_name: str,
+        identity_id: str,
+        **updates: Any,
+    ) -> Any: ...
+
+
+class CharacterAssetHistoryFiles(Protocol):
+    def resolve_target(
+        self,
+        *,
+        project_dir: Path,
+        character: Any,
+        kind: str,
+        identity_id: str,
+    ) -> CharacterAssetTarget: ...
+
+    def list_entries(
+        self,
+        target: Path,
+    ) -> list[CharacterAssetHistoryEntry]: ...
+
+    def resolve_source(self, target: Path, history_id: str) -> Path: ...
+
+    def is_file(self, path: Path) -> bool: ...
+
+    def restore(self, source: Path, target: Path) -> Path | None: ...
 
 
 class CharacterCatalogRepository(Protocol):

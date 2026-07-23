@@ -53,21 +53,21 @@ from ai_anime.utils.path_resolver import (
     compute_portrait_path,
     compute_identity_costume_path,
     compute_identity_portrait_path,
-    canonical_portrait_path,
-    canonical_identity_path,
-    canonical_identity_costume_path,
-    canonical_identity_portrait_path,
 )
 from ai_anime.modules.asset_world.public import (
     CharacterCatalogRejected,
     CharacterVoiceRejected,
     CreateCharacterCommand,
     CreateIdentityCommand,
+    RestoreCharacterAssetCommand,
     UpdateCharacterCommand,
     UpdateIdentityCommand,
+    backup_character_asset,
+    character_asset_history_use_cases,
     character_catalog_use_cases,
     character_identity_use_cases,
     character_voice_use_cases,
+    find_character_identity,
 )
 from ai_anime.sqlite_store import SQLiteStore
 
@@ -80,7 +80,6 @@ ASSET_IMAGE_SELECTION_CONFIG_KEYS = {
     "prop": "prop_image_selection",
 }
 CHARACTER_IMAGE_USAGE_TASK_TYPES = ("character_portrait", "identity_image")
-CHARACTER_ASSET_KINDS = {"portrait", "identity", "identity_costume", "identity_portrait"}
 
 
 async def _resolve_character_project(
@@ -151,13 +150,6 @@ def _safe_asset_name(name: str) -> str:
     return re.sub(r'[/\\:*?"<>|]', "_", str(name or "").strip()) or "untitled"
 
 
-def _identity_by_id(character, identity_id: str):
-    for identity in character.identities or []:
-        if identity.identity_id == identity_id:
-            return identity
-    return None
-
-
 def _asset_url(ctx: ProjectContext, project_dir: Path, abs_path: str | Path) -> str:
     path = Path(abs_path)
     if not path.exists():
@@ -174,121 +166,6 @@ def _character_voice_media_url(
     project_dir: Path,
 ) -> Callable[[str], str]:
     return lambda rel_path: _asset_url(ctx, project_dir, project_dir / rel_path)
-
-
-def _backup_character_asset(path: Path) -> Path | None:
-    if not path.exists():
-        return None
-    ts = datetime.now().strftime("%Y%m%d%H%M%S%f")
-    backup = path.with_name(f"{path.stem}_{ts}{path.suffix}")
-    shutil.copy2(path, backup)
-    return backup
-
-
-def _resolve_character_asset_path(
-    *,
-    project_dir: Path,
-    character,
-    kind: str,
-    identity_id: str = "",
-) -> tuple[Path, object | None]:
-    if kind not in CHARACTER_ASSET_KINDS:
-        raise ValueError(f"Unsupported character asset kind: {kind}")
-    if kind == "portrait":
-        return canonical_portrait_path(project_dir, character.name), None
-
-    identity = _identity_by_id(character, identity_id)
-    if identity is None:
-        raise ValueError(f"Identity '{identity_id}' not found")
-    identity_name = getattr(identity, "identity_name", "") or identity_id
-    if kind == "identity":
-        return canonical_identity_path(project_dir, character.name, identity_name), identity
-    if kind == "identity_costume":
-        return canonical_identity_costume_path(project_dir, character.name, identity_name), identity
-    return canonical_identity_portrait_path(project_dir, character.name, identity_name), identity
-
-
-def _history_id_for_path(target: Path, path: Path) -> str:
-    history_dir = target.parent / "_history"
-    try:
-        rel = path.relative_to(history_dir)
-    except ValueError:
-        return path.name
-    return f"_history/{rel.as_posix()}"
-
-
-def _character_asset_history_entries(
-    *,
-    ctx: ProjectContext,
-    project_dir: Path,
-    target: Path,
-) -> list[dict]:
-    entries: list[dict] = []
-    if target.parent.exists():
-        timestamped = re.compile(
-            rf"^{re.escape(target.stem)}_(?P<stamp>\d{{14,20}}){re.escape(target.suffix)}$"
-        )
-        for path in target.parent.glob(f"{target.stem}_*{target.suffix}"):
-            if path.is_file() and timestamped.match(path.name):
-                stat = path.stat()
-                entries.append(
-                    {
-                        "history_id": _history_id_for_path(target, path),
-                        "filename": path.name,
-                        "url": _asset_url(ctx, project_dir, path),
-                        "created_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
-                        "bytes": stat.st_size,
-                    }
-                )
-
-    history_dir = target.parent / "_history"
-    if history_dir.exists():
-        for path in history_dir.glob(f"{target.name}.*.bak"):
-            if not path.is_file():
-                continue
-            stat = path.stat()
-            entries.append(
-                {
-                    "history_id": _history_id_for_path(target, path),
-                    "filename": path.name,
-                    "url": _asset_url(ctx, project_dir, path),
-                    "created_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
-                    "bytes": stat.st_size,
-                }
-            )
-
-    entries.sort(key=lambda item: str(item.get("created_at") or ""), reverse=True)
-    return entries
-
-
-def _character_asset_history_path(target: Path, history_id: str) -> Path:
-    raw = str(history_id or "").strip()
-    if not raw:
-        raise ValueError("history_id is required")
-    if raw.startswith("_history/"):
-        name = raw.removeprefix("_history/")
-        if "/" in name or "\\" in name:
-            raise ValueError("invalid history_id")
-        return target.parent / "_history" / name
-    if "/" in raw or "\\" in raw:
-        raise ValueError("invalid history_id")
-    return target.parent / raw
-
-
-async def _sync_restored_identity_asset(
-    store, character_name: str, identity, kind: str, target: Path
-):
-    if identity is None:
-        return
-    identity_id = getattr(identity, "identity_id", "")
-    if kind == "identity_costume":
-        await store.update_character_identity(
-            character_name, identity_id, costume_image=str(target)
-        )
-    elif kind == "identity_portrait":
-        await store.update_character_identity(
-            character_name, identity_id, portrait_image=str(target)
-        )
 
 
 @router.get("/projects/{project}/characters")
@@ -513,32 +390,18 @@ async def list_character_asset_history(
     ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_character_project(project, user, required_role="viewer")
     )
-    character = store.get_character(name)
-    if character is None:
-        return {"ok": False, "error": f"Character '{name}' not found"}
     try:
-        target, _identity = _resolve_character_asset_path(
+        data = character_asset_history_use_cases().list_history(
+            repository=store,
+            character_name=name,
             project_dir=project_dir,
-            character=character,
             kind=kind,
             identity_id=identity_id,
+            asset_url=lambda path: _asset_url(ctx, project_dir, path),
         )
-    except ValueError as exc:
+    except CharacterCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
-
-    return {
-        "ok": True,
-        "data": {
-            "kind": kind,
-            "identity_id": identity_id,
-            "current_url": _asset_url(ctx, project_dir, target),
-            "entries": _character_asset_history_entries(
-                ctx=ctx,
-                project_dir=project_dir,
-                target=target,
-            ),
-        },
-    }
+    return {"ok": True, "data": data}
 
 
 @router.post("/projects/{project}/characters/{name}/asset-history/restore")
@@ -552,50 +415,24 @@ async def restore_character_asset_history(
     ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_character_project(project, user)
     )
-    character = store.get_character(name)
-    if character is None:
-        return {"ok": False, "error": f"Character '{name}' not found"}
-
     kind = str(getattr(body, "kind", "") or "").strip()
     identity_id = str(getattr(body, "identity_id", "") or "").strip()
     history_id = str(getattr(body, "history_id", "") or "").strip()
     try:
-        target, identity = _resolve_character_asset_path(
+        data = await character_asset_history_use_cases().restore_history(
+            repository=store,
+            character_name=name,
             project_dir=project_dir,
-            character=character,
-            kind=kind,
-            identity_id=identity_id,
+            command=RestoreCharacterAssetCommand(
+                kind=kind,
+                identity_id=identity_id,
+                history_id=history_id,
+            ),
+            asset_url=lambda path: _asset_url(ctx, project_dir, path),
         )
-    except ValueError as exc:
+    except CharacterCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
-
-    entries = _character_asset_history_entries(ctx=ctx, project_dir=project_dir, target=target)
-    allowed_ids = {str(entry.get("history_id") or "") for entry in entries}
-    if history_id not in allowed_ids:
-        return {"ok": False, "error": "History asset not found"}
-
-    try:
-        source = _character_asset_history_path(target, history_id)
-    except ValueError as exc:
-        return {"ok": False, "error": str(exc)}
-    if not source.exists() or not source.is_file():
-        return {"ok": False, "error": "History asset not found"}
-
-    target.parent.mkdir(parents=True, exist_ok=True)
-    backup = _backup_character_asset(target)
-    shutil.copy2(source, target)
-    await _sync_restored_identity_asset(store, name, identity, kind, target)
-
-    return {
-        "ok": True,
-        "data": {
-            "kind": kind,
-            "identity_id": identity_id,
-            "restored": True,
-            "url": _asset_url(ctx, project_dir, target),
-            "backup_history_id": backup.name if backup else "",
-        },
-    }
+    return {"ok": True, "data": data}
 
 
 @router.patch("/projects/{project}/characters/{name}")
@@ -1009,7 +846,7 @@ async def upload_identity_image(
     identities_dir.mkdir(parents=True, exist_ok=True)
 
     img_path = identities_dir / f"{identity_name}.png"
-    _backup_character_asset(img_path)
+    backup_character_asset(img_path)
     img.save(str(img_path), format="PNG")
 
     image_url = _asset_url(ctx, project_dir, img_path)
@@ -1045,7 +882,7 @@ async def upload_identity_costume(
     character = store.get_character(name)
     if character is None:
         return {"ok": False, "error": f"Character '{name}' not found"}
-    identity = _identity_by_id(character, identity_id)
+    identity = find_character_identity(character, identity_id)
     if identity is None:
         return {"ok": False, "error": f"Identity '{identity_id}' not found"}
 
@@ -1081,7 +918,7 @@ async def delete_identity_costume(
     character = store.get_character(name)
     if character is None:
         return {"ok": False, "error": f"Character '{name}' not found"}
-    identity = _identity_by_id(character, identity_id)
+    identity = find_character_identity(character, identity_id)
     if identity is None:
         return {"ok": False, "error": f"Identity '{identity_id}' not found"}
 
@@ -1123,7 +960,7 @@ async def upload_identity_portrait(
     character = store.get_character(name)
     if character is None:
         return {"ok": False, "error": f"Character '{name}' not found"}
-    identity = _identity_by_id(character, identity_id)
+    identity = find_character_identity(character, identity_id)
     if identity is None:
         return {"ok": False, "error": f"Identity '{identity_id}' not found"}
 
@@ -1162,7 +999,7 @@ async def generate_identity_portrait_async(
     character = store.get_character(name)
     if character is None:
         return {"ok": False, "error": f"Character '{name}' not found"}
-    identity = _identity_by_id(character, identity_id)
+    identity = find_character_identity(character, identity_id)
     if identity is None:
         return {"ok": False, "error": f"Identity '{identity_id}' not found"}
 
@@ -1220,7 +1057,7 @@ async def generate_identity_portrait(
     character = store.get_character(name)
     if character is None:
         return {"ok": False, "error": f"Character '{name}' not found"}
-    identity = _identity_by_id(character, identity_id)
+    identity = find_character_identity(character, identity_id)
     if identity is None:
         return {"ok": False, "error": f"Identity '{identity_id}' not found"}
     if not getattr(identity, "face_prompt", ""):
@@ -1282,7 +1119,7 @@ async def generate_identity_image_async(
     character = store.get_character(name)
     if character is None:
         return {"ok": False, "error": f"Character '{name}' not found"}
-    identity = _identity_by_id(character, identity_id)
+    identity = find_character_identity(character, identity_id)
     if identity is None:
         return {"ok": False, "error": f"Identity '{identity_id}' not found"}
 
@@ -1336,7 +1173,7 @@ async def get_identity_attempts(
     character = store.get_character(name)
     if character is None:
         return {"ok": False, "error": f"Character '{name}' not found"}
-    identity = _identity_by_id(character, identity_id)
+    identity = find_character_identity(character, identity_id)
     if identity is None:
         return {"ok": False, "error": f"Identity '{identity_id}' not found"}
     safe_name = _safe_asset_name(identity.identity_name)

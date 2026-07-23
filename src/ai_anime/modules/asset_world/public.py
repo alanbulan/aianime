@@ -1,5 +1,8 @@
 """Stable application API for the Asset & World bounded context."""
 
+from ai_anime.modules.asset_world.application.character_asset_history import (
+    CharacterAssetHistoryUseCases,
+)
 from ai_anime.modules.asset_world.application.character_catalog import (
     CharacterCatalogUseCases,
     character_asset_links,
@@ -17,6 +20,7 @@ from ai_anime.modules.asset_world.application.dto import (
     CreateCharacterCommand,
     CreateIdentityCommand,
     CreateCustomStyleCommand,
+    RestoreCharacterAssetCommand,
     StyleAnalysisBilling,
     StyleFile,
     StyleScope,
@@ -25,6 +29,8 @@ from ai_anime.modules.asset_world.application.dto import (
 )
 from ai_anime.modules.asset_world.application.errors import (
     CharacterAlreadyExists,
+    CharacterAssetHistoryNotFound,
+    CharacterAssetHistoryRejected,
     CharacterCatalogRejected,
     CharacterNotFound,
     CharacterVoiceNotFound,
@@ -46,6 +52,12 @@ from ai_anime.modules.asset_world.domain.character_voice import (
     AGE_GROUP_SLOTS,
     ALL_SLOTS,
     DEFAULT_SLOT,
+)
+from ai_anime.modules.asset_world.domain.character_assets import (
+    find_character_identity,
+)
+from ai_anime.modules.asset_world.infrastructure.character_asset_history import (
+    backup_character_asset,
 )
 from ai_anime.modules.asset_world.infrastructure.asset_metadata import (
     newest_path_updated_at,
@@ -71,6 +83,14 @@ from ai_anime.modules.asset_world.infrastructure.style_catalog import StyleServi
 
 def style_catalog_use_cases() -> StyleCatalogUseCases:
     from ai_anime.modules.asset_world.composition import style_catalog_use_cases as build
+
+    return build()
+
+
+def character_asset_history_use_cases() -> CharacterAssetHistoryUseCases:
+    from ai_anime.modules.asset_world.composition import (
+        character_asset_history_use_cases as build,
+    )
 
     return build()
 
@@ -111,6 +131,9 @@ __all__ = [
     "AnalyzeStyle",
     "AnalyzeStyleCommand",
     "CharacterAlreadyExists",
+    "CharacterAssetHistoryNotFound",
+    "CharacterAssetHistoryRejected",
+    "CharacterAssetHistoryUseCases",
     "CharacterCatalogRejected",
     "CharacterCatalogUseCases",
     "CharacterIdentityUseCases",
@@ -125,6 +148,7 @@ __all__ = [
     "InvalidCharacterVoiceInput",
     "InvalidCharacterInput",
     "InvalidStyleInput",
+    "RestoreCharacterAssetCommand",
     "StyleAnalysisBilling",
     "StyleCatalogUseCases",
     "StyleFile",
@@ -139,6 +163,8 @@ __all__ = [
     "UpdateIdentityCommand",
     "VOICE_SAMPLE_EXTENSIONS",
     "analyze_style",
+    "backup_character_asset",
+    "character_asset_history_use_cases",
     "character_asset_links",
     "character_catalog_use_cases",
     "character_identity_use_cases",
@@ -148,6 +174,7 @@ __all__ = [
     "decode_recorded_audio_data_url",
     "is_supported_voice_sample",
     "identity_voice_fields",
+    "find_character_identity",
     "newest_path_updated_at",
     "newest_updated_at",
     "path_updated_at",

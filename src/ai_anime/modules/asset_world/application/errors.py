@@ -17,6 +17,14 @@ class InvalidCharacterInput(CharacterCatalogRejected):
     """Character input is not valid for the requested operation."""
 
 
+class CharacterAssetHistoryRejected(CharacterCatalogRejected):
+    """A character asset-history request is invalid."""
+
+
+class CharacterAssetHistoryNotFound(CharacterAssetHistoryRejected):
+    """The requested character asset backup does not exist."""
+
+
 class CharacterVoiceRejected(Exception):
     """A character voice request rejected by an expected business rule."""
 

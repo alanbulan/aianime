@@ -1,5 +1,8 @@
 """Runtime composition for the Asset & World bounded context."""
 
+from ai_anime.modules.asset_world.application.character_asset_history import (
+    CharacterAssetHistoryUseCases,
+)
 from ai_anime.modules.asset_world.application.character_catalog import (
     CharacterCatalogUseCases,
 )
@@ -21,6 +24,9 @@ from ai_anime.modules.asset_world.infrastructure.character_catalog import (
     LocalCharacterCatalogAssets,
     NovelCharacterFactory,
 )
+from ai_anime.modules.asset_world.infrastructure.character_asset_history import (
+    LocalCharacterAssetHistoryFiles,
+)
 from ai_anime.modules.asset_world.infrastructure.character_identity import (
     LocalCharacterIdentityAssets,
     PydanticCharacterIdentityFactory,
@@ -34,6 +40,10 @@ from ai_anime.modules.asset_world.infrastructure.style_generation import (
 
 def style_catalog_use_cases() -> StyleCatalogUseCases:
     return StyleCatalogUseCases(StyleService)
+
+
+def character_asset_history_use_cases() -> CharacterAssetHistoryUseCases:
+    return CharacterAssetHistoryUseCases(LocalCharacterAssetHistoryFiles())
 
 
 def character_catalog_use_cases() -> CharacterCatalogUseCases:

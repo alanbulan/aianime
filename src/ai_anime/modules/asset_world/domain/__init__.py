@@ -4,6 +4,11 @@ from ai_anime.modules.asset_world.domain.character_catalog import (
     duplicate_main_character_names,
     other_main_character_names,
 )
+from ai_anime.modules.asset_world.domain.character_assets import (
+    CHARACTER_ASSET_KINDS,
+    ensure_character_asset_kind,
+    find_character_identity,
+)
 from ai_anime.modules.asset_world.domain.character_identity import identity_id_for
 from ai_anime.modules.asset_world.domain.character_voice import (
     AGE_GROUP_SLOTS,
@@ -27,6 +32,7 @@ from ai_anime.modules.asset_world.domain.styles import (
 __all__ = [
     "AGE_GROUP_SLOTS",
     "ALL_SLOTS",
+    "CHARACTER_ASSET_KINDS",
     "DEFAULT_SLOT",
     "duplicate_main_character_names",
     "PresetStyleDeletionForbidden",
@@ -36,6 +42,8 @@ __all__ = [
     "VoiceSlotMetadata",
     "ensure_custom_style_can_be_created",
     "ensure_custom_style_can_be_deleted",
+    "ensure_character_asset_kind",
+    "find_character_identity",
     "identity_id_for",
     "other_main_character_names",
     "style_preview_extension",

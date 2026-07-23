@@ -43,6 +43,28 @@ class IdentityAssetPaths:
 
 
 @dataclass(frozen=True)
+class RestoreCharacterAssetCommand:
+    kind: str
+    identity_id: str
+    history_id: str
+
+
+@dataclass(frozen=True)
+class CharacterAssetTarget:
+    path: Path
+    identity: Any | None = None
+
+
+@dataclass(frozen=True)
+class CharacterAssetHistoryEntry:
+    history_id: str
+    filename: str
+    path: Path
+    created_at: str
+    bytes: int
+
+
+@dataclass(frozen=True)
 class StyleScope:
     username: str
     project_name: str | None = None
