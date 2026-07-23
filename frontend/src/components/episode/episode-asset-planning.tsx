@@ -34,12 +34,12 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   useCreateProp,
   useProps,
+  useCharacterIdentities,
+  type Character,
   type PropPayload,
-} from "@/lib/queries/props";
-import { useCharacterIdentities } from "@/modules/asset_world/public";
+} from "@/modules/asset_world/public";
 import { cn } from "@/lib/utils";
 import type { ErrorResponse } from "@/types/api";
-import type { Character } from "@/modules/asset_world/public";
 import type { EpisodePropMenuItem, EpisodeSceneMenuItem } from "@/modules/narrative_planning/public";
 
 interface EpisodeAssetPlanningLabels {

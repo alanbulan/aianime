@@ -14,8 +14,9 @@ vi.mock("@/shared/api/transport", () => ({
 import {
   useGenerateScenePanoAsync,
   useScenes,
-} from "@/lib/queries/scenes";
-import { useGeneratePropReferenceAsync, useProps } from "@/lib/queries/props";
+  useGeneratePropReferenceAsync,
+  useProps,
+} from "@/modules/asset_world/public";
 
 const server = setupServer();
 

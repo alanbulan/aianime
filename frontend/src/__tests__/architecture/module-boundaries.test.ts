@@ -472,9 +472,14 @@ describe("frontend architecture boundaries", () => {
       "lib/character-main-copy.ts",
       "components/assets/character-voice-panel.tsx",
       "components/assets/narrator-voice-panel.tsx",
+      "lib/queries/asset-references.ts",
+      "lib/queries/props.ts",
+      "lib/queries/scenes.ts",
       "lib/queries/styles.ts",
       "lib/style-preview-url.ts",
       "types/character.ts",
+      "types/prop.ts",
+      "types/scene.ts",
       "types/style.ts",
     ]) {
       expect(existsSync(resolve(SRC_ROOT, legacyPath))).toBe(false);

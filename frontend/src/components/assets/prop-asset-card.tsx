@@ -25,7 +25,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { resolveMediaUrl } from "@/lib/media-url";
-import type { PropAsset } from "@/types/prop";
+import type { PropAsset } from "@/modules/asset_world/public";
 
 interface PropAssetCardProps {
   prop: PropAsset;

@@ -8,7 +8,7 @@ import i18next from "i18next";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SceneAssetCard } from "@/components/assets/scene-asset-card";
-import type { SceneAsset } from "@/types/scene";
+import type { SceneAsset } from "@/modules/asset_world/public";
 
 const runtimeState = vi.hoisted(() => ({ isCeRuntime: true }));
 

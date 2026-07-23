@@ -16,7 +16,7 @@ import {
   useBuildScenes,
   useGenerateSceneMasterAsync,
   useSceneDirectorStageManifest,
-} from "@/lib/queries/scenes";
+} from "@/modules/asset_world/public";
 
 const server = setupServer();
 

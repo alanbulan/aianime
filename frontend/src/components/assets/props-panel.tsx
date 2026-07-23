@@ -17,12 +17,7 @@ import {
   sortAssets,
   type AssetSortKey,
 } from "@/components/assets/asset-search-box";
-import {
-  useAssetReferenceIndex,
-} from "@/lib/queries/asset-references";
-import type { BeatReference } from "@/modules/asset_world/public";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
-import { useAssetImageSourceSelection } from "@/modules/asset_world/public";
 import { useAssetFocus } from "@/hooks/use-asset-focus";
 import { StageProgressPanel } from "@/components/stage-progress-panel";
 import { Button } from "@/components/ui/button";
@@ -57,6 +52,8 @@ import { propReferenceAssetScope } from "@/lib/task-scope";
 import { backendErrorToastMessage } from "@/shared/api/errors";
 import { cn } from "@/lib/utils";
 import {
+  useAssetImageSourceSelection,
+  useAssetReferenceIndex,
   useBatchGeneratePropReferences,
   useCreateProp,
   useDeleteProp,
@@ -64,12 +61,13 @@ import {
   useProps,
   useUpdateProp,
   useUploadPropReference,
+  type BeatReference,
+  type PropAsset,
   type PropPayload,
-} from "@/lib/queries/props";
+} from "@/modules/asset_world/public";
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
 import { queryKeys } from "@/lib/query-keys";
 import type { ErrorResponse } from "@/types/api";
-import type { PropAsset } from "@/types/prop";
 
 const PROP_FORM_DEFAULT: PropPayload = {
   name: "",

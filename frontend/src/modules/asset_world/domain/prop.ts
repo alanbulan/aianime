@@ -10,4 +10,3 @@ export interface PropAsset {
   reference_path?: string | null;
   reference_url?: string | null;
 }
-

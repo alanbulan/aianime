@@ -45,9 +45,6 @@ vi.mock("@/modules/asset_world/public", () => ({
     isFetching: false,
   }),
   useUpdateAssetImageSourceSelection: mutation,
-}));
-
-vi.mock("@/lib/queries/props", () => ({
   useProps: () => ({
     isLoading: false,
     data: {
@@ -73,9 +70,6 @@ vi.mock("@/lib/queries/props", () => ({
   useGeneratePropReferenceAsync: mutation,
   useUploadPropReference: mutation,
   useBatchGeneratePropReferences: mutation,
-}));
-
-vi.mock("@/lib/queries/asset-references", () => ({
   useAssetReferenceIndex: () => ({
     countFor: () => 0,
     referencesFor: () => [],

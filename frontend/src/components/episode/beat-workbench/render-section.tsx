@@ -44,7 +44,7 @@ import {
 } from "@/features/viewer-kit/three-d/ThreeDDirectorDialog";
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
 import { useRenderSettings } from "@/lib/queries/render-settings";
-import { useScenePlatePreview } from "@/lib/queries/scenes";
+import { useScenePlatePreview } from "@/modules/asset_world/public";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { formatRelativeTime } from "@/lib/format-relative-time";
 import { cn } from "@/lib/utils";

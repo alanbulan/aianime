@@ -1,7 +1,12 @@
 export {
   CharactersPageContent,
   StylesPageContent,
+  listScenes,
+  useAssetReferenceIndex,
   useAssetImageSourceSelection,
+  useBatchGeneratePropReferences,
+  useBuildScenes,
+  useClearSceneDirectorWorld,
   stylesQueryOptions,
   useAnalyzeStyle,
   useBuildCharacters,
@@ -13,30 +18,55 @@ export {
   useCreateStyle,
   useCreateCharacter,
   useCreateIdentity,
+  useCreateProp,
+  useCreateScene,
   useDeleteStyle,
   useDeleteCharacter,
   useDeleteCharacterVoiceSample,
   useDeleteIdentity,
   useDeleteIdentityCostume,
   useDeleteIdentityImage,
+  useDeleteProp,
+  useDeleteScene,
+  useDeleteSceneCustomPackage,
+  useDeleteSceneMaster,
+  useDeleteScenePano,
+  useGeneratePropReferenceAsync,
+  useGenerateScene3gsPlyAsync,
+  useGenerateSceneMasterAsync,
+  useGenerateScenePanoAsync,
+  useGenerateSceneReverseAsync,
   useGenerateIdentityImageAsync,
   useGenerateIdentityPortraitAsync,
   useGeneratePortraitAsync,
   useIdentityAttempts,
   useIdentityOwnerIndex,
+  useProps,
   useRecordCharacterVoiceSample,
   useRestoreCharacterAsset,
+  useSaveSceneDirectorWorld,
+  useSceneDirectorStageManifest,
+  useScenePanoManifest,
+  useScenePlatePreview,
+  useScenes,
   useStyleDetail,
   useStyles,
   useTrimCharacterVoiceSample,
   useUpdateAssetImageSourceSelection,
   useUpdateCharacter,
   useUpdateIdentity,
+  useUpdateProp,
+  useUpdateScene,
+  useUpdateScenePanoCorrection,
   useUploadCharacterVoiceSample,
   useUploadCostumeImage,
   useUploadIdentityImage,
   useUploadIdentityPortrait,
   useUploadPortrait,
+  useUploadPropReference,
+  useUploadSceneCustomPackage,
+  useUploadSceneMaster,
+  useUploadScenePano,
   useUploadStylePreview,
 } from "@/modules/asset_world/composition";
 export type {
@@ -45,6 +75,15 @@ export type {
   AssetResponse,
   CreateStyleInput,
 } from "@/modules/asset_world/application/ports";
+export type {
+  PropGateway,
+  PropPayload,
+} from "@/modules/asset_world/application/prop-gateway";
+export type {
+  SceneDirectorWorldPayload,
+  SceneGateway,
+  ScenePayload,
+} from "@/modules/asset_world/application/scene-gateway";
 export type {
   AssetReferenceIndex,
   AssetRefType,
@@ -72,5 +111,14 @@ export {
   filterCharacters,
 } from "@/modules/asset_world/domain/character";
 export type { CharacterMainCopy } from "@/modules/asset_world/domain/character";
+export type { PropAsset } from "@/modules/asset_world/domain/prop";
+export type {
+  SceneAsset,
+  ScenePanoSource,
+  ScenePlatePreview,
+  SceneStage3gsFile,
+  SceneStage3gsStatus,
+  SceneStagePlySource,
+} from "@/modules/asset_world/domain/scene";
 export type { Style } from "@/modules/asset_world/domain/style";
 export { stylePreviewUrl } from "@/modules/asset_world/infrastructure/style-preview-url";

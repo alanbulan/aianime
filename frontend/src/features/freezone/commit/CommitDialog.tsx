@@ -13,12 +13,14 @@ import {
   listCharacterIdentities,
   listEpisodes,
   listBeats,
-  listScenes,
   type AiAnimeCharacter,
   type AiAnimeIdentity,
   type AiAnimeEpisodeSummary,
 } from "@/api/projects";
-import type { SceneAsset } from "@/types/scene";
+import {
+  listScenes,
+  type SceneAsset,
+} from "@/modules/asset_world/public";
 import { UiButton, UiInput, UiPanel, UiSelect } from "@/components/ui";
 import {
   UI_DIALOG_TRANSITION_MS,

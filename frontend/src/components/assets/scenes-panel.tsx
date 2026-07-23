@@ -26,15 +26,7 @@ import {
   sortAssets,
   type AssetSortKey,
 } from "@/components/assets/asset-search-box";
-import {
-  useAssetReferenceIndex,
-} from "@/lib/queries/asset-references";
-import type {
-  BeatReference,
-  SceneCoOccurrence,
-} from "@/modules/asset_world/public";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
-import { useAssetImageSourceSelection } from "@/modules/asset_world/public";
 import { useAssetFocus } from "@/hooks/use-asset-focus";
 import { useNavigateToAsset } from "@/hooks/use-assets-deep-link";
 import {
@@ -79,7 +71,10 @@ import { sceneTypeLabel, sceneTypeOptions } from "@/lib/scene-type";
 import { timeOfDayLabel, timeOfDayOptions } from "@/lib/time-of-day";
 import { resolveMediaUrl } from "@/lib/media-url";
 import {
+  useAssetImageSourceSelection,
+  useAssetReferenceIndex,
   useBuildScenes,
+  useClearSceneDirectorWorld,
   useCreateScene,
   useDeleteScene,
   useDeleteSceneCustomPackage,
@@ -89,7 +84,6 @@ import {
   useGenerateSceneMasterAsync,
   useGenerateScenePanoAsync,
   useGenerateSceneReverseAsync,
-  useClearSceneDirectorWorld,
   useSaveSceneDirectorWorld,
   useSceneDirectorStageManifest,
   useScenePanoManifest,
@@ -98,15 +92,15 @@ import {
   useUploadSceneCustomPackage,
   useUploadSceneMaster,
   useUploadScenePano,
+  type BeatReference,
+  type SceneAsset,
+  type SceneCoOccurrence,
+  type ScenePanoSource,
   type ScenePayload,
-} from "@/lib/queries/scenes";
+  type SceneStagePlySource,
+} from "@/modules/asset_world/public";
 import { queryKeys } from "@/lib/query-keys";
 import type { ErrorResponse } from "@/types/api";
-import type {
-  SceneAsset,
-  ScenePanoSource,
-  SceneStagePlySource,
-} from "@/types/scene";
 
 const SCENE_FORM_DEFAULT: ScenePayload = {
   name: "",

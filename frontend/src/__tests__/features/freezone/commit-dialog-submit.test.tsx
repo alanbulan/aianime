@@ -11,8 +11,11 @@ vi.mock("@/api/projects", async (importOriginal) => ({
   listCharacters: vi.fn(async () => []),
   listEpisodes: vi.fn(async () => []),
   listBeats: vi.fn(async () => []),
-  listScenes: vi.fn(async () => [{ name: "公寓楼电梯间" }]),
   listCharacterIdentities: vi.fn(async () => []),
+}));
+
+vi.mock("@/modules/asset_world/public", () => ({
+  listScenes: vi.fn(async () => [{ name: "公寓楼电梯间" }]),
 }));
 
 vi.mock("@/features/freezone/commit/promoteToAsset", async (importOriginal) => ({

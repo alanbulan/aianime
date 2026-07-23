@@ -47,3 +47,24 @@ export interface SceneStage3gsStatus {
   reverse: SceneStage3gsFile;
   pano: SceneStage3gsFile;
 }
+
+export interface ScenePlatePreview {
+  scene_id: string;
+  variant_id: string;
+  time_of_day: string;
+  resolved_scene_name: string;
+  planned_scene_name: string;
+  time_baked: boolean;
+  render: {
+    resolved_scene_name: string;
+    planned_scene_name: string;
+    relight: boolean;
+    status: "no_time" | "time_baked" | "relight" | "planned_missing";
+    label: string;
+  };
+  seedance2: {
+    resolved_scene_name: string;
+    prompt_time_of_day: string;
+    label: string;
+  };
+}

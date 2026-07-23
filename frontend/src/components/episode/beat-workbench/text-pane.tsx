@@ -21,7 +21,10 @@ import {
   type Beat,
   type BeatUpdate,
 } from "@/modules/narrative_planning/public";
-import { useScenePlatePreview, useScenes } from "@/lib/queries/scenes";
+import {
+  useScenePlatePreview,
+  useScenes,
+} from "@/modules/asset_world/public";
 import {
   extractIdentityMarkers,
   extractPropMarkers,

@@ -6,11 +6,13 @@ import { PropsPanel } from "@/components/assets/props-panel";
 import { ScenesPanel } from "@/components/assets/scenes-panel";
 import { TaskControllerProvider } from "@/components/episode/task-controller-provider";
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
-import { useAssetReferenceIndex } from "@/lib/queries/asset-references";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import { isCeRuntime } from "@/lib/runtime-config";
+import { useAssetReferenceIndex } from "@/modules/asset_world/application/use-asset-reference-index";
 import { createCharacterQueryHooks } from "@/modules/asset_world/application/character-query-hooks";
 import { createImageSourceQueryHooks } from "@/modules/asset_world/application/image-source-query-hooks";
+import { createPropQueryHooks } from "@/modules/asset_world/application/prop-query-hooks";
+import { createSceneQueryHooks } from "@/modules/asset_world/application/scene-query-hooks";
 import { createStyleQueryHooks } from "@/modules/asset_world/application/style-query-hooks";
 import { createUseAddCharacterController } from "@/modules/asset_world/application/use-add-character-controller";
 import { createUseCharacterAssetHistoryController } from "@/modules/asset_world/application/use-character-asset-history-controller";
@@ -29,6 +31,7 @@ import type {
   Character,
   CharacterAssetKind,
 } from "@/modules/asset_world/domain/character";
+import type { SceneAsset } from "@/modules/asset_world/domain/scene";
 import type { Style } from "@/modules/asset_world/domain/style";
 import {
   readStoredAssetTab,
@@ -38,6 +41,8 @@ import { createBrowserVoiceRecorder } from "@/modules/asset_world/infrastructure
 import { httpCharacterGateway } from "@/modules/asset_world/infrastructure/http-character-gateway";
 import { httpAssetWorldGateway } from "@/modules/asset_world/infrastructure/http-asset-world-gateway";
 import { httpImageSourceGateway } from "@/modules/asset_world/infrastructure/http-image-source-gateway";
+import { httpPropGateway } from "@/modules/asset_world/infrastructure/http-prop-gateway";
+import { httpSceneGateway } from "@/modules/asset_world/infrastructure/http-scene-gateway";
 import { stylePreviewUrl } from "@/modules/asset_world/infrastructure/style-preview-url";
 import {
   AddCharacterDialogView,
@@ -64,6 +69,49 @@ const characterQueries = createCharacterQueryHooks(httpCharacterGateway);
 const imageSourceQueries = createImageSourceQueryHooks(
   httpImageSourceGateway,
 );
+const propQueries = createPropQueryHooks(httpPropGateway);
+const sceneQueries = createSceneQueryHooks(httpSceneGateway);
+
+export const {
+  useBatchGeneratePropReferences,
+  useCreateProp,
+  useDeleteProp,
+  useGeneratePropReferenceAsync,
+  useProps,
+  useUpdateProp,
+  useUploadPropReference,
+} = propQueries;
+
+export const {
+  useBuildScenes,
+  useClearSceneDirectorWorld,
+  useCreateScene,
+  useDeleteScene,
+  useDeleteSceneCustomPackage,
+  useDeleteSceneMaster,
+  useDeleteScenePano,
+  useGenerateScene3gsPlyAsync,
+  useGenerateSceneMasterAsync,
+  useGenerateScenePanoAsync,
+  useGenerateSceneReverseAsync,
+  useSaveSceneDirectorWorld,
+  useSceneDirectorStageManifest,
+  useScenePanoManifest,
+  useScenePlatePreview,
+  useScenes,
+  useUpdateScene,
+  useUpdateScenePanoCorrection,
+  useUploadSceneCustomPackage,
+  useUploadSceneMaster,
+  useUploadScenePano,
+} = sceneQueries;
+
+export { useAssetReferenceIndex };
+
+export async function listScenes(project: string): Promise<SceneAsset[]> {
+  const response = await httpSceneGateway.listScenes(project);
+  return response.data;
+}
 
 export const {
   useBuildCharacters,

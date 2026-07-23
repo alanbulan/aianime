@@ -16,8 +16,8 @@ import {
   useGenerateIdentityImageAsync,
   useGenerateIdentityPortraitAsync,
   useGeneratePortraitAsync,
+  useGenerateSceneMasterAsync,
 } from "@/modules/asset_world/public";
-import { useGenerateSceneMasterAsync } from "@/lib/queries/scenes";
 import { useRegenerateBeatVideo } from "@/lib/queries/video";
 
 const server = setupServer();

@@ -108,7 +108,7 @@ const scenesState: {
     time_of_day?: string;
   }>;
 } = { names: [] };
-vi.mock("@/lib/queries/scenes", () => ({
+vi.mock("@/modules/asset_world/public", () => ({
   useScenes: () => ({
     data: {
       ok: true,

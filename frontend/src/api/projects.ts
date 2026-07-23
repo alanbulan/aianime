@@ -2,7 +2,6 @@
 import { apiCall } from "@/shared/api/client";
 import type { PushTarget } from "./push";
 import type { MainlineContext } from "@/features/freezone/context/mainlineContext";
-import type { SceneAsset } from "@/types/scene";
 
 // ---------- Characters ---------- //
 
@@ -38,14 +37,6 @@ export async function listCharacterIdentities(
 ): Promise<AiAnimeIdentity[]> {
   return await apiCall<AiAnimeIdentity[]>(
     `projects/${encodeURIComponent(projectId)}/characters/${encodeURIComponent(character)}/identities`,
-  );
-}
-
-// ---------- Scenes ---------- //
-
-export async function listScenes(projectId: string): Promise<SceneAsset[]> {
-  return await apiCall<SceneAsset[]>(
-    `projects/${encodeURIComponent(projectId)}/scenes`,
   );
 }
 

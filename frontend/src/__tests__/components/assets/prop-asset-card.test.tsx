@@ -5,7 +5,7 @@ import i18next from "i18next";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { PropAssetCard } from "@/components/assets/prop-asset-card";
-import type { PropAsset } from "@/types/prop";
+import type { PropAsset } from "@/modules/asset_world/public";
 
 const i18n = i18next.createInstance();
 

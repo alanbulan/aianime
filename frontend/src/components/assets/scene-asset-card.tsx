@@ -33,7 +33,7 @@ import type {
   ScenePanoSource,
   SceneStage3gsFile,
   SceneStagePlySource,
-} from "@/types/scene";
+} from "@/modules/asset_world/public";
 
 interface SceneAssetCardProps {
   scene: SceneAsset;

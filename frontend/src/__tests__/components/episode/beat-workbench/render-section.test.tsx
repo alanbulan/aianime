@@ -160,7 +160,7 @@ const scenePlatePreviewState: {
   };
 } = { data: null };
 
-vi.mock("@/lib/queries/scenes", () => ({
+vi.mock("@/modules/asset_world/public", () => ({
   useScenePlatePreview: () => ({
     data: scenePlatePreviewState.data
       ? { ok: true, data: scenePlatePreviewState.data }

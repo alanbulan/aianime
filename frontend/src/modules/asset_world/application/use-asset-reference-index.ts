@@ -11,7 +11,7 @@ import type {
   AssetRefType,
   BeatReference,
   SceneCoOccurrence,
-} from "@/modules/asset_world/public";
+} from "@/modules/asset_world/domain/character";
 
 /**
  * Client-side cross-asset reference index.
