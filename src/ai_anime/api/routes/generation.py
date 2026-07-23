@@ -8,13 +8,20 @@ import re
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
+)
 from fastapi.responses import JSONResponse
 
 from ai_anime.api.auth import get_api_user, require_scope
 from ai_anime.api.deps import (
-    get_user_base_dir,
-    get_state_dir,
     make_sqlite_store_for_context,
     make_sqlite_store,
     make_static_url_for_context,
@@ -69,7 +76,10 @@ from ai_anime.seedance2_i2v.pipeline import (
 )
 from ai_anime.seedance2_i2v.voice_clone import normalize_seedance2_audio_type
 from ai_anime.project_config import load_project_config, save_project_config
-from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.modules.project_workspace.public import (
+    ProjectContext,
+    get_user_output_dir,
+)
 from ai_anime.ports import get_task_backend, get_usage_meter
 from ai_anime.task_identity import project_task_state_key
 from ai_anime.models import beat_scene_id
@@ -90,7 +100,9 @@ AI_IDENTITY_DETECTION_FEATURE_KEY = "ai_identity_detection"
 MODEL_CALL_CREDIT_POLICY_FEATURE_INCLUDED = "feature_included"
 
 
-async def _resolve_generation_project(project: str, user: dict, required_role: str = "editor"):
+async def _resolve_generation_project(
+    project: str, user: dict, required_role: str = "editor"
+):
     return await resolve_project_scope(project, user, required_role=required_role)
 
 
@@ -148,7 +160,9 @@ def normalize_beat_indices(beat_indices: list[int]) -> list[int]:
 def validate_beat_indices(all_beats: list[dict], beat_indices: list[int]) -> list[int]:
     valid_beat_numbers = {int(beat.get("beat_number", 0) or 0) for beat in all_beats}
     return [
-        int(beat_index) for beat_index in beat_indices if int(beat_index) not in valid_beat_numbers
+        int(beat_index)
+        for beat_index in beat_indices
+        if int(beat_index) not in valid_beat_numbers
     ]
 
 
@@ -349,7 +363,9 @@ def _custom_render_plan_error(plan: list[Any], beat_indices: list[int]) -> str |
         beat_numbers = [int(beat) for beat in getattr(entry, "beat_numbers", [])]
         if not beat_numbers:
             return "empty_grid"
-        if int(getattr(entry, "rows", 0)) * int(getattr(entry, "cols", 0)) < len(beat_numbers):
+        if int(getattr(entry, "rows", 0)) * int(getattr(entry, "cols", 0)) < len(
+            beat_numbers
+        ):
             return "grid_capacity"
         for beat in beat_numbers:
             if beat in seen:
@@ -431,7 +447,9 @@ async def _runtime_prop_menu_with_global_props(
     """Resolve episode prop markers against the global props table without mutating episode JSON."""
     from ai_anime.models import build_prop_menu, collect_prop_marker_ids_from_beat
 
-    prop_menu = [item.model_dump() for item in episode_obj.prop_menu] if episode_obj else []
+    prop_menu = (
+        [item.model_dump() for item in episode_obj.prop_menu] if episode_obj else []
+    )
     marked_prop_ids: list[str] = []
     for beat in beats or []:
         for prop_id in collect_prop_marker_ids_from_beat(beat):
@@ -440,11 +458,15 @@ async def _runtime_prop_menu_with_global_props(
     if not marked_prop_ids:
         return prop_menu
 
-    existing = {item.prop_id: item.model_dump() for item in build_prop_menu(prop_menu=prop_menu)}
+    existing = {
+        item.prop_id: item.model_dump() for item in build_prop_menu(prop_menu=prop_menu)
+    }
     changed = False
     for marker_prop_id in marked_prop_ids:
         global_prop = (
-            store.get_cached_prop(marker_prop_id) if hasattr(store, "get_cached_prop") else None
+            store.get_cached_prop(marker_prop_id)
+            if hasattr(store, "get_cached_prop")
+            else None
         )
         if not global_prop:
             continue
@@ -508,7 +530,7 @@ async def _build_character_map(
     """构建角色映射。"""
     from ai_anime.services.character_ref_service import build_character_map_for_grid
 
-    project_dir = get_user_base_dir(username) / project
+    project_dir = get_user_output_dir(username) / project
     characters = store.get_all_characters()
     char_dicts = []
     for c in characters:
@@ -569,14 +591,16 @@ async def _build_character_map(
     return build_character_map_for_grid(
         grid_beats=beats,
         characters=char_dicts,
-        user_output_dir=get_user_base_dir(username),
+        user_output_dir=get_user_output_dir(username),
         project=project,
         sketch_colors=_sc,
         use_detected_identities=use_detected_identities,
     )
 
 
-def _validate_seedance_pro_dialogue_only(beats: list[dict], video_backend: str) -> str | None:
+def _validate_seedance_pro_dialogue_only(
+    beats: list[dict], video_backend: str
+) -> str | None:
     """Seedance 1.5 有声仅允许 dialogue beat。"""
     if video_backend not in {"seedance_pro", "newapi_seedance-1.5-pro"}:
         return None
@@ -642,7 +666,9 @@ def _seedance2_model_from_backend(video_backend: str | None) -> str:
     return text
 
 
-def _seedance2_resolution_options_for_backend(video_backend: str | None) -> tuple[str, ...]:
+def _seedance2_resolution_options_for_backend(
+    video_backend: str | None,
+) -> tuple[str, ...]:
     model = _seedance2_model_from_backend(video_backend)
     return SEEDANCE2_RESOLUTION_OPTIONS_BY_MODEL.get(
         model,
@@ -734,9 +760,14 @@ def _merge_seedance2_request_config(
     if seedance2_config_json is None and not config_overrides:
         return None
 
-    from ai_anime.seedance2_i2v.models import dump_seedance2_config, parse_seedance2_config
+    from ai_anime.seedance2_i2v.models import (
+        dump_seedance2_config,
+        parse_seedance2_config,
+    )
 
-    merged = parse_seedance2_config(beat.get("seedance2_config_json")).model_dump(mode="json")
+    merged = parse_seedance2_config(beat.get("seedance2_config_json")).model_dump(
+        mode="json"
+    )
     incoming: dict[str, Any] = {}
     if seedance2_config_json is not None:
         try:
@@ -758,7 +789,9 @@ def _merge_seedance2_request_config(
     return saved_json
 
 
-async def _api_audio_duration_seconds(output_dir: str | Path, episode: int, beat_num: int):
+async def _api_audio_duration_seconds(
+    output_dir: str | Path, episode: int, beat_num: int
+):
     from ai_anime.utils.media_io import get_audio_duration_async
     from ai_anime.utils.path_resolver import PathResolver
 
@@ -863,7 +896,9 @@ async def _prepare_happyhorse_api_beat(
 
     target_duration = int(config.duration or duration or 0)
     config.duration = target_duration
-    config.resolution = _happyhorse_resolution_for_backend(resolution or config.resolution)
+    config.resolution = _happyhorse_resolution_for_backend(
+        resolution or config.resolution
+    )
     config.ratio = _happyhorse_ratio_for_backend(ratio or config.ratio)
     config.final_prompt = final_prompt
 
@@ -943,7 +978,9 @@ async def _prepare_grok_video_api_beat(
 
     target_duration = int(config.duration or duration or 0)
     config.duration = target_duration
-    config.resolution = _grok_video_resolution_for_backend(resolution or config.resolution)
+    config.resolution = _grok_video_resolution_for_backend(
+        resolution or config.resolution
+    )
     config.ratio = _grok_video_ratio_for_backend(ratio or config.ratio)
     config.final_prompt = final_prompt
 
@@ -1006,7 +1043,9 @@ def _seedance2_asset_status_payload(
             crop_source_rel_path = crop_source_abs_path
     media_url = ""
     if bool(asset.exists):
-        media_url = make_static_url_for_context(project_ctx, rel_path, local_path=Path(asset.path))
+        media_url = make_static_url_for_context(
+            project_ctx, rel_path, local_path=Path(asset.path)
+        )
     crop_source_url = ""
     if crop_source_path and Path(crop_source_path).exists():
         crop_source_url = make_static_url_for_context(
@@ -1171,7 +1210,9 @@ async def _seedance2_panel_context(
         else await make_sqlite_store(username, project_name)
     )
     beats = await store.get_beats_as_dicts(episode_num)
-    beat = next((item for item in beats if int(item.get("beat_number") or 0) == beat_num), None)
+    beat = next(
+        (item for item in beats if int(item.get("beat_number") or 0) == beat_num), None
+    )
     if not beat:
         raise HTTPException(status_code=404, detail=f"Beat {beat_num} not found")
 
@@ -1226,12 +1267,16 @@ def _seedance2_status_response(
         if asset.required and (not asset.exists or bool(asset.validation_error))
     ]
     fallback_assets = [
-        asset for asset in assets if str(asset.fallback_text or "").strip() and not asset.selected
+        asset
+        for asset in assets
+        if str(asset.fallback_text or "").strip() and not asset.selected
     ]
     paths = PathResolver(output_dir, episode_num)
     project_ctx = ctx["project_ctx"]
     asset_items = [
-        _seedance2_asset_status_payload(asset, project_ctx=project_ctx, output_dir=output_dir)
+        _seedance2_asset_status_payload(
+            asset, project_ctx=project_ctx, output_dir=output_dir
+        )
         for asset in assets
     ]
     try:
@@ -1285,8 +1330,12 @@ def _seedance2_status_response(
                 "total": len(assets),
                 "selected": len(selected_assets),
                 "missing": len(missing_assets),
-                "images": len([asset for asset in selected_assets if asset.media_type == "image"]),
-                "audios": len([asset for asset in selected_assets if asset.media_type == "audio"]),
+                "images": len(
+                    [asset for asset in selected_assets if asset.media_type == "image"]
+                ),
+                "audios": len(
+                    [asset for asset in selected_assets if asset.media_type == "audio"]
+                ),
                 "fallbacks": len(fallback_assets),
                 "items": asset_items,
             },
@@ -1294,7 +1343,9 @@ def _seedance2_status_response(
     }
 
 
-@router.get("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2-status")
+@router.get(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2-status"
+)
 async def get_seedance2_beat_status(
     project: str,
     episode_num: int,
@@ -1316,7 +1367,9 @@ async def get_seedance2_beat_status(
     )
 
 
-@router.post("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2/assets/upload")
+@router.post(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2/assets/upload"
+)
 async def upload_seedance2_asset(
     project: str,
     episode_num: int,
@@ -1355,7 +1408,9 @@ async def upload_seedance2_asset(
     )
 
 
-@router.post("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2/assets/delete")
+@router.post(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2/assets/delete"
+)
 async def delete_seedance2_asset(
     project: str,
     episode_num: int,
@@ -1391,7 +1446,9 @@ async def delete_seedance2_asset(
     )
 
 
-@router.post("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2/assets/crop")
+@router.post(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2/assets/crop"
+)
 async def crop_seedance2_asset(
     project: str,
     episode_num: int,
@@ -1429,7 +1486,9 @@ async def crop_seedance2_asset(
     )
 
 
-@router.post("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2/assets/audio-trim")
+@router.post(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2/assets/audio-trim"
+)
 async def trim_seedance2_audio_asset(
     project: str,
     episode_num: int,
@@ -1527,8 +1586,16 @@ def _api_video_backend_options() -> list[VideoBackendOption]:
                     if is_grok_video
                     else None
                 ),
-                reference_image_max=7 if is_grok_video else 9 if is_happyhorse else None,
-                reference_video_max=0 if is_grok_video else 1 if is_happyhorse else None,
+                reference_image_max=7
+                if is_grok_video
+                else 9
+                if is_happyhorse
+                else None,
+                reference_video_max=0
+                if is_grok_video
+                else 1
+                if is_happyhorse
+                else None,
                 reference_audio_max=0 if is_grok_video or is_happyhorse else None,
             )
         )
@@ -1542,7 +1609,10 @@ async def get_video_backend_options(
 ):
     """Return video backend options shared with the NiceGUI render workbench."""
     await _resolve_generation_project(project, user, required_role="viewer")
-    return {"ok": True, "data": [item.model_dump() for item in _api_video_backend_options()]}
+    return {
+        "ok": True,
+        "data": [item.model_dump() for item in _api_video_backend_options()],
+    }
 
 
 @router.get("/projects/{project}/render-settings")
@@ -1709,12 +1779,17 @@ async def update_sketch_regen_queue(
     project_name = resolved.project_name
     config = load_project_config(username, project_name)
     queues, cleaned_legacy, legacy_changed = _react_sketch_regen_queues(config)
-    queues[_sketch_regen_queue_key(episode_num)] = [item.model_dump() for item in body.items]
+    queues[_sketch_regen_queue_key(episode_num)] = [
+        item.model_dump() for item in body.items
+    ]
     updates = {"react_sketch_regen_queue": queues}
     if legacy_changed:
         updates["sketch_regen_queue"] = cleaned_legacy
     save_project_config(username, project_name, config=updates)
-    return {"ok": True, "data": _sketch_regen_queue_payload(username, project_name, episode_num)}
+    return {
+        "ok": True,
+        "data": _sketch_regen_queue_payload(username, project_name, episode_num),
+    }
 
 
 @router.get("/projects/{project}/episodes/{episode_num}/sketch-image-usage")
@@ -1740,7 +1815,9 @@ def _image_generation_guard_payload(attempt_count: int, subject: str) -> dict:
     next_attempt = attempt_count + 1
     if next_attempt >= 5:
         level = "locked"
-        message = f"{subject} 已连续生成 {next_attempt} 次，请输入管理员密码继续本次生成。"
+        message = (
+            f"{subject} 已连续生成 {next_attempt} 次，请输入管理员密码继续本次生成。"
+        )
     elif next_attempt >= 3:
         level = "confirm"
         message = f"{subject} 已连续生成 {next_attempt} 次，确认继续生成吗？"
@@ -1778,7 +1855,9 @@ async def get_image_generation_guard(
     return {"ok": True, "data": _image_generation_guard_payload(attempt_count, subject)}
 
 
-@router.post("/projects/{project}/episodes/{episode_num}/image-generation-guard/verify-password")
+@router.post(
+    "/projects/{project}/episodes/{episode_num}/image-generation-guard/verify-password"
+)
 async def verify_image_generation_guard_password(
     project: str,
     episode_num: int,
@@ -1842,7 +1921,9 @@ async def compose_video(
             "ok": True,
             "task_type": "compose_episode",
             "task_id": queued.task_state.task_id,
-            "task_key": project_task_state_key("compose_episode", ctx.project_id, episode_num),
+            "task_key": project_task_state_key(
+                "compose_episode", ctx.project_id, episode_num
+            ),
             "backend": queued.backend,
             "queue": queued.queue,
             "message": f"第 {episode_num} 集成片合成已进入队列",
@@ -1945,7 +2026,10 @@ async def generate_sketches(
         return {"ok": False, "error": f"No beats found for episode {episode_num}"}
 
     # 提前验证 grid_index，避免异步任务内才报错
-    from ai_anime.generators.nanobanana_grid import sketch_grid_split, sketch_scene_grid_split
+    from ai_anime.generators.nanobanana_grid import (
+        sketch_grid_split,
+        sketch_scene_grid_split,
+    )
 
     use_scene_grouping = body.sketch_scene_grouping
     if use_scene_grouping:
@@ -2004,7 +2088,9 @@ async def generate_sketches(
         "prop_menu": prop_menu,
     }
 
-    dispatch_grid_indices = list(range(len(grid_plan))) if generate_all_grids else [body.grid_index]
+    dispatch_grid_indices = (
+        list(range(len(grid_plan))) if generate_all_grids else [body.grid_index]
+    )
     if ctx is not None:
         queued_tasks = []
         for grid_index in dispatch_grid_indices:
@@ -2118,7 +2204,7 @@ async def generate_audio(
     username = resolved.username
     project_name = resolved.project_name
     output_dir = resolved.output_dir
-    state_dir = str(ctx.state_dir) if ctx else get_state_dir(username, project_name)
+    state_dir = resolved.state_dir
     store = (
         await make_sqlite_store_for_context(ctx)
         if ctx
@@ -2306,7 +2392,8 @@ async def regenerate_grid(
         max_grids = len(char_plan)
         if grid_index < 0 or grid_index >= max_grids:
             grid_labels = " + ".join(
-                f'{e["rows"]}x{e["cols"]}(comp={e.get("composite_count","?")})' for e in char_plan
+                f"{e['rows']}x{e['cols']}(comp={e.get('composite_count', '?')})"
+                for e in char_plan
             )
             return {
                 "ok": False,
@@ -2316,14 +2403,18 @@ async def regenerate_grid(
                     f"有效 grid_index: 0~{max_grids - 1}"
                 ),
             }
-        selected_beat_numbers = [int(beat) for beat in char_plan[grid_index].get("beat_numbers", [])]
+        selected_beat_numbers = [
+            int(beat) for beat in char_plan[grid_index].get("beat_numbers", [])
+        ]
     elif body.scene_grouping:
         from ai_anime.generators.nanobanana_grid import scene_grid_split
 
         loc_plan = scene_grid_split(beats, character_map=character_map)
         max_grids = len(loc_plan)
         if grid_index < 0 or grid_index >= max_grids:
-            grid_labels = " + ".join(f'{e["rows"]}x{e["cols"]}({e["scene_id"]})' for e in loc_plan)
+            grid_labels = " + ".join(
+                f"{e['rows']}x{e['cols']}({e['scene_id']})" for e in loc_plan
+            )
             return {
                 "ok": False,
                 "error": (
@@ -2332,7 +2423,9 @@ async def regenerate_grid(
                     f"有效 grid_index: 0~{max_grids - 1}"
                 ),
             }
-        selected_beat_numbers = [int(beat) for beat in loc_plan[grid_index].get("beat_numbers", [])]
+        selected_beat_numbers = [
+            int(beat) for beat in loc_plan[grid_index].get("beat_numbers", [])
+        ]
     else:
         from ai_anime.generators.nanobanana_grid import (
             perfect_grid_split,
@@ -2341,7 +2434,9 @@ async def regenerate_grid(
 
         grid_plan = perfect_grid_split(len(beats))
         if grid_index < 0 or grid_index >= len(grid_plan):
-            grid_labels = " + ".join(f'{_RMC[mk]["rows"]}x{_RMC[mk]["cols"]}' for mk in grid_plan)
+            grid_labels = " + ".join(
+                f"{_RMC[mk]['rows']}x{_RMC[mk]['cols']}" for mk in grid_plan
+            )
             return {
                 "ok": False,
                 "error": (
@@ -2354,7 +2449,9 @@ async def regenerate_grid(
         capacity = _RMC[grid_plan[grid_index]]["capacity"]
         selected_beat_numbers = [
             int(beat.get("beat_number", index + 1))
-            for index, beat in enumerate(beats[start_offset : start_offset + capacity], start_offset)
+            for index, beat in enumerate(
+                beats[start_offset : start_offset + capacity], start_offset
+            )
         ]
 
     selected_beats = pick_beats_by_number(beats, selected_beat_numbers)
@@ -2442,7 +2539,11 @@ async def render_plan(
     if not all_beats:
         return JSONResponse(
             status_code=400,
-            content={"ok": False, "error": "no_beats", "data": {"episode": episode_num}},
+            content={
+                "ok": False,
+                "error": "no_beats",
+                "data": {"episode": episode_num},
+            },
         )
 
     beat_indices = normalize_beat_indices(body.beat_indices)
@@ -2450,13 +2551,19 @@ async def render_plan(
     if invalid:
         return JSONResponse(
             status_code=400,
-            content={"ok": False, "error": "invalid_beats", "data": {"invalid": invalid}},
+            content={
+                "ok": False,
+                "error": "invalid_beats",
+                "data": {"invalid": invalid},
+            },
         )
     selected_beats = pick_beats_by_number(all_beats, beat_indices)
 
     detection_error = render_ai_detection_error(selected_beats)
     if detection_error:
-        return JSONResponse(status_code=400, content={"ok": False, "error": detection_error})
+        return JSONResponse(
+            status_code=400, content={"ok": False, "error": detection_error}
+        )
 
     character_map = await _build_character_map(
         store,
@@ -2547,7 +2654,11 @@ async def render_execute(
     if not all_beats:
         return JSONResponse(
             status_code=400,
-            content={"ok": False, "error": "no_beats", "data": {"episode": episode_num}},
+            content={
+                "ok": False,
+                "error": "no_beats",
+                "data": {"episode": episode_num},
+            },
         )
 
     beat_indices = normalize_beat_indices(body.beat_indices)
@@ -2555,13 +2666,19 @@ async def render_execute(
     if invalid:
         return JSONResponse(
             status_code=400,
-            content={"ok": False, "error": "invalid_beats", "data": {"invalid": invalid}},
+            content={
+                "ok": False,
+                "error": "invalid_beats",
+                "data": {"invalid": invalid},
+            },
         )
     selected_beats = pick_beats_by_number(all_beats, beat_indices)
 
     detection_error = render_ai_detection_error(selected_beats)
     if detection_error:
-        return JSONResponse(status_code=400, content={"ok": False, "error": detection_error})
+        return JSONResponse(
+            status_code=400, content={"ok": False, "error": detection_error}
+        )
 
     character_map = await _build_character_map(
         store,
@@ -2665,7 +2782,9 @@ async def render_execute(
 
     style = project_config.get("visual_style") or "chinese_period_drama"
     episode_obj = _episode_from_store_or_none(store, episode_num)
-    prop_menu = await _runtime_prop_menu_with_global_props(store, episode_obj, all_beats)
+    prop_menu = await _runtime_prop_menu_with_global_props(
+        store, episode_obj, all_beats
+    )
     base_config = {
         "beats": all_beats,
         "character_map": character_map,
@@ -2714,7 +2833,9 @@ async def render_execute(
                 task_type="render_plan",
                 message="渲染计划未启动",
                 scope=scope,
-                resolved_grids=[PlanEntryOut(**entry) for entry in _plan_to_dicts(execution_plan)],
+                resolved_grids=[
+                    PlanEntryOut(**entry) for entry in _plan_to_dicts(execution_plan)
+                ],
             ).model_dump(),
         }
 
@@ -2724,7 +2845,9 @@ async def render_execute(
             task_type="render_plan",
             message=f"渲染已启动 ({len(execution_plan)} 个网格)",
             scope=scope,
-            resolved_grids=[PlanEntryOut(**entry) for entry in _plan_to_dicts(execution_plan)],
+            resolved_grids=[
+                PlanEntryOut(**entry) for entry in _plan_to_dicts(execution_plan)
+            ],
         ).model_dump()
         | ({"task_ids": dispatched_task_ids} if dispatched_task_ids else {}),
     }
@@ -2938,7 +3061,9 @@ async def regenerate_sketches(
 
 
 def _canonical_sketch_path(project_dir: Path, episode_num: int, beat_num: int) -> Path:
-    return project_dir / "sketches" / f"ep{episode_num:03d}" / f"beat_{beat_num:02d}.png"
+    return (
+        project_dir / "sketches" / f"ep{episode_num:03d}" / f"beat_{beat_num:02d}.png"
+    )
 
 
 def _canonical_sketch_url(
@@ -2956,7 +3081,9 @@ def _canonical_sketch_url(
 
 
 def _director_control_scope(episode_num: int, beat_num: int) -> str:
-    return f"director_control_to_sketch:ep{int(episode_num):03d}:beat_{int(beat_num):02d}"
+    return (
+        f"director_control_to_sketch:ep{int(episode_num):03d}:beat_{int(beat_num):02d}"
+    )
 
 
 def _director_control_payload(
@@ -2999,7 +3126,9 @@ def _director_overlay_beat_context(beat: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _director_same_scene_beats(beats: list[dict[str, Any]], scene_name: str) -> list[dict[str, Any]]:
+def _director_same_scene_beats(
+    beats: list[dict[str, Any]], scene_name: str
+) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
     for item in beats:
         if _beat_scene_name(item) != scene_name:
@@ -3009,7 +3138,9 @@ def _director_same_scene_beats(beats: list[dict[str, Any]], scene_name: str) -> 
             beat_int = int(beat_number)
         except (TypeError, ValueError):
             continue
-        items.append({"beat": beat_int, "label": f"Beat {beat_int}", "scene_id": scene_name})
+        items.append(
+            {"beat": beat_int, "label": f"Beat {beat_int}", "scene_id": scene_name}
+        )
     return sorted(items, key=lambda entry: entry["beat"])
 
 
@@ -3028,10 +3159,20 @@ def _director_overlay_payload(
     body_actors = body.get("actors")
     body_props = body.get("props")
     body_stagings = body.get("stagings")
-    actors = body_actors if isinstance(body_actors, list) else snapshot.get("actors") or []
+    actors = (
+        body_actors if isinstance(body_actors, list) else snapshot.get("actors") or []
+    )
     props = body_props if isinstance(body_props, list) else snapshot.get("props") or []
-    stagings = body_stagings if isinstance(body_stagings, list) else snapshot.get("stagings") or []
-    legacy_props = [*props, *stagings] if isinstance(props, list) and isinstance(stagings, list) else props
+    stagings = (
+        body_stagings
+        if isinstance(body_stagings, list)
+        else snapshot.get("stagings") or []
+    )
+    legacy_props = (
+        [*props, *stagings]
+        if isinstance(props, list) and isinstance(stagings, list)
+        else props
+    )
     frame_meta = body.get("frame_meta")
     frame_meta = frame_meta if isinstance(frame_meta, dict) else {}
     source = body.get("source")
@@ -3051,8 +3192,12 @@ def _director_overlay_payload(
         "actors": actors,
         "props": legacy_props,
         "stagings": stagings,
-        "command_log": body.get("command_log") if isinstance(body.get("command_log"), list) else [],
-        "deleted_keys": body.get("deleted_keys") if isinstance(body.get("deleted_keys"), list) else [],
+        "command_log": body.get("command_log")
+        if isinstance(body.get("command_log"), list)
+        else [],
+        "deleted_keys": body.get("deleted_keys")
+        if isinstance(body.get("deleted_keys"), list)
+        else [],
         "beat_context": _director_overlay_beat_context(beat),
         "saved_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -3165,10 +3310,20 @@ def _director_control_frame_export_payload(
     body_actors = body.get("actors")
     body_props = body.get("props")
     body_stagings = body.get("stagings")
-    actors = body_actors if isinstance(body_actors, list) else snapshot.get("actors") or []
+    actors = (
+        body_actors if isinstance(body_actors, list) else snapshot.get("actors") or []
+    )
     props = body_props if isinstance(body_props, list) else snapshot.get("props") or []
-    stagings = body_stagings if isinstance(body_stagings, list) else snapshot.get("stagings") or []
-    legacy_props = [*props, *stagings] if isinstance(props, list) and isinstance(stagings, list) else props
+    stagings = (
+        body_stagings
+        if isinstance(body_stagings, list)
+        else snapshot.get("stagings") or []
+    )
+    legacy_props = (
+        [*props, *stagings]
+        if isinstance(props, list) and isinstance(stagings, list)
+        else props
+    )
     meta = dict(submitted_frame_meta)
     meta.setdefault("scene_id", scene_name)
     meta.setdefault("episode", int(episode_num))
@@ -3179,11 +3334,21 @@ def _director_control_frame_export_payload(
     meta.setdefault("stagings", stagings)
     meta["paths"] = rel_paths
     meta_path = target_dir / "frame_meta.json"
-    meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    meta_path.write_text(
+        json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     paths["frame_meta"] = meta_path.as_posix()
     rel_paths["frame_meta"] = meta_path.relative_to(project_dir).as_posix()
-    urls["frame_meta"] = make_static_url_for_context(ctx, rel_paths["frame_meta"], local_path=meta_path)
-    return {"dir": target_dir.as_posix(), "paths": paths, "rel_paths": rel_paths, "urls": urls, "meta": meta}
+    urls["frame_meta"] = make_static_url_for_context(
+        ctx, rel_paths["frame_meta"], local_path=meta_path
+    )
+    return {
+        "dir": target_dir.as_posix(),
+        "paths": paths,
+        "rel_paths": rel_paths,
+        "urls": urls,
+        "meta": meta,
+    }
 
 
 async def _episode_beat_from_resolution(
@@ -3256,7 +3421,9 @@ def _background_anchors_payload(
     )
 
 
-@router.get("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/pano-background/manifest")
+@router.get(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/pano-background/manifest"
+)
 async def get_beat_pano_background_manifest(
     project: str,
     episode_num: int,
@@ -3296,10 +3463,15 @@ async def get_default_director_stage_palette(
 ):
     """Return the shared director-stage palette used by local/freezone worlds."""
     await _resolve_generation_project(project, user, required_role="viewer")
-    return {"ok": True, "data": default_director_stage_palette().model_dump(exclude_none=True)}
+    return {
+        "ok": True,
+        "data": default_director_stage_palette().model_dump(exclude_none=True),
+    }
 
 
-@router.get("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/director-stage/manifest")
+@router.get(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/director-stage/manifest"
+)
 async def get_beat_director_stage_manifest(
     project: str,
     episode_num: int,
@@ -3320,7 +3492,9 @@ async def get_beat_director_stage_manifest(
         if get_sketch_colors is not None:
             sketch_colors = dict(get_sketch_colors(int(episode_num)) or {})
         episode_obj = _episode_from_store_or_none(store, int(episode_num))
-        prop_menu = await _runtime_prop_menu_with_global_props(store, episode_obj, list(beats))
+        prop_menu = await _runtime_prop_menu_with_global_props(
+            store, episode_obj, list(beats)
+        )
         manifest = build_director_stage_manifest(
             ctx=resolved.ctx,
             project_dir=project_dir,
@@ -3341,7 +3515,9 @@ async def get_beat_director_stage_manifest(
             await close()
 
 
-@router.get("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/director-stage/overlay")
+@router.get(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/director-stage/overlay"
+)
 async def get_beat_director_stage_overlay(
     project: str,
     episode_num: int,
@@ -3373,7 +3549,9 @@ async def get_beat_director_stage_overlay(
             await close()
 
 
-@router.post("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/director-stage/overlay")
+@router.post(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/director-stage/overlay"
+)
 async def save_beat_director_stage_overlay(
     project: str,
     episode_num: int,
@@ -3437,7 +3615,9 @@ async def save_beat_director_stage_overlay(
             await close()
 
 
-@router.post("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/director-stage/control-frame")
+@router.post(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/director-stage/control-frame"
+)
 async def export_beat_director_stage_control_frame(
     project: str,
     episode_num: int,
@@ -3463,7 +3643,9 @@ async def export_beat_director_stage_control_frame(
                 body=body,
             )
         except (ValueError, TypeError) as exc:
-            return JSONResponse(status_code=400, content={"ok": False, "error": str(exc)})
+            return JSONResponse(
+                status_code=400, content={"ok": False, "error": str(exc)}
+            )
         return {"ok": True, "data": payload}
     finally:
         close = getattr(store, "close", None)
@@ -3471,7 +3653,9 @@ async def export_beat_director_stage_control_frame(
             await close()
 
 
-@router.get("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/background-anchors")
+@router.get(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/background-anchors"
+)
 async def get_beat_background_anchors(
     project: str,
     episode_num: int,
@@ -3503,7 +3687,9 @@ async def get_beat_background_anchors(
             await close()
 
 
-@router.patch("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/background-anchor")
+@router.patch(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/background-anchor"
+)
 async def update_beat_background_anchor(
     project: str,
     episode_num: int,
@@ -3532,7 +3718,9 @@ async def update_beat_background_anchor(
                 episode_num=int(episode_num),
                 beat_num=int(beat_num),
                 anchor_id=body.anchor_id,
-                reference_url_builder=_api_background_reference_url_builder(resolved.ctx),
+                reference_url_builder=_api_background_reference_url_builder(
+                    resolved.ctx
+                ),
                 anchor_url_builder=_api_background_anchor_url_builder(resolved.ctx),
             )
         except BackgroundAnchorError as exc:
@@ -3552,7 +3740,9 @@ async def update_beat_background_anchor(
             await close()
 
 
-@router.post("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/background-anchor/crop")
+@router.post(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/background-anchor/crop"
+)
 async def crop_beat_background_anchor(
     project: str,
     episode_num: int,
@@ -3577,7 +3767,9 @@ async def crop_beat_background_anchor(
                 beat_num=int(beat_num),
                 anchor_id=str(body.get("anchor_id") or ""),
                 crop=body,
-                reference_url_builder=_api_background_reference_url_builder(resolved.ctx),
+                reference_url_builder=_api_background_reference_url_builder(
+                    resolved.ctx
+                ),
                 anchor_url_builder=_api_background_anchor_url_builder(resolved.ctx),
             )
         except BackgroundAnchorError as exc:
@@ -3604,7 +3796,9 @@ async def crop_beat_background_anchor(
             await close()
 
 
-@router.post("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/background-anchor/upload")
+@router.post(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/background-anchor/upload"
+)
 async def upload_beat_background_anchor(
     project: str,
     episode_num: int,
@@ -3640,7 +3834,9 @@ async def upload_beat_background_anchor(
                 episode_num=int(episode_num),
                 beat_num=int(beat_num),
                 image=image,
-                reference_url_builder=_api_background_reference_url_builder(resolved.ctx),
+                reference_url_builder=_api_background_reference_url_builder(
+                    resolved.ctx
+                ),
                 anchor_url_builder=_api_background_anchor_url_builder(resolved.ctx),
             )
         except BackgroundAnchorError as exc:
@@ -3660,7 +3856,9 @@ async def upload_beat_background_anchor(
             await close()
 
 
-@router.get("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/director-control-frame")
+@router.get(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/director-control-frame"
+)
 async def get_director_control_frame_status(
     project: str,
     episode_num: int,
@@ -3681,7 +3879,9 @@ async def get_director_control_frame_status(
     }
 
 
-@router.post("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/director-control-to-sketch")
+@router.post(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/director-control-to-sketch"
+)
 async def director_control_to_sketch(
     project: str,
     episode_num: int,
@@ -3694,7 +3894,7 @@ async def director_control_to_sketch(
     username = resolved.username
     project_name = resolved.project_name
     project_dir = resolved.project_dir
-    state_dir = str(ctx.state_dir) if ctx else get_state_dir(username, project_name)
+    state_dir = resolved.state_dir
     payload = _director_control_payload(
         ctx=resolved.ctx,
         project_dir=project_dir,
@@ -3772,7 +3972,9 @@ async def director_control_to_sketch(
     }
 
 
-@router.get("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/sketch/pose-editor")
+@router.get(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/sketch/pose-editor"
+)
 async def get_sketch_pose_editor(
     project: str,
     episode_num: int,
@@ -3806,7 +4008,9 @@ async def get_sketch_pose_editor(
         else await make_sqlite_store(username, project_name)
     )
     beats = await store.get_beats_as_dicts(episode_num)
-    beat = next((b for b in beats if int(b.get("beat_number", 0) or 0) == beat_num), None)
+    beat = next(
+        (b for b in beats if int(b.get("beat_number", 0) or 0) == beat_num), None
+    )
     if beat is None:
         return JSONResponse(
             status_code=404,
@@ -3851,7 +4055,9 @@ async def get_sketch_pose_editor(
         "ok": True,
         "data": {
             "beat_num": beat_num,
-            "sketch_url": _canonical_sketch_url(resolved.ctx, project_dir, episode_num, beat_num),
+            "sketch_url": _canonical_sketch_url(
+                resolved.ctx, project_dir, episode_num, beat_num
+            ),
             "width": width,
             "height": height,
             "candidates": [
@@ -3869,7 +4075,9 @@ async def get_sketch_pose_editor(
     }
 
 
-@router.post("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/sketch/pose-editor")
+@router.post(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/sketch/pose-editor"
+)
 async def save_sketch_pose_editor(
     project: str,
     episode_num: int,
@@ -3901,7 +4109,9 @@ async def save_sketch_pose_editor(
         "ok": True,
         "data": {
             "beat_num": beat_num,
-            "sketch_url": _canonical_sketch_url(resolved.ctx, project_dir, episode_num, beat_num),
+            "sketch_url": _canonical_sketch_url(
+                resolved.ctx, project_dir, episode_num, beat_num
+            ),
         },
     }
 
@@ -3954,14 +4164,18 @@ async def crop_current_sketch(
         "ok": True,
         "data": {
             "beat_num": beat_num,
-            "sketch_url": _canonical_sketch_url(resolved.ctx, project_dir, episode_num, beat_num),
+            "sketch_url": _canonical_sketch_url(
+                resolved.ctx, project_dir, episode_num, beat_num
+            ),
             "width": cropped.width,
             "height": cropped.height,
         },
     }
 
 
-@router.post("/projects/{project}/episodes/{episode_num}/sketches/generate-missing-manual")
+@router.post(
+    "/projects/{project}/episodes/{episode_num}/sketches/generate-missing-manual"
+)
 async def generate_missing_manual_sketches(
     project: str,
     episode_num: int,
@@ -4125,7 +4339,9 @@ async def generate_single_video(
     # 音频时长
     from ai_anime.manual_shots import resolve_target_video_duration
 
-    audio_duration = await _api_audio_duration_seconds(output_dir, episode_num, beat_num)
+    audio_duration = await _api_audio_duration_seconds(
+        output_dir, episode_num, beat_num
+    )
     video_duration = resolve_target_video_duration(beat, audio_duration)
 
     # 尾帧路径 (keyframe 模式)
@@ -4162,7 +4378,9 @@ async def generate_single_video(
                 )
             beat_index = beats.index(beat)
             episode_obj = _episode_from_store_or_none(store, episode_num)
-            prop_menu = await _runtime_prop_menu_with_global_props(store, episode_obj, beats)
+            prop_menu = await _runtime_prop_menu_with_global_props(
+                store, episode_obj, beats
+            )
             prepared = await _prepare_seedance2_api_beat(
                 store=store,
                 output_dir=output_dir,
@@ -4171,7 +4389,9 @@ async def generate_single_video(
                 all_beats=beats,
                 index=beat_index,
                 video_backend=body.video_backend,
-                resolution=body.resolution if "resolution" in body.model_fields_set else None,
+                resolution=body.resolution
+                if "resolution" in body.model_fields_set
+                else None,
                 ratio=body.ratio if "ratio" in body.model_fields_set else None,
                 prop_menu=prop_menu,
             )
@@ -4198,17 +4418,23 @@ async def generate_single_video(
                 )
             beat_index = beats.index(beat)
             episode_obj = _episode_from_store_or_none(store, episode_num)
-            prop_menu = await _runtime_prop_menu_with_global_props(store, episode_obj, beats)
+            prop_menu = await _runtime_prop_menu_with_global_props(
+                store, episode_obj, beats
+            )
             prepared = await _prepare_happyhorse_api_beat(
                 output_dir=output_dir,
                 episode=episode_num,
                 beat=beat,
-                next_beat=beats[beat_index + 1] if beat_index + 1 < len(beats) else None,
+                next_beat=beats[beat_index + 1]
+                if beat_index + 1 < len(beats)
+                else None,
                 frame_path=frame_path,
                 video_mode=video_mode,
                 prompt=prompt,
                 duration=video_duration,
-                resolution=body.resolution if "resolution" in body.model_fields_set else None,
+                resolution=body.resolution
+                if "resolution" in body.model_fields_set
+                else None,
                 ratio=body.ratio if "ratio" in body.model_fields_set else None,
                 prop_menu=prop_menu,
             )
@@ -4220,7 +4446,9 @@ async def generate_single_video(
                 )
             prompt = str(prepared["prompt"])
             video_duration = float(prepared["duration"])
-            frame_path = Path(str(prepared["image_path"])) if prepared["image_path"] else None
+            frame_path = (
+                Path(str(prepared["image_path"])) if prepared["image_path"] else None
+            )
             last_frame_path = None
             seedance2_config_json = str(prepared["config_json"])
             single_video_resolution = str(prepared["resolution"])
@@ -4244,17 +4472,23 @@ async def generate_single_video(
                 )
             beat_index = beats.index(beat)
             episode_obj = _episode_from_store_or_none(store, episode_num)
-            prop_menu = await _runtime_prop_menu_with_global_props(store, episode_obj, beats)
+            prop_menu = await _runtime_prop_menu_with_global_props(
+                store, episode_obj, beats
+            )
             prepared = await _prepare_grok_video_api_beat(
                 output_dir=output_dir,
                 episode=episode_num,
                 beat=beat,
-                next_beat=beats[beat_index + 1] if beat_index + 1 < len(beats) else None,
+                next_beat=beats[beat_index + 1]
+                if beat_index + 1 < len(beats)
+                else None,
                 frame_path=frame_path,
                 video_mode=video_mode,
                 prompt=prompt,
                 duration=video_duration,
-                resolution=body.resolution if "resolution" in body.model_fields_set else None,
+                resolution=body.resolution
+                if "resolution" in body.model_fields_set
+                else None,
                 ratio=body.ratio if "ratio" in body.model_fields_set else None,
                 prop_menu=prop_menu,
             )
@@ -4266,7 +4500,9 @@ async def generate_single_video(
                 )
             prompt = str(prepared["prompt"])
             video_duration = float(prepared["duration"])
-            frame_path = Path(str(prepared["image_path"])) if prepared["image_path"] else None
+            frame_path = (
+                Path(str(prepared["image_path"])) if prepared["image_path"] else None
+            )
             last_frame_path = None
             seedance2_config_json = str(prepared["config_json"])
             single_video_resolution = str(prepared["resolution"])
@@ -4289,7 +4525,9 @@ async def generate_single_video(
             except (TypeError, ValueError):
                 pass
         if audio_duration:
-            video_duration = max(float(video_duration), float(math.ceil(float(audio_duration))))
+            video_duration = max(
+                float(video_duration), float(math.ceil(float(audio_duration)))
+            )
         if "resolution" in body.model_fields_set:
             single_video_resolution = _seedance2_resolution_for_backend(
                 body.video_backend, body.resolution
@@ -4388,7 +4626,9 @@ async def list_video_pool(
     }
 
 
-@router.post("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/video-pool-select")
+@router.post(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/video-pool-select"
+)
 async def select_video_pool(
     project: str,
     episode_num: int,
@@ -4429,7 +4669,9 @@ async def select_video_pool(
 
 
 @router.get("/projects/{project}/episodes/{episode_num}/grids")
-async def list_grids(project: str, episode_num: int, user: dict = Depends(get_api_user)):
+async def list_grids(
+    project: str, episode_num: int, user: dict = Depends(get_api_user)
+):
     """查看网格预览和图片池。"""
     resolved = await _resolve_generation_project(project, user, required_role="viewer")
     username = resolved.username
@@ -4459,7 +4701,9 @@ async def list_grids(project: str, episode_num: int, user: dict = Depends(get_ap
     for beat in script_data.get("beats", []):
         beat_num = beat.get("beat_number")
         if beat_num is not None:
-            beat_hashes[beat_num] = compute_beat_content_hash(beat, sketch_colors=sketch_colors)
+            beat_hashes[beat_num] = compute_beat_content_hash(
+                beat, sketch_colors=sketch_colors
+            )
 
     images = []
     for img in pool.images:
@@ -4530,7 +4774,9 @@ async def rebuild_grids_pool_index(
     }
 
 
-@router.get("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/sketch-candidates")
+@router.get(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/sketch-candidates"
+)
 async def get_beat_sketch_candidates(
     project: str,
     episode_num: int,
@@ -4550,7 +4796,9 @@ async def get_beat_sketch_candidates(
     )
 
     grids_dir = project_dir / "grids" / f"ep{episode_num:03d}"
-    current_path = project_dir / "sketches" / f"ep{episode_num:03d}" / f"beat_{beat_num:02d}.png"
+    current_path = (
+        project_dir / "sketches" / f"ep{episode_num:03d}" / f"beat_{beat_num:02d}.png"
+    )
     current_sketch_url = ""
     if current_path.exists():
         current_sketch_url = make_static_url_for_context(
@@ -4623,7 +4871,10 @@ async def get_beat_sketch_candidates(
             }
         )
     candidates.sort(
-        key=lambda item: (str(item.get("generated_at") or ""), str(item.get("id") or "")),
+        key=lambda item: (
+            str(item.get("generated_at") or ""),
+            str(item.get("id") or ""),
+        ),
         reverse=True,
     )
 
@@ -4669,7 +4920,10 @@ async def select_pool_image(
 
     pool_img = pool.get_image(body.pool_id)
     if not pool_img:
-        return {"ok": False, "error": f"Pool ID '{body.pool_id}' not found in pool index"}
+        return {
+            "ok": False,
+            "error": f"Pool ID '{body.pool_id}' not found in pool index",
+        }
 
     if pool_img and pool_img.type == "sketch":
         store = (
@@ -4696,7 +4950,10 @@ async def select_pool_image(
 
     cell_path = pool_img.cell_path
     if not cell_path:
-        return {"ok": False, "error": f"Pool ID '{body.pool_id}' not found in pool index"}
+        return {
+            "ok": False,
+            "error": f"Pool ID '{body.pool_id}' not found in pool index",
+        }
 
     # 完整路径
     cell_full = grids_dir / cell_path
@@ -4742,7 +4999,9 @@ async def select_pool_image(
     }
 
 
-@router.post("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/sketch/upload")
+@router.post(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/sketch/upload"
+)
 async def upload_beat_sketch(
     project: str,
     episode_num: int,
@@ -4786,7 +5045,9 @@ async def upload_beat_sketch(
     }
 
 
-@router.post("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/render/upload")
+@router.post(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/render/upload"
+)
 async def upload_beat_render(
     project: str,
     episode_num: int,
@@ -4909,7 +5170,9 @@ async def regenerate_beat_audio(
 
 
 @router.get("/projects/{project}/episodes/{episode_num}/export/srt")
-async def export_srt(project: str, episode_num: int, user: dict = Depends(get_api_user)):
+async def export_srt(
+    project: str, episode_num: int, user: dict = Depends(get_api_user)
+):
     """导出 SRT 字幕文件。"""
     from fastapi.responses import PlainTextResponse
 
@@ -5127,7 +5390,9 @@ async def export_grid_prompt(
     return {"ok": False, "error": "Prompt file not found for this grid"}
 
 
-@router.post("/projects/{project}/episodes/{episode_num}/grids/{grid_index}/sketch-preview")
+@router.post(
+    "/projects/{project}/episodes/{episode_num}/grids/{grid_index}/sketch-preview"
+)
 async def sketch_grid_preview(
     project: str,
     episode_num: int,
@@ -5146,7 +5411,10 @@ async def sketch_grid_preview(
     ep_grids_dir = output_dir / "grids" / f"ep{episode_num:03d}"
 
     from ai_anime.generators.nanobanana_grid import crop_sketch_panels
-    from ai_anime.generators.pool_indexer import build_beat_sketch_paths, load_pool_index
+    from ai_anime.generators.pool_indexer import (
+        build_beat_sketch_paths,
+        load_pool_index,
+    )
 
     beat_numbers = [int(beat) for beat in body.beat_numbers if int(beat) > 0]
     if not beat_numbers:
@@ -5178,7 +5446,8 @@ async def sketch_grid_preview(
 
     beats_slug = "_".join(str(beat) for beat in beat_numbers[:8])
     out_file = (
-        ep_grids_dir / f"sketch_thumb_grid{grid_index}_{beats_slug}_{body.rows}x{body.cols}.jpg"
+        ep_grids_dir
+        / f"sketch_thumb_grid{grid_index}_{beats_slug}_{body.rows}x{body.cols}.jpg"
     )
     sketch_out = Path(
         crop_sketch_panels(
@@ -5193,7 +5462,10 @@ async def sketch_grid_preview(
     try:
         rel = sketch_out.relative_to(ep_grids_dir)
     except ValueError:
-        return {"ok": False, "error": "Sketch preview path escaped episode grids directory"}
+        return {
+            "ok": False,
+            "error": "Sketch preview path escaped episode grids directory",
+        }
 
     return {
         "ok": True,
@@ -5301,7 +5573,9 @@ async def cut_grid(
 
 
 @router.post("/projects/{project}/episodes/{episode_num}/export/zip")
-async def export_zip(project: str, episode_num: int, user: dict = Depends(get_api_user)):
+async def export_zip(
+    project: str, episode_num: int, user: dict = Depends(get_api_user)
+):
     """打包指定集的所有资源为 ZIP 文件下载。"""
     import zipfile
     import tempfile
@@ -5420,7 +5694,9 @@ async def assign_sketch_colors(
     )
 
     episode_obj = _episode_from_store_or_none(store, episode_num)
-    runtime_prop_menu = await _runtime_prop_menu_with_global_props(store, episode_obj, beats)
+    runtime_prop_menu = await _runtime_prop_menu_with_global_props(
+        store, episode_obj, beats
+    )
     previous_prop_marker_colors = _global_prop_marker_colors(
         beats,
         prop_menu=runtime_prop_menu,
@@ -5433,7 +5709,10 @@ async def assign_sketch_colors(
         assign_missing=True,
     )
     if not colors and not prop_marker_colors:
-        return {"ok": False, "error": "No identity or global prop markers found in beats"}
+        return {
+            "ok": False,
+            "error": "No identity or global prop markers found in beats",
+        }
 
     try:
         if colors:
@@ -5515,21 +5794,30 @@ async def detect_sketch_identities(
     if not color_map:
         try:
             script_data_for_fallback = await store.get_script_as_dict(episode_num)
-            color_map = dict((script_data_for_fallback or {}).get("sketch_colors") or {})
+            color_map = dict(
+                (script_data_for_fallback or {}).get("sketch_colors") or {}
+            )
         except Exception:
             script_data_for_fallback = None
     if not color_map:
-        return {"ok": False, "error": "No sketch colors assigned. Call assign-colors first"}
+        return {
+            "ok": False,
+            "error": "No sketch colors assigned. Call assign-colors first",
+        }
 
     episode_obj = _episode_from_store_or_none(store, episode_num)
-    runtime_prop_menu = await _runtime_prop_menu_with_global_props(store, episode_obj, beats)
+    runtime_prop_menu = await _runtime_prop_menu_with_global_props(
+        store, episode_obj, beats
+    )
     if not runtime_prop_menu:
         if script_data_for_fallback is None:
             try:
                 script_data_for_fallback = await store.get_script_as_dict(episode_num)
             except Exception:
                 script_data_for_fallback = None
-        runtime_prop_menu = list((script_data_for_fallback or {}).get("prop_menu") or [])
+        runtime_prop_menu = list(
+            (script_data_for_fallback or {}).get("prop_menu") or []
+        )
     prop_color_map = _global_prop_marker_colors(
         beats,
         prop_menu=runtime_prop_menu,
@@ -5545,7 +5833,9 @@ async def detect_sketch_identities(
     sketches_dir = project_dir / "sketches" / f"ep{episode_num:03d}"
     frame_items: list[tuple[int, str]] = []
     known_beats = {
-        int(b.get("beat_number", 0)) for b in beats if int(b.get("beat_number", 0) or 0) > 0
+        int(b.get("beat_number", 0))
+        for b in beats
+        if int(b.get("beat_number", 0) or 0) > 0
     }
     beat_pattern = re.compile(r"beat_(\d+)\.(png|jpg)$", re.IGNORECASE)
     if sketches_dir.exists():
@@ -5623,9 +5913,12 @@ async def detect_sketch_identities(
             batch = frame_items[batch_idx : batch_idx + batch_size]
             rows, cols = _grid_shape(len(batch))
             grid_path = (
-                grid_dir / f"_ai_detect_grid_{rows}x{cols}_part{batch_idx // batch_size + 1}.png"
+                grid_dir
+                / f"_ai_detect_grid_{rows}x{cols}_part{batch_idx // batch_size + 1}.png"
             )
-            combine_to_grid([path for _, path in batch], grid_path, rows=rows, cols=cols)
+            combine_to_grid(
+                [path for _, path in batch], grid_path, rows=rows, cols=cols
+            )
             batch_result = await detect_identities_by_ai(
                 sketch_image_paths=[str(grid_path)],
                 color_identity_map=color_identity_map,
@@ -5702,7 +5995,9 @@ async def detect_sketch_identities(
     # 转换 key 为字符串（JSON 兼容）
     str_identity_detections = {str(k): v for k, v in identity_detections.items()}
     str_prop_detections = {str(k): v for k, v in prop_detections.items()}
-    total_ids = sum(len(real_detected_identities(v)) for v in identity_detections.values())
+    total_ids = sum(
+        len(real_detected_identities(v)) for v in identity_detections.values()
+    )
     total_props = sum(len(real_detected_props(v)) for v in prop_detections.values())
 
     return {

@@ -6,8 +6,11 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from ai_anime.modules.project_workspace.public import (
+    InvalidProjectName,
+    ProjectAlreadyExists,
     ProjectBackendNotInitialized,
     ProjectHomeNodeRequired,
+    ProjectLifecycleConflict,
     ProjectNotFound,
     ProjectRoleRequired,
     ProjectUserIdentityUnresolved,
@@ -84,6 +87,30 @@ async def project_home_node_required(
             }
         },
     )
+
+
+async def invalid_project_name(
+    request: Request,
+    exc: InvalidProjectName,
+) -> JSONResponse:
+    _ = request
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
+
+
+async def project_already_exists(
+    request: Request,
+    exc: ProjectAlreadyExists,
+) -> JSONResponse:
+    _ = request
+    return JSONResponse(status_code=409, content={"detail": str(exc)})
+
+
+async def project_lifecycle_conflict(
+    request: Request,
+    exc: ProjectLifecycleConflict,
+) -> JSONResponse:
+    _ = request
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
 
 
 async def project_task_limit_exceeded(
@@ -197,6 +224,12 @@ def register_exception_handlers(application: FastAPI) -> None:
     application.add_exception_handler(
         ProjectHomeNodeRequired,
         project_home_node_required,
+    )
+    application.add_exception_handler(InvalidProjectName, invalid_project_name)
+    application.add_exception_handler(ProjectAlreadyExists, project_already_exists)
+    application.add_exception_handler(
+        ProjectLifecycleConflict,
+        project_lifecycle_conflict,
     )
     application.add_exception_handler(
         ProjectTaskLimitExceeded,

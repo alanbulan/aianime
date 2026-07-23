@@ -32,7 +32,9 @@ def test_chat_visible_text_redacts_local_filesystem_paths():
 
 def test_completion_notice_appends_without_replacing_existing_reply():
     existing = "我已经检查完前置条件，下一步会启动第 1 个任务。"
-    notice = "当前任务已开始处理。请稍后让我查看当前任务进度，或在任务完成后再继续下一步。"
+    notice = (
+        "当前任务已开始处理。请稍后让我查看当前任务进度，或在任务完成后再继续下一步。"
+    )
 
     merged = chat_service._completion_text_or_existing(notice, existing)
 
@@ -128,8 +130,6 @@ def test_backend_api_get_default_uses_ipv4_loopback(monkeypatch):
         return FakeResponse()
 
     monkeypatch.delenv("AI_ANIME_API_URL", raising=False)
-    monkeypatch.delenv("AI_ANIME_API_URL", raising=False)
-    monkeypatch.delenv("AI_ANIME_API_URL", raising=False)
     monkeypatch.setenv("AI_ANIME_API_PORT", "8780")
     monkeypatch.setattr(chat_service, "urlopen", fake_urlopen)
 
@@ -137,7 +137,7 @@ def test_backend_api_get_default_uses_ipv4_loopback(monkeypatch):
     assert seen["url"] == "http://127.0.0.1:8780/api/v1/config"
 
 
-def test_backend_api_get_ignores_stale_legacy_ai_anime_url(monkeypatch):
+def test_backend_api_get_prefers_explicit_api_url(monkeypatch):
     seen = {}
 
     class FakeResponse:
@@ -156,23 +156,25 @@ def test_backend_api_get_ignores_stale_legacy_ai_anime_url(monkeypatch):
         seen["url"] = req.full_url
         return FakeResponse()
 
-    monkeypatch.delenv("AI_ANIME_API_URL", raising=False)
-    monkeypatch.delenv("AI_ANIME_API_URL", raising=False)
     monkeypatch.setenv("AI_ANIME_API_URL", "http://localhost:7860")
     monkeypatch.setenv("AI_ANIME_API_PORT", "8780")
     monkeypatch.setattr(chat_service, "urlopen", fake_urlopen)
 
     assert chat_service._backend_api_get("/api/v1/config", "token") == {"ok": True}
-    assert seen["url"] == "http://127.0.0.1:8780/api/v1/config"
+    assert seen["url"] == "http://localhost:7860/api/v1/config"
 
 
 @pytest.mark.anyio
-async def test_append_chat_notification_persists_project_assistant_message(monkeypatch, tmp_path):
+async def test_append_chat_notification_persists_project_assistant_message(
+    monkeypatch, tmp_path
+):
     seen = {}
 
     async def fake_project_context(user, scope):
         seen["scope"] = scope
-        return SimpleNamespace(output_dir=tmp_path / "out", state_dir=tmp_path / "state")
+        return SimpleNamespace(
+            output_dir=tmp_path / "out", state_dir=tmp_path / "state"
+        )
 
     def fake_add_assistant_message(
         username,
@@ -310,7 +312,10 @@ async def test_fallback_display_prefers_api_project_id(monkeypatch):
     assert len(specs) == 1
     root = specs[0]["root"]
     first_child = specs[0]["elements"][root]["children"][0]
-    assert specs[0]["elements"][first_child]["props"]["src"] == "/static/projects/api-project/sketch.png?v=1"
+    assert (
+        specs[0]["elements"][first_child]["props"]["src"]
+        == "/static/projects/api-project/sketch.png?v=1"
+    )
 
 
 def test_claude_and_codex_sessions_are_scope_scoped(monkeypatch, tmp_path):
@@ -318,7 +323,9 @@ def test_claude_and_codex_sessions_are_scope_scoped(monkeypatch, tmp_path):
     monkeypatch.setenv("AI_ANIME_OUTPUT_DIR", str(tmp_path / "output"))
 
     chat_service._set_claude_session_id("admin", "project-a", "claude-session-1")
-    assert chat_service._get_claude_session_id("admin", "project-b") == "claude-session-1"
+    assert (
+        chat_service._get_claude_session_id("admin", "project-b") == "claude-session-1"
+    )
     assert chat_service._get_codex_thread_id("admin", "project-b") is None
 
     chat_service._set_codex_thread_id("admin", "project-a", "codex-thread-1")
@@ -355,7 +362,9 @@ def test_ai_anime_mcp_server_config_is_agent_neutral():
 
 
 def test_codex_client_carries_ai_anime_mcp_servers(tmp_path):
-    overrides = chat_service._codex_mcp_config_overrides(chat_service._ai_anime_mcp_servers())
+    overrides = chat_service._codex_mcp_config_overrides(
+        chat_service._ai_anime_mcp_servers()
+    )
 
     expected_command = json.dumps(__import__("sys").executable, ensure_ascii=False)
     assert f"mcp_servers.ai_anime.command={expected_command}" in overrides
@@ -376,7 +385,6 @@ def test_codex_client_carries_ai_anime_mcp_servers(tmp_path):
 
 def test_explicit_codex_does_not_fallback_when_unavailable(monkeypatch):
     monkeypatch.setenv("AI_ANIME_CHAT_BACKEND", "codex")
-    monkeypatch.delenv("AI_ANIME_CHAT_BACKEND", raising=False)
     monkeypatch.setattr(chat_service, "is_codex_backend_available", lambda: False)
     monkeypatch.setattr(chat_service, "is_hermes_backend_available", lambda: True)
     monkeypatch.setattr(chat_service, "is_claude_backend_available", lambda: True)
@@ -517,13 +525,15 @@ def test_chat_run_lock_heartbeat_refreshes_updated_at(monkeypatch, tmp_path):
         atomic_writes.append((path, payload))
         original_atomic_write(path, payload)
 
-    monkeypatch.setattr(chat_service, "_atomic_write_chat_run_lock_file", spy_atomic_write)
+    monkeypatch.setattr(
+        chat_service, "_atomic_write_chat_run_lock_file", spy_atomic_write
+    )
 
     lock_id = chat_service._acquire_chat_run_lock("admin", "project-a")
     lock_path = chat_service._chat_run_lock_path("admin", "project-a")
     try:
-        _current_lock_id, _owner_pid, started_at, updated_at = chat_service._read_chat_run_lock_file(
-            lock_path
+        _current_lock_id, _owner_pid, started_at, updated_at = (
+            chat_service._read_chat_run_lock_file(lock_path)
         )
         assert started_at is not None
         assert updated_at is not None
@@ -540,7 +550,9 @@ def test_chat_run_lock_heartbeat_refreshes_updated_at(monkeypatch, tmp_path):
             encoding="utf-8",
         )
 
-        assert chat_service._heartbeat_chat_run_lock("admin", "project-a", lock_id) is True
+        assert (
+            chat_service._heartbeat_chat_run_lock("admin", "project-a", lock_id) is True
+        )
         assert len(atomic_writes) == 1
         assert atomic_writes[0][0] == lock_path
         assert json.loads(atomic_writes[0][1])["lock_id"] == lock_id
@@ -586,7 +598,9 @@ def test_chat_run_lock_removes_old_invalid_lock(monkeypatch, tmp_path):
 
 
 @pytest.mark.anyio
-async def test_reingest_confirmation_reply_bypasses_agent_backend(monkeypatch, tmp_path):
+async def test_reingest_confirmation_reply_bypasses_agent_backend(
+    monkeypatch, tmp_path
+):
     monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
     monkeypatch.setattr(
         chat_service,
@@ -618,7 +632,9 @@ filename: novel.docx
 
 
 @pytest.mark.anyio
-async def test_reingest_final_confirmation_reply_bypasses_agent_backend(monkeypatch, tmp_path):
+async def test_reingest_final_confirmation_reply_bypasses_agent_backend(
+    monkeypatch, tmp_path
+):
     monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
     monkeypatch.setattr(
         chat_service,
@@ -668,7 +684,10 @@ def test_prompt_injects_json_render_contract(monkeypatch, tmp_path):
     assert "ai_anime_get_sketches" in prompt
     assert "ai_anime_get_scene_images" in prompt
     assert "ai_anime_get_episode_media" in prompt
-    assert "只有在回复需要展示图片、肖像、身份图、草图、首帧、视频、音频等可视/可播放媒体时" in prompt
+    assert (
+        "只有在回复需要展示图片、肖像、身份图、草图、首帧、视频、音频等可视/可播放媒体时"
+        in prompt
+    )
     assert "media_json" in prompt
     assert "不要猜测、拼接或改写静态资源路径" in prompt
     assert "禁止自行编造 /static/projects/{project_id}/..." in prompt
@@ -677,7 +696,10 @@ def test_prompt_injects_json_render_contract(monkeypatch, tmp_path):
     assert "video_url" in prompt
     assert "不要使用 *_path" in prompt
     assert "发送前自检" in prompt
-    assert "角色列表、剧集规划、项目进度、任务状态、脚本/beat 摘要、表格、长篇正文、普通结构化说明默认使用 markdown" in prompt
+    assert (
+        "角色列表、剧集规划、项目进度、任务状态、脚本/beat 摘要、表格、长篇正文、普通结构化说明默认使用 markdown"
+        in prompt
+    )
     assert "不要为纯文本、进度、脚本、表格、角色/剧集清单调用媒体展示工具" in prompt
     assert prompt.rstrip().endswith("查看肖像图片，用 json-render 显示")
 
@@ -784,13 +806,17 @@ def test_project_history_hides_trace_messages(monkeypatch, tmp_path):
     monkeypatch.setenv("AI_ANIME_OUTPUT_DIR", str(tmp_path / "output"))
 
     chat_service.add_user_message("admin", "project-a", "你好")
-    chat_service.add_trace_message("admin", "project-a", "→ ai_anime_pipeline_status\ncompleted")
+    chat_service.add_trace_message(
+        "admin", "project-a", "→ ai_anime_pipeline_status\ncompleted"
+    )
     chat_service.add_assistant_message("admin", "project-a", "你好！")
 
     messages = chat_service.list_messages("admin", "project-a")
 
     assert [message["role"] for message in messages] == ["user", "assistant"]
-    assert all("ai_anime_pipeline_status" not in message["content"] for message in messages)
+    assert all(
+        "ai_anime_pipeline_status" not in message["content"] for message in messages
+    )
 
 
 def test_project_history_defaults_to_last_50_messages(monkeypatch, tmp_path):
@@ -812,13 +838,17 @@ def test_home_history_hides_trace_messages(monkeypatch, tmp_path):
     scope = ChatScope(kind="home")
 
     chat_store.append_message("admin", scope, "user", "你好")
-    chat_store.append_message("admin", scope, "trace", "→ ai_anime_pipeline_status\ncompleted")
+    chat_store.append_message(
+        "admin", scope, "trace", "→ ai_anime_pipeline_status\ncompleted"
+    )
     chat_store.append_message("admin", scope, "assistant", "你好！")
 
     messages = chat_store.list_messages("admin", scope)
 
     assert [message["role"] for message in messages] == ["user", "assistant"]
-    assert all("ai_anime_pipeline_status" not in message["content"] for message in messages)
+    assert all(
+        "ai_anime_pipeline_status" not in message["content"] for message in messages
+    )
 
 
 def test_json_render_reply_normalizer_unwraps_fenced_ui_spec():
@@ -936,7 +966,7 @@ def test_json_render_reply_normalizer_accepts_media_bundle_array():
             },
         },
     }
-    content = f"<ui-spec type=\"media_bundle\">{json.dumps([spec_a, spec_b])}</ui-spec>"
+    content = f'<ui-spec type="media_bundle">{json.dumps([spec_a, spec_b])}</ui-spec>'
 
     normalized = chat_service._normalize_json_render_reply(content)
 
@@ -960,7 +990,9 @@ def test_json_render_reply_normalizer_wraps_embedded_canonical_json():
             },
         },
     }
-    content = f"已加载草图：\n\n{json.dumps(spec, ensure_ascii=False)}\n\n继续查看请告诉我。"
+    content = (
+        f"已加载草图：\n\n{json.dumps(spec, ensure_ascii=False)}\n\n继续查看请告诉我。"
+    )
 
     normalized = chat_service._normalize_json_render_reply(content)
 
@@ -1038,7 +1070,10 @@ def test_extract_tool_ui_specs_parses_json_string_tool_result():
 
     assert len(specs) == 1
     assert specs[0]["type"] == "sketch_gallery"
-    assert specs[0]["elements"]["image_1"]["props"]["src"] == "/static/projects/demo/sketch.png?v=1"
+    assert (
+        specs[0]["elements"]["image_1"]["props"]["src"]
+        == "/static/projects/demo/sketch.png?v=1"
+    )
 
 
 def test_extract_tool_chat_error_from_nested_tool_result_string():
@@ -1141,7 +1176,10 @@ def test_append_tool_ui_specs_adds_block_when_model_did_not_write_one():
             "root": {"type": "Stack", "props": {}, "children": ["portrait"]},
             "portrait": {
                 "type": "Image",
-                "props": {"src": "/static/projects/demo/portrait.png?v=1", "alt": "肖像"},
+                "props": {
+                    "src": "/static/projects/demo/portrait.png?v=1",
+                    "alt": "肖像",
+                },
                 "children": [],
             },
         },
@@ -1162,7 +1200,10 @@ def test_append_tool_ui_specs_ignores_placeholder_ui_spec_chatter():
             "root": {"type": "Stack", "props": {}, "children": ["portrait"]},
             "portrait": {
                 "type": "Image",
-                "props": {"src": "/static/projects/demo/portrait.png?v=1", "alt": "肖像"},
+                "props": {
+                    "src": "/static/projects/demo/portrait.png?v=1",
+                    "alt": "肖像",
+                },
                 "children": [],
             },
         },
@@ -1226,7 +1267,10 @@ def test_ui_spec_json_is_generated_before_wrapping_tags():
             "root": {"type": "Stack", "props": {}, "children": ["portrait"]},
             "portrait": {
                 "type": "Image",
-                "props": {"src": "/static/projects/demo/portrait.png?v=1", "alt": "肖像"},
+                "props": {
+                    "src": "/static/projects/demo/portrait.png?v=1",
+                    "alt": "肖像",
+                },
                 "children": [],
             },
         },
@@ -1276,7 +1320,9 @@ def test_append_tool_ui_specs_keeps_image_specs_separate_and_ordered():
         },
     }
 
-    content = chat_service._append_tool_ui_specs("已展示媒体。", [portrait_spec, sketch_spec])
+    content = chat_service._append_tool_ui_specs(
+        "已展示媒体。", [portrait_spec, sketch_spec]
+    )
 
     assert content.count("<ui-spec") == 2
     assert '<ui-spec type="character_showcase">' in content
@@ -1325,7 +1371,9 @@ def test_append_tool_ui_specs_merges_adjacent_character_showcase_specs():
         },
     }
 
-    content = chat_service._append_tool_ui_specs("已展示角色。", [first_spec, second_spec])
+    content = chat_service._append_tool_ui_specs(
+        "已展示角色。", [first_spec, second_spec]
+    )
 
     assert content.count('<ui-spec type="character_showcase">') == 1
     assert "/static/projects/demo/jiang-nian.png?v=1" in content
@@ -1386,7 +1434,9 @@ def test_append_tool_ui_specs_merges_same_category_video_and_audio_specs():
         },
     }
 
-    content = chat_service._append_tool_ui_specs("已展示媒体。", [video_a, video_b, audio_a, audio_b])
+    content = chat_service._append_tool_ui_specs(
+        "已展示媒体。", [video_a, video_b, audio_a, audio_b]
+    )
 
     assert content.count('<ui-spec type="keyframe_video">') == 1
     assert content.count('<ui-spec type="audio_list">') == 1
@@ -1428,7 +1478,9 @@ def test_append_tool_ui_specs_keeps_same_src_across_different_categories():
         },
     }
 
-    content = chat_service._append_tool_ui_specs("已展示媒体。", [portrait_spec, sketch_spec])
+    content = chat_service._append_tool_ui_specs(
+        "已展示媒体。", [portrait_spec, sketch_spec]
+    )
 
     assert content.count("<ui-spec") == 2
     assert content.count(shared_src) == 2

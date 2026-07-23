@@ -43,7 +43,9 @@ def _client(monkeypatch, tmp_path):
         assert ctx.project_id == "proj"
         return _RenderRegenStore()
 
-    async def fake_resolve_generation_project(project: str, user: dict, required_role: str):
+    async def fake_resolve_generation_project(
+        project: str, user: dict, required_role: str
+    ):
         assert project == "demo"
         assert user == {"username": "alice"}
         assert required_role == "editor"
@@ -79,23 +81,30 @@ def _client(monkeypatch, tmp_path):
         lambda username, project: tmp_path,
         raising=False,
     )
-    monkeypatch.setattr(generation, "_resolve_generation_project", fake_resolve_generation_project)
+    monkeypatch.setattr(
+        generation, "_resolve_generation_project", fake_resolve_generation_project
+    )
     monkeypatch.setattr(
         generation,
         "get_output_dir",
         lambda username, project: str(tmp_path),
         raising=False,
     )
-    monkeypatch.setattr(generation, "get_state_dir", lambda username, project: str(tmp_path / "state"))
     monkeypatch.setattr(generation, "load_project_config", lambda username, project: {})
     monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
     monkeypatch.setattr(
         generation, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
     )
     monkeypatch.setattr(generation, "_build_character_map", fake_character_map)
-    monkeypatch.setattr(generation, "_runtime_prop_menu_with_global_props", fake_prop_menu)
+    monkeypatch.setattr(
+        generation, "_runtime_prop_menu_with_global_props", fake_prop_menu
+    )
     monkeypatch.setattr(generation, "render_ai_detection_error", lambda beats: None)
-    monkeypatch.setattr(generation, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
+    monkeypatch.setattr(
+        generation,
+        "get_task_backend",
+        lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
+    )
 
     app = FastAPI()
     app.include_router(generation.router, prefix="/api/v1")
@@ -111,7 +120,9 @@ def _client_with_real_detection_guard(monkeypatch, tmp_path, beats: list[dict]):
     seen_character_map_beats: list[list[int]] = []
     store = _RenderRegenStore(beats)
 
-    async def fake_resolve_generation_project(project: str, user: dict, required_role: str):
+    async def fake_resolve_generation_project(
+        project: str, user: dict, required_role: str
+    ):
         assert project == "demo"
         assert user == {"username": "alice"}
         assert required_role == "editor"
@@ -137,7 +148,9 @@ def _client_with_real_detection_guard(monkeypatch, tmp_path, beats: list[dict]):
         return store
 
     async def fake_character_map(store, selected_beats, username, project, **kwargs):
-        seen_character_map_beats.append([beat["beat_number"] for beat in selected_beats])
+        seen_character_map_beats.append(
+            [beat["beat_number"] for beat in selected_beats]
+        )
         return {"hero": {"ref_path": ""}}
 
     async def fake_prop_menu(*args, **kwargs):
@@ -151,16 +164,23 @@ def _client_with_real_detection_guard(monkeypatch, tmp_path, beats: list[dict]):
             queue=kwargs.get("queue_kind") or "default",
         )
 
-    monkeypatch.setattr(generation, "_resolve_generation_project", fake_resolve_generation_project)
+    monkeypatch.setattr(
+        generation, "_resolve_generation_project", fake_resolve_generation_project
+    )
     monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
     monkeypatch.setattr(
         generation, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
     )
     monkeypatch.setattr(generation, "_build_character_map", fake_character_map)
-    monkeypatch.setattr(generation, "_runtime_prop_menu_with_global_props", fake_prop_menu)
+    monkeypatch.setattr(
+        generation, "_runtime_prop_menu_with_global_props", fake_prop_menu
+    )
     monkeypatch.setattr(generation, "load_project_config", lambda username, project: {})
-    monkeypatch.setattr(generation, "get_state_dir", lambda username, project: str(tmp_path / "state"))
-    monkeypatch.setattr(generation, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
+    monkeypatch.setattr(
+        generation,
+        "get_task_backend",
+        lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
+    )
 
     app = FastAPI()
     app.include_router(generation.router, prefix="/api/v1")
@@ -193,12 +213,17 @@ def test_render_selected_regen_returns_scope_and_passes_render_settings(
     assert body["task_type"] == "selected_regen"
     assert body["scope"] == expected_scope
     assert calls[0]["payload"]["mode_key"] == "1x1_2-3"
-    assert calls[0]["payload"]["config"]["image_generation_selection"] == "newapi_nanobanana2"
+    assert (
+        calls[0]["payload"]["config"]["image_generation_selection"]
+        == "newapi_nanobanana2"
+    )
     assert calls[0]["payload"]["config"]["sketch_aspect_padding"] is True
     assert "force_half_k" not in calls[0]["payload"]["config"]
 
 
-def test_render_selected_regen_checks_only_selected_beat_detection(monkeypatch, tmp_path):
+def test_render_selected_regen_checks_only_selected_beat_detection(
+    monkeypatch, tmp_path
+):
     client, calls, seen_character_map_beats = _client_with_real_detection_guard(
         monkeypatch,
         tmp_path,
@@ -296,7 +321,10 @@ def test_render_grid_regen_passes_render_settings(monkeypatch, tmp_path):
     assert body["ok"] is True
     assert body["task_type"] == "grid_regenerate"
     assert calls[0]["payload"]["grid_index"] == 0
-    assert calls[0]["payload"]["config"]["image_generation_selection"] == "newapi_nanobanana2"
+    assert (
+        calls[0]["payload"]["config"]["image_generation_selection"]
+        == "newapi_nanobanana2"
+    )
     assert calls[0]["payload"]["config"]["sketch_aspect_padding"] is True
     assert "force_half_k" not in calls[0]["payload"]["config"]
 

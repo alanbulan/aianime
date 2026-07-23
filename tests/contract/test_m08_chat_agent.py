@@ -1,8 +1,3 @@
-import json
-import os
-import subprocess
-import sys
-
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
@@ -12,43 +7,22 @@ from ai_anime.modules.identity_access.public import AuthError
 pytestmark = pytest.mark.m08
 
 
-def _run_ce_agent_route_probe() -> dict:
-    env = os.environ.copy()
-    env["AI_ANIME_EDITION"] = "ce"
-    env["AI_ANIME_CONTROL_PLANE_DSN"] = ""
-    env["REDIS_URL"] = ""
-    code = """
-import json
+def test_ce_agent_key_routes_are_not_mounted(monkeypatch) -> None:
+    from ai_anime.api.app import create_app
 
-from fastapi.testclient import TestClient
-from ai_anime.api.app import create_app
+    monkeypatch.setenv("AI_ANIME_EDITION", "ce")
+    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "")
 
-with TestClient(create_app()) as client:
-    results = {
-        "get_keys": client.get("/api/v1/agent/keys").status_code,
-        "post_keys": client.post("/api/v1/agent/keys", json={}).status_code,
-        "revoke_key": client.post("/api/v1/agent/keys/key-1/revoke").status_code,
-        "sessions": client.post("/api/v1/agent/sessions", json={}).status_code,
-    }
-print(json.dumps(results), end="")
-"""
-    proc = subprocess.run(
-        [sys.executable, "-c", code],
-        check=True,
-        capture_output=True,
-        text=True,
-        env=env,
+    paths = set(create_app().openapi()["paths"])
+
+    assert "/api/v1/chat/cancel" in paths
+    assert paths.isdisjoint(
+        {
+            "/api/v1/agent/keys",
+            "/api/v1/agent/keys/{key_id}/revoke",
+            "/api/v1/agent/sessions",
+        }
     )
-    return json.loads(proc.stdout)
-
-
-def test_ce_agent_key_routes_are_not_mounted() -> None:
-    assert _run_ce_agent_route_probe() == {
-        "get_keys": 404,
-        "post_keys": 404,
-        "revoke_key": 404,
-        "sessions": 404,
-    }
 
 
 def test_ce_chat_http_routes_are_mounted_and_use_local_auth(monkeypatch) -> None:

@@ -15,17 +15,12 @@ from ai_anime.api.platform_routes import (
     register_runtime_routes,
     register_static_media_routes,
 )
-from ai_anime.api.v1.router import (
-    OPENAPI_TAGS,
-    api_router,
-    register_verification_routes,
-)
+from ai_anime.api.v1.router import OPENAPI_TAGS, create_api_router
 from ai_anime.shared.api_coverage import mount_api_coverage_middleware
 
 
 def create_app() -> FastAPI:
     configure_api_logging()
-    register_verification_routes()
 
     application = FastAPI(
         title="AI anime API",
@@ -47,7 +42,7 @@ def create_app() -> FastAPI:
     register_exception_handlers(application)
     register_runtime_routes(application, desktop_mode=desktop_mode)
 
-    application.include_router(api_router)
+    application.include_router(create_api_router(desktop_mode=desktop_mode))
     register_static_media_routes(application)
     mount_frontend(
         application,

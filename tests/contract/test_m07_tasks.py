@@ -11,7 +11,6 @@ from fastapi.testclient import TestClient
 
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.ports import registry
-from ai_anime.ports.local.project import AllowAllProjectAccess
 from ai_anime.ports.local.tasks import InlineTaskBackend, InMemoryCancellationStore
 from ai_anime.task_backend.cancel import TaskCancelled, is_cancel_requested
 from ai_anime.task_backend.limits import project_lane_effective_active_limit
@@ -174,7 +173,9 @@ async def test_task_list_and_project_stream_task_updated_share_serialized_fields
         expected_task_id=task.task_id,
     )
 
-    list_response = await tasks.list_project_tasks(ctx.project_id, user={"username": "bob"})
+    list_response = await tasks.list_project_tasks(
+        ctx.project_id, user={"username": "bob"}
+    )
     list_payload = list_response["data"][0]
     stream_response = await tasks.stream_project_tasks(
         project=ctx.project_id,
@@ -329,7 +330,9 @@ async def test_single_task_stream_missing_task_returns_structured_error(
 
 
 @pytest.mark.asyncio
-async def test_clear_completed_deletes_only_effective_completed_tasks(monkeypatch, tmp_path):
+async def test_clear_completed_deletes_only_effective_completed_tasks(
+    monkeypatch, tmp_path
+):
     from ai_anime.api.routes import tasks
 
     ctx = _ctx(tmp_path)
@@ -337,8 +340,12 @@ async def test_clear_completed_deletes_only_effective_completed_tasks(monkeypatc
     await _install_project_context(monkeypatch, ctx)
     monkeypatch.setattr(tasks, "get_task_manager", lambda: manager)
 
-    completed = manager.create_task_for_project(ctx, "m07_completed", 1, status="completed")
-    effective = manager.create_task_for_project(ctx, "m07_stale_running", 1, status="running")
+    completed = manager.create_task_for_project(
+        ctx, "m07_completed", 1, status="completed"
+    )
+    effective = manager.create_task_for_project(
+        ctx, "m07_stale_running", 1, status="running"
+    )
     manager.update_progress_for_project(
         ctx,
         effective.task_type,
@@ -353,13 +360,23 @@ async def test_clear_completed_deletes_only_effective_completed_tasks(monkeypatc
         manager.create_task_for_project(ctx, "m07_cancelled", 1, status="cancelled"),
     ]
 
-    response = await tasks.clear_project_completed_tasks(ctx.project_id, user={"username": "bob"})
+    response = await tasks.clear_project_completed_tasks(
+        ctx.project_id, user={"username": "bob"}
+    )
 
     assert response == {"ok": True, "data": {"deleted": 2}}
-    assert manager.get_task_for_project(ctx, completed.task_type, completed.episode) is None
-    assert manager.get_task_for_project(ctx, effective.task_type, effective.episode) is None
+    assert (
+        manager.get_task_for_project(ctx, completed.task_type, completed.episode)
+        is None
+    )
+    assert (
+        manager.get_task_for_project(ctx, effective.task_type, effective.episode)
+        is None
+    )
     for task in protected:
-        assert manager.get_task_for_project(ctx, task.task_type, task.episode) is not None
+        assert (
+            manager.get_task_for_project(ctx, task.task_type, task.episode) is not None
+        )
 
 
 @pytest.mark.asyncio
@@ -370,12 +387,28 @@ async def test_task_limits_shape_and_ce_single_eligible_user(monkeypatch, tmp_pa
     manager = TaskStateManager()
     await _install_project_context(monkeypatch, ctx)
     monkeypatch.setattr(tasks, "get_task_manager", lambda: manager)
-    monkeypatch.setattr(tasks, "get_project_access", lambda: AllowAllProjectAccess())
-    manager.create_task_for_project(ctx, "freezone_edit", 0, scope="job_1", queue_kind="default")
-    manager.create_task_for_project(ctx, "freezone_edit", 0, scope="job_2", queue_kind="default")
-    manager.create_task_for_project(ctx, "single_video", 1, beat_num=1, queue_kind="video")
 
-    response = await tasks.get_project_task_limits(ctx.project_id, user={"username": "bob"})
+    async def count_eligible_users(_ctx):
+        return 1
+
+    monkeypatch.setattr(
+        tasks,
+        "count_project_task_eligible_users",
+        count_eligible_users,
+    )
+    manager.create_task_for_project(
+        ctx, "freezone_edit", 0, scope="job_1", queue_kind="default"
+    )
+    manager.create_task_for_project(
+        ctx, "freezone_edit", 0, scope="job_2", queue_kind="default"
+    )
+    manager.create_task_for_project(
+        ctx, "single_video", 1, beat_num=1, queue_kind="video"
+    )
+
+    response = await tasks.get_project_task_limits(
+        ctx.project_id, user={"username": "bob"}
+    )
 
     assert response["ok"] is True
     assert set(response["data"]) == set(QUEUE_KINDS)
@@ -437,9 +470,13 @@ async def test_pipeline_status_returns_m07_shape_and_step_map(monkeypatch, tmp_p
 
     assert response["ok"] is True
     data = response["data"]
-    assert {"global", "current_episode", "episode_status", "next_step", "next_step_name"} <= set(
-        data
-    )
+    assert {
+        "global",
+        "current_episode",
+        "episode_status",
+        "next_step",
+        "next_step_name",
+    } <= set(data)
     assert data["current_episode"] is None
     assert data["episode_status"] is None
     task_type, step_name = pipeline._STEP_MAP["ingest"]
@@ -508,7 +545,15 @@ def test_m07_http_coverage_exercises_task_center_routes(monkeypatch, tmp_path):
     monkeypatch.setattr(tasks, "resolve_project_context", fake_resolve_project_context)
     monkeypatch.setattr(tasks, "get_task_manager", lambda: manager)
     monkeypatch.setattr(tasks, "get_task_backend", lambda: FakeBackend())
-    monkeypatch.setattr(tasks, "get_project_access", lambda: AllowAllProjectAccess())
+
+    async def count_eligible_users(_ctx):
+        return 1
+
+    monkeypatch.setattr(
+        tasks,
+        "count_project_task_eligible_users",
+        count_eligible_users,
+    )
     monkeypatch.setattr(pipeline, "resolve_project_scope", fake_resolve_project_scope)
     monkeypatch.setattr(pipeline, "get_task_manager", lambda: manager)
     monkeypatch.setattr(pipeline, "_user_has_configured", lambda *_: False)
@@ -527,7 +572,9 @@ def test_m07_http_coverage_exercises_task_center_routes(monkeypatch, tmp_path):
     client = TestClient(app)
 
     assert client.get(f"/api/v1/projects/{ctx.project_id}/tasks").status_code == 200
-    assert client.get(f"/api/v1/projects/{ctx.project_id}/tasks/limits").status_code == 200
+    assert (
+        client.get(f"/api/v1/projects/{ctx.project_id}/tasks/limits").status_code == 200
+    )
     assert (
         client.get(f"/api/v1/projects/{ctx.project_id}/tasks/m07_http/1").status_code
         == 200
@@ -550,8 +597,14 @@ def test_m07_http_coverage_exercises_task_center_routes(monkeypatch, tmp_path):
         client.delete(f"/api/v1/projects/{ctx.project_id}/tasks/m07_http/1").status_code
         == 200
     )
-    assert client.delete(f"/api/v1/projects/{ctx.project_id}/tasks/completed").status_code == 200
-    assert client.get(f"/api/v1/projects/{ctx.project_id}/pipeline/status").status_code == 200
+    assert (
+        client.delete(f"/api/v1/projects/{ctx.project_id}/tasks/completed").status_code
+        == 200
+    )
+    assert (
+        client.get(f"/api/v1/projects/{ctx.project_id}/pipeline/status").status_code
+        == 200
+    )
 
 
 class _FakeTaskBackend:
@@ -603,7 +656,9 @@ async def test_m07_task_backend_read_and_stream_shapes_are_ce_ee_isomorphic(
             scope=None,
             user={"username": "bob"},
         )
-        list_response = await tasks.list_project_tasks(ctx.project_id, user={"username": "bob"})
+        list_response = await tasks.list_project_tasks(
+            ctx.project_id, user={"username": "bob"}
+        )
         project_stream = await tasks.stream_project_tasks(
             project=ctx.project_id,
             request=None,  # type: ignore[arg-type]
@@ -710,7 +765,9 @@ async def test_inline_cancel_is_cooperative_runner_stop(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_inline_backend_runs_sync_core_outside_active_event_loop(monkeypatch, tmp_path):
+async def test_inline_backend_runs_sync_core_outside_active_event_loop(
+    monkeypatch, tmp_path
+):
     from ai_anime.ports.local import tasks as local_tasks
 
     ctx = _ctx(tmp_path)
@@ -729,6 +786,8 @@ async def test_inline_backend_runs_sync_core_outside_active_event_loop(monkeypat
         fake_run_project_task_core_sync,
     )
 
-    await backend.enqueue_project_task(ctx, task_type="m07_no_asyncio_run_in_loop", episode=1)
+    await backend.enqueue_project_task(
+        ctx, task_type="m07_no_asyncio_run_in_loop", episode=1
+    )
 
     assert await asyncio.to_thread(observed.wait, 3) is True

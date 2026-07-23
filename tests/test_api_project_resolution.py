@@ -22,12 +22,10 @@ async def test_project_resolution_always_uses_control_plane(monkeypatch, tmp_pat
         calls.append(kwargs)
         return ctx
 
-    def fail_legacy_project_dir(username: str, project: str) -> Path:
-        raise AssertionError("legacy project path fallback should not be used")
-
     monkeypatch.setattr(deps, "resolve_project_context", fake_resolve_project_context)
-    monkeypatch.setattr(deps, "require_project_home_node", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr(deps, "get_project_dir", fail_legacy_project_dir)
+    monkeypatch.setattr(
+        deps, "require_project_home_node", lambda *_args, **_kwargs: None
+    )
 
     resolved = await deps.resolve_project_scope(
         "01PROJECT",
@@ -49,7 +47,9 @@ async def test_project_resolution_always_uses_control_plane(monkeypatch, tmp_pat
 
 
 @pytest.mark.asyncio
-async def test_freezone_project_resolution_does_not_use_legacy_fallback(monkeypatch, tmp_path):
+async def test_freezone_project_resolution_does_not_use_legacy_fallback(
+    monkeypatch, tmp_path
+):
     ctx = SimpleNamespace(
         owner_username="alice",
         project_name="demo",
@@ -64,9 +64,15 @@ async def test_freezone_project_resolution_does_not_use_legacy_fallback(monkeypa
     def fail_legacy_project_dir(username: str, project: str) -> Path:
         raise AssertionError("legacy project path fallback should not be used")
 
-    monkeypatch.setattr(freezone, "resolve_project_context", fake_resolve_project_context)
-    monkeypatch.setattr(freezone, "require_project_home_node", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr(freezone, "get_project_dir", fail_legacy_project_dir, raising=False)
+    monkeypatch.setattr(
+        freezone, "resolve_project_context", fake_resolve_project_context
+    )
+    monkeypatch.setattr(
+        freezone, "require_project_home_node", lambda *_args, **_kwargs: None
+    )
+    monkeypatch.setattr(
+        freezone, "get_project_dir", fail_legacy_project_dir, raising=False
+    )
 
     resolved = await freezone._resolve_freezone_project(
         "01PROJECT",
@@ -74,11 +80,19 @@ async def test_freezone_project_resolution_does_not_use_legacy_fallback(monkeypa
         required_role="editor",
     )
 
-    assert resolved == (ctx, "alice", "demo", tmp_path / "output", str(tmp_path / "output"))
+    assert resolved == (
+        ctx,
+        "alice",
+        "demo",
+        tmp_path / "output",
+        str(tmp_path / "output"),
+    )
 
 
 @pytest.mark.asyncio
-async def test_scene_project_resolution_does_not_use_legacy_fallback(monkeypatch, tmp_path):
+async def test_scene_project_resolution_does_not_use_legacy_fallback(
+    monkeypatch, tmp_path
+):
     store = object()
     ctx = SimpleNamespace(
         owner_username="alice",
@@ -99,8 +113,12 @@ async def test_scene_project_resolution_does_not_use_legacy_fallback(monkeypatch
         raise AssertionError("legacy project path fallback should not be used")
 
     monkeypatch.setattr(scenes, "resolve_project_context", fake_resolve_project_context)
-    monkeypatch.setattr(scenes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context)
-    monkeypatch.setattr(scenes, "get_project_dir", fail_legacy_project_dir, raising=False)
+    monkeypatch.setattr(
+        scenes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
+    )
+    monkeypatch.setattr(
+        scenes, "get_project_dir", fail_legacy_project_dir, raising=False
+    )
 
     resolved = await scenes._resolve_scene_project(
         "01PROJECT",

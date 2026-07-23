@@ -103,7 +103,9 @@ class _M04Store:
     async def delete_character_identity(self, name: str, identity_id: str):
         character = self.characters[name]
         character.identities = [
-            identity for identity in character.identities if identity.identity_id != identity_id
+            identity
+            for identity in character.identities
+            if identity.identity_id != identity_id
         ]
         return True
 
@@ -181,7 +183,9 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     for path in (project_dir, state_dir, runtime_dir):
         path.mkdir(parents=True, exist_ok=True)
     store.project_dir = str(project_dir)
-    (project_dir / "assets" / "characters" / _CHARACTER).mkdir(parents=True, exist_ok=True)
+    (project_dir / "assets" / "characters" / _CHARACTER).mkdir(
+        parents=True, exist_ok=True
+    )
     portrait = project_dir / "assets" / "characters" / _CHARACTER / "portrait.png"
     portrait.write_bytes(_png_bytes())
     portrait.with_name("portrait_20260101010101.png").write_bytes(_png_bytes())
@@ -189,7 +193,9 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     source_audio.parent.mkdir(parents=True, exist_ok=True)
     source_audio.write_bytes(b"voice-source")
 
-    monkeypatch.setattr(project_config, "OUTPUT_DIR", tmp_path / "output", raising=False)
+    monkeypatch.setattr(
+        project_config, "OUTPUT_DIR", tmp_path / "output", raising=False
+    )
     monkeypatch.setattr(project_config, "STATE_DIR", tmp_path / "state", raising=False)
     monkeypatch.setattr(
         characters,
@@ -198,10 +204,14 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     )
     monkeypatch.setattr(characters, "get_character_image_selection", lambda: "mock")
     monkeypatch.setattr(characters, "get_image_usage_summary", lambda **_: {"total": 0})
-    monkeypatch.setattr(characters, "load_project_config", lambda *_: {"visual_style": "mock"})
+    monkeypatch.setattr(
+        characters, "load_project_config", lambda *_: {"visual_style": "mock"}
+    )
     monkeypatch.setattr(characters, "load_project_config_file", lambda *_: {})
     monkeypatch.setattr(characters, "update_project_config_file", lambda *_, **__: None)
-    monkeypatch.setattr(props, "load_project_config_file", lambda *_: {"visual_style": "mock"})
+    monkeypatch.setattr(
+        props, "load_project_config_file", lambda *_: {"visual_style": "mock"}
+    )
 
     ctx = SimpleNamespace(
         project_id="proj_m04",
@@ -223,7 +233,9 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         runtime_dir=str(runtime_dir),
     )
 
-    async def resolve_project_scope(project: str, user: dict, *, required_role: str = "viewer"):
+    async def resolve_project_scope(
+        project: str, user: dict, *, required_role: str = "viewer"
+    ):
         assert project == _PROJECT
         return resolution
 
@@ -233,7 +245,9 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         assert project_id == _PROJECT
         return ctx
 
-    async def resolve_character_project(project: str, user: dict, *, required_role: str = "editor"):
+    async def resolve_character_project(
+        project: str, user: dict, *, required_role: str = "editor"
+    ):
         assert project == _PROJECT
         return ctx, "alice", _PROJECT, project_dir, str(project_dir), store
 
@@ -249,14 +263,21 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     for module in (characters, props, styles, generation):
         monkeypatch.setattr(module, "resolve_project_scope", resolve_project_scope)
     monkeypatch.setattr(projects, "resolve_project_context", resolve_project_context)
-    monkeypatch.setattr(generation, "_resolve_generation_project", resolve_project_scope)
-    monkeypatch.setattr(characters, "_resolve_character_project", resolve_character_project)
+    monkeypatch.setattr(
+        generation, "_resolve_generation_project", resolve_project_scope
+    )
+    monkeypatch.setattr(
+        characters, "_resolve_character_project", resolve_character_project
+    )
     monkeypatch.setattr(props, "make_sqlite_store_for_context", make_store_for_context)
     monkeypatch.setattr(props, "make_sqlite_store", make_store)
-    monkeypatch.setattr(projects, "make_sqlite_store_for_context", make_store_for_context)
-    monkeypatch.setattr(generation, "make_sqlite_store_for_context", make_store_for_context)
+    monkeypatch.setattr(
+        projects, "make_sqlite_store_for_context", make_store_for_context
+    )
+    monkeypatch.setattr(
+        generation, "make_sqlite_store_for_context", make_store_for_context
+    )
     monkeypatch.setattr(generation, "make_sqlite_store", make_store)
-    monkeypatch.setattr(generation, "get_state_dir", lambda *_: str(state_dir))
     for module in (characters, props, projects):
         monkeypatch.setattr(module, "make_static_url_for_context", static_url)
 
@@ -267,7 +288,11 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(
         characters,
         "trim_existing_character_voice_file",
-        lambda **_: ("assets/characters/林昭/voice/default.mp3", "sha-trim", "2026-01-01T00:00:00"),
+        lambda **_: (
+            "assets/characters/林昭/voice/default.mp3",
+            "sha-trim",
+            "2026-01-01T00:00:00",
+        ),
     )
     monkeypatch.setattr(
         projects,
@@ -290,12 +315,16 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.generators import image_generator
 
     monkeypatch.setattr(
-        image_generator, "generate_character_reference_unified", fake_character_reference
+        image_generator,
+        "generate_character_reference_unified",
+        fake_character_reference,
     )
     monkeypatch.setattr(
         generators_pkg, "generate_character_reference_unified", fake_character_reference
     )
-    monkeypatch.setattr(image_generator, "generate_identity_image_unified", fake_identity_image)
+    monkeypatch.setattr(
+        image_generator, "generate_identity_image_unified", fake_identity_image
+    )
 
     custom_style = StyleConfig(
         id="custom_drama",
@@ -305,7 +334,9 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         avoid_instructions="flat",
         style_tag="LIVE",
     )
-    monkeypatch.setattr(StyleService, "list_all_styles", lambda **_: [custom_style.model_dump()])
+    monkeypatch.setattr(
+        StyleService, "list_all_styles", lambda **_: [custom_style.model_dump()]
+    )
     monkeypatch.setattr(StyleService, "get_style", lambda style_id, **_: custom_style)
     monkeypatch.setattr(StyleService, "get_preset", lambda style_id: None)
     monkeypatch.setattr(StyleService, "save_custom_style", lambda *_, **__: True)
@@ -385,10 +416,14 @@ def test_prop_reference_generation_accepts_image_source_model(m04_client_factory
 def test_m04_l2_exercises_all_57_endpoint_contracts(m04_client_factory):
     client, _backend, project_dir = m04_client_factory("inline")
     png = _png_bytes()
-    voice_data_url = f"data:audio/wav;base64,{base64.b64encode(b'voice').decode('ascii')}"
+    voice_data_url = (
+        f"data:audio/wav;base64,{base64.b64encode(b'voice').decode('ascii')}"
+    )
 
     _assert_ok(client.get(f"/api/v1/projects/{_PROJECT}/characters"))
-    _assert_ok(client.post(f"/api/v1/projects/{_PROJECT}/characters", json={"name": "秦昭"}))
+    _assert_ok(
+        client.post(f"/api/v1/projects/{_PROJECT}/characters", json={"name": "秦昭"})
+    )
     _assert_ok(client.post(f"/api/v1/projects/{_PROJECT}/characters/build"))
     _assert_ok(client.get(f"/api/v1/projects/{_PROJECT}/character-image-selection"))
     _assert_ok(
@@ -398,7 +433,9 @@ def test_m04_l2_exercises_all_57_endpoint_contracts(m04_client_factory):
         )
     )
     _assert_ok(client.get(f"/api/v1/projects/{_PROJECT}/character-image-usage"))
-    _assert_ok(client.get(f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/identities"))
+    _assert_ok(
+        client.get(f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/identities")
+    )
     _assert_ok(
         client.get(
             f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/asset-history",
@@ -418,7 +455,9 @@ def test_m04_l2_exercises_all_57_endpoint_contracts(m04_client_factory):
         )
     )
     _assert_ok(client.post(f"/api/v1/projects/{_PROJECT}/characters/秦昭/delete"))
-    _assert_ok(client.get(f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/voice-samples"))
+    _assert_ok(
+        client.get(f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/voice-samples")
+    )
     _assert_ok(
         client.post(
             f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/voice-samples/default/upload",
@@ -459,11 +498,19 @@ def test_m04_l2_exercises_all_57_endpoint_contracts(m04_client_factory):
         )
     )
     _assert_ok(
-        client.delete(f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/identities/林昭_少年")
+        client.delete(
+            f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/identities/林昭_少年"
+        )
     )
-    _assert_ok(client.post(f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/portrait-async"))
     _assert_ok(
-        client.post(f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/portrait", json={})
+        client.post(
+            f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/portrait-async"
+        )
+    )
+    _assert_ok(
+        client.post(
+            f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/portrait", json={}
+        )
     )
     _assert_ok(
         client.post(
@@ -525,7 +572,9 @@ def test_m04_l2_exercises_all_57_endpoint_contracts(m04_client_factory):
         )
     )
 
-    _assert_ok(client.get(f"/api/v1/projects/{_PROJECT}/props", params={"scope": "all"}))
+    _assert_ok(
+        client.get(f"/api/v1/projects/{_PROJECT}/props", params={"scope": "all"})
+    )
     _assert_ok(
         client.post(
             f"/api/v1/projects/{_PROJECT}/props",
@@ -540,13 +589,21 @@ def test_m04_l2_exercises_all_57_endpoint_contracts(m04_client_factory):
         )
     )
     _assert_ok(client.post(f"/api/v1/projects/{_PROJECT}/props/铜令/delete"))
-    _assert_ok(client.post(f"/api/v1/projects/{_PROJECT}/props/{_PROP}/reference/generate-async"))
-    _assert_ok(client.post(f"/api/v1/projects/{_PROJECT}/props/reference/batch-generate"))
+    _assert_ok(
+        client.post(
+            f"/api/v1/projects/{_PROJECT}/props/{_PROP}/reference/generate-async"
+        )
+    )
+    _assert_ok(
+        client.post(f"/api/v1/projects/{_PROJECT}/props/reference/batch-generate")
+    )
 
     _assert_ok(client.get("/api/v1/styles", params={"project": _PROJECT}))
     _assert_ok(client.get("/api/v1/styles/custom_drama", params={"project": _PROJECT}))
     assert (
-        client.get("/api/v1/styles/custom_drama/preview", params={"project": _PROJECT}).status_code
+        client.get(
+            "/api/v1/styles/custom_drama/preview", params={"project": _PROJECT}
+        ).status_code
         == 200
     )
     _assert_ok(
@@ -560,9 +617,13 @@ def test_m04_l2_exercises_all_57_endpoint_contracts(m04_client_factory):
             },
         )
     )
-    _assert_ok(client.delete("/api/v1/styles/fresh_style", params={"project": _PROJECT}))
+    _assert_ok(
+        client.delete("/api/v1/styles/fresh_style", params={"project": _PROJECT})
+    )
     assert (
-        client.post("/api/v1/styles/custom_drama/preview", json={"project": _PROJECT}).status_code
+        client.post(
+            "/api/v1/styles/custom_drama/preview", json={"project": _PROJECT}
+        ).status_code
         == 200
     )
     _assert_ok(
@@ -601,20 +662,28 @@ def test_m04_l2_exercises_all_57_endpoint_contracts(m04_client_factory):
     _assert_ok(client.post(f"/api/v1/projects/{_PROJECT}/narrator-voice/delete"))
 
     assert (
-        client.post(f"/api/v1/projects/{_PROJECT}/episodes/1/tts/generate", json={}).status_code
+        client.post(
+            f"/api/v1/projects/{_PROJECT}/episodes/1/tts/generate", json={}
+        ).status_code
         == 410
     )
     assert (
-        client.post(f"/api/v1/projects/{_PROJECT}/tts/preview", json={"text": "hello"}).status_code
+        client.post(
+            f"/api/v1/projects/{_PROJECT}/tts/preview", json={"text": "hello"}
+        ).status_code
         == 410
     )
     assert client.get(f"/api/v1/projects/{_PROJECT}/tts/voices").status_code == 410
-    _assert_ok(client.post(f"/api/v1/projects/{_PROJECT}/episodes/1/audio/generate", json={}))
+    _assert_ok(
+        client.post(f"/api/v1/projects/{_PROJECT}/episodes/1/audio/generate", json={})
+    )
     _assert_ok(client.post(f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/audio"))
 
 
 @pytest.mark.parametrize("backend", ["inline", "celery"])
-def test_m04_task_backend_responses_are_ce_ee_isomorphic(m04_client_factory, backend: str):
+def test_m04_task_backend_responses_are_ce_ee_isomorphic(
+    m04_client_factory, backend: str
+):
     client, task_backend, _project_dir = m04_client_factory(backend)
 
     cases = [
@@ -624,7 +693,9 @@ def test_m04_task_backend_responses_are_ce_ee_isomorphic(m04_client_factory, bac
         ),
         (
             "character_portrait",
-            client.post(f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/portrait-async"),
+            client.post(
+                f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/portrait-async"
+            ),
         ),
         (
             "identity_image",
@@ -634,7 +705,9 @@ def test_m04_task_backend_responses_are_ce_ee_isomorphic(m04_client_factory, bac
         ),
         (
             "prop_reference_asset",
-            client.post(f"/api/v1/projects/{_PROJECT}/props/{_PROP}/reference/generate-async"),
+            client.post(
+                f"/api/v1/projects/{_PROJECT}/props/{_PROP}/reference/generate-async"
+            ),
         ),
         (
             "batch_prop_ref",
@@ -642,7 +715,9 @@ def test_m04_task_backend_responses_are_ce_ee_isomorphic(m04_client_factory, bac
         ),
         (
             "audio_generation_indextts2",
-            client.post(f"/api/v1/projects/{_PROJECT}/episodes/1/audio/generate", json={}),
+            client.post(
+                f"/api/v1/projects/{_PROJECT}/episodes/1/audio/generate", json={}
+            ),
         ),
         (
             "audio_generation_indextts2",

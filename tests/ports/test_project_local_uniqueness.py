@@ -1,6 +1,11 @@
 import pytest
 
-from ai_anime.ports.local.project import SQLiteProjectRegistry
+from ai_anime.modules.project_workspace.application.errors import (
+    ProjectAlreadyExists,
+)
+from ai_anime.modules.project_workspace.infrastructure.local_registry import (
+    SQLiteProjectRegistry,
+)
 
 
 @pytest.fixture
@@ -40,25 +45,18 @@ async def test_purge_deletes_registry_row_and_releases_owner_name(local_registry
 
 
 @pytest.mark.asyncio
-async def test_create_project_route_returns_409_for_duplicate_name(monkeypatch):
-    from ai_anime.api.routes import projects as projects_route
+async def test_duplicate_name_raises_application_conflict(local_registry):
+    await local_registry.create_project(
+        owner_user_id="local",
+        owner_username="alice",
+        name="agent",
+    )
 
-    class DuplicateRegistry:
-        async def create_project(self, **_kwargs):
-            raise ValueError("Project 'agent' already exists")
-
-    async def fake_user_id_from_api_user(_user):
-        return "local"
-
-    monkeypatch.setattr(projects_route, "validate_project_name", lambda _name: None)
-    monkeypatch.setattr(projects_route, "user_id_from_api_user", fake_user_id_from_api_user)
-    monkeypatch.setattr(projects_route, "get_project_registry", lambda: DuplicateRegistry())
-
-    with pytest.raises(projects_route.HTTPException) as exc:
-        await projects_route.create_project(
-            projects_route.ProjectCreate(name="agent"),
-            user={"id": "local", "username": "alice"},
+    with pytest.raises(ProjectAlreadyExists) as exc:
+        await local_registry.create_project(
+            owner_user_id="local",
+            owner_username="alice",
+            name="agent",
         )
 
-    assert exc.value.status_code == 409
-    assert exc.value.detail == "Project 'agent' already exists"
+    assert str(exc.value) == "Project 'agent' already exists"

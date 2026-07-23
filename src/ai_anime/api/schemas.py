@@ -44,23 +44,6 @@ class ProjectCreate(BaseModel):
     name: str
 
 
-class ProjectSummary(BaseModel):
-    id: str = ""
-    name: str
-    owner_type: str = "user"
-    owner_id: str = ""
-    owner_username: str = ""
-    effective_role: str = ""
-    home_node_id: str = ""
-    status: ProjectStatus
-    archived_at: Optional[str] = None
-    deleted_at: Optional[str] = None
-    purged_at: Optional[str] = None
-    updated_at: Optional[str] = None
-    episode_count: Optional[int] = None
-    beat_count: Optional[int] = None
-
-
 class ProjectGrantCreate(BaseModel):
     principal_type: Literal["user", "team"] = "user"
     principal_id: Optional[str] = None
@@ -440,11 +423,15 @@ class FreezoneGenRequest(BaseModel):
     )
     provider: Optional[str] = None
     model: Optional[str] = None
-    quality: Optional[str] = Field(default="medium", description="图片画质档位，默认 medium")
+    quality: Optional[str] = Field(
+        default="medium", description="图片画质档位，默认 medium"
+    )
     model_id: Optional[str] = Field(
         default=None, description="可选：注册表模型 id，用于还原节点时回填 model"
     )
-    gen_mode: Optional[str] = Field(default=None, description="可选：生成模式，用于还原节点时回填 genMode")
+    gen_mode: Optional[str] = Field(
+        default=None, description="可选：生成模式，用于还原节点时回填 genMode"
+    )
 
 
 class FreezoneEditRequest(BaseModel):
@@ -471,11 +458,15 @@ class FreezoneEditRequest(BaseModel):
     )
     provider: Optional[str] = None
     model: Optional[str] = None
-    quality: Optional[str] = Field(default="medium", description="图片画质档位，默认 medium")
+    quality: Optional[str] = Field(
+        default="medium", description="图片画质档位，默认 medium"
+    )
     model_id: Optional[str] = Field(
         default=None, description="可选：注册表模型 id，用于还原节点时回填 model"
     )
-    gen_mode: Optional[str] = Field(default=None, description="可选：生成模式，用于还原节点时回填 genMode")
+    gen_mode: Optional[str] = Field(
+        default=None, description="可选：生成模式，用于还原节点时回填 genMode"
+    )
 
 
 class FreezoneSketchFromContextRequest(BaseModel):
@@ -493,7 +484,9 @@ class FreezoneSketchFromContextRequest(BaseModel):
     node_id: str = Field(default="")
     provider: Optional[str] = None
     model: Optional[str] = None
-    quality: Optional[str] = Field(default="medium", description="图片画质档位，默认 medium")
+    quality: Optional[str] = Field(
+        default="medium", description="图片画质档位，默认 medium"
+    )
 
 
 class FreezoneFrameFromContextRequest(BaseModel):
@@ -525,7 +518,9 @@ class FreezoneScene360Request(BaseModel):
     )
     reverse_reference_url: Optional[str] = Field(
         default=None,
-        description=("可选反向场景源图静态地址，通常指向 assets/scenes/<scene_id>/reverse.png"),
+        description=(
+            "可选反向场景源图静态地址，通常指向 assets/scenes/<scene_id>/reverse.png"
+        ),
     )
     canvas_id: str = Field(default="")
     node_id: str = Field(default="")
@@ -538,7 +533,9 @@ class FreezoneScene360Request(BaseModel):
         default=FREEZONE_DEFAULT_IMAGE_MODEL,
         description=f"图片模型名，默认 {FREEZONE_DEFAULT_IMAGE_MODEL}",
     )
-    quality: Optional[str] = Field(default="medium", description="图片画质档位，默认 medium")
+    quality: Optional[str] = Field(
+        default="medium", description="图片画质档位，默认 medium"
+    )
 
 
 class FreezoneImageTo3GSRequest(BaseModel):
@@ -547,10 +544,16 @@ class FreezoneImageTo3GSRequest(BaseModel):
     source_url: str = Field(description="源图静态地址，通常来自 Freezone 图片节点")
     source_kind: Literal["master", "reverse", "pano"] = Field(
         default="master",
-        description=("3GS 来源类型；master/reverse 生成单面 SOG，pano 使用 360 全景生成 pano SOG"),
+        description=(
+            "3GS 来源类型；master/reverse 生成单面 SOG，pano 使用 360 全景生成 pano SOG"
+        ),
     )
-    canvas_id: str = Field(default="", description="可选：来源画布 id，用于记录节点生成历史")
-    node_id: str = Field(default="", description="可选：来源节点 id，用于记录节点生成历史")
+    canvas_id: str = Field(
+        default="", description="可选：来源画布 id，用于记录节点生成历史"
+    )
+    node_id: str = Field(
+        default="", description="可选：来源节点 id，用于记录节点生成历史"
+    )
 
 
 class FreezoneThreeDViewerScreenshotRequest(BaseModel):
@@ -570,7 +573,9 @@ class ViewerBeatContextManifest(BaseModel):
 
 
 class PanoViewerSource(BaseModel):
-    slot_kind: Literal["scene_director_pano_360", "scene_360_candidate"] = "scene_director_pano_360"
+    slot_kind: Literal["scene_director_pano_360", "scene_360_candidate"] = (
+        "scene_director_pano_360"
+    )
     url: str
     fs: Optional[str] = None
 
@@ -583,7 +588,9 @@ class PanoSphereCorrection(BaseModel):
 
 class PanoViewerCorrection(BaseModel):
     front_yaw_deg: float = 0.0
-    sphere_correction_deg: PanoSphereCorrection = Field(default_factory=PanoSphereCorrection)
+    sphere_correction_deg: PanoSphereCorrection = Field(
+        default_factory=PanoSphereCorrection
+    )
 
 
 class PanoViewerManifest(BaseModel):
@@ -596,7 +603,9 @@ class PanoViewerManifest(BaseModel):
     correction: PanoViewerCorrection = Field(default_factory=PanoViewerCorrection)
     beat_context: Optional[ViewerBeatContextManifest] = None
     allowed_destinations: list[
-        Literal["view", "download", "canvas_screenshot_node", "beat_selected_background"]
+        Literal[
+            "view", "download", "canvas_screenshot_node", "beat_selected_background"
+        ]
     ] = Field(default_factory=list)
 
 
@@ -606,7 +615,9 @@ class DirectorStageSource(BaseModel):
     splat_url: str
     splat_format: Literal["ply", "sog", "splat", "ksplat", "unknown"] = "unknown"
     pano_url: Optional[str] = None
-    slot_kind: Optional[Literal["scene_director_pano_360", "scene_360_candidate"]] = None
+    slot_kind: Optional[Literal["scene_director_pano_360", "scene_360_candidate"]] = (
+        None
+    )
     collision_glb_url: Optional[str] = None
     source_kind: Literal["master", "reverse", "pano", "uploaded", "custom"] = "custom"
 
@@ -619,7 +630,9 @@ class DirectorStageSourceOption(BaseModel):
     splat_url: Optional[str] = None
     splat_format: Literal["ply", "sog", "splat", "ksplat", "unknown"] = "unknown"
     pano_url: Optional[str] = None
-    slot_kind: Optional[Literal["scene_director_pano_360", "scene_360_candidate"]] = None
+    slot_kind: Optional[Literal["scene_director_pano_360", "scene_360_candidate"]] = (
+        None
+    )
     fs: Optional[str] = None
     current: bool = False
 
@@ -654,9 +667,9 @@ class DirectorStageManifest(BaseModel):
     scenes_by_source_id: dict[str, dict[str, Any]] = Field(default_factory=dict)
     source: DirectorStageSource
     source_options: list[DirectorStageSourceOption] = Field(default_factory=list)
-    source_orientation_mode: Literal["supersplat_auto", "identity", "lcc_legacy", "flip_z"] = (
-        "supersplat_auto"
-    )
+    source_orientation_mode: Literal[
+        "supersplat_auto", "identity", "lcc_legacy", "flip_z"
+    ] = "supersplat_auto"
     blockings_dir_fs: Optional[str] = None
     control_frames_dir_fs: Optional[str] = None
     slate_beat: Optional[int] = None
@@ -689,7 +702,9 @@ class FreezoneCharacterMultiViewRequest(BaseModel):
         "front_up",
         "full_body",
         "back",
-    ] = Field(default="custom", description="视角预设。custom 表示完全按 yaw/pitch 自定义")
+    ] = Field(
+        default="custom", description="视角预设。custom 表示完全按 yaw/pitch 自定义"
+    )
     yaw_degrees: float = Field(
         default=0.0, description="水平旋转角度，单位为度；正负方向由前端约定"
     )
@@ -722,7 +737,9 @@ class FreezoneCharacterMultiViewRequest(BaseModel):
         default=FREEZONE_DEFAULT_IMAGE_MODEL,
         description=f"图片模型名，默认 {FREEZONE_DEFAULT_IMAGE_MODEL}",
     )
-    quality: Optional[str] = Field(default="medium", description="图片画质档位，默认 medium")
+    quality: Optional[str] = Field(
+        default="medium", description="图片画质档位，默认 medium"
+    )
 
 
 class FreezoneTemplateEditRequest(BaseModel):
@@ -763,7 +780,9 @@ class FreezoneTemplateEditRequest(BaseModel):
         default=FREEZONE_DEFAULT_IMAGE_MODEL,
         description=f"图片模型名，默认 {FREEZONE_DEFAULT_IMAGE_MODEL}",
     )
-    quality: Optional[str] = Field(default="medium", description="图片画质档位，默认 medium")
+    quality: Optional[str] = Field(
+        default="medium", description="图片画质档位，默认 medium"
+    )
 
 
 class FreezoneExtractFramesRequest(BaseModel):
@@ -789,7 +808,9 @@ class FreezoneAnalyzeVideoStoryRequest(BaseModel):
         default=20,
         ge=3,
         le=50,
-        description=("最多抽取多少张关键帧。建议 12-20；" "越多分析越细，但耗时和 token 成本更高"),
+        description=(
+            "最多抽取多少张关键帧。建议 12-20；越多分析越细，但耗时和 token 成本更高"
+        ),
     )
     scene_threshold: float = Field(
         default=0.3,
@@ -804,7 +825,7 @@ class FreezoneAnalyzeVideoStoryRequest(BaseModel):
         default=None,
         gt=0,
         description=(
-            "视频总时长，单位秒。可选；" "传入后视频故事表的 start_time/end_time 会更准确"
+            "视频总时长，单位秒。可选；传入后视频故事表的 start_time/end_time 会更准确"
         ),
         examples=[15],
     )
@@ -821,7 +842,9 @@ class FreezoneUpscaleRequest(BaseModel):
         default=FREEZONE_DEFAULT_IMAGE_MODEL,
         description=f"图片模型名，默认 {FREEZONE_DEFAULT_IMAGE_MODEL}",
     )
-    quality: Optional[str] = Field(default="medium", description="图片画质档位，默认 medium")
+    quality: Optional[str] = Field(
+        default="medium", description="图片画质档位，默认 medium"
+    )
     camera: Optional[FreezoneImageCameraConfig] = Field(
         default=None,
         description="可选摄像机参数，用于补充镜头语言和摄影机规格",
@@ -844,9 +867,11 @@ class FreezoneOutpaintRequest(BaseModel):
     """
 
     source_url: str = Field(description="待扩图的源图静态地址，作为图生图的 base 图")
-    target_aspect_ratio: Literal["original", "1:1", "4:3", "3:4", "16:9", "9:16"] = Field(
-        default="original",
-        description="目标比例。original 表示保持原图比例，其余值表示扩展到指定比例",
+    target_aspect_ratio: Literal["original", "1:1", "4:3", "3:4", "16:9", "9:16"] = (
+        Field(
+            default="original",
+            description="目标比例。original 表示保持原图比例，其余值表示扩展到指定比例",
+        )
     )
     num_images: int = Field(
         default=1,
@@ -867,7 +892,9 @@ class FreezoneOutpaintRequest(BaseModel):
         default=FREEZONE_DEFAULT_IMAGE_MODEL,
         description=f"图片模型名，默认 {FREEZONE_DEFAULT_IMAGE_MODEL}",
     )
-    quality: Optional[str] = Field(default="medium", description="图片画质档位，默认 medium")
+    quality: Optional[str] = Field(
+        default="medium", description="图片画质档位，默认 medium"
+    )
 
 
 class FreezoneRedrawRequest(BaseModel):
@@ -907,7 +934,9 @@ class FreezoneRedrawRequest(BaseModel):
         default=FREEZONE_DEFAULT_IMAGE_MODEL,
         description=f"图片模型名，默认 {FREEZONE_DEFAULT_IMAGE_MODEL}",
     )
-    quality: Optional[str] = Field(default="medium", description="图片画质档位，默认 medium")
+    quality: Optional[str] = Field(
+        default="medium", description="图片画质档位，默认 medium"
+    )
 
 
 class FreezoneRelightRequest(BaseModel):
@@ -937,9 +966,11 @@ class FreezoneRelightRequest(BaseModel):
         le=12000,
         description="主光源色温 Kelvin 值，适用于可拖动色温轴",
     )
-    key_light_direction: Literal["left", "top", "right", "front", "bottom", "back"] = Field(
-        default="front",
-        description="主光源方向",
+    key_light_direction: Literal["left", "top", "right", "front", "bottom", "back"] = (
+        Field(
+            default="front",
+            description="主光源方向",
+        )
     )
     rim_light: bool = Field(default=False, description="是否添加轮廓光")
     prompt: str = Field(default="", description="用户补充提示词，可为空")
@@ -948,7 +979,9 @@ class FreezoneRelightRequest(BaseModel):
         default=FREEZONE_DEFAULT_IMAGE_MODEL,
         description=f"图片模型名，默认 {FREEZONE_DEFAULT_IMAGE_MODEL}",
     )
-    quality: Optional[str] = Field(default="medium", description="图片画质档位，默认 medium")
+    quality: Optional[str] = Field(
+        default="medium", description="图片画质档位，默认 medium"
+    )
 
 
 class FreezoneVideoCharacterLibraryItemRequest(BaseModel):
@@ -1022,9 +1055,15 @@ class FreezoneVideoGenRequest(BaseModel):
         default="newapi_seedance-2.0-fast",
         description="视频模型名称。请传 `/api/v1/projects/{project}/freezone/video/models` 返回值之一。",
     )
-    canvas_id: str = Field(default="", description="可选：来源画布 id，用于记录节点生成历史")
-    node_id: str = Field(default="", description="可选：来源节点 id，用于记录节点生成历史")
-    gen_mode: Optional[str] = Field(default=None, description="可选：生成模式，用于还原节点时回填 genMode")
+    canvas_id: str = Field(
+        default="", description="可选：来源画布 id，用于记录节点生成历史"
+    )
+    node_id: str = Field(
+        default="", description="可选：来源节点 id，用于记录节点生成历史"
+    )
+    gen_mode: Optional[str] = Field(
+        default=None, description="可选：生成模式，用于还原节点时回填 genMode"
+    )
 
 
 class FreezoneImageToVideoRequest(BaseModel):
@@ -1074,9 +1113,15 @@ class FreezoneImageToVideoRequest(BaseModel):
         default="newapi_seedance-2.0-fast",
         description="视频模型或模型选项 id。请传 /freezone/video/models 返回值之一",
     )
-    canvas_id: str = Field(default="", description="可选：来源画布 id，用于记录节点生成历史")
-    node_id: str = Field(default="", description="可选：来源节点 id，用于记录节点生成历史")
-    gen_mode: Optional[str] = Field(default=None, description="可选：生成模式，用于还原节点时回填 genMode")
+    canvas_id: str = Field(
+        default="", description="可选：来源画布 id，用于记录节点生成历史"
+    )
+    node_id: str = Field(
+        default="", description="可选：来源节点 id，用于记录节点生成历史"
+    )
+    gen_mode: Optional[str] = Field(
+        default=None, description="可选：生成模式，用于还原节点时回填 genMode"
+    )
 
 
 class FreezoneKeyframeVideoRequest(BaseModel):
@@ -1128,9 +1173,15 @@ class FreezoneKeyframeVideoRequest(BaseModel):
         default="newapi_seedance-2.0-fast",
         description="视频模型或模型选项 id。请传 /freezone/video/models 返回值之一",
     )
-    canvas_id: str = Field(default="", description="可选：来源画布 id，用于记录节点生成历史")
-    node_id: str = Field(default="", description="可选：来源节点 id，用于记录节点生成历史")
-    gen_mode: Optional[str] = Field(default=None, description="可选：生成模式，用于还原节点时回填 genMode")
+    canvas_id: str = Field(
+        default="", description="可选：来源画布 id，用于记录节点生成历史"
+    )
+    node_id: str = Field(
+        default="", description="可选：来源节点 id，用于记录节点生成历史"
+    )
+    gen_mode: Optional[str] = Field(
+        default=None, description="可选：生成模式，用于还原节点时回填 genMode"
+    )
 
 
 class FreezoneVideoEditRequest(BaseModel):
@@ -1179,9 +1230,15 @@ class FreezoneVideoEditRequest(BaseModel):
         default="newapi_happyhorse-1.0",
         description="视频模型或模型选项 id。请传 /freezone/video/models 返回值之一",
     )
-    canvas_id: str = Field(default="", description="可选：来源画布 id，用于记录节点生成历史")
-    node_id: str = Field(default="", description="可选：来源节点 id，用于记录节点生成历史")
-    gen_mode: Optional[str] = Field(default=None, description="可选：生成模式，用于还原节点时回填 genMode")
+    canvas_id: str = Field(
+        default="", description="可选：来源画布 id，用于记录节点生成历史"
+    )
+    node_id: str = Field(
+        default="", description="可选：来源节点 id，用于记录节点生成历史"
+    )
+    gen_mode: Optional[str] = Field(
+        default=None, description="可选：生成模式，用于还原节点时回填 genMode"
+    )
 
 
 class FreezoneVideoReferenceItem(BaseModel):
@@ -1189,7 +1246,9 @@ class FreezoneVideoReferenceItem(BaseModel):
 
     type: Literal["image", "video", "audio"] = Field(description="素材类型")
     url: str = Field(description="素材静态地址")
-    role: str = Field(default="", description="素材角色，例如 角色参考 / 场景参考 / 配乐参考")
+    role: str = Field(
+        default="", description="素材角色，例如 角色参考 / 场景参考 / 配乐参考"
+    )
     label: str = Field(default="", description="前端展示标签，可为空")
 
 
@@ -1278,8 +1337,12 @@ class FreezoneImageReversePromptRequest(BaseModel):
     """图反推提示词请求。"""
 
     source_url: str = Field(description="待分析图片静态地址")
-    canvas_id: str = Field(default="", description="可选：来源画布 id，用于记录节点生成历史")
-    node_id: str = Field(default="", description="可选：来源节点 id，用于记录节点生成历史")
+    canvas_id: str = Field(
+        default="", description="可选：来源画布 id，用于记录节点生成历史"
+    )
+    node_id: str = Field(
+        default="", description="可选：来源节点 id，用于记录节点生成历史"
+    )
 
 
 class FreezoneImageReversePromptData(BaseModel):
@@ -1300,7 +1363,9 @@ class FreezoneVideoOmniGenRequest(BaseModel):
     """
 
     prompt: str = Field(description="用户输入的视频内容描述")
-    theme: str = Field(default="", description="主题参数，用于额外补充镜头主题、风格或叙事方向")
+    theme: str = Field(
+        default="", description="主题参数，用于额外补充镜头主题、风格或叙事方向"
+    )
     camera_template_id: Optional[str] = Field(
         default=None,
         description="运镜模板 id，例如 locked_off / follow_tracking / orbit_up",
@@ -1339,9 +1404,15 @@ class FreezoneVideoOmniGenRequest(BaseModel):
         default="newapi_seedance-2.0-fast",
         description="视频模型或模型选项 id。请传 /freezone/video/models 返回值之一",
     )
-    canvas_id: str = Field(default="", description="可选：来源画布 id，用于记录节点生成历史")
-    node_id: str = Field(default="", description="可选：来源节点 id，用于记录节点生成历史")
-    gen_mode: Optional[str] = Field(default=None, description="可选：生成模式，用于还原节点时回填 genMode")
+    canvas_id: str = Field(
+        default="", description="可选：来源画布 id，用于记录节点生成历史"
+    )
+    node_id: str = Field(
+        default="", description="可选：来源节点 id，用于记录节点生成历史"
+    )
+    gen_mode: Optional[str] = Field(
+        default=None, description="可选：生成模式，用于还原节点时回填 genMode"
+    )
 
 
 class FreezoneVideoEraseRequest(BaseModel):
@@ -1510,7 +1581,9 @@ class FreezoneAudioMusicRequest(BaseModel):
         description="音乐描述 prompt。",
         examples=["cinematic rain-soaked suspense music"],
     )
-    model: str = Field(default="LingShan-MU-11", description="音乐模型，默认 LingShan-MU-11。")
+    model: str = Field(
+        default="LingShan-MU-11", description="音乐模型，默认 LingShan-MU-11。"
+    )
     response_format: Literal["mp3", "opus", "pcm", "ulaw", "alaw"] = Field(
         default="mp3",
         description="音频返回格式。mp3 会自动映射为 mp3_44100_128。",
@@ -1538,9 +1611,13 @@ class FreezoneAudioMusicRequest(BaseModel):
 class FreezoneVideoComposeItem(BaseModel):
     item_id: str = Field(description="前端片段唯一标识")
     source_url: str = Field(description="源媒体静态地址")
-    timeline_start: float = Field(default=0.0, ge=0.0, description="片段在时间线上的开始秒数")
+    timeline_start: float = Field(
+        default=0.0, ge=0.0, description="片段在时间线上的开始秒数"
+    )
     source_start: float = Field(default=0.0, ge=0.0, description="源媒体裁剪起始秒")
-    source_end: float = Field(gt=0.0, description="源媒体裁剪结束秒，必须大于 source_start")
+    source_end: float = Field(
+        gt=0.0, description="源媒体裁剪结束秒，必须大于 source_start"
+    )
     volume: float = Field(default=1.0, ge=0.0, le=2.0, description="音量倍率")
     muted: bool = Field(default=False, description="是否静音")
 
@@ -1548,16 +1625,24 @@ class FreezoneVideoComposeItem(BaseModel):
 class FreezoneVideoComposeTrack(BaseModel):
     track_id: str = Field(description="前端轨道唯一标识")
     kind: Literal["video", "audio"] = Field(description="轨道类型")
-    items: list[FreezoneVideoComposeItem] = Field(default_factory=list, description="轨道片段列表")
+    items: list[FreezoneVideoComposeItem] = Field(
+        default_factory=list, description="轨道片段列表"
+    )
 
 
 class FreezoneVideoComposeRequest(BaseModel):
     title: str = Field(default="", description="合成任务标题，可为空")
     canvas_id: str = Field(default="", description="来源画布 id，可为空")
-    resolution: Literal["720p", "1080p"] = Field(default="1080p", description="目标输出分辨率")
+    resolution: Literal["720p", "1080p"] = Field(
+        default="1080p", description="目标输出分辨率"
+    )
     fps: int = Field(default=30, ge=1, le=60, description="输出帧率")
-    background_color: str = Field(default="#000000", description="补边或空隙使用的背景色")
-    keep_original_audio: bool = Field(default=True, description="是否保留视频片段自带音频")
+    background_color: str = Field(
+        default="#000000", description="补边或空隙使用的背景色"
+    )
+    keep_original_audio: bool = Field(
+        default=True, description="是否保留视频片段自带音频"
+    )
     tracks: list[FreezoneVideoComposeTrack] = Field(
         default_factory=list, description="时间线轨道列表"
     )
@@ -1577,8 +1662,12 @@ class FreezoneTextTranslateRequest(BaseModel):
         default="generic",
         description="使用场景。用于帮助翻译器按节点类型保留合适的提示词语气",
     )
-    canvas_id: str = Field(default="", description="可选：来源画布 id，用于记录节点生成历史")
-    node_id: str = Field(default="", description="可选：来源节点 id，用于记录节点生成历史")
+    canvas_id: str = Field(
+        default="", description="可选：来源画布 id，用于记录节点生成历史"
+    )
+    node_id: str = Field(
+        default="", description="可选：来源节点 id，用于记录节点生成历史"
+    )
 
 
 class FreezoneTextTranslateData(BaseModel):
@@ -1612,8 +1701,12 @@ class FreezoneStoryScriptGenerateRequest(BaseModel):
         default="newapi_gemini_flash",
         description="文本模型选项 id 或展示名",
     )
-    canvas_id: str = Field(default="", description="可选：来源画布 id，用于记录节点生成历史")
-    node_id: str = Field(default="", description="可选：来源节点 id，用于记录节点生成历史")
+    canvas_id: str = Field(
+        default="", description="可选：来源画布 id，用于记录节点生成历史"
+    )
+    node_id: str = Field(
+        default="", description="可选：来源节点 id，用于记录节点生成历史"
+    )
 
 
 class FreezoneStoryScriptRow(BaseModel):
@@ -1637,7 +1730,9 @@ class FreezoneStoryScriptRow(BaseModel):
 
 class FreezoneStoryScriptGenerateData(BaseModel):
     title: str = Field(default="", description="故事脚本标题")
-    rows: list[FreezoneStoryScriptRow] = Field(default_factory=list, description="结构化故事脚本行")
+    rows: list[FreezoneStoryScriptRow] = Field(
+        default_factory=list, description="结构化故事脚本行"
+    )
 
 
 class FreezoneStoryScriptGenerateResponse(BaseModel):
@@ -1897,7 +1992,9 @@ class IdentityImageGenRequest(BaseModel):
     model: Optional[str] = None
 
 
-CharacterAssetKind = Literal["portrait", "identity", "identity_costume", "identity_portrait"]
+CharacterAssetKind = Literal[
+    "portrait", "identity", "identity_costume", "identity_portrait"
+]
 
 
 class CharacterAssetRestoreRequest(BaseModel):

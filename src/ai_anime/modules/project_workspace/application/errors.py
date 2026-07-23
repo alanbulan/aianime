@@ -19,6 +19,20 @@ class ProjectUserIdentityUnresolved(ProjectWorkspaceError):
     pass
 
 
+class InvalidProjectName(ProjectWorkspaceError):
+    pass
+
+
+class ProjectAlreadyExists(ProjectWorkspaceError):
+    def __init__(self, name: str) -> None:
+        self.name = name
+        super().__init__(f"Project '{name}' already exists")
+
+
+class ProjectLifecycleConflict(ProjectWorkspaceError):
+    pass
+
+
 class ProjectHomeNodeRequired(ProjectWorkspaceError):
     def __init__(
         self,

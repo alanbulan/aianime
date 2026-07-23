@@ -32,6 +32,7 @@ from ai_anime.chat.hermes_workspace import (
     effective_gateway_fingerprint,
     ensure_user_hermes_workspace,
 )
+from ai_anime.chat.runtime_config import load_api_url
 from ai_anime.modules.identity_access.public import (
     AgentSessionToken,
     create_agent_session,
@@ -45,30 +46,6 @@ DEFAULT_IDLE_KILL_SECS = 30 * 60  # 30 min
 DEFAULT_MAX_WORKERS = 50
 DEFAULT_TOKEN_TTL_SECS = 2 * 3600  # 2 hours
 DEFAULT_TOKEN_RENEW_SKEW_SECS = 15 * 60  # rotate 15 min before expiry
-DEFAULT_API_URL = "http://127.0.0.1:8780"
-
-
-def _load_api_url() -> str:
-    explicit = os.environ.get("AI_ANIME_API_URL", "").strip()
-    if explicit:
-        return explicit.rstrip("/")
-
-    dedicated = os.environ.get("AI_ANIME_API_URL", "").strip()
-    if dedicated:
-        return dedicated.rstrip("/")
-
-    api_port = os.environ.get("AI_ANIME_API_PORT", "").strip()
-    if api_port:
-        host = os.environ.get("AI_ANIME_API_HOST", "127.0.0.1").strip() or "127.0.0.1"
-        if host in {"0.0.0.0", "::"}:
-            host = "127.0.0.1"
-        return f"http://{host}:{api_port}"
-
-    legacy = os.environ.get("AI_ANIME_API_URL", "").strip()
-    if legacy:
-        return legacy.rstrip("/")
-
-    return DEFAULT_API_URL
 
 # Scopes hermes worker tokens get by default. require_scope() factory
 # enforces these on write endpoints.
@@ -132,7 +109,7 @@ class HermesPool:
         self._lock = asyncio.Lock()
         self._idle_kill_secs = idle_kill_secs
         self._max_workers = max_workers
-        self._api_url = (api_url or _load_api_url()).rstrip("/")
+        self._api_url = (api_url or load_api_url()).rstrip("/")
         self._token_ttl_secs = token_ttl_secs
         self._token_renew_skew_secs = token_renew_skew_secs
         self._cleanup_task: asyncio.Task | None = None
@@ -216,7 +193,8 @@ class HermesPool:
         cli_path = _hermes_cli_path()
         if not cli_path.exists():
             raise RuntimeError(
-                f"hermes CLI not found at {cli_path}. " "Run `uv tool install 'hermes-agent[acp]'`."
+                f"hermes CLI not found at {cli_path}. "
+                "Run `uv tool install 'hermes-agent[acp]'`."
             )
         home = ensure_user_hermes_workspace(username)
         worker_id = f"hermes-{uuid.uuid4().hex}"
@@ -230,7 +208,9 @@ class HermesPool:
             current_project_id=project_id,
         )
         project_env = await self._project_env(username, project_id)
-        env = self._build_env(home, username, token, project_id=project_id, project_env=project_env)
+        env = self._build_env(
+            home, username, token, project_id=project_id, project_env=project_env
+        )
         client = HermesSdkClient(
             cli_path=cli_path,
             cwd=home,
@@ -238,8 +218,14 @@ class HermesPool:
             model=model,
             username=username,
         )
-        session_id = (resume_session_id or self._session_id_for(username, scope_kind, project_id) or "").strip()
-        thread = client.thread_resume(session_id) if session_id else client.thread_start()
+        session_id = (
+            resume_session_id
+            or self._session_id_for(username, scope_kind, project_id)
+            or ""
+        ).strip()
+        thread = (
+            client.thread_resume(session_id) if session_id else client.thread_start()
+        )
         _log.info(
             "spawned hermes worker for user=%s home=%s agent_session=%s resumed_session=%s",
             username,
@@ -273,7 +259,9 @@ class HermesPool:
         scope_kind: str,
         project_id: str | None,
     ) -> str | None:
-        return self._session_ids.get(username, {}).get(self._scope_key(scope_kind, project_id))
+        return self._session_ids.get(username, {}).get(
+            self._scope_key(scope_kind, project_id)
+        )
 
     def _remember_session(self, slot: _WorkerSlot) -> None:
         session_id = str(getattr(slot.thread, "id", "") or "").strip()
@@ -301,7 +289,9 @@ class HermesPool:
         cannot leave the fresh token unmanaged.
         """
         self._remember_session(slot)
-        same_scope = self._scope_key(slot.scope_kind, slot.project_id) == self._scope_key(
+        same_scope = self._scope_key(
+            slot.scope_kind, slot.project_id
+        ) == self._scope_key(
             scope_kind,
             project_id,
         )
@@ -336,11 +326,16 @@ class HermesPool:
             project_id=project_id,
         )
 
-    async def _project_env(self, username: str, project_id: str | None) -> dict[str, str]:
+    async def _project_env(
+        self, username: str, project_id: str | None
+    ) -> dict[str, str]:
         if not project_id:
             return {}
         try:
-            from ai_anime.modules.project_workspace.public import require_project_home_node, resolve_project_context
+            from ai_anime.modules.project_workspace.public import (
+                require_project_home_node,
+                resolve_project_context,
+            )
 
             ctx = await resolve_project_context(
                 user={"username": username},
@@ -356,7 +351,12 @@ class HermesPool:
                 "AI_ANIME_PROJECT_RUNTIME_DIR": str(ctx.runtime_dir),
             }
         except Exception as exc:
-            _log.warning("failed to resolve hermes project env for project=%s user=%s: %s", project_id, username, exc)
+            _log.warning(
+                "failed to resolve hermes project env for project=%s user=%s: %s",
+                project_id,
+                username,
+                exc,
+            )
             return {}
 
     def _build_env(
@@ -398,7 +398,11 @@ class HermesPool:
             return
         # Evict least-recently-used
         victim = min(self._slots.values(), key=lambda s: s.last_used)
-        _log.info("hermes pool full (%d); evicting LRU user=%s", self._max_workers, victim.username)
+        _log.info(
+            "hermes pool full (%d); evicting LRU user=%s",
+            self._max_workers,
+            victim.username,
+        )
         await self._close_slot(victim)
         self._slots.pop(victim.username, None)
 

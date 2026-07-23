@@ -12,7 +12,10 @@ from pathlib import Path
 import aiosqlite
 from ulid import ULID
 
-from ai_anime.modules.project_workspace.public import Principal, ProjectRecord
+from ai_anime.modules.project_workspace.application.errors import (
+    ProjectAlreadyExists,
+)
+from ai_anime.modules.project_workspace.domain import Principal, ProjectRecord
 from ai_anime.shared.project_dirs import default_project_dirs
 
 
@@ -42,7 +45,9 @@ def _row_to_record(row: aiosqlite.Row) -> ProjectRecord:
     )
 
 
-async def _fetchone(db: aiosqlite.Connection, sql: str, params: tuple = ()) -> aiosqlite.Row | None:
+async def _fetchone(
+    db: aiosqlite.Connection, sql: str, params: tuple = ()
+) -> aiosqlite.Row | None:
     cursor = await db.execute(sql, params)
     try:
         return await cursor.fetchone()
@@ -50,7 +55,9 @@ async def _fetchone(db: aiosqlite.Connection, sql: str, params: tuple = ()) -> a
         await cursor.close()
 
 
-async def _fetchall(db: aiosqlite.Connection, sql: str, params: tuple = ()) -> list[aiosqlite.Row]:
+async def _fetchall(
+    db: aiosqlite.Connection, sql: str, params: tuple = ()
+) -> list[aiosqlite.Row]:
     cursor = await db.execute(sql, params)
     try:
         return await cursor.fetchall()
@@ -135,7 +142,9 @@ class SQLiteProjectRegistry:
             return None
         db = await self._connect()
         try:
-            row = await _fetchone(db, "SELECT * FROM projects WHERE id = ?", (project_id,))
+            row = await _fetchone(
+                db, "SELECT * FROM projects WHERE id = ?", (project_id,)
+            )
         finally:
             await db.close()
         return _row_to_record(row) if row else None
@@ -176,7 +185,9 @@ class SQLiteProjectRegistry:
         if not owner_user_id or not name:
             raise ValueError("owner_user_id and name are required")
         owner_username = owner_username.strip() if owner_username else _local_username()
-        default_output, default_state, default_runtime = default_project_dirs(owner_username, name)
+        default_output, default_state, default_runtime = default_project_dirs(
+            owner_username, name
+        )
         now = _now_iso()
         project_id = str(ULID())
         db = await self._connect()
@@ -210,7 +221,7 @@ class SQLiteProjectRegistry:
                 await db.commit()
             except sqlite3.IntegrityError as exc:
                 await db.rollback()
-                raise ValueError(f"Project '{name}' already exists") from exc
+                raise ProjectAlreadyExists(name) from exc
             except Exception:
                 await db.rollback()
                 raise
@@ -232,7 +243,7 @@ class SQLiteProjectRegistry:
                 SELECT * FROM projects
                 WHERE owner_type = 'user' AND owner_id = 'local'
                 ORDER BY updated_at DESC
-                """
+                """,
             )
         finally:
             await db.close()
@@ -256,7 +267,9 @@ class SQLiteProjectRegistry:
                 (status, _now_iso(), project_id),
             )
             await db.commit()
-            row = await _fetchone(db, "SELECT * FROM projects WHERE id = ?", (project_id,))
+            row = await _fetchone(
+                db, "SELECT * FROM projects WHERE id = ?", (project_id,)
+            )
         finally:
             await db.close()
         return _row_to_record(row) if row else None
@@ -267,7 +280,9 @@ class SQLiteProjectRegistry:
         now = _now_iso()
         db = await self._connect()
         try:
-            row = await _fetchone(db, "SELECT * FROM projects WHERE id = ?", (project_id,))
+            row = await _fetchone(
+                db, "SELECT * FROM projects WHERE id = ?", (project_id,)
+            )
             if row is None:
                 return None
             record = _row_to_record(row)
@@ -296,9 +311,6 @@ class SQLiteProjectRegistry:
 
     async def resolve_user_id_by_username(self, username: str) -> str | None:
         return "local" if username else None
-
-
-FileProjectRegistry = SQLiteProjectRegistry
 
 
 class AllowAllProjectAccess:

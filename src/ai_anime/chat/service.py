@@ -29,6 +29,7 @@ from ai_anime.chat.backend_sdk import (
     interrupt_live_claude_client,
     interrupt_live_codex_turn,
 )
+from ai_anime.chat.runtime_config import load_api_url
 from ai_anime.modules.identity_access.public import create_agent_session
 from ai_anime.sqlite_pragmas import configure_sqlite_connection
 from ai_anime.utils.error_redaction import redact_secrets
@@ -55,8 +56,12 @@ _REL_PATH_RE = re.compile(
 )
 _MARKDOWN_IMAGE_RE = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
 _USER_TURN_LABEL_RE = re.compile(r"(?im)^\s*(?:user|human|用户|我)\s*[:：]\s*")
-_ASSISTANT_TURN_LABEL_RE = re.compile(r"(?i)^\s*(?:assistant|ai|助手|助理|模型)\s*[:：]\s*")
-_UI_SPEC_BLOCK_RE = re.compile(r"<ui-spec\b[^>]*>(.*?)</ui-spec>", re.IGNORECASE | re.DOTALL)
+_ASSISTANT_TURN_LABEL_RE = re.compile(
+    r"(?i)^\s*(?:assistant|ai|助手|助理|模型)\s*[:：]\s*"
+)
+_UI_SPEC_BLOCK_RE = re.compile(
+    r"<ui-spec\b[^>]*>(.*?)</ui-spec>", re.IGNORECASE | re.DOTALL
+)
 _UI_SPEC_FENCE_RE = re.compile(
     r"```(?:json-render|ui-spec|json)?\s*(<ui-spec\b[\s\S]*?</ui-spec>)\s*```",
     re.IGNORECASE,
@@ -94,7 +99,9 @@ _STYLE_SHORT_DRAMA_REQUEST_RE = re.compile(
     r"[\s\S]{0,30}(?:短剧|短片剧本|短视频剧本|网剧)",
     re.IGNORECASE,
 )
-_CONTINUE_PIPELINE_RE = re.compile(r"(?:继续|恢复|接着|下一步|当前|已有|已上传|刚才上传)")
+_CONTINUE_PIPELINE_RE = re.compile(
+    r"(?:继续|恢复|接着|下一步|当前|已有|已上传|刚才上传)"
+)
 _AI_ANIME_SCRIPT_UPLOAD_MODEL_REPLY_INSTRUCTIONS = """[AI_ANIME_SCRIPT_UPLOAD_GUIDANCE]
 用户正在请求创建、生成或编写剧本/短剧，但当前消息没有上传剧本文档。
 
@@ -189,7 +196,11 @@ def _media_project_dir(
     project: str,
     project_dir: str | Path | None = None,
 ) -> Path:
-    return Path(project_dir) if project_dir is not None else _project_dir(username, project)
+    return (
+        Path(project_dir)
+        if project_dir is not None
+        else _project_dir(username, project)
+    )
 
 
 def _repo_root() -> Path:
@@ -259,9 +270,7 @@ def _prompt_with_user_context(username: str, project: str, prompt: str) -> str:
 
 def _chat_backend() -> str:
     preferred = (
-        os.environ.get("AI_ANIME_CHAT_BACKEND")
-        or os.environ.get("AI_ANIME_CHAT_BACKEND")
-        or "hermes"
+        os.environ.get("AI_ANIME_CHAT_BACKEND") or "hermes"
     ).strip().lower() or "hermes"
     if preferred == "hermes":
         # Explicit "hermes" must succeed — do NOT silently fall back to
@@ -331,7 +340,9 @@ def is_claude_backend_available() -> bool:
 
 def is_codex_backend_available() -> bool:
     codex_bin = _codex_bin_path()
-    return (codex_bin is None or codex_bin.exists()) and importlib.util.find_spec("openai_codex") is not None
+    return (codex_bin is None or codex_bin.exists()) and importlib.util.find_spec(
+        "openai_codex"
+    ) is not None
 
 
 def is_hermes_backend_available() -> bool:
@@ -459,7 +470,11 @@ def _legacy_chat_db_path(
     project: str,
     project_dir: str | Path | None = None,
 ) -> Path:
-    base_dir = Path(project_dir) if project_dir is not None else _project_dir(username, project)
+    base_dir = (
+        Path(project_dir)
+        if project_dir is not None
+        else _project_dir(username, project)
+    )
     return base_dir / ".chat" / "chat.db"
 
 
@@ -593,7 +608,9 @@ def save_chat_input_history(
 
 
 def _get_setting(conn: sqlite3.Connection, key: str) -> str | None:
-    row = conn.execute("SELECT value FROM chat_settings WHERE key = ?", (key,)).fetchone()
+    row = conn.execute(
+        "SELECT value FROM chat_settings WHERE key = ?", (key,)
+    ).fetchone()
     return str(row["value"]) if row else None
 
 
@@ -722,7 +739,9 @@ def _chat_run_lock_file_is_new(path: Path) -> bool:
         return False
     except OSError:
         return True
-    return (datetime.now(timezone.utc).timestamp() - mtime) < _CHAT_RUN_LOCK_BIRTH_GRACE_SECONDS
+    return (
+        datetime.now(timezone.utc).timestamp() - mtime
+    ) < _CHAT_RUN_LOCK_BIRTH_GRACE_SECONDS
 
 
 def _acquire_chat_run_lock(username: str, project: str) -> str:
@@ -734,8 +753,8 @@ def _acquire_chat_run_lock(username: str, project: str) -> str:
         try:
             fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
         except FileExistsError:
-            existing_lock_id, owner_pid, started_at, updated_at = _read_chat_run_lock_file(
-                lock_path
+            existing_lock_id, owner_pid, started_at, updated_at = (
+                _read_chat_run_lock_file(lock_path)
             )
             if not existing_lock_id and _chat_run_lock_file_is_new(lock_path):
                 raise RuntimeError("当前用户已有 AI 对话正在处理中，请稍后再试。")
@@ -763,14 +782,18 @@ def _acquire_chat_run_lock(username: str, project: str) -> str:
 
 def _release_chat_run_lock(username: str, project: str, lock_id: str) -> None:
     lock_path = _chat_run_lock_path(username, project)
-    current_lock_id, _owner_pid, _started_at, _updated_at = _read_chat_run_lock_file(lock_path)
+    current_lock_id, _owner_pid, _started_at, _updated_at = _read_chat_run_lock_file(
+        lock_path
+    )
     if current_lock_id == lock_id:
         _remove_chat_run_lock_file(lock_path)
 
 
 def _heartbeat_chat_run_lock(username: str, project: str, lock_id: str) -> bool:
     lock_path = _chat_run_lock_path(username, project)
-    current_lock_id, _owner_pid, started_at, _updated_at = _read_chat_run_lock_file(lock_path)
+    current_lock_id, _owner_pid, started_at, _updated_at = _read_chat_run_lock_file(
+        lock_path
+    )
     if current_lock_id != lock_id:
         return False
     payload = _chat_run_lock_payload(
@@ -786,7 +809,9 @@ def _heartbeat_chat_run_lock(username: str, project: str, lock_id: str) -> bool:
 
 def chat_run_lock_is_active(username: str, project: str = "") -> bool:
     lock_path = _chat_run_lock_path(username, project)
-    existing_lock_id, owner_pid, started_at, updated_at = _read_chat_run_lock_file(lock_path)
+    existing_lock_id, owner_pid, started_at, updated_at = _read_chat_run_lock_file(
+        lock_path
+    )
     if (
         existing_lock_id
         and _pid_is_alive(owner_pid)
@@ -801,7 +826,9 @@ def force_release_chat_run_lock(username: str, project: str) -> None:
     _remove_chat_run_lock_file(_chat_run_lock_path(username, project))
 
 
-async def _chat_run_lock_heartbeat_loop(username: str, project: str, lock_id: str) -> None:
+async def _chat_run_lock_heartbeat_loop(
+    username: str, project: str, lock_id: str
+) -> None:
     while True:
         await asyncio.sleep(_CHAT_RUN_LOCK_HEARTBEAT_SECONDS)
         if not _heartbeat_chat_run_lock(username, project, lock_id):
@@ -809,7 +836,10 @@ async def _chat_run_lock_heartbeat_loop(username: str, project: str, lock_id: st
 
 
 def _append_message(
-    conn: sqlite3.Connection, role: str, content: str, media: list[dict[str, Any]] | None = None
+    conn: sqlite3.Connection,
+    role: str,
+    content: str,
+    media: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     media = media or []
     created_at_iso = _now_iso()
@@ -894,7 +924,11 @@ async def _emit_chat_event_best_effort(on_event, event: dict[str, Any]) -> bool:
 
 def _assistant_prefix_candidates(previous_assistant: object) -> list[str]:
     if isinstance(previous_assistant, (list, tuple)):
-        items = [str(item or "").strip() for item in previous_assistant if str(item or "").strip()]
+        items = [
+            str(item or "").strip()
+            for item in previous_assistant
+            if str(item or "").strip()
+        ]
         candidates = []
         for index in range(len(items)):
             suffix = items[index:]
@@ -963,7 +997,9 @@ def _looks_like_labeled_transcript_replay(content: str) -> bool:
         return False
     if _USER_TURN_LABEL_RE.match(text):
         return True
-    return bool(_USER_TURN_LABEL_RE.search(text) and _ASSISTANT_TURN_LABEL_RE.search(text))
+    return bool(
+        _USER_TURN_LABEL_RE.search(text) and _ASSISTANT_TURN_LABEL_RE.search(text)
+    )
 
 
 def _strip_replayed_turn_transcript(
@@ -1109,12 +1145,17 @@ def _canonicalize_ui_spec(value: Any) -> dict[str, Any]:
             children = []
         if not isinstance(props, dict):
             raise ValueError(f"ui-spec element {key}.props must be an object")
-        if not isinstance(children, list) or not all(isinstance(child, str) for child in children):
+        if not isinstance(children, list) or not all(
+            isinstance(child, str) for child in children
+        ):
             raise ValueError(f"ui-spec element {key}.children must be a string array")
         normalized_props = dict(props)
         legacy_text = normalized_props.get("children")
         if isinstance(legacy_text, str):
-            if element_type in {"Text", "Heading"} and "content" not in normalized_props:
+            if (
+                element_type in {"Text", "Heading"}
+                and "content" not in normalized_props
+            ):
                 normalized_props["content"] = legacy_text
                 normalized_props.pop("children", None)
             elif element_type == "Badge" and "label" not in normalized_props:
@@ -1158,12 +1199,7 @@ def _log_json_render_error(error: ValueError, body: str) -> None:
     max_chars = 12000
     if len(raw_body) > max_chars:
         raw_body = f"{raw_body[:max_chars]}\n...[truncated {len(original_body) - max_chars} chars]"
-    entry = (
-        f"\n--- {_now_iso()} ---\n"
-        f"error: {error}\n"
-        "body:\n"
-        f"{raw_body}\n"
-    )
+    entry = f"\n--- {_now_iso()} ---\nerror: {error}\nbody:\n{raw_body}\n"
     try:
         path = _json_render_error_log_path()
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -1268,7 +1304,11 @@ def _strip_media_rendering_leaks(content: str) -> str:
             continue
         if "<ui-spec" in lower or "ui-spec" in lower or "ui_spec" in lower:
             continue
-        if "json-render" in lower or "automatically rendered" in lower or "backend" in lower:
+        if (
+            "json-render" in lower
+            or "automatically rendered" in lower
+            or "backend" in lower
+        ):
             continue
         if "ai_anime_" in lower:
             continue
@@ -1327,7 +1367,9 @@ def _extract_tool_ui_specs(value: Any) -> list[dict[str, Any]]:
         try:
             specs.append(_canonicalize_ui_spec(node))
         except ValueError as exc:
-            _log_json_render_error(exc, json.dumps(node, ensure_ascii=False, default=str))
+            _log_json_render_error(
+                exc, json.dumps(node, ensure_ascii=False, default=str)
+            )
 
     def visit(node: Any) -> None:
         if isinstance(node, dict):
@@ -1349,7 +1391,9 @@ def _extract_tool_ui_specs(value: Any) -> list[dict[str, Any]]:
                 _, embedded_specs = _split_ui_specs_from_text(text)
                 specs.extend(embedded_specs)
                 return
-            if "ui_spec" not in text and not {"type", "root", "elements"}.issubset(set(re.findall(r'"([^"]+)"\s*:', text))):
+            if "ui_spec" not in text and not {"type", "root", "elements"}.issubset(
+                set(re.findall(r'"([^"]+)"\s*:', text))
+            ):
                 return
             try:
                 decoded = json.loads(text)
@@ -1373,8 +1417,18 @@ def _extract_tool_chat_error(value: Any) -> str | None:
     def normalize_error_text(text: object) -> str:
         raw = redact_secrets(str(text or "")).strip()
         raw = re.sub(r"\s+", " ", raw)
-        raw = re.sub(r"provider_response_id[\"']?\s*[:=]\s*[\"']?[^\"'\s,;}]+", "provider_response_id=[redacted]", raw, flags=re.IGNORECASE)
-        raw = re.sub(r"response_id[\"']?\s*[:=]\s*[\"']?[^\"'\s,;}]+", "response_id=[redacted]", raw, flags=re.IGNORECASE)
+        raw = re.sub(
+            r"provider_response_id[\"']?\s*[:=]\s*[\"']?[^\"'\s,;}]+",
+            "provider_response_id=[redacted]",
+            raw,
+            flags=re.IGNORECASE,
+        )
+        raw = re.sub(
+            r"response_id[\"']?\s*[:=]\s*[\"']?[^\"'\s,;}]+",
+            "response_id=[redacted]",
+            raw,
+            flags=re.IGNORECASE,
+        )
         if len(raw) > 1200:
             raw = raw[:1200].rstrip() + "..."
         return raw
@@ -1464,16 +1518,14 @@ def _extract_tool_chat_error(value: Any) -> str | None:
 
 def _ui_spec_json(spec: dict[str, Any]) -> tuple[str, str]:
     canonical = _canonicalize_ui_spec(spec)
-    spec_type = canonical.get("type") if isinstance(canonical.get("type"), str) else "ui_spec"
+    spec_type = (
+        canonical.get("type") if isinstance(canonical.get("type"), str) else "ui_spec"
+    )
     return spec_type, json.dumps(canonical, ensure_ascii=False, indent=2)
 
 
 def _wrap_ui_spec_json(spec_type: str, json_text: str) -> str:
-    return (
-        f'<ui-spec type="{spec_type}">\n'
-        f"{json_text}\n"
-        "</ui-spec>"
-    )
+    return f'<ui-spec type="{spec_type}">\n{json_text}\n</ui-spec>'
 
 
 def _wrap_ui_spec_bundle(specs: list[dict[str, Any]]) -> str:
@@ -1555,7 +1607,11 @@ def _merge_ui_specs(left: dict[str, Any], right: dict[str, Any]) -> dict[str, An
 
     left_root["children"] = [
         *left_children,
-        *[key_map.get(child, child) for child in right_children if isinstance(child, str)],
+        *[
+            key_map.get(child, child)
+            for child in right_children
+            if isinstance(child, str)
+        ],
     ]
     left_elements[left_root_id] = left_root
     return {**left, "elements": left_elements}
@@ -1566,7 +1622,9 @@ def _merge_tool_ui_specs_by_type(specs: list[dict[str, Any]]) -> list[dict[str, 
     merge_indexes: dict[str, int] = {}
     for spec in specs:
         spec_type = spec.get("type")
-        merge_index = merge_indexes.get(spec_type) if isinstance(spec_type, str) else None
+        merge_index = (
+            merge_indexes.get(spec_type) if isinstance(spec_type, str) else None
+        )
         if merge_index is not None and _can_merge_ui_specs(merged[merge_index], spec):
             try:
                 merged[merge_index] = _merge_ui_specs(merged[merge_index], spec)
@@ -1642,7 +1700,15 @@ def _prompt_wants_sketch_only(prompt: str) -> bool:
     text = str(prompt or "")
     if "草图" not in text and "sketch" not in text.casefold():
         return False
-    frame_terms = ("首帧", "第一帧", "关键帧", "first frame", "first-frame", "keyframe", "frame")
+    frame_terms = (
+        "首帧",
+        "第一帧",
+        "关键帧",
+        "first frame",
+        "first-frame",
+        "keyframe",
+        "frame",
+    )
     return not any(term in text.casefold() for term in frame_terms)
 
 
@@ -1662,10 +1728,17 @@ def _is_frame_image_element(element: Any) -> bool:
         props.get("overlayDescription"),
     ]
     text = "\n".join(str(value or "") for value in fields).casefold()
-    return "首帧" in text or "/frames/" in text or "first frame" in text or "first-frame" in text
+    return (
+        "首帧" in text
+        or "/frames/" in text
+        or "first frame" in text
+        or "first-frame" in text
+    )
 
 
-def _filter_tool_ui_specs_for_prompt(prompt: str, specs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _filter_tool_ui_specs_for_prompt(
+    prompt: str, specs: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     if not specs or not _prompt_wants_sketch_only(prompt):
         return specs
 
@@ -1725,7 +1798,9 @@ _DISPLAY_TOOL_NAMES = {
 }
 
 
-def _limit_display_items(items: list[dict[str, Any]], args: dict[str, Any], default: int) -> list[dict[str, Any]]:
+def _limit_display_items(
+    items: list[dict[str, Any]], args: dict[str, Any], default: int
+) -> list[dict[str, Any]]:
     try:
         limit = int(args.get("limit")) if args.get("limit") is not None else default
     except (TypeError, ValueError):
@@ -1822,7 +1897,9 @@ def _requested_display_scene_indices(args: dict[str, Any]) -> set[int] | None:
     return indices or None
 
 
-def _matches_any_display_scene_name(scene_name: str, requested_names: set[str] | None) -> bool:
+def _matches_any_display_scene_name(
+    scene_name: str, requested_names: set[str] | None
+) -> bool:
     if requested_names is None:
         return True
     haystack = str(scene_name or "").casefold()
@@ -1850,7 +1927,9 @@ def _matches_any_display_text(fields: list[Any], queries: set[str] | None) -> bo
     return any(query.casefold() in haystack for query in queries if query)
 
 
-def _media_ui_spec(spec_type: str, component_type: str, items: list[dict[str, Any]]) -> dict[str, Any]:
+def _media_ui_spec(
+    spec_type: str, component_type: str, items: list[dict[str, Any]]
+) -> dict[str, Any]:
     elements: dict[str, Any] = {
         "root": {
             "type": "Stack",
@@ -1897,7 +1976,9 @@ def _media_ui_spec(spec_type: str, component_type: str, items: list[dict[str, An
     return {"type": spec_type, "root": "root", "elements": elements}
 
 
-def _project_static_url_from_path(project_id: str, rel_path: str, local_path: Path | None = None) -> str:
+def _project_static_url_from_path(
+    project_id: str, rel_path: str, local_path: Path | None = None
+) -> str:
     return project_static_url(project_id, rel_path, local_path=local_path)
 
 
@@ -1934,7 +2015,13 @@ def _decode_tool_args(value: Any) -> dict[str, Any]:
 def _extract_display_tool_call(raw: Any) -> tuple[str, dict[str, Any]] | None:
     if not isinstance(raw, dict):
         return None
-    title = str(raw.get("title") or raw.get("kind") or raw.get("name") or raw.get("tool_name") or "").strip()
+    title = str(
+        raw.get("title")
+        or raw.get("kind")
+        or raw.get("name")
+        or raw.get("tool_name")
+        or ""
+    ).strip()
     tool_name = title.partition(":")[0].split()[0].strip()
     if tool_name not in _DISPLAY_TOOL_NAMES:
         for key in ("name", "tool", "toolName", "tool_name"):
@@ -1989,7 +2076,16 @@ def _infer_display_tool_call_from_text(
     progress_terms = ("进度", "状态", "任务", "做到哪", "做到哪儿", "当前情况")
     if any(term in prompt_text for term in progress_terms):
         return None
-    display_terms = ("展示", "显示", "查看", "看", "全部显示", "show", "display", "view")
+    display_terms = (
+        "展示",
+        "显示",
+        "查看",
+        "看",
+        "全部显示",
+        "show",
+        "display",
+        "view",
+    )
     if not any(term in prompt_lower for term in display_terms):
         return None
     prompt_mentions_sketch = "草图" in prompt_text or "sketch" in prompt_lower
@@ -2012,7 +2108,9 @@ def _infer_display_tool_call_from_text(
             episode = max(1, int(raw_episode))
         except (TypeError, ValueError):
             episode = 1
-    wants_sketch_candidates = any(term in context_text for term in ("草图候选", "候选草图", "图池", "备选草图"))
+    wants_sketch_candidates = any(
+        term in context_text for term in ("草图候选", "候选草图", "图池", "备选草图")
+    )
     if wants_sketch_candidates:
         beat_match = re.search(
             r"(?:beat|Beat|BEAT)\s*\.?\s*(\d+)|第\s*(\d+)\s*(?:个|张)?\s*beat|Beat\s*(\d+)",
@@ -2028,18 +2126,16 @@ def _infer_display_tool_call_from_text(
             except (TypeError, ValueError):
                 beat = 0
             if beat > 0:
-                return "ai_anime_get_sketch_candidates", {"episode": episode, "beat": beat}
+                return "ai_anime_get_sketch_candidates", {
+                    "episode": episode,
+                    "beat": beat,
+                }
         return None
     return "ai_anime_get_sketches", {"episode": episode}
 
 
 def _backend_api_get(path: str, token: str) -> dict[str, Any]:
-    base_url = (
-        os.environ.get("AI_ANIME_API_URL")
-        or os.environ.get("AI_ANIME_API_URL")
-        or f"http://127.0.0.1:{os.environ.get('AI_ANIME_API_PORT', '19080')}"
-        or os.environ.get("AI_ANIME_API_URL")
-    ).strip()
+    base_url = load_api_url()
     url = f"{base_url.rstrip('/')}{path}"
     req = Request(
         url,
@@ -2072,11 +2168,15 @@ async def _fallback_display_tool_ui_specs(
         return []
 
     def build() -> list[dict[str, Any]]:
-        api_project = str(args.get("project_id") or args.get("project") or project).strip()
+        api_project = str(
+            args.get("project_id") or args.get("project") or project
+        ).strip()
         project_q = quote(api_project, safe="")
         if tool_name in {"ai_anime_get_sketches", "ai_anime_get_first_frames"}:
             episode = int(args.get("episode") or 1)
-            media_kind = "frame" if tool_name == "ai_anime_get_first_frames" else "sketch"
+            media_kind = (
+                "frame" if tool_name == "ai_anime_get_first_frames" else "sketch"
+            )
             resp = _backend_api_get(
                 f"/api/v1/projects/{project_q}/episodes/{episode}/beats",
                 token,
@@ -2114,12 +2214,19 @@ async def _fallback_display_tool_ui_specs(
                         }
                     )
             limited = _limit_display_items(media_items, args, 12)
-            return [_media_ui_spec("sketch_gallery", "Image", limited)] if limited else []
+            return (
+                [_media_ui_spec("sketch_gallery", "Image", limited)] if limited else []
+            )
 
         if tool_name == "ai_anime_get_sketch_candidates":
             episode = int(args.get("episode") or 1)
             try:
-                beat = int(args.get("beat") or args.get("beat_num") or args.get("beat_number") or 0)
+                beat = int(
+                    args.get("beat")
+                    or args.get("beat_num")
+                    or args.get("beat_number")
+                    or 0
+                )
             except (TypeError, ValueError):
                 beat = 0
             if beat <= 0:
@@ -2141,12 +2248,16 @@ async def _fallback_display_tool_ui_specs(
                     {
                         "src": src,
                         "title": f"Beat {beat} 草图候选",
-                        "description": "过期候选" if candidate.get("stale") else "草图候选",
+                        "description": "过期候选"
+                        if candidate.get("stale")
+                        else "草图候选",
                         "aspectRatio": "3/4",
                     }
                 )
             limited = _limit_display_items(media_items, args, 12)
-            return [_media_ui_spec("sketch_gallery", "Image", limited)] if limited else []
+            return (
+                [_media_ui_spec("sketch_gallery", "Image", limited)] if limited else []
+            )
 
         if tool_name == "ai_anime_get_scene_images":
             resp = _backend_api_get(f"/api/v1/projects/{project_q}/scenes", token)
@@ -2157,12 +2268,17 @@ async def _fallback_display_tool_ui_specs(
             requested_names = _requested_display_scene_names(args)
             requested_indices = _requested_display_scene_indices(args)
             requested_type = str(args.get("scene_type") or "").strip()
-            for scene_index, scene in enumerate(_api_response_items(resp, "scenes", "items"), start=1):
+            for scene_index, scene in enumerate(
+                _api_response_items(resp, "scenes", "items"), start=1
+            ):
                 if not isinstance(scene, dict):
                     continue
                 scene_name = str(scene.get("name") or "").strip()
                 scene_type = str(scene.get("scene_type") or "").strip()
-                if requested_indices is not None and scene_index not in requested_indices:
+                if (
+                    requested_indices is not None
+                    and scene_index not in requested_indices
+                ):
                     continue
                 if not _matches_any_display_scene_name(scene_name, requested_names):
                     continue
@@ -2180,19 +2296,27 @@ async def _fallback_display_tool_ui_specs(
                             {
                                 "src": src,
                                 "title": f"{scene_name or '场景'} · {kind}",
-                                "description": scene.get("description") or scene.get("environment_prompt") or "",
+                                "description": scene.get("description")
+                                or scene.get("environment_prompt")
+                                or "",
                                 "aspectRatio": "16/9" if kind == "pano" else "3/4",
                             }
                         )
             limited = _limit_display_items(media_items, args, 12)
-            return [_media_ui_spec("sketch_gallery", "Image", limited)] if limited else []
+            return (
+                [_media_ui_spec("sketch_gallery", "Image", limited)] if limited else []
+            )
 
         if tool_name == "ai_anime_get_character_media":
             resp = _backend_api_get(f"/api/v1/projects/{project_q}/characters", token)
-            media_kind = str(args.get("media_kind") or args.get("kind") or "all").strip().lower()
+            media_kind = (
+                str(args.get("media_kind") or args.get("kind") or "all").strip().lower()
+            )
             if media_kind not in {"all", "portrait", "identity"}:
                 media_kind = "all"
-            include_identities = bool(args.get("include_identities", True)) and media_kind != "portrait"
+            include_identities = (
+                bool(args.get("include_identities", True)) and media_kind != "portrait"
+            )
             media_items = []
             requested_names = _requested_display_names(args)
             requested_queries = _requested_display_queries(args)
@@ -2200,7 +2324,9 @@ async def _fallback_display_tool_ui_specs(
                 if not isinstance(character, dict):
                     continue
                 name = str(character.get("name") or "").strip()
-                role = str(character.get("role") or character.get("description") or "").strip()
+                role = str(
+                    character.get("role") or character.get("description") or ""
+                ).strip()
                 character_name_match = _matches_any_display_text(
                     [name, character.get("aliases")],
                     requested_names,
@@ -2228,7 +2354,11 @@ async def _fallback_display_tool_ui_specs(
                                 "aspectRatio": "3/4",
                             }
                         )
-                identities = character.get("identities") or character.get("identity_images") or []
+                identities = (
+                    character.get("identities")
+                    or character.get("identity_images")
+                    or []
+                )
                 if include_identities:
                     try:
                         identities_resp = _backend_api_get(
@@ -2236,11 +2366,19 @@ async def _fallback_display_tool_ui_specs(
                             token,
                         )
                         for key in ("data", "identities", "items"):
-                            value = identities_resp.get(key) if isinstance(identities_resp, dict) else None
+                            value = (
+                                identities_resp.get(key)
+                                if isinstance(identities_resp, dict)
+                                else None
+                            )
                             if isinstance(value, list):
                                 identities = value
                                 break
-                        data = identities_resp.get("data") if isinstance(identities_resp, dict) else None
+                        data = (
+                            identities_resp.get("data")
+                            if isinstance(identities_resp, dict)
+                            else None
+                        )
                         if isinstance(data, dict):
                             value = data.get("identities")
                             if isinstance(value, list):
@@ -2291,7 +2429,9 @@ async def _fallback_display_tool_ui_specs(
                                 ],
                                 requested_queries,
                             )
-                            identity_match = identity_name_match and identity_query_match
+                            identity_match = (
+                                identity_name_match and identity_query_match
+                            )
                             if not identity_match:
                                 continue
                             media_items.append(
@@ -2303,7 +2443,11 @@ async def _fallback_display_tool_ui_specs(
                                 }
                             )
             limited = _limit_display_items(media_items, args, 12)
-            return [_media_ui_spec("character_showcase", "Image", limited)] if limited else []
+            return (
+                [_media_ui_spec("character_showcase", "Image", limited)]
+                if limited
+                else []
+            )
 
         if tool_name == "ai_anime_get_episode_media":
             episode = int(args.get("episode") or 1)
@@ -2349,18 +2493,30 @@ async def _fallback_display_tool_ui_specs(
                     continue
                 video_url = str(beat.get("video_url") or "").strip()
                 audio_url = str(beat.get("audio_url") or "").strip()
-                frame_url = str(beat.get("frame_url") or beat.get("sketch_url") or "").strip()
+                frame_url = str(
+                    beat.get("frame_url") or beat.get("sketch_url") or ""
+                ).strip()
                 if video_url:
                     video_items.append(
-                        {"src": video_url, "poster": frame_url, "title": f"Beat {beat_number} 视频"}
+                        {
+                            "src": video_url,
+                            "poster": frame_url,
+                            "title": f"Beat {beat_number} 视频",
+                        }
                     )
                 if audio_url:
-                    audio_items.append({"src": audio_url, "title": f"Beat {beat_number} 音频"})
+                    audio_items.append(
+                        {"src": audio_url, "title": f"Beat {beat_number} 音频"}
+                    )
             if media_type == "audio":
                 limited = _limit_display_items(audio_items, args, 20)
-                return [_media_ui_spec("audio_list", "Audio", limited)] if limited else []
+                return (
+                    [_media_ui_spec("audio_list", "Audio", limited)] if limited else []
+                )
             limited = _limit_display_items(video_items, args, 6)
-            return [_media_ui_spec("keyframe_video", "Video", limited)] if limited else []
+            return (
+                [_media_ui_spec("keyframe_video", "Video", limited)] if limited else []
+            )
 
         return []
 
@@ -2418,7 +2574,9 @@ def _trace_history_contents(
     return [str(row["content"] or "") for row in rows]
 
 
-def _replace_trace_messages(conn: sqlite3.Connection, messages: list[dict[str, Any]]) -> None:
+def _replace_trace_messages(
+    conn: sqlite3.Connection, messages: list[dict[str, Any]]
+) -> None:
     conn.execute("DELETE FROM chat_messages WHERE role = 'trace'")
     for message in messages:
         conn.execute(
@@ -2482,7 +2640,10 @@ def _extract_codex_history_trace(item: Any) -> str:
 
 def _load_codex_thread_history(username: str, project: str) -> list[dict[str, Any]]:
     from openai_codex import Codex, CodexConfig
-    from openai_codex.generated.v2_all import AgentMessageThreadItem, UserMessageThreadItem
+    from openai_codex.generated.v2_all import (
+        AgentMessageThreadItem,
+        UserMessageThreadItem,
+    )
 
     thread_id = _get_codex_thread_id(username, project)
     if not thread_id:
@@ -2494,7 +2655,7 @@ def _load_codex_thread_history(username: str, project: str) -> list[dict[str, An
     config = CodexConfig(
         codex_bin=str(codex_bin) if codex_bin is not None else None,
         cwd=str(workspace),
-        env=_build_codex_env(username, project),
+        env=_build_agent_env(username, project),
         config_overrides=_codex_mcp_config_overrides(_ai_anime_mcp_servers()),
     )
 
@@ -2623,7 +2784,9 @@ def list_messages(
                 project,
                 project_dir=project_dir,
             )
-            extracted_media = _extract_media(content, username, project, project_dir=project_dir)
+            extracted_media = _extract_media(
+                content, username, project, project_dir=project_dir
+            )
             merged_media = _merge_media_items(stored_media, extracted_media)
             messages.append(
                 {
@@ -2722,7 +2885,9 @@ def _load_agent_session_state(username: str) -> dict[str, str]:
     if not isinstance(payload, dict):
         return {}
     return {
-        str(key): str(value).strip() for key, value in payload.items() if str(value or "").strip()
+        str(key): str(value).strip()
+        for key, value in payload.items()
+        if str(value or "").strip()
     }
 
 
@@ -2775,30 +2940,6 @@ def _set_codex_thread_id(username: str, project: str, thread_id: str) -> None:
     _set_active_agent_session_id(username, "codex", thread_id)
 
 
-def _load_api_url() -> str:
-    explicit = os.environ.get("AI_ANIME_API_URL", "").strip()
-    if explicit:
-        return explicit.rstrip("/")
-
-    dedicated = os.environ.get("AI_ANIME_API_URL", "").strip()
-    if dedicated:
-        return dedicated.rstrip("/")
-
-    api_port = os.environ.get("AI_ANIME_API_PORT", "").strip()
-    if api_port:
-        host = os.environ.get("AI_ANIME_API_HOST", "127.0.0.1").strip() or "127.0.0.1"
-        if host in {"0.0.0.0", "::"}:
-            host = "127.0.0.1"
-        return f"http://{host}:{api_port}"
-
-    legacy = os.environ.get("AI_ANIME_API_URL", "").strip()
-    if legacy:
-        return legacy.rstrip("/")
-
-    ui_port = os.environ.get("AI_ANIME_UI_PORT", "7870").strip() or "7870"
-    return f"http://127.0.0.1:{ui_port}"
-
-
 PAGE_AGENT_SCOPES = [
     "projects:read",
     "projects:write",
@@ -2837,7 +2978,7 @@ def _project_skill_settings_payload(
     env = {
         "AI_ANIME_USERNAME": username,
         "AI_ANIME_AGENT_SCOPE": "user",
-        "AI_ANIME_API_URL": _load_api_url(),
+        "AI_ANIME_API_URL": load_api_url(),
         "AI_ANIME_AGENT_TOKEN": agent_token,
     }
     if project:
@@ -2845,7 +2986,9 @@ def _project_skill_settings_payload(
     return {"env": env}
 
 
-def _write_user_skill_settings(username: str, project: str, agent_token: str = "") -> None:
+def _write_user_skill_settings(
+    username: str, project: str, agent_token: str = ""
+) -> None:
     workspace = _user_agent_workspace(username)
     claude_dir = workspace / ".claude"
     claude_dir.mkdir(parents=True, exist_ok=True)
@@ -2856,7 +2999,9 @@ def _write_user_skill_settings(username: str, project: str, agent_token: str = "
     )
 
 
-def ensure_user_claude_workspace(username: str, project: str, agent_token: str = "") -> None:
+def ensure_user_claude_workspace(
+    username: str, project: str, agent_token: str = ""
+) -> None:
     workspace = _user_agent_workspace(username)
     claude_dir = workspace / ".claude"
     skills_dir = claude_dir / "skills"
@@ -2866,7 +3011,9 @@ def ensure_user_claude_workspace(username: str, project: str, agent_token: str =
     _sync_project_skills(skills_dir)
 
 
-def ensure_user_codex_workspace(username: str, project: str, agent_token: str = "") -> None:
+def ensure_user_codex_workspace(
+    username: str, project: str, agent_token: str = ""
+) -> None:
     workspace = _user_agent_workspace(username)
     codex_dir = workspace / ".codex"
     skills_dir = codex_dir / "skills"
@@ -2875,34 +3022,15 @@ def ensure_user_codex_workspace(username: str, project: str, agent_token: str = 
     _sync_project_skills(skills_dir)
 
 
-def _build_claude_env(username: str, project: str, agent_token: str = "") -> dict[str, str]:
+def _build_agent_env(
+    username: str, project: str, agent_token: str = ""
+) -> dict[str, str]:
     env = os.environ.copy()
-    env["AI_ANIME_USERNAME"] = username
-    env["AI_ANIME_AGENT_SCOPE"] = "user"
     env["AI_ANIME_USERNAME"] = username
     env["AI_ANIME_AGENT_SCOPE"] = "user"
     if project:
         env["AI_ANIME_PROJECT_ID"] = project
-        env["AI_ANIME_PROJECT_ID"] = project
-    env["AI_ANIME_API_URL"] = _load_api_url()
-    env["AI_ANIME_API_URL"] = _load_api_url()
-    env["AI_ANIME_AGENT_TOKEN"] = agent_token
-    env["AI_ANIME_AGENT_TOKEN"] = agent_token
-    return env
-
-
-def _build_codex_env(username: str, project: str, agent_token: str = "") -> dict[str, str]:
-    env = os.environ.copy()
-    env["AI_ANIME_USERNAME"] = username
-    env["AI_ANIME_AGENT_SCOPE"] = "user"
-    env["AI_ANIME_USERNAME"] = username
-    env["AI_ANIME_AGENT_SCOPE"] = "user"
-    if project:
-        env["AI_ANIME_PROJECT_ID"] = project
-        env["AI_ANIME_PROJECT_ID"] = project
-    env["AI_ANIME_API_URL"] = _load_api_url()
-    env["AI_ANIME_API_URL"] = _load_api_url()
-    env["AI_ANIME_AGENT_TOKEN"] = agent_token
+    env["AI_ANIME_API_URL"] = load_api_url()
     env["AI_ANIME_AGENT_TOKEN"] = agent_token
     return env
 
@@ -2925,7 +3053,9 @@ def _extract_media(
         if parsed.scheme in {"http", "https"} and parsed.path.startswith("/static/"):
             candidate = parsed.path
         if candidate.startswith("/static/"):
-            canonical = _canonical_project_static_media_url(project, media_project_dir, candidate)
+            canonical = _canonical_project_static_media_url(
+                project, media_project_dir, candidate
+            )
             if canonical is None:
                 return
             candidate, path = canonical
@@ -2981,7 +3111,9 @@ def _collect_markdown_image_refs(content: str) -> set[str]:
             continue
         refs.add(raw)
         parsed = urlparse(raw)
-        path = parsed.path if parsed.scheme in {"http", "https"} else raw.split("?", 1)[0]
+        path = (
+            parsed.path if parsed.scheme in {"http", "https"} else raw.split("?", 1)[0]
+        )
         if path:
             refs.add(path)
         static_path = _media_path_from_static_url(raw)
@@ -3019,7 +3151,9 @@ def _normalize_media_items(
             continue
 
         if not candidate and path:
-            canonical = _canonical_project_static_media_url(project, media_project_dir, path)
+            canonical = _canonical_project_static_media_url(
+                project, media_project_dir, path
+            )
             if canonical is None:
                 continue
             candidate, path = canonical
@@ -3028,7 +3162,9 @@ def _normalize_media_items(
         if parsed.scheme in {"http", "https"} and parsed.path.startswith("/static/"):
             candidate = parsed.path
         if candidate.startswith("/static/"):
-            canonical = _canonical_project_static_media_url(project, media_project_dir, candidate)
+            canonical = _canonical_project_static_media_url(
+                project, media_project_dir, candidate
+            )
             if canonical is None:
                 continue
             candidate, path = canonical
@@ -3118,7 +3254,7 @@ def _build_claude_thread(username: str, project: str, agent_token: str):
     client = ClaudeSdkClient(
         cli_path=_claude_cli_path(),
         cwd=workspace,
-        env=_build_claude_env(username, project, agent_token),
+        env=_build_agent_env(username, project, agent_token),
         model=_claude_model(),
     )
     session_id = _get_claude_session_id(username, project)
@@ -3135,11 +3271,15 @@ def _ai_anime_mcp_servers() -> dict[str, dict[str, Any]]:
     }
 
 
-def _codex_mcp_config_overrides(mcp_servers: dict[str, dict[str, Any]]) -> tuple[str, ...]:
+def _codex_mcp_config_overrides(
+    mcp_servers: dict[str, dict[str, Any]],
+) -> tuple[str, ...]:
     overrides: list[str] = []
     for name, server in sorted(mcp_servers.items()):
         if str(server.get("type") or "stdio") != "stdio":
-            raise ValueError(f"unsupported Codex MCP server type for {name}: {server.get('type')}")
+            raise ValueError(
+                f"unsupported Codex MCP server type for {name}: {server.get('type')}"
+            )
         command = str(server.get("command") or "").strip()
         if not command:
             raise ValueError(f"Codex MCP server {name} is missing command")
@@ -3161,7 +3301,7 @@ def _build_codex_thread(username: str, project: str, agent_token: str):
     client = CodexClient(
         codex_bin=_codex_bin_path(),
         cwd=workspace,
-        env=_build_codex_env(username, project, agent_token),
+        env=_build_agent_env(username, project, agent_token),
         model=_codex_model(),
         config_overrides=_codex_mcp_config_overrides(_ai_anime_mcp_servers()),
     )
@@ -3169,7 +3309,9 @@ def _build_codex_thread(username: str, project: str, agent_token: str):
     return client.thread_resume(thread_id) if thread_id else client.thread_start()
 
 
-async def interrupt_chat_turn(username: str, project: str, thread_id: str, turn_id: str) -> bool:
+async def interrupt_chat_turn(
+    username: str, project: str, thread_id: str, turn_id: str
+) -> bool:
     thread_id = str(thread_id or "").strip()
     turn_id = str(turn_id or "").strip()
     backend = _chat_backend()
@@ -3186,7 +3328,9 @@ async def interrupt_chat_turn(username: str, project: str, thread_id: str, turn_
         if not thread_id or not turn_id:
             return False
         try:
-            return await asyncio.to_thread(interrupt_live_codex_turn, thread_id, turn_id)
+            return await asyncio.to_thread(
+                interrupt_live_codex_turn, thread_id, turn_id
+            )
         except Exception as exc:
             if "app-server closed stdout" in str(exc):
                 return True
@@ -3285,11 +3429,10 @@ def _script_creation_model_reply_prompt(prompt: str) -> str | None:
     text = _CHAT_ATTACHMENTS_BLOCK_RE.sub("", prompt).strip()
     if _CONTINUE_PIPELINE_RE.search(text):
         return None
-    if _SCRIPT_CREATION_REQUEST_RE.search(text) or _STYLE_SHORT_DRAMA_REQUEST_RE.search(text):
-        return (
-            f"{_AI_ANIME_SCRIPT_UPLOAD_MODEL_REPLY_INSTRUCTIONS}"
-            f"\n\n用户原话：{text}"
-        )
+    if _SCRIPT_CREATION_REQUEST_RE.search(text) or _STYLE_SHORT_DRAMA_REQUEST_RE.search(
+        text
+    ):
+        return f"{_AI_ANIME_SCRIPT_UPLOAD_MODEL_REPLY_INSTRUCTIONS}\n\n用户原话：{text}"
     return None
 
 
@@ -3311,7 +3454,9 @@ async def _stream_deterministic_assistant_reply(
         project_dir=project_dir,
         project_state_dir=project_state_dir,
     )
-    await _emit_chat_event_best_effort(on_event, {"type": "assistant_delta", "text": content})
+    await _emit_chat_event_best_effort(
+        on_event, {"type": "assistant_delta", "text": content}
+    )
     await _emit_chat_event_best_effort(on_event, {"type": "done", "message": message})
     return message
 
@@ -3368,7 +3513,9 @@ async def _stream_assistant_reply_hermes(
             project,
             project_dir=project_dir,
             project_state_dir=project_state_dir,
-        ) if project else []
+        )
+        if project
+        else []
     )
     previous_trace = (
         _trace_history_contents(
@@ -3376,7 +3523,9 @@ async def _stream_assistant_reply_hermes(
             project,
             project_dir=project_dir,
             project_state_dir=project_state_dir,
-        ) if project else []
+        )
+        if project
+        else []
     )
     assistant_text = ""
     tool_text = ""
@@ -3396,7 +3545,9 @@ async def _stream_assistant_reply_hermes(
         final_text = _strip_replayed_chat_response(
             assistant_text, previous_assistant, prompt
         ).strip()
-        all_tool_ui_specs = _dedupe_tool_ui_specs([*tool_ui_specs, *fallback_tool_ui_specs])
+        all_tool_ui_specs = _dedupe_tool_ui_specs(
+            [*tool_ui_specs, *fallback_tool_ui_specs]
+        )
         all_tool_ui_specs = _filter_tool_ui_specs_for_prompt(prompt, all_tool_ui_specs)
         final_text = _append_tool_ui_specs(final_text, all_tool_ui_specs)
         if not final_text:
@@ -3458,7 +3609,8 @@ async def _stream_assistant_reply_hermes(
                         seen_tool_chat_errors.add(tool_chat_error)
                         assistant_text = _merge_stream_text(
                             assistant_text,
-                            ("\n\n" if assistant_text.strip() else "") + tool_chat_error,
+                            ("\n\n" if assistant_text.strip() else "")
+                            + tool_chat_error,
                         )
                         await _emit_chat_event_best_effort(
                             on_event,
@@ -3485,7 +3637,9 @@ async def _stream_assistant_reply_hermes(
                                     sort_keys=True,
                                     default=str,
                                 )[:1000],
-                                event.raw.get("sessionUpdate") if isinstance(event.raw, dict) else None,
+                                event.raw.get("sessionUpdate")
+                                if isinstance(event.raw, dict)
+                                else None,
                             )
                         else:
                             seen_display_calls.add(display_call_key)
@@ -3507,11 +3661,17 @@ async def _stream_assistant_reply_hermes(
                             )
                 if event.name:
                     current_tool_name = event.name
-                    current_tool_hidden = _is_hidden_chat_tool_event(event.name, event.text)
-                if current_tool_hidden or _is_hidden_chat_tool_event(current_tool_name, event.text):
+                    current_tool_hidden = _is_hidden_chat_tool_event(
+                        event.name, event.text
+                    )
+                if current_tool_hidden or _is_hidden_chat_tool_event(
+                    current_tool_name, event.text
+                ):
                     continue
                 tool_text += str(event.text or "") + "\n"
-                display_tool_text = _strip_replayed_assistant_prefix(tool_text, previous_trace)
+                display_tool_text = _strip_replayed_assistant_prefix(
+                    tool_text, previous_trace
+                )
                 if display_tool_text.strip():
                     await _emit_chat_event_best_effort(
                         on_event,
@@ -3525,7 +3685,9 @@ async def _stream_assistant_reply_hermes(
             if event.type == "complete":
                 if seen_tool_chat_errors and assistant_text.strip():
                     continue
-                assistant_text = _completion_text_or_existing(event.text, assistant_text)
+                assistant_text = _completion_text_or_existing(
+                    event.text, assistant_text
+                )
 
         if not assistant_text.strip():
             assistant_text = "(hermes returned no content)"
@@ -3568,7 +3730,9 @@ async def _stream_assistant_reply_hermes(
             on_event,
             {"type": "assistant_message", "message": result_message},
         )
-        await _emit_chat_event_best_effort(on_event, {"type": "done", "message": result_message})
+        await _emit_chat_event_best_effort(
+            on_event, {"type": "done", "message": result_message}
+        )
         return result_message
     except Exception:
         raise
@@ -3626,7 +3790,9 @@ async def _stream_assistant_reply_claude(
                 thread_id = str(event.thread_id or "").strip() or None
                 if thread_id:
                     _set_claude_session_id(username, project, thread_id)
-                assistant_text = _completion_text_or_existing(event.text, assistant_text)
+                assistant_text = _completion_text_or_existing(
+                    event.text, assistant_text
+                )
 
         assistant_text = assistant_text.strip() or "已执行，但没有返回正文。"
         assistant_text = _normalize_json_render_reply(assistant_text)
@@ -3638,7 +3804,9 @@ async def _stream_assistant_reply_claude(
                 project_dir=project_dir,
                 project_state_dir=project_state_dir,
             )
-        media = _extract_media(assistant_text, username, project, project_dir=project_dir)
+        media = _extract_media(
+            assistant_text, username, project, project_dir=project_dir
+        )
         result_message = add_assistant_message(
             username,
             project,
@@ -3727,7 +3895,9 @@ async def _stream_assistant_reply_codex(
     return result_message
 
 
-async def generate_assistant_reply(username: str, project: str, prompt: str) -> dict[str, Any]:
+async def generate_assistant_reply(
+    username: str, project: str, prompt: str
+) -> dict[str, Any]:
     async def _ignore(_event: dict[str, Any]) -> None:
         return None
 

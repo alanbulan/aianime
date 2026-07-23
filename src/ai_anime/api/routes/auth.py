@@ -18,6 +18,7 @@ from ai_anime.modules.identity_access.public import (
 from ai_anime.shared.runtime_env import cookie_secure as runtime_cookie_secure
 
 router = APIRouter()
+desktop_router = APIRouter()
 
 _COOKIE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60
 
@@ -78,7 +79,7 @@ def _desktop_user_response(username: str) -> JSONResponse:
     return response
 
 
-@router.post("/auth/login")
+@desktop_router.post("/auth/login")
 async def login(payload: DesktopLoginRequest):
     if not _desktop_auth_enabled():
         raise HTTPException(status_code=404, detail="Not Found")
@@ -88,7 +89,7 @@ async def login(payload: DesktopLoginRequest):
     return _desktop_user_response(username)
 
 
-@router.post("/auth/authorize")
+@desktop_router.post("/auth/authorize")
 async def authorize(payload: DesktopAuthorizationRequest):
     if not _desktop_auth_enabled():
         raise HTTPException(status_code=404, detail="Not Found")

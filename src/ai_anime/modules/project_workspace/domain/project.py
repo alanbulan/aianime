@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 
 PROJECT_ROLE_VIEWER = "viewer"
 PROJECT_ROLE_EDITOR = "editor"
@@ -15,6 +16,21 @@ ROLE_ORDER = {
     PROJECT_ROLE_ADMIN: 30,
     PROJECT_ROLE_OWNER: 40,
 }
+
+
+class ProjectLifecycleAction(str, Enum):
+    ARCHIVE = "archive"
+    UNARCHIVE = "unarchive"
+    DELETE = "delete"
+    RESTORE = "restore"
+
+    @property
+    def status(self) -> str:
+        if self is ProjectLifecycleAction.ARCHIVE:
+            return "archived"
+        if self is ProjectLifecycleAction.DELETE:
+            return "deleted"
+        return "active"
 
 
 @dataclass(frozen=True)

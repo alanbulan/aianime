@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
+from ai_anime.modules.project_workspace.application.dto import ProjectSummaryData
 from ai_anime.modules.project_workspace.domain import Principal, ProjectRecord
+
+if TYPE_CHECKING:
+    from ai_anime.modules.project_workspace.application.project_scope import (
+        ProjectContext,
+    )
 
 
 class ProjectRegistry(Protocol):
@@ -66,3 +72,32 @@ class ProjectAccess(Protocol):
         owner_type: str,
         owner_id: str,
     ) -> int: ...
+
+
+class ProjectWorkspaceStorage(Protocol):
+    def initialize(self, project: ProjectRecord, *, username: str) -> None: ...
+
+    def cleanup_uncommitted(self, project: ProjectRecord) -> None: ...
+
+    def load_config(self, ctx: ProjectContext) -> dict: ...
+
+    def save_config(self, ctx: ProjectContext, updates: dict) -> None: ...
+
+    def summarize(
+        self,
+        project: ProjectRecord,
+        *,
+        effective_role: str,
+    ) -> ProjectSummaryData: ...
+
+    def purge_files(self, ctx: ProjectContext) -> None: ...
+
+
+class ProjectAudit(Protocol):
+    async def emit(
+        self,
+        *,
+        action: str,
+        ctx: ProjectContext,
+        metadata: dict,
+    ) -> None: ...

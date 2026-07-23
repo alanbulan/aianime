@@ -11,6 +11,7 @@ from ai_anime.modules.project_workspace.application.errors import (
     ProjectNotFound,
     ProjectUserIdentityUnresolved,
 )
+from ai_anime.modules.project_workspace.application.dto import RequesterIdentity
 from ai_anime.modules.project_workspace.application.ports import (
     ProjectAccess,
     ProjectRegistry,
@@ -81,7 +82,9 @@ def context_from_record(
         owner_username=project.owner_username,
         requester_user_id=requester_user_id,
         requester_username=requester_username,
-        requester_principals=tuple((principal.type, principal.id) for principal in principals),
+        requester_principals=tuple(
+            (principal.type, principal.id) for principal in principals
+        ),
         effective_role=role,
         home_node_id=project.home_node_id,
         output_dir=Path(project.output_dir),
@@ -102,12 +105,10 @@ class ProjectScopeResolver:
         self._access = access
         self._worker_id_provider = worker_id_provider
 
-    async def user_id_from_user(self, user: dict) -> str:
-        user_id = str(user.get("user_id") or user.get("id") or "").strip()
-        if user_id:
-            return user_id
-        username = str(user.get("username") or "").strip()
-        resolved = await self._registry.resolve_user_id_by_username(username)
+    async def user_id_from_requester(self, requester: RequesterIdentity) -> str:
+        if requester.user_id:
+            return requester.user_id
+        resolved = await self._registry.resolve_user_id_by_username(requester.username)
         if not resolved:
             raise ProjectUserIdentityUnresolved
         return resolved
@@ -115,16 +116,17 @@ class ProjectScopeResolver:
     async def resolve(
         self,
         *,
-        user: dict,
+        requester: RequesterIdentity,
         project_id: str | None = None,
         project_name: str | None = None,
         required_role: str = "viewer",
     ) -> ProjectContext:
-        requester_username = str(user.get("username") or "").strip()
-        requester_user_id = await self.user_id_from_user(user)
+        requester_username = requester.username
+        requester_user_id = await self.user_id_from_requester(requester)
         if not requester_username:
             requester_username = (
-                await self._registry.resolve_username_by_user_id(requester_user_id) or ""
+                await self._registry.resolve_username_by_user_id(requester_user_id)
+                or ""
             )
         principals = await self._access.resolve_requester_principals(requester_user_id)
 

@@ -1,6 +1,8 @@
 import pytest
 
-from ai_anime.ports.local.project import AllowAllProjectAccess
+from ai_anime.modules.project_workspace.infrastructure.local_registry import (
+    AllowAllProjectAccess,
+)
 from ai_anime.modules.project_workspace.public import Principal, ProjectRecord
 
 

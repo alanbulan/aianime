@@ -68,15 +68,20 @@ def _client(monkeypatch, tmp_path):
         )
 
     monkeypatch.setattr(generation, "resolve_project_scope", fake_resolve_project_scope)
-    monkeypatch.setattr(generation, "get_state_dir", lambda username, project: str(tmp_path / "state"))
     monkeypatch.setattr(generation, "load_project_config", lambda username, project: {})
     monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
     monkeypatch.setattr(
         generation, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
     )
     monkeypatch.setattr(generation, "_build_character_map", fake_character_map)
-    monkeypatch.setattr(generation, "_runtime_prop_menu_with_global_props", fake_prop_menu)
-    monkeypatch.setattr(generation, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
+    monkeypatch.setattr(
+        generation, "_runtime_prop_menu_with_global_props", fake_prop_menu
+    )
+    monkeypatch.setattr(
+        generation,
+        "get_task_backend",
+        lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
+    )
 
     app = FastAPI()
     app.include_router(generation.router, prefix="/api/v1")

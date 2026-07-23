@@ -49,11 +49,11 @@ async def _resolve_scene_migration_dirs(
     output_dir: str,
 ) -> tuple[Path, Path, str]:
     if project_id:
+        from ai_anime.modules.project_workspace.public import find_project_record
         from ai_anime.ports.registry import ensure_bootstrap
-        from ai_anime.ports import get_project_registry
 
         ensure_bootstrap()
-        record = await get_project_registry().get_project(project_id)
+        record = await find_project_record(project_id)
         if record is None:
             raise typer.BadParameter(f"project-id not found: {project_id}")
         return (
@@ -269,7 +269,9 @@ def cognee_plan(
 def cognee_search(
     project: str = typer.Option(..., "--project", "-p", help="项目名称"),
     query: str = typer.Option(..., "--query", "-q", help="查询内容"),
-    mode: str = typer.Option("graph", "--mode", "-m", help="查询模式: graph, rag, chunks"),
+    mode: str = typer.Option(
+        "graph", "--mode", "-m", help="查询模式: graph, rag, chunks"
+    ),
 ):
     """使用 Cognee 进行语义检索。"""
     _ensure_nest_asyncio()
@@ -293,7 +295,9 @@ def cognee_search(
 def generate_script(
     project: str = typer.Option(..., "--project", "-p", help="项目名称"),
     episode: int = typer.Option(..., "--episode", "-e", help="要生成的集数"),
-    target_duration: float = typer.Option(60.0, "--duration", "-d", help="目标视频时长(秒)"),
+    target_duration: float = typer.Option(
+        60.0, "--duration", "-d", help="目标视频时长(秒)"
+    ),
     output_file: Optional[str] = typer.Option(
         None, "--output", "-o", help="已废弃：脚本只写入 SQLite"
     ),
@@ -315,7 +319,9 @@ def generate_script(
                 return None
 
             workflow = create_script_writing_workflow(store)
-            return await workflow.run(episode_num=episode, target_duration=target_duration)
+            return await workflow.run(
+                episode_num=episode, target_duration=target_duration
+            )
         finally:
             await store.close()
 
@@ -329,7 +335,9 @@ def generate_script(
         raise typer.Exit(1)
 
     if output_file:
-        console.print("[yellow]--output 已废弃：2.0 脚本不再导出 epXXX_script.json[/yellow]")
+        console.print(
+            "[yellow]--output 已废弃：2.0 脚本不再导出 epXXX_script.json[/yellow]"
+        )
     console.print(
         f"[green]脚本已写入 SQLite/Cognee: EP{episode}, beats={len(script.beats)}[/green]"
     )
@@ -375,10 +383,14 @@ def generate(
             scene_assets = []
 
             for beat in script.beats:
-                image_path = os.path.join(images_dir, f"beat_{beat.beat_number:02d}.png")
+                image_path = os.path.join(
+                    images_dir, f"beat_{beat.beat_number:02d}.png"
+                )
                 audio_path = os.path.join(audio_dir, f"beat_{beat.beat_number:02d}.mp3")
 
-                await image_gen.generate(prompt=beat.visual_description, output_path=image_path)
+                await image_gen.generate(
+                    prompt=beat.visual_description, output_path=image_path
+                )
                 tts_result = await tts_gen.generate(
                     text=beat.narration_segment, output_path=audio_path
                 )
@@ -401,7 +413,9 @@ def generate(
 
             video_composer = create_video_composer()
             episode_title = normalize_video_title(episode_node.title)
-            output_path = os.path.join(dirs["videos"], f"ep{episode:03d}_{episode_title}.mp4")
+            output_path = os.path.join(
+                dirs["videos"], f"ep{episode:03d}_{episode_title}.mp4"
+            )
             result = await video_composer.compose_episode(
                 scenes=scene_assets,
                 output_path=output_path,
@@ -471,9 +485,13 @@ def migrate_scene_names_cmd(
     user: str = typer.Option("", "--user", help="项目所属用户，例如 admin"),
     project: str = typer.Option("", "--project", "-p", help="项目名，例如 tayuta"),
     state_dir: str = typer.Option("", "--state-dir", help="data.db 所在目录"),
-    output_dir: str = typer.Option("", "--output-dir", help="assets/scenes 所在项目目录"),
+    output_dir: str = typer.Option(
+        "", "--output-dir", help="assets/scenes 所在项目目录"
+    ),
     apply: bool = typer.Option(False, "--apply", help="实际执行迁移；默认只 dry-run"),
-    yes: bool = typer.Option(False, "--yes", help="确认执行 apply；必须与 --apply 同时使用"),
+    yes: bool = typer.Option(
+        False, "--yes", help="确认执行 apply；必须与 --apply 同时使用"
+    ),
 ):
     """迁移旧项目中混入时间词的场景名。默认 dry-run，不写入。"""
     from ai_anime.cognee.scene_name_migration import migrate_scene_names

@@ -21,12 +21,13 @@ LEGACY_REVERSE_API_IMPORT_MAX = {
 
 LEGACY_ROUTE_IMPORT_MAX = {
     ("api/routes/freezone.py", "ai_anime.api.routes.generation"): 3,
-    ("api/routes/projects.py", "ai_anime.api.routes._project_audit"): 1,
 }
 
 
 def _python_files(root: Path) -> list[Path]:
-    return sorted(path for path in root.rglob("*.py") if "__pycache__" not in path.parts)
+    return sorted(
+        path for path in root.rglob("*.py") if "__pycache__" not in path.parts
+    )
 
 
 def _imports(path: Path) -> list[str]:
@@ -118,7 +119,9 @@ def test_new_backend_modules_follow_layer_dependencies() -> None:
                     "cognee",
                     "sqlalchemy",
                 }:
-                    failures.append(f"{relative}: domain imports infrastructure package {imported}")
+                    failures.append(
+                        f"{relative}: domain imports infrastructure package {imported}"
+                    )
                 continue
 
             target_parts = imported[len(target_prefix) :].split(".")
@@ -126,16 +129,22 @@ def test_new_backend_modules_follow_layer_dependencies() -> None:
             target_layer = target_parts[1] if len(target_parts) > 1 else ""
             if target_context != context:
                 public_module = f"ai_anime.modules.{target_context}.public"
-                if imported != public_module and not imported.startswith(f"{public_module}."):
+                if imported != public_module and not imported.startswith(
+                    f"{public_module}."
+                ):
                     failures.append(
                         f"{relative}: cross-context import must use {public_module}: {imported}"
                     )
                 continue
 
             if layer == "domain" and target_layer in {"application", "infrastructure"}:
-                failures.append(f"{relative}: domain depends on {target_layer}: {imported}")
+                failures.append(
+                    f"{relative}: domain depends on {target_layer}: {imported}"
+                )
             elif layer == "application" and target_layer == "infrastructure":
-                failures.append(f"{relative}: application depends on infrastructure: {imported}")
+                failures.append(
+                    f"{relative}: application depends on infrastructure: {imported}"
+                )
 
     assert not failures, "\n".join(failures)
 
@@ -152,9 +161,7 @@ def test_api_package_does_not_eagerly_assemble_routes() -> None:
 
 
 def test_lifespan_uses_the_application_container() -> None:
-    lifespan_source = (PACKAGE_ROOT / "api" / "lifespan.py").read_text(
-        encoding="utf-8"
-    )
+    lifespan_source = (PACKAGE_ROOT / "api" / "lifespan.py").read_text(encoding="utf-8")
 
     assert "ai_anime.bootstrap" in lifespan_source
     assert "ai_anime.ports.registry" not in lifespan_source
@@ -166,7 +173,10 @@ def test_project_workspace_core_does_not_depend_on_fastapi() -> None:
     failures = [
         _relative(path)
         for path in paths
-        if any(imported == "fastapi" or imported.startswith("fastapi.") for imported in _imports(path))
+        if any(
+            imported == "fastapi" or imported.startswith("fastapi.")
+            for imported in _imports(path)
+        )
     ]
     assert not failures
 
@@ -188,6 +198,7 @@ def test_project_workspace_callers_use_the_public_api() -> None:
 
     assert not (PACKAGE_ROOT / "project_context.py").exists()
     assert not (PACKAGE_ROOT / "ports" / "project.py").exists()
+    assert not (PACKAGE_ROOT / "ports" / "local" / "project.py").exists()
     assert not failures, "\n".join(failures)
 
 

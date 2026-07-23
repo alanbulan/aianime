@@ -26,7 +26,9 @@ def _client(monkeypatch, tmp_path, config: dict | None = None):
         is_home_node=True,
     )
 
-    async def fake_resolve_project(project: str, user: dict, required_role: str = "editor"):
+    async def fake_resolve_project(
+        project: str, user: dict, required_role: str = "editor"
+    ):
         return SimpleNamespace(
             ctx=None,
             username="alice",
@@ -37,7 +39,9 @@ def _client(monkeypatch, tmp_path, config: dict | None = None):
             runtime_dir=str(tmp_path / "_runtime"),
         )
 
-    def fake_save_project_config(username: str, project: str, config: dict | None = None, **kwargs):
+    def fake_save_project_config(
+        username: str, project: str, config: dict | None = None, **kwargs
+    ):
         assert username == "alice"
         assert project == "demo"
         updates = dict(config or {})
@@ -50,11 +54,8 @@ def _client(monkeypatch, tmp_path, config: dict | None = None):
     async def fake_store_for_context(*_args, **_kwargs):
         return await generation.make_sqlite_store("alice", "demo")
 
-    monkeypatch.setattr(generation, "make_sqlite_store_for_context", fake_store_for_context)
     monkeypatch.setattr(
-        generation,
-        "get_state_dir",
-        lambda username, project: str(tmp_path / "_state"),
+        generation, "make_sqlite_store_for_context", fake_store_for_context
     )
     monkeypatch.setattr(
         generation,
@@ -63,8 +64,12 @@ def _client(monkeypatch, tmp_path, config: dict | None = None):
             f"/static/projects/{getattr(ctx, 'project_id', 'proj_demo')}/{rel}"
         ),
     )
-    monkeypatch.setattr(generation, "load_project_config", lambda username, project: current_config)
-    monkeypatch.setattr(generation, "save_project_config", fake_save_project_config, raising=False)
+    monkeypatch.setattr(
+        generation, "load_project_config", lambda username, project: current_config
+    )
+    monkeypatch.setattr(
+        generation, "save_project_config", fake_save_project_config, raising=False
+    )
 
     app = FastAPI()
     app.include_router(generation.router, prefix="/api/v1")
@@ -74,7 +79,13 @@ def _client(monkeypatch, tmp_path, config: dict | None = None):
 
 
 def _selected_background_path(project_dir):
-    return project_dir / "director_control_frames" / "ep001" / "beat_04" / "selected_background.png"
+    return (
+        project_dir
+        / "director_control_frames"
+        / "ep001"
+        / "beat_04"
+        / "selected_background.png"
+    )
 
 
 @pytest.mark.m09
@@ -103,7 +114,9 @@ def test_render_settings_returns_current_selection_and_options(monkeypatch, tmp_
 
 
 @pytest.mark.m09
-def test_render_settings_maps_legacy_selection_to_visible_newapi_option(monkeypatch, tmp_path):
+def test_render_settings_maps_legacy_selection_to_visible_newapi_option(
+    monkeypatch, tmp_path
+):
     client, _saved = _client(
         monkeypatch,
         tmp_path,
@@ -178,7 +191,9 @@ def test_sketch_settings_returns_current_selection_and_options(monkeypatch, tmp_
     }
 
 
-def test_sketch_settings_maps_legacy_selection_to_visible_newapi_option(monkeypatch, tmp_path):
+def test_sketch_settings_maps_legacy_selection_to_visible_newapi_option(
+    monkeypatch, tmp_path
+):
     client, _saved = _client(
         monkeypatch,
         tmp_path,
@@ -227,7 +242,9 @@ def test_sketch_settings_patch_rejects_unknown_selection(monkeypatch, tmp_path):
 def test_director_control_frame_status_reports_missing_and_ready(monkeypatch, tmp_path):
     client, _saved = _client(monkeypatch, tmp_path)
 
-    missing_response = client.get("/api/v1/projects/demo/episodes/1/beats/4/director-control-frame")
+    missing_response = client.get(
+        "/api/v1/projects/demo/episodes/1/beats/4/director-control-frame"
+    )
 
     assert missing_response.status_code == 200
     missing_body = missing_response.json()
@@ -235,11 +252,15 @@ def test_director_control_frame_status_reports_missing_and_ready(monkeypatch, tm
     assert missing_body["data"]["ready"] is False
     assert missing_body["data"]["scope"] == "director_control_to_sketch:ep001:beat_04"
 
-    control_frame = tmp_path / "director_control_frames" / "ep001" / "beat_04" / "combined.png"
+    control_frame = (
+        tmp_path / "director_control_frames" / "ep001" / "beat_04" / "combined.png"
+    )
     control_frame.parent.mkdir(parents=True)
     control_frame.write_bytes(b"fake png")
 
-    ready_response = client.get("/api/v1/projects/demo/episodes/1/beats/4/director-control-frame")
+    ready_response = client.get(
+        "/api/v1/projects/demo/episodes/1/beats/4/director-control-frame"
+    )
 
     assert ready_response.status_code == 200
     ready_body = ready_response.json()
@@ -252,7 +273,9 @@ def test_director_control_frame_status_reports_missing_and_ready(monkeypatch, tm
 
 def test_director_control_to_sketch_starts_existing_actor(monkeypatch, tmp_path):
     client, _saved = _client(monkeypatch, tmp_path)
-    control_frame = tmp_path / "director_control_frames" / "ep001" / "beat_04" / "combined.png"
+    control_frame = (
+        tmp_path / "director_control_frames" / "ep001" / "beat_04" / "combined.png"
+    )
     control_frame.parent.mkdir(parents=True)
     control_frame.write_bytes(b"fake png")
     calls: list[dict] = []
@@ -269,7 +292,9 @@ def test_director_control_to_sketch_starts_existing_actor(monkeypatch, tmp_path)
         raising=False,
     )
 
-    response = client.post("/api/v1/projects/demo/episodes/1/beats/4/director-control-to-sketch")
+    response = client.post(
+        "/api/v1/projects/demo/episodes/1/beats/4/director-control-to-sketch"
+    )
 
     assert response.status_code == 200
     body = response.json()
@@ -289,10 +314,14 @@ def test_director_control_to_sketch_starts_existing_actor(monkeypatch, tmp_path)
     ]
 
 
-def test_director_control_to_sketch_rejects_missing_control_frame(monkeypatch, tmp_path):
+def test_director_control_to_sketch_rejects_missing_control_frame(
+    monkeypatch, tmp_path
+):
     client, _saved = _client(monkeypatch, tmp_path)
 
-    response = client.post("/api/v1/projects/demo/episodes/1/beats/4/director-control-to-sketch")
+    response = client.post(
+        "/api/v1/projects/demo/episodes/1/beats/4/director-control-to-sketch"
+    )
 
     assert response.status_code == 200
     body = response.json()
@@ -387,7 +416,9 @@ def test_beat_viewer_manifests_include_context_and_destinations(monkeypatch, tmp
     async def fake_make_sqlite_store(username: str, project: str):
         return store
 
-    async def fake_resolve_project(project: str, user: dict, required_role: str = "editor"):
+    async def fake_resolve_project(
+        project: str, user: dict, required_role: str = "editor"
+    ):
         ctx = SimpleNamespace(project_id="proj_demo", output_dir=tmp_path)
         return SimpleNamespace(
             ctx=ctx,
@@ -429,7 +460,9 @@ def test_beat_viewer_manifests_include_context_and_destinations(monkeypatch, tmp
         source="single_face_master",
     )
 
-    pano_response = client.get("/api/v1/projects/demo/episodes/1/beats/4/pano-background/manifest")
+    pano_response = client.get(
+        "/api/v1/projects/demo/episodes/1/beats/4/pano-background/manifest"
+    )
     assert pano_response.status_code == 200
     pano_body = pano_response.json()
     assert pano_body["ok"] is True
@@ -437,14 +470,21 @@ def test_beat_viewer_manifests_include_context_and_destinations(monkeypatch, tmp
     assert pano["viewer_kind"] == "pano360"
     assert pano["mode"] == "beat"
     assert (
-        pano["source"]["url"] == "/static/projects/proj_demo/director_worlds/地下室/v1/pano_360.png"
+        pano["source"]["url"]
+        == "/static/projects/proj_demo/director_worlds/地下室/v1/pano_360.png"
     )
     assert pano["beat_context"]["episode"] == 1
     assert pano["beat_context"]["beat"] == 4
-    assert pano["allowed_destinations"] == ["view", "download", "beat_selected_background"]
+    assert pano["allowed_destinations"] == [
+        "view",
+        "download",
+        "beat_selected_background",
+    ]
     assert "pano_viewer_url" not in pano
 
-    stage_response = client.get("/api/v1/projects/demo/episodes/1/beats/4/director-stage/manifest")
+    stage_response = client.get(
+        "/api/v1/projects/demo/episodes/1/beats/4/director-stage/manifest"
+    )
     assert stage_response.status_code == 200
     stage_body = stage_response.json()
     assert stage_body["ok"] is True
@@ -462,9 +502,13 @@ def test_beat_viewer_manifests_include_context_and_destinations(monkeypatch, tmp
     assert stage["source"]["splat_format"] == "sog"
     assert stage["source"]["source_kind"] == "master"
     assert stage["source_orientation_mode"] == "supersplat_auto"
-    assert [
-        item["kind"] for item in stage["source_options"]
-    ] == ["active", "master", "reverse", "pano", "pano"]
+    assert [item["kind"] for item in stage["source_options"]] == [
+        "active",
+        "master",
+        "reverse",
+        "pano",
+        "pano",
+    ]
     assert stage["source_options"][0]["current"] is True
     assert stage["source_options"][2]["ply_url"].endswith("/reverse_sharp.sog")
     assert stage["source_options"][2]["splat_url"].endswith("/reverse_sharp.sog")
@@ -481,7 +525,11 @@ def test_beat_viewer_manifests_include_context_and_destinations(monkeypatch, tmp
     assert stage["palette"]["actors"] == [
         {"identity_id": "青年_default", "label": "青年_default", "color": "#ff00ff"},
         {"identity_id": "老板_default", "label": "老板_default", "color": "#00ffff"},
-        {"identity_id": "配色额外身份_default", "label": "配色额外身份_default", "color": "#ccff00"},
+        {
+            "identity_id": "配色额外身份_default",
+            "label": "配色额外身份_default",
+            "color": "#ccff00",
+        },
     ]
     assert stage["palette"]["props"] == [
         {"prop_id": "账单", "label": "账单", "color": "#0d47a1"},
@@ -535,7 +583,9 @@ def test_director_stage_overlay_loads_inherits_and_saves(monkeypatch, tmp_path):
     async def fake_make_sqlite_store(username: str, project: str):
         return store
 
-    async def fake_resolve_project(project: str, user: dict, required_role: str = "editor"):
+    async def fake_resolve_project(
+        project: str, user: dict, required_role: str = "editor"
+    ):
         return SimpleNamespace(
             username="alice",
             project_name="demo",
@@ -555,12 +605,20 @@ def test_director_stage_overlay_loads_inherits_and_saves(monkeypatch, tmp_path):
         "episode": 1,
         "beat": 3,
         "frame_aspect": "16:9",
-        "snapshot": {"schemaVersion": 1, "savedAt": 1, "actors": [], "props": [], "stagings": []},
+        "snapshot": {
+            "schemaVersion": 1,
+            "savedAt": 1,
+            "actors": [],
+            "props": [],
+            "stagings": [],
+        },
         "command_log": [{"kind": "place_actor"}],
     }
     save_beat_blocking(tmp_path, 1, 3, inherited_payload)
 
-    response = client.get("/api/v1/projects/demo/episodes/1/beats/4/director-stage/overlay")
+    response = client.get(
+        "/api/v1/projects/demo/episodes/1/beats/4/director-stage/overlay"
+    )
 
     assert response.status_code == 200
     body = response.json()
@@ -577,8 +635,15 @@ def test_director_stage_overlay_loads_inherits_and_saves(monkeypatch, tmp_path):
             "snapshot": {
                 "schemaVersion": 1,
                 "savedAt": 2,
-                "world": {"activeSourceId": "legacy:pano:pano360:/static/demo/pano_360.png"},
-                "camera": {"azim": 1, "elev": 2, "distance": 3, "focalPoint": [0, 0, 0]},
+                "world": {
+                    "activeSourceId": "legacy:pano:pano360:/static/demo/pano_360.png"
+                },
+                "camera": {
+                    "azim": 1,
+                    "elev": 2,
+                    "distance": 3,
+                    "focalPoint": [0, 0, 0],
+                },
                 "actors": [{"label": "陆辰", "color": "#38bdf8"}],
                 "props": [{"label": "手机", "color": "#a78bfa"}],
                 "stagings": [],
@@ -602,9 +667,17 @@ def test_director_stage_overlay_loads_inherits_and_saves(monkeypatch, tmp_path):
                 "camera": {"mode": "pano", "frame_aspect": "2:3", "state": {"azim": 1}},
                 "layer": {"source_id": "legacy:pano:pano360:/static/demo/pano_360.png"},
             },
-            "actors": [{"identity_id": "陆辰_default", "name": "陆辰", "marker_color": "#38bdf8"}],
+            "actors": [
+                {
+                    "identity_id": "陆辰_default",
+                    "name": "陆辰",
+                    "marker_color": "#38bdf8",
+                }
+            ],
             "props": [{"prop_id": "手机", "name": "手机", "type": "prop_hero"}],
-            "stagings": [{"prop_id": "纸箱堆", "name": "纸箱堆", "type": "prop_staging"}],
+            "stagings": [
+                {"prop_id": "纸箱堆", "name": "纸箱堆", "type": "prop_staging"}
+            ],
             "command_log": [{"kind": "save_overlay"}],
             "deleted_keys": ["prop:账单"],
         },
@@ -617,10 +690,19 @@ def test_director_stage_overlay_loads_inherits_and_saves(monkeypatch, tmp_path):
     assert saved["data"]["path"].endswith("/director_blockings/ep001/beat_04.json")
     assert saved["data"]["overlay"]["beat"] == 4
     assert saved["data"]["overlay"]["frame_aspect"] == "2:3"
-    assert saved["data"]["overlay"]["source"]["source_id"] == "legacy:pano:pano360:/static/demo/pano_360.png"
+    assert (
+        saved["data"]["overlay"]["source"]["source_id"]
+        == "legacy:pano:pano360:/static/demo/pano_360.png"
+    )
     assert saved["data"]["overlay"]["source"]["source_type"] == "pano360"
-    assert saved["data"]["overlay"]["frame_meta"]["source"]["source_id"] == "legacy:pano:pano360:/static/demo/pano_360.png"
-    assert saved["data"]["overlay"]["snapshot"]["world"]["activeSourceId"] == "legacy:pano:pano360:/static/demo/pano_360.png"
+    assert (
+        saved["data"]["overlay"]["frame_meta"]["source"]["source_id"]
+        == "legacy:pano:pano360:/static/demo/pano_360.png"
+    )
+    assert (
+        saved["data"]["overlay"]["snapshot"]["world"]["activeSourceId"]
+        == "legacy:pano:pano360:/static/demo/pano_360.png"
+    )
     assert saved["data"]["overlay"]["actors"] == [
         {"identity_id": "陆辰_default", "name": "陆辰", "marker_color": "#38bdf8"}
     ]
@@ -631,12 +713,19 @@ def test_director_stage_overlay_loads_inherits_and_saves(monkeypatch, tmp_path):
     assert saved["data"]["overlay"]["stagings"] == [
         {"prop_id": "纸箱堆", "name": "纸箱堆", "type": "prop_staging"}
     ]
-    assert saved["data"]["overlay"]["beat_context"]["detected_identities"] == ["陆辰_default"]
-    assert saved["data"]["overlay"]["beat_context"]["detected_props"] == ["账单", "手机"]
+    assert saved["data"]["overlay"]["beat_context"]["detected_identities"] == [
+        "陆辰_default"
+    ]
+    assert saved["data"]["overlay"]["beat_context"]["detected_props"] == [
+        "账单",
+        "手机",
+    ]
     assert saved["data"]["overlay"]["deleted_keys"] == ["prop:账单"]
     assert store.updates[-1]["detected_props"] == ["账单", "手机"]
 
-    current_response = client.get("/api/v1/projects/demo/episodes/1/beats/4/director-stage/overlay")
+    current_response = client.get(
+        "/api/v1/projects/demo/episodes/1/beats/4/director-stage/overlay"
+    )
     assert current_response.json()["data"]["status"] == "current"
     assert current_response.json()["data"]["overlay"]["beat"] == 4
     assert (
@@ -645,7 +734,9 @@ def test_director_stage_overlay_loads_inherits_and_saves(monkeypatch, tmp_path):
     )
 
 
-def test_director_stage_control_frame_export_writes_images_and_meta(monkeypatch, tmp_path):
+def test_director_stage_control_frame_export_writes_images_and_meta(
+    monkeypatch, tmp_path
+):
     client, _saved = _client(monkeypatch, tmp_path)
     store = _FakeBeatStore(
         [
@@ -661,7 +752,9 @@ def test_director_stage_control_frame_export_writes_images_and_meta(monkeypatch,
     async def fake_make_sqlite_store(username: str, project: str):
         return store
 
-    async def fake_resolve_project(project: str, user: dict, required_role: str = "editor"):
+    async def fake_resolve_project(
+        project: str, user: dict, required_role: str = "editor"
+    ):
         return SimpleNamespace(
             username="alice",
             project_name="demo",
@@ -677,7 +770,9 @@ def test_director_stage_control_frame_export_writes_images_and_meta(monkeypatch,
     png = BytesIO()
     Image.new("RGB", (2, 2), color=(255, 255, 255)).save(png, format="PNG")
     png_bytes = png.getvalue()
-    png_data_url = "data:image/png;base64," + base64.b64encode(png_bytes).decode("ascii")
+    png_data_url = "data:image/png;base64," + base64.b64encode(png_bytes).decode(
+        "ascii"
+    )
     response = client.post(
         "/api/v1/projects/demo/episodes/1/beats/4/director-stage/control-frame",
         json={
@@ -729,7 +824,9 @@ def test_director_stage_control_frame_export_writes_images_and_meta(monkeypatch,
             },
             "actors": [{"identity_id": "陆辰_default", "name": "陆辰"}],
             "props": [{"prop_id": "账单", "name": "账单", "type": "prop_hero"}],
-            "stagings": [{"prop_id": "纸箱堆", "name": "纸箱堆", "type": "prop_staging"}],
+            "stagings": [
+                {"prop_id": "纸箱堆", "name": "纸箱堆", "type": "prop_staging"}
+            ],
         },
     )
 
@@ -771,11 +868,18 @@ def test_director_stage_control_frame_export_writes_images_and_meta(monkeypatch,
         {"prop_id": "账单", "name": "账单", "type": "prop_hero"},
         {"prop_id": "纸箱堆", "name": "纸箱堆", "type": "prop_staging"},
     ]
-    assert meta["stagings"] == [{"prop_id": "纸箱堆", "name": "纸箱堆", "type": "prop_staging"}]
-    assert meta["paths"]["combined"] == "director_control_frames/ep001/beat_04/combined.png"
+    assert meta["stagings"] == [
+        {"prop_id": "纸箱堆", "name": "纸箱堆", "type": "prop_staging"}
+    ]
+    assert (
+        meta["paths"]["combined"]
+        == "director_control_frames/ep001/beat_04/combined.png"
+    )
 
 
-def test_director_stage_control_frame_export_requires_complete_bundle(monkeypatch, tmp_path):
+def test_director_stage_control_frame_export_requires_complete_bundle(
+    monkeypatch, tmp_path
+):
     client, _saved = _client(monkeypatch, tmp_path)
     store = _FakeBeatStore(
         [
@@ -789,7 +893,9 @@ def test_director_stage_control_frame_export_requires_complete_bundle(monkeypatc
     async def fake_make_sqlite_store(username: str, project: str):
         return store
 
-    async def fake_resolve_project(project: str, user: dict, required_role: str = "editor"):
+    async def fake_resolve_project(
+        project: str, user: dict, required_role: str = "editor"
+    ):
         return SimpleNamespace(
             username="alice",
             project_name="demo",
@@ -804,7 +910,9 @@ def test_director_stage_control_frame_export_requires_complete_bundle(monkeypatc
 
     png = BytesIO()
     Image.new("RGB", (2, 2), color=(255, 255, 255)).save(png, format="PNG")
-    png_data_url = "data:image/png;base64," + base64.b64encode(png.getvalue()).decode("ascii")
+    png_data_url = "data:image/png;base64," + base64.b64encode(png.getvalue()).decode(
+        "ascii"
+    )
 
     response = client.post(
         "/api/v1/projects/demo/episodes/1/beats/4/director-stage/control-frame",
@@ -823,7 +931,10 @@ def test_beat_background_anchor_lists_and_snapshots_master(monkeypatch, tmp_path
     client, _saved = _client(monkeypatch, tmp_path)
     store = _FakeBeatStore(
         [
-            {"beat_number": 4, "scene_ref": {"scene_id": "地下室", "render_anchor_id": "master"}},
+            {
+                "beat_number": 4,
+                "scene_ref": {"scene_id": "地下室", "render_anchor_id": "master"},
+            },
         ]
     )
 
@@ -844,7 +955,9 @@ def test_beat_background_anchor_lists_and_snapshots_master(monkeypatch, tmp_path
     body = response.json()
     assert body["ok"] is True
     assert body["data"]["current_anchor"] == "master"
-    master_anchor = [item for item in body["data"]["anchors"] if item["id"] == "master"][0]
+    master_anchor = [
+        item for item in body["data"]["anchors"] if item["id"] == "master"
+    ][0]
     assert master_anchor["exists"] is True
 
     response = client.patch(
@@ -859,12 +972,18 @@ def test_beat_background_anchor_lists_and_snapshots_master(monkeypatch, tmp_path
     assert body["data"]["current_anchor"] == "master"
     assert body["data"]["current_source"] == "master"
     assert body["data"]["current_reference"]["label"] == "master"
-    assert body["data"]["current_reference"]["rel_path"] == "assets/scenes/地下室/master.png"
+    assert (
+        body["data"]["current_reference"]["rel_path"]
+        == "assets/scenes/地下室/master.png"
+    )
     assert body["data"]["current_reference"]["url"].startswith(
         "/static/projects/proj_demo/assets/scenes/"
     )
     assert body["data"]["display_reference"]["id"] == "master"
-    assert body["data"]["display_reference"]["rel_path"] == "assets/scenes/地下室/master.png"
+    assert (
+        body["data"]["display_reference"]["rel_path"]
+        == "assets/scenes/地下室/master.png"
+    )
     assert body["data"]["render_input"]["id"] == "selected_background"
     assert (
         body["data"]["render_input"]["rel_path"]
@@ -916,13 +1035,18 @@ def test_beat_background_anchor_infers_legacy_selected_source(monkeypatch, tmp_p
     assert body["data"]["current_anchor"] == "master"
     assert body["data"]["current_source"] == "master"
     assert body["data"]["current_reference"]["label"] == "master"
-    assert body["data"]["current_reference"]["rel_path"] == "assets/scenes/地下室/master.png"
+    assert (
+        body["data"]["current_reference"]["rel_path"]
+        == "assets/scenes/地下室/master.png"
+    )
     assert body["data"]["current_reference"]["url"].startswith(
         "/static/projects/proj_demo/assets/scenes/"
     )
     assert body["data"]["display_reference"]["id"] == "master"
     assert body["data"]["render_input"]["id"] == "selected_background"
-    master_anchor = [item for item in body["data"]["anchors"] if item["id"] == "master"][0]
+    master_anchor = [
+        item for item in body["data"]["anchors"] if item["id"] == "master"
+    ][0]
     external_anchor = [
         item for item in body["data"]["anchors"] if item["id"] == "selected_background"
     ][0]
@@ -930,11 +1054,16 @@ def test_beat_background_anchor_infers_legacy_selected_source(monkeypatch, tmp_p
     assert external_anchor["current"] is False
 
 
-def test_beat_background_anchor_upload_writes_selected_background(monkeypatch, tmp_path):
+def test_beat_background_anchor_upload_writes_selected_background(
+    monkeypatch, tmp_path
+):
     client, _saved = _client(monkeypatch, tmp_path)
     store = _FakeBeatStore(
         [
-            {"beat_number": 4, "scene_ref": {"scene_id": "地下室", "render_anchor_id": "master"}},
+            {
+                "beat_number": 4,
+                "scene_ref": {"scene_id": "地下室", "render_anchor_id": "master"},
+            },
         ]
     )
 
@@ -962,7 +1091,10 @@ def test_beat_background_anchor_upload_writes_selected_background(monkeypatch, t
     selected = _selected_background_path(tmp_path)
     assert selected.exists()
     assert store.updates[-1]["scene_ref"]["render_anchor_id"] == "selected_background"
-    assert store.updates[-1]["scene_ref"]["render_anchor_source_id"] == "selected_background"
+    assert (
+        store.updates[-1]["scene_ref"]["render_anchor_source_id"]
+        == "selected_background"
+    )
 
 
 def test_sketch_regen_queue_round_trips_per_episode(monkeypatch, tmp_path):
@@ -1012,7 +1144,9 @@ def test_sketch_regen_queue_round_trips_per_episode(monkeypatch, tmp_path):
     body = response.json()
     assert body["ok"] is True
     assert body["data"]["items"][0]["beatNumbers"] == [3]
-    assert saved[-1]["react_sketch_regen_queue"]["ep001"][0]["id"] == "2x2_2-3_sketch:1,2"
+    assert (
+        saved[-1]["react_sketch_regen_queue"]["ep001"][0]["id"] == "2x2_2-3_sketch:1,2"
+    )
     assert saved[-1]["react_sketch_regen_queue"]["ep002"][0]["id"] == "1x1_2-3_sketch:3"
     assert "sketch_regen_queue" not in saved[-1]
 
@@ -1054,7 +1188,9 @@ def test_sketch_regen_queue_migrates_react_items_out_of_nicegui_legacy_key(
     )
 
     assert response.status_code == 200
-    assert saved[-1]["react_sketch_regen_queue"]["ep001"][0]["id"] == "1x2_4-3_sketch:2,3"
+    assert (
+        saved[-1]["react_sketch_regen_queue"]["ep001"][0]["id"] == "1x2_4-3_sketch:2,3"
+    )
     assert saved[-1]["sketch_regen_queue"] == {}
 
 
@@ -1110,7 +1246,9 @@ def test_sketch_image_usage_and_guard_return_attempt_context(monkeypatch, tmp_pa
     assert "Beat 3" in body["data"]["message"]
 
 
-def test_image_generation_guard_password_verification_matches_nicegui(monkeypatch, tmp_path):
+def test_image_generation_guard_password_verification_matches_nicegui(
+    monkeypatch, tmp_path
+):
     from ai_anime.image_request_usage import record_image_request
 
     monkeypatch.setenv("PROMPT_EXPORT_PASSWORD", "secret")
@@ -1166,7 +1304,10 @@ def test_sketch_grid_preview_exposes_nicegui_thumbnail_contract(monkeypatch, tmp
 
     def fake_build_beat_sketch_paths(ep_grids_dir, beat_numbers):
         calls["paths_args"] = (str(ep_grids_dir), list(beat_numbers))
-        return {7: "sketch/beat_07_t20260519010101.png", 8: "sketch/beat_08_t20260519010102.png"}
+        return {
+            7: "sketch/beat_07_t20260519010101.png",
+            8: "sketch/beat_08_t20260519010102.png",
+        }
 
     def fake_crop_sketch_panels(
         ep_grids_dir, beat_numbers, rows, cols, out_file, beat_sketch_paths=None
@@ -1181,7 +1322,9 @@ def test_sketch_grid_preview_exposes_nicegui_thumbnail_contract(monkeypatch, tmp
         }
         return out_file
 
-    monkeypatch.setattr(pool_indexer, "build_beat_sketch_paths", fake_build_beat_sketch_paths)
+    monkeypatch.setattr(
+        pool_indexer, "build_beat_sketch_paths", fake_build_beat_sketch_paths
+    )
     monkeypatch.setattr(nanobanana_grid, "crop_sketch_panels", fake_crop_sketch_panels)
 
     response = client.post(
@@ -1192,13 +1335,17 @@ def test_sketch_grid_preview_exposes_nicegui_thumbnail_contract(monkeypatch, tmp
     assert response.status_code == 200
     body = response.json()
     assert body["ok"] is True
-    assert body["data"]["preview_url"].endswith("/grids/ep001/sketch_thumb_grid1_7_8_5x5.jpg")
+    assert body["data"]["preview_url"].endswith(
+        "/grids/ep001/sketch_thumb_grid1_7_8_5x5.jpg"
+    )
     assert calls["paths_args"] == (str(tmp_path / "grids" / "ep001"), [7, 8])
     assert calls["crop_args"]["rows"] == 5
     assert calls["crop_args"]["cols"] == 5
 
 
-def test_sketch_grid_preview_falls_back_to_latest_pool_sketch_cells(monkeypatch, tmp_path):
+def test_sketch_grid_preview_falls_back_to_latest_pool_sketch_cells(
+    monkeypatch, tmp_path
+):
     from ai_anime.generators import nanobanana_grid, pool_indexer
 
     client, _saved = _client(monkeypatch, tmp_path)

@@ -51,8 +51,11 @@ def test_project_workspace_errors_keep_http_contract(
 
     from ai_anime.api.app import create_app
     from ai_anime.modules.project_workspace.public import (
+        InvalidProjectName,
+        ProjectAlreadyExists,
         ProjectBackendNotInitialized,
         ProjectHomeNodeRequired,
+        ProjectLifecycleConflict,
         ProjectNotFound,
         ProjectRoleRequired,
         ProjectUserIdentityUnresolved,
@@ -71,7 +74,11 @@ def test_project_workspace_errors_keep_http_contract(
             401,
             "Unable to resolve user id",
         ),
-        "role": (ProjectRoleRequired("editor", "viewer"), 403, "project role required: editor"),
+        "role": (
+            ProjectRoleRequired("editor", "viewer"),
+            403,
+            "project role required: editor",
+        ),
         "home": (
             ProjectHomeNodeRequired(
                 project_id="proj_123",
@@ -85,6 +92,21 @@ def test_project_workspace_errors_keep_http_contract(
                 "project_id": "proj_123",
                 "home_node_id": "node_a",
             },
+        ),
+        "invalid-name": (
+            InvalidProjectName("invalid project name"),
+            400,
+            "invalid project name",
+        ),
+        "duplicate": (
+            ProjectAlreadyExists("agent"),
+            409,
+            "Project 'agent' already exists",
+        ),
+        "lifecycle": (
+            ProjectLifecycleConflict("invalid project state"),
+            400,
+            "invalid project state",
         ),
     }
 
@@ -102,6 +124,25 @@ def test_project_workspace_errors_keep_http_contract(
         response = client.get(f"/_test/project-error/{name}")
         assert response.status_code == status
         assert response.json() == {"detail": detail}
+
+
+def test_desktop_auth_routes_are_composed_only_in_desktop_mode(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from ai_anime.api.app import create_app
+
+    monkeypatch.delenv("AI_ANIME_DESKTOP_MODE", raising=False)
+    monkeypatch.delenv("AI_ANIME_DESKTOP_TOKEN", raising=False)
+    browser_paths = set(create_app().openapi()["paths"])
+
+    monkeypatch.setenv("AI_ANIME_DESKTOP_MODE", "1")
+    monkeypatch.setenv("AI_ANIME_DESKTOP_TOKEN", "desktop-test-token")
+    desktop_paths = set(create_app().openapi()["paths"])
+
+    assert "/api/v1/auth/login" not in browser_paths
+    assert "/api/v1/auth/authorize" not in browser_paths
+    assert "/api/v1/auth/login" in desktop_paths
+    assert "/api/v1/auth/authorize" in desktop_paths
 
 
 @pytest.mark.asyncio

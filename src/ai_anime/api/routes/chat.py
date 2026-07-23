@@ -21,12 +21,17 @@ from ai_anime.api.auth import (
     _verify_agent_bearer,
     _verify_browser_session,
 )
-from ai_anime.api.deps import list_user_projects
 from ai_anime.chat import service as chat_service
 from ai_anime.chat.store import ChatScope, chat_store
-from ai_anime.modules.project_workspace.public import ProjectNotFound
+from ai_anime.modules.project_workspace.public import (
+    ProjectNotFound,
+    list_project_workspaces,
+)
 from ai_anime.ports import get_usage_meter
-from ai_anime.modules.project_workspace.public import ProjectContext, resolve_project_context
+from ai_anime.modules.project_workspace.public import (
+    ProjectContext,
+    resolve_project_context,
+)
 from ai_anime.shared.billing_errors import (
     BILLING_RULE_NOT_CONFIGURED_MESSAGE,
     INSUFFICIENT_CREDITS_MESSAGE,
@@ -128,7 +133,9 @@ async def append_chat_notification(
             str(scope.id),
             text,
             project_dir=project_ctx.output_dir if project_ctx is not None else None,
-            project_state_dir=project_ctx.state_dir if project_ctx is not None else None,
+            project_state_dir=project_ctx.state_dir
+            if project_ctx is not None
+            else None,
         )
     else:
         message = chat_store.append_message(username, scope, "assistant", text)
@@ -157,7 +164,11 @@ async def append_chat_ui_event(
 async def _authenticate_ws(websocket: WebSocket) -> dict[str, Any]:
     bearer = websocket.headers.get("Authorization", "").strip()
     if bearer:
-        token = bearer.partition(" ")[2].strip() if bearer.lower().startswith("bearer ") else ""
+        token = (
+            bearer.partition(" ")[2].strip()
+            if bearer.lower().startswith("bearer ")
+            else ""
+        )
         if token:
             return await _verify_agent_bearer(token)
 
@@ -227,7 +238,9 @@ def _attachment_context_block(attachments: list[ChatAttachmentIn]) -> str:
     return "\n".join(lines)
 
 
-def _text_with_attachment_context(text: str, attachments: list[ChatAttachmentIn]) -> str:
+def _text_with_attachment_context(
+    text: str, attachments: list[ChatAttachmentIn]
+) -> str:
     block = _attachment_context_block(attachments)
     return f"{text}\n\n{block}" if block else text
 
@@ -313,7 +326,9 @@ async def _history(
             username,
             str(scope.id),
             project_dir=project_ctx.output_dir if project_ctx is not None else None,
-            project_state_dir=project_ctx.state_dir if project_ctx is not None else None,
+            project_state_dir=project_ctx.state_dir
+            if project_ctx is not None
+            else None,
         )
     return chat_store.list_messages(username, scope)
 
@@ -333,7 +348,7 @@ async def _send_scope_changed(
         project_ctx = None
         if not await _send_json_best_effort(
             websocket,
-            {"type": "error", "message": "项目不存在或已删除，已切回首页聊天。"}
+            {"type": "error", "message": "项目不存在或已删除，已切回首页聊天。"},
         ):
             return None
     if not await _send_json_best_effort(
@@ -343,7 +358,7 @@ async def _send_scope_changed(
             "scope": scope.to_dict(),
             "history": await _history(username, scope, project_ctx=project_ctx),
             "busy": chat_service.chat_run_lock_is_active(username),
-        }
+        },
     ):
         return None
     return scope
@@ -454,7 +469,9 @@ async def _stream_project_turn(
                 send_lock,
             )
         elif event_type == "tool_update":
-            tool_name, tool_body = _tool_display_payload(event.get("text"), event.get("name"))
+            tool_name, tool_body = _tool_display_payload(
+                event.get("text"), event.get("name")
+            )
             await _send_json_best_effort(
                 websocket,
                 {
@@ -532,7 +549,10 @@ async def _stream_home_turn(
 ) -> None:
     from ai_anime.chat.hermes_pool import pool as hermes_pool
 
-    before_projects = set(list_user_projects(username))
+    before_projects = {
+        project.name
+        for project in await list_project_workspaces({"username": username})
+    }
     previous_assistant = next(
         (
             str(message.get("content") or "")
@@ -606,7 +626,9 @@ async def _stream_home_turn(
                     send_lock,
                 )
             elif event.type == "assistant_delta":
-                assistant_text = chat_service._merge_stream_text(assistant_text, event.text)
+                assistant_text = chat_service._merge_stream_text(
+                    assistant_text, event.text
+                )
                 display_text = chat_service._strip_replayed_chat_response(
                     assistant_text,
                     previous_assistant,
@@ -642,7 +664,9 @@ async def _stream_home_turn(
                     send_lock,
                 )
             elif event.type == "complete":
-                assistant_text = _completion_text_or_existing(event.text, assistant_text)
+                assistant_text = _completion_text_or_existing(
+                    event.text, assistant_text
+                )
 
         assistant_text = chat_service._strip_replayed_chat_response(
             assistant_text,
@@ -650,7 +674,9 @@ async def _stream_home_turn(
             text,
         )
         assistant_text = assistant_text.strip() or "(agent returned no content)"
-        message = chat_store.append_message(username, scope, "assistant", assistant_text)
+        message = chat_store.append_message(
+            username, scope, "assistant", assistant_text
+        )
         persisted = True
         await _send_json_best_effort(
             websocket,
@@ -675,7 +701,10 @@ async def _stream_home_turn(
                 send_lock,
             )
 
-        after_projects = set(list_user_projects(username))
+        after_projects = {
+            project.name
+            for project in await list_project_workspaces({"username": username})
+        }
         for project in sorted(after_projects - before_projects):
             project_scope = ChatScope(kind="project", id=project)
             chat_store.append_message(
@@ -744,7 +773,9 @@ async def chat_ws(websocket: WebSocket) -> None:
             if event_type == "scope.set":
                 msg = ScopeSetIn.model_validate(raw)
                 requested_scope = _scope_from_model(msg.scope)
-                current_scope = await _send_scope_changed(websocket, user, username, requested_scope)
+                current_scope = await _send_scope_changed(
+                    websocket, user, username, requested_scope
+                )
                 if current_scope is None:
                     return
                 await _sync_running_agent_scope(username, current_scope)
@@ -752,13 +783,16 @@ async def chat_ws(websocket: WebSocket) -> None:
                 # the first message in the project doesn't cold-start.
                 await chat_service.prewarm_chat_backend(
                     username,
-                    project=current_scope.id if current_scope.kind == "project" else None,
+                    project=current_scope.id
+                    if current_scope.kind == "project"
+                    else None,
                 )
                 continue
 
             if event_type != "chat.message":
                 await _send_json_best_effort(
-                    websocket, {"type": "error", "message": f"unsupported event: {event_type}"}
+                    websocket,
+                    {"type": "error", "message": f"unsupported event: {event_type}"},
                 )
                 continue
 
@@ -768,7 +802,8 @@ async def chat_ws(websocket: WebSocket) -> None:
             text = msg.text.strip()
             if not text:
                 await _send_json_best_effort(
-                    websocket, {"type": "error", "turn_id": turn_id, "message": "empty message"}
+                    websocket,
+                    {"type": "error", "turn_id": turn_id, "message": "empty message"},
                 )
                 continue
 
@@ -823,7 +858,9 @@ async def chat_ws(websocket: WebSocket) -> None:
                             "type": "error",
                             "turn_id": turn_id,
                             "message": BILLING_RULE_NOT_CONFIGURED_MESSAGE,
-                            "data": billing_rule_not_configured_payload(billing_rule_error),
+                            "data": billing_rule_not_configured_payload(
+                                billing_rule_error
+                            ),
                         },
                     )
                     continue

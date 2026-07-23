@@ -154,7 +154,7 @@ async def test_project_stream_emits_heartbeat_immediately(tmp_path, monkeypatch)
 
 @pytest.mark.asyncio
 async def test_project_stream_rejects_missing_auth():
-    from ai_anime.api import api_router
+    from ai_anime.api.v1.router import create_api_router
     from ai_anime.ports import registry
 
     old_ports = dict(registry._PORTS)
@@ -163,7 +163,7 @@ async def test_project_stream_rejects_missing_auth():
     registry._BOOTSTRAPPED = False
 
     app = FastAPI()
-    app.include_router(api_router)
+    app.include_router(create_api_router())
     transport = httpx.ASGITransport(app=app)
     try:
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:

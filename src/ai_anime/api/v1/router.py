@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from importlib.metadata import entry_points
 
 from fastapi import APIRouter
@@ -57,9 +58,14 @@ OPENAPI_TAGS = [
 ]
 
 
-def _create_api_router() -> APIRouter:
+def create_api_router(*, desktop_mode: bool | None = None) -> APIRouter:
+    if desktop_mode is None:
+        desktop_mode = os.environ.get("AI_ANIME_DESKTOP_MODE", "") == "1"
+
     router = APIRouter(prefix="/api/v1")
     router.include_router(auth.router, tags=["auth"])
+    if desktop_mode:
+        router.include_router(auth.desktop_router, tags=["auth"])
     if not runtime_env.is_ce_effective():
         for entry_point in entry_points(group="ai_anime.api_routes"):
             entry_point.load()(router)
@@ -86,20 +92,8 @@ def _create_api_router() -> APIRouter:
         tags=["release-notifications"],
     )
     router.include_router(freezone.router)
-    return router
-
-
-api_router = _create_api_router()
-_verification_routes_registered = False
-
-
-def register_verification_routes() -> None:
-    """Register verification routes once, after the base route graph exists."""
-    global _verification_routes_registered
-    if _verification_routes_registered:
-        return
 
     from ai_anime.verification.routes import router as verification_router
 
-    api_router.include_router(verification_router, tags=["verification"])
-    _verification_routes_registered = True
+    router.include_router(verification_router, tags=["verification"])
+    return router

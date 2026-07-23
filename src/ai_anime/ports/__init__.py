@@ -9,14 +9,6 @@ def get_cloud_adapter():
     return get_port("cloud_adapter")
 
 
-def get_project_registry():
-    return get_port("project_registry")
-
-
-def get_project_access():
-    return get_port("project_access")
-
-
 def get_usage_meter():
     try:
         meter = get_port("usage_meter")
@@ -67,8 +59,6 @@ __all__ = [
     "get_cloud_adapter",
     "get_credit_quote",
     "get_lifecycle_port",
-    "get_project_access",
-    "get_project_registry",
     "get_provider_instrumentation",
     "get_release_feed_port",
     "get_task_backend",
