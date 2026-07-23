@@ -1,4 +1,5 @@
 export {
+  CharactersPageContent,
   StylesPageContent,
   useAssetImageSourceSelection,
   stylesQueryOptions,
@@ -45,8 +46,12 @@ export type {
   CreateStyleInput,
 } from "@/modules/asset_world/application/ports";
 export type {
+  AssetReferenceIndex,
+  AssetRefType,
   AssetImageSourceKind,
   AssetImageSourceSelection,
+  AssetTab,
+  BeatReference,
   Character,
   CharacterAssetHistory,
   CharacterAssetHistoryEntry,
@@ -59,6 +64,13 @@ export type {
   CharacterVoiceSlotId,
   Identity,
   IdentityAttempts,
+  SceneCoOccurrence,
+  SearchableCharacter,
 } from "@/modules/asset_world/domain/character";
+export {
+  characterMainCopyForSpineTemplate,
+  filterCharacters,
+} from "@/modules/asset_world/domain/character";
+export type { CharacterMainCopy } from "@/modules/asset_world/domain/character";
 export type { Style } from "@/modules/asset_world/domain/style";
 export { stylePreviewUrl } from "@/modules/asset_world/infrastructure/style-preview-url";

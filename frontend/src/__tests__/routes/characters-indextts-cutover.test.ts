@@ -3,10 +3,12 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-const routeSource = readFileSync(
-  "src/routes/_app/projects.$project/characters.lazy.tsx",
-  "utf-8",
-);
+const workbenchSource = [
+  "src/modules/asset_world/presentation/CharactersPageView.tsx",
+  "src/components/assets/character-voice-panel.tsx",
+]
+  .map((path) => readFileSync(path, "utf-8"))
+  .join("\n");
 const characterTypes = readFileSync(
   "src/modules/asset_world/domain/character.ts",
   "utf-8",
@@ -18,11 +20,11 @@ const characterQueries = readFileSync(
 
 describe("character workbench IndexTTS2 cutover", () => {
   it("does not expose legacy Fish voice controls in the character workbench", () => {
-    expect(routeSource).not.toContain("VOICE_TYPE_OPTIONS");
-    expect(routeSource).not.toContain("characters.voice.");
-    expect(routeSource).not.toContain("voiceOverride");
-    expect(routeSource).not.toContain("fish-audio-voice-id");
-    expect(routeSource).not.toContain("fish_voice_id");
+    expect(workbenchSource).not.toContain("VOICE_TYPE_OPTIONS");
+    expect(workbenchSource).not.toContain("characters.voice.");
+    expect(workbenchSource).not.toContain("voiceOverride");
+    expect(workbenchSource).not.toContain("fish-audio-voice-id");
+    expect(workbenchSource).not.toContain("fish_voice_id");
   });
 
   it("uses IndexTTS2 voice sample fields in frontend character types", () => {

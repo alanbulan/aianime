@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
 
-import { characterMainCopyForSpineTemplate } from "@/lib/character-main-copy";
+import { characterMainCopyForSpineTemplate } from "@/modules/asset_world/public";
 
 describe("characterMainCopyForSpineTemplate", () => {
   it("uses plain protagonist copy for premium drama projects", () => {

@@ -536,3 +536,5 @@ export function createCharacterQueryHooks(gateway: CharacterGateway) {
     useUploadPortrait,
   };
 }
+
+export type CharacterQueryHooks = ReturnType<typeof createCharacterQueryHooks>;

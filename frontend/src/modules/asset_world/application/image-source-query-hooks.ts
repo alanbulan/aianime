@@ -67,3 +67,7 @@ export function createImageSourceQueryHooks(
     useUpdateAssetImageSourceSelection,
   };
 }
+
+export type ImageSourceQueryHooks = ReturnType<
+  typeof createImageSourceQueryHooks
+>;

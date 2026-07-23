@@ -4,7 +4,7 @@ import { Film } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { BeatReference } from "@/lib/queries/asset-references";
+import type { BeatReference } from "@/modules/asset_world/public";
 import { cn } from "@/lib/utils";
 
 /**

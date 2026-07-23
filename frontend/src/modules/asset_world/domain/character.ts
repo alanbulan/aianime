@@ -118,3 +118,98 @@ export interface AssetImageSourceSelection {
   image_source_selection: string;
   options: Record<string, string>;
 }
+
+export type AssetTab = "characters" | "scenes" | "props" | "voices";
+
+export type AssetRefType = "identity" | "scene" | "prop";
+
+export interface BeatReference {
+  episode: number;
+  beatNumber: number;
+}
+
+export interface SceneCoOccurrence {
+  identities: string[];
+  props: string[];
+}
+
+export interface AssetReferenceIndex {
+  referencesFor(type: AssetRefType, id: string): BeatReference[];
+  countFor(type: AssetRefType, id: string): number;
+  coOccurrenceForScene(sceneId: string): SceneCoOccurrence;
+  isLoading: boolean;
+}
+
+export interface CharacterMainCopy {
+  label: string;
+  makeMain: string;
+  unsetMain: string;
+  mainSet: string;
+  mainUnset: string;
+}
+
+const DRAMA_MAIN_COPY: CharacterMainCopy = {
+  label: "主角",
+  makeMain: "设为主角",
+  unsetMain: "取消主角",
+  mainSet: "已设为主角",
+  mainUnset: "已取消主角",
+};
+
+const NARRATED_MAIN_COPY: CharacterMainCopy = {
+  label: "解说主角",
+  makeMain: "设为解说主角",
+  unsetMain: "取消解说主角",
+  mainSet: "已设为解说主角",
+  mainUnset: "已取消解说主角",
+};
+
+export function characterMainCopyForSpineTemplate(
+  spineTemplate: string | null | undefined,
+): CharacterMainCopy {
+  return spineTemplate === "narrated" ? NARRATED_MAIN_COPY : DRAMA_MAIN_COPY;
+}
+
+const CHARACTER_SEARCH_FIELDS = [
+  "name",
+  "aliases",
+  "description",
+  "role",
+  "gender",
+  "age_group",
+  "body_type",
+  "face_prompt",
+] as const;
+
+type CharacterSearchField = (typeof CHARACTER_SEARCH_FIELDS)[number];
+type CharacterSearchValue =
+  | string
+  | readonly (string | null | undefined)[]
+  | null
+  | undefined;
+
+export type SearchableCharacter = Partial<
+  Record<CharacterSearchField, CharacterSearchValue>
+>;
+
+export function filterCharacters<T extends SearchableCharacter>(
+  characters: readonly T[],
+  query: string,
+): T[] {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return [...characters];
+
+  return characters.filter((character) =>
+    CHARACTER_SEARCH_FIELDS.some((field) =>
+      normalizeSearchValue(character[field]).includes(needle),
+    ),
+  );
+}
+
+function normalizeSearchValue(value: CharacterSearchValue): string {
+  if (typeof value === "string") return value.toLowerCase();
+  if (Array.isArray(value)) {
+    return value.filter(Boolean).join(" ").toLowerCase();
+  }
+  return "";
+}

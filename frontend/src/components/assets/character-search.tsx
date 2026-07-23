@@ -4,46 +4,6 @@ import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-const CHARACTER_SEARCH_FIELDS = [
-  "name",
-  "aliases",
-  "description",
-  "role",
-  "gender",
-  "age_group",
-  "body_type",
-  "face_prompt",
-] as const;
-
-type SearchField = (typeof CHARACTER_SEARCH_FIELDS)[number];
-type SearchableValue = string | readonly (string | null | undefined)[] | null | undefined;
-
-export type SearchableCharacter = Partial<Record<SearchField, SearchableValue>>;
-
-export function filterCharacters<T extends SearchableCharacter>(
-  characters: readonly T[],
-  query: string,
-): T[] {
-  const needle = query.trim().toLowerCase();
-  if (!needle) return [...characters];
-
-  return characters.filter((character) =>
-    CHARACTER_SEARCH_FIELDS.some((field) =>
-      normalizeSearchValue(character[field]).includes(needle),
-    ),
-  );
-}
-
-function normalizeSearchValue(value: SearchableValue): string {
-  if (typeof value === "string") {
-    return value.toLowerCase();
-  }
-  if (Array.isArray(value)) {
-    return value.filter(Boolean).join(" ").toLowerCase();
-  }
-  return "";
-}
-
 export function CharacterSearch({
   value,
   onValueChange,

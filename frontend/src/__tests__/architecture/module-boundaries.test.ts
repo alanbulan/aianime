@@ -12,7 +12,7 @@ const importSpecifiersCache = new Map<string, string[]>();
 // Existing routes are migrated context by context. Their direct data imports
 // may decrease, but no route may exceed this measured baseline.
 const LEGACY_ROUTE_DATA_IMPORT_MAX: Record<string, number> = {
-  "routes/_app/projects.$project/characters.lazy.tsx": 3,
+  "routes/_app/projects.$project/characters.lazy.tsx": 0,
   "routes/_app/projects.$project/episodes.$episode/beats.lazy.tsx": 0,
   "routes/_app/projects.$project/episodes.$episode/compose.lazy.tsx": 4,
   "routes/_app/projects.$project/episodes.$episode/script.lazy.tsx": 0,
@@ -460,6 +460,7 @@ describe("frontend architecture boundaries", () => {
     for (const legacyPath of [
       "lib/queries/character-image-selection.ts",
       "lib/queries/characters.ts",
+      "lib/character-main-copy.ts",
       "lib/queries/styles.ts",
       "lib/style-preview-url.ts",
       "types/character.ts",
@@ -487,6 +488,25 @@ describe("frontend architecture boundaries", () => {
     expect(route).not.toContain("useStyles");
     expect(route).not.toContain("useStyleDetail");
     expect(route).not.toContain("useMutation");
+    expect(route).not.toContain("useState");
+  });
+
+  it("keeps the Characters route as an adapter", () => {
+    const route = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "routes/_app/projects.$project/characters.lazy.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(route).toContain(
+      'import { CharactersPageContent } from "@/modules/asset_world/public";',
+    );
+    expect(route).toContain("Route.useParams()");
+    expect(route).not.toContain("useCharacters");
+    expect(route).not.toContain("useTaskController");
+    expect(route).not.toContain("useGenerationCreditCost");
     expect(route).not.toContain("useState");
   });
 

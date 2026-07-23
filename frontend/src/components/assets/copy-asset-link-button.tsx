@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { buildAssetShareUrl } from "@/hooks/use-assets-deep-link";
-import type { AssetRefType } from "@/lib/queries/asset-references";
+import type { AssetRefType } from "@/modules/asset_world/public";
 
 /**
  * Copies a `?type=&id=` deep link to the asset so it can be pasted into chat /

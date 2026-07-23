@@ -28,9 +28,11 @@ import {
 } from "@/components/assets/asset-search-box";
 import {
   useAssetReferenceIndex,
-  type BeatReference,
-  type SceneCoOccurrence,
 } from "@/lib/queries/asset-references";
+import type {
+  BeatReference,
+  SceneCoOccurrence,
+} from "@/modules/asset_world/public";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import { useAssetImageSourceSelection } from "@/modules/asset_world/public";
 import { useAssetFocus } from "@/hooks/use-asset-focus";

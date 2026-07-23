@@ -6,6 +6,12 @@ import {
   episodeBeatsQueryOptions,
   episodesQueryOptions,
 } from "@/modules/narrative_planning/public";
+import type {
+  AssetReferenceIndex,
+  AssetRefType,
+  BeatReference,
+  SceneCoOccurrence,
+} from "@/modules/asset_world/public";
 
 /**
  * Client-side cross-asset reference index.
@@ -31,30 +37,6 @@ import {
  * backend ships a references endpoint, replace the aggregation here and keep
  * the public shape.
  */
-
-export type AssetRefType = "identity" | "scene" | "prop";
-
-export interface BeatReference {
-  episode: number;
-  beatNumber: number;
-}
-
-/** Identities + props that share a beat with a given scene. */
-export interface SceneCoOccurrence {
-  identities: string[];
-  props: string[];
-}
-
-export interface AssetReferenceIndex {
-  /** Lookup references for one asset. Empty array when none / still loading. */
-  referencesFor: (type: AssetRefType, id: string) => BeatReference[];
-  /** Convenience: usage count for one asset. */
-  countFor: (type: AssetRefType, id: string) => number;
-  /** Identities/props co-appearing in beats where this scene is used. */
-  coOccurrenceForScene: (sceneId: string) => SceneCoOccurrence;
-  /** True while any episode's beats are still loading. */
-  isLoading: boolean;
-}
 
 function refKey(type: AssetRefType, id: string): string {
   return `${type}:${id}`;

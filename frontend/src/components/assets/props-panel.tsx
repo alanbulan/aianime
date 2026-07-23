@@ -19,8 +19,8 @@ import {
 } from "@/components/assets/asset-search-box";
 import {
   useAssetReferenceIndex,
-  type BeatReference,
 } from "@/lib/queries/asset-references";
+import type { BeatReference } from "@/modules/asset_world/public";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import { useAssetImageSourceSelection } from "@/modules/asset_world/public";
 import { useAssetFocus } from "@/hooks/use-asset-focus";
