@@ -438,7 +438,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 | --- | --- | --- |
 | 0. 确认与基线 | 已完成 | 功能与计划独立提交，不自动同步远端 |
 | 1. 架构保护网 | 已完成 | 前后端依赖门禁、颜色字面量门禁和验证脚本已落地 |
-| 2. 应用装配 | 进行中 | 前端组合根、全局样式和后端应用工厂已拆分；容器与共享 API 边界待完成 |
+| 2. 应用装配 | 进行中 | 前端组合根、全局样式与后端应用装配已完成；前端共享 API 边界待完成 |
 | 3. Story Intake 样板 | 进行中 | 前后端首批纵向切片已落地，阶段退出审计待完成 |
 | 4. Identity / Workspace | 未开始 | 认证与项目边界 |
 | 5. Narrative Planning | 未开始 | 剧集、剧本与内容 |
@@ -462,7 +462,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 | --- | --- | --- |
 | 架构保护网 | `be88c21` 建立前后端只减不增依赖门禁；`f4c3916` 建立 UI 颜色分类门禁；普通 UI 已收敛到语义 token，媒体/渲染/领域色保留显式预算 | 随后续迁移持续下调存量 allowlist，不新增豁免 |
 | 前端应用装配 | `ae4d03d` 拆出 bootstrap、AppRoot、router shell 和 query client；`f4c3916` 将全局 CSS 拆为 reset/tokens/themes/base/portal | `shared/api` transport 与统一错误边界仍待迁移 |
-| 后端应用装配 | `api/app.py` 已收敛为组合根；lifespan、中间件、异常映射、平台静态路由和 `api/v1/router.py` 已独立；`bootstrap/ApplicationContainer` 已将 11 个必需运行时端口显式装配并接管生命周期；静态 URL 与 Store 工厂已下沉到 shared，任务 runner 不再依赖 `api.deps`；`api.__init__` 仅保留惰性兼容出口 | ProjectScope/ProjectContext 的 FastAPI 异常依赖仍待拆分 |
+| 后端应用装配 | `api/app.py` 已收敛为组合根；lifespan、中间件、异常映射、平台静态路由和 `api/v1/router.py` 已独立；`bootstrap/ApplicationContainer` 已将 11 个必需运行时端口显式装配并接管生命周期；静态 URL 与 Store 工厂已下沉到 shared；Project Workspace 已拆出 domain/application/ports，项目异常由 API 统一映射；旧路径仅保留兼容 facade | 阶段 2 后端装配项已完成，后续按上下文迁移 facade 调用方 |
 | Story Intake 样板 | `cb2b856` 完成后端 domain/application/infrastructure/use-case 切片；`1078eb1` 完成前端 controller/view/domain/infrastructure 切片，route 收敛为页面适配器 | 按阶段 3 退出条件复核所有导入、任务 DTO 与缓存失效契约 |
 
 当前验证事实：
@@ -472,6 +472,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 - 后端应用工厂、lifespan、桌面令牌、请求上限、静态媒体、SPA、异常映射和架构门禁定向测试通过。
 - ApplicationContainer 接入后，排除已记录的 CE OpenAPI 断言与默认排除的 EE 用例，后端契约 75 项全部通过。
 - 非 API 业务模块对 `ai_anime.api.*` 的反向导入由阶段 0 的 28 处降至 5 处；剩余项均保留在只减不增门禁中。
+- `project_context.py`、`ports/project.py` 与 Project Workspace domain/application 已移除 FastAPI 依赖；项目异常的 401/403/404/409/503 HTTP 契约由统一映射测试固定。
 - 后端契约套件 75 项通过；1 项既有断言失败：CE 下 `/api/v1/auth/login` 实际返回 404，但仍存在于 OpenAPI。由于拆分前后 OpenAPI 指纹一致，本批不将其伪装成本次回归，也不借结构迁移改变 API 文档契约。
 - 后端默认 Pytest 仍有阶段 0 已记录的 `examples.seedance2_fast_demo` 缺失模块收集错误，不能记为全量通过。
 

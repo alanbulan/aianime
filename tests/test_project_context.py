@@ -1,8 +1,8 @@
 from pathlib import Path
 
 import pytest
-from fastapi import HTTPException
 
+from ai_anime.modules.project_workspace.public import ProjectHomeNodeRequired
 from ai_anime.ports.project import Principal, ProjectRecord
 from ai_anime.project_context import ProjectContext, _ctx_from_record, require_project_home_node
 
@@ -35,12 +35,12 @@ def test_require_project_home_node_allows_local_project(tmp_path):
 def test_require_project_home_node_rejects_remote_project(tmp_path):
     ctx = _ctx(tmp_path, is_home_node=False)
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(ProjectHomeNodeRequired) as exc:
         require_project_home_node(ctx, operation="read project files")
 
-    assert exc.value.status_code == 409
-    assert exc.value.detail["code"] == "project_not_on_this_node"
-    assert exc.value.detail["home_node_id"] == "node_a"
+    assert exc.value.project_id == "proj_123"
+    assert exc.value.home_node_id == "node_a"
+    assert exc.value.operation == "read project files"
 
 
 def test_ctx_from_record_treats_ce_local_home_node_as_local(monkeypatch, tmp_path):

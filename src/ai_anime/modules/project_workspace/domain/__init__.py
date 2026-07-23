@@ -1,10 +1,6 @@
-"""Compatibility exports for Project Workspace ports and domain types."""
+"""Project Workspace domain model."""
 
-from ai_anime.modules.project_workspace.application.ports import (
-    ProjectAccess,
-    ProjectRegistry,
-)
-from ai_anime.modules.project_workspace.domain import (
+from ai_anime.modules.project_workspace.domain.project import (
     PROJECT_ROLE_ADMIN,
     PROJECT_ROLE_EDITOR,
     PROJECT_ROLE_OWNER,
@@ -22,9 +18,7 @@ __all__ = [
     "PROJECT_ROLE_OWNER",
     "PROJECT_ROLE_VIEWER",
     "Principal",
-    "ProjectAccess",
     "ProjectRecord",
-    "ProjectRegistry",
     "ProjectRoleRequired",
     "require_role_value",
     "role_allows",

@@ -5,6 +5,13 @@ from __future__ import annotations
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from ai_anime.modules.project_workspace.public import (
+    ProjectBackendNotInitialized,
+    ProjectHomeNodeRequired,
+    ProjectNotFound,
+    ProjectRoleRequired,
+    ProjectUserIdentityUnresolved,
+)
 from ai_anime.shared.billing_errors import (
     BILLING_RULE_NOT_CONFIGURED_MESSAGE,
     INSUFFICIENT_CREDITS_MESSAGE,
@@ -18,6 +25,65 @@ from ai_anime.task_backend.limits import (
     ProjectTaskLimitExceeded,
     ProjectUserTaskLimitExceeded,
 )
+
+
+async def project_backend_not_initialized(
+    request: Request,
+    exc: ProjectBackendNotInitialized,
+) -> JSONResponse:
+    _ = request, exc
+    return JSONResponse(
+        status_code=503,
+        content={"detail": "project backend not initialised"},
+    )
+
+
+async def project_not_found(
+    request: Request,
+    exc: ProjectNotFound,
+) -> JSONResponse:
+    _ = request, exc
+    return JSONResponse(status_code=404, content={"detail": "Project not found"})
+
+
+async def project_user_identity_unresolved(
+    request: Request,
+    exc: ProjectUserIdentityUnresolved,
+) -> JSONResponse:
+    _ = request, exc
+    return JSONResponse(
+        status_code=401,
+        content={"detail": "Unable to resolve user id"},
+    )
+
+
+async def project_role_required(
+    request: Request,
+    exc: ProjectRoleRequired,
+) -> JSONResponse:
+    _ = request
+    return JSONResponse(
+        status_code=403,
+        content={"detail": f"project role required: {exc.required}"},
+    )
+
+
+async def project_home_node_required(
+    request: Request,
+    exc: ProjectHomeNodeRequired,
+) -> JSONResponse:
+    _ = request
+    return JSONResponse(
+        status_code=409,
+        content={
+            "detail": {
+                "code": "project_not_on_this_node",
+                "message": f"{exc.operation} must run on the project home node",
+                "project_id": exc.project_id,
+                "home_node_id": exc.home_node_id,
+            }
+        },
+    )
 
 
 async def project_task_limit_exceeded(
@@ -118,6 +184,20 @@ async def billing_rule_not_configured(
 
 
 def register_exception_handlers(application: FastAPI) -> None:
+    application.add_exception_handler(
+        ProjectBackendNotInitialized,
+        project_backend_not_initialized,
+    )
+    application.add_exception_handler(ProjectNotFound, project_not_found)
+    application.add_exception_handler(
+        ProjectUserIdentityUnresolved,
+        project_user_identity_unresolved,
+    )
+    application.add_exception_handler(ProjectRoleRequired, project_role_required)
+    application.add_exception_handler(
+        ProjectHomeNodeRequired,
+        project_home_node_required,
+    )
     application.add_exception_handler(
         ProjectTaskLimitExceeded,
         project_task_limit_exceeded,

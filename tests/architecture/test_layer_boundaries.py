@@ -158,3 +158,18 @@ def test_lifespan_uses_the_application_container() -> None:
 
     assert "ai_anime.bootstrap" in lifespan_source
     assert "ai_anime.ports.registry" not in lifespan_source
+
+
+def test_project_workspace_core_does_not_depend_on_fastapi() -> None:
+    paths = [
+        PACKAGE_ROOT / "project_context.py",
+        PACKAGE_ROOT / "ports" / "project.py",
+        *list((PACKAGE_ROOT / "modules" / "project_workspace").rglob("*.py")),
+    ]
+
+    failures = [
+        _relative(path)
+        for path in paths
+        if any(imported == "fastapi" or imported.startswith("fastapi.") for imported in _imports(path))
+    ]
+    assert not failures

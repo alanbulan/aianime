@@ -44,6 +44,66 @@ def test_desktop_middleware_and_shutdown_route(
     assert shutdown_calls == [True]
 
 
+def test_project_workspace_errors_keep_http_contract(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("AI_ANIME_DESKTOP_MODE", raising=False)
+
+    from ai_anime.api.app import create_app
+    from ai_anime.modules.project_workspace.public import (
+        ProjectBackendNotInitialized,
+        ProjectHomeNodeRequired,
+        ProjectNotFound,
+        ProjectRoleRequired,
+        ProjectUserIdentityUnresolved,
+    )
+
+    application = create_app()
+    cases = {
+        "backend": (
+            ProjectBackendNotInitialized(),
+            503,
+            "project backend not initialised",
+        ),
+        "missing": (ProjectNotFound(), 404, "Project not found"),
+        "identity": (
+            ProjectUserIdentityUnresolved(),
+            401,
+            "Unable to resolve user id",
+        ),
+        "role": (ProjectRoleRequired("editor", "viewer"), 403, "project role required: editor"),
+        "home": (
+            ProjectHomeNodeRequired(
+                project_id="proj_123",
+                home_node_id="node_a",
+                operation="read project files",
+            ),
+            409,
+            {
+                "code": "project_not_on_this_node",
+                "message": "read project files must run on the project home node",
+                "project_id": "proj_123",
+                "home_node_id": "node_a",
+            },
+        ),
+    }
+
+    def endpoint(error: Exception):
+        async def raise_error() -> None:
+            raise error
+
+        return raise_error
+
+    for name, (error, _status, _detail) in cases.items():
+        application.add_api_route(f"/_test/project-error/{name}", endpoint(error))
+
+    client = TestClient(application)
+    for name, (_error, status, detail) in cases.items():
+        response = client.get(f"/_test/project-error/{name}")
+        assert response.status_code == status
+        assert response.json() == {"detail": detail}
+
+
 @pytest.mark.asyncio
 async def test_app_lifespan_orders_startup_and_shutdown(
     monkeypatch: pytest.MonkeyPatch,
