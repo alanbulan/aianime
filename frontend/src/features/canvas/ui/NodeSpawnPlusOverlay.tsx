@@ -279,7 +279,7 @@ function PlusButton({
         aria-label={direction === 'right' ? '引用该节点生成' : '连入该节点'}
         // 缩放原点放在贴近节点的一侧，放大时朝远离节点的方向生长，不会盖回节点本体。
         style={{ transformOrigin: direction === 'right' ? 'left center' : 'right center' }}
-        className="canvas-spawn-plus-magnetic-button nodrag relative z-10 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-popover/95 text-popover-foreground/85 shadow-lg transition-[border-color,color,box-shadow] duration-150 will-change-transform hover:border-primary/60 hover:text-popover-foreground hover:shadow-[0_0_18px_rgb(var(--accent-rgb)/0.22)]"
+        className="canvas-spawn-plus-magnetic-button nodrag relative z-10 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-popover/95 text-popover-foreground/85 shadow-lg transition-[border-color,color,box-shadow] duration-150 will-change-transform hover:border-primary/60 hover:text-popover-foreground hover:shadow-[var(--ui-glow-accent)]"
         onPointerEnter={(event) => {
           onHoverStart?.();
           updateMagnetOffset(event);

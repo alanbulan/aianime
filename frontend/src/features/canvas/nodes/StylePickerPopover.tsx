@@ -99,7 +99,7 @@ export function StylePickerPopover({
                     }`}
                   >
                     <span className="truncate">{item.label}</span>
-                    {isActive && <Check className="size-3.5 shrink-0 text-[rgb(var(--accent-rgb))]" />}
+                    {isActive && <Check className="size-3.5 shrink-0 text-primary" />}
                   </button>
                 );
               })}

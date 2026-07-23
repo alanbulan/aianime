@@ -623,7 +623,7 @@ export function CommitDialog({
         onClick={submitting ? undefined : onClose}
       />
       <UiPanel
-        className={`relative flex max-h-[82vh] w-[560px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden !bg-[rgb(var(--surface-rgb))] transition-[opacity,transform] duration-200 ${
+        className={`relative flex max-h-[82vh] w-[560px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden !bg-card transition-[opacity,transform] duration-200 ${
           isVisible ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"
         }`}
       >
