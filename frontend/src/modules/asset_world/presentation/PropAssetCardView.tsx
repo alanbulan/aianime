@@ -25,9 +25,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { resolveMediaUrl } from "@/lib/media-url";
-import type { PropAsset } from "@/modules/asset_world/public";
+import type { PropAssetCardController } from "@/modules/asset_world/application/use-prop-asset-card-controller";
+import type { PropAsset } from "@/modules/asset_world/domain/prop";
 
-interface PropAssetCardProps {
+export interface PropAssetCardViewProps {
   prop: PropAsset;
   generating?: boolean;
   uploading?: boolean;
@@ -41,7 +42,7 @@ interface PropAssetCardProps {
   freezonePending?: boolean;
 }
 
-export function PropAssetCard({
+export function PropAssetCardView({
   prop,
   generating = false,
   uploading = false,
@@ -53,7 +54,7 @@ export function PropAssetCard({
   onUploadReference,
   onOpenFreezone,
   freezonePending = false,
-}: PropAssetCardProps) {
+}: PropAssetCardViewProps) {
   const { t } = useTranslation();
   const uploadInputRef = useRef<HTMLInputElement>(null);
 
@@ -200,5 +201,41 @@ export function PropAssetCard({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+export function PropAssetCardControllerView({
+  controller,
+}: {
+  controller: PropAssetCardController;
+}) {
+  const {
+    freezonePending,
+    generating,
+    handleGenerateReference,
+    handleOpenFreezone,
+    handleUploadReference,
+    onDelete,
+    onEdit,
+    prop,
+    referenceCost,
+    referenceCount,
+    uploading,
+  } = controller;
+
+  return (
+    <PropAssetCardView
+      prop={prop}
+      generating={generating}
+      uploading={uploading}
+      referenceCount={referenceCount}
+      referenceCost={referenceCost}
+      freezonePending={freezonePending}
+      onEdit={onEdit}
+      onDelete={onDelete}
+      onGenerateReference={() => void handleGenerateReference()}
+      onUploadReference={(file) => void handleUploadReference(file)}
+      onOpenFreezone={() => void handleOpenFreezone()}
+    />
   );
 }

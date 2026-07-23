@@ -1,5 +1,6 @@
 export {
   CharactersPageContent,
+  PropsPanelContent,
   ScenesPanelContent,
   StylesPageContent,
   listScenes,

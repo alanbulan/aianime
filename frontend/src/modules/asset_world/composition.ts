@@ -2,7 +2,6 @@ import { createElement } from "react";
 
 import { CharacterImageSourceSelect } from "@/components/assets/character-image-source-select";
 import { NarratorVoicePanel } from "@/components/episode/beat-workbench/narrator-voice-panel";
-import { PropsPanel } from "@/components/assets/props-panel";
 import { TaskControllerProvider } from "@/components/episode/task-controller-provider";
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
 import { useAssetFocus } from "@/hooks/use-asset-focus";
@@ -30,6 +29,15 @@ import {
 import { createUseStyleDetailController } from "@/modules/asset_world/application/use-style-detail-controller";
 import { createUseStylesPageController } from "@/modules/asset_world/application/use-styles-page-controller";
 import {
+  createUsePropAssetCardController,
+  type PropAssetCardControllerOptions,
+} from "@/modules/asset_world/application/use-prop-asset-card-controller";
+import {
+  createUsePropDialogController,
+  type PropDialogControllerOptions,
+} from "@/modules/asset_world/application/use-prop-dialog-controller";
+import { createUsePropsPanelController } from "@/modules/asset_world/application/use-props-panel-controller";
+import {
   createUseSceneAssetCardController,
   type SceneAssetCardControllerOptions,
 } from "@/modules/asset_world/application/use-scene-asset-card-controller";
@@ -42,6 +50,7 @@ import type {
   Character,
   CharacterAssetKind,
 } from "@/modules/asset_world/domain/character";
+import type { PropAsset } from "@/modules/asset_world/domain/prop";
 import type { SceneAsset } from "@/modules/asset_world/domain/scene";
 import type { Style } from "@/modules/asset_world/domain/style";
 import {
@@ -69,6 +78,9 @@ import {
   IdentityCardView,
 } from "@/modules/asset_world/presentation/CharactersPageView";
 import { CharacterVoicePanelView } from "@/modules/asset_world/presentation/CharacterVoicePanelView";
+import { PropAssetCardControllerView } from "@/modules/asset_world/presentation/PropAssetCardView";
+import { PropDialogView } from "@/modules/asset_world/presentation/PropDialogView";
+import { PropsPanelView } from "@/modules/asset_world/presentation/PropsPanelView";
 import { SceneAssetCardControllerView } from "@/modules/asset_world/presentation/SceneAssetCardView";
 import { SceneDialogView } from "@/modules/asset_world/presentation/SceneDialogView";
 import { ScenesPanelView } from "@/modules/asset_world/presentation/ScenesPanelView";
@@ -89,6 +101,29 @@ const imageSourceQueries = createImageSourceQueryHooks(
 );
 const propQueries = createPropQueryHooks(httpPropGateway);
 const sceneQueries = createSceneQueryHooks(httpSceneGateway);
+const usePropsPanelController = createUsePropsPanelController(
+  propQueries,
+  imageSourceQueries,
+  {
+    useAssetFocus,
+    useAssetReferenceIndex,
+    useGenerationCreditCost,
+  },
+);
+const usePropDialogController = createUsePropDialogController();
+const usePropAssetCardController = createUsePropAssetCardController(
+  propQueries,
+  {
+    openPropFreezone: async (project, propName) => {
+      await openPresetProjectionInMyCanvas(project, {
+        scope: "asset",
+        asset_kind: "prop",
+        asset_id: propName,
+      });
+    },
+    useGenerationCreditCost,
+  },
+);
 const useScenesPanelController = createUseScenesPanelController(
   sceneQueries,
   imageSourceQueries,
@@ -157,6 +192,43 @@ export { useAssetReferenceIndex };
 export async function listScenes(project: string): Promise<SceneAsset[]> {
   const response = await httpSceneGateway.listScenes(project);
   return response.data;
+}
+
+function PropDialogContent(options: PropDialogControllerOptions) {
+  const controller = usePropDialogController(options);
+  return createElement(PropDialogView, { controller });
+}
+
+function PropAssetCardContent(options: PropAssetCardControllerOptions) {
+  const controller = usePropAssetCardController(options);
+  return createElement(PropAssetCardControllerView, { controller });
+}
+
+export function PropsPanelContent({
+  focusId,
+  project,
+}: {
+  focusId?: string | null;
+  project: string;
+}) {
+  const controller = usePropsPanelController({ focusId, project });
+  return createElement(PropsPanelView, {
+    controller,
+    dialogContent: createElement(PropDialogContent, controller.dialog),
+    imageSourceControl: createElement(CharacterImageSourceSelect, {
+      kind: "prop",
+      project,
+    }),
+    renderPropCard: (prop: PropAsset) =>
+      createElement(PropAssetCardContent, {
+        imageSourceSelection: controller.imageSourceSelection,
+        onDelete: () => void controller.deleteProp(prop),
+        onEdit: () => controller.openEditProp(prop),
+        project,
+        prop,
+        referenceCount: controller.referenceCountForProp(prop),
+      }),
+  });
 }
 
 function SceneDialogContent(options: SceneDialogControllerOptions) {
@@ -567,7 +639,7 @@ function CharactersPageBody({ project }: { project: string }) {
           allowFirstPersonProjectVoice: true,
           project,
         }),
-    propsContent: createElement(PropsPanel, {
+    propsContent: createElement(PropsPanelContent, {
       focusId:
         controller.assetTab === "props" ? controller.assetFocusId : null,
       project,

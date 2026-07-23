@@ -472,6 +472,8 @@ describe("frontend architecture boundaries", () => {
       "lib/character-main-copy.ts",
       "components/assets/character-voice-panel.tsx",
       "components/assets/narrator-voice-panel.tsx",
+      "components/assets/prop-asset-card.tsx",
+      "components/assets/props-panel.tsx",
       "components/assets/scene-asset-card.tsx",
       "components/assets/scene-environment-prompt.tsx",
       "components/assets/scenes-panel.tsx",

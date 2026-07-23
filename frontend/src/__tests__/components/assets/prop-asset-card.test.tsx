@@ -4,7 +4,7 @@ import { I18nextProvider, initReactI18next } from "react-i18next";
 import i18next from "i18next";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
-import { PropAssetCard } from "@/components/assets/prop-asset-card";
+import { PropAssetCardView as PropAssetCard } from "@/modules/asset_world/presentation/PropAssetCardView";
 import type { PropAsset } from "@/modules/asset_world/public";
 
 const i18n = i18next.createInstance();
