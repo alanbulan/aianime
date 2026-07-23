@@ -18,7 +18,7 @@ const LEGACY_ROUTE_DATA_IMPORT_MAX: Record<string, number> = {
   "routes/_app/projects.$project/episodes.$episode/script.lazy.tsx": 0,
   "routes/_app/projects.$project/episodes.tsx": 0,
   "routes/_app/projects.$project/freezone.lazy.tsx": 2,
-  "routes/_app/projects.$project/styles.tsx": 1,
+  "routes/_app/projects.$project/styles.tsx": 0,
   "routes/_app/projects.$project/tasks.tsx": 1,
 };
 
@@ -434,6 +434,28 @@ describe("frontend architecture boundaries", () => {
         .filter(isRawDataImport)
         .map((specifier) => `${relativeSource(path)}: ${specifier}`),
     );
+    const applicationViewImportFailures = sourceFiles(
+      resolve(moduleRoot, "application"),
+    ).flatMap((path) =>
+      importSpecifiers(path)
+        .filter(
+          (specifier) =>
+            specifier.startsWith("@/components/") ||
+            specifier.startsWith("@/modules/asset_world/presentation/"),
+        )
+        .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+    );
+    const presentationBoundaryFailures = sourceFiles(
+      resolve(moduleRoot, "presentation"),
+    ).flatMap((path) =>
+      importSpecifiers(path)
+        .filter(
+          (specifier) =>
+            isRawDataImport(specifier) ||
+            specifier === "@tanstack/react-router",
+        )
+        .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+    );
 
     expect(existsSync(resolve(SRC_ROOT, "lib/queries/styles.ts"))).toBe(false);
     expect(existsSync(resolve(SRC_ROOT, "lib/style-preview-url.ts"))).toBe(
@@ -441,8 +463,26 @@ describe("frontend architecture boundaries", () => {
     );
     expect(existsSync(resolve(SRC_ROOT, "types/style.ts"))).toBe(false);
     expect(applicationDataImportFailures).toEqual([]);
+    expect(applicationViewImportFailures).toEqual([]);
+    expect(presentationBoundaryFailures).toEqual([]);
     expect(internalImportFailures).toEqual([]);
     expect(directStyleEndpointFailures).toEqual([]);
+  });
+
+  it("keeps the Styles route as an adapter", () => {
+    const route = readFileSync(
+      resolve(SRC_ROOT, "routes/_app/projects.$project/styles.tsx"),
+      "utf8",
+    );
+
+    expect(route).toContain(
+      'import { StylesPageContent } from "@/modules/asset_world/public";',
+    );
+    expect(route).toContain("Route.useParams()");
+    expect(route).not.toContain("useStyles");
+    expect(route).not.toContain("useStyleDetail");
+    expect(route).not.toContain("useMutation");
+    expect(route).not.toContain("useState");
   });
 
   it("keeps the Episodes route as an adapter", () => {

@@ -1,0 +1,216 @@
+// Copyright (c) 2026 AI anime
+import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+
+import type { StyleQueryHooks } from "@/modules/asset_world/application/style-query-hooks";
+import {
+  buildStyleSavePayload,
+  EDITABLE_STYLE_CONFIG_KEYS,
+  EMPTY_STYLE_CONFIG,
+  extractEditableStyleConfig,
+  isPresetStyle,
+  type EditableStyleConfig,
+  type Style,
+} from "@/modules/asset_world/domain/style";
+
+interface UpdateProjectMutation {
+  isPending: boolean;
+  mutateAsync(config: { visual_style: string }): Promise<unknown>;
+}
+
+export interface StyleDetailControllerDependencies {
+  stylePreviewUrl(styleId: string): string;
+  useUpdateProject(project: string): UpdateProjectMutation;
+}
+
+export interface StyleDetailControllerOptions {
+  isProjectDefault: boolean;
+  onClearSelection(): void;
+  project: string;
+  style: Style;
+}
+
+export function createUseStyleDetailController(
+  queries: StyleQueryHooks,
+  dependencies: StyleDetailControllerDependencies,
+) {
+  return function useStyleDetailController(
+    options: StyleDetailControllerOptions,
+  ) {
+    const { isProjectDefault, onClearSelection, project, style } = options;
+    const { t } = useTranslation();
+    const createStyle = queries.useCreateStyle();
+    const deleteStyle = queries.useDeleteStyle();
+    const updateProject = dependencies.useUpdateProject(project);
+    const preset = isPresetStyle(style);
+    const original = useMemo(() => extractEditableStyleConfig(style), [style]);
+    const [fields, setFields] = useState<EditableStyleConfig>(original);
+    const [editingName, setEditingName] = useState(style.name);
+    const [nameEditOpen, setNameEditOpen] = useState(false);
+    const [nameEditValue, setNameEditValue] = useState(style.name);
+    const [showJson, setShowJson] = useState(false);
+    const [jsonText, setJsonText] = useState("");
+    const [jsonError, setJsonError] = useState<string | null>(null);
+
+    useEffect(() => {
+      setFields(original);
+      setEditingName(style.name);
+      setNameEditOpen(false);
+      setNameEditValue(style.name);
+      setShowJson(false);
+      setJsonError(null);
+      setJsonText(JSON.stringify(buildStyleSavePayload(original, style), null, 2));
+    }, [original, style]);
+
+    const dirty = useMemo(() => {
+      if (editingName !== style.name) return true;
+      if (showJson) {
+        return (
+          jsonText !==
+          JSON.stringify(buildStyleSavePayload(original, style), null, 2)
+        );
+      }
+      return EDITABLE_STYLE_CONFIG_KEYS.some(
+        (key) => fields[key] !== original[key],
+      );
+    }, [editingName, fields, jsonText, original, showJson, style]);
+
+    const updateField = (key: keyof EditableStyleConfig, value: string) =>
+      setFields((current) => ({ ...current, [key]: value }));
+
+    const handleSave = async () => {
+      let config: Record<string, unknown>;
+      if (showJson) {
+        try {
+          config = JSON.parse(jsonText) as Record<string, unknown>;
+        } catch {
+          setJsonError(t("styles.jsonFormatError"));
+          return;
+        }
+        setJsonError(null);
+      } else {
+        config = buildStyleSavePayload(fields, style);
+      }
+
+      try {
+        await createStyle.mutateAsync({
+          id: style.id,
+          name: editingName.trim() || style.name,
+          project,
+          config,
+        });
+        toast.success(t("styles.styleSaved"));
+      } catch {
+        toast.error(t("common.error"));
+      }
+    };
+
+    const handleApplyToProject = async () => {
+      try {
+        await updateProject.mutateAsync({ visual_style: style.id });
+        toast.success(
+          t("styles.setAsDefault", { name: style.label || style.name }),
+        );
+      } catch {
+        toast.error(t("common.error"));
+      }
+    };
+
+    const handleDelete = async () => {
+      if (!confirm(t("styles.confirmDelete", { name: style.label || style.name }))) {
+        return;
+      }
+      try {
+        await deleteStyle.mutateAsync({ styleId: style.id, project });
+        toast.success(t("styles.deleted"));
+        onClearSelection();
+      } catch {
+        toast.error(t("common.error"));
+      }
+    };
+
+    const setJsonEditorOpen = (nextOpen: boolean) => {
+      if (nextOpen === showJson) return;
+      if (nextOpen) {
+        setJsonText(JSON.stringify(buildStyleSavePayload(fields, style), null, 2));
+        setJsonError(null);
+      } else {
+        try {
+          const changed =
+            jsonText !==
+            JSON.stringify(buildStyleSavePayload(fields, style), null, 2);
+          const parsed = JSON.parse(jsonText) as Record<string, unknown>;
+          const next = { ...EMPTY_STYLE_CONFIG };
+          for (const key of EDITABLE_STYLE_CONFIG_KEYS) {
+            const value = parsed[key];
+            if (typeof value === "string") next[key] = value;
+          }
+          setFields(next);
+          if (changed) toast.success(t("styles.jsonChangesApplied"));
+        } catch {
+          // Invalid JSON leaves the structured fields unchanged.
+        }
+      }
+      setShowJson(nextOpen);
+    };
+
+    const handleRename = async () => {
+      const trimmed = nameEditValue.trim();
+      if (!trimmed) return;
+      try {
+        await createStyle.mutateAsync({
+          id: style.id,
+          name: trimmed,
+          project,
+          config: buildStyleSavePayload(fields, style),
+        });
+        setEditingName(trimmed);
+        toast.success(t("styles.styleSaved"));
+      } catch {
+        toast.error(t("common.error"));
+      }
+      setNameEditOpen(false);
+    };
+
+    return {
+      applyPending: updateProject.isPending,
+      createPending: createStyle.isPending,
+      deletePending: deleteStyle.isPending,
+      dirty,
+      editingName,
+      fields,
+      handleApplyToProject,
+      handleDelete,
+      handleRename,
+      handleSave,
+      isProjectDefault,
+      jsonError,
+      jsonText,
+      nameEditOpen,
+      nameEditValue,
+      onJsonTextChange: (value: string) => {
+        setJsonText(value);
+        setJsonError(null);
+      },
+      openRename: () => {
+        setNameEditValue(editingName);
+        setNameEditOpen(true);
+      },
+      preset,
+      previewUrl: preset
+        ? dependencies.stylePreviewUrl(style.id)
+        : style.preview_url,
+      setJsonEditorOpen,
+      setNameEditOpen,
+      setNameEditValue,
+      showJson,
+      style,
+      updateField,
+    };
+  };
+}
+
+export type StyleDetailController = ReturnType<
+  ReturnType<typeof createUseStyleDetailController>
+>;

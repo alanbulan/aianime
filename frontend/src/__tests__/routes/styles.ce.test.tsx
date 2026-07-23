@@ -2,12 +2,26 @@
 import type { ComponentType } from "react";
 import type { Style } from "@/modules/asset_world/public";
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import i18next from "i18next";
 import { I18nextProvider, initReactI18next } from "react-i18next";
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 
 const runtimeState = vi.hoisted(() => ({ isCeRuntime: true }));
 const toastErrorMock = vi.hoisted(() => vi.fn());
@@ -56,28 +70,19 @@ vi.mock("@tanstack/react-router", () => ({
   }),
 }));
 
-vi.mock("@/modules/asset_world/public", () => ({
-  stylePreviewUrl: (styleId: string) => `/api/v1/styles/${styleId}/preview`,
-  useStyles: () => ({
-    isLoading: false,
-    isRefetching: false,
-    refetch: vi.fn(),
-    data: {
-      ok: true,
-      data: styleQueryState.list,
-    },
-  }),
-  useStyleDetail: () => ({
-    isFetching: false,
-    data: {
-      ok: true,
-      data: styleQueryState.detail,
-    },
-  }),
-  useCreateStyle: () => ({ mutateAsync: styleMutationMocks.create, isPending: false }),
-  useDeleteStyle: () => ({ mutateAsync: styleMutationMocks.remove, isPending: false }),
-  useAnalyzeStyle: () => ({ mutateAsync: styleMutationMocks.analyze, isPending: false }),
-  useUploadStylePreview: () => ({ mutateAsync: styleMutationMocks.upload, isPending: false }),
+vi.mock("@/modules/asset_world/infrastructure/http-asset-world-gateway", () => ({
+  httpAssetWorldGateway: {
+    listStyles: vi.fn(async () => ({ ok: true, data: styleQueryState.list })),
+    getStyle: vi.fn(async () => ({ ok: true, data: styleQueryState.detail })),
+    createStyle: (...args: unknown[]) => styleMutationMocks.create(...args),
+    deleteStyle: (...args: unknown[]) => styleMutationMocks.remove(...args),
+    analyzeStyle: (...args: unknown[]) => styleMutationMocks.analyze(...args),
+    uploadStylePreview: (...args: unknown[]) => styleMutationMocks.upload(...args),
+  },
+}));
+
+vi.mock("@/lib/queries/generation-credit-cost", () => ({
+  useGenerationCreditCost: () => ({ data: undefined, error: null }),
 }));
 
 vi.mock("@/modules/project_workspace/public", () => ({
@@ -145,6 +150,8 @@ beforeAll(async () => {
     },
   });
 });
+
+afterEach(() => cleanup());
 
 function classNameContains(container: HTMLElement, token: string) {
   return Array.from(container.querySelectorAll("*")).some((node) =>
@@ -215,6 +222,11 @@ describe("styles page CE generation credit gating", () => {
       </QueryClientProvider>,
     );
 
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole("button", { name: "Create style" }),
+      ).toHaveLength(1),
+    );
     await user.click(screen.getByRole("button", { name: "Create style" }));
     await user.type(screen.getByPlaceholderText("cyberpunk_v1"), "custom");
     const fileInput = container.ownerDocument.querySelector<HTMLInputElement>(
@@ -251,6 +263,11 @@ describe("styles page CE generation credit gating", () => {
       </QueryClientProvider>,
     );
 
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole("button", { name: "Create style" }),
+      ).toHaveLength(1),
+    );
     await user.click(screen.getByRole("button", { name: "Create style" }));
     await user.type(screen.getByPlaceholderText("cyberpunk_v1"), "custom");
     const fileInput = container.ownerDocument.querySelector<HTMLInputElement>(
@@ -305,7 +322,12 @@ describe("styles page CE generation credit gating", () => {
       </QueryClientProvider>,
     );
 
-    const images = await screen.findAllByRole("img");
-    expect(images.filter((image) => image.getAttribute("src") === previewUrl)).toHaveLength(2);
+    await waitFor(() =>
+      expect(
+        screen
+          .getAllByRole("img")
+          .filter((image) => image.getAttribute("src") === previewUrl),
+      ).toHaveLength(2),
+    );
   });
 });
