@@ -873,7 +873,7 @@ export const UploadNode = memo(({ id, data, selected, width, height }: UploadNod
           }}
           onPointerDown={(event) => event.stopPropagation()}
           title={t("viewer.threeD.openDirectorWorldTitle")}
-          className="nodrag absolute bottom-2 right-2 z-[6] inline-flex h-7 items-center gap-1.5 rounded-md border border-sky-300/55 bg-[rgba(15,67,107,0.82)] px-2.5 text-[11px] font-medium text-sky-100 shadow-[0_0_0_1px_rgba(0,0,0,0.45)] transition-colors hover:bg-[rgba(22,90,140,0.9)] disabled:cursor-not-allowed disabled:opacity-60"
+          className="nodrag absolute bottom-2 right-2 z-[6] inline-flex h-7 items-center gap-1.5 rounded-md border border-primary/55 bg-primary px-2.5 text-[11px] font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {directorStageBusy ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />

@@ -251,7 +251,7 @@ type ChipButtonProps = {
 function ChipButton({ onClick, title, disabled, children, tone = 'default' }: ChipButtonProps) {
   const toneClass =
     tone === 'accent'
-      ? 'border-[rgb(var(--accent-rgb))]/35 bg-[rgb(var(--accent-rgb))]/14 text-[rgb(var(--accent-rgb))] hover:bg-[rgb(var(--accent-rgb))]/22'
+      ? 'border-primary/35 bg-primary/15 text-primary hover:bg-primary/20'
       : 'border-border bg-transparent text-muted-foreground hover:border-foreground/25 hover:bg-muted hover:text-foreground';
   return (
     <button
@@ -305,7 +305,7 @@ function PanoViewportButton({ onClick, title, children }: PanoToolbarButtonProps
         onClick();
       }}
       onPointerDown={(event) => event.stopPropagation()}
-      className="nodrag inline-flex h-7 w-7 items-center justify-center rounded-full text-white/70 transition-colors hover:text-white/92 active:text-white"
+      className="nodrag inline-flex h-7 w-7 items-center justify-center rounded-full text-media-foreground/70 transition-colors hover:text-media-foreground/90 active:text-media-foreground"
     >
       {children}
     </button>
@@ -1055,7 +1055,7 @@ export const Pano360ViewerNode = memo(({ id, data, selected, width, height }: Pa
         onTitleChange={(nextTitle) => updateNodeData(id, { displayName: nextTitle })}
       />
 
-      <div className="flex h-full w-full overflow-hidden rounded-[var(--node-radius)] bg-[#0b0d10]">
+      <div className="flex h-full w-full overflow-hidden rounded-[var(--node-radius)] bg-media">
         {/* 渲染区。激活时 PSV 独占拖拽 / 滚轮（nopan nowheel + stopPropagation），
             未激活时让事件透传，画布 pan / zoom / 选中节点正常工作。 */}
         <div className="relative flex-1 min-w-0">
@@ -1071,7 +1071,7 @@ export const Pano360ViewerNode = memo(({ id, data, selected, width, height }: Pa
               header 的 status 文本是唯一加载状态来源。 */}
           <div
             ref={viewerHostRef}
-            className={`pano360-viewer-host absolute inset-0 bg-black [&_.psv-loader-container]:!hidden [&_.psv-container]:[background:transparent_!important] ${isActive ? 'nopan nowheel' : ''}`}
+            className={`pano360-viewer-host absolute inset-0 bg-media [&_.psv-loader-container]:!hidden [&_.psv-container]:[background:transparent_!important] ${isActive ? 'nopan nowheel' : ''}`}
             onPointerDown={isActive ? (event) => event.stopPropagation() : undefined}
             onWheel={isActive ? (event) => event.stopPropagation() : undefined}
           />
@@ -1092,14 +1092,14 @@ export const Pano360ViewerNode = memo(({ id, data, selected, width, height }: Pa
 
           {/* 左上角实时数值 HUD */}
           {data.imageUrl ? (
-            <div className="pointer-events-none absolute left-3 top-3 rounded-full bg-black/34 px-2.5 py-1 text-[10px] tabular-nums text-white/74 backdrop-blur-sm">
+            <div className="pointer-events-none absolute left-3 top-3 rounded-full bg-media/35 px-2.5 py-1 text-[10px] tabular-nums text-media-foreground/75 backdrop-blur-sm">
               yaw {livePos.yawDeg.toFixed(1)}° · pitch {livePos.pitchDeg.toFixed(1)}° · fov {liveFov.toFixed(0)}°{focal ? ` · ${focal}mm` : ''}
             </div>
           ) : null}
 
           {data.imageUrl ? (
             <div
-              className="nodrag absolute bottom-3 left-3 flex items-center gap-1 rounded-full border border-white/[0.08] bg-black/28 px-1.5 py-1 backdrop-blur-sm"
+              className="nodrag absolute bottom-3 left-3 flex items-center gap-1 rounded-full border border-media-foreground/10 bg-media/30 px-1.5 py-1 backdrop-blur-sm"
               onPointerDown={(event) => event.stopPropagation()}
               onWheel={(event) => event.stopPropagation()}
             >
@@ -1136,7 +1136,7 @@ export const Pano360ViewerNode = memo(({ id, data, selected, width, height }: Pa
             }}
             onPointerDown={(event) => event.stopPropagation()}
             title={isPanelOpen ? '收起控制面板' : '展开控制面板'}
-            className="nodrag absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/[0.1] bg-black/35 text-white/72 backdrop-blur-sm transition-colors hover:bg-black/50 hover:text-white"
+            className="nodrag absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-media-foreground/10 bg-media/35 text-media-foreground/75 backdrop-blur-sm transition-colors hover:bg-media/50 hover:text-media-foreground"
           >
             {isPanelOpen ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </button>

@@ -1047,7 +1047,7 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
 
       <div className={`flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border ${CANVAS_NODE_INPUT_SURFACE_CLASS} ${CANVAS_NODE_INPUT_FRAME_CLASS}`}>
         <div className="relative min-h-[190px] flex-[1.25] border-b border-border bg-muted">
-          <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-full bg-black/65 px-2 py-1 text-[11px] text-white/80">
+          <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-full bg-media/65 px-2 py-1 text-[11px] text-media-foreground/80">
             <ImageIcon className="h-3.5 w-3.5" />
             图片节点 {incomingImageItems.length > 0 ? incomingImageItems.length : ''}
           </div>
@@ -1056,7 +1056,7 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
               {incomingImageItems.slice(0, 4).map((item, index) => (
                 <div
                   key={`${item.imageUrl}-${index}`}
-                  className="group relative min-h-0 overflow-hidden rounded-xl border border-border bg-[#0b0d10]"
+                  className="group relative min-h-0 overflow-hidden rounded-xl border border-border bg-media"
                 >
                   <CanvasNodeImage
                     src={item.displayUrl}
@@ -1066,20 +1066,20 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
                     className="h-full w-full object-contain"
                     draggable={false}
                   />
-                  <div className="absolute left-2 top-2 rounded-full border border-white/15 bg-black/65 px-2 py-0.5 text-[10px] text-white/85">
+                  <div className="absolute left-2 top-2 rounded-full border border-media-foreground/15 bg-media/65 px-2 py-0.5 text-[10px] text-media-foreground/85">
                     {item.label}
                   </div>
                   {item.sourceNodeId && (
                     <ReferenceDetachButton
                       nodeId={item.sourceNodeId}
                       onDetach={detachUpstream}
-                      className="nodrag absolute right-1.5 top-1.5 z-10 hidden h-5 w-5 items-center justify-center rounded-full bg-black/65 text-white transition-colors hover:bg-red-500 group-hover:flex"
+                      className="nodrag absolute right-1.5 top-1.5 z-10 hidden h-5 w-5 items-center justify-center rounded-full bg-media/65 text-media-foreground transition-colors hover:bg-destructive group-hover:flex"
                     />
                   )}
                 </div>
               ))}
               {incomingImageItems.length > 4 && (
-                <div className="absolute bottom-3 left-3 rounded-full border border-white/15 bg-black/65 px-2 py-0.5 text-[11px] text-white/85">
+                <div className="absolute bottom-3 left-3 rounded-full border border-media-foreground/15 bg-media/65 px-2 py-0.5 text-[11px] text-media-foreground/85">
                   +{incomingImageItems.length - 4} 张引用图
                 </div>
               )}
@@ -1159,7 +1159,7 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
                   type="button"
                   disabled={item.disabled}
                   className={`nodrag rounded-lg border px-3 py-1.5 text-xs transition ${active
-                      ? 'border-[rgb(var(--accent-rgb)/0.55)] bg-[rgb(var(--accent-rgb)/0.18)] text-primary'
+                      ? 'border-primary/55 bg-primary/20 text-primary'
                       : item.disabled
                         ? 'cursor-not-allowed border-border bg-muted/50 text-muted-foreground/45'
                         : 'border-border bg-muted text-muted-foreground hover:bg-accent hover:text-foreground'
@@ -1190,7 +1190,7 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
                   key={capability.id}
                   type="button"
                   className={`nodrag rounded-lg border px-3 py-1.5 text-xs transition ${active
-                      ? 'border-[rgb(var(--accent-rgb)/0.55)] bg-[rgb(var(--accent-rgb)/0.18)] text-primary'
+                      ? 'border-primary/55 bg-primary/20 text-primary'
                       : 'border-border bg-muted text-muted-foreground hover:bg-accent hover:text-foreground'
                     }`}
                   onMouseDown={(event) => event.stopPropagation()}
@@ -1327,7 +1327,7 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
                   className="h-full w-full object-cover"
                   draggable={false}
                 />
-                <span className="absolute right-0.5 top-0.5 rounded bg-black/65 px-1 text-[9px] text-white/85 group-hover:opacity-0">
+                <span className="absolute right-0.5 top-0.5 rounded bg-media/65 px-1 text-[9px] text-media-foreground/85 group-hover:opacity-0">
                   {index + 1}
                 </span>
                 {item.sourceNodeId && (
@@ -1473,7 +1473,7 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
         </UiButton>
       </div>
 
-      {error && <div className="mt-1 shrink-0 text-xs text-red-700 break-words [overflow-wrap:anywhere] dark:text-red-300">{error}</div>}
+      {error && <div className="mt-1 shrink-0 break-words text-xs text-destructive [overflow-wrap:anywhere]">{error}</div>}
 
       <Handle
         type="target"
@@ -1547,7 +1547,7 @@ function InlineCapabilityParamControl({
                 key={option.value}
                 type="button"
                 className={`rounded-full border px-2 py-1 text-[10px] transition ${active
-                    ? 'border-[rgb(var(--accent-rgb)/0.5)] bg-[rgb(var(--accent-rgb)/0.16)] text-primary'
+                    ? 'border-primary/50 bg-primary/15 text-primary'
                     : 'border-border bg-muted text-muted-foreground hover:bg-accent hover:text-foreground'
                   }`}
                 onMouseDown={(event) => event.stopPropagation()}

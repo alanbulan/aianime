@@ -512,7 +512,7 @@ export const GroupNode = memo(({ id, data, selected }: GroupNodeProps) => {
                 key={preview.nodeId}
                 // `nodrag` so the pointer gesture reorders the thumbnail instead of
                 // moving the whole group node.
-                className="nodrag nopan absolute cursor-grab overflow-hidden rounded-lg border border-white/[0.08] bg-black/35 active:cursor-grabbing"
+                className="nodrag nopan absolute cursor-grab overflow-hidden rounded-lg border border-media-foreground/10 bg-media/35 active:cursor-grabbing"
                 style={{
                   left: rect.x,
                   top: rect.y,
@@ -540,19 +540,19 @@ export const GroupNode = memo(({ id, data, selected }: GroupNodeProps) => {
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center text-white/25">
+                  <div className="flex h-full w-full items-center justify-center text-media-foreground/25">
                     <PlaceholderIcon className="h-7 w-7" />
                   </div>
                 )}
                 {preview.kind === 'video' && preview.imageUrl ? (
                   <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-black/45 backdrop-blur-sm">
-                      <Play className="h-4 w-4 fill-white text-white" />
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-media/45 backdrop-blur-sm">
+                      <Play className="h-4 w-4 fill-media-foreground text-media-foreground" />
                     </span>
                   </div>
                 ) : null}
                 {showIndex ? (
-                  <span className="pointer-events-none absolute left-1.5 top-1.5 flex h-5 min-w-5 items-center justify-center rounded bg-black/55 px-1 text-[11px] font-semibold text-white/90 backdrop-blur-sm">
+                  <span className="pointer-events-none absolute left-1.5 top-1.5 flex h-5 min-w-5 items-center justify-center rounded bg-media/55 px-1 text-[11px] font-semibold text-media-foreground/90 backdrop-blur-sm">
                     {(slotOf.get(index) ?? index) + 1}
                   </span>
                 ) : null}
@@ -563,7 +563,7 @@ export const GroupNode = memo(({ id, data, selected }: GroupNodeProps) => {
 
       {floating ? (
         <div
-          className="pointer-events-none absolute z-50 overflow-hidden rounded-lg border border-white/20 bg-black/35 shadow-[0_18px_40px_rgba(0,0,0,0.55)]"
+          className="pointer-events-none absolute z-50 overflow-hidden rounded-lg border border-media-foreground/20 bg-media/35 shadow-xl"
           style={{
             left: floating.left,
             top: floating.top,
@@ -579,7 +579,7 @@ export const GroupNode = memo(({ id, data, selected }: GroupNodeProps) => {
               className="h-full w-full object-cover"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-white/25">
+            <div className="flex h-full w-full items-center justify-center text-media-foreground/25">
               <ImageIcon className="h-7 w-7" />
             </div>
           )}
@@ -587,8 +587,8 @@ export const GroupNode = memo(({ id, data, selected }: GroupNodeProps) => {
       ) : null}
 
       {projectionIsStale ? (
-        <div className="projection-stale-banner pointer-events-none absolute left-3 top-3 z-20 inline-flex max-w-[calc(100%-1.5rem)] items-center gap-2 rounded-lg border border-amber-500/45 bg-amber-50/95 px-3 py-1.5 text-xs font-semibold text-amber-900 shadow-lg backdrop-blur-md dark:bg-amber-950/90 dark:text-amber-100">
-          <RefreshCw className="h-3.5 w-3.5 shrink-0 text-amber-700 dark:text-amber-200" />
+        <div className="projection-stale-banner pointer-events-none absolute left-3 top-3 z-20 inline-flex max-w-[calc(100%-1.5rem)] items-center gap-2 rounded-lg border border-warning/45 bg-popover/95 px-3 py-1.5 text-xs font-semibold text-warning shadow-lg backdrop-blur-md">
+          <RefreshCw className="h-3.5 w-3.5 shrink-0 text-warning" />
           <span className="truncate">{t('freezone.projections.staleBadge')}</span>
         </div>
       ) : null}

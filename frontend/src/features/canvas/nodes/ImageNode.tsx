@@ -193,8 +193,8 @@ export const ImageNode = memo(({ id, data, selected, type, width, height }: Imag
         group relative overflow-visible rounded-[var(--node-radius)] border ${CANVAS_NODE_PANEL_SURFACE_CLASS} p-0 transition-colors duration-150
         ${hasGenerationError
           ? (selected
-            ? 'border-red-400 shadow-[0_0_0_1px_rgba(248,113,113,0.42)]'
-            : 'border-red-500/70 bg-[rgba(127,29,29,0.12)] hover:border-red-400/80 dark:border-red-500/70 dark:hover:border-red-400/80')
+            ? 'border-destructive ring-1 ring-destructive/40'
+            : 'border-destructive/70 bg-destructive/10 hover:border-destructive/80')
           : canvasNodeFrameClass({ selected, mainline: hasMainlineContext })}
       `}
       style={{ width: resolvedWidth, height: resolvedHeight }}
@@ -214,16 +214,16 @@ export const ImageNode = memo(({ id, data, selected, type, width, height }: Imag
 
       {data.imageUrl && naturalSize ? (
         <div
-          className="absolute -top-7 right-1 z-20 flex items-center gap-1 rounded-md border border-white/10 bg-black/55 px-2 py-0.5 text-[11px] font-medium tabular-nums text-white/70 backdrop-blur-sm"
+          className="absolute -top-7 right-1 z-20 flex items-center gap-1 rounded-md border border-media-foreground/10 bg-media/55 px-2 py-0.5 text-[11px] font-medium tabular-nums text-media-foreground/70 backdrop-blur-sm"
           title={t('node.imageNode.resolution')}
         >
-          <ImageIcon className="h-3 w-3 text-white/45" />
+          <ImageIcon className="h-3 w-3 text-media-foreground/45" />
           {naturalSize.width}×{naturalSize.height}
         </div>
       ) : null}
 
       <div
-        className={`relative h-full w-full overflow-hidden rounded-[var(--node-radius)] ${hasGenerationError ? 'bg-[rgba(127,29,29,0.2)]' : 'bg-bg-dark'}`}
+        className={`relative h-full w-full overflow-hidden rounded-[var(--node-radius)] ${hasGenerationError ? 'bg-destructive/10' : 'bg-media'}`}
       >
         <DirectorControlBundleBadge bundle={(data as { director_control_bundle?: unknown }).director_control_bundle} />
         {data.imageUrl ? (
@@ -285,7 +285,7 @@ export const ImageNode = memo(({ id, data, selected, type, width, height }: Imag
               {generationError}
             </span>
             {generationErrorRequestId && (
-              <div className="flex w-full max-w-[240px] items-center gap-1 rounded bg-red-500/10 px-2 py-1">
+              <div className="flex w-full max-w-[240px] items-center gap-1 rounded bg-destructive/10 px-2 py-1">
                 <span className="shrink-0 text-[10px] text-destructive">请求ID</span>
                 <code
                   className="min-w-0 flex-1 truncate font-mono text-[10px] text-destructive"

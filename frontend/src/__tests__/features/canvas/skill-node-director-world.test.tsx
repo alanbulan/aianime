@@ -12,7 +12,10 @@ const mainlineFlagsSource = readFileSync(
   resolve(process.cwd(), "src/features/canvas/domain/mainlineNodeFlags.ts"),
   "utf8",
 );
-const canvasCss = readFileSync(resolve(process.cwd(), "src/index.css"), "utf8");
+const canvasCss = readFileSync(
+  resolve(process.cwd(), "src/app/styles/portal-overrides.css"),
+  "utf8",
+);
 
 describe("SkillNode director world entry", () => {
   it("keeps director world entry scoped to director-combined actions", () => {

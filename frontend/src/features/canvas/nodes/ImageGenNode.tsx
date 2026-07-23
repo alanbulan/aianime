@@ -1212,7 +1212,7 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
                   event.stopPropagation();
                   handleToggleAlbumExpanded();
                 }}
-                className="absolute cursor-pointer rounded-[var(--node-radius)] border border-white/[0.18] bg-gradient-to-b from-[#48484d] to-[#2d2d31] shadow-[0_4px_14px_rgba(0,0,0,0.4)]"
+                className="absolute cursor-pointer rounded-[var(--node-radius)] border border-border bg-gradient-to-b from-muted to-card shadow-lg"
                 style={{
                   // 仿 TapNow：后面的卡依次上下内缩、向右探出、微旋转——
                   // 露出的是一条条「卡片边」，而不是整块色板。
@@ -1255,10 +1255,10 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
           />
           {visiblePreviewUrl && naturalSize ? (
             <div
-              className="absolute -top-7 right-1 z-20 flex items-center gap-1 rounded-md border border-white/10 bg-black/55 px-2 py-0.5 text-[11px] font-medium tabular-nums text-white/70 backdrop-blur-sm"
+              className="absolute -top-7 right-1 z-20 flex items-center gap-1 rounded-md border border-media-foreground/10 bg-media/55 px-2 py-0.5 text-[11px] font-medium tabular-nums text-media-foreground/70 backdrop-blur-sm"
               title={t('node.imageNode.resolution')}
             >
-              <ImageIcon className="h-3 w-3 text-white/45" />
+              <ImageIcon className="h-3 w-3 text-media-foreground/45" />
               {naturalSize.width}×{naturalSize.height}
             </div>
           ) : null}
@@ -1360,7 +1360,7 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
                   handleClearReference();
                 }}
                 title="移除参考图"
-                className="nodrag absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75"
+                className="nodrag absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-media/55 text-media-foreground transition-colors hover:bg-media/75"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -1375,7 +1375,7 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
                 }}
                 onPointerDown={(event) => event.stopPropagation()}
                 title={`展开 ${albumTotalSlots} 张生成结果`}
-                className="nodrag group/albumpill absolute right-2 top-2 z-10 hidden items-center gap-1 rounded-full bg-black/65 px-2.5 py-1 text-[12px] font-medium tabular-nums text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-black/85 group-hover:inline-flex"
+                className="nodrag group/albumpill absolute right-2 top-2 z-10 hidden items-center gap-1 rounded-full bg-media/65 px-2.5 py-1 text-[12px] font-medium tabular-nums text-media-foreground shadow-lg backdrop-blur-sm transition-colors hover:bg-media/85 group-hover:inline-flex"
               >
                 {albumPendingCount > 0
                   ? `${albumUrls.length}/${albumPendingTotal}`
@@ -1403,13 +1403,13 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
               onClick={(event) => event.stopPropagation()}
             />
             <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between gap-2 p-2">
-              <span className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-[11px] text-white/90 backdrop-blur">
+              <span className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full bg-media/60 px-2.5 py-1 text-[11px] text-media-foreground/90 backdrop-blur">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 新图片生成中…
               </span>
               <button
                 type="button"
-                className="nodrag pointer-events-auto inline-flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[11px] text-white/90 backdrop-blur transition-colors hover:bg-black/75"
+                className="nodrag pointer-events-auto inline-flex items-center gap-1 rounded-full bg-media/60 px-2.5 py-1 text-[11px] text-media-foreground/90 backdrop-blur transition-colors hover:bg-media/75"
                 onClick={(event) => {
                   event.stopPropagation();
                   setHistoryPreviewUrl(null);
@@ -1568,7 +1568,7 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
                   }
                   handleSetAlbumMainImage(url);
                 }}
-                className={`group/albumcell relative cursor-pointer overflow-hidden rounded-[var(--node-radius)] border bg-[#0b0d10] shadow-[0_12px_32px_rgba(0,0,0,0.45)] transition-colors ${
+                className={`group/albumcell relative cursor-pointer overflow-hidden rounded-[var(--node-radius)] border bg-media shadow-xl transition-colors ${
                   isMain
                     ? 'border-primary/80 ring-2 ring-primary/40'
                     : 'border-border hover:border-foreground/35'
@@ -1588,7 +1588,7 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
                     handleApplyAlbumImageToCanvas(url);
                   }}
                   title="把这张图作为独立图片节点放到画布上"
-                  className="nodrag absolute left-2 top-2 z-10 hidden h-7 items-center gap-1 rounded-md bg-black/70 px-2.5 text-[12px] font-medium text-white backdrop-blur-sm transition-colors hover:bg-black/90 group-hover/albumcell:inline-flex"
+                  className="nodrag absolute left-2 top-2 z-10 hidden h-7 items-center gap-1 rounded-md bg-media/70 px-2.5 text-[12px] font-medium text-media-foreground backdrop-blur-sm transition-colors hover:bg-media/90 group-hover/albumcell:inline-flex"
                 >
                   <Upload className="h-3.5 w-3.5" />
                   应用到画布
@@ -1600,12 +1600,12 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
                     void handleDownloadAlbumImage(url, index);
                   }}
                   title="下载这张图片"
-                  className="nodrag absolute right-2 top-2 z-10 hidden h-7 w-7 items-center justify-center rounded-full bg-black/70 text-white backdrop-blur-sm transition-colors hover:bg-black/90 group-hover/albumcell:inline-flex"
+                  className="nodrag absolute right-2 top-2 z-10 hidden h-7 w-7 items-center justify-center rounded-full bg-media/70 text-media-foreground backdrop-blur-sm transition-colors hover:bg-media/90 group-hover/albumcell:inline-flex"
                 >
                   <Download className="h-3.5 w-3.5" />
                 </button>
                 {isMain && (
-                  <span className="absolute bottom-2 left-2 z-10 rounded-md bg-black/65 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
+                  <span className="absolute bottom-2 left-2 z-10 rounded-md bg-media/65 px-2 py-0.5 text-[11px] font-medium text-media-foreground backdrop-blur-sm">
                     主图
                   </span>
                 )}
@@ -1616,7 +1616,7 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
           {Array.from({ length: albumPendingCount }, (_, index) => (
             <div
               key={`album-pending-${index}`}
-              className="relative flex items-center justify-center overflow-hidden rounded-[var(--node-radius)] border border-border bg-[#0b0d10] shadow-[0_12px_32px_rgba(0,0,0,0.45)]"
+              className="relative flex items-center justify-center overflow-hidden rounded-[var(--node-radius)] border border-border bg-media shadow-xl"
               style={{ width: resolvedWidth, height: resolvedHeight }}
             >
               <div className="flex flex-col items-center gap-2 text-text-muted/70">
@@ -1646,7 +1646,7 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
                 event.stopPropagation();
                 setBgCropperOpen(true);
               }}
-              className="inline-flex h-6 items-center gap-1 rounded-md border border-amber-300/55 bg-[rgba(120,77,19,0.78)] px-2 text-[10px] font-medium text-amber-100 shadow-[0_0_0_1px_rgba(0,0,0,0.45)] hover:bg-[rgba(140,90,22,0.88)] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-6 items-center gap-1 rounded-md border border-warning/55 bg-warning px-2 text-[10px] font-medium text-warning-foreground shadow-sm hover:bg-warning/90 disabled:cursor-not-allowed disabled:opacity-50"
               title={`从 ${sourceRole === 'scene_master' ? 'scene_master' : 'scene_reverse_master'} 选一个 16:9 区域写入本 beat 的 selected_background.png — beat 工作台后续 sketch/render 会用这张做背景锚点`}
             >
               📐 截取背景
@@ -1660,10 +1660,10 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
                 event.stopPropagation();
                 void handleOpenDirectorStageInline();
               }}
-              className={`inline-flex h-6 items-center gap-1 rounded-md border border-sky-300/55 px-2 text-[10px] font-medium shadow-[0_0_0_1px_rgba(0,0,0,0.45)] ${
+              className={`inline-flex h-6 items-center gap-1 rounded-md border border-primary/55 px-2 text-[10px] font-medium shadow-sm ${
                 directorStageBusy
-                  ? 'cursor-not-allowed bg-sky-400/10 text-sky-100/60'
-                  : 'bg-[rgba(15,67,107,0.78)] text-sky-100 hover:bg-[rgba(22,90,140,0.88)]'
+                  ? 'cursor-not-allowed bg-primary/10 text-primary/60'
+                  : 'bg-primary text-primary-foreground hover:bg-primary/90'
               }`}
               title={t("viewer.threeD.openDirectorWorldTitle")}
             >

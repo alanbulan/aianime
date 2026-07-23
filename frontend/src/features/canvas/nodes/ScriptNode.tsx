@@ -650,7 +650,7 @@ export const ScriptNode = memo(({ id, data, selected, width, height }: ScriptNod
             {/* 已有结果时重新生成失败：表格上方横幅提示 + 重试，
                 否则失败只写进 data.generationError、界面毫无反应。 */}
             {data.generationError && !isGenerating && (
-              <div className="flex items-center gap-2 border-b border-red-500/25 bg-red-500/10 px-3 py-2">
+              <div className="flex items-center gap-2 border-b border-destructive/25 bg-destructive/10 px-3 py-2">
                 <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
                 <span
                   className="min-w-0 flex-1 truncate text-[12px] leading-5 text-destructive"
@@ -841,7 +841,7 @@ function ScriptResultTable({ rows, onCellCommit }: ScriptResultTableProps) {
           {rows.map((row, idx) => (
             <tr
               key={idx}
-              className={`align-top transition-colors hover:bg-[rgb(var(--accent-rgb)/0.06)] ${
+              className={`align-top transition-colors hover:bg-primary/5 ${
                 idx % 2 === 1 ? 'bg-muted' : ''
               }`}
             >
@@ -1052,7 +1052,7 @@ function ScriptOperationsPanel({
       </div>
 
       {data.generationError && !isGenerating && (
-        <div className="px-3 pb-1 text-[11px] text-red-700 break-words [overflow-wrap:anywhere] dark:text-red-300">{data.generationError}</div>
+        <div className="break-words px-3 pb-1 text-[11px] text-destructive [overflow-wrap:anywhere]">{data.generationError}</div>
       )}
 
       <div className="flex shrink-0 items-center justify-end gap-2 px-3 pb-3 pt-1">
@@ -1215,7 +1215,7 @@ function ScriptReferenceChip({ reference, index }: ScriptReferenceChipProps) {
         title={titleText}
       >
         {chipBody}
-        <span className="absolute right-1 top-1 flex h-3 min-w-3 items-center justify-center rounded-full bg-black/30 px-0.5 text-[9px] font-medium leading-none text-white/90 backdrop-blur-sm">
+        <span className="absolute right-1 top-1 flex h-3 min-w-3 items-center justify-center rounded-full bg-media/30 px-0.5 text-[9px] font-medium leading-none text-media-foreground/90 backdrop-blur-sm">
           {index + 1}
         </span>
       </button>

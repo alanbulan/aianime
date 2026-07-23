@@ -430,7 +430,7 @@ function MusicSettingToggle({
         }`}
       >
         <span
-          className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+          className={`inline-block h-3 w-3 transform rounded-full bg-card shadow-sm transition-transform ${
             checked ? 'translate-x-3.5' : 'translate-x-0.5'
           }`}
         />
@@ -587,9 +587,9 @@ function AudioVoiceSettingsPanel({ nodeId, data }: AudioVoiceSettingsPanelProps)
               onClick={handleCopyVoiceId}
               className={`flex h-4 w-4 shrink-0 items-center justify-center transition-colors ${
                 copyState === 'success'
-                  ? 'text-[rgb(var(--accent-rgb))]'
+                  ? 'text-success'
                   : copyState === 'error'
-                    ? 'text-red-700 dark:text-red-300'
+                    ? 'text-destructive'
                     : 'text-muted-foreground hover:text-foreground'
               }`}
             >

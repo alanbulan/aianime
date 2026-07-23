@@ -616,7 +616,7 @@ export const TextAnnotationNode = memo(({
                     <button
                       type="button"
                       title="取消引用此素材"
-                      className="nodrag absolute right-0 top-0 z-10 hidden h-4 w-4 items-center justify-center rounded-bl-md bg-black/75 text-white transition-colors hover:bg-red-500 group-hover:flex"
+                      className="nodrag absolute right-0 top-0 z-10 hidden h-4 w-4 items-center justify-center rounded-bl-md bg-media/75 text-media-foreground transition-colors hover:bg-destructive group-hover:flex"
                       onMouseDown={(event) => event.stopPropagation()}
                       onClick={(event) => {
                         event.stopPropagation();

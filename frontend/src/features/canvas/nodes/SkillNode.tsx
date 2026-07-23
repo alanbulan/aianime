@@ -1678,7 +1678,7 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
                       <span className="font-medium text-foreground">
                         {translateSkillInputLabel(input.role, input.label, t)}
                       </span>
-                      <span className={input.required ? 'text-amber-700 dark:text-amber-300' : 'text-text-muted'}>
+                      <span className={input.required ? 'text-warning' : 'text-text-muted'}>
                         {translateSkillRequirement(input.required, t)} · {translateSkillCardinality(input.cardinality, t)}
                       </span>
                     </div>
@@ -1714,13 +1714,13 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
             </div>
 
             {isSetSelectedBackgroundSkill && (
-              <div className="rounded-[8px] border border-amber-500/30 bg-amber-500/10 p-3">
+              <div className="rounded-[8px] border border-warning/30 bg-warning/10 p-3">
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <div className="text-xs font-semibold text-amber-800 dark:text-amber-200">
+                  <div className="text-xs font-semibold text-warning">
                     {t('viewer.threeD.currentBackgroundSource')}
                   </div>
                   {sourcePickerBusy && (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-700 dark:text-amber-300" />
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-warning" />
                   )}
                 </div>
                 <div className="mb-3 rounded-[8px] border border-border bg-muted p-2">
@@ -1817,7 +1817,7 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
                 {skill.outputs.map((output) => (
                   <span
                     key={output.role}
-                    className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-700 dark:text-emerald-300"
+                    className="rounded-full border border-success/30 bg-success/10 px-2 py-1 text-[11px] text-success"
                   >
                     {translateSkillOutputLabel(output.role, output.label, t)}
                   </span>

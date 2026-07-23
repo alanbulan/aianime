@@ -1287,7 +1287,7 @@ export const ThreeDWorldNode = memo(({ id, data, selected, width, height }: Thre
   return (
     <div
       className={`
-        director-world-node group relative overflow-visible rounded-[var(--node-radius)] border bg-[#0b0d10] p-0 transition-colors duration-150
+        director-world-node group relative overflow-visible rounded-[var(--node-radius)] border bg-media p-0 transition-colors duration-150
         ${canvasNodeFrameClass({ selected, mainline: hasMainlineContext })}
       `}
       style={containerStyle}
@@ -1307,7 +1307,7 @@ export const ThreeDWorldNode = memo(({ id, data, selected, width, height }: Thre
       {/* 预览区：PLY 就绪前显示 Saturn 占位（上游内容只以「引用」形式出现在 OpsPanel
           输入框上方）；PLY 就绪后用上游图片作为节点缩略图。生成中叠一层 spinner，
           风格对齐 ImageNode / VideoNode。Phase 2 接 inline 3D viewer 后再替换为内嵌渲染。 */}
-      <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-[var(--node-radius)] bg-[#0b0d10] text-white/55">
+      <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-[var(--node-radius)] bg-media text-media-foreground/55">
         {previewThumb ? (
           <img
             src={resolveImageDisplayUrl(previewThumb)}
@@ -1360,7 +1360,7 @@ export const ThreeDWorldNode = memo(({ id, data, selected, width, height }: Thre
             void handleOpenDirector();
           }}
           onPointerDown={(event) => event.stopPropagation()}
-          className="nodrag absolute right-2 top-2 z-20 inline-flex h-6 items-center rounded-full bg-black/45 px-2.5 text-[10px] font-medium text-white/90 backdrop-blur-md transition-colors hover:bg-black/60 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+          className="nodrag absolute right-2 top-2 z-20 inline-flex h-6 items-center rounded-full bg-media/45 px-2.5 text-[10px] font-medium text-media-foreground/90 backdrop-blur-md transition-colors hover:bg-media/60 hover:text-media-foreground disabled:cursor-not-allowed disabled:opacity-60"
           disabled={directorBusy}
           title={t('viewer.threeD.openDirectorWorldTitle')}
           aria-label={directorBusy ? t('viewer.threeD.openingDirectorWorld') : t('viewer.threeD.enterDirectorWorld')}

@@ -428,7 +428,7 @@ const FrameCard = memo(
 
           <button
             type="button"
-            className="absolute right-1 top-1 rounded bg-black/60 p-1 text-white opacity-0 transition-all duration-150 hover:bg-black/75 group-hover/frame:opacity-100"
+            className="absolute right-1 top-1 rounded bg-media/60 p-1 text-media-foreground opacity-0 transition-all duration-150 hover:bg-media/75 group-hover/frame:opacity-100"
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => {
               event.stopPropagation();
@@ -441,7 +441,7 @@ const FrameCard = memo(
 
           <button
             type="button"
-            className="absolute bottom-1 right-1 rounded bg-black/60 p-1 text-white opacity-0 transition-all duration-150 hover:bg-black/75 group-hover/frame:opacity-100"
+            className="absolute bottom-1 right-1 rounded bg-media/60 p-1 text-media-foreground opacity-0 transition-all duration-150 hover:bg-media/75 group-hover/frame:opacity-100"
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => {
               event.stopPropagation();
@@ -1267,7 +1267,7 @@ export const StoryboardNode = memo(({ id, data, selected, width, height }: Story
         </div>
       </div>
 
-      {exportError && <div className="mt-2 shrink-0 text-xs text-red-700 break-words [overflow-wrap:anywhere] dark:text-red-300">{exportError}</div>}
+      {exportError && <div className="mt-2 shrink-0 break-words text-xs text-destructive [overflow-wrap:anywhere]">{exportError}</div>}
 
       <Handle
         type="target"

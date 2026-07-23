@@ -141,7 +141,7 @@ export function VoiceSelectionModal({
 
   const content = (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-6 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-scrim p-6 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
@@ -212,7 +212,7 @@ function TabsRow({ tab, onChange }: TabsRowProps) {
             onClick={() => onChange(t.id)}
             className={`h-8 rounded-full px-3.5 text-[13px] font-medium transition-colors ${
               active
-                ? 'bg-[rgb(var(--accent-rgb))]/18 text-[rgb(var(--accent-rgb))]'
+                ? 'bg-primary/15 text-primary'
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground'
             }`}
           >
@@ -286,7 +286,7 @@ function LibraryTab({ currentRef, onPick, items, loading, error }: LibraryTabPro
           </CenteredHint>
         )}
         {!loading && error && (
-          <CenteredHint className="text-red-700 dark:text-red-300">{error}</CenteredHint>
+          <CenteredHint className="text-destructive">{error}</CenteredHint>
         )}
         {!loading && !error && total === 0 && (
           <CenteredHint>暂无可用音色</CenteredHint>
@@ -442,7 +442,7 @@ function MyVoicesTab({
           type="button"
           onClick={handleClone}
           disabled={uploading}
-          className="inline-flex h-9 items-center gap-1 rounded-full border border-[rgb(var(--accent-rgb))]/35 bg-[rgb(var(--accent-rgb))]/12 px-3.5 text-[13px] font-medium text-[rgb(var(--accent-rgb))] transition-colors hover:bg-[rgb(var(--accent-rgb))]/20 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-9 items-center gap-1 rounded-full border border-primary/35 bg-primary/10 px-3.5 text-[13px] font-medium text-primary transition-colors hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {uploading ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -472,7 +472,7 @@ function MyVoicesTab({
           </CenteredHint>
         )}
         {!loading && error && (
-          <CenteredHint className="text-red-700 dark:text-red-300">{error}</CenteredHint>
+          <CenteredHint className="text-destructive">{error}</CenteredHint>
         )}
         {!loading && !error && total === 0 && (
           <EmptyState onClone={handleClone} />
@@ -608,7 +608,7 @@ function VoiceRow({ title, language, gender, isActive, onSelect }: VoiceRowProps
         className={`ml-1 inline-flex h-7 shrink-0 items-center justify-center rounded-full px-4 text-[12px] font-medium transition-colors ${
           isActive
             ? 'cursor-default bg-muted text-muted-foreground'
-            : 'bg-[rgb(var(--accent-rgb))] text-bg-dark hover:bg-[rgb(var(--accent-rgb))]/90'
+            : 'bg-primary text-primary-foreground hover:bg-primary/90'
         }`}
       >
         {isActive ? '已选' : '选择'}
@@ -638,7 +638,7 @@ function EmptyState({ onClone }: { onClone: () => void }) {
       <button
         type="button"
         onClick={onClone}
-        className="inline-flex h-8 items-center gap-1 rounded-full border border-[rgb(var(--accent-rgb))]/35 bg-[rgb(var(--accent-rgb))]/12 px-3 text-[12px] font-medium text-[rgb(var(--accent-rgb))] transition-colors hover:bg-[rgb(var(--accent-rgb))]/20"
+        className="inline-flex h-8 items-center gap-1 rounded-full border border-primary/35 bg-primary/10 px-3 text-[12px] font-medium text-primary transition-colors hover:bg-primary/20"
       >
         <Plus className="h-3 w-3" />
         克隆新音色
@@ -724,7 +724,7 @@ function PaginationButton({
       disabled={disabled}
       className={`inline-flex h-7 min-w-[28px] items-center justify-center rounded-full px-1.5 text-[12px] transition-colors ${
         active
-          ? 'bg-[rgb(var(--accent-rgb))]/18 text-[rgb(var(--accent-rgb))]'
+          ? 'bg-primary/15 text-primary'
           : 'text-foreground/85 hover:bg-muted hover:text-foreground'
       } ${disabled ? 'cursor-not-allowed opacity-40 hover:bg-transparent' : ''}`}
     >
