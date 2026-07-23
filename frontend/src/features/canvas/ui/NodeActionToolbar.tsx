@@ -1118,7 +1118,7 @@ export const NodeActionToolbar = memo(
         {!isImageEdit && canHandleImage && (
           <UiChipButton
             key="image-ai-edit"
-            className={`h-9 ${TOOLBAR_BUTTON_RADIUS_CLASS} border-[rgb(var(--accent-rgb)/0.55)] bg-[rgb(var(--accent-rgb)/0.18)] px-3 text-sm text-primary hover:bg-[rgb(var(--accent-rgb)/0.28)]`}
+            className={`h-9 ${TOOLBAR_BUTTON_RADIUS_CLASS} border-primary/55 bg-primary/15 px-3 text-sm text-primary hover:bg-primary/25`}
             onClick={(event) => {
               event.stopPropagation();
               handleCreateAiEditNode();
@@ -1386,7 +1386,7 @@ export const NodeActionToolbar = memo(
                             key={action.key}
                             className={
                               isActive
-                                ? "gap-2 bg-[rgb(var(--accent-rgb)/0.18)] text-primary focus:bg-[rgb(var(--accent-rgb)/0.28)] focus:text-primary"
+                                ? "gap-2 bg-primary/15 text-primary focus:bg-primary/25 focus:text-primary"
                                 : TOOLBAR_MENU_ITEM_CLASS
                             }
                             onSelect={() => {
@@ -2305,7 +2305,7 @@ export const NodeActionToolbar = memo(
                       >
                         {groupColor ? (
                           <span
-                            className="h-3.5 w-3.5 rounded-full border border-white/40"
+                            className="h-3.5 w-3.5 rounded-full border border-border"
                             style={{ backgroundColor: groupColor }}
                           />
                         ) : (
@@ -2327,10 +2327,10 @@ export const NodeActionToolbar = memo(
                           title="无"
                           onClick={() => updateNodeData(nodeId, { backgroundColor: null })}
                           className={`relative flex h-6 w-6 items-center justify-center rounded-full border bg-transparent transition-transform hover:scale-110 ${
-                            groupColor ? 'border-white/25' : 'border-white ring-1 ring-white/60'
+                            groupColor ? 'border-border' : 'border-primary ring-1 ring-primary/50'
                           }`}
                         >
-                          <span className="absolute h-[1.5px] w-4 rotate-45 rounded bg-rose-400/80" />
+                          <span className="absolute h-[1.5px] w-4 rotate-45 rounded bg-destructive/80" />
                         </button>
                         {GROUP_COLOR_PRESETS.map((preset) => (
                           <button
@@ -2342,8 +2342,8 @@ export const NodeActionToolbar = memo(
                             }
                             className={`h-6 w-6 rounded-full border-2 transition-transform hover:scale-110 ${
                               groupColor === preset.value
-                                ? 'border-white'
-                                : 'border-transparent'
+                                ? 'border-primary ring-1 ring-primary/50'
+                                : 'border-border'
                             }`}
                             style={{ backgroundColor: preset.value }}
                           />

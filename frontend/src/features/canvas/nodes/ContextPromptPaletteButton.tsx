@@ -182,8 +182,8 @@ function PaletteSection({
           >
             <span
               className={entry.named
-                ? "h-3.5 w-3.5 shrink-0 rounded-full border border-white/45 shadow-[0_0_0_1px_rgba(0,0,0,0.45)]"
-                : "h-4 w-4 shrink-0 rounded-full border border-white/45 shadow-[0_0_0_1px_rgba(0,0,0,0.45)]"
+                ? "h-3.5 w-3.5 shrink-0 rounded-full border border-border shadow-sm"
+                : "h-4 w-4 shrink-0 rounded-full border border-border shadow-sm"
               }
               style={{ backgroundColor: entry.color }}
               aria-hidden="true"

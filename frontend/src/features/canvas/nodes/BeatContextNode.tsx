@@ -81,7 +81,7 @@ const NO_PROP_MARKER = "__NO_PROP__";
 const NONE_SENTINEL = "__none__";
 const MENTION_LIMIT = 8;
 const BEAT_CONTEXT_SELECT_CLASS =
-  "!h-8 !rounded-[6px] !border-border !bg-muted !px-2 !text-xs !text-foreground hover:!border-amber-500/45 focus-visible:!border-amber-500/55";
+  "!h-8 !rounded-[6px] !border-border !bg-muted !px-2 !text-xs !text-foreground hover:!border-warning/45 focus-visible:!border-warning/55";
 const BEAT_CONTEXT_SELECT_MENU_CLASS =
   "!z-[260] !border-border !bg-popover text-popover-foreground shadow-xl";
 
@@ -1111,7 +1111,7 @@ export const BeatContextNode = memo(
           type="source"
           position={Position.Right}
           id="source"
-          className="!h-2.5 !w-2.5 !border-0 !bg-amber-300"
+          className="!h-2.5 !w-2.5 !border-0 !bg-warning"
         />
 
         <NodeHeader
@@ -1132,13 +1132,13 @@ export const BeatContextNode = memo(
         />
 
         <div
-          className="flex h-full flex-col overflow-hidden rounded-[var(--node-radius)] border border-amber-500/35 bg-card text-foreground shadow-lg"
+          className="flex h-full flex-col overflow-hidden rounded-[var(--node-radius)] border border-warning/35 bg-card text-foreground shadow-lg"
           onWheel={stopCanvasWheel}
         >
           <div className="border-b border-border px-4 py-3">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-700 dark:text-amber-300">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-warning">
                   {t("node.beatContextNode.heading", { defaultValue: "镜头上下文" })}
                 </div>
                 {!isStandaloneContext && (
@@ -1242,7 +1242,7 @@ export const BeatContextNode = memo(
                     setMentionContext(null);
                     saveVisualDraft();
                   }}
-                  className="w-full resize-y rounded-[8px] border border-border bg-muted p-2 text-foreground outline-none focus:border-amber-500/55"
+                  className="w-full resize-y rounded-[8px] border border-border bg-muted p-2 text-foreground outline-none focus:border-warning/55"
                 />
                 {mentionContext && filteredMentionCandidates.length > 0 && (
                   <div
@@ -1261,7 +1261,7 @@ export const BeatContextNode = memo(
                           type="button"
                           className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors ${
                             index === mentionActiveIndex
-                              ? "bg-amber-500/15 text-amber-800 dark:text-amber-200"
+                              ? "bg-warning/15 text-warning"
                               : "text-popover-foreground/75 hover:bg-muted hover:text-popover-foreground"
                           }`}
                           onMouseEnter={() => setMentionActiveIndex(index)}
@@ -1445,7 +1445,7 @@ export const BeatContextNode = memo(
             {!isStandaloneContext && (
               <button
                 type="button"
-                className="shrink-0 rounded-full border border-amber-500/35 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-700 hover:bg-amber-500/20 dark:text-amber-200 disabled:cursor-not-allowed disabled:opacity-50"
+                className="shrink-0 rounded-full border border-warning/35 bg-warning/10 px-2 py-1 text-[10px] text-warning hover:bg-warning/20 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={isSyncing}
                 onClick={(event) => {
                   event.stopPropagation();
@@ -1542,7 +1542,7 @@ function SelectableTokenGroup({
           <span className="relative shrink-0">
             <span
               aria-label={`${colorLabel} ${id}`}
-              className="inline-flex h-4 w-4 cursor-pointer rounded-full border border-white/65 bg-black/20 align-middle shadow-[0_0_0_1px_rgba(0,0,0,0.35)] transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"
+              className="inline-flex h-4 w-4 cursor-pointer rounded-full border border-border bg-muted/20 align-middle shadow-sm transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
               style={{ backgroundColor: color ?? "transparent" }}
               onClick={(event) => {
                 event.stopPropagation();
@@ -1555,7 +1555,7 @@ function SelectableTokenGroup({
           color && (
             <span
               data-testid={`beat-context-color-${icon}-${id}`}
-              className="h-3 w-3 shrink-0 rounded-full border border-white/65 shadow-[0_0_0_1px_rgba(0,0,0,0.35)]"
+              className="h-3 w-3 shrink-0 rounded-full border border-border shadow-sm"
               style={{ backgroundColor: color }}
             />
           )
@@ -1652,7 +1652,7 @@ function PaletteSection({
             }}
           >
             <span
-              className="block h-full w-full rounded-full border border-white/55"
+              className="block h-full w-full rounded-full border border-border"
               style={{ backgroundColor: color }}
             />
           </span>

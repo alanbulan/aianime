@@ -174,7 +174,7 @@ export const StoryboardGroupToolbar = memo(({ node }: StoryboardGroupToolbarProp
         </UiChipButton>
 
         <UiChipButton
-          className={`${CHIP_CLASS} hover:!text-amber-800 dark:hover:!text-amber-200`}
+          className={`${CHIP_CLASS} hover:!bg-warning/10 hover:!text-warning`}
           onClick={() => ungroupNode(node.id)}
         >
           <Unlink2 className="h-4 w-4" />

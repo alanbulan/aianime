@@ -193,7 +193,7 @@ export const RotateEditorOverlay = memo(
         >
           <div className="relative" style={{ width: 0, height: 0 }}>
             <div
-              className="pointer-events-none absolute overflow-hidden rounded-md bg-bg-dark"
+              className="pointer-events-none absolute overflow-hidden rounded-md bg-media"
               style={{
                 width: nodeWidth,
                 height: nodeHeight,
@@ -233,7 +233,7 @@ export const RotateEditorOverlay = memo(
           >
             <button
               type="button"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-bg-dark/70 text-text-muted transition-colors hover:bg-bg-dark hover:text-text-dark disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
               onClick={() => onClose(false)}
               title={t('rotateEditor.exit')}
               disabled={isSaving}
@@ -245,7 +245,7 @@ export const RotateEditorOverlay = memo(
               className="flex items-center gap-2 px-2"
               title={t('rotateEditor.angleLabel')}
             >
-              <span className="text-[11px] uppercase tracking-wide text-text-dark/90">
+              <span className="text-[11px] uppercase tracking-wide text-foreground/90">
                 {t('rotateEditor.angleLabel')}
               </span>
               <div className="relative">
@@ -257,9 +257,9 @@ export const RotateEditorOverlay = memo(
                   value={Math.round(angle)}
                   disabled={isSaving}
                   onChange={(event) => handleAngleChange(Number(event.target.value))}
-                  className="h-7 w-16 rounded-md border border-border bg-bg-dark px-1.5 pr-5 text-center text-xs text-text-dark outline-none focus:border-primary disabled:opacity-50"
+                  className="h-7 w-16 rounded-md border border-border bg-card px-1.5 pr-5 text-center text-xs text-foreground outline-none focus:border-primary disabled:opacity-50"
                 />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-text-muted">
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                   {t('rotateEditor.angleSuffix')}
                 </span>
               </div>
@@ -267,7 +267,7 @@ export const RotateEditorOverlay = memo(
 
             <button
               type="button"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-text-dark transition-colors hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
               onClick={handleRotate90}
               title={t('rotateEditor.rotate90')}
               disabled={isSaving}
@@ -277,7 +277,7 @@ export const RotateEditorOverlay = memo(
 
             <button
               type="button"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-text-dark transition-colors hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
               onClick={() => setMirrorH((prev) => !prev)}
               title={t('rotateEditor.mirrorH')}
               disabled={isSaving}
@@ -287,7 +287,7 @@ export const RotateEditorOverlay = memo(
 
             <button
               type="button"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-text-dark transition-colors hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
               onClick={() => setMirrorV((prev) => !prev)}
               title={t('rotateEditor.mirrorV')}
               disabled={isSaving}
@@ -301,7 +301,7 @@ export const RotateEditorOverlay = memo(
                 void handleSave();
               }}
               disabled={isSaving}
-              className="flex h-8 items-center gap-1.5 rounded-full bg-white px-3 text-xs font-medium text-bg-dark transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
               title={t('rotateEditor.save')}
             >
               {isSaving ? (

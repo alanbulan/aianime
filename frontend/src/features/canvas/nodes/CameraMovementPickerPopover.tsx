@@ -47,7 +47,7 @@ export function CameraMovementPickerPopover({
       </div>
 
       {templates.length === 0 ? (
-        <div className="flex h-32 items-center justify-center text-[12px] text-text-muted">
+        <div className="flex h-32 items-center justify-center text-[12px] text-muted-foreground">
           {isLoading ? '加载中…' : '暂无可用运镜模板'}
         </div>
       ) : (
@@ -118,14 +118,14 @@ function PresetCard({ preset, isSelected, onSelect }: PresetCardProps) {
       onMouseLeave={() => setIsHovering(false)}
       className={`group/card relative flex flex-col overflow-hidden rounded-[8px] border text-left transition-colors ${
         isSelected
-          ? 'border-primary bg-[rgb(var(--accent-rgb)/0.14)] shadow-[0_0_0_1px_rgb(var(--accent-rgb)/0.45),0_0_18px_rgb(var(--accent-rgb)/0.18)]'
+          ? 'border-primary bg-primary/10 shadow-lg ring-1 ring-primary/45'
           : 'border-border bg-card hover:border-foreground/25 hover:bg-muted'
       }`}
     >
       {isSelected ? (
-        <span className="pointer-events-none absolute right-2 top-2 z-10 h-2 w-2 rounded-full bg-accent shadow-[0_0_10px_rgb(var(--accent-rgb)/0.75)]" />
+        <span className="pointer-events-none absolute right-2 top-2 z-10 h-2 w-2 rounded-full bg-primary shadow-md" />
       ) : null}
-      <div className="relative aspect-video w-full overflow-hidden bg-black/40">
+      <div className="relative aspect-video w-full overflow-hidden bg-media">
         {videoSrc ? (
           <video
             ref={videoRef}
@@ -137,7 +137,7 @@ function PresetCard({ preset, isSelected, onSelect }: PresetCardProps) {
             className="h-full w-full object-cover"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-[11px] text-text-muted">
+          <div className="flex h-full w-full items-center justify-center text-[11px] text-media-foreground/65">
             无预览
           </div>
         )}

@@ -441,7 +441,7 @@ function LightSpherePreview({
           style={{ zIndex: 1 }}
         >
           <div
-            className="overflow-hidden rounded-[8px] border border-white/26 shadow-[0_10px_30px_rgba(0,0,0,0.48)]"
+            className="overflow-hidden rounded-[8px] border border-media-foreground/25 shadow-xl"
             style={{
               width: cardPx.w,
               height: cardPx.h,
@@ -488,7 +488,7 @@ function LightSpherePreview({
           }}
         >
           <div
-            className="flex h-full w-full items-center justify-center rounded-full border border-white/50 bg-black/24 text-white/92 transition-transform duration-150 group-hover:scale-110 group-active:scale-95"
+            className="flex h-full w-full items-center justify-center rounded-full border border-media-foreground/50 bg-media/25 text-media-foreground/90 transition-transform duration-150 group-hover:scale-110 group-active:scale-95"
             style={{
               boxShadow: `0 0 18px rgba(255,255,255,0.2), 0 0 28px ${color}55`,
             }}
@@ -744,7 +744,7 @@ function ColorTemperatureSlider({
         style={{ background: KELVIN_GRADIENT }}
       >
         <div
-          className="pointer-events-none absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white shadow"
+          className="pointer-events-none absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border shadow"
           style={{ left: `${percent}%`, backgroundColor: kelvinToHex(valueKelvin) }}
         />
       </div>
@@ -842,12 +842,12 @@ function Toggle({ checked, onChange }: ToggleProps) {
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-rgb))] focus-visible:ring-offset-2 focus-visible:ring-offset-surface-dark ${
-        checked ? "bg-[rgb(var(--accent-rgb))]" : "bg-muted-foreground/35"
+      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+        checked ? "bg-primary" : "bg-muted-foreground/35"
       }`}
     >
       <span
-        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform ${
+        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow-md transition-transform ${
           checked ? "translate-x-[18px]" : "translate-x-0.5"
         }`}
       />
