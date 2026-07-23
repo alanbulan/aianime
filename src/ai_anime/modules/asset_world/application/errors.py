@@ -21,6 +21,10 @@ class InvalidCharacterInput(CharacterCatalogRejected):
     """Character input is not valid for the requested operation."""
 
 
+class CharacterProjectContextRequired(CharacterCatalogRejected):
+    """A character task requires a resolved project context."""
+
+
 class CharacterAssetHistoryRejected(CharacterCatalogRejected):
     """A character asset-history request is invalid."""
 

@@ -13,6 +13,9 @@ from ai_anime.modules.asset_world.application.character_identity import (
 from ai_anime.modules.asset_world.application.character_images import (
     CharacterImageUseCases,
 )
+from ai_anime.modules.asset_world.application.character_tasks import (
+    CharacterTaskUseCases,
+)
 from ai_anime.modules.asset_world.application.character_voice import (
     CharacterVoiceUseCases,
     character_voice_fields,
@@ -115,6 +118,12 @@ def character_image_use_cases() -> CharacterImageUseCases:
     return build()
 
 
+def character_task_use_cases() -> CharacterTaskUseCases:
+    from ai_anime.modules.asset_world.composition import character_task_use_cases as build
+
+    return build()
+
+
 def character_voice_use_cases() -> CharacterVoiceUseCases:
     from ai_anime.modules.asset_world.composition import character_voice_use_cases as build
 
@@ -148,6 +157,7 @@ __all__ = [
     "CharacterIdentityUseCases",
     "CharacterImageUseCases",
     "CharacterNotFound",
+    "CharacterTaskUseCases",
     "CharacterVoiceNotFound",
     "CharacterVoiceRejected",
     "CharacterVoiceUseCases",
@@ -178,6 +188,7 @@ __all__ = [
     "character_catalog_use_cases",
     "character_identity_use_cases",
     "character_image_use_cases",
+    "character_task_use_cases",
     "character_voice_fields",
     "character_voice_use_cases",
     "clear_character_voice_file",

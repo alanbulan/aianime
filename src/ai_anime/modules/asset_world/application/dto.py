@@ -1,4 +1,4 @@
-"""Commands and results owned by Asset & World style use cases."""
+"""Commands and results owned by Asset & World use cases."""
 
 from __future__ import annotations
 
@@ -62,6 +62,97 @@ class CharacterAssetHistoryEntry:
     path: Path
     created_at: str
     bytes: int
+
+
+@dataclass(frozen=True)
+class BuildCharactersTask:
+    output_dir: str | Path
+
+    def backend_payload(self) -> dict[str, Any]:
+        return {"output_dir": str(self.output_dir)}
+
+
+@dataclass(frozen=True)
+class CharacterImageGenerationTask:
+    mode: str
+    task_type: str
+    character_name: str
+    style: str
+    model: str
+    scope: str
+    output_dir: str | Path
+    identity_id: str = ""
+    identity_name: str = ""
+
+    def backend_payload(self) -> dict[str, Any]:
+        payload = {
+            "mode": self.mode,
+            "task_type": self.task_type,
+            "character_name": self.character_name,
+        }
+        if self.identity_id or self.identity_name:
+            payload.update(
+                identity_id=self.identity_id,
+                identity_name=self.identity_name,
+            )
+        payload.update(
+            style=self.style,
+            model=self.model,
+            scope=self.scope,
+            output_dir=str(self.output_dir),
+        )
+        return payload
+
+
+@dataclass(frozen=True)
+class AssetTaskQueueReceipt:
+    task_id: str
+    task_key: str
+    backend: str
+    queue: str | None
+
+
+@dataclass(frozen=True)
+class ScheduledAssetTask:
+    task_type: str
+    task_id: str
+    task_key: str
+    backend: str
+    queue: str | None
+    message: str
+    scope: str | None = None
+
+    @classmethod
+    def from_receipt(
+        cls,
+        receipt: AssetTaskQueueReceipt,
+        *,
+        task_type: str,
+        message: str,
+        scope: str | None = None,
+    ) -> ScheduledAssetTask:
+        return cls(
+            task_type=task_type,
+            task_id=receipt.task_id,
+            task_key=receipt.task_key,
+            backend=receipt.backend,
+            queue=receipt.queue,
+            message=message,
+            scope=scope,
+        )
+
+    def as_dict(self) -> dict[str, Any]:
+        data = {
+            "task_type": self.task_type,
+            "task_id": self.task_id,
+            "task_key": self.task_key,
+            "backend": self.backend,
+            "queue": self.queue,
+            "message": self.message,
+        }
+        if self.scope is not None:
+            data["scope"] = self.scope
+        return data
 
 
 @dataclass(frozen=True)

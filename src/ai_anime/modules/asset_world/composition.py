@@ -12,6 +12,9 @@ from ai_anime.modules.asset_world.application.character_identity import (
 from ai_anime.modules.asset_world.application.character_images import (
     CharacterImageUseCases,
 )
+from ai_anime.modules.asset_world.application.character_tasks import (
+    CharacterTaskUseCases,
+)
 from ai_anime.modules.asset_world.application.character_voice import (
     CharacterVoiceUseCases,
 )
@@ -36,6 +39,9 @@ from ai_anime.modules.asset_world.infrastructure.character_identity import (
 )
 from ai_anime.modules.asset_world.infrastructure.character_image_storage import (
     LocalCharacterImageFiles,
+)
+from ai_anime.modules.asset_world.infrastructure.character_task_scheduler import (
+    TaskBackendCharacterTaskScheduler,
 )
 from ai_anime.modules.asset_world.infrastructure.style_catalog import StyleService
 from ai_anime.modules.asset_world.infrastructure.style_generation import (
@@ -68,6 +74,12 @@ def character_identity_use_cases() -> CharacterIdentityUseCases:
 
 def character_image_use_cases() -> CharacterImageUseCases:
     return CharacterImageUseCases(LocalCharacterImageFiles())
+
+
+def character_task_use_cases() -> CharacterTaskUseCases:
+    from ai_anime import ports
+
+    return CharacterTaskUseCases(TaskBackendCharacterTaskScheduler(ports.get_task_backend))
 
 
 def character_voice_use_cases() -> CharacterVoiceUseCases:

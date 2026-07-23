@@ -6,12 +6,16 @@ from pathlib import Path
 from typing import Any, Mapping, Protocol, Sequence
 
 from ai_anime.modules.asset_world.application.dto import (
+    AssetTaskQueueReceipt,
+    BuildCharactersTask,
     CharacterAssetHistoryEntry,
     CharacterAssetTarget,
+    CharacterImageGenerationTask,
     CreateCharacterCommand,
     CreateIdentityCommand,
     IdentityAssetPaths,
 )
+from ai_anime.modules.project_workspace.public import ProjectContext
 
 
 class CharacterAssetHistoryRepository(Protocol):
@@ -108,6 +112,24 @@ class CharacterImageFiles(Protocol):
         identity_name: str,
         content: bytes,
     ) -> Path: ...
+
+
+class CharacterTaskRepository(Protocol):
+    def get_character(self, name: str) -> Any | None: ...
+
+
+class CharacterTaskScheduler(Protocol):
+    async def enqueue_build_characters(
+        self,
+        task_context: ProjectContext,
+        task: BuildCharactersTask,
+    ) -> AssetTaskQueueReceipt: ...
+
+    async def enqueue_character_image(
+        self,
+        task_context: ProjectContext,
+        task: CharacterImageGenerationTask,
+    ) -> AssetTaskQueueReceipt: ...
 
 
 class CharacterCatalogRepository(Protocol):

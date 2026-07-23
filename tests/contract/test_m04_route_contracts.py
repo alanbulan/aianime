@@ -166,7 +166,7 @@ class _FakeTaskBackend:
 
 @pytest.fixture()
 def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    from ai_anime import project_config
+    from ai_anime import ports as app_ports, project_config
     from ai_anime.api import auth as api_auth
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.routes import characters, generation, projects, props, styles
@@ -349,7 +349,8 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
     def build(backend: str = "inline"):
         task_backend = _FakeTaskBackend(backend)
-        for module in (characters, props, generation):
+        monkeypatch.setattr(app_ports, "get_task_backend", lambda tb=task_backend: tb)
+        for module in (props, generation):
             monkeypatch.setattr(module, "get_task_backend", lambda tb=task_backend: tb)
         app = FastAPI()
         app.include_router(characters.router, prefix="/api/v1")

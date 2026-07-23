@@ -403,6 +403,19 @@ def test_asset_world_character_image_routes_delegate_to_application() -> None:
         assert legacy_implementation not in source
 
 
+def test_asset_world_character_task_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "characters.py"
+    source = route.read_text(encoding="utf-8")
+
+    assert "character_task_use_cases" in source
+    for legacy_implementation in (
+        "get_task_backend",
+        "project_task_state_key",
+        "enqueue_project_task(",
+    ):
+        assert legacy_implementation not in source
+
+
 def test_narrative_script_route_remains_an_http_adapter() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "scripts.py"
     imported_modules = _imports(route)

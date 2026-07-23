@@ -20,8 +20,6 @@ from ai_anime.api.deps import (
     resolve_project_scope,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.ports import get_task_backend
-from ai_anime.task_identity import project_task_state_key
 from ai_anime.api.schemas import (
     AssetImageSourceSelectionRequest,
     PortraitGenRequest,
@@ -65,6 +63,7 @@ from ai_anime.modules.asset_world.public import (
     character_catalog_use_cases,
     character_identity_use_cases,
     character_image_use_cases,
+    character_task_use_cases,
     character_voice_use_cases,
     find_character_identity,
     safe_character_asset_name,
@@ -214,25 +213,14 @@ async def build_characters(project: str, user: dict = Depends(get_api_user)):
     resolved = await resolve_project_scope(project, user, required_role="editor")
     ctx = resolved.ctx
     output_dir = resolved.output_dir
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type="build_characters",
-            queue_kind="default",
-            episode=0,
-            payload={"output_dir": output_dir},
+    try:
+        scheduled = await character_task_use_cases().schedule_build_characters(
+            task_context=ctx,
+            output_dir=output_dir,
         )
-        return {
-            "ok": True,
-            "task_type": "build_characters",
-            "task_id": queued.task_state.task_id,
-            "task_key": project_task_state_key("build_characters", ctx.project_id, 0),
-            "backend": queued.backend,
-            "queue": queued.queue,
-            "message": "角色补充任务已进入队列",
-        }
-
-    return {"ok": False, "error": "角色补充需要 project context"}
+    except CharacterCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, **scheduled.as_dict()}
 
 
 @router.get("/projects/{project}/character-image-selection")
@@ -687,40 +675,19 @@ async def generate_single_portrait_async(
     )
 
     config = load_project_config(username, project_name)
-    scope = f"character:{name}:portrait"
     style = body.style or config.get("visual_style", "chinese_period_drama")
     model = _resolve_character_image_model(username, project_name, body.model)
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type="character_portrait",
-            queue_kind="default",
-            episode=0,
-            scope=scope,
-            payload={
-                "mode": "portrait",
-                "task_type": "character_portrait",
-                "character_name": name,
-                "style": style,
-                "model": model,
-                "scope": scope,
-                "output_dir": str(project_dir),
-            },
+    try:
+        scheduled = await character_task_use_cases().schedule_character_portrait(
+            task_context=ctx,
+            project_dir=project_dir,
+            character_name=name,
+            style=style,
+            model=model,
         )
-        return {
-            "ok": True,
-            "task_type": "character_portrait",
-            "scope": scope,
-            "task_id": queued.task_state.task_id,
-            "task_key": project_task_state_key(
-                "character_portrait", ctx.project_id, 0, scope=scope
-            ),
-            "backend": queued.backend,
-            "queue": queued.queue,
-            "message": f"肖像生成任务已进入队列: {name}",
-        }
-
-    return {"ok": False, "error": "肖像生成需要 project context"}
+    except CharacterCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, **scheduled.as_dict()}
 
 
 @router.post("/projects/{project}/characters/{name}/portrait")
@@ -934,50 +901,22 @@ async def generate_identity_portrait_async(
     ctx, username, project_name, project_dir, _output_dir, store = await _resolve_character_project(
         project, user
     )
-    character = store.get_character(name)
-    if character is None:
-        return {"ok": False, "error": f"Character '{name}' not found"}
-    identity = find_character_identity(character, identity_id)
-    if identity is None:
-        return {"ok": False, "error": f"Identity '{identity_id}' not found"}
-
     config = load_project_config(username, project_name)
-    scope = f"character:{name}:identity_portrait:{identity.identity_name}"
     style = body.style or config.get("visual_style", "chinese_period_drama")
     model = _resolve_character_image_model(username, project_name, body.model)
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type="character_portrait",
-            queue_kind="default",
-            episode=0,
-            scope=scope,
-            payload={
-                "mode": "identity_portrait",
-                "task_type": "character_portrait",
-                "character_name": name,
-                "identity_id": identity_id,
-                "identity_name": identity.identity_name,
-                "style": style,
-                "model": model,
-                "scope": scope,
-                "output_dir": str(project_dir),
-            },
+    try:
+        scheduled = await character_task_use_cases().schedule_identity_portrait(
+            repository=store,
+            task_context=ctx,
+            project_dir=project_dir,
+            character_name=name,
+            identity_id=identity_id,
+            style=style,
+            model=model,
         )
-        return {
-            "ok": True,
-            "task_type": "character_portrait",
-            "scope": scope,
-            "task_id": queued.task_state.task_id,
-            "task_key": project_task_state_key(
-                "character_portrait", ctx.project_id, 0, scope=scope
-            ),
-            "backend": queued.backend,
-            "queue": queued.queue,
-            "message": f"身份 Portrait 生成任务已进入队列: {identity.identity_name}",
-        }
-
-    return {"ok": False, "error": "身份 Portrait 生成需要 project context"}
+    except CharacterCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, **scheduled.as_dict()}
 
 
 @router.post("/projects/{project}/characters/{name}/identities/{identity_id}/portrait/generate")
@@ -1054,48 +993,22 @@ async def generate_identity_image_async(
     ctx, username, project_name, project_dir, _output_dir, store = (
         await _resolve_character_project(project, user)
     )
-    character = store.get_character(name)
-    if character is None:
-        return {"ok": False, "error": f"Character '{name}' not found"}
-    identity = find_character_identity(character, identity_id)
-    if identity is None:
-        return {"ok": False, "error": f"Identity '{identity_id}' not found"}
-
     config = load_project_config(username, project_name)
-    scope = f"character:{name}:identity:{identity.identity_name}"
     style = body.style or config.get("visual_style", "chinese_period_drama")
     model = _resolve_character_image_model(username, project_name, body.model)
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type="identity_image",
-            queue_kind="default",
-            episode=0,
-            scope=scope,
-            payload={
-                "mode": "identity_image",
-                "task_type": "identity_image",
-                "character_name": name,
-                "identity_id": identity_id,
-                "identity_name": identity.identity_name,
-                "style": style,
-                "model": model,
-                "scope": scope,
-                "output_dir": str(project_dir),
-            },
+    try:
+        scheduled = await character_task_use_cases().schedule_identity_image(
+            repository=store,
+            task_context=ctx,
+            project_dir=project_dir,
+            character_name=name,
+            identity_id=identity_id,
+            style=style,
+            model=model,
         )
-        return {
-            "ok": True,
-            "task_type": "identity_image",
-            "scope": scope,
-            "task_id": queued.task_state.task_id,
-            "task_key": project_task_state_key("identity_image", ctx.project_id, 0, scope=scope),
-            "backend": queued.backend,
-            "queue": queued.queue,
-            "message": f"身份图生成任务已进入队列: {identity.identity_name}",
-        }
-
-    return {"ok": False, "error": "身份图生成需要 project context"}
+    except CharacterCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, **scheduled.as_dict()}
 
 
 @router.get("/projects/{project}/characters/{name}/identities/{identity_id}/attempts")
