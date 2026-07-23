@@ -738,7 +738,7 @@ export const EraseOverlay = memo(({ node, imageSource, onClose }: EraseOverlayPr
           />
 
           {error && (
-            <span className="max-w-[160px] truncate px-1 text-xs text-red-700 dark:text-red-300">
+            <span className="max-w-[160px] truncate px-1 text-xs text-destructive">
               {error}
             </span>
           )}
@@ -905,7 +905,7 @@ function EraseDropdown<T extends string | number>({
                 }}
                 className={`flex w-full items-center rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
                   isActive
-                    ? 'bg-[rgb(var(--accent-rgb))] text-white'
+                    ? 'bg-primary text-primary-foreground'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >

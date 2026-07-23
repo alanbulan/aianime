@@ -437,10 +437,10 @@ export function NodeGenerationHistory({
               }${active ? ' · 当前' : ''}`}
               className={`group relative h-14 w-14 shrink-0 overflow-hidden rounded-[8px] border transition ${
                 active
-                  ? 'border-[rgb(var(--accent-rgb))]'
+                  ? 'border-primary'
                   : completed
-                    ? 'border-border hover:border-[rgb(var(--accent-rgb))]'
-                    : 'border-rose-500/40'
+                    ? 'border-border hover:border-primary'
+                    : 'border-destructive/40'
               } ${restorable ? 'cursor-pointer' : 'cursor-default'}`}
             >
               {isImage ? (
@@ -471,8 +471,8 @@ export function NodeGenerationHistory({
                 </span>
               )}
               {!completed && (
-                <span className="absolute right-0.5 top-0.5 rounded-full bg-rose-500/90 p-0.5">
-                  <AlertCircle className="h-2.5 w-2.5 text-white" />
+                <span className="absolute right-0.5 top-0.5 rounded-full bg-destructive/90 p-0.5">
+                  <AlertCircle className="h-2.5 w-2.5 text-destructive-foreground" />
                 </span>
               )}
               {active && (
@@ -480,15 +480,15 @@ export function NodeGenerationHistory({
                 // is the one currently shown on the host node. The
                 // surface-dark ring fakes a small "cutout" against the
                 // thumbnail so the badge reads cleanly over any image.
-                <span className="pointer-events-none absolute right-1 top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[rgb(var(--accent-rgb))] shadow-sm ring-1 ring-surface-dark">
-                  <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />
+                <span className="pointer-events-none absolute right-1 top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary shadow-sm ring-1 ring-surface-dark">
+                  <Check className="h-2.5 w-2.5 text-primary-foreground" strokeWidth={3} />
                 </span>
               )}
               <span
                 className={`pointer-events-none absolute inset-x-0 bottom-0 truncate px-1 py-0.5 text-[9px] leading-none ${
                   active
-                    ? 'bg-[rgb(var(--accent-rgb)/0.85)] text-white'
-                    : 'bg-black/55 text-white/80'
+                    ? 'bg-primary/85 text-primary-foreground'
+                    : 'bg-media/55 text-media-foreground/80'
                 }`}
               >
                 {formatRelativeTime(record.recorded_at)}

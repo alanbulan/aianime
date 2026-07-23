@@ -248,9 +248,9 @@ export function BackgroundCropperDialog({
           </div>
         )}
         {displaySrc && (
-          <div className="flex items-center justify-center rounded-md border border-border bg-[#0b0d10] p-2">
+          <div className="flex items-center justify-center rounded-md border border-border bg-media p-2">
             <ReactCrop
-              className="[&_.ReactCrop__crop-selection]:!border-2 [&_.ReactCrop__crop-selection]:!border-cyan-200 [&_.ReactCrop__crop-selection]:shadow-[inset_0_0_0_1px_rgba(0,0,0,0.75),0_0_0_1px_rgba(0,0,0,0.75)]"
+              className="[&_.ReactCrop__crop-selection]:!border-2 [&_.ReactCrop__crop-selection]:!border-primary [&_.ReactCrop__crop-selection]:shadow-[inset_0_0_0_1px_rgba(0,0,0,0.75),0_0_0_1px_rgba(0,0,0,0.75)]"
               crop={crop}
               onChange={(_, percentCrop) => setCrop(percentCrop)}
               onComplete={(c) => setCompletedCrop(c)}

@@ -508,7 +508,7 @@ export function AssetLibraryModal({
 
   return createPortal(
     <div className="fixed inset-0 z-[300] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-scrim backdrop-blur-sm" onClick={onClose} />
       <div
         className={ASSET_LIBRARY_MODAL_CLASS}
         onClick={(event) => event.stopPropagation()}
@@ -667,17 +667,17 @@ export function AssetLibraryModal({
                     )}
                   </div>
                 )}
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/45">
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-media/45">
                   {p.status === 'uploading' ? (
                     <>
-                      <Loader2 className="h-5 w-5 animate-spin text-white" />
-                      <div className="text-[11px] text-white/90">上传中…</div>
+                      <Loader2 className="h-5 w-5 animate-spin text-media-foreground" />
+                      <div className="text-[11px] text-media-foreground/90">上传中…</div>
                     </>
                   ) : (
                     <>
-                      <div className="text-[11px] text-red-200">上传失败</div>
+                      <div className="text-[11px] text-destructive">上传失败</div>
                       {p.error && (
-                        <div className="px-2 text-center text-[10px] text-red-100/90 line-clamp-2">
+                        <div className="line-clamp-2 px-2 text-center text-[10px] text-destructive">
                           {p.error}
                         </div>
                       )}
@@ -688,7 +688,7 @@ export function AssetLibraryModal({
                   <button
                     type="button"
                     onClick={() => removePending(p.id)}
-                    className="absolute right-2 bottom-2 inline-flex h-7 w-7 items-center justify-center rounded-md bg-black/55 text-white transition-colors hover:bg-black/75"
+                    className="absolute bottom-2 right-2 inline-flex h-7 w-7 items-center justify-center rounded-md bg-media/55 text-media-foreground transition-colors hover:bg-media/75"
                     title="移除"
                   >
                     <X className="h-3.5 w-3.5" />
@@ -763,7 +763,7 @@ export function AssetLibraryModal({
                     className={`absolute left-2 top-2 inline-flex h-5 w-5 items-center justify-center rounded-full border transition-colors ${
                       selected
                         ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-white/70 bg-black/35 text-transparent hover:border-white'
+                        : 'border-media-foreground/70 bg-media/35 text-transparent hover:border-media-foreground'
                     } ${disabledSelect ? 'cursor-not-allowed opacity-40' : ''}`}
                   >
                     <Check className="h-3 w-3" strokeWidth={3} />
@@ -771,12 +771,12 @@ export function AssetLibraryModal({
 
                   {/* Source badge top-right */}
                   {entry.source !== 'upload' && (
-                    <span className="pointer-events-none absolute right-2 top-2 rounded bg-black/55 px-1.5 py-0.5 text-[10px] text-white/90">
+                    <span className="pointer-events-none absolute right-2 top-2 rounded bg-media/55 px-1.5 py-0.5 text-[10px] text-media-foreground/90">
                       {SOURCE_LABEL[entry.source]}
                     </span>
                   )}
 
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-3 py-2 text-xs text-white">
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-media/80 to-transparent px-3 py-2 text-xs text-media-foreground">
                     <div className="truncate">{entry.name || '(未命名)'}</div>
                   </div>
                   {/* 只有本地上传的条目可删；主线同步来的条目删了也会在下次打开自动同步时
@@ -789,7 +789,7 @@ export function AssetLibraryModal({
                         void handleDeleteEntry(entry);
                       }}
                       disabled={!entry.id || isDeleting}
-                      className="absolute right-2 bottom-2 inline-flex h-7 w-7 items-center justify-center rounded-md bg-black/60 text-white opacity-0 transition-[opacity,background-color] hover:bg-black/80 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="absolute bottom-2 right-2 inline-flex h-7 w-7 items-center justify-center rounded-md bg-media/60 text-media-foreground opacity-0 transition-[opacity,background-color] hover:bg-media/80 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40"
                       title={entry.id ? '删除' : '该条目缺少 id，无法删除'}
                     >
                       {isDeleting ? (

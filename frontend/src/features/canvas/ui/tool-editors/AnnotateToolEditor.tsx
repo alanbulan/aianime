@@ -1302,7 +1302,7 @@ export function AnnotateToolEditor({ options, onOptionsChange, sourceImageUrl }:
 
       <div
         ref={viewportRef}
-        className="relative h-[min(46vh,480px)] overflow-hidden rounded-[10px] border border-border bg-[#0b0d10]"
+        className="relative h-[min(46vh,480px)] overflow-hidden rounded-[10px] border border-border bg-media"
       >
         <div
           ref={stageHostRef}

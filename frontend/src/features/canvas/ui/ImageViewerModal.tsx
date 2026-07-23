@@ -28,7 +28,7 @@ export function ImageViewerModal({
 }: ImageViewerModalProps): ReactElement | null {
   const { t } = useTranslation();
   const viewerControlClass =
-    'inline-flex h-10 items-center justify-center rounded-full border border-white/20 bg-black/60 px-4 text-sm text-white backdrop-blur-xl';
+    'inline-flex h-10 items-center justify-center rounded-full border border-media-foreground/20 bg-media/60 px-4 text-sm text-media-foreground backdrop-blur-xl';
   const [isVisible, setIsVisible] = useState(false);
   const [overlayOpacity, setOverlayOpacity] = useState(0);
   const [displayImageUrl, setDisplayImageUrl] = useState(imageUrl);
@@ -124,7 +124,7 @@ export function ImageViewerModal({
 
   return (
     <div
-      className={`fixed ${UI_CONTENT_OVERLAY_INSET_CLASS} z-[100] overflow-hidden bg-[#0b0d10]`}
+      className={`fixed ${UI_CONTENT_OVERLAY_INSET_CLASS} z-[100] overflow-hidden bg-media`}
       style={{
         opacity: overlayOpacity,
         transition: 'opacity 400ms ease',
@@ -184,7 +184,7 @@ export function ImageViewerModal({
               <button
                 onClick={() => onNavigate('prev')}
                 disabled={currentIndex <= 0}
-                className="rounded-full border border-white/15 bg-black/65 p-2 text-white backdrop-blur-sm transition-all duration-200 hover:bg-black/80 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-full border border-media-foreground/15 bg-media/65 p-2 text-media-foreground backdrop-blur-sm transition-all duration-200 hover:bg-media/80 disabled:cursor-not-allowed disabled:opacity-50"
                 title={t('viewer.prev', '上一张')}
               >
                 <ChevronLeft className="h-5 w-5" />
@@ -192,7 +192,7 @@ export function ImageViewerModal({
               <button
                 onClick={() => onNavigate('next')}
                 disabled={currentIndex >= imageList.length - 1}
-                className="rounded-full border border-white/15 bg-black/65 p-2 text-white backdrop-blur-sm transition-all duration-200 hover:bg-black/80 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-full border border-media-foreground/15 bg-media/65 p-2 text-media-foreground backdrop-blur-sm transition-all duration-200 hover:bg-media/80 disabled:cursor-not-allowed disabled:opacity-50"
                 title={t('viewer.next', '下一张')}
               >
                 <ChevronRight className="h-5 w-5" />
@@ -214,7 +214,7 @@ export function ImageViewerModal({
             </div>
             <button
               onClick={resetView}
-              className={`${viewerControlClass} transition-colors hover:bg-white/10`}
+              className={`${viewerControlClass} transition-colors hover:bg-media-foreground/10`}
               title={t('viewer.reset', '重置视图')}
             >
               <RotateCcw className="h-4 w-4" />

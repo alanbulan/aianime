@@ -132,7 +132,7 @@ export function VideoViewerModal({
   return (
     <div
       ref={viewerRef}
-      className="fixed inset-0 z-[220] overflow-hidden bg-black/96 backdrop-blur-lg"
+      className="fixed inset-0 z-[220] overflow-hidden bg-media/96 backdrop-blur-lg"
       style={{
         opacity: overlayOpacity,
         transition: 'opacity 320ms ease',
@@ -142,8 +142,8 @@ export function VideoViewerModal({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center justify-between px-6 py-5 text-white">
-        <div className="rounded-full border border-white/10 bg-black/35 px-3 py-1.5 text-sm font-medium text-white/85 backdrop-blur-xl">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center justify-between px-6 py-5 text-media-foreground">
+        <div className="rounded-full border border-media-foreground/10 bg-media/35 px-3 py-1.5 text-sm font-medium text-media-foreground/85 backdrop-blur-xl">
           {title ?? t('viewer.videoTitleFallback', '视频')}
         </div>
         <button
@@ -165,7 +165,7 @@ export function VideoViewerModal({
         <video
           ref={videoRef}
           src={videoUrl}
-          className="max-h-[calc(100vh-11rem)] max-w-[min(92vw,1280px)] rounded-[12px] border border-white/10 bg-black object-contain shadow-[0_24px_80px_rgba(0,0,0,0.55)]"
+          className="max-h-[calc(100vh-11rem)] max-w-[min(92vw,1280px)] rounded-[12px] border border-media-foreground/10 bg-media object-contain shadow-2xl"
           style={{ width: 'auto', height: 'auto' }}
           autoPlay
           playsInline
@@ -186,16 +186,16 @@ export function VideoViewerModal({
         />
       </div>
 
-      <div className="absolute bottom-4 left-1/2 z-20 flex w-[min(92vw,1280px)] -translate-x-1/2 flex-wrap items-center gap-2 rounded-[22px] border border-white/10 bg-black/55 px-3 py-2.5 text-white shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur-2xl sm:bottom-6 sm:flex-nowrap sm:gap-3 sm:rounded-full sm:px-4 sm:py-3">
+      <div className="absolute bottom-4 left-1/2 z-20 flex w-[min(92vw,1280px)] -translate-x-1/2 flex-wrap items-center gap-2 rounded-[22px] border border-media-foreground/10 bg-media/55 px-3 py-2.5 text-media-foreground shadow-2xl backdrop-blur-2xl sm:bottom-6 sm:flex-nowrap sm:gap-3 sm:rounded-full sm:px-4 sm:py-3">
         <button
           type="button"
           onClick={togglePlayback}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white/88 transition hover:bg-white/10 hover:text-white"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-media-foreground/88 transition hover:bg-media-foreground/10 hover:text-media-foreground"
           aria-label={isPlaying ? t('common.pause', '暂停') : t('common.play', '播放')}
         >
           {isPlaying ? <Pause className="h-[18px] w-[18px]" /> : <Play className="h-[18px] w-[18px]" />}
         </button>
-        <span className="w-[72px] shrink-0 text-xs tabular-nums text-white/72">
+        <span className="w-[72px] shrink-0 text-xs tabular-nums text-media-foreground/72">
           {formatVideoTime(currentTime)} / {formatVideoTime(duration)}
         </span>
         <input
@@ -205,7 +205,7 @@ export function VideoViewerModal({
           step={0.01}
           value={Math.min(currentTime, duration || currentTime)}
           onChange={(event) => handleSeek(event.target.value)}
-          className="h-1 min-w-[160px] flex-1 cursor-pointer appearance-none rounded-full bg-white/18 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-white [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+          className="h-1 min-w-[160px] flex-1 cursor-pointer appearance-none rounded-full bg-media-foreground/18 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-media-foreground [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-media-foreground"
           style={{
             background: `linear-gradient(to right, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.92) ${progress}%, rgba(255,255,255,0.18) ${progress}%, rgba(255,255,255,0.18) 100%)`,
           }}
@@ -214,7 +214,7 @@ export function VideoViewerModal({
         <button
           type="button"
           onClick={toggleMuted}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white/78 transition hover:bg-white/10 hover:text-white"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-media-foreground/78 transition hover:bg-media-foreground/10 hover:text-media-foreground"
           aria-label={muted ? t('viewer.unmute', '取消静音') : t('viewer.mute', '静音')}
         >
           {muted ? <VolumeX className="h-[18px] w-[18px]" /> : <Volume2 className="h-[18px] w-[18px]" />}
@@ -222,7 +222,7 @@ export function VideoViewerModal({
         <button
           type="button"
           onClick={enterFullscreen}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white/78 transition hover:bg-white/10 hover:text-white"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-media-foreground/78 transition hover:bg-media-foreground/10 hover:text-media-foreground"
           aria-label={t('viewer.fullscreen', '全屏')}
         >
           <Maximize2 className="h-[18px] w-[18px]" />

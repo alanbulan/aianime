@@ -408,14 +408,14 @@ export function CropToolEditor({ plugin, sourceImageUrl, options, onOptionsChang
             className="h-8 w-[220px] rounded-[8px] border border-border bg-muted px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary/45"
           />
           {customRatioError && (
-            <span className="text-xs text-red-700 dark:text-red-300">{customRatioError}</span>
+            <span className="text-xs text-destructive">{customRatioError}</span>
           )}
         </div>
       )}
 
       <div
         ref={viewportRef}
-        className="relative h-[min(46vh,450px)] rounded-[10px] border border-border bg-[#0b0d10]"
+        className="relative h-[min(46vh,450px)] rounded-[10px] border border-border bg-media"
       >
         <div className="flex h-full w-full items-center justify-center p-3">
           {renderedImageSize && (

@@ -571,7 +571,7 @@ export const RedrawOverlay = memo(({ node, imageSource, onClose }: RedrawOverlay
 
   const overlay = (
     <div
-      className="fixed inset-0 z-[300] flex items-center justify-center bg-black/72 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[300] flex items-center justify-center bg-scrim p-4 backdrop-blur-sm"
       onClick={(event) => {
         if (event.target === event.currentTarget && !submitting) {
           onClose();
@@ -645,7 +645,7 @@ export const RedrawOverlay = memo(({ node, imageSource, onClose }: RedrawOverlay
           </div>
         </div>
 
-        <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[#0b0d10] p-4 pt-14">
+        <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-media p-4 pt-14">
           {!imageReady && <div className="text-sm text-text-muted">加载源图...</div>}
           <div
             className={`relative max-h-full max-w-full ${imageReady ? '' : 'hidden'}`}
@@ -735,7 +735,7 @@ export const RedrawOverlay = memo(({ node, imageSource, onClose }: RedrawOverlay
             </Field>
 
             <div className="ml-auto flex items-center gap-2">
-              {error && <span className="text-red-700 dark:text-red-300">{error}</span>}
+              {error && <span className="text-destructive">{error}</span>}
               <CreditCostPill
                 display={creditCost.data?.data.display}
                 className={NODE_CREDIT_PILL_FLAT_CLASS}

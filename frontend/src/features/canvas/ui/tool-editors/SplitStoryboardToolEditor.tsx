@@ -425,7 +425,7 @@ export function SplitStoryboardToolEditor({ sourceImageUrl, options, onOptionsCh
     <div className="grid h-full min-h-0 gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
       <div className="min-h-0">
         <div
-          className="relative flex h-full min-h-[420px] items-center justify-center overflow-hidden rounded-[10px] border border-border bg-[#0b0d10] p-3"
+          className="relative flex h-full min-h-[420px] items-center justify-center overflow-hidden rounded-[10px] border border-border bg-media p-3"
         >
           <div ref={previewAreaRef} className="relative flex h-full w-full items-center justify-center">
             <div
@@ -438,8 +438,8 @@ export function SplitStoryboardToolEditor({ sourceImageUrl, options, onOptionsCh
                 alt="split-preview"
                 className={
                   displaySize
-                    ? 'block h-full w-full rounded-lg border border-[rgba(255,255,255,0.08)] object-contain'
-                    : 'block max-h-full max-w-full rounded-lg border border-[rgba(255,255,255,0.08)] object-contain'
+                    ? 'block h-full w-full rounded-lg border border-media-foreground/10 object-contain'
+                    : 'block max-h-full max-w-full rounded-lg border border-media-foreground/10 object-contain'
                 }
                 onLoad={(event) => {
                   const target = event.currentTarget;
@@ -469,7 +469,7 @@ export function SplitStoryboardToolEditor({ sourceImageUrl, options, onOptionsCh
                   {layout.cellRects.map((cell, index) => (
                     <div
                       key={`cell-${index}`}
-                      className="absolute border border-white/55"
+                      className="absolute border border-media-foreground/55"
                       style={toCellStyle(cell)}
                     />
                   ))}
@@ -559,7 +559,7 @@ export function SplitStoryboardToolEditor({ sourceImageUrl, options, onOptionsCh
         </div>
 
         {hasLayoutError && (
-          <div className="rounded-[8px] border border-red-500/35 bg-red-500/10 px-3 py-2 text-xs text-red-700 dark:text-red-300">
+          <div className="rounded-[8px] border border-destructive/35 bg-destructive/10 px-3 py-2 text-xs text-destructive">
             当前分隔线过粗，导致可抽取区域不足。请减少线宽或降低行列数。
           </div>
         )}

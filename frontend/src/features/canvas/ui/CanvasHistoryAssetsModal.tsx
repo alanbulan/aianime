@@ -374,7 +374,7 @@ export function CanvasHistoryAssetsModal({
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-4">
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-scrim backdrop-blur-sm"
         onClick={onClose}
         aria-hidden
       />
@@ -587,7 +587,7 @@ export function CanvasHistoryAssetsModal({
       {promptDialogText !== null && (
         <div className="fixed inset-0 z-[210] flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            className="absolute inset-0 bg-scrim backdrop-blur-sm"
             onClick={() => setPromptDialogText(null)}
             aria-hidden
           />
@@ -770,8 +770,8 @@ function AssetCard({
           <span
             className={`absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full border ${
               selected
-                ? 'border-cyan-400 bg-cyan-400 text-[#101217]'
-                : 'border-white/60 bg-black/40'
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'border-media-foreground/60 bg-media/40'
             }`}
           >
             {selected && <Check className="h-3 w-3" />}
@@ -786,27 +786,27 @@ function AssetCard({
             onClick={onDelete}
             aria-label={t('canvas.history.delete')}
             title={t('canvas.history.delete')}
-            className="absolute right-2 top-2 z-30 flex h-7 w-7 items-center justify-center rounded-md bg-black/50 text-white/85 opacity-0 transition group-hover:opacity-100 hover:bg-red-500/80 hover:text-white"
+            className="absolute right-2 top-2 z-30 flex h-7 w-7 items-center justify-center rounded-md bg-media/50 text-media-foreground/85 opacity-0 transition group-hover:opacity-100 hover:bg-destructive/80 hover:text-destructive-foreground"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
             onClick={onUse}
-            className="absolute left-2 top-2 z-30 rounded-md bg-black/50 px-2 py-1 text-[12px] font-medium text-white/90 opacity-0 transition group-hover:opacity-100 hover:bg-black/70 hover:text-white"
+            className="absolute left-2 top-2 z-30 rounded-md bg-media/50 px-2 py-1 text-[12px] font-medium text-media-foreground/90 opacity-0 transition group-hover:opacity-100 hover:bg-media/70 hover:text-media-foreground"
           >
             {t('canvas.history.use')}
           </button>
         </>
       ) : (
         // 图片 / 视频 hover 蒙层：右上删除，居中查看 / 使用。
-        <div className="absolute inset-0 flex items-center justify-center bg-black/55 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+        <div className="absolute inset-0 flex items-center justify-center bg-media/55 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
           <button
             type="button"
             onClick={onDelete}
             aria-label={t('canvas.history.delete')}
             title={t('canvas.history.delete')}
-            className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-md bg-black/45 text-white/85 transition-colors hover:bg-red-500/80 hover:text-white"
+            className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-md bg-media/45 text-media-foreground/85 transition-colors hover:bg-destructive/80 hover:text-destructive-foreground"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
@@ -814,15 +814,15 @@ function AssetCard({
             <button
               type="button"
               onClick={onView}
-              className="text-[13px] font-medium text-white/90 transition-colors hover:text-white"
+              className="text-[13px] font-medium text-media-foreground/90 transition-colors hover:text-media-foreground"
             >
               {t('canvas.history.view')}
             </button>
-            <span className="h-3 w-px bg-white/25" aria-hidden />
+            <span className="h-3 w-px bg-media-foreground/25" aria-hidden />
             <button
               type="button"
               onClick={onUse}
-              className="text-[13px] font-medium text-white/90 transition-colors hover:text-white"
+              className="text-[13px] font-medium text-media-foreground/90 transition-colors hover:text-media-foreground"
             >
               {t('canvas.history.use')}
             </button>
@@ -836,7 +836,7 @@ function AssetCard({
           type="button"
           onClick={toggleAudio}
           aria-label={audioPlaying ? t('canvas.history.pause') : t('canvas.history.play')}
-          className="absolute left-1/2 top-1/2 z-20 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/92 text-[#0d0f14] shadow-lg ring-1 ring-black/10 transition hover:scale-105 hover:bg-white"
+          className="absolute left-1/2 top-1/2 z-20 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-media-foreground/90 text-media shadow-lg ring-1 ring-media/10 transition hover:scale-105 hover:bg-media-foreground"
         >
           {audioPlaying ? (
             <Pause className="h-5 w-5" />
@@ -855,14 +855,14 @@ function AssetCard({
             aria-valuenow={Math.round(audioTime)}
             tabIndex={0}
             onClick={(event) => seekToClientX(event.clientX, event.currentTarget)}
-            className="relative h-1.5 flex-1 cursor-pointer overflow-hidden rounded-full bg-white/25"
+            className="relative h-1.5 flex-1 cursor-pointer overflow-hidden rounded-full bg-media-foreground/25"
           >
             <div
-              className="absolute inset-y-0 left-0 rounded-full bg-cyan-300"
+              className="absolute inset-y-0 left-0 rounded-full bg-primary"
               style={{ width: `${progressPct}%` }}
             />
           </div>
-          <span className="text-[10px] font-medium tabular-nums text-white/75">
+          <span className="text-[10px] font-medium tabular-nums text-media-foreground/75">
             {formatClock(audioTime)}
           </span>
         </div>
