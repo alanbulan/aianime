@@ -2,14 +2,23 @@ from __future__ import annotations
 
 import importlib
 import sys
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from ai_anime.ports.auth_contract import AuthError, AuthFailureReason
 
 pytestmark = pytest.mark.m01
+
+
+@asynccontextmanager
+async def _disabled_lifespan(application: FastAPI) -> AsyncIterator[None]:
+    _ = application
+    yield
 
 
 def _reset_port_modules():
@@ -74,8 +83,7 @@ def _ce_client(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> TestClient:
     from ai_anime.api.app import create_app
 
     app = create_app()
-    app.router.on_startup.clear()
-    app.router.on_shutdown.clear()
+    app.router.lifespan_context = _disabled_lifespan
     return TestClient(app)
 
 
@@ -133,8 +141,7 @@ def test_ee_auth_missing_and_bad_cookie_contract() -> None:
     from ai_anime.api.app import create_app
 
     app = create_app()
-    app.router.on_startup.clear()
-    app.router.on_shutdown.clear()
+    app.router.lifespan_context = _disabled_lifespan
 
     with TestClient(app) as client:
         missing = client.get("/api/v1/auth/me")

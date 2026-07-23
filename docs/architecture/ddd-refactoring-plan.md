@@ -1,6 +1,6 @@
 # `ai-anime-desktop` DDD 模块化重构计划
 
-> 状态：执行中（阶段 1）
+> 状态：执行中（阶段 2；阶段 3 已完成首批纵向切片）
 >
 > 制定日期：2026-07-23
 >
@@ -437,9 +437,9 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 | 阶段 | 状态 | 说明 |
 | --- | --- | --- |
 | 0. 确认与基线 | 已完成 | 功能与计划独立提交，不自动同步远端 |
-| 1. 架构保护网 | 进行中 | 建立只减不增的依赖门禁 |
-| 2. 应用装配 | 未开始 | 先做行为等价的基础拆分 |
-| 3. Story Intake 样板 | 未开始 | 首个前后端纵向切片 |
+| 1. 架构保护网 | 已完成 | 前后端依赖门禁、颜色字面量门禁和验证脚本已落地 |
+| 2. 应用装配 | 进行中 | 前端组合根、全局样式和后端应用工厂已拆分；容器与共享 API 边界待完成 |
+| 3. Story Intake 样板 | 进行中 | 前后端首批纵向切片已落地，阶段退出审计待完成 |
 | 4. Identity / Workspace | 未开始 | 认证与项目边界 |
 | 5. Narrative Planning | 未开始 | 剧集、剧本与内容 |
 | 6. Asset & World | 未开始 | 角色、场景、道具与风格 |
@@ -455,6 +455,23 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 - Ruff `src tests` 检查通过。
 - 前端 Vitest：276 个测试文件、1,751 项用例通过。
 - 后端默认 Pytest 在收集阶段因已删除的 `examples.seedance2_fast_demo` 遗留测试失败；这是进入重构前的已知基线问题，不能记为通过，也不在阶段 0 擅自删除测试。
+
+### 当前执行快照（2026-07-23）
+
+| 批次 | 已完成 | 剩余边界 |
+| --- | --- | --- |
+| 架构保护网 | `be88c21` 建立前后端只减不增依赖门禁；`f4c3916` 建立 UI 颜色分类门禁；普通 UI 已收敛到语义 token，媒体/渲染/领域色保留显式预算 | 随后续迁移持续下调存量 allowlist，不新增豁免 |
+| 前端应用装配 | `ae4d03d` 拆出 bootstrap、AppRoot、router shell 和 query client；`f4c3916` 将全局 CSS 拆为 reset/tokens/themes/base/portal | `shared/api` transport 与统一错误边界仍待迁移 |
+| 后端应用装配 | `api/app.py` 已收敛为组合根；lifespan、中间件、异常映射、平台静态路由和 `api/v1/router.py` 已独立；`api.__init__` 仅保留惰性兼容出口 | `ApplicationContainer`、ProjectScope、静态 URL 和 store factory 的非 FastAPI 端口仍待拆分 |
+| Story Intake 样板 | `cb2b856` 完成后端 domain/application/infrastructure/use-case 切片；`1078eb1` 完成前端 controller/view/domain/infrastructure 切片，route 收敛为页面适配器 | 按阶段 3 退出条件复核所有导入、任务 DTO 与缓存失效契约 |
+
+当前验证事实：
+
+- 前端 TypeScript 全量检查通过；Vitest 279 个测试文件、1,760 项用例通过；前端架构门禁 6 项通过。
+- 后端应用工厂拆分前后 OpenAPI 完全一致：269 条路径、295 个操作，规范化 SHA-256 均为 `614f1ffc6214b35fe28604569ee4c9e1a2fb8e832b07487d11170b2c29ae93ae`。
+- 后端应用工厂、lifespan、桌面令牌、请求上限、静态媒体、SPA、异常映射和架构门禁定向测试通过。
+- 后端契约套件 75 项通过；1 项既有断言失败：CE 下 `/api/v1/auth/login` 实际返回 404，但仍存在于 OpenAPI。由于拆分前后 OpenAPI 指纹一致，本批不将其伪装成本次回归，也不借结构迁移改变 API 文档契约。
+- 后端默认 Pytest 仍有阶段 0 已记录的 `examples.seedance2_fast_demo` 缺失模块收集错误，不能记为全量通过。
 
 ### 阶段 0：确认、检查点与可复现基线
 

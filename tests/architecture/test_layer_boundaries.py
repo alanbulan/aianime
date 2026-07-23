@@ -143,3 +143,14 @@ def test_new_backend_modules_follow_layer_dependencies() -> None:
                 failures.append(f"{relative}: application depends on infrastructure: {imported}")
 
     assert not failures, "\n".join(failures)
+
+
+def test_api_package_does_not_eagerly_assemble_routes() -> None:
+    package_source = (PACKAGE_ROOT / "api" / "__init__.py").read_text(encoding="utf-8")
+    app_source = (PACKAGE_ROOT / "api" / "app.py").read_text(encoding="utf-8")
+
+    assert "include_router" not in package_source
+    assert "ai_anime.api.routes" not in package_source
+    assert "@application.middleware" not in app_source
+    assert "@application.exception_handler" not in app_source
+    assert "@application.on_event" not in app_source
