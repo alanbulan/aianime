@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
 
-import { stylePreviewUrl } from "@/lib/style-preview-url";
+import { stylePreviewUrl } from "@/modules/asset_world/public";
 
 describe("stylePreviewUrl", () => {
   it("encodes style ids and cache-busts preset preview images", () => {

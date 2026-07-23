@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import type { ComponentType } from "react";
-import type { Style } from "@/types/style";
+import type { Style } from "@/modules/asset_world/public";
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -56,7 +56,8 @@ vi.mock("@tanstack/react-router", () => ({
   }),
 }));
 
-vi.mock("@/lib/queries/styles", () => ({
+vi.mock("@/modules/asset_world/public", () => ({
+  stylePreviewUrl: (styleId: string) => `/api/v1/styles/${styleId}/preview`,
   useStyles: () => ({
     isLoading: false,
     isRefetching: false,

@@ -18,7 +18,7 @@ const LEGACY_ROUTE_DATA_IMPORT_MAX: Record<string, number> = {
   "routes/_app/projects.$project/episodes.$episode/script.lazy.tsx": 0,
   "routes/_app/projects.$project/episodes.tsx": 0,
   "routes/_app/projects.$project/freezone.lazy.tsx": 2,
-  "routes/_app/projects.$project/styles.tsx": 3,
+  "routes/_app/projects.$project/styles.tsx": 1,
   "routes/_app/projects.$project/tasks.tsx": 1,
 };
 
@@ -404,6 +404,45 @@ describe("frontend architecture boundaries", () => {
     expect(presentationBoundaryFailures).toEqual([]);
     expect(internalImportFailures).toEqual([]);
     expect(directEndpointFailures).toEqual([]);
+  });
+
+  it("keeps Asset & World style callers on its public API", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/asset_world");
+    const externalSources = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.startsWith(moduleRoot))
+      .filter((path) => !relativeSource(path).startsWith("__tests__/"));
+    const internalImportFailures = externalSources.flatMap((path) =>
+      importSpecifiers(path)
+        .filter(
+          (specifier) =>
+            specifier.startsWith("@/modules/asset_world/") &&
+            specifier !== "@/modules/asset_world/public",
+        )
+        .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+    );
+    const directStyleEndpointFailures = externalSources
+      .filter((path) =>
+        /api\/v1\/(?:styles|projects\/[^/`$]+\/styles)/.test(
+          readFileSync(path, "utf8"),
+        ),
+      )
+      .map(relativeSource);
+    const applicationDataImportFailures = sourceFiles(
+      resolve(moduleRoot, "application"),
+    ).flatMap((path) =>
+      importSpecifiers(path)
+        .filter(isRawDataImport)
+        .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+    );
+
+    expect(existsSync(resolve(SRC_ROOT, "lib/queries/styles.ts"))).toBe(false);
+    expect(existsSync(resolve(SRC_ROOT, "lib/style-preview-url.ts"))).toBe(
+      false,
+    );
+    expect(existsSync(resolve(SRC_ROOT, "types/style.ts"))).toBe(false);
+    expect(applicationDataImportFailures).toEqual([]);
+    expect(internalImportFailures).toEqual([]);
+    expect(directStyleEndpointFailures).toEqual([]);
   });
 
   it("keeps the Episodes route as an adapter", () => {

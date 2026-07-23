@@ -3,9 +3,9 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useProject } from "@/modules/project_workspace/public";
-import { useStyles } from "@/lib/queries/styles";
+import { useStyles } from "@/modules/asset_world/public";
 import { cn } from "@/lib/utils";
-import type { Style } from "@/types/style";
+import type { Style } from "@/modules/asset_world/public";
 
 export type ProjectStyleChipProps = {
   project: string;

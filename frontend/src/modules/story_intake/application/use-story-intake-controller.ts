@@ -14,7 +14,7 @@ import {
 import { queryKeys } from "@/lib/query-keys";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import { useProject, useUpdateProject } from "@/modules/project_workspace/public";
-import { useStyles } from "@/lib/queries/styles";
+import { useStyles } from "@/modules/asset_world/public";
 import { useCancelTask, useTasks } from "@/lib/queries/tasks";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useTaskStream } from "@/hooks/use-task-stream";

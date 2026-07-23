@@ -27,7 +27,7 @@ import {
   useUploadStylePreview,
   useStyleDetail,
   useStyles,
-} from "@/lib/queries/styles";
+} from "@/modules/asset_world/public";
 import { useProject, useUpdateProject } from "@/modules/project_workspace/public";
 import { Button } from "@/components/ui/button";
 import { HeaderRefreshButton } from "@/components/ui/header-refresh-button";
@@ -43,8 +43,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { SidebarListSkeleton, DetailPaneSkeleton } from "@/components/skeletons";
-import type { Style } from "@/types/style";
-import { stylePreviewUrl } from "@/lib/style-preview-url";
+import {
+  stylePreviewUrl,
+  type Style,
+} from "@/modules/asset_world/public";
 import { CreditCostInline } from "@/components/credit-cost-inline";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 
