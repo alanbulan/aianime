@@ -11,7 +11,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { server } from "@/__mocks__/msw/server";
 
-vi.mock("@/lib/api", () => ({
+vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost:3000/" }),
 }));
 

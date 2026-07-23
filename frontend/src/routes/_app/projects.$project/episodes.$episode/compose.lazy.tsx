@@ -18,8 +18,8 @@ import { useProject, useUpdateProject } from "@/lib/queries/projects";
 import { useTaskController } from "@/hooks/use-task-controller";
 import { useBeatStates } from "@/hooks/use-beat-states";
 import { queryKeys } from "@/lib/query-keys";
-import { api } from "@/lib/api";
-import { p } from "@/lib/api-path";
+import { api } from "@/shared/api/transport";
+import { p } from "@/shared/api/path";
 import { type StageId } from "@/lib/episode-stage-registry";
 import {
   orientationForAspectRatio,

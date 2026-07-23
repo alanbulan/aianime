@@ -2,9 +2,9 @@
 import { config as configureZod } from "zod/v4/core";
 
 import { AppRoot } from "@/app/AppRoot";
+import { installApiRuntime } from "@/app/api-runtime";
 import { queryClient } from "@/app/query-client";
 import { router } from "@/app/router";
-import { setApiQueryClient } from "@/lib/api";
 import { setAppRouter } from "@/lib/app-router";
 import { installChunkLoadRecovery } from "@/lib/chunk-load-recovery";
 import { loadClusterConfig } from "@/lib/cluster-config";
@@ -18,7 +18,7 @@ function installApplicationRuntime() {
   // The desktop CSP forbids eval, so Zod must use its non-JIT parser.
   configureZod({ jitless: true });
   setAppRouter(router);
-  setApiQueryClient(queryClient);
+  installApiRuntime(queryClient);
   installChunkLoadRecovery();
   // Translation/browser extensions may move DOM nodes before React reconciles.
   installDomReconciliationGuard();

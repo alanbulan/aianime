@@ -7,7 +7,7 @@ import { setupServer } from "msw/node";
 import ky from "ky";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/lib/api", () => ({
+vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost:3000/" }),
 }));
 

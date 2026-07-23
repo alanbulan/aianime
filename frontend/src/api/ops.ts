@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { apiCall, apiClient } from "./client";
+import { apiCall, apiRequest } from "@/shared/api/client";
 
 // Per-node generation history -------------------------------------------- //
 
@@ -2036,7 +2036,7 @@ export async function createFreezoneAudioVoice(
     file instanceof File ? file.name : "voice.wav",
   );
   if (name && name.trim()) fd.append("name", name.trim());
-  const resp = await apiClient(
+  const resp = await apiRequest(
     `projects/${encodeURIComponent(project)}/freezone/audio/voices`,
     {
       method: "POST",
@@ -2213,7 +2213,7 @@ export async function uploadFreezoneImage(
   const fd = new FormData();
   fd.append("file", file, filename ?? (file instanceof File ? file.name : "upload.png"));
   // ky's `body: FormData` skips the json envelope helper, so we go direct.
-  const resp = await apiClient(
+  const resp = await apiRequest(
     `projects/${encodeURIComponent(project)}/freezone/upload`,
     {
       method: "POST",

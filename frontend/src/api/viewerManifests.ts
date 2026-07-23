@@ -5,7 +5,7 @@ import type {
   DirectorStageOverlayStatus,
 } from "@/features/viewer-kit/three-d/directorManifest";
 import type { ThreeDSceneSnapshot } from "@/features/viewer-kit/three-d/engine/viewerApp";
-import { apiCall } from "./client";
+import { apiCall } from "@/shared/api/client";
 
 export type DirectorStagePalette = DirectorStageManifest["palette"];
 

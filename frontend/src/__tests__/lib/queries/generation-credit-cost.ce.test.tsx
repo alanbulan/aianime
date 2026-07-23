@@ -9,7 +9,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest
 
 const runtimeState = vi.hoisted(() => ({ isCeRuntime: true }));
 
-vi.mock("@/lib/api", () => ({
+vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost:3000/" }),
 }));
 

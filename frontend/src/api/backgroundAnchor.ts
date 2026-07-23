@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { apiCall } from "./client";
+import { apiCall } from "@/shared/api/client";
 
 /**
  * Beat 的 selected_background.png 是从场景资产 (master / reverse / director_env)

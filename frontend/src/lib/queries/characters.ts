@@ -7,9 +7,9 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import type { QueryFunctionContext } from "@tanstack/react-query";
-import { jsonWithBackendError } from "@/lib/api-errors";
-import { api } from "@/lib/api";
-import { p } from "@/lib/api-path";
+import { jsonWithBackendError } from "@/shared/api/errors";
+import { api } from "@/shared/api/transport";
+import { p } from "@/shared/api/path";
 import { queryKeys } from "@/lib/query-keys";
 import type { ErrorResponse, OkResponse, TaskResponse } from "@/types/api";
 import type {

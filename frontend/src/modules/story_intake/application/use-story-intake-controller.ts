@@ -10,7 +10,7 @@ import { z } from "zod";
 import {
   backendErrorToastMessage,
   BillingRuleNotConfiguredError,
-} from "@/lib/api-errors";
+} from "@/shared/api/errors";
 import { queryKeys } from "@/lib/query-keys";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import { useProject, useUpdateProject } from "@/lib/queries/projects";

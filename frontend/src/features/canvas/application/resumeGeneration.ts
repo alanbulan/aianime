@@ -18,7 +18,7 @@ import {
 } from '@/api/ops';
 import { awaitTaskCompletion, listTasks, type TaskState } from '@/api/tasks';
 import { resolveErrorContent } from '@/features/canvas/application/errorDialog';
-import { providerErrorMessage } from '@/lib/api-errors';
+import { providerErrorMessage } from '@/shared/api/errors';
 import { extractRequestId } from '@/features/canvas/application/generationErrorReport';
 import {
   isStaleGenerationTask,

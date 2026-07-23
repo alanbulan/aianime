@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { apiCall } from "./client";
+import { apiCall } from "@/shared/api/client";
 import type { PushTarget } from "./push";
 import type { MainlineContext } from "@/features/freezone/context/mainlineContext";
 import type { SceneAsset } from "@/types/scene";

@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useMutation } from "@tanstack/react-query";
-import { api } from "@/lib/api";
-import { p } from "@/lib/api-path";
+import { api } from "@/shared/api/transport";
+import { p } from "@/shared/api/path";
 import type { ErrorResponse, TaskResponse } from "@/types/api";
 
 export interface GenerateAudioParams {

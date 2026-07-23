@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AlertCircle, CheckCircle2, Clock } from "lucide-react";
 
-import { api } from "@/lib/api";
+import { api } from "@/shared/api/transport";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {

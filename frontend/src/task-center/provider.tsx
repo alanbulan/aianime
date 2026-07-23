@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAppStore } from "@/stores/app-store";
 import { queryKeys } from "@/lib/query-keys";
-import { api } from "@/lib/api";
+import { api } from "@/shared/api/transport";
 import { createEventBus } from "./event-bus";
 import { EventBusContext } from "./event-bus-context";
 import { createStreamClient } from "./stream-client";

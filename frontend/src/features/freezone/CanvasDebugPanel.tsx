@@ -25,7 +25,7 @@ import {
   type CanvasBackupStatus,
   type FreezoneCanvasHistoryEntry,
 } from "@/api/canvas";
-import { ApiError } from "@/api/client";
+import { ApiError } from "@/shared/api/errors";
 
 interface CanvasDebugPanelProps {
   project: string;

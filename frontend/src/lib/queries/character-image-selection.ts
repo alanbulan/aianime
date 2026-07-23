@@ -1,8 +1,8 @@
 // Copyright (c) 2026 AI anime
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { api } from "@/lib/api";
-import { p } from "@/lib/api-path";
+import { api } from "@/shared/api/transport";
+import { p } from "@/shared/api/path";
 import type { OkResponse } from "@/types/api";
 
 export type CharacterImageSelection = {

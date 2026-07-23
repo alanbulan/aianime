@@ -6,7 +6,7 @@ import {
   fetchNodeGenerationHistory,
   type FreezoneGenerationHistoryRecord,
 } from "@/api/ops";
-import { ApiError } from "@/api/client";
+import { ApiError } from "@/shared/api/errors";
 import { readUrl } from "@/lib/url-params";
 
 export interface UseCanvasGenerationHistoryResult {

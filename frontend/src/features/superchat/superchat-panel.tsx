@@ -46,9 +46,9 @@ import {
 import { useAuthStore } from "@/stores/auth-store";
 import { cn } from "@/lib/utils";
 import { resolveMediaUrl } from "@/lib/media-url";
-import { api } from "@/lib/api";
-import { backendErrorToastMessage, jsonWithBackendError } from "@/lib/api-errors";
-import { p } from "@/lib/api-path";
+import { api } from "@/shared/api/transport";
+import { backendErrorToastMessage, jsonWithBackendError } from "@/shared/api/errors";
+import { p } from "@/shared/api/path";
 import { useSuperChat } from "@/features/superchat/use-superchat";
 import { useAiAvatarUrl } from "@/features/superchat/ai-avatar";
 import { buildChatTaskLabel } from "@/features/superchat/task-notification-label";

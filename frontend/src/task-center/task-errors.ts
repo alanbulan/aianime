@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import type { TFunction } from "i18next";
-import { humanizeTaskError } from "@/lib/api-errors";
+import { humanizeTaskError } from "@/shared/api/errors";
 import type { TaskState } from "./types";
 
 export function taskErrorMessage(task: TaskState, t: TFunction): string {

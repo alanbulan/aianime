@@ -2,7 +2,7 @@
 // Copyright (c) 2026 ClaymoreLab
 import { useQuery, type QueryClient } from "@tanstack/react-query";
 
-import { api } from "@/lib/api";
+import { api } from "@/shared/api/transport";
 import { queryKeys } from "@/lib/query-keys";
 import type { OkResponse } from "@/types/api";
 

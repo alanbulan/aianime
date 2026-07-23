@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 import {
   backendErrorToastMessage,
   BillingRuleNotConfiguredError,
-} from "@/lib/api-errors";
+} from "@/shared/api/errors";
 import type { SketchAspectRatio } from "@/lib/queries/sketch-settings";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import { CreditCostInline } from "@/components/credit-cost-inline";

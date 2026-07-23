@@ -2,14 +2,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { TFunction } from "i18next";
 
-import { apiCall } from "@/api/client";
+import { apiCall } from "@/shared/api/client";
 import {
   backendErrorToastMessage,
   BillingRuleNotConfiguredError,
   errorFromBackendBody,
   InsufficientCreditsError,
   ProjectQueueLimitError,
-} from "@/lib/api-errors";
+} from "@/shared/api/errors";
 
 afterEach(() => {
   vi.unstubAllGlobals();

@@ -20,13 +20,13 @@ import {
   deleteFreezoneCanvas,
   type FreezoneCanvasSummary,
 } from "@/api/canvas";
-import { ApiError } from "@/api/client";
+import { ApiError } from "@/shared/api/errors";
 import { writeUrl } from "@/lib/url-params";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/stores/auth-store";
 import { personalCanvasIdForUsername } from "@/features/freezone/projections";
 import { useFreezoneCanvases } from "@/lib/queries/freezone";
-import { BackendStatusError } from "@/lib/api-errors";
+import { BackendStatusError } from "@/shared/api/errors";
 
 const PERSONAL_CANVAS_DISPLAY_NAME = "__personal_canvas__";
 

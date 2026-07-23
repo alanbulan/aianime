@@ -2,7 +2,7 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ApiError } from "@/api/client";
+import { ApiError } from "@/shared/api/errors";
 
 const fetchCanvasGenerationHistory = vi.hoisted(() => vi.fn());
 const fetchNodeGenerationHistory = vi.hoisted(() => vi.fn());

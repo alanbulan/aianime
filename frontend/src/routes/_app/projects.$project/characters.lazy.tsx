@@ -60,7 +60,7 @@ import {
 import {
   backendErrorToastMessage,
   BillingRuleNotConfiguredError,
-} from "@/lib/api-errors";
+} from "@/shared/api/errors";
 import { useCharacterImageSelection } from "@/lib/queries/character-image-selection";
 import { useProject } from "@/lib/queries/projects";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";

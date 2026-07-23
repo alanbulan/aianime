@@ -50,7 +50,7 @@ import {
 import {
   backendErrorToastMessage,
   BillingRuleNotConfiguredError,
-} from "@/lib/api-errors";
+} from "@/shared/api/errors";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { centerCropBoxForRatio, ratioToCss, zoomCropBox } from "@/lib/aspect-ratio";
 import { useProjectAspectRatio } from "@/stores/aspect-ratio-store";

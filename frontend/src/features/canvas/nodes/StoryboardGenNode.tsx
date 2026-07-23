@@ -31,7 +31,7 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { canvasAiGateway } from '@/features/canvas/application/canvasServices';
 import { useUpstreamImages } from '@/features/canvas/application/useUpstreamGraph';
 import { resolveErrorContent, showErrorDialog } from '@/features/canvas/application/errorDialog';
-import { backendErrorToastMessage } from '@/lib/api-errors';
+import { backendErrorToastMessage } from '@/shared/api/errors';
 import {
   detectAspectRatio,
   parseAspectRatio,

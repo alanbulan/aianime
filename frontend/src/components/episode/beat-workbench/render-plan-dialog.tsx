@@ -5,7 +5,7 @@ import { useQueries } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AlertTriangle, Loader2 } from "lucide-react";
 
-import { api } from "@/lib/api";
+import { api } from "@/shared/api/transport";
 import {
   AlertDialog,
   AlertDialogAction,

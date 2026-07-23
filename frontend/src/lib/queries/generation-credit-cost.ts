@@ -4,8 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import {
   BillingRuleNotConfiguredError,
   jsonWithBackendError,
-} from "@/lib/api-errors";
-import { api } from "@/lib/api";
+} from "@/shared/api/errors";
+import { api } from "@/shared/api/transport";
 import type { OkResponse } from "@/types/api";
 
 export type GenerationCreditCost = {

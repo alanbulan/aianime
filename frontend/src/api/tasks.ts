@@ -6,7 +6,7 @@
 // (no header needed). If the cookie is missing/expired, the stream returns
 // a 401 immediately and we surface that to the caller.
 
-import { apiCall } from "./client";
+import { apiCall } from "@/shared/api/client";
 import { readUrl } from "@/lib/url-params";
 
 export type TaskStatus =

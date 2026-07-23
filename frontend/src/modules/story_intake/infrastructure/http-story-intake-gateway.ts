@@ -1,6 +1,6 @@
-import { api } from "@/lib/api";
-import { jsonWithBackendError } from "@/lib/api-errors";
-import { p } from "@/lib/api-path";
+import { api } from "@/shared/api/transport";
+import { jsonWithBackendError } from "@/shared/api/errors";
+import { p } from "@/shared/api/path";
 import type { ErrorResponse, OkResponse, TaskResponse } from "@/types/api";
 import type { StoryIntakeGateway } from "@/modules/story_intake/application/ports";
 import type {

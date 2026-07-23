@@ -4,9 +4,9 @@ import { useMemo } from "react";
 
 import type { PanoViewerManifest } from "@/features/viewer-kit/pano/panoManifest";
 import type { DirectorStageManifest } from "@/features/viewer-kit/three-d/directorManifest";
-import { api } from "@/lib/api";
-import { jsonWithBackendError } from "@/lib/api-errors";
-import { p } from "@/lib/api-path";
+import { api } from "@/shared/api/transport";
+import { jsonWithBackendError } from "@/shared/api/errors";
+import { p } from "@/shared/api/path";
 import { queryKeys } from "@/lib/query-keys";
 import type { ApiResponse, ErrorResponse, OkResponse, TaskResponse } from "@/types/api";
 import type { Beat } from "@/types/episode";

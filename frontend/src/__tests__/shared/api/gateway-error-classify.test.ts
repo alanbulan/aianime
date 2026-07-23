@@ -6,7 +6,7 @@ import {
   classifyGatewayError,
   humanizeTaskError,
   providerErrorMessage,
-} from "@/lib/api-errors";
+} from "@/shared/api/errors";
 
 // A stub TFunction: return the key, unless a `defaultValue` is supplied and
 // the key is unknown. Our two keys are "known", so return a marker per key.

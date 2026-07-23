@@ -8,7 +8,7 @@ import {
   shouldWriteGenerationError,
 } from '@/features/canvas/application/generationTaskArbitration';
 import { resolveGenerationErrorDiagnostics } from '@/features/canvas/application/generationErrorReport';
-import { backendErrorToastMessage } from '@/lib/api-errors';
+import { backendErrorToastMessage } from '@/shared/api/errors';
 
 const t = ((key: string) => key) as unknown as Parameters<typeof backendErrorToastMessage>[1];
 

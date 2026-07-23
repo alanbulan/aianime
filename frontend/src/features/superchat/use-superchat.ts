@@ -17,7 +17,7 @@ import {
   normalizeMessage,
 } from "@/features/superchat/message";
 import { hasStructuredContent } from "@/features/superchat/spec-extract";
-import { api } from "@/lib/api";
+import { api } from "@/shared/api/transport";
 import {
   isStaleByTtl,
   pruneLocalStorageByPrefix,

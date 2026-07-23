@@ -99,7 +99,7 @@ import {
 import type { DirectorStageManifest } from '@/features/viewer-kit/three-d/directorManifest';
 import { awaitTaskCompletion } from '@/api/tasks';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
-import { backendErrorToastMessage } from '@/lib/api-errors';
+import { backendErrorToastMessage } from '@/shared/api/errors';
 import { readUrl } from '@/lib/url-params';
 import {
   DEFAULT_SHARED_MODEL_ID,

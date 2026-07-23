@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { apiCall } from "./client";
+import { apiCall } from "@/shared/api/client";
 
 /**
  * Scene asset thumbnails for a given beat — populated lazily when the user

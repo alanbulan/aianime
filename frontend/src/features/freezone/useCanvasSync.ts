@@ -18,7 +18,7 @@ import {
   type FreezoneCanvasSaveResult,
   type FreezonePresetCanvasRequest,
 } from "@/api/canvas";
-import { ApiError } from "@/api/client";
+import { ApiError } from "@/shared/api/errors";
 import {
   buildSavePayload,
   checkPayloadLimits,

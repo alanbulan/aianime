@@ -2,25 +2,26 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { QueryClient } from "@tanstack/react-query";
-import { api, setApiQueryClient } from "@/lib/api";
+import { installApiRuntime } from "@/app/api-runtime";
+import { api } from "@/shared/api/transport";
 import { setRegionCookie, getRegionCookie } from "@/lib/region-cookie";
 import { server } from "@/__mocks__/msw/server";
 import { useRegionStore } from "@/stores/region-store";
 
+let queryClient: QueryClient;
+
 beforeEach(() => {
   server.resetHandlers();
+  queryClient = new QueryClient();
+  installApiRuntime(queryClient);
   useRegionStore.getState().setRegion("cn-1");
   setRegionCookie("cn-1");
   vi.stubGlobal("location", { ...window.location, href: "/" });
-  // Reset the nav-lock module state for each test so the handler runs.
-  vi.resetModules();
 });
 
 describe("api 400 no_region handling", () => {
   it("clears the region cookie + store and redirects to /login when edge returns no_region", async () => {
-    const qc = new QueryClient();
-    const clearSpy = vi.spyOn(qc, "clear");
-    setApiQueryClient(qc);
+    const clearSpy = vi.spyOn(queryClient, "clear");
     server.use(
       http.get("http://localhost/api/v1/anything", () =>
         HttpResponse.json({ ok: false, error: "no_region" }, { status: 400 }),

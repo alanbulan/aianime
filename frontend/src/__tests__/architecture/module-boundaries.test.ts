@@ -67,7 +67,8 @@ function importSpecifiers(path: string): string[] {
 
 function isRawDataImport(specifier: string): boolean {
   return (
-    specifier === "@/lib/api" ||
+    specifier === "@/shared/api/transport" ||
+    specifier === "@/shared/api/client" ||
     specifier.startsWith("@/api/") ||
     specifier.startsWith("@/lib/queries/")
   );
@@ -127,7 +128,7 @@ describe("frontend architecture boundaries", () => {
             specifier === "zustand" ||
             specifier.startsWith("@tanstack/") ||
             specifier.startsWith("@/api/") ||
-            specifier === "@/lib/api" ||
+            specifier.startsWith("@/shared/api/") ||
             specifier.startsWith("@/lib/queries/") ||
             specifier.startsWith("@/stores/"))
         ) {
@@ -161,12 +162,42 @@ describe("frontend architecture boundaries", () => {
     expect(failures).toEqual([]);
   });
 
-  it("keeps shared code independent from business modules", () => {
+  it("keeps shared code independent from application and business layers", () => {
+    const forbiddenPrefixes = [
+      "@/app/",
+      "@/api/",
+      "@/components/",
+      "@/features/",
+      "@/hooks/",
+      "@/lib/",
+      "@/modules/",
+      "@/routes/",
+      "@/stores/",
+      "@/task-center/",
+    ];
     const failures = sourceFiles(resolve(SRC_ROOT, "shared")).flatMap((path) =>
       importSpecifiers(path)
-        .filter((specifier) => specifier.startsWith("@/modules/"))
+        .filter((specifier) =>
+          forbiddenPrefixes.some((prefix) => specifier.startsWith(prefix)),
+        )
         .map((specifier) => `${relativeSource(path)}: ${specifier}`),
     );
     expect(failures).toEqual([]);
+  });
+
+  it("keeps a single shared HTTP transport implementation", () => {
+    const legacyImplementations = [
+      "api/client.ts",
+      "lib/api.ts",
+      "lib/api-errors.ts",
+      "lib/api-path.ts",
+    ].filter((path) => existsSync(resolve(SRC_ROOT, path)));
+    const transportFactories = sourceFiles(SRC_ROOT)
+      .filter((path) => !relativeSource(path).startsWith("__tests__/"))
+      .filter((path) => readFileSync(path, "utf8").includes("ky.create("))
+      .map(relativeSource);
+
+    expect(legacyImplementations).toEqual([]);
+    expect(transportFactories).toEqual(["shared/api/transport.ts"]);
   });
 });

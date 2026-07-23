@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { apiCall, apiClient } from "./client";
+import { apiCall, apiRequest } from "@/shared/api/client";
 import type {
   ResolvedSkillInput,
   SkillDefinition,
@@ -143,7 +143,7 @@ export async function runSkill(
   skillId: string,
   request: SkillRunRequest,
 ): Promise<SkillRunResponse> {
-  return await apiClient(
+  return await apiRequest(
     `projects/${encodeURIComponent(project)}/freezone/skills/${encodeURIComponent(skillId)}/run`,
     { method: "POST", json: request },
   ).json<SkillRunResponse>();
@@ -153,7 +153,7 @@ export async function getSkillRunResult(
   project: string,
   runId: string,
 ): Promise<SkillRunResult> {
-  return await apiClient(
+  return await apiRequest(
     `projects/${encodeURIComponent(project)}/freezone/skills/runs/${encodeURIComponent(runId)}/result`,
   ).json<SkillRunResult>();
 }

@@ -2,6 +2,17 @@
 import type { TFunction } from "i18next";
 import { HTTPError } from "ky";
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly body?: unknown,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 export class ProjectQueueLimitError extends Error {
   queueKind: string;
   limitScope: "project" | "user";
@@ -143,21 +154,42 @@ export function errorFromBackendBody(status: number, body: unknown, fallback: st
   return null;
 }
 
-async function safeJsonFromResponse(response: Response): Promise<unknown> {
+async function responseBody(response: Response): Promise<unknown> {
   try {
     return await response.clone().json();
   } catch {
     try {
-      return await response.json();
+      return await response.clone().text();
     } catch {
-      return null;
+      return undefined;
     }
   }
 }
 
+async function httpErrorBody(error: HTTPError): Promise<unknown> {
+  const data = (error as HTTPError & { data?: unknown }).data;
+  return data === undefined ? responseBody(error.response) : data;
+}
+
+export async function apiErrorFromHttpError(error: HTTPError): Promise<Error> {
+  const body = await httpErrorBody(error);
+  const message =
+    (typeof body === "object" &&
+      body &&
+      "error" in body &&
+      typeof (body as { error: unknown }).error === "string" &&
+      (body as { error: string }).error) ||
+    error.message ||
+    `HTTP ${error.response.status}`;
+  return (
+    errorFromBackendBody(error.response.status, body, message) ??
+    new ApiError(message, error.response.status, body)
+  );
+}
+
 async function backendError(error: unknown): Promise<Error | null> {
   if (!(error instanceof HTTPError)) return null;
-  const body = await safeJsonFromResponse(error.response);
+  const body = await httpErrorBody(error);
   return errorFromBackendBody(error.response.status, body, error.message);
 }
 

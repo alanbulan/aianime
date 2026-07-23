@@ -92,7 +92,7 @@ import {
   resolveErrorContent,
   showErrorDialog,
 } from "@/features/canvas/application/errorDialog";
-import { backendErrorToastMessage } from "@/lib/api-errors";
+import { backendErrorToastMessage } from "@/shared/api/errors";
 import { resolveGenerationErrorDiagnostics } from "@/features/canvas/application/generationErrorReport";
 import {
   PromptMentionEditor,

@@ -38,7 +38,7 @@ import { useNavigateToAsset } from "@/hooks/use-assets-deep-link";
 import {
   backendErrorToastMessage,
   BillingRuleNotConfiguredError,
-} from "@/lib/api-errors";
+} from "@/shared/api/errors";
 import { CreditCostInline } from "@/components/credit-cost-inline";
 import { Button } from "@/components/ui/button";
 import { SUBTLE_HEADER_ACTION_BUTTON_CLASS } from "@/components/ui/header-action-styles";

@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { describe, it, expect } from "vitest";
-import { api } from "@/lib/api";
+import { api } from "@/shared/api/transport";
 
 describe("api client", () => {
   it("is a ky instance with expected methods", () => {

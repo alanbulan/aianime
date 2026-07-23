@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { apiCall } from "./client";
+import { apiCall } from "@/shared/api/client";
 
 // Canvas storage lives under `/api/v1/projects/<project_id>/freezone/canvases/*`.
 // The wire format is intentionally generic: `{nodes, edges, viewport}`. The

@@ -23,7 +23,7 @@ import { queryKeys } from "@/lib/query-keys";
 import {
   backendErrorToastMessage,
   BillingRuleNotConfiguredError,
-} from "@/lib/api-errors";
+} from "@/shared/api/errors";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import { TASK_TYPES } from "@/lib/task-types";
 import {

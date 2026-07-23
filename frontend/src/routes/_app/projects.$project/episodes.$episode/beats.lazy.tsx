@@ -74,7 +74,7 @@ import { formatCreditCost } from "@/components/credits/credit-visual";
 import {
   backendErrorToastMessage,
   BillingRuleNotConfiguredError,
-} from "@/lib/api-errors";
+} from "@/shared/api/errors";
 import {
   AlertDialog,
   AlertDialogAction,

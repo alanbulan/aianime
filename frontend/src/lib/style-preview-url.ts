@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { p } from "@/lib/api-path";
+import { p } from "@/shared/api/path";
 
 const STYLE_PREVIEW_ASSET_VERSION = "main-preset-png";
 

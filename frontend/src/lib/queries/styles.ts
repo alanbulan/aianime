@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
-import { p } from "@/lib/api-path";
+import { api } from "@/shared/api/transport";
+import { p } from "@/shared/api/path";
 import { queryKeys } from "@/lib/query-keys";
 import type { ApiResponse, OkResponse } from "@/types/api";
 import type { Style } from "@/types/style";

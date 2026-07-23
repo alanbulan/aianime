@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { apiCall } from "@/api/client";
+import { apiCall } from "@/shared/api/client";
 import {
   buildProjectionFromPreset,
   createBlankFreezoneCanvas,
@@ -10,7 +10,7 @@ import {
   putFreezoneCanvas,
 } from "@/api/canvas";
 
-vi.mock("@/api/client", () => ({
+vi.mock("@/shared/api/client", () => ({
   apiCall: vi.fn(),
 }));
 

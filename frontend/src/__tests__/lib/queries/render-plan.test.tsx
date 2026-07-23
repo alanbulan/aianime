@@ -10,7 +10,7 @@ import ky from "ky";
 // implementation that requires an absolute URL, so the production `api` (which
 // uses `prefix: "/"` + relative inputs) throws `Failed to parse URL`. Inject a
 // test-only ky instance with an absolute `baseUrl` so requests reach MSW.
-vi.mock("@/lib/api", () => ({
+vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost:3000/" }),
 }));
 

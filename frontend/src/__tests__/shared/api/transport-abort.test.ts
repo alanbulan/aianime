@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, it, expect, beforeEach } from "vitest";
 import { http, HttpResponse } from "msw";
-import { api } from "@/lib/api";
+import { api, configureApiRuntime } from "@/shared/api/transport";
 import { regionAbortController, resetRegionAbortController } from "@/lib/region-abort";
 import { server } from "@/__mocks__/msw/server";
 
@@ -10,6 +10,11 @@ import { server } from "@/__mocks__/msw/server";
 // dual-instance quirk described in that setup file.
 beforeEach(() => {
   resetRegionAbortController();
+  configureApiRuntime({
+    getRegionAbortSignal: () => regionAbortController().signal,
+    onMissingRegion: () => undefined,
+    onUnauthorized: () => undefined,
+  });
 });
 
 describe("api abort integration", () => {

@@ -8,8 +8,8 @@ import {
   backendErrorToastMessage,
   errorFromBackendBody,
   humanizeTaskError,
-} from "@/lib/api-errors";
-import { p } from "@/lib/api-path";
+} from "@/shared/api/errors";
+import { p } from "@/shared/api/path";
 import type { TaskStatus, TaskStreamEvent } from "@/types/task";
 
 interface UseTaskStreamOptions {

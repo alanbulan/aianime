@@ -7,7 +7,7 @@ import ky from "ky";
 import type { ReactNode } from "react";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/lib/api", () => ({
+vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost:3000/" }),
 }));
 
@@ -32,8 +32,8 @@ import {
   useUploadBeatImage,
 } from "@/lib/queries/sketches";
 import { queryKeys } from "@/lib/query-keys";
-import { api } from "@/lib/api";
-import { BillingRuleNotConfiguredError } from "@/lib/api-errors";
+import { api } from "@/shared/api/transport";
+import { BillingRuleNotConfiguredError } from "@/shared/api/errors";
 
 const server = setupServer();
 

@@ -28,7 +28,7 @@ import {
   shouldDeferPresetRefreshUntilReady,
   shouldFlushBeforePresetRefresh,
 } from "@/features/freezone/useCanvasSync";
-import { BackendStatusError } from "@/lib/api-errors";
+import { BackendStatusError } from "@/shared/api/errors";
 
 function canvas(
   id: string,

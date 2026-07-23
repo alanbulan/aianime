@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { server } from "@/__mocks__/msw/server";
-import { apiCall } from "@/api/client";
+import { apiCall } from "@/shared/api/client";
 import {
   getFreezoneCanvas,
   listFreezoneCanvases,
@@ -21,12 +21,12 @@ import { useTaskStream } from "@/hooks/use-task-stream";
 import { useStartIngest } from "@/lib/queries/ingest";
 import { useAuthStore } from "@/stores/auth-store";
 
-vi.mock("@/lib/api", () => ({
+vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost/" }),
 }));
 
-vi.mock("@/api/client", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/api/client")>();
+vi.mock("@/shared/api/client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/shared/api/client")>();
   return {
     ...actual,
     apiCall: vi.fn(),
