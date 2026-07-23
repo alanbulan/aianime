@@ -336,7 +336,7 @@ class HermesPool:
         if not project_id:
             return {}
         try:
-            from ai_anime.project_context import require_project_home_node, resolve_project_context
+            from ai_anime.modules.project_workspace.public import require_project_home_node, resolve_project_context
 
             ctx = await resolve_project_context(
                 user={"username": username},

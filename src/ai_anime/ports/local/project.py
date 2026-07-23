@@ -12,7 +12,7 @@ from pathlib import Path
 import aiosqlite
 from ulid import ULID
 
-from ai_anime.ports.project import Principal, ProjectRecord
+from ai_anime.modules.project_workspace.public import Principal, ProjectRecord
 from ai_anime.shared.project_dirs import default_project_dirs
 
 

@@ -161,11 +161,7 @@ def test_lifespan_uses_the_application_container() -> None:
 
 
 def test_project_workspace_core_does_not_depend_on_fastapi() -> None:
-    paths = [
-        PACKAGE_ROOT / "project_context.py",
-        PACKAGE_ROOT / "ports" / "project.py",
-        *list((PACKAGE_ROOT / "modules" / "project_workspace").rglob("*.py")),
-    ]
+    paths = list((PACKAGE_ROOT / "modules" / "project_workspace").rglob("*.py"))
 
     failures = [
         _relative(path)
@@ -173,6 +169,26 @@ def test_project_workspace_core_does_not_depend_on_fastapi() -> None:
         if any(imported == "fastapi" or imported.startswith("fastapi.") for imported in _imports(path))
     ]
     assert not failures
+
+
+def test_project_workspace_callers_use_the_public_api() -> None:
+    workspace_module = PACKAGE_ROOT / "modules" / "project_workspace"
+    failures: list[str] = []
+
+    for path in _python_files(PACKAGE_ROOT):
+        if path.is_relative_to(workspace_module):
+            continue
+        relative = _relative(path)
+        for imported in _imports(path):
+            if not imported.startswith("ai_anime.modules.project_workspace."):
+                continue
+            if imported == "ai_anime.modules.project_workspace.public":
+                continue
+            failures.append(f"{relative}: {imported}")
+
+    assert not (PACKAGE_ROOT / "project_context.py").exists()
+    assert not (PACKAGE_ROOT / "ports" / "project.py").exists()
+    assert not failures, "\n".join(failures)
 
 
 def test_story_intake_callers_use_the_public_api() -> None:

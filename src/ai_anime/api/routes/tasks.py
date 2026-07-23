@@ -16,7 +16,7 @@ from ai_anime.api.auth import (
     verify_credential_for_request,
 )
 from ai_anime.ports import get_project_access, get_task_backend
-from ai_anime.project_context import ProjectContext, resolve_project_context
+from ai_anime.modules.project_workspace.public import ProjectContext, resolve_project_context
 from ai_anime.task_backend.limits import (
     project_lane_effective_active_limit,
     project_user_lane_active_limit,

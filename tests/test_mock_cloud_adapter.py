@@ -8,7 +8,7 @@ import pytest
 from ai_anime.ports.cloud import CloudTaskRequest
 from ai_anime.ports.local.mock_cloud import MockCloudAdapter, cloud_task_kind
 from ai_anime.ports.local.mock_tasks import MockCloudTaskBackend
-from ai_anime.project_context import ProjectContext
+from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.task_state import get_task_manager
 
 

@@ -9,7 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from ai_anime.freezone.history import read_generation_history
-from ai_anime.project_context import ProjectContext
+from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.task_backend.runners.freezone import (
     _append_node_history,
     _history_model_mode_extra,

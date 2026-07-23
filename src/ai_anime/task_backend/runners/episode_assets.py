@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from ai_anime.project_context import ProjectContext
+from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.ports import get_usage_meter
 from ai_anime.task_backend.cancel import await_envelope_with_cancel_watch
 from ai_anime.task_backend.registry import register_project_task_runner

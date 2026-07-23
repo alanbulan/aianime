@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import pytest
 from PIL import Image
 
-from ai_anime.project_context import ProjectContext
+from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.task_backend.runners import sketch as sketch_runner
 from ai_anime.task_backend.runners import render as render_runner
 

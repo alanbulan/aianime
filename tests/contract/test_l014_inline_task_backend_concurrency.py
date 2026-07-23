@@ -11,7 +11,7 @@ import pytest
 
 from ai_anime.ports import registry
 from ai_anime.ports.local.tasks import InlineTaskBackend, InMemoryCancellationStore
-from ai_anime.project_context import ProjectContext
+from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.generators import tts_generator, video_composer, video_generator
 from ai_anime.generators.tts_generator import EdgeTTSGenerator, MockTTSGenerator
 from ai_anime.generators.video_composer import SceneAsset, VideoComposer

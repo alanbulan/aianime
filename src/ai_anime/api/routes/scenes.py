@@ -35,7 +35,7 @@ from ai_anime.models import (
     resolve_scene_plate_from_records,
 )
 from ai_anime.project_config import load_project_config_file
-from ai_anime.project_context import ProjectContext, resolve_project_context
+from ai_anime.modules.project_workspace.public import ProjectContext, resolve_project_context
 from ai_anime.sqlite_store import SQLiteStore
 from ai_anime.ports import get_task_backend
 from ai_anime.task_scopes import scene_reference_asset_scope, stage_asset_scope

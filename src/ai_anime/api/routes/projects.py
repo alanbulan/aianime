@@ -30,7 +30,7 @@ from ai_anime.api.schemas import (
 )
 from ai_anime.config import ensure_project_dirs_at_paths
 from ai_anime.ports import get_project_access, get_project_registry
-from ai_anime.ports.project import ProjectRecord
+from ai_anime.modules.project_workspace.public import ProjectRecord
 from ai_anime.project_config import (
     default_aspect_ratio_for_spine_template,
     load_effective_narration_style_for_voice,
@@ -40,7 +40,7 @@ from ai_anime.project_config import (
     save_project_config_in_state_dir,
     set_narrator_reference_audio,
 )
-from ai_anime.project_context import (
+from ai_anime.modules.project_workspace.public import (
     ProjectContext,
     is_record_home_node,
     require_project_home_node,

@@ -622,7 +622,7 @@ async def test_cli_project_id_scene_migration_uses_ee_entry_point(
 
     import ai_anime.ports as ports
     import ai_anime.ports.registry as registry
-    from ai_anime.ports.project import ProjectRecord
+    from ai_anime.modules.project_workspace.public import ProjectRecord
 
     registry = importlib.reload(registry)
     importlib.reload(ports)

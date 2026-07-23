@@ -28,7 +28,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from ai_anime.config import OUTPUT_DIR, STATE_DIR
-from ai_anime.project_context import ProjectContext, require_project_home_node
+from ai_anime.modules.project_workspace.public import ProjectContext, require_project_home_node
 from ai_anime.sqlite_pragmas import configure_sqlite_connection
 from ai_anime.task_backend.queues import normalize_queue_kind
 from ai_anime.task_identity import (

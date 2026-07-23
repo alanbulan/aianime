@@ -6,7 +6,7 @@ from typing import Any
 
 from ai_anime.ports import get_task_backend
 from ai_anime.ports.tasks import QueuedTask
-from ai_anime.project_context import ProjectContext
+from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.task_state import TaskState
 
 

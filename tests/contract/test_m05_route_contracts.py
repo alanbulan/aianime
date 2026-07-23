@@ -269,7 +269,7 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api import auth as api_auth
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.routes import episodes, generation, scenes
-    from ai_anime.project_context import ProjectContext
+    from ai_anime.modules.project_workspace.public import ProjectContext
     from ai_anime.verification import routes as verification_routes
 
     store = _M05Store()

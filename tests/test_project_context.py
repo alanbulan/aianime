@@ -2,9 +2,17 @@ from pathlib import Path
 
 import pytest
 
-from ai_anime.modules.project_workspace.public import ProjectHomeNodeRequired
-from ai_anime.ports.project import Principal, ProjectRecord
-from ai_anime.project_context import ProjectContext, _ctx_from_record, require_project_home_node
+from ai_anime.modules.project_workspace.application.project_scope import (
+    context_from_record,
+    is_record_home_node,
+)
+from ai_anime.modules.project_workspace.public import (
+    Principal,
+    ProjectContext,
+    ProjectHomeNodeRequired,
+    ProjectRecord,
+    require_project_home_node,
+)
 
 
 def _ctx(tmp_path: Path, *, is_home_node: bool) -> ProjectContext:
@@ -43,10 +51,7 @@ def test_require_project_home_node_rejects_remote_project(tmp_path):
     assert exc.value.operation == "read project files"
 
 
-def test_ctx_from_record_treats_ce_local_home_node_as_local(monkeypatch, tmp_path):
-    import ai_anime.project_context as project_context
-
-    monkeypatch.setattr(project_context, "resolve_worker_id", lambda: "node_other")
+def test_context_from_record_treats_ce_local_home_node_as_local(tmp_path):
     record = ProjectRecord(
         id="proj_local",
         owner_type="user",
@@ -60,12 +65,13 @@ def test_ctx_from_record_treats_ce_local_home_node_as_local(monkeypatch, tmp_pat
         status="active",
     )
 
-    ctx = _ctx_from_record(
+    ctx = context_from_record(
         project=record,
         requester_user_id="local",
         requester_username="alice",
         principals=[Principal("user", "local")],
         role="owner",
+        is_home_node=is_record_home_node(record, "node_other"),
     )
 
     assert ctx.is_home_node is True

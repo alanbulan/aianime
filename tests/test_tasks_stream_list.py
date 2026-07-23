@@ -8,7 +8,7 @@ import httpx
 import pytest
 from fastapi import FastAPI
 
-from ai_anime.project_context import ProjectContext
+from ai_anime.modules.project_workspace.public import ProjectContext
 
 pytestmark = pytest.mark.m07
 

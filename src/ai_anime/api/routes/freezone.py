@@ -242,7 +242,7 @@ from ai_anime.project_config import (
     load_effective_narration_style_for_voice,
     load_narrator_reference_audio,
 )
-from ai_anime.project_context import (
+from ai_anime.modules.project_workspace.public import (
     ProjectContext,
     require_project_home_node,
     resolve_project_context,

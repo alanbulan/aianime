@@ -14,7 +14,7 @@ from typing import Any
 
 from ai_anime.ports import get_cancellation_store
 from ai_anime.ports.tasks import QueuedTask, cancel_key, display_metadata_for_task
-from ai_anime.project_context import require_project_home_node
+from ai_anime.modules.project_workspace.public import require_project_home_node
 from ai_anime.task_backend.limits import (
     GlobalLaneQueueLimitExceeded,
     global_lane_concurrency,

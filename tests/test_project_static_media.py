@@ -12,7 +12,7 @@ from ai_anime.freezone.canvas_static_urls import (
     migrate_canvas_static_urls_in_memory,
     sanitize_project_local_paths_in_memory,
 )
-from ai_anime.project_context import ProjectContext
+from ai_anime.modules.project_workspace.public import ProjectContext
 
 
 pytestmark = pytest.mark.m09

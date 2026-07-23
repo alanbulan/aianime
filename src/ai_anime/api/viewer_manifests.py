@@ -27,7 +27,7 @@ from ai_anime.generators.episode_optimizer import (
     PROP_MARKER_PALETTE,
 )
 from ai_anime.models import real_detected_identities, real_detected_props
-from ai_anime.project_context import ProjectContext
+from ai_anime.modules.project_workspace.public import ProjectContext
 
 _ANONYMOUS_COLORS = [hex_code for hex_code, _name in BRIDGMAN_CHARACTER_PALETTE]
 _ANONYMOUS_PROP_COLORS = [hex_code for hex_code, _name in PROP_MARKER_PALETTE]

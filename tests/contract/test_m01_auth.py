@@ -38,10 +38,8 @@ def _patch_roots(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     runtime = tmp_path / "runtime"
 
     import ai_anime.api.deps as deps
-    import ai_anime.api.routes.projects as project_routes
     import ai_anime.config as config
     import ai_anime.project_config as project_config
-    import ai_anime.project_context as project_context
     import ai_anime.utils.project_paths as project_paths
 
     for module in (config, deps, project_paths):
@@ -50,8 +48,6 @@ def _patch_roots(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         monkeypatch.setattr(module, "RUNTIME_DIR", str(runtime), raising=False)
     monkeypatch.setattr(project_config, "OUTPUT_DIR", str(state), raising=False)
     monkeypatch.setattr(project_config, "STATE_DIR", str(state), raising=False)
-    monkeypatch.setattr(project_routes, "resolve_worker_id", lambda: "node_local", raising=False)
-    monkeypatch.setattr(project_context, "resolve_worker_id", lambda: "node_local")
 
 
 class _RejectingAuthPort:
@@ -75,9 +71,6 @@ def _ce_client(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> TestClient:
             sys.modules.pop(module_name)
     _patch_roots(monkeypatch, tmp_path)
 
-    from ai_anime.ports.local import project as local_project
-
-    monkeypatch.setattr(local_project, "resolve_worker_id", lambda: "node_local", raising=False)
     registry.ensure_bootstrap()
 
     from ai_anime.api.app import create_app

@@ -14,7 +14,7 @@ from fastapi import Depends, HTTPException
 
 from ai_anime.api.auth import get_api_user
 from ai_anime.config import OUTPUT_DIR, RUNTIME_DIR, STATE_DIR
-from ai_anime.project_context import (
+from ai_anime.modules.project_workspace.public import (
     ProjectContext,
     require_project_home_node,
     resolve_project_context,

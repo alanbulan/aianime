@@ -26,7 +26,7 @@ from ai_anime.chat import service as chat_service
 from ai_anime.chat.store import ChatScope, chat_store
 from ai_anime.modules.project_workspace.public import ProjectNotFound
 from ai_anime.ports import get_usage_meter
-from ai_anime.project_context import ProjectContext, resolve_project_context
+from ai_anime.modules.project_workspace.public import ProjectContext, resolve_project_context
 from ai_anime.shared.billing_errors import (
     BILLING_RULE_NOT_CONFIGURED_MESSAGE,
     INSUFFICIENT_CREDITS_MESSAGE,

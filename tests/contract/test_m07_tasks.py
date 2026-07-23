@@ -9,7 +9,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from ai_anime.project_context import ProjectContext
+from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.ports import registry
 from ai_anime.ports.local.project import AllowAllProjectAccess
 from ai_anime.ports.local.tasks import InlineTaskBackend, InMemoryCancellationStore

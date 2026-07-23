@@ -40,7 +40,7 @@ from ai_anime.freezone.skill_registry import (
     get_skill,
     list_skills,
 )
-from ai_anime.project_context import ProjectContext
+from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.task_backend.limits import ProjectUserTaskLimitExceeded
 from ai_anime.task_state import get_task_manager
 

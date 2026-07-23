@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from ai_anime.project_context import ProjectContext
+from ai_anime.modules.project_workspace.public import ProjectContext
 
 
 def _ctx(tmp_path: Path) -> ProjectContext:

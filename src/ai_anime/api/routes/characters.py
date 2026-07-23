@@ -21,7 +21,7 @@ from ai_anime.api.deps import (
     make_static_url_for_context,
     resolve_project_scope,
 )
-from ai_anime.project_context import ProjectContext
+from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.ports import get_task_backend
 from ai_anime.task_identity import project_task_state_key
 from ai_anime.api.schemas import (

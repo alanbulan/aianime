@@ -69,7 +69,7 @@ from ai_anime.seedance2_i2v.pipeline import (
 )
 from ai_anime.seedance2_i2v.voice_clone import normalize_seedance2_audio_type
 from ai_anime.project_config import load_project_config, save_project_config
-from ai_anime.project_context import ProjectContext
+from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.ports import get_task_backend, get_usage_meter
 from ai_anime.task_identity import project_task_state_key
 from ai_anime.models import beat_scene_id

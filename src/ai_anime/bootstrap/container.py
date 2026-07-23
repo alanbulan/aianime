@@ -8,7 +8,7 @@ from ai_anime.ports.audit import AuditSink
 from ai_anime.ports.auth import AuthPort, AuthSessionPort
 from ai_anime.ports.credit_quote import CreditQuotePort
 from ai_anime.ports.lifecycle import LifecyclePort
-from ai_anime.ports.project import ProjectAccess, ProjectRegistry
+from ai_anime.modules.project_workspace.public import ProjectAccess, ProjectRegistry
 from ai_anime.ports.registry import ensure_bootstrap, get_port
 from ai_anime.ports.tasks import CancellationStore, TaskBackend
 from ai_anime.ports.usage import ProviderInstrumentation, UsageMeter

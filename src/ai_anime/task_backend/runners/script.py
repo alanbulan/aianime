@@ -6,7 +6,7 @@ import asyncio
 from pathlib import Path
 from typing import Any
 
-from ai_anime.project_context import ProjectContext
+from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.shared.infrastructure.project_stores import (
     make_sqlite_store_for_context,
 )

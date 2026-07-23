@@ -152,11 +152,3 @@ class ProjectScopeResolver:
                 self._worker_id_provider(),
             ),
         )
-
-
-async def require_project_role(
-    ctx: ProjectContext,
-    role: str,
-) -> ProjectContext:
-    require_role_value(ctx.effective_role, role)
-    return ctx

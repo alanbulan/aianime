@@ -15,7 +15,7 @@ from ai_anime.freezone.history import (
     build_node_history_record,
     read_generation_history,
 )
-from ai_anime.project_context import ProjectContext
+from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.task_backend.runners.freezone import _append_node_history
 from ai_anime.task_backend.runners.video import _append_freezone_video_node_history
 

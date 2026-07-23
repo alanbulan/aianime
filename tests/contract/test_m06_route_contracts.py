@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from ai_anime.models import CharacterIdentity, NovelCharacter, NovelEpisode, NovelProp, NovelScene
-from ai_anime.project_context import ProjectContext
+from ai_anime.modules.project_workspace.public import ProjectContext
 
 pytestmark = pytest.mark.m06
 

@@ -8,7 +8,7 @@ from typing import Any
 
 from ai_anime.ports.cloud import CloudAdapter, CloudTaskCancelled, CloudTaskRequest
 from ai_anime.ports.tasks import QueuedTask, display_metadata_for_task
-from ai_anime.project_context import require_project_home_node
+from ai_anime.modules.project_workspace.public import require_project_home_node
 from ai_anime.task_backend.limits import project_lane_effective_active_limit
 from ai_anime.task_backend.queues import normalize_queue_kind
 from ai_anime.task_state import ACTIVE_PROJECT_TASK_STATUSES, get_task_manager
