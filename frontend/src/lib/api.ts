@@ -12,7 +12,7 @@ import {
 } from "@/lib/reset-region-state";
 
 // Module-level QueryClient handle so the afterResponse hook can do the full
-// cross-store + query-cache purge on a 400 no_region. Wired from main.tsx
+// cross-store + query-cache purge on a 400 no_region. Wired from app/bootstrap.
 // immediately after the QueryClient is constructed.
 let _queryClient: QueryClient | null = null;
 export function setApiQueryClient(qc: QueryClient): void {

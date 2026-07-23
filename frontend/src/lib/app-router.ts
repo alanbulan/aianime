@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import type { AnyRouter } from "@tanstack/react-router";
 
-// The app's tanstack-router singleton. Registered once from main.tsx after the
+// The app's tanstack-router singleton. Registered once from app/bootstrap after the
 // router is created, so plain (non-hook) modules — url-params, openPresetProjection —
 // can route navigations THROUGH the router instead of mutating window.history
 // directly.

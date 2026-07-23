@@ -75,6 +75,16 @@ function isRawDataImport(specifier: string): boolean {
 }
 
 describe("frontend architecture boundaries", () => {
+  it("keeps main.tsx as a thin application entrypoint", () => {
+    const main = readFileSync(resolve(SRC_ROOT, "main.tsx"), "utf8");
+
+    expect(main).toContain('import { bootstrapApplication } from "@/app/bootstrap";');
+    expect(main).toContain("void bootstrapApplication();");
+    expect(main).not.toContain("new QueryClient");
+    expect(main).not.toContain("createRouter(");
+    expect(main).not.toContain("<RouterProvider");
+  });
+
   it("does not increase direct route-to-data-layer imports", () => {
     const failures: string[] = [];
     for (const path of sourceFiles(resolve(SRC_ROOT, "routes"))) {

@@ -59,15 +59,18 @@ describe("chunk-load-recovery", () => {
   });
 
   it("keeps the app shell mounted while showing the user-refresh prompt", () => {
-    const mainSource = readFileSync(resolve(process.cwd(), "src/main.tsx"), "utf8");
+    const shellSource = readFileSync(
+      resolve(process.cwd(), "src/app/AppRouterShell.tsx"),
+      "utf8",
+    );
     const updatePromptSource = readFileSync(
       resolve(process.cwd(), "src/components/app-update-required.tsx"),
       "utf8",
     );
 
-    expect(mainSource).not.toContain("if (updateRequired) {");
-    expect(mainSource).toContain("<RouterProvider router={router} />");
-    expect(mainSource).toContain("updateRequired ? <AppUpdateRequired /> : <AppUpdateAvailable />");
+    expect(shellSource).not.toContain("if (updateRequired) {");
+    expect(shellSource).toContain("<RouterProvider router={router} />");
+    expect(shellSource).toContain("updateRequired ? <AppUpdateRequired /> : <AppUpdateAvailable />");
     expect(updatePromptSource).toContain("fixed inset-0");
   });
 });

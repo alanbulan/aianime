@@ -312,7 +312,7 @@ export function useEpisodeBeats(
  * Warm the beats cache for an episode. Called at canvas mount so the per-node
  * BeatContextNode queries (gated on selection) read from cache instead of each
  * firing — and being cancelled (499) — on viewport-virtualized remounts.
- * staleTime is inherited from the global QueryClient default (see src/main.tsx).
+ * staleTime is inherited from the global QueryClient default (see app/query-client.ts).
  */
 export function prefetchEpisodeBeats(
   qc: QueryClient,
