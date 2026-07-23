@@ -11,7 +11,8 @@ from ai_anime.api.routes.auth import (
     authorize,
     login,
 )
-from ai_anime.ports.local.auth import FileAuthPort, desktop_session_username
+from ai_anime.modules.identity_access.infrastructure.local_auth import FileAuthPort
+from ai_anime.modules.identity_access.domain import desktop_session_username
 
 
 def _cookie_value(response) -> str:

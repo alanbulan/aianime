@@ -10,7 +10,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from ai_anime.ports.auth_contract import AuthError, AuthFailureReason
+from ai_anime.modules.identity_access.public import AuthError, AuthFailureReason
 
 pytestmark = pytest.mark.m01
 

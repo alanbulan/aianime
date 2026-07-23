@@ -32,8 +32,12 @@ from ai_anime.chat.hermes_workspace import (
     effective_gateway_fingerprint,
     ensure_user_hermes_workspace,
 )
-from ai_anime.ports import get_auth_session_port
-from ai_anime.ports.auth_contract import AgentSessionToken
+from ai_anime.modules.identity_access.public import (
+    AgentSessionToken,
+    create_agent_session,
+    revoke_agent_session,
+    update_agent_session_scope,
+)
 
 _log = logging.getLogger(__name__)
 
@@ -216,7 +220,7 @@ class HermesPool:
             )
         home = ensure_user_hermes_workspace(username)
         worker_id = f"hermes-{uuid.uuid4().hex}"
-        token = await get_auth_session_port().create_agent_session(
+        token = await create_agent_session(
             username=username,
             scopes=HERMES_DEFAULT_SCOPES,
             ttl_seconds=self._token_ttl_secs,
@@ -326,7 +330,7 @@ class HermesPool:
         scope_kind: str,
         project_id: str | None,
     ) -> None:
-        await get_auth_session_port().update_agent_session_scope(
+        await update_agent_session_scope(
             slot.token.value,
             scope_kind=scope_kind,
             project_id=project_id,
@@ -405,7 +409,7 @@ class HermesPool:
         except Exception as e:
             _log.warning("error closing hermes thread for %s: %s", slot.username, e)
         try:
-            await get_auth_session_port().revoke_agent_session(slot.token.value)
+            await revoke_agent_session(slot.token.value)
         except Exception as e:
             _log.warning(
                 "error revoking hermes agent session %s: %s",

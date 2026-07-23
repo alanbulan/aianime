@@ -9,14 +9,6 @@ def get_cloud_adapter():
     return get_port("cloud_adapter")
 
 
-def get_auth_port():
-    return get_port("auth")
-
-
-def get_auth_session_port():
-    return get_port("auth_session")
-
-
 def get_project_registry():
     return get_port("project_registry")
 
@@ -71,8 +63,6 @@ def get_release_feed_port():
 
 __all__ = [
     "get_audit_sink",
-    "get_auth_port",
-    "get_auth_session_port",
     "get_cancellation_store",
     "get_cloud_adapter",
     "get_credit_quote",

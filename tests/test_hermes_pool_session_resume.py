@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from ai_anime.ports.auth_contract import AgentSessionToken
+from ai_anime.modules.identity_access.public import AgentSessionToken
 
 pytestmark = pytest.mark.m08
 

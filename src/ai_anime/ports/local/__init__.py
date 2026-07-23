@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import os
 
+from ai_anime.modules.identity_access.public import build_local_identity_adapters
 from ai_anime.ports.local.audit import NoOpAuditSink
-from ai_anime.ports.local.auth import FileAuthPort, LocalAuthSession
 from ai_anime.ports.local.credit_quote import LocalCreditQuote
 from ai_anime.ports.local.lifecycle import NoOpLifecycle
 from ai_anime.ports.local.mock_cloud import MockCloudAdapter
@@ -23,8 +23,9 @@ def register_local_ports() -> None:
     release_feed_name = os.environ.get(
         "AI_ANIME_RELEASE_FEED_ADAPTER", "mock"
     ).strip().lower()
-    register_port("auth", FileAuthPort())
-    register_port("auth_session", LocalAuthSession())
+    auth, auth_session = build_local_identity_adapters()
+    register_port("auth", auth)
+    register_port("auth_session", auth_session)
     register_port("project_registry", SQLiteProjectRegistry())
     register_port("project_access", AllowAllProjectAccess())
     register_port("usage_meter", NoOpUsageMeter())

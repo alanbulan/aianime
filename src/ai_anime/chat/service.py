@@ -29,7 +29,7 @@ from ai_anime.chat.backend_sdk import (
     interrupt_live_claude_client,
     interrupt_live_codex_turn,
 )
-from ai_anime.ports import get_auth_session_port
+from ai_anime.modules.identity_access.public import create_agent_session
 from ai_anime.sqlite_pragmas import configure_sqlite_connection
 from ai_anime.utils.error_redaction import redact_secrets
 from ai_anime.utils.static_urls import project_static_url
@@ -2816,7 +2816,7 @@ async def _create_page_agent_session_token(
     *,
     agent_kind: str,
 ) -> str:
-    token = await get_auth_session_port().create_agent_session(
+    token = await create_agent_session(
         username=username,
         scopes=PAGE_AGENT_SCOPES,
         ttl_seconds=PAGE_AGENT_SESSION_TTL_SECONDS,

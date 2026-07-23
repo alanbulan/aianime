@@ -17,9 +17,13 @@ from urllib.parse import unquote
 
 from fastapi import Depends, HTTPException, Request
 
-from ai_anime.ports import get_auth_port, get_auth_session_port
-from ai_anime.ports import registry as port_registry
-from ai_anime.ports.auth_contract import AuthError, AuthFailureReason
+from ai_anime.modules.identity_access.public import (
+    AuthError,
+    AuthFailureReason,
+    IdentityBackendNotInitialized,
+    verify_agent_session,
+    verify_browser_session,
+)
 
 logger = logging.getLogger("ai_anime.api.auth")
 
@@ -43,8 +47,8 @@ def _bearer_token_from_request(request: Request) -> Optional[str]:
 async def _verify_browser_session(raw_cookie: str | None) -> dict:
     """Verify the browser session cookie."""
     try:
-        return await get_auth_port().verify_session(raw_cookie)
-    except port_registry.PortNotRegistered:
+        return await verify_browser_session(raw_cookie)
+    except IdentityBackendNotInitialized:
         raise HTTPException(status_code=503, detail="auth backend not initialised")
     except AuthError as exc:
         if exc.reason == AuthFailureReason.MISSING:
@@ -56,8 +60,8 @@ async def _verify_browser_session(raw_cookie: str | None) -> dict:
 async def _verify_agent_bearer(token: str) -> dict:
     """Verify an agent session token. No legacy fallback by design."""
     try:
-        return await get_auth_session_port().verify_agent_session(token)
-    except port_registry.PortNotRegistered:
+        return await verify_agent_session(token)
+    except IdentityBackendNotInitialized:
         raise HTTPException(status_code=401, detail="Agent sessions require control plane")
     except AuthError:
         raise HTTPException(status_code=401, detail="Invalid agent session")

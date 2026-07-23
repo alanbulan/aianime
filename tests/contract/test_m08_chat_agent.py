@@ -7,7 +7,7 @@ import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from ai_anime.ports.auth_contract import AuthError
+from ai_anime.modules.identity_access.public import AuthError
 
 pytestmark = pytest.mark.m08
 
@@ -137,7 +137,12 @@ def test_chat_ws_auth_failure_reports_unauthorized(monkeypatch) -> None:
 @pytest.mark.asyncio
 async def test_ce_chat_page_agent_session_uses_local_auth_session(monkeypatch) -> None:
     from ai_anime.chat import service as chat_service
-    from ai_anime.ports import get_auth_session_port, registry
+    from ai_anime.modules.identity_access.public import (
+        revoke_agent_session,
+        update_agent_session_scope,
+        verify_agent_session,
+    )
+    from ai_anime.ports import registry
     from ai_anime.ports.local import register_local_ports
 
     monkeypatch.setattr(registry, "_PORTS", {})
@@ -150,21 +155,20 @@ async def test_ce_chat_page_agent_session_uses_local_auth_session(monkeypatch) -
         agent_kind="codex",
     )
 
-    port = get_auth_session_port()
-    user = await port.verify_agent_session(token_value)
+    user = await verify_agent_session(token_value)
     assert user["username"] == "local"
     assert user["current_scope_kind"] == "project"
     assert user["current_project_id"] == "project-a"
 
-    await port.update_agent_session_scope(
+    await update_agent_session_scope(
         token_value,
         scope_kind="home",
         project_id=None,
     )
-    updated = await port.verify_agent_session(token_value)
+    updated = await verify_agent_session(token_value)
     assert updated["current_scope_kind"] == "home"
     assert updated["current_project_id"] is None
 
-    await port.revoke_agent_session(token_value)
+    await revoke_agent_session(token_value)
     with pytest.raises(AuthError):
-        await port.verify_agent_session(token_value)
+        await verify_agent_session(token_value)

@@ -11,7 +11,10 @@ from ai_anime.api.auth import (
     get_api_user,
     resolve_auth_cookie_from_request,
 )
-from ai_anime.ports import get_auth_port
+from ai_anime.modules.identity_access.public import (
+    create_desktop_session,
+    revoke_browser_session,
+)
 from ai_anime.shared.runtime_env import cookie_secure as runtime_cookie_secure
 
 router = APIRouter()
@@ -60,8 +63,6 @@ def _desktop_auth_enabled() -> bool:
 
 
 def _desktop_user_response(username: str) -> JSONResponse:
-    from ai_anime.ports.local.auth import create_desktop_session
-
     response = JSONResponse(
         {
             "ok": True,
@@ -102,7 +103,7 @@ async def logout(request: Request, user: dict = Depends(get_api_user)):  # noqa:
     """清除 HttpOnly cookie + 在控制平面启用时吊销会话。"""
     cookie_value = resolve_auth_cookie_from_request(request)
     if cookie_value:
-        await get_auth_port().revoke_session(cookie_value)
+        await revoke_browser_session(cookie_value)
 
     response = JSONResponse({"ok": True})
     _clear_auth_cookie(response)

@@ -1,20 +1,20 @@
-"""Local CE authentication port implementations."""
+"""Local CE identity adapters."""
 
 from __future__ import annotations
 
 import os
 import time
-from base64 import urlsafe_b64decode, urlsafe_b64encode
 from dataclasses import replace
 
 from ulid import ULID
 
-from ai_anime.ports.auth_contract import (
+from ai_anime.modules.identity_access.domain import (
     AgentAuthenticatedUser,
     AgentSessionToken,
     AuthenticatedUser,
     AuthError,
     AuthFailureReason,
+    desktop_session_username,
 )
 
 
@@ -31,23 +31,6 @@ class FileAuthPort:
 
     async def revoke_session(self, raw_cookie: str) -> None:
         return None
-
-
-def create_desktop_session(username: str) -> str:
-    encoded = urlsafe_b64encode(username.encode("utf-8")).decode("ascii").rstrip("=")
-    return f"desktop.{encoded}"
-
-
-def desktop_session_username(raw_cookie: str | None) -> str | None:
-    if not raw_cookie or not raw_cookie.startswith("desktop."):
-        return None
-    encoded = raw_cookie.removeprefix("desktop.")
-    try:
-        value = urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)).decode("utf-8")
-    except (UnicodeDecodeError, ValueError):
-        return None
-    value = value.strip()
-    return value if 0 < len(value) <= 128 else None
 
 
 class LocalAuthSession:
@@ -97,8 +80,6 @@ class LocalAuthSession:
         session = self._sessions.get(token)
         if session is None:
             raise AuthError(AuthFailureReason.INVALID, "agent session not found")
-        # CE local agent tokens intentionally do not expire. The single-user
-        # trust boundary is local machine ownership; revoke invalidates workers.
         return session.to_legacy_dict()
 
     async def update_agent_session_scope(

@@ -1,23 +1,11 @@
-"""Authentication DTOs shared by control-plane and data-plane code."""
+"""Identity values and local desktop-session encoding."""
 
 from __future__ import annotations
 
+from base64 import urlsafe_b64decode, urlsafe_b64encode
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Optional
-
-DEFAULT_EXTERNAL_AGENT_SCOPES = [
-    "projects:read",
-    "projects:write",
-    "tasks:submit",
-    "tasks:poll",
-    "media:read",
-    "assets:read",
-]
-
-
-class TokenSource(str, Enum):
-    COOKIE = "cookie"
+from typing import Any
 
 
 class AuthFailureReason(str, Enum):
@@ -29,9 +17,7 @@ class AuthFailureReason(str, Enum):
 
 
 class AuthError(Exception):
-    """Raised when credential verification fails."""
-
-    def __init__(self, reason: AuthFailureReason, detail: str = ""):
+    def __init__(self, reason: AuthFailureReason, detail: str = "") -> None:
         self.reason = reason
         self.detail = detail
         super().__init__(f"{reason.value}: {detail}" if detail else reason.value)
@@ -44,7 +30,7 @@ class AuthenticatedUser:
     role: str
     status: str = "active"
 
-    def to_legacy_dict(self) -> Dict[str, Any]:
+    def to_legacy_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "user_id": self.id,
@@ -57,13 +43,13 @@ class AuthenticatedUser:
 class AgentAuthenticatedUser(AuthenticatedUser):
     agent_session_id: str = ""
     agent_kind: str = "agent"
-    worker_id: Optional[str] = None
+    worker_id: str | None = None
     scopes: tuple[str, ...] = ()
     current_scope_kind: str = "home"
-    current_project_id: Optional[str] = None
-    parent_session_id: Optional[str] = None
+    current_project_id: str | None = None
+    parent_session_id: str | None = None
 
-    def to_legacy_dict(self) -> Dict[str, Any]:
+    def to_legacy_dict(self) -> dict[str, Any]:
         data = super().to_legacy_dict()
         data.update(
             {
@@ -91,47 +77,18 @@ class AgentSessionToken:
     agent_kind: str = "agent"
 
 
-@dataclass(frozen=True)
-class ExternalAgentKey:
-    id: str
-    user_id: str
-    username: str
-    role: str
-    status: str
-    label: str
-    agent_kind: str
-    scopes: tuple[str, ...]
-    max_ttl_seconds: int
-    allowed_projects: tuple[str, ...]
+def create_desktop_session(username: str) -> str:
+    encoded = urlsafe_b64encode(username.encode("utf-8")).decode("ascii").rstrip("=")
+    return f"desktop.{encoded}"
 
 
-@dataclass(frozen=True)
-class ExternalAgentKeyToken:
-    value: str
-    key_id: str
-    user: str
-    label: str
-    agent_kind: str
-    scopes: tuple[str, ...]
-    max_ttl_seconds: int
-
-
-@dataclass(frozen=True)
-class LoginResult:
-    user: AuthenticatedUser
-    session_id: str
-    raw_cookie: str
-
-
-__all__ = [
-    "DEFAULT_EXTERNAL_AGENT_SCOPES",
-    "AgentAuthenticatedUser",
-    "AgentSessionToken",
-    "AuthError",
-    "AuthFailureReason",
-    "AuthenticatedUser",
-    "ExternalAgentKey",
-    "ExternalAgentKeyToken",
-    "LoginResult",
-    "TokenSource",
-]
+def desktop_session_username(raw_cookie: str | None) -> str | None:
+    if not raw_cookie or not raw_cookie.startswith("desktop."):
+        return None
+    encoded = raw_cookie.removeprefix("desktop.")
+    try:
+        value = urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)).decode("utf-8")
+    except (UnicodeDecodeError, ValueError):
+        return None
+    value = value.strip()
+    return value if 0 < len(value) <= 128 else None

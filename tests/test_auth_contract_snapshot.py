@@ -4,16 +4,18 @@
 T4 新建 FileAuthPort 时这个键集最容易悄悄变形，本测试把"拆分前"的形状钉死：
 两种实现（control_plane 的 EE 实现 / 将来的 FileAuthPort）都必须产出同样的键集。
 
-注意：T2 把 auth DTO 迁出到引擎侧 auth_contract 后，本文件的 import 路径
-随之更新（行为断言不变）。
+Identity & Access 模块接管 DTO 后，本文件只通过模块 public API 验证稳定键集。
 """
 
 from __future__ import annotations
 
-from ai_anime.api.auth import AUTH_COOKIE_NAME
-from ai_anime.ports.auth_contract import AgentAuthenticatedUser, AuthenticatedUser
-
 import pytest
+
+from ai_anime.api.auth import AUTH_COOKIE_NAME
+from ai_anime.modules.identity_access.public import (
+    AgentAuthenticatedUser,
+    AuthenticatedUser,
+)
 
 pytestmark = pytest.mark.m01
 

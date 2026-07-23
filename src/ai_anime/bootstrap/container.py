@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from ai_anime.ports.audit import AuditSink
-from ai_anime.ports.auth import AuthPort, AuthSessionPort
+from ai_anime.modules.identity_access.public import AuthPort, AuthSessionPort
 from ai_anime.ports.credit_quote import CreditQuotePort
 from ai_anime.ports.lifecycle import LifecyclePort
 from ai_anime.modules.project_workspace.public import ProjectAccess, ProjectRegistry

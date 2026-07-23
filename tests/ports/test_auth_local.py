@@ -2,13 +2,16 @@ import time
 
 import pytest
 
-from ai_anime.ports.auth_contract import (
+from ai_anime.modules.identity_access.public import (
     AgentSessionToken,
     AuthenticatedUser,
     AuthError,
     AuthFailureReason,
 )
-from ai_anime.ports.local.auth import FileAuthPort, LocalAuthSession
+from ai_anime.modules.identity_access.infrastructure.local_auth import (
+    FileAuthPort,
+    LocalAuthSession,
+)
 
 BROWSER_LEGACY_KEYS = {"id", "user_id", "username", "role"}
 AGENT_LEGACY_KEYS = BROWSER_LEGACY_KEYS | {

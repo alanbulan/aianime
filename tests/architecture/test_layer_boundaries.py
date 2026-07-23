@@ -191,6 +191,27 @@ def test_project_workspace_callers_use_the_public_api() -> None:
     assert not failures, "\n".join(failures)
 
 
+def test_identity_access_callers_use_the_public_api() -> None:
+    identity_module = PACKAGE_ROOT / "modules" / "identity_access"
+    failures: list[str] = []
+
+    for path in _python_files(PACKAGE_ROOT):
+        if path.is_relative_to(identity_module):
+            continue
+        relative = _relative(path)
+        for imported in _imports(path):
+            if not imported.startswith("ai_anime.modules.identity_access."):
+                continue
+            if imported == "ai_anime.modules.identity_access.public":
+                continue
+            failures.append(f"{relative}: {imported}")
+
+    assert not (PACKAGE_ROOT / "ports" / "auth.py").exists()
+    assert not (PACKAGE_ROOT / "ports" / "auth_contract.py").exists()
+    assert not (PACKAGE_ROOT / "ports" / "local" / "auth.py").exists()
+    assert not failures, "\n".join(failures)
+
+
 def test_story_intake_callers_use_the_public_api() -> None:
     story_module = PACKAGE_ROOT / "modules" / "story_intake"
     failures: list[str] = []

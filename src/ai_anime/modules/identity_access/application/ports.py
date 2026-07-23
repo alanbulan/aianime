@@ -1,20 +1,20 @@
-"""Authentication ports."""
+"""Ports required by Identity & Access application services."""
 
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Any, Protocol
 
-from ai_anime.ports.auth_contract import AgentSessionToken
+from ai_anime.modules.identity_access.domain import AgentSessionToken
 
 
 class AuthPort(Protocol):
-    async def verify_session(self, raw_cookie: str | None) -> dict: ...
+    async def verify_session(self, raw_cookie: str | None) -> dict[str, Any]: ...
 
     async def revoke_session(self, raw_cookie: str) -> None: ...
 
 
 class AuthSessionPort(Protocol):
-    async def verify_agent_session(self, token: str) -> dict: ...
+    async def verify_agent_session(self, token: str) -> dict[str, Any]: ...
 
     async def create_agent_session(
         self,
