@@ -51,7 +51,6 @@ from ai_anime.project_config import (
 )
 from ai_anime.utils.path_resolver import (
     compute_portrait_path,
-    compute_identity_path,
     compute_identity_costume_path,
     compute_identity_portrait_path,
     canonical_portrait_path,
@@ -63,13 +62,12 @@ from ai_anime.modules.asset_world.public import (
     CharacterCatalogRejected,
     CharacterVoiceRejected,
     CreateCharacterCommand,
+    CreateIdentityCommand,
     UpdateCharacterCommand,
-    character_asset_links,
+    UpdateIdentityCommand,
     character_catalog_use_cases,
+    character_identity_use_cases,
     character_voice_use_cases,
-    identity_voice_fields,
-    newest_updated_at,
-    tree_updated_at,
 )
 from ai_anime.sqlite_store import SQLiteStore
 
@@ -489,91 +487,18 @@ async def get_character_identities(
         await _resolve_character_project(project, user, required_role="viewer")
     )
 
-    characters = store.get_all_characters()
-
-    target = None
-    for c in characters:
-        if c.name == name:
-            target = c
-            break
-
-    if target is None:
-        return {"ok": False, "error": f"Character '{name}' not found"}
-
-    identities = []
     asset_project = getattr(ctx, "project_id", "") or project
-    if hasattr(target, "identities"):
-        for ident in target.identities:
-            identity_name = ident.identity_name if hasattr(ident, "identity_name") else ""
-            abs_image = (
-                compute_identity_path(project_dir, target.name, identity_name)
-                if identity_name
-                else ""
-            )
-            abs_costume = (
-                compute_identity_costume_path(project_dir, target.name, identity_name)
-                if identity_name
-                else ""
-            )
-            abs_portrait = (
-                compute_identity_portrait_path(project_dir, target.name, identity_name)
-                if identity_name
-                else ""
-            )
-            item = {
-                "identity_id": ident.identity_id if hasattr(ident, "identity_id") else "",
-                "identity_name": identity_name,
-                "appearance_details": getattr(ident, "appearance_details", ""),
-                "face_prompt": getattr(ident, "face_prompt", ""),
-                "age_group": getattr(ident, "age_group", ""),
-                "body_type": getattr(ident, "body_type", ""),
-                "image_path": abs_image,
-                "image_url": _asset_url(ctx, project_dir, abs_image) if abs_image else "",
-                "costume_image_path": abs_costume,
-                "costume_image_url": (
-                    _asset_url(ctx, project_dir, abs_costume) if abs_costume else ""
-                ),
-                "portrait_image_path": abs_portrait,
-                "portrait_image_url": (
-                    _asset_url(ctx, project_dir, abs_portrait) if abs_portrait else ""
-                ),
-                "updated_at": newest_updated_at(
-                    getattr(ident, "updated_at", ""),
-                    getattr(target, "updated_at", ""),
-                    tree_updated_at(abs_image),
-                    tree_updated_at(abs_costume),
-                    tree_updated_at(abs_portrait),
-                ),
-            }
-            item.update(
-                character_asset_links(
-                    project=asset_project,
-                    character_name=target.name,
-                    kind="identity",
-                    identity_id=getattr(ident, "identity_id", ""),
-                )
-            )
-            item["costume_history_url"] = character_asset_links(
-                project=asset_project,
-                character_name=target.name,
-                kind="identity_costume",
-                identity_id=getattr(ident, "identity_id", ""),
-            )["history_url"]
-            item["portrait_history_url"] = character_asset_links(
-                project=asset_project,
-                character_name=target.name,
-                kind="identity_portrait",
-                identity_id=getattr(ident, "identity_id", ""),
-            )["history_url"]
-            item.update(
-                identity_voice_fields(
-                    ident,
-                    media_url=_character_voice_media_url(ctx, project_dir),
-                )
-            )
-            identities.append(item)
-
-    return {"ok": True, "data": identities}
+    try:
+        data = character_identity_use_cases().list_identities(
+            repository=store,
+            character_name=name,
+            project_dir=project_dir,
+            asset_project=asset_project,
+            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+        )
+    except CharacterCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.get("/projects/{project}/characters/{name}/asset-history")
@@ -855,33 +780,15 @@ async def add_identity(
         await _resolve_character_project(project, user)
     )
 
-    character = store.get_character(name)
-    if character is None:
-        return {"ok": False, "error": f"Character '{name}' not found"}
-
-    from ai_anime.models import CharacterIdentity
-
-    identity_id = f"{name}_{body.identity_name}"
-    identity = CharacterIdentity(
-        identity_id=identity_id,
-        character_name=name,
-        identity_name=body.identity_name,
-        age_group=body.age_group,
-        appearance_details=body.appearance_details,
-        source="api",
-    )
-
-    await store.add_character_identity(name, identity)
-
-    return {
-        "ok": True,
-        "data": {
-            "identity_id": identity_id,
-            "identity_name": body.identity_name,
-            "age_group": body.age_group,
-            "appearance_details": body.appearance_details,
-        },
-    }
+    try:
+        data = await character_identity_use_cases().create_identity(
+            repository=store,
+            character_name=name,
+            command=CreateIdentityCommand(**body.model_dump()),
+        )
+    except CharacterCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.patch("/projects/{project}/characters/{name}/identities/{identity_id}")
@@ -897,20 +804,18 @@ async def update_identity(
         await _resolve_character_project(project, user)
     )
 
-    character = store.get_character(name)
-    if character is None:
-        return {"ok": False, "error": f"Character '{name}' not found"}
-
-    updates = body.model_dump(exclude_none=True)
-    if not updates:
-        return {"ok": True, "data": {"message": "No fields to update"}}
-
-    await store.update_character_identity(name, identity_id, **updates)
-
-    return {
-        "ok": True,
-        "data": {"identity_id": identity_id, "updated_fields": list(updates.keys())},
-    }
+    try:
+        data = await character_identity_use_cases().update_identity(
+            repository=store,
+            character_name=name,
+            identity_id=identity_id,
+            command=UpdateIdentityCommand(
+                fields=body.model_dump(exclude_none=True)
+            ),
+        )
+    except CharacterCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.delete("/projects/{project}/characters/{name}/identities/{identity_id}")
@@ -925,13 +830,15 @@ async def delete_identity(
         await _resolve_character_project(project, user)
     )
 
-    character = store.get_character(name)
-    if character is None:
-        return {"ok": False, "error": f"Character '{name}' not found"}
-
-    await store.delete_character_identity(name, identity_id)
-
-    return {"ok": True, "data": {"identity_id": identity_id, "message": "身份已删除"}}
+    try:
+        data = await character_identity_use_cases().delete_identity(
+            repository=store,
+            character_name=name,
+            identity_id=identity_id,
+        )
+    except CharacterCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.post("/projects/{project}/characters/{name}/portrait-async")

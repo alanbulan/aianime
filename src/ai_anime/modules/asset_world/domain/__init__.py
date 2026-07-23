@@ -4,6 +4,7 @@ from ai_anime.modules.asset_world.domain.character_catalog import (
     duplicate_main_character_names,
     other_main_character_names,
 )
+from ai_anime.modules.asset_world.domain.character_identity import identity_id_for
 from ai_anime.modules.asset_world.domain.character_voice import (
     AGE_GROUP_SLOTS,
     ALL_SLOTS,
@@ -35,6 +36,7 @@ __all__ = [
     "VoiceSlotMetadata",
     "ensure_custom_style_can_be_created",
     "ensure_custom_style_can_be_deleted",
+    "identity_id_for",
     "other_main_character_names",
     "style_preview_extension",
     "validate_style_preview_media_type",

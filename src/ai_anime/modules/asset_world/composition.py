@@ -3,6 +3,9 @@
 from ai_anime.modules.asset_world.application.character_catalog import (
     CharacterCatalogUseCases,
 )
+from ai_anime.modules.asset_world.application.character_identity import (
+    CharacterIdentityUseCases,
+)
 from ai_anime.modules.asset_world.application.character_voice import (
     CharacterVoiceUseCases,
 )
@@ -17,6 +20,10 @@ from ai_anime.modules.asset_world.infrastructure.character_voice_storage import 
 from ai_anime.modules.asset_world.infrastructure.character_catalog import (
     LocalCharacterCatalogAssets,
     NovelCharacterFactory,
+)
+from ai_anime.modules.asset_world.infrastructure.character_identity import (
+    LocalCharacterIdentityAssets,
+    PydanticCharacterIdentityFactory,
 )
 from ai_anime.modules.asset_world.infrastructure.style_catalog import StyleService
 from ai_anime.modules.asset_world.infrastructure.style_generation import (
@@ -33,6 +40,13 @@ def character_catalog_use_cases() -> CharacterCatalogUseCases:
     return CharacterCatalogUseCases(
         NovelCharacterFactory(),
         LocalCharacterCatalogAssets(),
+    )
+
+
+def character_identity_use_cases() -> CharacterIdentityUseCases:
+    return CharacterIdentityUseCases(
+        PydanticCharacterIdentityFactory(),
+        LocalCharacterIdentityAssets(),
     )
 
 

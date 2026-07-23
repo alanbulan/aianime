@@ -24,6 +24,25 @@ class UpdateCharacterCommand:
 
 
 @dataclass(frozen=True)
+class CreateIdentityCommand:
+    identity_name: str
+    age_group: str = ""
+    appearance_details: str = ""
+
+
+@dataclass(frozen=True)
+class UpdateIdentityCommand:
+    fields: Mapping[str, Any]
+
+
+@dataclass(frozen=True)
+class IdentityAssetPaths:
+    image: str = ""
+    costume: str = ""
+    portrait: str = ""
+
+
+@dataclass(frozen=True)
 class StyleScope:
     username: str
     project_name: str | None = None

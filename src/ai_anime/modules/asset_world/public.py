@@ -4,6 +4,9 @@ from ai_anime.modules.asset_world.application.character_catalog import (
     CharacterCatalogUseCases,
     character_asset_links,
 )
+from ai_anime.modules.asset_world.application.character_identity import (
+    CharacterIdentityUseCases,
+)
 from ai_anime.modules.asset_world.application.character_voice import (
     CharacterVoiceUseCases,
     character_voice_fields,
@@ -12,11 +15,13 @@ from ai_anime.modules.asset_world.application.character_voice import (
 from ai_anime.modules.asset_world.application.dto import (
     AnalyzeStyleCommand,
     CreateCharacterCommand,
+    CreateIdentityCommand,
     CreateCustomStyleCommand,
     StyleAnalysisBilling,
     StyleFile,
     StyleScope,
     UpdateCharacterCommand,
+    UpdateIdentityCommand,
 )
 from ai_anime.modules.asset_world.application.errors import (
     CharacterAlreadyExists,
@@ -76,6 +81,12 @@ def character_catalog_use_cases() -> CharacterCatalogUseCases:
     return build()
 
 
+def character_identity_use_cases() -> CharacterIdentityUseCases:
+    from ai_anime.modules.asset_world.composition import character_identity_use_cases as build
+
+    return build()
+
+
 def character_voice_use_cases() -> CharacterVoiceUseCases:
     from ai_anime.modules.asset_world.composition import character_voice_use_cases as build
 
@@ -102,11 +113,13 @@ __all__ = [
     "CharacterAlreadyExists",
     "CharacterCatalogRejected",
     "CharacterCatalogUseCases",
+    "CharacterIdentityUseCases",
     "CharacterNotFound",
     "CharacterVoiceNotFound",
     "CharacterVoiceRejected",
     "CharacterVoiceUseCases",
     "CreateCharacterCommand",
+    "CreateIdentityCommand",
     "CreateCustomStyleCommand",
     "DEFAULT_SLOT",
     "InvalidCharacterVoiceInput",
@@ -123,10 +136,12 @@ __all__ = [
     "UnsupportedCharacterVoiceSlot",
     "UnsupportedStyleMedia",
     "UpdateCharacterCommand",
+    "UpdateIdentityCommand",
     "VOICE_SAMPLE_EXTENSIONS",
     "analyze_style",
     "character_asset_links",
     "character_catalog_use_cases",
+    "character_identity_use_cases",
     "character_voice_fields",
     "character_voice_use_cases",
     "clear_character_voice_file",

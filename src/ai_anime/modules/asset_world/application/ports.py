@@ -5,7 +5,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping, Protocol, Sequence
 
-from ai_anime.modules.asset_world.application.dto import CreateCharacterCommand
+from ai_anime.modules.asset_world.application.dto import (
+    CreateCharacterCommand,
+    CreateIdentityCommand,
+    IdentityAssetPaths,
+)
 
 
 class CharacterCatalogRepository(Protocol):
@@ -30,6 +34,55 @@ class CharacterCatalogAssets(Protocol):
     def portrait_path(self, project_dir: Path, character_name: str) -> str: ...
 
     def updated_at(self, project_dir: Path, character: Any) -> str: ...
+
+
+class CharacterIdentityRepository(Protocol):
+    def get_all_characters(self) -> list[Any]: ...
+
+    def get_character(self, name: str) -> Any | None: ...
+
+    async def add_character_identity(
+        self,
+        character_name: str,
+        identity: Any,
+    ) -> Any: ...
+
+    async def update_character_identity(
+        self,
+        character_name: str,
+        identity_id: str,
+        **updates: Any,
+    ) -> Any: ...
+
+    async def delete_character_identity(
+        self,
+        character_name: str,
+        identity_id: str,
+    ) -> Any: ...
+
+
+class CharacterIdentityFactory(Protocol):
+    def create(
+        self,
+        character_name: str,
+        command: CreateIdentityCommand,
+    ) -> Any: ...
+
+
+class CharacterIdentityAssets(Protocol):
+    def paths(
+        self,
+        project_dir: Path,
+        character_name: str,
+        identity_name: str,
+    ) -> IdentityAssetPaths: ...
+
+    def updated_at(
+        self,
+        character: Any,
+        identity: Any,
+        paths: IdentityAssetPaths,
+    ) -> str: ...
 
 
 class CharacterVoiceRepository(Protocol):
