@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
+from ai_anime.modules.story_intake.public import IngestionTask
 from ai_anime.project_context import ProjectContext
 from ai_anime.task_backend.cancel import await_envelope_with_cancel_watch
 from ai_anime.task_backend.registry import register_project_task_runner
@@ -24,9 +25,7 @@ def run_ingest_fast(envelope: dict[str, Any], ctx: ProjectContext) -> dict[str, 
 async def _run_ingest_fast(envelope: dict[str, Any], ctx: ProjectContext) -> dict[str, Any]:
     from ai_anime.cognee import CogneeStore
 
-    payload = envelope.get("payload") or {}
-    novel_path = str(payload["novel_path"])
-    config = dict(payload.get("config") or {})
+    task = IngestionTask.from_backend_payload(envelope.get("payload") or {})
     manager = get_task_manager()
 
     store = CogneeStore(ctx.owner_project_label, output_dir=str(ctx.output_dir))
@@ -44,8 +43,8 @@ async def _run_ingest_fast(envelope: dict[str, Any], ctx: ProjectContext) -> dic
 
     try:
         result = await store.ingest_novel_fast(
-            novel_path,
-            rebuild=bool(config.get("rebuild", False)),
+            str(task.novel_path),
+            rebuild=bool(task.config.get("rebuild", False)),
             on_progress=update,
             on_log=lambda message: update(0.0, message),
         )

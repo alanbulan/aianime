@@ -8,16 +8,13 @@ from ai_anime.api.auth import get_api_user, require_scope
 from ai_anime.api.deps import get_cognee_store, resolve_project_scope
 from ai_anime.api.story_intake_mapper import story_intake_error_payload
 from ai_anime.api.story_intake_schemas import IngestStart
-from ai_anime.modules.story_intake.bootstrap import (
-    build_get_knowledge_graph,
-    build_story_intake_application,
-)
 from ai_anime.modules.story_intake.public import (
-    ProjectScope,
     SpineTemplateChangeRequiresRebuild,
     StartIngestionCommand,
     StoryIntakeError,
     UploadStoryDocumentCommand,
+    create_story_intake_application,
+    get_knowledge_graph_snapshot,
 )
 from ai_anime.ports import get_task_backend
 from ai_anime.project_config import (
@@ -31,20 +28,11 @@ router = APIRouter()
 
 
 def _application():
-    return build_story_intake_application(
+    return create_story_intake_application(
         task_backend_provider=get_task_backend,
         load_project_config=load_project_config,
         save_project_config=save_project_config,
         default_aspect_ratio=default_aspect_ratio_for_spine_template,
-    )
-
-
-def _project_scope(resolved) -> ProjectScope:
-    return ProjectScope(
-        username=resolved.username,
-        project_name=resolved.project_name,
-        project_dir=resolved.project_dir,
-        task_context=resolved.ctx,
     )
 
 
@@ -53,7 +41,7 @@ async def get_ingest_knowledge_graph(
     project: str,
     store=Depends(get_cognee_store),
 ):
-    snapshot = await build_get_knowledge_graph(store).execute()
+    snapshot = await get_knowledge_graph_snapshot(store)
     return {"ok": True, "data": snapshot}
 
 
@@ -67,7 +55,7 @@ async def upload_novel(
     resolved = await resolve_project_scope(project, user, required_role="editor")
     try:
         data = _application().upload_story_document.execute(
-            _project_scope(resolved),
+            resolved.ctx,
             UploadStoryDocumentCommand(filename=file.filename, stream=file.file),
         )
     except StoryIntakeError as exc:
@@ -87,7 +75,7 @@ async def start_ingest(
     resolved = await resolve_project_scope(project, user, required_role="editor")
     try:
         data = await _application().start_ingestion.execute(
-            _project_scope(resolved),
+            resolved.ctx,
             StartIngestionCommand(
                 filename=body.filename,
                 rebuild=body.rebuild,

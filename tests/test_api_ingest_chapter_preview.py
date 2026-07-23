@@ -8,6 +8,7 @@ import pytest
 from fastapi import UploadFile
 
 from ai_anime.api.schemas import IngestStart
+from ai_anime.modules.project_workspace.public import ProjectContext
 
 pytestmark = pytest.mark.m03
 
@@ -31,9 +32,25 @@ class _NovelStore:
         return self.text
 
 
-def _legacy_resolution(project_dir):
+def _project_resolution(project_dir):
+    context = ProjectContext(
+        project_id="demo",
+        project_name="demo",
+        owner_type="user",
+        owner_id="admin-id",
+        owner_username="admin",
+        requester_user_id="admin-id",
+        requester_username="admin",
+        requester_principals=(("user", "admin-id"),),
+        effective_role="owner",
+        home_node_id="local",
+        output_dir=project_dir,
+        state_dir=project_dir / "state",
+        runtime_dir=project_dir / "runtime",
+        is_home_node=True,
+    )
     return SimpleNamespace(
-        ctx=None,
+        ctx=context,
         username="admin",
         project_name="demo",
         project_dir=project_dir,
@@ -45,7 +62,7 @@ def _legacy_resolution(project_dir):
 
 def _project_scope_resolver(project_dir):
     async def resolve(*args, **kwargs):
-        return _legacy_resolution(project_dir)
+        return _project_resolution(project_dir)
 
     return resolve
 
@@ -95,7 +112,7 @@ def _docx_bytes(paragraphs: list[str]) -> bytes:
 
 
 def test_chapter_preview_ignores_embedded_chapter_references():
-    from ai_anime.api.chapter_preview import build_chapter_preview
+    from ai_anime.modules.story_intake.public import build_chapter_preview
 
     data = build_chapter_preview(FANTASY_META_TEXT)
 
@@ -106,7 +123,7 @@ def test_chapter_preview_ignores_embedded_chapter_references():
 
 
 def test_chapter_preview_does_not_split_episode_end_sentence():
-    from ai_anime.api.chapter_preview import build_chapter_preview
+    from ai_anime.modules.story_intake.public import build_chapter_preview
 
     text = "\n".join(
         [
@@ -132,7 +149,7 @@ def test_chapter_preview_does_not_split_episode_end_sentence():
 
 
 def test_chapter_preview_does_not_split_english_episode_end_sentence():
-    from ai_anime.api.chapter_preview import build_chapter_preview
+    from ai_anime.modules.story_intake.public import build_chapter_preview
 
     text = "\n".join(
         [
@@ -157,7 +174,7 @@ def test_chapter_preview_does_not_split_english_episode_end_sentence():
 
 
 def test_chapter_preview_accepts_dot_after_english_marker_number():
-    from ai_anime.api.chapter_preview import build_chapter_preview
+    from ai_anime.modules.story_intake.public import build_chapter_preview
 
     text = "\n".join(
         [
@@ -177,7 +194,7 @@ def test_chapter_preview_accepts_dot_after_english_marker_number():
 
 
 def test_chapter_preview_keeps_valid_titles_after_marker():
-    from ai_anime.api.chapter_preview import build_chapter_preview
+    from ai_anime.modules.story_intake.public import build_chapter_preview
 
     text = "\n".join(
         [
@@ -371,10 +388,10 @@ async def test_detect_chapters_returns_content_and_total_chars(tmp_path, monkeyp
         _project_scope_resolver(tmp_path),
     )
 
-    async def make_store(username: str, project: str):
+    async def make_store(context: ProjectContext):
         return _NovelStore(NOVEL_TEXT)
 
-    monkeypatch.setattr(episodes, "make_sqlite_store", make_store)
+    monkeypatch.setattr(episodes, "make_sqlite_store_for_context", make_store)
 
     response = await episodes.detect_chapters(
         project="demo",

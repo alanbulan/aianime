@@ -318,8 +318,8 @@ export function IngestResultPanel({
             {canViewKnowledgeGraph ? (
               <TabsContent value="graph">
                 {knowledgeGraph.isLoading ? <KnowledgeGraphSkeleton /> : null}
-                {knowledgeGraph.data?.data ? (
-                  <KnowledgeGraphVisualization graph={knowledgeGraph.data.data} />
+                {knowledgeGraph.data ? (
+                  <KnowledgeGraphVisualization graph={knowledgeGraph.data} />
                 ) : null}
                 {knowledgeGraph.isError ? (
                   <div className="flex min-h-32 items-center justify-between gap-4 rounded-lg border border-warning/45 bg-warning/10 p-4">

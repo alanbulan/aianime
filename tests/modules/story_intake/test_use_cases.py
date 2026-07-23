@@ -2,19 +2,18 @@ from __future__ import annotations
 
 import io
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any
 
 import pytest
 
+from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.story_intake.application.dto import (
-    ProjectScope,
+    IngestionTask,
     ScheduledIngestion,
     StartIngestionCommand,
     StoredStoryDocument,
     UploadStoryDocumentCommand,
 )
-from ai_anime.modules.story_intake.application.errors import ProjectContextRequired
 from ai_anime.modules.story_intake.application.use_cases import (
     GetChapterPreview,
     GetKnowledgeGraph,
@@ -82,12 +81,22 @@ class FakeTaskScheduler:
         )
 
 
-def _scope(tmp_path: Path, *, task_context: object | None = None) -> ProjectScope:
-    return ProjectScope(
-        username="alice",
+def _scope(tmp_path: Path) -> ProjectContext:
+    return ProjectContext(
+        project_id="project-1",
         project_name="demo",
-        project_dir=tmp_path,
-        task_context=task_context,
+        owner_type="user",
+        owner_id="user-1",
+        owner_username="alice",
+        requester_user_id="user-1",
+        requester_username="alice",
+        requester_principals=(("user", "user-1"),),
+        effective_role="owner",
+        home_node_id="local",
+        output_dir=tmp_path,
+        state_dir=tmp_path / "state",
+        runtime_dir=tmp_path / "runtime",
+        is_home_node=True,
     )
 
 
@@ -112,11 +121,11 @@ async def test_start_ingestion_owns_the_stable_task_payload(tmp_path):
     documents = FakeStoryDocuments(tmp_path)
     settings = FakeProjectSettings()
     scheduler = FakeTaskScheduler()
-    context = SimpleNamespace(project_id="project-1")
+    context = _scope(tmp_path)
     use_case = StartIngestion(documents, settings, scheduler)
 
     result = await use_case.execute(
-        _scope(tmp_path, task_context=context),
+        context,
         StartIngestionCommand(
             filename="novel.txt",
             rebuild=True,
@@ -133,6 +142,7 @@ async def test_start_ingestion_owns_the_stable_task_payload(tmp_path):
         "config": {"rebuild": True, "spine_template": "narrated"},
         "billing": {"billable_chars": 12, "billing_quantity": 12},
     }
+    assert IngestionTask.from_backend_payload(task.backend_payload()) == task
     assert result == {
         "task_type": "ingest_fast",
         "task_id": "task-1",
@@ -141,30 +151,6 @@ async def test_start_ingestion_owns_the_stable_task_payload(tmp_path):
         "queue": "inline",
         "message": "导入任务已进入队列: novel.txt",
     }
-
-
-@pytest.mark.asyncio
-async def test_start_ingestion_keeps_config_update_before_legacy_context_failure(
-    tmp_path,
-):
-    documents = FakeStoryDocuments(tmp_path)
-    settings = FakeProjectSettings()
-    scheduler = FakeTaskScheduler()
-    use_case = StartIngestion(documents, settings, scheduler)
-
-    with pytest.raises(ProjectContextRequired):
-        await use_case.execute(
-            _scope(tmp_path),
-            StartIngestionCommand(
-                filename="novel.txt",
-                rebuild=True,
-                spine_template="narrated",
-            ),
-        )
-
-    assert settings.calls == [("alice", "demo", "narrated")]
-    assert scheduler.calls == []
-
 
 @pytest.mark.asyncio
 async def test_get_knowledge_graph_delegates_to_port():

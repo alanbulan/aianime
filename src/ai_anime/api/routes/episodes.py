@@ -4,7 +4,6 @@ import logging
 from fastapi import APIRouter, Depends
 
 from ai_anime.api.auth import get_api_user
-from ai_anime.api.chapter_preview import build_chapter_preview
 from ai_anime.api.deps import (
     make_cognee_store,
     make_cognee_store_for_context,
@@ -15,6 +14,7 @@ from ai_anime.api.deps import (
 )
 from ai_anime.api.schemas import EpisodePlanRequest, EpisodeUpdate, InsertManualShotRequest
 from ai_anime.ports import get_task_backend, get_usage_meter
+from ai_anime.modules.story_intake.public import build_chapter_preview
 from ai_anime.task_identity import project_task_state_key
 
 logger = logging.getLogger("ai_anime.api.episodes")
@@ -202,11 +202,7 @@ async def list_episodes(project: str, user: dict = Depends(get_api_user)):
     """获取项目分集列表。"""
     resolved = await resolve_project_scope(project, user, required_role="viewer")
 
-    store = (
-        await make_sqlite_store_for_context(resolved.ctx)
-        if resolved.ctx
-        else await make_sqlite_store(resolved.username, resolved.project_name)
-    )
+    store = await make_sqlite_store_for_context(resolved.ctx)
     episodes = store.get_all_episodes()
 
     data = []

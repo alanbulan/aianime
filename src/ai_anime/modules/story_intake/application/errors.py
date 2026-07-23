@@ -49,7 +49,3 @@ class NoChaptersDetected(StoryIntakeError):
     def __init__(self, format_check: dict[str, Any]) -> None:
         super().__init__("未检测到有效章节内容")
         self.format_check = format_check
-
-
-class ProjectContextRequired(StoryIntakeError):
-    pass

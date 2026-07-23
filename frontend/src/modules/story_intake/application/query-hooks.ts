@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { OkResponse } from "@/types/api";
 import { queryKeys } from "@/lib/query-keys";
 import type { StoryIntakeGateway } from "@/modules/story_intake/application/ports";
 import type { ChaptersResult } from "@/modules/story_intake/domain/types";
@@ -9,28 +8,20 @@ export function createStoryIntakeQueryHooks(gateway: StoryIntakeGateway) {
   function useUploadNovel(project: string) {
     const queryClient = useQueryClient();
     return useMutation({
-      mutationFn: async (file: File) => {
-        const response = await gateway.uploadNovel(project, file);
-        if (!response.ok) throw new Error(response.error);
-        return response;
-      },
-      onSuccess: (response) => {
-        const preview = response.data;
+      mutationFn: (file: File) => gateway.uploadNovel(project, file),
+      onSuccess: (preview) => {
         if (
           Array.isArray(preview.chapters) &&
           typeof preview.total_chars === "number"
         ) {
-          queryClient.setQueryData<OkResponse<ChaptersResult>>(
+          queryClient.setQueryData<ChaptersResult>(
             queryKeys.chapters(project),
             {
-              ok: true,
-              data: {
-                chapters: preview.chapters,
-                total_chars: preview.total_chars,
-                billable_chars: preview.billable_chars,
-                count: preview.count,
-                preview_only: true,
-              },
+              chapters: preview.chapters,
+              total_chars: preview.total_chars,
+              billable_chars: preview.billable_chars,
+              count: preview.count,
+              preview_only: true,
             },
           );
           return;
@@ -59,13 +50,8 @@ export function createStoryIntakeQueryHooks(gateway: StoryIntakeGateway) {
 
   function useStartIngest(project: string) {
     return useMutation({
-      mutationFn: async (
-        params: Parameters<StoryIntakeGateway["startIngestion"]>[1],
-      ) => {
-        const response = await gateway.startIngestion(project, params);
-        if (!response.ok) throw new Error(response.error);
-        return response;
-      },
+      mutationFn: (params: Parameters<StoryIntakeGateway["startIngestion"]>[1]) =>
+        gateway.startIngestion(project, params),
     });
   }
 

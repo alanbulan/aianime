@@ -18,7 +18,7 @@ import { fetchFreezoneJobResult, submitFreezoneGen } from "@/api/ops";
 import { pushToPipeline } from "@/api/push";
 import { createStreamClient } from "@/task-center/stream-client";
 import { useTaskStream } from "@/hooks/use-task-stream";
-import { useStartIngest } from "@/lib/queries/ingest";
+import { useStartIngest } from "@/modules/story_intake/public";
 import { useAuthStore } from "@/stores/auth-store";
 
 vi.mock("@/shared/api/transport", () => ({
@@ -136,8 +136,7 @@ describe("M06 frontend L2 contract", () => {
       spine_template: "drama",
     });
     expect(ingestResponse).toMatchObject({
-      ok: true,
-      task_type: "ingest_fast",
+      taskType: "ingest_fast",
       message: "ingest queued",
     });
 

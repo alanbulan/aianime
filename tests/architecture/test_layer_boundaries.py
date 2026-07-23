@@ -173,3 +173,22 @@ def test_project_workspace_core_does_not_depend_on_fastapi() -> None:
         if any(imported == "fastapi" or imported.startswith("fastapi.") for imported in _imports(path))
     ]
     assert not failures
+
+
+def test_story_intake_callers_use_the_public_api() -> None:
+    story_module = PACKAGE_ROOT / "modules" / "story_intake"
+    failures: list[str] = []
+
+    for path in _python_files(PACKAGE_ROOT):
+        if path.is_relative_to(story_module):
+            continue
+        relative = _relative(path)
+        for imported in _imports(path):
+            if not imported.startswith("ai_anime.modules.story_intake."):
+                continue
+            if imported == "ai_anime.modules.story_intake.public":
+                continue
+            failures.append(f"{relative}: {imported}")
+
+    assert not (PACKAGE_ROOT / "api" / "chapter_preview.py").exists()
+    assert not failures, "\n".join(failures)

@@ -1,6 +1,6 @@
 # `ai-anime-desktop` DDD 模块化重构计划
 
-> 状态：执行中（阶段 2 已完成；阶段 3 退出审计中）
+> 状态：执行中（阶段 3 已完成；准备进入阶段 4）
 >
 > 制定日期：2026-07-23
 >
@@ -19,7 +19,7 @@
 1. 先固化当前行为、API、数据格式和知识图谱改动。
 2. 建立可自动执行的依赖边界门禁。
 3. 以“故事导入与知识图谱”完成第一个前后端纵向样板。
-4. 按有界上下文逐个迁移，旧路径只保留短期兼容出口。
+4. 按有界上下文逐个迁移；同一批次切换全部调用方并删除旧实现，不保留双轨或无调用方兼容出口。
 5. 最后处理风险最高的 Freezone/Canvas 和清理兼容层。
 
 DDD 只用于有真实业务规则的区域。简单 CRUD 不会被强行包装成大量聚合、工厂和通用仓储；应用服务可以直接编排上下文专用仓储，避免从“文件巨石”变成“抽象巨石”。
@@ -152,6 +152,7 @@ Domain 和 Application 不得依赖 FastAPI、具体数据库、文件路径实�
 6. `src/ai_anime/api` 之外的代码不得导入 `ai_anime.api.*`。
 7. route 模块之间不得互相导入；共享规则必须下沉到 domain/application。
 8. 不创建跨上下文的 `BaseRepository` 或万能 `Service`；端口按用例需要定义。
+9. 迁移后的逻辑只保留一个实现；旧 facade、旧 DTO 和旧分支随最后一个调用方在同批删除。
 
 ### 5.2 前端
 
@@ -174,6 +175,7 @@ App Bootstrap 负责 Provider、路由和具体适配器装配。
 6. TanStack Query 是服务端状态唯一来源；Zustand 只保存跨组件客户端状态和编辑会话。
 7. 跨模块只能从对方 `public.ts` 导入；禁止引用内部目录。
 8. `shared` 只放真正跨领域且没有业务所有权的 UI、工具、HTTP transport 和基础类型。
+9. 模块迁移必须同时清除旧查询、重复 HTTP 调用和废弃类型，禁止 public API 与旧目录双轨运行。
 
 ## 6. 目标目录结构
 
@@ -439,7 +441,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 | 0. 确认与基线 | 已完成 | 功能与计划独立提交，不自动同步远端 |
 | 1. 架构保护网 | 已完成 | 前后端依赖门禁、颜色字面量门禁和验证脚本已落地 |
 | 2. 应用装配 | 已完成 | 前后端组合根、共享基础和全局样式边界均已落地 |
-| 3. Story Intake 样板 | 进行中 | 前后端首批纵向切片已落地，阶段退出审计待完成 |
+| 3. Story Intake 样板 | 已完成 | 唯一 public 边界、领域 DTO、任务协议和缓存契约均已通过退出门禁 |
 | 4. Identity / Workspace | 未开始 | 认证与项目边界 |
 | 5. Narrative Planning | 未开始 | 剧集、剧本与内容 |
 | 6. Asset & World | 未开始 | 角色、场景、道具与风格 |
@@ -463,11 +465,11 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 | 架构保护网 | `be88c21` 建立前后端只减不增依赖门禁；`f4c3916` 建立 UI 颜色分类门禁；普通 UI 已收敛到语义 token，媒体/渲染/领域色保留显式预算 | 随后续迁移持续下调存量 allowlist，不新增豁免 |
 | 前端应用装配 | `ae4d03d` 拆出 bootstrap、AppRoot、router shell 和 query client；`f4c3916` 将全局 CSS 拆为 reset/tokens/themes/base/portal；本批将两套 ky client 收敛为唯一 `shared/api` transport，并将区域/会话副作用改由 app 组合根注入 | 阶段 2 前端装配项已完成，后续按上下文迁移 `api/*` 与 `lib/queries/*` 所有权 |
 | 后端应用装配 | `api/app.py` 已收敛为组合根；lifespan、中间件、异常映射、平台静态路由和 `api/v1/router.py` 已独立；`bootstrap/ApplicationContainer` 已将 11 个必需运行时端口显式装配并接管生命周期；静态 URL 与 Store 工厂已下沉到 shared；Project Workspace 已拆出 domain/application/ports，项目异常由 API 统一映射；旧路径仅保留兼容 facade | 阶段 2 后端装配项已完成，后续按上下文迁移 facade 调用方 |
-| Story Intake 样板 | `cb2b856` 完成后端 domain/application/infrastructure/use-case 切片；`1078eb1` 完成前端 controller/view/domain/infrastructure 切片，route 收敛为页面适配器 | 按阶段 3 退出条件复核所有导入、任务 DTO 与缓存失效契约 |
+| Story Intake 样板 | `cb2b856` 完成后端 domain/application/infrastructure/use-case 切片；`1078eb1` 完成前端 controller/view/domain/infrastructure 切片；退出批次删除前端 `lib/queries/ingest.ts` 与后端 `api/chapter_preview.py`，外部调用统一走 public API；应用 DTO 接管任务 payload 往返，导入完成会刷新章节并失效图谱缓存 | 阶段 3 已关闭，不保留旧查询、旧 facade、内部路径白名单或重复导入 HTTP 实现 |
 
 当前验证事实：
 
-- 前端 TypeScript 全量检查通过；Vitest 279 个测试文件、1,761 项用例通过；前端架构门禁 7 项通过。
+- 前端 TypeScript 全量检查通过；Vitest 279 个测试文件、1,764 项用例通过；前端架构门禁 8 项通过。
 - 前端生产代码仅保留 `shared/api/transport.ts` 一个 ky 工厂；旧 `lib/api.ts`、`lib/api-errors.ts`、`lib/api-path.ts`、`api/client.ts` 及其全部导入已清除。
 - 后端应用工厂拆分前后 OpenAPI 完全一致：269 条路径、295 个操作，规范化 SHA-256 均为 `614f1ffc6214b35fe28604569ee4c9e1a2fb8e832b07487d11170b2c29ae93ae`。
 - 后端应用工厂、lifespan、桌面令牌、请求上限、静态媒体、SPA、异常映射和架构门禁定向测试通过。
@@ -475,6 +477,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 - 非 API 业务模块对 `ai_anime.api.*` 的反向导入由阶段 0 的 28 处降至 5 处；剩余项均保留在只减不增门禁中。
 - `project_context.py`、`ports/project.py` 与 Project Workspace domain/application 已移除 FastAPI 依赖；项目异常的 401/403/404/409/503 HTTP 契约由统一映射测试固定。
 - 后端契约套件 75 项通过；1 项既有断言失败：CE 下 `/api/v1/auth/login` 实际返回 404，但仍存在于 OpenAPI。由于拆分前后 OpenAPI 指纹一致，本批不将其伪装成本次回归，也不借结构迁移改变 API 文档契约。
+- Story Intake 定向后端测试 22 项通过；外部模块只能导入 `story_intake.public`，任务 runner 通过 `IngestionTask` 统一解析 payload，前端仅 infrastructure gateway 持有导入端点。
 - 后端默认 Pytest 仍有阶段 0 已记录的 `examples.seedance2_fast_demo` 缺失模块收集错误，不能记为全量通过。
 
 ### 阶段 0：确认、检查点与可复现基线

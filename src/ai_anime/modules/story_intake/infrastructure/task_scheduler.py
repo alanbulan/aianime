@@ -9,6 +9,7 @@ from ai_anime.modules.story_intake.application.dto import (
     IngestionTask,
     ScheduledIngestion,
 )
+from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.task_identity import project_task_state_key
 
 
@@ -18,7 +19,7 @@ class TaskBackendScheduler:
 
     async def enqueue_ingestion(
         self,
-        task_context: object,
+        task_context: ProjectContext,
         task: IngestionTask,
     ) -> ScheduledIngestion:
         queued = await self._task_backend_provider().enqueue_project_task(
@@ -28,10 +29,9 @@ class TaskBackendScheduler:
             episode=0,
             payload=task.backend_payload(),
         )
-        project_id = str(getattr(task_context, "project_id"))
         return ScheduledIngestion(
             task_id=str(queued.task_state.task_id),
-            task_key=project_task_state_key("ingest_fast", project_id, 0),
+            task_key=project_task_state_key("ingest_fast", task_context.project_id, 0),
             backend=queued.backend,
             queue=queued.queue,
         )

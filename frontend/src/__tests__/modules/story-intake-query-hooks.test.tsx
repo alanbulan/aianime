@@ -17,7 +17,7 @@ import {
   useKnowledgeGraph,
   useStartIngest,
   useUploadNovel,
-} from "@/lib/queries/ingest";
+} from "@/modules/story_intake/public";
 
 const server = setupServer();
 
@@ -60,7 +60,7 @@ describe("ingest query error contract", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(queryClient.getQueryData(queryKeys.chapters("demo"))).toMatchObject({
-      data: { preview_only: true },
+      preview_only: true,
     });
   });
 
@@ -83,7 +83,33 @@ describe("ingest query error contract", () => {
     const { result } = renderHook(() => useKnowledgeGraph("demo"), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data?.data.nodes[0].label).toBe("林昭");
+    expect(result.current.data?.nodes[0].label).toBe("林昭");
+  });
+
+  it("does not request the knowledge graph before the graph view is enabled", () => {
+    const request = vi.fn();
+    server.use(
+      http.get("http://localhost:3000/api/v1/projects/demo/ingest/graph", () => {
+        request();
+        return HttpResponse.json({
+          ok: true,
+          data: {
+            nodes: [],
+            edges: [],
+            total_nodes: 0,
+            total_edges: 0,
+            truncated: false,
+          },
+        });
+      }),
+    );
+
+    const { result } = renderHook(() => useKnowledgeGraph("demo", false), {
+      wrapper,
+    });
+
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(request).not.toHaveBeenCalled();
   });
 
   it("rejects upload responses that return ok:false with a backend error", async () => {

@@ -7,13 +7,11 @@ from typing import Any
 
 from ai_anime.modules.story_intake.application.dto import (
     IngestionTask,
-    ProjectScope,
     StartIngestionCommand,
     UploadStoryDocumentCommand,
 )
 from ai_anime.modules.story_intake.application.errors import (
     NoChaptersDetected,
-    ProjectContextRequired,
     StoryDocumentParseFailed,
 )
 from ai_anime.modules.story_intake.application.ports import (
@@ -23,6 +21,7 @@ from ai_anime.modules.story_intake.application.ports import (
     TaskScheduler,
 )
 from ai_anime.modules.story_intake.domain import IngestionOptions
+from ai_anime.modules.project_workspace.public import ProjectContext
 
 logger = logging.getLogger("ai_anime.story_intake")
 
@@ -46,11 +45,11 @@ class UploadStoryDocument:
 
     def execute(
         self,
-        scope: ProjectScope,
+        scope: ProjectContext,
         command: UploadStoryDocumentCommand,
     ) -> dict[str, Any]:
         document = self._documents.store_upload(
-            scope.project_dir,
+            scope.output_dir,
             command.filename,
             command.stream,
         )
@@ -97,10 +96,10 @@ class StartIngestion:
 
     async def execute(
         self,
-        scope: ProjectScope,
+        scope: ProjectContext,
         command: StartIngestionCommand,
     ) -> dict[str, Any]:
-        document = self._documents.get_existing(scope.project_dir, command.filename)
+        document = self._documents.get_existing(scope.output_dir, command.filename)
         try:
             story_text = self._documents.load_text(document)
             billable_chars = self._documents.count_billable_chars(story_text)
@@ -122,16 +121,13 @@ class StartIngestion:
         task_config = options.task_config()
         if command.spine_template is not None:
             self._project_settings.set_spine_template(
-                scope.username,
+                scope.owner_username,
                 scope.project_name,
                 command.spine_template,
             )
 
-        if scope.task_context is None:
-            raise ProjectContextRequired
-
         scheduled = await self._task_scheduler.enqueue_ingestion(
-            scope.task_context,
+            scope,
             IngestionTask(
                 novel_path=document.path,
                 config=task_config,

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from ai_anime.modules.story_intake.public import (
     NoChaptersDetected,
-    ProjectContextRequired,
     SpineTemplateChangeRequiresRebuild,
     StoryDocumentNotFound,
     StoryDocumentParseFailed,
@@ -55,8 +54,6 @@ def story_intake_error_payload(error: Exception) -> dict:
         }
     if isinstance(error, SpineTemplateChangeRequiresRebuild):
         return {"ok": False, "error": "项目类型只能在重新导入时修改"}
-    if isinstance(error, ProjectContextRequired):
-        return {"ok": False, "error": "导入需要 project context"}
     if isinstance(error, StoryIntakeError):
         return {"ok": False, "error": str(error)}
     raise TypeError(f"Unsupported Story Intake error: {type(error).__name__}")

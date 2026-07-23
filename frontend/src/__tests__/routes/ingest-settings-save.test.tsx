@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nextProvider, initReactI18next } from "react-i18next";
@@ -137,19 +137,16 @@ const mocks = vi.hoisted(() => ({
   startIngest: vi.fn(),
   chaptersData: undefined as
     | {
-        ok: true;
-        data: {
-          total_chars: number;
-          count: number;
-          preview_only?: boolean;
-          chapters: {
-            number: number;
-            title?: string | null;
-            content?: string;
-            word_count?: number;
-            char_count?: number;
-          }[];
-        };
+        total_chars: number;
+        count: number;
+        preview_only?: boolean;
+        chapters: {
+          number: number;
+          title?: string | null;
+          content?: string;
+          word_count?: number;
+          char_count?: number;
+        }[];
       }
     | undefined,
   toastSuccess: vi.fn(),
@@ -160,6 +157,7 @@ const mocks = vi.hoisted(() => ({
   ingestTasksFetchedAfterMount: true,
   knowledgeGraphEnabled: false,
   refetchKnowledgeGraph: vi.fn(),
+  taskStreamOnComplete: null as null | (() => void | Promise<void>),
 }));
 
 vi.mock("@/components/ui/select", async () => {
@@ -242,37 +240,34 @@ vi.mock("@/modules/story_intake/application/query-hooks", () => ({
       return {
         data: enabled
           ? {
-              ok: true,
-              data: {
-                nodes: [
-                  {
-                    id: "node-1",
-                    label: "林昭",
-                    type: "Entity",
-                    degree: 1,
-                    properties: { description: "雨巷少年" },
-                  },
-                  {
-                    id: "node-2",
-                    label: "雨巷",
-                    type: "Entity",
-                    degree: 1,
-                    properties: {},
-                  },
-                ],
-                edges: [
-                  {
-                    id: "edge-1",
-                    source: "node-1",
-                    target: "node-2",
-                    relation: "appears_in",
-                    properties: {},
-                  },
-                ],
-                total_nodes: 2,
-                total_edges: 1,
-                truncated: false,
-              },
+              nodes: [
+                {
+                  id: "node-1",
+                  label: "林昭",
+                  type: "Entity",
+                  degree: 1,
+                  properties: { description: "雨巷少年" },
+                },
+                {
+                  id: "node-2",
+                  label: "雨巷",
+                  type: "Entity",
+                  degree: 1,
+                  properties: {},
+                },
+              ],
+              edges: [
+                {
+                  id: "edge-1",
+                  source: "node-1",
+                  target: "node-2",
+                  relation: "appears_in",
+                  properties: {},
+                },
+              ],
+              total_nodes: 2,
+              total_edges: 1,
+              truncated: false,
             }
           : undefined,
         isLoading: false,
@@ -304,14 +299,17 @@ vi.mock("@/lib/queries/tasks", () => ({
 }));
 
 vi.mock("@/hooks/use-task-stream", () => ({
-  useTaskStream: () => ({
-    status: "idle",
-    progress: 0,
-    currentTask: "",
-    result: null,
-    error: null,
-    logs: [],
-  }),
+  useTaskStream: (options: { onComplete?: () => void | Promise<void> }) => {
+    mocks.taskStreamOnComplete = options.onComplete ?? null;
+    return {
+      status: "idle",
+      progress: 0,
+      currentTask: "",
+      result: null,
+      error: null,
+      logs: [],
+    };
+  },
 }));
 
 vi.mock("sonner", () => ({
@@ -353,6 +351,7 @@ beforeEach(() => {
   mocks.ingestTasksFetchedAfterMount = true;
   mocks.knowledgeGraphEnabled = false;
   mocks.refetchKnowledgeGraph.mockReset();
+  mocks.taskStreamOnComplete = null;
 });
 
 describe("IngestPage settings save", () => {
@@ -457,12 +456,9 @@ describe("IngestPage settings save", () => {
   it("hides the reupload button once chapters are imported", async () => {
     // Imported state: chapters exist, no in-session upload -> previewStatus "completed".
     mocks.chaptersData = {
-      ok: true,
-      data: {
-        total_chars: 10,
-        count: 1,
-        chapters: [{ number: 1, title: "第一章", char_count: 10 }],
-      },
+      total_chars: 10,
+      count: 1,
+      chapters: [{ number: 1, title: "第一章", char_count: 10 }],
     };
 
     render(
@@ -481,12 +477,9 @@ describe("IngestPage settings save", () => {
   it("loads the knowledge graph only after its result tab is opened", async () => {
     const user = userEvent.setup();
     mocks.chaptersData = {
-      ok: true,
-      data: {
-        total_chars: 10,
-        count: 1,
-        chapters: [{ number: 1, title: "第一章", char_count: 10 }],
-      },
+      total_chars: 10,
+      count: 1,
+      chapters: [{ number: 1, title: "第一章", char_count: 10 }],
     };
 
     render(
@@ -507,13 +500,10 @@ describe("IngestPage settings save", () => {
 
   it("does not expose the graph for an upload-only chapter preview", () => {
     mocks.chaptersData = {
-      ok: true,
-      data: {
-        total_chars: 10,
-        count: 1,
-        preview_only: true,
-        chapters: [{ number: 1, title: "第一章", char_count: 10 }],
-      },
+      total_chars: 10,
+      count: 1,
+      preview_only: true,
+      chapters: [{ number: 1, title: "第一章", char_count: 10 }],
     };
 
     render(
@@ -528,26 +518,50 @@ describe("IngestPage settings save", () => {
     expect(mocks.knowledgeGraphEnabled).toBe(false);
   });
 
+  it("refreshes chapters and invalidates the graph after ingestion completes", async () => {
+    const refetchSpy = vi.spyOn(QueryClient.prototype, "refetchQueries");
+    const invalidateSpy = vi.spyOn(QueryClient.prototype, "invalidateQueries");
+
+    render(
+      <Wrapper>
+        <IngestPageContent project="demo" />
+      </Wrapper>,
+    );
+
+    expect(mocks.taskStreamOnComplete).not.toBeNull();
+    await act(async () => {
+      await mocks.taskStreamOnComplete?.();
+    });
+
+    expect(refetchSpy).toHaveBeenCalledWith({
+      queryKey: ["projects", "demo", "chapters"],
+      type: "active",
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: ["projects", "demo", "knowledge-graph"],
+    });
+
+    refetchSpy.mockRestore();
+    invalidateSpy.mockRestore();
+  });
+
   it("falls back to chapter content title and legacy char count in preview", () => {
     mocks.chaptersData = {
-      ok: true,
-      data: {
-        total_chars: 24,
-        count: 2,
-        chapters: [
-          {
-            number: 1,
-            title: null,
-            content: "第一章 启程\n秦王入宫。",
-            word_count: 12,
-          },
-          {
-            number: 2,
-            title: "第二章 风起",
-            char_count: 12,
-          },
-        ],
-      },
+      total_chars: 24,
+      count: 2,
+      chapters: [
+        {
+          number: 1,
+          title: null,
+          content: "第一章 启程\n秦王入宫。",
+          word_count: 12,
+        },
+        {
+          number: 2,
+          title: "第二章 风起",
+          char_count: 12,
+        },
+      ],
     };
 
     render(
@@ -563,13 +577,11 @@ describe("IngestPage settings save", () => {
 
   it("starts ingest with NiceGUI-compatible rebuild enabled", async () => {
     const user = userEvent.setup();
-    mocks.uploadNovel.mockResolvedValue({
-      ok: true,
-      data: { filename: "novel.txt", size: 12 },
-    });
+    mocks.uploadNovel.mockResolvedValue({ filename: "novel.txt", size: 12 });
     mocks.startIngest.mockResolvedValue({
-      ok: true,
-      data: { task_id: "task-1" },
+      taskType: "ingest_fast",
+      taskId: "task-1",
+      message: "queued",
     });
 
     const { container } = render(
@@ -624,10 +636,7 @@ describe("IngestPage settings save", () => {
 
   it("keeps the ingest failure detail visible on the uploaded file card", async () => {
     const user = userEvent.setup();
-    mocks.uploadNovel.mockResolvedValue({
-      ok: true,
-      data: { filename: "novel.txt", size: 12 },
-    });
+    mocks.uploadNovel.mockResolvedValue({ filename: "novel.txt", size: 12 });
     mocks.startIngest.mockRejectedValue(new Error("知识图谱构建失败: provider error"));
 
     const { container } = render(

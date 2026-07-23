@@ -28,9 +28,12 @@ from ai_anime.modules.story_intake.infrastructure.task_scheduler import (
 
 @dataclass(frozen=True)
 class StoryIntakeApplication:
-    get_chapter_preview: GetChapterPreview
     upload_story_document: UploadStoryDocument
     start_ingestion: StartIngestion
+
+
+def build_get_chapter_preview() -> GetChapterPreview:
+    return GetChapterPreview(LocalStoryDocumentGateway())
 
 
 def build_story_intake_application(
@@ -43,7 +46,6 @@ def build_story_intake_application(
     documents = LocalStoryDocumentGateway()
     get_chapter_preview = GetChapterPreview(documents)
     return StoryIntakeApplication(
-        get_chapter_preview=get_chapter_preview,
         upload_story_document=UploadStoryDocument(documents, get_chapter_preview),
         start_ingestion=StartIngestion(
             documents,

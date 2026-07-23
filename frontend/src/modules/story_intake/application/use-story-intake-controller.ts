@@ -103,7 +103,7 @@ export function createUseStoryIntakeController(
       project,
       true,
     );
-    const chaptersData = chaptersRes?.data;
+    const chaptersData = chaptersRes;
     const hasImportedContent = (chaptersData?.chapters?.length ?? 0) > 0;
     const isUploadOnlyPreview = Boolean(chaptersData?.preview_only);
 
@@ -345,11 +345,11 @@ export function createUseStoryIntakeController(
       async (file: File) => {
         try {
           const result = await uploadMutation.mutateAsync(file);
-          setUploadedFile(result.data);
+          setUploadedFile(result);
           setUploadedFileSource("upload");
           setIngestFileStatus("uploaded");
           setIngestError(null);
-          toast.success(`${t("common.upload")} ✓ — ${result.data.filename}`);
+          toast.success(`${t("common.upload")} ✓ — ${result.filename}`);
           // 格式风险不再走 toast：SelectedFileCard 内有常驻警告条,文件在则警告在。
         } catch (error) {
           toast.error(backendErrorToastMessage(error, t));
@@ -399,12 +399,12 @@ export function createUseStoryIntakeController(
         type: "text/plain;charset=utf-8",
       });
       const result = await uploadMutation.mutateAsync(file);
-      setUploadedFile(result.data);
+      setUploadedFile(result);
       setUploadedFileSource("paste");
       setIngestFileStatus("uploaded");
       setIngestError(null);
-      warnFormatCheck(result.data.format_check, result.data.filename);
-      return result.data;
+      warnFormatCheck(result.format_check, result.filename);
+      return result;
     }, [pastedText, uploadMutation, warnFormatCheck]);
 
     const saveProjectSettings = useCallback(async () => {

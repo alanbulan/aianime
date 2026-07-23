@@ -39,7 +39,7 @@ import {
 import type {
   KnowledgeGraphNode,
   KnowledgeGraphSnapshot,
-} from "@/modules/story_intake/domain/types";
+} from "@/modules/story_intake/public";
 import { cn } from "@/lib/utils";
 
 const VIEW_WIDTH = 1000;

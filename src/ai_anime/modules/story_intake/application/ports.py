@@ -11,6 +11,7 @@ from ai_anime.modules.story_intake.application.dto import (
     StoredStoryDocument,
 )
 from ai_anime.modules.story_intake.domain import SpineTemplate
+from ai_anime.modules.project_workspace.public import ProjectContext
 
 
 class StoryDocument(Protocol):
@@ -53,6 +54,6 @@ class ProjectSettings(Protocol):
 class TaskScheduler(Protocol):
     async def enqueue_ingestion(
         self,
-        task_context: object,
+        task_context: ProjectContext,
         task: IngestionTask,
     ) -> ScheduledIngestion: ...

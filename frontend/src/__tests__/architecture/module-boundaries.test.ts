@@ -134,6 +134,15 @@ describe("frontend architecture boundaries", () => {
         ) {
           failures.push(`${relativePath}: domain imports runtime adapter ${specifier}`);
         }
+        if (
+          layer === "application" &&
+          (specifier === "@/types/api" ||
+            specifier === "@/shared/api/transport" ||
+            specifier === "@/shared/api/client" ||
+            specifier === "@/shared/api/path")
+        ) {
+          failures.push(`${relativePath}: application imports transport detail ${specifier}`);
+        }
         if (layer === "presentation" && isRawDataImport(specifier)) {
           failures.push(`${relativePath}: presentation imports raw data layer ${specifier}`);
         }
@@ -199,5 +208,36 @@ describe("frontend architecture boundaries", () => {
 
     expect(legacyImplementations).toEqual([]);
     expect(transportFactories).toEqual(["shared/api/transport.ts"]);
+  });
+
+  it("keeps Story Intake callers on its public API", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/story_intake");
+    const externalSources = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.startsWith(moduleRoot))
+      .filter((path) => !relativeSource(path).startsWith("__tests__/"));
+    const internalImportFailures = externalSources.flatMap((path) =>
+      importSpecifiers(path)
+        .filter(
+          (specifier) =>
+            specifier.startsWith("@/modules/story_intake/") &&
+            specifier !== "@/modules/story_intake/public",
+        )
+        .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+    );
+    const directEndpointFailures = externalSources
+      .filter((path) =>
+        readFileSync(path, "utf8")
+          .split(/\r?\n/)
+          .some((line) =>
+            /api\/v1\/projects\/.*\/(?:ingest\/(?:upload|start|graph)|chapters)/.test(
+              line,
+            ),
+          ),
+      )
+      .map(relativeSource);
+
+    expect(existsSync(resolve(SRC_ROOT, "lib/queries/ingest.ts"))).toBe(false);
+    expect(internalImportFailures).toEqual([]);
+    expect(directEndpointFailures).toEqual([]);
   });
 });

@@ -1,4 +1,3 @@
-import type { ErrorResponse, OkResponse, TaskResponse } from "@/types/api";
 import type {
   ChaptersResult,
   KnowledgeGraphSnapshot,
@@ -6,23 +5,29 @@ import type {
   UploadResult,
 } from "@/modules/story_intake/domain/types";
 
+export interface StartedIngestion {
+  taskType: string;
+  taskId?: string;
+  taskKey?: string;
+  message: string;
+  backend?: string;
+  queue?: string | null;
+}
+
 export interface StoryIntakeGateway {
-  uploadNovel(
-    project: string,
-    file: File,
-  ): Promise<OkResponse<UploadResult> | ErrorResponse>;
+  uploadNovel(project: string, file: File): Promise<UploadResult>;
   getChapters(
     project: string,
     signal?: AbortSignal,
-  ): Promise<OkResponse<ChaptersResult>>;
+  ): Promise<ChaptersResult>;
   getKnowledgeGraph(
     project: string,
     signal?: AbortSignal,
-  ): Promise<OkResponse<KnowledgeGraphSnapshot>>;
+  ): Promise<KnowledgeGraphSnapshot>;
   startIngestion(
     project: string,
     params: StartIngestionParams,
-  ): Promise<TaskResponse | ErrorResponse>;
+  ): Promise<StartedIngestion>;
 }
 
 export interface ImportPreviewPreference {

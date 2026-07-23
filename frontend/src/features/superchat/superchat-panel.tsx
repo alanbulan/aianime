@@ -5,7 +5,7 @@ import {
   Braces,
   Copy,
   Download,
-  File,
+  File as FileIcon,
   Image,
   ListTree,
   Maximize2,
@@ -47,7 +47,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { cn } from "@/lib/utils";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { api } from "@/shared/api/transport";
-import { backendErrorToastMessage, jsonWithBackendError } from "@/shared/api/errors";
+import { backendErrorToastMessage } from "@/shared/api/errors";
 import { p } from "@/shared/api/path";
 import { useSuperChat } from "@/features/superchat/use-superchat";
 import { useAiAvatarUrl } from "@/features/superchat/ai-avatar";
@@ -65,8 +65,14 @@ import {
 import type { ChatMessage } from "@/features/superchat/types";
 import type { ApprovalRequest, ChatAttachment } from "@/features/superchat/types";
 import { FormatCheckDetailsDialog } from "@/components/ingest/FormatCheckDetailsDialog";
-import type { FormatCheck, UploadResult } from "@/lib/queries/ingest";
-import type { ErrorResponse, OkResponse, TaskResponse } from "@/types/api";
+import {
+  startStoryIngestion,
+  uploadStoryDocument,
+  type FormatCheck,
+  type StartedIngestion,
+  type UploadResult,
+} from "@/modules/story_intake/public";
+import type { ErrorResponse, OkResponse } from "@/types/api";
 
 type SpecMediaDetailSection = {
   title: string;
@@ -1619,7 +1625,7 @@ function ChatTimeline({
           <div className="max-w-[240px] rounded-lg border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-lg">
             <div className="flex items-center gap-1 font-medium">
               {turns[hoveredTurn.index].hasImage && <Image className="size-3 shrink-0 text-muted-foreground" />}
-              {turns[hoveredTurn.index].hasAttachment && !turns[hoveredTurn.index].hasImage && <File className="size-3 shrink-0 text-muted-foreground" />}
+              {turns[hoveredTurn.index].hasAttachment && !turns[hoveredTurn.index].hasImage && <FileIcon className="size-3 shrink-0 text-muted-foreground" />}
               <span className="line-clamp-3 whitespace-normal break-words">{turns[hoveredTurn.index].preview}</span>
             </div>
             <div className="mt-1 text-muted-foreground">
@@ -1660,7 +1666,7 @@ function AttachmentChip({ attachment }: { attachment: ChatAttachment }) {
 
   return (
     <span className="inline-flex max-w-44 items-center gap-1.5 rounded-md border border-border bg-muted px-2 py-1 text-xs">
-      {isImage ? <Image className="size-3.5" /> : <File className="size-3.5" />}
+      {isImage ? <Image className="size-3.5" /> : <FileIcon className="size-3.5" />}
       <span className="truncate">{attachment.fileName || attachment.mimeType || "Attachment"}</span>
     </span>
   );
@@ -2253,16 +2259,10 @@ async function uploadNovelForIngest(
   project: string,
   file: AttachmentBlob,
 ): Promise<IngestUploadResult> {
-  const formData = new FormData();
-  formData.append("file", file.blob, file.filename);
-  const response = await jsonWithBackendError<OkResponse<IngestUploadResult> | ErrorResponse>(
-    api.post(p`api/v1/projects/${project}/ingest/upload`, { body: formData }),
+  return uploadStoryDocument(
+    project,
+    new File([file.blob], file.filename, { type: file.blob.type }),
   );
-  if (!response.ok) {
-    const fc = (response as ErrorResponse & { format_check?: FormatCheck }).format_check;
-    throw new Error(fc?.summary || response.error);
-  }
-  return response.data;
 }
 
 // Surface non-blocking format warnings as a success+risk toast per file. Upload
@@ -2334,19 +2334,11 @@ async function startNovelIngest(
   project: string,
   filename: string,
   options: { rebuild?: boolean } = {},
-): Promise<TaskResponse> {
-  const response = await jsonWithBackendError<TaskResponse | ErrorResponse>(
-    api.post(p`api/v1/projects/${project}/ingest/start`, {
-      json: {
-        filename,
-        rebuild: options.rebuild ?? false,
-      },
-    }),
-  );
-  if (!response.ok) {
-    throw new Error(response.error);
-  }
-  return response;
+): Promise<StartedIngestion> {
+  return startStoryIngestion(project, {
+    filename,
+    rebuild: options.rebuild ?? false,
+  });
 }
 
 async function projectHasIngestedContent(project: string): Promise<boolean> {
@@ -2762,8 +2754,8 @@ export function SuperChatPanel({
           );
           nextText = appendIngestAutomationContext(text, {
             filename: reingestConfirmation.filename,
-            taskType: started.task_type,
-            taskKey: started.task_key,
+            taskType: started.taskType,
+            taskKey: started.taskKey,
             message: started.message,
             rebuild: true,
           });
@@ -2816,8 +2808,8 @@ export function SuperChatPanel({
           const started = await startNovelIngest(project, uploaded.filename);
           nextText = appendIngestAutomationContext(text, {
             filename: uploaded.filename,
-            taskType: started.task_type,
-            taskKey: started.task_key,
+            taskType: started.taskType,
+            taskKey: started.taskKey,
             message: started.message,
             rebuild: false,
           });
@@ -2855,8 +2847,8 @@ export function SuperChatPanel({
           const started = await startNovelIngest(project, uploaded.filename);
           nextText = appendIngestAutomationContext(text, {
             filename: uploaded.filename,
-            taskType: started.task_type,
-            taskKey: started.task_key,
+            taskType: started.taskType,
+            taskKey: started.taskKey,
             message: started.message,
             rebuild: false,
           });
@@ -3376,7 +3368,7 @@ export function SuperChatPanel({
                     key={attachment.id}
                     className="inline-flex max-w-48 items-center gap-1.5 rounded-md border border-border bg-muted px-2 py-1 text-xs"
                   >
-                    {attachment.mimeType?.startsWith("image/") ? <Image className="size-3.5" /> : <File className="size-3.5" />}
+                    {attachment.mimeType?.startsWith("image/") ? <Image className="size-3.5" /> : <FileIcon className="size-3.5" />}
                     <span className="truncate">{attachment.fileName}</span>
                     <button
                       type="button"

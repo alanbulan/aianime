@@ -9,7 +9,7 @@ import {
   KnowledgeGraphVisualization,
   buildKnowledgeGraphLayout,
 } from "@/components/ingest/KnowledgeGraphVisualization";
-import type { KnowledgeGraphSnapshot } from "@/lib/queries/ingest";
+import type { KnowledgeGraphSnapshot } from "@/modules/story_intake/public";
 
 const graph: KnowledgeGraphSnapshot = {
   nodes: [
