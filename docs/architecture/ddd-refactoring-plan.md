@@ -1,0 +1,698 @@
+# `ai-anime-desktop` DDD 模块化重构计划
+
+> 状态：待确认
+>
+> 制定日期：2026-07-23
+>
+> 基线：`main@016f528` 加当前未提交的知识图谱改动
+>
+> 目标形态：模块化单体（Modular Monolith）+ 有界上下文 + 端口与适配器
+
+## 1. 结论
+
+当前仓库的问题不是单纯的文件太大，而是部分目录名称与实际依赖方向不一致：前端已经出现 `domain/application/infrastructure`，后端也已经存在 `ports/services`，但这些边界只覆盖局部，调用方仍可直接绕过边界访问 API、存储、全局状态和其他路由的内部函数。
+
+本项目最适合重构为模块化单体，而不是微服务：Electron、FastAPI、SQLite、本地文件、任务执行器和 React 最终作为一个桌面产品发布，拆微服务不会改善核心耦合，反而会增加部署、事务、调试和版本兼容成本。
+
+重构采用渐进式替换，不做一次性目录搬迁：
+
+1. 先固化当前行为、API、数据格式和知识图谱改动。
+2. 建立可自动执行的依赖边界门禁。
+3. 以“故事导入与知识图谱”完成第一个前后端纵向样板。
+4. 按有界上下文逐个迁移，旧路径只保留短期兼容出口。
+5. 最后处理风险最高的 Freezone/Canvas 和清理兼容层。
+
+DDD 只用于有真实业务规则的区域。简单 CRUD 不会被强行包装成大量聚合、工厂和通用仓储；应用服务可以直接编排上下文专用仓储，避免从“文件巨石”变成“抽象巨石”。
+
+## 2. 范围与不做事项
+
+### 2.1 本计划范围
+
+- React 前端的应用装配、路由、领域模块、远程状态、客户端状态、视图组件和全局样式。
+- FastAPI 的应用工厂、生命周期、中间件、异常映射、版本路由、依赖注入、应用用例、领域模型和基础设施适配器。
+- Electron 仅作为桌面适配器梳理依赖边界，不迁入业务逻辑。
+- 现有测试、OpenAPI、SQLite/文件数据和任务协议的兼容保护。
+
+### 2.2 明确不做
+
+- 不拆微服务，不引入消息中间件。
+- 不修改现有 API URL、HTTP 方法和响应契约，除非单独形成 ADR 并确认。
+- 第一轮不修改 SQLite 表结构、用户数据目录和媒体文件布局。
+- 不移除现有功能，不借重构重新设计产品流程。
+- 不同时进行 React、FastAPI、数据库或构建工具的大版本升级。
+- 不做全仓库机械格式化，不顺手清理与当前迁移无关的历史代码。
+- 不为架构检查默认引入新依赖；优先使用现有 TypeScript、Vitest、Pytest、Ruff 和 Python AST。
+
+## 3. 当前基线
+
+### 3.1 仓库状态
+
+| 项目 | 当前事实 | 对重构的影响 |
+| --- | --- | --- |
+| 分支与提交 | `main@016f528` | 计划获批后先建立独立检查点 |
+| 工作区 | 存在未提交的知识图谱前后端改动 | 不能与结构迁移混在同一提交 |
+| 远端差异 | 相对 `origin/main`：behind 5 / ahead 3 | 不自动 pull、rebase 或 merge；同步策略需单独处理 |
+| 前端规模 | `frontend/src` 约 865 个 TS/TSX/CSS 文件、约 20.6 万逻辑行，包含测试和生成文件 | 不能一次性移动，必须按上下文迁移 |
+| 后端规模 | `src/ai_anime` 约 317 个 Python 文件、约 13 万逻辑行 | 需要兼容出口和分阶段门禁 |
+| 后端路由 | 23 个路由模块、约 2.5 万逻辑行 | 路由层已成为主要业务承载层之一 |
+| 测试基础 | 静态检索约 1,587 个前后端测试声明，另有 M01-M09 契约测试 | 可采用特征测试保护渐进迁移 |
+
+行数只用于定位风险，不作为代码质量的单一判断。真正需要处理的是职责数量、反向依赖和跨上下文内部调用。
+
+### 3.2 主要热点证据
+
+| 热点 | 证据 | 判断 |
+| --- | --- | --- |
+| FastAPI 路由过载 | `freezone.py` 约 11,059 行/71 个端点；`generation.py` 约 5,106 行/63 个端点；`characters.py` 约 1,706 行/34 个端点 | HTTP、权限、文件、业务规则、任务提交和结果映射混在同层 |
+| 路由互相依赖 | `freezone.py` 多处导入 `api.routes.generation` 的私有函数 | 路由不再是边缘适配器，形成隐式共享业务层 |
+| 后端依赖方向反转 | 非 API 模块中静态检出 27 处对 `api.deps`、`api.schemas` 或具体 route 的反向导入 | 任务运行器和领域能力依赖 FastAPI 表示层，无法独立测试和复用 |
+| 后端公共巨石 | `api/schemas.py`、`models.py`、`sqlite_store.py` 集中了跨领域模型和存储方法 | 修改一个领域容易影响其他领域，所有权不清晰 |
+| FastAPI 装配集中 | `api/app.py` 同时负责中间件、异常、生命周期、桌面端点、静态文件和 SPA | 应用工厂难以按环境组合和独立测试 |
+| 前端路由过载 | 19 个 route 文件中有 8 个超过 500 逻辑行；导入页约 1,880 行，角色页约 3,155 行 | route 同时承担控制器、表单、业务规则、任务状态和视图 |
+| 前端组件直连数据层 | 路由、组件和 feature 中约 125 个文件直接引用 `api`、`lib/api` 或 `lib/queries` | “组件”无法区分容器与纯视图，业务流程散落 |
+| 前端 API 双轨 | `frontend/src/api/ops.ts` 超过 2,400 行，同时存在 `lib/queries/*` | DTO、HTTP 调用、缓存策略和业务命令缺少统一所有权 |
+| 全局状态过载 | `canvasStore.ts` 约 3,478 逻辑行 | 领域变换、历史、持久化、选择状态和 UI 状态耦合在一个实现文件 |
+| 分层名实不符 | `canvas/application/canvasServices.ts` 直接导入 infrastructure 实现；infrastructure 又读取 URL 和其他 feature store | 已有分层无法保证依赖倒置，组合根位置不正确 |
+| 样式边界过宽 | `index.css` 约 1,200 逻辑行，包含主题、Freezone、React Flow、SuperChat 等全局规则 | 全局样式既是设计令牌又是具体功能实现，修改影响范围不可预测 |
+| 颜色治理不统一 | 静态检索发现 494 处颜色字面量分布于 76 个文件（含测试、图形引擎和真实颜色数据） | 需要区分 UI 外观颜色与业务颜色，不能简单全量替换 |
+| 质量门禁不完整 | 前端启用了 TypeScript strict，但没有独立 lint/架构边界脚本；Ruff 对 61 个存量文件有规则豁免 | 新代码可以继续复制旧依赖，需建立只减不增的基线 |
+
+### 3.3 应保留并扩展的现有基础
+
+- 后端 `ports/registry` 已经隔离认证、项目访问、任务、用量、发布通知等运行时实现。
+- 后端 `tests/contract` 已覆盖大量现有 HTTP 契约，适合保护路由瘦身。
+- 前端 Canvas 已有部分纯 domain 函数、application ports 和 infrastructure 适配器。
+- 前端已采用 TanStack Query 管理远程状态、Zustand 管理客户端状态、TanStack Router 管理文件路由。
+- `index.css` 已有语义主题变量和 `.dark` 主题入口，重构应迁移和收敛，而不是推倒重做。
+- Electron 已保持最小 preload API、CSP、sidecar 生命周期和同源 API 边界，应继续作为独立平台适配器。
+
+## 4. 目标领域地图
+
+| 有界上下文 | 类型 | 核心职责 | 当前主要代码 |
+| --- | --- | --- | --- |
+| Identity & Access | 通用 | 登录、会话、Principal、角色与授权 | `api/auth.py`、`api/routes/auth.py`、`ports/auth*` |
+| Project Workspace | 通用 | 项目身份、成员访问、项目路径、生命周期与配置 | `routes/projects.py`、`project_context.py`、`project_config.py` |
+| Story Intake & Knowledge | 支撑 | 小说上传、格式校验、章节预览、导入任务、知识图谱 | `routes/ingest.py`、`cognee/*`、导入页 |
+| Narrative Planning | 核心 | 剧集、章节内容、剧本、节拍和叙事工作流 | `routes/episodes.py`、`scripts.py`、`content.py`、`workflows/*` |
+| Asset & World | 核心 | 角色/身份、场景、道具、风格、导演世界和引用关系 | `characters.py`、`scenes.py`、`props.py`、`styles.py`、`director_world/*` |
+| Production | 核心 | 分镜、网格、图片、音频、视频、合成、导出和生成规则 | `generation.py`、`generators/*`、`audio/*`、`export/*`、`render_plan/*` |
+| Creative Canvas | 核心 | Freezone 画布、节点图、能力组合、候选资产和主线提交 | `freezone.py`、`freezone/*`、前端 Canvas/Freezone |
+| Task Execution | 支撑 | 任务提交、进度、取消、队列、运行器和恢复 | `routes/tasks.py`、`task_backend/*`、`task_state.py` |
+| AI Assistant | 支撑 | 对话、附件、工具调用、审批和上下文同步 | `routes/chat.py`、`chat/*`、前端 SuperChat |
+| Model & Usage | 支撑 | 模型能力、模型路由、额度报价、计量和账单错误 | `model_gateway*`、`model_credits.py`、usage ports |
+| Platform & Release | 通用 | 运行配置、文件服务、版本更新、发布通知和桌面适配 | `config.py`、`files.py`、`release_notifications.py`、`desktop/*` |
+
+### 4.1 上下文关系
+
+```mermaid
+flowchart LR
+    IAM[Identity & Access] --> Workspace[Project Workspace]
+    Workspace --> Intake[Story Intake & Knowledge]
+    Intake --> Narrative[Narrative Planning]
+    Narrative --> Assets[Asset & World]
+    Narrative --> Production[Production]
+    Assets --> Production
+    Narrative --> Canvas[Creative Canvas]
+    Assets --> Canvas
+    Canvas -->|显式 Commit 用例| Assets
+    Canvas -->|显式 Commit 用例| Production
+    Tasks[Task Execution] -. 应用端口 .-> Intake
+    Tasks -. 应用端口 .-> Assets
+    Tasks -. 应用端口 .-> Production
+    Tasks -. 应用端口 .-> Canvas
+    Models[Model & Usage] -. 应用端口 .-> Production
+    Models -. 应用端口 .-> Canvas
+    Assistant[AI Assistant] --> Narrative
+    Assistant --> Canvas
+```
+
+约束：上下文之间只传递稳定 ID、DTO、领域事件或对方公开的应用接口，不导入对方的内部 repository、route、store 或组件。
+
+## 5. 统一依赖规则
+
+### 5.1 后端
+
+```text
+HTTP API Adapter  ───────>  Application  ───────>  Domain
+                                  ^                  ^
+                                  │                  │
+Infrastructure Adapter  ──────────┴──────────────────┘
+
+Bootstrap / Composition Root 可以同时看到所有层并完成装配。
+Domain 和 Application 不得依赖 FastAPI、具体数据库、文件路径实现或 API schema。
+```
+
+具体规则：
+
+1. Domain 仅依赖标准库、同上下文 domain 和受控的 `shared/domain`。
+2. Application 依赖 domain，并定义自己需要的 repository/gateway/task ports。
+3. Infrastructure 实现 application ports，封装 SQLite、文件系统、Cognee、FFmpeg、模型供应商和远程服务。
+4. API 层只负责认证/授权依赖、请求解析、DTO 映射、调用用例和 HTTP 响应。
+5. 只有 bootstrap/composition root 可以选择具体适配器；application 不实例化 infrastructure。
+6. `src/ai_anime/api` 之外的代码不得导入 `ai_anime.api.*`。
+7. route 模块之间不得互相导入；共享规则必须下沉到 domain/application。
+8. 不创建跨上下文的 `BaseRepository` 或万能 `Service`；端口按用例需要定义。
+
+### 5.2 前端
+
+```text
+Route Adapter ──> Presentation Controller ──> Application ──> Domain
+                         │                         ^             ^
+                         v                         │             │
+                  Presentational View     Infrastructure ──────┘
+
+App Bootstrap 负责 Provider、路由和具体适配器装配。
+```
+
+具体规则：
+
+1. `routes/` 只声明路径、loader/search 校验和页面入口，不承载业务流程。
+2. Presentational View 通过 props 接收 ViewModel 和命令，不直接调用 HTTP、TanStack Query 或全局业务 store。
+3. Controller/application hook 负责查询、mutation、任务流、缓存失效和视图状态编排。
+4. Domain 放纯 TypeScript 规则、值对象、状态转换和验证，不导入 React、浏览器 API、Zustand 或 Query。
+5. Infrastructure 封装 HTTP、localStorage、文件/媒体浏览器能力，并实现 application ports。
+6. TanStack Query 是服务端状态唯一来源；Zustand 只保存跨组件客户端状态和编辑会话。
+7. 跨模块只能从对方 `public.ts` 导入；禁止引用内部目录。
+8. `shared` 只放真正跨领域且没有业务所有权的 UI、工具、HTTP transport 和基础类型。
+
+## 6. 目标目录结构
+
+### 6.1 前端
+
+```text
+frontend/src/
+├─ app/
+│  ├─ bootstrap.tsx                 React 启动与应用装配
+│  ├─ providers/                    Query、Theme、Router、Task Center
+│  ├─ router/                       路由级公共守卫与错误边界
+│  └─ styles/
+│     ├─ index.css                  只负责 import
+│     ├─ reset.css                  浏览器基础重置
+│     ├─ tokens.css                 尺寸、排版、圆角、阴影、动效令牌
+│     ├─ themes.css                 light/dark 语义颜色
+│     ├─ base.css                   body、focus、scrollbar 等应用基线
+│     └─ portal-overrides.css       无法局部作用域化的 portal 规则
+├─ modules/
+│  ├─ identity-access/
+│  ├─ project-workspace/
+│  ├─ story-intake/
+│  ├─ narrative-planning/
+│  ├─ asset-world/
+│  ├─ production/
+│  ├─ creative-canvas/
+│  ├─ task-execution/
+│  ├─ ai-assistant/
+│  ├─ model-usage/
+│  └─ platform-release/
+│     └─ <每个模块>/
+│        ├─ domain/                 纯规则、实体和值对象
+│        ├─ application/            用例、ports、controller/query hooks
+│        ├─ infrastructure/         HTTP、storage、worker 等适配器
+│        ├─ presentation/           pages、views、feature UI 和局部样式
+│        └─ public.ts               对外稳定出口
+├─ shared/
+│  ├─ api/                          ky transport、统一错误与协议基础
+│  ├─ ui/                           无业务语义的设计系统组件
+│  ├─ lib/                          纯通用工具
+│  ├─ hooks/                        无业务所有权的浏览器 hooks
+│  ├─ i18n/                         i18n 初始化与共享键
+│  └─ types/                        极少量真正共享类型
+└─ routes/                          TanStack 文件路由适配器
+```
+
+迁移期保留现有 `features/`、`components/`、`lib/queries/`、`api/` 和 `stores/`，但只允许减少内容。新业务代码进入对应 module；旧目录通过架构基线测试禁止继续扩散。
+
+### 6.2 后端
+
+```text
+src/ai_anime/
+├─ bootstrap/
+│  ├─ container.py                 显式应用容器与适配器装配
+│  └─ settings.py                  启动配置入口，不含领域规则
+├─ api/
+│  ├─ app.py                       纯应用工厂
+│  ├─ lifespan.py                  startup/shutdown
+│  ├─ middleware/                  令牌、请求大小、资源日志等
+│  ├─ errors/                      领域/应用异常到 HTTP 的映射
+│  ├─ dependencies/                Principal、ProjectScope、用例依赖
+│  └─ v1/
+│     ├─ router.py                 v1 总路由
+│     └─ routes/
+│        ├─ identity_access.py
+│        ├─ project_workspace.py
+│        ├─ story_intake.py
+│        ├─ narrative/             按 episodes/scripts/content 拆分
+│        ├─ assets/                按 characters/scenes/props/styles 拆分
+│        ├─ production/            按 sketch/audio/video/render/export 拆分
+│        ├─ canvas/                按 bootstrap/media/image/video/audio/text/
+│        │                          canvas/commit/jobs 拆分
+│        └─ ...
+├─ modules/
+│  ├─ identity_access/
+│  ├─ project_workspace/
+│  ├─ story_intake/
+│  ├─ narrative_planning/
+│  ├─ asset_world/
+│  ├─ production/
+│  ├─ creative_canvas/
+│  ├─ task_execution/
+│  ├─ ai_assistant/
+│  ├─ model_usage/
+│  └─ platform_release/
+│     └─ <每个模块>/
+│        ├─ domain/
+│        │  ├─ entities.py
+│        │  ├─ value_objects.py
+│        │  ├─ services.py          仅无归属实体的领域规则
+│        │  ├─ events.py
+│        │  └─ errors.py
+│        ├─ application/
+│        │  ├─ commands.py
+│        │  ├─ queries.py
+│        │  ├─ dto.py
+│        │  ├─ ports.py
+│        │  └─ services.py          用例编排
+│        └─ infrastructure/
+│           ├─ repositories/
+│           ├─ gateways/
+│           └─ mappers.py
+├─ shared/
+│  ├─ domain/                       ID、时间等最小共享内核
+│  ├─ application/                  通用 Result、分页、Clock 等
+│  └─ infrastructure/               SQLite UoW、文件、日志等基础能力
+└─ desktop_server.py                桌面启动适配器
+```
+
+不会先创建大量空目录。每迁移一个上下文时创建实际需要的文件，避免“看起来分层、实际仍耦合”。
+
+## 7. 前端详细设计
+
+### 7.1 页面与逻辑分离标准
+
+每个复杂页面拆成四类对象：
+
+| 对象 | 负责 | 禁止 |
+| --- | --- | --- |
+| Route adapter | 路由参数、search schema、lazy page 入口 | API 调用、业务状态、复杂 JSX |
+| Page controller | 组合 application hooks，输出 ViewModel 和 commands | 大段展示 JSX、直接解析后端原始响应 |
+| Presentational view | 布局、交互控件、可访问性和展示状态 | Query、HTTP、业务 store、缓存失效 |
+| Domain/application | 规则、命令、远程状态编排和错误语义 | Tailwind class、DOM、toast 文案 |
+
+推荐形态：
+
+```text
+story-intake/
+├─ domain/
+│  ├─ ingest-settings.ts
+│  └─ knowledge-graph.ts
+├─ application/
+│  ├─ ports.ts
+│  ├─ queries.ts
+│  └─ use-ingest-page-controller.ts
+├─ infrastructure/
+│  ├─ ingest-http-adapter.ts
+│  └─ ingest-query-options.ts
+├─ presentation/
+│  ├─ IngestPage.tsx
+│  ├─ IngestView.tsx
+│  ├─ components/
+│  └─ ingest.css
+└─ public.ts
+```
+
+### 7.2 状态所有权
+
+- URL：可分享、可恢复的导航状态，如 project、episode、beat、tab。
+- TanStack Query：后端权威数据、任务查询结果和缓存。
+- React local state：组件开关、临时输入、hover/selection 等短生命周期状态。
+- React Hook Form：表单草稿与字段校验。
+- Zustand：跨组件、跨层级且必须同步更新的编辑会话；不得复制 Query 数据。
+- localStorage：仅保存明确允许跨重启保留的偏好，通过 infrastructure port 访问。
+
+Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆成：纯图操作、history reducer、selection/viewport slice、persistence adapter 和 store composition。目标是拆职责，不是为了目录整齐强行拆成多个互相竞争的 store。
+
+### 7.3 API 与查询层
+
+- `shared/api` 只保留同源 transport、认证失效、统一错误解码和 request ID。
+- 每个上下文拥有自己的 HTTP DTO、mapper、query keys 和 query options。
+- API DTO 不直接作为领域模型；snake_case/camelCase 和可空语义在 infrastructure mapper 收口。
+- mutation 的缓存失效策略由 application query module 定义，不散落在视图事件中。
+- `api/ops.ts` 按 Creative Canvas 的 image/video/audio/text/media/job 能力迁移，禁止再增长。
+- 全局 `queryKeys` 在迁移期作为兼容聚合，最终只重新导出各上下文公开 key。
+
+### 7.4 全局样式与颜色治理
+
+1. `app/styles/index.css` 最终只包含 `@import` 和 Tailwind 入口。
+2. light/dark 仅在 `themes.css` 定义语义 token，例如 surface、text、border、interactive、status、overlay。
+3. UI 组件只使用语义 token，不在业务 JSX 中维护一套 `light + dark:` 颜色对。
+4. Freezone、React Flow、SuperChat、登录页等功能样式回到各自 presentation，并用模块根类作用域化。
+5. portal 确实无法局部化的规则集中到 `portal-overrides.css`，逐条写明所有者。
+6. 普通正文对比度目标不低于 WCAG AA 4.5:1；大文本和 UI 边界不低于 3:1。
+7. 图表、用户选色、画布分组色、图片遮罩、3D/视频像素等真实业务颜色允许使用字面量，但必须在架构检查 allowlist 中标注类别。
+8. 建立颜色 token 契约测试，检查 light/dark 的关键前景/背景组合；不将视觉验收伪装成单元测试。
+
+## 8. 后端详细设计
+
+### 8.1 标准 FastAPI 边界
+
+- `create_app()` 只装配 lifespan、middleware、exception handler 和总 router。
+- 使用 lifespan 替代散落的 `on_event` startup/shutdown。
+- `/api/v1` 由 `api/v1/router.py` 统一注册；每个 route 文件只对应一个明确能力组。
+- Pydantic request/response schema 放在 API 适配器附近，不进入 domain/application。
+- route handler 执行固定流程：解析请求 -> 构造 command/query -> 调用 use case -> mapper -> response。
+- 领域错误由统一 exception mapper 转换为 HTTP，不在每个 handler 重复拼 JSON。
+- FastAPI dependency 返回 Principal、ProjectScope 或具体 use case，不向业务层暴露 Request/Depends。
+- 中间件、静态资源、桌面 shutdown 和 SPA mount 各自独立模块并由 app factory 组合。
+
+### 8.2 应用与领域
+
+- Command 表示有副作用的意图，Query 表示只读意图。
+- 用例负责事务边界、权限后的业务编排、任务提交和领域事件。
+- Domain 只承载稳定规则；已有大量 dict 的流水线不会一次性全部实体化。
+- 跨上下文调用对方 application facade，不读取对方 repository。
+- 任务 payload 在 application 层定义稳定 DTO，runner 不依赖 API schema。
+- 静态 URL、项目路径和媒体落盘通过 port/service 提供，runner 不再导入 `api.deps`。
+
+### 8.3 存储迁移
+
+- 第一阶段保持现有 SQLite schema 和文件路径完全不变。
+- 先创建上下文专用 repository adapter，内部委托现有 `SQLiteStore`，再逐步移动实现。
+- 引入共享 SQLite Unit of Work 管理连接和事务，但 repository interface 归对应上下文所有。
+- `models.py` 和 `sqlite_store.py` 在迁移期保留只转发的兼容出口，并记录最后调用方。
+- Cognee 属于 Story Intake & Knowledge 的 infrastructure；图谱快照在 mapper 中转为应用 DTO。
+- 文件系统、FFmpeg、模型供应商调用均视为 infrastructure adapter。
+
+### 8.4 装配与端口
+
+- 用显式 `ApplicationContainer` 代替业务代码中的全局 service locator。
+- 现有 `ports/registry` 先作为 container 的适配来源，不能一次移除，因为 CE/EE entry point 和测试依赖它。
+- 新用例通过构造参数接收 ports；旧调用方迁移完成后再缩小 registry。
+- Composition root 是唯一允许同时导入 application interface 和 concrete adapter 的位置。
+
+## 9. 当前文件到目标所有权的映射
+
+### 9.1 前端
+
+| 当前路径 | 目标 |
+| --- | --- |
+| `main.tsx` | `app/bootstrap.tsx`，原文件只调用 bootstrap |
+| `routes/_app.tsx` | `app/router` 守卫 + app shell presentation |
+| `routes/.../ingest.tsx` | `modules/story-intake/*`，route 只导出页面入口 |
+| `routes/.../characters.lazy.tsx` | `modules/asset-world/presentation/characters/*` |
+| `routes/.../episodes*` | `modules/narrative-planning` 与 `modules/production` 的页面组合 |
+| `components/assets/*` | `modules/asset-world/presentation` |
+| `components/episode/*` | 按 Narrative/Production 业务所有权拆分 |
+| `features/superchat/*` | `modules/ai-assistant/*` |
+| `features/freezone/*` | `modules/creative-canvas/*` |
+| `features/canvas/*` | 保留其已有分层，修正依赖后迁入 `modules/creative-canvas` |
+| `stores/canvasStore.ts` | Creative Canvas domain reducers + application store slices + composition |
+| `lib/queries/*` | 各上下文 application/infrastructure query modules |
+| `api/ops.ts` | Creative Canvas infrastructure clients，按能力拆文件 |
+| `index.css` | `app/styles/*` + 各模块 presentation 样式 |
+| `components/ui/*` | `shared/ui`，只保留无业务语义的 primitives |
+
+### 9.2 后端
+
+| 当前路径 | 目标 |
+| --- | --- |
+| `api/__init__.py` | 无导入副作用；路由注册迁至 `api/v1/router.py` |
+| `api/app.py` | app factory；中间件、异常、lifespan、静态服务拆出 |
+| `api/deps.py` | `api/dependencies/*` + Project Workspace application/infrastructure |
+| `api/schemas.py` | 各 v1 route 能力组自己的 request/response schema |
+| `api/routes/ingest.py` | `api/v1/routes/story_intake.py` + Story Intake use cases |
+| `api/routes/characters.py` | Asset & World 的 character/identity/voice route + use cases |
+| `api/routes/generation.py` | Production 的 sketch/audio/video/render/export route + use cases |
+| `api/routes/freezone.py` | Creative Canvas 的 10 个左右能力 router + use cases |
+| `models.py` | 各上下文 domain model；旧文件短期只重新导出 |
+| `sqlite_store.py` | 共享 SQLite UoW + 上下文 repository adapters |
+| `cognee/*` | Story Intake infrastructure/cognee，保留独立第三方隔离层 |
+| `generators/*`、`audio/*`、`export/*` | Production infrastructure/domain services，按是否含业务规则分类 |
+| `task_backend/*` | Task Execution context；runner 只依赖应用 DTO/ports |
+| `ports/*` | 迁移期兼容的外部系统 ACL，逐步由上下文拥有具体 port |
+
+## 10. 分阶段执行计划
+
+每个阶段都必须从干净工作区开始，以一个或多个可独立回滚的提交结束。结构迁移和行为修改不得放在同一提交。
+
+| 阶段 | 状态 | 说明 |
+| --- | --- | --- |
+| 0. 确认与基线 | 待确认 | 计划获批后开始，不自动同步远端 |
+| 1. 架构保护网 | 未开始 | 建立只减不增的依赖门禁 |
+| 2. 应用装配 | 未开始 | 先做行为等价的基础拆分 |
+| 3. Story Intake 样板 | 未开始 | 首个前后端纵向切片 |
+| 4. Identity / Workspace | 未开始 | 认证与项目边界 |
+| 5. Narrative Planning | 未开始 | 剧集、剧本与内容 |
+| 6. Asset & World | 未开始 | 角色、场景、道具与风格 |
+| 7. Production | 未开始 | 分镜、音频、视频、渲染与导出 |
+| 8. Creative Canvas | 未开始 | Freezone 与 Canvas，高风险阶段 |
+| 9. Supporting Contexts | 未开始 | Chat、Model、Usage、Release |
+| 10. 最终收敛 | 未开始 | 删除兼容层并执行全量门禁 |
+
+### 阶段 0：确认、检查点与可复现基线
+
+任务：
+
+1. 确认本计划和上下文划分。
+2. 提交当前知识图谱及相关测试，确保现有成果不与重构混合。
+3. 在明确确认后创建本地重构分支；不处理 `origin/main` 的 ahead/behind 差异。
+4. 记录前端 typecheck/test、后端 Ruff/Pytest、桌面 typecheck 的实际基线。
+5. 导出并规范化当前 OpenAPI method/path/schema 快照。
+6. 记录 SQLite/项目文件兼容夹具和关键任务 payload 样本。
+
+退出条件：工作区干净；当前行为测试通过；基线失败项有明确清单；存在可回滚提交。
+
+### 阶段 1：架构保护网与目录契约
+
+任务：
+
+1. 建立 ADR：模块化单体、依赖规则、API 兼容、状态所有权、样式所有权。
+2. 新增后端 AST import boundary 测试，先以 27 处存量反向依赖作为只减不增基线。
+3. 新增前端 import boundary 测试，约束 routes、modules、shared 和跨模块 public API。
+4. 为硬编码 UI 颜色建立分类 allowlist，禁止新 UI chrome 颜色字面量。
+5. 增加显式 `typecheck`/architecture test 脚本，不引入新工具依赖。
+6. 生成依赖违规报表并写入计划进度，不做无关清理。
+
+退出条件：门禁能阻止新增反向依赖；现有测试行为不变；没有空壳式批量目录。
+
+### 阶段 2：应用装配和共享基础
+
+后端：
+
+1. 拆出 lifespan、中间件、异常映射和 v1 router registry。
+2. 保持 `create_app()`、桌面 token、静态文件、SPA 和插件 entry point 行为一致。
+3. 引入 `ApplicationContainer`，先适配现有 ports registry。
+4. 抽出与 FastAPI 无关的 ProjectScope、静态 URL 和 store factory 应用接口。
+
+前端：
+
+1. 将 bootstrap、providers、router shell 从 `main.tsx` 拆出。
+2. 建立 `shared/api` transport 与错误边界，兼容现有调用。
+3. 拆分全局样式为 token/theme/base/portal 文件，不改变视觉值。
+
+退出条件：入口文件只负责装配；OpenAPI 和桌面启动契约不变；light/dark token 值保持行为等价。
+
+### 阶段 3：Story Intake & Knowledge 纵向样板
+
+后端：
+
+1. 定义 StartIngestion、GetChapterPreview、GetKnowledgeGraph 用例。
+2. 定义 StoryDocument、KnowledgeGraph、TaskScheduler ports。
+3. 用现有 CogneeStore/SQLiteStore/TaskBackend 实现适配器。
+4. 拆分 ingest request/response schema，route 只调用用例。
+5. 保持 `/projects/{project}/ingest/*` 路径和错误语义不变。
+
+前端：
+
+1. 将导入设置、格式判断和图谱类型移到 domain。
+2. 将上传、启动、取消、任务监听、缓存失效移到 page controller/application。
+3. 将 HTTP/query 适配器迁入 module infrastructure。
+4. 将上传区、设置表单、章节预览、知识图谱变为 presentation views。
+5. route 文件只保留 TanStack Route 声明与 `IngestPage`。
+6. 保留 `preview_only` 隔离、图谱按需查询和重新导入后的缓存失效。
+
+退出条件：导入页没有直接 HTTP/QueryClient 业务编排；后端 route 不直接操作 Cognee/store/task；现有导入和知识图谱测试全部通过。
+
+### 阶段 4：Identity & Access / Project Workspace
+
+任务：
+
+1. 将 Principal、Session、ProjectId、ProjectScope 和访问策略归入明确上下文。
+2. 将 auth/project route 映射到 application use cases。
+3. 将项目路径、访问授权、项目 registry 和 audit 从 `api.deps` 拆出。
+4. 前端 app guard、账户、项目列表和项目导航通过模块 public API 组合。
+5. 保持 HttpOnly Cookie、CE/EE ports 和桌面 token 三者边界不变。
+
+退出条件：非 API 代码不再通过 `api.deps` 获取项目 scope/store；M01 和项目契约测试通过。
+
+### 阶段 5：Narrative Planning
+
+任务：
+
+1. 迁移 episodes、scripts、content 和相关 workflows。
+2. 将剧集/节拍规则从 route、React page 和 task runner 下沉到 domain/application。
+3. 定义 NarrativeRepository、PromptPlanner、TaskScheduler 等上下文专用端口。
+4. 拆分前端 episode route、workbench controller、纯视图和查询适配器。
+5. 统一 episode/beat URL 状态与 Query 缓存所有权。
+
+退出条件：路由与 task runner 不互相导入；Narrative 规则可脱离 FastAPI/React 单测；相关 M03 契约通过。
+
+### 阶段 6：Asset & World
+
+任务：
+
+1. 按 Character/Identity/Voice、Scene/Director World、Prop、Style 划分应用用例和 API router。
+2. 从 `characters.py`、`scenes.py` 等提取资源历史、主资源选择、身份一致性和文件规则。
+3. 拆出上下文 repository，首轮委托现有 SQLiteStore。
+4. 前端角色、场景、道具和风格页面使用 controller/view 分离。
+5. 素材组件停止直接操作 query cache 和 API，统一通过 application commands。
+
+退出条件：资产 route handler 只做 HTTP 映射；文件备份/恢复与静态 URL 行为不变；M04/M05 及资产测试通过。
+
+### 阶段 7：Production
+
+任务：
+
+1. 将 `generation.py` 按 settings、sketch、render、audio、video、director-control、pool、export 拆 route。
+2. 把生成前置校验、模型选择、用量检查和任务 payload 构造提取为用例/领域服务。
+3. Generators、FFmpeg、模型 SDK 和文件输出作为 infrastructure adapters。
+4. Task runner 改为依赖 Production application DTO/ports，不依赖 API route/schema。
+5. 前端 beat workbench、视频/音频/分镜面板按同一能力边界拆 controller/view。
+
+退出条件：`generation.py` 兼容入口不再承载实现；生成契约、任务、取消和导出测试通过；任务序列化格式保持兼容。
+
+### 阶段 8：Creative Canvas / Freezone
+
+这是风险最高的阶段，必须在前述样板稳定后执行。
+
+后端：
+
+1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。
+2. 删除 route 对 `generation.py` 私有函数的依赖，改为调用 Production public application API。
+3. 将 canvas、candidate、projection、commit 和 slot 规则放入 Creative Canvas domain/application。
+4. runner 通过稳定 DTO 和静态 URL port 工作。
+
+前端：
+
+1. 修正现有 Canvas application 直接实例化 infrastructure 的依赖方向，装配移到 app bootstrap。
+2. 拆分 `canvasStore.ts` 的纯 reducer、history、viewport/selection、persistence 和 store composition。
+3. 拆分 `Canvas.tsx`、`VideoNode.tsx`、`video-pane.tsx` 等大型视图和 controller。
+4. 将 `api/ops.ts` 按能力拆为 infrastructure clients。
+5. 将 React Flow/portal 样式收口到 Creative Canvas presentation 和受控全局 override。
+
+退出条件：Canvas domain 可在无 DOM 环境测试；application 不导入 concrete infrastructure；Freezone 路由无跨 route 导入；画布历史、同步、任务和提交契约全部通过。
+
+### 阶段 9：AI Assistant / Model & Usage / Platform & Release
+
+任务：
+
+1. 拆分 chat route/service 和前端 SuperChat controller/view。
+2. 收口模型能力、额度报价、usage instrumentation 和 billing error mapping。
+3. 收口版本更新、release feed、配置和文件服务。
+4. 确保远程服务仍通过 ports/ACL，React 不直接持有云端凭据。
+
+退出条件：支持上下文均只通过公开应用接口依赖核心上下文；认证、通知、更新和模型契约通过。
+
+### 阶段 10：兼容层清理与最终收敛
+
+任务：
+
+1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
+2. 将后端非 API -> API 的 27 处反向依赖降为 0。
+3. 清空前端 legacy 目录违规基线；跨模块只保留 public API。
+4. 更新 README、领域地图、运行架构和开发约束。
+5. 执行全量测试、类型检查、Ruff、桌面 typecheck、OpenAPI diff 和数据兼容验证。
+6. 生产构建只在发布门禁执行，不作为每个迁移提交的日常步骤。
+
+退出条件：旧实现和 allowlist 已清空或每个剩余项有明确 ADR；全部 Definition of Done 达成。
+
+## 11. 验证与质量门禁
+
+### 11.1 每个提交
+
+- `git diff --check`
+- 前端受影响 Vitest
+- 前端 TypeScript 全量 typecheck
+- 后端受影响 Pytest
+- Ruff 检查本次修改文件
+- import boundary/architecture tests
+
+### 11.2 每个上下文阶段
+
+- 前端全量测试
+- 后端对应 contract/API/repository/task tests
+- 规范化 OpenAPI diff：method/path/request/response 不得意外变化
+- SQLite 旧夹具读取与写回验证
+- 本地文件路径、静态 URL 和任务 payload 回放验证
+- Electron main/preload typecheck；涉及启动边界时执行开发模式冒烟
+
+### 11.3 最终门禁
+
+- 前后端全量测试通过
+- Ruff 与 TypeScript typecheck 通过
+- 桌面 typecheck 通过
+- 所有已迁移模块依赖规则通过
+- light/dark 关键 token 对比度契约通过
+- 无未说明的 API、数据、任务和用户文件兼容变化
+
+## 12. 可量化完成标准（Definition of Done）
+
+| 指标 | 当前 | 最终目标 |
+| --- | --- | --- |
+| 非 API 模块反向依赖 `ai_anime.api.*` | 27 处 | 0 |
+| route 互相导入私有实现 | 已存在 | 0 |
+| 后端超 1,000 逻辑行 route 模块 | 4 个 | 0；兼容 facade 不含实现 |
+| 前端 route 超 500 逻辑行 | 8/19 | 0；route 仅做适配 |
+| module 跨内部路径导入 | 尚无门禁 | 0；只允许 `public.ts` |
+| application 实例化 infrastructure | Canvas 已存在 | 0；仅 composition root 装配 |
+| 新增 UI chrome 颜色字面量 | 无门禁 | 0；业务颜色例外需 allowlist |
+| 单一全局 CSS 承载 feature 规则 | `index.css` 已存在 | 0；全局只保留 token/base/portal |
+| API method/path 非计划变化 | 未自动比较 | 0 |
+
+行数指标是迁移完成信号，不是日常代码评审的机械上限；更重要的门禁仍是职责和依赖方向。
+
+## 13. 风险与回滚
+
+| 风险 | 影响 | 控制措施 | 回滚单位 |
+| --- | --- | --- | --- |
+| 当前工作区未提交 | 知识图谱改动与重构混杂 | 阶段 0 先独立提交 | 当前功能检查点 |
+| 本地分支与 origin 分叉 | rebase/merge 可能扩大冲突 | 本计划不自动同步远端 | 独立本地分支 |
+| 大规模移动导致循环 import | Python 启动或 Vite chunk 失败 | 先加边界测试，逐上下文迁移 | 单上下文提交 |
+| OpenAPI schema 漂移 | 前端或自动化调用失效 | 规范化 OpenAPI 快照 diff | 单 router/use case 提交 |
+| SQLite/文件布局变化 | 用户项目不可读 | 首轮 adapter 委托旧存储，不改 schema | repository adapter 提交 |
+| 后台任务 payload 漂移 | 运行中任务恢复失败 | 固化 DTO、序列化和回放夹具 | 单任务类型提交 |
+| CE/EE plugin entry point 破坏 | 不同版本无法启动 | container 先包裹现有 registry | bootstrap 提交 |
+| CSS 拆分改变优先级 | 深浅色或 portal 样式回归 | 第一轮只移动不改值，增加 token/选择器契约 | 单样式域提交 |
+| Canvas 原子状态被拆坏 | undo/sync/selection 回归 | 保留单 store 运行时，只拆实现和纯 reducer | 单 store slice 提交 |
+| 兼容 facade 长期残留 | 形成新旧双轨 | 每个 facade 记录调用方和删除阶段 | 阶段 10 |
+
+禁止使用“全部移动后一起修测试”的回滚策略。连续三次同类失败时暂停当前批次，重新确认依赖假设和迁移边界。
+
+## 14. GOAL 执行协议
+
+当前 GOAL 目标：在保持功能、API、用户数据和桌面运行方式兼容的前提下，完成前端视图/逻辑/样式解耦和后端 FastAPI/DDD 分层。
+
+每个 GOAL 里程碑按以下闭环执行：
+
+1. 从本计划选择一个最小上下文/能力批次。
+2. 记录当前工作区、受影响契约和测试基线。
+3. 先补特征测试或边界测试。
+4. 只完成该批次的结构迁移，不混入产品功能变更。
+5. 运行分层验证；失败则在当前批次内修复。
+6. 审查 diff、依赖方向、兼容 facade 和废弃引用。
+7. 形成可回滚提交，并更新本文的阶段状态和实际偏差。
+8. 当前阶段退出条件全部满足后，才进入下一阶段。
+
+GOAL 只有在阶段 0-10 完成、全量门禁通过且兼容层清理完毕后才能标记完成。计划确认前，GOAL 保持在“架构计划待批准”状态，不迁移业务代码。
+
+## 15. 决策记录
+
+| ADR | 决策 | 理由 |
+| --- | --- | --- |
+| ADR-001 | 使用模块化单体，不拆微服务 | 桌面单包部署、共享本地数据和任务运行时，微服务收益不足 |
+| ADR-002 | 按业务上下文纵向组织，而不是继续扩展技术目录 | 降低跨目录修改和所有权不清 |
+| ADR-003 | route/API schema 属于入站适配器 | 消除领域和 runner 对 FastAPI 的反向依赖 |
+| ADR-004 | application 定义 port，infrastructure 实现 | 保证业务用例可独立测试并可替换 Cognee/SQLite/云服务 |
+| ADR-005 | 前端 route/view/controller/domain 分离 | 让视图可测、流程可复用、缓存和状态所有权清晰 |
+| ADR-006 | 颜色使用语义 token，业务颜色显式例外 | 同时解决主题一致性和画布真实颜色需求 |
+| ADR-007 | 渐进迁移并保留短期 facade | 当前规模和契约数量不适合 big-bang 重写 |
+| ADR-008 | 行为兼容优先于目录纯度 | 企业级重构必须可发布、可回滚、可验证 |
