@@ -2604,7 +2604,7 @@ export const VideoNode = memo(
                     event.stopPropagation();
                     handleToggleAlbumExpanded();
                   }}
-                  className="absolute cursor-pointer rounded-[var(--node-radius)] border border-white/[0.18] bg-gradient-to-b from-[#48484d] to-[#2d2d31] shadow-[0_4px_14px_rgba(0,0,0,0.4)]"
+                  className="absolute cursor-pointer rounded-[var(--node-radius)] border border-border bg-gradient-to-b from-muted to-card shadow-lg"
                   style={{
                     top: step * 7,
                     bottom: step * 7,
@@ -2652,10 +2652,10 @@ export const VideoNode = memo(
             data.widthPx > 0 &&
             data.heightPx > 0 ? (
               <div
-                className="absolute -top-7 right-1 z-20 flex items-center gap-1 rounded-md border border-white/10 bg-black/55 px-2 py-0.5 text-[11px] font-medium tabular-nums text-white/70 backdrop-blur-sm"
+                className="absolute -top-7 right-1 z-20 flex items-center gap-1 rounded-md border border-media-foreground/10 bg-media/55 px-2 py-0.5 text-[11px] font-medium tabular-nums text-media-foreground/70 backdrop-blur-sm"
                 title={t("node.videoNode.resolution")}
               >
-                <VideoIcon className="h-3 w-3 text-white/45" />
+                <VideoIcon className="h-3 w-3 text-media-foreground/45" />
                 {data.widthPx}×{data.heightPx}
               </div>
             ) : null}
@@ -2757,13 +2757,13 @@ export const VideoNode = memo(
                 onClick={(event) => event.stopPropagation()}
               />
               <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between gap-2 p-2">
-                <span className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-[11px] text-white/90 backdrop-blur">
+                <span className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full bg-media/60 px-2.5 py-1 text-[11px] text-media-foreground/90 backdrop-blur">
                   <Loader2 className="h-3 w-3 animate-spin" />
                   新视频生成中…
                 </span>
                 <button
                   type="button"
-                  className="nodrag pointer-events-auto inline-flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[11px] text-white/90 backdrop-blur transition-colors hover:bg-black/75"
+                  className="nodrag pointer-events-auto inline-flex items-center gap-1 rounded-full bg-media/60 px-2.5 py-1 text-[11px] text-media-foreground/90 backdrop-blur transition-colors hover:bg-media/75"
                   onClick={(event) => {
                     event.stopPropagation();
                     setHistoryPreviewUrl(null);
@@ -2800,7 +2800,7 @@ export const VideoNode = memo(
                 {generationError}
               </span>
               {generationErrorRequestId && (
-                <div className="flex w-full max-w-[240px] items-center gap-1 rounded bg-red-500/10 px-2 py-1">
+                <div className="flex w-full max-w-[240px] items-center gap-1 rounded bg-destructive/10 px-2 py-1">
                   <span className="shrink-0 text-[10px] text-destructive">请求ID</span>
                   <code
                     className="min-w-0 flex-1 truncate font-mono text-[10px] text-destructive"
@@ -2867,8 +2867,8 @@ export const VideoNode = memo(
           )}
 
           {videoSource && videoLoadError && !isGenerating && !isUploading && (
-            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/70 px-4 text-center text-red-100">
-              <AlertTriangle className="h-6 w-6 text-red-200" />
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 bg-media/80 px-4 text-center text-destructive">
+              <AlertTriangle className="h-6 w-6 text-destructive" />
               <span className="text-[12px] font-medium">视频加载失败</span>
             </div>
           )}
@@ -2902,7 +2902,7 @@ export const VideoNode = memo(
               }}
               onPointerDown={(event) => event.stopPropagation()}
               title={`展开 ${albumTotalSlots} 条生成结果`}
-              className="nodrag group/albumpill absolute right-2 top-2 z-10 hidden items-center gap-1 rounded-full bg-black/65 px-2.5 py-1 text-[12px] font-medium tabular-nums text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-black/85 group-hover:inline-flex"
+              className="nodrag group/albumpill absolute right-2 top-2 z-10 hidden items-center gap-1 rounded-full bg-media/65 px-2.5 py-1 text-[12px] font-medium tabular-nums text-media-foreground shadow-lg backdrop-blur-sm transition-colors hover:bg-media/85 group-hover:inline-flex"
             >
               {albumPendingCount > 0
                 ? `${albumUrls.length}/${albumPendingTotal}`
@@ -2974,7 +2974,7 @@ export const VideoNode = memo(
                       }
                       handleSetAlbumMainVideo(url);
                     }}
-                    className={`group/albumcell relative cursor-pointer overflow-hidden rounded-[var(--node-radius)] border bg-[#0b0d10] shadow-[0_12px_32px_rgba(0,0,0,0.45)] transition-colors ${
+                    className={`group/albumcell relative cursor-pointer overflow-hidden rounded-[var(--node-radius)] border bg-media shadow-xl transition-colors ${
                       isMain
                         ? 'border-primary/80 ring-2 ring-primary/40'
                         : 'border-border hover:border-foreground/35'
@@ -3002,7 +3002,7 @@ export const VideoNode = memo(
                         handleApplyAlbumVideoToCanvas(url);
                       }}
                       title="把这条视频作为独立视频节点放到画布上"
-                      className="nodrag absolute left-2 top-2 z-10 hidden h-7 items-center gap-1 rounded-md bg-black/70 px-2.5 text-[12px] font-medium text-white backdrop-blur-sm transition-colors hover:bg-black/90 group-hover/albumcell:inline-flex"
+                      className="nodrag absolute left-2 top-2 z-10 hidden h-7 items-center gap-1 rounded-md bg-media/70 px-2.5 text-[12px] font-medium text-media-foreground backdrop-blur-sm transition-colors hover:bg-media/90 group-hover/albumcell:inline-flex"
                     >
                       <UploadIcon className="h-3.5 w-3.5" />
                       应用到画布
@@ -3014,12 +3014,12 @@ export const VideoNode = memo(
                         void handleDownloadAlbumVideo(url, index);
                       }}
                       title="下载这条视频"
-                      className="nodrag absolute right-2 top-2 z-10 hidden h-7 w-7 items-center justify-center rounded-full bg-black/70 text-white backdrop-blur-sm transition-colors hover:bg-black/90 group-hover/albumcell:inline-flex"
+                      className="nodrag absolute right-2 top-2 z-10 hidden h-7 w-7 items-center justify-center rounded-full bg-media/70 text-media-foreground backdrop-blur-sm transition-colors hover:bg-media/90 group-hover/albumcell:inline-flex"
                     >
                       <Download className="h-3.5 w-3.5" />
                     </button>
                     {isMain && (
-                      <span className="absolute bottom-2 left-2 z-10 rounded-md bg-black/65 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
+                      <span className="absolute bottom-2 left-2 z-10 rounded-md bg-media/65 px-2 py-0.5 text-[11px] font-medium text-media-foreground backdrop-blur-sm">
                         主视频
                       </span>
                     )}
@@ -3030,7 +3030,7 @@ export const VideoNode = memo(
               {Array.from({ length: albumPendingCount }, (_, index) => (
                 <div
                   key={`album-pending-${index}`}
-                  className="relative flex items-center justify-center overflow-hidden rounded-[var(--node-radius)] border border-border bg-[#0b0d10] shadow-[0_12px_32px_rgba(0,0,0,0.45)]"
+                  className="relative flex items-center justify-center overflow-hidden rounded-[var(--node-radius)] border border-border bg-media shadow-xl"
                   style={{ width: resolvedWidth, height: resolvedHeight }}
                 >
                   <div className="flex flex-col items-center gap-2 text-text-muted/70">
@@ -3065,7 +3065,7 @@ export const VideoNode = memo(
               }}
             />
             {clipError && (
-              <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-[11px] text-red-700 break-words [overflow-wrap:anywhere] dark:text-red-300">
+              <div className="break-words rounded-md border border-destructive/30 bg-destructive/10 px-3 py-1.5 text-[11px] text-destructive [overflow-wrap:anywhere]">
                 剪辑失败：{clipError}
               </div>
             )}
@@ -3231,12 +3231,12 @@ export const VideoNode = memo(
                       <span
                         className={`relative inline-flex h-3.5 w-6 shrink-0 items-center rounded-full transition-colors ${
                           humanReview
-                            ? "bg-[rgb(var(--accent-rgb))]"
+                            ? "bg-primary"
                             : "bg-input"
                         }`}
                       >
                         <span
-                          className={`inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform ${
+                          className={`inline-block h-2.5 w-2.5 transform rounded-full bg-card shadow-sm transition-transform ${
                             humanReview ? "translate-x-3" : "translate-x-0.5"
                           }`}
                         />
@@ -3833,7 +3833,7 @@ function VideoConfigChip({
               }`}
             >
               <span
-                className={`h-4 w-4 rounded-full bg-text-dark shadow-[0_2px_8px_rgba(0,0,0,0.35)] transition-transform ${
+                className={`h-4 w-4 rounded-full bg-text-dark shadow-sm transition-transform ${
                   generateAudio ? "translate-x-[18px]" : "translate-x-0.5"
                 }`}
               />
@@ -4250,13 +4250,13 @@ function ReferenceMediaRow({
               // 父层 title 显示「超出上限不会使用」。配 detach 按钮提示用户主动
               // 移除超额素材。
               overCap
-                ? "opacity-50 grayscale ring-1 ring-amber-400/45 ring-offset-1 ring-offset-surface-dark"
+                ? "opacity-50 grayscale ring-1 ring-warning/45 ring-offset-1 ring-offset-surface-dark"
                 : ""
             }`}
           >
             {chip}
             {overCap && (
-              <span className="pointer-events-none absolute -bottom-1 -left-1 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500/90 text-[10px] font-bold leading-none text-surface-dark shadow ring-1 ring-surface-dark">
+              <span className="pointer-events-none absolute -bottom-1 -left-1 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-warning/90 text-[10px] font-bold leading-none text-warning-foreground shadow ring-1 ring-surface-dark">
                 !
               </span>
             )}
@@ -4337,7 +4337,7 @@ function ReferenceImageChip({
           // 「图片N」的数字角标——引用统一呈现为「图片」，序号只存在于提交给
           // 后端的 prompt（@图片N）里，不在引用缩略图上暴露。
           <span
-            className="pointer-events-none absolute bottom-1 left-1 z-10 text-[9px] font-medium leading-none text-white"
+            className="pointer-events-none absolute bottom-1 left-1 z-10 text-[9px] font-medium leading-none text-media-foreground"
             style={{ textShadow: "0 0 2px rgba(0,0,0,0.65), 0 1px 1px rgba(0,0,0,0.55)" }}
           >
             {slotLabel}
@@ -4529,7 +4529,7 @@ function ReferenceAudioChip({
       }}
       className={`group/refmedia nodrag relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md border transition-colors ${
         isPlaying
-          ? "border-primary/60 bg-[rgb(var(--accent-rgb)/0.15)]"
+          ? "border-primary/60 bg-primary/15"
           : "border-border bg-muted hover:border-foreground/30"
       }`}
       title={label}
@@ -4644,7 +4644,7 @@ function VideoPlayerControls({
   const sliderBg = `linear-gradient(to right, rgb(var(--accent-rgb)) 0%, rgb(var(--accent-rgb)) ${progressPct}%, rgba(255,255,255,0.18) ${progressPct}%, rgba(255,255,255,0.18) 100%)`;
 
   return (
-    <div className="nodrag absolute inset-x-0 bottom-0 z-20 flex items-center gap-2.5 bg-gradient-to-t from-black/75 via-black/45 to-transparent px-3 pb-2 pt-6 text-white">
+    <div className="nodrag absolute inset-x-0 bottom-0 z-20 flex items-center gap-2.5 bg-gradient-to-t from-media/75 via-media/45 to-transparent px-3 pb-2 pt-6 text-media-foreground">
       <button
         type="button"
         onClick={(event) => {
@@ -4652,7 +4652,7 @@ function VideoPlayerControls({
           event.stopPropagation();
           togglePlay();
         }}
-        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white/90 transition-colors hover:bg-white/[0.12] hover:text-white"
+        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-media-foreground/90 transition-colors hover:bg-media-foreground/10 hover:text-media-foreground"
         title={
           isPlaying
             ? t("node.videoNode.player.pause", { defaultValue: "暂停" })
@@ -4666,7 +4666,7 @@ function VideoPlayerControls({
         )}
       </button>
 
-      <span className="shrink-0 text-[11px] tabular-nums text-white/85">
+      <span className="shrink-0 text-[11px] tabular-nums text-media-foreground/85">
         {formatTime(currentTime)}
       </span>
 
@@ -4682,14 +4682,14 @@ function VideoPlayerControls({
         style={{ background: sliderBg }}
       />
 
-      <span className="shrink-0 text-[11px] tabular-nums text-white/85">
+      <span className="shrink-0 text-[11px] tabular-nums text-media-foreground/85">
         {formatTime(duration)}
       </span>
 
       <button
         type="button"
         onClick={toggleMute}
-        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white/90 transition-colors hover:bg-white/[0.12] hover:text-white"
+        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-media-foreground/90 transition-colors hover:bg-media-foreground/10 hover:text-media-foreground"
         title={
           isMuted
             ? t("node.videoNode.player.unmute", { defaultValue: "取消静音" })
@@ -4715,8 +4715,8 @@ function VideoPlayerControls({
           title={t("node.videoNode.frame.captureCurrent")}
           className={`inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
             isCapturingFrame
-              ? "cursor-not-allowed text-white/45"
-              : "text-white/90 hover:bg-white/[0.12] hover:text-white"
+              ? "cursor-not-allowed text-media-foreground/45"
+              : "text-media-foreground/90 hover:bg-media-foreground/10 hover:text-media-foreground"
           }`}
         >
           {isCapturingFrame ? (
@@ -4727,18 +4727,18 @@ function VideoPlayerControls({
         </button>
 
         {isHoveringFrame && !isCapturingFrame && (
-          <div className="absolute bottom-full right-0 flex flex-col gap-1 rounded-lg border border-white/15 bg-black/85 p-1 text-xs text-white shadow-2xl backdrop-blur-md">
+          <div className="absolute bottom-full right-0 flex flex-col gap-1 rounded-lg border border-media-foreground/15 bg-media/85 p-1 text-xs text-media-foreground shadow-2xl backdrop-blur-md">
             <button
               type="button"
               onClick={() => onCapture("first")}
-              className="whitespace-nowrap rounded-md px-3 py-1.5 text-left text-white transition-colors hover:bg-white/[0.12]"
+              className="whitespace-nowrap rounded-md px-3 py-1.5 text-left text-media-foreground transition-colors hover:bg-media-foreground/10"
             >
               {t("node.videoNode.frame.captureFirst")}
             </button>
             <button
               type="button"
               onClick={() => onCapture("last")}
-              className="whitespace-nowrap rounded-md px-3 py-1.5 text-left text-white transition-colors hover:bg-white/[0.12]"
+              className="whitespace-nowrap rounded-md px-3 py-1.5 text-left text-media-foreground transition-colors hover:bg-media-foreground/10"
             >
               {t("node.videoNode.frame.captureLast")}
             </button>
@@ -4887,7 +4887,7 @@ function SubtitleEraseBoxOverlay({
     >
       {effective && effective.width > 0 && effective.height > 0 && (
         <div
-          className="pointer-events-none absolute border-2 border-[rgb(var(--accent-rgb))] bg-[rgb(var(--accent-rgb)/0.15)]"
+          className="pointer-events-none absolute border-2 border-primary bg-primary/15"
           style={{
             left: displayed.left + effective.x * displayed.width,
             top: displayed.top + effective.y * displayed.height,

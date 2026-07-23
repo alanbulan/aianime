@@ -181,7 +181,7 @@ export function CoverEditor({
     }`;
 
   return createPortal(
-    <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[150] flex items-center justify-center bg-scrim backdrop-blur-sm">
       <div className="w-[640px] max-w-[92vw] rounded-2xl border border-border bg-popover p-5 text-popover-foreground shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-text-dark">
@@ -218,7 +218,7 @@ export function CoverEditor({
         </div>
 
         {/* Preview (16:9) */}
-        <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
+        <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-media">
           {tab === "frame" ? (
             <video
               ref={videoRef}
@@ -234,7 +234,7 @@ export function CoverEditor({
               className="h-full w-full object-contain"
             />
           ) : (
-            <label className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white">
+            <label className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-2 text-media-foreground/70 transition-colors hover:bg-media-foreground/10 hover:text-media-foreground">
               <ImageUp className="h-7 w-7" />
               <span className="text-xs">{t("videoCompose.cover.uploadHint")}</span>
               <input

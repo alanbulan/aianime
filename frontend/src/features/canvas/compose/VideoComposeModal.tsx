@@ -1868,16 +1868,16 @@ export function VideoComposeModal({
       {/* Preview stage */}
       <div
         ref={previewStageRef}
-        className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black/60 p-4"
+        className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-media/60 p-4"
       >
         <video
           ref={videoRef}
-          className="max-h-full max-w-full rounded-lg bg-black"
+          className="max-h-full max-w-full rounded-lg bg-media"
           playsInline
           style={{ display: videoSource ? "block" : "none" }}
         />
         {!videoSource && (
-          <div className="text-sm text-white/70">
+          <div className="text-sm text-media-foreground/70">
             {t("videoCompose.emptyPreview")}
           </div>
         )}
@@ -2372,7 +2372,7 @@ function ClipLoadingStripe({ label }: { label: string }) {
           "repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 8px, rgba(255,255,255,0.11) 8px, rgba(255,255,255,0.11) 16px)",
       }}
     >
-      <span className="truncate px-2 text-[10px] text-white/70">{label}</span>
+      <span className="truncate px-2 text-[10px] text-media-foreground/70">{label}</span>
     </div>
   );
 }
@@ -2609,14 +2609,14 @@ function TrackRow({
               key={clip.id}
               onPointerDown={(event) => onStartClipMove(event, track, clip)}
               title={isOverlapping ? t("videoCompose.error.overlap") : undefined}
-              className={`absolute top-0 h-16 cursor-grab overflow-hidden rounded-md border bg-bg-dark transition-[opacity] active:cursor-grabbing ${
+              className={`absolute top-0 h-16 cursor-grab overflow-hidden rounded-md border bg-media transition-[opacity] active:cursor-grabbing ${
                 isDragging
-                  ? "border-dashed border-cyan-300/80 bg-cyan-400/10 opacity-40"
+                  ? "border-dashed border-primary/80 bg-primary/10 opacity-40"
                   : isOverlapping
-                    ? "border-red-400 ring-2 ring-red-400/70"
+                    ? "border-destructive ring-2 ring-destructive/70"
                     : isSelected
                       ? // 多选都描白边；主选中（驱动编辑面板）描得更亮一点。
-                        `border-white ring-2 ${isPrimary ? "ring-white" : "ring-white/60"}`
+                        `border-media-foreground ring-2 ${isPrimary ? "ring-media-foreground" : "ring-media-foreground/60"}`
                       : "border-border-dark"
               }`}
               style={{ left: timelineStartMs * pxPerMs, width }}
@@ -2640,10 +2640,10 @@ function TrackRow({
                 />
               )}
               {/* Scrim so overlaid chips stay legible over bright frames. */}
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-black/30" />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-media/45 via-transparent to-media/30" />
               <div className="absolute inset-0 flex flex-col justify-between p-1">
                 <div className="flex items-center justify-between gap-1">
-                  <span className="truncate rounded bg-black/50 px-1 text-[10px] text-white">
+                  <span className="truncate rounded bg-media/50 px-1 text-[10px] text-media-foreground">
                     {clip.speed !== 1
                       ? `${t("videoCompose.speedPrefix")} ${clip.speed.toFixed(2)}X `
                       : ""}
@@ -2657,7 +2657,7 @@ function TrackRow({
                       type="button"
                       onPointerDown={(e) => e.stopPropagation()}
                       onClick={() => onToggleMute(clip.id, !clip.muted)}
-                      className="rounded bg-black/50 p-0.5 text-white/80 hover:text-white"
+                      className="rounded bg-media/50 p-0.5 text-media-foreground/80 hover:text-media-foreground"
                       aria-label={clip.muted ? t("videoCompose.unmute") : t("videoCompose.mute")}
                     >
                       {clip.muted ? (
@@ -2671,7 +2671,7 @@ function TrackRow({
                       type="button"
                       onPointerDown={(e) => e.stopPropagation()}
                       onClick={() => onMoveToNewTrack(track.id, clip.id)}
-                      className="rounded bg-black/50 p-0.5 text-white/80 hover:text-white"
+                      className="rounded bg-media/50 p-0.5 text-media-foreground/80 hover:text-media-foreground"
                       aria-label={t("videoCompose.moveToNewTrack")}
                       title={t("videoCompose.moveToNewTrack")}
                     >
@@ -2681,7 +2681,7 @@ function TrackRow({
                       type="button"
                       onPointerDown={(e) => e.stopPropagation()}
                       onClick={() => onRemove(track.id, clip.id)}
-                      className="rounded bg-black/50 p-0.5 text-white/80 hover:text-red-300"
+                      className="rounded bg-media/50 p-0.5 text-media-foreground/80 hover:text-destructive"
                       aria-label={t("videoCompose.removeClip")}
                     >
                       <Trash2 className="h-3 w-3" />
@@ -2689,18 +2689,18 @@ function TrackRow({
                   </div>
                 </div>
                 <div className="flex items-center justify-end gap-1">
-                  <span className="rounded bg-black/50 px-1 text-[10px] tabular-nums text-white/80">
+                  <span className="rounded bg-media/50 px-1 text-[10px] tabular-nums text-media-foreground/80">
                     {(clipLengthMs(clip) / 1000).toFixed(1)}s
                   </span>
                 </div>
               </div>
               {/* Trim handles — invisible hit areas, faint hint on hover only. */}
               <div
-                className="absolute inset-y-0 left-0 z-10 w-2 cursor-ew-resize bg-transparent transition-colors hover:bg-white/30"
+                className="absolute inset-y-0 left-0 z-10 w-2 cursor-ew-resize bg-transparent transition-colors hover:bg-media-foreground/30"
                 onPointerDown={(e) => onTrim(e, track, clip, "start")}
               />
               <div
-                className="absolute inset-y-0 right-0 z-10 w-2 cursor-ew-resize bg-transparent transition-colors hover:bg-white/30"
+                className="absolute inset-y-0 right-0 z-10 w-2 cursor-ew-resize bg-transparent transition-colors hover:bg-media-foreground/30"
                 onPointerDown={(e) => onTrim(e, track, clip, "end")}
               />
             </div>
@@ -2711,7 +2711,7 @@ function TrackRow({
             清晰表达「这段正在被拖动」。纯展示，pointer-events 全关，不参与命中。 */}
         {ghostClip && ghostLeftPx != null && (
           <div
-            className="pointer-events-none absolute top-0 z-30 h-16 -translate-y-1.5 overflow-hidden rounded-md border border-white/90 bg-bg-dark opacity-95 shadow-[0_10px_24px_rgba(0,0,0,0.5)] ring-2 ring-cyan-300/60"
+            className="pointer-events-none absolute top-0 z-30 h-16 -translate-y-1.5 overflow-hidden rounded-md border border-media-foreground/90 bg-media opacity-95 shadow-xl ring-2 ring-primary/60"
             style={{
               left: ghostLeftPx,
               width: Math.max(24, clipLengthMs(ghostClip) * pxPerMs),
@@ -2726,9 +2726,9 @@ function TrackRow({
                 width={Math.max(24, clipLengthMs(ghostClip) * pxPerMs)}
               />
             )}
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-black/30" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-media/45 via-transparent to-media/30" />
             <div className="absolute inset-x-1 top-1">
-              <span className="truncate rounded bg-black/55 px-1 text-[10px] text-white">
+              <span className="truncate rounded bg-media/55 px-1 text-[10px] text-media-foreground">
                 {ghostClip.displayName || t(`videoCompose.kind.${track.kind}`)}
                 {" "}
                 {formatTimecode(clipLengthMs(ghostClip))}
@@ -2740,7 +2740,7 @@ function TrackRow({
         {/* 拖动时间气泡：落点起始时间码，跟着幽灵副本走。 */}
         {ghostClip && ghostLeftPx != null && (
           <div
-            className="pointer-events-none absolute top-0 z-40 -translate-y-[18px] rounded bg-cyan-400 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-cyan-950 shadow"
+            className="pointer-events-none absolute top-0 z-40 -translate-y-[18px] rounded bg-primary px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-primary-foreground shadow"
             style={{ left: ghostLeftPx }}
           >
             {formatTimecode(ghostStartMs)}
@@ -2750,7 +2750,7 @@ function TrackRow({
         {/* 裁剪时长气泡：贴在被裁边缘，实时显示裁剪后的片段时长。 */}
         {trimLaid && (
           <div
-            className="pointer-events-none absolute top-0 z-40 rounded bg-cyan-400 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-cyan-950 shadow"
+            className="pointer-events-none absolute top-0 z-40 rounded bg-primary px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-primary-foreground shadow"
             style={{
               left:
                 trimEdge === "end"

@@ -275,14 +275,14 @@ export const VideoClipPanel = memo(function VideoClipPanel({
 
       <div
         ref={trackRef}
-        className="relative h-14 flex-1 select-none overflow-hidden rounded-md bg-[#0b0d10]"
+        className="relative h-14 flex-1 select-none overflow-hidden rounded-md bg-media"
       >
         {/* thumbnail strip */}
         <div className="absolute inset-0 flex">
           {Array.from({ length: THUMB_COUNT }).map((_, index) => (
             <div
               key={index}
-              className="h-full flex-1 bg-[#0b0d10]"
+              className="h-full flex-1 bg-media"
               style={{
                 backgroundImage: thumbs[index] ? `url(${thumbs[index]})` : undefined,
                 backgroundSize: 'cover',
@@ -293,50 +293,50 @@ export const VideoClipPanel = memo(function VideoClipPanel({
         </div>
 
         {thumbsState === 'loading' && thumbs.length === 0 && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-[11px] text-white/65">
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-[11px] text-media-foreground/65">
             提取画面帧中…
           </div>
         )}
         {thumbsState === 'error' && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-[11px] text-white/65">
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-[11px] text-media-foreground/65">
             画面帧加载失败
           </div>
         )}
 
         {/* dark mask outside the selection */}
         <div
-          className="pointer-events-none absolute inset-y-0 left-0 bg-black/55"
+          className="pointer-events-none absolute inset-y-0 left-0 bg-media/55"
           style={{ width: `${startPct}%` }}
         />
         <div
-          className="pointer-events-none absolute inset-y-0 right-0 bg-black/55"
+          className="pointer-events-none absolute inset-y-0 right-0 bg-media/55"
           style={{ width: `${100 - endPct}%` }}
         />
 
         {/* selection rectangle (top/bottom borders + inner handles) */}
         <div
-          className="absolute inset-y-0 z-10 border-y-2 border-white"
+          className="absolute inset-y-0 z-10 border-y-2 border-media-foreground"
           style={{ left: `${startPct}%`, right: `${100 - endPct}%` }}
         >
           <div
-            className="absolute inset-y-0 left-0 flex w-3 cursor-ew-resize items-center justify-center rounded-l-md bg-white"
+            className="absolute inset-y-0 left-0 flex w-3 cursor-ew-resize items-center justify-center rounded-l-md bg-media-foreground"
             onPointerDown={startDrag('start')}
             title="拖动以调整起点"
           >
-            <div className="h-4 w-[2px] rounded-full bg-black/40" />
+            <div className="h-4 w-[2px] rounded-full bg-media/40" />
           </div>
           <div
-            className="absolute inset-y-0 right-0 flex w-3 cursor-ew-resize items-center justify-center rounded-r-md bg-white"
+            className="absolute inset-y-0 right-0 flex w-3 cursor-ew-resize items-center justify-center rounded-r-md bg-media-foreground"
             onPointerDown={startDrag('end')}
             title="拖动以调整终点"
           >
-            <div className="h-4 w-[2px] rounded-full bg-black/40" />
+            <div className="h-4 w-[2px] rounded-full bg-media/40" />
           </div>
         </div>
 
         {/* duration chip */}
         <div
-          className="pointer-events-none absolute top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-md bg-black/65 px-1.5 py-0.5 text-[11px] font-medium text-white"
+          className="pointer-events-none absolute top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-md bg-media/65 px-1.5 py-0.5 text-[11px] font-medium text-media-foreground"
           style={{ left: `calc((${startPct}% + ${endPct}%) / 2)` }}
         >
           {formatSeconds(selectionMs)}
