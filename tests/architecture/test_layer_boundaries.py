@@ -428,6 +428,17 @@ def test_character_reference_map_uses_one_asset_world_implementation() -> None:
         assert "ai_anime.services.character_ref_service" not in source
 
 
+def test_removed_character_auto_promotion_service_does_not_return() -> None:
+    planner = PACKAGE_ROOT / "agents" / "identity_planner.py"
+    source = planner.read_text(encoding="utf-8")
+
+    assert not (
+        PACKAGE_ROOT / "services" / "character_promotion_service.py"
+    ).exists()
+    assert "promote_scene_characters_to_global" not in source
+    assert "ai_anime.services.character_promotion_service" not in source
+
+
 def test_asset_world_prop_task_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "props.py"
     source = route.read_text(encoding="utf-8")
