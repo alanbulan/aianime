@@ -5,20 +5,25 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from ai_anime.generators.episode_optimizer import EpisodeOptimizer
 from ai_anime.modules.asset_world.public import build_character_map_for_grid
+from ai_anime.modules.production.domain.sketch_color import (
+    assign_identity_sketch_colors,
+)
 from ai_anime.utils.path_resolver import compute_identity_path, compute_portrait_path
 
 
-class EpisodeOptimizerSketchColorAssigner:
+class DomainSketchColorAssigner:
     def assign(
         self,
         characters: list[dict[str, Any]],
         beats: list[dict[str, Any]],
+        *,
+        existing_colors: dict[str, str] | None = None,
     ) -> dict[str, str]:
-        return EpisodeOptimizer.assign_sketch_colors(
+        return assign_identity_sketch_colors(
             characters,
             episode_beats=beats,
+            existing_colors=existing_colors,
         )
 
 

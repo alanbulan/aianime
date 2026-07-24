@@ -206,7 +206,7 @@ def scene_media_use_cases() -> SceneMediaUseCases:
 
 
 def scene_viewer_use_cases() -> SceneViewerUseCases:
-    from ai_anime.generators.episode_optimizer import (
+    from ai_anime.modules.production.public import (
         BRIDGMAN_CHARACTER_PALETTE,
         PROP_MARKER_PALETTE,
     )

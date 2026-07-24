@@ -1,5 +1,5 @@
-from ai_anime.generators.nanobanana_grid import _global_prop_marker_colors
 from ai_anime.models import build_prop_menu
+from ai_anime.modules.production.public import global_prop_marker_colors
 
 
 def test_global_prop_marker_colors_use_episode_marker_color_only():
@@ -11,7 +11,7 @@ def test_global_prop_marker_colors_use_episode_marker_color_only():
         }
     ]
 
-    assert _global_prop_marker_colors(beats, prop_menu) == {
+    assert global_prop_marker_colors(beats, prop_menu) == {
         "纸箱": "#0D47A1 ROYAL BLUE"
     }
 
@@ -20,14 +20,14 @@ def test_global_prop_marker_colors_do_not_assign_missing_by_default():
     beats = [{"visual_description": "男人抱起[[纸箱]]离开"}]
     prop_menu = [{"prop_id": "纸箱", "is_global_asset": True}]
 
-    assert _global_prop_marker_colors(beats, prop_menu) == {}
+    assert global_prop_marker_colors(beats, prop_menu) == {}
 
 
 def test_global_prop_marker_colors_assign_missing_only_for_persist_flow():
     beats = [{"visual_description": "男人抱起[[纸箱]]离开"}]
     prop_menu = [{"prop_id": "纸箱", "is_global_asset": True}]
 
-    assigned = _global_prop_marker_colors(beats, prop_menu, assign_missing=True)
+    assigned = global_prop_marker_colors(beats, prop_menu, assign_missing=True)
 
     assert set(assigned) == {"纸箱"}
     assert assigned["纸箱"].startswith("#")

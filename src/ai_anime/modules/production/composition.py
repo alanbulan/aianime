@@ -23,7 +23,7 @@ from ai_anime.modules.production.infrastructure.image_settings import (
 )
 from ai_anime.modules.production.infrastructure.generation_context import (
     AssetWorldCharacterProjector,
-    EpisodeOptimizerSketchColorAssigner,
+    DomainSketchColorAssigner,
 )
 from ai_anime.modules.production.infrastructure.sketch_pose import (
     ModelSketchPoseIdentitySource,
@@ -52,7 +52,7 @@ def production_generation_context_use_cases(
 ) -> ProductionGenerationContextUseCases:
     return ProductionGenerationContextUseCases(
         store,
-        EpisodeOptimizerSketchColorAssigner(),
+        DomainSketchColorAssigner(),
         AssetWorldCharacterProjector(get_user_output_dir(username)),
     )
 

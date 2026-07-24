@@ -1054,9 +1054,11 @@ async def build_beat_preset_context(
             sketch_colors = {}
     if not sketch_colors:
         try:
-            from ai_anime.generators.episode_optimizer import EpisodeOptimizer
+            from ai_anime.modules.production.public import (
+                assign_identity_sketch_colors,
+            )
 
-            sketch_colors = EpisodeOptimizer.assign_sketch_colors(
+            sketch_colors = assign_identity_sketch_colors(
                 [
                     {
                         "name": getattr(character_obj, "name", ""),
@@ -1086,9 +1088,9 @@ async def build_beat_preset_context(
 
     prop_marker_colors: dict[str, str] = {}
     try:
-        from ai_anime.generators.nanobanana_grid import _global_prop_marker_colors
+        from ai_anime.modules.production.public import global_prop_marker_colors
 
-        prop_marker_colors = _global_prop_marker_colors(
+        prop_marker_colors = global_prop_marker_colors(
             [target],
             prop_menu=prop_menu,
             sketch_colors=sketch_colors,

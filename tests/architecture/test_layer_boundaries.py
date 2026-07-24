@@ -366,6 +366,35 @@ def test_production_generation_context_routes_delegate_to_application() -> None:
     assert "ai_anime.api.routes.generation" not in _imports(freezone)
 
 
+def test_production_sketch_color_rules_have_one_owner() -> None:
+    nanobanana = PACKAGE_ROOT / "generators" / "nanobanana_grid.py"
+    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    callers = {
+        nanobanana: "global_prop_marker_colors",
+        generation: "marker_color_change_requires_sketch_clean",
+        PACKAGE_ROOT / "freezone" / "presets.py": "global_prop_marker_colors",
+        PACKAGE_ROOT / "modules" / "asset_world" / "composition.py": (
+            "BRIDGMAN_CHARACTER_PALETTE"
+        ),
+        PACKAGE_ROOT / "task_backend" / "runners" / "script.py": (
+            "assign_identity_sketch_colors"
+        ),
+    }
+
+    assert not (PACKAGE_ROOT / "generators" / "episode_optimizer.py").exists()
+    assert "def _global_prop_marker_colors(" not in nanobanana.read_text(
+        encoding="utf-8"
+    )
+    assert "def _color_assignment_requires_full_sketch_clean(" not in (
+        generation.read_text(encoding="utf-8")
+    )
+    for path, public_name in callers.items():
+        source = path.read_text(encoding="utf-8")
+        assert public_name in source
+        assert "ai_anime.modules.production.public" in _imports(path)
+        assert "ai_anime.generators.episode_optimizer" not in _imports(path)
+
+
 def test_asset_world_style_layers_do_not_depend_on_fastapi() -> None:
     roots = (
         PACKAGE_ROOT / "modules" / "asset_world" / "domain",

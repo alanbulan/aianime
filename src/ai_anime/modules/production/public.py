@@ -20,6 +20,13 @@ from ai_anime.modules.production.application.sketch_pose import (
     SketchPoseCandidatesMissing,
     SketchPoseEditorUseCases,
 )
+from ai_anime.modules.production.domain.sketch_color import (
+    BRIDGMAN_CHARACTER_PALETTE,
+    PROP_MARKER_PALETTE,
+    assign_identity_sketch_colors,
+    global_prop_marker_colors,
+    marker_color_change_requires_sketch_clean,
+)
 
 
 def production_generation_context_use_cases(
@@ -56,7 +63,9 @@ def sketch_pose_editor_use_cases() -> SketchPoseEditorUseCases:
 
 
 __all__ = [
+    "BRIDGMAN_CHARACTER_PALETTE",
     "CropSketchCommand",
+    "PROP_MARKER_PALETTE",
     "ProductionGenerationContextUseCases",
     "ProductionImageSettingsRejected",
     "ProductionImageSettingsUseCases",
@@ -66,6 +75,9 @@ __all__ = [
     "SketchPoseEditorUseCases",
     "UpdateRenderImageSettingsCommand",
     "UpdateSketchImageSettingsCommand",
+    "assign_identity_sketch_colors",
+    "global_prop_marker_colors",
+    "marker_color_change_requires_sketch_clean",
     "production_generation_context_use_cases",
     "production_image_settings_use_cases",
     "sketch_image_use_cases",

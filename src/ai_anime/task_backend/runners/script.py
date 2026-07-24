@@ -82,7 +82,7 @@ async def _run_beat_video_prompt(envelope: dict[str, Any], ctx: ProjectContext) 
 
 async def _run_script_writer(envelope: dict[str, Any], ctx: ProjectContext) -> dict[str, Any] | None:
     from ai_anime.cognee import CogneeStore
-    from ai_anime.generators.episode_optimizer import EpisodeOptimizer
+    from ai_anime.modules.production.public import assign_identity_sketch_colors
     from ai_anime.project_config import load_project_config
     from ai_anime.utils.path_resolver import PathResolver
     payload = envelope.get("payload") or {}
@@ -151,7 +151,7 @@ async def _run_script_writer(envelope: dict[str, Any], ctx: ProjectContext) -> d
             ]
             beats_data = [beat.model_dump() for beat in script.beats]
             existing_colors = dict(store.get_sketch_colors(episode) or {})
-            colors = EpisodeOptimizer.assign_sketch_colors(
+            colors = assign_identity_sketch_colors(
                 char_dicts,
                 episode_beats=beats_data,
                 existing_colors=existing_colors,

@@ -68,6 +68,8 @@ class ProductionSketchColorAssigner(Protocol):
         self,
         characters: list[dict[str, Any]],
         beats: list[dict[str, Any]],
+        *,
+        existing_colors: dict[str, str] | None = None,
     ) -> dict[str, str]: ...
 
 

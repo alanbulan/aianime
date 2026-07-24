@@ -55,11 +55,11 @@ from ai_anime.generators.render_identity_guard import render_ai_detection_error
 from ai_anime.models import (
     beat_scene_id,
     build_prop_menu,
-    collect_prop_marker_ids_from_beat,
     real_detected_identities,
 )
 from ai_anime.modules.narrative_planning.public import beat_order_value
 from ai_anime.modules.asset_world.public import StyleService
+from ai_anime.modules.production.public import global_prop_marker_colors
 from ai_anime.utils.asset_resolver import AssetResolver
 from ai_anime.image_request_usage import (
     infer_episode_from_path,
@@ -208,107 +208,6 @@ def _resolve_scene_prop_asset_refs(
         allow_beat_background_anchor=allow_beat_background_anchor,
     )
     return resolver.resolve_all_for_beats(beats)
-
-
-def _global_prop_marker_colors(
-    beats: List[dict],
-    prop_menu: list[dict] | list | None = None,
-    sketch_colors: dict[str, str] | None = None,
-    *,
-    assign_missing: bool = False,
-) -> dict[str, str]:
-    """Return episode-persisted marker colors for global [[prop]] markers.
-
-    Generation/export paths must be WYSIWYG: prop colors come from the episode
-    prop_menu marker_color field only. The color assignment UI flow may pass
-    assign_missing=True to compute missing colors before persisting them.
-    """
-    active_prop_ids: list[str] = []
-    seen: set[str] = set()
-    for beat in beats:
-        for prop_id in collect_prop_marker_ids_from_beat(beat):
-            if prop_id and prop_id not in seen:
-                seen.add(prop_id)
-                active_prop_ids.append(prop_id)
-    if not active_prop_ids:
-        return {}
-
-    colorable_prop_ids: set[str] = set()
-    explicit_colors: dict[str, str] = {}
-    for raw_item in prop_menu or []:
-        if isinstance(raw_item, dict):
-            prop_id = str(
-                raw_item.get("prop_id") or raw_item.get("base_id") or raw_item.get("name") or ""
-            ).strip()
-            asset_scope = str(raw_item.get("asset_scope") or "").strip().lower()
-            is_global_asset = raw_item.get("is_global_asset") is True
-            marker_color = str(raw_item.get("marker_color") or "").strip()
-        else:
-            prop_id = str(getattr(raw_item, "prop_id", "") or getattr(raw_item, "name", "")).strip()
-            asset_scope = str(getattr(raw_item, "asset_scope", "")).strip().lower()
-            is_global_asset = getattr(raw_item, "is_global_asset", False) is True
-            marker_color = str(getattr(raw_item, "marker_color", "") or "").strip()
-        if prop_id and (asset_scope == "global" or is_global_asset or marker_color):
-            colorable_prop_ids.add(prop_id)
-        if prop_id and marker_color:
-            explicit_colors[prop_id] = marker_color
-    if not colorable_prop_ids:
-        return {}
-    if not assign_missing:
-        return {
-            prop_id: explicit_colors[prop_id]
-            for prop_id in active_prop_ids
-            if prop_id in explicit_colors
-        }
-
-    from ai_anime.generators.episode_optimizer import (
-        PROP_MARKER_PALETTE,
-        _hex_to_hue,
-    )
-
-    used_hexes = {
-        str(value or "").strip().split(" ", 1)[0].lower()
-        for value in (sketch_colors or {}).values()
-        if str(value or "").strip()
-    }
-    used_hexes.update(
-        str(value or "").strip().split(" ", 1)[0].lower()
-        for value in explicit_colors.values()
-        if str(value or "").strip()
-    )
-    used_hues = [_hex_to_hue(h) for h in used_hexes if h.startswith("#") and len(h) == 7]
-
-    def _min_hue_gap(candidate_hex: str) -> float:
-        if not used_hues:
-            return 360.0
-        h = _hex_to_hue(candidate_hex)
-        gaps = []
-        for used_h in used_hues:
-            diff = abs(h - used_h) % 360
-            gaps.append(min(diff, 360 - diff))
-        return min(gaps)
-
-    # Prop 用专用调色板 PROP_MARKER_PALETTE（深色 / 非荧光），跟角色调色板（荧光高饱和）
-    # 形成 value contrast。即使色相意外接近，亮度/饱和度差异让 prop 仍能跟 character 视觉分开。
-    not_used = [item for item in PROP_MARKER_PALETTE if item[0].lower() not in used_hexes]
-    # 视觉上跟已用色色相差 ≥60° 才"安全"；不够则退化用未占用 hex 全集，最后兜底全 prop 调色板
-    safe = [item for item in not_used if _min_hue_gap(item[0]) >= 60.0]
-    available = safe or not_used or list(PROP_MARKER_PALETTE)
-    # 按距离已用色相由远到近排序，让最反差的色优先被选
-    available = sorted(available, key=lambda it: -_min_hue_gap(it[0]))
-
-    colors: dict[str, str] = {}
-    color_index = 0
-    for prop_id in active_prop_ids:
-        if prop_id not in colorable_prop_ids:
-            continue
-        if prop_id in explicit_colors:
-            colors[prop_id] = explicit_colors[prop_id]
-            continue
-        hex_code, color_name = available[color_index % len(available)]
-        colors[prop_id] = f"{hex_code} {color_name}"
-        color_index += 1
-    return colors
 
 
 def normalize_image_size(size: str, provider: str = "google") -> str:
@@ -4003,7 +3902,7 @@ class NanoBananaGridGenerator:
                     scene_refs=scene_refs,
                     prop_asset_refs=prop_asset_refs,
                     sketch_colors=sketch_colors or {},
-                    prop_marker_colors=_global_prop_marker_colors(
+                    prop_marker_colors=global_prop_marker_colors(
                         beats[:grid_capacity],
                         prop_menu,
                         sketch_colors=sketch_colors or {},
@@ -5239,7 +5138,7 @@ class NanoBananaGridGenerator:
                 scene_refs=scene_refs,
                 prop_asset_refs=prop_asset_refs,
                 sketch_colors=sketch_colors or {},
-                prop_marker_colors=_global_prop_marker_colors(
+                prop_marker_colors=global_prop_marker_colors(
                     beats[:grid_capacity],
                     prop_menu,
                     sketch_colors=sketch_colors or {},

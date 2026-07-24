@@ -92,6 +92,9 @@ from ai_anime.modules.production.public import (
     SketchPoseCandidatesMissing,
     UpdateRenderImageSettingsCommand,
     UpdateSketchImageSettingsCommand,
+    assign_identity_sketch_colors,
+    global_prop_marker_colors,
+    marker_color_change_requires_sketch_clean,
     production_generation_context_use_cases,
     production_image_settings_use_cases,
     sketch_image_use_cases,
@@ -132,34 +135,6 @@ def _requester_user_id_for_billing(resolved: Any, user: dict) -> str:
         or user.get("username")
         or ""
     )
-
-
-def _color_assignment_requires_full_sketch_clean(
-    previous: dict[str, str] | None,
-    current: dict[str, str] | None,
-) -> bool:
-    """Return whether recoloring invalidates all existing sketches."""
-    current_colors = {
-        str(key): str(value)
-        for key, value in (current or {}).items()
-        if str(key).strip() and str(value).strip()
-    }
-    if not current_colors:
-        return False
-
-    previous_colors = {
-        str(key): str(value)
-        for key, value in (previous or {}).items()
-        if str(key).strip() and str(value).strip()
-    }
-    if not previous_colors:
-        return True
-
-    for key, old_value in previous_colors.items():
-        new_value = current_colors.get(key)
-        if new_value is not None and new_value != old_value:
-            return True
-    return False
 
 
 def normalize_beat_indices(beat_indices: list[int]) -> list[int]:
@@ -5112,9 +5087,6 @@ async def assign_sketch_colors(
     user: dict = Depends(get_api_user),
 ):
     """为本集出场身份和全局道具分配共享颜色。"""
-    from ai_anime.generators.episode_optimizer import EpisodeOptimizer
-    from ai_anime.generators.nanobanana_grid import _global_prop_marker_colors
-
     resolved = await _resolve_generation_project(project, user, required_role="editor")
     username = resolved.username
     project_name = resolved.project_name
@@ -5142,7 +5114,7 @@ async def assign_sketch_colors(
     ]
 
     previous_colors = dict(store.get_sketch_colors(episode_num) or {})
-    colors = EpisodeOptimizer.assign_sketch_colors(
+    colors = assign_identity_sketch_colors(
         char_dicts,
         episode_beats=beats,
         existing_colors=previous_colors,
@@ -5155,12 +5127,12 @@ async def assign_sketch_colors(
     runtime_prop_menu = await _runtime_prop_menu_with_global_props(
         store, episode_obj, beats
     )
-    previous_prop_marker_colors = _global_prop_marker_colors(
+    previous_prop_marker_colors = global_prop_marker_colors(
         beats,
         prop_menu=runtime_prop_menu,
         sketch_colors=previous_colors,
     )
-    prop_marker_colors = _global_prop_marker_colors(
+    prop_marker_colors = global_prop_marker_colors(
         beats,
         prop_menu=runtime_prop_menu,
         sketch_colors=colors,
@@ -5194,7 +5166,7 @@ async def assign_sketch_colors(
         **{f"identity:{key}": value for key, value in colors.items()},
         **{f"prop:{key}": value for key, value in prop_marker_colors.items()},
     }
-    should_clean_sketches = _color_assignment_requires_full_sketch_clean(
+    should_clean_sketches = marker_color_change_requires_sketch_clean(
         previous_marker_colors,
         current_marker_colors,
     )
@@ -5224,7 +5196,6 @@ async def detect_sketch_identities(
     """AI 视觉识别草图中出现的身份/道具颜色标记。"""
     from ai_anime.agents.global_video_optimizer import detect_identities_by_ai
     from ai_anime.generators.grid_splitter import combine_to_grid
-    from ai_anime.generators.nanobanana_grid import _global_prop_marker_colors
     from ai_anime.models import (
         NO_CHARACTER_MARKER,
         NO_PROP_MARKER,
@@ -5279,7 +5250,7 @@ async def detect_sketch_identities(
         runtime_prop_menu = list(
             (script_data_for_fallback or {}).get("prop_menu") or []
         )
-    prop_color_map = _global_prop_marker_colors(
+    prop_color_map = global_prop_marker_colors(
         beats,
         prop_menu=runtime_prop_menu,
         sketch_colors=color_map,
