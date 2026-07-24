@@ -1,10 +1,12 @@
 export {
+  useAssignColors,
   useComposeEpisode,
   useCopyProjectNarratorVoice,
   useCropSeedance2Asset,
   useCropSketch,
   useDeleteNarratorVoice,
   useDeleteSeedance2Asset,
+  useDetectIdentities,
   useGenerateBeatVideoPrompt,
   useGenerateAudio,
   useGenerateSeedance2Prompt,
@@ -59,6 +61,10 @@ export {
   resetSkeletonPoses,
   setActiveSkeleton,
 } from "@/modules/production/domain/sketch-pose-editor";
+export type {
+  AssignColorsResult,
+  DetectIdentitiesResult,
+} from "@/modules/production/domain/sketch-markers";
 export type {
   PoseDragState,
   PosePoint,

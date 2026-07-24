@@ -134,14 +134,6 @@ const {
 }));
 
 vi.mock("@/lib/queries/sketches", () => ({
-  useAssignColors: () => ({
-    mutateAsync: assignColorsMock,
-    isPending: false,
-  }),
-  useDetectIdentities: () => ({
-    mutateAsync: detectIdentitiesMock,
-    isPending: false,
-  }),
   useGenerateMissingManualSketches: () => ({
     mutateAsync: generateMissingManualMock,
     isPending: false,
@@ -192,6 +184,14 @@ vi.mock("@/lib/queries/tasks", () => ({
 }));
 
 vi.mock("@/modules/production/public", () => ({
+  useAssignColors: () => ({
+    mutateAsync: assignColorsMock,
+    isPending: false,
+  }),
+  useDetectIdentities: () => ({
+    mutateAsync: detectIdentitiesMock,
+    isPending: false,
+  }),
   useGenerateAudio: () => ({
     mutateAsync: vi.fn(),
     isPending: false,

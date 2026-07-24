@@ -11,6 +11,7 @@ import { createVideoPoolQueryHooks } from "@/modules/production/application/vide
 import { createSeedance2PanelQueryHooks } from "@/modules/production/application/seedance2-panel-query-hooks";
 import { createSketchRegenQueueQueryHooks } from "@/modules/production/application/sketch-regen-queue-query-hooks";
 import { createSketchPoseEditorQueryHooks } from "@/modules/production/application/sketch-pose-editor-query-hooks";
+import { createSketchMarkerQueryHooks } from "@/modules/production/application/sketch-marker-query-hooks";
 import { httpProductionVideoGateway } from "@/modules/production/infrastructure/http-production-video-gateway";
 import { promptLanguageFromLocale } from "@/modules/production/domain/video-generation";
 
@@ -63,5 +64,7 @@ export const {
   useSaveSketchPoseEditor,
   useCropSketch,
 } = createSketchPoseEditorQueryHooks(httpProductionVideoGateway);
+export const { useAssignColors, useDetectIdentities } =
+  createSketchMarkerQueryHooks(httpProductionVideoGateway);
 export const { useComposeEpisode, useFinalVideo } =
   createEpisodeComposeQueryHooks(httpProductionVideoGateway);

@@ -43,6 +43,10 @@ import type {
   SketchPoseEditorData,
   SketchPoseEditorSaveResult,
 } from "@/modules/production/domain/sketch-pose-editor";
+import type {
+  AssignColorsResult,
+  DetectIdentitiesResult,
+} from "@/modules/production/domain/sketch-markers";
 
 export interface ProductionDataResponse<T> {
   ok: true;
@@ -250,6 +254,17 @@ export interface ProductionVideoGateway {
     episode: number,
     command: CropSketchCommand,
   ): Promise<ProductionDataResponse<SketchCropResult> | ProductionErrorResponse>;
+  assignSketchColors(
+    project: string,
+    episode: number,
+    force: boolean,
+  ): Promise<ProductionDataResponse<AssignColorsResult> | ProductionErrorResponse>;
+  detectSketchIdentities(
+    project: string,
+    episode: number,
+  ): Promise<
+    ProductionDataResponse<DetectIdentitiesResult> | ProductionErrorResponse
+  >;
   composeEpisode(
     project: string,
     episode: number,

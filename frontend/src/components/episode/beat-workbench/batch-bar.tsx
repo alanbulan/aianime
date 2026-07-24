@@ -10,10 +10,6 @@ import {
   Wand2,
 } from "lucide-react";
 
-import {
-  useAssignColors,
-  useDetectIdentities,
-} from "@/lib/queries/sketches";
 import { useTaskController } from "@/hooks/use-task-controller";
 import { queryKeys } from "@/lib/query-keys";
 import { TASK_TYPES } from "@/lib/task-types";
@@ -27,6 +23,8 @@ import { CreditCostInline } from "@/components/credit-cost-inline";
 import { CreditCostPill, formatCreditCost } from "@/components/credits/credit-visual";
 import type { Beat } from "@/modules/narrative_planning/public";
 import {
+  useAssignColors,
+  useDetectIdentities,
   type SketchAspectRatio,
   useGenerateAudio,
   useGlobalOptimize,

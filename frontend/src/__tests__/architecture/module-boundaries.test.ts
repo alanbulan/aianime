@@ -515,6 +515,10 @@ describe("frontend architecture boundaries", () => {
 
   it("keeps Production callers on its public API", () => {
     const moduleRoot = resolve(SRC_ROOT, "modules/production");
+    const legacySketchQueries = readFileSync(
+      resolve(SRC_ROOT, "lib/queries/sketches.ts"),
+      "utf8",
+    );
     const internalImportFailures = sourceFiles(SRC_ROOT)
       .filter((path) => !path.startsWith(moduleRoot))
       .filter((path) => !relativeSource(path).startsWith("__tests__/"))
@@ -556,6 +560,8 @@ describe("frontend architecture boundaries", () => {
       false,
     );
     expect(existsSync(resolve(SRC_ROOT, "types/render-plan.ts"))).toBe(false);
+    expect(legacySketchQueries).not.toContain("useAssignColors");
+    expect(legacySketchQueries).not.toContain("useDetectIdentities");
     expect(applicationDataImportFailures).toEqual([]);
     expect(internalImportFailures).toEqual([]);
   });

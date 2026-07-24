@@ -45,9 +45,15 @@ import type {
   SketchPoseEditorData,
   SketchPoseEditorSaveResult,
 } from "@/modules/production/domain/sketch-pose-editor";
+import type {
+  AssignColorsResult,
+  DetectIdentitiesResult,
+} from "@/modules/production/domain/sketch-markers";
 import { p } from "@/shared/api/path";
 import { api } from "@/shared/api/transport";
 import { jsonWithBackendError } from "@/shared/api/errors";
+
+const AI_DETECT_IDENTITIES_TIMEOUT_MS = 180_000;
 
 export const httpProductionVideoGateway: ProductionVideoGateway = {
   async listVideoBackends(project, signal) {
@@ -436,6 +442,27 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
         { json: command.crop },
       )
       .json<ProductionDataResponse<SketchCropResult> | ProductionErrorResponse>();
+  },
+  async assignSketchColors(project, episode, force) {
+    return api
+      .post(
+        p`api/v1/projects/${project}/episodes/${episode}/sketches/assign-colors`,
+        force ? { searchParams: { force: "true" } } : undefined,
+      )
+      .json<ProductionDataResponse<AssignColorsResult> | ProductionErrorResponse>();
+  },
+  async detectSketchIdentities(project, episode) {
+    return jsonWithBackendError<
+      ProductionDataResponse<DetectIdentitiesResult> | ProductionErrorResponse
+    >(
+      api.post(
+        p`api/v1/projects/${project}/episodes/${episode}/sketches/detect-identities`,
+        {
+          timeout: AI_DETECT_IDENTITIES_TIMEOUT_MS,
+          throwHttpErrors: false,
+        },
+      ),
+    );
   },
   async composeEpisode(project, episode, command) {
     return api

@@ -5,7 +5,6 @@ import { useMemo } from "react";
 import type { PanoViewerManifest } from "@/features/viewer-kit/pano/panoManifest";
 import type { DirectorStageManifest } from "@/features/viewer-kit/three-d/directorManifest";
 import { api } from "@/shared/api/transport";
-import { jsonWithBackendError } from "@/shared/api/errors";
 import { p } from "@/shared/api/path";
 import { queryKeys } from "@/lib/query-keys";
 import type { ApiResponse, ErrorResponse, OkResponse, TaskResponse } from "@/types/api";
@@ -452,75 +451,6 @@ export function usePoolSelect(project: string, episode: number) {
           },
         );
       }
-    },
-  });
-}
-
-export interface AssignColorsResult {
-  colors: Record<string, string>;
-  count: number;
-  prop_colors?: Record<string, string>;
-  prop_count?: number;
-}
-
-// Mirrors the backend envelope: `{ok:false, error}` is a 200 JSON payload,
-// not an HTTP error — callers must check `ok` before touching `data`.
-export function useAssignColors(project: string, episode: number) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (opts?: { force?: boolean }) =>
-      api
-        .post(
-          p`api/v1/projects/${project}/episodes/${episode}/sketches/assign-colors`,
-          opts?.force
-            ? { searchParams: { force: "true" } }
-            : undefined,
-        )
-        .json<ApiResponse<AssignColorsResult>>(),
-    onSuccess: (res) => {
-      if (!res.ok) return;
-      qc.invalidateQueries({ queryKey: queryKeys.beats(project, episode) });
-      qc.invalidateQueries({ queryKey: queryKeys.grids(project, episode) });
-      // Palette lives on the script JSON's sketch_colors map, so the chip
-      // strip only refreshes if we invalidate the script query too.
-      qc.invalidateQueries({ queryKey: queryKeys.script(project, episode) });
-      qc.invalidateQueries({
-        queryKey: queryKeys.episodeDetail(project, episode),
-      });
-    },
-  });
-}
-
-const AI_DETECT_IDENTITIES_TIMEOUT_MS = 180_000;
-
-export interface DetectIdentitiesResult {
-  // Backend returns string keys (JSON-compatible) mapping beat_number → identity ids.
-  detections: Record<string, string[]>;
-  identity_detections?: Record<string, string[]>;
-  prop_detections?: Record<string, string[]>;
-  total_beats: number;
-  total_identities: number;
-  total_props?: number;
-  review_message?: string;
-}
-
-export function useDetectIdentities(project: string, episode: number) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: () =>
-      jsonWithBackendError<ApiResponse<DetectIdentitiesResult>>(
-        api.post(
-          p`api/v1/projects/${project}/episodes/${episode}/sketches/detect-identities`,
-          {
-            timeout: AI_DETECT_IDENTITIES_TIMEOUT_MS,
-            throwHttpErrors: false,
-          },
-        ),
-      ),
-    onSuccess: (res) => {
-      if (!res.ok) return;
-      qc.invalidateQueries({ queryKey: queryKeys.beats(project, episode) });
-      qc.invalidateQueries({ queryKey: queryKeys.script(project, episode) });
     },
   });
 }

@@ -2,10 +2,9 @@
 import { QueryClient, QueryClientProvider, focusManager } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
-import { setupServer } from "msw/node";
 import ky from "ky";
 import type { ReactNode } from "react";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost:3000/" }),
@@ -13,8 +12,6 @@ vi.mock("@/shared/api/transport", () => ({
 
 import {
   StalePoolSelectError,
-  useAssignColors,
-  useDetectIdentities,
   useGenerateSketches,
   useBeatDirectorStageManifest,
   useBeatBackgroundAnchors,
@@ -31,15 +28,14 @@ import {
   useUploadGrid,
   useUploadBeatImage,
 } from "@/lib/queries/sketches";
+import { server } from "@/__mocks__/msw/server";
 import { queryKeys } from "@/lib/query-keys";
+import {
+  useAssignColors,
+  useDetectIdentities,
+} from "@/modules/production/public";
 import { api } from "@/shared/api/transport";
 import { BillingRuleNotConfiguredError } from "@/shared/api/errors";
-
-const server = setupServer();
-
-beforeAll(() => server.listen());
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
 
 function wrapper({ children }: { children: ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
