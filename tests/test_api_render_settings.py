@@ -72,6 +72,13 @@ def _client(monkeypatch, tmp_path, config: dict | None = None):
     monkeypatch.setattr(
         generation, "make_sqlite_store_for_context", fake_store_for_context
     )
+    from ai_anime.shared.infrastructure import project_stores
+
+    monkeypatch.setattr(
+        project_stores,
+        "make_sqlite_store_for_context",
+        fake_store_for_context,
+    )
     monkeypatch.setattr(
         generation,
         "make_static_url_for_context",
@@ -670,21 +677,10 @@ def test_director_stage_overlay_loads_inherits_and_saves(monkeypatch, tmp_path):
     async def fake_make_sqlite_store(username: str, project: str):
         return store
 
-    async def fake_resolve_project(
-        project: str, user: dict, required_role: str = "editor"
-    ):
-        return SimpleNamespace(
-            username="alice",
-            project_name="demo",
-            project_dir=tmp_path,
-            ctx=None,
-        )
-
     from ai_anime.api.routes import generation
     from ai_anime.director_world.store import save_beat_blocking
 
     monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
-    monkeypatch.setattr(generation, "_resolve_generation_project", fake_resolve_project)
 
     inherited_payload = {
         "schema_version": "director_stage_overlay_v1",
@@ -839,20 +835,9 @@ def test_director_stage_control_frame_export_writes_images_and_meta(
     async def fake_make_sqlite_store(username: str, project: str):
         return store
 
-    async def fake_resolve_project(
-        project: str, user: dict, required_role: str = "editor"
-    ):
-        return SimpleNamespace(
-            username="alice",
-            project_name="demo",
-            project_dir=tmp_path,
-            ctx=None,
-        )
-
     from ai_anime.api.routes import generation
 
     monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
-    monkeypatch.setattr(generation, "_resolve_generation_project", fake_resolve_project)
 
     png = BytesIO()
     Image.new("RGB", (2, 2), color=(255, 255, 255)).save(png, format="PNG")
@@ -980,20 +965,9 @@ def test_director_stage_control_frame_export_requires_complete_bundle(
     async def fake_make_sqlite_store(username: str, project: str):
         return store
 
-    async def fake_resolve_project(
-        project: str, user: dict, required_role: str = "editor"
-    ):
-        return SimpleNamespace(
-            username="alice",
-            project_name="demo",
-            project_dir=tmp_path,
-            ctx=None,
-        )
-
     from ai_anime.api.routes import generation
 
     monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
-    monkeypatch.setattr(generation, "_resolve_generation_project", fake_resolve_project)
 
     png = BytesIO()
     Image.new("RGB", (2, 2), color=(255, 255, 255)).save(png, format="PNG")

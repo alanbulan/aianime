@@ -51,6 +51,7 @@ from ai_anime.modules.asset_world.public import (
     BackgroundAnchorRejected,
     BeatViewerBeatNotFound,
     BeatViewerQuery,
+    BeatViewerSceneMissing,
     CropBeatBackgroundCommand,
     ExportBeatDirectorControlFrameCommand,
     SaveBeatDirectorOverlayCommand,
@@ -59,9 +60,7 @@ from ai_anime.modules.asset_world.public import (
     SelectBeatBackgroundCommand,
     UploadBeatBackgroundCommand,
     beat_background_anchor_use_cases,
-    beat_director_stage_use_cases,
     beat_viewer_use_cases,
-    resolve_beat_scene_name,
 )
 from ai_anime.modules.production.public import (
     AssignProjectSketchColorsCommand,
@@ -972,26 +971,16 @@ async def get_beat_director_stage_overlay(
 ):
     """Load the current Beat 3GS overlay, or inherit the previous same-scene Beat."""
     resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    project_dir = resolved.project_dir
-    store, beat = await _episode_beat_from_resolution(resolved, episode_num, beat_num)
     try:
-        scene_name = resolve_beat_scene_name(beat)
-        if not scene_name:
-            return {"ok": False, "error": "当前 Beat 没有关联场景"}
-        return {
-            "ok": True,
-            "data": await beat_director_stage_use_cases().load_overlay(
-                repository=store,
-                project_dir=project_dir,
-                episode_num=int(episode_num),
-                beat_num=int(beat_num),
-                scene_name=scene_name,
-            ),
-        }
-    finally:
-        close = getattr(store, "close", None)
-        if close:
-            await close()
+        data = await beat_viewer_use_cases().load_director_stage_overlay(
+            resolved.ctx,
+            BeatViewerQuery(episode_num=episode_num, beat_num=beat_num),
+        )
+    except BeatViewerBeatNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except SceneCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.post(
@@ -1006,44 +995,28 @@ async def save_beat_director_stage_overlay(
 ):
     """Persist the current Beat 3GS overlay to director_blockings/epNNN/beat_MM.json."""
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    project_dir = resolved.project_dir
-    store, beat = await _episode_beat_from_resolution(resolved, episode_num, beat_num)
     try:
-        scene_name = resolve_beat_scene_name(beat)
-        if not scene_name:
-            return {"ok": False, "error": "当前 Beat 没有关联场景"}
-        return {
-            "ok": True,
-            "data": await beat_director_stage_use_cases().save_overlay(
-                repository=store,
-                asset_writer=(
-                    store
-                    if callable(getattr(store, "update_beat_asset", None))
-                    else None
-                ),
-                project_dir=project_dir,
-                episode_num=int(episode_num),
-                beat_num=int(beat_num),
-                scene_name=scene_name,
-                beat=beat,
-                command=SaveBeatDirectorOverlayCommand(
-                    frame_aspect=body.get("frame_aspect"),
-                    source=body.get("source"),
-                    frame_meta=body.get("frame_meta"),
-                    snapshot=body.get("snapshot"),
-                    camera=body.get("camera"),
-                    actors=body.get("actors"),
-                    props=body.get("props"),
-                    stagings=body.get("stagings"),
-                    command_log=body.get("command_log"),
-                    deleted_keys=body.get("deleted_keys"),
-                ),
+        data = await beat_viewer_use_cases().save_director_stage_overlay(
+            resolved.ctx,
+            BeatViewerQuery(episode_num=episode_num, beat_num=beat_num),
+            SaveBeatDirectorOverlayCommand(
+                frame_aspect=body.get("frame_aspect"),
+                source=body.get("source"),
+                frame_meta=body.get("frame_meta"),
+                snapshot=body.get("snapshot"),
+                camera=body.get("camera"),
+                actors=body.get("actors"),
+                props=body.get("props"),
+                stagings=body.get("stagings"),
+                command_log=body.get("command_log"),
+                deleted_keys=body.get("deleted_keys"),
             ),
-        }
-    finally:
-        close = getattr(store, "close", None)
-        if close:
-            await close()
+        )
+    except BeatViewerBeatNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except SceneCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.post(
@@ -1058,42 +1031,29 @@ async def export_beat_director_stage_control_frame(
 ):
     """Persist Director Render control-frame PNG layers and frame_meta.json."""
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    project_dir = resolved.project_dir
-    store, beat = await _episode_beat_from_resolution(resolved, episode_num, beat_num)
     try:
-        scene_name = resolve_beat_scene_name(beat)
-        if not scene_name:
-            return {"ok": False, "error": "当前 Beat 没有关联场景"}
-        try:
-            payload = beat_director_stage_use_cases().export_control_frame(
-                project_dir=project_dir,
-                scene_name=scene_name,
-                episode_num=int(episode_num),
-                beat_num=int(beat_num),
-                command=ExportBeatDirectorControlFrameCommand(
-                    images=body.get("images"),
-                    frame_meta=body.get("frame_meta"),
-                    frame_aspect=body.get("frame_aspect"),
-                    snapshot=body.get("snapshot"),
-                    actors=body.get("actors"),
-                    props=body.get("props"),
-                    stagings=body.get("stagings"),
-                ),
-                asset_url=make_project_asset_url_builder(
-                    resolved.ctx,
-                    project_dir,
-                    make_static_url_for_context,
-                ),
+        payload = await beat_viewer_use_cases().export_director_stage_control_frame(
+            resolved.ctx,
+            BeatViewerQuery(episode_num=episode_num, beat_num=beat_num),
+            ExportBeatDirectorControlFrameCommand(
+                images=body.get("images"),
+                frame_meta=body.get("frame_meta"),
+                frame_aspect=body.get("frame_aspect"),
+                snapshot=body.get("snapshot"),
+                actors=body.get("actors"),
+                props=body.get("props"),
+                stagings=body.get("stagings"),
             )
-        except SceneViewerRejected as exc:
-            return JSONResponse(
-                status_code=400, content={"ok": False, "error": str(exc)}
-            )
-        return {"ok": True, "data": payload}
-    finally:
-        close = getattr(store, "close", None)
-        if close:
-            await close()
+        )
+    except BeatViewerBeatNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except BeatViewerSceneMissing as exc:
+        return {"ok": False, "error": str(exc)}
+    except SceneViewerRejected as exc:
+        return JSONResponse(
+            status_code=400, content={"ok": False, "error": str(exc)}
+        )
+    return {"ok": True, "data": payload}
 
 
 @router.get(

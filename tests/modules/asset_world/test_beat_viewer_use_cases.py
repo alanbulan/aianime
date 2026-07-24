@@ -8,15 +8,20 @@ import pytest
 from ai_anime.modules.asset_world.application.beat_viewer import (
     BeatViewerBeatNotFound,
     BeatViewerQuery,
+    BeatViewerSceneMissing,
     BeatViewerUseCases,
 )
-from ai_anime.modules.asset_world.application.errors import SceneViewerRejected
+from ai_anime.modules.asset_world.application.dto import (
+    ExportBeatDirectorControlFrameCommand,
+    SaveBeatDirectorOverlayCommand,
+)
 from ai_anime.modules.project_workspace.public import ProjectContext
 
 
 class _Store:
     def __init__(self, beats: list[dict]) -> None:
         self.beats = beats
+        self.updates: list[dict] = []
 
     async def get_beats_as_dicts(self, episode_num: int) -> list[dict]:
         assert episode_num == 2
@@ -25,6 +30,10 @@ class _Store:
     def get_sketch_colors(self, episode_num: int) -> dict[str, str]:
         assert episode_num == 2
         return {"hero_default": "#ff00ff LABEL"}
+
+    async def update_beat_asset(self, **updates):
+        self.updates.append(updates)
+        return True
 
 
 class _Workspace:
@@ -71,6 +80,9 @@ class _SceneViewer:
 class _DirectorStage:
     def __init__(self) -> None:
         self.calls: list[dict] = []
+        self.load_calls: list[dict] = []
+        self.save_calls: list[dict] = []
+        self.export_calls: list[dict] = []
 
     def control_frame_status(self, **kwargs):
         self.calls.append(kwargs)
@@ -78,6 +90,19 @@ class _DirectorStage:
             "ready": False,
             "url": kwargs["asset_url"](kwargs["project_dir"] / "frame.png"),
         }
+
+    async def load_overlay(self, **kwargs):
+        self.load_calls.append(kwargs)
+        return {"status": "missing"}
+
+    async def save_overlay(self, **kwargs):
+        self.save_calls.append(kwargs)
+        await kwargs["asset_writer"].update_beat_asset(saved=True)
+        return {"status": "saved"}
+
+    def export_control_frame(self, **kwargs):
+        self.export_calls.append(kwargs)
+        return {"url": kwargs["asset_url"](kwargs["project_dir"] / "frame.png")}
 
 
 class _Episodes:
@@ -149,10 +174,27 @@ async def test_beat_viewer_composes_project_manifests_and_status(
 
     pano = await use_cases.pano_background_manifest(context, query)
     stage = await use_cases.director_stage_manifest(context, query)
+    overlay = await use_cases.load_director_stage_overlay(context, query)
+    saved_overlay = await use_cases.save_director_stage_overlay(
+        context,
+        query,
+        SaveBeatDirectorOverlayCommand(snapshot={"actors": []}),
+    )
+    exported = await use_cases.export_director_stage_control_frame(
+        context,
+        query,
+        ExportBeatDirectorControlFrameCommand(
+            images={"combined": "data", "env_only": "data"},
+            frame_meta={"camera": {}},
+        ),
+    )
     status = use_cases.director_control_frame_status(context, query)
 
     assert pano == {"url": "/projects/project-1/pano.png"}
     assert stage == {"scene_name": "地下室"}
+    assert overlay == {"status": "missing"}
+    assert saved_overlay == {"status": "saved"}
+    assert exported == {"url": "/projects/project-1/frame.png"}
     assert use_cases.default_director_stage_palette() == {"actors": [], "props": []}
     assert scene_viewer.pano_calls[0]["beat"] is beat
     assert scene_viewer.stage_calls[0]["sketch_colors"] == {
@@ -161,8 +203,12 @@ async def test_beat_viewer_composes_project_manifests_and_status(
     assert scene_viewer.stage_calls[0]["prop_marker_colors"] == {"cup": "#123456 LABEL"}
     assert status == {"ready": False, "url": "/projects/project-1/frame.png"}
     assert director_stage.calls[0]["episode_num"] == 2
-    assert workspace.contexts == [context, context]
-    assert workspace.exit_count == 2
+    assert director_stage.load_calls[0]["repository"] is workspace.store
+    assert director_stage.save_calls[0]["asset_writer"] is workspace.store
+    assert director_stage.export_calls[0]["scene_name"] == "地下室"
+    assert workspace.store.updates == [{"saved": True}]
+    assert workspace.contexts == [context, context, context, context, context]
+    assert workspace.exit_count == 5
 
 
 @pytest.mark.asyncio
@@ -178,6 +224,6 @@ async def test_beat_viewer_rejects_missing_beat_and_scene(tmp_path: Path) -> Non
     missing_scene, workspace, _viewer, _director = _use_cases(
         _Store([{"beat_number": 4}])
     )
-    with pytest.raises(SceneViewerRejected, match="当前 Beat 没有关联场景"):
+    with pytest.raises(BeatViewerSceneMissing, match="当前 Beat 没有关联场景"):
         await missing_scene.director_stage_manifest(context, query)
     assert workspace.exit_count == 1

@@ -230,14 +230,10 @@ def beat_viewer_use_cases() -> BeatViewerUseCases:
         SqliteBeatViewerWorkspace(),
         ProjectBeatViewerMediaUrls(),
         scene_viewer_use_cases(),
-        beat_director_stage_use_cases(),
+        BeatDirectorStageUseCases(LocalBeatDirectorStageFiles()),
         CompatibleBeatViewerEpisodeSource(),
         AssetWorldBeatViewerRuntimePropMenuSource(prop_catalog_use_cases()),
     )
-
-
-def beat_director_stage_use_cases() -> BeatDirectorStageUseCases:
-    return BeatDirectorStageUseCases(LocalBeatDirectorStageFiles())
 
 
 def beat_background_anchor_use_cases() -> BeatBackgroundAnchorUseCases:

@@ -494,6 +494,14 @@ class BeatViewerStore(Protocol):
 
     def get_sketch_colors(self, episode_num: int) -> dict[str, str]: ...
 
+    async def update_beat_asset(
+        self,
+        *,
+        episode_number: int,
+        beat_number: int,
+        **updates: Any,
+    ) -> Any: ...
+
 
 class BeatViewerWorkspace(Protocol):
     def session(

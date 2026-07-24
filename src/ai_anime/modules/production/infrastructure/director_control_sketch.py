@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from pathlib import Path
 from typing import Any
 
-from ai_anime.modules.asset_world.public import beat_director_stage_use_cases
+from ai_anime.modules.asset_world.public import BeatViewerQuery, beat_viewer_use_cases
 from ai_anime.modules.production.application.director_control_sketch import (
     DirectorControlFrameStatus,
     DirectorControlSketchTask,
@@ -16,7 +15,6 @@ from ai_anime.modules.production.application.sketch_generation import (
     SKETCH_GENERATION_TASK_TYPE,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.shared.project_media import make_project_asset_url_builder
 from ai_anime.task_identity import project_task_state_key
 
 
@@ -27,12 +25,9 @@ class AssetWorldDirectorControlFrameSource:
         episode_num: int,
         beat_num: int,
     ) -> DirectorControlFrameStatus:
-        project_dir = Path(context.output_dir)
-        data = beat_director_stage_use_cases().control_frame_status(
-            project_dir=project_dir,
-            episode_num=episode_num,
-            beat_num=beat_num,
-            asset_url=make_project_asset_url_builder(context, project_dir),
+        data = beat_viewer_use_cases().director_control_frame_status(
+            context,
+            BeatViewerQuery(episode_num=episode_num, beat_num=beat_num),
         )
         return DirectorControlFrameStatus(
             ready=bool(data["ready"]),

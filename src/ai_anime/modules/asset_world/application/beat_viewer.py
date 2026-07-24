@@ -1,4 +1,4 @@
-"""Project-facing Beat viewer and Director Stage read use cases."""
+"""Project-facing Beat viewer and Director Stage use cases."""
 
 from __future__ import annotations
 
@@ -9,11 +9,16 @@ from ai_anime.modules.asset_world.application.director_stage import (
     BeatDirectorStageUseCases,
     resolve_beat_scene_name,
 )
+from ai_anime.modules.asset_world.application.dto import (
+    ExportBeatDirectorControlFrameCommand,
+    SaveBeatDirectorOverlayCommand,
+)
 from ai_anime.modules.asset_world.application.errors import SceneViewerRejected
 from ai_anime.modules.asset_world.application.ports import (
     BeatViewerEpisodeSource,
     BeatViewerMediaUrls,
     BeatViewerRuntimePropMenuSource,
+    BeatViewerStore,
     BeatViewerWorkspace,
 )
 from ai_anime.modules.asset_world.application.scene_viewer import SceneViewerUseCases
@@ -29,6 +34,10 @@ class BeatViewerQuery:
 class BeatViewerBeatNotFound(LookupError):
     def __init__(self, beat_num: int) -> None:
         super().__init__(f"Beat {beat_num} not found")
+
+
+class BeatViewerSceneMissing(SceneViewerRejected):
+    pass
 
 
 class BeatViewerUseCases:
@@ -54,8 +63,7 @@ class BeatViewerUseCases:
         query: BeatViewerQuery,
     ) -> dict[str, Any]:
         async with self._workspace.session(context) as store:
-            beats = await store.get_beats_as_dicts(int(query.episode_num))
-            beat = self._require_beat(beats, query.beat_num)
+            _beats, beat = await self._beat_context(store, query)
             return self._scene_viewer.beat_pano_manifest(
                 project_id=context.project_id,
                 project_dir=context.output_dir,
@@ -76,8 +84,7 @@ class BeatViewerUseCases:
     ) -> dict[str, Any]:
         async with self._workspace.session(context) as store:
             episode_num = int(query.episode_num)
-            beats = await store.get_beats_as_dicts(episode_num)
-            beat = self._require_beat(beats, query.beat_num)
+            beats, beat = await self._beat_context(store, query)
             scene_name = self._require_scene_name(beat)
             episode = self._episodes.episode_or_none(store, episode_num)
             prop_menu = self._prop_menus.for_episode(store, episode, beats)
@@ -93,6 +100,57 @@ class BeatViewerUseCases:
                 prop_marker_colors=self._prop_marker_colors(prop_menu),
             )
 
+    async def load_director_stage_overlay(
+        self,
+        context: ProjectContext,
+        query: BeatViewerQuery,
+    ) -> dict[str, Any]:
+        async with self._workspace.session(context) as store:
+            _beats, beat = await self._beat_context(store, query)
+            return await self._director_stage.load_overlay(
+                repository=store,
+                project_dir=context.output_dir,
+                episode_num=int(query.episode_num),
+                beat_num=int(query.beat_num),
+                scene_name=self._require_scene_name(beat),
+            )
+
+    async def save_director_stage_overlay(
+        self,
+        context: ProjectContext,
+        query: BeatViewerQuery,
+        command: SaveBeatDirectorOverlayCommand,
+    ) -> dict[str, Any]:
+        async with self._workspace.session(context) as store:
+            _beats, beat = await self._beat_context(store, query)
+            return await self._director_stage.save_overlay(
+                repository=store,
+                asset_writer=store,
+                project_dir=context.output_dir,
+                episode_num=int(query.episode_num),
+                beat_num=int(query.beat_num),
+                scene_name=self._require_scene_name(beat),
+                beat=beat,
+                command=command,
+            )
+
+    async def export_director_stage_control_frame(
+        self,
+        context: ProjectContext,
+        query: BeatViewerQuery,
+        command: ExportBeatDirectorControlFrameCommand,
+    ) -> dict[str, Any]:
+        async with self._workspace.session(context) as store:
+            _beats, beat = await self._beat_context(store, query)
+            return self._director_stage.export_control_frame(
+                project_dir=context.output_dir,
+                scene_name=self._require_scene_name(beat),
+                episode_num=int(query.episode_num),
+                beat_num=int(query.beat_num),
+                command=command,
+                asset_url=self._media_urls.asset_url(context),
+            )
+
     def director_control_frame_status(
         self,
         context: ProjectContext,
@@ -104,6 +162,15 @@ class BeatViewerUseCases:
             beat_num=int(query.beat_num),
             asset_url=self._media_urls.asset_url(context),
         )
+
+    @classmethod
+    async def _beat_context(
+        cls,
+        store: BeatViewerStore,
+        query: BeatViewerQuery,
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        beats = await store.get_beats_as_dicts(int(query.episode_num))
+        return beats, cls._require_beat(beats, query.beat_num)
 
     @staticmethod
     def _require_beat(
@@ -127,7 +194,7 @@ class BeatViewerUseCases:
     def _require_scene_name(beat: Mapping[str, Any]) -> str:
         scene_name = resolve_beat_scene_name(beat)
         if not scene_name:
-            raise SceneViewerRejected("当前 Beat 没有关联场景")
+            raise BeatViewerSceneMissing("当前 Beat 没有关联场景")
         return scene_name
 
     @staticmethod
@@ -146,5 +213,6 @@ class BeatViewerUseCases:
 __all__ = [
     "BeatViewerBeatNotFound",
     "BeatViewerQuery",
+    "BeatViewerSceneMissing",
     "BeatViewerUseCases",
 ]

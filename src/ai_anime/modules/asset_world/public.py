@@ -9,6 +9,7 @@ from ai_anime.modules.asset_world.application.background_anchor import (
 from ai_anime.modules.asset_world.application.beat_viewer import (
     BeatViewerBeatNotFound,
     BeatViewerQuery,
+    BeatViewerSceneMissing,
     BeatViewerUseCases,
 )
 from ai_anime.modules.asset_world.application.character_asset_history import (
@@ -37,10 +38,6 @@ from ai_anime.modules.asset_world.application.character_voice import (
     CharacterVoiceUseCases,
     character_voice_fields,
     identity_voice_fields,
-)
-from ai_anime.modules.asset_world.application.director_stage import (
-    BeatDirectorStageUseCases,
-    resolve_beat_scene_name,
 )
 from ai_anime.modules.asset_world.application.image_settings import (
     ImageSettingsUseCases,
@@ -267,14 +264,6 @@ def beat_viewer_use_cases() -> BeatViewerUseCases:
     return build()
 
 
-def beat_director_stage_use_cases() -> BeatDirectorStageUseCases:
-    from ai_anime.modules.asset_world.composition import (
-        beat_director_stage_use_cases as build,
-    )
-
-    return build()
-
-
 def beat_background_anchor_use_cases() -> BeatBackgroundAnchorUseCases:
     from ai_anime.modules.asset_world.composition import (
         beat_background_anchor_use_cases as build,
@@ -361,6 +350,7 @@ __all__ = [
     "BeatBackgroundAnchorUseCases",
     "BeatViewerBeatNotFound",
     "BeatViewerQuery",
+    "BeatViewerSceneMissing",
     "BeatViewerUseCases",
     "CharacterAlreadyExists",
     "CharacterAssetHistoryNotFound",
@@ -380,7 +370,6 @@ __all__ = [
     "CharacterVoiceNotFound",
     "CharacterVoiceRejected",
     "CharacterVoiceUseCases",
-    "BeatDirectorStageUseCases",
     "CreateCharacterCommand",
     "CreateIdentityCommand",
     "CreatePropCommand",
@@ -430,7 +419,6 @@ __all__ = [
     "VOICE_SAMPLE_EXTENSIONS",
     "analyze_style",
     "beat_background_anchor_use_cases",
-    "beat_director_stage_use_cases",
     "beat_viewer_use_cases",
     "build_character_map_for_grid",
     "character_asset_history_use_cases",
@@ -465,7 +453,6 @@ __all__ = [
     "path_updated_at",
     "persist_character_voice_file",
     "probe_voice_sample_duration_seconds",
-    "resolve_beat_scene_name",
     "safe_character_asset_name",
     "style_catalog_use_cases",
     "style_preview_use_cases",

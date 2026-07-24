@@ -1382,11 +1382,32 @@ def test_asset_world_beat_director_stage_routes_delegate_to_application() -> Non
     freezone = (PACKAGE_ROOT / "api" / "routes" / "freezone.py").read_text(
         encoding="utf-8"
     )
+    public_api = (PACKAGE_ROOT / "modules" / "asset_world" / "public.py").read_text(
+        encoding="utf-8"
+    )
+    frame_source = (
+        PACKAGE_ROOT
+        / "modules"
+        / "production"
+        / "infrastructure"
+        / "director_control_sketch.py"
+    ).read_text(encoding="utf-8")
 
-    assert "beat_director_stage_use_cases" in director_adapters
+    assert "beat_viewer_use_cases" in director_adapters
     assert "director_control_sketch_use_cases" in director_adapters
+    assert "beat_viewer_use_cases" in frame_source
+    assert "beat_director_stage_use_cases" not in frame_source
+    assert "def beat_director_stage_use_cases(" not in public_api
     assert "director_control_scope" not in freezone
     for legacy_implementation in (
+        "_episode_beat_from_resolution",
+        "make_project_asset_url_builder",
+        'getattr(store, "update_beat_asset", None)',
+    ):
+        assert legacy_implementation not in director_adapters
+    for legacy_implementation in (
+        "beat_director_stage_use_cases",
+        "resolve_beat_scene_name",
         "_director_control_scope",
         "_director_control_payload",
         "_director_overlay_beat_context",
