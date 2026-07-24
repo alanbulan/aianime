@@ -31,7 +31,7 @@ class _PoseStore:
 
 
 def _client(monkeypatch, tmp_path):
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_sketch
     from ai_anime.modules.production.infrastructure import sketch_editing
     from ai_anime.modules.project_workspace.public import ProjectContext
 
@@ -70,7 +70,7 @@ def _client(monkeypatch, tmp_path):
         assert candidate is context
         return store
 
-    monkeypatch.setattr(generation, "_resolve_generation_project", fake_resolve_project)
+    monkeypatch.setattr(production_sketch, "resolve_project_scope", fake_resolve_project)
     monkeypatch.setattr(
         sketch_editing.project_stores,
         "make_sqlite_store_for_context",
@@ -84,8 +84,10 @@ def _client(monkeypatch, tmp_path):
     )
 
     app = FastAPI()
-    app.include_router(generation.router, prefix="/api/v1")
-    app.dependency_overrides[generation.get_api_user] = lambda: {"username": "alice"}
+    app.include_router(production_sketch.router, prefix="/api/v1")
+    app.dependency_overrides[production_sketch.get_api_user] = lambda: {
+        "username": "alice"
+    }
 
     return TestClient(app), sketch_dir / "beat_01.png"
 

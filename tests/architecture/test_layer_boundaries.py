@@ -300,20 +300,25 @@ def test_production_callers_use_the_public_api() -> None:
 
 
 def test_production_sketch_edit_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "production_sketch.py"
+    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     source = route.read_text(encoding="utf-8")
+    generation_source = generation.read_text(encoding="utf-8")
 
     assert not (
         PACKAGE_ROOT / "services" / "sketch_pose_service.py"
     ).exists()
     assert "ai_anime.modules.production.public" in _imports(route)
-    route_start = source.index("async def get_sketch_pose_editor(")
-    route_end = source.index("async def generate_missing_manual_sketches(", route_start)
-    route_source = source[route_start:route_end]
-    assert route_source.count("sketch_editing_use_cases") == 3
-    assert "SketchEditorQuery" in route_source
-    assert "SaveSketchEditorCommand" in route_source
-    assert "CropCurrentSketchCommand" in route_source
+    assert source.count("sketch_editing_use_cases().") == 3
+    assert "SketchEditorQuery" in source
+    assert "SaveSketchEditorCommand" in source
+    assert "CropCurrentSketchCommand" in source
+    for handler_name in (
+        "get_sketch_pose_editor",
+        "save_sketch_pose_editor",
+        "crop_current_sketch",
+    ):
+        assert f"async def {handler_name}(" not in generation_source
     assert "sketch_pose_editor_use_cases" not in source
     assert "sketch_image_use_cases" not in source
     assert "def _canonical_sketch_path(" not in source
@@ -332,7 +337,7 @@ def test_production_sketch_edit_routes_delegate_to_application() -> None:
         "Image.open",
         "from PIL",
     ):
-        assert legacy_implementation not in route_source
+        assert legacy_implementation not in source
 
 
 def test_production_image_settings_routes_delegate_to_application() -> None:
@@ -709,7 +714,7 @@ def test_production_director_control_sketch_route_delegates_to_application() -> 
     sketch_runner = PACKAGE_ROOT / "task_backend" / "runners" / "sketch.py"
     source = generation.read_text(encoding="utf-8")
     route_start = source.index("async def director_control_to_sketch(")
-    route_end = source.index("async def get_sketch_pose_editor(", route_start)
+    route_end = source.index("async def generate_missing_manual_sketches(", route_start)
     route_source = source[route_start:route_end]
 
     assert route_source.count("director_control_sketch_use_cases") == 1

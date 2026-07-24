@@ -31,26 +31,17 @@ from ai_anime.modules.asset_world.public import (
 )
 from ai_anime.modules.production.public import (
     AssignProjectSketchColorsCommand,
-    CropCurrentSketchCommand,
-    CurrentSketchMissing,
     DetectProjectSketchMarkersCommand,
     DirectorControlSketchUnavailable,
     GenerateMissingManualSketchesCommand,
     GenerateDirectorControlSketchCommand,
     ManualSketchRegenerationRejected,
-    SaveSketchEditorCommand,
-    SketchBeatMissing,
-    SketchCropRejected,
     SketchColorMarkersMissing,
     SketchEpisodeBeatsMissing,
     SketchMarkerDetectionFailed,
     SketchMarkerDetectionRejected,
-    SketchPoseCandidatesMissing,
-    SketchEditorQuery,
-    SketchEditorSaveRejected,
     director_control_sketch_use_cases,
     manual_sketch_regeneration_use_cases,
-    sketch_editing_use_cases,
     sketch_marker_use_cases,
 )
 from ai_anime.utils.media_io import decode_uploaded_rgb_image
@@ -397,105 +388,6 @@ async def director_control_to_sketch(
             "data": exc.status.data,
         }
     return {"ok": True, **scheduled.as_dict()}
-
-
-@router.get(
-    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/sketch/pose-editor"
-)
-async def get_sketch_pose_editor(
-    project: str,
-    episode_num: int,
-    beat_num: int,
-    user: dict = Depends(get_api_user),
-):
-    """Return NiceGUI-compatible pose editor payload for a canonical sketch."""
-    resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    try:
-        editor = await sketch_editing_use_cases().load_editor(
-            resolved.ctx,
-            SketchEditorQuery(
-                episode_num=episode_num,
-                beat_num=beat_num,
-            ),
-        )
-    except (CurrentSketchMissing, SketchBeatMissing) as exc:
-        return JSONResponse(
-            status_code=404,
-            content={"ok": False, "error": str(exc)},
-        )
-    except SketchPoseCandidatesMissing:
-        return {"ok": False, "error": "本集没有分配颜色的身份，请先重新配色"}
-    return {"ok": True, "data": editor.as_dict()}
-
-
-@router.post(
-    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/sketch/pose-editor"
-)
-async def save_sketch_pose_editor(
-    project: str,
-    episode_num: int,
-    beat_num: int,
-    body: dict[str, Any],
-    user: dict = Depends(get_api_user),
-):
-    """Persist pose editor strokes/skeletons back to the canonical sketch."""
-    resolved = await _resolve_generation_project(project, user, required_role="editor")
-    try:
-        edited = sketch_editing_use_cases().save_editor(
-            resolved.ctx,
-            SaveSketchEditorCommand(
-                episode_num=episode_num,
-                beat_num=beat_num,
-                editor_state=body,
-            ),
-        )
-    except CurrentSketchMissing as exc:
-        return JSONResponse(
-            status_code=404,
-            content={"ok": False, "error": str(exc)},
-        )
-    except SketchEditorSaveRejected as exc:
-        return JSONResponse(
-            status_code=400,
-            content={"ok": False, "error": str(exc)},
-        )
-    return {"ok": True, "data": edited.as_dict()}
-
-
-@router.post("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/sketch/crop")
-async def crop_current_sketch(
-    project: str,
-    episode_num: int,
-    beat_num: int,
-    body: dict[str, Any],
-    user: dict = Depends(get_api_user),
-):
-    """Crop and overwrite the canonical sketch, matching NiceGUI current-image crop."""
-    resolved = await _resolve_generation_project(project, user, required_role="editor")
-    try:
-        cropped = sketch_editing_use_cases().crop(
-            resolved.ctx,
-            CropCurrentSketchCommand(
-                episode_num=episode_num,
-                beat_num=beat_num,
-                x=body.get("x", 0),
-                y=body.get("y", 0),
-                width=body.get("width", 0),
-                height=body.get("height", 0),
-            ),
-        )
-    except CurrentSketchMissing as exc:
-        return JSONResponse(
-            status_code=404,
-            content={"ok": False, "error": str(exc)},
-        )
-    except SketchCropRejected as exc:
-        return JSONResponse(
-            status_code=400,
-            content={"ok": False, "error": str(exc)},
-        )
-
-    return {"ok": True, "data": cropped.as_dict()}
 
 
 @router.post(
