@@ -14,19 +14,40 @@ class _FakeStore:
         assert episode == 3
         return [{"beat_number": 1, "narration_segment": "Hello"}]
 
+    async def close(self) -> None:
+        return None
+
 
 def _client(monkeypatch, tmp_path) -> TestClient:
     from ai_anime.api.routes import generation
     from ai_anime.api.deps import ProjectResolution
+    from ai_anime.modules.project_workspace.public import ProjectContext
+    from ai_anime.shared.infrastructure import project_stores
 
-    async def fake_make_sqlite_store(username, project):
-        assert username == "alice"
-        assert project == "demo"
+    context = ProjectContext(
+        project_id="proj-export",
+        project_name="demo",
+        owner_type="user",
+        owner_id="user-alice",
+        owner_username="alice",
+        requester_user_id="user-alice",
+        requester_username="alice",
+        requester_principals=(("user", "user-alice"),),
+        effective_role="owner",
+        home_node_id="local",
+        output_dir=tmp_path,
+        state_dir=tmp_path / "state",
+        runtime_dir=tmp_path / "runtime",
+        is_home_node=True,
+    )
+
+    async def fake_make_sqlite_store(candidate):
+        assert candidate is context
         return _FakeStore()
 
     async def fake_resolve_project_scope(project, user, *, required_role="viewer"):
         return ProjectResolution(
-            ctx=None,
+            ctx=context,
             username="alice",
             project_name="demo",
             project_dir=tmp_path,
@@ -39,7 +60,11 @@ def _client(monkeypatch, tmp_path) -> TestClient:
     app.include_router(generation.router)
     app.dependency_overrides[generation.get_api_user] = lambda: {"username": "alice"}
     monkeypatch.setattr(generation, "resolve_project_scope", fake_resolve_project_scope)
-    monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
+    monkeypatch.setattr(
+        project_stores,
+        "make_sqlite_store_for_context",
+        fake_make_sqlite_store,
+    )
     return TestClient(app)
 
 
@@ -82,7 +107,7 @@ def test_export_zip_contains_beat_media_final_video_and_srt(monkeypatch, tmp_pat
 
 
 def test_srt_export_falls_back_when_audio_duration_probe_fails(monkeypatch, tmp_path):
-    from ai_anime.export import episode_export
+    from ai_anime.modules.production.infrastructure import episode_export
 
     _write_export_assets(tmp_path)
 

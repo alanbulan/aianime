@@ -420,6 +420,32 @@ def test_production_episode_video_routes_delegate_to_application() -> None:
         assert implementation_detail not in route_source
 
 
+def test_production_episode_export_routes_delegate_to_application() -> None:
+    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    source = generation.read_text(encoding="utf-8")
+    download_start = source.index("async def export_srt(")
+    download_end = source.index("async def upload_grid(", download_start)
+    archive_start = source.index("async def export_zip(")
+    archive_end = source.index("async def assign_sketch_colors(", archive_start)
+    route_source = source[download_start:download_end] + source[
+        archive_start:archive_end
+    ]
+
+    assert route_source.count("episode_export_use_cases") == 3
+    for implementation_detail in (
+        "make_sqlite_store_for_context",
+        "make_sqlite_store(",
+        "build_srt_content",
+        "PathResolver",
+        "zipfile",
+        "tempfile",
+        '"videos" / "episodes"',
+        "files_to_pack",
+    ):
+        assert implementation_detail not in route_source
+    assert not _python_files(PACKAGE_ROOT / "export")
+
+
 def test_production_generation_context_routes_delegate_to_application() -> None:
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     freezone = PACKAGE_ROOT / "api" / "routes" / "freezone.py"

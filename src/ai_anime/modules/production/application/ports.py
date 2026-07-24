@@ -264,8 +264,33 @@ class ProductionEpisodeVideoScheduler(Protocol):
 
 
 class ProductionFinalVideoCatalog(Protocol):
+    def path(
+        self,
+        context: ProjectContext,
+        episode_num: int,
+    ) -> Path: ...
+
     def status(
         self,
         context: ProjectContext,
         episode_num: int,
     ) -> FinalEpisodeVideoStatus: ...
+
+
+class ProductionEpisodeExportFiles(Protocol):
+    async def subtitle_content(
+        self,
+        project_dir: Path,
+        episode_num: int,
+        beats: list[dict[str, Any]],
+    ) -> str: ...
+
+    async def create_archive(
+        self,
+        project_dir: Path,
+        episode_num: int,
+        beats: list[dict[str, Any]],
+        *,
+        final_video_path: Path | None,
+        subtitle_content: str,
+    ) -> Path: ...

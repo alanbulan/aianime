@@ -8,6 +8,9 @@ from ai_anime.modules.production.application.generation_context import (
 from ai_anime.modules.production.application.episode_video import (
     EpisodeVideoUseCases,
 )
+from ai_anime.modules.production.application.episode_export import (
+    EpisodeExportUseCases,
+)
 from ai_anime.modules.production.application.image_settings import (
     ProductionImageSettingsUseCases,
 )
@@ -49,6 +52,9 @@ from ai_anime.modules.production.infrastructure.episode_video import (
     SqliteEpisodeBeatSource,
     TaskBackendEpisodeVideoScheduler,
 )
+from ai_anime.modules.production.infrastructure.episode_export import (
+    LocalEpisodeExportFiles,
+)
 from ai_anime.modules.production.infrastructure.sketch_color import (
     AssetWorldRuntimePropMenuSource,
     DomainSketchColorAssigner,
@@ -63,6 +69,14 @@ from ai_anime.modules.production.infrastructure.sketch_marker_detection import (
     LocalSketchMarkerDetectionFiles,
 )
 from ai_anime.modules.project_workspace.public import get_user_output_dir
+
+
+def episode_export_use_cases() -> EpisodeExportUseCases:
+    return EpisodeExportUseCases(
+        SqliteEpisodeBeatSource(),
+        LocalEpisodeExportFiles(),
+        LocalFinalEpisodeVideoCatalog(),
+    )
 
 
 def episode_video_use_cases() -> EpisodeVideoUseCases:

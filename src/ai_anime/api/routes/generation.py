@@ -90,6 +90,9 @@ from ai_anime.modules.production.public import (
     CropSketchCommand,
     DetectSketchMarkersCommand,
     EpisodeBeatsMissing,
+    EpisodeScriptBeatsMissing,
+    EpisodeSubtitlesMissing,
+    FinalEpisodeVideoMissing,
     ImageGenerationGuardQuery,
     ProductionImageSettingsRejected,
     ReplaceSketchRegenQueueCommand,
@@ -100,6 +103,7 @@ from ai_anime.modules.production.public import (
     SketchPoseCandidatesMissing,
     UpdateRenderImageSettingsCommand,
     UpdateSketchImageSettingsCommand,
+    episode_export_use_cases,
     episode_video_use_cases,
     production_generation_context_use_cases,
     production_image_settings_use_cases,
@@ -4502,30 +4506,19 @@ async def export_srt(
     from fastapi.responses import PlainTextResponse
 
     resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    project_dir = resolved.project_dir
-
-    # 从图谱读取 beats
-    store = (
-        await make_sqlite_store_for_context(resolved.ctx)
-        if resolved.ctx
-        else await make_sqlite_store(resolved.username, resolved.project_name)
-    )
-    beats = await store.get_beats_as_dicts(episode_num)
-
-    if not beats:
-        return {"ok": False, "error": "No beats in script"}
-
-    from ai_anime.export.episode_export import build_srt_content
-
-    srt_content = await build_srt_content(project_dir, episode_num, beats)
-    if not srt_content:
-        return {"ok": False, "error": "No subtitles to export"}
+    try:
+        exported = await episode_export_use_cases().subtitle(
+            resolved.ctx,
+            episode_num,
+        )
+    except (EpisodeScriptBeatsMissing, EpisodeSubtitlesMissing) as exc:
+        return {"ok": False, "error": str(exc)}
 
     return PlainTextResponse(
-        content=srt_content,
-        media_type="text/srt",
+        content=exported.content,
+        media_type=exported.media_type,
         headers={
-            "Content-Disposition": f'attachment; filename="ep{episode_num:03d}.srt"',
+            "Content-Disposition": f'attachment; filename="{exported.filename}"',
         },
     )
 
@@ -4540,15 +4533,17 @@ async def export_final_video(
     from fastapi.responses import FileResponse
 
     resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    project_dir = resolved.project_dir
-    filename = f"ep{episode_num:03d}_final.mp4"
-    final_path = project_dir / "videos" / "episodes" / filename
-    if not final_path.exists():
-        raise HTTPException(status_code=404, detail="Final video not found")
+    try:
+        exported = episode_export_use_cases().final_video(
+            resolved.ctx,
+            episode_num,
+        )
+    except FinalEpisodeVideoMissing as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return FileResponse(
-        path=str(final_path),
-        filename=filename,
-        media_type="video/mp4",
+        path=str(exported.path),
+        filename=exported.filename,
+        media_type=exported.media_type,
     )
 
 
@@ -4902,71 +4897,17 @@ async def export_zip(
     project: str, episode_num: int, user: dict = Depends(get_api_user)
 ):
     """打包指定集的所有资源为 ZIP 文件下载。"""
-    import zipfile
-    import tempfile
-
     from fastapi.responses import FileResponse
-    from ai_anime.export.episode_export import build_srt_content
-    from ai_anime.utils.path_resolver import PathResolver
 
     resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    project_name = resolved.project_name
-    project_dir = resolved.project_dir
-    store = (
-        await make_sqlite_store_for_context(resolved.ctx)
-        if resolved.ctx
-        else await make_sqlite_store(resolved.username, project_name)
+    exported = await episode_export_use_cases().archive(
+        resolved.ctx,
+        episode_num,
     )
-    beats = await store.get_beats_as_dicts(episode_num)
-
-    ep_tag = f"ep{episode_num:03d}"
-    paths = PathResolver(str(project_dir), episode_num)
-
-    files_to_pack: list[tuple[Path, str]] = []
-    for beat in beats:
-        beat_num = int(beat.get("beat_number", 0) or 0)
-        if beat_num <= 0:
-            continue
-        audio_path = paths.audio(beat_num)
-        if audio_path.exists():
-            files_to_pack.append((audio_path, f"audio/{audio_path.name}"))
-        video_path = paths.video(beat_num)
-        if video_path.exists():
-            files_to_pack.append((video_path, f"video/{video_path.name}"))
-
-    final_path = paths.final_video()
-    if final_path.exists():
-        files_to_pack.append((final_path, final_path.name))
-
-    # Keep existing extra project assets in the API ZIP; NiceGUI's core export
-    # is beat audio/video + final + SRT, but frames/grids are useful inspection
-    # artifacts and were already part of the React API surface.
-    extra_dirs = {
-        "frames": project_dir / "frames" / ep_tag,
-        "grids": project_dir / "grids" / ep_tag,
-    }
-    for folder_name, folder in extra_dirs.items():
-        if folder.exists():
-            for file_path in sorted(folder.iterdir()):
-                if file_path.is_file():
-                    files_to_pack.append((file_path, f"{folder_name}/{file_path.name}"))
-
-    srt_content = await build_srt_content(project_dir, episode_num, beats)
-
-    # 创建临时 ZIP 文件
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
-    tmp.close()
-
-    with zipfile.ZipFile(tmp.name, "w", zipfile.ZIP_DEFLATED) as zf:
-        for file_path, arc_name in files_to_pack:
-            zf.write(file_path, arc_name)
-        if srt_content:
-            zf.writestr(f"{ep_tag}.srt", srt_content)
-
     return FileResponse(
-        path=tmp.name,
-        filename=f"{project_name}_{ep_tag}.zip",
-        media_type="application/zip",
+        path=str(exported.path),
+        filename=exported.filename,
+        media_type=exported.media_type,
     )
 
 

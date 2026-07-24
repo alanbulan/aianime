@@ -185,7 +185,10 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.routes import assets, files, generation
     from ai_anime.generators.video_pool_indexer import add_video_to_pool
-    from ai_anime.modules.production.infrastructure import episode_video
+    from ai_anime.modules.production.infrastructure import (
+        episode_export,
+        episode_video,
+    )
     from ai_anime.seedance2_i2v import panel_service
     from ai_anime.shared.infrastructure import project_stores
 
@@ -332,8 +335,6 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(assets, "make_sqlite_store_for_context", make_store_for_context)
     monkeypatch.setattr(assets, "get_project_dir", lambda username, project: project_dir, raising=False)
     monkeypatch.setattr(assets, "make_sqlite_store", make_store, raising=False)
-
-    from ai_anime.export import episode_export
 
     monkeypatch.setattr(episode_export, "get_audio_duration_async", srt_duration)
 

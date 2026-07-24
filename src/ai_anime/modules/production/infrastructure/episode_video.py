@@ -60,13 +60,21 @@ class TaskBackendEpisodeVideoScheduler:
 
 
 class LocalFinalEpisodeVideoCatalog:
+    def path(
+        self,
+        context: ProjectContext,
+        episode_num: int,
+    ) -> Path:
+        project_dir = Path(context.output_dir)
+        return PathResolver(str(project_dir), episode_num).final_video()
+
     def status(
         self,
         context: ProjectContext,
         episode_num: int,
     ) -> FinalEpisodeVideoStatus:
         project_dir = Path(context.output_dir)
-        final_path = PathResolver(project_dir, episode_num).final_video()
+        final_path = self.path(context, episode_num)
         filename = final_path.name
         relative_path = final_path.relative_to(project_dir).as_posix()
         if not final_path.exists():
