@@ -289,8 +289,6 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         return []
 
     monkeypatch.setattr(generation, "_resolve_generation_project", resolve_generation_project)
-    monkeypatch.setattr(generation, "make_sqlite_store_for_context", make_store_for_context)
-    monkeypatch.setattr(generation, "make_sqlite_store", make_store)
     monkeypatch.setattr(
         project_stores,
         "make_sqlite_store_for_context",
@@ -314,11 +312,6 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         production_composition.ProjectConfigProductionSettings,
         "load",
         lambda *_: {},
-    )
-    monkeypatch.setattr(
-        generation,
-        "make_static_url_for_context",
-        lambda ctx, rel, local_path=None: f"/static/projects/{ctx.project_id}/{rel}",
     )
     monkeypatch.setattr(
         episode_video.project_media,

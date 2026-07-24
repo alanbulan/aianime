@@ -231,13 +231,10 @@ def beat_viewer_use_cases() -> BeatViewerUseCases:
         ProjectBeatViewerMediaUrls(),
         scene_viewer_use_cases(),
         BeatDirectorStageUseCases(LocalBeatDirectorStageFiles()),
+        BeatBackgroundAnchorUseCases(LocalBeatBackgroundAnchorFiles()),
         CompatibleBeatViewerEpisodeSource(),
         AssetWorldBeatViewerRuntimePropMenuSource(prop_catalog_use_cases()),
     )
-
-
-def beat_background_anchor_use_cases() -> BeatBackgroundAnchorUseCases:
-    return BeatBackgroundAnchorUseCases(LocalBeatBackgroundAnchorFiles())
 
 
 def scene_task_use_cases() -> SceneTaskUseCases:

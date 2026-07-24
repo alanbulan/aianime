@@ -690,7 +690,7 @@ def test_production_selected_regeneration_routes_delegate_to_application() -> No
     render_runner = PACKAGE_ROOT / "task_backend" / "runners" / "render.py"
     source = generation.read_text(encoding="utf-8")
     route_start = source.index("async def regenerate_beats(")
-    route_end = source.index("async def _episode_beat_from_resolution(", route_start)
+    route_end = source.index("async def get_beat_pano_background_manifest(", route_start)
     route_source = source[route_start:route_end]
 
     assert route_source.count("selected_regeneration_use_cases") == 2
@@ -1427,12 +1427,40 @@ def test_asset_world_beat_director_stage_routes_delegate_to_application() -> Non
 def test_asset_world_background_anchor_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     source = route.read_text(encoding="utf-8")
+    tree = ast.parse(source, filename=str(route))
+    anchor_adapters = "\n".join(
+        ast.get_source_segment(source, node) or ""
+        for node in tree.body
+        if isinstance(node, ast.AsyncFunctionDef)
+        and node.name
+        in {
+            "get_beat_background_anchors",
+            "update_beat_background_anchor",
+            "crop_beat_background_anchor",
+            "upload_beat_background_anchor",
+        }
+    )
+    public_api = (PACKAGE_ROOT / "modules" / "asset_world" / "public.py").read_text(
+        encoding="utf-8"
+    )
+    composition = (
+        PACKAGE_ROOT / "modules" / "asset_world" / "composition.py"
+    ).read_text(encoding="utf-8")
 
-    assert "beat_background_anchor_use_cases" in source
+    assert anchor_adapters.count("beat_viewer_use_cases") == 4
+    assert "_episode_beat_from_resolution" not in source
+    assert "BeatBackgroundAnchorUseCases" not in public_api
+    assert "def beat_background_anchor_use_cases(" not in composition
     assert not (
         PACKAGE_ROOT / "services" / "background_anchor_service.py"
     ).exists()
     for legacy_implementation in (
+        "beat_background_anchor_use_cases",
+        "make_sqlite_store",
+        "make_sqlite_store_for_context",
+        "make_project_asset_url_builder",
+        "get_beats_as_dicts",
+        'getattr(store, "update_beat_asset", None)',
         "ai_anime.services.background_anchor_service",
         "def _api_background_reference_url_builder(",
         "def _api_background_anchor_url_builder(",
@@ -1443,14 +1471,24 @@ def test_asset_world_background_anchor_routes_delegate_to_application() -> None:
         "canonical_beat_selected_background_path(",
         "sync_beat_asset_refs(",
     ):
-        assert legacy_implementation not in source
+        assert legacy_implementation not in anchor_adapters
 
 
 def test_asset_routes_share_one_project_media_url_builder() -> None:
     route_sources = {
         name: (PACKAGE_ROOT / "api" / "routes" / name).read_text(encoding="utf-8")
-        for name in ("characters.py", "props.py", "scenes.py", "generation.py")
+        for name in ("characters.py", "props.py", "scenes.py")
     }
+    generation_source = (PACKAGE_ROOT / "api" / "routes" / "generation.py").read_text(
+        encoding="utf-8"
+    )
+    beat_viewer_adapter = (
+        PACKAGE_ROOT
+        / "modules"
+        / "asset_world"
+        / "infrastructure"
+        / "beat_viewer.py"
+    ).read_text(encoding="utf-8")
     shared_source = (PACKAGE_ROOT / "shared" / "project_media.py").read_text(
         encoding="utf-8"
     )
@@ -1458,9 +1496,11 @@ def test_asset_routes_share_one_project_media_url_builder() -> None:
     assert shared_source.count("def make_project_asset_url_builder(") == 1
     for source in route_sources.values():
         assert "make_project_asset_url_builder" in source
-    for name in ("characters.py", "props.py", "scenes.py"):
-        assert "def _asset_url(" not in route_sources[name]
-    assert "def _viewer_asset_url(" not in route_sources["generation.py"]
+    assert "make_project_asset_url_builder" in beat_viewer_adapter
+    assert "make_project_asset_url_builder" not in generation_source
+    for source in route_sources.values():
+        assert "def _asset_url(" not in source
+    assert "def _viewer_asset_url(" not in generation_source
 
 
 def test_asset_world_character_identity_routes_delegate_to_application() -> None:

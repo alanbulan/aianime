@@ -3,9 +3,6 @@
 from pathlib import Path
 from typing import Any
 
-from ai_anime.modules.asset_world.application.background_anchor import (
-    BeatBackgroundAnchorUseCases,
-)
 from ai_anime.modules.asset_world.application.beat_viewer import (
     BeatViewerBeatNotFound,
     BeatViewerQuery,
@@ -264,14 +261,6 @@ def beat_viewer_use_cases() -> BeatViewerUseCases:
     return build()
 
 
-def beat_background_anchor_use_cases() -> BeatBackgroundAnchorUseCases:
-    from ai_anime.modules.asset_world.composition import (
-        beat_background_anchor_use_cases as build,
-    )
-
-    return build()
-
-
 def prop_task_use_cases() -> PropTaskUseCases:
     from ai_anime.modules.asset_world.composition import prop_task_use_cases as build
 
@@ -347,7 +336,6 @@ __all__ = [
     "AnalyzeStyle",
     "AnalyzeStyleCommand",
     "BackgroundAnchorRejected",
-    "BeatBackgroundAnchorUseCases",
     "BeatViewerBeatNotFound",
     "BeatViewerQuery",
     "BeatViewerSceneMissing",
@@ -418,7 +406,6 @@ __all__ = [
     "UploadBeatBackgroundCommand",
     "VOICE_SAMPLE_EXTENSIONS",
     "analyze_style",
-    "beat_background_anchor_use_cases",
     "beat_viewer_use_cases",
     "build_character_map_for_grid",
     "character_asset_history_use_cases",

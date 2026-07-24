@@ -5,13 +5,19 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Mapping
 
+from ai_anime.modules.asset_world.application.background_anchor import (
+    BeatBackgroundAnchorUseCases,
+)
 from ai_anime.modules.asset_world.application.director_stage import (
     BeatDirectorStageUseCases,
     resolve_beat_scene_name,
 )
 from ai_anime.modules.asset_world.application.dto import (
+    CropBeatBackgroundCommand,
     ExportBeatDirectorControlFrameCommand,
     SaveBeatDirectorOverlayCommand,
+    SelectBeatBackgroundCommand,
+    UploadBeatBackgroundCommand,
 )
 from ai_anime.modules.asset_world.application.errors import SceneViewerRejected
 from ai_anime.modules.asset_world.application.ports import (
@@ -47,6 +53,7 @@ class BeatViewerUseCases:
         media_urls: BeatViewerMediaUrls,
         scene_viewer: SceneViewerUseCases,
         director_stage: BeatDirectorStageUseCases,
+        background_anchors: BeatBackgroundAnchorUseCases,
         episodes: BeatViewerEpisodeSource,
         prop_menus: BeatViewerRuntimePropMenuSource,
     ) -> None:
@@ -54,6 +61,7 @@ class BeatViewerUseCases:
         self._media_urls = media_urls
         self._scene_viewer = scene_viewer
         self._director_stage = director_stage
+        self._background_anchors = background_anchors
         self._episodes = episodes
         self._prop_menus = prop_menus
 
@@ -162,6 +170,75 @@ class BeatViewerUseCases:
             beat_num=int(query.beat_num),
             asset_url=self._media_urls.asset_url(context),
         )
+
+    async def background_anchors(
+        self,
+        context: ProjectContext,
+        query: BeatViewerQuery,
+    ) -> dict[str, Any]:
+        async with self._workspace.session(context) as store:
+            _beats, beat = await self._beat_context(store, query)
+            return self._background_anchors.list_anchors(
+                project_dir=context.output_dir,
+                beat=beat,
+                episode_num=int(query.episode_num),
+                beat_num=int(query.beat_num),
+                asset_url=self._media_urls.asset_url(context),
+            )
+
+    async def select_background_anchor(
+        self,
+        context: ProjectContext,
+        query: BeatViewerQuery,
+        command: SelectBeatBackgroundCommand,
+    ) -> dict[str, Any]:
+        async with self._workspace.session(context) as store:
+            _beats, beat = await self._beat_context(store, query)
+            return await self._background_anchors.select_anchor(
+                asset_writer=store,
+                project_dir=context.output_dir,
+                beat=beat,
+                episode_num=int(query.episode_num),
+                beat_num=int(query.beat_num),
+                command=command,
+                asset_url=self._media_urls.asset_url(context),
+            )
+
+    async def crop_background_anchor(
+        self,
+        context: ProjectContext,
+        query: BeatViewerQuery,
+        command: CropBeatBackgroundCommand,
+    ) -> dict[str, Any]:
+        async with self._workspace.session(context) as store:
+            _beats, beat = await self._beat_context(store, query)
+            return await self._background_anchors.crop_anchor(
+                asset_writer=store,
+                project_dir=context.output_dir,
+                beat=beat,
+                episode_num=int(query.episode_num),
+                beat_num=int(query.beat_num),
+                command=command,
+                asset_url=self._media_urls.asset_url(context),
+            )
+
+    async def upload_background_anchor(
+        self,
+        context: ProjectContext,
+        query: BeatViewerQuery,
+        command: UploadBeatBackgroundCommand,
+    ) -> dict[str, Any]:
+        async with self._workspace.session(context) as store:
+            _beats, beat = await self._beat_context(store, query)
+            return await self._background_anchors.upload_anchor(
+                asset_writer=store,
+                project_dir=context.output_dir,
+                beat=beat,
+                episode_num=int(query.episode_num),
+                beat_num=int(query.beat_num),
+                command=command,
+                asset_url=self._media_urls.asset_url(context),
+            )
 
     @classmethod
     async def _beat_context(

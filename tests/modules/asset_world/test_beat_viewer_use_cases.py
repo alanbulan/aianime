@@ -12,8 +12,11 @@ from ai_anime.modules.asset_world.application.beat_viewer import (
     BeatViewerUseCases,
 )
 from ai_anime.modules.asset_world.application.dto import (
+    CropBeatBackgroundCommand,
     ExportBeatDirectorControlFrameCommand,
     SaveBeatDirectorOverlayCommand,
+    SelectBeatBackgroundCommand,
+    UploadBeatBackgroundCommand,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 
@@ -105,6 +108,33 @@ class _DirectorStage:
         return {"url": kwargs["asset_url"](kwargs["project_dir"] / "frame.png")}
 
 
+class _BackgroundAnchors:
+    def __init__(self) -> None:
+        self.list_calls: list[dict] = []
+        self.select_calls: list[dict] = []
+        self.crop_calls: list[dict] = []
+        self.upload_calls: list[dict] = []
+
+    def list_anchors(self, **kwargs):
+        self.list_calls.append(kwargs)
+        return {
+            "operation": "list",
+            "url": kwargs["asset_url"](kwargs["project_dir"] / "background.png"),
+        }
+
+    async def select_anchor(self, **kwargs):
+        self.select_calls.append(kwargs)
+        return {"operation": "select"}
+
+    async def crop_anchor(self, **kwargs):
+        self.crop_calls.append(kwargs)
+        return {"operation": "crop"}
+
+    async def upload_anchor(self, **kwargs):
+        self.upload_calls.append(kwargs)
+        return {"operation": "upload"}
+
+
 class _Episodes:
     def episode_or_none(self, store, episode_num: int):
         assert episode_num == 2
@@ -145,18 +175,21 @@ def _use_cases(store: _Store):
     workspace = _Workspace(store)
     scene_viewer = _SceneViewer()
     director_stage = _DirectorStage()
+    background_anchors = _BackgroundAnchors()
     return (
         BeatViewerUseCases(
             workspace,
             _MediaUrls(),
             scene_viewer,
             director_stage,
+            background_anchors,
             _Episodes(),
             _PropMenus(),
         ),
         workspace,
         scene_viewer,
         director_stage,
+        background_anchors,
     )
 
 
@@ -168,7 +201,9 @@ async def test_beat_viewer_composes_project_manifests_and_status(
         "beat_number": 4,
         "scene_ref": {"scene_id": "地下室"},
     }
-    use_cases, workspace, scene_viewer, director_stage = _use_cases(_Store([beat]))
+    use_cases, workspace, scene_viewer, director_stage, _anchors = _use_cases(
+        _Store([beat])
+    )
     context = _context(tmp_path)
     query = BeatViewerQuery(episode_num=2, beat_num=4)
 
@@ -212,16 +247,80 @@ async def test_beat_viewer_composes_project_manifests_and_status(
 
 
 @pytest.mark.asyncio
+async def test_beat_viewer_composes_background_anchor_operations(
+    tmp_path: Path,
+) -> None:
+    beat = {
+        "beat_number": 4,
+        "scene_ref": {"scene_id": "地下室"},
+    }
+    store = _Store([beat])
+    use_cases, workspace, _viewer, _director, anchors = _use_cases(store)
+    context = _context(tmp_path)
+    query = BeatViewerQuery(episode_num=2, beat_num=4)
+    image = object()
+
+    listed = await use_cases.background_anchors(context, query)
+    selected = await use_cases.select_background_anchor(
+        context,
+        query,
+        SelectBeatBackgroundCommand(anchor_id="master"),
+    )
+    cropped = await use_cases.crop_background_anchor(
+        context,
+        query,
+        CropBeatBackgroundCommand(
+            anchor_id="reverse",
+            x=1,
+            y=2,
+            width=3,
+            height=4,
+        ),
+    )
+    uploaded = await use_cases.upload_background_anchor(
+        context,
+        query,
+        UploadBeatBackgroundCommand(image=image),
+    )
+
+    assert listed == {
+        "operation": "list",
+        "url": "/projects/project-1/background.png",
+    }
+    assert selected == {"operation": "select"}
+    assert cropped == {"operation": "crop"}
+    assert uploaded == {"operation": "upload"}
+    calls = [
+        anchors.list_calls[0],
+        anchors.select_calls[0],
+        anchors.crop_calls[0],
+        anchors.upload_calls[0],
+    ]
+    assert all(call["project_dir"] == context.output_dir for call in calls)
+    assert all(call["beat"] is beat for call in calls)
+    assert all(call["episode_num"] == 2 for call in calls)
+    assert all(call["beat_num"] == 4 for call in calls)
+    assert anchors.select_calls[0]["asset_writer"] is store
+    assert anchors.crop_calls[0]["asset_writer"] is store
+    assert anchors.upload_calls[0]["asset_writer"] is store
+    assert anchors.select_calls[0]["command"].anchor_id == "master"
+    assert anchors.crop_calls[0]["command"].width == 3
+    assert anchors.upload_calls[0]["command"].image is image
+    assert workspace.contexts == [context, context, context, context]
+    assert workspace.exit_count == 4
+
+
+@pytest.mark.asyncio
 async def test_beat_viewer_rejects_missing_beat_and_scene(tmp_path: Path) -> None:
     context = _context(tmp_path)
     query = BeatViewerQuery(episode_num=2, beat_num=4)
-    missing_beat, workspace, _viewer, _director = _use_cases(_Store([]))
+    missing_beat, workspace, _viewer, _director, _anchors = _use_cases(_Store([]))
 
     with pytest.raises(BeatViewerBeatNotFound, match="Beat 4 not found"):
         await missing_beat.pano_background_manifest(context, query)
     assert workspace.exit_count == 1
 
-    missing_scene, workspace, _viewer, _director = _use_cases(
+    missing_scene, workspace, _viewer, _director, _anchors = _use_cases(
         _Store([{"beat_number": 4}])
     )
     with pytest.raises(BeatViewerSceneMissing, match="当前 Beat 没有关联场景"):

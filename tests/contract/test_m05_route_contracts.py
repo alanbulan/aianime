@@ -331,7 +331,6 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
     monkeypatch.setattr(scenes, "_resolve_scene_project", resolve_scene_project)
     monkeypatch.setattr(generation, "_resolve_generation_project", resolve_scope)
-    monkeypatch.setattr(generation, "make_sqlite_store_for_context", make_store_for_context)
     monkeypatch.setattr(
         project_stores,
         "make_sqlite_store_for_context",
@@ -405,7 +404,6 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         return f"/static/projects/proj_m05/{rel_path}"
 
     monkeypatch.setattr(scenes, "make_static_url_for_context", static_url)
-    monkeypatch.setattr(generation, "make_static_url_for_context", static_url)
     monkeypatch.setattr(project_media, "make_project_static_url", static_url)
 
     def build(backend: str = "inline"):

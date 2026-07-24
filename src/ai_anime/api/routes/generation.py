@@ -16,12 +16,7 @@ from fastapi import (
 from fastapi.responses import JSONResponse
 
 from ai_anime.api.auth import get_api_user, require_scope
-from ai_anime.api.deps import (
-    make_sqlite_store_for_context,
-    make_sqlite_store,
-    make_static_url_for_context,
-    resolve_project_scope,
-)
+from ai_anime.api.deps import resolve_project_scope
 from ai_anime.api.schemas import (
     GlobalOptimizeRequest,
     VideoComposeRequest,
@@ -59,7 +54,6 @@ from ai_anime.modules.asset_world.public import (
     SceneViewerRejected,
     SelectBeatBackgroundCommand,
     UploadBeatBackgroundCommand,
-    beat_background_anchor_use_cases,
     beat_viewer_use_cases,
 )
 from ai_anime.modules.production.public import (
@@ -154,7 +148,6 @@ from ai_anime.modules.production.public import (
     video_backend_catalog_use_cases,
     video_pool_use_cases,
 )
-from ai_anime.shared.project_media import make_project_asset_url_builder
 from ai_anime.utils.media_io import decode_uploaded_rgb_image
 
 router = APIRouter()
@@ -871,36 +864,6 @@ async def regenerate_sketches(
     return {"ok": True, **scheduled.as_dict()}
 
 
-async def _episode_beat_from_resolution(
-    resolved,
-    episode_num: int,
-    beat_num: int,
-):
-    store = (
-        await make_sqlite_store_for_context(resolved.ctx)
-        if resolved.ctx
-        else await make_sqlite_store(resolved.username, resolved.project_name)
-    )
-    try:
-        beats = await store.get_beats_as_dicts(int(episode_num))
-        target = next(
-            (
-                beat
-                for beat in beats
-                if int(beat.get("beat_number") or 0) == int(beat_num)
-            ),
-            None,
-        )
-        if target is None:
-            raise HTTPException(status_code=404, detail=f"Beat {beat_num} not found")
-        return store, target
-    except Exception:
-        close = getattr(store, "close", None)
-        if close:
-            await close()
-        raise
-
-
 @router.get(
     "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/pano-background/manifest"
 )
@@ -1067,27 +1030,14 @@ async def get_beat_background_anchors(
 ):
     """Return NiceGUI-compatible single-beat background anchor options."""
     resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    project_dir = resolved.project_dir
-    store, beat = await _episode_beat_from_resolution(resolved, episode_num, beat_num)
     try:
-        return {
-            "ok": True,
-            "data": beat_background_anchor_use_cases().list_anchors(
-                project_dir=project_dir,
-                beat=beat,
-                episode_num=episode_num,
-                beat_num=beat_num,
-                asset_url=make_project_asset_url_builder(
-                    resolved.ctx,
-                    project_dir,
-                    make_static_url_for_context,
-                ),
-            ),
-        }
-    finally:
-        close = getattr(store, "close", None)
-        if close:
-            await close()
+        payload = await beat_viewer_use_cases().background_anchors(
+            resolved.ctx,
+            BeatViewerQuery(episode_num=episode_num, beat_num=beat_num),
+        )
+    except BeatViewerBeatNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {"ok": True, "data": payload}
 
 
 @router.patch(
@@ -1107,35 +1057,17 @@ async def update_beat_background_anchor(
     used, while render_anchor_source_id preserves the UI-visible source.
     """
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    project_dir = resolved.project_dir
-    store, beat = await _episode_beat_from_resolution(resolved, episode_num, beat_num)
     try:
-        try:
-            payload = await beat_background_anchor_use_cases().select_anchor(
-                asset_writer=(
-                    store
-                    if callable(getattr(store, "update_beat_asset", None))
-                    else None
-                ),
-                project_dir=project_dir,
-                beat=beat,
-                episode_num=int(episode_num),
-                beat_num=int(beat_num),
-                command=SelectBeatBackgroundCommand(anchor_id=body.anchor_id),
-                asset_url=make_project_asset_url_builder(
-                    resolved.ctx,
-                    project_dir,
-                    make_static_url_for_context,
-                ),
-            )
-        except BackgroundAnchorRejected as exc:
-            return {"ok": False, "error": str(exc)}
-
-        return {"ok": True, "data": payload}
-    finally:
-        close = getattr(store, "close", None)
-        if close:
-            await close()
+        payload = await beat_viewer_use_cases().select_background_anchor(
+            resolved.ctx,
+            BeatViewerQuery(episode_num=episode_num, beat_num=beat_num),
+            SelectBeatBackgroundCommand(anchor_id=body.anchor_id),
+        )
+    except BeatViewerBeatNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except BackgroundAnchorRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": payload}
 
 
 @router.post(
@@ -1150,48 +1082,30 @@ async def crop_beat_background_anchor(
 ):
     """Crop a source background into the beat-owned render background slot."""
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    project_dir = resolved.project_dir
-    store, beat = await _episode_beat_from_resolution(resolved, episode_num, beat_num)
     try:
-        try:
-            payload = await beat_background_anchor_use_cases().crop_anchor(
-                asset_writer=(
-                    store
-                    if callable(getattr(store, "update_beat_asset", None))
-                    else None
-                ),
-                project_dir=project_dir,
-                beat=beat,
-                episode_num=int(episode_num),
-                beat_num=int(beat_num),
-                command=CropBeatBackgroundCommand(
-                    anchor_id=str(body.get("anchor_id") or ""),
-                    x=body.get("x"),
-                    y=body.get("y"),
-                    width=body.get("width"),
-                    height=body.get("height"),
-                ),
-                asset_url=make_project_asset_url_builder(
-                    resolved.ctx,
-                    project_dir,
-                    make_static_url_for_context,
-                ),
-            )
-        except BackgroundAnchorRejected as exc:
-            return {"ok": False, "error": str(exc)}
-        except (TypeError, ValueError):
-            return JSONResponse(
-                status_code=400,
-                content={"ok": False, "error": "裁剪参数无效"},
-            )
-        except Exception as exc:
-            return {"ok": False, "error": f"裁剪 Render 背景参考失败: {exc}"}
-
-        return {"ok": True, "data": payload}
-    finally:
-        close = getattr(store, "close", None)
-        if close:
-            await close()
+        payload = await beat_viewer_use_cases().crop_background_anchor(
+            resolved.ctx,
+            BeatViewerQuery(episode_num=episode_num, beat_num=beat_num),
+            CropBeatBackgroundCommand(
+                anchor_id=str(body.get("anchor_id") or ""),
+                x=body.get("x"),
+                y=body.get("y"),
+                width=body.get("width"),
+                height=body.get("height"),
+            ),
+        )
+    except BeatViewerBeatNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except BackgroundAnchorRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    except (TypeError, ValueError):
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "error": "裁剪参数无效"},
+        )
+    except Exception as exc:
+        return {"ok": False, "error": f"裁剪 Render 背景参考失败: {exc}"}
+    return {"ok": True, "data": payload}
 
 
 @router.post(
@@ -1213,40 +1127,22 @@ async def upload_beat_background_anchor(
     same core scene_ref contract.
     """
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    project_dir = resolved.project_dir
-    store, beat = await _episode_beat_from_resolution(resolved, episode_num, beat_num)
     try:
-        try:
-            image = await _read_uploaded_rgb_image(file)
-        except Exception as exc:
-            return {"ok": False, "error": f"上传外部参考图失败: {exc}"}
+        image = await _read_uploaded_rgb_image(file)
+    except Exception as exc:
+        return {"ok": False, "error": f"上传外部参考图失败: {exc}"}
 
-        try:
-            payload = await beat_background_anchor_use_cases().upload_anchor(
-                asset_writer=(
-                    store
-                    if callable(getattr(store, "update_beat_asset", None))
-                    else None
-                ),
-                project_dir=project_dir,
-                beat=beat,
-                episode_num=int(episode_num),
-                beat_num=int(beat_num),
-                command=UploadBeatBackgroundCommand(image=image),
-                asset_url=make_project_asset_url_builder(
-                    resolved.ctx,
-                    project_dir,
-                    make_static_url_for_context,
-                ),
-            )
-        except BackgroundAnchorRejected as exc:
-            return {"ok": False, "error": str(exc)}
-
-        return {"ok": True, "data": payload}
-    finally:
-        close = getattr(store, "close", None)
-        if close:
-            await close()
+    try:
+        payload = await beat_viewer_use_cases().upload_background_anchor(
+            resolved.ctx,
+            BeatViewerQuery(episode_num=episode_num, beat_num=beat_num),
+            UploadBeatBackgroundCommand(image=image),
+        )
+    except BeatViewerBeatNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except BackgroundAnchorRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": payload}
 
 
 @router.get(

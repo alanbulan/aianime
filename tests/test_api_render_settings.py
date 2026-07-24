@@ -66,26 +66,6 @@ def _client(monkeypatch, tmp_path, config: dict | None = None):
 
     monkeypatch.setattr(generation, "_resolve_generation_project", fake_resolve_project)
 
-    async def fake_store_for_context(*_args, **_kwargs):
-        return await generation.make_sqlite_store("alice", "demo")
-
-    monkeypatch.setattr(
-        generation, "make_sqlite_store_for_context", fake_store_for_context
-    )
-    from ai_anime.shared.infrastructure import project_stores
-
-    monkeypatch.setattr(
-        project_stores,
-        "make_sqlite_store_for_context",
-        fake_store_for_context,
-    )
-    monkeypatch.setattr(
-        generation,
-        "make_static_url_for_context",
-        lambda ctx, rel, local_path=None: (
-            f"/static/projects/{getattr(ctx, 'project_id', 'proj_demo')}/{rel}"
-        ),
-    )
     from ai_anime.shared import project_media
 
     monkeypatch.setattr(
@@ -674,13 +654,17 @@ def test_director_stage_overlay_loads_inherits_and_saves(monkeypatch, tmp_path):
         ]
     )
 
-    async def fake_make_sqlite_store(username: str, project: str):
+    async def fake_make_sqlite_store_for_context(context: ProjectContext):
         return store
 
-    from ai_anime.api.routes import generation
     from ai_anime.director_world.store import save_beat_blocking
+    from ai_anime.shared.infrastructure import project_stores
 
-    monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
+    monkeypatch.setattr(
+        project_stores,
+        "make_sqlite_store_for_context",
+        fake_make_sqlite_store_for_context,
+    )
 
     inherited_payload = {
         "schema_version": "director_stage_overlay_v1",
@@ -832,12 +816,16 @@ def test_director_stage_control_frame_export_writes_images_and_meta(
         ]
     )
 
-    async def fake_make_sqlite_store(username: str, project: str):
+    async def fake_make_sqlite_store_for_context(context: ProjectContext):
         return store
 
-    from ai_anime.api.routes import generation
+    from ai_anime.shared.infrastructure import project_stores
 
-    monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
+    monkeypatch.setattr(
+        project_stores,
+        "make_sqlite_store_for_context",
+        fake_make_sqlite_store_for_context,
+    )
 
     png = BytesIO()
     Image.new("RGB", (2, 2), color=(255, 255, 255)).save(png, format="PNG")
@@ -962,12 +950,16 @@ def test_director_stage_control_frame_export_requires_complete_bundle(
         ]
     )
 
-    async def fake_make_sqlite_store(username: str, project: str):
+    async def fake_make_sqlite_store_for_context(context: ProjectContext):
         return store
 
-    from ai_anime.api.routes import generation
+    from ai_anime.shared.infrastructure import project_stores
 
-    monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
+    monkeypatch.setattr(
+        project_stores,
+        "make_sqlite_store_for_context",
+        fake_make_sqlite_store_for_context,
+    )
 
     png = BytesIO()
     Image.new("RGB", (2, 2), color=(255, 255, 255)).save(png, format="PNG")
@@ -999,12 +991,16 @@ def test_beat_background_anchor_lists_and_snapshots_master(monkeypatch, tmp_path
         ]
     )
 
-    async def fake_make_sqlite_store(username: str, project: str):
+    async def fake_make_sqlite_store_for_context(context: ProjectContext):
         return store
 
-    from ai_anime.api.routes import generation
+    from ai_anime.shared.infrastructure import project_stores
 
-    monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
+    monkeypatch.setattr(
+        project_stores,
+        "make_sqlite_store_for_context",
+        fake_make_sqlite_store_for_context,
+    )
 
     master = tmp_path / "assets" / "scenes" / "地下室" / "master.png"
     master.parent.mkdir(parents=True)
@@ -1073,12 +1069,16 @@ def test_beat_background_anchor_infers_legacy_selected_source(monkeypatch, tmp_p
         ]
     )
 
-    async def fake_make_sqlite_store(username: str, project: str):
+    async def fake_make_sqlite_store_for_context(context: ProjectContext):
         return store
 
-    from ai_anime.api.routes import generation
+    from ai_anime.shared.infrastructure import project_stores
 
-    monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
+    monkeypatch.setattr(
+        project_stores,
+        "make_sqlite_store_for_context",
+        fake_make_sqlite_store_for_context,
+    )
 
     master = tmp_path / "assets" / "scenes" / "地下室" / "master.png"
     master.parent.mkdir(parents=True)
@@ -1128,12 +1128,16 @@ def test_beat_background_anchor_upload_writes_selected_background(
         ]
     )
 
-    async def fake_make_sqlite_store(username: str, project: str):
+    async def fake_make_sqlite_store_for_context(context: ProjectContext):
         return store
 
-    from ai_anime.api.routes import generation
+    from ai_anime.shared.infrastructure import project_stores
 
-    monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
+    monkeypatch.setattr(
+        project_stores,
+        "make_sqlite_store_for_context",
+        fake_make_sqlite_store_for_context,
+    )
 
     content = BytesIO()
     Image.new("RGB", (4, 4), color=(255, 0, 0)).save(content, format="PNG")
