@@ -513,6 +513,24 @@ describe("frontend architecture boundaries", () => {
     expect(route).not.toContain("useState");
   });
 
+  it("keeps Production callers on its public API", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/production");
+    const failures = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.startsWith(moduleRoot))
+      .filter((path) => !relativeSource(path).startsWith("__tests__/"))
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter(
+            (specifier) =>
+              specifier.startsWith("@/modules/production/") &&
+              specifier !== "@/modules/production/public",
+          )
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      );
+
+    expect(failures).toEqual([]);
+  });
+
   it("keeps the Characters route as an adapter", () => {
     const route = readFileSync(
       resolve(

@@ -6,10 +6,7 @@ import i18next from "i18next";
 import { beforeAll, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { toast } from "sonner";
 
-import {
-  shouldDisableDialogueOnlyBackendForBeat,
-  VideoPane,
-} from "@/components/episode/beat-workbench/video-pane";
+import { VideoPane } from "@/components/episode/beat-workbench/video-pane";
 import { useAspectRatioStore } from "@/stores/aspect-ratio-store";
 import type { Beat } from "@/modules/narrative_planning/public";
 
@@ -943,29 +940,6 @@ describe("VideoPane Seedance2 inspector", () => {
     const payload = updateBeatMock.mock.calls[0][0];
     const config = JSON.parse(payload.data.seedance2_config_json);
     expect(config.duration).toBe(4);
-  });
-
-  it("disables dialogue-only backends by the current beat audio type", () => {
-    const dialogueOnlyBackend = {
-      value: "seedance_pro",
-      label: "Seedance 1.5 有声",
-      is_default: false,
-      is_seedance2: false,
-      dialogue_only: true,
-    };
-
-    expect(
-      shouldDisableDialogueOnlyBackendForBeat(
-        dialogueOnlyBackend,
-        makeBeat({ audio_type: "dialogue" }),
-      ),
-    ).toBe(false);
-    expect(
-      shouldDisableDialogueOnlyBackendForBeat(
-        dialogueOnlyBackend,
-        makeBeat({ audio_type: "narration" }),
-      ),
-    ).toBe(true);
   });
 
   it("renders Seedance2 media, config, and version status", () => {
