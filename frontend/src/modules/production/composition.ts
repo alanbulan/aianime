@@ -23,8 +23,13 @@ export const { useVideoBackends } = createVideoBackendQueryHooks(
 export const { useVideoPool, useVideoPoolSelect } = createVideoPoolQueryHooks(
   httpProductionVideoGateway,
 );
-export const { useGrids, useGridsByBeat, useRebuildPoolIndex } =
-  createImagePoolQueryHooks(httpProductionVideoGateway);
+export const {
+  useGrids,
+  useGridsByBeat,
+  usePoolSelect,
+  useRebuildPoolIndex,
+  useUploadBeatImage,
+} = createImagePoolQueryHooks(httpProductionVideoGateway);
 export const {
   useSeedance2BeatStatus,
   useUploadSeedance2Asset,

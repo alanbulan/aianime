@@ -1,6 +1,8 @@
 // Copyright (c) 2026 AI anime
 import type {
   BeatVideoPromptResponse,
+  BeatImageUploadResponse,
+  ImagePoolSelectResponse,
   NarratorVoiceMutationResponse,
   ProductionDataResponse,
   ProductionErrorResponse,
@@ -24,6 +26,7 @@ import type {
   UpdateSketchSettingsCommand,
 } from "@/modules/production/domain/image-settings";
 import type {
+  BeatImageType,
   ImagePoolData,
   ImagePoolRebuildResult,
 } from "@/modules/production/domain/image-pool";
@@ -66,6 +69,30 @@ import { jsonWithBackendError } from "@/shared/api/errors";
 
 const AI_DETECT_IDENTITIES_TIMEOUT_MS = 180_000;
 
+interface ImagePoolSelectHttpResponse {
+  ok: boolean;
+  error?: string;
+  stale?: boolean;
+  data?: {
+    beat_num: number;
+    pool_id: string;
+    image_type?: BeatImageType;
+    sketch_url?: string;
+    frame_url?: string;
+  };
+}
+
+interface BeatImageUploadHttpResult {
+  beat_num: number;
+  pool_id: string;
+  sketch_url?: string;
+  frame_url?: string;
+}
+
+type BeatImageUploadHttpResponse =
+  | { ok: true; data: BeatImageUploadHttpResult }
+  | ProductionErrorResponse;
+
 function renderGenerationSettingsJson(settings: RenderGenerationSettings) {
   return {
     ...(settings.imageGenerationSelection
@@ -102,6 +129,73 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
         { json: {} },
       )
       .json<ProductionDataResponse<ImagePoolRebuildResult>>();
+  },
+  async selectImagePoolEntry(
+    project,
+    episode,
+    beatNumber,
+    poolId,
+    force,
+  ) {
+    const response = await api
+      .post(
+        p`api/v1/projects/${project}/episodes/${episode}/beats/${beatNumber}/pool-select`,
+        { json: { pool_id: poolId, force } },
+      )
+      .json<ImagePoolSelectHttpResponse>();
+    const data = response.data;
+    return {
+      ok: response.ok,
+      ...(response.error !== undefined ? { error: response.error } : {}),
+      ...(response.stale !== undefined ? { stale: response.stale } : {}),
+      ...(data
+        ? {
+            data: {
+              beatNum: data.beat_num,
+              poolId: data.pool_id,
+              ...(data.image_type !== undefined
+                ? { imageType: data.image_type }
+                : {}),
+              ...(data.sketch_url !== undefined
+                ? { sketchUrl: data.sketch_url }
+                : {}),
+              ...(data.frame_url !== undefined
+                ? { frameUrl: data.frame_url }
+                : {}),
+            },
+          }
+        : {}),
+    } satisfies ImagePoolSelectResponse;
+  },
+  async uploadBeatImage(
+    project,
+    episode,
+    beatNumber,
+    imageType,
+    file,
+  ) {
+    const formData = new FormData();
+    formData.append("file", file, file.name);
+    const response = await api
+      .post(
+        p`api/v1/projects/${project}/episodes/${episode}/beats/${beatNumber}/${imageType}/upload`,
+        { body: formData },
+      )
+      .json<BeatImageUploadHttpResponse>();
+    if (!response.ok) return response;
+    return {
+      ok: true,
+      data: {
+        beatNum: response.data.beat_num,
+        poolId: response.data.pool_id,
+        ...(response.data.sketch_url !== undefined
+          ? { sketchUrl: response.data.sketch_url }
+          : {}),
+        ...(response.data.frame_url !== undefined
+          ? { frameUrl: response.data.frame_url }
+          : {}),
+      },
+    } satisfies BeatImageUploadResponse;
   },
   async selectVideoPoolEntry(project, episode, beatNumber, poolId) {
     return api

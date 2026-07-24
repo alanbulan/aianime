@@ -3,8 +3,16 @@ import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { queryKeys } from "@/lib/query-keys";
-import type { ProductionVideoGateway } from "@/modules/production/application/ports";
-import type { PoolImage } from "@/modules/production/domain/image-pool";
+import { patchBeatQueryCache } from "@/modules/production/application/beat-query-cache";
+import { StalePoolSelectError } from "@/modules/production/application/image-pool-errors";
+import type {
+  ImagePoolResponse,
+  ProductionVideoGateway,
+} from "@/modules/production/application/ports";
+import type {
+  BeatImageType,
+  PoolImage,
+} from "@/modules/production/domain/image-pool";
 
 export function createImagePoolQueryHooks(gateway: ProductionVideoGateway) {
   function useGrids(project: string, episode: number) {
@@ -22,6 +30,94 @@ export function createImagePoolQueryHooks(gateway: ProductionVideoGateway) {
       onSuccess: () => {
         queryClient.invalidateQueries({
           queryKey: queryKeys.grids(project, episode),
+        });
+      },
+    });
+  }
+
+  function usePoolSelect(project: string, episode: number) {
+    const queryClient = useQueryClient();
+    return useMutation({
+      mutationFn: async ({
+        beatNum,
+        poolId,
+        force,
+      }: {
+        beatNum: number;
+        poolId: string;
+        force?: boolean;
+      }) => {
+        const response = await gateway.selectImagePoolEntry(
+          project,
+          episode,
+          beatNum,
+          poolId,
+          force ?? false,
+        );
+        if (!response.ok) {
+          const message = response.error ?? "选择失败";
+          if (response.stale) throw new StalePoolSelectError(message);
+          throw new Error(message);
+        }
+        return response;
+      },
+      onSuccess: (response, { beatNum, poolId }) => {
+        const selected = response.data;
+        if (selected?.frameUrl) {
+          queryClient.setQueryData<ImagePoolResponse>(
+            queryKeys.grids(project, episode),
+            (old) => {
+              if (!old?.data) return old;
+              return {
+                ...old,
+                data: {
+                  ...old.data,
+                  beat_assignments: {
+                    ...old.data.beat_assignments,
+                    [String(beatNum)]: poolId,
+                  },
+                },
+              };
+            },
+          );
+          patchBeatQueryCache(queryClient, project, episode, beatNum, {
+            frame_url: selected.frameUrl,
+          });
+        }
+        if (selected?.sketchUrl) {
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.sketchPoseEditor(project, episode, beatNum),
+          });
+          patchBeatQueryCache(queryClient, project, episode, beatNum, {
+            sketch_url: selected.sketchUrl,
+          });
+        }
+      },
+    });
+  }
+
+  function useUploadBeatImage(
+    project: string,
+    episode: number,
+    imageType: BeatImageType,
+  ) {
+    const queryClient = useQueryClient();
+    return useMutation({
+      mutationFn: ({ beatNum, file }: { beatNum: number; file: File }) =>
+        gateway.uploadBeatImage(
+          project,
+          episode,
+          beatNum,
+          imageType,
+          file,
+        ),
+      onSuccess: (response) => {
+        if (!response.ok) return;
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.grids(project, episode),
+        });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.beats(project, episode),
         });
       },
     });
@@ -46,5 +142,11 @@ export function createImagePoolQueryHooks(gateway: ProductionVideoGateway) {
     }, [data]);
   }
 
-  return { useGrids, useGridsByBeat, useRebuildPoolIndex };
+  return {
+    useGrids,
+    useGridsByBeat,
+    usePoolSelect,
+    useRebuildPoolIndex,
+    useUploadBeatImage,
+  };
 }

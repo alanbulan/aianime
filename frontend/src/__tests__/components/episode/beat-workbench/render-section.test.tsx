@@ -96,7 +96,6 @@ vi.mock("@/lib/queries/sketches", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/queries/sketches")>();
   return {
     ...actual,
-    usePoolSelect: () => ({ mutateAsync: poolSelectMock, isPending: false }),
     useBeatBackgroundAnchors: () => backgroundAnchorsMock(),
     useBeatDirectorStageManifest: () => ({
       data: {
@@ -129,11 +128,12 @@ vi.mock("@/lib/queries/sketches", async (importOriginal) => {
       mutateAsync: uploadBackgroundAnchorMock,
       isPending: false,
     }),
-    useUploadBeatImage: () => ({ mutateAsync: uploadMock, isPending: false }),
   };
 });
 
 vi.mock("@/modules/production/public", () => ({
+  StalePoolSelectError: class StalePoolSelectError extends Error {},
+  usePoolSelect: () => ({ mutateAsync: poolSelectMock, isPending: false }),
   useRegenerateRenderBeats: () => ({
     mutateAsync: regenerateMock,
     isPending: false,
@@ -148,6 +148,7 @@ vi.mock("@/modules/production/public", () => ({
       },
     },
   }),
+  useUploadBeatImage: () => ({ mutateAsync: uploadMock, isPending: false }),
 }));
 
 const scenePlatePreviewState: {

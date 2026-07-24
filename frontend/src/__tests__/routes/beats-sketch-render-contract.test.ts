@@ -209,10 +209,15 @@ describe("beats sketch/render v2 contract", () => {
   it("exposes sketch and render upload actions instead of disabled placeholders", () => {
     const sketchSection = read("src/components/episode/beat-workbench/sketch-section.tsx");
     const renderSection = read("src/components/episode/beat-workbench/render-section.tsx");
-    const sketches = read("src/lib/queries/sketches.ts");
+    const productionPublic = read("src/modules/production/public.ts");
+    const productionGateway = read(
+      "src/modules/production/infrastructure/http-production-video-gateway.ts",
+    );
 
-    expect(sketches).toContain("useUploadBeatImage");
-    expect(sketches).toContain("beats/${beatNum}/${imageType}/upload");
+    expect(productionPublic).toContain("useUploadBeatImage");
+    expect(productionGateway).toContain(
+      "beats/${beatNumber}/${imageType}/upload",
+    );
 
     expect(sketchSection).not.toContain('title={t("common.comingSoon")}');
     expect(renderSection).not.toContain('title={t("common.comingSoon")}');

@@ -30,3 +30,16 @@ export interface ImagePoolRebuildResult {
   episode: number;
   image_count: number;
 }
+
+export type BeatImageType = "sketch" | "render";
+
+export interface BeatImageUploadResult {
+  beatNum: number;
+  poolId: string;
+  sketchUrl?: string;
+  frameUrl?: string;
+}
+
+export interface ImagePoolSelectionResult extends BeatImageUploadResult {
+  imageType?: BeatImageType;
+}

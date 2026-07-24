@@ -41,10 +41,7 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("@/lib/queries/sketches", () => ({
-  StalePoolSelectError: class StalePoolSelectError extends Error {},
-  usePoolSelect: () => ({ mutateAsync: poolSelectMock, isPending: false }),
   useGenerateMissingManualSketches: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useUploadBeatImage: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useBeatDirectorStageManifest: () => stageManifestMock(),
   useBeatBackgroundAnchors: () => backgroundAnchorsMock(),
   useUpdateBeatBackgroundAnchor: () => ({ mutateAsync: updateBackgroundAnchorMock, isPending: false }),
@@ -80,6 +77,8 @@ vi.mock("@/modules/narrative_planning/public", () => ({
 }));
 
 vi.mock("@/modules/production/public", () => ({
+  StalePoolSelectError: class StalePoolSelectError extends Error {},
+  usePoolSelect: () => ({ mutateAsync: poolSelectMock, isPending: false }),
   useRegenerateSketches: () => ({
     mutateAsync: regenerateSketchMock,
     isPending: false,
@@ -93,6 +92,7 @@ vi.mock("@/modules/production/public", () => ({
       },
     },
   }),
+  useUploadBeatImage: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
 vi.mock("@/lib/queries/generation-credit-cost", () => ({

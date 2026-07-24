@@ -13,6 +13,7 @@ export {
   useGenerateSketches,
   useGrids,
   useGridsByBeat,
+  usePoolSelect,
   useGlobalOptimize,
   useFinalVideo,
   useNarratorVoiceSources,
@@ -36,6 +37,7 @@ export {
   useTrimSeedance2Asset,
   useTrimNarratorVoice,
   useUploadNarratorVoice,
+  useUploadBeatImage,
   useUploadSeedance2Asset,
   useUpdateRenderSettings,
   useUpdateSketchSettings,
@@ -43,9 +45,13 @@ export {
   useVideoPool,
   useVideoPoolSelect,
 } from "@/modules/production/composition";
+export { StalePoolSelectError } from "@/modules/production/application/image-pool-errors";
 export type {
+  BeatImageType,
+  BeatImageUploadResult,
   ImagePoolData,
   ImagePoolRebuildResult,
+  ImagePoolSelectionResult,
   PoolImage,
 } from "@/modules/production/domain/image-pool";
 export type {

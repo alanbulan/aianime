@@ -570,6 +570,10 @@ describe("frontend architecture boundaries", () => {
     expect(legacySketchQueries).not.toContain("useGridsByBeat");
     expect(legacySketchQueries).not.toContain("useRebuildPoolIndex");
     expect(legacySketchQueries).not.toContain("export interface PoolImage");
+    expect(legacySketchQueries).not.toContain("StalePoolSelectError");
+    expect(legacySketchQueries).not.toContain("usePoolSelect");
+    expect(legacySketchQueries).not.toContain("useUploadBeatImage");
+    expect(legacySketchQueries).not.toContain("BeatImageUploadResult");
     expect(applicationDataImportFailures).toEqual([]);
     expect(internalImportFailures).toEqual([]);
   });

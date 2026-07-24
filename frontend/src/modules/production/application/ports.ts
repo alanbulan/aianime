@@ -12,8 +12,11 @@ import type {
   UpdateSketchSettingsCommand,
 } from "@/modules/production/domain/image-settings";
 import type {
+  BeatImageType,
+  BeatImageUploadResult,
   ImagePoolData,
   ImagePoolRebuildResult,
+  ImagePoolSelectionResult,
 } from "@/modules/production/domain/image-pool";
 import type {
   NarratorVoiceSourcesData,
@@ -110,6 +113,20 @@ export interface ProductionVideoGateway {
     project: string,
     episode: number,
   ): Promise<ProductionDataResponse<ImagePoolRebuildResult>>;
+  selectImagePoolEntry(
+    project: string,
+    episode: number,
+    beatNumber: number,
+    poolId: string,
+    force: boolean,
+  ): Promise<ImagePoolSelectResponse>;
+  uploadBeatImage(
+    project: string,
+    episode: number,
+    beatNumber: number,
+    imageType: BeatImageType,
+    file: File,
+  ): Promise<BeatImageUploadResponse>;
   selectVideoPoolEntry(
     project: string,
     episode: number,
@@ -319,6 +336,17 @@ export interface ProductionVideoGateway {
 export type VideoPoolResponse = ProductionDataResponse<VideoPoolData | null>;
 
 export type ImagePoolResponse = ProductionDataResponse<ImagePoolData | null>;
+
+export interface ImagePoolSelectResponse {
+  ok: boolean;
+  error?: string;
+  stale?: boolean;
+  data?: ImagePoolSelectionResult;
+}
+
+export type BeatImageUploadResponse =
+  | ProductionDataResponse<BeatImageUploadResult>
+  | ProductionErrorResponse;
 
 export type Seedance2BeatStatusResponse =
   | ProductionDataResponse<Seedance2BeatStatus>

@@ -25,13 +25,10 @@ import {
 
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import {
-  StalePoolSelectError,
   useBeatBackgroundAnchors,
   useBeatDirectorStageManifest,
   useCropBeatBackgroundAnchor,
-  usePoolSelect,
   useUpdateBeatBackgroundAnchor,
-  useUploadBeatImage,
   useUploadBeatBackgroundAnchor,
   type BeatBackgroundAnchorItem,
   type BeatBackgroundReference,
@@ -43,9 +40,12 @@ import {
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
 import { useScenePlatePreview } from "@/modules/asset_world/public";
 import {
+  StalePoolSelectError,
   type PoolImage,
+  usePoolSelect,
   useRegenerateRenderBeats,
   useRenderSettings,
+  useUploadBeatImage,
 } from "@/modules/production/public";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { formatRelativeTime } from "@/lib/format-relative-time";

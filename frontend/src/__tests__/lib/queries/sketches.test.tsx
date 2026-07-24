@@ -11,7 +11,6 @@ vi.mock("@/shared/api/transport", () => ({
 }));
 
 import {
-  StalePoolSelectError,
   useBeatDirectorStageManifest,
   useBeatBackgroundAnchors,
   useCropBeatBackgroundAnchor,
@@ -19,11 +18,9 @@ import {
   useDirectorControlToSketch,
   useCutGrid,
   useExportGridPrompt,
-  usePoolSelect,
   useUpdateBeatBackgroundAnchor,
   useUploadBeatBackgroundAnchor,
   useUploadGrid,
-  useUploadBeatImage,
 } from "@/lib/queries/sketches";
 import { server } from "@/__mocks__/msw/server";
 import { queryKeys } from "@/lib/query-keys";
@@ -603,148 +600,6 @@ describe("render grid query", () => {
       image_generation_selection: "openrouter_nanobanana2",
       sketch_aspect_padding: true,
     });
-  });
-});
-
-describe("beat image upload queries", () => {
-  it("uploads a sketch image to the beat sketch upload endpoint", async () => {
-    let requestedPath = "";
-    let contentType = "";
-    server.use(
-      http.post(
-        "http://localhost:3000/api/v1/projects/demo/episodes/1/beats/5/sketch/upload",
-        ({ request }) => {
-          requestedPath = new URL(request.url).pathname;
-          contentType = request.headers.get("content-type") ?? "";
-          return HttpResponse.json({
-            ok: true,
-            data: { beat_num: 5, pool_id: "beat_05_t20260101000000_sketch" },
-          });
-        },
-      ),
-    );
-
-    const { result } = renderHook(() => useUploadBeatImage("demo", 1, "sketch"), {
-      wrapper,
-    });
-
-    result.current.mutate({
-      beatNum: 5,
-      file: new File(["x"], "sketch.png", { type: "image/png" }),
-    });
-
-    await waitFor(() => expect(result.current.data).toBeDefined());
-    expect(requestedPath).toBe("/api/v1/projects/demo/episodes/1/beats/5/sketch/upload");
-    expect(contentType).toContain("multipart/form-data");
-  });
-
-  it("uploads a render image to the beat render upload endpoint", async () => {
-    let requestedPath = "";
-    server.use(
-      http.post(
-        "http://localhost:3000/api/v1/projects/demo/episodes/1/beats/5/render/upload",
-        ({ request }) => {
-          requestedPath = new URL(request.url).pathname;
-          return HttpResponse.json({
-            ok: true,
-            data: { beat_num: 5, pool_id: "beat_05_t20260101000000_render" },
-          });
-        },
-      ),
-    );
-
-    const { result } = renderHook(() => useUploadBeatImage("demo", 1, "render"), {
-      wrapper,
-    });
-
-    result.current.mutate({
-      beatNum: 5,
-      file: new File(["x"], "render.png", { type: "image/png" }),
-    });
-
-    await waitFor(() => expect(result.current.data).toBeDefined());
-    expect(requestedPath).toBe("/api/v1/projects/demo/episodes/1/beats/5/render/upload");
-  });
-});
-
-describe("pool selection query", () => {
-  it("throws StalePoolSelectError when backend marks the sketch candidate stale", async () => {
-    server.use(
-      http.post(
-        "http://localhost:3000/api/v1/projects/demo/episodes/1/beats/5/pool-select",
-        () =>
-          HttpResponse.json({
-            ok: false,
-            stale: true,
-            error: "该草图已过期，请先重新生成。如确认仍要使用，请传 force=true。",
-          }),
-      ),
-    );
-
-    const { result } = renderHook(() => usePoolSelect("demo", 1), {
-      wrapper,
-    });
-
-    await expect(
-      result.current.mutateAsync({ beatNum: 5, poolId: "stale_sketch" }),
-    ).rejects.toBeInstanceOf(StalePoolSelectError);
-  });
-
-  it("updates canonical sketch_url without changing render assignments for sketch selection", async () => {
-    server.use(
-      http.post(
-        "http://localhost:3000/api/v1/projects/demo/episodes/1/beats/5/pool-select",
-        () =>
-          HttpResponse.json({
-            ok: true,
-            data: {
-              beat_num: 5,
-              pool_id: "sketch_pool",
-              image_type: "sketch",
-              sketch_url: "/static/demo/sketches/ep001/beat_05.png",
-            },
-          }),
-      ),
-    );
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    queryClient.setQueryData(queryKeys.beats("demo", 1), {
-      ok: true,
-      data: [
-        {
-          beat_number: 5,
-          narration_segment: "n",
-          visual_description: "v",
-          frame_url: "/static/demo/frames/ep001/beat_05.png",
-          sketch_url: null,
-        },
-      ],
-    });
-    queryClient.setQueryData(queryKeys.grids("demo", 1), {
-      ok: true,
-      data: {
-        episode: 1,
-        modes: {},
-        images: [],
-        beat_assignments: { "5": "render_pool" },
-      },
-    });
-
-    const { result } = renderHook(() => usePoolSelect("demo", 1), {
-      wrapper: wrapperWithClient(queryClient),
-    });
-
-    await result.current.mutateAsync({ beatNum: 5, poolId: "sketch_pool" });
-
-    const beats = queryClient.getQueryData<{ ok: true; data: Array<{ beat_number: number; sketch_url?: string | null }> }>(
-      queryKeys.beats("demo", 1),
-    );
-    expect(beats?.data[0].sketch_url).toBe("/static/demo/sketches/ep001/beat_05.png");
-    const grids = queryClient.getQueryData<{ ok: true; data: { beat_assignments: Record<string, string> } }>(
-      queryKeys.grids("demo", 1),
-    );
-    expect(grids?.data.beat_assignments["5"]).toBe("render_pool");
   });
 });
 
