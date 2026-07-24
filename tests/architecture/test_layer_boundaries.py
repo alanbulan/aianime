@@ -673,7 +673,7 @@ def test_production_sketch_generation_route_delegates_to_application() -> None:
     sketch_runner = PACKAGE_ROOT / "task_backend" / "runners" / "sketch.py"
     source = generation.read_text(encoding="utf-8")
     route_start = source.index("async def generate_sketches(")
-    route_end = source.index("async def regenerate_beats(", route_start)
+    route_end = source.index("async def get_beat_pano_background_manifest(", route_start)
     route_source = source[route_start:route_end]
 
     assert route_source.count("sketch_generation_use_cases") == 1
@@ -729,17 +729,18 @@ def test_production_director_control_sketch_route_delegates_to_application() -> 
 
 
 def test_production_selected_regeneration_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "production_render.py"
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     render_runner = PACKAGE_ROOT / "task_backend" / "runners" / "render.py"
-    source = generation.read_text(encoding="utf-8")
-    route_start = source.index("async def regenerate_beats(")
-    route_end = source.index("async def get_beat_pano_background_manifest(", route_start)
-    route_source = source[route_start:route_end]
+    source = route.read_text(encoding="utf-8")
+    generation_source = generation.read_text(encoding="utf-8")
 
-    assert route_source.count("selected_regeneration_use_cases") == 2
-    assert route_source.count("RegenerateSelectedBeatsCommand") == 2
-    assert "SelectedRegenerationKind.RENDER" in route_source
-    assert "SelectedRegenerationKind.SKETCH" in route_source
+    assert source.count("selected_regeneration_use_cases().") == 2
+    assert source.count("RegenerateSelectedBeatsCommand(") == 2
+    assert "SelectedRegenerationKind.RENDER" in source
+    assert "SelectedRegenerationKind.SKETCH" in source
+    for handler_name in ("regenerate_beats", "regenerate_sketches"):
+        assert f"async def {handler_name}(" not in generation_source
     for implementation_detail in (
         "load_project_config",
         "make_sqlite_store_for_context",
@@ -756,7 +757,7 @@ def test_production_selected_regeneration_routes_delegate_to_application() -> No
         "project_task_state_key",
         "需要 project context",
     ):
-        assert implementation_detail not in route_source
+        assert implementation_detail not in source
     runner_source = render_runner.read_text(encoding="utf-8")
     assert "SELECTED_RENDER_REGEN_TASK_TYPE" in runner_source
     assert "SELECTED_SKETCH_REGEN_TASK_TYPE" in runner_source

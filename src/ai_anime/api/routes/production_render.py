@@ -8,21 +8,27 @@ from fastapi.responses import JSONResponse
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import resolve_project_scope
 from ai_anime.api.schemas import (
+    BeatsRegenerateRequest,
     GridRegenerateRequest,
     RenderPlanExecuteRequest,
     RenderPlanRequest,
+    SketchRegenerateRequest,
 )
 from ai_anime.modules.production.public import (
     BuildRenderPlanCommand,
     ExecuteRenderPlanCommand,
     GridRegenerationRejected,
     RegenerateGridCommand,
+    RegenerateSelectedBeatsCommand,
     RenderPlanConflict,
     RenderPlanFeatureDisabled,
     RenderPlanGrid,
     RenderPlanRejected,
+    SelectedRegenerationKind,
+    SelectedRegenerationRejected,
     grid_regeneration_use_cases,
     render_plan_use_cases,
+    selected_regeneration_use_cases,
 )
 
 router = APIRouter()
@@ -75,6 +81,61 @@ async def regenerate_grid(
             ),
         )
     except GridRegenerationRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, **scheduled.as_dict()}
+
+
+@router.post("/projects/{project}/episodes/{episode_num}/beats/regenerate")
+async def regenerate_beats(
+    project: str,
+    episode_num: int,
+    body: BeatsRegenerateRequest,
+    user: dict = Depends(get_api_user),
+):
+    """Regenerate Render images for selected Beats."""
+    resolved = await resolve_project_scope(project, user, required_role="editor")
+    try:
+        scheduled = await selected_regeneration_use_cases().regenerate(
+            resolved.ctx,
+            RegenerateSelectedBeatsCommand(
+                kind=SelectedRegenerationKind.RENDER,
+                episode_num=episode_num,
+                beat_indices=tuple(body.beat_indices),
+                style=body.style,
+                model=body.model,
+                mode_key=body.mode_key,
+                image_generation_selection=body.image_generation_selection,
+                sketch_aspect_padding=body.sketch_aspect_padding,
+            ),
+        )
+    except SelectedRegenerationRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, **scheduled.as_dict()}
+
+
+@router.post("/projects/{project}/episodes/{episode_num}/sketches/regenerate")
+async def regenerate_sketches(
+    project: str,
+    episode_num: int,
+    body: SketchRegenerateRequest,
+    user: dict = Depends(get_api_user),
+):
+    """Regenerate sketches for selected Beats."""
+    resolved = await resolve_project_scope(project, user, required_role="editor")
+    try:
+        scheduled = await selected_regeneration_use_cases().regenerate(
+            resolved.ctx,
+            RegenerateSelectedBeatsCommand(
+                kind=SelectedRegenerationKind.SKETCH,
+                episode_num=episode_num,
+                beat_indices=tuple(body.beat_indices),
+                style=body.style,
+                model=body.model,
+                mode_key=body.mode_key,
+                image_generation_selection=body.image_generation_selection,
+            ),
+        )
+    except SelectedRegenerationRejected as exc:
         return {"ok": False, "error": str(exc)}
     return {"ok": True, **scheduled.as_dict()}
 

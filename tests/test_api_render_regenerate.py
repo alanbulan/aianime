@@ -69,7 +69,7 @@ def test_render_selected_regen_returns_scope_and_passes_render_settings(
     tmp_path,
 ):
     from ai_anime.task_identity import selection_scope
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_render
 
     client = _client(monkeypatch, tmp_path)
     use_case_calls = []
@@ -93,7 +93,7 @@ def test_render_selected_regen_returns_scope_and_passes_render_settings(
             )
 
     monkeypatch.setattr(
-        generation,
+        production_render,
         "selected_regeneration_use_cases",
         lambda: UseCases(),
     )
@@ -124,7 +124,7 @@ def test_render_selected_regen_returns_scope_and_passes_render_settings(
 
 
 def test_render_selected_regen_preserves_rejection_envelope(monkeypatch, tmp_path):
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_render
 
     client = _client(monkeypatch, tmp_path)
 
@@ -133,7 +133,7 @@ def test_render_selected_regen_preserves_rejection_envelope(monkeypatch, tmp_pat
             raise SelectedRegenerationRejected("beat_indices 不能为空")
 
     monkeypatch.setattr(
-        generation,
+        production_render,
         "selected_regeneration_use_cases",
         lambda: UseCases(),
     )

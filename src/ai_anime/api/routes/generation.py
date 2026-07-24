@@ -16,8 +16,6 @@ from ai_anime.api.auth import get_api_user, require_scope
 from ai_anime.api.deps import resolve_project_scope
 from ai_anime.api.schemas import (
     SketchGenerateRequest,
-    BeatsRegenerateRequest,
-    SketchRegenerateRequest,
     BeatBackgroundAnchorUpdate,
     Seedance2AssetAudioTrimRequest,
     Seedance2AssetCropRequest,
@@ -48,7 +46,6 @@ from ai_anime.modules.production.public import (
     GenerateDirectorControlSketchCommand,
     GenerateSketchesCommand,
     ManualSketchRegenerationRejected,
-    RegenerateSelectedBeatsCommand,
     RemoveSeedance2AssetCommand,
     SaveSketchEditorCommand,
     SketchBeatMissing,
@@ -63,15 +60,12 @@ from ai_anime.modules.production.public import (
     Seedance2PanelBeatMissing,
     Seedance2PanelOperationRejected,
     Seedance2PanelQuery,
-    SelectedRegenerationKind,
-    SelectedRegenerationRejected,
     SketchGenerationRejected,
     TrimSeedance2AudioAssetCommand,
     UploadSeedance2AssetCommand,
     director_control_sketch_use_cases,
     manual_sketch_regeneration_use_cases,
     seedance2_panel_use_cases,
-    selected_regeneration_use_cases,
     sketch_generation_use_cases,
     sketch_editing_use_cases,
     sketch_marker_use_cases,
@@ -264,61 +258,6 @@ async def generate_sketches(
             ),
         )
     except SketchGenerationRejected as exc:
-        return {"ok": False, "error": str(exc)}
-    return {"ok": True, **scheduled.as_dict()}
-
-
-@router.post("/projects/{project}/episodes/{episode_num}/beats/regenerate")
-async def regenerate_beats(
-    project: str,
-    episode_num: int,
-    body: BeatsRegenerateRequest,
-    user: dict = Depends(get_api_user),
-):
-    """选中 Beats 再生画面。"""
-    resolved = await _resolve_generation_project(project, user, required_role="editor")
-    try:
-        scheduled = await selected_regeneration_use_cases().regenerate(
-            resolved.ctx,
-            RegenerateSelectedBeatsCommand(
-                kind=SelectedRegenerationKind.RENDER,
-                episode_num=episode_num,
-                beat_indices=tuple(body.beat_indices),
-                style=body.style,
-                model=body.model,
-                mode_key=body.mode_key,
-                image_generation_selection=body.image_generation_selection,
-                sketch_aspect_padding=body.sketch_aspect_padding,
-            ),
-        )
-    except SelectedRegenerationRejected as exc:
-        return {"ok": False, "error": str(exc)}
-    return {"ok": True, **scheduled.as_dict()}
-
-
-@router.post("/projects/{project}/episodes/{episode_num}/sketches/regenerate")
-async def regenerate_sketches(
-    project: str,
-    episode_num: int,
-    body: SketchRegenerateRequest,
-    user: dict = Depends(get_api_user),
-):
-    """选中 Beats 再生草图。"""
-    resolved = await _resolve_generation_project(project, user, required_role="editor")
-    try:
-        scheduled = await selected_regeneration_use_cases().regenerate(
-            resolved.ctx,
-            RegenerateSelectedBeatsCommand(
-                kind=SelectedRegenerationKind.SKETCH,
-                episode_num=episode_num,
-                beat_indices=tuple(body.beat_indices),
-                style=body.style,
-                model=body.model,
-                mode_key=body.mode_key,
-                image_generation_selection=body.image_generation_selection,
-            ),
-        )
-    except SelectedRegenerationRejected as exc:
         return {"ok": False, "error": str(exc)}
     return {"ok": True, **scheduled.as_dict()}
 

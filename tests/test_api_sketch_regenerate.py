@@ -17,7 +17,7 @@ from ai_anime.modules.production.application.selected_regeneration import (
 
 
 def _client(monkeypatch):
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import generation, production_render
 
     context = object()
 
@@ -25,16 +25,21 @@ def _client(monkeypatch):
         return SimpleNamespace(ctx=context)
 
     monkeypatch.setattr(generation, "_resolve_generation_project", resolve)
+    monkeypatch.setattr(production_render, "resolve_project_scope", resolve)
     app = FastAPI()
     app.include_router(generation.router, prefix="/api/v1")
+    app.include_router(production_render.router, prefix="/api/v1")
     app.dependency_overrides[generation.get_api_user] = lambda: {
+        "username": "alice"
+    }
+    app.dependency_overrides[production_render.get_api_user] = lambda: {
         "username": "alice"
     }
     return TestClient(app), context
 
 
 def test_sketch_selected_regen_maps_request_to_application(monkeypatch):
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_render
     from ai_anime.task_identity import selection_scope
 
     client, context = _client(monkeypatch)
@@ -57,7 +62,7 @@ def test_sketch_selected_regen_maps_request_to_application(monkeypatch):
             )
 
     monkeypatch.setattr(
-        generation,
+        production_render,
         "selected_regeneration_use_cases",
         lambda: UseCases(),
     )
@@ -87,7 +92,7 @@ def test_sketch_selected_regen_maps_request_to_application(monkeypatch):
 
 
 def test_sketch_selected_regen_preserves_rejection_envelope(monkeypatch):
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_render
 
     client, _context = _client(monkeypatch)
 
@@ -96,7 +101,7 @@ def test_sketch_selected_regen_preserves_rejection_envelope(monkeypatch):
             raise SelectedRegenerationRejected("beat_indices 不能为空")
 
     monkeypatch.setattr(
-        generation,
+        production_render,
         "selected_regeneration_use_cases",
         lambda: UseCases(),
     )
