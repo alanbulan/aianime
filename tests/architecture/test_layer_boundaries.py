@@ -19,7 +19,7 @@ LEGACY_REVERSE_API_IMPORT_MAX = {
 }
 
 LEGACY_ROUTE_IMPORT_MAX = {
-    ("api/routes/freezone.py", "ai_anime.api.routes.generation"): 2,
+    ("api/routes/freezone.py", "ai_anime.api.routes.generation"): 1,
 }
 
 
@@ -326,6 +326,29 @@ def test_production_sketch_edit_routes_delegate_to_application() -> None:
     assert "sketch_image_use_cases" in crop_source
     assert "Image.open" not in crop_source
     assert "from PIL" not in crop_source
+
+
+def test_production_image_settings_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    source = route.read_text(encoding="utf-8")
+
+    assert "production_image_settings_use_cases" in source
+    for legacy_helper in (
+        "def _resolve_render_image_selection(",
+        "def _resolve_sketch_image_selection(",
+        "def _resolve_render_bool_setting(",
+        "def _render_settings_payload(",
+        "def _sketch_settings_payload(",
+    ):
+        assert legacy_helper not in source
+
+    settings_start = source.index("async def get_render_settings")
+    settings_end = source.index("def _sketch_regen_queue_key", settings_start)
+    settings_source = source[settings_start:settings_end]
+    assert "production_image_settings_use_cases" in settings_source
+    assert "load_project_config" not in settings_source
+    assert "save_project_config" not in settings_source
+    assert "image_generation_selection_options" not in settings_source
 
 
 def test_asset_world_style_layers_do_not_depend_on_fastapi() -> None:

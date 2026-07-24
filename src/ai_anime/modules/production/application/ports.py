@@ -28,3 +28,22 @@ class SketchImageFiles(Protocol):
         image_path: Path,
         bounds: tuple[int, int, int, int],
     ) -> None: ...
+
+
+class ProductionImageSettingsRepository(Protocol):
+    def load(self, username: str, project: str) -> dict[str, Any]: ...
+
+    def save(
+        self,
+        username: str,
+        project: str,
+        updates: dict[str, Any],
+    ) -> None: ...
+
+
+class ProductionImageSelectionCatalog(Protocol):
+    def options(self) -> dict[str, str]: ...
+
+    def normalize_render(self, value: str | None) -> str: ...
+
+    def normalize_sketch(self, value: str | None) -> str: ...

@@ -88,8 +88,12 @@ from ai_anime.modules.asset_world.public import (
 )
 from ai_anime.modules.production.public import (
     CropSketchCommand,
+    ProductionImageSettingsRejected,
     SketchCropRejected,
     SketchPoseCandidatesMissing,
+    UpdateRenderImageSettingsCommand,
+    UpdateSketchImageSettingsCommand,
+    production_image_settings_use_cases,
     sketch_image_use_cases,
     sketch_pose_editor_use_cases,
 )
@@ -185,73 +189,6 @@ def validate_beat_indices(all_beats: list[dict], beat_indices: list[int]) -> lis
 
 def _render_plan_feature_disabled() -> bool:
     return os.getenv("DISABLE_RENDER_PLAN_V2") in {"1", "true", "True", "yes"}
-
-
-def _resolve_render_image_selection(
-    project_config: dict,
-    requested_selection: str | None = None,
-) -> str:
-    from ai_anime.config import (
-        DEFAULT_RENDER_IMAGE_SELECTION,
-        normalize_image_generation_selection,
-    )
-
-    return normalize_image_generation_selection(
-        requested_selection or project_config.get("render_image_selection"),
-        fallback=DEFAULT_RENDER_IMAGE_SELECTION,
-    )
-
-
-def _resolve_sketch_image_selection(
-    project_config: dict,
-    requested_selection: str | None = None,
-) -> str:
-    from ai_anime.config import (
-        DEFAULT_SKETCH_IMAGE_SELECTION,
-        normalize_image_generation_selection,
-    )
-
-    return normalize_image_generation_selection(
-        requested_selection or project_config.get("sketch_image_selection"),
-        fallback=DEFAULT_SKETCH_IMAGE_SELECTION,
-    )
-
-
-def _resolve_render_bool_setting(
-    project_config: dict,
-    key: str,
-    requested_value: bool | None,
-    default: bool,
-) -> bool:
-    if requested_value is not None:
-        return bool(requested_value)
-    return bool(project_config.get(key, default))
-
-
-def _render_settings_payload(username: str, project: str) -> dict:
-    from ai_anime.config import image_generation_selection_options
-
-    project_config = load_project_config(username, project)
-    return {
-        "render_image_selection": _resolve_render_image_selection(project_config),
-        "options": image_generation_selection_options(),
-        "sketch_aspect_padding": _resolve_render_bool_setting(
-            project_config,
-            "sketch_aspect_padding",
-            None,
-            True,
-        ),
-    }
-
-
-def _sketch_settings_payload(username: str, project: str) -> dict:
-    from ai_anime.config import image_generation_selection_options
-
-    project_config = load_project_config(username, project)
-    return {
-        "sketch_image_selection": _resolve_sketch_image_selection(project_config),
-        "options": image_generation_selection_options(),
-    }
 
 
 def _plan_entry_to_dict(entry: Any) -> dict:
@@ -1581,7 +1518,10 @@ async def get_render_settings(
     resolved = await _resolve_generation_project(project, user, required_role="viewer")
     return {
         "ok": True,
-        "data": _render_settings_payload(resolved.username, resolved.project_name),
+        "data": production_image_settings_use_cases().render_settings(
+            resolved.username,
+            resolved.project_name,
+        ),
     }
 
 
@@ -1592,30 +1532,22 @@ async def update_render_settings(
     user: dict = Depends(get_api_user),
 ):
     """Persist Render-stage image model and sizing settings."""
-    from ai_anime.config import image_generation_selection_options
-
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    username = resolved.username
-    project_name = resolved.project_name
-    updates: dict[str, Any] = {}
-
-    if body.render_image_selection is not None:
-        selection = str(body.render_image_selection or "").strip()
-        if selection not in image_generation_selection_options():
-            return JSONResponse(
-                status_code=400,
-                content={
-                    "ok": False,
-                    "error": f"Invalid render_image_selection: {selection}",
-                },
-            )
-        updates["render_image_selection"] = selection
-    if body.sketch_aspect_padding is not None:
-        updates["sketch_aspect_padding"] = bool(body.sketch_aspect_padding)
-
-    if updates:
-        save_project_config(username, project_name, config=updates)
-    return {"ok": True, "data": _render_settings_payload(username, project_name)}
+    try:
+        data = production_image_settings_use_cases().update_render_settings(
+            resolved.username,
+            resolved.project_name,
+            UpdateRenderImageSettingsCommand(
+                render_image_selection=body.render_image_selection,
+                sketch_aspect_padding=body.sketch_aspect_padding,
+            ),
+        )
+    except ProductionImageSettingsRejected as exc:
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "error": str(exc)},
+        )
+    return {"ok": True, "data": data}
 
 
 @router.get("/projects/{project}/sketch-settings")
@@ -1627,7 +1559,10 @@ async def get_sketch_settings(
     resolved = await _resolve_generation_project(project, user, required_role="viewer")
     return {
         "ok": True,
-        "data": _sketch_settings_payload(resolved.username, resolved.project_name),
+        "data": production_image_settings_use_cases().sketch_settings(
+            resolved.username,
+            resolved.project_name,
+        ),
     }
 
 
@@ -1638,28 +1573,21 @@ async def update_sketch_settings(
     user: dict = Depends(get_api_user),
 ):
     """Persist Sketch-stage image model settings."""
-    from ai_anime.config import image_generation_selection_options
-
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    username = resolved.username
-    project_name = resolved.project_name
-    updates: dict[str, Any] = {}
-
-    if body.sketch_image_selection is not None:
-        selection = str(body.sketch_image_selection or "").strip()
-        if selection not in image_generation_selection_options():
-            return JSONResponse(
-                status_code=400,
-                content={
-                    "ok": False,
-                    "error": f"Invalid sketch_image_selection: {selection}",
-                },
-            )
-        updates["sketch_image_selection"] = selection
-
-    if updates:
-        save_project_config(username, project_name, config=updates)
-    return {"ok": True, "data": _sketch_settings_payload(username, project_name)}
+    try:
+        data = production_image_settings_use_cases().update_sketch_settings(
+            resolved.username,
+            resolved.project_name,
+            UpdateSketchImageSettingsCommand(
+                sketch_image_selection=body.sketch_image_selection,
+            ),
+        )
+    except ProductionImageSettingsRejected as exc:
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "error": str(exc)},
+        )
+    return {"ok": True, "data": data}
 
 
 def _sketch_regen_queue_key(episode_num: int) -> str:
@@ -2029,7 +1957,7 @@ async def generate_sketches(
 
     episode_obj = _episode_from_store_or_none(store, episode_num)
     prop_menu = await _runtime_prop_menu_with_global_props(store, episode_obj, beats)
-    sketch_image_selection = _resolve_sketch_image_selection(
+    sketch_image_selection = production_image_settings_use_cases().resolve_sketch_selection(
         proj_config,
         body.image_generation_selection,
     )
@@ -2317,7 +2245,7 @@ async def regenerate_grid(
 
     proj_config = load_project_config(username, project_name)
     style = body.style or proj_config.get("visual_style", "chinese_period_drama")
-    render_image_selection = _resolve_render_image_selection(
+    render_image_selection = production_image_settings_use_cases().resolve_render_selection(
         proj_config,
         body.image_generation_selection,
     )
@@ -2425,11 +2353,9 @@ async def regenerate_grid(
         "render_mode": "Render",
         "scene_grouping": body.scene_grouping,
         "character_grouping": body.character_grouping,
-        "sketch_aspect_padding": _resolve_render_bool_setting(
+        "sketch_aspect_padding": production_image_settings_use_cases().resolve_sketch_aspect_padding(
             proj_config,
-            "sketch_aspect_padding",
             body.sketch_aspect_padding,
-            True,
         ),
     }
 
@@ -2532,7 +2458,7 @@ async def render_plan(
     )
     sketch_colors = store.get_sketch_colors(episode_num) or {}
     project_config = load_project_config(username, project_name)
-    render_image_selection = _resolve_render_image_selection(
+    render_image_selection = production_image_settings_use_cases().resolve_render_selection(
         project_config,
         body.image_generation_selection,
     )
@@ -2647,7 +2573,7 @@ async def render_execute(
     )
     sketch_colors = store.get_sketch_colors(episode_num) or {}
     project_config = load_project_config(username, project_name)
-    render_image_selection = _resolve_render_image_selection(
+    render_image_selection = production_image_settings_use_cases().resolve_render_selection(
         project_config,
         body.image_generation_selection,
     )
@@ -2750,11 +2676,9 @@ async def render_execute(
         "image_generation_selection": render_image_selection,
         "sketch_colors": sketch_colors,
         "prop_menu": prop_menu,
-        "sketch_aspect_padding": _resolve_render_bool_setting(
+        "sketch_aspect_padding": production_image_settings_use_cases().resolve_sketch_aspect_padding(
             project_config,
-            "sketch_aspect_padding",
             body.sketch_aspect_padding,
-            True,
         ),
     }
     scope = f"{dispatch_strategy}__{execution_hash}"
@@ -2825,7 +2749,7 @@ async def regenerate_beats(
     output_dir = resolved.output_dir
     proj_config = load_project_config(username, project_name)
     style = body.style or proj_config.get("visual_style", "chinese_period_drama")
-    render_image_selection = _resolve_render_image_selection(
+    render_image_selection = production_image_settings_use_cases().resolve_render_selection(
         proj_config,
         body.image_generation_selection,
     )
@@ -2877,11 +2801,9 @@ async def regenerate_beats(
         "selected_beat_numbers": body.beat_indices,
         "sketch_colors": store.get_sketch_colors(episode_num) or {},
         "prop_menu": prop_menu,
-        "sketch_aspect_padding": _resolve_render_bool_setting(
+        "sketch_aspect_padding": production_image_settings_use_cases().resolve_sketch_aspect_padding(
             proj_config,
-            "sketch_aspect_padding",
             body.sketch_aspect_padding,
-            True,
         ),
     }
 
@@ -2968,7 +2890,7 @@ async def regenerate_sketches(
     mode_key = body.mode_key
     episode_obj = _episode_from_store_or_none(store, episode_num)
     prop_menu = await _runtime_prop_menu_with_global_props(store, episode_obj, beats)
-    sketch_image_selection = _resolve_sketch_image_selection(
+    sketch_image_selection = production_image_settings_use_cases().resolve_sketch_selection(
         proj_config,
         body.image_generation_selection,
     )
@@ -3811,7 +3733,11 @@ async def generate_missing_manual_sketches(
 
     proj_config = load_project_config(username, project_name)
     style = proj_config.get("visual_style", "chinese_period_drama")
-    sketch_image_selection = _resolve_sketch_image_selection(proj_config)
+    sketch_image_selection = (
+        production_image_settings_use_cases().resolve_sketch_selection(
+            proj_config
+        )
+    )
     character_map = await _build_character_map(
         store,
         beats,

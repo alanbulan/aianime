@@ -84,6 +84,7 @@ from ai_anime.modules.asset_world.public import (
     director_control_scope,
     runtime_prop_menu_for_episode,
 )
+from ai_anime.modules.production.public import production_image_settings_use_cases
 from ai_anime.freezone import canvas_store
 from ai_anime.freezone.audio_node import (
     create_user_audio_voice,
@@ -945,9 +946,6 @@ async def _mainline_single_beat_config(
     from ai_anime.api.routes.generation import (
         _build_character_map,
         _episode_from_store_or_none,
-        _resolve_render_bool_setting,
-        _resolve_render_image_selection,
-        _resolve_sketch_image_selection,
     )
     from ai_anime.project_config import load_project_config
 
@@ -957,6 +955,7 @@ async def _mainline_single_beat_config(
         raise HTTPException(404, f"No beats found for episode {episode}")
     selected_beat = _beat_by_number(beats, int(beat))
     project_config = load_project_config(username, project_name)
+    image_settings = production_image_settings_use_cases()
     episode_obj = _episode_from_store_or_none(store, int(episode))
     prop_menu = await runtime_prop_menu_for_episode(store, episode_obj, beats)
     sketch_colors = (
@@ -975,7 +974,7 @@ async def _mainline_single_beat_config(
             if hasattr(store, "get_all_characters")
             else {}
         )
-        image_selection = _resolve_sketch_image_selection(project_config, None)
+        image_selection = image_settings.resolve_sketch_selection(project_config)
         return {
             "beats": beats,
             "character_map": character_map,
@@ -1003,7 +1002,7 @@ async def _mainline_single_beat_config(
         if hasattr(store, "get_all_characters")
         else {}
     )
-    image_selection = _resolve_render_image_selection(project_config, None)
+    image_selection = image_settings.resolve_render_selection(project_config)
     return {
         "beats": beats,
         "character_map": character_map,
@@ -1014,11 +1013,9 @@ async def _mainline_single_beat_config(
         "selected_beat_numbers": [int(beat)],
         "sketch_colors": sketch_colors,
         "prop_menu": prop_menu,
-        "sketch_aspect_padding": _resolve_render_bool_setting(
+        "sketch_aspect_padding": image_settings.resolve_sketch_aspect_padding(
             project_config,
-            "sketch_aspect_padding",
             None,
-            True,
         ),
         "mode_key": mode_key,
         "aspect_ratio": aspect_ratio,
@@ -1311,13 +1308,10 @@ def _standalone_beat_context_frame_config(
     aspect_ratio: str,
     quality: str,
 ) -> dict:
-    from ai_anime.api.routes.generation import (
-        _resolve_render_bool_setting,
-        _resolve_render_image_selection,
-    )
     from ai_anime.project_config import load_project_config
 
     project_config = load_project_config(username, project_name)
+    image_settings = production_image_settings_use_cases()
     beat = dict(beat_payload or {})
     beat.pop("_source_beat_context", None)
     if beat:
@@ -1333,7 +1327,9 @@ def _standalone_beat_context_frame_config(
         "style": project_config.get("visual_style", "chinese_period_drama"),
         "ethnicity": project_config.get("ethnicity", "Chinese"),
         "model": None,
-        "image_generation_selection": _resolve_render_image_selection(project_config, None),
+        "image_generation_selection": image_settings.resolve_render_selection(
+            project_config
+        ),
         "selected_panel_indices": [0],
         "sketch_colors": _standalone_beat_context_sketch_colors(
             (beat_payload or {}).get("_source_beat_context") or {}
@@ -1347,11 +1343,9 @@ def _standalone_beat_context_frame_config(
                 ((beat_payload or {}).get("_source_beat_context") or {}).get("detected_props")
             )
         ],
-        "sketch_aspect_padding": _resolve_render_bool_setting(
+        "sketch_aspect_padding": image_settings.resolve_sketch_aspect_padding(
             project_config,
-            "sketch_aspect_padding",
             None,
-            True,
         ),
         "mode_key": mode_key,
         "aspect_ratio": aspect_ratio,

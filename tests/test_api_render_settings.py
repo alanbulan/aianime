@@ -71,6 +71,32 @@ def _client(monkeypatch, tmp_path, config: dict | None = None):
         generation, "save_project_config", fake_save_project_config, raising=False
     )
 
+    from ai_anime.modules.production.application.image_settings import (
+        ProductionImageSettingsUseCases,
+    )
+    from ai_anime.modules.production.infrastructure.image_settings import (
+        ConfiguredProductionImageSelections,
+    )
+
+    class SettingsRepository:
+        def load(self, username: str, project: str):
+            assert username == "alice"
+            assert project == "demo"
+            return current_config
+
+        def save(self, username: str, project: str, updates: dict):
+            fake_save_project_config(username, project, config=updates)
+
+    image_settings = ProductionImageSettingsUseCases(
+        SettingsRepository(),
+        ConfiguredProductionImageSelections(),
+    )
+    monkeypatch.setattr(
+        generation,
+        "production_image_settings_use_cases",
+        lambda: image_settings,
+    )
+
     app = FastAPI()
     app.include_router(generation.router, prefix="/api/v1")
     app.dependency_overrides[generation.get_api_user] = lambda: {"username": "alice"}
