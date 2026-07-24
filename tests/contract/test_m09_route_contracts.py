@@ -320,7 +320,6 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         "load",
         lambda *_: {},
     )
-    monkeypatch.setattr(generation, "load_project_config", lambda *_: {})
     monkeypatch.setattr(
         generation,
         "make_static_url_for_context",
@@ -372,7 +371,6 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             "single_video_use_cases",
             lambda: SimpleNamespace(generate=schedule_single_video),
         )
-        monkeypatch.setattr(generation, "get_task_backend", lambda tb=task_backend: tb)
         monkeypatch.setattr(runtime_ports, "get_task_backend", lambda tb=task_backend: tb)
         app = FastAPI()
         app.include_router(generation.router, prefix="/api/v1")

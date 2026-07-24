@@ -51,11 +51,6 @@ from ai_anime.api.schemas import (
     Seedance2AssetCropRequest,
     Seedance2AssetDeleteRequest,
 )
-from ai_anime.modules.narrative_planning.public import (
-    choose_manual_sketch_mode_key,
-    missing_manual_shot_segments,
-    storyboard_beats_for_manual_sketches,
-)
 from ai_anime.modules.asset_world.public import (
     BackgroundAnchorRejected,
     CropBeatBackgroundCommand,
@@ -86,6 +81,7 @@ from ai_anime.modules.production.public import (
     EpisodeSubtitlesMissing,
     ExecuteRenderPlanCommand,
     FinalEpisodeVideoMissing,
+    GenerateMissingManualSketchesCommand,
     GenerateDirectorControlSketchCommand,
     GenerateEpisodeAudioCommand,
     GenerateSketchesCommand,
@@ -94,6 +90,7 @@ from ai_anime.modules.production.public import (
     GlobalVideoOptimizationSketchesMissing,
     GridRegenerationRejected,
     ImageGenerationGuardQuery,
+    ManualSketchRegenerationRejected,
     ProductionImageSettingsRejected,
     OptimizeEpisodeVideoCommand,
     RegenerateGridCommand,
@@ -112,7 +109,6 @@ from ai_anime.modules.production.public import (
     Seedance2PanelBeatMissing,
     Seedance2PanelOperationRejected,
     Seedance2PanelQuery,
-    SELECTED_SKETCH_REGEN_TASK_TYPE,
     SelectedRegenerationKind,
     SelectedRegenerationRejected,
     SketchGenerationRejected,
@@ -125,6 +121,7 @@ from ai_anime.modules.production.public import (
     director_control_sketch_use_cases,
     global_video_optimization_use_cases,
     grid_regeneration_use_cases,
+    manual_sketch_regeneration_use_cases,
     seedance2_panel_use_cases,
     selected_regeneration_use_cases,
     sketch_generation_use_cases,
@@ -144,9 +141,8 @@ from ai_anime.modules.production.public import (
     video_backend_catalog_use_cases,
     video_pool_use_cases,
 )
-from ai_anime.project_config import load_project_config
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.ports import get_task_backend, get_usage_meter
+from ai_anime.ports import get_usage_meter
 from ai_anime.shared.project_media import make_project_asset_url_builder
 
 router = APIRouter()
@@ -1722,112 +1718,16 @@ async def generate_missing_manual_sketches(
     episode_num: int,
     user: dict = Depends(get_api_user),
 ):
-    """Dispatch sketch regen only for manually inserted beats missing sketches.
-
-    This scans `is_manual_shot=True` beats whose canonical sketch file does not
-    exist, groups adjacent missing manual beats by scene, and dispatches one
-    `sketch_regen` task per group. Normal beats are never regenerated here.
-    """
-    from ai_anime.task_identity import selection_scope
-
+    """Dispatch Sketch regeneration for missing manual-shot sketches."""
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    ctx = resolved.ctx
-    username = resolved.username
-    project_name = resolved.project_name
-    project_dir = resolved.project_dir
-    output_dir = resolved.output_dir
-    sketches_dir = project_dir / "sketches" / f"ep{episode_num:03d}"
-
-    store = (
-        await make_sqlite_store_for_context(ctx)
-        if ctx
-        else await make_sqlite_store(username, project_name)
-    )
-    beats = await store.get_beats_as_dicts(episode_num)
-    if not beats:
-        return {"ok": False, "error": f"第 {episode_num} 集没有 beats"}
-
-    storyboard_beats = storyboard_beats_for_manual_sketches(beats)
-    segments = missing_manual_shot_segments(storyboard_beats, sketches_dir)
-    if not segments:
-        return {
-            "ok": True,
-            "data": {"dispatched": 0, "scopes": [], "segments": []},
-            "message": "没有缺草图的手工分镜",
-        }
-
-    proj_config = load_project_config(username, project_name)
-    style = proj_config.get("visual_style", "chinese_period_drama")
-    sketch_image_selection = (
-        production_image_settings_use_cases().resolve_sketch_selection(
-            proj_config
+    try:
+        scheduled = await manual_sketch_regeneration_use_cases().generate(
+            resolved.ctx,
+            GenerateMissingManualSketchesCommand(episode_num=episode_num),
         )
-    )
-    character_map = await production_generation_context_use_cases(
-        store,
-        username,
-    ).build_character_map(
-        beats=beats,
-        project=project_name,
-        episode_num=episode_num,
-        use_detected_identities=False,
-    )
-    sketch_colors = store.get_sketch_colors(episode_num) or {}
-
-    dispatched_scopes: list[str] = []
-    dispatched_segments: list[list[int]] = []
-    for beat_numbers in segments:
-        beat_indices = [int(n) for n in beat_numbers]
-        mode_key = choose_manual_sketch_mode_key(len(beat_indices))
-        config = {
-            "beats": beats,
-            "character_map": character_map,
-            "style": style,
-            "model": None,
-            "image_generation_selection": sketch_image_selection,
-            "selected_beat_numbers": beat_indices,
-            "composite_key": f"{mode_key}:sketch",
-            "sketch_colors": sketch_colors,
-        }
-        scope = selection_scope(mode_key, beat_indices)
-        if ctx is not None:
-            await get_task_backend().enqueue_project_task(
-                ctx,
-                task_type=SELECTED_SKETCH_REGEN_TASK_TYPE,
-                queue_kind="default",
-                episode=episode_num,
-                scope=scope,
-                payload={
-                    "episode": episode_num,
-                    "mode_key": mode_key,
-                    "output_dir": output_dir,
-                    "config": {**config, "mode_key": mode_key},
-                },
-            )
-            dispatched_scopes.append(scope)
-            dispatched_segments.append(beat_indices)
-            continue
-
-        return {
-            "ok": False,
-            "error": f"分段 {beat_indices} 派发失败: 需要 project context",
-            "data": {
-                "dispatched": len(dispatched_scopes),
-                "scopes": dispatched_scopes,
-                "segments": dispatched_segments,
-            },
-        }
-
-    return {
-        "ok": True,
-        "task_type": SELECTED_SKETCH_REGEN_TASK_TYPE,
-        "data": {
-            "dispatched": len(dispatched_segments),
-            "scopes": dispatched_scopes,
-            "segments": dispatched_segments,
-        },
-        "message": f"已启动 {len(dispatched_segments)} 组新增分镜草图生成",
-    }
+    except ManualSketchRegenerationRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return scheduled.as_dict()
 
 
 @router.post("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/video")

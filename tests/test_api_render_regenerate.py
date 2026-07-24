@@ -28,7 +28,6 @@ from ai_anime.modules.production.domain.render_planning import RenderPlanGrid
 def _client(monkeypatch, tmp_path):
     from ai_anime.api.routes import generation
 
-    calls: list[dict] = []
     context = object()
 
     async def fake_resolve_generation_project(
@@ -45,28 +44,15 @@ def _client(monkeypatch, tmp_path):
             ctx=context,
         )
 
-    async def fake_enqueue_project_task(ctx, **kwargs):
-        calls.append(kwargs)
-        return SimpleNamespace(
-            task_state=SimpleNamespace(task_id=f"task-{len(calls)}"),
-            backend="celery",
-            queue=kwargs.get("queue_kind") or "default",
-        )
-
     monkeypatch.setattr(
         generation, "_resolve_generation_project", fake_resolve_generation_project
-    )
-    monkeypatch.setattr(
-        generation,
-        "get_task_backend",
-        lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
     )
 
     app = FastAPI()
     app.include_router(generation.router, prefix="/api/v1")
     app.dependency_overrides[generation.get_api_user] = lambda: {"username": "alice"}
 
-    return TestClient(app), calls
+    return TestClient(app)
 
 
 def test_render_selected_regen_returns_scope_and_passes_render_settings(
@@ -76,7 +62,7 @@ def test_render_selected_regen_returns_scope_and_passes_render_settings(
     from ai_anime.task_identity import selection_scope
     from ai_anime.api.routes import generation
 
-    client, backend_calls = _client(monkeypatch, tmp_path)
+    client = _client(monkeypatch, tmp_path)
     use_case_calls = []
     expected_scope = selection_scope("1x1_2-3", [3, 1])
 
@@ -118,7 +104,6 @@ def test_render_selected_regen_returns_scope_and_passes_render_settings(
     assert body["ok"] is True
     assert body["task_type"] == "selected_regen"
     assert body["scope"] == expected_scope
-    assert backend_calls == []
     assert len(use_case_calls) == 1
     command = use_case_calls[0][1]
     assert command.kind is SelectedRegenerationKind.RENDER
@@ -132,7 +117,7 @@ def test_render_selected_regen_returns_scope_and_passes_render_settings(
 def test_render_selected_regen_preserves_rejection_envelope(monkeypatch, tmp_path):
     from ai_anime.api.routes import generation
 
-    client, backend_calls = _client(monkeypatch, tmp_path)
+    client = _client(monkeypatch, tmp_path)
 
     class UseCases:
         async def regenerate(self, _context, _command):
@@ -151,13 +136,12 @@ def test_render_selected_regen_preserves_rejection_envelope(monkeypatch, tmp_pat
 
     assert response.status_code == 200
     assert response.json() == {"ok": False, "error": "beat_indices 不能为空"}
-    assert backend_calls == []
 
 
 def test_render_plan_and_execute_delegate_request_mapping(monkeypatch, tmp_path):
     from ai_anime.api.routes import generation
 
-    client, backend_calls = _client(monkeypatch, tmp_path)
+    client = _client(monkeypatch, tmp_path)
     use_case_calls = []
     grid = RenderPlanGrid(
         mode_key="1x1_2-3",
@@ -242,13 +226,12 @@ def test_render_plan_and_execute_delegate_request_mapping(monkeypatch, tmp_path)
     assert execute_command.beat_numbers == (2,)
     assert execute_command.custom_plan is True
     assert execute_command.sketch_aspect_padding is True
-    assert backend_calls == []
 
 
 def test_render_plan_feature_disabled_preserves_503_envelope(monkeypatch, tmp_path):
     from ai_anime.api.routes import generation
 
-    client, backend_calls = _client(monkeypatch, tmp_path)
+    client = _client(monkeypatch, tmp_path)
 
     class UseCases:
         def ensure_available(self):
@@ -271,13 +254,12 @@ def test_render_plan_feature_disabled_preserves_503_envelope(monkeypatch, tmp_pa
         "error": "feature_disabled",
         "data": {"reason": "DISABLE_RENDER_PLAN_V2 is set"},
     }
-    assert backend_calls == []
 
 
 def test_render_plan_rejection_preserves_400_envelope(monkeypatch, tmp_path):
     from ai_anime.api.routes import generation
 
-    client, backend_calls = _client(monkeypatch, tmp_path)
+    client = _client(monkeypatch, tmp_path)
 
     class UseCases:
         def ensure_available(self):
@@ -306,13 +288,12 @@ def test_render_plan_rejection_preserves_400_envelope(monkeypatch, tmp_path):
         "error": "invalid_beats",
         "data": {"invalid": [3]},
     }
-    assert backend_calls == []
 
 
 def test_render_grid_regen_passes_render_settings(monkeypatch, tmp_path):
     from ai_anime.api.routes import generation
 
-    client, backend_calls = _client(monkeypatch, tmp_path)
+    client = _client(monkeypatch, tmp_path)
     use_case_calls = []
 
     class UseCases:
@@ -353,7 +334,6 @@ def test_render_grid_regen_passes_render_settings(monkeypatch, tmp_path):
     assert body["ok"] is True
     assert body["task_type"] == "grid_regenerate"
     assert body["scope"] == "grid_0"
-    assert backend_calls == []
     assert len(use_case_calls) == 1
     command = use_case_calls[0][1]
     assert command.episode_num == 2
@@ -369,7 +349,7 @@ def test_render_grid_regen_passes_render_settings(monkeypatch, tmp_path):
 def test_render_grid_regen_preserves_rejection_envelope(monkeypatch, tmp_path):
     from ai_anime.api.routes import generation
 
-    client, backend_calls = _client(monkeypatch, tmp_path)
+    client = _client(monkeypatch, tmp_path)
 
     class UseCases:
         async def regenerate(self, _context, _command):
@@ -391,4 +371,3 @@ def test_render_grid_regen_preserves_rejection_envelope(monkeypatch, tmp_path):
         "ok": False,
         "error": "grid_index=4 超出范围",
     }
-    assert backend_calls == []

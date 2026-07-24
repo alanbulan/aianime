@@ -95,13 +95,12 @@ def _patch_generation_celery(
     return ctx
 
 
-def _patch_audio_task_backend(monkeypatch, generation, backend) -> None:
+def _patch_audio_task_backend(monkeypatch, backend) -> None:
     from ai_anime import ports
 
     def provider():
         return backend
 
-    monkeypatch.setattr(generation, "get_task_backend", provider)
     monkeypatch.setattr(ports, "get_task_backend", provider)
 
 
@@ -136,7 +135,6 @@ async def test_audio_generate_route_dispatches_indextts2(monkeypatch, tmp_path):
     ctx = _patch_generation_celery(monkeypatch, generation, tmp_path, _FakeStore())
     _patch_audio_task_backend(
         monkeypatch,
-        generation,
         SimpleNamespace(enqueue_project_task=_fake_enqueue(calls)),
     )
 
@@ -177,7 +175,6 @@ def test_audio_generate_http_route_dispatches_indextts2(monkeypatch, tmp_path):
     _patch_generation_celery(monkeypatch, generation, tmp_path, _FakeStore())
     _patch_audio_task_backend(
         monkeypatch,
-        generation,
         SimpleNamespace(enqueue_project_task=_fake_enqueue(calls)),
     )
 
@@ -210,7 +207,6 @@ async def test_single_beat_audio_route_dispatches_indextts2(monkeypatch, tmp_pat
     ctx = _patch_generation_celery(monkeypatch, generation, tmp_path, _FakeStore())
     _patch_audio_task_backend(
         monkeypatch,
-        generation,
         SimpleNamespace(enqueue_project_task=_fake_enqueue(calls)),
     )
 

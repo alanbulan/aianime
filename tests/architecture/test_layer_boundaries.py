@@ -649,6 +649,35 @@ def test_production_selected_regeneration_routes_delegate_to_application() -> No
     assert "SELECTED_SKETCH_REGEN_TASK_TYPE" in runner_source
 
 
+def test_production_manual_sketch_regeneration_route_delegates_to_application() -> None:
+    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    source = generation.read_text(encoding="utf-8")
+    route_start = source.index("async def generate_missing_manual_sketches(")
+    route_end = source.index("async def generate_single_video(", route_start)
+    route_source = source[route_start:route_end]
+
+    assert route_source.count("manual_sketch_regeneration_use_cases") == 1
+    assert "GenerateMissingManualSketchesCommand" in route_source
+    assert "ManualSketchRegenerationRejected" in route_source
+    for implementation_detail in (
+        "make_sqlite_store_for_context",
+        "make_sqlite_store(",
+        "get_beats_as_dicts",
+        "storyboard_beats_for_manual_sketches",
+        "missing_manual_shot_segments",
+        "choose_manual_sketch_mode_key",
+        "load_project_config",
+        "production_generation_context_use_cases",
+        "production_image_settings_use_cases",
+        "selection_scope",
+        "get_task_backend",
+        "enqueue_project_task",
+        "SELECTED_SKETCH_REGEN_TASK_TYPE",
+        "需要 project context",
+    ):
+        assert implementation_detail not in route_source
+
+
 def test_production_grid_regeneration_route_delegates_to_application() -> None:
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     render_runner = PACKAGE_ROOT / "task_backend" / "runners" / "render.py"

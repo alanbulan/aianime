@@ -338,7 +338,6 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(episodes, "resolve_project_scope", resolve_scope)
     monkeypatch.setattr(verification_routes, "resolve_project_scope", resolve_scope)
     monkeypatch.setattr(verification_routes, "get_task_backend", lambda: task_backend)
-    monkeypatch.setattr(generation, "load_project_config", lambda *_: {})
 
     class QueueRepository:
         def __init__(self) -> None:
@@ -411,7 +410,6 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         nonlocal task_backend
         task_backend = _FakeTaskBackend(backend)
         monkeypatch.setattr(ai_anime_ports, "get_task_backend", lambda: task_backend)
-        monkeypatch.setattr(generation, "get_task_backend", lambda: task_backend)
         monkeypatch.setattr(episodes, "get_task_backend", lambda: task_backend)
         monkeypatch.setattr(verification_routes, "get_task_backend", lambda: task_backend)
 

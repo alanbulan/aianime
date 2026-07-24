@@ -37,6 +37,10 @@ if TYPE_CHECKING:
         GridRegenerationTaskReceipt,
         RegenerateGridCommand,
     )
+    from ai_anime.modules.production.application.manual_sketch_regeneration import (
+        GenerateMissingManualSketchesCommand,
+        PreparedManualSketchRegeneration,
+    )
     from ai_anime.modules.production.application.render_planning import (
         RenderExecutionMaterials,
         RenderPlanGridTask,
@@ -532,6 +536,14 @@ class ProductionSelectedRegenerationScheduler(Protocol):
         context: ProjectContext,
         task: SelectedRegenerationTask,
     ) -> SelectedRegenerationTaskReceipt: ...
+
+
+class ProductionManualSketchRegenerationPreparer(Protocol):
+    async def prepare(
+        self,
+        context: ProjectContext,
+        command: GenerateMissingManualSketchesCommand,
+    ) -> PreparedManualSketchRegeneration: ...
 
 
 class ProductionGridRegenerationPreparer(Protocol):

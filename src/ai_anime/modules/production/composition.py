@@ -48,6 +48,9 @@ from ai_anime.modules.production.application.global_video_optimization import (
 from ai_anime.modules.production.application.grid_regeneration import (
     GridRegenerationUseCases,
 )
+from ai_anime.modules.production.application.manual_sketch_regeneration import (
+    ManualSketchRegenerationUseCases,
+)
 from ai_anime.modules.production.application.render_planning import (
     RenderPlanUseCases,
 )
@@ -123,6 +126,9 @@ from ai_anime.modules.production.infrastructure.grid_regeneration import (
     LocalGridRegenerationPreparer,
     NanoBananaGridRegenerationPlanner,
     TaskBackendGridRegenerationScheduler,
+)
+from ai_anime.modules.production.infrastructure.manual_sketch_regeneration import (
+    LocalManualSketchRegenerationPreparer,
 )
 from ai_anime.modules.production.infrastructure.render_planning import (
     EnvironmentRenderPlanAvailability,
@@ -313,6 +319,26 @@ def selected_regeneration_use_cases() -> SelectedRegenerationUseCases:
                 context.owner_username,
             ),
             AssetWorldRuntimePropMenuSource(),
+        ),
+        TaskBackendSelectedRegenerationScheduler(ports.get_task_backend),
+    )
+
+
+def manual_sketch_regeneration_use_cases() -> ManualSketchRegenerationUseCases:
+    from ai_anime import ports
+
+    settings = ProjectConfigProductionSettings()
+    return ManualSketchRegenerationUseCases(
+        LocalManualSketchRegenerationPreparer(
+            settings,
+            ProductionImageSettingsUseCases(
+                settings,
+                ConfiguredProductionImageSelections(),
+            ),
+            lambda store, context: production_generation_context_use_cases(
+                store,
+                context.owner_username,
+            ),
         ),
         TaskBackendSelectedRegenerationScheduler(ports.get_task_backend),
     )

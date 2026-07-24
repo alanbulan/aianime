@@ -71,10 +71,6 @@ def _client(monkeypatch, tmp_path, config: dict | None = None):
             f"/static/projects/{getattr(ctx, 'project_id', 'proj_demo')}/{rel}"
         ),
     )
-    monkeypatch.setattr(
-        generation, "load_project_config", lambda username, project: current_config
-    )
-
     from ai_anime.modules.production.application.image_settings import (
         ProductionImageSettingsUseCases,
     )

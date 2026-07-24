@@ -98,6 +98,12 @@ from ai_anime.modules.production.application.grid_regeneration import (
     RegenerateGridCommand,
     ScheduledGridRegeneration,
 )
+from ai_anime.modules.production.application.manual_sketch_regeneration import (
+    GenerateMissingManualSketchesCommand,
+    ManualSketchRegenerationRejected,
+    ManualSketchRegenerationUseCases,
+    ScheduledManualSketchRegeneration,
+)
 from ai_anime.modules.production.application.render_planning import (
     BuildRenderPlanCommand,
     ExecutedRenderPlan,
@@ -259,6 +265,14 @@ def selected_regeneration_use_cases() -> SelectedRegenerationUseCases:
     return build()
 
 
+def manual_sketch_regeneration_use_cases() -> ManualSketchRegenerationUseCases:
+    from ai_anime.modules.production.composition import (
+        manual_sketch_regeneration_use_cases as build,
+    )
+
+    return build()
+
+
 def production_generation_context_use_cases(
     store: Any,
     username: str,
@@ -363,6 +377,7 @@ __all__ = [
     "FinalEpisodeVideoMissing",
     "GenerateEpisodeAudioCommand",
     "GenerateDirectorControlSketchCommand",
+    "GenerateMissingManualSketchesCommand",
     "GenerateSketchesCommand",
     "GenerateSingleVideoCommand",
     "GlobalVideoOptimizationBeatsMissing",
@@ -372,6 +387,8 @@ __all__ = [
     "GridRegenerationUseCases",
     "ImageGenerationGuardQuery",
     "ImageGenerationUsageUseCases",
+    "ManualSketchRegenerationRejected",
+    "ManualSketchRegenerationUseCases",
     "PROP_MARKER_PALETTE",
     "ProductionGenerationContextUseCases",
     "ProductionImageSettingsRejected",
@@ -391,6 +408,7 @@ __all__ = [
     "ScheduledEpisodeAudio",
     "ScheduledGlobalVideoOptimization",
     "ScheduledGridRegeneration",
+    "ScheduledManualSketchRegeneration",
     "ScheduledDirectorControlSketch",
     "ScheduledSketchGeneration",
     "ScheduledSelectedRegeneration",
@@ -446,6 +464,7 @@ __all__ = [
     "is_happyhorse_backend",
     "is_seedance2_backend",
     "marker_color_change_requires_sketch_clean",
+    "manual_sketch_regeneration_use_cases",
     "production_generation_context_use_cases",
     "production_image_settings_use_cases",
     "render_plan_use_cases",
