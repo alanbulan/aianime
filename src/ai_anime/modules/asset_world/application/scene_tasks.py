@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 from ai_anime.modules.asset_world.application.dto import (
     BuildScenesTask,
@@ -14,7 +13,6 @@ from ai_anime.modules.asset_world.application.dto import (
 )
 from ai_anime.modules.asset_world.application.errors import (
     SceneGenerationRejected,
-    SceneNotFound,
     SceneProjectContextRequired,
 )
 from ai_anime.modules.asset_world.application.ports import (
@@ -26,6 +24,7 @@ from ai_anime.modules.asset_world.domain.scene_generation import (
     resolve_scene_pano_source,
     scene_360_description,
 )
+from ai_anime.modules.asset_world.application.scene_lookup import require_scene
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.task_identity import task_config_scope
 
@@ -68,7 +67,7 @@ class SceneTaskUseCases:
         style: str,
         model: str | None,
     ) -> ScheduledAssetTask:
-        scene = await self._require_scene(repository, scene_name)
+        scene = await require_scene(repository, scene_name)
         context = self._require_context(
             task_context,
             "场景参考图生成需要 project context",
@@ -102,7 +101,7 @@ class SceneTaskUseCases:
         scene_name: str,
         source_kind: str,
     ) -> ScheduledAssetTask:
-        scene = await self._require_scene(repository, scene_name)
+        scene = await require_scene(repository, scene_name)
         source = str(source_kind or "master").strip().lower()
         if source == "reverse":
             if not self._assets.has_reverse_master(project_dir, scene.name):
@@ -139,7 +138,7 @@ class SceneTaskUseCases:
         project_dir: Path,
         scene_name: str,
     ) -> ScheduledAssetTask:
-        scene = await self._require_scene(repository, scene_name)
+        scene = await require_scene(repository, scene_name)
         if not self._assets.has_pano(project_dir, scene.name):
             raise SceneGenerationRejected(
                 "缺少 pano_360.png，请先上传或生成 360 全景"
@@ -180,7 +179,7 @@ class SceneTaskUseCases:
         command: GenerateScenePanoCommand,
         project_style: str,
     ) -> ScheduledAssetTask:
-        scene = await self._require_scene(repository, scene_name)
+        scene = await require_scene(repository, scene_name)
         source = resolve_scene_pano_source(
             command.source,
             has_master=self._assets.has_master(project_dir, scene.name),
@@ -243,16 +242,6 @@ class SceneTaskUseCases:
             source=source,
             message=message,
         )
-
-    @staticmethod
-    async def _require_scene(
-        repository: SceneTaskRepository,
-        scene_name: str,
-    ) -> Any:
-        scene = await repository.get_scene(scene_name)
-        if scene is None:
-            raise SceneNotFound(f"Scene '{scene_name}' not found")
-        return scene
 
     @staticmethod
     def _require_context(

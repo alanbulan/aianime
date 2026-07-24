@@ -1336,6 +1336,29 @@ async def test_upload_scene_pano_validates_ratio_and_updates_manifest(
 
 
 @pytest.mark.asyncio
+async def test_upload_scene_pano_rejects_non_equirectangular_image(
+    tmp_path, monkeypatch
+):
+    from ai_anime.api.routes import scenes
+
+    scene = NovelScene(name="Hall")
+    _patch_project(monkeypatch, scenes, tmp_path, _SceneStore([scene]))
+    upload = UploadFile(file=io.BytesIO(_png_bytes((4, 3))), filename="pano.png")
+
+    res = await scenes.upload_scene_pano(
+        project="demo",
+        name="Hall",
+        file=upload,
+        user={"username": "admin"},
+    )
+
+    assert res == {
+        "ok": False,
+        "error": "360 panorama must be close to 2:1 equirectangular; got 4x3",
+    }
+
+
+@pytest.mark.asyncio
 async def test_upload_scene_custom_package_updates_custom_manifest_slot(
     tmp_path, monkeypatch
 ):

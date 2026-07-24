@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Callable, Mapping, Protocol, Sequence
+from typing import Any, BinaryIO, Callable, Mapping, Protocol, Sequence
 
 from ai_anime.modules.asset_world.application.dto import (
     AssetTaskQueueReceipt,
@@ -299,6 +299,47 @@ class SceneTaskScheduler(Protocol):
         task_context: ProjectContext,
         task: SceneStageGenerationTask,
     ) -> AssetTaskQueueReceipt: ...
+
+
+class SceneMediaRepository(Protocol):
+    async def get_scene(self, name: str) -> Any | None: ...
+
+
+class SceneMediaUpload(Protocol):
+    filename: str | None
+    file: BinaryIO
+
+    async def read(self) -> bytes: ...
+
+
+class SceneMediaFiles(Protocol):
+    def save_master(
+        self,
+        project_dir: Path,
+        scene_name: str,
+        content: bytes,
+    ) -> Path: ...
+
+    def delete_master(self, project_dir: Path, scene_name: str) -> bool: ...
+
+    def save_pano(
+        self,
+        project_dir: Path,
+        scene_name: str,
+        content: bytes,
+    ) -> Path: ...
+
+    def delete_pano(self, project_dir: Path, scene_name: str) -> bool: ...
+
+    def save_custom_package(
+        self,
+        project_dir: Path,
+        scene_name: str,
+        suffix: str,
+        stream: BinaryIO,
+    ) -> dict[str, Any]: ...
+
+    def delete_custom_package(self, project_dir: Path, scene_name: str) -> bool: ...
 
 
 class PropCatalogRepository(Protocol):

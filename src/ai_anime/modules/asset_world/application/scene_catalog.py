@@ -15,13 +15,13 @@ from ai_anime.modules.asset_world.application.errors import (
     InvalidSceneInput,
     SceneAlreadyExists,
     SceneCatalogRejected,
-    SceneNotFound,
 )
 from ai_anime.modules.asset_world.application.ports import (
     SceneCatalogAssets,
     SceneCatalogRepository,
     SceneFactory,
 )
+from ai_anime.modules.asset_world.application.scene_lookup import require_scene
 from ai_anime.modules.asset_world.domain.scene_catalog import (
     compose_scene_asset_name,
     derived_scene_names,
@@ -105,9 +105,7 @@ class SceneCatalogUseCases:
         scene_name: str,
         command: UpdateSceneCommand,
     ) -> dict[str, Any]:
-        scene = await repository.get_scene(scene_name)
-        if scene is None:
-            raise SceneNotFound(f"Scene '{scene_name}' not found")
+        scene = await require_scene(repository, scene_name)
 
         updates = dict(command.fields)
         requested_name = str(updates.pop("name", "") or "").strip()
@@ -161,9 +159,7 @@ class SceneCatalogUseCases:
         repository: SceneCatalogRepository,
         scene_name: str,
     ) -> dict[str, bool]:
-        scene = await repository.get_scene(scene_name)
-        if scene is None:
-            raise SceneNotFound(f"Scene '{scene_name}' not found")
+        scene = await require_scene(repository, scene_name)
         await self._reject_scene_with_derivatives(repository, scene.name)
         deleted = await repository.delete_scene(scene.name)
         return {"deleted": bool(deleted)}

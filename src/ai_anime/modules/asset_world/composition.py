@@ -30,6 +30,7 @@ from ai_anime.modules.asset_world.application.prop_tasks import PropTaskUseCases
 from ai_anime.modules.asset_world.application.scene_catalog import (
     SceneCatalogUseCases,
 )
+from ai_anime.modules.asset_world.application.scene_media import SceneMediaUseCases
 from ai_anime.modules.asset_world.application.scene_tasks import SceneTaskUseCases
 from ai_anime.modules.asset_world.application.styles import (
     AnalyzeStyle,
@@ -68,6 +69,7 @@ from ai_anime.modules.asset_world.infrastructure.scene_catalog import (
 from ai_anime.modules.asset_world.infrastructure.scene_task_assets import (
     LocalSceneTaskAssets,
 )
+from ai_anime.modules.asset_world.infrastructure.scene_media import LocalSceneMediaFiles
 from ai_anime.modules.asset_world.infrastructure.style_catalog import StyleService
 from ai_anime.modules.asset_world.infrastructure.style_generation import (
     PydanticStyleImageAnalyzer,
@@ -104,6 +106,10 @@ def prop_catalog_use_cases() -> PropCatalogUseCases:
 
 def scene_catalog_use_cases() -> SceneCatalogUseCases:
     return SceneCatalogUseCases(NovelSceneFactory(), LocalSceneCatalogAssets())
+
+
+def scene_media_use_cases() -> SceneMediaUseCases:
+    return SceneMediaUseCases(LocalSceneMediaFiles())
 
 
 def scene_task_use_cases() -> SceneTaskUseCases:

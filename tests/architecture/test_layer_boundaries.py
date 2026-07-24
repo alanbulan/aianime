@@ -444,6 +444,40 @@ def test_asset_world_scene_task_routes_delegate_to_application() -> None:
         assert legacy_implementation not in task_adapters
 
 
+def test_asset_world_scene_media_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "scenes.py"
+    source = route.read_text(encoding="utf-8")
+    tree = ast.parse(source, filename=str(route))
+    media_adapters = "\n".join(
+        ast.get_source_segment(source, node) or ""
+        for node in tree.body
+        if isinstance(node, ast.AsyncFunctionDef)
+        and node.name
+        in {
+            "upload_scene_master",
+            "delete_scene_master",
+            "upload_scene_pano",
+            "delete_scene_pano",
+            "upload_scene_custom_package",
+            "delete_scene_custom_package",
+        }
+    )
+
+    assert "scene_media_use_cases" in media_adapters
+    assert "_copy_upload_to_temp_file" not in source
+    for legacy_implementation in (
+        "Image.open",
+        "canonical_scene_master_path",
+        "compute_scene_master_path",
+        "stage_manifest",
+        "upload_scene_package",
+        "copyfileobj",
+        "NamedTemporaryFile",
+        "time.time",
+    ):
+        assert legacy_implementation not in media_adapters
+
+
 def test_asset_world_character_identity_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "characters.py"
     source = route.read_text(encoding="utf-8")

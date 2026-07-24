@@ -45,6 +45,10 @@ class SceneGenerationRejected(SceneCatalogRejected):
     """A scene generation request cannot satisfy its prerequisites."""
 
 
+class InvalidSceneMediaInput(SceneCatalogRejected):
+    """Uploaded scene media is invalid for the requested slot."""
+
+
 class PropCatalogRejected(Exception):
     """A prop catalog request rejected by an expected business rule."""
 

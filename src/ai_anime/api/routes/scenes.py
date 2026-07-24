@@ -2,10 +2,6 @@
 
 from __future__ import annotations
 
-import io
-import shutil
-import tempfile
-import time
 from pathlib import Path
 from typing import Any
 
@@ -38,13 +34,13 @@ from ai_anime.modules.asset_world.public import (
     SceneCatalogRejected,
     UpdateSceneCommand,
     scene_catalog_use_cases,
+    scene_media_use_cases,
     scene_task_use_cases,
 )
 from ai_anime.project_config import load_project_config_file
 from ai_anime.modules.project_workspace.public import ProjectContext, resolve_project_context
 from ai_anime.sqlite_store import SQLiteStore
 from ai_anime.utils.path_resolver import (
-    canonical_scene_master_path,
     compute_scene_master_path,
 )
 
@@ -87,24 +83,6 @@ async def _resolve_scene_project(
         str(ctx.output_dir),
         store,
     )
-
-
-def _copy_upload_to_temp_file(file: UploadFile, *, suffix: str) -> tuple[Path, int]:
-    tmp_path: Path | None = None
-    try:
-        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-            tmp_path = Path(tmp.name)
-            try:
-                file.file.seek(0)
-            except (AttributeError, OSError):
-                pass
-            shutil.copyfileobj(file.file, tmp)
-            size = tmp.tell()
-    except Exception:
-        if tmp_path is not None:
-            tmp_path.unlink(missing_ok=True)
-        raise
-    return tmp_path, size
 
 
 async def _require_scene(store: SQLiteStore, name: str) -> NovelScene | None:
@@ -518,25 +496,18 @@ async def upload_scene_master(
     file: UploadFile = File(...),
     user: dict = Depends(get_api_user),
 ):
-    ctx, username, project_name, project_dir, _output_dir, store = (
+    ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_scene_project(project, user)
     )
-    scene = await _require_scene(store, name)
-    if scene is None:
-        return {"ok": False, "error": f"Scene '{name}' not found"}
-
     try:
-        from PIL import Image
-
-        img = Image.open(io.BytesIO(await file.read())).convert("RGB")
-    except Exception as exc:
-        return {"ok": False, "error": f"Invalid image file: {exc}"}
-
-    master_path = canonical_scene_master_path(project_dir, scene.name)
-    master_path.parent.mkdir(parents=True, exist_ok=True)
-    if master_path.exists():
-        master_path.replace(master_path.parent / f"master_{int(time.time())}.png")
-    img.save(master_path, format="PNG")
+        scene = await scene_media_use_cases().upload_master(
+            repository=store,
+            project_dir=project_dir,
+            scene_name=name,
+            upload=file,
+        )
+    except SceneCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
 
     return {
         "ok": True,
@@ -557,15 +528,15 @@ async def delete_scene_master(
     _ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_scene_project(project, user)
     )
-    scene = await _require_scene(store, name)
-    if scene is None:
-        return {"ok": False, "error": f"Scene '{name}' not found"}
-    master_path = compute_scene_master_path(project_dir, scene.name)
-    deleted = False
-    if master_path:
-        Path(master_path).unlink(missing_ok=True)
-        deleted = True
-    return {"ok": True, "data": {"deleted": deleted}}
+    try:
+        data = await scene_media_use_cases().delete_master(
+            repository=store,
+            project_dir=project_dir,
+            scene_name=name,
+        )
+    except SceneCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.post("/projects/{project}/scenes/{name}/master/generate-async")
@@ -639,46 +610,18 @@ async def upload_scene_pano(
     file: UploadFile = File(...),
     user: dict = Depends(get_api_user),
 ):
-    ctx, username, project_name, project_dir, _output_dir, store = (
+    ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_scene_project(project, user)
     )
-    scene = await _require_scene(store, name)
-    if scene is None:
-        return {"ok": False, "error": f"Scene '{name}' not found"}
-
     try:
-        from PIL import Image
-
-        img = Image.open(io.BytesIO(await file.read())).convert("RGB")
-    except Exception as exc:
-        return {"ok": False, "error": f"Invalid image file: {exc}"}
-
-    width, height = img.size
-    if height <= 0 or abs((width / height) - 2.0) > 0.08:
-        return {
-            "ok": False,
-            "error": f"360 panorama must be close to 2:1 equirectangular; got {width}x{height}",
-        }
-
-    out_dir = stage_manifest.stage_dir(project_dir, scene.name)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    pano_path = out_dir / "pano_360.png"
-    if pano_path.exists():
-        pano_path.replace(out_dir / f"pano_360_{int(time.time())}.png")
-    img.save(pano_path, format="PNG")
-    stage_manifest.update_manifest(
-        project_dir,
-        scene.name,
-        clear_fields=[
-            "ply_path",
-            "collision_glb_path",
-            "voxel_json_path",
-            "pano_sharp_args",
-            "splat_transform_args",
-        ],
-        pano_path=pano_path.name,
-        source="uploaded_360",
-    )
+        scene = await scene_media_use_cases().upload_pano(
+            repository=store,
+            project_dir=project_dir,
+            scene_name=name,
+            upload=file,
+        )
+    except SceneCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
 
     return {
         "ok": True,
@@ -699,28 +642,15 @@ async def delete_scene_pano(
     _ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_scene_project(project, user)
     )
-    scene = await _require_scene(store, name)
-    if scene is None:
-        return {"ok": False, "error": f"Scene '{name}' not found"}
-    pano_path = stage_manifest.resolve_pano_path(project_dir, scene.name)
-    deleted = False
-    if pano_path is not None:
-        pano_path.unlink(missing_ok=True)
-        deleted = True
-    stage_manifest.update_manifest(
-        project_dir,
-        scene.name,
-        clear_fields=[
-            "source",
-            "pano_path",
-            "ply_path",
-            "collision_glb_path",
-            "voxel_json_path",
-            "pano_sharp_args",
-            "splat_transform_args",
-        ],
-    )
-    return {"ok": True, "data": {"deleted": deleted}}
+    try:
+        data = await scene_media_use_cases().delete_pano(
+            repository=store,
+            project_dir=project_dir,
+            scene_name=name,
+        )
+    except SceneCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.post("/projects/{project}/scenes/{name}/custom/upload")
@@ -730,33 +660,18 @@ async def upload_scene_custom_package(
     file: UploadFile = File(...),
     user: dict = Depends(get_api_user),
 ):
-    ctx, username, project_name, project_dir, _output_dir, store = (
+    ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_scene_project(project, user)
     )
-    scene = await _require_scene(store, name)
-    if scene is None:
-        return {"ok": False, "error": f"Scene '{name}' not found"}
-    suffix = Path(str(file.filename or "")).suffix.lower()
-    if suffix not in {".ply", ".sog", ".splat", ".ksplat"}:
-        return {
-            "ok": False,
-            "error": "Custom scene package must be .ply, .sog, .splat, or .ksplat",
-        }
-
-    tmp_path, size = _copy_upload_to_temp_file(file, suffix=suffix)
-    if size == 0:
-        tmp_path.unlink(missing_ok=True)
-        return {"ok": False, "error": "Custom scene package is empty"}
-
-    from ai_anime import stage_asset_tasks
-
     try:
-        stage_asset_tasks.upload_scene_package(project_dir, scene.name, tmp_path)
-    finally:
-        try:
-            tmp_path.unlink()
-        except OSError:
-            pass
+        scene = await scene_media_use_cases().upload_custom_package(
+            repository=store,
+            project_dir=project_dir,
+            scene_name=name,
+            upload=file,
+        )
+    except SceneCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
 
     return {
         "ok": True,
@@ -777,38 +692,15 @@ async def delete_scene_custom_package(
     _ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_scene_project(project, user)
     )
-    scene = await _require_scene(store, name)
-    if scene is None:
-        return {"ok": False, "error": f"Scene '{name}' not found"}
-
-    custom_scene_path = stage_manifest.resolve_ply_path(
-        project_dir, scene.name, ply_kind="custom"
-    )
-    active_ply_path = stage_manifest.resolve_ply_path(project_dir, scene.name)
-    deleted = False
-    if custom_scene_path is not None:
-        custom_scene_path.unlink(missing_ok=True)
-        deleted = True
-
-    clear_fields = ["custom_scene_path"]
-    manifest = stage_manifest.load_manifest(project_dir, scene.name) or {}
-    if manifest.get("source") == "custom_scene" or (
-        custom_scene_path is not None
-        and active_ply_path is not None
-        and custom_scene_path.resolve() == active_ply_path.resolve()
-    ):
-        clear_fields.extend(
-            [
-                "source",
-                "ply_path",
-                "collision_glb_path",
-                "voxel_json_path",
-                "splat_transform_args",
-            ]
+    try:
+        data = await scene_media_use_cases().delete_custom_package(
+            repository=store,
+            project_dir=project_dir,
+            scene_name=name,
         )
-    stage_manifest.update_manifest(project_dir, scene.name, clear_fields=clear_fields)
-
-    return {"ok": True, "data": {"deleted": deleted}}
+    except SceneCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 async def _start_3gs_single_face_task(
