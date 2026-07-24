@@ -18,3 +18,13 @@ class SketchPoseFiles(Protocol):
 
 class SketchPoseIdentitySource(Protocol):
     def detected_identity_ids(self, beat: dict[str, Any]) -> list[str]: ...
+
+
+class SketchImageFiles(Protocol):
+    def image_size(self, image_path: Path) -> tuple[int, int]: ...
+
+    def crop(
+        self,
+        image_path: Path,
+        bounds: tuple[int, int, int, int],
+    ) -> None: ...

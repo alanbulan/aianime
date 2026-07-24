@@ -87,7 +87,10 @@ from ai_anime.modules.asset_world.public import (
     scene_viewer_use_cases,
 )
 from ai_anime.modules.production.public import (
+    CropSketchCommand,
+    SketchCropRejected,
     SketchPoseCandidatesMissing,
+    sketch_image_use_cases,
     sketch_pose_editor_use_cases,
 )
 from ai_anime.render_plan.ref_image_hash import RefImageHasher
@@ -3727,8 +3730,6 @@ async def crop_current_sketch(
     user: dict = Depends(get_api_user),
 ):
     """Crop and overwrite the canonical sketch, matching NiceGUI current-image crop."""
-    from PIL import Image
-
     resolved = await _resolve_generation_project(project, user, required_role="editor")
     project_dir = resolved.project_dir
     sketch_path = _canonical_sketch_path(project_dir, episode_num, beat_num)
@@ -3739,28 +3740,20 @@ async def crop_current_sketch(
         )
 
     try:
-        x = int(body.get("x", 0))
-        y = int(body.get("y", 0))
-        width = int(body.get("width", 0))
-        height = int(body.get("height", 0))
-    except (TypeError, ValueError):
+        cropped = sketch_image_use_cases().crop(
+            sketch_path=sketch_path,
+            command=CropSketchCommand(
+                x=body.get("x", 0),
+                y=body.get("y", 0),
+                width=body.get("width", 0),
+                height=body.get("height", 0),
+            ),
+        )
+    except SketchCropRejected as exc:
         return JSONResponse(
             status_code=400,
-            content={"ok": False, "error": "裁剪参数无效"},
+            content={"ok": False, "error": str(exc)},
         )
-    if width <= 0 or height <= 0:
-        return JSONResponse(
-            status_code=400,
-            content={"ok": False, "error": "裁剪宽高必须大于 0"},
-        )
-
-    with Image.open(sketch_path).convert("RGBA") as image:
-        crop_x = max(0, min(x, image.width - 1))
-        crop_y = max(0, min(y, image.height - 1))
-        right = min(crop_x + width, image.width)
-        bottom = min(crop_y + height, image.height)
-        cropped = image.crop((crop_x, crop_y, right, bottom))
-        cropped.save(sketch_path, format="PNG")
 
     return {
         "ok": True,
@@ -3769,8 +3762,7 @@ async def crop_current_sketch(
             "sketch_url": _canonical_sketch_url(
                 resolved.ctx, project_dir, episode_num, beat_num
             ),
-            "width": cropped.width,
-            "height": cropped.height,
+            **cropped,
         },
     }
 

@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from PIL import Image
+import pytest
 
 
 class _PoseStore:
@@ -128,3 +129,27 @@ def test_crop_current_sketch_saves_canonical_image(monkeypatch, tmp_path):
     assert body["data"]["height"] == 30
     cropped = Image.open(sketch_path)
     assert cropped.size == (20, 30)
+
+
+@pytest.mark.parametrize(
+    ("payload", "error"),
+    [
+        ({"x": "bad", "y": 0, "width": 20, "height": 30}, "裁剪参数无效"),
+        ({"x": 0, "y": 0, "width": 0, "height": 30}, "裁剪宽高必须大于 0"),
+    ],
+)
+def test_crop_current_sketch_preserves_validation_errors(
+    monkeypatch,
+    tmp_path,
+    payload,
+    error,
+):
+    client, _sketch_path = _client(monkeypatch, tmp_path)
+
+    response = client.post(
+        "/api/v1/projects/demo/episodes/1/beats/1/sketch/crop",
+        json=payload,
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {"ok": False, "error": error}

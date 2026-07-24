@@ -301,7 +301,7 @@ def test_production_callers_use_the_public_api() -> None:
     assert not failures, "\n".join(failures)
 
 
-def test_production_sketch_pose_routes_delegate_to_application() -> None:
+def test_production_sketch_edit_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     source = route.read_text(encoding="utf-8")
 
@@ -309,6 +309,7 @@ def test_production_sketch_pose_routes_delegate_to_application() -> None:
         PACKAGE_ROOT / "services" / "sketch_pose_service.py"
     ).exists()
     assert "sketch_pose_editor_use_cases" in source
+    assert "sketch_image_use_cases" in source
     assert "ai_anime.modules.production.public" in _imports(route)
     for legacy_implementation in (
         "ai_anime.services.sketch_pose_service",
@@ -318,6 +319,13 @@ def test_production_sketch_pose_routes_delegate_to_application() -> None:
         "save_pose_editor_state",
     ):
         assert legacy_implementation not in source
+
+    crop_start = source.index("async def crop_current_sketch")
+    crop_end = source.index("\n@router.post(", crop_start)
+    crop_source = source[crop_start:crop_end]
+    assert "sketch_image_use_cases" in crop_source
+    assert "Image.open" not in crop_source
+    assert "from PIL" not in crop_source
 
 
 def test_asset_world_style_layers_do_not_depend_on_fastapi() -> None:
