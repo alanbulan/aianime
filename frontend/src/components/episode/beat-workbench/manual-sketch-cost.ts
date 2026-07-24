@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { SketchAspectRatio } from "@/lib/queries/sketch-settings";
+import type { SketchAspectRatio } from "@/modules/production/public";
 import {
   SKETCH_REGEN_MODES,
   bestFitMode,

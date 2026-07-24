@@ -22,12 +22,12 @@ import {
   backendErrorToastMessage,
   BillingRuleNotConfiguredError,
 } from "@/shared/api/errors";
-import type { SketchAspectRatio } from "@/lib/queries/sketch-settings";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import { CreditCostInline } from "@/components/credit-cost-inline";
 import { CreditCostPill, formatCreditCost } from "@/components/credits/credit-visual";
 import type { Beat } from "@/modules/narrative_planning/public";
 import {
+  type SketchAspectRatio,
   useGenerateAudio,
   useGlobalOptimize,
   useVideoBackends,

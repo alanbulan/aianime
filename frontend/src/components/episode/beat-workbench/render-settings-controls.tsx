@@ -14,10 +14,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  type UpdateRenderSettingsCommand,
   useRenderSettings,
   useUpdateRenderSettings,
-  type RenderSettingsUpdate,
-} from "@/lib/queries/render-settings";
+} from "@/modules/production/public";
 import {
   WORKBENCH_SELECT_CONTENT_CLASS,
   WORKBENCH_SELECT_ITEM_CLASS,
@@ -42,7 +42,7 @@ export function RenderModelSelect({ project }: { project: string }) {
     data?.render_image_selection ??
     t("episode.renderSettings.modelPlaceholder");
 
-  const patchSettings = async (patch: RenderSettingsUpdate) => {
+  const patchSettings = async (patch: UpdateRenderSettingsCommand) => {
     try {
       const res = await updateSettings.mutateAsync(patch);
       if (res.ok === false) toast.error(res.error || t("common.error"));
@@ -71,7 +71,7 @@ export function RenderModelSelect({ project }: { project: string }) {
         value={data.render_image_selection}
         onValueChange={(value) => {
           if (value && value !== data.render_image_selection) {
-            void patchSettings({ render_image_selection: value });
+            void patchSettings({ renderImageSelection: value });
           }
         }}
         disabled={disabled || options.length === 0}
@@ -117,7 +117,7 @@ export function RenderSettingsControls({
     data?.render_image_selection ??
     t("episode.renderSettings.modelPlaceholder");
 
-  const patchSettings = async (patch: RenderSettingsUpdate) => {
+  const patchSettings = async (patch: UpdateRenderSettingsCommand) => {
     try {
       const res = await updateSettings.mutateAsync(patch);
       if (res.ok === false) toast.error(res.error || t("common.error"));
@@ -146,7 +146,7 @@ export function RenderSettingsControls({
         value={data.render_image_selection}
         onValueChange={(value) => {
           if (value && value !== data.render_image_selection) {
-            void patchSettings({ render_image_selection: value });
+            void patchSettings({ renderImageSelection: value });
           }
         }}
         disabled={disabled || options.length === 0}

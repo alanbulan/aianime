@@ -20,7 +20,7 @@ import {
   useUploadGrid,
   type PoolImage,
 } from "@/lib/queries/sketches";
-import type { SketchAspectRatio } from "@/lib/queries/sketch-settings";
+import type { SketchAspectRatio } from "@/modules/production/public";
 import { gridAspectCss } from "@/lib/aspect-ratio";
 import { queryKeys } from "@/lib/query-keys";
 import { resolveMediaUrl } from "@/lib/media-url";

@@ -30,7 +30,7 @@ import {
   useScript,
   type Beat,
 } from "@/modules/narrative_planning/public";
-import { useSketchSettings } from "@/lib/queries/sketch-settings";
+import { useSketchSettings } from "@/modules/production/public";
 import { parseColorValue, splitIdentityId } from "@/lib/sketch-colors";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { withImageCacheBust } from "@/features/canvas/application/imageData";

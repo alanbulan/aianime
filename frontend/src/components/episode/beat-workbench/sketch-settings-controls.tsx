@@ -14,11 +14,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  type SketchAspectRatio,
+  type UpdateSketchSettingsCommand,
   useSketchSettings,
   useUpdateSketchSettings,
-  type SketchAspectRatio,
-  type SketchSettingsUpdate,
-} from "@/lib/queries/sketch-settings";
+} from "@/modules/production/public";
 import {
   WORKBENCH_SELECT_CONTENT_CLASS,
   WORKBENCH_SELECT_ITEM_CLASS,
@@ -50,7 +50,7 @@ export function SketchModelSelect({
     data?.sketch_image_selection ??
     t("episode.sketchSettings.modelPlaceholder");
 
-  const patchSettings = async (patch: SketchSettingsUpdate) => {
+  const patchSettings = async (patch: UpdateSketchSettingsCommand) => {
     try {
       const res = await updateSettings.mutateAsync(patch);
       if (res.ok === false) toast.error(res.error || t("common.error"));
@@ -79,7 +79,7 @@ export function SketchModelSelect({
         value={data.sketch_image_selection}
         onValueChange={(value) => {
           if (value && value !== data.sketch_image_selection) {
-            void patchSettings({ sketch_image_selection: value });
+            void patchSettings({ sketchImageSelection: value });
           }
         }}
         disabled={disabled || options.length === 0}
@@ -179,7 +179,7 @@ export function SketchSettingsControls({
     [data?.options],
   );
 
-  const patchSettings = async (patch: SketchSettingsUpdate) => {
+  const patchSettings = async (patch: UpdateSketchSettingsCommand) => {
     try {
       const res = await updateSettings.mutateAsync(patch);
       if (res.ok === false) toast.error(res.error || t("common.error"));
@@ -212,7 +212,7 @@ export function SketchSettingsControls({
         value={data.sketch_image_selection}
         onValueChange={(value) => {
           if (value && value !== data.sketch_image_selection) {
-            void patchSettings({ sketch_image_selection: value });
+            void patchSettings({ sketchImageSelection: value });
           }
         }}
         disabled={disabled || options.length === 0}

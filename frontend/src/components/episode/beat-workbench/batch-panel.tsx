@@ -14,7 +14,6 @@ import {
 
 import { useRegenerateSketches } from "@/lib/queries/sketches";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
-import { useSketchSettings } from "@/lib/queries/sketch-settings";
 import {
   SKETCH_REGEN_MODES,
   bestFitMode,
@@ -48,9 +47,12 @@ import { CreditCostInline } from "@/components/credit-cost-inline";
 import { formatCreditCost } from "@/components/credits/credit-visual";
 import { RenderPlanDialog } from "./render-plan-dialog";
 import type { Beat } from "@/modules/narrative_planning/public";
-import { useGenerateAudio } from "@/modules/production/public";
+import {
+  type SketchAspectRatio,
+  useGenerateAudio,
+  useSketchSettings,
+} from "@/modules/production/public";
 import type { Task } from "@/types/task";
-import type { SketchAspectRatio } from "@/lib/queries/sketch-settings";
 
 interface BatchPanelProps {
   checkedBeats: Set<number>;

@@ -17,6 +17,12 @@ import type {
 } from "@/modules/production/domain/narrator-voice";
 import type { GenerateAudioCommand } from "@/modules/production/domain/audio-generation";
 import type { FinalVideoData } from "@/modules/production/domain/episode-compose";
+import type {
+  RenderSettingsData,
+  SketchSettingsData,
+  UpdateRenderSettingsCommand,
+  UpdateSketchSettingsCommand,
+} from "@/modules/production/domain/image-settings";
 import {
   DEFAULT_VIDEO_BACKEND,
   type VideoBackendOption,
@@ -259,6 +265,51 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
         p`api/v1/projects/${project}/episodes/${episode}/beats/${beatNumber}/audio`,
       )
       .json<ProductionTaskResponse | ProductionErrorResponse>();
+  },
+  async getRenderSettings(project, signal) {
+    return api
+      .get(p`api/v1/projects/${project}/render-settings`, { signal })
+      .json<ProductionDataResponse<RenderSettingsData>>();
+  },
+  async updateRenderSettings(
+    project,
+    command: UpdateRenderSettingsCommand,
+  ) {
+    return api
+      .patch(p`api/v1/projects/${project}/render-settings`, {
+        json: {
+          ...(command.renderImageSelection !== undefined
+            ? { render_image_selection: command.renderImageSelection }
+            : {}),
+          ...(command.sketchAspectPadding !== undefined
+            ? { sketch_aspect_padding: command.sketchAspectPadding }
+            : {}),
+        },
+      })
+      .json<
+        ProductionDataResponse<RenderSettingsData> | ProductionErrorResponse
+      >();
+  },
+  async getSketchSettings(project, signal) {
+    return api
+      .get(p`api/v1/projects/${project}/sketch-settings`, { signal })
+      .json<ProductionDataResponse<SketchSettingsData>>();
+  },
+  async updateSketchSettings(
+    project,
+    command: UpdateSketchSettingsCommand,
+  ) {
+    return api
+      .patch(p`api/v1/projects/${project}/sketch-settings`, {
+        json: {
+          ...(command.sketchImageSelection !== undefined
+            ? { sketch_image_selection: command.sketchImageSelection }
+            : {}),
+        },
+      })
+      .json<
+        ProductionDataResponse<SketchSettingsData> | ProductionErrorResponse
+      >();
   },
   async composeEpisode(project, episode, command) {
     return api

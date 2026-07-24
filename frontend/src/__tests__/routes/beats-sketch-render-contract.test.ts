@@ -168,7 +168,9 @@ describe("beats sketch/render v2 contract", () => {
     const renderSettingsControls = read(
       "src/components/episode/beat-workbench/render-settings-controls.tsx",
     );
-    const renderSettingsQuery = read("src/lib/queries/render-settings.ts");
+    const productionGateway = read(
+      "src/modules/production/infrastructure/http-production-video-gateway.ts",
+    );
     const queryKeys = read("src/lib/query-keys.ts");
     const sketchesQuery = read("src/lib/queries/sketches.ts");
     const projectTypes = read(
@@ -180,7 +182,7 @@ describe("beats sketch/render v2 contract", () => {
     expect(batchBar).not.toContain("RenderCheckboxes");
     expect(renderSettingsControls).toContain("useRenderSettings");
     expect(renderSettingsControls).toContain("useUpdateRenderSettings");
-    expect(renderSettingsQuery).toContain("render-settings");
+    expect(productionGateway).toContain("render-settings");
     expect(queryKeys).toContain("renderSettings");
 
     expect(sketchesQuery).toContain("image_generation_selection");

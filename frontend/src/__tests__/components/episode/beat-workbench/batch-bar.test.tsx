@@ -233,18 +233,6 @@ vi.mock("@/modules/production/public", () => ({
   }),
 }));
 
-vi.mock("@/lib/queries/sketch-settings", () => ({
-  useSketchSettings: () => ({
-    data: {
-      ok: true,
-      data: {
-        sketch_image_selection: "newapi_gpt_image2",
-        options: {},
-      },
-    },
-  }),
-}));
-
 vi.mock("@/lib/queries/generation-credit-cost", () => ({
   useGenerationCreditCost: () => ({
     data: {

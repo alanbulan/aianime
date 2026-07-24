@@ -80,7 +80,7 @@ vi.mock("@/modules/narrative_planning/public", () => ({
   }),
 }));
 
-vi.mock("@/lib/queries/sketch-settings", () => ({
+vi.mock("@/modules/production/public", () => ({
   useSketchSettings: () => ({
     data: {
       ok: true,

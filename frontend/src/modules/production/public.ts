@@ -14,15 +14,26 @@ export {
   useRecordNarratorVoice,
   useRegenerateBeatVideo,
   useRegenerateBeatAudio,
+  useRenderSettings,
   useSeedance2BeatStatus,
+  useSketchSettings,
   useTrimSeedance2Asset,
   useTrimNarratorVoice,
   useUploadNarratorVoice,
   useUploadSeedance2Asset,
+  useUpdateRenderSettings,
+  useUpdateSketchSettings,
   useVideoBackends,
   useVideoPool,
   useVideoPoolSelect,
 } from "@/modules/production/composition";
+export type {
+  RenderSettingsData,
+  SketchAspectRatio,
+  SketchSettingsData,
+  UpdateRenderSettingsCommand,
+  UpdateSketchSettingsCommand,
+} from "@/modules/production/domain/image-settings";
 export type { NarratorVoiceSourceOption } from "@/modules/production/domain/narrator-voice";
 export type {
   Seedance2BeatStatus,

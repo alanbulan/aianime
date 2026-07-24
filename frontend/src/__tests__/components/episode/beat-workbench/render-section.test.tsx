@@ -137,7 +137,7 @@ vi.mock("@/lib/queries/sketches", async (importOriginal) => {
   };
 });
 
-vi.mock("@/lib/queries/render-settings", () => ({
+vi.mock("@/modules/production/public", () => ({
   useRenderSettings: () => ({
     data: {
       ok: true,

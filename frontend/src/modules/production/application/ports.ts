@@ -6,6 +6,12 @@ import type {
   FinalVideoData,
 } from "@/modules/production/domain/episode-compose";
 import type {
+  RenderSettingsData,
+  SketchSettingsData,
+  UpdateRenderSettingsCommand,
+  UpdateSketchSettingsCommand,
+} from "@/modules/production/domain/image-settings";
+import type {
   NarratorVoiceSourcesData,
   NarratorVoiceStatusData,
 } from "@/modules/production/domain/narrator-voice";
@@ -164,6 +170,26 @@ export interface ProductionVideoGateway {
     episode: number,
     beatNumber: number,
   ): Promise<ProductionTaskResponse | ProductionErrorResponse>;
+  getRenderSettings(
+    project: string,
+    signal?: AbortSignal,
+  ): Promise<ProductionDataResponse<RenderSettingsData>>;
+  updateRenderSettings(
+    project: string,
+    command: UpdateRenderSettingsCommand,
+  ): Promise<
+    ProductionDataResponse<RenderSettingsData> | ProductionErrorResponse
+  >;
+  getSketchSettings(
+    project: string,
+    signal?: AbortSignal,
+  ): Promise<ProductionDataResponse<SketchSettingsData>>;
+  updateSketchSettings(
+    project: string,
+    command: UpdateSketchSettingsCommand,
+  ): Promise<
+    ProductionDataResponse<SketchSettingsData> | ProductionErrorResponse
+  >;
   composeEpisode(
     project: string,
     episode: number,

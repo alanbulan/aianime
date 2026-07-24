@@ -9,7 +9,6 @@ import { formatCreditCost } from "@/components/credits/credit-visual";
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
 import { useCharacters } from "@/modules/asset_world/public";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
-import { useSketchSettings } from "@/lib/queries/sketch-settings";
 import {
   useRebuildPoolIndex,
   useRegenerateSketches,
@@ -34,6 +33,7 @@ import {
 import { ScriptPageView } from "@/modules/narrative_planning/presentation/ScriptPageView";
 import {
   DEFAULT_VIDEO_BACKEND,
+  useSketchSettings,
   useVideoBackends,
 } from "@/modules/production/public";
 import {

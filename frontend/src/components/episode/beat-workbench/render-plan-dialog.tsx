@@ -28,7 +28,7 @@ import {
   useRenderExecute,
   useRenderPlan,
 } from "@/lib/queries/render-plan";
-import { useRenderSettings } from "@/lib/queries/render-settings";
+import { useRenderSettings } from "@/modules/production/public";
 import type { OkResponse } from "@/types/api";
 import type { PlanEntry, RenderPlan } from "@/types/render-plan";
 
