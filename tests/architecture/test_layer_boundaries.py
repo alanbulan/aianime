@@ -446,6 +446,31 @@ def test_production_episode_export_routes_delegate_to_application() -> None:
     assert not _python_files(PACKAGE_ROOT / "export")
 
 
+def test_production_episode_audio_routes_delegate_to_application() -> None:
+    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    source = generation.read_text(encoding="utf-8")
+    batch_start = source.index("async def generate_audio(")
+    batch_end = source.index("async def global_optimize_video(", batch_start)
+    beat_start = source.index("async def regenerate_beat_audio(")
+    beat_end = source.index("async def export_srt(", beat_start)
+    route_source = source[batch_start:batch_end] + source[beat_start:beat_end]
+
+    assert route_source.count("episode_audio_use_cases") == 2
+    assert "GenerateEpisodeAudioCommand" in route_source
+    assert "def _collect_audio_prereq_errors(" not in source
+    assert "def _voice_prereq_error_response(" not in source
+    for implementation_detail in (
+        "make_sqlite_store_for_context",
+        "make_sqlite_store(",
+        "get_task_backend",
+        "enqueue_project_task",
+        "project_task_state_key",
+        "collect_indextts2_voice_prereq_errors",
+        "音频生成需要 project context",
+    ):
+        assert implementation_detail not in route_source
+
+
 def test_production_generation_context_routes_delegate_to_application() -> None:
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     freezone = PACKAGE_ROOT / "api" / "routes" / "freezone.py"

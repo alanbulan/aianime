@@ -147,6 +147,9 @@ class _M04Store:
             }
         ]
 
+    async def close(self) -> None:
+        return None
+
 
 class _FakeTaskBackend:
     def __init__(self, backend: str):
@@ -175,6 +178,8 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         image_settings as image_settings_adapter,
     )
     from ai_anime.modules.asset_world.public import StyleService
+    from ai_anime.modules.production.infrastructure import episode_audio
+    from ai_anime.shared.infrastructure import project_stores
 
     store = _M04Store()
     project_dir = tmp_path / "output" / "alice" / _PROJECT
@@ -303,13 +308,22 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         generation, "make_sqlite_store_for_context", make_store_for_context
     )
     monkeypatch.setattr(generation, "make_sqlite_store", make_store)
+    monkeypatch.setattr(
+        project_stores,
+        "make_sqlite_store_for_context",
+        make_store_for_context,
+    )
     for module in (characters, props, projects):
         monkeypatch.setattr(module, "make_static_url_for_context", static_url)
 
     async def no_prereq_errors(**_kwargs):
         return []
 
-    monkeypatch.setattr(generation, "_collect_audio_prereq_errors", no_prereq_errors)
+    monkeypatch.setattr(
+        episode_audio,
+        "collect_indextts2_voice_prereq_errors",
+        no_prereq_errors,
+    )
     monkeypatch.setattr(
         character_voice_storage,
         "trim_existing_character_voice_file",

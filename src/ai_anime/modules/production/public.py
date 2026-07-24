@@ -2,6 +2,15 @@
 
 from typing import Any
 
+from ai_anime.modules.production.application.episode_audio import (
+    INDEXTTS2_AUDIO_TASK_TYPE,
+    AudioVoicePrerequisitesMissing,
+    EpisodeAudioBeatMissing,
+    EpisodeAudioBeatsMissing,
+    EpisodeAudioUseCases,
+    GenerateEpisodeAudioCommand,
+    ScheduledEpisodeAudio,
+)
 from ai_anime.modules.production.application.episode_export import (
     EpisodeExportUseCases,
     EpisodeFileExport,
@@ -63,6 +72,14 @@ from ai_anime.modules.production.domain.sketch_color import (
     global_prop_marker_colors,
     marker_color_change_requires_sketch_clean,
 )
+
+
+def episode_audio_use_cases() -> EpisodeAudioUseCases:
+    from ai_anime.modules.production.composition import (
+        episode_audio_use_cases as build,
+    )
+
+    return build()
 
 
 def episode_export_use_cases() -> EpisodeExportUseCases:
@@ -150,11 +167,16 @@ def sketch_pose_editor_use_cases() -> SketchPoseEditorUseCases:
 
 
 __all__ = [
+    "INDEXTTS2_AUDIO_TASK_TYPE",
+    "AudioVoicePrerequisitesMissing",
     "BRIDGMAN_CHARACTER_PALETTE",
     "ComposeEpisodeVideoCommand",
     "CropSketchCommand",
     "DetectSketchMarkersCommand",
     "EpisodeBeatsMissing",
+    "EpisodeAudioBeatMissing",
+    "EpisodeAudioBeatsMissing",
+    "EpisodeAudioUseCases",
     "EpisodeExportUseCases",
     "EpisodeFileExport",
     "EpisodeScriptBeatsMissing",
@@ -163,6 +185,7 @@ __all__ = [
     "EpisodeVideoUseCases",
     "FinalEpisodeVideoStatus",
     "FinalEpisodeVideoMissing",
+    "GenerateEpisodeAudioCommand",
     "ImageGenerationGuardQuery",
     "ImageGenerationUsageUseCases",
     "PROP_MARKER_PALETTE",
@@ -171,6 +194,7 @@ __all__ = [
     "ProductionImageSettingsUseCases",
     "ReplaceSketchRegenQueueCommand",
     "ScheduledEpisodeVideo",
+    "ScheduledEpisodeAudio",
     "SketchCropRejected",
     "SketchColorAssignmentResult",
     "SketchColorAssignmentUseCases",
@@ -187,6 +211,7 @@ __all__ = [
     "UpdateRenderImageSettingsCommand",
     "UpdateSketchImageSettingsCommand",
     "assign_identity_sketch_colors",
+    "episode_audio_use_cases",
     "episode_export_use_cases",
     "episode_video_use_cases",
     "global_prop_marker_colors",

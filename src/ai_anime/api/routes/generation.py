@@ -86,13 +86,17 @@ from ai_anime.modules.asset_world.public import (
     scene_viewer_use_cases,
 )
 from ai_anime.modules.production.public import (
+    AudioVoicePrerequisitesMissing,
     ComposeEpisodeVideoCommand,
     CropSketchCommand,
     DetectSketchMarkersCommand,
     EpisodeBeatsMissing,
+    EpisodeAudioBeatMissing,
+    EpisodeAudioBeatsMissing,
     EpisodeScriptBeatsMissing,
     EpisodeSubtitlesMissing,
     FinalEpisodeVideoMissing,
+    GenerateEpisodeAudioCommand,
     ImageGenerationGuardQuery,
     ProductionImageSettingsRejected,
     ReplaceSketchRegenQueueCommand,
@@ -103,6 +107,7 @@ from ai_anime.modules.production.public import (
     SketchPoseCandidatesMissing,
     UpdateRenderImageSettingsCommand,
     UpdateSketchImageSettingsCommand,
+    episode_audio_use_cases,
     episode_export_use_cases,
     episode_video_use_cases,
     production_generation_context_use_cases,
@@ -1826,45 +1831,6 @@ async def generate_sketches(
 # ── 语音生成 ──────────────────────────────────────────────────────────────────
 
 
-async def _collect_audio_prereq_errors(
-    *,
-    store,
-    username: str,
-    project: str,
-    episode: int,
-    beat_numbers,
-    mode: str,
-) -> list[str]:
-    from ai_anime.audio.indextts2_beat_audio_task import (
-        collect_indextts2_voice_prereq_errors,
-    )
-
-    try:
-        return await collect_indextts2_voice_prereq_errors(
-            store=store,
-            username=username,
-            project=project,
-            episode=episode,
-            beat_numbers=beat_numbers,
-            mode=mode,
-        )
-    except AttributeError:
-        # Unit-test fakes may not implement the full SQLiteStore voice-sample
-        # surface. Real SQLiteStore has these attributes; skip only for narrow
-        # fakes so existing route-contract tests can focus on dispatch shape.
-        return []
-
-
-def _voice_prereq_error_response(errors: list[str]) -> dict:
-    preview = "；".join(errors[:5])
-    suffix = " ..." if len(errors) > 5 else ""
-    return {
-        "ok": False,
-        "code": "voice_prereq_required",
-        "error": f"{preview}{suffix}",
-    }
-
-
 @router.post("/projects/{project}/episodes/{episode_num}/audio/generate")
 async def generate_audio(
     project: str,
@@ -1874,63 +1840,20 @@ async def generate_audio(
 ):
     """批量生成语音（IndexTTS2）。"""
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    ctx = resolved.ctx
-    username = resolved.username
-    project_name = resolved.project_name
-    output_dir = resolved.output_dir
-    state_dir = resolved.state_dir
-    store = (
-        await make_sqlite_store_for_context(ctx)
-        if ctx
-        else await make_sqlite_store(username, project_name)
-    )
-    beats = await store.get_beats_as_dicts(episode_num)
-
-    if not beats:
-        return {"ok": False, "error": f"No beats found for episode {episode_num}"}
-
-    mode = body.mode or "sync_changed"
-    missing_voice = await _collect_audio_prereq_errors(
-        store=store,
-        username=username,
-        project=project_name,
-        episode=episode_num,
-        beat_numbers=body.beat_numbers,
-        mode=mode,
-    )
-    if missing_voice:
-        return _voice_prereq_error_response(missing_voice)
-
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type="audio_generation_indextts2",
-            queue_kind="default",
-            episode=episode_num,
-            payload={
-                "episode": episode_num,
-                "mode": mode,
-                "beat_numbers": body.beat_numbers,
-                "output_dir": output_dir,
-                "state_dir": state_dir,
-            },
-        )
-        return {
-            "ok": True,
-            "task_type": "audio_generation_indextts2",
-            "task_id": queued.task_state.task_id,
-            "task_key": project_task_state_key(
-                "audio_generation_indextts2", ctx.project_id, episode_num
+    try:
+        scheduled = await episode_audio_use_cases().generate(
+            resolved.ctx,
+            GenerateEpisodeAudioCommand(
+                episode_num=episode_num,
+                mode=body.mode,
+                beat_numbers=body.beat_numbers,
             ),
-            "backend": queued.backend,
-            "queue": queued.queue,
-            "message": f"第 {episode_num} 集语音批量生成已进入队列",
-        }
-
-    return {
-        "ok": False,
-        "error": "音频生成需要 project context",
-    }
+        )
+    except EpisodeAudioBeatsMissing as exc:
+        return {"ok": False, "error": str(exc)}
+    except AudioVoicePrerequisitesMissing as exc:
+        return {"ok": False, "code": exc.code, "error": str(exc)}
+    return {"ok": True, **scheduled.as_dict()}
 
 
 # ── 视频优化 ──────────────────────────────────────────────────────────────────
@@ -4432,67 +4355,17 @@ async def regenerate_beat_audio(
 ):
     """重新生成单个 beat 的 IndexTTS2 语音。"""
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    ctx = resolved.ctx
-    username = resolved.username
-    project_name = resolved.project_name
-    output_dir = resolved.output_dir
-    state_dir = resolved.state_dir
-    store = (
-        await make_sqlite_store_for_context(ctx)
-        if ctx
-        else await make_sqlite_store(username, project_name)
-    )
-    beats = await store.get_beats_as_dicts(episode_num)
-
-    beat = next((b for b in beats if b.get("beat_number") == beat_num), None)
-    if not beat:
-        # 按索引回退
-        if 1 <= beat_num <= len(beats):
-            beat = beats[beat_num - 1]
-        else:
-            return {"ok": False, "error": f"Beat {beat_num} not found"}
-
-    missing_voice = await _collect_audio_prereq_errors(
-        store=store,
-        username=username,
-        project=project_name,
-        episode=episode_num,
-        beat_numbers=[beat_num],
-        mode="redo_selected",
-    )
-    if missing_voice:
-        return _voice_prereq_error_response(missing_voice)
-
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type="audio_generation_indextts2",
-            queue_kind="default",
-            episode=episode_num,
-            payload={
-                "episode": episode_num,
-                "mode": "redo_selected",
-                "beat_numbers": [beat_num],
-                "output_dir": output_dir,
-                "state_dir": state_dir,
-            },
+    try:
+        scheduled = await episode_audio_use_cases().regenerate_beat(
+            resolved.ctx,
+            episode_num,
+            beat_num,
         )
-        return {
-            "ok": True,
-            "task_type": "audio_generation_indextts2",
-            "task_id": queued.task_state.task_id,
-            "task_key": project_task_state_key(
-                "audio_generation_indextts2", ctx.project_id, episode_num
-            ),
-            "backend": queued.backend,
-            "queue": queued.queue,
-            "message": f"第 {episode_num} 集 Beat {beat_num} 语音生成已进入队列",
-        }
-
-    return {
-        "ok": False,
-        "error": "音频生成需要 project context",
-    }
+    except EpisodeAudioBeatMissing as exc:
+        return {"ok": False, "error": str(exc)}
+    except AudioVoicePrerequisitesMissing as exc:
+        return {"ok": False, "code": exc.code, "error": str(exc)}
+    return {"ok": True, **scheduled.as_dict()}
 
 
 # ── SRT 字幕导出 ─────────────────────────────────────────────────────────────

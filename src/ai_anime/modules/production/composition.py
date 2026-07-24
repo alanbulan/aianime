@@ -2,6 +2,9 @@
 
 from typing import Any
 
+from ai_anime.modules.production.application.episode_audio import (
+    EpisodeAudioUseCases,
+)
 from ai_anime.modules.production.application.generation_context import (
     ProductionGenerationContextUseCases,
 )
@@ -55,6 +58,10 @@ from ai_anime.modules.production.infrastructure.episode_video import (
 from ai_anime.modules.production.infrastructure.episode_export import (
     LocalEpisodeExportFiles,
 )
+from ai_anime.modules.production.infrastructure.episode_audio import (
+    IndexTTS2VoicePrerequisiteChecker,
+    TaskBackendEpisodeAudioScheduler,
+)
 from ai_anime.modules.production.infrastructure.sketch_color import (
     AssetWorldRuntimePropMenuSource,
     DomainSketchColorAssigner,
@@ -69,6 +76,16 @@ from ai_anime.modules.production.infrastructure.sketch_marker_detection import (
     LocalSketchMarkerDetectionFiles,
 )
 from ai_anime.modules.project_workspace.public import get_user_output_dir
+
+
+def episode_audio_use_cases() -> EpisodeAudioUseCases:
+    from ai_anime import ports
+
+    return EpisodeAudioUseCases(
+        SqliteEpisodeBeatSource(),
+        IndexTTS2VoicePrerequisiteChecker(),
+        TaskBackendEpisodeAudioScheduler(ports.get_task_backend),
+    )
 
 
 def episode_export_use_cases() -> EpisodeExportUseCases:

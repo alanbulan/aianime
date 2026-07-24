@@ -1,51 +1,34 @@
 import pytest
 
 
-class _FakeStore:
-    async def get_beats_as_dicts(self, episode: int):
-        assert episode == 3
-        return [
-            {
-                "beat_number": 1,
-                "audio_type": "narration",
-                "narration_segment": "Hello",
-            }
-        ]
-
-
 @pytest.mark.asyncio
 async def test_audio_generate_prereq_error_does_not_start_task(monkeypatch, tmp_path):
     from ai_anime.api.routes import generation
-    from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.schemas import TTSGenerateRequest
+    from ai_anime.modules.production.public import AudioVoicePrerequisitesMissing
 
-    async def fake_make_sqlite_store(username, project):
-        assert username == "alice"
-        assert project == "demo"
-        return _FakeStore()
+    context = object()
 
-    async def fake_collect_prereq_errors(**kwargs):
-        return ["Beat 01 解说声线缺失：请上传旁白声线"]
-
-    async def fake_resolve_project_scope(project, user, *, required_role="viewer"):
-        return ProjectResolution(
-            ctx=None,
-            username="alice",
-            project_name="demo",
-            project_dir=tmp_path,
-            output_dir=str(tmp_path),
-            state_dir=str(tmp_path / "state"),
-            runtime_dir=str(tmp_path / "runtime"),
+    async def resolve_project(project, user, required_role="editor"):
+        assert (project, user, required_role) == (
+            "demo",
+            {"username": "alice"},
+            "editor",
         )
+        return type("Resolution", (), {"ctx": context})()
 
-    monkeypatch.setattr(generation, "resolve_project_scope", fake_resolve_project_scope)
-    monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
-    monkeypatch.setattr(
-        generation,
-        "_collect_audio_prereq_errors",
-        fake_collect_prereq_errors,
-        raising=False,
-    )
+    class _UseCases:
+        async def generate(self, candidate, command):
+            assert candidate is context
+            assert command.episode_num == 3
+            assert command.mode == "redo_selected"
+            assert command.beat_numbers == [1]
+            raise AudioVoicePrerequisitesMissing(
+                ["Beat 01 解说声线缺失：请上传旁白声线"]
+            )
+
+    monkeypatch.setattr(generation, "_resolve_generation_project", resolve_project)
+    monkeypatch.setattr(generation, "episode_audio_use_cases", _UseCases)
 
     response = await generation.generate_audio(
         project="demo",

@@ -10,6 +10,10 @@ from ai_anime.modules.production.domain.sketch_marker_detection import (
 )
 
 if TYPE_CHECKING:
+    from ai_anime.modules.production.application.episode_audio import (
+        EpisodeAudioTask,
+        EpisodeAudioTaskReceipt,
+    )
     from ai_anime.modules.production.application.episode_video import (
         EpisodeVideoCompositionTask,
         EpisodeVideoTaskReceipt,
@@ -294,3 +298,21 @@ class ProductionEpisodeExportFiles(Protocol):
         final_video_path: Path | None,
         subtitle_content: str,
     ) -> Path: ...
+
+
+class ProductionAudioVoicePrerequisiteChecker(Protocol):
+    async def check(
+        self,
+        context: ProjectContext,
+        episode_num: int,
+        beat_numbers: list[int] | None,
+        mode: str,
+    ) -> list[str]: ...
+
+
+class ProductionEpisodeAudioScheduler(Protocol):
+    async def enqueue(
+        self,
+        context: ProjectContext,
+        task: EpisodeAudioTask,
+    ) -> EpisodeAudioTaskReceipt: ...
