@@ -430,14 +430,13 @@ def test_beat_viewer_manifests_include_context_and_destinations(monkeypatch, tmp
             runtime_dir=str(tmp_path / "_runtime"),
         )
 
-    from ai_anime.api import viewer_manifests
     from ai_anime.api.routes import generation
     from ai_anime.director_world import stage_manifest
 
     monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
     monkeypatch.setattr(generation, "_resolve_generation_project", fake_resolve_project)
     monkeypatch.setattr(
-        viewer_manifests,
+        generation,
         "make_static_url_for_context",
         lambda ctx, rel, local_path=None: f"/static/projects/{ctx.project_id}/{rel}",
     )

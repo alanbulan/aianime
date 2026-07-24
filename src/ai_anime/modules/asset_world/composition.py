@@ -32,6 +32,7 @@ from ai_anime.modules.asset_world.application.scene_catalog import (
 )
 from ai_anime.modules.asset_world.application.scene_media import SceneMediaUseCases
 from ai_anime.modules.asset_world.application.scene_tasks import SceneTaskUseCases
+from ai_anime.modules.asset_world.application.scene_viewer import SceneViewerUseCases
 from ai_anime.modules.asset_world.application.styles import (
     AnalyzeStyle,
     StyleCatalogUseCases,
@@ -70,6 +71,7 @@ from ai_anime.modules.asset_world.infrastructure.scene_task_assets import (
     LocalSceneTaskAssets,
 )
 from ai_anime.modules.asset_world.infrastructure.scene_media import LocalSceneMediaFiles
+from ai_anime.modules.asset_world.infrastructure.scene_viewer import LocalSceneViewerAssets
 from ai_anime.modules.asset_world.infrastructure.style_catalog import StyleService
 from ai_anime.modules.asset_world.infrastructure.style_generation import (
     PydanticStyleImageAnalyzer,
@@ -110,6 +112,19 @@ def scene_catalog_use_cases() -> SceneCatalogUseCases:
 
 def scene_media_use_cases() -> SceneMediaUseCases:
     return SceneMediaUseCases(LocalSceneMediaFiles())
+
+
+def scene_viewer_use_cases() -> SceneViewerUseCases:
+    from ai_anime.generators.episode_optimizer import (
+        BRIDGMAN_CHARACTER_PALETTE,
+        PROP_MARKER_PALETTE,
+    )
+
+    return SceneViewerUseCases(
+        LocalSceneViewerAssets(),
+        anonymous_actor_colors=[color for color, _label in BRIDGMAN_CHARACTER_PALETTE],
+        anonymous_prop_colors=[color for color, _label in PROP_MARKER_PALETTE],
+    )
 
 
 def scene_task_use_cases() -> SceneTaskUseCases:

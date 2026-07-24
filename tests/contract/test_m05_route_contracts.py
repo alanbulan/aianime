@@ -346,27 +346,6 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(generation, "_runtime_prop_menu_with_global_props", runtime_prop_menu)
     monkeypatch.setattr(generation, "_episode_from_store_or_none", lambda *_: None)
     monkeypatch.setattr(scenes, "load_project_config_file", lambda *_: {"visual_style": "cinematic"})
-    monkeypatch.setattr(
-        scenes,
-        "build_pano_viewer_manifest",
-        lambda **_: SimpleNamespace(model_dump=lambda **__: {"mode": "viewer", "scene_id": _SCENE}),
-    )
-    monkeypatch.setattr(
-        scenes,
-        "build_director_stage_manifest",
-        lambda **_: SimpleNamespace(model_dump=lambda **__: {"mode": "stage", "scene_id": _SCENE}),
-    )
-    monkeypatch.setattr(
-        generation,
-        "build_pano_viewer_manifest",
-        lambda **_: SimpleNamespace(model_dump=lambda **__: {"mode": "beat-pano", "scene_id": _SCENE}),
-    )
-    monkeypatch.setattr(
-        generation,
-        "build_director_stage_manifest",
-        lambda **_: SimpleNamespace(model_dump=lambda **__: {"mode": "beat-stage", "scene_id": _SCENE}),
-    )
-
     def static_url(_ctx, rel_path: str, local_path=None):
         return f"/static/projects/proj_m05/{rel_path}"
 
@@ -727,6 +706,7 @@ def test_m05_l2_exercises_happy_path_route_contracts(m05_client_factory):
         task_type="selected_regen",
     )
 
+    _seed_stage_files(project_dir)
     _assert_ok(client.get(f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/pano-background/manifest"))
     _assert_ok(client.get(f"/api/v1/projects/{_PROJECT}/director-stage/palette"))
     _assert_ok(client.get(f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/director-stage/manifest"))

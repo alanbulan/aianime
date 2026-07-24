@@ -49,6 +49,10 @@ class InvalidSceneMediaInput(SceneCatalogRejected):
     """Uploaded scene media is invalid for the requested slot."""
 
 
+class SceneViewerRejected(SceneCatalogRejected):
+    """A scene viewer or Director World request cannot be completed."""
+
+
 class PropCatalogRejected(Exception):
     """A prop catalog request rejected by an expected business rule."""
 

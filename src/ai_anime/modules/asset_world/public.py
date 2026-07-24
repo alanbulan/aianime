@@ -35,6 +35,7 @@ from ai_anime.modules.asset_world.application.scene_catalog import (
 )
 from ai_anime.modules.asset_world.application.scene_media import SceneMediaUseCases
 from ai_anime.modules.asset_world.application.scene_tasks import SceneTaskUseCases
+from ai_anime.modules.asset_world.application.scene_viewer import SceneViewerUseCases
 from ai_anime.modules.asset_world.application.dto import (
     AnalyzeStyleCommand,
     CharacterGenerationOptions,
@@ -45,6 +46,8 @@ from ai_anime.modules.asset_world.application.dto import (
     CreateCustomStyleCommand,
     GenerateScenePanoCommand,
     RestoreCharacterAssetCommand,
+    SaveSceneDirectorWorldCommand,
+    SaveSceneDirectorWorldSourceCommand,
     StyleAnalysisBilling,
     StyleFile,
     StyleScope,
@@ -70,6 +73,7 @@ from ai_anime.modules.asset_world.application.errors import (
     PropCatalogRejected,
     PropNotFound,
     SceneCatalogRejected,
+    SceneViewerRejected,
     StyleRejected,
     StyleStorageFailed,
     UnsupportedCharacterVoiceSlot,
@@ -152,6 +156,12 @@ def scene_media_use_cases() -> SceneMediaUseCases:
 
 def scene_task_use_cases() -> SceneTaskUseCases:
     from ai_anime.modules.asset_world.composition import scene_task_use_cases as build
+
+    return build()
+
+
+def scene_viewer_use_cases() -> SceneViewerUseCases:
+    from ai_anime.modules.asset_world.composition import scene_viewer_use_cases as build
 
     return build()
 
@@ -258,6 +268,10 @@ __all__ = [
     "SceneCatalogUseCases",
     "SceneMediaUseCases",
     "SceneTaskUseCases",
+    "SceneViewerRejected",
+    "SceneViewerUseCases",
+    "SaveSceneDirectorWorldCommand",
+    "SaveSceneDirectorWorldSourceCommand",
     "RestoreCharacterAssetCommand",
     "StyleAnalysisBilling",
     "StyleCatalogUseCases",
@@ -282,6 +296,7 @@ __all__ = [
     "scene_catalog_use_cases",
     "scene_media_use_cases",
     "scene_task_use_cases",
+    "scene_viewer_use_cases",
     "prop_task_use_cases",
     "character_generation_use_cases",
     "character_identity_use_cases",

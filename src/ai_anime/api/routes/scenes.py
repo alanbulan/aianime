@@ -19,30 +19,21 @@ from ai_anime.api.schemas import (
     SceneReferenceGenerateRequest,
     SceneUpdate,
 )
-from ai_anime.api.viewer_manifests import (
-    build_director_stage_manifest,
-    build_pano_viewer_manifest,
-)
-from ai_anime.director_world import stage_manifest
-from ai_anime.models import (
-    NovelScene,
-    resolve_scene_plate_from_records,
-)
 from ai_anime.modules.asset_world.public import (
     CreateSceneCommand,
     GenerateScenePanoCommand,
+    SaveSceneDirectorWorldCommand,
+    SaveSceneDirectorWorldSourceCommand,
     SceneCatalogRejected,
     UpdateSceneCommand,
     scene_catalog_use_cases,
     scene_media_use_cases,
     scene_task_use_cases,
+    scene_viewer_use_cases,
 )
 from ai_anime.project_config import load_project_config_file
 from ai_anime.modules.project_workspace.public import ProjectContext, resolve_project_context
 from ai_anime.sqlite_store import SQLiteStore
-from ai_anime.utils.path_resolver import (
-    compute_scene_master_path,
-)
 
 router = APIRouter()
 
@@ -85,72 +76,6 @@ async def _resolve_scene_project(
     )
 
 
-async def _require_scene(store: SQLiteStore, name: str) -> NovelScene | None:
-    return await store.get_scene(name)
-
-
-def _scene_plate_preview_payload(
-    *,
-    scene_id: str,
-    variant_id: str,
-    time_of_day: str,
-    resolved_scene_name: str,
-    time_baked: bool,
-    planned_scene_name: str = "",
-) -> dict[str, Any]:
-    has_time = bool(str(time_of_day or "").strip())
-    if not has_time:
-        render_status = "no_time"
-        render_relight = False
-        render_label = f"Render：将使用 {resolved_scene_name}，锁图光"
-        seedance_label = f"Seedance2：将喂入 {resolved_scene_name}，提示词时间：无"
-    elif planned_scene_name and planned_scene_name != resolved_scene_name:
-        render_status = "planned_missing"
-        render_relight = True
-        render_label = (
-            f"Render：已规划 {planned_scene_name} 但暂无图，将使用 "
-            f"{resolved_scene_name}，relight 到 {time_of_day}"
-        )
-        seedance_label = (
-            f"Seedance2：将喂入 {resolved_scene_name}，提示词时间：{time_of_day}"
-        )
-    elif time_baked:
-        render_status = "time_baked"
-        render_relight = False
-        render_label = f"Render：将使用 {resolved_scene_name}，锁图光"
-        seedance_label = (
-            f"Seedance2：将喂入 {resolved_scene_name}，提示词时间：{time_of_day}"
-        )
-    else:
-        render_status = "relight"
-        render_relight = True
-        render_label = f"Render：将使用 {resolved_scene_name}，relight 到 {time_of_day}"
-        seedance_label = (
-            f"Seedance2：将喂入 {resolved_scene_name}，提示词时间：{time_of_day}"
-        )
-
-    return {
-        "scene_id": scene_id,
-        "variant_id": variant_id,
-        "time_of_day": time_of_day,
-        "resolved_scene_name": resolved_scene_name,
-        "planned_scene_name": planned_scene_name,
-        "time_baked": time_baked,
-        "render": {
-            "resolved_scene_name": resolved_scene_name,
-            "planned_scene_name": planned_scene_name,
-            "relight": render_relight,
-            "status": render_status,
-            "label": render_label,
-        },
-        "seedance2": {
-            "resolved_scene_name": resolved_scene_name,
-            "prompt_time_of_day": time_of_day,
-            "label": seedance_label,
-        },
-    }
-
-
 @router.get("/projects/{project}/scenes")
 async def list_scenes(
     project: str,
@@ -178,44 +103,20 @@ async def preview_scene_plate(
     time_of_day: str = Query(default=""),
     user: dict = Depends(get_api_user),
 ):
-    scene_id = scene_id if isinstance(scene_id, str) else ""
-    variant_id = variant_id if isinstance(variant_id, str) else ""
-    time_of_day = time_of_day if isinstance(time_of_day, str) else ""
     _ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_scene_project(project, user, required_role="viewer")
     )
-    scene_records = await store.list_scenes()
-    resolved_scene_name, time_baked = resolve_scene_plate_from_records(
-        scene_id,
-        variant_id,
-        time_of_day,
-        scene_records,
-    )
-    planned_scene_name = ""
-    if time_baked:
-        resolved_master_path = compute_scene_master_path(
-            project_dir, resolved_scene_name
-        )
-        if not resolved_master_path:
-            planned_scene_name = resolved_scene_name
-            resolved_scene_name, _unused_time_baked = resolve_scene_plate_from_records(
-                scene_id,
-                variant_id,
-                "",
-                scene_records,
-            )
-            time_baked = False
-    return {
-        "ok": True,
-        "data": _scene_plate_preview_payload(
+    try:
+        data = await scene_viewer_use_cases().preview_plate(
+            repository=store,
+            project_dir=project_dir,
             scene_id=scene_id,
             variant_id=variant_id,
             time_of_day=time_of_day,
-            resolved_scene_name=resolved_scene_name,
-            time_baked=time_baked,
-            planned_scene_name=planned_scene_name,
-        ),
-    }
+        )
+    except SceneCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.get("/projects/{project}/scenes/{name}/pano/manifest")
@@ -227,18 +128,17 @@ async def get_scene_pano_manifest(
     ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_scene_project(project, user, required_role="viewer")
     )
-    scene = await _require_scene(store, name)
-    if scene is None:
-        return {"ok": False, "error": f"Scene '{name}' not found"}
-    manifest = build_pano_viewer_manifest(
-        ctx=ctx,
-        project_dir=project_dir,
-        scene_name=scene.name,
-        mode="scene",
-    )
-    if manifest is None:
-        return {"ok": False, "error": "当前场景没有 360 全景资产"}
-    return {"ok": True, "data": manifest.model_dump(exclude_none=True)}
+    try:
+        data = await scene_viewer_use_cases().scene_pano_manifest(
+            repository=store,
+            project_id=ctx.project_id,
+            project_dir=project_dir,
+            scene_name=name,
+            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+        )
+    except SceneCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.patch("/projects/{project}/scenes/{name}/pano/correction")
@@ -251,23 +151,18 @@ async def update_scene_pano_correction(
     ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_scene_project(project, user, required_role="editor")
     )
-    scene = await _require_scene(store, name)
-    if scene is None:
-        return {"ok": False, "error": f"Scene '{name}' not found"}
-    stage_manifest.set_pano_correction(
-        project_dir,
-        scene.name,
-        correction.model_dump(),
-    )
-    manifest = build_pano_viewer_manifest(
-        ctx=ctx,
-        project_dir=project_dir,
-        scene_name=scene.name,
-        mode="scene",
-    )
-    if manifest is None:
-        return {"ok": False, "error": "当前场景没有 360 全景资产"}
-    return {"ok": True, "data": manifest.model_dump(exclude_none=True)}
+    try:
+        data = await scene_viewer_use_cases().update_pano_correction(
+            repository=store,
+            project_id=ctx.project_id,
+            project_dir=project_dir,
+            scene_name=name,
+            correction=correction.model_dump(),
+            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+        )
+    except SceneCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.get("/projects/{project}/scenes/{name}/director-stage/manifest")
@@ -279,18 +174,17 @@ async def get_scene_director_stage_manifest(
     ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_scene_project(project, user, required_role="viewer")
     )
-    scene = await _require_scene(store, name)
-    if scene is None:
-        return {"ok": False, "error": f"Scene '{name}' not found"}
-    manifest = build_director_stage_manifest(
-        ctx=ctx,
-        project_dir=project_dir,
-        scene_name=scene.name,
-        mode="scene",
-    )
-    if manifest is None:
-        return {"ok": False, "error": "当前场景没有 3GS 资产"}
-    return {"ok": True, "data": manifest.model_dump(exclude_none=True)}
+    try:
+        data = await scene_viewer_use_cases().scene_director_stage_manifest(
+            repository=store,
+            project_id=ctx.project_id,
+            project_dir=project_dir,
+            scene_name=name,
+            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+        )
+    except SceneCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.post("/projects/{project}/scenes/{name}/director-stage/world")
@@ -303,39 +197,22 @@ async def save_scene_director_world(
     ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_scene_project(project, user, required_role="editor")
     )
-    scene = await _require_scene(store, name)
-    if scene is None:
-        return {"ok": False, "error": f"Scene '{name}' not found"}
-    snapshot = body.get("snapshot")
-    if not isinstance(snapshot, dict):
-        return {"ok": False, "error": "snapshot is required"}
-    source_id = str(body.get("active_source_id") or "").strip()
     try:
-        active_source = body.get("active_source")
-        saved = stage_manifest.save_scene_director_world(
-            project_dir,
-            scene.name,
-            active_source_id=source_id,
-            snapshot=snapshot,
-            active_source=active_source if isinstance(active_source, dict) else None,
-        )
-    except ValueError as exc:
-        return {"ok": False, "error": str(exc)}
-    manifest = build_director_stage_manifest(
-        ctx=ctx,
-        project_dir=project_dir,
-        scene_name=scene.name,
-        mode="scene",
-    )
-    return {
-        "ok": True,
-        "data": {
-            **saved,
-            "manifest": (
-                manifest.model_dump(exclude_none=True) if manifest is not None else None
+        data = await scene_viewer_use_cases().save_director_world(
+            repository=store,
+            project_id=ctx.project_id,
+            project_dir=project_dir,
+            scene_name=name,
+            command=SaveSceneDirectorWorldCommand(
+                active_source_id=body.get("active_source_id"),
+                snapshot=body.get("snapshot"),
+                active_source=body.get("active_source"),
             ),
-        },
-    }
+            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+        )
+    except SceneCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.post("/projects/{project}/scenes/{name}/director-stage/world/source")
@@ -348,39 +225,22 @@ async def save_scene_director_world_source(
     ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_scene_project(project, user, required_role="editor")
     )
-    scene = await _require_scene(store, name)
-    if scene is None:
-        return {"ok": False, "error": f"Scene '{name}' not found"}
-    snapshot = body.get("snapshot")
-    if not isinstance(snapshot, dict):
-        return {"ok": False, "error": "snapshot is required"}
-    source_id = str(body.get("source_id") or "").strip()
     try:
-        source = body.get("source")
-        saved = stage_manifest.save_scene_director_world_source(
-            project_dir,
-            scene.name,
-            source_id=source_id,
-            snapshot=snapshot,
-            source=source if isinstance(source, dict) else None,
-        )
-    except ValueError as exc:
-        return {"ok": False, "error": str(exc)}
-    manifest = build_director_stage_manifest(
-        ctx=ctx,
-        project_dir=project_dir,
-        scene_name=scene.name,
-        mode="scene",
-    )
-    return {
-        "ok": True,
-        "data": {
-            **saved,
-            "manifest": (
-                manifest.model_dump(exclude_none=True) if manifest is not None else None
+        data = await scene_viewer_use_cases().save_director_world_source(
+            repository=store,
+            project_id=ctx.project_id,
+            project_dir=project_dir,
+            scene_name=name,
+            command=SaveSceneDirectorWorldSourceCommand(
+                source_id=body.get("source_id"),
+                snapshot=body.get("snapshot"),
+                source=body.get("source"),
             ),
-        },
-    }
+            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+        )
+    except SceneCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.post("/projects/{project}/scenes/{name}/director-stage/world/clear")
@@ -393,16 +253,17 @@ async def clear_scene_director_world(
     _ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_scene_project(project, user, required_role="editor")
     )
-    scene = await _require_scene(store, name)
-    if scene is None:
-        return {"ok": False, "error": f"Scene '{name}' not found"}
     body = body or {}
-    saved = stage_manifest.clear_scene_director_world(
-        project_dir,
-        scene.name,
-        active_source_id=str(body.get("active_source_id") or "").strip() or None,
-    )
-    return {"ok": True, "data": saved}
+    try:
+        data = await scene_viewer_use_cases().clear_director_world(
+            repository=store,
+            project_dir=project_dir,
+            scene_name=name,
+            active_source_id=body.get("active_source_id"),
+        )
+    except SceneCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
 
 
 @router.post("/projects/{project}/scenes")

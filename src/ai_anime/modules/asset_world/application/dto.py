@@ -44,6 +44,31 @@ class UpdateSceneCommand:
 
 
 @dataclass(frozen=True)
+class SaveSceneDirectorWorldCommand:
+    active_source_id: object = ""
+    snapshot: object = None
+    active_source: object = None
+
+
+@dataclass(frozen=True)
+class SaveSceneDirectorWorldSourceCommand:
+    source_id: object = ""
+    snapshot: object = None
+    source: object = None
+
+
+@dataclass(frozen=True)
+class SceneViewerAssetState:
+    pano_path: Path | None
+    active_splat_path: Path | None
+    collision_path: Path | None
+    splat_paths: Mapping[str, Path | None]
+    manifest_source: str
+    pano_correction: Mapping[str, Any]
+    scene_world: Mapping[str, Any]
+
+
+@dataclass(frozen=True)
 class GenerateScenePanoCommand:
     source: str = "master"
     style: str | None = None

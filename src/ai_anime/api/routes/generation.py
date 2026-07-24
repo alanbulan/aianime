@@ -57,11 +57,6 @@ from ai_anime.api.schemas import (
     Seedance2AssetCropRequest,
     Seedance2AssetDeleteRequest,
 )
-from ai_anime.api.viewer_manifests import (
-    build_director_stage_manifest,
-    build_pano_viewer_manifest,
-    default_director_stage_palette,
-)
 from ai_anime.generators.nanobanana_grid import (
     build_regen_plan,
     compute_input_fingerprint,
@@ -74,6 +69,10 @@ from ai_anime.modules.narrative_planning.public import (
     pick_beats_by_number,
     resolve_target_video_duration,
     storyboard_beats_for_manual_sketches,
+)
+from ai_anime.modules.asset_world.public import (
+    SceneCatalogRejected,
+    scene_viewer_use_cases,
 )
 from ai_anime.render_plan.ref_image_hash import RefImageHasher
 from ai_anime.seedance2_i2v.pipeline import (
@@ -3390,6 +3389,21 @@ def _beat_scene_name(beat: dict[str, Any]) -> str:
     return str(beat_scene_id(beat) or beat.get("location") or "").strip()
 
 
+def _viewer_asset_url(
+    ctx: ProjectContext,
+    project_dir: Path,
+    path: str | Path,
+) -> str:
+    asset_path = Path(path)
+    if not asset_path.exists():
+        return ""
+    try:
+        rel_path = asset_path.relative_to(project_dir).as_posix()
+    except ValueError:
+        return ""
+    return make_static_url_for_context(ctx, rel_path, local_path=asset_path)
+
+
 def _api_background_reference_url_builder(ctx: ProjectContext):
     def _build(path: Path, rel_path: str) -> str:
         return make_static_url_for_context(ctx, rel_path, local_path=path)
@@ -3443,18 +3457,22 @@ async def get_beat_pano_background_manifest(
         scene_name = _beat_scene_name(beat)
         if not scene_name:
             return {"ok": False, "error": "当前 Beat 没有关联场景"}
-        manifest = build_pano_viewer_manifest(
-            ctx=resolved.ctx,
+        manifest = scene_viewer_use_cases().beat_pano_manifest(
+            project_id=resolved.ctx.project_id,
             project_dir=project_dir,
             scene_name=scene_name,
-            mode="beat",
+            asset_url=lambda path: _viewer_asset_url(
+                resolved.ctx,
+                project_dir,
+                path,
+            ),
             episode_num=int(episode_num),
             beat_num=int(beat_num),
             beat=beat,
         )
-        if manifest is None:
-            return {"ok": False, "error": "当前场景没有 360 全景资产"}
-        return {"ok": True, "data": manifest.model_dump(exclude_none=True)}
+        return {"ok": True, "data": manifest}
+    except SceneCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
     finally:
         close = getattr(store, "close", None)
         if close:
@@ -3470,7 +3488,7 @@ async def get_default_director_stage_palette(
     await _resolve_generation_project(project, user, required_role="viewer")
     return {
         "ok": True,
-        "data": default_director_stage_palette().model_dump(exclude_none=True),
+        "data": scene_viewer_use_cases().default_director_stage_palette(),
     }
 
 
@@ -3500,20 +3518,24 @@ async def get_beat_director_stage_manifest(
         prop_menu = await _runtime_prop_menu_with_global_props(
             store, episode_obj, list(beats)
         )
-        manifest = build_director_stage_manifest(
-            ctx=resolved.ctx,
+        manifest = scene_viewer_use_cases().beat_director_stage_manifest(
+            project_id=resolved.ctx.project_id,
             project_dir=project_dir,
             scene_name=scene_name,
-            mode="beat",
+            asset_url=lambda path: _viewer_asset_url(
+                resolved.ctx,
+                project_dir,
+                path,
+            ),
             episode_num=int(episode_num),
             beat_num=int(beat_num),
             beat=beat,
             sketch_colors=sketch_colors,
             prop_marker_colors=_prop_marker_colors_from_menu(prop_menu),
         )
-        if manifest is None:
-            return {"ok": False, "error": "当前场景没有 3GS 资产"}
-        return {"ok": True, "data": manifest.model_dump(exclude_none=True)}
+        return {"ok": True, "data": manifest}
+    except SceneCatalogRejected as exc:
+        return {"ok": False, "error": str(exc)}
     finally:
         close = getattr(store, "close", None)
         if close:

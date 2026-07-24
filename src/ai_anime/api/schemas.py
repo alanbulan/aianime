@@ -564,22 +564,6 @@ class FreezoneThreeDViewerScreenshotRequest(BaseModel):
     label: Optional[str] = Field(default=None, description="可选显示名")
 
 
-class ViewerBeatContextManifest(BaseModel):
-    episode: int
-    beat: int
-    visual_description: Optional[str] = None
-    detected_identities: list[str] = Field(default_factory=list)
-    detected_props: list[str] = Field(default_factory=list)
-
-
-class PanoViewerSource(BaseModel):
-    slot_kind: Literal["scene_director_pano_360", "scene_360_candidate"] = (
-        "scene_director_pano_360"
-    )
-    url: str
-    fs: Optional[str] = None
-
-
 class PanoSphereCorrection(BaseModel):
     roll: float = 0.0
     pitch: float = 0.0
@@ -591,100 +575,6 @@ class PanoViewerCorrection(BaseModel):
     sphere_correction_deg: PanoSphereCorrection = Field(
         default_factory=PanoSphereCorrection
     )
-
-
-class PanoViewerManifest(BaseModel):
-    viewer_kind: Literal["pano360"] = "pano360"
-    mode: Literal["scene", "beat"]
-    project: str
-    scene_id: str
-    display_name: str
-    source: PanoViewerSource
-    correction: PanoViewerCorrection = Field(default_factory=PanoViewerCorrection)
-    beat_context: Optional[ViewerBeatContextManifest] = None
-    allowed_destinations: list[
-        Literal[
-            "view", "download", "canvas_screenshot_node", "beat_selected_background"
-        ]
-    ] = Field(default_factory=list)
-
-
-class DirectorStageSource(BaseModel):
-    source_type: Literal["sog", "pano360"] = "sog"
-    ply_url: str
-    splat_url: str
-    splat_format: Literal["ply", "sog", "splat", "ksplat", "unknown"] = "unknown"
-    pano_url: Optional[str] = None
-    slot_kind: Optional[Literal["scene_director_pano_360", "scene_360_candidate"]] = (
-        None
-    )
-    collision_glb_url: Optional[str] = None
-    source_kind: Literal["master", "reverse", "pano", "uploaded", "custom"] = "custom"
-
-
-class DirectorStageSourceOption(BaseModel):
-    kind: Literal["active", "master", "reverse", "pano", "uploaded", "custom"]
-    label: str
-    source_type: Literal["sog", "pano360"] = "sog"
-    ply_url: Optional[str] = None
-    splat_url: Optional[str] = None
-    splat_format: Literal["ply", "sog", "splat", "ksplat", "unknown"] = "unknown"
-    pano_url: Optional[str] = None
-    slot_kind: Optional[Literal["scene_director_pano_360", "scene_360_candidate"]] = (
-        None
-    )
-    fs: Optional[str] = None
-    current: bool = False
-
-
-class DirectorPaletteActor(BaseModel):
-    identity_id: str
-    label: str
-    color: str
-
-
-class DirectorPaletteProp(BaseModel):
-    prop_id: str
-    label: str
-    color: str
-
-
-class DirectorStagePalette(BaseModel):
-    actors: list[DirectorPaletteActor] = Field(default_factory=list)
-    props: list[DirectorPaletteProp] = Field(default_factory=list)
-    anonymous_colors: list[str] = Field(default_factory=list)
-    anonymous_prop_colors: list[str] = Field(default_factory=list)
-
-
-class DirectorStageManifest(BaseModel):
-    viewer_kind: Literal["three_d_director"] = "three_d_director"
-    mode: Literal["scene", "beat"]
-    project: str
-    scene_id: str
-    display_name: str
-    active_source_id: Optional[str] = None
-    scene: Optional[dict[str, Any]] = None
-    scenes_by_source_id: dict[str, dict[str, Any]] = Field(default_factory=dict)
-    source: DirectorStageSource
-    source_options: list[DirectorStageSourceOption] = Field(default_factory=list)
-    source_orientation_mode: Literal[
-        "supersplat_auto", "identity", "lcc_legacy", "flip_z"
-    ] = "supersplat_auto"
-    blockings_dir_fs: Optional[str] = None
-    control_frames_dir_fs: Optional[str] = None
-    slate_beat: Optional[int] = None
-    beat_context: Optional[ViewerBeatContextManifest] = None
-    palette: DirectorStagePalette = Field(default_factory=DirectorStagePalette)
-    allowed_destinations: list[
-        Literal[
-            "view",
-            "download",
-            "canvas_screenshot_node",
-            "beat_director_combined",
-            "beat_director_env_only",
-            "beat_selected_background",
-        ]
-    ] = Field(default_factory=list)
 
 
 class FreezoneCharacterMultiViewRequest(BaseModel):

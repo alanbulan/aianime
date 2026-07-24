@@ -478,6 +478,45 @@ def test_asset_world_scene_media_routes_delegate_to_application() -> None:
         assert legacy_implementation not in media_adapters
 
 
+def test_asset_world_scene_viewer_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "scenes.py"
+    source = route.read_text(encoding="utf-8")
+    tree = ast.parse(source, filename=str(route))
+    viewer_adapters = "\n".join(
+        ast.get_source_segment(source, node) or ""
+        for node in tree.body
+        if isinstance(node, ast.AsyncFunctionDef)
+        and node.name
+        in {
+            "preview_scene_plate",
+            "get_scene_pano_manifest",
+            "update_scene_pano_correction",
+            "get_scene_director_stage_manifest",
+            "save_scene_director_world",
+            "save_scene_director_world_source",
+            "clear_scene_director_world",
+        }
+    )
+    generation = (
+        PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    ).read_text(encoding="utf-8")
+
+    assert "scene_viewer_use_cases" in viewer_adapters
+    assert "scene_viewer_use_cases" in generation
+    assert not (PACKAGE_ROOT / "api" / "viewer_manifests.py").exists()
+    for legacy_implementation in (
+        "_require_scene",
+        "_scene_plate_preview_payload",
+        "resolve_scene_plate_from_records",
+        "compute_scene_master_path",
+        "build_pano_viewer_manifest",
+        "build_director_stage_manifest",
+        "stage_manifest.",
+    ):
+        assert legacy_implementation not in viewer_adapters
+    assert "ai_anime.api.viewer_manifests" not in generation
+
+
 def test_asset_world_character_identity_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "characters.py"
     source = route.read_text(encoding="utf-8")

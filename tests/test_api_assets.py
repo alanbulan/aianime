@@ -599,7 +599,8 @@ async def test_update_scene_pano_correction_persists_and_returns_manifest(
 
     monkeypatch.setattr(scenes, "_resolve_scene_project", fake_resolve_scene_project)
     monkeypatch.setattr(
-        "ai_anime.api.viewer_manifests.make_static_url_for_context",
+        scenes,
+        "make_static_url_for_context",
         lambda ctx, rel, local_path=None: f"/static/projects/{ctx.project_id}/{rel}",
     )
 
@@ -631,7 +632,6 @@ async def test_update_scene_pano_correction_persists_and_returns_manifest(
 
 @pytest.mark.asyncio
 async def test_scene_viewer_manifests_return_typed_contracts(tmp_path, monkeypatch):
-    from ai_anime.api import viewer_manifests
     from ai_anime.api.routes import scenes
     from ai_anime.director_world import stage_manifest
 
@@ -647,7 +647,7 @@ async def test_scene_viewer_manifests_return_typed_contracts(tmp_path, monkeypat
 
     monkeypatch.setattr(scenes, "_resolve_scene_project", fake_resolve_scene_project)
     monkeypatch.setattr(
-        viewer_manifests,
+        scenes,
         "make_static_url_for_context",
         lambda ctx, rel, local_path=None: f"/static/projects/{ctx.project_id}/{rel}",
     )
@@ -779,7 +779,6 @@ async def test_scene_viewer_manifests_return_typed_contracts(tmp_path, monkeypat
 async def test_scene_director_world_manifest_returns_pano_only_source_without_3gs(
     tmp_path, monkeypatch
 ):
-    from ai_anime.api import viewer_manifests
     from ai_anime.api.routes import scenes
     from ai_anime.director_world import stage_manifest
 
@@ -795,7 +794,7 @@ async def test_scene_director_world_manifest_returns_pano_only_source_without_3g
 
     monkeypatch.setattr(scenes, "_resolve_scene_project", fake_resolve_scene_project)
     monkeypatch.setattr(
-        viewer_manifests,
+        scenes,
         "make_static_url_for_context",
         lambda ctx, rel, local_path=None: f"/static/projects/{ctx.project_id}/{rel}",
     )
@@ -830,7 +829,6 @@ async def test_scene_director_world_manifest_returns_pano_only_source_without_3g
 async def test_scene_director_world_save_restores_active_source_and_snapshot(
     tmp_path, monkeypatch
 ):
-    from ai_anime.api import viewer_manifests
     from ai_anime.api.routes import scenes
     from ai_anime.director_world import stage_manifest
 
@@ -846,7 +844,7 @@ async def test_scene_director_world_save_restores_active_source_and_snapshot(
 
     monkeypatch.setattr(scenes, "_resolve_scene_project", fake_resolve_scene_project)
     monkeypatch.setattr(
-        viewer_manifests,
+        scenes,
         "make_static_url_for_context",
         lambda ctx, rel, local_path=None: f"/static/projects/{ctx.project_id}/{rel}",
     )
@@ -945,7 +943,6 @@ async def test_list_scenes_reports_saved_scene_director_world_pano_source(
 async def test_scene_director_world_manifest_returns_saved_empty_world_without_3gs(
     tmp_path, monkeypatch
 ):
-    from ai_anime.api import viewer_manifests
     from ai_anime.api.routes import scenes
     from ai_anime.director_world import stage_manifest
 
@@ -961,7 +958,7 @@ async def test_scene_director_world_manifest_returns_saved_empty_world_without_3
 
     monkeypatch.setattr(scenes, "_resolve_scene_project", fake_resolve_scene_project)
     monkeypatch.setattr(
-        viewer_manifests,
+        scenes,
         "make_static_url_for_context",
         lambda ctx, rel, local_path=None: f"/static/projects/{ctx.project_id}/{rel}",
     )

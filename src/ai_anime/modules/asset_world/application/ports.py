@@ -23,6 +23,7 @@ from ai_anime.modules.asset_world.application.dto import (
     PropReferenceGenerationTask,
     SceneReferenceGenerationTask,
     SceneStageGenerationTask,
+    SceneViewerAssetState,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 
@@ -340,6 +341,63 @@ class SceneMediaFiles(Protocol):
     ) -> dict[str, Any]: ...
 
     def delete_custom_package(self, project_dir: Path, scene_name: str) -> bool: ...
+
+
+class SceneViewerRepository(Protocol):
+    async def list_scenes(self) -> list[Any]: ...
+
+    async def get_scene(self, name: str) -> Any | None: ...
+
+
+class SceneViewerAssets(Protocol):
+    def has_master(self, project_dir: Path, scene_name: str) -> bool: ...
+
+    def load(self, project_dir: Path, scene_name: str) -> SceneViewerAssetState: ...
+
+    def filesystem_url(self, path: Path) -> str: ...
+
+    def director_blockings_filesystem_url(
+        self,
+        project_dir: Path,
+        episode_num: int,
+    ) -> str: ...
+
+    def director_control_frames_filesystem_url(self, project_dir: Path) -> str: ...
+
+    def set_pano_correction(
+        self,
+        project_dir: Path,
+        scene_name: str,
+        correction: Mapping[str, Any],
+    ) -> None: ...
+
+    def save_director_world(
+        self,
+        project_dir: Path,
+        scene_name: str,
+        *,
+        active_source_id: str,
+        snapshot: dict[str, Any],
+        active_source: dict[str, Any] | None,
+    ) -> dict[str, Any]: ...
+
+    def save_director_world_source(
+        self,
+        project_dir: Path,
+        scene_name: str,
+        *,
+        source_id: str,
+        snapshot: dict[str, Any],
+        source: dict[str, Any] | None,
+    ) -> dict[str, Any]: ...
+
+    def clear_director_world(
+        self,
+        project_dir: Path,
+        scene_name: str,
+        *,
+        active_source_id: str | None,
+    ) -> dict[str, Any]: ...
 
 
 class PropCatalogRepository(Protocol):
