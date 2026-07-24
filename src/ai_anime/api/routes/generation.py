@@ -88,6 +88,8 @@ from ai_anime.modules.production.public import (
     GenerateSingleVideoCommand,
     GlobalVideoOptimizationBeatsMissing,
     GlobalVideoOptimizationSketchesMissing,
+    GridPoolImageStale,
+    GridPoolSelectionRejected,
     GridRegenerationRejected,
     ImageGenerationGuardQuery,
     ManualSketchRegenerationRejected,
@@ -109,6 +111,7 @@ from ai_anime.modules.production.public import (
     Seedance2PanelBeatMissing,
     Seedance2PanelOperationRejected,
     Seedance2PanelQuery,
+    SelectGridPoolImageCommand,
     SelectedRegenerationKind,
     SelectedRegenerationRejected,
     SketchGenerationRejected,
@@ -1851,109 +1854,12 @@ async def get_beat_sketch_candidates(
 ):
     """Return sketch pool candidates for a beat without treating them as the current sketch."""
     resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    username = resolved.username
-    project_name = resolved.project_name
-    project_dir = resolved.project_dir
-
-    from ai_anime.generators.pool_indexer import (
-        compute_beat_content_hash,
-        is_pool_image_stale,
-        load_pool_index,
+    candidates = await grid_pool_use_cases().sketch_candidates(
+        resolved.ctx,
+        episode_num,
+        beat_num,
     )
-
-    grids_dir = project_dir / "grids" / f"ep{episode_num:03d}"
-    current_path = (
-        project_dir / "sketches" / f"ep{episode_num:03d}" / f"beat_{beat_num:02d}.png"
-    )
-    current_sketch_url = ""
-    if current_path.exists():
-        current_sketch_url = make_static_url_for_context(
-            resolved.ctx,
-            f"sketches/ep{episode_num:03d}/beat_{beat_num:02d}.png",
-            local_path=current_path,
-        )
-
-    pool = load_pool_index(grids_dir)
-    if not pool:
-        return {
-            "ok": True,
-            "data": {
-                "episode": episode_num,
-                "beat": beat_num,
-                "current_sketch_url": current_sketch_url,
-                "candidate_count": 0,
-                "candidates": [],
-            },
-        }
-
-    store = (
-        await make_sqlite_store_for_context(resolved.ctx)
-        if resolved.ctx
-        else await make_sqlite_store(username, project_name)
-    )
-    script_data = await store.get_script_as_dict(episode_num) or {}
-    sketch_colors = script_data.get("sketch_colors", {}) or {}
-    beat_hashes: dict[int, str] = {}
-    for beat in script_data.get("beats", []) or []:
-        raw_beat_num = beat.get("beat_number")
-        try:
-            parsed_beat_num = int(raw_beat_num)
-        except (TypeError, ValueError):
-            continue
-        beat_hashes[parsed_beat_num] = compute_beat_content_hash(
-            beat,
-            sketch_colors=sketch_colors,
-        )
-
-    candidates = []
-    for img in pool.images:
-        if img.type != "sketch" or int(img.original_beat or 0) != int(beat_num):
-            continue
-        if not img.cell_path:
-            continue
-        cell_path = grids_dir / img.cell_path
-        if not cell_path.exists():
-            continue
-        generated_at = img.generated_at.isoformat() if img.generated_at else ""
-        candidates.append(
-            {
-                "id": img.id,
-                "type": "sketch",
-                "mode": img.mode,
-                "cell_path": img.cell_path,
-                "url": make_static_url_for_context(
-                    resolved.ctx,
-                    f"grids/ep{episode_num:03d}/{img.cell_path}",
-                    local_path=cell_path,
-                ),
-                "grid_path": img.grid_path,
-                "grid_index": img.grid_index,
-                "cell_index": img.cell_index,
-                "row": img.row,
-                "col": img.col,
-                "original_beat": img.original_beat,
-                "generated_at": generated_at,
-                "stale": is_pool_image_stale(img, beat_hashes, None),
-            }
-        )
-    candidates.sort(
-        key=lambda item: (
-            str(item.get("generated_at") or ""),
-            str(item.get("id") or ""),
-        ),
-        reverse=True,
-    )
-
-    return {
-        "ok": True,
-        "data": {
-            "episode": episode_num,
-            "beat": beat_num,
-            "current_sketch_url": current_sketch_url,
-            "candidate_count": len(candidates),
-            "candidates": candidates,
-        },
-    }
+    return {"ok": True, "data": candidates.as_dict()}
 
 
 @router.post("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/pool-select")
@@ -1965,104 +1871,22 @@ async def select_pool_image(
     user: dict = Depends(get_api_user),
 ):
     """选择 pool 图片，按类型设为 beat 首帧或草图。"""
-    import shutil
-
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    username = resolved.username
-    project_name = resolved.project_name
-    project_dir = resolved.project_dir
-
-    from ai_anime.generators.pool_indexer import (
-        compute_beat_content_hash,
-        is_pool_image_stale,
-        load_pool_index,
-        save_pool_index,
-    )
-
-    grids_dir = project_dir / "grids" / f"ep{episode_num:03d}"
-    pool = load_pool_index(grids_dir)
-    if not pool:
-        return {"ok": False, "error": "No pool index found. Generate grids first."}
-
-    pool_img = pool.get_image(body.pool_id)
-    if not pool_img:
-        return {
-            "ok": False,
-            "error": f"Pool ID '{body.pool_id}' not found in pool index",
-        }
-
-    if pool_img and pool_img.type == "sketch":
-        store = (
-            await make_sqlite_store_for_context(resolved.ctx)
-            if resolved.ctx
-            else await make_sqlite_store(username, project_name)
-        )
-        script_data = await store.get_script_as_dict(episode_num) or {}
-        sketch_colors = script_data.get("sketch_colors", {}) or {}
-        beats = script_data.get("beats", [])
-        script_mt = None
-        beat_hashes: dict[int, str] = {}
-        beat_index = pool_img.original_beat - 1
-        if 0 <= beat_index < len(beats):
-            beat_hashes[pool_img.original_beat] = compute_beat_content_hash(
-                beats[beat_index], sketch_colors=sketch_colors
-            )
-        if is_pool_image_stale(pool_img, beat_hashes, script_mt) and not body.force:
-            return {
-                "ok": False,
-                "stale": True,
-                "error": "该草图已过期，请先重新生成。如确认仍要使用，请传 force=true。",
-            }
-
-    cell_path = pool_img.cell_path
-    if not cell_path:
-        return {
-            "ok": False,
-            "error": f"Pool ID '{body.pool_id}' not found in pool index",
-        }
-
-    # 完整路径
-    cell_full = grids_dir / cell_path
-    if not cell_full.exists():
-        return {"ok": False, "error": f"Cell image not found at {cell_path}"}
-
-    image_type = pool_img.type or "render"
-    data = {
-        "beat_num": beat_num,
-        "pool_id": body.pool_id,
-        "image_type": image_type,
-    }
-
-    if image_type == "sketch":
-        sketches_dir = project_dir / "sketches" / f"ep{episode_num:03d}"
-        sketches_dir.mkdir(parents=True, exist_ok=True)
-        dest = sketches_dir / f"beat_{beat_num:02d}.png"
-        shutil.copy2(str(cell_full), str(dest))
-        rel = f"sketches/ep{episode_num:03d}/beat_{beat_num:02d}.png"
-        data["sketch_url"] = make_static_url_for_context(
+    try:
+        selected = await grid_pool_use_cases().select(
             resolved.ctx,
-            rel,
-            local_path=dest,
+            SelectGridPoolImageCommand(
+                episode_num=episode_num,
+                beat_num=beat_num,
+                pool_id=body.pool_id,
+                force=body.force,
+            ),
         )
-    else:
-        frames_dir = project_dir / "frames" / f"ep{episode_num:03d}"
-        frames_dir.mkdir(parents=True, exist_ok=True)
-        dest = frames_dir / f"beat_{beat_num:02d}.png"
-        shutil.copy2(str(cell_full), str(dest))
-        pool.beat_assignments[str(beat_num)] = cell_path
-        rel = f"frames/ep{episode_num:03d}/beat_{beat_num:02d}.png"
-        data["frame_url"] = make_static_url_for_context(
-            resolved.ctx,
-            rel,
-            local_path=dest,
-        )
-
-    save_pool_index(pool, grids_dir)
-
-    return {
-        "ok": True,
-        "data": data,
-    }
+    except GridPoolImageStale as exc:
+        return {"ok": False, "stale": True, "error": str(exc)}
+    except GridPoolSelectionRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": selected.as_dict()}
 
 
 @router.post(

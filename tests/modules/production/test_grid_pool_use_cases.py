@@ -3,17 +3,20 @@ from __future__ import annotations
 import pytest
 
 from ai_anime.modules.production.application.grid_pool import (
+    BeatSketchCandidates,
     GridPoolImageView,
     GridPoolListing,
     GridPoolUseCases,
     RebuiltGridPool,
+    SelectedGridPoolImage,
+    SelectGridPoolImageCommand,
 )
 
 
 class _Gateway:
     def __init__(self, listing: GridPoolListing | None) -> None:
         self.listing = listing
-        self.calls: list[tuple[str, object, int]] = []
+        self.calls: list[tuple[object, ...]] = []
 
     async def list_pool(self, context, episode_num):
         self.calls.append(("list", context, episode_num))
@@ -22,6 +25,24 @@ class _Gateway:
     def rebuild(self, context, episode_num):
         self.calls.append(("rebuild", context, episode_num))
         return RebuiltGridPool(episode=episode_num, image_count=3, mode_count=2)
+
+    async def sketch_candidates(self, context, episode_num, beat_num):
+        self.calls.append(("candidates", context, episode_num, beat_num))
+        return BeatSketchCandidates(
+            episode=episode_num,
+            beat=beat_num,
+            current_sketch_url="/static/current.png",
+            candidates=(),
+        )
+
+    async def select(self, context, command):
+        self.calls.append(("select", context, command))
+        return SelectedGridPoolImage(
+            beat_num=command.beat_num,
+            pool_id=command.pool_id,
+            image_type="render",
+            frame_url="/static/frame.png",
+        )
 
 
 @pytest.mark.asyncio
@@ -57,6 +78,14 @@ async def test_grid_pool_use_cases_delegate_and_preserve_response_contract() -> 
 
     listed = await use_cases.list_pool(context, 2)
     rebuilt = use_cases.rebuild(context, 2)
+    candidates = await use_cases.sketch_candidates(context, 2, 5)
+    command = SelectGridPoolImageCommand(
+        episode_num=2,
+        beat_num=5,
+        pool_id="pool-5",
+        force=True,
+    )
+    selected = await use_cases.select(context, command)
 
     assert listed is listing
     assert listed.as_dict()["images"][0]["generated_at"] is None
@@ -65,9 +94,24 @@ async def test_grid_pool_use_cases_delegate_and_preserve_response_contract() -> 
         "image_count": 3,
         "mode_count": 2,
     }
+    assert candidates.as_dict() == {
+        "episode": 2,
+        "beat": 5,
+        "current_sketch_url": "/static/current.png",
+        "candidate_count": 0,
+        "candidates": [],
+    }
+    assert selected.as_dict() == {
+        "beat_num": 5,
+        "pool_id": "pool-5",
+        "image_type": "render",
+        "frame_url": "/static/frame.png",
+    }
     assert gateway.calls == [
         ("list", context, 2),
         ("rebuild", context, 2),
+        ("candidates", context, 2, 5),
+        ("select", context, command),
     ]
 
 

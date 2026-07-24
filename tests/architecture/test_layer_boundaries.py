@@ -503,18 +503,23 @@ def test_production_grid_pool_routes_delegate_to_application() -> None:
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     source = generation.read_text(encoding="utf-8")
     route_start = source.index("async def list_grids(")
-    route_end = source.index("async def get_beat_sketch_candidates(", route_start)
+    route_end = source.index("async def upload_beat_sketch(", route_start)
     route_source = source[route_start:route_end]
 
-    assert route_source.count("grid_pool_use_cases") == 2
+    assert route_source.count("grid_pool_use_cases") == 4
+    assert "SelectGridPoolImageCommand" in route_source
+    assert "GridPoolImageStale" in route_source
+    assert "GridPoolSelectionRejected" in route_source
     for implementation_detail in (
         "load_pool_index",
         "rebuild_pool_index",
+        "save_pool_index",
         "compute_beat_content_hash",
         "is_pool_image_stale",
         "make_sqlite_store_for_context",
         "make_sqlite_store(",
         "make_static_url_for_context",
+        "shutil.copy2",
     ):
         assert implementation_detail not in route_source
 

@@ -17,10 +17,33 @@ def _png_bytes() -> bytes:
 def _client(monkeypatch, tmp_path):
     from ai_anime.api.routes import generation
     from ai_anime.api.deps import ProjectResolution
+    from ai_anime.modules.production.application.grid_pool import GridPoolUseCases
+    from ai_anime.modules.production.infrastructure import grid_pool
+    from ai_anime.modules.production.infrastructure.grid_pool import (
+        LocalGridPoolGateway,
+    )
+    from ai_anime.modules.project_workspace.public import ProjectContext
+
+    context = ProjectContext(
+        project_id="proj-demo",
+        project_name="demo",
+        owner_type="user",
+        owner_id="user-alice",
+        owner_username="alice",
+        requester_user_id="user-alice",
+        requester_username="alice",
+        requester_principals=(("user", "user-alice"),),
+        effective_role="editor",
+        home_node_id="local",
+        output_dir=tmp_path,
+        state_dir=tmp_path / "state",
+        runtime_dir=tmp_path / "runtime",
+        is_home_node=True,
+    )
 
     async def fake_resolve_project_scope(project, user, *, required_role="viewer"):
         return ProjectResolution(
-            ctx=None,
+            ctx=context,
             username="alice",
             project_name=project,
             project_dir=tmp_path,
@@ -47,10 +70,20 @@ def _client(monkeypatch, tmp_path):
                 "sketch_colors": {},
             }
 
-    async def fake_make_sqlite_store(username: str, project: str):
+        async def close(self) -> None:
+            pass
+
+    async def fake_make_sqlite_store(candidate):
+        assert candidate is context
         return FakeStore()
 
-    monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
+    monkeypatch.setattr(
+        grid_pool.project_stores,
+        "make_sqlite_store_for_context",
+        fake_make_sqlite_store,
+    )
+    use_cases = GridPoolUseCases(LocalGridPoolGateway(fake_static_url))
+    monkeypatch.setattr(generation, "grid_pool_use_cases", lambda: use_cases)
 
     app = FastAPI()
     app.include_router(generation.router, prefix="/api/v1")

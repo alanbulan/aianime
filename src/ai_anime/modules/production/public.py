@@ -99,9 +99,14 @@ from ai_anime.modules.production.application.grid_regeneration import (
     ScheduledGridRegeneration,
 )
 from ai_anime.modules.production.application.grid_pool import (
+    BeatSketchCandidates,
+    GridPoolImageStale,
     GridPoolListing,
+    GridPoolSelectionRejected,
     GridPoolUseCases,
     RebuiltGridPool,
+    SelectedGridPoolImage,
+    SelectGridPoolImageCommand,
 )
 from ai_anime.modules.production.application.manual_sketch_regeneration import (
     GenerateMissingManualSketchesCommand,
@@ -364,6 +369,7 @@ __all__ = [
     "SKETCH_GENERATION_TASK_TYPE",
     "SINGLE_VIDEO_TASK_TYPE",
     "AudioVoicePrerequisitesMissing",
+    "BeatSketchCandidates",
     "BRIDGMAN_CHARACTER_PALETTE",
     "BuildRenderPlanCommand",
     "ComposeEpisodeVideoCommand",
@@ -396,7 +402,9 @@ __all__ = [
     "GlobalVideoOptimizationUseCases",
     "GridRegenerationRejected",
     "GridRegenerationUseCases",
+    "GridPoolImageStale",
     "GridPoolListing",
+    "GridPoolSelectionRejected",
     "GridPoolUseCases",
     "ImageGenerationGuardQuery",
     "ImageGenerationUsageUseCases",
@@ -434,6 +442,8 @@ __all__ = [
     "SelectedRegenerationKind",
     "SelectedRegenerationRejected",
     "SelectedRegenerationUseCases",
+    "SelectedGridPoolImage",
+    "SelectGridPoolImageCommand",
     "SingleVideoRejected",
     "SingleVideoUseCases",
     "SketchGenerationRejected",

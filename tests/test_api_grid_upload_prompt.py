@@ -64,8 +64,11 @@ def _seed_pool(grids_dir):
 async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
     from ai_anime.api.routes import generation
     from ai_anime.modules.production.application.grid_pool import (
+        BeatSketchCandidates,
         GridPoolListing,
         RebuiltGridPool,
+        SelectedGridPoolImage,
+        SelectGridPoolImageCommand,
     )
 
     context = object()
@@ -94,6 +97,26 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
                 mode_count=1,
             )
 
+        async def sketch_candidates(self, candidate, episode_num, beat_num):
+            use_case_calls.append(
+                ("candidates", candidate, episode_num, beat_num)
+            )
+            return BeatSketchCandidates(
+                episode=episode_num,
+                beat=beat_num,
+                current_sketch_url="/static/current.png",
+                candidates=(),
+            )
+
+        async def select(self, candidate, command):
+            use_case_calls.append(("select", candidate, command))
+            return SelectedGridPoolImage(
+                beat_num=command.beat_num,
+                pool_id=command.pool_id,
+                image_type="sketch",
+                sketch_url="/static/selected.png",
+            )
+
     use_cases = UseCases()
     monkeypatch.setattr(generation, "_resolve_generation_project", resolve)
     monkeypatch.setattr(generation, "grid_pool_use_cases", lambda: use_cases)
@@ -108,8 +131,29 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
         2,
         user={"username": "admin"},
     )
+    candidates = await generation.get_beat_sketch_candidates(
+        "project-id",
+        2,
+        5,
+        user={"username": "admin"},
+    )
+    selected = await generation.select_pool_image(
+        "project-id",
+        2,
+        5,
+        generation.PoolSelectRequest(pool_id="pool-5", force=True),
+        user={"username": "admin"},
+    )
 
     assert resolve_calls == [
+        (
+            ("project-id", {"username": "admin"}),
+            {"required_role": "viewer"},
+        ),
+        (
+            ("project-id", {"username": "admin"}),
+            {"required_role": "editor"},
+        ),
         (
             ("project-id", {"username": "admin"}),
             {"required_role": "viewer"},
@@ -122,6 +166,17 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
     assert use_case_calls == [
         ("list", context, 2),
         ("rebuild", context, 2),
+        ("candidates", context, 2, 5),
+        (
+            "select",
+            context,
+            SelectGridPoolImageCommand(
+                episode_num=2,
+                beat_num=5,
+                pool_id="pool-5",
+                force=True,
+            ),
+        ),
     ]
     assert listed == {
         "ok": True,
@@ -138,6 +193,25 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
             "episode": 2,
             "image_count": 4,
             "mode_count": 1,
+        },
+    }
+    assert candidates == {
+        "ok": True,
+        "data": {
+            "episode": 2,
+            "beat": 5,
+            "current_sketch_url": "/static/current.png",
+            "candidate_count": 0,
+            "candidates": [],
+        },
+    }
+    assert selected == {
+        "ok": True,
+        "data": {
+            "beat_num": 5,
+            "pool_id": "pool-5",
+            "image_type": "sketch",
+            "sketch_url": "/static/selected.png",
         },
     }
 

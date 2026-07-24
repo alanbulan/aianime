@@ -7,6 +7,11 @@ from types import SimpleNamespace
 import pytest
 
 from ai_anime.models import PoolImage, PoolIndex
+from ai_anime.modules.production.application.grid_pool import (
+    GridPoolImageStale,
+    GridPoolSelectionRejected,
+    SelectGridPoolImageCommand,
+)
 from ai_anime.modules.production.infrastructure.grid_pool import LocalGridPoolGateway
 from ai_anime.modules.project_workspace.public import ProjectContext
 
@@ -186,6 +191,217 @@ async def test_list_pool_projects_hashes_urls_and_closes_store(
     assert payload["images"][1]["cell_url"] == ""
     assert payload["images"][1]["grid_url"] == ""
     assert payload["images"][1]["stale"] is True
+    assert store.close_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_sketch_candidates_filter_sort_project_and_close_store(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    from ai_anime.modules.production.infrastructure import grid_pool
+
+    context = _context(tmp_path)
+    grids_dir = Path(context.output_dir) / "grids" / "ep002"
+    current_path = Path(context.output_dir) / "sketches" / "ep002" / "beat_05.png"
+    current_path.parent.mkdir(parents=True)
+    current_path.write_bytes(b"current")
+    for relative_path in ("sketch/old.png", "sketch/new.png"):
+        cell_path = grids_dir / relative_path
+        cell_path.parent.mkdir(parents=True, exist_ok=True)
+        cell_path.write_bytes(relative_path.encode())
+    pool = PoolIndex(
+        episode=2,
+        images=[
+            PoolImage(
+                id="old",
+                mode="2x2",
+                grid_index=1,
+                cell_index=1,
+                grid_path="scene/grid.png",
+                cell_path="sketch/old.png",
+                row=0,
+                col=0,
+                original_beat=5,
+                generated_at=datetime(2026, 7, 23, 12, 0, 0),
+                type="sketch",
+            ),
+            PoolImage(
+                id="new",
+                mode="regen",
+                grid_index=2,
+                cell_index=1,
+                grid_path="scene/new-grid.png",
+                cell_path="sketch/new.png",
+                row=1,
+                col=0,
+                original_beat=5,
+                generated_at=datetime(2026, 7, 24, 12, 0, 0),
+                type="sketch",
+            ),
+            PoolImage(
+                id="missing",
+                mode="regen",
+                grid_index=3,
+                cell_index=1,
+                grid_path="",
+                cell_path="sketch/missing.png",
+                row=0,
+                col=0,
+                original_beat=5,
+                type="sketch",
+            ),
+            PoolImage(
+                id="render",
+                mode="render",
+                grid_index=4,
+                cell_index=1,
+                grid_path="",
+                cell_path="sketch/old.png",
+                row=0,
+                col=0,
+                original_beat=5,
+                type="render",
+            ),
+        ],
+    )
+    store = _Store()
+
+    async def make_store(_context):
+        return store
+
+    monkeypatch.setattr(grid_pool.pool_indexer, "load_pool_index", lambda _path: pool)
+    monkeypatch.setattr(
+        grid_pool.project_stores,
+        "make_sqlite_store_for_context",
+        make_store,
+    )
+    monkeypatch.setattr(
+        grid_pool.pool_indexer,
+        "compute_beat_content_hash",
+        lambda _beat, sketch_colors: f"hash:{sketch_colors['hero']}",
+    )
+    monkeypatch.setattr(
+        grid_pool.pool_indexer,
+        "is_pool_image_stale",
+        lambda image, beat_hashes, script_mt: (
+            image.id == "new"
+            and beat_hashes == {5: "hash:#112233"}
+            and script_mt is None
+        ),
+    )
+
+    candidates = await LocalGridPoolGateway(
+        lambda _context, relative_path, local_path=None: f"/files/{relative_path}"
+    ).sketch_candidates(context, 2, 5)
+
+    payload = candidates.as_dict()
+    assert payload["current_sketch_url"] == "/files/sketches/ep002/beat_05.png"
+    assert payload["candidate_count"] == 2
+    assert [candidate["id"] for candidate in payload["candidates"]] == [
+        "new",
+        "old",
+    ]
+    assert payload["candidates"][0]["url"] == "/files/grids/ep002/sketch/new.png"
+    assert payload["candidates"][0]["stale"] is True
+    assert payload["candidates"][1]["stale"] is False
+    assert store.close_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_select_rejects_missing_pool_without_opening_store(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    from ai_anime.modules.production.infrastructure import grid_pool
+
+    monkeypatch.setattr(grid_pool.pool_indexer, "load_pool_index", lambda _path: None)
+
+    async def unexpected_store(_context):
+        pytest.fail("无图片池时不应创建 Store")
+
+    monkeypatch.setattr(
+        grid_pool.project_stores,
+        "make_sqlite_store_for_context",
+        unexpected_store,
+    )
+
+    with pytest.raises(
+        GridPoolSelectionRejected,
+        match="No pool index found",
+    ):
+        await LocalGridPoolGateway().select(
+            _context(tmp_path),
+            SelectGridPoolImageCommand(
+                episode_num=2,
+                beat_num=5,
+                pool_id="missing",
+            ),
+        )
+
+
+@pytest.mark.asyncio
+async def test_select_rejects_stale_sketch_and_closes_store(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    from ai_anime.modules.production.infrastructure import grid_pool
+
+    pool = PoolIndex(
+        episode=2,
+        images=[
+            PoolImage(
+                id="stale-sketch",
+                mode="regen",
+                grid_index=1,
+                cell_index=1,
+                grid_path="",
+                cell_path="sketch/stale.png",
+                row=0,
+                col=0,
+                original_beat=1,
+                type="sketch",
+                beat_content_hash="old-hash",
+            )
+        ],
+    )
+    store = _Store()
+
+    async def make_store(_context):
+        return store
+
+    monkeypatch.setattr(grid_pool.pool_indexer, "load_pool_index", lambda _path: pool)
+    monkeypatch.setattr(
+        grid_pool.project_stores,
+        "make_sqlite_store_for_context",
+        make_store,
+    )
+    monkeypatch.setattr(
+        grid_pool.pool_indexer,
+        "compute_beat_content_hash",
+        lambda _beat, sketch_colors: "current-hash",
+    )
+    monkeypatch.setattr(
+        grid_pool.pool_indexer,
+        "is_pool_image_stale",
+        lambda _image, beat_hashes, _script_mt: beat_hashes == {1: "current-hash"},
+    )
+    monkeypatch.setattr(
+        grid_pool.pool_indexer,
+        "save_pool_index",
+        lambda *_args, **_kwargs: pytest.fail("过期草图不应保存索引"),
+    )
+
+    with pytest.raises(GridPoolImageStale, match="该草图已过期"):
+        await LocalGridPoolGateway().select(
+            _context(tmp_path),
+            SelectGridPoolImageCommand(
+                episode_num=2,
+                beat_num=5,
+                pool_id="stale-sketch",
+            ),
+        )
+
     assert store.close_calls == 1
 
 

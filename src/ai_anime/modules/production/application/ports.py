@@ -38,8 +38,11 @@ if TYPE_CHECKING:
         RegenerateGridCommand,
     )
     from ai_anime.modules.production.application.grid_pool import (
+        BeatSketchCandidates,
         GridPoolListing,
         RebuiltGridPool,
+        SelectedGridPoolImage,
+        SelectGridPoolImageCommand,
     )
     from ai_anime.modules.production.application.manual_sketch_regeneration import (
         GenerateMissingManualSketchesCommand,
@@ -412,6 +415,19 @@ class ProductionGridPoolGateway(Protocol):
         context: ProjectContext,
         episode_num: int,
     ) -> RebuiltGridPool: ...
+
+    async def sketch_candidates(
+        self,
+        context: ProjectContext,
+        episode_num: int,
+        beat_num: int,
+    ) -> BeatSketchCandidates: ...
+
+    async def select(
+        self,
+        context: ProjectContext,
+        command: SelectGridPoolImageCommand,
+    ) -> SelectedGridPoolImage: ...
 
 
 class ProductionProjectMediaUrls(Protocol):
