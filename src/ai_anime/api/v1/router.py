@@ -27,6 +27,7 @@ from ai_anime.api.routes import (
     production_pool,
     production_render,
     production_settings,
+    production_sketch,
     production_video,
     projects,
     props,
@@ -92,6 +93,7 @@ def create_api_router(*, desktop_mode: bool | None = None) -> APIRouter:
     router.include_router(production_pool.router, tags=["generation"])
     router.include_router(production_render.router, tags=["generation"])
     router.include_router(production_settings.router, tags=["generation"])
+    router.include_router(production_sketch.router, tags=["generation"])
     router.include_router(production_video.router, tags=["generation"])
     router.include_router(tasks.router, tags=["tasks"])
     router.include_router(files.router, tags=["files"])

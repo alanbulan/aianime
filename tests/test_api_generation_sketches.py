@@ -11,7 +11,7 @@ from ai_anime.modules.production.application.sketch_generation import (
 async def test_generate_sketches_route_maps_request_to_application(
     monkeypatch,
 ) -> None:
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_sketch
     from ai_anime.api.schemas import SketchGenerateRequest
 
     context = object()
@@ -54,9 +54,9 @@ async def test_generate_sketches_route_maps_request_to_application(
                 ),
             )
 
-    monkeypatch.setattr(generation, "_resolve_generation_project", resolve)
+    monkeypatch.setattr(production_sketch, "resolve_project_scope", resolve)
     monkeypatch.setattr(
-        generation,
+        production_sketch,
         "sketch_generation_use_cases",
         lambda: UseCases(),
     )
@@ -69,7 +69,7 @@ async def test_generate_sketches_route_maps_request_to_application(
         image_generation_selection="openrouter_nanobanana2",
     )
 
-    response = await generation.generate_sketches(
+    response = await production_sketch.generate_sketches(
         project="demo",
         episode_num=2,
         body=request,
@@ -123,7 +123,7 @@ async def test_generate_sketches_route_maps_request_to_application(
 async def test_generate_sketches_route_preserves_rejection_envelope(
     monkeypatch,
 ) -> None:
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_sketch
     from ai_anime.api.schemas import SketchGenerateRequest
 
     async def resolve(*_args, **_kwargs):
@@ -133,14 +133,14 @@ async def test_generate_sketches_route_preserves_rejection_envelope(
         async def generate(self, _context, _command):
             raise SketchGenerationRejected("No beats found for episode 2")
 
-    monkeypatch.setattr(generation, "_resolve_generation_project", resolve)
+    monkeypatch.setattr(production_sketch, "resolve_project_scope", resolve)
     monkeypatch.setattr(
-        generation,
+        production_sketch,
         "sketch_generation_use_cases",
         lambda: UseCases(),
     )
 
-    response = await generation.generate_sketches(
+    response = await production_sketch.generate_sketches(
         project="demo",
         episode_num=2,
         body=SketchGenerateRequest(),

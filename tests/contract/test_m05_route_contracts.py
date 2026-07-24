@@ -275,6 +275,7 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         production_pool,
         production_render,
         production_settings,
+        production_sketch,
         scenes,
     )
     from ai_anime.modules.asset_world.infrastructure import (
@@ -340,6 +341,7 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(generation, "_resolve_generation_project", resolve_scope)
     monkeypatch.setattr(production_pool, "resolve_project_scope", resolve_scope)
     monkeypatch.setattr(production_render, "resolve_project_scope", resolve_scope)
+    monkeypatch.setattr(production_sketch, "resolve_project_scope", resolve_scope)
     monkeypatch.setattr(production_settings, "resolve_project_scope", resolve_scope)
     monkeypatch.setattr(
         project_stores,
@@ -429,6 +431,7 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app.include_router(production_pool.router, prefix="/api/v1")
         app.include_router(production_render.router, prefix="/api/v1")
         app.include_router(production_settings.router, prefix="/api/v1")
+        app.include_router(production_sketch.router, prefix="/api/v1")
         app.include_router(episodes.router, prefix="/api/v1")
         app.include_router(verification_routes.router, prefix="/api/v1")
         user = {"id": "alice-id", "user_id": "alice-id", "username": "alice", "role": "owner"}
