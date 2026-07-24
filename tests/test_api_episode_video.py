@@ -15,7 +15,7 @@ from ai_anime.modules.production.public import (
 
 @pytest.mark.asyncio
 async def test_compose_video_maps_request_and_scheduled_task(monkeypatch) -> None:
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_video
 
     context = SimpleNamespace(output_dir=Path("project"), project_id="proj-1")
     commands: list[tuple[object, ComposeEpisodeVideoCommand]] = []
@@ -42,10 +42,10 @@ async def test_compose_video_maps_request_and_scheduled_task(monkeypatch) -> Non
                 }
             )
 
-    monkeypatch.setattr(generation, "_resolve_generation_project", resolve_project)
-    monkeypatch.setattr(generation, "episode_video_use_cases", _UseCases)
+    monkeypatch.setattr(production_video, "resolve_project_scope", resolve_project)
+    monkeypatch.setattr(production_video, "episode_video_use_cases", _UseCases)
 
-    response = await generation.compose_video(
+    response = await production_video.compose_video(
         project="demo",
         episode_num=2,
         body=VideoComposeRequest(
@@ -80,7 +80,7 @@ async def test_compose_video_maps_request_and_scheduled_task(monkeypatch) -> Non
 
 @pytest.mark.asyncio
 async def test_compose_video_keeps_no_beats_error_envelope(monkeypatch) -> None:
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_video
 
     async def resolve_project(*_args, **_kwargs):
         return SimpleNamespace(ctx=object())
@@ -89,10 +89,10 @@ async def test_compose_video_keeps_no_beats_error_envelope(monkeypatch) -> None:
         async def compose(self, _context, command):
             raise EpisodeBeatsMissing(command.episode_num)
 
-    monkeypatch.setattr(generation, "_resolve_generation_project", resolve_project)
-    monkeypatch.setattr(generation, "episode_video_use_cases", _UseCases)
+    monkeypatch.setattr(production_video, "resolve_project_scope", resolve_project)
+    monkeypatch.setattr(production_video, "episode_video_use_cases", _UseCases)
 
-    response = await generation.compose_video(
+    response = await production_video.compose_video(
         project="demo",
         episode_num=2,
         body=VideoComposeRequest(),
@@ -104,7 +104,7 @@ async def test_compose_video_keeps_no_beats_error_envelope(monkeypatch) -> None:
 
 @pytest.mark.asyncio
 async def test_final_video_maps_application_status(monkeypatch) -> None:
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_video
 
     context = object()
 
@@ -125,10 +125,10 @@ async def test_final_video_maps_application_status(monkeypatch) -> None:
                 video_url="/static/projects/proj-1/videos/episodes/ep002_final.mp4",
             )
 
-    monkeypatch.setattr(generation, "_resolve_generation_project", resolve_project)
-    monkeypatch.setattr(generation, "episode_video_use_cases", _UseCases)
+    monkeypatch.setattr(production_video, "resolve_project_scope", resolve_project)
+    monkeypatch.setattr(production_video, "episode_video_use_cases", _UseCases)
 
-    response = await generation.get_final_video(
+    response = await production_video.get_final_video(
         project="demo",
         episode_num=2,
         user={"username": "alice"},

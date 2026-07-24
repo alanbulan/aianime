@@ -425,15 +425,21 @@ def test_production_image_usage_routes_delegate_to_application() -> None:
 
 
 def test_production_episode_video_routes_delegate_to_application() -> None:
-    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
-    source = generation.read_text(encoding="utf-8")
-    route_start = source.index("async def compose_video(")
-    route_end = source.index("async def generate_sketches(", route_start)
-    route_source = source[route_start:route_end]
+    route = PACKAGE_ROOT / "api" / "routes" / "production_video.py"
+    source = route.read_text(encoding="utf-8")
+    generation_source = (
+        PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    ).read_text(encoding="utf-8")
+    api_router_source = (PACKAGE_ROOT / "api" / "v1" / "router.py").read_text(
+        encoding="utf-8"
+    )
 
-    assert "episode_video_use_cases" in route_source
-    assert "ComposeEpisodeVideoCommand" in route_source
-    assert "EpisodeBeatsMissing" in route_source
+    assert source.count("episode_video_use_cases().") == 2
+    assert "ComposeEpisodeVideoCommand" in source
+    assert "EpisodeBeatsMissing" in source
+    assert "production_video.router" in api_router_source
+    for handler_name in ("compose_video", "get_final_video"):
+        assert f"async def {handler_name}(" not in generation_source
     for implementation_detail in (
         "make_sqlite_store_for_context",
         "make_sqlite_store(",
@@ -444,7 +450,7 @@ def test_production_episode_video_routes_delegate_to_application() -> None:
         '"videos" / "episodes"',
         "成片合成需要 project context",
     ):
-        assert implementation_detail not in route_source
+        assert implementation_detail not in source
 
 
 def test_production_episode_export_routes_delegate_to_application() -> None:
@@ -606,7 +612,7 @@ def test_production_video_backend_catalog_has_one_owner() -> None:
     seedance_pipeline = PACKAGE_ROOT / "seedance2_i2v" / "pipeline.py"
     source = generation.read_text(encoding="utf-8")
     route_start = source.index("async def get_video_backend_options(")
-    route_end = source.index("async def compose_video(", route_start)
+    route_end = source.index("async def generate_sketches(", route_start)
     route_source = source[route_start:route_end]
 
     assert "video_backend_catalog_use_cases" in route_source

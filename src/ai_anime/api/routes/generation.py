@@ -18,7 +18,6 @@ from ai_anime.api.auth import get_api_user, require_scope
 from ai_anime.api.deps import resolve_project_scope
 from ai_anime.api.schemas import (
     GlobalOptimizeRequest,
-    VideoComposeRequest,
     SketchGenerateRequest,
     GridRegenerateRequest,
     BeatsRegenerateRequest,
@@ -52,14 +51,12 @@ from ai_anime.modules.asset_world.public import (
 from ai_anime.modules.production.public import (
     AssignProjectSketchColorsCommand,
     BuildRenderPlanCommand,
-    ComposeEpisodeVideoCommand,
     CropSeedance2AssetCommand,
     CropCurrentSketchCommand,
     CutGridCommand,
     CurrentSketchMissing,
     DetectProjectSketchMarkersCommand,
     DirectorControlSketchUnavailable,
-    EpisodeBeatsMissing,
     ExecuteRenderPlanCommand,
     GenerateMissingManualSketchesCommand,
     GenerateDirectorControlSketchCommand,
@@ -117,7 +114,6 @@ from ai_anime.modules.production.public import (
     selected_regeneration_use_cases,
     sketch_generation_use_cases,
     single_video_use_cases,
-    episode_video_use_cases,
     render_plan_use_cases,
     sketch_editing_use_cases,
     sketch_marker_use_cases,
@@ -324,48 +320,6 @@ async def get_video_backend_options(
             for item in video_backend_catalog_use_cases().list_options()
         ],
     }
-
-
-@router.post("/projects/{project}/episodes/{episode_num}/videos/compose")
-async def compose_video(
-    project: str,
-    episode_num: int,
-    body: VideoComposeRequest,
-    user: dict = Depends(get_api_user),
-):
-    """合成成片。"""
-    resolved = await _resolve_generation_project(project, user, required_role="editor")
-    try:
-        scheduled = await episode_video_use_cases().compose(
-            resolved.ctx,
-            ComposeEpisodeVideoCommand(
-                episode_num=episode_num,
-                add_subtitles=body.add_subtitles,
-                add_bgm=body.add_bgm,
-                resolution=body.resolution,
-            ),
-        )
-    except EpisodeBeatsMissing as exc:
-        return {"ok": False, "error": str(exc)}
-    return {"ok": True, **scheduled.as_dict()}
-
-
-@router.get("/projects/{project}/episodes/{episode_num}/final")
-async def get_final_video(
-    project: str,
-    episode_num: int,
-    user: dict = Depends(get_api_user),
-):
-    """读取 episode 成片状态，供 ai-anime-fe compose 页刷新 hydration。"""
-    resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    status_data = episode_video_use_cases().final_status(
-        resolved.ctx,
-        episode_num,
-    )
-    return {"ok": True, "data": status_data.as_dict()}
-
-
-# ── TTS 语音 ──────────────────────────────────────────────────────────────────
 
 
 # ── 草图 ──────────────────────────────────────────────────────────────────────

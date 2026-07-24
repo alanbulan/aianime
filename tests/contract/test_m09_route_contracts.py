@@ -189,6 +189,7 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         generation,
         production_export,
         production_settings,
+        production_video,
     )
     from ai_anime.modules.production import composition as production_composition
     from ai_anime.modules.production.infrastructure import (
@@ -306,6 +307,11 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         resolve_project_scope,
     )
     monkeypatch.setattr(
+        production_video,
+        "resolve_project_scope",
+        resolve_project_scope,
+    )
+    monkeypatch.setattr(
         project_stores,
         "make_sqlite_store_for_context",
         make_store_for_context,
@@ -380,6 +386,7 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app.include_router(generation.router, prefix="/api/v1")
         app.include_router(production_export.router, prefix="/api/v1")
         app.include_router(production_settings.router, prefix="/api/v1")
+        app.include_router(production_video.router, prefix="/api/v1")
         app.include_router(assets.router, prefix="/api/v1")
         app.include_router(files.router, prefix="/api/v1")
         user = {
@@ -392,6 +399,7 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             api_auth.get_api_user,
             generation.get_api_user,
             production_export.get_api_user,
+            production_video.get_api_user,
             assets.get_api_user,
             files.get_api_user,
         ):
