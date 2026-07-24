@@ -95,6 +95,7 @@ from ai_anime.modules.production.public import (
     EpisodeSubtitlesMissing,
     FinalEpisodeVideoMissing,
     GenerateEpisodeAudioCommand,
+    GenerateSketchesCommand,
     GenerateSingleVideoCommand,
     GlobalVideoOptimizationBeatsMissing,
     GlobalVideoOptimizationSketchesMissing,
@@ -111,6 +112,7 @@ from ai_anime.modules.production.public import (
     Seedance2PanelBeatMissing,
     Seedance2PanelOperationRejected,
     Seedance2PanelQuery,
+    SketchGenerationRejected,
     SingleVideoRejected,
     TrimSeedance2AudioAssetCommand,
     UpdateRenderImageSettingsCommand,
@@ -119,6 +121,7 @@ from ai_anime.modules.production.public import (
     VideoPoolEntryUnavailable,
     global_video_optimization_use_cases,
     seedance2_panel_use_cases,
+    sketch_generation_use_cases,
     single_video_use_cases,
     episode_audio_use_cases,
     episode_export_use_cases,
@@ -834,150 +837,22 @@ async def generate_sketches(
 ):
     """生成草图。"""
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    ctx = resolved.ctx
-    username = resolved.username
-    project_name = resolved.project_name
-    output_dir = resolved.output_dir
-
-    proj_config = load_project_config(username, project_name)
-    style = body.style or proj_config.get("visual_style", "chinese_period_drama")
-
-    store = (
-        await make_sqlite_store_for_context(ctx)
-        if ctx
-        else await make_sqlite_store(username, project_name)
-    )
-    beats = await store.get_beats_as_dicts(episode_num)
-
-    if not beats:
-        return {"ok": False, "error": f"No beats found for episode {episode_num}"}
-
-    # 提前验证 grid_index，避免异步任务内才报错
-    from ai_anime.generators.nanobanana_grid import (
-        sketch_grid_split,
-        sketch_scene_grid_split,
-    )
-
-    use_scene_grouping = body.sketch_scene_grouping
-    if use_scene_grouping:
-        loc_plan = sketch_scene_grid_split(beats, aspect_ratio=body.aspect_ratio)
-        grid_plan = [(p["rows"], p["cols"]) for p in loc_plan]
-    else:
-        loc_plan = None
-        grid_plan = sketch_grid_split(len(beats))
-
-    generate_all_grids = body.grid_index == -1
-    if body.grid_index < -1 or body.grid_index >= len(grid_plan):
-        grid_labels = " + ".join(f"{r}x{c}" for r, c in grid_plan)
-        return {
-            "ok": False,
-            "error": (
-                f"grid_index={body.grid_index} 超出范围。"
-                f"共 {len(beats)} 个 beats，分割方案: {grid_labels}，"
-                f"有效 grid_index: 0~{len(grid_plan) - 1}"
+    try:
+        scheduled = await sketch_generation_use_cases().generate(
+            resolved.ctx,
+            GenerateSketchesCommand(
+                episode_num=episode_num,
+                grid_index=body.grid_index,
+                style=body.style,
+                model=body.model,
+                sketch_scene_grouping=body.sketch_scene_grouping,
+                aspect_ratio=body.aspect_ratio,
+                image_generation_selection=body.image_generation_selection,
             ),
-        }
-
-    character_map = await production_generation_context_use_cases(
-        store,
-        username,
-    ).build_character_map(
-        beats=beats,
-        project=project_name,
-        episode_num=episode_num,
-        use_detected_identities=False,
-    )
-    has_colors = any(
-        info.get("identity_sketch_colors") or info.get("sketch_color")
-        for info in character_map.values()
-    )
-    if not has_colors:
-        return {"ok": False, "error": "未检测到颜色分配，请先调用 assign-colors 接口"}
-
-    from ai_anime.utils.path_resolver import PathResolver
-
-    PathResolver(output_dir, episode_num).clean_sketches()
-
-    episode_obj = production_generation_context_use_cases(
-        store,
-        username,
-    ).episode_or_none(episode_num)
-    prop_menu = await _runtime_prop_menu_with_global_props(store, episode_obj, beats)
-    sketch_image_selection = production_image_settings_use_cases().resolve_sketch_selection(
-        proj_config,
-        body.image_generation_selection,
-    )
-    base_config = {
-        "beats": beats,
-        "character_map": character_map,
-        "style": style,
-        "model": body.model,
-        "sketch_scene_grouping": use_scene_grouping,
-        "aspect_ratio": body.aspect_ratio,
-        "image_generation_selection": sketch_image_selection,
-        "sketch_colors": store.get_sketch_colors(episode_num) or {},
-        "prop_menu": prop_menu,
-    }
-
-    dispatch_grid_indices = (
-        list(range(len(grid_plan))) if generate_all_grids else [body.grid_index]
-    )
-    if ctx is not None:
-        queued_tasks = []
-        for grid_index in dispatch_grid_indices:
-            scope = f"grid_{grid_index}"
-            queued = await get_task_backend().enqueue_project_task(
-                ctx,
-                task_type="sketch_generation",
-                queue_kind="default",
-                episode=episode_num,
-                scope=scope,
-                payload={
-                    "episode": episode_num,
-                    "output_dir": output_dir,
-                    "config": {**base_config, "grid_index": grid_index},
-                },
-            )
-            queued_tasks.append(
-                {
-                    "grid_index": grid_index,
-                    "scope": scope,
-                    "task_id": queued.task_state.task_id,
-                    "task_key": project_task_state_key(
-                        "sketch_generation",
-                        ctx.project_id,
-                        episode_num,
-                        scope=scope,
-                    ),
-                    "backend": queued.backend,
-                    "queue": queued.queue,
-                }
-            )
-        if generate_all_grids:
-            grid_labels = " + ".join(f"{r}x{c}" for r, c in grid_plan)
-            return {
-                "ok": True,
-                "task_type": "sketch_generation",
-                "backend": queued_tasks[0]["backend"] if queued_tasks else "inline",
-                "data": {
-                    "dispatched": len(dispatch_grid_indices),
-                    "tasks": queued_tasks,
-                    "scopes": [item["scope"] for item in queued_tasks],
-                },
-                "message": f"第 {episode_num} 集全集草图生成已进入队列 ({grid_labels})",
-            }
-
-        return {
-            "ok": True,
-            "task_type": "sketch_generation",
-            "backend": queued_tasks[0]["backend"],
-            "task_id": queued_tasks[0]["task_id"],
-            "task_key": queued_tasks[0]["task_key"],
-            "queue": queued_tasks[0]["queue"],
-            "message": f"第 {episode_num} 集草图生成已进入队列 (网格 {body.grid_index})",
-        }
-
-    return {"ok": False, "error": "草图生成需要 project context"}
+        )
+    except SketchGenerationRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, **scheduled.as_dict()}
 
 
 # ── 语音生成 ──────────────────────────────────────────────────────────────────

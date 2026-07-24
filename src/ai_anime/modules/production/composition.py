@@ -48,6 +48,9 @@ from ai_anime.modules.production.application.seedance2_panel import (
 from ai_anime.modules.production.application.single_video import (
     SingleVideoUseCases,
 )
+from ai_anime.modules.production.application.sketch_generation import (
+    SketchGenerationUseCases,
+)
 from ai_anime.modules.production.infrastructure.sketch_image import (
     PillowSketchImageFiles,
 )
@@ -107,6 +110,11 @@ from ai_anime.modules.production.infrastructure.single_video import (
     LocalSingleVideoPreparer,
     MediaIoBeatAudioDurationSource,
     TaskBackendSingleVideoScheduler,
+)
+from ai_anime.modules.production.infrastructure.sketch_generation import (
+    LocalSketchGenerationPreparer,
+    NanoBananaSketchGridPlanner,
+    TaskBackendSketchGenerationScheduler,
 )
 from ai_anime.modules.project_workspace.public import get_user_output_dir
 
@@ -179,6 +187,29 @@ def single_video_use_cases() -> SingleVideoUseCases:
             MediaIoBeatAudioDurationSource(),
         ),
         TaskBackendSingleVideoScheduler(ports.get_task_backend),
+    )
+
+
+def sketch_generation_use_cases() -> SketchGenerationUseCases:
+    from ai_anime import ports
+
+    settings = ProjectConfigProductionSettings()
+    return SketchGenerationUseCases(
+        LocalSketchGenerationPreparer(
+            settings,
+            ProductionImageSettingsUseCases(
+                settings,
+                ConfiguredProductionImageSelections(),
+            ),
+            lambda store, context: production_generation_context_use_cases(
+                store,
+                context.owner_username,
+            ),
+            AssetWorldRuntimePropMenuSource(),
+            LocalProductionSketchWorkspace(),
+            NanoBananaSketchGridPlanner(),
+        ),
+        TaskBackendSketchGenerationScheduler(ports.get_task_backend),
     )
 
 

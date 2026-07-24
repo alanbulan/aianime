@@ -101,6 +101,13 @@ from ai_anime.modules.production.application.single_video import (
     SingleVideoRejected,
     SingleVideoUseCases,
 )
+from ai_anime.modules.production.application.sketch_generation import (
+    SKETCH_GENERATION_TASK_TYPE,
+    GenerateSketchesCommand,
+    ScheduledSketchGeneration,
+    SketchGenerationRejected,
+    SketchGenerationUseCases,
+)
 from ai_anime.modules.production.domain.video_backend import (
     DEFAULT_VIDEO_BACKEND,
     grok_video_ratio,
@@ -180,6 +187,14 @@ def single_video_use_cases() -> SingleVideoUseCases:
     return build()
 
 
+def sketch_generation_use_cases() -> SketchGenerationUseCases:
+    from ai_anime.modules.production.composition import (
+        sketch_generation_use_cases as build,
+    )
+
+    return build()
+
+
 def production_generation_context_use_cases(
     store: Any,
     username: str,
@@ -253,6 +268,7 @@ __all__ = [
     "DEFAULT_VIDEO_BACKEND",
     "GLOBAL_VIDEO_OPTIMIZATION_TASK_TYPE",
     "INDEXTTS2_AUDIO_TASK_TYPE",
+    "SKETCH_GENERATION_TASK_TYPE",
     "SINGLE_VIDEO_TASK_TYPE",
     "AudioVoicePrerequisitesMissing",
     "BRIDGMAN_CHARACTER_PALETTE",
@@ -273,6 +289,7 @@ __all__ = [
     "FinalEpisodeVideoStatus",
     "FinalEpisodeVideoMissing",
     "GenerateEpisodeAudioCommand",
+    "GenerateSketchesCommand",
     "GenerateSingleVideoCommand",
     "GlobalVideoOptimizationBeatsMissing",
     "GlobalVideoOptimizationSketchesMissing",
@@ -289,6 +306,7 @@ __all__ = [
     "ScheduledEpisodeVideo",
     "ScheduledEpisodeAudio",
     "ScheduledGlobalVideoOptimization",
+    "ScheduledSketchGeneration",
     "ScheduledSingleVideo",
     "Seedance2PanelBeatMissing",
     "Seedance2PanelOperationRejected",
@@ -296,6 +314,8 @@ __all__ = [
     "Seedance2PanelUseCases",
     "SingleVideoRejected",
     "SingleVideoUseCases",
+    "SketchGenerationRejected",
+    "SketchGenerationUseCases",
     "SketchCropRejected",
     "SketchColorAssignmentResult",
     "SketchColorAssignmentUseCases",
@@ -337,6 +357,7 @@ __all__ = [
     "production_generation_context_use_cases",
     "production_image_settings_use_cases",
     "sketch_color_assignment_use_cases",
+    "sketch_generation_use_cases",
     "sketch_image_use_cases",
     "sketch_marker_detection_use_cases",
     "sketch_pose_editor_use_cases",

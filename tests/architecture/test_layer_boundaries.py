@@ -555,6 +555,37 @@ def test_production_global_video_optimization_route_delegates_to_application() -
     assert "GLOBAL_VIDEO_OPTIMIZATION_TASK_TYPE" in runner_source
 
 
+def test_production_sketch_generation_route_delegates_to_application() -> None:
+    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    sketch_runner = PACKAGE_ROOT / "task_backend" / "runners" / "sketch.py"
+    source = generation.read_text(encoding="utf-8")
+    route_start = source.index("async def generate_sketches(")
+    route_end = source.index("async def generate_audio(", route_start)
+    route_source = source[route_start:route_end]
+
+    assert route_source.count("sketch_generation_use_cases") == 1
+    assert "GenerateSketchesCommand" in route_source
+    for implementation_detail in (
+        "load_project_config",
+        "make_sqlite_store_for_context",
+        "make_sqlite_store(",
+        "get_beats_as_dicts",
+        "sketch_grid_split",
+        "sketch_scene_grid_split",
+        "production_generation_context_use_cases",
+        "PathResolver",
+        "_runtime_prop_menu_with_global_props",
+        "production_image_settings_use_cases",
+        "get_task_backend",
+        "enqueue_project_task",
+        "project_task_state_key",
+        "草图生成需要 project context",
+    ):
+        assert implementation_detail not in route_source
+    runner_source = sketch_runner.read_text(encoding="utf-8")
+    assert "SKETCH_GENERATION_TASK_TYPE" in runner_source
+
+
 def test_production_seedance2_panel_routes_delegate_to_application() -> None:
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     source = generation.read_text(encoding="utf-8")

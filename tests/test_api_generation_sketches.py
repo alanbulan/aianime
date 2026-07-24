@@ -1,167 +1,153 @@
-from __future__ import annotations
+import pytest
 
-from types import SimpleNamespace
-
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
-
-
-class _SketchStore:
-    async def get_beats_as_dicts(self, episode_num: int):
-        assert episode_num == 2
-        return [
-            {"beat_number": 1, "narration_segment": "a", "location": "A"},
-            {"beat_number": 2, "narration_segment": "b", "location": "B"},
-        ]
-
-    def get_episode(self, episode_num: int):
-        assert episode_num == 2
-        return SimpleNamespace(prop_menu=[])
-
-    def get_cached_prop(self, prop_id: str):
-        return None
-
-    def get_sketch_colors(self, episode_num: int):
-        assert episode_num == 2
-        return {"hero_main": "#ffffff"}
+from ai_anime.modules.production.application.sketch_generation import (
+    ScheduledSketchGeneration,
+    SketchGenerationRejected,
+    SketchGenerationTaskReceipt,
+)
 
 
-def _client(monkeypatch, tmp_path):
+@pytest.mark.asyncio
+async def test_generate_sketches_route_maps_request_to_application(
+    monkeypatch,
+) -> None:
     from ai_anime.api.routes import generation
-    from ai_anime.api.deps import ProjectResolution
-    from ai_anime.generators import nanobanana_grid
-    from ai_anime.utils.path_resolver import PathResolver
+    from ai_anime.api.schemas import SketchGenerateRequest
 
-    store = _SketchStore()
-    clean_calls = []
-    start_calls = []
-    scene_split_calls = []
+    context = object()
+    calls = []
 
-    async def fake_make_sqlite_store(username: str, project: str):
-        assert username == "alice"
+    async def resolve(project, user, required_role="editor"):
         assert project == "demo"
-        return store
+        assert user == {"username": "alice"}
+        assert required_role == "editor"
+        return type("Resolution", (), {"ctx": context})()
 
-    async def fake_make_sqlite_store_for_context(ctx):
-        assert ctx.project_id == "proj"
-        return store
+    class UseCases:
+        async def generate(self, target_context, command):
+            calls.append((target_context, command))
+            return ScheduledSketchGeneration(
+                episode_num=2,
+                requested_grid_index=-1,
+                grid_plan=((1, 1), (1, 1)),
+                receipts=(
+                    SketchGenerationTaskReceipt(
+                        grid_index=0,
+                        scope="grid_0",
+                        task_id="task-0",
+                        task_key=(
+                            "task:sketch_generation:project:proj-1:2:grid_0"
+                        ),
+                        backend="celery",
+                        queue="default",
+                    ),
+                    SketchGenerationTaskReceipt(
+                        grid_index=1,
+                        scope="grid_1",
+                        task_id="task-1",
+                        task_key=(
+                            "task:sketch_generation:project:proj-1:2:grid_1"
+                        ),
+                        backend="celery",
+                        queue="default",
+                    ),
+                ),
+            )
 
-    async def fake_character_map(*args, **kwargs):
-        return {"hero": {"identity_sketch_colors": {"hero_main": "#ffffff"}}}
-
-    async def fake_prop_menu(*args, **kwargs):
-        return []
-
-    async def fake_enqueue_project_task(ctx, **kwargs):
-        start_calls.append(kwargs)
-        return SimpleNamespace(
-            task_state=SimpleNamespace(task_id=f"task-{len(start_calls)}"),
-            backend="celery",
-            queue=kwargs.get("queue_kind") or "default",
-        )
-
-    def fake_clean_sketches(self):
-        clean_calls.append(self)
-        return []
-
-    def fake_scene_split(beats, aspect_ratio="2:3"):
-        scene_split_calls.append(aspect_ratio)
-        return [
-            {
-                "rows": 1,
-                "cols": 1,
-                "scene_id": "A",
-                "beat_numbers": [1],
-                "beats": [beats[0]],
-            },
-            {
-                "rows": 1,
-                "cols": 1,
-                "scene_id": "B",
-                "beat_numbers": [2],
-                "beats": [beats[1]],
-            },
-        ]
-
-    async def fake_resolve_project_scope(project, user, *, required_role="viewer"):
-        return ProjectResolution(
-            ctx=SimpleNamespace(project_id="proj", state_dir=tmp_path / "state"),
-            username="alice",
-            project_name="demo",
-            project_dir=tmp_path,
-            output_dir=str(tmp_path),
-            state_dir=str(tmp_path / "state"),
-            runtime_dir=str(tmp_path / "runtime"),
-        )
-
-    monkeypatch.setattr(generation, "resolve_project_scope", fake_resolve_project_scope)
-    monkeypatch.setattr(generation, "load_project_config", lambda username, project: {})
-    monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
-    monkeypatch.setattr(
-        generation, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
-    )
-    generation_context = SimpleNamespace(
-        build_character_map=fake_character_map,
-        episode_or_none=lambda *_: None,
-    )
+    monkeypatch.setattr(generation, "_resolve_generation_project", resolve)
     monkeypatch.setattr(
         generation,
-        "production_generation_context_use_cases",
-        lambda *_: generation_context,
+        "sketch_generation_use_cases",
+        lambda: UseCases(),
     )
-    monkeypatch.setattr(generation, "_runtime_prop_menu_with_global_props", fake_prop_menu)
-    monkeypatch.setattr(generation, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
-    monkeypatch.setattr(PathResolver, "clean_sketches", fake_clean_sketches)
-    monkeypatch.setattr(nanobanana_grid, "sketch_scene_grid_split", fake_scene_split)
-
-    app = FastAPI()
-    app.include_router(generation.router, prefix="/api/v1")
-    app.dependency_overrides[generation.get_api_user] = lambda: {"username": "alice"}
-
-    return TestClient(app), clean_calls, start_calls, scene_split_calls
-
-
-def test_generate_sketches_grid_index_minus_one_dispatches_all_scene_grids(
-    monkeypatch, tmp_path
-):
-    client, clean_calls, start_calls, _scene_split_calls = _client(monkeypatch, tmp_path)
-
-    response = client.post(
-        "/api/v1/projects/demo/episodes/2/sketches/generate",
-        json={"grid_index": -1, "sketch_scene_grouping": True},
+    request = SketchGenerateRequest(
+        style="ink",
+        model="nanobanana",
+        grid_index=-1,
+        sketch_scene_grouping=True,
+        aspect_ratio="16:9",
+        image_generation_selection="openrouter_nanobanana2",
     )
 
-    assert response.status_code == 200
-    body = response.json()
-    assert body["ok"] is True
-    assert body["task_type"] == "sketch_generation"
-    assert body["data"]["dispatched"] == 2
-    assert body["data"]["scopes"] == ["grid_0", "grid_1"]
-    assert len(clean_calls) == 1
-    assert [call["payload"]["config"]["grid_index"] for call in start_calls] == [0, 1]
+    response = await generation.generate_sketches(
+        project="demo",
+        episode_num=2,
+        body=request,
+        user={"username": "alice"},
+    )
 
-
-def test_generate_sketches_forwards_sketch_model_and_aspect_ratio(
-    monkeypatch, tmp_path
-):
-    client, _clean_calls, start_calls, scene_split_calls = _client(monkeypatch, tmp_path)
-
-    response = client.post(
-        "/api/v1/projects/demo/episodes/2/sketches/generate",
-        json={
-            "grid_index": 0,
-            "sketch_scene_grouping": True,
-            "aspect_ratio": "16:9",
-            "image_generation_selection": "openrouter_nanobanana2",
+    assert response == {
+        "ok": True,
+        "task_type": "sketch_generation",
+        "backend": "celery",
+        "data": {
+            "dispatched": 2,
+            "tasks": [
+                {
+                    "grid_index": 0,
+                    "scope": "grid_0",
+                    "task_id": "task-0",
+                    "task_key": (
+                        "task:sketch_generation:project:proj-1:2:grid_0"
+                    ),
+                    "backend": "celery",
+                    "queue": "default",
+                },
+                {
+                    "grid_index": 1,
+                    "scope": "grid_1",
+                    "task_id": "task-1",
+                    "task_key": (
+                        "task:sketch_generation:project:proj-1:2:grid_1"
+                    ),
+                    "backend": "celery",
+                    "queue": "default",
+                },
+            ],
+            "scopes": ["grid_0", "grid_1"],
         },
+        "message": "第 2 集全集草图生成已进入队列 (1x1 + 1x1)",
+    }
+    target_context, command = calls[0]
+    assert target_context is context
+    assert command.episode_num == 2
+    assert command.grid_index == -1
+    assert command.style == "ink"
+    assert command.model == "nanobanana"
+    assert command.sketch_scene_grouping is True
+    assert command.aspect_ratio == "16:9"
+    assert command.image_generation_selection == "openrouter_nanobanana2"
+
+
+@pytest.mark.asyncio
+async def test_generate_sketches_route_preserves_rejection_envelope(
+    monkeypatch,
+) -> None:
+    from ai_anime.api.routes import generation
+    from ai_anime.api.schemas import SketchGenerateRequest
+
+    async def resolve(*_args, **_kwargs):
+        return type("Resolution", (), {"ctx": object()})()
+
+    class UseCases:
+        async def generate(self, _context, _command):
+            raise SketchGenerationRejected("No beats found for episode 2")
+
+    monkeypatch.setattr(generation, "_resolve_generation_project", resolve)
+    monkeypatch.setattr(
+        generation,
+        "sketch_generation_use_cases",
+        lambda: UseCases(),
     )
 
-    assert response.status_code == 200
-    body = response.json()
-    assert body["ok"] is True
-    assert scene_split_calls == ["16:9"]
-    assert start_calls[0]["payload"]["config"]["aspect_ratio"] == "16:9"
-    assert (
-        start_calls[0]["payload"]["config"]["image_generation_selection"]
-        == "newapi_nanobanana2"
+    response = await generation.generate_sketches(
+        project="demo",
+        episode_num=2,
+        body=SketchGenerateRequest(),
+        user={"username": "alice"},
     )
+
+    assert response == {
+        "ok": False,
+        "error": "No beats found for episode 2",
+    }

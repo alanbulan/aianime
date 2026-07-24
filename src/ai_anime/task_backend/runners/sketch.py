@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from ai_anime.modules.production.public import SKETCH_GENERATION_TASK_TYPE
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.task_backend.cancel import await_envelope_with_cancel_watch
 from ai_anime.task_backend.registry import register_project_task_runner
@@ -292,7 +293,7 @@ async def _run_sketch_generation_async(
     from ai_anime.utils.path_resolver import PathResolver, compute_scoped_grid_filename
 
     payload = envelope.get("payload") or {}
-    task_type = str(envelope.get("task_type") or "sketch_generation")
+    task_type = str(envelope.get("task_type") or SKETCH_GENERATION_TASK_TYPE)
     config = dict(payload.get("config") or {})
     episode = int(envelope.get("episode") or payload.get("episode") or 0)
     scope = envelope.get("scope")
@@ -608,19 +609,19 @@ def run_sketch_generation(envelope: dict[str, Any], ctx: ProjectContext) -> dict
             await_envelope_with_cancel_watch(
                 _run_control_frame_to_sketch_async(envelope, ctx),
                 envelope,
-                task_type="sketch_generation",
+                task_type=SKETCH_GENERATION_TASK_TYPE,
             )
         )
     return asyncio.run(
         await_envelope_with_cancel_watch(
             _run_sketch_generation_async(envelope, ctx),
             envelope,
-            task_type="sketch_generation",
+            task_type=SKETCH_GENERATION_TASK_TYPE,
         )
     )
 
 
-register_project_task_runner("sketch_generation", run_sketch_generation)
+register_project_task_runner(SKETCH_GENERATION_TASK_TYPE, run_sketch_generation)
 
 
 async def _run_control_frame_to_sketch_async(
@@ -637,7 +638,7 @@ async def _run_control_frame_to_sketch_async(
     output_dir = str(payload.get("output_dir") or ctx.output_dir)
     state_dir = str(payload.get("state_dir") or ctx.state_dir)
     control_frames_dir = str(payload.get("control_frames_dir") or "")
-    task_type = str(envelope.get("task_type") or "sketch_generation")
+    task_type = str(envelope.get("task_type") or SKETCH_GENERATION_TASK_TYPE)
     manager = get_task_manager()
     _log(
         manager,

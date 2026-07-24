@@ -39,6 +39,12 @@ if TYPE_CHECKING:
         SingleVideoTask,
         SingleVideoTaskReceipt,
     )
+    from ai_anime.modules.production.application.sketch_generation import (
+        GenerateSketchesCommand,
+        PreparedSketchGeneration,
+        SketchGenerationTask,
+        SketchGenerationTaskReceipt,
+    )
     from ai_anime.modules.production.domain.video_pool import (
         VideoPool,
         VideoPoolEntry,
@@ -455,3 +461,19 @@ class ProductionSingleVideoScheduler(Protocol):
         context: ProjectContext,
         task: SingleVideoTask,
     ) -> SingleVideoTaskReceipt: ...
+
+
+class ProductionSketchGenerationPreparer(Protocol):
+    async def prepare(
+        self,
+        context: ProjectContext,
+        command: GenerateSketchesCommand,
+    ) -> PreparedSketchGeneration: ...
+
+
+class ProductionSketchGenerationScheduler(Protocol):
+    async def enqueue(
+        self,
+        context: ProjectContext,
+        task: SketchGenerationTask,
+    ) -> SketchGenerationTaskReceipt: ...
