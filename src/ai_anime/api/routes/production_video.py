@@ -4,11 +4,15 @@ from fastapi import APIRouter, Depends
 
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import resolve_project_scope
-from ai_anime.api.schemas import VideoComposeRequest
+from ai_anime.api.schemas import GlobalOptimizeRequest, VideoComposeRequest
 from ai_anime.modules.production.public import (
     ComposeEpisodeVideoCommand,
     EpisodeBeatsMissing,
+    GlobalVideoOptimizationBeatsMissing,
+    GlobalVideoOptimizationSketchesMissing,
+    OptimizeEpisodeVideoCommand,
     episode_video_use_cases,
+    global_video_optimization_use_cases,
     video_backend_catalog_use_cases,
 )
 
@@ -29,6 +33,31 @@ async def get_video_backend_options(
             for item in video_backend_catalog_use_cases().list_options()
         ],
     }
+
+
+@router.post("/projects/{project}/episodes/{episode_num}/optimize/video-global")
+async def global_optimize_video(
+    project: str,
+    episode_num: int,
+    body: GlobalOptimizeRequest = GlobalOptimizeRequest(),
+    user: dict = Depends(get_api_user),
+):
+    """Queue global video prompt optimization for an episode."""
+    resolved = await resolve_project_scope(project, user, required_role="editor")
+    try:
+        scheduled = await global_video_optimization_use_cases().schedule(
+            resolved.ctx,
+            OptimizeEpisodeVideoCommand(
+                episode_num=episode_num,
+                language=body.language,
+            ),
+        )
+    except (
+        GlobalVideoOptimizationBeatsMissing,
+        GlobalVideoOptimizationSketchesMissing,
+    ) as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, **scheduled.as_dict()}
 
 
 @router.post("/projects/{project}/episodes/{episode_num}/videos/compose")

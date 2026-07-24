@@ -636,15 +636,15 @@ def test_production_video_backend_catalog_has_one_owner() -> None:
 
 
 def test_production_global_video_optimization_route_delegates_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "production_video.py"
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     video_runner = PACKAGE_ROOT / "task_backend" / "runners" / "video.py"
-    source = generation.read_text(encoding="utf-8")
-    route_start = source.index("async def global_optimize_video(")
-    route_end = source.index("async def regenerate_grid(", route_start)
-    route_source = source[route_start:route_end]
+    source = route.read_text(encoding="utf-8")
+    generation_source = generation.read_text(encoding="utf-8")
 
-    assert "global_video_optimization_use_cases" in route_source
-    assert "OptimizeEpisodeVideoCommand" in route_source
+    assert "global_video_optimization_use_cases" in source
+    assert "OptimizeEpisodeVideoCommand" in source
+    assert "async def global_optimize_video(" not in generation_source
     for implementation_detail in (
         "make_sqlite_store_for_context",
         "make_sqlite_store(",
@@ -656,7 +656,7 @@ def test_production_global_video_optimization_route_delegates_to_application() -
         "project_task_state_key",
         "全局视频优化需要 project context",
     ):
-        assert implementation_detail not in route_source
+        assert implementation_detail not in source
     runner_source = video_runner.read_text(encoding="utf-8")
     assert "GLOBAL_VIDEO_OPTIMIZATION_TASK_TYPE" in runner_source
 
@@ -666,7 +666,7 @@ def test_production_sketch_generation_route_delegates_to_application() -> None:
     sketch_runner = PACKAGE_ROOT / "task_backend" / "runners" / "sketch.py"
     source = generation.read_text(encoding="utf-8")
     route_start = source.index("async def generate_sketches(")
-    route_end = source.index("async def global_optimize_video(", route_start)
+    route_end = source.index("async def regenerate_grid(", route_start)
     route_source = source[route_start:route_end]
 
     assert route_source.count("sketch_generation_use_cases") == 1

@@ -17,7 +17,6 @@ from fastapi.responses import JSONResponse
 from ai_anime.api.auth import get_api_user, require_scope
 from ai_anime.api.deps import resolve_project_scope
 from ai_anime.api.schemas import (
-    GlobalOptimizeRequest,
     SketchGenerateRequest,
     GridRegenerateRequest,
     BeatsRegenerateRequest,
@@ -62,8 +61,6 @@ from ai_anime.modules.production.public import (
     GenerateDirectorControlSketchCommand,
     GenerateSketchesCommand,
     GenerateSingleVideoCommand,
-    GlobalVideoOptimizationBeatsMissing,
-    GlobalVideoOptimizationSketchesMissing,
     GridPoolCutRejected,
     GridPoolImageStale,
     GridPoolPreviewRejected,
@@ -74,7 +71,6 @@ from ai_anime.modules.production.public import (
     GridPromptQuery,
     GridSketchPreviewCommand,
     ManualSketchRegenerationRejected,
-    OptimizeEpisodeVideoCommand,
     RegenerateGridCommand,
     RegenerateSelectedBeatsCommand,
     RenderPlanConflict,
@@ -106,7 +102,6 @@ from ai_anime.modules.production.public import (
     UploadSeedance2AssetCommand,
     VideoPoolEntryUnavailable,
     director_control_sketch_use_cases,
-    global_video_optimization_use_cases,
     grid_pool_use_cases,
     grid_regeneration_use_cases,
     manual_sketch_regeneration_use_cases,
@@ -331,38 +326,6 @@ async def generate_sketches(
             ),
         )
     except SketchGenerationRejected as exc:
-        return {"ok": False, "error": str(exc)}
-    return {"ok": True, **scheduled.as_dict()}
-
-
-# ── 视频优化 ──────────────────────────────────────────────────────────────────
-
-
-@router.post("/projects/{project}/episodes/{episode_num}/optimize/video-global")
-async def global_optimize_video(
-    project: str,
-    episode_num: int,
-    body: GlobalOptimizeRequest = GlobalOptimizeRequest(),
-    user: dict = Depends(get_api_user),
-):
-    """全局视频提示词优化（草图 → AI 自由决策每个 beat 的 i2v/k2v 模式）。
-
-    language="en" (默认) 使用 SuperPower 模式（Gemini 英文提示词，含 camera/action/audio）。
-    language="zh" 使用中文简短提示词。
-    """
-    resolved = await _resolve_generation_project(project, user, required_role="editor")
-    try:
-        scheduled = await global_video_optimization_use_cases().schedule(
-            resolved.ctx,
-            OptimizeEpisodeVideoCommand(
-                episode_num=episode_num,
-                language=body.language,
-            ),
-        )
-    except (
-        GlobalVideoOptimizationBeatsMissing,
-        GlobalVideoOptimizationSketchesMissing,
-    ) as exc:
         return {"ok": False, "error": str(exc)}
     return {"ok": True, **scheduled.as_dict()}
 
