@@ -72,6 +72,22 @@ from ai_anime.modules.production.application.video_pool import (
     VideoPoolListing,
     VideoPoolUseCases,
 )
+from ai_anime.modules.production.application.video_backend_catalog import (
+    VideoBackendCatalogUseCases,
+    VideoBackendOption,
+)
+from ai_anime.modules.production.domain.video_backend import (
+    DEFAULT_VIDEO_BACKEND,
+    grok_video_ratio,
+    grok_video_resolution,
+    happyhorse_ratio,
+    happyhorse_resolution,
+    is_grok_video_backend,
+    is_happyhorse_backend,
+    is_seedance2_backend,
+    seedance2_api_resolution,
+    seedance2_resolution,
+)
 from ai_anime.modules.production.domain.sketch_color import (
     BRIDGMAN_CHARACTER_PALETTE,
     PROP_MARKER_PALETTE,
@@ -107,6 +123,14 @@ def episode_video_use_cases() -> EpisodeVideoUseCases:
 
 def video_pool_use_cases() -> VideoPoolUseCases:
     from ai_anime.modules.production.composition import video_pool_use_cases as build
+
+    return build()
+
+
+def video_backend_catalog_use_cases() -> VideoBackendCatalogUseCases:
+    from ai_anime.modules.production.composition import (
+        video_backend_catalog_use_cases as build,
+    )
 
     return build()
 
@@ -181,6 +205,7 @@ def sketch_pose_editor_use_cases() -> SketchPoseEditorUseCases:
 
 __all__ = [
     "AddGeneratedVideoCommand",
+    "DEFAULT_VIDEO_BACKEND",
     "INDEXTTS2_AUDIO_TASK_TYPE",
     "AudioVoicePrerequisitesMissing",
     "BRIDGMAN_CHARACTER_PALETTE",
@@ -228,12 +253,21 @@ __all__ = [
     "VideoPoolEntryUnavailable",
     "VideoPoolListing",
     "VideoPoolUseCases",
+    "VideoBackendCatalogUseCases",
+    "VideoBackendOption",
     "assign_identity_sketch_colors",
     "episode_audio_use_cases",
     "episode_export_use_cases",
     "episode_video_use_cases",
+    "grok_video_ratio",
+    "grok_video_resolution",
+    "happyhorse_ratio",
+    "happyhorse_resolution",
     "global_prop_marker_colors",
     "image_generation_usage_use_cases",
+    "is_grok_video_backend",
+    "is_happyhorse_backend",
+    "is_seedance2_backend",
     "marker_color_change_requires_sketch_clean",
     "production_generation_context_use_cases",
     "production_image_settings_use_cases",
@@ -242,5 +276,8 @@ __all__ = [
     "sketch_marker_detection_use_cases",
     "sketch_pose_editor_use_cases",
     "sketch_regen_queue_use_cases",
+    "seedance2_api_resolution",
+    "seedance2_resolution",
+    "video_backend_catalog_use_cases",
     "video_pool_use_cases",
 ]

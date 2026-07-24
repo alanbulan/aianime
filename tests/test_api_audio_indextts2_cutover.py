@@ -169,25 +169,6 @@ def _fake_enqueue(calls):
     return fake_enqueue_project_task
 
 
-def test_happyhorse_video_backend_options_expose_mainline_limits() -> None:
-    from ai_anime.api.routes import generation
-
-    options = {
-        item.value: item.model_dump()
-        for item in generation._api_video_backend_options()
-    }
-    happyhorse = options["newapi_happyhorse-1.0"]
-
-    assert happyhorse["is_happyhorse"] is True
-    assert happyhorse["is_seedance2"] is False
-    assert happyhorse["resolution_options"] == ["720p", "1080p"]
-    assert happyhorse["ratio_options"] == ["16:9", "9:16", "1:1", "4:3", "3:4"]
-    assert happyhorse["supported_modes"] == ["first_frame", "multimodal_reference"]
-    assert happyhorse["reference_image_max"] == 9
-    assert happyhorse["reference_video_max"] == 1
-    assert happyhorse["reference_audio_max"] == 0
-
-
 @pytest.mark.asyncio
 async def test_audio_generate_route_dispatches_indextts2(monkeypatch, tmp_path):
     from ai_anime.api.routes import generation

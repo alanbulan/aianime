@@ -8,6 +8,7 @@ from typing import Any
 
 from ai_anime.modules.production.public import (
     AddGeneratedVideoCommand,
+    is_seedance2_backend,
     video_pool_use_cases,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
@@ -94,7 +95,6 @@ async def _run_single_video_async(envelope: dict[str, Any], ctx: ProjectContext)
     _log(manager, ctx, envelope, f"开始生成 Beat {beat_num} 视频")
 
     from ai_anime.generators.video_generator import ShotReference, create_video_generator
-    from ai_anime.seedance2_i2v.pipeline import is_huimeng_seedance2_backend
     from ai_anime.utils.path_resolver import PathResolver
 
     beat = config.get("beat", {})
@@ -105,7 +105,7 @@ async def _run_single_video_async(envelope: dict[str, Any], ctx: ProjectContext)
     backend_str = config.get("video_backend", "comfyui")
     last_frame_path = config.get("last_frame_path")
     seedance2_config = config.get("seedance2_config") or beat.get("seedance2_config_json")
-    is_seedance2_backend = is_huimeng_seedance2_backend(backend_str)
+    uses_seedance2 = is_seedance2_backend(backend_str)
 
     paths = PathResolver(output_dir, episode)
     videos_dir = paths.videos_dir()
@@ -115,7 +115,7 @@ async def _run_single_video_async(envelope: dict[str, Any], ctx: ProjectContext)
     # 非 seedance2 后端（含 seedance-1.5-pro）的清晰度走构造参数透传；
     # seedance2 的清晰度在 prepare 阶段并入 seedance2_config，无需在此重复。
     single_resolution = config.get("resolution")
-    if single_resolution and not is_seedance2_backend:
+    if single_resolution and not uses_seedance2:
         gen_kwargs["resolution"] = str(single_resolution)
     video_gen = create_video_generator(backend=backend_str, **gen_kwargs)
 
@@ -132,11 +132,11 @@ async def _run_single_video_async(envelope: dict[str, Any], ctx: ProjectContext)
             current_task=f"生成 Beat {beat_num} 视频",
         )
 
-    if video_mode == "keyframe" and last_frame_path and not is_seedance2_backend:
+    if video_mode == "keyframe" and last_frame_path and not uses_seedance2:
         video_duration = 5.0
 
     seedance2_references = []
-    if is_seedance2_backend:
+    if uses_seedance2:
         from ai_anime.seedance2_i2v.models import Seedance2I2VMode
         from ai_anime.seedance2_i2v.pipeline import prepare_seedance2_generation_inputs
 
@@ -165,7 +165,7 @@ async def _run_single_video_async(envelope: dict[str, Any], ctx: ProjectContext)
         )
 
     model_references = seedance2_references
-    if not is_seedance2_backend:
+    if not uses_seedance2:
         model_references = [
             ShotReference(
                 str(item.get("type") or "image"),
@@ -194,7 +194,7 @@ async def _run_single_video_async(envelope: dict[str, Any], ctx: ProjectContext)
         generate_kwargs["references"] = model_references
     if config.get("audio_setting"):
         generate_kwargs["audio_setting"] = str(config["audio_setting"])
-    if is_seedance2_backend:
+    if uses_seedance2:
         generate_kwargs["seedance2_config"] = seedance2_config
 
     result = await video_gen.generate(**generate_kwargs)

@@ -7,6 +7,7 @@ from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 
 from ai_anime.models import SceneRef
 from ai_anime.freezone.slots import PushTarget
+from ai_anime.modules.production.public import DEFAULT_VIDEO_BACKEND
 from ai_anime.api.story_intake_schemas import IngestStart as IngestStart
 
 ProjectStatus = Literal["active", "archived", "deleted"]
@@ -196,30 +197,6 @@ class GlobalOptimizeRequest(BaseModel):
     language: str = "en"  # "zh" 中文 / "en" SuperPower英文(Gemini)
 
 
-class VideoGenerateRequest(BaseModel):
-    resolution: str = "720x1280"
-    video_backend: str = "newapi_seedance-1.0-pro-fast"
-    use_director_render: bool = False
-
-
-class VideoBackendOption(BaseModel):
-    value: str
-    label: str
-    is_default: bool = False
-    is_seedance2: bool = False
-    is_happyhorse: bool = False
-    is_grok_video: bool = False
-    dialogue_only: bool = False
-    min_duration: Optional[int] = None
-    max_duration: Optional[int] = None
-    resolution_options: Optional[list[str]] = None
-    ratio_options: Optional[list[str]] = None
-    supported_modes: Optional[list[str]] = None
-    reference_image_max: Optional[int] = None
-    reference_video_max: Optional[int] = None
-    reference_audio_max: Optional[int] = None
-
-
 class VideoComposeRequest(BaseModel):
     add_subtitles: bool = True
     add_bgm: bool = False
@@ -320,7 +297,7 @@ class InsertManualShotRequest(BaseModel):
 
 class SingleVideoRequest(BaseModel):
     resolution: str = "720x1280"
-    video_backend: str = "newapi_seedance-1.0-pro-fast"
+    video_backend: str = DEFAULT_VIDEO_BACKEND
     use_director_render: bool = False
     seedance2_config_json: Optional[str] = None
     mode: Optional[str] = None

@@ -499,6 +499,36 @@ def test_production_video_pool_routes_and_runner_delegate_to_application() -> No
     assert "class VideoPoolEntry(" not in models.read_text(encoding="utf-8")
 
 
+def test_production_video_backend_catalog_has_one_owner() -> None:
+    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    schemas = PACKAGE_ROOT / "api" / "schemas.py"
+    video_runner = PACKAGE_ROOT / "task_backend" / "runners" / "video.py"
+    seedance_pipeline = PACKAGE_ROOT / "seedance2_i2v" / "pipeline.py"
+    source = generation.read_text(encoding="utf-8")
+    route_start = source.index("async def get_video_backend_options(")
+    route_end = source.index("async def get_render_settings(", route_start)
+    route_source = source[route_start:route_end]
+
+    assert "video_backend_catalog_use_cases" in route_source
+    assert "def _api_video_backend_options(" not in source
+    for legacy_implementation in (
+        "NEWAPI_VIDEO_DURATION_BOUNDS",
+        "newapi_video_backend_options",
+        "parse_newapi_video_backend",
+        "VideoGenerateRequest",
+        "VideoBackendOption",
+    ):
+        assert legacy_implementation not in route_source
+    schema_source = schemas.read_text(encoding="utf-8")
+    assert "class VideoGenerateRequest(" not in schema_source
+    assert "class VideoBackendOption(" not in schema_source
+    assert "DEFAULT_VIDEO_BACKEND" in schema_source
+    assert "is_seedance2_backend" in video_runner.read_text(encoding="utf-8")
+    assert "is_huimeng_seedance2_backend" not in seedance_pipeline.read_text(
+        encoding="utf-8"
+    )
+
+
 def test_production_generation_context_routes_delegate_to_application() -> None:
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     freezone = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
