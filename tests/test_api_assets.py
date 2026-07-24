@@ -199,11 +199,14 @@ def _patch_project(
         lambda username, project: str(project_dir),
         raising=False,
     )
+    from ai_anime.modules.asset_world.infrastructure import (
+        image_settings as image_settings_adapter,
+    )
+
     monkeypatch.setattr(
-        module,
+        image_settings_adapter,
         "load_project_config_file",
         lambda username, project: {"visual_style": "ink_wash"},
-        raising=False,
     )
     monkeypatch.setattr(
         module,

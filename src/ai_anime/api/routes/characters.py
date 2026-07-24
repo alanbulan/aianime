@@ -30,7 +30,6 @@ from ai_anime.api.schemas import (
     CharacterVoiceRecordRequest,
     CharacterVoiceTrimRequest,
 )
-from ai_anime.project_config import load_project_config
 from ai_anime.modules.asset_world.public import (
     CharacterCatalogRejected,
     CharacterGenerationOptions,
@@ -608,20 +607,19 @@ async def generate_single_portrait_async(
         await _resolve_character_project(project, user)
     )
 
-    config = load_project_config(username, project_name)
-    style = body.style or config.get("visual_style", "chinese_period_drama")
-    model = image_settings_use_cases().resolve_character_model(
+    options = image_settings_use_cases().character_generation_options(
         username,
         project_name,
-        body.model,
+        requested_style=body.style,
+        requested_model=body.model,
     )
     try:
         scheduled = await character_task_use_cases().schedule_character_portrait(
             task_context=ctx,
             project_dir=project_dir,
             character_name=name,
-            style=style,
-            model=model,
+            style=options.style,
+            model=options.model,
         )
     except CharacterCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
@@ -644,16 +642,12 @@ async def generate_single_portrait(
     settings = image_settings_use_cases()
 
     def generation_options() -> CharacterGenerationOptions:
-        project_config = load_project_config(username, project_name)
-        return CharacterGenerationOptions(
-            style=body.style
-            or project_config.get("visual_style", "chinese_period_drama"),
-            ethnicity=body.ethnicity,
-            model=settings.resolve_character_model(
-                username,
-                project_name,
-                body.model,
-            ),
+        return settings.character_generation_options(
+            username,
+            project_name,
+            requested_style=body.style,
+            requested_model=body.model,
+            requested_ethnicity=body.ethnicity,
         )
 
     try:
@@ -828,12 +822,11 @@ async def generate_identity_portrait_async(
     ctx, username, project_name, project_dir, _output_dir, store = await _resolve_character_project(
         project, user
     )
-    config = load_project_config(username, project_name)
-    style = body.style or config.get("visual_style", "chinese_period_drama")
-    model = image_settings_use_cases().resolve_character_model(
+    options = image_settings_use_cases().character_generation_options(
         username,
         project_name,
-        body.model,
+        requested_style=body.style,
+        requested_model=body.model,
     )
     try:
         scheduled = await character_task_use_cases().schedule_identity_portrait(
@@ -842,8 +835,8 @@ async def generate_identity_portrait_async(
             project_dir=project_dir,
             character_name=name,
             identity_id=identity_id,
-            style=style,
-            model=model,
+            style=options.style,
+            model=options.model,
         )
     except CharacterCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
@@ -865,16 +858,11 @@ async def generate_identity_portrait(
     settings = image_settings_use_cases()
 
     def generation_options() -> CharacterGenerationOptions:
-        project_config = load_project_config(username, project_name)
-        return CharacterGenerationOptions(
-            style=body.style
-            or project_config.get("visual_style", "chinese_period_drama"),
-            ethnicity=project_config.get("ethnicity", "Chinese"),
-            model=settings.resolve_character_model(
-                username,
-                project_name,
-                body.model,
-            ),
+        return settings.character_generation_options(
+            username,
+            project_name,
+            requested_style=body.style,
+            requested_model=body.model,
         )
 
     try:
@@ -902,12 +890,11 @@ async def generate_identity_image_async(
     ctx, username, project_name, project_dir, _output_dir, store = (
         await _resolve_character_project(project, user)
     )
-    config = load_project_config(username, project_name)
-    style = body.style or config.get("visual_style", "chinese_period_drama")
-    model = image_settings_use_cases().resolve_character_model(
+    options = image_settings_use_cases().character_generation_options(
         username,
         project_name,
-        body.model,
+        requested_style=body.style,
+        requested_model=body.model,
     )
     try:
         scheduled = await character_task_use_cases().schedule_identity_image(
@@ -916,8 +903,8 @@ async def generate_identity_image_async(
             project_dir=project_dir,
             character_name=name,
             identity_id=identity_id,
-            style=style,
-            model=model,
+            style=options.style,
+            model=options.model,
         )
     except CharacterCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
@@ -965,15 +952,11 @@ async def generate_identity_image(
     settings = image_settings_use_cases()
 
     def generation_options() -> CharacterGenerationOptions:
-        project_config = load_project_config(username, project_name)
-        return CharacterGenerationOptions(
-            style=body.style or project_config.get("visual_style"),
-            ethnicity=project_config.get("ethnicity", "Chinese"),
-            model=settings.resolve_character_model(
-                username,
-                project_name,
-                body.model,
-            ),
+        return settings.character_generation_options(
+            username,
+            project_name,
+            requested_style=body.style,
+            requested_model=body.model,
         )
 
     try:

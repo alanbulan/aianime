@@ -26,21 +26,16 @@ from ai_anime.modules.asset_world.public import (
     SaveSceneDirectorWorldSourceCommand,
     SceneCatalogRejected,
     UpdateSceneCommand,
+    image_settings_use_cases,
     scene_catalog_use_cases,
     scene_media_use_cases,
     scene_task_use_cases,
     scene_viewer_use_cases,
 )
-from ai_anime.project_config import load_project_config_file
 from ai_anime.modules.project_workspace.public import ProjectContext, resolve_project_context
 from ai_anime.sqlite_store import SQLiteStore
 
 router = APIRouter()
-
-
-def _project_style(username: str, project: str) -> str:
-    config = load_project_config_file(username, project)
-    return str(config.get("visual_style") or config.get("project_style") or "")
 
 
 def _asset_url(ctx: ProjectContext, project_dir: Path, abs_path: str | Path) -> str:
@@ -456,7 +451,10 @@ async def _start_scene_reference_task(
             output_dir=output_dir,
             scene_name=name,
             kind=kind,
-            style=_project_style(username, project_name),
+            style=image_settings_use_cases().project_style(
+                username,
+                project_name,
+            ),
             model=model,
         )
     except SceneCatalogRejected as exc:
@@ -654,7 +652,12 @@ async def generate_scene_pano(
             scene_name=name,
             command=GenerateScenePanoCommand(**body.model_dump()),
             project_style=(
-                "" if body.style else _project_style(username, project_name)
+                ""
+                if body.style
+                else image_settings_use_cases().project_style(
+                    username,
+                    project_name,
+                )
             ),
         )
     except SceneCatalogRejected as exc:

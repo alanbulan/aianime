@@ -13,6 +13,7 @@ from ai_anime.config import (
 )
 from ai_anime.image_request_usage import get_image_usage_summary
 from ai_anime.project_config import (
+    load_project_config,
     load_project_config_file,
     update_project_config_file,
 )
@@ -45,6 +46,14 @@ class ProjectConfigImageSelectionStore:
             config[key] = value
 
         update_project_config_file(username, project, apply)
+
+
+class ProjectConfigImageGenerationSettings:
+    def effective(self, username: str, project: str) -> dict:
+        return load_project_config(username, project)
+
+    def stored(self, username: str, project: str) -> dict:
+        return load_project_config_file(username, project)
 
 
 class SqliteImageUsageReader:

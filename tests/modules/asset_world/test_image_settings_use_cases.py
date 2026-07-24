@@ -8,6 +8,7 @@ from ai_anime.modules.asset_world.application.errors import (
     InvalidImageSelection,
     UnsupportedImageSourceKind,
 )
+from ai_anime.modules.asset_world.application.dto import CharacterGenerationOptions
 from ai_anime.modules.asset_world.application.image_settings import (
     ImageSettingsUseCases,
 )
@@ -54,6 +55,23 @@ class _Store:
         self.values[(username, project, key)] = value
 
 
+class _GenerationSettings:
+    def __init__(
+        self,
+        *,
+        effective: dict | None = None,
+        stored: dict | None = None,
+    ) -> None:
+        self.effective_config = effective or {}
+        self.stored_config = stored or {}
+
+    def effective(self, username: str, project: str) -> dict:
+        return self.effective_config
+
+    def stored(self, username: str, project: str) -> dict:
+        return self.stored_config
+
+
 class _Usage:
     def __init__(self) -> None:
         self.calls: list[tuple[Path, tuple[str, ...]]] = []
@@ -70,9 +88,15 @@ class _Usage:
 
 def _use_cases(
     store: _Store | None = None,
+    generation_settings: _GenerationSettings | None = None,
     usage: _Usage | None = None,
 ) -> ImageSettingsUseCases:
-    return ImageSettingsUseCases(_Catalog(), store or _Store(), usage or _Usage())
+    return ImageSettingsUseCases(
+        _Catalog(),
+        store or _Store(),
+        generation_settings or _GenerationSettings(),
+        usage or _Usage(),
+    )
 
 
 def test_character_selection_uses_saved_value_and_normalizes_legacy_value() -> None:
@@ -188,6 +212,59 @@ def test_character_model_prefers_explicit_request_then_project_selection() -> No
         == "explicit-model"
     )
     assert use_cases.resolve_character_model("alice", "demo", None) == "shared-model"
+
+
+def test_character_generation_options_merge_effective_project_defaults() -> None:
+    store = _Store(
+        {
+            ("alice", "demo", "character_image_selection"): "shared-model",
+        }
+    )
+    settings = _GenerationSettings(
+        effective={
+            "visual_style": "project-style",
+            "ethnicity": "project-ethnicity",
+        }
+    )
+    use_cases = _use_cases(store, settings)
+
+    assert use_cases.character_generation_options(
+        "alice",
+        "demo",
+        requested_style=None,
+        requested_model=None,
+    ) == CharacterGenerationOptions(
+        style="project-style",
+        ethnicity="project-ethnicity",
+        model="shared-model",
+    )
+    assert use_cases.character_generation_options(
+        "alice",
+        "demo",
+        requested_style="request-style",
+        requested_model="request-model",
+        requested_ethnicity="request-ethnicity",
+    ) == CharacterGenerationOptions(
+        style="request-style",
+        ethnicity="request-ethnicity",
+        model="request-model",
+    )
+
+
+def test_project_style_preserves_visual_and_legacy_config_precedence() -> None:
+    settings = _GenerationSettings(
+        stored={
+            "visual_style": "visual-style",
+            "project_style": "legacy-style",
+        }
+    )
+    use_cases = _use_cases(generation_settings=settings)
+
+    assert use_cases.project_style("alice", "demo") == "visual-style"
+    settings.stored_config["visual_style"] = ""
+    assert use_cases.project_style("alice", "demo") == "legacy-style"
+    settings.stored_config.clear()
+    assert use_cases.project_style("alice", "demo") == ""
 
 
 def test_character_usage_is_limited_to_portrait_and_identity_tasks(

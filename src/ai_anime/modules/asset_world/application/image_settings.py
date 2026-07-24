@@ -9,9 +9,11 @@ from ai_anime.modules.asset_world.application.errors import (
     InvalidImageSelection,
     UnsupportedImageSourceKind,
 )
+from ai_anime.modules.asset_world.application.dto import CharacterGenerationOptions
 from ai_anime.modules.asset_world.application.ports import (
     ImageSelectionCatalog,
     ImageUsageReader,
+    ProjectImageGenerationSettings,
     ProjectImageSelectionStore,
 )
 from ai_anime.modules.asset_world.domain.image_settings import (
@@ -19,7 +21,10 @@ from ai_anime.modules.asset_world.domain.image_settings import (
     CHARACTER_IMAGE_SELECTION_CONFIG_KEY,
     CHARACTER_IMAGE_USAGE_TASK_TYPES,
     AssetImageKind,
+    character_generation_ethnicity,
+    character_generation_style,
     normalize_asset_image_kind,
+    stored_project_style,
 )
 
 
@@ -28,10 +33,12 @@ class ImageSettingsUseCases:
         self,
         catalog: ImageSelectionCatalog,
         store: ProjectImageSelectionStore,
+        generation_settings: ProjectImageGenerationSettings,
         usage: ImageUsageReader,
     ) -> None:
         self._catalog = catalog
         self._store = store
+        self._generation_settings = generation_settings
         self._usage = usage
 
     @staticmethod
@@ -128,6 +135,34 @@ class ImageSettingsUseCases:
             return requested
         return str(
             self.get_character_selection(username, project)["character_image_selection"]
+        )
+
+    def character_generation_options(
+        self,
+        username: str,
+        project: str,
+        *,
+        requested_style: str | None,
+        requested_model: str | None,
+        requested_ethnicity: str | None = None,
+    ) -> CharacterGenerationOptions:
+        config = self._generation_settings.effective(username, project)
+        return CharacterGenerationOptions(
+            style=character_generation_style(config, requested_style),
+            ethnicity=character_generation_ethnicity(
+                config,
+                requested_ethnicity,
+            ),
+            model=self.resolve_character_model(
+                username,
+                project,
+                requested_model,
+            ),
+        )
+
+    def project_style(self, username: str, project: str) -> str:
+        return stored_project_style(
+            self._generation_settings.stored(username, project)
         )
 
     def get_character_usage(self, project_dir: str | Path) -> dict[str, Any]:

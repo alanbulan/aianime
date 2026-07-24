@@ -270,6 +270,9 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api import auth as api_auth
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.routes import episodes, generation, scenes
+    from ai_anime.modules.asset_world.infrastructure import (
+        image_settings as image_settings_adapter,
+    )
     from ai_anime.modules.project_workspace.public import ProjectContext
     from ai_anime.verification import routes as verification_routes
 
@@ -345,7 +348,11 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(generation, "_build_character_map", build_character_map)
     monkeypatch.setattr(generation, "_runtime_prop_menu_with_global_props", runtime_prop_menu)
     monkeypatch.setattr(generation, "_episode_from_store_or_none", lambda *_: None)
-    monkeypatch.setattr(scenes, "load_project_config_file", lambda *_: {"visual_style": "cinematic"})
+    monkeypatch.setattr(
+        image_settings_adapter,
+        "load_project_config_file",
+        lambda *_: {"visual_style": "cinematic"},
+    )
     def static_url(_ctx, rel_path: str, local_path=None):
         return f"/static/projects/proj_m05/{rel_path}"
 

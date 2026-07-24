@@ -63,6 +63,7 @@ from ai_anime.modules.asset_world.infrastructure.character_image_storage import 
 )
 from ai_anime.modules.asset_world.infrastructure.image_settings import (
     ConfiguredImageSelectionCatalog,
+    ProjectConfigImageGenerationSettings,
     ProjectConfigImageSelectionStore,
     SqliteImageUsageReader,
 )
@@ -163,6 +164,7 @@ def image_settings_use_cases() -> ImageSettingsUseCases:
     return ImageSettingsUseCases(
         ConfiguredImageSelectionCatalog(),
         ProjectConfigImageSelectionStore(),
+        ProjectConfigImageGenerationSettings(),
         SqliteImageUsageReader(),
     )
 

@@ -19,17 +19,12 @@ from ai_anime.modules.asset_world.public import (
     CreatePropCommand,
     PropCatalogRejected,
     UpdatePropCommand,
+    image_settings_use_cases,
     prop_catalog_use_cases,
     prop_task_use_cases,
 )
-from ai_anime.project_config import load_project_config_file
 
 router = APIRouter()
-
-
-def _project_style(username: str, project: str) -> str:
-    config = load_project_config_file(username, project)
-    return str(config.get("visual_style") or config.get("project_style") or "")
 
 
 def _asset_url(ctx, project_dir: Path, abs_path: str | Path) -> str:
@@ -161,7 +156,10 @@ async def generate_prop_reference(
         if ctx
         else await make_sqlite_store(username, project_name)
     )
-    style = (body.style if body else "") or _project_style(username, project_name)
+    style = (body.style if body else "") or image_settings_use_cases().project_style(
+        username,
+        project_name,
+    )
     model = str(body.model if body else "").strip()
     try:
         scheduled = await prop_task_use_cases().schedule_reference(
@@ -188,7 +186,10 @@ async def batch_generate_prop_references(
     username = resolved.username
     project_name = resolved.project_name
     output_dir = resolved.output_dir
-    style = (body.style if body else "") or _project_style(username, project_name)
+    style = (body.style if body else "") or image_settings_use_cases().project_style(
+        username,
+        project_name,
+    )
     model = str(body.model if body else "").strip()
 
     try:

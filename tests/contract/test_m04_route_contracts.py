@@ -228,10 +228,14 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         lambda **_: {"total": 0},
     )
     monkeypatch.setattr(
-        characters, "load_project_config", lambda *_: {"visual_style": "mock"}
+        image_settings_adapter,
+        "load_project_config",
+        lambda *_: {"visual_style": "mock", "ethnicity": "Chinese"},
     )
     monkeypatch.setattr(
-        props, "load_project_config_file", lambda *_: {"visual_style": "mock"}
+        image_settings_adapter,
+        "load_project_config_file",
+        lambda *_: {"visual_style": "mock"},
     )
 
     ctx = SimpleNamespace(

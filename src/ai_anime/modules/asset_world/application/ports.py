@@ -149,6 +149,12 @@ class ProjectImageSelectionStore(Protocol):
     def set(self, username: str, project: str, key: str, value: str) -> None: ...
 
 
+class ProjectImageGenerationSettings(Protocol):
+    def effective(self, username: str, project: str) -> Mapping[str, Any]: ...
+
+    def stored(self, username: str, project: str) -> Mapping[str, Any]: ...
+
+
 class ImageUsageReader(Protocol):
     def summary(
         self,

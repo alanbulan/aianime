@@ -570,9 +570,21 @@ def test_asset_world_character_image_routes_delegate_to_application() -> None:
 def test_asset_world_image_settings_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "characters.py"
     source = route.read_text(encoding="utf-8")
+    props_source = (PACKAGE_ROOT / "api" / "routes" / "props.py").read_text(
+        encoding="utf-8"
+    )
+    scenes_source = (PACKAGE_ROOT / "api" / "routes" / "scenes.py").read_text(
+        encoding="utf-8"
+    )
 
     assert "image_settings_use_cases" in source
-    assert source.count("resolve_character_model(") == 6
+    assert source.count("character_generation_options(") == 6
+    assert props_source.count(".project_style(") == 2
+    assert scenes_source.count(".project_style(") == 2
+    for adapter_source in (source, props_source, scenes_source):
+        assert "image_settings_use_cases" in adapter_source
+        assert "load_project_config" not in adapter_source
+        assert "def _project_style" not in adapter_source
     for legacy_implementation in (
         "CHARACTER_IMAGE_SELECTION_CONFIG_KEY",
         "ASSET_IMAGE_SELECTION_CONFIG_KEYS",
@@ -581,6 +593,7 @@ def test_asset_world_image_settings_routes_delegate_to_application() -> None:
         "def _asset_image_source_selection_payload",
         "def _validate_asset_image_source_kind",
         "def _resolve_character_image_model",
+        "resolve_character_model(",
         "character_image_selection_options",
         "image_generation_selection_options",
         "normalize_character_image_selection",
