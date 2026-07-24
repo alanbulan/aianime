@@ -188,6 +188,7 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         files,
         generation,
         production_export,
+        production_pool,
         production_settings,
         production_video,
     )
@@ -302,6 +303,11 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         resolve_project_scope,
     )
     monkeypatch.setattr(
+        production_pool,
+        "resolve_project_scope",
+        resolve_project_scope,
+    )
+    monkeypatch.setattr(
         production_settings,
         "resolve_project_scope",
         resolve_project_scope,
@@ -385,6 +391,7 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app = FastAPI()
         app.include_router(generation.router, prefix="/api/v1")
         app.include_router(production_export.router, prefix="/api/v1")
+        app.include_router(production_pool.router, prefix="/api/v1")
         app.include_router(production_settings.router, prefix="/api/v1")
         app.include_router(production_video.router, prefix="/api/v1")
         app.include_router(assets.router, prefix="/api/v1")
@@ -399,6 +406,7 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             api_auth.get_api_user,
             generation.get_api_user,
             production_export.get_api_user,
+            production_pool.get_api_user,
             production_video.get_api_user,
             assets.get_api_user,
             files.get_api_user,

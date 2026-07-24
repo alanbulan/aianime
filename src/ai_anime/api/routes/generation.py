@@ -22,7 +22,6 @@ from ai_anime.api.schemas import (
     BeatsRegenerateRequest,
     SketchRegenerateRequest,
     PoolSelectRequest,
-    VideoPoolSelectRequest,
     GridCutRequest,
     GridSketchPreviewRequest,
     RenderPlanExecuteRequest,
@@ -97,7 +96,6 @@ from ai_anime.modules.production.public import (
     UploadBeatPoolImageCommand,
     UploadGridImageCommand,
     UploadSeedance2AssetCommand,
-    VideoPoolEntryUnavailable,
     director_control_sketch_use_cases,
     grid_pool_use_cases,
     grid_regeneration_use_cases,
@@ -108,7 +106,6 @@ from ai_anime.modules.production.public import (
     render_plan_use_cases,
     sketch_editing_use_cases,
     sketch_marker_use_cases,
-    video_pool_use_cases,
 )
 from ai_anime.utils.media_io import decode_uploaded_rgb_image
 
@@ -936,43 +933,6 @@ async def generate_missing_manual_sketches(
     except ManualSketchRegenerationRejected as exc:
         return {"ok": False, "error": str(exc)}
     return scheduled.as_dict()
-
-
-# ── 视频池查看 & 选择 ─────────────────────────────────────────────────────────
-
-
-@router.get("/projects/{project}/episodes/{episode_num}/video-pool")
-async def list_video_pool(
-    project: str,
-    episode_num: int,
-    user: dict = Depends(get_api_user),
-):
-    resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    pool = video_pool_use_cases().list_pool(resolved.ctx, episode_num)
-    return {"ok": True, "data": pool.as_dict() if pool is not None else None}
-
-
-@router.post(
-    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/video-pool-select"
-)
-async def select_video_pool(
-    project: str,
-    episode_num: int,
-    beat_num: int,
-    body: VideoPoolSelectRequest,
-    user: dict = Depends(get_api_user),
-):
-    resolved = await _resolve_generation_project(project, user, required_role="editor")
-    try:
-        selected = video_pool_use_cases().select(
-            resolved.ctx,
-            episode_num,
-            beat_num,
-            body.pool_id,
-        )
-    except VideoPoolEntryUnavailable as exc:
-        return {"ok": False, "error": str(exc)}
-    return {"ok": True, "data": selected.as_dict()}
 
 
 # ── 图片池查看 & 选择 ─────────────────────────────────────────────────────────

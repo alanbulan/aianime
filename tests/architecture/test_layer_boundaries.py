@@ -517,25 +517,30 @@ def test_production_episode_audio_routes_delegate_to_application() -> None:
 
 
 def test_production_video_pool_routes_and_runner_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "production_pool.py"
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     video_runner = PACKAGE_ROOT / "task_backend" / "runners" / "video.py"
     legacy_indexer = PACKAGE_ROOT / "generators" / "video_pool_indexer.py"
     models = PACKAGE_ROOT / "models.py"
-    source = generation.read_text(encoding="utf-8")
+    source = route.read_text(encoding="utf-8")
+    generation_source = generation.read_text(encoding="utf-8")
+    api_router_source = (PACKAGE_ROOT / "api" / "v1" / "router.py").read_text(
+        encoding="utf-8"
+    )
     runner_source = video_runner.read_text(encoding="utf-8")
-    route_start = source.index("async def list_video_pool(")
-    route_end = source.index("async def list_grids(", route_start)
-    route_source = source[route_start:route_end]
 
-    assert route_source.count("video_pool_use_cases") == 2
-    assert "VideoPoolEntryUnavailable" in route_source
+    assert source.count("video_pool_use_cases().") == 2
+    assert "VideoPoolEntryUnavailable" in source
+    assert "production_pool.router" in api_router_source
+    for handler_name in ("list_video_pool", "select_video_pool"):
+        assert f"async def {handler_name}(" not in generation_source
     for implementation_detail in (
         "load_video_pool_index",
         "assign_video_to_beat",
         "make_static_url_for_context",
         '"videos" / "beats"',
     ):
-        assert implementation_detail not in route_source
+        assert implementation_detail not in source
     assert "video_pool_use_cases" in runner_source
     assert "AddGeneratedVideoCommand" in runner_source
     assert "add_video_to_pool" not in runner_source
@@ -759,7 +764,7 @@ def test_production_manual_sketch_regeneration_route_delegates_to_application() 
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     source = generation.read_text(encoding="utf-8")
     route_start = source.index("async def generate_missing_manual_sketches(")
-    route_end = source.index("async def list_video_pool(", route_start)
+    route_end = source.index("async def list_grids(", route_start)
     route_source = source[route_start:route_end]
 
     assert route_source.count("manual_sketch_regeneration_use_cases") == 1

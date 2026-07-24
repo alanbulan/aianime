@@ -78,7 +78,7 @@ async def _fake_resolve(
 
 @pytest.mark.asyncio
 async def test_video_pool_list_returns_project_id_static_urls(monkeypatch, tmp_path):
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_pool
 
     ctx = _ctx(tmp_path)
     _configure_state_roots(monkeypatch, ctx)
@@ -87,9 +87,13 @@ async def test_video_pool_list_returns_project_id_static_urls(monkeypatch, tmp_p
     async def fake_resolve(project: str, user: dict, required_role: str = "editor"):
         return await _fake_resolve(ctx, project, user, required_role)
 
-    monkeypatch.setattr(generation, "_resolve_generation_project", fake_resolve)
+    monkeypatch.setattr(production_pool, "resolve_project_scope", fake_resolve)
 
-    response = await generation.list_video_pool("proj_video_123", 1, user={"id": "user_editor"})
+    response = await production_pool.list_video_pool(
+        "proj_video_123",
+        1,
+        user={"id": "user_editor"},
+    )
 
     video_url = response["data"]["videos"][0]["video_url"]
     assert video_url.startswith(
@@ -100,7 +104,7 @@ async def test_video_pool_list_returns_project_id_static_urls(monkeypatch, tmp_p
 
 @pytest.mark.asyncio
 async def test_video_pool_select_returns_project_id_static_url(monkeypatch, tmp_path):
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_pool
     from ai_anime.api.schemas import VideoPoolSelectRequest
 
     ctx = _ctx(tmp_path)
@@ -110,9 +114,9 @@ async def test_video_pool_select_returns_project_id_static_url(monkeypatch, tmp_
     async def fake_resolve(project: str, user: dict, required_role: str = "editor"):
         return await _fake_resolve(ctx, project, user, required_role)
 
-    monkeypatch.setattr(generation, "_resolve_generation_project", fake_resolve)
+    monkeypatch.setattr(production_pool, "resolve_project_scope", fake_resolve)
 
-    response = await generation.select_video_pool(
+    response = await production_pool.select_video_pool(
         "proj_video_123",
         1,
         6,
