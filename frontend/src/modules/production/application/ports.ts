@@ -15,6 +15,12 @@ import type {
   NarratorVoiceSourcesData,
   NarratorVoiceStatusData,
 } from "@/modules/production/domain/narrator-voice";
+import type {
+  CreateRenderPlanCommand,
+  ExecuteRenderPlanCommand,
+  RenderExecuteResult,
+  RenderPlan,
+} from "@/modules/production/domain/render-plan";
 import type { VideoBackendOption } from "@/modules/production/domain/video-backend";
 import type {
   GenerateSeedance2PromptCommand,
@@ -189,6 +195,18 @@ export interface ProductionVideoGateway {
     command: UpdateSketchSettingsCommand,
   ): Promise<
     ProductionDataResponse<SketchSettingsData> | ProductionErrorResponse
+  >;
+  createRenderPlan(
+    project: string,
+    episode: number,
+    command: CreateRenderPlanCommand,
+  ): Promise<ProductionDataResponse<RenderPlan> | ProductionErrorResponse>;
+  executeRenderPlan(
+    project: string,
+    episode: number,
+    command: ExecuteRenderPlanCommand,
+  ): Promise<
+    ProductionDataResponse<RenderExecuteResult> | ProductionErrorResponse
   >;
   composeEpisode(
     project: string,

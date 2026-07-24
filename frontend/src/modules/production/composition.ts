@@ -4,6 +4,7 @@ import { createAudioGenerationQueryHooks } from "@/modules/production/applicatio
 import { createEpisodeComposeQueryHooks } from "@/modules/production/application/episode-compose-query-hooks";
 import { createImageSettingsQueryHooks } from "@/modules/production/application/image-settings-query-hooks";
 import { createNarratorVoiceQueryHooks } from "@/modules/production/application/narrator-voice-query-hooks";
+import { createRenderPlanQueryHooks } from "@/modules/production/application/render-plan-query-hooks";
 import { createVideoBackendQueryHooks } from "@/modules/production/application/video-backend-query-hooks";
 import { createVideoGenerationQueryHooks } from "@/modules/production/application/video-generation-query-hooks";
 import { createVideoPoolQueryHooks } from "@/modules/production/application/video-pool-query-hooks";
@@ -51,5 +52,7 @@ export const {
   useSketchSettings,
   useUpdateSketchSettings,
 } = createImageSettingsQueryHooks(httpProductionVideoGateway);
+export const { useRenderPlan, useRenderExecute } =
+  createRenderPlanQueryHooks(httpProductionVideoGateway);
 export const { useComposeEpisode, useFinalVideo } =
   createEpisodeComposeQueryHooks(httpProductionVideoGateway);

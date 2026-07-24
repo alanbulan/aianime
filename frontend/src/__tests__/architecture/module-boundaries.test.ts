@@ -543,6 +543,10 @@ describe("frontend architecture boundaries", () => {
     expect(existsSync(resolve(SRC_ROOT, "lib/queries/sketch-settings.ts"))).toBe(
       false,
     );
+    expect(existsSync(resolve(SRC_ROOT, "lib/queries/render-plan.ts"))).toBe(
+      false,
+    );
+    expect(existsSync(resolve(SRC_ROOT, "types/render-plan.ts"))).toBe(false);
     expect(applicationDataImportFailures).toEqual([]);
     expect(internalImportFailures).toEqual([]);
   });

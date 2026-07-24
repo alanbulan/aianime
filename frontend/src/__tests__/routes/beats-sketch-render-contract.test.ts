@@ -26,7 +26,9 @@ describe("beats sketch/render v2 contract", () => {
     const batchBar = read("src/components/episode/beat-workbench/batch-bar.tsx");
     const batchPanel = read("src/components/episode/beat-workbench/batch-panel.tsx");
     const actionPanel = read("src/components/episode/beat-workbench/action-panel.tsx");
-    const renderPlanQuery = read("src/lib/queries/render-plan.ts");
+    const productionGateway = read(
+      "src/modules/production/infrastructure/http-production-video-gateway.ts",
+    );
 
     expect(taskTypes).not.toContain('BATCH_RENDER: "batch_render"');
     expect(stageRegistry).not.toContain("TASK_TYPES.BATCH_RENDER");
@@ -55,8 +57,8 @@ describe("beats sketch/render v2 contract", () => {
     expect(batchPanel).toContain('matchBy: "task_id"');
     expect(batchPanel).toContain("<RenderPlanDialog");
     expect(batchPanel).not.toContain("handleBatchVideo");
-    expect(renderPlanQuery).toContain("render/plan");
-    expect(renderPlanQuery).toContain("render/execute");
+    expect(productionGateway).toContain("render/plan");
+    expect(productionGateway).toContain("render/execute");
   });
 
   it("does not expose whole-episode sketch generation from the batch toolbar", () => {

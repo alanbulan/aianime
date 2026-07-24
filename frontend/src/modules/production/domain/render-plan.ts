@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+
 export interface PlanEntry {
   mode_key: string;
   rows: number;
@@ -22,23 +23,29 @@ export interface RenderPlan {
 export interface RenderExecuteResult {
   task_type: "render_plan";
   message: string;
-  /** Umbrella planning scope (e.g. `location__…`) — does NOT match any task row. */
   scope: string;
   resolved_grids: PlanEntry[];
-  /** One `selected_regen` task id per resolved grid. Track these for completion. */
   task_ids: string[];
 }
 
-export interface RenderPlanStaleError {
-  error: "input_stale" | "plan_stale";
-  data: {
-    new_plan: PlanEntry[];
-    new_plan_hash: string;
-    new_input_fingerprint: string;
-  };
+export interface CreateRenderPlanCommand {
+  beatIndices: number[];
+  strategy: "location";
+  forceOneByOne?: boolean;
+  aspectMode: string;
+  imageGenerationSelection?: string;
+  sketchAspectPadding?: boolean;
 }
 
-export interface RenderPlanFeatureDisabledError {
-  error: "feature_disabled";
-  data: { reason: string };
+export interface ExecuteRenderPlanCommand {
+  plan: PlanEntry[];
+  planHash: string;
+  inputFingerprint: string;
+  strategy: "location";
+  aspectMode: string;
+  forceOneByOne?: boolean;
+  imageGenerationSelection?: string;
+  sketchAspectPadding?: boolean;
+  customPlan?: boolean;
+  beatIndices: number[];
 }

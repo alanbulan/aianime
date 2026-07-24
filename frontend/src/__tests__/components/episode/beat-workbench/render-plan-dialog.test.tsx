@@ -27,7 +27,7 @@ const { toast } = vi.hoisted(() => ({
 }));
 vi.mock("sonner", () => ({ toast }));
 
-// ─── /lib/queries/render-plan: manual mutations with per-test handlers ─────
+// ─── Production render-plan hooks: manual mutations with per-test handlers ─
 let planHandler: (params: unknown) => Promise<unknown> = async () => ({
   ok: true,
   data: null,
@@ -37,7 +37,7 @@ let executeHandler: (params: unknown) => Promise<unknown> = async () => ({
   data: null,
 });
 
-vi.mock("@/lib/queries/render-plan", () => {
+vi.mock("@/modules/production/public", () => {
   const mockUse = (handler: () => (params: unknown) => Promise<unknown>) => {
     return () => {
       // useMutation-shaped facade (only the fields the dialog actually reads)
@@ -61,6 +61,7 @@ vi.mock("@/lib/queries/render-plan", () => {
   return {
     useRenderPlan: mockUse(() => planHandler),
     useRenderExecute: mockUse(() => executeHandler),
+    useRenderSettings: () => ({ data: undefined }),
   };
 });
 
@@ -375,7 +376,7 @@ describe("RenderPlanDialog — /plan happy path", () => {
         expect.objectContaining({ strategy: "location" }),
       );
     });
-    expect(executeCalls[0]).not.toMatchObject({ custom_plan: true });
+    expect(executeCalls[0]).not.toMatchObject({ customPlan: true });
   });
 
 });
@@ -445,8 +446,8 @@ describe("RenderPlanDialog — single beat confirmation", () => {
     await waitFor(() => {
       expect(planCalls).toContainEqual(
         expect.objectContaining({
-          aspect_mode: "16:9",
-          force_one_by_one: true,
+          aspectMode: "16:9",
+          forceOneByOne: true,
         }),
       );
     });
@@ -456,7 +457,7 @@ describe("RenderPlanDialog — single beat confirmation", () => {
     await waitFor(() => {
       expect(executeCalls).toContainEqual(
         expect.objectContaining({
-          force_one_by_one: true,
+          forceOneByOne: true,
         }),
       );
     });

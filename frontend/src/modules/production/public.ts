@@ -14,6 +14,8 @@ export {
   useRecordNarratorVoice,
   useRegenerateBeatVideo,
   useRegenerateBeatAudio,
+  useRenderExecute,
+  useRenderPlan,
   useRenderSettings,
   useSeedance2BeatStatus,
   useSketchSettings,
@@ -34,6 +36,11 @@ export type {
   UpdateRenderSettingsCommand,
   UpdateSketchSettingsCommand,
 } from "@/modules/production/domain/image-settings";
+export type {
+  PlanEntry,
+  RenderExecuteResult,
+  RenderPlan,
+} from "@/modules/production/domain/render-plan";
 export type { NarratorVoiceSourceOption } from "@/modules/production/domain/narrator-voice";
 export type {
   Seedance2BeatStatus,

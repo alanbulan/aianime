@@ -23,6 +23,12 @@ import type {
   UpdateRenderSettingsCommand,
   UpdateSketchSettingsCommand,
 } from "@/modules/production/domain/image-settings";
+import type {
+  CreateRenderPlanCommand,
+  ExecuteRenderPlanCommand,
+  RenderExecuteResult,
+  RenderPlan,
+} from "@/modules/production/domain/render-plan";
 import {
   DEFAULT_VIDEO_BACKEND,
   type VideoBackendOption,
@@ -309,6 +315,66 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
       })
       .json<
         ProductionDataResponse<SketchSettingsData> | ProductionErrorResponse
+      >();
+  },
+  async createRenderPlan(
+    project,
+    episode,
+    command: CreateRenderPlanCommand,
+  ) {
+    return api
+      .post(p`api/v1/projects/${project}/episodes/${episode}/render/plan`, {
+        json: {
+          beat_indices: command.beatIndices,
+          strategy: command.strategy,
+          aspect_mode: command.aspectMode,
+          ...(command.forceOneByOne !== undefined
+            ? { force_one_by_one: command.forceOneByOne }
+            : {}),
+          ...(command.imageGenerationSelection !== undefined
+            ? {
+                image_generation_selection: command.imageGenerationSelection,
+              }
+            : {}),
+          ...(command.sketchAspectPadding !== undefined
+            ? { sketch_aspect_padding: command.sketchAspectPadding }
+            : {}),
+        },
+      })
+      .json<ProductionDataResponse<RenderPlan> | ProductionErrorResponse>();
+  },
+  async executeRenderPlan(
+    project,
+    episode,
+    command: ExecuteRenderPlanCommand,
+  ) {
+    return api
+      .post(p`api/v1/projects/${project}/episodes/${episode}/render/execute`, {
+        json: {
+          plan: command.plan,
+          plan_hash: command.planHash,
+          input_fingerprint: command.inputFingerprint,
+          strategy: command.strategy,
+          aspect_mode: command.aspectMode,
+          beat_indices: command.beatIndices,
+          ...(command.forceOneByOne !== undefined
+            ? { force_one_by_one: command.forceOneByOne }
+            : {}),
+          ...(command.imageGenerationSelection !== undefined
+            ? {
+                image_generation_selection: command.imageGenerationSelection,
+              }
+            : {}),
+          ...(command.sketchAspectPadding !== undefined
+            ? { sketch_aspect_padding: command.sketchAspectPadding }
+            : {}),
+          ...(command.customPlan !== undefined
+            ? { custom_plan: command.customPlan }
+            : {}),
+        },
+      })
+      .json<
+        ProductionDataResponse<RenderExecuteResult> | ProductionErrorResponse
       >();
   },
   async composeEpisode(project, episode, command) {

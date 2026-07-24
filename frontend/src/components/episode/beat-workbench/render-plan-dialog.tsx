@@ -24,13 +24,14 @@ import {
   generationCreditCostQueryKey,
   type GenerationCreditCost,
 } from "@/lib/queries/generation-credit-cost";
+import type { OkResponse } from "@/types/api";
 import {
+  type PlanEntry,
+  type RenderPlan,
   useRenderExecute,
   useRenderPlan,
-} from "@/lib/queries/render-plan";
-import { useRenderSettings } from "@/modules/production/public";
-import type { OkResponse } from "@/types/api";
-import type { PlanEntry, RenderPlan } from "@/types/render-plan";
+  useRenderSettings,
+} from "@/modules/production/public";
 
 interface RenderPlanDialogProps {
   open: boolean;
@@ -100,10 +101,10 @@ export function RenderPlanDialog({
     setStaleBanner(null);
     planMutation.mutate(
       {
-        beat_indices: beatIndices,
+        beatIndices,
         strategy: "location",
-        aspect_mode: aspectMode,
-        force_one_by_one: defaultForceOneByOne,
+        aspectMode,
+        forceOneByOne: defaultForceOneByOne,
       },
       {
         onSuccess: (res) => {
@@ -160,12 +161,12 @@ export function RenderPlanDialog({
     try {
       const res = await executeMutation.mutateAsync({
         plan: plan.plan,
-        plan_hash: plan.plan_hash,
-        input_fingerprint: plan.input_fingerprint,
+        planHash: plan.plan_hash,
+        inputFingerprint: plan.input_fingerprint,
         strategy: "location",
-        aspect_mode: aspectMode,
-        beat_indices: beatIndices,
-        force_one_by_one: defaultForceOneByOne,
+        aspectMode,
+        beatIndices,
+        forceOneByOne: defaultForceOneByOne,
       });
       if (!res.ok) {
         toast.error(t("common.error"));
