@@ -5,6 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Protocol
 
+from ai_anime.modules.production.domain.sketch_marker_detection import (
+    SketchDetectionFrame,
+)
+
 
 class SketchPoseFiles(Protocol):
     def image_size(self, image_path: Path) -> tuple[int, int]: ...
@@ -120,3 +124,93 @@ class ProductionSketchWorkspace(Protocol):
         output_dir: str | Path,
         episode_num: int,
     ) -> None: ...
+
+
+class ProductionSketchMarkerDetectionStore(Protocol):
+    async def get_beats_as_dicts(
+        self,
+        episode_num: int,
+    ) -> list[dict[str, Any]]: ...
+
+    def get_sketch_colors(self, episode_num: int) -> dict[str, str]: ...
+
+    async def get_script_as_dict(self, episode_num: int) -> dict[str, Any]: ...
+
+    def get_all_characters(self) -> list[Any]: ...
+
+    async def set_beat_detected_identities(
+        self,
+        episode_num: int,
+        detections: dict[int, list[str]],
+    ) -> int: ...
+
+    async def set_beat_detected_props(
+        self,
+        episode_num: int,
+        detections: dict[int, list[str]],
+    ) -> int: ...
+
+
+class ProductionSketchMarkerDetectionFiles(Protocol):
+    def find_frames(
+        self,
+        project_dir: Path,
+        episode_num: int,
+        known_beat_numbers: set[int],
+    ) -> list[SketchDetectionFrame]: ...
+
+    def prepare_grid_dir(
+        self,
+        project_dir: Path,
+        episode_num: int,
+    ) -> Path: ...
+
+    def combine_grid(
+        self,
+        image_paths: list[Path],
+        output_path: Path,
+        *,
+        rows: int,
+        cols: int,
+    ) -> None: ...
+
+
+class ProductionSketchMarkerDetector(Protocol):
+    async def detect(
+        self,
+        *,
+        grid_path: Path,
+        color_marker_map: dict[str, str],
+        total_panels: int,
+    ) -> dict[Any, list[str]]: ...
+
+
+class ProductionFeatureUsageMeter(Protocol):
+    async def reserve_feature_start_credits(
+        self,
+        **kwargs: Any,
+    ) -> dict[str, Any]: ...
+
+    async def confirm_feature_credit_reservation(
+        self,
+        reservation_id: str,
+        *,
+        metadata: dict[str, Any] | None = None,
+    ) -> None: ...
+
+    async def refund_feature_credit_reservation(
+        self,
+        reservation_id: str,
+        *,
+        metadata: dict[str, Any] | None = None,
+    ) -> None: ...
+
+    def set_llm_usage_context(
+        self,
+        user_id: str,
+        project_id: str = "",
+        resource_kind: str = "",
+        billing_metadata: dict[str, Any] | None = None,
+    ) -> None: ...
+
+    def clear_llm_usage_context(self) -> None: ...

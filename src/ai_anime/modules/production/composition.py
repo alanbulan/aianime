@@ -17,6 +17,9 @@ from ai_anime.modules.production.application.sketch_image import (
 from ai_anime.modules.production.application.sketch_color import (
     SketchColorAssignmentUseCases,
 )
+from ai_anime.modules.production.application.sketch_marker_detection import (
+    SketchMarkerDetectionUseCases,
+)
 from ai_anime.modules.production.infrastructure.sketch_image import (
     PillowSketchImageFiles,
 )
@@ -36,6 +39,10 @@ from ai_anime.modules.production.infrastructure.sketch_color import (
 from ai_anime.modules.production.infrastructure.sketch_pose import (
     ModelSketchPoseIdentitySource,
     PillowSketchPoseFiles,
+)
+from ai_anime.modules.production.infrastructure.sketch_marker_detection import (
+    GlobalVideoOptimizerSketchMarkerDetector,
+    LocalSketchMarkerDetectionFiles,
 )
 from ai_anime.modules.project_workspace.public import get_user_output_dir
 
@@ -73,6 +80,20 @@ def sketch_color_assignment_use_cases(store: Any) -> SketchColorAssignmentUseCas
         CompatibleEpisodeSource(),
         AssetWorldRuntimePropMenuSource(),
         LocalProductionSketchWorkspace(),
+    )
+
+
+def sketch_marker_detection_use_cases(
+    store: Any,
+    usage_meter: Any,
+) -> SketchMarkerDetectionUseCases:
+    return SketchMarkerDetectionUseCases(
+        store,
+        CompatibleEpisodeSource(),
+        AssetWorldRuntimePropMenuSource(),
+        LocalSketchMarkerDetectionFiles(),
+        GlobalVideoOptimizerSketchMarkerDetector(),
+        usage_meter,
     )
 
 

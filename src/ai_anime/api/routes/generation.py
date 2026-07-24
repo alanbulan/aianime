@@ -87,17 +87,20 @@ from ai_anime.modules.asset_world.public import (
 )
 from ai_anime.modules.production.public import (
     CropSketchCommand,
+    DetectSketchMarkersCommand,
     ProductionImageSettingsRejected,
     SketchCropRejected,
     SketchColorMarkersMissing,
+    SketchMarkerDetectionFailed,
+    SketchMarkerDetectionRejected,
     SketchPoseCandidatesMissing,
     UpdateRenderImageSettingsCommand,
     UpdateSketchImageSettingsCommand,
-    global_prop_marker_colors,
     production_generation_context_use_cases,
     production_image_settings_use_cases,
     sketch_color_assignment_use_cases,
     sketch_image_use_cases,
+    sketch_marker_detection_use_cases,
     sketch_pose_editor_use_cases,
 )
 from ai_anime.render_plan.ref_image_hash import RefImageHasher
@@ -115,10 +118,6 @@ from ai_anime.shared.project_media import make_project_asset_url_builder
 router = APIRouter()
 
 logger = logging.getLogger(__name__)
-
-AI_IDENTITY_DETECTION_FEATURE_KEY = "ai_identity_detection"
-MODEL_CALL_CREDIT_POLICY_FEATURE_INCLUDED = "feature_included"
-
 
 async def _resolve_generation_project(
     project: str, user: dict, required_role: str = "editor"
@@ -5131,256 +5130,28 @@ async def detect_sketch_identities(
     user: dict = Depends(get_api_user),
 ):
     """AI 视觉识别草图中出现的身份/道具颜色标记。"""
-    from ai_anime.agents.global_video_optimizer import detect_identities_by_ai
-    from ai_anime.generators.grid_splitter import combine_to_grid
-    from ai_anime.models import (
-        NO_CHARACTER_MARKER,
-        NO_PROP_MARKER,
-        real_detected_identities,
-        real_detected_props,
-        split_detected_marker_keys,
-    )
-
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    username = resolved.username
-    project_name = resolved.project_name
-
     store = (
         await make_sqlite_store_for_context(resolved.ctx)
         if resolved.ctx
-        else await make_sqlite_store(username, project_name)
+        else await make_sqlite_store(resolved.username, resolved.project_name)
     )
-
-    beats = await store.get_beats_as_dicts(episode_num)
-    if not beats:
-        return {"ok": False, "error": f"No beats found for episode {episode_num}"}
-
-    color_map = dict(store.get_sketch_colors(episode_num) or {})
-    script_data_for_fallback = None
-    if not color_map:
-        try:
-            script_data_for_fallback = await store.get_script_as_dict(episode_num)
-            color_map = dict(
-                (script_data_for_fallback or {}).get("sketch_colors") or {}
-            )
-        except Exception:
-            script_data_for_fallback = None
-    if not color_map:
-        return {
-            "ok": False,
-            "error": "No sketch colors assigned. Call assign-colors first",
-        }
-
-    episode_obj = production_generation_context_use_cases(
-        store,
-        username,
-    ).episode_or_none(episode_num)
-    runtime_prop_menu = await _runtime_prop_menu_with_global_props(
-        store, episode_obj, beats
-    )
-    if not runtime_prop_menu:
-        if script_data_for_fallback is None:
-            try:
-                script_data_for_fallback = await store.get_script_as_dict(episode_num)
-            except Exception:
-                script_data_for_fallback = None
-        runtime_prop_menu = list(
-            (script_data_for_fallback or {}).get("prop_menu") or []
-        )
-    prop_color_map = global_prop_marker_colors(
-        beats,
-        prop_menu=runtime_prop_menu,
-        sketch_colors=color_map,
-    )
-
-    # 反转: "#HEX COLOR_NAME" → marker_id
-    color_identity_map = {v: k for k, v in color_map.items()}
-    color_identity_map.update({v: k for k, v in prop_color_map.items()})
-
-    # 收集草图文件
-    project_dir = resolved.project_dir
-    sketches_dir = project_dir / "sketches" / f"ep{episode_num:03d}"
-    frame_items: list[tuple[int, str]] = []
-    known_beats = {
-        int(b.get("beat_number", 0))
-        for b in beats
-        if int(b.get("beat_number", 0) or 0) > 0
-    }
-    beat_pattern = re.compile(r"beat_(\d+)\.(png|jpg)$", re.IGNORECASE)
-    if sketches_dir.exists():
-        for candidate in sorted(sketches_dir.iterdir()):
-            if not candidate.is_file():
-                continue
-            match = beat_pattern.match(candidate.name)
-            if not match:
-                continue
-            beat_number = int(match.group(1))
-            if known_beats and beat_number not in known_beats:
-                continue
-            frame_items.append((beat_number, str(candidate)))
-
-    if not frame_items:
-        return {"ok": False, "error": "No sketches found"}
-
-    def _grid_shape(count: int) -> tuple[int, int]:
-        if count <= 1:
-            return 1, 1
-        if count <= 4:
-            return 2, 2
-        if count <= 9:
-            return 3, 3
-        if count <= 16:
-            return 4, 4
-        return 5, 5
-
-    grid_dir = project_dir / "grids" / f"ep{episode_num:03d}" / "sketch"
-    grid_dir.mkdir(parents=True, exist_ok=True)
-
-    usage_meter = get_usage_meter()
     ctx = getattr(resolved, "ctx", None)
-    project_id = str(getattr(ctx, "project_id", "") or "")
-    reservation = await usage_meter.reserve_feature_start_credits(
-        user_id=_requester_user_id_for_billing(resolved, user),
-        feature_key=AI_IDENTITY_DETECTION_FEATURE_KEY,
-        project_id=project_id,
-        resource_kind="sketch",
-        task_type=AI_IDENTITY_DETECTION_FEATURE_KEY,
-        metadata={
-            "source": "sync_api",
-            "endpoint": "detect_sketch_identities",
-            "episode": episode_num,
-            "sketch_count": len(frame_items),
-        },
-        require_price_rule=True,
-        require_positive_cost=True,
-    )
-    reservation_id = str(reservation.get("id") or "")
-    billing_metadata: dict[str, Any] = {
-        "model_call_credit_policy": MODEL_CALL_CREDIT_POLICY_FEATURE_INCLUDED,
-        "feature_key": AI_IDENTITY_DETECTION_FEATURE_KEY,
-        "source": "sync_api",
-    }
-    if reservation_id:
-        billing_metadata.update(
-            {
-                "feature_credit_reservation_id": reservation_id,
-                "feature_credit_charge_id": reservation_id,
-                "feature_credit_cost": str(reservation.get("cost") or 0),
-            }
-        )
-
-    detections: dict[int, list[str]] = {}
     try:
-        usage_meter.set_llm_usage_context(
-            _requester_user_id_for_billing(resolved, user),
-            project_id=project_id,
-            resource_kind="sketch",
-            billing_metadata=billing_metadata,
+        result = await sketch_marker_detection_use_cases(
+            store,
+            get_usage_meter(),
+        ).detect(
+            DetectSketchMarkersCommand(
+                episode_num=episode_num,
+                project_dir=resolved.project_dir,
+                requester_user_id=_requester_user_id_for_billing(resolved, user),
+                project_id=str(getattr(ctx, "project_id", "") or ""),
+            )
         )
-        batch_size = 25
-        for batch_idx in range(0, len(frame_items), batch_size):
-            batch = frame_items[batch_idx : batch_idx + batch_size]
-            rows, cols = _grid_shape(len(batch))
-            grid_path = (
-                grid_dir
-                / f"_ai_detect_grid_{rows}x{cols}_part{batch_idx // batch_size + 1}.png"
-            )
-            combine_to_grid(
-                [path for _, path in batch], grid_path, rows=rows, cols=cols
-            )
-            batch_result = await detect_identities_by_ai(
-                sketch_image_paths=[str(grid_path)],
-                color_identity_map=color_identity_map,
-                total_beats=len(batch),
-            )
-            ordered_batch = sorted(batch, key=lambda item: item[0])
-            for local_idx, marker_ids in (batch_result or {}).items():
-                try:
-                    panel_index = int(local_idx)
-                except (TypeError, ValueError):
-                    continue
-                if 1 <= panel_index <= len(ordered_batch):
-                    beat_number = ordered_batch[panel_index - 1][0]
-                    detections[beat_number] = list(marker_ids or [])
+    except SketchMarkerDetectionRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    except SketchMarkerDetectionFailed as exc:
+        return {"ok": False, "error": f"AI detection failed: {exc}"}
 
-        for beat_number, _path in frame_items:
-            detections.setdefault(beat_number, [])
-
-        characters = store.get_all_characters()
-        identity_detections: dict[int, list[str]] = {}
-        prop_detections: dict[int, list[str]] = {}
-        allowed_prop_ids = set(prop_color_map)
-        for beat_number, keys in detections.items():
-            det_ids, det_props = split_detected_marker_keys(
-                keys,
-                beats,
-                characters,
-                allowed_prop_ids=allowed_prop_ids,
-            )
-            identity_detections[beat_number] = det_ids or [NO_CHARACTER_MARKER]
-            prop_detections[beat_number] = det_props or [NO_PROP_MARKER]
-
-        # 持久化
-        await store.set_beat_detected_identities(episode_num, identity_detections)
-        await store.set_beat_detected_props(episode_num, prop_detections)
-
-        if reservation_id:
-            await usage_meter.confirm_feature_credit_reservation(
-                reservation_id,
-                metadata={
-                    "source": "sync_api",
-                    "endpoint": "detect_sketch_identities",
-                    "episode": episode_num,
-                    "sketch_count": len(frame_items),
-                    "detected_identity_count": sum(
-                        len(real_detected_identities(v))
-                        for v in identity_detections.values()
-                    ),
-                    "detected_prop_count": sum(
-                        len(real_detected_props(v)) for v in prop_detections.values()
-                    ),
-                },
-            )
-    except Exception as e:
-        if reservation_id:
-            try:
-                await usage_meter.refund_feature_credit_reservation(
-                    reservation_id,
-                    metadata={
-                        "source": "sync_api",
-                        "endpoint": "detect_sketch_identities",
-                        "episode": episode_num,
-                        "error": str(e),
-                    },
-                )
-            except Exception:
-                logger.exception(
-                    "Failed to refund AI identity detection feature credit reservation"
-                )
-        return {"ok": False, "error": f"AI detection failed: {e}"}
-    finally:
-        usage_meter.clear_llm_usage_context()
-
-    # 转换 key 为字符串（JSON 兼容）
-    str_identity_detections = {str(k): v for k, v in identity_detections.items()}
-    str_prop_detections = {str(k): v for k, v in prop_detections.items()}
-    total_ids = sum(
-        len(real_detected_identities(v)) for v in identity_detections.values()
-    )
-    total_props = sum(len(real_detected_props(v)) for v in prop_detections.values())
-
-    return {
-        "ok": True,
-        "data": {
-            "detections": str_identity_detections,
-            "identity_detections": str_identity_detections,
-            "prop_detections": str_prop_detections,
-            "total_beats": len(beats),
-            "total_identities": total_ids,
-            "total_props": total_props,
-            "review_message": (
-                "AI 已完成出场身份/道具识别，请核对每个 beat；"
-                "漏识别可在“更多”的出场身份/出场道具中补选。"
-            ),
-        },
-    }
+    return {"ok": True, "data": result.as_dict()}

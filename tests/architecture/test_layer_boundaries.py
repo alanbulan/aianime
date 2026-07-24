@@ -371,7 +371,6 @@ def test_production_sketch_color_rules_have_one_owner() -> None:
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     callers = {
         nanobanana: "global_prop_marker_colors",
-        generation: "global_prop_marker_colors",
         PACKAGE_ROOT / "freezone" / "presets.py": "global_prop_marker_colors",
         PACKAGE_ROOT / "modules" / "asset_world" / "composition.py": (
             "BRIDGMAN_CHARACTER_PALETTE"
@@ -414,6 +413,41 @@ def test_production_sketch_color_assignment_route_delegates_to_application() -> 
         "assign_identity_sketch_colors",
         "global_prop_marker_colors",
         "marker_color_change_requires_sketch_clean",
+    ):
+        assert implementation_detail not in route_source
+
+
+def test_production_sketch_marker_detection_route_delegates_to_application() -> None:
+    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    models = PACKAGE_ROOT / "models.py"
+    domain = (
+        PACKAGE_ROOT
+        / "modules"
+        / "production"
+        / "domain"
+        / "sketch_marker_detection.py"
+    )
+    source = generation.read_text(encoding="utf-8")
+    route_start = source.index("async def detect_sketch_identities(")
+    route_source = source[route_start:]
+
+    assert "sketch_marker_detection_use_cases" in route_source
+    assert "DetectSketchMarkersCommand" in route_source
+    assert "split_detected_marker_keys" not in models.read_text(encoding="utf-8")
+    assert "def split_detected_marker_keys(" in domain.read_text(encoding="utf-8")
+    for implementation_detail in (
+        "detect_identities_by_ai",
+        "combine_to_grid",
+        "get_sketch_colors",
+        "get_script_as_dict",
+        "get_all_characters",
+        "set_beat_detected_identities",
+        "set_beat_detected_props",
+        "reserve_feature_start_credits",
+        "confirm_feature_credit_reservation",
+        "refund_feature_credit_reservation",
+        "_grid_shape",
+        "beat_pattern",
     ):
         assert implementation_detail not in route_source
 

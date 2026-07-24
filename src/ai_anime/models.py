@@ -405,67 +405,6 @@ def collect_prop_marker_ids_from_beat(value: Any) -> list[str]:
     return extract_prop_ids_from_markers(visual_desc, strict=False)
 
 
-def split_detected_marker_keys(
-    detected_keys: list[str],
-    beats: list[Any],
-    characters: list[Any],
-    allowed_prop_ids: set[str] | list[str] | tuple[str, ...] | None = None,
-) -> tuple[list[str], list[str]]:
-    """按本集合法 marker 集合拆分 AI/颜色检测结果。
-
-    `[[prop]]` 是语义锚点，不一定有颜色 marker。只有传入
-    `allowed_prop_ids` 的道具才会被归类为 detected_props；调用方应传入
-    已分配 marker color 的全局道具集合。
-
-    Returns:
-        (detected_identities, prop_marker_ids)
-    """
-    identity_ids: set[str] = set()
-    for char in characters or []:
-        identities = (
-            char.get("identities", [])
-            if isinstance(char, dict)
-            else getattr(char, "identities", [])
-        ) or []
-        for identity in identities:
-            identity_id = str(
-                identity.get("identity_id", "")
-                if isinstance(identity, dict)
-                else getattr(identity, "identity_id", "")
-            ).strip()
-            if identity_id:
-                identity_ids.add(identity_id)
-
-    semantic_prop_ids = {
-        prop_id
-        for beat in beats or []
-        for prop_id in collect_prop_marker_ids_from_beat(beat)
-        if prop_id
-    }
-    allowed_props = {
-        str(prop_id or "").strip()
-        for prop_id in (allowed_prop_ids or [])
-        if str(prop_id or "").strip()
-    }
-    prop_ids = semantic_prop_ids & allowed_props if allowed_props else set()
-
-    detected_identities: list[str] = []
-    prop_marker_ids: list[str] = []
-    for key in detected_keys or []:
-        marker = str(key or "").strip()
-        if not marker:
-            continue
-        if marker in identity_ids:
-            detected_identities.append(marker)
-        elif marker in prop_ids:
-            prop_marker_ids.append(marker)
-
-    return (
-        list(dict.fromkeys(detected_identities)),
-        list(dict.fromkeys(prop_marker_ids)),
-    )
-
-
 def build_scene_menu(
     scene_ids: list[str] | None = None,
     scene_menu: list[Any] | None = None,
