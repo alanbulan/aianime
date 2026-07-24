@@ -117,7 +117,6 @@ from ai_anime.modules.production.public import (
     render_plan_use_cases,
     sketch_editing_use_cases,
     sketch_marker_use_cases,
-    video_backend_catalog_use_cases,
     video_pool_use_cases,
 )
 from ai_anime.utils.media_io import decode_uploaded_rgb_image
@@ -304,22 +303,6 @@ async def trim_seedance2_audio_asset(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         return {"ok": False, "error": str(exc)}
-
-
-@router.get("/projects/{project}/video-backends")
-async def get_video_backend_options(
-    project: str,
-    user: dict = Depends(get_api_user),
-):
-    """Return video backend options shared with the NiceGUI render workbench."""
-    await _resolve_generation_project(project, user, required_role="viewer")
-    return {
-        "ok": True,
-        "data": [
-            item.as_dict()
-            for item in video_backend_catalog_use_cases().list_options()
-        ],
-    }
 
 
 # ── 草图 ──────────────────────────────────────────────────────────────────────

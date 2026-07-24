@@ -9,9 +9,26 @@ from ai_anime.modules.production.public import (
     ComposeEpisodeVideoCommand,
     EpisodeBeatsMissing,
     episode_video_use_cases,
+    video_backend_catalog_use_cases,
 )
 
 router = APIRouter()
+
+
+@router.get("/projects/{project}/video-backends")
+async def get_video_backend_options(
+    project: str,
+    user: dict = Depends(get_api_user),
+):
+    """Return the available video generation backends."""
+    await resolve_project_scope(project, user, required_role="viewer")
+    return {
+        "ok": True,
+        "data": [
+            item.as_dict()
+            for item in video_backend_catalog_use_cases().list_options()
+        ],
+    }
 
 
 @router.post("/projects/{project}/episodes/{episode_num}/videos/compose")

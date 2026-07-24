@@ -606,16 +606,16 @@ def test_production_grid_pool_routes_delegate_to_application() -> None:
 
 
 def test_production_video_backend_catalog_has_one_owner() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "production_video.py"
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     schemas = PACKAGE_ROOT / "api" / "schemas.py"
     video_runner = PACKAGE_ROOT / "task_backend" / "runners" / "video.py"
     seedance_pipeline = PACKAGE_ROOT / "seedance2_i2v" / "pipeline.py"
-    source = generation.read_text(encoding="utf-8")
-    route_start = source.index("async def get_video_backend_options(")
-    route_end = source.index("async def generate_sketches(", route_start)
-    route_source = source[route_start:route_end]
+    source = route.read_text(encoding="utf-8")
+    generation_source = generation.read_text(encoding="utf-8")
 
-    assert "video_backend_catalog_use_cases" in route_source
+    assert "video_backend_catalog_use_cases" in source
+    assert "async def get_video_backend_options(" not in generation_source
     assert "def _api_video_backend_options(" not in source
     for legacy_implementation in (
         "NEWAPI_VIDEO_DURATION_BOUNDS",
@@ -624,7 +624,7 @@ def test_production_video_backend_catalog_has_one_owner() -> None:
         "VideoGenerateRequest",
         "VideoBackendOption",
     ):
-        assert legacy_implementation not in route_source
+        assert legacy_implementation not in source
     schema_source = schemas.read_text(encoding="utf-8")
     assert "class VideoGenerateRequest(" not in schema_source
     assert "class VideoBackendOption(" not in schema_source
@@ -869,7 +869,7 @@ def test_production_seedance2_panel_routes_delegate_to_application() -> None:
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     source = generation.read_text(encoding="utf-8")
     route_start = source.index("async def get_seedance2_beat_status(")
-    route_end = source.index("async def get_video_backend_options(", route_start)
+    route_end = source.index("async def generate_sketches(", route_start)
     route_source = source[route_start:route_end]
 
     assert route_source.count("seedance2_panel_use_cases") == 5
