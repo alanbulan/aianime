@@ -12,7 +12,7 @@ import {
   Subtitles,
 } from "lucide-react";
 
-import { useComposeEpisode, useFinalVideo } from "@/lib/queries/video";
+import { useComposeEpisode, useFinalVideo } from "@/modules/production/public";
 import { useEpisodeBeats, useEpisodeDetail } from "@/modules/narrative_planning/public";
 import { useProject, useUpdateProject } from "@/modules/project_workspace/public";
 import { useTaskController } from "@/hooks/use-task-controller";
@@ -238,8 +238,8 @@ function ComposeTabContent() {
     try {
       setResultUrl(null);
       await composeEpisode.mutateAsync({
-        add_subtitles: addSubtitles,
-        add_bgm: false,
+        addSubtitles,
+        addBgm: false,
         resolution,
       });
       task.start();

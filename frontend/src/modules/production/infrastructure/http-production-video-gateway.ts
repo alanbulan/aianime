@@ -15,6 +15,7 @@ import type {
   NarratorVoiceSourcesData,
   NarratorVoiceStatusData,
 } from "@/modules/production/domain/narrator-voice";
+import type { FinalVideoData } from "@/modules/production/domain/episode-compose";
 import {
   DEFAULT_VIDEO_BACKEND,
   type VideoBackendOption,
@@ -235,5 +236,21 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
     return api
       .post(p`api/v1/projects/${project}/narrator-voice/delete`)
       .json<NarratorVoiceMutationResponse>();
+  },
+  async composeEpisode(project, episode, command) {
+    return api
+      .post(p`api/v1/projects/${project}/episodes/${episode}/videos/compose`, {
+        json: {
+          add_subtitles: command.addSubtitles,
+          add_bgm: command.addBgm,
+          resolution: command.resolution,
+        },
+      })
+      .json<ProductionTaskResponse>();
+  },
+  async getFinalVideo(project, episode, signal) {
+    return api
+      .get(p`api/v1/projects/${project}/episodes/${episode}/final`, { signal })
+      .json<ProductionDataResponse<FinalVideoData>>();
   },
 };

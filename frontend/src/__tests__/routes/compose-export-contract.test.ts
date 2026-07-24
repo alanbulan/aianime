@@ -22,10 +22,14 @@ describe("compose export API alignment", () => {
     const compose = read(
       "src/routes/_app/projects.$project/episodes.$episode/compose.lazy.tsx",
     );
+    const gateway = read(
+      "src/modules/production/infrastructure/http-production-video-gateway.ts",
+    );
 
     // The 添加背景音乐 toggle was removed from the UI; the compose payload keeps
     // the flag explicitly off so the backend default never re-enables it.
-    expect(compose).toContain("add_bgm: false");
+    expect(compose).toContain("addBgm: false");
+    expect(gateway).toContain("add_bgm: command.addBgm");
     expect(compose).not.toContain("setAddBgm");
     expect(compose).not.toContain("video.addBgm");
   });

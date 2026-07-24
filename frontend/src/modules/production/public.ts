@@ -1,4 +1,5 @@
 export {
+  useComposeEpisode,
   useCopyProjectNarratorVoice,
   useCropSeedance2Asset,
   useDeleteNarratorVoice,
@@ -6,6 +7,7 @@ export {
   useGenerateBeatVideoPrompt,
   useGenerateSeedance2Prompt,
   useGlobalOptimize,
+  useFinalVideo,
   useNarratorVoiceSources,
   useNarratorVoiceStatus,
   useRecordNarratorVoice,

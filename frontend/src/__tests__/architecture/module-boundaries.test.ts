@@ -535,6 +535,7 @@ describe("frontend architecture boundaries", () => {
         .map((specifier) => `${relativeSource(path)}: ${specifier}`),
     );
 
+    expect(existsSync(resolve(SRC_ROOT, "lib/queries/video.ts"))).toBe(false);
     expect(applicationDataImportFailures).toEqual([]);
     expect(internalImportFailures).toEqual([]);
   });
