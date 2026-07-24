@@ -377,7 +377,7 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             )
 
         monkeypatch.setattr(
-            generation,
+            production_video,
             "single_video_use_cases",
             lambda: SimpleNamespace(generate=schedule_single_video),
         )

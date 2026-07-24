@@ -4,15 +4,22 @@ from fastapi import APIRouter, Depends
 
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import resolve_project_scope
-from ai_anime.api.schemas import GlobalOptimizeRequest, VideoComposeRequest
+from ai_anime.api.schemas import (
+    GlobalOptimizeRequest,
+    SingleVideoRequest,
+    VideoComposeRequest,
+)
 from ai_anime.modules.production.public import (
     ComposeEpisodeVideoCommand,
     EpisodeBeatsMissing,
     GlobalVideoOptimizationBeatsMissing,
     GlobalVideoOptimizationSketchesMissing,
+    GenerateSingleVideoCommand,
     OptimizeEpisodeVideoCommand,
+    SingleVideoRejected,
     episode_video_use_cases,
     global_video_optimization_use_cases,
+    single_video_use_cases,
     video_backend_catalog_use_cases,
 )
 
@@ -56,6 +63,45 @@ async def global_optimize_video(
         GlobalVideoOptimizationBeatsMissing,
         GlobalVideoOptimizationSketchesMissing,
     ) as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, **scheduled.as_dict()}
+
+
+@router.post("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/video")
+async def generate_single_video(
+    project: str,
+    episode_num: int,
+    beat_num: int,
+    body: SingleVideoRequest,
+    user: dict = Depends(get_api_user),
+):
+    """Queue video generation for one Beat."""
+    resolved = await resolve_project_scope(project, user, required_role="editor")
+    try:
+        scheduled = await single_video_use_cases().generate(
+            resolved.ctx,
+            GenerateSingleVideoCommand(
+                episode_num=episode_num,
+                beat_num=beat_num,
+                video_backend=body.video_backend,
+                resolution=body.resolution,
+                use_director_render=body.use_director_render,
+                seedance2_config_json=body.seedance2_config_json,
+                mode=body.mode,
+                duration=body.duration,
+                ratio=body.ratio,
+                generate_audio=body.generate_audio,
+                return_last_frame=body.return_last_frame,
+                human_review=body.human_review,
+                scene_optimize=body.scene_optimize,
+                final_prompt=body.final_prompt,
+                audio_setting=body.audio_setting,
+                prompt_guidance=body.prompt_guidance,
+                text_overlay=body.text_overlay,
+                provided_fields=frozenset(body.model_fields_set),
+            ),
+        )
+    except SingleVideoRejected as exc:
         return {"ok": False, "error": str(exc)}
     return {"ok": True, **scheduled.as_dict()}
 

@@ -13,7 +13,7 @@ async def test_single_video_route_maps_request_to_application(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_video
     from ai_anime.api.schemas import SingleVideoRequest
 
     context = object()
@@ -37,8 +37,8 @@ async def test_single_video_route_maps_request_to_application(
                 beat_num=2,
             )
 
-    monkeypatch.setattr(generation, "_resolve_generation_project", resolve)
-    monkeypatch.setattr(generation, "single_video_use_cases", lambda: UseCases())
+    monkeypatch.setattr(production_video, "resolve_project_scope", resolve)
+    monkeypatch.setattr(production_video, "single_video_use_cases", lambda: UseCases())
     request = SingleVideoRequest(
         video_backend="huimeng_seedance-2.0-fast",
         resolution="1080p",
@@ -49,7 +49,7 @@ async def test_single_video_route_maps_request_to_application(
         final_prompt="fresh prompt",
     )
 
-    response = await generation.generate_single_video(
+    response = await production_video.generate_single_video(
         project="demo",
         episode_num=3,
         beat_num=2,
@@ -84,7 +84,7 @@ async def test_single_video_route_maps_request_to_application(
 async def test_single_video_route_preserves_rejection_envelope(
     monkeypatch,
 ) -> None:
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_video
     from ai_anime.api.schemas import SingleVideoRequest
 
     async def resolve(*_args, **_kwargs):
@@ -94,10 +94,10 @@ async def test_single_video_route_preserves_rejection_envelope(
         async def generate(self, _context, _command):
             raise SingleVideoRejected("Beat 2 not found")
 
-    monkeypatch.setattr(generation, "_resolve_generation_project", resolve)
-    monkeypatch.setattr(generation, "single_video_use_cases", lambda: UseCases())
+    monkeypatch.setattr(production_video, "resolve_project_scope", resolve)
+    monkeypatch.setattr(production_video, "single_video_use_cases", lambda: UseCases())
 
-    response = await generation.generate_single_video(
+    response = await production_video.generate_single_video(
         project="demo",
         episode_num=3,
         beat_num=2,

@@ -759,7 +759,7 @@ def test_production_manual_sketch_regeneration_route_delegates_to_application() 
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     source = generation.read_text(encoding="utf-8")
     route_start = source.index("async def generate_missing_manual_sketches(")
-    route_end = source.index("async def generate_single_video(", route_start)
+    route_end = source.index("async def list_video_pool(", route_start)
     route_source = source[route_start:route_end]
 
     assert route_source.count("manual_sketch_regeneration_use_cases") == 1
@@ -896,15 +896,15 @@ def test_production_seedance2_panel_routes_delegate_to_application() -> None:
 
 
 def test_production_single_video_route_delegates_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "production_video.py"
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     video_runner = PACKAGE_ROOT / "task_backend" / "runners" / "video.py"
-    source = generation.read_text(encoding="utf-8")
-    route_start = source.index("async def generate_single_video(")
-    route_end = source.index("async def list_video_pool(", route_start)
-    route_source = source[route_start:route_end]
+    source = route.read_text(encoding="utf-8")
+    generation_source = generation.read_text(encoding="utf-8")
 
-    assert route_source.count("single_video_use_cases") == 1
-    assert "GenerateSingleVideoCommand" in route_source
+    assert source.count("single_video_use_cases") == 2
+    assert "GenerateSingleVideoCommand" in source
+    assert "async def generate_single_video(" not in generation_source
     for legacy_helper in (
         "_validate_seedance_pro_dialogue_only",
         "_seedance2_initial_prompt",
@@ -932,7 +932,7 @@ def test_production_single_video_route_delegates_to_application() -> None:
         "project_task_state_key",
         "单条视频生成需要 project context",
     ):
-        assert implementation_detail not in route_source
+        assert implementation_detail not in source
     runner_source = video_runner.read_text(encoding="utf-8")
     assert "SINGLE_VIDEO_TASK_TYPE" in runner_source
 
