@@ -11,6 +11,8 @@ from ai_anime.api.schemas import SketchGenerateRequest
 from ai_anime.modules.production.public import (
     CropCurrentSketchCommand,
     CurrentSketchMissing,
+    DirectorControlSketchUnavailable,
+    GenerateDirectorControlSketchCommand,
     GenerateSketchesCommand,
     SaveSketchEditorCommand,
     SketchBeatMissing,
@@ -19,6 +21,7 @@ from ai_anime.modules.production.public import (
     SketchEditorSaveRejected,
     SketchGenerationRejected,
     SketchPoseCandidatesMissing,
+    director_control_sketch_use_cases,
     sketch_editing_use_cases,
     sketch_generation_use_cases,
 )
@@ -50,6 +53,34 @@ async def generate_sketches(
         )
     except SketchGenerationRejected as exc:
         return {"ok": False, "error": str(exc)}
+    return {"ok": True, **scheduled.as_dict()}
+
+
+@router.post(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/director-control-to-sketch"
+)
+async def director_control_to_sketch(
+    project: str,
+    episode_num: int,
+    beat_num: int,
+    user: dict = Depends(get_api_user),
+):
+    """Start the existing Direct Render combined.png -> canonical sketch task."""
+    resolved = await resolve_project_scope(project, user, required_role="editor")
+    try:
+        scheduled = await director_control_sketch_use_cases().generate(
+            resolved.ctx,
+            GenerateDirectorControlSketchCommand(
+                episode_num=episode_num,
+                beat_num=beat_num,
+            ),
+        )
+    except DirectorControlSketchUnavailable as exc:
+        return {
+            "ok": False,
+            "error": str(exc),
+            "data": exc.status.data,
+        }
     return {"ok": True, **scheduled.as_dict()}
 
 

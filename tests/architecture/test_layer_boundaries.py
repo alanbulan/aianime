@@ -709,16 +709,16 @@ def test_production_sketch_generation_route_delegates_to_application() -> None:
 
 
 def test_production_director_control_sketch_route_delegates_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "production_sketch.py"
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     freezone = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     sketch_runner = PACKAGE_ROOT / "task_backend" / "runners" / "sketch.py"
-    source = generation.read_text(encoding="utf-8")
-    route_start = source.index("async def director_control_to_sketch(")
-    route_end = source.index("async def generate_missing_manual_sketches(", route_start)
-    route_source = source[route_start:route_end]
+    source = route.read_text(encoding="utf-8")
+    generation_source = generation.read_text(encoding="utf-8")
 
-    assert route_source.count("director_control_sketch_use_cases") == 1
-    assert "GenerateDirectorControlSketchCommand" in route_source
+    assert source.count("director_control_sketch_use_cases().") == 1
+    assert "GenerateDirectorControlSketchCommand" in source
+    assert "async def director_control_to_sketch(" not in generation_source
     for implementation_detail in (
         "beat_director_stage_use_cases",
         "make_project_asset_url_builder",
@@ -729,7 +729,7 @@ def test_production_director_control_sketch_route_delegates_to_application() -> 
         "globals()",
         "Direct Render 转草图需要 project context",
     ):
-        assert implementation_detail not in route_source
+        assert implementation_detail not in source
     assert "_start_or_enqueue_mainline_direct_sketch_task" not in (
         freezone.read_text(encoding="utf-8")
     )
@@ -1439,7 +1439,6 @@ def test_asset_world_beat_director_stage_routes_delegate_to_application() -> Non
             "save_beat_director_stage_overlay",
             "export_beat_director_stage_control_frame",
             "get_director_control_frame_status",
-            "director_control_to_sketch",
         }
     )
     freezone = (PACKAGE_ROOT / "api" / "routes" / "freezone.py").read_text(
@@ -1457,7 +1456,6 @@ def test_asset_world_beat_director_stage_routes_delegate_to_application() -> Non
     ).read_text(encoding="utf-8")
 
     assert "beat_viewer_use_cases" in director_adapters
-    assert "director_control_sketch_use_cases" in director_adapters
     assert "beat_viewer_use_cases" in frame_source
     assert "beat_director_stage_use_cases" not in frame_source
     assert "def beat_director_stage_use_cases(" not in public_api

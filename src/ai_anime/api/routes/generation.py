@@ -32,15 +32,12 @@ from ai_anime.modules.asset_world.public import (
 from ai_anime.modules.production.public import (
     AssignProjectSketchColorsCommand,
     DetectProjectSketchMarkersCommand,
-    DirectorControlSketchUnavailable,
     GenerateMissingManualSketchesCommand,
-    GenerateDirectorControlSketchCommand,
     ManualSketchRegenerationRejected,
     SketchColorMarkersMissing,
     SketchEpisodeBeatsMissing,
     SketchMarkerDetectionFailed,
     SketchMarkerDetectionRejected,
-    director_control_sketch_use_cases,
     manual_sketch_regeneration_use_cases,
     sketch_marker_use_cases,
 )
@@ -360,34 +357,6 @@ async def get_director_control_frame_status(
             BeatViewerQuery(episode_num=episode_num, beat_num=beat_num),
         ),
     }
-
-
-@router.post(
-    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/director-control-to-sketch"
-)
-async def director_control_to_sketch(
-    project: str,
-    episode_num: int,
-    beat_num: int,
-    user: dict = Depends(get_api_user),
-):
-    """Start the existing Direct Render combined.png -> canonical sketch task."""
-    resolved = await _resolve_generation_project(project, user, required_role="editor")
-    try:
-        scheduled = await director_control_sketch_use_cases().generate(
-            resolved.ctx,
-            GenerateDirectorControlSketchCommand(
-                episode_num=episode_num,
-                beat_num=beat_num,
-            ),
-        )
-    except DirectorControlSketchUnavailable as exc:
-        return {
-            "ok": False,
-            "error": str(exc),
-            "data": exc.status.data,
-        }
-    return {"ok": True, **scheduled.as_dict()}
 
 
 @router.post(

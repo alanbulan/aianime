@@ -20,7 +20,12 @@ from ai_anime.modules.production.application.director_control_sketch import (
 
 
 def _client(monkeypatch, tmp_path, config: dict | None = None):
-    from ai_anime.api.routes import generation, production_pool, production_settings
+    from ai_anime.api.routes import (
+        generation,
+        production_pool,
+        production_settings,
+        production_sketch,
+    )
 
     saved: list[dict] = []
     current_config = dict(config or {})
@@ -75,6 +80,11 @@ def _client(monkeypatch, tmp_path, config: dict | None = None):
         "resolve_project_scope",
         fake_resolve_project,
     )
+    monkeypatch.setattr(
+        production_sketch,
+        "resolve_project_scope",
+        fake_resolve_project,
+    )
 
     from ai_anime.shared import project_media
 
@@ -124,6 +134,7 @@ def _client(monkeypatch, tmp_path, config: dict | None = None):
     app.include_router(generation.router, prefix="/api/v1")
     app.include_router(production_pool.router, prefix="/api/v1")
     app.include_router(production_settings.router, prefix="/api/v1")
+    app.include_router(production_sketch.router, prefix="/api/v1")
     app.dependency_overrides[generation.get_api_user] = lambda: {"username": "alice"}
     app.dependency_overrides[production_pool.get_api_user] = lambda: {
         "username": "alice"
@@ -327,7 +338,7 @@ def test_director_control_frame_status_reports_missing_and_ready(monkeypatch, tm
 
 def test_director_control_to_sketch_delegates_to_application(monkeypatch, tmp_path):
     client, _saved = _client(monkeypatch, tmp_path)
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_sketch
 
     context = object()
 
@@ -363,9 +374,9 @@ def test_director_control_to_sketch_delegates_to_application(monkeypatch, tmp_pa
                 ),
             )
 
-    monkeypatch.setattr(generation, "_resolve_generation_project", resolve)
+    monkeypatch.setattr(production_sketch, "resolve_project_scope", resolve)
     monkeypatch.setattr(
-        generation,
+        production_sketch,
         "director_control_sketch_use_cases",
         lambda: UseCases(),
     )
@@ -391,7 +402,7 @@ def test_director_control_to_sketch_rejects_missing_control_frame(
     monkeypatch, tmp_path
 ):
     client, _saved = _client(monkeypatch, tmp_path)
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_sketch
 
     context = object()
 
@@ -416,9 +427,9 @@ def test_director_control_to_sketch_rejects_missing_control_frame(
                 status,
             )
 
-    monkeypatch.setattr(generation, "_resolve_generation_project", resolve)
+    monkeypatch.setattr(production_sketch, "resolve_project_scope", resolve)
     monkeypatch.setattr(
-        generation,
+        production_sketch,
         "director_control_sketch_use_cases",
         lambda: UseCases(),
     )
