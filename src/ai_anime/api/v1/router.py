@@ -9,6 +9,7 @@ from fastapi import APIRouter
 
 from ai_anime.api.routes import (
     assets,
+    asset_world_viewer,
     auth,
     characters,
     chat,
@@ -17,7 +18,6 @@ from ai_anime.api.routes import (
     episodes,
     files,
     freezone,
-    generation,
     ingest,
     model_credits,
     model_gateway,
@@ -87,7 +87,7 @@ def create_api_router(*, desktop_mode: bool | None = None) -> APIRouter:
     router.include_router(episodes.router, tags=["episodes"])
     router.include_router(scripts.router, tags=["scripts"])
     router.include_router(content.router, tags=["content"])
-    router.include_router(generation.router, tags=["generation"])
+    router.include_router(asset_world_viewer.router, tags=["generation"])
     router.include_router(production_audio.router, tags=["generation"])
     router.include_router(production_export.router, tags=["generation"])
     router.include_router(production_pool.router, tags=["generation"])

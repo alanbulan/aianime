@@ -26,11 +26,11 @@ from ai_anime.modules.production.domain.render_planning import RenderPlanGrid
 
 
 def _client(monkeypatch, tmp_path):
-    from ai_anime.api.routes import generation, production_render
+    from ai_anime.api.routes import production_render
 
     context = object()
 
-    async def fake_resolve_generation_project(
+    async def fake_resolve_project_scope(
         project: str, user: dict, required_role: str
     ):
         assert project == "demo"
@@ -45,18 +45,13 @@ def _client(monkeypatch, tmp_path):
         )
 
     monkeypatch.setattr(
-        generation, "_resolve_generation_project", fake_resolve_generation_project
-    )
-    monkeypatch.setattr(
         production_render,
         "resolve_project_scope",
-        fake_resolve_generation_project,
+        fake_resolve_project_scope,
     )
 
     app = FastAPI()
-    app.include_router(generation.router, prefix="/api/v1")
     app.include_router(production_render.router, prefix="/api/v1")
-    app.dependency_overrides[generation.get_api_user] = lambda: {"username": "alice"}
     app.dependency_overrides[production_render.get_api_user] = lambda: {
         "username": "alice"
     }

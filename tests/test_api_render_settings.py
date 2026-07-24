@@ -21,7 +21,7 @@ from ai_anime.modules.production.application.director_control_sketch import (
 
 def _client(monkeypatch, tmp_path, config: dict | None = None):
     from ai_anime.api.routes import (
-        generation,
+        asset_world_viewer,
         production_pool,
         production_settings,
         production_sketch,
@@ -69,7 +69,11 @@ def _client(monkeypatch, tmp_path, config: dict | None = None):
         current_config.update(updates)
         saved.append(updates)
 
-    monkeypatch.setattr(generation, "_resolve_generation_project", fake_resolve_project)
+    monkeypatch.setattr(
+        asset_world_viewer,
+        "resolve_project_scope",
+        fake_resolve_project,
+    )
     monkeypatch.setattr(
         production_pool,
         "resolve_project_scope",
@@ -131,11 +135,13 @@ def _client(monkeypatch, tmp_path, config: dict | None = None):
     )
 
     app = FastAPI()
-    app.include_router(generation.router, prefix="/api/v1")
+    app.include_router(asset_world_viewer.router, prefix="/api/v1")
     app.include_router(production_pool.router, prefix="/api/v1")
     app.include_router(production_settings.router, prefix="/api/v1")
     app.include_router(production_sketch.router, prefix="/api/v1")
-    app.dependency_overrides[generation.get_api_user] = lambda: {"username": "alice"}
+    app.dependency_overrides[asset_world_viewer.get_api_user] = lambda: {
+        "username": "alice"
+    }
     app.dependency_overrides[production_pool.get_api_user] = lambda: {
         "username": "alice"
     }

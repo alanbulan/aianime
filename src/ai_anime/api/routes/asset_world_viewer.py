@@ -1,4 +1,4 @@
-"""画面/网格/视频生成端点。"""
+"""Asset & World beat viewer endpoints."""
 
 from typing import Any
 
@@ -32,12 +32,6 @@ from ai_anime.utils.media_io import decode_uploaded_rgb_image
 
 router = APIRouter()
 
-async def _resolve_generation_project(
-    project: str, user: dict, required_role: str = "editor"
-):
-    return await resolve_project_scope(project, user, required_role=required_role)
-
-
 async def _read_uploaded_rgb_image(file: UploadFile):
     content = await file.read()
     return decode_uploaded_rgb_image(content)
@@ -53,7 +47,7 @@ async def get_beat_pano_background_manifest(
     user: dict = Depends(get_api_user),
 ):
     """Return the typed 360 viewer manifest for Beat selected-background capture."""
-    resolved = await _resolve_generation_project(project, user, required_role="viewer")
+    resolved = await resolve_project_scope(project, user, required_role="viewer")
     try:
         manifest = await beat_viewer_use_cases().pano_background_manifest(
             resolved.ctx,
@@ -72,7 +66,7 @@ async def get_default_director_stage_palette(
     user: dict = Depends(get_api_user),
 ):
     """Return the shared director-stage palette used by local/freezone worlds."""
-    await _resolve_generation_project(project, user, required_role="viewer")
+    await resolve_project_scope(project, user, required_role="viewer")
     return {
         "ok": True,
         "data": beat_viewer_use_cases().default_director_stage_palette(),
@@ -89,7 +83,7 @@ async def get_beat_director_stage_manifest(
     user: dict = Depends(get_api_user),
 ):
     """Return the typed 3GS director-stage manifest for Beat-level capture."""
-    resolved = await _resolve_generation_project(project, user, required_role="viewer")
+    resolved = await resolve_project_scope(project, user, required_role="viewer")
     try:
         manifest = await beat_viewer_use_cases().director_stage_manifest(
             resolved.ctx,
@@ -112,7 +106,7 @@ async def get_beat_director_stage_overlay(
     user: dict = Depends(get_api_user),
 ):
     """Load the current Beat 3GS overlay, or inherit the previous same-scene Beat."""
-    resolved = await _resolve_generation_project(project, user, required_role="viewer")
+    resolved = await resolve_project_scope(project, user, required_role="viewer")
     try:
         data = await beat_viewer_use_cases().load_director_stage_overlay(
             resolved.ctx,
@@ -136,7 +130,7 @@ async def save_beat_director_stage_overlay(
     user: dict = Depends(get_api_user),
 ):
     """Persist the current Beat 3GS overlay to director_blockings/epNNN/beat_MM.json."""
-    resolved = await _resolve_generation_project(project, user, required_role="editor")
+    resolved = await resolve_project_scope(project, user, required_role="editor")
     try:
         data = await beat_viewer_use_cases().save_director_stage_overlay(
             resolved.ctx,
@@ -172,7 +166,7 @@ async def export_beat_director_stage_control_frame(
     user: dict = Depends(get_api_user),
 ):
     """Persist Director Render control-frame PNG layers and frame_meta.json."""
-    resolved = await _resolve_generation_project(project, user, required_role="editor")
+    resolved = await resolve_project_scope(project, user, required_role="editor")
     try:
         payload = await beat_viewer_use_cases().export_director_stage_control_frame(
             resolved.ctx,
@@ -208,7 +202,7 @@ async def get_beat_background_anchors(
     user: dict = Depends(get_api_user),
 ):
     """Return NiceGUI-compatible single-beat background anchor options."""
-    resolved = await _resolve_generation_project(project, user, required_role="viewer")
+    resolved = await resolve_project_scope(project, user, required_role="viewer")
     try:
         payload = await beat_viewer_use_cases().background_anchors(
             resolved.ctx,
@@ -235,7 +229,7 @@ async def update_beat_background_anchor(
     are snapshotted into the beat-owned selected_background.png before being
     used, while render_anchor_source_id preserves the UI-visible source.
     """
-    resolved = await _resolve_generation_project(project, user, required_role="editor")
+    resolved = await resolve_project_scope(project, user, required_role="editor")
     try:
         payload = await beat_viewer_use_cases().select_background_anchor(
             resolved.ctx,
@@ -260,7 +254,7 @@ async def crop_beat_background_anchor(
     user: dict = Depends(get_api_user),
 ):
     """Crop a source background into the beat-owned render background slot."""
-    resolved = await _resolve_generation_project(project, user, required_role="editor")
+    resolved = await resolve_project_scope(project, user, required_role="editor")
     try:
         payload = await beat_viewer_use_cases().crop_background_anchor(
             resolved.ctx,
@@ -305,7 +299,7 @@ async def upload_beat_background_anchor(
     It is a compatibility API for React; render generation still consumes the
     same core scene_ref contract.
     """
-    resolved = await _resolve_generation_project(project, user, required_role="editor")
+    resolved = await resolve_project_scope(project, user, required_role="editor")
     try:
         image = await _read_uploaded_rgb_image(file)
     except Exception as exc:
@@ -334,7 +328,7 @@ async def get_director_control_frame_status(
     user: dict = Depends(get_api_user),
 ):
     """Return the NiceGUI director control frame status for one beat."""
-    resolved = await _resolve_generation_project(project, user, required_role="viewer")
+    resolved = await resolve_project_scope(project, user, required_role="viewer")
     return {
         "ok": True,
         "data": beat_viewer_use_cases().director_control_frame_status(

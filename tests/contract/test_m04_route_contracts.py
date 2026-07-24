@@ -174,7 +174,6 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.routes import (
         characters,
-        generation,
         production_audio,
         projects,
         props,
@@ -297,12 +296,9 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     def static_url(_ctx, rel_path: str, local_path=None):
         return f"/static/projects/proj_m04/{rel_path}"
 
-    for module in (characters, props, styles, generation, production_audio):
+    for module in (characters, props, styles, production_audio):
         monkeypatch.setattr(module, "resolve_project_scope", resolve_project_scope)
     monkeypatch.setattr(projects, "resolve_project_context", resolve_project_context)
-    monkeypatch.setattr(
-        generation, "_resolve_generation_project", resolve_project_scope
-    )
     monkeypatch.setattr(
         characters, "_resolve_character_project", resolve_character_project
     )
@@ -400,7 +396,6 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app.include_router(props.router, prefix="/api/v1")
         app.include_router(styles.router, prefix="/api/v1")
         app.include_router(projects.router, prefix="/api/v1")
-        app.include_router(generation.router, prefix="/api/v1")
         app.include_router(production_audio.router, prefix="/api/v1")
         user = {
             "id": "local",
@@ -414,7 +409,6 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             props.get_api_user,
             styles.get_api_user,
             projects.get_api_user,
-            generation.get_api_user,
             production_audio.get_api_user,
         ):
             app.dependency_overrides[dep] = lambda user=user: user

@@ -153,7 +153,7 @@ def load_project_data(project_name: str, project_dir: Path):
 
 
 # ---------------------------------------------------------------------------
-# 3. Build character_map — mirrors build_character_map_for_grid (generation.py)
+# 3. Build character_map via the Asset & World public API.
 # ---------------------------------------------------------------------------
 
 def build_test_character_map(

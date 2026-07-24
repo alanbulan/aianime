@@ -6,9 +6,13 @@ import pytest
 pytestmark = pytest.mark.m09
 
 
-def test_generation_routes_do_not_expose_dead_render_analyze_endpoint():
-    source = Path("src/ai_anime/api/routes/generation.py").read_text(encoding="utf-8")
+def test_api_routes_do_not_expose_dead_render_analyze_endpoint():
+    routes_root = Path("src/ai_anime/api/routes")
+    source = "\n".join(
+        path.read_text(encoding="utf-8") for path in routes_root.glob("*.py")
+    )
 
+    assert not (routes_root / "generation.py").exists()
     assert "/render/analyze" not in source
     assert "analyze_render_auto_repair" not in source
     assert "RenderAutoRepairAnalyzer" not in source

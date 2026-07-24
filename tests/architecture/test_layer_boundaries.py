@@ -7,6 +7,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PACKAGE_ROOT = REPO_ROOT / "src" / "ai_anime"
+ASSET_WORLD_VIEWER_ROUTE = PACKAGE_ROOT / "api" / "routes" / "asset_world_viewer.py"
+LEGACY_GENERATION_ROUTE = PACKAGE_ROOT / "api" / "routes" / "generation.py"
 COMPOSITION_ROOT_FILES = {"desktop_server.py"}
 
 # These are measured legacy dependencies, not approved architecture. Counts may
@@ -84,6 +86,16 @@ def test_route_modules_do_not_add_cross_route_dependencies() -> None:
                 actual[(relative, imported)] += 1
 
     _assert_ratchet(actual, LEGACY_ROUTE_IMPORT_MAX)
+
+
+def test_legacy_generation_route_is_removed() -> None:
+    api_router_source = (PACKAGE_ROOT / "api" / "v1" / "router.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert not LEGACY_GENERATION_ROUTE.exists()
+    assert "generation.router" not in api_router_source
+    assert "asset_world_viewer.router" in api_router_source
 
 
 def test_new_backend_modules_follow_layer_dependencies() -> None:
@@ -301,9 +313,7 @@ def test_production_callers_use_the_public_api() -> None:
 
 def test_production_sketch_edit_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_sketch.py"
-    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     source = route.read_text(encoding="utf-8")
-    generation_source = generation.read_text(encoding="utf-8")
 
     assert not (
         PACKAGE_ROOT / "services" / "sketch_pose_service.py"
@@ -318,7 +328,7 @@ def test_production_sketch_edit_routes_delegate_to_application() -> None:
         "save_sketch_pose_editor",
         "crop_current_sketch",
     ):
-        assert f"async def {handler_name}(" not in generation_source
+        assert f"async def {handler_name}(" in source
     assert "sketch_pose_editor_use_cases" not in source
     assert "sketch_image_use_cases" not in source
     assert "def _canonical_sketch_path(" not in source
@@ -343,9 +353,6 @@ def test_production_sketch_edit_routes_delegate_to_application() -> None:
 def test_production_image_settings_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_settings.py"
     source = route.read_text(encoding="utf-8")
-    generation_source = (
-        PACKAGE_ROOT / "api" / "routes" / "generation.py"
-    ).read_text(encoding="utf-8")
     api_router_source = (PACKAGE_ROOT / "api" / "v1" / "router.py").read_text(
         encoding="utf-8"
     )
@@ -363,7 +370,7 @@ def test_production_image_settings_routes_delegate_to_application() -> None:
         "get_image_generation_guard",
         "verify_image_generation_guard_password",
     ):
-        assert f"async def {handler_name}(" not in generation_source
+        assert f"async def {handler_name}(" in source
     for legacy_helper in (
         "def _resolve_render_image_selection(",
         "def _resolve_sketch_image_selection(",
@@ -432,9 +439,6 @@ def test_production_image_usage_routes_delegate_to_application() -> None:
 def test_production_episode_video_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_video.py"
     source = route.read_text(encoding="utf-8")
-    generation_source = (
-        PACKAGE_ROOT / "api" / "routes" / "generation.py"
-    ).read_text(encoding="utf-8")
     api_router_source = (PACKAGE_ROOT / "api" / "v1" / "router.py").read_text(
         encoding="utf-8"
     )
@@ -444,7 +448,7 @@ def test_production_episode_video_routes_delegate_to_application() -> None:
     assert "EpisodeBeatsMissing" in source
     assert "production_video.router" in api_router_source
     for handler_name in ("compose_video", "get_final_video"):
-        assert f"async def {handler_name}(" not in generation_source
+        assert f"async def {handler_name}(" in source
     for implementation_detail in (
         "make_sqlite_store_for_context",
         "make_sqlite_store(",
@@ -461,9 +465,6 @@ def test_production_episode_video_routes_delegate_to_application() -> None:
 def test_production_episode_export_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_export.py"
     source = route.read_text(encoding="utf-8")
-    generation_source = (
-        PACKAGE_ROOT / "api" / "routes" / "generation.py"
-    ).read_text(encoding="utf-8")
     api_router_source = (PACKAGE_ROOT / "api" / "v1" / "router.py").read_text(
         encoding="utf-8"
     )
@@ -471,7 +472,7 @@ def test_production_episode_export_routes_delegate_to_application() -> None:
     assert source.count("episode_export_use_cases().") == 3
     assert "production_export.router" in api_router_source
     for handler_name in ("export_srt", "export_final_video", "export_zip"):
-        assert f"async def {handler_name}(" not in generation_source
+        assert f"async def {handler_name}(" in source
     for implementation_detail in (
         "make_sqlite_store_for_context",
         "make_sqlite_store(",
@@ -489,9 +490,6 @@ def test_production_episode_export_routes_delegate_to_application() -> None:
 def test_production_episode_audio_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_audio.py"
     source = route.read_text(encoding="utf-8")
-    generation_source = (
-        PACKAGE_ROOT / "api" / "routes" / "generation.py"
-    ).read_text(encoding="utf-8")
     api_router_source = (PACKAGE_ROOT / "api" / "v1" / "router.py").read_text(
         encoding="utf-8"
     )
@@ -506,7 +504,7 @@ def test_production_episode_audio_routes_delegate_to_application() -> None:
         "generate_audio",
         "regenerate_beat_audio",
     ):
-        assert f"async def {handler_name}(" not in generation_source
+        assert f"async def {handler_name}(" in source
     assert "def _collect_audio_prereq_errors(" not in source
     assert "def _voice_prereq_error_response(" not in source
     for implementation_detail in (
@@ -523,12 +521,10 @@ def test_production_episode_audio_routes_delegate_to_application() -> None:
 
 def test_production_video_pool_routes_and_runner_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_pool.py"
-    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     video_runner = PACKAGE_ROOT / "task_backend" / "runners" / "video.py"
     legacy_indexer = PACKAGE_ROOT / "generators" / "video_pool_indexer.py"
     models = PACKAGE_ROOT / "models.py"
     source = route.read_text(encoding="utf-8")
-    generation_source = generation.read_text(encoding="utf-8")
     api_router_source = (PACKAGE_ROOT / "api" / "v1" / "router.py").read_text(
         encoding="utf-8"
     )
@@ -538,7 +534,7 @@ def test_production_video_pool_routes_and_runner_delegate_to_application() -> No
     assert "VideoPoolEntryUnavailable" in source
     assert "production_pool.router" in api_router_source
     for handler_name in ("list_video_pool", "select_video_pool"):
-        assert f"async def {handler_name}(" not in generation_source
+        assert f"async def {handler_name}(" in source
     for implementation_detail in (
         "load_video_pool_index",
         "assign_video_to_beat",
@@ -556,9 +552,7 @@ def test_production_video_pool_routes_and_runner_delegate_to_application() -> No
 
 def test_production_grid_pool_routes_delegate_to_application() -> None:
     pool_route = PACKAGE_ROOT / "api" / "routes" / "production_pool.py"
-    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     pool_source = pool_route.read_text(encoding="utf-8")
-    source = generation.read_text(encoding="utf-8")
     route_start = pool_source.index("async def list_grids(")
     route_source = pool_source[route_start:]
 
@@ -583,16 +577,16 @@ def test_production_grid_pool_routes_delegate_to_application() -> None:
         "sketch_grid_preview",
         "cut_grid",
     ):
-        assert f"async def {handler_name}(" not in source
+        assert f"async def {handler_name}(" in pool_source
     assert route_source.count("GridPoolUploadRejected") == 3
     assert route_source.count("GridPoolPromptRejected") == 1
     assert route_source.count("GridPoolPreviewRejected") == 1
     assert route_source.count("GridPoolCutRejected") == 1
-    assert "def _register_uploaded_pool_image(" not in source
-    assert "def _uploaded_grid_filename(" not in source
-    assert "def _safe_grid_token(" not in source
-    assert "def _safe_grids_file(" not in source
-    assert "def _find_pool_grid_entry(" not in source
+    assert "def _register_uploaded_pool_image(" not in pool_source
+    assert "def _uploaded_grid_filename(" not in pool_source
+    assert "def _safe_grid_token(" not in pool_source
+    assert "def _safe_grids_file(" not in pool_source
+    assert "def _find_pool_grid_entry(" not in pool_source
     for implementation_detail in (
         "add_cell_with_dedup",
         "build_pool_index",
@@ -619,15 +613,13 @@ def test_production_grid_pool_routes_delegate_to_application() -> None:
 
 def test_production_video_backend_catalog_has_one_owner() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_video.py"
-    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     schemas = PACKAGE_ROOT / "api" / "schemas.py"
     video_runner = PACKAGE_ROOT / "task_backend" / "runners" / "video.py"
     seedance_pipeline = PACKAGE_ROOT / "seedance2_i2v" / "pipeline.py"
     source = route.read_text(encoding="utf-8")
-    generation_source = generation.read_text(encoding="utf-8")
 
     assert "video_backend_catalog_use_cases" in source
-    assert "async def get_video_backend_options(" not in generation_source
+    assert "async def get_video_backend_options(" in source
     assert "def _api_video_backend_options(" not in source
     for legacy_implementation in (
         "NEWAPI_VIDEO_DURATION_BOUNDS",
@@ -649,14 +641,12 @@ def test_production_video_backend_catalog_has_one_owner() -> None:
 
 def test_production_global_video_optimization_route_delegates_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_video.py"
-    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     video_runner = PACKAGE_ROOT / "task_backend" / "runners" / "video.py"
     source = route.read_text(encoding="utf-8")
-    generation_source = generation.read_text(encoding="utf-8")
 
     assert "global_video_optimization_use_cases" in source
     assert "OptimizeEpisodeVideoCommand" in source
-    assert "async def global_optimize_video(" not in generation_source
+    assert "async def global_optimize_video(" in source
     for implementation_detail in (
         "make_sqlite_store_for_context",
         "make_sqlite_store(",
@@ -675,10 +665,8 @@ def test_production_global_video_optimization_route_delegates_to_application() -
 
 def test_production_sketch_generation_route_delegates_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_sketch.py"
-    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     sketch_runner = PACKAGE_ROOT / "task_backend" / "runners" / "sketch.py"
     source = route.read_text(encoding="utf-8")
-    generation_source = generation.read_text(encoding="utf-8")
     api_router_source = (PACKAGE_ROOT / "api" / "v1" / "router.py").read_text(
         encoding="utf-8"
     )
@@ -686,7 +674,7 @@ def test_production_sketch_generation_route_delegates_to_application() -> None:
     assert source.count("sketch_generation_use_cases().") == 1
     assert "GenerateSketchesCommand" in source
     assert "production_sketch.router" in api_router_source
-    assert "async def generate_sketches(" not in generation_source
+    assert "async def generate_sketches(" in source
     for implementation_detail in (
         "load_project_config",
         "make_sqlite_store_for_context",
@@ -710,15 +698,13 @@ def test_production_sketch_generation_route_delegates_to_application() -> None:
 
 def test_production_director_control_sketch_route_delegates_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_sketch.py"
-    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     freezone = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     sketch_runner = PACKAGE_ROOT / "task_backend" / "runners" / "sketch.py"
     source = route.read_text(encoding="utf-8")
-    generation_source = generation.read_text(encoding="utf-8")
 
     assert source.count("director_control_sketch_use_cases().") == 1
     assert "GenerateDirectorControlSketchCommand" in source
-    assert "async def director_control_to_sketch(" not in generation_source
+    assert "async def director_control_to_sketch(" in source
     for implementation_detail in (
         "beat_director_stage_use_cases",
         "make_project_asset_url_builder",
@@ -739,17 +725,15 @@ def test_production_director_control_sketch_route_delegates_to_application() -> 
 
 def test_production_selected_regeneration_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_render.py"
-    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     render_runner = PACKAGE_ROOT / "task_backend" / "runners" / "render.py"
     source = route.read_text(encoding="utf-8")
-    generation_source = generation.read_text(encoding="utf-8")
 
     assert source.count("selected_regeneration_use_cases().") == 2
     assert source.count("RegenerateSelectedBeatsCommand(") == 2
     assert "SelectedRegenerationKind.RENDER" in source
     assert "SelectedRegenerationKind.SKETCH" in source
     for handler_name in ("regenerate_beats", "regenerate_sketches"):
-        assert f"async def {handler_name}(" not in generation_source
+        assert f"async def {handler_name}(" in source
     for implementation_detail in (
         "load_project_config",
         "make_sqlite_store_for_context",
@@ -774,14 +758,12 @@ def test_production_selected_regeneration_routes_delegate_to_application() -> No
 
 def test_production_manual_sketch_regeneration_route_delegates_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_sketch.py"
-    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     source = route.read_text(encoding="utf-8")
-    generation_source = generation.read_text(encoding="utf-8")
 
     assert source.count("manual_sketch_regeneration_use_cases().") == 1
     assert "GenerateMissingManualSketchesCommand" in source
     assert "ManualSketchRegenerationRejected" in source
-    assert "async def generate_missing_manual_sketches(" not in generation_source
+    assert "async def generate_missing_manual_sketches(" in source
     for implementation_detail in (
         "make_sqlite_store_for_context",
         "make_sqlite_store(",
@@ -803,14 +785,12 @@ def test_production_manual_sketch_regeneration_route_delegates_to_application() 
 
 def test_production_grid_regeneration_route_delegates_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_render.py"
-    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     render_runner = PACKAGE_ROOT / "task_backend" / "runners" / "render.py"
     source = route.read_text(encoding="utf-8")
-    generation_source = generation.read_text(encoding="utf-8")
 
     assert source.count("grid_regeneration_use_cases().") == 1
     assert "RegenerateGridCommand" in source
-    assert "async def regenerate_grid(" not in generation_source
+    assert "async def regenerate_grid(" in source
     for implementation_detail in (
         "load_project_config",
         "make_sqlite_store_for_context",
@@ -836,11 +816,9 @@ def test_production_grid_regeneration_route_delegates_to_application() -> None:
 
 def test_production_render_plan_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_render.py"
-    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     schemas = PACKAGE_ROOT / "api" / "schemas.py"
     render_plan_package = PACKAGE_ROOT / "render_plan"
     source = route.read_text(encoding="utf-8")
-    generation_source = generation.read_text(encoding="utf-8")
     api_router_source = (PACKAGE_ROOT / "api" / "v1" / "router.py").read_text(
         encoding="utf-8"
     )
@@ -851,12 +829,12 @@ def test_production_render_plan_routes_delegate_to_application() -> None:
     assert "RenderPlanGrid" in source
     assert "production_render.router" in api_router_source
     for handler_name in ("render_plan", "render_execute"):
-        assert f"async def {handler_name}(" not in generation_source
+        assert f"async def {handler_name}(" in source
     for helper_name in (
         "_render_plan_unavailable_response",
         "_render_plan_rejection_response",
     ):
-        assert f"def {helper_name}(" not in generation_source
+        assert f"def {helper_name}(" in source
     for implementation_detail in (
         "load_project_config",
         "make_sqlite_store_for_context",
@@ -894,12 +872,10 @@ def test_production_render_plan_routes_delegate_to_application() -> None:
 
 def test_production_seedance2_panel_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_video.py"
-    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     source = route.read_text(encoding="utf-8")
-    generation_source = generation.read_text(encoding="utf-8")
 
     assert source.count("seedance2_panel_use_cases().") == 5
-    assert "async def get_seedance2_beat_status(" not in generation_source
+    assert "async def get_seedance2_beat_status(" in source
     for legacy_helper in (
         "_seedance2_asset_status_payload",
         "_seedance2_returned_last_frame_status_payload",
@@ -924,14 +900,12 @@ def test_production_seedance2_panel_routes_delegate_to_application() -> None:
 
 def test_production_single_video_route_delegates_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_video.py"
-    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     video_runner = PACKAGE_ROOT / "task_backend" / "runners" / "video.py"
     source = route.read_text(encoding="utf-8")
-    generation_source = generation.read_text(encoding="utf-8")
 
     assert source.count("single_video_use_cases") == 2
     assert "GenerateSingleVideoCommand" in source
-    assert "async def generate_single_video(" not in generation_source
+    assert "async def generate_single_video(" in source
     for legacy_helper in (
         "_validate_seedance_pro_dialogue_only",
         "_seedance2_initial_prompt",
@@ -965,25 +939,24 @@ def test_production_single_video_route_delegates_to_application() -> None:
 
 
 def test_production_generation_context_routes_delegate_to_application() -> None:
-    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     freezone = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
-    generation_source = generation.read_text(encoding="utf-8")
+    asset_world_source = ASSET_WORLD_VIEWER_ROUTE.read_text(encoding="utf-8")
     freezone_source = freezone.read_text(encoding="utf-8")
 
-    assert "production_generation_context_use_cases" not in generation_source
+    assert "production_generation_context_use_cases" not in asset_world_source
     assert "production_generation_context_use_cases" in freezone_source
     for legacy_helper in (
         "def _build_character_map(",
         "def _episode_from_store_or_none(",
     ):
-        assert legacy_helper not in generation_source
+        assert legacy_helper not in asset_world_source
         assert legacy_helper not in freezone_source
     assert "ai_anime.api.routes.generation" not in _imports(freezone)
 
 
 def test_production_sketch_color_rules_have_one_owner() -> None:
     nanobanana = PACKAGE_ROOT / "generators" / "nanobanana_grid.py"
-    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "production_sketch.py"
     callers = {
         nanobanana: "global_prop_marker_colors",
         PACKAGE_ROOT / "freezone" / "presets.py": "global_prop_marker_colors",
@@ -1000,7 +973,7 @@ def test_production_sketch_color_rules_have_one_owner() -> None:
         encoding="utf-8"
     )
     assert "def _color_assignment_requires_full_sketch_clean(" not in (
-        generation.read_text(encoding="utf-8")
+        route.read_text(encoding="utf-8")
     )
     for path, public_name in callers.items():
         source = path.read_text(encoding="utf-8")
@@ -1011,15 +984,13 @@ def test_production_sketch_color_rules_have_one_owner() -> None:
 
 def test_production_sketch_color_assignment_route_delegates_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_sketch.py"
-    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     source = route.read_text(encoding="utf-8")
-    generation_source = generation.read_text(encoding="utf-8")
 
     assert source.count("sketch_marker_use_cases().assign_colors") == 1
     assert "AssignProjectSketchColorsCommand" in source
     assert "SketchEpisodeBeatsMissing" in source
     assert "SketchColorMarkersMissing" in source
-    assert "async def assign_sketch_colors(" not in generation_source
+    assert "async def assign_sketch_colors(" in source
     assert "sketch_color_assignment_use_cases" not in source
     for implementation_detail in (
         "make_sqlite_store_for_context",
@@ -1040,7 +1011,6 @@ def test_production_sketch_color_assignment_route_delegates_to_application() -> 
 
 def test_production_sketch_marker_detection_route_delegates_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_sketch.py"
-    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     production_public = PACKAGE_ROOT / "modules" / "production" / "public.py"
     models = PACKAGE_ROOT / "models.py"
     domain = (
@@ -1051,11 +1021,10 @@ def test_production_sketch_marker_detection_route_delegates_to_application() -> 
         / "sketch_marker_detection.py"
     )
     source = route.read_text(encoding="utf-8")
-    generation_source = generation.read_text(encoding="utf-8")
 
     assert source.count("sketch_marker_use_cases().detect") == 1
     assert "DetectProjectSketchMarkersCommand" in source
-    assert "async def detect_sketch_identities(" not in generation_source
+    assert "async def detect_sketch_identities(" in source
     assert "sketch_marker_detection_use_cases" not in source
     assert "def _requester_user_id_for_billing(" not in source
     public_source = production_public.read_text(encoding="utf-8")
@@ -1191,7 +1160,7 @@ def test_episode_prop_promotion_uses_asset_world_public_api() -> None:
 
 
 def test_runtime_prop_menu_uses_one_asset_world_implementation() -> None:
-    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    route = ASSET_WORLD_VIEWER_ROUTE
     beat_viewer = (
         PACKAGE_ROOT
         / "modules"
@@ -1208,19 +1177,19 @@ def test_runtime_prop_menu_uses_one_asset_world_implementation() -> None:
     )
     freezone_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     freezone_presets = PACKAGE_ROOT / "freezone" / "presets.py"
-    generation_source = generation.read_text(encoding="utf-8")
+    route_source = route.read_text(encoding="utf-8")
     beat_viewer_source = beat_viewer.read_text(encoding="utf-8")
     beat_viewer_adapter_source = beat_viewer_adapter.read_text(encoding="utf-8")
-    route_source = freezone_route.read_text(encoding="utf-8")
+    freezone_source = freezone_route.read_text(encoding="utf-8")
     presets_source = freezone_presets.read_text(encoding="utf-8")
 
     assert not (PACKAGE_ROOT / "services" / "prop_ref_service.py").exists()
-    assert "ai_anime.modules.asset_world.public" in _imports(generation)
-    assert "runtime_prop_menu_for_episode" not in generation_source
+    assert "ai_anime.modules.asset_world.public" in _imports(route)
+    assert "runtime_prop_menu_for_episode" not in route_source
     assert "BeatViewerRuntimePropMenuSource" in beat_viewer_source
     assert "runtime_episode_prop_menu" in beat_viewer_adapter_source
-    assert "runtime_prop_menu_for_episode" in route_source
-    assert "_runtime_prop_menu_with_global_props," not in route_source
+    assert "runtime_prop_menu_for_episode" in freezone_source
+    assert "_runtime_prop_menu_with_global_props," not in freezone_source
     assert "runtime_prop_menu_with_cached_global_props" in presets_source
     assert "ai_anime.services.prop_ref_service" not in presets_source
 
@@ -1381,13 +1350,14 @@ def test_asset_world_scene_viewer_routes_delegate_to_application() -> None:
             "clear_scene_director_world",
         }
     )
-    generation = (
-        PACKAGE_ROOT / "api" / "routes" / "generation.py"
-    ).read_text(encoding="utf-8")
-    generation_tree = ast.parse(generation, filename="generation.py")
+    beat_viewer_source = ASSET_WORLD_VIEWER_ROUTE.read_text(encoding="utf-8")
+    beat_viewer_tree = ast.parse(
+        beat_viewer_source,
+        filename=str(ASSET_WORLD_VIEWER_ROUTE),
+    )
     beat_viewer_adapters = "\n".join(
-        ast.get_source_segment(generation, node) or ""
-        for node in generation_tree.body
+        ast.get_source_segment(beat_viewer_source, node) or ""
+        for node in beat_viewer_tree.body
         if isinstance(node, ast.AsyncFunctionDef)
         and node.name
         in {
@@ -1423,11 +1393,11 @@ def test_asset_world_scene_viewer_routes_delegate_to_application() -> None:
         "beat_director_stage_use_cases",
     ):
         assert legacy_implementation not in beat_viewer_adapters
-    assert "ai_anime.api.viewer_manifests" not in generation
+    assert "ai_anime.api.viewer_manifests" not in beat_viewer_source
 
 
 def test_asset_world_beat_director_stage_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    route = ASSET_WORLD_VIEWER_ROUTE
     source = route.read_text(encoding="utf-8")
     tree = ast.parse(source, filename=str(route))
     director_adapters = "\n".join(
@@ -1487,7 +1457,7 @@ def test_asset_world_beat_director_stage_routes_delegate_to_application() -> Non
 
 
 def test_asset_world_background_anchor_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    route = ASSET_WORLD_VIEWER_ROUTE
     source = route.read_text(encoding="utf-8")
     tree = ast.parse(source, filename=str(route))
     anchor_adapters = "\n".join(
@@ -1541,9 +1511,7 @@ def test_asset_routes_share_one_project_media_url_builder() -> None:
         name: (PACKAGE_ROOT / "api" / "routes" / name).read_text(encoding="utf-8")
         for name in ("characters.py", "props.py", "scenes.py")
     }
-    generation_source = (PACKAGE_ROOT / "api" / "routes" / "generation.py").read_text(
-        encoding="utf-8"
-    )
+    beat_viewer_route_source = ASSET_WORLD_VIEWER_ROUTE.read_text(encoding="utf-8")
     beat_viewer_adapter = (
         PACKAGE_ROOT
         / "modules"
@@ -1559,10 +1527,10 @@ def test_asset_routes_share_one_project_media_url_builder() -> None:
     for source in route_sources.values():
         assert "make_project_asset_url_builder" in source
     assert "make_project_asset_url_builder" in beat_viewer_adapter
-    assert "make_project_asset_url_builder" not in generation_source
+    assert "make_project_asset_url_builder" not in beat_viewer_route_source
     for source in route_sources.values():
         assert "def _asset_url(" not in source
-    assert "def _viewer_asset_url(" not in generation_source
+    assert "def _viewer_asset_url(" not in beat_viewer_route_source
 
 
 def test_asset_world_character_identity_routes_delegate_to_application() -> None:

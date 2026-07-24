@@ -270,8 +270,8 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api import auth as api_auth
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.routes import (
+        asset_world_viewer,
         episodes,
-        generation,
         production_pool,
         production_render,
         production_settings,
@@ -326,7 +326,7 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
     async def resolve_scope(project: str, user: dict, *, required_role: str = "viewer"):
         assert project == _PROJECT
-        store.resolved_roles.append(("generation", required_role))
+        store.resolved_roles.append(("asset_world_viewer", required_role))
         return resolution
 
     async def resolve_scene_project(project: str, user: dict, *, required_role: str = "editor"):
@@ -338,7 +338,7 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         return store
 
     monkeypatch.setattr(scenes, "_resolve_scene_project", resolve_scene_project)
-    monkeypatch.setattr(generation, "_resolve_generation_project", resolve_scope)
+    monkeypatch.setattr(asset_world_viewer, "resolve_project_scope", resolve_scope)
     monkeypatch.setattr(production_pool, "resolve_project_scope", resolve_scope)
     monkeypatch.setattr(production_render, "resolve_project_scope", resolve_scope)
     monkeypatch.setattr(production_sketch, "resolve_project_scope", resolve_scope)
@@ -427,7 +427,7 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
         app = FastAPI()
         app.include_router(scenes.router, prefix="/api/v1")
-        app.include_router(generation.router, prefix="/api/v1")
+        app.include_router(asset_world_viewer.router, prefix="/api/v1")
         app.include_router(production_pool.router, prefix="/api/v1")
         app.include_router(production_render.router, prefix="/api/v1")
         app.include_router(production_settings.router, prefix="/api/v1")
@@ -438,7 +438,7 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         for dep in (
             api_auth.get_api_user,
             scenes.get_api_user,
-            generation.get_api_user,
+            asset_world_viewer.get_api_user,
             production_pool.get_api_user,
             production_render.get_api_user,
             episodes.get_api_user,
@@ -954,7 +954,7 @@ def test_m05_sketch_candidates_is_viewer_and_empty_pool_is_ok(m05_client_factory
         "candidate_count": 0,
         "candidates": [],
     }
-    assert ("generation", "viewer") in store.resolved_roles
+    assert ("asset_world_viewer", "viewer") in store.resolved_roles
 
 
 def test_m05_negative_render_execute_rejects_stale_fingerprint(m05_client_factory):
