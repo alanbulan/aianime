@@ -9,7 +9,7 @@ import pytest
 
 
 def _client(monkeypatch, tmp_path):
-    from ai_anime.api.routes import generation, production_pool
+    from ai_anime.api.routes import production_pool
 
     async def resolve(*args, **kwargs):
         return SimpleNamespace(
@@ -20,13 +20,10 @@ def _client(monkeypatch, tmp_path):
             output_dir=str(tmp_path),
         )
 
-    monkeypatch.setattr(generation, "_resolve_generation_project", resolve)
     monkeypatch.setattr(production_pool, "resolve_project_scope", resolve)
 
     app = FastAPI()
-    app.include_router(generation.router)
     app.include_router(production_pool.router)
-    app.dependency_overrides[generation.get_api_user] = lambda: {"username": "admin"}
     app.dependency_overrides[production_pool.get_api_user] = lambda: {
         "username": "admin"
     }
@@ -68,8 +65,12 @@ def _seed_pool(grids_dir):
 
 @pytest.mark.asyncio
 async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
-    from ai_anime.api.routes import generation, production_pool
-    from ai_anime.api.schemas import PoolSelectRequest
+    from ai_anime.api.routes import production_pool
+    from ai_anime.api.schemas import (
+        GridCutRequest,
+        GridSketchPreviewRequest,
+        PoolSelectRequest,
+    )
     from ai_anime.modules.production.application.grid_pool import (
         BeatSketchCandidates,
         CutGridCommand,
@@ -170,8 +171,6 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
             )
 
     use_cases = UseCases()
-    monkeypatch.setattr(generation, "_resolve_generation_project", resolve)
-    monkeypatch.setattr(generation, "grid_pool_use_cases", lambda: use_cases)
     monkeypatch.setattr(production_pool, "resolve_project_scope", resolve)
     monkeypatch.setattr(production_pool, "grid_pool_use_cases", lambda: use_cases)
 
@@ -208,7 +207,7 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
         beat_numbers="[5,6]",
         user={"username": "admin"},
     )
-    prompt = await generation.export_grid_prompt(
+    prompt = await production_pool.export_grid_prompt(
         "project-id",
         2,
         3,
@@ -217,22 +216,22 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
         beat_numbers="5,6",
         user={"username": "admin"},
     )
-    preview = await generation.sketch_grid_preview(
+    preview = await production_pool.sketch_grid_preview(
         "project-id",
         2,
         3,
-        generation.GridSketchPreviewRequest(
+        GridSketchPreviewRequest(
             rows=1,
             cols=2,
             beat_numbers=[5, 6],
         ),
         user={"username": "admin"},
     )
-    cut = await generation.cut_grid(
+    cut = await production_pool.cut_grid(
         "project-id",
         2,
         3,
-        generation.GridCutRequest(
+        GridCutRequest(
             grid_type="render",
             rows=1,
             cols=2,

@@ -8,7 +8,6 @@ from fastapi import (
     Depends,
     File,
     HTTPException,
-    Query,
     UploadFile,
 )
 from fastapi.responses import JSONResponse
@@ -20,8 +19,6 @@ from ai_anime.api.schemas import (
     GridRegenerateRequest,
     BeatsRegenerateRequest,
     SketchRegenerateRequest,
-    GridCutRequest,
-    GridSketchPreviewRequest,
     RenderPlanExecuteRequest,
     RenderPlanRequest,
     BeatBackgroundAnchorUpdate,
@@ -48,7 +45,6 @@ from ai_anime.modules.production.public import (
     BuildRenderPlanCommand,
     CropSeedance2AssetCommand,
     CropCurrentSketchCommand,
-    CutGridCommand,
     CurrentSketchMissing,
     DetectProjectSketchMarkersCommand,
     DirectorControlSketchUnavailable,
@@ -56,12 +52,7 @@ from ai_anime.modules.production.public import (
     GenerateMissingManualSketchesCommand,
     GenerateDirectorControlSketchCommand,
     GenerateSketchesCommand,
-    GridPoolCutRejected,
-    GridPoolPreviewRejected,
-    GridPoolPromptRejected,
     GridRegenerationRejected,
-    GridPromptQuery,
-    GridSketchPreviewCommand,
     ManualSketchRegenerationRejected,
     RegenerateGridCommand,
     RegenerateSelectedBeatsCommand,
@@ -89,7 +80,6 @@ from ai_anime.modules.production.public import (
     TrimSeedance2AudioAssetCommand,
     UploadSeedance2AssetCommand,
     director_control_sketch_use_cases,
-    grid_pool_use_cases,
     grid_regeneration_use_cases,
     manual_sketch_regeneration_use_cases,
     seedance2_panel_use_cases,
@@ -925,101 +915,6 @@ async def generate_missing_manual_sketches(
     except ManualSketchRegenerationRejected as exc:
         return {"ok": False, "error": str(exc)}
     return scheduled.as_dict()
-
-
-@router.get("/projects/{project}/episodes/{episode_num}/grids/{grid_index}/prompt")
-async def export_grid_prompt(
-    project: str,
-    episode_num: int,
-    grid_index: int,
-    grid_type: str = Query("render"),
-    mode_key: str = Query(""),
-    beat_numbers: str = Query(""),
-    user: dict = Depends(get_api_user),
-):
-    """读取 pool index 中记录的单张网格 prompt 文本。"""
-    resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    try:
-        prompt = grid_pool_use_cases().prompt(
-            resolved.ctx,
-            GridPromptQuery(
-                episode_num=episode_num,
-                grid_index=grid_index,
-                grid_type=grid_type,
-                mode_key=mode_key,
-                beat_numbers=beat_numbers,
-            ),
-        )
-    except GridPoolPromptRejected as exc:
-        return {"ok": False, "error": str(exc)}
-    return {"ok": True, "data": prompt.as_dict()}
-
-
-@router.post(
-    "/projects/{project}/episodes/{episode_num}/grids/{grid_index}/sketch-preview"
-)
-async def sketch_grid_preview(
-    project: str,
-    episode_num: int,
-    grid_index: int,
-    body: GridSketchPreviewRequest,
-    user: dict = Depends(get_api_user),
-):
-    """Return the same sketch-thumbnail preview NiceGUI shows for planned grids.
-
-    This API exposes NiceGUI's `_get_sketch_thumbnail_url` behavior to React:
-    it stitches existing beat sketches into a temporary preview image without
-    changing the generation pipeline.
-    """
-    resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    try:
-        preview = grid_pool_use_cases().preview(
-            resolved.ctx,
-            GridSketchPreviewCommand(
-                episode_num=episode_num,
-                grid_index=grid_index,
-                rows=body.rows,
-                cols=body.cols,
-                beat_numbers=tuple(body.beat_numbers),
-            ),
-        )
-    except GridPoolPreviewRejected as exc:
-        return {"ok": False, "error": str(exc)}
-    return {"ok": True, "data": preview.as_dict()}
-
-
-@router.post("/projects/{project}/episodes/{episode_num}/grids/{grid_index}/cut")
-async def cut_grid(
-    project: str,
-    episode_num: int,
-    grid_index: int,
-    body: GridCutRequest,
-    user: dict = Depends(get_api_user),
-):
-    """将网格切割为单个 beat 图片入池。"""
-    resolved = await _resolve_generation_project(project, user, required_role="editor")
-    try:
-        result = grid_pool_use_cases().cut(
-            resolved.ctx,
-            CutGridCommand(
-                episode_num=episode_num,
-                grid_index=grid_index,
-                grid_type=body.grid_type,
-                mode_key=body.mode_key,
-                rows=body.rows,
-                cols=body.cols,
-                beat_start=body.beat_start,
-                beat_end=body.beat_end,
-                beat_numbers=(
-                    tuple(body.beat_numbers)
-                    if body.beat_numbers is not None
-                    else None
-                ),
-            ),
-        )
-    except GridPoolCutRejected as exc:
-        return {"ok": False, "error": str(exc)}
-    return {"ok": True, "data": result.as_dict()}
 
 
 # ---------------------------------------------------------------------------

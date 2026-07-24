@@ -20,7 +20,7 @@ from ai_anime.modules.production.application.director_control_sketch import (
 
 
 def _client(monkeypatch, tmp_path, config: dict | None = None):
-    from ai_anime.api.routes import generation, production_settings
+    from ai_anime.api.routes import generation, production_pool, production_settings
 
     saved: list[dict] = []
     current_config = dict(config or {})
@@ -65,6 +65,11 @@ def _client(monkeypatch, tmp_path, config: dict | None = None):
         saved.append(updates)
 
     monkeypatch.setattr(generation, "_resolve_generation_project", fake_resolve_project)
+    monkeypatch.setattr(
+        production_pool,
+        "resolve_project_scope",
+        fake_resolve_project,
+    )
     monkeypatch.setattr(
         production_settings,
         "resolve_project_scope",
@@ -117,8 +122,12 @@ def _client(monkeypatch, tmp_path, config: dict | None = None):
 
     app = FastAPI()
     app.include_router(generation.router, prefix="/api/v1")
+    app.include_router(production_pool.router, prefix="/api/v1")
     app.include_router(production_settings.router, prefix="/api/v1")
     app.dependency_overrides[generation.get_api_user] = lambda: {"username": "alice"}
+    app.dependency_overrides[production_pool.get_api_user] = lambda: {
+        "username": "alice"
+    }
 
     return TestClient(app), saved
 

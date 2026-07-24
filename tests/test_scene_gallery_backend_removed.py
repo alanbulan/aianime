@@ -27,8 +27,9 @@ def test_shared_grid_backend_remains_for_grid_galleries() -> None:
 
     assert '"/projects/{project}/episodes/{episode_num}/grids"' in pool_source
     assert '"/projects/{project}/episodes/{episode_num}/grids/{grid_index}/sketch-preview"' in (
-        generation_source
+        pool_source
     )
     assert "async def list_grids" in pool_source
     assert "async def list_grids" not in generation_source
-    assert "async def sketch_grid_preview" in generation_source
+    assert "async def sketch_grid_preview" in pool_source
+    assert "async def sketch_grid_preview" not in generation_source

@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 
 def _client(monkeypatch, tmp_path):
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_pool
     from ai_anime.modules.project_workspace.public import ProjectContext
 
     async def resolve(*args, **kwargs):
@@ -30,11 +30,13 @@ def _client(monkeypatch, tmp_path):
             )
         )
 
-    monkeypatch.setattr(generation, "_resolve_generation_project", resolve)
+    monkeypatch.setattr(production_pool, "resolve_project_scope", resolve)
 
     app = FastAPI()
-    app.include_router(generation.router)
-    app.dependency_overrides[generation.get_api_user] = lambda: {"username": "admin"}
+    app.include_router(production_pool.router)
+    app.dependency_overrides[production_pool.get_api_user] = lambda: {
+        "username": "admin"
+    }
     return TestClient(app)
 
 
