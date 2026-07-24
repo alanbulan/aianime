@@ -103,6 +103,7 @@ def _task_ports(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_ce_generation_submit_returns_inline_backend(monkeypatch, tmp_path):
+    from ai_anime import ports
     from ai_anime.api.routes import episodes
     from ai_anime.api.schemas import EpisodePlanRequest
 
@@ -129,7 +130,7 @@ async def test_ce_generation_submit_returns_inline_backend(monkeypatch, tmp_path
             )
 
     monkeypatch.setattr(episodes, "resolve_project_scope", fake_resolve_project_scope)
-    monkeypatch.setattr(episodes, "get_task_backend", lambda: FakeBackend())
+    monkeypatch.setattr(ports, "get_task_backend", lambda: FakeBackend())
 
     response = await episodes.plan_episodes(
         project="proj_m07",
@@ -579,6 +580,11 @@ def test_m07_http_coverage_exercises_task_center_routes(monkeypatch, tmp_path):
         client.get(f"/api/v1/projects/{ctx.project_id}/tasks/m07_http/1").status_code
         == 200
     )
+
+    async def reject_sse_token(_request, last_auth_check):
+        return False, last_auth_check
+
+    monkeypatch.setattr(tasks, "_sse_token_still_valid", reject_sse_token)
     with client.stream(
         "GET",
         f"/api/v1/projects/{ctx.project_id}/tasks/stream",
@@ -586,13 +592,18 @@ def test_m07_http_coverage_exercises_task_center_routes(monkeypatch, tmp_path):
     ) as response:
         assert response.status_code == 200
         assert next(response.iter_lines()).startswith("event: task_updated")
+
+    async def accept_sse_token(_request, last_auth_check):
+        return True, last_auth_check
+
+    monkeypatch.setattr(tasks, "_sse_token_still_valid", accept_sse_token)
     with client.stream(
         "GET",
-        f"/api/v1/projects/{ctx.project_id}/tasks/m07_http/1/stream",
+        f"/api/v1/projects/{ctx.project_id}/tasks/m07_done/1/stream",
         params={"interval": "0.5"},
     ) as response:
         assert response.status_code == 200
-        assert next(response.iter_lines()).startswith("event: running")
+        assert next(response.iter_lines()).startswith("event: completed")
     assert (
         client.delete(f"/api/v1/projects/{ctx.project_id}/tasks/m07_http/1").status_code
         == 200
