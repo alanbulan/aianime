@@ -13,15 +13,13 @@ import {
 } from "lucide-react";
 
 import {
-  useExportGridPrompt,
-  useSketchGridPreview,
-  useUploadGrid,
-} from "@/lib/queries/sketches";
-import {
   type PoolImage,
   type SketchAspectRatio,
+  useExportGridPrompt,
   useGenerateSketches,
   useGrids,
+  useSketchGridPreview,
+  useUploadGrid,
 } from "@/modules/production/public";
 import { gridAspectCss } from "@/lib/aspect-ratio";
 import { queryKeys } from "@/lib/query-keys";
@@ -155,7 +153,7 @@ function SketchGridCard({
   });
   const generatedPreviewUrl =
     sketchPreview.data?.ok === true
-      ? resolveMediaUrl(sketchPreview.data.data?.preview_url)
+      ? resolveMediaUrl(sketchPreview.data.data?.previewUrl)
       : null;
   const hasPreview = Boolean(gridUrl || generatedPreviewUrl || hasFallbackPreview);
 

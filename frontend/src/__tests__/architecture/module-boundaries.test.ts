@@ -574,6 +574,13 @@ describe("frontend architecture boundaries", () => {
     expect(legacySketchQueries).not.toContain("usePoolSelect");
     expect(legacySketchQueries).not.toContain("useUploadBeatImage");
     expect(legacySketchQueries).not.toContain("BeatImageUploadResult");
+    expect(legacySketchQueries).not.toContain("useCutGrid");
+    expect(legacySketchQueries).not.toContain("useExportGridPrompt");
+    expect(legacySketchQueries).not.toContain("useSketchGridPreview");
+    expect(legacySketchQueries).not.toContain("useUploadGrid");
+    expect(legacySketchQueries).not.toContain("GridUploadResult");
+    expect(legacySketchQueries).not.toContain("GridPromptResult");
+    expect(legacySketchQueries).not.toContain("GridSketchPreviewResult");
     expect(applicationDataImportFailures).toEqual([]);
     expect(internalImportFailures).toEqual([]);
   });

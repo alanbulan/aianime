@@ -14,15 +14,13 @@ import {
 } from "lucide-react";
 
 import {
+  type PoolImage,
   useCutGrid,
   useExportGridPrompt,
-  useUploadGrid,
-} from "@/lib/queries/sketches";
-import {
-  type PoolImage,
   useGrids,
   useRebuildPoolIndex,
   useRegenerateGrid,
+  useUploadGrid,
 } from "@/modules/production/public";
 import { queryKeys } from "@/lib/query-keys";
 import { resolveMediaUrl } from "@/lib/media-url";

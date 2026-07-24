@@ -57,7 +57,6 @@ beforeAll(async () => {
 });
 
 const generateSketchesMock: Mock = vi.fn();
-const cutGridMock: Mock = vi.fn();
 const uploadGridMock: Mock = vi.fn();
 const exportGridPromptMock: Mock = vi.fn();
 const taskStartMock: Mock = vi.fn();
@@ -65,33 +64,22 @@ const taskStopMock: Mock = vi.fn();
 let gridImages: unknown[] = [];
 let sketchPreviewResponses: Record<number, unknown> = {};
 
-vi.mock("@/lib/queries/sketches", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/queries/sketches")>();
-  return {
-    ...actual,
-    useSketchGridPreview: (
-      _project: string,
-      _episode: number,
-      params: { gridIndex: number },
-    ) => ({
-      data: sketchPreviewResponses[params.gridIndex] ?? null,
-    }),
-    useCutGrid: () => ({
-      mutateAsync: cutGridMock,
-      isPending: false,
-    }),
-    useUploadGrid: () => ({
-      mutateAsync: uploadGridMock,
-      isPending: false,
-    }),
-    useExportGridPrompt: () => ({
-      mutateAsync: exportGridPromptMock,
-      isPending: false,
-    }),
-  };
-});
-
 vi.mock("@/modules/production/public", () => ({
+  useSketchGridPreview: (
+    _project: string,
+    _episode: number,
+    params: { gridIndex: number },
+  ) => ({
+    data: sketchPreviewResponses[params.gridIndex] ?? null,
+  }),
+  useUploadGrid: () => ({
+    mutateAsync: uploadGridMock,
+    isPending: false,
+  }),
+  useExportGridPrompt: () => ({
+    mutateAsync: exportGridPromptMock,
+    isPending: false,
+  }),
   useGenerateSketches: () => ({
     mutateAsync: generateSketchesMock,
     isPending: false,
@@ -165,14 +153,29 @@ beforeEach(() => {
     task_type: "sketch_generation",
     message: "started",
   });
-  cutGridMock.mockReset();
-  cutGridMock.mockResolvedValue({ ok: true, data: { added: 2, skipped: 0 } });
   uploadGridMock.mockReset();
-  uploadGridMock.mockResolvedValue({ ok: true, data: { grid_index: 4 } });
+  uploadGridMock.mockResolvedValue({
+    ok: true,
+    data: {
+      gridIndex: 4,
+      gridType: "sketch",
+      modeKey: "2x2_scene",
+      beatNumbers: [5, 6],
+      gridPath: "custom/sketch-grid.png",
+      gridUrl: "/static/sketch-grid.png",
+    },
+  });
   exportGridPromptMock.mockReset();
   exportGridPromptMock.mockResolvedValue({
     ok: true,
-    data: { prompt: "sketch prompt text" },
+    data: {
+      gridIndex: 4,
+      gridType: "sketch",
+      modeKey: "2x2_scene",
+      beatNumbers: [5, 6],
+      prompt: "sketch prompt text",
+      promptPath: "custom/sketch-prompt.txt",
+    },
   });
   taskStartMock.mockReset();
   taskStopMock.mockReset();
@@ -318,12 +321,12 @@ describe("SketchGridGallery", () => {
       0: {
         ok: true,
         data: {
-          grid_index: 0,
+          gridIndex: 0,
           rows: 2,
           cols: 2,
-          beat_numbers: [7, 8],
-          preview_path: "sketch_thumb_grid0_7_8_2x2.jpg",
-          preview_url: "/static/generated-sketch-preview.jpg",
+          beatNumbers: [7, 8],
+          previewPath: "sketch_thumb_grid0_7_8_2x2.jpg",
+          previewUrl: "/static/generated-sketch-preview.jpg",
         },
       },
     };
@@ -578,7 +581,6 @@ describe("SketchGridGallery", () => {
     );
 
     expect(screen.queryByRole("button", { name: "切割入池" })).not.toBeInTheDocument();
-    expect(cutGridMock).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole("button", { name: "导出 prompt" }));
     expect(exportGridPromptMock).toHaveBeenCalledWith({

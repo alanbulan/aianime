@@ -4,6 +4,7 @@ export {
   useCopyProjectNarratorVoice,
   useCropSeedance2Asset,
   useCropSketch,
+  useCutGrid,
   useDeleteNarratorVoice,
   useDeleteSeedance2Asset,
   useDetectIdentities,
@@ -13,6 +14,7 @@ export {
   useGenerateSketches,
   useGrids,
   useGridsByBeat,
+  useExportGridPrompt,
   usePoolSelect,
   useGlobalOptimize,
   useFinalVideo,
@@ -33,11 +35,13 @@ export {
   useSaveSketchPoseEditor,
   useSketchPoseEditor,
   useSketchRegenQueue,
+  useSketchGridPreview,
   useSketchSettings,
   useTrimSeedance2Asset,
   useTrimNarratorVoice,
   useUploadNarratorVoice,
   useUploadBeatImage,
+  useUploadGrid,
   useUploadSeedance2Asset,
   useUpdateRenderSettings,
   useUpdateSketchSettings,
@@ -46,6 +50,17 @@ export {
   useVideoPoolSelect,
 } from "@/modules/production/composition";
 export { StalePoolSelectError } from "@/modules/production/application/image-pool-errors";
+export type {
+  GridCutCommand,
+  GridCutResult,
+  GridPromptQuery,
+  GridPromptResult,
+  GridSketchPreviewQuery,
+  GridSketchPreviewResult,
+  GridUploadCommand,
+  GridUploadResult,
+  ImageGridType,
+} from "@/modules/production/domain/image-grid";
 export type {
   BeatImageType,
   BeatImageUploadResult,

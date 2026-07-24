@@ -12,6 +12,16 @@ import type {
   UpdateSketchSettingsCommand,
 } from "@/modules/production/domain/image-settings";
 import type {
+  GridCutCommand,
+  GridCutResult,
+  GridPromptQuery,
+  GridPromptResult,
+  GridSketchPreviewQuery,
+  GridSketchPreviewResult,
+  GridUploadCommand,
+  GridUploadResult,
+} from "@/modules/production/domain/image-grid";
+import type {
   BeatImageType,
   BeatImageUploadResult,
   ImagePoolData,
@@ -127,6 +137,28 @@ export interface ProductionVideoGateway {
     imageType: BeatImageType,
     file: File,
   ): Promise<BeatImageUploadResponse>;
+  uploadGrid(
+    project: string,
+    episode: number,
+    command: GridUploadCommand,
+    file: File,
+  ): Promise<GridUploadResponse>;
+  getSketchGridPreview(
+    project: string,
+    episode: number,
+    query: GridSketchPreviewQuery,
+    signal?: AbortSignal,
+  ): Promise<GridSketchPreviewResponse>;
+  exportGridPrompt(
+    project: string,
+    episode: number,
+    query: GridPromptQuery,
+  ): Promise<GridPromptResponse>;
+  cutGrid(
+    project: string,
+    episode: number,
+    command: GridCutCommand,
+  ): Promise<GridCutResponse>;
   selectVideoPoolEntry(
     project: string,
     episode: number,
@@ -346,6 +378,22 @@ export interface ImagePoolSelectResponse {
 
 export type BeatImageUploadResponse =
   | ProductionDataResponse<BeatImageUploadResult>
+  | ProductionErrorResponse;
+
+export type GridUploadResponse =
+  | ProductionDataResponse<GridUploadResult>
+  | ProductionErrorResponse;
+
+export type GridSketchPreviewResponse =
+  | ProductionDataResponse<GridSketchPreviewResult>
+  | ProductionErrorResponse;
+
+export type GridPromptResponse =
+  | ProductionDataResponse<GridPromptResult>
+  | ProductionErrorResponse;
+
+export type GridCutResponse =
+  | ProductionDataResponse<GridCutResult>
   | ProductionErrorResponse;
 
 export type Seedance2BeatStatusResponse =

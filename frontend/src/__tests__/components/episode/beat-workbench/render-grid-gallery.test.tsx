@@ -79,7 +79,7 @@ function beatWithScene(beatNumber: number, sceneId: string): Beat {
   };
 }
 
-vi.mock("@/lib/queries/sketches", () => ({
+vi.mock("@/modules/production/public", () => ({
   useCutGrid: () => ({
     mutateAsync: cutGridMock,
     isPending: false,
@@ -92,9 +92,6 @@ vi.mock("@/lib/queries/sketches", () => ({
     mutateAsync: exportGridPromptMock,
     isPending: false,
   }),
-}));
-
-vi.mock("@/modules/production/public", () => ({
   useGrids: () => ({
     data: {
       ok: true,
@@ -187,11 +184,21 @@ beforeEach(() => {
     message: "started",
   });
   cutGridMock.mockReset();
-  cutGridMock.mockResolvedValue({ ok: true, data: { added: 2, skipped: 0 } });
+  cutGridMock.mockResolvedValue({
+    ok: true,
+    data: { gridIndex: 2, added: 2, skipped: 0 },
+  });
   uploadGridMock.mockReset();
   uploadGridMock.mockResolvedValue({
     ok: true,
-    data: { grid_index: 2, grid_url: "/static/grid-new.png" },
+    data: {
+      gridIndex: 2,
+      gridType: "render",
+      modeKey: "2x2",
+      beatNumbers: [5, 6],
+      gridPath: "custom/grid-new.png",
+      gridUrl: "/static/grid-new.png",
+    },
   });
   rebuildPoolIndexMock.mockReset();
   rebuildPoolIndexMock.mockResolvedValue({
@@ -201,7 +208,14 @@ beforeEach(() => {
   exportGridPromptMock.mockReset();
   exportGridPromptMock.mockResolvedValue({
     ok: true,
-    data: { prompt: "render prompt text", prompt_path: "custom/prompt.txt" },
+    data: {
+      gridIndex: 2,
+      gridType: "render",
+      modeKey: "2x2",
+      beatNumbers: [5, 6],
+      prompt: "render prompt text",
+      promptPath: "custom/prompt.txt",
+    },
   });
   taskStartMock.mockReset();
   taskStopMock.mockReset();

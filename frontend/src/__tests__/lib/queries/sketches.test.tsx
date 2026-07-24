@@ -16,11 +16,8 @@ import {
   useCropBeatBackgroundAnchor,
   useDirectorControlFrameStatus,
   useDirectorControlToSketch,
-  useCutGrid,
-  useExportGridPrompt,
   useUpdateBeatBackgroundAnchor,
   useUploadBeatBackgroundAnchor,
-  useUploadGrid,
 } from "@/lib/queries/sketches";
 import { server } from "@/__mocks__/msw/server";
 import { queryKeys } from "@/lib/query-keys";
@@ -604,131 +601,6 @@ describe("render grid query", () => {
 });
 
 describe("sketch action queries", () => {
-  it("cuts a render grid into the render pool", async () => {
-    let requestedPath = "";
-    let receivedBody: unknown = undefined;
-    server.use(
-      http.post(
-        "http://localhost:3000/api/v1/projects/demo/episodes/1/grids/2/cut",
-        async ({ request }) => {
-          requestedPath = new URL(request.url).pathname;
-          receivedBody = await request.clone().json();
-          return HttpResponse.json({
-            ok: true,
-            data: { added: 2, skipped: 0 },
-          });
-        },
-      ),
-    );
-
-    const { result } = renderHook(() => useCutGrid("demo", 1), {
-      wrapper,
-    });
-
-    result.current.mutate({
-      gridIndex: 2,
-      rows: 1,
-      cols: 2,
-      modeKey: "2x2",
-      beatNumbers: [5, 6],
-      gridType: "render",
-    });
-
-    await waitFor(() => expect(result.current.data).toBeDefined());
-    expect(requestedPath).toBe("/api/v1/projects/demo/episodes/1/grids/2/cut");
-    expect(receivedBody).toEqual({
-      grid_type: "render",
-      mode_key: "2x2",
-      rows: 1,
-      cols: 2,
-      beat_start: 5,
-      beat_end: 6,
-      beat_numbers: [5, 6],
-    });
-  });
-
-  it("uploads a replacement render grid with mode and beat scope", async () => {
-    let requestedPath = "";
-    let contentType = "";
-    server.use(
-      http.post(
-        "http://localhost:3000/api/v1/projects/demo/episodes/1/grids/2/upload",
-        async ({ request }) => {
-          requestedPath = new URL(request.url).pathname;
-          contentType = request.headers.get("content-type") ?? "";
-          return HttpResponse.json({
-            ok: true,
-            data: {
-              grid_index: 2,
-              grid_path: "custom/render_2x2_5-6_grid_upload.png",
-              grid_url: "/static/grid.png",
-            },
-          });
-        },
-      ),
-    );
-
-    const { result } = renderHook(() => useUploadGrid("demo", 1), {
-      wrapper,
-    });
-    const file = new File(["grid"], "grid.png", { type: "image/png" });
-
-    result.current.mutate({
-      gridIndex: 2,
-      file,
-      gridType: "render",
-      modeKey: "2x2",
-      beatNumbers: [5, 6],
-    });
-
-    await waitFor(() => expect(result.current.data).toBeDefined());
-    expect(requestedPath).toBe("/api/v1/projects/demo/episodes/1/grids/2/upload");
-    expect(contentType).toContain("multipart/form-data");
-  });
-
-  it("exports a render grid prompt by grid scope", async () => {
-    let requestedPath = "";
-    let requestedSearch = "";
-    server.use(
-      http.get(
-        "http://localhost:3000/api/v1/projects/demo/episodes/1/grids/2/prompt",
-        ({ request }) => {
-          const url = new URL(request.url);
-          requestedPath = url.pathname;
-          requestedSearch = url.search;
-          return HttpResponse.json({
-            ok: true,
-            data: {
-              grid_index: 2,
-              prompt: "render prompt text",
-              prompt_path: "custom/render_2x2_5-6_prompt.txt",
-            },
-          });
-        },
-      ),
-    );
-
-    const { result } = renderHook(() => useExportGridPrompt("demo", 1), {
-      wrapper,
-    });
-
-    result.current.mutate({
-      gridIndex: 2,
-      gridType: "render",
-      modeKey: "2x2",
-      beatNumbers: [5, 6],
-    });
-
-    await waitFor(() => expect(result.current.data).toBeDefined());
-    expect(requestedPath).toBe("/api/v1/projects/demo/episodes/1/grids/2/prompt");
-    expect(requestedSearch).toContain("grid_type=render");
-    expect(requestedSearch).toContain("mode_key=2x2");
-    expect(requestedSearch).toContain("beat_numbers=5%2C6");
-    expect(result.current.data?.ok).toBe(true);
-    if (!result.current.data?.ok) throw new Error("expected prompt export to succeed");
-    expect(result.current.data.data.prompt).toBe("render prompt text");
-  });
-
   it("uses the v2 assign-colors endpoint and forwards force=true", async () => {
     let requestedPath = "";
     let requestedForce = "";

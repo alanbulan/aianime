@@ -55,6 +55,26 @@ export const queryKeys = {
     ["projects", p, "episodes", ep, "beats"] as const,
   grids: (p: string, ep: number) =>
     ["projects", p, "episodes", ep, "grids"] as const,
+  sketchGridPreview: (
+    p: string,
+    ep: number,
+    grid: number,
+    rows: number,
+    cols: number,
+    beatNumbers: number[],
+  ) =>
+    [
+      "projects",
+      p,
+      "episodes",
+      ep,
+      "grids",
+      "sketch-preview",
+      grid,
+      rows,
+      cols,
+      beatNumbers.join(","),
+    ] as const,
   sketchRegenQueue: (p: string, ep: number) =>
     ["projects", p, "episodes", ep, "sketch-regen-queue"] as const,
   sketchImageUsage: (p: string, ep: number) =>

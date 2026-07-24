@@ -3,6 +3,7 @@ import { useAppStore } from "@/stores/app-store";
 import { createAudioGenerationQueryHooks } from "@/modules/production/application/audio-generation-query-hooks";
 import { createEpisodeComposeQueryHooks } from "@/modules/production/application/episode-compose-query-hooks";
 import { createImageSettingsQueryHooks } from "@/modules/production/application/image-settings-query-hooks";
+import { createImageGridQueryHooks } from "@/modules/production/application/image-grid-query-hooks";
 import { createImagePoolQueryHooks } from "@/modules/production/application/image-pool-query-hooks";
 import { createNarratorVoiceQueryHooks } from "@/modules/production/application/narrator-voice-query-hooks";
 import { createRenderPlanQueryHooks } from "@/modules/production/application/render-plan-query-hooks";
@@ -30,6 +31,12 @@ export const {
   useRebuildPoolIndex,
   useUploadBeatImage,
 } = createImagePoolQueryHooks(httpProductionVideoGateway);
+export const {
+  useCutGrid,
+  useExportGridPrompt,
+  useSketchGridPreview,
+  useUploadGrid,
+} = createImageGridQueryHooks(httpProductionVideoGateway);
 export const {
   useSeedance2BeatStatus,
   useUploadSeedance2Asset,

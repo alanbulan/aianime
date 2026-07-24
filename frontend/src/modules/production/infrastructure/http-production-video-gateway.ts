@@ -2,6 +2,10 @@
 import type {
   BeatVideoPromptResponse,
   BeatImageUploadResponse,
+  GridCutResponse,
+  GridPromptResponse,
+  GridSketchPreviewResponse,
+  GridUploadResponse,
   ImagePoolSelectResponse,
   NarratorVoiceMutationResponse,
   ProductionDataResponse,
@@ -25,6 +29,7 @@ import type {
   UpdateRenderSettingsCommand,
   UpdateSketchSettingsCommand,
 } from "@/modules/production/domain/image-settings";
+import type { ImageGridType } from "@/modules/production/domain/image-grid";
 import type {
   BeatImageType,
   ImagePoolData,
@@ -92,6 +97,39 @@ interface BeatImageUploadHttpResult {
 type BeatImageUploadHttpResponse =
   | { ok: true; data: BeatImageUploadHttpResult }
   | ProductionErrorResponse;
+
+interface GridUploadHttpResult {
+  grid_index: number;
+  grid_type: ImageGridType;
+  mode_key: string;
+  beat_numbers: number[];
+  grid_path: string;
+  grid_url: string;
+}
+
+interface GridPromptHttpResult {
+  grid_index: number;
+  grid_type: ImageGridType;
+  mode_key: string;
+  beat_numbers: number[];
+  prompt: string;
+  prompt_path: string;
+}
+
+interface GridSketchPreviewHttpResult {
+  grid_index: number;
+  rows: number;
+  cols: number;
+  beat_numbers: number[];
+  preview_path: string;
+  preview_url: string;
+}
+
+interface GridCutHttpResult {
+  grid_index: number;
+  added: number;
+  skipped: number;
+}
 
 function renderGenerationSettingsJson(settings: RenderGenerationSettings) {
   return {
@@ -196,6 +234,121 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
           : {}),
       },
     } satisfies BeatImageUploadResponse;
+  },
+  async uploadGrid(project, episode, command, file) {
+    const formData = new FormData();
+    formData.append("file", file, file.name);
+    formData.append("grid_type", command.gridType);
+    formData.append("mode_key", command.modeKey);
+    formData.append("beat_numbers", command.beatNumbers.join(","));
+    const response = await api
+      .post(
+        p`api/v1/projects/${project}/episodes/${episode}/grids/${command.gridIndex}/upload`,
+        { body: formData },
+      )
+      .json<
+        ProductionDataResponse<GridUploadHttpResult> | ProductionErrorResponse
+      >();
+    if (!response.ok) return response;
+    return {
+      ok: true,
+      data: {
+        gridIndex: response.data.grid_index,
+        gridType: response.data.grid_type,
+        modeKey: response.data.mode_key,
+        beatNumbers: response.data.beat_numbers,
+        gridPath: response.data.grid_path,
+        gridUrl: response.data.grid_url,
+      },
+    } satisfies GridUploadResponse;
+  },
+  async getSketchGridPreview(project, episode, query, signal) {
+    const response = await api
+      .post(
+        p`api/v1/projects/${project}/episodes/${episode}/grids/${query.gridIndex}/sketch-preview`,
+        {
+          json: {
+            rows: query.rows,
+            cols: query.cols,
+            beat_numbers: query.beatNumbers,
+          },
+          signal,
+        },
+      )
+      .json<
+        | ProductionDataResponse<GridSketchPreviewHttpResult>
+        | ProductionErrorResponse
+      >();
+    if (!response.ok) return response;
+    return {
+      ok: true,
+      data: {
+        gridIndex: response.data.grid_index,
+        rows: response.data.rows,
+        cols: response.data.cols,
+        beatNumbers: response.data.beat_numbers,
+        previewPath: response.data.preview_path,
+        previewUrl: response.data.preview_url,
+      },
+    } satisfies GridSketchPreviewResponse;
+  },
+  async exportGridPrompt(project, episode, query) {
+    const response = await api
+      .get(
+        p`api/v1/projects/${project}/episodes/${episode}/grids/${query.gridIndex}/prompt`,
+        {
+          searchParams: {
+            grid_type: query.gridType,
+            mode_key: query.modeKey,
+            beat_numbers: query.beatNumbers.join(","),
+          },
+        },
+      )
+      .json<
+        ProductionDataResponse<GridPromptHttpResult> | ProductionErrorResponse
+      >();
+    if (!response.ok) return response;
+    return {
+      ok: true,
+      data: {
+        gridIndex: response.data.grid_index,
+        gridType: response.data.grid_type,
+        modeKey: response.data.mode_key,
+        beatNumbers: response.data.beat_numbers,
+        prompt: response.data.prompt,
+        promptPath: response.data.prompt_path,
+      },
+    } satisfies GridPromptResponse;
+  },
+  async cutGrid(project, episode, command) {
+    const response = await api
+      .post(
+        p`api/v1/projects/${project}/episodes/${episode}/grids/${command.gridIndex}/cut`,
+        {
+          json: {
+            grid_type: command.gridType,
+            ...(command.modeKey ? { mode_key: command.modeKey } : {}),
+            rows: command.rows,
+            cols: command.cols,
+            beat_start: command.beatNumbers[0] ?? 1,
+            beat_end:
+              command.beatNumbers[command.beatNumbers.length - 1] ?? 1,
+            beat_numbers: command.beatNumbers,
+          },
+        },
+      )
+      .json<
+        ProductionDataResponse<GridCutHttpResult> | ProductionErrorResponse
+      >();
+    if (!response.ok) return response;
+    return {
+      ok: true,
+      data: {
+        gridIndex: response.data.grid_index,
+        added: response.data.added,
+        skipped: response.data.skipped,
+      },
+    } satisfies GridCutResponse;
   },
   async selectVideoPoolEntry(project, episode, beatNumber, poolId) {
     return api
