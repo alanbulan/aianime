@@ -41,6 +41,10 @@ class SceneProjectContextRequired(SceneCatalogRejected):
     """A scene task requires a resolved project context."""
 
 
+class SceneGenerationRejected(SceneCatalogRejected):
+    """A scene generation request cannot satisfy its prerequisites."""
+
+
 class PropCatalogRejected(Exception):
     """A prop catalog request rejected by an expected business rule."""
 

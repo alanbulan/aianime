@@ -34,6 +34,7 @@ from ai_anime.models import (
 )
 from ai_anime.modules.asset_world.public import (
     CreateSceneCommand,
+    GenerateScenePanoCommand,
     SceneCatalogRejected,
     UpdateSceneCommand,
     scene_catalog_use_cases,
@@ -42,13 +43,9 @@ from ai_anime.modules.asset_world.public import (
 from ai_anime.project_config import load_project_config_file
 from ai_anime.modules.project_workspace.public import ProjectContext, resolve_project_context
 from ai_anime.sqlite_store import SQLiteStore
-from ai_anime.ports import get_task_backend
-from ai_anime.task_scopes import stage_asset_scope
-from ai_anime.task_identity import project_task_state_key
 from ai_anime.utils.path_resolver import (
     canonical_scene_master_path,
     compute_scene_master_path,
-    compute_scene_reverse_master_path,
 )
 
 router = APIRouter()
@@ -89,64 +86,6 @@ async def _resolve_scene_project(
         Path(ctx.output_dir),
         str(ctx.output_dir),
         store,
-    )
-
-
-async def _start_or_enqueue_stage_asset(
-    *,
-    ctx: ProjectContext | None,
-    username: str,
-    project: str,
-    project_dir: Path,
-    output_dir: str,
-    scene_name: str,
-    step: str,
-    params: dict[str, Any],
-) -> tuple[str, dict | None]:
-    scope = stage_asset_scope(scene_name, step)
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type="stage_asset",
-            queue_kind="world",
-            episode=0,
-            scope=scope,
-            payload={
-                "scene_name": scene_name,
-                "step": step,
-                "params": params,
-                "project_dir": str(project_dir),
-            },
-        )
-        return scope, {
-            "task_id": queued.task_state.task_id,
-            "task_key": project_task_state_key(
-                "stage_asset", ctx.project_id, 0, scope=scope
-            ),
-            "backend": queued.backend,
-            "queue": queued.queue,
-        }
-
-    raise RuntimeError("片场资产生成需要 project context")
-
-
-def _scene_360_description(scene: NovelScene) -> str:
-    environment_prompt = str(
-        scene.environment_prompt or scene.description or scene.name
-    ).strip()
-    return "\n".join(
-        [
-            f"场景名称：{scene.name}",
-            f"场景类型：{scene.scene_type}",
-            "环境描述是完整场景空间合同：应说明正面、背面、左侧、右侧、天花/天空、地面和固定物件关系。",
-            "master 图代表正面半区：正面中心 + 左侧一半 + 右侧一半，并提供视觉风格锚点。",
-            "reverse 图应代表背面半区：背面中心 + 左侧另一半 + 右侧另一半。",
-            "360 需要把 environment_prompt 的四向空间合同展开成完整连续空间。",
-            "如果某些方向没有明确写出，请基于场景类型和 master 视觉风格合理补全，"
-            "但不要把正面物件机械复制到每个方向。",
-            "环境描述：",
-            environment_prompt,
-        ]
     )
 
 
@@ -878,57 +817,21 @@ async def _start_3gs_single_face_task(
     name: str,
     source_kind: str,
     user: dict,
-    store: SQLiteStore,
 ):
-    ctx, username, project_name, project_dir, output_dir, store = (
+    ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_scene_project(project, user)
     )
-    scene = await _require_scene(store, name)
-    if scene is None:
-        return {"ok": False, "error": f"Scene '{name}' not found"}
-
-    source_kind = str(source_kind or "master").strip().lower()
-    if source_kind == "reverse":
-        if not compute_scene_reverse_master_path(project_dir, scene.name):
-            return {
-                "ok": False,
-                "error": "缺少 reverse_master.png，请先生成 reverse master",
-            }
-    elif not compute_scene_master_path(project_dir, scene.name):
-        return {"ok": False, "error": "缺少 master.png，请先上传或生成场景源图"}
-
-    params = {
-        "source_kind": source_kind,
-        "face_name": "front",
-        "depth_meters": 8.0,
-        "device": "auto",
-        "face_size": 768,
-        "internal_size": 1536,
-        "max_gaussians_per_face": 1_000_000,
-        "timeout_seconds": 1800,
-    }
     try:
-        scope, queued = await _start_or_enqueue_stage_asset(
-            ctx=ctx,
-            username=username,
-            project=project_name,
+        scheduled = await scene_task_use_cases().schedule_single_face_3gs(
+            repository=store,
+            task_context=ctx,
             project_dir=project_dir,
-            output_dir=output_dir,
-            scene_name=scene.name,
-            step="single_face_sharp",
-            params=params,
+            scene_name=name,
+            source_kind=source_kind,
         )
-    except RuntimeError as exc:
+    except SceneCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
-
-    return {
-        "ok": True,
-        "task_type": "stage_asset",
-        "scope": scope,
-        "source": source_kind,
-        **(queued or {}),
-        "message": f"场景「{scene.name}」{source_kind} → SOG 任务已启动",
-    }
+    return {"ok": True, **scheduled.as_dict()}
 
 
 @router.post("/projects/{project}/scenes/{name}/3gs/master-ply/generate-async")
@@ -942,7 +845,6 @@ async def generate_scene_3gs_master_ply(
         name=name,
         source_kind="master",
         user=user,
-        store=None,
     )
 
 
@@ -957,7 +859,6 @@ async def generate_scene_3gs_reverse_ply(
         name=name,
         source_kind="reverse",
         user=user,
-        store=None,
     )
 
 
@@ -967,53 +868,19 @@ async def generate_scene_3gs_pano_ply(
     name: str,
     user: dict = Depends(get_api_user),
 ):
-    ctx, username, project_name, project_dir, output_dir, store = (
+    ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_scene_project(project, user)
     )
-    scene = await _require_scene(store, name)
-    if scene is None:
-        return {"ok": False, "error": f"Scene '{name}' not found"}
-    if stage_manifest.resolve_pano_path(project_dir, scene.name) is None:
-        return {"ok": False, "error": "缺少 pano_360.png，请先上传或生成 360 全景"}
-
-    params = {
-        "geometry_mode": "pano-depth",
-        "depth_source": "da2",
-        "depth_device": "auto",
-        "device": "auto",
-        "pano_depth_width": 2048,
-        "pano_depth_point_scale": 0.72,
-        "pano_depth_min_scale": 0.0008,
-        "pano_depth_max_scale": 0.045,
-        "pano_depth_opacity": 0.96,
-        "pano_depth_radius_scale": 1.0,
-        "face_size": 768,
-        "internal_size": 1536,
-        "max_gaussians_per_face": 1_000_000,
-        "timeout_seconds": 1800,
-    }
     try:
-        scope, queued = await _start_or_enqueue_stage_asset(
-            ctx=ctx,
-            username=username,
-            project=project_name,
+        scheduled = await scene_task_use_cases().schedule_pano_3gs(
+            repository=store,
+            task_context=ctx,
             project_dir=project_dir,
-            output_dir=output_dir,
-            scene_name=scene.name,
-            step="pano_sharp",
-            params=params,
+            scene_name=name,
         )
-    except RuntimeError as exc:
+    except SceneCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
-
-    return {
-        "ok": True,
-        "task_type": "stage_asset",
-        "scope": scope,
-        "source": "pano",
-        **(queued or {}),
-        "message": f"场景「{scene.name}」360 → SOG 任务已启动",
-    }
+    return {"ok": True, **scheduled.as_dict()}
 
 
 @router.post("/projects/{project}/scenes/{name}/pano/generate-async")
@@ -1023,47 +890,20 @@ async def generate_scene_pano(
     body: ScenePanoGenerateRequest,
     user: dict = Depends(get_api_user),
 ):
-    ctx, username, project_name, project_dir, output_dir, store = (
+    ctx, username, project_name, project_dir, _output_dir, store = (
         await _resolve_scene_project(project, user)
     )
-    scene = await _require_scene(store, name)
-    if scene is None:
-        return {"ok": False, "error": f"Scene '{name}' not found"}
-
-    source = body.source
-    if source == "master" and not compute_scene_master_path(project_dir, scene.name):
-        source = "text"
-    step = f"pano_from_{source}"
-
-    params: dict[str, Any] = {
-        "description": _scene_360_description(scene),
-        "style": body.style or _project_style(username, project_name),
-        "timeout_seconds": body.timeout_seconds,
-    }
-    for key in ("provider", "model", "image_size", "quality"):
-        value = getattr(body, key)
-        if value:
-            params[key] = value
-
     try:
-        scope, queued = await _start_or_enqueue_stage_asset(
-            ctx=ctx,
-            username=username,
-            project=project_name,
+        scheduled = await scene_task_use_cases().schedule_pano_generation(
+            repository=store,
+            task_context=ctx,
             project_dir=project_dir,
-            output_dir=output_dir,
-            scene_name=scene.name,
-            step=step,
-            params=params,
+            scene_name=name,
+            command=GenerateScenePanoCommand(**body.model_dump()),
+            project_style=(
+                "" if body.style else _project_style(username, project_name)
+            ),
         )
-    except RuntimeError as exc:
+    except SceneCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
-
-    return {
-        "ok": True,
-        "task_type": "stage_asset",
-        "scope": scope,
-        "source": source,
-        **(queued or {}),
-        "message": f"场景「{scene.name}」360 全景生成任务已启动",
-    }
+    return {"ok": True, **scheduled.as_dict()}

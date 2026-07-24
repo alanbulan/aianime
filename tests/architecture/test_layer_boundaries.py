@@ -417,18 +417,29 @@ def test_asset_world_scene_task_routes_delegate_to_application() -> None:
         ast.get_source_segment(source, node) or ""
         for node in tree.body
         if isinstance(node, ast.AsyncFunctionDef)
-        and node.name in {"build_scenes", "_start_scene_reference_task"}
+        and node.name
+        in {
+            "build_scenes",
+            "_start_scene_reference_task",
+            "_start_3gs_single_face_task",
+            "generate_scene_3gs_pano_ply",
+            "generate_scene_pano",
+        }
     )
 
     assert "scene_task_use_cases" in task_adapters
     assert "scene_reference_asset_scope" not in source
+    assert "_start_or_enqueue_stage_asset" not in source
+    assert "_scene_360_description" not in source
     for legacy_implementation in (
         "get_task_backend",
         "project_task_state_key",
         "enqueue_project_task",
         "task_config_scope",
+        "stage_asset_scope",
         'task_type="build_scenes"',
         'task_type="scene_reference_asset"',
+        'task_type="stage_asset"',
     ):
         assert legacy_implementation not in task_adapters
 

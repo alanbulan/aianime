@@ -44,6 +44,17 @@ class UpdateSceneCommand:
 
 
 @dataclass(frozen=True)
+class GenerateScenePanoCommand:
+    source: str = "master"
+    style: str | None = None
+    provider: str | None = None
+    model: str | None = None
+    image_size: str | None = None
+    quality: str | None = None
+    timeout_seconds: int = 1800
+
+
+@dataclass(frozen=True)
 class CreatePropCommand:
     name: str
     aliases: Sequence[str] = ()
@@ -207,6 +218,25 @@ class SceneReferenceGenerationTask:
 
 
 @dataclass(frozen=True)
+class SceneStageGenerationTask:
+    task_type: ClassVar[str] = "stage_asset"
+
+    scene_name: str
+    step: str
+    params: Mapping[str, Any]
+    project_dir: str | Path
+    scope: str
+
+    def backend_payload(self) -> dict[str, Any]:
+        return {
+            "scene_name": self.scene_name,
+            "step": self.step,
+            "params": dict(self.params),
+            "project_dir": str(self.project_dir),
+        }
+
+
+@dataclass(frozen=True)
 class AssetTaskQueueReceipt:
     task_id: str
     task_key: str
@@ -223,6 +253,7 @@ class ScheduledAssetTask:
     queue: str | None
     message: str
     scope: str | None = None
+    source: str | None = None
 
     @classmethod
     def from_receipt(
@@ -232,6 +263,7 @@ class ScheduledAssetTask:
         task_type: str,
         message: str,
         scope: str | None = None,
+        source: str | None = None,
     ) -> ScheduledAssetTask:
         return cls(
             task_type=task_type,
@@ -241,6 +273,7 @@ class ScheduledAssetTask:
             queue=receipt.queue,
             message=message,
             scope=scope,
+            source=source,
         )
 
     def as_dict(self) -> dict[str, Any]:
@@ -254,6 +287,8 @@ class ScheduledAssetTask:
         }
         if self.scope is not None:
             data["scope"] = self.scope
+        if self.source is not None:
+            data["source"] = self.source
         return data
 
 

@@ -65,6 +65,9 @@ from ai_anime.modules.asset_world.infrastructure.scene_catalog import (
     LocalSceneCatalogAssets,
     NovelSceneFactory,
 )
+from ai_anime.modules.asset_world.infrastructure.scene_task_assets import (
+    LocalSceneTaskAssets,
+)
 from ai_anime.modules.asset_world.infrastructure.style_catalog import StyleService
 from ai_anime.modules.asset_world.infrastructure.style_generation import (
     PydanticStyleImageAnalyzer,
@@ -106,7 +109,10 @@ def scene_catalog_use_cases() -> SceneCatalogUseCases:
 def scene_task_use_cases() -> SceneTaskUseCases:
     from ai_anime import ports
 
-    return SceneTaskUseCases(TaskBackendAssetTaskScheduler(ports.get_task_backend))
+    return SceneTaskUseCases(
+        TaskBackendAssetTaskScheduler(ports.get_task_backend),
+        LocalSceneTaskAssets(),
+    )
 
 
 def character_identity_use_cases() -> CharacterIdentityUseCases:

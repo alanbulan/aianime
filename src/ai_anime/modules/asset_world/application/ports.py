@@ -22,6 +22,7 @@ from ai_anime.modules.asset_world.application.dto import (
     IdentityGenerationAssets,
     PropReferenceGenerationTask,
     SceneReferenceGenerationTask,
+    SceneStageGenerationTask,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 
@@ -272,6 +273,14 @@ class SceneTaskRepository(Protocol):
     async def get_scene(self, name: str) -> Any | None: ...
 
 
+class SceneTaskAssets(Protocol):
+    def has_master(self, project_dir: Path, scene_name: str) -> bool: ...
+
+    def has_reverse_master(self, project_dir: Path, scene_name: str) -> bool: ...
+
+    def has_pano(self, project_dir: Path, scene_name: str) -> bool: ...
+
+
 class SceneTaskScheduler(Protocol):
     async def enqueue_build_scenes(
         self,
@@ -283,6 +292,12 @@ class SceneTaskScheduler(Protocol):
         self,
         task_context: ProjectContext,
         task: SceneReferenceGenerationTask,
+    ) -> AssetTaskQueueReceipt: ...
+
+    async def enqueue_scene_stage(
+        self,
+        task_context: ProjectContext,
+        task: SceneStageGenerationTask,
     ) -> AssetTaskQueueReceipt: ...
 
 

@@ -376,7 +376,6 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     def build(backend: str = "inline"):
         nonlocal task_backend
         task_backend = _FakeTaskBackend(backend)
-        monkeypatch.setattr(scenes, "get_task_backend", lambda: task_backend)
         monkeypatch.setattr(ai_anime_ports, "get_task_backend", lambda: task_backend)
         monkeypatch.setattr(generation, "get_task_backend", lambda: task_backend)
         monkeypatch.setattr(episodes, "get_task_backend", lambda: task_backend)
@@ -515,6 +514,44 @@ def test_scene_reference_generation_accepts_image_source_model(m05_client_factor
 
     assert payload["ok"] is True
     assert task_backend.calls[-1]["payload"]["model"] == "newapi_gpt_image2"
+
+
+def test_scene_stage_generation_uses_world_queue_and_owned_payload(
+    m05_client_factory,
+):
+    client, task_backend, project_dir, _store = m05_client_factory("inline")
+
+    payload = client.post(
+        f"/api/v1/projects/{_PROJECT}/scenes/{_SCENE}/pano/generate-async",
+        json={
+            "source": "text",
+            "style": "ink",
+            "provider": "newapi",
+            "model": "image-model",
+            "image_size": "2K",
+            "quality": "high",
+            "timeout_seconds": 900,
+        },
+    ).json()
+
+    _assert_task_shape(payload, backend="inline", task_type="stage_asset")
+    call = task_backend.calls[-1]
+    assert call["queue_kind"] == "world"
+    assert call["scope"] == payload["scope"]
+    assert call["payload"] == {
+        "scene_name": _SCENE,
+        "step": "pano_from_text",
+        "params": {
+            "description": call["payload"]["params"]["description"],
+            "style": "ink",
+            "timeout_seconds": 900,
+            "provider": "newapi",
+            "model": "image-model",
+            "image_size": "2K",
+            "quality": "high",
+        },
+        "project_dir": str(project_dir),
+    }
 
 
 def test_m05_l2_exercises_happy_path_route_contracts(m05_client_factory):
