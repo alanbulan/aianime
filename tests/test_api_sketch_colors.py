@@ -5,48 +5,48 @@ from types import SimpleNamespace
 import pytest
 
 from ai_anime.modules.production.public import (
+    AssignProjectSketchColorsCommand,
     SketchColorAssignmentResult,
     SketchColorMarkersMissing,
+    SketchEpisodeBeatsMissing,
 )
+from ai_anime.modules.project_workspace.public import ProjectContext
 
 
-class _Store:
-    def __init__(self, beats: list[dict]) -> None:
-        self.beats = beats
-
-    async def get_beats_as_dicts(self, episode_num: int) -> list[dict]:
-        assert episode_num == 2
-        return self.beats
-
-
-def _configure(monkeypatch, tmp_path, *, beats: list[dict], use_cases):
+def _configure(monkeypatch, tmp_path, *, use_cases):
     from ai_anime.api.routes import generation
 
-    store = _Store(beats)
+    context = ProjectContext(
+        project_id="project-1",
+        project_name="demo",
+        owner_type="user",
+        owner_id="user-alice",
+        owner_username="alice",
+        requester_user_id="user-alice",
+        requester_username="alice",
+        requester_principals=(("user", "user-alice"),),
+        effective_role="editor",
+        home_node_id="local",
+        output_dir=tmp_path,
+        state_dir=tmp_path / "_state",
+        runtime_dir=tmp_path / "_runtime",
+        is_home_node=True,
+    )
 
     async def resolve_project(project: str, user: dict, required_role: str):
         assert project == "demo"
         assert user == {"username": "alice"}
         assert required_role == "editor"
         return SimpleNamespace(
-            ctx=None,
+            ctx=context,
             username="alice",
             project_name="demo",
             output_dir=str(tmp_path),
         )
 
-    async def make_store(username: str, project: str):
-        assert (username, project) == ("alice", "demo")
-        return store
-
     monkeypatch.setattr(generation, "_resolve_generation_project", resolve_project)
-    monkeypatch.setattr(generation, "make_sqlite_store", make_store)
-    monkeypatch.setattr(
-        generation,
-        "sketch_color_assignment_use_cases",
-        lambda candidate: use_cases if candidate is store else None,
-    )
-    return generation
+    monkeypatch.setattr(generation, "sketch_marker_use_cases", lambda: use_cases)
+    return generation, context
 
 
 @pytest.mark.asyncio
@@ -54,17 +54,16 @@ async def test_assign_colors_maps_application_result(monkeypatch, tmp_path) -> N
     calls: list[dict] = []
 
     class _UseCases:
-        async def assign(self, **kwargs):
-            calls.append(kwargs)
+        async def assign_colors(self, context, command):
+            calls.append({"context": context, "command": command})
             return SketchColorAssignmentResult(
                 identity_colors={"Hero_A": "#FF00FF FLUORESCENT MAGENTA"},
                 prop_colors={"账单": "#0D47A1 ROYAL BLUE"},
             )
 
-    generation = _configure(
+    generation, context = _configure(
         monkeypatch,
         tmp_path,
-        beats=[{"beat_number": 1}],
         use_cases=_UseCases(),
     )
 
@@ -85,9 +84,8 @@ async def test_assign_colors_maps_application_result(monkeypatch, tmp_path) -> N
     }
     assert calls == [
         {
-            "episode_num": 2,
-            "beats": [{"beat_number": 1}],
-            "output_dir": str(tmp_path),
+            "context": context,
+            "command": AssignProjectSketchColorsCommand(episode_num=2),
         }
     ]
 
@@ -95,13 +93,12 @@ async def test_assign_colors_maps_application_result(monkeypatch, tmp_path) -> N
 @pytest.mark.asyncio
 async def test_assign_colors_maps_missing_markers(monkeypatch, tmp_path) -> None:
     class _UseCases:
-        async def assign(self, **_kwargs):
+        async def assign_colors(self, _context, _command):
             raise SketchColorMarkersMissing
 
-    generation = _configure(
+    generation, _context = _configure(
         monkeypatch,
         tmp_path,
-        beats=[{"beat_number": 1}],
         use_cases=_UseCases(),
     )
 
@@ -119,11 +116,14 @@ async def test_assign_colors_maps_missing_markers(monkeypatch, tmp_path) -> None
 
 @pytest.mark.asyncio
 async def test_assign_colors_keeps_no_beats_response(monkeypatch, tmp_path) -> None:
-    generation = _configure(
+    class _UseCases:
+        async def assign_colors(self, _context, command):
+            raise SketchEpisodeBeatsMissing(command.episode_num)
+
+    generation, _context = _configure(
         monkeypatch,
         tmp_path,
-        beats=[],
-        use_cases=object(),
+        use_cases=_UseCases(),
     )
 
     response = await generation.assign_sketch_colors(

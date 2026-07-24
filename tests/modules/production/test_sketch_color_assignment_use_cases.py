@@ -99,7 +99,6 @@ class _Workspace:
 
 
 def _use_cases(
-    store: _Store,
     colors: dict[str, str],
     prop_menu: list[dict[str, Any]],
 ) -> tuple[SketchColorAssignmentUseCases, _ColorAssigner, _Workspace]:
@@ -107,7 +106,6 @@ def _use_cases(
     workspace = _Workspace()
     return (
         SketchColorAssignmentUseCases(
-            store,
             assigner,
             _Episodes(),
             _PropMenus(prop_menu),
@@ -126,10 +124,11 @@ async def test_incremental_identity_assignment_persists_without_cleaning() -> No
         "Hero_B": "#00FFFF FLUORESCENT CYAN",
     }
     store = _Store(previous)
-    use_cases, assigner, workspace = _use_cases(store, current, [])
+    use_cases, assigner, workspace = _use_cases(current, [])
     beats = [{"visual_description": "{{Hero_A}} and {{Hero_B}}"}]
 
     result = await use_cases.assign(
+        store=store,
         episode_num=2,
         beats=beats,
         output_dir="output/demo",
@@ -153,9 +152,10 @@ async def test_incremental_identity_assignment_persists_without_cleaning() -> No
 async def test_prop_assignment_updates_episode_and_invalidates_initial_sketches() -> None:
     store = _Store({})
     prop_menu = [{"prop_id": "账单", "is_global_asset": True}]
-    use_cases, _assigner, workspace = _use_cases(store, {}, prop_menu)
+    use_cases, _assigner, workspace = _use_cases({}, prop_menu)
 
     result = await use_cases.assign(
+        store=store,
         episode_num=2,
         beats=[{"visual_description": "男人拿起[[账单]]。"}],
         output_dir="output/demo",
@@ -170,10 +170,12 @@ async def test_prop_assignment_updates_episode_and_invalidates_initial_sketches(
 
 @pytest.mark.asyncio
 async def test_missing_markers_are_rejected() -> None:
-    use_cases, _assigner, workspace = _use_cases(_Store({}), {}, [])
+    store = _Store({})
+    use_cases, _assigner, workspace = _use_cases({}, [])
 
     with pytest.raises(SketchColorMarkersMissing):
         await use_cases.assign(
+            store=store,
             episode_num=2,
             beats=[{"visual_description": "empty room"}],
             output_dir="output/demo",
@@ -186,9 +188,10 @@ async def test_missing_markers_are_rejected() -> None:
 async def test_persistence_failure_keeps_existing_best_effort_contract() -> None:
     store = _Store({}, fail_persistence=True)
     colors = {"Hero_A": "#FF00FF FLUORESCENT MAGENTA"}
-    use_cases, _assigner, workspace = _use_cases(store, colors, [])
+    use_cases, _assigner, workspace = _use_cases(colors, [])
 
     result = await use_cases.assign(
+        store=store,
         episode_num=2,
         beats=[{"visual_description": "{{Hero_A}} enters"}],
         output_dir="output/demo",

@@ -175,7 +175,6 @@ def _use_cases(
     usage_meter = _UsageMeter()
     return (
         SketchMarkerDetectionUseCases(
-            store,
             _Episodes(),
             _PropMenus(),
             files,
@@ -194,12 +193,13 @@ async def test_detection_batches_in_numeric_order_and_confirms_usage() -> None:
     use_cases, store, files, detector, usage_meter = _use_cases(26)
 
     result = await use_cases.detect(
+        store,
         DetectSketchMarkersCommand(
             episode_num=2,
             project_dir=Path("project"),
             requester_user_id="user-1",
             project_id="project-1",
-        )
+        ),
     )
 
     assert [call["total_panels"] for call in detector.calls] == [25, 1]
@@ -232,11 +232,12 @@ async def test_detection_refunds_usage_when_detector_fails() -> None:
 
     with pytest.raises(SketchMarkerDetectionFailed, match="vision failed"):
         await use_cases.detect(
+            store,
             DetectSketchMarkersCommand(
                 episode_num=2,
                 project_dir=Path("project"),
                 requester_user_id="user-1",
-            )
+            ),
         )
 
     assert store.identity_writes == {}
@@ -247,16 +248,17 @@ async def test_detection_refunds_usage_when_detector_fails() -> None:
 
 @pytest.mark.asyncio
 async def test_detection_rejects_missing_frames_before_reserving_usage() -> None:
-    use_cases, _store, files, _detector, usage_meter = _use_cases(1)
+    use_cases, store, files, _detector, usage_meter = _use_cases(1)
     files.frames = []
 
     with pytest.raises(SketchMarkerDetectionRejected, match="No sketches found"):
         await use_cases.detect(
+            store,
             DetectSketchMarkersCommand(
                 episode_num=2,
                 project_dir=Path("project"),
                 requester_user_id="user-1",
-            )
+            ),
         )
 
     assert usage_meter.reserve_calls == []

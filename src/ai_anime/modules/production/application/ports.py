@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import AbstractAsyncContextManager
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
@@ -254,6 +255,21 @@ class ProductionSketchMarkerDetectionStore(Protocol):
         episode_num: int,
         detections: dict[int, list[str]],
     ) -> int: ...
+
+
+class ProductionSketchMarkerStore(
+    ProductionSketchColorStore,
+    ProductionSketchMarkerDetectionStore,
+    Protocol,
+):
+    pass
+
+
+class ProductionSketchMarkerWorkspace(Protocol):
+    def session(
+        self,
+        context: ProjectContext,
+    ) -> AbstractAsyncContextManager[ProductionSketchMarkerStore]: ...
 
 
 class ProductionSketchMarkerDetectionFiles(Protocol):

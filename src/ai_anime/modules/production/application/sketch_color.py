@@ -25,6 +25,14 @@ class SketchColorAssignmentResult:
     identity_colors: dict[str, str]
     prop_colors: dict[str, str]
 
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "colors": self.identity_colors,
+            "count": len(self.identity_colors),
+            "prop_colors": self.prop_colors,
+            "prop_count": len(self.prop_colors),
+        }
+
 
 class SketchColorMarkersMissing(Exception):
     pass
@@ -33,13 +41,11 @@ class SketchColorMarkersMissing(Exception):
 class SketchColorAssignmentUseCases:
     def __init__(
         self,
-        store: ProductionSketchColorStore,
         color_assigner: ProductionSketchColorAssigner,
         episodes: ProductionEpisodeSource,
         prop_menus: ProductionRuntimePropMenuSource,
         workspace: ProductionSketchWorkspace,
     ) -> None:
-        self._store = store
         self._color_assigner = color_assigner
         self._episodes = episodes
         self._prop_menus = prop_menus
@@ -48,20 +54,21 @@ class SketchColorAssignmentUseCases:
     async def assign(
         self,
         *,
+        store: ProductionSketchColorStore,
         episode_num: int,
         beats: list[dict[str, Any]],
         output_dir: str | Path,
     ) -> SketchColorAssignmentResult:
-        previous_colors = dict(self._store.get_sketch_colors(episode_num) or {})
+        previous_colors = dict(store.get_sketch_colors(episode_num) or {})
         identity_colors = self._color_assigner.assign(
             [],
             beats,
             existing_colors=previous_colors,
         )
 
-        episode = self._episodes.episode_or_none(self._store, episode_num)
+        episode = self._episodes.episode_or_none(store, episode_num)
         prop_menu = await self._prop_menus.for_episode(
-            self._store,
+            store,
             episode,
             beats,
         )
@@ -81,9 +88,9 @@ class SketchColorAssignmentUseCases:
 
         try:
             if identity_colors:
-                await self._store.set_sketch_colors(episode_num, identity_colors)
+                await store.set_sketch_colors(episode_num, identity_colors)
             if prop_colors and prop_menu:
-                await self._store.update_episode(
+                await store.update_episode(
                     episode_num,
                     prop_menu=apply_prop_marker_colors(prop_menu, prop_colors),
                 )

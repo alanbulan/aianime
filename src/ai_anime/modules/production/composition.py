@@ -2,6 +2,7 @@
 
 from typing import Any
 
+from ai_anime import ports
 from ai_anime.modules.production.application.director_control_sketch import (
     DirectorControlSketchUseCases,
 )
@@ -37,6 +38,9 @@ from ai_anime.modules.production.application.sketch_color import (
 )
 from ai_anime.modules.production.application.sketch_marker_detection import (
     SketchMarkerDetectionUseCases,
+)
+from ai_anime.modules.production.application.sketch_markers import (
+    SketchMarkerUseCases,
 )
 from ai_anime.modules.production.application.sketch_regen_queue import (
     SketchRegenQueueUseCases,
@@ -116,6 +120,9 @@ from ai_anime.modules.production.infrastructure.sketch_editing import (
 from ai_anime.modules.production.infrastructure.sketch_marker_detection import (
     GlobalVideoOptimizerSketchMarkerDetector,
     LocalSketchMarkerDetectionFiles,
+)
+from ai_anime.modules.production.infrastructure.sketch_markers import (
+    SqliteProductionSketchMarkerWorkspace,
 )
 from ai_anime.modules.production.infrastructure.video_pool import (
     LocalVideoPoolStorage,
@@ -393,27 +400,22 @@ def production_generation_context_use_cases(
     )
 
 
-def sketch_color_assignment_use_cases(store: Any) -> SketchColorAssignmentUseCases:
-    return SketchColorAssignmentUseCases(
-        store,
-        DomainSketchColorAssigner(),
-        CompatibleEpisodeSource(),
-        AssetWorldRuntimePropMenuSource(),
-        LocalProductionSketchWorkspace(),
-    )
-
-
-def sketch_marker_detection_use_cases(
-    store: Any,
-    usage_meter: Any,
-) -> SketchMarkerDetectionUseCases:
-    return SketchMarkerDetectionUseCases(
-        store,
-        CompatibleEpisodeSource(),
-        AssetWorldRuntimePropMenuSource(),
-        LocalSketchMarkerDetectionFiles(),
-        GlobalVideoOptimizerSketchMarkerDetector(),
-        usage_meter,
+def sketch_marker_use_cases() -> SketchMarkerUseCases:
+    return SketchMarkerUseCases(
+        SqliteProductionSketchMarkerWorkspace(),
+        SketchColorAssignmentUseCases(
+            DomainSketchColorAssigner(),
+            CompatibleEpisodeSource(),
+            AssetWorldRuntimePropMenuSource(),
+            LocalProductionSketchWorkspace(),
+        ),
+        SketchMarkerDetectionUseCases(
+            CompatibleEpisodeSource(),
+            AssetWorldRuntimePropMenuSource(),
+            LocalSketchMarkerDetectionFiles(),
+            GlobalVideoOptimizerSketchMarkerDetector(),
+            ports.get_usage_meter(),
+        ),
     )
 
 

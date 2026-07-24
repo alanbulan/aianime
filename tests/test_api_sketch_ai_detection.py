@@ -26,6 +26,7 @@ class _DetectStore:
         )
         self.identity_writes: dict[int, list[str]] = {}
         self.prop_writes: dict[int, list[str]] = {}
+        self.close_calls = 0
 
     async def get_beats_as_dicts(self, episode_num: int):
         assert episode_num == 1
@@ -67,6 +68,9 @@ class _DetectStore:
         assert episode_number == 1
         self.prop_writes.update(detections)
         return len(detections)
+
+    async def close(self) -> None:
+        self.close_calls += 1
 
 
 def _write_sketch(project_dir, beat_num: int, *, padded: bool = True) -> None:
@@ -142,14 +146,33 @@ def _client(
 ):
     from ai_anime.agents import global_video_optimizer
     from ai_anime.api.routes import generation
+    from ai_anime.modules.production import composition
+    from ai_anime.modules.production.infrastructure import sketch_markers
+    from ai_anime.modules.project_workspace.public import ProjectContext
 
-    async def fake_make_sqlite_store(username: str, project: str):
-        assert username == "alice"
-        assert project == "demo"
-        return store
+    project_id = str(getattr(ctx, "project_id", "project-demo") or "project-demo")
+    requester_user_id = str(
+        getattr(ctx, "requester_user_id", "user-alice") or "user-alice"
+    )
+    context = ProjectContext(
+        project_id=project_id,
+        project_name="demo",
+        owner_type="user",
+        owner_id="user-alice",
+        owner_username="alice",
+        requester_user_id=requester_user_id,
+        requester_username="alice",
+        requester_principals=(("user", requester_user_id),),
+        effective_role="editor",
+        home_node_id="local",
+        output_dir=tmp_path,
+        state_dir=tmp_path / "_state",
+        runtime_dir=tmp_path / "_runtime",
+        is_home_node=True,
+    )
 
-    async def fake_make_sqlite_store_for_context(context):
-        assert context is ctx
+    async def fake_make_sqlite_store_for_context(candidate):
+        assert candidate is context
         return store
 
     async def fake_detect_identities_by_ai(
@@ -171,18 +194,17 @@ def _client(
             username="alice",
             project_name="demo",
             project_dir=tmp_path,
-            ctx=ctx,
+            ctx=context,
         )
 
     monkeypatch.setattr(generation, "_resolve_generation_project", fake_resolve_generation_project)
-    monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
     monkeypatch.setattr(
-        generation,
+        sketch_markers.project_stores,
         "make_sqlite_store_for_context",
         fake_make_sqlite_store_for_context,
     )
     if usage_meter is not None:
-        monkeypatch.setattr(generation, "get_usage_meter", lambda: usage_meter)
+        monkeypatch.setattr(composition.ports, "get_usage_meter", lambda: usage_meter)
     monkeypatch.setattr(
         global_video_optimizer,
         "detect_identities_by_ai",
@@ -211,6 +233,7 @@ def test_detect_identities_accepts_single_sketch(monkeypatch, tmp_path):
     assert calls == [1]
     assert body["data"]["identity_detections"] == {"1": ["Hero_Main"]}
     assert store.identity_writes == {1: ["Hero_Main"]}
+    assert store.close_calls == 1
 
 
 def test_detect_identities_reserves_feature_credit_and_marks_model_calls_included(

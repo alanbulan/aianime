@@ -82,14 +82,12 @@ class SketchMarkerDetectionResult:
 class SketchMarkerDetectionUseCases:
     def __init__(
         self,
-        store: ProductionSketchMarkerDetectionStore,
         episodes: ProductionEpisodeSource,
         prop_menus: ProductionRuntimePropMenuSource,
         files: ProductionSketchMarkerDetectionFiles,
         detector: ProductionSketchMarkerDetector,
         usage_meter: ProductionFeatureUsageMeter,
     ) -> None:
-        self._store = store
         self._episodes = episodes
         self._prop_menus = prop_menus
         self._files = files
@@ -98,31 +96,35 @@ class SketchMarkerDetectionUseCases:
 
     async def detect(
         self,
+        store: ProductionSketchMarkerDetectionStore,
         command: DetectSketchMarkersCommand,
     ) -> SketchMarkerDetectionResult:
-        beats = await self._store.get_beats_as_dicts(command.episode_num)
+        beats = await store.get_beats_as_dicts(command.episode_num)
         if not beats:
             raise SketchMarkerDetectionRejected(
                 f"No beats found for episode {command.episode_num}"
             )
 
-        identity_colors, script = await self._identity_colors(command.episode_num)
+        identity_colors, script = await self._identity_colors(
+            store,
+            command.episode_num,
+        )
         if not identity_colors:
             raise SketchMarkerDetectionRejected(
                 "No sketch colors assigned. Call assign-colors first"
             )
 
         episode = self._episodes.episode_or_none(
-            self._store,
+            store,
             command.episode_num,
         )
         prop_menu = await self._prop_menus.for_episode(
-            self._store,
+            store,
             episode,
             beats,
         )
         if not prop_menu:
-            script = script or await self._script_or_none(command.episode_num)
+            script = script or await self._script_or_none(store, command.episode_num)
             prop_menu = list((script or {}).get("prop_menu") or [])
         prop_colors = global_prop_marker_colors(
             beats,
@@ -183,14 +185,14 @@ class SketchMarkerDetectionUseCases:
                 frames=frames,
                 detections=raw_detections,
                 beats=beats,
-                characters=self._store.get_all_characters(),
+                characters=store.get_all_characters(),
                 allowed_prop_ids=set(prop_colors),
             )
-            await self._store.set_beat_detected_identities(
+            await store.set_beat_detected_identities(
                 command.episode_num,
                 classified.identities,
             )
-            await self._store.set_beat_detected_props(
+            await store.set_beat_detected_props(
                 command.episode_num,
                 classified.props,
             )
@@ -220,18 +222,23 @@ class SketchMarkerDetectionUseCases:
 
     async def _identity_colors(
         self,
+        store: ProductionSketchMarkerDetectionStore,
         episode_num: int,
     ) -> tuple[dict[str, str], dict[str, Any] | None]:
-        colors = dict(self._store.get_sketch_colors(episode_num) or {})
+        colors = dict(store.get_sketch_colors(episode_num) or {})
         script = None
         if not colors:
-            script = await self._script_or_none(episode_num)
+            script = await self._script_or_none(store, episode_num)
             colors = dict((script or {}).get("sketch_colors") or {})
         return colors, script
 
-    async def _script_or_none(self, episode_num: int) -> dict[str, Any] | None:
+    @staticmethod
+    async def _script_or_none(
+        store: ProductionSketchMarkerDetectionStore,
+        episode_num: int,
+    ) -> dict[str, Any] | None:
         try:
-            return await self._store.get_script_as_dict(episode_num)
+            return await store.get_script_as_dict(episode_num)
         except Exception:
             return None
 

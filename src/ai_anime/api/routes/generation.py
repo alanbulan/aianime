@@ -63,6 +63,7 @@ from ai_anime.modules.asset_world.public import (
     scene_viewer_use_cases,
 )
 from ai_anime.modules.production.public import (
+    AssignProjectSketchColorsCommand,
     AudioVoicePrerequisitesMissing,
     BuildRenderPlanCommand,
     ComposeEpisodeVideoCommand,
@@ -70,7 +71,7 @@ from ai_anime.modules.production.public import (
     CropCurrentSketchCommand,
     CutGridCommand,
     CurrentSketchMissing,
-    DetectSketchMarkersCommand,
+    DetectProjectSketchMarkersCommand,
     DirectorControlSketchUnavailable,
     EpisodeBeatsMissing,
     EpisodeAudioBeatMissing,
@@ -111,6 +112,7 @@ from ai_anime.modules.production.public import (
     SketchBeatMissing,
     SketchCropRejected,
     SketchColorMarkersMissing,
+    SketchEpisodeBeatsMissing,
     SketchMarkerDetectionFailed,
     SketchMarkerDetectionRejected,
     SketchPoseCandidatesMissing,
@@ -147,14 +149,12 @@ from ai_anime.modules.production.public import (
     production_image_settings_use_cases,
     render_plan_use_cases,
     image_generation_usage_use_cases,
-    sketch_color_assignment_use_cases,
     sketch_editing_use_cases,
-    sketch_marker_detection_use_cases,
+    sketch_marker_use_cases,
     sketch_regen_queue_use_cases,
     video_backend_catalog_use_cases,
     video_pool_use_cases,
 )
-from ai_anime.ports import get_usage_meter
 from ai_anime.shared.project_media import make_project_asset_url_builder
 from ai_anime.utils.media_io import decode_uploaded_rgb_image
 
@@ -166,17 +166,6 @@ async def _resolve_generation_project(
     project: str, user: dict, required_role: str = "editor"
 ):
     return await resolve_project_scope(project, user, required_role=required_role)
-
-
-def _requester_user_id_for_billing(resolved: Any, user: dict) -> str:
-    ctx = getattr(resolved, "ctx", None)
-    return str(
-        getattr(ctx, "requester_user_id", "")
-        or user.get("id")
-        or user.get("user_id")
-        or user.get("username")
-        or ""
-    )
 
 
 def _render_plan_unavailable_response(use_cases: Any) -> JSONResponse | None:
@@ -1985,40 +1974,20 @@ async def assign_sketch_colors(
 ):
     """为本集出场身份和全局道具分配共享颜色。"""
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    username = resolved.username
-    project_name = resolved.project_name
-
-    store = (
-        await make_sqlite_store_for_context(resolved.ctx)
-        if resolved.ctx
-        else await make_sqlite_store(username, project_name)
-    )
-
-    beats = await store.get_beats_as_dicts(episode_num)
-    if not beats:
-        return {"ok": False, "error": f"No beats found for episode {episode_num}"}
-
     try:
-        result = await sketch_color_assignment_use_cases(store).assign(
-            episode_num=episode_num,
-            beats=beats,
-            output_dir=resolved.output_dir,
+        result = await sketch_marker_use_cases().assign_colors(
+            resolved.ctx,
+            AssignProjectSketchColorsCommand(episode_num=episode_num),
         )
+    except SketchEpisodeBeatsMissing as exc:
+        return {"ok": False, "error": str(exc)}
     except SketchColorMarkersMissing:
         return {
             "ok": False,
             "error": "No identity or global prop markers found in beats",
         }
 
-    return {
-        "ok": True,
-        "data": {
-            "colors": result.identity_colors,
-            "count": len(result.identity_colors),
-            "prop_colors": result.prop_colors,
-            "prop_count": len(result.prop_colors),
-        },
-    }
+    return {"ok": True, "data": result.as_dict()}
 
 
 @router.post("/projects/{project}/episodes/{episode_num}/sketches/detect-identities")
@@ -2029,23 +1998,10 @@ async def detect_sketch_identities(
 ):
     """AI 视觉识别草图中出现的身份/道具颜色标记。"""
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    store = (
-        await make_sqlite_store_for_context(resolved.ctx)
-        if resolved.ctx
-        else await make_sqlite_store(resolved.username, resolved.project_name)
-    )
-    ctx = getattr(resolved, "ctx", None)
     try:
-        result = await sketch_marker_detection_use_cases(
-            store,
-            get_usage_meter(),
-        ).detect(
-            DetectSketchMarkersCommand(
-                episode_num=episode_num,
-                project_dir=resolved.project_dir,
-                requester_user_id=_requester_user_id_for_billing(resolved, user),
-                project_id=str(getattr(ctx, "project_id", "") or ""),
-            )
+        result = await sketch_marker_use_cases().detect(
+            resolved.ctx,
+            DetectProjectSketchMarkersCommand(episode_num=episode_num),
         )
     except SketchMarkerDetectionRejected as exc:
         return {"ok": False, "error": str(exc)}

@@ -57,17 +57,16 @@ from ai_anime.modules.production.application.sketch_editing import (
     SketchEditorSaveRejected,
     SketchPoseCandidatesMissing,
 )
-from ai_anime.modules.production.application.sketch_color import (
+from ai_anime.modules.production.application.sketch_markers import (
+    AssignProjectSketchColorsCommand,
+    DetectProjectSketchMarkersCommand,
     SketchColorAssignmentResult,
-    SketchColorAssignmentUseCases,
     SketchColorMarkersMissing,
-)
-from ai_anime.modules.production.application.sketch_marker_detection import (
-    DetectSketchMarkersCommand,
+    SketchEpisodeBeatsMissing,
     SketchMarkerDetectionFailed,
     SketchMarkerDetectionRejected,
     SketchMarkerDetectionResult,
-    SketchMarkerDetectionUseCases,
+    SketchMarkerUseCases,
 )
 from ai_anime.modules.production.application.sketch_regen_queue import (
     ReplaceSketchRegenQueueCommand,
@@ -332,23 +331,12 @@ def image_generation_usage_use_cases() -> ImageGenerationUsageUseCases:
     return build()
 
 
-def sketch_color_assignment_use_cases(store: Any) -> SketchColorAssignmentUseCases:
+def sketch_marker_use_cases() -> SketchMarkerUseCases:
     from ai_anime.modules.production.composition import (
-        sketch_color_assignment_use_cases as build,
+        sketch_marker_use_cases as build,
     )
 
-    return build(store)
-
-
-def sketch_marker_detection_use_cases(
-    store: Any,
-    usage_meter: Any,
-) -> SketchMarkerDetectionUseCases:
-    from ai_anime.modules.production.composition import (
-        sketch_marker_detection_use_cases as build,
-    )
-
-    return build(store, usage_meter)
+    return build()
 
 
 def sketch_regen_queue_use_cases() -> SketchRegenQueueUseCases:
@@ -369,6 +357,7 @@ def sketch_editing_use_cases() -> SketchEditingUseCases:
 
 __all__ = [
     "AddGeneratedVideoCommand",
+    "AssignProjectSketchColorsCommand",
     "DEFAULT_VIDEO_BACKEND",
     "DIRECTOR_CONTROL_TO_SKETCH_TASK_KIND",
     "GLOBAL_VIDEO_OPTIMIZATION_TASK_TYPE",
@@ -387,7 +376,7 @@ __all__ = [
     "CutGridResult",
     "CropCurrentSketchCommand",
     "CropSeedance2AssetCommand",
-    "DetectSketchMarkersCommand",
+    "DetectProjectSketchMarkersCommand",
     "DirectorControlSketchUnavailable",
     "DirectorControlSketchUseCases",
     "EpisodeBeatsMissing",
@@ -473,15 +462,15 @@ __all__ = [
     "SketchBeatMissing",
     "SketchCropRejected",
     "SketchColorAssignmentResult",
-    "SketchColorAssignmentUseCases",
     "SketchColorMarkersMissing",
     "SketchEditingUseCases",
+    "SketchEpisodeBeatsMissing",
     "SketchEditorQuery",
     "SketchEditorSaveRejected",
     "SketchMarkerDetectionFailed",
     "SketchMarkerDetectionRejected",
     "SketchMarkerDetectionResult",
-    "SketchMarkerDetectionUseCases",
+    "SketchMarkerUseCases",
     "SketchPoseCandidatesMissing",
     "SketchRegenQueueResult",
     "SketchRegenQueueUseCases",
@@ -521,10 +510,9 @@ __all__ = [
     "production_generation_context_use_cases",
     "production_image_settings_use_cases",
     "render_plan_use_cases",
-    "sketch_color_assignment_use_cases",
     "sketch_generation_use_cases",
     "sketch_editing_use_cases",
-    "sketch_marker_detection_use_cases",
+    "sketch_marker_use_cases",
     "sketch_regen_queue_use_cases",
     "seedance2_api_resolution",
     "seedance2_panel_use_cases",

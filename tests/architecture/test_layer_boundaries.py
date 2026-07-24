@@ -953,9 +953,15 @@ def test_production_sketch_color_assignment_route_delegates_to_application() -> 
     route_end = source.index("\n@router.post(", route_start)
     route_source = source[route_start:route_end]
 
-    assert "sketch_color_assignment_use_cases" in route_source
+    assert "sketch_marker_use_cases" in route_source
+    assert "AssignProjectSketchColorsCommand" in route_source
+    assert "SketchEpisodeBeatsMissing" in route_source
     assert "SketchColorMarkersMissing" in route_source
+    assert "sketch_color_assignment_use_cases" not in source
     for implementation_detail in (
+        "make_sqlite_store_for_context",
+        "make_sqlite_store(",
+        "get_beats_as_dicts",
         "get_all_characters",
         "get_sketch_colors",
         "set_sketch_colors",
@@ -971,6 +977,7 @@ def test_production_sketch_color_assignment_route_delegates_to_application() -> 
 
 def test_production_sketch_marker_detection_route_delegates_to_application() -> None:
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    production_public = PACKAGE_ROOT / "modules" / "production" / "public.py"
     models = PACKAGE_ROOT / "models.py"
     domain = (
         PACKAGE_ROOT
@@ -983,13 +990,21 @@ def test_production_sketch_marker_detection_route_delegates_to_application() -> 
     route_start = source.index("async def detect_sketch_identities(")
     route_source = source[route_start:]
 
-    assert "sketch_marker_detection_use_cases" in route_source
-    assert "DetectSketchMarkersCommand" in route_source
+    assert "sketch_marker_use_cases" in route_source
+    assert "DetectProjectSketchMarkersCommand" in route_source
+    assert "sketch_marker_detection_use_cases" not in source
+    assert "def _requester_user_id_for_billing(" not in source
+    public_source = production_public.read_text(encoding="utf-8")
+    assert "def sketch_color_assignment_use_cases(" not in public_source
+    assert "def sketch_marker_detection_use_cases(" not in public_source
     assert "split_detected_marker_keys" not in models.read_text(encoding="utf-8")
     assert "def split_detected_marker_keys(" in domain.read_text(encoding="utf-8")
     for implementation_detail in (
         "detect_identities_by_ai",
         "combine_to_grid",
+        "make_sqlite_store_for_context",
+        "make_sqlite_store(",
+        "get_usage_meter",
         "get_sketch_colors",
         "get_script_as_dict",
         "get_all_characters",
