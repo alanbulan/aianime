@@ -19,6 +19,13 @@ if TYPE_CHECKING:
         EpisodeVideoTaskReceipt,
         FinalEpisodeVideoStatus,
     )
+    from ai_anime.modules.production.application.video_pool import (
+        AddGeneratedVideoCommand,
+    )
+    from ai_anime.modules.production.domain.video_pool import (
+        VideoPool,
+        VideoPoolEntry,
+    )
     from ai_anime.modules.project_workspace.public import ProjectContext
 
 
@@ -316,3 +323,33 @@ class ProductionEpisodeAudioScheduler(Protocol):
         context: ProjectContext,
         task: EpisodeAudioTask,
     ) -> EpisodeAudioTaskReceipt: ...
+
+
+class ProductionVideoPoolStorage(Protocol):
+    def load(
+        self,
+        context: ProjectContext,
+        episode_num: int,
+    ) -> VideoPool | None: ...
+
+    def add(
+        self,
+        context: ProjectContext,
+        command: AddGeneratedVideoCommand,
+    ) -> VideoPoolEntry: ...
+
+    def assign(
+        self,
+        context: ProjectContext,
+        episode_num: int,
+        beat_num: int,
+        pool_id: str,
+    ) -> bool: ...
+
+
+class ProductionProjectMediaUrls(Protocol):
+    def build(
+        self,
+        context: ProjectContext,
+        relative_path: str,
+    ) -> str: ...

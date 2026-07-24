@@ -65,6 +65,13 @@ from ai_anime.modules.production.application.sketch_regen_queue import (
     SketchRegenQueueResult,
     SketchRegenQueueUseCases,
 )
+from ai_anime.modules.production.application.video_pool import (
+    AddGeneratedVideoCommand,
+    SelectedVideoPoolEntry,
+    VideoPoolEntryUnavailable,
+    VideoPoolListing,
+    VideoPoolUseCases,
+)
 from ai_anime.modules.production.domain.sketch_color import (
     BRIDGMAN_CHARACTER_PALETTE,
     PROP_MARKER_PALETTE,
@@ -94,6 +101,12 @@ def episode_video_use_cases() -> EpisodeVideoUseCases:
     from ai_anime.modules.production.composition import (
         episode_video_use_cases as build,
     )
+
+    return build()
+
+
+def video_pool_use_cases() -> VideoPoolUseCases:
+    from ai_anime.modules.production.composition import video_pool_use_cases as build
 
     return build()
 
@@ -167,6 +180,7 @@ def sketch_pose_editor_use_cases() -> SketchPoseEditorUseCases:
 
 
 __all__ = [
+    "AddGeneratedVideoCommand",
     "INDEXTTS2_AUDIO_TASK_TYPE",
     "AudioVoicePrerequisitesMissing",
     "BRIDGMAN_CHARACTER_PALETTE",
@@ -210,6 +224,10 @@ __all__ = [
     "SketchRegenQueueUseCases",
     "UpdateRenderImageSettingsCommand",
     "UpdateSketchImageSettingsCommand",
+    "SelectedVideoPoolEntry",
+    "VideoPoolEntryUnavailable",
+    "VideoPoolListing",
+    "VideoPoolUseCases",
     "assign_identity_sketch_colors",
     "episode_audio_use_cases",
     "episode_export_use_cases",
@@ -224,4 +242,5 @@ __all__ = [
     "sketch_marker_detection_use_cases",
     "sketch_pose_editor_use_cases",
     "sketch_regen_queue_use_cases",
+    "video_pool_use_cases",
 ]

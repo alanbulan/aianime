@@ -107,6 +107,7 @@ from ai_anime.modules.production.public import (
     SketchPoseCandidatesMissing,
     UpdateRenderImageSettingsCommand,
     UpdateSketchImageSettingsCommand,
+    VideoPoolEntryUnavailable,
     episode_audio_use_cases,
     episode_export_use_cases,
     episode_video_use_cases,
@@ -118,6 +119,7 @@ from ai_anime.modules.production.public import (
     sketch_marker_detection_use_cases,
     sketch_pose_editor_use_cases,
     sketch_regen_queue_use_cases,
+    video_pool_use_cases,
 )
 from ai_anime.render_plan.ref_image_hash import RefImageHasher
 from ai_anime.seedance2_i2v.pipeline import (
@@ -3846,36 +3848,8 @@ async def list_video_pool(
     user: dict = Depends(get_api_user),
 ):
     resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    project_dir = resolved.project_dir
-
-    from ai_anime.generators.video_pool_indexer import load_video_pool_index
-
-    videos_ep_dir = project_dir / "videos" / "beats" / f"ep{episode_num:03d}"
-    pool = load_video_pool_index(videos_ep_dir)
-    if not pool:
-        return {"ok": True, "data": None}
-
-    videos = []
-    for entry in pool.videos:
-        item = entry.model_dump()
-        if item.get("generated_at"):
-            item["generated_at"] = entry.generated_at.isoformat()
-        rel_path = f"videos/beats/ep{episode_num:03d}/pool/{entry.video_path}"
-        item["video_url"] = make_static_url_for_context(
-            resolved.ctx,
-            rel_path,
-            local_path=project_dir / rel_path,
-        )
-        videos.append(item)
-
-    return {
-        "ok": True,
-        "data": {
-            "episode": pool.episode,
-            "videos": videos,
-            "beat_assignments": pool.beat_assignments,
-        },
-    }
+    pool = video_pool_use_cases().list_pool(resolved.ctx, episode_num)
+    return {"ok": True, "data": pool.as_dict() if pool is not None else None}
 
 
 @router.post(
@@ -3889,32 +3863,16 @@ async def select_video_pool(
     user: dict = Depends(get_api_user),
 ):
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    project_dir = resolved.project_dir
-
-    from ai_anime.generators.video_pool_indexer import assign_video_to_beat
-
-    videos_ep_dir = project_dir / "videos" / "beats" / f"ep{episode_num:03d}"
-    ok = assign_video_to_beat(videos_ep_dir, beat_num, body.pool_id)
-    if not ok:
-        return {
-            "ok": False,
-            "error": f"Pool entry '{body.pool_id}' not found or file missing",
-        }
-
-    rel_path = f"videos/beats/ep{episode_num:03d}/beat_{beat_num:02d}.mp4"
-    video_url = make_static_url_for_context(
-        resolved.ctx,
-        rel_path,
-        local_path=project_dir / rel_path,
-    )
-    return {
-        "ok": True,
-        "data": {
-            "beat_num": beat_num,
-            "pool_id": body.pool_id,
-            "video_url": video_url,
-        },
-    }
+    try:
+        selected = video_pool_use_cases().select(
+            resolved.ctx,
+            episode_num,
+            beat_num,
+            body.pool_id,
+        )
+    except VideoPoolEntryUnavailable as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": selected.as_dict()}
 
 
 # ── 图片池查看 & 选择 ─────────────────────────────────────────────────────────

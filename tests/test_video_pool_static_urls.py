@@ -1,12 +1,17 @@
 from __future__ import annotations
 
-from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
-from ai_anime.models import VideoPoolEntry, VideoPoolIndex
+from ai_anime.modules.production.application.video_pool import (
+    AddGeneratedVideoCommand,
+)
+from ai_anime.modules.production.domain.video_pool import VideoPoolEntry
+from ai_anime.modules.production.infrastructure.video_pool import (
+    LocalVideoPoolStorage,
+)
 from ai_anime.modules.project_workspace.public import ProjectContext
 
 
@@ -40,25 +45,19 @@ def _configure_state_roots(monkeypatch: pytest.MonkeyPatch, ctx: ProjectContext)
 
 
 def _write_video_pool(ctx: ProjectContext, episode: int = 1) -> tuple[Path, VideoPoolEntry]:
-    from ai_anime.generators.video_pool_indexer import save_video_pool_index
-
     videos_ep_dir = Path(ctx.output_dir) / "videos" / "beats" / f"ep{episode:03d}"
-    pool_dir = videos_ep_dir / "pool"
-    pool_dir.mkdir(parents=True, exist_ok=True)
-    entry = VideoPoolEntry(
-        id="beat_06_20260529_120000",
-        beat_num=6,
-        video_path="beat_06_20260529_120000.mp4",
-        generated_at=datetime(2026, 5, 29, 12, 0, 0),
-        duration=5.0,
-        video_mode="first_frame",
-        backend="seedance2",
-        prompt="test",
-    )
-    (pool_dir / entry.video_path).write_bytes(b"mp4")
-    save_video_pool_index(
-        VideoPoolIndex(episode=episode, videos=[entry], beat_assignments={"6": entry.id}),
-        videos_ep_dir,
+    source_video = videos_ep_dir / "beat_06.mp4"
+    source_video.parent.mkdir(parents=True, exist_ok=True)
+    source_video.write_bytes(b"mp4")
+    entry = LocalVideoPoolStorage().add(
+        ctx,
+        AddGeneratedVideoCommand(
+            episode_num=episode,
+            beat_num=6,
+            source_video_path=source_video,
+            backend="seedance2",
+            prompt="test",
+        ),
     )
     return videos_ep_dir, entry
 
@@ -83,7 +82,7 @@ async def test_video_pool_list_returns_project_id_static_urls(monkeypatch, tmp_p
 
     ctx = _ctx(tmp_path)
     _configure_state_roots(monkeypatch, ctx)
-    _write_video_pool(ctx)
+    _videos_ep_dir, entry = _write_video_pool(ctx)
 
     async def fake_resolve(project: str, user: dict, required_role: str = "editor"):
         return await _fake_resolve(ctx, project, user, required_role)
@@ -94,8 +93,7 @@ async def test_video_pool_list_returns_project_id_static_urls(monkeypatch, tmp_p
 
     video_url = response["data"]["videos"][0]["video_url"]
     assert video_url.startswith(
-        "/static/projects/proj_video_123/videos/beats/ep001/pool/"
-        "beat_06_20260529_120000.mp4?v="
+        f"/static/projects/proj_video_123/videos/beats/ep001/pool/{entry.video_path}?v="
     )
     assert "/static/alice/demo/" not in video_url
 

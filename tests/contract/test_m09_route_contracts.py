@@ -184,10 +184,13 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api import auth as api_auth
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.routes import assets, files, generation
-    from ai_anime.generators.video_pool_indexer import add_video_to_pool
     from ai_anime.modules.production.infrastructure import (
         episode_export,
         episode_video,
+    )
+    from ai_anime.modules.production.public import (
+        AddGeneratedVideoCommand,
+        video_pool_use_cases,
     )
     from ai_anime.seedance2_i2v import panel_service
     from ai_anime.shared.infrastructure import project_stores
@@ -219,15 +222,6 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         target = project_dir / rel
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(content)
-    pool_entry = add_video_to_pool(
-        project_dir / "videos" / "beats" / "ep001",
-        1,
-        1,
-        project_dir / "videos" / "beats" / "ep001" / "beat_01.mp4",
-        backend="mock",
-        prompt="pool prompt",
-    )
-
     ctx = ProjectContext(
         project_id=_PROJECT_ID,
         project_name=_PROJECT,
@@ -243,6 +237,18 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         state_dir=state_dir,
         runtime_dir=runtime_dir,
         is_home_node=True,
+    )
+    pool_entry = video_pool_use_cases().add_generated(
+        ctx,
+        AddGeneratedVideoCommand(
+            episode_num=1,
+            beat_num=1,
+            source_video_path=(
+                project_dir / "videos" / "beats" / "ep001" / "beat_01.mp4"
+            ),
+            backend="mock",
+            prompt="pool prompt",
+        ),
     )
     resolution = ProjectResolution(
         ctx=ctx,

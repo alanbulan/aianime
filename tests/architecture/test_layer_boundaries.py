@@ -471,6 +471,34 @@ def test_production_episode_audio_routes_delegate_to_application() -> None:
         assert implementation_detail not in route_source
 
 
+def test_production_video_pool_routes_and_runner_delegate_to_application() -> None:
+    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    video_runner = PACKAGE_ROOT / "task_backend" / "runners" / "video.py"
+    legacy_indexer = PACKAGE_ROOT / "generators" / "video_pool_indexer.py"
+    models = PACKAGE_ROOT / "models.py"
+    source = generation.read_text(encoding="utf-8")
+    runner_source = video_runner.read_text(encoding="utf-8")
+    route_start = source.index("async def list_video_pool(")
+    route_end = source.index("async def list_grids(", route_start)
+    route_source = source[route_start:route_end]
+
+    assert route_source.count("video_pool_use_cases") == 2
+    assert "VideoPoolEntryUnavailable" in route_source
+    for implementation_detail in (
+        "load_video_pool_index",
+        "assign_video_to_beat",
+        "make_static_url_for_context",
+        '"videos" / "beats"',
+    ):
+        assert implementation_detail not in route_source
+    assert "video_pool_use_cases" in runner_source
+    assert "AddGeneratedVideoCommand" in runner_source
+    assert "add_video_to_pool" not in runner_source
+    assert "ai_anime.modules.production.public" in _imports(video_runner)
+    assert not legacy_indexer.exists()
+    assert "class VideoPoolEntry(" not in models.read_text(encoding="utf-8")
+
+
 def test_production_generation_context_routes_delegate_to_application() -> None:
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     freezone = PACKAGE_ROOT / "api" / "routes" / "freezone.py"

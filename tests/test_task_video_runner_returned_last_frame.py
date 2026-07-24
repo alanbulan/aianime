@@ -28,6 +28,22 @@ def _ctx(tmp_path: Path) -> ProjectContext:
     )
 
 
+def _patch_video_pool(monkeypatch, video_runner) -> list[tuple[object, object]]:
+    calls: list[tuple[object, object]] = []
+
+    class FakeVideoPoolUseCases:
+        def add_generated(self, context, command):
+            calls.append((context, command))
+            return SimpleNamespace(id="pool-1")
+
+    monkeypatch.setattr(
+        video_runner,
+        "video_pool_use_cases",
+        lambda: FakeVideoPoolUseCases(),
+    )
+    return calls
+
+
 @pytest.mark.asyncio
 async def test_single_video_runner_includes_returned_last_frame_in_task_result(
     tmp_path,
@@ -61,10 +77,8 @@ async def test_single_video_runner_includes_returned_last_frame_in_task_result(
         "ai_anime.generators.video_generator.create_video_generator",
         lambda backend: FakeVideoGenerator(),
     )
-    monkeypatch.setattr(
-        "ai_anime.generators.video_pool_indexer.add_video_to_pool",
-        lambda **_kwargs: SimpleNamespace(id="pool-1"),
-    )
+    pool_calls = _patch_video_pool(monkeypatch, video_runner)
+    context = _ctx(tmp_path)
 
     result = await video_runner._run_single_video_async(
         {
@@ -79,7 +93,7 @@ async def test_single_video_runner_includes_returned_last_frame_in_task_result(
                 }
             },
         },
-        _ctx(tmp_path),
+        context,
     )
 
     assert result["provider_task_id"] == "provider-task-1"
@@ -87,6 +101,8 @@ async def test_single_video_runner_includes_returned_last_frame_in_task_result(
         "videos/beats/ep001/returned_last_frames/beat_01.png"
     )
     assert result["last_frame_url"] == "https://example.com/last-frame.png"
+    assert pool_calls[0][0] is context
+    assert pool_calls[0][1].output_dir == str(context.output_dir)
 
 
 @pytest.mark.asyncio
@@ -141,10 +157,7 @@ async def test_single_video_runner_preserves_seedance2_config_resolution(
         "ai_anime.seedance2_i2v.pipeline.prepare_seedance2_generation_inputs",
         fake_prepare,
     )
-    monkeypatch.setattr(
-        "ai_anime.generators.video_pool_indexer.add_video_to_pool",
-        lambda **_kwargs: SimpleNamespace(id="pool-1"),
-    )
+    _patch_video_pool(monkeypatch, video_runner)
 
     result = await video_runner._run_single_video_async(
         {
@@ -210,10 +223,7 @@ async def test_single_video_runner_passes_happyhorse_references_and_audio_settin
         "ai_anime.generators.video_generator.create_video_generator",
         lambda backend, **_kwargs: FakeVideoGenerator(),
     )
-    monkeypatch.setattr(
-        "ai_anime.generators.video_pool_indexer.add_video_to_pool",
-        lambda **_kwargs: SimpleNamespace(id="pool-1"),
-    )
+    _patch_video_pool(monkeypatch, video_runner)
 
     result = await video_runner._run_single_video_async(
         {

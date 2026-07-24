@@ -6,6 +6,10 @@ import asyncio
 from pathlib import Path
 from typing import Any
 
+from ai_anime.modules.production.public import (
+    AddGeneratedVideoCommand,
+    video_pool_use_cases,
+)
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.narrative_planning.public import resolve_target_video_duration
 from ai_anime.task_backend.cancel import (
@@ -199,17 +203,18 @@ async def _run_single_video_async(envelope: dict[str, Any], ctx: ProjectContext)
 
     video_pool_id = None
     try:
-        from ai_anime.generators.video_pool_indexer import add_video_to_pool
-
-        entry = add_video_to_pool(
-            videos_ep_dir=videos_dir,
-            episode=episode,
-            beat_num=beat_num,
-            source_video_path=Path(video_path),
-            duration=video_duration,
-            video_mode=video_mode,
-            backend=backend_str,
-            prompt=prompt,
+        entry = video_pool_use_cases().add_generated(
+            ctx,
+            AddGeneratedVideoCommand(
+                episode_num=episode,
+                beat_num=beat_num,
+                source_video_path=Path(video_path),
+                output_dir=output_dir,
+                duration=video_duration,
+                video_mode=video_mode,
+                backend=backend_str,
+                prompt=prompt,
+            ),
         )
         video_pool_id = entry.id
     except Exception as exc:  # noqa: BLE001
