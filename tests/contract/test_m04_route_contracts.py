@@ -172,7 +172,14 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime import ports as app_ports, project_config
     from ai_anime.api import auth as api_auth
     from ai_anime.api.deps import ProjectResolution
-    from ai_anime.api.routes import characters, generation, projects, props, styles
+    from ai_anime.api.routes import (
+        characters,
+        generation,
+        production_audio,
+        projects,
+        props,
+        styles,
+    )
     from ai_anime.modules.asset_world.infrastructure import character_voice_storage
     from ai_anime.modules.asset_world.infrastructure import (
         image_settings as image_settings_adapter,
@@ -290,7 +297,7 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     def static_url(_ctx, rel_path: str, local_path=None):
         return f"/static/projects/proj_m04/{rel_path}"
 
-    for module in (characters, props, styles, generation):
+    for module in (characters, props, styles, generation, production_audio):
         monkeypatch.setattr(module, "resolve_project_scope", resolve_project_scope)
     monkeypatch.setattr(projects, "resolve_project_context", resolve_project_context)
     monkeypatch.setattr(
@@ -304,10 +311,6 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(
         projects, "make_sqlite_store_for_context", make_store_for_context
     )
-    monkeypatch.setattr(
-        generation, "make_sqlite_store_for_context", make_store_for_context
-    )
-    monkeypatch.setattr(generation, "make_sqlite_store", make_store)
     monkeypatch.setattr(
         project_stores,
         "make_sqlite_store_for_context",
@@ -392,17 +395,13 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     def build(backend: str = "inline"):
         task_backend = _FakeTaskBackend(backend)
         monkeypatch.setattr(app_ports, "get_task_backend", lambda tb=task_backend: tb)
-        monkeypatch.setattr(
-            generation,
-            "get_task_backend",
-            lambda tb=task_backend: tb,
-        )
         app = FastAPI()
         app.include_router(characters.router, prefix="/api/v1")
         app.include_router(props.router, prefix="/api/v1")
         app.include_router(styles.router, prefix="/api/v1")
         app.include_router(projects.router, prefix="/api/v1")
         app.include_router(generation.router, prefix="/api/v1")
+        app.include_router(production_audio.router, prefix="/api/v1")
         user = {
             "id": "local",
             "user_id": "local",
@@ -416,6 +415,7 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             styles.get_api_user,
             projects.get_api_user,
             generation.get_api_user,
+            production_audio.get_api_user,
         ):
             app.dependency_overrides[dep] = lambda user=user: user
         return TestClient(app), task_backend, project_dir

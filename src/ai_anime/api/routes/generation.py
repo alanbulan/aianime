@@ -11,7 +11,6 @@ from fastapi import (
     HTTPException,
     Query,
     UploadFile,
-    status,
 )
 from fastapi.responses import JSONResponse
 
@@ -20,8 +19,6 @@ from ai_anime.api.deps import resolve_project_scope
 from ai_anime.api.schemas import (
     GlobalOptimizeRequest,
     VideoComposeRequest,
-    TTSGenerateRequest,
-    TTSPreviewRequest,
     SketchGenerateRequest,
     GridRegenerateRequest,
     BeatsRegenerateRequest,
@@ -54,7 +51,6 @@ from ai_anime.modules.asset_world.public import (
 )
 from ai_anime.modules.production.public import (
     AssignProjectSketchColorsCommand,
-    AudioVoicePrerequisitesMissing,
     BuildRenderPlanCommand,
     ComposeEpisodeVideoCommand,
     CropSeedance2AssetCommand,
@@ -64,15 +60,12 @@ from ai_anime.modules.production.public import (
     DetectProjectSketchMarkersCommand,
     DirectorControlSketchUnavailable,
     EpisodeBeatsMissing,
-    EpisodeAudioBeatMissing,
-    EpisodeAudioBeatsMissing,
     EpisodeScriptBeatsMissing,
     EpisodeSubtitlesMissing,
     ExecuteRenderPlanCommand,
     FinalEpisodeVideoMissing,
     GenerateMissingManualSketchesCommand,
     GenerateDirectorControlSketchCommand,
-    GenerateEpisodeAudioCommand,
     GenerateSketchesCommand,
     GenerateSingleVideoCommand,
     GlobalVideoOptimizationBeatsMissing,
@@ -127,7 +120,6 @@ from ai_anime.modules.production.public import (
     selected_regeneration_use_cases,
     sketch_generation_use_cases,
     single_video_use_cases,
-    episode_audio_use_cases,
     episode_export_use_cases,
     episode_video_use_cases,
     render_plan_use_cases,
@@ -380,45 +372,6 @@ async def get_final_video(
 # ── TTS 语音 ──────────────────────────────────────────────────────────────────
 
 
-@router.post("/projects/{project}/episodes/{episode_num}/tts/generate")
-async def generate_tts(
-    project: str,
-    episode_num: int,
-    body: TTSGenerateRequest,
-    user: dict = Depends(get_api_user),
-):
-    """Legacy TTS endpoint removed after IndexTTS2 cutover."""
-    raise HTTPException(
-        status_code=status.HTTP_410_GONE,
-        detail=(
-            "Legacy /tts/generate was removed. Use "
-            f"/projects/{project}/episodes/{episode_num}/audio/generate for IndexTTS2."
-        ),
-    )
-
-
-@router.post("/projects/{project}/tts/preview")
-async def preview_tts(
-    project: str,
-    body: TTSPreviewRequest,
-    user: dict = Depends(get_api_user),
-):
-    """Legacy TTS preview endpoint removed after IndexTTS2 cutover."""
-    raise HTTPException(
-        status_code=status.HTTP_410_GONE,
-        detail="Legacy /tts/preview was removed. IndexTTS2 uses configured reference voices.",
-    )
-
-
-@router.get("/projects/{project}/tts/voices")
-async def list_tts_voices(project: str, user: dict = Depends(get_api_user)):
-    """Legacy voice listing endpoint removed after IndexTTS2 cutover."""
-    raise HTTPException(
-        status_code=status.HTTP_410_GONE,
-        detail="Legacy /tts/voices was removed. IndexTTS2 voice options are project assets.",
-    )
-
-
 # ── 草图 ──────────────────────────────────────────────────────────────────────
 
 
@@ -446,34 +399,6 @@ async def generate_sketches(
         )
     except SketchGenerationRejected as exc:
         return {"ok": False, "error": str(exc)}
-    return {"ok": True, **scheduled.as_dict()}
-
-
-# ── 语音生成 ──────────────────────────────────────────────────────────────────
-
-
-@router.post("/projects/{project}/episodes/{episode_num}/audio/generate")
-async def generate_audio(
-    project: str,
-    episode_num: int,
-    body: TTSGenerateRequest = TTSGenerateRequest(),
-    user: dict = Depends(get_api_user),
-):
-    """批量生成语音（IndexTTS2）。"""
-    resolved = await _resolve_generation_project(project, user, required_role="editor")
-    try:
-        scheduled = await episode_audio_use_cases().generate(
-            resolved.ctx,
-            GenerateEpisodeAudioCommand(
-                episode_num=episode_num,
-                mode=body.mode,
-                beat_numbers=body.beat_numbers,
-            ),
-        )
-    except EpisodeAudioBeatsMissing as exc:
-        return {"ok": False, "error": str(exc)}
-    except AudioVoicePrerequisitesMissing as exc:
-        return {"ok": False, "code": exc.code, "error": str(exc)}
     return {"ok": True, **scheduled.as_dict()}
 
 
@@ -1330,31 +1255,6 @@ async def upload_beat_render(
     except GridPoolUploadRejected as exc:
         return {"ok": False, "error": str(exc)}
     return {"ok": True, "data": uploaded.as_dict()}
-
-
-# ── 单 Beat 音频重生 ─────────────────────────────────────────────────────────
-
-
-@router.post("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/audio")
-async def regenerate_beat_audio(
-    project: str,
-    episode_num: int,
-    beat_num: int,
-    user: dict = Depends(get_api_user),
-):
-    """重新生成单个 beat 的 IndexTTS2 语音。"""
-    resolved = await _resolve_generation_project(project, user, required_role="editor")
-    try:
-        scheduled = await episode_audio_use_cases().regenerate_beat(
-            resolved.ctx,
-            episode_num,
-            beat_num,
-        )
-    except EpisodeAudioBeatMissing as exc:
-        return {"ok": False, "error": str(exc)}
-    except AudioVoicePrerequisitesMissing as exc:
-        return {"ok": False, "code": exc.code, "error": str(exc)}
-    return {"ok": True, **scheduled.as_dict()}
 
 
 # ── SRT 字幕导出 ─────────────────────────────────────────────────────────────

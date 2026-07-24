@@ -428,7 +428,7 @@ def test_production_episode_video_routes_delegate_to_application() -> None:
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     source = generation.read_text(encoding="utf-8")
     route_start = source.index("async def compose_video(")
-    route_end = source.index("async def generate_tts(", route_start)
+    route_end = source.index("async def generate_sketches(", route_start)
     route_source = source[route_start:route_end]
 
     assert "episode_video_use_cases" in route_source
@@ -474,16 +474,26 @@ def test_production_episode_export_routes_delegate_to_application() -> None:
 
 
 def test_production_episode_audio_routes_delegate_to_application() -> None:
-    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
-    source = generation.read_text(encoding="utf-8")
-    batch_start = source.index("async def generate_audio(")
-    batch_end = source.index("async def global_optimize_video(", batch_start)
-    beat_start = source.index("async def regenerate_beat_audio(")
-    beat_end = source.index("async def export_srt(", beat_start)
-    route_source = source[batch_start:batch_end] + source[beat_start:beat_end]
+    route = PACKAGE_ROOT / "api" / "routes" / "production_audio.py"
+    source = route.read_text(encoding="utf-8")
+    generation_source = (
+        PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    ).read_text(encoding="utf-8")
+    api_router_source = (PACKAGE_ROOT / "api" / "v1" / "router.py").read_text(
+        encoding="utf-8"
+    )
 
-    assert route_source.count("episode_audio_use_cases") == 2
-    assert "GenerateEpisodeAudioCommand" in route_source
+    assert source.count("episode_audio_use_cases().") == 2
+    assert "GenerateEpisodeAudioCommand" in source
+    assert "production_audio.router" in api_router_source
+    for handler_name in (
+        "generate_tts",
+        "preview_tts",
+        "list_tts_voices",
+        "generate_audio",
+        "regenerate_beat_audio",
+    ):
+        assert f"async def {handler_name}(" not in generation_source
     assert "def _collect_audio_prereq_errors(" not in source
     assert "def _voice_prereq_error_response(" not in source
     for implementation_detail in (
@@ -495,7 +505,7 @@ def test_production_episode_audio_routes_delegate_to_application() -> None:
         "collect_indextts2_voice_prereq_errors",
         "音频生成需要 project context",
     ):
-        assert implementation_detail not in route_source
+        assert implementation_detail not in source
 
 
 def test_production_video_pool_routes_and_runner_delegate_to_application() -> None:
@@ -530,7 +540,7 @@ def test_production_grid_pool_routes_delegate_to_application() -> None:
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     source = generation.read_text(encoding="utf-8")
     route_start = source.index("async def list_grids(")
-    route_end = source.index("async def regenerate_beat_audio(", route_start)
+    route_end = source.index("async def export_srt(", route_start)
     route_source = source[route_start:route_end]
     upload_start = source.index("async def upload_grid(")
     upload_end = source.index("async def export_grid_prompt(", upload_start)
@@ -648,7 +658,7 @@ def test_production_sketch_generation_route_delegates_to_application() -> None:
     sketch_runner = PACKAGE_ROOT / "task_backend" / "runners" / "sketch.py"
     source = generation.read_text(encoding="utf-8")
     route_start = source.index("async def generate_sketches(")
-    route_end = source.index("async def generate_audio(", route_start)
+    route_end = source.index("async def global_optimize_video(", route_start)
     route_source = source[route_start:route_end]
 
     assert route_source.count("sketch_generation_use_cases") == 1

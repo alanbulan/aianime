@@ -28,9 +28,9 @@ class _FakeStore:
         return None
 
 
-def _patch_generation_celery(
+def _patch_audio_celery(
     monkeypatch,
-    generation,
+    audio_routes,
     tmp_path,
     store,
     *,
@@ -53,9 +53,7 @@ def _patch_generation_celery(
         state_dir=tmp_path / "state",
     )
 
-    async def fake_resolve_generation_project(
-        project_arg, user, required_role="editor"
-    ):
+    async def fake_resolve_project_scope(project_arg, user, *, required_role="editor"):
         assert project_arg == project
         assert user["username"] == username
         return SimpleNamespace(
@@ -73,10 +71,9 @@ def _patch_generation_celery(
         return store
 
     monkeypatch.setattr(
-        generation, "_resolve_generation_project", fake_resolve_generation_project
-    )
-    monkeypatch.setattr(
-        generation, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
+        audio_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
     )
     monkeypatch.setattr(
         project_stores,
@@ -128,17 +125,17 @@ def _fake_enqueue(calls):
 
 @pytest.mark.asyncio
 async def test_audio_generate_route_dispatches_indextts2(monkeypatch, tmp_path):
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_audio
     from ai_anime.api.schemas import TTSGenerateRequest
 
     calls = []
-    ctx = _patch_generation_celery(monkeypatch, generation, tmp_path, _FakeStore())
+    ctx = _patch_audio_celery(monkeypatch, production_audio, tmp_path, _FakeStore())
     _patch_audio_task_backend(
         monkeypatch,
         SimpleNamespace(enqueue_project_task=_fake_enqueue(calls)),
     )
 
-    response = await generation.generate_audio(
+    response = await production_audio.generate_audio(
         project="demo",
         episode_num=3,
         body=TTSGenerateRequest(mode="redo_selected", beat_numbers=[2]),
@@ -164,15 +161,17 @@ async def test_audio_generate_route_dispatches_indextts2(monkeypatch, tmp_path):
 
 
 def test_audio_generate_http_route_dispatches_indextts2(monkeypatch, tmp_path):
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_audio
 
     calls = []
 
     app = FastAPI()
-    app.include_router(generation.router)
-    app.dependency_overrides[generation.get_api_user] = lambda: {"username": "alice"}
+    app.include_router(production_audio.router)
+    app.dependency_overrides[production_audio.get_api_user] = lambda: {
+        "username": "alice"
+    }
 
-    _patch_generation_celery(monkeypatch, generation, tmp_path, _FakeStore())
+    _patch_audio_celery(monkeypatch, production_audio, tmp_path, _FakeStore())
     _patch_audio_task_backend(
         monkeypatch,
         SimpleNamespace(enqueue_project_task=_fake_enqueue(calls)),
@@ -201,16 +200,16 @@ def test_audio_generate_http_route_dispatches_indextts2(monkeypatch, tmp_path):
 
 @pytest.mark.asyncio
 async def test_single_beat_audio_route_dispatches_indextts2(monkeypatch, tmp_path):
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_audio
 
     calls = []
-    ctx = _patch_generation_celery(monkeypatch, generation, tmp_path, _FakeStore())
+    ctx = _patch_audio_celery(monkeypatch, production_audio, tmp_path, _FakeStore())
     _patch_audio_task_backend(
         monkeypatch,
         SimpleNamespace(enqueue_project_task=_fake_enqueue(calls)),
     )
 
-    response = await generation.regenerate_beat_audio(
+    response = await production_audio.regenerate_beat_audio(
         project="demo",
         episode_num=3,
         beat_num=2,
@@ -238,11 +237,11 @@ async def test_single_beat_audio_route_dispatches_indextts2(monkeypatch, tmp_pat
 
 @pytest.mark.asyncio
 async def test_legacy_tts_generate_endpoint_is_gone():
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_audio
     from ai_anime.api.schemas import TTSGenerateRequest
 
     with pytest.raises(HTTPException) as exc:
-        await generation.generate_tts(
+        await production_audio.generate_tts(
             project="demo",
             episode_num=3,
             body=TTSGenerateRequest(),
@@ -255,11 +254,11 @@ async def test_legacy_tts_generate_endpoint_is_gone():
 
 @pytest.mark.asyncio
 async def test_legacy_tts_preview_endpoint_is_gone():
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_audio
     from ai_anime.api.schemas import TTSPreviewRequest
 
     with pytest.raises(HTTPException) as exc:
-        await generation.preview_tts(
+        await production_audio.preview_tts(
             project="demo",
             body=TTSPreviewRequest(text="hello"),
             user={"username": "alice"},
@@ -271,10 +270,13 @@ async def test_legacy_tts_preview_endpoint_is_gone():
 
 @pytest.mark.asyncio
 async def test_legacy_tts_voices_endpoint_is_gone():
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_audio
 
     with pytest.raises(HTTPException) as exc:
-        await generation.list_tts_voices(project="demo", user={"username": "alice"})
+        await production_audio.list_tts_voices(
+            project="demo",
+            user={"username": "alice"},
+        )
 
     assert exc.value.status_code == 410
     assert "IndexTTS2" in str(exc.value.detail)

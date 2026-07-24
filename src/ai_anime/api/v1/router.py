@@ -22,6 +22,7 @@ from ai_anime.api.routes import (
     model_credits,
     model_gateway,
     pipeline,
+    production_audio,
     production_settings,
     projects,
     props,
@@ -82,6 +83,7 @@ def create_api_router(*, desktop_mode: bool | None = None) -> APIRouter:
     router.include_router(scripts.router, tags=["scripts"])
     router.include_router(content.router, tags=["content"])
     router.include_router(generation.router, tags=["generation"])
+    router.include_router(production_audio.router, tags=["generation"])
     router.include_router(production_settings.router, tags=["generation"])
     router.include_router(tasks.router, tags=["tasks"])
     router.include_router(files.router, tags=["files"])
