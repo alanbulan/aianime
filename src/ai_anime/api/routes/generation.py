@@ -14,12 +14,7 @@ from fastapi.responses import JSONResponse
 
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import resolve_project_scope
-from ai_anime.api.schemas import (
-    BeatBackgroundAnchorUpdate,
-    Seedance2AssetAudioTrimRequest,
-    Seedance2AssetCropRequest,
-    Seedance2AssetDeleteRequest,
-)
+from ai_anime.api.schemas import BeatBackgroundAnchorUpdate
 from ai_anime.modules.asset_world.public import (
     BackgroundAnchorRejected,
     BeatViewerBeatNotFound,
@@ -36,7 +31,6 @@ from ai_anime.modules.asset_world.public import (
 )
 from ai_anime.modules.production.public import (
     AssignProjectSketchColorsCommand,
-    CropSeedance2AssetCommand,
     CropCurrentSketchCommand,
     CurrentSketchMissing,
     DetectProjectSketchMarkersCommand,
@@ -44,7 +38,6 @@ from ai_anime.modules.production.public import (
     GenerateMissingManualSketchesCommand,
     GenerateDirectorControlSketchCommand,
     ManualSketchRegenerationRejected,
-    RemoveSeedance2AssetCommand,
     SaveSketchEditorCommand,
     SketchBeatMissing,
     SketchCropRejected,
@@ -55,14 +48,8 @@ from ai_anime.modules.production.public import (
     SketchPoseCandidatesMissing,
     SketchEditorQuery,
     SketchEditorSaveRejected,
-    Seedance2PanelBeatMissing,
-    Seedance2PanelOperationRejected,
-    Seedance2PanelQuery,
-    TrimSeedance2AudioAssetCommand,
-    UploadSeedance2AssetCommand,
     director_control_sketch_use_cases,
     manual_sketch_regeneration_use_cases,
-    seedance2_panel_use_cases,
     sketch_editing_use_cases,
     sketch_marker_use_cases,
 )
@@ -81,151 +68,6 @@ async def _resolve_generation_project(
 async def _read_uploaded_rgb_image(file: UploadFile):
     content = await file.read()
     return decode_uploaded_rgb_image(content)
-
-
-@router.get(
-    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2-status"
-)
-async def get_seedance2_beat_status(
-    project: str,
-    episode_num: int,
-    beat_num: int,
-    user: dict = Depends(get_api_user),
-):
-    """Return NiceGUI-aligned read-only Seedance 2.0 status for one Beat."""
-    resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    try:
-        return await seedance2_panel_use_cases().status(
-            resolved.ctx,
-            Seedance2PanelQuery(
-                project=project,
-                episode_num=episode_num,
-                beat_num=beat_num,
-            ),
-        )
-    except Seedance2PanelBeatMissing as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-
-
-@router.post(
-    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2/assets/upload"
-)
-async def upload_seedance2_asset(
-    project: str,
-    episode_num: int,
-    beat_num: int,
-    file: UploadFile = File(...),
-    user: dict = Depends(get_api_user),
-):
-    """Upload a manual Seedance 2.0 reference asset."""
-    resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    content = await file.read()
-    try:
-        return await seedance2_panel_use_cases().upload(
-            resolved.ctx,
-            UploadSeedance2AssetCommand(
-                project=project,
-                episode_num=episode_num,
-                beat_num=beat_num,
-                filename=file.filename or "seedance2_asset",
-                content=content,
-                content_type=file.content_type or "",
-            ),
-        )
-    except Seedance2PanelBeatMissing as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except Seedance2PanelOperationRejected as exc:
-        return {"ok": False, "error": str(exc)}
-
-
-@router.post(
-    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2/assets/delete"
-)
-async def delete_seedance2_asset(
-    project: str,
-    episode_num: int,
-    beat_num: int,
-    body: Seedance2AssetDeleteRequest,
-    user: dict = Depends(get_api_user),
-):
-    """Remove a manually attached Seedance 2.0 reference asset."""
-    resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    try:
-        return await seedance2_panel_use_cases().remove(
-            resolved.ctx,
-            RemoveSeedance2AssetCommand(
-                project=project,
-                episode_num=episode_num,
-                beat_num=beat_num,
-                media_kind=body.media_kind,
-                path=body.path,
-            ),
-        )
-    except Seedance2PanelBeatMissing as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except Seedance2PanelOperationRejected as exc:
-        return {"ok": False, "error": str(exc)}
-
-
-@router.post(
-    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2/assets/crop"
-)
-async def crop_seedance2_asset(
-    project: str,
-    episode_num: int,
-    beat_num: int,
-    body: Seedance2AssetCropRequest,
-    user: dict = Depends(get_api_user),
-):
-    """Crop an existing Seedance 2.0 image reference into a manual reference."""
-    resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    try:
-        return await seedance2_panel_use_cases().crop(
-            resolved.ctx,
-            CropSeedance2AssetCommand(
-                project=project,
-                episode_num=episode_num,
-                beat_num=beat_num,
-                asset_key=body.asset_key,
-                source_path=body.source_path,
-                crop_data=body.model_dump(),
-            ),
-        )
-    except Seedance2PanelBeatMissing as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except Seedance2PanelOperationRejected as exc:
-        return {"ok": False, "error": str(exc)}
-
-
-@router.post(
-    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2/assets/audio-trim"
-)
-async def trim_seedance2_audio_asset(
-    project: str,
-    episode_num: int,
-    beat_num: int,
-    body: Seedance2AssetAudioTrimRequest,
-    user: dict = Depends(get_api_user),
-):
-    """Trim an existing Seedance 2.0 audio reference into a 3-5 second clip."""
-    resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    try:
-        return await seedance2_panel_use_cases().trim_audio(
-            resolved.ctx,
-            TrimSeedance2AudioAssetCommand(
-                project=project,
-                episode_num=episode_num,
-                beat_num=beat_num,
-                asset_key=body.asset_key,
-                source_path=body.source_path,
-                start_seconds=body.start_seconds,
-                duration_seconds=body.duration_seconds,
-            ),
-        )
-    except Seedance2PanelBeatMissing as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except ValueError as exc:
-        return {"ok": False, "error": str(exc)}
 
 
 @router.get(

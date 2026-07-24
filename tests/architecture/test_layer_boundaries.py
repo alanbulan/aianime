@@ -888,13 +888,13 @@ def test_production_render_plan_routes_delegate_to_application() -> None:
 
 
 def test_production_seedance2_panel_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "production_video.py"
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
-    source = generation.read_text(encoding="utf-8")
-    route_start = source.index("async def get_seedance2_beat_status(")
-    route_end = source.index("async def get_beat_pano_background_manifest(", route_start)
-    route_source = source[route_start:route_end]
+    source = route.read_text(encoding="utf-8")
+    generation_source = generation.read_text(encoding="utf-8")
 
-    assert route_source.count("seedance2_panel_use_cases") == 5
+    assert source.count("seedance2_panel_use_cases().") == 5
+    assert "async def get_seedance2_beat_status(" not in generation_source
     for legacy_helper in (
         "_seedance2_asset_status_payload",
         "_seedance2_returned_last_frame_status_payload",
@@ -914,7 +914,7 @@ def test_production_seedance2_panel_routes_delegate_to_application() -> None:
         "resolve_narrator_reference_status",
         "make_project_static_url",
     ):
-        assert implementation_detail not in route_source
+        assert implementation_detail not in source
 
 
 def test_production_single_video_route_delegates_to_application() -> None:

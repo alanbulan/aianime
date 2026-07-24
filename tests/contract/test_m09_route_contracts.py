@@ -186,7 +186,6 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api.routes import (
         assets,
         files,
-        generation,
         production_export,
         production_pool,
         production_render,
@@ -273,10 +272,6 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         assert project == _PROJECT
         return resolution
 
-    async def resolve_generation_project(project: str, user: dict, required_role: str = "viewer"):
-        assert project == _PROJECT
-        return resolution
-
     async def make_store_for_context(_ctx):
         return store
 
@@ -297,7 +292,6 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     async def runtime_prop_menu(*_args, **_kwargs):
         return []
 
-    monkeypatch.setattr(generation, "_resolve_generation_project", resolve_generation_project)
     monkeypatch.setattr(
         production_export,
         "resolve_project_scope",
@@ -360,7 +354,7 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         trim_audio=seedance2_panel_response,
     )
     monkeypatch.setattr(
-        generation,
+        production_video,
         "seedance2_panel_use_cases",
         lambda: seedance2_panel,
     )
@@ -395,7 +389,6 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         )
         monkeypatch.setattr(runtime_ports, "get_task_backend", lambda tb=task_backend: tb)
         app = FastAPI()
-        app.include_router(generation.router, prefix="/api/v1")
         app.include_router(production_export.router, prefix="/api/v1")
         app.include_router(production_pool.router, prefix="/api/v1")
         app.include_router(production_render.router, prefix="/api/v1")
@@ -411,7 +404,6 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         }
         for dep in (
             api_auth.get_api_user,
-            generation.get_api_user,
             production_export.get_api_user,
             production_pool.get_api_user,
             production_render.get_api_user,
