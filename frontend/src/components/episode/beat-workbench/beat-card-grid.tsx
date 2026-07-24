@@ -10,7 +10,10 @@ import {
   useDeleteManualShot,
   type Beat,
 } from "@/modules/narrative_planning/public";
-import { useGridsByBeat, type PoolImage } from "@/lib/queries/sketches";
+import {
+  type PoolImage,
+  useGridsByBeat,
+} from "@/modules/production/public";
 import type { ViewToggleId } from "@/hooks/use-view-toggles";
 import type { SelectionState } from "@/hooks/use-selection";
 import {

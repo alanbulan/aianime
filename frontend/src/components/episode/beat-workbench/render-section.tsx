@@ -35,7 +35,6 @@ import {
   useUploadBeatBackgroundAnchor,
   type BeatBackgroundAnchorItem,
   type BeatBackgroundReference,
-  type PoolImage,
 } from "@/lib/queries/sketches";
 import {
   ThreeDDirectorDialog,
@@ -44,6 +43,7 @@ import {
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
 import { useScenePlatePreview } from "@/modules/asset_world/public";
 import {
+  type PoolImage,
   useRegenerateRenderBeats,
   useRenderSettings,
 } from "@/modules/production/public";

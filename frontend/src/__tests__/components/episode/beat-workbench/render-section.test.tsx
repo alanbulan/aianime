@@ -8,7 +8,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi, type Mock } from "vite
 import { RenderSection } from "@/components/episode/beat-workbench/render-section";
 import { useAspectRatioStore } from "@/stores/aspect-ratio-store";
 import type { Beat } from "@/modules/narrative_planning/public";
-import type { PoolImage } from "@/lib/queries/sketches";
+import type { PoolImage } from "@/modules/production/public";
 
 const i18n = i18next.createInstance();
 

@@ -24,6 +24,10 @@ import type {
   UpdateSketchSettingsCommand,
 } from "@/modules/production/domain/image-settings";
 import type {
+  ImagePoolData,
+  ImagePoolRebuildResult,
+} from "@/modules/production/domain/image-pool";
+import type {
   CreateRenderPlanCommand,
   ExecuteRenderPlanCommand,
   RenderExecuteResult,
@@ -85,6 +89,19 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
         signal,
       })
       .json<VideoPoolResponse>();
+  },
+  async getImagePool(project, episode, signal) {
+    return api
+      .get(p`api/v1/projects/${project}/episodes/${episode}/grids`, { signal })
+      .json<ProductionDataResponse<ImagePoolData | null>>();
+  },
+  async rebuildImagePoolIndex(project, episode) {
+    return api
+      .post(
+        p`api/v1/projects/${project}/episodes/${episode}/grids/rebuild-pool`,
+        { json: {} },
+      )
+      .json<ProductionDataResponse<ImagePoolRebuildResult>>();
   },
   async selectVideoPoolEntry(project, episode, beatNumber, poolId) {
     return api

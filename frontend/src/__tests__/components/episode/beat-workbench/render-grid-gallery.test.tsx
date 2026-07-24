@@ -80,6 +80,21 @@ function beatWithScene(beatNumber: number, sceneId: string): Beat {
 }
 
 vi.mock("@/lib/queries/sketches", () => ({
+  useCutGrid: () => ({
+    mutateAsync: cutGridMock,
+    isPending: false,
+  }),
+  useUploadGrid: () => ({
+    mutateAsync: uploadGridMock,
+    isPending: false,
+  }),
+  useExportGridPrompt: () => ({
+    mutateAsync: exportGridPromptMock,
+    isPending: false,
+  }),
+}));
+
+vi.mock("@/modules/production/public", () => ({
   useGrids: () => ({
     data: {
       ok: true,
@@ -91,25 +106,10 @@ vi.mock("@/lib/queries/sketches", () => ({
       },
     },
   }),
-  useCutGrid: () => ({
-    mutateAsync: cutGridMock,
-    isPending: false,
-  }),
-  useUploadGrid: () => ({
-    mutateAsync: uploadGridMock,
-    isPending: false,
-  }),
   useRebuildPoolIndex: () => ({
     mutateAsync: rebuildPoolIndexMock,
     isPending: false,
   }),
-  useExportGridPrompt: () => ({
-    mutateAsync: exportGridPromptMock,
-    isPending: false,
-  }),
-}));
-
-vi.mock("@/modules/production/public", () => ({
   useRegenerateGrid: () => ({
     mutateAsync: regenerateGridMock,
     isPending: false,

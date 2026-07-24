@@ -12,7 +12,7 @@ import { resolveMediaUrl } from "@/lib/media-url";
 import { resolveImage } from "@/lib/resolve-image";
 import { cn } from "@/lib/utils";
 import type { Beat } from "@/modules/narrative_planning/public";
-import type { PoolImage } from "@/lib/queries/sketches";
+import type { PoolImage } from "@/modules/production/public";
 
 interface BeatCardProps {
   beat: Beat;

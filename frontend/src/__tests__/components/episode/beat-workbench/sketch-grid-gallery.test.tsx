@@ -69,17 +69,6 @@ vi.mock("@/lib/queries/sketches", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/queries/sketches")>();
   return {
     ...actual,
-    useGrids: () => ({
-      data: {
-        ok: true,
-        data: {
-          episode: 1,
-          modes: {},
-          beat_assignments: {},
-          images: gridImages,
-        },
-      },
-    }),
     useSketchGridPreview: (
       _project: string,
       _episode: number,
@@ -106,6 +95,17 @@ vi.mock("@/modules/production/public", () => ({
   useGenerateSketches: () => ({
     mutateAsync: generateSketchesMock,
     isPending: false,
+  }),
+  useGrids: () => ({
+    data: {
+      ok: true,
+      data: {
+        episode: 1,
+        modes: {},
+        beat_assignments: {},
+        images: gridImages,
+      },
+    },
   }),
 }));
 

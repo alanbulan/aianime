@@ -1,6 +1,5 @@
 // Copyright (c) 2026 AI anime
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo } from "react";
 
 import type { PanoViewerManifest } from "@/features/viewer-kit/pano/panoManifest";
 import type { DirectorStageManifest } from "@/features/viewer-kit/three-d/directorManifest";
@@ -9,64 +8,7 @@ import { p } from "@/shared/api/path";
 import { queryKeys } from "@/lib/query-keys";
 import type { ApiResponse, ErrorResponse, OkResponse, TaskResponse } from "@/types/api";
 import type { Beat } from "@/modules/narrative_planning/public";
-
-// Mirrors backend `PoolImage` (ai_anime/models.py) plus the route-injected
-// `cell_url` / `grid_url` / `stale` fields from `GET /grids`.
-export interface PoolImage {
-  id: string;
-  type: "render" | "sketch";
-  mode: string;
-  grid_index: number;
-  cell_index: number;
-  row: number;
-  col: number;
-  original_beat: number;
-  cell_url: string;
-  grid_url: string;
-  cell_path?: string | null;
-  grid_path: string;
-  generated_at?: string | null;
-  stale: boolean;
-  beat_content_hash?: string | null;
-}
-
-export interface GridsData {
-  episode: number;
-  modes: Record<string, unknown>;
-  images: PoolImage[];
-  // beat_number (string) → pool_id of the assigned image.
-  beat_assignments: Record<string, string>;
-}
-
-// Backend returns `data: null` when no pool exists yet.
-export type GridsResponse = OkResponse<GridsData | null>;
-
-export function useGrids(project: string, episode: number) {
-  return useQuery({
-    queryKey: queryKeys.grids(project, episode),
-    queryFn: ({ signal }) =>
-      api
-        .get(p`api/v1/projects/${project}/episodes/${episode}/grids`, { signal })
-        .json<GridsResponse>(),
-    enabled: !!project && episode > 0,
-  });
-}
-
-export function useRebuildPoolIndex(project: string, episode: number) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: () =>
-      api
-        .post(
-          p`api/v1/projects/${project}/episodes/${episode}/grids/rebuild-pool`,
-          { json: {} },
-        )
-        .json<OkResponse<{ episode: number; image_count: number }>>(),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.grids(project, episode) });
-    },
-  });
-}
+import type { ImagePoolData } from "@/modules/production/public";
 
 export function useBeatPanoBackgroundManifest(
   project: string,
@@ -327,7 +269,7 @@ export function usePoolSelect(project: string, episode: number) {
     onSuccess: (res, { beatNum, poolId }) => {
       const patched = res.data;
       if (patched?.frame_url) {
-        qc.setQueryData<GridsResponse>(
+        qc.setQueryData<{ ok: true; data: ImagePoolData | null }>(
           queryKeys.grids(project, episode),
           (old) => {
             if (!old?.data) return old;
@@ -640,26 +582,4 @@ export function useCutGrid(project: string, episode: number) {
       qc.invalidateQueries({ queryKey: queryKeys.grids(project, episode) });
     },
   });
-}
-
-export function useGridsByBeat(project: string, episode: number) {
-  const { data: gridsRes } = useGrids(project, episode);
-  const data = gridsRes?.data;
-  // Memo dep must track the inner payload, not the wrapper — TanStack allocates
-  // a new response object per fetch even when data is structurally identical,
-  // which would cascade new Map/assignments identities through every card.
-  return useMemo(() => {
-    const images = data?.images ?? [];
-    const assignments = data?.beat_assignments ?? {};
-    const byBeat = new Map<number, PoolImage[]>();
-    for (const img of images) {
-      let arr = byBeat.get(img.original_beat);
-      if (!arr) {
-        arr = [];
-        byBeat.set(img.original_beat, arr);
-      }
-      arr.push(img);
-    }
-    return { byBeat, assignments };
-  }, [data]);
 }

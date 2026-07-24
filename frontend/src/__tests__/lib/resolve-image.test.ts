@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, it, expect } from "vitest";
 import { resolveImage } from "@/lib/resolve-image";
-import type { PoolImage } from "@/lib/queries/sketches";
+import type { PoolImage } from "@/modules/production/public";
 
 function makeImg(overrides: Partial<PoolImage>): PoolImage {
   return {

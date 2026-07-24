@@ -11,6 +11,8 @@ export {
   useGenerateAudio,
   useGenerateSeedance2Prompt,
   useGenerateSketches,
+  useGrids,
+  useGridsByBeat,
   useGlobalOptimize,
   useFinalVideo,
   useNarratorVoiceSources,
@@ -21,6 +23,7 @@ export {
   useRegenerateGrid,
   useRegenerateRenderBeats,
   useRegenerateSketches,
+  useRebuildPoolIndex,
   useRenderExecute,
   useRenderPlan,
   useRenderSettings,
@@ -40,6 +43,11 @@ export {
   useVideoPool,
   useVideoPoolSelect,
 } from "@/modules/production/composition";
+export type {
+  ImagePoolData,
+  ImagePoolRebuildResult,
+  PoolImage,
+} from "@/modules/production/domain/image-pool";
 export type {
   GenerateSketchesCommand,
   RegenerateGridCommand,

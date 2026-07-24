@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { PoolImage } from "@/lib/queries/sketches";
+import type { PoolImage } from "@/modules/production/public";
 
 export interface ResolvedImage {
   url: string | null;

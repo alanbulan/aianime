@@ -16,7 +16,6 @@ import {
   useUpdateBeatBackgroundAnchor,
   useUploadBeatImage,
   type BeatBackgroundAnchorsData,
-  type PoolImage,
 } from "@/lib/queries/sketches";
 import {
   ThreeDDirectorDialog,
@@ -30,6 +29,7 @@ import {
   type Beat,
 } from "@/modules/narrative_planning/public";
 import {
+  type PoolImage,
   useRegenerateSketches,
   useSketchSettings,
 } from "@/modules/production/public";

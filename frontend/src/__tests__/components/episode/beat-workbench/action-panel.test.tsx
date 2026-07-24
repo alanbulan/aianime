@@ -48,15 +48,12 @@ beforeEach(() => {
   useEpisodeWorkbenchStore.getState().reset();
 });
 
-vi.mock("@/lib/queries/sketches", () => ({
-  useGridsByBeat: () => ({ byBeat: new Map(), assignments: {} }),
-}));
-
 vi.mock("@/modules/narrative_planning/public", () => ({
   useDeleteManualShot: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
 vi.mock("@/modules/production/public", () => ({
+  useGridsByBeat: () => ({ byBeat: new Map(), assignments: {} }),
   useVideoBackends: () => ({
     data: {
       ok: true,

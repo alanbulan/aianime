@@ -6,12 +6,14 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 import { SaveStatus } from "@/components/save-status";
 import { useEscapeToClose } from "@/hooks/use-escape-to-close";
-import { useGridsByBeat } from "@/lib/queries/sketches";
 import { resolveImage } from "@/lib/resolve-image";
 import { saveScopes, useSaveState } from "@/stores/save-status-store";
 import { cn } from "@/lib/utils";
 import type { Beat } from "@/modules/narrative_planning/public";
-import { useVideoBackends } from "@/modules/production/public";
+import {
+  useGridsByBeat,
+  useVideoBackends,
+} from "@/modules/production/public";
 import type { BeatStageState } from "@/types/beat-state";
 import {
   Select,

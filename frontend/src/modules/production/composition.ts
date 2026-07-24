@@ -3,6 +3,7 @@ import { useAppStore } from "@/stores/app-store";
 import { createAudioGenerationQueryHooks } from "@/modules/production/application/audio-generation-query-hooks";
 import { createEpisodeComposeQueryHooks } from "@/modules/production/application/episode-compose-query-hooks";
 import { createImageSettingsQueryHooks } from "@/modules/production/application/image-settings-query-hooks";
+import { createImagePoolQueryHooks } from "@/modules/production/application/image-pool-query-hooks";
 import { createNarratorVoiceQueryHooks } from "@/modules/production/application/narrator-voice-query-hooks";
 import { createRenderPlanQueryHooks } from "@/modules/production/application/render-plan-query-hooks";
 import { createVideoBackendQueryHooks } from "@/modules/production/application/video-backend-query-hooks";
@@ -22,6 +23,8 @@ export const { useVideoBackends } = createVideoBackendQueryHooks(
 export const { useVideoPool, useVideoPoolSelect } = createVideoPoolQueryHooks(
   httpProductionVideoGateway,
 );
+export const { useGrids, useGridsByBeat, useRebuildPoolIndex } =
+  createImagePoolQueryHooks(httpProductionVideoGateway);
 export const {
   useSeedance2BeatStatus,
   useUploadSeedance2Asset,

@@ -12,6 +12,10 @@ import type {
   UpdateSketchSettingsCommand,
 } from "@/modules/production/domain/image-settings";
 import type {
+  ImagePoolData,
+  ImagePoolRebuildResult,
+} from "@/modules/production/domain/image-pool";
+import type {
   NarratorVoiceSourcesData,
   NarratorVoiceStatusData,
 } from "@/modules/production/domain/narrator-voice";
@@ -97,6 +101,15 @@ export interface ProductionVideoGateway {
     episode: number,
     signal?: AbortSignal,
   ): Promise<VideoPoolResponse>;
+  getImagePool(
+    project: string,
+    episode: number,
+    signal?: AbortSignal,
+  ): Promise<ImagePoolResponse>;
+  rebuildImagePoolIndex(
+    project: string,
+    episode: number,
+  ): Promise<ProductionDataResponse<ImagePoolRebuildResult>>;
   selectVideoPoolEntry(
     project: string,
     episode: number,
@@ -304,6 +317,8 @@ export interface ProductionVideoGateway {
 }
 
 export type VideoPoolResponse = ProductionDataResponse<VideoPoolData | null>;
+
+export type ImagePoolResponse = ProductionDataResponse<ImagePoolData | null>;
 
 export type Seedance2BeatStatusResponse =
   | ProductionDataResponse<Seedance2BeatStatus>

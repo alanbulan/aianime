@@ -566,6 +566,10 @@ describe("frontend architecture boundaries", () => {
     expect(legacySketchQueries).not.toContain("useRegenerateGrid");
     expect(legacySketchQueries).not.toContain("useRegenerateSketches");
     expect(legacySketchQueries).not.toContain("useRegenerateRenderBeats");
+    expect(legacySketchQueries).not.toContain("useGrids(");
+    expect(legacySketchQueries).not.toContain("useGridsByBeat");
+    expect(legacySketchQueries).not.toContain("useRebuildPoolIndex");
+    expect(legacySketchQueries).not.toContain("export interface PoolImage");
     expect(applicationDataImportFailures).toEqual([]);
     expect(internalImportFailures).toEqual([]);
   });
