@@ -306,24 +306,33 @@ def test_production_sketch_edit_routes_delegate_to_application() -> None:
     assert not (
         PACKAGE_ROOT / "services" / "sketch_pose_service.py"
     ).exists()
-    assert "sketch_pose_editor_use_cases" in source
-    assert "sketch_image_use_cases" in source
     assert "ai_anime.modules.production.public" in _imports(route)
+    route_start = source.index("async def get_sketch_pose_editor(")
+    route_end = source.index("async def generate_missing_manual_sketches(", route_start)
+    route_source = source[route_start:route_end]
+    assert route_source.count("sketch_editing_use_cases") == 3
+    assert "SketchEditorQuery" in route_source
+    assert "SaveSketchEditorCommand" in route_source
+    assert "CropCurrentSketchCommand" in route_source
+    assert "sketch_pose_editor_use_cases" not in source
+    assert "sketch_image_use_cases" not in source
+    assert "def _canonical_sketch_path(" not in source
+    assert "def _canonical_sketch_url(" not in source
     for legacy_implementation in (
         "ai_anime.services.sketch_pose_service",
         "build_all_episode_candidates",
         "build_pose_candidates",
         "_heuristic_pose_from_bbox",
         "save_pose_editor_state",
+        "make_sqlite_store_for_context",
+        "make_sqlite_store(",
+        "get_beats_as_dicts",
+        "get_sketch_colors",
+        "make_static_url_for_context",
+        "Image.open",
+        "from PIL",
     ):
-        assert legacy_implementation not in source
-
-    crop_start = source.index("async def crop_current_sketch")
-    crop_end = source.index("\n@router.post(", crop_start)
-    crop_source = source[crop_start:crop_end]
-    assert "sketch_image_use_cases" in crop_source
-    assert "Image.open" not in crop_source
-    assert "from PIL" not in crop_source
+        assert legacy_implementation not in route_source
 
 
 def test_production_image_settings_routes_delegate_to_application() -> None:
@@ -681,7 +690,7 @@ def test_production_selected_regeneration_routes_delegate_to_application() -> No
     render_runner = PACKAGE_ROOT / "task_backend" / "runners" / "render.py"
     source = generation.read_text(encoding="utf-8")
     route_start = source.index("async def regenerate_beats(")
-    route_end = source.index("def _canonical_sketch_path(", route_start)
+    route_end = source.index("async def _episode_beat_from_resolution(", route_start)
     route_source = source[route_start:route_end]
 
     assert route_source.count("selected_regeneration_use_cases") == 2

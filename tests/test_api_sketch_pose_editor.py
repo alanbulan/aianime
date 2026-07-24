@@ -9,6 +9,9 @@ import pytest
 
 
 class _PoseStore:
+    def __init__(self) -> None:
+        self.close_calls = 0
+
     async def get_beats_as_dicts(self, episode_num: int):
         assert episode_num == 1
         return [
@@ -23,18 +26,38 @@ class _PoseStore:
         assert episode_num == 1
         return {"Hero_Main": "#00ffff CYAN"}
 
+    async def close(self) -> None:
+        self.close_calls += 1
+
 
 def _client(monkeypatch, tmp_path):
     from ai_anime.api.routes import generation
+    from ai_anime.modules.production.infrastructure import sketch_editing
+    from ai_anime.modules.project_workspace.public import ProjectContext
 
-    async def fake_make_sqlite_store(username: str, project: str):
-        assert username == "alice"
-        assert project == "demo"
-        return _PoseStore()
+    context = ProjectContext(
+        project_id="proj_demo",
+        project_name="demo",
+        owner_type="user",
+        owner_id="user-alice",
+        owner_username="alice",
+        requester_user_id="user-alice",
+        requester_username="alice",
+        requester_principals=(("user", "user-alice"),),
+        effective_role="editor",
+        home_node_id="local",
+        output_dir=tmp_path,
+        state_dir=tmp_path / "_state",
+        runtime_dir=tmp_path / "_runtime",
+        is_home_node=True,
+    )
+    store = _PoseStore()
 
-    async def fake_resolve_project(project: str, user: dict, required_role: str = "editor"):
+    async def fake_resolve_project(
+        project: str, user: dict, required_role: str = "editor"
+    ):
         return SimpleNamespace(
-            ctx=None,
+            ctx=context,
             username="alice",
             project_name="demo",
             project_dir=tmp_path,
@@ -43,19 +66,15 @@ def _client(monkeypatch, tmp_path):
             runtime_dir=str(tmp_path / "_runtime"),
         )
 
+    async def make_store(candidate):
+        assert candidate is context
+        return store
+
     monkeypatch.setattr(generation, "_resolve_generation_project", fake_resolve_project)
-    monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
-
-    async def fake_store_for_context(*_args, **_kwargs):
-        return await generation.make_sqlite_store("alice", "demo")
-
-    monkeypatch.setattr(generation, "make_sqlite_store_for_context", fake_store_for_context)
     monkeypatch.setattr(
-        generation,
-        "make_static_url_for_context",
-        lambda ctx, path, local_path=None: (
-            f"/static/projects/{getattr(ctx, 'project_id', 'proj_demo')}/{path}"
-        ),
+        sketch_editing.project_stores,
+        "make_sqlite_store_for_context",
+        make_store,
     )
 
     sketch_dir = tmp_path / "sketches" / "ep001"
@@ -71,8 +90,15 @@ def _client(monkeypatch, tmp_path):
     return TestClient(app), sketch_dir / "beat_01.png"
 
 
+def _sketch_url(sketch_path) -> str:
+    return (
+        "/static/projects/proj_demo/sketches/ep001/beat_01.png"
+        f"?v={sketch_path.stat().st_mtime_ns}"
+    )
+
+
 def test_get_sketch_pose_editor_payload(monkeypatch, tmp_path):
-    client, _sketch_path = _client(monkeypatch, tmp_path)
+    client, sketch_path = _client(monkeypatch, tmp_path)
 
     response = client.get("/api/v1/projects/demo/episodes/1/beats/1/sketch/pose-editor")
 
@@ -80,7 +106,7 @@ def test_get_sketch_pose_editor_payload(monkeypatch, tmp_path):
     body = response.json()
     assert body["ok"] is True
     assert body["data"]["beat_num"] == 1
-    assert body["data"]["sketch_url"] == "/static/projects/proj_demo/sketches/ep001/beat_01.png"
+    assert body["data"]["sketch_url"] == _sketch_url(sketch_path)
     assert body["data"]["width"] == 64
     assert body["data"]["height"] == 96
     assert body["data"]["candidates"][0]["identity_id"] == "Hero_Main"
@@ -108,7 +134,7 @@ def test_save_sketch_pose_editor_state(monkeypatch, tmp_path):
     assert response.status_code == 200
     body = response.json()
     assert body["ok"] is True
-    assert body["data"]["sketch_url"] == "/static/projects/proj_demo/sketches/ep001/beat_01.png"
+    assert body["data"]["sketch_url"] == _sketch_url(sketch_path)
     saved = Image.open(sketch_path).convert("RGBA")
     assert saved.getpixel((10, 10))[:3] == (255, 0, 0)
 
@@ -127,6 +153,7 @@ def test_crop_current_sketch_saves_canonical_image(monkeypatch, tmp_path):
     assert body["ok"] is True
     assert body["data"]["width"] == 20
     assert body["data"]["height"] == 30
+    assert body["data"]["sketch_url"] == _sketch_url(sketch_path)
     cropped = Image.open(sketch_path)
     assert cropped.size == (20, 30)
 
@@ -153,3 +180,28 @@ def test_crop_current_sketch_preserves_validation_errors(
 
     assert response.status_code == 400
     assert response.json() == {"ok": False, "error": error}
+
+
+def test_sketch_editing_preserves_missing_and_save_errors(monkeypatch, tmp_path):
+    client, sketch_path = _client(monkeypatch, tmp_path)
+    sketch_path.unlink()
+
+    missing = client.get("/api/v1/projects/demo/episodes/1/beats/1/sketch/pose-editor")
+    Image.new("RGBA", (64, 96), (255, 255, 255, 255)).save(sketch_path)
+    invalid_save = client.post(
+        "/api/v1/projects/demo/episodes/1/beats/1/sketch/pose-editor",
+        json={
+            "strokes": [
+                {
+                    "points": [{"x": 5, "y": 5}, {"x": 30, "y": 30}],
+                    "colorHex": "invalid",
+                }
+            ]
+        },
+    )
+
+    assert missing.status_code == 404
+    assert missing.json() == {"ok": False, "error": "Beat 1 缺少当前草图"}
+    assert invalid_save.status_code == 400
+    assert invalid_save.json()["ok"] is False
+    assert invalid_save.json()["error"].startswith("保存草图编辑失败:")

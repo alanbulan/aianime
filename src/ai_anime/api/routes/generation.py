@@ -1,7 +1,6 @@
 """画面/网格/视频生成端点。"""
 
 import logging
-from pathlib import Path
 from typing import Any
 
 from fastapi import (
@@ -68,8 +67,9 @@ from ai_anime.modules.production.public import (
     BuildRenderPlanCommand,
     ComposeEpisodeVideoCommand,
     CropSeedance2AssetCommand,
-    CropSketchCommand,
+    CropCurrentSketchCommand,
     CutGridCommand,
+    CurrentSketchMissing,
     DetectSketchMarkersCommand,
     DirectorControlSketchUnavailable,
     EpisodeBeatsMissing,
@@ -107,11 +107,15 @@ from ai_anime.modules.production.public import (
     RenderPlanRejected,
     ReplaceSketchRegenQueueCommand,
     RemoveSeedance2AssetCommand,
+    SaveSketchEditorCommand,
+    SketchBeatMissing,
     SketchCropRejected,
     SketchColorMarkersMissing,
     SketchMarkerDetectionFailed,
     SketchMarkerDetectionRejected,
     SketchPoseCandidatesMissing,
+    SketchEditorQuery,
+    SketchEditorSaveRejected,
     Seedance2PanelBeatMissing,
     Seedance2PanelOperationRejected,
     Seedance2PanelQuery,
@@ -144,14 +148,12 @@ from ai_anime.modules.production.public import (
     render_plan_use_cases,
     image_generation_usage_use_cases,
     sketch_color_assignment_use_cases,
-    sketch_image_use_cases,
+    sketch_editing_use_cases,
     sketch_marker_detection_use_cases,
-    sketch_pose_editor_use_cases,
     sketch_regen_queue_use_cases,
     video_backend_catalog_use_cases,
     video_pool_use_cases,
 )
-from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.ports import get_usage_meter
 from ai_anime.shared.project_media import make_project_asset_url_builder
 from ai_anime.utils.media_io import decode_uploaded_rgb_image
@@ -893,26 +895,6 @@ async def regenerate_sketches(
     return {"ok": True, **scheduled.as_dict()}
 
 
-def _canonical_sketch_path(project_dir: Path, episode_num: int, beat_num: int) -> Path:
-    return (
-        project_dir / "sketches" / f"ep{episode_num:03d}" / f"beat_{beat_num:02d}.png"
-    )
-
-
-def _canonical_sketch_url(
-    ctx: ProjectContext,
-    project_dir: Path,
-    episode_num: int,
-    beat_num: int,
-) -> str:
-    rel = f"sketches/ep{episode_num:03d}/beat_{beat_num:02d}.png"
-    return make_static_url_for_context(
-        ctx,
-        rel,
-        local_path=project_dir / rel,
-    )
-
-
 async def _episode_beat_from_resolution(
     resolved,
     episode_num: int,
@@ -1442,51 +1424,22 @@ async def get_sketch_pose_editor(
 ):
     """Return NiceGUI-compatible pose editor payload for a canonical sketch."""
     resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    username = resolved.username
-    project_name = resolved.project_name
-    project_dir = resolved.project_dir
-    sketch_path = _canonical_sketch_path(project_dir, episode_num, beat_num)
-    if not sketch_path.exists():
-        return JSONResponse(
-            status_code=404,
-            content={"ok": False, "error": f"Beat {beat_num} 缺少当前草图"},
-        )
-
-    store = (
-        await make_sqlite_store_for_context(resolved.ctx)
-        if resolved.ctx
-        else await make_sqlite_store(username, project_name)
-    )
-    beats = await store.get_beats_as_dicts(episode_num)
-    beat = next(
-        (b for b in beats if int(b.get("beat_number", 0) or 0) == beat_num), None
-    )
-    if beat is None:
-        return JSONResponse(
-            status_code=404,
-            content={"ok": False, "error": f"Beat {beat_num} 不存在"},
-        )
-
-    sketch_colors = store.get_sketch_colors(episode_num) or {}
     try:
-        editor = sketch_pose_editor_use_cases().load_editor(
-            sketch_path=sketch_path,
-            beat=beat,
-            sketch_colors=sketch_colors,
+        editor = await sketch_editing_use_cases().load_editor(
+            resolved.ctx,
+            SketchEditorQuery(
+                episode_num=episode_num,
+                beat_num=beat_num,
+            ),
+        )
+    except (CurrentSketchMissing, SketchBeatMissing) as exc:
+        return JSONResponse(
+            status_code=404,
+            content={"ok": False, "error": str(exc)},
         )
     except SketchPoseCandidatesMissing:
         return {"ok": False, "error": "本集没有分配颜色的身份，请先重新配色"}
-
-    return {
-        "ok": True,
-        "data": {
-            "beat_num": beat_num,
-            "sketch_url": _canonical_sketch_url(
-                resolved.ctx, project_dir, episode_num, beat_num
-            ),
-            **editor,
-        },
-    }
+    return {"ok": True, "data": editor.as_dict()}
 
 
 @router.post(
@@ -1501,34 +1454,26 @@ async def save_sketch_pose_editor(
 ):
     """Persist pose editor strokes/skeletons back to the canonical sketch."""
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    project_dir = resolved.project_dir
-    sketch_path = _canonical_sketch_path(project_dir, episode_num, beat_num)
-    if not sketch_path.exists():
+    try:
+        edited = sketch_editing_use_cases().save_editor(
+            resolved.ctx,
+            SaveSketchEditorCommand(
+                episode_num=episode_num,
+                beat_num=beat_num,
+                editor_state=body,
+            ),
+        )
+    except CurrentSketchMissing as exc:
         return JSONResponse(
             status_code=404,
-            content={"ok": False, "error": f"Beat {beat_num} 缺少当前草图"},
+            content={"ok": False, "error": str(exc)},
         )
-
-    try:
-        sketch_pose_editor_use_cases().save_editor(
-            sketch_path=sketch_path,
-            editor_state=body,
-        )
-    except Exception as exc:
+    except SketchEditorSaveRejected as exc:
         return JSONResponse(
             status_code=400,
-            content={"ok": False, "error": f"保存草图编辑失败: {exc}"},
+            content={"ok": False, "error": str(exc)},
         )
-
-    return {
-        "ok": True,
-        "data": {
-            "beat_num": beat_num,
-            "sketch_url": _canonical_sketch_url(
-                resolved.ctx, project_dir, episode_num, beat_num
-            ),
-        },
-    }
+    return {"ok": True, "data": edited.as_dict()}
 
 
 @router.post("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/sketch/crop")
@@ -1541,23 +1486,22 @@ async def crop_current_sketch(
 ):
     """Crop and overwrite the canonical sketch, matching NiceGUI current-image crop."""
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    project_dir = resolved.project_dir
-    sketch_path = _canonical_sketch_path(project_dir, episode_num, beat_num)
-    if not sketch_path.exists():
-        return JSONResponse(
-            status_code=404,
-            content={"ok": False, "error": f"Beat {beat_num} 缺少当前草图"},
-        )
-
     try:
-        cropped = sketch_image_use_cases().crop(
-            sketch_path=sketch_path,
-            command=CropSketchCommand(
+        cropped = sketch_editing_use_cases().crop(
+            resolved.ctx,
+            CropCurrentSketchCommand(
+                episode_num=episode_num,
+                beat_num=beat_num,
                 x=body.get("x", 0),
                 y=body.get("y", 0),
                 width=body.get("width", 0),
                 height=body.get("height", 0),
             ),
+        )
+    except CurrentSketchMissing as exc:
+        return JSONResponse(
+            status_code=404,
+            content={"ok": False, "error": str(exc)},
         )
     except SketchCropRejected as exc:
         return JSONResponse(
@@ -1565,16 +1509,7 @@ async def crop_current_sketch(
             content={"ok": False, "error": str(exc)},
         )
 
-    return {
-        "ok": True,
-        "data": {
-            "beat_num": beat_num,
-            "sketch_url": _canonical_sketch_url(
-                resolved.ctx, project_dir, episode_num, beat_num
-            ),
-            **cropped,
-        },
-    }
+    return {"ok": True, "data": cropped.as_dict()}
 
 
 @router.post(

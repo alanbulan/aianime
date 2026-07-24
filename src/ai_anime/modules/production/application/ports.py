@@ -87,6 +87,10 @@ if TYPE_CHECKING:
         SketchGenerationTask,
         SketchGenerationTaskReceipt,
     )
+    from ai_anime.modules.production.application.sketch_editing import (
+        CanonicalSketch,
+        SketchBeatContext,
+    )
     from ai_anime.modules.production.domain.video_pool import (
         VideoPool,
         VideoPoolEntry,
@@ -117,6 +121,22 @@ class SketchImageFiles(Protocol):
         image_path: Path,
         bounds: tuple[int, int, int, int],
     ) -> None: ...
+
+
+class ProductionSketchEditingWorkspace(Protocol):
+    def canonical_sketch(
+        self,
+        context: ProjectContext,
+        episode_num: int,
+        beat_num: int,
+    ) -> CanonicalSketch | None: ...
+
+    async def beat_context(
+        self,
+        context: ProjectContext,
+        episode_num: int,
+        beat_num: int,
+    ) -> SketchBeatContext | None: ...
 
 
 class ProductionSettingsRepository(Protocol):

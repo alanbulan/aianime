@@ -46,14 +46,16 @@ from ai_anime.modules.production.application.image_generation_usage import (
     ImageGenerationGuardQuery,
     ImageGenerationUsageUseCases,
 )
-from ai_anime.modules.production.application.sketch_image import (
-    CropSketchCommand,
+from ai_anime.modules.production.application.sketch_editing import (
+    CropCurrentSketchCommand,
+    CurrentSketchMissing,
+    SaveSketchEditorCommand,
+    SketchBeatMissing,
     SketchCropRejected,
-    SketchImageUseCases,
-)
-from ai_anime.modules.production.application.sketch_pose import (
+    SketchEditingUseCases,
+    SketchEditorQuery,
+    SketchEditorSaveRejected,
     SketchPoseCandidatesMissing,
-    SketchPoseEditorUseCases,
 )
 from ai_anime.modules.production.application.sketch_color import (
     SketchColorAssignmentResult,
@@ -357,15 +359,9 @@ def sketch_regen_queue_use_cases() -> SketchRegenQueueUseCases:
     return build()
 
 
-def sketch_image_use_cases() -> SketchImageUseCases:
-    from ai_anime.modules.production.composition import sketch_image_use_cases as build
-
-    return build()
-
-
-def sketch_pose_editor_use_cases() -> SketchPoseEditorUseCases:
+def sketch_editing_use_cases() -> SketchEditingUseCases:
     from ai_anime.modules.production.composition import (
-        sketch_pose_editor_use_cases as build,
+        sketch_editing_use_cases as build,
     )
 
     return build()
@@ -389,7 +385,7 @@ __all__ = [
     "ComposeEpisodeVideoCommand",
     "CutGridCommand",
     "CutGridResult",
-    "CropSketchCommand",
+    "CropCurrentSketchCommand",
     "CropSeedance2AssetCommand",
     "DetectSketchMarkersCommand",
     "DirectorControlSketchUnavailable",
@@ -472,17 +468,21 @@ __all__ = [
     "SingleVideoUseCases",
     "SketchGenerationRejected",
     "SketchGenerationUseCases",
+    "CurrentSketchMissing",
+    "SaveSketchEditorCommand",
+    "SketchBeatMissing",
     "SketchCropRejected",
     "SketchColorAssignmentResult",
     "SketchColorAssignmentUseCases",
     "SketchColorMarkersMissing",
-    "SketchImageUseCases",
+    "SketchEditingUseCases",
+    "SketchEditorQuery",
+    "SketchEditorSaveRejected",
     "SketchMarkerDetectionFailed",
     "SketchMarkerDetectionRejected",
     "SketchMarkerDetectionResult",
     "SketchMarkerDetectionUseCases",
     "SketchPoseCandidatesMissing",
-    "SketchPoseEditorUseCases",
     "SketchRegenQueueResult",
     "SketchRegenQueueUseCases",
     "UpdateRenderImageSettingsCommand",
@@ -523,9 +523,8 @@ __all__ = [
     "render_plan_use_cases",
     "sketch_color_assignment_use_cases",
     "sketch_generation_use_cases",
-    "sketch_image_use_cases",
+    "sketch_editing_use_cases",
     "sketch_marker_detection_use_cases",
-    "sketch_pose_editor_use_cases",
     "sketch_regen_queue_use_cases",
     "seedance2_api_resolution",
     "seedance2_panel_use_cases",
