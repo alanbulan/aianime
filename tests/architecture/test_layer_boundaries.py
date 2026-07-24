@@ -557,6 +557,23 @@ def test_asset_world_beat_director_stage_routes_delegate_to_application() -> Non
     assert "_director_control_scope" not in freezone
 
 
+def test_asset_routes_share_one_project_media_url_builder() -> None:
+    route_sources = {
+        name: (PACKAGE_ROOT / "api" / "routes" / name).read_text(encoding="utf-8")
+        for name in ("characters.py", "props.py", "scenes.py", "generation.py")
+    }
+    shared_source = (PACKAGE_ROOT / "shared" / "project_media.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert shared_source.count("def make_project_asset_url_builder(") == 1
+    for source in route_sources.values():
+        assert "make_project_asset_url_builder" in source
+    for name in ("characters.py", "props.py", "scenes.py"):
+        assert "def _asset_url(" not in route_sources[name]
+    assert "def _viewer_asset_url(" not in route_sources["generation.py"]
+
+
 def test_asset_world_character_identity_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "characters.py"
     source = route.read_text(encoding="utf-8")

@@ -50,6 +50,7 @@ from ai_anime.modules.asset_world.public import (
     character_task_use_cases,
     character_voice_use_cases,
 )
+from ai_anime.shared.project_media import make_project_asset_url_builder
 from ai_anime.sqlite_store import SQLiteStore
 
 router = APIRouter()
@@ -77,22 +78,16 @@ async def _resolve_character_project(
     )
 
 
-def _asset_url(ctx: ProjectContext, project_dir: Path, abs_path: str | Path) -> str:
-    path = Path(abs_path)
-    if not path.exists():
-        return ""
-    try:
-        rel_path = path.relative_to(project_dir).as_posix()
-    except ValueError:
-        return ""
-    return make_static_url_for_context(ctx, rel_path, local_path=path)
-
-
 def _character_voice_media_url(
     ctx: ProjectContext,
     project_dir: Path,
 ) -> Callable[[str], str]:
-    return lambda rel_path: _asset_url(ctx, project_dir, project_dir / rel_path)
+    asset_url = make_project_asset_url_builder(
+        ctx,
+        project_dir,
+        make_static_url_for_context,
+    )
+    return lambda rel_path: asset_url(project_dir / rel_path)
 
 
 @router.get("/projects/{project}/characters")
@@ -110,7 +105,9 @@ async def list_characters(
         repository=store,
         project_dir=project_dir,
         asset_project=asset_project,
-        asset_url=lambda path: _asset_url(ctx, project_dir, path),
+        asset_url=make_project_asset_url_builder(
+            ctx, project_dir, make_static_url_for_context
+        ),
     )
 
     return {"ok": True, "data": data}
@@ -288,7 +285,9 @@ async def get_character_identities(
             character_name=name,
             project_dir=project_dir,
             asset_project=asset_project,
-            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+            asset_url=make_project_asset_url_builder(
+                ctx, project_dir, make_static_url_for_context
+            ),
         )
     except CharacterCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
@@ -314,7 +313,9 @@ async def list_character_asset_history(
             project_dir=project_dir,
             kind=kind,
             identity_id=identity_id,
-            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+            asset_url=make_project_asset_url_builder(
+                ctx, project_dir, make_static_url_for_context
+            ),
         )
     except CharacterCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
@@ -345,7 +346,9 @@ async def restore_character_asset_history(
                 identity_id=identity_id,
                 history_id=history_id,
             ),
-            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+            asset_url=make_project_asset_url_builder(
+                ctx, project_dir, make_static_url_for_context
+            ),
         )
     except CharacterCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
@@ -657,7 +660,9 @@ async def generate_single_portrait(
             output_dir=output_dir,
             character_name=name,
             options=generation_options,
-            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+            asset_url=make_project_asset_url_builder(
+                ctx, project_dir, make_static_url_for_context
+            ),
         )
     except CharacterCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
@@ -683,7 +688,9 @@ async def upload_portrait(
             project_dir=project_dir,
             character_name=name,
             upload=file,
-            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+            asset_url=make_project_asset_url_builder(
+                ctx, project_dir, make_static_url_for_context
+            ),
         )
     except CharacterCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
@@ -711,7 +718,9 @@ async def upload_identity_image(
             character_name=name,
             identity_name=identity_name,
             upload=file,
-            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+            asset_url=make_project_asset_url_builder(
+                ctx, project_dir, make_static_url_for_context
+            ),
         )
     except CharacterCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
@@ -755,7 +764,9 @@ async def upload_identity_costume(
             character_name=name,
             identity_id=identity_id,
             upload=file,
-            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+            asset_url=make_project_asset_url_builder(
+                ctx, project_dir, make_static_url_for_context
+            ),
         )
     except CharacterCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
@@ -802,7 +813,9 @@ async def upload_identity_portrait(
             character_name=name,
             identity_id=identity_id,
             upload=file,
-            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+            asset_url=make_project_asset_url_builder(
+                ctx, project_dir, make_static_url_for_context
+            ),
         )
     except CharacterCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
@@ -872,7 +885,9 @@ async def generate_identity_portrait(
             character_name=name,
             identity_id=identity_id,
             options=generation_options,
-            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+            asset_url=make_project_asset_url_builder(
+                ctx, project_dir, make_static_url_for_context
+            ),
         )
     except CharacterCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
@@ -966,7 +981,9 @@ async def generate_identity_image(
             character_name=name,
             identity_id=identity_id,
             options=generation_options,
-            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+            asset_url=make_project_asset_url_builder(
+                ctx, project_dir, make_static_url_for_context
+            ),
         )
     except CharacterCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}

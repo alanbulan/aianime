@@ -13,6 +13,7 @@ from ai_anime.freezone.canvas_static_urls import (
     sanitize_project_local_paths_in_memory,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.shared.project_media import make_project_asset_url_builder
 
 
 pytestmark = pytest.mark.m09
@@ -80,6 +81,33 @@ def test_context_static_url_prefers_sog_sidecar_for_3gs_ply(tmp_path: Path) -> N
     assert url.startswith(
         "/static/projects/01KS77361FXAQNKQF2W4EWWVCW/" "director_worlds/Hall/v1/master_sharp.sog?v="
     )
+
+
+def test_project_asset_url_builder_accepts_only_existing_project_paths(
+    tmp_path: Path,
+) -> None:
+    project_dir = tmp_path / "project"
+    asset = project_dir / "assets" / "scene.png"
+    asset.parent.mkdir(parents=True)
+    asset.write_bytes(b"image")
+    outside = tmp_path / "outside.png"
+    outside.write_bytes(b"outside")
+    calls: list[tuple[str, Path]] = []
+
+    def static_url(_ctx, relative_path: str, local_path=None) -> str:
+        calls.append((relative_path, Path(local_path)))
+        return f"/media/{relative_path}"
+
+    asset_url = make_project_asset_url_builder(
+        _ctx(project_dir),
+        project_dir,
+        static_url,
+    )
+
+    assert asset_url(asset) == "/media/assets/scene.png"
+    assert asset_url(project_dir / "missing.png") == ""
+    assert asset_url(outside) == ""
+    assert calls == [("assets/scene.png", asset)]
 
 
 def test_freezone_asset_record_uses_project_static_url_when_project_id_exists(

@@ -99,6 +99,7 @@ from ai_anime.services.background_anchor_service import (
     save_uploaded_background_anchor_image,
     select_background_anchor,
 )
+from ai_anime.shared.project_media import make_project_asset_url_builder
 from ai_anime.utils.path_resolver import compute_identity_path, compute_portrait_path
 
 router = APIRouter()
@@ -3118,21 +3119,6 @@ async def _episode_beat_from_resolution(
         raise
 
 
-def _viewer_asset_url(
-    ctx: ProjectContext,
-    project_dir: Path,
-    path: str | Path,
-) -> str:
-    asset_path = Path(path)
-    if not asset_path.exists():
-        return ""
-    try:
-        rel_path = asset_path.relative_to(project_dir).as_posix()
-    except ValueError:
-        return ""
-    return make_static_url_for_context(ctx, rel_path, local_path=asset_path)
-
-
 def _api_background_reference_url_builder(ctx: ProjectContext):
     def _build(path: Path, rel_path: str) -> str:
         return make_static_url_for_context(ctx, rel_path, local_path=path)
@@ -3190,10 +3176,10 @@ async def get_beat_pano_background_manifest(
             project_id=resolved.ctx.project_id,
             project_dir=project_dir,
             scene_name=scene_name,
-            asset_url=lambda path: _viewer_asset_url(
+            asset_url=make_project_asset_url_builder(
                 resolved.ctx,
                 project_dir,
-                path,
+                make_static_url_for_context,
             ),
             episode_num=int(episode_num),
             beat_num=int(beat_num),
@@ -3251,10 +3237,10 @@ async def get_beat_director_stage_manifest(
             project_id=resolved.ctx.project_id,
             project_dir=project_dir,
             scene_name=scene_name,
-            asset_url=lambda path: _viewer_asset_url(
+            asset_url=make_project_asset_url_builder(
                 resolved.ctx,
                 project_dir,
-                path,
+                make_static_url_for_context,
             ),
             episode_num=int(episode_num),
             beat_num=int(beat_num),
@@ -3389,10 +3375,10 @@ async def export_beat_director_stage_control_frame(
                     props=body.get("props"),
                     stagings=body.get("stagings"),
                 ),
-                asset_url=lambda path: _viewer_asset_url(
+                asset_url=make_project_asset_url_builder(
                     resolved.ctx,
                     project_dir,
-                    path,
+                    make_static_url_for_context,
                 ),
             )
         except SceneViewerRejected as exc:
@@ -3627,10 +3613,10 @@ async def get_director_control_frame_status(
             project_dir=project_dir,
             episode_num=episode_num,
             beat_num=beat_num,
-            asset_url=lambda path: _viewer_asset_url(
+            asset_url=make_project_asset_url_builder(
                 resolved.ctx,
                 project_dir,
-                path,
+                make_static_url_for_context,
             ),
         ),
     }
@@ -3656,10 +3642,10 @@ async def director_control_to_sketch(
         project_dir=project_dir,
         episode_num=episode_num,
         beat_num=beat_num,
-        asset_url=lambda path: _viewer_asset_url(
+        asset_url=make_project_asset_url_builder(
             resolved.ctx,
             project_dir,
-            path,
+            make_static_url_for_context,
         ),
     )
     if not payload["ready"]:

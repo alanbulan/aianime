@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 
 from ai_anime.modules.project_workspace.public import ProjectContext
@@ -33,4 +34,29 @@ def make_static_url_for_context(
     return make_project_static_url(ctx, relative_path, local_path=local_path)
 
 
-__all__ = ["make_project_static_url", "make_static_url_for_context"]
+def make_project_asset_url_builder(
+    ctx: ProjectContext,
+    project_dir: str | Path,
+    static_url_builder: Callable[..., str] = make_project_static_url,
+) -> Callable[[str | Path], str]:
+    """Build URLs only for existing paths lexically owned by one project."""
+    project_root = Path(project_dir)
+
+    def asset_url(asset_path: str | Path) -> str:
+        path = Path(asset_path)
+        if not path.exists():
+            return ""
+        try:
+            relative_path = path.relative_to(project_root).as_posix()
+        except ValueError:
+            return ""
+        return static_url_builder(ctx, relative_path, local_path=path)
+
+    return asset_url
+
+
+__all__ = [
+    "make_project_asset_url_builder",
+    "make_project_static_url",
+    "make_static_url_for_context",
+]

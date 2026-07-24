@@ -33,20 +33,10 @@ from ai_anime.modules.asset_world.public import (
     scene_viewer_use_cases,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext, resolve_project_context
+from ai_anime.shared.project_media import make_project_asset_url_builder
 from ai_anime.sqlite_store import SQLiteStore
 
 router = APIRouter()
-
-
-def _asset_url(ctx: ProjectContext, project_dir: Path, abs_path: str | Path) -> str:
-    path = Path(abs_path)
-    if not path.exists():
-        return ""
-    try:
-        rel_path = path.relative_to(project_dir).as_posix()
-    except ValueError:
-        return ""
-    return make_static_url_for_context(ctx, rel_path, local_path=path)
 
 
 async def _resolve_scene_project(
@@ -82,7 +72,9 @@ async def list_scenes(
     data = await scene_catalog_use_cases().list_scenes(
         repository=store,
         project_dir=project_dir,
-        asset_url=lambda path: _asset_url(ctx, project_dir, path),
+        asset_url=make_project_asset_url_builder(
+            ctx, project_dir, make_static_url_for_context
+        ),
     )
     return {
         "ok": True,
@@ -129,7 +121,9 @@ async def get_scene_pano_manifest(
             project_id=ctx.project_id,
             project_dir=project_dir,
             scene_name=name,
-            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+            asset_url=make_project_asset_url_builder(
+                ctx, project_dir, make_static_url_for_context
+            ),
         )
     except SceneCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
@@ -153,7 +147,9 @@ async def update_scene_pano_correction(
             project_dir=project_dir,
             scene_name=name,
             correction=correction.model_dump(),
-            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+            asset_url=make_project_asset_url_builder(
+                ctx, project_dir, make_static_url_for_context
+            ),
         )
     except SceneCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
@@ -175,7 +171,9 @@ async def get_scene_director_stage_manifest(
             project_id=ctx.project_id,
             project_dir=project_dir,
             scene_name=name,
-            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+            asset_url=make_project_asset_url_builder(
+                ctx, project_dir, make_static_url_for_context
+            ),
         )
     except SceneCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
@@ -203,7 +201,9 @@ async def save_scene_director_world(
                 snapshot=body.get("snapshot"),
                 active_source=body.get("active_source"),
             ),
-            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+            asset_url=make_project_asset_url_builder(
+                ctx, project_dir, make_static_url_for_context
+            ),
         )
     except SceneCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
@@ -231,7 +231,9 @@ async def save_scene_director_world_source(
                 snapshot=body.get("snapshot"),
                 source=body.get("source"),
             ),
-            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+            asset_url=make_project_asset_url_builder(
+                ctx, project_dir, make_static_url_for_context
+            ),
         )
     except SceneCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
@@ -274,7 +276,9 @@ async def create_scene(
         data = await scene_catalog_use_cases().create_scene(
             repository=store,
             project_dir=project_dir,
-            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+            asset_url=make_project_asset_url_builder(
+                ctx, project_dir, make_static_url_for_context
+            ),
             command=CreateSceneCommand(**body.model_dump()),
         )
     except SceneCatalogRejected as exc:
@@ -296,7 +300,9 @@ async def update_scene(
         data = await scene_catalog_use_cases().update_scene(
             repository=store,
             project_dir=project_dir,
-            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+            asset_url=make_project_asset_url_builder(
+                ctx, project_dir, make_static_url_for_context
+            ),
             scene_name=name,
             command=UpdateSceneCommand(
                 fields=body.model_dump(exclude_unset=True, exclude_none=True)
@@ -370,7 +376,9 @@ async def upload_scene_master(
         "data": scene_catalog_use_cases().project_scene(
             scene,
             project_dir=project_dir,
-            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+            asset_url=make_project_asset_url_builder(
+                ctx, project_dir, make_static_url_for_context
+            ),
         ),
     }
 
@@ -487,7 +495,9 @@ async def upload_scene_pano(
         "data": scene_catalog_use_cases().project_scene(
             scene,
             project_dir=project_dir,
-            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+            asset_url=make_project_asset_url_builder(
+                ctx, project_dir, make_static_url_for_context
+            ),
         ),
     }
 
@@ -537,7 +547,9 @@ async def upload_scene_custom_package(
         "data": scene_catalog_use_cases().project_scene(
             scene,
             project_dir=project_dir,
-            asset_url=lambda path: _asset_url(ctx, project_dir, path),
+            asset_url=make_project_asset_url_builder(
+                ctx, project_dir, make_static_url_for_context
+            ),
         ),
     }
 

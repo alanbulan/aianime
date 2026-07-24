@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
@@ -23,19 +22,9 @@ from ai_anime.modules.asset_world.public import (
     prop_catalog_use_cases,
     prop_task_use_cases,
 )
+from ai_anime.shared.project_media import make_project_asset_url_builder
 
 router = APIRouter()
-
-
-def _asset_url(ctx, project_dir: Path, abs_path: str | Path) -> str:
-    path = Path(abs_path)
-    if not path.exists():
-        return ""
-    try:
-        rel_path = path.relative_to(project_dir).as_posix()
-    except ValueError:
-        return ""
-    return make_static_url_for_context(ctx, rel_path, local_path=path)
 
 
 @router.get("/projects/{project}/props")
@@ -54,7 +43,9 @@ async def list_props(
     data = await prop_catalog_use_cases().list_props(
         repository=store,
         project_dir=project_dir,
-        asset_url=lambda path: _asset_url(resolved.ctx, project_dir, path),
+        asset_url=make_project_asset_url_builder(
+            resolved.ctx, project_dir, make_static_url_for_context
+        ),
         scope=scope,
     )
     return {
@@ -80,7 +71,9 @@ async def create_prop(
         data = await prop_catalog_use_cases().create_prop(
             repository=store,
             project_dir=project_dir,
-            asset_url=lambda path: _asset_url(resolved.ctx, project_dir, path),
+            asset_url=make_project_asset_url_builder(
+                resolved.ctx, project_dir, make_static_url_for_context
+            ),
             command=CreatePropCommand(**body.model_dump()),
         )
     except PropCatalogRejected as exc:
@@ -106,7 +99,9 @@ async def update_prop(
         data = await prop_catalog_use_cases().update_prop(
             repository=store,
             project_dir=project_dir,
-            asset_url=lambda path: _asset_url(resolved.ctx, project_dir, path),
+            asset_url=make_project_asset_url_builder(
+                resolved.ctx, project_dir, make_static_url_for_context
+            ),
             prop_name=name,
             command=UpdatePropCommand(
                 fields=body.model_dump(exclude_unset=True, exclude_none=True)
