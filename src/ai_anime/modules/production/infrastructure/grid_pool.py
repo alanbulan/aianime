@@ -9,18 +9,21 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from ai_anime.generators import pool_indexer
+from ai_anime.generators import nanobanana_grid, pool_indexer
 from ai_anime.modules.production.application.grid_pool import (
     BeatSketchCandidates,
     BeatSketchCandidateView,
+    BuildGridSketchPreviewCommand,
     CutGridResult,
     GridPoolCutRejected,
     GridPoolImageStale,
     GridPoolImageView,
     GridPoolListing,
+    GridPoolPreviewRejected,
     GridPoolSelectionRejected,
     GridPoolUploadRejected,
     GridPrompt,
+    GridSketchPreview,
     GridPoolPromptRejected,
     LocateGridPromptQuery,
     PersistGridCutCommand,
@@ -631,6 +634,76 @@ class LocalGridPoolGateway:
             grid_index=command.grid_index,
             added=result.get("added", 0),
             skipped=result.get("skipped", 0),
+        )
+
+    def preview(
+        self,
+        context: ProjectContext,
+        command: BuildGridSketchPreviewCommand,
+    ) -> GridSketchPreview:
+        grids_dir = self._grids_dir(context, command.episode_num)
+        beat_numbers = list(command.beat_numbers)
+        paths = pool_indexer.build_beat_sketch_paths(grids_dir, beat_numbers)
+        pool = pool_indexer.load_pool_index(grids_dir)
+        if pool:
+            latest_pool_paths: dict[int, tuple[float, str]] = {}
+            for image in pool.images:
+                if image.type != "sketch" or not image.cell_path:
+                    continue
+                beat_num = int(image.original_beat)
+                if beat_num not in beat_numbers:
+                    continue
+                cell_path = grids_dir / image.cell_path
+                if not cell_path.exists():
+                    continue
+                generated_at = (
+                    image.generated_at.timestamp() if image.generated_at else 0.0
+                )
+                current = latest_pool_paths.get(beat_num)
+                if current is None or generated_at > current[0]:
+                    latest_pool_paths[beat_num] = (generated_at, str(cell_path))
+            paths = {
+                **{
+                    beat: path
+                    for beat, (_generated_at, path) in latest_pool_paths.items()
+                },
+                **paths,
+            }
+        if not paths:
+            raise GridPoolPreviewRejected("No sketch images found for requested beats")
+
+        beats_slug = "_".join(str(beat) for beat in beat_numbers[:8])
+        output_path = (
+            grids_dir / f"sketch_thumb_grid{command.grid_index}_{beats_slug}_"
+            f"{command.rows}x{command.cols}.jpg"
+        )
+        preview_path = Path(
+            nanobanana_grid.crop_sketch_panels(
+                str(grids_dir),
+                beat_numbers,
+                command.rows,
+                command.cols,
+                str(output_path),
+                beat_sketch_paths=paths,
+            )
+        )
+        try:
+            relative_path = preview_path.relative_to(grids_dir)
+        except ValueError as exc:
+            raise GridPoolPreviewRejected(
+                "Sketch preview path escaped episode grids directory"
+            ) from exc
+        return GridSketchPreview(
+            grid_index=command.grid_index,
+            rows=command.rows,
+            cols=command.cols,
+            beat_numbers=command.beat_numbers,
+            preview_path=str(relative_path),
+            preview_url=self._media_url_builder(
+                context,
+                f"grids/ep{command.episode_num:03d}/{relative_path}",
+                local_path=preview_path,
+            ),
         )
 
     def rebuild(

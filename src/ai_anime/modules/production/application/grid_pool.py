@@ -326,6 +326,44 @@ class CutGridResult:
 
 
 @dataclass(frozen=True)
+class GridSketchPreviewCommand:
+    episode_num: int
+    grid_index: int
+    rows: int
+    cols: int
+    beat_numbers: tuple[int, ...]
+
+
+@dataclass(frozen=True)
+class BuildGridSketchPreviewCommand:
+    episode_num: int
+    grid_index: int
+    rows: int
+    cols: int
+    beat_numbers: tuple[int, ...]
+
+
+@dataclass(frozen=True)
+class GridSketchPreview:
+    grid_index: int
+    rows: int
+    cols: int
+    beat_numbers: tuple[int, ...]
+    preview_path: str
+    preview_url: str
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "grid_index": self.grid_index,
+            "rows": self.rows,
+            "cols": self.cols,
+            "beat_numbers": list(self.beat_numbers),
+            "preview_path": self.preview_path,
+            "preview_url": self.preview_url,
+        }
+
+
+@dataclass(frozen=True)
 class RebuiltGridPool:
     episode: int
     image_count: int
@@ -359,6 +397,10 @@ class GridPoolPromptRejected(ValueError):
 
 
 class GridPoolCutRejected(ValueError):
+    pass
+
+
+class GridPoolPreviewRejected(ValueError):
     pass
 
 
@@ -474,6 +516,27 @@ class GridPoolUseCases:
                 grid_type=command.grid_type,
                 lookup_mode_key=command.mode_key,
                 mode_key=command.mode_key or f"{command.rows}x{command.cols}",
+                rows=command.rows,
+                cols=command.cols,
+                beat_numbers=beat_numbers,
+            ),
+        )
+
+    def preview(
+        self,
+        context: ProjectContext,
+        command: GridSketchPreviewCommand,
+    ) -> GridSketchPreview:
+        beat_numbers = tuple(
+            int(beat) for beat in command.beat_numbers if int(beat) > 0
+        )
+        if not beat_numbers:
+            raise GridPoolPreviewRejected("beat_numbers is required")
+        return self._gateway.preview(
+            context,
+            BuildGridSketchPreviewCommand(
+                episode_num=command.episode_num,
+                grid_index=command.grid_index,
                 rows=command.rows,
                 cols=command.cols,
                 beat_numbers=beat_numbers,

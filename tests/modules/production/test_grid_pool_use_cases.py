@@ -4,15 +4,19 @@ import pytest
 
 from ai_anime.modules.production.application.grid_pool import (
     BeatSketchCandidates,
+    BuildGridSketchPreviewCommand,
     CutGridCommand,
     CutGridResult,
     GridPoolPromptRejected,
+    GridPoolPreviewRejected,
     GridPoolUploadRejected,
     GridPoolImageView,
     GridPoolListing,
     GridPoolUseCases,
     GridPrompt,
     GridPromptQuery,
+    GridSketchPreview,
+    GridSketchPreviewCommand,
     LocateGridPromptQuery,
     PersistGridCutCommand,
     PersistGridImageCommand,
@@ -90,6 +94,17 @@ class _Gateway:
     def cut(self, context, command):
         self.calls.append(("cut", context, command))
         return CutGridResult(grid_index=command.grid_index, added=2, skipped=1)
+
+    def preview(self, context, command):
+        self.calls.append(("preview", context, command))
+        return GridSketchPreview(
+            grid_index=command.grid_index,
+            rows=command.rows,
+            cols=command.cols,
+            beat_numbers=command.beat_numbers,
+            preview_path="sketch-preview.jpg",
+            preview_url="/static/sketch-preview.jpg",
+        )
 
 
 @pytest.mark.asyncio
@@ -169,6 +184,14 @@ async def test_grid_pool_use_cases_delegate_and_preserve_response_contract() -> 
         beat_end=6,
     )
     cut = use_cases.cut(context, cut_command)
+    preview_command = GridSketchPreviewCommand(
+        episode_num=2,
+        grid_index=3,
+        rows=1,
+        cols=2,
+        beat_numbers=(-1, 5, 6),
+    )
+    preview = use_cases.preview(context, preview_command)
 
     assert listed is listing
     assert listed.as_dict()["images"][0]["generated_at"] is None
@@ -212,6 +235,14 @@ async def test_grid_pool_use_cases_delegate_and_preserve_response_contract() -> 
         "prompt_path": "custom/prompt.txt",
     }
     assert cut.as_dict() == {"grid_index": 3, "added": 2, "skipped": 1}
+    assert preview.as_dict() == {
+        "grid_index": 3,
+        "rows": 1,
+        "cols": 2,
+        "beat_numbers": [5, 6],
+        "preview_path": "sketch-preview.jpg",
+        "preview_url": "/static/sketch-preview.jpg",
+    }
     assert gateway.calls == [
         ("list", context, 2),
         ("rebuild", context, 2),
@@ -251,6 +282,17 @@ async def test_grid_pool_use_cases_delegate_and_preserve_response_contract() -> 
                 grid_type="render",
                 lookup_mode_key=None,
                 mode_key="1x2",
+                rows=1,
+                cols=2,
+                beat_numbers=(5, 6),
+            ),
+        ),
+        (
+            "preview",
+            context,
+            BuildGridSketchPreviewCommand(
+                episode_num=2,
+                grid_index=3,
                 rows=1,
                 cols=2,
                 beat_numbers=(5, 6),
@@ -344,4 +386,22 @@ def test_grid_prompt_rejects_invalid_inputs_before_lookup(
         GridPoolUseCases(gateway).prompt(object(), query)
 
     assert message in str(raised.value)
+    assert gateway.calls == []
+
+
+def test_grid_preview_requires_positive_beat_numbers() -> None:
+    gateway = _Gateway(None)
+
+    with pytest.raises(GridPoolPreviewRejected, match="beat_numbers is required"):
+        GridPoolUseCases(gateway).preview(
+            object(),
+            GridSketchPreviewCommand(
+                episode_num=2,
+                grid_index=1,
+                rows=1,
+                cols=1,
+                beat_numbers=(0, -1),
+            ),
+        )
+
     assert gateway.calls == []

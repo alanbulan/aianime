@@ -511,20 +511,25 @@ def test_production_grid_pool_routes_delegate_to_application() -> None:
     prompt_start = source.index("async def export_grid_prompt(")
     prompt_end = source.index("async def sketch_grid_preview(", prompt_start)
     route_source += source[prompt_start:prompt_end]
+    preview_start = source.index("async def sketch_grid_preview(")
+    preview_end = source.index("async def cut_grid(", preview_start)
+    route_source += source[preview_start:preview_end]
     cut_start = source.index("async def cut_grid(")
     cut_end = source.index("async def export_zip(", cut_start)
     route_source += source[cut_start:cut_end]
 
-    assert route_source.count("grid_pool_use_cases") == 9
+    assert route_source.count("grid_pool_use_cases") == 10
     assert "SelectGridPoolImageCommand" in route_source
     assert route_source.count("UploadBeatPoolImageCommand") == 2
     assert route_source.count("UploadGridImageCommand") == 1
     assert route_source.count("GridPromptQuery") == 1
+    assert route_source.count("GridSketchPreviewCommand") == 1
     assert route_source.count("CutGridCommand") == 1
     assert "GridPoolImageStale" in route_source
     assert "GridPoolSelectionRejected" in route_source
     assert route_source.count("GridPoolUploadRejected") == 3
     assert route_source.count("GridPoolPromptRejected") == 1
+    assert route_source.count("GridPoolPreviewRejected") == 1
     assert route_source.count("GridPoolCutRejected") == 1
     assert "def _register_uploaded_pool_image(" not in source
     assert "def _uploaded_grid_filename(" not in source
@@ -545,6 +550,8 @@ def test_production_grid_pool_routes_delegate_to_application() -> None:
         "make_static_url_for_context",
         "shutil.copy2",
         "save_grid_and_split",
+        "build_beat_sketch_paths",
+        "crop_sketch_panels",
         ".glob(",
         ".read_text(",
         ".write_bytes(",

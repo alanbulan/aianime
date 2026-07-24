@@ -37,7 +37,7 @@ def _client(monkeypatch, tmp_path, config: dict | None = None):
         project: str, user: dict, required_role: str = "editor"
     ):
         return SimpleNamespace(
-            ctx=None,
+            ctx=ctx,
             username="alice",
             project_name="demo",
             project_dir=tmp_path,
@@ -1491,4 +1491,29 @@ def test_sketch_grid_preview_falls_back_to_latest_pool_sketch_cells(
     assert calls["beat_sketch_paths"] == {
         7: str(new_cell),
         8: str(beat8_cell),
+    }
+
+
+def test_sketch_grid_preview_preserves_input_and_missing_image_errors(
+    monkeypatch,
+    tmp_path,
+):
+    client, _saved = _client(monkeypatch, tmp_path)
+
+    invalid_beats = client.post(
+        "/api/v1/projects/demo/episodes/1/grids/1/sketch-preview",
+        json={"rows": 1, "cols": 1, "beat_numbers": [0, -1]},
+    )
+    missing_images = client.post(
+        "/api/v1/projects/demo/episodes/1/grids/1/sketch-preview",
+        json={"rows": 1, "cols": 1, "beat_numbers": [7]},
+    )
+
+    assert invalid_beats.json() == {
+        "ok": False,
+        "error": "beat_numbers is required",
+    }
+    assert missing_images.json() == {
+        "ok": False,
+        "error": "No sketch images found for requested beats",
     }

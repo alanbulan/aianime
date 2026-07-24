@@ -70,6 +70,8 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
         CutGridResult,
         GridPrompt,
         GridPromptQuery,
+        GridSketchPreview,
+        GridSketchPreviewCommand,
         GridPoolListing,
         RebuiltGridPool,
         SelectedGridPoolImage,
@@ -150,6 +152,17 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
             use_case_calls.append(("cut", candidate, command))
             return CutGridResult(grid_index=command.grid_index, added=2, skipped=0)
 
+        def preview(self, candidate, command):
+            use_case_calls.append(("preview", candidate, command))
+            return GridSketchPreview(
+                grid_index=command.grid_index,
+                rows=command.rows,
+                cols=command.cols,
+                beat_numbers=command.beat_numbers,
+                preview_path="preview.jpg",
+                preview_url="/static/preview.jpg",
+            )
+
     use_cases = UseCases()
     monkeypatch.setattr(generation, "_resolve_generation_project", resolve)
     monkeypatch.setattr(generation, "grid_pool_use_cases", lambda: use_cases)
@@ -196,6 +209,17 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
         beat_numbers="5,6",
         user={"username": "admin"},
     )
+    preview = await generation.sketch_grid_preview(
+        "project-id",
+        2,
+        3,
+        generation.GridSketchPreviewRequest(
+            rows=1,
+            cols=2,
+            beat_numbers=[5, 6],
+        ),
+        user={"username": "admin"},
+    )
     cut = await generation.cut_grid(
         "project-id",
         2,
@@ -231,6 +255,10 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
         (
             ("project-id", {"username": "admin"}),
             {"required_role": "editor"},
+        ),
+        (
+            ("project-id", {"username": "admin"}),
+            {"required_role": "viewer"},
         ),
         (
             ("project-id", {"username": "admin"}),
@@ -277,6 +305,17 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
                 grid_type=" render ",
                 mode_key=" 2x2 ",
                 beat_numbers="5,6",
+            ),
+        ),
+        (
+            "preview",
+            context,
+            GridSketchPreviewCommand(
+                episode_num=2,
+                grid_index=3,
+                rows=1,
+                cols=2,
+                beat_numbers=(5, 6),
             ),
         ),
         (
@@ -351,6 +390,17 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
             "beat_numbers": [5, 6],
             "prompt": "stored prompt",
             "prompt_path": "custom/prompt.txt",
+        },
+    }
+    assert preview == {
+        "ok": True,
+        "data": {
+            "grid_index": 3,
+            "rows": 1,
+            "cols": 2,
+            "beat_numbers": [5, 6],
+            "preview_path": "preview.jpg",
+            "preview_url": "/static/preview.jpg",
         },
     }
     assert cut == {

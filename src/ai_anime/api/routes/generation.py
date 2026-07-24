@@ -88,11 +88,13 @@ from ai_anime.modules.production.public import (
     GlobalVideoOptimizationSketchesMissing,
     GridPoolCutRejected,
     GridPoolImageStale,
+    GridPoolPreviewRejected,
     GridPoolPromptRejected,
     GridPoolSelectionRejected,
     GridPoolUploadRejected,
     GridRegenerationRejected,
     GridPromptQuery,
+    GridSketchPreviewCommand,
     ImageGenerationGuardQuery,
     ManualSketchRegenerationRejected,
     ProductionImageSettingsRejected,
@@ -1963,81 +1965,20 @@ async def sketch_grid_preview(
     changing the generation pipeline.
     """
     resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    output_dir = Path(resolved.output_dir)
-    ep_grids_dir = output_dir / "grids" / f"ep{episode_num:03d}"
-
-    from ai_anime.generators.nanobanana_grid import crop_sketch_panels
-    from ai_anime.generators.pool_indexer import (
-        build_beat_sketch_paths,
-        load_pool_index,
-    )
-
-    beat_numbers = [int(beat) for beat in body.beat_numbers if int(beat) > 0]
-    if not beat_numbers:
-        return {"ok": False, "error": "beat_numbers is required"}
-
-    paths = build_beat_sketch_paths(ep_grids_dir, beat_numbers)
-    pool = load_pool_index(ep_grids_dir)
-    if pool:
-        latest_pool_paths: dict[int, tuple[float, str]] = {}
-        for img in pool.images:
-            if img.type != "sketch" or not img.cell_path:
-                continue
-            beat_num = int(img.original_beat)
-            if beat_num not in beat_numbers:
-                continue
-            cell_path = ep_grids_dir / img.cell_path
-            if not cell_path.exists():
-                continue
-            generated_at = img.generated_at.timestamp() if img.generated_at else 0.0
-            current = latest_pool_paths.get(beat_num)
-            if current is None or generated_at > current[0]:
-                latest_pool_paths[beat_num] = (generated_at, str(cell_path))
-        paths = {
-            **{beat: path for beat, (_generated_at, path) in latest_pool_paths.items()},
-            **paths,
-        }
-    if not paths:
-        return {"ok": False, "error": "No sketch images found for requested beats"}
-
-    beats_slug = "_".join(str(beat) for beat in beat_numbers[:8])
-    out_file = (
-        ep_grids_dir
-        / f"sketch_thumb_grid{grid_index}_{beats_slug}_{body.rows}x{body.cols}.jpg"
-    )
-    sketch_out = Path(
-        crop_sketch_panels(
-            str(ep_grids_dir),
-            beat_numbers,
-            body.rows,
-            body.cols,
-            str(out_file),
-            beat_sketch_paths=paths,
-        )
-    )
     try:
-        rel = sketch_out.relative_to(ep_grids_dir)
-    except ValueError:
-        return {
-            "ok": False,
-            "error": "Sketch preview path escaped episode grids directory",
-        }
-
-    return {
-        "ok": True,
-        "data": {
-            "grid_index": grid_index,
-            "rows": body.rows,
-            "cols": body.cols,
-            "beat_numbers": beat_numbers,
-            "preview_path": str(rel),
-            "preview_url": make_static_url_for_context(
-                resolved.ctx,
-                f"grids/ep{episode_num:03d}/{rel}",
-                local_path=sketch_out,
+        preview = grid_pool_use_cases().preview(
+            resolved.ctx,
+            GridSketchPreviewCommand(
+                episode_num=episode_num,
+                grid_index=grid_index,
+                rows=body.rows,
+                cols=body.cols,
+                beat_numbers=tuple(body.beat_numbers),
             ),
-        },
-    }
+        )
+    except GridPoolPreviewRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": preview.as_dict()}
 
 
 @router.post("/projects/{project}/episodes/{episode_num}/grids/{grid_index}/cut")

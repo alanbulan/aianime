@@ -11,9 +11,11 @@ from PIL import Image
 from ai_anime.generators import pool_indexer
 from ai_anime.models import GridEntry, PoolImage, PoolIndex
 from ai_anime.modules.production.application.grid_pool import (
+    BuildGridSketchPreviewCommand,
     GridPoolCutRejected,
     GridPoolImageStale,
     GridPoolPromptRejected,
+    GridPoolPreviewRejected,
     GridPoolSelectionRejected,
     GridPoolUploadRejected,
     LocateGridPromptQuery,
@@ -649,6 +651,49 @@ def test_grid_prompt_and_cut_preserve_missing_storage_errors(tmp_path: Path) -> 
                 beat_numbers=(1,),
             ),
         )
+
+
+def test_grid_preview_preserves_missing_images_and_path_escape_errors(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    from ai_anime.modules.production.infrastructure import grid_pool
+
+    context = _context(tmp_path)
+    gateway = LocalGridPoolGateway()
+    command = BuildGridSketchPreviewCommand(
+        episode_num=2,
+        grid_index=1,
+        rows=1,
+        cols=1,
+        beat_numbers=(5,),
+    )
+    monkeypatch.setattr(
+        grid_pool.pool_indexer,
+        "build_beat_sketch_paths",
+        lambda *_args: {},
+    )
+    monkeypatch.setattr(
+        grid_pool.pool_indexer,
+        "load_pool_index",
+        lambda *_args: None,
+    )
+
+    with pytest.raises(GridPoolPreviewRejected, match="No sketch images found"):
+        gateway.preview(context, command)
+
+    monkeypatch.setattr(
+        grid_pool.pool_indexer,
+        "build_beat_sketch_paths",
+        lambda *_args: {5: "sketch.png"},
+    )
+    monkeypatch.setattr(
+        grid_pool.nanobanana_grid,
+        "crop_sketch_panels",
+        lambda *_args, **_kwargs: str(tmp_path / "outside.jpg"),
+    )
+    with pytest.raises(GridPoolPreviewRejected, match="path escaped"):
+        gateway.preview(context, command)
 
 
 def test_rebuild_pool_uses_episode_directory_and_projects_counts(
