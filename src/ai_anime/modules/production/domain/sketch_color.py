@@ -250,6 +250,19 @@ def global_prop_marker_colors(
     return colors
 
 
+def apply_prop_marker_colors(
+    prop_menu: list[Any],
+    colors: dict[str, str],
+) -> list[Any]:
+    for item in prop_menu:
+        if not isinstance(item, dict):
+            continue
+        prop_id = str(item.get("prop_id") or item.get("name") or "").strip()
+        if prop_id in colors:
+            item["marker_color"] = colors[prop_id]
+    return prop_menu
+
+
 def marker_color_change_requires_sketch_clean(
     previous: dict[str, str] | None,
     current: dict[str, str] | None,

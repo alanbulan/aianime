@@ -371,7 +371,7 @@ def test_production_sketch_color_rules_have_one_owner() -> None:
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     callers = {
         nanobanana: "global_prop_marker_colors",
-        generation: "marker_color_change_requires_sketch_clean",
+        generation: "global_prop_marker_colors",
         PACKAGE_ROOT / "freezone" / "presets.py": "global_prop_marker_colors",
         PACKAGE_ROOT / "modules" / "asset_world" / "composition.py": (
             "BRIDGMAN_CHARACTER_PALETTE"
@@ -393,6 +393,29 @@ def test_production_sketch_color_rules_have_one_owner() -> None:
         assert public_name in source
         assert "ai_anime.modules.production.public" in _imports(path)
         assert "ai_anime.generators.episode_optimizer" not in _imports(path)
+
+
+def test_production_sketch_color_assignment_route_delegates_to_application() -> None:
+    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    source = generation.read_text(encoding="utf-8")
+    route_start = source.index("async def assign_sketch_colors(")
+    route_end = source.index("\n@router.post(", route_start)
+    route_source = source[route_start:route_end]
+
+    assert "sketch_color_assignment_use_cases" in route_source
+    assert "SketchColorMarkersMissing" in route_source
+    for implementation_detail in (
+        "get_all_characters",
+        "get_sketch_colors",
+        "set_sketch_colors",
+        "update_episode",
+        "PathResolver",
+        "_runtime_prop_menu_with_global_props",
+        "assign_identity_sketch_colors",
+        "global_prop_marker_colors",
+        "marker_color_change_requires_sketch_clean",
+    ):
+        assert implementation_detail not in route_source
 
 
 def test_asset_world_style_layers_do_not_depend_on_fastapi() -> None:

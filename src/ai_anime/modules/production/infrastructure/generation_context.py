@@ -6,25 +6,18 @@ from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.asset_world.public import build_character_map_for_grid
-from ai_anime.modules.production.domain.sketch_color import (
-    assign_identity_sketch_colors,
-)
 from ai_anime.utils.path_resolver import compute_identity_path, compute_portrait_path
 
 
-class DomainSketchColorAssigner:
-    def assign(
-        self,
-        characters: list[dict[str, Any]],
-        beats: list[dict[str, Any]],
-        *,
-        existing_colors: dict[str, str] | None = None,
-    ) -> dict[str, str]:
-        return assign_identity_sketch_colors(
-            characters,
-            episode_beats=beats,
-            existing_colors=existing_colors,
-        )
+class CompatibleEpisodeSource:
+    def episode_or_none(self, store: Any, episode_num: int) -> Any | None:
+        get_episode = getattr(store, "get_episode", None)
+        if get_episode is None:
+            return None
+        try:
+            return get_episode(episode_num)
+        except Exception:
+            return None
 
 
 class AssetWorldCharacterProjector:

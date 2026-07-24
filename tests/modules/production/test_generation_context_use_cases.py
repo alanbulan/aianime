@@ -48,6 +48,11 @@ class _ColorAssigner:
         return self.colors
 
 
+class _Episodes:
+    def episode_or_none(self, store: Any, episode_num: int) -> Any:
+        return store.get_episode(episode_num)
+
+
 class _CharacterProjector:
     def __init__(self) -> None:
         self.project_calls: list[tuple[list[Any], str]] = []
@@ -71,7 +76,12 @@ async def test_build_character_map_reuses_persisted_sketch_colors() -> None:
     store = _Store({"林昭_青年": "#3366FF"})
     colors = _ColorAssigner({"unused": "#FFFFFF"})
     projector = _CharacterProjector()
-    use_cases = ProductionGenerationContextUseCases(store, colors, projector)
+    use_cases = ProductionGenerationContextUseCases(
+        store,
+        _Episodes(),
+        colors,
+        projector,
+    )
     beats = [{"beat_number": 1}]
 
     result = await use_cases.build_character_map(
@@ -102,7 +112,12 @@ async def test_build_character_map_assigns_and_persists_missing_colors() -> None
     assigned = {"林昭_青年": "#3366FF"}
     colors = _ColorAssigner(assigned)
     projector = _CharacterProjector()
-    use_cases = ProductionGenerationContextUseCases(store, colors, projector)
+    use_cases = ProductionGenerationContextUseCases(
+        store,
+        _Episodes(),
+        colors,
+        projector,
+    )
     beats = [{"beat_number": 1}]
 
     await use_cases.build_character_map(
@@ -116,15 +131,13 @@ async def test_build_character_map_assigns_and_persists_missing_colors() -> None
     assert projector.map_calls[0]["sketch_colors"] == assigned
 
 
-def test_episode_lookup_keeps_missing_and_failing_store_compatibility() -> None:
-    dependencies = (_ColorAssigner({}), _CharacterProjector())
-    missing = ProductionGenerationContextUseCases(object(), *dependencies)
+def test_episode_lookup_delegates_to_episode_source() -> None:
+    store = _Store({})
+    use_cases = ProductionGenerationContextUseCases(
+        store,
+        _Episodes(),
+        _ColorAssigner({}),
+        _CharacterProjector(),
+    )
 
-    class _FailingStore:
-        def get_episode(self, _episode_num: int) -> Any:
-            raise RuntimeError("broken fixture")
-
-    failing = ProductionGenerationContextUseCases(_FailingStore(), *dependencies)
-
-    assert missing.episode_or_none(2) is None
-    assert failing.episode_or_none(2) is None
+    assert use_cases.episode_or_none(2) == {"episode": 2}

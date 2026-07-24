@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from ai_anime.modules.production.infrastructure import generation_context
 from ai_anime.modules.production.infrastructure.generation_context import (
     AssetWorldCharacterProjector,
+    CompatibleEpisodeSource,
 )
 
 
@@ -120,3 +121,14 @@ def test_character_map_delegates_to_asset_world_public_api(
         "sketch_colors": {"林昭_青年": "#3366FF"},
         "use_detected_identities": True,
     }
+
+
+def test_episode_source_keeps_missing_and_failing_store_compatibility() -> None:
+    source = CompatibleEpisodeSource()
+
+    class _FailingStore:
+        def get_episode(self, _episode_num: int):
+            raise RuntimeError("broken fixture")
+
+    assert source.episode_or_none(object(), 2) is None
+    assert source.episode_or_none(_FailingStore(), 2) is None

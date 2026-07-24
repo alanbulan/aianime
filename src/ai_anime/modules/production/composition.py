@@ -14,6 +14,9 @@ from ai_anime.modules.production.application.sketch_pose import (
 from ai_anime.modules.production.application.sketch_image import (
     SketchImageUseCases,
 )
+from ai_anime.modules.production.application.sketch_color import (
+    SketchColorAssignmentUseCases,
+)
 from ai_anime.modules.production.infrastructure.sketch_image import (
     PillowSketchImageFiles,
 )
@@ -23,7 +26,12 @@ from ai_anime.modules.production.infrastructure.image_settings import (
 )
 from ai_anime.modules.production.infrastructure.generation_context import (
     AssetWorldCharacterProjector,
+    CompatibleEpisodeSource,
+)
+from ai_anime.modules.production.infrastructure.sketch_color import (
+    AssetWorldRuntimePropMenuSource,
     DomainSketchColorAssigner,
+    LocalProductionSketchWorkspace,
 )
 from ai_anime.modules.production.infrastructure.sketch_pose import (
     ModelSketchPoseIdentitySource,
@@ -52,8 +60,19 @@ def production_generation_context_use_cases(
 ) -> ProductionGenerationContextUseCases:
     return ProductionGenerationContextUseCases(
         store,
+        CompatibleEpisodeSource(),
         DomainSketchColorAssigner(),
         AssetWorldCharacterProjector(get_user_output_dir(username)),
+    )
+
+
+def sketch_color_assignment_use_cases(store: Any) -> SketchColorAssignmentUseCases:
+    return SketchColorAssignmentUseCases(
+        store,
+        DomainSketchColorAssigner(),
+        CompatibleEpisodeSource(),
+        AssetWorldRuntimePropMenuSource(),
+        LocalProductionSketchWorkspace(),
     )
 
 

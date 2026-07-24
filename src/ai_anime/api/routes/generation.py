@@ -89,14 +89,14 @@ from ai_anime.modules.production.public import (
     CropSketchCommand,
     ProductionImageSettingsRejected,
     SketchCropRejected,
+    SketchColorMarkersMissing,
     SketchPoseCandidatesMissing,
     UpdateRenderImageSettingsCommand,
     UpdateSketchImageSettingsCommand,
-    assign_identity_sketch_colors,
     global_prop_marker_colors,
-    marker_color_change_requires_sketch_clean,
     production_generation_context_use_cases,
     production_image_settings_use_cases,
+    sketch_color_assignment_use_cases,
     sketch_image_use_cases,
     sketch_pose_editor_use_cases,
 )
@@ -5101,88 +5101,25 @@ async def assign_sketch_colors(
     if not beats:
         return {"ok": False, "error": f"No beats found for episode {episode_num}"}
 
-    characters = store.get_all_characters()
-    char_dicts = [
-        {
-            "name": c.name,
-            "identities": [
-                {"identity_id": id_.identity_id, "identity_name": id_.identity_name}
-                for id_ in (c.identities or [])
-            ],
-        }
-        for c in characters
-    ]
-
-    previous_colors = dict(store.get_sketch_colors(episode_num) or {})
-    colors = assign_identity_sketch_colors(
-        char_dicts,
-        episode_beats=beats,
-        existing_colors=previous_colors,
-    )
-
-    episode_obj = production_generation_context_use_cases(
-        store,
-        username,
-    ).episode_or_none(episode_num)
-    runtime_prop_menu = await _runtime_prop_menu_with_global_props(
-        store, episode_obj, beats
-    )
-    previous_prop_marker_colors = global_prop_marker_colors(
-        beats,
-        prop_menu=runtime_prop_menu,
-        sketch_colors=previous_colors,
-    )
-    prop_marker_colors = global_prop_marker_colors(
-        beats,
-        prop_menu=runtime_prop_menu,
-        sketch_colors=colors,
-        assign_missing=True,
-    )
-    if not colors and not prop_marker_colors:
+    try:
+        result = await sketch_color_assignment_use_cases(store).assign(
+            episode_num=episode_num,
+            beats=beats,
+            output_dir=resolved.output_dir,
+        )
+    except SketchColorMarkersMissing:
         return {
             "ok": False,
             "error": "No identity or global prop markers found in beats",
         }
 
-    try:
-        if colors:
-            await store.set_sketch_colors(episode_num, colors)
-        if prop_marker_colors and runtime_prop_menu:
-            for item in runtime_prop_menu:
-                if not isinstance(item, dict):
-                    continue
-                prop_id = str(item.get("prop_id") or item.get("name") or "").strip()
-                if prop_id in prop_marker_colors:
-                    item["marker_color"] = prop_marker_colors[prop_id]
-            await store.update_episode(episode_num, prop_menu=runtime_prop_menu)
-    except Exception:
-        pass
-
-    previous_marker_colors = {
-        **{f"identity:{key}": value for key, value in previous_colors.items()},
-        **{f"prop:{key}": value for key, value in previous_prop_marker_colors.items()},
-    }
-    current_marker_colors = {
-        **{f"identity:{key}": value for key, value in colors.items()},
-        **{f"prop:{key}": value for key, value in prop_marker_colors.items()},
-    }
-    should_clean_sketches = marker_color_change_requires_sketch_clean(
-        previous_marker_colors,
-        current_marker_colors,
-    )
-    if should_clean_sketches:
-        from ai_anime.utils.path_resolver import PathResolver
-
-        output_dir = resolved.output_dir
-        PathResolver(output_dir, episode_num).clean_sketches()
-
     return {
         "ok": True,
         "data": {
-            "colors": colors,
-            "count": len(colors),
-            "prop_colors": prop_marker_colors,
-            "prop_count": len(prop_marker_colors),
+            "colors": result.identity_colors,
+            "count": len(result.identity_colors),
+            "prop_colors": result.prop_colors,
+            "prop_count": len(result.prop_colors),
         },
     }
 

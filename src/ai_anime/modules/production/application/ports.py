@@ -50,8 +50,6 @@ class ProductionImageSelectionCatalog(Protocol):
 
 
 class ProductionGenerationStore(Protocol):
-    def get_episode(self, episode_num: int) -> Any | None: ...
-
     def get_all_characters(self) -> list[Any]: ...
 
     def get_sketch_colors(self, episode_num: int) -> dict[str, str]: ...
@@ -61,6 +59,18 @@ class ProductionGenerationStore(Protocol):
         episode_num: int,
         colors: dict[str, str],
     ) -> None: ...
+
+
+class ProductionSketchColorStore(Protocol):
+    def get_sketch_colors(self, episode_num: int) -> dict[str, str]: ...
+
+    async def set_sketch_colors(
+        self,
+        episode_num: int,
+        colors: dict[str, str],
+    ) -> None: ...
+
+    async def update_episode(self, episode_num: int, **updates: Any) -> None: ...
 
 
 class ProductionSketchColorAssigner(Protocol):
@@ -89,3 +99,24 @@ class ProductionCharacterProjector(Protocol):
         sketch_colors: dict[str, str] | None,
         use_detected_identities: bool,
     ) -> dict[str, dict[str, Any]]: ...
+
+
+class ProductionEpisodeSource(Protocol):
+    def episode_or_none(self, store: Any, episode_num: int) -> Any | None: ...
+
+
+class ProductionRuntimePropMenuSource(Protocol):
+    async def for_episode(
+        self,
+        store: Any,
+        episode: Any,
+        beats: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]: ...
+
+
+class ProductionSketchWorkspace(Protocol):
+    def clear_episode_sketches(
+        self,
+        output_dir: str | Path,
+        episode_num: int,
+    ) -> None: ...
