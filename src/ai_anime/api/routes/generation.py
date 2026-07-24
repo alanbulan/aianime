@@ -60,10 +60,7 @@ from ai_anime.modules.production.public import (
     DetectProjectSketchMarkersCommand,
     DirectorControlSketchUnavailable,
     EpisodeBeatsMissing,
-    EpisodeScriptBeatsMissing,
-    EpisodeSubtitlesMissing,
     ExecuteRenderPlanCommand,
-    FinalEpisodeVideoMissing,
     GenerateMissingManualSketchesCommand,
     GenerateDirectorControlSketchCommand,
     GenerateSketchesCommand,
@@ -120,7 +117,6 @@ from ai_anime.modules.production.public import (
     selected_regeneration_use_cases,
     sketch_generation_use_cases,
     single_video_use_cases,
-    episode_export_use_cases,
     episode_video_use_cases,
     render_plan_use_cases,
     sketch_editing_use_cases,
@@ -1257,58 +1253,6 @@ async def upload_beat_render(
     return {"ok": True, "data": uploaded.as_dict()}
 
 
-# ── SRT 字幕导出 ─────────────────────────────────────────────────────────────
-
-
-@router.get("/projects/{project}/episodes/{episode_num}/export/srt")
-async def export_srt(
-    project: str, episode_num: int, user: dict = Depends(get_api_user)
-):
-    """导出 SRT 字幕文件。"""
-    from fastapi.responses import PlainTextResponse
-
-    resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    try:
-        exported = await episode_export_use_cases().subtitle(
-            resolved.ctx,
-            episode_num,
-        )
-    except (EpisodeScriptBeatsMissing, EpisodeSubtitlesMissing) as exc:
-        return {"ok": False, "error": str(exc)}
-
-    return PlainTextResponse(
-        content=exported.content,
-        media_type=exported.media_type,
-        headers={
-            "Content-Disposition": f'attachment; filename="{exported.filename}"',
-        },
-    )
-
-
-@router.get("/projects/{project}/episodes/{episode_num}/export/video")
-async def export_final_video(
-    project: str,
-    episode_num: int,
-    user: dict = Depends(get_api_user),
-):
-    """Download the composed final episode video."""
-    from fastapi.responses import FileResponse
-
-    resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    try:
-        exported = episode_export_use_cases().final_video(
-            resolved.ctx,
-            episode_num,
-        )
-    except FinalEpisodeVideoMissing as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    return FileResponse(
-        path=str(exported.path),
-        filename=exported.filename,
-        media_type=exported.media_type,
-    )
-
-
 # ── 网格上传 / Prompt 导出 / 切割 ─────────────────────────────────────────────
 
 
@@ -1437,28 +1381,6 @@ async def cut_grid(
     except GridPoolCutRejected as exc:
         return {"ok": False, "error": str(exc)}
     return {"ok": True, "data": result.as_dict()}
-
-
-# ── ZIP 导出 ─────────────────────────────────────────────────────────────────
-
-
-@router.post("/projects/{project}/episodes/{episode_num}/export/zip")
-async def export_zip(
-    project: str, episode_num: int, user: dict = Depends(get_api_user)
-):
-    """打包指定集的所有资源为 ZIP 文件下载。"""
-    from fastapi.responses import FileResponse
-
-    resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    exported = await episode_export_use_cases().archive(
-        resolved.ctx,
-        episode_num,
-    )
-    return FileResponse(
-        path=str(exported.path),
-        filename=exported.filename,
-        media_type=exported.media_type,
-    )
 
 
 # ---------------------------------------------------------------------------

@@ -448,17 +448,19 @@ def test_production_episode_video_routes_delegate_to_application() -> None:
 
 
 def test_production_episode_export_routes_delegate_to_application() -> None:
-    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
-    source = generation.read_text(encoding="utf-8")
-    download_start = source.index("async def export_srt(")
-    download_end = source.index("async def upload_grid(", download_start)
-    archive_start = source.index("async def export_zip(")
-    archive_end = source.index("async def assign_sketch_colors(", archive_start)
-    route_source = source[download_start:download_end] + source[
-        archive_start:archive_end
-    ]
+    route = PACKAGE_ROOT / "api" / "routes" / "production_export.py"
+    source = route.read_text(encoding="utf-8")
+    generation_source = (
+        PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    ).read_text(encoding="utf-8")
+    api_router_source = (PACKAGE_ROOT / "api" / "v1" / "router.py").read_text(
+        encoding="utf-8"
+    )
 
-    assert route_source.count("episode_export_use_cases") == 3
+    assert source.count("episode_export_use_cases().") == 3
+    assert "production_export.router" in api_router_source
+    for handler_name in ("export_srt", "export_final_video", "export_zip"):
+        assert f"async def {handler_name}(" not in generation_source
     for implementation_detail in (
         "make_sqlite_store_for_context",
         "make_sqlite_store(",
@@ -469,7 +471,7 @@ def test_production_episode_export_routes_delegate_to_application() -> None:
         '"videos" / "episodes"',
         "files_to_pack",
     ):
-        assert implementation_detail not in route_source
+        assert implementation_detail not in source
     assert not _python_files(PACKAGE_ROOT / "export")
 
 
@@ -540,7 +542,7 @@ def test_production_grid_pool_routes_delegate_to_application() -> None:
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     source = generation.read_text(encoding="utf-8")
     route_start = source.index("async def list_grids(")
-    route_end = source.index("async def export_srt(", route_start)
+    route_end = source.index("async def upload_grid(", route_start)
     route_source = source[route_start:route_end]
     upload_start = source.index("async def upload_grid(")
     upload_end = source.index("async def export_grid_prompt(", upload_start)
@@ -552,7 +554,7 @@ def test_production_grid_pool_routes_delegate_to_application() -> None:
     preview_end = source.index("async def cut_grid(", preview_start)
     route_source += source[preview_start:preview_end]
     cut_start = source.index("async def cut_grid(")
-    cut_end = source.index("async def export_zip(", cut_start)
+    cut_end = source.index("async def assign_sketch_colors(", cut_start)
     route_source += source[cut_start:cut_end]
 
     assert route_source.count("grid_pool_use_cases") == 10

@@ -19,8 +19,8 @@ class _FakeStore:
 
 
 def _client(monkeypatch, tmp_path) -> TestClient:
-    from ai_anime.api.routes import generation
     from ai_anime.api.deps import ProjectResolution
+    from ai_anime.api.routes import production_export
     from ai_anime.modules.project_workspace.public import ProjectContext
     from ai_anime.shared.infrastructure import project_stores
 
@@ -57,9 +57,15 @@ def _client(monkeypatch, tmp_path) -> TestClient:
         )
 
     app = FastAPI()
-    app.include_router(generation.router)
-    app.dependency_overrides[generation.get_api_user] = lambda: {"username": "alice"}
-    monkeypatch.setattr(generation, "resolve_project_scope", fake_resolve_project_scope)
+    app.include_router(production_export.router)
+    app.dependency_overrides[production_export.get_api_user] = lambda: {
+        "username": "alice"
+    }
+    monkeypatch.setattr(
+        production_export,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
     monkeypatch.setattr(
         project_stores,
         "make_sqlite_store_for_context",
