@@ -198,43 +198,6 @@ vi.mock("@/lib/queries/video", () => ({
     mutateAsync: trimSeedance2AssetMock,
     isPending: false,
   }),
-  useVideoPool: () => ({
-    data: {
-      ok: true,
-      data: {
-        episode: 1,
-        beat_assignments: { "1": "vid-2" },
-        videos: [
-          {
-            id: "vid-1",
-            beat_num: 1,
-            video_path: "old.mp4",
-            video_url: "/static/old.mp4",
-            generated_at: "2026-05-16T09:00:00Z",
-            duration: 5,
-            video_mode: "first_frame",
-            backend: "newapi_seedance-2.0-fast",
-            prompt: "old",
-          },
-          {
-            id: "vid-2",
-            beat_num: 1,
-            video_path: "new.mp4",
-            video_url: "/static/new.mp4",
-            generated_at: "2026-05-16T10:00:00Z",
-            duration: 5,
-            video_mode: "first_frame",
-            backend: "newapi_seedance-2.0-fast",
-            prompt: "new",
-          },
-        ],
-      },
-    },
-  }),
-  useVideoPoolSelect: () => ({
-    mutateAsync: poolSelectMock,
-    isPending: false,
-  }),
   useNarratorVoiceStatus: () => ({
     data: {
       ok: true,
@@ -487,6 +450,43 @@ vi.mock("@/modules/production/public", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/modules/production/public")>();
   return {
     ...actual,
+    useVideoPool: () => ({
+      data: {
+        ok: true,
+        data: {
+          episode: 1,
+          beat_assignments: { "1": "vid-2" },
+          videos: [
+            {
+              id: "vid-1",
+              beat_num: 1,
+              video_path: "old.mp4",
+              video_url: "/static/old.mp4",
+              generated_at: "2026-05-16T09:00:00Z",
+              duration: 5,
+              video_mode: "first_frame",
+              backend: "newapi_seedance-2.0-fast",
+              prompt: "old",
+            },
+            {
+              id: "vid-2",
+              beat_num: 1,
+              video_path: "new.mp4",
+              video_url: "/static/new.mp4",
+              generated_at: "2026-05-16T10:00:00Z",
+              duration: 5,
+              video_mode: "first_frame",
+              backend: "newapi_seedance-2.0-fast",
+              prompt: "new",
+            },
+          ],
+        },
+      },
+    }),
+    useVideoPoolSelect: () => ({
+      mutateAsync: poolSelectMock,
+      isPending: false,
+    }),
     useVideoBackends: () => ({
       data: {
         ok: true,

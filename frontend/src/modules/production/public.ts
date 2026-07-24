@@ -1,6 +1,14 @@
-export { useVideoBackends } from "@/modules/production/composition";
+export {
+  useVideoBackends,
+  useVideoPool,
+  useVideoPoolSelect,
+} from "@/modules/production/composition";
 export { DEFAULT_VIDEO_BACKEND } from "@/modules/production/domain/video-backend";
 export type { VideoBackendOption } from "@/modules/production/domain/video-backend";
+export type {
+  VideoPoolData,
+  VideoPoolEntry,
+} from "@/modules/production/domain/video-pool";
 export {
   clampDuration,
   getSeedance2ConfigSaveKey,

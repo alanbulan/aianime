@@ -40,8 +40,6 @@ import {
   useUploadSeedance2Asset,
   useSeedance2BeatStatus,
   useTrimSeedance2Asset,
-  useVideoPool,
-  useVideoPoolSelect,
   type Seedance2BeatStatus,
   type VideoInputCropTarget,
 } from "@/lib/queries/video";
@@ -104,6 +102,8 @@ import {
   serializeHappyHorseConfig,
   serializeSeedance2Config,
   useVideoBackends,
+  useVideoPool,
+  useVideoPoolSelect,
   type Seedance2ConfigDraft,
   type Seedance2DurationBounds,
   type Seedance2Resolution,
