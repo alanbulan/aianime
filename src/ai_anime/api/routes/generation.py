@@ -21,7 +21,6 @@ from ai_anime.api.schemas import (
     GridRegenerateRequest,
     BeatsRegenerateRequest,
     SketchRegenerateRequest,
-    PoolSelectRequest,
     GridCutRequest,
     GridSketchPreviewRequest,
     RenderPlanExecuteRequest,
@@ -59,10 +58,8 @@ from ai_anime.modules.production.public import (
     GenerateDirectorControlSketchCommand,
     GenerateSketchesCommand,
     GridPoolCutRejected,
-    GridPoolImageStale,
     GridPoolPreviewRejected,
     GridPoolPromptRejected,
-    GridPoolSelectionRejected,
     GridPoolUploadRejected,
     GridRegenerationRejected,
     GridPromptQuery,
@@ -88,7 +85,6 @@ from ai_anime.modules.production.public import (
     Seedance2PanelBeatMissing,
     Seedance2PanelOperationRejected,
     Seedance2PanelQuery,
-    SelectGridPoolImageCommand,
     SelectedRegenerationKind,
     SelectedRegenerationRejected,
     SketchGenerationRejected,
@@ -933,85 +929,6 @@ async def generate_missing_manual_sketches(
     except ManualSketchRegenerationRejected as exc:
         return {"ok": False, "error": str(exc)}
     return scheduled.as_dict()
-
-
-# ── 图片池查看 & 选择 ─────────────────────────────────────────────────────────
-
-
-@router.get("/projects/{project}/episodes/{episode_num}/grids")
-async def list_grids(
-    project: str, episode_num: int, user: dict = Depends(get_api_user)
-):
-    """查看网格预览和图片池。"""
-    resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    listing = await grid_pool_use_cases().list_pool(resolved.ctx, episode_num)
-    return {
-        "ok": True,
-        "data": listing.as_dict() if listing is not None else None,
-    }
-
-
-@router.post("/projects/{project}/episodes/{episode_num}/grids/rebuild-pool")
-async def rebuild_grids_pool_index(
-    project: str,
-    episode_num: int,
-    user: dict = Depends(get_api_user),
-):
-    """Rebuild the episode image pool index using the same helper as NiceGUI."""
-    resolved = await _resolve_generation_project(project, user, required_role="editor")
-    return {
-        "ok": True,
-        "data": grid_pool_use_cases().rebuild(
-            resolved.ctx,
-            episode_num,
-        ).as_dict(),
-    }
-
-
-@router.get(
-    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/sketch-candidates"
-)
-async def get_beat_sketch_candidates(
-    project: str,
-    episode_num: int,
-    beat_num: int,
-    user: dict = Depends(get_api_user),
-):
-    """Return sketch pool candidates for a beat without treating them as the current sketch."""
-    resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    candidates = await grid_pool_use_cases().sketch_candidates(
-        resolved.ctx,
-        episode_num,
-        beat_num,
-    )
-    return {"ok": True, "data": candidates.as_dict()}
-
-
-@router.post("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/pool-select")
-async def select_pool_image(
-    project: str,
-    episode_num: int,
-    beat_num: int,
-    body: PoolSelectRequest,
-    user: dict = Depends(get_api_user),
-):
-    """选择 pool 图片，按类型设为 beat 首帧或草图。"""
-    resolved = await _resolve_generation_project(project, user, required_role="editor")
-    try:
-        selected = await grid_pool_use_cases().select(
-            resolved.ctx,
-            SelectGridPoolImageCommand(
-                episode_num=episode_num,
-                beat_num=beat_num,
-                pool_id=body.pool_id,
-                force=body.force,
-            ),
-        )
-    except GridPoolImageStale as exc:
-        return {"ok": False, "stale": True, "error": str(exc)}
-    except GridPoolSelectionRejected as exc:
-        return {"ok": False, "error": str(exc)}
-    return {"ok": True, "data": selected.as_dict()}
 
 
 @router.post(

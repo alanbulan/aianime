@@ -63,7 +63,8 @@ def _seed_pool(grids_dir):
 
 @pytest.mark.asyncio
 async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import generation, production_pool
+    from ai_anime.api.schemas import PoolSelectRequest
     from ai_anime.modules.production.application.grid_pool import (
         BeatSketchCandidates,
         CutGridCommand,
@@ -166,28 +167,30 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
     use_cases = UseCases()
     monkeypatch.setattr(generation, "_resolve_generation_project", resolve)
     monkeypatch.setattr(generation, "grid_pool_use_cases", lambda: use_cases)
+    monkeypatch.setattr(production_pool, "resolve_project_scope", resolve)
+    monkeypatch.setattr(production_pool, "grid_pool_use_cases", lambda: use_cases)
 
-    listed = await generation.list_grids(
+    listed = await production_pool.list_grids(
         "project-id",
         2,
         user={"username": "admin"},
     )
-    rebuilt = await generation.rebuild_grids_pool_index(
+    rebuilt = await production_pool.rebuild_grids_pool_index(
         "project-id",
         2,
         user={"username": "admin"},
     )
-    candidates = await generation.get_beat_sketch_candidates(
+    candidates = await production_pool.get_beat_sketch_candidates(
         "project-id",
         2,
         5,
         user={"username": "admin"},
     )
-    selected = await generation.select_pool_image(
+    selected = await production_pool.select_pool_image(
         "project-id",
         2,
         5,
-        generation.PoolSelectRequest(pool_id="pool-5", force=True),
+        PoolSelectRequest(pool_id="pool-5", force=True),
         user={"username": "admin"},
     )
     uploaded = await generation.upload_grid(

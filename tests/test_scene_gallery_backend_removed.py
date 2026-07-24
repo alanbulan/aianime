@@ -21,10 +21,14 @@ def test_shared_grid_backend_remains_for_grid_galleries() -> None:
     generation_source = Path("src/ai_anime/api/routes/generation.py").read_text(
         encoding="utf-8"
     )
+    pool_source = Path("src/ai_anime/api/routes/production_pool.py").read_text(
+        encoding="utf-8"
+    )
 
-    assert '"/projects/{project}/episodes/{episode_num}/grids"' in generation_source
+    assert '"/projects/{project}/episodes/{episode_num}/grids"' in pool_source
     assert '"/projects/{project}/episodes/{episode_num}/grids/{grid_index}/sketch-preview"' in (
         generation_source
     )
-    assert "async def list_grids" in generation_source
+    assert "async def list_grids" in pool_source
+    assert "async def list_grids" not in generation_source
     assert "async def sketch_grid_preview" in generation_source
