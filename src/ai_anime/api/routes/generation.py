@@ -7,7 +7,6 @@ from fastapi import (
     APIRouter,
     Depends,
     File,
-    Form,
     HTTPException,
     Query,
     UploadFile,
@@ -60,7 +59,6 @@ from ai_anime.modules.production.public import (
     GridPoolCutRejected,
     GridPoolPreviewRejected,
     GridPoolPromptRejected,
-    GridPoolUploadRejected,
     GridRegenerationRejected,
     GridPromptQuery,
     GridSketchPreviewCommand,
@@ -89,8 +87,6 @@ from ai_anime.modules.production.public import (
     SelectedRegenerationRejected,
     SketchGenerationRejected,
     TrimSeedance2AudioAssetCommand,
-    UploadBeatPoolImageCommand,
-    UploadGridImageCommand,
     UploadSeedance2AssetCommand,
     director_control_sketch_use_cases,
     grid_pool_use_cases,
@@ -929,97 +925,6 @@ async def generate_missing_manual_sketches(
     except ManualSketchRegenerationRejected as exc:
         return {"ok": False, "error": str(exc)}
     return scheduled.as_dict()
-
-
-@router.post(
-    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/sketch/upload"
-)
-async def upload_beat_sketch(
-    project: str,
-    episode_num: int,
-    beat_num: int,
-    file: UploadFile = File(...),
-    user: dict = Depends(get_api_user),
-):
-    """Upload a beat sketch, store the canonical sketch file, and add it to the pool."""
-    resolved = await _resolve_generation_project(project, user, required_role="editor")
-    content = await file.read()
-    try:
-        uploaded = grid_pool_use_cases().upload(
-            resolved.ctx,
-            UploadBeatPoolImageCommand(
-                episode_num=episode_num,
-                beat_num=beat_num,
-                content=content,
-                image_type="sketch",
-            ),
-        )
-    except GridPoolUploadRejected as exc:
-        return {"ok": False, "error": str(exc)}
-    return {"ok": True, "data": uploaded.as_dict()}
-
-
-@router.post(
-    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/render/upload"
-)
-async def upload_beat_render(
-    project: str,
-    episode_num: int,
-    beat_num: int,
-    file: UploadFile = File(...),
-    user: dict = Depends(get_api_user),
-):
-    """Upload a beat render first frame, promote it, and add it to the pool."""
-    resolved = await _resolve_generation_project(project, user, required_role="editor")
-    content = await file.read()
-    try:
-        uploaded = grid_pool_use_cases().upload(
-            resolved.ctx,
-            UploadBeatPoolImageCommand(
-                episode_num=episode_num,
-                beat_num=beat_num,
-                content=content,
-                image_type="render",
-            ),
-        )
-    except GridPoolUploadRejected as exc:
-        return {"ok": False, "error": str(exc)}
-    return {"ok": True, "data": uploaded.as_dict()}
-
-
-# ── 网格上传 / Prompt 导出 / 切割 ─────────────────────────────────────────────
-
-
-@router.post("/projects/{project}/episodes/{episode_num}/grids/{grid_index}/upload")
-async def upload_grid(
-    project: str,
-    episode_num: int,
-    grid_index: int,
-    file: UploadFile = File(...),
-    grid_type: str = Form("render"),
-    mode_key: str = Form(""),
-    beat_numbers: str = Form(""),
-    user: dict = Depends(get_api_user),
-):
-    """上传单张网格整图并更新 pool index 中同 scope 的 grid_path。"""
-    resolved = await _resolve_generation_project(project, user, required_role="editor")
-    content = await file.read()
-    try:
-        uploaded = grid_pool_use_cases().upload_grid(
-            resolved.ctx,
-            UploadGridImageCommand(
-                episode_num=episode_num,
-                grid_index=grid_index,
-                filename=file.filename,
-                content=content,
-                grid_type=grid_type,
-                mode_key=mode_key,
-                beat_numbers=beat_numbers,
-            ),
-        )
-    except GridPoolUploadRejected as exc:
-        return {"ok": False, "error": str(exc)}
-    return {"ok": True, "data": uploaded.as_dict()}
 
 
 @router.get("/projects/{project}/episodes/{episode_num}/grids/{grid_index}/prompt")

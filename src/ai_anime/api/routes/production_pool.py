@@ -1,6 +1,6 @@
 """Production media pool endpoints."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, Form, UploadFile
 
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import resolve_project_scope
@@ -8,7 +8,10 @@ from ai_anime.api.schemas import PoolSelectRequest, VideoPoolSelectRequest
 from ai_anime.modules.production.public import (
     GridPoolImageStale,
     GridPoolSelectionRejected,
+    GridPoolUploadRejected,
     SelectGridPoolImageCommand,
+    UploadBeatPoolImageCommand,
+    UploadGridImageCommand,
     VideoPoolEntryUnavailable,
     grid_pool_use_cases,
     video_pool_use_cases,
@@ -129,6 +132,94 @@ async def select_pool_image(
     except GridPoolSelectionRejected as exc:
         return {"ok": False, "error": str(exc)}
     return {"ok": True, "data": selected.as_dict()}
+
+
+@router.post(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/sketch/upload"
+)
+async def upload_beat_sketch(
+    project: str,
+    episode_num: int,
+    beat_num: int,
+    file: UploadFile = File(...),
+    user: dict = Depends(get_api_user),
+):
+    """Upload a canonical Beat sketch and add it to the image pool."""
+    resolved = await resolve_project_scope(project, user, required_role="editor")
+    content = await file.read()
+    try:
+        uploaded = grid_pool_use_cases().upload(
+            resolved.ctx,
+            UploadBeatPoolImageCommand(
+                episode_num=episode_num,
+                beat_num=beat_num,
+                content=content,
+                image_type="sketch",
+            ),
+        )
+    except GridPoolUploadRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": uploaded.as_dict()}
+
+
+@router.post(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/render/upload"
+)
+async def upload_beat_render(
+    project: str,
+    episode_num: int,
+    beat_num: int,
+    file: UploadFile = File(...),
+    user: dict = Depends(get_api_user),
+):
+    """Upload a canonical Beat render and add it to the image pool."""
+    resolved = await resolve_project_scope(project, user, required_role="editor")
+    content = await file.read()
+    try:
+        uploaded = grid_pool_use_cases().upload(
+            resolved.ctx,
+            UploadBeatPoolImageCommand(
+                episode_num=episode_num,
+                beat_num=beat_num,
+                content=content,
+                image_type="render",
+            ),
+        )
+    except GridPoolUploadRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": uploaded.as_dict()}
+
+
+@router.post("/projects/{project}/episodes/{episode_num}/grids/{grid_index}/upload")
+async def upload_grid(
+    project: str,
+    episode_num: int,
+    grid_index: int,
+    file: UploadFile = File(...),
+    grid_type: str = Form("render"),
+    mode_key: str = Form(""),
+    beat_numbers: str = Form(""),
+    user: dict = Depends(get_api_user),
+):
+    """Upload a complete grid image and update its pool entry."""
+    resolved = await resolve_project_scope(project, user, required_role="editor")
+    content = await file.read()
+    try:
+        uploaded = grid_pool_use_cases().upload_grid(
+            resolved.ctx,
+            UploadGridImageCommand(
+                episode_num=episode_num,
+                grid_index=grid_index,
+                filename=file.filename,
+                content=content,
+                grid_type=grid_type,
+                mode_key=mode_key,
+                beat_numbers=beat_numbers,
+            ),
+        )
+    except GridPoolUploadRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": uploaded.as_dict()}
 
 
 __all__ = ["router"]

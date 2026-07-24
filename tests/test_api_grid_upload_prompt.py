@@ -9,7 +9,7 @@ import pytest
 
 
 def _client(monkeypatch, tmp_path):
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import generation, production_pool
 
     async def resolve(*args, **kwargs):
         return SimpleNamespace(
@@ -21,10 +21,15 @@ def _client(monkeypatch, tmp_path):
         )
 
     monkeypatch.setattr(generation, "_resolve_generation_project", resolve)
+    monkeypatch.setattr(production_pool, "resolve_project_scope", resolve)
 
     app = FastAPI()
     app.include_router(generation.router)
+    app.include_router(production_pool.router)
     app.dependency_overrides[generation.get_api_user] = lambda: {"username": "admin"}
+    app.dependency_overrides[production_pool.get_api_user] = lambda: {
+        "username": "admin"
+    }
     return TestClient(app)
 
 
@@ -193,7 +198,7 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
         PoolSelectRequest(pool_id="pool-5", force=True),
         user={"username": "admin"},
     )
-    uploaded = await generation.upload_grid(
+    uploaded = await production_pool.upload_grid(
         "project-id",
         2,
         3,

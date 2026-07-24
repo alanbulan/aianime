@@ -15,8 +15,8 @@ def _png_bytes() -> bytes:
 
 
 def _client(monkeypatch, tmp_path):
-    from ai_anime.api.routes import generation
     from ai_anime.api.deps import ProjectResolution
+    from ai_anime.api.routes import production_pool
     from ai_anime.modules.production.application.grid_pool import GridPoolUseCases
     from ai_anime.modules.production.infrastructure import grid_pool
     from ai_anime.modules.production.infrastructure.grid_pool import (
@@ -52,12 +52,14 @@ def _client(monkeypatch, tmp_path):
             runtime_dir=str(tmp_path / "runtime"),
         )
 
-    monkeypatch.setattr(generation, "resolve_project_scope", fake_resolve_project_scope)
+    monkeypatch.setattr(
+        production_pool,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
 
     def fake_static_url(ctx, relative_path, local_path=None):
         return f"/files/{relative_path}"
-
-    monkeypatch.setattr(generation, "make_static_url_for_context", fake_static_url)
 
     class FakeStore:
         async def get_script_as_dict(self, episode_num: int):
@@ -83,11 +85,13 @@ def _client(monkeypatch, tmp_path):
         fake_make_sqlite_store,
     )
     use_cases = GridPoolUseCases(LocalGridPoolGateway(fake_static_url))
-    monkeypatch.setattr(generation, "grid_pool_use_cases", lambda: use_cases)
+    monkeypatch.setattr(production_pool, "grid_pool_use_cases", lambda: use_cases)
 
     app = FastAPI()
-    app.include_router(generation.router, prefix="/api/v1")
-    app.dependency_overrides[generation.get_api_user] = lambda: {"username": "alice"}
+    app.include_router(production_pool.router, prefix="/api/v1")
+    app.dependency_overrides[production_pool.get_api_user] = lambda: {
+        "username": "alice"
+    }
     return TestClient(app)
 
 

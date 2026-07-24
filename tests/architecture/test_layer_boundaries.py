@@ -556,12 +556,6 @@ def test_production_grid_pool_routes_delegate_to_application() -> None:
     source = generation.read_text(encoding="utf-8")
     route_start = pool_source.index("async def list_grids(")
     route_source = pool_source[route_start:]
-    upload_beat_start = source.index("async def upload_beat_sketch(")
-    upload_beat_end = source.index("async def upload_grid(", upload_beat_start)
-    route_source += source[upload_beat_start:upload_beat_end]
-    upload_start = source.index("async def upload_grid(")
-    upload_end = source.index("async def export_grid_prompt(", upload_start)
-    route_source += source[upload_start:upload_end]
     prompt_start = source.index("async def export_grid_prompt(")
     prompt_end = source.index("async def sketch_grid_preview(", prompt_start)
     route_source += source[prompt_start:prompt_end]
@@ -586,6 +580,9 @@ def test_production_grid_pool_routes_delegate_to_application() -> None:
         "rebuild_grids_pool_index",
         "get_beat_sketch_candidates",
         "select_pool_image",
+        "upload_beat_sketch",
+        "upload_beat_render",
+        "upload_grid",
     ):
         assert f"async def {handler_name}(" not in source
     assert route_source.count("GridPoolUploadRejected") == 3
@@ -775,7 +772,7 @@ def test_production_manual_sketch_regeneration_route_delegates_to_application() 
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     source = generation.read_text(encoding="utf-8")
     route_start = source.index("async def generate_missing_manual_sketches(")
-    route_end = source.index("async def upload_beat_sketch(", route_start)
+    route_end = source.index("async def export_grid_prompt(", route_start)
     route_source = source[route_start:route_end]
 
     assert route_source.count("manual_sketch_regeneration_use_cases") == 1
