@@ -40,10 +40,12 @@ if TYPE_CHECKING:
     from ai_anime.modules.production.application.grid_pool import (
         BeatSketchCandidates,
         GridPoolListing,
+        PersistGridImageCommand,
         RebuiltGridPool,
         SelectedGridPoolImage,
         SelectGridPoolImageCommand,
         UploadedBeatPoolImage,
+        UploadedGridImage,
         UploadBeatPoolImageCommand,
     )
     from ai_anime.modules.production.application.manual_sketch_regeneration import (
@@ -436,6 +438,12 @@ class ProductionGridPoolGateway(Protocol):
         context: ProjectContext,
         command: UploadBeatPoolImageCommand,
     ) -> UploadedBeatPoolImage: ...
+
+    def upload_grid(
+        self,
+        context: ProjectContext,
+        command: PersistGridImageCommand,
+    ) -> UploadedGridImage: ...
 
 
 class ProductionProjectMediaUrls(Protocol):

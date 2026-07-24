@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import shutil
 from collections.abc import Callable
 from datetime import datetime
@@ -16,16 +17,32 @@ from ai_anime.modules.production.application.grid_pool import (
     GridPoolListing,
     GridPoolSelectionRejected,
     GridPoolUploadRejected,
+    PersistGridImageCommand,
     RebuiltGridPool,
     SelectedGridPoolImage,
     SelectGridPoolImageCommand,
     UploadedBeatPoolImage,
+    UploadedGridImage,
     UploadBeatPoolImageCommand,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.shared import project_media
 from ai_anime.shared.infrastructure import project_stores
 from ai_anime.utils.media_io import decode_uploaded_rgb_image
+
+
+def _safe_grid_token(value: str) -> str:
+    token = re.sub(r"[^A-Za-z0-9_.:-]+", "_", value.strip())
+    return token.strip("._-") or "grid"
+
+
+def _uploaded_grid_filename(command: PersistGridImageCommand) -> str:
+    beats_slug = "-".join(str(beat) for beat in command.beat_numbers) or "manual"
+    return (
+        f"{_safe_grid_token(command.grid_type)}_"
+        f"{_safe_grid_token(command.mode_key)}_{beats_slug}_"
+        f"grid_upload.{command.extension}"
+    )
 
 
 class LocalGridPoolGateway:
@@ -392,6 +409,69 @@ class LocalGridPoolGateway:
             pool_id=pool_id,
             sketch_url=media_url if image_type == "sketch" else None,
             frame_url=media_url if image_type != "sketch" else None,
+        )
+
+    def upload_grid(
+        self,
+        context: ProjectContext,
+        command: PersistGridImageCommand,
+    ) -> UploadedGridImage:
+        grids_dir = self._grids_dir(context, command.episode_num)
+        upload_dir = grids_dir / "custom"
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        grid_path = upload_dir / _uploaded_grid_filename(command)
+        grid_path.write_bytes(command.content)
+        grid_relative_path = grid_path.relative_to(grids_dir).as_posix()
+
+        pool = pool_indexer.load_pool_index(grids_dir) or pool_indexer.build_pool_index(
+            grids_dir,
+            command.episode_num,
+        )
+        beat_numbers = list(command.beat_numbers)
+        entry = (
+            pool.find_grid(command.grid_type, command.mode_key, beat_numbers)
+            if beat_numbers
+            else None
+        )
+        if entry is None:
+            pool_indexer.register_grid_entry(
+                pool=pool,
+                grid_type=command.grid_type,
+                mode_key=command.mode_key,
+                beat_nums=beat_numbers,
+                preset="custom",
+                grid_path=grid_relative_path,
+                prompt_path="",
+            )
+        else:
+            entry.grid_path = grid_relative_path
+            entry.preset = "custom"
+            entry.generated_at = datetime.now()
+
+        for image in pool.images:
+            if (
+                image.type != command.grid_type
+                or image.grid_index != command.grid_index
+            ):
+                continue
+            if beat_numbers and image.original_beat not in beat_numbers:
+                continue
+            image.grid_path = grid_relative_path
+            image.mode = command.mode_key
+
+        pool_indexer.save_pool_index(pool, grids_dir)
+        grid_url = self._media_url_builder(
+            context,
+            f"grids/ep{command.episode_num:03d}/{grid_relative_path}",
+            local_path=grid_path,
+        )
+        return UploadedGridImage(
+            grid_index=command.grid_index,
+            grid_type=command.grid_type,
+            mode_key=command.mode_key,
+            beat_numbers=command.beat_numbers,
+            grid_path=grid_relative_path,
+            grid_url=grid_url,
         )
 
     def rebuild(

@@ -505,18 +505,25 @@ def test_production_grid_pool_routes_delegate_to_application() -> None:
     route_start = source.index("async def list_grids(")
     route_end = source.index("async def regenerate_beat_audio(", route_start)
     route_source = source[route_start:route_end]
+    upload_start = source.index("async def upload_grid(")
+    upload_end = source.index("async def export_grid_prompt(", upload_start)
+    route_source += source[upload_start:upload_end]
 
-    assert route_source.count("grid_pool_use_cases") == 6
+    assert route_source.count("grid_pool_use_cases") == 7
     assert "SelectGridPoolImageCommand" in route_source
     assert route_source.count("UploadBeatPoolImageCommand") == 2
+    assert route_source.count("UploadGridImageCommand") == 1
     assert "GridPoolImageStale" in route_source
     assert "GridPoolSelectionRejected" in route_source
-    assert route_source.count("GridPoolUploadRejected") == 2
+    assert route_source.count("GridPoolUploadRejected") == 3
     assert "def _register_uploaded_pool_image(" not in source
+    assert "def _uploaded_grid_filename(" not in source
+    assert "def _safe_grid_token(" not in source
     for implementation_detail in (
         "add_cell_with_dedup",
         "build_pool_index",
         "load_pool_index",
+        "register_grid_entry",
         "rebuild_pool_index",
         "save_pool_index",
         "compute_beat_content_hash",
@@ -525,6 +532,7 @@ def test_production_grid_pool_routes_delegate_to_application() -> None:
         "make_sqlite_store(",
         "make_static_url_for_context",
         "shutil.copy2",
+        ".write_bytes(",
         "_read_uploaded_rgb_image",
     ):
         assert implementation_detail not in route_source

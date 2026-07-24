@@ -2,11 +2,45 @@
 
 from __future__ import annotations
 
+import json
+import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.production.application.ports import ProductionGridPoolGateway
 from ai_anime.modules.project_workspace.public import ProjectContext
+
+
+def parse_grid_beat_numbers(raw: str | None) -> tuple[int, ...]:
+    if not raw:
+        return ()
+    text = raw.strip()
+    if not text:
+        return ()
+    if text.startswith("["):
+        parsed = json.loads(text)
+        values = parsed if isinstance(parsed, list) else []
+    else:
+        values = re.split(r"[,;\s]+", text)
+    beat_numbers: list[int] = []
+    seen: set[int] = set()
+    for value in values:
+        if value in ("", None):
+            continue
+        beat_num = int(value)
+        if beat_num <= 0 or beat_num in seen:
+            continue
+        beat_numbers.append(beat_num)
+        seen.add(beat_num)
+    return tuple(beat_numbers)
+
+
+def _grid_upload_extension(filename: str | None) -> str:
+    extension = Path(filename or "").suffix.lower().lstrip(".")
+    if extension not in {"png", "jpg", "jpeg", "webp"}:
+        return "png"
+    return "jpg" if extension == "jpeg" else extension
 
 
 @dataclass(frozen=True)
@@ -173,6 +207,48 @@ class UploadedBeatPoolImage:
 
 
 @dataclass(frozen=True)
+class UploadGridImageCommand:
+    episode_num: int
+    grid_index: int
+    filename: str | None
+    content: bytes
+    grid_type: str = "render"
+    mode_key: str = ""
+    beat_numbers: str | None = ""
+
+
+@dataclass(frozen=True)
+class PersistGridImageCommand:
+    episode_num: int
+    grid_index: int
+    content: bytes
+    grid_type: str
+    mode_key: str
+    beat_numbers: tuple[int, ...]
+    extension: str
+
+
+@dataclass(frozen=True)
+class UploadedGridImage:
+    grid_index: int
+    grid_type: str
+    mode_key: str
+    beat_numbers: tuple[int, ...]
+    grid_path: str
+    grid_url: str
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "grid_index": self.grid_index,
+            "grid_type": self.grid_type,
+            "mode_key": self.mode_key,
+            "beat_numbers": list(self.beat_numbers),
+            "grid_path": self.grid_path,
+            "grid_url": self.grid_url,
+        }
+
+
+@dataclass(frozen=True)
 class RebuiltGridPool:
     episode: int
     image_count: int
@@ -244,3 +320,30 @@ class GridPoolUseCases:
         command: UploadBeatPoolImageCommand,
     ) -> UploadedBeatPoolImage:
         return self._gateway.upload(context, command)
+
+    def upload_grid(
+        self,
+        context: ProjectContext,
+        command: UploadGridImageCommand,
+    ) -> UploadedGridImage:
+        grid_type = command.grid_type.strip() or "render"
+        if grid_type not in {"render", "sketch"}:
+            raise GridPoolUploadRejected("grid_type must be render or sketch")
+        try:
+            beat_numbers = parse_grid_beat_numbers(command.beat_numbers)
+        except Exception as exc:
+            raise GridPoolUploadRejected(f"invalid beat_numbers: {exc}") from exc
+        if not command.content:
+            raise GridPoolUploadRejected("uploaded file is empty")
+        return self._gateway.upload_grid(
+            context,
+            PersistGridImageCommand(
+                episode_num=command.episode_num,
+                grid_index=command.grid_index,
+                content=command.content,
+                grid_type=grid_type,
+                mode_key=command.mode_key.strip() or "upload",
+                beat_numbers=beat_numbers,
+                extension=_grid_upload_extension(command.filename),
+            ),
+        )

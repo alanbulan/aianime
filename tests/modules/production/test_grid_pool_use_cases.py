@@ -4,14 +4,18 @@ import pytest
 
 from ai_anime.modules.production.application.grid_pool import (
     BeatSketchCandidates,
+    GridPoolUploadRejected,
     GridPoolImageView,
     GridPoolListing,
     GridPoolUseCases,
+    PersistGridImageCommand,
     RebuiltGridPool,
     SelectedGridPoolImage,
     SelectGridPoolImageCommand,
     UploadedBeatPoolImage,
+    UploadedGridImage,
     UploadBeatPoolImageCommand,
+    UploadGridImageCommand,
 )
 
 
@@ -52,6 +56,17 @@ class _Gateway:
             beat_num=command.beat_num,
             pool_id="uploaded-pool",
             sketch_url="/static/sketch.png",
+        )
+
+    def upload_grid(self, context, command):
+        self.calls.append(("upload_grid", context, command))
+        return UploadedGridImage(
+            grid_index=command.grid_index,
+            grid_type=command.grid_type,
+            mode_key=command.mode_key,
+            beat_numbers=command.beat_numbers,
+            grid_path="custom/uploaded-grid.jpg",
+            grid_url="/static/uploaded-grid.jpg",
         )
 
 
@@ -103,6 +118,16 @@ async def test_grid_pool_use_cases_delegate_and_preserve_response_contract() -> 
         image_type="sketch",
     )
     uploaded = use_cases.upload(context, upload_command)
+    grid_upload_command = UploadGridImageCommand(
+        episode_num=2,
+        grid_index=3,
+        filename="GRID.JPEG",
+        content=b"grid",
+        grid_type=" render ",
+        mode_key=" 2x2 ",
+        beat_numbers="[5, 5, -1, 6]",
+    )
+    uploaded_grid = use_cases.upload_grid(context, grid_upload_command)
 
     assert listed is listing
     assert listed.as_dict()["images"][0]["generated_at"] is None
@@ -129,12 +154,33 @@ async def test_grid_pool_use_cases_delegate_and_preserve_response_contract() -> 
         "pool_id": "uploaded-pool",
         "sketch_url": "/static/sketch.png",
     }
+    assert uploaded_grid.as_dict() == {
+        "grid_index": 3,
+        "grid_type": "render",
+        "mode_key": "2x2",
+        "beat_numbers": [5, 6],
+        "grid_path": "custom/uploaded-grid.jpg",
+        "grid_url": "/static/uploaded-grid.jpg",
+    }
     assert gateway.calls == [
         ("list", context, 2),
         ("rebuild", context, 2),
         ("candidates", context, 2, 5),
         ("select", context, command),
         ("upload", context, upload_command),
+        (
+            "upload_grid",
+            context,
+            PersistGridImageCommand(
+                episode_num=2,
+                grid_index=3,
+                content=b"grid",
+                grid_type="render",
+                mode_key="2x2",
+                beat_numbers=(5, 6),
+                extension="jpg",
+            ),
+        ),
     ]
 
 
@@ -143,3 +189,50 @@ async def test_grid_pool_use_cases_preserve_missing_pool() -> None:
     gateway = _Gateway(None)
 
     assert await GridPoolUseCases(gateway).list_pool(object(), 1) is None
+
+
+@pytest.mark.parametrize(
+    ("command", "message"),
+    [
+        (
+            UploadGridImageCommand(
+                episode_num=2,
+                grid_index=1,
+                filename="grid.png",
+                content=b"grid",
+                grid_type="other",
+            ),
+            "grid_type must be render or sketch",
+        ),
+        (
+            UploadGridImageCommand(
+                episode_num=2,
+                grid_index=1,
+                filename="grid.png",
+                content=b"grid",
+                beat_numbers="[",
+            ),
+            "invalid beat_numbers:",
+        ),
+        (
+            UploadGridImageCommand(
+                episode_num=2,
+                grid_index=1,
+                filename="grid.png",
+                content=b"",
+            ),
+            "uploaded file is empty",
+        ),
+    ],
+)
+def test_upload_grid_rejects_invalid_inputs_before_persistence(
+    command: UploadGridImageCommand,
+    message: str,
+) -> None:
+    gateway = _Gateway(None)
+
+    with pytest.raises(GridPoolUploadRejected) as raised:
+        GridPoolUseCases(gateway).upload_grid(object(), command)
+
+    assert message in str(raised.value)
+    assert gateway.calls == []

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import io
 from types import SimpleNamespace
 
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile
 from fastapi.testclient import TestClient
 import pytest
 
@@ -69,6 +70,8 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
         RebuiltGridPool,
         SelectedGridPoolImage,
         SelectGridPoolImageCommand,
+        UploadedGridImage,
+        UploadGridImageCommand,
     )
 
     context = object()
@@ -117,6 +120,17 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
                 sketch_url="/static/selected.png",
             )
 
+        def upload_grid(self, candidate, command):
+            use_case_calls.append(("upload_grid", candidate, command))
+            return UploadedGridImage(
+                grid_index=command.grid_index,
+                grid_type="render",
+                mode_key="2x2",
+                beat_numbers=(5, 6),
+                grid_path="custom/uploaded-grid.jpg",
+                grid_url="/static/uploaded-grid.jpg",
+            )
+
     use_cases = UseCases()
     monkeypatch.setattr(generation, "_resolve_generation_project", resolve)
     monkeypatch.setattr(generation, "grid_pool_use_cases", lambda: use_cases)
@@ -144,6 +158,16 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
         generation.PoolSelectRequest(pool_id="pool-5", force=True),
         user={"username": "admin"},
     )
+    uploaded = await generation.upload_grid(
+        "project-id",
+        2,
+        3,
+        file=UploadFile(io.BytesIO(b"grid"), filename="grid.jpeg"),
+        grid_type=" render ",
+        mode_key=" 2x2 ",
+        beat_numbers="[5,6]",
+        user={"username": "admin"},
+    )
 
     assert resolve_calls == [
         (
@@ -162,6 +186,10 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
             ("project-id", {"username": "admin"}),
             {"required_role": "editor"},
         ),
+        (
+            ("project-id", {"username": "admin"}),
+            {"required_role": "editor"},
+        ),
     ]
     assert use_case_calls == [
         ("list", context, 2),
@@ -175,6 +203,19 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
                 beat_num=5,
                 pool_id="pool-5",
                 force=True,
+            ),
+        ),
+        (
+            "upload_grid",
+            context,
+            UploadGridImageCommand(
+                episode_num=2,
+                grid_index=3,
+                filename="grid.jpeg",
+                content=b"grid",
+                grid_type=" render ",
+                mode_key=" 2x2 ",
+                beat_numbers="[5,6]",
             ),
         ),
     ]
@@ -212,6 +253,17 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
             "pool_id": "pool-5",
             "image_type": "sketch",
             "sketch_url": "/static/selected.png",
+        },
+    }
+    assert uploaded == {
+        "ok": True,
+        "data": {
+            "grid_index": 3,
+            "grid_type": "render",
+            "mode_key": "2x2",
+            "beat_numbers": [5, 6],
+            "grid_path": "custom/uploaded-grid.jpg",
+            "grid_url": "/static/uploaded-grid.jpg",
         },
     }
 
@@ -254,6 +306,33 @@ def test_upload_grid_replaces_pool_grid_path(monkeypatch, tmp_path):
     assert {
         image.grid_path for image in pool.images if image.type == "render" and image.grid_index == 2
     } == {grid_path}
+
+
+def test_upload_grid_preserves_validation_errors(monkeypatch, tmp_path):
+    client = _client(monkeypatch, tmp_path)
+
+    invalid_type = client.post(
+        "/projects/demo/episodes/1/grids/2/upload",
+        data={"grid_type": "other"},
+        files={"file": ("grid.png", b"grid", "image/png")},
+    )
+    invalid_beats = client.post(
+        "/projects/demo/episodes/1/grids/2/upload",
+        data={"beat_numbers": "["},
+        files={"file": ("grid.png", b"grid", "image/png")},
+    )
+    empty = client.post(
+        "/projects/demo/episodes/1/grids/2/upload",
+        files={"file": ("grid.png", b"", "image/png")},
+    )
+
+    assert invalid_type.json() == {
+        "ok": False,
+        "error": "grid_type must be render or sketch",
+    }
+    assert invalid_beats.json()["ok"] is False
+    assert invalid_beats.json()["error"].startswith("invalid beat_numbers:")
+    assert empty.json() == {"ok": False, "error": "uploaded file is empty"}
 
 
 def test_export_grid_prompt_reads_pool_prompt_path(monkeypatch, tmp_path):

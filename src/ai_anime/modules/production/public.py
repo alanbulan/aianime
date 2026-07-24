@@ -105,11 +105,14 @@ from ai_anime.modules.production.application.grid_pool import (
     GridPoolSelectionRejected,
     GridPoolUploadRejected,
     GridPoolUseCases,
+    parse_grid_beat_numbers,
     RebuiltGridPool,
     SelectedGridPoolImage,
     SelectGridPoolImageCommand,
     UploadedBeatPoolImage,
+    UploadedGridImage,
     UploadBeatPoolImageCommand,
+    UploadGridImageCommand,
 )
 from ai_anime.modules.production.application.manual_sketch_regeneration import (
     GenerateMissingManualSketchesCommand,
@@ -471,6 +474,8 @@ __all__ = [
     "UploadSeedance2AssetCommand",
     "UploadedBeatPoolImage",
     "UploadBeatPoolImageCommand",
+    "UploadedGridImage",
+    "UploadGridImageCommand",
     "SelectedVideoPoolEntry",
     "VideoPoolEntryUnavailable",
     "VideoPoolListing",
@@ -512,4 +517,5 @@ __all__ = [
     "single_video_use_cases",
     "video_backend_catalog_use_cases",
     "video_pool_use_cases",
+    "parse_grid_beat_numbers",
 ]

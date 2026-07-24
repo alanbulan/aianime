@@ -1,8 +1,6 @@
 """画面/网格/视频生成端点。"""
 
-import json
 import logging
-import re
 from pathlib import Path
 from typing import Any
 
@@ -120,6 +118,7 @@ from ai_anime.modules.production.public import (
     UpdateRenderImageSettingsCommand,
     UpdateSketchImageSettingsCommand,
     UploadBeatPoolImageCommand,
+    UploadGridImageCommand,
     UploadSeedance2AssetCommand,
     VideoPoolEntryUnavailable,
     director_control_sketch_use_cases,
@@ -127,6 +126,7 @@ from ai_anime.modules.production.public import (
     grid_pool_use_cases,
     grid_regeneration_use_cases,
     manual_sketch_regeneration_use_cases,
+    parse_grid_beat_numbers,
     seedance2_panel_use_cases,
     selected_regeneration_use_cases,
     sketch_generation_use_cases,
@@ -193,45 +193,6 @@ def _render_plan_rejection_response(
     return JSONResponse(
         status_code=409 if isinstance(exc, RenderPlanConflict) else 400,
         content=exc.as_dict(),
-    )
-
-
-def _parse_grid_beat_numbers(raw: str | None) -> list[int]:
-    if not raw:
-        return []
-    text = raw.strip()
-    if not text:
-        return []
-    if text.startswith("["):
-        parsed = json.loads(text)
-        values = parsed if isinstance(parsed, list) else []
-    else:
-        values = re.split(r"[,;\s]+", text)
-    beat_numbers: list[int] = []
-    seen: set[int] = set()
-    for value in values:
-        if value in ("", None):
-            continue
-        beat_num = int(value)
-        if beat_num <= 0 or beat_num in seen:
-            continue
-        beat_numbers.append(beat_num)
-        seen.add(beat_num)
-    return beat_numbers
-
-
-def _safe_grid_token(value: str) -> str:
-    token = re.sub(r"[^A-Za-z0-9_.:-]+", "_", value.strip())
-    return token.strip("._-") or "grid"
-
-
-def _uploaded_grid_filename(
-    grid_type: str, mode_key: str, beat_numbers: list[int], ext: str
-) -> str:
-    beats_slug = "-".join(str(beat) for beat in beat_numbers) or "manual"
-    return (
-        f"{_safe_grid_token(grid_type)}_{_safe_grid_token(mode_key)}_"
-        f"{beats_slug}_grid_upload.{ext.lstrip('.')}"
     )
 
 
@@ -1983,85 +1944,23 @@ async def upload_grid(
 ):
     """上传单张网格整图并更新 pool index 中同 scope 的 grid_path。"""
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    project_dir = resolved.project_dir
-
-    grid_type = grid_type.strip() or "render"
-    if grid_type not in {"render", "sketch"}:
-        return {"ok": False, "error": "grid_type must be render or sketch"}
-    try:
-        parsed_beats = _parse_grid_beat_numbers(beat_numbers)
-    except Exception as exc:
-        return {"ok": False, "error": f"invalid beat_numbers: {exc}"}
-    mode_key = mode_key.strip() or "upload"
-
     content = await file.read()
-    if not content:
-        return {"ok": False, "error": "uploaded file is empty"}
-
-    suffix = Path(file.filename or "").suffix.lower().lstrip(".")
-    if suffix not in {"png", "jpg", "jpeg", "webp"}:
-        suffix = "png"
-    if suffix == "jpeg":
-        suffix = "jpg"
-
-    from datetime import datetime
-    from ai_anime.generators.pool_indexer import (
-        build_pool_index,
-        load_pool_index,
-        register_grid_entry,
-        save_pool_index,
-    )
-
-    grids_dir = project_dir / "grids" / f"ep{episode_num:03d}"
-    upload_dir = grids_dir / "custom"
-    upload_dir.mkdir(parents=True, exist_ok=True)
-    filename = _uploaded_grid_filename(grid_type, mode_key, parsed_beats, suffix)
-    grid_path = upload_dir / filename
-    grid_path.write_bytes(content)
-    grid_rel = grid_path.relative_to(grids_dir).as_posix()
-
-    pool = load_pool_index(grids_dir) or build_pool_index(grids_dir, episode_num)
-    entry = pool.find_grid(grid_type, mode_key, parsed_beats) if parsed_beats else None
-    if entry is None:
-        entry = register_grid_entry(
-            pool=pool,
-            grid_type=grid_type,
-            mode_key=mode_key,
-            beat_nums=parsed_beats,
-            preset="custom",
-            grid_path=grid_rel,
-            prompt_path="",
-        )
-    else:
-        entry.grid_path = grid_rel
-        entry.preset = "custom"
-        entry.generated_at = datetime.now()
-
-    for image in pool.images:
-        if image.type != grid_type or image.grid_index != grid_index:
-            continue
-        if parsed_beats and image.original_beat not in parsed_beats:
-            continue
-        image.grid_path = grid_rel
-        image.mode = mode_key
-
-    save_pool_index(pool, grids_dir)
-
-    return {
-        "ok": True,
-        "data": {
-            "grid_index": grid_index,
-            "grid_type": grid_type,
-            "mode_key": mode_key,
-            "beat_numbers": parsed_beats,
-            "grid_path": grid_rel,
-            "grid_url": make_static_url_for_context(
-                resolved.ctx,
-                f"grids/ep{episode_num:03d}/{grid_rel}",
-                local_path=grid_path,
+    try:
+        uploaded = grid_pool_use_cases().upload_grid(
+            resolved.ctx,
+            UploadGridImageCommand(
+                episode_num=episode_num,
+                grid_index=grid_index,
+                filename=file.filename,
+                content=content,
+                grid_type=grid_type,
+                mode_key=mode_key,
+                beat_numbers=beat_numbers,
             ),
-        },
-    }
+        )
+    except GridPoolUploadRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": uploaded.as_dict()}
 
 
 @router.get("/projects/{project}/episodes/{episode_num}/grids/{grid_index}/prompt")
@@ -2081,7 +1980,7 @@ async def export_grid_prompt(
     if grid_type not in {"render", "sketch"}:
         return {"ok": False, "error": "grid_type must be render or sketch"}
     try:
-        parsed_beats = _parse_grid_beat_numbers(beat_numbers)
+        parsed_beats = list(parse_grid_beat_numbers(beat_numbers))
     except Exception as exc:
         return {"ok": False, "error": f"invalid beat_numbers: {exc}"}
     mode_key = mode_key.strip()

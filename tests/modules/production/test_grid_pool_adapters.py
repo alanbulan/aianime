@@ -9,11 +9,12 @@ import pytest
 from PIL import Image
 
 from ai_anime.generators import pool_indexer
-from ai_anime.models import PoolImage, PoolIndex
+from ai_anime.models import GridEntry, PoolImage, PoolIndex
 from ai_anime.modules.production.application.grid_pool import (
     GridPoolImageStale,
     GridPoolSelectionRejected,
     GridPoolUploadRejected,
+    PersistGridImageCommand,
     SelectGridPoolImageCommand,
     UploadBeatPoolImageCommand,
 )
@@ -473,6 +474,98 @@ def test_upload_promotes_images_and_only_assigns_render(
     assert (Path(context.output_dir) / "frames" / "ep002" / "beat_06.png").is_file()
     assert "5" not in pool.beat_assignments
     assert pool.beat_assignments["6"].startswith("render/beat_06_t")
+
+
+def test_upload_grid_replaces_scope_and_matching_pool_images(tmp_path: Path) -> None:
+    context = _context(tmp_path)
+    grids_dir = Path(context.output_dir) / "grids" / "ep002"
+    old_grid_path = "scene/render_2x2_old.png"
+    pool = PoolIndex(
+        episode=2,
+        grids=[
+            GridEntry(
+                type="render",
+                mode_key="2x2",
+                beat_nums=[5, 6],
+                preset="scene",
+                grid_path=old_grid_path,
+            )
+        ],
+        images=[
+            PoolImage(
+                id="matched",
+                mode="old",
+                grid_index=3,
+                cell_index=1,
+                grid_path=old_grid_path,
+                row=0,
+                col=0,
+                original_beat=5,
+                type="render",
+            ),
+            PoolImage(
+                id="other-beat",
+                mode="old",
+                grid_index=3,
+                cell_index=2,
+                grid_path=old_grid_path,
+                row=0,
+                col=1,
+                original_beat=9,
+                type="render",
+            ),
+            PoolImage(
+                id="other-type",
+                mode="old",
+                grid_index=3,
+                cell_index=3,
+                grid_path=old_grid_path,
+                row=1,
+                col=0,
+                original_beat=5,
+                type="sketch",
+            ),
+        ],
+    )
+    pool_indexer.save_pool_index(pool, grids_dir)
+    gateway = LocalGridPoolGateway(
+        lambda _context, relative_path, local_path=None: f"/files/{relative_path}"
+    )
+
+    uploaded = gateway.upload_grid(
+        context,
+        PersistGridImageCommand(
+            episode_num=2,
+            grid_index=3,
+            content=b"uploaded-grid",
+            grid_type="render",
+            mode_key="2x2",
+            beat_numbers=(5, 6),
+            extension="jpg",
+        ),
+    )
+
+    expected_path = "custom/render_2x2_5-6_grid_upload.jpg"
+    saved_pool = pool_indexer.load_pool_index(grids_dir)
+    assert saved_pool is not None
+    saved_entry = saved_pool.find_grid("render", "2x2", [5, 6])
+    assert saved_entry is not None
+    assert uploaded.as_dict() == {
+        "grid_index": 3,
+        "grid_type": "render",
+        "mode_key": "2x2",
+        "beat_numbers": [5, 6],
+        "grid_path": expected_path,
+        "grid_url": f"/files/grids/ep002/{expected_path}",
+    }
+    assert (grids_dir / expected_path).read_bytes() == b"uploaded-grid"
+    assert saved_entry.grid_path == expected_path
+    assert saved_entry.preset == "custom"
+    assert saved_entry.generated_at is not None
+    assert saved_pool.images[0].grid_path == expected_path
+    assert saved_pool.images[0].mode == "2x2"
+    assert saved_pool.images[1].grid_path == old_grid_path
+    assert saved_pool.images[2].grid_path == old_grid_path
 
 
 def test_rebuild_pool_uses_episode_directory_and_projects_counts(
