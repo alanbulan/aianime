@@ -2,9 +2,22 @@
 
 from __future__ import annotations
 
+import io
 from pathlib import Path
 
 from ai_anime.utils.async_ops import call_blocking
+
+
+def decode_uploaded_rgb_image(content: bytes):
+    """Decode uploaded image bytes into the canonical RGB representation."""
+    if not content:
+        raise ValueError("empty file")
+    try:
+        from PIL import Image
+
+        return Image.open(io.BytesIO(content)).convert("RGB")
+    except Exception as exc:
+        raise ValueError(f"invalid image file: {exc}") from exc
 
 
 def get_audio_duration(audio_path: str) -> float:
@@ -62,4 +75,9 @@ async def crop_image_to_path(
     return await call_blocking(_crop)
 
 
-__all__ = ["crop_image_to_path", "get_audio_duration", "get_audio_duration_async"]
+__all__ = [
+    "crop_image_to_path",
+    "decode_uploaded_rgb_image",
+    "get_audio_duration",
+    "get_audio_duration_async",
+]

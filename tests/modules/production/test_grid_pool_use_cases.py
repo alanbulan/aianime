@@ -10,6 +10,8 @@ from ai_anime.modules.production.application.grid_pool import (
     RebuiltGridPool,
     SelectedGridPoolImage,
     SelectGridPoolImageCommand,
+    UploadedBeatPoolImage,
+    UploadBeatPoolImageCommand,
 )
 
 
@@ -42,6 +44,14 @@ class _Gateway:
             pool_id=command.pool_id,
             image_type="render",
             frame_url="/static/frame.png",
+        )
+
+    def upload(self, context, command):
+        self.calls.append(("upload", context, command))
+        return UploadedBeatPoolImage(
+            beat_num=command.beat_num,
+            pool_id="uploaded-pool",
+            sketch_url="/static/sketch.png",
         )
 
 
@@ -86,6 +96,13 @@ async def test_grid_pool_use_cases_delegate_and_preserve_response_contract() -> 
         force=True,
     )
     selected = await use_cases.select(context, command)
+    upload_command = UploadBeatPoolImageCommand(
+        episode_num=2,
+        beat_num=5,
+        content=b"image",
+        image_type="sketch",
+    )
+    uploaded = use_cases.upload(context, upload_command)
 
     assert listed is listing
     assert listed.as_dict()["images"][0]["generated_at"] is None
@@ -107,11 +124,17 @@ async def test_grid_pool_use_cases_delegate_and_preserve_response_contract() -> 
         "image_type": "render",
         "frame_url": "/static/frame.png",
     }
+    assert uploaded.as_dict() == {
+        "beat_num": 5,
+        "pool_id": "uploaded-pool",
+        "sketch_url": "/static/sketch.png",
+    }
     assert gateway.calls == [
         ("list", context, 2),
         ("rebuild", context, 2),
         ("candidates", context, 2, 5),
         ("select", context, command),
+        ("upload", context, upload_command),
     ]
 
 

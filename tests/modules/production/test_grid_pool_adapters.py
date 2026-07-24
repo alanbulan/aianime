@@ -1,16 +1,21 @@
 from __future__ import annotations
 
+import io
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from PIL import Image
 
+from ai_anime.generators import pool_indexer
 from ai_anime.models import PoolImage, PoolIndex
 from ai_anime.modules.production.application.grid_pool import (
     GridPoolImageStale,
     GridPoolSelectionRejected,
+    GridPoolUploadRejected,
     SelectGridPoolImageCommand,
+    UploadBeatPoolImageCommand,
 )
 from ai_anime.modules.production.infrastructure.grid_pool import LocalGridPoolGateway
 from ai_anime.modules.project_workspace.public import ProjectContext
@@ -403,6 +408,71 @@ async def test_select_rejects_stale_sketch_and_closes_store(
         )
 
     assert store.close_calls == 1
+
+
+@pytest.mark.parametrize(
+    ("content", "message"),
+    [
+        (b"", "empty file"),
+        (b"not-an-image", "invalid image file"),
+    ],
+)
+def test_upload_rejects_empty_or_invalid_image(
+    content: bytes,
+    message: str,
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(GridPoolUploadRejected, match=message):
+        LocalGridPoolGateway().upload(
+            _context(tmp_path),
+            UploadBeatPoolImageCommand(
+                episode_num=2,
+                beat_num=5,
+                content=content,
+                image_type="sketch",
+            ),
+        )
+
+
+def test_upload_promotes_images_and_only_assigns_render(
+    tmp_path: Path,
+) -> None:
+    context = _context(tmp_path)
+    buffer = io.BytesIO()
+    Image.new("RGB", (8, 8), "white").save(buffer, format="PNG")
+    content = buffer.getvalue()
+    gateway = LocalGridPoolGateway(
+        lambda _context, relative_path, local_path=None: f"/files/{relative_path}"
+    )
+
+    sketch = gateway.upload(
+        context,
+        UploadBeatPoolImageCommand(
+            episode_num=2,
+            beat_num=5,
+            content=content,
+            image_type="sketch",
+        ),
+    )
+    render = gateway.upload(
+        context,
+        UploadBeatPoolImageCommand(
+            episode_num=2,
+            beat_num=6,
+            content=content,
+            image_type="render",
+        ),
+    )
+
+    grids_dir = Path(context.output_dir) / "grids" / "ep002"
+    pool = pool_indexer.load_pool_index(grids_dir)
+    assert pool is not None
+    assert sketch.as_dict()["sketch_url"] == "/files/sketches/ep002/beat_05.png"
+    assert render.as_dict()["frame_url"] == "/files/frames/ep002/beat_06.png"
+    assert (Path(context.output_dir) / "sketches" / "ep002" / "beat_05.png").is_file()
+    assert (Path(context.output_dir) / "frames" / "ep002" / "beat_06.png").is_file()
+    assert "5" not in pool.beat_assignments
+    assert pool.beat_assignments["6"].startswith("render/beat_06_t")
 
 
 def test_rebuild_pool_uses_episode_directory_and_projects_counts(

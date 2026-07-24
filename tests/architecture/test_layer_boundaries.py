@@ -503,14 +503,19 @@ def test_production_grid_pool_routes_delegate_to_application() -> None:
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     source = generation.read_text(encoding="utf-8")
     route_start = source.index("async def list_grids(")
-    route_end = source.index("async def upload_beat_sketch(", route_start)
+    route_end = source.index("async def regenerate_beat_audio(", route_start)
     route_source = source[route_start:route_end]
 
-    assert route_source.count("grid_pool_use_cases") == 4
+    assert route_source.count("grid_pool_use_cases") == 6
     assert "SelectGridPoolImageCommand" in route_source
+    assert route_source.count("UploadBeatPoolImageCommand") == 2
     assert "GridPoolImageStale" in route_source
     assert "GridPoolSelectionRejected" in route_source
+    assert route_source.count("GridPoolUploadRejected") == 2
+    assert "def _register_uploaded_pool_image(" not in source
     for implementation_detail in (
+        "add_cell_with_dedup",
+        "build_pool_index",
         "load_pool_index",
         "rebuild_pool_index",
         "save_pool_index",
@@ -520,6 +525,7 @@ def test_production_grid_pool_routes_delegate_to_application() -> None:
         "make_sqlite_store(",
         "make_static_url_for_context",
         "shutil.copy2",
+        "_read_uploaded_rgb_image",
     ):
         assert implementation_detail not in route_source
 

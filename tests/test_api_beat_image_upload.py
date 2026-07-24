@@ -209,6 +209,25 @@ def test_upload_beat_render_writes_frame_and_assigns_uploaded_pool_image(monkeyp
     assert saved_index["beat_assignments"]["3"] != "old_pool"
 
 
+def test_upload_beat_image_preserves_validation_errors(monkeypatch, tmp_path):
+    client = _client(monkeypatch, tmp_path)
+
+    empty = client.post(
+        "/api/v1/projects/demo/episodes/2/beats/3/sketch/upload",
+        files={"file": ("empty.png", b"", "image/png")},
+    )
+    invalid = client.post(
+        "/api/v1/projects/demo/episodes/2/beats/3/render/upload",
+        files={"file": ("invalid.png", b"not-an-image", "image/png")},
+    )
+
+    assert empty.status_code == 200
+    assert empty.json() == {"ok": False, "error": "empty file"}
+    assert invalid.status_code == 200
+    assert invalid.json()["ok"] is False
+    assert invalid.json()["error"].startswith("invalid image file:")
+
+
 def test_select_sketch_pool_image_updates_sketch_without_overwriting_frame(
     monkeypatch, tmp_path
 ):

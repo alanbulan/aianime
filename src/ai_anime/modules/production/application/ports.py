@@ -43,6 +43,8 @@ if TYPE_CHECKING:
         RebuiltGridPool,
         SelectedGridPoolImage,
         SelectGridPoolImageCommand,
+        UploadedBeatPoolImage,
+        UploadBeatPoolImageCommand,
     )
     from ai_anime.modules.production.application.manual_sketch_regeneration import (
         GenerateMissingManualSketchesCommand,
@@ -428,6 +430,12 @@ class ProductionGridPoolGateway(Protocol):
         context: ProjectContext,
         command: SelectGridPoolImageCommand,
     ) -> SelectedGridPoolImage: ...
+
+    def upload(
+        self,
+        context: ProjectContext,
+        command: UploadBeatPoolImageCommand,
+    ) -> UploadedBeatPoolImage: ...
 
 
 class ProductionProjectMediaUrls(Protocol):

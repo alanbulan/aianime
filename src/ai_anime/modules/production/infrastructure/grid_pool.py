@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import shutil
 from collections.abc import Callable
+from datetime import datetime
 from pathlib import Path
 
 from ai_anime.generators import pool_indexer
@@ -14,13 +15,17 @@ from ai_anime.modules.production.application.grid_pool import (
     GridPoolImageView,
     GridPoolListing,
     GridPoolSelectionRejected,
+    GridPoolUploadRejected,
     RebuiltGridPool,
     SelectedGridPoolImage,
     SelectGridPoolImageCommand,
+    UploadedBeatPoolImage,
+    UploadBeatPoolImageCommand,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.shared import project_media
 from ai_anime.shared.infrastructure import project_stores
+from ai_anime.utils.media_io import decode_uploaded_rgb_image
 
 
 class LocalGridPoolGateway:
@@ -304,6 +309,87 @@ class LocalGridPoolGateway:
             beat_num=command.beat_num,
             pool_id=command.pool_id,
             image_type=image_type,
+            sketch_url=media_url if image_type == "sketch" else None,
+            frame_url=media_url if image_type != "sketch" else None,
+        )
+
+    def upload(
+        self,
+        context: ProjectContext,
+        command: UploadBeatPoolImageCommand,
+    ) -> UploadedBeatPoolImage:
+        try:
+            image = decode_uploaded_rgb_image(command.content)
+        except ValueError as exc:
+            raise GridPoolUploadRejected(str(exc)) from exc
+        project_dir = Path(context.output_dir)
+        image_type = command.image_type
+        if image_type == "sketch":
+            canonical_path = (
+                project_dir
+                / "sketches"
+                / f"ep{command.episode_num:03d}"
+                / f"beat_{command.beat_num:02d}.png"
+            )
+            relative_path = (
+                f"sketches/ep{command.episode_num:03d}/beat_{command.beat_num:02d}.png"
+            )
+        else:
+            canonical_path = (
+                project_dir
+                / "frames"
+                / f"ep{command.episode_num:03d}"
+                / f"beat_{command.beat_num:02d}.png"
+            )
+            relative_path = (
+                f"frames/ep{command.episode_num:03d}/beat_{command.beat_num:02d}.png"
+            )
+        canonical_path.parent.mkdir(parents=True, exist_ok=True)
+        image.save(canonical_path, format="PNG")
+
+        grids_dir = self._grids_dir(context, command.episode_num)
+        pool = pool_indexer.load_pool_index(grids_dir) or pool_indexer.build_pool_index(
+            grids_dir,
+            command.episode_num,
+        )
+        upload_dir = grids_dir / image_type
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        cell_path = upload_dir / f"beat_{command.beat_num:02d}_t{timestamp}.png"
+        image.save(cell_path, format="PNG")
+
+        pool_image = pool_indexer.add_cell_with_dedup(
+            pool,
+            cell_path,
+            grids_dir,
+            command.beat_num,
+            timestamp,
+            img_type=image_type,
+            mode="upload",
+            grid_index=0,
+            cell_index=0,
+            grid_path="",
+            row=0,
+            col=0,
+        )
+        if pool_image is None:
+            pool_id = f"beat_{command.beat_num:02d}_t{timestamp}_{image_type}"
+            assignment_path = None
+        else:
+            pool_id = pool_image.id
+            assignment_path = pool_image.cell_path
+        if image_type != "sketch" and assignment_path:
+            pool.beat_assignments[str(command.beat_num)] = assignment_path
+        pool_indexer.save_pool_index(pool, grids_dir)
+
+        media_url = self._media_url_builder(
+            context,
+            relative_path,
+            local_path=canonical_path,
+        )
+        return UploadedBeatPoolImage(
+            beat_num=command.beat_num,
+            pool_id=pool_id,
             sketch_url=media_url if image_type == "sketch" else None,
             frame_url=media_url if image_type != "sketch" else None,
         )

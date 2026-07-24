@@ -1,7 +1,6 @@
 """画面/网格/视频生成端点。"""
 
 import json
-import io
 import logging
 import re
 from pathlib import Path
@@ -90,6 +89,7 @@ from ai_anime.modules.production.public import (
     GlobalVideoOptimizationSketchesMissing,
     GridPoolImageStale,
     GridPoolSelectionRejected,
+    GridPoolUploadRejected,
     GridRegenerationRejected,
     ImageGenerationGuardQuery,
     ManualSketchRegenerationRejected,
@@ -119,6 +119,7 @@ from ai_anime.modules.production.public import (
     TrimSeedance2AudioAssetCommand,
     UpdateRenderImageSettingsCommand,
     UpdateSketchImageSettingsCommand,
+    UploadBeatPoolImageCommand,
     UploadSeedance2AssetCommand,
     VideoPoolEntryUnavailable,
     director_control_sketch_use_cases,
@@ -148,6 +149,7 @@ from ai_anime.modules.production.public import (
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.ports import get_usage_meter
 from ai_anime.shared.project_media import make_project_asset_url_builder
+from ai_anime.utils.media_io import decode_uploaded_rgb_image
 
 router = APIRouter()
 
@@ -283,64 +285,7 @@ def _find_pool_grid_entry(
 
 async def _read_uploaded_rgb_image(file: UploadFile):
     content = await file.read()
-    if not content:
-        raise ValueError("empty file")
-    try:
-        from PIL import Image
-
-        return Image.open(io.BytesIO(content)).convert("RGB")
-    except Exception as exc:
-        raise ValueError(f"invalid image file: {exc}") from exc
-
-
-def _register_uploaded_pool_image(
-    *,
-    project_dir: Path,
-    episode_num: int,
-    beat_num: int,
-    image,
-    image_type: str,
-) -> str:
-    from datetime import datetime
-    from ai_anime.generators.pool_indexer import (
-        add_cell_with_dedup,
-        build_pool_index,
-        load_pool_index,
-        save_pool_index,
-    )
-
-    grids_dir = project_dir / "grids" / f"ep{episode_num:03d}"
-    pool = load_pool_index(grids_dir) or build_pool_index(grids_dir, episode_num)
-    upload_dir = grids_dir / image_type
-    upload_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    cell_path = upload_dir / f"beat_{beat_num:02d}_t{timestamp}.png"
-    image.save(cell_path, format="PNG")
-
-    pool_image = add_cell_with_dedup(
-        pool,
-        cell_path,
-        grids_dir,
-        beat_num,
-        timestamp,
-        img_type=image_type,
-        mode="upload",
-        grid_index=0,
-        cell_index=0,
-        grid_path="",
-        row=0,
-        col=0,
-    )
-    if pool_image is None:
-        pool_id = f"beat_{beat_num:02d}_t{timestamp}_{image_type}"
-        assignment_path = None
-    else:
-        pool_id = pool_image.id
-        assignment_path = pool_image.cell_path
-    if image_type != "sketch" and assignment_path:
-        pool.beat_assignments[str(beat_num)] = assignment_path
-    save_pool_index(pool, grids_dir)
-    return pool_id
+    return decode_uploaded_rgb_image(content)
 
 
 def _prop_marker_colors_from_menu(prop_menu: list[dict] | None) -> dict[str, str]:
@@ -1901,38 +1846,20 @@ async def upload_beat_sketch(
 ):
     """Upload a beat sketch, store the canonical sketch file, and add it to the pool."""
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    project_dir = resolved.project_dir
+    content = await file.read()
     try:
-        image = await _read_uploaded_rgb_image(file)
-    except ValueError as exc:
+        uploaded = grid_pool_use_cases().upload(
+            resolved.ctx,
+            UploadBeatPoolImageCommand(
+                episode_num=episode_num,
+                beat_num=beat_num,
+                content=content,
+                image_type="sketch",
+            ),
+        )
+    except GridPoolUploadRejected as exc:
         return {"ok": False, "error": str(exc)}
-
-    sketches_dir = project_dir / "sketches" / f"ep{episode_num:03d}"
-    sketches_dir.mkdir(parents=True, exist_ok=True)
-    sketch_path = sketches_dir / f"beat_{beat_num:02d}.png"
-    image.save(sketch_path, format="PNG")
-
-    pool_id = _register_uploaded_pool_image(
-        project_dir=project_dir,
-        episode_num=episode_num,
-        beat_num=beat_num,
-        image=image,
-        image_type="sketch",
-    )
-    rel = f"sketches/ep{episode_num:03d}/beat_{beat_num:02d}.png"
-    sketch_url = make_static_url_for_context(
-        resolved.ctx,
-        rel,
-        local_path=sketch_path,
-    )
-    return {
-        "ok": True,
-        "data": {
-            "beat_num": beat_num,
-            "pool_id": pool_id,
-            "sketch_url": sketch_url,
-        },
-    }
+    return {"ok": True, "data": uploaded.as_dict()}
 
 
 @router.post(
@@ -1947,38 +1874,20 @@ async def upload_beat_render(
 ):
     """Upload a beat render first frame, promote it, and add it to the pool."""
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    project_dir = resolved.project_dir
+    content = await file.read()
     try:
-        image = await _read_uploaded_rgb_image(file)
-    except ValueError as exc:
+        uploaded = grid_pool_use_cases().upload(
+            resolved.ctx,
+            UploadBeatPoolImageCommand(
+                episode_num=episode_num,
+                beat_num=beat_num,
+                content=content,
+                image_type="render",
+            ),
+        )
+    except GridPoolUploadRejected as exc:
         return {"ok": False, "error": str(exc)}
-
-    frames_dir = project_dir / "frames" / f"ep{episode_num:03d}"
-    frames_dir.mkdir(parents=True, exist_ok=True)
-    frame_path = frames_dir / f"beat_{beat_num:02d}.png"
-    image.save(frame_path, format="PNG")
-
-    pool_id = _register_uploaded_pool_image(
-        project_dir=project_dir,
-        episode_num=episode_num,
-        beat_num=beat_num,
-        image=image,
-        image_type="render",
-    )
-    rel = f"frames/ep{episode_num:03d}/beat_{beat_num:02d}.png"
-    frame_url = make_static_url_for_context(
-        resolved.ctx,
-        rel,
-        local_path=frame_path,
-    )
-    return {
-        "ok": True,
-        "data": {
-            "beat_num": beat_num,
-            "pool_id": pool_id,
-            "frame_url": frame_url,
-        },
-    }
+    return {"ok": True, "data": uploaded.as_dict()}
 
 
 # ── 单 Beat 音频重生 ─────────────────────────────────────────────────────────

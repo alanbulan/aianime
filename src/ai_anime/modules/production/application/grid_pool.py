@@ -146,6 +146,33 @@ class SelectedGridPoolImage:
 
 
 @dataclass(frozen=True)
+class UploadBeatPoolImageCommand:
+    episode_num: int
+    beat_num: int
+    content: bytes
+    image_type: str
+
+
+@dataclass(frozen=True)
+class UploadedBeatPoolImage:
+    beat_num: int
+    pool_id: str
+    sketch_url: str | None = None
+    frame_url: str | None = None
+
+    def as_dict(self) -> dict[str, Any]:
+        data: dict[str, Any] = {
+            "beat_num": self.beat_num,
+            "pool_id": self.pool_id,
+        }
+        if self.sketch_url is not None:
+            data["sketch_url"] = self.sketch_url
+        if self.frame_url is not None:
+            data["frame_url"] = self.frame_url
+        return data
+
+
+@dataclass(frozen=True)
 class RebuiltGridPool:
     episode: int
     image_count: int
@@ -168,6 +195,10 @@ class GridPoolImageStale(GridPoolSelectionRejected):
         super().__init__(
             "该草图已过期，请先重新生成。如确认仍要使用，请传 force=true。"
         )
+
+
+class GridPoolUploadRejected(ValueError):
+    pass
 
 
 class GridPoolUseCases:
@@ -206,3 +237,10 @@ class GridPoolUseCases:
         command: SelectGridPoolImageCommand,
     ) -> SelectedGridPoolImage:
         return await self._gateway.select(context, command)
+
+    def upload(
+        self,
+        context: ProjectContext,
+        command: UploadBeatPoolImageCommand,
+    ) -> UploadedBeatPoolImage:
+        return self._gateway.upload(context, command)
