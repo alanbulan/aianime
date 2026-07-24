@@ -18,6 +18,8 @@ export {
   useRenderPlan,
   useRenderSettings,
   useSeedance2BeatStatus,
+  useSaveSketchRegenQueue,
+  useSketchRegenQueue,
   useSketchSettings,
   useTrimSeedance2Asset,
   useTrimNarratorVoice,
@@ -41,6 +43,10 @@ export type {
   RenderExecuteResult,
   RenderPlan,
 } from "@/modules/production/domain/render-plan";
+export type {
+  SketchRegenQueueData,
+  SketchRegenQueueItem,
+} from "@/modules/production/domain/sketch-regen-queue";
 export type { NarratorVoiceSourceOption } from "@/modules/production/domain/narrator-voice";
 export type {
   Seedance2BeatStatus,

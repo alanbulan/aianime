@@ -38,18 +38,16 @@ import { TASK_TYPES } from "@/lib/task-types";
 import { useTasks } from "@/lib/queries/tasks";
 import { isActiveStatus } from "@/components/episode/task-controller-provider";
 import { useProjectAspectRatio } from "@/stores/aspect-ratio-store";
-import {
-  useSaveSketchRegenQueue,
-  useSketchRegenQueue,
-  type SketchRegenQueueItem,
-} from "@/lib/queries/sketch-regen-queue";
 import { CreditCostInline } from "@/components/credit-cost-inline";
 import { formatCreditCost } from "@/components/credits/credit-visual";
 import { RenderPlanDialog } from "./render-plan-dialog";
 import type { Beat } from "@/modules/narrative_planning/public";
 import {
   type SketchAspectRatio,
+  type SketchRegenQueueItem,
   useGenerateAudio,
+  useSaveSketchRegenQueue,
+  useSketchRegenQueue,
   useSketchSettings,
 } from "@/modules/production/public";
 import type { Task } from "@/types/task";

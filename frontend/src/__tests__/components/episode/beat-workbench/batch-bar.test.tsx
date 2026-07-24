@@ -185,16 +185,6 @@ vi.mock("@/modules/narrative_planning/public", () => ({
   }),
 }));
 
-vi.mock("@/lib/queries/sketch-regen-queue", () => ({
-  useSaveSketchRegenQueue: () => ({
-    mutate: vi.fn(),
-    isPending: false,
-  }),
-  useSketchRegenQueue: () => ({
-    data: { ok: true, data: { items: [] } },
-  }),
-}));
-
 vi.mock("@/lib/queries/tasks", () => ({
   useTasks: () => ({
     data: { ok: true, data: [] },

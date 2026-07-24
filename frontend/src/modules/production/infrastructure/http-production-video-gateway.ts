@@ -34,6 +34,10 @@ import {
   type VideoBackendOption,
 } from "@/modules/production/domain/video-backend";
 import type { VideoInputCropTarget } from "@/modules/production/domain/seedance2-panel";
+import type {
+  SketchRegenQueueData,
+  SketchRegenQueueItem,
+} from "@/modules/production/domain/sketch-regen-queue";
 import { p } from "@/shared/api/path";
 import { api } from "@/shared/api/transport";
 import { jsonWithBackendError } from "@/shared/api/errors";
@@ -376,6 +380,22 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
       .json<
         ProductionDataResponse<RenderExecuteResult> | ProductionErrorResponse
       >();
+  },
+  async getSketchRegenQueue(project, episode, signal) {
+    return api
+      .get(
+        p`api/v1/projects/${project}/episodes/${episode}/sketch-regen-queue`,
+        { signal },
+      )
+      .json<ProductionDataResponse<SketchRegenQueueData>>();
+  },
+  async saveSketchRegenQueue(project, episode, items: SketchRegenQueueItem[]) {
+    return api
+      .put(
+        p`api/v1/projects/${project}/episodes/${episode}/sketch-regen-queue`,
+        { json: { items } },
+      )
+      .json<ProductionDataResponse<SketchRegenQueueData>>();
   },
   async composeEpisode(project, episode, command) {
     return api
