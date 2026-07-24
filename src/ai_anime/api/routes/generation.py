@@ -86,6 +86,10 @@ from ai_anime.modules.asset_world.public import (
     runtime_prop_menu_for_episode as _runtime_prop_menu_with_global_props,
     scene_viewer_use_cases,
 )
+from ai_anime.modules.production.public import (
+    SketchPoseCandidatesMissing,
+    sketch_pose_editor_use_cases,
+)
 from ai_anime.render_plan.ref_image_hash import RefImageHasher
 from ai_anime.seedance2_i2v.pipeline import (
     is_huimeng_seedance2_backend,
@@ -3624,15 +3628,6 @@ async def get_sketch_pose_editor(
     user: dict = Depends(get_api_user),
 ):
     """Return NiceGUI-compatible pose editor payload for a canonical sketch."""
-    from PIL import Image
-    from ai_anime.services.sketch_pose_service import (
-        POSE_PRESETS,
-        SKELETON_EDGES,
-        build_all_episode_candidates,
-        build_pose_candidates,
-        _heuristic_pose_from_bbox,
-    )
-
     resolved = await _resolve_generation_project(project, user, required_role="viewer")
     username = resolved.username
     project_name = resolved.project_name
@@ -3660,38 +3655,14 @@ async def get_sketch_pose_editor(
         )
 
     sketch_colors = store.get_sketch_colors(episode_num) or {}
-    candidates = build_pose_candidates(beat, sketch_colors)
-    if not candidates:
-        candidates = build_all_episode_candidates(sketch_colors)
-    if not candidates:
-        return {"ok": False, "error": "本集没有分配颜色的身份，请先重新配色"}
-
-    with Image.open(sketch_path) as image:
-        width, height = image.size
-
-    skeletons: list[dict[str, Any]] = []
-    total = len(candidates)
-    margin = width * 0.15
-    spacing = (width - 2 * margin) / max(1, total - 1) if total > 1 else 0
-    for idx, candidate in enumerate(candidates):
-        cx = int(margin + idx * spacing) if total > 1 else width // 2
-        bw = max(40, int(width * 0.15))
-        bh = max(80, int(height * 0.65))
-        cy = int(height * 0.1)
-        bbox = (cx - bw // 2, cy, cx + bw // 2, cy + bh)
-        pose_data = _heuristic_pose_from_bbox(bbox, (width, height))
-        skeletons.append(
-            {
-                "identityId": candidate.identity_id,
-                "colorHex": candidate.color_hex,
-                "colorName": candidate.color_name,
-                "joints": pose_data["joints"],
-                "lineWidth": pose_data.get("line_width", 3),
-                "headRadius": pose_data.get("head_radius", 12),
-                "visible": False,
-                "active": idx == 0,
-            }
+    try:
+        editor = sketch_pose_editor_use_cases().load_editor(
+            sketch_path=sketch_path,
+            beat=beat,
+            sketch_colors=sketch_colors,
         )
+    except SketchPoseCandidatesMissing:
+        return {"ok": False, "error": "本集没有分配颜色的身份，请先重新配色"}
 
     return {
         "ok": True,
@@ -3700,19 +3671,7 @@ async def get_sketch_pose_editor(
             "sketch_url": _canonical_sketch_url(
                 resolved.ctx, project_dir, episode_num, beat_num
             ),
-            "width": width,
-            "height": height,
-            "candidates": [
-                {
-                    "identity_id": candidate.identity_id,
-                    "color_hex": candidate.color_hex,
-                    "color_name": candidate.color_name,
-                }
-                for candidate in candidates
-            ],
-            "skeleton_edges": SKELETON_EDGES,
-            "pose_presets": POSE_PRESETS,
-            "skeletons": skeletons,
+            **editor,
         },
     }
 
@@ -3728,8 +3687,6 @@ async def save_sketch_pose_editor(
     user: dict = Depends(get_api_user),
 ):
     """Persist pose editor strokes/skeletons back to the canonical sketch."""
-    from ai_anime.services.sketch_pose_service import save_pose_editor_state
-
     resolved = await _resolve_generation_project(project, user, required_role="editor")
     project_dir = resolved.project_dir
     sketch_path = _canonical_sketch_path(project_dir, episode_num, beat_num)
@@ -3740,7 +3697,10 @@ async def save_sketch_pose_editor(
         )
 
     try:
-        save_pose_editor_state(str(sketch_path), body)
+        sketch_pose_editor_use_cases().save_editor(
+            sketch_path=sketch_path,
+            editor_state=body,
+        )
     except Exception as exc:
         return JSONResponse(
             status_code=400,

@@ -283,6 +283,43 @@ def test_asset_world_callers_use_the_public_api() -> None:
     assert not failures, "\n".join(failures)
 
 
+def test_production_callers_use_the_public_api() -> None:
+    production_module = PACKAGE_ROOT / "modules" / "production"
+    failures: list[str] = []
+
+    for path in _python_files(PACKAGE_ROOT):
+        if path.is_relative_to(production_module):
+            continue
+        relative = _relative(path)
+        for imported in _imports(path):
+            if not imported.startswith("ai_anime.modules.production."):
+                continue
+            if imported == "ai_anime.modules.production.public":
+                continue
+            failures.append(f"{relative}: {imported}")
+
+    assert not failures, "\n".join(failures)
+
+
+def test_production_sketch_pose_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    source = route.read_text(encoding="utf-8")
+
+    assert not (
+        PACKAGE_ROOT / "services" / "sketch_pose_service.py"
+    ).exists()
+    assert "sketch_pose_editor_use_cases" in source
+    assert "ai_anime.modules.production.public" in _imports(route)
+    for legacy_implementation in (
+        "ai_anime.services.sketch_pose_service",
+        "build_all_episode_candidates",
+        "build_pose_candidates",
+        "_heuristic_pose_from_bbox",
+        "save_pose_editor_state",
+    ):
+        assert legacy_implementation not in source
+
+
 def test_asset_world_style_layers_do_not_depend_on_fastapi() -> None:
     roots = (
         PACKAGE_ROOT / "modules" / "asset_world" / "domain",
