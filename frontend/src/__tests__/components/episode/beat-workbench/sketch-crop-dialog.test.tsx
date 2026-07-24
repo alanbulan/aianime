@@ -29,7 +29,7 @@ vi.mock("sonner", () => ({
   },
 }));
 
-vi.mock("@/lib/queries/sketch-pose-editor", () => ({
+vi.mock("@/modules/production/public", () => ({
   useSketchPoseEditor: () => poseEditorQueryMock(),
   useCropSketch: () => ({
     mutateAsync: cropSketchMock,

@@ -8,8 +8,8 @@ import {
   removeSkeletonFromFrame,
   resetSkeletonPoses,
   type PoseDragState,
-} from "@/lib/sketch-pose-editor-model";
-import type { PoseSkeleton } from "@/lib/queries/sketch-pose-editor";
+  type PoseSkeleton,
+} from "@/modules/production/public";
 
 function skeleton(overrides: Partial<PoseSkeleton> = {}): PoseSkeleton {
   return {
@@ -27,7 +27,7 @@ function skeleton(overrides: Partial<PoseSkeleton> = {}): PoseSkeleton {
   };
 }
 
-describe("sketch pose editor model", () => {
+describe("Production sketch pose editor domain", () => {
   it("hit-tests visible active joints before inactive skeletons", () => {
     const hit = hitTestPoseJoint(
       [
@@ -54,7 +54,13 @@ describe("sketch pose editor model", () => {
       startJoints: skeleton().joints,
     };
 
-    const [next] = movePoseDrag([skeleton()], drag, { x: -5, y: 300 }, 100, 120);
+    const [next] = movePoseDrag(
+      [skeleton()],
+      drag,
+      { x: -5, y: 300 },
+      100,
+      120,
+    );
 
     expect(next.joints.left_wrist).toEqual({ x: 0, y: 120 });
     expect(next.joints.neck).toEqual({ x: 50, y: 50 });
@@ -69,7 +75,13 @@ describe("sketch pose editor model", () => {
       startJoints: skeleton().joints,
     };
 
-    const [next] = movePoseDrag([skeleton()], drag, { x: 60, y: 40 }, 100, 120);
+    const [next] = movePoseDrag(
+      [skeleton()],
+      drag,
+      { x: 60, y: 40 },
+      100,
+      120,
+    );
 
     expect(next.joints.neck).toEqual({ x: 60, y: 40 });
     expect(next.joints.nose).toEqual({ x: 60, y: 10 });

@@ -38,6 +38,13 @@ import type {
   SketchRegenQueueData,
   SketchRegenQueueItem,
 } from "@/modules/production/domain/sketch-regen-queue";
+import type {
+  CropSketchCommand,
+  SaveSketchPoseEditorCommand,
+  SketchCropResult,
+  SketchPoseEditorData,
+  SketchPoseEditorSaveResult,
+} from "@/modules/production/domain/sketch-pose-editor";
 import { p } from "@/shared/api/path";
 import { api } from "@/shared/api/transport";
 import { jsonWithBackendError } from "@/shared/api/errors";
@@ -396,6 +403,39 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
         { json: { items } },
       )
       .json<ProductionDataResponse<SketchRegenQueueData>>();
+  },
+  async getSketchPoseEditor(project, episode, beatNum, signal) {
+    return api
+      .get(
+        p`api/v1/projects/${project}/episodes/${episode}/beats/${beatNum}/sketch/pose-editor`,
+        { signal },
+      )
+      .json<
+        ProductionDataResponse<SketchPoseEditorData> | ProductionErrorResponse
+      >();
+  },
+  async saveSketchPoseEditor(
+    project,
+    episode,
+    command: SaveSketchPoseEditorCommand,
+  ) {
+    return api
+      .post(
+        p`api/v1/projects/${project}/episodes/${episode}/beats/${command.beatNum}/sketch/pose-editor`,
+        { json: command.state },
+      )
+      .json<
+        | ProductionDataResponse<SketchPoseEditorSaveResult>
+        | ProductionErrorResponse
+      >();
+  },
+  async cropSketch(project, episode, command: CropSketchCommand) {
+    return api
+      .post(
+        p`api/v1/projects/${project}/episodes/${episode}/beats/${command.beatNum}/sketch/crop`,
+        { json: command.crop },
+      )
+      .json<ProductionDataResponse<SketchCropResult> | ProductionErrorResponse>();
   },
   async composeEpisode(project, episode, command) {
     return api

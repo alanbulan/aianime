@@ -36,6 +36,13 @@ import type {
   SketchRegenQueueData,
   SketchRegenQueueItem,
 } from "@/modules/production/domain/sketch-regen-queue";
+import type {
+  CropSketchCommand,
+  SaveSketchPoseEditorCommand,
+  SketchCropResult,
+  SketchPoseEditorData,
+  SketchPoseEditorSaveResult,
+} from "@/modules/production/domain/sketch-pose-editor";
 
 export interface ProductionDataResponse<T> {
   ok: true;
@@ -222,6 +229,27 @@ export interface ProductionVideoGateway {
     episode: number,
     items: SketchRegenQueueItem[],
   ): Promise<ProductionDataResponse<SketchRegenQueueData>>;
+  getSketchPoseEditor(
+    project: string,
+    episode: number,
+    beatNum: number,
+    signal?: AbortSignal,
+  ): Promise<
+    ProductionDataResponse<SketchPoseEditorData> | ProductionErrorResponse
+  >;
+  saveSketchPoseEditor(
+    project: string,
+    episode: number,
+    command: SaveSketchPoseEditorCommand,
+  ): Promise<
+    | ProductionDataResponse<SketchPoseEditorSaveResult>
+    | ProductionErrorResponse
+  >;
+  cropSketch(
+    project: string,
+    episode: number,
+    command: CropSketchCommand,
+  ): Promise<ProductionDataResponse<SketchCropResult> | ProductionErrorResponse>;
   composeEpisode(
     project: string,
     episode: number,

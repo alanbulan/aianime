@@ -549,6 +549,12 @@ describe("frontend architecture boundaries", () => {
     expect(
       existsSync(resolve(SRC_ROOT, "lib/queries/sketch-regen-queue.ts")),
     ).toBe(false);
+    expect(
+      existsSync(resolve(SRC_ROOT, "lib/queries/sketch-pose-editor.ts")),
+    ).toBe(false);
+    expect(existsSync(resolve(SRC_ROOT, "lib/sketch-pose-editor-model.ts"))).toBe(
+      false,
+    );
     expect(existsSync(resolve(SRC_ROOT, "types/render-plan.ts"))).toBe(false);
     expect(applicationDataImportFailures).toEqual([]);
     expect(internalImportFailures).toEqual([]);

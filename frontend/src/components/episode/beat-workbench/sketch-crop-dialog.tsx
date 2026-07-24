@@ -17,10 +17,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  type SketchCrop,
   useCropSketch,
   useSketchPoseEditor,
-  type SketchCrop,
-} from "@/lib/queries/sketch-pose-editor";
+} from "@/modules/production/public";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { centerCropBoxForRatio, zoomCropBox } from "@/lib/aspect-ratio";
 import { useProjectAspectRatio } from "@/stores/aspect-ratio-store";

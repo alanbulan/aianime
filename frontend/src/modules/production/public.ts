@@ -2,6 +2,7 @@ export {
   useComposeEpisode,
   useCopyProjectNarratorVoice,
   useCropSeedance2Asset,
+  useCropSketch,
   useDeleteNarratorVoice,
   useDeleteSeedance2Asset,
   useGenerateBeatVideoPrompt,
@@ -19,6 +20,8 @@ export {
   useRenderSettings,
   useSeedance2BeatStatus,
   useSaveSketchRegenQueue,
+  useSaveSketchPoseEditor,
+  useSketchPoseEditor,
   useSketchRegenQueue,
   useSketchSettings,
   useTrimSeedance2Asset,
@@ -47,6 +50,24 @@ export type {
   SketchRegenQueueData,
   SketchRegenQueueItem,
 } from "@/modules/production/domain/sketch-regen-queue";
+export {
+  addSkeletonToFrame,
+  cloneJoints,
+  hitTestPoseJoint,
+  movePoseDrag,
+  removeSkeletonFromFrame,
+  resetSkeletonPoses,
+  setActiveSkeleton,
+} from "@/modules/production/domain/sketch-pose-editor";
+export type {
+  PoseDragState,
+  PosePoint,
+  PoseSkeleton,
+  PoseStroke,
+  SketchCrop,
+  SketchPoseEditorData,
+  SketchPoseEditorState,
+} from "@/modules/production/domain/sketch-pose-editor";
 export type { NarratorVoiceSourceOption } from "@/modules/production/domain/narrator-voice";
 export type {
   Seedance2BeatStatus,

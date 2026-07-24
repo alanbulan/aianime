@@ -1,5 +1,81 @@
 // Copyright (c) 2026 AI anime
-import type { PosePoint, PoseSkeleton } from "@/lib/queries/sketch-pose-editor";
+
+export interface PosePoint {
+  x: number;
+  y: number;
+}
+
+export interface PoseStroke {
+  points: PosePoint[];
+  width?: number;
+  colorHex?: string;
+  eraser?: boolean;
+}
+
+export interface PoseSkeleton {
+  identityId: string;
+  colorHex: string;
+  colorName?: string;
+  joints: Record<string, PosePoint>;
+  lineWidth?: number;
+  headRadius?: number;
+  visible?: boolean;
+  active?: boolean;
+}
+
+export interface PosePreset {
+  label: string;
+  joints: Record<string, PosePoint>;
+}
+
+export interface SketchPoseEditorData {
+  beat_num: number;
+  sketch_url: string;
+  width: number;
+  height: number;
+  candidates: Array<{
+    identity_id: string;
+    color_hex: string;
+    color_name: string;
+  }>;
+  skeleton_edges: Array<[string, string]>;
+  pose_presets: Record<string, PosePreset>;
+  skeletons: PoseSkeleton[];
+}
+
+export interface SketchPoseEditorState {
+  strokes: PoseStroke[];
+  skeletons: PoseSkeleton[];
+}
+
+export interface SketchPoseEditorSaveResult {
+  beat_num: number;
+  sketch_url: string;
+}
+
+export interface SketchCrop {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface SketchCropResult {
+  beat_num: number;
+  sketch_url: string;
+  width: number;
+  height: number;
+}
+
+export interface SaveSketchPoseEditorCommand {
+  beatNum: number;
+  state: SketchPoseEditorState;
+}
+
+export interface CropSketchCommand {
+  beatNum: number;
+  crop: SketchCrop;
+}
 
 export interface PoseJointHit {
   skeletonIndex: number;
@@ -20,7 +96,10 @@ export function hitTestPoseJoint(
   const ordered = skeletons
     .map((skeleton, index) => ({ skeleton, index }))
     .filter(({ skeleton }) => skeleton.visible)
-    .sort((a, b) => Number(b.skeleton.active === true) - Number(a.skeleton.active === true));
+    .sort(
+      (a, b) =>
+        Number(b.skeleton.active === true) - Number(a.skeleton.active === true),
+    );
 
   for (const { skeleton, index } of ordered) {
     let bestKey = "";

@@ -28,14 +28,6 @@ import {
 } from "@/lib/dialog-styles";
 import { cn } from "@/lib/utils";
 import {
-  useSaveSketchPoseEditor,
-  useSketchPoseEditor,
-  type PosePoint,
-  type PoseSkeleton,
-  type PoseStroke,
-} from "@/lib/queries/sketch-pose-editor";
-import { resolveMediaUrl } from "@/lib/media-url";
-import {
   addSkeletonToFrame,
   cloneJoints,
   hitTestPoseJoint,
@@ -44,7 +36,13 @@ import {
   resetSkeletonPoses,
   setActiveSkeleton,
   type PoseDragState,
-} from "@/lib/sketch-pose-editor-model";
+  type PosePoint,
+  type PoseSkeleton,
+  type PoseStroke,
+  useSaveSketchPoseEditor,
+  useSketchPoseEditor,
+} from "@/modules/production/public";
+import { resolveMediaUrl } from "@/lib/media-url";
 
 type EditorMode = "pose" | "pencil" | "ink" | "eraser";
 

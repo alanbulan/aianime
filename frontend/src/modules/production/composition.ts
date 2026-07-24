@@ -10,6 +10,7 @@ import { createVideoGenerationQueryHooks } from "@/modules/production/applicatio
 import { createVideoPoolQueryHooks } from "@/modules/production/application/video-pool-query-hooks";
 import { createSeedance2PanelQueryHooks } from "@/modules/production/application/seedance2-panel-query-hooks";
 import { createSketchRegenQueueQueryHooks } from "@/modules/production/application/sketch-regen-queue-query-hooks";
+import { createSketchPoseEditorQueryHooks } from "@/modules/production/application/sketch-pose-editor-query-hooks";
 import { httpProductionVideoGateway } from "@/modules/production/infrastructure/http-production-video-gateway";
 import { promptLanguageFromLocale } from "@/modules/production/domain/video-generation";
 
@@ -57,5 +58,10 @@ export const { useRenderPlan, useRenderExecute } =
   createRenderPlanQueryHooks(httpProductionVideoGateway);
 export const { useSketchRegenQueue, useSaveSketchRegenQueue } =
   createSketchRegenQueueQueryHooks(httpProductionVideoGateway);
+export const {
+  useSketchPoseEditor,
+  useSaveSketchPoseEditor,
+  useCropSketch,
+} = createSketchPoseEditorQueryHooks(httpProductionVideoGateway);
 export const { useComposeEpisode, useFinalVideo } =
   createEpisodeComposeQueryHooks(httpProductionVideoGateway);
