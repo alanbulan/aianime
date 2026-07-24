@@ -32,13 +32,10 @@ from ai_anime.modules.asset_world.public import (
 from ai_anime.modules.production.public import (
     AssignProjectSketchColorsCommand,
     DetectProjectSketchMarkersCommand,
-    GenerateMissingManualSketchesCommand,
-    ManualSketchRegenerationRejected,
     SketchColorMarkersMissing,
     SketchEpisodeBeatsMissing,
     SketchMarkerDetectionFailed,
     SketchMarkerDetectionRejected,
-    manual_sketch_regeneration_use_cases,
     sketch_marker_use_cases,
 )
 from ai_anime.utils.media_io import decode_uploaded_rgb_image
@@ -357,26 +354,6 @@ async def get_director_control_frame_status(
             BeatViewerQuery(episode_num=episode_num, beat_num=beat_num),
         ),
     }
-
-
-@router.post(
-    "/projects/{project}/episodes/{episode_num}/sketches/generate-missing-manual"
-)
-async def generate_missing_manual_sketches(
-    project: str,
-    episode_num: int,
-    user: dict = Depends(get_api_user),
-):
-    """Dispatch Sketch regeneration for missing manual-shot sketches."""
-    resolved = await _resolve_generation_project(project, user, required_role="editor")
-    try:
-        scheduled = await manual_sketch_regeneration_use_cases().generate(
-            resolved.ctx,
-            GenerateMissingManualSketchesCommand(episode_num=episode_num),
-        )
-    except ManualSketchRegenerationRejected as exc:
-        return {"ok": False, "error": str(exc)}
-    return scheduled.as_dict()
 
 
 # ---------------------------------------------------------------------------

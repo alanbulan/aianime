@@ -773,15 +773,15 @@ def test_production_selected_regeneration_routes_delegate_to_application() -> No
 
 
 def test_production_manual_sketch_regeneration_route_delegates_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "production_sketch.py"
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
-    source = generation.read_text(encoding="utf-8")
-    route_start = source.index("async def generate_missing_manual_sketches(")
-    route_end = source.index("async def assign_sketch_colors(", route_start)
-    route_source = source[route_start:route_end]
+    source = route.read_text(encoding="utf-8")
+    generation_source = generation.read_text(encoding="utf-8")
 
-    assert route_source.count("manual_sketch_regeneration_use_cases") == 1
-    assert "GenerateMissingManualSketchesCommand" in route_source
-    assert "ManualSketchRegenerationRejected" in route_source
+    assert source.count("manual_sketch_regeneration_use_cases().") == 1
+    assert "GenerateMissingManualSketchesCommand" in source
+    assert "ManualSketchRegenerationRejected" in source
+    assert "async def generate_missing_manual_sketches(" not in generation_source
     for implementation_detail in (
         "make_sqlite_store_for_context",
         "make_sqlite_store(",
@@ -798,7 +798,7 @@ def test_production_manual_sketch_regeneration_route_delegates_to_application() 
         "SELECTED_SKETCH_REGEN_TASK_TYPE",
         "需要 project context",
     ):
-        assert implementation_detail not in route_source
+        assert implementation_detail not in source
 
 
 def test_production_grid_regeneration_route_delegates_to_application() -> None:

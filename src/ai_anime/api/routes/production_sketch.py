@@ -13,7 +13,9 @@ from ai_anime.modules.production.public import (
     CurrentSketchMissing,
     DirectorControlSketchUnavailable,
     GenerateDirectorControlSketchCommand,
+    GenerateMissingManualSketchesCommand,
     GenerateSketchesCommand,
+    ManualSketchRegenerationRejected,
     SaveSketchEditorCommand,
     SketchBeatMissing,
     SketchCropRejected,
@@ -22,6 +24,7 @@ from ai_anime.modules.production.public import (
     SketchGenerationRejected,
     SketchPoseCandidatesMissing,
     director_control_sketch_use_cases,
+    manual_sketch_regeneration_use_cases,
     sketch_editing_use_cases,
     sketch_generation_use_cases,
 )
@@ -54,6 +57,26 @@ async def generate_sketches(
     except SketchGenerationRejected as exc:
         return {"ok": False, "error": str(exc)}
     return {"ok": True, **scheduled.as_dict()}
+
+
+@router.post(
+    "/projects/{project}/episodes/{episode_num}/sketches/generate-missing-manual"
+)
+async def generate_missing_manual_sketches(
+    project: str,
+    episode_num: int,
+    user: dict = Depends(get_api_user),
+):
+    """Dispatch Sketch regeneration for missing manual-shot sketches."""
+    resolved = await resolve_project_scope(project, user, required_role="editor")
+    try:
+        scheduled = await manual_sketch_regeneration_use_cases().generate(
+            resolved.ctx,
+            GenerateMissingManualSketchesCommand(episode_num=episode_num),
+        )
+    except ManualSketchRegenerationRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return scheduled.as_dict()
 
 
 @router.post(

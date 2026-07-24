@@ -17,19 +17,19 @@ from ai_anime.modules.production.application.selected_regeneration import (
 
 
 def _client(monkeypatch):
-    from ai_anime.api.routes import generation, production_render
+    from ai_anime.api.routes import production_render, production_sketch
 
     context = object()
 
     async def resolve(*_args, **_kwargs):
         return SimpleNamespace(ctx=context)
 
-    monkeypatch.setattr(generation, "_resolve_generation_project", resolve)
     monkeypatch.setattr(production_render, "resolve_project_scope", resolve)
+    monkeypatch.setattr(production_sketch, "resolve_project_scope", resolve)
     app = FastAPI()
-    app.include_router(generation.router, prefix="/api/v1")
     app.include_router(production_render.router, prefix="/api/v1")
-    app.dependency_overrides[generation.get_api_user] = lambda: {
+    app.include_router(production_sketch.router, prefix="/api/v1")
+    app.dependency_overrides[production_sketch.get_api_user] = lambda: {
         "username": "alice"
     }
     app.dependency_overrides[production_render.get_api_user] = lambda: {
@@ -116,7 +116,7 @@ def test_sketch_selected_regen_preserves_rejection_envelope(monkeypatch):
 
 
 def test_missing_manual_sketch_regen_maps_request_to_application(monkeypatch):
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_sketch
 
     client, context = _client(monkeypatch)
     calls = []
@@ -141,7 +141,7 @@ def test_missing_manual_sketch_regen_maps_request_to_application(monkeypatch):
             )
 
     monkeypatch.setattr(
-        generation,
+        production_sketch,
         "manual_sketch_regeneration_use_cases",
         lambda: UseCases(),
     )
@@ -167,7 +167,7 @@ def test_missing_manual_sketch_regen_maps_request_to_application(monkeypatch):
 
 
 def test_missing_manual_sketch_regen_preserves_rejection_envelope(monkeypatch):
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_sketch
 
     client, _context = _client(monkeypatch)
 
@@ -176,7 +176,7 @@ def test_missing_manual_sketch_regen_preserves_rejection_envelope(monkeypatch):
             raise ManualSketchRegenerationRejected("第 2 集没有 beats")
 
     monkeypatch.setattr(
-        generation,
+        production_sketch,
         "manual_sketch_regeneration_use_cases",
         lambda: UseCases(),
     )
