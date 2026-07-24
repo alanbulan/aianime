@@ -301,11 +301,6 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         episode_or_none=lambda *_: None,
     )
     monkeypatch.setattr(
-        generation,
-        "production_generation_context_use_cases",
-        lambda *_: generation_context,
-    )
-    monkeypatch.setattr(
         production_composition,
         "production_generation_context_use_cases",
         lambda *_: generation_context,

@@ -6,6 +6,7 @@ from typing import Any
 from ai_anime.modules.asset_world.application.background_anchor import (
     BeatBackgroundAnchorUseCases,
 )
+from ai_anime.modules.asset_world.application.beat_viewer import BeatViewerUseCases
 from ai_anime.modules.asset_world.application.character_asset_history import (
     CharacterAssetHistoryUseCases,
 )
@@ -56,6 +57,12 @@ from ai_anime.modules.asset_world.infrastructure.character_voice_storage import 
 )
 from ai_anime.modules.asset_world.infrastructure.background_anchor import (
     LocalBeatBackgroundAnchorFiles,
+)
+from ai_anime.modules.asset_world.infrastructure.beat_viewer import (
+    AssetWorldBeatViewerRuntimePropMenuSource,
+    CompatibleBeatViewerEpisodeSource,
+    ProjectBeatViewerMediaUrls,
+    SqliteBeatViewerWorkspace,
 )
 from ai_anime.modules.asset_world.infrastructure.director_stage import (
     LocalBeatDirectorStageFiles,
@@ -215,6 +222,17 @@ def scene_viewer_use_cases() -> SceneViewerUseCases:
         LocalSceneViewerAssets(),
         anonymous_actor_colors=[color for color, _label in BRIDGMAN_CHARACTER_PALETTE],
         anonymous_prop_colors=[color for color, _label in PROP_MARKER_PALETTE],
+    )
+
+
+def beat_viewer_use_cases() -> BeatViewerUseCases:
+    return BeatViewerUseCases(
+        SqliteBeatViewerWorkspace(),
+        ProjectBeatViewerMediaUrls(),
+        scene_viewer_use_cases(),
+        beat_director_stage_use_cases(),
+        CompatibleBeatViewerEpisodeSource(),
+        AssetWorldBeatViewerRuntimePropMenuSource(prop_catalog_use_cases()),
     )
 
 

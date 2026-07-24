@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import AbstractAsyncContextManager
 from pathlib import Path
 from typing import Any, BinaryIO, Callable, Mapping, Protocol, Sequence
 
@@ -486,6 +487,43 @@ class SceneViewerAssets(Protocol):
 
 class BeatDirectorStageRepository(Protocol):
     async def get_beats_as_dicts(self, episode_num: int) -> list[dict[str, Any]]: ...
+
+
+class BeatViewerStore(Protocol):
+    async def get_beats_as_dicts(self, episode_num: int) -> list[dict[str, Any]]: ...
+
+    def get_sketch_colors(self, episode_num: int) -> dict[str, str]: ...
+
+
+class BeatViewerWorkspace(Protocol):
+    def session(
+        self,
+        context: ProjectContext,
+    ) -> AbstractAsyncContextManager[BeatViewerStore]: ...
+
+
+class BeatViewerEpisodeSource(Protocol):
+    def episode_or_none(
+        self,
+        store: BeatViewerStore,
+        episode_num: int,
+    ) -> Any | None: ...
+
+
+class BeatViewerRuntimePropMenuSource(Protocol):
+    def for_episode(
+        self,
+        store: BeatViewerStore,
+        episode: Any,
+        beats: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]: ...
+
+
+class BeatViewerMediaUrls(Protocol):
+    def asset_url(
+        self,
+        context: ProjectContext,
+    ) -> Callable[[str | Path], str]: ...
 
 
 class BeatAssetWriter(Protocol):

@@ -49,6 +49,8 @@ from ai_anime.api.schemas import (
 )
 from ai_anime.modules.asset_world.public import (
     BackgroundAnchorRejected,
+    BeatViewerBeatNotFound,
+    BeatViewerQuery,
     CropBeatBackgroundCommand,
     ExportBeatDirectorControlFrameCommand,
     SaveBeatDirectorOverlayCommand,
@@ -58,9 +60,8 @@ from ai_anime.modules.asset_world.public import (
     UploadBeatBackgroundCommand,
     beat_background_anchor_use_cases,
     beat_director_stage_use_cases,
+    beat_viewer_use_cases,
     resolve_beat_scene_name,
-    runtime_prop_menu_for_episode as _runtime_prop_menu_with_global_props,
-    scene_viewer_use_cases,
 )
 from ai_anime.modules.production.public import (
     AssignProjectSketchColorsCommand,
@@ -145,7 +146,6 @@ from ai_anime.modules.production.public import (
     episode_audio_use_cases,
     episode_export_use_cases,
     episode_video_use_cases,
-    production_generation_context_use_cases,
     production_image_settings_use_cases,
     render_plan_use_cases,
     image_generation_usage_use_cases,
@@ -195,18 +195,6 @@ def _render_plan_rejection_response(
 async def _read_uploaded_rgb_image(file: UploadFile):
     content = await file.read()
     return decode_uploaded_rgb_image(content)
-
-
-def _prop_marker_colors_from_menu(prop_menu: list[dict] | None) -> dict[str, str]:
-    colors: dict[str, str] = {}
-    for item in prop_menu or []:
-        if not isinstance(item, dict):
-            continue
-        prop_id = str(item.get("prop_id") or "").strip()
-        marker_color = str(item.get("marker_color") or "").strip()
-        if prop_id and marker_color:
-            colors[prop_id] = marker_color
-    return colors
 
 
 @router.get(
@@ -925,32 +913,16 @@ async def get_beat_pano_background_manifest(
 ):
     """Return the typed 360 viewer manifest for Beat selected-background capture."""
     resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    project_dir = resolved.project_dir
-    store, beat = await _episode_beat_from_resolution(resolved, episode_num, beat_num)
     try:
-        scene_name = resolve_beat_scene_name(beat)
-        if not scene_name:
-            return {"ok": False, "error": "当前 Beat 没有关联场景"}
-        manifest = scene_viewer_use_cases().beat_pano_manifest(
-            project_id=resolved.ctx.project_id,
-            project_dir=project_dir,
-            scene_name=scene_name,
-            asset_url=make_project_asset_url_builder(
-                resolved.ctx,
-                project_dir,
-                make_static_url_for_context,
-            ),
-            episode_num=int(episode_num),
-            beat_num=int(beat_num),
-            beat=beat,
+        manifest = await beat_viewer_use_cases().pano_background_manifest(
+            resolved.ctx,
+            BeatViewerQuery(episode_num=episode_num, beat_num=beat_num),
         )
-        return {"ok": True, "data": manifest}
+    except BeatViewerBeatNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except SceneCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
-    finally:
-        close = getattr(store, "close", None)
-        if close:
-            await close()
+    return {"ok": True, "data": manifest}
 
 
 @router.get("/projects/{project}/director-stage/palette")
@@ -962,7 +934,7 @@ async def get_default_director_stage_palette(
     await _resolve_generation_project(project, user, required_role="viewer")
     return {
         "ok": True,
-        "data": scene_viewer_use_cases().default_director_stage_palette(),
+        "data": beat_viewer_use_cases().default_director_stage_palette(),
     }
 
 
@@ -977,46 +949,16 @@ async def get_beat_director_stage_manifest(
 ):
     """Return the typed 3GS director-stage manifest for Beat-level capture."""
     resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    project_dir = resolved.project_dir
-    store, beat = await _episode_beat_from_resolution(resolved, episode_num, beat_num)
     try:
-        scene_name = resolve_beat_scene_name(beat)
-        if not scene_name:
-            return {"ok": False, "error": "当前 Beat 没有关联场景"}
-        beats = await store.get_beats_as_dicts(int(episode_num))
-        sketch_colors = {}
-        get_sketch_colors = getattr(store, "get_sketch_colors", None)
-        if get_sketch_colors is not None:
-            sketch_colors = dict(get_sketch_colors(int(episode_num)) or {})
-        episode_obj = production_generation_context_use_cases(
-            store,
-            resolved.username,
-        ).episode_or_none(int(episode_num))
-        prop_menu = await _runtime_prop_menu_with_global_props(
-            store, episode_obj, list(beats)
+        manifest = await beat_viewer_use_cases().director_stage_manifest(
+            resolved.ctx,
+            BeatViewerQuery(episode_num=episode_num, beat_num=beat_num),
         )
-        manifest = scene_viewer_use_cases().beat_director_stage_manifest(
-            project_id=resolved.ctx.project_id,
-            project_dir=project_dir,
-            scene_name=scene_name,
-            asset_url=make_project_asset_url_builder(
-                resolved.ctx,
-                project_dir,
-                make_static_url_for_context,
-            ),
-            episode_num=int(episode_num),
-            beat_num=int(beat_num),
-            beat=beat,
-            sketch_colors=sketch_colors,
-            prop_marker_colors=_prop_marker_colors_from_menu(prop_menu),
-        )
-        return {"ok": True, "data": manifest}
+    except BeatViewerBeatNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except SceneCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
-    finally:
-        close = getattr(store, "close", None)
-        if close:
-            await close()
+    return {"ok": True, "data": manifest}
 
 
 @router.get(
@@ -1358,18 +1300,11 @@ async def get_director_control_frame_status(
 ):
     """Return the NiceGUI director control frame status for one beat."""
     resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    project_dir = resolved.project_dir
     return {
         "ok": True,
-        "data": beat_director_stage_use_cases().control_frame_status(
-            project_dir=project_dir,
-            episode_num=episode_num,
-            beat_num=beat_num,
-            asset_url=make_project_asset_url_builder(
-                resolved.ctx,
-                project_dir,
-                make_static_url_for_context,
-            ),
+        "data": beat_viewer_use_cases().director_control_frame_status(
+            resolved.ctx,
+            BeatViewerQuery(episode_num=episode_num, beat_num=beat_num),
         ),
     }
 

@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from PIL import Image
 
+from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.production.application.director_control_sketch import (
     DirectorControlFrameStatus,
     DirectorControlSketchTaskReceipt,
@@ -23,10 +24,17 @@ def _client(monkeypatch, tmp_path, config: dict | None = None):
 
     saved: list[dict] = []
     current_config = dict(config or {})
-    ctx = SimpleNamespace(
+    ctx = ProjectContext(
         project_id="proj_demo",
-        owner_username="alice",
         project_name="demo",
+        owner_type="user",
+        owner_id="alice-id",
+        owner_username="alice",
+        requester_user_id="alice-id",
+        requester_username="alice",
+        requester_principals=(("user", "alice-id"),),
+        effective_role="owner",
+        home_node_id="local",
         output_dir=tmp_path,
         state_dir=tmp_path / "_state",
         runtime_dir=tmp_path / "_runtime",
@@ -69,6 +77,15 @@ def _client(monkeypatch, tmp_path, config: dict | None = None):
         "make_static_url_for_context",
         lambda ctx, rel, local_path=None: (
             f"/static/projects/{getattr(ctx, 'project_id', 'proj_demo')}/{rel}"
+        ),
+    )
+    from ai_anime.shared import project_media
+
+    monkeypatch.setattr(
+        project_media,
+        "make_project_static_url",
+        lambda ctx, rel, local_path=None: (
+            f"/static/projects/{ctx.project_id}/{rel}"
         ),
     )
     from ai_anime.modules.production.application.image_settings import (
@@ -499,32 +516,17 @@ def test_beat_viewer_manifests_include_context_and_destinations(monkeypatch, tmp
         ),
     )
 
-    async def fake_make_sqlite_store(username: str, project: str):
+    async def fake_make_sqlite_store_for_context(context: ProjectContext):
+        assert context.project_id == "proj_demo"
         return store
 
-    async def fake_resolve_project(
-        project: str, user: dict, required_role: str = "editor"
-    ):
-        ctx = SimpleNamespace(project_id="proj_demo", output_dir=tmp_path)
-        return SimpleNamespace(
-            ctx=ctx,
-            username="alice",
-            project_name="demo",
-            project_dir=tmp_path,
-            output_dir=str(tmp_path),
-            state_dir=str(tmp_path / "_state"),
-            runtime_dir=str(tmp_path / "_runtime"),
-        )
-
-    from ai_anime.api.routes import generation
     from ai_anime.director_world import stage_manifest
+    from ai_anime.modules.asset_world.infrastructure import beat_viewer
 
-    monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
-    monkeypatch.setattr(generation, "_resolve_generation_project", fake_resolve_project)
     monkeypatch.setattr(
-        generation,
-        "make_static_url_for_context",
-        lambda ctx, rel, local_path=None: f"/static/projects/{ctx.project_id}/{rel}",
+        beat_viewer.project_stores,
+        "make_sqlite_store_for_context",
+        fake_make_sqlite_store_for_context,
     )
 
     stage_dir = stage_manifest.stage_dir(tmp_path, "地下室")

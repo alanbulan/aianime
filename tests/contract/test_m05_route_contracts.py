@@ -271,6 +271,7 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.routes import episodes, generation, scenes
     from ai_anime.modules.asset_world.infrastructure import (
+        beat_viewer as beat_viewer_adapter,
         image_settings as image_settings_adapter,
     )
     from ai_anime.modules.production.application.sketch_regen_queue import (
@@ -278,6 +279,7 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     )
     from ai_anime.modules.production import composition as production_composition
     from ai_anime.modules.project_workspace.public import ProjectContext
+    from ai_anime.shared import project_media
     from ai_anime.shared.infrastructure import project_stores
     from ai_anime.verification import routes as verification_routes
 
@@ -375,20 +377,19 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         episode_or_none=lambda *_: None,
     )
     monkeypatch.setattr(
-        generation,
-        "production_generation_context_use_cases",
-        lambda *_: generation_context,
-    )
-    monkeypatch.setattr(
         production_composition,
         "production_generation_context_use_cases",
         lambda *_: generation_context,
     )
-    monkeypatch.setattr(generation, "_runtime_prop_menu_with_global_props", runtime_prop_menu)
     monkeypatch.setattr(
         production_composition.AssetWorldRuntimePropMenuSource,
         "for_episode",
         runtime_prop_menu,
+    )
+    monkeypatch.setattr(
+        beat_viewer_adapter.AssetWorldBeatViewerRuntimePropMenuSource,
+        "for_episode",
+        lambda *_args, **_kwargs: [],
     )
     monkeypatch.setattr(
         production_composition.ProjectConfigProductionSettings,
@@ -405,6 +406,7 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
     monkeypatch.setattr(scenes, "make_static_url_for_context", static_url)
     monkeypatch.setattr(generation, "make_static_url_for_context", static_url)
+    monkeypatch.setattr(project_media, "make_project_static_url", static_url)
 
     def build(backend: str = "inline"):
         nonlocal task_backend

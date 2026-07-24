@@ -907,8 +907,8 @@ def test_production_generation_context_routes_delegate_to_application() -> None:
     generation_source = generation.read_text(encoding="utf-8")
     freezone_source = freezone.read_text(encoding="utf-8")
 
-    for source in (generation_source, freezone_source):
-        assert "production_generation_context_use_cases" in source
+    assert "production_generation_context_use_cases" not in generation_source
+    assert "production_generation_context_use_cases" in freezone_source
     for legacy_helper in (
         "def _build_character_map(",
         "def _episode_from_store_or_none(",
@@ -1128,18 +1128,33 @@ def test_episode_prop_promotion_uses_asset_world_public_api() -> None:
 
 def test_runtime_prop_menu_uses_one_asset_world_implementation() -> None:
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    beat_viewer = (
+        PACKAGE_ROOT
+        / "modules"
+        / "asset_world"
+        / "application"
+        / "beat_viewer.py"
+    )
+    beat_viewer_adapter = (
+        PACKAGE_ROOT
+        / "modules"
+        / "asset_world"
+        / "infrastructure"
+        / "beat_viewer.py"
+    )
     freezone_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     freezone_presets = PACKAGE_ROOT / "freezone" / "presets.py"
     generation_source = generation.read_text(encoding="utf-8")
+    beat_viewer_source = beat_viewer.read_text(encoding="utf-8")
+    beat_viewer_adapter_source = beat_viewer_adapter.read_text(encoding="utf-8")
     route_source = freezone_route.read_text(encoding="utf-8")
     presets_source = freezone_presets.read_text(encoding="utf-8")
 
     assert not (PACKAGE_ROOT / "services" / "prop_ref_service.py").exists()
     assert "ai_anime.modules.asset_world.public" in _imports(generation)
-    assert "runtime_prop_menu_for_episode as _runtime_prop_menu_with_global_props" in (
-        generation_source
-    )
-    assert "def _runtime_prop_menu_with_global_props(" not in generation_source
+    assert "runtime_prop_menu_for_episode" not in generation_source
+    assert "BeatViewerRuntimePropMenuSource" in beat_viewer_source
+    assert "runtime_episode_prop_menu" in beat_viewer_adapter_source
     assert "runtime_prop_menu_for_episode" in route_source
     assert "_runtime_prop_menu_with_global_props," not in route_source
     assert "runtime_prop_menu_with_cached_global_props" in presets_source
@@ -1305,9 +1320,22 @@ def test_asset_world_scene_viewer_routes_delegate_to_application() -> None:
     generation = (
         PACKAGE_ROOT / "api" / "routes" / "generation.py"
     ).read_text(encoding="utf-8")
+    generation_tree = ast.parse(generation, filename="generation.py")
+    beat_viewer_adapters = "\n".join(
+        ast.get_source_segment(generation, node) or ""
+        for node in generation_tree.body
+        if isinstance(node, ast.AsyncFunctionDef)
+        and node.name
+        in {
+            "get_beat_pano_background_manifest",
+            "get_default_director_stage_palette",
+            "get_beat_director_stage_manifest",
+            "get_director_control_frame_status",
+        }
+    )
 
     assert "scene_viewer_use_cases" in viewer_adapters
-    assert "scene_viewer_use_cases" in generation
+    assert "beat_viewer_use_cases" in beat_viewer_adapters
     assert not (PACKAGE_ROOT / "api" / "viewer_manifests.py").exists()
     for legacy_implementation in (
         "_require_scene",
@@ -1319,6 +1347,18 @@ def test_asset_world_scene_viewer_routes_delegate_to_application() -> None:
         "stage_manifest.",
     ):
         assert legacy_implementation not in viewer_adapters
+    for legacy_implementation in (
+        "_episode_beat_from_resolution",
+        "make_sqlite_store",
+        "make_sqlite_store_for_context",
+        "scene_viewer_use_cases",
+        "production_generation_context_use_cases",
+        "runtime_prop_menu_for_episode",
+        "get_sketch_colors",
+        "make_project_asset_url_builder",
+        "beat_director_stage_use_cases",
+    ):
+        assert legacy_implementation not in beat_viewer_adapters
     assert "ai_anime.api.viewer_manifests" not in generation
 
 

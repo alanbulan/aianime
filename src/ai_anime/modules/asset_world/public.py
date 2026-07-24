@@ -6,6 +6,11 @@ from typing import Any
 from ai_anime.modules.asset_world.application.background_anchor import (
     BeatBackgroundAnchorUseCases,
 )
+from ai_anime.modules.asset_world.application.beat_viewer import (
+    BeatViewerBeatNotFound,
+    BeatViewerQuery,
+    BeatViewerUseCases,
+)
 from ai_anime.modules.asset_world.application.character_asset_history import (
     CharacterAssetHistoryUseCases,
 )
@@ -256,6 +261,12 @@ def scene_viewer_use_cases() -> SceneViewerUseCases:
     return build()
 
 
+def beat_viewer_use_cases() -> BeatViewerUseCases:
+    from ai_anime.modules.asset_world.composition import beat_viewer_use_cases as build
+
+    return build()
+
+
 def beat_director_stage_use_cases() -> BeatDirectorStageUseCases:
     from ai_anime.modules.asset_world.composition import (
         beat_director_stage_use_cases as build,
@@ -348,6 +359,9 @@ __all__ = [
     "AnalyzeStyleCommand",
     "BackgroundAnchorRejected",
     "BeatBackgroundAnchorUseCases",
+    "BeatViewerBeatNotFound",
+    "BeatViewerQuery",
+    "BeatViewerUseCases",
     "CharacterAlreadyExists",
     "CharacterAssetHistoryNotFound",
     "CharacterAssetHistoryRejected",
@@ -417,6 +431,7 @@ __all__ = [
     "analyze_style",
     "beat_background_anchor_use_cases",
     "beat_director_stage_use_cases",
+    "beat_viewer_use_cases",
     "build_character_map_for_grid",
     "character_asset_history_use_cases",
     "character_asset_links",
