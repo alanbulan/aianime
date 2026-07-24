@@ -588,11 +588,21 @@ class PropCatalogAssets(Protocol):
 
 
 class EpisodeLocalPropSource(Protocol):
+    def normalize_menu(self, prop_menu: list[Any]) -> list[Any]: ...
+
     async def list_props(
         self,
         repository: PropCatalogRepository,
         global_prop_names: set[str],
     ) -> list[dict[str, Any]]: ...
+
+
+class PropPromotionRepository(Protocol):
+    def available(self) -> bool: ...
+
+    async def list_props(self) -> list[Any]: ...
+
+    async def add_prop(self, prop: Any) -> Any: ...
 
 
 class PropTaskRepository(Protocol):

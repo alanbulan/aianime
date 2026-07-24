@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -19,8 +20,10 @@ from ai_anime.modules.asset_world.application.prop_catalog import (
     PropCatalogUseCases,
 )
 from ai_anime.modules.asset_world.infrastructure.prop_catalog import (
+    LocalPropPromotionRepository,
     NovelEpisodeLocalPropSource,
 )
+from ai_anime.modules.asset_world.public import promote_episode_props_to_global
 
 
 @dataclass
@@ -277,3 +280,48 @@ async def test_delete_rejects_missing_prop_and_deletes_existing() -> None:
     )
     assert data == {"deleted": True}
     assert await repository.get_prop("Sword") is None
+
+
+@pytest.mark.asyncio
+async def test_promote_episode_props_skips_aliases_and_syncs_outer_cache() -> None:
+    repository = _Repository([_Prop(name="Key", aliases=["Silver Key"])])
+
+    class Wrapper:
+        def __init__(self) -> None:
+            self.sqlite_store = repository
+            self._props: dict[str, Any] = {}
+
+    wrapper = Wrapper()
+    promoted = await promote_episode_props_to_global(
+        wrapper,
+        [
+            {"prop_id": " silver\u3000 key "},
+            {
+                "prop_id": "账单",
+                "prop_type": "document",
+                "description": "一张逾期账单",
+                "owner_identity_id": "陆辰_default",
+            },
+            {"prop_id": "账单"},
+        ],
+    )
+
+    assert promoted == ["账单"]
+    prop = await repository.get_prop("账单")
+    assert prop is not None
+    assert prop.prop_type == "document"
+    assert prop.visual_prompt == "一张逾期账单"
+    assert prop.description == "一张逾期账单"
+    assert prop.owner == "陆辰_default"
+    assert prop.notes == "auto_from_episode_planning"
+    assert wrapper._props == {"账单": prop}
+
+
+@pytest.mark.asyncio
+async def test_promote_episode_props_returns_empty_for_unsupported_store() -> None:
+    promoted = await _use_cases().promote_episode_props(
+        repository=LocalPropPromotionRepository(object()),
+        prop_menu=[{"prop_id": "账单"}],
+    )
+
+    assert promoted == []

@@ -161,6 +161,17 @@ def prop_catalog_use_cases() -> PropCatalogUseCases:
     return build()
 
 
+async def promote_episode_props_to_global(
+    store: Any,
+    prop_menu: list[Any],
+) -> list[str]:
+    from ai_anime.modules.asset_world.composition import (
+        promote_episode_props_to_global as execute,
+    )
+
+    return await execute(store, prop_menu)
+
+
 def scene_catalog_use_cases() -> SceneCatalogUseCases:
     from ai_anime.modules.asset_world.composition import scene_catalog_use_cases as build
 
@@ -349,6 +360,7 @@ __all__ = [
     "character_asset_links",
     "character_catalog_use_cases",
     "prop_catalog_use_cases",
+    "promote_episode_props_to_global",
     "scene_catalog_use_cases",
     "scene_media_use_cases",
     "scene_task_use_cases",

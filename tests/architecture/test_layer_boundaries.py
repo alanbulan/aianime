@@ -374,6 +374,22 @@ def test_asset_world_prop_catalog_routes_delegate_to_application() -> None:
         assert legacy_implementation not in source
 
 
+def test_episode_prop_promotion_uses_asset_world_public_api() -> None:
+    callers = (
+        PACKAGE_ROOT / "api" / "routes" / "episodes.py",
+        PACKAGE_ROOT / "task_backend" / "runners" / "episode_assets.py",
+    )
+
+    assert not (
+        PACKAGE_ROOT / "services" / "prop_promotion_service.py"
+    ).exists()
+    for path in callers:
+        source = path.read_text(encoding="utf-8")
+        assert "promote_episode_props_to_global" in source
+        assert "ai_anime.modules.asset_world.public" in _imports(path)
+        assert "ai_anime.services.prop_promotion_service" not in source
+
+
 def test_asset_world_prop_task_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "props.py"
     source = route.read_text(encoding="utf-8")

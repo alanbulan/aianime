@@ -26,6 +26,7 @@ from ai_anime.modules.narrative_planning.public import (
     start_episode_planning,
     update_episode_metadata,
 )
+from ai_anime.modules.asset_world.public import promote_episode_props_to_global
 from ai_anime.modules.story_intake.public import build_chapter_preview
 from ai_anime.task_identity import project_task_state_key
 
@@ -110,10 +111,6 @@ async def _plan_episode_assets(
             }
 
         if asset_kind == "prop":
-            from ai_anime.services.prop_promotion_service import (
-                promote_episode_props_to_global,
-            )
-
             prop_menu = await compiler.compile_episode_props(episode, on_log=log_fn)
             promoted_props = await promote_episode_props_to_global(store, prop_menu)
             episode = _find_episode(store.get_all_episodes(), episode_num) or episode

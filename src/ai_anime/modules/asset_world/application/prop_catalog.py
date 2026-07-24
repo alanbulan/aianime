@@ -22,11 +22,14 @@ from ai_anime.modules.asset_world.application.ports import (
     PropCatalogAssets,
     PropCatalogRepository,
     PropFactory,
+    PropPromotionRepository,
 )
 from ai_anime.modules.asset_world.domain.prop_catalog import (
     PropCatalogScope,
     includes_global_props,
     includes_local_props,
+    normalize_prop_lookup,
+    prop_lookup_keys,
 )
 
 AssetUrl = Callable[[str | Path], str]
@@ -68,6 +71,55 @@ class PropCatalogUseCases:
                 await self._local_props.list_props(repository, global_names)
             )
         return data
+
+    async def promote_episode_props(
+        self,
+        *,
+        repository: PropPromotionRepository,
+        prop_menu: list[Any],
+    ) -> list[str]:
+        if not repository.available():
+            return []
+
+        existing_keys: set[str] = set()
+        for prop in await repository.list_props() or []:
+            existing_keys.update(
+                prop_lookup_keys(
+                    getattr(prop, "name", ""),
+                    getattr(prop, "aliases", []) or [],
+                )
+            )
+
+        promoted: list[str] = []
+        for item in self._local_props.normalize_menu(prop_menu or []):
+            prop_id = str(getattr(item, "prop_id", "") or "").strip()
+            lookup = normalize_prop_lookup(prop_id)
+            if not lookup or lookup in existing_keys:
+                continue
+
+            description = str(getattr(item, "description", "") or "").strip()
+            visual_prompt = str(
+                getattr(item, "visual_prompt", "") or description or prop_id
+            ).strip()
+            prop = self._factory.create(
+                CreatePropCommand(
+                    name=prop_id,
+                    prop_type=(
+                        str(getattr(item, "prop_type", "") or "").strip()
+                        or "object"
+                    ),
+                    visual_prompt=visual_prompt,
+                    description=description,
+                    owner=str(
+                        getattr(item, "owner_identity_id", "") or ""
+                    ).strip(),
+                    notes="auto_from_episode_planning",
+                )
+            )
+            await repository.add_prop(prop)
+            promoted.append(prop.name)
+            existing_keys.add(lookup)
+        return promoted
 
     async def create_prop(
         self,

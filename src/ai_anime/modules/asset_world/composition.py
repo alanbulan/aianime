@@ -81,6 +81,7 @@ from ai_anime.modules.asset_world.infrastructure.image_settings import (
 )
 from ai_anime.modules.asset_world.infrastructure.prop_catalog import (
     LocalPropCatalogAssets,
+    LocalPropPromotionRepository,
     NovelEpisodeLocalPropSource,
     NovelPropFactory,
 )
@@ -124,6 +125,16 @@ def prop_catalog_use_cases() -> PropCatalogUseCases:
         NovelPropFactory(),
         LocalPropCatalogAssets(),
         NovelEpisodeLocalPropSource(),
+    )
+
+
+async def promote_episode_props_to_global(
+    store: Any,
+    prop_menu: list[Any],
+) -> list[str]:
+    return await prop_catalog_use_cases().promote_episode_props(
+        repository=LocalPropPromotionRepository(store),
+        prop_menu=prop_menu,
     )
 
 

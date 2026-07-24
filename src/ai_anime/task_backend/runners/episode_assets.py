@@ -46,7 +46,7 @@ async def _run_episode_asset_planner(
 ) -> dict[str, Any]:
     from ai_anime.agents.asset_compiler import AssetCompiler
     from ai_anime.cognee import CogneeStore
-    from ai_anime.services.prop_promotion_service import promote_episode_props_to_global
+    from ai_anime.modules.asset_world.public import promote_episode_props_to_global
     from ai_anime.sqlite_store import SQLiteStore
 
     task_type = str(envelope.get("task_type") or "")

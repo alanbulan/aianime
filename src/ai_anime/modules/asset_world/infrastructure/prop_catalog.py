@@ -57,6 +57,9 @@ class LocalPropCatalogAssets:
 
 
 class NovelEpisodeLocalPropSource:
+    def normalize_menu(self, prop_menu: list[Any]) -> list[Any]:
+        return build_prop_menu(prop_menu=prop_menu or [])
+
     async def list_props(
         self,
         repository: PropCatalogRepository,
@@ -75,8 +78,8 @@ class NovelEpisodeLocalPropSource:
         for episode in episodes or []:
             episode_number = int(getattr(episode, "number", 0) or 0)
             episode_updated_at = utc_iso(getattr(episode, "updated_at", ""))
-            menu = build_prop_menu(
-                prop_menu=getattr(episode, "prop_menu", []) or []
+            menu = self.normalize_menu(
+                getattr(episode, "prop_menu", []) or []
             )
             for menu_item in menu:
                 prop_id = str(menu_item.prop_id or "").strip()
@@ -103,3 +106,24 @@ class NovelEpisodeLocalPropSource:
                     }
                 )
         return payloads
+
+
+class LocalPropPromotionRepository:
+    def __init__(self, store: Any) -> None:
+        self._store = store
+        self._repository = getattr(store, "sqlite_store", None) or store
+
+    def available(self) -> bool:
+        return callable(getattr(self._repository, "list_props", None)) and callable(
+            getattr(self._repository, "add_prop", None)
+        )
+
+    async def list_props(self) -> list[Any]:
+        return list(await self._repository.list_props() or [])
+
+    async def add_prop(self, prop: Any) -> Any:
+        result = await self._repository.add_prop(prop)
+        cache = getattr(self._store, "_props", None)
+        if isinstance(cache, dict):
+            cache[prop.name] = prop
+        return result
