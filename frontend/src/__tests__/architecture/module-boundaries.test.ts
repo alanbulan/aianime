@@ -536,6 +536,7 @@ describe("frontend architecture boundaries", () => {
     );
 
     expect(existsSync(resolve(SRC_ROOT, "lib/queries/video.ts"))).toBe(false);
+    expect(existsSync(resolve(SRC_ROOT, "lib/queries/audio.ts"))).toBe(false);
     expect(applicationDataImportFailures).toEqual([]);
     expect(internalImportFailures).toEqual([]);
   });

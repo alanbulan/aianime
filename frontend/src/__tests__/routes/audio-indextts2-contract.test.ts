@@ -8,12 +8,14 @@ const read = (path: string) => readFileSync(resolve(root, path), "utf8");
 
 describe("audio IndexTTS2 alignment contract", () => {
   it("does not expose legacy TTS voices, preview, or tts/generate calls in active FE code", () => {
-    const audioQueries = read("src/lib/queries/audio.ts");
+    const productionGateway = read(
+      "src/modules/production/infrastructure/http-production-video-gateway.ts",
+    );
     const audioPane = read("src/components/episode/beat-workbench/audio-pane.tsx");
 
-    expect(audioQueries).not.toContain("/tts/voices");
-    expect(audioQueries).not.toContain("/tts/preview");
-    expect(audioQueries).not.toContain("/tts/generate");
+    expect(productionGateway).not.toContain("/tts/voices");
+    expect(productionGateway).not.toContain("/tts/preview");
+    expect(productionGateway).not.toContain("/tts/generate");
     expect(audioPane).not.toContain("useTTSVoices");
     expect(audioPane).not.toContain("usePreviewTTS");
   });
@@ -33,13 +35,15 @@ describe("audio IndexTTS2 alignment contract", () => {
   });
 
   it("dispatches selected beat audio as one async task instead of patching audio_url synchronously", () => {
-    const audioQueries = read("src/lib/queries/audio.ts");
+    const productionGateway = read(
+      "src/modules/production/infrastructure/http-production-video-gateway.ts",
+    );
     const batchPanel = read("src/components/episode/beat-workbench/batch-panel.tsx");
     const audioHandler = batchPanel.match(
       /const handleBatchAudio = async \(\) => \{[\s\S]*?\n  \};/,
     )?.[0] ?? "";
 
-    expect(audioQueries).not.toContain("audio_url");
+    expect(productionGateway).not.toContain("audio_url");
     expect(audioHandler).not.toContain("let ok = 0");
     expect(audioHandler).not.toContain("for (const beatNum of beatList)");
     expect(audioHandler).toContain("beatNumbers: beatList");

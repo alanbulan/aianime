@@ -156,13 +156,6 @@ vi.mock("@/lib/queries/sketch-image-usage", () => ({
   useSketchImageUsage: () => ({ data: undefined }),
 }));
 
-vi.mock("@/lib/queries/audio", () => ({
-  useGenerateAudio: () => ({
-    mutateAsync: vi.fn(),
-    isPending: false,
-  }),
-}));
-
 vi.mock("@/modules/narrative_planning/public", () => ({
   useEpisodeBeats: () => ({
     data: {
@@ -209,6 +202,10 @@ vi.mock("@/lib/queries/tasks", () => ({
 }));
 
 vi.mock("@/modules/production/public", () => ({
+  useGenerateAudio: () => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+  }),
   useGlobalOptimize: () => ({
     mutateAsync: vi.fn(),
     isPending: false,

@@ -1,5 +1,6 @@
 // Copyright (c) 2026 AI anime
 import type { Beat } from "@/modules/narrative_planning/public";
+import type { GenerateAudioCommand } from "@/modules/production/domain/audio-generation";
 import type {
   ComposeEpisodeCommand,
   FinalVideoData,
@@ -153,6 +154,16 @@ export interface ProductionVideoGateway {
     durationSeconds: number,
   ): Promise<NarratorVoiceMutationResponse>;
   deleteNarratorVoice(project: string): Promise<NarratorVoiceMutationResponse>;
+  generateEpisodeAudio(
+    project: string,
+    episode: number,
+    command?: GenerateAudioCommand,
+  ): Promise<ProductionTaskResponse | ProductionErrorResponse>;
+  regenerateBeatAudio(
+    project: string,
+    episode: number,
+    beatNumber: number,
+  ): Promise<ProductionTaskResponse | ProductionErrorResponse>;
   composeEpisode(
     project: string,
     episode: number,

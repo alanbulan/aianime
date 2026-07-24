@@ -10,7 +10,6 @@ import {
   Wand2,
 } from "lucide-react";
 
-import { useGenerateAudio } from "@/lib/queries/audio";
 import {
   useAssignColors,
   useDetectIdentities,
@@ -29,6 +28,7 @@ import { CreditCostInline } from "@/components/credit-cost-inline";
 import { CreditCostPill, formatCreditCost } from "@/components/credits/credit-visual";
 import type { Beat } from "@/modules/narrative_planning/public";
 import {
+  useGenerateAudio,
   useGlobalOptimize,
   useVideoBackends,
 } from "@/modules/production/public";

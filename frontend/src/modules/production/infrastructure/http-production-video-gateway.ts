@@ -15,6 +15,7 @@ import type {
   NarratorVoiceSourcesData,
   NarratorVoiceStatusData,
 } from "@/modules/production/domain/narrator-voice";
+import type { GenerateAudioCommand } from "@/modules/production/domain/audio-generation";
 import type { FinalVideoData } from "@/modules/production/domain/episode-compose";
 import {
   DEFAULT_VIDEO_BACKEND,
@@ -236,6 +237,28 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
     return api
       .post(p`api/v1/projects/${project}/narrator-voice/delete`)
       .json<NarratorVoiceMutationResponse>();
+  },
+  async generateEpisodeAudio(
+    project,
+    episode,
+    command?: GenerateAudioCommand,
+  ) {
+    const json: { beat_numbers?: number[]; mode?: string } = {};
+    if (command?.beatNumbers) json.beat_numbers = command.beatNumbers;
+    if (command?.mode) json.mode = command.mode;
+    return api
+      .post(
+        p`api/v1/projects/${project}/episodes/${episode}/audio/generate`,
+        { json },
+      )
+      .json<ProductionTaskResponse | ProductionErrorResponse>();
+  },
+  async regenerateBeatAudio(project, episode, beatNumber) {
+    return api
+      .post(
+        p`api/v1/projects/${project}/episodes/${episode}/beats/${beatNumber}/audio`,
+      )
+      .json<ProductionTaskResponse | ProductionErrorResponse>();
   },
   async composeEpisode(project, episode, command) {
     return api

@@ -62,13 +62,6 @@ beforeAll(async () => {
   });
 });
 
-vi.mock("@/lib/queries/audio", () => ({
-  useRegenerateBeatAudio: () => ({
-    mutateAsync: mutateRegenerate,
-    isPending: false,
-  }),
-}));
-
 vi.mock("@/lib/queries/generation-credit-cost", () => ({
   useGenerationCreditCost: () => ({ data: { ok: true, data: { display: "" } } }),
 }));
@@ -81,6 +74,10 @@ vi.mock("@/hooks/use-task-controller", () => ({
 }));
 
 vi.mock("@/modules/production/public", () => ({
+  useRegenerateBeatAudio: () => ({
+    mutateAsync: mutateRegenerate,
+    isPending: false,
+  }),
   useNarratorVoiceStatus: () => ({
     data: {
       ok: true,

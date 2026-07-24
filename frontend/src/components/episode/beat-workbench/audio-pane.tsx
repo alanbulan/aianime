@@ -5,7 +5,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Loader2, RefreshCw } from "lucide-react";
 
-import { useRegenerateBeatAudio } from "@/lib/queries/audio";
+import { useRegenerateBeatAudio } from "@/modules/production/public";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { CreditCostInline } from "@/components/credit-cost-inline";

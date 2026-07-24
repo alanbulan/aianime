@@ -1,5 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { useAppStore } from "@/stores/app-store";
+import { createAudioGenerationQueryHooks } from "@/modules/production/application/audio-generation-query-hooks";
 import { createEpisodeComposeQueryHooks } from "@/modules/production/application/episode-compose-query-hooks";
 import { createNarratorVoiceQueryHooks } from "@/modules/production/application/narrator-voice-query-hooks";
 import { createVideoBackendQueryHooks } from "@/modules/production/application/video-backend-query-hooks";
@@ -41,5 +42,7 @@ export const {
   useTrimNarratorVoice,
   useDeleteNarratorVoice,
 } = createNarratorVoiceQueryHooks(httpProductionVideoGateway);
+export const { useGenerateAudio, useRegenerateBeatAudio } =
+  createAudioGenerationQueryHooks(httpProductionVideoGateway);
 export const { useComposeEpisode, useFinalVideo } =
   createEpisodeComposeQueryHooks(httpProductionVideoGateway);
