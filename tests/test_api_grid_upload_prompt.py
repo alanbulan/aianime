@@ -66,6 +66,10 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
     from ai_anime.api.routes import generation
     from ai_anime.modules.production.application.grid_pool import (
         BeatSketchCandidates,
+        CutGridCommand,
+        CutGridResult,
+        GridPrompt,
+        GridPromptQuery,
         GridPoolListing,
         RebuiltGridPool,
         SelectedGridPoolImage,
@@ -131,6 +135,21 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
                 grid_url="/static/uploaded-grid.jpg",
             )
 
+        def prompt(self, candidate, query):
+            use_case_calls.append(("prompt", candidate, query))
+            return GridPrompt(
+                grid_index=query.grid_index,
+                grid_type="render",
+                mode_key="2x2",
+                beat_numbers=(5, 6),
+                prompt="stored prompt",
+                prompt_path="custom/prompt.txt",
+            )
+
+        def cut(self, candidate, command):
+            use_case_calls.append(("cut", candidate, command))
+            return CutGridResult(grid_index=command.grid_index, added=2, skipped=0)
+
     use_cases = UseCases()
     monkeypatch.setattr(generation, "_resolve_generation_project", resolve)
     monkeypatch.setattr(generation, "grid_pool_use_cases", lambda: use_cases)
@@ -168,6 +187,29 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
         beat_numbers="[5,6]",
         user={"username": "admin"},
     )
+    prompt = await generation.export_grid_prompt(
+        "project-id",
+        2,
+        3,
+        grid_type=" render ",
+        mode_key=" 2x2 ",
+        beat_numbers="5,6",
+        user={"username": "admin"},
+    )
+    cut = await generation.cut_grid(
+        "project-id",
+        2,
+        3,
+        generation.GridCutRequest(
+            grid_type="render",
+            rows=1,
+            cols=2,
+            beat_start=5,
+            beat_end=6,
+            beat_numbers=[5, 6],
+        ),
+        user={"username": "admin"},
+    )
 
     assert resolve_calls == [
         (
@@ -185,6 +227,14 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
         (
             ("project-id", {"username": "admin"}),
             {"required_role": "editor"},
+        ),
+        (
+            ("project-id", {"username": "admin"}),
+            {"required_role": "editor"},
+        ),
+        (
+            ("project-id", {"username": "admin"}),
+            {"required_role": "viewer"},
         ),
         (
             ("project-id", {"username": "admin"}),
@@ -216,6 +266,32 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
                 grid_type=" render ",
                 mode_key=" 2x2 ",
                 beat_numbers="[5,6]",
+            ),
+        ),
+        (
+            "prompt",
+            context,
+            GridPromptQuery(
+                episode_num=2,
+                grid_index=3,
+                grid_type=" render ",
+                mode_key=" 2x2 ",
+                beat_numbers="5,6",
+            ),
+        ),
+        (
+            "cut",
+            context,
+            CutGridCommand(
+                episode_num=2,
+                grid_index=3,
+                grid_type="render",
+                mode_key=None,
+                rows=1,
+                cols=2,
+                beat_start=5,
+                beat_end=6,
+                beat_numbers=(5, 6),
             ),
         ),
     ]
@@ -265,6 +341,21 @@ async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
             "grid_path": "custom/uploaded-grid.jpg",
             "grid_url": "/static/uploaded-grid.jpg",
         },
+    }
+    assert prompt == {
+        "ok": True,
+        "data": {
+            "grid_index": 3,
+            "grid_type": "render",
+            "mode_key": "2x2",
+            "beat_numbers": [5, 6],
+            "prompt": "stored prompt",
+            "prompt_path": "custom/prompt.txt",
+        },
+    }
+    assert cut == {
+        "ok": True,
+        "data": {"grid_index": 3, "added": 2, "skipped": 0},
     }
 
 
@@ -365,6 +456,36 @@ def test_export_grid_prompt_reads_pool_prompt_path(monkeypatch, tmp_path):
             "prompt": "stored render prompt",
             "prompt_path": "custom/render_2x2_5-6_prompt.txt",
         },
+    }
+
+
+def test_export_grid_prompt_preserves_validation_and_missing_pool_errors(
+    monkeypatch,
+    tmp_path,
+):
+    client = _client(monkeypatch, tmp_path)
+
+    invalid_type = client.get(
+        "/projects/demo/episodes/1/grids/2/prompt",
+        params={"grid_type": "other"},
+    )
+    invalid_beats = client.get(
+        "/projects/demo/episodes/1/grids/2/prompt",
+        params={"beat_numbers": "["},
+    )
+    missing_pool = client.get(
+        "/projects/demo/episodes/1/grids/2/prompt",
+    )
+
+    assert invalid_type.json() == {
+        "ok": False,
+        "error": "grid_type must be render or sketch",
+    }
+    assert invalid_beats.json()["ok"] is False
+    assert invalid_beats.json()["error"].startswith("invalid beat_numbers:")
+    assert missing_pool.json() == {
+        "ok": False,
+        "error": "No pool index found. Generate grids first.",
     }
 
 

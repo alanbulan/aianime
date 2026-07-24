@@ -39,7 +39,11 @@ if TYPE_CHECKING:
     )
     from ai_anime.modules.production.application.grid_pool import (
         BeatSketchCandidates,
+        CutGridResult,
+        GridPrompt,
         GridPoolListing,
+        LocateGridPromptQuery,
+        PersistGridCutCommand,
         PersistGridImageCommand,
         RebuiltGridPool,
         SelectedGridPoolImage,
@@ -444,6 +448,18 @@ class ProductionGridPoolGateway(Protocol):
         context: ProjectContext,
         command: PersistGridImageCommand,
     ) -> UploadedGridImage: ...
+
+    def prompt(
+        self,
+        context: ProjectContext,
+        query: LocateGridPromptQuery,
+    ) -> GridPrompt: ...
+
+    def cut(
+        self,
+        context: ProjectContext,
+        command: PersistGridCutCommand,
+    ) -> CutGridResult: ...
 
 
 class ProductionProjectMediaUrls(Protocol):

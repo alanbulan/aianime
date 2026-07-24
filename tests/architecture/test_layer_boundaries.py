@@ -508,17 +508,29 @@ def test_production_grid_pool_routes_delegate_to_application() -> None:
     upload_start = source.index("async def upload_grid(")
     upload_end = source.index("async def export_grid_prompt(", upload_start)
     route_source += source[upload_start:upload_end]
+    prompt_start = source.index("async def export_grid_prompt(")
+    prompt_end = source.index("async def sketch_grid_preview(", prompt_start)
+    route_source += source[prompt_start:prompt_end]
+    cut_start = source.index("async def cut_grid(")
+    cut_end = source.index("async def export_zip(", cut_start)
+    route_source += source[cut_start:cut_end]
 
-    assert route_source.count("grid_pool_use_cases") == 7
+    assert route_source.count("grid_pool_use_cases") == 9
     assert "SelectGridPoolImageCommand" in route_source
     assert route_source.count("UploadBeatPoolImageCommand") == 2
     assert route_source.count("UploadGridImageCommand") == 1
+    assert route_source.count("GridPromptQuery") == 1
+    assert route_source.count("CutGridCommand") == 1
     assert "GridPoolImageStale" in route_source
     assert "GridPoolSelectionRejected" in route_source
     assert route_source.count("GridPoolUploadRejected") == 3
+    assert route_source.count("GridPoolPromptRejected") == 1
+    assert route_source.count("GridPoolCutRejected") == 1
     assert "def _register_uploaded_pool_image(" not in source
     assert "def _uploaded_grid_filename(" not in source
     assert "def _safe_grid_token(" not in source
+    assert "def _safe_grids_file(" not in source
+    assert "def _find_pool_grid_entry(" not in source
     for implementation_detail in (
         "add_cell_with_dedup",
         "build_pool_index",
@@ -532,6 +544,9 @@ def test_production_grid_pool_routes_delegate_to_application() -> None:
         "make_sqlite_store(",
         "make_static_url_for_context",
         "shutil.copy2",
+        "save_grid_and_split",
+        ".glob(",
+        ".read_text(",
         ".write_bytes(",
         "_read_uploaded_rgb_image",
     ):

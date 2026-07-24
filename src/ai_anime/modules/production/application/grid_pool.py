@@ -249,6 +249,83 @@ class UploadedGridImage:
 
 
 @dataclass(frozen=True)
+class GridPromptQuery:
+    episode_num: int
+    grid_index: int
+    grid_type: str = "render"
+    mode_key: str = ""
+    beat_numbers: str | None = ""
+
+
+@dataclass(frozen=True)
+class LocateGridPromptQuery:
+    episode_num: int
+    grid_index: int
+    grid_type: str
+    mode_key: str | None
+    beat_numbers: tuple[int, ...]
+
+
+@dataclass(frozen=True)
+class GridPrompt:
+    grid_index: int
+    grid_type: str
+    mode_key: str
+    beat_numbers: tuple[int, ...]
+    prompt: str
+    prompt_path: str
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "grid_index": self.grid_index,
+            "grid_type": self.grid_type,
+            "mode_key": self.mode_key,
+            "beat_numbers": list(self.beat_numbers),
+            "prompt": self.prompt,
+            "prompt_path": self.prompt_path,
+        }
+
+
+@dataclass(frozen=True)
+class CutGridCommand:
+    episode_num: int
+    grid_index: int
+    grid_type: str
+    mode_key: str | None
+    rows: int
+    cols: int
+    beat_start: int
+    beat_end: int
+    beat_numbers: tuple[int, ...] | None = None
+
+
+@dataclass(frozen=True)
+class PersistGridCutCommand:
+    episode_num: int
+    grid_index: int
+    grid_type: str
+    lookup_mode_key: str | None
+    mode_key: str
+    rows: int
+    cols: int
+    beat_numbers: tuple[int, ...]
+
+
+@dataclass(frozen=True)
+class CutGridResult:
+    grid_index: int
+    added: int
+    skipped: int
+
+    def as_dict(self) -> dict[str, int]:
+        return {
+            "grid_index": self.grid_index,
+            "added": self.added,
+            "skipped": self.skipped,
+        }
+
+
+@dataclass(frozen=True)
 class RebuiltGridPool:
     episode: int
     image_count: int
@@ -274,6 +351,14 @@ class GridPoolImageStale(GridPoolSelectionRejected):
 
 
 class GridPoolUploadRejected(ValueError):
+    pass
+
+
+class GridPoolPromptRejected(ValueError):
+    pass
+
+
+class GridPoolCutRejected(ValueError):
     pass
 
 
@@ -345,5 +430,52 @@ class GridPoolUseCases:
                 mode_key=command.mode_key.strip() or "upload",
                 beat_numbers=beat_numbers,
                 extension=_grid_upload_extension(command.filename),
+            ),
+        )
+
+    def prompt(
+        self,
+        context: ProjectContext,
+        query: GridPromptQuery,
+    ) -> GridPrompt:
+        grid_type = query.grid_type.strip() or "render"
+        if grid_type not in {"render", "sketch"}:
+            raise GridPoolPromptRejected("grid_type must be render or sketch")
+        try:
+            beat_numbers = parse_grid_beat_numbers(query.beat_numbers)
+        except Exception as exc:
+            raise GridPoolPromptRejected(f"invalid beat_numbers: {exc}") from exc
+        return self._gateway.prompt(
+            context,
+            LocateGridPromptQuery(
+                episode_num=query.episode_num,
+                grid_index=query.grid_index,
+                grid_type=grid_type,
+                mode_key=query.mode_key.strip() or None,
+                beat_numbers=beat_numbers,
+            ),
+        )
+
+    def cut(
+        self,
+        context: ProjectContext,
+        command: CutGridCommand,
+    ) -> CutGridResult:
+        beat_numbers = (
+            tuple(int(beat) for beat in command.beat_numbers)
+            if command.beat_numbers
+            else tuple(range(command.beat_start, command.beat_end + 1))
+        )
+        return self._gateway.cut(
+            context,
+            PersistGridCutCommand(
+                episode_num=command.episode_num,
+                grid_index=command.grid_index,
+                grid_type=command.grid_type,
+                lookup_mode_key=command.mode_key,
+                mode_key=command.mode_key or f"{command.rows}x{command.cols}",
+                rows=command.rows,
+                cols=command.cols,
+                beat_numbers=beat_numbers,
             ),
         )

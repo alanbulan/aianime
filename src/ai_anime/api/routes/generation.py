@@ -69,6 +69,7 @@ from ai_anime.modules.production.public import (
     ComposeEpisodeVideoCommand,
     CropSeedance2AssetCommand,
     CropSketchCommand,
+    CutGridCommand,
     DetectSketchMarkersCommand,
     DirectorControlSketchUnavailable,
     EpisodeBeatsMissing,
@@ -85,10 +86,13 @@ from ai_anime.modules.production.public import (
     GenerateSingleVideoCommand,
     GlobalVideoOptimizationBeatsMissing,
     GlobalVideoOptimizationSketchesMissing,
+    GridPoolCutRejected,
     GridPoolImageStale,
+    GridPoolPromptRejected,
     GridPoolSelectionRejected,
     GridPoolUploadRejected,
     GridRegenerationRejected,
+    GridPromptQuery,
     ImageGenerationGuardQuery,
     ManualSketchRegenerationRejected,
     ProductionImageSettingsRejected,
@@ -126,7 +130,6 @@ from ai_anime.modules.production.public import (
     grid_pool_use_cases,
     grid_regeneration_use_cases,
     manual_sketch_regeneration_use_cases,
-    parse_grid_beat_numbers,
     seedance2_panel_use_cases,
     selected_regeneration_use_cases,
     sketch_generation_use_cases,
@@ -194,54 +197,6 @@ def _render_plan_rejection_response(
         status_code=409 if isinstance(exc, RenderPlanConflict) else 400,
         content=exc.as_dict(),
     )
-
-
-def _safe_grids_file(grids_dir: Path, relative_path: str) -> Path | None:
-    if not relative_path:
-        return None
-    try:
-        candidate = (grids_dir / relative_path).resolve()
-        root = grids_dir.resolve()
-    except Exception:
-        return None
-    if root == candidate or root not in candidate.parents:
-        return None
-    return candidate
-
-
-def _find_pool_grid_entry(
-    pool: Any,
-    *,
-    grid_type: str,
-    mode_key: str | None,
-    beat_numbers: list[int],
-    grid_index: int,
-) -> Any | None:
-    if pool is None:
-        return None
-    if mode_key and beat_numbers:
-        entry = pool.find_grid(grid_type, mode_key, beat_numbers)
-        if entry is not None:
-            return entry
-
-    image_grid_paths = {
-        img.grid_path
-        for img in getattr(pool, "images", [])
-        if img.type == grid_type
-        and img.grid_index == grid_index
-        and (not beat_numbers or img.original_beat in beat_numbers)
-        and img.grid_path
-    }
-    for entry in getattr(pool, "grids", []):
-        if entry.type != grid_type:
-            continue
-        if mode_key and entry.mode_key != mode_key:
-            continue
-        if beat_numbers and set(entry.beat_nums) != set(beat_numbers):
-            continue
-        if not image_grid_paths or entry.grid_path in image_grid_paths:
-            return entry
-    return None
 
 
 async def _read_uploaded_rgb_image(file: UploadFile):
@@ -1975,58 +1930,20 @@ async def export_grid_prompt(
 ):
     """读取 pool index 中记录的单张网格 prompt 文本。"""
     resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    project_dir = resolved.project_dir
-    grid_type = grid_type.strip() or "render"
-    if grid_type not in {"render", "sketch"}:
-        return {"ok": False, "error": "grid_type must be render or sketch"}
     try:
-        parsed_beats = list(parse_grid_beat_numbers(beat_numbers))
-    except Exception as exc:
-        return {"ok": False, "error": f"invalid beat_numbers: {exc}"}
-    mode_key = mode_key.strip()
-
-    from ai_anime.generators.pool_indexer import load_pool_index
-
-    grids_dir = project_dir / "grids" / f"ep{episode_num:03d}"
-    pool = load_pool_index(grids_dir)
-    if not pool:
-        return {"ok": False, "error": "No pool index found. Generate grids first."}
-
-    entry = _find_pool_grid_entry(
-        pool,
-        grid_type=grid_type,
-        mode_key=mode_key or None,
-        beat_numbers=parsed_beats,
-        grid_index=grid_index,
-    )
-    if entry is None:
-        return {"ok": False, "error": "Grid prompt metadata not found"}
-
-    prompt_candidates: list[str] = []
-    if entry.prompt_path:
-        prompt_candidates.append(entry.prompt_path)
-    if parsed_beats and entry.mode_key:
-        beats_slug = "-".join(str(beat) for beat in parsed_beats)
-        prompt_candidates.append(
-            f"{entry.preset}/{grid_type}_{entry.mode_key}_{beats_slug}_prompt.txt"
+        prompt = grid_pool_use_cases().prompt(
+            resolved.ctx,
+            GridPromptQuery(
+                episode_num=episode_num,
+                grid_index=grid_index,
+                grid_type=grid_type,
+                mode_key=mode_key,
+                beat_numbers=beat_numbers,
+            ),
         )
-
-    for relative in prompt_candidates:
-        prompt_path = _safe_grids_file(grids_dir, relative)
-        if prompt_path and prompt_path.exists():
-            return {
-                "ok": True,
-                "data": {
-                    "grid_index": grid_index,
-                    "grid_type": grid_type,
-                    "mode_key": entry.mode_key,
-                    "beat_numbers": list(entry.beat_nums),
-                    "prompt": prompt_path.read_text(encoding="utf-8"),
-                    "prompt_path": prompt_path.relative_to(grids_dir).as_posix(),
-                },
-            }
-
-    return {"ok": False, "error": "Prompt file not found for this grid"}
+    except GridPoolPromptRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": prompt.as_dict()}
 
 
 @router.post(
@@ -2133,79 +2050,28 @@ async def cut_grid(
 ):
     """将网格切割为单个 beat 图片入池。"""
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    project_dir = resolved.project_dir
-
-    from datetime import datetime
-    from ai_anime.generators.pool_indexer import save_grid_and_split
-
-    episode_grids_dir = project_dir / "grids" / f"ep{episode_num:03d}"
-    if not episode_grids_dir.exists():
-        return {"ok": False, "error": f"No grids directory for episode {episode_num}"}
-
-    beat_nums = (
-        [int(beat) for beat in body.beat_numbers]
-        if body.beat_numbers
-        else list(range(body.beat_start, body.beat_end + 1))
-    )
-    ts = datetime.now().strftime("%Y%m%d%H%M%S")
-    mode_key = body.mode_key or f"{body.rows}x{body.cols}"
-
-    grid_image_path = None
-    from ai_anime.generators.pool_indexer import load_pool_index
-
-    pool = load_pool_index(episode_grids_dir)
-    entry = _find_pool_grid_entry(
-        pool,
-        grid_type=body.grid_type,
-        mode_key=body.mode_key,
-        beat_numbers=beat_nums,
-        grid_index=grid_index,
-    )
-    if entry is not None:
-        entry_path = _safe_grids_file(episode_grids_dir, entry.grid_path)
-        if entry_path and entry_path.exists():
-            grid_image_path = str(entry_path)
-
-    if grid_image_path is None:
-        # 兼容旧版根目录 grid_XX.png / jpg 文件。
-        grid_files = sorted(episode_grids_dir.glob("*.png")) + sorted(
-            episode_grids_dir.glob("*.jpg")
+    try:
+        result = grid_pool_use_cases().cut(
+            resolved.ctx,
+            CutGridCommand(
+                episode_num=episode_num,
+                grid_index=grid_index,
+                grid_type=body.grid_type,
+                mode_key=body.mode_key,
+                rows=body.rows,
+                cols=body.cols,
+                beat_start=body.beat_start,
+                beat_end=body.beat_end,
+                beat_numbers=(
+                    tuple(body.beat_numbers)
+                    if body.beat_numbers is not None
+                    else None
+                ),
+            ),
         )
-        if grid_index < 0 or grid_index >= len(grid_files):
-            return {
-                "ok": False,
-                "error": f"Grid index {grid_index} out of range (total: {len(grid_files)})",
-            }
-        grid_image_path = str(grid_files[grid_index])
-
-    if body.grid_type == "render":
-        promote_dir = project_dir / "frames" / f"ep{episode_num:03d}"
-    else:
-        promote_dir = project_dir / "sketches"
-    promote_dir.mkdir(parents=True, exist_ok=True)
-
-    result = save_grid_and_split(
-        grid_image_path=grid_image_path,
-        episode_grids_dir=str(episode_grids_dir),
-        grid_type=body.grid_type,
-        mode_key=mode_key,
-        beat_nums=beat_nums,
-        preset="custom",
-        rows=body.rows,
-        cols=body.cols,
-        ts=ts,
-        promote_dir=promote_dir,
-        force_promote=body.grid_type == "render",
-    )
-
-    return {
-        "ok": True,
-        "data": {
-            "grid_index": grid_index,
-            "added": result.get("added", 0),
-            "skipped": result.get("skipped", 0),
-        },
-    }
+    except GridPoolCutRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": result.as_dict()}
 
 
 # ── ZIP 导出 ─────────────────────────────────────────────────────────────────

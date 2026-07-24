@@ -1,25 +1,36 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 
 def _client(monkeypatch, tmp_path):
     from ai_anime.api.routes import generation
-    from ai_anime.api.deps import ProjectResolution
+    from ai_anime.modules.project_workspace.public import ProjectContext
 
-    async def fake_resolve_project_scope(project, user, *, required_role="viewer"):
-        return ProjectResolution(
-            ctx=None,
-            username="admin",
-            project_name=project,
-            project_dir=tmp_path,
-            output_dir=str(tmp_path),
-            state_dir=str(tmp_path / "state"),
-            runtime_dir=str(tmp_path / "runtime"),
+    async def resolve(*args, **kwargs):
+        return SimpleNamespace(
+            ctx=ProjectContext(
+                project_id="proj-demo",
+                project_name="demo",
+                owner_type="user",
+                owner_id="user-admin",
+                owner_username="admin",
+                requester_user_id="user-admin",
+                requester_username="admin",
+                requester_principals=(("user", "user-admin"),),
+                effective_role="editor",
+                home_node_id="local",
+                output_dir=tmp_path,
+                state_dir=tmp_path / "state",
+                runtime_dir=tmp_path / "runtime",
+                is_home_node=True,
+            )
         )
 
-    monkeypatch.setattr(generation, "resolve_project_scope", fake_resolve_project_scope)
+    monkeypatch.setattr(generation, "_resolve_generation_project", resolve)
 
     app = FastAPI()
     app.include_router(generation.router)
@@ -60,3 +71,33 @@ def test_cut_grid_can_register_render_cells(monkeypatch, tmp_path):
     assert seen["mode_key"] == "1x2"
     assert seen["beat_nums"] == [5, 6]
     assert seen["promote_dir"] == tmp_path / "frames" / "ep001"
+
+
+def test_cut_grid_preserves_missing_directory_and_index_errors(monkeypatch, tmp_path):
+    client = _client(monkeypatch, tmp_path)
+    payload = {
+        "grid_type": "render",
+        "rows": 1,
+        "cols": 1,
+        "beat_start": 1,
+        "beat_end": 1,
+    }
+
+    missing = client.post(
+        "/projects/demo/episodes/1/grids/0/cut",
+        json=payload,
+    )
+    (tmp_path / "grids" / "ep001").mkdir(parents=True)
+    out_of_range = client.post(
+        "/projects/demo/episodes/1/grids/0/cut",
+        json=payload,
+    )
+
+    assert missing.json() == {
+        "ok": False,
+        "error": "No grids directory for episode 1",
+    }
+    assert out_of_range.json() == {
+        "ok": False,
+        "error": "Grid index 0 out of range (total: 0)",
+    }

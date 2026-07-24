@@ -7,16 +7,23 @@ import shutil
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from ai_anime.generators import pool_indexer
 from ai_anime.modules.production.application.grid_pool import (
     BeatSketchCandidates,
     BeatSketchCandidateView,
+    CutGridResult,
+    GridPoolCutRejected,
     GridPoolImageStale,
     GridPoolImageView,
     GridPoolListing,
     GridPoolSelectionRejected,
     GridPoolUploadRejected,
+    GridPrompt,
+    GridPoolPromptRejected,
+    LocateGridPromptQuery,
+    PersistGridCutCommand,
     PersistGridImageCommand,
     RebuiltGridPool,
     SelectedGridPoolImage,
@@ -43,6 +50,54 @@ def _uploaded_grid_filename(command: PersistGridImageCommand) -> str:
         f"{_safe_grid_token(command.mode_key)}_{beats_slug}_"
         f"grid_upload.{command.extension}"
     )
+
+
+def _safe_grids_file(grids_dir: Path, relative_path: str) -> Path | None:
+    if not relative_path:
+        return None
+    try:
+        candidate = (grids_dir / relative_path).resolve()
+        root = grids_dir.resolve()
+    except Exception:
+        return None
+    if root == candidate or root not in candidate.parents:
+        return None
+    return candidate
+
+
+def _find_pool_grid_entry(
+    pool: Any,
+    *,
+    grid_type: str,
+    mode_key: str | None,
+    beat_numbers: list[int],
+    grid_index: int,
+) -> Any | None:
+    if pool is None:
+        return None
+    if mode_key and beat_numbers:
+        entry = pool.find_grid(grid_type, mode_key, beat_numbers)
+        if entry is not None:
+            return entry
+
+    image_grid_paths = {
+        image.grid_path
+        for image in getattr(pool, "images", [])
+        if image.type == grid_type
+        and image.grid_index == grid_index
+        and (not beat_numbers or image.original_beat in beat_numbers)
+        and image.grid_path
+    }
+    for entry in getattr(pool, "grids", []):
+        if entry.type != grid_type:
+            continue
+        if mode_key and entry.mode_key != mode_key:
+            continue
+        if beat_numbers and set(entry.beat_nums) != set(beat_numbers):
+            continue
+        if not image_grid_paths or entry.grid_path in image_grid_paths:
+            return entry
+    return None
 
 
 class LocalGridPoolGateway:
@@ -472,6 +527,110 @@ class LocalGridPoolGateway:
             beat_numbers=command.beat_numbers,
             grid_path=grid_relative_path,
             grid_url=grid_url,
+        )
+
+    def prompt(
+        self,
+        context: ProjectContext,
+        query: LocateGridPromptQuery,
+    ) -> GridPrompt:
+        grids_dir = self._grids_dir(context, query.episode_num)
+        pool = pool_indexer.load_pool_index(grids_dir)
+        if not pool:
+            raise GridPoolPromptRejected("No pool index found. Generate grids first.")
+        beat_numbers = list(query.beat_numbers)
+        entry = _find_pool_grid_entry(
+            pool,
+            grid_type=query.grid_type,
+            mode_key=query.mode_key,
+            beat_numbers=beat_numbers,
+            grid_index=query.grid_index,
+        )
+        if entry is None:
+            raise GridPoolPromptRejected("Grid prompt metadata not found")
+
+        prompt_candidates: list[str] = []
+        if entry.prompt_path:
+            prompt_candidates.append(entry.prompt_path)
+        if beat_numbers and entry.mode_key:
+            beats_slug = "-".join(str(beat) for beat in beat_numbers)
+            prompt_candidates.append(
+                f"{entry.preset}/{query.grid_type}_{entry.mode_key}_"
+                f"{beats_slug}_prompt.txt"
+            )
+        for relative_path in prompt_candidates:
+            prompt_path = _safe_grids_file(grids_dir, relative_path)
+            if prompt_path and prompt_path.exists():
+                return GridPrompt(
+                    grid_index=query.grid_index,
+                    grid_type=query.grid_type,
+                    mode_key=entry.mode_key,
+                    beat_numbers=tuple(entry.beat_nums),
+                    prompt=prompt_path.read_text(encoding="utf-8"),
+                    prompt_path=prompt_path.relative_to(grids_dir).as_posix(),
+                )
+        raise GridPoolPromptRejected("Prompt file not found for this grid")
+
+    def cut(
+        self,
+        context: ProjectContext,
+        command: PersistGridCutCommand,
+    ) -> CutGridResult:
+        project_dir = Path(context.output_dir)
+        grids_dir = self._grids_dir(context, command.episode_num)
+        if not grids_dir.exists():
+            raise GridPoolCutRejected(
+                f"No grids directory for episode {command.episode_num}"
+            )
+
+        beat_numbers = list(command.beat_numbers)
+        pool = pool_indexer.load_pool_index(grids_dir)
+        entry = _find_pool_grid_entry(
+            pool,
+            grid_type=command.grid_type,
+            mode_key=command.lookup_mode_key,
+            beat_numbers=beat_numbers,
+            grid_index=command.grid_index,
+        )
+        grid_image_path: Path | None = None
+        if entry is not None:
+            entry_path = _safe_grids_file(grids_dir, entry.grid_path)
+            if entry_path and entry_path.exists():
+                grid_image_path = entry_path
+
+        if grid_image_path is None:
+            grid_files = sorted(grids_dir.glob("*.png")) + sorted(
+                grids_dir.glob("*.jpg")
+            )
+            if command.grid_index < 0 or command.grid_index >= len(grid_files):
+                raise GridPoolCutRejected(
+                    f"Grid index {command.grid_index} out of range "
+                    f"(total: {len(grid_files)})"
+                )
+            grid_image_path = grid_files[command.grid_index]
+
+        if command.grid_type == "render":
+            promote_dir = project_dir / "frames" / f"ep{command.episode_num:03d}"
+        else:
+            promote_dir = project_dir / "sketches"
+        promote_dir.mkdir(parents=True, exist_ok=True)
+        result = pool_indexer.save_grid_and_split(
+            grid_image_path=str(grid_image_path),
+            episode_grids_dir=str(grids_dir),
+            grid_type=command.grid_type,
+            mode_key=command.mode_key,
+            beat_nums=beat_numbers,
+            preset="custom",
+            rows=command.rows,
+            cols=command.cols,
+            ts=datetime.now().strftime("%Y%m%d%H%M%S"),
+            promote_dir=promote_dir,
+            force_promote=command.grid_type == "render",
+        )
+        return CutGridResult(
+            grid_index=command.grid_index,
+            added=result.get("added", 0),
+            skipped=result.get("skipped", 0),
         )
 
     def rebuild(

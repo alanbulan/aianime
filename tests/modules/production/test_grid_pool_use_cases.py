@@ -4,10 +4,17 @@ import pytest
 
 from ai_anime.modules.production.application.grid_pool import (
     BeatSketchCandidates,
+    CutGridCommand,
+    CutGridResult,
+    GridPoolPromptRejected,
     GridPoolUploadRejected,
     GridPoolImageView,
     GridPoolListing,
     GridPoolUseCases,
+    GridPrompt,
+    GridPromptQuery,
+    LocateGridPromptQuery,
+    PersistGridCutCommand,
     PersistGridImageCommand,
     RebuiltGridPool,
     SelectedGridPoolImage,
@@ -69,6 +76,21 @@ class _Gateway:
             grid_url="/static/uploaded-grid.jpg",
         )
 
+    def prompt(self, context, query):
+        self.calls.append(("prompt", context, query))
+        return GridPrompt(
+            grid_index=query.grid_index,
+            grid_type=query.grid_type,
+            mode_key=query.mode_key or "2x2",
+            beat_numbers=query.beat_numbers,
+            prompt="stored prompt",
+            prompt_path="custom/prompt.txt",
+        )
+
+    def cut(self, context, command):
+        self.calls.append(("cut", context, command))
+        return CutGridResult(grid_index=command.grid_index, added=2, skipped=1)
+
 
 @pytest.mark.asyncio
 async def test_grid_pool_use_cases_delegate_and_preserve_response_contract() -> None:
@@ -128,6 +150,25 @@ async def test_grid_pool_use_cases_delegate_and_preserve_response_contract() -> 
         beat_numbers="[5, 5, -1, 6]",
     )
     uploaded_grid = use_cases.upload_grid(context, grid_upload_command)
+    prompt_query = GridPromptQuery(
+        episode_num=2,
+        grid_index=3,
+        grid_type=" render ",
+        mode_key=" 2x2 ",
+        beat_numbers="5,5,-1,6",
+    )
+    prompt = use_cases.prompt(context, prompt_query)
+    cut_command = CutGridCommand(
+        episode_num=2,
+        grid_index=3,
+        grid_type="render",
+        mode_key=None,
+        rows=1,
+        cols=2,
+        beat_start=5,
+        beat_end=6,
+    )
+    cut = use_cases.cut(context, cut_command)
 
     assert listed is listing
     assert listed.as_dict()["images"][0]["generated_at"] is None
@@ -162,6 +203,15 @@ async def test_grid_pool_use_cases_delegate_and_preserve_response_contract() -> 
         "grid_path": "custom/uploaded-grid.jpg",
         "grid_url": "/static/uploaded-grid.jpg",
     }
+    assert prompt.as_dict() == {
+        "grid_index": 3,
+        "grid_type": "render",
+        "mode_key": "2x2",
+        "beat_numbers": [5, 6],
+        "prompt": "stored prompt",
+        "prompt_path": "custom/prompt.txt",
+    }
+    assert cut.as_dict() == {"grid_index": 3, "added": 2, "skipped": 1}
     assert gateway.calls == [
         ("list", context, 2),
         ("rebuild", context, 2),
@@ -179,6 +229,31 @@ async def test_grid_pool_use_cases_delegate_and_preserve_response_contract() -> 
                 mode_key="2x2",
                 beat_numbers=(5, 6),
                 extension="jpg",
+            ),
+        ),
+        (
+            "prompt",
+            context,
+            LocateGridPromptQuery(
+                episode_num=2,
+                grid_index=3,
+                grid_type="render",
+                mode_key="2x2",
+                beat_numbers=(5, 6),
+            ),
+        ),
+        (
+            "cut",
+            context,
+            PersistGridCutCommand(
+                episode_num=2,
+                grid_index=3,
+                grid_type="render",
+                lookup_mode_key=None,
+                mode_key="1x2",
+                rows=1,
+                cols=2,
+                beat_numbers=(5, 6),
             ),
         ),
     ]
@@ -233,6 +308,40 @@ def test_upload_grid_rejects_invalid_inputs_before_persistence(
 
     with pytest.raises(GridPoolUploadRejected) as raised:
         GridPoolUseCases(gateway).upload_grid(object(), command)
+
+    assert message in str(raised.value)
+    assert gateway.calls == []
+
+
+@pytest.mark.parametrize(
+    ("query", "message"),
+    [
+        (
+            GridPromptQuery(
+                episode_num=2,
+                grid_index=1,
+                grid_type="other",
+            ),
+            "grid_type must be render or sketch",
+        ),
+        (
+            GridPromptQuery(
+                episode_num=2,
+                grid_index=1,
+                beat_numbers="[",
+            ),
+            "invalid beat_numbers:",
+        ),
+    ],
+)
+def test_grid_prompt_rejects_invalid_inputs_before_lookup(
+    query: GridPromptQuery,
+    message: str,
+) -> None:
+    gateway = _Gateway(None)
+
+    with pytest.raises(GridPoolPromptRejected) as raised:
+        GridPoolUseCases(gateway).prompt(object(), query)
 
     assert message in str(raised.value)
     assert gateway.calls == []

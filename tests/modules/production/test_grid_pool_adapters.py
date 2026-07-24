@@ -11,9 +11,13 @@ from PIL import Image
 from ai_anime.generators import pool_indexer
 from ai_anime.models import GridEntry, PoolImage, PoolIndex
 from ai_anime.modules.production.application.grid_pool import (
+    GridPoolCutRejected,
     GridPoolImageStale,
+    GridPoolPromptRejected,
     GridPoolSelectionRejected,
     GridPoolUploadRejected,
+    LocateGridPromptQuery,
+    PersistGridCutCommand,
     PersistGridImageCommand,
     SelectGridPoolImageCommand,
     UploadBeatPoolImageCommand,
@@ -566,6 +570,85 @@ def test_upload_grid_replaces_scope_and_matching_pool_images(tmp_path: Path) -> 
     assert saved_pool.images[0].mode == "2x2"
     assert saved_pool.images[1].grid_path == old_grid_path
     assert saved_pool.images[2].grid_path == old_grid_path
+
+
+def test_grid_prompt_reads_scoped_file_and_rejects_escaped_path(tmp_path: Path) -> None:
+    context = _context(tmp_path)
+    grids_dir = Path(context.output_dir) / "grids" / "ep002"
+    prompt_path = grids_dir / "custom" / "render_2x2_5-6_prompt.txt"
+    prompt_path.parent.mkdir(parents=True)
+    prompt_path.write_text("stored prompt", encoding="utf-8")
+    pool = PoolIndex(
+        episode=2,
+        grids=[
+            GridEntry(
+                type="render",
+                mode_key="2x2",
+                beat_nums=[5, 6],
+                preset="custom",
+                grid_path="custom/grid.png",
+                prompt_path="custom/render_2x2_5-6_prompt.txt",
+            )
+        ],
+    )
+    pool_indexer.save_pool_index(pool, grids_dir)
+    gateway = LocalGridPoolGateway()
+    query = LocateGridPromptQuery(
+        episode_num=2,
+        grid_index=1,
+        grid_type="render",
+        mode_key="2x2",
+        beat_numbers=(5, 6),
+    )
+
+    prompt = gateway.prompt(context, query)
+
+    assert prompt.as_dict() == {
+        "grid_index": 1,
+        "grid_type": "render",
+        "mode_key": "2x2",
+        "beat_numbers": [5, 6],
+        "prompt": "stored prompt",
+        "prompt_path": "custom/render_2x2_5-6_prompt.txt",
+    }
+
+    pool.grids[0].prompt_path = "../outside.txt"
+    pool.grids[0].preset = "missing"
+    (grids_dir.parent / "outside.txt").write_text("outside", encoding="utf-8")
+    pool_indexer.save_pool_index(pool, grids_dir)
+    with pytest.raises(GridPoolPromptRejected, match="Prompt file not found"):
+        gateway.prompt(context, query)
+
+
+def test_grid_prompt_and_cut_preserve_missing_storage_errors(tmp_path: Path) -> None:
+    context = _context(tmp_path)
+    gateway = LocalGridPoolGateway()
+
+    with pytest.raises(GridPoolPromptRejected, match="No pool index found"):
+        gateway.prompt(
+            context,
+            LocateGridPromptQuery(
+                episode_num=2,
+                grid_index=0,
+                grid_type="render",
+                mode_key=None,
+                beat_numbers=(),
+            ),
+        )
+    with pytest.raises(GridPoolCutRejected, match="No grids directory for episode 2"):
+        gateway.cut(
+            context,
+            PersistGridCutCommand(
+                episode_num=2,
+                grid_index=0,
+                grid_type="render",
+                lookup_mode_key=None,
+                mode_key="1x1",
+                rows=1,
+                cols=1,
+                beat_numbers=(1,),
+            ),
+        )
 
 
 def test_rebuild_pool_uses_episode_directory_and_projects_counts(
