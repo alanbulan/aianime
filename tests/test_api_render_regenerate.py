@@ -300,7 +300,7 @@ def test_render_plan_rejection_preserves_400_envelope(monkeypatch, tmp_path):
 
 
 def test_render_grid_regen_passes_render_settings(monkeypatch, tmp_path):
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_render
 
     client = _client(monkeypatch, tmp_path)
     use_case_calls = []
@@ -321,7 +321,7 @@ def test_render_grid_regen_passes_render_settings(monkeypatch, tmp_path):
             )
 
     monkeypatch.setattr(
-        generation,
+        production_render,
         "grid_regeneration_use_cases",
         lambda: UseCases(),
     )
@@ -356,7 +356,7 @@ def test_render_grid_regen_passes_render_settings(monkeypatch, tmp_path):
 
 
 def test_render_grid_regen_preserves_rejection_envelope(monkeypatch, tmp_path):
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_render
 
     client = _client(monkeypatch, tmp_path)
 
@@ -365,7 +365,7 @@ def test_render_grid_regen_preserves_rejection_envelope(monkeypatch, tmp_path):
             raise GridRegenerationRejected("grid_index=4 超出范围")
 
     monkeypatch.setattr(
-        generation,
+        production_render,
         "grid_regeneration_use_cases",
         lambda: UseCases(),
     )

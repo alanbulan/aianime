@@ -7,14 +7,21 @@ from fastapi.responses import JSONResponse
 
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import resolve_project_scope
-from ai_anime.api.schemas import RenderPlanExecuteRequest, RenderPlanRequest
+from ai_anime.api.schemas import (
+    GridRegenerateRequest,
+    RenderPlanExecuteRequest,
+    RenderPlanRequest,
+)
 from ai_anime.modules.production.public import (
     BuildRenderPlanCommand,
     ExecuteRenderPlanCommand,
+    GridRegenerationRejected,
+    RegenerateGridCommand,
     RenderPlanConflict,
     RenderPlanFeatureDisabled,
     RenderPlanGrid,
     RenderPlanRejected,
+    grid_regeneration_use_cases,
     render_plan_use_cases,
 )
 
@@ -41,6 +48,35 @@ def _render_plan_rejection_response(exc: RenderPlanRejected) -> JSONResponse:
         status_code=409 if isinstance(exc, RenderPlanConflict) else 400,
         content=exc.as_dict(),
     )
+
+
+@router.post("/projects/{project}/episodes/{episode_num}/grids/{grid_index}/regenerate")
+async def regenerate_grid(
+    project: str,
+    episode_num: int,
+    grid_index: int,
+    body: GridRegenerateRequest,
+    user: dict = Depends(get_api_user),
+):
+    """Regenerate one Render grid."""
+    resolved = await resolve_project_scope(project, user, required_role="editor")
+    try:
+        scheduled = await grid_regeneration_use_cases().regenerate(
+            resolved.ctx,
+            RegenerateGridCommand(
+                episode_num=episode_num,
+                grid_index=grid_index,
+                style=body.style,
+                model=body.model,
+                scene_grouping=body.scene_grouping,
+                character_grouping=body.character_grouping,
+                image_generation_selection=body.image_generation_selection,
+                sketch_aspect_padding=body.sketch_aspect_padding,
+            ),
+        )
+    except GridRegenerationRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, **scheduled.as_dict()}
 
 
 @router.post("/projects/{project}/episodes/{episode_num}/render/plan")

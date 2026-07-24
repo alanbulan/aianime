@@ -673,7 +673,7 @@ def test_production_sketch_generation_route_delegates_to_application() -> None:
     sketch_runner = PACKAGE_ROOT / "task_backend" / "runners" / "sketch.py"
     source = generation.read_text(encoding="utf-8")
     route_start = source.index("async def generate_sketches(")
-    route_end = source.index("async def regenerate_grid(", route_start)
+    route_end = source.index("async def regenerate_beats(", route_start)
     route_source = source[route_start:route_end]
 
     assert route_source.count("sketch_generation_use_cases") == 1
@@ -792,15 +792,15 @@ def test_production_manual_sketch_regeneration_route_delegates_to_application() 
 
 
 def test_production_grid_regeneration_route_delegates_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "production_render.py"
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     render_runner = PACKAGE_ROOT / "task_backend" / "runners" / "render.py"
-    source = generation.read_text(encoding="utf-8")
-    route_start = source.index("async def regenerate_grid(")
-    route_end = source.index("async def regenerate_beats(", route_start)
-    route_source = source[route_start:route_end]
+    source = route.read_text(encoding="utf-8")
+    generation_source = generation.read_text(encoding="utf-8")
 
-    assert route_source.count("grid_regeneration_use_cases") == 1
-    assert "RegenerateGridCommand" in route_source
+    assert source.count("grid_regeneration_use_cases().") == 1
+    assert "RegenerateGridCommand" in source
+    assert "async def regenerate_grid(" not in generation_source
     for implementation_detail in (
         "load_project_config",
         "make_sqlite_store_for_context",
@@ -818,7 +818,7 @@ def test_production_grid_regeneration_route_delegates_to_application() -> None:
         "project_task_state_key",
         "需要 project context",
     ):
-        assert implementation_detail not in route_source
+        assert implementation_detail not in source
     assert "GRID_REGENERATION_TASK_TYPE" in render_runner.read_text(
         encoding="utf-8"
     )

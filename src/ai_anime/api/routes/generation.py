@@ -16,7 +16,6 @@ from ai_anime.api.auth import get_api_user, require_scope
 from ai_anime.api.deps import resolve_project_scope
 from ai_anime.api.schemas import (
     SketchGenerateRequest,
-    GridRegenerateRequest,
     BeatsRegenerateRequest,
     SketchRegenerateRequest,
     BeatBackgroundAnchorUpdate,
@@ -48,9 +47,7 @@ from ai_anime.modules.production.public import (
     GenerateMissingManualSketchesCommand,
     GenerateDirectorControlSketchCommand,
     GenerateSketchesCommand,
-    GridRegenerationRejected,
     ManualSketchRegenerationRejected,
-    RegenerateGridCommand,
     RegenerateSelectedBeatsCommand,
     RemoveSeedance2AssetCommand,
     SaveSketchEditorCommand,
@@ -72,7 +69,6 @@ from ai_anime.modules.production.public import (
     TrimSeedance2AudioAssetCommand,
     UploadSeedance2AssetCommand,
     director_control_sketch_use_cases,
-    grid_regeneration_use_cases,
     manual_sketch_regeneration_use_cases,
     seedance2_panel_use_cases,
     selected_regeneration_use_cases,
@@ -268,38 +264,6 @@ async def generate_sketches(
             ),
         )
     except SketchGenerationRejected as exc:
-        return {"ok": False, "error": str(exc)}
-    return {"ok": True, **scheduled.as_dict()}
-
-
-# ── 再生 ──────────────────────────────────────────────────────────────────────
-
-
-@router.post("/projects/{project}/episodes/{episode_num}/grids/{grid_index}/regenerate")
-async def regenerate_grid(
-    project: str,
-    episode_num: int,
-    grid_index: int,
-    body: GridRegenerateRequest,
-    user: dict = Depends(get_api_user),
-):
-    """重新生成单个网格。"""
-    resolved = await _resolve_generation_project(project, user, required_role="editor")
-    try:
-        scheduled = await grid_regeneration_use_cases().regenerate(
-            resolved.ctx,
-            RegenerateGridCommand(
-                episode_num=episode_num,
-                grid_index=grid_index,
-                style=body.style,
-                model=body.model,
-                scene_grouping=body.scene_grouping,
-                character_grouping=body.character_grouping,
-                image_generation_selection=body.image_generation_selection,
-                sketch_aspect_padding=body.sketch_aspect_padding,
-            ),
-        )
-    except GridRegenerationRejected as exc:
         return {"ok": False, "error": str(exc)}
     return {"ok": True, **scheduled.as_dict()}
 
