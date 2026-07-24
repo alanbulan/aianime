@@ -17,7 +17,9 @@ def _write_png(path: Path, *, width: int = 512, height: int = 768) -> None:
 def test_seedance2_status_exposes_returned_last_frame_asset(tmp_path):
     from types import SimpleNamespace
 
-    from ai_anime.api.routes.generation import _seedance2_returned_last_frame_status_payload
+    from ai_anime.modules.production.infrastructure.seedance2_panel import (
+        _returned_last_frame_status_payload,
+    )
 
     project_dir = tmp_path / "output" / "alice" / "project"
     last_frame = project_dir / "videos" / "beats" / "ep001" / "returned_last_frames" / "beat_01.png"
@@ -25,10 +27,10 @@ def test_seedance2_status_exposes_returned_last_frame_asset(tmp_path):
 
     project_ctx = SimpleNamespace(project_id="proj-1", output_dir=str(project_dir))
 
-    payload = _seedance2_returned_last_frame_status_payload(
-        project_ctx=project_ctx,
+    payload = _returned_last_frame_status_payload(
+        project_context=project_ctx,
         output_dir=project_dir,
-        episode=1,
+        episode_num=1,
         beat_num=1,
         enabled=True,
     )

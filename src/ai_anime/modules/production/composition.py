@@ -42,6 +42,9 @@ from ai_anime.modules.production.application.video_backend_catalog import (
 from ai_anime.modules.production.application.global_video_optimization import (
     GlobalVideoOptimizationUseCases,
 )
+from ai_anime.modules.production.application.seedance2_panel import (
+    Seedance2PanelUseCases,
+)
 from ai_anime.modules.production.infrastructure.sketch_image import (
     PillowSketchImageFiles,
 )
@@ -94,6 +97,9 @@ from ai_anime.modules.production.infrastructure.global_video_optimization import
     SqliteGlobalVideoOptimizationSource,
     TaskBackendGlobalVideoOptimizationScheduler,
 )
+from ai_anime.modules.production.infrastructure.seedance2_panel import (
+    LocalSeedance2PanelGateway,
+)
 from ai_anime.modules.project_workspace.public import get_user_output_dir
 
 
@@ -143,6 +149,15 @@ def global_video_optimization_use_cases() -> GlobalVideoOptimizationUseCases:
         SqliteGlobalVideoOptimizationSource(),
         LocalEpisodeSketchCatalog(),
         TaskBackendGlobalVideoOptimizationScheduler(ports.get_task_backend),
+    )
+
+
+def seedance2_panel_use_cases() -> Seedance2PanelUseCases:
+    return Seedance2PanelUseCases(
+        LocalSeedance2PanelGateway(
+            CompatibleEpisodeSource(),
+            AssetWorldRuntimePropMenuSource(),
+        )
     )
 
 

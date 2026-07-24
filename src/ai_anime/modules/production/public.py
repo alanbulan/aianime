@@ -84,6 +84,16 @@ from ai_anime.modules.production.application.global_video_optimization import (
     OptimizeEpisodeVideoCommand,
     ScheduledGlobalVideoOptimization,
 )
+from ai_anime.modules.production.application.seedance2_panel import (
+    CropSeedance2AssetCommand,
+    RemoveSeedance2AssetCommand,
+    Seedance2PanelBeatMissing,
+    Seedance2PanelOperationRejected,
+    Seedance2PanelQuery,
+    Seedance2PanelUseCases,
+    TrimSeedance2AudioAssetCommand,
+    UploadSeedance2AssetCommand,
+)
 from ai_anime.modules.production.domain.video_backend import (
     DEFAULT_VIDEO_BACKEND,
     grok_video_ratio,
@@ -147,6 +157,12 @@ def global_video_optimization_use_cases() -> GlobalVideoOptimizationUseCases:
     from ai_anime.modules.production.composition import (
         global_video_optimization_use_cases as build,
     )
+
+    return build()
+
+
+def seedance2_panel_use_cases() -> Seedance2PanelUseCases:
+    from ai_anime.modules.production.composition import seedance2_panel_use_cases as build
 
     return build()
 
@@ -228,6 +244,7 @@ __all__ = [
     "BRIDGMAN_CHARACTER_PALETTE",
     "ComposeEpisodeVideoCommand",
     "CropSketchCommand",
+    "CropSeedance2AssetCommand",
     "DetectSketchMarkersCommand",
     "EpisodeBeatsMissing",
     "EpisodeAudioBeatMissing",
@@ -253,9 +270,14 @@ __all__ = [
     "ProductionImageSettingsUseCases",
     "OptimizeEpisodeVideoCommand",
     "ReplaceSketchRegenQueueCommand",
+    "RemoveSeedance2AssetCommand",
     "ScheduledEpisodeVideo",
     "ScheduledEpisodeAudio",
     "ScheduledGlobalVideoOptimization",
+    "Seedance2PanelBeatMissing",
+    "Seedance2PanelOperationRejected",
+    "Seedance2PanelQuery",
+    "Seedance2PanelUseCases",
     "SketchCropRejected",
     "SketchColorAssignmentResult",
     "SketchColorAssignmentUseCases",
@@ -271,6 +293,8 @@ __all__ = [
     "SketchRegenQueueUseCases",
     "UpdateRenderImageSettingsCommand",
     "UpdateSketchImageSettingsCommand",
+    "TrimSeedance2AudioAssetCommand",
+    "UploadSeedance2AssetCommand",
     "SelectedVideoPoolEntry",
     "VideoPoolEntryUnavailable",
     "VideoPoolListing",
@@ -300,6 +324,7 @@ __all__ = [
     "sketch_pose_editor_use_cases",
     "sketch_regen_queue_use_cases",
     "seedance2_api_resolution",
+    "seedance2_panel_use_cases",
     "seedance2_resolution",
     "video_backend_catalog_use_cases",
     "video_pool_use_cases",

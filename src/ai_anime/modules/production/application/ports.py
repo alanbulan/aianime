@@ -27,6 +27,13 @@ if TYPE_CHECKING:
         GlobalVideoOptimizationTask,
         GlobalVideoOptimizationTaskReceipt,
     )
+    from ai_anime.modules.production.application.seedance2_panel import (
+        CropSeedance2AssetCommand,
+        RemoveSeedance2AssetCommand,
+        Seedance2PanelQuery,
+        TrimSeedance2AudioAssetCommand,
+        UploadSeedance2AssetCommand,
+    )
     from ai_anime.modules.production.domain.video_pool import (
         VideoPool,
         VideoPoolEntry,
@@ -386,3 +393,35 @@ class ProductionGlobalVideoOptimizationScheduler(Protocol):
         context: ProjectContext,
         task: GlobalVideoOptimizationTask,
     ) -> GlobalVideoOptimizationTaskReceipt: ...
+
+
+class ProductionSeedance2PanelGateway(Protocol):
+    async def status(
+        self,
+        context: ProjectContext,
+        query: Seedance2PanelQuery,
+    ) -> dict[str, Any]: ...
+
+    async def upload(
+        self,
+        context: ProjectContext,
+        command: UploadSeedance2AssetCommand,
+    ) -> dict[str, Any] | None: ...
+
+    async def remove(
+        self,
+        context: ProjectContext,
+        command: RemoveSeedance2AssetCommand,
+    ) -> dict[str, Any] | None: ...
+
+    async def crop(
+        self,
+        context: ProjectContext,
+        command: CropSeedance2AssetCommand,
+    ) -> dict[str, Any] | None: ...
+
+    async def trim_audio(
+        self,
+        context: ProjectContext,
+        command: TrimSeedance2AudioAssetCommand,
+    ) -> dict[str, Any] | None: ...

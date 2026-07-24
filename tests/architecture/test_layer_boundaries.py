@@ -555,6 +555,36 @@ def test_production_global_video_optimization_route_delegates_to_application() -
     assert "GLOBAL_VIDEO_OPTIMIZATION_TASK_TYPE" in runner_source
 
 
+def test_production_seedance2_panel_routes_delegate_to_application() -> None:
+    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    source = generation.read_text(encoding="utf-8")
+    route_start = source.index("async def get_seedance2_beat_status(")
+    route_end = source.index("async def get_video_backend_options(", route_start)
+    route_source = source[route_start:route_end]
+
+    assert route_source.count("seedance2_panel_use_cases") == 5
+    for legacy_helper in (
+        "_seedance2_asset_status_payload",
+        "_seedance2_returned_last_frame_status_payload",
+        "_seedance2_voice_status_payload",
+        "_seedance2_panel_context",
+        "_seedance2_status_response",
+    ):
+        assert legacy_helper not in source
+    for implementation_detail in (
+        "make_sqlite_store_for_context",
+        "make_sqlite_store(",
+        "panel_service",
+        "PathResolver",
+        "build_seedance2_video_panel_state",
+        "parse_seedance2_config",
+        "dialogue_voice_reference_rows",
+        "resolve_narrator_reference_status",
+        "make_project_static_url",
+    ):
+        assert implementation_detail not in route_source
+
+
 def test_production_generation_context_routes_delegate_to_application() -> None:
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     freezone = PACKAGE_ROOT / "api" / "routes" / "freezone.py"

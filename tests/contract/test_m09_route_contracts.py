@@ -192,7 +192,6 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         AddGeneratedVideoCommand,
         video_pool_use_cases,
     )
-    from ai_anime.seedance2_i2v import panel_service
     from ai_anime.shared.infrastructure import project_stores
 
     store = _M09Store()
@@ -285,17 +284,8 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     async def srt_duration(*_args, **_kwargs):
         return 5.0
 
-    async def save_seedance2_uploaded_asset(**_kwargs):
-        return project_dir / "seedance2_uploads" / "ep001" / "beat_01" / "images" / "uploaded.png"
-
-    async def remove_seedance2_uploaded_asset(**_kwargs):
-        return True
-
-    async def crop_seedance2_asset_to_reference(**_kwargs):
-        return project_dir / "seedance2_uploads" / "ep001" / "beat_01" / "images" / "crop.png"
-
-    async def trim_seedance2_audio_to_reference(**_kwargs):
-        return project_dir / "seedance2_uploads" / "ep001" / "beat_01" / "audios" / "trim.wav"
+    async def seedance2_panel_response(*_args, **_kwargs):
+        return {"ok": True, "data": {"beat_num": 1, "assets": {"items": []}}}
 
     monkeypatch.setattr(generation, "_resolve_generation_project", resolve_generation_project)
     monkeypatch.setattr(generation, "make_sqlite_store_for_context", make_store_for_context)
@@ -326,15 +316,18 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         "make_project_static_url",
         lambda ctx, rel, local_path=None: f"/static/projects/{ctx.project_id}/{rel}",
     )
+    seedance2_panel = SimpleNamespace(
+        status=seedance2_panel_response,
+        upload=seedance2_panel_response,
+        remove=seedance2_panel_response,
+        crop=seedance2_panel_response,
+        trim_audio=seedance2_panel_response,
+    )
     monkeypatch.setattr(
         generation,
-        "_seedance2_status_response",
-        lambda **_: {"ok": True, "data": {"beat_num": 1, "assets": {"items": []}}},
+        "seedance2_panel_use_cases",
+        lambda: seedance2_panel,
     )
-    monkeypatch.setattr(panel_service, "save_seedance2_uploaded_asset", save_seedance2_uploaded_asset)
-    monkeypatch.setattr(panel_service, "remove_seedance2_uploaded_asset", remove_seedance2_uploaded_asset)
-    monkeypatch.setattr(panel_service, "crop_seedance2_asset_to_reference", crop_seedance2_asset_to_reference)
-    monkeypatch.setattr(panel_service, "trim_seedance2_audio_to_reference", trim_seedance2_audio_to_reference)
 
     monkeypatch.setattr(files, "resolve_project_scope", resolve_project_scope)
     monkeypatch.setattr(assets, "resolve_project_scope", resolve_project_scope)
