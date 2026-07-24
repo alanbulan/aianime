@@ -26,6 +26,9 @@ from ai_anime.modules.asset_world.application.character_voice import (
     character_voice_fields,
     identity_voice_fields,
 )
+from ai_anime.modules.asset_world.application.image_settings import (
+    ImageSettingsUseCases,
+)
 from ai_anime.modules.asset_world.application.prop_catalog import (
     PropCatalogUseCases,
 )
@@ -67,6 +70,7 @@ from ai_anime.modules.asset_world.application.errors import (
     CharacterVoiceRejected,
     InvalidCharacterVoiceInput,
     InvalidCharacterInput,
+    InvalidImageSelection,
     InvalidPropInput,
     InvalidStyleInput,
     PropAlreadyExists,
@@ -77,6 +81,7 @@ from ai_anime.modules.asset_world.application.errors import (
     StyleRejected,
     StyleStorageFailed,
     UnsupportedCharacterVoiceSlot,
+    UnsupportedImageSourceKind,
     UnsupportedStyleMedia,
 )
 from ai_anime.modules.asset_world.application.styles import (
@@ -192,6 +197,14 @@ def character_image_use_cases() -> CharacterImageUseCases:
     return build()
 
 
+def image_settings_use_cases() -> ImageSettingsUseCases:
+    from ai_anime.modules.asset_world.composition import (
+        image_settings_use_cases as build,
+    )
+
+    return build()
+
+
 def character_task_use_cases() -> CharacterTaskUseCases:
     from ai_anime.modules.asset_world.composition import character_task_use_cases as build
 
@@ -243,6 +256,7 @@ __all__ = [
     "CharacterIdentityNotFound",
     "CharacterIdentityUseCases",
     "CharacterImageUseCases",
+    "ImageSettingsUseCases",
     "CharacterNotFound",
     "CharacterTaskUseCases",
     "CharacterVoiceNotFound",
@@ -257,6 +271,7 @@ __all__ = [
     "DEFAULT_SLOT",
     "InvalidCharacterVoiceInput",
     "InvalidCharacterInput",
+    "InvalidImageSelection",
     "InvalidPropInput",
     "InvalidStyleInput",
     "PropAlreadyExists",
@@ -282,6 +297,7 @@ __all__ = [
     "StyleService",
     "StyleStorageFailed",
     "UnsupportedCharacterVoiceSlot",
+    "UnsupportedImageSourceKind",
     "UnsupportedStyleMedia",
     "UpdateCharacterCommand",
     "UpdateIdentityCommand",
@@ -301,6 +317,7 @@ __all__ = [
     "character_generation_use_cases",
     "character_identity_use_cases",
     "character_image_use_cases",
+    "image_settings_use_cases",
     "character_task_use_cases",
     "character_voice_fields",
     "character_voice_use_cases",

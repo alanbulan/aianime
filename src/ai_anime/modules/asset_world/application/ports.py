@@ -131,6 +131,33 @@ class CharacterImageFiles(Protocol):
     ) -> dict[str, int]: ...
 
 
+class ImageSelectionCatalog(Protocol):
+    def character_options(self) -> Mapping[str, str]: ...
+
+    def asset_options(self) -> Mapping[str, str]: ...
+
+    def normalize_character_selection(self, value: str) -> str: ...
+
+    def normalize_asset_selection(self, value: str) -> str: ...
+
+    def default_character_selection(self) -> str: ...
+
+
+class ProjectImageSelectionStore(Protocol):
+    def get(self, username: str, project: str, key: str) -> str: ...
+
+    def set(self, username: str, project: str, key: str, value: str) -> None: ...
+
+
+class ImageUsageReader(Protocol):
+    def summary(
+        self,
+        project_output_dir: str | Path,
+        *,
+        task_types: tuple[str, ...],
+    ) -> dict[str, Any]: ...
+
+
 class CharacterTaskRepository(Protocol):
     def get_character(self, name: str) -> Any | None: ...
 

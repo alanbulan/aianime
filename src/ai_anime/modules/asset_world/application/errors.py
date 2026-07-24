@@ -81,6 +81,18 @@ class CharacterImageGenerationRejected(CharacterCatalogRejected):
     """A synchronous character image request cannot be completed."""
 
 
+class ImageSettingsRejected(Exception):
+    """A project image-setting request was rejected."""
+
+
+class InvalidImageSelection(ImageSettingsRejected):
+    """The requested image source is not available."""
+
+
+class UnsupportedImageSourceKind(ImageSettingsRejected):
+    """The requested asset kind has no image-source setting."""
+
+
 class CharacterAssetHistoryRejected(CharacterCatalogRejected):
     """A character asset-history request is invalid."""
 

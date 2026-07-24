@@ -567,6 +567,32 @@ def test_asset_world_character_image_routes_delegate_to_application() -> None:
         assert legacy_implementation not in source
 
 
+def test_asset_world_image_settings_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "characters.py"
+    source = route.read_text(encoding="utf-8")
+
+    assert "image_settings_use_cases" in source
+    assert source.count("resolve_character_model(") == 6
+    for legacy_implementation in (
+        "CHARACTER_IMAGE_SELECTION_CONFIG_KEY",
+        "ASSET_IMAGE_SELECTION_CONFIG_KEYS",
+        "CHARACTER_IMAGE_USAGE_TASK_TYPES",
+        "def _character_image_selection_payload",
+        "def _asset_image_source_selection_payload",
+        "def _validate_asset_image_source_kind",
+        "def _resolve_character_image_model",
+        "character_image_selection_options",
+        "image_generation_selection_options",
+        "normalize_character_image_selection",
+        "normalize_image_generation_selection",
+        "get_character_image_selection",
+        "get_image_usage_summary",
+        "load_project_config_file",
+        "update_project_config_file",
+    ):
+        assert legacy_implementation not in source
+
+
 def test_asset_world_character_task_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "characters.py"
     source = route.read_text(encoding="utf-8")

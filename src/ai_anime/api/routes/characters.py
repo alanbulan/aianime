@@ -30,19 +30,7 @@ from ai_anime.api.schemas import (
     CharacterVoiceRecordRequest,
     CharacterVoiceTrimRequest,
 )
-from ai_anime.config import (
-    image_generation_selection_options,
-    character_image_selection_options,
-    get_character_image_selection,
-    normalize_image_generation_selection,
-    normalize_character_image_selection,
-)
-from ai_anime.image_request_usage import get_image_usage_summary
-from ai_anime.project_config import (
-    load_project_config,
-    load_project_config_file,
-    update_project_config_file,
-)
+from ai_anime.project_config import load_project_config
 from ai_anime.modules.asset_world.public import (
     CharacterCatalogRejected,
     CharacterGenerationOptions,
@@ -50,6 +38,8 @@ from ai_anime.modules.asset_world.public import (
     CreateCharacterCommand,
     CreateIdentityCommand,
     RestoreCharacterAssetCommand,
+    InvalidImageSelection,
+    UnsupportedImageSourceKind,
     UpdateCharacterCommand,
     UpdateIdentityCommand,
     character_asset_history_use_cases,
@@ -57,20 +47,13 @@ from ai_anime.modules.asset_world.public import (
     character_generation_use_cases,
     character_identity_use_cases,
     character_image_use_cases,
+    image_settings_use_cases,
     character_task_use_cases,
     character_voice_use_cases,
 )
 from ai_anime.sqlite_store import SQLiteStore
 
 router = APIRouter()
-
-CHARACTER_IMAGE_SELECTION_CONFIG_KEY = "character_image_selection"
-ASSET_IMAGE_SELECTION_CONFIG_KEYS = {
-    "character": CHARACTER_IMAGE_SELECTION_CONFIG_KEY,
-    "scene": "scene_image_selection",
-    "prop": "prop_image_selection",
-}
-CHARACTER_IMAGE_USAGE_TASK_TYPES = ("character_portrait", "identity_image")
 
 
 async def _resolve_character_project(
@@ -93,48 +76,6 @@ async def _resolve_character_project(
         resolved.output_dir,
         store,
     )
-
-
-def _character_image_selection_payload(username: str, project: str) -> dict:
-    options = character_image_selection_options()
-    config = load_project_config_file(username, project)
-    saved_selection = str(config.get(CHARACTER_IMAGE_SELECTION_CONFIG_KEY) or "").strip()
-    if saved_selection in options:
-        selection = saved_selection
-    else:
-        selection = normalize_character_image_selection(saved_selection)
-        if selection not in options:
-            selection = get_character_image_selection()
-    return {"character_image_selection": selection, "options": options}
-
-
-def _asset_image_source_selection_payload(username: str, project: str, asset_kind: str) -> dict:
-    options = image_generation_selection_options()
-    config_key = ASSET_IMAGE_SELECTION_CONFIG_KEYS[asset_kind]
-    if asset_kind == "character":
-        selection = _character_image_selection_payload(username, project)["character_image_selection"]
-    else:
-        saved_selection = str(load_project_config_file(username, project).get(config_key) or "")
-        selection = normalize_image_generation_selection(saved_selection)
-    return {
-        "asset_kind": asset_kind,
-        "image_source_selection": selection,
-        "options": options,
-    }
-
-
-def _validate_asset_image_source_kind(asset_kind: str) -> str | None:
-    normalized = str(asset_kind or "").strip().lower()
-    if normalized in ASSET_IMAGE_SELECTION_CONFIG_KEYS:
-        return normalized
-    return None
-
-
-def _resolve_character_image_model(username: str, project: str, requested_model: str | None) -> str:
-    model = str(requested_model or "").strip()
-    if model:
-        return model
-    return _character_image_selection_payload(username, project)["character_image_selection"]
 
 
 def _asset_url(ctx: ProjectContext, project_dir: Path, abs_path: str | Path) -> str:
@@ -224,7 +165,11 @@ async def get_project_character_image_selection(
     _ctx, username, project_name, _project_dir, _output_dir, _store = (
         await _resolve_character_project(project, user, required_role="viewer")
     )
-    return {"ok": True, "data": _character_image_selection_payload(username, project_name)}
+    data = image_settings_use_cases().get_character_selection(
+        username,
+        project_name,
+    )
+    return {"ok": True, "data": data}
 
 
 @router.patch("/projects/{project}/character-image-selection")
@@ -237,22 +182,18 @@ async def update_project_character_image_selection(
     _ctx, username, project_name, _project_dir, _output_dir, _store = (
         await _resolve_character_project(project, user)
     )
-    selection = str(body.character_image_selection or "").strip()
-    options = character_image_selection_options()
-    if selection not in options:
+    try:
+        data = image_settings_use_cases().update_character_selection(
+            username,
+            project_name,
+            body.character_image_selection,
+        )
+    except InvalidImageSelection as exc:
         return JSONResponse(
             status_code=400,
-            content={
-                "ok": False,
-                "error": f"Invalid character_image_selection: {selection}",
-            },
+            content={"ok": False, "error": str(exc)},
         )
-
-    def _apply(config: dict) -> None:
-        config[CHARACTER_IMAGE_SELECTION_CONFIG_KEY] = selection
-
-    update_project_config_file(username, project_name, _apply)
-    return {"ok": True, "data": _character_image_selection_payload(username, project_name)}
+    return {"ok": True, "data": data}
 
 
 @router.get("/projects/{project}/image-source-selection/{asset_kind}")
@@ -262,18 +203,24 @@ async def get_project_asset_image_source_selection(
     user: dict = Depends(get_api_user),
 ):
     """获取项目级素材图源选择。"""
-    normalized_kind = _validate_asset_image_source_kind(asset_kind)
-    if normalized_kind is None:
+    use_cases = image_settings_use_cases()
+    try:
+        normalized_kind = use_cases.normalize_asset_kind(asset_kind)
+    except UnsupportedImageSourceKind as exc:
         return JSONResponse(
             status_code=404,
-            content={"ok": False, "error": f"Unsupported image source kind: {asset_kind}"},
+            content={"ok": False, "error": str(exc)},
         )
     _ctx, username, project_name, _project_dir, _output_dir, _store = (
         await _resolve_character_project(project, user, required_role="viewer")
     )
     return {
         "ok": True,
-        "data": _asset_image_source_selection_payload(username, project_name, normalized_kind),
+        "data": use_cases.get_asset_selection(
+            username,
+            project_name,
+            normalized_kind,
+        ),
     }
 
 
@@ -285,32 +232,30 @@ async def update_project_asset_image_source_selection(
     user: dict = Depends(get_api_user),
 ):
     """保存项目级素材图源选择。"""
-    normalized_kind = _validate_asset_image_source_kind(asset_kind)
-    if normalized_kind is None:
+    use_cases = image_settings_use_cases()
+    try:
+        normalized_kind = use_cases.normalize_asset_kind(asset_kind)
+    except UnsupportedImageSourceKind as exc:
         return JSONResponse(
             status_code=404,
-            content={"ok": False, "error": f"Unsupported image source kind: {asset_kind}"},
+            content={"ok": False, "error": str(exc)},
         )
     _ctx, username, project_name, _project_dir, _output_dir, _store = (
         await _resolve_character_project(project, user)
     )
-    selection = str(body.image_source_selection or "").strip()
-    options = image_generation_selection_options()
-    if selection not in options:
+    try:
+        data = use_cases.update_asset_selection(
+            username,
+            project_name,
+            normalized_kind,
+            body.image_source_selection,
+        )
+    except InvalidImageSelection as exc:
         return JSONResponse(
             status_code=400,
-            content={"ok": False, "error": f"Invalid image_source_selection: {selection}"},
+            content={"ok": False, "error": str(exc)},
         )
-    config_key = ASSET_IMAGE_SELECTION_CONFIG_KEYS[normalized_kind]
-
-    def _apply(config: dict) -> None:
-        config[config_key] = selection
-
-    update_project_config_file(username, project_name, _apply)
-    return {
-        "ok": True,
-        "data": _asset_image_source_selection_payload(username, project_name, normalized_kind),
-    }
+    return {"ok": True, "data": data}
 
 
 @router.get("/projects/{project}/character-image-usage")
@@ -322,10 +267,7 @@ async def get_project_character_image_usage(
     _ctx, _username, _project_name, project_dir, _output_dir, _store = (
         await _resolve_character_project(project, user, required_role="viewer")
     )
-    summary = get_image_usage_summary(
-        project_output_dir=project_dir,
-        task_types=CHARACTER_IMAGE_USAGE_TASK_TYPES,
-    )
+    summary = image_settings_use_cases().get_character_usage(project_dir)
     return {"ok": True, "data": summary}
 
 
@@ -668,7 +610,11 @@ async def generate_single_portrait_async(
 
     config = load_project_config(username, project_name)
     style = body.style or config.get("visual_style", "chinese_period_drama")
-    model = _resolve_character_image_model(username, project_name, body.model)
+    model = image_settings_use_cases().resolve_character_model(
+        username,
+        project_name,
+        body.model,
+    )
     try:
         scheduled = await character_task_use_cases().schedule_character_portrait(
             task_context=ctx,
@@ -695,13 +641,15 @@ async def generate_single_portrait(
         project, user
     )
 
+    settings = image_settings_use_cases()
+
     def generation_options() -> CharacterGenerationOptions:
         project_config = load_project_config(username, project_name)
         return CharacterGenerationOptions(
             style=body.style
             or project_config.get("visual_style", "chinese_period_drama"),
             ethnicity=body.ethnicity,
-            model=_resolve_character_image_model(
+            model=settings.resolve_character_model(
                 username,
                 project_name,
                 body.model,
@@ -882,7 +830,11 @@ async def generate_identity_portrait_async(
     )
     config = load_project_config(username, project_name)
     style = body.style or config.get("visual_style", "chinese_period_drama")
-    model = _resolve_character_image_model(username, project_name, body.model)
+    model = image_settings_use_cases().resolve_character_model(
+        username,
+        project_name,
+        body.model,
+    )
     try:
         scheduled = await character_task_use_cases().schedule_identity_portrait(
             repository=store,
@@ -910,13 +862,15 @@ async def generate_identity_portrait(
     ctx, username, project_name, project_dir, _output_dir, store = (
         await _resolve_character_project(project, user)
     )
+    settings = image_settings_use_cases()
+
     def generation_options() -> CharacterGenerationOptions:
         project_config = load_project_config(username, project_name)
         return CharacterGenerationOptions(
             style=body.style
             or project_config.get("visual_style", "chinese_period_drama"),
             ethnicity=project_config.get("ethnicity", "Chinese"),
-            model=_resolve_character_image_model(
+            model=settings.resolve_character_model(
                 username,
                 project_name,
                 body.model,
@@ -950,7 +904,11 @@ async def generate_identity_image_async(
     )
     config = load_project_config(username, project_name)
     style = body.style or config.get("visual_style", "chinese_period_drama")
-    model = _resolve_character_image_model(username, project_name, body.model)
+    model = image_settings_use_cases().resolve_character_model(
+        username,
+        project_name,
+        body.model,
+    )
     try:
         scheduled = await character_task_use_cases().schedule_identity_image(
             repository=store,
@@ -1004,12 +962,14 @@ async def generate_identity_image(
         project, user
     )
 
+    settings = image_settings_use_cases()
+
     def generation_options() -> CharacterGenerationOptions:
         project_config = load_project_config(username, project_name)
         return CharacterGenerationOptions(
             style=body.style or project_config.get("visual_style"),
             ethnicity=project_config.get("ethnicity", "Chinese"),
-            model=_resolve_character_image_model(
+            model=settings.resolve_character_model(
                 username,
                 project_name,
                 body.model,

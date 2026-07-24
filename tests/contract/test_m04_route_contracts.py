@@ -171,6 +171,9 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.routes import characters, generation, projects, props, styles
     from ai_anime.modules.asset_world.infrastructure import character_voice_storage
+    from ai_anime.modules.asset_world.infrastructure import (
+        image_settings as image_settings_adapter,
+    )
     from ai_anime.modules.asset_world.public import StyleService
 
     store = _M04Store()
@@ -195,17 +198,38 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     )
     monkeypatch.setattr(project_config, "STATE_DIR", tmp_path / "state", raising=False)
     monkeypatch.setattr(
-        characters,
+        image_settings_adapter,
         "character_image_selection_options",
         lambda: {"mock": "Mock Image"},
     )
-    monkeypatch.setattr(characters, "get_character_image_selection", lambda: "mock")
-    monkeypatch.setattr(characters, "get_image_usage_summary", lambda **_: {"total": 0})
+    monkeypatch.setattr(
+        image_settings_adapter,
+        "image_generation_selection_options",
+        lambda: {"mock": "Mock Image"},
+    )
+    monkeypatch.setattr(
+        image_settings_adapter,
+        "normalize_character_image_selection",
+        lambda _value: "mock",
+    )
+    monkeypatch.setattr(
+        image_settings_adapter,
+        "normalize_image_generation_selection",
+        lambda _value: "mock",
+    )
+    monkeypatch.setattr(
+        image_settings_adapter,
+        "get_character_image_selection",
+        lambda: "mock",
+    )
+    monkeypatch.setattr(
+        image_settings_adapter,
+        "get_image_usage_summary",
+        lambda **_: {"total": 0},
+    )
     monkeypatch.setattr(
         characters, "load_project_config", lambda *_: {"visual_style": "mock"}
     )
-    monkeypatch.setattr(characters, "load_project_config_file", lambda *_: {})
-    monkeypatch.setattr(characters, "update_project_config_file", lambda *_, **__: None)
     monkeypatch.setattr(
         props, "load_project_config_file", lambda *_: {"visual_style": "mock"}
     )
@@ -414,7 +438,40 @@ def test_prop_reference_generation_accepts_image_source_model(m04_client_factory
     assert task_backend.calls[-1]["payload"]["model"] == "newapi_nanobanana2"
 
 
-def test_m04_l2_exercises_all_57_endpoint_contracts(m04_client_factory):
+def test_image_settings_preserve_validation_error_contracts(m04_client_factory):
+    client, _backend, _project_dir = m04_client_factory("inline")
+
+    invalid_character = client.patch(
+        f"/api/v1/projects/{_PROJECT}/character-image-selection",
+        json={"character_image_selection": "missing"},
+    )
+    assert invalid_character.status_code == 400
+    assert invalid_character.json() == {
+        "ok": False,
+        "error": "Invalid character_image_selection: missing",
+    }
+
+    invalid_scene = client.patch(
+        f"/api/v1/projects/{_PROJECT}/image-source-selection/scene",
+        json={"image_source_selection": "missing"},
+    )
+    assert invalid_scene.status_code == 400
+    assert invalid_scene.json() == {
+        "ok": False,
+        "error": "Invalid image_source_selection: missing",
+    }
+
+    unsupported_kind = client.get(
+        f"/api/v1/projects/{_PROJECT}/image-source-selection/video"
+    )
+    assert unsupported_kind.status_code == 404
+    assert unsupported_kind.json() == {
+        "ok": False,
+        "error": "Unsupported image source kind: video",
+    }
+
+
+def test_m04_l2_exercises_endpoint_contracts(m04_client_factory):
     client, _backend, project_dir = m04_client_factory("inline")
     png = _png_bytes()
     voice_data_url = (
@@ -431,6 +488,15 @@ def test_m04_l2_exercises_all_57_endpoint_contracts(m04_client_factory):
         client.patch(
             f"/api/v1/projects/{_PROJECT}/character-image-selection",
             json={"character_image_selection": "mock"},
+        )
+    )
+    _assert_ok(
+        client.get(f"/api/v1/projects/{_PROJECT}/image-source-selection/character")
+    )
+    _assert_ok(
+        client.patch(
+            f"/api/v1/projects/{_PROJECT}/image-source-selection/scene",
+            json={"image_source_selection": "mock"},
         )
     )
     _assert_ok(client.get(f"/api/v1/projects/{_PROJECT}/character-image-usage"))

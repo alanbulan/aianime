@@ -23,6 +23,9 @@ from ai_anime.modules.asset_world.application.character_tasks import (
 from ai_anime.modules.asset_world.application.character_voice import (
     CharacterVoiceUseCases,
 )
+from ai_anime.modules.asset_world.application.image_settings import (
+    ImageSettingsUseCases,
+)
 from ai_anime.modules.asset_world.application.prop_catalog import (
     PropCatalogUseCases,
 )
@@ -57,6 +60,11 @@ from ai_anime.modules.asset_world.infrastructure.character_generation import (
 )
 from ai_anime.modules.asset_world.infrastructure.character_image_storage import (
     LocalCharacterImageFiles,
+)
+from ai_anime.modules.asset_world.infrastructure.image_settings import (
+    ConfiguredImageSelectionCatalog,
+    ProjectConfigImageSelectionStore,
+    SqliteImageUsageReader,
 )
 from ai_anime.modules.asset_world.infrastructure.prop_catalog import (
     LocalPropCatalogAssets,
@@ -149,6 +157,14 @@ def character_generation_use_cases() -> CharacterGenerationUseCases:
 
 def character_image_use_cases() -> CharacterImageUseCases:
     return CharacterImageUseCases(LocalCharacterImageFiles())
+
+
+def image_settings_use_cases() -> ImageSettingsUseCases:
+    return ImageSettingsUseCases(
+        ConfiguredImageSelectionCatalog(),
+        ProjectConfigImageSelectionStore(),
+        SqliteImageUsageReader(),
+    )
 
 
 def character_task_use_cases() -> CharacterTaskUseCases:
