@@ -7,7 +7,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from ai_anime.modules.production.public import SKETCH_GENERATION_TASK_TYPE
+from ai_anime.modules.production.public import (
+    DIRECTOR_CONTROL_TO_SKETCH_TASK_KIND,
+    SKETCH_GENERATION_TASK_TYPE,
+)
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.task_backend.cancel import await_envelope_with_cancel_watch
 from ai_anime.task_backend.registry import register_project_task_runner
@@ -604,7 +607,10 @@ async def _run_sketch_generation_async(
 
 
 def run_sketch_generation(envelope: dict[str, Any], ctx: ProjectContext) -> dict[str, Any]:
-    if (envelope.get("payload") or {}).get("task_kind") == "director_control_to_sketch":
+    if (
+        (envelope.get("payload") or {}).get("task_kind")
+        == DIRECTOR_CONTROL_TO_SKETCH_TASK_KIND
+    ):
         return asyncio.run(
             await_envelope_with_cancel_watch(
                 _run_control_frame_to_sketch_async(envelope, ctx),
@@ -679,5 +685,5 @@ async def _run_control_frame_to_sketch_async(
         "sketch_path": promoted,
         "beat_numbers": [beat_num],
         "grid_index": beat_num - 1,
-        "task_kind": "director_control_to_sketch",
+        "task_kind": DIRECTOR_CONTROL_TO_SKETCH_TASK_KIND,
     }

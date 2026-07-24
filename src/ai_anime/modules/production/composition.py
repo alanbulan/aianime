@@ -2,6 +2,9 @@
 
 from typing import Any
 
+from ai_anime.modules.production.application.director_control_sketch import (
+    DirectorControlSketchUseCases,
+)
 from ai_anime.modules.production.application.episode_audio import (
     EpisodeAudioUseCases,
 )
@@ -77,6 +80,10 @@ from ai_anime.modules.production.infrastructure.episode_export import (
 from ai_anime.modules.production.infrastructure.episode_audio import (
     IndexTTS2VoicePrerequisiteChecker,
     TaskBackendEpisodeAudioScheduler,
+)
+from ai_anime.modules.production.infrastructure.director_control_sketch import (
+    AssetWorldDirectorControlFrameSource,
+    TaskBackendDirectorControlSketchScheduler,
 )
 from ai_anime.modules.production.infrastructure.sketch_color import (
     AssetWorldRuntimePropMenuSource,
@@ -210,6 +217,15 @@ def sketch_generation_use_cases() -> SketchGenerationUseCases:
             NanoBananaSketchGridPlanner(),
         ),
         TaskBackendSketchGenerationScheduler(ports.get_task_backend),
+    )
+
+
+def director_control_sketch_use_cases() -> DirectorControlSketchUseCases:
+    from ai_anime import ports
+
+    return DirectorControlSketchUseCases(
+        AssetWorldDirectorControlFrameSource(),
+        TaskBackendDirectorControlSketchScheduler(ports.get_task_backend),
     )
 
 

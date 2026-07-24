@@ -88,12 +88,14 @@ from ai_anime.modules.production.public import (
     CropSeedance2AssetCommand,
     CropSketchCommand,
     DetectSketchMarkersCommand,
+    DirectorControlSketchUnavailable,
     EpisodeBeatsMissing,
     EpisodeAudioBeatMissing,
     EpisodeAudioBeatsMissing,
     EpisodeScriptBeatsMissing,
     EpisodeSubtitlesMissing,
     FinalEpisodeVideoMissing,
+    GenerateDirectorControlSketchCommand,
     GenerateEpisodeAudioCommand,
     GenerateSketchesCommand,
     GenerateSingleVideoCommand,
@@ -119,6 +121,7 @@ from ai_anime.modules.production.public import (
     UpdateSketchImageSettingsCommand,
     UploadSeedance2AssetCommand,
     VideoPoolEntryUnavailable,
+    director_control_sketch_use_cases,
     global_video_optimization_use_cases,
     seedance2_panel_use_cases,
     sketch_generation_use_cases,
@@ -2164,90 +2167,21 @@ async def director_control_to_sketch(
 ):
     """Start the existing Direct Render combined.png -> canonical sketch task."""
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    ctx = resolved.ctx
-    username = resolved.username
-    project_name = resolved.project_name
-    project_dir = resolved.project_dir
-    state_dir = resolved.state_dir
-    payload = beat_director_stage_use_cases().control_frame_status(
-        project_dir=project_dir,
-        episode_num=episode_num,
-        beat_num=beat_num,
-        asset_url=make_project_asset_url_builder(
+    try:
+        scheduled = await director_control_sketch_use_cases().generate(
             resolved.ctx,
-            project_dir,
-            make_static_url_for_context,
-        ),
-    )
-    if not payload["ready"]:
+            GenerateDirectorControlSketchCommand(
+                episode_num=episode_num,
+                beat_num=beat_num,
+            ),
+        )
+    except DirectorControlSketchUnavailable as exc:
         return {
             "ok": False,
-            "error": f"Beat {int(beat_num)} 缺少 Direct Render combined.png，请先从 3GS / Freezone 导出",
-            "data": payload,
+            "error": str(exc),
+            "data": exc.status.data,
         }
-
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type="sketch_generation",
-            queue_kind="default",
-            episode=int(episode_num),
-            beat_num=int(beat_num),
-            scope=payload["scope"],
-            payload={
-                "task_kind": "director_control_to_sketch",
-                "episode": int(episode_num),
-                "beat_num": int(beat_num),
-                "output_dir": str(project_dir),
-                "state_dir": state_dir,
-            },
-        )
-        return {
-            "ok": True,
-            "task_type": "sketch_generation",
-            "scope": payload["scope"],
-            "task_id": queued.task_state.task_id,
-            "task_key": project_task_state_key(
-                "sketch_generation",
-                ctx.project_id,
-                int(episode_num),
-                beat_num=int(beat_num),
-                scope=payload["scope"],
-            ),
-            "backend": queued.backend,
-            "queue": queued.queue,
-            "message": f"Beat {int(beat_num)} Direct Render 转草图任务已进入队列",
-            "data": payload,
-        }
-
-    try:
-        start_fn = globals().get("start_control_frame_to_sketch_task")
-        if start_fn is None:
-            return {
-                "ok": False,
-                "error": "Direct Render 转草图需要 project context",
-                "data": payload,
-            }
-
-        start_fn(
-            username=username,
-            project=project_name,
-            episode=int(episode_num),
-            beat_num=int(beat_num),
-            output_dir=str(project_dir),
-            state_dir=state_dir,
-            scope=payload["scope"],
-        )
-    except Exception as exc:
-        return {"ok": False, "error": str(exc), "data": payload}
-
-    return {
-        "ok": True,
-        "task_type": "sketch_generation",
-        "scope": payload["scope"],
-        "message": f"Beat {int(beat_num)} Direct Render 转草图任务已启动",
-        "data": payload,
-    }
+    return {"ok": True, **scheduled.as_dict()}
 
 
 @router.get(

@@ -10,6 +10,13 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from PIL import Image
 
+from ai_anime.modules.production.application.director_control_sketch import (
+    DirectorControlFrameStatus,
+    DirectorControlSketchTaskReceipt,
+    DirectorControlSketchUnavailable,
+    ScheduledDirectorControlSketch,
+)
+
 
 def _client(monkeypatch, tmp_path, config: dict | None = None):
     from ai_anime.api.routes import generation
@@ -303,25 +310,49 @@ def test_director_control_frame_status_reports_missing_and_ready(monkeypatch, tm
     )
 
 
-def test_director_control_to_sketch_starts_existing_actor(monkeypatch, tmp_path):
+def test_director_control_to_sketch_delegates_to_application(monkeypatch, tmp_path):
     client, _saved = _client(monkeypatch, tmp_path)
-    control_frame = (
-        tmp_path / "director_control_frames" / "ep001" / "beat_04" / "combined.png"
-    )
-    control_frame.parent.mkdir(parents=True)
-    control_frame.write_bytes(b"fake png")
-    calls: list[dict] = []
-
-    def fake_start_control_frame_to_sketch_task(**kwargs):
-        calls.append(kwargs)
-
     from ai_anime.api.routes import generation
 
+    context = object()
+
+    async def resolve(*_args, **_kwargs):
+        return SimpleNamespace(ctx=context)
+
+    status = DirectorControlFrameStatus(
+        ready=True,
+        scope="director_control_to_sketch:ep001:beat_04",
+        data={
+            "episode": 1,
+            "beat_num": 4,
+            "ready": True,
+            "scope": "director_control_to_sketch:ep001:beat_04",
+        },
+    )
+    calls = []
+
+    class UseCases:
+        async def generate(self, context, command):
+            calls.append((context, command))
+            return ScheduledDirectorControlSketch(
+                beat_num=4,
+                status=status,
+                receipt=DirectorControlSketchTaskReceipt(
+                    task_id="task-1",
+                    task_key=(
+                        "task:sketch_generation:project:proj_demo:1:4:"
+                        "director_control_to_sketch:ep001:beat_04"
+                    ),
+                    backend="celery",
+                    queue="default",
+                ),
+            )
+
+    monkeypatch.setattr(generation, "_resolve_generation_project", resolve)
     monkeypatch.setattr(
         generation,
-        "start_control_frame_to_sketch_task",
-        fake_start_control_frame_to_sketch_task,
-        raising=False,
+        "director_control_sketch_use_cases",
+        lambda: UseCases(),
     )
 
     response = client.post(
@@ -333,23 +364,49 @@ def test_director_control_to_sketch_starts_existing_actor(monkeypatch, tmp_path)
     assert body["ok"] is True
     assert body["task_type"] == "sketch_generation"
     assert body["scope"] == "director_control_to_sketch:ep001:beat_04"
-    assert calls == [
-        {
-            "username": "alice",
-            "project": "demo",
-            "episode": 1,
-            "beat_num": 4,
-            "output_dir": str(tmp_path),
-            "state_dir": str(tmp_path / "_state"),
-            "scope": "director_control_to_sketch:ep001:beat_04",
-        }
-    ]
+    assert body["task_id"] == "task-1"
+    assert body["backend"] == "celery"
+    assert len(calls) == 1
+    assert calls[0][0] is context
+    assert calls[0][1].episode_num == 1
+    assert calls[0][1].beat_num == 4
 
 
 def test_director_control_to_sketch_rejects_missing_control_frame(
     monkeypatch, tmp_path
 ):
     client, _saved = _client(monkeypatch, tmp_path)
+    from ai_anime.api.routes import generation
+
+    context = object()
+
+    async def resolve(*_args, **_kwargs):
+        return SimpleNamespace(ctx=context)
+
+    status = DirectorControlFrameStatus(
+        ready=False,
+        scope="director_control_to_sketch:ep001:beat_04",
+        data={
+            "episode": 1,
+            "beat_num": 4,
+            "ready": False,
+            "scope": "director_control_to_sketch:ep001:beat_04",
+        },
+    )
+
+    class UseCases:
+        async def generate(self, _context, _command):
+            raise DirectorControlSketchUnavailable(
+                "Beat 4 缺少 Direct Render combined.png，请先从 3GS / Freezone 导出",
+                status,
+            )
+
+    monkeypatch.setattr(generation, "_resolve_generation_project", resolve)
+    monkeypatch.setattr(
+        generation,
+        "director_control_sketch_use_cases",
+        lambda: UseCases(),
+    )
 
     response = client.post(
         "/api/v1/projects/demo/episodes/1/beats/4/director-control-to-sketch"
@@ -359,6 +416,7 @@ def test_director_control_to_sketch_rejects_missing_control_frame(
     body = response.json()
     assert body["ok"] is False
     assert "combined.png" in body["error"]
+    assert body["data"] == status.data
 
 
 class _FakePropMenuItem:

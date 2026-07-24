@@ -81,7 +81,6 @@ from ai_anime.config import IMAGE_GENERATION_SELECTIONS, image_generation_select
 from ai_anime.director_world import DirectorWorldService
 from ai_anime.director_world.staging_prop_ai import generate_ai_staging_prop
 from ai_anime.modules.asset_world.public import (
-    director_control_scope,
     runtime_prop_menu_for_episode,
 )
 from ai_anime.modules.production.public import (
@@ -1524,56 +1523,6 @@ async def _start_or_enqueue_standalone_frame_from_context_job(
         )
 
     _raise_project_context_required(task_type)
-
-
-async def _start_or_enqueue_mainline_direct_sketch_task(
-    *,
-    ctx: ProjectContext,
-    username: str,
-    project_name: str,
-    project_dir: Path,
-    episode: int,
-    beat: int,
-    canvas_id: str | None = None,
-    node_id: str | None = None,
-    task_display: dict[str, str] | None = None,
-) -> dict:
-    task_type = "sketch_generation"
-    scope = director_control_scope(int(episode), int(beat))
-    queued = await get_task_backend().enqueue_project_task(
-        ctx,
-        task_type=task_type,
-        queue_kind="default",
-        episode=int(episode),
-        beat_num=int(beat),
-        scope=scope,
-        payload={
-            "task_kind": "director_control_to_sketch",
-            "episode": int(episode),
-            "beat_num": int(beat),
-            "output_dir": str(project_dir),
-            "state_dir": str(ctx.state_dir),
-            "canvas_id": canvas_id or "",
-            "node_id": node_id or "",
-            "task_family": "mainline_skill",
-            "task_label": "导演合成图转草图",
-            "display_name": f"导演合成图转草图 · EP{episode} / Beat {beat}",
-            "source_label": "导演合成图",
-            "target_label": "当前草图",
-            **(task_display or {}),
-        },
-    )
-    return _project_job_response(
-        task_type=task_type,
-        ctx=ctx,
-        job_id=scope,
-        backend=queued.backend,
-        queue=queued.queue,
-        task_id=queued.task_state.task_id,
-        episode=int(episode),
-        beat_num=int(beat),
-        scope=scope,
-    )
 
 
 async def _start_or_enqueue_mainline_director_control_sketch_job(

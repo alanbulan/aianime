@@ -2,6 +2,13 @@
 
 from typing import Any
 
+from ai_anime.modules.production.application.director_control_sketch import (
+    DIRECTOR_CONTROL_TO_SKETCH_TASK_KIND,
+    DirectorControlSketchUnavailable,
+    DirectorControlSketchUseCases,
+    GenerateDirectorControlSketchCommand,
+    ScheduledDirectorControlSketch,
+)
 from ai_anime.modules.production.application.episode_audio import (
     INDEXTTS2_AUDIO_TASK_TYPE,
     AudioVoicePrerequisitesMissing,
@@ -195,6 +202,14 @@ def sketch_generation_use_cases() -> SketchGenerationUseCases:
     return build()
 
 
+def director_control_sketch_use_cases() -> DirectorControlSketchUseCases:
+    from ai_anime.modules.production.composition import (
+        director_control_sketch_use_cases as build,
+    )
+
+    return build()
+
+
 def production_generation_context_use_cases(
     store: Any,
     username: str,
@@ -266,6 +281,7 @@ def sketch_pose_editor_use_cases() -> SketchPoseEditorUseCases:
 __all__ = [
     "AddGeneratedVideoCommand",
     "DEFAULT_VIDEO_BACKEND",
+    "DIRECTOR_CONTROL_TO_SKETCH_TASK_KIND",
     "GLOBAL_VIDEO_OPTIMIZATION_TASK_TYPE",
     "INDEXTTS2_AUDIO_TASK_TYPE",
     "SKETCH_GENERATION_TASK_TYPE",
@@ -276,6 +292,8 @@ __all__ = [
     "CropSketchCommand",
     "CropSeedance2AssetCommand",
     "DetectSketchMarkersCommand",
+    "DirectorControlSketchUnavailable",
+    "DirectorControlSketchUseCases",
     "EpisodeBeatsMissing",
     "EpisodeAudioBeatMissing",
     "EpisodeAudioBeatsMissing",
@@ -289,6 +307,7 @@ __all__ = [
     "FinalEpisodeVideoStatus",
     "FinalEpisodeVideoMissing",
     "GenerateEpisodeAudioCommand",
+    "GenerateDirectorControlSketchCommand",
     "GenerateSketchesCommand",
     "GenerateSingleVideoCommand",
     "GlobalVideoOptimizationBeatsMissing",
@@ -306,6 +325,7 @@ __all__ = [
     "ScheduledEpisodeVideo",
     "ScheduledEpisodeAudio",
     "ScheduledGlobalVideoOptimization",
+    "ScheduledDirectorControlSketch",
     "ScheduledSketchGeneration",
     "ScheduledSingleVideo",
     "Seedance2PanelBeatMissing",
@@ -340,6 +360,7 @@ __all__ = [
     "VideoBackendCatalogUseCases",
     "VideoBackendOption",
     "assign_identity_sketch_colors",
+    "director_control_sketch_use_cases",
     "episode_audio_use_cases",
     "episode_export_use_cases",
     "episode_video_use_cases",

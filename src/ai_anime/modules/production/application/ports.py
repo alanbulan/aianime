@@ -10,6 +10,11 @@ from ai_anime.modules.production.domain.sketch_marker_detection import (
 )
 
 if TYPE_CHECKING:
+    from ai_anime.modules.production.application.director_control_sketch import (
+        DirectorControlFrameStatus,
+        DirectorControlSketchTask,
+        DirectorControlSketchTaskReceipt,
+    )
     from ai_anime.modules.production.application.episode_audio import (
         EpisodeAudioTask,
         EpisodeAudioTaskReceipt,
@@ -477,3 +482,20 @@ class ProductionSketchGenerationScheduler(Protocol):
         context: ProjectContext,
         task: SketchGenerationTask,
     ) -> SketchGenerationTaskReceipt: ...
+
+
+class ProductionDirectorControlFrameSource(Protocol):
+    def status(
+        self,
+        context: ProjectContext,
+        episode_num: int,
+        beat_num: int,
+    ) -> DirectorControlFrameStatus: ...
+
+
+class ProductionDirectorControlSketchScheduler(Protocol):
+    async def enqueue(
+        self,
+        context: ProjectContext,
+        task: DirectorControlSketchTask,
+    ) -> DirectorControlSketchTaskReceipt: ...

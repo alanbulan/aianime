@@ -586,6 +586,35 @@ def test_production_sketch_generation_route_delegates_to_application() -> None:
     assert "SKETCH_GENERATION_TASK_TYPE" in runner_source
 
 
+def test_production_director_control_sketch_route_delegates_to_application() -> None:
+    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    freezone = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    sketch_runner = PACKAGE_ROOT / "task_backend" / "runners" / "sketch.py"
+    source = generation.read_text(encoding="utf-8")
+    route_start = source.index("async def director_control_to_sketch(")
+    route_end = source.index("async def get_sketch_pose_editor(", route_start)
+    route_source = source[route_start:route_end]
+
+    assert route_source.count("director_control_sketch_use_cases") == 1
+    assert "GenerateDirectorControlSketchCommand" in route_source
+    for implementation_detail in (
+        "beat_director_stage_use_cases",
+        "make_project_asset_url_builder",
+        "get_task_backend",
+        "enqueue_project_task",
+        "project_task_state_key",
+        "start_control_frame_to_sketch_task",
+        "globals()",
+        "Direct Render 转草图需要 project context",
+    ):
+        assert implementation_detail not in route_source
+    assert "_start_or_enqueue_mainline_direct_sketch_task" not in (
+        freezone.read_text(encoding="utf-8")
+    )
+    runner_source = sketch_runner.read_text(encoding="utf-8")
+    assert "DIRECTOR_CONTROL_TO_SKETCH_TASK_KIND" in runner_source
+
+
 def test_production_seedance2_panel_routes_delegate_to_application() -> None:
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     source = generation.read_text(encoding="utf-8")
@@ -1086,7 +1115,8 @@ def test_asset_world_beat_director_stage_routes_delegate_to_application() -> Non
     )
 
     assert "beat_director_stage_use_cases" in director_adapters
-    assert "director_control_scope" in freezone
+    assert "director_control_sketch_use_cases" in director_adapters
+    assert "director_control_scope" not in freezone
     for legacy_implementation in (
         "_director_control_scope",
         "_director_control_payload",
