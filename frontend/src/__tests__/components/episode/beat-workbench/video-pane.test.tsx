@@ -198,76 +198,6 @@ vi.mock("@/lib/queries/video", () => ({
     mutateAsync: trimSeedance2AssetMock,
     isPending: false,
   }),
-  useVideoBackends: () => ({
-    data: {
-      ok: true,
-      data: [
-        {
-          value: "newapi_seedance-1.0-pro-fast",
-          label: "Seedance 1.0 Pro Fast",
-          is_default: true,
-          is_seedance2: false,
-          dialogue_only: false,
-          min_duration: 4,
-          max_duration: 12,
-        },
-        {
-          value: "newapi_seedance-1.5-pro",
-          label: "Seedance 1.5 Pro",
-          is_default: false,
-          is_seedance2: false,
-          dialogue_only: true,
-          min_duration: 4,
-          max_duration: 12,
-        },
-        {
-          value: "huimeng_seedance-2.0-fast",
-          label: "HuiMeng Seedance 2.0 Fast",
-          is_default: false,
-          is_seedance2: true,
-          dialogue_only: false,
-          min_duration: 4,
-          max_duration: 15,
-        },
-        {
-          value: "newapi_seedance-2.0-fast",
-          label: "Seedance2.0 Fast",
-          is_default: false,
-          is_seedance2: true,
-          dialogue_only: false,
-          min_duration: 4,
-          max_duration: 15,
-        },
-        {
-          value: "newapi_seedance-2.0",
-          label: "Seedance2.0",
-          is_default: false,
-          is_seedance2: true,
-          dialogue_only: false,
-          min_duration: 4,
-          max_duration: 15,
-        },
-        {
-          value: "newapi_seedance-2.0-value",
-          label: "Seedance2.0 Value",
-          is_default: false,
-          is_seedance2: true,
-          dialogue_only: false,
-          min_duration: 4,
-          max_duration: 15,
-        },
-        {
-          value: "newapi_seedance-2.0-fast-value",
-          label: "Seedance2.0 Fast Value",
-          is_default: false,
-          is_seedance2: true,
-          dialogue_only: false,
-          min_duration: 4,
-          max_duration: 15,
-        },
-      ],
-    },
-  }),
   useVideoPool: () => ({
     data: {
       ok: true,
@@ -552,6 +482,83 @@ vi.mock("@/lib/queries/video", () => ({
     isError: false,
   }),
 }));
+
+vi.mock("@/modules/production/public", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/modules/production/public")>();
+  return {
+    ...actual,
+    useVideoBackends: () => ({
+      data: {
+        ok: true,
+        data: [
+          {
+            value: "newapi_seedance-1.0-pro-fast",
+            label: "Seedance 1.0 Pro Fast",
+            is_default: true,
+            is_seedance2: false,
+            dialogue_only: false,
+            min_duration: 4,
+            max_duration: 12,
+          },
+          {
+            value: "newapi_seedance-1.5-pro",
+            label: "Seedance 1.5 Pro",
+            is_default: false,
+            is_seedance2: false,
+            dialogue_only: true,
+            min_duration: 4,
+            max_duration: 12,
+          },
+          {
+            value: "huimeng_seedance-2.0-fast",
+            label: "HuiMeng Seedance 2.0 Fast",
+            is_default: false,
+            is_seedance2: true,
+            dialogue_only: false,
+            min_duration: 4,
+            max_duration: 15,
+          },
+          {
+            value: "newapi_seedance-2.0-fast",
+            label: "Seedance2.0 Fast",
+            is_default: false,
+            is_seedance2: true,
+            dialogue_only: false,
+            min_duration: 4,
+            max_duration: 15,
+          },
+          {
+            value: "newapi_seedance-2.0",
+            label: "Seedance2.0",
+            is_default: false,
+            is_seedance2: true,
+            dialogue_only: false,
+            min_duration: 4,
+            max_duration: 15,
+          },
+          {
+            value: "newapi_seedance-2.0-value",
+            label: "Seedance2.0 Value",
+            is_default: false,
+            is_seedance2: true,
+            dialogue_only: false,
+            min_duration: 4,
+            max_duration: 15,
+          },
+          {
+            value: "newapi_seedance-2.0-fast-value",
+            label: "Seedance2.0 Fast Value",
+            is_default: false,
+            is_seedance2: true,
+            dialogue_only: false,
+            min_duration: 4,
+            max_duration: 15,
+          },
+        ],
+      },
+    }),
+  };
+});
 
 vi.mock("@/modules/narrative_planning/public", () => ({
   useUpdateBeat: () => ({

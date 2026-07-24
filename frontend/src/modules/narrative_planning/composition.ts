@@ -16,10 +16,6 @@ import {
 } from "@/lib/queries/sketches";
 import { useTasks } from "@/lib/queries/tasks";
 import {
-  DEFAULT_VIDEO_BACKEND,
-  useVideoBackends,
-} from "@/lib/queries/video";
-import {
   createNarrativePlanningQueryHooks,
   isPlanEpisodeAssetsResult,
 } from "@/modules/narrative_planning/application/query-hooks";
@@ -36,6 +32,10 @@ import {
   EpisodesPageView,
 } from "@/modules/narrative_planning/presentation/EpisodesPageView";
 import { ScriptPageView } from "@/modules/narrative_planning/presentation/ScriptPageView";
+import {
+  DEFAULT_VIDEO_BACKEND,
+  useVideoBackends,
+} from "@/modules/production/public";
 import {
   useProject,
   useUpdateProject,

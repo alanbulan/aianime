@@ -7,29 +7,10 @@ import { queryKeys } from "@/lib/query-keys";
 import { useAppStore } from "@/stores/app-store";
 import type { ErrorResponse, OkResponse, TaskResponse } from "@/types/api";
 import type { Beat } from "@/modules/narrative_planning/public";
-
-export const DEFAULT_VIDEO_BACKEND = "huimeng_seedance-1.0-pro-fast";
+import { DEFAULT_VIDEO_BACKEND } from "@/modules/production/public";
 
 function currentPromptLanguage(): "zh" | "en" {
   return useAppStore.getState().language?.startsWith("zh") ? "zh" : "en";
-}
-
-export interface VideoBackendOption {
-  value: string;
-  label: string;
-  is_default: boolean;
-  is_seedance2: boolean;
-  is_happyhorse?: boolean;
-  is_grok_video?: boolean;
-  dialogue_only: boolean;
-  min_duration?: number | null;
-  max_duration?: number | null;
-  resolution_options?: string[] | null;
-  ratio_options?: string[] | null;
-  supported_modes?: string[] | null;
-  reference_image_max?: number | null;
-  reference_video_max?: number | null;
-  reference_audio_max?: number | null;
 }
 
 export interface NarratorVoiceStatusData {
@@ -56,17 +37,6 @@ export interface NarratorVoiceSourceOption {
 
 export interface NarratorVoiceSourcesData {
   options: NarratorVoiceSourceOption[];
-}
-
-export function useVideoBackends(project: string) {
-  return useQuery({
-    queryKey: queryKeys.videoBackends(project),
-    queryFn: ({ signal }) =>
-      api
-        .get(p`api/v1/projects/${project}/video-backends`, { signal })
-        .json<OkResponse<VideoBackendOption[]>>(),
-    enabled: !!project,
-  });
 }
 
 function invalidateNarratorVoiceQueries(

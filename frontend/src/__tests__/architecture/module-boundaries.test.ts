@@ -515,7 +515,7 @@ describe("frontend architecture boundaries", () => {
 
   it("keeps Production callers on its public API", () => {
     const moduleRoot = resolve(SRC_ROOT, "modules/production");
-    const failures = sourceFiles(SRC_ROOT)
+    const internalImportFailures = sourceFiles(SRC_ROOT)
       .filter((path) => !path.startsWith(moduleRoot))
       .filter((path) => !relativeSource(path).startsWith("__tests__/"))
       .flatMap((path) =>
@@ -527,8 +527,16 @@ describe("frontend architecture boundaries", () => {
           )
           .map((specifier) => `${relativeSource(path)}: ${specifier}`),
       );
+    const applicationDataImportFailures = sourceFiles(
+      resolve(moduleRoot, "application"),
+    ).flatMap((path) =>
+      importSpecifiers(path)
+        .filter(isRawDataImport)
+        .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+    );
 
-    expect(failures).toEqual([]);
+    expect(applicationDataImportFailures).toEqual([]);
+    expect(internalImportFailures).toEqual([]);
   });
 
   it("keeps the Characters route as an adapter", () => {

@@ -213,6 +213,9 @@ vi.mock("@/lib/queries/video", () => ({
     mutateAsync: vi.fn(),
     isPending: false,
   }),
+}));
+
+vi.mock("@/modules/production/public", () => ({
   useVideoBackends: () => ({
     data: {
       ok: true,

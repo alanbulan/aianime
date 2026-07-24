@@ -14,20 +14,21 @@ describe("video backend options alignment", () => {
     expect(videoPane).toContain("useVideoBackends");
   });
 
-  it("uses the backend capabilities for dialogue-only blocking", () => {
-    const videoPane = read("src/components/episode/beat-workbench/video-pane.tsx");
+  it("preserves dialogue-only capability metadata in the Production domain", () => {
+    const backendDomain = read("src/modules/production/domain/video-backend.ts");
 
-    expect(videoPane).toContain("dialogue_only");
+    expect(backendDomain).toContain("dialogue_only");
   });
 
   it("supports the Grok Video inspector from backend capabilities", () => {
     const videoPane = read("src/components/episode/beat-workbench/video-pane.tsx");
-    const videoQueries = read("src/lib/queries/video.ts");
+    const backendDomain = read("src/modules/production/domain/video-backend.ts");
+    const videoConfig = read("src/modules/production/domain/video-config.ts");
 
-    expect(videoQueries).toContain("is_grok_video");
+    expect(backendDomain).toContain("is_grok_video");
     expect(videoPane).toContain("showGrokVideoConfig");
     expect(videoPane).toContain("Grok Video 检视器");
-    expect(videoPane).toContain("3:2");
+    expect(videoConfig).toContain('"3:2"');
   });
 
   it("defaults to the ST2 canonical video backend instead of legacy comfyui", () => {
@@ -35,13 +36,13 @@ describe("video backend options alignment", () => {
     const beatsController = read(
       "src/modules/narrative_planning/application/use-beats-page-controller.ts",
     );
-    const videoQueries = read("src/lib/queries/video.ts");
+    const backendDomain = read("src/modules/production/domain/video-backend.ts");
 
     expect(composition).toContain(
       "defaultVideoBackend: DEFAULT_VIDEO_BACKEND",
     );
     expect(beatsController).toContain("dependencies.defaultVideoBackend");
-    expect(videoQueries).toContain("huimeng_seedance-1.0-pro-fast");
-    expect(videoQueries).not.toContain('videoBackend ?? "comfyui"');
+    expect(backendDomain).toContain("huimeng_seedance-1.0-pro-fast");
+    expect(backendDomain).not.toContain("comfyui");
   });
 });

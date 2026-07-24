@@ -1,3 +1,6 @@
+export { useVideoBackends } from "@/modules/production/composition";
+export { DEFAULT_VIDEO_BACKEND } from "@/modules/production/domain/video-backend";
+export type { VideoBackendOption } from "@/modules/production/domain/video-backend";
 export {
   clampDuration,
   getSeedance2ConfigSaveKey,

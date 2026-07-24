@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import type { VideoBackendOption } from "@/modules/production/domain/video-backend";
 
 const SEEDANCE2_DEFAULT_RESOLUTION_OPTIONS = ["480p", "720p"] as const;
 const HAPPYHORSE_RESOLUTION_OPTIONS = ["720p", "1080p"] as const;
@@ -62,12 +63,13 @@ export interface Seedance2ConfigDraft {
   };
 }
 
-export interface VideoBackendConfigCapabilities {
-  resolution_options?: readonly string[] | null;
-  ratio_options?: readonly string[] | null;
-  min_duration?: number | null;
-  max_duration?: number | null;
-}
+export type VideoBackendConfigCapabilities = Pick<
+  VideoBackendOption,
+  | "resolution_options"
+  | "ratio_options"
+  | "min_duration"
+  | "max_duration"
+>;
 
 export function parseSeedance2Config(
   value: string | null | undefined,

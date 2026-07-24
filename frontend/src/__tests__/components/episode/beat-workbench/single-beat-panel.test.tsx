@@ -50,7 +50,7 @@ vi.mock("@/modules/narrative_planning/public", () => ({
   useDeleteManualShot: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
-vi.mock("@/lib/queries/video", () => ({
+vi.mock("@/modules/production/public", () => ({
   useVideoBackends: () => ({
     data: {
       ok: true,
