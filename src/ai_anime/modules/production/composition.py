@@ -8,6 +8,9 @@ from ai_anime.modules.production.application.generation_context import (
 from ai_anime.modules.production.application.image_settings import (
     ProductionImageSettingsUseCases,
 )
+from ai_anime.modules.production.application.image_generation_usage import (
+    ImageGenerationUsageUseCases,
+)
 from ai_anime.modules.production.application.sketch_pose import (
     SketchPoseEditorUseCases,
 )
@@ -29,6 +32,10 @@ from ai_anime.modules.production.infrastructure.sketch_image import (
 from ai_anime.modules.production.infrastructure.image_settings import (
     ConfiguredProductionImageSelections,
     ProjectConfigProductionSettings,
+)
+from ai_anime.modules.production.infrastructure.image_generation_usage import (
+    ConfiguredOperatorPasswordVerifier,
+    SqliteProductionImageUsage,
 )
 from ai_anime.modules.production.infrastructure.generation_context import (
     AssetWorldCharacterProjector,
@@ -61,6 +68,13 @@ def production_image_settings_use_cases() -> ProductionImageSettingsUseCases:
     return ProductionImageSettingsUseCases(
         ProjectConfigProductionSettings(),
         ConfiguredProductionImageSelections(),
+    )
+
+
+def image_generation_usage_use_cases() -> ImageGenerationUsageUseCases:
+    return ImageGenerationUsageUseCases(
+        SqliteProductionImageUsage(),
+        ConfiguredOperatorPasswordVerifier(),
     )
 
 

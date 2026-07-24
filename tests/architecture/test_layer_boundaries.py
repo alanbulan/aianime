@@ -374,6 +374,29 @@ def test_production_sketch_regen_queue_routes_delegate_to_application() -> None:
         assert implementation_detail not in route_source
 
 
+def test_production_image_usage_routes_delegate_to_application() -> None:
+    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    source = generation.read_text(encoding="utf-8")
+    route_start = source.index("async def get_sketch_image_usage(")
+    route_end = source.index("async def compose_video(", route_start)
+    route_source = source[route_start:route_end]
+
+    assert "image_generation_usage_use_cases" in route_source
+    assert "ImageGenerationGuardQuery" in route_source
+    assert "def _image_generation_guard_payload(" not in source
+    assert "def get_image_scope_warning(" not in (
+        PACKAGE_ROOT / "image_request_usage.py"
+    ).read_text(encoding="utf-8")
+    for implementation_detail in (
+        "get_image_usage_summary",
+        "count_image_scope_attempts",
+        "get_prompt_export_password",
+        "ai_anime.image_request_usage",
+        "ai_anime.security.operator_auth",
+    ):
+        assert implementation_detail not in route_source
+
+
 def test_production_generation_context_routes_delegate_to_application() -> None:
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     freezone = PACKAGE_ROOT / "api" / "routes" / "freezone.py"

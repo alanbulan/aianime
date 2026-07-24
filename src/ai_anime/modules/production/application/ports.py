@@ -214,3 +214,26 @@ class ProductionFeatureUsageMeter(Protocol):
     ) -> None: ...
 
     def clear_llm_usage_context(self) -> None: ...
+
+
+class ProductionImageUsageReader(Protocol):
+    def summary(
+        self,
+        project_output_dir: Path,
+        *,
+        task_types: tuple[str, ...] | None = None,
+        episode: int | None = None,
+    ) -> dict[str, int]: ...
+
+    def count_scope_attempts(
+        self,
+        project_output_dir: Path,
+        *,
+        task_type: str,
+        scope: str,
+        episode: int | None = None,
+    ) -> int: ...
+
+
+class ProductionOperatorPasswordVerifier(Protocol):
+    def verify(self, candidate: str) -> bool: ...

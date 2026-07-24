@@ -88,6 +88,7 @@ from ai_anime.modules.asset_world.public import (
 from ai_anime.modules.production.public import (
     CropSketchCommand,
     DetectSketchMarkersCommand,
+    ImageGenerationGuardQuery,
     ProductionImageSettingsRejected,
     ReplaceSketchRegenQueueCommand,
     SketchCropRejected,
@@ -99,6 +100,7 @@ from ai_anime.modules.production.public import (
     UpdateSketchImageSettingsCommand,
     production_generation_context_use_cases,
     production_image_settings_use_cases,
+    image_generation_usage_use_cases,
     sketch_color_assignment_use_cases,
     sketch_image_use_cases,
     sketch_marker_detection_use_cases,
@@ -1525,37 +1527,12 @@ async def get_sketch_image_usage(
     user: dict = Depends(get_api_user),
 ):
     """Return NiceGUI-style Sketch image request usage summary."""
-    from ai_anime.image_request_usage import get_image_usage_summary
-
     resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    project_dir = resolved.project_dir
-    summary = get_image_usage_summary(
-        project_output_dir=project_dir,
-        task_types=("sketch_grid",),
-        episode=episode_num,
+    summary = image_generation_usage_use_cases().sketch_usage(
+        resolved.project_dir,
+        episode_num,
     )
     return {"ok": True, "data": summary}
-
-
-def _image_generation_guard_payload(attempt_count: int, subject: str) -> dict:
-    next_attempt = attempt_count + 1
-    if next_attempt >= 5:
-        level = "locked"
-        message = (
-            f"{subject} 已连续生成 {next_attempt} 次，请输入管理员密码继续本次生成。"
-        )
-    elif next_attempt >= 3:
-        level = "confirm"
-        message = f"{subject} 已连续生成 {next_attempt} 次，确认继续生成吗？"
-    else:
-        level = "none"
-        message = ""
-    return {
-        "attempt_count": attempt_count,
-        "next_attempt": next_attempt,
-        "level": level,
-        "message": message,
-    }
 
 
 @router.get("/projects/{project}/episodes/{episode_num}/image-generation-guard")
@@ -1568,17 +1545,17 @@ async def get_image_generation_guard(
     user: dict = Depends(get_api_user),
 ):
     """Return per-scope image generation guard status used before dispatch."""
-    from ai_anime.image_request_usage import count_image_scope_attempts
-
     resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    project_dir = resolved.project_dir
-    attempt_count = count_image_scope_attempts(
-        project_output_dir=project_dir,
-        task_type=task_type,
-        scope=scope,
-        episode=episode_num,
+    guard = image_generation_usage_use_cases().guard(
+        ImageGenerationGuardQuery(
+            project_dir=resolved.project_dir,
+            episode_num=episode_num,
+            task_type=task_type,
+            scope=scope,
+            subject=subject,
+        )
     )
-    return {"ok": True, "data": _image_generation_guard_payload(attempt_count, subject)}
+    return {"ok": True, "data": guard.as_dict()}
 
 
 @router.post(
@@ -1591,11 +1568,9 @@ async def verify_image_generation_guard_password(
     user: dict = Depends(get_api_user),
 ):
     """Verify the same operator password NiceGUI requires after repeated image attempts."""
-    from ai_anime.security.operator_auth import get_prompt_export_password
-
-    _ = (project, episode_num, user)
-    configured = get_prompt_export_password()
-    verified = bool(configured) and (body.password or "") == configured
+    verified = image_generation_usage_use_cases().verify_operator_password(
+        body.password,
+    )
     return {
         "ok": True,
         "data": {"verified": verified},

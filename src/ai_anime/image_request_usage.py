@@ -214,34 +214,6 @@ def count_image_scope_attempts(
     return int(row[0] or 0) if row else 0
 
 
-def get_image_scope_warning(
-    *,
-    project_output_dir: str | Path,
-    task_type: str,
-    scope: str,
-    subject: str,
-    episode: int | None = None,
-) -> tuple[str, str] | None:
-    attempt_count = count_image_scope_attempts(
-        project_output_dir=project_output_dir,
-        task_type=task_type,
-        scope=scope,
-        episode=episode,
-    )
-    next_attempt = attempt_count + 1
-    if next_attempt >= 5:
-        return (
-            "negative",
-            f"{subject} 已连续生成 {next_attempt} 次，建议先检查提示词/参考图后再继续。",
-        )
-    if next_attempt >= 3:
-        return (
-            "warning",
-            f"{subject} 已连续生成 {next_attempt} 次，请确认是否还要继续生成。",
-        )
-    return None
-
-
 def get_image_usage_summary(
     *,
     project_output_dir: str | Path,

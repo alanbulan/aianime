@@ -11,6 +11,10 @@ from ai_anime.modules.production.application.image_settings import (
     UpdateRenderImageSettingsCommand,
     UpdateSketchImageSettingsCommand,
 )
+from ai_anime.modules.production.application.image_generation_usage import (
+    ImageGenerationGuardQuery,
+    ImageGenerationUsageUseCases,
+)
 from ai_anime.modules.production.application.sketch_image import (
     CropSketchCommand,
     SketchCropRejected,
@@ -65,6 +69,14 @@ def production_image_settings_use_cases() -> ProductionImageSettingsUseCases:
     return build()
 
 
+def image_generation_usage_use_cases() -> ImageGenerationUsageUseCases:
+    from ai_anime.modules.production.composition import (
+        image_generation_usage_use_cases as build,
+    )
+
+    return build()
+
+
 def sketch_color_assignment_use_cases(store: Any) -> SketchColorAssignmentUseCases:
     from ai_anime.modules.production.composition import (
         sketch_color_assignment_use_cases as build,
@@ -110,6 +122,8 @@ __all__ = [
     "BRIDGMAN_CHARACTER_PALETTE",
     "CropSketchCommand",
     "DetectSketchMarkersCommand",
+    "ImageGenerationGuardQuery",
+    "ImageGenerationUsageUseCases",
     "PROP_MARKER_PALETTE",
     "ProductionGenerationContextUseCases",
     "ProductionImageSettingsRejected",
@@ -132,6 +146,7 @@ __all__ = [
     "UpdateSketchImageSettingsCommand",
     "assign_identity_sketch_colors",
     "global_prop_marker_colors",
+    "image_generation_usage_use_cases",
     "marker_color_change_requires_sketch_clean",
     "production_generation_context_use_cases",
     "production_image_settings_use_cases",
