@@ -80,10 +80,6 @@ vi.mock("@/lib/queries/sketches", async (importOriginal) => {
         },
       },
     }),
-    useGenerateSketches: () => ({
-      mutateAsync: generateSketchesMock,
-      isPending: false,
-    }),
     useSketchGridPreview: (
       _project: string,
       _episode: number,
@@ -105,6 +101,13 @@ vi.mock("@/lib/queries/sketches", async (importOriginal) => {
     }),
   };
 });
+
+vi.mock("@/modules/production/public", () => ({
+  useGenerateSketches: () => ({
+    mutateAsync: generateSketchesMock,
+    isPending: false,
+  }),
+}));
 
 vi.mock("@/hooks/use-task-controller", () => ({
   useTaskController: () => ({
@@ -208,9 +211,9 @@ describe("SketchGridGallery", () => {
     await user.click(screen.getByRole("button", { name: "生成/重生" }));
 
     expect(generateSketchesMock).toHaveBeenCalledWith({
-      grid_index: 0,
-      sketch_scene_grouping: true,
-      aspect_ratio: "2:3",
+      gridIndex: 0,
+      sketchSceneGrouping: true,
+      aspectRatio: "2:3",
     });
     expect(taskStartMock).toHaveBeenCalledWith({ scope: "grid_0" });
   });
@@ -449,10 +452,10 @@ describe("SketchGridGallery", () => {
     await user.click(screen.getByRole("button", { name: "生成/重生" }));
 
     expect(generateSketchesMock).toHaveBeenCalledWith({
-      grid_index: 0,
-      sketch_scene_grouping: true,
-      aspect_ratio: "16:9",
-      image_generation_selection: "openrouter_nanobanana2",
+      gridIndex: 0,
+      sketchSceneGrouping: true,
+      aspectRatio: "16:9",
+      imageGenerationSelection: "openrouter_nanobanana2",
     });
   });
 
@@ -475,9 +478,9 @@ describe("SketchGridGallery", () => {
     await user.click(screen.getByRole("button", { name: "生成/重生" }));
 
     expect(generateSketchesMock).toHaveBeenCalledWith({
-      grid_index: 4,
-      sketch_scene_grouping: true,
-      aspect_ratio: "2:3",
+      gridIndex: 4,
+      sketchSceneGrouping: true,
+      aspectRatio: "2:3",
     });
     expect(taskStartMock).toHaveBeenCalledWith({ scope: "grid_4" });
   });

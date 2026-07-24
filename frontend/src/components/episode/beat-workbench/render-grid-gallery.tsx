@@ -18,10 +18,10 @@ import {
   useExportGridPrompt,
   useGrids,
   useRebuildPoolIndex,
-  useRegenerateGrid,
   useUploadGrid,
   type PoolImage,
 } from "@/lib/queries/sketches";
+import { useRegenerateGrid } from "@/modules/production/public";
 import { queryKeys } from "@/lib/query-keys";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { gridAspectCss } from "@/lib/aspect-ratio";

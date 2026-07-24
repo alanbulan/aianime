@@ -49,11 +49,29 @@ import type {
   AssignColorsResult,
   DetectIdentitiesResult,
 } from "@/modules/production/domain/sketch-markers";
+import type {
+  GenerateSketchesCommand,
+  RegenerateGridCommand,
+  RegenerateRenderBeatsCommand,
+  RegenerateSketchesCommand,
+  RenderGenerationSettings,
+} from "@/modules/production/domain/sketch-generation";
 import { p } from "@/shared/api/path";
 import { api } from "@/shared/api/transport";
 import { jsonWithBackendError } from "@/shared/api/errors";
 
 const AI_DETECT_IDENTITIES_TIMEOUT_MS = 180_000;
+
+function renderGenerationSettingsJson(settings: RenderGenerationSettings) {
+  return {
+    ...(settings.imageGenerationSelection
+      ? { image_generation_selection: settings.imageGenerationSelection }
+      : {}),
+    ...(settings.sketchAspectPadding !== undefined
+      ? { sketch_aspect_padding: settings.sketchAspectPadding }
+      : {}),
+  };
+}
 
 export const httpProductionVideoGateway: ProductionVideoGateway = {
   async listVideoBackends(project, signal) {
@@ -286,6 +304,91 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
     return api
       .post(
         p`api/v1/projects/${project}/episodes/${episode}/beats/${beatNumber}/audio`,
+      )
+      .json<ProductionTaskResponse | ProductionErrorResponse>();
+  },
+  async generateSketches(
+    project,
+    episode,
+    command: GenerateSketchesCommand = {},
+  ) {
+    return api
+      .post(
+        p`api/v1/projects/${project}/episodes/${episode}/sketches/generate`,
+        {
+          json: {
+            grid_index: command.gridIndex ?? 0,
+            ...(command.style !== undefined ? { style: command.style } : {}),
+            ...(command.model !== undefined ? { model: command.model } : {}),
+            ...(command.sketchSceneGrouping !== undefined
+              ? { sketch_scene_grouping: command.sketchSceneGrouping }
+              : {}),
+            ...(command.aspectRatio !== undefined
+              ? { aspect_ratio: command.aspectRatio }
+              : {}),
+            ...(command.imageGenerationSelection !== undefined
+              ? {
+                  image_generation_selection:
+                    command.imageGenerationSelection,
+                }
+              : {}),
+          },
+        },
+      )
+      .json<ProductionTaskResponse | ProductionErrorResponse>();
+  },
+  async regenerateGrid(
+    project,
+    episode,
+    command: RegenerateGridCommand,
+  ) {
+    return api
+      .post(
+        p`api/v1/projects/${project}/episodes/${episode}/grids/${command.gridIndex}/regenerate`,
+        {
+          json: {
+            ...(command.style ? { style: command.style } : {}),
+            model: command.model ?? "nanobanana",
+            scene_grouping: command.sceneGrouping ?? false,
+            character_grouping: command.characterGrouping ?? false,
+            ...renderGenerationSettingsJson(command),
+          },
+        },
+      )
+      .json<ProductionTaskResponse | ProductionErrorResponse>();
+  },
+  async regenerateSketches(
+    project,
+    episode,
+    command: RegenerateSketchesCommand,
+  ) {
+    return api
+      .post(
+        p`api/v1/projects/${project}/episodes/${episode}/sketches/regenerate`,
+        {
+          json: {
+            beat_indices: command.beatIndices,
+            mode_key: command.modeKey ?? "1x1_2-3_sketch",
+          },
+        },
+      )
+      .json<ProductionTaskResponse | ProductionErrorResponse>();
+  },
+  async regenerateRenderBeats(
+    project,
+    episode,
+    command: RegenerateRenderBeatsCommand,
+  ) {
+    return api
+      .post(
+        p`api/v1/projects/${project}/episodes/${episode}/beats/regenerate`,
+        {
+          json: {
+            beat_indices: command.beatIndices,
+            mode_key: command.modeKey ?? "1x1_2-3",
+            ...renderGenerationSettingsJson(command),
+          },
+        },
       )
       .json<ProductionTaskResponse | ProductionErrorResponse>();
   },

@@ -41,31 +41,6 @@ export interface GridsData {
 // Backend returns `data: null` when no pool exists yet.
 export type GridsResponse = OkResponse<GridsData | null>;
 
-export interface SketchGenerateParams {
-  grid_index?: number;
-  style?: string | null;
-  model?: string;
-  sketch_scene_grouping?: boolean;
-  aspect_ratio?: "2:3" | "16:9";
-  image_generation_selection?: string;
-}
-
-export interface RenderGenerationSettings {
-  imageGenerationSelection?: string;
-  sketchAspectPadding?: boolean;
-}
-
-function renderGenerationSettingsJson(settings: RenderGenerationSettings) {
-  return {
-    ...(settings.imageGenerationSelection
-      ? { image_generation_selection: settings.imageGenerationSelection }
-      : {}),
-    ...(settings.sketchAspectPadding !== undefined
-      ? { sketch_aspect_padding: settings.sketchAspectPadding }
-      : {}),
-  };
-}
-
 export function useGrids(project: string, episode: number) {
   return useQuery({
     queryKey: queryKeys.grids(project, episode),
@@ -90,55 +65,6 @@ export function useRebuildPoolIndex(project: string, episode: number) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.grids(project, episode) });
     },
-  });
-}
-
-export function useGenerateSketches(project: string, episode: number) {
-  return useMutation({
-    mutationFn: (params?: SketchGenerateParams) =>
-      api
-        .post(
-          p`api/v1/projects/${project}/episodes/${episode}/sketches/generate`,
-          { json: { grid_index: 0, ...(params ?? {}) } },
-        )
-        .json<TaskResponse | ErrorResponse>(),
-  });
-}
-
-export function useRegenerateGrid(project: string, episode: number) {
-  return useMutation({
-    mutationFn: ({
-      gridIndex,
-      style,
-      model = "nanobanana",
-      sceneGrouping = false,
-      characterGrouping = false,
-      imageGenerationSelection,
-      sketchAspectPadding,
-    }: {
-      gridIndex: number;
-      style?: string | null;
-      model?: string;
-      sceneGrouping?: boolean;
-      characterGrouping?: boolean;
-    } & RenderGenerationSettings) =>
-      api
-        .post(
-          p`api/v1/projects/${project}/episodes/${episode}/grids/${gridIndex}/regenerate`,
-          {
-            json: {
-              ...(style ? { style } : {}),
-              model,
-              scene_grouping: sceneGrouping,
-              character_grouping: characterGrouping,
-              ...renderGenerationSettingsJson({
-                imageGenerationSelection,
-                sketchAspectPadding,
-              }),
-            },
-          },
-        )
-        .json<TaskResponse | ErrorResponse>(),
   });
 }
 
@@ -539,47 +465,6 @@ export function useDirectorControlToSketch(
       qc.invalidateQueries({ queryKey: queryKeys.grids(project, episode) });
       qc.invalidateQueries({ queryKey: queryKeys.beats(project, episode) });
     },
-  });
-}
-
-export function useRegenerateSketches(project: string, episode: number) {
-  return useMutation({
-    mutationFn: (params: {
-      beatIndices: number[];
-      modeKey?: string;
-    }) =>
-      api
-        .post(
-          p`api/v1/projects/${project}/episodes/${episode}/sketches/regenerate`,
-          {
-            json: {
-              beat_indices: params.beatIndices,
-              mode_key: params.modeKey ?? "1x1_2-3_sketch",
-            },
-          },
-        )
-        .json<TaskResponse | ErrorResponse>(),
-  });
-}
-
-export function useRegenerateRenderBeats(project: string, episode: number) {
-  return useMutation({
-    mutationFn: (params: {
-      beatIndices: number[];
-      modeKey?: string;
-    } & RenderGenerationSettings) =>
-      api
-        .post(
-          p`api/v1/projects/${project}/episodes/${episode}/beats/regenerate`,
-          {
-            json: {
-              beat_indices: params.beatIndices,
-              mode_key: params.modeKey ?? "1x1_2-3",
-              ...renderGenerationSettingsJson(params),
-            },
-          },
-        )
-        .json<TaskResponse | ErrorResponse>(),
   });
 }
 

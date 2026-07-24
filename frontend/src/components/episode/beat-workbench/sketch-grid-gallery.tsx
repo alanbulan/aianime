@@ -14,13 +14,15 @@ import {
 
 import {
   useExportGridPrompt,
-  useGenerateSketches,
   useGrids,
   useSketchGridPreview,
   useUploadGrid,
   type PoolImage,
 } from "@/lib/queries/sketches";
-import type { SketchAspectRatio } from "@/modules/production/public";
+import {
+  type SketchAspectRatio,
+  useGenerateSketches,
+} from "@/modules/production/public";
 import { gridAspectCss } from "@/lib/aspect-ratio";
 import { queryKeys } from "@/lib/query-keys";
 import { resolveMediaUrl } from "@/lib/media-url";
@@ -160,11 +162,11 @@ function SketchGridCard({
   const handleGenerate = async () => {
     try {
       const res = await generateSketches.mutateAsync({
-        grid_index: group.gridIndex,
-        sketch_scene_grouping: true,
-        aspect_ratio: aspectRatio,
+        gridIndex: group.gridIndex,
+        sketchSceneGrouping: true,
+        aspectRatio,
         ...(imageGenerationSelection
-          ? { image_generation_selection: imageGenerationSelection }
+          ? { imageGenerationSelection }
           : {}),
       });
       if (res.ok === false) {

@@ -12,7 +12,6 @@ vi.mock("@/shared/api/transport", () => ({
 
 import {
   StalePoolSelectError,
-  useGenerateSketches,
   useBeatDirectorStageManifest,
   useBeatBackgroundAnchors,
   useCropBeatBackgroundAnchor,
@@ -21,8 +20,6 @@ import {
   useCutGrid,
   useExportGridPrompt,
   usePoolSelect,
-  useRegenerateRenderBeats,
-  useRegenerateGrid,
   useUpdateBeatBackgroundAnchor,
   useUploadBeatBackgroundAnchor,
   useUploadGrid,
@@ -33,6 +30,10 @@ import { queryKeys } from "@/lib/query-keys";
 import {
   useAssignColors,
   useDetectIdentities,
+  useGenerateSketches,
+  useRegenerateGrid,
+  useRegenerateRenderBeats,
+  useRegenerateSketches,
 } from "@/modules/production/public";
 import { api } from "@/shared/api/transport";
 import { BillingRuleNotConfiguredError } from "@/shared/api/errors";
@@ -74,7 +75,7 @@ describe("sketch generation query", () => {
       wrapper,
     });
 
-    result.current.mutate({ grid_index: -1 });
+    result.current.mutate({ gridIndex: -1 });
 
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(requestedPath).toBe("/api/v1/projects/demo/episodes/1/sketches/generate");
@@ -105,9 +106,8 @@ describe("sketch generation query", () => {
     });
 
     result.current.mutate({
-      grid_index: 0,
-      aspect_ratio: "16:9",
-      image_generation_selection: "openrouter_nanobanana2",
+      aspectRatio: "16:9",
+      imageGenerationSelection: "openrouter_nanobanana2",
     });
 
     await waitFor(() => expect(result.current.data).toBeDefined());
@@ -115,6 +115,42 @@ describe("sketch generation query", () => {
       grid_index: 0,
       aspect_ratio: "16:9",
       image_generation_selection: "openrouter_nanobanana2",
+    });
+  });
+});
+
+describe("selected sketch regeneration query", () => {
+  it("maps selected beats and the default sketch mode to the backend request", async () => {
+    let requestedPath = "";
+    let receivedBody: unknown = undefined;
+    server.use(
+      http.post(
+        "http://localhost:3000/api/v1/projects/demo/episodes/1/sketches/regenerate",
+        async ({ request }) => {
+          requestedPath = new URL(request.url).pathname;
+          receivedBody = await request.clone().json();
+          return HttpResponse.json({
+            ok: true,
+            task_type: "sketch_regen",
+            message: "started",
+          });
+        },
+      ),
+    );
+
+    const { result } = renderHook(() => useRegenerateSketches("demo", 1), {
+      wrapper,
+    });
+
+    result.current.mutate({ beatIndices: [2, 4] });
+
+    await waitFor(() => expect(result.current.data).toBeDefined());
+    expect(requestedPath).toBe(
+      "/api/v1/projects/demo/episodes/1/sketches/regenerate",
+    );
+    expect(receivedBody).toEqual({
+      beat_indices: [2, 4],
+      mode_key: "1x1_2-3_sketch",
     });
   });
 });
@@ -517,7 +553,7 @@ describe("render grid query", () => {
     result.current.mutate({
       gridIndex: 3,
       imageGenerationSelection: "openrouter_nanobanana2",
-      sketchAspectPadding: true,
+      sketchAspectPadding: false,
     });
 
     await waitFor(() => expect(result.current.data).toBeDefined());
@@ -526,7 +562,7 @@ describe("render grid query", () => {
       scene_grouping: false,
       character_grouping: false,
       image_generation_selection: "openrouter_nanobanana2",
-      sketch_aspect_padding: true,
+      sketch_aspect_padding: false,
     });
   });
 
@@ -555,7 +591,6 @@ describe("render grid query", () => {
 
     result.current.mutate({
       beatIndices: [1, 3],
-      modeKey: "1x1_2-3",
       imageGenerationSelection: "openrouter_nanobanana2",
       sketchAspectPadding: true,
     });

@@ -12,7 +12,6 @@ import {
   X,
 } from "lucide-react";
 
-import { useRegenerateSketches } from "@/lib/queries/sketches";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import {
   SKETCH_REGEN_MODES,
@@ -46,6 +45,7 @@ import {
   type SketchAspectRatio,
   type SketchRegenQueueItem,
   useGenerateAudio,
+  useRegenerateSketches,
   useSaveSketchRegenQueue,
   useSketchRegenQueue,
   useSketchSettings,

@@ -43,7 +43,6 @@ vi.mock("react-i18next", () => ({
 vi.mock("@/lib/queries/sketches", () => ({
   StalePoolSelectError: class StalePoolSelectError extends Error {},
   usePoolSelect: () => ({ mutateAsync: poolSelectMock, isPending: false }),
-  useRegenerateSketches: () => ({ mutateAsync: regenerateSketchMock, isPending: false }),
   useGenerateMissingManualSketches: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useUploadBeatImage: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useBeatDirectorStageManifest: () => stageManifestMock(),
@@ -81,6 +80,10 @@ vi.mock("@/modules/narrative_planning/public", () => ({
 }));
 
 vi.mock("@/modules/production/public", () => ({
+  useRegenerateSketches: () => ({
+    mutateAsync: regenerateSketchMock,
+    isPending: false,
+  }),
   useSketchSettings: () => ({
     data: {
       ok: true,

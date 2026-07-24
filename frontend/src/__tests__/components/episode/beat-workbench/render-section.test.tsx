@@ -129,15 +129,15 @@ vi.mock("@/lib/queries/sketches", async (importOriginal) => {
       mutateAsync: uploadBackgroundAnchorMock,
       isPending: false,
     }),
-    useRegenerateRenderBeats: () => ({
-      mutateAsync: regenerateMock,
-      isPending: false,
-    }),
     useUploadBeatImage: () => ({ mutateAsync: uploadMock, isPending: false }),
   };
 });
 
 vi.mock("@/modules/production/public", () => ({
+  useRegenerateRenderBeats: () => ({
+    mutateAsync: regenerateMock,
+    isPending: false,
+  }),
   useRenderSettings: () => ({
     data: {
       ok: true,

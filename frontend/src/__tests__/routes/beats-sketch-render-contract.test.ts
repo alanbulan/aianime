@@ -88,11 +88,18 @@ describe("beats sketch/render v2 contract", () => {
 
   it("keeps grid sketch generation available outside BatchBar", () => {
     const batchBar = read("src/components/episode/beat-workbench/batch-bar.tsx");
-    const sketchesQuery = read("src/lib/queries/sketches.ts");
+    const sketchGridGallery = read(
+      "src/components/episode/beat-workbench/sketch-grid-gallery.tsx",
+    );
+    const productionPublic = read("src/modules/production/public.ts");
+    const productionGateway = read(
+      "src/modules/production/infrastructure/http-production-video-gateway.ts",
+    );
 
-    expect(batchBar).not.toContain("grid_index: -1");
-    expect(sketchesQuery).toContain("useGenerateSketches");
-    expect(sketchesQuery).toContain("sketches/generate");
+    expect(batchBar).not.toContain("gridIndex: -1");
+    expect(sketchGridGallery).toContain("useGenerateSketches");
+    expect(productionPublic).toContain("useGenerateSketches");
+    expect(productionGateway).toContain("sketches/generate");
   });
 
   it("keeps selected-beat render regeneration backed by render_plan", () => {
@@ -174,7 +181,6 @@ describe("beats sketch/render v2 contract", () => {
       "src/modules/production/infrastructure/http-production-video-gateway.ts",
     );
     const queryKeys = read("src/lib/query-keys.ts");
-    const sketchesQuery = read("src/lib/queries/sketches.ts");
     const projectTypes = read(
       "src/modules/project_workspace/domain/project.ts",
     );
@@ -187,16 +193,16 @@ describe("beats sketch/render v2 contract", () => {
     expect(productionGateway).toContain("render-settings");
     expect(queryKeys).toContain("renderSettings");
 
-    expect(sketchesQuery).toContain("image_generation_selection");
-    expect(sketchesQuery).toContain("sketch_aspect_padding");
+    expect(productionGateway).toContain("image_generation_selection");
+    expect(productionGateway).toContain("sketch_aspect_padding");
     expect(projectTypes).toContain("render_image_selection?: string");
     expect(projectTypes).toContain("sketch_aspect_padding?: boolean");
     expect(renderSettingsControls).not.toContain("sketchAspectPadding");
     expect(renderSettingsControls).not.toContain("render-sketch-aspect-padding");
     expect(renderSettingsControls).not.toContain("forceHalfK");
     expect(renderSettingsControls).not.toContain("force_half_k");
-    expect(sketchesQuery).not.toContain("forceHalfK");
-    expect(sketchesQuery).not.toContain("force_half_k");
+    expect(productionGateway).not.toContain("forceHalfK");
+    expect(productionGateway).not.toContain("force_half_k");
     expect(projectTypes).not.toContain("force_half_k?: boolean");
   });
 

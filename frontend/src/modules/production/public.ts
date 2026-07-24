@@ -10,6 +10,7 @@ export {
   useGenerateBeatVideoPrompt,
   useGenerateAudio,
   useGenerateSeedance2Prompt,
+  useGenerateSketches,
   useGlobalOptimize,
   useFinalVideo,
   useNarratorVoiceSources,
@@ -17,6 +18,9 @@ export {
   useRecordNarratorVoice,
   useRegenerateBeatVideo,
   useRegenerateBeatAudio,
+  useRegenerateGrid,
+  useRegenerateRenderBeats,
+  useRegenerateSketches,
   useRenderExecute,
   useRenderPlan,
   useRenderSettings,
@@ -36,6 +40,13 @@ export {
   useVideoPool,
   useVideoPoolSelect,
 } from "@/modules/production/composition";
+export type {
+  GenerateSketchesCommand,
+  RegenerateGridCommand,
+  RegenerateRenderBeatsCommand,
+  RegenerateSketchesCommand,
+  RenderGenerationSettings,
+} from "@/modules/production/domain/sketch-generation";
 export type {
   RenderSettingsData,
   SketchAspectRatio,

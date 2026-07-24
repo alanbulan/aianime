@@ -47,6 +47,12 @@ import type {
   AssignColorsResult,
   DetectIdentitiesResult,
 } from "@/modules/production/domain/sketch-markers";
+import type {
+  GenerateSketchesCommand,
+  RegenerateGridCommand,
+  RegenerateRenderBeatsCommand,
+  RegenerateSketchesCommand,
+} from "@/modules/production/domain/sketch-generation";
 
 export interface ProductionDataResponse<T> {
   ok: true;
@@ -190,6 +196,26 @@ export interface ProductionVideoGateway {
     project: string,
     episode: number,
     beatNumber: number,
+  ): Promise<ProductionTaskResponse | ProductionErrorResponse>;
+  generateSketches(
+    project: string,
+    episode: number,
+    command?: GenerateSketchesCommand,
+  ): Promise<ProductionTaskResponse | ProductionErrorResponse>;
+  regenerateGrid(
+    project: string,
+    episode: number,
+    command: RegenerateGridCommand,
+  ): Promise<ProductionTaskResponse | ProductionErrorResponse>;
+  regenerateSketches(
+    project: string,
+    episode: number,
+    command: RegenerateSketchesCommand,
+  ): Promise<ProductionTaskResponse | ProductionErrorResponse>;
+  regenerateRenderBeats(
+    project: string,
+    episode: number,
+    command: RegenerateRenderBeatsCommand,
   ): Promise<ProductionTaskResponse | ProductionErrorResponse>;
   getRenderSettings(
     project: string,

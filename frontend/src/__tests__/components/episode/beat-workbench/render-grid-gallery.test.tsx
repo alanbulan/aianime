@@ -91,10 +91,6 @@ vi.mock("@/lib/queries/sketches", () => ({
       },
     },
   }),
-  useRegenerateGrid: () => ({
-    mutateAsync: regenerateGridMock,
-    isPending: false,
-  }),
   useCutGrid: () => ({
     mutateAsync: cutGridMock,
     isPending: false,
@@ -109,6 +105,13 @@ vi.mock("@/lib/queries/sketches", () => ({
   }),
   useExportGridPrompt: () => ({
     mutateAsync: exportGridPromptMock,
+    isPending: false,
+  }),
+}));
+
+vi.mock("@/modules/production/public", () => ({
+  useRegenerateGrid: () => ({
+    mutateAsync: regenerateGridMock,
     isPending: false,
   }),
 }));

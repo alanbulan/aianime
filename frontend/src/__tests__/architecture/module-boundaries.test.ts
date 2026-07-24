@@ -562,6 +562,10 @@ describe("frontend architecture boundaries", () => {
     expect(existsSync(resolve(SRC_ROOT, "types/render-plan.ts"))).toBe(false);
     expect(legacySketchQueries).not.toContain("useAssignColors");
     expect(legacySketchQueries).not.toContain("useDetectIdentities");
+    expect(legacySketchQueries).not.toContain("useGenerateSketches");
+    expect(legacySketchQueries).not.toContain("useRegenerateGrid");
+    expect(legacySketchQueries).not.toContain("useRegenerateSketches");
+    expect(legacySketchQueries).not.toContain("useRegenerateRenderBeats");
     expect(applicationDataImportFailures).toEqual([]);
     expect(internalImportFailures).toEqual([]);
   });

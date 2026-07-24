@@ -12,6 +12,7 @@ import { createSeedance2PanelQueryHooks } from "@/modules/production/application
 import { createSketchRegenQueueQueryHooks } from "@/modules/production/application/sketch-regen-queue-query-hooks";
 import { createSketchPoseEditorQueryHooks } from "@/modules/production/application/sketch-pose-editor-query-hooks";
 import { createSketchMarkerQueryHooks } from "@/modules/production/application/sketch-marker-query-hooks";
+import { createSketchGenerationQueryHooks } from "@/modules/production/application/sketch-generation-query-hooks";
 import { httpProductionVideoGateway } from "@/modules/production/infrastructure/http-production-video-gateway";
 import { promptLanguageFromLocale } from "@/modules/production/domain/video-generation";
 
@@ -66,5 +67,11 @@ export const {
 } = createSketchPoseEditorQueryHooks(httpProductionVideoGateway);
 export const { useAssignColors, useDetectIdentities } =
   createSketchMarkerQueryHooks(httpProductionVideoGateway);
+export const {
+  useGenerateSketches,
+  useRegenerateGrid,
+  useRegenerateRenderBeats,
+  useRegenerateSketches,
+} = createSketchGenerationQueryHooks(httpProductionVideoGateway);
 export const { useComposeEpisode, useFinalVideo } =
   createEpisodeComposeQueryHooks(httpProductionVideoGateway);

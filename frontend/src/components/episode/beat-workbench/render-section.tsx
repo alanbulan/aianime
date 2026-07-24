@@ -30,7 +30,6 @@ import {
   useBeatDirectorStageManifest,
   useCropBeatBackgroundAnchor,
   usePoolSelect,
-  useRegenerateRenderBeats,
   useUpdateBeatBackgroundAnchor,
   useUploadBeatImage,
   useUploadBeatBackgroundAnchor,
@@ -44,7 +43,10 @@ import {
 } from "@/features/viewer-kit/three-d/ThreeDDirectorDialog";
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
 import { useScenePlatePreview } from "@/modules/asset_world/public";
-import { useRenderSettings } from "@/modules/production/public";
+import {
+  useRegenerateRenderBeats,
+  useRenderSettings,
+} from "@/modules/production/public";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { formatRelativeTime } from "@/lib/format-relative-time";
 import { cn } from "@/lib/utils";

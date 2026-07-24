@@ -120,28 +120,13 @@ beforeAll(async () => {
 const {
   assignColorsMock,
   detectIdentitiesMock,
-  generateMissingManualMock,
-  regenerateSketchesMock,
   sketchStartMock,
   toastSuccessMock,
 } = vi.hoisted(() => ({
   assignColorsMock: vi.fn(),
   detectIdentitiesMock: vi.fn(),
-  generateMissingManualMock: vi.fn(),
-  regenerateSketchesMock: vi.fn(),
   sketchStartMock: vi.fn(),
   toastSuccessMock: vi.fn(),
-}));
-
-vi.mock("@/lib/queries/sketches", () => ({
-  useGenerateMissingManualSketches: () => ({
-    mutateAsync: generateMissingManualMock,
-    isPending: false,
-  }),
-  useRegenerateSketches: () => ({
-    mutateAsync: regenerateSketchesMock,
-    isPending: false,
-  }),
 }));
 
 vi.mock("@/lib/queries/sketch-image-usage", () => ({
@@ -289,21 +274,6 @@ beforeEach(() => {
       total_props: 1,
       review_message: "后端核对提示",
     },
-  });
-  generateMissingManualMock.mockReset();
-  generateMissingManualMock.mockResolvedValue({
-    ok: true,
-    task_type: "sketch_generation",
-    data: {
-      dispatched: 1,
-      scopes: ["selected__manual__1-2"],
-      segments: [[1, 2]],
-    },
-  });
-  regenerateSketchesMock.mockReset();
-  regenerateSketchesMock.mockResolvedValue({
-    ok: true,
-    scope: "sketch_grid:demo",
   });
   sketchStartMock.mockReset();
   toastSuccessMock.mockReset();
