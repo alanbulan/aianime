@@ -557,6 +557,28 @@ def test_asset_world_beat_director_stage_routes_delegate_to_application() -> Non
     assert "_director_control_scope" not in freezone
 
 
+def test_asset_world_background_anchor_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    source = route.read_text(encoding="utf-8")
+
+    assert "beat_background_anchor_use_cases" in source
+    assert not (
+        PACKAGE_ROOT / "services" / "background_anchor_service.py"
+    ).exists()
+    for legacy_implementation in (
+        "ai_anime.services.background_anchor_service",
+        "def _api_background_reference_url_builder(",
+        "def _api_background_anchor_url_builder(",
+        "def _background_anchors_payload(",
+        "background_anchor_path(",
+        "copy_to_beat_selected_background(",
+        "crop_to_beat_selected_background(",
+        "canonical_beat_selected_background_path(",
+        "sync_beat_asset_refs(",
+    ):
+        assert legacy_implementation not in source
+
+
 def test_asset_routes_share_one_project_media_url_builder() -> None:
     route_sources = {
         name: (PACKAGE_ROOT / "api" / "routes" / name).read_text(encoding="utf-8")

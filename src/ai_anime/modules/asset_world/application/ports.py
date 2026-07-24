@@ -438,13 +438,13 @@ class BeatDirectorStageRepository(Protocol):
     async def get_beats_as_dicts(self, episode_num: int) -> list[dict[str, Any]]: ...
 
 
-class BeatDirectorStageAssetWriter(Protocol):
+class BeatAssetWriter(Protocol):
     async def update_beat_asset(
         self,
         *,
         episode_number: int,
         beat_number: int,
-        detected_props: list[str],
+        **updates: Any,
     ) -> Any: ...
 
 
@@ -491,6 +491,67 @@ class BeatDirectorStageFiles(Protocol):
         images: Mapping[str, str],
         meta: Mapping[str, Any],
     ) -> DirectorControlFrameExport: ...
+
+
+class BeatBackgroundAnchorFiles(Protocol):
+    def anchor_path(
+        self,
+        project_dir: Path,
+        scene_name: str,
+        *,
+        episode_num: int,
+        beat_num: int,
+        anchor_id: str,
+    ) -> Path | None: ...
+
+    def selected_background_path(
+        self,
+        project_dir: Path,
+        episode_num: int,
+        beat_num: int,
+    ) -> Path: ...
+
+    def exists(self, path: Path) -> bool: ...
+
+    def project_relative_path(self, project_dir: Path, path: Path) -> str: ...
+
+    def infer_selected_source(
+        self,
+        project_dir: Path,
+        scene_name: str,
+        *,
+        episode_num: int,
+        beat_num: int,
+    ) -> str: ...
+
+    def copy_to_selected(
+        self,
+        project_dir: Path,
+        episode_num: int,
+        beat_num: int,
+        source_path: Path,
+    ) -> Path: ...
+
+    def crop_to_selected(
+        self,
+        project_dir: Path,
+        episode_num: int,
+        beat_num: int,
+        source_path: Path,
+        *,
+        x: int,
+        y: int,
+        width: int,
+        height: int,
+    ) -> Path: ...
+
+    def save_uploaded_image(
+        self,
+        project_dir: Path,
+        episode_num: int,
+        beat_num: int,
+        image: Any,
+    ) -> Path: ...
 
 
 class PropCatalogRepository(Protocol):

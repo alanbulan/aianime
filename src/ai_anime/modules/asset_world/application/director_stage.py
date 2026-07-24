@@ -14,7 +14,7 @@ from ai_anime.modules.asset_world.application.dto import (
 )
 from ai_anime.modules.asset_world.application.errors import SceneViewerRejected
 from ai_anime.modules.asset_world.application.ports import (
-    BeatDirectorStageAssetWriter,
+    BeatAssetWriter,
     BeatDirectorStageFiles,
     BeatDirectorStageRepository,
 )
@@ -120,7 +120,7 @@ class BeatDirectorStageUseCases:
         self,
         *,
         repository: BeatDirectorStageRepository,
-        asset_writer: BeatDirectorStageAssetWriter | None,
+        asset_writer: BeatAssetWriter | None,
         project_dir: Path,
         episode_num: int,
         beat_num: int,

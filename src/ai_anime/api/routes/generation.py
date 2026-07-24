@@ -71,10 +71,15 @@ from ai_anime.modules.narrative_planning.public import (
     storyboard_beats_for_manual_sketches,
 )
 from ai_anime.modules.asset_world.public import (
+    BackgroundAnchorRejected,
+    CropBeatBackgroundCommand,
     ExportBeatDirectorControlFrameCommand,
     SaveBeatDirectorOverlayCommand,
     SceneCatalogRejected,
     SceneViewerRejected,
+    SelectBeatBackgroundCommand,
+    UploadBeatBackgroundCommand,
+    beat_background_anchor_use_cases,
     beat_director_stage_use_cases,
     resolve_beat_scene_name,
     scene_viewer_use_cases,
@@ -92,13 +97,6 @@ from ai_anime.modules.project_workspace.public import (
 )
 from ai_anime.ports import get_task_backend, get_usage_meter
 from ai_anime.task_identity import project_task_state_key
-from ai_anime.services.background_anchor_service import (
-    BackgroundAnchorError,
-    build_background_anchors_payload,
-    crop_background_anchor_to_selected,
-    save_uploaded_background_anchor_image,
-    select_background_anchor,
-)
 from ai_anime.shared.project_media import make_project_asset_url_builder
 from ai_anime.utils.path_resolver import compute_identity_path, compute_portrait_path
 
@@ -3119,42 +3117,6 @@ async def _episode_beat_from_resolution(
         raise
 
 
-def _api_background_reference_url_builder(ctx: ProjectContext):
-    def _build(path: Path, rel_path: str) -> str:
-        return make_static_url_for_context(ctx, rel_path, local_path=path)
-
-    return _build
-
-
-def _api_background_anchor_url_builder(ctx: ProjectContext):
-    def _build(path: Path, rel_path: str) -> str | None:
-        return make_static_url_for_context(ctx, rel_path, local_path=path)
-
-    return _build
-
-
-def _background_anchors_payload(
-    *,
-    ctx: ProjectContext,
-    username: str,
-    project: str,
-    project_dir: Path,
-    beat: dict[str, Any],
-    episode_num: int,
-    beat_num: int,
-) -> dict[str, Any]:
-    return build_background_anchors_payload(
-        project_dir=project_dir,
-        username=username,
-        project=project,
-        beat=beat,
-        episode_num=int(episode_num),
-        beat_num=int(beat_num),
-        reference_url_builder=_api_background_reference_url_builder(ctx),
-        anchor_url_builder=_api_background_anchor_url_builder(ctx),
-    )
-
-
 @router.get(
     "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/pano-background/manifest"
 )
@@ -3403,21 +3365,21 @@ async def get_beat_background_anchors(
 ):
     """Return NiceGUI-compatible single-beat background anchor options."""
     resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    username = resolved.username
-    project_name = resolved.project_name
     project_dir = resolved.project_dir
     store, beat = await _episode_beat_from_resolution(resolved, episode_num, beat_num)
     try:
         return {
             "ok": True,
-            "data": _background_anchors_payload(
-                ctx=resolved.ctx,
-                username=username,
-                project=project_name,
+            "data": beat_background_anchor_use_cases().list_anchors(
                 project_dir=project_dir,
                 beat=beat,
                 episode_num=episode_num,
                 beat_num=beat_num,
+                asset_url=make_project_asset_url_builder(
+                    resolved.ctx,
+                    project_dir,
+                    make_static_url_for_context,
+                ),
             ),
         }
     finally:
@@ -3443,34 +3405,29 @@ async def update_beat_background_anchor(
     used, while render_anchor_source_id preserves the UI-visible source.
     """
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    username = resolved.username
-    project_name = resolved.project_name
     project_dir = resolved.project_dir
     store, beat = await _episode_beat_from_resolution(resolved, episode_num, beat_num)
     try:
         try:
-            payload = select_background_anchor(
+            payload = await beat_background_anchor_use_cases().select_anchor(
+                asset_writer=(
+                    store
+                    if callable(getattr(store, "update_beat_asset", None))
+                    else None
+                ),
                 project_dir=project_dir,
-                username=username,
-                project=project_name,
                 beat=beat,
                 episode_num=int(episode_num),
                 beat_num=int(beat_num),
-                anchor_id=body.anchor_id,
-                reference_url_builder=_api_background_reference_url_builder(
-                    resolved.ctx
+                command=SelectBeatBackgroundCommand(anchor_id=body.anchor_id),
+                asset_url=make_project_asset_url_builder(
+                    resolved.ctx,
+                    project_dir,
+                    make_static_url_for_context,
                 ),
-                anchor_url_builder=_api_background_anchor_url_builder(resolved.ctx),
             )
-        except BackgroundAnchorError as exc:
+        except BackgroundAnchorRejected as exc:
             return {"ok": False, "error": str(exc)}
-
-        if hasattr(store, "update_beat_asset"):
-            await store.update_beat_asset(
-                episode_number=int(episode_num),
-                beat_number=int(beat_num),
-                scene_ref=dict(beat.get("scene_ref") or {}),
-            )
 
         return {"ok": True, "data": payload}
     finally:
@@ -3491,27 +3448,34 @@ async def crop_beat_background_anchor(
 ):
     """Crop a source background into the beat-owned render background slot."""
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    username = resolved.username
-    project_name = resolved.project_name
     project_dir = resolved.project_dir
     store, beat = await _episode_beat_from_resolution(resolved, episode_num, beat_num)
     try:
         try:
-            payload = crop_background_anchor_to_selected(
+            payload = await beat_background_anchor_use_cases().crop_anchor(
+                asset_writer=(
+                    store
+                    if callable(getattr(store, "update_beat_asset", None))
+                    else None
+                ),
                 project_dir=project_dir,
-                username=username,
-                project=project_name,
                 beat=beat,
                 episode_num=int(episode_num),
                 beat_num=int(beat_num),
-                anchor_id=str(body.get("anchor_id") or ""),
-                crop=body,
-                reference_url_builder=_api_background_reference_url_builder(
-                    resolved.ctx
+                command=CropBeatBackgroundCommand(
+                    anchor_id=str(body.get("anchor_id") or ""),
+                    x=body.get("x"),
+                    y=body.get("y"),
+                    width=body.get("width"),
+                    height=body.get("height"),
                 ),
-                anchor_url_builder=_api_background_anchor_url_builder(resolved.ctx),
+                asset_url=make_project_asset_url_builder(
+                    resolved.ctx,
+                    project_dir,
+                    make_static_url_for_context,
+                ),
             )
-        except BackgroundAnchorError as exc:
+        except BackgroundAnchorRejected as exc:
             return {"ok": False, "error": str(exc)}
         except (TypeError, ValueError):
             return JSONResponse(
@@ -3520,13 +3484,6 @@ async def crop_beat_background_anchor(
             )
         except Exception as exc:
             return {"ok": False, "error": f"裁剪 Render 背景参考失败: {exc}"}
-
-        if hasattr(store, "update_beat_asset"):
-            await store.update_beat_asset(
-                episode_number=int(episode_num),
-                beat_number=int(beat_num),
-                scene_ref=dict(beat.get("scene_ref") or {}),
-            )
 
         return {"ok": True, "data": payload}
     finally:
@@ -3554,8 +3511,6 @@ async def upload_beat_background_anchor(
     same core scene_ref contract.
     """
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    username = resolved.username
-    project_name = resolved.project_name
     project_dir = resolved.project_dir
     store, beat = await _episode_beat_from_resolution(resolved, episode_num, beat_num)
     try:
@@ -3565,28 +3520,25 @@ async def upload_beat_background_anchor(
             return {"ok": False, "error": f"上传外部参考图失败: {exc}"}
 
         try:
-            payload = save_uploaded_background_anchor_image(
+            payload = await beat_background_anchor_use_cases().upload_anchor(
+                asset_writer=(
+                    store
+                    if callable(getattr(store, "update_beat_asset", None))
+                    else None
+                ),
                 project_dir=project_dir,
-                username=username,
-                project=project_name,
                 beat=beat,
                 episode_num=int(episode_num),
                 beat_num=int(beat_num),
-                image=image,
-                reference_url_builder=_api_background_reference_url_builder(
-                    resolved.ctx
+                command=UploadBeatBackgroundCommand(image=image),
+                asset_url=make_project_asset_url_builder(
+                    resolved.ctx,
+                    project_dir,
+                    make_static_url_for_context,
                 ),
-                anchor_url_builder=_api_background_anchor_url_builder(resolved.ctx),
             )
-        except BackgroundAnchorError as exc:
+        except BackgroundAnchorRejected as exc:
             return {"ok": False, "error": str(exc)}
-
-        if hasattr(store, "update_beat_asset"):
-            await store.update_beat_asset(
-                episode_number=int(episode_num),
-                beat_number=int(beat_num),
-                scene_ref=dict(beat.get("scene_ref") or {}),
-            )
 
         return {"ok": True, "data": payload}
     finally:

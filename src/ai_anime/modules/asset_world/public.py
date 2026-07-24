@@ -2,6 +2,9 @@
 
 from typing import Any
 
+from ai_anime.modules.asset_world.application.background_anchor import (
+    BeatBackgroundAnchorUseCases,
+)
 from ai_anime.modules.asset_world.application.character_asset_history import (
     CharacterAssetHistoryUseCases,
 )
@@ -46,6 +49,7 @@ from ai_anime.modules.asset_world.application.scene_viewer import SceneViewerUse
 from ai_anime.modules.asset_world.application.dto import (
     AnalyzeStyleCommand,
     CharacterGenerationOptions,
+    CropBeatBackgroundCommand,
     CreateCharacterCommand,
     CreateIdentityCommand,
     CreatePropCommand,
@@ -57,6 +61,7 @@ from ai_anime.modules.asset_world.application.dto import (
     SaveSceneDirectorWorldCommand,
     SaveSceneDirectorWorldSourceCommand,
     SaveBeatDirectorOverlayCommand,
+    SelectBeatBackgroundCommand,
     StyleAnalysisBilling,
     StyleFile,
     StyleScope,
@@ -64,8 +69,10 @@ from ai_anime.modules.asset_world.application.dto import (
     UpdateIdentityCommand,
     UpdatePropCommand,
     UpdateSceneCommand,
+    UploadBeatBackgroundCommand,
 )
 from ai_anime.modules.asset_world.application.errors import (
+    BackgroundAnchorRejected,
     CharacterAlreadyExists,
     CharacterAssetHistoryNotFound,
     CharacterAssetHistoryRejected,
@@ -186,6 +193,14 @@ def beat_director_stage_use_cases() -> BeatDirectorStageUseCases:
     return build()
 
 
+def beat_background_anchor_use_cases() -> BeatBackgroundAnchorUseCases:
+    from ai_anime.modules.asset_world.composition import (
+        beat_background_anchor_use_cases as build,
+    )
+
+    return build()
+
+
 def prop_task_use_cases() -> PropTaskUseCases:
     from ai_anime.modules.asset_world.composition import prop_task_use_cases as build
 
@@ -260,6 +275,8 @@ __all__ = [
     "ALL_SLOTS",
     "AnalyzeStyle",
     "AnalyzeStyleCommand",
+    "BackgroundAnchorRejected",
+    "BeatBackgroundAnchorUseCases",
     "CharacterAlreadyExists",
     "CharacterAssetHistoryNotFound",
     "CharacterAssetHistoryRejected",
@@ -283,6 +300,7 @@ __all__ = [
     "CreatePropCommand",
     "CreateSceneCommand",
     "CreateCustomStyleCommand",
+    "CropBeatBackgroundCommand",
     "ExportBeatDirectorControlFrameCommand",
     "GenerateScenePanoCommand",
     "DEFAULT_SLOT",
@@ -305,6 +323,7 @@ __all__ = [
     "SaveSceneDirectorWorldCommand",
     "SaveSceneDirectorWorldSourceCommand",
     "SaveBeatDirectorOverlayCommand",
+    "SelectBeatBackgroundCommand",
     "RestoreCharacterAssetCommand",
     "StyleAnalysisBilling",
     "StyleCatalogUseCases",
@@ -321,8 +340,10 @@ __all__ = [
     "UpdateIdentityCommand",
     "UpdatePropCommand",
     "UpdateSceneCommand",
+    "UploadBeatBackgroundCommand",
     "VOICE_SAMPLE_EXTENSIONS",
     "analyze_style",
+    "beat_background_anchor_use_cases",
     "beat_director_stage_use_cases",
     "character_asset_history_use_cases",
     "character_asset_links",

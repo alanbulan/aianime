@@ -2,6 +2,9 @@
 
 from typing import Any
 
+from ai_anime.modules.asset_world.application.background_anchor import (
+    BeatBackgroundAnchorUseCases,
+)
 from ai_anime.modules.asset_world.application.character_asset_history import (
     CharacterAssetHistoryUseCases,
 )
@@ -46,6 +49,9 @@ from ai_anime.modules.asset_world.application.styles import (
 )
 from ai_anime.modules.asset_world.infrastructure.character_voice_storage import (
     LocalCharacterVoiceFiles,
+)
+from ai_anime.modules.asset_world.infrastructure.background_anchor import (
+    LocalBeatBackgroundAnchorFiles,
 )
 from ai_anime.modules.asset_world.infrastructure.director_stage import (
     LocalBeatDirectorStageFiles,
@@ -144,6 +150,10 @@ def scene_viewer_use_cases() -> SceneViewerUseCases:
 
 def beat_director_stage_use_cases() -> BeatDirectorStageUseCases:
     return BeatDirectorStageUseCases(LocalBeatDirectorStageFiles())
+
+
+def beat_background_anchor_use_cases() -> BeatBackgroundAnchorUseCases:
+    return BeatBackgroundAnchorUseCases(LocalBeatBackgroundAnchorFiles())
 
 
 def scene_task_use_cases() -> SceneTaskUseCases:

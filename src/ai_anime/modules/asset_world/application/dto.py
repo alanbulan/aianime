@@ -102,6 +102,25 @@ class DirectorControlFrameExport:
 
 
 @dataclass(frozen=True)
+class SelectBeatBackgroundCommand:
+    anchor_id: str
+
+
+@dataclass(frozen=True)
+class CropBeatBackgroundCommand:
+    anchor_id: str
+    x: object = 0
+    y: object = 0
+    width: object = 0
+    height: object = 0
+
+
+@dataclass(frozen=True)
+class UploadBeatBackgroundCommand:
+    image: Any
+
+
+@dataclass(frozen=True)
 class GenerateScenePanoCommand:
     source: str = "master"
     style: str | None = None

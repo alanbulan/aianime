@@ -53,6 +53,10 @@ class SceneViewerRejected(SceneCatalogRejected):
     """A scene viewer or Director World request cannot be completed."""
 
 
+class BackgroundAnchorRejected(ValueError):
+    """A Beat background-anchor operation cannot be completed."""
+
+
 class PropCatalogRejected(Exception):
     """A prop catalog request rejected by an expected business rule."""
 
