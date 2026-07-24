@@ -69,6 +69,39 @@ class SceneViewerAssetState:
 
 
 @dataclass(frozen=True)
+class SaveBeatDirectorOverlayCommand:
+    frame_aspect: object = None
+    source: object = None
+    frame_meta: object = None
+    snapshot: object = None
+    camera: object = None
+    actors: object = None
+    props: object = None
+    stagings: object = None
+    command_log: object = None
+    deleted_keys: object = None
+
+
+@dataclass(frozen=True)
+class ExportBeatDirectorControlFrameCommand:
+    images: object = None
+    frame_meta: object = None
+    frame_aspect: object = None
+    snapshot: object = None
+    actors: object = None
+    props: object = None
+    stagings: object = None
+
+
+@dataclass(frozen=True)
+class DirectorControlFrameExport:
+    directory: Path
+    paths: Mapping[str, Path]
+    relative_paths: Mapping[str, str]
+    meta: Mapping[str, Any]
+
+
+@dataclass(frozen=True)
 class GenerateScenePanoCommand:
     source: str = "master"
     style: str | None = None

@@ -26,6 +26,10 @@ from ai_anime.modules.asset_world.application.character_voice import (
     character_voice_fields,
     identity_voice_fields,
 )
+from ai_anime.modules.asset_world.application.director_stage import (
+    BeatDirectorStageUseCases,
+    resolve_beat_scene_name,
+)
 from ai_anime.modules.asset_world.application.image_settings import (
     ImageSettingsUseCases,
 )
@@ -47,10 +51,12 @@ from ai_anime.modules.asset_world.application.dto import (
     CreatePropCommand,
     CreateSceneCommand,
     CreateCustomStyleCommand,
+    ExportBeatDirectorControlFrameCommand,
     GenerateScenePanoCommand,
     RestoreCharacterAssetCommand,
     SaveSceneDirectorWorldCommand,
     SaveSceneDirectorWorldSourceCommand,
+    SaveBeatDirectorOverlayCommand,
     StyleAnalysisBilling,
     StyleFile,
     StyleScope,
@@ -98,6 +104,7 @@ from ai_anime.modules.asset_world.domain.character_assets import (
     find_character_identity,
     safe_character_asset_name,
 )
+from ai_anime.modules.asset_world.domain.director_stage import director_control_scope
 from ai_anime.modules.asset_world.infrastructure.asset_metadata import (
     newest_path_updated_at,
     newest_updated_at,
@@ -167,6 +174,14 @@ def scene_task_use_cases() -> SceneTaskUseCases:
 
 def scene_viewer_use_cases() -> SceneViewerUseCases:
     from ai_anime.modules.asset_world.composition import scene_viewer_use_cases as build
+
+    return build()
+
+
+def beat_director_stage_use_cases() -> BeatDirectorStageUseCases:
+    from ai_anime.modules.asset_world.composition import (
+        beat_director_stage_use_cases as build,
+    )
 
     return build()
 
@@ -262,11 +277,13 @@ __all__ = [
     "CharacterVoiceNotFound",
     "CharacterVoiceRejected",
     "CharacterVoiceUseCases",
+    "BeatDirectorStageUseCases",
     "CreateCharacterCommand",
     "CreateIdentityCommand",
     "CreatePropCommand",
     "CreateSceneCommand",
     "CreateCustomStyleCommand",
+    "ExportBeatDirectorControlFrameCommand",
     "GenerateScenePanoCommand",
     "DEFAULT_SLOT",
     "InvalidCharacterVoiceInput",
@@ -287,6 +304,7 @@ __all__ = [
     "SceneViewerUseCases",
     "SaveSceneDirectorWorldCommand",
     "SaveSceneDirectorWorldSourceCommand",
+    "SaveBeatDirectorOverlayCommand",
     "RestoreCharacterAssetCommand",
     "StyleAnalysisBilling",
     "StyleCatalogUseCases",
@@ -305,6 +323,7 @@ __all__ = [
     "UpdateSceneCommand",
     "VOICE_SAMPLE_EXTENSIONS",
     "analyze_style",
+    "beat_director_stage_use_cases",
     "character_asset_history_use_cases",
     "character_asset_links",
     "character_catalog_use_cases",
@@ -324,6 +343,7 @@ __all__ = [
     "clear_character_voice_file",
     "execute_character_image_task",
     "decode_recorded_audio_data_url",
+    "director_control_scope",
     "is_supported_voice_sample",
     "identity_voice_fields",
     "find_character_identity",
@@ -332,6 +352,7 @@ __all__ = [
     "path_updated_at",
     "persist_character_voice_file",
     "probe_voice_sample_duration_seconds",
+    "resolve_beat_scene_name",
     "safe_character_asset_name",
     "style_catalog_use_cases",
     "style_preview_use_cases",

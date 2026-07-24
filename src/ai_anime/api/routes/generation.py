@@ -71,7 +71,12 @@ from ai_anime.modules.narrative_planning.public import (
     storyboard_beats_for_manual_sketches,
 )
 from ai_anime.modules.asset_world.public import (
+    ExportBeatDirectorControlFrameCommand,
+    SaveBeatDirectorOverlayCommand,
     SceneCatalogRejected,
+    SceneViewerRejected,
+    beat_director_stage_use_cases,
+    resolve_beat_scene_name,
     scene_viewer_use_cases,
 )
 from ai_anime.render_plan.ref_image_hash import RefImageHasher
@@ -87,7 +92,6 @@ from ai_anime.modules.project_workspace.public import (
 )
 from ai_anime.ports import get_task_backend, get_usage_meter
 from ai_anime.task_identity import project_task_state_key
-from ai_anime.models import beat_scene_id
 from ai_anime.services.background_anchor_service import (
     BackgroundAnchorError,
     build_background_anchors_payload,
@@ -3084,277 +3088,6 @@ def _canonical_sketch_url(
     )
 
 
-def _director_control_scope(episode_num: int, beat_num: int) -> str:
-    return (
-        f"director_control_to_sketch:ep{int(episode_num):03d}:beat_{int(beat_num):02d}"
-    )
-
-
-def _director_control_payload(
-    *,
-    ctx: ProjectContext,
-    project_dir: Path,
-    episode_num: int,
-    beat_num: int,
-) -> dict[str, Any]:
-    from ai_anime.utils.path_resolver import PathResolver
-
-    paths = PathResolver(str(project_dir), int(episode_num))
-    control_frame = paths.director_render(int(beat_num))
-    ready = control_frame.exists()
-    rel_path = None
-    url = None
-    if ready:
-        try:
-            rel_path = control_frame.relative_to(project_dir).as_posix()
-            url = make_static_url_for_context(ctx, rel_path, local_path=control_frame)
-        except ValueError:
-            rel_path = control_frame.as_posix()
-    return {
-        "episode": int(episode_num),
-        "beat_num": int(beat_num),
-        "ready": ready,
-        "path": control_frame.as_posix(),
-        "rel_path": rel_path,
-        "url": url,
-        "scope": _director_control_scope(episode_num, beat_num),
-    }
-
-
-def _director_overlay_beat_context(beat: dict[str, Any]) -> dict[str, Any]:
-    identities = beat.get("detected_identities") or []
-    props = beat.get("detected_props") or []
-    return {
-        "detected_identities": [str(item) for item in identities if str(item).strip()],
-        "detected_props": [str(item) for item in props if str(item).strip()],
-    }
-
-
-def _director_same_scene_beats(
-    beats: list[dict[str, Any]], scene_name: str
-) -> list[dict[str, Any]]:
-    items: list[dict[str, Any]] = []
-    for item in beats:
-        if _beat_scene_name(item) != scene_name:
-            continue
-        beat_number = item.get("beat_number") or item.get("beat") or item.get("number")
-        try:
-            beat_int = int(beat_number)
-        except (TypeError, ValueError):
-            continue
-        items.append(
-            {"beat": beat_int, "label": f"Beat {beat_int}", "scene_id": scene_name}
-        )
-    return sorted(items, key=lambda entry: entry["beat"])
-
-
-def _director_overlay_payload(
-    *,
-    episode_num: int,
-    beat_num: int,
-    scene_name: str,
-    beat: dict[str, Any],
-    body: dict[str, Any],
-) -> dict[str, Any]:
-    from datetime import datetime, timezone
-
-    snapshot = body.get("snapshot")
-    snapshot = snapshot if isinstance(snapshot, dict) else {}
-    body_actors = body.get("actors")
-    body_props = body.get("props")
-    body_stagings = body.get("stagings")
-    actors = (
-        body_actors if isinstance(body_actors, list) else snapshot.get("actors") or []
-    )
-    props = body_props if isinstance(body_props, list) else snapshot.get("props") or []
-    stagings = (
-        body_stagings
-        if isinstance(body_stagings, list)
-        else snapshot.get("stagings") or []
-    )
-    legacy_props = (
-        [*props, *stagings]
-        if isinstance(props, list) and isinstance(stagings, list)
-        else props
-    )
-    frame_meta = body.get("frame_meta")
-    frame_meta = frame_meta if isinstance(frame_meta, dict) else {}
-    source = body.get("source")
-    if not isinstance(source, dict):
-        meta_source = frame_meta.get("source")
-        source = meta_source if isinstance(meta_source, dict) else {}
-    return {
-        "schema_version": "director_stage_overlay_v1",
-        "scene_id": scene_name,
-        "episode": int(episode_num),
-        "beat": int(beat_num),
-        "frame_aspect": str(body.get("frame_aspect") or "16:9"),
-        "source": source,
-        "frame_meta": frame_meta,
-        "snapshot": snapshot,
-        "camera": snapshot.get("camera") or body.get("camera") or {},
-        "actors": actors,
-        "props": legacy_props,
-        "stagings": stagings,
-        "command_log": body.get("command_log")
-        if isinstance(body.get("command_log"), list)
-        else [],
-        "deleted_keys": body.get("deleted_keys")
-        if isinstance(body.get("deleted_keys"), list)
-        else [],
-        "beat_context": _director_overlay_beat_context(beat),
-        "saved_at": datetime.now(timezone.utc).isoformat(),
-    }
-
-
-def _director_overlay_status_payload(
-    *,
-    project_dir: Path,
-    episode_num: int,
-    beat_num: int,
-    scene_name: str,
-    beats: list[dict[str, Any]],
-) -> dict[str, Any]:
-    from ai_anime.director_world.paths import beat_blocking_path
-    from ai_anime.director_world.store import load_beat_blocking
-
-    path = beat_blocking_path(project_dir, episode_num, beat_num)
-    same_scene = _director_same_scene_beats(beats, scene_name)
-    current = load_beat_blocking(project_dir, episode_num, beat_num)
-    if current:
-        return {
-            "status": "current",
-            "overlay": current,
-            "path": path.as_posix(),
-            "same_scene_beats": same_scene,
-        }
-
-    inherited: dict[str, Any] | None = None
-    inherited_from: int | None = None
-    for item in same_scene:
-        candidate_beat = int(item["beat"])
-        if candidate_beat >= int(beat_num):
-            continue
-        candidate = load_beat_blocking(project_dir, episode_num, candidate_beat)
-        if candidate:
-            inherited = candidate
-            inherited_from = candidate_beat
-    if inherited:
-        return {
-            "status": "inherited",
-            "overlay": inherited,
-            "path": path.as_posix(),
-            "inherited_from_beat": inherited_from,
-            "same_scene_beats": same_scene,
-        }
-    return {
-        "status": "missing",
-        "overlay": None,
-        "path": path.as_posix(),
-        "same_scene_beats": same_scene,
-    }
-
-
-def _decode_png_data_url(data_url: str) -> bytes:
-    import base64
-
-    prefix = "data:image/png;base64,"
-    if not data_url.startswith(prefix):
-        raise ValueError("expected PNG data URL")
-    return base64.b64decode(data_url[len(prefix) :], validate=True)
-
-
-def _director_control_frame_export_payload(
-    *,
-    ctx: ProjectContext,
-    project_dir: Path,
-    scene_name: str,
-    episode_num: int,
-    beat_num: int,
-    body: dict[str, Any],
-) -> dict[str, Any]:
-    target_dir = (
-        project_dir
-        / "director_control_frames"
-        / f"ep{int(episode_num):03d}"
-        / f"beat_{int(beat_num):02d}"
-    )
-    target_dir.mkdir(parents=True, exist_ok=True)
-    images = body.get("images")
-    images = images if isinstance(images, dict) else {}
-    submitted_frame_meta = body.get("frame_meta")
-    if not isinstance(submitted_frame_meta, dict) or not submitted_frame_meta:
-        raise ValueError("combined, env_only and frame_meta are required")
-    missing_kinds = [
-        kind
-        for kind in ("combined", "env_only")
-        if not isinstance(images.get(kind), str) or not images.get(kind)
-    ]
-    if missing_kinds:
-        raise ValueError("combined, env_only and frame_meta are required")
-    filename_by_kind = {
-        "combined": "combined.png",
-        "env_only": "env_only.png",
-    }
-    paths: dict[str, str] = {}
-    rel_paths: dict[str, str] = {}
-    urls: dict[str, str] = {}
-    for kind, filename in filename_by_kind.items():
-        data_url = images.get(kind)
-        if not isinstance(data_url, str) or not data_url:
-            continue
-        path = target_dir / filename
-        path.write_bytes(_decode_png_data_url(data_url))
-        paths[kind] = path.as_posix()
-        rel_paths[kind] = path.relative_to(project_dir).as_posix()
-        urls[kind] = make_static_url_for_context(ctx, rel_paths[kind], local_path=path)
-
-    snapshot = body.get("snapshot")
-    snapshot = snapshot if isinstance(snapshot, dict) else {}
-    body_actors = body.get("actors")
-    body_props = body.get("props")
-    body_stagings = body.get("stagings")
-    actors = (
-        body_actors if isinstance(body_actors, list) else snapshot.get("actors") or []
-    )
-    props = body_props if isinstance(body_props, list) else snapshot.get("props") or []
-    stagings = (
-        body_stagings
-        if isinstance(body_stagings, list)
-        else snapshot.get("stagings") or []
-    )
-    legacy_props = (
-        [*props, *stagings]
-        if isinstance(props, list) and isinstance(stagings, list)
-        else props
-    )
-    meta = dict(submitted_frame_meta)
-    meta.setdefault("scene_id", scene_name)
-    meta.setdefault("episode", int(episode_num))
-    meta.setdefault("beat", int(beat_num))
-    meta.setdefault("frame_aspect", str(body.get("frame_aspect") or "16:9"))
-    meta.setdefault("actors", actors)
-    meta.setdefault("props", legacy_props)
-    meta.setdefault("stagings", stagings)
-    meta["paths"] = rel_paths
-    meta_path = target_dir / "frame_meta.json"
-    meta_path.write_text(
-        json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-    )
-    paths["frame_meta"] = meta_path.as_posix()
-    rel_paths["frame_meta"] = meta_path.relative_to(project_dir).as_posix()
-    urls["frame_meta"] = make_static_url_for_context(
-        ctx, rel_paths["frame_meta"], local_path=meta_path
-    )
-    return {
-        "dir": target_dir.as_posix(),
-        "paths": paths,
-        "rel_paths": rel_paths,
-        "urls": urls,
-        "meta": meta,
-    }
-
-
 async def _episode_beat_from_resolution(
     resolved,
     episode_num: int,
@@ -3383,10 +3116,6 @@ async def _episode_beat_from_resolution(
         if close:
             await close()
         raise
-
-
-def _beat_scene_name(beat: dict[str, Any]) -> str:
-    return str(beat_scene_id(beat) or beat.get("location") or "").strip()
 
 
 def _viewer_asset_url(
@@ -3454,7 +3183,7 @@ async def get_beat_pano_background_manifest(
     project_dir = resolved.project_dir
     store, beat = await _episode_beat_from_resolution(resolved, episode_num, beat_num)
     try:
-        scene_name = _beat_scene_name(beat)
+        scene_name = resolve_beat_scene_name(beat)
         if not scene_name:
             return {"ok": False, "error": "当前 Beat 没有关联场景"}
         manifest = scene_viewer_use_cases().beat_pano_manifest(
@@ -3506,7 +3235,7 @@ async def get_beat_director_stage_manifest(
     project_dir = resolved.project_dir
     store, beat = await _episode_beat_from_resolution(resolved, episode_num, beat_num)
     try:
-        scene_name = _beat_scene_name(beat)
+        scene_name = resolve_beat_scene_name(beat)
         if not scene_name:
             return {"ok": False, "error": "当前 Beat 没有关联场景"}
         beats = await store.get_beats_as_dicts(int(episode_num))
@@ -3556,18 +3285,17 @@ async def get_beat_director_stage_overlay(
     project_dir = resolved.project_dir
     store, beat = await _episode_beat_from_resolution(resolved, episode_num, beat_num)
     try:
-        scene_name = _beat_scene_name(beat)
+        scene_name = resolve_beat_scene_name(beat)
         if not scene_name:
             return {"ok": False, "error": "当前 Beat 没有关联场景"}
-        beats = await store.get_beats_as_dicts(int(episode_num))
         return {
             "ok": True,
-            "data": _director_overlay_status_payload(
+            "data": await beat_director_stage_use_cases().load_overlay(
+                repository=store,
                 project_dir=project_dir,
                 episode_num=int(episode_num),
                 beat_num=int(beat_num),
                 scene_name=scene_name,
-                beats=list(beats),
             ),
         }
     finally:
@@ -3591,50 +3319,36 @@ async def save_beat_director_stage_overlay(
     project_dir = resolved.project_dir
     store, beat = await _episode_beat_from_resolution(resolved, episode_num, beat_num)
     try:
-        scene_name = _beat_scene_name(beat)
+        scene_name = resolve_beat_scene_name(beat)
         if not scene_name:
             return {"ok": False, "error": "当前 Beat 没有关联场景"}
-        payload = _director_overlay_payload(
-            episode_num=int(episode_num),
-            beat_num=int(beat_num),
-            scene_name=scene_name,
-            beat=beat,
-            body=body,
-        )
-        from ai_anime.director_world.store import save_beat_blocking
-
-        path = save_beat_blocking(project_dir, int(episode_num), int(beat_num), payload)
-        if hasattr(store, "update_beat_asset"):
-            overlay_prop_labels = [
-                str(item.get("label") or item.get("prop_id") or "").strip()
-                for item in payload.get("props", [])
-                if isinstance(item, dict)
-                and str(item.get("type") or "").strip() != "prop_staging"
-                and str(item.get("category") or "").strip() != "staging"
-            ]
-            merged_props = [
-                prop
-                for prop in [
-                    *payload["beat_context"].get("detected_props", []),
-                    *overlay_prop_labels,
-                ]
-                if prop
-            ]
-            deduped_props = list(dict.fromkeys(merged_props))
-            await store.update_beat_asset(
-                episode_number=int(episode_num),
-                beat_number=int(beat_num),
-                detected_props=deduped_props,
-            )
-        beats = await store.get_beats_as_dicts(int(episode_num))
         return {
             "ok": True,
-            "data": {
-                "status": "saved",
-                "overlay": payload,
-                "path": path.as_posix(),
-                "same_scene_beats": _director_same_scene_beats(list(beats), scene_name),
-            },
+            "data": await beat_director_stage_use_cases().save_overlay(
+                repository=store,
+                asset_writer=(
+                    store
+                    if callable(getattr(store, "update_beat_asset", None))
+                    else None
+                ),
+                project_dir=project_dir,
+                episode_num=int(episode_num),
+                beat_num=int(beat_num),
+                scene_name=scene_name,
+                beat=beat,
+                command=SaveBeatDirectorOverlayCommand(
+                    frame_aspect=body.get("frame_aspect"),
+                    source=body.get("source"),
+                    frame_meta=body.get("frame_meta"),
+                    snapshot=body.get("snapshot"),
+                    camera=body.get("camera"),
+                    actors=body.get("actors"),
+                    props=body.get("props"),
+                    stagings=body.get("stagings"),
+                    command_log=body.get("command_log"),
+                    deleted_keys=body.get("deleted_keys"),
+                ),
+            ),
         }
     finally:
         close = getattr(store, "close", None)
@@ -3657,19 +3371,31 @@ async def export_beat_director_stage_control_frame(
     project_dir = resolved.project_dir
     store, beat = await _episode_beat_from_resolution(resolved, episode_num, beat_num)
     try:
-        scene_name = _beat_scene_name(beat)
+        scene_name = resolve_beat_scene_name(beat)
         if not scene_name:
             return {"ok": False, "error": "当前 Beat 没有关联场景"}
         try:
-            payload = _director_control_frame_export_payload(
-                ctx=resolved.ctx,
+            payload = beat_director_stage_use_cases().export_control_frame(
                 project_dir=project_dir,
                 scene_name=scene_name,
                 episode_num=int(episode_num),
                 beat_num=int(beat_num),
-                body=body,
+                command=ExportBeatDirectorControlFrameCommand(
+                    images=body.get("images"),
+                    frame_meta=body.get("frame_meta"),
+                    frame_aspect=body.get("frame_aspect"),
+                    snapshot=body.get("snapshot"),
+                    actors=body.get("actors"),
+                    props=body.get("props"),
+                    stagings=body.get("stagings"),
+                ),
+                asset_url=lambda path: _viewer_asset_url(
+                    resolved.ctx,
+                    project_dir,
+                    path,
+                ),
             )
-        except (ValueError, TypeError) as exc:
+        except SceneViewerRejected as exc:
             return JSONResponse(
                 status_code=400, content={"ok": False, "error": str(exc)}
             )
@@ -3897,11 +3623,15 @@ async def get_director_control_frame_status(
     project_dir = resolved.project_dir
     return {
         "ok": True,
-        "data": _director_control_payload(
-            ctx=resolved.ctx,
+        "data": beat_director_stage_use_cases().control_frame_status(
             project_dir=project_dir,
             episode_num=episode_num,
             beat_num=beat_num,
+            asset_url=lambda path: _viewer_asset_url(
+                resolved.ctx,
+                project_dir,
+                path,
+            ),
         ),
     }
 
@@ -3922,11 +3652,15 @@ async def director_control_to_sketch(
     project_name = resolved.project_name
     project_dir = resolved.project_dir
     state_dir = resolved.state_dir
-    payload = _director_control_payload(
-        ctx=resolved.ctx,
+    payload = beat_director_stage_use_cases().control_frame_status(
         project_dir=project_dir,
         episode_num=episode_num,
         beat_num=beat_num,
+        asset_url=lambda path: _viewer_asset_url(
+            resolved.ctx,
+            project_dir,
+            path,
+        ),
     )
     if not payload["ready"]:
         return {

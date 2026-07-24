@@ -23,6 +23,9 @@ from ai_anime.modules.asset_world.application.character_tasks import (
 from ai_anime.modules.asset_world.application.character_voice import (
     CharacterVoiceUseCases,
 )
+from ai_anime.modules.asset_world.application.director_stage import (
+    BeatDirectorStageUseCases,
+)
 from ai_anime.modules.asset_world.application.image_settings import (
     ImageSettingsUseCases,
 )
@@ -43,6 +46,9 @@ from ai_anime.modules.asset_world.application.styles import (
 )
 from ai_anime.modules.asset_world.infrastructure.character_voice_storage import (
     LocalCharacterVoiceFiles,
+)
+from ai_anime.modules.asset_world.infrastructure.director_stage import (
+    LocalBeatDirectorStageFiles,
 )
 from ai_anime.modules.asset_world.infrastructure.character_catalog import (
     LocalCharacterCatalogAssets,
@@ -134,6 +140,10 @@ def scene_viewer_use_cases() -> SceneViewerUseCases:
         anonymous_actor_colors=[color for color, _label in BRIDGMAN_CHARACTER_PALETTE],
         anonymous_prop_colors=[color for color, _label in PROP_MARKER_PALETTE],
     )
+
+
+def beat_director_stage_use_cases() -> BeatDirectorStageUseCases:
+    return BeatDirectorStageUseCases(LocalBeatDirectorStageFiles())
 
 
 def scene_task_use_cases() -> SceneTaskUseCases:

@@ -18,6 +18,7 @@ from ai_anime.modules.asset_world.application.dto import (
     CreateIdentityCommand,
     CreatePropCommand,
     CreateSceneCommand,
+    DirectorControlFrameExport,
     IdentityAssetPaths,
     IdentityGenerationAssets,
     PropReferenceGenerationTask,
@@ -431,6 +432,65 @@ class SceneViewerAssets(Protocol):
         *,
         active_source_id: str | None,
     ) -> dict[str, Any]: ...
+
+
+class BeatDirectorStageRepository(Protocol):
+    async def get_beats_as_dicts(self, episode_num: int) -> list[dict[str, Any]]: ...
+
+
+class BeatDirectorStageAssetWriter(Protocol):
+    async def update_beat_asset(
+        self,
+        *,
+        episode_number: int,
+        beat_number: int,
+        detected_props: list[str],
+    ) -> Any: ...
+
+
+class BeatDirectorStageFiles(Protocol):
+    def overlay_path(
+        self,
+        project_dir: Path,
+        episode_num: int,
+        beat_num: int,
+    ) -> Path: ...
+
+    def load_overlay(
+        self,
+        project_dir: Path,
+        episode_num: int,
+        beat_num: int,
+    ) -> dict[str, Any] | None: ...
+
+    def save_overlay(
+        self,
+        project_dir: Path,
+        episode_num: int,
+        beat_num: int,
+        payload: dict[str, Any],
+    ) -> Path: ...
+
+    def control_frame_path(
+        self,
+        project_dir: Path,
+        episode_num: int,
+        beat_num: int,
+    ) -> Path: ...
+
+    def exists(self, path: Path) -> bool: ...
+
+    def project_relative_path(self, project_dir: Path, path: Path) -> str | None: ...
+
+    def export_control_frame(
+        self,
+        project_dir: Path,
+        episode_num: int,
+        beat_num: int,
+        *,
+        images: Mapping[str, str],
+        meta: Mapping[str, Any],
+    ) -> DirectorControlFrameExport: ...
 
 
 class PropCatalogRepository(Protocol):

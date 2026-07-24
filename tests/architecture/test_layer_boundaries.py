@@ -19,7 +19,7 @@ LEGACY_REVERSE_API_IMPORT_MAX = {
 }
 
 LEGACY_ROUTE_IMPORT_MAX = {
-    ("api/routes/freezone.py", "ai_anime.api.routes.generation"): 3,
+    ("api/routes/freezone.py", "ai_anime.api.routes.generation"): 2,
 }
 
 
@@ -515,6 +515,46 @@ def test_asset_world_scene_viewer_routes_delegate_to_application() -> None:
     ):
         assert legacy_implementation not in viewer_adapters
     assert "ai_anime.api.viewer_manifests" not in generation
+
+
+def test_asset_world_beat_director_stage_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    source = route.read_text(encoding="utf-8")
+    tree = ast.parse(source, filename=str(route))
+    director_adapters = "\n".join(
+        ast.get_source_segment(source, node) or ""
+        for node in tree.body
+        if isinstance(node, ast.AsyncFunctionDef)
+        and node.name
+        in {
+            "get_beat_director_stage_overlay",
+            "save_beat_director_stage_overlay",
+            "export_beat_director_stage_control_frame",
+            "get_director_control_frame_status",
+            "director_control_to_sketch",
+        }
+    )
+    freezone = (PACKAGE_ROOT / "api" / "routes" / "freezone.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "beat_director_stage_use_cases" in director_adapters
+    assert "director_control_scope" in freezone
+    for legacy_implementation in (
+        "_director_control_scope",
+        "_director_control_payload",
+        "_director_overlay_beat_context",
+        "_director_same_scene_beats",
+        "_director_overlay_payload",
+        "_director_overlay_status_payload",
+        "_decode_png_data_url",
+        "_director_control_frame_export_payload",
+        "ai_anime.director_world.store",
+        "ai_anime.director_world.paths",
+    ):
+        assert legacy_implementation not in source
+    assert "def _beat_scene_name(" not in source
+    assert "_director_control_scope" not in freezone
 
 
 def test_asset_world_character_identity_routes_delegate_to_application() -> None:

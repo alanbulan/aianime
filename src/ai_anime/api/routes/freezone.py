@@ -80,6 +80,7 @@ from ai_anime.api.schemas import (
 from ai_anime.config import IMAGE_GENERATION_SELECTIONS, image_generation_selection_options
 from ai_anime.director_world import DirectorWorldService
 from ai_anime.director_world.staging_prop_ai import generate_ai_staging_prop
+from ai_anime.modules.asset_world.public import director_control_scope
 from ai_anime.freezone import canvas_store
 from ai_anime.freezone.audio_node import (
     create_user_audio_voice,
@@ -1545,10 +1546,8 @@ async def _start_or_enqueue_mainline_direct_sketch_task(
     node_id: str | None = None,
     task_display: dict[str, str] | None = None,
 ) -> dict:
-    from ai_anime.api.routes.generation import _director_control_scope
-
     task_type = "sketch_generation"
-    scope = _director_control_scope(int(episode), int(beat))
+    scope = director_control_scope(int(episode), int(beat))
     queued = await get_task_backend().enqueue_project_task(
         ctx,
         task_type=task_type,
