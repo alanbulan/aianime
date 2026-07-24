@@ -1,15 +1,23 @@
 // Copyright (c) 2026 AI anime
 import type {
+  BeatVideoPromptResponse,
   ProductionDataResponse,
+  ProductionErrorResponse,
+  ProductionTaskResponse,
   ProductionVideoGateway,
   Seedance2BeatStatusResponse,
+  Seedance2PromptResponse,
   VideoPoolResponse,
   VideoPoolSelectResponse,
 } from "@/modules/production/application/ports";
-import type { VideoBackendOption } from "@/modules/production/domain/video-backend";
+import {
+  DEFAULT_VIDEO_BACKEND,
+  type VideoBackendOption,
+} from "@/modules/production/domain/video-backend";
 import type { VideoInputCropTarget } from "@/modules/production/domain/seedance2-panel";
 import { p } from "@/shared/api/path";
 import { api } from "@/shared/api/transport";
+import { jsonWithBackendError } from "@/shared/api/errors";
 
 export const httpProductionVideoGateway: ProductionVideoGateway = {
   async listVideoBackends(project, signal) {
@@ -109,5 +117,70 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
         },
       )
       .json<Seedance2BeatStatusResponse>();
+  },
+  async optimizeEpisodeVideo(project, episode, language) {
+    return api
+      .post(
+        p`api/v1/projects/${project}/episodes/${episode}/optimize/video-global`,
+        { json: { language } },
+      )
+      .json<ProductionTaskResponse | ProductionErrorResponse>();
+  },
+  async generateSeedance2Prompt(project, episode, command) {
+    return jsonWithBackendError<Seedance2PromptResponse>(
+      api.post(
+        p`api/v1/projects/${project}/episodes/${episode}/beats/${command.beatNum}/seedance2-prompt/generate`,
+        {
+          json: {
+            manual_prompt_reference: command.manualPromptReference ?? "",
+            prompt_guidance: command.promptGuidance ?? "",
+          },
+          throwHttpErrors: false,
+        },
+      ),
+    );
+  },
+  async generateBeatVideoPrompt(
+    project,
+    episode,
+    beatNumber,
+    language,
+  ) {
+    return jsonWithBackendError<BeatVideoPromptResponse>(
+      api.post(
+        p`api/v1/projects/${project}/episodes/${episode}/beats/${beatNumber}/video-prompt/generate`,
+        { json: { language }, throwHttpErrors: false },
+      ),
+    );
+  },
+  async regenerateBeatVideo(project, episode, command) {
+    return jsonWithBackendError<
+      ProductionTaskResponse | ProductionErrorResponse
+    >(
+      api.post(
+        p`api/v1/projects/${project}/episodes/${episode}/beats/${command.beatNum}/video`,
+        {
+          json: {
+            video_backend: command.videoBackend ?? DEFAULT_VIDEO_BACKEND,
+            use_director_render: command.useDirectorRender,
+            ...(command.resolution !== undefined
+              ? { resolution: command.resolution }
+              : {}),
+            ...(command.duration !== undefined
+              ? { duration: command.duration }
+              : {}),
+            ...(command.ratio !== undefined ? { ratio: command.ratio } : {}),
+            ...(command.mode !== undefined ? { mode: command.mode } : {}),
+            ...(command.seedance2ConfigJson !== undefined
+              ? { seedance2_config_json: command.seedance2ConfigJson }
+              : {}),
+            ...(command.audioSetting !== undefined
+              ? { audio_setting: command.audioSetting }
+              : {}),
+          },
+          throwHttpErrors: false,
+        },
+      ),
+    );
   },
 };

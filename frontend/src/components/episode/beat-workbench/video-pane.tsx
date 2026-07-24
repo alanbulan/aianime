@@ -32,11 +32,6 @@ import {
 } from "lucide-react";
 
 import {
-  useGenerateBeatVideoPrompt,
-  useGenerateSeedance2Prompt,
-  useRegenerateBeatVideo,
-} from "@/lib/queries/video";
-import {
   backendErrorToastMessage,
   BillingRuleNotConfiguredError,
 } from "@/shared/api/errors";
@@ -96,6 +91,9 @@ import {
   serializeSeedance2Config,
   useCropSeedance2Asset,
   useDeleteSeedance2Asset,
+  useGenerateBeatVideoPrompt,
+  useGenerateSeedance2Prompt,
+  useRegenerateBeatVideo,
   useSeedance2BeatStatus,
   useTrimSeedance2Asset,
   useUploadSeedance2Asset,

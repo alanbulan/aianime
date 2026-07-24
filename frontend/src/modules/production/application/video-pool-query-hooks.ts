@@ -2,12 +2,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { queryKeys } from "@/lib/query-keys";
+import { patchBeatQueryCache } from "@/modules/production/application/beat-query-cache";
 import type {
-  ProductionDataResponse,
   ProductionVideoGateway,
   VideoPoolResponse,
 } from "@/modules/production/application/ports";
-import type { Beat } from "@/modules/narrative_planning/public";
 
 export function createVideoPoolQueryHooks(gateway: ProductionVideoGateway) {
   function useVideoPool(project: string, episode: number) {
@@ -56,20 +55,9 @@ export function createVideoPoolQueryHooks(gateway: ProductionVideoGateway) {
         );
         const nextUrl = response.data?.video_url;
         if (!nextUrl) return;
-        queryClient.setQueryData<ProductionDataResponse<Beat[]>>(
-          queryKeys.beats(project, episode),
-          (old) => {
-            if (!old?.data) return old;
-            return {
-              ...old,
-              data: old.data.map((beat) =>
-                beat.beat_number === beatNum
-                  ? { ...beat, video_url: nextUrl }
-                  : beat,
-              ),
-            };
-          },
-        );
+        patchBeatQueryCache(queryClient, project, episode, beatNum, {
+          video_url: nextUrl,
+        });
       },
     });
   }

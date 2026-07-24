@@ -1,6 +1,10 @@
 export {
   useCropSeedance2Asset,
   useDeleteSeedance2Asset,
+  useGenerateBeatVideoPrompt,
+  useGenerateSeedance2Prompt,
+  useGlobalOptimize,
+  useRegenerateBeatVideo,
   useSeedance2BeatStatus,
   useTrimSeedance2Asset,
   useUploadSeedance2Asset,

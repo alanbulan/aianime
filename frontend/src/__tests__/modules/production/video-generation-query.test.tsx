@@ -2,38 +2,66 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
-import { setupServer } from "msw/node";
 import ky from "ky";
 import type { ReactNode } from "react";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost:3000/" }),
 }));
 
+import { server } from "@/__mocks__/msw/server";
+import { queryKeys } from "@/lib/query-keys";
+import type { Beat } from "@/modules/narrative_planning/public";
 import {
+  DEFAULT_VIDEO_BACKEND,
   useGenerateBeatVideoPrompt,
   useGenerateSeedance2Prompt,
-} from "@/lib/queries/video";
-import { BillingRuleNotConfiguredError } from "@/shared/api/errors";
+  useGlobalOptimize,
+  useRegenerateBeatVideo,
+} from "@/modules/production/public";
+import {
+  BillingRuleNotConfiguredError,
+  ProjectQueueLimitError,
+} from "@/shared/api/errors";
 import { useAppStore } from "@/stores/app-store";
 
-const server = setupServer();
-
-beforeAll(() => server.listen());
 afterEach(() => {
-  server.resetHandlers();
   useAppStore.setState({ language: "zh" });
 });
-afterAll(() => server.close());
 
 function wrapper({ children }: { children: ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
 }
 
+function wrapperWithClient(queryClient: QueryClient) {
+  return function Wrapper({ children }: { children: ReactNode }) {
+    return (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+  };
+}
+
+function makeBeat(): Beat {
+  return {
+    beat_number: 2,
+    narration_segment: "旁白",
+    visual_description: "画面",
+    seedance2_config_json: "old-config",
+    video_prompt: "old-prompt",
+  };
+}
+
 describe("Seedance2 prompt generation query", () => {
   it("posts current prompt reference and guidance to the per-beat endpoint", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { mutations: { retry: false } },
+    });
+    queryClient.setQueryData<{ ok: true; data: Beat[] }>(
+      queryKeys.beats("demo", 1),
+      { ok: true, data: [makeBeat()] },
+    );
     let requestedPath = "";
     let body: unknown = null;
     server.use(
@@ -60,7 +88,7 @@ describe("Seedance2 prompt generation query", () => {
     );
 
     const { result } = renderHook(() => useGenerateSeedance2Prompt("demo", 1), {
-      wrapper,
+      wrapper: wrapperWithClient(queryClient),
     });
     result.current.mutate({
       beatNum: 2,
@@ -77,6 +105,11 @@ describe("Seedance2 prompt generation query", () => {
       prompt_guidance: "more camera motion",
     });
     expect(result.current.data?.ok).toBe(true);
+    expect(
+      queryClient.getQueryData<{ ok: true; data: Beat[] }>(
+        queryKeys.beats("demo", 1),
+      )?.data[0]?.seedance2_config_json,
+    ).toBe('{"final_prompt":"optimized seedance2 prompt"}');
   });
 
   it("parses feature billing errors from the Seedance2 prompt endpoint", async () => {
@@ -115,6 +148,13 @@ describe("Seedance2 prompt generation query", () => {
 
 describe("1.x beat video prompt generation query", () => {
   it("posts to the per-beat 1.x video prompt endpoint", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { mutations: { retry: false } },
+    });
+    queryClient.setQueryData<{ ok: true; data: Beat[] }>(
+      queryKeys.beats("demo", 1),
+      { ok: true, data: [makeBeat()] },
+    );
     let requestedPath = "";
     let body: unknown = null;
     server.use(
@@ -139,7 +179,7 @@ describe("1.x beat video prompt generation query", () => {
     );
 
     const { result } = renderHook(() => useGenerateBeatVideoPrompt("demo", 1), {
-      wrapper,
+      wrapper: wrapperWithClient(queryClient),
     });
     result.current.mutate({ beatNum: 2 });
 
@@ -149,6 +189,11 @@ describe("1.x beat video prompt generation query", () => {
     );
     expect(body).toEqual({ language: "zh" });
     expect(result.current.data?.ok).toBe(true);
+    expect(
+      queryClient.getQueryData<{ ok: true; data: Beat[] }>(
+        queryKeys.beats("demo", 1),
+      )?.data[0]?.video_prompt,
+    ).toBe("generated 1.x motion prompt");
   });
 
   it("follows the current app language when generating 1.x video prompts", async () => {
@@ -210,5 +255,117 @@ describe("1.x beat video prompt generation query", () => {
 
     await waitFor(() => expect(result.current.error).toBeDefined());
     expect(result.current.error).toBeInstanceOf(BillingRuleNotConfiguredError);
+  });
+});
+
+describe("video generation commands", () => {
+  it("uses the current app language for global optimization", async () => {
+    useAppStore.setState({ language: "en" });
+    let requestedPath = "";
+    let body: unknown = null;
+    server.use(
+      http.post(
+        "http://localhost:3000/api/v1/projects/demo/episodes/1/optimize/video-global",
+        async ({ request }) => {
+          requestedPath = new URL(request.url).pathname;
+          body = await request.json();
+          return HttpResponse.json({
+            ok: true,
+            task_type: "global_optimize_video",
+            message: "started",
+          });
+        },
+      ),
+    );
+
+    const { result } = renderHook(() => useGlobalOptimize("demo", 1), {
+      wrapper,
+    });
+    result.current.mutate();
+
+    await waitFor(() => expect(result.current.data).toBeDefined());
+    expect(requestedPath).toBe(
+      "/api/v1/projects/demo/episodes/1/optimize/video-global",
+    );
+    expect(body).toEqual({ language: "en" });
+  });
+
+  it("maps the complete beat video command and applies the default backend", async () => {
+    let body: unknown = null;
+    server.use(
+      http.post(
+        "http://localhost:3000/api/v1/projects/demo/episodes/1/beats/6/video",
+        async ({ request }) => {
+          body = await request.json();
+          return HttpResponse.json({
+            ok: true,
+            task_type: "single_video",
+            message: "started",
+          });
+        },
+      ),
+    );
+
+    const { result } = renderHook(() => useRegenerateBeatVideo("demo", 1), {
+      wrapper,
+    });
+    result.current.mutate({
+      beatNum: 6,
+      useDirectorRender: true,
+      resolution: "720p",
+      duration: 5,
+      ratio: "16:9",
+      mode: "first_frame",
+      seedance2ConfigJson: '{"final_prompt":"镜头推进"}',
+      audioSetting: "enabled",
+    });
+
+    await waitFor(() => expect(result.current.data).toBeDefined());
+    expect(body).toEqual({
+      video_backend: DEFAULT_VIDEO_BACKEND,
+      use_director_render: true,
+      resolution: "720p",
+      duration: 5,
+      ratio: "16:9",
+      mode: "first_frame",
+      seedance2_config_json: '{"final_prompt":"镜头推进"}',
+      audio_setting: "enabled",
+    });
+  });
+
+  it("surfaces backend queue-limit errors for beat video generation", async () => {
+    server.use(
+      http.post(
+        "http://localhost:3000/api/v1/projects/demo/episodes/1/beats/6/video",
+        () =>
+          HttpResponse.json(
+            {
+              ok: false,
+              error: "当前项目 video 队列任务已满，请等待已有任务完成后再提交",
+              data: {
+                project_id: "demo",
+                queue_kind: "video",
+                limit: 1,
+                active: 1,
+              },
+            },
+            { status: 429 },
+          ),
+      ),
+    );
+
+    const { result } = renderHook(() => useRegenerateBeatVideo("demo", 1), {
+      wrapper,
+    });
+    const promise = result.current.mutateAsync({
+      beatNum: 6,
+      videoBackend: "huimeng_seedance-1.0-pro-fast",
+    });
+
+    await expect(promise).rejects.toMatchObject({
+      name: "ProjectQueueLimitError",
+      queueKind: "video",
+    });
+    await expect(promise).rejects.toBeInstanceOf(ProjectQueueLimitError);
   });
 });

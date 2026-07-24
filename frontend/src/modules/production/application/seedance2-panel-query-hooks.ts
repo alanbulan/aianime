@@ -7,37 +7,12 @@ import {
 } from "@tanstack/react-query";
 
 import { queryKeys } from "@/lib/query-keys";
-import type { Beat } from "@/modules/narrative_planning/public";
+import { patchBeatQueryCache } from "@/modules/production/application/beat-query-cache";
 import type {
-  ProductionDataResponse,
   ProductionVideoGateway,
   Seedance2BeatStatusResponse,
 } from "@/modules/production/application/ports";
 import type { VideoInputCropTarget } from "@/modules/production/domain/seedance2-panel";
-
-function patchSeedance2BeatConfig(
-  queryClient: QueryClient,
-  project: string,
-  episode: number,
-  beatNumber: number,
-  configJson: string,
-) {
-  if (!configJson) return;
-  queryClient.setQueryData<ProductionDataResponse<Beat[]>>(
-    queryKeys.beats(project, episode),
-    (old) => {
-      if (!old?.data) return old;
-      return {
-        ...old,
-        data: old.data.map((beat) =>
-          beat.beat_number === beatNumber
-            ? { ...beat, seedance2_config_json: configJson }
-            : beat,
-        ),
-      };
-    },
-  );
-}
 
 function syncSeedance2AssetMutation(
   queryClient: QueryClient,
@@ -56,13 +31,11 @@ function syncSeedance2AssetMutation(
     });
   }
   if (!response.ok) return;
-  patchSeedance2BeatConfig(
-    queryClient,
-    project,
-    episode,
-    beatNumber,
-    response.data.seedance2_config_json,
-  );
+  const configJson = response.data.seedance2_config_json;
+  if (!configJson) return;
+  patchBeatQueryCache(queryClient, project, episode, beatNumber, {
+    seedance2_config_json: configJson,
+  });
 }
 
 export function createSeedance2PanelQueryHooks(

@@ -208,14 +208,11 @@ vi.mock("@/lib/queries/tasks", () => ({
   }),
 }));
 
-vi.mock("@/lib/queries/video", () => ({
+vi.mock("@/modules/production/public", () => ({
   useGlobalOptimize: () => ({
     mutateAsync: vi.fn(),
     isPending: false,
   }),
-}));
-
-vi.mock("@/modules/production/public", () => ({
   useVideoBackends: () => ({
     data: {
       ok: true,

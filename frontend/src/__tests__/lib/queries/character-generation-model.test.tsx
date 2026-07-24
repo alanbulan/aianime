@@ -18,7 +18,6 @@ import {
   useGeneratePortraitAsync,
   useGenerateSceneMasterAsync,
 } from "@/modules/asset_world/public";
-import { useRegenerateBeatVideo } from "@/lib/queries/video";
 
 const server = setupServer();
 
@@ -116,42 +115,6 @@ describe("character generation model selection", () => {
     await expect(promise).rejects.toMatchObject({
       name: "ProjectQueueLimitError",
       queueKind: "default",
-    });
-    await expect(promise).rejects.toBeInstanceOf(ProjectQueueLimitError);
-  });
-
-  it("surfaces backend queue-limit errors when generating a beat video", async () => {
-    server.use(
-      http.post(
-        "http://localhost:3000/api/v1/projects/demo/episodes/1/beats/6/video",
-        () =>
-          HttpResponse.json(
-            {
-              ok: false,
-              error: "当前项目 video 队列任务已满，请等待已有任务完成后再提交",
-              data: {
-                project_id: "demo",
-                queue_kind: "video",
-                limit: 1,
-                active: 1,
-              },
-            },
-            { status: 429 },
-          ),
-      ),
-    );
-
-    const { result } = renderHook(() => useRegenerateBeatVideo("demo", 1), {
-      wrapper,
-    });
-
-    const promise = result.current.mutateAsync({
-      beatNum: 6,
-      videoBackend: "huimeng_seedance-1.0-pro-fast",
-    });
-    await expect(promise).rejects.toMatchObject({
-      name: "ProjectQueueLimitError",
-      queueKind: "video",
     });
     await expect(promise).rejects.toBeInstanceOf(ProjectQueueLimitError);
   });

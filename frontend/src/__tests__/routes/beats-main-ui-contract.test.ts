@@ -206,13 +206,21 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
     const videoPane = read(
       "src/components/episode/beat-workbench/video-pane.tsx",
     );
-    const videoQuery = read("src/lib/queries/video.ts");
+    const videoGeneration = read(
+      "src/modules/production/domain/video-generation.ts",
+    );
+    const productionVideoGateway = read(
+      "src/modules/production/infrastructure/http-production-video-gateway.ts",
+    );
     const projectTypes = read(
       "src/modules/project_workspace/domain/project.ts",
     );
 
     expect(projectTypes).toContain("use_director_render?: boolean");
-    expect(videoQuery).toContain("use_director_render?: boolean");
+    expect(videoGeneration).toContain("useDirectorRender?: boolean");
+    expect(productionVideoGateway).toContain(
+      "use_director_render: command.useDirectorRender",
+    );
     expect(pageSources).not.toContain("handleUseDirectorRenderChange");
     expect(view).not.toContain("useDirectorRender={useDirectorRender}");
     expect(batchBar).not.toContain("useDirectorRender");

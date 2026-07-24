@@ -70,13 +70,15 @@ describe("beats sketch/render v2 contract", () => {
 
   it("keeps AI prompt optimization in the sketch SuperPower workflow", () => {
     const batchBar = read("src/components/episode/beat-workbench/batch-bar.tsx");
-    const videoQueries = read("src/lib/queries/video.ts");
+    const productionVideoGateway = read(
+      "src/modules/production/infrastructure/http-production-video-gateway.ts",
+    );
     const renderedActions = batchBar.slice(batchBar.indexOf("return ("));
 
     const superpowerAction = renderedActions.indexOf("episode.workbench.batch.aiOptimizeTitle");
 
     expect(batchBar).toContain("useGlobalOptimize");
-    expect(videoQueries).toContain("optimize/video-global");
+    expect(productionVideoGateway).toContain("optimize/video-global");
     expect(superpowerAction).toBeGreaterThan(-1);
     expect(renderedActions).not.toContain("openRenderPlan(false)");
     expect(renderedActions).not.toContain("episode.workbench.batch.genVideoTitle");

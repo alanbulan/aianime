@@ -1,5 +1,11 @@
 // Copyright (c) 2026 AI anime
+import type { Beat } from "@/modules/narrative_planning/public";
 import type { VideoBackendOption } from "@/modules/production/domain/video-backend";
+import type {
+  GenerateSeedance2PromptCommand,
+  RegenerateBeatVideoCommand,
+  VideoPromptLanguage,
+} from "@/modules/production/domain/video-generation";
 import type { VideoPoolData } from "@/modules/production/domain/video-pool";
 import type {
   Seedance2BeatStatus,
@@ -15,6 +21,28 @@ export interface ProductionErrorResponse {
   ok: false;
   error: string;
   code?: string;
+}
+
+export interface ProductionTaskResponse {
+  ok: true;
+  task_type: string;
+  task_id?: string;
+  task_key?: string;
+  message: string;
+  scope?: string;
+}
+
+export interface Seedance2PromptResult {
+  beat: Beat;
+  seedance2_config_json: string;
+  final_prompt: string;
+  prompt_source?: string;
+}
+
+export interface BeatVideoPromptResult {
+  beat: Beat;
+  field: "video_prompt" | "keyframe_prompt";
+  prompt: string;
 }
 
 export interface ProductionVideoGateway {
@@ -70,12 +98,42 @@ export interface ProductionVideoGateway {
     startSeconds: number,
     durationSeconds: number,
   ): Promise<Seedance2BeatStatusResponse>;
+  optimizeEpisodeVideo(
+    project: string,
+    episode: number,
+    language: VideoPromptLanguage,
+  ): Promise<ProductionTaskResponse | ProductionErrorResponse>;
+  generateSeedance2Prompt(
+    project: string,
+    episode: number,
+    command: GenerateSeedance2PromptCommand,
+  ): Promise<Seedance2PromptResponse>;
+  generateBeatVideoPrompt(
+    project: string,
+    episode: number,
+    beatNumber: number,
+    language: VideoPromptLanguage,
+  ): Promise<BeatVideoPromptResponse>;
+  regenerateBeatVideo(
+    project: string,
+    episode: number,
+    command: RegenerateBeatVideoCommand,
+  ): Promise<ProductionTaskResponse | ProductionErrorResponse>;
 }
 
 export type VideoPoolResponse = ProductionDataResponse<VideoPoolData | null>;
 
 export type Seedance2BeatStatusResponse =
   | ProductionDataResponse<Seedance2BeatStatus>
+  | ProductionErrorResponse;
+
+export type Seedance2PromptResponse =
+  | ProductionDataResponse<Seedance2PromptResult>
+  | ProductionErrorResponse;
+
+export type BeatVideoPromptResponse =
+  | ProductionDataResponse<BeatVideoPromptResult>
+  | ProductionTaskResponse
   | ProductionErrorResponse;
 
 export interface VideoPoolSelectResponse {

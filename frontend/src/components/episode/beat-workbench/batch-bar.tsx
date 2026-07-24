@@ -15,7 +15,6 @@ import {
   useAssignColors,
   useDetectIdentities,
 } from "@/lib/queries/sketches";
-import { useGlobalOptimize } from "@/lib/queries/video";
 import { useTaskController } from "@/hooks/use-task-controller";
 import { queryKeys } from "@/lib/query-keys";
 import { TASK_TYPES } from "@/lib/task-types";
@@ -29,7 +28,10 @@ import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import { CreditCostInline } from "@/components/credit-cost-inline";
 import { CreditCostPill, formatCreditCost } from "@/components/credits/credit-visual";
 import type { Beat } from "@/modules/narrative_planning/public";
-import { useVideoBackends } from "@/modules/production/public";
+import {
+  useGlobalOptimize,
+  useVideoBackends,
+} from "@/modules/production/public";
 
 import { RenderModelSelect } from "./render-settings-controls";
 import { SketchModelSelect, SketchAspectCheckbox } from "./sketch-settings-controls";
