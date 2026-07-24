@@ -34,6 +34,11 @@ if TYPE_CHECKING:
         TrimSeedance2AudioAssetCommand,
         UploadSeedance2AssetCommand,
     )
+    from ai_anime.modules.production.application.single_video import (
+        GenerateSingleVideoCommand,
+        SingleVideoTask,
+        SingleVideoTaskReceipt,
+    )
     from ai_anime.modules.production.domain.video_pool import (
         VideoPool,
         VideoPoolEntry,
@@ -425,3 +430,28 @@ class ProductionSeedance2PanelGateway(Protocol):
         context: ProjectContext,
         command: TrimSeedance2AudioAssetCommand,
     ) -> dict[str, Any] | None: ...
+
+
+class ProductionBeatAudioDurationSource(Protocol):
+    async def for_beat(
+        self,
+        context: ProjectContext,
+        episode_num: int,
+        beat_num: int,
+    ) -> float | None: ...
+
+
+class ProductionSingleVideoPreparer(Protocol):
+    async def prepare(
+        self,
+        context: ProjectContext,
+        command: GenerateSingleVideoCommand,
+    ) -> SingleVideoTask: ...
+
+
+class ProductionSingleVideoScheduler(Protocol):
+    async def enqueue(
+        self,
+        context: ProjectContext,
+        task: SingleVideoTask,
+    ) -> SingleVideoTaskReceipt: ...

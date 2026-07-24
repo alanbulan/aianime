@@ -94,6 +94,13 @@ from ai_anime.modules.production.application.seedance2_panel import (
     TrimSeedance2AudioAssetCommand,
     UploadSeedance2AssetCommand,
 )
+from ai_anime.modules.production.application.single_video import (
+    SINGLE_VIDEO_TASK_TYPE,
+    GenerateSingleVideoCommand,
+    ScheduledSingleVideo,
+    SingleVideoRejected,
+    SingleVideoUseCases,
+)
 from ai_anime.modules.production.domain.video_backend import (
     DEFAULT_VIDEO_BACKEND,
     grok_video_ratio,
@@ -163,6 +170,12 @@ def global_video_optimization_use_cases() -> GlobalVideoOptimizationUseCases:
 
 def seedance2_panel_use_cases() -> Seedance2PanelUseCases:
     from ai_anime.modules.production.composition import seedance2_panel_use_cases as build
+
+    return build()
+
+
+def single_video_use_cases() -> SingleVideoUseCases:
+    from ai_anime.modules.production.composition import single_video_use_cases as build
 
     return build()
 
@@ -240,6 +253,7 @@ __all__ = [
     "DEFAULT_VIDEO_BACKEND",
     "GLOBAL_VIDEO_OPTIMIZATION_TASK_TYPE",
     "INDEXTTS2_AUDIO_TASK_TYPE",
+    "SINGLE_VIDEO_TASK_TYPE",
     "AudioVoicePrerequisitesMissing",
     "BRIDGMAN_CHARACTER_PALETTE",
     "ComposeEpisodeVideoCommand",
@@ -259,6 +273,7 @@ __all__ = [
     "FinalEpisodeVideoStatus",
     "FinalEpisodeVideoMissing",
     "GenerateEpisodeAudioCommand",
+    "GenerateSingleVideoCommand",
     "GlobalVideoOptimizationBeatsMissing",
     "GlobalVideoOptimizationSketchesMissing",
     "GlobalVideoOptimizationUseCases",
@@ -274,10 +289,13 @@ __all__ = [
     "ScheduledEpisodeVideo",
     "ScheduledEpisodeAudio",
     "ScheduledGlobalVideoOptimization",
+    "ScheduledSingleVideo",
     "Seedance2PanelBeatMissing",
     "Seedance2PanelOperationRejected",
     "Seedance2PanelQuery",
     "Seedance2PanelUseCases",
+    "SingleVideoRejected",
+    "SingleVideoUseCases",
     "SketchCropRejected",
     "SketchColorAssignmentResult",
     "SketchColorAssignmentUseCases",
@@ -326,6 +344,7 @@ __all__ = [
     "seedance2_api_resolution",
     "seedance2_panel_use_cases",
     "seedance2_resolution",
+    "single_video_use_cases",
     "video_backend_catalog_use_cases",
     "video_pool_use_cases",
 ]

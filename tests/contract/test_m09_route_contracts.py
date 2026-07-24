@@ -278,9 +278,6 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     async def character_map(*_args, **_kwargs):
         return {}
 
-    async def audio_duration(*_args, **_kwargs):
-        return 4.0
-
     async def srt_duration(*_args, **_kwargs):
         return 5.0
 
@@ -304,7 +301,6 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         "production_generation_context_use_cases",
         lambda *_: generation_context,
     )
-    monkeypatch.setattr(generation, "_api_audio_duration_seconds", audio_duration)
     monkeypatch.setattr(generation, "load_project_config", lambda *_: {})
     monkeypatch.setattr(
         generation,
@@ -328,7 +324,6 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         "seedance2_panel_use_cases",
         lambda: seedance2_panel,
     )
-
     monkeypatch.setattr(files, "resolve_project_scope", resolve_project_scope)
     monkeypatch.setattr(assets, "resolve_project_scope", resolve_project_scope)
     monkeypatch.setattr(assets, "make_sqlite_store_for_context", make_store_for_context)
@@ -339,6 +334,25 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
     def build(backend: str = "inline"):
         task_backend = _FakeTaskBackend(backend)
+
+        async def schedule_single_video(*_args, **_kwargs):
+            queue = "inline" if backend == "inline" else "node.local.video"
+            return SimpleNamespace(
+                as_dict=lambda: {
+                    "task_type": "single_video",
+                    "task_id": f"task-{backend}-single-video",
+                    "task_key": "task:single_video:project:proj_m09:1:1",
+                    "backend": backend,
+                    "queue": queue,
+                    "message": "第 1 集 Beat 1 视频生成已入队",
+                }
+            )
+
+        monkeypatch.setattr(
+            generation,
+            "single_video_use_cases",
+            lambda: SimpleNamespace(generate=schedule_single_video),
+        )
         monkeypatch.setattr(generation, "get_task_backend", lambda tb=task_backend: tb)
         monkeypatch.setattr(runtime_ports, "get_task_backend", lambda tb=task_backend: tb)
         app = FastAPI()

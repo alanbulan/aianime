@@ -9,6 +9,7 @@ from typing import Any
 from ai_anime.modules.production.public import (
     AddGeneratedVideoCommand,
     GLOBAL_VIDEO_OPTIMIZATION_TASK_TYPE,
+    SINGLE_VIDEO_TASK_TYPE,
     is_seedance2_backend,
     video_pool_use_cases,
 )
@@ -85,7 +86,7 @@ def _append_freezone_video_node_history(
 
 
 async def _run_single_video_async(envelope: dict[str, Any], ctx: ProjectContext) -> dict[str, Any]:
-    task_type = "single_video"
+    task_type = SINGLE_VIDEO_TASK_TYPE
     episode = int(envelope.get("episode") or 0)
     beat_num = int(envelope.get("beat_num") or 0)
     payload = envelope.get("payload") or {}
@@ -241,12 +242,12 @@ def run_single_video(envelope: dict[str, Any], ctx: ProjectContext) -> dict[str,
         await_envelope_with_cancel_watch(
             _run_single_video_async(envelope, ctx),
             envelope,
-            task_type="single_video",
+            task_type=SINGLE_VIDEO_TASK_TYPE,
         )
     )
 
 
-register_project_task_runner("single_video", run_single_video)
+register_project_task_runner(SINGLE_VIDEO_TASK_TYPE, run_single_video)
 
 
 def _audio_duration(audio_path: Path, *, timeout_seconds: int | None = 30) -> float | None:
@@ -372,7 +373,7 @@ async def _run_video_generation_async(
                 video_mode = "first_frame"
 
         single_envelope = {
-            "task_type": "single_video",
+            "task_type": SINGLE_VIDEO_TASK_TYPE,
             "episode": episode,
             "beat_num": beat_num,
             "payload": {

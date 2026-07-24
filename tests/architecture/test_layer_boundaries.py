@@ -585,6 +585,48 @@ def test_production_seedance2_panel_routes_delegate_to_application() -> None:
         assert implementation_detail not in route_source
 
 
+def test_production_single_video_route_delegates_to_application() -> None:
+    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    video_runner = PACKAGE_ROOT / "task_backend" / "runners" / "video.py"
+    source = generation.read_text(encoding="utf-8")
+    route_start = source.index("async def generate_single_video(")
+    route_end = source.index("async def list_video_pool(", route_start)
+    route_source = source[route_start:route_end]
+
+    assert route_source.count("single_video_use_cases") == 1
+    assert "GenerateSingleVideoCommand" in route_source
+    for legacy_helper in (
+        "_validate_seedance_pro_dialogue_only",
+        "_seedance2_initial_prompt",
+        "_legacy_video_prompt_for_mode",
+        "_missing_video_prompt_error",
+        "SEEDANCE2_SINGLE_VIDEO_CONFIG_FIELDS",
+        "_seedance2_request_config_overrides",
+        "_merge_seedance2_request_config",
+        "_api_audio_duration_seconds",
+        "_prepare_seedance2_api_beat",
+        "_prepare_happyhorse_api_beat",
+        "_prepare_grok_video_api_beat",
+    ):
+        assert legacy_helper not in source
+    for implementation_detail in (
+        "make_sqlite_store_for_context",
+        "make_sqlite_store(",
+        "get_beats_as_dicts",
+        "PathResolver",
+        "resolve_target_video_duration",
+        "prepare_seedance2_generation_inputs",
+        "_runtime_prop_menu_with_global_props",
+        "get_task_backend",
+        "enqueue_project_task",
+        "project_task_state_key",
+        "单条视频生成需要 project context",
+    ):
+        assert implementation_detail not in route_source
+    runner_source = video_runner.read_text(encoding="utf-8")
+    assert "SINGLE_VIDEO_TASK_TYPE" in runner_source
+
+
 def test_production_generation_context_routes_delegate_to_application() -> None:
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     freezone = PACKAGE_ROOT / "api" / "routes" / "freezone.py"

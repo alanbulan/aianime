@@ -45,6 +45,9 @@ from ai_anime.modules.production.application.global_video_optimization import (
 from ai_anime.modules.production.application.seedance2_panel import (
     Seedance2PanelUseCases,
 )
+from ai_anime.modules.production.application.single_video import (
+    SingleVideoUseCases,
+)
 from ai_anime.modules.production.infrastructure.sketch_image import (
     PillowSketchImageFiles,
 )
@@ -99,6 +102,11 @@ from ai_anime.modules.production.infrastructure.global_video_optimization import
 )
 from ai_anime.modules.production.infrastructure.seedance2_panel import (
     LocalSeedance2PanelGateway,
+)
+from ai_anime.modules.production.infrastructure.single_video import (
+    LocalSingleVideoPreparer,
+    MediaIoBeatAudioDurationSource,
+    TaskBackendSingleVideoScheduler,
 )
 from ai_anime.modules.project_workspace.public import get_user_output_dir
 
@@ -158,6 +166,19 @@ def seedance2_panel_use_cases() -> Seedance2PanelUseCases:
             CompatibleEpisodeSource(),
             AssetWorldRuntimePropMenuSource(),
         )
+    )
+
+
+def single_video_use_cases() -> SingleVideoUseCases:
+    from ai_anime import ports
+
+    return SingleVideoUseCases(
+        LocalSingleVideoPreparer(
+            CompatibleEpisodeSource(),
+            AssetWorldRuntimePropMenuSource(),
+            MediaIoBeatAudioDurationSource(),
+        ),
+        TaskBackendSingleVideoScheduler(ports.get_task_backend),
     )
 
 

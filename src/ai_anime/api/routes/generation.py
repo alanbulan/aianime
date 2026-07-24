@@ -65,7 +65,6 @@ from ai_anime.modules.narrative_planning.public import (
     choose_manual_sketch_mode_key,
     missing_manual_shot_segments,
     pick_beats_by_number,
-    resolve_target_video_duration,
     storyboard_beats_for_manual_sketches,
 )
 from ai_anime.modules.asset_world.public import (
@@ -96,6 +95,7 @@ from ai_anime.modules.production.public import (
     EpisodeSubtitlesMissing,
     FinalEpisodeVideoMissing,
     GenerateEpisodeAudioCommand,
+    GenerateSingleVideoCommand,
     GlobalVideoOptimizationBeatsMissing,
     GlobalVideoOptimizationSketchesMissing,
     ImageGenerationGuardQuery,
@@ -111,22 +111,15 @@ from ai_anime.modules.production.public import (
     Seedance2PanelBeatMissing,
     Seedance2PanelOperationRejected,
     Seedance2PanelQuery,
+    SingleVideoRejected,
     TrimSeedance2AudioAssetCommand,
     UpdateRenderImageSettingsCommand,
     UpdateSketchImageSettingsCommand,
     UploadSeedance2AssetCommand,
     VideoPoolEntryUnavailable,
-    grok_video_ratio as normalize_grok_video_ratio,
-    grok_video_resolution,
     global_video_optimization_use_cases,
-    happyhorse_ratio as normalize_happyhorse_ratio,
-    happyhorse_resolution,
-    is_grok_video_backend,
-    is_happyhorse_backend,
-    is_seedance2_backend,
-    seedance2_api_resolution,
     seedance2_panel_use_cases,
-    seedance2_resolution,
+    single_video_use_cases,
     episode_audio_use_cases,
     episode_export_use_cases,
     episode_video_use_cases,
@@ -142,9 +135,6 @@ from ai_anime.modules.production.public import (
     video_pool_use_cases,
 )
 from ai_anime.render_plan.ref_image_hash import RefImageHasher
-from ai_anime.seedance2_i2v.pipeline import (
-    prepare_seedance2_generation_inputs,
-)
 from ai_anime.project_config import load_project_config
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.ports import get_task_backend, get_usage_meter
@@ -409,336 +399,6 @@ def _prop_marker_colors_from_menu(prop_menu: list[dict] | None) -> dict[str, str
         if prop_id and marker_color:
             colors[prop_id] = marker_color
     return colors
-
-
-def _validate_seedance_pro_dialogue_only(
-    beats: list[dict], video_backend: str
-) -> str | None:
-    """Seedance 1.5 有声仅允许 dialogue beat。"""
-    if video_backend not in {"seedance_pro", "newapi_seedance-1.5-pro"}:
-        return None
-
-    non_dialogue = [
-        int(beat.get("beat_number", 0))
-        for beat in beats
-        if beat.get("audio_type", "narration") != "dialogue"
-    ]
-    if not non_dialogue:
-        return None
-
-    preview = "、".join(str(num) for num in non_dialogue[:8])
-    suffix = " 等" if len(non_dialogue) > 8 else ""
-    return f"Seedance 1.5 有声只允许用于 dialogue beat；当前包含非 dialogue Beat: {preview}{suffix}"
-
-
-def _seedance2_initial_prompt(beat: dict[str, Any], video_mode: str) -> str:
-    if video_mode == "keyframe":
-        return str(beat.get("keyframe_prompt") or "").strip()
-    return str(beat.get("video_prompt") or beat.get("keyframe_prompt") or "").strip()
-
-
-def _legacy_video_prompt_for_mode(beat: dict[str, Any], video_mode: str) -> str:
-    if video_mode == "keyframe":
-        return str(beat.get("keyframe_prompt") or "").strip()
-    return str(beat.get("video_prompt") or "").strip()
-
-
-def _missing_video_prompt_error(beat_num: int) -> str:
-    return f"Beat {beat_num} 缺少视频提示词，请先点击“生成本 Beat 提示词”。"
-
-
-SEEDANCE2_SINGLE_VIDEO_CONFIG_FIELDS = {
-    "mode",
-    "duration",
-    "resolution",
-    "ratio",
-    "generate_audio",
-    "return_last_frame",
-    "human_review",
-    "scene_optimize",
-    "final_prompt",
-    "prompt_guidance",
-    "text_overlay",
-}
-
-
-def _seedance2_request_config_overrides(body: SingleVideoRequest) -> dict[str, Any]:
-    return {
-        field: getattr(body, field)
-        for field in SEEDANCE2_SINGLE_VIDEO_CONFIG_FIELDS
-        if field in body.model_fields_set and getattr(body, field) is not None
-    }
-
-
-def _merge_seedance2_request_config(
-    beat: dict[str, Any],
-    *,
-    seedance2_config_json: str | None = None,
-    config_overrides: dict[str, Any] | None = None,
-) -> str | None:
-    config_overrides = dict(config_overrides or {})
-    if seedance2_config_json is None and not config_overrides:
-        return None
-
-    from ai_anime.seedance2_i2v.models import (
-        dump_seedance2_config,
-        parse_seedance2_config,
-    )
-
-    merged = parse_seedance2_config(beat.get("seedance2_config_json")).model_dump(
-        mode="json"
-    )
-    incoming: dict[str, Any] = {}
-    if seedance2_config_json is not None:
-        try:
-            incoming = json.loads(str(seedance2_config_json or "{}"))
-        except json.JSONDecodeError as exc:
-            raise ValueError("seedance2_config_json must be valid JSON") from exc
-        if not isinstance(incoming, dict):
-            raise ValueError("seedance2_config_json must be a JSON object")
-        merged.update(incoming)
-    merged.update(config_overrides)
-
-    if "generate_audio" in incoming or "generate_audio" in config_overrides:
-        merged["generate_audio_user_set"] = True
-    if "human_review" in incoming or "human_review" in config_overrides:
-        merged["human_review_user_set"] = True
-
-    saved_json = dump_seedance2_config(merged)
-    beat["seedance2_config_json"] = saved_json
-    return saved_json
-
-
-async def _api_audio_duration_seconds(
-    output_dir: str | Path, episode: int, beat_num: int
-):
-    from ai_anime.utils.media_io import get_audio_duration_async
-    from ai_anime.utils.path_resolver import PathResolver
-
-    audio_path = PathResolver(output_dir, episode).audio(beat_num)
-    if not audio_path.exists():
-        return None
-    return await get_audio_duration_async(str(audio_path))
-
-
-async def _prepare_seedance2_api_beat(
-    *,
-    store: Any,
-    output_dir: str | Path,
-    episode: int,
-    beat: dict[str, Any],
-    all_beats: list[dict[str, Any]],
-    index: int,
-    video_backend: str | None,
-    resolution: str | None,
-    ratio: str | None = None,
-    prop_menu: list[Any] | None = None,
-) -> Any:
-    from ai_anime.seedance2_i2v.models import parse_seedance2_config
-
-    beat_num = int(beat.get("beat_number") or index + 1)
-    video_mode = str(beat.get("video_mode") or "first_frame")
-    audio_duration = await _api_audio_duration_seconds(output_dir, episode, beat_num)
-    target_duration = resolve_target_video_duration(beat, audio_duration)
-    current_config = parse_seedance2_config(beat.get("seedance2_config_json"))
-    requested_resolution = (
-        seedance2_api_resolution(resolution)
-        if resolution
-        else current_config.resolution
-    )
-    prepared = await prepare_seedance2_generation_inputs(
-        project_output=output_dir,
-        episode=episode,
-        beat=beat,
-        next_beat=all_beats[index + 1] if index + 1 < len(all_beats) else None,
-        video_mode=video_mode,
-        prompt=_seedance2_initial_prompt(beat, video_mode),
-        duration=target_duration,
-        resolution=seedance2_resolution(
-            video_backend,
-            requested_resolution,
-        ),
-        ratio=ratio,
-        prop_menu=prop_menu,
-    )
-    if not str(prepared.prompt or "").strip():
-        raise ValueError(
-            f"Beat {beat_num} Seedance 2.0 最终提示词为空，"
-            "请先填写 Seedance2.0主体提示词或点击“AI 优化”。"
-        )
-
-    beat["seedance2_config_json"] = prepared.seedance2_config_json
-    if hasattr(store, "update_beat_asset"):
-        await store.update_beat_asset(
-            episode_number=episode,
-            beat_number=beat_num,
-            seedance2_config_json=prepared.seedance2_config_json,
-        )
-    return prepared
-
-
-async def _prepare_happyhorse_api_beat(
-    *,
-    output_dir: str | Path,
-    episode: int,
-    beat: dict[str, Any],
-    next_beat: dict[str, Any] | None,
-    frame_path: Path,
-    video_mode: str,
-    prompt: str,
-    duration: float,
-    resolution: str | None,
-    ratio: str | None,
-    prop_menu: list[Any] | None = None,
-) -> dict[str, Any]:
-    from ai_anime.seedance2_i2v.assets import (
-        append_seedance2_user_reference_assets,
-        build_seedance2_project_assets,
-        selected_reference_paths,
-    )
-    from ai_anime.seedance2_i2v.models import (
-        Seedance2I2VMode,
-        dump_seedance2_config,
-        parse_seedance2_config,
-    )
-
-    config = parse_seedance2_config(beat.get("seedance2_config_json"))
-    mode = config.mode
-    if mode == Seedance2I2VMode.FIRST_LAST_FRAME or video_mode == "keyframe":
-        raise ValueError("HappyHorse 1.0 不支持首尾帧模式，请改用首帧模式或多参模式")
-
-    final_prompt = str(config.final_prompt or prompt or "").strip()
-    if not final_prompt:
-        beat_num = int(beat.get("beat_number") or 0)
-        prefix = f"Beat {beat_num} " if beat_num else ""
-        raise ValueError(f"{prefix}缺少视频提示词，请先生成或填写视频提示词")
-
-    target_duration = int(config.duration or duration or 0)
-    config.duration = target_duration
-    config.resolution = happyhorse_resolution(
-        resolution or config.resolution
-    )
-    config.ratio = normalize_happyhorse_ratio(ratio or config.ratio)
-    config.final_prompt = final_prompt
-
-    image_path: str | None = None
-    references: list[dict[str, str]] = []
-
-    if mode == Seedance2I2VMode.FIRST_FRAME:
-        image_path = str(frame_path)
-    else:
-        assets = build_seedance2_project_assets(
-            project_output=Path(output_dir),
-            episode=episode,
-            beat=beat,
-            mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
-            next_beat=next_beat,
-            prop_menu=prop_menu,
-        )
-        append_seedance2_user_reference_assets(
-            assets,
-            reference_image_paths=list(config.reference_image_paths),
-            reference_audio_paths=[],
-        )
-        image_paths = selected_reference_paths(assets, "reference_images")
-        config.reference_image_paths = list(dict.fromkeys(image_paths))[:9]
-        config.reference_audio_paths = []
-        references = [
-            {"type": "image", "path": path, "role": f"图片{index}"}
-            for index, path in enumerate(config.reference_image_paths, 1)
-        ]
-
-    return {
-        "prompt": final_prompt,
-        "duration": target_duration,
-        "resolution": config.resolution,
-        "ratio": config.ratio,
-        "image_path": image_path,
-        "references": references,
-        "config_json": dump_seedance2_config(config),
-    }
-
-
-async def _prepare_grok_video_api_beat(
-    *,
-    output_dir: str | Path,
-    episode: int,
-    beat: dict[str, Any],
-    next_beat: dict[str, Any] | None,
-    frame_path: Path,
-    video_mode: str,
-    prompt: str,
-    duration: float,
-    resolution: str | None,
-    ratio: str | None,
-    prop_menu: list[Any] | None = None,
-) -> dict[str, Any]:
-    from ai_anime.seedance2_i2v.assets import (
-        append_seedance2_user_reference_assets,
-        build_seedance2_project_assets,
-        selected_reference_paths,
-    )
-    from ai_anime.seedance2_i2v.models import (
-        Seedance2I2VMode,
-        dump_seedance2_config,
-        parse_seedance2_config,
-    )
-
-    config = parse_seedance2_config(beat.get("seedance2_config_json"))
-    mode = config.mode
-    if mode == Seedance2I2VMode.FIRST_LAST_FRAME or video_mode == "keyframe":
-        raise ValueError("Grok Video 不支持首尾帧模式，请改用首帧模式或多参模式")
-
-    final_prompt = str(config.final_prompt or prompt or "").strip()
-    if not final_prompt:
-        beat_num = int(beat.get("beat_number") or 0)
-        prefix = f"Beat {beat_num} " if beat_num else ""
-        raise ValueError(f"{prefix}缺少视频提示词，请先生成或填写视频提示词")
-
-    target_duration = int(config.duration or duration or 0)
-    config.duration = target_duration
-    config.resolution = grok_video_resolution(
-        resolution or config.resolution
-    )
-    config.ratio = normalize_grok_video_ratio(ratio or config.ratio)
-    config.final_prompt = final_prompt
-
-    image_path: str | None = None
-    references: list[dict[str, str]] = []
-
-    if mode == Seedance2I2VMode.FIRST_FRAME:
-        image_path = str(frame_path)
-    else:
-        assets = build_seedance2_project_assets(
-            project_output=Path(output_dir),
-            episode=episode,
-            beat=beat,
-            mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
-            next_beat=next_beat,
-            prop_menu=prop_menu,
-        )
-        append_seedance2_user_reference_assets(
-            assets,
-            reference_image_paths=list(config.reference_image_paths),
-            reference_audio_paths=[],
-        )
-        image_paths = selected_reference_paths(assets, "reference_images")
-        config.reference_image_paths = list(dict.fromkeys(image_paths))[:7]
-        config.reference_audio_paths = []
-        references = [
-            {"type": "image", "path": path, "role": f"图片{index}"}
-            for index, path in enumerate(config.reference_image_paths, 1)
-        ]
-
-    return {
-        "prompt": final_prompt,
-        "duration": target_duration,
-        "resolution": config.resolution,
-        "ratio": config.ratio,
-        "image_path": image_path,
-        "references": references,
-        "config_json": dump_seedance2_config(config),
-    }
 
 
 @router.get(
@@ -2987,296 +2647,33 @@ async def generate_single_video(
 ):
     """单 Beat 视频再生。"""
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    ctx = resolved.ctx
-    username = resolved.username
-    project_name = resolved.project_name
-    output_dir = resolved.output_dir
-    store = (
-        await make_sqlite_store_for_context(ctx)
-        if ctx
-        else await make_sqlite_store(username, project_name)
-    )
-
-    # 加载 beat 数据
-    beats = await store.get_beats_as_dicts(episode_num)
-    beat = next((b for b in beats if b.get("beat_number") == beat_num), None)
-    if not beat:
-        return {"ok": False, "error": f"Beat {beat_num} not found"}
-    backend_error = _validate_seedance_pro_dialogue_only([beat], body.video_backend)
-    if backend_error:
-        return {"ok": False, "error": backend_error}
-    is_seedance2 = is_seedance2_backend(body.video_backend)
-    is_happyhorse = is_happyhorse_backend(body.video_backend)
-    is_grok_video = is_grok_video_backend(body.video_backend)
-
-    # 首帧路径
-    from ai_anime.utils.path_resolver import PathResolver
-
-    paths = PathResolver(output_dir, episode_num)
-    frame_path = paths.first_frame_for_video(
-        beat_num,
-        use_director_render=bool(body.use_director_render),
-    )
-    if not frame_path.exists():
-        return {"ok": False, "error": f"Beat {beat_num} 首帧不存在，请先生成预览"}
-
-    # 视频模式与提示词
-    video_mode = beat.get("video_mode", "first_frame")
-    prompt = _legacy_video_prompt_for_mode(beat, video_mode)
-
-    # 音频时长
-    audio_duration = await _api_audio_duration_seconds(
-        output_dir, episode_num, beat_num
-    )
-    video_duration = resolve_target_video_duration(beat, audio_duration)
-
-    # 尾帧路径 (keyframe 模式)
-    last_frame_path = None
-    if video_mode == "keyframe":
-        next_frame = paths.first_frame_for_video(
-            beat_num + 1,
-            use_director_render=bool(body.use_director_render),
-        )
-        if next_frame.exists():
-            last_frame_path = str(next_frame)
-        else:
-            video_mode = "first_frame"  # 回退
-            prompt = _legacy_video_prompt_for_mode(beat, video_mode)
-
-    seedance2_config_json = None
-    single_video_resolution: str | None = None
-    happyhorse_references: list[dict[str, str]] = []
-    happyhorse_ratio: str | None = None
-    grok_video_references: list[dict[str, str]] = []
-    grok_video_ratio: str | None = None
-    if is_seedance2:
-        try:
-            request_config_json = _merge_seedance2_request_config(
-                beat,
-                seedance2_config_json=body.seedance2_config_json,
-                config_overrides=_seedance2_request_config_overrides(body),
-            )
-            if request_config_json and hasattr(store, "update_beat_asset"):
-                await store.update_beat_asset(
-                    episode_number=episode_num,
-                    beat_number=beat_num,
-                    seedance2_config_json=request_config_json,
-                )
-            beat_index = beats.index(beat)
-            episode_obj = production_generation_context_use_cases(
-                store,
-                username,
-            ).episode_or_none(episode_num)
-            prop_menu = await _runtime_prop_menu_with_global_props(
-                store, episode_obj, beats
-            )
-            prepared = await _prepare_seedance2_api_beat(
-                store=store,
-                output_dir=output_dir,
-                episode=episode_num,
-                beat=beat,
-                all_beats=beats,
-                index=beat_index,
-                video_backend=body.video_backend,
-                resolution=body.resolution
-                if "resolution" in body.model_fields_set
-                else None,
-                ratio=body.ratio if "ratio" in body.model_fields_set else None,
-                prop_menu=prop_menu,
-            )
-        except ValueError as exc:
-            return {"ok": False, "error": str(exc)}
-        prompt = prepared.prompt
-        video_duration = prepared.duration
-        frame_path = Path(prepared.image_path) if prepared.image_path else frame_path
-        last_frame_path = prepared.last_frame_path
-        seedance2_config_json = prepared.seedance2_config_json
-        video_mode = "keyframe" if prepared.last_frame_path else "first_frame"
-    elif is_happyhorse:
-        try:
-            request_config_json = _merge_seedance2_request_config(
-                beat,
-                seedance2_config_json=body.seedance2_config_json,
-                config_overrides=_seedance2_request_config_overrides(body),
-            )
-            if request_config_json and hasattr(store, "update_beat_asset"):
-                await store.update_beat_asset(
-                    episode_number=episode_num,
-                    beat_number=beat_num,
-                    seedance2_config_json=request_config_json,
-                )
-            beat_index = beats.index(beat)
-            episode_obj = production_generation_context_use_cases(
-                store,
-                username,
-            ).episode_or_none(episode_num)
-            prop_menu = await _runtime_prop_menu_with_global_props(
-                store, episode_obj, beats
-            )
-            prepared = await _prepare_happyhorse_api_beat(
-                output_dir=output_dir,
-                episode=episode_num,
-                beat=beat,
-                next_beat=beats[beat_index + 1]
-                if beat_index + 1 < len(beats)
-                else None,
-                frame_path=frame_path,
-                video_mode=video_mode,
-                prompt=prompt,
-                duration=video_duration,
-                resolution=body.resolution
-                if "resolution" in body.model_fields_set
-                else None,
-                ratio=body.ratio if "ratio" in body.model_fields_set else None,
-                prop_menu=prop_menu,
-            )
-            if prepared["config_json"] and hasattr(store, "update_beat_asset"):
-                await store.update_beat_asset(
-                    episode_number=episode_num,
-                    beat_number=beat_num,
-                    seedance2_config_json=str(prepared["config_json"]),
-                )
-            prompt = str(prepared["prompt"])
-            video_duration = float(prepared["duration"])
-            frame_path = (
-                Path(str(prepared["image_path"])) if prepared["image_path"] else None
-            )
-            last_frame_path = None
-            seedance2_config_json = str(prepared["config_json"])
-            single_video_resolution = str(prepared["resolution"])
-            happyhorse_ratio = str(prepared["ratio"])
-            happyhorse_references = list(prepared.get("references") or [])
-            video_mode = "first_frame"
-        except ValueError as exc:
-            return {"ok": False, "error": str(exc)}
-    elif is_grok_video:
-        try:
-            request_config_json = _merge_seedance2_request_config(
-                beat,
-                seedance2_config_json=body.seedance2_config_json,
-                config_overrides=_seedance2_request_config_overrides(body),
-            )
-            if request_config_json and hasattr(store, "update_beat_asset"):
-                await store.update_beat_asset(
-                    episode_number=episode_num,
-                    beat_number=beat_num,
-                    seedance2_config_json=request_config_json,
-                )
-            beat_index = beats.index(beat)
-            episode_obj = production_generation_context_use_cases(
-                store,
-                username,
-            ).episode_or_none(episode_num)
-            prop_menu = await _runtime_prop_menu_with_global_props(
-                store, episode_obj, beats
-            )
-            prepared = await _prepare_grok_video_api_beat(
-                output_dir=output_dir,
-                episode=episode_num,
-                beat=beat,
-                next_beat=beats[beat_index + 1]
-                if beat_index + 1 < len(beats)
-                else None,
-                frame_path=frame_path,
-                video_mode=video_mode,
-                prompt=prompt,
-                duration=video_duration,
-                resolution=body.resolution
-                if "resolution" in body.model_fields_set
-                else None,
-                ratio=body.ratio if "ratio" in body.model_fields_set else None,
-                prop_menu=prop_menu,
-            )
-            if prepared["config_json"] and hasattr(store, "update_beat_asset"):
-                await store.update_beat_asset(
-                    episode_number=episode_num,
-                    beat_number=beat_num,
-                    seedance2_config_json=str(prepared["config_json"]),
-                )
-            prompt = str(prepared["prompt"])
-            video_duration = float(prepared["duration"])
-            frame_path = (
-                Path(str(prepared["image_path"])) if prepared["image_path"] else None
-            )
-            last_frame_path = None
-            seedance2_config_json = str(prepared["config_json"])
-            single_video_resolution = str(prepared["resolution"])
-            grok_video_ratio = str(prepared["ratio"])
-            grok_video_references = list(prepared.get("references") or [])
-            video_mode = "first_frame"
-        except ValueError as exc:
-            return {"ok": False, "error": str(exc)}
-    else:
-        if not prompt.strip():
-            return {"ok": False, "error": _missing_video_prompt_error(beat_num)}
-        # 非 seedance2 后端（含 seedance-1.5-pro）：透传用户选择的时长/清晰度，
-        # 并保证视频时长不短于音频（与 1.0 的 duration_floor 行为一致；
-        # 生成器侧再按模型上限 4-12 夹紧并向上取整）。
-        import math
-
-        if body.duration is not None:
-            try:
-                video_duration = float(body.duration)
-            except (TypeError, ValueError):
-                pass
-        if audio_duration:
-            video_duration = max(
-                float(video_duration), float(math.ceil(float(audio_duration)))
-            )
-        if "resolution" in body.model_fields_set:
-            single_video_resolution = seedance2_resolution(
-                body.video_backend, body.resolution
-            )
-
-    config = {
-        "beat": dict(beat),
-        "frame_path": str(frame_path) if frame_path else None,
-        "video_mode": video_mode,
-        "prompt": prompt,
-        "video_duration": video_duration,
-        "video_backend": body.video_backend,
-        "use_director_render": bool(body.use_director_render),
-        "last_frame_path": last_frame_path,
-        "cognee_store_project": f"{username}/{project_name}",
-    }
-    if seedance2_config_json:
-        config["seedance2_config"] = seedance2_config_json
-    if single_video_resolution:
-        config["resolution"] = single_video_resolution
-    if is_happyhorse:
-        config["ratio"] = normalize_happyhorse_ratio(happyhorse_ratio)
-        config["references"] = happyhorse_references
-        if body.audio_setting is not None:
-            config["audio_setting"] = body.audio_setting
-    if is_grok_video:
-        config["ratio"] = normalize_grok_video_ratio(grok_video_ratio)
-        config["references"] = grok_video_references
-
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type="single_video",
-            queue_kind="video",
-            episode=episode_num,
-            beat_num=beat_num,
-            payload={"config": config, "output_dir": output_dir},
-        )
-        return {
-            "ok": True,
-            "task_type": "single_video",
-            "task_id": queued.task_state.task_id,
-            "task_key": project_task_state_key(
-                "single_video",
-                ctx.project_id,
-                episode_num,
+    try:
+        scheduled = await single_video_use_cases().generate(
+            resolved.ctx,
+            GenerateSingleVideoCommand(
+                episode_num=episode_num,
                 beat_num=beat_num,
+                video_backend=body.video_backend,
+                resolution=body.resolution,
+                use_director_render=body.use_director_render,
+                seedance2_config_json=body.seedance2_config_json,
+                mode=body.mode,
+                duration=body.duration,
+                ratio=body.ratio,
+                generate_audio=body.generate_audio,
+                return_last_frame=body.return_last_frame,
+                human_review=body.human_review,
+                scene_optimize=body.scene_optimize,
+                final_prompt=body.final_prompt,
+                audio_setting=body.audio_setting,
+                prompt_guidance=body.prompt_guidance,
+                text_overlay=body.text_overlay,
+                provided_fields=frozenset(body.model_fields_set),
             ),
-            "backend": queued.backend,
-            "queue": queued.queue,
-            "message": f"第 {episode_num} 集 Beat {beat_num} 视频生成已入队",
-        }
-
-    return {"ok": False, "error": "单条视频生成需要 project context"}
+        )
+    except SingleVideoRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, **scheduled.as_dict()}
 
 
 # ── 视频池查看 & 选择 ─────────────────────────────────────────────────────────
