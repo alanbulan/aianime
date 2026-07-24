@@ -7,6 +7,12 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from ai_anime.models import NO_CHARACTER_MARKER
+from ai_anime.modules.production.application.selected_regeneration import (
+    ScheduledSelectedRegeneration,
+    SelectedRegenerationKind,
+    SelectedRegenerationRejected,
+    SelectedRegenerationTaskReceipt,
+)
 
 
 class _RenderRegenStore:
@@ -209,8 +215,34 @@ def test_render_selected_regen_returns_scope_and_passes_render_settings(
     tmp_path,
 ):
     from ai_anime.task_identity import selection_scope
+    from ai_anime.api.routes import generation
 
-    client, calls = _client(monkeypatch, tmp_path)
+    client, backend_calls = _client(monkeypatch, tmp_path)
+    use_case_calls = []
+    expected_scope = selection_scope("1x1_2-3", [3, 1])
+
+    class UseCases:
+        async def regenerate(self, context, command):
+            use_case_calls.append((context, command))
+            return ScheduledSelectedRegeneration(
+                kind=SelectedRegenerationKind.RENDER,
+                episode_num=2,
+                scope=expected_scope,
+                receipt=SelectedRegenerationTaskReceipt(
+                    task_id="task-1",
+                    task_key=(
+                        f"task:selected_regen:project:proj:2:{expected_scope}"
+                    ),
+                    backend="celery",
+                    queue="default",
+                ),
+            )
+
+    monkeypatch.setattr(
+        generation,
+        "selected_regeneration_use_cases",
+        lambda: UseCases(),
+    )
 
     response = client.post(
         "/api/v1/projects/demo/episodes/2/beats/regenerate",
@@ -224,45 +256,43 @@ def test_render_selected_regen_returns_scope_and_passes_render_settings(
 
     assert response.status_code == 200
     body = response.json()
-    expected_scope = selection_scope("1x1_2-3", [3, 1])
     assert body["ok"] is True
     assert body["task_type"] == "selected_regen"
     assert body["scope"] == expected_scope
-    assert calls[0]["payload"]["mode_key"] == "1x1_2-3"
-    assert (
-        calls[0]["payload"]["config"]["image_generation_selection"]
-        == "newapi_nanobanana2"
-    )
-    assert calls[0]["payload"]["config"]["sketch_aspect_padding"] is True
-    assert "force_half_k" not in calls[0]["payload"]["config"]
+    assert backend_calls == []
+    assert len(use_case_calls) == 1
+    command = use_case_calls[0][1]
+    assert command.kind is SelectedRegenerationKind.RENDER
+    assert command.episode_num == 2
+    assert command.beat_indices == (3, 1)
+    assert command.mode_key == "1x1_2-3"
+    assert command.image_generation_selection == "newapi_nanobanana2"
+    assert command.sketch_aspect_padding is True
 
 
-def test_render_selected_regen_checks_only_selected_beat_detection(
-    monkeypatch, tmp_path
-):
-    client, calls, seen_character_map_beats = _client_with_real_detection_guard(
-        monkeypatch,
-        tmp_path,
-        [
-            {"beat_number": 1, "narration_segment": "a", "detected_identities": []},
-            {
-                "beat_number": 2,
-                "narration_segment": "b",
-                "detected_identities": [NO_CHARACTER_MARKER],
-            },
-        ],
+def test_render_selected_regen_preserves_rejection_envelope(monkeypatch, tmp_path):
+    from ai_anime.api.routes import generation
+
+    client, backend_calls = _client(monkeypatch, tmp_path)
+
+    class UseCases:
+        async def regenerate(self, _context, _command):
+            raise SelectedRegenerationRejected("beat_indices 不能为空")
+
+    monkeypatch.setattr(
+        generation,
+        "selected_regeneration_use_cases",
+        lambda: UseCases(),
     )
 
     response = client.post(
         "/api/v1/projects/demo/episodes/2/beats/regenerate",
-        json={"beat_indices": [2], "mode_key": "1x1_2-3"},
+        json={"beat_indices": [], "mode_key": "1x1_2-3"},
     )
 
     assert response.status_code == 200
-    body = response.json()
-    assert body["ok"] is True
-    assert calls[0]["payload"]["config"]["selected_beat_numbers"] == [2]
-    assert seen_character_map_beats == [[2]]
+    assert response.json() == {"ok": False, "error": "beat_indices 不能为空"}
+    assert backend_calls == []
 
 
 @pytest.mark.m09

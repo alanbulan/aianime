@@ -184,6 +184,7 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api import auth as api_auth
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.routes import assets, files, generation
+    from ai_anime.modules.production import composition as production_composition
     from ai_anime.modules.production.infrastructure import (
         episode_export,
         episode_video,
@@ -284,6 +285,9 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     async def seedance2_panel_response(*_args, **_kwargs):
         return {"ok": True, "data": {"beat_num": 1, "assets": {"items": []}}}
 
+    async def runtime_prop_menu(*_args, **_kwargs):
+        return []
+
     monkeypatch.setattr(generation, "_resolve_generation_project", resolve_generation_project)
     monkeypatch.setattr(generation, "make_sqlite_store_for_context", make_store_for_context)
     monkeypatch.setattr(generation, "make_sqlite_store", make_store)
@@ -300,6 +304,21 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         generation,
         "production_generation_context_use_cases",
         lambda *_: generation_context,
+    )
+    monkeypatch.setattr(
+        production_composition,
+        "production_generation_context_use_cases",
+        lambda *_: generation_context,
+    )
+    monkeypatch.setattr(
+        production_composition.AssetWorldRuntimePropMenuSource,
+        "for_episode",
+        runtime_prop_menu,
+    )
+    monkeypatch.setattr(
+        production_composition.ProjectConfigProductionSettings,
+        "load",
+        lambda *_: {},
     )
     monkeypatch.setattr(generation, "load_project_config", lambda *_: {})
     monkeypatch.setattr(

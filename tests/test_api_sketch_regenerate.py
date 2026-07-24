@@ -1,118 +1,105 @@
-from __future__ import annotations
-
 from types import SimpleNamespace
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-
-class _SketchRegenStore:
-    async def get_beats_as_dicts(self, episode_num: int):
-        assert episode_num == 2
-        return [
-            {"beat_number": 1, "narration_segment": "a", "visual_description": "A"},
-            {"beat_number": 2, "narration_segment": "b", "visual_description": "B"},
-            {"beat_number": 3, "narration_segment": "c", "visual_description": "C"},
-        ]
-
-    def get_sketch_colors(self, episode_num: int):
-        assert episode_num == 2
-        return {"hero_main": "#ffffff"}
-
-    def get_cached_prop(self, prop_id: str):
-        return None
+from ai_anime.modules.production.application.selected_regeneration import (
+    ScheduledSelectedRegeneration,
+    SelectedRegenerationKind,
+    SelectedRegenerationRejected,
+    SelectedRegenerationTaskReceipt,
+)
 
 
-def _client(monkeypatch, tmp_path):
+def _client(monkeypatch):
     from ai_anime.api.routes import generation
-    from ai_anime.api.deps import ProjectResolution
 
-    calls: list[dict] = []
+    context = object()
 
-    async def fake_make_sqlite_store(username: str, project: str):
-        assert username == "alice"
-        assert project == "demo"
-        return _SketchRegenStore()
+    async def resolve(*_args, **_kwargs):
+        return SimpleNamespace(ctx=context)
 
-    async def fake_make_sqlite_store_for_context(ctx):
-        assert ctx.project_id == "proj"
-        return _SketchRegenStore()
-
-    async def fake_character_map(**_kwargs):
-        return {"hero": {"ref_path": ""}}
-
-    async def fake_prop_menu(*args, **kwargs):
-        return []
-
-    async def fake_enqueue_project_task(ctx, **kwargs):
-        calls.append(kwargs)
-        return SimpleNamespace(
-            task_state=SimpleNamespace(task_id=f"task-{len(calls)}"),
-            backend="celery",
-            queue=kwargs.get("queue_kind") or "default",
-        )
-
-    async def fake_resolve_project_scope(project, user, *, required_role="viewer"):
-        return ProjectResolution(
-            ctx=SimpleNamespace(
-                project_id="proj",
-                state_dir=tmp_path / "state",
-                runtime_dir=tmp_path / "runtime",
-            ),
-            username="alice",
-            project_name="demo",
-            project_dir=tmp_path,
-            output_dir=str(tmp_path),
-            state_dir=str(tmp_path / "state"),
-            runtime_dir=str(tmp_path / "runtime"),
-        )
-
-    monkeypatch.setattr(generation, "resolve_project_scope", fake_resolve_project_scope)
-    monkeypatch.setattr(generation, "load_project_config", lambda username, project: {})
-    monkeypatch.setattr(generation, "make_sqlite_store", fake_make_sqlite_store)
-    monkeypatch.setattr(
-        generation, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
-    )
-    generation_context = SimpleNamespace(
-        build_character_map=fake_character_map,
-        episode_or_none=lambda *_: None,
-    )
-    monkeypatch.setattr(
-        generation,
-        "production_generation_context_use_cases",
-        lambda *_: generation_context,
-    )
-    monkeypatch.setattr(
-        generation, "_runtime_prop_menu_with_global_props", fake_prop_menu
-    )
-    monkeypatch.setattr(
-        generation,
-        "get_task_backend",
-        lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
-    )
-
+    monkeypatch.setattr(generation, "_resolve_generation_project", resolve)
     app = FastAPI()
     app.include_router(generation.router, prefix="/api/v1")
-    app.dependency_overrides[generation.get_api_user] = lambda: {"username": "alice"}
+    app.dependency_overrides[generation.get_api_user] = lambda: {
+        "username": "alice"
+    }
+    return TestClient(app), context
 
-    return TestClient(app), calls
 
-
-def test_sketch_selected_regen_returns_scope(monkeypatch, tmp_path):
+def test_sketch_selected_regen_maps_request_to_application(monkeypatch):
+    from ai_anime.api.routes import generation
     from ai_anime.task_identity import selection_scope
 
-    client, calls = _client(monkeypatch, tmp_path)
+    client, context = _client(monkeypatch)
+    calls = []
+    scope = selection_scope("1x1_2-3_sketch", [3, 1])
+
+    class UseCases:
+        async def regenerate(self, target_context, command):
+            calls.append((target_context, command))
+            return ScheduledSelectedRegeneration(
+                kind=SelectedRegenerationKind.SKETCH,
+                episode_num=2,
+                scope=scope,
+                receipt=SelectedRegenerationTaskReceipt(
+                    task_id="task-1",
+                    task_key=f"task:sketch_regen:project:proj:2:{scope}",
+                    backend="celery",
+                    queue="default",
+                ),
+            )
+
+    monkeypatch.setattr(
+        generation,
+        "selected_regeneration_use_cases",
+        lambda: UseCases(),
+    )
 
     response = client.post(
         "/api/v1/projects/demo/episodes/2/sketches/regenerate",
-        json={"beat_indices": [3, 1], "mode_key": "1x1_2-3_sketch"},
+        json={
+            "beat_indices": [3, 1],
+            "mode_key": "1x1_2-3_sketch",
+            "image_generation_selection": "newapi_nanobanana2",
+        },
     )
 
     assert response.status_code == 200
     body = response.json()
-    expected_scope = selection_scope("1x1_2-3_sketch", [3, 1])
     assert body["ok"] is True
     assert body["task_type"] == "sketch_regen"
-    assert body["scope"] == expected_scope
-    assert calls[0]["payload"]["mode_key"] == "1x1_2-3_sketch"
-    assert calls[0]["payload"]["config"]["selected_beat_numbers"] == [3, 1]
+    assert body["scope"] == scope
+    assert len(calls) == 1
+    assert calls[0][0] is context
+    command = calls[0][1]
+    assert command.kind is SelectedRegenerationKind.SKETCH
+    assert command.episode_num == 2
+    assert command.beat_indices == (3, 1)
+    assert command.mode_key == "1x1_2-3_sketch"
+    assert command.image_generation_selection == "newapi_nanobanana2"
+
+
+def test_sketch_selected_regen_preserves_rejection_envelope(monkeypatch):
+    from ai_anime.api.routes import generation
+
+    client, _context = _client(monkeypatch)
+
+    class UseCases:
+        async def regenerate(self, _target_context, _command):
+            raise SelectedRegenerationRejected("beat_indices 不能为空")
+
+    monkeypatch.setattr(
+        generation,
+        "selected_regeneration_use_cases",
+        lambda: UseCases(),
+    )
+
+    response = client.post(
+        "/api/v1/projects/demo/episodes/2/sketches/regenerate",
+        json={"beat_indices": []},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"ok": False, "error": "beat_indices 不能为空"}

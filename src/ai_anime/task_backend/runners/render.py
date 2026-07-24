@@ -12,6 +12,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from ai_anime.modules.production.public import (
+    SELECTED_RENDER_REGEN_TASK_TYPE,
+    SELECTED_SKETCH_REGEN_TASK_TYPE,
+)
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.task_backend.cancel import await_envelope_with_cancel_watch
 from ai_anime.task_backend.registry import register_project_task_runner
@@ -445,7 +449,14 @@ async def _run_selected_regen_async(
     config = dict(payload.get("config") or {})
     episode = int(envelope.get("episode") or payload.get("episode") or 0)
     mode_key = str(payload.get("mode_key") or config.get("mode_key") or "")
-    task_type = str(envelope.get("task_type") or ("sketch_regen" if is_sketch else "selected_regen"))
+    task_type = str(
+        envelope.get("task_type")
+        or (
+            SELECTED_SKETCH_REGEN_TASK_TYPE
+            if is_sketch
+            else SELECTED_RENDER_REGEN_TASK_TYPE
+        )
+    )
     standalone_beat_context = bool(config.get("standalone_beat_context"))
     scope = envelope.get("scope")
     if not scope:
@@ -706,7 +717,9 @@ def run_selected_regen(envelope: dict[str, Any], ctx: ProjectContext) -> dict[st
         await_envelope_with_cancel_watch(
             _run_selected_regen_async(envelope, ctx, is_sketch=False),
             envelope,
-            task_type=str(envelope.get("task_type") or "selected_regen"),
+            task_type=str(
+                envelope.get("task_type") or SELECTED_RENDER_REGEN_TASK_TYPE
+            ),
         )
     )
 
@@ -716,13 +729,15 @@ def run_sketch_regen(envelope: dict[str, Any], ctx: ProjectContext) -> dict[str,
         await_envelope_with_cancel_watch(
             _run_selected_regen_async(envelope, ctx, is_sketch=True),
             envelope,
-            task_type=str(envelope.get("task_type") or "sketch_regen"),
+            task_type=str(
+                envelope.get("task_type") or SELECTED_SKETCH_REGEN_TASK_TYPE
+            ),
         )
     )
 
 
-register_project_task_runner("selected_regen", run_selected_regen)
-register_project_task_runner("sketch_regen", run_sketch_regen)
+register_project_task_runner(SELECTED_RENDER_REGEN_TASK_TYPE, run_selected_regen)
+register_project_task_runner(SELECTED_SKETCH_REGEN_TASK_TYPE, run_sketch_regen)
 
 
 async def _run_grid_regenerate_async(

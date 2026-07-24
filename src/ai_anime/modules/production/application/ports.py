@@ -39,6 +39,11 @@ if TYPE_CHECKING:
         TrimSeedance2AudioAssetCommand,
         UploadSeedance2AssetCommand,
     )
+    from ai_anime.modules.production.application.selected_regeneration import (
+        RegenerateSelectedBeatsCommand,
+        SelectedRegenerationTask,
+        SelectedRegenerationTaskReceipt,
+    )
     from ai_anime.modules.production.application.single_video import (
         GenerateSingleVideoCommand,
         SingleVideoTask,
@@ -499,3 +504,19 @@ class ProductionDirectorControlSketchScheduler(Protocol):
         context: ProjectContext,
         task: DirectorControlSketchTask,
     ) -> DirectorControlSketchTaskReceipt: ...
+
+
+class ProductionSelectedRegenerationPreparer(Protocol):
+    async def prepare(
+        self,
+        context: ProjectContext,
+        command: RegenerateSelectedBeatsCommand,
+    ) -> SelectedRegenerationTask: ...
+
+
+class ProductionSelectedRegenerationScheduler(Protocol):
+    async def enqueue(
+        self,
+        context: ProjectContext,
+        task: SelectedRegenerationTask,
+    ) -> SelectedRegenerationTaskReceipt: ...

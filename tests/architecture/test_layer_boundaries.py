@@ -615,6 +615,40 @@ def test_production_director_control_sketch_route_delegates_to_application() -> 
     assert "DIRECTOR_CONTROL_TO_SKETCH_TASK_KIND" in runner_source
 
 
+def test_production_selected_regeneration_routes_delegate_to_application() -> None:
+    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    render_runner = PACKAGE_ROOT / "task_backend" / "runners" / "render.py"
+    source = generation.read_text(encoding="utf-8")
+    route_start = source.index("async def regenerate_beats(")
+    route_end = source.index("def _canonical_sketch_path(", route_start)
+    route_source = source[route_start:route_end]
+
+    assert route_source.count("selected_regeneration_use_cases") == 2
+    assert route_source.count("RegenerateSelectedBeatsCommand") == 2
+    assert "SelectedRegenerationKind.RENDER" in route_source
+    assert "SelectedRegenerationKind.SKETCH" in route_source
+    for implementation_detail in (
+        "load_project_config",
+        "make_sqlite_store_for_context",
+        "make_sqlite_store(",
+        "get_beats_as_dicts",
+        "pick_beats_by_number",
+        "render_ai_detection_error",
+        "production_generation_context_use_cases",
+        "_runtime_prop_menu_with_global_props",
+        "production_image_settings_use_cases",
+        "selection_scope",
+        "get_task_backend",
+        "enqueue_project_task",
+        "project_task_state_key",
+        "需要 project context",
+    ):
+        assert implementation_detail not in route_source
+    runner_source = render_runner.read_text(encoding="utf-8")
+    assert "SELECTED_RENDER_REGEN_TASK_TYPE" in runner_source
+    assert "SELECTED_SKETCH_REGEN_TASK_TYPE" in runner_source
+
+
 def test_production_seedance2_panel_routes_delegate_to_application() -> None:
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     source = generation.read_text(encoding="utf-8")

@@ -104,6 +104,7 @@ from ai_anime.modules.production.public import (
     ImageGenerationGuardQuery,
     ProductionImageSettingsRejected,
     OptimizeEpisodeVideoCommand,
+    RegenerateSelectedBeatsCommand,
     ReplaceSketchRegenQueueCommand,
     RemoveSeedance2AssetCommand,
     SketchCropRejected,
@@ -114,6 +115,10 @@ from ai_anime.modules.production.public import (
     Seedance2PanelBeatMissing,
     Seedance2PanelOperationRejected,
     Seedance2PanelQuery,
+    SELECTED_RENDER_REGEN_TASK_TYPE,
+    SELECTED_SKETCH_REGEN_TASK_TYPE,
+    SelectedRegenerationKind,
+    SelectedRegenerationRejected,
     SketchGenerationRejected,
     SingleVideoRejected,
     TrimSeedance2AudioAssetCommand,
@@ -124,6 +129,7 @@ from ai_anime.modules.production.public import (
     director_control_sketch_use_cases,
     global_video_optimization_use_cases,
     seedance2_panel_use_cases,
+    selected_regeneration_use_cases,
     sketch_generation_use_cases,
     single_video_use_cases,
     episode_audio_use_cases,
@@ -1389,7 +1395,7 @@ async def render_execute(
             entry_scope = selection_scope(entry.mode_key, entry_beats)
             queued = await get_task_backend().enqueue_project_task(
                 ctx,
-                task_type="selected_regen",
+                task_type=SELECTED_RENDER_REGEN_TASK_TYPE,
                 queue_kind="default",
                 episode=episode_num,
                 scope=entry_scope,
@@ -1442,106 +1448,23 @@ async def regenerate_beats(
 ):
     """选中 Beats 再生画面。"""
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    ctx = resolved.ctx
-    username = resolved.username
-    project_name = resolved.project_name
-    output_dir = resolved.output_dir
-    proj_config = load_project_config(username, project_name)
-    style = body.style or proj_config.get("visual_style", "chinese_period_drama")
-    render_image_selection = production_image_settings_use_cases().resolve_render_selection(
-        proj_config,
-        body.image_generation_selection,
-    )
-
-    store = (
-        await make_sqlite_store_for_context(ctx)
-        if ctx
-        else await make_sqlite_store(username, project_name)
-    )
-    beats = await store.get_beats_as_dicts(episode_num)
-
-    if not beats:
-        return {"ok": False, "error": f"No beats found for episode {episode_num}"}
-
-    # 验证 beat_indices
-    if not body.beat_indices:
-        return {"ok": False, "error": "beat_indices 不能为空"}
-    total_beats = len(beats)
-    invalid = [i for i in body.beat_indices if i < 1 or i > total_beats]
-    if invalid:
-        return {
-            "ok": False,
-            "error": f"beat_indices {invalid} 超出范围（共 {total_beats} 个 beats，有效: 1~{total_beats}）",
-        }
-
-    selected_beats = pick_beats_by_number(beats, body.beat_indices)
-    detection_error = render_ai_detection_error(selected_beats)
-    if detection_error:
-        return {"ok": False, "error": detection_error}
-
-    character_map = await production_generation_context_use_cases(
-        store,
-        username,
-    ).build_character_map(
-        beats=selected_beats,
-        project=project_name,
-        episode_num=episode_num,
-        use_detected_identities=True,
-    )
-
-    mode_key = body.mode_key
-    episode_obj = production_generation_context_use_cases(
-        store,
-        username,
-    ).episode_or_none(episode_num)
-    prop_menu = await _runtime_prop_menu_with_global_props(store, episode_obj, beats)
-    config = {
-        "beats": beats,
-        "character_map": character_map,
-        "style": style,
-        "model": body.model,
-        "image_generation_selection": render_image_selection,
-        "selected_beat_numbers": body.beat_indices,
-        "sketch_colors": store.get_sketch_colors(episode_num) or {},
-        "prop_menu": prop_menu,
-        "sketch_aspect_padding": production_image_settings_use_cases().resolve_sketch_aspect_padding(
-            proj_config,
-            body.sketch_aspect_padding,
-        ),
-    }
-
-    from ai_anime.task_identity import selection_scope
-
-    scope = selection_scope(mode_key, body.beat_indices)
-
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type="selected_regen",
-            queue_kind="default",
-            episode=episode_num,
-            scope=scope,
-            payload={
-                "episode": episode_num,
-                "mode_key": mode_key,
-                "output_dir": output_dir,
-                "config": {**config, "mode_key": mode_key},
-            },
-        )
-        return {
-            "ok": True,
-            "task_type": "selected_regen",
-            "scope": scope,
-            "task_id": queued.task_state.task_id,
-            "task_key": project_task_state_key(
-                "selected_regen", ctx.project_id, episode_num, scope=scope
+    try:
+        scheduled = await selected_regeneration_use_cases().regenerate(
+            resolved.ctx,
+            RegenerateSelectedBeatsCommand(
+                kind=SelectedRegenerationKind.RENDER,
+                episode_num=episode_num,
+                beat_indices=tuple(body.beat_indices),
+                style=body.style,
+                model=body.model,
+                mode_key=body.mode_key,
+                image_generation_selection=body.image_generation_selection,
+                sketch_aspect_padding=body.sketch_aspect_padding,
             ),
-            "backend": queued.backend,
-            "queue": queued.queue,
-            "message": f"第 {episode_num} 集选中 Beats 画面再生已进入队列",
-        }
-
-    return {"ok": False, "error": "选中 Beats 画面再生需要 project context"}
+        )
+    except SelectedRegenerationRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, **scheduled.as_dict()}
 
 
 @router.post("/projects/{project}/episodes/{episode_num}/sketches/regenerate")
@@ -1553,97 +1476,22 @@ async def regenerate_sketches(
 ):
     """选中 Beats 再生草图。"""
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    ctx = resolved.ctx
-    username = resolved.username
-    project_name = resolved.project_name
-    output_dir = resolved.output_dir
-    proj_config = load_project_config(username, project_name)
-    style = body.style or proj_config.get("visual_style", "chinese_period_drama")
-
-    store = (
-        await make_sqlite_store_for_context(ctx)
-        if ctx
-        else await make_sqlite_store(username, project_name)
-    )
-    beats = await store.get_beats_as_dicts(episode_num)
-
-    if not beats:
-        return {"ok": False, "error": f"No beats found for episode {episode_num}"}
-
-    # 验证 beat_indices
-    if not body.beat_indices:
-        return {"ok": False, "error": "beat_indices 不能为空"}
-    total_beats = len(beats)
-    invalid = [i for i in body.beat_indices if i < 1 or i > total_beats]
-    if invalid:
-        return {
-            "ok": False,
-            "error": f"beat_indices {invalid} 超出范围（共 {total_beats} 个 beats，有效: 1~{total_beats}）",
-        }
-
-    character_map = await production_generation_context_use_cases(
-        store,
-        username,
-    ).build_character_map(
-        beats=beats,
-        project=project_name,
-        episode_num=episode_num,
-        use_detected_identities=False,
-    )
-
-    mode_key = body.mode_key
-    episode_obj = production_generation_context_use_cases(
-        store,
-        username,
-    ).episode_or_none(episode_num)
-    prop_menu = await _runtime_prop_menu_with_global_props(store, episode_obj, beats)
-    sketch_image_selection = production_image_settings_use_cases().resolve_sketch_selection(
-        proj_config,
-        body.image_generation_selection,
-    )
-    config = {
-        "beats": beats,
-        "character_map": character_map,
-        "style": style,
-        "model": body.model,
-        "image_generation_selection": sketch_image_selection,
-        "selected_beat_numbers": body.beat_indices,
-        "sketch_colors": store.get_sketch_colors(episode_num) or {},
-        "prop_menu": prop_menu,
-    }
-
-    from ai_anime.task_identity import selection_scope
-
-    scope = selection_scope(mode_key, body.beat_indices)
-
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type="sketch_regen",
-            queue_kind="default",
-            episode=episode_num,
-            scope=scope,
-            payload={
-                "episode": episode_num,
-                "mode_key": mode_key,
-                "output_dir": output_dir,
-                "config": {**config, "mode_key": mode_key},
-            },
-        )
-        return {
-            "ok": True,
-            "task_type": "sketch_regen",
-            "scope": scope,
-            "task_id": queued.task_state.task_id,
-            "task_key": project_task_state_key(
-                "sketch_regen", ctx.project_id, episode_num, scope=scope
+    try:
+        scheduled = await selected_regeneration_use_cases().regenerate(
+            resolved.ctx,
+            RegenerateSelectedBeatsCommand(
+                kind=SelectedRegenerationKind.SKETCH,
+                episode_num=episode_num,
+                beat_indices=tuple(body.beat_indices),
+                style=body.style,
+                model=body.model,
+                mode_key=body.mode_key,
+                image_generation_selection=body.image_generation_selection,
             ),
-            "backend": queued.backend,
-            "queue": queued.queue,
-            "message": f"第 {episode_num} 集选中 Beats 草图再生已进入队列",
-        }
-
-    return {"ok": False, "error": "选中 Beats 草图再生需要 project context"}
+        )
+    except SelectedRegenerationRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, **scheduled.as_dict()}
 
 
 def _canonical_sketch_path(project_dir: Path, episode_num: int, beat_num: int) -> Path:
@@ -2409,7 +2257,7 @@ async def generate_missing_manual_sketches(
         if ctx is not None:
             await get_task_backend().enqueue_project_task(
                 ctx,
-                task_type="sketch_regen",
+                task_type=SELECTED_SKETCH_REGEN_TASK_TYPE,
                 queue_kind="default",
                 episode=episode_num,
                 scope=scope,
@@ -2436,7 +2284,7 @@ async def generate_missing_manual_sketches(
 
     return {
         "ok": True,
-        "task_type": "sketch_regen",
+        "task_type": SELECTED_SKETCH_REGEN_TASK_TYPE,
         "data": {
             "dispatched": len(dispatched_segments),
             "scopes": dispatched_scopes,

@@ -48,6 +48,9 @@ from ai_anime.modules.production.application.global_video_optimization import (
 from ai_anime.modules.production.application.seedance2_panel import (
     Seedance2PanelUseCases,
 )
+from ai_anime.modules.production.application.selected_regeneration import (
+    SelectedRegenerationUseCases,
+)
 from ai_anime.modules.production.application.single_video import (
     SingleVideoUseCases,
 )
@@ -112,6 +115,10 @@ from ai_anime.modules.production.infrastructure.global_video_optimization import
 )
 from ai_anime.modules.production.infrastructure.seedance2_panel import (
     LocalSeedance2PanelGateway,
+)
+from ai_anime.modules.production.infrastructure.selected_regeneration import (
+    LocalSelectedRegenerationPreparer,
+    TaskBackendSelectedRegenerationScheduler,
 )
 from ai_anime.modules.production.infrastructure.single_video import (
     LocalSingleVideoPreparer,
@@ -226,6 +233,27 @@ def director_control_sketch_use_cases() -> DirectorControlSketchUseCases:
     return DirectorControlSketchUseCases(
         AssetWorldDirectorControlFrameSource(),
         TaskBackendDirectorControlSketchScheduler(ports.get_task_backend),
+    )
+
+
+def selected_regeneration_use_cases() -> SelectedRegenerationUseCases:
+    from ai_anime import ports
+
+    settings = ProjectConfigProductionSettings()
+    return SelectedRegenerationUseCases(
+        LocalSelectedRegenerationPreparer(
+            settings,
+            ProductionImageSettingsUseCases(
+                settings,
+                ConfiguredProductionImageSelections(),
+            ),
+            lambda store, context: production_generation_context_use_cases(
+                store,
+                context.owner_username,
+            ),
+            AssetWorldRuntimePropMenuSource(),
+        ),
+        TaskBackendSelectedRegenerationScheduler(ports.get_task_backend),
     )
 
 

@@ -101,6 +101,15 @@ from ai_anime.modules.production.application.seedance2_panel import (
     TrimSeedance2AudioAssetCommand,
     UploadSeedance2AssetCommand,
 )
+from ai_anime.modules.production.application.selected_regeneration import (
+    SELECTED_RENDER_REGEN_TASK_TYPE,
+    SELECTED_SKETCH_REGEN_TASK_TYPE,
+    RegenerateSelectedBeatsCommand,
+    ScheduledSelectedRegeneration,
+    SelectedRegenerationKind,
+    SelectedRegenerationRejected,
+    SelectedRegenerationUseCases,
+)
 from ai_anime.modules.production.application.single_video import (
     SINGLE_VIDEO_TASK_TYPE,
     GenerateSingleVideoCommand,
@@ -210,6 +219,14 @@ def director_control_sketch_use_cases() -> DirectorControlSketchUseCases:
     return build()
 
 
+def selected_regeneration_use_cases() -> SelectedRegenerationUseCases:
+    from ai_anime.modules.production.composition import (
+        selected_regeneration_use_cases as build,
+    )
+
+    return build()
+
+
 def production_generation_context_use_cases(
     store: Any,
     username: str,
@@ -284,6 +301,8 @@ __all__ = [
     "DIRECTOR_CONTROL_TO_SKETCH_TASK_KIND",
     "GLOBAL_VIDEO_OPTIMIZATION_TASK_TYPE",
     "INDEXTTS2_AUDIO_TASK_TYPE",
+    "SELECTED_RENDER_REGEN_TASK_TYPE",
+    "SELECTED_SKETCH_REGEN_TASK_TYPE",
     "SKETCH_GENERATION_TASK_TYPE",
     "SINGLE_VIDEO_TASK_TYPE",
     "AudioVoicePrerequisitesMissing",
@@ -320,6 +339,7 @@ __all__ = [
     "ProductionImageSettingsRejected",
     "ProductionImageSettingsUseCases",
     "OptimizeEpisodeVideoCommand",
+    "RegenerateSelectedBeatsCommand",
     "ReplaceSketchRegenQueueCommand",
     "RemoveSeedance2AssetCommand",
     "ScheduledEpisodeVideo",
@@ -327,11 +347,15 @@ __all__ = [
     "ScheduledGlobalVideoOptimization",
     "ScheduledDirectorControlSketch",
     "ScheduledSketchGeneration",
+    "ScheduledSelectedRegeneration",
     "ScheduledSingleVideo",
     "Seedance2PanelBeatMissing",
     "Seedance2PanelOperationRejected",
     "Seedance2PanelQuery",
     "Seedance2PanelUseCases",
+    "SelectedRegenerationKind",
+    "SelectedRegenerationRejected",
+    "SelectedRegenerationUseCases",
     "SingleVideoRejected",
     "SingleVideoUseCases",
     "SketchGenerationRejected",
@@ -385,6 +409,7 @@ __all__ = [
     "sketch_regen_queue_use_cases",
     "seedance2_api_resolution",
     "seedance2_panel_use_cases",
+    "selected_regeneration_use_cases",
     "seedance2_resolution",
     "single_video_use_cases",
     "video_backend_catalog_use_cases",
