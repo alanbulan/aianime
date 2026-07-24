@@ -67,12 +67,12 @@ def _client(monkeypatch, tmp_path, config: dict | None = None):
     monkeypatch.setattr(
         generation, "load_project_config", lambda username, project: current_config
     )
-    monkeypatch.setattr(
-        generation, "save_project_config", fake_save_project_config, raising=False
-    )
 
     from ai_anime.modules.production.application.image_settings import (
         ProductionImageSettingsUseCases,
+    )
+    from ai_anime.modules.production.application.sketch_regen_queue import (
+        SketchRegenQueueUseCases,
     )
     from ai_anime.modules.production.infrastructure.image_settings import (
         ConfiguredProductionImageSelections,
@@ -87,14 +87,20 @@ def _client(monkeypatch, tmp_path, config: dict | None = None):
         def save(self, username: str, project: str, updates: dict):
             fake_save_project_config(username, project, config=updates)
 
+    settings_repository = SettingsRepository()
     image_settings = ProductionImageSettingsUseCases(
-        SettingsRepository(),
+        settings_repository,
         ConfiguredProductionImageSelections(),
     )
     monkeypatch.setattr(
         generation,
         "production_image_settings_use_cases",
         lambda: image_settings,
+    )
+    monkeypatch.setattr(
+        generation,
+        "sketch_regen_queue_use_cases",
+        lambda: SketchRegenQueueUseCases(settings_repository),
     )
 
     app = FastAPI()

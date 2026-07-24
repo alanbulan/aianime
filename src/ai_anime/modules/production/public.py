@@ -32,6 +32,11 @@ from ai_anime.modules.production.application.sketch_marker_detection import (
     SketchMarkerDetectionResult,
     SketchMarkerDetectionUseCases,
 )
+from ai_anime.modules.production.application.sketch_regen_queue import (
+    ReplaceSketchRegenQueueCommand,
+    SketchRegenQueueResult,
+    SketchRegenQueueUseCases,
+)
 from ai_anime.modules.production.domain.sketch_color import (
     BRIDGMAN_CHARACTER_PALETTE,
     PROP_MARKER_PALETTE,
@@ -79,6 +84,14 @@ def sketch_marker_detection_use_cases(
     return build(store, usage_meter)
 
 
+def sketch_regen_queue_use_cases() -> SketchRegenQueueUseCases:
+    from ai_anime.modules.production.composition import (
+        sketch_regen_queue_use_cases as build,
+    )
+
+    return build()
+
+
 def sketch_image_use_cases() -> SketchImageUseCases:
     from ai_anime.modules.production.composition import sketch_image_use_cases as build
 
@@ -101,6 +114,7 @@ __all__ = [
     "ProductionGenerationContextUseCases",
     "ProductionImageSettingsRejected",
     "ProductionImageSettingsUseCases",
+    "ReplaceSketchRegenQueueCommand",
     "SketchCropRejected",
     "SketchColorAssignmentResult",
     "SketchColorAssignmentUseCases",
@@ -112,6 +126,8 @@ __all__ = [
     "SketchMarkerDetectionUseCases",
     "SketchPoseCandidatesMissing",
     "SketchPoseEditorUseCases",
+    "SketchRegenQueueResult",
+    "SketchRegenQueueUseCases",
     "UpdateRenderImageSettingsCommand",
     "UpdateSketchImageSettingsCommand",
     "assign_identity_sketch_colors",
@@ -123,4 +139,5 @@ __all__ = [
     "sketch_image_use_cases",
     "sketch_marker_detection_use_cases",
     "sketch_pose_editor_use_cases",
+    "sketch_regen_queue_use_cases",
 ]

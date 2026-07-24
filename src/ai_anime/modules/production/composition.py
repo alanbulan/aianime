@@ -20,12 +20,15 @@ from ai_anime.modules.production.application.sketch_color import (
 from ai_anime.modules.production.application.sketch_marker_detection import (
     SketchMarkerDetectionUseCases,
 )
+from ai_anime.modules.production.application.sketch_regen_queue import (
+    SketchRegenQueueUseCases,
+)
 from ai_anime.modules.production.infrastructure.sketch_image import (
     PillowSketchImageFiles,
 )
 from ai_anime.modules.production.infrastructure.image_settings import (
     ConfiguredProductionImageSelections,
-    ProjectConfigProductionImageSettings,
+    ProjectConfigProductionSettings,
 )
 from ai_anime.modules.production.infrastructure.generation_context import (
     AssetWorldCharacterProjector,
@@ -56,7 +59,7 @@ def sketch_pose_editor_use_cases() -> SketchPoseEditorUseCases:
 
 def production_image_settings_use_cases() -> ProductionImageSettingsUseCases:
     return ProductionImageSettingsUseCases(
-        ProjectConfigProductionImageSettings(),
+        ProjectConfigProductionSettings(),
         ConfiguredProductionImageSelections(),
     )
 
@@ -95,6 +98,10 @@ def sketch_marker_detection_use_cases(
         GlobalVideoOptimizerSketchMarkerDetector(),
         usage_meter,
     )
+
+
+def sketch_regen_queue_use_cases() -> SketchRegenQueueUseCases:
+    return SketchRegenQueueUseCases(ProjectConfigProductionSettings())
 
 
 def sketch_image_use_cases() -> SketchImageUseCases:

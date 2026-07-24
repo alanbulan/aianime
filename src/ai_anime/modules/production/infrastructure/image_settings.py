@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 
-class ProjectConfigProductionImageSettings:
+class ProjectConfigProductionSettings:
     def load(self, username: str, project: str) -> dict[str, Any]:
         from ai_anime.project_config import load_project_config
 

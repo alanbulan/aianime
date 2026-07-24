@@ -34,7 +34,7 @@ class SketchImageFiles(Protocol):
     ) -> None: ...
 
 
-class ProductionImageSettingsRepository(Protocol):
+class ProductionSettingsRepository(Protocol):
     def load(self, username: str, project: str) -> dict[str, Any]: ...
 
     def save(

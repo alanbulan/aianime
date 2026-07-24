@@ -341,12 +341,37 @@ def test_production_image_settings_routes_delegate_to_application() -> None:
         assert legacy_helper not in source
 
     settings_start = source.index("async def get_render_settings")
-    settings_end = source.index("def _sketch_regen_queue_key", settings_start)
+    settings_end = source.index("async def get_sketch_regen_queue", settings_start)
     settings_source = source[settings_start:settings_end]
     assert "production_image_settings_use_cases" in settings_source
     assert "load_project_config" not in settings_source
     assert "save_project_config" not in settings_source
     assert "image_generation_selection_options" not in settings_source
+
+
+def test_production_sketch_regen_queue_routes_delegate_to_application() -> None:
+    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    source = generation.read_text(encoding="utf-8")
+    route_start = source.index("async def get_sketch_regen_queue(")
+    route_end = source.index("async def get_sketch_image_usage(", route_start)
+    route_source = source[route_start:route_end]
+
+    assert "sketch_regen_queue_use_cases" in route_source
+    assert "ReplaceSketchRegenQueueCommand" in route_source
+    for legacy_helper in (
+        "def _sketch_regen_queue_key(",
+        "def _is_react_sketch_regen_queue_items(",
+        "def _react_sketch_regen_queues(",
+        "def _sketch_regen_queue_payload(",
+    ):
+        assert legacy_helper not in source
+    for implementation_detail in (
+        "load_project_config",
+        "save_project_config",
+        "react_sketch_regen_queue",
+        '"sketch_regen_queue"',
+    ):
+        assert implementation_detail not in route_source
 
 
 def test_production_generation_context_routes_delegate_to_application() -> None:

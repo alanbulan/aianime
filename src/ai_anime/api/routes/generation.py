@@ -89,6 +89,7 @@ from ai_anime.modules.production.public import (
     CropSketchCommand,
     DetectSketchMarkersCommand,
     ProductionImageSettingsRejected,
+    ReplaceSketchRegenQueueCommand,
     SketchCropRejected,
     SketchColorMarkersMissing,
     SketchMarkerDetectionFailed,
@@ -102,6 +103,7 @@ from ai_anime.modules.production.public import (
     sketch_image_use_cases,
     sketch_marker_detection_use_cases,
     sketch_pose_editor_use_cases,
+    sketch_regen_queue_use_cases,
 )
 from ai_anime.render_plan.ref_image_hash import RefImageHasher
 from ai_anime.seedance2_i2v.pipeline import (
@@ -109,7 +111,7 @@ from ai_anime.seedance2_i2v.pipeline import (
     prepare_seedance2_generation_inputs,
 )
 from ai_anime.seedance2_i2v.voice_clone import normalize_seedance2_audio_type
-from ai_anime.project_config import load_project_config, save_project_config
+from ai_anime.project_config import load_project_config
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.ports import get_task_backend, get_usage_meter
 from ai_anime.task_identity import project_task_state_key
@@ -1475,49 +1477,6 @@ async def update_sketch_settings(
     return {"ok": True, "data": data}
 
 
-def _sketch_regen_queue_key(episode_num: int) -> str:
-    return f"ep{int(episode_num):03d}"
-
-
-def _is_react_sketch_regen_queue_items(items: object) -> bool:
-    return (
-        isinstance(items, list)
-        and bool(items)
-        and all(isinstance(item, dict) and "beatNumbers" in item for item in items)
-    )
-
-
-def _react_sketch_regen_queues(config: dict) -> tuple[dict, dict, bool]:
-    queues = config.get("react_sketch_regen_queue")
-    if not isinstance(queues, dict):
-        queues = {}
-    else:
-        queues = dict(queues)
-
-    legacy_queues = config.get("sketch_regen_queue")
-    cleaned_legacy = dict(legacy_queues) if isinstance(legacy_queues, dict) else {}
-    legacy_changed = False
-    if isinstance(legacy_queues, dict):
-        for key, items in legacy_queues.items():
-            if (
-                isinstance(key, str)
-                and key.startswith("ep")
-                and _is_react_sketch_regen_queue_items(items)
-            ):
-                queues.setdefault(key, list(items))
-                cleaned_legacy.pop(key, None)
-                legacy_changed = True
-
-    return queues, cleaned_legacy, legacy_changed
-
-
-def _sketch_regen_queue_payload(username: str, project: str, episode_num: int) -> dict:
-    config = load_project_config(username, project)
-    queues, _cleaned_legacy, _legacy_changed = _react_sketch_regen_queues(config)
-    items = queues.get(_sketch_regen_queue_key(episode_num))
-    return {"items": items if isinstance(items, list) else []}
-
-
 @router.get("/projects/{project}/episodes/{episode_num}/sketch-regen-queue")
 async def get_sketch_regen_queue(
     project: str,
@@ -1528,11 +1487,11 @@ async def get_sketch_regen_queue(
     resolved = await _resolve_generation_project(project, user, required_role="viewer")
     return {
         "ok": True,
-        "data": _sketch_regen_queue_payload(
+        "data": sketch_regen_queue_use_cases().get(
             resolved.username,
             resolved.project_name,
             episode_num,
-        ),
+        ).as_dict(),
     }
 
 
@@ -1545,20 +1504,17 @@ async def update_sketch_regen_queue(
 ):
     """Persist the React sketch regeneration dispatch queue per episode."""
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    username = resolved.username
-    project_name = resolved.project_name
-    config = load_project_config(username, project_name)
-    queues, cleaned_legacy, legacy_changed = _react_sketch_regen_queues(config)
-    queues[_sketch_regen_queue_key(episode_num)] = [
-        item.model_dump() for item in body.items
-    ]
-    updates = {"react_sketch_regen_queue": queues}
-    if legacy_changed:
-        updates["sketch_regen_queue"] = cleaned_legacy
-    save_project_config(username, project_name, config=updates)
+    result = sketch_regen_queue_use_cases().replace(
+        resolved.username,
+        resolved.project_name,
+        ReplaceSketchRegenQueueCommand(
+            episode_num=episode_num,
+            items=[item.model_dump() for item in body.items],
+        ),
+    )
     return {
         "ok": True,
-        "data": _sketch_regen_queue_payload(username, project_name, episode_num),
+        "data": result.as_dict(),
     }
 
 

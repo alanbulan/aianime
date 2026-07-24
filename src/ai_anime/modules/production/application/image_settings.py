@@ -7,7 +7,7 @@ from typing import Any
 
 from ai_anime.modules.production.application.ports import (
     ProductionImageSelectionCatalog,
-    ProductionImageSettingsRepository,
+    ProductionSettingsRepository,
 )
 
 
@@ -29,7 +29,7 @@ class ProductionImageSettingsRejected(Exception):
 class ProductionImageSettingsUseCases:
     def __init__(
         self,
-        repository: ProductionImageSettingsRepository,
+        repository: ProductionSettingsRepository,
         selections: ProductionImageSelectionCatalog,
     ) -> None:
         self._repository = repository

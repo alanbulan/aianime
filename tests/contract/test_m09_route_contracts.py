@@ -299,7 +299,6 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     )
     monkeypatch.setattr(generation, "_api_audio_duration_seconds", audio_duration)
     monkeypatch.setattr(generation, "load_project_config", lambda *_: {})
-    monkeypatch.setattr(generation, "save_project_config", lambda *_, **__: None)
     monkeypatch.setattr(
         generation,
         "make_static_url_for_context",

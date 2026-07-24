@@ -273,6 +273,9 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.modules.asset_world.infrastructure import (
         image_settings as image_settings_adapter,
     )
+    from ai_anime.modules.production.application.sketch_regen_queue import (
+        SketchRegenQueueUseCases,
+    )
     from ai_anime.modules.project_workspace.public import ProjectContext
     from ai_anime.verification import routes as verification_routes
 
@@ -329,7 +332,23 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(verification_routes, "resolve_project_scope", resolve_scope)
     monkeypatch.setattr(verification_routes, "get_task_backend", lambda: task_backend)
     monkeypatch.setattr(generation, "load_project_config", lambda *_: {})
-    monkeypatch.setattr(generation, "save_project_config", lambda *_, **__: None)
+
+    class QueueRepository:
+        def __init__(self) -> None:
+            self.config: dict = {}
+
+        def load(self, *_args) -> dict:
+            return self.config
+
+        def save(self, _username, _project, updates: dict) -> None:
+            self.config.update(updates)
+
+    queue_repository = QueueRepository()
+    monkeypatch.setattr(
+        generation,
+        "sketch_regen_queue_use_cases",
+        lambda: SketchRegenQueueUseCases(queue_repository),
+    )
     async def build_character_map(*_args, **_kwargs):
         return {
             "林昭": {
