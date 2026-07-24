@@ -26,7 +26,7 @@ from ai_anime.modules.production.domain.render_planning import RenderPlanGrid
 
 
 def _client(monkeypatch, tmp_path):
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import generation, production_render
 
     context = object()
 
@@ -47,10 +47,19 @@ def _client(monkeypatch, tmp_path):
     monkeypatch.setattr(
         generation, "_resolve_generation_project", fake_resolve_generation_project
     )
+    monkeypatch.setattr(
+        production_render,
+        "resolve_project_scope",
+        fake_resolve_generation_project,
+    )
 
     app = FastAPI()
     app.include_router(generation.router, prefix="/api/v1")
+    app.include_router(production_render.router, prefix="/api/v1")
     app.dependency_overrides[generation.get_api_user] = lambda: {"username": "alice"}
+    app.dependency_overrides[production_render.get_api_user] = lambda: {
+        "username": "alice"
+    }
 
     return TestClient(app)
 
@@ -139,7 +148,7 @@ def test_render_selected_regen_preserves_rejection_envelope(monkeypatch, tmp_pat
 
 
 def test_render_plan_and_execute_delegate_request_mapping(monkeypatch, tmp_path):
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_render
 
     client = _client(monkeypatch, tmp_path)
     use_case_calls = []
@@ -173,7 +182,7 @@ def test_render_plan_and_execute_delegate_request_mapping(monkeypatch, tmp_path)
             )
 
     use_cases = UseCases()
-    monkeypatch.setattr(generation, "render_plan_use_cases", lambda: use_cases)
+    monkeypatch.setattr(production_render, "render_plan_use_cases", lambda: use_cases)
 
     plan_response = client.post(
         "/api/v1/projects/demo/episodes/2/render/plan",
@@ -229,7 +238,7 @@ def test_render_plan_and_execute_delegate_request_mapping(monkeypatch, tmp_path)
 
 
 def test_render_plan_feature_disabled_preserves_503_envelope(monkeypatch, tmp_path):
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_render
 
     client = _client(monkeypatch, tmp_path)
 
@@ -238,7 +247,7 @@ def test_render_plan_feature_disabled_preserves_503_envelope(monkeypatch, tmp_pa
             raise RenderPlanFeatureDisabled
 
     monkeypatch.setattr(
-        generation,
+        production_render,
         "render_plan_use_cases",
         lambda: UseCases(),
     )
@@ -257,7 +266,7 @@ def test_render_plan_feature_disabled_preserves_503_envelope(monkeypatch, tmp_pa
 
 
 def test_render_plan_rejection_preserves_400_envelope(monkeypatch, tmp_path):
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_render
 
     client = _client(monkeypatch, tmp_path)
 
@@ -272,7 +281,7 @@ def test_render_plan_rejection_preserves_400_envelope(monkeypatch, tmp_path):
             )
 
     monkeypatch.setattr(
-        generation,
+        production_render,
         "render_plan_use_cases",
         lambda: UseCases(),
     )

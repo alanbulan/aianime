@@ -796,7 +796,7 @@ def test_production_grid_regeneration_route_delegates_to_application() -> None:
     render_runner = PACKAGE_ROOT / "task_backend" / "runners" / "render.py"
     source = generation.read_text(encoding="utf-8")
     route_start = source.index("async def regenerate_grid(")
-    route_end = source.index("async def render_plan(", route_start)
+    route_end = source.index("async def regenerate_beats(", route_start)
     route_source = source[route_start:route_end]
 
     assert route_source.count("grid_regeneration_use_cases") == 1
@@ -825,18 +825,28 @@ def test_production_grid_regeneration_route_delegates_to_application() -> None:
 
 
 def test_production_render_plan_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "production_render.py"
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     schemas = PACKAGE_ROOT / "api" / "schemas.py"
     render_plan_package = PACKAGE_ROOT / "render_plan"
-    source = generation.read_text(encoding="utf-8")
-    route_start = source.index("async def render_plan(")
-    route_end = source.index("async def regenerate_beats(", route_start)
-    route_source = source[route_start:route_end]
+    source = route.read_text(encoding="utf-8")
+    generation_source = generation.read_text(encoding="utf-8")
+    api_router_source = (PACKAGE_ROOT / "api" / "v1" / "router.py").read_text(
+        encoding="utf-8"
+    )
 
-    assert route_source.count("render_plan_use_cases") == 2
-    assert "BuildRenderPlanCommand" in route_source
-    assert "ExecuteRenderPlanCommand" in route_source
-    assert "RenderPlanGrid" in route_source
+    assert source.count("render_plan_use_cases()") == 2
+    assert "BuildRenderPlanCommand" in source
+    assert "ExecuteRenderPlanCommand" in source
+    assert "RenderPlanGrid" in source
+    assert "production_render.router" in api_router_source
+    for handler_name in ("render_plan", "render_execute"):
+        assert f"async def {handler_name}(" not in generation_source
+    for helper_name in (
+        "_render_plan_unavailable_response",
+        "_render_plan_rejection_response",
+    ):
+        assert f"def {helper_name}(" not in generation_source
     for implementation_detail in (
         "load_project_config",
         "make_sqlite_store_for_context",
@@ -856,7 +866,7 @@ def test_production_render_plan_routes_delegate_to_application() -> None:
         "enqueue_project_task",
         "需要 project context",
     ):
-        assert implementation_detail not in route_source
+        assert implementation_detail not in source
     for removed_helper in (
         "def normalize_beat_indices(",
         "def validate_beat_indices(",

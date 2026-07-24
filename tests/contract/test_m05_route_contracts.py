@@ -269,7 +269,14 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime import ports as ai_anime_ports
     from ai_anime.api import auth as api_auth
     from ai_anime.api.deps import ProjectResolution
-    from ai_anime.api.routes import episodes, generation, production_settings, scenes
+    from ai_anime.api.routes import (
+        episodes,
+        generation,
+        production_pool,
+        production_render,
+        production_settings,
+        scenes,
+    )
     from ai_anime.modules.asset_world.infrastructure import (
         beat_viewer as beat_viewer_adapter,
         image_settings as image_settings_adapter,
@@ -331,6 +338,8 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
     monkeypatch.setattr(scenes, "_resolve_scene_project", resolve_scene_project)
     monkeypatch.setattr(generation, "_resolve_generation_project", resolve_scope)
+    monkeypatch.setattr(production_pool, "resolve_project_scope", resolve_scope)
+    monkeypatch.setattr(production_render, "resolve_project_scope", resolve_scope)
     monkeypatch.setattr(production_settings, "resolve_project_scope", resolve_scope)
     monkeypatch.setattr(
         project_stores,
@@ -417,6 +426,8 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app = FastAPI()
         app.include_router(scenes.router, prefix="/api/v1")
         app.include_router(generation.router, prefix="/api/v1")
+        app.include_router(production_pool.router, prefix="/api/v1")
+        app.include_router(production_render.router, prefix="/api/v1")
         app.include_router(production_settings.router, prefix="/api/v1")
         app.include_router(episodes.router, prefix="/api/v1")
         app.include_router(verification_routes.router, prefix="/api/v1")
@@ -425,6 +436,8 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             api_auth.get_api_user,
             scenes.get_api_user,
             generation.get_api_user,
+            production_pool.get_api_user,
+            production_render.get_api_user,
             episodes.get_api_user,
             verification_routes.get_api_user,
         ):

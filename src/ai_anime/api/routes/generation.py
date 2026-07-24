@@ -19,8 +19,6 @@ from ai_anime.api.schemas import (
     GridRegenerateRequest,
     BeatsRegenerateRequest,
     SketchRegenerateRequest,
-    RenderPlanExecuteRequest,
-    RenderPlanRequest,
     BeatBackgroundAnchorUpdate,
     Seedance2AssetAudioTrimRequest,
     Seedance2AssetCropRequest,
@@ -42,13 +40,11 @@ from ai_anime.modules.asset_world.public import (
 )
 from ai_anime.modules.production.public import (
     AssignProjectSketchColorsCommand,
-    BuildRenderPlanCommand,
     CropSeedance2AssetCommand,
     CropCurrentSketchCommand,
     CurrentSketchMissing,
     DetectProjectSketchMarkersCommand,
     DirectorControlSketchUnavailable,
-    ExecuteRenderPlanCommand,
     GenerateMissingManualSketchesCommand,
     GenerateDirectorControlSketchCommand,
     GenerateSketchesCommand,
@@ -56,10 +52,6 @@ from ai_anime.modules.production.public import (
     ManualSketchRegenerationRejected,
     RegenerateGridCommand,
     RegenerateSelectedBeatsCommand,
-    RenderPlanConflict,
-    RenderPlanFeatureDisabled,
-    RenderPlanGrid,
-    RenderPlanRejected,
     RemoveSeedance2AssetCommand,
     SaveSketchEditorCommand,
     SketchBeatMissing,
@@ -85,7 +77,6 @@ from ai_anime.modules.production.public import (
     seedance2_panel_use_cases,
     selected_regeneration_use_cases,
     sketch_generation_use_cases,
-    render_plan_use_cases,
     sketch_editing_use_cases,
     sketch_marker_use_cases,
 )
@@ -99,30 +90,6 @@ async def _resolve_generation_project(
     project: str, user: dict, required_role: str = "editor"
 ):
     return await resolve_project_scope(project, user, required_role=required_role)
-
-
-def _render_plan_unavailable_response(use_cases: Any) -> JSONResponse | None:
-    try:
-        use_cases.ensure_available()
-    except RenderPlanFeatureDisabled as exc:
-        return JSONResponse(
-            status_code=503,
-            content={
-                "ok": False,
-                "error": "feature_disabled",
-                "data": {"reason": str(exc)},
-            },
-        )
-    return None
-
-
-def _render_plan_rejection_response(
-    exc: RenderPlanRejected,
-) -> JSONResponse:
-    return JSONResponse(
-        status_code=409 if isinstance(exc, RenderPlanConflict) else 400,
-        content=exc.as_dict(),
-    )
 
 
 async def _read_uploaded_rgb_image(file: UploadFile):
@@ -335,83 +302,6 @@ async def regenerate_grid(
     except GridRegenerationRejected as exc:
         return {"ok": False, "error": str(exc)}
     return {"ok": True, **scheduled.as_dict()}
-
-
-@router.post("/projects/{project}/episodes/{episode_num}/render/plan")
-async def render_plan(
-    project: str,
-    episode_num: int,
-    body: RenderPlanRequest,
-    user: dict = Depends(get_api_user),
-):
-    """Return the server-authoritative render plan for selected beats."""
-    use_cases = render_plan_use_cases()
-    unavailable = _render_plan_unavailable_response(use_cases)
-    if unavailable is not None:
-        return unavailable
-    resolved = await _resolve_generation_project(project, user, required_role="editor")
-    try:
-        planned = await use_cases.plan(
-            resolved.ctx,
-            BuildRenderPlanCommand(
-                episode_num=episode_num,
-                beat_numbers=tuple(body.beat_indices),
-                strategy=body.strategy,
-                aspect_mode=body.aspect_mode,
-                force_one_by_one=body.force_one_by_one,
-                image_generation_selection=body.image_generation_selection,
-            ),
-        )
-    except RenderPlanRejected as exc:
-        return _render_plan_rejection_response(exc)
-    return {"ok": True, "data": planned.as_dict()}
-
-
-@router.post("/projects/{project}/episodes/{episode_num}/render/execute")
-async def render_execute(
-    project: str,
-    episode_num: int,
-    body: RenderPlanExecuteRequest,
-    user: dict = Depends(get_api_user),
-):
-    """Validate and dispatch a render plan through the current selected-regen task path."""
-    use_cases = render_plan_use_cases()
-    unavailable = _render_plan_unavailable_response(use_cases)
-    if unavailable is not None:
-        return unavailable
-    resolved = await _resolve_generation_project(project, user, required_role="editor")
-    try:
-        executed = await use_cases.execute(
-            resolved.ctx,
-            ExecuteRenderPlanCommand(
-                episode_num=episode_num,
-                plan=tuple(
-                    RenderPlanGrid(
-                        mode_key=entry.mode_key,
-                        rows=entry.rows,
-                        cols=entry.cols,
-                        beat_numbers=tuple(entry.beat_numbers),
-                        location=entry.location,
-                        padding_count=entry.padding_count,
-                        reasons=tuple(entry.reasons),
-                        warnings=tuple(entry.warnings),
-                    )
-                    for entry in body.plan
-                ),
-                plan_hash=body.plan_hash,
-                input_fingerprint=body.input_fingerprint,
-                strategy=body.strategy,
-                aspect_mode=body.aspect_mode,
-                beat_numbers=tuple(body.beat_indices),
-                force_one_by_one=body.force_one_by_one,
-                custom_plan=body.custom_plan,
-                image_generation_selection=body.image_generation_selection,
-                sketch_aspect_padding=body.sketch_aspect_padding,
-            ),
-        )
-    except RenderPlanRejected as exc:
-        return _render_plan_rejection_response(exc)
-    return {"ok": True, "data": executed.as_dict()}
 
 
 @router.post("/projects/{project}/episodes/{episode_num}/beats/regenerate")
