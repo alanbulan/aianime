@@ -8,6 +8,7 @@ from typing import Any
 
 from ai_anime.modules.production.public import (
     AddGeneratedVideoCommand,
+    GLOBAL_VIDEO_OPTIMIZATION_TASK_TYPE,
     is_seedance2_backend,
     video_pool_use_cases,
 )
@@ -654,7 +655,7 @@ async def _run_global_optimize_video_async(
     def log(message: str, *, progress: float | None = None) -> None:
         manager.update_progress_for_project(
             ctx,
-            "global_optimize_video",
+            GLOBAL_VIDEO_OPTIMIZATION_TASK_TYPE,
             episode,
             progress=progress,
             current_task=message,
@@ -752,12 +753,15 @@ def run_global_optimize_video(envelope: dict[str, Any], ctx: ProjectContext) -> 
         await_envelope_with_cancel_watch(
             _run_global_optimize_video_async(envelope, ctx),
             envelope,
-            task_type="global_optimize_video",
+            task_type=GLOBAL_VIDEO_OPTIMIZATION_TASK_TYPE,
         )
     )
 
 
-register_project_task_runner("global_optimize_video", run_global_optimize_video)
+register_project_task_runner(
+    GLOBAL_VIDEO_OPTIMIZATION_TASK_TYPE,
+    run_global_optimize_video,
+)
 
 
 async def _run_freezone_video_gen_async(

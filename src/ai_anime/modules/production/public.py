@@ -76,6 +76,14 @@ from ai_anime.modules.production.application.video_backend_catalog import (
     VideoBackendCatalogUseCases,
     VideoBackendOption,
 )
+from ai_anime.modules.production.application.global_video_optimization import (
+    GLOBAL_VIDEO_OPTIMIZATION_TASK_TYPE,
+    GlobalVideoOptimizationBeatsMissing,
+    GlobalVideoOptimizationSketchesMissing,
+    GlobalVideoOptimizationUseCases,
+    OptimizeEpisodeVideoCommand,
+    ScheduledGlobalVideoOptimization,
+)
 from ai_anime.modules.production.domain.video_backend import (
     DEFAULT_VIDEO_BACKEND,
     grok_video_ratio,
@@ -130,6 +138,14 @@ def video_pool_use_cases() -> VideoPoolUseCases:
 def video_backend_catalog_use_cases() -> VideoBackendCatalogUseCases:
     from ai_anime.modules.production.composition import (
         video_backend_catalog_use_cases as build,
+    )
+
+    return build()
+
+
+def global_video_optimization_use_cases() -> GlobalVideoOptimizationUseCases:
+    from ai_anime.modules.production.composition import (
+        global_video_optimization_use_cases as build,
     )
 
     return build()
@@ -206,6 +222,7 @@ def sketch_pose_editor_use_cases() -> SketchPoseEditorUseCases:
 __all__ = [
     "AddGeneratedVideoCommand",
     "DEFAULT_VIDEO_BACKEND",
+    "GLOBAL_VIDEO_OPTIMIZATION_TASK_TYPE",
     "INDEXTTS2_AUDIO_TASK_TYPE",
     "AudioVoicePrerequisitesMissing",
     "BRIDGMAN_CHARACTER_PALETTE",
@@ -225,15 +242,20 @@ __all__ = [
     "FinalEpisodeVideoStatus",
     "FinalEpisodeVideoMissing",
     "GenerateEpisodeAudioCommand",
+    "GlobalVideoOptimizationBeatsMissing",
+    "GlobalVideoOptimizationSketchesMissing",
+    "GlobalVideoOptimizationUseCases",
     "ImageGenerationGuardQuery",
     "ImageGenerationUsageUseCases",
     "PROP_MARKER_PALETTE",
     "ProductionGenerationContextUseCases",
     "ProductionImageSettingsRejected",
     "ProductionImageSettingsUseCases",
+    "OptimizeEpisodeVideoCommand",
     "ReplaceSketchRegenQueueCommand",
     "ScheduledEpisodeVideo",
     "ScheduledEpisodeAudio",
+    "ScheduledGlobalVideoOptimization",
     "SketchCropRejected",
     "SketchColorAssignmentResult",
     "SketchColorAssignmentUseCases",
@@ -261,6 +283,7 @@ __all__ = [
     "episode_video_use_cases",
     "grok_video_ratio",
     "grok_video_resolution",
+    "global_video_optimization_use_cases",
     "happyhorse_ratio",
     "happyhorse_resolution",
     "global_prop_marker_colors",

@@ -39,6 +39,9 @@ from ai_anime.modules.production.application.video_pool import VideoPoolUseCases
 from ai_anime.modules.production.application.video_backend_catalog import (
     VideoBackendCatalogUseCases,
 )
+from ai_anime.modules.production.application.global_video_optimization import (
+    GlobalVideoOptimizationUseCases,
+)
 from ai_anime.modules.production.infrastructure.sketch_image import (
     PillowSketchImageFiles,
 )
@@ -86,6 +89,11 @@ from ai_anime.modules.production.infrastructure.video_pool import (
 from ai_anime.modules.production.infrastructure.video_backend_catalog import (
     ConfiguredVideoBackendSource,
 )
+from ai_anime.modules.production.infrastructure.global_video_optimization import (
+    LocalEpisodeSketchCatalog,
+    SqliteGlobalVideoOptimizationSource,
+    TaskBackendGlobalVideoOptimizationScheduler,
+)
 from ai_anime.modules.project_workspace.public import get_user_output_dir
 
 
@@ -126,6 +134,16 @@ def video_pool_use_cases() -> VideoPoolUseCases:
 
 def video_backend_catalog_use_cases() -> VideoBackendCatalogUseCases:
     return VideoBackendCatalogUseCases(ConfiguredVideoBackendSource())
+
+
+def global_video_optimization_use_cases() -> GlobalVideoOptimizationUseCases:
+    from ai_anime import ports
+
+    return GlobalVideoOptimizationUseCases(
+        SqliteGlobalVideoOptimizationSource(),
+        LocalEpisodeSketchCatalog(),
+        TaskBackendGlobalVideoOptimizationScheduler(ports.get_task_backend),
+    )
 
 
 def sketch_pose_editor_use_cases() -> SketchPoseEditorUseCases:

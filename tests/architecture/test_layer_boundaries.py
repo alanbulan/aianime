@@ -529,6 +529,32 @@ def test_production_video_backend_catalog_has_one_owner() -> None:
     )
 
 
+def test_production_global_video_optimization_route_delegates_to_application() -> None:
+    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    video_runner = PACKAGE_ROOT / "task_backend" / "runners" / "video.py"
+    source = generation.read_text(encoding="utf-8")
+    route_start = source.index("async def global_optimize_video(")
+    route_end = source.index("async def regenerate_grid(", route_start)
+    route_source = source[route_start:route_end]
+
+    assert "global_video_optimization_use_cases" in route_source
+    assert "OptimizeEpisodeVideoCommand" in route_source
+    for implementation_detail in (
+        "make_sqlite_store_for_context",
+        "make_sqlite_store(",
+        "get_all_characters",
+        "PathResolver",
+        'glob("beat_*.png")',
+        "get_task_backend",
+        "enqueue_project_task",
+        "project_task_state_key",
+        "全局视频优化需要 project context",
+    ):
+        assert implementation_detail not in route_source
+    runner_source = video_runner.read_text(encoding="utf-8")
+    assert "GLOBAL_VIDEO_OPTIMIZATION_TASK_TYPE" in runner_source
+
+
 def test_production_generation_context_routes_delegate_to_application() -> None:
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     freezone = PACKAGE_ROOT / "api" / "routes" / "freezone.py"

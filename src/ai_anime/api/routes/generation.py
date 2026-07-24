@@ -95,8 +95,11 @@ from ai_anime.modules.production.public import (
     EpisodeSubtitlesMissing,
     FinalEpisodeVideoMissing,
     GenerateEpisodeAudioCommand,
+    GlobalVideoOptimizationBeatsMissing,
+    GlobalVideoOptimizationSketchesMissing,
     ImageGenerationGuardQuery,
     ProductionImageSettingsRejected,
+    OptimizeEpisodeVideoCommand,
     ReplaceSketchRegenQueueCommand,
     SketchCropRejected,
     SketchColorMarkersMissing,
@@ -108,6 +111,7 @@ from ai_anime.modules.production.public import (
     VideoPoolEntryUnavailable,
     grok_video_ratio as normalize_grok_video_ratio,
     grok_video_resolution,
+    global_video_optimization_use_cases,
     happyhorse_ratio as normalize_happyhorse_ratio,
     happyhorse_resolution,
     is_grok_video_backend,
@@ -1719,69 +1723,20 @@ async def global_optimize_video(
     language="zh" 使用中文简短提示词。
     """
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    ctx = resolved.ctx
-    username = resolved.username
-    project_name = resolved.project_name
-    output_dir = resolved.output_dir
-
-    store = (
-        await make_sqlite_store_for_context(ctx)
-        if ctx
-        else await make_sqlite_store(username, project_name)
-    )
-    beats = await store.get_beats_as_dicts(episode_num)
-
-    if not beats:
-        return {"ok": False, "error": f"No beats found for episode {episode_num}"}
-
-    # 预检：确认有草图存在
-    from ai_anime.utils.path_resolver import PathResolver
-
-    resolver = PathResolver(output_dir, episode_num)
-    sketches_dir = resolver.sketches_dir()
-    if not sketches_dir.exists() or not any(sketches_dir.glob("beat_*.png")):
-        return {"ok": False, "error": "没有草图，请先生成草图再执行全局优化"}
-
-    characters = store.get_all_characters()
-    char_list = [
-        {
-            "name": c.name,
-            "gender": c.gender,
-            "body_type": getattr(c, "body_type", ""),
-            "role": c.role,
-            "is_main": getattr(c, "is_main", False),
-            "face_prompt": c.face_prompt,
-        }
-        for c in characters
-    ]
-
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type="global_optimize_video",
-            queue_kind="default",
-            episode=episode_num,
-            payload={
-                "episode": episode_num,
-                "beats": beats,
-                "characters": char_list,
-                "output_dir": output_dir,
-                "language": body.language,
-            },
-        )
-        return {
-            "ok": True,
-            "task_type": "global_optimize_video",
-            "task_id": queued.task_state.task_id,
-            "task_key": project_task_state_key(
-                "global_optimize_video", ctx.project_id, episode_num
+    try:
+        scheduled = await global_video_optimization_use_cases().schedule(
+            resolved.ctx,
+            OptimizeEpisodeVideoCommand(
+                episode_num=episode_num,
+                language=body.language,
             ),
-            "backend": queued.backend,
-            "queue": queued.queue,
-            "message": f"第 {episode_num} 集全局视频优化已进入队列",
-        }
-
-    return {"ok": False, "error": "全局视频优化需要 project context"}
+        )
+    except (
+        GlobalVideoOptimizationBeatsMissing,
+        GlobalVideoOptimizationSketchesMissing,
+    ) as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, **scheduled.as_dict()}
 
 
 # ── 再生 ──────────────────────────────────────────────────────────────────────

@@ -22,6 +22,11 @@ if TYPE_CHECKING:
     from ai_anime.modules.production.application.video_pool import (
         AddGeneratedVideoCommand,
     )
+    from ai_anime.modules.production.application.global_video_optimization import (
+        GlobalVideoOptimizationMaterials,
+        GlobalVideoOptimizationTask,
+        GlobalVideoOptimizationTaskReceipt,
+    )
     from ai_anime.modules.production.domain.video_pool import (
         VideoPool,
         VideoPoolEntry,
@@ -361,3 +366,23 @@ class ProductionVideoBackendSource(Protocol):
     def model(self, video_backend: str) -> str | None: ...
 
     def duration_bounds(self) -> dict[str, tuple[int, int]]: ...
+
+
+class ProductionGlobalVideoOptimizationSource(Protocol):
+    async def load(
+        self,
+        context: ProjectContext,
+        episode_num: int,
+    ) -> GlobalVideoOptimizationMaterials: ...
+
+
+class ProductionEpisodeSketchCatalog(Protocol):
+    def has_any(self, context: ProjectContext, episode_num: int) -> bool: ...
+
+
+class ProductionGlobalVideoOptimizationScheduler(Protocol):
+    async def enqueue(
+        self,
+        context: ProjectContext,
+        task: GlobalVideoOptimizationTask,
+    ) -> GlobalVideoOptimizationTaskReceipt: ...
