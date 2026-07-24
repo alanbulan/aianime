@@ -2,6 +2,13 @@
 
 from typing import Any
 
+from ai_anime.modules.production.application.episode_video import (
+    ComposeEpisodeVideoCommand,
+    EpisodeBeatsMissing,
+    EpisodeVideoUseCases,
+    FinalEpisodeVideoStatus,
+    ScheduledEpisodeVideo,
+)
 from ai_anime.modules.production.application.generation_context import (
     ProductionGenerationContextUseCases,
 )
@@ -48,6 +55,14 @@ from ai_anime.modules.production.domain.sketch_color import (
     global_prop_marker_colors,
     marker_color_change_requires_sketch_clean,
 )
+
+
+def episode_video_use_cases() -> EpisodeVideoUseCases:
+    from ai_anime.modules.production.composition import (
+        episode_video_use_cases as build,
+    )
+
+    return build()
 
 
 def production_generation_context_use_cases(
@@ -120,8 +135,12 @@ def sketch_pose_editor_use_cases() -> SketchPoseEditorUseCases:
 
 __all__ = [
     "BRIDGMAN_CHARACTER_PALETTE",
+    "ComposeEpisodeVideoCommand",
     "CropSketchCommand",
     "DetectSketchMarkersCommand",
+    "EpisodeBeatsMissing",
+    "EpisodeVideoUseCases",
+    "FinalEpisodeVideoStatus",
     "ImageGenerationGuardQuery",
     "ImageGenerationUsageUseCases",
     "PROP_MARKER_PALETTE",
@@ -129,6 +148,7 @@ __all__ = [
     "ProductionImageSettingsRejected",
     "ProductionImageSettingsUseCases",
     "ReplaceSketchRegenQueueCommand",
+    "ScheduledEpisodeVideo",
     "SketchCropRejected",
     "SketchColorAssignmentResult",
     "SketchColorAssignmentUseCases",
@@ -145,6 +165,7 @@ __all__ = [
     "UpdateRenderImageSettingsCommand",
     "UpdateSketchImageSettingsCommand",
     "assign_identity_sketch_colors",
+    "episode_video_use_cases",
     "global_prop_marker_colors",
     "image_generation_usage_use_cases",
     "marker_color_change_requires_sketch_clean",

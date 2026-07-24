@@ -5,6 +5,9 @@ from typing import Any
 from ai_anime.modules.production.application.generation_context import (
     ProductionGenerationContextUseCases,
 )
+from ai_anime.modules.production.application.episode_video import (
+    EpisodeVideoUseCases,
+)
 from ai_anime.modules.production.application.image_settings import (
     ProductionImageSettingsUseCases,
 )
@@ -41,6 +44,11 @@ from ai_anime.modules.production.infrastructure.generation_context import (
     AssetWorldCharacterProjector,
     CompatibleEpisodeSource,
 )
+from ai_anime.modules.production.infrastructure.episode_video import (
+    LocalFinalEpisodeVideoCatalog,
+    SqliteEpisodeBeatSource,
+    TaskBackendEpisodeVideoScheduler,
+)
 from ai_anime.modules.production.infrastructure.sketch_color import (
     AssetWorldRuntimePropMenuSource,
     DomainSketchColorAssigner,
@@ -55,6 +63,16 @@ from ai_anime.modules.production.infrastructure.sketch_marker_detection import (
     LocalSketchMarkerDetectionFiles,
 )
 from ai_anime.modules.project_workspace.public import get_user_output_dir
+
+
+def episode_video_use_cases() -> EpisodeVideoUseCases:
+    from ai_anime import ports
+
+    return EpisodeVideoUseCases(
+        SqliteEpisodeBeatSource(),
+        TaskBackendEpisodeVideoScheduler(ports.get_task_backend),
+        LocalFinalEpisodeVideoCatalog(),
+    )
 
 
 def sketch_pose_editor_use_cases() -> SketchPoseEditorUseCases:

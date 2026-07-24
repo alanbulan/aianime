@@ -180,11 +180,14 @@ class _FakeTaskBackend:
 
 @pytest.fixture()
 def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    from ai_anime import ports as runtime_ports
     from ai_anime.api import auth as api_auth
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.routes import assets, files, generation
     from ai_anime.generators.video_pool_indexer import add_video_to_pool
+    from ai_anime.modules.production.infrastructure import episode_video
     from ai_anime.seedance2_i2v import panel_service
+    from ai_anime.shared.infrastructure import project_stores
 
     store = _M09Store()
     project_dir = tmp_path / "output" / _USER / _PROJECT
@@ -288,6 +291,11 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(generation, "_resolve_generation_project", resolve_generation_project)
     monkeypatch.setattr(generation, "make_sqlite_store_for_context", make_store_for_context)
     monkeypatch.setattr(generation, "make_sqlite_store", make_store)
+    monkeypatch.setattr(
+        project_stores,
+        "make_sqlite_store_for_context",
+        make_store_for_context,
+    )
     generation_context = SimpleNamespace(
         build_character_map=character_map,
         episode_or_none=lambda *_: None,
@@ -302,6 +310,11 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(
         generation,
         "make_static_url_for_context",
+        lambda ctx, rel, local_path=None: f"/static/projects/{ctx.project_id}/{rel}",
+    )
+    monkeypatch.setattr(
+        episode_video.project_media,
+        "make_project_static_url",
         lambda ctx, rel, local_path=None: f"/static/projects/{ctx.project_id}/{rel}",
     )
     monkeypatch.setattr(
@@ -327,6 +340,7 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     def build(backend: str = "inline"):
         task_backend = _FakeTaskBackend(backend)
         monkeypatch.setattr(generation, "get_task_backend", lambda tb=task_backend: tb)
+        monkeypatch.setattr(runtime_ports, "get_task_backend", lambda tb=task_backend: tb)
         app = FastAPI()
         app.include_router(generation.router, prefix="/api/v1")
         app.include_router(assets.router, prefix="/api/v1")

@@ -3,11 +3,19 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from ai_anime.modules.production.domain.sketch_marker_detection import (
     SketchDetectionFrame,
 )
+
+if TYPE_CHECKING:
+    from ai_anime.modules.production.application.episode_video import (
+        EpisodeVideoCompositionTask,
+        EpisodeVideoTaskReceipt,
+        FinalEpisodeVideoStatus,
+    )
+    from ai_anime.modules.project_workspace.public import ProjectContext
 
 
 class SketchPoseFiles(Protocol):
@@ -237,3 +245,27 @@ class ProductionImageUsageReader(Protocol):
 
 class ProductionOperatorPasswordVerifier(Protocol):
     def verify(self, candidate: str) -> bool: ...
+
+
+class ProductionEpisodeBeatSource(Protocol):
+    async def for_episode(
+        self,
+        context: ProjectContext,
+        episode_num: int,
+    ) -> list[dict[str, Any]]: ...
+
+
+class ProductionEpisodeVideoScheduler(Protocol):
+    async def enqueue(
+        self,
+        context: ProjectContext,
+        task: EpisodeVideoCompositionTask,
+    ) -> EpisodeVideoTaskReceipt: ...
+
+
+class ProductionFinalVideoCatalog(Protocol):
+    def status(
+        self,
+        context: ProjectContext,
+        episode_num: int,
+    ) -> FinalEpisodeVideoStatus: ...

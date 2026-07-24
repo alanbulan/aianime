@@ -397,6 +397,29 @@ def test_production_image_usage_routes_delegate_to_application() -> None:
         assert implementation_detail not in route_source
 
 
+def test_production_episode_video_routes_delegate_to_application() -> None:
+    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    source = generation.read_text(encoding="utf-8")
+    route_start = source.index("async def compose_video(")
+    route_end = source.index("async def generate_tts(", route_start)
+    route_source = source[route_start:route_end]
+
+    assert "episode_video_use_cases" in route_source
+    assert "ComposeEpisodeVideoCommand" in route_source
+    assert "EpisodeBeatsMissing" in route_source
+    for implementation_detail in (
+        "make_sqlite_store_for_context",
+        "make_sqlite_store(",
+        "get_task_backend",
+        "enqueue_project_task",
+        "project_task_state_key",
+        "make_static_url_for_context",
+        '"videos" / "episodes"',
+        "成片合成需要 project context",
+    ):
+        assert implementation_detail not in route_source
+
+
 def test_production_generation_context_routes_delegate_to_application() -> None:
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     freezone = PACKAGE_ROOT / "api" / "routes" / "freezone.py"

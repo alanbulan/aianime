@@ -86,8 +86,10 @@ from ai_anime.modules.asset_world.public import (
     scene_viewer_use_cases,
 )
 from ai_anime.modules.production.public import (
+    ComposeEpisodeVideoCommand,
     CropSketchCommand,
     DetectSketchMarkersCommand,
+    EpisodeBeatsMissing,
     ImageGenerationGuardQuery,
     ProductionImageSettingsRejected,
     ReplaceSketchRegenQueueCommand,
@@ -98,6 +100,7 @@ from ai_anime.modules.production.public import (
     SketchPoseCandidatesMissing,
     UpdateRenderImageSettingsCommand,
     UpdateSketchImageSettingsCommand,
+    episode_video_use_cases,
     production_generation_context_use_cases,
     production_image_settings_use_cases,
     image_generation_usage_use_cases,
@@ -1586,51 +1589,19 @@ async def compose_video(
 ):
     """合成成片。"""
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    ctx = resolved.ctx
-    username = resolved.username
-    project_name = resolved.project_name
-    output_dir = resolved.output_dir
-    store = (
-        await make_sqlite_store_for_context(ctx)
-        if ctx
-        else await make_sqlite_store(username, project_name)
-    )
-    beats = await store.get_beats_as_dicts(episode_num)
-    if not beats:
-        return {"ok": False, "error": f"No beats found for episode {episode_num}"}
-
-    config = {
-        "beats": beats,
-        "add_subtitles": body.add_subtitles,
-        "add_bgm": body.add_bgm,
-    }
-
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type="compose_episode",
-            queue_kind="ffmpeg",
-            episode=episode_num,
-            payload={
-                **config,
-                "episode": episode_num,
-                "output_dir": output_dir,
-                "resolution": getattr(body, "resolution", "720x1280"),
-            },
-        )
-        return {
-            "ok": True,
-            "task_type": "compose_episode",
-            "task_id": queued.task_state.task_id,
-            "task_key": project_task_state_key(
-                "compose_episode", ctx.project_id, episode_num
+    try:
+        scheduled = await episode_video_use_cases().compose(
+            resolved.ctx,
+            ComposeEpisodeVideoCommand(
+                episode_num=episode_num,
+                add_subtitles=body.add_subtitles,
+                add_bgm=body.add_bgm,
+                resolution=body.resolution,
             ),
-            "backend": queued.backend,
-            "queue": queued.queue,
-            "message": f"第 {episode_num} 集成片合成已进入队列",
-        }
-
-    return {"ok": False, "error": "成片合成需要 project context"}
+        )
+    except EpisodeBeatsMissing as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, **scheduled.as_dict()}
 
 
 @router.get("/projects/{project}/episodes/{episode_num}/final")
@@ -1641,17 +1612,11 @@ async def get_final_video(
 ):
     """读取 episode 成片状态，供 ai-anime-fe compose 页刷新 hydration。"""
     resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    project_dir = resolved.project_dir
-    filename = f"ep{episode_num:03d}_final.mp4"
-    final_path = project_dir / "videos" / "episodes" / filename
-    data = {"exists": final_path.exists(), "filename": filename}
-    if final_path.exists():
-        data["video_url"] = make_static_url_for_context(
-            resolved.ctx,
-            f"videos/episodes/{filename}",
-            local_path=final_path,
-        )
-    return {"ok": True, "data": data}
+    status_data = episode_video_use_cases().final_status(
+        resolved.ctx,
+        episode_num,
+    )
+    return {"ok": True, "data": status_data.as_dict()}
 
 
 # ── TTS 语音 ──────────────────────────────────────────────────────────────────
