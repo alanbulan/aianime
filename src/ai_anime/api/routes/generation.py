@@ -82,6 +82,7 @@ from ai_anime.modules.asset_world.public import (
     beat_background_anchor_use_cases,
     beat_director_stage_use_cases,
     resolve_beat_scene_name,
+    runtime_prop_menu_for_episode as _runtime_prop_menu_with_global_props,
     scene_viewer_use_cases,
 )
 from ai_anime.render_plan.ref_image_hash import RefImageHasher
@@ -445,63 +446,6 @@ def _register_uploaded_pool_image(
         pool.beat_assignments[str(beat_num)] = assignment_path
     save_pool_index(pool, grids_dir)
     return pool_id
-
-
-async def _runtime_prop_menu_with_global_props(
-    store: Any,
-    episode_obj: Any,
-    beats: list[dict],
-) -> list[dict]:
-    """Resolve episode prop markers against the global props table without mutating episode JSON."""
-    from ai_anime.models import build_prop_menu, collect_prop_marker_ids_from_beat
-
-    prop_menu = (
-        [item.model_dump() for item in episode_obj.prop_menu] if episode_obj else []
-    )
-    marked_prop_ids: list[str] = []
-    for beat in beats or []:
-        for prop_id in collect_prop_marker_ids_from_beat(beat):
-            if prop_id and prop_id not in marked_prop_ids:
-                marked_prop_ids.append(prop_id)
-    if not marked_prop_ids:
-        return prop_menu
-
-    existing = {
-        item.prop_id: item.model_dump() for item in build_prop_menu(prop_menu=prop_menu)
-    }
-    changed = False
-    for marker_prop_id in marked_prop_ids:
-        global_prop = (
-            store.get_cached_prop(marker_prop_id)
-            if hasattr(store, "get_cached_prop")
-            else None
-        )
-        if not global_prop:
-            continue
-        item = dict(existing.get(marker_prop_id) or {"prop_id": marker_prop_id})
-        item["is_global_asset"] = True
-        item["prop_type"] = (
-            item.get("prop_type") or getattr(global_prop, "prop_type", "") or "object"
-        )
-        item["description"] = (
-            item.get("description")
-            or getattr(global_prop, "description", "")
-            or getattr(global_prop, "visual_prompt", "")
-            or marker_prop_id
-        )
-        existing[marker_prop_id] = item
-        changed = True
-    if not changed:
-        return prop_menu
-
-    ordered_ids: list[str] = []
-    for item in build_prop_menu(prop_menu=prop_menu):
-        if item.prop_id not in ordered_ids:
-            ordered_ids.append(item.prop_id)
-    for prop_id in marked_prop_ids:
-        if prop_id in existing and prop_id not in ordered_ids:
-            ordered_ids.append(prop_id)
-    return [existing[prop_id] for prop_id in ordered_ids if prop_id in existing]
 
 
 def _prop_marker_colors_from_menu(prop_menu: list[dict] | None) -> dict[str, str]:

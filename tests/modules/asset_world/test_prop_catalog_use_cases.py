@@ -24,6 +24,10 @@ from ai_anime.modules.asset_world.infrastructure.prop_catalog import (
     NovelEpisodeLocalPropSource,
 )
 from ai_anime.modules.asset_world.public import promote_episode_props_to_global
+from ai_anime.modules.asset_world.public import (
+    runtime_prop_menu_for_episode,
+    runtime_prop_menu_with_cached_global_props,
+)
 
 
 @dataclass
@@ -325,3 +329,65 @@ async def test_promote_episode_props_returns_empty_for_unsupported_store() -> No
     )
 
     assert promoted == []
+
+
+def test_runtime_prop_menu_adds_cached_global_markers_in_stable_order() -> None:
+    class CachedStore:
+        def get_cached_prop(self, prop_id: str) -> _Prop | None:
+            if prop_id == "账单":
+                return _Prop(
+                    name="账单",
+                    prop_type="document",
+                    visual_prompt="一张逾期账单",
+                )
+            return None
+
+    prop_menu = [{"prop_id": "手机", "description": "本集手机"}]
+    beats = [
+        {"visual_description": "他拿起[[手机]]、[[账单]]和[[未知道具]]。"},
+        {"visual_description": "特写[[账单]]。"},
+    ]
+
+    data = runtime_prop_menu_with_cached_global_props(
+        prop_menu=prop_menu,
+        beats=beats,
+        store=CachedStore(),
+    )
+
+    assert [item["prop_id"] for item in data] == ["手机", "账单"]
+    assert data[0]["description"] == "本集手机"
+    assert data[1] == {
+        "prop_id": "账单",
+        "is_global_asset": True,
+        "prop_type": "document",
+        "description": "一张逾期账单",
+    }
+
+
+@pytest.mark.asyncio
+async def test_runtime_episode_prop_menu_uses_the_same_projection() -> None:
+    class MenuItem:
+        def model_dump(self) -> dict[str, str]:
+            return {"prop_id": "纸箱", "marker_color": "#1b5e20 FOREST GREEN"}
+
+    class CachedStore:
+        def get_cached_prop(self, prop_id: str) -> _Prop | None:
+            return _Prop(name=prop_id, description="全局纸箱")
+
+    data = await runtime_prop_menu_for_episode(
+        CachedStore(),
+        _Episode(number=1, prop_menu=[]),
+        [{"visual_description": "角落里有[[纸箱]]。"}],
+    )
+    assert data[0]["description"] == "全局纸箱"
+
+    episode = _Episode(number=1, prop_menu=[])
+    episode.prop_menu = [MenuItem()]
+    data = await runtime_prop_menu_for_episode(
+        CachedStore(),
+        episode,
+        [{"visual_description": "角落里有[[纸箱]]。"}],
+    )
+
+    assert data[0]["marker_color"] == "#1b5e20 FOREST GREEN"
+    assert data[0]["description"] == "全局纸箱"

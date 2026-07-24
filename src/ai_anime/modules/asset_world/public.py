@@ -172,6 +172,31 @@ async def promote_episode_props_to_global(
     return await execute(store, prop_menu)
 
 
+def runtime_prop_menu_with_cached_global_props(
+    *,
+    prop_menu: list[dict[str, Any]],
+    beats: list[dict[str, Any]],
+    store: Any,
+) -> list[dict[str, Any]]:
+    from ai_anime.modules.asset_world.composition import (
+        runtime_prop_menu_with_cached_global_props as build,
+    )
+
+    return build(prop_menu=prop_menu, beats=beats, store=store)
+
+
+async def runtime_prop_menu_for_episode(
+    store: Any,
+    episode: Any,
+    beats: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    from ai_anime.modules.asset_world.composition import (
+        runtime_prop_menu_for_episode as build,
+    )
+
+    return build(store, episode, beats)
+
+
 def scene_catalog_use_cases() -> SceneCatalogUseCases:
     from ai_anime.modules.asset_world.composition import scene_catalog_use_cases as build
 
@@ -361,6 +386,8 @@ __all__ = [
     "character_catalog_use_cases",
     "prop_catalog_use_cases",
     "promote_episode_props_to_global",
+    "runtime_prop_menu_for_episode",
+    "runtime_prop_menu_with_cached_global_props",
     "scene_catalog_use_cases",
     "scene_media_use_cases",
     "scene_task_use_cases",

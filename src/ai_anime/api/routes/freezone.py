@@ -80,7 +80,10 @@ from ai_anime.api.schemas import (
 from ai_anime.config import IMAGE_GENERATION_SELECTIONS, image_generation_selection_options
 from ai_anime.director_world import DirectorWorldService
 from ai_anime.director_world.staging_prop_ai import generate_ai_staging_prop
-from ai_anime.modules.asset_world.public import director_control_scope
+from ai_anime.modules.asset_world.public import (
+    director_control_scope,
+    runtime_prop_menu_for_episode,
+)
 from ai_anime.freezone import canvas_store
 from ai_anime.freezone.audio_node import (
     create_user_audio_voice,
@@ -945,7 +948,6 @@ async def _mainline_single_beat_config(
         _resolve_render_bool_setting,
         _resolve_render_image_selection,
         _resolve_sketch_image_selection,
-        _runtime_prop_menu_with_global_props,
     )
     from ai_anime.project_config import load_project_config
 
@@ -956,7 +958,7 @@ async def _mainline_single_beat_config(
     selected_beat = _beat_by_number(beats, int(beat))
     project_config = load_project_config(username, project_name)
     episode_obj = _episode_from_store_or_none(store, int(episode))
-    prop_menu = await _runtime_prop_menu_with_global_props(store, episode_obj, beats)
+    prop_menu = await runtime_prop_menu_for_episode(store, episode_obj, beats)
     sketch_colors = (
         store.get_sketch_colors(int(episode)) or {} if hasattr(store, "get_sketch_colors") else {}
     )

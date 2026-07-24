@@ -899,7 +899,9 @@ async def build_beat_preset_context(
         for item in build_prop_menu(prop_menu=getattr(episode_obj, "prop_menu", []) or [])
     ]
     try:
-        from ai_anime.services.prop_ref_service import runtime_prop_menu_with_cached_global_props
+        from ai_anime.modules.asset_world.public import (
+            runtime_prop_menu_with_cached_global_props,
+        )
 
         prop_menu = runtime_prop_menu_with_cached_global_props(
             prop_menu=prop_menu,

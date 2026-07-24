@@ -80,6 +80,7 @@ from ai_anime.modules.asset_world.infrastructure.image_settings import (
     SqliteImageUsageReader,
 )
 from ai_anime.modules.asset_world.infrastructure.prop_catalog import (
+    LocalCachedPropRepository,
     LocalPropCatalogAssets,
     LocalPropPromotionRepository,
     NovelEpisodeLocalPropSource,
@@ -135,6 +136,31 @@ async def promote_episode_props_to_global(
     return await prop_catalog_use_cases().promote_episode_props(
         repository=LocalPropPromotionRepository(store),
         prop_menu=prop_menu,
+    )
+
+
+def runtime_prop_menu_with_cached_global_props(
+    *,
+    prop_menu: list[dict[str, Any]],
+    beats: list[dict[str, Any]],
+    store: Any,
+) -> list[dict[str, Any]]:
+    return prop_catalog_use_cases().runtime_prop_menu(
+        repository=LocalCachedPropRepository(store),
+        prop_menu=prop_menu,
+        beats=beats,
+    )
+
+
+def runtime_prop_menu_for_episode(
+    store: Any,
+    episode: Any,
+    beats: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    return prop_catalog_use_cases().runtime_episode_prop_menu(
+        repository=LocalCachedPropRepository(store),
+        episode=episode,
+        beats=beats,
     )
 
 

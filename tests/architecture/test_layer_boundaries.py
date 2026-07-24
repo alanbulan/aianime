@@ -390,6 +390,26 @@ def test_episode_prop_promotion_uses_asset_world_public_api() -> None:
         assert "ai_anime.services.prop_promotion_service" not in source
 
 
+def test_runtime_prop_menu_uses_one_asset_world_implementation() -> None:
+    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    freezone_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    freezone_presets = PACKAGE_ROOT / "freezone" / "presets.py"
+    generation_source = generation.read_text(encoding="utf-8")
+    route_source = freezone_route.read_text(encoding="utf-8")
+    presets_source = freezone_presets.read_text(encoding="utf-8")
+
+    assert not (PACKAGE_ROOT / "services" / "prop_ref_service.py").exists()
+    assert "ai_anime.modules.asset_world.public" in _imports(generation)
+    assert "runtime_prop_menu_for_episode as _runtime_prop_menu_with_global_props" in (
+        generation_source
+    )
+    assert "def _runtime_prop_menu_with_global_props(" not in generation_source
+    assert "runtime_prop_menu_for_episode" in route_source
+    assert "_runtime_prop_menu_with_global_props," not in route_source
+    assert "runtime_prop_menu_with_cached_global_props" in presets_source
+    assert "ai_anime.services.prop_ref_service" not in presets_source
+
+
 def test_asset_world_prop_task_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "props.py"
     source = route.read_text(encoding="utf-8")

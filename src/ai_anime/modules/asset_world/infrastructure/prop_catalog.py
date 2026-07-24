@@ -6,7 +6,11 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from ai_anime.models import NovelProp, build_prop_menu
+from ai_anime.models import (
+    NovelProp,
+    build_prop_menu,
+    collect_prop_marker_ids_from_beat,
+)
 from ai_anime.modules.asset_world.application.dto import CreatePropCommand
 from ai_anime.modules.asset_world.application.ports import PropCatalogRepository
 from ai_anime.modules.asset_world.infrastructure.asset_metadata import (
@@ -59,6 +63,22 @@ class LocalPropCatalogAssets:
 class NovelEpisodeLocalPropSource:
     def normalize_menu(self, prop_menu: list[Any]) -> list[Any]:
         return build_prop_menu(prop_menu=prop_menu or [])
+
+    def episode_menu(self, episode: Any) -> list[dict[str, Any]]:
+        if episode is None:
+            return []
+        return [
+            dict(item) if isinstance(item, dict) else item.model_dump()
+            for item in (getattr(episode, "prop_menu", []) or [])
+        ]
+
+    def marker_prop_ids(self, beats: list[dict[str, Any]]) -> list[str]:
+        marked_prop_ids: list[str] = []
+        for beat in beats or []:
+            for prop_id in collect_prop_marker_ids_from_beat(beat):
+                if prop_id and prop_id not in marked_prop_ids:
+                    marked_prop_ids.append(prop_id)
+        return marked_prop_ids
 
     async def list_props(
         self,
@@ -127,3 +147,14 @@ class LocalPropPromotionRepository:
         if isinstance(cache, dict):
             cache[prop.name] = prop
         return result
+
+
+class LocalCachedPropRepository:
+    def __init__(self, store: Any) -> None:
+        self._store = store
+
+    def available(self) -> bool:
+        return callable(getattr(self._store, "get_cached_prop", None))
+
+    def get_cached_prop(self, prop_id: str) -> Any | None:
+        return self._store.get_cached_prop(prop_id)

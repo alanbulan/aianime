@@ -18,6 +18,7 @@ from ai_anime.modules.asset_world.application.errors import (
     PropNotFound,
 )
 from ai_anime.modules.asset_world.application.ports import (
+    CachedPropRepository,
     EpisodeLocalPropSource,
     PropCatalogAssets,
     PropCatalogRepository,
@@ -120,6 +121,68 @@ class PropCatalogUseCases:
             promoted.append(prop.name)
             existing_keys.add(lookup)
         return promoted
+
+    def runtime_prop_menu(
+        self,
+        *,
+        repository: CachedPropRepository,
+        prop_menu: list[dict[str, Any]],
+        beats: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        marked_prop_ids = self._local_props.marker_prop_ids(beats)
+        if not marked_prop_ids or not repository.available():
+            return list(prop_menu or [])
+
+        existing = {
+            item.prop_id: item.model_dump()
+            for item in self._local_props.normalize_menu(prop_menu or [])
+        }
+        changed = False
+        for marker_prop_id in marked_prop_ids:
+            global_prop = repository.get_cached_prop(marker_prop_id)
+            if not global_prop:
+                continue
+            item = dict(existing.get(marker_prop_id) or {"prop_id": marker_prop_id})
+            item["is_global_asset"] = True
+            item["prop_type"] = (
+                item.get("prop_type")
+                or getattr(global_prop, "prop_type", "")
+                or "object"
+            )
+            item["description"] = (
+                item.get("description")
+                or getattr(global_prop, "description", "")
+                or getattr(global_prop, "visual_prompt", "")
+                or marker_prop_id
+            )
+            existing[marker_prop_id] = item
+            changed = True
+        if not changed:
+            return list(prop_menu or [])
+
+        ordered_ids = [
+            item.prop_id
+            for item in self._local_props.normalize_menu(prop_menu or [])
+        ]
+        ordered_ids.extend(
+            prop_id
+            for prop_id in marked_prop_ids
+            if prop_id in existing and prop_id not in ordered_ids
+        )
+        return [existing[prop_id] for prop_id in ordered_ids if prop_id in existing]
+
+    def runtime_episode_prop_menu(
+        self,
+        *,
+        repository: CachedPropRepository,
+        episode: Any,
+        beats: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        return self.runtime_prop_menu(
+            repository=repository,
+            prop_menu=self._local_props.episode_menu(episode),
+            beats=beats,
+        )
 
     async def create_prop(
         self,

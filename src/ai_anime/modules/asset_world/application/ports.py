@@ -590,6 +590,10 @@ class PropCatalogAssets(Protocol):
 class EpisodeLocalPropSource(Protocol):
     def normalize_menu(self, prop_menu: list[Any]) -> list[Any]: ...
 
+    def episode_menu(self, episode: Any) -> list[dict[str, Any]]: ...
+
+    def marker_prop_ids(self, beats: list[dict[str, Any]]) -> list[str]: ...
+
     async def list_props(
         self,
         repository: PropCatalogRepository,
@@ -603,6 +607,12 @@ class PropPromotionRepository(Protocol):
     async def list_props(self) -> list[Any]: ...
 
     async def add_prop(self, prop: Any) -> Any: ...
+
+
+class CachedPropRepository(Protocol):
+    def available(self) -> bool: ...
+
+    def get_cached_prop(self, prop_id: str) -> Any | None: ...
 
 
 class PropTaskRepository(Protocol):
