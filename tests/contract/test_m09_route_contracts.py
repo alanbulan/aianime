@@ -183,7 +183,7 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime import ports as runtime_ports
     from ai_anime.api import auth as api_auth
     from ai_anime.api.deps import ProjectResolution
-    from ai_anime.api.routes import assets, files, generation
+    from ai_anime.api.routes import assets, files, generation, production_settings
     from ai_anime.modules.production import composition as production_composition
     from ai_anime.modules.production.infrastructure import (
         episode_export,
@@ -290,6 +290,11 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
     monkeypatch.setattr(generation, "_resolve_generation_project", resolve_generation_project)
     monkeypatch.setattr(
+        production_settings,
+        "resolve_project_scope",
+        resolve_project_scope,
+    )
+    monkeypatch.setattr(
         project_stores,
         "make_sqlite_store_for_context",
         make_store_for_context,
@@ -362,6 +367,7 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setattr(runtime_ports, "get_task_backend", lambda tb=task_backend: tb)
         app = FastAPI()
         app.include_router(generation.router, prefix="/api/v1")
+        app.include_router(production_settings.router, prefix="/api/v1")
         app.include_router(assets.router, prefix="/api/v1")
         app.include_router(files.router, prefix="/api/v1")
         user = {

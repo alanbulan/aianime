@@ -336,10 +336,29 @@ def test_production_sketch_edit_routes_delegate_to_application() -> None:
 
 
 def test_production_image_settings_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "production_settings.py"
     source = route.read_text(encoding="utf-8")
+    generation_source = (
+        PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    ).read_text(encoding="utf-8")
+    api_router_source = (PACKAGE_ROOT / "api" / "v1" / "router.py").read_text(
+        encoding="utf-8"
+    )
 
     assert "production_image_settings_use_cases" in source
+    assert "production_settings.router" in api_router_source
+    for handler_name in (
+        "get_render_settings",
+        "update_render_settings",
+        "get_sketch_settings",
+        "update_sketch_settings",
+        "get_sketch_regen_queue",
+        "update_sketch_regen_queue",
+        "get_sketch_image_usage",
+        "get_image_generation_guard",
+        "verify_image_generation_guard_password",
+    ):
+        assert f"async def {handler_name}(" not in generation_source
     for legacy_helper in (
         "def _resolve_render_image_selection(",
         "def _resolve_sketch_image_selection(",
@@ -359,8 +378,8 @@ def test_production_image_settings_routes_delegate_to_application() -> None:
 
 
 def test_production_sketch_regen_queue_routes_delegate_to_application() -> None:
-    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
-    source = generation.read_text(encoding="utf-8")
+    route = PACKAGE_ROOT / "api" / "routes" / "production_settings.py"
+    source = route.read_text(encoding="utf-8")
     route_start = source.index("async def get_sketch_regen_queue(")
     route_end = source.index("async def get_sketch_image_usage(", route_start)
     route_source = source[route_start:route_end]
@@ -384,11 +403,10 @@ def test_production_sketch_regen_queue_routes_delegate_to_application() -> None:
 
 
 def test_production_image_usage_routes_delegate_to_application() -> None:
-    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
-    source = generation.read_text(encoding="utf-8")
+    route = PACKAGE_ROOT / "api" / "routes" / "production_settings.py"
+    source = route.read_text(encoding="utf-8")
     route_start = source.index("async def get_sketch_image_usage(")
-    route_end = source.index("async def compose_video(", route_start)
-    route_source = source[route_start:route_end]
+    route_source = source[route_start:]
 
     assert "image_generation_usage_use_cases" in route_source
     assert "ImageGenerationGuardQuery" in route_source
@@ -576,7 +594,7 @@ def test_production_video_backend_catalog_has_one_owner() -> None:
     seedance_pipeline = PACKAGE_ROOT / "seedance2_i2v" / "pipeline.py"
     source = generation.read_text(encoding="utf-8")
     route_start = source.index("async def get_video_backend_options(")
-    route_end = source.index("async def get_render_settings(", route_start)
+    route_end = source.index("async def compose_video(", route_start)
     route_source = source[route_start:route_end]
 
     assert "video_backend_catalog_use_cases" in route_source

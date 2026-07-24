@@ -269,7 +269,7 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime import ports as ai_anime_ports
     from ai_anime.api import auth as api_auth
     from ai_anime.api.deps import ProjectResolution
-    from ai_anime.api.routes import episodes, generation, scenes
+    from ai_anime.api.routes import episodes, generation, production_settings, scenes
     from ai_anime.modules.asset_world.infrastructure import (
         beat_viewer as beat_viewer_adapter,
         image_settings as image_settings_adapter,
@@ -331,6 +331,7 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
     monkeypatch.setattr(scenes, "_resolve_scene_project", resolve_scene_project)
     monkeypatch.setattr(generation, "_resolve_generation_project", resolve_scope)
+    monkeypatch.setattr(production_settings, "resolve_project_scope", resolve_scope)
     monkeypatch.setattr(
         project_stores,
         "make_sqlite_store_for_context",
@@ -352,7 +353,7 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
     queue_repository = QueueRepository()
     monkeypatch.setattr(
-        generation,
+        production_settings,
         "sketch_regen_queue_use_cases",
         lambda: SketchRegenQueueUseCases(queue_repository),
     )
@@ -416,6 +417,7 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app = FastAPI()
         app.include_router(scenes.router, prefix="/api/v1")
         app.include_router(generation.router, prefix="/api/v1")
+        app.include_router(production_settings.router, prefix="/api/v1")
         app.include_router(episodes.router, prefix="/api/v1")
         app.include_router(verification_routes.router, prefix="/api/v1")
         user = {"id": "alice-id", "user_id": "alice-id", "username": "alice", "role": "owner"}
