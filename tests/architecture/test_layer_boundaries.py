@@ -649,6 +649,39 @@ def test_production_selected_regeneration_routes_delegate_to_application() -> No
     assert "SELECTED_SKETCH_REGEN_TASK_TYPE" in runner_source
 
 
+def test_production_grid_regeneration_route_delegates_to_application() -> None:
+    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    render_runner = PACKAGE_ROOT / "task_backend" / "runners" / "render.py"
+    source = generation.read_text(encoding="utf-8")
+    route_start = source.index("async def regenerate_grid(")
+    route_end = source.index("async def render_plan(", route_start)
+    route_source = source[route_start:route_end]
+
+    assert route_source.count("grid_regeneration_use_cases") == 1
+    assert "RegenerateGridCommand" in route_source
+    for implementation_detail in (
+        "load_project_config",
+        "make_sqlite_store_for_context",
+        "make_sqlite_store(",
+        "get_beats_as_dicts",
+        "character_grid_split",
+        "scene_grid_split",
+        "perfect_grid_split",
+        "pick_beats_by_number",
+        "render_ai_detection_error",
+        "production_generation_context_use_cases",
+        "production_image_settings_use_cases",
+        "get_task_backend",
+        "enqueue_project_task",
+        "project_task_state_key",
+        "需要 project context",
+    ):
+        assert implementation_detail not in route_source
+    assert "GRID_REGENERATION_TASK_TYPE" in render_runner.read_text(
+        encoding="utf-8"
+    )
+
+
 def test_production_seedance2_panel_routes_delegate_to_application() -> None:
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     source = generation.read_text(encoding="utf-8")

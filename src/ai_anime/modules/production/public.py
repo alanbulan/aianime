@@ -91,6 +91,13 @@ from ai_anime.modules.production.application.global_video_optimization import (
     OptimizeEpisodeVideoCommand,
     ScheduledGlobalVideoOptimization,
 )
+from ai_anime.modules.production.application.grid_regeneration import (
+    GRID_REGENERATION_TASK_TYPE,
+    GridRegenerationRejected,
+    GridRegenerationUseCases,
+    RegenerateGridCommand,
+    ScheduledGridRegeneration,
+)
 from ai_anime.modules.production.application.seedance2_panel import (
     CropSeedance2AssetCommand,
     RemoveSeedance2AssetCommand,
@@ -186,6 +193,14 @@ def video_backend_catalog_use_cases() -> VideoBackendCatalogUseCases:
 def global_video_optimization_use_cases() -> GlobalVideoOptimizationUseCases:
     from ai_anime.modules.production.composition import (
         global_video_optimization_use_cases as build,
+    )
+
+    return build()
+
+
+def grid_regeneration_use_cases() -> GridRegenerationUseCases:
+    from ai_anime.modules.production.composition import (
+        grid_regeneration_use_cases as build,
     )
 
     return build()
@@ -300,6 +315,7 @@ __all__ = [
     "DEFAULT_VIDEO_BACKEND",
     "DIRECTOR_CONTROL_TO_SKETCH_TASK_KIND",
     "GLOBAL_VIDEO_OPTIMIZATION_TASK_TYPE",
+    "GRID_REGENERATION_TASK_TYPE",
     "INDEXTTS2_AUDIO_TASK_TYPE",
     "SELECTED_RENDER_REGEN_TASK_TYPE",
     "SELECTED_SKETCH_REGEN_TASK_TYPE",
@@ -332,6 +348,8 @@ __all__ = [
     "GlobalVideoOptimizationBeatsMissing",
     "GlobalVideoOptimizationSketchesMissing",
     "GlobalVideoOptimizationUseCases",
+    "GridRegenerationRejected",
+    "GridRegenerationUseCases",
     "ImageGenerationGuardQuery",
     "ImageGenerationUsageUseCases",
     "PROP_MARKER_PALETTE",
@@ -339,12 +357,14 @@ __all__ = [
     "ProductionImageSettingsRejected",
     "ProductionImageSettingsUseCases",
     "OptimizeEpisodeVideoCommand",
+    "RegenerateGridCommand",
     "RegenerateSelectedBeatsCommand",
     "ReplaceSketchRegenQueueCommand",
     "RemoveSeedance2AssetCommand",
     "ScheduledEpisodeVideo",
     "ScheduledEpisodeAudio",
     "ScheduledGlobalVideoOptimization",
+    "ScheduledGridRegeneration",
     "ScheduledDirectorControlSketch",
     "ScheduledSketchGeneration",
     "ScheduledSelectedRegeneration",
@@ -391,6 +411,7 @@ __all__ = [
     "grok_video_ratio",
     "grok_video_resolution",
     "global_video_optimization_use_cases",
+    "grid_regeneration_use_cases",
     "happyhorse_ratio",
     "happyhorse_resolution",
     "global_prop_marker_colors",

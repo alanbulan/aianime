@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.production.public import (
+    GRID_REGENERATION_TASK_TYPE,
     SELECTED_RENDER_REGEN_TASK_TYPE,
     SELECTED_SKETCH_REGEN_TASK_TYPE,
 )
@@ -770,7 +771,15 @@ async def _run_grid_regenerate_async(
     manager = get_task_manager()
 
     def log(message: str, *, progress: float | None = None) -> None:
-        _log(manager, ctx, "grid_regenerate", episode, message, progress=progress, scope=scope)
+        _log(
+            manager,
+            ctx,
+            GRID_REGENERATION_TASK_TYPE,
+            episode,
+            message,
+            progress=progress,
+            scope=scope,
+        )
 
     paths = PathResolver(output_dir, episode)
     frames_dir = paths.frames_dir()
@@ -977,9 +986,9 @@ def run_grid_regenerate(envelope: dict[str, Any], ctx: ProjectContext) -> dict[s
         await_envelope_with_cancel_watch(
             _run_grid_regenerate_async(envelope, ctx),
             envelope,
-            task_type="grid_regenerate",
+            task_type=GRID_REGENERATION_TASK_TYPE,
         )
     )
 
 
-register_project_task_runner("grid_regenerate", run_grid_regenerate)
+register_project_task_runner(GRID_REGENERATION_TASK_TYPE, run_grid_regenerate)

@@ -32,6 +32,11 @@ if TYPE_CHECKING:
         GlobalVideoOptimizationTask,
         GlobalVideoOptimizationTaskReceipt,
     )
+    from ai_anime.modules.production.application.grid_regeneration import (
+        GridRegenerationTask,
+        GridRegenerationTaskReceipt,
+        RegenerateGridCommand,
+    )
     from ai_anime.modules.production.application.seedance2_panel import (
         CropSeedance2AssetCommand,
         RemoveSeedance2AssetCommand,
@@ -520,3 +525,19 @@ class ProductionSelectedRegenerationScheduler(Protocol):
         context: ProjectContext,
         task: SelectedRegenerationTask,
     ) -> SelectedRegenerationTaskReceipt: ...
+
+
+class ProductionGridRegenerationPreparer(Protocol):
+    async def prepare(
+        self,
+        context: ProjectContext,
+        command: RegenerateGridCommand,
+    ) -> GridRegenerationTask: ...
+
+
+class ProductionGridRegenerationScheduler(Protocol):
+    async def enqueue(
+        self,
+        context: ProjectContext,
+        task: GridRegenerationTask,
+    ) -> GridRegenerationTaskReceipt: ...

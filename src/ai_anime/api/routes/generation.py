@@ -101,9 +101,11 @@ from ai_anime.modules.production.public import (
     GenerateSingleVideoCommand,
     GlobalVideoOptimizationBeatsMissing,
     GlobalVideoOptimizationSketchesMissing,
+    GridRegenerationRejected,
     ImageGenerationGuardQuery,
     ProductionImageSettingsRejected,
     OptimizeEpisodeVideoCommand,
+    RegenerateGridCommand,
     RegenerateSelectedBeatsCommand,
     ReplaceSketchRegenQueueCommand,
     RemoveSeedance2AssetCommand,
@@ -128,6 +130,7 @@ from ai_anime.modules.production.public import (
     VideoPoolEntryUnavailable,
     director_control_sketch_use_cases,
     global_video_optimization_use_cases,
+    grid_regeneration_use_cases,
     seedance2_panel_use_cases,
     selected_regeneration_use_cases,
     sketch_generation_use_cases,
@@ -150,7 +153,6 @@ from ai_anime.render_plan.ref_image_hash import RefImageHasher
 from ai_anime.project_config import load_project_config
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.ports import get_task_backend, get_usage_meter
-from ai_anime.task_identity import project_task_state_key
 from ai_anime.shared.project_media import make_project_asset_url_builder
 
 router = APIRouter()
@@ -937,157 +939,23 @@ async def regenerate_grid(
 ):
     """重新生成单个网格。"""
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    ctx = resolved.ctx
-    username = resolved.username
-    project_name = resolved.project_name
-    output_dir = resolved.output_dir
-
-    proj_config = load_project_config(username, project_name)
-    style = body.style or proj_config.get("visual_style", "chinese_period_drama")
-    render_image_selection = production_image_settings_use_cases().resolve_render_selection(
-        proj_config,
-        body.image_generation_selection,
-    )
-
-    store = (
-        await make_sqlite_store_for_context(ctx)
-        if ctx
-        else await make_sqlite_store(username, project_name)
-    )
-    beats = await store.get_beats_as_dicts(episode_num)
-
-    if not beats:
-        return {"ok": False, "error": f"No beats found for episode {episode_num}"}
-
-    # 验证 grid_index 范围
-    character_map = await production_generation_context_use_cases(
-        store,
-        username,
-    ).build_character_map(
-        beats=beats,
-        project=project_name,
-        episode_num=episode_num,
-        use_detected_identities=True,
-    )
-
-    if body.character_grouping:
-        from ai_anime.generators.nanobanana_grid import character_grid_split
-
-        char_plan = character_grid_split(beats, character_map)
-        max_grids = len(char_plan)
-        if grid_index < 0 or grid_index >= max_grids:
-            grid_labels = " + ".join(
-                f"{e['rows']}x{e['cols']}(comp={e.get('composite_count', '?')})"
-                for e in char_plan
-            )
-            return {
-                "ok": False,
-                "error": (
-                    f"grid_index={grid_index} 超出范围。"
-                    f"角色分组方案: {grid_labels}，"
-                    f"有效 grid_index: 0~{max_grids - 1}"
-                ),
-            }
-        selected_beat_numbers = [
-            int(beat) for beat in char_plan[grid_index].get("beat_numbers", [])
-        ]
-    elif body.scene_grouping:
-        from ai_anime.generators.nanobanana_grid import scene_grid_split
-
-        loc_plan = scene_grid_split(beats, character_map=character_map)
-        max_grids = len(loc_plan)
-        if grid_index < 0 or grid_index >= max_grids:
-            grid_labels = " + ".join(
-                f"{e['rows']}x{e['cols']}({e['scene_id']})" for e in loc_plan
-            )
-            return {
-                "ok": False,
-                "error": (
-                    f"grid_index={grid_index} 超出范围。"
-                    f"场景分组方案: {grid_labels}，"
-                    f"有效 grid_index: 0~{max_grids - 1}"
-                ),
-            }
-        selected_beat_numbers = [
-            int(beat) for beat in loc_plan[grid_index].get("beat_numbers", [])
-        ]
-    else:
-        from ai_anime.generators.nanobanana_grid import (
-            perfect_grid_split,
-            REGEN_MODE_CONFIGS as _RMC,
-        )
-
-        grid_plan = perfect_grid_split(len(beats))
-        if grid_index < 0 or grid_index >= len(grid_plan):
-            grid_labels = " + ".join(
-                f"{_RMC[mk]['rows']}x{_RMC[mk]['cols']}" for mk in grid_plan
-            )
-            return {
-                "ok": False,
-                "error": (
-                    f"grid_index={grid_index} 超出范围。"
-                    f"共 {len(beats)} 个 beats，分割方案: {grid_labels}，"
-                    f"有效 grid_index: 0~{len(grid_plan) - 1}"
-                ),
-            }
-        start_offset = sum(_RMC[mk]["capacity"] for mk in grid_plan[:grid_index])
-        capacity = _RMC[grid_plan[grid_index]]["capacity"]
-        selected_beat_numbers = [
-            int(beat.get("beat_number", index + 1))
-            for index, beat in enumerate(
-                beats[start_offset : start_offset + capacity], start_offset
-            )
-        ]
-
-    selected_beats = pick_beats_by_number(beats, selected_beat_numbers)
-    detection_error = render_ai_detection_error(selected_beats)
-    if detection_error:
-        return {"ok": False, "error": detection_error}
-
-    config = {
-        "beats": beats,
-        "character_map": character_map,
-        "style": style,
-        "model": body.model,
-        "image_generation_selection": render_image_selection,
-        "render_mode": "Render",
-        "scene_grouping": body.scene_grouping,
-        "character_grouping": body.character_grouping,
-        "sketch_aspect_padding": production_image_settings_use_cases().resolve_sketch_aspect_padding(
-            proj_config,
-            body.sketch_aspect_padding,
-        ),
-    }
-
-    scope = f"grid_{grid_index}"
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type="grid_regenerate",
-            queue_kind="default",
-            episode=episode_num,
-            scope=scope,
-            payload={
-                "episode": episode_num,
-                "grid_index": grid_index,
-                "output_dir": output_dir,
-                "config": config,
-            },
-        )
-        return {
-            "ok": True,
-            "task_type": "grid_regenerate",
-            "scope": scope,
-            "task_id": queued.task_state.task_id,
-            "task_key": project_task_state_key(
-                "grid_regenerate", ctx.project_id, episode_num, scope=scope
+    try:
+        scheduled = await grid_regeneration_use_cases().regenerate(
+            resolved.ctx,
+            RegenerateGridCommand(
+                episode_num=episode_num,
+                grid_index=grid_index,
+                style=body.style,
+                model=body.model,
+                scene_grouping=body.scene_grouping,
+                character_grouping=body.character_grouping,
+                image_generation_selection=body.image_generation_selection,
+                sketch_aspect_padding=body.sketch_aspect_padding,
             ),
-            "backend": queued.backend,
-            "queue": queued.queue,
-            "message": f"第 {episode_num} 集网格 {grid_index} 重新生成已进入队列",
-        }
-
-    return {"ok": False, "error": "网格重新生成需要 project context"}
+        )
+    except GridRegenerationRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, **scheduled.as_dict()}
 
 
 @router.post("/projects/{project}/episodes/{episode_num}/render/plan")

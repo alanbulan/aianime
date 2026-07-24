@@ -7,6 +7,11 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from ai_anime.models import NO_CHARACTER_MARKER
+from ai_anime.modules.production.application.grid_regeneration import (
+    GridRegenerationRejected,
+    GridRegenerationTaskReceipt,
+    ScheduledGridRegeneration,
+)
 from ai_anime.modules.production.application.selected_regeneration import (
     ScheduledSelectedRegeneration,
     SelectedRegenerationKind,
@@ -342,21 +347,39 @@ def test_render_plan_execute_checks_only_selected_beat_detection(monkeypatch, tm
 
 
 def test_render_grid_regen_passes_render_settings(monkeypatch, tmp_path):
-    from ai_anime.generators import nanobanana_grid
+    from ai_anime.api.routes import generation
+
+    client, backend_calls = _client(monkeypatch, tmp_path)
+    use_case_calls = []
+
+    class UseCases:
+        async def regenerate(self, context, command):
+            use_case_calls.append((context, command))
+            return ScheduledGridRegeneration(
+                episode_num=2,
+                grid_index=0,
+                receipt=GridRegenerationTaskReceipt(
+                    scope="grid_0",
+                    task_id="task-1",
+                    task_key="task:grid_regenerate:project:proj:2:grid_0",
+                    backend="celery",
+                    queue="default",
+                ),
+            )
 
     monkeypatch.setattr(
-        nanobanana_grid,
-        "scene_grid_split",
-        lambda beats, character_map=None: [
-            {"rows": 1, "cols": 1, "scene_id": "A", "beat_numbers": [1, 3]}
-        ],
+        generation,
+        "grid_regeneration_use_cases",
+        lambda: UseCases(),
     )
-    client, calls = _client(monkeypatch, tmp_path)
 
     response = client.post(
         "/api/v1/projects/demo/episodes/2/grids/0/regenerate",
         json={
+            "style": "cinematic",
+            "model": "nanobanana-pro",
             "scene_grouping": True,
+            "character_grouping": False,
             "image_generation_selection": "newapi_nanobanana2",
             "sketch_aspect_padding": True,
         },
@@ -366,50 +389,43 @@ def test_render_grid_regen_passes_render_settings(monkeypatch, tmp_path):
     body = response.json()
     assert body["ok"] is True
     assert body["task_type"] == "grid_regenerate"
-    assert calls[0]["payload"]["grid_index"] == 0
-    assert (
-        calls[0]["payload"]["config"]["image_generation_selection"]
-        == "newapi_nanobanana2"
-    )
-    assert calls[0]["payload"]["config"]["sketch_aspect_padding"] is True
-    assert "force_half_k" not in calls[0]["payload"]["config"]
+    assert body["scope"] == "grid_0"
+    assert backend_calls == []
+    assert len(use_case_calls) == 1
+    command = use_case_calls[0][1]
+    assert command.episode_num == 2
+    assert command.grid_index == 0
+    assert command.style == "cinematic"
+    assert command.model == "nanobanana-pro"
+    assert command.scene_grouping is True
+    assert command.character_grouping is False
+    assert command.image_generation_selection == "newapi_nanobanana2"
+    assert command.sketch_aspect_padding is True
 
 
-def test_render_grid_regen_checks_only_selected_grid_detection(monkeypatch, tmp_path):
-    from ai_anime.generators import nanobanana_grid
+def test_render_grid_regen_preserves_rejection_envelope(monkeypatch, tmp_path):
+    from ai_anime.api.routes import generation
+
+    client, backend_calls = _client(monkeypatch, tmp_path)
+
+    class UseCases:
+        async def regenerate(self, _context, _command):
+            raise GridRegenerationRejected("grid_index=4 超出范围")
 
     monkeypatch.setattr(
-        nanobanana_grid,
-        "scene_grid_split",
-        lambda beats, character_map=None: [
-            {"rows": 1, "cols": 1, "scene_id": "B", "beat_numbers": [2]}
-        ],
-    )
-    client, calls, _seen_character_map_beats = _client_with_real_detection_guard(
-        monkeypatch,
-        tmp_path,
-        [
-            {
-                "beat_number": 1,
-                "narration_segment": "a",
-                "location": "A",
-                "detected_identities": [],
-            },
-            {
-                "beat_number": 2,
-                "narration_segment": "b",
-                "location": "B",
-                "detected_identities": [NO_CHARACTER_MARKER],
-            },
-        ],
+        generation,
+        "grid_regeneration_use_cases",
+        lambda: UseCases(),
     )
 
     response = client.post(
-        "/api/v1/projects/demo/episodes/2/grids/0/regenerate",
+        "/api/v1/projects/demo/episodes/2/grids/4/regenerate",
         json={"scene_grouping": True},
     )
 
     assert response.status_code == 200
-    body = response.json()
-    assert body["ok"] is True
-    assert calls[0]["payload"]["grid_index"] == 0
+    assert response.json() == {
+        "ok": False,
+        "error": "grid_index=4 超出范围",
+    }
+    assert backend_calls == []
