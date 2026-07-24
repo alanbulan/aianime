@@ -120,6 +120,7 @@ from ai_anime.modules.production.public import (
     VideoPoolEntryUnavailable,
     director_control_sketch_use_cases,
     global_video_optimization_use_cases,
+    grid_pool_use_cases,
     grid_regeneration_use_cases,
     manual_sketch_regeneration_use_cases,
     seedance2_panel_use_cases,
@@ -1815,74 +1816,10 @@ async def list_grids(
 ):
     """查看网格预览和图片池。"""
     resolved = await _resolve_generation_project(project, user, required_role="viewer")
-    username = resolved.username
-    project_name = resolved.project_name
-    project_dir = resolved.project_dir
-
-    from ai_anime.generators.pool_indexer import (
-        compute_beat_content_hash,
-        is_pool_image_stale,
-        load_pool_index,
-    )
-
-    grids_dir = project_dir / "grids" / f"ep{episode_num:03d}"
-    pool = load_pool_index(grids_dir)
-    if not pool:
-        return {"ok": True, "data": None}
-
-    store = (
-        await make_sqlite_store_for_context(resolved.ctx)
-        if resolved.ctx
-        else await make_sqlite_store(username, project_name)
-    )
-    script_data = await store.get_script_as_dict(episode_num) or {}
-    sketch_colors = script_data.get("sketch_colors", {}) or {}
-    script_mt = None
-    beat_hashes: dict[int, str] = {}
-    for beat in script_data.get("beats", []):
-        beat_num = beat.get("beat_number")
-        if beat_num is not None:
-            beat_hashes[beat_num] = compute_beat_content_hash(
-                beat, sketch_colors=sketch_colors
-            )
-
-    images = []
-    for img in pool.images:
-        entry = img.model_dump()
-        # datetime → ISO string
-        if entry.get("generated_at"):
-            entry["generated_at"] = entry["generated_at"].isoformat()
-        # cell URL
-        if img.cell_path:
-            cell_path = grids_dir / img.cell_path
-            entry["cell_url"] = make_static_url_for_context(
-                resolved.ctx,
-                f"grids/ep{episode_num:03d}/{img.cell_path}",
-                local_path=cell_path,
-            )
-        else:
-            entry["cell_url"] = ""
-        # grid URL
-        if img.grid_path:
-            grid_path = grids_dir / img.grid_path
-            entry["grid_url"] = make_static_url_for_context(
-                resolved.ctx,
-                f"grids/ep{episode_num:03d}/{img.grid_path}",
-                local_path=grid_path,
-            )
-        else:
-            entry["grid_url"] = ""
-        entry["stale"] = is_pool_image_stale(img, beat_hashes, script_mt)
-        images.append(entry)
-
+    listing = await grid_pool_use_cases().list_pool(resolved.ctx, episode_num)
     return {
         "ok": True,
-        "data": {
-            "episode": pool.episode,
-            "modes": pool.modes,
-            "images": images,
-            "beat_assignments": pool.beat_assignments,
-        },
+        "data": listing.as_dict() if listing is not None else None,
     }
 
 
@@ -1894,24 +1831,12 @@ async def rebuild_grids_pool_index(
 ):
     """Rebuild the episode image pool index using the same helper as NiceGUI."""
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    project_dir = resolved.project_dir
-
-    from ai_anime.generators.pool_indexer import rebuild_pool_index
-
-    grids_dir = project_dir / "grids" / f"ep{episode_num:03d}"
-    grids_dir.mkdir(parents=True, exist_ok=True)
-    pool = rebuild_pool_index(
-        episode_grids_dir=grids_dir,
-        episode=episode_num,
-        split_cells=True,
-    )
     return {
         "ok": True,
-        "data": {
-            "episode": pool.episode,
-            "image_count": len(pool.images),
-            "mode_count": len(pool.modes),
-        },
+        "data": grid_pool_use_cases().rebuild(
+            resolved.ctx,
+            episode_num,
+        ).as_dict(),
     }
 
 

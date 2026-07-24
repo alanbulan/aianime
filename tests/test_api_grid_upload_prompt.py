@@ -61,54 +61,85 @@ def _seed_pool(grids_dir):
 
 
 @pytest.mark.asyncio
-async def test_list_grids_uses_local_paths_for_cache_busting(monkeypatch, tmp_path):
+async def test_grid_pool_routes_delegate_request_mapping(monkeypatch):
     from ai_anime.api.routes import generation
+    from ai_anime.modules.production.application.grid_pool import (
+        GridPoolListing,
+        RebuiltGridPool,
+    )
 
-    grids_dir = tmp_path / "grids" / "ep001"
-    (grids_dir / "render").mkdir(parents=True)
-    (grids_dir / "custom").mkdir(parents=True)
-    (grids_dir / "render" / "beat_05.png").write_bytes(b"cell")
-    (grids_dir / "custom" / "render_2x2_5-6_grid_old.png").write_bytes(b"grid")
-    _seed_pool(grids_dir)
-
-    class Store:
-        async def get_script_as_dict(self, episode_num):
-            return {"beats": []}
+    context = object()
+    resolve_calls = []
+    use_case_calls = []
 
     async def resolve(*args, **kwargs):
-        return SimpleNamespace(
-            ctx=SimpleNamespace(project_id="proj_demo", output_dir=tmp_path),
-            username="admin",
-            project_name="demo",
-            project_dir=tmp_path,
-            output_dir=str(tmp_path),
-        )
+        resolve_calls.append((args, kwargs))
+        return SimpleNamespace(ctx=context)
 
-    captured: list[tuple[str, object]] = []
+    class UseCases:
+        async def list_pool(self, candidate, episode_num):
+            use_case_calls.append(("list", candidate, episode_num))
+            return GridPoolListing(
+                episode=episode_num,
+                modes={"2x2": {"total_cells": 0}},
+                images=(),
+                beat_assignments={},
+            )
 
-    def static_url(ctx, path, local_path=None):
-        captured.append((path, local_path))
-        return f"/static/projects/{ctx.project_id}/{path}"
+        def rebuild(self, candidate, episode_num):
+            use_case_calls.append(("rebuild", candidate, episode_num))
+            return RebuiltGridPool(
+                episode=episode_num,
+                image_count=4,
+                mode_count=1,
+            )
 
+    use_cases = UseCases()
     monkeypatch.setattr(generation, "_resolve_generation_project", resolve)
+    monkeypatch.setattr(generation, "grid_pool_use_cases", lambda: use_cases)
 
-    async def fake_store(*_args, **_kwargs):
-        return Store()
+    listed = await generation.list_grids(
+        "project-id",
+        2,
+        user={"username": "admin"},
+    )
+    rebuilt = await generation.rebuild_grids_pool_index(
+        "project-id",
+        2,
+        user={"username": "admin"},
+    )
 
-    monkeypatch.setattr(generation, "make_sqlite_store_for_context", fake_store)
-    monkeypatch.setattr(generation, "make_static_url_for_context", static_url)
-
-    payload = await generation.list_grids("project-id", 1, user={"username": "admin"})
-
-    assert payload["ok"] is True
-    assert (
-        "grids/ep001/render/beat_05.png",
-        grids_dir / "render" / "beat_05.png",
-    ) in captured
-    assert (
-        "grids/ep001/custom/render_2x2_5-6_grid_old.png",
-        grids_dir / "custom" / "render_2x2_5-6_grid_old.png",
-    ) in captured
+    assert resolve_calls == [
+        (
+            ("project-id", {"username": "admin"}),
+            {"required_role": "viewer"},
+        ),
+        (
+            ("project-id", {"username": "admin"}),
+            {"required_role": "editor"},
+        ),
+    ]
+    assert use_case_calls == [
+        ("list", context, 2),
+        ("rebuild", context, 2),
+    ]
+    assert listed == {
+        "ok": True,
+        "data": {
+            "episode": 2,
+            "modes": {"2x2": {"total_cells": 0}},
+            "images": [],
+            "beat_assignments": {},
+        },
+    }
+    assert rebuilt == {
+        "ok": True,
+        "data": {
+            "episode": 2,
+            "image_count": 4,
+            "mode_count": 1,
+        },
+    }
 
 
 def test_upload_grid_replaces_pool_grid_path(monkeypatch, tmp_path):

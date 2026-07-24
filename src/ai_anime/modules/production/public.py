@@ -98,6 +98,11 @@ from ai_anime.modules.production.application.grid_regeneration import (
     RegenerateGridCommand,
     ScheduledGridRegeneration,
 )
+from ai_anime.modules.production.application.grid_pool import (
+    GridPoolListing,
+    GridPoolUseCases,
+    RebuiltGridPool,
+)
 from ai_anime.modules.production.application.manual_sketch_regeneration import (
     GenerateMissingManualSketchesCommand,
     ManualSketchRegenerationRejected,
@@ -219,6 +224,12 @@ def grid_regeneration_use_cases() -> GridRegenerationUseCases:
     from ai_anime.modules.production.composition import (
         grid_regeneration_use_cases as build,
     )
+
+    return build()
+
+
+def grid_pool_use_cases() -> GridPoolUseCases:
+    from ai_anime.modules.production.composition import grid_pool_use_cases as build
 
     return build()
 
@@ -385,6 +396,8 @@ __all__ = [
     "GlobalVideoOptimizationUseCases",
     "GridRegenerationRejected",
     "GridRegenerationUseCases",
+    "GridPoolListing",
+    "GridPoolUseCases",
     "ImageGenerationGuardQuery",
     "ImageGenerationUsageUseCases",
     "ManualSketchRegenerationRejected",
@@ -403,6 +416,7 @@ __all__ = [
     "RenderPlanRejected",
     "RenderPlanUseCases",
     "ReplaceSketchRegenQueueCommand",
+    "RebuiltGridPool",
     "RemoveSeedance2AssetCommand",
     "ScheduledEpisodeVideo",
     "ScheduledEpisodeAudio",
@@ -456,6 +470,7 @@ __all__ = [
     "grok_video_resolution",
     "global_video_optimization_use_cases",
     "grid_regeneration_use_cases",
+    "grid_pool_use_cases",
     "happyhorse_ratio",
     "happyhorse_resolution",
     "global_prop_marker_colors",

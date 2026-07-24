@@ -37,6 +37,10 @@ if TYPE_CHECKING:
         GridRegenerationTaskReceipt,
         RegenerateGridCommand,
     )
+    from ai_anime.modules.production.application.grid_pool import (
+        GridPoolListing,
+        RebuiltGridPool,
+    )
     from ai_anime.modules.production.application.manual_sketch_regeneration import (
         GenerateMissingManualSketchesCommand,
         PreparedManualSketchRegeneration,
@@ -394,6 +398,20 @@ class ProductionVideoPoolStorage(Protocol):
         beat_num: int,
         pool_id: str,
     ) -> bool: ...
+
+
+class ProductionGridPoolGateway(Protocol):
+    async def list_pool(
+        self,
+        context: ProjectContext,
+        episode_num: int,
+    ) -> GridPoolListing | None: ...
+
+    def rebuild(
+        self,
+        context: ProjectContext,
+        episode_num: int,
+    ) -> RebuiltGridPool: ...
 
 
 class ProductionProjectMediaUrls(Protocol):

@@ -48,6 +48,7 @@ from ai_anime.modules.production.application.global_video_optimization import (
 from ai_anime.modules.production.application.grid_regeneration import (
     GridRegenerationUseCases,
 )
+from ai_anime.modules.production.application.grid_pool import GridPoolUseCases
 from ai_anime.modules.production.application.manual_sketch_regeneration import (
     ManualSketchRegenerationUseCases,
 )
@@ -127,6 +128,7 @@ from ai_anime.modules.production.infrastructure.grid_regeneration import (
     NanoBananaGridRegenerationPlanner,
     TaskBackendGridRegenerationScheduler,
 )
+from ai_anime.modules.production.infrastructure.grid_pool import LocalGridPoolGateway
 from ai_anime.modules.production.infrastructure.manual_sketch_regeneration import (
     LocalManualSketchRegenerationPreparer,
 )
@@ -224,6 +226,10 @@ def grid_regeneration_use_cases() -> GridRegenerationUseCases:
         ),
         TaskBackendGridRegenerationScheduler(ports.get_task_backend),
     )
+
+
+def grid_pool_use_cases() -> GridPoolUseCases:
+    return GridPoolUseCases(LocalGridPoolGateway())
 
 
 def render_plan_use_cases() -> RenderPlanUseCases:
