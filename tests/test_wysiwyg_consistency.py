@@ -33,7 +33,7 @@ from ai_anime.generators.prompt_builder import (
     create_prompt_context,
 )
 from ai_anime.generators.nanobanana_grid import resolve_render_reference_order
-from ai_anime.services.character_ref_service import build_character_map_for_grid
+from ai_anime.modules.asset_world.public import build_character_map_for_grid
 
 
 # ---------------------------------------------------------------------------

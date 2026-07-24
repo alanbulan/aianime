@@ -1,5 +1,6 @@
 """Runtime composition for the Asset & World bounded context."""
 
+from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.asset_world.application.background_anchor import (
@@ -13,6 +14,9 @@ from ai_anime.modules.asset_world.application.character_catalog import (
 )
 from ai_anime.modules.asset_world.application.character_identity import (
     CharacterIdentityUseCases,
+)
+from ai_anime.modules.asset_world.application.character_reference import (
+    CharacterReferenceUseCases,
 )
 from ai_anime.modules.asset_world.application.character_generation import (
     CharacterGenerationUseCases,
@@ -67,6 +71,10 @@ from ai_anime.modules.asset_world.infrastructure.character_identity import (
     LocalCharacterIdentityAssets,
     PydanticCharacterIdentityFactory,
 )
+from ai_anime.modules.asset_world.infrastructure.character_reference import (
+    LocalCharacterReferenceAssets,
+    PromptCharacterReferenceSource,
+)
 from ai_anime.modules.asset_world.infrastructure.character_generation import (
     UnifiedSynchronousCharacterGeneration,
 )
@@ -118,6 +126,31 @@ def character_catalog_use_cases() -> CharacterCatalogUseCases:
     return CharacterCatalogUseCases(
         NovelCharacterFactory(),
         LocalCharacterCatalogAssets(),
+    )
+
+
+def character_reference_use_cases() -> CharacterReferenceUseCases:
+    return CharacterReferenceUseCases(
+        PromptCharacterReferenceSource(),
+        LocalCharacterReferenceAssets(),
+    )
+
+
+def build_character_map_for_grid(
+    grid_beats: list[dict[str, Any]],
+    characters: list[dict[str, Any]],
+    user_output_dir: Path,
+    project: str,
+    *,
+    sketch_colors: dict[str, str] | None = None,
+    use_detected_identities: bool = False,
+) -> dict[str, dict[str, Any]]:
+    return character_reference_use_cases().build_grid_character_map(
+        beats=grid_beats,
+        characters=characters,
+        project_dir=user_output_dir / project,
+        sketch_colors=sketch_colors,
+        use_detected_identities=use_detected_identities,
     )
 
 

@@ -1,5 +1,6 @@
 """Stable application API for the Asset & World bounded context."""
 
+from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.asset_world.application.background_anchor import (
@@ -14,6 +15,9 @@ from ai_anime.modules.asset_world.application.character_catalog import (
 )
 from ai_anime.modules.asset_world.application.character_identity import (
     CharacterIdentityUseCases,
+)
+from ai_anime.modules.asset_world.application.character_reference import (
+    CharacterReferenceUseCases,
 )
 from ai_anime.modules.asset_world.application.character_generation import (
     CharacterGenerationUseCases,
@@ -153,6 +157,37 @@ def character_catalog_use_cases() -> CharacterCatalogUseCases:
     from ai_anime.modules.asset_world.composition import character_catalog_use_cases as build
 
     return build()
+
+
+def character_reference_use_cases() -> CharacterReferenceUseCases:
+    from ai_anime.modules.asset_world.composition import (
+        character_reference_use_cases as build,
+    )
+
+    return build()
+
+
+def build_character_map_for_grid(
+    grid_beats: list[dict[str, Any]],
+    characters: list[dict[str, Any]],
+    user_output_dir: Path,
+    project: str,
+    *,
+    sketch_colors: dict[str, str] | None = None,
+    use_detected_identities: bool = False,
+) -> dict[str, dict[str, Any]]:
+    from ai_anime.modules.asset_world.composition import (
+        build_character_map_for_grid as build,
+    )
+
+    return build(
+        grid_beats,
+        characters,
+        user_output_dir,
+        project,
+        sketch_colors=sketch_colors,
+        use_detected_identities=use_detected_identities,
+    )
 
 
 def prop_catalog_use_cases() -> PropCatalogUseCases:
@@ -326,6 +361,7 @@ __all__ = [
     "CharacterImageUseCases",
     "ImageSettingsUseCases",
     "CharacterNotFound",
+    "CharacterReferenceUseCases",
     "CharacterTaskUseCases",
     "CharacterVoiceNotFound",
     "CharacterVoiceRejected",
@@ -381,9 +417,11 @@ __all__ = [
     "analyze_style",
     "beat_background_anchor_use_cases",
     "beat_director_stage_use_cases",
+    "build_character_map_for_grid",
     "character_asset_history_use_cases",
     "character_asset_links",
     "character_catalog_use_cases",
+    "character_reference_use_cases",
     "prop_catalog_use_cases",
     "promote_episode_props_to_global",
     "runtime_prop_menu_for_episode",

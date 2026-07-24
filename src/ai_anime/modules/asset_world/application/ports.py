@@ -268,6 +268,56 @@ class CharacterCatalogAssets(Protocol):
     def updated_at(self, project_dir: Path, character: Any) -> str: ...
 
 
+class CharacterReferenceSource(Protocol):
+    def character_names(
+        self,
+        beats: list[dict[str, Any]],
+        known_character_names: list[str],
+        *,
+        use_detected_identities: bool,
+    ) -> list[str]: ...
+
+    def identity_ids(
+        self,
+        beats: list[dict[str, Any]],
+        character_name: str,
+        *,
+        use_detected_identities: bool,
+    ) -> list[str]: ...
+
+
+class CharacterReferenceAssets(Protocol):
+    def composite_identity_path(
+        self,
+        project_dir: Path,
+        character_name: str,
+        identity_name: str,
+    ) -> str: ...
+
+    def primary_identity_portrait_path(
+        self,
+        project_dir: Path,
+        character_name: str,
+        identity_name: str,
+        stored_path: str | Path | None,
+    ) -> str: ...
+
+    def secondary_identity_portrait_path(
+        self,
+        project_dir: Path,
+        character_name: str,
+        identity_name: str,
+        stored_path: str | Path | None,
+    ) -> str: ...
+
+    def character_portrait_path(
+        self,
+        project_dir: Path,
+        character_name: str,
+        stored_path: str | Path | None,
+    ) -> str: ...
+
+
 class SceneCatalogRepository(Protocol):
     async def list_scenes(self) -> list[Any]: ...
 

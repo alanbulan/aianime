@@ -81,6 +81,7 @@ from ai_anime.modules.asset_world.public import (
     UploadBeatBackgroundCommand,
     beat_background_anchor_use_cases,
     beat_director_stage_use_cases,
+    build_character_map_for_grid,
     resolve_beat_scene_name,
     runtime_prop_menu_for_episode as _runtime_prop_menu_with_global_props,
     scene_viewer_use_cases,
@@ -480,8 +481,6 @@ async def _build_character_map(
     use_detected_identities: bool = False,
 ):
     """构建角色映射。"""
-    from ai_anime.services.character_ref_service import build_character_map_for_grid
-
     project_dir = get_user_output_dir(username) / project
     characters = store.get_all_characters()
     char_dicts = []

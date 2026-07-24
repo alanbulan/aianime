@@ -410,6 +410,24 @@ def test_runtime_prop_menu_uses_one_asset_world_implementation() -> None:
     assert "ai_anime.services.prop_ref_service" not in presets_source
 
 
+def test_character_reference_map_uses_one_asset_world_implementation() -> None:
+    callers = (
+        PACKAGE_ROOT / "api" / "routes" / "generation.py",
+        PACKAGE_ROOT / "agents" / "global_video_optimizer.py",
+        PACKAGE_ROOT / "director_world" / "control_frame_to_sketch.py",
+        PACKAGE_ROOT / "freezone" / "presets.py",
+    )
+
+    assert not (
+        PACKAGE_ROOT / "services" / "character_ref_service.py"
+    ).exists()
+    for path in callers:
+        source = path.read_text(encoding="utf-8")
+        assert "build_character_map_for_grid" in source
+        assert "ai_anime.modules.asset_world.public" in _imports(path)
+        assert "ai_anime.services.character_ref_service" not in source
+
+
 def test_asset_world_prop_task_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "props.py"
     source = route.read_text(encoding="utf-8")

@@ -19,8 +19,8 @@ from typing import Any
 from ai_anime.config import OUTPUT_DIR, STATE_DIR, get_sketch_generation_config
 from ai_anime.generators.nanobanana_grid import REGEN_MODE_CONFIGS, NanoBananaGridGenerator
 from ai_anime.generators.pool_indexer import save_grid_and_split
+from ai_anime.modules.asset_world.public import build_character_map_for_grid
 from ai_anime.project_config import load_project_config_file
-from ai_anime.services.character_ref_service import build_character_map_for_grid
 from ai_anime.sqlite_store import SQLiteStore
 from ai_anime.utils.path_resolver import PathResolver, compute_scoped_grid_filename
 

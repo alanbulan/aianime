@@ -2910,9 +2910,11 @@ def _beat_render_prompt(context: dict[str, Any]) -> str:
         UnifiedPromptBuilder,
         create_prompt_context,
     )
+    from ai_anime.modules.asset_world.public import (
+        StyleService,
+        build_character_map_for_grid,
+    )
     from ai_anime.project_config import load_project_config_file
-    from ai_anime.services.character_ref_service import build_character_map_for_grid
-    from ai_anime.modules.asset_world.public import StyleService
 
     beat_data = context.get("beat_data") or {}
     beat_num = int(context.get("beat") or beat_data.get("beat_number") or 1)

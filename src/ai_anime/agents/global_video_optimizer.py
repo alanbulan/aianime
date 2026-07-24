@@ -671,7 +671,7 @@ def _build_color_appearance_map(
     cognee_store=None,
 ) -> dict:
     """从 build_character_map_for_grid 提取角色颜色→外貌映射。"""
-    from ai_anime.services.character_ref_service import build_character_map_for_grid
+    from ai_anime.modules.asset_world.public import build_character_map_for_grid
 
     # sketch_colors 只从 SQLite/Cognee store 读取。
     _sc = None
