@@ -3,7 +3,6 @@
 import json
 import io
 import logging
-import os
 import re
 from pathlib import Path
 from typing import Any
@@ -41,12 +40,9 @@ from ai_anime.api.schemas import (
     VideoPoolSelectRequest,
     GridCutRequest,
     GridSketchPreviewRequest,
-    PlanEntryOut,
     OperatorPasswordVerifyRequest,
     RenderPlanExecuteRequest,
-    RenderPlanExecuteResponse,
     RenderPlanRequest,
-    RenderPlanResponse,
     RenderSettingsUpdate,
     SketchRegenQueueUpdate,
     SketchSettingsUpdate,
@@ -55,16 +51,9 @@ from ai_anime.api.schemas import (
     Seedance2AssetCropRequest,
     Seedance2AssetDeleteRequest,
 )
-from ai_anime.generators.nanobanana_grid import (
-    build_regen_plan,
-    compute_input_fingerprint,
-    hash_plan,
-)
-from ai_anime.generators.render_identity_guard import render_ai_detection_error
 from ai_anime.modules.narrative_planning.public import (
     choose_manual_sketch_mode_key,
     missing_manual_shot_segments,
-    pick_beats_by_number,
     storyboard_beats_for_manual_sketches,
 )
 from ai_anime.modules.asset_world.public import (
@@ -84,6 +73,7 @@ from ai_anime.modules.asset_world.public import (
 )
 from ai_anime.modules.production.public import (
     AudioVoicePrerequisitesMissing,
+    BuildRenderPlanCommand,
     ComposeEpisodeVideoCommand,
     CropSeedance2AssetCommand,
     CropSketchCommand,
@@ -94,6 +84,7 @@ from ai_anime.modules.production.public import (
     EpisodeAudioBeatsMissing,
     EpisodeScriptBeatsMissing,
     EpisodeSubtitlesMissing,
+    ExecuteRenderPlanCommand,
     FinalEpisodeVideoMissing,
     GenerateDirectorControlSketchCommand,
     GenerateEpisodeAudioCommand,
@@ -107,6 +98,10 @@ from ai_anime.modules.production.public import (
     OptimizeEpisodeVideoCommand,
     RegenerateGridCommand,
     RegenerateSelectedBeatsCommand,
+    RenderPlanConflict,
+    RenderPlanFeatureDisabled,
+    RenderPlanGrid,
+    RenderPlanRejected,
     ReplaceSketchRegenQueueCommand,
     RemoveSeedance2AssetCommand,
     SketchCropRejected,
@@ -117,7 +112,6 @@ from ai_anime.modules.production.public import (
     Seedance2PanelBeatMissing,
     Seedance2PanelOperationRejected,
     Seedance2PanelQuery,
-    SELECTED_RENDER_REGEN_TASK_TYPE,
     SELECTED_SKETCH_REGEN_TASK_TYPE,
     SelectedRegenerationKind,
     SelectedRegenerationRejected,
@@ -140,6 +134,7 @@ from ai_anime.modules.production.public import (
     episode_video_use_cases,
     production_generation_context_use_cases,
     production_image_settings_use_cases,
+    render_plan_use_cases,
     image_generation_usage_use_cases,
     sketch_color_assignment_use_cases,
     sketch_image_use_cases,
@@ -149,7 +144,6 @@ from ai_anime.modules.production.public import (
     video_backend_catalog_use_cases,
     video_pool_use_cases,
 )
-from ai_anime.render_plan.ref_image_hash import RefImageHasher
 from ai_anime.project_config import load_project_config
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.ports import get_task_backend, get_usage_meter
@@ -176,61 +170,28 @@ def _requester_user_id_for_billing(resolved: Any, user: dict) -> str:
     )
 
 
-def normalize_beat_indices(beat_indices: list[int]) -> list[int]:
-    normalized: list[int] = []
-    seen: set[int] = set()
-    for beat_index in beat_indices:
-        value = int(beat_index)
-        if value in seen:
-            continue
-        normalized.append(value)
-        seen.add(value)
-    return normalized
+def _render_plan_unavailable_response(use_cases: Any) -> JSONResponse | None:
+    try:
+        use_cases.ensure_available()
+    except RenderPlanFeatureDisabled as exc:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "ok": False,
+                "error": "feature_disabled",
+                "data": {"reason": str(exc)},
+            },
+        )
+    return None
 
 
-def validate_beat_indices(all_beats: list[dict], beat_indices: list[int]) -> list[int]:
-    valid_beat_numbers = {int(beat.get("beat_number", 0) or 0) for beat in all_beats}
-    return [
-        int(beat_index)
-        for beat_index in beat_indices
-        if int(beat_index) not in valid_beat_numbers
-    ]
-
-
-def _render_plan_feature_disabled() -> bool:
-    return os.getenv("DISABLE_RENDER_PLAN_V2") in {"1", "true", "True", "yes"}
-
-
-def _plan_entry_to_dict(entry: Any) -> dict:
-    if isinstance(entry, dict):
-        beat_numbers = entry.get("beat_numbers") or []
-        reasons = entry.get("reasons") or []
-        warnings = entry.get("warnings") or []
-        return PlanEntryOut(
-            mode_key=entry.get("mode_key", ""),
-            rows=int(entry.get("rows", 0) or 0),
-            cols=int(entry.get("cols", 0) or 0),
-            beat_numbers=[int(beat) for beat in beat_numbers],
-            location=str(entry.get("location") or ""),
-            padding_count=int(entry.get("padding_count") or 0),
-            reasons=[str(reason) for reason in reasons],
-            warnings=[str(warning) for warning in warnings],
-        ).model_dump()
-
-    return PlanEntryOut(
-        mode_key=entry.mode_key,
-        rows=entry.rows,
-        cols=entry.cols,
-        beat_numbers=list(entry.beat_numbers),
-        location=entry.location,
-        padding_count=entry.padding_count,
-        reasons=list(entry.reasons),
-        warnings=list(entry.warnings),
-    ).model_dump()
-
-
-def _plan_to_dicts(plan) -> list[dict]:
-    return [_plan_entry_to_dict(entry) for entry in plan]
+def _render_plan_rejection_response(
+    exc: RenderPlanRejected,
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=409 if isinstance(exc, RenderPlanConflict) else 400,
+        content=exc.as_dict(),
+    )
 
 
 def _parse_grid_beat_numbers(raw: str | None) -> list[int]:
@@ -317,27 +278,6 @@ def _find_pool_grid_entry(
             continue
         if not image_grid_paths or entry.grid_path in image_grid_paths:
             return entry
-    return None
-
-
-def _custom_render_plan_error(plan: list[Any], beat_indices: list[int]) -> str | None:
-    flat: list[int] = []
-    seen: set[int] = set()
-    for entry in plan:
-        beat_numbers = [int(beat) for beat in getattr(entry, "beat_numbers", [])]
-        if not beat_numbers:
-            return "empty_grid"
-        if int(getattr(entry, "rows", 0)) * int(getattr(entry, "cols", 0)) < len(
-            beat_numbers
-        ):
-            return "grid_capacity"
-        for beat in beat_numbers:
-            if beat in seen:
-                return "duplicate_beat"
-            seen.add(beat)
-            flat.append(beat)
-    if set(flat) != set(beat_indices) or len(flat) != len(beat_indices):
-        return "beat_mismatch"
     return None
 
 
@@ -966,112 +906,26 @@ async def render_plan(
     user: dict = Depends(get_api_user),
 ):
     """Return the server-authoritative render plan for selected beats."""
-    if _render_plan_feature_disabled():
-        return JSONResponse(
-            status_code=503,
-            content={
-                "ok": False,
-                "error": "feature_disabled",
-                "data": {"reason": "DISABLE_RENDER_PLAN_V2 is set"},
-            },
-        )
-
+    use_cases = render_plan_use_cases()
+    unavailable = _render_plan_unavailable_response(use_cases)
+    if unavailable is not None:
+        return unavailable
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    ctx = resolved.ctx
-    username = resolved.username
-    project_name = resolved.project_name
-    output_dir = resolved.output_dir
-    store = (
-        await make_sqlite_store_for_context(ctx)
-        if ctx
-        else await make_sqlite_store(username, project_name)
-    )
-    all_beats = await store.get_beats_as_dicts(episode_num)
-    if not all_beats:
-        return JSONResponse(
-            status_code=400,
-            content={
-                "ok": False,
-                "error": "no_beats",
-                "data": {"episode": episode_num},
-            },
-        )
-
-    beat_indices = normalize_beat_indices(body.beat_indices)
-    invalid = validate_beat_indices(all_beats, beat_indices)
-    if invalid:
-        return JSONResponse(
-            status_code=400,
-            content={
-                "ok": False,
-                "error": "invalid_beats",
-                "data": {"invalid": invalid},
-            },
-        )
-    selected_beats = pick_beats_by_number(all_beats, beat_indices)
-
-    detection_error = render_ai_detection_error(selected_beats)
-    if detection_error:
-        return JSONResponse(
-            status_code=400, content={"ok": False, "error": detection_error}
-        )
-
-    character_map = await production_generation_context_use_cases(
-        store,
-        username,
-    ).build_character_map(
-        beats=selected_beats,
-        project=project_name,
-        episode_num=episode_num,
-        use_detected_identities=True,
-    )
-    sketch_colors = store.get_sketch_colors(episode_num) or {}
-    project_config = load_project_config(username, project_name)
-    render_image_selection = production_image_settings_use_cases().resolve_render_selection(
-        project_config,
-        body.image_generation_selection,
-    )
-    plan = build_regen_plan(
-        selected_beats=selected_beats,
-        strategy=body.strategy,
-        aspect_mode=body.aspect_mode,
-        character_map=character_map,
-        force_one_by_one=body.force_one_by_one,
-        image_generation_selection=render_image_selection,
-    )
-
-    hasher = RefImageHasher(Path(output_dir) / ".render_plan_cache")
     try:
-        fingerprint = compute_input_fingerprint(
-            beats=selected_beats,
-            character_map=character_map,
-            sketch_colors=sketch_colors,
-            strategy=body.strategy,
-            aspect_mode=body.aspect_mode,
-            force_one_by_one=body.force_one_by_one,
-            ref_image_hasher=hasher.hash,
+        planned = await use_cases.plan(
+            resolved.ctx,
+            BuildRenderPlanCommand(
+                episode_num=episode_num,
+                beat_numbers=tuple(body.beat_indices),
+                strategy=body.strategy,
+                aspect_mode=body.aspect_mode,
+                force_one_by_one=body.force_one_by_one,
+                image_generation_selection=body.image_generation_selection,
+            ),
         )
-    except FileNotFoundError as exc:
-        return JSONResponse(
-            status_code=400,
-            content={
-                "ok": False,
-                "error": "invalid_beats",
-                "data": {"reason": f"missing ref image: {exc}"},
-            },
-        )
-
-    return {
-        "ok": True,
-        "data": RenderPlanResponse(
-            plan=[PlanEntryOut(**entry) for entry in _plan_to_dicts(plan)],
-            plan_hash=hash_plan(plan),
-            input_fingerprint=fingerprint,
-            strategy=body.strategy,
-            total_beats=len(selected_beats),
-            total_grids=len(plan),
-        ).model_dump(),
-    }
+    except RenderPlanRejected as exc:
+        return _render_plan_rejection_response(exc)
+    return {"ok": True, "data": planned.as_dict()}
 
 
 @router.post("/projects/{project}/episodes/{episode_num}/render/execute")
@@ -1082,229 +936,43 @@ async def render_execute(
     user: dict = Depends(get_api_user),
 ):
     """Validate and dispatch a render plan through the current selected-regen task path."""
-    if _render_plan_feature_disabled():
-        return JSONResponse(
-            status_code=503,
-            content={
-                "ok": False,
-                "error": "feature_disabled",
-                "data": {"reason": "DISABLE_RENDER_PLAN_V2 is set"},
-            },
-        )
-
+    use_cases = render_plan_use_cases()
+    unavailable = _render_plan_unavailable_response(use_cases)
+    if unavailable is not None:
+        return unavailable
     resolved = await _resolve_generation_project(project, user, required_role="editor")
-    ctx = resolved.ctx
-    username = resolved.username
-    project_name = resolved.project_name
-    output_dir = resolved.output_dir
-    store = (
-        await make_sqlite_store_for_context(ctx)
-        if ctx
-        else await make_sqlite_store(username, project_name)
-    )
-    all_beats = await store.get_beats_as_dicts(episode_num)
-    if not all_beats:
-        return JSONResponse(
-            status_code=400,
-            content={
-                "ok": False,
-                "error": "no_beats",
-                "data": {"episode": episode_num},
-            },
-        )
-
-    beat_indices = normalize_beat_indices(body.beat_indices)
-    invalid = validate_beat_indices(all_beats, beat_indices)
-    if invalid:
-        return JSONResponse(
-            status_code=400,
-            content={
-                "ok": False,
-                "error": "invalid_beats",
-                "data": {"invalid": invalid},
-            },
-        )
-    selected_beats = pick_beats_by_number(all_beats, beat_indices)
-
-    detection_error = render_ai_detection_error(selected_beats)
-    if detection_error:
-        return JSONResponse(
-            status_code=400, content={"ok": False, "error": detection_error}
-        )
-
-    character_map = await production_generation_context_use_cases(
-        store,
-        username,
-    ).build_character_map(
-        beats=selected_beats,
-        project=project_name,
-        episode_num=episode_num,
-        use_detected_identities=True,
-    )
-    sketch_colors = store.get_sketch_colors(episode_num) or {}
-    project_config = load_project_config(username, project_name)
-    render_image_selection = production_image_settings_use_cases().resolve_render_selection(
-        project_config,
-        body.image_generation_selection,
-    )
-    hasher = RefImageHasher(Path(output_dir) / ".render_plan_cache")
     try:
-        new_fingerprint = compute_input_fingerprint(
-            beats=selected_beats,
-            character_map=character_map,
-            sketch_colors=sketch_colors,
-            strategy=body.strategy,
-            aspect_mode=body.aspect_mode,
-            force_one_by_one=body.force_one_by_one,
-            ref_image_hasher=hasher.hash,
+        executed = await use_cases.execute(
+            resolved.ctx,
+            ExecuteRenderPlanCommand(
+                episode_num=episode_num,
+                plan=tuple(
+                    RenderPlanGrid(
+                        mode_key=entry.mode_key,
+                        rows=entry.rows,
+                        cols=entry.cols,
+                        beat_numbers=tuple(entry.beat_numbers),
+                        location=entry.location,
+                        padding_count=entry.padding_count,
+                        reasons=tuple(entry.reasons),
+                        warnings=tuple(entry.warnings),
+                    )
+                    for entry in body.plan
+                ),
+                plan_hash=body.plan_hash,
+                input_fingerprint=body.input_fingerprint,
+                strategy=body.strategy,
+                aspect_mode=body.aspect_mode,
+                beat_numbers=tuple(body.beat_indices),
+                force_one_by_one=body.force_one_by_one,
+                custom_plan=body.custom_plan,
+                image_generation_selection=body.image_generation_selection,
+                sketch_aspect_padding=body.sketch_aspect_padding,
+            ),
         )
-    except FileNotFoundError as exc:
-        return JSONResponse(
-            status_code=400,
-            content={
-                "ok": False,
-                "error": "invalid_beats",
-                "data": {"reason": f"missing ref image: {exc}"},
-            },
-        )
-
-    if new_fingerprint != body.input_fingerprint:
-        new_plan = build_regen_plan(
-            selected_beats=selected_beats,
-            strategy=body.strategy,
-            aspect_mode=body.aspect_mode,
-            character_map=character_map,
-            force_one_by_one=body.force_one_by_one,
-            image_generation_selection=render_image_selection,
-        )
-        return JSONResponse(
-            status_code=409,
-            content={
-                "ok": False,
-                "error": "input_stale",
-                "data": {
-                    "new_plan": _plan_to_dicts(new_plan),
-                    "new_plan_hash": hash_plan(new_plan),
-                    "new_input_fingerprint": new_fingerprint,
-                },
-            },
-        )
-
-    if body.custom_plan:
-        custom_error = _custom_render_plan_error(body.plan, beat_indices)
-        if custom_error:
-            return JSONResponse(
-                status_code=400,
-                content={
-                    "ok": False,
-                    "error": "invalid_custom_plan",
-                    "data": {"reason": custom_error},
-                },
-            )
-        execution_plan = body.plan
-        execution_hash = hash_plan(execution_plan)
-        dispatch_strategy = "custom"
-    else:
-        recomputed = build_regen_plan(
-            selected_beats=selected_beats,
-            strategy=body.strategy,
-            aspect_mode=body.aspect_mode,
-            character_map=character_map,
-            force_one_by_one=body.force_one_by_one,
-            image_generation_selection=render_image_selection,
-        )
-        recomputed_hash = hash_plan(recomputed)
-        if recomputed_hash != body.plan_hash:
-            return JSONResponse(
-                status_code=409,
-                content={
-                    "ok": False,
-                    "error": "plan_stale",
-                    "data": {
-                        "new_plan": _plan_to_dicts(recomputed),
-                        "new_plan_hash": recomputed_hash,
-                        "new_input_fingerprint": new_fingerprint,
-                    },
-                },
-            )
-        execution_plan = recomputed
-        execution_hash = recomputed_hash
-        dispatch_strategy = body.strategy
-
-    from ai_anime.task_identity import selection_scope
-
-    style = project_config.get("visual_style") or "chinese_period_drama"
-    episode_obj = production_generation_context_use_cases(
-        store,
-        username,
-    ).episode_or_none(episode_num)
-    prop_menu = await _runtime_prop_menu_with_global_props(
-        store, episode_obj, all_beats
-    )
-    base_config = {
-        "beats": all_beats,
-        "character_map": character_map,
-        "style": style,
-        "model": "nanobanana",
-        "image_generation_selection": render_image_selection,
-        "sketch_colors": sketch_colors,
-        "prop_menu": prop_menu,
-        "sketch_aspect_padding": production_image_settings_use_cases().resolve_sketch_aspect_padding(
-            project_config,
-            body.sketch_aspect_padding,
-        ),
-    }
-    scope = f"{dispatch_strategy}__{execution_hash}"
-    dispatched_task_ids: list[str] = []
-
-    if ctx is not None:
-        for entry in execution_plan:
-            entry_beats = [int(beat) for beat in entry.beat_numbers]
-            entry_scope = selection_scope(entry.mode_key, entry_beats)
-            queued = await get_task_backend().enqueue_project_task(
-                ctx,
-                task_type=SELECTED_RENDER_REGEN_TASK_TYPE,
-                queue_kind="default",
-                episode=episode_num,
-                scope=entry_scope,
-                payload={
-                    "episode": episode_num,
-                    "mode_key": entry.mode_key,
-                    "output_dir": output_dir,
-                    "config": {
-                        **base_config,
-                        "mode_key": entry.mode_key,
-                        "selected_beat_numbers": entry_beats,
-                    },
-                },
-            )
-            dispatched_task_ids.append(queued.task_state.task_id)
-    else:
-        return {
-            "ok": False,
-            "error": "渲染计划执行需要 project context",
-            "data": RenderPlanExecuteResponse(
-                task_type="render_plan",
-                message="渲染计划未启动",
-                scope=scope,
-                resolved_grids=[
-                    PlanEntryOut(**entry) for entry in _plan_to_dicts(execution_plan)
-                ],
-            ).model_dump(),
-        }
-
-    return {
-        "ok": True,
-        "data": RenderPlanExecuteResponse(
-            task_type="render_plan",
-            message=f"渲染已启动 ({len(execution_plan)} 个网格)",
-            scope=scope,
-            resolved_grids=[
-                PlanEntryOut(**entry) for entry in _plan_to_dicts(execution_plan)
-            ],
-        ).model_dump()
-        | ({"task_ids": dispatched_task_ids} if dispatched_task_ids else {}),
-    }
+    except RenderPlanRejected as exc:
+        return _render_plan_rejection_response(exc)
+    return {"ok": True, "data": executed.as_dict()}
 
 
 @router.post("/projects/{project}/episodes/{episode_num}/beats/regenerate")

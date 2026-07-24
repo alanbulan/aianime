@@ -682,6 +682,54 @@ def test_production_grid_regeneration_route_delegates_to_application() -> None:
     )
 
 
+def test_production_render_plan_routes_delegate_to_application() -> None:
+    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    schemas = PACKAGE_ROOT / "api" / "schemas.py"
+    render_plan_package = PACKAGE_ROOT / "render_plan"
+    source = generation.read_text(encoding="utf-8")
+    route_start = source.index("async def render_plan(")
+    route_end = source.index("async def regenerate_beats(", route_start)
+    route_source = source[route_start:route_end]
+
+    assert route_source.count("render_plan_use_cases") == 2
+    assert "BuildRenderPlanCommand" in route_source
+    assert "ExecuteRenderPlanCommand" in route_source
+    assert "RenderPlanGrid" in route_source
+    for implementation_detail in (
+        "load_project_config",
+        "make_sqlite_store_for_context",
+        "make_sqlite_store(",
+        "get_beats_as_dicts",
+        "pick_beats_by_number",
+        "render_ai_detection_error",
+        "production_generation_context_use_cases",
+        "_runtime_prop_menu_with_global_props",
+        "production_image_settings_use_cases",
+        "build_regen_plan",
+        "compute_input_fingerprint",
+        "hash_plan",
+        "RefImageHasher",
+        "selection_scope",
+        "get_task_backend",
+        "enqueue_project_task",
+        "需要 project context",
+    ):
+        assert implementation_detail not in route_source
+    for removed_helper in (
+        "def normalize_beat_indices(",
+        "def validate_beat_indices(",
+        "def _render_plan_feature_disabled(",
+        "def _plan_entry_to_dict(",
+        "def _plan_to_dicts(",
+        "def _custom_render_plan_error(",
+    ):
+        assert removed_helper not in source
+    schema_source = schemas.read_text(encoding="utf-8")
+    assert "class RenderPlanResponse(" not in schema_source
+    assert "class RenderPlanExecuteResponse(" not in schema_source
+    assert not _python_files(render_plan_package)
+
+
 def test_production_seedance2_panel_routes_delegate_to_application() -> None:
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     source = generation.read_text(encoding="utf-8")

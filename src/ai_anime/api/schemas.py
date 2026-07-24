@@ -1955,15 +1955,6 @@ class PlanEntryOut(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
-class RenderPlanResponse(BaseModel):
-    plan: list[PlanEntryOut]
-    plan_hash: str
-    input_fingerprint: str
-    strategy: str
-    total_beats: int
-    total_grids: int
-
-
 class RenderPlanExecuteRequest(BaseModel):
     plan: list[PlanEntryOut]
     plan_hash: str
@@ -1975,15 +1966,6 @@ class RenderPlanExecuteRequest(BaseModel):
     beat_indices: list[int] = Field(..., min_length=1)
     image_generation_selection: Optional[str] = None
     sketch_aspect_padding: Optional[bool] = None
-
-
-class RenderPlanExecuteResponse(BaseModel):
-    task_type: str
-    message: str
-    scope: str
-    resolved_grids: list[PlanEntryOut]
-
-
 # ── 风格预览 ─────────────────────────────────────────────────────────────────
 
 

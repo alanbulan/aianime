@@ -98,6 +98,16 @@ from ai_anime.modules.production.application.grid_regeneration import (
     RegenerateGridCommand,
     ScheduledGridRegeneration,
 )
+from ai_anime.modules.production.application.render_planning import (
+    BuildRenderPlanCommand,
+    ExecutedRenderPlan,
+    ExecuteRenderPlanCommand,
+    PlannedRenderEpisode,
+    RenderPlanConflict,
+    RenderPlanFeatureDisabled,
+    RenderPlanRejected,
+    RenderPlanUseCases,
+)
 from ai_anime.modules.production.application.seedance2_panel import (
     CropSeedance2AssetCommand,
     RemoveSeedance2AssetCommand,
@@ -150,6 +160,7 @@ from ai_anime.modules.production.domain.sketch_color import (
     global_prop_marker_colors,
     marker_color_change_requires_sketch_clean,
 )
+from ai_anime.modules.production.domain.render_planning import RenderPlanGrid
 
 
 def episode_audio_use_cases() -> EpisodeAudioUseCases:
@@ -202,6 +213,12 @@ def grid_regeneration_use_cases() -> GridRegenerationUseCases:
     from ai_anime.modules.production.composition import (
         grid_regeneration_use_cases as build,
     )
+
+    return build()
+
+
+def render_plan_use_cases() -> RenderPlanUseCases:
+    from ai_anime.modules.production.composition import render_plan_use_cases as build
 
     return build()
 
@@ -323,6 +340,7 @@ __all__ = [
     "SINGLE_VIDEO_TASK_TYPE",
     "AudioVoicePrerequisitesMissing",
     "BRIDGMAN_CHARACTER_PALETTE",
+    "BuildRenderPlanCommand",
     "ComposeEpisodeVideoCommand",
     "CropSketchCommand",
     "CropSeedance2AssetCommand",
@@ -339,6 +357,8 @@ __all__ = [
     "EpisodeSubtitlesMissing",
     "EpisodeTextExport",
     "EpisodeVideoUseCases",
+    "ExecutedRenderPlan",
+    "ExecuteRenderPlanCommand",
     "FinalEpisodeVideoStatus",
     "FinalEpisodeVideoMissing",
     "GenerateEpisodeAudioCommand",
@@ -357,8 +377,14 @@ __all__ = [
     "ProductionImageSettingsRejected",
     "ProductionImageSettingsUseCases",
     "OptimizeEpisodeVideoCommand",
+    "PlannedRenderEpisode",
     "RegenerateGridCommand",
     "RegenerateSelectedBeatsCommand",
+    "RenderPlanConflict",
+    "RenderPlanFeatureDisabled",
+    "RenderPlanGrid",
+    "RenderPlanRejected",
+    "RenderPlanUseCases",
     "ReplaceSketchRegenQueueCommand",
     "RemoveSeedance2AssetCommand",
     "ScheduledEpisodeVideo",
@@ -422,6 +448,7 @@ __all__ = [
     "marker_color_change_requires_sketch_clean",
     "production_generation_context_use_cases",
     "production_image_settings_use_cases",
+    "render_plan_use_cases",
     "sketch_color_assignment_use_cases",
     "sketch_generation_use_cases",
     "sketch_image_use_cases",

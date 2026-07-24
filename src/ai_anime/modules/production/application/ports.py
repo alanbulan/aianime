@@ -37,6 +37,12 @@ if TYPE_CHECKING:
         GridRegenerationTaskReceipt,
         RegenerateGridCommand,
     )
+    from ai_anime.modules.production.application.render_planning import (
+        RenderExecutionMaterials,
+        RenderPlanGridTask,
+        RenderPlanGridTaskReceipt,
+        RenderPlanningMaterials,
+    )
     from ai_anime.modules.production.application.seedance2_panel import (
         CropSeedance2AssetCommand,
         RemoveSeedance2AssetCommand,
@@ -64,6 +70,7 @@ if TYPE_CHECKING:
         VideoPool,
         VideoPoolEntry,
     )
+    from ai_anime.modules.production.domain.render_planning import RenderPlanGrid
     from ai_anime.modules.project_workspace.public import ProjectContext
 
 
@@ -541,3 +548,58 @@ class ProductionGridRegenerationScheduler(Protocol):
         context: ProjectContext,
         task: GridRegenerationTask,
     ) -> GridRegenerationTaskReceipt: ...
+
+
+class ProductionRenderPlanAvailability(Protocol):
+    def is_enabled(self) -> bool: ...
+
+
+class ProductionRenderPlanningPreparer(Protocol):
+    async def prepare(
+        self,
+        context: ProjectContext,
+        *,
+        episode_num: int,
+        beat_numbers: tuple[int, ...],
+        image_generation_selection: str | None,
+    ) -> RenderPlanningMaterials: ...
+
+    async def prepare_execution(
+        self,
+        context: ProjectContext,
+        *,
+        episode_num: int,
+        all_beats: list[dict[str, Any]],
+        sketch_aspect_padding: bool | None,
+    ) -> RenderExecutionMaterials: ...
+
+
+class ProductionRenderPlanEngine(Protocol):
+    def build(
+        self,
+        materials: RenderPlanningMaterials,
+        *,
+        strategy: str,
+        aspect_mode: str,
+        force_one_by_one: bool,
+    ) -> tuple[RenderPlanGrid, ...]: ...
+
+    def hash(self, plan: tuple[RenderPlanGrid, ...]) -> str: ...
+
+    def fingerprint(
+        self,
+        context: ProjectContext,
+        materials: RenderPlanningMaterials,
+        *,
+        strategy: str,
+        aspect_mode: str,
+        force_one_by_one: bool,
+    ) -> str: ...
+
+
+class ProductionRenderPlanScheduler(Protocol):
+    async def enqueue(
+        self,
+        context: ProjectContext,
+        task: RenderPlanGridTask,
+    ) -> RenderPlanGridTaskReceipt: ...

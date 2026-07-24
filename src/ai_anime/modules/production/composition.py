@@ -48,6 +48,9 @@ from ai_anime.modules.production.application.global_video_optimization import (
 from ai_anime.modules.production.application.grid_regeneration import (
     GridRegenerationUseCases,
 )
+from ai_anime.modules.production.application.render_planning import (
+    RenderPlanUseCases,
+)
 from ai_anime.modules.production.application.seedance2_panel import (
     Seedance2PanelUseCases,
 )
@@ -120,6 +123,12 @@ from ai_anime.modules.production.infrastructure.grid_regeneration import (
     LocalGridRegenerationPreparer,
     NanoBananaGridRegenerationPlanner,
     TaskBackendGridRegenerationScheduler,
+)
+from ai_anime.modules.production.infrastructure.render_planning import (
+    EnvironmentRenderPlanAvailability,
+    LocalRenderPlanningPreparer,
+    NanoBananaRenderPlanEngine,
+    TaskBackendRenderPlanScheduler,
 )
 from ai_anime.modules.production.infrastructure.seedance2_panel import (
     LocalSeedance2PanelGateway,
@@ -208,6 +217,29 @@ def grid_regeneration_use_cases() -> GridRegenerationUseCases:
             NanoBananaGridRegenerationPlanner(),
         ),
         TaskBackendGridRegenerationScheduler(ports.get_task_backend),
+    )
+
+
+def render_plan_use_cases() -> RenderPlanUseCases:
+    from ai_anime import ports
+
+    settings = ProjectConfigProductionSettings()
+    return RenderPlanUseCases(
+        EnvironmentRenderPlanAvailability(),
+        LocalRenderPlanningPreparer(
+            settings,
+            ProductionImageSettingsUseCases(
+                settings,
+                ConfiguredProductionImageSelections(),
+            ),
+            lambda store, context: production_generation_context_use_cases(
+                store,
+                context.owner_username,
+            ),
+            AssetWorldRuntimePropMenuSource(),
+        ),
+        NanoBananaRenderPlanEngine(),
+        TaskBackendRenderPlanScheduler(ports.get_task_backend),
     )
 
 
