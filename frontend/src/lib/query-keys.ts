@@ -72,6 +72,10 @@ export const queryKeys = {
   videoPool: (p: string, ep: number) =>
     ["projects", p, "episodes", ep, "video-pool"] as const,
   videoBackends: (p: string) => ["projects", p, "video-backends"] as const,
+  seedance2BeatStatusProject: (p: string) =>
+    ["seedance2-beat-status", p] as const,
+  seedance2BeatStatus: (p: string, ep: number, beat: number) =>
+    ["seedance2-beat-status", p, ep, beat] as const,
   renderSettings: (p: string) => ["projects", p, "render-settings"] as const,
   sketchSettings: (p: string) => ["projects", p, "sketch-settings"] as const,
   narratorVoice: (p: string) => ["projects", p, "narrator-voice"] as const,

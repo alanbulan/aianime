@@ -177,7 +177,7 @@ const videoQueryMockState = vi.hoisted(() => ({
   seedance2AssetsOverride: null as Array<Record<string, unknown>> | null,
 }));
 
-vi.mock("@/lib/queries/video", () => ({
+const videoQueryMocks = vi.hoisted(() => ({
   useRegenerateBeatVideo: () => ({
     mutateAsync: regenerateMock,
     isPending: false,
@@ -446,10 +446,27 @@ vi.mock("@/lib/queries/video", () => ({
   }),
 }));
 
+vi.mock("@/lib/queries/video", () => ({
+  useRegenerateBeatVideo: videoQueryMocks.useRegenerateBeatVideo,
+  useNarratorVoiceStatus: videoQueryMocks.useNarratorVoiceStatus,
+  useNarratorVoiceSources: videoQueryMocks.useNarratorVoiceSources,
+  useUploadNarratorVoice: videoQueryMocks.useUploadNarratorVoice,
+  useRecordNarratorVoice: videoQueryMocks.useRecordNarratorVoice,
+  useCopyProjectNarratorVoice: videoQueryMocks.useCopyProjectNarratorVoice,
+  useDeleteNarratorVoice: videoQueryMocks.useDeleteNarratorVoice,
+  useGenerateSeedance2Prompt: videoQueryMocks.useGenerateSeedance2Prompt,
+  useGenerateBeatVideoPrompt: videoQueryMocks.useGenerateBeatVideoPrompt,
+}));
+
 vi.mock("@/modules/production/public", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/modules/production/public")>();
   return {
     ...actual,
+    useUploadSeedance2Asset: videoQueryMocks.useUploadSeedance2Asset,
+    useDeleteSeedance2Asset: videoQueryMocks.useDeleteSeedance2Asset,
+    useCropSeedance2Asset: videoQueryMocks.useCropSeedance2Asset,
+    useTrimSeedance2Asset: videoQueryMocks.useTrimSeedance2Asset,
+    useSeedance2BeatStatus: videoQueryMocks.useSeedance2BeatStatus,
     useVideoPool: () => ({
       data: {
         ok: true,

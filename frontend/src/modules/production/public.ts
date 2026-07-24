@@ -1,8 +1,17 @@
 export {
+  useCropSeedance2Asset,
+  useDeleteSeedance2Asset,
+  useSeedance2BeatStatus,
+  useTrimSeedance2Asset,
+  useUploadSeedance2Asset,
   useVideoBackends,
   useVideoPool,
   useVideoPoolSelect,
 } from "@/modules/production/composition";
+export type {
+  Seedance2BeatStatus,
+  VideoInputCropTarget,
+} from "@/modules/production/domain/seedance2-panel";
 export { DEFAULT_VIDEO_BACKEND } from "@/modules/production/domain/video-backend";
 export type { VideoBackendOption } from "@/modules/production/domain/video-backend";
 export type {

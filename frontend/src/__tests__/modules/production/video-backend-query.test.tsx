@@ -2,22 +2,16 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
-import { setupServer } from "msw/node";
 import ky from "ky";
 import type { ReactNode } from "react";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost:3000/" }),
 }));
 
+import { server } from "@/__mocks__/msw/server";
 import { useVideoBackends } from "@/modules/production/public";
-
-const server = setupServer();
-
-beforeAll(() => server.listen());
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
 
 function wrapper({ children }: { children: ReactNode }) {
   const queryClient = new QueryClient({
