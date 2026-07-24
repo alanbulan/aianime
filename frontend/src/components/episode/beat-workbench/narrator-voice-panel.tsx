@@ -31,7 +31,7 @@ import {
   useTrimNarratorVoice,
   useUploadNarratorVoice,
   type NarratorVoiceSourceOption,
-} from "@/lib/queries/video";
+} from "@/modules/production/public";
 import { cn } from "@/lib/utils";
 
 const SUPPORTED_AUDIO_ACCEPT = ".mp3,.wav,.m4a,.aac,.ogg,audio/*";

@@ -80,7 +80,7 @@ vi.mock("@/hooks/use-task-controller", () => ({
   }),
 }));
 
-vi.mock("@/lib/queries/video", () => ({
+vi.mock("@/modules/production/public", () => ({
   useNarratorVoiceStatus: () => ({
     data: {
       ok: true,
@@ -106,6 +106,7 @@ vi.mock("@/lib/queries/video", () => ({
   useUploadNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useRecordNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useCopyProjectNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useTrimNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useDeleteNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 

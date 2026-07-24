@@ -1,5 +1,9 @@
 // Copyright (c) 2026 AI anime
 import type { Beat } from "@/modules/narrative_planning/public";
+import type {
+  NarratorVoiceSourcesData,
+  NarratorVoiceStatusData,
+} from "@/modules/production/domain/narrator-voice";
 import type { VideoBackendOption } from "@/modules/production/domain/video-backend";
 import type {
   GenerateSeedance2PromptCommand,
@@ -119,6 +123,32 @@ export interface ProductionVideoGateway {
     episode: number,
     command: RegenerateBeatVideoCommand,
   ): Promise<ProductionTaskResponse | ProductionErrorResponse>;
+  getNarratorVoiceStatus(
+    project: string,
+    signal?: AbortSignal,
+  ): Promise<ProductionDataResponse<NarratorVoiceStatusData>>;
+  listNarratorVoiceSources(
+    project: string,
+    signal?: AbortSignal,
+  ): Promise<ProductionDataResponse<NarratorVoiceSourcesData>>;
+  uploadNarratorVoice(
+    project: string,
+    file: File,
+  ): Promise<NarratorVoiceMutationResponse>;
+  recordNarratorVoice(
+    project: string,
+    dataUrl: string,
+  ): Promise<NarratorVoiceMutationResponse>;
+  copyProjectNarratorVoice(
+    project: string,
+    sourcePath: string,
+  ): Promise<NarratorVoiceMutationResponse>;
+  trimNarratorVoice(
+    project: string,
+    startSeconds: number,
+    durationSeconds: number,
+  ): Promise<NarratorVoiceMutationResponse>;
+  deleteNarratorVoice(project: string): Promise<NarratorVoiceMutationResponse>;
 }
 
 export type VideoPoolResponse = ProductionDataResponse<VideoPoolData | null>;
@@ -134,6 +164,10 @@ export type Seedance2PromptResponse =
 export type BeatVideoPromptResponse =
   | ProductionDataResponse<BeatVideoPromptResult>
   | ProductionTaskResponse
+  | ProductionErrorResponse;
+
+export type NarratorVoiceMutationResponse =
+  | ProductionDataResponse<NarratorVoiceStatusData>
   | ProductionErrorResponse;
 
 export interface VideoPoolSelectResponse {

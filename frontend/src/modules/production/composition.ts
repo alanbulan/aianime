@@ -1,5 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { useAppStore } from "@/stores/app-store";
+import { createNarratorVoiceQueryHooks } from "@/modules/production/application/narrator-voice-query-hooks";
 import { createVideoBackendQueryHooks } from "@/modules/production/application/video-backend-query-hooks";
 import { createVideoGenerationQueryHooks } from "@/modules/production/application/video-generation-query-hooks";
 import { createVideoPoolQueryHooks } from "@/modules/production/application/video-pool-query-hooks";
@@ -30,3 +31,12 @@ export const {
   currentPromptLanguage: () =>
     promptLanguageFromLocale(useAppStore.getState().language),
 });
+export const {
+  useNarratorVoiceStatus,
+  useNarratorVoiceSources,
+  useUploadNarratorVoice,
+  useRecordNarratorVoice,
+  useCopyProjectNarratorVoice,
+  useTrimNarratorVoice,
+  useDeleteNarratorVoice,
+} = createNarratorVoiceQueryHooks(httpProductionVideoGateway);

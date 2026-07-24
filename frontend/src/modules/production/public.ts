@@ -1,17 +1,25 @@
 export {
+  useCopyProjectNarratorVoice,
   useCropSeedance2Asset,
+  useDeleteNarratorVoice,
   useDeleteSeedance2Asset,
   useGenerateBeatVideoPrompt,
   useGenerateSeedance2Prompt,
   useGlobalOptimize,
+  useNarratorVoiceSources,
+  useNarratorVoiceStatus,
+  useRecordNarratorVoice,
   useRegenerateBeatVideo,
   useSeedance2BeatStatus,
   useTrimSeedance2Asset,
+  useTrimNarratorVoice,
+  useUploadNarratorVoice,
   useUploadSeedance2Asset,
   useVideoBackends,
   useVideoPool,
   useVideoPoolSelect,
 } from "@/modules/production/composition";
+export type { NarratorVoiceSourceOption } from "@/modules/production/domain/narrator-voice";
 export type {
   Seedance2BeatStatus,
   VideoInputCropTarget,

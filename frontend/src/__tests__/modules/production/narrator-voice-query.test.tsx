@@ -2,29 +2,25 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
-import { setupServer } from "msw/node";
 import ky from "ky";
 import type { ReactNode } from "react";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost:3000/" }),
 }));
 
+import { server } from "@/__mocks__/msw/server";
+import { queryKeys } from "@/lib/query-keys";
 import {
   useCopyProjectNarratorVoice,
   useDeleteNarratorVoice,
   useNarratorVoiceSources,
   useNarratorVoiceStatus,
   useRecordNarratorVoice,
+  useTrimNarratorVoice,
   useUploadNarratorVoice,
-} from "@/lib/queries/video";
-
-const server = setupServer();
-
-beforeAll(() => server.listen());
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
+} from "@/modules/production/public";
 
 function wrapper({ children }: { children: ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -37,7 +33,7 @@ function wrapperWithClient(qc: QueryClient) {
   };
 }
 
-describe("narrator voice query hooks", () => {
+describe("Production narrator voice queries", () => {
   it("loads project narrator voice status", async () => {
     let requestedPath = "";
     server.use(
@@ -165,6 +161,30 @@ describe("narrator voice query hooks", () => {
     expect(body).toEqual({ source_path: "/project/audio/ep001/beat_01.mp3" });
   });
 
+  it("trims the configured narrator voice with second-based bounds", async () => {
+    let body: unknown = null;
+    server.use(
+      http.post(
+        "http://localhost:3000/api/v1/projects/demo/narrator-voice/trim",
+        async ({ request }) => {
+          body = await request.json();
+          return HttpResponse.json({
+            ok: true,
+            data: { reference_path: "assets/narrator/voice.wav" },
+          });
+        },
+      ),
+    );
+
+    const { result } = renderHook(() => useTrimNarratorVoice("demo"), {
+      wrapper,
+    });
+    result.current.mutate({ startSeconds: 1.25, durationSeconds: 4.5 });
+
+    await waitFor(() => expect(result.current.data).toBeDefined());
+    expect(body).toEqual({ start_seconds: 1.25, duration_seconds: 4.5 });
+  });
+
   it("deletes the configured narrator voice", async () => {
     let called = false;
     server.use(
@@ -203,7 +223,7 @@ describe("narrator voice query hooks", () => {
 
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: ["seedance2-beat-status", "demo"],
+      queryKey: queryKeys.seedance2BeatStatusProject("demo"),
     });
   });
 });

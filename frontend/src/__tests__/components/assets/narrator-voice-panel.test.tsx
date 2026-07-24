@@ -49,7 +49,7 @@ beforeAll(async () => {
 const mutateTrim = vi.hoisted(() => vi.fn());
 let mockHasVoice = false;
 
-vi.mock("@/lib/queries/video", () => ({
+vi.mock("@/modules/production/public", () => ({
   useNarratorVoiceStatus: () => ({
     data: {
       ok: true,

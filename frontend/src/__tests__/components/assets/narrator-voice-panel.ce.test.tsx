@@ -20,7 +20,7 @@ vi.mock("sonner", () => ({
   },
 }));
 
-vi.mock("@/lib/queries/video", () => ({
+vi.mock("@/modules/production/public", () => ({
   useNarratorVoiceStatus: () => ({
     data: {
       ok: true,

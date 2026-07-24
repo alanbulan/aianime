@@ -1,6 +1,7 @@
 // Copyright (c) 2026 AI anime
 import type {
   BeatVideoPromptResponse,
+  NarratorVoiceMutationResponse,
   ProductionDataResponse,
   ProductionErrorResponse,
   ProductionTaskResponse,
@@ -10,6 +11,10 @@ import type {
   VideoPoolResponse,
   VideoPoolSelectResponse,
 } from "@/modules/production/application/ports";
+import type {
+  NarratorVoiceSourcesData,
+  NarratorVoiceStatusData,
+} from "@/modules/production/domain/narrator-voice";
 import {
   DEFAULT_VIDEO_BACKEND,
   type VideoBackendOption,
@@ -182,5 +187,53 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
         },
       ),
     );
+  },
+  async getNarratorVoiceStatus(project, signal) {
+    return api
+      .get(p`api/v1/projects/${project}/narrator-voice`, { signal })
+      .json<ProductionDataResponse<NarratorVoiceStatusData>>();
+  },
+  async listNarratorVoiceSources(project, signal) {
+    return api
+      .get(p`api/v1/projects/${project}/narrator-voice/sources`, { signal })
+      .json<ProductionDataResponse<NarratorVoiceSourcesData>>();
+  },
+  async uploadNarratorVoice(project, file) {
+    const formData = new FormData();
+    formData.append("file", file, file.name);
+    return api
+      .post(p`api/v1/projects/${project}/narrator-voice/upload`, {
+        body: formData,
+      })
+      .json<NarratorVoiceMutationResponse>();
+  },
+  async recordNarratorVoice(project, dataUrl) {
+    return api
+      .post(p`api/v1/projects/${project}/narrator-voice/record`, {
+        json: { data_url: dataUrl },
+      })
+      .json<NarratorVoiceMutationResponse>();
+  },
+  async copyProjectNarratorVoice(project, sourcePath) {
+    return api
+      .post(p`api/v1/projects/${project}/narrator-voice/copy`, {
+        json: { source_path: sourcePath },
+      })
+      .json<NarratorVoiceMutationResponse>();
+  },
+  async trimNarratorVoice(project, startSeconds, durationSeconds) {
+    return api
+      .post(p`api/v1/projects/${project}/narrator-voice/trim`, {
+        json: {
+          start_seconds: startSeconds,
+          duration_seconds: durationSeconds,
+        },
+      })
+      .json<NarratorVoiceMutationResponse>();
+  },
+  async deleteNarratorVoice(project) {
+    return api
+      .post(p`api/v1/projects/${project}/narrator-voice/delete`)
+      .json<NarratorVoiceMutationResponse>();
   },
 };

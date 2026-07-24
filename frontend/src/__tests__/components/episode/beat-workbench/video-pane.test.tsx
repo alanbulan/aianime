@@ -244,6 +244,10 @@ const videoQueryMocks = vi.hoisted(() => ({
     mutateAsync: vi.fn(),
     isPending: false,
   }),
+  useTrimNarratorVoice: () => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+  }),
   useDeleteNarratorVoice: () => ({
     mutateAsync: deleteNarratorVoiceMock,
     isPending: false,
@@ -446,15 +450,6 @@ const videoQueryMocks = vi.hoisted(() => ({
   }),
 }));
 
-vi.mock("@/lib/queries/video", () => ({
-  useNarratorVoiceStatus: videoQueryMocks.useNarratorVoiceStatus,
-  useNarratorVoiceSources: videoQueryMocks.useNarratorVoiceSources,
-  useUploadNarratorVoice: videoQueryMocks.useUploadNarratorVoice,
-  useRecordNarratorVoice: videoQueryMocks.useRecordNarratorVoice,
-  useCopyProjectNarratorVoice: videoQueryMocks.useCopyProjectNarratorVoice,
-  useDeleteNarratorVoice: videoQueryMocks.useDeleteNarratorVoice,
-}));
-
 vi.mock("@/modules/production/public", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/modules/production/public")>();
   return {
@@ -467,6 +462,13 @@ vi.mock("@/modules/production/public", async (importOriginal) => {
     useRegenerateBeatVideo: videoQueryMocks.useRegenerateBeatVideo,
     useGenerateSeedance2Prompt: videoQueryMocks.useGenerateSeedance2Prompt,
     useGenerateBeatVideoPrompt: videoQueryMocks.useGenerateBeatVideoPrompt,
+    useNarratorVoiceStatus: videoQueryMocks.useNarratorVoiceStatus,
+    useNarratorVoiceSources: videoQueryMocks.useNarratorVoiceSources,
+    useUploadNarratorVoice: videoQueryMocks.useUploadNarratorVoice,
+    useRecordNarratorVoice: videoQueryMocks.useRecordNarratorVoice,
+    useCopyProjectNarratorVoice: videoQueryMocks.useCopyProjectNarratorVoice,
+    useTrimNarratorVoice: videoQueryMocks.useTrimNarratorVoice,
+    useDeleteNarratorVoice: videoQueryMocks.useDeleteNarratorVoice,
     useVideoPool: () => ({
       data: {
         ok: true,
