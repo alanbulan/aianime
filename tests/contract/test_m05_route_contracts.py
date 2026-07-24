@@ -345,9 +345,16 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     async def runtime_prop_menu(*_args, **_kwargs):
         return []
 
-    monkeypatch.setattr(generation, "_build_character_map", build_character_map)
+    generation_context = SimpleNamespace(
+        build_character_map=build_character_map,
+        episode_or_none=lambda *_: None,
+    )
+    monkeypatch.setattr(
+        generation,
+        "production_generation_context_use_cases",
+        lambda *_: generation_context,
+    )
     monkeypatch.setattr(generation, "_runtime_prop_menu_with_global_props", runtime_prop_menu)
-    monkeypatch.setattr(generation, "_episode_from_store_or_none", lambda *_: None)
     monkeypatch.setattr(
         image_settings_adapter,
         "load_project_config_file",

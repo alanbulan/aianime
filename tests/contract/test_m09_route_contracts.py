@@ -288,7 +288,15 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(generation, "_resolve_generation_project", resolve_generation_project)
     monkeypatch.setattr(generation, "make_sqlite_store_for_context", make_store_for_context)
     monkeypatch.setattr(generation, "make_sqlite_store", make_store)
-    monkeypatch.setattr(generation, "_build_character_map", character_map)
+    generation_context = SimpleNamespace(
+        build_character_map=character_map,
+        episode_or_none=lambda *_: None,
+    )
+    monkeypatch.setattr(
+        generation,
+        "production_generation_context_use_cases",
+        lambda *_: generation_context,
+    )
     monkeypatch.setattr(generation, "_api_audio_duration_seconds", audio_duration)
     monkeypatch.setattr(generation, "load_project_config", lambda *_: {})
     monkeypatch.setattr(generation, "save_project_config", lambda *_, **__: None)

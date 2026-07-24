@@ -81,7 +81,6 @@ from ai_anime.modules.asset_world.public import (
     UploadBeatBackgroundCommand,
     beat_background_anchor_use_cases,
     beat_director_stage_use_cases,
-    build_character_map_for_grid,
     resolve_beat_scene_name,
     runtime_prop_menu_for_episode as _runtime_prop_menu_with_global_props,
     scene_viewer_use_cases,
@@ -93,6 +92,7 @@ from ai_anime.modules.production.public import (
     SketchPoseCandidatesMissing,
     UpdateRenderImageSettingsCommand,
     UpdateSketchImageSettingsCommand,
+    production_generation_context_use_cases,
     production_image_settings_use_cases,
     sketch_image_use_cases,
     sketch_pose_editor_use_cases,
@@ -104,14 +104,10 @@ from ai_anime.seedance2_i2v.pipeline import (
 )
 from ai_anime.seedance2_i2v.voice_clone import normalize_seedance2_audio_type
 from ai_anime.project_config import load_project_config, save_project_config
-from ai_anime.modules.project_workspace.public import (
-    ProjectContext,
-    get_user_output_dir,
-)
+from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.ports import get_task_backend, get_usage_meter
 from ai_anime.task_identity import project_task_state_key
 from ai_anime.shared.project_media import make_project_asset_url_builder
-from ai_anime.utils.path_resolver import compute_identity_path, compute_portrait_path
 
 router = APIRouter()
 
@@ -403,94 +399,6 @@ def _prop_marker_colors_from_menu(prop_menu: list[dict] | None) -> dict[str, str
         if prop_id and marker_color:
             colors[prop_id] = marker_color
     return colors
-
-
-def _episode_from_store_or_none(store: Any, episode_num: int) -> Any | None:
-    get_episode = getattr(store, "get_episode", None)
-    if get_episode is None:
-        return None
-    try:
-        return get_episode(episode_num)
-    except Exception:
-        return None
-
-
-async def _build_character_map(
-    store,
-    beats,
-    username,
-    project,
-    *,
-    episode_num: int | None = None,
-    use_detected_identities: bool = False,
-):
-    """构建角色映射。"""
-    project_dir = get_user_output_dir(username) / project
-    characters = store.get_all_characters()
-    char_dicts = []
-    for c in characters:
-        char_dicts.append(
-            {
-                "name": c.name,
-                "gender": c.gender,
-                "body_type": getattr(c, "body_type", ""),
-                "role": c.role,
-                "is_main": getattr(c, "is_main", False),
-                "portrait_path": compute_portrait_path(project_dir, c.name),
-                "face_prompt": c.face_prompt,
-                "appearance_details": c.appearance_details,
-                "identities": (
-                    [
-                        {
-                            "identity_id": id_.identity_id,
-                            "identity_name": id_.identity_name,
-                            "appearance_details": id_.appearance_details,
-                            "face_prompt": id_.face_prompt,
-                            "body_type": id_.body_type,
-                            "fish_voice_id": id_.fish_voice_id,
-                            "age_group": id_.age_group,
-                            "portrait_image": id_.portrait_image,
-                            "costume_image": id_.costume_image,
-                            "primary_reference": compute_identity_path(
-                                project_dir, c.name, id_.identity_name
-                            ),
-                            "character_tag": id_.character_tag,
-                            "source": id_.source,
-                        }
-                        for id_ in c.identities
-                    ]
-                    if c.identities
-                    else []
-                ),
-            }
-        )
-
-    # 优先从 SQLite 读取 sketch_colors；若缺失则按当前 beats 重新分配并写回 SQLite。
-    _sc = None
-    if episode_num:
-        _sc = store.get_sketch_colors(episode_num) or None
-        if not _sc:
-            from ai_anime.generators.episode_optimizer import EpisodeOptimizer
-
-            _sc = (
-                EpisodeOptimizer.assign_sketch_colors(
-                    char_dicts,
-                    episode_beats=beats,
-                )
-                or None
-            )
-
-            if _sc:
-                await store.set_sketch_colors(episode_num, _sc)
-
-    return build_character_map_for_grid(
-        grid_beats=beats,
-        characters=char_dicts,
-        user_output_dir=get_user_output_dir(username),
-        project=project,
-        sketch_colors=_sc,
-        use_detected_identities=use_detected_identities,
-    )
 
 
 def _validate_seedance_pro_dialogue_only(
@@ -1115,7 +1023,10 @@ async def _seedance2_panel_context(
         None,
     )
     characters = store.get_all_characters()
-    episode_obj = _episode_from_store_or_none(store, episode_num)
+    episode_obj = production_generation_context_use_cases(
+        store,
+        username,
+    ).episode_or_none(episode_num)
     prop_menu = await _runtime_prop_menu_with_global_props(store, episode_obj, beats)
     return {
         "project_ctx": resolved.ctx,
@@ -1936,11 +1847,12 @@ async def generate_sketches(
             ),
         }
 
-    character_map = await _build_character_map(
+    character_map = await production_generation_context_use_cases(
         store,
-        beats,
         username,
-        project_name,
+    ).build_character_map(
+        beats=beats,
+        project=project_name,
         episode_num=episode_num,
         use_detected_identities=False,
     )
@@ -1955,7 +1867,10 @@ async def generate_sketches(
 
     PathResolver(output_dir, episode_num).clean_sketches()
 
-    episode_obj = _episode_from_store_or_none(store, episode_num)
+    episode_obj = production_generation_context_use_cases(
+        store,
+        username,
+    ).episode_or_none(episode_num)
     prop_menu = await _runtime_prop_menu_with_global_props(store, episode_obj, beats)
     sketch_image_selection = production_image_settings_use_cases().resolve_sketch_selection(
         proj_config,
@@ -2261,11 +2176,12 @@ async def regenerate_grid(
         return {"ok": False, "error": f"No beats found for episode {episode_num}"}
 
     # 验证 grid_index 范围
-    character_map = await _build_character_map(
+    character_map = await production_generation_context_use_cases(
         store,
-        beats,
         username,
-        project_name,
+    ).build_character_map(
+        beats=beats,
+        project=project_name,
         episode_num=episode_num,
         use_detected_identities=True,
     )
@@ -2448,11 +2364,12 @@ async def render_plan(
             status_code=400, content={"ok": False, "error": detection_error}
         )
 
-    character_map = await _build_character_map(
+    character_map = await production_generation_context_use_cases(
         store,
-        selected_beats,
         username,
-        project_name,
+    ).build_character_map(
+        beats=selected_beats,
+        project=project_name,
         episode_num=episode_num,
         use_detected_identities=True,
     )
@@ -2563,11 +2480,12 @@ async def render_execute(
             status_code=400, content={"ok": False, "error": detection_error}
         )
 
-    character_map = await _build_character_map(
+    character_map = await production_generation_context_use_cases(
         store,
-        selected_beats,
         username,
-        project_name,
+    ).build_character_map(
+        beats=selected_beats,
+        project=project_name,
         episode_num=episode_num,
         use_detected_identities=True,
     )
@@ -2664,7 +2582,10 @@ async def render_execute(
     from ai_anime.task_identity import selection_scope
 
     style = project_config.get("visual_style") or "chinese_period_drama"
-    episode_obj = _episode_from_store_or_none(store, episode_num)
+    episode_obj = production_generation_context_use_cases(
+        store,
+        username,
+    ).episode_or_none(episode_num)
     prop_menu = await _runtime_prop_menu_with_global_props(
         store, episode_obj, all_beats
     )
@@ -2780,17 +2701,21 @@ async def regenerate_beats(
     if detection_error:
         return {"ok": False, "error": detection_error}
 
-    character_map = await _build_character_map(
+    character_map = await production_generation_context_use_cases(
         store,
-        selected_beats,
         username,
-        project_name,
+    ).build_character_map(
+        beats=selected_beats,
+        project=project_name,
         episode_num=episode_num,
         use_detected_identities=True,
     )
 
     mode_key = body.mode_key
-    episode_obj = _episode_from_store_or_none(store, episode_num)
+    episode_obj = production_generation_context_use_cases(
+        store,
+        username,
+    ).episode_or_none(episode_num)
     prop_menu = await _runtime_prop_menu_with_global_props(store, episode_obj, beats)
     config = {
         "beats": beats,
@@ -2878,17 +2803,21 @@ async def regenerate_sketches(
             "error": f"beat_indices {invalid} 超出范围（共 {total_beats} 个 beats，有效: 1~{total_beats}）",
         }
 
-    character_map = await _build_character_map(
+    character_map = await production_generation_context_use_cases(
         store,
-        beats,
         username,
-        project_name,
+    ).build_character_map(
+        beats=beats,
+        project=project_name,
         episode_num=episode_num,
         use_detected_identities=False,
     )
 
     mode_key = body.mode_key
-    episode_obj = _episode_from_store_or_none(store, episode_num)
+    episode_obj = production_generation_context_use_cases(
+        store,
+        username,
+    ).episode_or_none(episode_num)
     prop_menu = await _runtime_prop_menu_with_global_props(store, episode_obj, beats)
     sketch_image_selection = production_image_settings_use_cases().resolve_sketch_selection(
         proj_config,
@@ -3063,7 +2992,10 @@ async def get_beat_director_stage_manifest(
         get_sketch_colors = getattr(store, "get_sketch_colors", None)
         if get_sketch_colors is not None:
             sketch_colors = dict(get_sketch_colors(int(episode_num)) or {})
-        episode_obj = _episode_from_store_or_none(store, int(episode_num))
+        episode_obj = production_generation_context_use_cases(
+            store,
+            resolved.username,
+        ).episode_or_none(int(episode_num))
         prop_menu = await _runtime_prop_menu_with_global_props(
             store, episode_obj, list(beats)
         )
@@ -3738,11 +3670,12 @@ async def generate_missing_manual_sketches(
             proj_config
         )
     )
-    character_map = await _build_character_map(
+    character_map = await production_generation_context_use_cases(
         store,
-        beats,
         username,
-        project_name,
+    ).build_character_map(
+        beats=beats,
+        project=project_name,
         episode_num=episode_num,
         use_detected_identities=False,
     )
@@ -3890,7 +3823,10 @@ async def generate_single_video(
                     seedance2_config_json=request_config_json,
                 )
             beat_index = beats.index(beat)
-            episode_obj = _episode_from_store_or_none(store, episode_num)
+            episode_obj = production_generation_context_use_cases(
+                store,
+                username,
+            ).episode_or_none(episode_num)
             prop_menu = await _runtime_prop_menu_with_global_props(
                 store, episode_obj, beats
             )
@@ -3930,7 +3866,10 @@ async def generate_single_video(
                     seedance2_config_json=request_config_json,
                 )
             beat_index = beats.index(beat)
-            episode_obj = _episode_from_store_or_none(store, episode_num)
+            episode_obj = production_generation_context_use_cases(
+                store,
+                username,
+            ).episode_or_none(episode_num)
             prop_menu = await _runtime_prop_menu_with_global_props(
                 store, episode_obj, beats
             )
@@ -3984,7 +3923,10 @@ async def generate_single_video(
                     seedance2_config_json=request_config_json,
                 )
             beat_index = beats.index(beat)
-            episode_obj = _episode_from_store_or_none(store, episode_num)
+            episode_obj = production_generation_context_use_cases(
+                store,
+                username,
+            ).episode_or_none(episode_num)
             prop_menu = await _runtime_prop_menu_with_global_props(
                 store, episode_obj, beats
             )
@@ -5206,7 +5148,10 @@ async def assign_sketch_colors(
         existing_colors=previous_colors,
     )
 
-    episode_obj = _episode_from_store_or_none(store, episode_num)
+    episode_obj = production_generation_context_use_cases(
+        store,
+        username,
+    ).episode_or_none(episode_num)
     runtime_prop_menu = await _runtime_prop_menu_with_global_props(
         store, episode_obj, beats
     )
@@ -5318,7 +5263,10 @@ async def detect_sketch_identities(
             "error": "No sketch colors assigned. Call assign-colors first",
         }
 
-    episode_obj = _episode_from_store_or_none(store, episode_num)
+    episode_obj = production_generation_context_use_cases(
+        store,
+        username,
+    ).episode_or_none(episode_num)
     runtime_prop_menu = await _runtime_prop_menu_with_global_props(
         store, episode_obj, beats
     )

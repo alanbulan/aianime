@@ -84,7 +84,10 @@ from ai_anime.modules.asset_world.public import (
     director_control_scope,
     runtime_prop_menu_for_episode,
 )
-from ai_anime.modules.production.public import production_image_settings_use_cases
+from ai_anime.modules.production.public import (
+    production_generation_context_use_cases,
+    production_image_settings_use_cases,
+)
 from ai_anime.freezone import canvas_store
 from ai_anime.freezone.audio_node import (
     create_user_audio_voice,
@@ -943,31 +946,26 @@ async def _mainline_single_beat_config(
     aspect_ratio: str,
     is_sketch: bool,
 ) -> dict:
-    from ai_anime.api.routes.generation import (
-        _build_character_map,
-        _episode_from_store_or_none,
-    )
     from ai_anime.project_config import load_project_config
 
     store = await make_sqlite_store_for_context(ctx)
+    generation_context = production_generation_context_use_cases(store, username)
     beats = await store.get_beats_as_dicts(int(episode))
     if not beats:
         raise HTTPException(404, f"No beats found for episode {episode}")
     selected_beat = _beat_by_number(beats, int(beat))
     project_config = load_project_config(username, project_name)
     image_settings = production_image_settings_use_cases()
-    episode_obj = _episode_from_store_or_none(store, int(episode))
+    episode_obj = generation_context.episode_or_none(int(episode))
     prop_menu = await runtime_prop_menu_for_episode(store, episode_obj, beats)
     sketch_colors = (
         store.get_sketch_colors(int(episode)) or {} if hasattr(store, "get_sketch_colors") else {}
     )
     if is_sketch:
         character_map = (
-            await _build_character_map(
-                store,
-                beats,
-                username,
-                project_name,
+            await generation_context.build_character_map(
+                beats=beats,
+                project=project_name,
                 episode_num=int(episode),
                 use_detected_identities=False,
             )
@@ -991,11 +989,9 @@ async def _mainline_single_beat_config(
         }
 
     character_map = (
-        await _build_character_map(
-            store,
-            [selected_beat],
-            username,
-            project_name,
+        await generation_context.build_character_map(
+            beats=[selected_beat],
+            project=project_name,
             episode_num=int(episode),
             use_detected_identities=True,
         )

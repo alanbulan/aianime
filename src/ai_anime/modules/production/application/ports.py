@@ -47,3 +47,43 @@ class ProductionImageSelectionCatalog(Protocol):
     def normalize_render(self, value: str | None) -> str: ...
 
     def normalize_sketch(self, value: str | None) -> str: ...
+
+
+class ProductionGenerationStore(Protocol):
+    def get_episode(self, episode_num: int) -> Any | None: ...
+
+    def get_all_characters(self) -> list[Any]: ...
+
+    def get_sketch_colors(self, episode_num: int) -> dict[str, str]: ...
+
+    async def set_sketch_colors(
+        self,
+        episode_num: int,
+        colors: dict[str, str],
+    ) -> None: ...
+
+
+class ProductionSketchColorAssigner(Protocol):
+    def assign(
+        self,
+        characters: list[dict[str, Any]],
+        beats: list[dict[str, Any]],
+    ) -> dict[str, str]: ...
+
+
+class ProductionCharacterProjector(Protocol):
+    def project_characters(
+        self,
+        characters: list[Any],
+        project: str,
+    ) -> list[dict[str, Any]]: ...
+
+    def build_character_map(
+        self,
+        *,
+        beats: list[dict[str, Any]],
+        characters: list[dict[str, Any]],
+        project: str,
+        sketch_colors: dict[str, str] | None,
+        use_detected_identities: bool,
+    ) -> dict[str, dict[str, Any]]: ...

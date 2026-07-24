@@ -18,9 +18,7 @@ LEGACY_REVERSE_API_IMPORT_MAX = {
     ("verification/routes.py", "ai_anime.api.deps"): 1,
 }
 
-LEGACY_ROUTE_IMPORT_MAX = {
-    ("api/routes/freezone.py", "ai_anime.api.routes.generation"): 1,
-}
+LEGACY_ROUTE_IMPORT_MAX: dict[tuple[str, str], int] = {}
 
 
 def _python_files(root: Path) -> list[Path]:
@@ -351,6 +349,23 @@ def test_production_image_settings_routes_delegate_to_application() -> None:
     assert "image_generation_selection_options" not in settings_source
 
 
+def test_production_generation_context_routes_delegate_to_application() -> None:
+    generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+    freezone = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    generation_source = generation.read_text(encoding="utf-8")
+    freezone_source = freezone.read_text(encoding="utf-8")
+
+    for source in (generation_source, freezone_source):
+        assert "production_generation_context_use_cases" in source
+    for legacy_helper in (
+        "def _build_character_map(",
+        "def _episode_from_store_or_none(",
+    ):
+        assert legacy_helper not in generation_source
+        assert legacy_helper not in freezone_source
+    assert "ai_anime.api.routes.generation" not in _imports(freezone)
+
+
 def test_asset_world_style_layers_do_not_depend_on_fastapi() -> None:
     roots = (
         PACKAGE_ROOT / "modules" / "asset_world" / "domain",
@@ -480,7 +495,11 @@ def test_runtime_prop_menu_uses_one_asset_world_implementation() -> None:
 
 def test_character_reference_map_uses_one_asset_world_implementation() -> None:
     callers = (
-        PACKAGE_ROOT / "api" / "routes" / "generation.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "production"
+        / "infrastructure"
+        / "generation_context.py",
         PACKAGE_ROOT / "agents" / "global_video_optimizer.py",
         PACKAGE_ROOT / "director_world" / "control_frame_to_sketch.py",
         PACKAGE_ROOT / "freezone" / "presets.py",

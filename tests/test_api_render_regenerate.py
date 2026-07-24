@@ -61,7 +61,7 @@ def _client(monkeypatch, tmp_path):
             ),
         )
 
-    async def fake_character_map(store, beats, username, project, **kwargs):
+    async def fake_character_map(**_kwargs):
         return {"hero": {"ref_path": ""}}
 
     async def fake_prop_menu(*args, **kwargs):
@@ -95,7 +95,15 @@ def _client(monkeypatch, tmp_path):
     monkeypatch.setattr(
         generation, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
     )
-    monkeypatch.setattr(generation, "_build_character_map", fake_character_map)
+    generation_context = SimpleNamespace(
+        build_character_map=fake_character_map,
+        episode_or_none=lambda *_: None,
+    )
+    monkeypatch.setattr(
+        generation,
+        "production_generation_context_use_cases",
+        lambda *_: generation_context,
+    )
     monkeypatch.setattr(
         generation, "_runtime_prop_menu_with_global_props", fake_prop_menu
     )
@@ -147,9 +155,9 @@ def _client_with_real_detection_guard(monkeypatch, tmp_path, beats: list[dict]):
         assert ctx.project_id == "proj"
         return store
 
-    async def fake_character_map(store, selected_beats, username, project, **kwargs):
+    async def fake_character_map(*, beats, **_kwargs):
         seen_character_map_beats.append(
-            [beat["beat_number"] for beat in selected_beats]
+            [beat["beat_number"] for beat in beats]
         )
         return {"hero": {"ref_path": ""}}
 
@@ -171,7 +179,15 @@ def _client_with_real_detection_guard(monkeypatch, tmp_path, beats: list[dict]):
     monkeypatch.setattr(
         generation, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
     )
-    monkeypatch.setattr(generation, "_build_character_map", fake_character_map)
+    generation_context = SimpleNamespace(
+        build_character_map=fake_character_map,
+        episode_or_none=lambda *_: None,
+    )
+    monkeypatch.setattr(
+        generation,
+        "production_generation_context_use_cases",
+        lambda *_: generation_context,
+    )
     monkeypatch.setattr(
         generation, "_runtime_prop_menu_with_global_props", fake_prop_menu
     )
