@@ -1,6 +1,5 @@
 """画面/网格/视频生成端点。"""
 
-import logging
 from typing import Any
 
 from fastapi import (
@@ -29,20 +28,9 @@ from ai_anime.modules.asset_world.public import (
     UploadBeatBackgroundCommand,
     beat_viewer_use_cases,
 )
-from ai_anime.modules.production.public import (
-    AssignProjectSketchColorsCommand,
-    DetectProjectSketchMarkersCommand,
-    SketchColorMarkersMissing,
-    SketchEpisodeBeatsMissing,
-    SketchMarkerDetectionFailed,
-    SketchMarkerDetectionRejected,
-    sketch_marker_use_cases,
-)
 from ai_anime.utils.media_io import decode_uploaded_rgb_image
 
 router = APIRouter()
-
-logger = logging.getLogger(__name__)
 
 async def _resolve_generation_project(
     project: str, user: dict, required_role: str = "editor"
@@ -354,53 +342,3 @@ async def get_director_control_frame_status(
             BeatViewerQuery(episode_num=episode_num, beat_num=beat_num),
         ),
     }
-
-
-# ---------------------------------------------------------------------------
-# 草图配色 + AI 颜色检测
-# ---------------------------------------------------------------------------
-
-
-@router.post("/projects/{project}/episodes/{episode_num}/sketches/assign-colors")
-async def assign_sketch_colors(
-    project: str,
-    episode_num: int,
-    user: dict = Depends(get_api_user),
-):
-    """为本集出场身份和全局道具分配共享颜色。"""
-    resolved = await _resolve_generation_project(project, user, required_role="editor")
-    try:
-        result = await sketch_marker_use_cases().assign_colors(
-            resolved.ctx,
-            AssignProjectSketchColorsCommand(episode_num=episode_num),
-        )
-    except SketchEpisodeBeatsMissing as exc:
-        return {"ok": False, "error": str(exc)}
-    except SketchColorMarkersMissing:
-        return {
-            "ok": False,
-            "error": "No identity or global prop markers found in beats",
-        }
-
-    return {"ok": True, "data": result.as_dict()}
-
-
-@router.post("/projects/{project}/episodes/{episode_num}/sketches/detect-identities")
-async def detect_sketch_identities(
-    project: str,
-    episode_num: int,
-    user: dict = Depends(get_api_user),
-):
-    """AI 视觉识别草图中出现的身份/道具颜色标记。"""
-    resolved = await _resolve_generation_project(project, user, required_role="editor")
-    try:
-        result = await sketch_marker_use_cases().detect(
-            resolved.ctx,
-            DetectProjectSketchMarkersCommand(episode_num=episode_num),
-        )
-    except SketchMarkerDetectionRejected as exc:
-        return {"ok": False, "error": str(exc)}
-    except SketchMarkerDetectionFailed as exc:
-        return {"ok": False, "error": f"AI detection failed: {exc}"}
-
-    return {"ok": True, "data": result.as_dict()}

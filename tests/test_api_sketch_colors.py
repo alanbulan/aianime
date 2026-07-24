@@ -14,7 +14,7 @@ from ai_anime.modules.project_workspace.public import ProjectContext
 
 
 def _configure(monkeypatch, tmp_path, *, use_cases):
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_sketch
 
     context = ProjectContext(
         project_id="project-1",
@@ -44,9 +44,9 @@ def _configure(monkeypatch, tmp_path, *, use_cases):
             output_dir=str(tmp_path),
         )
 
-    monkeypatch.setattr(generation, "_resolve_generation_project", resolve_project)
-    monkeypatch.setattr(generation, "sketch_marker_use_cases", lambda: use_cases)
-    return generation, context
+    monkeypatch.setattr(production_sketch, "resolve_project_scope", resolve_project)
+    monkeypatch.setattr(production_sketch, "sketch_marker_use_cases", lambda: use_cases)
+    return production_sketch, context
 
 
 @pytest.mark.asyncio
@@ -61,13 +61,13 @@ async def test_assign_colors_maps_application_result(monkeypatch, tmp_path) -> N
                 prop_colors={"账单": "#0D47A1 ROYAL BLUE"},
             )
 
-    generation, context = _configure(
+    production_sketch, context = _configure(
         monkeypatch,
         tmp_path,
         use_cases=_UseCases(),
     )
 
-    response = await generation.assign_sketch_colors(
+    response = await production_sketch.assign_sketch_colors(
         project="demo",
         episode_num=2,
         user={"username": "alice"},
@@ -96,13 +96,13 @@ async def test_assign_colors_maps_missing_markers(monkeypatch, tmp_path) -> None
         async def assign_colors(self, _context, _command):
             raise SketchColorMarkersMissing
 
-    generation, _context = _configure(
+    production_sketch, _context = _configure(
         monkeypatch,
         tmp_path,
         use_cases=_UseCases(),
     )
 
-    response = await generation.assign_sketch_colors(
+    response = await production_sketch.assign_sketch_colors(
         project="demo",
         episode_num=2,
         user={"username": "alice"},
@@ -120,13 +120,13 @@ async def test_assign_colors_keeps_no_beats_response(monkeypatch, tmp_path) -> N
         async def assign_colors(self, _context, command):
             raise SketchEpisodeBeatsMissing(command.episode_num)
 
-    generation, _context = _configure(
+    production_sketch, _context = _configure(
         monkeypatch,
         tmp_path,
         use_cases=_UseCases(),
     )
 
-    response = await generation.assign_sketch_colors(
+    response = await production_sketch.assign_sketch_colors(
         project="demo",
         episode_num=2,
         user={"username": "alice"},

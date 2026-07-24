@@ -9,8 +9,10 @@ from ai_anime.api.auth import get_api_user, require_scope
 from ai_anime.api.deps import resolve_project_scope
 from ai_anime.api.schemas import SketchGenerateRequest
 from ai_anime.modules.production.public import (
+    AssignProjectSketchColorsCommand,
     CropCurrentSketchCommand,
     CurrentSketchMissing,
+    DetectProjectSketchMarkersCommand,
     DirectorControlSketchUnavailable,
     GenerateDirectorControlSketchCommand,
     GenerateMissingManualSketchesCommand,
@@ -18,15 +20,20 @@ from ai_anime.modules.production.public import (
     ManualSketchRegenerationRejected,
     SaveSketchEditorCommand,
     SketchBeatMissing,
+    SketchColorMarkersMissing,
     SketchCropRejected,
     SketchEditorQuery,
     SketchEditorSaveRejected,
     SketchGenerationRejected,
+    SketchEpisodeBeatsMissing,
+    SketchMarkerDetectionFailed,
+    SketchMarkerDetectionRejected,
     SketchPoseCandidatesMissing,
     director_control_sketch_use_cases,
     manual_sketch_regeneration_use_cases,
     sketch_editing_use_cases,
     sketch_generation_use_cases,
+    sketch_marker_use_cases,
 )
 
 router = APIRouter()
@@ -77,6 +84,51 @@ async def generate_missing_manual_sketches(
     except ManualSketchRegenerationRejected as exc:
         return {"ok": False, "error": str(exc)}
     return scheduled.as_dict()
+
+
+@router.post("/projects/{project}/episodes/{episode_num}/sketches/assign-colors")
+async def assign_sketch_colors(
+    project: str,
+    episode_num: int,
+    user: dict = Depends(get_api_user),
+):
+    """Assign shared colors to episode identity and global prop markers."""
+    resolved = await resolve_project_scope(project, user, required_role="editor")
+    try:
+        result = await sketch_marker_use_cases().assign_colors(
+            resolved.ctx,
+            AssignProjectSketchColorsCommand(episode_num=episode_num),
+        )
+    except SketchEpisodeBeatsMissing as exc:
+        return {"ok": False, "error": str(exc)}
+    except SketchColorMarkersMissing:
+        return {
+            "ok": False,
+            "error": "No identity or global prop markers found in beats",
+        }
+
+    return {"ok": True, "data": result.as_dict()}
+
+
+@router.post("/projects/{project}/episodes/{episode_num}/sketches/detect-identities")
+async def detect_sketch_identities(
+    project: str,
+    episode_num: int,
+    user: dict = Depends(get_api_user),
+):
+    """Detect identity and prop color markers in episode sketches."""
+    resolved = await resolve_project_scope(project, user, required_role="editor")
+    try:
+        result = await sketch_marker_use_cases().detect(
+            resolved.ctx,
+            DetectProjectSketchMarkersCommand(episode_num=episode_num),
+        )
+    except SketchMarkerDetectionRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    except SketchMarkerDetectionFailed as exc:
+        return {"ok": False, "error": f"AI detection failed: {exc}"}
+
+    return {"ok": True, "data": result.as_dict()}
 
 
 @router.post(

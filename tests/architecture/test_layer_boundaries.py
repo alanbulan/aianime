@@ -1010,16 +1010,16 @@ def test_production_sketch_color_rules_have_one_owner() -> None:
 
 
 def test_production_sketch_color_assignment_route_delegates_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "production_sketch.py"
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
-    source = generation.read_text(encoding="utf-8")
-    route_start = source.index("async def assign_sketch_colors(")
-    route_end = source.index("\n@router.post(", route_start)
-    route_source = source[route_start:route_end]
+    source = route.read_text(encoding="utf-8")
+    generation_source = generation.read_text(encoding="utf-8")
 
-    assert "sketch_marker_use_cases" in route_source
-    assert "AssignProjectSketchColorsCommand" in route_source
-    assert "SketchEpisodeBeatsMissing" in route_source
-    assert "SketchColorMarkersMissing" in route_source
+    assert source.count("sketch_marker_use_cases().assign_colors") == 1
+    assert "AssignProjectSketchColorsCommand" in source
+    assert "SketchEpisodeBeatsMissing" in source
+    assert "SketchColorMarkersMissing" in source
+    assert "async def assign_sketch_colors(" not in generation_source
     assert "sketch_color_assignment_use_cases" not in source
     for implementation_detail in (
         "make_sqlite_store_for_context",
@@ -1035,10 +1035,11 @@ def test_production_sketch_color_assignment_route_delegates_to_application() -> 
         "global_prop_marker_colors",
         "marker_color_change_requires_sketch_clean",
     ):
-        assert implementation_detail not in route_source
+        assert implementation_detail not in source
 
 
 def test_production_sketch_marker_detection_route_delegates_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "production_sketch.py"
     generation = PACKAGE_ROOT / "api" / "routes" / "generation.py"
     production_public = PACKAGE_ROOT / "modules" / "production" / "public.py"
     models = PACKAGE_ROOT / "models.py"
@@ -1049,12 +1050,12 @@ def test_production_sketch_marker_detection_route_delegates_to_application() -> 
         / "domain"
         / "sketch_marker_detection.py"
     )
-    source = generation.read_text(encoding="utf-8")
-    route_start = source.index("async def detect_sketch_identities(")
-    route_source = source[route_start:]
+    source = route.read_text(encoding="utf-8")
+    generation_source = generation.read_text(encoding="utf-8")
 
-    assert "sketch_marker_use_cases" in route_source
-    assert "DetectProjectSketchMarkersCommand" in route_source
+    assert source.count("sketch_marker_use_cases().detect") == 1
+    assert "DetectProjectSketchMarkersCommand" in source
+    assert "async def detect_sketch_identities(" not in generation_source
     assert "sketch_marker_detection_use_cases" not in source
     assert "def _requester_user_id_for_billing(" not in source
     public_source = production_public.read_text(encoding="utf-8")
@@ -1079,7 +1080,7 @@ def test_production_sketch_marker_detection_route_delegates_to_application() -> 
         "_grid_shape",
         "beat_pattern",
     ):
-        assert implementation_detail not in route_source
+        assert implementation_detail not in source
 
 
 def test_asset_world_style_layers_do_not_depend_on_fastapi() -> None:

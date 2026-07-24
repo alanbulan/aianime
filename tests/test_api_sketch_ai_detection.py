@@ -145,7 +145,7 @@ def _client(
     ctx=None,
 ):
     from ai_anime.agents import global_video_optimizer
-    from ai_anime.api.routes import generation
+    from ai_anime.api.routes import production_sketch
     from ai_anime.modules.production import composition
     from ai_anime.modules.production.infrastructure import sketch_markers
     from ai_anime.modules.project_workspace.public import ProjectContext
@@ -186,7 +186,7 @@ def _client(
         calls.append(total_beats)
         return {1: ["Hero_Main"]}
 
-    async def fake_resolve_generation_project(project: str, user: dict, required_role: str):
+    async def fake_resolve_project_scope(project: str, user: dict, required_role: str):
         assert project == "demo"
         assert user == {"username": "alice"}
         assert required_role == "editor"
@@ -197,7 +197,11 @@ def _client(
             ctx=context,
         )
 
-    monkeypatch.setattr(generation, "_resolve_generation_project", fake_resolve_generation_project)
+    monkeypatch.setattr(
+        production_sketch,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
     monkeypatch.setattr(
         sketch_markers.project_stores,
         "make_sqlite_store_for_context",
@@ -212,8 +216,10 @@ def _client(
     )
 
     app = FastAPI()
-    app.include_router(generation.router, prefix="/api/v1")
-    app.dependency_overrides[generation.get_api_user] = lambda: {"username": "alice"}
+    app.include_router(production_sketch.router, prefix="/api/v1")
+    app.dependency_overrides[production_sketch.get_api_user] = lambda: {
+        "username": "alice"
+    }
     return TestClient(app)
 
 
