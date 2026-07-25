@@ -1,5 +1,10 @@
 // Copyright (c) 2026 AI anime
+import { canConnectCanvasNodesManually } from '../domain/canvasConnection';
+import type { CanvasNode } from '../domain/canvasNodes';
+
 export type CanvasHandleType = 'source' | 'target';
+
+const MANUAL_DROP_PROXIMITY_PX = 56;
 
 export interface PreviewConnectionLine {
   start: { x: number; y: number };
@@ -129,4 +134,75 @@ export function resolveConnectEndHandleId({
       clientPosition,
     })
   );
+}
+
+export function resolveManualDropTargetElement({
+  clientPosition,
+  pending,
+  nodes,
+  wrapperElement,
+  maxDistance = MANUAL_DROP_PROXIMITY_PX,
+}: {
+  clientPosition: { x: number; y: number };
+  pending: { nodeId: string; handleType: CanvasHandleType };
+  nodes: readonly CanvasNode[];
+  wrapperElement: HTMLElement | null;
+  maxDistance?: number;
+}): HTMLElement | null {
+  const nodeById = new Map(nodes.map((node) => [node.id, node] as const));
+  const originNode = nodeById.get(pending.nodeId);
+  if (!originNode) {
+    return null;
+  }
+
+  const validate = (element: HTMLElement | null): HTMLElement | null => {
+    const dropNodeId = element?.dataset.id ?? null;
+    if (!element || !dropNodeId || dropNodeId === pending.nodeId) {
+      return null;
+    }
+    const dropNode = nodeById.get(dropNodeId);
+    if (!dropNode) {
+      return null;
+    }
+    const sourceNode = pending.handleType === 'source' ? originNode : dropNode;
+    const targetNode = pending.handleType === 'source' ? dropNode : originNode;
+    return canConnectCanvasNodesManually(sourceNode, targetNode) ? element : null;
+  };
+
+  const direct = validate(
+    document
+      .elementFromPoint(clientPosition.x, clientPosition.y)
+      ?.closest?.('.react-flow__node[data-id]') as HTMLElement | null,
+  );
+  if (direct) {
+    return direct;
+  }
+  if (!wrapperElement) {
+    return null;
+  }
+
+  let best: HTMLElement | null = null;
+  let bestDistance = Infinity;
+  wrapperElement
+    .querySelectorAll<HTMLElement>('.react-flow__node[data-id]')
+    .forEach((element) => {
+      const rect = element.getBoundingClientRect();
+      const dx = clientPosition.x < rect.left
+        ? rect.left - clientPosition.x
+        : clientPosition.x > rect.right
+          ? clientPosition.x - rect.right
+          : 0;
+      const dy = clientPosition.y < rect.top
+        ? rect.top - clientPosition.y
+        : clientPosition.y > rect.bottom
+          ? clientPosition.y - rect.bottom
+          : 0;
+      const distance = Math.hypot(dx, dy);
+      if (distance > maxDistance || distance >= bestDistance || !validate(element)) {
+        return;
+      }
+      best = element;
+      bestDistance = distance;
+    });
+  return best;
 }

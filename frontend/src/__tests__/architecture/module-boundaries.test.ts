@@ -1196,6 +1196,7 @@ describe("frontend architecture boundaries", () => {
       "createPreviewPath(",
       "cssEscape(",
       "resolveConnectEndHandleId(",
+      "resolveManualDropTargetElement(",
     ].map((name) => ["export function", name].join(" "));
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => {
@@ -1220,6 +1221,9 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("function isVisibleConnectionHandle(");
     expect(canvasView).not.toContain("function nearestHandleIdAtPoint(");
     expect(canvasView).not.toContain("function resolveConnectEndHandleId(");
+    expect(canvasView).not.toContain("MANUAL_DROP_PROXIMITY_PX");
+    expect(canvasView).not.toContain("let bestDist = Infinity");
+    expect(canvasView).not.toContain("Math.hypot(dx, dy)");
     expect(canvasView).not.toContain("interface PreviewConnectionLine");
   });
 

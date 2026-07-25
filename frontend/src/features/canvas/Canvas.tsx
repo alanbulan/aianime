@@ -120,6 +120,7 @@ import {
   cssEscape,
   getClientPosition,
   resolveConnectEndHandleId,
+  resolveManualDropTargetElement,
 } from './ui/canvasConnectionInteraction';
 import { useCanvasDropIndicator } from './hooks/useCanvasDropIndicator';
 import { useCanvasEdgePan } from './hooks/useCanvasEdgePan';
@@ -157,9 +158,6 @@ const REACT_FLOW_PRO_OPTIONS = { hideAttribution: true };
 // 自动吸附连线(React Flow 原生会高亮合法 handle 并把连线吸过去);更远处落到节
 // 点本体仍有 handleConnectEnd 里的 DOM 命中兜底。
 const CONNECTION_SNAP_RADIUS = 160;
-// 手动「+」连线时，光标离目标节点边缘多近（屏幕像素）就算进入其「可落点区域」——
-// 不必压到节点里面才触发落点高亮/建边，节点周围一圈邻域内即可吸附。
-const MANUAL_DROP_PROXIMITY_PX = 56;
 const MULTI_SELECTION_KEY_CODES = ['Control', 'Meta'];
 // Pan the canvas only by holding the middle mouse button (scroll-wheel) and dragging
 // (button 1). Left drag (0) runs the custom marquee box-select on the empty pane;
@@ -2023,71 +2021,14 @@ export function Canvas({
     }
   }, []);
 
-  // 给定光标位置 + 起手信息，返回「可作为合法落点」的节点 DOM（否则 null）。
-  // 校验规则与 dragEnd/handleConnectEnd 建边时一致：非自身、类型可连、两端 handle 齐备。
-  // 命中方式：① 光标直接压在某节点上优先；② 否则在节点边缘 MANUAL_DROP_PROXIMITY_PX
-  // 邻域内挑「点到矩形」距离最近的合法节点——不必压进节点内部才触发。
   const resolveManualDropTargetEl = useCallback(
-    (clientPosition: { x: number; y: number }, pending: PendingConnectStart) => {
-      const validate = (el: HTMLElement | null): HTMLElement | null => {
-        const dropNodeId = el?.dataset?.id ?? null;
-        if (!el || !dropNodeId || dropNodeId === pending.nodeId) return null;
-        const sourceNode =
-          pending.handleType === 'source'
-            ? nodes.find((node) => node.id === pending.nodeId)
-            : nodes.find((node) => node.id === dropNodeId);
-        const targetNode =
-          pending.handleType === 'source'
-            ? nodes.find((node) => node.id === dropNodeId)
-            : nodes.find((node) => node.id === pending.nodeId);
-        if (
-          sourceNode &&
-          targetNode &&
-          canConnectCanvasNodesManually(sourceNode, targetNode)
-        ) {
-          return el;
-        }
-        return null;
-      };
-
-      // ① 光标直接落在某节点上。
-      const direct = validate(
-        document
-          .elementFromPoint(clientPosition.x, clientPosition.y)
-          ?.closest?.('.react-flow__node[data-id]') as HTMLElement | null,
-      );
-      if (direct) return direct;
-
-      // ② 邻域内找「点到节点矩形」最近的合法节点。
-      const wrapper = wrapperRef.current;
-      if (!wrapper) return null;
-      let best: HTMLElement | null = null;
-      let bestDist = Infinity;
-      wrapper
-        .querySelectorAll<HTMLElement>('.react-flow__node[data-id]')
-        .forEach((el) => {
-          const rect = el.getBoundingClientRect();
-          const dx =
-            clientPosition.x < rect.left
-              ? rect.left - clientPosition.x
-              : clientPosition.x > rect.right
-                ? clientPosition.x - rect.right
-                : 0;
-          const dy =
-            clientPosition.y < rect.top
-              ? rect.top - clientPosition.y
-              : clientPosition.y > rect.bottom
-                ? clientPosition.y - rect.bottom
-                : 0;
-          const dist = Math.hypot(dx, dy);
-          if (dist > MANUAL_DROP_PROXIMITY_PX || dist >= bestDist) return;
-          if (validate(el)) {
-            best = el;
-            bestDist = dist;
-          }
-        });
-      return best;
-    },
+    (clientPosition: { x: number; y: number }, pending: PendingConnectStart) =>
+      resolveManualDropTargetElement({
+        clientPosition,
+        pending,
+        nodes,
+        wrapperElement: wrapperRef.current,
+      }),
     [nodes],
   );
 

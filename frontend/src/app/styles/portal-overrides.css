@@ -404,9 +404,9 @@
    的 connectingto 高亮根本看不见，落点毫无反馈显得很僵硬。
 
    两条触发路径都命中：
-   - `.canvas-node-drop-target`：手动「+」自绘连线，落点由 Canvas.tsx 在 dragMove 时
-     命中合法目标后直接给节点 wrapper 加/摘这个类（手动连线不走 RF 原生连线，拿不到
-     connectingto/valid）。
+   - `.canvas-node-drop-target`：手动「+」自绘连线，落点由
+     canvasConnectionInteraction 在 dragMove 时解析，Canvas 给合法节点 wrapper 加/摘
+     这个类（手动连线不走 RF 原生连线，拿不到 connectingto/valid）。
    - `:has(.connectingto.valid)`：技能节点等 pointer-events 可交互的 handle 走 RF 原生
      连线，RF 会给目标 handle 挂 connectingto+valid（valid = 吸附中且 isValidConnection
      通过），用 :has() 把它提升到节点层。
