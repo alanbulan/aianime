@@ -746,6 +746,44 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps Canvas edge hydration rules in the domain model", () => {
+    const normalizationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/canvasEdgeNormalization.ts",
+    );
+    const normalizationModel = readFileSync(normalizationPath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(normalizationPath).filter(
+      (specifier) =>
+        specifier === "zustand" ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/"),
+    );
+    const legacyRuleNames = [
+      "normalizeHandleId",
+      "defaultSkillSourceHandle",
+      "isNoReferenceEdge",
+      "dedupeReferenceInputEdges",
+      "normalizeEdgesWithNodes",
+    ];
+
+    expect(forbiddenImports).toEqual([]);
+    expect(normalizationModel).toContain(
+      "export function normalizeEdgesWithNodes(",
+    );
+    expect(normalizationModel).toContain("export function normalizeHandleId(");
+    expect(canvasStore).toContain(
+      "@/features/canvas/domain/canvasEdgeNormalization",
+    );
+    for (const ruleName of legacyRuleNames) {
+      expect(canvasStore).not.toContain(`function ${ruleName}(`);
+    }
+  });
+
   it("keeps Canvas viewport and selection rules outside the Zustand store", () => {
     const selectionPath = resolve(
       SRC_ROOT,
