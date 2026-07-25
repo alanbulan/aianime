@@ -595,6 +595,14 @@ describe("frontend architecture boundaries", () => {
         ),
       ),
     ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "components/episode/beat-workbench/seedance2-mentions.ts",
+        ),
+      ),
+    ).toBe(false);
     expect(videoPaneSource).not.toContain(
       "function Seedance2AssetCropDialog",
     );
@@ -602,6 +610,11 @@ describe("frontend architecture boundaries", () => {
       "function Seedance2AudioTrimDialog",
     );
     expect(videoPaneSource).not.toContain("function clampCropBox");
+    expect(videoPaneSource).not.toContain("function BeatVideoPlayer");
+    expect(videoPaneSource).not.toContain("function Seedance2SummaryPill");
+    expect(videoPaneSource).not.toContain("function isErrorResponse");
+    expect(videoPaneSource).not.toContain("function videoBackendDisplayLabel");
+    expect(videoPaneSource).not.toContain("function getSeedance2MentionQuery");
     expect(legacySketchQueries).not.toContain("useAssignColors");
     expect(legacySketchQueries).not.toContain("useDetectIdentities");
     expect(legacySketchQueries).not.toContain("useDirectorControlToSketch");

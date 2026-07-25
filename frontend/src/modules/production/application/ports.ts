@@ -82,6 +82,16 @@ export interface ProductionErrorResponse {
   code?: string;
 }
 
+export function isProductionErrorResponse(
+  value: unknown,
+): value is ProductionErrorResponse {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      (value as { ok?: unknown }).ok === false,
+  );
+}
+
 export interface ProductionTaskResponse {
   ok: true;
   task_type: string;

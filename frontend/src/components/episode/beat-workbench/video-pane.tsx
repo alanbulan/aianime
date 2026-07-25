@@ -7,7 +7,6 @@ import {
   useState,
   type DragEvent,
   type KeyboardEvent,
-  type ReactNode,
 } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -47,25 +46,23 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { MentionTextarea } from "@/components/episode/beat-workbench/mention-textarea";
-import {
-  buildSeedance2LabelIdentityMaps,
-  remapSeedance2Mentions,
-  sameSeedance2LabelIdentity,
-  type Seedance2LabelIdentityMaps,
-} from "@/components/episode/beat-workbench/seedance2-mentions";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   useUpdateBeat,
   type Beat,
 } from "@/modules/narrative_planning/public";
 import {
+  BeatVideoPlayer,
+  buildSeedance2LabelIdentityMaps,
   clampDuration,
+  findSeedance2TrailingMention,
+  getSeedance2MentionQuery,
   getSeedance2ConfigSaveKey,
   grokVideoRatioOptionsForBackend,
   grokVideoResolutionOptionsForBackend,
   happyHorseRatioOptionsForBackend,
   happyHorseResolutionOptionsForBackend,
+  isProductionErrorResponse,
   isSeedanceReferenceCropBackend,
   isSeedance15ProBackend,
   isSeedance2ValueBackend,
@@ -80,15 +77,20 @@ import {
   normalizeSeedance2Resolution,
   parseSeedance2Config,
   sameSeedance2Config,
+  sameSeedance2LabelIdentity,
   seedance2DefaultRatioForProjectAspect,
   seedance2DurationBoundsForBackend,
-  seedance2ModelFromBackend,
   seedance2ResolutionOptionsForBackend,
+  remapSeedance2Mentions,
+  Seedance2Checkbox,
+  Seedance2Field,
   serializeGrokVideoConfig,
   serializeHappyHorseConfig,
   serializeSeedance2Config,
   Seedance2AssetCropDialog,
   Seedance2AudioTrimDialog,
+  Seedance2MediaPreview,
+  Seedance2SummaryPill,
   seedance2CropAspectForMode,
   seedance2CropTargetForAsset,
   useCropSeedance2Asset,
@@ -102,11 +104,14 @@ import {
   useVideoBackends,
   useVideoPool,
   useVideoPoolSelect,
+  VideoParamField,
+  videoBackendDisplayLabel,
   videoInputCropAspectForProjectAspect,
   type Seedance2AssetItem,
   type Seedance2ConfigDraft,
   type Seedance2CropIntent,
   type Seedance2DurationBounds,
+  type Seedance2LabelIdentityMaps,
   type Seedance2Resolution,
   type VideoInputCropTarget,
 } from "@/modules/production/public";
@@ -1001,7 +1006,7 @@ export function VideoPane({
         return next;
       }
       const mention = options.replaceTrailingMention
-        ? getSeedance2MentionMatch(text)
+        ? findSeedance2TrailingMention(text)
         : null;
       const finalPrompt = text.endsWith("@")
         ? `${text.slice(0, -1)}${token}`
@@ -1192,7 +1197,7 @@ export function VideoPane({
         beatNum: beat.beat_number,
         file,
       });
-      if (isErrorResponse(res)) {
+      if (isProductionErrorResponse(res)) {
         toast.error(res.error || t("common.error"));
         return;
       }
@@ -1210,7 +1215,7 @@ export function VideoPane({
         mediaKind: asset.media_type === "audio" ? "audios" : "images",
         path,
       });
-      if (isErrorResponse(res)) {
+      if (isProductionErrorResponse(res)) {
         toast.error(res.error || t("common.error"));
         return;
       }
@@ -1239,7 +1244,7 @@ export function VideoPane({
         target,
         crop,
       });
-      if (isErrorResponse(res)) {
+      if (isProductionErrorResponse(res)) {
         toast.error(res.error || t("common.error"));
         return;
       }
@@ -1272,7 +1277,7 @@ export function VideoPane({
         startSeconds,
         durationSeconds,
       });
-      if (isErrorResponse(res)) {
+      if (isProductionErrorResponse(res)) {
         toast.error(res.error || t("common.error"));
         return;
       }
@@ -2566,172 +2571,4 @@ export function VideoPane({
       </AlertDialog>
     </div>
   );
-}
-
-function BeatVideoPlayer({ src, beatNum }: { src: string; beatNum: number }) {
-  return (
-    <video
-      key={beatNum}
-      src={src}
-      controls
-      playsInline
-      preload="metadata"
-      disableRemotePlayback
-      disablePictureInPicture
-      controlsList="nodownload noplaybackrate noremoteplayback"
-      className="h-full w-full object-contain"
-    />
-  );
-}
-
-function Seedance2MediaPreview({
-  src,
-  state,
-}: {
-  src: string | null;
-  state: BeatStageState;
-}) {
-  const { t } = useTranslation();
-  if (!src) {
-    return (
-      <span className="px-3 text-center text-xs text-muted-foreground">
-        {state === "generating"
-          ? t("episode.workbench.video.generating")
-          : t("episode.workbench.video.previewMissing.video")}
-      </span>
-    );
-  }
-  return <BeatVideoPlayer src={src} beatNum={0} />;
-}
-
-function isErrorResponse(res: unknown): res is { ok: false; error?: string } {
-  return Boolean(res && typeof res === "object" && (res as { ok?: unknown }).ok === false);
-}
-
-function Seedance2SummaryPill({
-  active,
-  label,
-}: {
-  active: boolean;
-  label: string;
-}) {
-  return (
-    <span
-      className={cn(
-        "inline-flex h-5 max-w-full items-center rounded-full border px-2 text-[11px] leading-none",
-        active
-          ? "border-primary/35 bg-primary/[0.07] text-primary"
-          : "border-border bg-muted text-muted-foreground",
-      )}
-    >
-      <span
-        className={cn(
-          "mr-1.5 size-1.5 shrink-0 rounded-full",
-          active ? "bg-primary" : "bg-muted-foreground/35",
-        )}
-      />
-      <span className="truncate">{label}</span>
-    </span>
-  );
-}
-
-function Seedance2Field({
-  label,
-  htmlFor,
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="min-w-0 space-y-1.5">
-      <Label htmlFor={htmlFor} className="text-[10px] text-muted-foreground/78">
-        {label}
-      </Label>
-      {children}
-    </div>
-  );
-}
-
-function VideoParamField({
-  label,
-  htmlFor,
-  hiddenLabel = false,
-  children,
-}: {
-  label: string;
-  htmlFor?: string;
-  hiddenLabel?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <div className="flex min-w-0 flex-col gap-1">
-      {hiddenLabel ? (
-        <span aria-hidden className="h-3.5 text-[10px] leading-[14px]">
-          &nbsp;
-        </span>
-      ) : (
-        <Label
-          htmlFor={htmlFor}
-          className="h-3.5 text-[10px] leading-[14px] text-muted-foreground/78"
-        >
-          {label}
-        </Label>
-      )}
-      {children}
-    </div>
-  );
-}
-
-function Seedance2Checkbox({
-  id,
-  checked,
-  label,
-  onChange,
-}: {
-  id: string;
-  checked: boolean;
-  label: string;
-  onChange: (checked: boolean) => void;
-}) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <Checkbox
-        id={id}
-        checked={checked}
-        onCheckedChange={(v) => onChange(v === true)}
-      />
-      <label htmlFor={id} className="cursor-pointer">
-        {label}
-      </label>
-    </div>
-  );
-}
-
-function videoBackendDisplayLabel(
-  value: string | null | undefined,
-  labels: ReadonlyMap<string, string>,
-): string {
-  const text = String(value ?? "").trim();
-  if (!text) return "";
-  const exact = labels.get(text);
-  if (exact) return exact;
-  const model = seedance2ModelFromBackend(text);
-  if (model.startsWith("seedance-2.0")) {
-    return `Seedance ${model.slice("seedance-".length)}`;
-  }
-  return text
-    .replace(/^newapi_/, "")
-    .replace(/^huimengi?_/, "")
-    .replace(/_/g, " ");
-}
-
-function getSeedance2MentionMatch(text: string): RegExpExecArray | null {
-  return /@([^\s@]*)$/u.exec(text.trimEnd());
-}
-
-function getSeedance2MentionQuery(text: string): string | null {
-  const match = getSeedance2MentionMatch(text);
-  return match ? match[1] ?? "" : null;
 }

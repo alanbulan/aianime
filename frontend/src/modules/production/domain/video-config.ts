@@ -123,6 +123,24 @@ export function seedance2ModelFromBackend(value: string | null | undefined): str
   return text;
 }
 
+export function videoBackendDisplayLabel(
+  value: string | null | undefined,
+  labels: ReadonlyMap<string, string>,
+): string {
+  const text = String(value ?? "").trim();
+  if (!text) return "";
+  const exact = labels.get(text);
+  if (exact) return exact;
+  const model = seedance2ModelFromBackend(text);
+  if (model.startsWith("seedance-2.0")) {
+    return `Seedance ${model.slice("seedance-".length)}`;
+  }
+  return text
+    .replace(/^newapi_/, "")
+    .replace(/^huimengi?_/, "")
+    .replace(/_/g, " ");
+}
+
 export function isSeedance15ProBackend(value: string | null | undefined): boolean {
   const model = seedance2ModelFromBackend(value);
   return model === "seedance-1.5-pro" || model === "seedance_pro";

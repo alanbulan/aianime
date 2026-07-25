@@ -22,6 +22,7 @@ import {
   serializeGrokVideoConfig,
   serializeHappyHorseConfig,
   serializeSeedance2Config,
+  videoBackendDisplayLabel,
 } from "@/modules/production/public";
 
 describe("Production video config domain", () => {
@@ -77,6 +78,18 @@ describe("Production video config domain", () => {
     expect(seedance2ResolutionOptionsForBackend("unknown")).toEqual(["480p", "720p"]);
     expect(seedance2DefaultRatioForProjectAspect("2:3")).toBe("9:16");
     expect(seedance2DefaultRatioForProjectAspect("16:9")).toBe("16:9");
+    expect(
+      videoBackendDisplayLabel(
+        "newapi_seedance-2.0-fast",
+        new Map([["known", "已配置模型"]]),
+      ),
+    ).toBe("Seedance 2.0-fast");
+    expect(
+      videoBackendDisplayLabel(
+        "known",
+        new Map([["known", "已配置模型"]]),
+      ),
+    ).toBe("已配置模型");
   });
 
   it("filters backend-provided HappyHorse and Grok options", () => {

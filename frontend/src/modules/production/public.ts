@@ -56,7 +56,16 @@ export type {
 } from "@/modules/production/domain/audio-prerequisite";
 export { Seedance2AssetCropDialog } from "@/modules/production/presentation/Seedance2AssetCropDialog";
 export { Seedance2AudioTrimDialog } from "@/modules/production/presentation/Seedance2AudioTrimDialog";
+export {
+  BeatVideoPlayer,
+  Seedance2Checkbox,
+  Seedance2Field,
+  Seedance2MediaPreview,
+  Seedance2SummaryPill,
+  VideoParamField,
+} from "@/modules/production/presentation/VideoPaneParts";
 export { StalePoolSelectError } from "@/modules/production/application/image-pool-errors";
+export { isProductionErrorResponse } from "@/modules/production/application/ports";
 export type {
   GridCutCommand,
   GridCutResult,
@@ -123,6 +132,18 @@ export type {
 } from "@/modules/production/domain/sketch-pose-editor";
 export type { NarratorVoiceSourceOption } from "@/modules/production/domain/narrator-voice";
 export {
+  buildSeedance2LabelIdentityMaps,
+  findSeedance2TrailingMention,
+  getSeedance2MentionQuery,
+  remapSeedance2Mentions,
+  sameSeedance2LabelIdentity,
+} from "@/modules/production/domain/seedance2-mentions";
+export type {
+  Seedance2LabelIdentityMaps,
+  Seedance2ReferenceAssetLike,
+  Seedance2TrailingMention,
+} from "@/modules/production/domain/seedance2-mentions";
+export {
   isSeedanceReferenceCropBackend,
   seedance2CropAspectForMode,
   seedance2CropTargetForAsset,
@@ -170,6 +191,7 @@ export {
   serializeGrokVideoConfig,
   serializeHappyHorseConfig,
   serializeSeedance2Config,
+  videoBackendDisplayLabel,
 } from "@/modules/production/domain/video-config";
 export type {
   GrokVideoRatio,
