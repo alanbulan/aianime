@@ -40,8 +40,7 @@ export {
   useSeedance2AssetOperationsController,
   useSeedance2ConfigController,
   useSaveSketchRegenQueue,
-  useSaveSketchPoseEditor,
-  useSketchPoseEditor,
+  useSketchPoseEditorDialogController,
   useSketchRegenQueue,
   useSketchGridPreview,
   useSketchGridCardController,
@@ -108,6 +107,13 @@ export type {
   SketchCropDialogControllerOptions,
   SketchCropDialogControllerQueries,
 } from "@/modules/production/application/use-sketch-crop-dialog-controller";
+export type {
+  SketchPoseEditorDialogController,
+  SketchPoseEditorDialogControllerDependencies,
+  SketchPoseEditorDialogControllerOptions,
+  SketchPoseEditorDialogControllerQueries,
+  SketchPoseEditorMode,
+} from "@/modules/production/application/use-sketch-pose-editor-dialog-controller";
 export type {
   BatchPanelController,
   BatchPanelControllerDependencies,

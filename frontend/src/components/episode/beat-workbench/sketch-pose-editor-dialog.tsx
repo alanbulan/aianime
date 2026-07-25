@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Eraser,
@@ -10,7 +10,6 @@ import {
   RotateCcw,
   Save,
 } from "lucide-react";
-import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -28,24 +27,11 @@ import {
 } from "@/lib/dialog-styles";
 import { cn } from "@/lib/utils";
 import {
-  addSkeletonToFrame,
-  cloneJoints,
-  hitTestPoseJoint,
-  movePoseDrag,
-  removeSkeletonFromFrame,
-  resetSkeletonPoses,
-  scalePosePresetJoints,
-  setActiveSkeleton,
-  type PoseDragState,
   type PosePoint,
   type PoseSkeleton,
   type PoseStroke,
-  useSaveSketchPoseEditor,
-  useSketchPoseEditor,
+  useSketchPoseEditorDialogController,
 } from "@/modules/production/public";
-import { resolveMediaUrl } from "@/lib/media-url";
-
-type EditorMode = "pose" | "pencil" | "ink" | "eraser";
 
 interface SketchPoseEditorDialogProps {
   open: boolean;
@@ -63,43 +49,19 @@ export function SketchPoseEditorDialog({
   beatNum,
 }: SketchPoseEditorDialogProps) {
   const { t } = useTranslation();
+  const controller = useSketchPoseEditorDialogController({
+    beatNum,
+    episode,
+    open,
+    project,
+    onOpenChange,
+  });
+  const { data } = controller;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const [displaySize, setDisplaySize] = useState<{ w: number; h: number } | null>(
     null,
-  );
-  const poseQuery = useSketchPoseEditor(project, episode, beatNum, open);
-  const savePose = useSaveSketchPoseEditor(project, episode);
-  const data = poseQuery.data?.ok ? poseQuery.data.data : null;
-  const [skeletons, setSkeletons] = useState<PoseSkeleton[]>([]);
-  const [initialSkeletons, setInitialSkeletons] = useState<PoseSkeleton[]>([]);
-  const [strokes, setStrokes] = useState<PoseStroke[]>([]);
-  const [activeIdentity, setActiveIdentity] = useState("");
-  const [mode, setMode] = useState<EditorMode>("pose");
-  const [penWidth, setPenWidth] = useState(4);
-  const [presetKey, setPresetKey] = useState("");
-  const [drawingStroke, setDrawingStroke] = useState<PoseStroke | null>(null);
-  const [poseDrag, setPoseDrag] = useState<PoseDragState | null>(null);
-
-  useEffect(() => {
-    if (!data || !open) return;
-    const loaded = data.skeletons.map((skeleton) => ({
-      ...skeleton,
-      joints: cloneJoints(skeleton.joints),
-    }));
-    setSkeletons(loaded);
-    setInitialSkeletons(loaded);
-    setStrokes([]);
-    setActiveIdentity(data.skeletons[0]?.identityId ?? "");
-    setPresetKey(Object.keys(data.pose_presets)[0] ?? "");
-    setMode("pose");
-    setPoseDrag(null);
-  }, [data, open]);
-
-  const activeSkeleton = useMemo(
-    () => skeletons.find((item) => item.identityId === activeIdentity),
-    [activeIdentity, skeletons],
   );
 
   // Scale the canvas to fill the available stage (keeping aspect ratio so the
@@ -125,9 +87,7 @@ export function SketchPoseEditorDialog({
   }, [data, open]);
 
   useEffect(() => {
-    if (!data || !open) return;
-    const imageUrl = resolveMediaUrl(data.sketch_url);
-    if (!imageUrl) return;
+    if (!data || !open || !controller.sketchUrl) return;
     const image = new Image();
     image.crossOrigin = "anonymous";
     image.onload = () => {
@@ -136,119 +96,40 @@ export function SketchPoseEditorDialog({
         canvasRef.current,
         image,
         data.skeleton_edges,
-        skeletons,
-        drawingStroke ? [...strokes, drawingStroke] : strokes,
+        controller.skeletons,
+        controller.canvasStrokes,
       );
     };
-    image.src = imageUrl;
-  }, [data, drawingStroke, open, skeletons, strokes]);
-
-  const appendPoint = (event: PointerEvent<HTMLCanvasElement>) => {
-    if (!drawingStroke || !canvasRef.current) return;
-    const point = canvasPoint(event, canvasRef.current);
-    setDrawingStroke({
-      ...drawingStroke,
-      points: [...drawingStroke.points, point],
-    });
-  };
+    image.src = controller.sketchUrl;
+  }, [
+    controller.canvasStrokes,
+    controller.skeletons,
+    controller.sketchUrl,
+    data,
+    open,
+  ]);
 
   const startStroke = (event: PointerEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return;
     const point = canvasPoint(event, canvasRef.current);
-    if (mode === "pose") {
-      const hit = hitTestPoseJoint(skeletons, point, 18);
-      if (!hit) {
-        setSkeletons((items) => items.map((item) => ({ ...item, active: false })));
-        return;
-      }
-      const skeleton = skeletons[hit.skeletonIndex];
-      if (!skeleton) return;
-      setActiveIdentity(skeleton.identityId);
-      setSkeletons((items) => setActiveSkeleton(items, skeleton.identityId));
-      setPoseDrag({
-        ...hit,
-        bodyDrag: hit.jointKey === "neck" || hit.jointKey === "nose",
-        startPoint: point,
-        startJoints: cloneJoints(skeleton.joints),
-      });
-      event.currentTarget.setPointerCapture(event.pointerId);
-      return;
-    }
     const colorHex =
-      mode === "eraser"
+      controller.mode === "eraser"
         ? "#ffffff"
-        : mode === "ink"
+        : controller.mode === "ink"
           ? "#333333"
-          : activeSkeleton?.colorHex || "#22d3ee";
-    setDrawingStroke({
-      points: [point],
-      width: penWidth,
-      colorHex,
-      eraser: mode === "eraser",
-    });
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-
-  const finishStroke = () => {
-    if (poseDrag) {
-      setPoseDrag(null);
-      return;
+          : controller.activeSkeleton?.colorHex || "#22d3ee";
+    if (controller.onStartCanvasInteraction(point, colorHex)) {
+      event.currentTarget.setPointerCapture(event.pointerId);
     }
-    if (!drawingStroke) return;
-    if (drawingStroke.points.length > 1) {
-      setStrokes((items) => [...items, drawingStroke]);
-    }
-    setDrawingStroke(null);
   };
 
-  const dragPose = (event: PointerEvent<HTMLCanvasElement>) => {
-    if (!poseDrag || !canvasRef.current || !data) return;
-    const point = canvasPoint(event, canvasRef.current);
-    setSkeletons((items) =>
-      movePoseDrag(items, poseDrag, point, data.width, data.height),
-    );
-  };
-
-  const applyPreset = () => {
-    if (!data || !presetKey || !activeIdentity) return;
-    const preset = data.pose_presets[presetKey];
-    if (!preset) return;
-    setSkeletons((items) =>
-      items.map((item) =>
-        item.identityId === activeIdentity
-          ? {
-              ...item,
-              visible: true,
-              joints: scalePosePresetJoints(
-                preset.joints,
-                data.width,
-                data.height,
-              ),
-            }
-          : item,
-      ),
-    );
-  };
-
-  const handleSave = async () => {
-    try {
-      const res = await savePose.mutateAsync({
-        beatNum,
-        state: { skeletons, strokes },
-      });
-      if (!res.ok) {
-        toast.error(res.error || t("common.error"));
-        return;
-      }
-      toast.success(t("episode.workbench.sketch.poseSaved"));
-      onOpenChange(false);
-    } catch {
-      toast.error(t("common.error"));
-    }
+  const moveInteraction = (event: PointerEvent<HTMLCanvasElement>) => {
+    if (!canvasRef.current) return;
+    controller.onMoveCanvasInteraction(canvasPoint(event, canvasRef.current));
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={controller.open} onOpenChange={controller.onOpenChange}>
       <DialogContent
         className={cn(
           GLASS_DIALOG_CONTENT_CLASS,
@@ -272,27 +153,21 @@ export function SketchPoseEditorDialog({
                 <div className="text-xs font-medium text-muted-foreground">
                   {t("episode.workbench.sketch.poseCharacters")}
                 </div>
-                {skeletons.map((skeleton) => (
+                {controller.skeletons.map((skeleton) => (
                   <div
                     key={skeleton.identityId}
                     role="button"
                     tabIndex={0}
-                    onClick={() => {
-                      setActiveIdentity(skeleton.identityId);
-                      setSkeletons((items) =>
-                        setActiveSkeleton(items, skeleton.identityId),
-                      );
-                    }}
+                    onClick={() =>
+                      controller.onSelectSkeleton(skeleton.identityId)
+                    }
                     onKeyDown={(event) => {
                       if (event.key !== "Enter" && event.key !== " ") return;
                       event.preventDefault();
-                      setActiveIdentity(skeleton.identityId);
-                      setSkeletons((items) =>
-                        setActiveSkeleton(items, skeleton.identityId),
-                      );
+                      controller.onSelectSkeleton(skeleton.identityId);
                     }}
                     className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-left text-xs ${
-                      activeIdentity === skeleton.identityId
+                      controller.activeIdentity === skeleton.identityId
                         ? "border-primary bg-primary/10"
                         : "border-border"
                     }`}
@@ -300,16 +175,9 @@ export function SketchPoseEditorDialog({
                     <Checkbox
                       checked={skeleton.visible === true}
                       onCheckedChange={(checked) =>
-                        setSkeletons((items) =>
-                          items.map((item) =>
-                            item.identityId === skeleton.identityId
-                              ? {
-                                  ...item,
-                                  visible: checked === true,
-                                  active: checked === true,
-                                }
-                              : item,
-                          ),
+                        controller.onSetSkeletonVisible(
+                          skeleton.identityId,
+                          checked === true,
                         )
                       }
                       onClick={(event) => event.stopPropagation()}
@@ -327,16 +195,7 @@ export function SketchPoseEditorDialog({
                       className="ml-auto h-6 px-2 text-[11px]"
                       onClick={(event) => {
                         event.stopPropagation();
-                        if (skeleton.visible) {
-                          setSkeletons((items) =>
-                            removeSkeletonFromFrame(items, skeleton.identityId),
-                          );
-                        } else {
-                          setActiveIdentity(skeleton.identityId);
-                          setSkeletons((items) =>
-                            addSkeletonToFrame(items, skeleton.identityId),
-                          );
-                        }
+                        controller.onToggleSkeletonFrame(skeleton.identityId);
                       }}
                     >
                       {skeleton.visible
@@ -352,8 +211,10 @@ export function SketchPoseEditorDialog({
                   {t("episode.workbench.sketch.posePreset")}
                 </div>
                 <select
-                  value={presetKey}
-                  onChange={(event) => setPresetKey(event.currentTarget.value)}
+                  value={controller.presetKey}
+                  onChange={(event) =>
+                    controller.onPresetChange(event.currentTarget.value)
+                  }
                   className="h-8 w-full rounded-md border border-border bg-background px-2 text-xs"
                 >
                   {Object.entries(data.pose_presets).map(([key, preset]) => (
@@ -366,8 +227,10 @@ export function SketchPoseEditorDialog({
                   type="button"
                   size="sm"
                   variant="outline"
-                  onClick={applyPreset}
-                  disabled={!activeIdentity || !presetKey}
+                  onClick={controller.onApplyPreset}
+                  disabled={
+                    !controller.activeIdentity || !controller.presetKey
+                  }
                   className="w-full"
                 >
                   {t("episode.workbench.sketch.poseApplyPreset")}
@@ -379,8 +242,8 @@ export function SketchPoseEditorDialog({
               <div className={cn(GLASS_DIALOG_TOOLBAR_CLASS, "flex shrink-0 flex-wrap items-center gap-1.5 px-3 py-2.5")}>
                 <Button
                   size="sm"
-                  variant={mode === "pose" ? "default" : "outline"}
-                  onClick={() => setMode("pose")}
+                  variant={controller.mode === "pose" ? "default" : "outline"}
+                  onClick={() => controller.onModeChange("pose")}
                   className="gap-1"
                 >
                   <MousePointer2 className="size-3.5" />
@@ -388,8 +251,8 @@ export function SketchPoseEditorDialog({
                 </Button>
                 <Button
                   size="sm"
-                  variant={mode === "pencil" ? "default" : "outline"}
-                  onClick={() => setMode("pencil")}
+                  variant={controller.mode === "pencil" ? "default" : "outline"}
+                  onClick={() => controller.onModeChange("pencil")}
                   className="gap-1"
                 >
                   <Pencil className="size-3.5" />
@@ -397,8 +260,8 @@ export function SketchPoseEditorDialog({
                 </Button>
                 <Button
                   size="sm"
-                  variant={mode === "ink" ? "default" : "outline"}
-                  onClick={() => setMode("ink")}
+                  variant={controller.mode === "ink" ? "default" : "outline"}
+                  onClick={() => controller.onModeChange("ink")}
                   className="gap-1"
                 >
                   <Paintbrush className="size-3.5" />
@@ -406,8 +269,8 @@ export function SketchPoseEditorDialog({
                 </Button>
                 <Button
                   size="sm"
-                  variant={mode === "eraser" ? "default" : "outline"}
-                  onClick={() => setMode("eraser")}
+                  variant={controller.mode === "eraser" ? "default" : "outline"}
+                  onClick={() => controller.onModeChange("eraser")}
                   className="gap-1"
                 >
                   <Eraser className="size-3.5" />
@@ -420,21 +283,15 @@ export function SketchPoseEditorDialog({
                   type="range"
                   min={2}
                   max={16}
-                  value={penWidth}
-                  onChange={(event) => setPenWidth(Number(event.currentTarget.value))}
+                  value={controller.penWidth}
+                  onChange={(event) =>
+                    controller.onPenWidthChange(Number(event.currentTarget.value))
+                  }
                 />
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => {
-                    if (strokes.length > 0) {
-                      setStrokes((items) => items.slice(0, -1));
-                    } else {
-                      setSkeletons((items) =>
-                        resetSkeletonPoses(items, initialSkeletons),
-                      );
-                    }
-                  }}
+                  onClick={controller.onUndo}
                   className="gap-1"
                 >
                   <RotateCcw className="size-3.5" />
@@ -443,29 +300,25 @@ export function SketchPoseEditorDialog({
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() =>
-                    setSkeletons((items) =>
-                      resetSkeletonPoses(items, initialSkeletons),
-                    )
-                  }
+                  onClick={controller.onResetSkeletons}
                 >
                   {t("episode.workbench.sketch.poseReset")}
                 </Button>
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => setStrokes([])}
+                  onClick={controller.onClearStrokes}
                 >
                   {t("episode.workbench.sketch.poseClear")}
                 </Button>
                 <Button
                   size="sm"
                   variant="default"
-                  onClick={handleSave}
-                  disabled={savePose.isPending}
+                  onClick={() => void controller.onSave()}
+                  disabled={controller.savePending}
                   className="ml-auto gap-1"
                 >
-                  {savePose.isPending ? (
+                  {controller.savePending ? (
                     <Loader2 className="size-3.5 animate-spin" />
                   ) : (
                     <Save className="size-3.5" />
@@ -492,22 +345,16 @@ export function SketchPoseEditorDialog({
                     width: displaySize?.w,
                     height: displaySize?.h,
                     cursor:
-                      mode === "pose"
+                      controller.mode === "pose"
                         ? "grab"
-                        : mode === "eraser"
+                        : controller.mode === "eraser"
                           ? "cell"
                           : "crosshair",
                   }}
                   onPointerDown={startStroke}
-                  onPointerMove={(event) => {
-                    if (mode === "pose") {
-                      dragPose(event);
-                    } else {
-                      appendPoint(event);
-                    }
-                  }}
-                  onPointerUp={finishStroke}
-                  onPointerCancel={finishStroke}
+                  onPointerMove={moveInteraction}
+                  onPointerUp={controller.onFinishCanvasInteraction}
+                  onPointerCancel={controller.onFinishCanvasInteraction}
                 />
                 </div>
               </div>

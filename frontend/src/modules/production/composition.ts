@@ -44,6 +44,7 @@ import {
 import { createUseRenderSectionController } from "@/modules/production/application/use-render-section-controller";
 import { createUseRenderPlanDialogController } from "@/modules/production/application/use-render-plan-dialog-controller";
 import { createUseSketchCropDialogController } from "@/modules/production/application/use-sketch-crop-dialog-controller";
+import { createUseSketchPoseEditorDialogController } from "@/modules/production/application/use-sketch-pose-editor-dialog-controller";
 import { createUseSeedance2AssetOperationsController } from "@/modules/production/application/use-seedance2-asset-operations-controller";
 import { createUseSeedance2ConfigController } from "@/modules/production/application/use-seedance2-config-controller";
 import {
@@ -207,6 +208,15 @@ export const useSketchCropDialogController =
       useProjectAspectRatio,
     },
   );
+export const useSketchPoseEditorDialogController =
+  createUseSketchPoseEditorDialogController(
+    {
+      useSaveSketchPoseEditor:
+        sketchPoseEditorQueries.useSaveSketchPoseEditor,
+      useSketchPoseEditor: sketchPoseEditorQueries.useSketchPoseEditor,
+    },
+    { resolveMediaUrl },
+  );
 export const useSketchSectionController = createUseSketchSectionController(
   {
     useDirectorControlToSketch:
@@ -334,10 +344,6 @@ export const {
 } = imageSettingsQueries;
 export const { useSketchRegenQueue, useSaveSketchRegenQueue } =
   sketchRegenQueueQueries;
-export const {
-  useSketchPoseEditor,
-  useSaveSketchPoseEditor,
-} = sketchPoseEditorQueries;
 export const { useAssignColors, useDetectIdentities } =
   createSketchMarkerQueryHooks(httpProductionVideoGateway);
 export const {

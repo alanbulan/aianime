@@ -560,6 +560,10 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "modules/production/composition.ts"),
       "utf8",
     );
+    const productionPublicSource = readFileSync(
+      resolve(SRC_ROOT, "modules/production/public.ts"),
+      "utf8",
+    );
     const renderPlanDialogSource = readFileSync(
       resolve(
         SRC_ROOT,
@@ -606,6 +610,13 @@ describe("frontend architecture boundaries", () => {
       resolve(
         SRC_ROOT,
         "components/episode/beat-workbench/sketch-pose-editor-dialog.tsx",
+      ),
+      "utf8",
+    );
+    const sketchPoseEditorDialogControllerSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/production/application/use-sketch-pose-editor-dialog-controller.ts",
       ),
       "utf8",
     );
@@ -1243,9 +1254,46 @@ describe("frontend architecture boundaries", () => {
     expect(sketchCropDialogViewSource).not.toContain("useState(");
     expect(sketchCropDialogViewSource).toContain("useCallback(");
     expect(sketchCropDialogViewSource).not.toContain("toast.");
-    expect(sketchPoseEditorDialogSource).toContain("scalePosePresetJoints(");
+    expect(sketchPoseEditorDialogSource).toContain(
+      "useSketchPoseEditorDialogController({",
+    );
+    expect(sketchPoseEditorDialogSource).not.toContain("useSketchPoseEditor(");
     expect(sketchPoseEditorDialogSource).not.toContain(
-      "function scalePresetJoints",
+      "useSaveSketchPoseEditor(",
+    );
+    expect(sketchPoseEditorDialogSource).not.toContain("toast.");
+    expect(sketchPoseEditorDialogSource).not.toContain("hitTestPoseJoint(");
+    expect(sketchPoseEditorDialogSource).not.toContain("movePoseDrag(");
+    expect(sketchPoseEditorDialogSource).not.toContain(
+      "scalePosePresetJoints(",
+    );
+    expect(sketchPoseEditorDialogControllerSource).toContain(
+      "createUseSketchPoseEditorDialogController",
+    );
+    expect(sketchPoseEditorDialogControllerSource).toContain(
+      "queries.useSketchPoseEditor",
+    );
+    expect(sketchPoseEditorDialogControllerSource).toContain(
+      "queries.useSaveSketchPoseEditor",
+    );
+    expect(sketchPoseEditorDialogControllerSource).toContain("toast.");
+    expect(sketchPoseEditorDialogControllerSource).not.toContain(
+      "HTMLCanvasElement",
+    );
+    expect(sketchPoseEditorDialogControllerSource).not.toContain(
+      "HTMLImageElement",
+    );
+    expect(sketchPoseEditorDialogControllerSource).not.toContain("PointerEvent");
+    expect(sketchPoseEditorDialogControllerSource).not.toContain("document.");
+    expect(sketchPoseEditorDialogControllerSource).not.toContain("window.");
+    expect(productionCompositionSource).toContain(
+      "createUseSketchPoseEditorDialogController",
+    );
+    expect(productionPublicSource).not.toContain(
+      "  useSketchPoseEditor,",
+    );
+    expect(productionPublicSource).not.toContain(
+      "  useSaveSketchPoseEditor,",
     );
     expect(sketchRegenQueueDomainSource).toContain(
       "export function createSketchRegenPlanItems",
