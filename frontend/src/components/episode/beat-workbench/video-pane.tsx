@@ -5,10 +5,8 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
   type DragEvent,
   type KeyboardEvent,
-  type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
 import { useTranslation } from "react-i18next";
@@ -28,7 +26,6 @@ import {
   Trash2,
   Upload,
   WandSparkles,
-  X,
 } from "lucide-react";
 
 import {
@@ -36,7 +33,7 @@ import {
   BillingRuleNotConfiguredError,
 } from "@/shared/api/errors";
 import { resolveMediaUrl } from "@/lib/media-url";
-import { centerCropBoxForRatio, ratioToCss, zoomCropBox } from "@/lib/aspect-ratio";
+import { ratioToCss } from "@/lib/aspect-ratio";
 import { useProjectAspectRatio } from "@/stores/aspect-ratio-store";
 import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "@/lib/format-relative-time";
@@ -69,6 +66,7 @@ import {
   grokVideoResolutionOptionsForBackend,
   happyHorseRatioOptionsForBackend,
   happyHorseResolutionOptionsForBackend,
+  isSeedanceReferenceCropBackend,
   isSeedance15ProBackend,
   isSeedance2ValueBackend,
   normalizeGrokVideoDraftForBackend,
@@ -89,6 +87,10 @@ import {
   serializeGrokVideoConfig,
   serializeHappyHorseConfig,
   serializeSeedance2Config,
+  Seedance2AssetCropDialog,
+  Seedance2AudioTrimDialog,
+  seedance2CropAspectForMode,
+  seedance2CropTargetForAsset,
   useCropSeedance2Asset,
   useDeleteSeedance2Asset,
   useGenerateBeatVideoPrompt,
@@ -100,9 +102,11 @@ import {
   useVideoBackends,
   useVideoPool,
   useVideoPoolSelect,
+  videoInputCropAspectForProjectAspect,
+  type Seedance2AssetItem,
   type Seedance2ConfigDraft,
+  type Seedance2CropIntent,
   type Seedance2DurationBounds,
-  type Seedance2BeatStatus,
   type Seedance2Resolution,
   type VideoInputCropTarget,
 } from "@/modules/production/public";
@@ -116,13 +120,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -207,15 +204,7 @@ interface VideoPaneProps {
 }
 
 type Seedance2ReferenceField = "prompt_guidance" | "final_prompt";
-type Seedance2CropAspect = "2:3" | "9:16" | "16:9";
-
 const SEEDANCE2_AUTOSAVE_DELAY_MS = 800;
-
-type Seedance2AssetItem = Seedance2BeatStatus["assets"]["items"][number];
-type Seedance2CropIntent = {
-  asset: Seedance2AssetItem;
-  target: VideoInputCropTarget;
-};
 
 /**
  * 视频 sub-tab — first-frame preview + video preview + per-beat regen.
@@ -2579,328 +2568,6 @@ export function VideoPane({
   );
 }
 
-function Seedance2AssetCropDialog({
-  intent,
-  targetCropAspect,
-  pending,
-  onOpenChange,
-  onSave,
-}: {
-  intent: Seedance2CropIntent | null;
-  targetCropAspect: Seedance2CropAspect;
-  pending: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSave: (
-    asset: Seedance2AssetItem,
-    target: VideoInputCropTarget,
-    crop: { x: number; y: number; width: number; height: number },
-  ) => void;
-}) {
-  const { t } = useTranslation();
-  const asset = intent?.asset ?? null;
-  const imageRef = useRef<HTMLImageElement | null>(null);
-  const cropBoxRef = useRef<HTMLDivElement | null>(null);
-  const dragRef = useRef<{
-    pointerId: number;
-    clientX: number;
-    clientY: number;
-    crop: { x: number; y: number; width: number; height: number };
-  } | null>(null);
-  const [imageSize, setImageSize] = useState({ width: 1, height: 1 });
-  const [crop, setCrop] = useState({ x: 0, y: 0, width: 1, height: 1 });
-  const [cropAspect, setCropAspect] =
-    useState<Seedance2CropAspect>(targetCropAspect);
-  const imageSrc = resolveMediaUrl(
-    asset?.crop_source_url ||
-      asset?.crop_source_path ||
-      asset?.url ||
-      asset?.path,
-  );
-  const cropAspectRatio = cropAspectRatioValue(cropAspect);
-
-  useEffect(() => {
-    if (!asset) return;
-    setImageSize({ width: 1, height: 1 });
-    setCrop({ x: 0, y: 0, width: 1, height: 1 });
-    setCropAspect(targetCropAspect);
-  }, [asset, targetCropAspect]);
-
-  useEffect(() => {
-    const cropBox = cropBoxRef.current;
-    if (!cropBox || !asset) return;
-
-    const handleWheel = (event: WheelEvent) => {
-      event.preventDefault();
-      event.stopPropagation();
-      setCrop((current) =>
-        zoomCropBox(
-          current,
-          imageSize.width,
-          imageSize.height,
-          event.deltaY < 0 ? 0.9 : 1.1,
-        ),
-      );
-    };
-
-    cropBox.addEventListener("wheel", handleWheel, { passive: false });
-    return () => cropBox.removeEventListener("wheel", handleWheel);
-  }, [asset, imageSize.height, imageSize.width]);
-
-  const cropBoxStyle = cropBoxPercentStyle(crop, imageSize.width, imageSize.height);
-
-  const moveCropBox = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!dragRef.current || !imageRef.current) return;
-    const imageRect = imageRef.current.getBoundingClientRect();
-    if (imageRect.width <= 0 || imageRect.height <= 0) return;
-
-    const scaleX = imageSize.width / imageRect.width;
-    const scaleY = imageSize.height / imageRect.height;
-    const drag = dragRef.current;
-    setCrop(
-      clampCropBox(
-        {
-          ...drag.crop,
-          x: drag.crop.x + (event.clientX - drag.clientX) * scaleX,
-          y: drag.crop.y + (event.clientY - drag.clientY) * scaleY,
-        },
-        imageSize.width,
-        imageSize.height,
-      ),
-    );
-  };
-
-  return (
-    <Dialog open={asset !== null} onOpenChange={onOpenChange}>
-      <DialogContent
-        showCloseButton={false}
-        className="gap-0 overflow-hidden rounded-none border-0 bg-media p-0 text-media-foreground ring-media-foreground/10 sm:max-w-[min(96vw,1120px)]"
-      >
-        <div className="relative flex h-12 items-center border-b border-media-foreground/10 px-4">
-          <div className="flex items-center gap-2 text-sm font-medium text-media-foreground">
-            <Scissors className="size-4" />
-            {`裁剪 ${cropAspect}`}
-          </div>
-          <DialogTitle className="absolute left-1/2 max-w-[52vw] -translate-x-1/2 truncate text-center text-sm font-medium text-media-foreground">
-            {t("episode.workbench.video.seedance2AssetCropTitle")}
-          </DialogTitle>
-          <button
-            type="button"
-            aria-label="关闭"
-            className="absolute right-4 flex size-7 items-center justify-center text-media-foreground/90 hover:text-media-foreground"
-            onClick={() => onOpenChange(false)}
-          >
-            <X className="size-5" />
-          </button>
-        </div>
-        {asset && (
-          <>
-            <div className="relative flex min-h-[360px] items-center justify-center bg-media p-4">
-              {imageSrc ? (
-                <div className="relative inline-block max-h-[72vh] max-w-full">
-                  <img
-                    ref={imageRef}
-                    src={imageSrc}
-                    alt={asset.label}
-                    className="block max-h-[72vh] max-w-full object-contain"
-                    decoding="async"
-                    onLoad={(event) => {
-                      const img = event.currentTarget;
-                      const width = Math.max(1, img.naturalWidth);
-                      const height = Math.max(1, img.naturalHeight);
-                      setImageSize({ width, height });
-                      setCrop(centerCropBoxForRatio(width, height, cropAspectRatio));
-                    }}
-                  />
-                  <div
-                    ref={cropBoxRef}
-                    role="button"
-                    tabIndex={0}
-                    aria-label="移动裁剪区域"
-                    className="absolute cursor-move touch-none border-2 border-cyan-400 shadow-[0_0_0_9999px_rgba(0,0,0,0.58)]"
-                    style={cropBoxStyle}
-                    onPointerDown={(event) => {
-                      event.preventDefault();
-                      event.currentTarget.setPointerCapture?.(event.pointerId);
-                      dragRef.current = {
-                        pointerId: event.pointerId,
-                        clientX: event.clientX,
-                        clientY: event.clientY,
-                        crop,
-                      };
-                    }}
-                    onPointerMove={moveCropBox}
-                    onPointerUp={(event) => {
-                      event.currentTarget.releasePointerCapture?.(event.pointerId);
-                      dragRef.current = null;
-                    }}
-                    onPointerCancel={(event) => {
-                      event.currentTarget.releasePointerCapture?.(event.pointerId);
-                      dragRef.current = null;
-                    }}
-                  >
-                    <div className="pointer-events-none absolute inset-y-0 left-1/3 border-l border-media-foreground/30" />
-                    <div className="pointer-events-none absolute inset-y-0 left-2/3 border-l border-media-foreground/30" />
-                    <div className="pointer-events-none absolute inset-x-0 top-1/3 border-t border-media-foreground/30" />
-                    <div className="pointer-events-none absolute inset-x-0 top-2/3 border-t border-media-foreground/30" />
-                  </div>
-                </div>
-              ) : (
-                <div className="flex h-[240px] items-center justify-center text-sm text-muted-foreground">
-                  {t("episode.workbench.video.seedance2ReferenceMissing")}
-                </div>
-              )}
-            </div>
-            <div className="flex justify-end gap-2 border-t border-media-foreground/10 bg-media px-4 py-3">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                {t("common.cancel")}
-              </Button>
-              <Button
-                type="button"
-                onClick={() => {
-                  if (!intent) return;
-                  onSave(intent.asset, intent.target, crop);
-                }}
-                disabled={pending || !imageSrc}
-                className="gap-1"
-              >
-                {pending ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <Scissors className="size-3.5" />
-                )}
-                {t("episode.workbench.video.seedance2AssetCrop")}
-              </Button>
-            </div>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function Seedance2AudioTrimDialog({
-  asset,
-  start,
-  duration,
-  pending,
-  onStartChange,
-  onDurationChange,
-  onOpenChange,
-  onSave,
-}: {
-  asset: Seedance2AssetItem | null;
-  start: string;
-  duration: string;
-  pending: boolean;
-  onStartChange: (value: string) => void;
-  onDurationChange: (value: string) => void;
-  onOpenChange: (open: boolean) => void;
-  onSave: () => void;
-}) {
-  const { t } = useTranslation();
-  const audioSrc = resolveMediaUrl(asset?.url || asset?.path);
-
-  return (
-    <Dialog open={asset !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-4 overflow-hidden rounded-2xl border border-border bg-popover p-7 text-popover-foreground shadow-2xl sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{t("episode.workbench.video.seedance2AssetAudioTrimTitle")}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3">
-          <p className="text-xs leading-5 text-muted-foreground">
-            {t("episode.workbench.video.seedance2AssetAudioTrimHint")}
-          </p>
-          {audioSrc && <audio src={audioSrc} controls className="h-8 w-full" />}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">
-                {t("episode.workbench.video.seedance2AssetAudioTrimStart")}
-              </Label>
-              <Input
-                type="number"
-                min="0"
-                step="0.1"
-                value={start}
-                onChange={(event) => onStartChange(event.target.value)}
-                className="h-9"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">
-                {t("episode.workbench.video.seedance2AssetAudioTrimDuration")}
-              </Label>
-              <Input
-                type="number"
-                min="0.1"
-                max="15"
-                step="0.1"
-                value={duration}
-                onChange={(event) => onDurationChange(event.target.value)}
-                className="h-9"
-              />
-            </div>
-          </div>
-        </div>
-        <DialogFooter className="-mx-7 -mb-7 border-t-0 bg-transparent p-7 pt-3 sm:flex-row sm:justify-end">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            className="h-10 rounded-md border-border bg-muted px-4 text-sm font-normal text-foreground/80 hover:border-foreground/25 hover:bg-accent hover:text-foreground"
-          >
-            {t("common.cancel")}
-          </Button>
-          <Button
-            type="button"
-            disabled={pending}
-            onClick={onSave}
-            className="h-10 rounded-md bg-primary px-4 text-sm font-normal text-primary-foreground shadow-lg shadow-primary/15 hover:bg-primary/90"
-          >
-            {pending ? (
-              <Loader2 className="size-3.5 animate-spin" />
-            ) : (
-              <Scissors className="size-3.5" />
-            )}
-            {t("episode.workbench.video.seedance2AssetAudioTrimApply")}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function cropBoxPercentStyle(
-  crop: { x: number; y: number; width: number; height: number },
-  sourceWidth: number,
-  sourceHeight: number,
-): CSSProperties {
-  const safeWidth = Math.max(1, sourceWidth);
-  const safeHeight = Math.max(1, sourceHeight);
-
-  return {
-    left: `${(crop.x / safeWidth) * 100}%`,
-    top: `${(crop.y / safeHeight) * 100}%`,
-    width: `${(crop.width / safeWidth) * 100}%`,
-    height: `${(crop.height / safeHeight) * 100}%`,
-  };
-}
-
-function clampCropBox(
-  crop: { x: number; y: number; width: number; height: number },
-  sourceWidth: number,
-  sourceHeight: number,
-) {
-  const width = Math.max(1, Math.min(Math.round(crop.width), sourceWidth));
-  const height = Math.max(1, Math.min(Math.round(crop.height), sourceHeight));
-
-  return {
-    x: Math.min(Math.max(0, Math.round(crop.x)), Math.max(0, sourceWidth - width)),
-    y: Math.min(Math.max(0, Math.round(crop.y)), Math.max(0, sourceHeight - height)),
-    width,
-    height,
-  };
-}
-
 function BeatVideoPlayer({ src, beatNum }: { src: string; beatNum: number }) {
   return (
     <video
@@ -3040,50 +2707,6 @@ function Seedance2Checkbox({
       </label>
     </div>
   );
-}
-
-function isSeedanceReferenceCropBackend(value: string | null | undefined): boolean {
-  const model = seedance2ModelFromBackend(value);
-  return (
-    model === "seedance-1.0-pro-fast" ||
-    model === "seedance-1.0-pro" ||
-    model === "seedance_1.0_pro_fast" ||
-    isSeedance15ProBackend(value)
-  );
-}
-
-function seedance2CropAspectForMode(
-  mode: Seedance2ConfigDraft["mode"],
-  ratio: Seedance2ConfigDraft["ratio"],
-  firstFrameAspect: "2:3" | "16:9",
-): Seedance2CropAspect {
-  if (mode === "first_frame" || mode === "first_last_frame") {
-    return videoInputCropAspectForProjectAspect(firstFrameAspect);
-  }
-  return ratio === "16:9" ? "16:9" : "9:16";
-}
-
-function seedance2CropTargetForAsset(
-  mode: Seedance2ConfigDraft["mode"],
-  asset: Seedance2AssetItem,
-): VideoInputCropTarget {
-  if (mode === "first_frame") return "first_frame";
-  if (mode === "first_last_frame") {
-    return asset.key === "last_frame" ? "last_frame" : "first_frame";
-  }
-  return "reference_image";
-}
-
-function videoInputCropAspectForProjectAspect(
-  aspect: "2:3" | "16:9",
-): Seedance2CropAspect {
-  return aspect === "16:9" ? "16:9" : "9:16";
-}
-
-function cropAspectRatioValue(aspect: Seedance2CropAspect): number {
-  if (aspect === "16:9") return 16 / 9;
-  if (aspect === "2:3") return 2 / 3;
-  return 9 / 16;
 }
 
 function videoBackendDisplayLabel(

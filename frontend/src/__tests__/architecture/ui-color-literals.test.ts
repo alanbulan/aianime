@@ -19,7 +19,7 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "components/episode/beat-workbench/render-section.tsx": 1,
   "components/episode/beat-workbench/sketch-crop-dialog.tsx": 1,
   "components/episode/beat-workbench/sketch-pose-editor-dialog.tsx": 9,
-  "components/episode/beat-workbench/video-pane.tsx": 1,
+  "modules/production/presentation/Seedance2AssetCropDialog.tsx": 1,
   "components/layout/header.tsx": 0,
   "components/login-page.tsx": 0,
   "components/notifications/notification-drawer.tsx": 0,

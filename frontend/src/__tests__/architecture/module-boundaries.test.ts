@@ -535,6 +535,13 @@ describe("frontend architecture boundaries", () => {
 
   it("keeps Production callers on its public API", () => {
     const moduleRoot = resolve(SRC_ROOT, "modules/production");
+    const videoPaneSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "components/episode/beat-workbench/video-pane.tsx",
+      ),
+      "utf8",
+    );
     const legacySketchQueries = readFileSync(
       resolve(SRC_ROOT, "lib/queries/sketches.ts"),
       "utf8",
@@ -588,6 +595,13 @@ describe("frontend architecture boundaries", () => {
         ),
       ),
     ).toBe(false);
+    expect(videoPaneSource).not.toContain(
+      "function Seedance2AssetCropDialog",
+    );
+    expect(videoPaneSource).not.toContain(
+      "function Seedance2AudioTrimDialog",
+    );
+    expect(videoPaneSource).not.toContain("function clampCropBox");
     expect(legacySketchQueries).not.toContain("useAssignColors");
     expect(legacySketchQueries).not.toContain("useDetectIdentities");
     expect(legacySketchQueries).not.toContain("useDirectorControlToSketch");

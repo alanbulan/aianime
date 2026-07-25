@@ -54,6 +54,8 @@ export {
 export type {
   VoiceConfigurationTarget,
 } from "@/modules/production/domain/audio-prerequisite";
+export { Seedance2AssetCropDialog } from "@/modules/production/presentation/Seedance2AssetCropDialog";
+export { Seedance2AudioTrimDialog } from "@/modules/production/presentation/Seedance2AudioTrimDialog";
 export { StalePoolSelectError } from "@/modules/production/application/image-pool-errors";
 export type {
   GridCutCommand,
@@ -120,7 +122,18 @@ export type {
   SketchPoseEditorState,
 } from "@/modules/production/domain/sketch-pose-editor";
 export type { NarratorVoiceSourceOption } from "@/modules/production/domain/narrator-voice";
+export {
+  isSeedanceReferenceCropBackend,
+  seedance2CropAspectForMode,
+  seedance2CropTargetForAsset,
+  videoInputCropAspectForProjectAspect,
+} from "@/modules/production/domain/seedance2-crop";
 export type {
+  Seedance2CropAspect,
+  Seedance2CropIntent,
+} from "@/modules/production/domain/seedance2-crop";
+export type {
+  Seedance2AssetItem,
   Seedance2BeatStatus,
   VideoInputCropTarget,
 } from "@/modules/production/domain/seedance2-panel";
