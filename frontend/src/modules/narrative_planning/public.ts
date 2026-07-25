@@ -27,6 +27,7 @@ export {
   usePlanIdentities,
   useSaveScript,
   useSingleBeatPanelController,
+  useTextPaneController,
   useScript,
   useUpdateBeat,
   useUpdateEpisode,
@@ -96,11 +97,13 @@ export type {
 export { SingleBeatPanelView } from "@/modules/narrative_planning/presentation/SingleBeatPanelView";
 export type { SingleBeatPanelViewProps } from "@/modules/narrative_planning/presentation/SingleBeatPanelView";
 export { TextPaneView } from "@/modules/narrative_planning/presentation/TextPaneView";
+export type { TextPaneViewProps } from "@/modules/narrative_planning/presentation/TextPaneView";
 export type {
-  TextPaneAssetType,
-  TextPaneViewModel,
-  TextPaneViewProps,
-} from "@/modules/narrative_planning/presentation/TextPaneView";
+  TextPaneController,
+  TextPaneControllerDependencies,
+  TextPaneControllerOptions,
+  TextPaneControllerQueries,
+} from "@/modules/narrative_planning/application/use-text-pane-controller";
 export type {
   SectionId,
   SingleBeatPanelController,

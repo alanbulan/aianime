@@ -5,7 +5,10 @@ import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetPr
 import {
   useAssetWorkspaceNavigation,
   useCharacters,
+  useScenePlatePreview,
+  useScenes,
 } from "@/modules/asset_world/public";
+import { useNavigateToAsset } from "@/hooks/use-assets-deep-link";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import { useTasks } from "@/lib/queries/tasks";
 import { TASK_TYPES, isActiveStatus } from "@/lib/task-types";
@@ -23,6 +26,7 @@ import { createUseEpisodesPageController } from "@/modules/narrative_planning/ap
 import { createUseScriptPageController } from "@/modules/narrative_planning/application/use-script-page-controller";
 import { createUseSingleBeatPanelController } from "@/modules/narrative_planning/application/use-single-beat-panel-controller";
 import { createUseSketchStudioController } from "@/modules/narrative_planning/application/use-sketch-studio-controller";
+import { createUseTextPaneController } from "@/modules/narrative_planning/application/use-text-pane-controller";
 import type { Episode } from "@/modules/narrative_planning/domain/types";
 import { useEpisodeWorkbenchSectionState } from "@/modules/narrative_planning/infrastructure/episode-workbench-section-state";
 import { httpNarrativePlanningGateway } from "@/modules/narrative_planning/infrastructure/http-narrative-planning-gateway";
@@ -47,7 +51,11 @@ import {
   useProject,
   useUpdateProject,
 } from "@/modules/project_workspace/public";
-import { saveScopes, useSaveState } from "@/stores/save-status-store";
+import {
+  saveScopes,
+  trackSave,
+  useSaveState,
+} from "@/stores/save-status-store";
 
 export const narrativePlanningQueries = createNarrativePlanningQueryHooks(
   httpNarrativePlanningGateway,
@@ -90,6 +98,19 @@ export const useBeatCardGridController = createUseBeatCardGridController(
     useGridsByBeat,
   },
   { openBeatFreezone: openPresetProjectionInMyCanvas },
+);
+export const useTextPaneController = createUseTextPaneController(
+  {
+    useEpisodeDetail: narrativePlanningQueries.useEpisodeDetail,
+    useScenePlatePreview,
+    useScenes,
+    useUpdateBeat: narrativePlanningQueries.useUpdateBeat,
+  },
+  {
+    beatTextScope: saveScopes.beatText,
+    trackSave,
+    useAssetNavigation: useNavigateToAsset,
+  },
 );
 
 export const readPipelineStatus = (

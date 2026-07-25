@@ -65,8 +65,6 @@ beforeAll(async () => {
 });
 
 const mutateAsync: Mock = vi.fn().mockResolvedValue({ ok: true, data: null });
-const mutate: Mock = vi.fn();
-const updateState = { isPending: false };
 
 const episodeDetailState: {
   identity_ids: string[];
@@ -79,33 +77,6 @@ const episodeDetailState: {
   }[];
 } = { identity_ids: [], prop_menu: [], scene_menu: [] };
 
-vi.mock("@/modules/narrative_planning/public", async () => {
-  const { TextPaneView } = await import(
-    "@/modules/narrative_planning/presentation/TextPaneView"
-  );
-
-  return {
-    TextPaneView,
-    useUpdateBeat: () => ({
-      mutateAsync,
-      mutate,
-      isPending: updateState.isPending,
-    }),
-    useEpisodeDetail: () => ({
-      data: {
-        ok: true,
-        data: {
-          number: 1,
-          title: "ep1",
-          identity_ids: episodeDetailState.identity_ids,
-          prop_menu: episodeDetailState.prop_menu,
-          scene_menu: episodeDetailState.scene_menu,
-        },
-      },
-    }),
-  };
-});
-
 const scenesState: {
   names: string[];
   records?: Array<{
@@ -115,28 +86,62 @@ const scenesState: {
     time_of_day?: string;
   }>;
 } = { names: [] };
-vi.mock("@/modules/asset_world/public", () => ({
-  useScenes: () => ({
-    data: {
-      ok: true,
-      data: scenesState.records ?? scenesState.names.map((name) => ({ name })),
-    },
-  }),
-  useScenePlatePreview: () => ({
-    data: {
-      ok: true,
-      data: {
-        render: {
-          label: "Render：将使用 卫生间_漏水_夜晚，锁图光",
-          status: "time_baked",
-          relight: false,
-          resolved_scene_name: "卫生间_漏水_夜晚",
-          planned_scene_name: "",
+
+vi.mock("@/modules/narrative_planning/public", async () => {
+  const { createUseTextPaneController } = await import(
+    "@/modules/narrative_planning/application/use-text-pane-controller"
+  );
+  const { TextPaneView } = await import(
+    "@/modules/narrative_planning/presentation/TextPaneView"
+  );
+  const { saveScopes, trackSave } = await import(
+    "@/stores/save-status-store"
+  );
+
+  const useTextPaneController = createUseTextPaneController(
+    {
+      useUpdateBeat: () => ({ mutateAsync }),
+      useEpisodeDetail: () => ({
+        data: {
+          data: {
+            number: 1,
+            title: "ep1",
+            identity_ids: episodeDetailState.identity_ids,
+            prop_menu: episodeDetailState.prop_menu,
+            scene_menu: episodeDetailState.scene_menu,
+          },
         },
-      },
+      }),
+      useScenes: () => ({
+        data: {
+          data:
+            scenesState.records ??
+            scenesState.names.map((name) => ({ name })),
+        },
+      }),
+      useScenePlatePreview: () => ({
+        data: {
+          ok: true,
+          data: {
+            render: {
+              label: "Render：将使用 卫生间_漏水_夜晚，锁图光",
+            },
+          },
+        },
+      }),
     },
-  }),
-}));
+    {
+      beatTextScope: saveScopes.beatText,
+      trackSave,
+      useAssetNavigation: () => vi.fn(),
+    },
+  );
+
+  return {
+    TextPaneView,
+    useTextPaneController,
+  };
+});
 
 vi.mock("sonner", () => ({
   toast: { error: vi.fn(), success: vi.fn() },
@@ -177,7 +182,6 @@ function makeBeat(overrides: Partial<Beat> = {}): Beat {
 beforeEach(() => {
   mutateAsync.mockClear();
   mutateAsync.mockResolvedValue({ ok: true, data: null });
-  updateState.isPending = false;
   episodeDetailState.identity_ids = [];
   episodeDetailState.prop_menu = [];
   episodeDetailState.scene_menu = [];

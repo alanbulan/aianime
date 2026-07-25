@@ -431,6 +431,10 @@ describe("frontend architecture boundaries", () => {
       resolve(moduleRoot, "presentation/TextPaneView.tsx"),
       "utf8",
     );
+    const textPaneControllerSource = readFileSync(
+      resolve(moduleRoot, "application/use-text-pane-controller.ts"),
+      "utf8",
+    );
     const externalSources = sourceFiles(SRC_ROOT)
       .filter((path) => !path.startsWith(moduleRoot))
       .filter((path) => !relativeSource(path).startsWith("__tests__/"));
@@ -669,10 +673,17 @@ describe("frontend architecture boundaries", () => {
     expect(beatCardGridViewSource).not.toContain("useDeleteManualShot(");
     expect(beatCardGridViewSource).not.toContain("toast.");
     expect(textPaneSource).toContain("<TextPaneView");
-    expect(textPaneSource).toContain("useUpdateBeat(");
-    expect(textPaneSource).toContain("useEpisodeDetail(");
-    expect(textPaneSource).toContain("useScenes(");
-    expect(textPaneSource).toContain("trackSave(");
+    expect(textPaneSource).toContain("useTextPaneController({");
+    expect(textPaneSource).not.toContain("useState(");
+    expect(textPaneSource).not.toContain("useEffect(");
+    expect(textPaneSource).not.toContain("useUpdateBeat(");
+    expect(textPaneSource).not.toContain("useEpisodeDetail(");
+    expect(textPaneSource).not.toContain("useScenes(");
+    expect(textPaneSource).not.toContain("useScenePlatePreview(");
+    expect(textPaneSource).not.toContain("trackSave(");
+    expect(textPaneSource).not.toContain("toast.");
+    expect(textPaneSource).not.toContain("mentionsToProgramMarkers");
+    expect(textPaneSource).not.toContain("sceneNameToRef");
     expect(textPaneSource).not.toContain("className=");
     expect(textPaneSource).not.toContain("<Select");
     expect(textPaneSource).not.toContain("<MentionTextarea");
@@ -687,6 +698,10 @@ describe("frontend architecture boundaries", () => {
     expect(textPaneViewSource).toContain("function IdentityBadgeGroup");
     expect(textPaneViewSource).toContain("function MetadataSection");
     expect(textPaneViewSource).toContain("timeOfDayLabel(");
+    expect(textPaneViewSource).toContain(
+      "controller: TextPaneController",
+    );
+    expect(textPaneViewSource).not.toContain("TextPaneViewModel");
     expect(textPaneViewSource).not.toContain("useUpdateBeat(");
     expect(textPaneViewSource).not.toContain("useEpisodeDetail(");
     expect(textPaneViewSource).not.toContain("useScenes(");
@@ -695,6 +710,30 @@ describe("frontend architecture boundaries", () => {
     expect(textPaneViewSource).not.toContain("toast.");
     expect(textPaneViewSource).not.toContain("mentionsToProgramMarkers");
     expect(textPaneViewSource).not.toContain("extractIdentityMarkers");
+    expect(textPaneControllerSource).toContain(
+      "createUseTextPaneController",
+    );
+    expect(textPaneControllerSource).toContain("queries.useUpdateBeat");
+    expect(textPaneControllerSource).toContain("queries.useEpisodeDetail");
+    expect(textPaneControllerSource).toContain("queries.useScenes");
+    expect(textPaneControllerSource).toContain(
+      "queries.useScenePlatePreview",
+    );
+    expect(textPaneControllerSource).toContain(
+      "dependencies.useAssetNavigation",
+    );
+    expect(textPaneControllerSource).toContain(
+      "dependencies.beatTextScope",
+    );
+    expect(textPaneControllerSource).toContain("dependencies.trackSave");
+    expect(textPaneControllerSource).toContain("useState(");
+    expect(textPaneControllerSource).toContain("useEffect(");
+    expect(textPaneControllerSource).toContain("mentionsToProgramMarkers");
+    expect(textPaneControllerSource).toContain("extractIdentityMarkers");
+    expect(textPaneControllerSource).toContain("sceneNameToRef");
+    expect(textPaneControllerSource).not.toContain("className=");
+    expect(textPaneControllerSource).not.toContain("<Select");
+    expect(textPaneControllerSource).not.toContain("<MentionTextarea");
   });
 
   it("keeps Asset & World callers on its public API", () => {

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { timeOfDayLabel } from "@/lib/time-of-day";
 import { cn } from "@/lib/utils";
+import type { TextPaneController } from "@/modules/narrative_planning/application/use-text-pane-controller";
 
 const NO_SCENE_MARKER = "__none__";
 const NO_SCENE_VARIANT_MARKER = "__NO_SCENE_VARIANT__";
@@ -27,47 +28,8 @@ const SELECT_ITEM_CLASS = "py-1.5";
 const MENTION_TEXTAREA_CLASS = cn(CONTROL_CLASS, "min-h-[72px]");
 const MENTION_TEXTAREA_INPUT_CLASS = "px-3 py-2 text-[13px] leading-6";
 
-export type TextPaneAssetType = "identity" | "prop" | "scene";
-
-export interface TextPaneViewModel {
-  audioType: string;
-  audioTypeOptions: readonly string[];
-  baseSceneChoices: readonly string[];
-  currentSceneRef: { scene_id: string; variant_id: string };
-  episodeIdentityIds: readonly string[];
-  hasIdentityDetectionState: boolean;
-  identities: readonly string[];
-  identityOptions: readonly string[];
-  mentionLabels: string[];
-  narration: string;
-  noCharacterMarker: string;
-  noPropMarker: string;
-  onAudioTypeChange(value: string): void;
-  onIdentityToggle(id: string): void;
-  onJumpToAsset(type: TextPaneAssetType, id: string): void;
-  onNarrationBlur(): void;
-  onNarrationChange(value: string): void;
-  onPropToggle(id: string): void;
-  onSceneChange(sceneId: string): void;
-  onSceneVariantChange(variantId: string): void;
-  onSpeakerChange(speaker: string): void;
-  onTimeOfDayChange(timeOfDay: string): void;
-  onVisualBlur(): void;
-  onVisualChange(value: string): void;
-  propOptions: readonly string[];
-  props: readonly string[];
-  sceneId: string;
-  scenePlateLabel: string | null;
-  sceneVariantChoices: readonly string[];
-  speaker: string;
-  spineTemplate: "drama" | "narrated";
-  timeOfDay: string;
-  timeOfDayChoices: readonly string[];
-  visual: string;
-}
-
 export interface TextPaneViewProps {
-  model: TextPaneViewModel;
+  controller: TextPaneController;
 }
 
 function audioTypeLabel(
@@ -79,18 +41,18 @@ function audioTypeLabel(
   return t("episode.workbench.text.narrationLabel");
 }
 
-export function TextPaneView({ model }: TextPaneViewProps) {
+export function TextPaneView({ controller }: TextPaneViewProps) {
   const { t } = useTranslation();
 
   return (
     <div className="space-y-3.5">
       <Field label={t("episode.workbench.text.narration")}>
         <MentionTextarea
-          value={model.narration}
-          onChange={(event) => model.onNarrationChange(event.target.value)}
-          onBlur={model.onNarrationBlur}
+          value={controller.narration}
+          onChange={(event) => controller.onNarrationChange(event.target.value)}
+          onBlur={controller.onNarrationBlur}
           rows={2}
-          mentionLabels={model.mentionLabels}
+          mentionLabels={controller.mentionLabels}
           placeholder={t("episode.workbench.text.narrationPlaceholder")}
           className={MENTION_TEXTAREA_CLASS}
           inputClassName={MENTION_TEXTAREA_INPUT_CLASS}
@@ -101,9 +63,9 @@ export function TextPaneView({ model }: TextPaneViewProps) {
         <div className="col-span-full grid grid-cols-[auto_minmax(0,1fr)_minmax(7rem,12rem)_auto] gap-x-3 gap-y-3">
           <Field label={t("episode.workbench.text.type")}>
             <Select
-              value={model.audioType}
+              value={controller.audioType}
               onValueChange={(value) =>
-                model.onAudioTypeChange(String(value ?? "narration"))
+                controller.onAudioTypeChange(String(value ?? "narration"))
               }
             >
               <SelectTrigger
@@ -111,7 +73,7 @@ export function TextPaneView({ model }: TextPaneViewProps) {
                 className={cn(COMPACT_CONTROL_CLASS, "w-full")}
               >
                 <SelectValue>
-                  {audioTypeLabel(t, model.audioType)}
+                  {audioTypeLabel(t, controller.audioType)}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent
@@ -119,7 +81,7 @@ export function TextPaneView({ model }: TextPaneViewProps) {
                 alignItemWithTrigger={false}
                 className={SELECT_POPUP_CLASS}
               >
-                {model.audioTypeOptions.map((value) => (
+                {controller.audioTypeOptions.map((value) => (
                   <SelectItem
                     key={value}
                     value={value}
@@ -135,15 +97,15 @@ export function TextPaneView({ model }: TextPaneViewProps) {
           <Field
             label={t("episode.workbench.text.location")}
             action={
-              model.sceneId.trim() ? (
+              controller.sceneId.trim() ? (
                 <button
                   type="button"
                   onClick={() =>
-                    model.onJumpToAsset("scene", model.sceneId.trim())
+                    controller.onJumpToAsset("scene", controller.sceneId.trim())
                   }
                   className="inline-flex items-center gap-0.5 text-xs text-muted-foreground transition-colors hover:text-primary"
                   title={t("assets.common.jumpToAsset", {
-                    name: model.sceneId.trim(),
+                    name: controller.sceneId.trim(),
                   })}
                 >
                   <ArrowUpRight className="size-3" />
@@ -152,9 +114,9 @@ export function TextPaneView({ model }: TextPaneViewProps) {
             }
           >
             <Select
-              value={model.currentSceneRef.scene_id || NO_SCENE_MARKER}
+              value={controller.currentSceneRef.scene_id || NO_SCENE_MARKER}
               onValueChange={(value) =>
-                model.onSceneChange(
+                controller.onSceneChange(
                   value === NO_SCENE_MARKER ? "" : String(value ?? ""),
                 )
               }
@@ -168,7 +130,7 @@ export function TextPaneView({ model }: TextPaneViewProps) {
                     "episode.workbench.text.locationPlaceholder",
                   )}
                 >
-                  {model.sceneId ||
+                  {controller.sceneId ||
                     t("episode.workbench.text.locationPlaceholder")}
                 </SelectValue>
               </SelectTrigger>
@@ -183,7 +145,7 @@ export function TextPaneView({ model }: TextPaneViewProps) {
                 >
                   {t("episode.workbench.text.locationNone")}
                 </SelectItem>
-                {model.baseSceneChoices.map((id) => (
+                {controller.baseSceneChoices.map((id) => (
                   <SelectItem
                     key={id}
                     value={id}
@@ -203,17 +165,17 @@ export function TextPaneView({ model }: TextPaneViewProps) {
           >
             <Select
               value={
-                model.currentSceneRef.variant_id ||
+                controller.currentSceneRef.variant_id ||
                 NO_SCENE_VARIANT_MARKER
               }
               onValueChange={(value) =>
-                model.onSceneVariantChange(
+                controller.onSceneVariantChange(
                   value === NO_SCENE_VARIANT_MARKER
                     ? ""
                     : String(value ?? ""),
                 )
               }
-              disabled={!model.currentSceneRef.scene_id}
+              disabled={!controller.currentSceneRef.scene_id}
             >
               <SelectTrigger
                 aria-label={t("episode.workbench.text.sceneVariant", {
@@ -222,7 +184,7 @@ export function TextPaneView({ model }: TextPaneViewProps) {
                 className={cn(COMPACT_CONTROL_CLASS, "w-full")}
               >
                 <SelectValue>
-                  {model.currentSceneRef.variant_id ||
+                  {controller.currentSceneRef.variant_id ||
                     t("episode.workbench.text.noSceneVariant", {
                       defaultValue: "无变体",
                     })}
@@ -241,7 +203,7 @@ export function TextPaneView({ model }: TextPaneViewProps) {
                     defaultValue: "无变体",
                   })}
                 </SelectItem>
-                {model.sceneVariantChoices.map((variant) => (
+                {controller.sceneVariantChoices.map((variant) => (
                   <SelectItem
                     key={variant}
                     value={variant}
@@ -256,9 +218,9 @@ export function TextPaneView({ model }: TextPaneViewProps) {
 
           <Field label={t("episode.workbench.text.timeOfDay")}>
             <Select
-              value={model.timeOfDay || NO_TIME_OF_DAY_MARKER}
+              value={controller.timeOfDay || NO_TIME_OF_DAY_MARKER}
               onValueChange={(value) =>
-                model.onTimeOfDayChange(
+                controller.onTimeOfDayChange(
                   value === NO_TIME_OF_DAY_MARKER
                     ? ""
                     : String(value ?? ""),
@@ -274,7 +236,7 @@ export function TextPaneView({ model }: TextPaneViewProps) {
                     "episode.workbench.text.timeOfDayPlaceholder",
                   )}
                 >
-                  {timeOfDayLabel(model.timeOfDay)}
+                  {timeOfDayLabel(controller.timeOfDay)}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent
@@ -288,7 +250,7 @@ export function TextPaneView({ model }: TextPaneViewProps) {
                 >
                   {timeOfDayLabel("")}
                 </SelectItem>
-                {model.timeOfDayChoices.map((value) => (
+                {controller.timeOfDayChoices.map((value) => (
                   <SelectItem
                     key={value}
                     value={value}
@@ -302,22 +264,22 @@ export function TextPaneView({ model }: TextPaneViewProps) {
           </Field>
         </div>
 
-        {model.scenePlateLabel ? (
+        {controller.scenePlateLabel ? (
           <p className="col-span-full rounded-[8px] border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
-            {model.scenePlateLabel}
+            {controller.scenePlateLabel}
           </p>
         ) : null}
 
         <div className="col-span-full">
           <Field label={t("episode.workbench.text.visualDescription")}>
             <MentionTextarea
-              value={model.visual}
+              value={controller.visual}
               onChange={(event) =>
-                model.onVisualChange(event.target.value)
+                controller.onVisualChange(event.target.value)
               }
-              onBlur={model.onVisualBlur}
+              onBlur={controller.onVisualBlur}
               rows={2}
-              mentionLabels={model.mentionLabels}
+              mentionLabels={controller.mentionLabels}
               className={MENTION_TEXTAREA_CLASS}
               inputClassName={MENTION_TEXTAREA_INPUT_CLASS}
             />
@@ -327,13 +289,13 @@ export function TextPaneView({ model }: TextPaneViewProps) {
         <div className="col-span-full">
           <Field label={t("episode.workbench.text.identities")}>
             <IdentityBadgeGroup
-              options={model.identityOptions}
-              selected={model.identities}
-              onToggle={model.onIdentityToggle}
-              onJump={(id) => model.onJumpToAsset("identity", id)}
-              noJumpIds={[model.noCharacterMarker]}
+              options={controller.identityOptions}
+              selected={controller.identities}
+              onToggle={controller.onIdentityToggle}
+              onJump={(id) => controller.onJumpToAsset("identity", id)}
+              noJumpIds={[controller.noCharacterMarker]}
               labels={{
-                [model.noCharacterMarker]: t(
+                [controller.noCharacterMarker]: t(
                   "episode.workbench.text.noCharacter",
                 ),
               }}
@@ -346,7 +308,7 @@ export function TextPaneView({ model }: TextPaneViewProps) {
               ariaLabel={t("episode.workbench.text.identities")}
               removedLabel={t("common.removed")}
             />
-            {!model.hasIdentityDetectionState ? (
+            {!controller.hasIdentityDetectionState ? (
               <p className="mt-1 text-xs text-warning">
                 {t("episode.workbench.text.identityDetectionRequired")}
               </p>
@@ -357,13 +319,13 @@ export function TextPaneView({ model }: TextPaneViewProps) {
         <div className="col-span-full">
           <Field label={t("episode.workbench.text.props")}>
             <IdentityBadgeGroup
-              options={model.propOptions}
-              selected={model.props}
-              onToggle={model.onPropToggle}
-              onJump={(id) => model.onJumpToAsset("prop", id)}
-              noJumpIds={[model.noPropMarker]}
+              options={controller.propOptions}
+              selected={controller.props}
+              onToggle={controller.onPropToggle}
+              onJump={(id) => controller.onJumpToAsset("prop", id)}
+              noJumpIds={[controller.noPropMarker]}
               labels={{
-                [model.noPropMarker]: t(
+                [controller.noPropMarker]: t(
                   "episode.workbench.text.noProp",
                 ),
               }}
@@ -377,17 +339,17 @@ export function TextPaneView({ model }: TextPaneViewProps) {
           </Field>
         </div>
 
-        {model.audioType === "dialogue" &&
-        model.spineTemplate === "narrated" ? (
+        {controller.audioType === "dialogue" &&
+        controller.spineTemplate === "narrated" ? (
           <Field label={t("episode.workbench.text.speaker")}>
             <Select
               value={
-                model.episodeIdentityIds.includes(model.speaker)
-                  ? model.speaker
+                controller.episodeIdentityIds.includes(controller.speaker)
+                  ? controller.speaker
                   : NO_SPEAKER_MARKER
               }
               onValueChange={(value) =>
-                model.onSpeakerChange(
+                controller.onSpeakerChange(
                   value === NO_SPEAKER_MARKER
                     ? ""
                     : String(value ?? ""),
@@ -403,8 +365,8 @@ export function TextPaneView({ model }: TextPaneViewProps) {
                     "episode.workbench.text.speakerRequired",
                   )}
                 >
-                  {model.episodeIdentityIds.includes(model.speaker)
-                    ? model.speaker
+                  {controller.episodeIdentityIds.includes(controller.speaker)
+                    ? controller.speaker
                     : t("episode.workbench.text.speakerRequired")}
                 </SelectValue>
               </SelectTrigger>
@@ -413,7 +375,7 @@ export function TextPaneView({ model }: TextPaneViewProps) {
                 alignItemWithTrigger={false}
                 className={SELECT_POPUP_CLASS}
               >
-                {model.episodeIdentityIds.length === 0 ? (
+                {controller.episodeIdentityIds.length === 0 ? (
                   <SelectItem
                     value={NO_SPEAKER_MARKER}
                     className={SELECT_ITEM_CLASS}
@@ -421,7 +383,7 @@ export function TextPaneView({ model }: TextPaneViewProps) {
                     {t("episode.workbench.text.speakerRequired")}
                   </SelectItem>
                 ) : null}
-                {model.episodeIdentityIds.map((id) => (
+                {controller.episodeIdentityIds.map((id) => (
                   <SelectItem
                     key={id}
                     value={id}
@@ -433,8 +395,8 @@ export function TextPaneView({ model }: TextPaneViewProps) {
               </SelectContent>
             </Select>
           </Field>
-        ) : model.audioType === "narration" &&
-          model.spineTemplate === "narrated" ? (
+        ) : controller.audioType === "narration" &&
+          controller.spineTemplate === "narrated" ? (
           <Field label={t("episode.workbench.text.narrator")}>
             <div
               className={cn(
