@@ -158,6 +158,7 @@ import {
   resolveConnectEndHandleId,
 } from './ui/canvasConnectionInteraction';
 import { useCanvasDropIndicator } from './hooks/useCanvasDropIndicator';
+import { useCanvasEdgePan } from './hooks/useCanvasEdgePan';
 import { useCanvasMinimapVisibility } from './hooks/useCanvasMinimapVisibility';
 import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
 import { useCanvasNodePlacementConfirm } from './hooks/useCanvasNodePlacementConfirm';
@@ -298,7 +299,6 @@ export function Canvas({
   // our own onPaneClick is not enough — that reset runs regardless. See the capture-phase
   // click listener in the marquee effect.
   const swallowMarqueeClickRef = useRef(false);
-  const suppressNextEdgeClickRef = useRef(false);
   const plusConnectStartRef = useRef<PendingConnectStart | null>(null);
   // 手动「+」拖线时，当前被高亮为合法落点的节点 DOM。手动连线走自绘预览线
   // （非 React Flow 原生连线），RF 不会给目标 handle 挂 connectingto/valid，所以
@@ -441,16 +441,6 @@ export function Canvas({
     startClient: { x: number; y: number };
     startLocal: { x: number; y: number };
   } | null>(null);
-  const edgePanGestureRef = useRef<{
-    active: boolean;
-    pointerId: number;
-    startClientX: number;
-    startClientY: number;
-    startViewportX: number;
-    startViewportY: number;
-    zoom: number;
-    moved: boolean;
-  } | null>(null);
   // True while the space bar is held. React Flow's panActivationKeyCode defaults
   // to 'Space', so space + left-drag pans the canvas — but our custom marquee
   // box-select also runs on left-drag over the pane and would draw a dashed
@@ -544,6 +534,11 @@ export function Canvas({
   const setViewportState = useCanvasStore((state) => state.setViewportState);
   const setCanvasViewportSize = useCanvasStore((state) => state.setCanvasViewportSize);
   const { handleMove, handleMoveEnd } = useCanvasViewportCommit(setViewportState);
+  const { handleEdgeClick } = useCanvasEdgePan({
+    wrapperRef,
+    viewportPort: reactFlowInstance,
+    commitViewport: setViewportState,
+  });
   // ReactFlow only mounts after useCanvasSync has hydrated the store (freezone
   // web mode renders <Canvas> behind a loading gate), so the restored camera is
   // already in `currentViewport` by our first render. Capture it here and feed
@@ -1103,15 +1098,6 @@ export function Canvas({
     [deleteEdge, scheduleCanvasPersist]
   );
 
-  const handleEdgeClick = useCallback((event: ReactMouseEvent) => {
-    if (!suppressNextEdgeClickRef.current) {
-      return;
-    }
-    suppressNextEdgeClickRef.current = false;
-    event.preventDefault();
-    event.stopPropagation();
-  }, []);
-
   const connectSkillRoleBinding = useCallback(
     (connection: Connection, explicitSkill?: SkillDefinition | null): boolean => {
       const currentState = useCanvasStore.getState();
@@ -1232,121 +1218,6 @@ export function Canvas({
     },
     [nodes, edges]
   );
-
-  useEffect(() => {
-    const wrapperElement = wrapperRef.current;
-    if (!wrapperElement) {
-      return;
-    }
-
-    const edgePathSelector = '.react-flow__edge-path, .react-flow__edge-interaction';
-    const dragThreshold = 4;
-
-    const handlePointerDown = (event: PointerEvent) => {
-      if (event.button !== 0) {
-        return;
-      }
-
-      const target = event.target as HTMLElement | null;
-      if (!target) {
-        return;
-      }
-
-      if (target.closest('.react-flow__edgeupdater')) {
-        return;
-      }
-
-      const edgePathElement = target.closest(edgePathSelector);
-      if (!edgePathElement) {
-        return;
-      }
-
-      const viewport = reactFlowInstance.getViewport();
-      edgePanGestureRef.current = {
-        active: true,
-        pointerId: event.pointerId,
-        startClientX: event.clientX,
-        startClientY: event.clientY,
-        startViewportX: viewport.x,
-        startViewportY: viewport.y,
-        zoom: viewport.zoom,
-        moved: false,
-      };
-    };
-
-    const handlePointerMove = (event: PointerEvent) => {
-      const gesture = edgePanGestureRef.current;
-      if (!gesture || !gesture.active || event.pointerId !== gesture.pointerId) {
-        return;
-      }
-
-      const deltaX = event.clientX - gesture.startClientX;
-      const deltaY = event.clientY - gesture.startClientY;
-
-      if (!gesture.moved && Math.hypot(deltaX, deltaY) >= dragThreshold) {
-        gesture.moved = true;
-      }
-      if (!gesture.moved) {
-        return;
-      }
-
-      suppressNextEdgeClickRef.current = true;
-      reactFlowInstance.setViewport(
-        {
-          x: gesture.startViewportX + deltaX,
-          y: gesture.startViewportY + deltaY,
-          zoom: gesture.zoom,
-        },
-        { duration: 0 }
-      );
-    };
-
-    const completeEdgePanGesture = () => {
-      const gesture = edgePanGestureRef.current;
-      if (!gesture) {
-        return;
-      }
-
-      edgePanGestureRef.current = null;
-      if (!gesture.moved) {
-        return;
-      }
-
-      const viewport = reactFlowInstance.getViewport();
-      setViewportState(viewport);
-    };
-
-    const handlePointerUp = (event: PointerEvent) => {
-      const gesture = edgePanGestureRef.current;
-      if (!gesture || event.pointerId !== gesture.pointerId) {
-        return;
-      }
-      completeEdgePanGesture();
-    };
-
-    const handlePointerCancel = (event: PointerEvent) => {
-      const gesture = edgePanGestureRef.current;
-      if (!gesture || event.pointerId !== gesture.pointerId) {
-        return;
-      }
-      completeEdgePanGesture();
-    };
-
-    wrapperElement.addEventListener('pointerdown', handlePointerDown, true);
-    window.addEventListener('pointermove', handlePointerMove, true);
-    window.addEventListener('pointerup', handlePointerUp, true);
-    window.addEventListener('pointercancel', handlePointerCancel, true);
-
-    return () => {
-      wrapperElement.removeEventListener('pointerdown', handlePointerDown, true);
-      window.removeEventListener('pointermove', handlePointerMove, true);
-      window.removeEventListener('pointerup', handlePointerUp, true);
-      window.removeEventListener('pointercancel', handlePointerCancel, true);
-    };
-  }, [
-    reactFlowInstance,
-    setViewportState,
-  ]);
 
   const openNodeMenuAtClientPosition = useCallback((clientPosition: { x: number; y: number }) => {
     const containerRect = wrapperRef.current?.getBoundingClientRect();

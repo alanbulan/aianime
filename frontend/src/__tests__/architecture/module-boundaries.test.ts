@@ -1395,6 +1395,48 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("onMoveStart=");
   });
 
+  it("keeps Canvas edge-pan gestures in one presentation hook", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasEdgePan.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const hookDeclaration = [
+      "export function",
+      "useCanvasEdgePan(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(hookDeclaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasEdgePan.ts",
+    ]);
+    expect(hookModel).toContain("EDGE_PAN_DRAG_THRESHOLD_PX = 4");
+    expect(canvasView).toContain("./hooks/useCanvasEdgePan");
+    expect(canvasView).not.toContain("edgePanGestureRef");
+    expect(canvasView).not.toContain("suppressNextEdgeClickRef");
+    expect(canvasView).not.toContain("react-flow__edge-interaction");
+    expect(canvasView).not.toContain("react-flow__edgeupdater");
+  });
+
   it("keeps Canvas node position reducers out of the Zustand store", () => {
     const positionsPath = resolve(
       SRC_ROOT,
