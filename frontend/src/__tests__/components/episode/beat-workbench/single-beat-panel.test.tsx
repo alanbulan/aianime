@@ -90,7 +90,11 @@ vi.mock("@/modules/narrative_planning/public", async () => {
       useSaveState: () => ({ status: "idle" }),
     },
   );
-  return { SingleBeatPanelView, useSingleBeatPanelController };
+  return {
+    SingleBeatPanelView,
+    TextPane: () => <div>TextPane</div>,
+    useSingleBeatPanelController,
+  };
 });
 
 vi.mock("@/modules/production/public", () => ({
@@ -110,10 +114,6 @@ vi.mock("@/hooks/use-escape-to-close", () => ({
 
 vi.mock("@/components/save-status", () => ({
   SaveStatus: () => null,
-}));
-
-vi.mock("@/components/episode/beat-workbench/text-pane", () => ({
-  TextPane: () => <div>TextPane</div>,
 }));
 
 function makeBeat(overrides: Partial<Beat> = {}): Beat {

@@ -27,7 +27,6 @@ export {
   usePlanIdentities,
   useSaveScript,
   useSingleBeatPanelController,
-  useTextPaneController,
   useScript,
   useUpdateBeat,
   useUpdateEpisode,
@@ -110,16 +109,8 @@ export type {
 } from "@/modules/narrative_planning/application/use-insert-manual-shot-dialog-controller";
 export { SingleBeatPanelView } from "@/modules/narrative_planning/presentation/SingleBeatPanelView";
 export type { SingleBeatPanelViewProps } from "@/modules/narrative_planning/presentation/SingleBeatPanelView";
-export { TextPaneView } from "@/modules/narrative_planning/presentation/TextPaneView";
-export type { TextPaneViewProps } from "@/modules/narrative_planning/presentation/TextPaneView";
 export { ViewToggles } from "@/modules/narrative_planning/presentation/ViewToggles";
 export type { ViewTogglesProps } from "@/modules/narrative_planning/presentation/ViewToggles";
-export type {
-  TextPaneController,
-  TextPaneControllerDependencies,
-  TextPaneControllerOptions,
-  TextPaneControllerQueries,
-} from "@/modules/narrative_planning/application/use-text-pane-controller";
 export type {
   SectionId,
   SingleBeatPanelController,
@@ -129,3 +120,5 @@ export type {
   SingleBeatSectionViewModel,
   VideoBackendHeaderOption,
 } from "@/modules/narrative_planning/application/use-single-beat-panel-controller";
+export { TextPane } from "@/modules/narrative_planning/text-pane-composition";
+export type { TextPaneProps } from "@/modules/narrative_planning/text-pane-composition";

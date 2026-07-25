@@ -81,6 +81,7 @@ vi.mock("@/modules/narrative_planning/public", async () => {
   return {
     ActionPanelView,
     SingleBeatPanelView,
+    TextPane: () => <div>TextPane</div>,
     useActionPanelController,
     useSingleBeatPanelController,
   };
@@ -99,10 +100,6 @@ vi.mock("@/hooks/use-escape-to-close", () => ({
 
 vi.mock("@/components/save-status", () => ({
   SaveStatus: () => null,
-}));
-
-vi.mock("@/components/episode/beat-workbench/text-pane", () => ({
-  TextPane: () => <div>TextPane</div>,
 }));
 
 function makeBeat(beatNumber: number): Beat {

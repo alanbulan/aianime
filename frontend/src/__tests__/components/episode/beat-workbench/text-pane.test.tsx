@@ -87,12 +87,9 @@ const scenesState: {
   }>;
 } = { names: [] };
 
-vi.mock("@/modules/narrative_planning/public", async () => {
+vi.mock("@/modules/narrative_planning/composition", async () => {
   const { createUseTextPaneController } = await import(
     "@/modules/narrative_planning/application/use-text-pane-controller"
-  );
-  const { TextPaneView } = await import(
-    "@/modules/narrative_planning/presentation/TextPaneView"
   );
   const { saveScopes, trackSave } = await import(
     "@/stores/save-status-store"
@@ -138,7 +135,6 @@ vi.mock("@/modules/narrative_planning/public", async () => {
   );
 
   return {
-    TextPaneView,
     useTextPaneController,
   };
 });
@@ -147,8 +143,8 @@ vi.mock("sonner", () => ({
   toast: { error: vi.fn(), success: vi.fn() },
 }));
 
-import { TextPane } from "@/components/episode/beat-workbench/text-pane";
 import type { Beat } from "@/modules/narrative_planning/public";
+import { TextPane } from "@/modules/narrative_planning/text-pane-composition";
 
 function Wrapper({ children }: { children: ReactNode }) {
   const qc = new QueryClient({

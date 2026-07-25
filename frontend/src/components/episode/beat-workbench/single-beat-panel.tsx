@@ -1,6 +1,7 @@
 // Copyright (c) 2026 AI anime
 import {
   SingleBeatPanelView,
+  TextPane,
   type Beat,
   type SectionId,
   useSingleBeatPanelController,
@@ -13,7 +14,6 @@ import {
 } from "@/modules/production/public";
 import type { BeatStageState } from "@/types/beat-state";
 
-import { TextPane } from "./text-pane";
 
 export type { SectionId } from "@/modules/narrative_planning/public";
 

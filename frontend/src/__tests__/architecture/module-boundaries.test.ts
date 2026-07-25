@@ -424,6 +424,10 @@ describe("frontend architecture boundaries", () => {
 
   it("keeps Narrative Planning callers on its public API", () => {
     const moduleRoot = resolve(SRC_ROOT, "modules/narrative_planning");
+    const narrativePublicSource = readFileSync(
+      resolve(moduleRoot, "public.ts"),
+      "utf8",
+    );
     const beatsPageViewSource = readFileSync(
       resolve(moduleRoot, "presentation/BeatsPageView.tsx"),
       "utf8",
@@ -554,12 +558,9 @@ describe("frontend architecture boundaries", () => {
       resolve(moduleRoot, "presentation/BeatCardGridView.tsx"),
       "utf8",
     );
-    const textPaneSource = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "components/episode/beat-workbench/text-pane.tsx",
-      ),
-      "utf8",
+    const textPaneSource = sourceSection(
+      resolve(moduleRoot, "text-pane-composition.ts"),
+      "export interface TextPaneProps",
     );
     const textPaneViewSource = readFileSync(
       resolve(moduleRoot, "presentation/TextPaneView.tsx"),
@@ -633,6 +634,7 @@ describe("frontend architecture boundaries", () => {
       "lib/queries/scripts.ts",
       "components/episode/beat-workbench/sketch-studio-actions.tsx",
       "components/episode/beat-workbench/view-toggles.tsx",
+      "components/episode/beat-workbench/text-pane.tsx",
       "hooks/use-selection.ts",
       "hooks/use-view-toggles.ts",
       "types/episode.ts",
@@ -852,7 +854,7 @@ describe("frontend architecture boundaries", () => {
     expect(beatCardGridViewSource).not.toContain("useGridsByBeat(");
     expect(beatCardGridViewSource).not.toContain("useDeleteManualShot(");
     expect(beatCardGridViewSource).not.toContain("toast.");
-    expect(textPaneSource).toContain("<TextPaneView");
+    expect(textPaneSource).toContain("createElement(TextPaneView");
     expect(textPaneSource).toContain("useTextPaneController({");
     expect(textPaneSource).not.toContain("useState(");
     expect(textPaneSource).not.toContain("useEffect(");
@@ -909,6 +911,12 @@ describe("frontend architecture boundaries", () => {
     expect(textPaneControllerSource).toContain("useState(");
     expect(textPaneControllerSource).toContain("useEffect(");
     expect(textPaneControllerSource).toContain("mentionsToProgramMarkers");
+    expect(narrativePublicSource).toContain(
+      'export { TextPane } from "@/modules/narrative_planning/text-pane-composition";',
+    );
+    expect(narrativePublicSource).not.toContain("useTextPaneController");
+    expect(narrativePublicSource).not.toContain("TextPaneView");
+    expect(narrativePublicSource).not.toContain("TextPaneControllerOptions");
     expect(textPaneControllerSource).toContain("extractIdentityMarkers");
     expect(textPaneControllerSource).toContain("sceneNameToRef");
     expect(textPaneControllerSource).not.toContain("className=");
