@@ -35,6 +35,7 @@ export {
   useRenderSettings,
   useSeedance2BeatStatus,
   useSeedance2AssetOperationsController,
+  useSeedance2ConfigController,
   useSaveSketchRegenQueue,
   useSaveSketchPoseEditor,
   useSketchPoseEditor,

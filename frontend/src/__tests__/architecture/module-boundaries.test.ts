@@ -633,6 +633,12 @@ describe("frontend architecture boundaries", () => {
     expect(videoPaneSource).not.toContain("beatVideoPromptTask");
     expect(videoPaneSource).not.toContain("legacyVideoPrompt");
     expect(videoPaneSource).not.toContain("saveLegacyVideoPrompt");
+    expect(videoPaneSource).not.toContain("useGenerateSeedance2Prompt(");
+    expect(videoPaneSource).not.toContain("seedance2DraftRef");
+    expect(videoPaneSource).not.toContain("setSeedance2Draft");
+    expect(videoPaneSource).not.toContain("saveSeedance2Draft");
+    expect(videoPaneSource).not.toContain("getSeedance2ConfigSaveKey");
+    expect(videoPaneSource).not.toContain("SEEDANCE2_AUTOSAVE_DELAY_MS");
     expect(videoPaneSource).not.toContain("happyHorseConfigJson");
     expect(videoPaneSource).not.toContain("grokVideoConfigJson");
     expect(videoPaneSource).not.toContain("seedance2ConfigJson:");

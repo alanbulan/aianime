@@ -20,16 +20,23 @@ vi.mock("sonner", () => ({
   toast: { error: toastError, success: toastSuccess },
 }));
 
-const mutation = (mutateAsync: ReturnType<typeof vi.fn>) => () => ({
-  isPending: false,
-  mutateAsync,
-});
-
 const useController = createUseSeedance2AssetOperationsController({
-  useUploadSeedance2Asset: mutation(upload),
-  useDeleteSeedance2Asset: mutation(remove),
-  useCropSeedance2Asset: mutation(crop),
-  useTrimSeedance2Asset: mutation(trim),
+  useUploadSeedance2Asset: () => ({
+    isPending: false,
+    mutateAsync: async (command) => upload(command),
+  }),
+  useDeleteSeedance2Asset: () => ({
+    isPending: false,
+    mutateAsync: async (command) => remove(command),
+  }),
+  useCropSeedance2Asset: () => ({
+    isPending: false,
+    mutateAsync: async (command) => crop(command),
+  }),
+  useTrimSeedance2Asset: () => ({
+    isPending: false,
+    mutateAsync: async (command) => trim(command),
+  }),
 });
 
 const imageAsset: Seedance2AssetItem = {

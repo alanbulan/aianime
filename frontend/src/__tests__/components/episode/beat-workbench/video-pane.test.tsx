@@ -461,6 +461,9 @@ vi.mock("@/modules/production/public", async (importOriginal) => {
   const { createUseSeedance2AssetOperationsController } = await import(
     "@/modules/production/application/use-seedance2-asset-operations-controller"
   );
+  const { createUseSeedance2ConfigController } = await import(
+    "@/modules/production/application/use-seedance2-config-controller"
+  );
   const useLegacyVideoPromptController =
     createUseLegacyVideoPromptController(
       {
@@ -491,12 +494,23 @@ vi.mock("@/modules/production/public", async (importOriginal) => {
       useCropSeedance2Asset: videoQueryMocks.useCropSeedance2Asset,
       useTrimSeedance2Asset: videoQueryMocks.useTrimSeedance2Asset,
     });
+  const useSeedance2ConfigController = createUseSeedance2ConfigController(
+    {
+      useGenerateSeedance2Prompt:
+        videoQueryMocks.useGenerateSeedance2Prompt,
+    },
+    {
+      useGenerationCreditCost: () => ({
+        data: { data: { display: "6" } },
+      }),
+    },
+  );
   return {
     ...actual,
     useBeatVideoGenerationController,
     useSeedance2AssetOperationsController,
+    useSeedance2ConfigController,
     useSeedance2BeatStatus: videoQueryMocks.useSeedance2BeatStatus,
-    useGenerateSeedance2Prompt: videoQueryMocks.useGenerateSeedance2Prompt,
     useLegacyVideoPromptController,
     useNarratorVoiceStatus: videoQueryMocks.useNarratorVoiceStatus,
     useNarratorVoiceSources: videoQueryMocks.useNarratorVoiceSources,

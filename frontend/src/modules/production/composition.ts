@@ -24,6 +24,7 @@ import { createUseAudioPaneController } from "@/modules/production/application/u
 import { createUseBeatVideoGenerationController } from "@/modules/production/application/use-beat-video-generation-controller";
 import { createUseLegacyVideoPromptController } from "@/modules/production/application/use-legacy-video-prompt-controller";
 import { createUseSeedance2AssetOperationsController } from "@/modules/production/application/use-seedance2-asset-operations-controller";
+import { createUseSeedance2ConfigController } from "@/modules/production/application/use-seedance2-config-controller";
 import { createUseVideoPaneMediaController } from "@/modules/production/application/use-video-pane-media-controller";
 import { httpProductionVideoGateway } from "@/modules/production/infrastructure/http-production-video-gateway";
 import { promptLanguageFromLocale } from "@/modules/production/domain/video-generation";
@@ -55,6 +56,10 @@ export const useBeatVideoGenerationController =
   });
 export const useLegacyVideoPromptController =
   createUseLegacyVideoPromptController(videoGenerationQueries, {
+    useGenerationCreditCost,
+  });
+export const useSeedance2ConfigController =
+  createUseSeedance2ConfigController(videoGenerationQueries, {
     useGenerationCreditCost,
   });
 export const useSeedance2AssetOperationsController =

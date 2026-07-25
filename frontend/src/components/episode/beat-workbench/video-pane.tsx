@@ -9,7 +9,6 @@ import {
   type KeyboardEvent,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
 import {
   Download,
   Image as ImageIcon,
@@ -18,16 +17,11 @@ import {
   WandSparkles,
 } from "lucide-react";
 
-import {
-  backendErrorToastMessage,
-  BillingRuleNotConfiguredError,
-} from "@/shared/api/errors";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { ratioToCss } from "@/lib/aspect-ratio";
 import { useProjectAspectRatio } from "@/stores/aspect-ratio-store";
 import { cn } from "@/lib/utils";
 import { normalizeMentionSeparatorSpaces } from "@/lib/mention-markers";
-import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import { CreditCostInline } from "@/components/credit-cost-inline";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -44,57 +38,35 @@ import {
   clampDuration,
   findSeedance2TrailingMention,
   getSeedance2MentionQuery,
-  getSeedance2ConfigSaveKey,
-  grokVideoRatioOptionsForBackend,
-  grokVideoResolutionOptionsForBackend,
-  happyHorseRatioOptionsForBackend,
-  happyHorseResolutionOptionsForBackend,
   isSeedanceReferenceCropBackend,
-  isSeedance15ProBackend,
-  isSeedance2ValueBackend,
-  normalizeGrokVideoDraftForBackend,
   normalizeGrokVideoRatio,
-  normalizeHappyHorseDraftForBackend,
   normalizeHappyHorseMode,
   normalizeHappyHorseRatio,
-  normalizeSeedance2DraftForBackend,
   normalizeSeedance2Mode,
   normalizeSeedance2Ratio,
   normalizeSeedance2Resolution,
-  parseSeedance2Config,
-  sameSeedance2Config,
   sameSeedance2LabelIdentity,
-  seedance2DefaultRatioForProjectAspect,
-  seedance2DurationBoundsForBackend,
-  seedance2ResolutionOptionsForBackend,
   remapSeedance2Mentions,
   LegacyVideoPromptView,
   Seedance2Checkbox,
   Seedance2Field,
-  serializeGrokVideoConfig,
-  serializeHappyHorseConfig,
-  serializeSeedance2Config,
   Seedance2AssetCropDialog,
   Seedance2AudioTrimDialog,
   Seedance2ReferenceAssetsView,
   Seedance2ReferenceCropAssetsView,
   Seedance2SummaryPill,
   seedance2CropAspectForMode,
-  useGenerateSeedance2Prompt,
   useBeatVideoGenerationController,
   useLegacyVideoPromptController,
   useSeedance2AssetOperationsController,
   useSeedance2BeatStatus,
+  useSeedance2ConfigController,
   useVideoBackends,
   useVideoPaneMediaController,
   VideoPaneMediaView,
   VideoParamField,
   videoInputCropAspectForProjectAspect,
-  type BeatVideoGenerationInput,
-  type Seedance2ConfigDraft,
-  type Seedance2DurationBounds,
   type Seedance2LabelIdentityMaps,
-  type Seedance2Resolution,
 } from "@/modules/production/public";
 import {
   Select,
@@ -166,7 +138,6 @@ interface VideoPaneProps {
 }
 
 type Seedance2ReferenceField = "prompt_guidance" | "final_prompt";
-const SEEDANCE2_AUTOSAVE_DELAY_MS = 800;
 
 /**
  * 视频 sub-tab — first-frame preview + video preview + per-beat regen.
@@ -184,7 +155,6 @@ export function VideoPane({
   const { spec } = useProjectAspectRatio(project);
   const frameAspectCss = ratioToCss(spec.renderAspect);
   const seedance2Id = useId();
-  const generateSeedance2Prompt = useGenerateSeedance2Prompt(project, episode);
   const updateBeat = useUpdateBeat(project, episode);
   const legacyPrompt = useLegacyVideoPromptController({
     beat,
@@ -194,7 +164,6 @@ export function VideoPane({
   });
   const { data: videoBackendsRes } = useVideoBackends(project);
   const videoBackends = videoBackendsRes?.data ?? [];
-  const seedance2PromptCost = useGenerationCreditCost("feature", "seedance2_prompt");
   const assetOperations = useSeedance2AssetOperationsController({
     beatNumber: beat.beat_number,
     episode,
@@ -226,75 +195,6 @@ export function VideoPane({
     showHappyHorseConfig ||
     showGrokVideoConfig ||
     isSeedanceReferenceCropBackend(defaultBackend);
-  const showSeedance2ValueStyle =
-    showSeedance2Config && isSeedance2ValueBackend(defaultBackend);
-  const seedance2ResolutionOptions = useMemo(
-    () => seedance2ResolutionOptionsForBackend(defaultBackend),
-    [defaultBackend],
-  );
-  const seedance2DurationBounds = useMemo(
-    () => seedance2DurationBoundsForBackend(selectedBackend),
-    [selectedBackend],
-  );
-  const happyHorseResolutionOptions = useMemo(
-    () => happyHorseResolutionOptionsForBackend(selectedBackend),
-    [selectedBackend],
-  );
-  const happyHorseRatioOptions = useMemo(
-    () => happyHorseRatioOptionsForBackend(selectedBackend),
-    [selectedBackend],
-  );
-  const grokVideoResolutionOptions = useMemo(
-    () => grokVideoResolutionOptionsForBackend(selectedBackend),
-    [selectedBackend],
-  );
-  const grokVideoRatioOptions = useMemo(
-    () => grokVideoRatioOptionsForBackend(selectedBackend),
-    [selectedBackend],
-  );
-  // seedance-1.5-pro：复用清晰度/时长控件（精品剧+解说剧），但不走 seedance2 多模态那套。
-  const isSd15ProConfig =
-    !showSeedance2Config && isSeedance15ProBackend(defaultBackend);
-  const audioFloorSeconds =
-    typeof beat.audio_duration_seconds === "number" &&
-    beat.audio_duration_seconds > 0
-      ? Math.ceil(beat.audio_duration_seconds)
-      : null;
-  // 时长下限 = max(模型下限, 音频时长)；视频时长须 >= 音频时长。
-  const sd15DurationBounds = useMemo<Seedance2DurationBounds>(
-    () => ({
-      min: Math.max(seedance2DurationBounds.min, audioFloorSeconds ?? 0),
-      max: seedance2DurationBounds.max,
-    }),
-    [seedance2DurationBounds.min, seedance2DurationBounds.max, audioFloorSeconds],
-  );
-  const [sd15Resolution, setSd15Resolution] =
-    useState<Seedance2Resolution>("720p");
-  const [sd15Duration, setSd15Duration] = useState<number>(
-    seedance2DurationBounds.min,
-  );
-  useEffect(() => {
-    if (!isSd15ProConfig) return;
-    const fallbackRes = seedance2ResolutionOptions.includes("720p")
-      ? "720p"
-      : seedance2ResolutionOptions[0];
-    setSd15Resolution((prev) =>
-      seedance2ResolutionOptions.includes(prev)
-        ? prev
-        : normalizeSeedance2Resolution(fallbackRes),
-    );
-    // 默认时长 = 音频下限（视频须 >= 音频）；用户可在控件里上调。
-    setSd15Duration(
-      clampDuration(audioFloorSeconds ?? sd15DurationBounds.min, sd15DurationBounds),
-    );
-  }, [
-    isSd15ProConfig,
-    beat.beat_number,
-    audioFloorSeconds,
-    seedance2ResolutionOptions,
-    sd15DurationBounds.min,
-    sd15DurationBounds.max,
-  ]);
   const seedance2Status = useSeedance2BeatStatus(
     project,
     episode,
@@ -303,6 +203,39 @@ export function VideoPane({
   );
   const seedance2StatusData =
     seedance2Status.data?.ok === true ? seedance2Status.data.data : null;
+  const videoConfig = useSeedance2ConfigController({
+    backend: defaultBackend,
+    beat,
+    episode,
+    project,
+    projectAspect: spec.renderAspect,
+    selectedBackend,
+    showGrokVideoConfig,
+    showHappyHorseConfig,
+    showSeedance2Config,
+    refetchStatus: seedance2Status.refetch,
+    updateBeat: updateBeat.mutateAsync,
+  });
+  const seedance2Draft = videoConfig.draft;
+  const seedance2ResolutionOptions = videoConfig.seedance2ResolutionOptions;
+  const seedance2DurationBounds = videoConfig.seedance2DurationBounds;
+  const happyHorseResolutionOptions =
+    videoConfig.happyHorseResolutionOptions;
+  const happyHorseRatioOptions = videoConfig.happyHorseRatioOptions;
+  const grokVideoResolutionOptions = videoConfig.grokResolutionOptions;
+  const grokVideoRatioOptions = videoConfig.grokRatioOptions;
+  const isSd15ProConfig = videoConfig.isSeedance15ProConfig;
+  const showSeedance2ValueStyle = videoConfig.isValueStyle;
+  const sd15DurationBounds = videoConfig.seedance15DurationBounds;
+  const sd15Resolution = videoConfig.seedance15Resolution;
+  const sd15Duration = videoConfig.seedance15Duration;
+  const setSd15Resolution = videoConfig.setSeedance15Resolution;
+  const setSd15Duration = videoConfig.setSeedance15Duration;
+  const changeSeedance2Draft = videoConfig.changeDraft;
+  const updateSeedance2Draft = videoConfig.updateDraft;
+  const updateSeedance2Mode = videoConfig.updateMode;
+  const seedance2Ready = videoConfig.ready;
+  const seedance2PromptCostDisplay = videoConfig.promptCostDisplay;
   const seedance2AssetItems = seedance2StatusData?.assets.items ?? [];
   const modelReferenceAssetItems = useMemo(
     () =>
@@ -350,90 +283,6 @@ export function VideoPane({
       }) ?? null,
     [seedance2AssetItems],
   );
-  const seedance2Config = useMemo(
-    () =>
-      parseSeedance2Config(
-        beat.seedance2_config_json,
-        seedance2DefaultRatioForProjectAspect(spec.renderAspect),
-      ),
-    [beat.seedance2_config_json, spec.renderAspect],
-  );
-  const [seedance2Draft, setSeedance2Draft] = useState(seedance2Config);
-  const seedance2PromptCostDisplay =
-    seedance2PromptCost.data?.data.display ??
-    (seedance2PromptCost.error instanceof BillingRuleNotConfiguredError
-      ? t("common.billingRuleNotConfiguredShort")
-      : null);
-  const seedance2DraftRef = useRef(seedance2Config);
-  const normalizedLegacySeedance2ConfigRef = useRef("");
-  const lastSavedSeedance2ConfigKeyRef = useRef("");
-  // Always mirrors the currently-mounted beat so async handlers (e.g. AI prompt
-  // optimize) can tell whether the user switched beats while a request was in
-  // flight. `beat` captured in a handler closure is frozen at trigger time, so a
-  // ref is the only way to read the *live* beat after an await. See issue #39.
-  const currentBeatNumberRef = useRef(beat.beat_number);
-  currentBeatNumberRef.current = beat.beat_number;
-  useEffect(() => {
-    setSeedance2Draft(seedance2Config);
-    seedance2DraftRef.current = seedance2Config;
-    lastSavedSeedance2ConfigKeyRef.current = getSeedance2ConfigSaveKey(
-      beat.beat_number,
-      serializeSeedance2Config(seedance2Config, seedance2Config),
-    );
-  }, [beat.beat_number, seedance2Config]);
-  useEffect(() => {
-    if (!showSeedance2Config && !showHappyHorseConfig && !showGrokVideoConfig) return;
-    const current = seedance2DraftRef.current;
-    const next = showGrokVideoConfig
-      ? normalizeGrokVideoDraftForBackend(
-          current,
-          grokVideoResolutionOptions,
-          grokVideoRatioOptions,
-        )
-      : showHappyHorseConfig
-      ? normalizeHappyHorseDraftForBackend(
-          current,
-          happyHorseResolutionOptions,
-          happyHorseRatioOptions,
-        )
-      : normalizeSeedance2DraftForBackend(
-          current,
-          seedance2ResolutionOptions,
-          defaultBackend,
-          showSeedance2ValueStyle,
-        );
-    if (sameSeedance2Config(current, next)) return;
-    seedance2DraftRef.current = next;
-    setSeedance2Draft(next);
-  }, [
-    defaultBackend,
-    grokVideoRatioOptions,
-    grokVideoResolutionOptions,
-    showGrokVideoConfig,
-    happyHorseRatioOptions,
-    happyHorseResolutionOptions,
-    showHappyHorseConfig,
-    seedance2ResolutionOptions,
-    showSeedance2Config,
-    showSeedance2ValueStyle,
-  ]);
-  useEffect(() => {
-    if (!showSeedance2Config && !showHappyHorseConfig && !showGrokVideoConfig) return;
-    const current = seedance2DraftRef.current;
-    const nextDuration = clampDuration(current.duration, seedance2DurationBounds);
-    if (current.duration === nextDuration) return;
-    const next = { ...current, duration: nextDuration };
-    seedance2DraftRef.current = next;
-    setSeedance2Draft(next);
-  }, [
-    seedance2DurationBounds.max,
-    seedance2DurationBounds.min,
-    showGrokVideoConfig,
-    showHappyHorseConfig,
-    showSeedance2Config,
-  ]);
-  const seedance2Dirty = !sameSeedance2Config(seedance2Draft, seedance2Config);
-  const seedance2Ready = seedance2Draft.final_prompt.trim().length > 0;
   const seedance2ReturnedLastFrameSrc =
     seedance2Draft.return_last_frame && seedance2ReturnedLastFrameAsset
       ? resolveMediaUrl(
@@ -493,96 +342,18 @@ export function VideoPane({
   const seedance2PromptStatus = seedance2Ready
     ? t("episode.workbench.video.seedance2Ready")
     : t("episode.workbench.video.seedance2Missing");
-  const saveSeedance2Draft = async (
-    draft: Seedance2ConfigDraft,
-    options: { silent?: boolean; suppressSuccess?: boolean } = {},
-  ) => {
-    const nextConfig = showGrokVideoConfig
-      ? serializeGrokVideoConfig(draft, seedance2Config)
-      : showHappyHorseConfig
-      ? serializeHappyHorseConfig(draft, seedance2Config)
-      : serializeSeedance2Config(draft, seedance2Config);
-    const nextConfigJson = JSON.stringify(nextConfig);
-    try {
-      await updateBeat.mutateAsync({
-        beatNum: beat.beat_number,
-        data: { seedance2_config_json: nextConfigJson },
-      });
-      lastSavedSeedance2ConfigKeyRef.current = getSeedance2ConfigSaveKey(
-        beat.beat_number,
-        nextConfig,
-      );
-      void seedance2Status.refetch?.();
-      if (!options.silent && !options.suppressSuccess) {
-        toast.success(t("episode.workbench.video.seedance2Saved"));
-      }
-      return true;
-    } catch {
-      if (!options.silent) {
-        toast.error(t("episode.workbench.video.regenFailed"));
-      }
-      return false;
-    }
-  };
-  const generationInput: BeatVideoGenerationInput = showSeedance2Config
-    ? {
-        backend: defaultBackend,
-        beatNumber: beat.beat_number,
-        kind: "seedance2",
-        dirty: seedance2Dirty,
-        draft: seedance2DraftRef.current,
-        isValueStyle: showSeedance2ValueStyle,
-        resolutionOptions: seedance2ResolutionOptions,
-        sourceConfig: seedance2Config,
-      }
-    : showHappyHorseConfig
-      ? {
-          backend: defaultBackend,
-          beatNumber: beat.beat_number,
-          kind: "happyhorse",
-          draft: seedance2DraftRef.current,
-          ratioOptions: happyHorseRatioOptions,
-          resolutionOptions: happyHorseResolutionOptions,
-          sourceConfig: seedance2Config,
-        }
-      : showGrokVideoConfig
-        ? {
-            backend: defaultBackend,
-            beatNumber: beat.beat_number,
-            kind: "grok",
-            draft: seedance2DraftRef.current,
-            ratioOptions: grokVideoRatioOptions,
-            resolutionOptions: grokVideoResolutionOptions,
-            sourceConfig: seedance2Config,
-          }
-        : {
-            backend: defaultBackend,
-            beatNumber: beat.beat_number,
-            kind: "legacy",
-            ...(isSd15ProConfig
-              ? {
-                  seedance15: {
-                    duration: sd15Duration,
-                    resolution: sd15Resolution,
-                  },
-                }
-              : {}),
-          };
   const generation = useBeatVideoGenerationController({
-    applyNormalizedDraft: (draft) => {
-      seedance2DraftRef.current = draft;
-      setSeedance2Draft(draft);
-    },
+    applyNormalizedDraft: videoConfig.applyDraft,
     beatNumber: beat.beat_number,
     episode,
-    generationInput,
+    generationInput: videoConfig.generationInput,
     project,
     prompt: showPromptConfig
       ? seedance2Draft.final_prompt
       : legacyPrompt.prompt,
     promptKind: showPromptConfig ? "seedance2" : "legacy",
     saveDraft: (draft) =>
-      saveSeedance2Draft(draft, { suppressSuccess: true }),
+      videoConfig.saveDraft(draft, { suppressSuccess: true }),
   });
   const mediaController = useVideoPaneMediaController({
     beatNumber: beat.beat_number,
@@ -596,125 +367,6 @@ export function VideoPane({
     useSeedance2Preview: showSeedance2Config,
   });
   const hasGeneratedVideo = mediaController.hasGeneratedVideo;
-  useEffect(() => {
-    if (!showSeedance2Config) return;
-    const raw = seedance2Config.raw;
-    const shouldNormalizeMode =
-      raw.mode === "first_frame" &&
-      raw.mode_user_set !== true &&
-      seedance2Config.mode === "multimodal_reference";
-    const shouldNormalizeAudio =
-      raw.generate_audio === false && raw.generate_audio_user_set === true;
-    if (!shouldNormalizeMode && !shouldNormalizeAudio) return;
-    const key = `${beat.beat_number}:${String(beat.seedance2_config_json ?? "")}`;
-    if (normalizedLegacySeedance2ConfigRef.current === key) return;
-    normalizedLegacySeedance2ConfigRef.current = key;
-    void saveSeedance2Draft(seedance2Config, { silent: true });
-  }, [
-    beat.beat_number,
-    beat.seedance2_config_json,
-    seedance2Config,
-    showSeedance2Config,
-  ]);
-  useEffect(() => {
-    if (!showPromptConfig || !seedance2Dirty) return;
-    const nextConfig = showGrokVideoConfig
-      ? serializeGrokVideoConfig(seedance2Draft, seedance2Config)
-      : showHappyHorseConfig
-      ? serializeHappyHorseConfig(seedance2Draft, seedance2Config)
-      : serializeSeedance2Config(seedance2Draft, seedance2Config);
-    const saveKey = getSeedance2ConfigSaveKey(beat.beat_number, nextConfig);
-    if (lastSavedSeedance2ConfigKeyRef.current === saveKey) return;
-    const timer = window.setTimeout(() => {
-      void saveSeedance2Draft(seedance2DraftRef.current, {
-        suppressSuccess: true,
-      });
-    }, SEEDANCE2_AUTOSAVE_DELAY_MS);
-    return () => window.clearTimeout(timer);
-  }, [
-    beat.beat_number,
-    seedance2Config,
-    seedance2Dirty,
-    seedance2Draft,
-    showHappyHorseConfig,
-    showGrokVideoConfig,
-    showPromptConfig,
-    showSeedance2Config,
-  ]);
-  const handleGenerateSeedance2Prompt = async () => {
-    // Bind the result to the beat that triggered the optimize. The request is
-    // async; if the user switches beats before it returns, applying the result
-    // to the now-mounted beat's draft would autosave it onto the WRONG beat
-    // (issue #39). The backend persists the optimized prompt to this beat and
-    // onSuccess patches it into the beats cache, so a switched-away result is
-    // safe to drop locally — it will show when the user returns to this beat.
-    const triggeredBeatNumber = beat.beat_number;
-    try {
-      const res = await generateSeedance2Prompt.mutateAsync({
-        beatNum: triggeredBeatNumber,
-        manualPromptReference: seedance2Draft.final_prompt,
-        promptGuidance: seedance2Draft.prompt_guidance,
-      });
-      if (!res.ok) {
-        toast.error(
-          res.error || t("episode.workbench.video.seedance2PromptGenerateFailed"),
-        );
-        return;
-      }
-      if (currentBeatNumberRef.current !== triggeredBeatNumber) {
-        // User moved to another beat while optimizing. Do NOT touch the current
-        // draft — the triggering beat is already updated server-side + in cache.
-        toast.success(
-          t("episode.workbench.video.seedance2PromptGeneratedOtherBeat", {
-            n: triggeredBeatNumber,
-          }),
-        );
-        return;
-      }
-      const parsedDraft = parseSeedance2Config(
-        res.data.seedance2_config_json,
-        seedance2DefaultRatioForProjectAspect(spec.renderAspect),
-      );
-      const nextDraft = showGrokVideoConfig
-        ? normalizeGrokVideoDraftForBackend(
-            parsedDraft,
-            grokVideoResolutionOptions,
-            grokVideoRatioOptions,
-          )
-        : showHappyHorseConfig
-        ? normalizeHappyHorseDraftForBackend(
-            parsedDraft,
-            happyHorseResolutionOptions,
-            happyHorseRatioOptions,
-          )
-        : parsedDraft;
-      seedance2DraftRef.current = nextDraft;
-      setSeedance2Draft(nextDraft);
-      void seedance2Status.refetch?.();
-      toast.success(
-        showHappyHorseConfig || showGrokVideoConfig
-          ? "主体提示词已优化"
-          : t("episode.workbench.video.seedance2PromptGenerated"),
-      );
-    } catch (error) {
-      toast.error(backendErrorToastMessage(error, t));
-    }
-  };
-  const updateSeedance2Draft = <K extends keyof Seedance2ConfigDraft>(
-    key: K,
-    value: Seedance2ConfigDraft[K],
-  ) => {
-    setSeedance2Draft((current) => {
-      const next = { ...current, [key]: value };
-      seedance2DraftRef.current = next;
-      return next;
-    });
-  };
-  const updateSeedance2Mode = (mode: Seedance2ConfigDraft["mode"]) => {
-    const next = { ...seedance2DraftRef.current, mode, mode_user_set: true };
-    seedance2DraftRef.current = next;
-    setSeedance2Draft(next);
-  };
 
   // 参考素材的「label↔身份(URL)」映射变化时（增删/重排导致后端重新编号），把提示词里
   // 的 @图片N/@音频N 按素材身份重新对号、被删的移除。后端拿到的仍是图片N，生成视频时
@@ -734,26 +386,35 @@ export function VideoPane({
     // 切 beat / 首帧：只记录基线，不重映射（避免用上一个 beat 的映射改新 beat 的词）。
     if (!prev || prev.beatNumber !== beat.beat_number) return;
     if (sameSeedance2LabelIdentity(prev.maps, seedance2LabelIdentity)) return;
-    const current = seedance2DraftRef.current;
-    const nextFinal = remapSeedance2Mentions(
-      current.final_prompt,
-      prev.maps,
-      seedance2LabelIdentity,
-    );
-    const nextGuidance = remapSeedance2Mentions(
-      current.prompt_guidance,
-      prev.maps,
-      seedance2LabelIdentity,
-    );
-    if (nextFinal !== current.final_prompt) {
-      updateSeedance2Draft("final_prompt", nextFinal);
-    }
-    if (nextGuidance !== current.prompt_guidance) {
-      updateSeedance2Draft("prompt_guidance", nextGuidance);
-    }
-    // updateSeedance2Draft / seedance2DraftRef 为组件内稳定引用，无需进依赖。
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seedance2LabelIdentity, beat.beat_number, showPromptConfig]);
+    changeSeedance2Draft((current) => {
+      const finalPrompt = remapSeedance2Mentions(
+        current.final_prompt,
+        prev.maps,
+        seedance2LabelIdentity,
+      );
+      const promptGuidance = remapSeedance2Mentions(
+        current.prompt_guidance,
+        prev.maps,
+        seedance2LabelIdentity,
+      );
+      if (
+        finalPrompt === current.final_prompt &&
+        promptGuidance === current.prompt_guidance
+      ) {
+        return current;
+      }
+      return {
+        ...current,
+        final_prompt: finalPrompt,
+        prompt_guidance: promptGuidance,
+      };
+    });
+  }, [
+    beat.beat_number,
+    changeSeedance2Draft,
+    seedance2LabelIdentity,
+    showPromptConfig,
+  ]);
   const insertSeedance2Reference = (
     field: Seedance2ReferenceField,
     label: string,
@@ -765,7 +426,7 @@ export function VideoPane({
     // Mirror MentionTextarea.insertMention: every inserted reference is followed
     // by a single space so the next reference/word can't glue onto it.
     const token = `@${label} `;
-    setSeedance2Draft((current) => {
+    changeSeedance2Draft((current) => {
       const rawText = current[field];
       const text = rawText.trimEnd();
       if (options.selectionRange) {
@@ -782,12 +443,10 @@ export function VideoPane({
           `${rawText.slice(0, start)}${token}${after}`,
           seedance2ReferenceLabels,
         ).text;
-        const next = {
+        return {
           ...current,
           [field]: nextText,
         };
-        seedance2DraftRef.current = next;
-        return next;
       }
       const mention = options.replaceTrailingMention
         ? findSeedance2TrailingMention(text)
@@ -803,12 +462,10 @@ export function VideoPane({
         finalPrompt,
         seedance2ReferenceLabels,
       ).text;
-      const next = {
+      return {
         ...current,
         [field]: nextText,
       };
-      seedance2DraftRef.current = next;
-      return next;
     });
   };
   const rememberSeedance2PromptSelection = (
@@ -911,14 +568,13 @@ export function VideoPane({
     }
   };
   const appendSeedance2PromptGuidanceTemplate = (template: string) => {
-    const current = seedance2DraftRef.current;
-    if (current.prompt_guidance.includes(template)) return;
-    const guidance = [current.prompt_guidance.trim(), template]
-      .filter(Boolean)
-      .join("\n");
-    const next = { ...current, prompt_guidance: guidance };
-    seedance2DraftRef.current = next;
-    setSeedance2Draft(next);
+    changeSeedance2Draft((current) => {
+      if (current.prompt_guidance.includes(template)) return current;
+      const promptGuidance = [current.prompt_guidance.trim(), template]
+        .filter(Boolean)
+        .join("\n");
+      return { ...current, prompt_guidance: promptGuidance };
+    });
   };
   const renderSeedance2ReferenceControls = (field: Seedance2ReferenceField) => {
     if (activeMentionField !== field) return null;
@@ -1617,11 +1273,11 @@ export function VideoPane({
                 <Button
                   size="xs"
                   variant="outline"
-                  disabled={generateSeedance2Prompt.isPending}
-                  onClick={handleGenerateSeedance2Prompt}
+                  disabled={videoConfig.promptPending}
+                  onClick={() => void videoConfig.generatePrompt()}
                   className={MEDIA_PRIMARY_ACTION_BUTTON_CLASS}
                 >
-                  {generateSeedance2Prompt.isPending ? (
+                  {videoConfig.promptPending ? (
                     <Loader2 className="size-3 animate-spin" />
                   ) : (
                     <WandSparkles className="size-3" />
