@@ -1,11 +1,13 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import { resolveNodeGenerationTaskState } from '@/features/canvas/application/nodeGenerationTaskState';
-import type { TaskState, TaskStatus } from '@/task-center/types';
+import {
+  resolveNodeGenerationTaskState,
+  type CanvasNodeGenerationTask,
+} from '@/features/canvas/application/nodeGenerationTaskState';
 
-function task(status: TaskStatus): TaskState {
-  return { status } as TaskState;
+function task(status: string): CanvasNodeGenerationTask {
+  return { status };
 }
 
 describe('resolveNodeGenerationTaskState', () => {
@@ -91,5 +93,21 @@ describe('resolveNodeGenerationTaskState', () => {
         taskCenterHydrated: true,
       }).isGenerating,
     ).toBe(false);
+  });
+
+  it('preserves a failed task error for node-level error synchronization', () => {
+    const failedTask: CanvasNodeGenerationTask = {
+      error: 'audio generation failed',
+      status: 'failed',
+    };
+
+    const resolved = resolveNodeGenerationTaskState({
+      data: { generationTaskKey: 'task-1' },
+      task: failedTask,
+      taskCenterHydrated: true,
+    });
+
+    expect(resolved.task).toBe(failedTask);
+    expect(resolved.taskIsActive).toBe(false);
   });
 });

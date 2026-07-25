@@ -256,6 +256,14 @@ describe("frontend architecture boundaries", () => {
       )
       .map(relativeSource)
       .sort();
+    const directTaskCenterUsers = sourceFiles(applicationRoot)
+      .filter((path) =>
+        importSpecifiers(path).some((specifier) =>
+          specifier.startsWith("@/task-center/"),
+        ),
+      )
+      .map(relativeSource)
+      .sort();
     const directWindowUsers = sourceFiles(applicationRoot)
       .filter((path) => readFileSync(path, "utf8").includes("window."))
       .map(relativeSource)
@@ -446,6 +454,7 @@ describe("frontend architecture boundaries", () => {
     expect(directCanvasStoreUsers).toEqual([]);
     expect(directUrlUsers).toEqual([]);
     expect(directTaskCenterStoreUsers).toEqual([]);
+    expect(directTaskCenterUsers).toEqual([]);
     expect(directWindowUsers).toEqual([]);
     expect(directNavigatorUsers).toEqual([]);
     expect(directWorkerUsers).toEqual([]);
@@ -529,6 +538,9 @@ describe("frontend architecture boundaries", () => {
     expect(upstreamGraphHook).toContain("upstreamNodesInEdgeOrder(");
     expect(nodeGenerationTaskState).toContain(
       "export function resolveNodeGenerationTaskState(",
+    );
+    expect(nodeGenerationTaskState).toContain(
+      "export interface CanvasNodeGenerationTask",
     );
     expect(nodeGenerationTaskStateHook).toContain("useTaskCenterStore(");
     expect(nodeGenerationTaskStateHook).toContain(

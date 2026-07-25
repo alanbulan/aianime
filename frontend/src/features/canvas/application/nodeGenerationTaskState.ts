@@ -1,10 +1,24 @@
 // Copyright (c) 2026 AI anime
-import { isActive as isActiveTask } from '@/task-center/derivations';
-import type { TaskState } from '@/task-center/types';
+export interface CanvasNodeGenerationTask {
+  status: string;
+  error?: string | null;
+}
+
+const ACTIVE_TASK_STATUSES = new Set([
+  'submitting',
+  'queued',
+  'pending',
+  'starting',
+  'running',
+]);
+
+function isActiveTask(task: CanvasNodeGenerationTask): boolean {
+  return ACTIVE_TASK_STATUSES.has(task.status);
+}
 
 export interface NodeGenerationTaskState {
   taskKey: string;
-  task: TaskState | null;
+  task: CanvasNodeGenerationTask | null;
   taskIsActive: boolean;
   waitingForTaskRecord: boolean;
   optimisticOnly: boolean;
@@ -13,7 +27,7 @@ export interface NodeGenerationTaskState {
 
 export interface ResolveNodeGenerationTaskStateParams {
   data: unknown;
-  task: TaskState | null;
+  task: CanvasNodeGenerationTask | null;
   taskCenterHydrated: boolean;
   now?: number;
   taskKey?: string;
