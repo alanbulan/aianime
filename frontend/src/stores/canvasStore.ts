@@ -72,6 +72,7 @@ import {
 } from '@/features/canvas/domain/canvasStoryboardGroupConfig';
 import { reorderCanvasStoryboardGroupMember } from '@/features/canvas/domain/canvasStoryboardGroupMembers';
 import { convertCanvasStoryboardGroupToPlain } from '@/features/canvas/domain/canvasStoryboardGroupConversion';
+import { fitCanvasGroupToChildren } from '@/features/canvas/domain/canvasGroupFit';
 import { validateCanvasConnection } from '@/features/canvas/domain/canvasConnection';
 import { EXPORT_RESULT_DISPLAY_NAME } from '@/features/canvas/domain/nodeDisplay';
 import {
@@ -1337,85 +1338,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   fitGroupToChildren: (groupNodeId) => {
     const state = get();
-    const group = state.nodes.find((node) => node.id === groupNodeId);
-    // Storyboard groups size themselves from the compact thumbnail board and
-    // their members are hidden — never auto-fit them to (hidden) child bounds.
-    if (!isGroupNode(group)) {
+    const nodes = fitCanvasGroupToChildren(state.nodes, groupNodeId);
+    if (!nodes) {
       return;
     }
-    // Capture style while `group` is still narrowed to a group node. The
-    // storyboard / projection predicates below share isGroupNode's type
-    // predicate, so chaining them would collapse `group` to `never` for the
-    // rest of the function (TS subtracts the identical predicate type).
-    const groupStyle = group.style;
-    if (isProtectedProjectionGroupNode(group) || isStoryboardGroupNode(group)) {
-      return;
-    }
-    const children = state.nodes.filter((node) => node.parentId === groupNodeId);
-    if (children.length === 0) {
-      return;
-    }
-
-    // Match the paddings groupNodes / mergeStoryboardGroup create with, so a
-    // correctly-sized group is a no-op. TOP_PAD leaves room for the floating
-    // header (`-top-7`).
-    const SIDE_PAD = 20;
-    const TOP_PAD = 34;
-    let minX = Number.POSITIVE_INFINITY;
-    let minY = Number.POSITIVE_INFINITY;
-    let maxX = Number.NEGATIVE_INFINITY;
-    let maxY = Number.NEGATIVE_INFINITY;
-    for (const child of children) {
-      const size = getNodeSize(child);
-      minX = Math.min(minX, child.position.x);
-      minY = Math.min(minY, child.position.y);
-      maxX = Math.max(maxX, child.position.x + size.width);
-      maxY = Math.max(maxY, child.position.y + size.height);
-    }
-    if (!Number.isFinite(minX) || !Number.isFinite(minY)) {
-      return;
-    }
-
-    // Push members inward only when they spill past the top/left edge.
-    const shiftX = Math.max(0, Math.round(SIDE_PAD - minX));
-    const shiftY = Math.max(0, Math.round(TOP_PAD - minY));
-    const curWidth = typeof groupStyle?.width === 'number' ? groupStyle.width : 0;
-    const curHeight = typeof groupStyle?.height === 'number' ? groupStyle.height : 0;
-    const neededWidth = Math.round(maxX + shiftX + SIDE_PAD);
-    const neededHeight = Math.round(maxY + shiftY + SIDE_PAD);
-    // Grow-only so a manual enlarge is never clawed back.
-    const nextWidth = Math.max(curWidth, neededWidth);
-    const nextHeight = Math.max(curHeight, neededHeight);
-
-    if (shiftX === 0 && shiftY === 0 && nextWidth === curWidth && nextHeight === curHeight) {
-      return;
-    }
-
-    const childSet = new Set(children.map((child) => child.id));
-    const nextNodes = state.nodes.map((node) => {
-      if (node.id === groupNodeId) {
-        return {
-          ...node,
-          position: { x: node.position.x - shiftX, y: node.position.y - shiftY },
-          // width/height 必须与 style 同步：React Flow 渲染时显式 width 优先于
-          // style.width（getNodeInlineStyleDimensions），只改 style 视觉上不生效。
-          width: nextWidth,
-          height: nextHeight,
-          style: { ...(node.style ?? {}), width: nextWidth, height: nextHeight },
-        };
-      }
-      if ((shiftX !== 0 || shiftY !== 0) && childSet.has(node.id)) {
-        return {
-          ...node,
-          position: { x: node.position.x + shiftX, y: node.position.y + shiftY },
-        };
-      }
-      return node;
-    });
-
-    // Pure layout correction — no history push / trackEdit so it doesn't spam
-    // undo or autosave; it re-derives on next mount anyway.
-    set({ nodes: nextNodes });
+    set({ nodes });
   },
 
   arrangeGroupChildren: (groupNodeId, mode) => {

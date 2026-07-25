@@ -1346,6 +1346,56 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("displayName: image.displayName ?? '分镜'");
   });
 
+  it("keeps Canvas group fitting in the domain model", () => {
+    const fitPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/canvasGroupFit.ts",
+    );
+    const fitModel = readFileSync(fitPath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(fitPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const fitDeclaration = [
+      "export function",
+      "fitCanvasGroupToChildren(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(fitDeclaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/domain/canvasGroupFit.ts",
+    ]);
+    expect(fitModel).toContain(fitDeclaration);
+    expect(canvasStore).toContain(
+      "@/features/canvas/domain/canvasGroupFit",
+    );
+    expect(canvasStore).not.toContain("const groupStyle = group.style");
+    expect(canvasStore).not.toContain(
+      "const shiftX = Math.max(0, Math.round(SIDE_PAD - minX))",
+    );
+    expect(canvasStore).not.toContain(
+      "const childSet = new Set(children.map((child) => child.id))",
+    );
+  });
+
   it("keeps Canvas storyboard node layout out of the Zustand store", () => {
     const layoutPath = resolve(
       SRC_ROOT,
