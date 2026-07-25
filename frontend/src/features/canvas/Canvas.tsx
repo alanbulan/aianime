@@ -143,7 +143,6 @@ import {
 import { computeAutoLayout } from './application/autoLayout';
 import {
   isCanvasPaneTarget,
-  isSpacePanKey,
   isTypingTarget,
   PAN_ACTIVATION_KEY_CODE,
 } from './ui/canvasInteractionTargets';
@@ -162,6 +161,7 @@ import { useCanvasEdgePan } from './hooks/useCanvasEdgePan';
 import { useCanvasMinimapVisibility } from './hooks/useCanvasMinimapVisibility';
 import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
 import { useCanvasNodePlacementConfirm } from './hooks/useCanvasNodePlacementConfirm';
+import { useCanvasSpacePan } from './hooks/useCanvasSpacePan';
 import { useCanvasViewportCommit } from './hooks/useCanvasViewportCommit';
 
 const DEFAULT_EDGE_OPTIONS = { type: 'disconnectableEdge' };
@@ -441,13 +441,6 @@ export function Canvas({
     startClient: { x: number; y: number };
     startLocal: { x: number; y: number };
   } | null>(null);
-  // True while the space bar is held. React Flow's panActivationKeyCode defaults
-  // to 'Space', so space + left-drag pans the canvas — but our custom marquee
-  // box-select also runs on left-drag over the pane and would draw a dashed
-  // selection box on top of the pan. The marquee pointerdown bails when this is
-  // set so space-pan stays a clean grab.
-  const spacePanActiveRef = useRef(false);
-
   const nodes = useCanvasStore((state) => state.nodes);
   const edges = useCanvasStore((state) => state.edges);
   // 连线可见性：隐藏时只给 ReactFlow 的边打 `hidden`，真实 edges 一动不动（见
@@ -588,6 +581,7 @@ export function Canvas({
     marqueeSelectionRef.current = null;
     setMarqueeSelection(null);
   }, []);
+  const { isSpacePanActive } = useCanvasSpacePan(clearMarqueeSelection);
 
   useEffect(() => {
     let cancelled = false;
@@ -604,37 +598,6 @@ export function Canvas({
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (!isSpacePanKey(event) || isTypingTarget(event.target) || isImmersiveViewerActive()) {
-        return;
-      }
-      spacePanActiveRef.current = true;
-      clearMarqueeSelection();
-    };
-
-    const handleKeyUp = (event: KeyboardEvent) => {
-      if (!isSpacePanKey(event)) {
-        return;
-      }
-      spacePanActiveRef.current = false;
-    };
-
-    const handleBlur = () => {
-      spacePanActiveRef.current = false;
-      clearMarqueeSelection();
-    };
-
-    window.addEventListener('keydown', handleKeyDown, true);
-    window.addEventListener('keyup', handleKeyUp, true);
-    window.addEventListener('blur', handleBlur);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown, true);
-      window.removeEventListener('keyup', handleKeyUp, true);
-      window.removeEventListener('blur', handleBlur);
-    };
-  }, [clearMarqueeSelection]);
 
   const persistCanvasSnapshot = useCallback(() => {
     // ai-anime-fe web mode persists through useCanvasSync's Zustand
@@ -1416,36 +1379,6 @@ export function Canvas({
     return () => window.removeEventListener('keydown', handleMinimapKey);
   }, [toggleMinimapPinned]);
 
-  // Track the space bar so the marquee box-select can yield to space-pan.
-  // Ignored while typing (space is a normal character there). Reset on blur so a
-  // keyup that fires off-window (e.g. after an alt-tab) can't leave it stuck on.
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.code !== 'Space' || isTypingTarget(event.target)) {
-        return;
-      }
-      spacePanActiveRef.current = true;
-    };
-    const handleKeyUp = (event: KeyboardEvent) => {
-      if (event.code !== 'Space') {
-        return;
-      }
-      spacePanActiveRef.current = false;
-    };
-    const handleBlur = () => {
-      spacePanActiveRef.current = false;
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    window.addEventListener('blur', handleBlur);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-      window.removeEventListener('blur', handleBlur);
-    };
-  }, []);
-
   useEffect(() => {
     const wrapperElement = wrapperRef.current;
     if (!wrapperElement) {
@@ -1464,7 +1397,7 @@ export function Canvas({
       }
       // Space + left-drag is a pan gesture (React Flow's panActivationKeyCode).
       // Don't start a marquee on top of it, or a dashed box shows while panning.
-      if (spacePanActiveRef.current) {
+      if (isSpacePanActive()) {
         clearMarqueeSelection();
         return;
       }
@@ -1494,7 +1427,7 @@ export function Canvas({
       if (!gesture || event.pointerId !== gesture.pointerId) {
         return;
       }
-      if (spacePanActiveRef.current) {
+      if (isSpacePanActive()) {
         clearMarqueeSelection();
         return;
       }
@@ -1535,7 +1468,7 @@ export function Canvas({
       if (!gesture || event.pointerId !== gesture.pointerId) {
         return;
       }
-      if (spacePanActiveRef.current) {
+      if (isSpacePanActive()) {
         clearMarqueeSelection();
         return;
       }
@@ -1659,6 +1592,7 @@ export function Canvas({
   }, [
     applyNodesChange,
     clearMarqueeSelection,
+    isSpacePanActive,
     nodes,
     openNodeMenuAtClientPosition,
     pendingNodePlacement,
