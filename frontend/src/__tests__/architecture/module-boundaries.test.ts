@@ -3619,6 +3619,10 @@ describe("frontend architecture boundaries", () => {
       "export function",
       "canNodeBeManualConnectionSource(",
     ].join(" ");
+    const endpointEligibilityDeclaration = [
+      "export function",
+      "canConnectCanvasNodesManually(",
+    ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => {
         const source = readFileSync(path, "utf8");
@@ -3626,7 +3630,8 @@ describe("frontend architecture boundaries", () => {
           source.includes(validationDeclaration) ||
           source.includes(menuDeclaration) ||
           source.includes(typeEligibilityDeclaration) ||
-          source.includes(nodeEligibilityDeclaration)
+          source.includes(nodeEligibilityDeclaration) ||
+          source.includes(endpointEligibilityDeclaration)
         );
       })
       .map(relativeSource)
@@ -3640,6 +3645,7 @@ describe("frontend architecture boundaries", () => {
     expect(connectionModel).toContain(menuDeclaration);
     expect(connectionModel).toContain(typeEligibilityDeclaration);
     expect(connectionModel).toContain(nodeEligibilityDeclaration);
+    expect(connectionModel).toContain(endpointEligibilityDeclaration);
     expect(edgeCreationModel).toContain(
       "from '../domain/canvasConnection'",
     );
@@ -3651,6 +3657,7 @@ describe("frontend architecture boundaries", () => {
       "function canNodeTypeBeManualConnectionSource(",
     );
     expect(canvasView).not.toContain("function canNodeBeManualConnectionSource(");
+    expect(canvasView).not.toContain("function canConnectCanvasNodesManually(");
     expect(canvasView).not.toContain("THREE_D_WORLD_MANUAL_SOURCE_TYPES");
     expect(canvasView).not.toContain("PANO_360_DOWNSTREAM_IMAGE_TYPES");
     expect(canvasView).not.toContain("isUpstreamConnectionAllowed(");
@@ -3663,6 +3670,63 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain(
       "targetNode?.type === CANVAS_NODE_TYPES.threeDWorld",
     );
+  });
+
+  it("keeps Canvas batch-connection planning in the domain model", () => {
+    const planningPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/canvasBatchConnection.ts",
+    );
+    const planningModel = readFileSync(planningPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(planningPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declarations = [
+      "resolveCanvasBatchConnectContext(",
+      "planCanvasBatchConnectTarget(",
+    ].map((name) => ["export function", name].join(" "));
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => {
+        const source = readFileSync(path, "utf8");
+        return declarations.some((declaration) => source.includes(declaration));
+      })
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/domain/canvasBatchConnection.ts",
+    ]);
+    for (const declaration of declarations) {
+      expect(planningModel).toContain(declaration);
+    }
+    expect(planningModel).toContain("canConnectCanvasNodesManually(");
+    expect(planningModel).toContain("getDownstreamSpawnTypes(");
+    expect(planningModel).toContain("getNodeSize(");
+    expect(canvasView).toContain(
+      "@/features/canvas/domain/canvasBatchConnection",
+    );
+    expect(canvasView).not.toContain("getDownstreamSpawnTypes(");
+    expect(canvasView).not.toContain("nodeHasSourceHandle(");
+    expect(canvasView).not.toContain("nodeHasTargetHandle(");
+    expect(canvasView).not.toContain("const sourceIdSet = new Set(drag.sourceIds)");
+    expect(canvasView).not.toContain("let minY = Infinity");
   });
 
   it("keeps Canvas edge creation in the application layer", () => {

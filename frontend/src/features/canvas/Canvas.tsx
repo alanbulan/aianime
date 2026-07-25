@@ -39,10 +39,14 @@ import {
 import { findLinkedCapturePartnerIds } from '@/features/canvas/domain/canvasCapturePartners';
 import { resolveCanvasSelectionDeletion } from '@/features/canvas/domain/canvasSelectionDeletion';
 import {
+  canConnectCanvasNodesManually,
   canNodeBeManualConnectionSource,
-  canNodeTypeBeManualConnectionSource,
   resolveAllowedNodeTypes,
 } from '@/features/canvas/domain/canvasConnection';
+import {
+  planCanvasBatchConnectTarget,
+  resolveCanvasBatchConnectContext,
+} from '@/features/canvas/domain/canvasBatchConnection';
 import { useAppStore } from '@/stores/app-store';
 import { getSkillRegistry } from '@/api/skills';
 import { SKILL_SCHEMA_VERSION, type SkillDefinition } from '@/features/freezone/context/skillRoles';
@@ -83,11 +87,6 @@ import { nodeNeedsGenerationResume } from '@/features/canvas/application/resumeG
 import { readUrl } from '@/lib/url-params';
 import { useQueryClient } from '@tanstack/react-query';
 import { prefetchEpisodeBeats, prefetchEpisodeDetail } from '@/modules/narrative_planning/public';
-import {
-  getDownstreamSpawnTypes,
-  nodeHasSourceHandle,
-  nodeHasTargetHandle,
-} from '@/features/canvas/domain/nodeRegistry';
 import { nodeCatalog } from '@/features/canvas/application/nodeCatalog';
 import { nodeTypes as canvasNodeTypes } from './nodes';
 import { edgeTypes as canvasEdgeTypes } from './edges';
@@ -1855,9 +1854,7 @@ export function Canvas({
         if (
           sourceNode &&
           targetNode &&
-          canNodeTypeBeManualConnectionSource(sourceNode.type, targetNode.type) &&
-          nodeHasSourceHandle(sourceNode.type) &&
-          nodeHasTargetHandle(targetNode.type)
+          canConnectCanvasNodesManually(sourceNode, targetNode)
         ) {
           const sourceHandle =
             pendingConnectStart.handleType === 'source'
@@ -2046,9 +2043,7 @@ export function Canvas({
         if (
           sourceNode &&
           targetNode &&
-          canNodeTypeBeManualConnectionSource(sourceNode.type, targetNode.type) &&
-          nodeHasSourceHandle(sourceNode.type) &&
-          nodeHasTargetHandle(targetNode.type)
+          canConnectCanvasNodesManually(sourceNode, targetNode)
         ) {
           return el;
         }
@@ -2205,9 +2200,7 @@ export function Canvas({
         if (
           sourceNode &&
           targetNode &&
-          canNodeTypeBeManualConnectionSource(sourceNode.type, targetNode.type) &&
-          nodeHasSourceHandle(sourceNode.type) &&
-          nodeHasTargetHandle(targetNode.type)
+          canConnectCanvasNodesManually(sourceNode, targetNode)
         ) {
           const sourceHandle =
             pending.handleType === 'source'
@@ -2289,35 +2282,10 @@ export function Canvas({
   // ---- Batch connect from the multi-selection "+" -------------------------
   // Selected source-capable nodes + the downstream types valid for ALL of them
   // + the right-center of their bounding box (where a spawned node is anchored).
-  const getBatchConnectContext = useCallback(() => {
-    const sources = nodes.filter(
-      (node) => Boolean(node.selected) && nodeHasSourceHandle(node.type),
-    );
-    if (sources.length < 2) {
-      return null;
-    }
-    let allowed: CanvasNodeType[] | null = null;
-    let minY = Infinity;
-    let maxY = -Infinity;
-    let maxX = -Infinity;
-    for (const node of sources) {
-      const downstream = getDownstreamSpawnTypes(node.type);
-      allowed =
-        allowed === null ? downstream : allowed.filter((type) => downstream.includes(type));
-      const size = getNodeSize(node);
-      minY = Math.min(minY, node.position.y);
-      maxY = Math.max(maxY, node.position.y + size.height);
-      maxX = Math.max(maxX, node.position.x + size.width);
-    }
-    if (!allowed || allowed.length === 0) {
-      return null;
-    }
-    return {
-      sourceIds: sources.map((node) => node.id),
-      allowedTypes: allowed,
-      bboxRightCenter: { x: maxX, y: (minY + maxY) / 2 },
-    };
-  }, [nodes]);
+  const batchConnectContext = useMemo(
+    () => resolveCanvasBatchConnectContext(nodes),
+    [nodes],
+  );
 
   // Open the spawn menu pre-armed to fan all selected sources into the new node.
   const openBatchSpawnMenu = useCallback(
@@ -2347,7 +2315,7 @@ export function Canvas({
 
   const handleBatchConnectOpenMenu = useCallback(
     ({ clientPosition }: BatchConnectParams) => {
-      const ctx = getBatchConnectContext();
+      const ctx = batchConnectContext;
       if (!ctx) {
         return;
       }
@@ -2362,13 +2330,13 @@ export function Canvas({
         clientPosition,
       );
     },
-    [getBatchConnectContext, openBatchSpawnMenu, setPreviewConnectionVisual],
+    [batchConnectContext, openBatchSpawnMenu, setPreviewConnectionVisual],
   );
 
   const handleBatchConnectDragStart = useCallback(
     ({ clientPosition }: BatchConnectParams) => {
       const containerRect = wrapperRef.current?.getBoundingClientRect();
-      const ctx = getBatchConnectContext();
+      const ctx = batchConnectContext;
       if (!containerRect || !ctx) {
         return;
       }
@@ -2385,7 +2353,7 @@ export function Canvas({
       setPendingConnectStart(null);
       setPreviewConnectionVisual(null);
     },
-    [getBatchConnectContext, setPreviewConnectionVisual],
+    [batchConnectContext, setPreviewConnectionVisual],
   );
 
   const handleBatchConnectDragMove = useCallback(
@@ -2432,34 +2400,24 @@ export function Canvas({
         .elementFromPoint(clientPosition.x, clientPosition.y)
         ?.closest?.('.react-flow__node[data-id]') as HTMLElement | null;
       const dropNodeId = dropNodeElement?.dataset?.id ?? null;
-      const sourceIdSet = new Set(drag.sourceIds);
 
       // Dropped on an existing node → fan every valid source straight into it.
-      if (dropNodeId && !sourceIdSet.has(dropNodeId)) {
-        const targetNode = nodes.find((node) => node.id === dropNodeId);
-        if (targetNode && nodeHasTargetHandle(targetNode.type)) {
-          for (const sourceId of drag.sourceIds) {
-            const sourceNode = nodes.find((node) => node.id === sourceId);
-            if (
-              sourceNode &&
-              nodeHasSourceHandle(sourceNode.type) &&
-              canNodeTypeBeManualConnectionSource(sourceNode.type, targetNode.type)
-            ) {
-              connectGraphNodes({
-                source: sourceId,
-                target: dropNodeId,
-                sourceHandle: 'source',
-                targetHandle: 'target',
-              });
-            }
-          }
-          setPreviewConnectionVisual(null);
-          return;
+      const targetPlan = planCanvasBatchConnectTarget(nodes, drag.sourceIds, dropNodeId);
+      if (targetPlan) {
+        for (const sourceId of targetPlan.sourceIds) {
+          connectGraphNodes({
+            source: sourceId,
+            target: targetPlan.targetId,
+            sourceHandle: 'source',
+            targetHandle: 'target',
+          });
         }
+        setPreviewConnectionVisual(null);
+        return;
       }
 
       // Dropped on empty canvas (or an invalid target) → spawn menu at the drop.
-      const ctx = getBatchConnectContext();
+      const ctx = batchConnectContext;
       if (!ctx) {
         setPreviewConnectionVisual(null);
         return;
@@ -2472,8 +2430,8 @@ export function Canvas({
       );
     },
     [
+      batchConnectContext,
       connectGraphNodes,
-      getBatchConnectContext,
       nodes,
       openBatchSpawnMenu,
       reactFlowInstance,

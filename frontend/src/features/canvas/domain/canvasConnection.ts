@@ -114,6 +114,17 @@ export function canNodeBeManualConnectionSource(
   return canNodeTypeBeManualConnectionSource(node.type, targetType);
 }
 
+export function canConnectCanvasNodesManually(
+  sourceNode: CanvasNode,
+  targetNode: CanvasNode,
+): boolean {
+  return (
+    nodeHasSourceHandle(sourceNode.type)
+    && nodeHasTargetHandle(targetNode.type)
+    && canNodeTypeBeManualConnectionSource(sourceNode.type, targetNode.type)
+  );
+}
+
 export function validateCanvasConnection(
   nodes: readonly CanvasNode[],
   edges: readonly CanvasEdge[],

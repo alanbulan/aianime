@@ -8,6 +8,7 @@ import {
   type CanvasNodeType,
 } from './canvasNodes';
 import {
+  canConnectCanvasNodesManually,
   canNodeBeManualConnectionSource,
   canNodeTypeBeManualConnectionSource,
   resolveAllowedNodeTypes,
@@ -96,6 +97,18 @@ describe('Canvas connection rules', () => {
     expect(canNodeBeManualConnectionSource(invalidSource.id, nodes, target.id)).toBe(false);
     expect(canNodeBeManualConnectionSource('missing', nodes, target.id)).toBe(false);
     expect(canNodeBeManualConnectionSource(null, nodes)).toBe(false);
+  });
+
+  it('requires compatible source and target handles for manual node connections', () => {
+    const image = node('image', CANVAS_NODE_TYPES.exportImage);
+    const video = node('video', CANVAS_NODE_TYPES.video);
+    const world = node('world', CANVAS_NODE_TYPES.threeDWorld);
+    const group = node('group', CANVAS_NODE_TYPES.group);
+
+    expect(canConnectCanvasNodesManually(image, world)).toBe(true);
+    expect(canConnectCanvasNodesManually(video, world)).toBe(false);
+    expect(canConnectCanvasNodesManually(group, world)).toBe(false);
+    expect(canConnectCanvasNodesManually(image, group)).toBe(false);
   });
 
   it('lets React Flow own missing endpoint and handle validation', () => {
