@@ -89,8 +89,8 @@ import {
   BEAT_CONTEXT_NODE_DEFAULT_MEASURED,
   SKILL_NODE_DEFAULT_MEASURED,
   createDefaultStoryboardExportOptions,
-  normalizeCanvasNodes,
 } from '@/features/canvas/application/canvasNodeHydration';
+import { normalizeCanvasData } from '@/features/canvas/application/canvasDataNormalization';
 import { canvasNodeFactory } from '@/features/canvas/nodeFactoryComposition';
 import {
   isImageAutoResizableType,
@@ -142,7 +142,6 @@ import {
   validateCandidateBindingRoleCandidate,
   validatePropagatingEdgeCandidate,
 } from '@/features/freezone/context/mainlineContext';
-import { scopeProjectionGraphIds } from '@/features/freezone/projectionGraphIds';
 
 export type {
   ActiveToolDialog,
@@ -381,18 +380,6 @@ interface CanvasState extends CanvasMutationState {
    * not influence later autosaves.
    */
   acknowledgePendingClear: () => void;
-}
-
-function normalizeCanvasData(
-  rawNodes: CanvasNode[],
-  rawEdges: CanvasEdge[],
-): CanvasHistorySnapshot {
-  const scoped = scopeProjectionGraphIds(rawNodes, rawEdges);
-  const normalizedNodes = normalizeCanvasNodes(scoped.nodes);
-  return {
-    nodes: normalizedNodes,
-    edges: normalizeEdgesWithNodes(scoped.edges, normalizedNodes),
-  };
 }
 
 export const useCanvasStore = create<CanvasState>((set, get) => ({

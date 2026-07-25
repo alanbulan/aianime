@@ -962,22 +962,31 @@ describe("frontend architecture boundaries", () => {
     }
   });
 
-  it("keeps Canvas node hydration in the application layer", () => {
+  it("keeps Canvas graph hydration in the application layer", () => {
     const hydrationPath = resolve(
       SRC_ROOT,
       "features/canvas/application/canvasNodeHydration.ts",
     );
+    const normalizationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasDataNormalization.ts",
+    );
     const hydrationModel = readFileSync(hydrationPath, "utf8");
+    const normalizationModel = readFileSync(normalizationPath, "utf8");
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
     );
-    const forbiddenImports = importSpecifiers(hydrationPath).filter(
-      (specifier) =>
-        specifier === "zustand" ||
-        specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+    const forbiddenImports = [hydrationPath, normalizationPath].flatMap((path) =>
+      importSpecifiers(path)
+        .filter(
+          (specifier) =>
+            specifier === "zustand" ||
+            specifier.startsWith("@/stores/") ||
+            specifier.startsWith("@/features/canvas/infrastructure/") ||
+            specifier === "@/features/canvas/composition",
+        )
+        .map((specifier) => `${relativeSource(path)}: ${specifier}`),
     );
     const legacyRuleNames = [
       "isNoReferenceNode",
@@ -986,16 +995,35 @@ describe("frontend architecture boundaries", () => {
       "detachMissingParents",
       "sortParentNodesBeforeChildren",
       "normalizeCanvasNodes",
+      "normalizeCanvasData",
       "createDefaultStoryboardExportOptions",
     ];
+    const normalizationDeclaration = [
+      "export function",
+      "normalizeCanvasData(",
+    ].join(" ");
+    const normalizationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(normalizationDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(forbiddenImports).toEqual([]);
+    expect(normalizationOwners).toEqual([
+      "features/canvas/application/canvasDataNormalization.ts",
+    ]);
     expect(hydrationModel).toContain("export function normalizeCanvasNodes(");
+    expect(normalizationModel).toContain(normalizationDeclaration);
+    expect(normalizationModel).toContain("normalizeCanvasNodes(scoped.nodes)");
+    expect(normalizationModel).toContain(
+      "normalizeEdgesWithNodes(scoped.edges, nodes)",
+    );
     expect(hydrationModel).toContain(
       "export function createDefaultStoryboardExportOptions(",
     );
     expect(canvasStore).toContain(
-      "@/features/canvas/application/canvasNodeHydration",
+      "@/features/canvas/application/canvasDataNormalization",
     );
     for (const ruleName of legacyRuleNames) {
       expect(canvasStore).not.toContain(`function ${ruleName}(`);
