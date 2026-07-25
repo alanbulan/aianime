@@ -47,6 +47,7 @@ export {
   useUploadBeatImage,
   useUploadGrid,
   useUploadSeedance2Asset,
+  useBeatVideoGenerationController,
   useUpdateRenderSettings,
   useUpdateSketchSettings,
   useVideoBackends,
@@ -60,6 +61,10 @@ export type {
 export { Seedance2AssetCropDialog } from "@/modules/production/presentation/Seedance2AssetCropDialog";
 export { Seedance2AudioTrimDialog } from "@/modules/production/presentation/Seedance2AudioTrimDialog";
 export { LegacyVideoPromptView } from "@/modules/production/presentation/LegacyVideoPromptView";
+export {
+  BeatVideoGenerationAction,
+  BeatVideoGenerationConfirmDialog,
+} from "@/modules/production/presentation/BeatVideoGenerationView";
 export {
   Seedance2ReferenceAssetsView,
   Seedance2ReferenceCropAssetsView,

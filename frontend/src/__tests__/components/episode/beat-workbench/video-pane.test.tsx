@@ -452,6 +452,9 @@ const videoQueryMocks = vi.hoisted(() => ({
 
 vi.mock("@/modules/production/public", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/modules/production/public")>();
+  const { createUseBeatVideoGenerationController } = await import(
+    "@/modules/production/application/use-beat-video-generation-controller"
+  );
   const { createUseLegacyVideoPromptController } = await import(
     "@/modules/production/application/use-legacy-video-prompt-controller"
   );
@@ -470,6 +473,17 @@ vi.mock("@/modules/production/public", async (importOriginal) => {
         }),
       },
     );
+  const useBeatVideoGenerationController =
+    createUseBeatVideoGenerationController(
+      {
+        useRegenerateBeatVideo: videoQueryMocks.useRegenerateBeatVideo,
+      },
+      {
+        useGenerationCreditCost: () => ({
+          data: { data: { display: null } },
+        }),
+      },
+    );
   const useSeedance2AssetOperationsController =
     createUseSeedance2AssetOperationsController({
       useUploadSeedance2Asset: videoQueryMocks.useUploadSeedance2Asset,
@@ -479,9 +493,9 @@ vi.mock("@/modules/production/public", async (importOriginal) => {
     });
   return {
     ...actual,
+    useBeatVideoGenerationController,
     useSeedance2AssetOperationsController,
     useSeedance2BeatStatus: videoQueryMocks.useSeedance2BeatStatus,
-    useRegenerateBeatVideo: videoQueryMocks.useRegenerateBeatVideo,
     useGenerateSeedance2Prompt: videoQueryMocks.useGenerateSeedance2Prompt,
     useLegacyVideoPromptController,
     useNarratorVoiceStatus: videoQueryMocks.useNarratorVoiceStatus,

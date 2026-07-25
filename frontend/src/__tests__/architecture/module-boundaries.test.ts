@@ -636,6 +636,11 @@ describe("frontend architecture boundaries", () => {
     expect(videoPaneSource).not.toContain("happyHorseConfigJson");
     expect(videoPaneSource).not.toContain("grokVideoConfigJson");
     expect(videoPaneSource).not.toContain("seedance2ConfigJson:");
+    expect(videoPaneSource).not.toContain("useRegenerateBeatVideo(");
+    expect(videoPaneSource).not.toContain("useTaskController(");
+    expect(videoPaneSource).not.toContain("regenTask");
+    expect(videoPaneSource).not.toContain("handleRegen");
+    expect(videoPaneSource).not.toContain("<AlertDialog");
     expect(legacySketchQueries).not.toContain("useAssignColors");
     expect(legacySketchQueries).not.toContain("useDetectIdentities");
     expect(legacySketchQueries).not.toContain("useDirectorControlToSketch");

@@ -12,12 +12,9 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
   Download,
-  Film,
   Image as ImageIcon,
   Loader2,
-  RefreshCw,
   Settings2,
-  Square,
   WandSparkles,
 } from "lucide-react";
 
@@ -29,8 +26,6 @@ import { resolveMediaUrl } from "@/lib/media-url";
 import { ratioToCss } from "@/lib/aspect-ratio";
 import { useProjectAspectRatio } from "@/stores/aspect-ratio-store";
 import { cn } from "@/lib/utils";
-import { useTaskController } from "@/hooks/use-task-controller";
-import { queryKeys } from "@/lib/query-keys";
 import { normalizeMentionSeparatorSpaces } from "@/lib/mention-markers";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import { CreditCostInline } from "@/components/credit-cost-inline";
@@ -44,6 +39,8 @@ import {
 } from "@/modules/narrative_planning/public";
 import {
   buildSeedance2LabelIdentityMaps,
+  BeatVideoGenerationAction,
+  BeatVideoGenerationConfirmDialog,
   clampDuration,
   findSeedance2TrailingMention,
   getSeedance2MentionQuery,
@@ -65,7 +62,6 @@ import {
   normalizeSeedance2Ratio,
   normalizeSeedance2Resolution,
   parseSeedance2Config,
-  prepareBeatVideoGeneration,
   sameSeedance2Config,
   sameSeedance2LabelIdentity,
   seedance2DefaultRatioForProjectAspect,
@@ -85,8 +81,8 @@ import {
   Seedance2SummaryPill,
   seedance2CropAspectForMode,
   useGenerateSeedance2Prompt,
+  useBeatVideoGenerationController,
   useLegacyVideoPromptController,
-  useRegenerateBeatVideo,
   useSeedance2AssetOperationsController,
   useSeedance2BeatStatus,
   useVideoBackends,
@@ -100,16 +96,6 @@ import {
   type Seedance2LabelIdentityMaps,
   type Seedance2Resolution,
 } from "@/modules/production/public";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -198,7 +184,6 @@ export function VideoPane({
   const { spec } = useProjectAspectRatio(project);
   const frameAspectCss = ratioToCss(spec.renderAspect);
   const seedance2Id = useId();
-  const regenerate = useRegenerateBeatVideo(project, episode);
   const generateSeedance2Prompt = useGenerateSeedance2Prompt(project, episode);
   const updateBeat = useUpdateBeat(project, episode);
   const legacyPrompt = useLegacyVideoPromptController({
@@ -207,22 +192,9 @@ export function VideoPane({
     project,
     updateBeat: (command) => updateBeat.mutateAsync(command),
   });
-  const regenTask = useTaskController({
-    key: {
-      taskType: "single_video",
-      project,
-      episode,
-      beatNum: beat.beat_number,
-    },
-    invalidateKeys: [
-      queryKeys.beats(project, episode),
-      queryKeys.videoPool(project, episode),
-    ],
-  });
   const { data: videoBackendsRes } = useVideoBackends(project);
   const videoBackends = videoBackendsRes?.data ?? [];
   const seedance2PromptCost = useGenerationCreditCost("feature", "seedance2_prompt");
-  const [regenConfirm, setRegenConfirm] = useState(false);
   const assetOperations = useSeedance2AssetOperationsController({
     beatNumber: beat.beat_number,
     episode,
@@ -323,21 +295,6 @@ export function VideoPane({
     sd15DurationBounds.min,
     sd15DurationBounds.max,
   ]);
-  const mediaController = useVideoPaneMediaController({
-    beatNumber: beat.beat_number,
-    episode,
-    project,
-    state,
-    videoActive: regenTask.started,
-    videoBackends,
-    videoProgress: regenTask.stream?.progress ?? 0,
-    videoUrl: beat.video_url,
-    useSeedance2Preview: showSeedance2Config,
-  });
-  const hasGeneratedVideo = mediaController.hasGeneratedVideo;
-  const videoActionLabel = hasGeneratedVideo
-    ? t("common.regenerate")
-    : t("episode.workbench.video.generateVideo");
   const seedance2Status = useSeedance2BeatStatus(
     project,
     episode,
@@ -402,21 +359,6 @@ export function VideoPane({
     [beat.seedance2_config_json, spec.renderAspect],
   );
   const [seedance2Draft, setSeedance2Draft] = useState(seedance2Config);
-  const videoCost = useGenerationCreditCost("video_backend", defaultBackend, {
-    surface: "ai_anime",
-    params: {
-      resolution: showSeedance2Config || showHappyHorseConfig || showGrokVideoConfig
-        ? seedance2Draft.resolution
-        : isSd15ProConfig
-          ? sd15Resolution
-          : "720p",
-    },
-    quantity: showSeedance2Config || showHappyHorseConfig || showGrokVideoConfig
-      ? seedance2Draft.duration
-      : isSd15ProConfig
-        ? sd15Duration
-        : 5,
-  });
   const seedance2PromptCostDisplay =
     seedance2PromptCost.data?.data.display ??
     (seedance2PromptCost.error instanceof BillingRuleNotConfiguredError
@@ -551,103 +493,6 @@ export function VideoPane({
   const seedance2PromptStatus = seedance2Ready
     ? t("episode.workbench.video.seedance2Ready")
     : t("episode.workbench.video.seedance2Missing");
-  const validateVideoPromptReady = () => {
-    if (showPromptConfig) {
-      if (!seedance2DraftRef.current.final_prompt.trim()) {
-        toast.error(
-          t("episode.workbench.video.seedance2PromptRequired", {
-            n: beat.beat_number,
-          }),
-        );
-        return false;
-      }
-      return true;
-    }
-    if (!legacyPrompt.prompt.trim()) {
-      toast.error(
-        t("episode.workbench.video.beatVideoPromptRequired", {
-          n: beat.beat_number,
-        }),
-      );
-      return false;
-    }
-    return true;
-  };
-  const openRegenConfirm = () => {
-    if (!validateVideoPromptReady()) return;
-    setRegenConfirm(true);
-  };
-  const handleRegen = async () => {
-    try {
-      const generationInput: BeatVideoGenerationInput = showSeedance2Config
-        ? {
-            backend: defaultBackend,
-            beatNumber: beat.beat_number,
-            kind: "seedance2",
-            dirty: seedance2Dirty,
-            draft: seedance2DraftRef.current,
-            isValueStyle: showSeedance2ValueStyle,
-            resolutionOptions: seedance2ResolutionOptions,
-            sourceConfig: seedance2Config,
-          }
-        : showHappyHorseConfig
-          ? {
-              backend: defaultBackend,
-              beatNumber: beat.beat_number,
-              kind: "happyhorse",
-              draft: seedance2DraftRef.current,
-              ratioOptions: happyHorseRatioOptions,
-              resolutionOptions: happyHorseResolutionOptions,
-              sourceConfig: seedance2Config,
-            }
-          : showGrokVideoConfig
-            ? {
-                backend: defaultBackend,
-                beatNumber: beat.beat_number,
-                kind: "grok",
-                draft: seedance2DraftRef.current,
-                ratioOptions: grokVideoRatioOptions,
-                resolutionOptions: grokVideoResolutionOptions,
-                sourceConfig: seedance2Config,
-              }
-            : {
-                backend: defaultBackend,
-                beatNumber: beat.beat_number,
-                kind: "legacy",
-                ...(isSd15ProConfig
-                  ? {
-                      seedance15: {
-                        duration: sd15Duration,
-                        resolution: sd15Resolution,
-                      },
-                    }
-                  : {}),
-              };
-      const prepared = prepareBeatVideoGeneration(generationInput);
-      if (prepared.normalizedDraft && prepared.draftChanged) {
-        seedance2DraftRef.current = prepared.normalizedDraft;
-        setSeedance2Draft(prepared.normalizedDraft);
-      }
-      if (
-        prepared.normalizedDraft &&
-        prepared.saveDraftBeforeGeneration
-      ) {
-        const saved = await saveSeedance2Draft(prepared.normalizedDraft, {
-          suppressSuccess: true,
-        });
-        if (!saved) return;
-      }
-      const res = await regenerate.mutateAsync(prepared.command);
-      if (res.ok === false) {
-        toast.error(res.error || t("episode.workbench.video.regenFailed"));
-        return;
-      }
-      regenTask.start();
-      toast.success(t("episode.workbench.video.started", { n: beat.beat_number }));
-    } catch (err) {
-      toast.error(backendErrorToastMessage(err, t));
-    }
-  };
   const saveSeedance2Draft = async (
     draft: Seedance2ConfigDraft,
     options: { silent?: boolean; suppressSuccess?: boolean } = {},
@@ -679,6 +524,78 @@ export function VideoPane({
       return false;
     }
   };
+  const generationInput: BeatVideoGenerationInput = showSeedance2Config
+    ? {
+        backend: defaultBackend,
+        beatNumber: beat.beat_number,
+        kind: "seedance2",
+        dirty: seedance2Dirty,
+        draft: seedance2DraftRef.current,
+        isValueStyle: showSeedance2ValueStyle,
+        resolutionOptions: seedance2ResolutionOptions,
+        sourceConfig: seedance2Config,
+      }
+    : showHappyHorseConfig
+      ? {
+          backend: defaultBackend,
+          beatNumber: beat.beat_number,
+          kind: "happyhorse",
+          draft: seedance2DraftRef.current,
+          ratioOptions: happyHorseRatioOptions,
+          resolutionOptions: happyHorseResolutionOptions,
+          sourceConfig: seedance2Config,
+        }
+      : showGrokVideoConfig
+        ? {
+            backend: defaultBackend,
+            beatNumber: beat.beat_number,
+            kind: "grok",
+            draft: seedance2DraftRef.current,
+            ratioOptions: grokVideoRatioOptions,
+            resolutionOptions: grokVideoResolutionOptions,
+            sourceConfig: seedance2Config,
+          }
+        : {
+            backend: defaultBackend,
+            beatNumber: beat.beat_number,
+            kind: "legacy",
+            ...(isSd15ProConfig
+              ? {
+                  seedance15: {
+                    duration: sd15Duration,
+                    resolution: sd15Resolution,
+                  },
+                }
+              : {}),
+          };
+  const generation = useBeatVideoGenerationController({
+    applyNormalizedDraft: (draft) => {
+      seedance2DraftRef.current = draft;
+      setSeedance2Draft(draft);
+    },
+    beatNumber: beat.beat_number,
+    episode,
+    generationInput,
+    project,
+    prompt: showPromptConfig
+      ? seedance2Draft.final_prompt
+      : legacyPrompt.prompt,
+    promptKind: showPromptConfig ? "seedance2" : "legacy",
+    saveDraft: (draft) =>
+      saveSeedance2Draft(draft, { suppressSuccess: true }),
+  });
+  const mediaController = useVideoPaneMediaController({
+    beatNumber: beat.beat_number,
+    episode,
+    project,
+    state,
+    videoActive: generation.started,
+    videoBackends,
+    videoProgress: generation.progress,
+    videoUrl: beat.video_url,
+    useSeedance2Preview: showSeedance2Config,
+  });
+  const hasGeneratedVideo = mediaController.hasGeneratedVideo;
   useEffect(() => {
     if (!showSeedance2Config) return;
     const raw = seedance2Config.raw;
@@ -1246,40 +1163,11 @@ export function VideoPane({
             </>
           )}
           <VideoParamField label="" hiddenLabel>
-            {regenTask.started ? (
-              <Button
-                size="xs"
-                variant="outline"
-                onClick={() => void regenTask.stop()}
-                disabled={regenTask.stopping}
-                className={VIDEO_PARAM_ACTION_CLASS}
-              >
-                {regenTask.stopping ? (
-                  <Loader2 className="size-3 animate-spin" />
-                ) : (
-                  <Square className="size-3" />
-                )}
-                {t("common.stop")}
-              </Button>
-            ) : (
-              <Button
-                size="xs"
-                variant="outline"
-                onClick={openRegenConfirm}
-                disabled={regenerate.isPending}
-                className={VIDEO_PARAM_ACTION_CLASS}
-              >
-                {regenerate.isPending ? (
-                  <Loader2 className="size-3 animate-spin" />
-                ) : hasGeneratedVideo ? (
-                  <RefreshCw className="size-3" />
-                ) : (
-                  <Film className="size-3" />
-                )}
-                {videoActionLabel}
-                <CreditCostInline display={videoCost.data?.data.display} />
-              </Button>
-            )}
+            <BeatVideoGenerationAction
+              className={VIDEO_PARAM_ACTION_CLASS}
+              controller={generation}
+              hasGeneratedVideo={hasGeneratedVideo}
+            />
           </VideoParamField>
         </div>
       )}
@@ -1745,40 +1633,11 @@ export function VideoPane({
                     : t("episode.workbench.video.seedance2GeneratePrompt")}
                   <CreditCostInline display={seedance2PromptCostDisplay} />
                 </Button>
-                {regenTask.started ? (
-                  <Button
-                    size="xs"
-                    variant="outline"
-                    onClick={() => void regenTask.stop()}
-                    disabled={regenTask.stopping}
-                    className={MEDIA_PRIMARY_ACTION_BUTTON_CLASS}
-                  >
-                    {regenTask.stopping ? (
-                      <Loader2 className="size-3 animate-spin" />
-                    ) : (
-                      <Square className="size-3" />
-                    )}
-                    {t("common.stop")}
-                  </Button>
-                ) : (
-                  <Button
-                    size="xs"
-                    variant="outline"
-                    onClick={openRegenConfirm}
-                    disabled={regenerate.isPending}
-                    className={MEDIA_PRIMARY_ACTION_BUTTON_CLASS}
-                  >
-                    {regenerate.isPending ? (
-                      <Loader2 className="size-3 animate-spin" />
-                    ) : hasGeneratedVideo ? (
-                      <RefreshCw className="size-3" />
-                    ) : (
-                      <Film className="size-3" />
-                    )}
-                    {videoActionLabel}
-                    <CreditCostInline display={videoCost.data?.data.display} />
-                  </Button>
-                )}
+                <BeatVideoGenerationAction
+                  className={MEDIA_PRIMARY_ACTION_BUTTON_CLASS}
+                  controller={generation}
+                  hasGeneratedVideo={hasGeneratedVideo}
+                />
               </div>
             </div>
           </div>
@@ -1815,34 +1674,10 @@ export function VideoPane({
         onSave={assetOperations.saveTrim}
       />
 
-      <AlertDialog open={regenConfirm} onOpenChange={setRegenConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {hasGeneratedVideo
-                ? t("episode.workbench.video.regenTitle")
-                : t("episode.workbench.video.genTitle")}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {hasGeneratedVideo
-                ? t("episode.workbench.video.regenDesc", { n: beat.beat_number })
-                : t("episode.workbench.video.genDesc", { n: beat.beat_number })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (!validateVideoPromptReady()) return;
-                setRegenConfirm(false);
-                handleRegen();
-              }}
-            >
-              {t("common.confirm")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <BeatVideoGenerationConfirmDialog
+        controller={generation}
+        hasGeneratedVideo={hasGeneratedVideo}
+      />
     </div>
   );
 }
