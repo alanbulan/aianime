@@ -100,6 +100,8 @@ export type {
   RenderPlanDialogControllerQueries,
   RenderPlanStaleBanner,
 } from "@/modules/production/application/use-render-plan-dialog-controller";
+export { SketchCropDialogView } from "@/modules/production/presentation/SketchCropDialogView";
+export type { SketchCropDialogViewProps } from "@/modules/production/presentation/SketchCropDialogView";
 export type {
   BatchPanelController,
   BatchPanelControllerDependencies,

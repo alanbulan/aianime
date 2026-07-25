@@ -29,13 +29,19 @@ vi.mock("sonner", () => ({
   },
 }));
 
-vi.mock("@/modules/production/public", () => ({
-  useSketchPoseEditor: () => poseEditorQueryMock(),
-  useCropSketch: () => ({
-    mutateAsync: cropSketchMock,
-    isPending: false,
-  }),
-}));
+vi.mock("@/modules/production/public", async () => {
+  const { SketchCropDialogView } = await import(
+    "@/modules/production/presentation/SketchCropDialogView"
+  );
+  return {
+    SketchCropDialogView,
+    useSketchPoseEditor: () => poseEditorQueryMock(),
+    useCropSketch: () => ({
+      mutateAsync: cropSketchMock,
+      isPending: false,
+    }),
+  };
+});
 
 describe("SketchCropDialog", () => {
   beforeEach(() => {

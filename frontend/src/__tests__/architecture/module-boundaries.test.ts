@@ -581,6 +581,20 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const sketchCropDialogSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "components/episode/beat-workbench/sketch-crop-dialog.tsx",
+      ),
+      "utf8",
+    );
+    const sketchCropDialogViewSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/production/presentation/SketchCropDialogView.tsx",
+      ),
+      "utf8",
+    );
     const sketchRegenQueueDomainSource = readFileSync(
       resolve(
         SRC_ROOT,
@@ -1164,6 +1178,23 @@ describe("frontend architecture boundaries", () => {
     expect(renderPlanDialogViewSource).not.toContain("useQueries(");
     expect(renderPlanDialogViewSource).not.toContain("toast.");
     expect(renderPlanDialogViewSource).not.toContain("@/shared/api/transport");
+    expect(sketchCropDialogSource).toContain("<SketchCropDialogView");
+    expect(sketchCropDialogSource).toContain("useSketchPoseEditor(");
+    expect(sketchCropDialogSource).toContain("useCropSketch(");
+    expect(sketchCropDialogSource).toContain("toast.");
+    expect(sketchCropDialogSource).not.toContain("className=");
+    expect(sketchCropDialogSource).not.toContain("<Dialog");
+    expect(sketchCropDialogSource).not.toContain("<Button");
+    expect(sketchCropDialogSource).not.toContain("cropBoxPercentStyle");
+    expect(sketchCropDialogViewSource).toContain("className=");
+    expect(sketchCropDialogViewSource).toContain("<Dialog");
+    expect(sketchCropDialogViewSource).toContain("<Button");
+    expect(sketchCropDialogViewSource).toContain("cropBoxPercentStyle(");
+    expect(sketchCropDialogViewSource).not.toContain("useSketchPoseEditor(");
+    expect(sketchCropDialogViewSource).not.toContain("useCropSketch(");
+    expect(sketchCropDialogViewSource).not.toContain("useState(");
+    expect(sketchCropDialogViewSource).not.toContain("useEffect(");
+    expect(sketchCropDialogViewSource).not.toContain("toast.");
     expect(sketchRegenQueueDomainSource).toContain(
       "export function createSketchRegenPlanItems",
     );
