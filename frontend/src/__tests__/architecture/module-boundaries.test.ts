@@ -1399,6 +1399,48 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("onMoveStart=");
   });
 
+  it("keeps Canvas viewport bookmark shortcuts in one presentation hook", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasViewportBookmarkShortcuts.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const hookDeclaration = [
+      "export function",
+      "useCanvasViewportBookmarkShortcuts(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(hookDeclaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasViewportBookmarkShortcuts.ts",
+    ]);
+    expect(hookModel).toContain("digitToBookmarkIndex");
+    expect(hookModel).toContain("isTypingTarget");
+    expect(hookModel).toContain("isImmersiveViewerActive");
+    expect(canvasView).toContain("./hooks/useCanvasViewportBookmarkShortcuts");
+    expect(canvasView).not.toContain("handleBookmarkKeys");
+    expect(canvasView).not.toContain("digitToBookmarkIndex");
+  });
+
   it("keeps Canvas edge-pan gestures in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,

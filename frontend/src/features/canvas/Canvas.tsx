@@ -84,10 +84,7 @@ import type { CanvasAsset } from '@/features/canvas/domain/canvasAssets';
 import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
 import { CanvasMinimapBookmarksOverlay } from '@/features/canvas/ui/CanvasMinimapBookmarksOverlay';
 import { captureCurrentViewport, jumpToBookmark } from '@/features/canvas/application/bookmarkActions';
-import {
-  digitToBookmarkIndex,
-  resolveCanvasOriginViewport,
-} from '@/features/canvas/domain/viewportBookmarks';
+import { resolveCanvasOriginViewport } from '@/features/canvas/domain/viewportBookmarks';
 import {
   isPresetManagedEdge,
   isPresetManagedNode,
@@ -162,6 +159,7 @@ import { useCanvasMinimapVisibility } from './hooks/useCanvasMinimapVisibility';
 import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
 import { useCanvasNodePlacementConfirm } from './hooks/useCanvasNodePlacementConfirm';
 import { useCanvasPaneContextMenu } from './hooks/useCanvasPaneContextMenu';
+import { useCanvasViewportBookmarkShortcuts } from './hooks/useCanvasViewportBookmarkShortcuts';
 import { useCanvasViewportCommit } from './hooks/useCanvasViewportCommit';
 
 const DEFAULT_EDGE_OPTIONS = { type: 'disconnectableEdge' };
@@ -532,6 +530,24 @@ export function Canvas({
     setSelectedNodeId: setSelectedNode,
     onMarqueeStart: handleMarqueeStart,
   });
+  const viewportBookmarkCommands = useMemo(
+    () => ({
+      clearBookmarks: () => useCanvasStore.getState().clearViewportBookmarks(),
+      captureBookmark: (index: number) => {
+        useCanvasStore
+          .getState()
+          .setViewportBookmark(index, captureCurrentViewport(reactFlowInstance));
+      },
+      jumpToBookmarkSlot: (index: number) => {
+        const bookmark = useCanvasStore.getState().viewportBookmarks[index];
+        if (bookmark) {
+          jumpToBookmark(reactFlowInstance, bookmark);
+        }
+      },
+    }),
+    [reactFlowInstance],
+  );
+  useCanvasViewportBookmarkShortcuts(viewportBookmarkCommands);
   // ReactFlow only mounts after useCanvasSync has hydrated the store (freezone
   // web mode renders <Canvas> behind a loading gate), so the restored camera is
   // already in `currentViewport` by our first render. Capture it here and feed
@@ -1309,48 +1325,6 @@ export function Canvas({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [openNodeMenuAtClientPosition]);
-
-  // Viewport bookmarks: ⌘/Ctrl+digit captures the current viewport into a slot,
-  // a bare digit jumps to it, and ⌘/Ctrl+Shift+E clears them all.
-  useEffect(() => {
-    const handleBookmarkKeys = (event: KeyboardEvent) => {
-      if (isTypingTarget(event.target) || isImmersiveViewerActive()) {
-        return;
-      }
-      const commandPressed = event.ctrlKey || event.metaKey;
-
-      // ⌘/Ctrl + Shift + E — clear all bookmarks
-      if (commandPressed && event.shiftKey && event.key.toLowerCase() === 'e') {
-        event.preventDefault();
-        useCanvasStore.getState().clearViewportBookmarks();
-        return;
-      }
-
-      // Digit keys (no Shift/Alt). ⌘/Ctrl + digit sets; bare digit jumps.
-      if (event.shiftKey || event.altKey) {
-        return;
-      }
-      const index = digitToBookmarkIndex(event.key);
-      if (index == null) {
-        return;
-      }
-      if (commandPressed) {
-        event.preventDefault();
-        useCanvasStore
-          .getState()
-          .setViewportBookmark(index, captureCurrentViewport(reactFlowInstance));
-        return;
-      }
-      event.preventDefault();
-      const bookmark = useCanvasStore.getState().viewportBookmarks[index];
-      if (bookmark) {
-        jumpToBookmark(reactFlowInstance, bookmark);
-      }
-    };
-
-    window.addEventListener('keydown', handleBookmarkKeys);
-    return () => window.removeEventListener('keydown', handleBookmarkKeys);
-  }, [reactFlowInstance]);
 
   const selectedNodeIds = useMemo(
     () => nodes.filter((node) => Boolean(node.selected)).map((node) => node.id),
