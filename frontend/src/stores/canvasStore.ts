@@ -67,6 +67,10 @@ import {
   reorderStoryboardFrameInGraph,
   updateStoryboardFrameInGraph,
 } from '@/features/canvas/domain/storyboardFrames';
+import {
+  setCanvasNodePositions,
+  updateCanvasNodePosition,
+} from '@/features/canvas/domain/canvasNodePositions';
 import { collectNodeIdsWithDescendants } from '@/features/canvas/domain/groupSelectionDelete';
 import {
   nodeHasSourceHandle,
@@ -1390,54 +1394,24 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   updateNodePosition: (nodeId, position) => {
     set((state) => {
-      let changed = false;
-      const nextNodes = state.nodes.map((node) => {
-        if (node.id !== nodeId) {
-          return node;
-        }
-
-        if (node.position.x === position.x && node.position.y === position.y) {
-          return node;
-        }
-
-        changed = true;
-        return {
-          ...node,
-          position,
-        };
-      });
-
-      if (!changed) {
+      const result = updateCanvasNodePosition(state.nodes, nodeId, position);
+      if (!result.changed) {
         return {};
       }
 
-      return { nodes: nextNodes };
+      return { nodes: result.nodes };
     });
   },
 
   setNodePositions: (positions) => {
     set((state) => {
-      let changed = false;
-      const nextNodes = state.nodes.map((node) => {
-        const next = positions[node.id];
-        if (!next) {
-          return node;
-        }
-        const nextX = Math.round(next.x);
-        const nextY = Math.round(next.y);
-        if (node.position.x === nextX && node.position.y === nextY) {
-          return node;
-        }
-        changed = true;
-        return { ...node, position: { x: nextX, y: nextY } };
-      });
-
-      if (!changed) {
+      const result = setCanvasNodePositions(state.nodes, positions);
+      if (!result.changed) {
         return {};
       }
 
       return {
-        nodes: nextNodes,
+        nodes: result.nodes,
         history: {
           past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
           future: [],

@@ -875,6 +875,55 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps Canvas node position reducers out of the Zustand store", () => {
+    const positionsPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/canvasNodePositions.ts",
+    );
+    const positionsModel = readFileSync(positionsPath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(positionsPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier === "zustand" ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/"),
+    );
+    const singleDeclaration = [
+      "export function",
+      "updateCanvasNodePosition(",
+    ].join(" ");
+    const batchDeclaration = [
+      "export function",
+      "setCanvasNodePositions(",
+    ].join(" ");
+    const ruleOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => {
+        const source = readFileSync(path, "utf8");
+        return source.includes(singleDeclaration) || source.includes(batchDeclaration);
+      })
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(ruleOwners).toEqual([
+      "features/canvas/domain/canvasNodePositions.ts",
+    ]);
+    expect(positionsModel).toContain(singleDeclaration);
+    expect(positionsModel).toContain(batchDeclaration);
+    expect(canvasStore).toContain(
+      "@/features/canvas/domain/canvasNodePositions",
+    );
+    expect(canvasStore).not.toContain("const nextX = Math.round(next.x)");
+    expect(canvasStore).not.toContain("node.position.x === position.x");
+  });
+
   it("keeps Canvas edge hydration rules in the domain model", () => {
     const normalizationPath = resolve(
       SRC_ROOT,
