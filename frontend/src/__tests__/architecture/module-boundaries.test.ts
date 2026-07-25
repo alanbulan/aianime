@@ -1038,7 +1038,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps Production callers on its public API", () => {
     const moduleRoot = resolve(SRC_ROOT, "modules/production");
     const batchBarSource = readFileSync(
-      resolve(SRC_ROOT, "components/episode/beat-workbench/batch-bar.tsx"),
+      resolve(SRC_ROOT, "modules/production/BatchBar.tsx"),
       "utf8",
     );
     const batchBarViewSource = readFileSync(
@@ -1369,6 +1369,14 @@ describe("frontend architecture boundaries", () => {
       false,
     );
     expect(existsSync(resolve(SRC_ROOT, "types/render-plan.ts"))).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "components/episode/beat-workbench/batch-bar.tsx",
+        ),
+      ),
+    ).toBe(false);
     expect(
       existsSync(
         resolve(

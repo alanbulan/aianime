@@ -66,6 +66,8 @@ export {
 export type {
   VoiceConfigurationTarget,
 } from "@/modules/production/domain/audio-prerequisite";
+export { BatchBar } from "@/modules/production/BatchBar";
+export type { BatchBarProps } from "@/modules/production/BatchBar";
 export { NarratorVoicePanel } from "@/modules/production/NarratorVoicePanel";
 export type {
   NarratorVoicePanelProps,

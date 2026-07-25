@@ -5,7 +5,7 @@ import { I18nextProvider, initReactI18next } from "react-i18next";
 import i18next from "i18next";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { BatchBar } from "@/components/episode/beat-workbench/batch-bar";
+import { BatchBar } from "@/modules/production/BatchBar";
 
 const i18n = i18next.createInstance();
 
@@ -129,62 +129,56 @@ const {
   sketchModelChangeMock: vi.fn(),
 }));
 
-vi.mock("@/modules/production/public", async () => {
-  const { BatchBarView } = await import(
-    "@/modules/production/presentation/BatchBarView"
-  );
-  return {
-    BatchBarView,
-    useBatchBarController: ({
-      spineTemplate,
-      videoBackend,
-    }: {
-      spineTemplate: "drama" | "narrated";
-      videoBackend: string;
-    }) => ({
-      assignColorsPending: false,
-      audioPending: false,
-      audioUnavailableForVideoBackend:
-        videoBackend === "huimeng_seedance-2.0-fast",
-      detectIdentitiesCostDisplay: "5",
-      detectIdentitiesPending: false,
-      episodeAudioCostDisplay: "5",
-      errorDialog: null,
-      globalOptimizePending: false,
-      renderModel: {
-        isLoading: false,
-        isPending: false,
-        isVisible: true,
-        onChange: renderModelChangeMock,
-        options: [
-          { label: "Render Model A", value: "render-a" },
-          { label: "Render Model B", value: "render-b" },
-        ],
-        value: "render-a",
-      },
-      sketchAspectRatio: "2:3" as const,
-      sketchModel: {
-        isLoading: false,
-        isPending: false,
-        isVisible: true,
-        onChange: sketchModelChangeMock,
-        options: [
-          { label: "Sketch Model A", value: "sketch-a" },
-          { label: "Sketch Model B", value: "sketch-b" },
-        ],
-        value: "sketch-a",
-      },
-      showEpisodeAudio: spineTemplate !== "drama",
-      showGlobalOptimize: spineTemplate === "narrated",
-      onDetectIdentities: detectIdentitiesMock,
-      onDismissError: vi.fn(),
-      onGenerateAudio: vi.fn(),
-      onGlobalOptimize: vi.fn(),
-      onReassignColors: assignColorsMock,
-      onSketchAspectRatioChange: sketchAspectChangeMock,
-    }),
-  };
-});
+vi.mock("@/modules/production/composition", () => ({
+  useBatchBarController: ({
+    spineTemplate,
+    videoBackend,
+  }: {
+    spineTemplate: "drama" | "narrated";
+    videoBackend: string;
+  }) => ({
+    assignColorsPending: false,
+    audioPending: false,
+    audioUnavailableForVideoBackend:
+      videoBackend === "huimeng_seedance-2.0-fast",
+    detectIdentitiesCostDisplay: "5",
+    detectIdentitiesPending: false,
+    episodeAudioCostDisplay: "5",
+    errorDialog: null,
+    globalOptimizePending: false,
+    renderModel: {
+      isLoading: false,
+      isPending: false,
+      isVisible: true,
+      onChange: renderModelChangeMock,
+      options: [
+        { label: "Render Model A", value: "render-a" },
+        { label: "Render Model B", value: "render-b" },
+      ],
+      value: "render-a",
+    },
+    sketchAspectRatio: "2:3" as const,
+    sketchModel: {
+      isLoading: false,
+      isPending: false,
+      isVisible: true,
+      onChange: sketchModelChangeMock,
+      options: [
+        { label: "Sketch Model A", value: "sketch-a" },
+        { label: "Sketch Model B", value: "sketch-b" },
+      ],
+      value: "sketch-a",
+    },
+    showEpisodeAudio: spineTemplate !== "drama",
+    showGlobalOptimize: spineTemplate === "narrated",
+    onDetectIdentities: detectIdentitiesMock,
+    onDismissError: vi.fn(),
+    onGenerateAudio: vi.fn(),
+    onGlobalOptimize: vi.fn(),
+    onReassignColors: assignColorsMock,
+    onSketchAspectRatioChange: sketchAspectChangeMock,
+  }),
+}));
 
 beforeEach(() => {
   assignColorsMock.mockReset();

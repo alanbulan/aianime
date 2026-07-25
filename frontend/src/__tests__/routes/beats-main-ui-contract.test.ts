@@ -81,7 +81,7 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
       "src/modules/narrative_planning/presentation/ViewToggles.tsx",
     );
     const batchBar = read(
-      "src/components/episode/beat-workbench/batch-bar.tsx",
+      "src/modules/production/BatchBar.tsx",
     );
     const batchBarView = read(
       "src/modules/production/presentation/BatchBarView.tsx",
@@ -216,7 +216,7 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
 
   it("keeps Director Render video first-frame compatibility off the visible React UI", () => {
     const batchBar = read(
-      "src/components/episode/beat-workbench/batch-bar.tsx",
+      "src/modules/production/BatchBar.tsx",
     );
     const batchBarView = read(
       "src/modules/production/presentation/BatchBarView.tsx",
