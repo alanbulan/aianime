@@ -1,7 +1,6 @@
 import { createElement } from "react";
 
 import { CharacterImageSourceSelect } from "@/components/assets/character-image-source-select";
-import { NarratorVoicePanel } from "@/components/episode/beat-workbench/narrator-voice-panel";
 import { TaskControllerProvider } from "@/components/episode/task-controller-provider";
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
 import { useAssetFocus } from "@/hooks/use-asset-focus";
@@ -9,6 +8,7 @@ import { useNavigateToAsset } from "@/hooks/use-assets-deep-link";
 import { downloadBlobAsFile } from "@/lib/browserDownload";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import { isCeRuntime } from "@/lib/runtime-config";
+import { NarratorVoicePanel } from "@/modules/production/public";
 import { createBeatViewerQueryHooks } from "@/modules/asset_world/application/beat-viewer-query-hooks";
 import { useAssetReferenceIndex } from "@/modules/asset_world/application/use-asset-reference-index";
 import { createCharacterQueryHooks } from "@/modules/asset_world/application/character-query-hooks";

@@ -4,7 +4,7 @@ import i18next from "i18next";
 import { I18nextProvider, initReactI18next } from "react-i18next";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { NarratorVoicePanel } from "@/components/episode/beat-workbench/narrator-voice-panel";
+import { NarratorVoicePanel } from "@/modules/production/NarratorVoicePanel";
 
 const runtimeState = vi.hoisted(() => ({ isCeRuntime: true }));
 const toastErrorMock = vi.hoisted(() => vi.fn());
@@ -20,52 +20,46 @@ vi.mock("sonner", () => ({
   },
 }));
 
-vi.mock("@/modules/production/public", async (importOriginal) => {
-  const actual = await importOriginal<
-    typeof import("@/modules/production/public")
-  >();
-  return {
-    ...actual,
-    useNarratorVoicePanelController: () => ({
-      audioSrc: "/static/projects/demo/assets/narrator/voice.mp3",
-      canEdit: true,
-      copyPending: false,
-      explanation: "Project narrator voice.",
-      hasVoice: true,
-      heading: "Narrator voice",
-      pending: false,
-      projectAudioOpen: false,
-      recordedDataUrl: "",
-      recording: false,
-      recordOpen: false,
-      recordPending: false,
-      recordStatus: "",
-      selectedSourcePath: "",
-      sourceOptions: [],
-      sourcesLoading: false,
-      trimDuration: "4",
-      trimOpen: false,
-      trimPending: false,
-      trimStart: "0",
-      onApplyTrim: async () => undefined,
-      onDelete: async () => undefined,
-      onOpenProjectAudio: vi.fn(),
-      onOpenRecord: vi.fn(),
-      onOpenTrim: vi.fn(),
-      onProjectAudioOpenChange: vi.fn(),
-      onRecordOpenChange: vi.fn(),
-      onSaveRecording: async () => undefined,
-      onSelectedSourcePathChange: vi.fn(),
-      onStartRecording: async () => undefined,
-      onStopRecording: vi.fn(),
-      onTrimDurationChange: vi.fn(),
-      onTrimOpenChange: vi.fn(),
-      onTrimStartChange: vi.fn(),
-      onUpload: async () => undefined,
-      onUseProjectAudio: async () => undefined,
-    }),
-  };
-});
+vi.mock("@/modules/production/composition", () => ({
+  useNarratorVoicePanelController: () => ({
+    audioSrc: "/static/projects/demo/assets/narrator/voice.mp3",
+    canEdit: true,
+    copyPending: false,
+    explanation: "Project narrator voice.",
+    hasVoice: true,
+    heading: "Narrator voice",
+    pending: false,
+    projectAudioOpen: false,
+    recordedDataUrl: "",
+    recording: false,
+    recordOpen: false,
+    recordPending: false,
+    recordStatus: "",
+    selectedSourcePath: "",
+    sourceOptions: [],
+    sourcesLoading: false,
+    trimDuration: "4",
+    trimOpen: false,
+    trimPending: false,
+    trimStart: "0",
+    onApplyTrim: async () => undefined,
+    onDelete: async () => undefined,
+    onOpenProjectAudio: vi.fn(),
+    onOpenRecord: vi.fn(),
+    onOpenTrim: vi.fn(),
+    onProjectAudioOpenChange: vi.fn(),
+    onRecordOpenChange: vi.fn(),
+    onSaveRecording: async () => undefined,
+    onSelectedSourcePathChange: vi.fn(),
+    onStartRecording: async () => undefined,
+    onStopRecording: vi.fn(),
+    onTrimDurationChange: vi.fn(),
+    onTrimOpenChange: vi.fn(),
+    onTrimStartChange: vi.fn(),
+    onUpload: async () => undefined,
+    onUseProjectAudio: async () => undefined,
+  }),
+}));
 
 const i18n = i18next.createInstance();
 

@@ -1292,7 +1292,7 @@ describe("frontend architecture boundaries", () => {
     const narratorVoicePanelSource = readFileSync(
       resolve(
         SRC_ROOT,
-        "components/episode/beat-workbench/narrator-voice-panel.tsx",
+        "modules/production/NarratorVoicePanel.tsx",
       ),
       "utf8",
     );
@@ -1374,6 +1374,14 @@ describe("frontend architecture boundaries", () => {
         resolve(
           SRC_ROOT,
           "components/episode/beat-workbench/media-styles.ts",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "components/episode/beat-workbench/narrator-voice-panel.tsx",
         ),
       ),
     ).toBe(false);

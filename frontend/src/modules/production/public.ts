@@ -66,6 +66,10 @@ export {
 export type {
   VoiceConfigurationTarget,
 } from "@/modules/production/domain/audio-prerequisite";
+export { NarratorVoicePanel } from "@/modules/production/NarratorVoicePanel";
+export type {
+  NarratorVoicePanelProps,
+} from "@/modules/production/NarratorVoicePanel";
 export { Seedance2AssetCropDialog } from "@/modules/production/presentation/Seedance2AssetCropDialog";
 export { Seedance2AudioTrimDialog } from "@/modules/production/presentation/Seedance2AudioTrimDialog";
 export { Seedance2ConfigView } from "@/modules/production/presentation/Seedance2ConfigView";
