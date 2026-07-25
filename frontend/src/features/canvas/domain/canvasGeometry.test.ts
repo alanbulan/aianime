@@ -3,9 +3,12 @@ import { describe, expect, it } from 'vitest';
 
 import { CANVAS_NODE_TYPES, type CanvasNode } from './canvasNodes';
 import {
+  canvasViewportOverlapsRect,
   findAvailableNodePosition,
   getDerivedNodePosition,
   getNodeSize,
+  getTopLevelCanvasBounds,
+  hasVisibleTopLevelCanvasNode,
   hasRectCollision,
   rectsIntersect,
   resolveAbsolutePosition,
@@ -73,6 +76,71 @@ describe('Canvas geometry', () => {
     expect(rectsIntersect(anchor, { x: 59, y: 20, width: 20, height: 20 })).toBe(true);
     expect(rectsIntersect(anchor, { x: 60, y: 20, width: 20, height: 20 })).toBe(false);
     expect(rectsIntersect(anchor, { x: 20, y: 50, width: 20, height: 20 })).toBe(false);
+  });
+
+  it('builds top-level canvas bounds and ignores parent-relative children', () => {
+    const root = node('root', { x: 10, y: 20 }, {
+      measured: { width: 100, height: 50 },
+    });
+    const right = node('right', { x: 200, y: 100 }, {
+      width: 40,
+      height: 60,
+    });
+    const child = node('child', { x: 1000, y: 1000 }, {
+      parentId: root.id,
+      measured: { width: 500, height: 500 },
+    });
+
+    expect(getTopLevelCanvasBounds([root, right, child])).toEqual({
+      x: 10,
+      y: 20,
+      width: 230,
+      height: 140,
+    });
+    expect(getTopLevelCanvasBounds([child])).toBeNull();
+  });
+
+  it('detects whether a viewport overlaps a canvas rectangle', () => {
+    const bounds = { x: 0, y: 0, width: 100, height: 100 };
+    const viewportSize = { width: 100, height: 100 };
+
+    expect(
+      canvasViewportOverlapsRect({ x: 0, y: 0, zoom: 1 }, viewportSize, bounds),
+    ).toBe(true);
+    expect(
+      canvasViewportOverlapsRect({ x: -100, y: 0, zoom: 1 }, viewportSize, bounds),
+    ).toBe(false);
+    expect(
+      canvasViewportOverlapsRect({ x: -100, y: 0, zoom: 2 }, viewportSize, bounds),
+    ).toBe(true);
+  });
+
+  it('requires a real top-level node in view rather than only its aggregate bounds', () => {
+    const left = node('left', { x: 0, y: 0 }, {
+      measured: { width: 100, height: 100 },
+    });
+    const right = node('right', { x: 300, y: 0 }, {
+      measured: { width: 100, height: 100 },
+    });
+    const child = node('child', { x: 160, y: 0 }, {
+      parentId: left.id,
+      measured: { width: 40, height: 40 },
+    });
+
+    expect(
+      hasVisibleTopLevelCanvasNode(
+        [left, right, child],
+        { x: -150, y: 0, zoom: 1 },
+        { width: 100, height: 100 },
+      ),
+    ).toBe(false);
+    expect(
+      hasVisibleTopLevelCanvasNode(
+        [left, right, child],
+        { x: -250, y: 0, zoom: 1 },
+        { width: 100, height: 100 },
+      ),
+    ).toBe(true);
   });
 
   it('accumulates nested parent positions without mutating the graph', () => {

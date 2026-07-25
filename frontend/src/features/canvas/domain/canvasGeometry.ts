@@ -81,6 +81,69 @@ export function rectsIntersect(left: CanvasRect, right: CanvasRect): boolean {
   );
 }
 
+export function getTopLevelCanvasBounds(
+  nodes: readonly CanvasNode[],
+): CanvasRect | null {
+  const topLevelNodes = nodes.filter((node) => !node.parentId);
+  if (topLevelNodes.length === 0) {
+    return null;
+  }
+
+  let minX = Number.POSITIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+  for (const node of topLevelNodes) {
+    const size = getNodeSize(node);
+    minX = Math.min(minX, node.position.x);
+    minY = Math.min(minY, node.position.y);
+    maxX = Math.max(maxX, node.position.x + size.width);
+    maxY = Math.max(maxY, node.position.y + size.height);
+  }
+  if (!Number.isFinite(minX) || !Number.isFinite(minY)) {
+    return null;
+  }
+  return {
+    x: minX,
+    y: minY,
+    width: maxX - minX,
+    height: maxY - minY,
+  };
+}
+
+export function canvasViewportOverlapsRect(
+  viewport: { x: number; y: number; zoom: number },
+  viewportSize: { width: number; height: number },
+  rect: CanvasRect,
+): boolean {
+  const zoom = Math.max(0.01, viewport.zoom || 1);
+  return rectsIntersect(rect, {
+    x: -viewport.x / zoom,
+    y: -viewport.y / zoom,
+    width: viewportSize.width / zoom,
+    height: viewportSize.height / zoom,
+  });
+}
+
+export function hasVisibleTopLevelCanvasNode(
+  nodes: readonly CanvasNode[],
+  viewport: { x: number; y: number; zoom: number },
+  viewportSize: { width: number; height: number },
+): boolean {
+  return nodes.some((node) => {
+    if (node.parentId) {
+      return false;
+    }
+    const size = getNodeSize(node);
+    return canvasViewportOverlapsRect(viewport, viewportSize, {
+      x: node.position.x,
+      y: node.position.y,
+      width: size.width,
+      height: size.height,
+    });
+  });
+}
+
 export function resolveAbsolutePosition(
   node: CanvasNode,
   nodeMap: ReadonlyMap<string, CanvasNode>,

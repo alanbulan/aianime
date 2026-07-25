@@ -928,6 +928,10 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const backToNodesView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/ui/BackToNodesHint.tsx"),
+      "utf8",
+    );
     const forbiddenGeometryImports = importSpecifiers(geometryPath).filter(
       (specifier) =>
         specifier === "zustand" ||
@@ -947,6 +951,18 @@ describe("frontend architecture boundaries", () => {
       "export function",
       "rectsIntersect(",
     ].join(" ");
+    const boundsDeclaration = [
+      "export function",
+      "getTopLevelCanvasBounds(",
+    ].join(" ");
+    const viewportOverlapDeclaration = [
+      "export function",
+      "canvasViewportOverlapsRect(",
+    ].join(" ");
+    const visibleNodeDeclaration = [
+      "export function",
+      "hasVisibleTopLevelCanvasNode(",
+    ].join(" ");
     const placementOwners = sourceFiles(SRC_ROOT)
       .filter((path) =>
         readFileSync(path, "utf8").includes(placementDeclaration),
@@ -958,7 +974,10 @@ describe("frontend architecture boundaries", () => {
         const source = readFileSync(path, "utf8");
         return (
           source.includes(collisionDeclaration) ||
-          source.includes(intersectionDeclaration)
+          source.includes(intersectionDeclaration) ||
+          source.includes(boundsDeclaration) ||
+          source.includes(viewportOverlapDeclaration) ||
+          source.includes(visibleNodeDeclaration)
         );
       })
       .map(relativeSource)
@@ -974,6 +993,9 @@ describe("frontend architecture boundaries", () => {
     expect(geometryModel).toContain("export function getNodeSize(");
     expect(geometryModel).toContain(collisionDeclaration);
     expect(geometryModel).toContain(intersectionDeclaration);
+    expect(geometryModel).toContain(boundsDeclaration);
+    expect(geometryModel).toContain(viewportOverlapDeclaration);
+    expect(geometryModel).toContain(visibleNodeDeclaration);
     expect(geometryModel).toContain("export function resolveAbsolutePosition(");
     expect(geometryModel).toContain("export function getDerivedNodePosition(");
     expect(geometryModel).toContain(placementDeclaration);
@@ -992,6 +1014,14 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("function getNodeSize(");
     expect(canvasView).not.toContain("function hasRectCollision(");
     expect(canvasView).not.toContain("function rectsIntersect(");
+    expect(canvasView).not.toContain("const topLevelNodes = nodes.filter(");
+    expect(canvasView).not.toContain("const overlapsView =");
+    expect(backToNodesView).toContain(
+      "@/features/canvas/domain/canvasGeometry",
+    );
+    expect(backToNodesView).not.toContain("function nodeFallbackSize(");
+    expect(backToNodesView).not.toContain("let minX =");
+    expect(backToNodesView).not.toContain("const viewMinX =");
     expect(canvasView).not.toContain(
       "resolveAbsolutePosition, useCanvasStore",
     );

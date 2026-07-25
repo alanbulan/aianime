@@ -39,7 +39,9 @@ import { CreditDisplayHiddenProvider } from '@/components/credits/credit-visual'
 import { isCeRuntime } from '@/lib/runtime-config';
 import { useCanvasStore } from '@/stores/canvasStore';
 import {
+  canvasViewportOverlapsRect,
   getNodeSize,
+  getTopLevelCanvasBounds,
   hasRectCollision,
   rectsIntersect,
   resolveAbsolutePosition,
@@ -1012,36 +1014,15 @@ export function Canvas({
     if (rect.width <= 0 || rect.height <= 0) return;
 
     initialViewportCorrectionPendingRef.current = false;
-
-    const topLevelNodes = nodes.filter((node) => !node.parentId);
-    if (topLevelNodes.length === 0) return;
-
-    let minX = Number.POSITIVE_INFINITY;
-    let minY = Number.POSITIVE_INFINITY;
-    let maxX = Number.NEGATIVE_INFINITY;
-    let maxY = Number.NEGATIVE_INFINITY;
-    for (const node of topLevelNodes) {
-      const width = node.measured?.width
-        ?? (typeof node.width === 'number' ? node.width : DEFAULT_NODE_WIDTH);
-      const height = node.measured?.height
-        ?? (typeof node.height === 'number' ? node.height : 200);
-      minX = Math.min(minX, node.position.x);
-      minY = Math.min(minY, node.position.y);
-      maxX = Math.max(maxX, node.position.x + width);
-      maxY = Math.max(maxY, node.position.y + height);
-    }
-    if (!Number.isFinite(minX)) return;
-
-    const vp = reactFlowInstance.getViewport();
-    const viewMinX = -vp.x / vp.zoom;
-    const viewMaxX = (rect.width - vp.x) / vp.zoom;
-    const viewMinY = -vp.y / vp.zoom;
-    const viewMaxY = (rect.height - vp.y) / vp.zoom;
-
-    const overlapsView =
-      maxX > viewMinX && minX < viewMaxX && maxY > viewMinY && minY < viewMaxY;
-
-    if (!overlapsView) {
+    const bounds = getTopLevelCanvasBounds(nodes);
+    if (
+      bounds
+      && !canvasViewportOverlapsRect(
+        reactFlowInstance.getViewport(),
+        rect,
+        bounds,
+      )
+    ) {
       reactFlowInstance.fitView({ padding: 0.2, duration: 0, maxZoom: 1 });
     }
   }, [nodesInitialized, nodes, reactFlowInstance]);
