@@ -65,7 +65,7 @@ import {
   resolveImageDisplayUrl,
   snapToAllowedAspectRatio,
 } from "@/features/canvas/application/imageData";
-import { ensureWebSafeVideo } from "@/features/canvas/application/videoTranscode";
+import { ensureWebSafeVideo } from "@/features/canvas/infrastructure/videoTranscode";
 import { isVideoFile, VIDEO_FILE_ACCEPT } from "@/features/canvas/application/videoFileTypes";
 import { resolveNodeDisplayName } from "@/features/canvas/domain/nodeDisplay";
 import { toast } from "sonner";

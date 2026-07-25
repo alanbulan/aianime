@@ -1,6 +1,6 @@
 /**
  * ffmpeg.wasm 单线程转码兜底 —— 只在浏览器解不了源编码（典型：Edge 没装
- * HEVC 扩展遇到 HEVC）时由 videoTranscode.ts 动态 import。独立成模块是为了
+ * HEVC 扩展遇到 HEVC）时由同目录 videoTranscode.ts 动态 import。独立成模块是为了
  * 让 @ffmpeg/* 和 ~31MB 的 wasm 核心留在懒加载 chunk 里，不进主包。
  *
  * 页面没开 COEP（无 SharedArrayBuffer），只能用单线程核心 @ffmpeg/core；

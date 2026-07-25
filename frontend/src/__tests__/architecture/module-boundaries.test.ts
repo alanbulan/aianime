@@ -343,6 +343,17 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/ui/NodeActionToolbar.tsx"),
       "utf8",
     );
+    const videoTranscode = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/videoTranscode.ts",
+      ),
+      "utf8",
+    );
+    const videoNode = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      "utf8",
+    );
 
     expect(failures).toEqual([]);
     expect(directApiUsers).toEqual([]);
@@ -362,6 +373,10 @@ describe("frontend architecture boundaries", () => {
     ).toBe(false);
     expect(existsSync(resolve(applicationRoot, "matteClient.ts"))).toBe(false);
     expect(existsSync(resolve(applicationRoot, "matteWorker.ts"))).toBe(false);
+    expect(existsSync(resolve(applicationRoot, "videoTranscode.ts"))).toBe(false);
+    expect(
+      existsSync(resolve(applicationRoot, "videoTranscodeFfmpeg.ts")),
+    ).toBe(false);
     expect(composition).toContain(
       "export { canvasNodeFactory } from './nodeFactoryComposition';",
     );
@@ -425,6 +440,12 @@ describe("frontend architecture boundaries", () => {
     expect(matteClient).toContain('new URL("./matteWorker.ts"');
     expect(nodeActionToolbar).toContain(
       "@/features/canvas/infrastructure/matteClient",
+    );
+    expect(videoTranscode).toContain(
+      'await import("./videoTranscodeFfmpeg")',
+    );
+    expect(videoNode).toContain(
+      "@/features/canvas/infrastructure/videoTranscode",
     );
     expect(regenerateExportNode).toContain("aiGateway: AiGateway");
     expect(regenerateExportNode).toContain(
