@@ -161,6 +161,8 @@ import {
   resolveConnectEndHandleId,
 } from './ui/canvasConnectionInteraction';
 import { useCanvasMinimapVisibility } from './hooks/useCanvasMinimapVisibility';
+import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
+import { useCanvasNodePlacementConfirm } from './hooks/useCanvasNodePlacementConfirm';
 
 const DEFAULT_EDGE_OPTIONS = { type: 'disconnectableEdge' };
 const REACT_FLOW_PRO_OPTIONS = { hideAttribution: true };
@@ -179,7 +181,6 @@ const MULTI_SELECTION_KEY_CODES = ['Control', 'Meta'];
 // (button 1). Left drag (0) runs the custom marquee box-select on the empty pane;
 // right click (2) opens the canvas context menu.
 const PAN_ON_DRAG_BUTTONS = [1];
-const NODE_SPAWN_PLUS_HIDE_DELAY_MS = 400;
 const PREVIEW_CONNECTION_STROKE = 'rgb(var(--text-rgb) / 0.82)';
 
 interface PendingConnectStart {
@@ -299,7 +300,6 @@ export function Canvas({
   // click listener in the marquee effect.
   const swallowMarqueeClickRef = useRef(false);
   const suppressNextEdgeClickRef = useRef(false);
-  const hoveredNodeClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const plusConnectStartRef = useRef<PendingConnectStart | null>(null);
   // 手动「+」拖线时，当前被高亮为合法落点的节点 DOM。手动连线走自绘预览线
   // （非 React Flow 原生连线），RF 不会给目标 handle 挂 connectingto/valid，所以
@@ -322,6 +322,16 @@ export function Canvas({
   // NodeSideActionRail 的上传/替换按钮栏也要据此「hover 才显示」。
   const hoveredNodeId = useCanvasStore((state) => state.hoveredNodeId);
   const setHoveredNodeId = useCanvasStore((state) => state.setHoveredNodeId);
+  const {
+    clearHoveredNodeTimer,
+    scheduleHoveredNodeClear,
+    handleNodeMouseEnter,
+    handleNodeMouseLeave,
+  } = useCanvasNodeHover(setHoveredNodeId);
+  const {
+    placementConfirmNodeId,
+    triggerPlacementConfirm,
+  } = useCanvasNodePlacementConfirm();
 
   const [showNodeMenu, setShowNodeMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
@@ -330,7 +340,6 @@ export function Canvas({
     useState<PendingNodePlacement | null>(null);
   const [nodePlacementClientPosition, setNodePlacementClientPosition] =
     useState<{ x: number; y: number } | null>(null);
-  const [placementConfirmNodeId, setPlacementConfirmNodeId] = useState<string | null>(null);
   const [isPlusConnectDragging, setIsPlusConnectDragging] = useState(false);
   const [menuAllowedTypes, setMenuAllowedTypes] = useState<CanvasNodeType[] | undefined>(
     undefined
@@ -363,50 +372,11 @@ export function Canvas({
   const isRestoringCanvasRef = useRef(true);
   const initialViewportCorrectionPendingRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const placementConfirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nodesInitialized = useNodesInitialized();
   const copiedSnapshotRef = useRef<ClipboardSnapshot | null>(sharedNodeClipboard);
   const pasteIterationRef = useRef(0);
   const pasteImageHandledRef = useRef(false);
   const lastCanvasPointerClientPositionRef = useRef<{ x: number; y: number } | null>(null);
-
-  const clearHoveredNodeTimer = useCallback(() => {
-    if (hoveredNodeClearTimerRef.current !== null) {
-      clearTimeout(hoveredNodeClearTimerRef.current);
-      hoveredNodeClearTimerRef.current = null;
-    }
-  }, []);
-
-  const triggerPlacementConfirm = useCallback((nodeId: string) => {
-    if (placementConfirmTimerRef.current !== null) {
-      clearTimeout(placementConfirmTimerRef.current);
-    }
-    setPlacementConfirmNodeId(nodeId);
-    placementConfirmTimerRef.current = setTimeout(() => {
-      setPlacementConfirmNodeId(null);
-      placementConfirmTimerRef.current = null;
-    }, 900);
-  }, []);
-
-  const scheduleHoveredNodeClear = useCallback(() => {
-    clearHoveredNodeTimer();
-    hoveredNodeClearTimerRef.current = setTimeout(() => {
-      setHoveredNodeId(null);
-      hoveredNodeClearTimerRef.current = null;
-    }, NODE_SPAWN_PLUS_HIDE_DELAY_MS);
-  }, [clearHoveredNodeTimer]);
-
-  const handleNodeMouseEnter = useCallback(
-    (_event: ReactMouseEvent, node: CanvasNode) => {
-      clearHoveredNodeTimer();
-      setHoveredNodeId(node.id);
-    },
-    [clearHoveredNodeTimer],
-  );
-
-  const handleNodeMouseLeave = useCallback(() => {
-    scheduleHoveredNodeClear();
-  }, [scheduleHoveredNodeClear]);
 
   const handleCanvasPointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
     const wrapperElement = wrapperRef.current;
@@ -438,14 +408,6 @@ export function Canvas({
     };
   }, [pendingNodePlacement]);
 
-  useEffect(() => {
-    return () => {
-      clearHoveredNodeTimer();
-      if (placementConfirmTimerRef.current !== null) {
-        clearTimeout(placementConfirmTimerRef.current);
-      }
-    };
-  }, [clearHoveredNodeTimer]);
   const activeGenerationPollNodeIdsRef = useRef(new Set<string>());
   const activeTaskResumeNodeIdsRef = useRef(new Set<string>());
   const pasteFromClipboardRef = useRef<

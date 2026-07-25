@@ -1260,6 +1260,57 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("setMinimapPinned(");
   });
 
+  it("keeps Canvas transient node UI timing in presentation hooks", () => {
+    const hoverHookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasNodeHover.ts",
+    );
+    const placementHookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasNodePlacementConfirm.ts",
+    );
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const hookPaths = [hoverHookPath, placementHookPath];
+    const forbiddenImports = hookPaths.flatMap((path) =>
+      importSpecifiers(path).filter(
+        (specifier) =>
+          specifier === "@xyflow/react" ||
+          specifier.startsWith("@xyflow/react/") ||
+          specifier === "zustand" ||
+          specifier.startsWith("zustand/") ||
+          specifier.startsWith("@/stores/") ||
+          specifier.startsWith("@/features/canvas/application/") ||
+          specifier.startsWith("@/features/canvas/infrastructure/") ||
+          specifier === "@/features/canvas/composition",
+      ),
+    );
+    const declarations = [
+      "useCanvasNodeHover(",
+      "useCanvasNodePlacementConfirm(",
+    ].map((name) => ["export function", name].join(" "));
+    const implementationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      ["features/canvas/hooks/useCanvasNodeHover.ts"],
+      ["features/canvas/hooks/useCanvasNodePlacementConfirm.ts"],
+    ]);
+    expect(canvasView).toContain("./hooks/useCanvasNodeHover");
+    expect(canvasView).toContain("./hooks/useCanvasNodePlacementConfirm");
+    expect(canvasView).not.toContain("hoveredNodeClearTimerRef");
+    expect(canvasView).not.toContain("NODE_SPAWN_PLUS_HIDE_DELAY_MS");
+    expect(canvasView).not.toContain("placementConfirmTimerRef");
+    expect(canvasView).not.toContain("setPlacementConfirmNodeId");
+  });
+
   it("keeps Canvas node position reducers out of the Zustand store", () => {
     const positionsPath = resolve(
       SRC_ROOT,

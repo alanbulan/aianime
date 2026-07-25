@@ -259,7 +259,7 @@ function PlusButton({
       {/* 贴着按钮的小命中区(仅做点击容错 + 磁吸感应)。刻意不再朝节点方向外扩，
           也不再有 node→button 的悬停桥——那些大面积 pointer-events-auto 层在画布
           缩小时会盖住节点、抢走拖拽。移到「+」的过程靠节点 hover 的 400ms 隐藏
-          延迟兜住(见 Canvas: NODE_SPAWN_PLUS_HIDE_DELAY_MS)。 */}
+          延迟兜住，由节点悬停控制器统一计时。 */}
       <span
         aria-hidden="true"
         className="pointer-events-auto absolute -inset-2 z-0 rounded-full"
