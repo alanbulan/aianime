@@ -16,7 +16,6 @@ import { BeatCardGrid } from "@/components/episode/beat-workbench/beat-card-grid
 import { RenderGridGallery } from "@/components/episode/beat-workbench/render-grid-gallery";
 import { RenderPlanDialog } from "@/components/episode/beat-workbench/render-plan-dialog";
 import { SketchGridGallery } from "@/components/episode/beat-workbench/sketch-grid-gallery";
-import { ViewToggles } from "@/components/episode/beat-workbench/view-toggles";
 import {
   useEpisodeActionsSlot,
   useRegisterEpisodeActionsSlot,
@@ -49,6 +48,7 @@ import {
   SketchColorLegendView,
   SketchStudioActionsView,
 } from "@/modules/narrative_planning/presentation/SketchStudioActionsView";
+import { ViewToggles } from "@/modules/narrative_planning/presentation/ViewToggles";
 
 const SHOW_EPISODE_FREEZONE_ENTRY = false;
 
@@ -255,7 +255,7 @@ export function BeatsPageView({
               <ViewToggles
                 toggles={toggles}
                 onToggle={toggleView}
-                selection={selection}
+                checkedCount={checkedBeatNumbers.length}
                 totalBeats={beats.length}
                 onClearSelection={clearSelection}
                 onBatchRegenSketch={openSketchPlan}

@@ -177,7 +177,9 @@ describe("beats sketch/render v2 contract", () => {
     );
     const batchBarSources = `${batchBar}\n${batchBarController}\n${batchBarView}`;
     const actionPanel = read("src/components/episode/beat-workbench/action-panel.tsx");
-    const viewToggles = read("src/components/episode/beat-workbench/view-toggles.tsx");
+    const viewToggles = read(
+      "src/modules/narrative_planning/presentation/ViewToggles.tsx",
+    );
     const view = read(
       "src/modules/narrative_planning/presentation/BeatsPageView.tsx",
     );

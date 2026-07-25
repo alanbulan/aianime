@@ -107,6 +107,8 @@ export { SingleBeatPanelView } from "@/modules/narrative_planning/presentation/S
 export type { SingleBeatPanelViewProps } from "@/modules/narrative_planning/presentation/SingleBeatPanelView";
 export { TextPaneView } from "@/modules/narrative_planning/presentation/TextPaneView";
 export type { TextPaneViewProps } from "@/modules/narrative_planning/presentation/TextPaneView";
+export { ViewToggles } from "@/modules/narrative_planning/presentation/ViewToggles";
+export type { ViewTogglesProps } from "@/modules/narrative_planning/presentation/ViewToggles";
 export type {
   TextPaneController,
   TextPaneControllerDependencies,

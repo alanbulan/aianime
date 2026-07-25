@@ -78,7 +78,7 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
 
   it("keeps multi-select redraw commands in the ViewToggles row", () => {
     const viewToggles = read(
-      "src/components/episode/beat-workbench/view-toggles.tsx",
+      "src/modules/narrative_planning/presentation/ViewToggles.tsx",
     );
     const batchBar = read(
       "src/components/episode/beat-workbench/batch-bar.tsx",

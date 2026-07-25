@@ -1,38 +1,38 @@
 // Copyright (c) 2026 AI anime
+import type { ReactNode } from "react";
 import { Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { cn } from "@/lib/utils";
-import type { ViewToggleId } from "@/hooks/use-view-toggles";
-import type { SelectionState } from "@/hooks/use-selection";
 
-const TOGGLES: { id: ViewToggleId; labelKey: string }[] = [
+import { cn } from "@/lib/utils";
+import type { BeatsViewToggleId } from "@/modules/narrative_planning/application/use-beats-page-controller";
+
+const TOGGLES: { id: BeatsViewToggleId; labelKey: string }[] = [
   { id: "sketch", labelKey: "episode.beat.sectionSketch" },
   { id: "render", labelKey: "episode.beat.sectionRender" },
 ];
 
-interface ViewTogglesProps {
-  toggles: Set<ViewToggleId>;
-  onToggle: (id: ViewToggleId) => void;
-  selection: SelectionState;
+export interface ViewTogglesProps {
+  checkedCount: number;
+  legendSlot?: ReactNode;
+  onBatchRegenRender(): void;
+  onBatchRegenSketch(): void;
+  onClearSelection(): void;
+  onToggle(id: BeatsViewToggleId): void;
+  toggles: ReadonlySet<BeatsViewToggleId>;
   totalBeats: number;
-  onClearSelection: () => void;
-  onBatchRegenSketch: () => void;
-  onBatchRegenRender: () => void;
-  legendSlot?: React.ReactNode;
 }
 
 export function ViewToggles({
-  toggles,
-  onToggle,
-  selection,
-  totalBeats,
-  onClearSelection,
-  onBatchRegenSketch,
-  onBatchRegenRender,
+  checkedCount,
   legendSlot,
+  onBatchRegenRender,
+  onBatchRegenSketch,
+  onClearSelection,
+  onToggle,
+  toggles,
+  totalBeats,
 }: ViewTogglesProps) {
   const { t } = useTranslation();
-  const checkedCount = selection.mode === "multi" ? selection.checked.size : 0;
   const hasSelection = checkedCount > 0;
 
   return (
@@ -62,7 +62,7 @@ export function ViewToggles({
                         : "border-border bg-muted text-transparent",
                     )}
                     aria-hidden
-                >
+                  >
                     <Check className="size-2" />
                   </span>
                   {t(labelKey)}
@@ -73,7 +73,9 @@ export function ViewToggles({
           {hasSelection ? (
             <div className="ml-5 flex items-center gap-2">
               <span className="tabular-nums text-[11px] text-foreground/70">
-                {t("episode.workbench.view.selectedCount", { count: checkedCount })}
+                {t("episode.workbench.view.selectedCount", {
+                  count: checkedCount,
+                })}
               </span>
               <button
                 type="button"

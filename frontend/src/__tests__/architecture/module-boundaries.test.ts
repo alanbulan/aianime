@@ -420,6 +420,10 @@ describe("frontend architecture boundaries", () => {
       resolve(moduleRoot, "presentation/BeatsPageView.tsx"),
       "utf8",
     );
+    const viewTogglesSource = readFileSync(
+      resolve(moduleRoot, "presentation/ViewToggles.tsx"),
+      "utf8",
+    );
     const sketchStudioControllerSource = readFileSync(
       resolve(moduleRoot, "application/use-sketch-studio-controller.ts"),
       "utf8",
@@ -600,6 +604,7 @@ describe("frontend architecture boundaries", () => {
       "lib/queries/episodes.ts",
       "lib/queries/scripts.ts",
       "components/episode/beat-workbench/sketch-studio-actions.tsx",
+      "components/episode/beat-workbench/view-toggles.tsx",
       "types/episode.ts",
       "types/script.ts",
     ]) {
@@ -613,6 +618,13 @@ describe("frontend architecture boundaries", () => {
     expect(beatsPageViewSource).toContain(
       "<SketchColorLegendView controller={sketchStudio} />",
     );
+    expect(beatsPageViewSource).toContain(
+      "checkedCount={checkedBeatNumbers.length}",
+    );
+    expect(viewTogglesSource).toContain("checkedCount: number");
+    expect(viewTogglesSource).not.toContain("SelectionState");
+    expect(viewTogglesSource).not.toContain("@/hooks/use-selection");
+    expect(viewTogglesSource).not.toContain("@/hooks/use-view-toggles");
     expect(beatsPageViewSource).toContain("<SketchStudioActionsView");
     expect(sketchStudioControllerSource).toContain("queries.useScript");
     expect(sketchStudioControllerSource).toContain(

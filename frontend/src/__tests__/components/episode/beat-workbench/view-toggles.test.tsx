@@ -5,7 +5,7 @@ import { I18nextProvider, initReactI18next } from "react-i18next";
 import i18next from "i18next";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
-import { ViewToggles } from "@/components/episode/beat-workbench/view-toggles";
+import { ViewToggles } from "@/modules/narrative_planning/public";
 
 const i18n = i18next.createInstance();
 
@@ -54,7 +54,7 @@ describe("ViewToggles", () => {
         <ViewToggles
           toggles={new Set(["sketch", "render"])}
           onToggle={onToggle}
-          selection={{ mode: "multi", checked: new Set([1]) }}
+          checkedCount={1}
           totalBeats={3}
           onClearSelection={onClearSelection}
           onBatchRegenSketch={onBatchRegenSketch}
@@ -85,7 +85,7 @@ describe("ViewToggles", () => {
         <ViewToggles
           toggles={new Set(["sketch", "render"])}
           onToggle={vi.fn()}
-          selection={{ mode: "none" }}
+          checkedCount={0}
           totalBeats={3}
           onClearSelection={vi.fn()}
           onBatchRegenSketch={vi.fn()}
@@ -104,7 +104,7 @@ describe("ViewToggles", () => {
         <ViewToggles
           toggles={new Set(["sketch", "render"])}
           onToggle={vi.fn()}
-          selection={{ mode: "single", beatNum: 1 }}
+          checkedCount={0}
           totalBeats={3}
           onClearSelection={vi.fn()}
           onBatchRegenSketch={vi.fn()}

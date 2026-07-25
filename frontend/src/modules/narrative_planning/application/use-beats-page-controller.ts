@@ -7,7 +7,10 @@ import { useBeatStates } from "@/hooks/use-beat-states";
 import { useEpisodeImageTaskInvalidation } from "@/hooks/use-episode-image-task-invalidation";
 import { useSelection } from "@/hooks/use-selection";
 import { useTaskController } from "@/hooks/use-task-controller";
-import { useViewToggles } from "@/hooks/use-view-toggles";
+import {
+  useViewToggles,
+  type ViewToggleId,
+} from "@/hooks/use-view-toggles";
 import {
   aspectRatioForOrientation,
   orientationForAspectRatio,
@@ -30,6 +33,7 @@ import {
 import { useProjectAspectRatio } from "@/stores/aspect-ratio-store";
 
 export type BeatsTargetSection = "sketch" | "render" | "audio" | "video";
+export type BeatsViewToggleId = ViewToggleId;
 
 interface SketchSettingsQuery {
   data?: { data: { sketch_image_selection?: string } };
