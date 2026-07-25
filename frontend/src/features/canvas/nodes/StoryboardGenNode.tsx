@@ -33,10 +33,11 @@ import {
   canvasAiGateway,
   detectAspectRatio,
   getRuntimeDiagnostics,
+  showErrorDialog,
   uploadLocalImageToBackend,
 } from '@/features/canvas/composition';
 import { useUpstreamImages } from '@/features/canvas/hooks/useUpstreamGraph';
-import { resolveErrorContent, showErrorDialog } from '@/features/canvas/application/errorDialog';
+import { resolveErrorContent } from '@/features/canvas/application/errorDialog';
 import { backendErrorToastMessage } from '@/shared/api/errors';
 import {
   parseAspectRatio,

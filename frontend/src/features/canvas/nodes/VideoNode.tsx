@@ -88,10 +88,8 @@ import { ReferenceTextChip } from "@/features/canvas/nodes/shared/ReferenceTextC
 import { ReferenceDetachButton } from "@/features/canvas/nodes/shared/ReferenceDetachButton";
 import { useReferenceMentionSync } from "@/features/canvas/nodes/useReferenceMentionSync";
 import { useNodeGenerationTaskState } from "@/features/canvas/hooks/useNodeGenerationTaskState";
-import {
-  resolveErrorContent,
-  showErrorDialog,
-} from "@/features/canvas/application/errorDialog";
+import { resolveErrorContent } from "@/features/canvas/application/errorDialog";
+import { showErrorDialog } from "@/features/canvas/composition";
 import { backendErrorToastMessage } from "@/shared/api/errors";
 import { resolveGenerationErrorDiagnostics } from "@/features/canvas/application/generationErrorReport";
 import {

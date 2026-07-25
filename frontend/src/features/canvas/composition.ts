@@ -42,6 +42,7 @@ import { webImageSplitGateway } from './infrastructure/webImageSplitGateway';
 import { zustandCanvasGraphGateway } from './infrastructure/zustandCanvasGraphGateway';
 
 export { canvasNodeFactory } from './nodeFactoryComposition';
+export { showErrorDialog } from './infrastructure/globalErrorDialog';
 
 export const canvasToolProcessor = new CanvasToolProcessor(
   webImageSplitGateway,

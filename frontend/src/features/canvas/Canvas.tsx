@@ -49,6 +49,7 @@ import {
   prepareNodeImage,
   migratePastedNodeAssets,
   resumeNodeGeneration,
+  showErrorDialog,
   uploadLocalImageToBackend,
 } from '@/features/canvas/composition';
 import {
@@ -82,7 +83,6 @@ import {
   buildGenerationErrorReport,
   extractRequestId,
 } from '@/features/canvas/application/generationErrorReport';
-import { showErrorDialog } from '@/features/canvas/application/errorDialog';
 import { nodeNeedsGenerationResume } from '@/features/canvas/application/resumeGeneration';
 import { readUrl } from '@/lib/url-params';
 import { useQueryClient } from '@tanstack/react-query';

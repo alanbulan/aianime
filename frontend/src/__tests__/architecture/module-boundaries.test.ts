@@ -288,6 +288,14 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes("fetch("))
       .map(relativeSource)
       .sort();
+    const directAppFeatureUsers = sourceFiles(applicationRoot)
+      .filter((path) =>
+        importSpecifiers(path).some((specifier) =>
+          specifier.startsWith("@/features/app/"),
+        ),
+      )
+      .map(relativeSource)
+      .sort();
     const directCommandUsers = sourceFiles(applicationRoot)
       .filter((path) =>
         importSpecifiers(path).some((specifier) =>
@@ -420,6 +428,17 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const errorDialog = readFileSync(
+      resolve(applicationRoot, "errorDialog.ts"),
+      "utf8",
+    );
+    const globalErrorDialog = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/globalErrorDialog.ts",
+      ),
+      "utf8",
+    );
 
     expect(failures).toEqual([]);
     expect(domainApplicationImports).toEqual([]);
@@ -435,6 +454,7 @@ describe("frontend architecture boundaries", () => {
     expect(directFileReaderUsers).toEqual([]);
     expect(directPerformanceUsers).toEqual([]);
     expect(directFetchUsers).toEqual([]);
+    expect(directAppFeatureUsers).toEqual([]);
     expect(directCommandUsers).toEqual([]);
     expect(
       existsSync(resolve(applicationRoot, "useUpstreamGraph.ts")),
@@ -469,6 +489,9 @@ describe("frontend architecture boundaries", () => {
     expect(composition).toContain("browserToolImageGateway");
     expect(composition).toContain("browserImageRuntimeGateway");
     expect(composition).toContain("prepareNodeImageUseCase(");
+    expect(composition).toContain(
+      "export { showErrorDialog } from './infrastructure/globalErrorDialog';",
+    );
     expect(composition).toContain("freezoneAssetGateway");
     expect(composition).toContain("migratePastedNodeAssetsUseCase(");
     expect(composition).toContain("currentOrigin: window.location.origin");
@@ -542,6 +565,9 @@ describe("frontend architecture boundaries", () => {
     expect(imageRuntime).toContain("document.createElement('canvas')");
     expect(imageRuntime).toContain("new Image()");
     expect(imageRuntime).toContain("new FileReader()");
+    expect(errorDialog).toContain("export function resolveErrorContent(");
+    expect(errorDialog).not.toContain("openGlobalErrorDialog");
+    expect(globalErrorDialog).toContain("openGlobalErrorDialog({");
     expect(regenerateExportNode).toContain("aiGateway: AiGateway");
     expect(regenerateExportNode).toContain(
       "params: RegenerateExportImageNodeParams",
