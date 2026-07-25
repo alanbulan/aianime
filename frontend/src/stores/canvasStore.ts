@@ -72,11 +72,7 @@ import {
   updateCanvasNodePosition,
 } from '@/features/canvas/domain/canvasNodePositions';
 import { collectNodeIdsWithDescendants } from '@/features/canvas/domain/groupSelectionDelete';
-import {
-  nodeHasSourceHandle,
-  nodeHasTargetHandle,
-  isUpstreamConnectionAllowed,
-} from '@/features/canvas/domain/nodeRegistry';
+import { validateCanvasConnection } from '@/features/canvas/domain/canvasConnection';
 import { EXPORT_RESULT_DISPLAY_NAME } from '@/features/canvas/domain/nodeDisplay';
 import {
   type ViewportBookmark,
@@ -477,25 +473,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     const sourceHandle = normalizeHandleId(connection.sourceHandle) ?? 'source';
     const targetHandle = normalizeHandleId(connection.targetHandle) ?? 'target';
     set((state) => {
-      // 3D 世界节点只用一张上游图生成，因此入边唯一：已有其它上游时拒绝新连接。
-      // 这是所有连线路径(手动拖线 / 拖到空白生成节点)的共同收口处。
-      const targetNode = state.nodes.find((node) => node.id === connection.target);
-      if (
-        targetNode?.type === CANVAS_NODE_TYPES.threeDWorld &&
-        state.edges.some(
-          (edge) =>
-            edge.target === connection.target && edge.source !== connection.source,
-        )
-      ) {
-        return {};
-      }
-      // 上游类型规则收口：挡掉任何绕过 UI 校验的连接（如音频←非文本）。
-      const sourceNode = state.nodes.find((node) => node.id === connection.source);
-      if (
-        sourceNode &&
-        targetNode &&
-        !isUpstreamConnectionAllowed(sourceNode.type, targetNode.type)
-      ) {
+      const validation = validateCanvasConnection(
+        state.nodes,
+        state.edges,
+        connection,
+        'react_flow',
+      );
+      if (!validation.ok) {
         return {};
       }
       return {
@@ -743,17 +727,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   addEdge: (source, target) => {
     const state = get();
-    // Check if both nodes exist
-    const sourceNode = state.nodes.find((n) => n.id === source);
-    const targetNode = state.nodes.find((n) => n.id === target);
-    if (!sourceNode || !targetNode) {
-      return null;
-    }
-    if (!nodeHasSourceHandle(sourceNode.type) || !nodeHasTargetHandle(targetNode.type)) {
-      return null;
-    }
-    // 上游类型规则收口（如音频←非文本）。
-    if (!isUpstreamConnectionAllowed(sourceNode.type, targetNode.type)) {
+    const validation = validateCanvasConnection(
+      state.nodes,
+      state.edges,
+      { source, target },
+      'programmatic',
+    );
+    if (!validation.ok) {
       return null;
     }
 
@@ -782,16 +762,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   addEdgeWithData: (source, target, data, options) => {
     const state = get();
-    const sourceNode = state.nodes.find((n) => n.id === source);
-    const targetNode = state.nodes.find((n) => n.id === target);
-    if (!sourceNode || !targetNode) {
-      return null;
-    }
-    if (!nodeHasSourceHandle(sourceNode.type) || !nodeHasTargetHandle(targetNode.type)) {
-      return null;
-    }
-    // 上游类型规则收口（如音频←非文本）。
-    if (!isUpstreamConnectionAllowed(sourceNode.type, targetNode.type)) {
+    const connectionValidation = validateCanvasConnection(
+      state.nodes,
+      state.edges,
+      { source, target },
+      'programmatic',
+    );
+    if (!connectionValidation.ok) {
       return null;
     }
 

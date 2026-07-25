@@ -1461,6 +1461,58 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("Math.max(1, Math.round(size.width))");
   });
 
+  it("keeps Canvas connection eligibility in the domain model", () => {
+    const connectionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/canvasConnection.ts",
+    );
+    const connectionModel = readFileSync(connectionPath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(connectionPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
+        specifier === "@/features/canvas/composition",
+    );
+    const validationDeclaration = [
+      "export function",
+      "validateCanvasConnection(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(validationDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/domain/canvasConnection.ts",
+    ]);
+    expect(connectionModel).toContain(validationDeclaration);
+    expect(canvasStore).toContain(
+      "@/features/canvas/domain/canvasConnection",
+    );
+    expect(canvasStore).not.toContain("nodeHasSourceHandle(");
+    expect(canvasStore).not.toContain("nodeHasTargetHandle(");
+    expect(canvasStore).not.toContain("isUpstreamConnectionAllowed(");
+    expect(canvasStore).not.toContain(
+      "targetNode?.type === CANVAS_NODE_TYPES.threeDWorld",
+    );
+  });
+
   it("keeps shared code independent from application and business layers", () => {
     const forbiddenPrefixes = [
       "@/app/",
