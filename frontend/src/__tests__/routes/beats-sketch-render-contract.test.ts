@@ -91,13 +91,18 @@ describe("beats sketch/render v2 contract", () => {
     const sketchGridGallery = read(
       "src/components/episode/beat-workbench/sketch-grid-gallery.tsx",
     );
+    const sketchGridController = read(
+      "src/modules/production/application/use-sketch-grid-gallery-controller.ts",
+    );
     const productionPublic = read("src/modules/production/public.ts");
     const productionGateway = read(
       "src/modules/production/infrastructure/http-production-video-gateway.ts",
     );
 
     expect(batchBar).not.toContain("gridIndex: -1");
-    expect(sketchGridGallery).toContain("useGenerateSketches");
+    expect(sketchGridGallery).toContain("useSketchGridCardController");
+    expect(sketchGridGallery).not.toContain("useGenerateSketches");
+    expect(sketchGridController).toContain("queries.useGenerateSketches");
     expect(productionPublic).toContain("useGenerateSketches");
     expect(productionGateway).toContain("sketches/generate");
   });

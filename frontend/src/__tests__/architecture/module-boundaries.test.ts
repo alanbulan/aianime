@@ -630,6 +630,20 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const sketchGridGalleryControllerSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/production/application/use-sketch-grid-gallery-controller.ts",
+      ),
+      "utf8",
+    );
+    const sketchGridGalleryDomainSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/production/domain/sketch-grid-gallery.ts",
+      ),
+      "utf8",
+    );
     const narratorVoicePanelSource = readFileSync(
       resolve(
         SRC_ROOT,
@@ -921,6 +935,15 @@ describe("frontend architecture boundaries", () => {
     );
     expect(sketchGridGallerySource).not.toContain("gridAspectCss");
     expect(sketchGridGallerySource).not.toContain("formatBeatRange");
+    expect(sketchGridGallerySource).not.toContain("buildSketchGridGroups");
+    expect(sketchGridGallerySource).not.toContain("useGrids(");
+    expect(sketchGridGallerySource).not.toContain("useGenerateSketches(");
+    expect(sketchGridGallerySource).not.toContain("useSketchGridPreview(");
+    expect(sketchGridGallerySource).not.toContain("useTaskController(");
+    expect(sketchGridGallerySource).not.toContain("useState(");
+    expect(sketchGridGallerySource).not.toContain("toast.");
+    expect(sketchGridGallerySource).not.toContain("document.");
+    expect(sketchGridGallerySource).not.toContain("navigator.");
     expect(sketchGridGalleryViewSource).toContain('type="file"');
     expect(sketchGridGalleryViewSource).toContain("<Dialog");
     expect(sketchGridGalleryViewSource).toContain("<Textarea");
@@ -936,6 +959,29 @@ describe("frontend architecture boundaries", () => {
       "useTaskController(",
     );
     expect(sketchGridGalleryViewSource).not.toContain("toast.");
+    expect(sketchGridGalleryControllerSource).toContain(
+      "createUseSketchGridGalleryController",
+    );
+    expect(sketchGridGalleryControllerSource).toContain(
+      "createUseSketchGridCardController",
+    );
+    expect(sketchGridGalleryControllerSource).toContain(
+      "buildSketchGridGroups(",
+    );
+    expect(sketchGridGalleryControllerSource).toContain(
+      "queries.useGenerateSketches",
+    );
+    expect(sketchGridGalleryControllerSource).toContain(
+      "queries.useSketchGridPreview",
+    );
+    expect(sketchGridGalleryControllerSource).toContain(
+      "useTaskController(",
+    );
+    expect(sketchGridGalleryControllerSource).not.toContain("document.");
+    expect(sketchGridGalleryControllerSource).not.toContain("navigator.");
+    expect(sketchGridGalleryDomainSource).toContain(
+      "export function buildSketchGridGroups",
+    );
     expect(narratorVoicePanelSource).toContain("<NarratorVoicePanelView");
     expect(narratorVoicePanelSource).toContain(
       "useNarratorVoicePanelController({",

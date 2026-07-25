@@ -45,6 +45,8 @@ export {
   useSketchPoseEditor,
   useSketchRegenQueue,
   useSketchGridPreview,
+  useSketchGridCardController,
+  useSketchGridGalleryController,
   useSketchSectionController,
   useSketchSettings,
   useTrimSeedance2Asset,
@@ -104,7 +106,6 @@ export {
 } from "@/modules/production/presentation/SketchGridGalleryView";
 export type {
   SketchGridCardViewProps,
-  SketchGridFallbackCellViewModel,
   SketchGridGalleryViewProps,
 } from "@/modules/production/presentation/SketchGridGalleryView";
 export type {
@@ -122,6 +123,16 @@ export type {
   RenderGridGalleryControllerOptions,
   RenderGridGalleryControllerQueries,
 } from "@/modules/production/application/use-render-grid-gallery-controller";
+export type {
+  SketchGridCardController,
+  SketchGridCardControllerDependencies,
+  SketchGridCardControllerOptions,
+  SketchGridCardControllerQueries,
+  SketchGridFallbackCellViewModel,
+  SketchGridGalleryController,
+  SketchGridGalleryControllerOptions,
+  SketchGridGalleryControllerQueries,
+} from "@/modules/production/application/use-sketch-grid-gallery-controller";
 export type {
   CropRenderBackgroundMutation,
   RenderBackgroundAnchorsQuery,
@@ -187,6 +198,10 @@ export type {
   RenderGridBeat,
   RenderGridGroup,
 } from "@/modules/production/domain/render-grid-gallery";
+export type {
+  SketchGridBeat,
+  SketchGridGroup,
+} from "@/modules/production/domain/sketch-grid-gallery";
 export type {
   GenerateSketchesCommand,
   RegenerateGridCommand,

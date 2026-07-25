@@ -7,6 +7,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi, type Mock } from "vite
 
 import { SketchGridGallery } from "@/components/episode/beat-workbench/sketch-grid-gallery";
 import type { Beat } from "@/modules/narrative_planning/public";
+import type { PoolImage } from "@/modules/production/public";
 
 const i18n = i18next.createInstance();
 
@@ -59,47 +60,84 @@ beforeAll(async () => {
 const generateSketchesMock: Mock = vi.fn();
 const uploadGridMock: Mock = vi.fn();
 const exportGridPromptMock: Mock = vi.fn();
+const copyTextMock: Mock = vi.fn();
+const downloadFileMock: Mock = vi.fn();
 const taskStartMock: Mock = vi.fn();
 const taskStopMock: Mock = vi.fn();
-let gridImages: unknown[] = [];
-let sketchPreviewResponses: Record<number, unknown> = {};
+let gridImages: PoolImage[] = [];
+type SketchPreviewResponse =
+  | {
+      ok: true;
+      data: {
+        gridIndex: number;
+        rows: number;
+        cols: number;
+        beatNumbers: number[];
+        previewPath: string;
+        previewUrl: string;
+      };
+    }
+  | { ok: false; error: string };
+let sketchPreviewResponses: Record<
+  number,
+  SketchPreviewResponse | undefined
+> = {};
 
 vi.mock("@/modules/production/public", async (importOriginal) => {
   const actual = await importOriginal<
     typeof import("@/modules/production/public")
   >();
+  const {
+    createUseSketchGridCardController,
+    createUseSketchGridGalleryController,
+  } = await import(
+    "@/modules/production/application/use-sketch-grid-gallery-controller"
+  );
+  const useSketchGridGalleryController =
+    createUseSketchGridGalleryController({
+      useGrids: () => ({
+        data: {
+          ok: true,
+          data: {
+            episode: 1,
+            modes: {},
+            beat_assignments: {},
+            images: gridImages,
+          },
+        },
+      }),
+    });
+  const useSketchGridCardController = createUseSketchGridCardController(
+    {
+      useSketchGridPreview: (
+        _project: string,
+        _episode: number,
+        params: { gridIndex: number },
+      ) => ({
+        data: sketchPreviewResponses[params.gridIndex],
+      }),
+      useUploadGrid: () => ({
+        mutateAsync: uploadGridMock,
+        isPending: false,
+      }),
+      useExportGridPrompt: () => ({
+        mutateAsync: exportGridPromptMock,
+        isPending: false,
+      }),
+      useGenerateSketches: () => ({
+        mutateAsync: generateSketchesMock,
+        isPending: false,
+      }),
+    },
+    {
+      copyText: (text) => copyTextMock(text),
+      downloadFile: (url, filename) => downloadFileMock(url, filename),
+    },
+  );
   return {
     ...actual,
-    useSketchGridPreview: (
-      _project: string,
-      _episode: number,
-      params: { gridIndex: number },
-    ) => ({
-      data: sketchPreviewResponses[params.gridIndex] ?? null,
-    }),
-    useUploadGrid: () => ({
-      mutateAsync: uploadGridMock,
-      isPending: false,
-    }),
-    useExportGridPrompt: () => ({
-      mutateAsync: exportGridPromptMock,
-      isPending: false,
-    }),
-    useGenerateSketches: () => ({
-      mutateAsync: generateSketchesMock,
-      isPending: false,
-    }),
-    useGrids: () => ({
-      data: {
-        ok: true,
-        data: {
-          episode: 1,
-          modes: {},
-          beat_assignments: {},
-          images: gridImages,
-        },
-      },
-    }),
+    useSketchGridCardController,
+    useSketchGridGalleryController,
   };
 });
 
@@ -183,6 +221,9 @@ beforeEach(() => {
       promptPath: "custom/sketch-prompt.txt",
     },
   });
+  copyTextMock.mockReset();
+  copyTextMock.mockResolvedValue(undefined);
+  downloadFileMock.mockReset();
   taskStartMock.mockReset();
   taskStopMock.mockReset();
 });
@@ -578,7 +619,7 @@ describe("SketchGridGallery", () => {
     expect(screen.queryByText(/B7-19/)).not.toBeInTheDocument();
   });
 
-  it("omits manual sketch grid cutting because generation already splits sketches", async () => {
+  it("omits manual cutting and exposes the sketch grid file commands", async () => {
     const user = userEvent.setup();
     render(
       <I18nextProvider i18n={i18n}>
@@ -588,6 +629,24 @@ describe("SketchGridGallery", () => {
 
     expect(screen.queryByRole("button", { name: "切割入池" })).not.toBeInTheDocument();
 
+    const file = new File(["grid"], "sketch-grid.png", {
+      type: "image/png",
+    });
+    await user.upload(screen.getByLabelText("上传 grid"), file);
+    expect(uploadGridMock).toHaveBeenCalledWith({
+      gridIndex: 4,
+      file,
+      gridType: "sketch",
+      modeKey: "2x2_scene",
+      beatNumbers: [5, 6],
+    });
+
+    await user.click(screen.getByRole("button", { name: "下载" }));
+    expect(downloadFileMock).toHaveBeenCalledWith(
+      "/static/sketch-grid-4.png",
+      "sketch_grid_4.png",
+    );
+
     await user.click(screen.getByRole("button", { name: "导出 prompt" }));
     expect(exportGridPromptMock).toHaveBeenCalledWith({
       gridIndex: 4,
@@ -596,5 +655,8 @@ describe("SketchGridGallery", () => {
       beatNumbers: [5, 6],
     });
     expect(await screen.findByText("sketch prompt text")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "复制" }));
+    expect(copyTextMock).toHaveBeenCalledWith("sketch prompt text");
   });
 });

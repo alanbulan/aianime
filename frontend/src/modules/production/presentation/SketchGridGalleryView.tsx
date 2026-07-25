@@ -21,30 +21,33 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { gridAspectCss } from "@/lib/aspect-ratio";
 import { cn } from "@/lib/utils";
-import type { SketchAspectRatio } from "@/modules/production/domain/image-settings";
+import type {
+  SketchGridCardController,
+  SketchGridGalleryController,
+} from "@/modules/production/application/use-sketch-grid-gallery-controller";
 
 const GRID_ACTION_BUTTON_CLASS =
   "justify-start gap-1 rounded-[5px] px-1 text-foreground/82 shadow-none transition-colors hover:bg-transparent hover:text-foreground disabled:text-muted-foreground/45";
 
 export interface SketchGridGalleryViewProps {
   children: ReactNode;
-  gridCount: number;
+  controller: SketchGridGalleryController;
 }
 
 export function SketchGridGalleryView({
   children,
-  gridCount,
+  controller,
 }: SketchGridGalleryViewProps) {
   const { t } = useTranslation();
 
-  if (gridCount === 0) return null;
+  if (controller.gridCount === 0) return null;
 
   return (
     <section className="flex h-full min-h-0 w-full flex-col bg-background px-4 py-3">
       <div className="mb-2 flex items-center gap-2">
         <h2 className="text-xs font-semibold text-muted-foreground">
           {t("episode.workbench.sketchGrid.titleWithCount", {
-            count: gridCount,
+            count: controller.gridCount,
           })}
         </h2>
       </div>
@@ -57,64 +60,39 @@ export function SketchGridGalleryView({
   );
 }
 
-export interface SketchGridFallbackCellViewModel {
-  beatNumber: number;
-  url: string | null;
-}
-
 export interface SketchGridCardViewProps {
-  aspectRatio: SketchAspectRatio;
-  beatNumbers: number[];
-  cellCount: number;
-  cols: number;
-  exportPromptPending: boolean;
-  fallbackCells: SketchGridFallbackCellViewModel[];
-  generatedPreviewUrl: string | null;
-  generationPending: boolean;
-  generationStarted: boolean;
-  generationStopping: boolean;
-  gridIndex: number;
-  gridUrl: string | null;
-  promptOpen: boolean;
-  promptText: string;
-  rows: number;
-  sceneId?: string;
-  uploadPending: boolean;
-  onCopyPrompt(): void | Promise<void>;
-  onDownload(): void;
-  onExportPrompt(): void | Promise<void>;
-  onGenerate(): void | Promise<void>;
-  onPromptOpenChange(open: boolean): void;
-  onStopGeneration(): void | Promise<void>;
-  onUpload(file: File): void | Promise<void>;
+  controller: SketchGridCardController;
 }
 
 export function SketchGridCardView({
-  aspectRatio,
-  beatNumbers,
-  cellCount,
-  cols,
-  exportPromptPending,
-  fallbackCells,
-  generatedPreviewUrl,
-  generationPending,
-  generationStarted,
-  generationStopping,
-  gridIndex,
-  gridUrl,
-  promptOpen,
-  promptText,
-  rows,
-  sceneId,
-  uploadPending,
-  onCopyPrompt,
-  onDownload,
-  onExportPrompt,
-  onGenerate,
-  onPromptOpenChange,
-  onStopGeneration,
-  onUpload,
+  controller,
 }: SketchGridCardViewProps) {
+  const {
+    aspectRatio,
+    beatNumbers,
+    cellCount,
+    cols,
+    exportPromptPending,
+    fallbackCells,
+    generatedPreviewUrl,
+    generationPending,
+    generationStarted,
+    generationStopping,
+    gridIndex,
+    gridUrl,
+    promptOpen,
+    promptText,
+    rows,
+    sceneId,
+    uploadPending,
+    onCopyPrompt,
+    onDownload,
+    onExportPrompt,
+    onGenerate,
+    onPromptOpenChange,
+    onStopGeneration,
+    onUpload,
+  } = controller;
   const { t } = useTranslation();
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const hasFallbackPreview = fallbackCells.some((cell) => cell.url);

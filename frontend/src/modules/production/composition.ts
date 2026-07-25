@@ -36,6 +36,10 @@ import {
 import { createUseRenderSectionController } from "@/modules/production/application/use-render-section-controller";
 import { createUseSeedance2AssetOperationsController } from "@/modules/production/application/use-seedance2-asset-operations-controller";
 import { createUseSeedance2ConfigController } from "@/modules/production/application/use-seedance2-config-controller";
+import {
+  createUseSketchGridCardController,
+  createUseSketchGridGalleryController,
+} from "@/modules/production/application/use-sketch-grid-gallery-controller";
 import { createUseSketchSectionController } from "@/modules/production/application/use-sketch-section-controller";
 import { createUseVideoPaneMediaController } from "@/modules/production/application/use-video-pane-media-controller";
 import { httpProductionVideoGateway } from "@/modules/production/infrastructure/http-production-video-gateway";
@@ -78,6 +82,15 @@ const videoGenerationQueries = createVideoGenerationQueryHooks({
 const narratorVoiceQueries = createNarratorVoiceQueryHooks(
   httpProductionVideoGateway,
 );
+const gridBrowserCommands = {
+  copyText: (text: string) => navigator.clipboard?.writeText(text),
+  downloadFile: (url: string, filename: string) => {
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+  },
+};
 export const useBeatVideoGenerationController =
   createUseBeatVideoGenerationController(videoGenerationQueries, {
     useGenerationCreditCost,
@@ -113,15 +126,21 @@ export const useRenderGridCardController =
       useRegenerateGrid: sketchGenerationQueries.useRegenerateGrid,
       useUploadGrid: imageGridQueries.useUploadGrid,
     },
+    gridBrowserCommands,
+  );
+export const useSketchGridGalleryController =
+  createUseSketchGridGalleryController({
+    useGrids: imagePoolQueries.useGrids,
+  });
+export const useSketchGridCardController =
+  createUseSketchGridCardController(
     {
-      copyText: (text) => navigator.clipboard?.writeText(text),
-      downloadFile: (url, filename) => {
-        const anchor = document.createElement("a");
-        anchor.href = url;
-        anchor.download = filename;
-        anchor.click();
-      },
+      useExportGridPrompt: imageGridQueries.useExportGridPrompt,
+      useGenerateSketches: sketchGenerationQueries.useGenerateSketches,
+      useSketchGridPreview: imageGridQueries.useSketchGridPreview,
+      useUploadGrid: imageGridQueries.useUploadGrid,
     },
+    gridBrowserCommands,
   );
 export const useSketchSectionController = createUseSketchSectionController(
   {
