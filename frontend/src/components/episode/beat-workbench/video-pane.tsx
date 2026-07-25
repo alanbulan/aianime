@@ -65,6 +65,7 @@ import {
   normalizeSeedance2Ratio,
   normalizeSeedance2Resolution,
   parseSeedance2Config,
+  prepareBeatVideoGeneration,
   sameSeedance2Config,
   sameSeedance2LabelIdentity,
   seedance2DefaultRatioForProjectAspect,
@@ -93,6 +94,7 @@ import {
   VideoPaneMediaView,
   VideoParamField,
   videoInputCropAspectForProjectAspect,
+  type BeatVideoGenerationInput,
   type Seedance2ConfigDraft,
   type Seedance2DurationBounds,
   type Seedance2LabelIdentityMaps,
@@ -577,86 +579,65 @@ export function VideoPane({
   };
   const handleRegen = async () => {
     try {
-      let happyHorseConfigJson: string | undefined;
-      let happyHorseDraft: Seedance2ConfigDraft | undefined;
-      let grokVideoConfigJson: string | undefined;
-      let grokVideoDraft: Seedance2ConfigDraft | undefined;
-      if (showSeedance2Config) {
-        const normalizedDraft = normalizeSeedance2DraftForBackend(
-          seedance2DraftRef.current,
-          seedance2ResolutionOptions,
-          defaultBackend,
-          showSeedance2ValueStyle,
-        );
-        if (!sameSeedance2Config(normalizedDraft, seedance2DraftRef.current)) {
-          seedance2DraftRef.current = normalizedDraft;
-          setSeedance2Draft(normalizedDraft);
-        }
-        if (
-          seedance2Dirty ||
-          !sameSeedance2Config(normalizedDraft, seedance2Config)
-        ) {
-          const saved = await saveSeedance2Draft(normalizedDraft, {
-            suppressSuccess: true,
-          });
-          if (!saved) return;
-        }
-      }
-      if (showHappyHorseConfig) {
-        const normalizedDraft = normalizeHappyHorseDraftForBackend(
-          seedance2DraftRef.current,
-          happyHorseResolutionOptions,
-          happyHorseRatioOptions,
-        );
-        if (!sameSeedance2Config(normalizedDraft, seedance2DraftRef.current)) {
-          seedance2DraftRef.current = normalizedDraft;
-          setSeedance2Draft(normalizedDraft);
-        }
-        happyHorseDraft = normalizedDraft;
-        happyHorseConfigJson = JSON.stringify(
-          serializeHappyHorseConfig(normalizedDraft, seedance2Config),
-        );
-      }
-      if (showGrokVideoConfig) {
-        const normalizedDraft = normalizeGrokVideoDraftForBackend(
-          seedance2DraftRef.current,
-          grokVideoResolutionOptions,
-          grokVideoRatioOptions,
-        );
-        if (!sameSeedance2Config(normalizedDraft, seedance2DraftRef.current)) {
-          seedance2DraftRef.current = normalizedDraft;
-          setSeedance2Draft(normalizedDraft);
-        }
-        grokVideoDraft = normalizedDraft;
-        grokVideoConfigJson = JSON.stringify(
-          serializeGrokVideoConfig(normalizedDraft, seedance2Config),
-        );
-      }
-      const res = await regenerate.mutateAsync({
-        beatNum: beat.beat_number,
-        videoBackend: defaultBackend,
-        ...(showHappyHorseConfig && happyHorseDraft
+      const generationInput: BeatVideoGenerationInput = showSeedance2Config
+        ? {
+            backend: defaultBackend,
+            beatNumber: beat.beat_number,
+            kind: "seedance2",
+            dirty: seedance2Dirty,
+            draft: seedance2DraftRef.current,
+            isValueStyle: showSeedance2ValueStyle,
+            resolutionOptions: seedance2ResolutionOptions,
+            sourceConfig: seedance2Config,
+          }
+        : showHappyHorseConfig
           ? {
-              resolution: happyHorseDraft.resolution,
-              duration: happyHorseDraft.duration,
-              ratio: happyHorseDraft.ratio,
-              mode: happyHorseDraft.mode,
-              seedance2ConfigJson: happyHorseConfigJson,
+              backend: defaultBackend,
+              beatNumber: beat.beat_number,
+              kind: "happyhorse",
+              draft: seedance2DraftRef.current,
+              ratioOptions: happyHorseRatioOptions,
+              resolutionOptions: happyHorseResolutionOptions,
+              sourceConfig: seedance2Config,
             }
-          : {}),
-        ...(showGrokVideoConfig && grokVideoDraft
-          ? {
-              resolution: grokVideoDraft.resolution,
-              duration: grokVideoDraft.duration,
-              ratio: grokVideoDraft.ratio,
-              mode: grokVideoDraft.mode,
-              seedance2ConfigJson: grokVideoConfigJson,
-            }
-          : {}),
-        ...(isSd15ProConfig
-          ? { resolution: sd15Resolution, duration: sd15Duration }
-          : {}),
-      });
+          : showGrokVideoConfig
+            ? {
+                backend: defaultBackend,
+                beatNumber: beat.beat_number,
+                kind: "grok",
+                draft: seedance2DraftRef.current,
+                ratioOptions: grokVideoRatioOptions,
+                resolutionOptions: grokVideoResolutionOptions,
+                sourceConfig: seedance2Config,
+              }
+            : {
+                backend: defaultBackend,
+                beatNumber: beat.beat_number,
+                kind: "legacy",
+                ...(isSd15ProConfig
+                  ? {
+                      seedance15: {
+                        duration: sd15Duration,
+                        resolution: sd15Resolution,
+                      },
+                    }
+                  : {}),
+              };
+      const prepared = prepareBeatVideoGeneration(generationInput);
+      if (prepared.normalizedDraft && prepared.draftChanged) {
+        seedance2DraftRef.current = prepared.normalizedDraft;
+        setSeedance2Draft(prepared.normalizedDraft);
+      }
+      if (
+        prepared.normalizedDraft &&
+        prepared.saveDraftBeforeGeneration
+      ) {
+        const saved = await saveSeedance2Draft(prepared.normalizedDraft, {
+          suppressSuccess: true,
+        });
+        if (!saved) return;
+      }
+      const res = await regenerate.mutateAsync(prepared.command);
       if (res.ok === false) {
         toast.error(res.error || t("episode.workbench.video.regenFailed"));
         return;

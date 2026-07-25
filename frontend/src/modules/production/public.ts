@@ -73,6 +73,11 @@ export {
 export { VideoPaneMediaView } from "@/modules/production/presentation/VideoPaneMediaView";
 export { StalePoolSelectError } from "@/modules/production/application/image-pool-errors";
 export { isProductionErrorResponse } from "@/modules/production/application/ports";
+export { prepareBeatVideoGeneration } from "@/modules/production/domain/beat-video-generation";
+export type {
+  BeatVideoGenerationInput,
+  PreparedBeatVideoGeneration,
+} from "@/modules/production/domain/beat-video-generation";
 export type {
   GridCutCommand,
   GridCutResult,
