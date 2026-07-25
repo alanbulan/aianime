@@ -86,6 +86,8 @@ export {
 } from "@/modules/production/presentation/VideoPaneParts";
 export { VideoPaneMediaView } from "@/modules/production/presentation/VideoPaneMediaView";
 export { VideoPaneView } from "@/modules/production/presentation/VideoPaneView";
+export { BatchPanelView } from "@/modules/production/presentation/BatchPanelView";
+export type { BatchPanelViewProps } from "@/modules/production/presentation/BatchPanelView";
 export { SketchSectionView } from "@/modules/production/presentation/SketchSectionView";
 export type { SketchSectionViewProps } from "@/modules/production/presentation/SketchSectionView";
 export { RenderSectionView } from "@/modules/production/presentation/RenderSectionView";

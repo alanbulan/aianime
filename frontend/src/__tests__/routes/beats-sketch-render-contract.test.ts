@@ -170,10 +170,12 @@ describe("beats sketch/render v2 contract", () => {
   });
 
   it("labels the selected sketch grid action as batch redraw instead of auto combine", () => {
-    const batchPanel = read("src/components/episode/beat-workbench/batch-panel.tsx");
-    const sketchSection = batchPanel.slice(
-      batchPanel.indexOf("{/* Sketch modes */}"),
-      batchPanel.indexOf("{/* Render modes */}"),
+    const batchPanelView = read(
+      "src/modules/production/presentation/BatchPanelView.tsx",
+    );
+    const sketchSection = batchPanelView.slice(
+      batchPanelView.indexOf("{/* Sketch modes */}"),
+      batchPanelView.indexOf("{/* Render modes */}"),
     );
 
     expect(sketchSection).toContain("episode.workbench.batch.autoCombine");

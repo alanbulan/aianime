@@ -542,6 +542,13 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const batchPanelViewSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/production/presentation/BatchPanelView.tsx",
+      ),
+      "utf8",
+    );
     const sketchRegenQueueDomainSource = readFileSync(
       resolve(
         SRC_ROOT,
@@ -1011,6 +1018,13 @@ describe("frontend architecture boundaries", () => {
     expect(batchPanelSource).toContain(
       'from "@/modules/production/public"',
     );
+    expect(batchPanelSource).toContain("<BatchPanelView");
+    expect(batchPanelSource).toContain("<RenderPlanDialog");
+    expect(batchPanelSource).not.toContain("className=");
+    expect(batchPanelSource).not.toContain("<Button");
+    expect(batchPanelSource).not.toContain("<AlertDialog");
+    expect(batchPanelSource).not.toContain("<CreditCostInline");
+    expect(batchPanelSource).not.toContain("sketchPlanGridLabel");
     expect(batchPanelSource).not.toContain("@/lib/regen-modes");
     expect(batchPanelSource).not.toContain(
       "export function createSketchRegenPlanItems",
@@ -1019,6 +1033,16 @@ describe("frontend architecture boundaries", () => {
       "export function getLockedSketchRegenItemIds",
     );
     expect(batchPanelSource).not.toContain("function sketchModeCellAspect");
+    expect(batchPanelViewSource).toContain("className=");
+    expect(batchPanelViewSource).toContain("<Button");
+    expect(batchPanelViewSource).toContain("<AlertDialog");
+    expect(batchPanelViewSource).toContain("<CreditCostInline");
+    expect(batchPanelViewSource).toContain("sketchPlanGridLabel");
+    expect(batchPanelViewSource).not.toContain("useTasks(");
+    expect(batchPanelViewSource).not.toContain("useRegenerateSketches(");
+    expect(batchPanelViewSource).not.toContain("useGenerateAudio(");
+    expect(batchPanelViewSource).not.toContain("toast.");
+    expect(batchPanelViewSource).not.toContain("localStorage");
     expect(sketchRegenQueueDomainSource).toContain(
       "export function createSketchRegenPlanItems",
     );

@@ -189,8 +189,12 @@ describe("M05 CE generation credit cost gating", () => {
     expect(source("src/modules/production/presentation/RenderSectionView.tsx")).toEqual(
       expect.stringContaining("<CreditCostInline display={renderRegenCostDisplay} />"),
     );
-    expect(source("src/components/episode/beat-workbench/batch-panel.tsx")).toEqual(
-      expect.stringContaining("<CreditCostInline display={sketchPlanCostDisplay} />"),
+    expect(
+      source("src/modules/production/presentation/BatchPanelView.tsx"),
+    ).toEqual(
+      expect.stringContaining(
+        "<CreditCostInline display={sketchPlanCostDisplay} />",
+      ),
     );
     expect(source("src/components/episode/beat-workbench/render-plan-dialog.tsx")).toEqual(
       expect.stringContaining("<CreditCostInline display={renderPlanCostDisplay} />"),
@@ -217,6 +221,7 @@ describe("M05 CE generation credit cost gating", () => {
       "src/modules/production/application/use-render-section-controller.ts",
       "src/modules/production/presentation/RenderSectionView.tsx",
       "src/components/episode/beat-workbench/batch-panel.tsx",
+      "src/modules/production/presentation/BatchPanelView.tsx",
       "src/components/episode/beat-workbench/render-plan-dialog.tsx",
       "src/modules/narrative_planning/application/use-beats-page-controller.ts",
       "src/modules/narrative_planning/application/use-beats-sketch-plan-controller.ts",
