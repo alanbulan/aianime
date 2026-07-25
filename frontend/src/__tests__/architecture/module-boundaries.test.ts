@@ -542,6 +542,10 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const videoPaneViewSource = readFileSync(
+      resolve(SRC_ROOT, "modules/production/presentation/VideoPaneView.tsx"),
+      "utf8",
+    );
     const legacySketchQueries = readFileSync(
       resolve(SRC_ROOT, "lib/queries/sketches.ts"),
       "utf8",
@@ -647,7 +651,7 @@ describe("frontend architecture boundaries", () => {
     expect(videoPaneSource).not.toContain("getSeedance2MentionQuery(");
     expect(videoPaneSource).not.toContain("remapSeedance2Mentions(");
     expect(videoPaneSource).not.toContain("normalizeMentionSeparatorSpaces(");
-    expect(videoPaneSource).toContain("<Seedance2ConfigView");
+    expect(videoPaneViewSource).toContain("<Seedance2ConfigView");
     expect(videoPaneSource).not.toContain("<MentionTextarea");
     expect(videoPaneSource).not.toContain("<Seedance2Field");
     expect(videoPaneSource).not.toContain("<Seedance2SummaryPill");
@@ -656,6 +660,16 @@ describe("frontend architecture boundaries", () => {
     expect(videoPaneSource).not.toContain("handleMentionKeyDown");
     expect(videoPaneSource).not.toContain("handleReferenceDragStart");
     expect(videoPaneSource).not.toContain("renderReferenceControls");
+    expect(videoPaneSource).toContain("<VideoPaneView");
+    expect(videoPaneSource).not.toContain("<VideoPaneMediaView");
+    expect(videoPaneSource).not.toContain("<LegacyVideoPromptView");
+    expect(videoPaneSource).not.toContain("<VideoParamField");
+    expect(videoPaneSource).not.toContain("<Seedance2ReferenceCropAssetsView");
+    expect(videoPaneSource).not.toContain("<Seedance2AssetCropDialog");
+    expect(videoPaneSource).not.toContain("<Seedance2AudioTrimDialog");
+    expect(videoPaneSource).not.toContain("<BeatVideoGenerationConfirmDialog");
+    expect(videoPaneSource).not.toContain("<Input");
+    expect(videoPaneSource).not.toContain("<Select");
     expect(videoPaneSource).not.toContain("happyHorseConfigJson");
     expect(videoPaneSource).not.toContain("grokVideoConfigJson");
     expect(videoPaneSource).not.toContain("seedance2ConfigJson:");

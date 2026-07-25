@@ -78,6 +78,7 @@ export {
   VideoParamField,
 } from "@/modules/production/presentation/VideoPaneParts";
 export { VideoPaneMediaView } from "@/modules/production/presentation/VideoPaneMediaView";
+export { VideoPaneView } from "@/modules/production/presentation/VideoPaneView";
 export { StalePoolSelectError } from "@/modules/production/application/image-pool-errors";
 export { isProductionErrorResponse } from "@/modules/production/application/ports";
 export {
