@@ -8,6 +8,7 @@ export {
   useDeleteNarratorVoice,
   useDeleteSeedance2Asset,
   useDetectIdentities,
+  useDirectorControlToSketch,
   useGenerateBeatVideoPrompt,
   useGenerateAudio,
   useGenerateSeedance2Prompt,

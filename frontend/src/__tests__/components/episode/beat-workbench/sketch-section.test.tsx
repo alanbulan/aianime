@@ -40,10 +40,6 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("@/lib/queries/sketches", () => ({
-  useDirectorControlToSketch: () => ({ mutateAsync: directorConvertMock, isPending: false }),
-}));
-
 vi.mock("@/modules/narrative_planning/public", () => ({
   useScript: () => ({
     data: {
@@ -72,6 +68,10 @@ vi.mock("@/modules/narrative_planning/public", () => ({
 
 vi.mock("@/modules/production/public", () => ({
   StalePoolSelectError: class StalePoolSelectError extends Error {},
+  useDirectorControlToSketch: () => ({
+    mutateAsync: directorConvertMock,
+    isPending: false,
+  }),
   usePoolSelect: () => ({ mutateAsync: poolSelectMock, isPending: false }),
   useRegenerateSketches: () => ({
     mutateAsync: regenerateSketchMock,

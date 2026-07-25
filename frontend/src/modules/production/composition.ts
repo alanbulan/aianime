@@ -83,6 +83,7 @@ export const {
 export const { useAssignColors, useDetectIdentities } =
   createSketchMarkerQueryHooks(httpProductionVideoGateway);
 export const {
+  useDirectorControlToSketch,
   useGenerateSketches,
   useRegenerateGrid,
   useRegenerateRenderBeats,

@@ -601,6 +601,17 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
       )
       .json<ProductionTaskResponse | ProductionErrorResponse>();
   },
+  async generateDirectorControlSketch(
+    project,
+    episode,
+    beatNumber,
+  ) {
+    return api
+      .post(
+        p`api/v1/projects/${project}/episodes/${episode}/beats/${beatNumber}/director-control-to-sketch`,
+      )
+      .json<ProductionTaskResponse | ProductionErrorResponse>();
+  },
   async regenerateGrid(
     project,
     episode,

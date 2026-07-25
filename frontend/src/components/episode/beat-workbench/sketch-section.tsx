@@ -7,9 +7,6 @@ import { Accessibility, Box, Crop, Download, ExternalLink, ImageIcon, Loader2, P
 import { isNoReferenceMarker } from "@/lib/beat-markers";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import {
-  useDirectorControlToSketch,
-} from "@/lib/queries/sketches";
-import {
   ThreeDDirectorDialog,
   type ThreeDDirectorCaptureMeta,
 } from "@/features/viewer-kit/three-d/ThreeDDirectorDialog";
@@ -30,6 +27,7 @@ import {
 import {
   StalePoolSelectError,
   type PoolImage,
+  useDirectorControlToSketch,
   usePoolSelect,
   useRegenerateSketches,
   useSketchSettings,

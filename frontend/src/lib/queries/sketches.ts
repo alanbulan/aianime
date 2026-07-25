@@ -1,11 +1,11 @@
 // Copyright (c) 2026 AI anime
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 
 import type { PanoViewerManifest } from "@/features/viewer-kit/pano/panoManifest";
 import { api } from "@/shared/api/transport";
 import { p } from "@/shared/api/path";
 import { queryKeys } from "@/lib/query-keys";
-import type { ApiResponse, ErrorResponse, TaskResponse } from "@/types/api";
+import type { ApiResponse, TaskResponse } from "@/types/api";
 
 export function useBeatPanoBackgroundManifest(
   project: string,
@@ -49,32 +49,5 @@ export function useGenerateMissingManualSketches(
           | (TaskResponse & { data: GenerateMissingManualResult })
           | { ok: false; error: string; data?: GenerateMissingManualResult }
         >(),
-  });
-}
-
-export function useDirectorControlToSketch(
-  project: string,
-  episode: number,
-  beatNum: number,
-) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: () =>
-      api
-        .post(
-          p`api/v1/projects/${project}/episodes/${episode}/beats/${beatNum}/director-control-to-sketch`,
-        )
-        .json<
-          | (TaskResponse & { data?: unknown })
-          | (ErrorResponse & { data?: unknown })
-        >(),
-    onSuccess: (res) => {
-      qc.invalidateQueries({
-        queryKey: queryKeys.directorControlFrame(project, episode, beatNum),
-      });
-      if (!res.ok) return;
-      qc.invalidateQueries({ queryKey: queryKeys.grids(project, episode) });
-      qc.invalidateQueries({ queryKey: queryKeys.beats(project, episode) });
-    },
   });
 }

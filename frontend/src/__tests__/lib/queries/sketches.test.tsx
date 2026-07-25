@@ -10,9 +10,6 @@ vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost:3000/" }),
 }));
 
-import {
-  useDirectorControlToSketch,
-} from "@/lib/queries/sketches";
 import { server } from "@/__mocks__/msw/server";
 import { queryKeys } from "@/lib/query-keys";
 import {
@@ -26,6 +23,7 @@ import {
 import {
   useAssignColors,
   useDetectIdentities,
+  useDirectorControlToSketch,
   useGenerateSketches,
   useRegenerateGrid,
   useRegenerateRenderBeats,
@@ -502,6 +500,7 @@ describe("director control frame queries", () => {
             ok: true,
             task_type: "sketch_generation",
             scope: "director_control_to_sketch:ep001:beat_04",
+            message: "started",
             data: {
               episode: 1,
               beat_num: 4,
@@ -514,9 +513,19 @@ describe("director control frame queries", () => {
       ),
     );
 
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const directorKey = queryKeys.directorControlFrame("demo", 1, 4);
+    const gridsKey = queryKeys.grids("demo", 1);
+    const beatsKey = queryKeys.beats("demo", 1);
+    queryClient.setQueryData(directorKey, { ok: true });
+    queryClient.setQueryData(gridsKey, { ok: true });
+    queryClient.setQueryData(beatsKey, { ok: true });
+
     const { result } = renderHook(
       () => useDirectorControlToSketch("demo", 1, 4),
-      { wrapper },
+      { wrapper: wrapperWithClient(queryClient) },
     );
 
     result.current.mutate();
@@ -528,6 +537,9 @@ describe("director control frame queries", () => {
     expect(result.current.data?.ok).toBe(true);
     if (!result.current.data?.ok) throw new Error("expected task to start");
     expect(result.current.data.scope).toBe("director_control_to_sketch:ep001:beat_04");
+    expect(queryClient.getQueryState(directorKey)?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(gridsKey)?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(beatsKey)?.isInvalidated).toBe(true);
   });
 });
 

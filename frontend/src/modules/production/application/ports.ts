@@ -264,6 +264,11 @@ export interface ProductionVideoGateway {
     episode: number,
     command?: GenerateSketchesCommand,
   ): Promise<ProductionTaskResponse | ProductionErrorResponse>;
+  generateDirectorControlSketch(
+    project: string,
+    episode: number,
+    beatNumber: number,
+  ): Promise<ProductionTaskResponse | ProductionErrorResponse>;
   regenerateGrid(
     project: string,
     episode: number,

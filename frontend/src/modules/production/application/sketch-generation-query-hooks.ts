@@ -1,6 +1,7 @@
 // Copyright (c) 2026 AI anime
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { queryKeys } from "@/lib/query-keys";
 import type { ProductionVideoGateway } from "@/modules/production/application/ports";
 import type {
   GenerateSketchesCommand,
@@ -16,6 +17,38 @@ export function createSketchGenerationQueryHooks(
     return useMutation({
       mutationFn: (command?: GenerateSketchesCommand) =>
         gateway.generateSketches(project, episode, command),
+    });
+  }
+
+  function useDirectorControlToSketch(
+    project: string,
+    episode: number,
+    beatNumber: number,
+  ) {
+    const queryClient = useQueryClient();
+    return useMutation({
+      mutationFn: () =>
+        gateway.generateDirectorControlSketch(
+          project,
+          episode,
+          beatNumber,
+        ),
+      onSuccess: (response) => {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.directorControlFrame(
+            project,
+            episode,
+            beatNumber,
+          ),
+        });
+        if (!response.ok) return;
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.grids(project, episode),
+        });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.beats(project, episode),
+        });
+      },
     });
   }
 
@@ -41,6 +74,7 @@ export function createSketchGenerationQueryHooks(
   }
 
   return {
+    useDirectorControlToSketch,
     useGenerateSketches,
     useRegenerateGrid,
     useRegenerateRenderBeats,
