@@ -1480,6 +1480,47 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("event.code !== 'Space'");
   });
 
+  it("keeps Canvas pane context-menu state in one presentation hook", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasPaneContextMenu.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const hookDeclaration = [
+      "export function",
+      "useCanvasPaneContextMenu(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(hookDeclaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasPaneContextMenu.ts",
+    ]);
+    expect(hookModel).toContain("isCanvasPaneTarget");
+    expect(canvasView).toContain("./hooks/useCanvasPaneContextMenu");
+    expect(canvasView).not.toContain("const [contextMenu, setContextMenu]");
+    expect(canvasView).not.toContain("addEventListener('contextmenu'");
+    expect(canvasView).not.toContain("setContextMenu(");
+  });
+
   it("keeps Canvas node position reducers out of the Zustand store", () => {
     const positionsPath = resolve(
       SRC_ROOT,

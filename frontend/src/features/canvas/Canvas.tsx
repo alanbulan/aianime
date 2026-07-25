@@ -161,6 +161,7 @@ import { useCanvasEdgePan } from './hooks/useCanvasEdgePan';
 import { useCanvasMinimapVisibility } from './hooks/useCanvasMinimapVisibility';
 import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
 import { useCanvasNodePlacementConfirm } from './hooks/useCanvasNodePlacementConfirm';
+import { useCanvasPaneContextMenu } from './hooks/useCanvasPaneContextMenu';
 import { useCanvasSpacePan } from './hooks/useCanvasSpacePan';
 import { useCanvasViewportCommit } from './hooks/useCanvasViewportCommit';
 
@@ -349,18 +350,6 @@ export function Canvas({
   // When set, the next spawned node (from the batch "+") is fanned into by all
   // these source nodes instead of the single `pendingConnectStart`.
   const [pendingBatchConnectIds, setPendingBatchConnectIds] = useState<string[] | null>(null);
-  // Right-click (no-drag) context menu on the canvas pane. `x/y` are relative to
-  // the canvas wrapper; `clientX/Y` drive spawn/menu positioning; the `can*`
-  // flags are captured at open time so the menu reflects state at that moment.
-  const [contextMenu, setContextMenu] = useState<{
-    x: number;
-    y: number;
-    clientX: number;
-    clientY: number;
-    canUndo: boolean;
-    canRedo: boolean;
-    canPaste: boolean;
-  } | null>(null);
   const [previewConnectionVisual, setPreviewConnectionVisual] =
     useState<PreviewConnectionVisual | null>(null);
   const [skillRegistry, setSkillRegistry] = useState<SkillDefinition[]>([]);
@@ -373,6 +362,19 @@ export function Canvas({
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nodesInitialized = useNodesInitialized();
   const copiedSnapshotRef = useRef<ClipboardSnapshot | null>(sharedNodeClipboard);
+  const getContextMenuCapabilities = useCallback(() => {
+    const history = useCanvasStore.getState().history;
+    return {
+      canUndo: history.past.length > 0,
+      canRedo: history.future.length > 0,
+      canPaste: (copiedSnapshotRef.current?.nodes.length ?? 0) > 0,
+    };
+  }, []);
+  const { contextMenu, closeContextMenu } = useCanvasPaneContextMenu({
+    wrapperRef,
+    disabled: pendingNodePlacement !== null,
+    getCapabilities: getContextMenuCapabilities,
+  });
   const pasteIterationRef = useRef(0);
   const pasteImageHandledRef = useRef(false);
   const lastCanvasPointerClientPositionRef = useRef<{ x: number; y: number } | null>(null);
@@ -1551,31 +1553,7 @@ export function Canvas({
       clearMarqueeSelection();
     };
 
-    const handleContextMenu = (event: MouseEvent) => {
-      if (!isCanvasPaneTarget(event.target, wrapperElement)) {
-        return;
-      }
-      if (pendingNodePlacement) {
-        event.preventDefault();
-        return;
-      }
-      // Right-click on the empty canvas opens the canvas context menu (undo/redo/paste).
-      event.preventDefault();
-      const containerRect = wrapperElement.getBoundingClientRect();
-      const snapshot = copiedSnapshotRef.current;
-      setContextMenu({
-        x: event.clientX - containerRect.left,
-        y: event.clientY - containerRect.top,
-        clientX: event.clientX,
-        clientY: event.clientY,
-        canUndo: useCanvasStore.getState().history.past.length > 0,
-        canRedo: useCanvasStore.getState().history.future.length > 0,
-        canPaste: (snapshot?.nodes.length ?? 0) > 0,
-      });
-    };
-
     wrapperElement.addEventListener('pointerdown', handlePointerDown, true);
-    wrapperElement.addEventListener('contextmenu', handleContextMenu, true);
     wrapperElement.addEventListener('click', handleClickCapture, true);
     window.addEventListener('pointermove', handlePointerMove, true);
     window.addEventListener('pointerup', handlePointerUp, true);
@@ -1583,7 +1561,6 @@ export function Canvas({
 
     return () => {
       wrapperElement.removeEventListener('pointerdown', handlePointerDown, true);
-      wrapperElement.removeEventListener('contextmenu', handleContextMenu, true);
       wrapperElement.removeEventListener('click', handleClickCapture, true);
       window.removeEventListener('pointermove', handlePointerMove, true);
       window.removeEventListener('pointerup', handlePointerUp, true);
@@ -1594,11 +1571,9 @@ export function Canvas({
     clearMarqueeSelection,
     isSpacePanActive,
     nodes,
-    openNodeMenuAtClientPosition,
     pendingNodePlacement,
     reactFlowInstance,
     reactFlowStore,
-    setContextMenu,
     setSelectedNode,
   ]);
 
@@ -3765,7 +3740,7 @@ export function Canvas({
       {contextMenu && (
         <CanvasContextMenu
           position={{ x: contextMenu.x, y: contextMenu.y }}
-          onClose={() => setContextMenu(null)}
+          onClose={closeContextMenu}
           sections={[
             [
               {
