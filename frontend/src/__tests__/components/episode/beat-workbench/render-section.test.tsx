@@ -83,6 +83,7 @@ const cropBackgroundAnchorMock: Mock = vi.fn();
 const uploadBackgroundAnchorMock: Mock = vi.fn();
 const taskStartMock: Mock = vi.fn();
 const invalidateQueriesMock: Mock = vi.fn();
+const markSeenMock: Mock = vi.fn();
 
 vi.mock("@tanstack/react-query", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@tanstack/react-query")>();
@@ -136,25 +137,65 @@ vi.mock("@/modules/production/public", async (importOriginal) => {
   const actual = await importOriginal<
     typeof import("@/modules/production/public")
   >();
+  const { createUseRenderSectionController } = await import(
+    "@/modules/production/application/use-render-section-controller"
+  );
+  const useRenderSectionController = createUseRenderSectionController(
+    {
+      usePoolSelect: () => ({
+        mutateAsync: poolSelectMock,
+        isPending: false,
+      }),
+      useRegenerateRenderBeats: () => ({
+        mutateAsync: regenerateMock,
+        isPending: false,
+      }),
+      useRenderSettings: () => ({
+        data: {
+          ok: true,
+          data: {
+            render_image_selection: "doubao_seedream-3.0-t2i",
+            options: {},
+            sketch_aspect_padding: true,
+          },
+        },
+      }),
+      useUploadBeatImage: () => ({
+        mutateAsync: uploadMock,
+        isPending: false,
+      }),
+    },
+    {
+      downloadFile: vi.fn(),
+      openRenderFreezone: vi.fn().mockResolvedValue(undefined),
+      useGenerationCreditCost: () => ({
+        data: {
+          ok: true,
+          data: { cost: 1, display: "1 credit" },
+        },
+      }),
+      useNow: () => 1_747_392_000_000,
+      useRefreshDirectorControlFrame: (project, episode, beatNumber) => () =>
+        invalidateQueriesMock({
+          queryKey: [
+            "projects",
+            project,
+            "episodes",
+            episode,
+            "beats",
+            beatNumber,
+            "director-control-frame",
+          ],
+        }),
+      useSeenRenderCandidates: () => ({
+        markSeen: markSeenMock,
+        seenIds: undefined,
+      }),
+    },
+  );
   return {
     ...actual,
-    StalePoolSelectError: class StalePoolSelectError extends Error {},
-    usePoolSelect: () => ({ mutateAsync: poolSelectMock, isPending: false }),
-    useRegenerateRenderBeats: () => ({
-      mutateAsync: regenerateMock,
-      isPending: false,
-    }),
-    useRenderSettings: () => ({
-      data: {
-        ok: true,
-        data: {
-          render_image_selection: "doubao_seedream-3.0-t2i",
-          options: {},
-          sketch_aspect_padding: true,
-        },
-      },
-    }),
-    useUploadBeatImage: () => ({ mutateAsync: uploadMock, isPending: false }),
+    useRenderSectionController,
   };
 });
 
@@ -352,6 +393,7 @@ beforeEach(() => {
   uploadBackgroundAnchorMock.mockResolvedValue({ ok: true });
   taskStartMock.mockReset();
   invalidateQueriesMock.mockReset();
+  markSeenMock.mockReset();
   scenePlatePreviewState.data = null;
 });
 

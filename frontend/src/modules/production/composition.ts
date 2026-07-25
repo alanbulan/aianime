@@ -1,10 +1,12 @@
 // Copyright (c) 2026 AI anime
 import { createElement } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { withImageCacheBust } from "@/features/canvas/application/imageData";
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
 import { useNow } from "@/hooks/use-now";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
+import { queryKeys } from "@/lib/query-keys";
 import type { Beat } from "@/modules/narrative_planning/public";
 import { useAppStore } from "@/stores/app-store";
 import { useSeenPoolStore } from "@/stores/seen-pool-store";
@@ -26,6 +28,7 @@ import { createSketchGenerationQueryHooks } from "@/modules/production/applicati
 import { createUseAudioPaneController } from "@/modules/production/application/use-audio-pane-controller";
 import { createUseBeatVideoGenerationController } from "@/modules/production/application/use-beat-video-generation-controller";
 import { createUseLegacyVideoPromptController } from "@/modules/production/application/use-legacy-video-prompt-controller";
+import { createUseRenderSectionController } from "@/modules/production/application/use-render-section-controller";
 import { createUseSeedance2AssetOperationsController } from "@/modules/production/application/use-seedance2-asset-operations-controller";
 import { createUseSeedance2ConfigController } from "@/modules/production/application/use-seedance2-config-controller";
 import { createUseSketchSectionController } from "@/modules/production/application/use-sketch-section-controller";
@@ -108,6 +111,49 @@ export const useSketchSectionController = createUseSketchSectionController(
     useGenerationCreditCost,
     useNow,
     useSeenSketchCandidates: (project, episode) => ({
+      markSeen: useSeenPoolStore((state) => state.markSeen),
+      seenIds: useSeenPoolStore(
+        (state) => state.seen[`${project}:${episode}`],
+      ),
+    }),
+  },
+);
+export const useRenderSectionController = createUseRenderSectionController(
+  {
+    usePoolSelect: imagePoolQueries.usePoolSelect,
+    useRegenerateRenderBeats:
+      sketchGenerationQueries.useRegenerateRenderBeats,
+    useRenderSettings: imageSettingsQueries.useRenderSettings,
+    useUploadBeatImage: imagePoolQueries.useUploadBeatImage,
+  },
+  {
+    downloadFile: (url, filename) => {
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
+    },
+    openRenderFreezone: (project, episode, beatNumber) =>
+      openPresetProjectionInMyCanvas(project, {
+        scope: "beat",
+        episode,
+        beat: beatNumber,
+        primary_slot: "frame",
+      }),
+    useGenerationCreditCost,
+    useNow,
+    useRefreshDirectorControlFrame: (project, episode, beatNumber) => {
+      const queryClient = useQueryClient();
+      return () =>
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.directorControlFrame(
+            project,
+            episode,
+            beatNumber,
+          ),
+        });
+    },
+    useSeenRenderCandidates: (project, episode) => ({
       markSeen: useSeenPoolStore((state) => state.markSeen),
       seenIds: useSeenPoolStore(
         (state) => state.seen[`${project}:${episode}`],

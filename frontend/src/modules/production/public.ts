@@ -32,6 +32,7 @@ export {
   useRebuildPoolIndex,
   useRenderExecute,
   useRenderPlan,
+  useRenderSectionController,
   useRenderSettings,
   useSeedance2BeatStatus,
   useSeedance2AssetOperationsController,
@@ -83,11 +84,22 @@ export { VideoPaneView } from "@/modules/production/presentation/VideoPaneView";
 export { SketchSectionView } from "@/modules/production/presentation/SketchSectionView";
 export type { SketchSectionViewProps } from "@/modules/production/presentation/SketchSectionView";
 export { RenderSectionView } from "@/modules/production/presentation/RenderSectionView";
+export type { RenderSectionViewProps } from "@/modules/production/presentation/RenderSectionView";
 export type {
+  CropRenderBackgroundMutation,
+  RenderBackgroundAnchorsQuery,
   RenderBackgroundReferenceViewModel,
   RenderCandidateViewModel,
-  RenderSectionViewProps,
-} from "@/modules/production/presentation/RenderSectionView";
+  RenderDirectorCaptureMeta,
+  RenderSectionController,
+  RenderSectionControllerDependencies,
+  RenderSectionControllerOptions,
+  RenderSectionControllerQueries,
+  ScenePlatePreviewQuery,
+  SeenRenderCandidates,
+  UpdateRenderBackgroundMutation,
+  UploadRenderBackgroundMutation,
+} from "@/modules/production/application/use-render-section-controller";
 export type {
   DirectorCaptureMeta,
   SketchBackgroundAnchorViewModel,

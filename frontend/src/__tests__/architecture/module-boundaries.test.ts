@@ -581,6 +581,13 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const renderSectionControllerSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/production/application/use-render-section-controller.ts",
+      ),
+      "utf8",
+    );
     const legacySketchQueries = readFileSync(
       resolve(SRC_ROOT, "lib/queries/sketches.ts"),
       "utf8",
@@ -741,18 +748,42 @@ describe("frontend architecture boundaries", () => {
     expect(sketchSectionViewSource).toContain("<AlertDialog");
     expect(sketchSectionViewSource).toContain("MEDIA_THUMB_CLASS");
     expect(renderSectionSource).toContain("<RenderSectionView");
+    expect(renderSectionSource).toContain("useRenderSectionController(");
     expect(renderSectionSource).not.toContain("className=");
     expect(renderSectionSource).not.toContain("<Button");
     expect(renderSectionSource).not.toContain("<AlertDialog");
     expect(renderSectionSource).not.toContain('type="file"');
     expect(renderSectionSource).not.toContain("MEDIA_THUMB_CLASS");
+    expect(renderSectionSource).not.toContain("useState(");
+    expect(renderSectionSource).not.toContain("useTaskController(");
+    expect(renderSectionSource).not.toContain("usePoolSelect(");
+    expect(renderSectionSource).not.toContain("useRegenerateRenderBeats(");
+    expect(renderSectionSource).not.toContain("useUploadBeatImage(");
+    expect(renderSectionSource).not.toContain("toast.");
+    expect(renderSectionSource).not.toContain("formatRelativeTime");
+    expect(renderSectionSource).not.toContain("useSeenPoolStore");
     expect(renderSectionViewSource).toContain('type="file"');
     expect(renderSectionViewSource).toContain("<AlertDialog");
     expect(renderSectionViewSource).toContain("MEDIA_THUMB_CLASS");
     expect(renderSectionViewSource).toContain(
+      "controller: RenderSectionController",
+    );
+    expect(renderSectionViewSource).toContain(
       "function RenderBackgroundReferencePanel",
     );
     expect(renderSectionViewSource).toContain("function clampCropBox");
+    expect(renderSectionControllerSource).toContain(
+      "createUseRenderSectionController",
+    );
+    expect(renderSectionControllerSource).toContain("useTaskController(");
+    expect(renderSectionControllerSource).toContain("handleRegen");
+    expect(renderSectionControllerSource).toContain(
+      "handleChooseBackground",
+    );
+    expect(renderSectionControllerSource).toContain("handleOpenFreezone");
+    expect(renderSectionControllerSource).not.toContain("@/features/");
+    expect(renderSectionControllerSource).not.toContain("@/stores/");
+    expect(renderSectionControllerSource).not.toContain("document.");
     expect(legacySketchQueries).not.toContain("useAssignColors");
     expect(legacySketchQueries).not.toContain("useDetectIdentities");
     expect(legacySketchQueries).not.toContain("useDirectorControlToSketch");

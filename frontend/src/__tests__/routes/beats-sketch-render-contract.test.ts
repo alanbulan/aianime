@@ -107,6 +107,9 @@ describe("beats sketch/render v2 contract", () => {
     const stageRegistry = read("src/lib/episode-stage-registry.ts");
     const batchPanel = read("src/components/episode/beat-workbench/batch-panel.tsx");
     const renderSection = read("src/components/episode/beat-workbench/render-section.tsx");
+    const renderSectionController = read(
+      "src/modules/production/application/use-render-section-controller.ts",
+    );
 
     expect(taskTypes).not.toContain('RENDER_PLAN: "render_plan"');
     expect(stageRegistry).not.toContain("TASK_TYPES.RENDER_PLAN");
@@ -114,8 +117,9 @@ describe("beats sketch/render v2 contract", () => {
     expect(batchPanel).toContain("useScopedTaskBatchInvalidation");
     expect(batchPanel).toContain("TASK_TYPES.SELECTED_REGEN");
     expect(batchPanel).toContain('matchBy: "task_id"');
-    expect(renderSection).toContain("useRegenerateRenderBeats");
-    expect(renderSection).toContain('taskType: "selected_regen"');
+    expect(renderSection).not.toContain("useRegenerateRenderBeats");
+    expect(renderSectionController).toContain("useRegenerateRenderBeats");
+    expect(renderSectionController).toContain('taskType: "selected_regen"');
   });
 
   it("moves selected redraw actions to the ViewToggles row instead of the top toolbar or right panel", () => {

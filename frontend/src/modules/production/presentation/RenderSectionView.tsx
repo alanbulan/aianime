@@ -48,9 +48,9 @@ import { centerCropBoxForRatio, zoomCropBox } from "@/lib/aspect-ratio";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { cn } from "@/lib/utils";
 import type {
-  BeatBackgroundAnchorItem,
-  BeatBackgroundReference,
-} from "@/modules/asset_world/public";
+  RenderBackgroundReferenceViewModel,
+  RenderSectionController,
+} from "@/modules/production/application/use-render-section-controller";
 
 const CROP_SOURCE_ANCHORS = new Set([
   "master",
@@ -92,103 +92,49 @@ function clampCropBox(
   };
 }
 
-export interface RenderCandidateViewModel {
-  id: string;
-  src: string | null;
-  isActive: boolean;
-  isNew: boolean;
-  timeLabel: string | null;
-}
-
-export interface RenderBackgroundReferenceViewModel {
-  anchor: BeatBackgroundAnchorItem | null;
-  sourceId: string | null;
-  reference: BeatBackgroundReference | null;
-  renderInput: BeatBackgroundReference | null;
-  cropAspectLabel: string;
-  cropAspectRatio: number;
-  anchors: BeatBackgroundAnchorItem[];
-  canChoose: boolean;
-  loading: boolean;
-  choosing: boolean;
-  uploading: boolean;
-  croppingAnchorId: string | null;
-  onOpenDirectorWorld?(): void;
-  onChoose(anchorId: string): void | Promise<void>;
-  onCrop(
-    anchorId: string,
-    crop: { x: number; y: number; width: number; height: number },
-  ): void | Promise<void>;
-  onUpload(file: File | null | undefined): void | Promise<void>;
-}
-
 export interface RenderSectionViewProps {
-  background: RenderBackgroundReferenceViewModel;
-  beatNumber: number;
-  candidates: RenderCandidateViewModel[];
-  downloadEnabled: boolean;
+  controller: RenderSectionController;
   extraDialogs: ReactNode;
-  freezonePending: boolean;
-  poolSelectPending: boolean;
-  previewUrl: string | null;
-  regenConfirmOpen: boolean;
-  regenPending: boolean;
-  regenTaskStarted: boolean;
-  regenTaskStopping: boolean;
-  relight: { enabled: boolean; timeOfDay: string } | null;
-  renderActive: boolean;
-  renderAspectRatio: string;
-  renderPercent: number;
-  renderRegenCostDisplay?: string | null;
-  stalePromptOpen: boolean;
-  uploadPending: boolean;
-  onConfirmRegen(): void | Promise<void>;
-  onDownload(): void;
-  onForceStale(): void | Promise<void>;
-  onOpenFreezone(): void | Promise<void>;
   onPreview?(url: string): void;
-  onRegenConfirmOpenChange(open: boolean): void;
-  onRequestRegen(): void;
-  onSelect(poolId: string): void | Promise<void>;
-  onStalePromptOpenChange(open: boolean): void;
-  onStopRegenTask(): void | Promise<void>;
-  onUpload(file: File | null | undefined): void | Promise<void>;
 }
 
 export function RenderSectionView({
-  background,
-  beatNumber,
-  candidates,
-  downloadEnabled,
+  controller,
   extraDialogs,
-  freezonePending,
-  poolSelectPending,
-  previewUrl,
-  regenConfirmOpen,
-  regenPending,
-  regenTaskStarted,
-  regenTaskStopping,
-  relight,
-  renderActive,
-  renderAspectRatio,
-  renderPercent,
-  renderRegenCostDisplay,
-  stalePromptOpen,
-  uploadPending,
-  onConfirmRegen,
-  onDownload,
-  onForceStale,
-  onOpenFreezone,
   onPreview,
-  onRegenConfirmOpenChange,
-  onRequestRegen,
-  onSelect,
-  onStalePromptOpenChange,
-  onStopRegenTask,
-  onUpload,
 }: RenderSectionViewProps) {
   const { t } = useTranslation();
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const {
+    background,
+    beatNumber,
+    candidates,
+    downloadEnabled,
+    freezonePending,
+    poolSelectPending,
+    previewUrl,
+    regenConfirmOpen,
+    regenPending,
+    regenTaskStarted,
+    regenTaskStopping,
+    relight,
+    renderActive,
+    renderAspectRatio,
+    renderPercent,
+    renderRegenCostDisplay,
+    stalePromptOpen,
+    uploadPending,
+    onConfirmRegen,
+    onDownload,
+    onForceStale,
+    onOpenFreezone,
+    onRegenConfirmOpenChange,
+    onRequestRegen,
+    onSelect,
+    onStalePromptOpenChange,
+    onStopRegenTask,
+    onUpload,
+  } = controller;
 
   return (
     <div className="flex flex-col gap-3">
