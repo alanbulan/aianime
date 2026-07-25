@@ -41,6 +41,11 @@ import {
   type CanvasHistoryState,
 } from '@/features/canvas/domain/canvasHistory';
 import {
+  getDerivedNodePosition,
+  getNodeSize,
+  resolveAbsolutePosition,
+} from '@/features/canvas/domain/canvasGeometry';
+import {
   isDeleteToEmpty,
   trackEdit,
   type CanvasMutationSource,
@@ -754,34 +759,6 @@ function collectNodeIdsWithDescendants(nodes: CanvasNode[], seedIds: string[]): 
   return deleteSet;
 }
 
-// 未测量且未显式设尺寸的节点（刚 spawn、尚未渲染）按类型的设计尺寸估算，数值与
-// 各节点组件内的 DEFAULT_WIDTH/HEIGHT 对齐。否则 groupNodes / fitGroupToChildren
-// 会按 320×200 低估大节点（如视频节点 580×380），算出的组边界包不住成员。
-const FALLBACK_NODE_SIZES: Partial<Record<string, { width: number; height: number }>> = {
-  [CANVAS_NODE_TYPES.video]: { width: 580, height: 380 },
-  [CANVAS_NODE_TYPES.textAnnotation]: { width: 440, height: 320 },
-  [CANVAS_NODE_TYPES.audio]: { width: 480, height: 210 },
-  [CANVAS_NODE_TYPES.upload]: { width: 320, height: 350 },
-};
-
-function getNodeSize(node: CanvasNode): { width: number; height: number } {
-  const fallback = (node.type && FALLBACK_NODE_SIZES[node.type]) || undefined;
-  return {
-    width:
-      typeof node.measured?.width === 'number'
-        ? node.measured.width
-        : typeof node.width === 'number'
-          ? node.width
-          : (fallback?.width ?? DEFAULT_NODE_WIDTH),
-    height:
-      typeof node.measured?.height === 'number'
-        ? node.measured.height
-        : typeof node.height === 'number'
-          ? node.height
-          : (fallback?.height ?? 200),
-  };
-}
-
 function parseAspectRatioValue(aspectRatio: string | undefined): number {
   const [rawWidth = "1", rawHeight = "1"] = (aspectRatio || DEFAULT_ASPECT_RATIO).split(":");
   const width = Number(rawWidth);
@@ -857,29 +834,6 @@ function resolveDerivedAspectRatio(
   return imageLikeAspect || fallbackAspectRatio;
 }
 
-export function resolveAbsolutePosition(
-  node: CanvasNode,
-  nodeMap: Map<string, CanvasNode>
-): { x: number; y: number } {
-  let x = node.position.x;
-  let y = node.position.y;
-  let currentParentId = node.parentId;
-  const visited = new Set<string>();
-
-  while (currentParentId && !visited.has(currentParentId)) {
-    visited.add(currentParentId);
-    const parent = nodeMap.get(currentParentId);
-    if (!parent) {
-      break;
-    }
-    x += parent.position.x;
-    y += parent.position.y;
-    currentParentId = parent.parentId;
-  }
-
-  return { x, y };
-}
-
 /**
  * Undo the edge changes mergeStoryboardGroup made: re-anchor edges that were
  * re-pointed onto the group back to their original member, and reveal the hidden
@@ -907,18 +861,6 @@ function restoreStoryboardEdges(
     }
     return next;
   });
-}
-
-function getDerivedNodePosition(nodes: CanvasNode[], sourceNodeId: string): { x: number; y: number } {
-  const sourceNode = nodes.find((node) => node.id === sourceNodeId);
-  if (!sourceNode) {
-    return { x: 100, y: 100 };
-  }
-
-  return {
-    x: sourceNode.position.x + DEFAULT_NODE_WIDTH + 100,
-    y: sourceNode.position.y,
-  };
 }
 
 function resolveSelectedNodeId(selectedNodeId: string | null, nodes: CanvasNode[]): string | null {

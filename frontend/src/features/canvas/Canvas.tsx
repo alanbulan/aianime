@@ -37,7 +37,8 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { CreditDisplayHiddenProvider } from '@/components/credits/credit-visual';
 import { isCeRuntime } from '@/lib/runtime-config';
-import { resolveAbsolutePosition, useCanvasStore } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/stores/canvasStore';
+import { resolveAbsolutePosition } from '@/features/canvas/domain/canvasGeometry';
 import { useAppStore } from '@/stores/app-store';
 import { getSkillRegistry } from '@/api/skills';
 import { SKILL_SCHEMA_VERSION, type SkillDefinition } from '@/features/freezone/context/skillRoles';

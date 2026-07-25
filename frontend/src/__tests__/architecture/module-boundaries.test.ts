@@ -706,6 +706,46 @@ describe("frontend architecture boundaries", () => {
     expect(draftStorage).not.toContain("interface CanvasDraftMutationState");
   });
 
+  it("keeps Canvas graph geometry independent from the Zustand store", () => {
+    const geometryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/canvasGeometry.ts",
+    );
+    const geometryModel = readFileSync(geometryPath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenGeometryImports = importSpecifiers(geometryPath).filter(
+      (specifier) =>
+        specifier === "zustand" ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/"),
+    );
+
+    expect(forbiddenGeometryImports).toEqual([]);
+    expect(geometryModel).toContain("export function getNodeSize(");
+    expect(geometryModel).toContain("export function resolveAbsolutePosition(");
+    expect(geometryModel).toContain("export function getDerivedNodePosition(");
+    expect(canvasStore).toContain(
+      "@/features/canvas/domain/canvasGeometry",
+    );
+    expect(canvasStore).not.toContain("function getNodeSize(");
+    expect(canvasStore).not.toContain("function resolveAbsolutePosition(");
+    expect(canvasStore).not.toContain("function getDerivedNodePosition(");
+    expect(canvasView).toContain(
+      "@/features/canvas/domain/canvasGeometry",
+    );
+    expect(canvasView).not.toContain(
+      "resolveAbsolutePosition, useCanvasStore",
+    );
+  });
+
   it("keeps Canvas image node layout rules out of the Zustand store", () => {
     const layoutPath = resolve(
       SRC_ROOT,
