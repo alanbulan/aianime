@@ -1,5 +1,4 @@
 // Copyright (c) 2026 AI anime
-import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import {
   CANVAS_NODE_TYPES,
   resolveNodeSourceImageUrl,
@@ -34,7 +33,7 @@ function firstStr(...values: unknown[]): string | null {
 // Deliberately NOT resolveMediaUrl — that rejects data:/blob: URLs (a security
 // rule for href/navigation), which would blank out freshly-uploaded local images.
 function displayUrl(raw: string | null): string | null {
-  return raw ? resolveImageDisplayUrl(raw) : null;
+  return raw;
 }
 
 /**

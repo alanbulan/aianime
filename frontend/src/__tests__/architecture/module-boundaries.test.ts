@@ -209,6 +209,18 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/application",
     );
+    const domainRoot = resolve(SRC_ROOT, "features/canvas/domain");
+    const domainApplicationImports = sourceFiles(domainRoot)
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter(
+            (specifier) =>
+              specifier.startsWith("@/features/canvas/application/") ||
+              /^(?:\.\.\/)+application(?:\/|$)/.test(specifier),
+          )
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      )
+      .sort();
     const failures = sourceFiles(applicationRoot).flatMap((path) =>
       importSpecifiers(path)
         .filter(
@@ -410,6 +422,7 @@ describe("frontend architecture boundaries", () => {
     );
 
     expect(failures).toEqual([]);
+    expect(domainApplicationImports).toEqual([]);
     expect(directApiUsers).toEqual([]);
     expect(directCanvasStoreUsers).toEqual([]);
     expect(directUrlUsers).toEqual([]);
