@@ -14,6 +14,7 @@ import {
   isPlanEpisodeAssetsResult,
 } from "@/modules/narrative_planning/application/query-hooks";
 import { createUseActionPanelController } from "@/modules/narrative_planning/application/use-action-panel-controller";
+import { createUseBeatCardGridController } from "@/modules/narrative_planning/application/use-beat-card-grid-controller";
 import { createUseInsertManualShotDialogController } from "@/modules/narrative_planning/application/use-insert-manual-shot-dialog-controller";
 import { createUseBeatsPageController } from "@/modules/narrative_planning/application/use-beats-page-controller";
 import { createUseBeatsSketchPlanController } from "@/modules/narrative_planning/application/use-beats-sketch-plan-controller";
@@ -83,6 +84,13 @@ export const useInsertManualShotDialogController =
     useEpisodeDetail: narrativePlanningQueries.useEpisodeDetail,
     useInsertManualShot: narrativePlanningQueries.useInsertManualShot,
   });
+export const useBeatCardGridController = createUseBeatCardGridController(
+  {
+    useDeleteManualShot: narrativePlanningQueries.useDeleteManualShot,
+    useGridsByBeat,
+  },
+  { openBeatFreezone: openPresetProjectionInMyCanvas },
+);
 
 export const readPipelineStatus = (
   project: string,

@@ -402,6 +402,24 @@ describe("frontend architecture boundaries", () => {
       resolve(moduleRoot, "presentation/InsertManualShotDialogView.tsx"),
       "utf8",
     );
+    const beatCardGridSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "components/episode/beat-workbench/beat-card-grid.tsx",
+      ),
+      "utf8",
+    );
+    const beatCardGridControllerSource = readFileSync(
+      resolve(
+        moduleRoot,
+        "application/use-beat-card-grid-controller.ts",
+      ),
+      "utf8",
+    );
+    const beatCardGridViewSource = readFileSync(
+      resolve(moduleRoot, "presentation/BeatCardGridView.tsx"),
+      "utf8",
+    );
     const externalSources = sourceFiles(SRC_ROOT)
       .filter((path) => !path.startsWith(moduleRoot))
       .filter((path) => !relativeSource(path).startsWith("__tests__/"));
@@ -599,6 +617,46 @@ describe("frontend architecture boundaries", () => {
       "useInsertManualShot(",
     );
     expect(insertManualShotDialogViewSource).not.toContain("toast.");
+    expect(beatCardGridSource).toContain("useBeatCardGridController({");
+    expect(beatCardGridSource).toContain("<BeatCardGridView");
+    expect(beatCardGridSource).toContain("<BeatCard");
+    expect(beatCardGridSource).toContain("<InsertManualShotDialog");
+    expect(beatCardGridSource).not.toContain("useState(");
+    expect(beatCardGridSource).not.toContain("useEffect(");
+    expect(beatCardGridSource).not.toContain("useGridsByBeat(");
+    expect(beatCardGridSource).not.toContain("useDeleteManualShot(");
+    expect(beatCardGridSource).not.toContain(
+      "openPresetProjectionInMyCanvas",
+    );
+    expect(beatCardGridSource).not.toContain("useResponsiveColumns(");
+    expect(beatCardGridSource).not.toContain("toast.");
+    expect(beatCardGridSource).not.toContain("<AlertDialog");
+    expect(beatCardGridControllerSource).toContain(
+      "createUseBeatCardGridController",
+    );
+    expect(beatCardGridControllerSource).toContain(
+      "queries.useGridsByBeat",
+    );
+    expect(beatCardGridControllerSource).toContain(
+      "queries.useDeleteManualShot",
+    );
+    expect(beatCardGridControllerSource).toContain(
+      "dependencies.openBeatFreezone",
+    );
+    expect(beatCardGridControllerSource).toContain("toast.");
+    expect(beatCardGridControllerSource).not.toContain("className=");
+    expect(beatCardGridControllerSource).not.toContain("querySelector");
+    expect(beatCardGridControllerSource).not.toContain("scrollIntoView");
+    expect(beatCardGridViewSource).toContain("useResponsiveColumns(");
+    expect(beatCardGridViewSource).toContain("querySelector");
+    expect(beatCardGridViewSource).toContain("scrollIntoView");
+    expect(beatCardGridViewSource).toContain("<AlertDialog");
+    expect(beatCardGridViewSource).toContain(
+      "controller: BeatCardGridController",
+    );
+    expect(beatCardGridViewSource).not.toContain("useGridsByBeat(");
+    expect(beatCardGridViewSource).not.toContain("useDeleteManualShot(");
+    expect(beatCardGridViewSource).not.toContain("toast.");
   });
 
   it("keeps Asset & World callers on its public API", () => {

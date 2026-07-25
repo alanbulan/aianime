@@ -11,6 +11,7 @@ export {
   readPipelineStatus,
   ScriptPageContent,
   useActionPanelController,
+  useBeatCardGridController,
   useDeleteManualShot,
   useEpisodeBeats,
   useEpisodeDetail,
@@ -72,6 +73,18 @@ export type {
   ActionPanelSectionState,
   ActionPanelSelection,
 } from "@/modules/narrative_planning/application/use-action-panel-controller";
+export { BeatCardGridView } from "@/modules/narrative_planning/presentation/BeatCardGridView";
+export type { BeatCardGridViewProps } from "@/modules/narrative_planning/presentation/BeatCardGridView";
+export type {
+  BeatCardGridController,
+  BeatCardGridControllerDependencies,
+  BeatCardGridControllerOptions,
+  BeatCardGridControllerQueries,
+  BeatCardGridDeleteTarget,
+  BeatCardGridSelection,
+  BeatCardGridToggleId,
+  BeatCardPrimarySlot,
+} from "@/modules/narrative_planning/application/use-beat-card-grid-controller";
 export { InsertManualShotDialogView } from "@/modules/narrative_planning/presentation/InsertManualShotDialogView";
 export type { InsertManualShotDialogViewProps } from "@/modules/narrative_planning/presentation/InsertManualShotDialogView";
 export type {
