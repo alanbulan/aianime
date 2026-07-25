@@ -23,9 +23,7 @@ import {
   type ExportImageNodeResultKind,
   type NodeToolType,
   type StoryboardFrameItem,
-  isGroupNode,
   isProtectedProjectionGroupNode,
-  isStoryboardGroupNode,
 } from '@/features/canvas/domain/canvasNodes';
 import {
   createSnapshot,
@@ -73,6 +71,10 @@ import {
 import { reorderCanvasStoryboardGroupMember } from '@/features/canvas/domain/canvasStoryboardGroupMembers';
 import { convertCanvasStoryboardGroupToPlain } from '@/features/canvas/domain/canvasStoryboardGroupConversion';
 import { fitCanvasGroupToChildren } from '@/features/canvas/domain/canvasGroupFit';
+import {
+  arrangeCanvasGroupChildren,
+  type CanvasGroupArrangementMode,
+} from '@/features/canvas/domain/canvasGroupArrangement';
 import { validateCanvasConnection } from '@/features/canvas/domain/canvasConnection';
 import { EXPORT_RESULT_DISPLAY_NAME } from '@/features/canvas/domain/nodeDisplay';
 import {
@@ -345,7 +347,7 @@ interface CanvasState extends CanvasMutationState {
   /** 把组内子节点按指定方式重新排列（横向 / 纵向 / 网格），并收紧组框。 */
   arrangeGroupChildren: (
     groupNodeId: string,
-    mode: 'horizontal' | 'vertical' | 'grid',
+    mode: CanvasGroupArrangementMode,
   ) => void;
   ungroupNode: (groupNodeId: string) => boolean;
   deleteEdge: (edgeId: string) => void;
@@ -1347,90 +1349,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   arrangeGroupChildren: (groupNodeId, mode) => {
     const state = get();
-    const group = state.nodes.find((node) => node.id === groupNodeId);
-    if (
-      !isGroupNode(group) ||
-      isProtectedProjectionGroupNode(group) ||
-      isStoryboardGroupNode(group)
-    ) {
+    const nodes = arrangeCanvasGroupChildren(state.nodes, groupNodeId, mode);
+    if (!nodes) {
       return;
     }
-    const children = state.nodes.filter((node) => node.parentId === groupNodeId);
-    if (children.length < 2) return;
-
-    // 与 groupNodes / fitGroupToChildren 一致的内边距（TOP_PAD 给浮动标题留位）。
-    const SIDE_PAD = 20;
-    const TOP_PAD = 34;
-    const GAP = 32;
-    // 按当前位置（行优先）确定排列顺序，保持用户的相对先后直觉。
-    const ordered = children
-      .map((node) => ({ node, size: getNodeSize(node) }))
-      .sort(
-        (a, b) =>
-          a.node.position.y - b.node.position.y ||
-          a.node.position.x - b.node.position.x,
-      );
-
-    const targets = new Map<string, { x: number; y: number }>();
-    if (mode === 'horizontal') {
-      let cursorX = SIDE_PAD;
-      for (const item of ordered) {
-        targets.set(item.node.id, { x: cursorX, y: TOP_PAD });
-        cursorX += item.size.width + GAP;
-      }
-    } else if (mode === 'vertical') {
-      let cursorY = TOP_PAD;
-      for (const item of ordered) {
-        targets.set(item.node.id, { x: SIDE_PAD, y: cursorY });
-        cursorY += item.size.height + GAP;
-      }
-    } else {
-      const cols = Math.ceil(Math.sqrt(ordered.length));
-      const cellW = Math.max(...ordered.map((item) => item.size.width)) + GAP;
-      const cellH = Math.max(...ordered.map((item) => item.size.height)) + GAP;
-      ordered.forEach((item, index) => {
-        const row = Math.floor(index / cols);
-        const col = index % cols;
-        targets.set(item.node.id, {
-          x: SIDE_PAD + col * cellW,
-          y: TOP_PAD + row * cellH,
-        });
-      });
-    }
-
-    // 收紧组框到刚好包住排列后的子节点。
-    let maxX = 0;
-    let maxY = 0;
-    for (const item of ordered) {
-      const pos = targets.get(item.node.id);
-      if (!pos) continue;
-      maxX = Math.max(maxX, pos.x + item.size.width);
-      maxY = Math.max(maxY, pos.y + item.size.height);
-    }
-    const nextWidth = Math.round(maxX + SIDE_PAD);
-    const nextHeight = Math.round(maxY + SIDE_PAD);
-
-    const nextNodes = state.nodes.map((node) => {
-      if (node.id === groupNodeId) {
-        return {
-          ...node,
-          // 同步显式 width/height（React Flow 渲染优先级高于 style，见 fit 注释）。
-          width: nextWidth,
-          height: nextHeight,
-          style: { ...(node.style ?? {}), width: nextWidth, height: nextHeight },
-        };
-      }
-      const pos = targets.get(node.id);
-      if (pos) {
-        return { ...node, position: pos };
-      }
-      return node;
-    });
 
     set({
-      nodes: nextNodes,
-      // 用户从工具栏主动触发的重排会永久移动子节点（不像 fitGroupToChildren 那样可
-      // 重新推导），必须入 undo 历史，否则排乱后 ⌘Z 无法还原。
+      nodes,
       history: {
         past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
         future: [],
