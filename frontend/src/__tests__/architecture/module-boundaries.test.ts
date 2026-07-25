@@ -220,8 +220,10 @@ describe("frontend architecture boundaries", () => {
         )
         .map((specifier) => `${relativeSource(path)}: ${specifier}`),
     );
-    const directApiOpsUsers = sourceFiles(applicationRoot)
-      .filter((path) => importSpecifiers(path).includes("@/api/ops"))
+    const directApiUsers = sourceFiles(applicationRoot)
+      .filter((path) =>
+        importSpecifiers(path).some((specifier) => specifier.startsWith("@/api/")),
+      )
       .map(relativeSource)
       .sort();
     const composition = readFileSync(
@@ -243,11 +245,13 @@ describe("frontend architecture boundaries", () => {
       resolve(applicationRoot, "regenerateExportNode.ts"),
       "utf8",
     );
+    const resumeGeneration = readFileSync(
+      resolve(applicationRoot, "resumeGeneration.ts"),
+      "utf8",
+    );
 
     expect(failures).toEqual([]);
-    expect(directApiOpsUsers).toEqual([
-      "features/canvas/application/resumeGeneration.ts",
-    ]);
+    expect(directApiUsers).toEqual([]);
     expect(composition).toContain("new CanvasNodeFactory(");
     expect(composition).toContain("new CanvasToolProcessor(");
     expect(composition).toContain("freezoneAiGateway");
@@ -261,12 +265,17 @@ describe("frontend architecture boundaries", () => {
     );
     expect(composition).toContain("regenerateExportImageNodeUseCase(");
     expect(composition).toContain("freezoneRedrawTaskGateway");
+    expect(composition).toContain("resumeNodeGenerationUseCase(");
+    expect(composition).toContain("freezoneGenerationTaskGateway");
     expect(assetGateway).toContain("uploadFreezoneImage(");
     expect(assetGateway).toContain("{ timeoutMs: false }");
     expect(services).not.toContain("infrastructure/");
     expect(regenerateExportNode).toContain("aiGateway: AiGateway");
     expect(regenerateExportNode).toContain(
       "aiGateway.submitGenerateImageJob",
+    );
+    expect(resumeGeneration).toContain(
+      "gateway: CanvasGenerationTaskGateway",
     );
   });
 

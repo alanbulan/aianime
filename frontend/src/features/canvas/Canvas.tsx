@@ -46,6 +46,7 @@ import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import {
   canvasAiGateway,
   migratePastedNodeAssets,
+  resumeNodeGeneration,
   uploadLocalImageToBackend,
 } from '@/features/canvas/composition';
 import {
@@ -82,10 +83,7 @@ import {
   extractRequestId,
 } from '@/features/canvas/application/generationErrorReport';
 import { showErrorDialog } from '@/features/canvas/application/errorDialog';
-import {
-  nodeNeedsGenerationResume,
-  resumeNodeGeneration,
-} from '@/features/canvas/application/resumeGeneration';
+import { nodeNeedsGenerationResume } from '@/features/canvas/application/resumeGeneration';
 import { readUrl } from '@/lib/url-params';
 import { useQueryClient } from '@tanstack/react-query';
 import { prefetchEpisodeBeats, prefetchEpisodeDetail } from '@/modules/narrative_planning/public';

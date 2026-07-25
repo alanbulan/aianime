@@ -10,6 +10,10 @@ import {
   regenerateExportImageNode as regenerateExportImageNodeUseCase,
 } from './application/regenerateExportNode';
 import {
+  resumeNodeGeneration as resumeNodeGenerationUseCase,
+  type ResumeNodeGenerationParams,
+} from './application/resumeGeneration';
+import {
   uploadAndAutoCommitSelectedBackgroundCandidate as uploadAndAutoCommitSelectedBackgroundCandidateUseCase,
   type SelectedBackgroundTarget,
   type UploadSelectedBackgroundCandidateOptions,
@@ -19,6 +23,7 @@ import {
 } from './application/uploadToolOutput';
 import { freezoneAssetGateway } from './infrastructure/freezoneAssetGateway';
 import { freezoneAiGateway } from './infrastructure/freezoneAiGateway';
+import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerationTaskGateway';
 import { freezoneRedrawTaskGateway } from './infrastructure/freezoneRedrawTaskGateway';
 import { uuidGenerator } from './infrastructure/idGenerator';
 import { webImageSplitGateway } from './infrastructure/webImageSplitGateway';
@@ -70,5 +75,12 @@ export function regenerateExportImageNode(nodeId: string) {
     nodeId,
     freezoneAiGateway,
     freezoneRedrawTaskGateway,
+  );
+}
+
+export function resumeNodeGeneration(params: ResumeNodeGenerationParams) {
+  return resumeNodeGenerationUseCase(
+    params,
+    freezoneGenerationTaskGateway,
   );
 }

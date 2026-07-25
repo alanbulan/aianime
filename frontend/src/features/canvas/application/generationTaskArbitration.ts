@@ -1,5 +1,4 @@
 // Copyright (c) 2026 AI anime
-import { TaskCompletionError } from '@/api/tasks';
 
 type NodeGenerationData = Record<string, unknown>;
 
@@ -24,7 +23,11 @@ export function buildImageGenerationSuccessPatch(url: string): Record<string, un
 }
 
 export function isTaskCancelledError(error: unknown): boolean {
-  return error instanceof TaskCompletionError && error.status === 'cancelled';
+  return (
+    error instanceof Error
+    && 'status' in error
+    && error.status === 'cancelled'
+  );
 }
 
 function nodeHasGeneratedMedia(nodeData: NodeGenerationData): boolean {

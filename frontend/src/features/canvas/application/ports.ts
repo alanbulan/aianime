@@ -34,6 +34,39 @@ export interface CanvasGenerationTaskRef {
   task_type: string;
 }
 
+export interface CanvasGenerationTaskCompletion {
+  result?: Record<string, unknown> | null;
+}
+
+export interface CanvasStoryScriptResult {
+  title?: string | null;
+  rows: Array<Record<string, unknown>>;
+}
+
+export interface CanvasTaskResultGateway {
+  awaitCompletion: (
+    taskKey: string,
+    projectId: string,
+  ) => Promise<CanvasGenerationTaskCompletion>;
+  fetchResultUrl: (
+    projectId: string,
+    taskType: string,
+    jobId: string,
+  ) => Promise<string>;
+}
+
+export interface CanvasGenerationTaskGateway extends CanvasTaskResultGateway {
+  hasTask: (projectId: string, taskKey: string) => Promise<boolean>;
+  fetchReversePrompt: (
+    projectId: string,
+    jobId: string,
+  ) => Promise<string>;
+  fetchStoryScriptResult: (
+    projectId: string,
+    jobId: string,
+  ) => Promise<CanvasStoryScriptResult>;
+}
+
 export interface CanvasRedrawCommand {
   aspectRatio: string;
   imageSize: string;
@@ -41,20 +74,11 @@ export interface CanvasRedrawCommand {
   sourceUrl: string;
 }
 
-export interface CanvasRedrawTaskGateway {
+export interface CanvasRedrawTaskGateway extends CanvasTaskResultGateway {
   submit: (
     projectId: string,
     command: CanvasRedrawCommand,
   ) => Promise<CanvasGenerationTaskRef>;
-  awaitCompletion: (
-    taskKey: string,
-    projectId: string,
-  ) => Promise<{ result?: Record<string, unknown> | null }>;
-  fetchResultUrl: (
-    projectId: string,
-    taskType: string,
-    jobId: string,
-  ) => Promise<string>;
 }
 
 export interface NodeCatalog {
