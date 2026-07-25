@@ -539,6 +539,10 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "components/episode/beat-workbench/batch-bar.tsx"),
       "utf8",
     );
+    const batchBarViewSource = readFileSync(
+      resolve(SRC_ROOT, "modules/production/presentation/BatchBarView.tsx"),
+      "utf8",
+    );
     const batchPanelSource = readFileSync(
       resolve(
         SRC_ROOT,
@@ -1103,6 +1107,25 @@ describe("frontend architecture boundaries", () => {
       "export function episodeAudioModelCallCount",
     );
     expect(batchBarSource).not.toContain("normalizeAudioTypeForCost");
+    expect(batchBarSource).toContain("<BatchBarView");
+    expect(batchBarSource).not.toContain("className=");
+    expect(batchBarSource).not.toContain("<Button");
+    expect(batchBarSource).not.toContain("<AlertDialog");
+    expect(batchBarSource).not.toContain("<Tooltip");
+    expect(batchBarSource).not.toContain("<CreditCostInline");
+    expect(batchBarSource).not.toContain("<CreditCostPill");
+    expect(batchBarViewSource).toContain("className=");
+    expect(batchBarViewSource).toContain("<Button");
+    expect(batchBarViewSource).toContain("<AlertDialog");
+    expect(batchBarViewSource).toContain("<Tooltip");
+    expect(batchBarViewSource).toContain("<CreditCostInline");
+    expect(batchBarViewSource).toContain("<CreditCostPill");
+    expect(batchBarViewSource).not.toContain("useAssignColors(");
+    expect(batchBarViewSource).not.toContain("useDetectIdentities(");
+    expect(batchBarViewSource).not.toContain("useGenerateAudio(");
+    expect(batchBarViewSource).not.toContain("useGlobalOptimize(");
+    expect(batchBarViewSource).not.toContain("useTaskController(");
+    expect(batchBarViewSource).not.toContain("toast.");
     expect(batchPanelSource).toContain(
       'from "@/modules/production/public"',
     );

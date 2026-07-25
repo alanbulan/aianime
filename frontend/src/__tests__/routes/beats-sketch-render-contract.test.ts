@@ -9,12 +9,16 @@ function read(path: string) {
 describe("beats sketch/render v2 contract", () => {
   it("does not expose the legacy /sketches/batch auto-select action", () => {
     const batchBar = read("src/components/episode/beat-workbench/batch-bar.tsx");
+    const batchBarView = read(
+      "src/modules/production/presentation/BatchBarView.tsx",
+    );
+    const batchBarSources = `${batchBar}\n${batchBarView}`;
     const sketches = read("src/lib/queries/sketches.ts");
 
-    expect(batchBar).not.toContain("useBatchSketches");
-    expect(batchBar).not.toContain("batchSketchTask");
-    expect(batchBar).not.toContain("handleBatchSketches");
-    expect(batchBar).not.toContain("episode.workbench.batch.autoSelect");
+    expect(batchBarSources).not.toContain("useBatchSketches");
+    expect(batchBarSources).not.toContain("batchSketchTask");
+    expect(batchBarSources).not.toContain("handleBatchSketches");
+    expect(batchBarSources).not.toContain("episode.workbench.batch.autoSelect");
     expect(sketches).not.toContain("sketches/batch");
     expect(sketches).not.toContain("useBatchRender");
     expect(sketches).not.toContain("grids/batch-render");
@@ -24,6 +28,10 @@ describe("beats sketch/render v2 contract", () => {
     const taskTypes = read("src/lib/task-types.ts");
     const stageRegistry = read("src/lib/episode-stage-registry.ts");
     const batchBar = read("src/components/episode/beat-workbench/batch-bar.tsx");
+    const batchBarView = read(
+      "src/modules/production/presentation/BatchBarView.tsx",
+    );
+    const batchBarSources = `${batchBar}\n${batchBarView}`;
     const batchPanel = read("src/components/episode/beat-workbench/batch-panel.tsx");
     const batchPanelController = read(
       "src/modules/production/application/use-batch-panel-controller.ts",
@@ -40,18 +48,18 @@ describe("beats sketch/render v2 contract", () => {
     expect(taskTypes).not.toContain('VIDEO_GENERATION: "video_generation"');
     expect(stageRegistry).not.toContain("TASK_TYPES.VIDEO_GENERATION");
 
-    expect(batchBar).not.toContain("useBatchRender");
-    expect(batchBar).not.toContain("batchRenderTask = useTaskController");
-    expect(batchBar).not.toContain("TASK_TYPES.BATCH_RENDER");
-    expect(batchBar).not.toContain("batchRenderTask.start()");
-    expect(batchBar).not.toContain("renderPlanTask = useTaskController");
-    expect(batchBar).not.toContain("setRenderPlanOpen(true)");
-    expect(batchBar).not.toContain("<RenderPlanDialog");
-    expect(batchBar).not.toContain("episode.workbench.batch.genRender");
+    expect(batchBarSources).not.toContain("useBatchRender");
+    expect(batchBarSources).not.toContain("batchRenderTask = useTaskController");
+    expect(batchBarSources).not.toContain("TASK_TYPES.BATCH_RENDER");
+    expect(batchBarSources).not.toContain("batchRenderTask.start()");
+    expect(batchBarSources).not.toContain("renderPlanTask = useTaskController");
+    expect(batchBarSources).not.toContain("setRenderPlanOpen(true)");
+    expect(batchBarSources).not.toContain("<RenderPlanDialog");
+    expect(batchBarSources).not.toContain("episode.workbench.batch.genRender");
     expect(actionPanel).not.toContain("<BatchPanel");
-    expect(batchBar).not.toContain("useGenerateVideos");
-    expect(batchBar).not.toContain("handleGenAllVideos");
-    expect(batchBar).not.toContain("episode.workbench.batch.genVideoTitle");
+    expect(batchBarSources).not.toContain("useGenerateVideos");
+    expect(batchBarSources).not.toContain("handleGenAllVideos");
+    expect(batchBarSources).not.toContain("episode.workbench.batch.genVideoTitle");
 
     // Render regen fans out into N selected_regen grid tasks; track them by id
     // via the batch-invalidation hook rather than a single-scope controller.
@@ -66,19 +74,26 @@ describe("beats sketch/render v2 contract", () => {
 
   it("does not expose whole-episode sketch generation from the batch toolbar", () => {
     const batchBar = read("src/components/episode/beat-workbench/batch-bar.tsx");
+    const batchBarView = read(
+      "src/modules/production/presentation/BatchBarView.tsx",
+    );
+    const batchBarSources = `${batchBar}\n${batchBarView}`;
 
-    expect(batchBar).not.toContain("useGenerateSketches");
-    expect(batchBar).not.toContain("handleGenAllSketches");
-    expect(batchBar).not.toContain("episode.workbench.batch.genSketchTitle");
-    expect(batchBar).not.toContain("episode.workbench.batch.genSketch");
+    expect(batchBarSources).not.toContain("useGenerateSketches");
+    expect(batchBarSources).not.toContain("handleGenAllSketches");
+    expect(batchBarSources).not.toContain("episode.workbench.batch.genSketchTitle");
+    expect(batchBarSources).not.toContain("episode.workbench.batch.genSketch");
   });
 
   it("keeps AI prompt optimization in the sketch SuperPower workflow", () => {
     const batchBar = read("src/components/episode/beat-workbench/batch-bar.tsx");
+    const batchBarView = read(
+      "src/modules/production/presentation/BatchBarView.tsx",
+    );
     const productionVideoGateway = read(
       "src/modules/production/infrastructure/http-production-video-gateway.ts",
     );
-    const renderedActions = batchBar.slice(batchBar.indexOf("return ("));
+    const renderedActions = batchBarView.slice(batchBarView.indexOf("return ("));
 
     const superpowerAction = renderedActions.indexOf("episode.workbench.batch.aiOptimizeTitle");
 
@@ -91,6 +106,10 @@ describe("beats sketch/render v2 contract", () => {
 
   it("keeps grid sketch generation available outside BatchBar", () => {
     const batchBar = read("src/components/episode/beat-workbench/batch-bar.tsx");
+    const batchBarView = read(
+      "src/modules/production/presentation/BatchBarView.tsx",
+    );
+    const batchBarSources = `${batchBar}\n${batchBarView}`;
     const sketchGridGallery = read(
       "src/components/episode/beat-workbench/sketch-grid-gallery.tsx",
     );
@@ -102,7 +121,7 @@ describe("beats sketch/render v2 contract", () => {
       "src/modules/production/infrastructure/http-production-video-gateway.ts",
     );
 
-    expect(batchBar).not.toContain("gridIndex: -1");
+    expect(batchBarSources).not.toContain("gridIndex: -1");
     expect(sketchGridGallery).toContain("useSketchGridCardController");
     expect(sketchGridGallery).not.toContain("useGenerateSketches");
     expect(sketchGridController).toContain("queries.useGenerateSketches");
@@ -134,6 +153,10 @@ describe("beats sketch/render v2 contract", () => {
 
   it("moves selected redraw actions to the ViewToggles row instead of the top toolbar or right panel", () => {
     const batchBar = read("src/components/episode/beat-workbench/batch-bar.tsx");
+    const batchBarView = read(
+      "src/modules/production/presentation/BatchBarView.tsx",
+    );
+    const batchBarSources = `${batchBar}\n${batchBarView}`;
     const actionPanel = read("src/components/episode/beat-workbench/action-panel.tsx");
     const viewToggles = read("src/components/episode/beat-workbench/view-toggles.tsx");
     const view = read(
@@ -159,8 +182,8 @@ describe("beats sketch/render v2 contract", () => {
       "bestFitMode(SKETCH_REGEN_MODES",
     );
 
-    expect(batchBar).not.toContain("checkedBeats");
-    expect(batchBar).not.toContain("dispatchSelectedSketchItems");
+    expect(batchBarSources).not.toContain("checkedBeats");
+    expect(batchBarSources).not.toContain("dispatchSelectedSketchItems");
     expect(actionPanel).not.toContain("<BatchPanel");
   });
 

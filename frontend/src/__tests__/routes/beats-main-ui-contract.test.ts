@@ -77,6 +77,10 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
     const batchBar = read(
       "src/components/episode/beat-workbench/batch-bar.tsx",
     );
+    const batchBarView = read(
+      "src/modules/production/presentation/BatchBarView.tsx",
+    );
+    const batchBarSources = `${batchBar}\n${batchBarView}`;
 
     expect(viewToggles).toContain("onBatchRegenSketch");
     expect(viewToggles).toContain("onBatchRegenRender");
@@ -95,10 +99,10 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
     expect(pageSources).not.toContain("useRegenerateRenderBeats");
     expect(pageSources).not.toContain("bestFitMode(SKETCH_REGEN_MODES");
 
-    expect(batchBar).not.toContain("checkedBeats");
-    expect(batchBar).not.toContain("dispatchSelectedSketchItems");
-    expect(batchBar).not.toContain("episode.workbench.batch.singleRegen");
-    expect(batchBar).not.toContain("episode.workbench.batch.autoCombine");
+    expect(batchBarSources).not.toContain("checkedBeats");
+    expect(batchBarSources).not.toContain("dispatchSelectedSketchItems");
+    expect(batchBarSources).not.toContain("episode.workbench.batch.singleRegen");
+    expect(batchBarSources).not.toContain("episode.workbench.batch.autoCombine");
   });
 
   it("does not let stale URL beat deep-links overwrite restored workbench state", () => {
@@ -159,11 +163,21 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
     const videoPane = read(
       "src/components/episode/beat-workbench/video-pane.tsx",
     );
+    const videoPaneView = read(
+      "src/modules/production/presentation/VideoPaneView.tsx",
+    );
+    const seedance2ConfigView = read(
+      "src/modules/production/presentation/Seedance2ConfigView.tsx",
+    );
 
     expect(view).toContain("showAudioMediaStatus={isNarratedProject}");
     expect(actionPanel).toContain("showAudioMediaStatus");
     expect(singleBeatPanel).toContain("showAudioMediaStatus");
-    expect(videoPane).toContain("showAudioMediaStatus &&");
+    expect(videoPane).toContain("showAudioMediaStatus={showAudioMediaStatus}");
+    expect(videoPaneView).toContain(
+      "showAudioMediaStatus={showAudioMediaStatus}",
+    );
+    expect(seedance2ConfigView).toContain("showAudioMediaStatus &&");
   });
 
   it("persists the video backend through project config instead of local-only storage", () => {
@@ -194,6 +208,10 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
     const batchBar = read(
       "src/components/episode/beat-workbench/batch-bar.tsx",
     );
+    const batchBarView = read(
+      "src/modules/production/presentation/BatchBarView.tsx",
+    );
+    const batchBarSources = `${batchBar}\n${batchBarView}`;
     const actionPanel = read(
       "src/components/episode/beat-workbench/action-panel.tsx",
     );
@@ -223,9 +241,9 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
     );
     expect(pageSources).not.toContain("handleUseDirectorRenderChange");
     expect(view).not.toContain("useDirectorRender={useDirectorRender}");
-    expect(batchBar).not.toContain("useDirectorRender");
-    expect(batchBar).not.toContain("onUseDirectorRenderChange");
-    expect(batchBar).not.toContain(
+    expect(batchBarSources).not.toContain("useDirectorRender");
+    expect(batchBarSources).not.toContain("onUseDirectorRenderChange");
+    expect(batchBarSources).not.toContain(
       "episode.workbench.batch.useDirectorRender",
     );
     expect(actionPanel).not.toContain("useDirectorRender");

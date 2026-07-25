@@ -166,10 +166,12 @@ vi.mock("@/lib/queries/tasks", () => ({
 }));
 
 vi.mock("@/modules/production/public", async () => {
-  const { episodeAudioModelCallCount } = await import(
-    "@/modules/production/domain/audio-generation"
-  );
+  const [{ episodeAudioModelCallCount }, { BatchBarView }] = await Promise.all([
+    import("@/modules/production/domain/audio-generation"),
+    import("@/modules/production/presentation/BatchBarView"),
+  ]);
   return {
+    BatchBarView,
     episodeAudioModelCallCount,
     useAssignColors: () => ({
       mutateAsync: assignColorsMock,
