@@ -160,6 +160,7 @@ import { useCanvasNodePlacementConfirm } from './hooks/useCanvasNodePlacementCon
 import { useCanvasPaneContextMenu } from './hooks/useCanvasPaneContextMenu';
 import { useCanvasViewportBookmarkShortcuts } from './hooks/useCanvasViewportBookmarkShortcuts';
 import { useCanvasViewportCommit } from './hooks/useCanvasViewportCommit';
+import { useCanvasViewportMetrics } from './hooks/useCanvasViewportMetrics';
 
 const DEFAULT_EDGE_OPTIONS = { type: 'disconnectableEdge' };
 const REACT_FLOW_PRO_OPTIONS = { hideAttribution: true };
@@ -472,6 +473,11 @@ export function Canvas({
   const closeToolDialog = useCanvasStore((state) => state.closeToolDialog);
   const setViewportState = useCanvasStore((state) => state.setViewportState);
   const setCanvasViewportSize = useCanvasStore((state) => state.setCanvasViewportSize);
+  useCanvasViewportMetrics({
+    wrapperRef,
+    transformStore: reactFlowStore,
+    setViewportSize: setCanvasViewportSize,
+  });
   const { handleMove, handleMoveEnd } = useCanvasViewportCommit(setViewportState);
   const { handleEdgeClick } = useCanvasEdgePan({
     wrapperRef,
@@ -614,24 +620,6 @@ export function Canvas({
       unsubscribeVideoOpen();
     };
   }, [openToolDialog, closeToolDialog]);
-
-  // 单一写入器:把画布缩放写进根元素的 --ai-anime-canvas-zoom CSS 变量。各浮动工具条
-  // (ZoomScaledToolbar / NodeSideActionRail)改用 CSS `scale(var(...))` 跟随缩放,
-  // 不再各自 useStore 订阅 zoom —— 把「每节点一份 zoom 订阅、缩放时全部重渲染」收敛
-  // 成一个不触发 React 重渲染的命令式订阅。
-  useEffect(() => {
-    const root = document.documentElement;
-    let last = NaN;
-    const write = () => {
-      const zoom = reactFlowStore.getState().transform[2];
-      if (zoom !== last) {
-        last = zoom;
-        root.style.setProperty('--ai-anime-canvas-zoom', String(zoom));
-      }
-    };
-    write();
-    return reactFlowStore.subscribe(write);
-  }, [reactFlowStore]);
 
   useEffect(() => {
     isRestoringCanvasRef.current = true;
@@ -898,29 +886,6 @@ export function Canvas({
       });
     }
   }, [pendingResumeNodeKey, updateNodeData]);
-
-  useEffect(() => {
-    const element = wrapperRef.current;
-    if (!element) {
-      return;
-    }
-
-    const updateSize = () => {
-      const rect = element.getBoundingClientRect();
-      setCanvasViewportSize({
-        width: Math.max(0, Math.round(rect.width)),
-        height: Math.max(0, Math.round(rect.height)),
-      });
-    };
-
-    updateSize();
-    const observer = new ResizeObserver(updateSize);
-    observer.observe(element);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [setCanvasViewportSize]);
 
   const handleNodesChange = useCallback(
     (changes: NodeChange<CanvasNode>[]) => {
