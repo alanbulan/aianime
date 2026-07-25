@@ -1011,13 +1011,22 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/domain/storyboardGroup.ts",
     );
+    const removalPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/canvasGroupRemoval.ts",
+    );
     const deletionModel = readFileSync(deletionPath, "utf8");
     const storyboardModel = readFileSync(storyboardPath, "utf8");
+    const removalModel = readFileSync(removalPath, "utf8");
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
     );
-    const forbiddenImports = [deletionPath, storyboardPath].flatMap((path) =>
+    const forbiddenImports = [
+      deletionPath,
+      storyboardPath,
+      removalPath,
+    ].flatMap((path) =>
       importSpecifiers(path)
         .filter(
           (specifier) =>
@@ -1035,10 +1044,23 @@ describe("frontend architecture boundaries", () => {
       )
       .map(relativeSource)
       .sort();
+    const removalDeclaration = [
+      "export function",
+      "ungroupCanvasNode(",
+    ].join(" ");
+    const removalOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(removalDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(forbiddenImports).toEqual([]);
     expect(deletionOwners).toEqual([
       "features/canvas/domain/groupSelectionDelete.ts",
+    ]);
+    expect(removalOwners).toEqual([
+      "features/canvas/domain/canvasGroupRemoval.ts",
     ]);
     expect(deletionModel).toContain(
       "export function collectNodeIdsWithDescendants(",
@@ -1047,8 +1069,12 @@ describe("frontend architecture boundaries", () => {
     expect(storyboardModel).toContain(
       "export function restoreStoryboardEdges(",
     );
+    expect(removalModel).toContain(removalDeclaration);
     expect(canvasStore).toContain(
       "@/features/canvas/domain/groupSelectionDelete",
+    );
+    expect(canvasStore).toContain(
+      "@/features/canvas/domain/canvasGroupRemoval",
     );
     expect(canvasStore).not.toContain(
       "function collectNodeIdsWithDescendants(",
@@ -1057,6 +1083,8 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("isPresetManagedNode(");
     expect(canvasStore).not.toContain("const deleteSet =");
     expect(canvasStore).not.toContain("function restoreStoryboardEdges(");
+    expect(canvasStore).not.toContain("const childIds = new Set(children.map(");
+    expect(canvasStore).not.toContain("edge.source !== groupNodeId");
   });
 
   it("keeps Canvas group creation outside the Zustand store", () => {

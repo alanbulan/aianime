@@ -23,7 +23,6 @@ import {
   type ExportImageNodeResultKind,
   type NodeToolType,
   type StoryboardFrameItem,
-  isProtectedProjectionGroupNode,
 } from '@/features/canvas/domain/canvasNodes';
 import {
   createSnapshot,
@@ -39,7 +38,6 @@ import {
   findAvailableNodePosition,
   getDerivedNodePosition,
   getNodeSize,
-  resolveAbsolutePosition,
 } from '@/features/canvas/domain/canvasGeometry';
 import {
   normalizeEdgesWithNodes,
@@ -51,9 +49,6 @@ import {
   type CanvasMutationSource,
   type CanvasMutationState,
 } from '@/features/canvas/domain/canvasMutation';
-import {
-  restoreStoryboardEdges,
-} from '@/features/canvas/domain/storyboardGroup';
 import {
   reorderStoryboardFrameInGraph,
   updateStoryboardFrameInGraph,
@@ -75,6 +70,7 @@ import {
   arrangeCanvasGroupChildren,
   type CanvasGroupArrangementMode,
 } from '@/features/canvas/domain/canvasGroupArrangement';
+import { ungroupCanvasNode } from '@/features/canvas/domain/canvasGroupRemoval';
 import { validateCanvasConnection } from '@/features/canvas/domain/canvasConnection';
 import { EXPORT_RESULT_DISPLAY_NAME } from '@/features/canvas/domain/nodeDisplay';
 import {
@@ -1367,54 +1363,14 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   ungroupNode: (groupNodeId) => {
     const state = get();
-    const groupNode = state.nodes.find(
-      (node) => node.id === groupNodeId && node.type === CANVAS_NODE_TYPES.group
-    );
-    if (!groupNode) {
+    const result = ungroupCanvasNode(state.nodes, state.edges, groupNodeId);
+    if (!result) {
       return false;
     }
-    if (isProtectedProjectionGroupNode(groupNode)) {
-      return false;
-    }
-
-    const nodeMap = new Map(state.nodes.map((node) => [node.id, node] as const));
-    const children = state.nodes.filter((node) => node.parentId === groupNodeId);
-    if (children.length === 0) {
-      return false;
-    }
-
-    const nextNodes = state.nodes
-      .filter((node) => node.id !== groupNodeId)
-      .map((node) => {
-        if (node.parentId !== groupNodeId) {
-          return node;
-        }
-
-        const absolute = resolveAbsolutePosition(node, nodeMap);
-        return {
-          ...node,
-          parentId: undefined,
-          extent: undefined,
-          // Reveal members that were hidden thumbnails inside a storyboard group.
-          hidden: false,
-          position: {
-            x: Math.round(absolute.x),
-            y: Math.round(absolute.y),
-          },
-          selected: false,
-        };
-      });
-
-    const childIds = new Set(children.map((child) => child.id));
-    // Restore storyboard edge rewiring (re-anchor onto members, unhide internal)
-    // BEFORE dropping edges still attached to the group, so re-anchored ones survive.
-    const nextEdges = restoreStoryboardEdges(state.edges, groupNodeId, childIds).filter(
-      (edge) => edge.source !== groupNodeId && edge.target !== groupNodeId
-    );
 
     set({
-      nodes: nextNodes,
-      edges: nextEdges,
+      nodes: result.nodes,
+      edges: result.edges,
       selectedNodeId: state.selectedNodeId === groupNodeId ? null : state.selectedNodeId,
       activeToolDialog:
         state.activeToolDialog?.nodeId === groupNodeId ? null : state.activeToolDialog,
