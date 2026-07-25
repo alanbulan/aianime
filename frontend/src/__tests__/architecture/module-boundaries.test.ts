@@ -1028,6 +1028,56 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("function resolveDerivedAspectRatio(");
   });
 
+  it("keeps Canvas storyboard frame rules out of the Zustand store", () => {
+    const framesPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/storyboardFrames.ts",
+    );
+    const framesModel = readFileSync(framesPath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(framesPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier === "zustand" ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/"),
+    );
+    const updateDeclaration = [
+      "export function",
+      "updateStoryboardFrameInGraph(",
+    ].join(" ");
+    const reorderDeclaration = [
+      "export function",
+      "reorderStoryboardFrameInGraph(",
+    ].join(" ");
+    const ruleOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => {
+        const source = readFileSync(path, "utf8");
+        return source.includes(updateDeclaration) || source.includes(reorderDeclaration);
+      })
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(ruleOwners).toEqual([
+      "features/canvas/domain/storyboardFrames.ts",
+    ]);
+    expect(framesModel).toContain(updateDeclaration);
+    expect(framesModel).toContain(reorderDeclaration);
+    expect(canvasStore).toContain(
+      "@/features/canvas/domain/storyboardFrames",
+    );
+    expect(canvasStore).not.toContain("const patchEntries = Object.entries(data)");
+    expect(canvasStore).not.toContain("const fromIndex = frames.findIndex");
+    expect(canvasStore).not.toContain("frames.splice(toIndex, 0, movedFrame)");
+  });
+
   it("keeps Canvas viewport and selection rules outside the Zustand store", () => {
     const selectionPath = resolve(
       SRC_ROOT,

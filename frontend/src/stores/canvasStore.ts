@@ -28,7 +28,6 @@ import {
   isGroupNode,
   isProtectedProjectionGroupNode,
   isStoryboardGroupNode,
-  isStoryboardSplitNode,
 } from '@/features/canvas/domain/canvasNodes';
 import {
   createSnapshot,
@@ -64,6 +63,10 @@ import {
   resolveStoryboardCols,
   restoreStoryboardEdges,
 } from '@/features/canvas/domain/storyboardGroup';
+import {
+  reorderStoryboardFrameInGraph,
+  updateStoryboardFrameInGraph,
+} from '@/features/canvas/domain/storyboardFrames';
 import { collectNodeIdsWithDescendants } from '@/features/canvas/domain/groupSelectionDelete';
 import {
   nodeHasSourceHandle,
@@ -1447,49 +1450,18 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   updateStoryboardFrame: (nodeId, frameId, data) => {
     set((state) => {
-      let changed = false;
-      const nextNodes = state.nodes.map((node) => {
-        if (node.id !== nodeId || !isStoryboardSplitNode(node)) {
-          return node;
-        }
-
-        const nextFrames = node.data.frames.map((frame) => {
-          if (frame.id !== frameId) {
-            return frame;
-          }
-
-          const patchEntries = Object.entries(data) as Array<
-            [keyof StoryboardFrameItem, StoryboardFrameItem[keyof StoryboardFrameItem]]
-          >;
-          const hasFrameChange = patchEntries.some(([key, nextValue]) =>
-            !Object.is(frame[key], nextValue)
-          );
-          if (!hasFrameChange) {
-            return frame;
-          }
-
-          changed = true;
-          return {
-            ...frame,
-            ...data,
-          };
-        });
-
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            frames: nextFrames,
-          },
-        };
-      });
-
-      if (!changed) {
+      const result = updateStoryboardFrameInGraph(
+        state.nodes,
+        nodeId,
+        frameId,
+        data,
+      );
+      if (!result.changed) {
         return {};
       }
 
       return {
-        nodes: nextNodes,
+        nodes: result.nodes,
         history: {
           past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
           future: [],
@@ -1502,42 +1474,18 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   reorderStoryboardFrame: (nodeId, draggedFrameId, targetFrameId) => {
     set((state) => {
-      let changed = false;
-      const nextNodes = state.nodes.map((node) => {
-        if (node.id !== nodeId || !isStoryboardSplitNode(node)) {
-          return node;
-        }
-
-        const frames = [...node.data.frames].sort((a, b) => a.order - b.order);
-        const fromIndex = frames.findIndex((frame) => frame.id === draggedFrameId);
-        const toIndex = frames.findIndex((frame) => frame.id === targetFrameId);
-
-        if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) {
-          return node;
-        }
-
-        changed = true;
-        const [movedFrame] = frames.splice(fromIndex, 1);
-        frames.splice(toIndex, 0, movedFrame);
-
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            frames: frames.map((frame, index) => ({
-              ...frame,
-              order: index,
-            })),
-          },
-        };
-      });
-
-      if (!changed) {
+      const result = reorderStoryboardFrameInGraph(
+        state.nodes,
+        nodeId,
+        draggedFrameId,
+        targetFrameId,
+      );
+      if (!result.changed) {
         return {};
       }
 
       return {
-        nodes: nextNodes,
+        nodes: result.nodes,
         history: {
           past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
           future: [],
