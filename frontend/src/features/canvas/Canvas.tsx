@@ -159,6 +159,7 @@ import { useCanvasNodeMenuShortcut } from './hooks/useCanvasNodeMenuShortcut';
 import { useCanvasNodePlacementConfirm } from './hooks/useCanvasNodePlacementConfirm';
 import { useCanvasPaneContextMenu } from './hooks/useCanvasPaneContextMenu';
 import { useCanvasSelectionSync } from './hooks/useCanvasSelectionSync';
+import { useCanvasSkillRegistry } from './hooks/useCanvasSkillRegistry';
 import { useCanvasViewportBookmarkShortcuts } from './hooks/useCanvasViewportBookmarkShortcuts';
 import { useCanvasViewportCommit } from './hooks/useCanvasViewportCommit';
 import { useCanvasViewportMetrics } from './hooks/useCanvasViewportMetrics';
@@ -338,7 +339,10 @@ export function Canvas({
   const [pendingBatchConnectIds, setPendingBatchConnectIds] = useState<string[] | null>(null);
   const [previewConnectionVisual, setPreviewConnectionVisual] =
     useState<PreviewConnectionVisual | null>(null);
-  const [skillRegistry, setSkillRegistry] = useState<SkillDefinition[]>([]);
+  const {
+    skills: skillRegistry,
+    skillById,
+  } = useCanvasSkillRegistry(getSkillRegistry);
 
   const isRestoringCanvasRef = useRef(true);
   const initialViewportCorrectionPendingRef = useRef(false);
@@ -540,10 +544,6 @@ export function Canvas({
   const closeVideoViewer = useCallback(() => {
     setVideoViewer((prev) => ({ ...prev, isOpen: false }));
   }, []);
-  const skillById = useMemo(
-    () => new Map(skillRegistry.map((skill) => [skill.id, skill] as const)),
-    [skillRegistry],
-  );
   const renderedNodes = useMemo(() => {
     if (!placementConfirmNodeId) {
       return nodes;
@@ -567,22 +567,6 @@ export function Canvas({
     if (!edgesHidden) return edges;
     return edges.map((edge) => (edge.hidden ? edge : { ...edge, hidden: true }));
   }, [edges, edgesHidden]);
-
-  useEffect(() => {
-    let cancelled = false;
-    getSkillRegistry()
-      .then((items) => {
-        if (!cancelled) {
-          setSkillRegistry(items);
-        }
-      })
-      .catch((error) => {
-        console.warn('[SkillNode] failed to load skill registry for canvas connections', error);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const persistCanvasSnapshot = useCallback(() => {
     // ai-anime-fe web mode persists through useCanvasSync's Zustand

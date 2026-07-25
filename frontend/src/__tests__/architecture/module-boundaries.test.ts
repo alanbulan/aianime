@@ -1703,6 +1703,48 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps Canvas skill-registry loading in one presentation hook", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasSkillRegistry.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const hookDeclaration = [
+      "export function",
+      "useCanvasSkillRegistry(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(hookDeclaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasSkillRegistry.ts",
+    ]);
+    expect(hookModel).toContain("loadSkillRegistry()");
+    expect(hookModel).toContain("cancelled = true");
+    expect(canvasView).toContain("./hooks/useCanvasSkillRegistry");
+    expect(canvasView).not.toContain("setSkillRegistry");
+    expect(canvasView).not.toContain("new Map(skillRegistry.map");
+  });
+
   it("keeps Canvas marquee gestures in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
