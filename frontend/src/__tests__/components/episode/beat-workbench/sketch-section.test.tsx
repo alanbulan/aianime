@@ -70,28 +70,65 @@ vi.mock("@/modules/production/public", async (importOriginal) => {
   const actual = await importOriginal<
     typeof import("@/modules/production/public")
   >();
+  const { createUseSketchSectionController } = await import(
+    "@/modules/production/application/use-sketch-section-controller"
+  );
+  const { withImageCacheBust } = await import(
+    "@/features/canvas/application/imageData"
+  );
+  const useSketchSectionController = createUseSketchSectionController(
+    {
+      useDirectorControlToSketch: () => ({
+        mutateAsync: directorConvertMock,
+        isPending: false,
+      }),
+      usePoolSelect: () => ({
+        mutateAsync: poolSelectMock,
+        isPending: false,
+      }),
+      useRegenerateSketches: () => ({
+        mutateAsync: regenerateSketchMock,
+        isPending: false,
+      }),
+      useSketchSettings: () => ({
+        data: {
+          ok: true,
+          data: {
+            sketch_image_selection: "doubao_seedream-3.0-t2i",
+            options: {},
+          },
+        },
+      }),
+      useUploadBeatImage: () => ({
+        mutateAsync: vi.fn(),
+        isPending: false,
+      }),
+    },
+    {
+      cacheBustImage: withImageCacheBust,
+      downloadFile: (url, filename) => {
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = filename;
+        anchor.click();
+      },
+      openSketchFreezone: vi.fn().mockResolvedValue(undefined),
+      useGenerationCreditCost: () => ({
+        data: {
+          ok: true,
+          data: { cost: 1, display: "1 credit" },
+        },
+      }),
+      useNow: () => 1_717_000_000_000,
+      useSeenSketchCandidates: () => ({
+        markSeen: markSeenMock,
+        seenIds: undefined,
+      }),
+    },
+  );
   return {
     ...actual,
-    StalePoolSelectError: class StalePoolSelectError extends Error {},
-    useDirectorControlToSketch: () => ({
-      mutateAsync: directorConvertMock,
-      isPending: false,
-    }),
-    usePoolSelect: () => ({ mutateAsync: poolSelectMock, isPending: false }),
-    useRegenerateSketches: () => ({
-      mutateAsync: regenerateSketchMock,
-      isPending: false,
-    }),
-    useSketchSettings: () => ({
-      data: {
-        ok: true,
-        data: {
-          sketch_image_selection: "doubao_seedream-3.0-t2i",
-          options: {},
-        },
-      },
-    }),
-    useUploadBeatImage: () => ({ mutateAsync: vi.fn(), isPending: false }),
+    useSketchSectionController,
   };
 });
 
@@ -117,7 +154,7 @@ vi.mock("@/modules/asset_world/public", () => ({
   }),
   useDirectorControlFrameStatus: () => directorStatusMock(),
   useCharacters: () => ({
-    data: [{ name: "陆辰" }],
+    data: { ok: true, data: [{ name: "陆辰" }] },
   }),
 }));
 

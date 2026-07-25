@@ -560,6 +560,13 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const sketchSectionControllerSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/production/application/use-sketch-section-controller.ts",
+      ),
+      "utf8",
+    );
     const legacySketchQueries = readFileSync(
       resolve(SRC_ROOT, "lib/queries/sketches.ts"),
       "utf8",
@@ -693,11 +700,29 @@ describe("frontend architecture boundaries", () => {
     expect(videoPaneSource).not.toContain("handleRegen");
     expect(videoPaneSource).not.toContain("<AlertDialog");
     expect(sketchSectionSource).toContain("<SketchSectionView");
+    expect(sketchSectionSource).toContain("useSketchSectionController(");
     expect(sketchSectionSource).not.toContain("className=");
     expect(sketchSectionSource).not.toContain("<Button");
     expect(sketchSectionSource).not.toContain("<AlertDialog");
     expect(sketchSectionSource).not.toContain('type="file"');
     expect(sketchSectionSource).not.toContain("MEDIA_THUMB_CLASS");
+    expect(sketchSectionSource).not.toContain("useTaskController(");
+    expect(sketchSectionSource).not.toContain("usePoolSelect(");
+    expect(sketchSectionSource).not.toContain("useRegenerateSketches(");
+    expect(sketchSectionSource).not.toContain("useUploadBeatImage(");
+    expect(sketchSectionSource).not.toContain("toast.");
+    expect(sketchSectionControllerSource).toContain(
+      "createUseSketchSectionController",
+    );
+    expect(sketchSectionControllerSource).toContain("useTaskController(");
+    expect(sketchSectionControllerSource).toContain("promotePoolSketch");
+    expect(sketchSectionControllerSource).toContain(
+      "handleOpenBackgroundDialog",
+    );
+    expect(sketchSectionControllerSource).toContain("handleOpenFreezone");
+    expect(sketchSectionViewSource).toContain(
+      "controller: SketchSectionController",
+    );
     expect(sketchSectionViewSource).toContain('type="file"');
     expect(sketchSectionViewSource).toContain("<AlertDialog");
     expect(sketchSectionViewSource).toContain("MEDIA_THUMB_CLASS");

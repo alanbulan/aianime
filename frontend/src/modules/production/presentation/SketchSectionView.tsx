@@ -47,6 +47,7 @@ import {
 import { GLASS_DIALOG_CONTENT_CLASS } from "@/lib/dialog-styles";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { cn } from "@/lib/utils";
+import type { SketchSectionController } from "@/modules/production/application/use-sketch-section-controller";
 
 const SKETCH_GRID_CLASS =
   "grid grid-cols-[auto_minmax(260px,1fr)] items-start gap-x-4 gap-y-3";
@@ -59,145 +60,68 @@ const SKETCH_CANDIDATES_CLASS =
   "flex max-h-[220px] flex-wrap content-start gap-2 overflow-y-auto pr-1";
 const BACKGROUND_ANCHOR_PREVIEW_ASPECT = "16 / 9";
 
-export type SketchToolAction = "pose" | "crop";
-
-export interface SketchIdentityBadgeViewModel {
-  character: string;
-  hex: string;
-  identity: string;
-  identityId: string;
-}
-
-export interface SketchPropBadgeViewModel {
-  hex: string | null;
-  propId: string;
-}
-
-export interface SketchCandidateViewModel {
-  id: string;
-  isActive: boolean;
-  isNew: boolean;
-  src: string | null;
-  timeLabel: string | null;
-}
-
-export interface SketchBackgroundAnchorViewModel {
-  current: boolean;
-  exists: boolean;
-  id: string;
-  label: string;
-  snapshotToSelectedBackground: boolean;
-  url: string | null;
-}
-
-export interface SketchTaskViewModel {
-  started: boolean;
-  stopping: boolean;
-}
-
 export interface SketchSectionViewProps {
-  backgroundAnchors: SketchBackgroundAnchorViewModel[];
-  backgroundDialogOpen: boolean;
-  backgroundLoading: boolean;
-  backgroundSaving: boolean;
-  beatNumber: number;
-  candidates: SketchCandidateViewModel[];
-  castedEntries: SketchIdentityBadgeViewModel[];
-  directorControlUrl: string | null;
-  directorConvertPending: boolean;
-  directorTask: SketchTaskViewModel;
+  controller: SketchSectionController;
   directorWorldPending: boolean;
-  downloadEnabled: boolean;
-  editable: boolean;
   extraDialogs: ReactNode;
-  freezonePending: boolean;
-  hasSketch: boolean;
-  markedPropEntries: string[];
-  poolSelectPending: boolean;
-  previewUrl: string | null;
-  propEntries: SketchPropBadgeViewModel[];
-  regenConfirmOpen: boolean;
-  regenPending: boolean;
-  regenTask: SketchTaskViewModel;
-  sketchActive: boolean;
-  sketchAspectRatio: string;
-  sketchPercent: number;
-  sketchRegenCostDisplay?: string | null;
-  stalePromptOpen: boolean;
-  uploadPending: boolean;
-  onBackgroundDialogOpenChange(open: boolean): void;
-  onChooseBackground(anchorId: string): void;
-  onConfirmRegen(): void;
-  onConvertDirectorControl(): void;
-  onDownload(): void;
-  onForceStale(): void;
-  onNavigateToAsset(kind: "identity" | "prop", id: string): void;
-  onOpenBackgroundDialog(): void;
-  onOpenDirectorWorld(): void;
-  onOpenFreezone(): void;
-  onOpenSketchTool(action: SketchToolAction): void;
   onPreview?(url: string): void;
-  onRegenConfirmOpenChange(open: boolean): void;
-  onRequestRegen(): void;
-  onSelect(poolId: string): void;
-  onStalePromptOpenChange(open: boolean): void;
-  onStopDirectorTask(): void;
-  onStopRegenTask(): void;
-  onUpload(file: File | null | undefined): void;
 }
 
 export function SketchSectionView({
-  backgroundAnchors,
-  backgroundDialogOpen,
-  backgroundLoading,
-  backgroundSaving,
-  beatNumber,
-  candidates,
-  castedEntries,
-  directorControlUrl,
-  directorConvertPending,
-  directorTask,
+  controller,
   directorWorldPending,
-  downloadEnabled,
-  editable,
   extraDialogs,
-  freezonePending,
-  hasSketch,
-  markedPropEntries,
-  poolSelectPending,
-  previewUrl,
-  propEntries,
-  regenConfirmOpen,
-  regenPending,
-  regenTask,
-  sketchActive,
-  sketchAspectRatio,
-  sketchPercent,
-  sketchRegenCostDisplay,
-  stalePromptOpen,
-  uploadPending,
-  onBackgroundDialogOpenChange,
-  onChooseBackground,
-  onConfirmRegen,
-  onConvertDirectorControl,
-  onDownload,
-  onForceStale,
-  onNavigateToAsset,
-  onOpenBackgroundDialog,
-  onOpenDirectorWorld,
-  onOpenFreezone,
-  onOpenSketchTool,
   onPreview,
-  onRegenConfirmOpenChange,
-  onRequestRegen,
-  onSelect,
-  onStalePromptOpenChange,
-  onStopDirectorTask,
-  onStopRegenTask,
-  onUpload,
 }: SketchSectionViewProps) {
   const { t } = useTranslation();
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const {
+    backgroundAnchors,
+    backgroundDialogOpen,
+    backgroundLoading,
+    backgroundSaving,
+    beatNumber,
+    candidates,
+    castedEntries,
+    directorControlUrl,
+    directorConvertPending,
+    directorTask,
+    downloadEnabled,
+    editable,
+    freezonePending,
+    hasSketch,
+    markedPropEntries,
+    poolSelectPending,
+    previewUrl,
+    propEntries,
+    regenConfirmOpen,
+    regenPending,
+    regenTask,
+    sketchActive,
+    sketchAspectRatio,
+    sketchPercent,
+    sketchRegenCostDisplay,
+    stalePromptOpen,
+    uploadPending,
+    onBackgroundDialogOpenChange,
+    onChooseBackground,
+    onConfirmRegen,
+    onConvertDirectorControl,
+    onDownload,
+    onForceStale,
+    onNavigateToAsset,
+    onOpenBackgroundDialog,
+    onOpenDirectorWorld,
+    onOpenFreezone,
+    onOpenSketchTool,
+    onRegenConfirmOpenChange,
+    onRequestRegen,
+    onSelect,
+    onStalePromptOpenChange,
+    onStopDirectorTask,
+    onStopRegenTask,
+    onUpload,
+  } = controller;
 
   return (
     <div className={SKETCH_GRID_CLASS}>

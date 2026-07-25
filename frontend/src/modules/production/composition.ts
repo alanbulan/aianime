@@ -1,10 +1,13 @@
 // Copyright (c) 2026 AI anime
 import { createElement } from "react";
 
+import { withImageCacheBust } from "@/features/canvas/application/imageData";
+import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
 import { useNow } from "@/hooks/use-now";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import type { Beat } from "@/modules/narrative_planning/public";
 import { useAppStore } from "@/stores/app-store";
+import { useSeenPoolStore } from "@/stores/seen-pool-store";
 import { createAudioGenerationQueryHooks } from "@/modules/production/application/audio-generation-query-hooks";
 import { createEpisodeComposeQueryHooks } from "@/modules/production/application/episode-compose-query-hooks";
 import { createImageSettingsQueryHooks } from "@/modules/production/application/image-settings-query-hooks";
@@ -25,6 +28,7 @@ import { createUseBeatVideoGenerationController } from "@/modules/production/app
 import { createUseLegacyVideoPromptController } from "@/modules/production/application/use-legacy-video-prompt-controller";
 import { createUseSeedance2AssetOperationsController } from "@/modules/production/application/use-seedance2-asset-operations-controller";
 import { createUseSeedance2ConfigController } from "@/modules/production/application/use-seedance2-config-controller";
+import { createUseSketchSectionController } from "@/modules/production/application/use-sketch-section-controller";
 import { createUseVideoPaneMediaController } from "@/modules/production/application/use-video-pane-media-controller";
 import { httpProductionVideoGateway } from "@/modules/production/infrastructure/http-production-video-gateway";
 import { promptLanguageFromLocale } from "@/modules/production/domain/video-generation";
@@ -43,6 +47,15 @@ const videoPoolQueries = createVideoPoolQueryHooks(
   httpProductionVideoGateway,
 );
 const seedance2PanelQueries = createSeedance2PanelQueryHooks(
+  httpProductionVideoGateway,
+);
+const imagePoolQueries = createImagePoolQueryHooks(
+  httpProductionVideoGateway,
+);
+const imageSettingsQueries = createImageSettingsQueryHooks(
+  httpProductionVideoGateway,
+);
+const sketchGenerationQueries = createSketchGenerationQueryHooks(
   httpProductionVideoGateway,
 );
 const videoGenerationQueries = createVideoGenerationQueryHooks({
@@ -68,6 +81,40 @@ export const useVideoPaneMediaController = createUseVideoPaneMediaController(
   videoPoolQueries,
   { useNow },
 );
+export const useSketchSectionController = createUseSketchSectionController(
+  {
+    useDirectorControlToSketch:
+      sketchGenerationQueries.useDirectorControlToSketch,
+    usePoolSelect: imagePoolQueries.usePoolSelect,
+    useRegenerateSketches: sketchGenerationQueries.useRegenerateSketches,
+    useSketchSettings: imageSettingsQueries.useSketchSettings,
+    useUploadBeatImage: imagePoolQueries.useUploadBeatImage,
+  },
+  {
+    cacheBustImage: withImageCacheBust,
+    downloadFile: (url, filename) => {
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
+    },
+    openSketchFreezone: (project, episode, beatNumber) =>
+      openPresetProjectionInMyCanvas(project, {
+        scope: "beat",
+        episode,
+        beat: beatNumber,
+        primary_slot: "sketch",
+      }),
+    useGenerationCreditCost,
+    useNow,
+    useSeenSketchCandidates: (project, episode) => ({
+      markSeen: useSeenPoolStore((state) => state.markSeen),
+      seenIds: useSeenPoolStore(
+        (state) => state.seen[`${project}:${episode}`],
+      ),
+    }),
+  },
+);
 
 export const { useVideoBackends } = createVideoBackendQueryHooks(
   httpProductionVideoGateway,
@@ -79,7 +126,7 @@ export const {
   usePoolSelect,
   useRebuildPoolIndex,
   useUploadBeatImage,
-} = createImagePoolQueryHooks(httpProductionVideoGateway);
+} = imagePoolQueries;
 export const {
   useCutGrid,
   useExportGridPrompt,
@@ -115,7 +162,7 @@ export const {
   useUpdateRenderSettings,
   useSketchSettings,
   useUpdateSketchSettings,
-} = createImageSettingsQueryHooks(httpProductionVideoGateway);
+} = imageSettingsQueries;
 export const { useRenderPlan, useRenderExecute } =
   createRenderPlanQueryHooks(httpProductionVideoGateway);
 export const { useSketchRegenQueue, useSaveSketchRegenQueue } =
@@ -133,7 +180,7 @@ export const {
   useRegenerateGrid,
   useRegenerateRenderBeats,
   useRegenerateSketches,
-} = createSketchGenerationQueryHooks(httpProductionVideoGateway);
+} = sketchGenerationQueries;
 export const { useComposeEpisode, useFinalVideo } =
   createEpisodeComposeQueryHooks(httpProductionVideoGateway);
 

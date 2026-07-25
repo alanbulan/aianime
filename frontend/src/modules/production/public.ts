@@ -41,6 +41,7 @@ export {
   useSketchPoseEditor,
   useSketchRegenQueue,
   useSketchGridPreview,
+  useSketchSectionController,
   useSketchSettings,
   useTrimSeedance2Asset,
   useTrimNarratorVoice,
@@ -80,15 +81,21 @@ export {
 export { VideoPaneMediaView } from "@/modules/production/presentation/VideoPaneMediaView";
 export { VideoPaneView } from "@/modules/production/presentation/VideoPaneView";
 export { SketchSectionView } from "@/modules/production/presentation/SketchSectionView";
+export type { SketchSectionViewProps } from "@/modules/production/presentation/SketchSectionView";
 export type {
+  DirectorCaptureMeta,
   SketchBackgroundAnchorViewModel,
+  SketchBackgroundAnchorsQuery,
   SketchCandidateViewModel,
   SketchIdentityBadgeViewModel,
   SketchPropBadgeViewModel,
-  SketchSectionViewProps,
+  SketchDirectorStatusQuery,
+  SketchSectionController,
+  SketchSectionControllerOptions,
   SketchTaskViewModel,
   SketchToolAction,
-} from "@/modules/production/presentation/SketchSectionView";
+  UpdateSketchBackgroundMutation,
+} from "@/modules/production/application/use-sketch-section-controller";
 export { StalePoolSelectError } from "@/modules/production/application/image-pool-errors";
 export { isProductionErrorResponse } from "@/modules/production/application/ports";
 export {
