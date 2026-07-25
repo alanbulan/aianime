@@ -152,6 +152,7 @@ import {
 } from './ui/canvasConnectionInteraction';
 import { useCanvasDropIndicator } from './hooks/useCanvasDropIndicator';
 import { useCanvasEdgePan } from './hooks/useCanvasEdgePan';
+import { useCanvasExternalDialogs } from './hooks/useCanvasExternalDialogs';
 import { useCanvasMarqueeSelection } from './hooks/useCanvasMarqueeSelection';
 import { useCanvasMinimapVisibility } from './hooks/useCanvasMinimapVisibility';
 import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
@@ -536,14 +537,11 @@ export function Canvas({
   const imageViewer = useCanvasStore((state) => state.imageViewer);
   const closeImageViewer = useCanvasStore((state) => state.closeImageViewer);
   const navigateImageViewer = useCanvasStore((state) => state.navigateImageViewer);
-  const [videoViewer, setVideoViewer] = useState<{
-    isOpen: boolean;
-    videoUrl: string;
-    title?: string;
-  }>({ isOpen: false, videoUrl: '', title: undefined });
-  const closeVideoViewer = useCallback(() => {
-    setVideoViewer((prev) => ({ ...prev, isOpen: false }));
-  }, []);
+  const { videoViewer, closeVideoViewer } = useCanvasExternalDialogs({
+    eventPort: canvasEventBus,
+    openToolDialog,
+    closeToolDialog,
+  });
   const renderedNodes = useMemo(() => {
     if (!placementConfirmNodeId) {
       return nodes;
@@ -587,24 +585,6 @@ export function Canvas({
     },
     [persistCanvasSnapshot]
   );
-
-  useEffect(() => {
-    const unsubscribeOpen = canvasEventBus.subscribe('tool-dialog/open', (payload) => {
-      openToolDialog(payload);
-    });
-    const unsubscribeClose = canvasEventBus.subscribe('tool-dialog/close', () => {
-      closeToolDialog();
-    });
-    const unsubscribeVideoOpen = canvasEventBus.subscribe('video-viewer/open', ({ videoUrl, title }) => {
-      setVideoViewer({ isOpen: true, videoUrl, title });
-    });
-
-    return () => {
-      unsubscribeOpen();
-      unsubscribeClose();
-      unsubscribeVideoOpen();
-    };
-  }, [openToolDialog, closeToolDialog]);
 
   useEffect(() => {
     isRestoringCanvasRef.current = true;

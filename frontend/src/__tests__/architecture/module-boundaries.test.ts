@@ -1745,6 +1745,49 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("new Map(skillRegistry.map");
   });
 
+  it("keeps Canvas external dialog subscriptions in one presentation hook", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasExternalDialogs.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const hookDeclaration = [
+      "export function",
+      "useCanvasExternalDialogs(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(hookDeclaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasExternalDialogs.ts",
+    ]);
+    expect(hookModel).toContain("eventPort.subscribe('tool-dialog/open'");
+    expect(hookModel).toContain("const unsubscribeVideoOpen = eventPort.subscribe(");
+    expect(hookModel).toContain("'video-viewer/open'");
+    expect(canvasView).toContain("./hooks/useCanvasExternalDialogs");
+    expect(canvasView).not.toContain("setVideoViewer");
+    expect(canvasView).not.toContain("canvasEventBus.subscribe('tool-dialog/open'");
+  });
+
   it("keeps Canvas marquee gestures in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
