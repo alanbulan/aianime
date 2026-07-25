@@ -6,7 +6,6 @@ import {
   type CanvasNode,
 } from '../domain/canvasNodes';
 import {
-  getNodeSize,
   resolveAbsolutePosition,
 } from '../domain/canvasGeometry';
 import {
@@ -14,12 +13,9 @@ import {
   resolveCanvasGroupMembers,
 } from '../domain/canvasGrouping';
 import {
-  DEFAULT_STORYBOARD_ASPECT,
-  computeStoryboardBoardLayout,
-  computeStoryboardCell,
-  computeStoryboardGridLayout,
-  resolveStoryboardCols,
-} from '../domain/storyboardGroup';
+  layoutCanvasStoryboardGroupMembers,
+  mapCanvasStoryboardMemberPositions,
+} from '../domain/canvasStoryboardGroupMembers';
 import type { NodeFactory } from './ports';
 
 export interface CanvasStoryboardGroupCreationResult {
@@ -49,26 +45,17 @@ export function createCanvasStoryboardGroup(
       || firstPosition.x - secondPosition.x
     );
   });
-  const baseWidth = Math.max(...ordered.map((node) => getNodeSize(node).width));
-  const baseHeight = Math.max(...ordered.map((node) => getNodeSize(node).height));
-  const aspectKey = DEFAULT_STORYBOARD_ASPECT;
-  const cols = resolveStoryboardCols(ordered.length);
-  const { cellWidth, cellHeight } = computeStoryboardCell(
+  const {
     baseWidth,
     baseHeight,
     aspectKey,
+    memberLayout,
+    board,
+  } = layoutCanvasStoryboardGroupMembers(ordered);
+  const memberPositions = mapCanvasStoryboardMemberPositions(
+    ordered,
+    memberLayout,
   );
-  const memberLayout = computeStoryboardGridLayout({
-    count: ordered.length,
-    cols,
-    cellWidth,
-    cellHeight,
-  });
-  const board = computeStoryboardBoardLayout({
-    count: ordered.length,
-    cols,
-    aspectKey,
-  });
 
   const anchor = ordered.reduce(
     (position, node) => {
@@ -107,13 +94,13 @@ export function createCanvasStoryboardGroup(
 
   const groupedNodeIds = new Set(memberIds);
   const updatedMembers = new Map<string, CanvasNode>();
-  ordered.forEach((node, index) => {
-    const cell = memberLayout.cells[index];
+  ordered.forEach((node) => {
+    const position = memberPositions.get(node.id) ?? node.position;
     updatedMembers.set(node.id, {
       ...node,
       parentId: groupNode.id,
       hidden: true,
-      position: { x: cell.x, y: cell.y },
+      position,
       selected: false,
     });
   });

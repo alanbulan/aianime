@@ -13,7 +13,6 @@ import {
 import {
   CANVAS_NODE_TYPES,
   DEFAULT_ASPECT_RATIO,
-  DEFAULT_NODE_WIDTH,
   EXPORT_RESULT_NODE_MIN_HEIGHT,
   EXPORT_RESULT_NODE_MIN_WIDTH,
   type ActiveToolDialog,
@@ -56,11 +55,6 @@ import {
   type CanvasMutationState,
 } from '@/features/canvas/domain/canvasMutation';
 import {
-  DEFAULT_STORYBOARD_ASPECT,
-  computeStoryboardBoardLayout,
-  computeStoryboardCell,
-  computeStoryboardGridLayout,
-  resolveStoryboardCols,
   restoreStoryboardEdges,
 } from '@/features/canvas/domain/storyboardGroup';
 import {
@@ -129,6 +123,10 @@ import {
   type CanvasGroupCreationOptions,
 } from '@/features/canvas/application/canvasGroupCreation';
 import { createCanvasStoryboardGroup } from '@/features/canvas/application/canvasStoryboardGroupCreation';
+import {
+  addCanvasStoryboardGroupMembers,
+  type CanvasStoryboardMemberImage,
+} from '@/features/canvas/application/canvasStoryboardGroupMemberAddition';
 import {
   updateCanvasNodeSize,
   type CanvasNodeSizeUpdateOptions,
@@ -332,7 +330,7 @@ interface CanvasState extends CanvasMutationState {
   /** Add image members (from upload / history) to a storyboard group's grid. */
   addStoryboardMembers: (
     groupNodeId: string,
-    images: { imageUrl: string; previewImageUrl?: string; displayName?: string }[]
+    images: CanvasStoryboardMemberImage[]
   ) => void;
   /** Drop the storyboard behaviour, leaving a plain group with the same members. */
   convertStoryboardGroupToPlain: (groupNodeId: string) => void;
@@ -1292,92 +1290,19 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   addStoryboardMembers: (groupNodeId, images) => {
-    const valid = images.filter((image) => image.imageUrl.trim().length > 0);
-    if (valid.length === 0) {
-      return;
-    }
     const state = get();
-    const group = state.nodes.find((node) => node.id === groupNodeId);
-    if (!isStoryboardGroupNode(group)) {
+    const result = addCanvasStoryboardGroupMembers(
+      state.nodes,
+      groupNodeId,
+      images,
+      canvasNodeFactory,
+    );
+    if (!result) {
       return;
     }
-
-    const existing = state.nodes
-      .filter((node) => node.parentId === groupNodeId)
-      .sort((a, b) => a.position.y - b.position.y || a.position.x - b.position.x);
-
-    const baseWidth =
-      group.data.storyboardBaseWidth ??
-      (existing.length > 0
-        ? Math.max(...existing.map((node) => getNodeSize(node).width))
-        : DEFAULT_NODE_WIDTH);
-    const baseHeight =
-      group.data.storyboardBaseHeight ??
-      (existing.length > 0 ? Math.max(...existing.map((node) => getNodeSize(node).height)) : 200);
-    const aspectKey = group.data.storyboardAspect ?? DEFAULT_STORYBOARD_ASPECT;
-
-    // New image members are plain result-image nodes (hidden thumbnails like the
-    // rest), sized to the group's content floor.
-    const newNodes: CanvasNode[] = valid.map((image) => {
-      const node = canvasNodeFactory.createNode(
-        CANVAS_NODE_TYPES.exportImage,
-        { x: 0, y: 0 },
-        {
-          imageUrl: image.imageUrl,
-          previewImageUrl: image.previewImageUrl ?? image.imageUrl,
-          displayName: image.displayName ?? '分镜',
-        }
-      );
-      node.parentId = groupNodeId;
-      node.hidden = true;
-      node.selected = false;
-      node.width = Math.round(baseWidth);
-      node.height = Math.round(baseHeight);
-      node.style = { width: Math.round(baseWidth), height: Math.round(baseHeight) };
-      return node;
-    });
-
-    const allMembers = [...existing, ...newNodes];
-    const cols = resolveStoryboardCols(allMembers.length, group.data.storyboardCols);
-    const { cellWidth, cellHeight } = computeStoryboardCell(baseWidth, baseHeight, aspectKey);
-    const memberLayout = computeStoryboardGridLayout({
-      count: allMembers.length,
-      cols,
-      cellWidth,
-      cellHeight,
-    });
-    const board = computeStoryboardBoardLayout({ count: allMembers.length, cols, aspectKey });
-
-    const posById = new Map<string, { x: number; y: number }>();
-    allMembers.forEach((node, index) => {
-      const cell = memberLayout.cells[index];
-      if (cell) {
-        posById.set(node.id, { x: cell.x, y: cell.y });
-      }
-    });
-
-    const updatedExisting = state.nodes.map((node) => {
-      if (node.id === groupNodeId) {
-        return {
-          ...node,
-          // 同步显式 width/height（React Flow 渲染优先级高于 style，见 arrange 注释）。
-          width: board.groupWidth,
-          height: board.groupHeight,
-          style: { ...(node.style ?? {}), width: board.groupWidth, height: board.groupHeight },
-          data: { ...(node.data as GroupNodeData), storyboardCols: board.cols },
-        };
-      }
-      const position = posById.get(node.id);
-      return position ? { ...node, position } : node;
-    });
-    const positionedNew = newNodes.map((node) => ({
-      ...node,
-      position: posById.get(node.id) ?? node.position,
-    }));
 
     set({
-      // New children appended after the group (which already precedes its members).
-      nodes: [...updatedExisting, ...positionedNew],
+      nodes: result.nodes,
       history: {
         past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
         future: [],

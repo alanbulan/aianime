@@ -1254,6 +1254,73 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("fromIndex >= members.length");
   });
 
+  it("keeps Canvas storyboard member addition outside the Zustand store", () => {
+    const additionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasStoryboardGroupMemberAddition.ts",
+    );
+    const membersPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/canvasStoryboardGroupMembers.ts",
+    );
+    const creationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasStoryboardGroupCreation.ts",
+    );
+    const additionModel = readFileSync(additionPath, "utf8");
+    const membersModel = readFileSync(membersPath, "utf8");
+    const creationModel = readFileSync(creationPath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(additionPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/features/canvas/nodeFactoryComposition",
+    );
+    const additionDeclaration = [
+      "export function",
+      "addCanvasStoryboardGroupMembers(",
+    ].join(" ");
+    const layoutDeclaration = [
+      "export function",
+      "layoutCanvasStoryboardGroupMembers(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => {
+        const source = readFileSync(path, "utf8");
+        return source.includes(additionDeclaration) || source.includes(layoutDeclaration);
+      })
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/application/canvasStoryboardGroupMemberAddition.ts",
+      "features/canvas/domain/canvasStoryboardGroupMembers.ts",
+    ]);
+    expect(additionModel).toContain(additionDeclaration);
+    expect(additionModel).toContain("nodeFactory: NodeFactory");
+    expect(membersModel).toContain(layoutDeclaration);
+    expect(creationModel).toContain("layoutCanvasStoryboardGroupMembers(ordered)");
+    expect(additionModel).toContain("layoutCanvasStoryboardGroupMembers(existing,");
+    expect(canvasStore).toContain(
+      "@/features/canvas/application/canvasStoryboardGroupMemberAddition",
+    );
+    expect(canvasStore).not.toContain("const valid = images.filter(");
+    expect(canvasStore).not.toContain("const allMembers = [...existing, ...newNodes]");
+    expect(canvasStore).not.toContain("displayName: image.displayName ?? '分镜'");
+  });
+
   it("keeps Canvas storyboard node layout out of the Zustand store", () => {
     const layoutPath = resolve(
       SRC_ROOT,
