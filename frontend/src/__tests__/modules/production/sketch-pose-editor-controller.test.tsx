@@ -135,7 +135,7 @@ describe("Production sketch pose editor dialog controller", () => {
     act(() => result.current.onMoveCanvasInteraction({ x: 20, y: 25 }));
     act(() => result.current.onFinishCanvasInteraction());
 
-    expect(result.current.strokes).toEqual([
+    expect(result.current.canvasStrokes).toEqual([
       {
         colorHex: "#22d3ee",
         eraser: false,
@@ -148,7 +148,7 @@ describe("Production sketch pose editor dialog controller", () => {
     ]);
 
     act(() => result.current.onUndo());
-    expect(result.current.strokes).toEqual([]);
+    expect(result.current.canvasStrokes).toEqual([]);
   });
 
   it("moves pose joints and controls frame membership", async () => {

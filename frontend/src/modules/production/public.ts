@@ -101,6 +101,8 @@ export type {
 } from "@/modules/production/application/use-render-plan-dialog-controller";
 export { SketchCropDialogView } from "@/modules/production/presentation/SketchCropDialogView";
 export type { SketchCropDialogViewProps } from "@/modules/production/presentation/SketchCropDialogView";
+export { SketchPoseEditorDialogView } from "@/modules/production/presentation/SketchPoseEditorDialogView";
+export type { SketchPoseEditorDialogViewProps } from "@/modules/production/presentation/SketchPoseEditorDialogView";
 export type {
   SketchCropDialogController,
   SketchCropDialogControllerDependencies,

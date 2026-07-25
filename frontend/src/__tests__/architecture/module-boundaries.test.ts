@@ -620,6 +620,13 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const sketchPoseEditorDialogViewSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/production/presentation/SketchPoseEditorDialogView.tsx",
+      ),
+      "utf8",
+    );
     const sketchRegenQueueDomainSource = readFileSync(
       resolve(
         SRC_ROOT,
@@ -1257,6 +1264,9 @@ describe("frontend architecture boundaries", () => {
     expect(sketchPoseEditorDialogSource).toContain(
       "useSketchPoseEditorDialogController({",
     );
+    expect(sketchPoseEditorDialogSource).toContain(
+      "<SketchPoseEditorDialogView",
+    );
     expect(sketchPoseEditorDialogSource).not.toContain("useSketchPoseEditor(");
     expect(sketchPoseEditorDialogSource).not.toContain(
       "useSaveSketchPoseEditor(",
@@ -1267,6 +1277,14 @@ describe("frontend architecture boundaries", () => {
     expect(sketchPoseEditorDialogSource).not.toContain(
       "scalePosePresetJoints(",
     );
+    expect(sketchPoseEditorDialogSource).not.toContain("useEffect(");
+    expect(sketchPoseEditorDialogSource).not.toContain("useState(");
+    expect(sketchPoseEditorDialogSource).not.toContain("className=");
+    expect(sketchPoseEditorDialogSource).not.toContain("<Dialog");
+    expect(sketchPoseEditorDialogSource).not.toContain("<Button");
+    expect(sketchPoseEditorDialogSource).not.toContain("<canvas");
+    expect(sketchPoseEditorDialogSource).not.toContain("PointerEvent");
+    expect(sketchPoseEditorDialogSource).not.toContain("drawEditorCanvas");
     expect(sketchPoseEditorDialogControllerSource).toContain(
       "createUseSketchPoseEditorDialogController",
     );
@@ -1286,6 +1304,21 @@ describe("frontend architecture boundaries", () => {
     expect(sketchPoseEditorDialogControllerSource).not.toContain("PointerEvent");
     expect(sketchPoseEditorDialogControllerSource).not.toContain("document.");
     expect(sketchPoseEditorDialogControllerSource).not.toContain("window.");
+    expect(sketchPoseEditorDialogViewSource).toContain("className=");
+    expect(sketchPoseEditorDialogViewSource).toContain("<Dialog");
+    expect(sketchPoseEditorDialogViewSource).toContain("<Button");
+    expect(sketchPoseEditorDialogViewSource).toContain("<canvas");
+    expect(sketchPoseEditorDialogViewSource).toContain("new ResizeObserver(");
+    expect(sketchPoseEditorDialogViewSource).toContain("new Image(");
+    expect(sketchPoseEditorDialogViewSource).toContain("canvasPoint(");
+    expect(sketchPoseEditorDialogViewSource).toContain("drawEditorCanvas(");
+    expect(sketchPoseEditorDialogViewSource).not.toContain(
+      "useSketchPoseEditor(",
+    );
+    expect(sketchPoseEditorDialogViewSource).not.toContain(
+      "useSaveSketchPoseEditor(",
+    );
+    expect(sketchPoseEditorDialogViewSource).not.toContain("toast.");
     expect(productionCompositionSource).toContain(
       "createUseSketchPoseEditorDialogController",
     );

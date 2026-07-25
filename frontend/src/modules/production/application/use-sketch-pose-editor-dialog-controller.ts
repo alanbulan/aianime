@@ -80,7 +80,6 @@ export interface SketchPoseEditorDialogController {
   savePending: boolean;
   skeletons: PoseSkeleton[];
   sketchUrl: string;
-  strokes: PoseStroke[];
   onApplyPreset(): void;
   onClearStrokes(): void;
   onFinishCanvasInteraction(): void;
@@ -266,7 +265,6 @@ export function createUseSketchPoseEditorDialogController(
       sketchUrl: data
         ? dependencies.resolveMediaUrl(data.sketch_url) ?? ""
         : "",
-      strokes,
       onApplyPreset,
       onClearStrokes: () => setStrokes([]),
       onFinishCanvasInteraction,
