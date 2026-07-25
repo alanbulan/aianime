@@ -658,12 +658,17 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/application/canvasNodeChangeEffects.ts",
     );
+    const edgeEffectsPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasEdgeChangeEffects.ts",
+    );
     const historyPath = resolve(
       SRC_ROOT,
       "features/canvas/domain/canvasHistory.ts",
     );
     const changeIntent = readFileSync(changeIntentPath, "utf8");
     const changeEffects = readFileSync(changeEffectsPath, "utf8");
+    const edgeEffects = readFileSync(edgeEffectsPath, "utf8");
     const historyModel = readFileSync(historyPath, "utf8");
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
@@ -673,7 +678,11 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
-    const forbiddenIntentImports = [changeIntentPath, changeEffectsPath].flatMap((path) =>
+    const forbiddenIntentImports = [
+      changeIntentPath,
+      changeEffectsPath,
+      edgeEffectsPath,
+    ].flatMap((path) =>
       importSpecifiers(path)
         .filter(
           (specifier) =>
@@ -706,6 +715,16 @@ describe("frontend architecture boundaries", () => {
       )
       .map(relativeSource)
       .sort();
+    const edgeEffectsDeclaration = [
+      "export function",
+      "applyCanvasEdgeChangeEffects(",
+    ].join(" ");
+    const edgeEffectsOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(edgeEffectsDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(forbiddenIntentImports).toEqual([]);
     expect(interactionHistoryOwners).toEqual([
@@ -713,6 +732,9 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(changeEffectsOwners).toEqual([
       "features/canvas/application/canvasNodeChangeEffects.ts",
+    ]);
+    expect(edgeEffectsOwners).toEqual([
+      "features/canvas/application/canvasEdgeChangeEffects.ts",
     ]);
     expect(changeIntent).toContain("export function classifyCanvasNodeChanges(");
     expect(changeIntent).toContain(
@@ -722,7 +744,9 @@ describe("frontend architecture boundaries", () => {
     expect(changeEffects).toContain(changeEffectsDeclaration);
     expect(changeEffects).toContain("recordCanvasInteractionHistory(");
     expect(changeEffects).toContain("withManualSizeLock(node)");
-    expect(canvasStore).toContain(
+    expect(edgeEffects).toContain(edgeEffectsDeclaration);
+    expect(edgeEffects).toContain("hasMeaningfulCanvasEdgeChange(changes)");
+    expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasChangeIntent",
     );
     expect(canvasView).toContain(
@@ -730,6 +754,9 @@ describe("frontend architecture boundaries", () => {
     );
     expect(canvasStore).toContain(
       "@/features/canvas/application/canvasNodeChangeEffects",
+    );
+    expect(canvasStore).toContain(
+      "@/features/canvas/application/canvasEdgeChangeEffects",
     );
     expect(canvasStore).not.toContain("recordCanvasInteractionHistory(");
     expect(canvasStore).not.toContain("classifyCanvasNodeChanges(");

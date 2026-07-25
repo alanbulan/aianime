@@ -88,10 +88,8 @@ import {
   createCanvasProgrammaticEdge,
   type CanvasDataEdgeCreationOptions,
 } from '@/features/canvas/application/canvasEdgeCreation';
-import {
-  hasMeaningfulCanvasEdgeChange,
-} from '@/features/canvas/application/canvasChangeIntent';
 import { applyCanvasNodeChangeEffects } from '@/features/canvas/application/canvasNodeChangeEffects';
+import { applyCanvasEdgeChangeEffects } from '@/features/canvas/application/canvasEdgeChangeEffects';
 import { updateCanvasNodeData } from '@/features/canvas/application/canvasNodeData';
 import { convertCanvasNodeType } from '@/features/canvas/application/canvasNodeConversion';
 import {
@@ -384,22 +382,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   onEdgesChange: (changes) => {
     set((state) => {
-      const nextEdges = applyEdgeChanges<CanvasEdge>(changes, state.edges);
-      const hasMeaningfulChange = hasMeaningfulCanvasEdgeChange(changes);
-
-      if (!hasMeaningfulChange) {
-        return { edges: nextEdges };
-      }
-
-      return {
-        edges: nextEdges,
-        history: {
-          past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-          future: [],
-        },
-        dragHistorySnapshot: null,
-        ...trackEdit(state),
-      };
+      const changedEdges = applyEdgeChanges<CanvasEdge>(changes, state.edges);
+      return applyCanvasEdgeChangeEffects(state, changedEdges, changes);
     });
   },
 
