@@ -1292,6 +1292,59 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("target.type === newType");
   });
 
+  it("keeps Canvas node duplication out of the Zustand store", () => {
+    const duplicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasNodeDuplication.ts",
+    );
+    const duplicationModel = readFileSync(duplicationPath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(duplicationPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier === "zustand" ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/features/canvas/nodeFactoryComposition",
+    );
+    const singleDeclaration = [
+      "export function",
+      "duplicateCanvasNodeAsSibling(",
+    ].join(" ");
+    const batchDeclaration = [
+      "export function",
+      "duplicateCanvasNodesAsSiblings(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => {
+        const source = readFileSync(path, "utf8");
+        return source.includes(singleDeclaration) || source.includes(batchDeclaration);
+      })
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/application/canvasNodeDuplication.ts",
+    ]);
+    expect(duplicationModel).toContain(singleDeclaration);
+    expect(duplicationModel).toContain(batchDeclaration);
+    expect(duplicationModel).toContain("nodeFactory: NodeFactory");
+    expect(canvasStore).toContain(
+      "@/features/canvas/application/canvasNodeDuplication",
+    );
+    expect(canvasStore).toContain("canvasNodeFactory,");
+    expect(canvasStore).not.toContain("const clonedEdges:");
+    expect(canvasStore).not.toContain("const idMap = new Map<string, string>()");
+    expect(canvasStore).not.toContain(" - 副本`");
+  });
+
   it("keeps Canvas node size updates out of the Zustand store", () => {
     const nodeSizePath = resolve(
       SRC_ROOT,

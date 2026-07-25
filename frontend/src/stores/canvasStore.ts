@@ -114,6 +114,10 @@ import {
 import { updateCanvasNodeData } from '@/features/canvas/application/canvasNodeData';
 import { convertCanvasNodeType } from '@/features/canvas/application/canvasNodeConversion';
 import {
+  duplicateCanvasNodeAsSibling,
+  duplicateCanvasNodesAsSiblings,
+} from '@/features/canvas/application/canvasNodeDuplication';
+import {
   updateCanvasNodeSize,
   type CanvasNodeSizeUpdateOptions,
 } from '@/features/canvas/application/canvasNodeSize';
@@ -660,38 +664,21 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   duplicateNodeAsSibling: (sourceNodeId, index, dataOverrides = {}) => {
     const state = get();
-    const source = state.nodes.find((n) => n.id === sourceNodeId);
-    if (!source) return null;
-
-    const sourceHeight =
-      source.measured?.height ??
-      (typeof source.height === 'number' ? source.height : 360);
-    const position = {
-      x: source.position.x,
-      y: source.position.y + (sourceHeight + 24) * index,
-    };
-    const newNode = canvasNodeFactory.createNode(source.type, position, {
-      ...(source.data as Partial<CanvasNodeData>),
-      ...dataOverrides,
-    });
-
-    // Mirror the source's upstream connections so the clone resolves the same
-    // references (上游图/文本) as the original generation.
-    const clonedEdges: CanvasEdge[] = state.edges
-      .filter((edge) => edge.target === sourceNodeId)
-      .map((edge) => ({
-        id: `e-${edge.source}-${newNode.id}`,
-        source: edge.source,
-        target: newNode.id,
-        sourceHandle: edge.sourceHandle ?? 'source',
-        targetHandle: edge.targetHandle ?? 'target',
-        type: 'disconnectableEdge',
-      }))
-      .filter((edge) => !state.edges.some((e) => e.id === edge.id));
+    const result = duplicateCanvasNodeAsSibling(
+      state.nodes,
+      state.edges,
+      sourceNodeId,
+      index,
+      dataOverrides,
+      canvasNodeFactory,
+    );
+    if (!result) {
+      return null;
+    }
 
     set({
-      nodes: [...state.nodes, newNode],
-      edges: [...state.edges, ...clonedEdges],
+      nodes: result.nodes,
+      edges: result.edges,
       history: {
         past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
         future: [],
@@ -699,94 +686,25 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       dragHistorySnapshot: null,
       ...trackEdit(state),
     });
-    return newNode.id;
+    return result.createdIds[0] ?? null;
   },
 
   duplicateNodesAsSiblings: (nodeIds) => {
     const state = get();
-    const sourceSet = new Set(nodeIds);
-    const newNodes: CanvasNode[] = [];
-    const createdIds: string[] = [];
-    // Maps each duplicated node's original id → its clone id, so edges between
-    // two nodes that are *both* being duplicated rewire to the clones instead
-    // of pointing back at the originals.
-    const idMap = new Map<string, string>();
-
-    for (const sourceNodeId of nodeIds) {
-      const source = state.nodes.find((n) => n.id === sourceNodeId);
-      if (!source) continue;
-
-      const sourceHeight =
-        source.measured?.height ??
-        (typeof source.height === 'number' ? source.height : 360);
-      const position = {
-        x: source.position.x,
-        y: source.position.y + sourceHeight + 24,
-      };
-
-      // Append a "- 副本" suffix to whichever name fields the node carries so
-      // the clone is visually distinguishable (matches the reference design).
-      const sourceData = source.data as Record<string, unknown>;
-      const nameOverrides: Record<string, unknown> = {};
-      if (typeof sourceData.displayName === 'string' && sourceData.displayName) {
-        nameOverrides.displayName = `${sourceData.displayName} - 副本`;
-      }
-      if (typeof sourceData.label === 'string' && sourceData.label) {
-        nameOverrides.label = `${sourceData.label} - 副本`;
-      }
-
-      const newNode = canvasNodeFactory.createNode(source.type, position, {
-        ...(source.data as Partial<CanvasNodeData>),
-        ...(nameOverrides as Partial<CanvasNodeData>),
-      });
-      // Keep the clone inside the same group (if any) so its position stays
-      // anchored to the original's coordinate space.
-      if (source.parentId) {
-        newNode.parentId = source.parentId;
-        newNode.extent = source.extent;
-      }
-
-      idMap.set(sourceNodeId, newNode.id);
-      createdIds.push(newNode.id);
-      newNodes.push(newNode);
-    }
-
-    if (newNodes.length === 0) {
+    const result = duplicateCanvasNodesAsSiblings(
+      state.nodes,
+      state.edges,
+      nodeIds,
+      canvasNodeFactory,
+    );
+    if (result.createdIds.length === 0) {
       return [];
     }
 
-    // Second pass (clones now all exist): clone each duplicated node's incoming
-    // edges. When the edge's source is also part of the selection, rewire it to
-    // that source's clone so the duplicated subgraph stays internally wired
-    // rather than re-attaching to the originals.
-    const newEdges: CanvasEdge[] = [];
-    for (const edge of state.edges) {
-      const newTarget = idMap.get(edge.target);
-      if (!newTarget) {
-        continue;
-      }
-      const newSource = idMap.get(edge.source) ?? edge.source;
-      newEdges.push({
-        id: `e-${newSource}-${newTarget}`,
-        source: newSource,
-        target: newTarget,
-        sourceHandle: edge.sourceHandle ?? 'source',
-        targetHandle: edge.targetHandle ?? 'target',
-        type: 'disconnectableEdge',
-      });
-    }
-
     set({
-      nodes: [
-        ...state.nodes.map((node) =>
-          node.selected || sourceSet.has(node.id)
-            ? { ...node, selected: false }
-            : node
-        ),
-        ...newNodes.map((node) => ({ ...node, selected: true })),
-      ],
-      edges: [...state.edges, ...newEdges],
-      selectedNodeId: createdIds.length === 1 ? createdIds[0] : null,
+      nodes: result.nodes,
+      edges: result.edges,
+      selectedNodeId: result.createdIds.length === 1 ? result.createdIds[0] : null,
       history: {
         past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
         future: [],
@@ -795,7 +713,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       ...trackEdit(state),
     });
 
-    return createdIds;
+    return result.createdIds;
   },
 
   addPanoCaptureGroup: (sourceNodeId, captures, options) => {
