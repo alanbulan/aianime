@@ -19,10 +19,20 @@ describe("Seedance2 minimal config alignment", () => {
 
   it("shows and saves minimal Seedance2 config from the video pane", () => {
     const videoPane = read("src/components/episode/beat-workbench/video-pane.tsx");
+    const videoPaneController = read(
+      "src/modules/production/application/use-video-pane-controller.ts",
+    );
+    const configController = read(
+      "src/modules/production/application/use-seedance2-config-controller.ts",
+    );
+    const configView = read(
+      "src/modules/production/presentation/Seedance2ConfigView.tsx",
+    );
 
-    expect(videoPane).toContain("seedance2_config_json");
-    expect(videoPane).toContain("final_prompt");
+    expect(videoPane).toContain("useVideoPaneController");
     expect(videoPane).toContain("useUpdateBeat");
-    expect(videoPane).toContain("seedance2Prompt");
+    expect(videoPaneController).toContain("config.draft.final_prompt");
+    expect(configController).toContain("seedance2_config_json");
+    expect(configView).toContain("seedance2Prompt");
   });
 });

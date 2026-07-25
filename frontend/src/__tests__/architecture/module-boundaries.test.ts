@@ -671,6 +671,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "modules/production/presentation/VideoPaneView.tsx"),
       "utf8",
     );
+    const videoPaneControllerSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/production/application/use-video-pane-controller.ts",
+      ),
+      "utf8",
+    );
     const sketchSectionSource = readFileSync(
       resolve(
         SRC_ROOT,
@@ -936,6 +943,65 @@ describe("frontend architecture boundaries", () => {
     expect(videoPaneSource).not.toContain("regenTask");
     expect(videoPaneSource).not.toContain("handleRegen");
     expect(videoPaneSource).not.toContain("<AlertDialog");
+    expect(videoPaneSource).toContain("useUpdateBeat(");
+    expect(videoPaneSource).toContain("useVideoPaneController({");
+    expect(videoPaneSource).toContain("controller={controller}");
+    expect(videoPaneSource).not.toContain("useMemo(");
+    expect(videoPaneSource).not.toContain("useState(");
+    expect(videoPaneSource).not.toContain("useProjectAspectRatio(");
+    expect(videoPaneSource).not.toContain("useVideoBackends(");
+    expect(videoPaneSource).not.toContain("useSeedance2BeatStatus(");
+    expect(videoPaneSource).not.toContain(
+      "useLegacyVideoPromptController(",
+    );
+    expect(videoPaneSource).not.toContain(
+      "useSeedance2ConfigController(",
+    );
+    expect(videoPaneSource).not.toContain(
+      "useBeatVideoGenerationController(",
+    );
+    expect(videoPaneSource).not.toContain(
+      "useVideoPaneMediaController(",
+    );
+    expect(videoPaneSource).not.toContain(
+      "isSeedanceReferenceCropBackend(",
+    );
+    expect(videoPaneViewSource).toContain(
+      "controller: VideoPaneController",
+    );
+    expect(videoPaneViewSource).toContain("useState(true)");
+    expect(videoPaneControllerSource).toContain(
+      "createUseVideoPaneController",
+    );
+    expect(videoPaneControllerSource).toContain(
+      "queries.useVideoBackends",
+    );
+    expect(videoPaneControllerSource).toContain(
+      "queries.useSeedance2BeatStatus",
+    );
+    expect(videoPaneControllerSource).toContain(
+      "dependencies.useProjectAspectRatio",
+    );
+    expect(videoPaneControllerSource).toContain(
+      "dependencies.useLegacyVideoPromptController",
+    );
+    expect(videoPaneControllerSource).toContain(
+      "dependencies.useSeedance2ConfigController",
+    );
+    expect(videoPaneControllerSource).toContain(
+      "dependencies.useBeatVideoGenerationController",
+    );
+    expect(videoPaneControllerSource).toContain(
+      "dependencies.useVideoPaneMediaController",
+    );
+    expect(videoPaneControllerSource).toContain(
+      "isSeedanceReferenceCropBackend(",
+    );
+    expect(videoPaneControllerSource).not.toContain("document.");
+    expect(videoPaneControllerSource).not.toContain("navigator.");
+    expect(productionCompositionSource).toContain(
+      "createUseVideoPaneController",
+    );
     expect(sketchSectionSource).toContain("<SketchSectionView");
     expect(sketchSectionSource).toContain("useSketchSectionController(");
     expect(sketchSectionSource).not.toContain("className=");

@@ -54,6 +54,8 @@ import {
 } from "@/modules/production/application/use-sketch-grid-gallery-controller";
 import { createUseSketchSectionController } from "@/modules/production/application/use-sketch-section-controller";
 import { createUseVideoPaneMediaController } from "@/modules/production/application/use-video-pane-media-controller";
+import { createUseVideoPaneController } from "@/modules/production/application/use-video-pane-controller";
+import { useSeedance2MentionController } from "@/modules/production/application/use-seedance2-mention-controller";
 import { httpProductionVideoGateway } from "@/modules/production/infrastructure/http-production-video-gateway";
 import { promptLanguageFromLocale } from "@/modules/production/domain/video-generation";
 import { AudioPaneView } from "@/modules/production/presentation/AudioPaneView";
@@ -135,6 +137,21 @@ export const useSeedance2AssetOperationsController =
 export const useVideoPaneMediaController = createUseVideoPaneMediaController(
   videoPoolQueries,
   { useNow },
+);
+export const useVideoPaneController = createUseVideoPaneController(
+  {
+    useSeedance2BeatStatus: seedance2PanelQueries.useSeedance2BeatStatus,
+    useVideoBackends: videoBackendQueries.useVideoBackends,
+  },
+  {
+    useBeatVideoGenerationController,
+    useLegacyVideoPromptController,
+    useProjectAspectRatio,
+    useSeedance2AssetOperationsController,
+    useSeedance2ConfigController,
+    useSeedance2MentionController,
+    useVideoPaneMediaController,
+  },
 );
 export const useNarratorVoicePanelController =
   createUseNarratorVoicePanelController(narratorVoiceQueries, {

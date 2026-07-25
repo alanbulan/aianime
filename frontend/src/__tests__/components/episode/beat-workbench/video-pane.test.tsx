@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { VideoPane } from "@/components/episode/beat-workbench/video-pane";
 import { useAspectRatioStore } from "@/stores/aspect-ratio-store";
 import type { Beat } from "@/modules/narrative_planning/public";
+import type { Seedance2AssetItem } from "@/modules/production/public";
 
 const i18n = i18next.createInstance();
 
@@ -174,7 +175,7 @@ const trimSeedance2AssetMock: Mock = vi.fn();
 const videoQueryMockState = vi.hoisted(() => ({
   hideReturnedLastFrame: false,
   includeAudioAsset: false,
-  seedance2AssetsOverride: null as Array<Record<string, unknown>> | null,
+  seedance2AssetsOverride: null as Seedance2AssetItem[] | null,
 }));
 
 const videoQueryMocks = vi.hoisted(() => ({
@@ -262,7 +263,7 @@ const videoQueryMocks = vi.hoisted(() => ({
   }),
   useSeedance2BeatStatus: () => ({
     data: {
-      ok: true,
+      ok: true as const,
       data: {
         beat_number: 1,
         audio_type: "dialogue",
@@ -447,6 +448,7 @@ const videoQueryMocks = vi.hoisted(() => ({
     },
     isLoading: false,
     isError: false,
+    refetch: vi.fn(),
   }),
 }));
 
@@ -463,6 +465,12 @@ vi.mock("@/modules/production/public", async (importOriginal) => {
   );
   const { createUseSeedance2ConfigController } = await import(
     "@/modules/production/application/use-seedance2-config-controller"
+  );
+  const { createUseVideoPaneController } = await import(
+    "@/modules/production/application/use-video-pane-controller"
+  );
+  const { useProjectAspectRatio } = await import(
+    "@/stores/aspect-ratio-store"
   );
   const useLegacyVideoPromptController =
     createUseLegacyVideoPromptController(
@@ -505,6 +513,137 @@ vi.mock("@/modules/production/public", async (importOriginal) => {
       }),
     },
   );
+  const useVideoPaneMediaController = (options: {
+    beatNumber: number;
+    state: "missing" | "generating" | "ready" | "failed";
+    videoActive: boolean;
+    videoProgress: number;
+    videoUrl?: string | null;
+    useSeedance2Preview: boolean;
+  }) => {
+    const downloadUrl = options.videoUrl || null;
+    const candidates =
+      options.beatNumber === 1
+        ? [
+            {
+              active: true,
+              backendLabel: "Seedance2.0 Fast",
+              id: "vid-2",
+              previewSource: "/static/new.mp4#t=0.1",
+              timeLabel: "1h",
+            },
+            {
+              active: false,
+              backendLabel: "Seedance2.0 Fast",
+              id: "vid-1",
+              previewSource: "/static/old.mp4#t=0.1",
+              timeLabel: "2h",
+            },
+          ]
+        : [];
+    return {
+      beatNumber: options.beatNumber,
+      candidateCount: candidates.length,
+      candidates,
+      downloadUrl,
+      hasGeneratedVideo: Boolean(downloadUrl) || candidates.length > 0,
+      previewSource: downloadUrl ? `${downloadUrl}#t=0.1` : null,
+      selectionPending: false,
+      state: options.state,
+      useSeedance2Preview: options.useSeedance2Preview,
+      videoActive: options.videoActive,
+      videoPercent: Math.round(options.videoProgress * 100),
+      selectCandidate: async (poolId: string) => {
+        await poolSelectMock({ beatNum: options.beatNumber, poolId });
+      },
+    };
+  };
+  const useVideoBackends = () => ({
+    data: {
+      ok: true as const,
+      data: [
+        {
+          value: "newapi_seedance-1.0-pro-fast",
+          label: "Seedance 1.0 Pro Fast",
+          is_default: true,
+          is_seedance2: false,
+          dialogue_only: false,
+          min_duration: 4,
+          max_duration: 12,
+        },
+        {
+          value: "newapi_seedance-1.5-pro",
+          label: "Seedance 1.5 Pro",
+          is_default: false,
+          is_seedance2: false,
+          dialogue_only: true,
+          min_duration: 4,
+          max_duration: 12,
+        },
+        {
+          value: "huimeng_seedance-2.0-fast",
+          label: "HuiMeng Seedance 2.0 Fast",
+          is_default: false,
+          is_seedance2: true,
+          dialogue_only: false,
+          min_duration: 4,
+          max_duration: 15,
+        },
+        {
+          value: "newapi_seedance-2.0-fast",
+          label: "Seedance2.0 Fast",
+          is_default: false,
+          is_seedance2: true,
+          dialogue_only: false,
+          min_duration: 4,
+          max_duration: 15,
+        },
+        {
+          value: "newapi_seedance-2.0",
+          label: "Seedance2.0",
+          is_default: false,
+          is_seedance2: true,
+          dialogue_only: false,
+          min_duration: 4,
+          max_duration: 15,
+        },
+        {
+          value: "newapi_seedance-2.0-value",
+          label: "Seedance2.0 Value",
+          is_default: false,
+          is_seedance2: true,
+          dialogue_only: false,
+          min_duration: 4,
+          max_duration: 15,
+        },
+        {
+          value: "newapi_seedance-2.0-fast-value",
+          label: "Seedance2.0 Fast Value",
+          is_default: false,
+          is_seedance2: true,
+          dialogue_only: false,
+          min_duration: 4,
+          max_duration: 15,
+        },
+      ],
+    },
+  });
+  const useVideoPaneController = createUseVideoPaneController(
+    {
+      useSeedance2BeatStatus: videoQueryMocks.useSeedance2BeatStatus,
+      useVideoBackends,
+    },
+    {
+      useBeatVideoGenerationController,
+      useLegacyVideoPromptController,
+      useProjectAspectRatio,
+      useSeedance2AssetOperationsController,
+      useSeedance2ConfigController,
+      useSeedance2MentionController:
+        actual.useSeedance2MentionController,
+      useVideoPaneMediaController,
+    },
+  );
   return {
     ...actual,
     useBeatVideoGenerationController,
@@ -519,121 +658,9 @@ vi.mock("@/modules/production/public", async (importOriginal) => {
     useCopyProjectNarratorVoice: videoQueryMocks.useCopyProjectNarratorVoice,
     useTrimNarratorVoice: videoQueryMocks.useTrimNarratorVoice,
     useDeleteNarratorVoice: videoQueryMocks.useDeleteNarratorVoice,
-    useVideoPaneMediaController: (options: {
-      beatNumber: number;
-      state: "missing" | "generating" | "ready" | "failed";
-      videoActive: boolean;
-      videoProgress: number;
-      videoUrl?: string | null;
-      useSeedance2Preview: boolean;
-    }) => {
-      const downloadUrl = options.videoUrl || null;
-      const candidates =
-        options.beatNumber === 1
-          ? [
-              {
-                active: true,
-                backendLabel: "Seedance2.0 Fast",
-                id: "vid-2",
-                previewSource: "/static/new.mp4#t=0.1",
-                timeLabel: "1h",
-              },
-              {
-                active: false,
-                backendLabel: "Seedance2.0 Fast",
-                id: "vid-1",
-                previewSource: "/static/old.mp4#t=0.1",
-                timeLabel: "2h",
-              },
-            ]
-          : [];
-      return {
-        beatNumber: options.beatNumber,
-        candidateCount: candidates.length,
-        candidates,
-        downloadUrl,
-        hasGeneratedVideo: Boolean(downloadUrl) || candidates.length > 0,
-        previewSource: downloadUrl ? `${downloadUrl}#t=0.1` : null,
-        selectionPending: false,
-        state: options.state,
-        useSeedance2Preview: options.useSeedance2Preview,
-        videoActive: options.videoActive,
-        videoPercent: Math.round(options.videoProgress * 100),
-        selectCandidate: async (poolId: string) => {
-          await poolSelectMock({ beatNum: options.beatNumber, poolId });
-        },
-      };
-    },
-    useVideoBackends: () => ({
-      data: {
-        ok: true,
-        data: [
-          {
-            value: "newapi_seedance-1.0-pro-fast",
-            label: "Seedance 1.0 Pro Fast",
-            is_default: true,
-            is_seedance2: false,
-            dialogue_only: false,
-            min_duration: 4,
-            max_duration: 12,
-          },
-          {
-            value: "newapi_seedance-1.5-pro",
-            label: "Seedance 1.5 Pro",
-            is_default: false,
-            is_seedance2: false,
-            dialogue_only: true,
-            min_duration: 4,
-            max_duration: 12,
-          },
-          {
-            value: "huimeng_seedance-2.0-fast",
-            label: "HuiMeng Seedance 2.0 Fast",
-            is_default: false,
-            is_seedance2: true,
-            dialogue_only: false,
-            min_duration: 4,
-            max_duration: 15,
-          },
-          {
-            value: "newapi_seedance-2.0-fast",
-            label: "Seedance2.0 Fast",
-            is_default: false,
-            is_seedance2: true,
-            dialogue_only: false,
-            min_duration: 4,
-            max_duration: 15,
-          },
-          {
-            value: "newapi_seedance-2.0",
-            label: "Seedance2.0",
-            is_default: false,
-            is_seedance2: true,
-            dialogue_only: false,
-            min_duration: 4,
-            max_duration: 15,
-          },
-          {
-            value: "newapi_seedance-2.0-value",
-            label: "Seedance2.0 Value",
-            is_default: false,
-            is_seedance2: true,
-            dialogue_only: false,
-            min_duration: 4,
-            max_duration: 15,
-          },
-          {
-            value: "newapi_seedance-2.0-fast-value",
-            label: "Seedance2.0 Fast Value",
-            is_default: false,
-            is_seedance2: true,
-            dialogue_only: false,
-            min_duration: 4,
-            max_duration: 15,
-          },
-        ],
-      },
-    }),
+    useVideoBackends,
+    useVideoPaneController,
+    useVideoPaneMediaController,
   };
 });
 

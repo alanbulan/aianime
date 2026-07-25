@@ -9,9 +9,13 @@ const read = (path: string) => readFileSync(resolve(root, path), "utf8");
 describe("video backend options alignment", () => {
   it("does not hardcode the VideoPane backend list", () => {
     const videoPane = read("src/components/episode/beat-workbench/video-pane.tsx");
+    const videoPaneController = read(
+      "src/modules/production/application/use-video-pane-controller.ts",
+    );
 
     expect(videoPane).not.toContain("const VIDEO_BACKENDS");
-    expect(videoPane).toContain("useVideoBackends");
+    expect(videoPane).toContain("useVideoPaneController");
+    expect(videoPaneController).toContain("queries.useVideoBackends");
   });
 
   it("preserves dialogue-only capability metadata in the Production domain", () => {
@@ -21,13 +25,18 @@ describe("video backend options alignment", () => {
   });
 
   it("supports the Grok Video inspector from backend capabilities", () => {
-    const videoPane = read("src/components/episode/beat-workbench/video-pane.tsx");
+    const videoPaneController = read(
+      "src/modules/production/application/use-video-pane-controller.ts",
+    );
+    const seedance2ConfigView = read(
+      "src/modules/production/presentation/Seedance2ConfigView.tsx",
+    );
     const backendDomain = read("src/modules/production/domain/video-backend.ts");
     const videoConfig = read("src/modules/production/domain/video-config.ts");
 
     expect(backendDomain).toContain("is_grok_video");
-    expect(videoPane).toContain("showGrokVideoConfig");
-    expect(videoPane).toContain("Grok Video 检视器");
+    expect(videoPaneController).toContain("showGrokVideoConfig");
+    expect(seedance2ConfigView).toContain("Grok Video 检视器");
     expect(videoConfig).toContain('"3:2"');
   });
 

@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Input } from "@/components/ui/input";
@@ -9,21 +10,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ratioToCss } from "@/lib/aspect-ratio";
 import { cn } from "@/lib/utils";
-import type { BeatVideoGenerationController } from "@/modules/production/application/use-beat-video-generation-controller";
-import type { LegacyVideoPromptController } from "@/modules/production/application/use-legacy-video-prompt-controller";
-import type { Seedance2AssetOperationsController } from "@/modules/production/application/use-seedance2-asset-operations-controller";
-import type { Seedance2ConfigController } from "@/modules/production/application/use-seedance2-config-controller";
-import type { Seedance2MentionController } from "@/modules/production/application/use-seedance2-mention-controller";
-import type { VideoPaneMediaController } from "@/modules/production/application/use-video-pane-media-controller";
+import type { VideoPaneController } from "@/modules/production/application/use-video-pane-controller";
 import {
   seedance2CropAspectForMode,
   videoInputCropAspectForProjectAspect,
 } from "@/modules/production/domain/seedance2-crop";
-import type {
-  Seedance2AssetItem,
-  Seedance2BeatStatus,
-} from "@/modules/production/domain/seedance2-panel";
 import {
   clampDuration,
   normalizeHappyHorseMode,
@@ -50,57 +43,37 @@ const PARAM_ACTION_CLASS =
   "!h-[30px] gap-1.5 rounded-[7px] border border-border bg-muted px-2.5 text-[12px] font-normal leading-none text-foreground/86 shadow-none transition-[background-color,border-color,color,transform] hover:border-foreground/25 hover:bg-accent hover:text-foreground active:scale-95 disabled:border-border disabled:bg-muted disabled:text-muted-foreground/45 [&_svg]:size-3.5";
 
 export interface VideoPaneViewProps {
-  assetOperations: Seedance2AssetOperationsController;
-  beatNumber: number;
-  config: Seedance2ConfigController;
-  fallbackAudioReady: boolean;
-  fallbackFrameReady: boolean;
-  frameAspectCss: string;
-  generation: BeatVideoGenerationController;
-  legacyPrompt: LegacyVideoPromptController;
-  media: VideoPaneMediaController;
-  mention: Seedance2MentionController;
-  modelReferenceAssets: Seedance2AssetItem[];
-  projectAspect: "2:3" | "16:9";
-  referenceCropAspect: string;
-  referenceCropAssets: Seedance2AssetItem[];
-  referencesOpen: boolean;
-  savePending: boolean;
+  controller: VideoPaneController;
   showAudioMediaStatus: boolean;
-  showGrokVideoConfig: boolean;
-  showHappyHorseConfig: boolean;
-  showReferenceDetails: boolean;
-  showSeedance2Config: boolean;
-  status: Seedance2BeatStatus | null;
-  onReferencesOpenChange(open: boolean): void;
 }
 
 export function VideoPaneView({
-  assetOperations,
-  beatNumber,
-  config,
-  fallbackAudioReady,
-  fallbackFrameReady,
-  frameAspectCss,
-  generation,
-  legacyPrompt,
-  media,
-  mention,
-  modelReferenceAssets,
-  projectAspect,
-  referenceCropAspect,
-  referenceCropAssets,
-  referencesOpen,
-  savePending,
+  controller,
   showAudioMediaStatus,
-  showGrokVideoConfig,
-  showHappyHorseConfig,
-  showReferenceDetails,
-  showSeedance2Config,
-  status,
-  onReferencesOpenChange,
 }: VideoPaneViewProps) {
   const { t } = useTranslation();
+  const [referencesOpen, setReferencesOpen] = useState(true);
+  const {
+    assetOperations,
+    beatNumber,
+    config,
+    fallbackAudioReady,
+    fallbackFrameReady,
+    generation,
+    legacyPrompt,
+    media,
+    mention,
+    modelReferenceAssets,
+    projectAspect,
+    referenceCropAssets,
+    savePending,
+    showGrokVideoConfig,
+    showHappyHorseConfig,
+    showReferenceDetails,
+    showSeedance2Config,
+    sketchAspect,
+    status,
+  } = controller;
   const showPromptConfig =
     showSeedance2Config || showHappyHorseConfig || showGrokVideoConfig;
   const draft = config.draft;
@@ -109,7 +82,7 @@ export function VideoPaneView({
     <div className={GRID_CLASS}>
       <VideoPaneMediaView
         controller={media}
-        frameAspectCss={frameAspectCss}
+        frameAspectCss={ratioToCss(projectAspect)}
       />
 
       {!showPromptConfig && (
@@ -319,12 +292,12 @@ export function VideoPaneView({
 
       {!showPromptConfig && showReferenceDetails && (
         <Seedance2ReferenceCropAssetsView
-          aspectRatio={referenceCropAspect}
+          aspectRatio={ratioToCss(sketchAspect)}
           assets={referenceCropAssets}
           className={showHappyHorseConfig ? "order-1" : undefined}
           controller={assetOperations}
           open={referencesOpen}
-          onOpenChange={onReferencesOpenChange}
+          onOpenChange={setReferencesOpen}
         />
       )}
 
@@ -347,7 +320,7 @@ export function VideoPaneView({
           showHappyHorseConfig={showHappyHorseConfig}
           showSeedance2Config={showSeedance2Config}
           status={status}
-          onReferencesOpenChange={onReferencesOpenChange}
+          onReferencesOpenChange={setReferencesOpen}
         />
       )}
 

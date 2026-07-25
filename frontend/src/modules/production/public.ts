@@ -59,6 +59,7 @@ export {
   useUpdateRenderSettings,
   useUpdateSketchSettings,
   useVideoBackends,
+  useVideoPaneController,
   useVideoPaneMediaController,
   useVideoPool,
   useVideoPoolSelect,
@@ -86,6 +87,12 @@ export {
 } from "@/modules/production/presentation/VideoPaneParts";
 export { VideoPaneMediaView } from "@/modules/production/presentation/VideoPaneMediaView";
 export { VideoPaneView } from "@/modules/production/presentation/VideoPaneView";
+export type {
+  VideoPaneController,
+  VideoPaneControllerDependencies,
+  VideoPaneControllerOptions,
+  VideoPaneControllerQueries,
+} from "@/modules/production/application/use-video-pane-controller";
 export { BatchPanelView } from "@/modules/production/presentation/BatchPanelView";
 export type { BatchPanelViewProps } from "@/modules/production/presentation/BatchPanelView";
 export { BatchBarView } from "@/modules/production/presentation/BatchBarView";
