@@ -1059,6 +1059,75 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("function restoreStoryboardEdges(");
   });
 
+  it("keeps Canvas plain group creation outside the Zustand store", () => {
+    const groupingPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/canvasGrouping.ts",
+    );
+    const creationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasGroupCreation.ts",
+    );
+    const groupingModel = readFileSync(groupingPath, "utf8");
+    const creationModel = readFileSync(creationPath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const forbiddenImports = [groupingPath, creationPath].flatMap((path) =>
+      importSpecifiers(path)
+        .filter(
+          (specifier) =>
+            specifier === "react" ||
+            specifier.startsWith("react/") ||
+            specifier === "@xyflow/react" ||
+            specifier.startsWith("@xyflow/react/") ||
+            specifier === "zustand" ||
+            specifier.startsWith("zustand/") ||
+            specifier.startsWith("@/stores/") ||
+            specifier.startsWith("@/features/canvas/infrastructure/") ||
+            specifier === "@/features/canvas/composition" ||
+            specifier === "@/features/canvas/nodeFactoryComposition",
+        )
+        .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+    );
+    const groupingDeclaration = [
+      "export function",
+      "resolveCanvasGroupMembers(",
+    ].join(" ");
+    const creationDeclaration = [
+      "export function",
+      "createCanvasNodeGroup(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => {
+        const source = readFileSync(path, "utf8");
+        return source.includes(groupingDeclaration) || source.includes(creationDeclaration);
+      })
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/application/canvasGroupCreation.ts",
+      "features/canvas/domain/canvasGrouping.ts",
+    ]);
+    expect(groupingModel).toContain(groupingDeclaration);
+    expect(creationModel).toContain(creationDeclaration);
+    expect(creationModel).toContain("nodeFactory: NodeFactory");
+    expect(creationModel).toContain("resolveCanvasGroupMembers(nodes, nodeIds)");
+    expect(canvasStore).toContain(
+      "@/features/canvas/application/canvasGroupCreation",
+    );
+    expect(canvasStore).toContain(
+      "@/features/canvas/domain/canvasGrouping",
+    );
+    expect(canvasStore).not.toContain("const selectedSet = new Set(existingIds)");
+    expect(canvasStore).not.toContain("const absoluteBounds = members.reduce(");
+    expect(canvasStore).not.toContain("const SIDE_PADDING = 20 + extraPadding");
+    expect(canvasStore).not.toContain("groupDisplayName = opts?.label");
+  });
+
   it("keeps Canvas storyboard node layout out of the Zustand store", () => {
     const layoutPath = resolve(
       SRC_ROOT,

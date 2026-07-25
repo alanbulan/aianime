@@ -72,6 +72,7 @@ import {
   updateCanvasNodePosition,
 } from '@/features/canvas/domain/canvasNodePositions';
 import { deleteCanvasNodes } from '@/features/canvas/domain/groupSelectionDelete';
+import { resolveCanvasGroupMembers } from '@/features/canvas/domain/canvasGrouping';
 import { validateCanvasConnection } from '@/features/canvas/domain/canvasConnection';
 import { EXPORT_RESULT_DISPLAY_NAME } from '@/features/canvas/domain/nodeDisplay';
 import {
@@ -118,6 +119,10 @@ import {
   type CanvasPanoCapture,
   type CanvasPanoCaptureOptions,
 } from '@/features/canvas/application/panoCaptureNodes';
+import {
+  createCanvasNodeGroup,
+  type CanvasGroupCreationOptions,
+} from '@/features/canvas/application/canvasGroupCreation';
 import {
   updateCanvasNodeSize,
   type CanvasNodeSizeUpdateOptions,
@@ -294,7 +299,7 @@ interface CanvasState extends CanvasMutationState {
   deleteNodes: (nodeIds: string[]) => void;
   groupNodes: (
     nodeIds: string[],
-    opts?: { label?: string; extraPadding?: number }
+    opts?: CanvasGroupCreationOptions
   ) => string | null;
   /**
    * 快捷派生（spawn）后的自动打组：源节点未在组内 → 与新节点一起新建组；已在
@@ -1145,145 +1150,22 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   groupNodes: (nodeIds, opts) => {
-    const uniqueIds = Array.from(new Set(nodeIds.filter((nodeId) => nodeId.trim().length > 0)));
-    if (uniqueIds.length < 2) {
-      return null;
-    }
-
     const state = get();
-    const nodeMap = new Map(state.nodes.map((node) => [node.id, node] as const));
-    const existingIds = uniqueIds.filter((nodeId) => nodeMap.has(nodeId));
-    if (existingIds.length < 2) {
+    const result = createCanvasNodeGroup(
+      state.nodes,
+      nodeIds,
+      opts,
+      canvasNodeFactory,
+    );
+    if (!result) {
       return null;
-    }
-
-    const selectedSet = new Set(existingIds);
-    const memberIds = existingIds.filter((nodeId) => {
-      let currentParentId = nodeMap.get(nodeId)?.parentId;
-      const visited = new Set<string>();
-      while (currentParentId && !visited.has(currentParentId)) {
-        if (selectedSet.has(currentParentId)) {
-          return false;
-        }
-        visited.add(currentParentId);
-        currentParentId = nodeMap.get(currentParentId)?.parentId;
-      }
-      return true;
-    });
-    if (memberIds.length < 2) {
-      return null;
-    }
-
-    const memberSet = new Set(memberIds);
-    const members = memberIds
-      .map((id) => nodeMap.get(id))
-      .filter((node): node is CanvasNode => Boolean(node));
-
-    const absoluteBounds = members.reduce(
-      (acc, node) => {
-        const absolute = resolveAbsolutePosition(node, nodeMap);
-        const size = getNodeSize(node);
-        return {
-          minX: Math.min(acc.minX, absolute.x),
-          minY: Math.min(acc.minY, absolute.y),
-          maxX: Math.max(acc.maxX, absolute.x + size.width),
-          maxY: Math.max(acc.maxY, absolute.y + size.height),
-        };
-      },
-      {
-        minX: Number.POSITIVE_INFINITY,
-        minY: Number.POSITIVE_INFINITY,
-        maxX: Number.NEGATIVE_INFINITY,
-        maxY: Number.NEGATIVE_INFINITY,
-      }
-    );
-
-    if (!Number.isFinite(absoluteBounds.minX) || !Number.isFinite(absoluteBounds.minY)) {
-      return null;
-    }
-
-    const extraPadding = Math.max(0, opts?.extraPadding ?? 0);
-    const SIDE_PADDING = 20 + extraPadding;
-    const TOP_PADDING = 34 + extraPadding;
-    const BOTTOM_PADDING = 20 + extraPadding;
-    const groupX = Math.round(absoluteBounds.minX - SIDE_PADDING);
-    const groupY = Math.round(absoluteBounds.minY - TOP_PADDING);
-    const groupWidth = Math.round(
-      Math.max(220, absoluteBounds.maxX - absoluteBounds.minX + SIDE_PADDING * 2)
-    );
-    const groupHeight = Math.round(
-      Math.max(140, absoluteBounds.maxY - absoluteBounds.minY + TOP_PADDING + BOTTOM_PADDING)
-    );
-
-    const existingGroupCount = state.nodes.filter((node) => node.type === CANVAS_NODE_TYPES.group).length;
-    const groupDisplayName = opts?.label?.trim() || `组 ${existingGroupCount + 1}`;
-    const groupNode = canvasNodeFactory.createNode(
-      CANVAS_NODE_TYPES.group,
-      { x: groupX, y: groupY },
-      {
-        label: groupDisplayName,
-        displayName: groupDisplayName,
-      }
-    );
-    groupNode.width = groupWidth;
-    groupNode.height = groupHeight;
-    groupNode.style = { width: groupWidth, height: groupHeight };
-    groupNode.selected = true;
-
-    const updatedMemberMap = new Map<string, CanvasNode>();
-    for (const node of members) {
-      const absolute = resolveAbsolutePosition(node, nodeMap);
-      updatedMemberMap.set(node.id, {
-        ...node,
-        parentId: groupNode.id,
-        // 不设 extent:'parent'：普通组成员不被钳在框内，可自由拖动；拖动时由
-        // onNodeDrag 实时撑大组框（libtv 式），松手后 fitGroupToChildren 收尾包住。
-        // （投影组 / 分镜组各有自己的约束，不走这里。）
-        extent: undefined,
-        position: {
-          x: Math.round(absolute.x - groupX),
-          y: Math.round(absolute.y - groupY),
-        },
-        selected: false,
-      });
-    }
-
-    const firstMemberIndex = state.nodes.reduce((acc, node, index) => {
-      if (!memberSet.has(node.id)) {
-        return acc;
-      }
-      return acc === -1 ? index : Math.min(acc, index);
-    }, -1);
-
-    const nextNodes: CanvasNode[] = [];
-    let insertedGroup = false;
-    for (let index = 0; index < state.nodes.length; index += 1) {
-      const node = state.nodes[index];
-      if (!insertedGroup && index === firstMemberIndex) {
-        nextNodes.push(groupNode);
-        insertedGroup = true;
-      }
-
-      const updatedMember = updatedMemberMap.get(node.id);
-      if (updatedMember) {
-        nextNodes.push(updatedMember);
-      } else {
-        nextNodes.push({
-          ...node,
-          selected: false,
-        });
-      }
-    }
-
-    if (!insertedGroup) {
-      nextNodes.push(groupNode);
     }
 
     set({
-      nodes: nextNodes,
-      selectedNodeId: groupNode.id,
+      nodes: result.nodes,
+      selectedNodeId: result.groupNodeId,
       activeToolDialog:
-        state.activeToolDialog && memberSet.has(state.activeToolDialog.nodeId)
+        state.activeToolDialog && result.groupedNodeIds.has(state.activeToolDialog.nodeId)
           ? null
           : state.activeToolDialog,
       history: {
@@ -1294,7 +1176,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       ...trackEdit(state),
     });
 
-    return groupNode.id;
+    return result.groupNodeId;
   },
 
   autoGroupSpawn: (sourceNodeId, spawnedNodeIds, opts) => {
@@ -1364,39 +1246,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   mergeStoryboardGroup: (nodeIds) => {
-    const uniqueIds = Array.from(new Set(nodeIds.filter((nodeId) => nodeId.trim().length > 0)));
-    if (uniqueIds.length < 2) {
-      return null;
-    }
-
     const state = get();
-    const nodeMap = new Map(state.nodes.map((node) => [node.id, node] as const));
-    const existingIds = uniqueIds.filter((nodeId) => nodeMap.has(nodeId));
-    if (existingIds.length < 2) {
+    const resolvedMembers = resolveCanvasGroupMembers(state.nodes, nodeIds);
+    if (!resolvedMembers) {
       return null;
     }
-
-    // Exclude members whose ancestor is also selected — same rule as groupNodes.
-    const selectedSet = new Set(existingIds);
-    const memberIds = existingIds.filter((nodeId) => {
-      let currentParentId = nodeMap.get(nodeId)?.parentId;
-      const visited = new Set<string>();
-      while (currentParentId && !visited.has(currentParentId)) {
-        if (selectedSet.has(currentParentId)) {
-          return false;
-        }
-        visited.add(currentParentId);
-        currentParentId = nodeMap.get(currentParentId)?.parentId;
-      }
-      return true;
-    });
-    if (memberIds.length < 2) {
-      return null;
-    }
-
-    const members = memberIds
-      .map((id) => nodeMap.get(id))
-      .filter((node): node is CanvasNode => Boolean(node));
+    const { nodeMap, memberIds, members } = resolvedMembers;
 
     // Reading order by current absolute position (top→bottom, then left→right) so
     // the grid sequence matches how the user laid the shots out.
