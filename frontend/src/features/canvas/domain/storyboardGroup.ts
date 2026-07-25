@@ -9,6 +9,8 @@
 // render below ~520×420), so cells must never be smaller than the content —
 // otherwise the node clamps to its min and spills out of the cell / group.
 
+import type { CanvasEdge } from './canvasNodes';
+
 export interface StoryboardAspectOption {
   /** Stable key persisted on the group node, e.g. "16:9". */
   key: string;
@@ -35,6 +37,31 @@ export const STORYBOARD_PADDING = 12;
 export const STORYBOARD_THUMB_WIDTH = 560;
 // Floating header (`-top-7`) sits above the first row; reserve room for it.
 export const STORYBOARD_HEADER_PADDING = 34;
+
+/** Restore member endpoints and hidden internal edges when a storyboard group is removed. */
+export function restoreStoryboardEdges(
+  edges: CanvasEdge[],
+  groupNodeId: string,
+  childIds: ReadonlySet<string>,
+): CanvasEdge[] {
+  return edges.map((edge) => {
+    let next = edge;
+    const data = next.data as Record<string, unknown> | undefined;
+    if (next.source === groupNodeId && typeof data?.__sbOrigSource === 'string') {
+      const { __sbOrigSource, ...restData } = data;
+      next = { ...next, source: __sbOrigSource, data: restData };
+    }
+    const nextData = next.data as Record<string, unknown> | undefined;
+    if (next.target === groupNodeId && typeof nextData?.__sbOrigTarget === 'string') {
+      const { __sbOrigTarget, ...restData } = nextData;
+      next = { ...next, target: __sbOrigTarget, data: restData };
+    }
+    if ((childIds.has(next.source) || childIds.has(next.target)) && next.hidden) {
+      next = { ...next, hidden: false };
+    }
+    return next;
+  });
+}
 const MIN_GROUP_WIDTH = 220;
 const MIN_GROUP_HEIGHT = 140;
 

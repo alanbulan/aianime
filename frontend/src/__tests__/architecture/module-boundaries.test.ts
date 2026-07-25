@@ -824,6 +824,46 @@ describe("frontend architecture boundaries", () => {
     }
   });
 
+  it("keeps Canvas group graph rules out of the Zustand store", () => {
+    const deletionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/groupSelectionDelete.ts",
+    );
+    const storyboardPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/storyboardGroup.ts",
+    );
+    const deletionModel = readFileSync(deletionPath, "utf8");
+    const storyboardModel = readFileSync(storyboardPath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const forbiddenImports = [deletionPath, storyboardPath].flatMap((path) =>
+      importSpecifiers(path)
+        .filter(
+          (specifier) =>
+            specifier === "zustand" || specifier.startsWith("@/stores/"),
+        )
+        .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+    );
+
+    expect(forbiddenImports).toEqual([]);
+    expect(deletionModel).toContain(
+      "export function collectNodeIdsWithDescendants(",
+    );
+    expect(storyboardModel).toContain(
+      "export function restoreStoryboardEdges(",
+    );
+    expect(canvasStore).toContain(
+      "@/features/canvas/domain/groupSelectionDelete",
+    );
+    expect(canvasStore).not.toContain(
+      "function collectNodeIdsWithDescendants(",
+    );
+    expect(canvasStore).not.toContain("function restoreStoryboardEdges(");
+  });
+
   it("keeps Canvas viewport and selection rules outside the Zustand store", () => {
     const selectionPath = resolve(
       SRC_ROOT,

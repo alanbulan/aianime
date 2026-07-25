@@ -1,11 +1,16 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { CANVAS_NODE_TYPES, isStoryboardGroupNode } from "@/features/canvas/domain/canvasNodes";
+import {
+  CANVAS_NODE_TYPES,
+  isStoryboardGroupNode,
+  type CanvasEdge,
+} from "@/features/canvas/domain/canvasNodes";
 import {
   computeStoryboardCell,
   computeStoryboardGridLayout,
   resolveStoryboardCols,
+  restoreStoryboardEdges,
 } from "@/features/canvas/domain/storyboardGroup";
 import { useCanvasStore } from "@/stores/canvasStore";
 
@@ -54,6 +59,45 @@ describe("storyboard grid layout", () => {
     expect(resolveStoryboardCols(5)).toBe(3);
     // Clamped to the member count.
     expect(resolveStoryboardCols(3, 9)).toBe(3);
+  });
+});
+
+describe("restoreStoryboardEdges", () => {
+  it("restores member endpoints and reveals hidden member edges", () => {
+    const edges = [
+      {
+        id: "outgoing",
+        source: "group",
+        target: "outside",
+        data: { __sbOrigSource: "child", role: "output" },
+      },
+      {
+        id: "incoming",
+        source: "outside",
+        target: "group",
+        data: { __sbOrigTarget: "child", role: "input" },
+      },
+      {
+        id: "internal",
+        source: "child",
+        target: "sibling",
+        hidden: true,
+      },
+    ] as CanvasEdge[];
+
+    expect(restoreStoryboardEdges(edges, "group", new Set(["child", "sibling"]))).toEqual([
+      expect.objectContaining({
+        id: "outgoing",
+        source: "child",
+        data: { role: "output" },
+      }),
+      expect.objectContaining({
+        id: "incoming",
+        target: "child",
+        data: { role: "input" },
+      }),
+      expect.objectContaining({ id: "internal", hidden: false }),
+    ]);
   });
 });
 

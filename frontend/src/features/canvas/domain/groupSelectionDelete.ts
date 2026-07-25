@@ -2,6 +2,29 @@
 import { CANVAS_NODE_TYPES, type CanvasNode } from "./canvasNodes";
 import { isPresetManagedNode } from "./mainlineNodeFlags";
 
+export function collectNodeIdsWithDescendants(
+  nodes: CanvasNode[],
+  seedIds: Iterable<string>,
+): Set<string> {
+  const collected = new Set(seedIds);
+  let changed = true;
+
+  while (changed) {
+    changed = false;
+    for (const node of nodes) {
+      if (!node.parentId || collected.has(node.id)) {
+        continue;
+      }
+      if (collected.has(node.parentId)) {
+        collected.add(node.id);
+        changed = true;
+      }
+    }
+  }
+
+  return collected;
+}
+
 /**
  * 批量删除时,「所选节点」实际可删的 id 集合。
  *

@@ -60,7 +60,9 @@ import {
   computeStoryboardCell,
   computeStoryboardGridLayout,
   resolveStoryboardCols,
+  restoreStoryboardEdges,
 } from '@/features/canvas/domain/storyboardGroup';
+import { collectNodeIdsWithDescendants } from '@/features/canvas/domain/groupSelectionDelete';
 import {
   nodeHasSourceHandle,
   nodeHasTargetHandle,
@@ -375,26 +377,6 @@ function normalizeCanvasData(
   };
 }
 
-function collectNodeIdsWithDescendants(nodes: CanvasNode[], seedIds: string[]): Set<string> {
-  const deleteSet = new Set(seedIds);
-  let changed = true;
-
-  while (changed) {
-    changed = false;
-    for (const node of nodes) {
-      if (!node.parentId || deleteSet.has(node.id)) {
-        continue;
-      }
-      if (deleteSet.has(node.parentId)) {
-        deleteSet.add(node.id);
-        changed = true;
-      }
-    }
-  }
-
-  return deleteSet;
-}
-
 function parseAspectRatioValue(aspectRatio: string | undefined): number {
   const [rawWidth = "1", rawHeight = "1"] = (aspectRatio || DEFAULT_ASPECT_RATIO).split(":");
   const width = Number(rawWidth);
@@ -468,35 +450,6 @@ function resolveDerivedAspectRatio(
 
   const imageLikeAspect = (sourceNode.data as { aspectRatio?: string }).aspectRatio;
   return imageLikeAspect || fallbackAspectRatio;
-}
-
-/**
- * Undo the edge changes mergeStoryboardGroup made: re-anchor edges that were
- * re-pointed onto the group back to their original member, and reveal the hidden
- * internal (member ↔ member) edges. Used by ungroup / convert-to-plain.
- */
-function restoreStoryboardEdges(
-  edges: CanvasEdge[],
-  groupNodeId: string,
-  childIds: Set<string>
-): CanvasEdge[] {
-  return edges.map((edge) => {
-    let next = edge;
-    const data = next.data as Record<string, unknown> | undefined;
-    if (next.source === groupNodeId && typeof data?.__sbOrigSource === 'string') {
-      const { __sbOrigSource, ...restData } = data;
-      next = { ...next, source: __sbOrigSource, data: restData };
-    }
-    const data2 = next.data as Record<string, unknown> | undefined;
-    if (next.target === groupNodeId && typeof data2?.__sbOrigTarget === 'string') {
-      const { __sbOrigTarget, ...restData } = data2;
-      next = { ...next, target: __sbOrigTarget, data: restData };
-    }
-    if ((childIds.has(next.source) || childIds.has(next.target)) && next.hidden) {
-      next = { ...next, hidden: false };
-    }
-    return next;
-  });
 }
 
 export const useCanvasStore = create<CanvasState>((set, get) => ({

@@ -1,7 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
 
-import { collectBatchDeletableIds } from "@/features/canvas/domain/groupSelectionDelete";
+import {
+  collectBatchDeletableIds,
+  collectNodeIdsWithDescendants,
+} from "@/features/canvas/domain/groupSelectionDelete";
 import { CANVAS_NODE_TYPES, type CanvasNode } from "@/features/canvas/domain/canvasNodes";
 
 function node(
@@ -83,5 +86,20 @@ describe("collectBatchDeletableIds", () => {
     ];
     const deletable = collectBatchDeletableIds(nodes, ["a", "b"]);
     expect(new Set(deletable)).toEqual(new Set(["a", "b"]));
+  });
+});
+
+describe("collectNodeIdsWithDescendants", () => {
+  it("collects every nested descendant of the seed nodes", () => {
+    const nodes = [
+      node("group", CANVAS_NODE_TYPES.group),
+      node("child", CANVAS_NODE_TYPES.group, { parentId: "group" }),
+      node("grandchild", CANVAS_NODE_TYPES.upload, { parentId: "child" }),
+      node("other", CANVAS_NODE_TYPES.upload),
+    ];
+
+    expect(collectNodeIdsWithDescendants(nodes, ["group"])).toEqual(
+      new Set(["group", "child", "grandchild"]),
+    );
   });
 });
