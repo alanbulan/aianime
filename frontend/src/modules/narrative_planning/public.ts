@@ -10,7 +10,6 @@ export {
   prefetchEpisodeDetail,
   readPipelineStatus,
   ScriptPageContent,
-  useActionPanelController,
   useBeatCardGridController,
   useDeleteManualShot,
   useEpisodeBeats,
@@ -26,7 +25,6 @@ export {
   usePlanEpisodes,
   usePlanIdentities,
   useSaveScript,
-  useSingleBeatPanelController,
   useScript,
   useUpdateBeat,
   useUpdateEpisode,
@@ -69,15 +67,6 @@ export type {
   SceneRef,
   Script,
 } from "@/modules/narrative_planning/domain/types";
-export { ActionPanelView } from "@/modules/narrative_planning/presentation/ActionPanelView";
-export type { ActionPanelViewProps } from "@/modules/narrative_planning/presentation/ActionPanelView";
-export type {
-  ActionPanelController,
-  ActionPanelControllerDependencies,
-  ActionPanelControllerOptions,
-  ActionPanelSectionState,
-  ActionPanelSelection,
-} from "@/modules/narrative_planning/application/use-action-panel-controller";
 export { BeatCardGridView } from "@/modules/narrative_planning/presentation/BeatCardGridView";
 export type { BeatCardGridViewProps } from "@/modules/narrative_planning/presentation/BeatCardGridView";
 export { BeatCardView } from "@/modules/narrative_planning/presentation/BeatCardView";
@@ -107,18 +96,7 @@ export type {
   InsertManualShotDialogControllerQueries,
   ManualShotAudioType,
 } from "@/modules/narrative_planning/application/use-insert-manual-shot-dialog-controller";
-export { SingleBeatPanelView } from "@/modules/narrative_planning/presentation/SingleBeatPanelView";
-export type { SingleBeatPanelViewProps } from "@/modules/narrative_planning/presentation/SingleBeatPanelView";
 export { ViewToggles } from "@/modules/narrative_planning/presentation/ViewToggles";
 export type { ViewTogglesProps } from "@/modules/narrative_planning/presentation/ViewToggles";
-export type {
-  SectionId,
-  SingleBeatPanelController,
-  SingleBeatPanelControllerDependencies,
-  SingleBeatPanelControllerOptions,
-  SingleBeatPanelControllerQueries,
-  SingleBeatSectionViewModel,
-  VideoBackendHeaderOption,
-} from "@/modules/narrative_planning/application/use-single-beat-panel-controller";
 export { TextPane } from "@/modules/narrative_planning/text-pane-composition";
 export type { TextPaneProps } from "@/modules/narrative_planning/text-pane-composition";

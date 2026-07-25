@@ -19,6 +19,23 @@ function readVideoPaneComposition() {
   return source.slice(source.indexOf("export interface VideoPaneProps"));
 }
 
+function readActionPanelComposition() {
+  const source = read(
+    "src/modules/narrative_planning/action-panel-composition.ts",
+  );
+  return source.slice(source.indexOf("export interface ActionPanelProps"));
+}
+
+function readSingleBeatPanelComposition() {
+  const source = read(
+    "src/modules/narrative_planning/action-panel-composition.ts",
+  );
+  return source.slice(
+    source.indexOf("export interface SingleBeatPanelProps"),
+    source.indexOf("export interface ActionPanelProps"),
+  );
+}
+
 const route = read(
   "src/routes/_app/projects.$project/episodes.$episode/beats.lazy.tsx",
 );
@@ -173,12 +190,8 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
   });
 
   it("shows the audio media status only for narrated projects", () => {
-    const actionPanel = read(
-      "src/components/episode/beat-workbench/action-panel.tsx",
-    );
-    const singleBeatPanel = read(
-      "src/components/episode/beat-workbench/single-beat-panel.tsx",
-    );
+    const actionPanel = readActionPanelComposition();
+    const singleBeatPanel = readSingleBeatPanelComposition();
     const videoPane = readVideoPaneComposition();
     const videoPaneView = read(
       "src/modules/production/presentation/VideoPaneView.tsx",
@@ -232,12 +245,8 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
       "src/modules/production/application/use-batch-bar-controller.ts",
     );
     const batchBarSources = `${batchBar}\n${batchBarController}\n${batchBarView}`;
-    const actionPanel = read(
-      "src/components/episode/beat-workbench/action-panel.tsx",
-    );
-    const singleBeatPanel = read(
-      "src/components/episode/beat-workbench/single-beat-panel.tsx",
-    );
+    const actionPanel = readActionPanelComposition();
+    const singleBeatPanel = readSingleBeatPanelComposition();
     const batchPanel = read(
       "src/components/episode/beat-workbench/batch-panel.tsx",
     );

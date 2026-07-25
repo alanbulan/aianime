@@ -8,7 +8,11 @@ const routeSource = readFileSync(
   "utf-8",
 );
 const actionPanelSource = readFileSync(
-  "src/components/episode/beat-workbench/action-panel.tsx",
+  "src/modules/narrative_planning/action-panel-composition.ts",
+  "utf-8",
+);
+const actionPanelControllerSource = readFileSync(
+  "src/modules/narrative_planning/application/use-action-panel-controller.ts",
   "utf-8",
 );
 
@@ -17,6 +21,6 @@ describe("beats sub-section deep links", () => {
     expect(routeSource).toContain("targetSection");
     expect(routeSource).toContain("targetSection={targetSection}");
     expect(actionPanelSource).toContain("targetSection?: SectionId | null");
-    expect(actionPanelSource).toContain("next.add(targetSection)");
+    expect(actionPanelControllerSource).toContain("next.add(targetSection)");
   });
 });

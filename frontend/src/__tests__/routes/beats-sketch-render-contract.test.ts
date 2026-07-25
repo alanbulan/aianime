@@ -26,6 +26,13 @@ function readSketchGridGalleryComposition() {
   );
 }
 
+function readActionPanelComposition() {
+  const source = read(
+    "src/modules/narrative_planning/action-panel-composition.ts",
+  );
+  return source.slice(source.indexOf("export interface ActionPanelProps"));
+}
+
 describe("beats sketch/render v2 contract", () => {
   it("does not expose the legacy /sketches/batch auto-select action", () => {
     const batchBar = readBatchBarComposition();
@@ -62,7 +69,7 @@ describe("beats sketch/render v2 contract", () => {
     const batchPanelController = read(
       "src/modules/production/application/use-batch-panel-controller.ts",
     );
-    const actionPanel = read("src/components/episode/beat-workbench/action-panel.tsx");
+    const actionPanel = readActionPanelComposition();
     const productionGateway = read(
       "src/modules/production/infrastructure/http-production-video-gateway.ts",
     );
@@ -194,7 +201,7 @@ describe("beats sketch/render v2 contract", () => {
       "src/modules/production/application/use-batch-bar-controller.ts",
     );
     const batchBarSources = `${batchBar}\n${batchBarController}\n${batchBarView}`;
-    const actionPanel = read("src/components/episode/beat-workbench/action-panel.tsx");
+    const actionPanel = readActionPanelComposition();
     const viewToggles = read(
       "src/modules/narrative_planning/presentation/ViewToggles.tsx",
     );

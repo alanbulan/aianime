@@ -5,7 +5,8 @@ import { I18nextProvider, initReactI18next } from "react-i18next";
 import i18next from "i18next";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
-import { SingleBeatPanel, type SectionId } from "@/components/episode/beat-workbench/single-beat-panel";
+import { SingleBeatPanel } from "@/modules/narrative_planning/action-panel-composition";
+import type { SectionId } from "@/modules/narrative_planning/application/use-single-beat-panel-controller";
 import type { Beat } from "@/modules/narrative_planning/public";
 
 const i18n = i18next.createInstance();
@@ -53,12 +54,9 @@ beforeAll(async () => {
   });
 });
 
-vi.mock("@/modules/narrative_planning/public", async () => {
+vi.mock("@/modules/narrative_planning/composition", async () => {
   const { createUseSingleBeatPanelController } = await import(
     "@/modules/narrative_planning/application/use-single-beat-panel-controller"
-  );
-  const { SingleBeatPanelView } = await import(
-    "@/modules/narrative_planning/presentation/SingleBeatPanelView"
   );
   const useSingleBeatPanelController = createUseSingleBeatPanelController(
     {
@@ -91,11 +89,14 @@ vi.mock("@/modules/narrative_planning/public", async () => {
     },
   );
   return {
-    SingleBeatPanelView,
-    TextPane: () => <div>TextPane</div>,
+    useActionPanelController: vi.fn(),
     useSingleBeatPanelController,
   };
 });
+
+vi.mock("@/modules/narrative_planning/text-pane-composition", () => ({
+  TextPane: () => <div>TextPane</div>,
+}));
 
 vi.mock("@/modules/production/public", () => ({
   AudioPaneContent: () => <div>AudioPane</div>,

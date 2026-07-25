@@ -464,12 +464,10 @@ describe("frontend architecture boundaries", () => {
       resolve(moduleRoot, "presentation/SketchStudioActionsView.tsx"),
       "utf8",
     );
-    const singleBeatPanelSource = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "components/episode/beat-workbench/single-beat-panel.tsx",
-      ),
-      "utf8",
+    const singleBeatPanelSource = sourceSection(
+      resolve(moduleRoot, "action-panel-composition.ts"),
+      "export interface SingleBeatPanelProps",
+      "export interface ActionPanelProps",
     );
     const singleBeatPanelViewSource = readFileSync(
       resolve(moduleRoot, "presentation/SingleBeatPanelView.tsx"),
@@ -482,12 +480,9 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
-    const actionPanelSource = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "components/episode/beat-workbench/action-panel.tsx",
-      ),
-      "utf8",
+    const actionPanelSource = sourceSection(
+      resolve(moduleRoot, "action-panel-composition.ts"),
+      "export interface ActionPanelProps",
     );
     const actionPanelControllerSource = readFileSync(
       resolve(moduleRoot, "application/use-action-panel-controller.ts"),
@@ -635,6 +630,8 @@ describe("frontend architecture boundaries", () => {
       "components/episode/beat-workbench/sketch-studio-actions.tsx",
       "components/episode/beat-workbench/view-toggles.tsx",
       "components/episode/beat-workbench/text-pane.tsx",
+      "components/episode/beat-workbench/action-panel.tsx",
+      "components/episode/beat-workbench/single-beat-panel.tsx",
       "hooks/use-selection.ts",
       "hooks/use-view-toggles.ts",
       "types/episode.ts",
@@ -683,12 +680,14 @@ describe("frontend architecture boundaries", () => {
     expect(sketchStudioViewSource).not.toContain("useCharacters(");
     expect(sketchStudioViewSource).not.toContain("useEpisodeBeats(");
     expect(sketchStudioViewSource).not.toContain("useEpisodeDetail(");
-    expect(singleBeatPanelSource).toContain("<SingleBeatPanelView");
+    expect(singleBeatPanelSource).toContain(
+      "createElement(SingleBeatPanelView",
+    );
     expect(singleBeatPanelSource).toContain(
       "useSingleBeatPanelController({",
     );
     expect(singleBeatPanelSource).toContain(
-      "renderSectionContent={renderSectionContent}",
+      "renderSectionContent,",
     );
     expect(singleBeatPanelSource).not.toContain("className=");
     expect(singleBeatPanelSource).not.toContain("<Select");
@@ -729,7 +728,7 @@ describe("frontend architecture boundaries", () => {
     expect(singleBeatPanelControllerSource).not.toContain("document.");
     expect(singleBeatPanelControllerSource).not.toContain("navigator.");
     expect(actionPanelSource).toContain("useActionPanelController({");
-    expect(actionPanelSource).toContain("<ActionPanelView");
+    expect(actionPanelSource).toContain("createElement(ActionPanelView");
     expect(actionPanelSource).not.toContain("useEffect(");
     expect(actionPanelSource).not.toContain("useMemo(");
     expect(actionPanelSource).not.toContain("useEpisodeWorkbenchStore(");
@@ -748,6 +747,18 @@ describe("frontend architecture boundaries", () => {
     expect(actionPanelViewSource).not.toContain("useEpisodeWorkbenchStore(");
     expect(actionPanelStateSource).toContain("useEpisodeWorkbenchStore(");
     expect(actionPanelStateSource).toContain("episodeWorkbenchScopeKey(");
+    expect(beatsPageViewSource).toContain(
+      "@/modules/narrative_planning/action-panel-composition",
+    );
+    expect(narrativePublicSource).not.toContain("useActionPanelController");
+    expect(narrativePublicSource).not.toContain(
+      "useSingleBeatPanelController",
+    );
+    expect(narrativePublicSource).not.toContain("ActionPanelView");
+    expect(narrativePublicSource).not.toContain("SingleBeatPanelView");
+    expect(narrativePublicSource).not.toContain(
+      "SingleBeatPanelControllerOptions",
+    );
     expect(insertManualShotDialogSource).toContain(
       "useInsertManualShotDialogController({",
     );
