@@ -15,7 +15,6 @@ import {
   BackgroundVariant,
   ConnectionMode,
   SelectionMode,
-  useNodesInitialized,
   useReactFlow,
   useStoreApi,
   type Connection,
@@ -37,9 +36,7 @@ import { CreditDisplayHiddenProvider } from '@/components/credits/credit-visual'
 import { isCeRuntime } from '@/lib/runtime-config';
 import { useCanvasStore } from '@/stores/canvasStore';
 import {
-  canvasViewportOverlapsRect,
   getNodeSize,
-  getTopLevelCanvasBounds,
   hasRectCollision,
 } from '@/features/canvas/domain/canvasGeometry';
 import { findLinkedCapturePartnerIds } from '@/features/canvas/domain/canvasCapturePartners';
@@ -347,9 +344,7 @@ export function Canvas({
   } = useCanvasSkillRegistry(getSkillRegistry);
 
   const isRestoringCanvasRef = useRef(true);
-  const initialViewportCorrectionPendingRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const nodesInitialized = useNodesInitialized();
   const copiedSnapshotRef = useRef<ClipboardSnapshot | null>(sharedNodeClipboard);
   const getContextMenuCapabilities = useCallback(() => {
     const history = useCanvasStore.getState().history;
@@ -625,32 +620,6 @@ export function Canvas({
 
     scheduleCanvasPersist();
   }, [nodes, edges, history, dragHistorySnapshot, scheduleCanvasPersist]);
-
-  // 项目刚加载完时，先按用户保存的 viewport 恢复。
-  // 等节点完成测量后再判断：若节点 bbox 与当前可视区完全无交集（视图飞到空白处），
-  // 自动 fitView 回到节点集中区，避免用户找不到自己的内容。
-  useEffect(() => {
-    if (!initialViewportCorrectionPendingRef.current) return;
-    if (!nodesInitialized) return;
-
-    const container = wrapperRef.current;
-    if (!container) return;
-    const rect = container.getBoundingClientRect();
-    if (rect.width <= 0 || rect.height <= 0) return;
-
-    initialViewportCorrectionPendingRef.current = false;
-    const bounds = getTopLevelCanvasBounds(nodes);
-    if (
-      bounds
-      && !canvasViewportOverlapsRect(
-        reactFlowInstance.getViewport(),
-        rect,
-        bounds,
-      )
-    ) {
-      reactFlowInstance.fitView({ padding: 0.2, duration: 0, maxZoom: 1 });
-    }
-  }, [nodesInitialized, nodes, reactFlowInstance]);
 
   const nodeFocusViewportPort = useMemo(
     () => ({

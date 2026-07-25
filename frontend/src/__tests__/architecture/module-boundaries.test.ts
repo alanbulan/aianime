@@ -1016,6 +1016,8 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("function rectsIntersect(");
     expect(canvasView).not.toContain("const topLevelNodes = nodes.filter(");
     expect(canvasView).not.toContain("const overlapsView =");
+    expect(canvasView).not.toContain("initialViewportCorrectionPendingRef");
+    expect(canvasView).not.toContain("useNodesInitialized");
     expect(backToNodesView).toContain(
       "@/features/canvas/domain/canvasGeometry",
     );

@@ -56,7 +56,6 @@ vi.mock("@xyflow/react", async () => {
     },
     Background: () => null,
     MiniMap: () => null,
-    useNodesInitialized: () => true,
     useReactFlow: () => ({
       fitView: vi.fn(),
       getViewport: () => ({ x: 0, y: 0, zoom: 1 }),
