@@ -98,6 +98,15 @@ export type {
   RenderGridCardViewProps,
   RenderGridGalleryViewProps,
 } from "@/modules/production/presentation/RenderGridGalleryView";
+export {
+  SketchGridCardView,
+  SketchGridGalleryView,
+} from "@/modules/production/presentation/SketchGridGalleryView";
+export type {
+  SketchGridCardViewProps,
+  SketchGridFallbackCellViewModel,
+  SketchGridGalleryViewProps,
+} from "@/modules/production/presentation/SketchGridGalleryView";
 export type {
   NarratorVoicePanelController,
   NarratorVoicePanelControllerDependencies,

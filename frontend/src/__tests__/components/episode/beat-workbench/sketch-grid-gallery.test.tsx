@@ -64,38 +64,44 @@ const taskStopMock: Mock = vi.fn();
 let gridImages: unknown[] = [];
 let sketchPreviewResponses: Record<number, unknown> = {};
 
-vi.mock("@/modules/production/public", () => ({
-  useSketchGridPreview: (
-    _project: string,
-    _episode: number,
-    params: { gridIndex: number },
-  ) => ({
-    data: sketchPreviewResponses[params.gridIndex] ?? null,
-  }),
-  useUploadGrid: () => ({
-    mutateAsync: uploadGridMock,
-    isPending: false,
-  }),
-  useExportGridPrompt: () => ({
-    mutateAsync: exportGridPromptMock,
-    isPending: false,
-  }),
-  useGenerateSketches: () => ({
-    mutateAsync: generateSketchesMock,
-    isPending: false,
-  }),
-  useGrids: () => ({
-    data: {
-      ok: true,
+vi.mock("@/modules/production/public", async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import("@/modules/production/public")
+  >();
+  return {
+    ...actual,
+    useSketchGridPreview: (
+      _project: string,
+      _episode: number,
+      params: { gridIndex: number },
+    ) => ({
+      data: sketchPreviewResponses[params.gridIndex] ?? null,
+    }),
+    useUploadGrid: () => ({
+      mutateAsync: uploadGridMock,
+      isPending: false,
+    }),
+    useExportGridPrompt: () => ({
+      mutateAsync: exportGridPromptMock,
+      isPending: false,
+    }),
+    useGenerateSketches: () => ({
+      mutateAsync: generateSketchesMock,
+      isPending: false,
+    }),
+    useGrids: () => ({
       data: {
-        episode: 1,
-        modes: {},
-        beat_assignments: {},
-        images: gridImages,
+        ok: true,
+        data: {
+          episode: 1,
+          modes: {},
+          beat_assignments: {},
+          images: gridImages,
+        },
       },
-    },
-  }),
-}));
+    }),
+  };
+});
 
 vi.mock("@/hooks/use-task-controller", () => ({
   useTaskController: () => ({

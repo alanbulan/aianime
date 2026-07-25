@@ -616,6 +616,20 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const sketchGridGallerySource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "components/episode/beat-workbench/sketch-grid-gallery.tsx",
+      ),
+      "utf8",
+    );
+    const sketchGridGalleryViewSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/production/presentation/SketchGridGalleryView.tsx",
+      ),
+      "utf8",
+    );
     const narratorVoicePanelSource = readFileSync(
       resolve(
         SRC_ROOT,
@@ -895,6 +909,33 @@ describe("frontend architecture boundaries", () => {
     expect(renderGridGalleryDomainSource).toContain(
       "export function buildRenderGridGroups",
     );
+    expect(sketchGridGallerySource).toContain("<SketchGridGalleryView");
+    expect(sketchGridGallerySource).toContain("<SketchGridCardView");
+    expect(sketchGridGallerySource).not.toContain("className=");
+    expect(sketchGridGallerySource).not.toContain("<Button");
+    expect(sketchGridGallerySource).not.toContain("<Dialog");
+    expect(sketchGridGallerySource).not.toContain("<Textarea");
+    expect(sketchGridGallerySource).not.toContain('type="file"');
+    expect(sketchGridGallerySource).not.toContain(
+      "GRID_ACTION_BUTTON_CLASS",
+    );
+    expect(sketchGridGallerySource).not.toContain("gridAspectCss");
+    expect(sketchGridGallerySource).not.toContain("formatBeatRange");
+    expect(sketchGridGalleryViewSource).toContain('type="file"');
+    expect(sketchGridGalleryViewSource).toContain("<Dialog");
+    expect(sketchGridGalleryViewSource).toContain("<Textarea");
+    expect(sketchGridGalleryViewSource).toContain(
+      "GRID_ACTION_BUTTON_CLASS",
+    );
+    expect(sketchGridGalleryViewSource).toContain("formatBeatRange");
+    expect(sketchGridGalleryViewSource).not.toContain("useGrids(");
+    expect(sketchGridGalleryViewSource).not.toContain(
+      "useGenerateSketches(",
+    );
+    expect(sketchGridGalleryViewSource).not.toContain(
+      "useTaskController(",
+    );
+    expect(sketchGridGalleryViewSource).not.toContain("toast.");
     expect(narratorVoicePanelSource).toContain("<NarratorVoicePanelView");
     expect(narratorVoicePanelSource).toContain(
       "useNarratorVoicePanelController({",
