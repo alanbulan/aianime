@@ -546,6 +546,20 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "modules/production/presentation/VideoPaneView.tsx"),
       "utf8",
     );
+    const sketchSectionSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "components/episode/beat-workbench/sketch-section.tsx",
+      ),
+      "utf8",
+    );
+    const sketchSectionViewSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/production/presentation/SketchSectionView.tsx",
+      ),
+      "utf8",
+    );
     const legacySketchQueries = readFileSync(
       resolve(SRC_ROOT, "lib/queries/sketches.ts"),
       "utf8",
@@ -678,6 +692,15 @@ describe("frontend architecture boundaries", () => {
     expect(videoPaneSource).not.toContain("regenTask");
     expect(videoPaneSource).not.toContain("handleRegen");
     expect(videoPaneSource).not.toContain("<AlertDialog");
+    expect(sketchSectionSource).toContain("<SketchSectionView");
+    expect(sketchSectionSource).not.toContain("className=");
+    expect(sketchSectionSource).not.toContain("<Button");
+    expect(sketchSectionSource).not.toContain("<AlertDialog");
+    expect(sketchSectionSource).not.toContain('type="file"');
+    expect(sketchSectionSource).not.toContain("MEDIA_THUMB_CLASS");
+    expect(sketchSectionViewSource).toContain('type="file"');
+    expect(sketchSectionViewSource).toContain("<AlertDialog");
+    expect(sketchSectionViewSource).toContain("MEDIA_THUMB_CLASS");
     expect(legacySketchQueries).not.toContain("useAssignColors");
     expect(legacySketchQueries).not.toContain("useDetectIdentities");
     expect(legacySketchQueries).not.toContain("useDirectorControlToSketch");

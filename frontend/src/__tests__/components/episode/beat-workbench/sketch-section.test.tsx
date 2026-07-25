@@ -66,28 +66,34 @@ vi.mock("@/modules/narrative_planning/public", () => ({
   }),
 }));
 
-vi.mock("@/modules/production/public", () => ({
-  StalePoolSelectError: class StalePoolSelectError extends Error {},
-  useDirectorControlToSketch: () => ({
-    mutateAsync: directorConvertMock,
-    isPending: false,
-  }),
-  usePoolSelect: () => ({ mutateAsync: poolSelectMock, isPending: false }),
-  useRegenerateSketches: () => ({
-    mutateAsync: regenerateSketchMock,
-    isPending: false,
-  }),
-  useSketchSettings: () => ({
-    data: {
-      ok: true,
+vi.mock("@/modules/production/public", async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import("@/modules/production/public")
+  >();
+  return {
+    ...actual,
+    StalePoolSelectError: class StalePoolSelectError extends Error {},
+    useDirectorControlToSketch: () => ({
+      mutateAsync: directorConvertMock,
+      isPending: false,
+    }),
+    usePoolSelect: () => ({ mutateAsync: poolSelectMock, isPending: false }),
+    useRegenerateSketches: () => ({
+      mutateAsync: regenerateSketchMock,
+      isPending: false,
+    }),
+    useSketchSettings: () => ({
       data: {
-        sketch_image_selection: "doubao_seedream-3.0-t2i",
-        options: {},
+        ok: true,
+        data: {
+          sketch_image_selection: "doubao_seedream-3.0-t2i",
+          options: {},
+        },
       },
-    },
-  }),
-  useUploadBeatImage: () => ({ mutateAsync: vi.fn(), isPending: false }),
-}));
+    }),
+    useUploadBeatImage: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  };
+});
 
 vi.mock("@/lib/queries/generation-credit-cost", () => ({
   useGenerationCreditCost: () => ({

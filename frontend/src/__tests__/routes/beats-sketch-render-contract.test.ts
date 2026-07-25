@@ -208,6 +208,9 @@ describe("beats sketch/render v2 contract", () => {
 
   it("exposes sketch and render upload actions instead of disabled placeholders", () => {
     const sketchSection = read("src/components/episode/beat-workbench/sketch-section.tsx");
+    const sketchSectionView = read(
+      "src/modules/production/presentation/SketchSectionView.tsx",
+    );
     const renderSection = read("src/components/episode/beat-workbench/render-section.tsx");
     const productionPublic = read("src/modules/production/public.ts");
     const productionGateway = read(
@@ -220,8 +223,9 @@ describe("beats sketch/render v2 contract", () => {
     );
 
     expect(sketchSection).not.toContain('title={t("common.comingSoon")}');
+    expect(sketchSectionView).not.toContain('title={t("common.comingSoon")}');
     expect(renderSection).not.toContain('title={t("common.comingSoon")}');
-    expect(sketchSection).toContain('type="file"');
+    expect(sketchSectionView).toContain('type="file"');
     expect(renderSection).toContain('type="file"');
   });
 });

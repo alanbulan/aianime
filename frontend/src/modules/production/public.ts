@@ -79,6 +79,16 @@ export {
 } from "@/modules/production/presentation/VideoPaneParts";
 export { VideoPaneMediaView } from "@/modules/production/presentation/VideoPaneMediaView";
 export { VideoPaneView } from "@/modules/production/presentation/VideoPaneView";
+export { SketchSectionView } from "@/modules/production/presentation/SketchSectionView";
+export type {
+  SketchBackgroundAnchorViewModel,
+  SketchCandidateViewModel,
+  SketchIdentityBadgeViewModel,
+  SketchPropBadgeViewModel,
+  SketchSectionViewProps,
+  SketchTaskViewModel,
+  SketchToolAction,
+} from "@/modules/production/presentation/SketchSectionView";
 export { StalePoolSelectError } from "@/modules/production/application/image-pool-errors";
 export { isProductionErrorResponse } from "@/modules/production/application/ports";
 export {
