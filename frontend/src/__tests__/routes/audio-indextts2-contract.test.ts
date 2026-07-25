@@ -11,7 +11,10 @@ describe("audio IndexTTS2 alignment contract", () => {
     const productionGateway = read(
       "src/modules/production/infrastructure/http-production-video-gateway.ts",
     );
-    const audioPane = read("src/components/episode/beat-workbench/audio-pane.tsx");
+    const audioPane = [
+      read("src/modules/production/application/use-audio-pane-controller.ts"),
+      read("src/modules/production/presentation/AudioPaneView.tsx"),
+    ].join("\n");
 
     expect(productionGateway).not.toContain("/tts/voices");
     expect(productionGateway).not.toContain("/tts/preview");

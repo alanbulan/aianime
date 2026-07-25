@@ -6,6 +6,7 @@ export {
   listScenes,
   useAssetReferenceIndex,
   useAssetImageSourceSelection,
+  useAssetWorkspaceNavigation,
   useBatchGeneratePropReferences,
   useBeatBackgroundAnchors,
   useBeatDirectorStageManifest,

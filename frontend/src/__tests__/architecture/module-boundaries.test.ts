@@ -580,6 +580,14 @@ describe("frontend architecture boundaries", () => {
       false,
     );
     expect(existsSync(resolve(SRC_ROOT, "types/render-plan.ts"))).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "components/episode/beat-workbench/audio-pane.tsx",
+        ),
+      ),
+    ).toBe(false);
     expect(legacySketchQueries).not.toContain("useAssignColors");
     expect(legacySketchQueries).not.toContain("useDetectIdentities");
     expect(legacySketchQueries).not.toContain("useDirectorControlToSketch");

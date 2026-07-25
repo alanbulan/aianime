@@ -58,6 +58,7 @@ import {
   readStoredAssetTab,
   writeStoredAssetTab,
 } from "@/modules/asset_world/infrastructure/asset-tab-storage";
+import { useAssetWorkspaceNavigation } from "@/modules/asset_world/infrastructure/asset-workspace-navigation";
 import { createBrowserVoiceRecorder } from "@/modules/asset_world/infrastructure/browser-voice-recorder";
 import { httpCharacterGateway } from "@/modules/asset_world/infrastructure/http-character-gateway";
 import { httpAssetWorldGateway } from "@/modules/asset_world/infrastructure/http-asset-world-gateway";
@@ -199,7 +200,7 @@ export const {
   useUploadScenePano,
 } = sceneQueries;
 
-export { useAssetReferenceIndex };
+export { useAssetReferenceIndex, useAssetWorkspaceNavigation };
 
 export async function listScenes(project: string): Promise<SceneAsset[]> {
   const response = await httpSceneGateway.listScenes(project);

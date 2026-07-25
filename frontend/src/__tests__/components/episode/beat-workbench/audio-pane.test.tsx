@@ -7,13 +7,17 @@ import i18next from "i18next";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 
-import { AudioPane } from "@/components/episode/beat-workbench/audio-pane";
 import type { Beat } from "@/modules/narrative_planning/public";
+import { createUseAudioPaneController } from "@/modules/production/application/use-audio-pane-controller";
+import { AudioPaneView } from "@/modules/production/presentation/AudioPaneView";
+import type { BeatStageState } from "@/types/beat-state";
 
 const i18n = i18next.createInstance();
 const mutateRegenerate = vi.hoisted(() => vi.fn());
+const taskStart = vi.hoisted(() => vi.fn());
 const toastError = vi.hoisted(() => vi.fn());
-const navigateMock = vi.hoisted(() => vi.fn());
+const toastSuccess = vi.hoisted(() => vi.fn());
+const openVoiceConfiguration = vi.hoisted(() => vi.fn());
 
 beforeAll(async () => {
   await i18n.use(initReactI18next).init({
@@ -62,58 +66,51 @@ beforeAll(async () => {
   });
 });
 
-vi.mock("@/lib/queries/generation-credit-cost", () => ({
-  useGenerationCreditCost: () => ({ data: { ok: true, data: { display: "" } } }),
-}));
-
 vi.mock("@/hooks/use-task-controller", () => ({
   useTaskController: () => ({
     started: false,
-    start: vi.fn(),
+    start: taskStart,
   }),
-}));
-
-vi.mock("@/modules/production/public", () => ({
-  useRegenerateBeatAudio: () => ({
-    mutateAsync: mutateRegenerate,
-    isPending: false,
-  }),
-  useNarratorVoiceStatus: () => ({
-    data: {
-      ok: true,
-      data: {
-        narration_style: "third_person",
-        source: "project_narrator",
-        reference_path: "",
-        reference_url: "",
-        heading: "第三人称项目解说声线",
-        detail: "",
-        explanation: "第三人称解说使用项目级声线。",
-        is_first_person: false,
-      },
-    },
-    isLoading: false,
-    isError: false,
-  }),
-  useNarratorVoiceSources: () => ({
-    data: { ok: true, data: { options: [] } },
-    isLoading: false,
-    isError: false,
-  }),
-  useUploadNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useRecordNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useCopyProjectNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useTrimNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useDeleteNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
 vi.mock("sonner", () => ({
-  toast: { error: toastError, success: vi.fn() },
+  toast: { error: toastError, success: toastSuccess },
 }));
 
-vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => navigateMock,
-}));
+const useAudioPaneController = createUseAudioPaneController(
+  {
+    useRegenerateBeatAudio: () => ({
+      mutateAsync: mutateRegenerate,
+      isPending: false,
+    }),
+  },
+  {
+    useGenerationCreditCost: () => ({
+      data: { data: { display: "" } },
+    }),
+  },
+);
+
+function AudioPane({
+  beat,
+  episode,
+  project,
+  state,
+}: {
+  beat: Beat;
+  episode: number;
+  project: string;
+  state: BeatStageState;
+}) {
+  const controller = useAudioPaneController({
+    beat,
+    episode,
+    onConfigureVoice: openVoiceConfiguration,
+    project,
+    state,
+  });
+  return <AudioPaneView controller={controller} />;
+}
 
 function Wrapper({ children }: { children: ReactNode }) {
   const qc = new QueryClient({
@@ -139,7 +136,6 @@ function makeBeat(overrides: Partial<Beat> = {}): Beat {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  window.localStorage.clear();
   mutateRegenerate.mockResolvedValue({
     ok: true,
     scope: "ep001:beat_01:__narrator__",
@@ -155,7 +151,6 @@ describe("AudioPane", () => {
           project="demo"
           episode={1}
           state="missing"
-          spineTemplate="drama"
         />
       </Wrapper>,
     );
@@ -173,7 +168,6 @@ describe("AudioPane", () => {
           project="demo"
           episode={1}
           state="missing"
-          spineTemplate="narrated"
         />
       </Wrapper>,
     );
@@ -191,7 +185,6 @@ describe("AudioPane", () => {
           project="demo"
           episode={1}
           state="missing"
-          spineTemplate="narrated"
         />
       </Wrapper>,
     );
@@ -210,7 +203,6 @@ describe("AudioPane", () => {
           project="demo"
           episode={1}
           state="missing"
-          spineTemplate="drama"
         />
       </Wrapper>,
     );
@@ -218,6 +210,30 @@ describe("AudioPane", () => {
     expect(screen.queryByText("本条解说音频")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "上传本条音频" })).not.toBeInTheDocument();
     expect(screen.queryByText("解说声线")).not.toBeInTheDocument();
+  });
+
+  it("dispatches the current beat and starts the returned task scope", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Wrapper>
+        <AudioPane
+          beat={makeBeat({ beat_number: 7 })}
+          project="demo"
+          episode={2}
+          state="missing"
+        />
+      </Wrapper>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "重新生成" }));
+    await user.click(screen.getByRole("button", { name: "确认" }));
+
+    expect(mutateRegenerate).toHaveBeenCalledWith(7);
+    expect(taskStart).toHaveBeenCalledWith({
+      scope: "ep001:beat_01:__narrator__",
+    });
+    expect(toastSuccess).toHaveBeenCalledWith("Beat #7 已重新生成");
   });
 
   it("offers a jump to project voice assets when beat audio generation lacks default narrator voice", async () => {
@@ -235,7 +251,6 @@ describe("AudioPane", () => {
           project="demo"
           episode={1}
           state="missing"
-          spineTemplate="narrated"
         />
       </Wrapper>,
     );
@@ -253,11 +268,7 @@ describe("AudioPane", () => {
     const action = toastError.mock.calls[0][1].action as { onClick: () => void };
     action.onClick();
 
-    expect(window.localStorage.getItem("ai-anime-asset-tab:demo")).toBe("voices");
-    expect(navigateMock).toHaveBeenCalledWith({
-      to: "/projects/$project/characters",
-      params: { project: "demo" },
-    });
+    expect(openVoiceConfiguration).toHaveBeenCalledWith("voices");
   });
 
   it("offers a jump to characters when first-person narrator protagonist voice is missing", async () => {
@@ -275,7 +286,6 @@ describe("AudioPane", () => {
           project="demo project"
           episode={1}
           state="missing"
-          spineTemplate="narrated"
         />
       </Wrapper>,
     );
@@ -293,11 +303,7 @@ describe("AudioPane", () => {
     const action = toastError.mock.calls[0][1].action as { onClick: () => void };
     action.onClick();
 
-    expect(window.localStorage.getItem("ai-anime-asset-tab:demo%20project")).toBe("characters");
-    expect(navigateMock).toHaveBeenCalledWith({
-      to: "/projects/$project/characters",
-      params: { project: "demo project" },
-    });
+    expect(openVoiceConfiguration).toHaveBeenCalledWith("characters");
   });
 
   it("keeps regular regeneration errors as plain toasts", async () => {
@@ -314,7 +320,6 @@ describe("AudioPane", () => {
           project="demo"
           episode={1}
           state="missing"
-          spineTemplate="narrated"
         />
       </Wrapper>,
     );

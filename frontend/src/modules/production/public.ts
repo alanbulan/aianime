@@ -1,4 +1,5 @@
 export {
+  AudioPaneContent,
   useAssignColors,
   useComposeEpisode,
   useCopyProjectNarratorVoice,
@@ -50,6 +51,9 @@ export {
   useVideoPool,
   useVideoPoolSelect,
 } from "@/modules/production/composition";
+export type {
+  VoiceConfigurationTarget,
+} from "@/modules/production/domain/audio-prerequisite";
 export { StalePoolSelectError } from "@/modules/production/application/image-pool-errors";
 export type {
   GridCutCommand,

@@ -47,6 +47,7 @@ vi.mock("@/modules/narrative_planning/public", () => ({
 }));
 
 vi.mock("@/modules/production/public", () => ({
+  AudioPaneContent: () => <div>AudioPane</div>,
   useGridsByBeat: () => ({ byBeat: new Map(), assignments: {} }),
   useVideoBackends: () => ({
     data: {
@@ -60,6 +61,10 @@ vi.mock("@/modules/production/public", () => ({
       ],
     },
   }),
+}));
+
+vi.mock("@/modules/asset_world/public", () => ({
+  useAssetWorkspaceNavigation: () => vi.fn(),
 }));
 
 vi.mock("@/stores/save-status-store", () => ({
@@ -87,10 +92,6 @@ vi.mock("@/components/episode/beat-workbench/sketch-section", () => ({
 
 vi.mock("@/components/episode/beat-workbench/render-section", () => ({
   RenderSection: () => <div>RenderSection</div>,
-}));
-
-vi.mock("@/components/episode/beat-workbench/audio-pane", () => ({
-  AudioPane: () => <div>AudioPane</div>,
 }));
 
 vi.mock("@/components/episode/beat-workbench/video-pane", () => ({

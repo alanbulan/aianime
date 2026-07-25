@@ -9,8 +9,10 @@ import { useEscapeToClose } from "@/hooks/use-escape-to-close";
 import { resolveImage } from "@/lib/resolve-image";
 import { saveScopes, useSaveState } from "@/stores/save-status-store";
 import { cn } from "@/lib/utils";
+import { useAssetWorkspaceNavigation } from "@/modules/asset_world/public";
 import type { Beat } from "@/modules/narrative_planning/public";
 import {
+  AudioPaneContent,
   useGridsByBeat,
   useVideoBackends,
 } from "@/modules/production/public";
@@ -30,7 +32,6 @@ import {
 import { TextPane } from "./text-pane";
 import { SketchSection } from "./sketch-section";
 import { RenderSection } from "./render-section";
-import { AudioPane } from "./audio-pane";
 import { VideoPane } from "./video-pane";
 
 export type SectionId = "text" | "sketch" | "render" | "audio" | "video";
@@ -107,6 +108,7 @@ export function SingleBeatPanel({
   onToggleSection,
 }: SingleBeatPanelProps) {
   const { t } = useTranslation();
+  const openAssetWorkspace = useAssetWorkspaceNavigation(project);
   const { byBeat, assignments } = useGridsByBeat(project, episode);
   const images = byBeat.get(beat.beat_number) ?? [];
   const resolvedSketch = resolveImage(images, assignments, beat.beat_number, "sketch", beat.sketch_url ?? null);
@@ -224,12 +226,12 @@ export function SingleBeatPanel({
                     />
                   )}
                   {id === "audio" && (
-                    <AudioPane
+                    <AudioPaneContent
                       beat={beat}
                       project={project}
                       episode={episode}
                       state={stages?.audio ?? "missing"}
-                      spineTemplate={spineTemplate}
+                      onConfigureVoice={openAssetWorkspace}
                     />
                   )}
                   {id === "video" && (

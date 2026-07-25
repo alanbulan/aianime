@@ -1,4 +1,8 @@
 // Copyright (c) 2026 AI anime
+import { createElement } from "react";
+
+import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
+import type { Beat } from "@/modules/narrative_planning/public";
 import { useAppStore } from "@/stores/app-store";
 import { createAudioGenerationQueryHooks } from "@/modules/production/application/audio-generation-query-hooks";
 import { createEpisodeComposeQueryHooks } from "@/modules/production/application/episode-compose-query-hooks";
@@ -15,8 +19,20 @@ import { createSketchRegenQueueQueryHooks } from "@/modules/production/applicati
 import { createSketchPoseEditorQueryHooks } from "@/modules/production/application/sketch-pose-editor-query-hooks";
 import { createSketchMarkerQueryHooks } from "@/modules/production/application/sketch-marker-query-hooks";
 import { createSketchGenerationQueryHooks } from "@/modules/production/application/sketch-generation-query-hooks";
+import { createUseAudioPaneController } from "@/modules/production/application/use-audio-pane-controller";
 import { httpProductionVideoGateway } from "@/modules/production/infrastructure/http-production-video-gateway";
 import { promptLanguageFromLocale } from "@/modules/production/domain/video-generation";
+import { AudioPaneView } from "@/modules/production/presentation/AudioPaneView";
+import type { VoiceConfigurationTarget } from "@/modules/production/domain/audio-prerequisite";
+import type { BeatStageState } from "@/types/beat-state";
+
+const audioGenerationQueries = createAudioGenerationQueryHooks(
+  httpProductionVideoGateway,
+);
+const useAudioPaneController = createUseAudioPaneController(
+  audioGenerationQueries,
+  { useGenerationCreditCost },
+);
 
 export const { useVideoBackends } = createVideoBackendQueryHooks(
   httpProductionVideoGateway,
@@ -64,7 +80,7 @@ export const {
   useDeleteNarratorVoice,
 } = createNarratorVoiceQueryHooks(httpProductionVideoGateway);
 export const { useGenerateAudio, useRegenerateBeatAudio } =
-  createAudioGenerationQueryHooks(httpProductionVideoGateway);
+  audioGenerationQueries;
 export const {
   useRenderSettings,
   useUpdateRenderSettings,
@@ -91,3 +107,26 @@ export const {
 } = createSketchGenerationQueryHooks(httpProductionVideoGateway);
 export const { useComposeEpisode, useFinalVideo } =
   createEpisodeComposeQueryHooks(httpProductionVideoGateway);
+
+export function AudioPaneContent({
+  beat,
+  episode,
+  onConfigureVoice,
+  project,
+  state,
+}: {
+  beat: Beat;
+  episode: number;
+  onConfigureVoice(target: VoiceConfigurationTarget): void;
+  project: string;
+  state: BeatStageState;
+}) {
+  const controller = useAudioPaneController({
+    beat,
+    episode,
+    onConfigureVoice,
+    project,
+    state,
+  });
+  return createElement(AudioPaneView, { controller });
+}
