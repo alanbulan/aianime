@@ -81,39 +81,19 @@ const backgroundAnchorsMock: Mock = vi.fn();
 const updateBackgroundAnchorMock: Mock = vi.fn();
 const cropBackgroundAnchorMock: Mock = vi.fn();
 const uploadBackgroundAnchorMock: Mock = vi.fn();
+const stageManifestMock: Mock = vi.fn();
 const taskStartMock: Mock = vi.fn();
 const invalidateQueriesMock: Mock = vi.fn();
 const markSeenMock: Mock = vi.fn();
 
-vi.mock("@tanstack/react-query", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@tanstack/react-query")>();
-  return {
-    ...actual,
-    useQueryClient: () => ({ invalidateQueries: invalidateQueriesMock }),
-  };
-});
-
 vi.mock("@/modules/asset_world/public", () => ({
   useBeatBackgroundAnchors: () => backgroundAnchorsMock(),
-  useBeatDirectorStageManifest: () => ({
-    data: {
-      ok: true,
-      data: {
-        viewer_kind: "three_d_director",
-        mode: "beat",
-        project: "demo",
-        scene_id: "地下室",
-        display_name: "地下室",
-        source: {
-          ply_url: "/static/director_worlds/scene/master_sharp.ply",
-          source_kind: "master",
-        },
-        palette: { actors: [], props: [], anonymous_colors: [] },
-        allowed_destinations: ["view", "beat_selected_background"],
-      },
-    },
-    isLoading: false,
-  }),
+  useBeatDirectorStageManifest: (
+    project: string,
+    episode: number,
+    beatNumber: number,
+    enabled: boolean,
+  ) => stageManifestMock(project, episode, beatNumber, enabled),
   useUpdateBeatBackgroundAnchor: () => ({
     mutateAsync: updateBackgroundAnchorMock,
     isPending: false,
@@ -126,6 +106,24 @@ vi.mock("@/modules/asset_world/public", () => ({
     mutateAsync: uploadBackgroundAnchorMock,
     isPending: false,
   }),
+  useDirectorControlFrameStatus: (
+    project: string,
+    episode: number,
+    beatNumber: number,
+  ) => ({
+    refetch: () =>
+      invalidateQueriesMock({
+        queryKey: [
+          "projects",
+          project,
+          "episodes",
+          episode,
+          "beats",
+          beatNumber,
+          "director-control-frame",
+        ],
+      }),
+  }),
   useScenePlatePreview: () => ({
     data: scenePlatePreviewState.data
       ? { ok: true, data: scenePlatePreviewState.data }
@@ -137,11 +135,19 @@ vi.mock("@/modules/production/public", async (importOriginal) => {
   const actual = await importOriginal<
     typeof import("@/modules/production/public")
   >();
-  const { createUseRenderSectionController } = await import(
-    "@/modules/production/application/use-render-section-controller"
+  const assetWorld = await import("@/modules/asset_world/public");
+  const { useProjectAspectRatio } = await import(
+    "@/stores/aspect-ratio-store"
   );
-  const useRenderSectionController = createUseRenderSectionController(
+  const useRenderSectionController = actual.createUseRenderSectionController(
     {
+      useBeatBackgroundAnchors: assetWorld.useBeatBackgroundAnchors,
+      useBeatDirectorStageManifest:
+        assetWorld.useBeatDirectorStageManifest,
+      useCropBeatBackgroundAnchor:
+        assetWorld.useCropBeatBackgroundAnchor,
+      useDirectorControlFrameStatus:
+        assetWorld.useDirectorControlFrameStatus,
       usePoolSelect: () => ({
         mutateAsync: poolSelectMock,
         isPending: false,
@@ -160,6 +166,11 @@ vi.mock("@/modules/production/public", async (importOriginal) => {
           },
         },
       }),
+      useScenePlatePreview: assetWorld.useScenePlatePreview,
+      useUpdateBeatBackgroundAnchor:
+        assetWorld.useUpdateBeatBackgroundAnchor,
+      useUploadBeatBackgroundAnchor:
+        assetWorld.useUploadBeatBackgroundAnchor,
       useUploadBeatImage: () => ({
         mutateAsync: uploadMock,
         isPending: false,
@@ -175,18 +186,7 @@ vi.mock("@/modules/production/public", async (importOriginal) => {
         },
       }),
       useNow: () => 1_747_392_000_000,
-      useRefreshDirectorControlFrame: (project, episode, beatNumber) => () =>
-        invalidateQueriesMock({
-          queryKey: [
-            "projects",
-            project,
-            "episodes",
-            episode,
-            "beats",
-            beatNumber,
-            "director-control-frame",
-          ],
-        }),
+      useProjectAspectRatio,
       useSeenRenderCandidates: () => ({
         markSeen: markSeenMock,
         seenIds: undefined,
@@ -392,6 +392,26 @@ beforeEach(() => {
   cropBackgroundAnchorMock.mockResolvedValue({ ok: true });
   uploadBackgroundAnchorMock.mockReset();
   uploadBackgroundAnchorMock.mockResolvedValue({ ok: true });
+  stageManifestMock.mockReset();
+  stageManifestMock.mockReturnValue({
+    data: {
+      ok: true,
+      data: {
+        viewer_kind: "three_d_director",
+        mode: "beat",
+        project: "demo",
+        scene_id: "地下室",
+        display_name: "地下室",
+        source: {
+          ply_url: "/static/director_worlds/scene/master_sharp.ply",
+          source_kind: "master",
+        },
+        palette: { actors: [], props: [], anonymous_colors: [] },
+        allowed_destinations: ["view", "beat_selected_background"],
+      },
+    },
+    isLoading: false,
+  });
   taskStartMock.mockReset();
   invalidateQueriesMock.mockReset();
   markSeenMock.mockReset();
@@ -579,6 +599,7 @@ describe("RenderSection", () => {
     expect(screen.getByRole("button", { name: "打开导演世界" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "打开导演世界" }));
+    expect(stageManifestMock).toHaveBeenLastCalledWith("demo", 1, 5, true);
     expect(screen.getByTestId("render-director-world-dialog")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "场景背面" }));

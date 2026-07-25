@@ -145,6 +145,7 @@ export type { SketchSectionViewProps } from "@/modules/production/presentation/S
 export { createUseSketchSectionController } from "@/modules/production/application/use-sketch-section-controller";
 export { RenderSectionView } from "@/modules/production/presentation/RenderSectionView";
 export type { RenderSectionViewProps } from "@/modules/production/presentation/RenderSectionView";
+export { createUseRenderSectionController } from "@/modules/production/application/use-render-section-controller";
 export { NarratorVoicePanelView } from "@/modules/production/presentation/NarratorVoicePanelView";
 export type { NarratorVoicePanelViewProps } from "@/modules/production/presentation/NarratorVoicePanelView";
 export {
@@ -194,6 +195,8 @@ export type {
   RenderBackgroundReferenceViewModel,
   RenderCandidateViewModel,
   RenderDirectorCaptureMeta,
+  RenderDirectorStageQuery,
+  RenderDirectorStatusQuery,
   RenderSectionController,
   RenderSectionControllerDependencies,
   RenderSectionControllerOptions,

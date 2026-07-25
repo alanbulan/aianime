@@ -122,6 +122,10 @@ vi.mock("@/modules/asset_world/public", () => ({
     mutateAsync: updateBackgroundAnchorMock,
     isPending: false,
   }),
+  useCropBeatBackgroundAnchor: () => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+  }),
   useUploadBeatBackgroundAnchor: () => ({
     mutateAsync: uploadBackgroundAnchorMock,
     isPending: false,
@@ -130,6 +134,7 @@ vi.mock("@/modules/asset_world/public", () => ({
   useCharacters: () => ({
     data: { ok: true, data: [{ name: "陆辰" }] },
   }),
+  useScenePlatePreview: () => ({ data: undefined }),
 }));
 
 vi.mock("@/hooks/use-task-controller", () => ({

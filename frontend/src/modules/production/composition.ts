@@ -1,6 +1,5 @@
 // Copyright (c) 2026 AI anime
 import { createElement } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 
 import { formatCreditCost } from "@/components/credits/credit-visual";
 import { withImageCacheBust } from "@/features/canvas/application/imageData";
@@ -12,7 +11,15 @@ import {
   useGenerationCreditCosts,
 } from "@/lib/queries/generation-credit-cost";
 import { useTasks } from "@/lib/queries/tasks";
-import { queryKeys } from "@/lib/query-keys";
+import {
+  useBeatBackgroundAnchors,
+  useBeatDirectorStageManifest,
+  useCropBeatBackgroundAnchor,
+  useDirectorControlFrameStatus,
+  useScenePlatePreview,
+  useUpdateBeatBackgroundAnchor,
+  useUploadBeatBackgroundAnchor,
+} from "@/modules/asset_world/public";
 import type { Beat } from "@/modules/narrative_planning/public";
 import { useAppStore } from "@/stores/app-store";
 import { useSeenPoolStore } from "@/stores/seen-pool-store";
@@ -256,10 +263,17 @@ export const useSketchPoseEditorDialogController =
   );
 export const useRenderSectionController = createUseRenderSectionController(
   {
+    useBeatBackgroundAnchors,
+    useBeatDirectorStageManifest,
+    useCropBeatBackgroundAnchor,
+    useDirectorControlFrameStatus,
     usePoolSelect: imagePoolQueries.usePoolSelect,
     useRegenerateRenderBeats:
       sketchGenerationQueries.useRegenerateRenderBeats,
     useRenderSettings: imageSettingsQueries.useRenderSettings,
+    useScenePlatePreview,
+    useUpdateBeatBackgroundAnchor,
+    useUploadBeatBackgroundAnchor,
     useUploadBeatImage: imagePoolQueries.useUploadBeatImage,
   },
   {
@@ -278,17 +292,7 @@ export const useRenderSectionController = createUseRenderSectionController(
       }),
     useGenerationCreditCost,
     useNow,
-    useRefreshDirectorControlFrame: (project, episode, beatNumber) => {
-      const queryClient = useQueryClient();
-      return () =>
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.directorControlFrame(
-            project,
-            episode,
-            beatNumber,
-          ),
-        });
-    },
+    useProjectAspectRatio,
     useSeenRenderCandidates: (project, episode) => ({
       markSeen: useSeenPoolStore((state) => state.markSeen),
       seenIds: useSeenPoolStore(

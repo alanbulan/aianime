@@ -14,6 +14,7 @@ import type {
   BeatBackgroundAnchorItem,
   BeatBackgroundAnchors,
   BeatBackgroundReference,
+  DirectorStageManifest,
   ScenePlatePreview,
 } from "@/modules/asset_world/public";
 import type { Beat } from "@/modules/narrative_planning/public";
@@ -64,12 +65,49 @@ interface UploadRenderMutation {
 }
 
 export interface RenderSectionControllerQueries {
+  useBeatBackgroundAnchors(
+    project: string,
+    episode: number,
+    beatNumber: number,
+  ): RenderBackgroundAnchorsQuery;
+  useBeatDirectorStageManifest(
+    project: string,
+    episode: number,
+    beatNumber: number,
+    enabled: boolean,
+  ): RenderDirectorStageQuery;
+  useCropBeatBackgroundAnchor(
+    project: string,
+    episode: number,
+    beatNumber: number,
+  ): CropRenderBackgroundMutation;
+  useDirectorControlFrameStatus(
+    project: string,
+    episode: number,
+    beatNumber: number,
+  ): RenderDirectorStatusQuery;
   usePoolSelect(project: string, episode: number): PoolSelectMutation;
   useRegenerateRenderBeats(
     project: string,
     episode: number,
   ): RegenerateRenderMutation;
   useRenderSettings(project: string): RenderSettingsQuery;
+  useScenePlatePreview(
+    project: string,
+    sceneId: string,
+    variantId: string,
+    timeOfDay: string,
+  ): ScenePlatePreviewQuery;
+  useUpdateBeatBackgroundAnchor(
+    project: string,
+    episode: number,
+    beatNumber: number,
+  ): UpdateRenderBackgroundMutation;
+  useUploadBeatBackgroundAnchor(
+    project: string,
+    episode: number,
+    beatNumber: number,
+  ): UploadRenderBackgroundMutation;
   useUploadBeatImage(
     project: string,
     episode: number,
@@ -99,11 +137,9 @@ export interface RenderSectionControllerDependencies {
     },
   ): CreditCostQuery;
   useNow(): number;
-  useRefreshDirectorControlFrame(
-    project: string,
-    episode: number,
-    beatNumber: number,
-  ): () => Promise<unknown>;
+  useProjectAspectRatio(project: string): {
+    spec: { ratioValue: number; renderAspect: string };
+  };
   useSeenRenderCandidates(
     project: string,
     episode: number,
@@ -139,19 +175,20 @@ export interface ScenePlatePreviewQuery {
   data?: AssetResponse<ScenePlatePreview>;
 }
 
+export interface RenderDirectorStageQuery {
+  data?: AssetResponse<DirectorStageManifest>;
+}
+
+export interface RenderDirectorStatusQuery {
+  refetch(): Promise<unknown>;
+}
+
 export interface RenderSectionControllerOptions {
   assignments: Record<string, string>;
-  backgroundAnchors: RenderBackgroundAnchorsQuery;
   beat: Beat;
-  cropBackgroundAnchor: CropRenderBackgroundMutation;
   episode: number;
   images: PoolImage[];
   project: string;
-  renderAspect: string;
-  renderCropRatio: number;
-  scenePlatePreview: ScenePlatePreviewQuery;
-  updateBackgroundAnchor: UpdateRenderBackgroundMutation;
-  uploadBackgroundAnchor: UploadRenderBackgroundMutation;
 }
 
 export interface RenderCandidateViewModel {
@@ -195,6 +232,7 @@ export interface RenderSectionController {
   background: RenderBackgroundReferenceViewModel;
   beatNumber: number;
   candidates: RenderCandidateViewModel[];
+  directorWorldManifest: DirectorStageManifest | null;
   directorWorldOpen: boolean;
   downloadEnabled: boolean;
   freezonePending: boolean;
@@ -233,6 +271,45 @@ export function createUseRenderSectionController(
     options: RenderSectionControllerOptions,
   ): RenderSectionController {
     const { t } = useTranslation();
+    const { spec: aspectSpec } =
+      dependencies.useProjectAspectRatio(options.project);
+    const renderSceneId =
+      options.beat.scene_ref?.scene_id?.trim() ||
+      options.beat.location?.trim() ||
+      "";
+    const renderVariantId =
+      options.beat.scene_ref?.variant_id?.trim() || "";
+    const scenePlatePreview = queries.useScenePlatePreview(
+      options.project,
+      renderSceneId,
+      renderVariantId,
+      options.beat.time_of_day ?? "",
+    );
+    const backgroundAnchors = queries.useBeatBackgroundAnchors(
+      options.project,
+      options.episode,
+      options.beat.beat_number,
+    );
+    const updateBackgroundAnchor = queries.useUpdateBeatBackgroundAnchor(
+      options.project,
+      options.episode,
+      options.beat.beat_number,
+    );
+    const cropBackgroundAnchor = queries.useCropBeatBackgroundAnchor(
+      options.project,
+      options.episode,
+      options.beat.beat_number,
+    );
+    const uploadBackgroundAnchor = queries.useUploadBeatBackgroundAnchor(
+      options.project,
+      options.episode,
+      options.beat.beat_number,
+    );
+    const directorControlStatus = queries.useDirectorControlFrameStatus(
+      options.project,
+      options.episode,
+      options.beat.beat_number,
+    );
     const poolSelect = queries.usePoolSelect(options.project, options.episode);
     const regenerate = queries.useRegenerateRenderBeats(
       options.project,
@@ -266,12 +343,6 @@ export function createUseRenderSectionController(
         queryKeys.beats(options.project, options.episode),
       ],
     });
-    const refreshDirectorControlFrame =
-      dependencies.useRefreshDirectorControlFrame(
-        options.project,
-        options.episode,
-        options.beat.beat_number,
-      );
     const seenCandidates = dependencies.useSeenRenderCandidates(
       options.project,
       options.episode,
@@ -286,6 +357,12 @@ export function createUseRenderSectionController(
     const [croppingAnchorId, setCroppingAnchorId] =
       useState<string | null>(null);
     const [directorWorldOpen, setDirectorWorldOpen] = useState(false);
+    const directorWorld = queries.useBeatDirectorStageManifest(
+      options.project,
+      options.episode,
+      options.beat.beat_number,
+      directorWorldOpen,
+    );
 
     const candidates = options.images
       .filter(
@@ -341,8 +418,8 @@ export function createUseRenderSectionController(
       };
     });
     const backgroundData =
-      options.backgroundAnchors.data?.ok === true
-        ? options.backgroundAnchors.data.data
+      backgroundAnchors.data?.ok === true
+        ? backgroundAnchors.data.data
         : null;
     const currentBackgroundSource =
       backgroundData?.currentSource ?? backgroundData?.currentAnchor ?? null;
@@ -358,8 +435,8 @@ export function createUseRenderSectionController(
       backgroundData?.currentReference ??
       null;
     const scenePlate =
-      options.scenePlatePreview.data?.ok === true
-        ? options.scenePlatePreview.data.data.render
+      scenePlatePreview.data?.ok === true
+        ? scenePlatePreview.data.data.render
         : null;
 
     const handleSelect = async (poolId: string) => {
@@ -408,7 +485,7 @@ export function createUseRenderSectionController(
       try {
         const anchorId = currentBackgroundSource || "master";
         const backgroundResponse =
-          await options.updateBackgroundAnchor.mutateAsync({ anchorId });
+          await updateBackgroundAnchor.mutateAsync({ anchorId });
         if (!backgroundResponse.ok) {
           toast.error(
             backgroundResponse.error ||
@@ -453,7 +530,7 @@ export function createUseRenderSectionController(
     const handleChooseBackground = async (anchorId: string) => {
       try {
         const response =
-          await options.updateBackgroundAnchor.mutateAsync({ anchorId });
+          await updateBackgroundAnchor.mutateAsync({ anchorId });
         if (!response.ok) {
           toast.error(
             response.error ||
@@ -477,7 +554,7 @@ export function createUseRenderSectionController(
     ) => {
       setCroppingAnchorId(anchorId);
       try {
-        const response = await options.cropBackgroundAnchor.mutateAsync({
+        const response = await cropBackgroundAnchor.mutateAsync({
           anchorId,
           crop,
         });
@@ -506,7 +583,7 @@ export function createUseRenderSectionController(
       if (!file) return;
       try {
         const response =
-          await options.uploadBackgroundAnchor.mutateAsync({ file });
+          await uploadBackgroundAnchor.mutateAsync({ file });
         if (!response.ok) {
           toast.error(
             response.error ||
@@ -553,7 +630,7 @@ export function createUseRenderSectionController(
           path: meta.controlFrameRelPath ?? bundle.rel_paths.combined,
         }),
       );
-      await refreshDirectorControlFrame();
+      await directorControlStatus.refetch();
       setDirectorWorldOpen(false);
     };
 
@@ -563,13 +640,13 @@ export function createUseRenderSectionController(
         sourceId: currentBackgroundSource,
         reference: currentBackgroundReference,
         renderInput: backgroundData?.renderInput ?? null,
-        cropAspectLabel: options.renderAspect,
-        cropAspectRatio: options.renderCropRatio,
+        cropAspectLabel: aspectSpec.renderAspect,
+        cropAspectRatio: aspectSpec.ratioValue,
         anchors: backgroundData?.anchors ?? [],
         canChoose: backgroundData?.canChoose ?? false,
-        loading: options.backgroundAnchors.isLoading,
-        choosing: options.updateBackgroundAnchor.isPending,
-        uploading: options.uploadBackgroundAnchor.isPending,
+        loading: backgroundAnchors.isLoading,
+        choosing: updateBackgroundAnchor.isPending,
+        uploading: uploadBackgroundAnchor.isPending,
         croppingAnchorId,
         onChoose: (anchorId) => {
           void handleChooseBackground(anchorId);
@@ -584,6 +661,8 @@ export function createUseRenderSectionController(
       },
       beatNumber: options.beat.beat_number,
       candidates: candidateItems,
+      directorWorldManifest:
+        directorWorld.data?.ok === true ? directorWorld.data.data : null,
       directorWorldOpen,
       downloadEnabled: detailRender !== null,
       freezonePending,
@@ -600,7 +679,7 @@ export function createUseRenderSectionController(
           }
         : null,
       renderActive: regenTask.started,
-      renderAspectRatio: ratioToCss(options.renderAspect),
+      renderAspectRatio: ratioToCss(aspectSpec.renderAspect),
       renderPercent,
       renderRegenCostDisplay: renderRegenCost.data?.data.display,
       stalePromptOpen: stalePrompt !== null,

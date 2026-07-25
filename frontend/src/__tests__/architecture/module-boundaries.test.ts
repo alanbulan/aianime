@@ -1453,6 +1453,22 @@ describe("frontend architecture boundaries", () => {
     expect(renderSectionSource).not.toContain("usePoolSelect(");
     expect(renderSectionSource).not.toContain("useRegenerateRenderBeats(");
     expect(renderSectionSource).not.toContain("useUploadBeatImage(");
+    expect(renderSectionSource).not.toContain("useBeatBackgroundAnchors(");
+    expect(renderSectionSource).not.toContain(
+      "useBeatDirectorStageManifest(",
+    );
+    expect(renderSectionSource).not.toContain(
+      "useCropBeatBackgroundAnchor(",
+    );
+    expect(renderSectionSource).not.toContain("useScenePlatePreview(");
+    expect(renderSectionSource).not.toContain(
+      "useUpdateBeatBackgroundAnchor(",
+    );
+    expect(renderSectionSource).not.toContain(
+      "useUploadBeatBackgroundAnchor(",
+    );
+    expect(renderSectionSource).not.toContain("useProjectAspectRatio(");
+    expect(renderSectionSource).not.toContain("beat.scene_ref");
     expect(renderSectionSource).not.toContain("toast.");
     expect(renderSectionSource).not.toContain("formatRelativeTime");
     expect(renderSectionSource).not.toContain("useSeenPoolStore");
@@ -1470,6 +1486,21 @@ describe("frontend architecture boundaries", () => {
     expect(renderSectionControllerSource).toContain(
       "createUseRenderSectionController",
     );
+    expect(renderSectionControllerSource).toContain(
+      "queries.useBeatBackgroundAnchors",
+    );
+    expect(renderSectionControllerSource).toContain(
+      "queries.useBeatDirectorStageManifest",
+    );
+    expect(renderSectionControllerSource).toContain(
+      "queries.useScenePlatePreview",
+    );
+    expect(renderSectionControllerSource).toContain(
+      "queries.useDirectorControlFrameStatus",
+    );
+    expect(renderSectionControllerSource).toContain(
+      "dependencies.useProjectAspectRatio",
+    );
     expect(renderSectionControllerSource).toContain("useTaskController(");
     expect(renderSectionControllerSource).toContain("handleRegen");
     expect(renderSectionControllerSource).toContain(
@@ -1479,6 +1510,16 @@ describe("frontend architecture boundaries", () => {
     expect(renderSectionControllerSource).not.toContain("@/features/");
     expect(renderSectionControllerSource).not.toContain("@/stores/");
     expect(renderSectionControllerSource).not.toContain("document.");
+    expect(productionCompositionSource).toContain(
+      "createUseRenderSectionController",
+    );
+    expect(productionCompositionSource).toContain(
+      "useBeatDirectorStageManifest,",
+    );
+    expect(productionCompositionSource).toContain(
+      "useDirectorControlFrameStatus,",
+    );
+    expect(productionCompositionSource).not.toContain("useQueryClient");
     expect(renderGridGallerySource).toContain("<RenderGridGalleryView");
     expect(renderGridGallerySource).toContain("<RenderGridCardView");
     expect(renderGridGallerySource).not.toContain("className=");
