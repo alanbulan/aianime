@@ -11,16 +11,11 @@ import {
 } from '@xyflow/react';
 
 import {
-  CANVAS_NODE_TYPES,
-  DEFAULT_ASPECT_RATIO,
-  EXPORT_RESULT_NODE_MIN_HEIGHT,
-  EXPORT_RESULT_NODE_MIN_WIDTH,
   type ActiveToolDialog,
   type CanvasEdge,
   type CanvasNode,
   type CanvasNodeData,
   type CanvasNodeType,
-  type ExportImageNodeResultKind,
   type NodeToolType,
   type StoryboardFrameItem,
 } from '@/features/canvas/domain/canvasNodes';
@@ -34,11 +29,7 @@ import {
   type CanvasHistorySnapshot,
   type CanvasHistoryState,
 } from '@/features/canvas/domain/canvasHistory';
-import {
-  findAvailableNodePosition,
-  getDerivedNodePosition,
-  getNodeSize,
-} from '@/features/canvas/domain/canvasGeometry';
+import { findAvailableNodePosition } from '@/features/canvas/domain/canvasGeometry';
 import {
   normalizeEdgesWithNodes,
   normalizeHandleId,
@@ -73,7 +64,6 @@ import {
 import { ungroupCanvasNode } from '@/features/canvas/domain/canvasGroupRemoval';
 import { deleteCanvasEdge } from '@/features/canvas/domain/canvasEdgeDeletion';
 import { validateCanvasConnection } from '@/features/canvas/domain/canvasConnection';
-import { EXPORT_RESULT_DISPLAY_NAME } from '@/features/canvas/domain/nodeDisplay';
 import {
   type ViewportBookmark,
   type ViewportBookmarks,
@@ -85,22 +75,19 @@ import {
   resolveActiveToolDialog,
   resolveSelectedNodeId,
 } from '@/features/canvas/domain/canvasSelection';
-import {
-  createDefaultStoryboardExportOptions,
-} from '@/features/canvas/application/canvasNodeHydration';
 import { normalizeCanvasData } from '@/features/canvas/application/canvasDataNormalization';
 import { createCanvasNode } from '@/features/canvas/application/canvasNodeCreation';
 import { canvasNodeFactory } from '@/features/canvas/nodeFactoryComposition';
 import {
   isImageAutoResizableType,
-  resolveAutoImageNodeDimensions,
-  resolveGeneratedImageNodeDimensions,
   withManualSizeLock,
 } from '@/features/canvas/application/imageNodeLayout';
 import {
-  resolveDerivedAspectRatio,
-  resolveStoryboardSplitNodeDimensions,
-} from '@/features/canvas/application/storyboardNodeLayout';
+  createCanvasDerivedExportNode,
+  createCanvasDerivedUploadNode,
+  createCanvasStoryboardSplitNode,
+  type CanvasDerivedExportNodeOptions,
+} from '@/features/canvas/application/canvasDerivedNodeCreation';
 import {
   classifyCanvasNodeChanges,
   hasMeaningfulCanvasEdgeChange,
@@ -217,13 +204,7 @@ interface CanvasState extends CanvasMutationState {
     imageUrl: string,
     aspectRatio: string,
     previewImageUrl?: string,
-    options?: {
-      defaultTitle?: string;
-      resultKind?: ExportImageNodeResultKind;
-      aspectRatioStrategy?: 'provided' | 'derivedFromSource';
-      sizeStrategy?: 'generated' | 'autoMinEdge' | 'matchSource';
-      matchSourceNodeSize?: boolean;
-    }
+    options?: CanvasDerivedExportNodeOptions,
   ) => string | null;
   addStoryboardSplitNode: (
     sourceNodeId: string,
@@ -806,22 +787,14 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   addDerivedUploadNode: (sourceNodeId, imageUrl, aspectRatio, previewImageUrl) => {
     const state = get();
-    const position = getDerivedNodePosition(state.nodes, sourceNodeId);
-    const sourceNode = state.nodes.find((node) => node.id === sourceNodeId);
-    const resolvedAspectRatio = resolveDerivedAspectRatio(sourceNode, aspectRatio);
-    const node = canvasNodeFactory.createNode(CANVAS_NODE_TYPES.upload, position, {
+    const node = createCanvasDerivedUploadNode(
+      state.nodes,
+      sourceNodeId,
       imageUrl,
-      previewImageUrl: previewImageUrl ?? null,
-      aspectRatio: resolvedAspectRatio,
-    });
-    const derivedSize = resolveGeneratedImageNodeDimensions(resolvedAspectRatio);
-    node.width = derivedSize.width;
-    node.height = derivedSize.height;
-    node.style = {
-      ...(node.style ?? {}),
-      width: derivedSize.width,
-      height: derivedSize.height,
-    };
+      aspectRatio,
+      previewImageUrl,
+      canvasNodeFactory,
+    );
 
     set({
       nodes: [...state.nodes, node],
@@ -840,61 +813,19 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   addDerivedExportNode: (sourceNodeId, imageUrl, aspectRatio, previewImageUrl, options) => {
     const state = get();
-    const sourceNode = state.nodes.find((node) => node.id === sourceNodeId);
-    const aspectRatioStrategy = options?.aspectRatioStrategy ?? 'provided';
-    const resolvedAspectRatio = aspectRatioStrategy === 'derivedFromSource'
-      ? resolveDerivedAspectRatio(sourceNode, aspectRatio)
-      : (aspectRatio || resolveDerivedAspectRatio(sourceNode, DEFAULT_ASPECT_RATIO));
-    const autoSize = resolveAutoImageNodeDimensions(resolvedAspectRatio, {
-      minWidth: EXPORT_RESULT_NODE_MIN_WIDTH,
-      minHeight: EXPORT_RESULT_NODE_MIN_HEIGHT,
-    });
-    const generatedSize = resolveGeneratedImageNodeDimensions(resolvedAspectRatio, {
-      minWidth: EXPORT_RESULT_NODE_MIN_WIDTH,
-      minHeight: EXPORT_RESULT_NODE_MIN_HEIGHT,
-    });
-    const sourceSize = sourceNode ? getNodeSize(sourceNode) : null;
-    const sizeStrategy = options?.sizeStrategy
-      ?? (options?.matchSourceNodeSize ? 'matchSource' : 'generated');
-    let derivedSize = generatedSize;
-    if (sizeStrategy === 'autoMinEdge') {
-      derivedSize = autoSize;
-    } else if (sizeStrategy === 'matchSource' && sourceSize) {
-      derivedSize = {
-        width: Math.max(1, Math.round(sourceSize.width)),
-        height: Math.max(1, Math.round(sourceSize.height)),
-      };
-    }
-    const position = state.findNodePosition(
-      sourceNodeId,
-      derivedSize.width,
-      derivedSize.height
+    const node = createCanvasDerivedExportNode(
+      {
+        nodes: state.nodes,
+        sourceNodeId,
+        imageUrl,
+        aspectRatio,
+        previewImageUrl,
+        options,
+        viewport: state.currentViewport,
+        viewportSize: state.canvasViewportSize,
+      },
+      canvasNodeFactory,
     );
-    const exportNodeData: Partial<CanvasNodeData> = {
-      imageUrl,
-      previewImageUrl: previewImageUrl ?? null,
-      aspectRatio: resolvedAspectRatio,
-    };
-    if (options?.defaultTitle) {
-      (exportNodeData as { displayName?: string }).displayName = options.defaultTitle;
-    }
-    if (options?.resultKind) {
-      (exportNodeData as { resultKind?: ExportImageNodeResultKind }).resultKind = options.resultKind;
-      if (!options.defaultTitle) {
-        (exportNodeData as { displayName?: string }).displayName =
-          EXPORT_RESULT_DISPLAY_NAME[options.resultKind];
-      }
-    }
-    const node = canvasNodeFactory.createNode(CANVAS_NODE_TYPES.exportImage, position, {
-      ...exportNodeData,
-    });
-    node.width = derivedSize.width;
-    node.height = derivedSize.height;
-    node.style = {
-      ...(node.style ?? {}),
-      width: derivedSize.width,
-      height: derivedSize.height,
-    };
 
     set({
       nodes: [...state.nodes, node],
@@ -913,28 +844,15 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   addStoryboardSplitNode: (sourceNodeId, rows, cols, frames, frameAspectRatio) => {
     const state = get();
-    const position = getDerivedNodePosition(state.nodes, sourceNodeId);
-    const resolvedFrameAspectRatio =
-      frameAspectRatio ??
-      frames.find((frame) => typeof frame.aspectRatio === 'string')?.aspectRatio ??
-      DEFAULT_ASPECT_RATIO;
-
-    const node = canvasNodeFactory.createNode(CANVAS_NODE_TYPES.storyboardSplit, position, {
-      gridRows: rows,
-      gridCols: cols,
+    const node = createCanvasStoryboardSplitNode(
+      state.nodes,
+      sourceNodeId,
+      rows,
+      cols,
       frames,
-      aspectRatio: resolvedFrameAspectRatio,
-      frameAspectRatio: resolvedFrameAspectRatio,
-      exportOptions: createDefaultStoryboardExportOptions(),
-    });
-    const derivedSize = resolveStoryboardSplitNodeDimensions(rows, cols, resolvedFrameAspectRatio);
-    node.width = derivedSize.width;
-    node.height = derivedSize.height;
-    node.style = {
-      ...(node.style ?? {}),
-      width: derivedSize.width,
-      height: derivedSize.height,
-    };
+      frameAspectRatio,
+      canvasNodeFactory,
+    );
 
     set({
       nodes: [...state.nodes, node],

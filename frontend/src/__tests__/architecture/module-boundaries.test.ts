@@ -1481,7 +1481,12 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/application/storyboardNodeLayout.ts",
     );
+    const derivedCreationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasDerivedNodeCreation.ts",
+    );
     const layoutModel = readFileSync(layoutPath, "utf8");
+    const derivedCreationModel = readFileSync(derivedCreationPath, "utf8");
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
@@ -1501,7 +1506,10 @@ describe("frontend architecture boundaries", () => {
     expect(layoutModel).toContain(
       "export function resolveDerivedAspectRatio(",
     );
-    expect(canvasStore).toContain(
+    expect(derivedCreationModel).toContain(
+      "from './storyboardNodeLayout'",
+    );
+    expect(canvasStore).not.toContain(
       "@/features/canvas/application/storyboardNodeLayout",
     );
     expect(canvasStore).not.toContain("function parseAspectRatioValue(");
@@ -1684,6 +1692,59 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain(
       "createdNode.type === CANVAS_NODE_TYPES.skill",
     );
+  });
+
+  it("keeps Canvas derived node creation in the application layer", () => {
+    const creationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasDerivedNodeCreation.ts",
+    );
+    const creationModel = readFileSync(creationPath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(creationPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/features/canvas/nodeFactoryComposition",
+    );
+    const declarations = [
+      "createCanvasDerivedUploadNode(",
+      "createCanvasDerivedExportNode(",
+      "createCanvasStoryboardSplitNode(",
+    ].map((name) => ["export function", name].join(" "));
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => {
+        const source = readFileSync(path, "utf8");
+        return declarations.some((declaration) => source.includes(declaration));
+      })
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/application/canvasDerivedNodeCreation.ts",
+    ]);
+    for (const declaration of declarations) {
+      expect(creationModel).toContain(declaration);
+    }
+    expect(creationModel).toContain("nodeFactory: NodeFactory");
+    expect(creationModel).toContain("findAvailableNodePosition({");
+    expect(canvasStore).toContain(
+      "@/features/canvas/application/canvasDerivedNodeCreation",
+    );
+    expect(canvasStore).not.toContain("const autoSize =");
+    expect(canvasStore).not.toContain("const exportNodeData:");
+    expect(canvasStore).not.toContain("const resolvedFrameAspectRatio =");
   });
 
   it("keeps Canvas node data updates out of the Zustand store", () => {
