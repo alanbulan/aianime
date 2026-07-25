@@ -3653,6 +3653,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("function canNodeBeManualConnectionSource(");
     expect(canvasView).not.toContain("THREE_D_WORLD_MANUAL_SOURCE_TYPES");
     expect(canvasView).not.toContain("PANO_360_DOWNSTREAM_IMAGE_TYPES");
+    expect(canvasView).not.toContain("isUpstreamConnectionAllowed(");
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasConnection",
     );
@@ -3691,6 +3692,8 @@ describe("frontend architecture boundaries", () => {
       "prepareCanvasReactFlowConnection(",
       "createCanvasProgrammaticEdge(",
       "createCanvasDataEdge(",
+      "planCanvasGraphConnection(",
+      "planSingleBeatContextBinding(",
     ].map((name) => ["export function", name].join(" "));
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => {
@@ -3708,6 +3711,7 @@ describe("frontend architecture boundaries", () => {
       expect(creationModel).toContain(declaration);
     }
     expect(creationModel).toContain("validateCanvasConnection(");
+    expect(creationModel).toContain("applySkillRoleBindingConnection({");
     expect(creationModel).toContain("validatePropagatingEdgeCandidate(");
     expect(creationModel).toContain("validateCandidateBindingRoleCandidate(");
     expect(canvasStore).toContain(
@@ -3718,6 +3722,51 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("validatePropagatingEdgeCandidate(");
     expect(canvasStore).not.toContain("validateCandidateBindingRoleCandidate(");
     expect(canvasStore).not.toContain("normalizeHandleId(connection.sourceHandle)");
+  });
+
+  it("keeps Canvas connection orchestration in one presentation controller", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasConnectionController.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/features/canvas/nodeFactoryComposition",
+    );
+    const declaration = [
+      "export function",
+      "useCanvasConnectionController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasConnectionController.ts",
+    ]);
+    expect(hookModel).toContain("planCanvasGraphConnection({");
+    expect(hookModel).toContain("planSingleBeatContextBinding(");
+    expect(hookModel).toContain("validateCanvasConnection(");
+    expect(canvasView).toContain("./hooks/useCanvasConnectionController");
+    expect(canvasView).not.toContain("const connectSkillRoleBinding");
+    expect(canvasView).not.toContain("applySkillRoleBindingConnection({");
+    expect(canvasView).not.toContain("planSingleBeatContextBinding(");
+    expect(canvasView).not.toContain("validateCanvasConnection(");
+    expect(canvasView).not.toContain(
+      "rejected role binding before skill registry loaded",
+    );
   });
 
   it("keeps Canvas edge deletion in the domain model", () => {

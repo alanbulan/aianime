@@ -16,8 +16,6 @@ import {
   SelectionMode,
   useReactFlow,
   useStoreApi,
-  type Connection,
-  type Edge,
   type EdgeChange,
   type FinalConnectionState,
   type HandleType,
@@ -87,12 +85,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import { prefetchEpisodeBeats, prefetchEpisodeDetail } from '@/modules/narrative_planning/public';
 import {
   getDownstreamSpawnTypes,
-  isUpstreamConnectionAllowed,
   nodeHasSourceHandle,
   nodeHasTargetHandle,
 } from '@/features/canvas/domain/nodeRegistry';
 import { nodeCatalog } from '@/features/canvas/application/nodeCatalog';
-import { applySkillRoleBindingConnection } from '@/features/canvas/domain/skillConnectionEdges';
 import { nodeTypes as canvasNodeTypes } from './nodes';
 import { edgeTypes as canvasEdgeTypes } from './edges';
 import { NodeSelectionMenu } from './NodeSelectionMenu';
@@ -131,6 +127,7 @@ import { useCanvasEdgePan } from './hooks/useCanvasEdgePan';
 import { useCanvasExternalDialogs } from './hooks/useCanvasExternalDialogs';
 import { useCanvasAsyncNodeTasks } from './hooks/useCanvasAsyncNodeTasks';
 import { useCanvasBeatContextPrefetch } from './hooks/useCanvasBeatContextPrefetch';
+import { useCanvasConnectionController } from './hooks/useCanvasConnectionController';
 import { useCanvasKeyboardShortcuts } from './hooks/useCanvasKeyboardShortcuts';
 import { useCanvasLifecycle } from './hooks/useCanvasLifecycle';
 import { useCanvasMarqueeSelection } from './hooks/useCanvasMarqueeSelection';
@@ -607,125 +604,21 @@ export function Canvas({
     [deleteEdge]
   );
 
-  const connectSkillRoleBinding = useCallback(
-    (connection: Connection, explicitSkill?: SkillDefinition | null): boolean => {
-      const currentState = useCanvasStore.getState();
-      const targetNode = currentState.nodes.find((node) => node.id === connection.target);
-      const sourceNode = currentState.nodes.find((node) => node.id === connection.source);
-      const skillNode =
-        targetNode?.type === CANVAS_NODE_TYPES.skill
-          ? targetNode
-          : sourceNode?.type === CANVAS_NODE_TYPES.skill
-            ? sourceNode
-            : null;
-      if (!skillNode) {
-        return false;
-      }
-      const skillId =
-        typeof (skillNode.data as { skill_id?: unknown }).skill_id === 'string'
-          ? (skillNode.data as { skill_id: string }).skill_id
-          : '';
-      const skillSpec = explicitSkill ?? skillById.get(skillId);
-      if (!skillSpec) {
-        console.warn('[SkillNode] rejected role binding before skill registry loaded', {
-          skillId,
-          target: skillNode.id,
-        });
-        return true;
-      }
-      if (sourceNode?.type === CANVAS_NODE_TYPES.skill && targetNode?.type !== CANVAS_NODE_TYPES.skill) {
-        const sourceRole =
-          typeof connection.sourceHandle === 'string'
-            ? connection.sourceHandle.trim().split(':', 1)[0]
-            : '';
-        if (!sourceRole || !skillSpec.inputs.some((input) => input.role === sourceRole)) {
-          return false;
-        }
-      }
-
-      const nextEdges = applySkillRoleBindingConnection({
-        nodes: currentState.nodes,
-        edges: currentState.edges,
-        connection,
-        skillSpec,
-      });
-      if (nextEdges === currentState.edges) {
-        return true;
-      }
-      replaceEdges(nextEdges);
-      return true;
-    },
-    [replaceEdges, skillById],
-  );
-
-  const connectGraphNodes = useCallback(
-    (connection: Connection, explicitSkill?: SkillDefinition | null): void => {
-      if (connectSkillRoleBinding(connection, explicitSkill)) {
-        return;
-      }
-      connectNodes(connection);
-    },
-    [connectNodes, connectSkillRoleBinding],
-  );
-
-  const bindSingleBeatContextInput = useCallback(
-    (skillNodeId: string, skill: SkillDefinition) => {
-      if (!skill.inputs.some((input) => input.role === 'beat_context')) {
-        return;
-      }
-      const currentState = useCanvasStore.getState();
-      const beatContextNodes = currentState.nodes.filter(
-        (node) => node.type === CANVAS_NODE_TYPES.beatContext,
-      );
-      if (beatContextNodes.length !== 1) {
-        return;
-      }
-      connectSkillRoleBinding(
-        {
-          source: beatContextNodes[0].id,
-          target: skillNodeId,
-          sourceHandle: 'source',
-          targetHandle: 'beat_context',
-        },
-        skill,
-      );
-    },
-    [connectSkillRoleBinding],
-  );
-
-  const handleConnect = useCallback(
-    (connection: Connection) => {
-      if (!canNodeBeManualConnectionSource(connection.source, nodes, connection.target)) {
-        return;
-      }
-      connectGraphNodes(connection);
-    },
-    [connectGraphNodes, nodes]
-  );
-
-  // 3D 世界节点只用一张上游图生成 —— 入边唯一。已有上游时实时拒绝再连入(连线
-  // 落点变灰、不成边),引导用户先断开现有连线。最终 onConnect 里也有同样的硬约束
-  // 兜底拖到空白生成节点等其它路径。
-  const isValidConnection = useCallback(
-    (connection: Connection | Edge) => {
-      const targetId = connection.target;
-      if (!targetId) return true;
-      const targetNode = nodes.find((node) => node.id === targetId);
-      if (!targetNode) return true;
-      // 上游类型规则：拖线过程中即把不合法的源（如音频连音频）变灰、禁止落点。
-      const sourceNode = connection.source
-        ? nodes.find((node) => node.id === connection.source)
-        : undefined;
-      if (sourceNode && !isUpstreamConnectionAllowed(sourceNode.type, targetNode.type)) {
-        return false;
-      }
-      if (targetNode.type !== CANVAS_NODE_TYPES.threeDWorld) return true;
-      return !edges.some(
-        (edge) => edge.target === targetId && edge.source !== connection.source,
-      );
-    },
-    [nodes, edges]
-  );
+  const getCanvasGraph = useCallback(() => {
+    const { nodes: currentNodes, edges: currentEdges } = useCanvasStore.getState();
+    return { nodes: currentNodes, edges: currentEdges };
+  }, []);
+  const {
+    connectGraphNodes,
+    connectManualGraphNodes: handleConnect,
+    bindSingleBeatContextInput,
+    isValidGraphConnection: isValidConnection,
+  } = useCanvasConnectionController({
+    getGraph: getCanvasGraph,
+    connectRegular: connectNodes,
+    replaceEdges,
+    skillById,
+  });
 
   const openNodeMenuAtClientPosition = useCallback((clientPosition: { x: number; y: number }) => {
     const containerRect = wrapperRef.current?.getBoundingClientRect();

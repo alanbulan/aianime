@@ -1,6 +1,8 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
+import type { SkillDefinition } from '@/features/freezone/context/skillRoles';
+
 import {
   CANVAS_NODE_TYPES,
   type CanvasEdge,
@@ -9,6 +11,8 @@ import {
 import {
   createCanvasDataEdge,
   createCanvasProgrammaticEdge,
+  planCanvasGraphConnection,
+  planSingleBeatContextBinding,
   prepareCanvasReactFlowConnection,
 } from './canvasEdgeCreation';
 
@@ -16,7 +20,114 @@ function node(id: string, type: CanvasNode['type']): CanvasNode {
   return { id, type, position: { x: 0, y: 0 }, data: {} } as CanvasNode;
 }
 
+function skill(id = 'skill-1', includeBeatContext = true): SkillDefinition {
+  return {
+    id,
+    provider: 'tool',
+    display_name: 'Test skill',
+    description: '',
+    inputs: includeBeatContext
+      ? [{
+          role: 'beat_context',
+          label: 'Beat context',
+          accepts: {},
+          required: true,
+          cardinality: 'single',
+        }]
+      : [],
+    outputs: [],
+  };
+}
+
 describe('Canvas edge creation', () => {
+  it('plans regular and skill role connections through one application entry', () => {
+    const source = node('beat', CANVAS_NODE_TYPES.beatContext);
+    const target = node('skill', CANVAS_NODE_TYPES.skill);
+    target.data = { skill_id: 'skill-1' };
+    const skillSpec = skill();
+    const connection = {
+      source: source.id,
+      target: target.id,
+      sourceHandle: 'source',
+      targetHandle: 'beat_context',
+    };
+
+    expect(planCanvasGraphConnection({
+      nodes: [source, node('image', CANVAS_NODE_TYPES.imageGen)],
+      edges: [],
+      connection: {
+        source: source.id,
+        target: 'image',
+        sourceHandle: null,
+        targetHandle: null,
+      },
+      skillById: new Map(),
+    })).toEqual({ kind: 'regular' });
+
+    const plan = planCanvasGraphConnection({
+      nodes: [source, target],
+      edges: [],
+      connection,
+      skillById: new Map([[skillSpec.id, skillSpec]]),
+    });
+    expect(plan).toMatchObject({
+      kind: 'skill_binding',
+      edges: [{
+        source: source.id,
+        target: target.id,
+        targetHandle: 'beat_context',
+        data: { edgeKind: 'role_binding', role: 'beat_context' },
+      }],
+    });
+  });
+
+  it('reports unavailable skill metadata and keeps invalid reverse handles regular', () => {
+    const target = node('target', CANVAS_NODE_TYPES.upload);
+    const skillNode = node('skill', CANVAS_NODE_TYPES.skill);
+    skillNode.data = { skill_id: 'skill-1' };
+
+    expect(planCanvasGraphConnection({
+      nodes: [target, skillNode],
+      edges: [],
+      connection: {
+        source: target.id,
+        target: skillNode.id,
+        sourceHandle: null,
+        targetHandle: null,
+      },
+      skillById: new Map(),
+    })).toEqual({
+      kind: 'skill_registry_unavailable',
+      skillId: 'skill-1',
+      skillNodeId: skillNode.id,
+    });
+    expect(planCanvasGraphConnection({
+      nodes: [target, skillNode],
+      edges: [],
+      connection: {
+        source: skillNode.id,
+        target: target.id,
+        sourceHandle: 'not_an_input',
+        targetHandle: null,
+      },
+      skillById: new Map([['skill-1', skill()]]),
+    })).toEqual({ kind: 'regular' });
+  });
+
+  it('plans automatic Beat Context binding only for one eligible source', () => {
+    const beat = node('beat', CANVAS_NODE_TYPES.beatContext);
+    const secondBeat = node('beat-2', CANVAS_NODE_TYPES.beatContext);
+
+    expect(planSingleBeatContextBinding([beat], 'skill', skill())).toEqual({
+      source: beat.id,
+      target: 'skill',
+      sourceHandle: 'source',
+      targetHandle: 'beat_context',
+    });
+    expect(planSingleBeatContextBinding([beat, secondBeat], 'skill', skill())).toBeNull();
+    expect(planSingleBeatContextBinding([beat], 'skill', skill('skill-2', false))).toBeNull();
+  });
+
   it('prepares normalized React Flow connections and enforces graph limits', () => {
     const source = node('source', CANVAS_NODE_TYPES.upload);
     const other = node('other', CANVAS_NODE_TYPES.upload);
