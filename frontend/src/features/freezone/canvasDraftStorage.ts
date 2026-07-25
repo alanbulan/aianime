@@ -7,10 +7,10 @@ import {
 } from "@/lib/localStorageQuota";
 import type {
   CanvasEdge,
-  CanvasHistoryState,
   CanvasMutationSource,
   CanvasNode,
 } from "@/stores/canvasStore";
+import type { CanvasHistoryState } from "@/features/canvas/domain/canvasHistory";
 
 export const CANVAS_DRAFT_MAX_BYTES = 1_500_000;
 const CANVAS_DRAFT_VERSION = 1;

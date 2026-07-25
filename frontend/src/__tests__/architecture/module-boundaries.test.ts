@@ -592,6 +592,63 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps Canvas history rules in the domain model", () => {
+    const historyPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/canvasHistory.ts",
+    );
+    const historyModel = readFileSync(historyPath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const canvasSync = readFileSync(
+      resolve(SRC_ROOT, "features/freezone/useCanvasSync.ts"),
+      "utf8",
+    );
+    const draftStorage = readFileSync(
+      resolve(SRC_ROOT, "features/freezone/canvasDraftStorage.ts"),
+      "utf8",
+    );
+    const forbiddenHistoryImports = importSpecifiers(historyPath).filter(
+      (specifier) =>
+        specifier === "zustand" ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        /^(?:\.\.\/)+(?:application|infrastructure)(?:\/|$)/.test(specifier),
+    );
+    const historyContractDeclaration = [
+      "export interface",
+      "CanvasHistoryState",
+    ].join(" ");
+    const historyContractOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(historyContractDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenHistoryImports).toEqual([]);
+    expect(historyContractOwners).toEqual([
+      "features/canvas/domain/canvasHistory.ts",
+    ]);
+    expect(historyModel).toContain("export function undoHistory(");
+    expect(historyModel).toContain("export function redoHistory(");
+    expect(canvasStore).toContain(
+      "@/features/canvas/domain/canvasHistory",
+    );
+    expect(canvasStore).not.toContain("function pushSnapshot(");
+    expect(canvasStore).not.toContain("function undoHistory(");
+    expect(canvasStore).not.toContain("function redoHistory(");
+    expect(canvasSync).toContain(
+      "@/features/canvas/domain/canvasHistory",
+    );
+    expect(draftStorage).toContain(
+      "@/features/canvas/domain/canvasHistory",
+    );
+  });
+
   it("keeps shared code independent from application and business layers", () => {
     const forbiddenPrefixes = [
       "@/app/",

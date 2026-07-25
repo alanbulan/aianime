@@ -34,6 +34,15 @@ import {
   isStoryboardSplitNode,
 } from '@/features/canvas/domain/canvasNodes';
 import {
+  createSnapshot,
+  normalizeHistory,
+  pushSnapshot,
+  redoHistory,
+  undoHistory,
+  type CanvasHistorySnapshot,
+  type CanvasHistoryState,
+} from '@/features/canvas/domain/canvasHistory';
+import {
   DEFAULT_STORYBOARD_ASPECT,
   computeStoryboardBoardLayout,
   computeStoryboardCell,
@@ -81,17 +90,6 @@ export type {
   StoryboardFrameItem,
 };
 
-export interface CanvasHistorySnapshot {
-  nodes: CanvasNode[];
-  edges: CanvasEdge[];
-}
-
-export interface CanvasHistoryState {
-  past: CanvasHistorySnapshot[];
-  future: CanvasHistorySnapshot[];
-}
-
-const MAX_HISTORY_STEPS = 50;
 const SKILL_NODE_DEFAULT_MEASURED = { width: 380, height: 520 };
 const BEAT_CONTEXT_NODE_DEFAULT_MEASURED = { width: 420, height: 560 };
 const IMAGE_NODE_VISUAL_MIN_EDGE = 300;
@@ -792,25 +790,6 @@ function normalizeCanvasData(
   };
 }
 
-function normalizeHistory(history?: CanvasHistoryState): CanvasHistoryState {
-  if (!history) {
-    return { past: [], future: [] };
-  }
-
-  const normalizeSnapshot = (snapshot: CanvasHistorySnapshot): CanvasHistorySnapshot => {
-    return normalizeCanvasData(snapshot.nodes, snapshot.edges);
-  };
-
-  return {
-    past: history.past.slice(-MAX_HISTORY_STEPS).map(normalizeSnapshot),
-    future: history.future.slice(-MAX_HISTORY_STEPS).map(normalizeSnapshot),
-  };
-}
-
-function createSnapshot(nodes: CanvasNode[], edges: CanvasEdge[]): CanvasHistorySnapshot {
-  return { nodes, edges };
-}
-
 function collectNodeIdsWithDescendants(nodes: CanvasNode[], seedIds: string[]): Set<string> {
   const deleteSet = new Set(seedIds);
   let changed = true;
@@ -1165,22 +1144,6 @@ function restoreStoryboardEdges(
   });
 }
 
-function pushSnapshot(
-  snapshots: CanvasHistorySnapshot[],
-  snapshot: CanvasHistorySnapshot
-): CanvasHistorySnapshot[] {
-  const last = snapshots[snapshots.length - 1];
-  if (last && last.nodes === snapshot.nodes && last.edges === snapshot.edges) {
-    return snapshots;
-  }
-
-  const next = [...snapshots, snapshot];
-  if (next.length > MAX_HISTORY_STEPS) {
-    next.shift();
-  }
-  return next;
-}
-
 function getDerivedNodePosition(nodes: CanvasNode[], sourceNodeId: string): { x: number; y: number } {
   const sourceNode = nodes.find((node) => node.id === sourceNodeId);
   if (!sourceNode) {
@@ -1438,7 +1401,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       edges: normalizedCanvas.edges,
       selectedNodeId: null,
       activeToolDialog: null,
-      history: normalizeHistory(history),
+      history: normalizeHistory(history, normalizeCanvasData),
       dragHistorySnapshot: null,
       // Hydrate / canvas switch — treat the store as freshly loaded so the
       // dangerous-empty guard does not misfire on the first signature pass.
@@ -1481,7 +1444,10 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       edges: normalizedCanvas.edges,
       selectedNodeId: null,
       activeToolDialog: null,
-      history: normalizeHistory(draft.history ?? undefined),
+      history: normalizeHistory(
+        draft.history ?? undefined,
+        normalizeCanvasData,
+      ),
       dragHistorySnapshot: null,
       userEditsSinceHydrate: draft.mutation.userEditsSinceHydrate,
       lastMutationSource: draft.mutation.lastMutationSource,
@@ -3684,13 +3650,14 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   undo: () => {
     const state = get();
-    const target = state.history.past[state.history.past.length - 1];
-    if (!target) {
+    const transition = undoHistory(
+      state.history,
+      createSnapshot(state.nodes, state.edges),
+    );
+    if (!transition) {
       return false;
     }
-
-    const currentSnapshot = createSnapshot(state.nodes, state.edges);
-    const nextPast = state.history.past.slice(0, -1);
+    const { target } = transition;
 
     const undoSource: CanvasMutationSource = isDeleteToEmpty(
       state.nodes.length,
@@ -3704,10 +3671,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       edges: target.edges,
       selectedNodeId: resolveSelectedNodeId(state.selectedNodeId, target.nodes),
       activeToolDialog: resolveActiveToolDialog(state.activeToolDialog, target.nodes),
-      history: {
-        past: nextPast,
-        future: pushSnapshot(state.history.future, currentSnapshot),
-      },
+      history: transition.history,
       dragHistorySnapshot: null,
       ...trackEdit(state, undoSource),
     });
@@ -3716,13 +3680,14 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   redo: () => {
     const state = get();
-    const target = state.history.future[state.history.future.length - 1];
-    if (!target) {
+    const transition = redoHistory(
+      state.history,
+      createSnapshot(state.nodes, state.edges),
+    );
+    if (!transition) {
       return false;
     }
-
-    const currentSnapshot = createSnapshot(state.nodes, state.edges);
-    const nextFuture = state.history.future.slice(0, -1);
+    const { target } = transition;
 
     const redoSource: CanvasMutationSource = isDeleteToEmpty(
       state.nodes.length,
@@ -3736,10 +3701,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       edges: target.edges,
       selectedNodeId: resolveSelectedNodeId(state.selectedNodeId, target.nodes),
       activeToolDialog: resolveActiveToolDialog(state.activeToolDialog, target.nodes),
-      history: {
-        past: pushSnapshot(state.history.past, currentSnapshot),
-        future: nextFuture,
-      },
+      history: transition.history,
       dragHistorySnapshot: null,
       ...trackEdit(state, redoSource),
     });
@@ -3747,7 +3709,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   restoreHistory: (history) => {
-    set({ history: normalizeHistory(history) });
+    set({ history: normalizeHistory(history, normalizeCanvasData) });
   },
 
   clearCanvas: () => {

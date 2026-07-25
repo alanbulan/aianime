@@ -4,10 +4,12 @@ import { useReactFlow, type Viewport } from "@xyflow/react";
 import {
   useCanvasStore,
   type CanvasEdge,
-  type CanvasHistorySnapshot,
-  type CanvasHistoryState,
   type CanvasNode,
 } from "@/stores/canvasStore";
+import type {
+  CanvasHistorySnapshot,
+  CanvasHistoryState,
+} from "@/features/canvas/domain/canvasHistory";
 import {
   createCanvasFromPreset,
   generateClientSaveId,
