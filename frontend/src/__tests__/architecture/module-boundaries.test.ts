@@ -219,6 +219,46 @@ describe("frontend architecture boundaries", () => {
     expect(failures).toEqual([]);
   });
 
+  it("keeps mention textarea text rules in its feature domain", () => {
+    const componentSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "components/episode/beat-workbench/mention-textarea.tsx",
+      ),
+      "utf8",
+    );
+    const domainSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/mention-textarea/domain/mention-text.ts",
+      ),
+      "utf8",
+    );
+    const publicSource = readFileSync(
+      resolve(SRC_ROOT, "features/mention-textarea/public.ts"),
+      "utf8",
+    );
+
+    expect(componentSource).toContain(
+      'from "@/features/mention-textarea/public"',
+    );
+    expect(componentSource).not.toContain("function buildSegments");
+    expect(componentSource).not.toContain(
+      "export function findMentionTokenAtSelection",
+    );
+    expect(componentSource).not.toContain("before.match(");
+    expect(domainSource).toContain("export function buildMentionSegments");
+    expect(domainSource).toContain(
+      "export function findMentionTokenAtSelection",
+    );
+    expect(domainSource).toContain("export function insertMentionText");
+    expect(domainSource).toContain("export function replaceMentionText");
+    expect(domainSource).not.toContain('from "react"');
+    expect(domainSource).not.toContain("document.");
+    expect(domainSource).not.toContain("window.");
+    expect(publicSource).toContain("findMentionTokenAtSelection,");
+  });
+
   it("keeps a single shared HTTP transport implementation", () => {
     const legacyImplementations = [
       "api/client.ts",
