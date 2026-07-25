@@ -420,6 +420,26 @@ describe("frontend architecture boundaries", () => {
       resolve(moduleRoot, "presentation/BeatsPageView.tsx"),
       "utf8",
     );
+    const beatsPageControllerSource = readFileSync(
+      resolve(moduleRoot, "application/use-beats-page-controller.ts"),
+      "utf8",
+    );
+    const workbenchStateSource = readFileSync(
+      resolve(moduleRoot, "application/episode-workbench-state.ts"),
+      "utf8",
+    );
+    const beatSelectionSource = readFileSync(
+      resolve(moduleRoot, "infrastructure/use-beat-selection.ts"),
+      "utf8",
+    );
+    const viewToggleStateSource = readFileSync(
+      resolve(moduleRoot, "infrastructure/use-beats-view-toggles.ts"),
+      "utf8",
+    );
+    const compositionSource = readFileSync(
+      resolve(moduleRoot, "composition.ts"),
+      "utf8",
+    );
     const viewTogglesSource = readFileSync(
       resolve(moduleRoot, "presentation/ViewToggles.tsx"),
       "utf8",
@@ -605,6 +625,8 @@ describe("frontend architecture boundaries", () => {
       "lib/queries/scripts.ts",
       "components/episode/beat-workbench/sketch-studio-actions.tsx",
       "components/episode/beat-workbench/view-toggles.tsx",
+      "hooks/use-selection.ts",
+      "hooks/use-view-toggles.ts",
       "types/episode.ts",
       "types/script.ts",
     ]) {
@@ -620,6 +642,23 @@ describe("frontend architecture boundaries", () => {
     );
     expect(beatsPageViewSource).toContain(
       "checkedCount={checkedBeatNumbers.length}",
+    );
+    expect(workbenchStateSource).toContain("export type SelectionState");
+    expect(workbenchStateSource).toContain("export type BeatsViewToggleId");
+    expect(beatsPageControllerSource).toContain(
+      "dependencies.useBeatSelection",
+    );
+    expect(beatsPageControllerSource).toContain(
+      "dependencies.useViewToggles",
+    );
+    expect(beatsPageControllerSource).not.toContain(
+      "@/stores/episode-workbench-store",
+    );
+    expect(beatSelectionSource).toContain("useEpisodeWorkbenchStore");
+    expect(viewToggleStateSource).toContain("useEpisodeWorkbenchStore");
+    expect(compositionSource).toContain("useBeatSelection,");
+    expect(compositionSource).toContain(
+      "useViewToggles: useBeatsViewToggles",
     );
     expect(viewTogglesSource).toContain("checkedCount: number");
     expect(viewTogglesSource).not.toContain("SelectionState");

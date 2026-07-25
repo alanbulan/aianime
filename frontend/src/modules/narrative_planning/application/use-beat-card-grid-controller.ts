@@ -3,14 +3,15 @@ import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
+import type {
+  BeatsViewToggleId,
+  SelectionState,
+} from "@/modules/narrative_planning/application/episode-workbench-state";
 import type { Beat } from "@/modules/narrative_planning/domain/types";
 import type { PoolImage } from "@/modules/production/public";
 
-export type BeatCardGridToggleId = "text" | "sketch" | "render";
-export type BeatCardGridSelection =
-  | { mode: "none" }
-  | { mode: "single"; beatNum: number }
-  | { mode: "multi"; checked: ReadonlySet<number> };
+export type BeatCardGridToggleId = BeatsViewToggleId;
+export type BeatCardGridSelection = SelectionState;
 export type BeatCardPrimarySlot = "sketch" | "frame";
 
 export interface BeatCardGridDeleteTarget {

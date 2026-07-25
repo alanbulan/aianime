@@ -30,6 +30,8 @@ import { createUseTextPaneController } from "@/modules/narrative_planning/applic
 import type { Episode } from "@/modules/narrative_planning/domain/types";
 import { useEpisodeWorkbenchSectionState } from "@/modules/narrative_planning/infrastructure/episode-workbench-section-state";
 import { httpNarrativePlanningGateway } from "@/modules/narrative_planning/infrastructure/http-narrative-planning-gateway";
+import { useBeatSelection } from "@/modules/narrative_planning/infrastructure/use-beat-selection";
+import { useBeatsViewToggles } from "@/modules/narrative_planning/infrastructure/use-beats-view-toggles";
 import { BeatsPageView } from "@/modules/narrative_planning/presentation/BeatsPageView";
 import {
   EpisodeListItemView,
@@ -167,10 +169,12 @@ const useBeatsPageController = createUseBeatsPageController(
     defaultVideoBackend: DEFAULT_VIDEO_BACKEND,
     openEpisodeFreezone: openPresetProjectionInMyCanvas,
     useGenerationCreditCost,
+    useBeatSelection,
     useProject,
     useRebuildPoolIndex,
     useSketchSettings,
     useUpdateProject,
+    useViewToggles: useBeatsViewToggles,
   },
   useBeatsSketchPlanController,
   useSketchStudioController,

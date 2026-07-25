@@ -1,10 +1,10 @@
 // Copyright (c) 2026 AI anime
-import type { SelectionState } from "@/hooks/use-selection";
-import type { ViewToggleId } from "@/hooks/use-view-toggles";
 import {
   BeatCardGridView,
   useBeatCardGridController,
   type Beat,
+  type BeatsViewToggleId,
+  type SelectionState,
 } from "@/modules/narrative_planning/public";
 import type { PoolImage } from "@/modules/production/public";
 import { BeatCard } from "./beat-card";
@@ -21,7 +21,7 @@ interface BeatCardGridProps {
   project: string;
   selection: SelectionState;
   spineTemplate?: "drama" | "narrated";
-  toggles: Set<ViewToggleId>;
+  toggles: Set<BeatsViewToggleId>;
 }
 
 export function BeatCardGrid({

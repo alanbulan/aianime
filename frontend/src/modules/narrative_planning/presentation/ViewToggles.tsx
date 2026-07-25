@@ -4,7 +4,7 @@ import { Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
-import type { BeatsViewToggleId } from "@/modules/narrative_planning/application/use-beats-page-controller";
+import type { BeatsViewToggleId } from "@/modules/narrative_planning/application/episode-workbench-state";
 
 const TOGGLES: { id: BeatsViewToggleId; labelKey: string }[] = [
   { id: "sketch", labelKey: "episode.beat.sectionSketch" },

@@ -5,18 +5,17 @@ import { toast } from "sonner";
 
 import { useBeatStates } from "@/hooks/use-beat-states";
 import { useEpisodeImageTaskInvalidation } from "@/hooks/use-episode-image-task-invalidation";
-import { useSelection } from "@/hooks/use-selection";
 import { useTaskController } from "@/hooks/use-task-controller";
-import {
-  useViewToggles,
-  type ViewToggleId,
-} from "@/hooks/use-view-toggles";
 import {
   aspectRatioForOrientation,
   orientationForAspectRatio,
 } from "@/lib/aspect-ratio";
 import { queryKeys } from "@/lib/query-keys";
 import type { NarrativePlanningQueryHooks } from "@/modules/narrative_planning/application/query-hooks";
+import type {
+  UseBeatSelection,
+  UseBeatsViewToggles,
+} from "@/modules/narrative_planning/application/episode-workbench-state";
 import type {
   BeatsSketchPlanController,
   BeatsSketchPlanControllerOptions,
@@ -33,7 +32,6 @@ import {
 import { useProjectAspectRatio } from "@/stores/aspect-ratio-store";
 
 export type BeatsTargetSection = "sketch" | "render" | "audio" | "video";
-export type BeatsViewToggleId = ViewToggleId;
 
 interface SketchSettingsQuery {
   data?: { data: { sketch_image_selection?: string } };
@@ -74,6 +72,8 @@ export interface BeatsPageControllerDependencies {
     kind: string,
     value?: string | null,
   ): CreditCostQuery;
+  useBeatSelection: UseBeatSelection;
+  useViewToggles: UseBeatsViewToggles;
   useProject(project: string): ProjectConfigQuery;
   useRebuildPoolIndex(
     project: string,
@@ -169,8 +169,8 @@ export function createUseBeatsPageController(
       toggleCheck,
       selectSingle,
       clearSelection,
-    } = useSelection({ project, episode: episodeNumber });
-    const { toggles, toggle: toggleView } = useViewToggles(
+    } = dependencies.useBeatSelection({ project, episode: episodeNumber });
+    const { toggles, toggle: toggleView } = dependencies.useViewToggles(
       project,
       episodeNumber,
     );

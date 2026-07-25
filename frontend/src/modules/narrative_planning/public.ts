@@ -53,6 +53,11 @@ export type {
   PlanIdentitiesResult,
 } from "@/modules/narrative_planning/application/ports";
 export type {
+  BeatsViewToggleId,
+  EpisodeWorkbenchScope,
+  SelectionState,
+} from "@/modules/narrative_planning/application/episode-workbench-state";
+export type {
   Beat,
   BeatUpdate,
   Episode,

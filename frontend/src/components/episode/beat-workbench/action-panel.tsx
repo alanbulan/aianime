@@ -1,8 +1,8 @@
 // Copyright (c) 2026 AI anime
-import type { SelectionState } from "@/hooks/use-selection";
 import {
   ActionPanelView,
   type Beat,
+  type SelectionState,
   useActionPanelController,
 } from "@/modules/narrative_planning/public";
 import type { BeatStates } from "@/types/beat-state";
