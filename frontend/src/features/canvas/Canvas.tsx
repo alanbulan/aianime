@@ -57,7 +57,6 @@ import {
 } from '@/features/canvas/composition';
 import {
   CANVAS_NODE_TYPES,
-  type BeatContextNodeData,
   type CanvasEdge,
   type CanvasNode,
   type CanvasNodeData,
@@ -136,6 +135,7 @@ import { useCanvasDropIndicator } from './hooks/useCanvasDropIndicator';
 import { useCanvasEdgePan } from './hooks/useCanvasEdgePan';
 import { useCanvasExternalDialogs } from './hooks/useCanvasExternalDialogs';
 import { useCanvasAsyncNodeTasks } from './hooks/useCanvasAsyncNodeTasks';
+import { useCanvasBeatContextPrefetch } from './hooks/useCanvasBeatContextPrefetch';
 import { useCanvasKeyboardShortcuts } from './hooks/useCanvasKeyboardShortcuts';
 import { useCanvasMarqueeSelection } from './hooks/useCanvasMarqueeSelection';
 import { useCanvasMediaPaste } from './hooks/useCanvasMediaPaste';
@@ -333,44 +333,27 @@ export function Canvas({
   // edgeVisibilityStore）。持久化/自动布局/导出全部照用 store 里的真实连线。
   const edgesHidden = useEdgeVisibilityStore((state) => state.hidden);
 
-  // 预取 beat-context 节点引用到的剧集 beats/episode-detail,焐热缓存。配合 BeatContextNode
-  // 里「仅选中时才查询」的门控,避免视口虚拟化下节点挂载即请求、卸载即被取消的 499 循环。
-  // 收敛成稳定字符串,使下方 effect 只在引用的剧集集合变化时才跑(而非每次拖拽重建 nodes)。
   const queryClient = useQueryClient();
   // 项目 ID 取自 URL,在画布生命周期内不变,memo 一次,避免在每次 store 变更的 selector 里重复解析。
   const canvasProject = useMemo(() => readUrl().project, []);
-  const beatContextEpisodesKey = useCanvasStore(
-    useShallow((state) => {
-      const pairs = new Set<string>();
-      for (const node of state.nodes) {
-        if (node.type !== CANVAS_NODE_TYPES.beatContext) continue;
-        const data = node.data as BeatContextNodeData;
-        const project =
-          typeof data.projectId === 'string' ? data.projectId : canvasProject;
-        const episode = typeof data.episode === 'number' ? data.episode : undefined;
-        if (project && episode && episode > 0) pairs.add(`${project}:${episode}`);
-      }
-      return Array.from(pairs).sort().join(',');
-    }),
+  const prefetchBeatContextEpisode = useCallback(
+    ({ projectId, episode }: { projectId: string; episode: number }) => {
+      prefetchEpisodeBeats(queryClient, projectId, episode);
+      prefetchEpisodeDetail(queryClient, projectId, episode);
+    },
+    [queryClient],
   );
-  useEffect(() => {
-    if (!beatContextEpisodesKey) return;
-    for (const pair of beatContextEpisodesKey.split(',')) {
-      const sep = pair.lastIndexOf(':');
-      const project = pair.slice(0, sep);
-      const episode = Number(pair.slice(sep + 1));
-      prefetchEpisodeBeats(queryClient, project, episode);
-      prefetchEpisodeDetail(queryClient, project, episode);
-    }
-  }, [beatContextEpisodesKey, queryClient]);
+  useCanvasBeatContextPrefetch({
+    nodes,
+    defaultProjectId: canvasProject,
+    prefetchEpisode: prefetchBeatContextEpisode,
+  });
   // 触控板平移开关：开启后用 ReactFlow 的 panOnScroll（两指滑动平移、捏合缩放），
   // 关闭则回到默认的滚轮缩放。
   const trackpadPanEnabled = useTrackpadPanStore((state) => state.enabled);
   // 底部任务中心面板展开时，让出底部空间——隐藏画布快捷操作栏，避免与面板重叠。
   const taskPanelOpen = useAppStore((state) => state.taskPanelOpen);
-  // Stable signatures of the nodes that need polling / resume, so those effects
-  // only re-run when the *set* of pending generations changes — not on every
-  // drag frame (which rebuilds the whole `nodes` array). See the two effects below.
+  // Stable node-id lists keep the async task hooks idle while drag frames rebuild nodes.
   const pendingJobNodeIds = useCanvasStore(
     useShallow((state) =>
       state.nodes

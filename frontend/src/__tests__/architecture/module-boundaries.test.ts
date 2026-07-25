@@ -1675,6 +1675,55 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("interface ClipboardSnapshot");
   });
 
+  it("keeps Canvas Beat Context prefetch projection outside the view", () => {
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/canvasBeatContextReferences.ts",
+    );
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasBeatContextPrefetch.ts",
+    );
+    const domainModel = readFileSync(domainPath, "utf8");
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const domainForbiddenImports = importSpecifiers(domainPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const hookForbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+
+    expect(domainForbiddenImports).toEqual([]);
+    expect(hookForbiddenImports).toEqual([]);
+    expect(domainModel).toContain("collectCanvasBeatContextEpisodeReferences");
+    expect(hookModel).toContain("stableReferencesRef");
+    expect(canvasView).toContain("./hooks/useCanvasBeatContextPrefetch");
+    expect(canvasView).not.toContain("beatContextEpisodesKey");
+    expect(canvasView).not.toContain("lastIndexOf(':')");
+    expect(canvasView).not.toContain("type BeatContextNodeData");
+  });
+
   it("keeps Canvas pane context-menu state in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
