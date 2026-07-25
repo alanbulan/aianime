@@ -1354,6 +1354,47 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("hasDraggedAnyPayload");
   });
 
+  it("keeps Canvas viewport commit throttling in one presentation hook", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasViewportCommit.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const hookDeclaration = [
+      "export function",
+      "useCanvasViewportCommit(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(hookDeclaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasViewportCommit.ts",
+    ]);
+    expect(hookModel).toContain("VIEWPORT_COMMIT_INTERVAL_MS = 120");
+    expect(canvasView).toContain("./hooks/useCanvasViewportCommit");
+    expect(canvasView).not.toContain("lastViewportCommitRef");
+    expect(canvasView).not.toContain("handleMoveStart");
+    expect(canvasView).not.toContain("onMoveStart=");
+  });
+
   it("keeps Canvas node position reducers out of the Zustand store", () => {
     const positionsPath = resolve(
       SRC_ROOT,

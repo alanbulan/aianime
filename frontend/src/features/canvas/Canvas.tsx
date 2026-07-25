@@ -26,7 +26,6 @@ import {
   type HandleType,
   type NodeChange,
   type OnConnectStartParams,
-  type Viewport,
 } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -163,6 +162,7 @@ import { useCanvasDropIndicator } from './hooks/useCanvasDropIndicator';
 import { useCanvasMinimapVisibility } from './hooks/useCanvasMinimapVisibility';
 import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
 import { useCanvasNodePlacementConfirm } from './hooks/useCanvasNodePlacementConfirm';
+import { useCanvasViewportCommit } from './hooks/useCanvasViewportCommit';
 
 const DEFAULT_EDGE_OPTIONS = { type: 'disconnectableEdge' };
 const REACT_FLOW_PRO_OPTIONS = { hideAttribution: true };
@@ -544,6 +544,7 @@ export function Canvas({
   const closeToolDialog = useCanvasStore((state) => state.closeToolDialog);
   const setViewportState = useCanvasStore((state) => state.setViewportState);
   const setCanvasViewportSize = useCanvasStore((state) => state.setCanvasViewportSize);
+  const { handleMove, handleMoveEnd } = useCanvasViewportCommit(setViewportState);
   // ReactFlow only mounts after useCanvasSync has hydrated the store (freezone
   // web mode renders <Canvas> behind a loading gate), so the restored camera is
   // already in `currentViewport` by our first render. Capture it here and feed
@@ -1232,32 +1233,6 @@ export function Canvas({
     },
     [nodes, edges]
   );
-
-  // 平移/缩放期间 onMove 每帧触发。把 currentViewport 写进 store 会让所有订阅者每帧
-  // 重跑 selector(如 BackToNodesHint 的 O(n) 可见性判断)。这里节流到 ~8fps,并在
-  // onMoveEnd 必定提交最终值,既消除每帧 store 风暴,又保证落库/可见性判断及时收敛。
-  const lastViewportCommitRef = useRef(0);
-  const handleMoveEnd = useCallback(
-    (_event: unknown, viewport: Viewport) => {
-      lastViewportCommitRef.current = Date.now();
-      setViewportState(viewport);
-    },
-    [setViewportState]
-  );
-
-  const handleMove = useCallback(
-    (_event: unknown, viewport: Viewport) => {
-      const now = Date.now();
-      if (now - lastViewportCommitRef.current < 120) {
-        return;
-      }
-      lastViewportCommitRef.current = now;
-      setViewportState(viewport);
-    },
-    [setViewportState]
-  );
-
-  const handleMoveStart = useCallback(() => {}, []);
 
   useEffect(() => {
     const wrapperElement = wrapperRef.current;
@@ -3911,7 +3886,6 @@ export function Canvas({
         onSelectionDragStop={handleSelectionDragStop}
         onPaneClick={handlePaneClick}
         onMove={handleMove}
-        onMoveStart={handleMoveStart}
         onMoveEnd={handleMoveEnd}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
