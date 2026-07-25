@@ -12,6 +12,21 @@ export type ViewportBookmarks = (ViewportBookmark | null)[];
 
 export const BOOKMARK_SLOT_COUNT = 10;
 
+export function resolveCanvasOriginViewport(
+  size: { width: number; height: number } | null | undefined,
+  zoom = 1,
+): ViewportBookmark {
+  if (!size || size.width <= 0 || size.height <= 0) {
+    return { x: 0, y: 0, zoom: 1 };
+  }
+  const safeZoom = Number.isFinite(zoom) && zoom > 0 ? zoom : 1;
+  return {
+    x: size.width / 2,
+    y: size.height / 2,
+    zoom: safeZoom,
+  };
+}
+
 export function createEmptyBookmarks(): ViewportBookmarks {
   return Array.from({ length: BOOKMARK_SLOT_COUNT }, () => null);
 }

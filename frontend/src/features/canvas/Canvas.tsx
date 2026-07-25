@@ -86,7 +86,10 @@ import type { CanvasAsset } from '@/features/canvas/domain/canvasAssets';
 import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
 import { CanvasMinimapBookmarksOverlay } from '@/features/canvas/ui/CanvasMinimapBookmarksOverlay';
 import { captureCurrentViewport, jumpToBookmark } from '@/features/canvas/application/bookmarkActions';
-import { digitToBookmarkIndex } from '@/features/canvas/domain/viewportBookmarks';
+import {
+  digitToBookmarkIndex,
+  resolveCanvasOriginViewport,
+} from '@/features/canvas/domain/viewportBookmarks';
 import {
   isPresetManagedEdge,
   isPresetManagedNode,
@@ -140,7 +143,6 @@ import {
 } from './snap-align/computeSnapAlign';
 import { computeAutoLayout } from './application/autoLayout';
 
-const DEFAULT_VIEWPORT: Viewport = { x: 0, y: 0, zoom: 1 };
 const DEFAULT_EDGE_OPTIONS = { type: 'disconnectableEdge' };
 const REACT_FLOW_PRO_OPTIONS = { hideAttribution: true };
 // 拖线吸附半径(px,以光标到目标 handle 的距离计)。节点的 target handle 在左边
@@ -161,61 +163,6 @@ const PAN_ACTIVATION_KEY_CODE = 'Space';
 const PAN_ON_DRAG_BUTTONS = [1];
 const NODE_SPAWN_PLUS_HIDE_DELAY_MS = 400;
 const PREVIEW_CONNECTION_STROKE = 'rgb(var(--text-rgb) / 0.82)';
-
-function resolveCenteredViewport(
-  container: HTMLElement | null,
-  nodes: CanvasNode[],
-  zoom = 1
-): Viewport {
-  if (!container) {
-    return DEFAULT_VIEWPORT;
-  }
-  const rect = container.getBoundingClientRect();
-  if (rect.width <= 0 || rect.height <= 0) {
-    return DEFAULT_VIEWPORT;
-  }
-
-  const safeZoom = Number.isFinite(zoom) && zoom > 0 ? zoom : 1;
-  const topLevelNodes = nodes.filter((node) => !node.parentId);
-  if (topLevelNodes.length === 0) {
-    return {
-      x: rect.width / 2,
-      y: rect.height / 2,
-      zoom: safeZoom,
-    };
-  }
-
-  let minX = Number.POSITIVE_INFINITY;
-  let minY = Number.POSITIVE_INFINITY;
-  let maxX = Number.NEGATIVE_INFINITY;
-  let maxY = Number.NEGATIVE_INFINITY;
-  for (const node of topLevelNodes) {
-    const width = node.measured?.width
-      ?? (typeof node.width === 'number' ? node.width : DEFAULT_NODE_WIDTH);
-    const height = node.measured?.height
-      ?? (typeof node.height === 'number' ? node.height : 200);
-    minX = Math.min(minX, node.position.x);
-    minY = Math.min(minY, node.position.y);
-    maxX = Math.max(maxX, node.position.x + width);
-    maxY = Math.max(maxY, node.position.y + height);
-  }
-
-  if (!Number.isFinite(minX) || !Number.isFinite(minY)) {
-    return {
-      x: rect.width / 2,
-      y: rect.height / 2,
-      zoom: safeZoom,
-    };
-  }
-
-  const centerX = (minX + maxX) / 2;
-  const centerY = (minY + maxY) / 2;
-  return {
-    x: rect.width / 2 - centerX * safeZoom,
-    y: rect.height / 2 - centerY * safeZoom,
-    zoom: safeZoom,
-  };
-}
 
 interface PendingConnectStart {
   nodeId: string;
@@ -1021,7 +968,9 @@ export function Canvas({
       // otherwise we'd clobber the restored
       // viewport (and the localStorage copy that mirrors it) with the empty
       // center, snapping the user back to {w/2, h/2} on every refresh.
-      setViewportState(resolveCenteredViewport(wrapperRef.current, []));
+      setViewportState(
+        resolveCanvasOriginViewport(wrapperRef.current?.getBoundingClientRect()),
+      );
     }
     const restoreTimer = setTimeout(() => {
       isRestoringCanvasRef.current = false;

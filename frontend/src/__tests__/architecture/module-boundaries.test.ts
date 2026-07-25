@@ -1757,10 +1757,18 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
     );
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
     const forbiddenImports = [selectionPath, viewportPath].flatMap((path) =>
       importSpecifiers(path)
         .filter(
           (specifier) =>
+            specifier === "react" ||
+            specifier.startsWith("react/") ||
+            specifier === "@xyflow/react" ||
+            specifier.startsWith("@xyflow/react/") ||
             specifier === "zustand" ||
             specifier.startsWith("@/stores/") ||
             specifier.startsWith("@/features/canvas/application/") ||
@@ -1768,11 +1776,25 @@ describe("frontend architecture boundaries", () => {
         )
         .map((specifier) => `${relativeSource(path)}: ${specifier}`),
     );
+    const originViewportDeclaration = [
+      "export function",
+      "resolveCanvasOriginViewport(",
+    ].join(" ");
+    const originViewportOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(originViewportDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(forbiddenImports).toEqual([]);
+    expect(originViewportOwners).toEqual([
+      "features/canvas/domain/viewportBookmarks.ts",
+    ]);
     expect(selectionModel).toContain("export function resolveSelectedNodeId(");
     expect(selectionModel).toContain("export function resolveActiveToolDialog(");
     expect(viewportModel).toContain("export function replaceViewportBookmark(");
+    expect(viewportModel).toContain(originViewportDeclaration);
     expect(nodeEffectsModel).toContain(
       "from '../domain/canvasSelection'",
     );
@@ -1783,6 +1805,11 @@ describe("frontend architecture boundaries", () => {
       "@/features/canvas/domain/canvasSelection",
     );
     expect(canvasStore).toContain("replaceViewportBookmark(current, index, bookmark)");
+    expect(canvasView).toContain(
+      "@/features/canvas/domain/viewportBookmarks",
+    );
+    expect(canvasView).not.toContain("function resolveCenteredViewport(");
+    expect(canvasView).not.toContain("const DEFAULT_VIEWPORT");
     expect(canvasStore).not.toContain("function resolveSelectedNodeId(");
     expect(canvasStore).not.toContain("function resolveActiveToolDialog(");
     expect(canvasStore.match(/create<CanvasState>/g)).toHaveLength(1);

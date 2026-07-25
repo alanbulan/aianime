@@ -11,9 +11,34 @@ import {
   normalizeBookmarks,
   projectToMinimap,
   replaceViewportBookmark,
+  resolveCanvasOriginViewport,
 } from "@/features/canvas/domain/viewportBookmarks";
 
 describe("viewport bookmarks domain", () => {
+  it("centers a new canvas origin in the available viewport", () => {
+    expect(resolveCanvasOriginViewport({ width: 800, height: 600 })).toEqual({
+      x: 400,
+      y: 300,
+      zoom: 1,
+    });
+    expect(resolveCanvasOriginViewport({ width: 800, height: 600 }, 1.5)).toEqual({
+      x: 400,
+      y: 300,
+      zoom: 1.5,
+    });
+    expect(resolveCanvasOriginViewport({ width: 800, height: 600 }, Number.NaN)).toEqual({
+      x: 400,
+      y: 300,
+      zoom: 1,
+    });
+    expect(resolveCanvasOriginViewport({ width: 0, height: 600 }, 2)).toEqual({
+      x: 0,
+      y: 0,
+      zoom: 1,
+    });
+    expect(resolveCanvasOriginViewport(null)).toEqual({ x: 0, y: 0, zoom: 1 });
+  });
+
   it("maps digits 1-9 to index 0-8 and 0 to index 9", () => {
     expect(digitToBookmarkIndex("1")).toBe(0);
     expect(digitToBookmarkIndex("9")).toBe(8);
