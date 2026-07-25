@@ -1,5 +1,8 @@
 export {
   AudioPaneContent,
+  BatchBar,
+  NarratorVoicePanel,
+  RenderPlanDialog,
   useAssignColors,
   useBatchBarController,
   useBatchPanelController,
@@ -35,7 +38,6 @@ export {
   useRenderGridCardController,
   useRenderGridGalleryController,
   useRenderPlanDialogController,
-  useRenderSectionController,
   useRenderSettings,
   useSeedance2BeatStatus,
   useSeedance2AssetOperationsController,
@@ -64,14 +66,13 @@ export {
   useVideoPoolSelect,
 } from "@/modules/production/composition";
 export type {
+  BatchBarProps,
+  NarratorVoicePanelProps,
+  RenderPlanDialogProps,
+} from "@/modules/production/composition";
+export type {
   VoiceConfigurationTarget,
 } from "@/modules/production/domain/audio-prerequisite";
-export { BatchBar } from "@/modules/production/BatchBar";
-export type { BatchBarProps } from "@/modules/production/BatchBar";
-export { NarratorVoicePanel } from "@/modules/production/NarratorVoicePanel";
-export type {
-  NarratorVoicePanelProps,
-} from "@/modules/production/NarratorVoicePanel";
 export { Seedance2AssetCropDialog } from "@/modules/production/presentation/Seedance2AssetCropDialog";
 export { Seedance2AudioTrimDialog } from "@/modules/production/presentation/Seedance2AudioTrimDialog";
 export { Seedance2ConfigView } from "@/modules/production/presentation/Seedance2ConfigView";
@@ -426,3 +427,4 @@ export type {
   Seedance2Resolution,
   VideoBackendConfigCapabilities,
 } from "@/modules/production/domain/video-config";
+export { useRenderSectionController } from "@/modules/production/render-section-composition";

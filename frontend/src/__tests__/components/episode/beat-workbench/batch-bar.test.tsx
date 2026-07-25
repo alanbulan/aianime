@@ -1,11 +1,13 @@
 // Copyright (c) 2026 AI anime
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { I18nextProvider, initReactI18next } from "react-i18next";
 import i18next from "i18next";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { BatchBar } from "@/modules/production/BatchBar";
+import type { BatchBarController } from "@/modules/production/application/use-batch-bar-controller";
+import type { BatchBarProps } from "@/modules/production/composition";
+import { BatchBarView } from "@/modules/production/presentation/BatchBarView";
 
 const i18n = i18next.createInstance();
 
@@ -129,14 +131,11 @@ const {
   sketchModelChangeMock: vi.fn(),
 }));
 
-vi.mock("@/modules/production/composition", () => ({
-  useBatchBarController: ({
-    spineTemplate,
-    videoBackend,
-  }: {
-    spineTemplate: "drama" | "narrated";
-    videoBackend: string;
-  }) => ({
+function BatchBar({
+  spineTemplate = "drama",
+  videoBackend,
+}: BatchBarProps) {
+  const controller = {
     assignColorsPending: false,
     audioPending: false,
     audioUnavailableForVideoBackend:
@@ -177,8 +176,10 @@ vi.mock("@/modules/production/composition", () => ({
     onGlobalOptimize: vi.fn(),
     onReassignColors: assignColorsMock,
     onSketchAspectRatioChange: sketchAspectChangeMock,
-  }),
-}));
+  } as BatchBarController;
+
+  return <BatchBarView controller={controller} />;
+}
 
 beforeEach(() => {
   assignColorsMock.mockReset();
@@ -307,8 +308,13 @@ describe("BatchBar", () => {
     await user.click(screen.getByRole("option", { name: "Sketch Model B" }));
     await user.click(screen.getByRole("combobox", { name: "模型" }));
     await user.click(screen.getByRole("option", { name: "Render Model B" }));
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("option", { name: "Render Model B" }),
+      ).not.toBeInTheDocument();
+    });
     await user.click(screen.getByRole("combobox", { name: "画幅" }));
-    await user.click(screen.getByRole("option", { name: "16:9" }));
+    await user.click(await screen.findByRole("option", { name: "16:9" }));
 
     expect(sketchModelChangeMock).toHaveBeenCalledWith("sketch-b");
     expect(renderModelChangeMock).toHaveBeenCalledWith("render-b");

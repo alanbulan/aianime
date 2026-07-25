@@ -13,7 +13,6 @@ import { CreditCostInline } from "@/components/credit-cost-inline";
 import { ActionPanel } from "@/components/episode/beat-workbench/action-panel";
 import { BeatCardGrid } from "@/components/episode/beat-workbench/beat-card-grid";
 import { RenderGridGallery } from "@/components/episode/beat-workbench/render-grid-gallery";
-import { RenderPlanDialog } from "@/components/episode/beat-workbench/render-plan-dialog";
 import { SketchGridGallery } from "@/components/episode/beat-workbench/sketch-grid-gallery";
 import {
   useEpisodeActionsSlot,
@@ -23,7 +22,11 @@ import { EpisodeEmptyState } from "@/components/episode/episode-empty-state";
 import { useHideHeaderOnScroll } from "@/components/episode/header-collapse";
 import { Button } from "@/components/ui/button";
 import { EMPTY_STATE_ACTION_BUTTON_CLASS } from "@/components/ui/empty-state-styles";
-import { BatchBar, sketchPlanGridLabel } from "@/modules/production/public";
+import {
+  BatchBar,
+  RenderPlanDialog,
+  sketchPlanGridLabel,
+} from "@/modules/production/public";
 import {
   AlertDialog,
   AlertDialogAction,

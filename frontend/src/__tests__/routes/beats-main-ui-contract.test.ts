@@ -6,6 +6,14 @@ function read(path: string) {
   return readFileSync(path, "utf8");
 }
 
+function readBatchBarComposition() {
+  const source = read("src/modules/production/composition.ts");
+  return source.slice(
+    source.indexOf("export interface BatchBarProps"),
+    source.indexOf("export interface NarratorVoicePanelProps"),
+  );
+}
+
 const route = read(
   "src/routes/_app/projects.$project/episodes.$episode/beats.lazy.tsx",
 );
@@ -80,9 +88,7 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
     const viewToggles = read(
       "src/modules/narrative_planning/presentation/ViewToggles.tsx",
     );
-    const batchBar = read(
-      "src/modules/production/BatchBar.tsx",
-    );
+    const batchBar = readBatchBarComposition();
     const batchBarView = read(
       "src/modules/production/presentation/BatchBarView.tsx",
     );
@@ -215,9 +221,7 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
   });
 
   it("keeps Director Render video first-frame compatibility off the visible React UI", () => {
-    const batchBar = read(
-      "src/modules/production/BatchBar.tsx",
-    );
+    const batchBar = readBatchBarComposition();
     const batchBarView = read(
       "src/modules/production/presentation/BatchBarView.tsx",
     );

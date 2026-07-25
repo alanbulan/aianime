@@ -6,7 +6,8 @@ import { I18nextProvider, initReactI18next } from "react-i18next";
 import i18next from "i18next";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { NarratorVoicePanel } from "@/modules/production/NarratorVoicePanel";
+import type { NarratorVoicePanelController } from "@/modules/production/application/use-narrator-voice-panel-controller";
+import { NarratorVoicePanelView } from "@/modules/production/presentation/NarratorVoicePanelView";
 
 const i18n = i18next.createInstance();
 
@@ -50,55 +51,58 @@ beforeAll(async () => {
 const mutateTrim = vi.hoisted(() => vi.fn());
 let mockHasVoice = false;
 
-vi.mock("@/modules/production/composition", () => ({
-  useNarratorVoicePanelController: (options: {
-    allowFirstPersonProjectVoice?: boolean;
-  }) => {
-    const [trimOpen, setTrimOpen] = useState(false);
-    return {
-      audioSrc: mockHasVoice
-        ? "/static/projects/demo/assets/narrator/voice.mp3"
-        : null,
-      canEdit: Boolean(options.allowFirstPersonProjectVoice),
-      copyPending: false,
-      explanation: "第一人称解说使用主角声线。",
-      hasVoice: mockHasVoice,
-      heading: "第一人称解说声线",
-      pending: false,
-      projectAudioOpen: false,
-      recordedDataUrl: "",
-      recording: false,
-      recordOpen: false,
-      recordPending: false,
-      recordStatus: "",
-      selectedSourcePath: "",
-      sourceOptions: [],
-      sourcesLoading: false,
-      trimDuration: "4",
-      trimOpen,
-      trimPending: false,
-      trimStart: "0",
-      onApplyTrim: async () => {
-        await mutateTrim({ startSeconds: 0, durationSeconds: 4 });
-      },
-      onDelete: async () => undefined,
-      onOpenProjectAudio: vi.fn(),
-      onOpenRecord: vi.fn(),
-      onOpenTrim: () => setTrimOpen(true),
-      onProjectAudioOpenChange: vi.fn(),
-      onRecordOpenChange: vi.fn(),
-      onSaveRecording: async () => undefined,
-      onSelectedSourcePathChange: vi.fn(),
-      onStartRecording: async () => undefined,
-      onStopRecording: vi.fn(),
-      onTrimDurationChange: vi.fn(),
-      onTrimOpenChange: setTrimOpen,
-      onTrimStartChange: vi.fn(),
-      onUpload: async () => undefined,
-      onUseProjectAudio: async () => undefined,
-    };
-  },
-}));
+function NarratorVoicePanel({
+  allowFirstPersonProjectVoice = false,
+}: {
+  allowFirstPersonProjectVoice?: boolean;
+  project: string;
+}) {
+  const [trimOpen, setTrimOpen] = useState(false);
+  const controller = {
+    audioSrc: mockHasVoice
+      ? "/static/projects/demo/assets/narrator/voice.mp3"
+      : null,
+    canEdit: allowFirstPersonProjectVoice,
+    copyPending: false,
+    explanation: "第一人称解说使用主角声线。",
+    hasVoice: mockHasVoice,
+    heading: "第一人称解说声线",
+    pending: false,
+    projectAudioOpen: false,
+    recordedDataUrl: "",
+    recording: false,
+    recordOpen: false,
+    recordPending: false,
+    recordStatus: "",
+    selectedSourcePath: "",
+    sourceOptions: [],
+    sourcesLoading: false,
+    trimDuration: "4",
+    trimOpen,
+    trimPending: false,
+    trimStart: "0",
+    onApplyTrim: async () => {
+      await mutateTrim({ startSeconds: 0, durationSeconds: 4 });
+    },
+    onDelete: async () => undefined,
+    onOpenProjectAudio: vi.fn(),
+    onOpenRecord: vi.fn(),
+    onOpenTrim: () => setTrimOpen(true),
+    onProjectAudioOpenChange: vi.fn(),
+    onRecordOpenChange: vi.fn(),
+    onSaveRecording: async () => undefined,
+    onSelectedSourcePathChange: vi.fn(),
+    onStartRecording: async () => undefined,
+    onStopRecording: vi.fn(),
+    onTrimDurationChange: vi.fn(),
+    onTrimOpenChange: setTrimOpen,
+    onTrimStartChange: vi.fn(),
+    onUpload: async () => undefined,
+    onUseProjectAudio: async () => undefined,
+  } as NarratorVoicePanelController;
+
+  return <NarratorVoicePanelView controller={controller} />;
+}
 
 vi.mock("sonner", () => ({
   toast: { error: vi.fn(), success: vi.fn() },

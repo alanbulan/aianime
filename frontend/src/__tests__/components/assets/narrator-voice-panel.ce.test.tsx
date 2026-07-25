@@ -4,7 +4,8 @@ import i18next from "i18next";
 import { I18nextProvider, initReactI18next } from "react-i18next";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { NarratorVoicePanel } from "@/modules/production/NarratorVoicePanel";
+import type { NarratorVoicePanelController } from "@/modules/production/application/use-narrator-voice-panel-controller";
+import { NarratorVoicePanelView } from "@/modules/production/presentation/NarratorVoicePanelView";
 
 const runtimeState = vi.hoisted(() => ({ isCeRuntime: true }));
 const toastErrorMock = vi.hoisted(() => vi.fn());
@@ -20,8 +21,8 @@ vi.mock("sonner", () => ({
   },
 }));
 
-vi.mock("@/modules/production/composition", () => ({
-  useNarratorVoicePanelController: () => ({
+function NarratorVoicePanel({ project: _project }: { project: string }) {
+  const controller = {
     audioSrc: "/static/projects/demo/assets/narrator/voice.mp3",
     canEdit: true,
     copyPending: false,
@@ -58,8 +59,10 @@ vi.mock("@/modules/production/composition", () => ({
     onTrimStartChange: vi.fn(),
     onUpload: async () => undefined,
     onUseProjectAudio: async () => undefined,
-  }),
-}));
+  } as NarratorVoicePanelController;
+
+  return <NarratorVoicePanelView controller={controller} />;
+}
 
 const i18n = i18next.createInstance();
 

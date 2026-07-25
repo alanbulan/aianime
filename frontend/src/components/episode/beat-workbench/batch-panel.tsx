@@ -1,9 +1,9 @@
 // Copyright (c) 2026 AI anime
 import { useProjectAspectRatio } from "@/stores/aspect-ratio-store";
-import { RenderPlanDialog } from "./render-plan-dialog";
 import type { Beat } from "@/modules/narrative_planning/public";
 import {
   BatchPanelView,
+  RenderPlanDialog,
   useBatchPanelController,
 } from "@/modules/production/public";
 

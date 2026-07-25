@@ -3,7 +3,6 @@ import { createElement } from "react";
 
 import { formatCreditCost } from "@/components/credits/credit-visual";
 import { withImageCacheBust } from "@/features/canvas/application/imageData";
-import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
 import { useNow } from "@/hooks/use-now";
 import { resolveMediaUrl } from "@/lib/media-url";
 import {
@@ -11,18 +10,8 @@ import {
   useGenerationCreditCosts,
 } from "@/lib/queries/generation-credit-cost";
 import { useTasks } from "@/lib/queries/tasks";
-import {
-  useBeatBackgroundAnchors,
-  useBeatDirectorStageManifest,
-  useCropBeatBackgroundAnchor,
-  useDirectorControlFrameStatus,
-  useScenePlatePreview,
-  useUpdateBeatBackgroundAnchor,
-  useUploadBeatBackgroundAnchor,
-} from "@/modules/asset_world/public";
 import type { Beat } from "@/modules/narrative_planning/public";
 import { useAppStore } from "@/stores/app-store";
-import { useSeenPoolStore } from "@/stores/seen-pool-store";
 import { useProjectAspectRatio } from "@/stores/aspect-ratio-store";
 import { createAudioGenerationQueryHooks } from "@/modules/production/application/audio-generation-query-hooks";
 import { createEpisodeComposeQueryHooks } from "@/modules/production/application/episode-compose-query-hooks";
@@ -49,7 +38,6 @@ import {
   createUseRenderGridCardController,
   createUseRenderGridGalleryController,
 } from "@/modules/production/application/use-render-grid-gallery-controller";
-import { createUseRenderSectionController } from "@/modules/production/application/use-render-section-controller";
 import { createUseRenderPlanDialogController } from "@/modules/production/application/use-render-plan-dialog-controller";
 import { createUseSketchCropDialogController } from "@/modules/production/application/use-sketch-crop-dialog-controller";
 import { createUseSketchPoseEditorDialogController } from "@/modules/production/application/use-sketch-pose-editor-dialog-controller";
@@ -66,6 +54,10 @@ import { httpProductionVideoGateway } from "@/modules/production/infrastructure/
 import { promptLanguageFromLocale } from "@/modules/production/domain/video-generation";
 import { AudioPaneView } from "@/modules/production/presentation/AudioPaneView";
 import type { VoiceConfigurationTarget } from "@/modules/production/domain/audio-prerequisite";
+import type { SketchAspectRatio } from "@/modules/production/domain/image-settings";
+import { BatchBarView } from "@/modules/production/presentation/BatchBarView";
+import { NarratorVoicePanelView } from "@/modules/production/presentation/NarratorVoicePanelView";
+import { RenderPlanDialogView } from "@/modules/production/presentation/RenderPlanDialogView";
 import { createBrowserVoiceRecorder } from "@/shared/voice-recording/browser-voice-recorder";
 import type { BeatStageState } from "@/types/beat-state";
 
@@ -261,47 +253,6 @@ export const useSketchPoseEditorDialogController =
     },
     { resolveMediaUrl },
   );
-export const useRenderSectionController = createUseRenderSectionController(
-  {
-    useBeatBackgroundAnchors,
-    useBeatDirectorStageManifest,
-    useCropBeatBackgroundAnchor,
-    useDirectorControlFrameStatus,
-    usePoolSelect: imagePoolQueries.usePoolSelect,
-    useRegenerateRenderBeats:
-      sketchGenerationQueries.useRegenerateRenderBeats,
-    useRenderSettings: imageSettingsQueries.useRenderSettings,
-    useScenePlatePreview,
-    useUpdateBeatBackgroundAnchor,
-    useUploadBeatBackgroundAnchor,
-    useUploadBeatImage: imagePoolQueries.useUploadBeatImage,
-  },
-  {
-    downloadFile: (url, filename) => {
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = filename;
-      anchor.click();
-    },
-    openRenderFreezone: (project, episode, beatNumber) =>
-      openPresetProjectionInMyCanvas(project, {
-        scope: "beat",
-        episode,
-        beat: beatNumber,
-        primary_slot: "frame",
-      }),
-    useGenerationCreditCost,
-    useNow,
-    useProjectAspectRatio,
-    useSeenRenderCandidates: (project, episode) => ({
-      markSeen: useSeenPoolStore((state) => state.markSeen),
-      seenIds: useSeenPoolStore(
-        (state) => state.seen[`${project}:${episode}`],
-      ),
-    }),
-  },
-);
-
 export const { useVideoBackends } = videoBackendQueries;
 export const { useVideoPool, useVideoPoolSelect } = videoPoolQueries;
 export const {
@@ -359,6 +310,90 @@ export const {
 } = sketchGenerationQueries;
 export const { useComposeEpisode, useFinalVideo } =
   createEpisodeComposeQueryHooks(httpProductionVideoGateway);
+
+export interface BatchBarProps {
+  beats: Beat[];
+  episode: number;
+  onSketchAspectRatioChange(aspectRatio: SketchAspectRatio): void;
+  project: string;
+  sketchAspectRatio: SketchAspectRatio;
+  spineTemplate?: "drama" | "narrated";
+  videoBackend: string;
+}
+
+export function BatchBar({
+  beats,
+  episode,
+  onSketchAspectRatioChange,
+  project,
+  sketchAspectRatio,
+  spineTemplate = "drama",
+  videoBackend,
+}: BatchBarProps) {
+  const controller = useBatchBarController({
+    beats,
+    episode,
+    onSketchAspectRatioChange,
+    project,
+    sketchAspectRatio,
+    spineTemplate,
+    videoBackend,
+  });
+
+  return createElement(BatchBarView, { controller });
+}
+
+export interface NarratorVoicePanelProps {
+  allowFirstPersonProjectVoice?: boolean;
+  project: string;
+}
+
+export function NarratorVoicePanel({
+  allowFirstPersonProjectVoice = false,
+  project,
+}: NarratorVoicePanelProps) {
+  const controller = useNarratorVoicePanelController({
+    allowFirstPersonProjectVoice,
+    project,
+  });
+
+  return createElement(NarratorVoicePanelView, { controller });
+}
+
+export interface RenderPlanDialogProps {
+  aspectMode: string;
+  beatIndices: number[];
+  defaultForceOneByOne?: boolean;
+  episode: number;
+  onDispatched(taskIds: string[]): void;
+  onOpenChange(open: boolean): void;
+  open: boolean;
+  project: string;
+}
+
+export function RenderPlanDialog({
+  aspectMode,
+  beatIndices,
+  defaultForceOneByOne = false,
+  episode,
+  onDispatched,
+  onOpenChange,
+  open,
+  project,
+}: RenderPlanDialogProps) {
+  const controller = useRenderPlanDialogController({
+    aspectMode,
+    beatIndices,
+    defaultForceOneByOne,
+    episode,
+    onDispatched,
+    onOpenChange,
+    open,
+    project,
+  });
+
+  return createElement(RenderPlanDialogView, controller);
+}
 
 export function AudioPaneContent({
   beat,

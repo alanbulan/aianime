@@ -4,7 +4,12 @@ import { render, screen, waitFor, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import type { RenderPlanDialogControllerQueries } from "@/modules/production/application/use-render-plan-dialog-controller";
+import {
+  createUseRenderPlanDialogController,
+  type RenderPlanDialogControllerOptions,
+  type RenderPlanDialogControllerQueries,
+} from "@/modules/production/application/use-render-plan-dialog-controller";
+import { RenderPlanDialogView } from "@/modules/production/presentation/RenderPlanDialogView";
 
 // ─── react-i18next: return the key so assertions can read stable text ──────
 vi.mock("react-i18next", () => ({
@@ -38,56 +43,46 @@ let executeHandler: (params: unknown) => Promise<unknown> = async () => ({
   data: null,
 });
 
-vi.mock("@/modules/production/public", async () => {
-  const [{ RenderPlanDialogView }, { createUseRenderPlanDialogController }] =
-    await Promise.all([
-      import("@/modules/production/presentation/RenderPlanDialogView"),
-      import(
-        "@/modules/production/application/use-render-plan-dialog-controller"
-      ),
-    ]);
-  const mockUse = (handler: () => (params: unknown) => Promise<unknown>) => {
-    return () => {
-      // useMutation-shaped facade (only the fields the dialog actually reads)
-      return {
-        mutate: (
-          params: unknown,
-          options?: {
-            onSuccess?: (res: unknown) => void;
-            onError?: (err: unknown) => void;
-          },
-        ) => {
-          handler()(params)
-            .then((res) => options?.onSuccess?.(res))
-            .catch((err) => options?.onError?.(err));
+const mockUse = (handler: () => (params: unknown) => Promise<unknown>) => {
+  return () => {
+    return {
+      mutate: (
+        params: unknown,
+        options?: {
+          onSuccess?: (res: unknown) => void;
+          onError?: (err: unknown) => void;
         },
-        mutateAsync: async (params: unknown) => handler()(params),
-        isPending: false,
-      };
+      ) => {
+        handler()(params)
+          .then((res) => options?.onSuccess?.(res))
+          .catch((err) => options?.onError?.(err));
+      },
+      mutateAsync: async (params: unknown) => handler()(params),
+      isPending: false,
     };
   };
-  const useRenderPlanDialogController = createUseRenderPlanDialogController(
-    {
-      useRenderPlan: mockUse(
-        () => planHandler,
-      ) as RenderPlanDialogControllerQueries["useRenderPlan"],
-      useRenderExecute: mockUse(
-        () => executeHandler,
-      ) as RenderPlanDialogControllerQueries["useRenderExecute"],
-      useRenderSettings: () => ({ data: undefined }),
-    },
-    {
-      formatCreditCost: String,
-      useGenerationCreditCosts: () => [],
-    },
-  );
-  return {
-    RenderPlanDialogView,
-    useRenderPlanDialogController,
-  };
-});
+};
 
-import { RenderPlanDialog } from "@/components/episode/beat-workbench/render-plan-dialog";
+const useRenderPlanDialogController = createUseRenderPlanDialogController(
+  {
+    useRenderPlan: mockUse(
+      () => planHandler,
+    ) as RenderPlanDialogControllerQueries["useRenderPlan"],
+    useRenderExecute: mockUse(
+      () => executeHandler,
+    ) as RenderPlanDialogControllerQueries["useRenderExecute"],
+    useRenderSettings: () => ({ data: undefined }),
+  },
+  {
+    formatCreditCost: String,
+    useGenerationCreditCosts: () => [],
+  },
+);
+
+function RenderPlanDialog(options: RenderPlanDialogControllerOptions) {
+  const controller = useRenderPlanDialogController(options);
+  return <RenderPlanDialogView {...controller} />;
+}
 
 function Wrapper({ children }: { children: ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });

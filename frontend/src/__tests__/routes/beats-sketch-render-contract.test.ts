@@ -6,9 +6,17 @@ function read(path: string) {
   return readFileSync(path, "utf8");
 }
 
+function readBatchBarComposition() {
+  const source = read("src/modules/production/composition.ts");
+  return source.slice(
+    source.indexOf("export interface BatchBarProps"),
+    source.indexOf("export interface NarratorVoicePanelProps"),
+  );
+}
+
 describe("beats sketch/render v2 contract", () => {
   it("does not expose the legacy /sketches/batch auto-select action", () => {
-    const batchBar = read("src/modules/production/BatchBar.tsx");
+    const batchBar = readBatchBarComposition();
     const batchBarView = read(
       "src/modules/production/presentation/BatchBarView.tsx",
     );
@@ -30,7 +38,7 @@ describe("beats sketch/render v2 contract", () => {
   it("keeps global render generation out of the top toolbar", () => {
     const taskTypes = read("src/lib/task-types.ts");
     const stageRegistry = read("src/lib/episode-stage-registry.ts");
-    const batchBar = read("src/modules/production/BatchBar.tsx");
+    const batchBar = readBatchBarComposition();
     const batchBarView = read(
       "src/modules/production/presentation/BatchBarView.tsx",
     );
@@ -79,7 +87,7 @@ describe("beats sketch/render v2 contract", () => {
   });
 
   it("does not expose whole-episode sketch generation from the batch toolbar", () => {
-    const batchBar = read("src/modules/production/BatchBar.tsx");
+    const batchBar = readBatchBarComposition();
     const batchBarView = read(
       "src/modules/production/presentation/BatchBarView.tsx",
     );
@@ -95,7 +103,7 @@ describe("beats sketch/render v2 contract", () => {
   });
 
   it("keeps AI prompt optimization in the sketch SuperPower workflow", () => {
-    const batchBar = read("src/modules/production/BatchBar.tsx");
+    const batchBar = readBatchBarComposition();
     const batchBarView = read(
       "src/modules/production/presentation/BatchBarView.tsx",
     );
@@ -118,7 +126,7 @@ describe("beats sketch/render v2 contract", () => {
   });
 
   it("keeps grid sketch generation available outside BatchBar", () => {
-    const batchBar = read("src/modules/production/BatchBar.tsx");
+    const batchBar = readBatchBarComposition();
     const batchBarView = read(
       "src/modules/production/presentation/BatchBarView.tsx",
     );
@@ -168,7 +176,7 @@ describe("beats sketch/render v2 contract", () => {
   });
 
   it("moves selected redraw actions to the ViewToggles row instead of the top toolbar or right panel", () => {
-    const batchBar = read("src/modules/production/BatchBar.tsx");
+    const batchBar = readBatchBarComposition();
     const batchBarView = read(
       "src/modules/production/presentation/BatchBarView.tsx",
     );
@@ -235,7 +243,7 @@ describe("beats sketch/render v2 contract", () => {
   });
 
   it("wires NiceGUI Render model/settings into React controls and task payloads", () => {
-    const batchBar = read("src/modules/production/BatchBar.tsx");
+    const batchBar = readBatchBarComposition();
     const batchBarController = read(
       "src/modules/production/application/use-batch-bar-controller.ts",
     );
@@ -251,7 +259,7 @@ describe("beats sketch/render v2 contract", () => {
     );
 
     expect(batchBar).toContain("useBatchBarController");
-    expect(batchBar).toContain("<BatchBarView controller={controller} />");
+    expect(batchBar).toContain("createElement(BatchBarView, { controller })");
     expect(batchBar).not.toContain("RenderModelSelect");
     expect(batchBarController).toContain("queries.useRenderSettings");
     expect(batchBarController).toContain("queries.useUpdateRenderSettings");

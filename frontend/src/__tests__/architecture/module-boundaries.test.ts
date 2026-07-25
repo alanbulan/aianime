@@ -39,6 +39,11 @@ function relativeSource(path: string): string {
   return relative(SRC_ROOT, path).replace(/\\/g, "/");
 }
 
+function sourceSection(path: string, start: string, end: string): string {
+  const source = readFileSync(path, "utf8");
+  return source.slice(source.indexOf(start), source.indexOf(end));
+}
+
 function importSpecifiers(path: string): string[] {
   const cached = importSpecifiersCache.get(path);
   if (cached) return cached;
@@ -1037,9 +1042,10 @@ describe("frontend architecture boundaries", () => {
 
   it("keeps Production callers on its public API", () => {
     const moduleRoot = resolve(SRC_ROOT, "modules/production");
-    const batchBarSource = readFileSync(
-      resolve(SRC_ROOT, "modules/production/BatchBar.tsx"),
-      "utf8",
+    const batchBarSource = sourceSection(
+      resolve(SRC_ROOT, "modules/production/composition.ts"),
+      "export interface BatchBarProps",
+      "export interface NarratorVoicePanelProps",
     );
     const batchBarViewSource = readFileSync(
       resolve(SRC_ROOT, "modules/production/presentation/BatchBarView.tsx"),
@@ -1077,6 +1083,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "modules/production/composition.ts"),
       "utf8",
     );
+    const renderSectionCompositionSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/production/render-section-composition.ts",
+      ),
+      "utf8",
+    );
     const productionPublicSource = readFileSync(
       resolve(SRC_ROOT, "modules/production/public.ts"),
       "utf8",
@@ -1085,12 +1098,10 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "modules/production/presentation/media-styles.ts"),
       "utf8",
     );
-    const renderPlanDialogSource = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "components/episode/beat-workbench/render-plan-dialog.tsx",
-      ),
-      "utf8",
+    const renderPlanDialogSource = sourceSection(
+      resolve(SRC_ROOT, "modules/production/composition.ts"),
+      "export interface RenderPlanDialogProps",
+      "export function AudioPaneContent",
     );
     const renderPlanDialogControllerSource = readFileSync(
       resolve(
@@ -1289,12 +1300,10 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
-    const narratorVoicePanelSource = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "modules/production/NarratorVoicePanel.tsx",
-      ),
-      "utf8",
+    const narratorVoicePanelSource = sourceSection(
+      resolve(SRC_ROOT, "modules/production/composition.ts"),
+      "export interface NarratorVoicePanelProps",
+      "export interface RenderPlanDialogProps",
     );
     const narratorVoicePanelViewSource = readFileSync(
       resolve(
@@ -1712,14 +1721,17 @@ describe("frontend architecture boundaries", () => {
     expect(renderSectionControllerSource).not.toContain("@/features/");
     expect(renderSectionControllerSource).not.toContain("@/stores/");
     expect(renderSectionControllerSource).not.toContain("document.");
-    expect(productionCompositionSource).toContain(
+    expect(renderSectionCompositionSource).toContain(
       "createUseRenderSectionController",
     );
-    expect(productionCompositionSource).toContain(
+    expect(renderSectionCompositionSource).toContain(
       "useBeatDirectorStageManifest,",
     );
-    expect(productionCompositionSource).toContain(
+    expect(renderSectionCompositionSource).toContain(
       "useDirectorControlFrameStatus,",
+    );
+    expect(productionCompositionSource).not.toContain(
+      "@/modules/asset_world/public",
     );
     expect(productionCompositionSource).not.toContain("useQueryClient");
     expect(renderGridGallerySource).toContain("<RenderGridGalleryView");
@@ -1838,8 +1850,8 @@ describe("frontend architecture boundaries", () => {
     );
     expect(batchBarSource).not.toContain("normalizeAudioTypeForCost");
     expect(batchBarSource).toContain("useBatchBarController({");
-    expect(batchBarSource).toContain("<BatchBarView");
-    expect(batchBarSource).toContain("controller={controller}");
+    expect(batchBarSource).toContain("createElement(BatchBarView");
+    expect(batchBarSource).toContain("{ controller }");
     expect(batchBarSource).toContain("sketchAspectRatio,");
     expect(batchBarSource).toContain("onSketchAspectRatioChange,");
     expect(batchBarSource).not.toContain("RenderModelSelect");
@@ -1974,7 +1986,9 @@ describe("frontend architecture boundaries", () => {
       "createUseBatchPanelController",
     );
     expect(productionCompositionSource).toContain("localStorage.removeItem");
-    expect(renderPlanDialogSource).toContain("<RenderPlanDialogView");
+    expect(renderPlanDialogSource).toContain(
+      "createElement(RenderPlanDialogView",
+    );
     expect(renderPlanDialogSource).toContain(
       "useRenderPlanDialogController(",
     );
@@ -2161,7 +2175,9 @@ describe("frontend architecture boundaries", () => {
     expect(beatsPageViewSource).not.toContain(
       "@/components/episode/beat-workbench/batch-panel",
     );
-    expect(narratorVoicePanelSource).toContain("<NarratorVoicePanelView");
+    expect(narratorVoicePanelSource).toContain(
+      "createElement(NarratorVoicePanelView",
+    );
     expect(narratorVoicePanelSource).toContain(
       "useNarratorVoicePanelController({",
     );
