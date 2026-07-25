@@ -1185,6 +1185,54 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("__sbOrigSource: edge.source");
   });
 
+  it("keeps Canvas storyboard group configuration in the domain model", () => {
+    const configPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/canvasStoryboardGroupConfig.ts",
+    );
+    const configModel = readFileSync(configPath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(configPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const configDeclaration = [
+      "export function",
+      "configureCanvasStoryboardGroup(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(configDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/domain/canvasStoryboardGroupConfig.ts",
+    ]);
+    expect(configModel).toContain(configDeclaration);
+    expect(canvasStore).toContain(
+      "@/features/canvas/domain/canvasStoryboardGroupConfig",
+    );
+    expect(canvasStore).not.toContain("const nextAspect = config.aspectKey");
+    expect(canvasStore).not.toContain("const childCount = state.nodes.reduce(");
+    expect(canvasStore).not.toContain("storyboardShowIndex: nextShowIndex");
+  });
+
   it("keeps Canvas storyboard node layout out of the Zustand store", () => {
     const layoutPath = resolve(
       SRC_ROOT,

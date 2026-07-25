@@ -73,6 +73,10 @@ import {
 } from '@/features/canvas/domain/canvasNodePositions';
 import { deleteCanvasNodes } from '@/features/canvas/domain/groupSelectionDelete';
 import { planCanvasAutoGroupSpawn } from '@/features/canvas/domain/canvasAutoGrouping';
+import {
+  configureCanvasStoryboardGroup,
+  type CanvasStoryboardGroupConfig,
+} from '@/features/canvas/domain/canvasStoryboardGroupConfig';
 import { validateCanvasConnection } from '@/features/canvas/domain/canvasConnection';
 import { EXPORT_RESULT_DISPLAY_NAME } from '@/features/canvas/domain/nodeDisplay';
 import {
@@ -320,7 +324,7 @@ interface CanvasState extends CanvasMutationState {
   /** Re-configure a storyboard group's grid (aspect / columns / index badge). */
   setStoryboardGroupConfig: (
     groupNodeId: string,
-    config: { aspectKey?: string; cols?: number; showIndex?: boolean }
+    config: CanvasStoryboardGroupConfig
   ) => void;
   /** Move a storyboard member from one grid slot to another (drag-reorder). */
   reorderStoryboardMember: (groupNodeId: string, fromIndex: number, toIndex: number) => void;
@@ -1243,49 +1247,17 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   setStoryboardGroupConfig: (groupNodeId, config) => {
     const state = get();
-    const groupNode = state.nodes.find((node) => node.id === groupNodeId);
-    if (!isStoryboardGroupNode(groupNode)) {
+    const nodes = configureCanvasStoryboardGroup(
+      state.nodes,
+      groupNodeId,
+      config,
+    );
+    if (!nodes) {
       return;
     }
 
-    const nextAspect = config.aspectKey ?? groupNode.data.storyboardAspect ?? DEFAULT_STORYBOARD_ASPECT;
-    const nextShowIndex =
-      typeof config.showIndex === 'boolean'
-        ? config.showIndex
-        : groupNode.data.storyboardShowIndex === true;
-
-    const childCount = state.nodes.reduce(
-      (acc, node) => (node.parentId === groupNodeId ? acc + 1 : acc),
-      0
-    );
-    const requestedCols = config.cols ?? groupNode.data.storyboardCols;
-    const cols = resolveStoryboardCols(childCount, requestedCols);
-
-    // Members are hidden thumbnails — only the compact board box / config change.
-    const board = computeStoryboardBoardLayout({ count: childCount, cols, aspectKey: nextAspect });
-
-    const nextNodes = state.nodes.map((node) => {
-      if (node.id !== groupNodeId) {
-        return node;
-      }
-      return {
-        ...node,
-        // width/height 与 style 同步更新：React Flow 渲染时显式 width 优先于
-        // style.width（getNodeInlineStyleDimensions），只改 style 视觉上不生效。
-        width: board.groupWidth,
-        height: board.groupHeight,
-        style: { ...(node.style ?? {}), width: board.groupWidth, height: board.groupHeight },
-        data: {
-          ...(node.data as GroupNodeData),
-          storyboardAspect: nextAspect,
-          storyboardCols: board.cols,
-          storyboardShowIndex: nextShowIndex,
-        },
-      };
-    });
-
     set({
-      nodes: nextNodes,
+      nodes,
       history: {
         past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
         future: [],
