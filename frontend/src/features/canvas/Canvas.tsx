@@ -80,6 +80,8 @@ import {
   isPresetManagedNode,
 } from '@/features/canvas/domain/mainlineNodeFlags';
 import { cloneCanvasNodeData } from '@/features/canvas/application/canvasNodeData';
+import { createCanvasClipboardSnapshot } from '@/features/canvas/application/createCanvasClipboardSnapshot';
+import type { CanvasClipboardSnapshot } from '@/features/canvas/domain/canvasClipboard';
 import { nodeNeedsGenerationResume } from '@/features/canvas/application/resumeGeneration';
 import { readUrl } from '@/lib/url-params';
 import { useQueryClient } from '@tanstack/react-query';
@@ -139,6 +141,7 @@ import { useCanvasMarqueeSelection } from './hooks/useCanvasMarqueeSelection';
 import { useCanvasMediaPaste } from './hooks/useCanvasMediaPaste';
 import { useCanvasMinimapVisibility } from './hooks/useCanvasMinimapVisibility';
 import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
+import { useCanvasNodeClipboard } from './hooks/useCanvasNodeClipboard';
 import { useCanvasNodeMenuShortcut } from './hooks/useCanvasNodeMenuShortcut';
 import { useCanvasNodePlacementConfirm } from './hooks/useCanvasNodePlacementConfirm';
 import { useCanvasPaneContextMenu } from './hooks/useCanvasPaneContextMenu';
@@ -189,16 +192,6 @@ interface PreviewConnectionVisual {
   height: number;
 }
 
-interface ClipboardSnapshot {
-  nodes: CanvasNode[];
-  edges: CanvasEdge[];
-  /**
-   * 复制时所在的项目 id。粘贴到不同项目时据此触发跨项目资产迁移
-   * （把媒体重新上传到目标项目）。null = 复制时不在项目路由下。
-   */
-  sourceProject: string | null;
-}
-
 interface DuplicateOptions {
   explicitOffset?: { x: number; y: number };
   disableOffsetIteration?: boolean;
@@ -208,19 +201,12 @@ interface DuplicateOptions {
    * nodes up by id in the live canvas — lets paste work after the originals are
    * deleted and across canvases.
    */
-  sourceSnapshot?: ClipboardSnapshot;
+  sourceSnapshot?: CanvasClipboardSnapshot;
   /** Place the pasted group's top-left at this flow position (cursor paste). */
   targetFlowPosition?: { x: number; y: number };
   /** Select every pasted node (not just the first) — used by paste. */
   selectAll?: boolean;
 }
-
-/**
- * Module-level node clipboard so copy/paste survives canvas switches within a
- * session (cross-canvas paste). Holds a deep-cloned, self-contained snapshot —
- * independent of the live nodes, so deleting the originals doesn't break paste.
- */
-let sharedNodeClipboard: ClipboardSnapshot | null = null;
 
 interface DuplicateResult {
   firstNodeId: string | null;
@@ -321,29 +307,7 @@ export function Canvas({
     skillById,
   } = useCanvasSkillRegistry(getSkillRegistry);
 
-  const copiedSnapshotRef = useRef<ClipboardSnapshot | null>(sharedNodeClipboard);
-  const getContextMenuCapabilities = useCallback(() => {
-    const history = useCanvasStore.getState().history;
-    return {
-      canUndo: history.past.length > 0,
-      canRedo: history.future.length > 0,
-      canPaste: (copiedSnapshotRef.current?.nodes.length ?? 0) > 0,
-    };
-  }, []);
-  const { contextMenu, closeContextMenu } = useCanvasPaneContextMenu({
-    wrapperRef,
-    disabled: pendingNodePlacement !== null,
-    getCapabilities: getContextMenuCapabilities,
-  });
   const pasteIterationRef = useRef(0);
-
-  const pasteFromClipboardRef = useRef<
-    | ((
-        snapshot: ClipboardSnapshot | null,
-        targetFlow?: { x: number; y: number },
-      ) => string | null)
-    | null
-  >(null);
   const altDragCopyRef = useRef<{
     sourceNodeIds: string[];
     startPositions: Map<string, { x: number; y: number }>;
@@ -998,38 +962,6 @@ export function Canvas({
     });
   }, [edges, nodes, reactFlowInstance, setNodePositions]);
 
-  const copySelectedNodes = useCallback(() => {
-    const selectedIdSet = new Set(selectedNodeIds);
-    const snapshot: ClipboardSnapshot = {
-      nodes: nodes
-        .filter((node) => selectedIdSet.has(node.id))
-        .map((node) => ({
-          ...node,
-          data: cloneCanvasNodeData(node.data),
-          selected: false,
-          dragging: false,
-        })),
-      edges: edges
-        .filter((edge) => selectedIdSet.has(edge.source) && selectedIdSet.has(edge.target))
-        .map((edge) => ({ ...edge })),
-      sourceProject: readUrl().project ?? null,
-    };
-    copiedSnapshotRef.current = snapshot;
-    sharedNodeClipboard = snapshot;
-    pasteIterationRef.current = 0;
-    // Replacing the system clipboard keeps the most recent copy source authoritative.
-    void navigator.clipboard?.writeText('').catch(() => undefined);
-  }, [edges, nodes, selectedNodeIds]);
-
-  const pasteCopiedNodes = useCallback(() => {
-    queueSnapshotPaste(() => {
-      if (!copiedSnapshotRef.current || copiedSnapshotRef.current.nodes.length === 0) {
-        return;
-      }
-      pasteFromClipboardRef.current?.(copiedSnapshotRef.current);
-    });
-  }, [queueSnapshotPaste]);
-
   const groupSelectedNodes = useCallback(() => {
     groupNodes(selectedNodeIds);
   }, [groupNodes, selectedNodeIds]);
@@ -1061,22 +993,6 @@ export function Canvas({
     }
     return true;
   }, [deleteEdge, deleteNode, deleteNodes, nodes, selectedNodeId, selectedNodeIds]);
-
-  useCanvasKeyboardShortcuts({
-    placementActive: pendingNodePlacement !== null,
-    nodeMenuOpen: showNodeMenu,
-    canCopySelection: selectedNodeIds.length > 0,
-    canGroupSelection: selectedNodeIds.length >= 2,
-    cancelPlacement: cancelNodePlacement,
-    closeNodeMenu,
-    organizeCanvas: handleOrganizeCanvas,
-    copySelection: copySelectedNodes,
-    pasteSelection: pasteCopiedNodes,
-    undo,
-    redo,
-    groupSelection: groupSelectedNodes,
-    deleteSelection: deleteSelectedElements,
-  });
 
   const handlePaneClick = useCallback((event: ReactMouseEvent) => {
     if (pendingNodePlacement) {
@@ -1658,7 +1574,7 @@ export function Canvas({
   // group is offset from its copied position (keyboard paste).
   const pasteFromClipboard = useCallback(
     (
-      snapshot: ClipboardSnapshot | null,
+      snapshot: CanvasClipboardSnapshot | null,
       targetFlow?: { x: number; y: number },
     ): string | null => {
       if (!snapshot || snapshot.nodes.length === 0) {
@@ -1675,11 +1591,62 @@ export function Canvas({
     [duplicateNodes],
   );
 
-  // Keep a ref so the keyboard handler can paste without re-binding on every
-  // node change (mirrors `duplicateNodesRef`).
-  useEffect(() => {
-    pasteFromClipboardRef.current = pasteFromClipboard;
-  }, [pasteFromClipboard]);
+  const createClipboardSnapshot = useCallback(
+    () => createCanvasClipboardSnapshot({
+      nodes,
+      edges,
+      selectedNodeIds,
+      sourceProject: canvasProject,
+    }),
+    [canvasProject, edges, nodes, selectedNodeIds],
+  );
+  const resetPasteIteration = useCallback(() => {
+    pasteIterationRef.current = 0;
+  }, []);
+  const clearSystemClipboard = useCallback(
+    () => navigator.clipboard?.writeText('') ?? Promise.resolve(),
+    [],
+  );
+  const {
+    hasCopiedNodes,
+    copySelection,
+    pasteSelection,
+    pasteAt,
+  } = useCanvasNodeClipboard({
+    createSnapshot: createClipboardSnapshot,
+    pasteSnapshot: pasteFromClipboard,
+    queueSnapshotPaste,
+    resetPasteIteration,
+    clearSystemClipboard,
+  });
+  const getContextMenuCapabilities = useCallback(() => {
+    const history = useCanvasStore.getState().history;
+    return {
+      canUndo: history.past.length > 0,
+      canRedo: history.future.length > 0,
+      canPaste: hasCopiedNodes(),
+    };
+  }, [hasCopiedNodes]);
+  const { contextMenu, closeContextMenu } = useCanvasPaneContextMenu({
+    wrapperRef,
+    disabled: pendingNodePlacement !== null,
+    getCapabilities: getContextMenuCapabilities,
+  });
+  useCanvasKeyboardShortcuts({
+    placementActive: pendingNodePlacement !== null,
+    nodeMenuOpen: showNodeMenu,
+    canCopySelection: selectedNodeIds.length > 0,
+    canGroupSelection: selectedNodeIds.length >= 2,
+    cancelPlacement: cancelNodePlacement,
+    closeNodeMenu,
+    organizeCanvas: handleOrganizeCanvas,
+    copySelection,
+    pasteSelection,
+    undo,
+    redo,
+    groupSelection: groupSelectedNodes,
+    deleteSelection: deleteSelectedElements,
+  });
 
   const handleConnectStart = useCallback(
     (event: MouseEvent | TouchEvent, params: OnConnectStartParams) => {
@@ -2949,8 +2916,7 @@ export function Canvas({
                 disabled: !contextMenu.canPaste,
                 onSelect: () => {
                   // Paste the group with its top-left at the right-click point.
-                  pasteFromClipboard(
-                    copiedSnapshotRef.current,
+                  pasteAt(
                     reactFlowInstance.screenToFlowPosition({
                       x: contextMenu.clientX,
                       y: contextMenu.clientY,

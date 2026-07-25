@@ -1624,6 +1624,57 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("resolveClipboardImageFile");
   });
 
+  it("keeps Canvas node clipboard state in one controller", () => {
+    const builderPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/createCanvasClipboardSnapshot.ts",
+    );
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasNodeClipboard.ts",
+    );
+    const builderModel = readFileSync(builderPath, "utf8");
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const builderForbiddenImports = importSpecifiers(builderPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const hookForbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+
+    expect(builderForbiddenImports).toEqual([]);
+    expect(hookForbiddenImports).toEqual([]);
+    expect(builderModel).toContain("cloneCanvasNodeData(node.data)");
+    expect(hookModel).toContain("sharedCanvasNodeClipboard");
+    expect(hookModel).toContain("queueSnapshotPaste(() =>");
+    expect(canvasView).toContain("./hooks/useCanvasNodeClipboard");
+    expect(canvasView).toContain("createCanvasClipboardSnapshot({");
+    expect(canvasView).not.toContain("sharedNodeClipboard");
+    expect(canvasView).not.toContain("copiedSnapshotRef");
+    expect(canvasView).not.toContain("pasteFromClipboardRef");
+    expect(canvasView).not.toContain("interface ClipboardSnapshot");
+  });
+
   it("keeps Canvas pane context-menu state in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
