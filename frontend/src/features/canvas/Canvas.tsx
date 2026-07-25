@@ -96,7 +96,7 @@ import {
   isPresetManagedEdge,
   isPresetManagedNode,
 } from '@/features/canvas/domain/mainlineNodeFlags';
-import { isVideoFile } from '@/features/canvas/application/videoFileTypes';
+import { cloneCanvasNodeData } from '@/features/canvas/application/canvasNodeData';
 import {
   buildGenerationErrorReport,
   extractRequestId,
@@ -150,6 +150,10 @@ import {
   isTypingTarget,
   PAN_ACTIVATION_KEY_CODE,
 } from './ui/canvasInteractionTargets';
+import {
+  collectDroppedMediaFiles,
+  resolveClipboardImageFile,
+} from './ui/canvasMediaTransfer';
 
 const DEFAULT_EDGE_OPTIONS = { type: 'disconnectableEdge' };
 const REACT_FLOW_PRO_OPTIONS = { hideAttribution: true };
@@ -251,60 +255,6 @@ interface GenerationStoryboardMetadata {
   gridRows: number;
   gridCols: number;
   frameNotes: string[];
-}
-
-function cloneNodeData<T>(value: T): T {
-  if (typeof structuredClone === 'function') {
-    return structuredClone(value);
-  }
-  return JSON.parse(JSON.stringify(value)) as T;
-}
-
-function resolveClipboardImageFile(event: ClipboardEvent): File | null {
-  const clipboardItems = event.clipboardData?.items;
-  if (!clipboardItems) {
-    return null;
-  }
-
-  for (const item of Array.from(clipboardItems)) {
-    if (!item.type.startsWith('image/')) {
-      continue;
-    }
-
-    const file = item.getAsFile();
-    if (!file) {
-      continue;
-    }
-
-    const existingName = typeof file.name === 'string' ? file.name.trim() : '';
-    if (existingName) {
-      return file;
-    }
-
-    const subtype = item.type.split('/')[1]?.split('+')[0] || 'png';
-    return new File([file], `pasted-image.${subtype}`, {
-      type: file.type || item.type,
-      lastModified: Date.now(),
-    });
-  }
-
-  return null;
-}
-
-// 从一次 OS 文件拖放里挑出图片 / 视频 / 音频文件，保持与 UploadNode 的媒体识别
-// 口径一致（按 MIME 前缀）。非媒体文件被忽略。
-function collectDroppedMediaFiles(dataTransfer: DataTransfer): File[] {
-  const files = dataTransfer.files;
-  if (!files || files.length === 0) {
-    return [];
-  }
-  return Array.from(files).filter(
-    (file) =>
-      file.type.startsWith('image/') ||
-      // isVideoFile 兜住 .mxf 等 file.type 为空串的专业容器（后续 ffmpeg 转码）。
-      isVideoFile(file) ||
-      file.type.startsWith('audio/')
-  );
 }
 
 function getClientPosition(event: MouseEvent | TouchEvent): { x: number; y: number } | null {
@@ -2284,7 +2234,7 @@ export function Canvas({
             .filter((node) => selectedIdSet.has(node.id))
             .map((node) => ({
               ...node,
-              data: cloneNodeData(node.data),
+              data: cloneCanvasNodeData(node.data),
               selected: false,
               dragging: false,
             })),
@@ -2912,7 +2862,7 @@ export function Canvas({
       const sizeMap = new Map<string, { width: number; height: number }>();
       const pastedForMigration: Array<{ id: string; data: CanvasNodeData }> = [];
       for (const sourceNode of sourceNodes) {
-        const data = cloneNodeData(sourceNode.data);
+        const data = cloneCanvasNodeData(sourceNode.data);
         if ('isGenerating' in (data as Record<string, unknown>)) {
           (data as { isGenerating?: boolean }).isGenerating = false;
         }

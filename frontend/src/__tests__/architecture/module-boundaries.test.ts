@@ -1120,6 +1120,51 @@ describe("frontend architecture boundaries", () => {
     expect(zoomView).not.toContain("function isTypingTarget(");
   });
 
+  it("keeps Canvas browser media transfer parsing in one UI helper", () => {
+    const transferPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/canvasMediaTransfer.ts",
+    );
+    const transferModel = readFileSync(transferPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(transferPath).filter(
+      (specifier) =>
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declarations = [
+      "resolveClipboardImageFile(",
+      "collectDroppedMediaFiles(",
+    ].map((name) => ["export function", name].join(" "));
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => {
+        const source = readFileSync(path, "utf8");
+        return declarations.some((declaration) => source.includes(declaration));
+      })
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/ui/canvasMediaTransfer.ts",
+    ]);
+    for (const declaration of declarations) {
+      expect(transferModel).toContain(declaration);
+    }
+    expect(transferModel).toContain(
+      "@/features/canvas/application/videoFileTypes",
+    );
+    expect(canvasView).toContain("./ui/canvasMediaTransfer");
+    expect(canvasView).not.toContain("function resolveClipboardImageFile(");
+    expect(canvasView).not.toContain("function collectDroppedMediaFiles(");
+  });
+
   it("keeps Canvas node position reducers out of the Zustand store", () => {
     const positionsPath = resolve(
       SRC_ROOT,
@@ -2053,6 +2098,10 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
     );
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
     const forbiddenImports = importSpecifiers(nodeDataPath).filter(
       (specifier) =>
         specifier === "react" ||
@@ -2067,10 +2116,15 @@ describe("frontend architecture boundaries", () => {
       "export function",
       "updateCanvasNodeData(",
     ].join(" ");
+    const cloneDeclaration = [
+      "export function",
+      "cloneCanvasNodeData<",
+    ].join(" ");
     const ruleOwners = sourceFiles(SRC_ROOT)
-      .filter((path) =>
-        readFileSync(path, "utf8").includes(updateDeclaration),
-      )
+      .filter((path) => {
+        const source = readFileSync(path, "utf8");
+        return source.includes(updateDeclaration) || source.includes(cloneDeclaration);
+      })
       .map(relativeSource)
       .sort();
 
@@ -2079,12 +2133,18 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/application/canvasNodeData.ts",
     ]);
     expect(nodeDataModel).toContain(updateDeclaration);
+    expect(nodeDataModel).toContain(cloneDeclaration);
     expect(nodeDataModel).toContain("maybeApplyImageAutoResize(");
     expect(canvasStore).toContain(
       "@/features/canvas/application/canvasNodeData",
     );
     expect(canvasStore).not.toContain("const hasDataChange = Object.entries(data)");
     expect(canvasStore).not.toContain("const mergedData = {\n          ...node.data");
+    expect(canvasView).toContain(
+      "@/features/canvas/application/canvasNodeData",
+    );
+    expect(canvasView).not.toContain("function cloneNodeData<");
+    expect(canvasView).not.toContain("structuredClone(value)");
   });
 
   it("keeps Canvas node type conversion out of the Zustand store", () => {

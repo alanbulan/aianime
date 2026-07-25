@@ -7,6 +7,13 @@ export interface CanvasNodeDataUpdateResult {
   changed: boolean;
 }
 
+export function cloneCanvasNodeData<T>(value: T): T {
+  if (typeof structuredClone === 'function') {
+    return structuredClone(value);
+  }
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
 export function updateCanvasNodeData(
   nodes: CanvasNode[],
   nodeId: string,

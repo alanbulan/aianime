@@ -1,8 +1,12 @@
 // Copyright (c) 2026 AI anime
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { CANVAS_NODE_TYPES, type CanvasNode } from '../domain/canvasNodes';
-import { updateCanvasNodeData } from './canvasNodeData';
+import { cloneCanvasNodeData, updateCanvasNodeData } from './canvasNodeData';
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 function node(overrides: Partial<CanvasNode> = {}): CanvasNode {
   return {
@@ -15,6 +19,24 @@ function node(overrides: Partial<CanvasNode> = {}): CanvasNode {
 }
 
 describe('Canvas node data updates', () => {
+  it('deep-clones node data with the runtime clone implementation', () => {
+    const source = { content: 'text', nested: { values: [1, 2] } };
+    const cloned = cloneCanvasNodeData(source);
+
+    expect(cloned).toEqual(source);
+    expect(cloned).not.toBe(source);
+    expect(cloned.nested).not.toBe(source.nested);
+    expect(cloned.nested.values).not.toBe(source.nested.values);
+  });
+
+  it('falls back to JSON cloning when structuredClone is unavailable', () => {
+    vi.stubGlobal('structuredClone', undefined);
+    const source = { content: 'text', nested: { value: 1 } };
+
+    expect(cloneCanvasNodeData(source)).toEqual(source);
+    expect(cloneCanvasNodeData(source).nested).not.toBe(source.nested);
+  });
+
   it('merges a changed patch and preserves unrelated nodes', () => {
     const target = node();
     const other = node({ id: 'other' });
