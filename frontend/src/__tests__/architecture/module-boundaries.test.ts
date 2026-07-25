@@ -238,6 +238,12 @@ describe("frontend architecture boundaries", () => {
       )
       .map(relativeSource)
       .sort();
+    const directTaskCenterStoreUsers = sourceFiles(applicationRoot)
+      .filter((path) =>
+        importSpecifiers(path).includes("@/task-center/store"),
+      )
+      .map(relativeSource)
+      .sort();
     const composition = readFileSync(
       resolve(SRC_ROOT, "features/canvas/composition.ts"),
       "utf8",
@@ -288,13 +294,30 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/hooks/useUpstreamGraph.ts"),
       "utf8",
     );
+    const nodeGenerationTaskState = readFileSync(
+      resolve(applicationRoot, "nodeGenerationTaskState.ts"),
+      "utf8",
+    );
+    const nodeGenerationTaskStateHook = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useNodeGenerationTaskState.ts",
+      ),
+      "utf8",
+    );
 
     expect(failures).toEqual([]);
     expect(directApiUsers).toEqual([]);
     expect(directCanvasStoreUsers).toEqual([]);
     expect(directUrlUsers).toEqual([]);
+    expect(directTaskCenterStoreUsers).toEqual([]);
     expect(
       existsSync(resolve(applicationRoot, "useUpstreamGraph.ts")),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(applicationRoot, "useNodeGenerationTaskState.ts"),
+      ),
     ).toBe(false);
     expect(composition).toContain(
       "export { canvasNodeFactory } from './nodeFactoryComposition';",
@@ -340,6 +363,13 @@ describe("frontend architecture boundaries", () => {
     expect(upstreamGraphHook).toContain("useCanvasStore(");
     expect(upstreamGraphHook).toContain("useShallow(");
     expect(upstreamGraphHook).toContain("upstreamNodesInEdgeOrder(");
+    expect(nodeGenerationTaskState).toContain(
+      "export function resolveNodeGenerationTaskState(",
+    );
+    expect(nodeGenerationTaskStateHook).toContain("useTaskCenterStore(");
+    expect(nodeGenerationTaskStateHook).toContain(
+      "resolveNodeGenerationTaskState({",
+    );
     expect(regenerateExportNode).toContain("aiGateway: AiGateway");
     expect(regenerateExportNode).toContain(
       "params: RegenerateExportImageNodeParams",

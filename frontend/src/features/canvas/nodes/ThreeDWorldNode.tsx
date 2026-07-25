@@ -35,7 +35,7 @@ import {
   getDirectorStagePalette,
 } from '@/api/viewerManifests';
 import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
-import { useNodeGenerationTaskState } from '@/features/canvas/application/useNodeGenerationTaskState';
+import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import { useNodeGenerationHistory } from '@/features/canvas/hooks/useNodeGenerationHistory';
 import { NodeGenerationHistory } from '@/features/canvas/ui/NodeGenerationHistory';
 import {

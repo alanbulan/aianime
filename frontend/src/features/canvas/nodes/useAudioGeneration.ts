@@ -13,7 +13,7 @@ import {
 } from '@/features/canvas/domain/canvasNodes';
 import { joinUpstreamText } from '@/features/canvas/application/graphContentResolver';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
-import { useNodeGenerationTaskState } from '@/features/canvas/application/useNodeGenerationTaskState';
+import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import { useUpstreamContents } from '@/features/canvas/hooks/useUpstreamGraph';
 import { readUrl } from '@/lib/url-params';
 import { useCanvasStore } from '@/stores/canvasStore';

@@ -137,7 +137,7 @@ import {
 import { useFreezoneStyleTemplates } from '@/features/canvas/hooks/useFreezoneStyleTemplates';
 import { joinUpstreamText } from '@/features/canvas/application/graphContentResolver';
 import { useUpstreamContents } from '@/features/canvas/hooks/useUpstreamGraph';
-import { useNodeGenerationTaskState } from '@/features/canvas/application/useNodeGenerationTaskState';
+import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import {
   PromptMentionEditor,
   type MentionCandidate,

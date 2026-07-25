@@ -48,7 +48,7 @@ import {
   canRegenerateExportImageNode,
 } from '@/features/canvas/application/regenerateExportNode';
 import { regenerateExportImageNode } from '@/features/canvas/composition';
-import { useNodeGenerationTaskState } from '@/features/canvas/application/useNodeGenerationTaskState';
+import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useShallow } from 'zustand/react/shallow';
 

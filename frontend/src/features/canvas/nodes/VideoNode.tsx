@@ -87,7 +87,7 @@ import {
 import { ReferenceTextChip } from "@/features/canvas/nodes/shared/ReferenceTextChip";
 import { ReferenceDetachButton } from "@/features/canvas/nodes/shared/ReferenceDetachButton";
 import { useReferenceMentionSync } from "@/features/canvas/nodes/useReferenceMentionSync";
-import { useNodeGenerationTaskState } from "@/features/canvas/application/useNodeGenerationTaskState";
+import { useNodeGenerationTaskState } from "@/features/canvas/hooks/useNodeGenerationTaskState";
 import {
   resolveErrorContent,
   showErrorDialog,
