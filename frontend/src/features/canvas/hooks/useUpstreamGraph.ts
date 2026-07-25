@@ -3,11 +3,11 @@ import { useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useCanvasStore } from '@/stores/canvasStore';
+import { extractUpstreamContent } from '../application/graphContentResolver';
+import { extractUpstreamImages } from '../application/graphImageResolver';
+import type { UpstreamContent } from '../application/ports';
 import type { CanvasNode } from '../domain/canvasNodes';
 import { upstreamNodesInEdgeOrder } from '../nodes/referenceOrdering';
-import { extractUpstreamContent } from './graphContentResolver';
-import { extractUpstreamImages } from './graphImageResolver';
-import type { UpstreamContent } from './ports';
 
 /**
  * Subscribe to ONLY this node's direct (one-hop) upstream nodes, in edge-

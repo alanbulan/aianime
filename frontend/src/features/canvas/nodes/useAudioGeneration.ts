@@ -14,7 +14,7 @@ import {
 import { joinUpstreamText } from '@/features/canvas/application/graphContentResolver';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { useNodeGenerationTaskState } from '@/features/canvas/application/useNodeGenerationTaskState';
-import { useUpstreamContents } from '@/features/canvas/application/useUpstreamGraph';
+import { useUpstreamContents } from '@/features/canvas/hooks/useUpstreamGraph';
 import { readUrl } from '@/lib/url-params';
 import { useCanvasStore } from '@/stores/canvasStore';
 

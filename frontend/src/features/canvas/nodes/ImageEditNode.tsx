@@ -43,7 +43,7 @@ import {
 import {
   useUpstreamContents,
   useUpstreamImages,
-} from '@/features/canvas/application/useUpstreamGraph';
+} from '@/features/canvas/hooks/useUpstreamGraph';
 import { resolveErrorContent, showErrorDialog } from '@/features/canvas/application/errorDialog';
 import { backendErrorToastMessage } from '@/shared/api/errors';
 import {

@@ -17,7 +17,7 @@ import {
   type AudioVoiceRef,
 } from '@/features/canvas/domain/canvasNodes';
 import { useCanvasStore } from '@/stores/canvasStore';
-import { useUpstreamContents } from '@/features/canvas/application/useUpstreamGraph';
+import { useUpstreamContents } from '@/features/canvas/hooks/useUpstreamGraph';
 import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
 import { useDetachUpstream } from '@/features/canvas/hooks/useDetachUpstream';
 import {

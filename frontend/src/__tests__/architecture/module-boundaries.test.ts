@@ -284,13 +284,18 @@ describe("frontend architecture boundaries", () => {
       resolve(applicationRoot, "uploadToolOutput.ts"),
       "utf8",
     );
+    const upstreamGraphHook = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/hooks/useUpstreamGraph.ts"),
+      "utf8",
+    );
 
     expect(failures).toEqual([]);
     expect(directApiUsers).toEqual([]);
-    expect(directCanvasStoreUsers).toEqual([
-      "features/canvas/application/useUpstreamGraph.ts",
-    ]);
+    expect(directCanvasStoreUsers).toEqual([]);
     expect(directUrlUsers).toEqual([]);
+    expect(
+      existsSync(resolve(applicationRoot, "useUpstreamGraph.ts")),
+    ).toBe(false);
     expect(composition).toContain(
       "export { canvasNodeFactory } from './nodeFactoryComposition';",
     );
@@ -332,6 +337,9 @@ describe("frontend architecture boundaries", () => {
     expect(uploadToolOutput).toContain(
       "projectId: string | null | undefined",
     );
+    expect(upstreamGraphHook).toContain("useCanvasStore(");
+    expect(upstreamGraphHook).toContain("useShallow(");
+    expect(upstreamGraphHook).toContain("upstreamNodesInEdgeOrder(");
     expect(regenerateExportNode).toContain("aiGateway: AiGateway");
     expect(regenerateExportNode).toContain(
       "params: RegenerateExportImageNodeParams",

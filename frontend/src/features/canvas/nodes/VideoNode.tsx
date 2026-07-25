@@ -79,7 +79,7 @@ import {
   extractUpstreamContent,
   joinUpstreamText,
 } from "@/features/canvas/application/graphContentResolver";
-import { useUpstreamNodes } from "@/features/canvas/application/useUpstreamGraph";
+import { useUpstreamNodes } from "@/features/canvas/hooks/useUpstreamGraph";
 import {
   sortUpstreamByReferenceOrder,
   upstreamNodesInEdgeOrder,

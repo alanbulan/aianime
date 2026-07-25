@@ -48,7 +48,7 @@ import {
   shouldUseOriginalImageByZoom,
 } from '@/features/canvas/application/imageData';
 import { uploadLocalImageToBackend } from '@/features/canvas/composition';
-import { useUpstreamNodes } from '@/features/canvas/application/useUpstreamGraph';
+import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 import { UiButton, UiCheckbox, UiChipButton, UiInput, UiPanel, UiSelect } from '@/components/ui';
 import {
   NODE_CONTROL_CHIP_CLASS,

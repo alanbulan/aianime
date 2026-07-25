@@ -10,7 +10,7 @@ import { Film } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { useCanvasStore } from "@/stores/canvasStore";
-import { useUpstreamNodes } from "@/features/canvas/application/useUpstreamGraph";
+import { useUpstreamNodes } from "@/features/canvas/hooks/useUpstreamGraph";
 import {
   CANVAS_NODE_TYPES,
   isAudioNode,

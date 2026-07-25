@@ -67,7 +67,7 @@ import {
 } from '@/api/ops';
 import { awaitTaskCompletion } from '@/api/tasks';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
-import { useUpstreamNodes } from '@/features/canvas/application/useUpstreamGraph';
+import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 import { useNodeGenerationTaskState } from '@/features/canvas/application/useNodeGenerationTaskState';
 import { useNodeGenerationHistory } from '@/features/canvas/hooks/useNodeGenerationHistory';
 import {

@@ -34,7 +34,7 @@ import {
   getBeatDirectorStageManifest,
   getDirectorStagePalette,
 } from '@/api/viewerManifests';
-import { useUpstreamNodes } from '@/features/canvas/application/useUpstreamGraph';
+import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 import { useNodeGenerationTaskState } from '@/features/canvas/application/useNodeGenerationTaskState';
 import { useNodeGenerationHistory } from '@/features/canvas/hooks/useNodeGenerationHistory';
 import { NodeGenerationHistory } from '@/features/canvas/ui/NodeGenerationHistory';

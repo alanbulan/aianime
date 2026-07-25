@@ -57,7 +57,7 @@ import { dataUrlToBlob, resolveImageDisplayUrl } from '@/features/canvas/applica
 import { CANVAS_NODE_PANEL_SURFACE_CLASS, canvasNodeFrameClass } from '@/features/canvas/ui/nodeFrameStyles';
 import { NODE_INLINE_ERROR_MESSAGE_CLASS } from '@/features/canvas/ui/nodeControlStyles';
 import { uploadLocalImageToBackend } from '@/features/canvas/composition';
-import { useUpstreamNodes } from '@/features/canvas/application/useUpstreamGraph';
+import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 import { useCanvasStore } from '@/stores/canvasStore';
 import {
   uploadAndAutoCommitSelectedBackgroundCandidate,
