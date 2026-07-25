@@ -19,6 +19,7 @@ export {
   useExportGridPrompt,
   usePoolSelect,
   useGlobalOptimize,
+  useLegacyVideoPromptController,
   useFinalVideo,
   useNarratorVoiceSources,
   useNarratorVoiceStatus,
@@ -58,6 +59,7 @@ export type {
 } from "@/modules/production/domain/audio-prerequisite";
 export { Seedance2AssetCropDialog } from "@/modules/production/presentation/Seedance2AssetCropDialog";
 export { Seedance2AudioTrimDialog } from "@/modules/production/presentation/Seedance2AudioTrimDialog";
+export { LegacyVideoPromptView } from "@/modules/production/presentation/LegacyVideoPromptView";
 export {
   Seedance2ReferenceAssetsView,
   Seedance2ReferenceCropAssetsView,

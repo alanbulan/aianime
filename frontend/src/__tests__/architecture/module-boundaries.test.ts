@@ -629,6 +629,10 @@ describe("frontend architecture boundaries", () => {
     expect(videoPaneSource).not.toContain("data-seedance2-reference-tile");
     expect(videoPaneSource).not.toContain("seedance2UploadInputRef");
     expect(videoPaneSource).not.toContain("seedance2CropTargetForAsset");
+    expect(videoPaneSource).not.toContain("useGenerateBeatVideoPrompt(");
+    expect(videoPaneSource).not.toContain("beatVideoPromptTask");
+    expect(videoPaneSource).not.toContain("legacyVideoPrompt");
+    expect(videoPaneSource).not.toContain("saveLegacyVideoPrompt");
     expect(legacySketchQueries).not.toContain("useAssignColors");
     expect(legacySketchQueries).not.toContain("useDetectIdentities");
     expect(legacySketchQueries).not.toContain("useDirectorControlToSketch");

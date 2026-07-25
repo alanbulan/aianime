@@ -21,6 +21,7 @@ import { createSketchPoseEditorQueryHooks } from "@/modules/production/applicati
 import { createSketchMarkerQueryHooks } from "@/modules/production/application/sketch-marker-query-hooks";
 import { createSketchGenerationQueryHooks } from "@/modules/production/application/sketch-generation-query-hooks";
 import { createUseAudioPaneController } from "@/modules/production/application/use-audio-pane-controller";
+import { createUseLegacyVideoPromptController } from "@/modules/production/application/use-legacy-video-prompt-controller";
 import { createUseSeedance2AssetOperationsController } from "@/modules/production/application/use-seedance2-asset-operations-controller";
 import { createUseVideoPaneMediaController } from "@/modules/production/application/use-video-pane-media-controller";
 import { httpProductionVideoGateway } from "@/modules/production/infrastructure/http-production-video-gateway";
@@ -42,6 +43,15 @@ const videoPoolQueries = createVideoPoolQueryHooks(
 const seedance2PanelQueries = createSeedance2PanelQueryHooks(
   httpProductionVideoGateway,
 );
+const videoGenerationQueries = createVideoGenerationQueryHooks({
+  gateway: httpProductionVideoGateway,
+  currentPromptLanguage: () =>
+    promptLanguageFromLocale(useAppStore.getState().language),
+});
+export const useLegacyVideoPromptController =
+  createUseLegacyVideoPromptController(videoGenerationQueries, {
+    useGenerationCreditCost,
+  });
 export const useSeedance2AssetOperationsController =
   createUseSeedance2AssetOperationsController(seedance2PanelQueries);
 export const useVideoPaneMediaController = createUseVideoPaneMediaController(
@@ -78,11 +88,7 @@ export const {
   useGenerateSeedance2Prompt,
   useGenerateBeatVideoPrompt,
   useRegenerateBeatVideo,
-} = createVideoGenerationQueryHooks({
-  gateway: httpProductionVideoGateway,
-  currentPromptLanguage: () =>
-    promptLanguageFromLocale(useAppStore.getState().language),
-});
+} = videoGenerationQueries;
 export const {
   useNarratorVoiceStatus,
   useNarratorVoiceSources,

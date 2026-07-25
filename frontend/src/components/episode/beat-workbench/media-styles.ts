@@ -31,3 +31,6 @@ export const CROP_DIALOG_SAVE_BUTTON_CLASS =
 
 export const MEDIA_PRIMARY_ACTION_BUTTON_CLASS =
   "gap-1 rounded-[7px] border-border bg-muted text-foreground/82 shadow-none transition-[background-color,border-color,color,transform] hover:border-foreground/25 hover:bg-accent hover:text-foreground active:scale-95 disabled:border-border disabled:bg-muted disabled:text-muted-foreground/45";
+
+export const VIDEO_PROMPT_TEXTAREA_CLASS =
+  "rounded-[8px] border-border bg-muted text-sm shadow-none focus-visible:border-primary/45 focus-visible:ring-primary/10";

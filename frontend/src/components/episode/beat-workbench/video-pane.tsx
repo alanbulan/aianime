@@ -36,7 +36,6 @@ import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import { CreditCostInline } from "@/components/credit-cost-inline";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { MentionTextarea } from "@/components/episode/beat-workbench/mention-textarea";
 import { Input } from "@/components/ui/input";
 import {
@@ -72,6 +71,7 @@ import {
   seedance2DurationBoundsForBackend,
   seedance2ResolutionOptionsForBackend,
   remapSeedance2Mentions,
+  LegacyVideoPromptView,
   Seedance2Checkbox,
   Seedance2Field,
   serializeGrokVideoConfig,
@@ -83,8 +83,8 @@ import {
   Seedance2ReferenceCropAssetsView,
   Seedance2SummaryPill,
   seedance2CropAspectForMode,
-  useGenerateBeatVideoPrompt,
   useGenerateSeedance2Prompt,
+  useLegacyVideoPromptController,
   useRegenerateBeatVideo,
   useSeedance2AssetOperationsController,
   useSeedance2BeatStatus,
@@ -118,6 +118,7 @@ import {
 import type { BeatStageState } from "@/types/beat-state";
 import {
   MEDIA_PRIMARY_ACTION_BUTTON_CLASS,
+  VIDEO_PROMPT_TEXTAREA_CLASS,
 } from "./media-styles";
 
 const SEEDANCE2_REFERENCE_DRAG_TYPE =
@@ -162,8 +163,6 @@ const VIDEO_PARAM_CONTROL_CLASS =
   "!h-[30px] rounded-[7px] border border-border bg-muted px-2.5 text-[12px] font-normal leading-none text-foreground/86 shadow-none transition-colors hover:border-foreground/25 hover:bg-accent focus-visible:border-primary/45 focus-visible:ring-primary/10 [&>svg]:size-3.5";
 const VIDEO_PARAM_ACTION_CLASS =
   "!h-[30px] gap-1.5 rounded-[7px] border border-border bg-muted px-2.5 text-[12px] font-normal leading-none text-foreground/86 shadow-none transition-[background-color,border-color,color,transform] hover:border-foreground/25 hover:bg-accent hover:text-foreground active:scale-95 disabled:border-border disabled:bg-muted disabled:text-muted-foreground/45 [&_svg]:size-3.5";
-const SEEDANCE2_TEXTAREA_CLASS =
-  "rounded-[8px] border-border bg-muted text-sm shadow-none focus-visible:border-primary/45 focus-visible:ring-primary/10";
 const SEEDANCE2_PILL_ACTION_CLASS =
   "h-6 rounded-full border border-border bg-muted px-2 text-[11px] font-normal text-muted-foreground shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground";
 const SEEDANCE2_SEGMENTED_OPTION_CLASS =
@@ -198,9 +197,14 @@ export function VideoPane({
   const frameAspectCss = ratioToCss(spec.renderAspect);
   const seedance2Id = useId();
   const regenerate = useRegenerateBeatVideo(project, episode);
-  const generateBeatVideoPrompt = useGenerateBeatVideoPrompt(project, episode);
   const generateSeedance2Prompt = useGenerateSeedance2Prompt(project, episode);
   const updateBeat = useUpdateBeat(project, episode);
+  const legacyPrompt = useLegacyVideoPromptController({
+    beat,
+    episode,
+    project,
+    updateBeat: (command) => updateBeat.mutateAsync(command),
+  });
   const regenTask = useTaskController({
     key: {
       taskType: "single_video",
@@ -213,21 +217,8 @@ export function VideoPane({
       queryKeys.videoPool(project, episode),
     ],
   });
-  // Beat 视频提示词生成在 EE 下是后台任务（同步分支仅 CE 单机命中），mutateAsync
-  // 只拿到入队 ack，isPending 一闪而过。用任务控制器让 loading 覆盖真实生成过程，
-  // 并在刷新后仍能恢复；完成后 invalidate beats 会把提示词回填到文本框。
-  const beatVideoPromptTask = useTaskController({
-    key: {
-      taskType: "beat_video_prompt",
-      project,
-      episode,
-      beatNum: beat.beat_number,
-    },
-    invalidateKeys: [queryKeys.beats(project, episode)],
-  });
   const { data: videoBackendsRes } = useVideoBackends(project);
   const videoBackends = videoBackendsRes?.data ?? [];
-  const beatVideoPromptCost = useGenerationCreditCost("feature", "beat_video_prompt");
   const seedance2PromptCost = useGenerationCreditCost("feature", "seedance2_prompt");
   const [regenConfirm, setRegenConfirm] = useState(false);
   const assetOperations = useSeedance2AssetOperationsController({
@@ -261,18 +252,6 @@ export function VideoPane({
     showHappyHorseConfig ||
     showGrokVideoConfig ||
     isSeedanceReferenceCropBackend(defaultBackend);
-  const legacyPromptField: "video_prompt" | "keyframe_prompt" =
-    beat.video_mode === "keyframe" ? "keyframe_prompt" : "video_prompt";
-  const legacyPromptLabel =
-    legacyPromptField === "keyframe_prompt"
-      ? t("episode.workbench.video.keyframePrompt")
-      : t("episode.workbench.video.videoPrompt");
-  const legacyPromptId = `${seedance2Id}-legacy-video-prompt`;
-  const [legacyVideoPrompt, setLegacyVideoPrompt] = useState(
-    legacyPromptField === "keyframe_prompt"
-      ? (beat.keyframe_prompt ?? "")
-      : (beat.video_prompt ?? ""),
-  );
   const showSeedance2ValueStyle =
     showSeedance2Config && isSeedance2ValueBackend(defaultBackend);
   const seedance2ResolutionOptions = useMemo(
@@ -341,18 +320,6 @@ export function VideoPane({
     seedance2ResolutionOptions,
     sd15DurationBounds.min,
     sd15DurationBounds.max,
-  ]);
-  useEffect(() => {
-    setLegacyVideoPrompt(
-      legacyPromptField === "keyframe_prompt"
-        ? (beat.keyframe_prompt ?? "")
-        : (beat.video_prompt ?? ""),
-    );
-  }, [
-    beat.beat_number,
-    beat.keyframe_prompt,
-    beat.video_prompt,
-    legacyPromptField,
   ]);
   const mediaController = useVideoPaneMediaController({
     beatNumber: beat.beat_number,
@@ -448,11 +415,6 @@ export function VideoPane({
         ? sd15Duration
         : 5,
   });
-  const beatVideoPromptCostDisplay =
-    beatVideoPromptCost.data?.data.display ??
-    (beatVideoPromptCost.error instanceof BillingRuleNotConfiguredError
-      ? t("common.billingRuleNotConfiguredShort")
-      : null);
   const seedance2PromptCostDisplay =
     seedance2PromptCost.data?.data.display ??
     (seedance2PromptCost.error instanceof BillingRuleNotConfiguredError
@@ -599,7 +561,7 @@ export function VideoPane({
       }
       return true;
     }
-    if (!legacyVideoPrompt.trim()) {
+    if (!legacyPrompt.prompt.trim()) {
       toast.error(
         t("episode.workbench.video.beatVideoPromptRequired", {
           n: beat.beat_number,
@@ -1115,44 +1077,6 @@ export function VideoPane({
       </div>
     );
   };
-  const saveLegacyVideoPrompt = async () => {
-    const current =
-      legacyPromptField === "keyframe_prompt"
-        ? (beat.keyframe_prompt ?? "")
-        : (beat.video_prompt ?? "");
-    if (legacyVideoPrompt === current) return;
-    try {
-      await updateBeat.mutateAsync({
-        beatNum: beat.beat_number,
-        data: { [legacyPromptField]: legacyVideoPrompt },
-      });
-    } catch {
-      toast.error(t("episode.workbench.video.regenFailed"));
-    }
-  };
-  const handleGenerateBeatVideoPrompt = async () => {
-    try {
-      const res = await generateBeatVideoPrompt.mutateAsync({
-        beatNum: beat.beat_number,
-      });
-      if (!res.ok) {
-        toast.error(
-          res.error || t("episode.workbench.video.beatVideoPromptGenerateFailed"),
-        );
-        return;
-      }
-      if (!("data" in res)) {
-        beatVideoPromptTask.start();
-        toast.success(t("episode.workbench.video.beatVideoPromptGenerateStarted"));
-        return;
-      }
-      setLegacyVideoPrompt(res.data.prompt);
-      toast.success(t("episode.workbench.video.beatVideoPromptGenerated"));
-    } catch (error) {
-      toast.error(backendErrorToastMessage(error, t));
-    }
-  };
-
   return (
     <div className={VIDEO_GRID_CLASS}>
       <VideoPaneMediaView
@@ -1161,44 +1085,10 @@ export function VideoPane({
       />
 
       {!showPromptConfig && (
-        <div
-          className={cn(
-            "col-span-2 rounded-[10px] border border-border bg-card p-3",
-            showHappyHorseConfig && "order-3",
-          )}
-        >
-          <Seedance2Field label={legacyPromptLabel} htmlFor={legacyPromptId}>
-            <Textarea
-              id={legacyPromptId}
-              aria-label={legacyPromptLabel}
-              value={legacyVideoPrompt}
-              onChange={(e) => setLegacyVideoPrompt(e.target.value)}
-              onBlur={() => void saveLegacyVideoPrompt()}
-              rows={3}
-              className={cn("min-h-[82px]", SEEDANCE2_TEXTAREA_CLASS)}
-            />
-          </Seedance2Field>
-          <div className="mt-2 flex justify-start">
-            <Button
-              size="xs"
-              variant="outline"
-              disabled={
-                generateBeatVideoPrompt.isPending || beatVideoPromptTask.started
-              }
-              onClick={() => void handleGenerateBeatVideoPrompt()}
-              className={MEDIA_PRIMARY_ACTION_BUTTON_CLASS}
-            >
-              {generateBeatVideoPrompt.isPending ||
-              beatVideoPromptTask.started ? (
-                <Loader2 className="size-3 animate-spin" />
-              ) : (
-                <WandSparkles className="size-3" />
-              )}
-              {t("episode.workbench.video.generateBeatVideoPrompt")}
-              <CreditCostInline display={beatVideoPromptCostDisplay} />
-            </Button>
-          </div>
-        </div>
+        <LegacyVideoPromptView
+          className={showHappyHorseConfig ? "order-3" : undefined}
+          controller={legacyPrompt}
+        />
       )}
 
       {/* Full-width action row. Seedance2 keeps its generate action after config. */}
@@ -1775,7 +1665,7 @@ export function VideoPane({
                   mentionLabels={seedance2ReferenceLabels}
                   mentionPreviews={seedance2MentionPreviews}
                   rows={2}
-                  className={cn("min-h-[72px]", SEEDANCE2_TEXTAREA_CLASS)}
+                  className={cn("min-h-[72px]", VIDEO_PROMPT_TEXTAREA_CLASS)}
                 />
               </Seedance2Field>
               {renderSeedance2ReferenceControls("prompt_guidance")}
@@ -1850,7 +1740,7 @@ export function VideoPane({
                   mentionLabels={seedance2ReferenceLabels}
                   mentionPreviews={seedance2MentionPreviews}
                   rows={2}
-                  className={cn("min-h-[72px]", SEEDANCE2_TEXTAREA_CLASS)}
+                  className={cn("min-h-[72px]", VIDEO_PROMPT_TEXTAREA_CLASS)}
                 />
                 {renderSeedance2ReferenceControls("final_prompt")}
               </div>
