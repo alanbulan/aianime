@@ -6,6 +6,7 @@ import {
   createPreviewPath,
   cssEscape,
   getClientPosition,
+  resolveCanvasConnectionEnd,
   resolveCanvasConnectionStart,
   resolveConnectEndHandleId,
   resolveManualDropTargetElement,
@@ -152,6 +153,162 @@ describe('Canvas connection interaction', () => {
       handleId: null,
       start: { x: 50, y: 60 },
     });
+  });
+
+  it('resolves a manual connection end with the exact handle under the pointer', () => {
+    const source = canvasNode('source', CANVAS_NODE_TYPES.upload);
+    const target = canvasNode('target', CANVAS_NODE_TYPES.imageGen);
+    const wrapper = flowNode('wrapper', {
+      left: 0,
+      top: 0,
+      width: 500,
+      height: 400,
+    });
+    const targetElement = flowNode(target.id, {
+      left: 100,
+      top: 80,
+      width: 200,
+      height: 160,
+    });
+    const targetHandle = handle(target.id, 'target-specific', 'target', {
+      left: 96,
+      top: 96,
+      width: 8,
+      height: 8,
+    });
+    targetElement.append(targetHandle);
+    wrapper.append(targetElement);
+    const original = Object.getOwnPropertyDescriptor(document, 'elementFromPoint');
+    Object.defineProperty(document, 'elementFromPoint', {
+      configurable: true,
+      value: () => targetHandle,
+    });
+
+    try {
+      expect(resolveCanvasConnectionEnd({
+        event: {
+          clientX: 100,
+          clientY: 100,
+          target: targetHandle,
+        } as unknown as MouseEvent,
+        connectionState: { isValid: false },
+        pending: {
+          nodeId: source.id,
+          handleType: 'source',
+          handleId: 'source',
+        },
+        nodes: [source, target],
+        wrapperElement: wrapper,
+      })).toEqual({
+        kind: 'connect',
+        source: source.id,
+        target: target.id,
+        sourceHandle: 'source',
+        targetHandle: 'target-specific',
+      });
+    } finally {
+      if (original) {
+        Object.defineProperty(document, 'elementFromPoint', original);
+      } else {
+        Reflect.deleteProperty(document, 'elementFromPoint');
+      }
+    }
+  });
+
+  it('plans the fallback menu and preview for an unresolved connection end', () => {
+    const origin = canvasNode('origin', CANVAS_NODE_TYPES.video);
+    const wrapper = flowNode('wrapper', {
+      left: 10,
+      top: 20,
+      width: 500,
+      height: 400,
+    });
+    const original = Object.getOwnPropertyDescriptor(document, 'elementFromPoint');
+    Object.defineProperty(document, 'elementFromPoint', {
+      configurable: true,
+      value: () => null,
+    });
+
+    try {
+      const resolution = resolveCanvasConnectionEnd({
+        event: {
+          clientX: 100,
+          clientY: 120,
+          target: null,
+        } as unknown as MouseEvent,
+        connectionState: { isValid: false, from: { x: 5, y: 6 } },
+        pending: {
+          nodeId: origin.id,
+          handleType: 'source',
+          handleId: 'source',
+        },
+        nodes: [origin],
+        wrapperElement: wrapper,
+      });
+
+      expect(resolution).toMatchObject({
+        kind: 'open_menu',
+        clientPosition: { x: 100, y: 120 },
+        menuPosition: { x: 90, y: 100 },
+        previewLine: {
+          start: { x: 5, y: 6 },
+          end: { x: 90, y: 100 },
+          handleType: 'source',
+        },
+        containerSize: { width: 500, height: 400 },
+      });
+      expect(resolution.kind === 'open_menu' ? resolution.allowedTypes : []).toEqual([
+        CANVAS_NODE_TYPES.textAnnotation,
+        CANVAS_NODE_TYPES.video,
+        CANVAS_NODE_TYPES.videoCompose,
+        CANVAS_NODE_TYPES.script,
+      ]);
+    } finally {
+      if (original) {
+        Object.defineProperty(document, 'elementFromPoint', original);
+      } else {
+        Reflect.deleteProperty(document, 'elementFromPoint');
+      }
+    }
+  });
+
+  it('cancels an already valid end and an empty target-side menu', () => {
+    const world = canvasNode('world', CANVAS_NODE_TYPES.threeDWorld);
+    const event = { clientX: 10, clientY: 20, target: null } as unknown as MouseEvent;
+    const wrapper = flowNode('wrapper', {
+      left: 0,
+      top: 0,
+      width: 500,
+      height: 400,
+    });
+    const original = Object.getOwnPropertyDescriptor(document, 'elementFromPoint');
+    Object.defineProperty(document, 'elementFromPoint', {
+      configurable: true,
+      value: () => null,
+    });
+
+    try {
+      expect(resolveCanvasConnectionEnd({
+        event,
+        connectionState: { isValid: true },
+        pending: { nodeId: world.id, handleType: 'target' },
+        nodes: [world],
+        wrapperElement: wrapper,
+      })).toEqual({ kind: 'cancel' });
+      expect(resolveCanvasConnectionEnd({
+        event,
+        connectionState: { isValid: false },
+        pending: { nodeId: world.id, handleType: 'target' },
+        nodes: [world],
+        wrapperElement: wrapper,
+      })).toEqual({ kind: 'cancel' });
+    } finally {
+      if (original) {
+        Object.defineProperty(document, 'elementFromPoint', original);
+      } else {
+        Reflect.deleteProperty(document, 'elementFromPoint');
+      }
+    }
   });
 
   it('uses the platform CSS escape implementation or the local fallback', () => {

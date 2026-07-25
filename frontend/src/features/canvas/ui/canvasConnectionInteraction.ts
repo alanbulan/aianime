@@ -2,8 +2,13 @@
 import {
   canConnectCanvasNodesManually,
   canNodeBeManualConnectionSource,
+  resolveAllowedNodeTypes,
 } from '../domain/canvasConnection';
-import { CANVAS_NODE_TYPES, type CanvasNode } from '../domain/canvasNodes';
+import {
+  CANVAS_NODE_TYPES,
+  type CanvasNode,
+  type CanvasNodeType,
+} from '../domain/canvasNodes';
 
 export type CanvasHandleType = 'source' | 'target';
 
@@ -15,6 +20,24 @@ export interface CanvasPendingConnectionStart {
   handleId?: string | null;
   start?: { x: number; y: number };
 }
+
+export type CanvasConnectionEndResolution =
+  | { kind: 'cancel' }
+  | {
+      kind: 'connect';
+      source: string;
+      target: string;
+      sourceHandle: string;
+      targetHandle: string;
+    }
+  | {
+      kind: 'open_menu';
+      clientPosition: { x: number; y: number };
+      menuPosition: { x: number; y: number };
+      allowedTypes: CanvasNodeType[];
+      previewLine: PreviewConnectionLine | null;
+      containerSize: { width: number; height: number };
+    };
 
 export interface PreviewConnectionLine {
   start: { x: number; y: number };
@@ -199,6 +222,136 @@ export function resolveConnectEndHandleId({
       clientPosition,
     })
   );
+}
+
+export function resolveCanvasConnectionEnd({
+  event,
+  connectionState,
+  pending,
+  nodes,
+  wrapperElement,
+}: {
+  event: MouseEvent | TouchEvent;
+  connectionState: {
+    isValid: boolean | null;
+    from?: { x: number; y: number } | null;
+  };
+  pending: CanvasPendingConnectionStart | null;
+  nodes: readonly CanvasNode[];
+  wrapperElement: HTMLElement | null;
+}): CanvasConnectionEndResolution {
+  if (connectionState.isValid || !pending) {
+    return { kind: 'cancel' };
+  }
+
+  const clientPosition = getClientPosition(event);
+  const containerRect = wrapperElement?.getBoundingClientRect();
+  if (!clientPosition || !containerRect || !wrapperElement) {
+    return { kind: 'cancel' };
+  }
+
+  const eventTarget = event.target as Element | null;
+  const nodeElementFromTarget = eventTarget
+    ?.closest?.('.react-flow__node[data-id]') as HTMLElement | null;
+  const nodeElementFromPoint = document
+    .elementFromPoint(clientPosition.x, clientPosition.y)
+    ?.closest?.('.react-flow__node[data-id]') as HTMLElement | null;
+  const dropNodeElement = nodeElementFromTarget ?? nodeElementFromPoint;
+  const dropNodeId = dropNodeElement?.dataset.id ?? null;
+
+  if (dropNodeId && dropNodeId !== pending.nodeId) {
+    const sourceNode = pending.handleType === 'source'
+      ? nodes.find((node) => node.id === pending.nodeId)
+      : nodes.find((node) => node.id === dropNodeId);
+    const targetNode = pending.handleType === 'source'
+      ? nodes.find((node) => node.id === dropNodeId)
+      : nodes.find((node) => node.id === pending.nodeId);
+
+    if (
+      sourceNode
+      && targetNode
+      && canConnectCanvasNodesManually(sourceNode, targetNode)
+    ) {
+      const sourceHandle = pending.handleType === 'source'
+        ? pending.handleId ?? 'source'
+        : resolveConnectEndHandleId({
+            eventTarget,
+            nodeElement: dropNodeElement,
+            nodeId: sourceNode.id,
+            handleType: 'source',
+            clientPosition,
+          }) ?? 'source';
+      const targetHandle = pending.handleType === 'source'
+        ? resolveConnectEndHandleId({
+            eventTarget,
+            nodeElement: dropNodeElement,
+            nodeId: targetNode.id,
+            handleType: 'target',
+            clientPosition,
+          }) ?? 'target'
+        : pending.handleId ?? 'target';
+      return {
+        kind: 'connect',
+        source: sourceNode.id,
+        target: targetNode.id,
+        sourceHandle,
+        targetHandle,
+      };
+    }
+  }
+
+  const originNode = nodes.find((node) => node.id === pending.nodeId);
+  const allowedTypes = resolveAllowedNodeTypes(pending.handleType, originNode?.type);
+  if (allowedTypes.length === 0) {
+    return { kind: 'cancel' };
+  }
+
+  const end = {
+    x: clientPosition.x - containerRect.left,
+    y: clientPosition.y - containerRect.top,
+  };
+  let start = pending.start ?? null;
+  if (!start) {
+    const nodeElement = wrapperElement.querySelector<HTMLElement>(
+      `.react-flow__node[data-id="${pending.nodeId}"]`,
+    );
+    const handleElement = nodeElement?.querySelector<HTMLElement>(
+      `.react-flow__handle-${pending.handleType}`,
+    );
+    if (handleElement) {
+      const handleRect = handleElement.getBoundingClientRect();
+      start = {
+        x: handleRect.left - containerRect.left + handleRect.width / 2,
+        y: handleRect.top - containerRect.top + handleRect.height / 2,
+      };
+    } else if (nodeElement) {
+      const nodeRect = nodeElement.getBoundingClientRect();
+      start = {
+        x: (
+          pending.handleType === 'source'
+            ? nodeRect.right
+            : nodeRect.left
+        ) - containerRect.left,
+        y: nodeRect.top - containerRect.top + nodeRect.height / 2,
+      };
+    } else if (connectionState.from) {
+      start = { x: connectionState.from.x, y: connectionState.from.y };
+    }
+  }
+
+  return {
+    kind: 'open_menu',
+    clientPosition,
+    menuPosition: end,
+    allowedTypes,
+    previewLine: start
+      ? { start, end, handleType: pending.handleType }
+      : null,
+    containerSize: {
+      width: containerRect.width,
+      height: containerRect.height,
+    },
+  };
 }
 
 export function resolveManualDropTargetElement({

@@ -1194,6 +1194,7 @@ describe("frontend architecture boundaries", () => {
     const declarations = [
       "getClientPosition(",
       "resolveCanvasConnectionStart(",
+      "resolveCanvasConnectionEnd(",
       "createPreviewPath(",
       "cssEscape(",
       "resolveConnectEndHandleId(",
@@ -1216,6 +1217,7 @@ describe("frontend architecture boundaries", () => {
     }
     expect(canvasView).toContain("./ui/canvasConnectionInteraction");
     expect(canvasView).not.toContain("function getClientPosition(");
+    expect(canvasView).not.toContain("getClientPosition(");
     expect(canvasView).not.toContain("canNodeBeManualConnectionSource(");
     expect(canvasView).not.toContain("interface PendingConnectStart");
     expect(canvasView).not.toContain(
@@ -1230,9 +1232,15 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("MANUAL_DROP_PROXIMITY_PX");
     expect(canvasView).not.toContain("let bestDist = Infinity");
     expect(canvasView).not.toContain("Math.hypot(dx, dy)");
+    expect(canvasView).not.toContain("const nodeElementFromTarget");
+    expect(canvasView).not.toContain("let startX:");
+    expect(canvasView).not.toContain("connectionState.from");
     expect(canvasView).not.toContain("interface PreviewConnectionLine");
     expect(interactionModel).toContain(
       "export interface CanvasPendingConnectionStart",
+    );
+    expect(interactionModel).toContain(
+      "export type CanvasConnectionEndResolution",
     );
   });
 

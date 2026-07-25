@@ -116,7 +116,7 @@ import { collectDroppedMediaFiles } from './ui/canvasMediaTransfer';
 import {
   createPreviewPath,
   cssEscape,
-  getClientPosition,
+  resolveCanvasConnectionEnd,
   resolveCanvasConnectionStart,
   resolveConnectEndHandleId,
   resolveManualDropTargetElement,
@@ -1769,140 +1769,48 @@ export function Canvas({
 
   const handleConnectEnd = useCallback(
     (event: MouseEvent | TouchEvent, connectionState: FinalConnectionState) => {
-      if (connectionState.isValid || !pendingConnectStart) {
-        setPendingConnectStart(null);
-        setPreviewConnectionVisual(null);
-        return;
-      }
-
-      const clientPosition = getClientPosition(event);
-      const containerRect = wrapperRef.current?.getBoundingClientRect();
-      if (!clientPosition || !containerRect) {
-        setPendingConnectStart(null);
-        setPreviewConnectionVisual(null);
-        return;
-      }
-
-      const eventTarget = event.target as Element | null;
-      const nodeElementFromTarget = eventTarget?.closest?.('.react-flow__node[data-id]') as HTMLElement | null;
-      const nodeElementFromPoint = document.elementFromPoint(clientPosition.x, clientPosition.y)
-        ?.closest?.('.react-flow__node[data-id]') as HTMLElement | null;
-      const dropNodeElement = nodeElementFromTarget ?? nodeElementFromPoint;
-      const dropNodeId = dropNodeElement?.dataset?.id ?? null;
-
-      if (dropNodeId && dropNodeId !== pendingConnectStart.nodeId) {
-        const sourceNode =
-          pendingConnectStart.handleType === 'source'
-            ? nodes.find((node) => node.id === pendingConnectStart.nodeId)
-            : nodes.find((node) => node.id === dropNodeId);
-        const targetNode =
-          pendingConnectStart.handleType === 'source'
-            ? nodes.find((node) => node.id === dropNodeId)
-            : nodes.find((node) => node.id === pendingConnectStart.nodeId);
-
-        if (
-          sourceNode &&
-          targetNode &&
-          canConnectCanvasNodesManually(sourceNode, targetNode)
-        ) {
-          const sourceHandle =
-            pendingConnectStart.handleType === 'source'
-              ? pendingConnectStart.handleId ?? 'source'
-              : resolveConnectEndHandleId({
-                  eventTarget,
-                  nodeElement: dropNodeElement,
-                  nodeId: sourceNode.id,
-                  handleType: 'source',
-                  clientPosition,
-                }) ?? 'source';
-          const targetHandle =
-            pendingConnectStart.handleType === 'source'
-              ? resolveConnectEndHandleId({
-                  eventTarget,
-                  nodeElement: dropNodeElement,
-                  nodeId: targetNode.id,
-                  handleType: 'target',
-                  clientPosition,
-                }) ?? 'target'
-              : pendingConnectStart.handleId ?? 'target';
-          connectGraphNodes({
-            source: sourceNode.id,
-            target: targetNode.id,
-            sourceHandle,
-            targetHandle,
-          });
-          setPendingConnectStart(null);
-          setPreviewConnectionVisual(null);
-          return;
-        }
-      }
-
-      const originNode = nodes.find((node) => node.id === pendingConnectStart.nodeId);
-      const allowedTypes = resolveAllowedNodeTypes(
-        pendingConnectStart.handleType,
-        originNode?.type,
-      );
-      if (allowedTypes.length === 0) {
-        setPendingConnectStart(null);
-        setPreviewConnectionVisual(null);
-        return;
-      }
-
-      const endX = clientPosition.x - containerRect.left;
-      const endY = clientPosition.y - containerRect.top;
-      let startX: number | null = pendingConnectStart.start?.x ?? null;
-      let startY: number | null = pendingConnectStart.start?.y ?? null;
-
-      if (startX === null || startY === null) {
-        const nodeElement = wrapperRef.current?.querySelector<HTMLElement>(
-          `.react-flow__node[data-id="${pendingConnectStart.nodeId}"]`
-        );
-        const handleElement = nodeElement?.querySelector<HTMLElement>(
-          `.react-flow__handle-${pendingConnectStart.handleType}`
-        );
-        if (handleElement) {
-          const handleRect = handleElement.getBoundingClientRect();
-          startX = handleRect.left - containerRect.left + handleRect.width / 2;
-          startY = handleRect.top - containerRect.top + handleRect.height / 2;
-        } else if (nodeElement) {
-          const nodeRect = nodeElement.getBoundingClientRect();
-          startX =
-            pendingConnectStart.handleType === 'source'
-              ? nodeRect.right - containerRect.left
-              : nodeRect.left - containerRect.left;
-          startY = nodeRect.top - containerRect.top + nodeRect.height / 2;
-        } else if (connectionState.from) {
-          startX = connectionState.from.x;
-          startY = connectionState.from.y;
-        }
-      }
-
-      if (startX === null || startY === null) {
-        setPreviewConnectionVisual(null);
-      } else {
-        setPreviewConnectionVisual({
-          d: createPreviewPath({
-            start: { x: startX, y: startY },
-            end: { x: endX, y: endY },
-            handleType: pendingConnectStart.handleType,
-          }),
-          stroke: PREVIEW_CONNECTION_STROKE,
-          strokeWidth: 1,
-          strokeLinecap: 'round',
-          left: 0,
-          top: 0,
-          width: containerRect.width,
-          height: containerRect.height,
-        });
-      }
-
-      const flowPos = reactFlowInstance.screenToFlowPosition(clientPosition);
-      setFlowPosition(flowPos);
-      setMenuPosition({
-        x: clientPosition.x - containerRect.left,
-        y: clientPosition.y - containerRect.top,
+      const resolution = resolveCanvasConnectionEnd({
+        event,
+        connectionState,
+        pending: pendingConnectStart,
+        nodes,
+        wrapperElement: wrapperRef.current,
       });
-      setMenuAllowedTypes(allowedTypes);
+      if (resolution.kind === 'cancel') {
+        setPendingConnectStart(null);
+        setPreviewConnectionVisual(null);
+        return;
+      }
+      if (resolution.kind === 'connect') {
+        connectGraphNodes({
+          source: resolution.source,
+          target: resolution.target,
+          sourceHandle: resolution.sourceHandle,
+          targetHandle: resolution.targetHandle,
+        });
+        setPendingConnectStart(null);
+        setPreviewConnectionVisual(null);
+        return;
+      }
+      setPreviewConnectionVisual(
+        resolution.previewLine
+          ? {
+              d: createPreviewPath(resolution.previewLine),
+              stroke: PREVIEW_CONNECTION_STROKE,
+              strokeWidth: 1,
+              strokeLinecap: 'round',
+              left: 0,
+              top: 0,
+              width: resolution.containerSize.width,
+              height: resolution.containerSize.height,
+            }
+          : null,
+      );
+      setFlowPosition(
+        reactFlowInstance.screenToFlowPosition(resolution.clientPosition),
+      );
+      setMenuPosition(resolution.menuPosition);
+      setMenuAllowedTypes(resolution.allowedTypes);
       suppressNextPaneClickRef.current = true;
       setShowNodeMenu(true);
     },
