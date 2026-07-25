@@ -597,7 +597,12 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/domain/canvasHistory.ts",
     );
+    const navigationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasHistoryNavigation.ts",
+    );
     const historyModel = readFileSync(historyPath, "utf8");
+    const navigationModel = readFileSync(navigationPath, "utf8");
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
@@ -618,6 +623,18 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         /^(?:\.\.\/)+(?:application|infrastructure)(?:\/|$)/.test(specifier),
     );
+    const forbiddenNavigationImports = importSpecifiers(navigationPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
     const historyContractDeclaration = [
       "export interface",
       "CanvasHistoryState",
@@ -628,19 +645,41 @@ describe("frontend architecture boundaries", () => {
       )
       .map(relativeSource)
       .sort();
+    const navigationDeclaration = [
+      "export function",
+      "navigateCanvasHistory(",
+    ].join(" ");
+    const navigationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(navigationDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(forbiddenHistoryImports).toEqual([]);
+    expect(forbiddenNavigationImports).toEqual([]);
     expect(historyContractOwners).toEqual([
       "features/canvas/domain/canvasHistory.ts",
     ]);
+    expect(navigationOwners).toEqual([
+      "features/canvas/application/canvasHistoryNavigation.ts",
+    ]);
     expect(historyModel).toContain("export function undoHistory(");
     expect(historyModel).toContain("export function redoHistory(");
+    expect(navigationModel).toContain(navigationDeclaration);
+    expect(navigationModel).toContain("undoHistory(state.history, current)");
+    expect(navigationModel).toContain("redoHistory(state.history, current)");
     expect(canvasStore).toContain(
       "@/features/canvas/domain/canvasHistory",
     );
     expect(canvasStore).not.toContain("function pushSnapshot(");
     expect(canvasStore).not.toContain("function undoHistory(");
     expect(canvasStore).not.toContain("function redoHistory(");
+    expect(canvasStore).not.toContain("undoHistory(");
+    expect(canvasStore).not.toContain("redoHistory(");
+    expect(canvasStore).toContain(
+      "@/features/canvas/application/canvasHistoryNavigation",
+    );
     expect(canvasSync).toContain(
       "@/features/canvas/domain/canvasHistory",
     );
@@ -1635,8 +1674,18 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/domain/viewportBookmarks.ts",
     );
+    const nodeEffectsPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasNodeChangeEffects.ts",
+    );
+    const historyNavigationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasHistoryNavigation.ts",
+    );
     const selectionModel = readFileSync(selectionPath, "utf8");
     const viewportModel = readFileSync(viewportPath, "utf8");
+    const nodeEffectsModel = readFileSync(nodeEffectsPath, "utf8");
+    const historyNavigationModel = readFileSync(historyNavigationPath, "utf8");
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
@@ -1657,7 +1706,13 @@ describe("frontend architecture boundaries", () => {
     expect(selectionModel).toContain("export function resolveSelectedNodeId(");
     expect(selectionModel).toContain("export function resolveActiveToolDialog(");
     expect(viewportModel).toContain("export function replaceViewportBookmark(");
-    expect(canvasStore).toContain(
+    expect(nodeEffectsModel).toContain(
+      "from '../domain/canvasSelection'",
+    );
+    expect(historyNavigationModel).toContain(
+      "from '../domain/canvasSelection'",
+    );
+    expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasSelection",
     );
     expect(canvasStore).toContain("replaceViewportBookmark(current, index, bookmark)");

@@ -23,8 +23,6 @@ import {
   createSnapshot,
   normalizeHistory,
   pushSnapshot,
-  redoHistory,
-  undoHistory,
   type CanvasHistorySnapshot,
   type CanvasHistoryState,
 } from '@/features/canvas/domain/canvasHistory';
@@ -66,10 +64,6 @@ import {
   normalizeBookmarks,
   replaceViewportBookmark,
 } from '@/features/canvas/domain/viewportBookmarks';
-import {
-  resolveActiveToolDialog,
-  resolveSelectedNodeId,
-} from '@/features/canvas/domain/canvasSelection';
 import { normalizeCanvasData } from '@/features/canvas/application/canvasDataNormalization';
 import { createCanvasNode } from '@/features/canvas/application/canvasNodeCreation';
 import { canvasNodeFactory } from '@/features/canvas/nodeFactoryComposition';
@@ -87,6 +81,7 @@ import {
 } from '@/features/canvas/application/canvasEdgeCreation';
 import { applyCanvasNodeChangeEffects } from '@/features/canvas/application/canvasNodeChangeEffects';
 import { applyCanvasEdgeChangeEffects } from '@/features/canvas/application/canvasEdgeChangeEffects';
+import { navigateCanvasHistory } from '@/features/canvas/application/canvasHistoryNavigation';
 import { updateCanvasNodeData } from '@/features/canvas/application/canvasNodeData';
 import { convertCanvasNodeType } from '@/features/canvas/application/canvasNodeConversion';
 import {
@@ -1243,61 +1238,21 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   undo: () => {
     const state = get();
-    const transition = undoHistory(
-      state.history,
-      createSnapshot(state.nodes, state.edges),
-    );
-    if (!transition) {
+    const result = navigateCanvasHistory(state, 'undo');
+    if (!result) {
       return false;
     }
-    const { target } = transition;
-
-    const undoSource: CanvasMutationSource = isDeleteToEmpty(
-      state.nodes.length,
-      target.nodes.length,
-    )
-      ? "delete_to_empty"
-      : "user_edit";
-
-    set({
-      nodes: target.nodes,
-      edges: target.edges,
-      selectedNodeId: resolveSelectedNodeId(state.selectedNodeId, target.nodes),
-      activeToolDialog: resolveActiveToolDialog(state.activeToolDialog, target.nodes),
-      history: transition.history,
-      dragHistorySnapshot: null,
-      ...trackEdit(state, undoSource),
-    });
+    set(result);
     return true;
   },
 
   redo: () => {
     const state = get();
-    const transition = redoHistory(
-      state.history,
-      createSnapshot(state.nodes, state.edges),
-    );
-    if (!transition) {
+    const result = navigateCanvasHistory(state, 'redo');
+    if (!result) {
       return false;
     }
-    const { target } = transition;
-
-    const redoSource: CanvasMutationSource = isDeleteToEmpty(
-      state.nodes.length,
-      target.nodes.length,
-    )
-      ? "delete_to_empty"
-      : "user_edit";
-
-    set({
-      nodes: target.nodes,
-      edges: target.edges,
-      selectedNodeId: resolveSelectedNodeId(state.selectedNodeId, target.nodes),
-      activeToolDialog: resolveActiveToolDialog(state.activeToolDialog, target.nodes),
-      history: transition.history,
-      dragHistorySnapshot: null,
-      ...trackEdit(state, redoSource),
-    });
+    set(result);
     return true;
   },
 
