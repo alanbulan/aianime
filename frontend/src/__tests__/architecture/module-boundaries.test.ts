@@ -746,6 +746,46 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps Canvas viewport and selection rules outside the Zustand store", () => {
+    const selectionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/canvasSelection.ts",
+    );
+    const viewportPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/viewportBookmarks.ts",
+    );
+    const selectionModel = readFileSync(selectionPath, "utf8");
+    const viewportModel = readFileSync(viewportPath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const forbiddenImports = [selectionPath, viewportPath].flatMap((path) =>
+      importSpecifiers(path)
+        .filter(
+          (specifier) =>
+            specifier === "zustand" ||
+            specifier.startsWith("@/stores/") ||
+            specifier.startsWith("@/features/canvas/application/") ||
+            specifier.startsWith("@/features/canvas/infrastructure/"),
+        )
+        .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+    );
+
+    expect(forbiddenImports).toEqual([]);
+    expect(selectionModel).toContain("export function resolveSelectedNodeId(");
+    expect(selectionModel).toContain("export function resolveActiveToolDialog(");
+    expect(viewportModel).toContain("export function replaceViewportBookmark(");
+    expect(canvasStore).toContain(
+      "@/features/canvas/domain/canvasSelection",
+    );
+    expect(canvasStore).toContain("replaceViewportBookmark(current, index, bookmark)");
+    expect(canvasStore).not.toContain("function resolveSelectedNodeId(");
+    expect(canvasStore).not.toContain("function resolveActiveToolDialog(");
+    expect(canvasStore.match(/create<CanvasState>/g)).toHaveLength(1);
+  });
+
   it("keeps Canvas image node layout rules out of the Zustand store", () => {
     const layoutPath = resolve(
       SRC_ROOT,

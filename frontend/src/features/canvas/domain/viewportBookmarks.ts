@@ -16,6 +16,21 @@ export function createEmptyBookmarks(): ViewportBookmarks {
   return Array.from({ length: BOOKMARK_SLOT_COUNT }, () => null);
 }
 
+export function replaceViewportBookmark(
+  bookmarks: ViewportBookmarks,
+  index: number,
+  bookmark: ViewportBookmark | null,
+): ViewportBookmarks {
+  if (!Number.isInteger(index) || index < 0 || index >= BOOKMARK_SLOT_COUNT) {
+    return bookmarks;
+  }
+  const next = bookmarks.slice();
+  next[index] = bookmark
+    ? { x: bookmark.x, y: bookmark.y, zoom: bookmark.zoom }
+    : null;
+  return next;
+}
+
 /** '1'->0 … '9'->8, '0'->9. Anything else => null. */
 export function digitToBookmarkIndex(digit: string): number | null {
   if (!/^[0-9]$/.test(digit)) {

@@ -67,10 +67,14 @@ import { EXPORT_RESULT_DISPLAY_NAME } from '@/features/canvas/domain/nodeDisplay
 import {
   type ViewportBookmark,
   type ViewportBookmarks,
-  BOOKMARK_SLOT_COUNT,
   createEmptyBookmarks,
   normalizeBookmarks,
+  replaceViewportBookmark,
 } from '@/features/canvas/domain/viewportBookmarks';
+import {
+  resolveActiveToolDialog,
+  resolveSelectedNodeId,
+} from '@/features/canvas/domain/canvasSelection';
 import { nodeCatalog } from '@/features/canvas/application/nodeCatalog';
 import { canvasNodeFactory } from '@/features/canvas/nodeFactoryComposition';
 import {
@@ -863,23 +867,6 @@ function restoreStoryboardEdges(
   });
 }
 
-function resolveSelectedNodeId(selectedNodeId: string | null, nodes: CanvasNode[]): string | null {
-  if (!selectedNodeId) {
-    return null;
-  }
-  return nodes.some((node) => node.id === selectedNodeId) ? selectedNodeId : null;
-}
-
-function resolveActiveToolDialog(
-  activeToolDialog: ActiveToolDialog | null,
-  nodes: CanvasNode[]
-): ActiveToolDialog | null {
-  if (!activeToolDialog) {
-    return null;
-  }
-  return nodes.some((node) => node.id === activeToolDialog.nodeId) ? activeToolDialog : null;
-}
-
 function createDefaultStoryboardExportOptions(): StoryboardExportOptions {
   return {
     showFrameIndex: false,
@@ -1167,17 +1154,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   setViewportBookmark: (index, bookmark) => {
-    if (!Number.isInteger(index) || index < 0 || index >= BOOKMARK_SLOT_COUNT) {
+    const current = get().viewportBookmarks;
+    const next = replaceViewportBookmark(current, index, bookmark);
+    if (next === current) {
       return;
     }
-    set((state) => {
-      const next = state.viewportBookmarks.slice();
-      next[index] =
-        bookmark === null
-          ? null
-          : { x: bookmark.x, y: bookmark.y, zoom: bookmark.zoom };
-      return { viewportBookmarks: next };
-    });
+    set({ viewportBookmarks: next });
   },
 
   clearViewportBookmarks: () => {

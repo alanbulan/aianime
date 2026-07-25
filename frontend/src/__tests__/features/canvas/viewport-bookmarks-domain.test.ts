@@ -10,6 +10,7 @@ import {
   isViewportBookmark,
   normalizeBookmarks,
   projectToMinimap,
+  replaceViewportBookmark,
 } from "@/features/canvas/domain/viewportBookmarks";
 
 describe("viewport bookmarks domain", () => {
@@ -35,6 +36,18 @@ describe("viewport bookmarks domain", () => {
     expect(a.every((slot) => slot === null)).toBe(true);
     a[0] = { x: 1, y: 2, zoom: 3 };
     expect(b[0]).toBeNull();
+  });
+
+  it("replaces a slot immutably and ignores an invalid index", () => {
+    const bookmarks = createEmptyBookmarks();
+    const bookmark = { x: 1, y: 2, zoom: 1.5 };
+    const next = replaceViewportBookmark(bookmarks, 2, bookmark);
+
+    bookmark.x = 999;
+    expect(next).not.toBe(bookmarks);
+    expect(next[2]).toEqual({ x: 1, y: 2, zoom: 1.5 });
+    expect(bookmarks[2]).toBeNull();
+    expect(replaceViewportBookmark(next, 99, null)).toBe(next);
   });
 
   it("normalizes dirty input to length-10 with invalid slots dropped to null", () => {
