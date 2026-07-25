@@ -106,6 +106,13 @@ import {
   hasMeaningfulCanvasEdgeChange,
 } from '@/features/canvas/application/canvasChangeIntent';
 import {
+  createClosedCanvasImageViewer,
+  navigateCanvasImageViewer,
+  openCanvasImageViewer,
+  type CanvasImageViewerDirection,
+  type CanvasImageViewerState,
+} from '@/features/canvas/application/canvasImageViewer';
+import {
   validateCandidateBindingRoleCandidate,
   validatePropagatingEdgeCandidate,
 } from '@/features/freezone/context/mainlineContext';
@@ -152,12 +159,7 @@ interface CanvasState extends CanvasMutationState {
   /** 10 fixed viewport bookmark slots (index 0..9 -> digit 1..9,0). Navigation
    * preference, NOT part of undo history; persisted via canvas metadata. */
   viewportBookmarks: ViewportBookmarks;
-  imageViewer: {
-    isOpen: boolean;
-    currentImageUrl: string | null;
-    imageList: string[];
-    currentIndex: number;
-  };
+  imageViewer: CanvasImageViewerState;
 
   onNodesChange: (changes: NodeChange<CanvasNode>[]) => void;
   onEdgesChange: (changes: EdgeChange<CanvasEdge>[]) => void;
@@ -348,7 +350,7 @@ interface CanvasState extends CanvasMutationState {
   setCanvasViewportSize: (size: { width: number; height: number }) => void;
   openImageViewer: (imageUrl: string, imageList?: string[]) => void;
   closeImageViewer: () => void;
-  navigateImageViewer: (direction: 'prev' | 'next') => void;
+  navigateImageViewer: (direction: CanvasImageViewerDirection) => void;
 
   undo: () => boolean;
   redo: () => boolean;
@@ -396,12 +398,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   currentViewport: { x: 0, y: 0, zoom: 1 },
   canvasViewportSize: { width: 0, height: 0 },
   viewportBookmarks: createEmptyBookmarks(),
-  imageViewer: {
-    isOpen: false,
-    currentImageUrl: null,
-    imageList: [],
-    currentIndex: 0,
-  },
+  imageViewer: createClosedCanvasImageViewer(),
 
   onNodesChange: (changes) => {
     set((state) => {
@@ -610,50 +607,18 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   openImageViewer: (imageUrl, imageList = []) => {
-    const list = imageList.length > 0 ? imageList : [imageUrl];
-    const index = list.indexOf(imageUrl);
-    set({
-      imageViewer: {
-        isOpen: true,
-        currentImageUrl: imageUrl,
-        imageList: list,
-        currentIndex: index >= 0 ? index : 0,
-      },
-    });
+    set({ imageViewer: openCanvasImageViewer(imageUrl, imageList) });
   },
 
   closeImageViewer: () => {
-    set({
-      imageViewer: {
-        isOpen: false,
-        currentImageUrl: null,
-        imageList: [],
-        currentIndex: 0,
-      },
-    });
+    set({ imageViewer: createClosedCanvasImageViewer() });
   },
 
   navigateImageViewer: (direction) => {
-    const state = get();
-    const { currentIndex, imageList } = state.imageViewer;
-    if (direction === 'prev' && currentIndex > 0) {
-      const newIndex = currentIndex - 1;
-      set({
-        imageViewer: {
-          ...state.imageViewer,
-          currentIndex: newIndex,
-          currentImageUrl: imageList[newIndex],
-        },
-      });
-    } else if (direction === 'next' && currentIndex < imageList.length - 1) {
-      const newIndex = currentIndex + 1;
-      set({
-        imageViewer: {
-          ...state.imageViewer,
-          currentIndex: newIndex,
-          currentImageUrl: imageList[newIndex],
-        },
-      });
+    const current = get().imageViewer;
+    const next = navigateCanvasImageViewer(current, direction);
+    if (next !== current) {
+      set({ imageViewer: next });
     }
   },
 

@@ -713,6 +713,54 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("let nextDragHistorySnapshot =");
   });
 
+  it("keeps Canvas image viewer transitions outside the Zustand store", () => {
+    const viewerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasImageViewer.ts",
+    );
+    const viewerModel = readFileSync(viewerPath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(viewerPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier === "zustand" ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const viewerContractDeclaration = [
+      "export interface",
+      "CanvasImageViewerState",
+    ].join(" ");
+    const viewerContractOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(viewerContractDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(viewerContractOwners).toEqual([
+      "features/canvas/application/canvasImageViewer.ts",
+    ]);
+    expect(viewerModel).toContain("export function openCanvasImageViewer(");
+    expect(viewerModel).toContain("export function navigateCanvasImageViewer(");
+    expect(canvasStore).toContain(
+      "@/features/canvas/application/canvasImageViewer",
+    );
+    expect(canvasStore).toContain("imageViewer: createClosedCanvasImageViewer()");
+    expect(canvasStore).not.toContain("const list = imageList.length");
+    expect(canvasStore).not.toContain("const newIndex = currentIndex");
+    expect(
+      existsSync(resolve(SRC_ROOT, "features/canvas/hooks/useImageViewer.ts")),
+    ).toBe(false);
+  });
+
   it("keeps Canvas mutation and persistence state in the domain model", () => {
     const mutationPath = resolve(
       SRC_ROOT,
