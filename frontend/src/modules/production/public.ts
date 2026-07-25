@@ -89,6 +89,11 @@ export { VideoPaneMediaView } from "@/modules/production/presentation/VideoPaneM
 export { VideoPaneView } from "@/modules/production/presentation/VideoPaneView";
 export { BatchPanelView } from "@/modules/production/presentation/BatchPanelView";
 export type { BatchPanelViewProps } from "@/modules/production/presentation/BatchPanelView";
+export { RenderPlanDialogView } from "@/modules/production/presentation/RenderPlanDialogView";
+export type {
+  RenderPlanDialogViewProps,
+  RenderPlanStaleBanner,
+} from "@/modules/production/presentation/RenderPlanDialogView";
 export type {
   BatchPanelController,
   BatchPanelControllerDependencies,

@@ -3,22 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueries } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { AlertTriangle, Loader2 } from "lucide-react";
 
 import { api } from "@/shared/api/transport";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { GLASS_ALERT_DIALOG_CONTENT_CLASS } from "@/lib/dialog-styles";
-import { cn } from "@/lib/utils";
-import { CreditCostInline } from "@/components/credit-cost-inline";
 import { formatCreditCost } from "@/components/credits/credit-visual";
 import {
   generationCreditCostQueryKey,
@@ -26,6 +12,7 @@ import {
 } from "@/lib/queries/generation-credit-cost";
 import type { OkResponse } from "@/types/api";
 import {
+  RenderPlanDialogView,
   type PlanEntry,
   type RenderPlan,
   useRenderExecute,
@@ -199,12 +186,6 @@ export function RenderPlanDialog({
     }
   };
 
-  const loading = planMutation.isPending || executeMutation.isPending;
-  const confirmLabel = plan
-    ? t("episode.renderPlan.confirm", { grids: plan.total_grids })
-    : planMutation.isPending
-      ? t("episode.renderPlan.planning")
-      : t("episode.renderPlan.unavailable");
   let renderPlanCostDisplay: string | null = null;
   if (plan) {
     let complete = true;
@@ -222,109 +203,16 @@ export function RenderPlanDialog({
   }
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className={cn("max-w-3xl", GLASS_ALERT_DIALOG_CONTENT_CLASS)}>
-        <AlertDialogHeader>
-          <AlertDialogTitle>
-            {t("episode.renderPlan.title", {
-              beats: plan?.total_beats ?? beatIndices.length,
-              grids: plan?.total_grids ?? "…",
-            })}
-          </AlertDialogTitle>
-          <AlertDialogDescription>
-            {t("episode.renderPlan.subtitle")}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-
-        {staleBanner && (
-          <div className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">
-            <AlertTriangle className="mr-1 inline size-3" />
-            {t(`episode.renderPlan.stale.${staleBanner}`)}
-          </div>
-        )}
-
-        <div className="mt-4 max-h-[45vh] overflow-y-auto">
-          {loading && !plan ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="size-5 animate-spin text-muted-foreground" />
-            </div>
-          ) : !plan ? (
-            <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
-              {t("episode.renderPlan.unavailable")}
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {plan?.plan.map((entry, i) => (
-                <PlanCard
-                  key={`${entry.mode_key}:${entry.beat_numbers.join("-")}:${i}`}
-                  entry={entry}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        <AlertDialogFooter className="px-4">
-          <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-          <AlertDialogAction
-            variant="outline"
-            onClick={handleConfirm}
-            disabled={loading || !plan}
-            className="relative pr-11 transition-transform active:scale-95"
-          >
-            {executeMutation.isPending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              confirmLabel
-            )}
-            <CreditCostInline display={renderPlanCostDisplay} />
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-}
-
-function PlanCard({
-  entry,
-}: {
-  entry: PlanEntry;
-}) {
-  const { t } = useTranslation();
-  const beatsLabel = entry.beat_numbers.length > 1
-    ? `B${entry.beat_numbers[0]}-${entry.beat_numbers[entry.beat_numbers.length - 1]}`
-    : `B${entry.beat_numbers[0]}`;
-  const ironLaw = entry.reasons.includes("iron-law-3-chars");
-  const multiScene = entry.location.includes("·") || entry.location.includes(" / ");
-  return (
-    <div
-      className={cn(
-        "flex w-[170px] shrink-0 flex-col gap-1 rounded-[6px] border border-border bg-popover/95 p-2 text-xs backdrop-blur-sm",
-        ironLaw && "border-warning/50",
-      )}
-    >
-      <div className="flex items-center justify-between">
-        <span className="font-medium">{`${entry.rows}×${entry.cols}`}</span>
-        <span className="text-muted-foreground">{beatsLabel}</span>
-      </div>
-      <div
-        className={cn(
-          "truncate",
-          multiScene
-            ? "text-warning"
-            : "text-success",
-        )}
-        title={entry.location}
-      >
-        {entry.location || t("episode.renderPlan.unknownLocation")}
-        {entry.padding_count > 0 && ` +${entry.padding_count}空`}
-      </div>
-      {entry.warnings.length > 0 && (
-        <div className="text-warning">
-          <AlertTriangle className="mr-0.5 inline size-2.5" />
-          {entry.warnings[0]}
-        </div>
-      )}
-    </div>
+    <RenderPlanDialogView
+      beatCount={beatIndices.length}
+      executePending={executeMutation.isPending}
+      open={open}
+      plan={plan}
+      planPending={planMutation.isPending}
+      renderPlanCostDisplay={renderPlanCostDisplay}
+      staleBanner={staleBanner}
+      onConfirm={() => void handleConfirm()}
+      onOpenChange={onOpenChange}
+    />
   );
 }

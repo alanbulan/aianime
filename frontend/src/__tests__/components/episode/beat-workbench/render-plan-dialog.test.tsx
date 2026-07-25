@@ -37,7 +37,10 @@ let executeHandler: (params: unknown) => Promise<unknown> = async () => ({
   data: null,
 });
 
-vi.mock("@/modules/production/public", () => {
+vi.mock("@/modules/production/public", async () => {
+  const { RenderPlanDialogView } = await import(
+    "@/modules/production/presentation/RenderPlanDialogView"
+  );
   const mockUse = (handler: () => (params: unknown) => Promise<unknown>) => {
     return () => {
       // useMutation-shaped facade (only the fields the dialog actually reads)
@@ -59,6 +62,7 @@ vi.mock("@/modules/production/public", () => {
     };
   };
   return {
+    RenderPlanDialogView,
     useRenderPlan: mockUse(() => planHandler),
     useRenderExecute: mockUse(() => executeHandler),
     useRenderSettings: () => ({ data: undefined }),

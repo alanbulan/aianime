@@ -560,6 +560,20 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "modules/production/composition.ts"),
       "utf8",
     );
+    const renderPlanDialogSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "components/episode/beat-workbench/render-plan-dialog.tsx",
+      ),
+      "utf8",
+    );
+    const renderPlanDialogViewSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/production/presentation/RenderPlanDialogView.tsx",
+      ),
+      "utf8",
+    );
     const sketchRegenQueueDomainSource = readFileSync(
       resolve(
         SRC_ROOT,
@@ -1089,6 +1103,23 @@ describe("frontend architecture boundaries", () => {
       "createUseBatchPanelController",
     );
     expect(productionCompositionSource).toContain("localStorage.removeItem");
+    expect(renderPlanDialogSource).toContain("<RenderPlanDialogView");
+    expect(renderPlanDialogSource).toContain("useRenderPlan(");
+    expect(renderPlanDialogSource).toContain("useRenderExecute(");
+    expect(renderPlanDialogSource).toContain("useQueries(");
+    expect(renderPlanDialogSource).not.toContain("className=");
+    expect(renderPlanDialogSource).not.toContain("<AlertDialog");
+    expect(renderPlanDialogSource).not.toContain("<CreditCostInline");
+    expect(renderPlanDialogSource).not.toContain("function PlanCard");
+    expect(renderPlanDialogViewSource).toContain("className=");
+    expect(renderPlanDialogViewSource).toContain("<AlertDialog");
+    expect(renderPlanDialogViewSource).toContain("<CreditCostInline");
+    expect(renderPlanDialogViewSource).toContain("function PlanCard");
+    expect(renderPlanDialogViewSource).not.toContain("useRenderPlan(");
+    expect(renderPlanDialogViewSource).not.toContain("useRenderExecute(");
+    expect(renderPlanDialogViewSource).not.toContain("useQueries(");
+    expect(renderPlanDialogViewSource).not.toContain("toast.");
+    expect(renderPlanDialogViewSource).not.toContain("@/shared/api/transport");
     expect(sketchRegenQueueDomainSource).toContain(
       "export function createSketchRegenPlanItems",
     );
