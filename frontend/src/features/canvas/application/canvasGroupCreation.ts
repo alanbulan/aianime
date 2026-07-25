@@ -7,7 +7,10 @@ import {
   getNodeSize,
   resolveAbsolutePosition,
 } from '../domain/canvasGeometry';
-import { resolveCanvasGroupMembers } from '../domain/canvasGrouping';
+import {
+  assembleCanvasGroupNodes,
+  resolveCanvasGroupMembers,
+} from '../domain/canvasGrouping';
 import type { NodeFactory } from './ports';
 
 export interface CanvasGroupCreationOptions {
@@ -110,23 +113,8 @@ export function createCanvasNodeGroup(
     });
   }
 
-  const firstMemberIndex = nodes.findIndex((node) => groupedNodeIds.has(node.id));
-  const nextNodes: CanvasNode[] = [];
-  let insertedGroup = false;
-  for (let index = 0; index < nodes.length; index += 1) {
-    const node = nodes[index];
-    if (!insertedGroup && index === firstMemberIndex) {
-      nextNodes.push(groupNode);
-      insertedGroup = true;
-    }
-    nextNodes.push(updatedMembers.get(node.id) ?? { ...node, selected: false });
-  }
-  if (!insertedGroup) {
-    nextNodes.push(groupNode);
-  }
-
   return {
-    nodes: nextNodes,
+    nodes: assembleCanvasGroupNodes(nodes, groupNode, updatedMembers),
     groupNodeId: groupNode.id,
     groupedNodeIds,
   };

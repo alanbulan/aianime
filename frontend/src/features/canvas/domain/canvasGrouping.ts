@@ -7,6 +7,33 @@ export interface CanvasGroupMembers {
   members: CanvasNode[];
 }
 
+export function assembleCanvasGroupNodes(
+  nodes: readonly CanvasNode[],
+  groupNode: CanvasNode,
+  updatedMembers: ReadonlyMap<string, CanvasNode>,
+): CanvasNode[] {
+  const firstMemberIndex = nodes.findIndex((node) => updatedMembers.has(node.id));
+  const nextNodes: CanvasNode[] = [];
+  let insertedGroup = false;
+
+  for (let index = 0; index < nodes.length; index += 1) {
+    const node = nodes[index];
+    if (!insertedGroup && index === firstMemberIndex) {
+      nextNodes.push(groupNode);
+      insertedGroup = true;
+    }
+    const updatedMember = updatedMembers.get(node.id);
+    nextNodes.push(
+      updatedMember ?? (node.selected ? { ...node, selected: false } : node),
+    );
+  }
+
+  if (!insertedGroup) {
+    nextNodes.push(groupNode);
+  }
+  return nextNodes;
+}
+
 export function resolveCanvasGroupMembers(
   nodes: readonly CanvasNode[],
   nodeIds: Iterable<string>,

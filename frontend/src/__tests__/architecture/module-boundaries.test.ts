@@ -1059,7 +1059,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("function restoreStoryboardEdges(");
   });
 
-  it("keeps Canvas plain group creation outside the Zustand store", () => {
+  it("keeps Canvas group creation outside the Zustand store", () => {
     const groupingPath = resolve(
       SRC_ROOT,
       "features/canvas/domain/canvasGrouping.ts",
@@ -1072,14 +1072,25 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/domain/canvasAutoGrouping.ts",
     );
+    const storyboardCreationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasStoryboardGroupCreation.ts",
+    );
     const groupingModel = readFileSync(groupingPath, "utf8");
     const creationModel = readFileSync(creationPath, "utf8");
     const autoGroupingModel = readFileSync(autoGroupingPath, "utf8");
+    const storyboardCreationModel = readFileSync(storyboardCreationPath, "utf8");
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
     );
-    const forbiddenImports = [groupingPath, creationPath, autoGroupingPath].flatMap((path) =>
+    const applicationPaths = new Set([creationPath, storyboardCreationPath]);
+    const forbiddenImports = [
+      groupingPath,
+      creationPath,
+      autoGroupingPath,
+      storyboardCreationPath,
+    ].flatMap((path) =>
       importSpecifiers(path)
         .filter(
           (specifier) =>
@@ -1090,7 +1101,7 @@ describe("frontend architecture boundaries", () => {
             specifier === "zustand" ||
             specifier.startsWith("zustand/") ||
             specifier.startsWith("@/stores/") ||
-            (path !== creationPath &&
+            (!applicationPaths.has(path) &&
               (specifier.startsWith("@/features/canvas/application/") ||
                 /^(?:\.\.\/)+application(?:\/|$)/.test(specifier))) ||
             specifier.startsWith("@/features/canvas/infrastructure/") ||
@@ -1111,13 +1122,23 @@ describe("frontend architecture boundaries", () => {
       "export function",
       "planCanvasAutoGroupSpawn(",
     ].join(" ");
+    const storyboardCreationDeclaration = [
+      "export function",
+      "createCanvasStoryboardGroup(",
+    ].join(" ");
+    const assemblyDeclaration = [
+      "export function",
+      "assembleCanvasGroupNodes(",
+    ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => {
         const source = readFileSync(path, "utf8");
         return (
           source.includes(groupingDeclaration) ||
           source.includes(creationDeclaration) ||
-          source.includes(autoGroupingDeclaration)
+          source.includes(autoGroupingDeclaration) ||
+          source.includes(storyboardCreationDeclaration) ||
+          source.includes(assemblyDeclaration)
         );
       })
       .map(relativeSource)
@@ -1126,22 +1147,32 @@ describe("frontend architecture boundaries", () => {
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
       "features/canvas/application/canvasGroupCreation.ts",
+      "features/canvas/application/canvasStoryboardGroupCreation.ts",
       "features/canvas/domain/canvasAutoGrouping.ts",
       "features/canvas/domain/canvasGrouping.ts",
     ]);
     expect(groupingModel).toContain(groupingDeclaration);
+    expect(groupingModel).toContain(assemblyDeclaration);
     expect(creationModel).toContain(creationDeclaration);
     expect(autoGroupingModel).toContain(autoGroupingDeclaration);
+    expect(storyboardCreationModel).toContain(storyboardCreationDeclaration);
     expect(creationModel).toContain("nodeFactory: NodeFactory");
     expect(creationModel).toContain("resolveCanvasGroupMembers(nodes, nodeIds)");
+    expect(storyboardCreationModel).toContain("nodeFactory: NodeFactory");
+    expect(storyboardCreationModel).toContain(
+      "assembleCanvasGroupNodes(nodes, groupNode, updatedMembers)",
+    );
     expect(canvasStore).toContain(
       "@/features/canvas/application/canvasGroupCreation",
     );
-    expect(canvasStore).toContain(
+    expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasGrouping",
     );
     expect(canvasStore).toContain(
       "@/features/canvas/domain/canvasAutoGrouping",
+    );
+    expect(canvasStore).toContain(
+      "@/features/canvas/application/canvasStoryboardGroupCreation",
     );
     expect(canvasStore).not.toContain("const selectedSet = new Set(existingIds)");
     expect(canvasStore).not.toContain("const absoluteBounds = members.reduce(");
@@ -1150,6 +1181,8 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("let enclosing: CanvasNode | null");
     expect(canvasStore).not.toContain("spawnedNodeIds.map(");
     expect(canvasStore).not.toContain("spawnedSet.has(node.id)");
+    expect(canvasStore).not.toContain("const ordered = [...members].sort(");
+    expect(canvasStore).not.toContain("__sbOrigSource: edge.source");
   });
 
   it("keeps Canvas storyboard node layout out of the Zustand store", () => {

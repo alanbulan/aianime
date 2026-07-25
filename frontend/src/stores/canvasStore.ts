@@ -72,7 +72,6 @@ import {
   updateCanvasNodePosition,
 } from '@/features/canvas/domain/canvasNodePositions';
 import { deleteCanvasNodes } from '@/features/canvas/domain/groupSelectionDelete';
-import { resolveCanvasGroupMembers } from '@/features/canvas/domain/canvasGrouping';
 import { planCanvasAutoGroupSpawn } from '@/features/canvas/domain/canvasAutoGrouping';
 import { validateCanvasConnection } from '@/features/canvas/domain/canvasConnection';
 import { EXPORT_RESULT_DISPLAY_NAME } from '@/features/canvas/domain/nodeDisplay';
@@ -124,6 +123,7 @@ import {
   createCanvasNodeGroup,
   type CanvasGroupCreationOptions,
 } from '@/features/canvas/application/canvasGroupCreation';
+import { createCanvasStoryboardGroup } from '@/features/canvas/application/canvasStoryboardGroupCreation';
 import {
   updateCanvasNodeSize,
   type CanvasNodeSizeUpdateOptions,
@@ -1212,151 +1212,22 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   mergeStoryboardGroup: (nodeIds) => {
     const state = get();
-    const resolvedMembers = resolveCanvasGroupMembers(state.nodes, nodeIds);
-    if (!resolvedMembers) {
+    const result = createCanvasStoryboardGroup(
+      state.nodes,
+      state.edges,
+      nodeIds,
+      canvasNodeFactory,
+    );
+    if (!result) {
       return null;
     }
-    const { nodeMap, memberIds, members } = resolvedMembers;
-
-    // Reading order by current absolute position (top→bottom, then left→right) so
-    // the grid sequence matches how the user laid the shots out.
-    const ordered = [...members].sort((a, b) => {
-      const pa = resolveAbsolutePosition(a, nodeMap);
-      const pb = resolveAbsolutePosition(b, nodeMap);
-      return pa.y - pb.y || pa.x - pb.x;
-    });
-
-    // Members keep their natural sizes but are HIDDEN — the group renders them as
-    // compact thumbnails (libtv style). Their hidden positions form a full-size
-    // grid so they spread out cleanly on ungroup / convert.
-    const baseWidth = Math.max(...ordered.map((node) => getNodeSize(node).width));
-    const baseHeight = Math.max(...ordered.map((node) => getNodeSize(node).height));
-    const aspectKey = DEFAULT_STORYBOARD_ASPECT;
-    const cols = resolveStoryboardCols(ordered.length);
-    // Hidden-member layout: full-size cells (for a clean ungroup spread).
-    const { cellWidth: fullCellWidth, cellHeight: fullCellHeight } = computeStoryboardCell(
-      baseWidth,
-      baseHeight,
-      aspectKey
-    );
-    const memberLayout = computeStoryboardGridLayout({
-      count: ordered.length,
-      cols,
-      cellWidth: fullCellWidth,
-      cellHeight: fullCellHeight,
-    });
-    // Rendered board: compact thumbnail grid — this drives the group box size.
-    const board = computeStoryboardBoardLayout({ count: ordered.length, cols, aspectKey });
-
-    // Anchor at the selection's top-left so the board lands roughly in place.
-    const anchor = ordered.reduce(
-      (acc, node) => {
-        const absolute = resolveAbsolutePosition(node, nodeMap);
-        return { x: Math.min(acc.x, absolute.x), y: Math.min(acc.y, absolute.y) };
-      },
-      { x: Number.POSITIVE_INFINITY, y: Number.POSITIVE_INFINITY }
-    );
-    const groupX = Math.round(Number.isFinite(anchor.x) ? anchor.x : 0);
-    const groupY = Math.round(Number.isFinite(anchor.y) ? anchor.y : 0);
-
-    const existingStoryboardCount = state.nodes.filter((node) =>
-      isStoryboardGroupNode(node)
-    ).length;
-    const groupDisplayName = `分镜组 ${existingStoryboardCount + 1}`;
-    const groupNode = canvasNodeFactory.createNode(
-      CANVAS_NODE_TYPES.group,
-      { x: groupX, y: groupY },
-      {
-        label: groupDisplayName,
-        displayName: groupDisplayName,
-        storyboardGroup: true,
-        storyboardAspect: aspectKey,
-        storyboardCols: board.cols,
-        storyboardShowIndex: false,
-        storyboardBaseWidth: baseWidth,
-        storyboardBaseHeight: baseHeight,
-      }
-    );
-    groupNode.style = { width: board.groupWidth, height: board.groupHeight };
-    // Only the header drags the whole board; thumbnails handle their own reorder.
-    groupNode.dragHandle = '.storyboard-group-drag-handle';
-    groupNode.selected = true;
-
-    const memberSet = new Set(memberIds);
-    const updatedMemberMap = new Map<string, CanvasNode>();
-    ordered.forEach((node, index) => {
-      const cell = memberLayout.cells[index];
-      updatedMemberMap.set(node.id, {
-        ...node,
-        parentId: groupNode.id,
-        // No `extent` so the (large) hidden members aren't clamped to the compact
-        // board box; `hidden` keeps them out of the canvas while grouped.
-        hidden: true,
-        position: { x: cell.x, y: cell.y },
-        selected: false,
-      });
-    });
-
-    const firstMemberIndex = state.nodes.reduce((acc, node, index) => {
-      if (!memberSet.has(node.id)) {
-        return acc;
-      }
-      return acc === -1 ? index : Math.min(acc, index);
-    }, -1);
-
-    const nextNodes: CanvasNode[] = [];
-    let insertedGroup = false;
-    for (let index = 0; index < state.nodes.length; index += 1) {
-      const node = state.nodes[index];
-      if (!insertedGroup && index === firstMemberIndex) {
-        nextNodes.push(groupNode);
-        insertedGroup = true;
-      }
-      const updatedMember = updatedMemberMap.get(node.id);
-      if (updatedMember) {
-        nextNodes.push(updatedMember);
-      } else {
-        nextNodes.push(node.selected ? { ...node, selected: false } : node);
-      }
-    }
-    if (!insertedGroup) {
-      nextNodes.push(groupNode);
-    }
-
-    // Edge handling once members become hidden thumbnails:
-    // - member ↔ member  → internal, hide it (both endpoints invisible).
-    // - member ↔ external → re-anchor the member endpoint onto the GROUP so the
-    //   connection stays visible (pointing at the board); remember the original
-    //   member id so ungroup / convert can restore it.
-    const nextEdges = state.edges.map((edge) => {
-      const sourceMember = memberSet.has(edge.source);
-      const targetMember = memberSet.has(edge.target);
-      if (sourceMember && targetMember) {
-        return { ...edge, hidden: true };
-      }
-      if (sourceMember) {
-        return {
-          ...edge,
-          source: groupNode.id,
-          data: { ...(edge.data ?? {}), __sbOrigSource: edge.source },
-        };
-      }
-      if (targetMember) {
-        return {
-          ...edge,
-          target: groupNode.id,
-          data: { ...(edge.data ?? {}), __sbOrigTarget: edge.target },
-        };
-      }
-      return edge;
-    });
 
     set({
-      nodes: nextNodes,
-      edges: nextEdges,
-      selectedNodeId: groupNode.id,
+      nodes: result.nodes,
+      edges: result.edges,
+      selectedNodeId: result.groupNodeId,
       activeToolDialog:
-        state.activeToolDialog && memberSet.has(state.activeToolDialog.nodeId)
+        state.activeToolDialog && result.groupedNodeIds.has(state.activeToolDialog.nodeId)
           ? null
           : state.activeToolDialog,
       history: {
@@ -1367,7 +1238,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       ...trackEdit(state),
     });
 
-    return groupNode.id;
+    return result.groupNodeId;
   },
 
   setStoryboardGroupConfig: (groupNodeId, config) => {
