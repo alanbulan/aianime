@@ -5,11 +5,8 @@ import {
 } from '@/commands/image';
 
 import {
-  canvasToDataUrl,
-  detectAspectRatio,
-  loadImageElement,
   parseAspectRatio,
-  persistImageLocally,
+  reduceAspectRatio,
 } from '../application/imageData';
 import type { CanvasToolImageGateway } from '../application/ports';
 import {
@@ -17,6 +14,12 @@ import {
   splitIntoSegments,
 } from '../domain/toolImageGeometry';
 import { drawAnnotations, parseAnnotationItems } from '../tools/annotation';
+import {
+  browserImageRuntimeGateway,
+  canvasToDataUrl,
+  loadImageElement,
+  persistImageLocally,
+} from './browserImageRuntime';
 
 async function cropImage(
   sourceImage: string,
@@ -254,11 +257,11 @@ export const browserToolImageGateway: CanvasToolImageGateway = {
   crop: cropImage,
   annotate: annotateImage,
   persist: persistImageLocally,
-  detectAspectRatio,
-  getDimensions: async (sourceImage) => {
-    const image = await loadImageElement(sourceImage);
-    return { width: image.naturalWidth, height: image.naturalHeight };
+  detectAspectRatio: async (sourceImage) => {
+    const dimensions = await browserImageRuntimeGateway.getDimensions(sourceImage);
+    return reduceAspectRatio(dimensions.width, dimensions.height);
   },
+  getDimensions: browserImageRuntimeGateway.getDimensions,
   splitLocally: splitImageLocally,
   readStoryboardMetadata: async (sourceImage) => {
     try {

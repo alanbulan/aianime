@@ -214,6 +214,22 @@ export interface CanvasImageDimensions {
   height: number;
 }
 
+export interface CanvasImagePreviewData extends CanvasImageDimensions {
+  normalizedDataUrl: string;
+  previewDataUrl: string;
+}
+
+export interface CanvasImageRuntimeGateway {
+  now: () => number;
+  persist: (sourceImage: string) => Promise<string>;
+  readFileAsDataUrl: (file: File) => Promise<string>;
+  preparePreview: (
+    sourceImage: string,
+    maxDimension: number,
+  ) => Promise<CanvasImagePreviewData>;
+  getDimensions: (sourceImage: string) => Promise<CanvasImageDimensions>;
+}
+
 export interface CanvasStoryboardImageMetadata {
   gridRows: number;
   gridCols: number;

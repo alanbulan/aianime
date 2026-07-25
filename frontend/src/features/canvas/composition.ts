@@ -6,6 +6,11 @@ import {
   migratePastedNodeAssets as migratePastedNodeAssetsUseCase,
   type MigratePastedNodeAssetsParams,
 } from './application/crossProjectAssets';
+import {
+  detectAspectRatio as detectAspectRatioUseCase,
+  prepareNodeImage as prepareNodeImageUseCase,
+  prepareNodeImageFromFile as prepareNodeImageFromFileUseCase,
+} from './application/imagePreparation';
 import { CanvasToolProcessor } from './application/toolProcessor';
 import {
   regenerateExportImageNode as regenerateExportImageNodeUseCase,
@@ -26,6 +31,7 @@ import {
   uploadLocalImageToBackend as uploadLocalImageToBackendUseCase,
 } from './application/uploadToolOutput';
 import { browserGenerationRuntimeGateway } from './infrastructure/browserGenerationRuntimeGateway';
+import { browserImageRuntimeGateway } from './infrastructure/browserImageRuntime';
 import { browserToolImageGateway } from './infrastructure/browserToolImageGateway';
 import { freezoneAssetGateway } from './infrastructure/freezoneAssetGateway';
 import { freezoneAiGateway } from './infrastructure/freezoneAiGateway';
@@ -48,6 +54,32 @@ export const CURRENT_RUNTIME_SESSION_ID =
 
 export function getRuntimeDiagnostics() {
   return browserGenerationRuntimeGateway.getRuntimeDiagnostics();
+}
+
+export function prepareNodeImage(
+  imageUrl: string,
+  maxPreviewDimension?: number,
+) {
+  return prepareNodeImageUseCase(
+    browserImageRuntimeGateway,
+    imageUrl,
+    maxPreviewDimension,
+  );
+}
+
+export function prepareNodeImageFromFile(
+  file: File,
+  maxPreviewDimension?: number,
+) {
+  return prepareNodeImageFromFileUseCase(
+    browserImageRuntimeGateway,
+    file,
+    maxPreviewDimension,
+  );
+}
+
+export function detectAspectRatio(imageUrl: string) {
+  return detectAspectRatioUseCase(browserImageRuntimeGateway, imageUrl);
 }
 
 export function migratePastedNodeAssets(

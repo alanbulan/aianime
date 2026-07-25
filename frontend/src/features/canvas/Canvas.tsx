@@ -46,6 +46,7 @@ import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import {
   CURRENT_RUNTIME_SESSION_ID,
   canvasAiGateway,
+  prepareNodeImage,
   migratePastedNodeAssets,
   resumeNodeGeneration,
   uploadLocalImageToBackend,
@@ -76,7 +77,6 @@ import {
   isPresetManagedEdge,
   isPresetManagedNode,
 } from '@/features/canvas/domain/mainlineNodeFlags';
-import { prepareNodeImage } from '@/features/canvas/application/imageData';
 import { isVideoFile } from '@/features/canvas/application/videoFileTypes';
 import {
   buildGenerationErrorReport,

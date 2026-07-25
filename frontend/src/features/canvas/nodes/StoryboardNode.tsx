@@ -39,15 +39,19 @@ import {
 } from '@/features/canvas/domain/canvasNodes';
 import { EXPORT_RESULT_DISPLAY_NAME, resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
 import {
-  canvasToDataUrl,
-  loadImageElement,
-  prepareNodeImage,
-  persistImageLocally,
   reduceAspectRatio,
   resolveImageDisplayUrl,
   shouldUseOriginalImageByZoom,
 } from '@/features/canvas/application/imageData';
-import { uploadLocalImageToBackend } from '@/features/canvas/composition';
+import {
+  canvasToDataUrl,
+  loadImageElement,
+  persistImageLocally,
+} from '@/features/canvas/infrastructure/browserImageRuntime';
+import {
+  prepareNodeImage,
+  uploadLocalImageToBackend,
+} from '@/features/canvas/composition';
 import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 import { UiButton, UiCheckbox, UiChipButton, UiInput, UiPanel, UiSelect } from '@/components/ui';
 import {

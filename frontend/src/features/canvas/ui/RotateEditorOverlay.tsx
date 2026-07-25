@@ -17,7 +17,7 @@ import {
 } from '@/features/canvas/domain/canvasNodes';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { uploadFreezoneImage } from '@/api/ops';
-import { loadImageElement } from '@/features/canvas/application/imageData';
+import { loadImageElement } from '@/features/canvas/infrastructure/browserImageRuntime';
 import { readUrl } from '@/lib/url-params';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
 import { CANVAS_NODE_TOOLBAR_PILL_CLASS } from './nodeFrameStyles';

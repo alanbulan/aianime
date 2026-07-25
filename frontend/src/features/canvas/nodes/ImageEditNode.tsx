@@ -38,6 +38,7 @@ import { useReferenceMentionSync } from '@/features/canvas/nodes/useReferenceMen
 import {
   CURRENT_RUNTIME_SESSION_ID,
   canvasAiGateway,
+  detectAspectRatio,
   getRuntimeDiagnostics,
 } from '@/features/canvas/composition';
 import {
@@ -51,7 +52,6 @@ import {
 import { resolveErrorContent, showErrorDialog } from '@/features/canvas/application/errorDialog';
 import { backendErrorToastMessage } from '@/shared/api/errors';
 import {
-  detectAspectRatio,
   parseAspectRatio,
   pickClosestAspectRatio,
   resolveImageDisplayUrl,

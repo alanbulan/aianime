@@ -48,12 +48,14 @@ import {
   canvasNodeFrameClass,
 } from '@/features/canvas/ui/nodeFrameStyles';
 import {
-  prepareNodeImageFromFile,
   resolveImageDisplayUrl,
   shouldUseOriginalImageByZoom,
   withImageCacheBust,
 } from '@/features/canvas/application/imageData';
-import { uploadLocalImageToBackend } from '@/features/canvas/composition';
+import {
+  prepareNodeImageFromFile,
+  uploadLocalImageToBackend,
+} from '@/features/canvas/composition';
 import { CanvasNodeImage } from '@/features/canvas/ui/CanvasNodeImage';
 import { DirectorControlBundleBadge } from '@/features/canvas/ui/DirectorControlBundleBadge';
 import {

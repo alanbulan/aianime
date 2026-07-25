@@ -13,9 +13,10 @@ import { EXPORT_RESULT_DISPLAY_NAME } from '@/features/canvas/domain/nodeDisplay
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import {
   canvasToolProcessor,
+  prepareNodeImage,
   uploadLocalImageToBackend,
 } from '@/features/canvas/composition';
-import { prepareNodeImage, resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
+import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import { readStoryboardImageMetadata } from '@/commands/image';
 import { getToolPlugin, type ToolOptions } from '@/features/canvas/tools';
 import { useCanvasStore } from '@/stores/canvasStore';

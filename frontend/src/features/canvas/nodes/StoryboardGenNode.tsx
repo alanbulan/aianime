@@ -31,6 +31,7 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import {
   CURRENT_RUNTIME_SESSION_ID,
   canvasAiGateway,
+  detectAspectRatio,
   getRuntimeDiagnostics,
   uploadLocalImageToBackend,
 } from '@/features/canvas/composition';
@@ -38,7 +39,6 @@ import { useUpstreamImages } from '@/features/canvas/hooks/useUpstreamGraph';
 import { resolveErrorContent, showErrorDialog } from '@/features/canvas/application/errorDialog';
 import { backendErrorToastMessage } from '@/shared/api/errors';
 import {
-  detectAspectRatio,
   parseAspectRatio,
   pickClosestAspectRatio,
   resolveImageDisplayUrl,

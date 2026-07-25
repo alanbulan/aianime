@@ -260,6 +260,18 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes("document."))
       .map(relativeSource)
       .sort();
+    const directImageConstructorUsers = sourceFiles(applicationRoot)
+      .filter((path) => readFileSync(path, "utf8").includes("new Image("))
+      .map(relativeSource)
+      .sort();
+    const directFileReaderUsers = sourceFiles(applicationRoot)
+      .filter((path) => readFileSync(path, "utf8").includes("new FileReader("))
+      .map(relativeSource)
+      .sort();
+    const directPerformanceUsers = sourceFiles(applicationRoot)
+      .filter((path) => readFileSync(path, "utf8").includes("performance.now("))
+      .map(relativeSource)
+      .sort();
     const directCommandUsers = sourceFiles(applicationRoot)
       .filter((path) =>
         importSpecifiers(path).some((specifier) =>
@@ -377,6 +389,21 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const imageData = readFileSync(
+      resolve(applicationRoot, "imageData.ts"),
+      "utf8",
+    );
+    const imagePreparation = readFileSync(
+      resolve(applicationRoot, "imagePreparation.ts"),
+      "utf8",
+    );
+    const imageRuntime = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/browserImageRuntime.ts",
+      ),
+      "utf8",
+    );
 
     expect(failures).toEqual([]);
     expect(directApiUsers).toEqual([]);
@@ -386,9 +413,10 @@ describe("frontend architecture boundaries", () => {
     expect(directWindowUsers).toEqual([]);
     expect(directNavigatorUsers).toEqual([]);
     expect(directWorkerUsers).toEqual([]);
-    expect(directDocumentUsers).toEqual([
-      "features/canvas/application/imageData.ts",
-    ]);
+    expect(directDocumentUsers).toEqual([]);
+    expect(directImageConstructorUsers).toEqual([]);
+    expect(directFileReaderUsers).toEqual([]);
+    expect(directPerformanceUsers).toEqual([]);
     expect(directCommandUsers).toEqual([]);
     expect(
       existsSync(resolve(applicationRoot, "useUpstreamGraph.ts")),
@@ -421,6 +449,8 @@ describe("frontend architecture boundaries", () => {
     expect(composition).toContain("uuidGenerator");
     expect(composition).toContain("webImageSplitGateway");
     expect(composition).toContain("browserToolImageGateway");
+    expect(composition).toContain("browserImageRuntimeGateway");
+    expect(composition).toContain("prepareNodeImageUseCase(");
     expect(composition).toContain("freezoneAssetGateway");
     expect(composition).toContain("migratePastedNodeAssetsUseCase(");
     expect(composition).toContain("currentOrigin: window.location.origin");
@@ -480,6 +510,15 @@ describe("frontend architecture boundaries", () => {
     expect(toolProcessor).not.toContain("./imageData");
     expect(toolImageGateway).toContain("document.createElement('canvas')");
     expect(toolImageGateway).toContain("cropImageSource");
+    expect(toolImageGateway).toContain("./browserImageRuntime");
+    expect(imageData).not.toContain("document.");
+    expect(imageData).not.toContain("new Image(");
+    expect(imageData).not.toContain("new FileReader(");
+    expect(imagePreparation).toContain("CanvasImageRuntimeGateway");
+    expect(imagePreparation).toContain("runtime.preparePreview(");
+    expect(imageRuntime).toContain("document.createElement('canvas')");
+    expect(imageRuntime).toContain("new Image()");
+    expect(imageRuntime).toContain("new FileReader()");
     expect(regenerateExportNode).toContain("aiGateway: AiGateway");
     expect(regenerateExportNode).toContain(
       "params: RegenerateExportImageNodeParams",
