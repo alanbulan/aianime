@@ -6,6 +6,7 @@ import {
   createSnapshot,
   normalizeHistory,
   pushSnapshot,
+  recordCanvasInteractionHistory,
   redoHistory,
   undoHistory,
   type CanvasHistorySnapshot,
@@ -82,5 +83,39 @@ describe('Canvas history', () => {
 
     expect(undoHistory(empty, current)).toBeNull();
     expect(redoHistory(empty, current)).toBeNull();
+  });
+
+  it('captures one snapshot for a continuous drag and pushes it on interaction end', () => {
+    const beforeDrag = snapshot('before-drag');
+    const moved = recordCanvasInteractionHistory(
+      { history: { past: [], future: [] }, dragHistorySnapshot: null },
+      beforeDrag,
+      {
+        hasMeaningfulChange: true,
+        hasInteractionMove: true,
+        hasInteractionEnd: false,
+      },
+    );
+
+    expect(moved).toEqual({
+      history: { past: [], future: [] },
+      dragHistorySnapshot: beforeDrag,
+      editPushed: false,
+    });
+
+    const ended = recordCanvasInteractionHistory(
+      moved,
+      snapshot('drag-end'),
+      {
+        hasMeaningfulChange: true,
+        hasInteractionMove: false,
+        hasInteractionEnd: true,
+      },
+    );
+    expect(ended).toEqual({
+      history: { past: [beforeDrag], future: [] },
+      dragHistorySnapshot: null,
+      editPushed: true,
+    });
   });
 });

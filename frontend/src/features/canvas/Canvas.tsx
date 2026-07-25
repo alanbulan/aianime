@@ -44,6 +44,7 @@ import { getSkillRegistry } from '@/api/skills';
 import { SKILL_SCHEMA_VERSION, type SkillDefinition } from '@/features/freezone/context/skillRoles';
 import { translateSkillName } from '@/features/freezone/context/skillI18n';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
+import { classifyCanvasNodeChanges } from '@/features/canvas/application/canvasChangeIntent';
 import {
   CURRENT_RUNTIME_SESSION_ID,
   canvasAiGateway,
@@ -1589,38 +1590,13 @@ export function Canvas({
       }
       applyNodesChange(effectiveChanges);
 
-      const hasDragMove = unlockedChanges.some(
-        (change) =>
-          change.type === 'position' &&
-          'dragging' in change &&
-          Boolean(change.dragging)
-      );
-      const hasDragEnd = unlockedChanges.some(
-        (change) =>
-          change.type === 'position' &&
-          'dragging' in change &&
-          change.dragging === false
-      );
-      const hasResizeMove = unlockedChanges.some(
-        (change) =>
-          change.type === 'dimensions' &&
-          'resizing' in change &&
-          Boolean(change.resizing)
-      );
-      const hasResizeEnd = unlockedChanges.some(
-        (change) =>
-          change.type === 'dimensions' &&
-          'resizing' in change &&
-          change.resizing === false
-      );
-      const hasInteractionMove = hasDragMove || hasResizeMove;
-      const hasInteractionEnd = hasDragEnd || hasResizeEnd;
+      const intent = classifyCanvasNodeChanges(effectiveChanges);
 
-      if (hasInteractionMove) {
+      if (intent.hasInteractionMove) {
         return;
       }
 
-      if (hasInteractionEnd) {
+      if (intent.hasInteractionEnd) {
         scheduleCanvasPersist(0);
         return;
       }

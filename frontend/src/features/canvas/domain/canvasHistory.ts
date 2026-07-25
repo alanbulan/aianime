@@ -16,6 +16,21 @@ export interface CanvasHistoryTransition {
   history: CanvasHistoryState;
 }
 
+export interface CanvasInteractionHistoryState {
+  history: CanvasHistoryState;
+  dragHistorySnapshot: CanvasHistorySnapshot | null;
+}
+
+export interface CanvasInteractionHistoryIntent {
+  hasMeaningfulChange: boolean;
+  hasInteractionMove: boolean;
+  hasInteractionEnd: boolean;
+}
+
+export interface CanvasInteractionHistoryResult extends CanvasInteractionHistoryState {
+  editPushed: boolean;
+}
+
 export const MAX_HISTORY_STEPS = 50;
 
 export function createSnapshot(
@@ -56,6 +71,43 @@ export function normalizeHistory(
     future: history.future
       .slice(-MAX_HISTORY_STEPS)
       .map((snapshot) => normalizeSnapshot(snapshot.nodes, snapshot.edges)),
+  };
+}
+
+export function recordCanvasInteractionHistory(
+  state: CanvasInteractionHistoryState,
+  current: CanvasHistorySnapshot,
+  intent: CanvasInteractionHistoryIntent,
+): CanvasInteractionHistoryResult {
+  let nextHistory = state.history;
+  let nextDragHistorySnapshot = state.dragHistorySnapshot;
+  let editPushed = false;
+
+  if (intent.hasInteractionMove && !nextDragHistorySnapshot) {
+    nextDragHistorySnapshot = current;
+  }
+
+  if (intent.hasInteractionEnd) {
+    const snapshot = nextDragHistorySnapshot ?? current;
+    nextHistory = {
+      past: pushSnapshot(state.history.past, snapshot),
+      future: [],
+    };
+    nextDragHistorySnapshot = null;
+    editPushed = true;
+  } else if (intent.hasMeaningfulChange && !intent.hasInteractionMove) {
+    nextHistory = {
+      past: pushSnapshot(state.history.past, current),
+      future: [],
+    };
+    nextDragHistorySnapshot = null;
+    editPushed = true;
+  }
+
+  return {
+    history: nextHistory,
+    dragHistorySnapshot: nextDragHistorySnapshot,
+    editPushed,
   };
 }
 

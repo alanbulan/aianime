@@ -34,6 +34,7 @@ import {
   createSnapshot,
   normalizeHistory,
   pushSnapshot,
+  recordCanvasInteractionHistory,
   redoHistory,
   undoHistory,
   type CanvasHistorySnapshot,
@@ -99,6 +100,10 @@ import {
   resolveDerivedAspectRatio,
   resolveStoryboardSplitNodeDimensions,
 } from '@/features/canvas/application/storyboardNodeLayout';
+import {
+  classifyCanvasNodeChanges,
+  hasMeaningfulCanvasEdgeChange,
+} from '@/features/canvas/application/canvasChangeIntent';
 import {
   validateCandidateBindingRoleCandidate,
   validatePropagatingEdgeCandidate,
@@ -399,88 +404,25 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   onNodesChange: (changes) => {
     set((state) => {
-      const resizedNodeIds = new Set(
-        changes
-          .filter(
-            (change): change is NodeChange<CanvasNode> & { id: string } =>
-              change.type === 'dimensions'
-              && 'resizing' in change
-              && change.resizing === false
-              && typeof change.id === 'string'
-          )
-          .map((change) => change.id)
-      );
+      const intent = classifyCanvasNodeChanges(changes);
 
       let nextNodes = applyNodeChanges<CanvasNode>(changes, state.nodes);
-      if (resizedNodeIds.size > 0) {
+      if (intent.resizedNodeIds.size > 0) {
         nextNodes = nextNodes.map((node) => {
-          if (!resizedNodeIds.has(node.id) || !isImageAutoResizableType(node.type)) {
+          if (!intent.resizedNodeIds.has(node.id) || !isImageAutoResizableType(node.type)) {
             return node;
           }
           return withManualSizeLock(node);
         });
       }
-      // 'dimensions' changes are either ReactFlow auto-measurement (pure
-      // view-state) or a NodeResizer resize — the latter is already captured by
-      // the `resizing` branches below. Excluding them here stops auto-measuring
-      // a freshly-created node from pushing a spurious extra undo step (which
-      // made the first undo after creating a node appear to do nothing).
-      const hasMeaningfulChange = changes.some(
-        (change) => change.type !== 'select' && change.type !== 'dimensions',
+      const historyResult = recordCanvasInteractionHistory(
+        {
+          history: state.history,
+          dragHistorySnapshot: state.dragHistorySnapshot,
+        },
+        createSnapshot(state.nodes, state.edges),
+        intent,
       );
-      const hasDragMove = changes.some(
-        (change) =>
-          change.type === 'position' &&
-          'dragging' in change &&
-          Boolean(change.dragging)
-      );
-      const hasDragEnd = changes.some(
-        (change) =>
-          change.type === 'position' &&
-          'dragging' in change &&
-          change.dragging === false
-      );
-      const hasResizeMove = changes.some(
-        (change) =>
-          change.type === 'dimensions' &&
-          'resizing' in change &&
-          Boolean(change.resizing)
-      );
-      const hasResizeEnd = changes.some(
-        (change) =>
-          change.type === 'dimensions' &&
-          'resizing' in change &&
-          change.resizing === false
-      );
-      const hasInteractionMove = hasDragMove || hasResizeMove;
-      const hasInteractionEnd = hasDragEnd || hasResizeEnd;
-
-      let nextHistory = state.history;
-      let nextDragHistorySnapshot = state.dragHistorySnapshot;
-      // Only history-push moments count as user edits for the dangerous-empty
-      // guard. Pure selection / view-state changes leave the counter alone.
-      let editPushed = false;
-
-      if (hasInteractionMove && !nextDragHistorySnapshot) {
-        nextDragHistorySnapshot = createSnapshot(state.nodes, state.edges);
-      }
-
-      if (hasInteractionEnd) {
-        const snapshot = nextDragHistorySnapshot ?? createSnapshot(state.nodes, state.edges);
-        nextHistory = {
-          past: pushSnapshot(state.history.past, snapshot),
-          future: [],
-        };
-        nextDragHistorySnapshot = null;
-        editPushed = true;
-      } else if (hasMeaningfulChange && !hasInteractionMove) {
-        nextHistory = {
-          past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-          future: [],
-        };
-        nextDragHistorySnapshot = null;
-        editPushed = true;
-      }
 
       const editSource: CanvasMutationSource = isDeleteToEmpty(
         state.nodes.length,
@@ -493,9 +435,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         nodes: nextNodes,
         selectedNodeId: resolveSelectedNodeId(state.selectedNodeId, nextNodes),
         activeToolDialog: resolveActiveToolDialog(state.activeToolDialog, nextNodes),
-        history: nextHistory,
-        dragHistorySnapshot: nextDragHistorySnapshot,
-        ...(editPushed ? trackEdit(state, editSource) : {}),
+        history: historyResult.history,
+        dragHistorySnapshot: historyResult.dragHistorySnapshot,
+        ...(historyResult.editPushed ? trackEdit(state, editSource) : {}),
       };
     });
   },
@@ -503,7 +445,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   onEdgesChange: (changes) => {
     set((state) => {
       const nextEdges = applyEdgeChanges<CanvasEdge>(changes, state.edges);
-      const hasMeaningfulChange = changes.some((change) => change.type !== 'select');
+      const hasMeaningfulChange = hasMeaningfulCanvasEdgeChange(changes);
 
       if (!hasMeaningfulChange) {
         return { edges: nextEdges };
