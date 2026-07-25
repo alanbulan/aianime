@@ -52,7 +52,6 @@ import {
   createUseSketchGridCardController,
   createUseSketchGridGalleryController,
 } from "@/modules/production/application/use-sketch-grid-gallery-controller";
-import { createUseSketchSectionController } from "@/modules/production/application/use-sketch-section-controller";
 import { createUseVideoPaneMediaController } from "@/modules/production/application/use-video-pane-media-controller";
 import { createUseVideoPaneController } from "@/modules/production/application/use-video-pane-controller";
 import { useSeedance2MentionController } from "@/modules/production/application/use-seedance2-mention-controller";
@@ -255,40 +254,6 @@ export const useSketchPoseEditorDialogController =
     },
     { resolveMediaUrl },
   );
-export const useSketchSectionController = createUseSketchSectionController(
-  {
-    useDirectorControlToSketch:
-      sketchGenerationQueries.useDirectorControlToSketch,
-    usePoolSelect: imagePoolQueries.usePoolSelect,
-    useRegenerateSketches: sketchGenerationQueries.useRegenerateSketches,
-    useSketchSettings: imageSettingsQueries.useSketchSettings,
-    useUploadBeatImage: imagePoolQueries.useUploadBeatImage,
-  },
-  {
-    cacheBustImage: withImageCacheBust,
-    downloadFile: (url, filename) => {
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = filename;
-      anchor.click();
-    },
-    openSketchFreezone: (project, episode, beatNumber) =>
-      openPresetProjectionInMyCanvas(project, {
-        scope: "beat",
-        episode,
-        beat: beatNumber,
-        primary_slot: "sketch",
-      }),
-    useGenerationCreditCost,
-    useNow,
-    useSeenSketchCandidates: (project, episode) => ({
-      markSeen: useSeenPoolStore((state) => state.markSeen),
-      seenIds: useSeenPoolStore(
-        (state) => state.seen[`${project}:${episode}`],
-      ),
-    }),
-  },
-);
 export const useRenderSectionController = createUseRenderSectionController(
   {
     usePoolSelect: imagePoolQueries.usePoolSelect,

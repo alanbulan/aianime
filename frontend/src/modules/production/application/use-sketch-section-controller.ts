@@ -14,9 +14,15 @@ import { parseColorValue, splitIdentityId } from "@/lib/sketch-colors";
 import type {
   AssetResponse,
   BeatBackgroundAnchors,
+  DirectorStageManifest,
   DirectorControlFrameStatus,
 } from "@/modules/asset_world/public";
-import type { Beat } from "@/modules/narrative_planning/public";
+import type {
+  Beat,
+  DataResponse,
+  Episode,
+  Script,
+} from "@/modules/narrative_planning/public";
 import { StalePoolSelectError } from "@/modules/production/application/image-pool-errors";
 import type {
   BeatImageUploadResponse,
@@ -72,17 +78,44 @@ interface DirectorControlMutation {
 }
 
 export interface SketchSectionControllerQueries {
+  useBeatBackgroundAnchors(
+    project: string,
+    episode: number,
+    beatNumber: number,
+  ): SketchBackgroundAnchorsQuery;
+  useBeatDirectorStageManifest(
+    project: string,
+    episode: number,
+    beatNumber: number,
+    enabled: boolean,
+  ): SketchDirectorStageQuery;
+  useCharacters(project: string): SketchCharactersQuery;
   useDirectorControlToSketch(
     project: string,
     episode: number,
     beatNumber: number,
   ): DirectorControlMutation;
+  useDirectorControlFrameStatus(
+    project: string,
+    episode: number,
+    beatNumber: number,
+  ): SketchDirectorStatusQuery;
+  useEpisodeDetail(
+    project: string,
+    episode: number,
+  ): SketchEpisodeQuery;
   usePoolSelect(project: string, episode: number): PoolSelectMutation;
   useRegenerateSketches(
     project: string,
     episode: number,
   ): RegenerateSketchesMutation;
   useSketchSettings(project: string): SketchSettingsQuery;
+  useScript(project: string, episode: number): SketchScriptQuery;
+  useUpdateBeatBackgroundAnchor(
+    project: string,
+    episode: number,
+    beatNumber: number,
+  ): UpdateSketchBackgroundMutation;
   useUploadBeatImage(
     project: string,
     episode: number,
@@ -115,7 +148,13 @@ export interface SketchSectionControllerDependencies {
       surface: "ai_anime";
     },
   ): CreditCostQuery;
+  useAssetNavigation(
+    project: string,
+  ): (kind: "identity" | "prop", id: string) => void;
   useNow(): number;
+  useProjectAspectRatio(project: string): {
+    spec: { sketchAspect: SketchAspectRatio };
+  };
   useSeenSketchCandidates(
     project: string,
     episode: number,
@@ -129,6 +168,23 @@ export interface SketchBackgroundAnchorsQuery {
     data?: AssetResponse<BeatBackgroundAnchors>;
     error?: unknown;
   }>;
+}
+
+export interface SketchCharactersQuery {
+  data?: AssetResponse<Array<{ name: string }>>;
+}
+
+export interface SketchDirectorStageQuery {
+  data?: AssetResponse<DirectorStageManifest>;
+  isLoading: boolean;
+}
+
+export interface SketchEpisodeQuery {
+  data?: DataResponse<Episode>;
+}
+
+export interface SketchScriptQuery {
+  data?: DataResponse<Script | null>;
 }
 
 export interface UpdateSketchBackgroundMutation {
@@ -146,18 +202,10 @@ export interface SketchDirectorStatusQuery {
 
 export interface SketchSectionControllerOptions {
   assignments: Record<string, string>;
-  backgroundAnchors: SketchBackgroundAnchorsQuery;
   beat: Beat;
-  characters: Array<{ name: string }>;
-  directorStatus: SketchDirectorStatusQuery;
   episode: number;
-  episodePropMenu: Array<{ marker_color?: string; prop_id: string }>;
   images: PoolImage[];
   project: string;
-  sketchAspect: SketchAspectRatio;
-  sketchColors: Record<string, string>;
-  updateBackgroundAnchor: UpdateSketchBackgroundMutation;
-  navigateToAsset(kind: "identity" | "prop", id: string): void;
 }
 
 export type SketchToolAction = "pose" | "crop";
@@ -215,6 +263,8 @@ export interface SketchSectionController {
   directorControlUrl: string | null;
   directorConvertPending: boolean;
   directorTask: SketchTaskViewModel;
+  directorWorldManifest: DirectorStageManifest | null;
+  directorWorldPending: boolean;
   downloadEnabled: boolean;
   editable: boolean;
   episode: number;
@@ -268,6 +318,29 @@ export function createUseSketchSectionController(
     options: SketchSectionControllerOptions,
   ): SketchSectionController {
     const { t } = useTranslation();
+    const { spec } = dependencies.useProjectAspectRatio(options.project);
+    const navigateToAsset = dependencies.useAssetNavigation(options.project);
+    const backgroundAnchors = queries.useBeatBackgroundAnchors(
+      options.project,
+      options.episode,
+      options.beat.beat_number,
+    );
+    const updateBackgroundAnchor = queries.useUpdateBeatBackgroundAnchor(
+      options.project,
+      options.episode,
+      options.beat.beat_number,
+    );
+    const directorStatus = queries.useDirectorControlFrameStatus(
+      options.project,
+      options.episode,
+      options.beat.beat_number,
+    );
+    const scriptQuery = queries.useScript(options.project, options.episode);
+    const charactersQuery = queries.useCharacters(options.project);
+    const episodeQuery = queries.useEpisodeDetail(
+      options.project,
+      options.episode,
+    );
     const poolSelect = queries.usePoolSelect(options.project, options.episode);
     const regenerate = queries.useRegenerateSketches(
       options.project,
@@ -275,7 +348,7 @@ export function createUseSketchSectionController(
     );
     const sketchSettings = queries.useSketchSettings(options.project);
     const singleSketchModeKey =
-      options.sketchAspect === "16:9"
+      spec.sketchAspect === "16:9"
         ? "1x1_16-9_sketch"
         : "1x1_2-3_sketch";
     const sketchRegenCost = dependencies.useGenerationCreditCost(
@@ -334,6 +407,12 @@ export function createUseSketchSectionController(
     const [backgroundDialogData, setBackgroundDialogData] =
       useState<BeatBackgroundAnchors | null>(null);
     const [freezonePending, setFreezonePending] = useState(false);
+    const directorWorld = queries.useBeatDirectorStageManifest(
+      options.project,
+      options.episode,
+      options.beat.beat_number,
+      stageDialogOpen,
+    );
     const now = dependencies.useNow();
     const seenCandidates = dependencies.useSeenSketchCandidates(
       options.project,
@@ -380,13 +459,16 @@ export function createUseSketchSectionController(
     const hasSketch = Boolean(resolved.url);
     const castedEntries = useMemo(() => {
       const characterNames = new Set(
-        options.characters.map((character) => character.name),
+        (charactersQuery.data?.ok === true
+          ? charactersQuery.data.data
+          : []
+        ).map((character) => character.name),
       );
       return (options.beat.detected_identities ?? [])
         .filter((identityId) => !isNoReferenceMarker(identityId))
         .map((identityId) => {
           const { hex } = parseColorValue(
-            options.sketchColors[identityId] ?? "",
+            (scriptQuery.data?.data?.sketch_colors ?? {})[identityId] ?? "",
           );
           if (!hex) return null;
           const { character, identity } = splitIdentityId(
@@ -400,12 +482,15 @@ export function createUseSketchSectionController(
         );
     }, [
       options.beat.detected_identities,
-      options.characters,
-      options.sketchColors,
+      charactersQuery.data,
+      scriptQuery.data,
     ]);
     const propEntries = useMemo(() => {
       const propById = new Map(
-        options.episodePropMenu.map((prop) => [prop.prop_id, prop]),
+        (episodeQuery.data?.data.prop_menu ?? []).map((prop) => [
+          prop.prop_id,
+          prop,
+        ]),
       );
       // No-reference markers are workflow sentinels, not renderable prop ids.
       return (options.beat.detected_props ?? [])
@@ -415,7 +500,7 @@ export function createUseSketchSectionController(
           const { hex } = parseColorValue(prop?.marker_color ?? "");
           return { propId, hex };
         });
-    }, [options.beat.detected_props, options.episodePropMenu]);
+    }, [episodeQuery.data, options.beat.detected_props]);
     const markedPropEntries = useMemo(() => {
       const detected = new Set(options.beat.detected_props ?? []);
       return extractMarkedProps(options.beat.visual_description ?? "").filter(
@@ -427,8 +512,8 @@ export function createUseSketchSectionController(
       options.beat.visual_description,
     ]);
     const directorControl =
-      options.directorStatus.data?.ok === true
-        ? options.directorStatus.data.data
+      directorStatus.data?.ok === true
+        ? directorStatus.data.data
         : null;
     const resolvedDirectorControlUrl =
       directorControl?.ready && directorControl.url
@@ -437,12 +522,12 @@ export function createUseSketchSectionController(
     const directorControlUrl = resolvedDirectorControlUrl
       ? dependencies.cacheBustImage(
           resolvedDirectorControlUrl,
-          options.directorStatus.dataUpdatedAt,
+          directorStatus.dataUpdatedAt,
         )
       : null;
     const backgroundData =
-      options.backgroundAnchors.data?.ok === true
-        ? options.backgroundAnchors.data.data
+      backgroundAnchors.data?.ok === true
+        ? backgroundAnchors.data.data
         : null;
     const visibleBackgroundData = backgroundDialogData ?? backgroundData;
     const candidateItems = candidates.map((image) => {
@@ -609,7 +694,7 @@ export function createUseSketchSectionController(
 
     const handleOpenBackgroundDialog = async () => {
       try {
-        const refreshed = await options.backgroundAnchors.refetch();
+        const refreshed = await backgroundAnchors.refetch();
         if (refreshed.error instanceof Error) {
           toast.error(
             refreshed.error.message ||
@@ -642,7 +727,7 @@ export function createUseSketchSectionController(
     const handleChooseBackground = async (anchorId: string) => {
       try {
         const response =
-          await options.updateBackgroundAnchor.mutateAsync({ anchorId });
+          await updateBackgroundAnchor.mutateAsync({ anchorId });
         if (!response.ok) {
           toast.error(
             response.error ||
@@ -689,15 +774,15 @@ export function createUseSketchSectionController(
           path: meta.controlFrameRelPath ?? bundle.rel_paths.combined,
         }),
       );
-      await options.directorStatus.refetch();
+      await directorStatus.refetch();
       setStageDialogOpen(false);
     };
 
     return {
       backgroundAnchors: backgroundAnchorItems,
       backgroundDialogOpen,
-      backgroundLoading: options.backgroundAnchors.isLoading,
-      backgroundSaving: options.updateBackgroundAnchor.isPending,
+      backgroundLoading: backgroundAnchors.isLoading,
+      backgroundSaving: updateBackgroundAnchor.isPending,
       beatNumber: options.beat.beat_number,
       candidates: candidateItems,
       castedEntries,
@@ -708,6 +793,9 @@ export function createUseSketchSectionController(
         started: directorTask.started,
         stopping: directorTask.stopping,
       },
+      directorWorldManifest:
+        directorWorld.data?.ok === true ? directorWorld.data.data : null,
+      directorWorldPending: stageDialogOpen && directorWorld.isLoading,
       downloadEnabled: Boolean(resolvedDownloadUrl),
       editable: Boolean(options.beat.sketch_url || selectedPoolImage),
       episode: options.episode,
@@ -726,7 +814,7 @@ export function createUseSketchSectionController(
         stopping: regenTask.stopping,
       },
       sketchActive,
-      sketchAspectRatio: ratioToCss(options.sketchAspect),
+      sketchAspectRatio: ratioToCss(spec.sketchAspect),
       sketchPercent,
       sketchRegenCostDisplay: sketchRegenCost.data?.data.display,
       stageDialogOpen,
@@ -757,7 +845,7 @@ export function createUseSketchSectionController(
       onForceStale: () => {
         void handleStaleForce();
       },
-      onNavigateToAsset: options.navigateToAsset,
+      onNavigateToAsset: navigateToAsset,
       onOpenBackgroundDialog: () => {
         void handleOpenBackgroundDialog();
       },

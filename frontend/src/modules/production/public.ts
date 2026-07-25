@@ -47,7 +47,6 @@ export {
   useSketchGridCardController,
   useSketchGridGalleryController,
   useSketchCropDialogController,
-  useSketchSectionController,
   useSketchSettings,
   useTrimSeedance2Asset,
   useTrimNarratorVoice,
@@ -143,6 +142,7 @@ export type {
 } from "@/modules/production/application/use-batch-panel-controller";
 export { SketchSectionView } from "@/modules/production/presentation/SketchSectionView";
 export type { SketchSectionViewProps } from "@/modules/production/presentation/SketchSectionView";
+export { createUseSketchSectionController } from "@/modules/production/application/use-sketch-section-controller";
 export { RenderSectionView } from "@/modules/production/presentation/RenderSectionView";
 export type { RenderSectionViewProps } from "@/modules/production/presentation/RenderSectionView";
 export { NarratorVoicePanelView } from "@/modules/production/presentation/NarratorVoicePanelView";
@@ -208,11 +208,17 @@ export type {
   SketchBackgroundAnchorViewModel,
   SketchBackgroundAnchorsQuery,
   SketchCandidateViewModel,
+  SketchCharactersQuery,
+  SketchDirectorStageQuery,
+  SketchEpisodeQuery,
   SketchIdentityBadgeViewModel,
   SketchPropBadgeViewModel,
   SketchDirectorStatusQuery,
   SketchSectionController,
+  SketchSectionControllerDependencies,
   SketchSectionControllerOptions,
+  SketchSectionControllerQueries,
+  SketchScriptQuery,
   SketchTaskViewModel,
   SketchToolAction,
   UpdateSketchBackgroundMutation,

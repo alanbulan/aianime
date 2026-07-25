@@ -62,14 +62,12 @@ const BACKGROUND_ANCHOR_PREVIEW_ASPECT = "16 / 9";
 
 export interface SketchSectionViewProps {
   controller: SketchSectionController;
-  directorWorldPending: boolean;
   extraDialogs: ReactNode;
   onPreview?(url: string): void;
 }
 
 export function SketchSectionView({
   controller,
-  directorWorldPending,
   extraDialogs,
   onPreview,
 }: SketchSectionViewProps) {
@@ -86,6 +84,7 @@ export function SketchSectionView({
     directorControlUrl,
     directorConvertPending,
     directorTask,
+    directorWorldPending,
     downloadEnabled,
     editable,
     freezonePending,

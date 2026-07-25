@@ -70,65 +70,33 @@ vi.mock("@/modules/production/public", async (importOriginal) => {
   const actual = await importOriginal<
     typeof import("@/modules/production/public")
   >();
-  const { createUseSketchSectionController } = await import(
-    "@/modules/production/application/use-sketch-section-controller"
-  );
-  const { withImageCacheBust } = await import(
-    "@/features/canvas/application/imageData"
-  );
-  const useSketchSectionController = createUseSketchSectionController(
-    {
-      useDirectorControlToSketch: () => ({
-        mutateAsync: directorConvertMock,
-        isPending: false,
-      }),
-      usePoolSelect: () => ({
-        mutateAsync: poolSelectMock,
-        isPending: false,
-      }),
-      useRegenerateSketches: () => ({
-        mutateAsync: regenerateSketchMock,
-        isPending: false,
-      }),
-      useSketchSettings: () => ({
-        data: {
-          ok: true,
-          data: {
-            sketch_image_selection: "doubao_seedream-3.0-t2i",
-            options: {},
-          },
-        },
-      }),
-      useUploadBeatImage: () => ({
-        mutateAsync: vi.fn(),
-        isPending: false,
-      }),
-    },
-    {
-      cacheBustImage: withImageCacheBust,
-      downloadFile: (url, filename) => {
-        const anchor = document.createElement("a");
-        anchor.href = url;
-        anchor.download = filename;
-        anchor.click();
-      },
-      openSketchFreezone: vi.fn().mockResolvedValue(undefined),
-      useGenerationCreditCost: () => ({
-        data: {
-          ok: true,
-          data: { cost: 1, display: "1 credit" },
-        },
-      }),
-      useNow: () => 1_717_000_000_000,
-      useSeenSketchCandidates: () => ({
-        markSeen: markSeenMock,
-        seenIds: undefined,
-      }),
-    },
-  );
   return {
     ...actual,
-    useSketchSectionController,
+    useDirectorControlToSketch: () => ({
+      mutateAsync: directorConvertMock,
+      isPending: false,
+    }),
+    usePoolSelect: () => ({
+      mutateAsync: poolSelectMock,
+      isPending: false,
+    }),
+    useRegenerateSketches: () => ({
+      mutateAsync: regenerateSketchMock,
+      isPending: false,
+    }),
+    useSketchSettings: () => ({
+      data: {
+        ok: true,
+        data: {
+          sketch_image_selection: "doubao_seedream-3.0-t2i",
+          options: {},
+        },
+      },
+    }),
+    useUploadBeatImage: () => ({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    }),
   };
 });
 
@@ -143,7 +111,12 @@ vi.mock("@/lib/queries/generation-credit-cost", () => ({
 }));
 
 vi.mock("@/modules/asset_world/public", () => ({
-  useBeatDirectorStageManifest: () => stageManifestMock(),
+  useBeatDirectorStageManifest: (
+    project: string,
+    episode: number,
+    beatNumber: number,
+    enabled: boolean,
+  ) => stageManifestMock(project, episode, beatNumber, enabled),
   useBeatBackgroundAnchors: () => backgroundAnchorsMock(),
   useUpdateBeatBackgroundAnchor: () => ({
     mutateAsync: updateBackgroundAnchorMock,
@@ -343,6 +316,12 @@ describe("SketchSection", () => {
 
     expect(screen.getByRole("button", { name: /导演世界/ })).toBeEnabled();
     expect(screen.getByRole("button", { name: /背景/ })).toBeEnabled();
+    expect(stageManifestMock).toHaveBeenLastCalledWith("demo", 1, 4, false);
+
+    fireEvent.click(screen.getByRole("button", { name: /导演世界/ }));
+
+    expect(stageManifestMock).toHaveBeenLastCalledWith("demo", 1, 4, true);
+    expect(screen.getByTestId("three-d-director-dialog")).toBeInTheDocument();
   });
 
   it("promotes a pool-only sketch before opening crop", async () => {

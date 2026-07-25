@@ -1015,6 +1015,13 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const sketchSectionCompositionSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "components/episode/beat-workbench/sketch-section-composition.ts",
+      ),
+      "utf8",
+    );
     const sketchSectionViewSource = readFileSync(
       resolve(
         SRC_ROOT,
@@ -1358,6 +1365,9 @@ describe("frontend architecture boundaries", () => {
     );
     expect(sketchSectionSource).toContain("<SketchSectionView");
     expect(sketchSectionSource).toContain("useSketchSectionController(");
+    expect(sketchSectionSource).toContain(
+      'from "./sketch-section-composition"',
+    );
     expect(sketchSectionSource).not.toContain("className=");
     expect(sketchSectionSource).not.toContain("<Button");
     expect(sketchSectionSource).not.toContain("<AlertDialog");
@@ -1367,9 +1377,54 @@ describe("frontend architecture boundaries", () => {
     expect(sketchSectionSource).not.toContain("usePoolSelect(");
     expect(sketchSectionSource).not.toContain("useRegenerateSketches(");
     expect(sketchSectionSource).not.toContain("useUploadBeatImage(");
+    expect(sketchSectionSource).not.toContain("useBeatBackgroundAnchors(");
+    expect(sketchSectionSource).not.toContain(
+      "useBeatDirectorStageManifest(",
+    );
+    expect(sketchSectionSource).not.toContain(
+      "useDirectorControlFrameStatus(",
+    );
+    expect(sketchSectionSource).not.toContain("useCharacters(");
+    expect(sketchSectionSource).not.toContain("useEpisodeDetail(");
+    expect(sketchSectionSource).not.toContain("useProjectAspectRatio(");
+    expect(sketchSectionSource).not.toContain("useScript(");
     expect(sketchSectionSource).not.toContain("toast.");
+    expect(sketchSectionCompositionSource).toContain(
+      "createUseSketchSectionController(",
+    );
+    expect(sketchSectionCompositionSource).toContain(
+      "useBeatBackgroundAnchors,",
+    );
+    expect(sketchSectionCompositionSource).toContain(
+      "useBeatDirectorStageManifest,",
+    );
+    expect(sketchSectionCompositionSource).toContain("useCharacters,");
+    expect(sketchSectionCompositionSource).toContain("useEpisodeDetail,");
+    expect(sketchSectionCompositionSource).toContain(
+      "useProjectAspectRatio,",
+    );
+    expect(sketchSectionCompositionSource).toContain("useScript,");
+    expect(productionCompositionSource).not.toContain(
+      "createUseSketchSectionController",
+    );
     expect(sketchSectionControllerSource).toContain(
       "createUseSketchSectionController",
+    );
+    expect(sketchSectionControllerSource).toContain(
+      "queries.useBeatBackgroundAnchors",
+    );
+    expect(sketchSectionControllerSource).toContain(
+      "queries.useBeatDirectorStageManifest",
+    );
+    expect(sketchSectionControllerSource).toContain(
+      "queries.useCharacters",
+    );
+    expect(sketchSectionControllerSource).toContain(
+      "queries.useEpisodeDetail",
+    );
+    expect(sketchSectionControllerSource).toContain("queries.useScript");
+    expect(sketchSectionControllerSource).toContain(
+      "dependencies.useProjectAspectRatio",
     );
     expect(sketchSectionControllerSource).toContain("useTaskController(");
     expect(sketchSectionControllerSource).toContain("promotePoolSketch");
@@ -1379,6 +1434,9 @@ describe("frontend architecture boundaries", () => {
     expect(sketchSectionControllerSource).toContain("handleOpenFreezone");
     expect(sketchSectionViewSource).toContain(
       "controller: SketchSectionController",
+    );
+    expect(sketchSectionViewSource).not.toContain(
+      "directorWorldPending: boolean",
     );
     expect(sketchSectionViewSource).toContain('type="file"');
     expect(sketchSectionViewSource).toContain("<AlertDialog");
