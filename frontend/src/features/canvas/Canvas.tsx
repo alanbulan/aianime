@@ -38,7 +38,12 @@ import { useShallow } from 'zustand/react/shallow';
 import { CreditDisplayHiddenProvider } from '@/components/credits/credit-visual';
 import { isCeRuntime } from '@/lib/runtime-config';
 import { useCanvasStore } from '@/stores/canvasStore';
-import { resolveAbsolutePosition } from '@/features/canvas/domain/canvasGeometry';
+import {
+  getNodeSize,
+  hasRectCollision,
+  rectsIntersect,
+  resolveAbsolutePosition,
+} from '@/features/canvas/domain/canvasGeometry';
 import { findLinkedCapturePartnerIds } from '@/features/canvas/domain/canvasCapturePartners';
 import { useAppStore } from '@/stores/app-store';
 import { getSkillRegistry } from '@/api/skills';
@@ -289,47 +294,6 @@ interface GenerationStoryboardMetadata {
   gridRows: number;
   gridCols: number;
   frameNotes: string[];
-}
-
-function getNodeSize(node: CanvasNode): { width: number; height: number } {
-  const styleWidth = typeof node.style?.width === 'number' ? node.style.width : null;
-  const styleHeight = typeof node.style?.height === 'number' ? node.style.height : null;
-  return {
-    width: node.measured?.width ?? styleWidth ?? DEFAULT_NODE_WIDTH,
-    height: node.measured?.height ?? styleHeight ?? 200,
-  };
-}
-
-function hasRectCollision(
-  candidateRect: { x: number; y: number; width: number; height: number },
-  nodes: CanvasNode[],
-  ignoreNodeIds: Set<string>
-): boolean {
-  const margin = 18;
-  return nodes.some((node) => {
-    if (ignoreNodeIds.has(node.id)) {
-      return false;
-    }
-    const size = getNodeSize(node);
-    return (
-      candidateRect.x < node.position.x + size.width + margin &&
-      candidateRect.x + candidateRect.width + margin > node.position.x &&
-      candidateRect.y < node.position.y + size.height + margin &&
-      candidateRect.y + candidateRect.height + margin > node.position.y
-    );
-  });
-}
-
-function rectsIntersect(
-  a: { x: number; y: number; width: number; height: number },
-  b: { x: number; y: number; width: number; height: number }
-): boolean {
-  return (
-    a.x < b.x + b.width &&
-    a.x + a.width > b.x &&
-    a.y < b.y + b.height &&
-    a.y + a.height > b.y
-  );
 }
 
 function isCanvasPaneTarget(target: EventTarget | null, wrapperElement: HTMLElement): boolean {

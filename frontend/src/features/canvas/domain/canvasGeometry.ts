@@ -10,6 +10,11 @@ export interface CanvasNodeSize {
   height: number;
 }
 
+export interface CanvasRect extends CanvasNodeSize {
+  x: number;
+  y: number;
+}
+
 export interface CanvasNodePlacementInput {
   nodes: readonly CanvasNode[];
   sourceNodeId: string;
@@ -29,20 +34,51 @@ const FALLBACK_NODE_SIZES: Partial<Record<string, CanvasNodeSize>> = {
 /** Resolve layout size before a newly spawned node has necessarily been measured. */
 export function getNodeSize(node: CanvasNode): CanvasNodeSize {
   const fallback = (node.type && FALLBACK_NODE_SIZES[node.type]) || undefined;
+  const styleWidth = typeof node.style?.width === 'number' ? node.style.width : undefined;
+  const styleHeight = typeof node.style?.height === 'number' ? node.style.height : undefined;
   return {
     width:
       typeof node.measured?.width === 'number'
         ? node.measured.width
         : typeof node.width === 'number'
           ? node.width
-          : (fallback?.width ?? DEFAULT_NODE_WIDTH),
+          : (styleWidth ?? fallback?.width ?? DEFAULT_NODE_WIDTH),
     height:
       typeof node.measured?.height === 'number'
         ? node.measured.height
         : typeof node.height === 'number'
           ? node.height
-          : (fallback?.height ?? 200),
+          : (styleHeight ?? fallback?.height ?? 200),
   };
+}
+
+export function hasRectCollision(
+  candidateRect: CanvasRect,
+  nodes: readonly CanvasNode[],
+  ignoreNodeIds: ReadonlySet<string>,
+): boolean {
+  const margin = 18;
+  return nodes.some((node) => {
+    if (ignoreNodeIds.has(node.id)) {
+      return false;
+    }
+    const size = getNodeSize(node);
+    return (
+      candidateRect.x < node.position.x + size.width + margin
+      && candidateRect.x + candidateRect.width + margin > node.position.x
+      && candidateRect.y < node.position.y + size.height + margin
+      && candidateRect.y + candidateRect.height + margin > node.position.y
+    );
+  });
+}
+
+export function rectsIntersect(left: CanvasRect, right: CanvasRect): boolean {
+  return (
+    left.x < right.x + right.width
+    && left.x + left.width > right.x
+    && left.y < right.y + right.height
+    && left.y + left.height > right.y
+  );
 }
 
 export function resolveAbsolutePosition(

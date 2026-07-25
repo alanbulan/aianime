@@ -6,6 +6,8 @@ import {
   findAvailableNodePosition,
   getDerivedNodePosition,
   getNodeSize,
+  hasRectCollision,
+  rectsIntersect,
   resolveAbsolutePosition,
 } from './canvasGeometry';
 
@@ -24,12 +26,21 @@ function node(
 }
 
 describe('Canvas geometry', () => {
-  it('prefers measured size, then explicit size, then the node-type fallback', () => {
+  it('prefers measured, explicit and legacy style sizes before the node-type fallback', () => {
     const video = node('video', undefined, {
       type: CANVAS_NODE_TYPES.video,
     });
     expect(getNodeSize(video)).toEqual({ width: 580, height: 380 });
-    expect(getNodeSize({ ...video, width: 640, height: 360 })).toEqual({
+    expect(getNodeSize({
+      ...video,
+      style: { width: 720, height: 405 },
+    })).toEqual({ width: 720, height: 405 });
+    expect(getNodeSize({
+      ...video,
+      width: 640,
+      height: 360,
+      style: { width: 720, height: 405 },
+    })).toEqual({
       width: 640,
       height: 360,
     });
@@ -41,6 +52,27 @@ describe('Canvas geometry', () => {
         measured: { width: 800, height: 450 },
       }),
     ).toEqual({ width: 800, height: 450 });
+  });
+
+  it('detects node collisions with spacing and supports ignored nodes', () => {
+    const obstacle = node('obstacle', { x: 100, y: 100 }, {
+      style: { width: 80, height: 60 },
+    });
+    const candidate = { x: 0, y: 0, width: 90, height: 90 };
+
+    expect(hasRectCollision(candidate, [obstacle], new Set())).toBe(true);
+    expect(hasRectCollision(candidate, [obstacle], new Set([obstacle.id]))).toBe(false);
+    expect(
+      hasRectCollision({ x: 0, y: 0, width: 80, height: 80 }, [obstacle], new Set()),
+    ).toBe(false);
+  });
+
+  it('treats positive rectangle overlap as intersection but not edge contact', () => {
+    const anchor = { x: 10, y: 10, width: 50, height: 40 };
+
+    expect(rectsIntersect(anchor, { x: 59, y: 20, width: 20, height: 20 })).toBe(true);
+    expect(rectsIntersect(anchor, { x: 60, y: 20, width: 20, height: 20 })).toBe(false);
+    expect(rectsIntersect(anchor, { x: 20, y: 50, width: 20, height: 20 })).toBe(false);
   });
 
   it('accumulates nested parent positions without mutating the graph', () => {

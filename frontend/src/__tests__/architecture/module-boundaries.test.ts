@@ -939,10 +939,28 @@ describe("frontend architecture boundaries", () => {
       "export function",
       "findAvailableNodePosition(",
     ].join(" ");
+    const collisionDeclaration = [
+      "export function",
+      "hasRectCollision(",
+    ].join(" ");
+    const intersectionDeclaration = [
+      "export function",
+      "rectsIntersect(",
+    ].join(" ");
     const placementOwners = sourceFiles(SRC_ROOT)
       .filter((path) =>
         readFileSync(path, "utf8").includes(placementDeclaration),
       )
+      .map(relativeSource)
+      .sort();
+    const rectangleRuleOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => {
+        const source = readFileSync(path, "utf8");
+        return (
+          source.includes(collisionDeclaration) ||
+          source.includes(intersectionDeclaration)
+        );
+      })
       .map(relativeSource)
       .sort();
 
@@ -950,7 +968,12 @@ describe("frontend architecture boundaries", () => {
     expect(placementOwners).toEqual([
       "features/canvas/domain/canvasGeometry.ts",
     ]);
+    expect(rectangleRuleOwners).toEqual([
+      "features/canvas/domain/canvasGeometry.ts",
+    ]);
     expect(geometryModel).toContain("export function getNodeSize(");
+    expect(geometryModel).toContain(collisionDeclaration);
+    expect(geometryModel).toContain(intersectionDeclaration);
     expect(geometryModel).toContain("export function resolveAbsolutePosition(");
     expect(geometryModel).toContain("export function getDerivedNodePosition(");
     expect(geometryModel).toContain(placementDeclaration);
@@ -966,6 +989,9 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).toContain(
       "@/features/canvas/domain/canvasGeometry",
     );
+    expect(canvasView).not.toContain("function getNodeSize(");
+    expect(canvasView).not.toContain("function hasRectCollision(");
+    expect(canvasView).not.toContain("function rectsIntersect(");
     expect(canvasView).not.toContain(
       "resolveAbsolutePosition, useCanvasStore",
     );
