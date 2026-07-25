@@ -11,10 +11,12 @@ import {
 } from '@/features/canvas/domain/canvasNodes';
 import { EXPORT_RESULT_DISPLAY_NAME } from '@/features/canvas/domain/nodeDisplay';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
-import { canvasToolProcessor } from '@/features/canvas/composition';
+import {
+  canvasToolProcessor,
+  uploadLocalImageToBackend,
+} from '@/features/canvas/composition';
 import { prepareNodeImage, resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import { readStoryboardImageMetadata } from '@/commands/image';
-import { uploadLocalImageToBackend } from '@/features/canvas/application/uploadToolOutput';
 import { getToolPlugin, type ToolOptions } from '@/features/canvas/tools';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { inheritMainlineFields } from '@/features/canvas/domain/inheritMainlineFields';

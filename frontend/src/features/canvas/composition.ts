@@ -6,6 +6,9 @@ import {
   type MigratePastedNodeAssetsParams,
 } from './application/crossProjectAssets';
 import { CanvasToolProcessor } from './application/toolProcessor';
+import {
+  uploadLocalImageToBackend as uploadLocalImageToBackendUseCase,
+} from './application/uploadToolOutput';
 import { freezoneAssetGateway } from './infrastructure/freezoneAssetGateway';
 import { freezoneAiGateway } from './infrastructure/freezoneAiGateway';
 import { uuidGenerator } from './infrastructure/idGenerator';
@@ -25,4 +28,15 @@ export function migratePastedNodeAssets(
   params: MigratePastedNodeAssetsParams,
 ) {
   return migratePastedNodeAssetsUseCase(freezoneAssetGateway, params);
+}
+
+export function uploadLocalImageToBackend(
+  localImageUrl: string,
+  filename: string,
+) {
+  return uploadLocalImageToBackendUseCase(
+    freezoneAssetGateway,
+    localImageUrl,
+    filename,
+  );
 }

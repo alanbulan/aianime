@@ -53,7 +53,7 @@ import {
   shouldUseOriginalImageByZoom,
   withImageCacheBust,
 } from '@/features/canvas/application/imageData';
-import { uploadLocalImageToBackend } from '@/features/canvas/application/uploadToolOutput';
+import { uploadLocalImageToBackend } from '@/features/canvas/composition';
 import { CanvasNodeImage } from '@/features/canvas/ui/CanvasNodeImage';
 import { DirectorControlBundleBadge } from '@/features/canvas/ui/DirectorControlBundleBadge';
 import {

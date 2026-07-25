@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { uploadFreezoneImage } from '@/api/ops';
+import type { CanvasAssetGateway } from './ports';
 import { dataUrlToBlob } from './imageData';
 import { readUrl } from '@/lib/url-params';
 
@@ -14,6 +14,7 @@ import { readUrl } from '@/lib/url-params';
  * upload optimization) and log a warning.
  */
 export async function uploadLocalImageToBackend(
+  assetGateway: CanvasAssetGateway,
   localImageUrl: string,
   filename: string
 ): Promise<string> {
@@ -46,8 +47,7 @@ export async function uploadLocalImageToBackend(
       }
       blob = await resp.blob();
     }
-    const uploaded = await uploadFreezoneImage(projectId, blob, filename);
-    return uploaded.url;
+    return await assetGateway.upload(projectId, blob, filename);
   } catch (error) {
     console.warn('[upload-tool-output] upload failed, keeping local URL', { filename, error });
     return localImageUrl;

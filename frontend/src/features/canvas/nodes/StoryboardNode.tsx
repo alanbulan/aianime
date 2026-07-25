@@ -47,7 +47,7 @@ import {
   resolveImageDisplayUrl,
   shouldUseOriginalImageByZoom,
 } from '@/features/canvas/application/imageData';
-import { uploadLocalImageToBackend } from '@/features/canvas/application/uploadToolOutput';
+import { uploadLocalImageToBackend } from '@/features/canvas/composition';
 import { useUpstreamNodes } from '@/features/canvas/application/useUpstreamGraph';
 import { UiButton, UiCheckbox, UiChipButton, UiInput, UiPanel, UiSelect } from '@/components/ui';
 import {

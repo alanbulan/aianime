@@ -46,6 +46,7 @@ import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import {
   canvasAiGateway,
   migratePastedNodeAssets,
+  uploadLocalImageToBackend,
 } from '@/features/canvas/composition';
 import {
   CANVAS_NODE_TYPES,
@@ -75,7 +76,6 @@ import {
 } from '@/features/canvas/domain/mainlineNodeFlags';
 import { prepareNodeImage } from '@/features/canvas/application/imageData';
 import { isVideoFile } from '@/features/canvas/application/videoFileTypes';
-import { uploadLocalImageToBackend } from '@/features/canvas/application/uploadToolOutput';
 import {
   buildGenerationErrorReport,
   CURRENT_RUNTIME_SESSION_ID,

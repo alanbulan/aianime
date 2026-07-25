@@ -249,7 +249,6 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/application/regenerateExportNode.ts",
       "features/canvas/application/resumeGeneration.ts",
       "features/canvas/application/selectedBackgroundSlot.ts",
-      "features/canvas/application/uploadToolOutput.ts",
     ]);
     expect(composition).toContain("new CanvasNodeFactory(");
     expect(composition).toContain("new CanvasToolProcessor(");
@@ -258,6 +257,7 @@ describe("frontend architecture boundaries", () => {
     expect(composition).toContain("webImageSplitGateway");
     expect(composition).toContain("freezoneAssetGateway");
     expect(composition).toContain("migratePastedNodeAssetsUseCase(");
+    expect(composition).toContain("uploadLocalImageToBackendUseCase(");
     expect(assetGateway).toContain("uploadFreezoneImage(");
     expect(assetGateway).toContain("{ timeoutMs: false }");
     expect(services).not.toContain("infrastructure/");

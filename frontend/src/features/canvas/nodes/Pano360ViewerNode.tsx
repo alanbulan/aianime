@@ -56,7 +56,7 @@ import { NodeResizeHandle } from '@/features/canvas/ui/NodeResizeHandle';
 import { dataUrlToBlob, resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import { CANVAS_NODE_PANEL_SURFACE_CLASS, canvasNodeFrameClass } from '@/features/canvas/ui/nodeFrameStyles';
 import { NODE_INLINE_ERROR_MESSAGE_CLASS } from '@/features/canvas/ui/nodeControlStyles';
-import { uploadLocalImageToBackend } from '@/features/canvas/application/uploadToolOutput';
+import { uploadLocalImageToBackend } from '@/features/canvas/composition';
 import { useUpstreamNodes } from '@/features/canvas/application/useUpstreamGraph';
 import { useCanvasStore } from '@/stores/canvasStore';
 import {

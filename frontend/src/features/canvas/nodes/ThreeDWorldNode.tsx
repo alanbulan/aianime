@@ -42,7 +42,7 @@ import {
   resolveImageDisplayUrl,
   withImageCacheBust,
 } from '@/features/canvas/application/imageData';
-import { uploadLocalImageToBackend } from '@/features/canvas/application/uploadToolOutput';
+import { uploadLocalImageToBackend } from '@/features/canvas/composition';
 import {
   directorPanoSourceFromCanvasNode,
   imageUrlFromCanvasNode,
