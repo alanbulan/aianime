@@ -7,6 +7,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi, type Mock } from "vite
 
 import { RenderGridGallery } from "@/components/episode/beat-workbench/render-grid-gallery";
 import type { Beat } from "@/modules/narrative_planning/public";
+import type { PoolImage } from "@/modules/production/public";
 
 const i18n = i18next.createInstance();
 
@@ -63,9 +64,11 @@ const cutGridMock: Mock = vi.fn();
 const uploadGridMock: Mock = vi.fn();
 const exportGridPromptMock: Mock = vi.fn();
 const rebuildPoolIndexMock: Mock = vi.fn();
+const copyTextMock: Mock = vi.fn();
+const downloadFileMock: Mock = vi.fn();
 const taskStartMock: Mock = vi.fn();
 const taskStopMock: Mock = vi.fn();
-let gridImages: unknown[] = [];
+let gridImages: PoolImage[] = [];
 
 function beatWithScene(beatNumber: number, sceneId: string): Beat {
   return {
@@ -83,39 +86,58 @@ vi.mock("@/modules/production/public", async (importOriginal) => {
   const actual = await importOriginal<
     typeof import("@/modules/production/public")
   >();
+  const {
+    createUseRenderGridCardController,
+    createUseRenderGridGalleryController,
+  } = await import(
+    "@/modules/production/application/use-render-grid-gallery-controller"
+  );
+  const useRenderGridGalleryController =
+    createUseRenderGridGalleryController({
+      useGrids: () => ({
+        data: {
+          ok: true,
+          data: {
+            episode: 1,
+            modes: {},
+            beat_assignments: {},
+            images: gridImages,
+          },
+        },
+      }),
+      useRebuildPoolIndex: () => ({
+        mutateAsync: rebuildPoolIndexMock,
+        isPending: false,
+      }),
+    });
+  const useRenderGridCardController = createUseRenderGridCardController(
+    {
+      useCutGrid: () => ({
+        mutateAsync: cutGridMock,
+        isPending: false,
+      }),
+      useUploadGrid: () => ({
+        mutateAsync: uploadGridMock,
+        isPending: false,
+      }),
+      useExportGridPrompt: () => ({
+        mutateAsync: exportGridPromptMock,
+        isPending: false,
+      }),
+      useRegenerateGrid: () => ({
+        mutateAsync: regenerateGridMock,
+        isPending: false,
+      }),
+    },
+    {
+      copyText: (text) => copyTextMock(text),
+      downloadFile: (url, filename) => downloadFileMock(url, filename),
+    },
+  );
   return {
     ...actual,
-    useCutGrid: () => ({
-      mutateAsync: cutGridMock,
-      isPending: false,
-    }),
-    useUploadGrid: () => ({
-      mutateAsync: uploadGridMock,
-      isPending: false,
-    }),
-    useExportGridPrompt: () => ({
-      mutateAsync: exportGridPromptMock,
-      isPending: false,
-    }),
-    useGrids: () => ({
-      data: {
-        ok: true,
-        data: {
-          episode: 1,
-          modes: {},
-          beat_assignments: {},
-          images: gridImages,
-        },
-      },
-    }),
-    useRebuildPoolIndex: () => ({
-      mutateAsync: rebuildPoolIndexMock,
-      isPending: false,
-    }),
-    useRegenerateGrid: () => ({
-      mutateAsync: regenerateGridMock,
-      isPending: false,
-    }),
+    useRenderGridCardController,
+    useRenderGridGalleryController,
   };
 });
 
@@ -223,6 +245,9 @@ beforeEach(() => {
       promptPath: "custom/prompt.txt",
     },
   });
+  copyTextMock.mockReset();
+  copyTextMock.mockResolvedValue(undefined);
+  downloadFileMock.mockReset();
   taskStartMock.mockReset();
   taskStopMock.mockReset();
 });
@@ -474,6 +499,12 @@ describe("RenderGridGallery", () => {
       beatNumbers: [5, 6],
     });
 
+    await user.click(screen.getByRole("button", { name: "下载" }));
+    expect(downloadFileMock).toHaveBeenCalledWith(
+      "/static/grid-2.png",
+      "render_grid_2.png",
+    );
+
     await user.click(screen.getByRole("button", { name: "导出 prompt" }));
     expect(exportGridPromptMock).toHaveBeenCalledWith({
       gridIndex: 2,
@@ -482,5 +513,8 @@ describe("RenderGridGallery", () => {
       beatNumbers: [5, 6],
     });
     expect(await screen.findByDisplayValue("render prompt text")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "复制" }));
+    expect(copyTextMock).toHaveBeenCalledWith("render prompt text");
   });
 });

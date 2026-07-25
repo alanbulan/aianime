@@ -602,6 +602,20 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const renderGridGalleryControllerSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/production/application/use-render-grid-gallery-controller.ts",
+      ),
+      "utf8",
+    );
+    const renderGridGalleryDomainSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/production/domain/render-grid-gallery.ts",
+      ),
+      "utf8",
+    );
     const narratorVoicePanelSource = readFileSync(
       resolve(
         SRC_ROOT,
@@ -842,6 +856,14 @@ describe("frontend architecture boundaries", () => {
     expect(renderGridGallerySource).not.toContain("GRID_ACTION_BUTTON_CLASS");
     expect(renderGridGallerySource).not.toContain("gridAspectCss");
     expect(renderGridGallerySource).not.toContain("formatBeatRange");
+    expect(renderGridGallerySource).not.toContain("buildRenderGridGroups");
+    expect(renderGridGallerySource).not.toContain("useGrids(");
+    expect(renderGridGallerySource).not.toContain("useRegenerateGrid(");
+    expect(renderGridGallerySource).not.toContain("useTaskController(");
+    expect(renderGridGallerySource).not.toContain("useState(");
+    expect(renderGridGallerySource).not.toContain("toast.");
+    expect(renderGridGallerySource).not.toContain("document.");
+    expect(renderGridGallerySource).not.toContain("navigator.");
     expect(renderGridGalleryViewSource).toContain('type="file"');
     expect(renderGridGalleryViewSource).toContain("<Dialog");
     expect(renderGridGalleryViewSource).toContain("<Textarea");
@@ -850,6 +872,29 @@ describe("frontend architecture boundaries", () => {
     expect(renderGridGalleryViewSource).not.toContain("useGrids(");
     expect(renderGridGalleryViewSource).not.toContain("useRegenerateGrid(");
     expect(renderGridGalleryViewSource).not.toContain("toast.");
+    expect(renderGridGalleryControllerSource).toContain(
+      "createUseRenderGridGalleryController",
+    );
+    expect(renderGridGalleryControllerSource).toContain(
+      "createUseRenderGridCardController",
+    );
+    expect(renderGridGalleryControllerSource).toContain(
+      "buildRenderGridGroups(",
+    );
+    expect(renderGridGalleryControllerSource).toContain(
+      "queries.useRebuildPoolIndex",
+    );
+    expect(renderGridGalleryControllerSource).toContain(
+      "queries.useRegenerateGrid",
+    );
+    expect(renderGridGalleryControllerSource).toContain(
+      "useTaskController(",
+    );
+    expect(renderGridGalleryControllerSource).not.toContain("document.");
+    expect(renderGridGalleryControllerSource).not.toContain("navigator.");
+    expect(renderGridGalleryDomainSource).toContain(
+      "export function buildRenderGridGroups",
+    );
     expect(narratorVoicePanelSource).toContain("<NarratorVoicePanelView");
     expect(narratorVoicePanelSource).toContain(
       "useNarratorVoicePanelController({",

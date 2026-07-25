@@ -32,6 +32,8 @@ export {
   useRegenerateSketches,
   useRebuildPoolIndex,
   useRenderExecute,
+  useRenderGridCardController,
+  useRenderGridGalleryController,
   useRenderPlan,
   useRenderSectionController,
   useRenderSettings,
@@ -103,6 +105,15 @@ export type {
   NarratorVoicePanelQueries,
 } from "@/modules/production/application/use-narrator-voice-panel-controller";
 export type {
+  RenderGridCardController,
+  RenderGridCardControllerDependencies,
+  RenderGridCardControllerOptions,
+  RenderGridCardControllerQueries,
+  RenderGridGalleryController,
+  RenderGridGalleryControllerOptions,
+  RenderGridGalleryControllerQueries,
+} from "@/modules/production/application/use-render-grid-gallery-controller";
+export type {
   CropRenderBackgroundMutation,
   RenderBackgroundAnchorsQuery,
   RenderBackgroundReferenceViewModel,
@@ -163,6 +174,10 @@ export type {
   ImagePoolSelectionResult,
   PoolImage,
 } from "@/modules/production/domain/image-pool";
+export type {
+  RenderGridBeat,
+  RenderGridGroup,
+} from "@/modules/production/domain/render-grid-gallery";
 export type {
   GenerateSketchesCommand,
   RegenerateGridCommand,

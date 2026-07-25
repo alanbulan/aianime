@@ -29,6 +29,10 @@ import { createUseAudioPaneController } from "@/modules/production/application/u
 import { createUseBeatVideoGenerationController } from "@/modules/production/application/use-beat-video-generation-controller";
 import { createUseLegacyVideoPromptController } from "@/modules/production/application/use-legacy-video-prompt-controller";
 import { createUseNarratorVoicePanelController } from "@/modules/production/application/use-narrator-voice-panel-controller";
+import {
+  createUseRenderGridCardController,
+  createUseRenderGridGalleryController,
+} from "@/modules/production/application/use-render-grid-gallery-controller";
 import { createUseRenderSectionController } from "@/modules/production/application/use-render-section-controller";
 import { createUseSeedance2AssetOperationsController } from "@/modules/production/application/use-seedance2-asset-operations-controller";
 import { createUseSeedance2ConfigController } from "@/modules/production/application/use-seedance2-config-controller";
@@ -55,6 +59,9 @@ const seedance2PanelQueries = createSeedance2PanelQueryHooks(
   httpProductionVideoGateway,
 );
 const imagePoolQueries = createImagePoolQueryHooks(
+  httpProductionVideoGateway,
+);
+const imageGridQueries = createImageGridQueryHooks(
   httpProductionVideoGateway,
 );
 const imageSettingsQueries = createImageSettingsQueryHooks(
@@ -93,6 +100,29 @@ export const useNarratorVoicePanelController =
   createUseNarratorVoicePanelController(narratorVoiceQueries, {
     createVoiceRecorder: createBrowserVoiceRecorder,
   });
+export const useRenderGridGalleryController =
+  createUseRenderGridGalleryController({
+    useGrids: imagePoolQueries.useGrids,
+    useRebuildPoolIndex: imagePoolQueries.useRebuildPoolIndex,
+  });
+export const useRenderGridCardController =
+  createUseRenderGridCardController(
+    {
+      useCutGrid: imageGridQueries.useCutGrid,
+      useExportGridPrompt: imageGridQueries.useExportGridPrompt,
+      useRegenerateGrid: sketchGenerationQueries.useRegenerateGrid,
+      useUploadGrid: imageGridQueries.useUploadGrid,
+    },
+    {
+      copyText: (text) => navigator.clipboard?.writeText(text),
+      downloadFile: (url, filename) => {
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = filename;
+        anchor.click();
+      },
+    },
+  );
 export const useSketchSectionController = createUseSketchSectionController(
   {
     useDirectorControlToSketch:
@@ -187,7 +217,7 @@ export const {
   useExportGridPrompt,
   useSketchGridPreview,
   useUploadGrid,
-} = createImageGridQueryHooks(httpProductionVideoGateway);
+} = imageGridQueries;
 export const {
   useSeedance2BeatStatus,
   useUploadSeedance2Asset,

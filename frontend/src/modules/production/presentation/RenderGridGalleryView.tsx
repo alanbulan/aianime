@@ -21,22 +21,22 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { gridAspectCss } from "@/lib/aspect-ratio";
+import type {
+  RenderGridCardController,
+  RenderGridGalleryController,
+} from "@/modules/production/application/use-render-grid-gallery-controller";
 
 const GRID_ACTION_BUTTON_CLASS =
   "justify-start gap-1 rounded-[5px] px-1 text-foreground/82 shadow-none transition-colors hover:bg-transparent hover:text-foreground disabled:text-muted-foreground/45";
 
 export interface RenderGridGalleryViewProps {
   children: ReactNode;
-  gridCount: number;
-  rebuildPending: boolean;
-  onRebuild(): void | Promise<void>;
+  controller: RenderGridGalleryController;
 }
 
 export function RenderGridGalleryView({
   children,
-  gridCount,
-  rebuildPending,
-  onRebuild,
+  controller,
 }: RenderGridGalleryViewProps) {
   const { t } = useTranslation();
 
@@ -45,7 +45,7 @@ export function RenderGridGalleryView({
       <div className="mb-2 flex items-center justify-between gap-2">
         <h2 className="text-xs font-semibold text-muted-foreground">
           {t("episode.workbench.renderGrid.titleWithCount", {
-            count: gridCount,
+            count: controller.gridCount,
           })}
         </h2>
         <div className="flex items-center gap-2">
@@ -53,11 +53,11 @@ export function RenderGridGalleryView({
             type="button"
             size="xs"
             variant="ghost"
-            disabled={rebuildPending}
-            onClick={() => void onRebuild()}
+            disabled={controller.rebuildPending}
+            onClick={() => void controller.onRebuild()}
             className="h-6 gap-1 px-1.5 text-[10px]"
           >
-            {rebuildPending ? (
+            {controller.rebuildPending ? (
               <Loader2 className="size-3 animate-spin" />
             ) : (
               <RefreshCw className="size-3" />
@@ -66,7 +66,7 @@ export function RenderGridGalleryView({
           </Button>
         </div>
       </div>
-      {gridCount === 0 ? (
+      {controller.gridCount === 0 ? (
         <p className="flex min-h-0 flex-1 items-center justify-center px-4 text-center text-xs text-muted-foreground">
           {t("episode.workbench.renderGrid.noIndexedGrids")}
         </p>
@@ -80,56 +80,10 @@ export function RenderGridGalleryView({
 }
 
 export interface RenderGridCardViewProps {
-  beatNumbers: number[];
-  cellAspect: string;
-  cellCount: number;
-  cols: number;
-  cutPending: boolean;
-  exportPromptPending: boolean;
-  gridIndex: number;
-  gridUrl: string | null;
-  promptOpen: boolean;
-  promptText: string;
-  regenerationPending: boolean;
-  regenerationStarted: boolean;
-  regenerationStopping: boolean;
-  rows: number;
-  uploadPending: boolean;
-  onCopyPrompt(): void | Promise<void>;
-  onCut(): void | Promise<void>;
-  onDownload(): void;
-  onExportPrompt(): void | Promise<void>;
-  onPromptOpenChange(open: boolean): void;
-  onRegenerate(): void | Promise<void>;
-  onStopRegeneration(): void | Promise<void>;
-  onUpload(file: File): void | Promise<void>;
+  controller: RenderGridCardController;
 }
 
-export function RenderGridCardView({
-  beatNumbers,
-  cellAspect,
-  cellCount,
-  cols,
-  cutPending,
-  exportPromptPending,
-  gridIndex,
-  gridUrl,
-  promptOpen,
-  promptText,
-  regenerationPending,
-  regenerationStarted,
-  regenerationStopping,
-  rows,
-  uploadPending,
-  onCopyPrompt,
-  onCut,
-  onDownload,
-  onExportPrompt,
-  onPromptOpenChange,
-  onRegenerate,
-  onStopRegeneration,
-  onUpload,
-}: RenderGridCardViewProps) {
+export function RenderGridCardView({ controller }: RenderGridCardViewProps) {
   const { t } = useTranslation();
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -137,18 +91,25 @@ export function RenderGridCardView({
     <article className="flex min-w-0 flex-col gap-2 rounded-md border border-border bg-card p-2">
       <button
         type="button"
-        disabled={!gridUrl}
+        disabled={!controller.gridUrl}
         onClick={() =>
-          gridUrl && window.open(gridUrl, "_blank", "noopener,noreferrer")
+          controller.gridUrl &&
+          window.open(controller.gridUrl, "_blank", "noopener,noreferrer")
         }
         className="overflow-hidden rounded border border-border bg-media/20 disabled:cursor-default"
-        style={{ aspectRatio: gridAspectCss(cols, rows, cellAspect) }}
+        style={{
+          aspectRatio: gridAspectCss(
+            controller.cols,
+            controller.rows,
+            controller.cellAspect,
+          ),
+        }}
       >
-        {gridUrl ? (
+        {controller.gridUrl ? (
           <img
-            src={gridUrl}
+            src={controller.gridUrl}
             alt={t("episode.workbench.renderGrid.gridLabel", {
-              n: gridIndex,
+              n: controller.gridIndex,
             })}
             className="h-full w-full object-contain"
             loading="lazy"
@@ -164,32 +125,32 @@ export function RenderGridCardView({
         <div className="flex items-center justify-between gap-2 text-xs">
           <span className="font-medium">
             {t("episode.workbench.renderGrid.gridLabel", {
-              n: gridIndex,
+              n: controller.gridIndex,
             })}
           </span>
           <span className="text-muted-foreground">
-            {rows}x{cols}
+            {controller.rows}x{controller.cols}
           </span>
         </div>
         <p className="truncate text-[11px] text-muted-foreground">
           {t("episode.workbench.renderGrid.cellCount", {
-            count: cellCount,
+            count: controller.cellCount,
           })}
           {" · B"}
-          {formatBeatRange(beatNumbers)}
+          {formatBeatRange(controller.beatNumbers)}
         </p>
       </div>
       <div className="flex flex-wrap gap-1">
-        {regenerationStarted ? (
+        {controller.regenerationStarted ? (
           <Button
             type="button"
             size="xs"
             variant="ghost"
-            onClick={() => void onStopRegeneration()}
-            disabled={regenerationStopping}
+            onClick={() => void controller.onStopRegeneration()}
+            disabled={controller.regenerationStopping}
             className={GRID_ACTION_BUTTON_CLASS}
           >
-            {regenerationStopping ? (
+            {controller.regenerationStopping ? (
               <Loader2 className="size-3 animate-spin" />
             ) : (
               <Square className="size-3" />
@@ -201,11 +162,11 @@ export function RenderGridCardView({
             type="button"
             size="xs"
             variant="ghost"
-            onClick={() => void onRegenerate()}
-            disabled={regenerationPending}
+            onClick={() => void controller.onRegenerate()}
+            disabled={controller.regenerationPending}
             className={GRID_ACTION_BUTTON_CLASS}
           >
-            {regenerationPending ? (
+            {controller.regenerationPending ? (
               <Loader2 className="size-3 animate-spin" />
             ) : (
               <RefreshCw className="size-3" />
@@ -222,7 +183,7 @@ export function RenderGridCardView({
           onChange={(event) => {
             const file = event.currentTarget.files?.[0];
             event.currentTarget.value = "";
-            if (file) void onUpload(file);
+            if (file) void controller.onUpload(file);
           }}
         />
         <Button
@@ -230,10 +191,10 @@ export function RenderGridCardView({
           size="xs"
           variant="ghost"
           onClick={() => uploadInputRef.current?.click()}
-          disabled={uploadPending}
+          disabled={controller.uploadPending}
           className={GRID_ACTION_BUTTON_CLASS}
         >
-          {uploadPending ? (
+          {controller.uploadPending ? (
             <Loader2 className="size-3 animate-spin" />
           ) : (
             <Upload className="size-3" />
@@ -244,11 +205,11 @@ export function RenderGridCardView({
           type="button"
           size="xs"
           variant="ghost"
-          onClick={() => void onExportPrompt()}
-          disabled={exportPromptPending}
+          onClick={() => void controller.onExportPrompt()}
+          disabled={controller.exportPromptPending}
           className={GRID_ACTION_BUTTON_CLASS}
         >
-          {exportPromptPending ? (
+          {controller.exportPromptPending ? (
             <Loader2 className="size-3 animate-spin" />
           ) : (
             <FileText className="size-3" />
@@ -259,11 +220,11 @@ export function RenderGridCardView({
           type="button"
           size="xs"
           variant="ghost"
-          onClick={() => void onCut()}
-          disabled={cutPending}
+          onClick={() => void controller.onCut()}
+          disabled={controller.cutPending}
           className={GRID_ACTION_BUTTON_CLASS}
         >
-          {cutPending ? (
+          {controller.cutPending ? (
             <Loader2 className="size-3 animate-spin" />
           ) : (
             <Scissors className="size-3" />
@@ -274,26 +235,29 @@ export function RenderGridCardView({
           type="button"
           size="xs"
           variant="ghost"
-          onClick={onDownload}
-          disabled={!gridUrl}
+          onClick={controller.onDownload}
+          disabled={!controller.gridUrl}
           className={GRID_ACTION_BUTTON_CLASS}
         >
           <Download className="size-3" />
           {t("common.download")}
         </Button>
       </div>
-      <Dialog open={promptOpen} onOpenChange={onPromptOpenChange}>
+      <Dialog
+        open={controller.promptOpen}
+        onOpenChange={controller.onPromptOpenChange}
+      >
         <DialogContent className="max-w-[min(calc(100vw-2rem),760px)] sm:max-w-[min(calc(100vw-2rem),760px)]">
           <DialogHeader>
             <DialogTitle>
               {t("episode.workbench.renderGrid.promptTitle", {
-                n: gridIndex,
+                n: controller.gridIndex,
               })}
             </DialogTitle>
           </DialogHeader>
           <Textarea
             aria-label={t("episode.workbench.renderGrid.promptContent")}
-            value={promptText}
+            value={controller.promptText}
             readOnly
             className="min-h-[260px] resize-y font-mono text-xs"
           />
@@ -302,7 +266,7 @@ export function RenderGridCardView({
               type="button"
               size="sm"
               variant="outline"
-              onClick={() => void onCopyPrompt()}
+              onClick={() => void controller.onCopyPrompt()}
               className="gap-1 transition-transform active:scale-95"
             >
               <Copy className="size-3" />
