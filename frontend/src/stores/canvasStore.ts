@@ -89,6 +89,11 @@ import {
   type CanvasDerivedExportNodeOptions,
 } from '@/features/canvas/application/canvasDerivedNodeCreation';
 import {
+  createCanvasDataEdge,
+  createCanvasProgrammaticEdge,
+  type CanvasDataEdgeCreationOptions,
+} from '@/features/canvas/application/canvasEdgeCreation';
+import {
   classifyCanvasNodeChanges,
   hasMeaningfulCanvasEdgeChange,
 } from '@/features/canvas/application/canvasChangeIntent';
@@ -123,10 +128,6 @@ import {
   type CanvasImageViewerDirection,
   type CanvasImageViewerState,
 } from '@/features/canvas/application/canvasImageViewer';
-import {
-  validateCandidateBindingRoleCandidate,
-  validatePropagatingEdgeCandidate,
-} from '@/features/freezone/context/mainlineContext';
 
 export type {
   ActiveToolDialog,
@@ -190,7 +191,7 @@ interface CanvasState extends CanvasMutationState {
     source: string,
     target: string,
     data: Record<string, unknown>,
-    options?: { id?: string; sourceHandle?: string; targetHandle?: string },
+    options?: CanvasDataEdgeCreationOptions,
   ) => string | null;
   findNodePosition: (sourceNodeId: string, newNodeWidth: number, newNodeHeight: number) => { x: number; y: number };
   addDerivedUploadNode: (
@@ -689,79 +690,51 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   addEdge: (source, target) => {
     const state = get();
-    const validation = validateCanvasConnection(
+    const result = createCanvasProgrammaticEdge(
       state.nodes,
       state.edges,
-      { source, target },
-      'programmatic',
-    );
-    if (!validation.ok) {
-      return null;
-    }
-
-    const edgeId = `e-${source}-${target}`;
-    // Check if edge already exists
-    if (state.edges.some((e) => e.id === edgeId)) {
-      return edgeId;
-    }
-
-    const newEdge: CanvasEdge = {
-      id: edgeId,
       source,
       target,
-      sourceHandle: 'source',
-      targetHandle: 'target',
-      type: 'disconnectableEdge',
-    };
+    );
+    if (!result) {
+      return null;
+    }
+    if (!result.created) {
+      return result.edgeId;
+    }
 
     set({
-      edges: [...state.edges, newEdge],
+      edges: result.edges,
       ...trackEdit(state),
     });
 
-    return edgeId;
+    return result.edgeId;
   },
 
   addEdgeWithData: (source, target, data, options) => {
     const state = get();
-    const connectionValidation = validateCanvasConnection(
+    const outcome = createCanvasDataEdge(
       state.nodes,
       state.edges,
-      { source, target },
-      'programmatic',
-    );
-    if (!connectionValidation.ok) {
-      return null;
-    }
-
-    const edgeId = options?.id || `e-${source}-${target}-${String(data.edgeKind || 'data')}`;
-    const existing = state.edges.find((edge) => edge.id === edgeId);
-    if (existing) {
-      return edgeId;
-    }
-
-    const newEdge: CanvasEdge = {
-      id: edgeId,
       source,
       target,
-      sourceHandle: normalizeHandleId(options?.sourceHandle) ?? 'source',
-      targetHandle: normalizeHandleId(options?.targetHandle) ?? 'target',
-      type: 'disconnectableEdge',
       data,
-    };
-    const validation = validatePropagatingEdgeCandidate(state.nodes, state.edges, newEdge);
-    if (!validation.ok) {
-      console.warn('[freezone] rejected propagating edge', validation.reason, newEdge);
+      options,
+    );
+    if (!outcome.ok) {
+      if (outcome.stage === 'propagation') {
+        console.warn('[freezone] rejected propagating edge', outcome.reason, outcome.edge);
+      } else if (outcome.stage === 'role') {
+        console.warn('[freezone] rejected role binding edge', outcome.reason, outcome.edge);
+      }
       return null;
     }
-    const roleValidation = validateCandidateBindingRoleCandidate(state.edges, newEdge);
-    if (!roleValidation.ok) {
-      console.warn('[freezone] rejected role binding edge', roleValidation.reason, newEdge);
-      return null;
+    if (!outcome.result.created) {
+      return outcome.result.edgeId;
     }
 
     set({
-      edges: [...state.edges, newEdge],
+      edges: outcome.result.edges,
       history: {
         past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
         future: [],
@@ -770,7 +743,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       ...trackEdit(state),
     });
 
-    return edgeId;
+    return outcome.result.edgeId;
   },
 
   findNodePosition: (sourceNodeId, newNodeWidth, newNodeHeight) => {

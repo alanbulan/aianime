@@ -2059,6 +2059,60 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps Canvas programmatic edge creation in the application layer", () => {
+    const creationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasEdgeCreation.ts",
+    );
+    const creationModel = readFileSync(creationPath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(creationPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/features/canvas/nodeFactoryComposition",
+    );
+    const declarations = [
+      "createCanvasProgrammaticEdge(",
+      "createCanvasDataEdge(",
+    ].map((name) => ["export function", name].join(" "));
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => {
+        const source = readFileSync(path, "utf8");
+        return declarations.some((declaration) => source.includes(declaration));
+      })
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/application/canvasEdgeCreation.ts",
+    ]);
+    for (const declaration of declarations) {
+      expect(creationModel).toContain(declaration);
+    }
+    expect(creationModel).toContain("validateCanvasConnection(");
+    expect(creationModel).toContain("validatePropagatingEdgeCandidate(");
+    expect(creationModel).toContain("validateCandidateBindingRoleCandidate(");
+    expect(canvasStore).toContain(
+      "@/features/canvas/application/canvasEdgeCreation",
+    );
+    expect(canvasStore).not.toContain("const edgeId = `e-${source}-${target}`");
+    expect(canvasStore).not.toContain("const newEdge: CanvasEdge =");
+    expect(canvasStore).not.toContain("validatePropagatingEdgeCandidate(");
+    expect(canvasStore).not.toContain("validateCandidateBindingRoleCandidate(");
+  });
+
   it("keeps Canvas edge deletion in the domain model", () => {
     const deletionPath = resolve(
       SRC_ROOT,
