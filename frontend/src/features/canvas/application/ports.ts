@@ -209,6 +209,40 @@ export interface ImageSplitGateway {
   ) => Promise<string[]>;
 }
 
+export interface CanvasImageDimensions {
+  width: number;
+  height: number;
+}
+
+export interface CanvasStoryboardImageMetadata {
+  gridRows: number;
+  gridCols: number;
+  frameNotes: string[];
+}
+
+export interface CanvasToolImageGateway {
+  crop: (
+    sourceImage: string,
+    options: Record<string, unknown>,
+  ) => Promise<string>;
+  annotate: (
+    sourceImage: string,
+    options: Record<string, unknown>,
+  ) => Promise<string>;
+  persist: (sourceImage: string) => Promise<string>;
+  detectAspectRatio: (sourceImage: string) => Promise<string>;
+  getDimensions: (sourceImage: string) => Promise<CanvasImageDimensions>;
+  splitLocally: (
+    sourceImage: string,
+    rows: number,
+    cols: number,
+    lineThickness: number,
+  ) => Promise<string[]>;
+  readStoryboardMetadata: (
+    sourceImage: string,
+  ) => Promise<CanvasStoryboardImageMetadata | null>;
+}
+
 export interface ToolProcessorResult {
   outputImageUrl?: string;
   storyboardFrames?: StoryboardFrameItem[];

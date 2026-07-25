@@ -26,6 +26,7 @@ import {
   uploadLocalImageToBackend as uploadLocalImageToBackendUseCase,
 } from './application/uploadToolOutput';
 import { browserGenerationRuntimeGateway } from './infrastructure/browserGenerationRuntimeGateway';
+import { browserToolImageGateway } from './infrastructure/browserToolImageGateway';
 import { freezoneAssetGateway } from './infrastructure/freezoneAssetGateway';
 import { freezoneAiGateway } from './infrastructure/freezoneAiGateway';
 import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerationTaskGateway';
@@ -38,6 +39,7 @@ export { canvasNodeFactory } from './nodeFactoryComposition';
 
 export const canvasToolProcessor = new CanvasToolProcessor(
   webImageSplitGateway,
+  browserToolImageGateway,
   uuidGenerator,
 );
 export const canvasAiGateway = freezoneAiGateway;
