@@ -1216,12 +1216,9 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
-    const renderSectionSource = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "components/episode/beat-workbench/render-section.tsx",
-      ),
-      "utf8",
+    const renderSectionSource = sourceSection(
+      resolve(SRC_ROOT, "modules/production/render-section-composition.ts"),
+      "export interface RenderSectionProps",
     );
     const renderSectionViewSource = readFileSync(
       resolve(
@@ -1376,6 +1373,7 @@ describe("frontend architecture boundaries", () => {
       "components/episode/beat-workbench/sketch-section-composition.ts",
       "components/episode/beat-workbench/sketch-crop-dialog.tsx",
       "components/episode/beat-workbench/sketch-pose-editor-dialog.tsx",
+      "components/episode/beat-workbench/render-section.tsx",
     ]) {
       expect(existsSync(resolve(SRC_ROOT, legacyPath)), legacyPath).toBe(false);
     }
@@ -1665,7 +1663,9 @@ describe("frontend architecture boundaries", () => {
     expect(sketchSectionViewSource).toContain('type="file"');
     expect(sketchSectionViewSource).toContain("<AlertDialog");
     expect(sketchSectionViewSource).toContain("MEDIA_THUMB_CLASS");
-    expect(renderSectionSource).toContain("<RenderSectionView");
+    expect(renderSectionSource).toContain(
+      "createElement(RenderSectionView",
+    );
     expect(renderSectionSource).toContain("useRenderSectionController(");
     expect(renderSectionSource).not.toContain("className=");
     expect(renderSectionSource).not.toContain("<Button");
@@ -1743,6 +1743,16 @@ describe("frontend architecture boundaries", () => {
     expect(renderSectionCompositionSource).toContain(
       "useDirectorControlFrameStatus,",
     );
+    expect(productionPublicSource).toContain(
+      'export { RenderSection } from "@/modules/production/render-section-composition";',
+    );
+    expect(productionPublicSource).not.toContain(
+      "useRenderSectionController",
+    );
+    expect(productionPublicSource).not.toContain(
+      "createUseRenderSectionController",
+    );
+    expect(productionPublicSource).not.toContain("RenderSectionView");
     expect(productionCompositionSource).not.toContain(
       "@/modules/asset_world/public",
     );

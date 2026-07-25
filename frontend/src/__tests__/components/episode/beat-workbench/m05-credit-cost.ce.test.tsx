@@ -221,7 +221,7 @@ describe("M05 CE generation credit cost gating", () => {
       "src/modules/production/sketch-section-composition.ts",
       "src/modules/production/application/use-sketch-section-controller.ts",
       "src/modules/production/presentation/SketchSectionView.tsx",
-      "src/components/episode/beat-workbench/render-section.tsx",
+      "src/modules/production/render-section-composition.ts",
       "src/modules/production/application/use-render-section-controller.ts",
       "src/modules/production/presentation/RenderSectionView.tsx",
       "src/components/episode/beat-workbench/batch-panel.tsx",

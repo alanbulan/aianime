@@ -7,11 +7,11 @@ import {
 } from "@/modules/narrative_planning/public";
 import {
   AudioPaneContent,
+  RenderSection,
   SketchSection,
 } from "@/modules/production/public";
 import type { BeatStageState } from "@/types/beat-state";
 
-import { RenderSection } from "./render-section";
 import { TextPane } from "./text-pane";
 import { VideoPane } from "./video-pane";
 

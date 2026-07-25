@@ -5,7 +5,7 @@ import { I18nextProvider, initReactI18next } from "react-i18next";
 import i18next from "i18next";
 import { beforeAll, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 
-import { RenderSection } from "@/components/episode/beat-workbench/render-section";
+import { RenderSection } from "@/modules/production/render-section-composition";
 import { useAspectRatioStore } from "@/stores/aspect-ratio-store";
 import type { Beat } from "@/modules/narrative_planning/public";
 import type { PoolImage } from "@/modules/production/public";
@@ -131,73 +131,30 @@ vi.mock("@/modules/asset_world/public", () => ({
   }),
 }));
 
-vi.mock("@/modules/production/public", async (importOriginal) => {
-  const actual = await importOriginal<
-    typeof import("@/modules/production/public")
-  >();
-  const assetWorld = await import("@/modules/asset_world/public");
-  const { useProjectAspectRatio } = await import(
-    "@/stores/aspect-ratio-store"
-  );
-  const useRenderSectionController = actual.createUseRenderSectionController(
-    {
-      useBeatBackgroundAnchors: assetWorld.useBeatBackgroundAnchors,
-      useBeatDirectorStageManifest:
-        assetWorld.useBeatDirectorStageManifest,
-      useCropBeatBackgroundAnchor:
-        assetWorld.useCropBeatBackgroundAnchor,
-      useDirectorControlFrameStatus:
-        assetWorld.useDirectorControlFrameStatus,
-      usePoolSelect: () => ({
-        mutateAsync: poolSelectMock,
-        isPending: false,
-      }),
-      useRegenerateRenderBeats: () => ({
-        mutateAsync: regenerateMock,
-        isPending: false,
-      }),
-      useRenderSettings: () => ({
-        data: {
-          ok: true,
-          data: {
-            render_image_selection: "doubao_seedream-3.0-t2i",
-            options: {},
-            sketch_aspect_padding: true,
-          },
-        },
-      }),
-      useScenePlatePreview: assetWorld.useScenePlatePreview,
-      useUpdateBeatBackgroundAnchor:
-        assetWorld.useUpdateBeatBackgroundAnchor,
-      useUploadBeatBackgroundAnchor:
-        assetWorld.useUploadBeatBackgroundAnchor,
-      useUploadBeatImage: () => ({
-        mutateAsync: uploadMock,
-        isPending: false,
-      }),
+vi.mock("@/modules/production/composition", () => ({
+  usePoolSelect: () => ({
+    mutateAsync: poolSelectMock,
+    isPending: false,
+  }),
+  useRegenerateRenderBeats: () => ({
+    mutateAsync: regenerateMock,
+    isPending: false,
+  }),
+  useRenderSettings: () => ({
+    data: {
+      ok: true,
+      data: {
+        render_image_selection: "doubao_seedream-3.0-t2i",
+        options: {},
+        sketch_aspect_padding: true,
+      },
     },
-    {
-      downloadFile: vi.fn(),
-      openRenderFreezone: vi.fn().mockResolvedValue(undefined),
-      useGenerationCreditCost: () => ({
-        data: {
-          ok: true,
-          data: { cost: 1, display: "1 credit" },
-        },
-      }),
-      useNow: () => 1_747_392_000_000,
-      useProjectAspectRatio,
-      useSeenRenderCandidates: () => ({
-        markSeen: markSeenMock,
-        seenIds: undefined,
-      }),
-    },
-  );
-  return {
-    ...actual,
-    useRenderSectionController,
-  };
-});
+  }),
+  useUploadBeatImage: () => ({
+    mutateAsync: uploadMock,
+    isPending: false,
+  }),
+}));
 
 const scenePlatePreviewState: {
   data: null | {
@@ -225,6 +182,23 @@ vi.mock("@/hooks/use-task-controller", () => ({
     started: false,
     stopping: false,
   }),
+}));
+
+vi.mock("@/hooks/use-now", () => ({
+  useNow: () => 1_747_392_000_000,
+}));
+
+vi.mock("@/features/freezone/openPresetProjection", () => ({
+  openPresetProjectionInMyCanvas: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@/stores/seen-pool-store", () => ({
+  useSeenPoolStore: (
+    selector: (state: {
+      markSeen: typeof markSeenMock;
+      seen: Record<string, string[]>;
+    }) => unknown,
+  ) => selector({ markSeen: markSeenMock, seen: {} }),
 }));
 
 vi.mock("sonner", () => ({

@@ -128,9 +128,6 @@ export type {
   BatchPanelControllerOptions,
   BatchPanelControllerQueries,
 } from "@/modules/production/application/use-batch-panel-controller";
-export { RenderSectionView } from "@/modules/production/presentation/RenderSectionView";
-export type { RenderSectionViewProps } from "@/modules/production/presentation/RenderSectionView";
-export { createUseRenderSectionController } from "@/modules/production/application/use-render-section-controller";
 export { NarratorVoicePanelView } from "@/modules/production/presentation/NarratorVoicePanelView";
 export type { NarratorVoicePanelViewProps } from "@/modules/production/presentation/NarratorVoicePanelView";
 export {
@@ -174,23 +171,6 @@ export type {
   SketchGridGalleryControllerOptions,
   SketchGridGalleryControllerQueries,
 } from "@/modules/production/application/use-sketch-grid-gallery-controller";
-export type {
-  CropRenderBackgroundMutation,
-  RenderBackgroundAnchorsQuery,
-  RenderBackgroundReferenceViewModel,
-  RenderCandidateViewModel,
-  RenderDirectorCaptureMeta,
-  RenderDirectorStageQuery,
-  RenderDirectorStatusQuery,
-  RenderSectionController,
-  RenderSectionControllerDependencies,
-  RenderSectionControllerOptions,
-  RenderSectionControllerQueries,
-  ScenePlatePreviewQuery,
-  SeenRenderCandidates,
-  UpdateRenderBackgroundMutation,
-  UploadRenderBackgroundMutation,
-} from "@/modules/production/application/use-render-section-controller";
 export { StalePoolSelectError } from "@/modules/production/application/image-pool-errors";
 export { isProductionErrorResponse } from "@/modules/production/application/ports";
 export {
@@ -385,6 +365,7 @@ export type {
   Seedance2Resolution,
   VideoBackendConfigCapabilities,
 } from "@/modules/production/domain/video-config";
-export { useRenderSectionController } from "@/modules/production/render-section-composition";
+export { RenderSection } from "@/modules/production/render-section-composition";
+export type { RenderSectionProps } from "@/modules/production/render-section-composition";
 export { SketchSection } from "@/modules/production/sketch-section-composition";
 export type { SketchSectionProps } from "@/modules/production/sketch-section-composition";
