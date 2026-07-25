@@ -41,16 +41,18 @@ export function RenderGridGallery({
 
   return createElement(
     RenderGridGalleryView,
-    { controller },
-    controller.groups.map((group) =>
-      createElement(RenderGridCard, {
-        cellAspect: spec.renderAspect,
-        episode,
-        group,
-        key: group.gridIndex,
-        project,
-      }),
-    ),
+    {
+      children: controller.groups.map((group) =>
+        createElement(RenderGridCard, {
+          cellAspect: spec.renderAspect,
+          episode,
+          group,
+          key: group.gridIndex,
+          project,
+        }),
+      ),
+      controller,
+    },
   );
 }
 
@@ -99,17 +101,19 @@ export function SketchGridGallery({
 
   return createElement(
     SketchGridGalleryView,
-    { controller },
-    controller.groups.map((group) =>
-      createElement(SketchGridCard, {
-        aspectRatio,
-        episode,
-        group,
-        imageGenerationSelection,
-        key: group.gridIndex,
-        project,
-      }),
-    ),
+    {
+      children: controller.groups.map((group) =>
+        createElement(SketchGridCard, {
+          aspectRatio,
+          episode,
+          group,
+          imageGenerationSelection,
+          key: group.gridIndex,
+          project,
+        }),
+      ),
+      controller,
+    },
   );
 }
 
