@@ -79,6 +79,12 @@ export {
 export { VideoPaneMediaView } from "@/modules/production/presentation/VideoPaneMediaView";
 export { StalePoolSelectError } from "@/modules/production/application/image-pool-errors";
 export { isProductionErrorResponse } from "@/modules/production/application/ports";
+export {
+  useSeedance2MentionController,
+  type Seedance2MentionController,
+  type Seedance2MentionField,
+  type Seedance2MentionSelection,
+} from "@/modules/production/application/use-seedance2-mention-controller";
 export { prepareBeatVideoGeneration } from "@/modules/production/domain/beat-video-generation";
 export type {
   BeatVideoGenerationInput,

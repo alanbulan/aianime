@@ -639,6 +639,14 @@ describe("frontend architecture boundaries", () => {
     expect(videoPaneSource).not.toContain("saveSeedance2Draft");
     expect(videoPaneSource).not.toContain("getSeedance2ConfigSaveKey");
     expect(videoPaneSource).not.toContain("SEEDANCE2_AUTOSAVE_DELAY_MS");
+    expect(videoPaneSource).not.toContain("seedance2ReferenceSelectionRef");
+    expect(videoPaneSource).not.toContain("prevSeedance2LabelIdentityRef");
+    expect(videoPaneSource).not.toContain("mentionDismissedQuery");
+    expect(videoPaneSource).not.toContain("insertSeedance2Reference");
+    expect(videoPaneSource).not.toContain("buildSeedance2LabelIdentityMaps(");
+    expect(videoPaneSource).not.toContain("getSeedance2MentionQuery(");
+    expect(videoPaneSource).not.toContain("remapSeedance2Mentions(");
+    expect(videoPaneSource).not.toContain("normalizeMentionSeparatorSpaces(");
     expect(videoPaneSource).not.toContain("happyHorseConfigJson");
     expect(videoPaneSource).not.toContain("grokVideoConfigJson");
     expect(videoPaneSource).not.toContain("seedance2ConfigJson:");

@@ -1,9 +1,7 @@
 // Copyright (c) 2026 AI anime
 import {
-  useEffect,
   useId,
   useMemo,
-  useRef,
   useState,
   type DragEvent,
   type KeyboardEvent,
@@ -21,7 +19,6 @@ import { resolveMediaUrl } from "@/lib/media-url";
 import { ratioToCss } from "@/lib/aspect-ratio";
 import { useProjectAspectRatio } from "@/stores/aspect-ratio-store";
 import { cn } from "@/lib/utils";
-import { normalizeMentionSeparatorSpaces } from "@/lib/mention-markers";
 import { CreditCostInline } from "@/components/credit-cost-inline";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -32,12 +29,9 @@ import {
   type Beat,
 } from "@/modules/narrative_planning/public";
 import {
-  buildSeedance2LabelIdentityMaps,
   BeatVideoGenerationAction,
   BeatVideoGenerationConfirmDialog,
   clampDuration,
-  findSeedance2TrailingMention,
-  getSeedance2MentionQuery,
   isSeedanceReferenceCropBackend,
   normalizeGrokVideoRatio,
   normalizeHappyHorseMode,
@@ -45,8 +39,6 @@ import {
   normalizeSeedance2Mode,
   normalizeSeedance2Ratio,
   normalizeSeedance2Resolution,
-  sameSeedance2LabelIdentity,
-  remapSeedance2Mentions,
   LegacyVideoPromptView,
   Seedance2Checkbox,
   Seedance2Field,
@@ -61,12 +53,13 @@ import {
   useSeedance2AssetOperationsController,
   useSeedance2BeatStatus,
   useSeedance2ConfigController,
+  useSeedance2MentionController,
   useVideoBackends,
   useVideoPaneMediaController,
   VideoPaneMediaView,
   VideoParamField,
   videoInputCropAspectForProjectAspect,
-  type Seedance2LabelIdentityMaps,
+  type Seedance2MentionField,
 } from "@/modules/production/public";
 import {
   Select,
@@ -137,8 +130,6 @@ interface VideoPaneProps {
   showAudioMediaStatus?: boolean;
 }
 
-type Seedance2ReferenceField = "prompt_guidance" | "final_prompt";
-
 /**
  * 视频 sub-tab — first-frame preview + video preview + per-beat regen.
  * Per-beat backend override is deferred (see v3 spec P4 follow-up).
@@ -170,20 +161,6 @@ export function VideoPane({
     project,
   });
   const [seedance2ReferencesOpen, setSeedance2ReferencesOpen] = useState(true);
-  const [mentionActiveIndex, setMentionActiveIndex] = useState(0);
-  const [activeMentionField, setActiveMentionField] =
-    useState<Seedance2ReferenceField>("final_prompt");
-  // The mention query at which the dropdown was dismissed (Escape / after a
-  // pick). Keeps it closed until the query changes again.
-  const [mentionDismissedQuery, setMentionDismissedQuery] = useState<
-    { field: Seedance2ReferenceField; query: string | null } | null
-  >(null);
-  const seedance2ReferenceSelectionRef = useRef<
-    Record<Seedance2ReferenceField, { start: number; end: number } | null>
-  >({
-    prompt_guidance: null,
-    final_prompt: null,
-  });
   const selectedBackend = videoBackends.find((b) => b.value === defaultBackend);
   const showSeedance2Config = selectedBackend?.is_seedance2 === true;
   const showHappyHorseConfig = selectedBackend?.is_happyhorse === true;
@@ -244,6 +221,13 @@ export function VideoPane({
         : seedance2AssetItems,
     [seedance2AssetItems, showGrokVideoConfig, showHappyHorseConfig],
   );
+  const mentionController = useSeedance2MentionController({
+    assets: modelReferenceAssetItems,
+    beatNumber: beat.beat_number,
+    changeDraft: changeSeedance2Draft,
+    draft: seedance2Draft,
+    enabled: showPromptConfig,
+  });
   const referenceCropImageItems = useMemo(
     () => {
       const imageAssets = seedance2AssetItems.filter(
@@ -258,16 +242,6 @@ export function VideoPane({
       return imageAssets.filter((asset) => asset.key === "first_frame");
     },
     [seedance2AssetItems, showGrokVideoConfig, showHappyHorseConfig, showSeedance2Config],
-  );
-  const seedance2ReferenceOptions = useMemo(
-    () =>
-      modelReferenceAssetItems.filter(
-        (asset) =>
-          asset.reference_label &&
-          asset.reference_label !== "未发送" &&
-          asset.exists !== false,
-    ),
-    [modelReferenceAssetItems],
   );
   const seedance2ReturnedLastFrameAsset = useMemo(
     () =>
@@ -293,52 +267,6 @@ export function VideoPane({
   const seedance2ReturnedLastFrameAspectCss = ratioToCss(
     seedance2Draft.ratio || spec.renderAspect,
   );
-  const seedance2MentionQuery = getSeedance2MentionQuery(
-    seedance2Draft[activeMentionField],
-  );
-  const seedance2MentionOptions = useMemo(() => {
-    if (seedance2MentionQuery === null) return [];
-    const query = seedance2MentionQuery.trim();
-    return seedance2ReferenceOptions.filter((asset) => {
-      const label = asset.reference_label;
-      return !query || label.includes(query) || `@${label}`.includes(query);
-    });
-  }, [
-    seedance2MentionQuery,
-    seedance2ReferenceOptions,
-  ]);
-  const seedance2ReferenceLabels = useMemo(
-    () => seedance2ReferenceOptions.map((asset) => asset.reference_label),
-    [seedance2ReferenceOptions],
-  );
-  // 提示词 @图片N/@音频N 与参考素材的「label↔身份(URL)」映射，用于素材增删/重排后
-  // 把提示词里的编号按素材身份重新对号（mention 始终跟着它引用的素材走）。
-  const seedance2LabelIdentity = useMemo(
-    () => buildSeedance2LabelIdentityMaps(seedance2ReferenceOptions),
-    [seedance2ReferenceOptions],
-  );
-  // 提示词里 hover 到 @图片N 时弹出的小图预览：reference_label → 图片 URL（仅图片素材）。
-  const seedance2MentionPreviews = useMemo(() => {
-    const map: Record<string, string> = {};
-    for (const asset of seedance2ReferenceOptions) {
-      if (asset.media_type !== "image") continue;
-      const url = resolveMediaUrl(asset.url || asset.path);
-      if (url) {
-        map[asset.reference_label] = url;
-      }
-    }
-    return map;
-  }, [seedance2ReferenceOptions]);
-  const seedance2MentionOpen =
-    seedance2MentionOptions.length > 0 &&
-    !(
-      mentionDismissedQuery?.field === activeMentionField &&
-      mentionDismissedQuery.query === seedance2MentionQuery
-    );
-  // Restart the highlight at the top whenever the query changes.
-  useEffect(() => {
-    setMentionActiveIndex(0);
-  }, [activeMentionField, seedance2MentionQuery]);
   const seedance2PromptStatus = seedance2Ready
     ? t("episode.workbench.video.seedance2Ready")
     : t("episode.workbench.video.seedance2Missing");
@@ -368,115 +296,14 @@ export function VideoPane({
   });
   const hasGeneratedVideo = mediaController.hasGeneratedVideo;
 
-  // 参考素材的「label↔身份(URL)」映射变化时（增删/重排导致后端重新编号），把提示词里
-  // 的 @图片N/@音频N 按素材身份重新对号、被删的移除。后端拿到的仍是图片N，生成视频时
-  // 编号已是最新位置。放在 beat 重置 effect 之后，读到的是重置后的草稿。
-  // 前提：后端在素材增删时不自行重编号提示词（当前 bug「提示词不同步」即说明如此）。
-  const prevSeedance2LabelIdentityRef = useRef<{
-    beatNumber: number;
-    maps: Seedance2LabelIdentityMaps;
-  } | null>(null);
-  useEffect(() => {
-    if (!showPromptConfig) return;
-    const prev = prevSeedance2LabelIdentityRef.current;
-    prevSeedance2LabelIdentityRef.current = {
-      beatNumber: beat.beat_number,
-      maps: seedance2LabelIdentity,
-    };
-    // 切 beat / 首帧：只记录基线，不重映射（避免用上一个 beat 的映射改新 beat 的词）。
-    if (!prev || prev.beatNumber !== beat.beat_number) return;
-    if (sameSeedance2LabelIdentity(prev.maps, seedance2LabelIdentity)) return;
-    changeSeedance2Draft((current) => {
-      const finalPrompt = remapSeedance2Mentions(
-        current.final_prompt,
-        prev.maps,
-        seedance2LabelIdentity,
-      );
-      const promptGuidance = remapSeedance2Mentions(
-        current.prompt_guidance,
-        prev.maps,
-        seedance2LabelIdentity,
-      );
-      if (
-        finalPrompt === current.final_prompt &&
-        promptGuidance === current.prompt_guidance
-      ) {
-        return current;
-      }
-      return {
-        ...current,
-        final_prompt: finalPrompt,
-        prompt_guidance: promptGuidance,
-      };
-    });
-  }, [
-    beat.beat_number,
-    changeSeedance2Draft,
-    seedance2LabelIdentity,
-    showPromptConfig,
-  ]);
-  const insertSeedance2Reference = (
-    field: Seedance2ReferenceField,
-    label: string,
-    options: {
-      replaceTrailingMention?: boolean;
-      selectionRange?: { start: number; end: number };
-    } = {},
-  ) => {
-    // Mirror MentionTextarea.insertMention: every inserted reference is followed
-    // by a single space so the next reference/word can't glue onto it.
-    const token = `@${label} `;
-    changeSeedance2Draft((current) => {
-      const rawText = current[field];
-      const text = rawText.trimEnd();
-      if (options.selectionRange) {
-        const start = Math.max(
-          0,
-          Math.min(options.selectionRange.start, rawText.length),
-        );
-        const end = Math.max(
-          start,
-          Math.min(options.selectionRange.end, rawText.length),
-        );
-        const after = rawText.slice(end).replace(/^\s+/, "");
-        const nextText = normalizeMentionSeparatorSpaces(
-          `${rawText.slice(0, start)}${token}${after}`,
-          seedance2ReferenceLabels,
-        ).text;
-        return {
-          ...current,
-          [field]: nextText,
-        };
-      }
-      const mention = options.replaceTrailingMention
-        ? findSeedance2TrailingMention(text)
-        : null;
-      const finalPrompt = text.endsWith("@")
-        ? `${text.slice(0, -1)}${token}`
-        : mention
-          ? `${text.slice(0, mention.index)}${token}`
-        : text
-          ? `${text}\n${token}`
-          : token;
-      const nextText = normalizeMentionSeparatorSpaces(
-        finalPrompt,
-        seedance2ReferenceLabels,
-      ).text;
-      return {
-        ...current,
-        [field]: nextText,
-      };
-    });
-  };
   const rememberSeedance2PromptSelection = (
-    field: Seedance2ReferenceField,
+    field: Seedance2MentionField,
     target: HTMLTextAreaElement,
   ) => {
-    setActiveMentionField(field);
-    seedance2ReferenceSelectionRef.current[field] = {
+    mentionController.rememberSelection(field, {
       start: target.selectionStart,
       end: target.selectionEnd,
-    };
+    });
   };
   const handleSeedance2ReferenceDragStart = (
     event: DragEvent<HTMLElement>,
@@ -491,7 +318,7 @@ export function VideoPane({
   ) => {
     const types = Array.from(event.dataTransfer.types);
     const mayBeReferenceDrop =
-      seedance2ReferenceOptions.length > 0 &&
+      mentionController.referenceOptions.length > 0 &&
       (types.length === 0 ||
         types.includes(SEEDANCE2_REFERENCE_DRAG_TYPE) ||
         types.includes("text/plain") ||
@@ -503,7 +330,7 @@ export function VideoPane({
     }
   };
   const handleSeedance2ReferenceDrop = (
-    field: Seedance2ReferenceField,
+    field: Seedance2MentionField,
     event: DragEvent<HTMLTextAreaElement>,
   ) => {
     const customLabel = event.dataTransfer.getData(
@@ -511,96 +338,74 @@ export function VideoPane({
     );
     const plainLabel = event.dataTransfer.getData("text/plain").replace(/^@/, "");
     const label = (customLabel || plainLabel).trim();
-    if (!seedance2ReferenceOptions.some((asset) => asset.reference_label === label)) {
-      return;
-    }
+    if (!mentionController.acceptsReference(label)) return;
     event.preventDefault();
-    setActiveMentionField(field);
-    const selectionRange =
+    const selection =
       document.activeElement === event.currentTarget
         ? {
             start: event.currentTarget.selectionStart,
             end: event.currentTarget.selectionEnd,
           }
-        : seedance2ReferenceSelectionRef.current[field] ?? undefined;
-    insertSeedance2Reference(field, label, { selectionRange });
-    setMentionDismissedQuery({ field, query: label });
-  };
-  const handleSelectMention = (field: Seedance2ReferenceField, label: string) => {
-    setActiveMentionField(field);
-    insertSeedance2Reference(field, label, { replaceTrailingMention: true });
-    // After inserting, the prompt ends with `@<label>`, so that becomes the
-    // trailing query — dismiss it so the dropdown doesn't immediately reopen.
-    setMentionDismissedQuery({ field, query: label });
+        : undefined;
+    mentionController.insertDroppedReference(field, label, selection);
   };
   const handleMentionKeyDown = (
-    field: Seedance2ReferenceField,
+    field: Seedance2MentionField,
     event: KeyboardEvent<HTMLTextAreaElement>,
   ) => {
-    setActiveMentionField(field);
-    if (!seedance2MentionOpen || event.nativeEvent.isComposing) return;
-    const count = seedance2MentionOptions.length;
+    mentionController.setActiveField(field);
+    if (!mentionController.mentionOpen || event.nativeEvent.isComposing) return;
     switch (event.key) {
       case "ArrowDown":
         event.preventDefault();
-        setMentionActiveIndex((index) => (index + 1) % count);
+        mentionController.moveActiveIndex(1);
         break;
       case "ArrowUp":
         event.preventDefault();
-        setMentionActiveIndex((index) => (index - 1 + count) % count);
+        mentionController.moveActiveIndex(-1);
         break;
       case "Enter":
       case "Tab":
       case " ": {
         if (event.key === "Enter" && event.shiftKey) return;
-        const option =
-          seedance2MentionOptions[Math.min(mentionActiveIndex, count - 1)];
-        if (option) {
+        if (mentionController.selectActiveMention(field)) {
           event.preventDefault();
-          handleSelectMention(field, option.reference_label);
         }
         break;
       }
       case "Escape":
         event.preventDefault();
-        setMentionDismissedQuery({ field, query: seedance2MentionQuery });
+        mentionController.dismissMention(field);
         break;
     }
   };
-  const appendSeedance2PromptGuidanceTemplate = (template: string) => {
-    changeSeedance2Draft((current) => {
-      if (current.prompt_guidance.includes(template)) return current;
-      const promptGuidance = [current.prompt_guidance.trim(), template]
-        .filter(Boolean)
-        .join("\n");
-      return { ...current, prompt_guidance: promptGuidance };
-    });
-  };
-  const renderSeedance2ReferenceControls = (field: Seedance2ReferenceField) => {
-    if (activeMentionField !== field) return null;
+  const renderSeedance2ReferenceControls = (field: Seedance2MentionField) => {
+    if (mentionController.activeField !== field) return null;
 
-    if (seedance2MentionOpen) {
+    if (mentionController.mentionOpen) {
       return (
         <div className="rounded-[8px] border border-border bg-muted p-1.5">
           <div className="mb-1 text-[10px] font-medium text-muted-foreground/78">
             {t("episode.workbench.video.seedance2MentionCandidates")}
           </div>
           <div className="flex flex-wrap gap-1">
-            {seedance2MentionOptions.map((asset, index) => (
+            {mentionController.mentionOptions.map((asset, index) => (
               <Button
                 key={asset.key}
                 type="button"
                 size="xs"
                 variant="ghost"
-                aria-pressed={index === mentionActiveIndex}
+                aria-pressed={index === mentionController.activeIndex}
                 className={cn(
                   "h-6 rounded-[6px] border px-1.5 text-[10px] font-normal shadow-none",
-                  index === mentionActiveIndex
+                  index === mentionController.activeIndex
                     ? "border-primary/35 bg-primary/[0.10] text-primary hover:bg-primary/[0.14] hover:text-primary"
                     : "border-border bg-card text-muted-foreground hover:border-foreground/25 hover:bg-accent hover:text-foreground",
                 )}
-                onMouseEnter={() => setMentionActiveIndex(index)}
-                onClick={() => handleSelectMention(field, asset.reference_label)}
+                onMouseEnter={() => mentionController.setActiveIndex(index)}
+                onClick={() =>
+                  mentionController.selectMention(field, asset.reference_label)
+                }
               >
                 @{asset.reference_label}
               </Button>
@@ -610,20 +415,22 @@ export function VideoPane({
       );
     }
 
-    if (seedance2ReferenceOptions.length <= 0) return null;
+    if (mentionController.referenceOptions.length <= 0) return null;
     return (
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="text-[11px] text-muted-foreground/78">
           {t("episode.workbench.video.seedance2AtReferences")}
         </span>
-        {seedance2ReferenceOptions.map((asset) => (
+        {mentionController.referenceOptions.map((asset) => (
           <Button
             key={asset.key}
             type="button"
             size="xs"
             variant="ghost"
             className={SEEDANCE2_PILL_ACTION_CLASS}
-            onClick={() => insertSeedance2Reference(field, asset.reference_label)}
+            onClick={() =>
+              mentionController.appendReference(field, asset.reference_label)
+            }
           >
             @{asset.reference_label}
           </Button>
@@ -1187,8 +994,8 @@ export function VideoPane({
                   }
                   onDragOver={handleSeedance2ReferenceDragOver}
                   onDrop={(e) => handleSeedance2ReferenceDrop("prompt_guidance", e)}
-                  mentionLabels={seedance2ReferenceLabels}
-                  mentionPreviews={seedance2MentionPreviews}
+                  mentionLabels={mentionController.mentionLabels}
+                  mentionPreviews={mentionController.mentionPreviews}
                   rows={2}
                   className={cn("min-h-[72px]", VIDEO_PROMPT_TEXTAREA_CLASS)}
                 />
@@ -1204,7 +1011,7 @@ export function VideoPane({
                     disabled={updateBeat.isPending}
                     className={SEEDANCE2_PILL_ACTION_CLASS}
                     onClick={() =>
-                      appendSeedance2PromptGuidanceTemplate(template.text)
+                      mentionController.appendGuidanceTemplate(template.text)
                     }
                   >
                     {t(`episode.workbench.video.${template.labelKey}`)}
@@ -1262,8 +1069,8 @@ export function VideoPane({
                   }
                   onDragOver={handleSeedance2ReferenceDragOver}
                   onDrop={(e) => handleSeedance2ReferenceDrop("final_prompt", e)}
-                  mentionLabels={seedance2ReferenceLabels}
-                  mentionPreviews={seedance2MentionPreviews}
+                  mentionLabels={mentionController.mentionLabels}
+                  mentionPreviews={mentionController.mentionPreviews}
                   rows={2}
                   className={cn("min-h-[72px]", VIDEO_PROMPT_TEXTAREA_CLASS)}
                 />
