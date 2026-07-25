@@ -1193,6 +1193,7 @@ describe("frontend architecture boundaries", () => {
     );
     const declarations = [
       "getClientPosition(",
+      "resolveCanvasConnectionStart(",
       "createPreviewPath(",
       "cssEscape(",
       "resolveConnectEndHandleId(",
@@ -1215,6 +1216,11 @@ describe("frontend architecture boundaries", () => {
     }
     expect(canvasView).toContain("./ui/canvasConnectionInteraction");
     expect(canvasView).not.toContain("function getClientPosition(");
+    expect(canvasView).not.toContain("canNodeBeManualConnectionSource(");
+    expect(canvasView).not.toContain("interface PendingConnectStart");
+    expect(canvasView).not.toContain(
+      "eventTarget?.closest?.('.react-flow__handle')",
+    );
     expect(canvasView).not.toContain("function createPreviewPath(");
     expect(canvasView).not.toContain("function cssEscape(");
     expect(canvasView).not.toContain("function handleIdFromElement(");
@@ -1225,6 +1231,9 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("let bestDist = Infinity");
     expect(canvasView).not.toContain("Math.hypot(dx, dy)");
     expect(canvasView).not.toContain("interface PreviewConnectionLine");
+    expect(interactionModel).toContain(
+      "export interface CanvasPendingConnectionStart",
+    );
   });
 
   it("keeps Canvas minimap visibility state in one presentation hook", () => {

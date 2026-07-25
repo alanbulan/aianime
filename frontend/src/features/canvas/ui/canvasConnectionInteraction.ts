@@ -1,10 +1,20 @@
 // Copyright (c) 2026 AI anime
-import { canConnectCanvasNodesManually } from '../domain/canvasConnection';
-import type { CanvasNode } from '../domain/canvasNodes';
+import {
+  canConnectCanvasNodesManually,
+  canNodeBeManualConnectionSource,
+} from '../domain/canvasConnection';
+import { CANVAS_NODE_TYPES, type CanvasNode } from '../domain/canvasNodes';
 
 export type CanvasHandleType = 'source' | 'target';
 
 const MANUAL_DROP_PROXIMITY_PX = 56;
+
+export interface CanvasPendingConnectionStart {
+  nodeId: string;
+  handleType: CanvasHandleType;
+  handleId?: string | null;
+  start?: { x: number; y: number };
+}
 
 export interface PreviewConnectionLine {
   start: { x: number; y: number };
@@ -20,6 +30,61 @@ export function getClientPosition(
   }
   const touch = event.changedTouches[0] ?? event.touches[0];
   return touch ? { x: touch.clientX, y: touch.clientY } : null;
+}
+
+export function resolveCanvasConnectionStart({
+  event,
+  params,
+  nodes,
+  containerRect,
+}: {
+  event: MouseEvent | TouchEvent;
+  params: {
+    nodeId: string | null;
+    handleType: CanvasHandleType | null;
+    handleId?: string | null;
+  };
+  nodes: readonly CanvasNode[];
+  containerRect: { left: number; top: number } | null | undefined;
+}): CanvasPendingConnectionStart | null {
+  if (!params.nodeId || !params.handleType) {
+    return null;
+  }
+  if (
+    params.handleType === 'source'
+    && !canNodeBeManualConnectionSource(params.nodeId, nodes)
+    && !canNodeBeManualConnectionSource(
+      params.nodeId,
+      nodes,
+      CANVAS_NODE_TYPES.threeDWorld,
+    )
+  ) {
+    return null;
+  }
+
+  const handleElement = (event.target as Element | null)
+    ?.closest?.('.react-flow__handle') as HTMLElement | null;
+  const clientPosition = getClientPosition(event);
+  let start: { x: number; y: number } | undefined;
+  if (containerRect && handleElement) {
+    const handleRect = handleElement.getBoundingClientRect();
+    start = {
+      x: handleRect.left - containerRect.left + handleRect.width / 2,
+      y: handleRect.top - containerRect.top + handleRect.height / 2,
+    };
+  } else if (containerRect && clientPosition) {
+    start = {
+      x: clientPosition.x - containerRect.left,
+      y: clientPosition.y - containerRect.top,
+    };
+  }
+
+  return {
+    nodeId: params.nodeId,
+    handleType: params.handleType,
+    handleId: params.handleId,
+    start,
+  };
 }
 
 export function createPreviewPath(line: PreviewConnectionLine): string {

@@ -18,7 +18,6 @@ import {
   useStoreApi,
   type EdgeChange,
   type FinalConnectionState,
-  type HandleType,
   type NodeChange,
   type OnConnectStartParams,
 } from '@xyflow/react';
@@ -40,7 +39,6 @@ import { findLinkedCapturePartnerIds } from '@/features/canvas/domain/canvasCapt
 import { resolveCanvasSelectionDeletion } from '@/features/canvas/domain/canvasSelectionDeletion';
 import {
   canConnectCanvasNodesManually,
-  canNodeBeManualConnectionSource,
   resolveAllowedNodeTypes,
 } from '@/features/canvas/domain/canvasConnection';
 import {
@@ -119,8 +117,11 @@ import {
   createPreviewPath,
   cssEscape,
   getClientPosition,
+  resolveCanvasConnectionStart,
   resolveConnectEndHandleId,
   resolveManualDropTargetElement,
+  type CanvasHandleType,
+  type CanvasPendingConnectionStart,
 } from './ui/canvasConnectionInteraction';
 import { useCanvasDropIndicator } from './hooks/useCanvasDropIndicator';
 import { useCanvasEdgePan } from './hooks/useCanvasEdgePan';
@@ -164,16 +165,6 @@ const MULTI_SELECTION_KEY_CODES = ['Control', 'Meta'];
 // right click (2) opens the canvas context menu.
 const PAN_ON_DRAG_BUTTONS = [1];
 const PREVIEW_CONNECTION_STROKE = 'rgb(var(--text-rgb) / 0.82)';
-
-interface PendingConnectStart {
-  nodeId: string;
-  handleType: HandleType;
-  handleId?: string | null;
-  start?: {
-    x: number;
-    y: number;
-  };
-}
 
 interface PreviewConnectionVisual {
   d: string;
@@ -224,7 +215,7 @@ const CANVAS_SNAP_ALIGNMENT_PORT: CanvasSnapAlignmentPort = {
 
 interface PlusConnectDragParams {
   nodeId: string;
-  handleType: HandleType;
+  handleType: CanvasHandleType;
   clientPosition: { x: number; y: number };
 }
 
@@ -250,7 +241,7 @@ export function Canvas({
   const edgeTypes = useMemo(() => canvasEdgeTypes, []);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const suppressNextPaneClickRef = useRef(false);
-  const plusConnectStartRef = useRef<PendingConnectStart | null>(null);
+  const plusConnectStartRef = useRef<CanvasPendingConnectionStart | null>(null);
   // 手动「+」拖线时，当前被高亮为合法落点的节点 DOM。手动连线走自绘预览线
   // （非 React Flow 原生连线），RF 不会给目标 handle 挂 connectingto/valid，所以
   // 落点动画靠这里在 dragMove 时直接给命中节点的 wrapper 加类、离开时摘掉，避免把
@@ -294,9 +285,8 @@ export function Canvas({
   const [menuAllowedTypes, setMenuAllowedTypes] = useState<CanvasNodeType[] | undefined>(
     undefined
   );
-  const [pendingConnectStart, setPendingConnectStart] = useState<PendingConnectStart | null>(
-    null
-  );
+  const [pendingConnectStart, setPendingConnectStart] =
+    useState<CanvasPendingConnectionStart | null>(null);
   // When set, the next spawned node (from the batch "+") is fanned into by all
   // these source nodes instead of the single `pendingConnectStart`.
   const [pendingBatchConnectIds, setPendingBatchConnectIds] = useState<string[] | null>(null);
@@ -1454,51 +1444,12 @@ export function Canvas({
       setShowNodeMenu(false);
       setMenuAllowedTypes(undefined);
       setPreviewConnectionVisual(null);
-
-      if (!params.nodeId || !params.handleType) {
-        setPendingConnectStart(null);
-        return;
-      }
-
-      // 拖线起点是 source handle 时，只要存在「至少一种合法的下游节点类型」就允许开拽；
-      // 实际连接合法性会在 onConnect 里按目标类型再次校验。
-      if (
-        params.handleType === 'source'
-        && !canNodeBeManualConnectionSource(params.nodeId, nodes)
-        && !canNodeBeManualConnectionSource(
-          params.nodeId,
-          nodes,
-          CANVAS_NODE_TYPES.threeDWorld,
-        )
-      ) {
-        setPendingConnectStart(null);
-        return;
-      }
-
-      const containerRect = wrapperRef.current?.getBoundingClientRect();
-      const eventTarget = event.target as Element | null;
-      const handleElement = eventTarget?.closest?.('.react-flow__handle') as HTMLElement | null;
-      const clientPosition = getClientPosition(event);
-      let start: { x: number; y: number } | undefined;
-      if (containerRect && handleElement) {
-        const handleRect = handleElement.getBoundingClientRect();
-        start = {
-          x: handleRect.left - containerRect.left + handleRect.width / 2,
-          y: handleRect.top - containerRect.top + handleRect.height / 2,
-        };
-      } else if (containerRect && clientPosition) {
-        start = {
-          x: clientPosition.x - containerRect.left,
-          y: clientPosition.y - containerRect.top,
-        };
-      }
-
-      setPendingConnectStart({
-        nodeId: params.nodeId,
-        handleType: params.handleType,
-        handleId: params.handleId,
-        start,
-      });
+      setPendingConnectStart(resolveCanvasConnectionStart({
+        event,
+        params,
+        nodes,
+        containerRect: wrapperRef.current?.getBoundingClientRect(),
+      }));
     },
     [nodes]
   );
@@ -2022,7 +1973,7 @@ export function Canvas({
   }, []);
 
   const resolveManualDropTargetEl = useCallback(
-    (clientPosition: { x: number; y: number }, pending: PendingConnectStart) =>
+    (clientPosition: { x: number; y: number }, pending: CanvasPendingConnectionStart) =>
       resolveManualDropTargetElement({
         clientPosition,
         pending,
@@ -2063,7 +2014,7 @@ export function Canvas({
             y: params.clientPosition.y - containerRect.top,
           };
 
-    const pending: PendingConnectStart = {
+    const pending: CanvasPendingConnectionStart = {
       nodeId: params.nodeId,
       handleType: params.handleType,
       start,

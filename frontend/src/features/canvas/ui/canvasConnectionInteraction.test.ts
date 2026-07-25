@@ -6,6 +6,7 @@ import {
   createPreviewPath,
   cssEscape,
   getClientPosition,
+  resolveCanvasConnectionStart,
   resolveConnectEndHandleId,
   resolveManualDropTargetElement,
 } from './canvasConnectionInteraction';
@@ -84,6 +85,73 @@ describe('Canvas connection interaction', () => {
       end: { x: -100, y: 50 },
       handleType: 'source',
     })).toBe('M 0 0 C -40 0, -60 50, -100 50');
+  });
+
+  it('rejects incomplete and missing-node manual connection starts', () => {
+    const group = canvasNode('group', CANVAS_NODE_TYPES.group);
+    const event = { clientX: 10, clientY: 20, target: null } as unknown as MouseEvent;
+
+    expect(resolveCanvasConnectionStart({
+      event,
+      params: { nodeId: null, handleType: 'source' },
+      nodes: [group],
+      containerRect: { left: 0, top: 0 },
+    })).toBeNull();
+    expect(resolveCanvasConnectionStart({
+      event,
+      params: { nodeId: 'missing', handleType: 'source' },
+      nodes: [group],
+      containerRect: { left: 0, top: 0 },
+    })).toBeNull();
+  });
+
+  it('resolves a connection start from the handle center or event position', () => {
+    const origin = canvasNode('origin', CANVAS_NODE_TYPES.upload);
+    const sourceHandle = handle(origin.id, 'source', 'source', {
+      left: 120,
+      top: 230,
+      width: 10,
+      height: 20,
+    });
+
+    expect(resolveCanvasConnectionStart({
+      event: {
+        clientX: 999,
+        clientY: 999,
+        target: sourceHandle,
+      } as unknown as MouseEvent,
+      params: {
+        nodeId: origin.id,
+        handleType: 'source',
+        handleId: 'source',
+      },
+      nodes: [origin],
+      containerRect: { left: 100, top: 200 },
+    })).toEqual({
+      nodeId: origin.id,
+      handleType: 'source',
+      handleId: 'source',
+      start: { x: 25, y: 40 },
+    });
+    expect(resolveCanvasConnectionStart({
+      event: {
+        clientX: 150,
+        clientY: 260,
+        target: null,
+      } as unknown as MouseEvent,
+      params: {
+        nodeId: origin.id,
+        handleType: 'target',
+        handleId: null,
+      },
+      nodes: [origin],
+      containerRect: { left: 100, top: 200 },
+    })).toEqual({
+      nodeId: origin.id,
+      handleType: 'target',
+      handleId: null,
+      start: { x: 50, y: 60 },
+    });
   });
 
   it('uses the platform CSS escape implementation or the local fallback', () => {
