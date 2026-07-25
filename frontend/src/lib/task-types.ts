@@ -1,4 +1,6 @@
 // Copyright (c) 2026 AI anime
+import type { TaskStatus } from "@/types/task";
+
 /**
  * Canonical backend task_type strings emitted by ai-anime-be.
  * Verified against:
@@ -62,4 +64,16 @@ export const SCOPED_TASK_TYPES = new Set<TaskType>([
 
 export function isScopedTask(type: string): boolean {
   return SCOPED_TASK_TYPES.has(type as TaskType);
+}
+
+const ACTIVE_TASK_STATUSES: readonly TaskStatus[] = [
+  "submitting",
+  "queued",
+  "pending",
+  "starting",
+  "running",
+];
+
+export function isActiveStatus(status: TaskStatus): boolean {
+  return ACTIVE_TASK_STATUSES.includes(status);
 }

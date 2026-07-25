@@ -1,15 +1,11 @@
 import { createElement, type ReactNode } from "react";
 
-import {
-  createSketchRegenPlanItems,
-  getLockedSketchRegenItemIds,
-  sketchRegenModelCallCount,
-} from "@/components/episode/beat-workbench/batch-panel";
 import { formatCreditCost } from "@/components/credits/credit-visual";
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
 import { useCharacters } from "@/modules/asset_world/public";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import { useTasks } from "@/lib/queries/tasks";
+import { TASK_TYPES, isActiveStatus } from "@/lib/task-types";
 import {
   createNarrativePlanningQueryHooks,
   isPlanEpisodeAssetsResult,
@@ -29,6 +25,9 @@ import {
 import { ScriptPageView } from "@/modules/narrative_planning/presentation/ScriptPageView";
 import {
   DEFAULT_VIDEO_BACKEND,
+  createSketchRegenPlanItems,
+  getLockedSketchRegenItemIds,
+  sketchRegenModelCallCount,
   useRebuildPoolIndex,
   useRegenerateSketches,
   useSketchSettings,
@@ -87,7 +86,14 @@ const useScriptPageController = createUseScriptPageController(
 const useBeatsSketchPlanController = createUseBeatsSketchPlanController({
   createSketchPlanItems: createSketchRegenPlanItems,
   formatCreditCost,
-  getLockedSketchItemIds: getLockedSketchRegenItemIds,
+  getLockedSketchItemIds: (tasks, items) =>
+    getLockedSketchRegenItemIds(
+      tasks,
+      items,
+      (task) =>
+        task.task_type === TASK_TYPES.SKETCH_REGEN &&
+        isActiveStatus(task.status),
+    ),
   sketchModelCallCount: sketchRegenModelCallCount,
   useGenerationCreditCost,
   useRegenerateSketches,

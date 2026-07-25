@@ -535,6 +535,31 @@ describe("frontend architecture boundaries", () => {
 
   it("keeps Production callers on its public API", () => {
     const moduleRoot = resolve(SRC_ROOT, "modules/production");
+    const batchPanelSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "components/episode/beat-workbench/batch-panel.tsx",
+      ),
+      "utf8",
+    );
+    const sketchRegenQueueDomainSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/production/domain/sketch-regen-queue.ts",
+      ),
+      "utf8",
+    );
+    const narrativePlanningCompositionSource = readFileSync(
+      resolve(SRC_ROOT, "modules/narrative_planning/composition.ts"),
+      "utf8",
+    );
+    const beatsPageViewSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/narrative_planning/presentation/BeatsPageView.tsx",
+      ),
+      "utf8",
+    );
     const videoPaneSource = readFileSync(
       resolve(
         SRC_ROOT,
@@ -716,6 +741,7 @@ describe("frontend architecture boundaries", () => {
     expect(
       existsSync(resolve(SRC_ROOT, "lib/queries/sketch-regen-queue.ts")),
     ).toBe(false);
+    expect(existsSync(resolve(SRC_ROOT, "lib/regen-modes.ts"))).toBe(false);
     expect(
       existsSync(resolve(SRC_ROOT, "lib/queries/sketch-pose-editor.ts")),
     ).toBe(false);
@@ -981,6 +1007,33 @@ describe("frontend architecture boundaries", () => {
     expect(sketchGridGalleryControllerSource).not.toContain("navigator.");
     expect(sketchGridGalleryDomainSource).toContain(
       "export function buildSketchGridGroups",
+    );
+    expect(batchPanelSource).toContain(
+      'from "@/modules/production/public"',
+    );
+    expect(batchPanelSource).not.toContain("@/lib/regen-modes");
+    expect(batchPanelSource).not.toContain(
+      "export function createSketchRegenPlanItems",
+    );
+    expect(batchPanelSource).not.toContain(
+      "export function getLockedSketchRegenItemIds",
+    );
+    expect(batchPanelSource).not.toContain("function sketchModeCellAspect");
+    expect(sketchRegenQueueDomainSource).toContain(
+      "export function createSketchRegenPlanItems",
+    );
+    expect(sketchRegenQueueDomainSource).toContain(
+      "export function getLockedSketchRegenItemIds",
+    );
+    expect(sketchRegenQueueDomainSource).not.toContain("TASK_TYPES");
+    expect(sketchRegenQueueDomainSource).not.toContain(
+      "task-controller-provider",
+    );
+    expect(narrativePlanningCompositionSource).not.toContain(
+      "@/components/episode/beat-workbench/batch-panel",
+    );
+    expect(beatsPageViewSource).not.toContain(
+      "@/components/episode/beat-workbench/batch-panel",
     );
     expect(narratorVoicePanelSource).toContain("<NarratorVoicePanelView");
     expect(narratorVoicePanelSource).toContain(

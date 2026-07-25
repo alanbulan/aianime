@@ -221,9 +221,38 @@ export type {
   RenderExecuteResult,
   RenderPlan,
 } from "@/modules/production/domain/render-plan";
+export {
+  RENDER_REGEN_MODES,
+  SKETCH_REGEN_MODES,
+  bestFitMode,
+  createAutoSketchRegenQueueItems,
+  createSingleSketchRegenQueueItems,
+  createSketchRegenPlanItems,
+  createSketchRegenQueueItem,
+  findSketchRegenQueueTask,
+  getBatchPanelActionDisabled,
+  getLockedSketchRegenItemIds,
+  getSketchRegenPreflight,
+  getSketchRegenQueueConflict,
+  getSketchRegenSceneIds,
+  overflowBatchCount,
+  shouldShowSketchModeSpinner,
+  singleSketchModeForAspect,
+  sketchModeCellAspect,
+  sketchPlanGridLabel,
+  sketchRegenModelCallCount,
+  sketchRegenModesForAspect,
+  sketchRegenUsageScope,
+} from "@/modules/production/domain/sketch-regen-queue";
 export type {
+  BatchPanelActionPendingState,
+  RegenMode,
+  SketchRegenBeat,
+  SketchRegenPreflight,
+  SketchRegenQueueConflict,
   SketchRegenQueueData,
   SketchRegenQueueItem,
+  SketchRegenTask,
 } from "@/modules/production/domain/sketch-regen-queue";
 export {
   addSkeletonToFrame,

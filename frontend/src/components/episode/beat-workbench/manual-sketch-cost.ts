@@ -1,10 +1,10 @@
 // Copyright (c) 2026 AI anime
-import type { SketchAspectRatio } from "@/modules/production/public";
 import {
   SKETCH_REGEN_MODES,
   bestFitMode,
   overflowBatchCount,
-} from "@/lib/regen-modes";
+  type SketchAspectRatio,
+} from "@/modules/production/public";
 import type { Beat } from "@/modules/narrative_planning/public";
 
 function missingManualSketchSceneId(beat: Beat): string {

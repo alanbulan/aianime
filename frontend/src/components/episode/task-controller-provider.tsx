@@ -135,14 +135,6 @@ export interface TaskRegistryEntry {
 
 // ─── Serialization ──────────────────────────────────────────────────────────
 
-const ACTIVE_STATUSES: readonly TaskStatus[] = [
-  "submitting",
-  "queued",
-  "pending",
-  "starting",
-  "running",
-] as const;
-
 /**
  * Stable string representation of a TaskKey. Two keys produce the same string
  * iff they identify the same scoped task. Exported for tests.
@@ -151,9 +143,7 @@ export function serializeKey(k: TaskKey): string {
   return `${k.taskType}|${k.project}|${k.episode}|${k.beatNum ?? ""}|${k.scope ?? ""}`;
 }
 
-export function isActiveStatus(status: TaskStatus): boolean {
-  return ACTIVE_STATUSES.includes(status);
-}
+export { isActiveStatus } from "@/lib/task-types";
 
 const INITIAL_STREAM_STATE: TaskStreamState = {
   status: "idle",

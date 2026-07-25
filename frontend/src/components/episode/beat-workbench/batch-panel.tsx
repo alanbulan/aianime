@@ -13,12 +13,6 @@ import {
 } from "lucide-react";
 
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
-import {
-  SKETCH_REGEN_MODES,
-  bestFitMode,
-  overflowBatchCount,
-  type RegenMode,
-} from "@/lib/regen-modes";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -33,16 +27,23 @@ import {
 import { useTaskController } from "@/hooks/use-task-controller";
 import { useScopedTaskBatchInvalidation } from "@/hooks/use-scoped-task-batch-invalidation";
 import { queryKeys } from "@/lib/query-keys";
-import { TASK_TYPES } from "@/lib/task-types";
+import { TASK_TYPES, isActiveStatus } from "@/lib/task-types";
 import { useTasks } from "@/lib/queries/tasks";
-import { isActiveStatus } from "@/components/episode/task-controller-provider";
 import { useProjectAspectRatio } from "@/stores/aspect-ratio-store";
 import { CreditCostInline } from "@/components/credit-cost-inline";
 import { formatCreditCost } from "@/components/credits/credit-visual";
 import { RenderPlanDialog } from "./render-plan-dialog";
 import type { Beat } from "@/modules/narrative_planning/public";
 import {
-  type SketchAspectRatio,
+  SKETCH_REGEN_MODES,
+  createSingleSketchRegenQueueItems,
+  createSketchRegenPlanItems,
+  getBatchPanelActionDisabled,
+  getLockedSketchRegenItemIds,
+  overflowBatchCount,
+  singleSketchModeForAspect,
+  sketchPlanGridLabel,
+  sketchRegenModelCallCount,
   type SketchRegenQueueItem,
   useGenerateAudio,
   useRegenerateSketches,
@@ -50,7 +51,6 @@ import {
   useSketchRegenQueue,
   useSketchSettings,
 } from "@/modules/production/public";
-import type { Task } from "@/types/task";
 
 interface BatchPanelProps {
   checkedBeats: Set<number>;
@@ -59,316 +59,6 @@ interface BatchPanelProps {
   episode: number;
   isSeedance2Backend?: boolean;
   onClearSelection: () => void;
-}
-
-export function getSketchRegenSceneIds(
-  beats: Beat[],
-  beatNumbers: number[],
-): string[] {
-  const byNumber = new Map(beats.map((beat) => [beat.beat_number, beat]));
-  const seen = new Set<string>();
-  const sceneIds: string[] = [];
-  for (const beatNumber of beatNumbers) {
-    const beat = byNumber.get(beatNumber);
-    if (!beat) continue;
-    const sceneId = sketchRegenSceneId(beat);
-    if (!sceneId) continue;
-    if (seen.has(sceneId)) continue;
-    seen.add(sceneId);
-    sceneIds.push(sceneId);
-  }
-  return sceneIds;
-}
-
-export type SketchRegenPreflight =
-  | {
-      ok: true;
-      sceneIds: string[];
-      missingBeatNumbers: [];
-    }
-  | {
-      ok: false;
-      reason: "missing_scene" | "mixed_scene";
-      sceneIds: string[];
-      missingBeatNumbers: number[];
-    };
-
-export function getSketchRegenPreflight(
-  beats: Beat[],
-  beatNumbers: number[],
-): SketchRegenPreflight {
-  const byNumber = new Map(beats.map((beat) => [beat.beat_number, beat]));
-  const sceneIds = getSketchRegenSceneIds(beats, beatNumbers);
-  const missingBeatNumbers = beatNumbers.filter((beatNumber) => {
-    const beat = byNumber.get(beatNumber);
-    return !beat || !sketchRegenSceneId(beat);
-  });
-
-  if (beatNumbers.length > 1 && missingBeatNumbers.length > 0) {
-    return { ok: false, reason: "missing_scene", sceneIds, missingBeatNumbers };
-  }
-  if (sceneIds.length > 1) {
-    return { ok: false, reason: "mixed_scene", sceneIds, missingBeatNumbers: [] };
-  }
-  return { ok: true, sceneIds, missingBeatNumbers: [] };
-}
-
-export type SketchRegenQueueConflict =
-  | { type: "duplicate"; beatNumbers: number[] }
-  | { type: "overlap"; beatNumbers: number[] };
-
-export function createSketchRegenQueueItem(
-  beats: Beat[],
-  beatNumbers: number[],
-  mode: RegenMode,
-): SketchRegenQueueItem {
-  const normalizedBeatNumbers = [...new Set(beatNumbers)].sort((a, b) => a - b);
-  return {
-    id: `${mode.key}:${normalizedBeatNumbers.join(",")}`,
-    modeKey: mode.key,
-    modeLabel: mode.label,
-    beatNumbers: normalizedBeatNumbers,
-    sceneIds: getSketchRegenSceneIds(beats, normalizedBeatNumbers),
-    createdAt: new Date().toISOString(),
-  };
-}
-
-function singleSketchModeForAspect(sketchAspect: SketchAspectRatio): RegenMode {
-  const key = sketchAspect === "16:9" ? "1x1_16-9_sketch" : "1x1_2-3_sketch";
-  return (
-    SKETCH_REGEN_MODES.find((mode) => mode.key === key) ??
-    SKETCH_REGEN_MODES.find((mode) => mode.key === "1x1_2-3_sketch") ??
-    SKETCH_REGEN_MODES[0]
-  );
-}
-
-export function createSingleSketchRegenQueueItems(
-  beats: Beat[],
-  beatNumbers: number[],
-  sketchAspect: SketchAspectRatio,
-): SketchRegenQueueItem[] {
-  const mode = singleSketchModeForAspect(sketchAspect);
-  return [...new Set(beatNumbers)]
-    .sort((a, b) => a - b)
-    .map((beatNumber) => createSketchRegenQueueItem(beats, [beatNumber], mode));
-}
-
-export function createAutoSketchRegenQueueItems(
-  beats: Beat[],
-  beatNumbers: number[],
-  sketchAspect: SketchAspectRatio,
-): SketchRegenQueueItem[] {
-  return createSketchRegenPlanItems(beats, beatNumbers, sketchAspect);
-}
-
-export function createSketchRegenPlanItems(
-  beats: Beat[],
-  beatNumbers: number[],
-  sketchAspect: SketchAspectRatio,
-): SketchRegenQueueItem[] {
-  const modes = sketchRegenModesForAspect(SKETCH_REGEN_MODES, sketchAspect);
-  const byNumber = new Map(beats.map((beat) => [beat.beat_number, beat]));
-  const groups = new Map<string, number[]>();
-
-  for (const beatNumber of [...new Set(beatNumbers)].sort((a, b) => a - b)) {
-    const beat = byNumber.get(beatNumber);
-    const sceneId = beat ? sketchRegenSceneId(beat) : "";
-    const groupKey = sceneId || `beat:${beatNumber}`;
-    groups.set(groupKey, [...(groups.get(groupKey) ?? []), beatNumber]);
-  }
-
-  return [...groups.values()].map((groupBeatNumbers) => {
-    const mode = bestFitMode(modes, groupBeatNumbers.length);
-    return createSketchRegenQueueItem(beats, groupBeatNumbers, mode);
-  });
-}
-
-export function getSketchRegenQueueConflict(
-  queue: SketchRegenQueueItem[],
-  next: SketchRegenQueueItem,
-): SketchRegenQueueConflict | null {
-  const duplicate = queue.find((item) => item.id === next.id);
-  if (duplicate) {
-    return { type: "duplicate", beatNumbers: next.beatNumbers };
-  }
-  const nextBeats = new Set(next.beatNumbers);
-  const overlap = [
-    ...new Set(
-      queue.flatMap((item) =>
-        item.beatNumbers.filter((beatNumber) => nextBeats.has(beatNumber)),
-      ),
-    ),
-  ].sort((a, b) => a - b);
-  if (overlap.length > 0) {
-    return { type: "overlap", beatNumbers: overlap };
-  }
-  return null;
-}
-
-export function sketchRegenUsageScope(item: SketchRegenQueueItem): string {
-  return `sketch_grid:${item.modeKey}:${item.beatNumbers.join("-")}`;
-}
-
-export function sketchPlanGridLabel(modeKey: string): string {
-  const match = /^(\d+)x(\d+)_/.exec(modeKey);
-  return match ? `${match[1]}×${match[2]}` : modeKey;
-}
-
-function normalizeRatio(w: number, h: number): string | null {
-  if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) {
-    return null;
-  }
-  const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
-  const divisor = gcd(Math.round(w), Math.round(h));
-  return `${Math.round(w) / divisor}:${Math.round(h) / divisor}`;
-}
-
-export function sketchModeCellAspect(modeKey: string): string | null {
-  const match = /^(\d+)x(\d+)_(\d+)-(\d+)(?:_sketch)?$/.exec(modeKey);
-  if (!match) return null;
-  const rows = Number(match[1]);
-  const cols = Number(match[2]);
-  const width = Number(match[3]);
-  const height = Number(match[4]);
-  return normalizeRatio(width * rows, height * cols);
-}
-
-export function sketchRegenModelCallCount(items: readonly SketchRegenQueueItem[]): number {
-  return items.reduce((sum, item) => {
-    const mode = SKETCH_REGEN_MODES.find((candidate) => candidate.key === item.modeKey);
-    return sum + (mode ? overflowBatchCount(mode, item.beatNumbers.length) : 1);
-  }, 0);
-}
-
-export function sketchRegenModesForAspect(
-  modes: readonly RegenMode[],
-  sketchAspect: SketchAspectRatio,
-): readonly RegenMode[] {
-  const compatible = modes.filter(
-    (mode) =>
-      mode.key.endsWith("_sketch") && sketchModeCellAspect(mode.key) === sketchAspect,
-  );
-  return compatible.length > 0 ? compatible : modes;
-}
-
-export function findSketchRegenQueueTask(
-  tasks: Task[] | undefined,
-  item: SketchRegenQueueItem,
-): Task | null {
-  if (!item.taskScope) return null;
-  return (
-    tasks?.find(
-      (task) =>
-        task.task_type === TASK_TYPES.SKETCH_REGEN &&
-        task.scope === item.taskScope,
-    ) ?? null
-  );
-}
-
-function taskMetadata(task: Task): Record<string, unknown> {
-  const direct = task.metadata;
-  if (direct && typeof direct === "object") return direct;
-  if (!task.result || typeof task.result !== "object") return {};
-  const metadata = (task.result as { task_metadata?: unknown }).task_metadata;
-  return metadata && typeof metadata === "object"
-    ? (metadata as Record<string, unknown>)
-    : {};
-}
-
-function normalizeTaskBeatNumbers(value: unknown): number[] {
-  if (!Array.isArray(value)) return [];
-  return [...new Set(value.map((item) => Number(item)).filter(Number.isFinite))].sort(
-    (a, b) => a - b,
-  );
-}
-
-function sameBeatNumbers(left: readonly number[], right: readonly number[]): boolean {
-  if (left.length !== right.length) return false;
-  return left.every((beatNumber, index) => beatNumber === right[index]);
-}
-
-export function getLockedSketchRegenItemIds(
-  tasks: Task[] | undefined,
-  items: readonly SketchRegenQueueItem[],
-): Set<string> {
-  const locked = new Set<string>();
-  if (!tasks?.length || items.length === 0) return locked;
-
-  const itemsByLegacyScope = new Map(
-    items.filter((item) => item.taskScope).map((item) => [item.taskScope, item]),
-  );
-
-  for (const task of tasks) {
-    if (task.task_type !== TASK_TYPES.SKETCH_REGEN || !isActiveStatus(task.status)) {
-      continue;
-    }
-
-    const legacyItem = task.scope ? itemsByLegacyScope.get(task.scope) : undefined;
-    if (legacyItem) {
-      locked.add(legacyItem.id);
-      continue;
-    }
-
-    const metadata = taskMetadata(task);
-    const modeKey = typeof metadata.mode_key === "string" ? metadata.mode_key : "";
-    const taskBeatNumbers = normalizeTaskBeatNumbers(
-      metadata.selected_beat_numbers ?? metadata.beat_numbers ?? metadata.beat_indices,
-    );
-    if (!modeKey || taskBeatNumbers.length === 0) continue;
-
-    for (const item of items) {
-      if (item.modeKey !== modeKey) continue;
-      if (!sameBeatNumbers(item.beatNumbers, taskBeatNumbers)) continue;
-      locked.add(item.id);
-    }
-  }
-
-  return locked;
-}
-
-export function shouldShowSketchModeSpinner({
-  regenerateRequestPending,
-}: {
-  regenerateRequestPending: boolean;
-  sketchTaskStarted: boolean;
-}): boolean {
-  return regenerateRequestPending;
-}
-
-export interface BatchPanelActionPendingState {
-  count: number;
-  regenSketchesPending: boolean;
-  sketchTaskStarted: boolean;
-  saveSketchQueuePending: boolean;
-  generateAudioPending: boolean;
-  audioTaskStarted: boolean;
-  renderPlanTaskStarted?: boolean;
-  selectedVideoRunning?: boolean;
-}
-
-export function getBatchPanelActionDisabled({
-  count,
-  regenSketchesPending,
-  saveSketchQueuePending,
-  generateAudioPending,
-  audioTaskStarted,
-  renderPlanTaskStarted = false,
-  selectedVideoRunning = false,
-}: BatchPanelActionPendingState): {
-  sketch: boolean;
-  render: boolean;
-  audio: boolean;
-} {
-  return {
-    sketch: count === 0 || regenSketchesPending || saveSketchQueuePending,
-    render: count === 0 || renderPlanTaskStarted || selectedVideoRunning,
-    audio: count === 0 || generateAudioPending || audioTaskStarted,
-  };
-}
-
-function sketchRegenSceneId(beat: Beat): string {
-  const topLevelSceneId = (beat as Beat & { scene_id?: string }).scene_id;
-  return beat.scene_ref?.scene_id?.trim() || topLevelSceneId?.trim() || "";
 }
 
 export function BatchPanel({
@@ -477,10 +167,13 @@ export function BatchPanel({
   );
   const lockedSketchItemIds = useMemo(
     () =>
-      getLockedSketchRegenItemIds(tasks.data?.data, [
-        ...singleSketchPlanItems,
-        ...sketchPlanItems,
-      ]),
+      getLockedSketchRegenItemIds(
+        tasks.data?.data,
+        [...singleSketchPlanItems, ...sketchPlanItems],
+        (task) =>
+          task.task_type === TASK_TYPES.SKETCH_REGEN &&
+          isActiveStatus(task.status),
+      ),
     [singleSketchPlanItems, sketchPlanItems, tasks.data?.data],
   );
   const singleSketchUnlockedCount = singleSketchPlanItems.filter(

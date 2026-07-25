@@ -2,12 +2,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  getBatchPanelActionDisabled,
+  SKETCH_REGEN_MODES,
+  bestFitMode,
   createAutoSketchRegenQueueItems,
   createSketchRegenPlanItems,
   createSingleSketchRegenQueueItems,
   createSketchRegenQueueItem,
   findSketchRegenQueueTask,
+  getBatchPanelActionDisabled,
   getLockedSketchRegenItemIds,
   getSketchRegenQueueConflict,
   getSketchRegenPreflight,
@@ -16,9 +18,17 @@ import {
   sketchRegenModesForAspect,
   shouldShowSketchModeSpinner,
   sketchRegenUsageScope,
-} from "@/components/episode/beat-workbench/batch-panel";
-import { SKETCH_REGEN_MODES, bestFitMode } from "@/lib/regen-modes";
+  type SketchRegenTask,
+} from "@/modules/production/public";
 import type { Beat } from "@/modules/narrative_planning/public";
+
+function isSketchRegenTask(task: SketchRegenTask): boolean {
+  return task.task_type === "sketch_regen";
+}
+
+function isActiveSketchRegenTask(task: SketchRegenTask): boolean {
+  return isSketchRegenTask(task) && task.status === "running";
+}
 
 function beat(overrides: Partial<Beat>): Beat {
   return {
@@ -359,6 +369,7 @@ describe("getSketchRegenSceneIds", () => {
         },
       ],
       item,
+      isSketchRegenTask,
     );
 
     expect(task).toMatchObject({
@@ -405,6 +416,7 @@ describe("getSketchRegenSceneIds", () => {
         },
       ],
       [first, second],
+      isActiveSketchRegenTask,
     );
 
     expect([...locked]).toEqual([first.id]);
