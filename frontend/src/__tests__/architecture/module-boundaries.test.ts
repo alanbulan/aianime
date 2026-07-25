@@ -619,6 +619,13 @@ describe("frontend architecture boundaries", () => {
     expect(videoPaneSource).not.toContain("useVideoPoolSelect(");
     expect(videoPaneSource).not.toContain("formatRelativeTime");
     expect(videoPaneSource).not.toContain("MEDIA_THUMB_CLASS");
+    expect(videoPaneSource).not.toContain("useUploadSeedance2Asset(");
+    expect(videoPaneSource).not.toContain("useDeleteSeedance2Asset(");
+    expect(videoPaneSource).not.toContain("useCropSeedance2Asset(");
+    expect(videoPaneSource).not.toContain("useTrimSeedance2Asset(");
+    expect(videoPaneSource).not.toContain("handleSeedance2AssetUpload");
+    expect(videoPaneSource).not.toContain("handleCropSeedance2Asset");
+    expect(videoPaneSource).not.toContain("handleTrimSeedance2Asset");
     expect(legacySketchQueries).not.toContain("useAssignColors");
     expect(legacySketchQueries).not.toContain("useDetectIdentities");
     expect(legacySketchQueries).not.toContain("useDirectorControlToSketch");

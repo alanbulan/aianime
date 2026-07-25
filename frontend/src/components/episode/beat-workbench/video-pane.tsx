@@ -59,7 +59,6 @@ import {
   grokVideoResolutionOptionsForBackend,
   happyHorseRatioOptionsForBackend,
   happyHorseResolutionOptionsForBackend,
-  isProductionErrorResponse,
   isSeedanceReferenceCropBackend,
   isSeedance15ProBackend,
   isSeedance2ValueBackend,
@@ -89,26 +88,20 @@ import {
   Seedance2SummaryPill,
   seedance2CropAspectForMode,
   seedance2CropTargetForAsset,
-  useCropSeedance2Asset,
-  useDeleteSeedance2Asset,
   useGenerateBeatVideoPrompt,
   useGenerateSeedance2Prompt,
   useRegenerateBeatVideo,
+  useSeedance2AssetOperationsController,
   useSeedance2BeatStatus,
-  useTrimSeedance2Asset,
-  useUploadSeedance2Asset,
   useVideoBackends,
   useVideoPaneMediaController,
   VideoPaneMediaView,
   VideoParamField,
   videoInputCropAspectForProjectAspect,
-  type Seedance2AssetItem,
   type Seedance2ConfigDraft,
-  type Seedance2CropIntent,
   type Seedance2DurationBounds,
   type Seedance2LabelIdentityMaps,
   type Seedance2Resolution,
-  type VideoInputCropTarget,
 } from "@/modules/production/public";
 import {
   AlertDialog,
@@ -216,10 +209,6 @@ export function VideoPane({
   const regenerate = useRegenerateBeatVideo(project, episode);
   const generateBeatVideoPrompt = useGenerateBeatVideoPrompt(project, episode);
   const generateSeedance2Prompt = useGenerateSeedance2Prompt(project, episode);
-  const uploadSeedance2Asset = useUploadSeedance2Asset(project, episode);
-  const deleteSeedance2Asset = useDeleteSeedance2Asset(project, episode);
-  const cropSeedance2Asset = useCropSeedance2Asset(project, episode);
-  const trimSeedance2Asset = useTrimSeedance2Asset(project, episode);
   const updateBeat = useUpdateBeat(project, episode);
   const regenTask = useTaskController({
     key: {
@@ -251,12 +240,11 @@ export function VideoPane({
   const seedance2PromptCost = useGenerationCreditCost("feature", "seedance2_prompt");
   const seedance2UploadInputRef = useRef<HTMLInputElement>(null);
   const [regenConfirm, setRegenConfirm] = useState(false);
-  const [seedance2CropIntent, setSeedance2CropIntent] =
-    useState<Seedance2CropIntent | null>(null);
-  const [seedance2TrimAsset, setSeedance2TrimAsset] =
-    useState<Seedance2AssetItem | null>(null);
-  const [seedance2TrimStart, setSeedance2TrimStart] = useState("0");
-  const [seedance2TrimDuration, setSeedance2TrimDuration] = useState("4");
+  const assetOperations = useSeedance2AssetOperationsController({
+    beatNumber: beat.beat_number,
+    episode,
+    project,
+  });
   const [seedance2ReferencesOpen, setSeedance2ReferencesOpen] = useState(true);
   const [mentionActiveIndex, setMentionActiveIndex] = useState(0);
   const [activeMentionField, setActiveMentionField] =
@@ -1137,102 +1125,6 @@ export function VideoPane({
       </div>
     );
   };
-  const handleSeedance2AssetUpload = async (file: File) => {
-    try {
-      const res = await uploadSeedance2Asset.mutateAsync({
-        beatNum: beat.beat_number,
-        file,
-      });
-      if (isProductionErrorResponse(res)) {
-        toast.error(res.error || t("common.error"));
-        return;
-      }
-      toast.success(t("episode.workbench.video.seedance2AssetUploaded"));
-    } catch {
-      toast.error(t("common.error"));
-    }
-  };
-  const handleDeleteSeedance2Asset = async (asset: Seedance2AssetItem) => {
-    const path = asset.abs_path || asset.path || "";
-    if (!path) return;
-    try {
-      const res = await deleteSeedance2Asset.mutateAsync({
-        beatNum: beat.beat_number,
-        mediaKind: asset.media_type === "audio" ? "audios" : "images",
-        path,
-      });
-      if (isProductionErrorResponse(res)) {
-        toast.error(res.error || t("common.error"));
-        return;
-      }
-      toast.success(t("episode.workbench.video.seedance2AssetDeleted"));
-    } catch {
-      toast.error(t("common.error"));
-    }
-  };
-  const handleCropSeedance2Asset = async (
-    asset: Seedance2AssetItem,
-    target: VideoInputCropTarget,
-    crop: { x: number; y: number; width: number; height: number },
-  ) => {
-    const sourcePath =
-      asset.crop_source_abs_path ||
-      asset.crop_source_path ||
-      asset.abs_path ||
-      asset.path ||
-      "";
-    if (!sourcePath) return;
-    try {
-      const res = await cropSeedance2Asset.mutateAsync({
-        beatNum: beat.beat_number,
-        assetKey: asset.key,
-        sourcePath,
-        target,
-        crop,
-      });
-      if (isProductionErrorResponse(res)) {
-        toast.error(res.error || t("common.error"));
-        return;
-      }
-      toast.success(t("episode.workbench.video.seedance2AssetCropped"));
-      setSeedance2CropIntent(null);
-    } catch {
-      toast.error(t("common.error"));
-    }
-  };
-  const handleTrimSeedance2Asset = async () => {
-    const asset = seedance2TrimAsset;
-    if (!asset) return;
-    const sourcePath = asset.abs_path || asset.path || "";
-    if (!sourcePath) return;
-    const startSeconds = Number(seedance2TrimStart);
-    const durationSeconds = Number(seedance2TrimDuration);
-    if (
-      !Number.isFinite(startSeconds) ||
-      !Number.isFinite(durationSeconds) ||
-      durationSeconds <= 0
-    ) {
-      toast.error(t("episode.workbench.video.seedance2AssetAudioTrimInvalid"));
-      return;
-    }
-    try {
-      const res = await trimSeedance2Asset.mutateAsync({
-        beatNum: beat.beat_number,
-        assetKey: asset.key,
-        sourcePath,
-        startSeconds,
-        durationSeconds,
-      });
-      if (isProductionErrorResponse(res)) {
-        toast.error(res.error || t("common.error"));
-        return;
-      }
-      toast.success(t("episode.workbench.video.seedance2AssetAudioTrimmed"));
-      setSeedance2TrimAsset(null);
-    } catch {
-      toast.error(t("common.error"));
-    }
-  };
   const saveLegacyVideoPrompt = async () => {
     const current =
       legacyPromptField === "keyframe_prompt"
@@ -1605,7 +1497,7 @@ export function VideoPane({
                               className="size-6 rounded-[6px] border border-media-foreground/20 bg-media/70 text-media-foreground/90 shadow-lg backdrop-blur-sm hover:border-media-foreground/30 hover:bg-media-foreground/15 hover:text-media-foreground"
                               aria-label={t("episode.workbench.video.seedance2AssetCrop")}
                               onClick={() =>
-                                setSeedance2CropIntent({
+                                assetOperations.openCrop({
                                   asset,
                                   target: "first_frame",
                                 })
@@ -1705,11 +1597,11 @@ export function VideoPane({
                 type="button"
                 size="xs"
                 variant="outline"
-                disabled={uploadSeedance2Asset.isPending}
+                disabled={assetOperations.uploadPending}
                 onClick={() => seedance2UploadInputRef.current?.click()}
                 className={cn("ml-auto", SEEDANCE2_SECONDARY_ACTION_CLASS)}
               >
-                {uploadSeedance2Asset.isPending ? (
+                {assetOperations.uploadPending ? (
                   <Loader2 className="size-3 animate-spin" />
                 ) : (
                   <Upload className="size-3" />
@@ -1723,7 +1615,7 @@ export function VideoPane({
                 accept={showHappyHorseConfig || showGrokVideoConfig ? "image/*" : "image/*,audio/*"}
                 onChange={(event) => {
                   const file = event.target.files?.[0];
-                  if (file) void handleSeedance2AssetUpload(file);
+                  if (file) void assetOperations.uploadAsset(file);
                   event.target.value = "";
                 }}
               />
@@ -1852,7 +1744,7 @@ export function VideoPane({
                                   className="size-6 rounded-[6px] border border-media-foreground/20 bg-media/70 text-media-foreground/90 shadow-lg backdrop-blur-sm hover:border-media-foreground/30 hover:bg-media-foreground/15 hover:text-media-foreground"
                                   aria-label={t("episode.workbench.video.seedance2AssetCrop")}
                                   onClick={() =>
-                                    setSeedance2CropIntent({
+                                    assetOperations.openCrop({
                                       asset,
                                       target: seedance2CropTargetForAsset(
                                         seedance2Draft.mode,
@@ -1872,11 +1764,7 @@ export function VideoPane({
                                   className="size-6 rounded-[6px] border border-media-foreground/20 bg-media/70 text-media-foreground/90 shadow-lg backdrop-blur-sm hover:border-media-foreground/30 hover:bg-media-foreground/15 hover:text-media-foreground"
                                   aria-label={t("episode.workbench.video.seedance2AssetCrop")}
                                   title={t("episode.workbench.video.seedance2AssetAudioTrim")}
-                                  onClick={() => {
-                                    setSeedance2TrimStart("0");
-                                    setSeedance2TrimDuration("4");
-                                    setSeedance2TrimAsset(asset);
-                                  }}
+                                  onClick={() => assetOperations.openTrim(asset)}
                                 >
                                   <Scissors className="size-3.5" />
                                 </Button>
@@ -1886,10 +1774,12 @@ export function VideoPane({
                                   type="button"
                                   size="icon"
                                   variant="ghost"
-                                  disabled={deleteSeedance2Asset.isPending}
+                                  disabled={assetOperations.deletePending}
                                   className="size-5 rounded-[5px] border border-media-foreground/10 bg-media/35 text-media-foreground/60 hover:bg-destructive/15 hover:text-destructive"
                                   aria-label={t("episode.workbench.video.seedance2AssetDelete")}
-                                  onClick={() => void handleDeleteSeedance2Asset(asset)}
+                                  onClick={() =>
+                                    void assetOperations.deleteAsset(asset)
+                                  }
                                 >
                                   <Trash2 className="size-2.5" />
                                 </Button>
@@ -2341,7 +2231,7 @@ export function VideoPane({
       )}
 
       <Seedance2AssetCropDialog
-        intent={seedance2CropIntent}
+        intent={assetOperations.cropIntent}
         targetCropAspect={
           showSeedance2Config
             ? seedance2CropAspectForMode(
@@ -2351,23 +2241,23 @@ export function VideoPane({
               )
             : videoInputCropAspectForProjectAspect(spec.renderAspect)
         }
-        pending={cropSeedance2Asset.isPending}
+        pending={assetOperations.cropPending}
         onOpenChange={(open) => {
-          if (!open) setSeedance2CropIntent(null);
+          if (!open) assetOperations.closeCrop();
         }}
-        onSave={handleCropSeedance2Asset}
+        onSave={assetOperations.saveCrop}
       />
       <Seedance2AudioTrimDialog
-        asset={seedance2TrimAsset}
-        start={seedance2TrimStart}
-        duration={seedance2TrimDuration}
-        pending={trimSeedance2Asset.isPending}
-        onStartChange={setSeedance2TrimStart}
-        onDurationChange={setSeedance2TrimDuration}
+        asset={assetOperations.trimAsset}
+        start={assetOperations.trimStart}
+        duration={assetOperations.trimDuration}
+        pending={assetOperations.trimPending}
+        onStartChange={assetOperations.setTrimStart}
+        onDurationChange={assetOperations.setTrimDuration}
         onOpenChange={(open) => {
-          if (!open) setSeedance2TrimAsset(null);
+          if (!open) assetOperations.closeTrim();
         }}
-        onSave={handleTrimSeedance2Asset}
+        onSave={assetOperations.saveTrim}
       />
 
       <AlertDialog open={regenConfirm} onOpenChange={setRegenConfirm}>

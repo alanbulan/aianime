@@ -452,12 +452,19 @@ const videoQueryMocks = vi.hoisted(() => ({
 
 vi.mock("@/modules/production/public", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/modules/production/public")>();
+  const { createUseSeedance2AssetOperationsController } = await import(
+    "@/modules/production/application/use-seedance2-asset-operations-controller"
+  );
+  const useSeedance2AssetOperationsController =
+    createUseSeedance2AssetOperationsController({
+      useUploadSeedance2Asset: videoQueryMocks.useUploadSeedance2Asset,
+      useDeleteSeedance2Asset: videoQueryMocks.useDeleteSeedance2Asset,
+      useCropSeedance2Asset: videoQueryMocks.useCropSeedance2Asset,
+      useTrimSeedance2Asset: videoQueryMocks.useTrimSeedance2Asset,
+    });
   return {
     ...actual,
-    useUploadSeedance2Asset: videoQueryMocks.useUploadSeedance2Asset,
-    useDeleteSeedance2Asset: videoQueryMocks.useDeleteSeedance2Asset,
-    useCropSeedance2Asset: videoQueryMocks.useCropSeedance2Asset,
-    useTrimSeedance2Asset: videoQueryMocks.useTrimSeedance2Asset,
+    useSeedance2AssetOperationsController,
     useSeedance2BeatStatus: videoQueryMocks.useSeedance2BeatStatus,
     useRegenerateBeatVideo: videoQueryMocks.useRegenerateBeatVideo,
     useGenerateSeedance2Prompt: videoQueryMocks.useGenerateSeedance2Prompt,

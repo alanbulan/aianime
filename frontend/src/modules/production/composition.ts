@@ -21,6 +21,7 @@ import { createSketchPoseEditorQueryHooks } from "@/modules/production/applicati
 import { createSketchMarkerQueryHooks } from "@/modules/production/application/sketch-marker-query-hooks";
 import { createSketchGenerationQueryHooks } from "@/modules/production/application/sketch-generation-query-hooks";
 import { createUseAudioPaneController } from "@/modules/production/application/use-audio-pane-controller";
+import { createUseSeedance2AssetOperationsController } from "@/modules/production/application/use-seedance2-asset-operations-controller";
 import { createUseVideoPaneMediaController } from "@/modules/production/application/use-video-pane-media-controller";
 import { httpProductionVideoGateway } from "@/modules/production/infrastructure/http-production-video-gateway";
 import { promptLanguageFromLocale } from "@/modules/production/domain/video-generation";
@@ -38,6 +39,11 @@ const useAudioPaneController = createUseAudioPaneController(
 const videoPoolQueries = createVideoPoolQueryHooks(
   httpProductionVideoGateway,
 );
+const seedance2PanelQueries = createSeedance2PanelQueryHooks(
+  httpProductionVideoGateway,
+);
+export const useSeedance2AssetOperationsController =
+  createUseSeedance2AssetOperationsController(seedance2PanelQueries);
 export const useVideoPaneMediaController = createUseVideoPaneMediaController(
   videoPoolQueries,
   { useNow },
@@ -66,7 +72,7 @@ export const {
   useDeleteSeedance2Asset,
   useCropSeedance2Asset,
   useTrimSeedance2Asset,
-} = createSeedance2PanelQueryHooks(httpProductionVideoGateway);
+} = seedance2PanelQueries;
 export const {
   useGlobalOptimize,
   useGenerateSeedance2Prompt,
