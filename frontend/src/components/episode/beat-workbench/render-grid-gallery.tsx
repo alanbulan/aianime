@@ -1,19 +1,11 @@
 // Copyright (c) 2026 AI anime
-import { useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import {
-  Copy,
-  Download,
-  FileText,
-  Loader2,
-  RefreshCw,
-  Scissors,
-  Square,
-  Upload,
-} from "lucide-react";
 
 import {
+  RenderGridCardView,
+  RenderGridGalleryView,
   type PoolImage,
   useCutGrid,
   useExportGridPrompt,
@@ -24,21 +16,9 @@ import {
 } from "@/modules/production/public";
 import { queryKeys } from "@/lib/query-keys";
 import { resolveMediaUrl } from "@/lib/media-url";
-import { gridAspectCss } from "@/lib/aspect-ratio";
 import { useProjectAspectRatio } from "@/stores/aspect-ratio-store";
 import { useTaskController } from "@/hooks/use-task-controller";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import type { Beat } from "@/modules/narrative_planning/public";
-
-const GRID_ACTION_BUTTON_CLASS =
-  "justify-start gap-1 rounded-[5px] px-1 text-foreground/82 shadow-none transition-colors hover:bg-transparent hover:text-foreground disabled:text-muted-foreground/45";
 
 interface RenderGridGalleryProps {
   project: string;
@@ -84,50 +64,21 @@ export function RenderGridGallery({
   };
 
   return (
-    <section className="flex h-full min-h-0 w-full flex-col bg-background px-4 py-3">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <h2 className="text-xs font-semibold text-muted-foreground">
-          {t("episode.workbench.renderGrid.titleWithCount", {
-            count: groups.length,
-          })}
-        </h2>
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            size="xs"
-            variant="ghost"
-            disabled={rebuildPoolIndex.isPending}
-            onClick={() => void handleRebuildPoolIndex()}
-            className="h-6 gap-1 px-1.5 text-[10px]"
-          >
-            {rebuildPoolIndex.isPending ? (
-              <Loader2 className="size-3 animate-spin" />
-            ) : (
-              <RefreshCw className="size-3" />
-            )}
-            {t("episode.workbench.renderGrid.rebuildIndex")}
-          </Button>
-        </div>
-      </div>
-      {groups.length === 0 ? (
-        <p className="flex min-h-0 flex-1 items-center justify-center px-4 text-center text-xs text-muted-foreground">
-          {t("episode.workbench.renderGrid.noIndexedGrids")}
-        </p>
-      ) : (
-        // 卡片改自适应网格 + 纵向滚动,撑满弹窗;列宽 minmax 保证大屏多列、窄屏单列。
-        <div className="grid min-h-0 flex-1 content-start gap-3 overflow-y-auto p-4 [grid-template-columns:repeat(auto-fill,minmax(320px,1fr))]">
-          {groups.map((group) => (
-            <RenderGridCard
-              key={group.gridIndex}
-              project={project}
-              episode={episode}
-              group={group}
-              cellAspect={spec.renderAspect}
-            />
-          ))}
-        </div>
-      )}
-    </section>
+    <RenderGridGalleryView
+      gridCount={groups.length}
+      rebuildPending={rebuildPoolIndex.isPending}
+      onRebuild={handleRebuildPoolIndex}
+    >
+      {groups.map((group) => (
+        <RenderGridCard
+          key={group.gridIndex}
+          project={project}
+          episode={episode}
+          group={group}
+          cellAspect={spec.renderAspect}
+        />
+      ))}
+    </RenderGridGalleryView>
   );
 }
 
@@ -147,7 +98,6 @@ function RenderGridCard({
   const cutGrid = useCutGrid(project, episode);
   const uploadGrid = useUploadGrid(project, episode);
   const exportGridPrompt = useExportGridPrompt(project, episode);
-  const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const [promptOpen, setPromptOpen] = useState(false);
   const [promptText, setPromptText] = useState("");
   const scope = `grid_${group.gridIndex}`;
@@ -211,10 +161,7 @@ function RenderGridCard({
     }
   };
 
-  const handleUploadChange = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.currentTarget.files?.[0];
-    event.currentTarget.value = "";
-    if (!file) return;
+  const handleUpload = async (file: File) => {
     try {
       const res = await uploadGrid.mutateAsync({
         gridIndex: group.gridIndex,
@@ -270,178 +217,31 @@ function RenderGridCard({
   };
 
   return (
-    <article className="flex min-w-0 flex-col gap-2 rounded-md border border-border bg-card p-2">
-      <button
-        type="button"
-        disabled={!gridUrl}
-        onClick={() => gridUrl && window.open(gridUrl, "_blank", "noopener,noreferrer")}
-        className="overflow-hidden rounded border border-border bg-media/20 disabled:cursor-default"
-        style={{ aspectRatio: gridAspectCss(group.cols, group.rows, cellAspect) }}
-      >
-        {gridUrl ? (
-          <img
-            src={gridUrl}
-            alt={t("episode.workbench.renderGrid.gridLabel", {
-              n: group.gridIndex,
-            })}
-            className="h-full w-full object-contain"
-            loading="lazy"
-            decoding="async"
-          />
-        ) : (
-          <span className="flex h-full items-center justify-center text-xs text-muted-foreground">
-            {t("episode.workbench.renderGrid.noPreview")}
-          </span>
-        )}
-      </button>
-      <div className="min-w-0">
-        <div className="flex items-center justify-between gap-2 text-xs">
-          <span className="font-medium">
-            {t("episode.workbench.renderGrid.gridLabel", {
-              n: group.gridIndex,
-            })}
-          </span>
-          <span className="text-muted-foreground">
-            {group.rows}x{group.cols}
-          </span>
-        </div>
-        <p className="truncate text-[11px] text-muted-foreground">
-          {t("episode.workbench.renderGrid.cellCount", {
-            count: group.cells.length,
-          })}
-          {" · B"}
-          {formatBeatRange(group.beatNumbers)}
-        </p>
-      </div>
-      <div className="flex flex-wrap gap-1">
-        {regenTask.started ? (
-          <Button
-            type="button"
-            size="xs"
-            variant="ghost"
-            onClick={() => void regenTask.stop()}
-            disabled={regenTask.stopping}
-            className={GRID_ACTION_BUTTON_CLASS}
-          >
-            {regenTask.stopping ? (
-              <Loader2 className="size-3 animate-spin" />
-            ) : (
-              <Square className="size-3" />
-            )}
-            {t("common.stop")}
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            size="xs"
-            variant="ghost"
-            onClick={handleRegenerate}
-            disabled={regenerateGrid.isPending}
-            className={GRID_ACTION_BUTTON_CLASS}
-          >
-            {regenerateGrid.isPending ? (
-              <Loader2 className="size-3 animate-spin" />
-            ) : (
-              <RefreshCw className="size-3" />
-            )}
-            {t("common.regenerate")}
-          </Button>
-        )}
-        <input
-          ref={uploadInputRef}
-          type="file"
-          accept="image/*"
-          aria-label={t("episode.workbench.renderGrid.uploadGrid")}
-          className="sr-only"
-          onChange={(event) => void handleUploadChange(event)}
-        />
-        <Button
-          type="button"
-          size="xs"
-          variant="ghost"
-          onClick={() => uploadInputRef.current?.click()}
-          disabled={uploadGrid.isPending}
-          className={GRID_ACTION_BUTTON_CLASS}
-        >
-          {uploadGrid.isPending ? (
-            <Loader2 className="size-3 animate-spin" />
-          ) : (
-            <Upload className="size-3" />
-          )}
-          {t("episode.workbench.renderGrid.uploadGrid")}
-        </Button>
-        <Button
-          type="button"
-          size="xs"
-          variant="ghost"
-          onClick={handleExportPrompt}
-          disabled={exportGridPrompt.isPending}
-          className={GRID_ACTION_BUTTON_CLASS}
-        >
-          {exportGridPrompt.isPending ? (
-            <Loader2 className="size-3 animate-spin" />
-          ) : (
-            <FileText className="size-3" />
-          )}
-          {t("episode.workbench.renderGrid.exportPrompt")}
-        </Button>
-        <Button
-          type="button"
-          size="xs"
-          variant="ghost"
-          onClick={handleCut}
-          disabled={cutGrid.isPending}
-          className={GRID_ACTION_BUTTON_CLASS}
-        >
-          {cutGrid.isPending ? (
-            <Loader2 className="size-3 animate-spin" />
-          ) : (
-            <Scissors className="size-3" />
-          )}
-          {t("episode.workbench.renderGrid.cut")}
-        </Button>
-        <Button
-          type="button"
-          size="xs"
-          variant="ghost"
-          onClick={handleDownload}
-          disabled={!gridUrl}
-          className={GRID_ACTION_BUTTON_CLASS}
-        >
-          <Download className="size-3" />
-          {t("common.download")}
-        </Button>
-      </div>
-      <Dialog open={promptOpen} onOpenChange={setPromptOpen}>
-        <DialogContent className="max-w-[min(calc(100vw-2rem),760px)] sm:max-w-[min(calc(100vw-2rem),760px)]">
-          <DialogHeader>
-            <DialogTitle>
-              {t("episode.workbench.renderGrid.promptTitle", {
-                n: group.gridIndex,
-              })}
-            </DialogTitle>
-          </DialogHeader>
-          <Textarea
-            aria-label={t("episode.workbench.renderGrid.promptContent")}
-            value={promptText}
-            readOnly
-            className="min-h-[260px] resize-y font-mono text-xs"
-          />
-          <div className="flex justify-end">
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => void handleCopyPrompt()}
-              className="gap-1 active:scale-95 transition-transform"
-            >
-              <Copy className="size-3" />
-              {t("common.copy")}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </article>
+    <RenderGridCardView
+      beatNumbers={group.beatNumbers}
+      cellAspect={cellAspect}
+      cellCount={group.cells.length}
+      cols={group.cols}
+      cutPending={cutGrid.isPending}
+      exportPromptPending={exportGridPrompt.isPending}
+      gridIndex={group.gridIndex}
+      gridUrl={gridUrl}
+      promptOpen={promptOpen}
+      promptText={promptText}
+      regenerationPending={regenerateGrid.isPending}
+      regenerationStarted={regenTask.started}
+      regenerationStopping={regenTask.stopping}
+      rows={group.rows}
+      uploadPending={uploadGrid.isPending}
+      onCopyPrompt={handleCopyPrompt}
+      onCut={handleCut}
+      onDownload={handleDownload}
+      onExportPrompt={handleExportPrompt}
+      onPromptOpenChange={setPromptOpen}
+      onRegenerate={handleRegenerate}
+      onStopRegeneration={regenTask.stop}
+      onUpload={handleUpload}
+    />
   );
 }
 
@@ -581,23 +381,4 @@ function latestGeneratedAt(cells: PoolImage[]): number {
     0,
     ...cells.map((cell) => (cell.generated_at ? Date.parse(cell.generated_at) : 0)),
   );
-}
-
-function formatBeatRange(beats: number[]): string {
-  if (beats.length === 0) return "-";
-  const sorted = [...new Set(beats)].sort((a, b) => a - b);
-  const ranges: string[] = [];
-  let start = sorted[0];
-  let previous = sorted[0];
-  for (const beat of sorted.slice(1)) {
-    if (beat === previous + 1) {
-      previous = beat;
-      continue;
-    }
-    ranges.push(start === previous ? String(start) : `${start}-${previous}`);
-    start = beat;
-    previous = beat;
-  }
-  ranges.push(start === previous ? String(start) : `${start}-${previous}`);
-  return ranges.join(",");
 }

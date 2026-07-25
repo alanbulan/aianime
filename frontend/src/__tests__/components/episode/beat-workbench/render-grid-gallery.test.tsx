@@ -79,39 +79,45 @@ function beatWithScene(beatNumber: number, sceneId: string): Beat {
   };
 }
 
-vi.mock("@/modules/production/public", () => ({
-  useCutGrid: () => ({
-    mutateAsync: cutGridMock,
-    isPending: false,
-  }),
-  useUploadGrid: () => ({
-    mutateAsync: uploadGridMock,
-    isPending: false,
-  }),
-  useExportGridPrompt: () => ({
-    mutateAsync: exportGridPromptMock,
-    isPending: false,
-  }),
-  useGrids: () => ({
-    data: {
-      ok: true,
+vi.mock("@/modules/production/public", async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import("@/modules/production/public")
+  >();
+  return {
+    ...actual,
+    useCutGrid: () => ({
+      mutateAsync: cutGridMock,
+      isPending: false,
+    }),
+    useUploadGrid: () => ({
+      mutateAsync: uploadGridMock,
+      isPending: false,
+    }),
+    useExportGridPrompt: () => ({
+      mutateAsync: exportGridPromptMock,
+      isPending: false,
+    }),
+    useGrids: () => ({
       data: {
-        episode: 1,
-        modes: {},
-        beat_assignments: {},
-        images: gridImages,
+        ok: true,
+        data: {
+          episode: 1,
+          modes: {},
+          beat_assignments: {},
+          images: gridImages,
+        },
       },
-    },
-  }),
-  useRebuildPoolIndex: () => ({
-    mutateAsync: rebuildPoolIndexMock,
-    isPending: false,
-  }),
-  useRegenerateGrid: () => ({
-    mutateAsync: regenerateGridMock,
-    isPending: false,
-  }),
-}));
+    }),
+    useRebuildPoolIndex: () => ({
+      mutateAsync: rebuildPoolIndexMock,
+      isPending: false,
+    }),
+    useRegenerateGrid: () => ({
+      mutateAsync: regenerateGridMock,
+      isPending: false,
+    }),
+  };
+});
 
 vi.mock("@/hooks/use-task-controller", () => ({
   useTaskController: () => ({

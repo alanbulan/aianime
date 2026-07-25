@@ -88,6 +88,14 @@ export { RenderSectionView } from "@/modules/production/presentation/RenderSecti
 export type { RenderSectionViewProps } from "@/modules/production/presentation/RenderSectionView";
 export { NarratorVoicePanelView } from "@/modules/production/presentation/NarratorVoicePanelView";
 export type { NarratorVoicePanelViewProps } from "@/modules/production/presentation/NarratorVoicePanelView";
+export {
+  RenderGridCardView,
+  RenderGridGalleryView,
+} from "@/modules/production/presentation/RenderGridGalleryView";
+export type {
+  RenderGridCardViewProps,
+  RenderGridGalleryViewProps,
+} from "@/modules/production/presentation/RenderGridGalleryView";
 export type {
   NarratorVoicePanelController,
   NarratorVoicePanelControllerDependencies,

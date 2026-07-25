@@ -588,6 +588,20 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const renderGridGallerySource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "components/episode/beat-workbench/render-grid-gallery.tsx",
+      ),
+      "utf8",
+    );
+    const renderGridGalleryViewSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/production/presentation/RenderGridGalleryView.tsx",
+      ),
+      "utf8",
+    );
     const narratorVoicePanelSource = readFileSync(
       resolve(
         SRC_ROOT,
@@ -818,6 +832,24 @@ describe("frontend architecture boundaries", () => {
     expect(renderSectionControllerSource).not.toContain("@/features/");
     expect(renderSectionControllerSource).not.toContain("@/stores/");
     expect(renderSectionControllerSource).not.toContain("document.");
+    expect(renderGridGallerySource).toContain("<RenderGridGalleryView");
+    expect(renderGridGallerySource).toContain("<RenderGridCardView");
+    expect(renderGridGallerySource).not.toContain("className=");
+    expect(renderGridGallerySource).not.toContain("<Button");
+    expect(renderGridGallerySource).not.toContain("<Dialog");
+    expect(renderGridGallerySource).not.toContain("<Textarea");
+    expect(renderGridGallerySource).not.toContain('type="file"');
+    expect(renderGridGallerySource).not.toContain("GRID_ACTION_BUTTON_CLASS");
+    expect(renderGridGallerySource).not.toContain("gridAspectCss");
+    expect(renderGridGallerySource).not.toContain("formatBeatRange");
+    expect(renderGridGalleryViewSource).toContain('type="file"');
+    expect(renderGridGalleryViewSource).toContain("<Dialog");
+    expect(renderGridGalleryViewSource).toContain("<Textarea");
+    expect(renderGridGalleryViewSource).toContain("GRID_ACTION_BUTTON_CLASS");
+    expect(renderGridGalleryViewSource).toContain("formatBeatRange");
+    expect(renderGridGalleryViewSource).not.toContain("useGrids(");
+    expect(renderGridGalleryViewSource).not.toContain("useRegenerateGrid(");
+    expect(renderGridGalleryViewSource).not.toContain("toast.");
     expect(narratorVoicePanelSource).toContain("<NarratorVoicePanelView");
     expect(narratorVoicePanelSource).toContain(
       "useNarratorVoicePanelController({",
