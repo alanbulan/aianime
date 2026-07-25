@@ -384,6 +384,24 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const insertManualShotDialogSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "components/episode/beat-workbench/insert-manual-shot-dialog.tsx",
+      ),
+      "utf8",
+    );
+    const insertManualShotDialogControllerSource = readFileSync(
+      resolve(
+        moduleRoot,
+        "application/use-insert-manual-shot-dialog-controller.ts",
+      ),
+      "utf8",
+    );
+    const insertManualShotDialogViewSource = readFileSync(
+      resolve(moduleRoot, "presentation/InsertManualShotDialogView.tsx"),
+      "utf8",
+    );
     const externalSources = sourceFiles(SRC_ROOT)
       .filter((path) => !path.startsWith(moduleRoot))
       .filter((path) => !relativeSource(path).startsWith("__tests__/"));
@@ -534,6 +552,53 @@ describe("frontend architecture boundaries", () => {
     expect(actionPanelViewSource).not.toContain("useEpisodeWorkbenchStore(");
     expect(actionPanelStateSource).toContain("useEpisodeWorkbenchStore(");
     expect(actionPanelStateSource).toContain("episodeWorkbenchScopeKey(");
+    expect(insertManualShotDialogSource).toContain(
+      "useInsertManualShotDialogController({",
+    );
+    expect(insertManualShotDialogSource).toContain(
+      "<InsertManualShotDialogView",
+    );
+    expect(insertManualShotDialogSource).not.toContain("useState(");
+    expect(insertManualShotDialogSource).not.toContain("useEpisodeBeats(");
+    expect(insertManualShotDialogSource).not.toContain("useEpisodeDetail(");
+    expect(insertManualShotDialogSource).not.toContain("useInsertManualShot(");
+    expect(insertManualShotDialogSource).not.toContain("toast.");
+    expect(insertManualShotDialogSource).not.toContain("className=");
+    expect(insertManualShotDialogControllerSource).toContain(
+      "createUseInsertManualShotDialogController",
+    );
+    expect(insertManualShotDialogControllerSource).toContain(
+      "queries.useEpisodeBeats",
+    );
+    expect(insertManualShotDialogControllerSource).toContain(
+      "queries.useEpisodeDetail",
+    );
+    expect(insertManualShotDialogControllerSource).toContain(
+      "queries.useInsertManualShot",
+    );
+    expect(insertManualShotDialogControllerSource).toContain(
+      "mentionsToProgramMarkers",
+    );
+    expect(insertManualShotDialogControllerSource).toContain(
+      "sceneNameToRef",
+    );
+    expect(insertManualShotDialogControllerSource).not.toContain("className=");
+    expect(insertManualShotDialogControllerSource).not.toContain("<Dialog");
+    expect(insertManualShotDialogViewSource).toContain(
+      "controller: InsertManualShotDialogController",
+    );
+    expect(insertManualShotDialogViewSource).toContain("<Dialog");
+    expect(insertManualShotDialogViewSource).toContain("<MentionTextarea");
+    expect(insertManualShotDialogViewSource).not.toContain(
+      "useEpisodeBeats(",
+    );
+    expect(insertManualShotDialogViewSource).not.toContain(
+      "useEpisodeDetail(",
+    );
+    expect(insertManualShotDialogViewSource).not.toContain(
+      "useInsertManualShot(",
+    );
+    expect(insertManualShotDialogViewSource).not.toContain("toast.");
   });
 
   it("keeps Asset & World callers on its public API", () => {

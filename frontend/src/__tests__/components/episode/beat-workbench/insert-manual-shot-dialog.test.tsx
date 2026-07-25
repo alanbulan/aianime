@@ -127,18 +127,33 @@ const queryState: {
   },
 };
 
-vi.mock("@/modules/narrative_planning/public", () => ({
-  useEpisodeBeats: () => ({
-    data: { ok: true, data: queryState.beats },
-  }),
-  useEpisodeDetail: () => ({
-    data: { ok: true, data: queryState.episode },
-  }),
-  useInsertManualShot: () => ({
-    mutateAsync: insertMutateAsync,
-    isPending: false,
-  }),
-}));
+vi.mock("@/modules/narrative_planning/public", async () => {
+  const { createUseInsertManualShotDialogController } = await import(
+    "@/modules/narrative_planning/application/use-insert-manual-shot-dialog-controller"
+  );
+  const { InsertManualShotDialogView } = await import(
+    "@/modules/narrative_planning/presentation/InsertManualShotDialogView"
+  );
+
+  const useInsertManualShotDialogController =
+    createUseInsertManualShotDialogController({
+      useEpisodeBeats: () => ({
+        data: { data: queryState.beats },
+      }),
+      useEpisodeDetail: () => ({
+        data: { data: queryState.episode },
+      }),
+      useInsertManualShot: () => ({
+        mutateAsync: insertMutateAsync,
+        isPending: false,
+      }),
+    });
+
+  return {
+    InsertManualShotDialogView,
+    useInsertManualShotDialogController,
+  };
+});
 
 vi.mock("sonner", () => ({
   toast: { error: vi.fn(), success: vi.fn() },

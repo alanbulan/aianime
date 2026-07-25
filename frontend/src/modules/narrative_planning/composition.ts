@@ -14,6 +14,7 @@ import {
   isPlanEpisodeAssetsResult,
 } from "@/modules/narrative_planning/application/query-hooks";
 import { createUseActionPanelController } from "@/modules/narrative_planning/application/use-action-panel-controller";
+import { createUseInsertManualShotDialogController } from "@/modules/narrative_planning/application/use-insert-manual-shot-dialog-controller";
 import { createUseBeatsPageController } from "@/modules/narrative_planning/application/use-beats-page-controller";
 import { createUseBeatsSketchPlanController } from "@/modules/narrative_planning/application/use-beats-sketch-plan-controller";
 import { createUseEpisodeListItemController } from "@/modules/narrative_planning/application/use-episode-list-item-controller";
@@ -75,6 +76,13 @@ export const {
   useUpdateBeat,
   useUpdateEpisode,
 } = narrativePlanningQueries;
+
+export const useInsertManualShotDialogController =
+  createUseInsertManualShotDialogController({
+    useEpisodeBeats: narrativePlanningQueries.useEpisodeBeats,
+    useEpisodeDetail: narrativePlanningQueries.useEpisodeDetail,
+    useInsertManualShot: narrativePlanningQueries.useInsertManualShot,
+  });
 
 export const readPipelineStatus = (
   project: string,

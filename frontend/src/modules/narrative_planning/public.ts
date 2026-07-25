@@ -17,6 +17,7 @@ export {
   useEpisodes,
   useGenerateRewrite,
   useGenerateScript,
+  useInsertManualShotDialogController,
   useInsertManualShot,
   usePipelineStatus,
   usePlanEpisodeProps,
@@ -71,6 +72,14 @@ export type {
   ActionPanelSectionState,
   ActionPanelSelection,
 } from "@/modules/narrative_planning/application/use-action-panel-controller";
+export { InsertManualShotDialogView } from "@/modules/narrative_planning/presentation/InsertManualShotDialogView";
+export type { InsertManualShotDialogViewProps } from "@/modules/narrative_planning/presentation/InsertManualShotDialogView";
+export type {
+  InsertManualShotDialogController,
+  InsertManualShotDialogControllerOptions,
+  InsertManualShotDialogControllerQueries,
+  ManualShotAudioType,
+} from "@/modules/narrative_planning/application/use-insert-manual-shot-dialog-controller";
 export { SingleBeatPanelView } from "@/modules/narrative_planning/presentation/SingleBeatPanelView";
 export type { SingleBeatPanelViewProps } from "@/modules/narrative_planning/presentation/SingleBeatPanelView";
 export type {
