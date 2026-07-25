@@ -43,12 +43,10 @@ export {
   useSeedance2AssetOperationsController,
   useSeedance2ConfigController,
   useSaveSketchRegenQueue,
-  useSketchPoseEditorDialogController,
   useSketchRegenQueue,
   useSketchGridPreview,
   useSketchGridCardController,
   useSketchGridGalleryController,
-  useSketchCropDialogController,
   useSketchSettings,
   useTrimSeedance2Asset,
   useTrimNarratorVoice,
@@ -124,32 +122,12 @@ export type {
   RenderPlanDialogControllerQueries,
   RenderPlanStaleBanner,
 } from "@/modules/production/application/use-render-plan-dialog-controller";
-export { SketchCropDialogView } from "@/modules/production/presentation/SketchCropDialogView";
-export type { SketchCropDialogViewProps } from "@/modules/production/presentation/SketchCropDialogView";
-export { SketchPoseEditorDialogView } from "@/modules/production/presentation/SketchPoseEditorDialogView";
-export type { SketchPoseEditorDialogViewProps } from "@/modules/production/presentation/SketchPoseEditorDialogView";
-export type {
-  SketchCropDialogController,
-  SketchCropDialogControllerDependencies,
-  SketchCropDialogControllerOptions,
-  SketchCropDialogControllerQueries,
-} from "@/modules/production/application/use-sketch-crop-dialog-controller";
-export type {
-  SketchPoseEditorDialogController,
-  SketchPoseEditorDialogControllerDependencies,
-  SketchPoseEditorDialogControllerOptions,
-  SketchPoseEditorDialogControllerQueries,
-  SketchPoseEditorMode,
-} from "@/modules/production/application/use-sketch-pose-editor-dialog-controller";
 export type {
   BatchPanelController,
   BatchPanelControllerDependencies,
   BatchPanelControllerOptions,
   BatchPanelControllerQueries,
 } from "@/modules/production/application/use-batch-panel-controller";
-export { SketchSectionView } from "@/modules/production/presentation/SketchSectionView";
-export type { SketchSectionViewProps } from "@/modules/production/presentation/SketchSectionView";
-export { createUseSketchSectionController } from "@/modules/production/application/use-sketch-section-controller";
 export { RenderSectionView } from "@/modules/production/presentation/RenderSectionView";
 export type { RenderSectionViewProps } from "@/modules/production/presentation/RenderSectionView";
 export { createUseRenderSectionController } from "@/modules/production/application/use-render-section-controller";
@@ -213,26 +191,6 @@ export type {
   UpdateRenderBackgroundMutation,
   UploadRenderBackgroundMutation,
 } from "@/modules/production/application/use-render-section-controller";
-export type {
-  DirectorCaptureMeta,
-  SketchBackgroundAnchorViewModel,
-  SketchBackgroundAnchorsQuery,
-  SketchCandidateViewModel,
-  SketchCharactersQuery,
-  SketchDirectorStageQuery,
-  SketchEpisodeQuery,
-  SketchIdentityBadgeViewModel,
-  SketchPropBadgeViewModel,
-  SketchDirectorStatusQuery,
-  SketchSectionController,
-  SketchSectionControllerDependencies,
-  SketchSectionControllerOptions,
-  SketchSectionControllerQueries,
-  SketchScriptQuery,
-  SketchTaskViewModel,
-  SketchToolAction,
-  UpdateSketchBackgroundMutation,
-} from "@/modules/production/application/use-sketch-section-controller";
 export { StalePoolSelectError } from "@/modules/production/application/image-pool-errors";
 export { isProductionErrorResponse } from "@/modules/production/application/ports";
 export {
@@ -428,3 +386,5 @@ export type {
   VideoBackendConfigCapabilities,
 } from "@/modules/production/domain/video-config";
 export { useRenderSectionController } from "@/modules/production/render-section-composition";
+export { SketchSection } from "@/modules/production/sketch-section-composition";
+export type { SketchSectionProps } from "@/modules/production/sketch-section-composition";

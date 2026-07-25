@@ -88,6 +88,7 @@ vi.mock("@/modules/narrative_planning/public", async () => {
 
 vi.mock("@/modules/production/public", () => ({
   AudioPaneContent: () => <div>AudioPane</div>,
+  SketchSection: () => <div>SketchSection</div>,
 }));
 
 vi.mock("@/hooks/use-escape-to-close", () => ({
@@ -100,10 +101,6 @@ vi.mock("@/components/save-status", () => ({
 
 vi.mock("@/components/episode/beat-workbench/text-pane", () => ({
   TextPane: () => <div>TextPane</div>,
-}));
-
-vi.mock("@/components/episode/beat-workbench/sketch-section", () => ({
-  SketchSection: () => <div>SketchSection</div>,
 }));
 
 vi.mock("@/components/episode/beat-workbench/render-section", () => ({

@@ -3,8 +3,17 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { SketchCropDialog } from "@/components/episode/beat-workbench/sketch-crop-dialog";
-import { useAspectRatioStore } from "@/stores/aspect-ratio-store";
+import { withImageCacheBust } from "@/features/canvas/application/imageData";
+import { resolveMediaUrl } from "@/lib/media-url";
+import {
+  createUseSketchCropDialogController,
+  type SketchCropDialogControllerOptions,
+} from "@/modules/production/application/use-sketch-crop-dialog-controller";
+import { SketchCropDialogView } from "@/modules/production/presentation/SketchCropDialogView";
+import {
+  useAspectRatioStore,
+  useProjectAspectRatio,
+} from "@/stores/aspect-ratio-store";
 
 const poseEditorQueryMock = vi.hoisted(() => vi.fn());
 const cropSketchMock = vi.hoisted(() => vi.fn());
@@ -29,41 +38,25 @@ vi.mock("sonner", () => ({
   },
 }));
 
-vi.mock("@/modules/production/public", async () => {
-  const [
-    { SketchCropDialogView },
-    { createUseSketchCropDialogController },
-    { withImageCacheBust },
-    { resolveMediaUrl },
-    { useProjectAspectRatio },
-  ] = await Promise.all([
-    import("@/modules/production/presentation/SketchCropDialogView"),
-    import(
-      "@/modules/production/application/use-sketch-crop-dialog-controller"
-    ),
-    import("@/features/canvas/application/imageData"),
-    import("@/lib/media-url"),
-    import("@/stores/aspect-ratio-store"),
-  ]);
-  const useSketchCropDialogController = createUseSketchCropDialogController(
-    {
-      useSketchPoseEditor: () => poseEditorQueryMock(),
-      useCropSketch: () => ({
-        mutateAsync: cropSketchMock,
-        isPending: false,
-      }),
-    },
-    {
-      cacheBustImage: withImageCacheBust,
-      resolveMediaUrl,
-      useProjectAspectRatio,
-    },
-  );
-  return {
-    SketchCropDialogView,
-    useSketchCropDialogController,
-  };
-});
+const useSketchCropDialogController = createUseSketchCropDialogController(
+  {
+    useSketchPoseEditor: () => poseEditorQueryMock(),
+    useCropSketch: () => ({
+      mutateAsync: cropSketchMock,
+      isPending: false,
+    }),
+  },
+  {
+    cacheBustImage: withImageCacheBust,
+    resolveMediaUrl,
+    useProjectAspectRatio,
+  },
+);
+
+function SketchCropDialog(options: SketchCropDialogControllerOptions) {
+  const controller = useSketchCropDialogController(options);
+  return <SketchCropDialogView {...controller} />;
+}
 
 describe("SketchCropDialog", () => {
   beforeEach(() => {

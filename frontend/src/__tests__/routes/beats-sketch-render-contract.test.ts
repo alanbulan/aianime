@@ -282,7 +282,9 @@ describe("beats sketch/render v2 contract", () => {
   });
 
   it("exposes sketch and render upload actions instead of disabled placeholders", () => {
-    const sketchSection = read("src/components/episode/beat-workbench/sketch-section.tsx");
+    const sketchSection = read(
+      "src/modules/production/sketch-section-composition.ts",
+    );
     const sketchSectionView = read(
       "src/modules/production/presentation/SketchSectionView.tsx",
     );

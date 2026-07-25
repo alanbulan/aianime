@@ -95,6 +95,11 @@ vi.mock("@/modules/narrative_planning/public", async () => {
 
 vi.mock("@/modules/production/public", () => ({
   AudioPaneContent: () => <div>AudioPane</div>,
+  SketchSection: ({ onPreview }: { onPreview(url: string): void }) => (
+    <button type="button" onClick={() => onPreview("/sketch.png")}>
+      打开草图预览
+    </button>
+  ),
 }));
 
 vi.mock("@/hooks/use-escape-to-close", () => ({
@@ -107,14 +112,6 @@ vi.mock("@/components/save-status", () => ({
 
 vi.mock("@/components/episode/beat-workbench/text-pane", () => ({
   TextPane: () => <div>TextPane</div>,
-}));
-
-vi.mock("@/components/episode/beat-workbench/sketch-section", () => ({
-  SketchSection: ({ onPreview }: { onPreview(url: string): void }) => (
-    <button type="button" onClick={() => onPreview("/sketch.png")}>
-      打开草图预览
-    </button>
-  ),
 }));
 
 vi.mock("@/components/episode/beat-workbench/render-section", () => ({

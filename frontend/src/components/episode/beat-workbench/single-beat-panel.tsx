@@ -5,11 +5,13 @@ import {
   type SectionId,
   useSingleBeatPanelController,
 } from "@/modules/narrative_planning/public";
-import { AudioPaneContent } from "@/modules/production/public";
+import {
+  AudioPaneContent,
+  SketchSection,
+} from "@/modules/production/public";
 import type { BeatStageState } from "@/types/beat-state";
 
 import { RenderSection } from "./render-section";
-import { SketchSection } from "./sketch-section";
 import { TextPane } from "./text-pane";
 import { VideoPane } from "./video-pane";
 

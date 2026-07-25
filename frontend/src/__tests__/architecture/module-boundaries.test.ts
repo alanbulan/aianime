@@ -39,9 +39,12 @@ function relativeSource(path: string): string {
   return relative(SRC_ROOT, path).replace(/\\/g, "/");
 }
 
-function sourceSection(path: string, start: string, end: string): string {
+function sourceSection(path: string, start: string, end?: string): string {
   const source = readFileSync(path, "utf8");
-  return source.slice(source.indexOf(start), source.indexOf(end));
+  return source.slice(
+    source.indexOf(start),
+    end ? source.indexOf(end) : source.length,
+  );
 }
 
 function importSpecifiers(path: string): string[] {
@@ -1117,12 +1120,10 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
-    const sketchCropDialogSource = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "components/episode/beat-workbench/sketch-crop-dialog.tsx",
-      ),
-      "utf8",
+    const sketchCropDialogSource = sourceSection(
+      resolve(SRC_ROOT, "modules/production/sketch-section-composition.ts"),
+      "function SketchCropDialog",
+      "function SketchPoseEditorDialog",
     );
     const sketchCropDialogControllerSource = readFileSync(
       resolve(
@@ -1138,12 +1139,10 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
-    const sketchPoseEditorDialogSource = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "components/episode/beat-workbench/sketch-pose-editor-dialog.tsx",
-      ),
-      "utf8",
+    const sketchPoseEditorDialogSource = sourceSection(
+      resolve(SRC_ROOT, "modules/production/sketch-section-composition.ts"),
+      "function SketchPoseEditorDialog",
+      "const useSketchSectionController",
     );
     const sketchPoseEditorDialogControllerSource = readFileSync(
       resolve(
@@ -1195,18 +1194,12 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
-    const sketchSectionSource = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "components/episode/beat-workbench/sketch-section.tsx",
-      ),
-      "utf8",
+    const sketchSectionSource = sourceSection(
+      resolve(SRC_ROOT, "modules/production/sketch-section-composition.ts"),
+      "export interface SketchSectionProps",
     );
     const sketchSectionCompositionSource = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "components/episode/beat-workbench/sketch-section-composition.ts",
-      ),
+      resolve(SRC_ROOT, "modules/production/sketch-section-composition.ts"),
       "utf8",
     );
     const sketchSectionViewSource = readFileSync(
@@ -1378,6 +1371,14 @@ describe("frontend architecture boundaries", () => {
       false,
     );
     expect(existsSync(resolve(SRC_ROOT, "types/render-plan.ts"))).toBe(false);
+    for (const legacyPath of [
+      "components/episode/beat-workbench/sketch-section.tsx",
+      "components/episode/beat-workbench/sketch-section-composition.ts",
+      "components/episode/beat-workbench/sketch-crop-dialog.tsx",
+      "components/episode/beat-workbench/sketch-pose-editor-dialog.tsx",
+    ]) {
+      expect(existsSync(resolve(SRC_ROOT, legacyPath)), legacyPath).toBe(false);
+    }
     expect(
       existsSync(
         resolve(
@@ -1574,11 +1575,10 @@ describe("frontend architecture boundaries", () => {
     expect(productionCompositionSource).toContain(
       "createUseVideoPaneController",
     );
-    expect(sketchSectionSource).toContain("<SketchSectionView");
-    expect(sketchSectionSource).toContain("useSketchSectionController(");
     expect(sketchSectionSource).toContain(
-      'from "./sketch-section-composition"',
+      "createElement(SketchSectionView",
     );
+    expect(sketchSectionSource).toContain("useSketchSectionController(");
     expect(sketchSectionSource).not.toContain("className=");
     expect(sketchSectionSource).not.toContain("<Button");
     expect(sketchSectionSource).not.toContain("<AlertDialog");
@@ -1615,6 +1615,19 @@ describe("frontend architecture boundaries", () => {
       "useProjectAspectRatio,",
     );
     expect(sketchSectionCompositionSource).toContain("useScript,");
+    expect(productionPublicSource).toContain(
+      'export { SketchSection } from "@/modules/production/sketch-section-composition";',
+    );
+    expect(productionPublicSource).not.toContain(
+      "createUseSketchSectionController",
+    );
+    expect(productionPublicSource).not.toContain("SketchSectionView");
+    expect(productionPublicSource).not.toContain(
+      "useSketchCropDialogController",
+    );
+    expect(productionPublicSource).not.toContain(
+      "useSketchPoseEditorDialogController",
+    );
     expect(productionCompositionSource).not.toContain(
       "createUseSketchSectionController",
     );
@@ -2041,7 +2054,9 @@ describe("frontend architecture boundaries", () => {
     expect(renderPlanDialogViewSource).not.toContain("useQueries(");
     expect(renderPlanDialogViewSource).not.toContain("toast.");
     expect(renderPlanDialogViewSource).not.toContain("@/shared/api/transport");
-    expect(sketchCropDialogSource).toContain("<SketchCropDialogView");
+    expect(sketchCropDialogSource).toContain(
+      "createElement(SketchCropDialogView",
+    );
     expect(sketchCropDialogSource).toContain(
       "useSketchCropDialogController(",
     );
@@ -2096,7 +2111,7 @@ describe("frontend architecture boundaries", () => {
       "useSketchPoseEditorDialogController({",
     );
     expect(sketchPoseEditorDialogSource).toContain(
-      "<SketchPoseEditorDialogView",
+      "createElement(SketchPoseEditorDialogView",
     );
     expect(sketchPoseEditorDialogSource).not.toContain("useSketchPoseEditor(");
     expect(sketchPoseEditorDialogSource).not.toContain(

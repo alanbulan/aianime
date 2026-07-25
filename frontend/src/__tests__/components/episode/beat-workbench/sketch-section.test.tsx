@@ -2,7 +2,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { SketchSection } from "@/components/episode/beat-workbench/sketch-section";
+import { SketchSection } from "@/modules/production/sketch-section-composition";
 import { useAspectRatioStore } from "@/stores/aspect-ratio-store";
 import type { Beat } from "@/modules/narrative_planning/public";
 
@@ -66,12 +66,7 @@ vi.mock("@/modules/narrative_planning/public", () => ({
   }),
 }));
 
-vi.mock("@/modules/production/public", async (importOriginal) => {
-  const actual = await importOriginal<
-    typeof import("@/modules/production/public")
-  >();
-  return {
-    ...actual,
+vi.mock("@/modules/production/composition", () => ({
     useDirectorControlToSketch: () => ({
       mutateAsync: directorConvertMock,
       isPending: false,
@@ -97,8 +92,9 @@ vi.mock("@/modules/production/public", async (importOriginal) => {
       mutateAsync: vi.fn(),
       isPending: false,
     }),
-  };
-});
+    useSketchCropDialogController: ({ open }: { open: boolean }) => ({ open }),
+    useSketchPoseEditorDialogController: () => ({}),
+}));
 
 vi.mock("@/lib/queries/generation-credit-cost", () => ({
   useGenerationCreditCosts: () => [],
@@ -145,12 +141,12 @@ vi.mock("@/hooks/use-now", () => ({
   useNow: () => 1_717_000_000_000,
 }));
 
-vi.mock("@/components/episode/beat-workbench/sketch-pose-editor-dialog", () => ({
-  SketchPoseEditorDialog: () => null,
+vi.mock("@/modules/production/presentation/SketchPoseEditorDialogView", () => ({
+  SketchPoseEditorDialogView: () => null,
 }));
 
-vi.mock("@/components/episode/beat-workbench/sketch-crop-dialog", () => ({
-  SketchCropDialog: ({ open }: { open: boolean }) =>
+vi.mock("@/modules/production/presentation/SketchCropDialogView", () => ({
+  SketchCropDialogView: ({ open }: { open: boolean }) =>
     open ? <div data-testid="sketch-crop-dialog" /> : null,
 }));
 
