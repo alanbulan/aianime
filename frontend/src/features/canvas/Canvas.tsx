@@ -159,6 +159,7 @@ import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
 import { useCanvasNodeMenuShortcut } from './hooks/useCanvasNodeMenuShortcut';
 import { useCanvasNodePlacementConfirm } from './hooks/useCanvasNodePlacementConfirm';
 import { useCanvasPaneContextMenu } from './hooks/useCanvasPaneContextMenu';
+import { useCanvasPendingNodeFocus } from './hooks/useCanvasPendingNodeFocus';
 import { useCanvasSelectionSync } from './hooks/useCanvasSelectionSync';
 import { useCanvasSkillRegistry } from './hooks/useCanvasSkillRegistry';
 import { useCanvasViewportBookmarkShortcuts } from './hooks/useCanvasViewportBookmarkShortcuts';
@@ -651,35 +652,26 @@ export function Canvas({
     }
   }, [nodesInitialized, nodes, reactFlowInstance]);
 
-  // 处理外部（左侧资源面板等）发起的「聚焦节点」请求：
-  // setCenter 到节点中心，并保留当前 zoom（让用户能看清新加进来的资源）。
-  // 节点刚 add 完时 measured 还没到，回退到 DEFAULT_NODE_WIDTH / 240 估算。
-  useEffect(() => {
-    if (!pendingFocusNodeId) return;
-    const target = nodes.find((node) => node.id === pendingFocusNodeId);
-    if (!target) {
-      clearPendingFocus();
-      return;
-    }
-    const width =
-      target.measured?.width ??
-      (typeof target.width === 'number' ? target.width : DEFAULT_NODE_WIDTH);
-    const height =
-      target.measured?.height ??
-      (typeof target.height === 'number' ? target.height : 240);
-    // 组内成员的 position 是相对父组坐标；setCenter 需要绝对坐标，否则聚焦会跳偏。
-    const absolute =
-      reactFlowInstance.getInternalNode(pendingFocusNodeId)?.internals
-        .positionAbsolute ?? target.position;
-    const centerX = absolute.x + width / 2;
-    const centerY = absolute.y + height / 2;
-    const currentZoom = reactFlowInstance.getZoom();
-    reactFlowInstance.setCenter(centerX, centerY, {
-      zoom: Math.max(currentZoom, 0.6),
-      duration: 320,
-    });
-    clearPendingFocus();
-  }, [pendingFocusNodeId, nodes, reactFlowInstance, clearPendingFocus]);
+  const nodeFocusViewportPort = useMemo(
+    () => ({
+      getNodeAbsolutePosition: (nodeId: string) =>
+        reactFlowInstance.getInternalNode(nodeId)?.internals.positionAbsolute ?? null,
+      getZoom: () => reactFlowInstance.getZoom(),
+      centerAt: (
+        position: { x: number; y: number },
+        options: { zoom: number; duration: number },
+      ) => {
+        void reactFlowInstance.setCenter(position.x, position.y, options);
+      },
+    }),
+    [reactFlowInstance],
+  );
+  useCanvasPendingNodeFocus({
+    pendingNodeId: pendingFocusNodeId,
+    nodes,
+    viewportPort: nodeFocusViewportPort,
+    clearPendingFocus,
+  });
 
   useEffect(() => {
     const sleep = (delayMs: number) =>

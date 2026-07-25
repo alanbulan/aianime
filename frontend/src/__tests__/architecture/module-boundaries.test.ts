@@ -1788,6 +1788,48 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("canvasEventBus.subscribe('tool-dialog/open'");
   });
 
+  it("keeps Canvas pending-node focus in one presentation hook", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasPendingNodeFocus.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const hookDeclaration = [
+      "export function",
+      "useCanvasPendingNodeFocus(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(hookDeclaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasPendingNodeFocus.ts",
+    ]);
+    expect(hookModel).toContain("getNodeSize(target)");
+    expect(hookModel).toContain("viewportPort.getNodeAbsolutePosition");
+    expect(canvasView).toContain("./hooks/useCanvasPendingNodeFocus");
+    expect(canvasView).not.toContain("getInternalNode(pendingFocusNodeId)");
+    expect(canvasView).not.toContain("Math.max(currentZoom, 0.6)");
+  });
+
   it("keeps Canvas marquee gestures in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
