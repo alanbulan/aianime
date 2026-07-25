@@ -1,21 +1,21 @@
 // Copyright (c) 2026 AI anime
 import { useEffect, useRef } from 'react';
 
-export interface CanvasGenerationResumeOptions {
-  projectId: string | null;
+export interface CanvasAsyncNodeTasksOptions {
+  enabled?: boolean;
   pendingNodeIds: readonly string[];
-  resumeNode: (nodeId: string, projectId: string) => Promise<void>;
+  runNode: (nodeId: string) => Promise<void>;
 }
 
-export function useCanvasGenerationResume({
-  projectId,
+export function useCanvasAsyncNodeTasks({
+  enabled = true,
   pendingNodeIds,
-  resumeNode,
-}: CanvasGenerationResumeOptions): void {
+  runNode,
+}: CanvasAsyncNodeTasksOptions): void {
   const activeNodeIdsRef = useRef(new Set<string>());
 
   useEffect(() => {
-    if (!projectId) {
+    if (!enabled) {
       return;
     }
 
@@ -24,9 +24,9 @@ export function useCanvasGenerationResume({
         continue;
       }
       activeNodeIdsRef.current.add(nodeId);
-      void resumeNode(nodeId, projectId).finally(() => {
+      void runNode(nodeId).finally(() => {
         activeNodeIdsRef.current.delete(nodeId);
       });
     }
-  }, [pendingNodeIds, projectId, resumeNode]);
+  }, [enabled, pendingNodeIds, runNode]);
 }

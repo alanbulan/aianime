@@ -1853,10 +1853,10 @@ describe("frontend architecture boundaries", () => {
     expect(canvasSync).toContain("void scheduleSave({");
   });
 
-  it("keeps Canvas generation-resume concurrency in one presentation hook", () => {
+  it("keeps Canvas asynchronous node task concurrency in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
-      "features/canvas/hooks/useCanvasGenerationResume.ts",
+      "features/canvas/hooks/useCanvasAsyncNodeTasks.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
@@ -1877,7 +1877,7 @@ describe("frontend architecture boundaries", () => {
     );
     const hookDeclaration = [
       "export function",
-      "useCanvasGenerationResume(",
+      "useCanvasAsyncNodeTasks(",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(hookDeclaration))
@@ -1886,11 +1886,14 @@ describe("frontend architecture boundaries", () => {
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
-      "features/canvas/hooks/useCanvasGenerationResume.ts",
+      "features/canvas/hooks/useCanvasAsyncNodeTasks.ts",
     ]);
     expect(hookModel).toContain("activeNodeIdsRef");
-    expect(hookModel).toContain("resumeNode(nodeId, projectId).finally");
-    expect(canvasView).toContain("./hooks/useCanvasGenerationResume");
+    expect(hookModel).toContain("runNode(nodeId).finally");
+    expect(canvasView).toContain("./hooks/useCanvasAsyncNodeTasks");
+    expect(canvasView.match(/useCanvasAsyncNodeTasks\(\{/g)).toHaveLength(2);
+    expect(canvasView).not.toContain("useCanvasGenerationResume");
+    expect(canvasView).not.toContain("activeGenerationPollNodeIdsRef");
     expect(canvasView).not.toContain("activeTaskResumeNodeIdsRef");
     expect(canvasView).not.toContain("pendingResumeNodeKey");
   });

@@ -140,7 +140,7 @@ import {
 import { useCanvasDropIndicator } from './hooks/useCanvasDropIndicator';
 import { useCanvasEdgePan } from './hooks/useCanvasEdgePan';
 import { useCanvasExternalDialogs } from './hooks/useCanvasExternalDialogs';
-import { useCanvasGenerationResume } from './hooks/useCanvasGenerationResume';
+import { useCanvasAsyncNodeTasks } from './hooks/useCanvasAsyncNodeTasks';
 import { useCanvasMarqueeSelection } from './hooks/useCanvasMarqueeSelection';
 import { useCanvasMinimapVisibility } from './hooks/useCanvasMinimapVisibility';
 import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
@@ -343,7 +343,6 @@ export function Canvas({
   const pasteIterationRef = useRef(0);
   const pasteImageHandledRef = useRef(false);
 
-  const activeGenerationPollNodeIdsRef = useRef(new Set<string>());
   const pasteFromClipboardRef = useRef<
     | ((
         snapshot: ClipboardSnapshot | null,
@@ -452,14 +451,17 @@ export function Canvas({
     [t, updateNodeData],
   );
   const resumePendingGenerationNode = useCallback(
-    (nodeId: string, projectId: string): Promise<void> => {
+    (nodeId: string): Promise<void> => {
+      if (!canvasProject) {
+        return Promise.resolve();
+      }
       const node = useCanvasStore.getState().nodes.find((item) => item.id === nodeId);
       if (!node || !nodeNeedsGenerationResume(node)) {
         return Promise.resolve();
       }
       return resumeNodeGeneration({
         node,
-        projectId,
+        projectId: canvasProject,
         updateNodeData,
         getNodeData: (currentNodeId) =>
           (useCanvasStore
@@ -468,12 +470,16 @@ export function Canvas({
             .find((item) => item.id === currentNodeId)?.data ?? null) as Record<string, unknown> | null,
       });
     },
-    [updateNodeData],
+    [canvasProject, updateNodeData],
   );
-  useCanvasGenerationResume({
-    projectId: canvasProject,
+  useCanvasAsyncNodeTasks({
+    enabled: Boolean(canvasProject),
     pendingNodeIds: pendingResumeNodeIds,
-    resumeNode: resumePendingGenerationNode,
+    runNode: resumePendingGenerationNode,
+  });
+  useCanvasAsyncNodeTasks({
+    pendingNodeIds: pendingJobNodeIds,
+    runNode: pollExportImageNode,
   });
   const addNode = useCanvasStore((state) => state.addNode);
   const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
@@ -617,18 +623,6 @@ export function Canvas({
     viewportPort: nodeFocusViewportPort,
     clearPendingFocus,
   });
-
-  useEffect(() => {
-    for (const nodeId of pendingJobNodeIds) {
-      if (activeGenerationPollNodeIdsRef.current.has(nodeId)) {
-        continue;
-      }
-      activeGenerationPollNodeIdsRef.current.add(nodeId);
-      void pollExportImageNode(nodeId).finally(() => {
-        activeGenerationPollNodeIdsRef.current.delete(nodeId);
-      });
-    }
-  }, [pendingJobNodeIds, pollExportImageNode]);
 
   const handleNodesChange = useCallback(
     (changes: NodeChange<CanvasNode>[]) => {
