@@ -49,8 +49,17 @@ beforeEach(() => {
 });
 
 vi.mock("@/modules/narrative_planning/public", async () => {
+  const { createUseActionPanelController } = await import(
+    "@/modules/narrative_planning/application/use-action-panel-controller"
+  );
   const { createUseSingleBeatPanelController } = await import(
     "@/modules/narrative_planning/application/use-single-beat-panel-controller"
+  );
+  const { useEpisodeWorkbenchSectionState } = await import(
+    "@/modules/narrative_planning/infrastructure/episode-workbench-section-state"
+  );
+  const { ActionPanelView } = await import(
+    "@/modules/narrative_planning/presentation/ActionPanelView"
   );
   const { SingleBeatPanelView } = await import(
     "@/modules/narrative_planning/presentation/SingleBeatPanelView"
@@ -66,7 +75,15 @@ vi.mock("@/modules/narrative_planning/public", async () => {
       useSaveState: () => ({ status: "idle" }),
     },
   );
-  return { SingleBeatPanelView, useSingleBeatPanelController };
+  const useActionPanelController = createUseActionPanelController({
+    useSectionState: useEpisodeWorkbenchSectionState,
+  });
+  return {
+    ActionPanelView,
+    SingleBeatPanelView,
+    useActionPanelController,
+    useSingleBeatPanelController,
+  };
 });
 
 vi.mock("@/modules/production/public", () => ({

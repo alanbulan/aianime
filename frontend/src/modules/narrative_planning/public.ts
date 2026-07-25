@@ -10,6 +10,7 @@ export {
   prefetchEpisodeDetail,
   readPipelineStatus,
   ScriptPageContent,
+  useActionPanelController,
   useDeleteManualShot,
   useEpisodeBeats,
   useEpisodeDetail,
@@ -61,6 +62,15 @@ export type {
   SceneRef,
   Script,
 } from "@/modules/narrative_planning/domain/types";
+export { ActionPanelView } from "@/modules/narrative_planning/presentation/ActionPanelView";
+export type { ActionPanelViewProps } from "@/modules/narrative_planning/presentation/ActionPanelView";
+export type {
+  ActionPanelController,
+  ActionPanelControllerDependencies,
+  ActionPanelControllerOptions,
+  ActionPanelSectionState,
+  ActionPanelSelection,
+} from "@/modules/narrative_planning/application/use-action-panel-controller";
 export { SingleBeatPanelView } from "@/modules/narrative_planning/presentation/SingleBeatPanelView";
 export type { SingleBeatPanelViewProps } from "@/modules/narrative_planning/presentation/SingleBeatPanelView";
 export type {

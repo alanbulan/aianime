@@ -362,6 +362,28 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const actionPanelSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "components/episode/beat-workbench/action-panel.tsx",
+      ),
+      "utf8",
+    );
+    const actionPanelControllerSource = readFileSync(
+      resolve(moduleRoot, "application/use-action-panel-controller.ts"),
+      "utf8",
+    );
+    const actionPanelViewSource = readFileSync(
+      resolve(moduleRoot, "presentation/ActionPanelView.tsx"),
+      "utf8",
+    );
+    const actionPanelStateSource = readFileSync(
+      resolve(
+        moduleRoot,
+        "infrastructure/episode-workbench-section-state.ts",
+      ),
+      "utf8",
+    );
     const externalSources = sourceFiles(SRC_ROOT)
       .filter((path) => !path.startsWith(moduleRoot))
       .filter((path) => !relativeSource(path).startsWith("__tests__/"));
@@ -492,6 +514,26 @@ describe("frontend architecture boundaries", () => {
     expect(singleBeatPanelControllerSource).not.toContain("className=");
     expect(singleBeatPanelControllerSource).not.toContain("document.");
     expect(singleBeatPanelControllerSource).not.toContain("navigator.");
+    expect(actionPanelSource).toContain("useActionPanelController({");
+    expect(actionPanelSource).toContain("<ActionPanelView");
+    expect(actionPanelSource).not.toContain("useEffect(");
+    expect(actionPanelSource).not.toContain("useMemo(");
+    expect(actionPanelSource).not.toContain("useEpisodeWorkbenchStore(");
+    expect(actionPanelSource).not.toContain("episodeWorkbenchScopeKey(");
+    expect(actionPanelSource).not.toContain("<EpisodeEmptyState");
+    expect(actionPanelControllerSource).toContain(
+      "createUseActionPanelController",
+    );
+    expect(actionPanelControllerSource).toContain(
+      "dependencies.useSectionState",
+    );
+    expect(actionPanelControllerSource).toContain("useEffect(");
+    expect(actionPanelControllerSource).toContain("useCallback(");
+    expect(actionPanelControllerSource).not.toContain("className=");
+    expect(actionPanelViewSource).toContain("<EpisodeEmptyState");
+    expect(actionPanelViewSource).not.toContain("useEpisodeWorkbenchStore(");
+    expect(actionPanelStateSource).toContain("useEpisodeWorkbenchStore(");
+    expect(actionPanelStateSource).toContain("episodeWorkbenchScopeKey(");
   });
 
   it("keeps Asset & World callers on its public API", () => {

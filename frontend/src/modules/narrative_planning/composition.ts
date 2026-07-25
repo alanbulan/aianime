@@ -13,6 +13,7 @@ import {
   createNarrativePlanningQueryHooks,
   isPlanEpisodeAssetsResult,
 } from "@/modules/narrative_planning/application/query-hooks";
+import { createUseActionPanelController } from "@/modules/narrative_planning/application/use-action-panel-controller";
 import { createUseBeatsPageController } from "@/modules/narrative_planning/application/use-beats-page-controller";
 import { createUseBeatsSketchPlanController } from "@/modules/narrative_planning/application/use-beats-sketch-plan-controller";
 import { createUseEpisodeListItemController } from "@/modules/narrative_planning/application/use-episode-list-item-controller";
@@ -21,6 +22,7 @@ import { createUseScriptPageController } from "@/modules/narrative_planning/appl
 import { createUseSingleBeatPanelController } from "@/modules/narrative_planning/application/use-single-beat-panel-controller";
 import { createUseSketchStudioController } from "@/modules/narrative_planning/application/use-sketch-studio-controller";
 import type { Episode } from "@/modules/narrative_planning/domain/types";
+import { useEpisodeWorkbenchSectionState } from "@/modules/narrative_planning/infrastructure/episode-workbench-section-state";
 import { httpNarrativePlanningGateway } from "@/modules/narrative_planning/infrastructure/http-narrative-planning-gateway";
 import { BeatsPageView } from "@/modules/narrative_planning/presentation/BeatsPageView";
 import {
@@ -119,6 +121,9 @@ export const useSingleBeatPanelController =
       useSaveState,
     },
   );
+export const useActionPanelController = createUseActionPanelController({
+  useSectionState: useEpisodeWorkbenchSectionState,
+});
 const useBeatsPageController = createUseBeatsPageController(
   narrativePlanningQueries,
   {

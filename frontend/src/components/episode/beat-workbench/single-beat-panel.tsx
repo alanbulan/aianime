@@ -21,7 +21,7 @@ interface SingleBeatPanelProps {
   episode: number;
   onDefaultBackendChange(backend: string): void;
   onToggleSection(id: SectionId): void;
-  openSections: Set<SectionId>;
+  openSections: ReadonlySet<SectionId>;
   project: string;
   showAudioMediaStatus?: boolean;
   spineTemplate?: "drama" | "narrated";
