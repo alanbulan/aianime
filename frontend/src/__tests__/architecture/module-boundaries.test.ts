@@ -602,6 +602,13 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const sketchPoseEditorDialogSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "components/episode/beat-workbench/sketch-pose-editor-dialog.tsx",
+      ),
+      "utf8",
+    );
     const sketchRegenQueueDomainSource = readFileSync(
       resolve(
         SRC_ROOT,
@@ -1236,6 +1243,10 @@ describe("frontend architecture boundaries", () => {
     expect(sketchCropDialogViewSource).not.toContain("useState(");
     expect(sketchCropDialogViewSource).toContain("useCallback(");
     expect(sketchCropDialogViewSource).not.toContain("toast.");
+    expect(sketchPoseEditorDialogSource).toContain("scalePosePresetJoints(");
+    expect(sketchPoseEditorDialogSource).not.toContain(
+      "function scalePresetJoints",
+    );
     expect(sketchRegenQueueDomainSource).toContain(
       "export function createSketchRegenPlanItems",
     );

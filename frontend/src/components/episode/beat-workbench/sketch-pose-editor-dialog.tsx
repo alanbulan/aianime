@@ -34,6 +34,7 @@ import {
   movePoseDrag,
   removeSkeletonFromFrame,
   resetSkeletonPoses,
+  scalePosePresetJoints,
   setActiveSkeleton,
   type PoseDragState,
   type PosePoint,
@@ -218,7 +219,11 @@ export function SketchPoseEditorDialog({
           ? {
               ...item,
               visible: true,
-              joints: scalePresetJoints(preset.joints, data.width, data.height),
+              joints: scalePosePresetJoints(
+                preset.joints,
+                data.width,
+                data.height,
+              ),
             }
           : item,
       ),
@@ -523,22 +528,6 @@ function canvasPoint(
     x: ((event.clientX - rect.left) / rect.width) * canvas.width,
     y: ((event.clientY - rect.top) / rect.height) * canvas.height,
   };
-}
-
-function scalePresetJoints(
-  joints: Record<string, { x: number; y: number }>,
-  width: number,
-  height: number,
-): Record<string, PosePoint> {
-  return Object.fromEntries(
-    Object.entries(joints).map(([key, point]) => [
-      key,
-      {
-        x: point.x <= 1 ? point.x * width : point.x,
-        y: point.y <= 1 ? point.y * height : point.y,
-      },
-    ]),
-  );
 }
 
 function drawEditorCanvas(

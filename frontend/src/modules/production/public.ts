@@ -289,6 +289,7 @@ export {
   movePoseDrag,
   removeSkeletonFromFrame,
   resetSkeletonPoses,
+  scalePosePresetJoints,
   setActiveSkeleton,
 } from "@/modules/production/domain/sketch-pose-editor";
 export type {

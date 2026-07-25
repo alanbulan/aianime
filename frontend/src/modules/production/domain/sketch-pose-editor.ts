@@ -204,6 +204,22 @@ export function resetSkeletonPoses(
   });
 }
 
+export function scalePosePresetJoints(
+  joints: Record<string, PosePoint>,
+  width: number,
+  height: number,
+): Record<string, PosePoint> {
+  return Object.fromEntries(
+    Object.entries(joints).map(([key, point]) => [
+      key,
+      {
+        x: point.x <= 1 ? point.x * width : point.x,
+        y: point.y <= 1 ? point.y * height : point.y,
+      },
+    ]),
+  );
+}
+
 export function cloneJoints(
   joints: Record<string, PosePoint>,
 ): Record<string, PosePoint> {

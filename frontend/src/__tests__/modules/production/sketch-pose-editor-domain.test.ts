@@ -7,6 +7,7 @@ import {
   movePoseDrag,
   removeSkeletonFromFrame,
   resetSkeletonPoses,
+  scalePosePresetJoints,
   type PoseDragState,
   type PoseSkeleton,
 } from "@/modules/production/public";
@@ -112,5 +113,21 @@ describe("Production sketch pose editor domain", () => {
     const reset = resetSkeletonPoses(moved, initial);
     expect(reset[0].visible).toBe(true);
     expect(reset[0].joints).toEqual(initial[0].joints);
+  });
+
+  it("scales normalized preset coordinates while preserving absolute coordinates", () => {
+    expect(
+      scalePosePresetJoints(
+        {
+          nose: { x: 0.5, y: 0.25 },
+          neck: { x: 240, y: 180 },
+        },
+        1280,
+        720,
+      ),
+    ).toEqual({
+      nose: { x: 640, y: 180 },
+      neck: { x: 240, y: 180 },
+    });
   });
 });
