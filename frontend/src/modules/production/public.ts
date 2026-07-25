@@ -5,7 +5,6 @@ export {
   useComposeEpisode,
   useCopyProjectNarratorVoice,
   useCropSeedance2Asset,
-  useCropSketch,
   useCutGrid,
   useDeleteNarratorVoice,
   useDeleteSeedance2Asset,
@@ -47,6 +46,7 @@ export {
   useSketchGridPreview,
   useSketchGridCardController,
   useSketchGridGalleryController,
+  useSketchCropDialogController,
   useSketchSectionController,
   useSketchSettings,
   useTrimSeedance2Asset,
@@ -102,6 +102,12 @@ export type {
 } from "@/modules/production/application/use-render-plan-dialog-controller";
 export { SketchCropDialogView } from "@/modules/production/presentation/SketchCropDialogView";
 export type { SketchCropDialogViewProps } from "@/modules/production/presentation/SketchCropDialogView";
+export type {
+  SketchCropDialogController,
+  SketchCropDialogControllerDependencies,
+  SketchCropDialogControllerOptions,
+  SketchCropDialogControllerQueries,
+} from "@/modules/production/application/use-sketch-crop-dialog-controller";
 export type {
   BatchPanelController,
   BatchPanelControllerDependencies,

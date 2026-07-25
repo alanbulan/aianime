@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { RefObject } from "react";
+import { useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { AlertCircle, Crop, Loader2, Save, X } from "lucide-react";
 
@@ -12,35 +12,16 @@ import {
 } from "@/components/ui/dialog";
 import { cropBoxPercentStyle } from "@/lib/aspect-ratio";
 import type {
-  SketchCrop,
-  SketchPoseEditorData,
-} from "@/modules/production/domain/sketch-pose-editor";
+  SketchCropDialogController,
+} from "@/modules/production/application/use-sketch-crop-dialog-controller";
 
-export interface SketchCropDialogViewProps {
-  aspectLabel: string;
-  beatNum: number;
-  crop: SketchCrop;
-  cropBoxRef: RefObject<HTMLDivElement | null>;
-  data: SketchPoseEditorData | null;
-  imageRef: RefObject<HTMLImageElement | null>;
-  loadError: string | null;
-  open: boolean;
-  savePending: boolean;
-  sketchUrl: string;
-  onMoveDrag(clientX: number, clientY: number): void;
-  onOpenChange(open: boolean): void;
-  onSave(): void;
-  onStartDrag(pointerId: number, clientX: number, clientY: number): void;
-  onStopDrag(): void;
-}
+export type SketchCropDialogViewProps = SketchCropDialogController;
 
 export function SketchCropDialogView({
   aspectLabel,
   beatNum,
   crop,
-  cropBoxRef,
   data,
-  imageRef,
   loadError,
   open,
   savePending,
@@ -50,11 +31,32 @@ export function SketchCropDialogView({
   onSave,
   onStartDrag,
   onStopDrag,
+  onZoom,
 }: SketchCropDialogViewProps) {
   const { t } = useTranslation();
+  const imageRef = useRef<HTMLImageElement | null>(null);
+  const removeWheelListenerRef = useRef<(() => void) | null>(null);
   const cropBoxStyle = data
     ? cropBoxPercentStyle(crop, data.width, data.height)
     : undefined;
+
+  const cropBoxRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      removeWheelListenerRef.current?.();
+      removeWheelListenerRef.current = null;
+      if (!element) return;
+
+      const handleWheel = (event: WheelEvent) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onZoom(event.deltaY < 0 ? 0.9 : 1.1);
+      };
+      element.addEventListener("wheel", handleWheel, { passive: false });
+      removeWheelListenerRef.current = () =>
+        element.removeEventListener("wheel", handleWheel);
+    },
+    [onZoom],
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -121,15 +123,19 @@ export function SketchCropDialogView({
                     onPointerDown={(event) => {
                       event.preventDefault();
                       event.currentTarget.setPointerCapture?.(event.pointerId);
-                      onStartDrag(
-                        event.pointerId,
+                      onStartDrag(event.clientX, event.clientY);
+                    }}
+                    onPointerMove={(event) => {
+                      const imageRect =
+                        imageRef.current?.getBoundingClientRect();
+                      if (!imageRect) return;
+                      onMoveDrag(
                         event.clientX,
                         event.clientY,
+                        imageRect.width,
+                        imageRect.height,
                       );
                     }}
-                    onPointerMove={(event) =>
-                      onMoveDrag(event.clientX, event.clientY)
-                    }
                     onPointerUp={(event) => {
                       event.currentTarget.releasePointerCapture?.(
                         event.pointerId,

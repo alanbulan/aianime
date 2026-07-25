@@ -30,16 +30,38 @@ vi.mock("sonner", () => ({
 }));
 
 vi.mock("@/modules/production/public", async () => {
-  const { SketchCropDialogView } = await import(
-    "@/modules/production/presentation/SketchCropDialogView"
+  const [
+    { SketchCropDialogView },
+    { createUseSketchCropDialogController },
+    { withImageCacheBust },
+    { resolveMediaUrl },
+    { useProjectAspectRatio },
+  ] = await Promise.all([
+    import("@/modules/production/presentation/SketchCropDialogView"),
+    import(
+      "@/modules/production/application/use-sketch-crop-dialog-controller"
+    ),
+    import("@/features/canvas/application/imageData"),
+    import("@/lib/media-url"),
+    import("@/stores/aspect-ratio-store"),
+  ]);
+  const useSketchCropDialogController = createUseSketchCropDialogController(
+    {
+      useSketchPoseEditor: () => poseEditorQueryMock(),
+      useCropSketch: () => ({
+        mutateAsync: cropSketchMock,
+        isPending: false,
+      }),
+    },
+    {
+      cacheBustImage: withImageCacheBust,
+      resolveMediaUrl,
+      useProjectAspectRatio,
+    },
   );
   return {
     SketchCropDialogView,
-    useSketchPoseEditor: () => poseEditorQueryMock(),
-    useCropSketch: () => ({
-      mutateAsync: cropSketchMock,
-      isPending: false,
-    }),
+    useSketchCropDialogController,
   };
 });
 
@@ -114,6 +136,43 @@ describe("SketchCropDialog", () => {
     expect(cropSketchMock).toHaveBeenCalledWith({
       beatNum: 2,
       crop: { x: 0, y: 259, width: 569, height: 320 },
+    });
+  });
+
+  it("zooms the crop frame through the non-passive wheel handler", async () => {
+    const user = userEvent.setup();
+    useAspectRatioStore.getState().setOrientation("demo", "landscape");
+
+    render(
+      <SketchCropDialog
+        open
+        onOpenChange={vi.fn()}
+        project="demo"
+        episode={1}
+        beatNum={2}
+      />,
+    );
+
+    const cropBox = await screen.findByLabelText("移动裁剪区域");
+    await waitFor(() => {
+      expect(cropBox).toHaveStyle({ width: "100%" });
+    });
+    fireEvent(
+      cropBox,
+      new WheelEvent("wheel", {
+        bubbles: true,
+        cancelable: true,
+        deltaY: -1,
+      }),
+    );
+    await waitFor(() => {
+      expect(cropBox.style.width).not.toBe("100%");
+    });
+    await user.click(screen.getByRole("button", { name: "common.save" }));
+
+    expect(cropSketchMock).toHaveBeenCalledWith({
+      beatNum: 2,
+      crop: { x: 29, y: 275, width: 512, height: 288 },
     });
   });
 

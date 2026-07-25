@@ -588,6 +588,13 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const sketchCropDialogControllerSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/production/application/use-sketch-crop-dialog-controller.ts",
+      ),
+      "utf8",
+    );
     const sketchCropDialogViewSource = readFileSync(
       resolve(
         SRC_ROOT,
@@ -1179,13 +1186,47 @@ describe("frontend architecture boundaries", () => {
     expect(renderPlanDialogViewSource).not.toContain("toast.");
     expect(renderPlanDialogViewSource).not.toContain("@/shared/api/transport");
     expect(sketchCropDialogSource).toContain("<SketchCropDialogView");
-    expect(sketchCropDialogSource).toContain("useSketchPoseEditor(");
-    expect(sketchCropDialogSource).toContain("useCropSketch(");
-    expect(sketchCropDialogSource).toContain("toast.");
+    expect(sketchCropDialogSource).toContain(
+      "useSketchCropDialogController(",
+    );
+    expect(sketchCropDialogSource).not.toContain("useSketchPoseEditor(");
+    expect(sketchCropDialogSource).not.toContain("useCropSketch(");
+    expect(sketchCropDialogSource).not.toContain("useState(");
+    expect(sketchCropDialogSource).not.toContain("useEffect(");
+    expect(sketchCropDialogSource).not.toContain("toast.");
+    expect(sketchCropDialogSource).not.toContain("useProjectAspectRatio(");
+    expect(sketchCropDialogSource).not.toContain("withImageCacheBust");
+    expect(sketchCropDialogSource).not.toContain("resolveMediaUrl");
     expect(sketchCropDialogSource).not.toContain("className=");
     expect(sketchCropDialogSource).not.toContain("<Dialog");
     expect(sketchCropDialogSource).not.toContain("<Button");
     expect(sketchCropDialogSource).not.toContain("cropBoxPercentStyle");
+    expect(sketchCropDialogControllerSource).toContain(
+      "createUseSketchCropDialogController",
+    );
+    expect(sketchCropDialogControllerSource).toContain(
+      "queries.useSketchPoseEditor",
+    );
+    expect(sketchCropDialogControllerSource).toContain(
+      "queries.useCropSketch",
+    );
+    expect(sketchCropDialogControllerSource).toContain(
+      "dependencies.useProjectAspectRatio",
+    );
+    expect(sketchCropDialogControllerSource).toContain(
+      "dependencies.cacheBustImage",
+    );
+    expect(sketchCropDialogControllerSource).toContain(
+      "dependencies.resolveMediaUrl",
+    );
+    expect(sketchCropDialogControllerSource).toContain("toast.");
+    expect(sketchCropDialogControllerSource).not.toContain("HTMLElement");
+    expect(sketchCropDialogControllerSource).not.toContain("HTMLImageElement");
+    expect(sketchCropDialogControllerSource).not.toContain("document.");
+    expect(sketchCropDialogControllerSource).not.toContain("window.");
+    expect(productionCompositionSource).toContain(
+      "createUseSketchCropDialogController",
+    );
     expect(sketchCropDialogViewSource).toContain("className=");
     expect(sketchCropDialogViewSource).toContain("<Dialog");
     expect(sketchCropDialogViewSource).toContain("<Button");
@@ -1193,7 +1234,7 @@ describe("frontend architecture boundaries", () => {
     expect(sketchCropDialogViewSource).not.toContain("useSketchPoseEditor(");
     expect(sketchCropDialogViewSource).not.toContain("useCropSketch(");
     expect(sketchCropDialogViewSource).not.toContain("useState(");
-    expect(sketchCropDialogViewSource).not.toContain("useEffect(");
+    expect(sketchCropDialogViewSource).toContain("useCallback(");
     expect(sketchCropDialogViewSource).not.toContain("toast.");
     expect(sketchRegenQueueDomainSource).toContain(
       "export function createSketchRegenPlanItems",

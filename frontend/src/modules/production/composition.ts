@@ -6,6 +6,7 @@ import { formatCreditCost } from "@/components/credits/credit-visual";
 import { withImageCacheBust } from "@/features/canvas/application/imageData";
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
 import { useNow } from "@/hooks/use-now";
+import { resolveMediaUrl } from "@/lib/media-url";
 import {
   useGenerationCreditCost,
   useGenerationCreditCosts,
@@ -15,6 +16,7 @@ import { queryKeys } from "@/lib/query-keys";
 import type { Beat } from "@/modules/narrative_planning/public";
 import { useAppStore } from "@/stores/app-store";
 import { useSeenPoolStore } from "@/stores/seen-pool-store";
+import { useProjectAspectRatio } from "@/stores/aspect-ratio-store";
 import { createAudioGenerationQueryHooks } from "@/modules/production/application/audio-generation-query-hooks";
 import { createEpisodeComposeQueryHooks } from "@/modules/production/application/episode-compose-query-hooks";
 import { createImageSettingsQueryHooks } from "@/modules/production/application/image-settings-query-hooks";
@@ -41,6 +43,7 @@ import {
 } from "@/modules/production/application/use-render-grid-gallery-controller";
 import { createUseRenderSectionController } from "@/modules/production/application/use-render-section-controller";
 import { createUseRenderPlanDialogController } from "@/modules/production/application/use-render-plan-dialog-controller";
+import { createUseSketchCropDialogController } from "@/modules/production/application/use-sketch-crop-dialog-controller";
 import { createUseSeedance2AssetOperationsController } from "@/modules/production/application/use-seedance2-asset-operations-controller";
 import { createUseSeedance2ConfigController } from "@/modules/production/application/use-seedance2-config-controller";
 import {
@@ -85,6 +88,9 @@ const sketchGenerationQueries = createSketchGenerationQueryHooks(
   httpProductionVideoGateway,
 );
 const sketchRegenQueueQueries = createSketchRegenQueueQueryHooks(
+  httpProductionVideoGateway,
+);
+const sketchPoseEditorQueries = createSketchPoseEditorQueryHooks(
   httpProductionVideoGateway,
 );
 const videoGenerationQueries = createVideoGenerationQueryHooks({
@@ -187,6 +193,18 @@ export const useRenderPlanDialogController =
     {
       formatCreditCost,
       useGenerationCreditCosts,
+    },
+  );
+export const useSketchCropDialogController =
+  createUseSketchCropDialogController(
+    {
+      useCropSketch: sketchPoseEditorQueries.useCropSketch,
+      useSketchPoseEditor: sketchPoseEditorQueries.useSketchPoseEditor,
+    },
+    {
+      cacheBustImage: withImageCacheBust,
+      resolveMediaUrl,
+      useProjectAspectRatio,
     },
   );
 export const useSketchSectionController = createUseSketchSectionController(
@@ -319,8 +337,7 @@ export const { useSketchRegenQueue, useSaveSketchRegenQueue } =
 export const {
   useSketchPoseEditor,
   useSaveSketchPoseEditor,
-  useCropSketch,
-} = createSketchPoseEditorQueryHooks(httpProductionVideoGateway);
+} = sketchPoseEditorQueries;
 export const { useAssignColors, useDetectIdentities } =
   createSketchMarkerQueryHooks(httpProductionVideoGateway);
 export const {

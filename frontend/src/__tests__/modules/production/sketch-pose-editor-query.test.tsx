@@ -12,11 +12,11 @@ vi.mock("@/shared/api/transport", () => ({
 
 import { server } from "@/__mocks__/msw/server";
 import { queryKeys } from "@/lib/query-keys";
-import {
-  useCropSketch,
-  useSaveSketchPoseEditor,
-  useSketchPoseEditor,
-} from "@/modules/production/public";
+import { createSketchPoseEditorQueryHooks } from "@/modules/production/application/sketch-pose-editor-query-hooks";
+import { httpProductionVideoGateway } from "@/modules/production/infrastructure/http-production-video-gateway";
+
+const { useCropSketch, useSaveSketchPoseEditor, useSketchPoseEditor } =
+  createSketchPoseEditorQueryHooks(httpProductionVideoGateway);
 
 function createQueryClient() {
   return new QueryClient({
