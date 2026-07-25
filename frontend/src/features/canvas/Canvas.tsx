@@ -78,7 +78,6 @@ import {
   isStoryboardGroupNode,
 } from '@/features/canvas/domain/canvasNodes';
 import {
-  CANVAS_ASSET_DRAG_MIME,
   readAssetDragPayload,
   spawnAssetNode,
   type CanvasAssetDragPayload,
@@ -160,6 +159,7 @@ import {
   getClientPosition,
   resolveConnectEndHandleId,
 } from './ui/canvasConnectionInteraction';
+import { useCanvasDropIndicator } from './hooks/useCanvasDropIndicator';
 import { useCanvasMinimapVisibility } from './hooks/useCanvasMinimapVisibility';
 import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
 import { useCanvasNodePlacementConfirm } from './hooks/useCanvasNodePlacementConfirm';
@@ -2203,72 +2203,22 @@ export function Canvas({
   // 直接把图片 / 视频 / 音频文件从系统拖进画布 → 在落点生成上传节点并把文件喂给它。
   // UploadNode 会按文件类型自行处理：图片就地上传，视频 / 音频 morph 成对应节点。
   // 复用既有上传管道，无需在画布层重复实现上传 / 转码逻辑。
-  const fileDragDepthRef = useRef(0);
-  const [isFileDropActive, setIsFileDropActive] = useState(false);
-
-  const hasDraggedFiles = useCallback(
-    (event: ReactDragEvent<HTMLDivElement>) =>
-      Array.from(event.dataTransfer.types ?? []).includes('Files'),
-    []
-  );
-
-  // 侧栏素材卡片拖进画布时携带的自定义 MIME(见 assetDrag.ts)。
-  const hasDraggedAsset = useCallback(
-    (event: ReactDragEvent<HTMLDivElement>) =>
-      Array.from(event.dataTransfer.types ?? []).includes(CANVAS_ASSET_DRAG_MIME),
-    []
-  );
-
-  const hasDraggedAnyPayload = useCallback(
-    (event: ReactDragEvent<HTMLDivElement>) =>
-      hasDraggedFiles(event) || hasDraggedAsset(event),
-    [hasDraggedFiles, hasDraggedAsset]
-  );
-
-  const handleCanvasDragEnter = useCallback(
-    (event: ReactDragEvent<HTMLDivElement>) => {
-      if (!hasDraggedAnyPayload(event)) {
-        return;
-      }
-      event.preventDefault();
-      fileDragDepthRef.current += 1;
-      setIsFileDropActive(true);
-    },
-    [hasDraggedAnyPayload, hasDraggedFiles]
-  );
-
-  const handleCanvasDragOver = useCallback(
-    (event: ReactDragEvent<HTMLDivElement>) => {
-      if (!hasDraggedAnyPayload(event)) {
-        return;
-      }
-      event.preventDefault();
-      event.dataTransfer.dropEffect = 'copy';
-    },
-    [hasDraggedAnyPayload]
-  );
-
-  const handleCanvasDragLeave = useCallback(
-    (event: ReactDragEvent<HTMLDivElement>) => {
-      if (!hasDraggedAnyPayload(event)) {
-        return;
-      }
-      fileDragDepthRef.current = Math.max(0, fileDragDepthRef.current - 1);
-      if (fileDragDepthRef.current === 0) {
-        setIsFileDropActive(false);
-      }
-    },
-    [hasDraggedAnyPayload]
-  );
+  const {
+    isCanvasDropActive,
+    acceptsCanvasDrop,
+    handleCanvasDragEnter,
+    handleCanvasDragOver,
+    handleCanvasDragLeave,
+    resetCanvasDropIndicator,
+  } = useCanvasDropIndicator();
 
   const handleCanvasDrop = useCallback(
     (event: ReactDragEvent<HTMLDivElement>) => {
-      if (!hasDraggedAnyPayload(event)) {
+      if (!acceptsCanvasDrop(event)) {
         return;
       }
       event.preventDefault();
-      fileDragDepthRef.current = 0;
-      setIsFileDropActive(false);
+      resetCanvasDropIndicator();
 
       const basePosition = reactFlowInstance.screenToFlowPosition({
         x: event.clientX,
@@ -2337,29 +2287,13 @@ export function Canvas({
     },
     [
       addNode,
-      hasDraggedAnyPayload,
+      acceptsCanvasDrop,
       reactFlowInstance,
+      resetCanvasDropIndicator,
       scheduleCanvasPersist,
       setSelectedNode,
     ]
   );
-
-  // 文件落在「节点」上(而非空白画布)时,由该节点自己的 onDrop 处理,且会
-  // stopPropagation —— 画布层的 handleCanvasDrop 收不到,于是「释放以添加到画布」
-  // 蒙层得不到复位,要刷新才消失。这里在 window 捕获阶段兜底复位:捕获先于任何
-  // 节点的 stopPropagation,无论 drop 落在页面哪处都能可靠清掉蒙层状态。
-  useEffect(() => {
-    const resetFileDrop = () => {
-      fileDragDepthRef.current = 0;
-      setIsFileDropActive(false);
-    };
-    window.addEventListener('drop', resetFileDrop, true);
-    window.addEventListener('dragend', resetFileDrop, true);
-    return () => {
-      window.removeEventListener('drop', resetFileDrop, true);
-      window.removeEventListener('dragend', resetFileDrop, true);
-    };
-  }, []);
 
   const finalizeNodeSpawn = useCallback(
     (newNodeId: string, explicitSkill?: SkillDefinition | null) => {
@@ -4166,7 +4100,7 @@ export function Canvas({
 
       {nodes.length === 0 && emptyHint}
 
-      {isFileDropActive && (
+      {isCanvasDropActive && (
         <div className="pointer-events-none absolute inset-0 z-[120] flex items-center justify-center">
           <div className="absolute inset-3 rounded-2xl border-2 border-dashed border-primary/70 bg-primary/[0.06]" />
           <div className="relative flex flex-col items-center gap-3 rounded-2xl bg-surface-dark/90 px-8 py-6 text-center shadow-2xl ring-1 ring-border">
