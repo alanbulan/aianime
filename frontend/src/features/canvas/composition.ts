@@ -53,6 +53,7 @@ export function uploadLocalImageToBackend(
 ) {
   return uploadLocalImageToBackendUseCase(
     freezoneAssetGateway,
+    readUrl().project,
     localImageUrl,
     filename,
   );

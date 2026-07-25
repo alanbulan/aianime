@@ -14,20 +14,18 @@ describe('uploadLocalImageToBackend', () => {
   beforeEach(() => {
     uploadAsset.mockReset();
     uploadAsset.mockResolvedValue('/static/projects/proj/uploads/output.png');
-    window.history.replaceState({}, '', '/projects/proj/freezone');
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
-    window.history.replaceState({}, '', '/');
   });
 
   it('keeps remote URLs without uploading them again', async () => {
     const url = 'https://cdn.example.com/output.png';
 
     await expect(
-      uploadLocalImageToBackend(assetGateway, url, 'output.png'),
+      uploadLocalImageToBackend(assetGateway, 'proj', url, 'output.png'),
     ).resolves.toBe(url);
     expect(uploadAsset).not.toHaveBeenCalled();
   });
@@ -35,6 +33,7 @@ describe('uploadLocalImageToBackend', () => {
   it('decodes data URLs and uploads them through the asset gateway', async () => {
     const result = await uploadLocalImageToBackend(
       assetGateway,
+      'proj',
       'data:image/png;base64,eA==',
       'output.png',
     );
@@ -49,10 +48,13 @@ describe('uploadLocalImageToBackend', () => {
   });
 
   it('keeps the local URL when no project is selected', async () => {
-    window.history.replaceState({}, '', '/');
-
     await expect(
-      uploadLocalImageToBackend(assetGateway, '/local/output.png', 'output.png'),
+      uploadLocalImageToBackend(
+        assetGateway,
+        null,
+        '/local/output.png',
+        'output.png',
+      ),
     ).resolves.toBe('/local/output.png');
     expect(uploadAsset).not.toHaveBeenCalled();
   });
@@ -64,6 +66,7 @@ describe('uploadLocalImageToBackend', () => {
     await expect(
       uploadLocalImageToBackend(
         assetGateway,
+        'proj',
         'data:image/png;base64,eA==',
         'output.png',
       ),

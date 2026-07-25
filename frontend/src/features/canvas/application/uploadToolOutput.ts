@@ -1,7 +1,6 @@
 // Copyright (c) 2026 AI anime
 import type { CanvasAssetGateway } from './ports';
 import { dataUrlToBlob } from './imageData';
-import { readUrl } from '@/lib/url-params';
 
 /**
  * Locally-produced images (crop / annotate / split frames / 360 captures /
@@ -9,12 +8,13 @@ import { readUrl } from '@/lib/url-params';
  * to the freezone backend so the node's `imageUrl` is a real http(s) URL —
  * otherwise downstream generation requests carry the full base64 payload.
  *
- * Best-effort by design: if there's no project in the URL, or the upload fails,
+ * Best-effort by design: if there's no active project, or the upload fails,
  * we return the original local URL so the feature still works (just without the
  * upload optimization) and log a warning.
  */
 export async function uploadLocalImageToBackend(
   assetGateway: CanvasAssetGateway,
+  projectId: string | null | undefined,
   localImageUrl: string,
   filename: string
 ): Promise<string> {
@@ -27,9 +27,8 @@ export async function uploadLocalImageToBackend(
     return trimmed;
   }
 
-  const projectId = readUrl().project;
   if (!projectId) {
-    console.warn('[upload-tool-output] no project in URL — keeping local URL', filename);
+    console.warn('[upload-tool-output] no project selected - keeping local URL', filename);
     return localImageUrl;
   }
 
