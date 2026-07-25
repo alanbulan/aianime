@@ -1,6 +1,7 @@
 export {
   AudioPaneContent,
   useAssignColors,
+  useBatchBarController,
   useBatchPanelController,
   useComposeEpisode,
   useCopyProjectNarratorVoice,
@@ -88,10 +89,14 @@ export { VideoPaneView } from "@/modules/production/presentation/VideoPaneView";
 export { BatchPanelView } from "@/modules/production/presentation/BatchPanelView";
 export type { BatchPanelViewProps } from "@/modules/production/presentation/BatchPanelView";
 export { BatchBarView } from "@/modules/production/presentation/BatchBarView";
+export type { BatchBarViewProps } from "@/modules/production/presentation/BatchBarView";
 export type {
+  BatchBarController,
+  BatchBarControllerDependencies,
+  BatchBarControllerOptions,
+  BatchBarControllerQueries,
   BatchBarErrorDialog,
-  BatchBarViewProps,
-} from "@/modules/production/presentation/BatchBarView";
+} from "@/modules/production/application/use-batch-bar-controller";
 export { RenderPlanDialogView } from "@/modules/production/presentation/RenderPlanDialogView";
 export type {
   RenderPlanDialogViewProps,

@@ -1,0 +1,316 @@
+// Copyright (c) 2026 AI anime
+import { act, renderHook } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { Beat } from "@/modules/narrative_planning/public";
+import {
+  createUseBatchBarController,
+  type BatchBarControllerOptions,
+} from "@/modules/production/application/use-batch-bar-controller";
+
+const hookMocks = vi.hoisted(() => ({
+  audioStart: vi.fn(),
+  audioStarted: false,
+  globalOnError: undefined as ((error: string) => void) | undefined,
+  globalStart: vi.fn(),
+  globalStarted: false,
+  toastError: vi.fn(),
+  toastInfo: vi.fn(),
+  toastLoading: vi.fn(() => "toast-1"),
+  toastSuccess: vi.fn(),
+}));
+
+vi.mock("@/hooks/use-task-controller", () => ({
+  useTaskController: (options: {
+    key: { taskType: string };
+    onError?: (error: string) => void;
+  }) => {
+    if (options.key.taskType === "global_optimize_video") {
+      hookMocks.globalOnError = options.onError;
+      return {
+        start: hookMocks.globalStart,
+        started: hookMocks.globalStarted,
+      };
+    }
+    return {
+      start: hookMocks.audioStart,
+      started: hookMocks.audioStarted,
+    };
+  },
+}));
+
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string, options?: Record<string, unknown>) => {
+      if (key === "episode.workbench.batch.aiDetectSuccess") {
+        return `detected:${options?.beats}:${options?.ids}:${options?.props}`;
+      }
+      if (key === "episode.workbench.batch.reassignColorsSuccess") {
+        return `colored:${options?.count}:${options?.propCount}`;
+      }
+      return key;
+    },
+  }),
+}));
+
+vi.mock("sonner", () => ({
+  toast: {
+    error: hookMocks.toastError,
+    info: hookMocks.toastInfo,
+    loading: hookMocks.toastLoading,
+    success: hookMocks.toastSuccess,
+  },
+}));
+
+const assignColors = vi.fn();
+const detectIdentities = vi.fn();
+const generateAudio = vi.fn();
+const globalOptimize = vi.fn();
+const assignColorsMutation = {
+  isPending: false,
+  mutateAsync: assignColors,
+};
+const detectIdentitiesMutation = {
+  isPending: false,
+  mutateAsync: detectIdentities,
+};
+const generateAudioMutation = {
+  isPending: false,
+  mutateAsync: generateAudio,
+};
+const globalOptimizeMutation = {
+  isPending: false,
+  mutateAsync: globalOptimize,
+};
+const videoBackendsQuery = {
+  data: {
+    ok: true as const,
+    data: [
+      {
+        value: "standard",
+        label: "Standard",
+        is_default: true,
+        is_seedance2: false,
+        dialogue_only: false,
+      },
+      {
+        value: "seedance2",
+        label: "Seedance 2",
+        is_default: false,
+        is_seedance2: true,
+        dialogue_only: false,
+      },
+    ],
+  },
+};
+
+const useBatchBarController = createUseBatchBarController(
+  {
+    useAssignColors: () => assignColorsMutation,
+    useDetectIdentities: () => detectIdentitiesMutation,
+    useGenerateAudio: () => generateAudioMutation,
+    useGlobalOptimize: () => globalOptimizeMutation,
+    useVideoBackends: () => videoBackendsQuery,
+  },
+  {
+    formatCreditCost: (cost) => `credits:${cost}`,
+    useGenerationCreditCost: (kind) =>
+      kind === "beat_tts"
+        ? { data: { data: { cost: 5 } } }
+        : { data: { data: { display: "7" } } },
+  },
+);
+
+const beats: Beat[] = [
+  {
+    beat_number: 1,
+    narration_segment: "旁白",
+    visual_description: "画面一",
+    audio_type: "narration",
+  },
+  {
+    beat_number: 2,
+    narration_segment: "对白",
+    visual_description: "画面二",
+    audio_type: "dialogue",
+  },
+  {
+    beat_number: 3,
+    narration_segment: "手工镜头",
+    visual_description: "画面三",
+    audio_type: "narration",
+    is_manual_shot: true,
+  },
+];
+
+const defaultOptions: BatchBarControllerOptions = {
+  beats,
+  episode: 1,
+  project: "demo",
+  spineTemplate: "narrated",
+  videoBackend: "seedance2",
+};
+
+beforeEach(() => {
+  assignColors.mockReset();
+  detectIdentities.mockReset();
+  generateAudio.mockReset();
+  globalOptimize.mockReset();
+  hookMocks.audioStart.mockReset();
+  hookMocks.audioStarted = false;
+  hookMocks.globalOnError = undefined;
+  hookMocks.globalStart.mockReset();
+  hookMocks.globalStarted = false;
+  hookMocks.toastError.mockReset();
+  hookMocks.toastInfo.mockReset();
+  hookMocks.toastLoading.mockClear();
+  hookMocks.toastSuccess.mockReset();
+  assignColorsMutation.isPending = false;
+  detectIdentitiesMutation.isPending = false;
+  generateAudioMutation.isPending = false;
+  globalOptimizeMutation.isPending = false;
+});
+
+describe("BatchBar controller", () => {
+  it("projects backend capabilities, visibility, and episode costs", () => {
+    const { result, rerender } = renderHook(
+      (options: BatchBarControllerOptions) =>
+        useBatchBarController(options),
+      { initialProps: defaultOptions },
+    );
+
+    expect(result.current.audioUnavailableForVideoBackend).toBe(true);
+    expect(result.current.detectIdentitiesCostDisplay).toBe("7");
+    expect(result.current.episodeAudioCostDisplay).toBe("credits:10");
+    expect(result.current.showEpisodeAudio).toBe(true);
+    expect(result.current.showGlobalOptimize).toBe(true);
+
+    rerender({
+      ...defaultOptions,
+      spineTemplate: "drama",
+      videoBackend: "standard",
+    });
+
+    expect(result.current.audioUnavailableForVideoBackend).toBe(false);
+    expect(result.current.showEpisodeAudio).toBe(false);
+    expect(result.current.showGlobalOptimize).toBe(false);
+  });
+
+  it("starts episode audio tracking and exposes response failures", async () => {
+    generateAudio.mockResolvedValueOnce({
+      ok: true,
+      task_type: "audio_generation_indextts2",
+      message: "started",
+      scope: "audio-scope",
+    });
+    const { result } = renderHook(() =>
+      useBatchBarController(defaultOptions),
+    );
+
+    await act(async () => result.current.onGenerateAudio());
+
+    expect(generateAudio).toHaveBeenCalledWith(undefined);
+    expect(hookMocks.audioStart).toHaveBeenCalledWith({
+      scope: "audio-scope",
+    });
+
+    generateAudio.mockResolvedValueOnce({ ok: false, error: "缺少声线" });
+    await act(async () => result.current.onGenerateAudio());
+
+    expect(result.current.errorDialog).toEqual({
+      title: "episode.workbench.batch.genAudioTitle",
+      description: "缺少声线",
+    });
+    act(() => result.current.onDismissError());
+    expect(result.current.errorDialog).toBeNull();
+  });
+
+  it("tracks global optimization and forwards task failures to the dialog", async () => {
+    globalOptimize.mockResolvedValue({
+      ok: true,
+      task_type: "global_optimize_video",
+      message: "started",
+    });
+    const { result } = renderHook(() =>
+      useBatchBarController(defaultOptions),
+    );
+
+    await act(async () => result.current.onGlobalOptimize());
+
+    expect(hookMocks.globalStart).toHaveBeenCalledTimes(1);
+    expect(hookMocks.toastSuccess).toHaveBeenCalledWith(
+      "episode.workbench.batch.globalOptimizeStarted",
+    );
+
+    act(() => hookMocks.globalOnError?.("优化任务失败"));
+    expect(result.current.errorDialog).toEqual({
+      title: "episode.workbench.batch.aiOptimizeTitle",
+      description: "优化任务失败",
+    });
+  });
+
+  it("reports populated, empty, rejected, and failed identity detection", async () => {
+    detectIdentities
+      .mockResolvedValueOnce({
+        ok: true,
+        data: {
+          detections: {},
+          total_beats: 3,
+          total_identities: 2,
+          total_props: 1,
+          review_message: "review",
+        },
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        data: {
+          detections: {},
+          total_beats: 3,
+          total_identities: 0,
+          total_props: 0,
+        },
+      })
+      .mockResolvedValueOnce({ ok: false, error: "检测被拒绝" })
+      .mockRejectedValueOnce(new Error("network"));
+    const { result } = renderHook(() =>
+      useBatchBarController(defaultOptions),
+    );
+
+    await act(async () => result.current.onDetectIdentities());
+    expect(hookMocks.toastSuccess).toHaveBeenCalledWith(
+      "detected:3:2:1\nreview",
+      { id: "toast-1" },
+    );
+
+    await act(async () => result.current.onDetectIdentities());
+    expect(hookMocks.toastInfo).toHaveBeenCalledWith(
+      "episode.workbench.batch.aiDetectEmpty\nepisode.workbench.batch.aiDetectReview",
+      { id: "toast-1" },
+    );
+
+    await act(async () => result.current.onDetectIdentities());
+    expect(hookMocks.toastError).toHaveBeenCalledWith("检测被拒绝", {
+      id: "toast-1",
+    });
+
+    await act(async () => result.current.onDetectIdentities());
+    expect(hookMocks.toastError).toHaveBeenCalledWith("network", {
+      id: "toast-1",
+    });
+  });
+
+  it("forces color reassignment and reports its result", async () => {
+    assignColors.mockResolvedValue({
+      ok: true,
+      data: { colors: {}, count: 2, prop_count: 1 },
+    });
+    const { result } = renderHook(() =>
+      useBatchBarController(defaultOptions),
+    );
+
+    await act(async () => result.current.onReassignColors());
+
+    expect(assignColors).toHaveBeenCalledWith({ force: true });
+    expect(hookMocks.toastSuccess).toHaveBeenCalledWith("colored:2:1");
+  });
+});

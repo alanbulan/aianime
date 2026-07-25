@@ -117,125 +117,43 @@ beforeAll(async () => {
 const {
   assignColorsMock,
   detectIdentitiesMock,
-  sketchStartMock,
-  toastSuccessMock,
 } = vi.hoisted(() => ({
   assignColorsMock: vi.fn(),
   detectIdentitiesMock: vi.fn(),
-  sketchStartMock: vi.fn(),
-  toastSuccessMock: vi.fn(),
-}));
-
-vi.mock("@/lib/queries/sketch-image-usage", () => ({
-  useSketchImageUsage: () => ({ data: undefined }),
-}));
-
-vi.mock("@/modules/narrative_planning/public", () => ({
-  useEpisodeBeats: () => ({
-    data: {
-      ok: true,
-      data: [
-        {
-          beat_number: 1,
-          narration_segment: "n1",
-          visual_description: "v1",
-          scene_ref: { scene_id: "store" },
-        },
-        {
-          beat_number: 2,
-          narration_segment: "n2",
-          visual_description: "v2",
-          scene_ref: { scene_id: "store" },
-        },
-      ],
-    },
-  }),
-  useEpisodeDetail: () => ({
-    data: { ok: true, data: { identity_ids: ["Hero_Main"] } },
-  }),
-  useGenerateScript: () => ({
-    mutateAsync: vi.fn(),
-    isPending: false,
-  }),
-}));
-
-vi.mock("@/lib/queries/tasks", () => ({
-  useTasks: () => ({
-    data: { ok: true, data: [] },
-  }),
 }));
 
 vi.mock("@/modules/production/public", async () => {
-  const [{ episodeAudioModelCallCount }, { BatchBarView }] = await Promise.all([
-    import("@/modules/production/domain/audio-generation"),
-    import("@/modules/production/presentation/BatchBarView"),
-  ]);
+  const { BatchBarView } = await import(
+    "@/modules/production/presentation/BatchBarView"
+  );
   return {
     BatchBarView,
-    episodeAudioModelCallCount,
-    useAssignColors: () => ({
-      mutateAsync: assignColorsMock,
-      isPending: false,
-    }),
-    useDetectIdentities: () => ({
-      mutateAsync: detectIdentitiesMock,
-      isPending: false,
-    }),
-    useGenerateAudio: () => ({
-      mutateAsync: vi.fn(),
-      isPending: false,
-    }),
-    useGlobalOptimize: () => ({
-      mutateAsync: vi.fn(),
-      isPending: false,
-    }),
-    useVideoBackends: () => ({
-      data: {
-        ok: true,
-        data: [
-          {
-            value: "seedance",
-            label: "Seedance 1.0",
-            is_default: true,
-            is_seedance2: false,
-            dialogue_only: false,
-          },
-          {
-            value: "huimeng_seedance-2.0-fast",
-            label: "Seedance 2.0 Fast",
-            is_default: false,
-            is_seedance2: true,
-            dialogue_only: false,
-          },
-        ],
-      },
+    useBatchBarController: ({
+      spineTemplate,
+      videoBackend,
+    }: {
+      spineTemplate: "drama" | "narrated";
+      videoBackend: string;
+    }) => ({
+      assignColorsPending: false,
+      audioPending: false,
+      audioUnavailableForVideoBackend:
+        videoBackend === "huimeng_seedance-2.0-fast",
+      detectIdentitiesCostDisplay: "5",
+      detectIdentitiesPending: false,
+      episodeAudioCostDisplay: "5",
+      errorDialog: null,
+      globalOptimizePending: false,
+      showEpisodeAudio: spineTemplate !== "drama",
+      showGlobalOptimize: spineTemplate === "narrated",
+      onDetectIdentities: detectIdentitiesMock,
+      onDismissError: vi.fn(),
+      onGenerateAudio: vi.fn(),
+      onGlobalOptimize: vi.fn(),
+      onReassignColors: assignColorsMock,
     }),
   };
 });
-
-vi.mock("@/lib/queries/generation-credit-cost", () => ({
-  useGenerationCreditCosts: () => [],
-  useGenerationCreditCost: () => ({
-    data: {
-      ok: true,
-      data: {
-        cost: 5,
-        display: "5",
-      },
-    },
-  }),
-}));
-
-vi.mock("@/hooks/use-task-controller", () => ({
-  useTaskController: (opts: { key: { taskType: string } }) => ({
-    started: false,
-    stopping: false,
-    stream: { status: "idle" },
-    start:
-      opts.key.taskType === "sketch_generation" ? sketchStartMock : vi.fn(),
-    stop: vi.fn(),
-  }),
-}));
 
 vi.mock("@/components/episode/beat-workbench/render-settings-controls", () => ({
   RenderModelSelect: () => <div data-testid="render-model-select" />,
@@ -247,42 +165,9 @@ vi.mock("@/components/episode/beat-workbench/sketch-settings-controls", () => ({
   SketchAspectCheckbox: () => <div data-testid="sketch-aspect-checkbox" />,
 }));
 
-vi.mock("@/components/episode/beat-workbench/insert-manual-shot-dialog", () => ({
-  InsertManualShotDialog: () => null,
-}));
-
-vi.mock("@/components/episode/beat-workbench/render-plan-dialog", () => ({
-  RenderPlanDialog: () => null,
-}));
-
-vi.mock("sonner", () => ({
-  toast: {
-    loading: vi.fn(() => "toast-1"),
-    success: toastSuccessMock,
-    error: vi.fn(),
-    info: vi.fn(),
-    warning: vi.fn(),
-  },
-}));
-
 beforeEach(() => {
   assignColorsMock.mockReset();
-  assignColorsMock.mockResolvedValue({
-    ok: true,
-    data: { count: 1, prop_count: 2 },
-  });
   detectIdentitiesMock.mockReset();
-  detectIdentitiesMock.mockResolvedValue({
-    ok: true,
-    data: {
-      total_beats: 3,
-      total_identities: 2,
-      total_props: 1,
-      review_message: "后端核对提示",
-    },
-  });
-  sketchStartMock.mockReset();
-  toastSuccessMock.mockReset();
 });
 
 const DEFAULT_BEATS = [
@@ -523,18 +408,11 @@ describe("BatchBar", () => {
     await user.click(aiDetectButton);
 
     expect(detectIdentitiesMock).toHaveBeenCalledTimes(1);
-    expect(toastSuccessMock).toHaveBeenCalledWith(
-      "AI 检测完成：3 个 beat，共 2 个身份、1 个道具\n后端核对提示",
-      { id: "toast-1" },
-    );
 
     await user.click(screen.getByRole("button", { name: "重新配色" }));
     await user.click(screen.getByRole("button", { name: "确认执行" }));
 
-    expect(assignColorsMock).toHaveBeenCalledWith({ force: true });
-    expect(toastSuccessMock).toHaveBeenCalledWith(
-      "已分配 1 个身份、2 个道具",
-    );
+    expect(assignColorsMock).toHaveBeenCalledTimes(1);
   });
 
 });

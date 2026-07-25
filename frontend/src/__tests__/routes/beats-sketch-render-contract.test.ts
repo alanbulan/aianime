@@ -12,7 +12,10 @@ describe("beats sketch/render v2 contract", () => {
     const batchBarView = read(
       "src/modules/production/presentation/BatchBarView.tsx",
     );
-    const batchBarSources = `${batchBar}\n${batchBarView}`;
+    const batchBarController = read(
+      "src/modules/production/application/use-batch-bar-controller.ts",
+    );
+    const batchBarSources = `${batchBar}\n${batchBarController}\n${batchBarView}`;
     const sketches = read("src/lib/queries/sketches.ts");
 
     expect(batchBarSources).not.toContain("useBatchSketches");
@@ -31,7 +34,10 @@ describe("beats sketch/render v2 contract", () => {
     const batchBarView = read(
       "src/modules/production/presentation/BatchBarView.tsx",
     );
-    const batchBarSources = `${batchBar}\n${batchBarView}`;
+    const batchBarController = read(
+      "src/modules/production/application/use-batch-bar-controller.ts",
+    );
+    const batchBarSources = `${batchBar}\n${batchBarController}\n${batchBarView}`;
     const batchPanel = read("src/components/episode/beat-workbench/batch-panel.tsx");
     const batchPanelController = read(
       "src/modules/production/application/use-batch-panel-controller.ts",
@@ -77,7 +83,10 @@ describe("beats sketch/render v2 contract", () => {
     const batchBarView = read(
       "src/modules/production/presentation/BatchBarView.tsx",
     );
-    const batchBarSources = `${batchBar}\n${batchBarView}`;
+    const batchBarController = read(
+      "src/modules/production/application/use-batch-bar-controller.ts",
+    );
+    const batchBarSources = `${batchBar}\n${batchBarController}\n${batchBarView}`;
 
     expect(batchBarSources).not.toContain("useGenerateSketches");
     expect(batchBarSources).not.toContain("handleGenAllSketches");
@@ -90,6 +99,9 @@ describe("beats sketch/render v2 contract", () => {
     const batchBarView = read(
       "src/modules/production/presentation/BatchBarView.tsx",
     );
+    const batchBarController = read(
+      "src/modules/production/application/use-batch-bar-controller.ts",
+    );
     const productionVideoGateway = read(
       "src/modules/production/infrastructure/http-production-video-gateway.ts",
     );
@@ -97,7 +109,8 @@ describe("beats sketch/render v2 contract", () => {
 
     const superpowerAction = renderedActions.indexOf("episode.workbench.batch.aiOptimizeTitle");
 
-    expect(batchBar).toContain("useGlobalOptimize");
+    expect(batchBar).toContain("useBatchBarController");
+    expect(batchBarController).toContain("queries.useGlobalOptimize");
     expect(productionVideoGateway).toContain("optimize/video-global");
     expect(superpowerAction).toBeGreaterThan(-1);
     expect(renderedActions).not.toContain("openRenderPlan(false)");
@@ -109,7 +122,10 @@ describe("beats sketch/render v2 contract", () => {
     const batchBarView = read(
       "src/modules/production/presentation/BatchBarView.tsx",
     );
-    const batchBarSources = `${batchBar}\n${batchBarView}`;
+    const batchBarController = read(
+      "src/modules/production/application/use-batch-bar-controller.ts",
+    );
+    const batchBarSources = `${batchBar}\n${batchBarController}\n${batchBarView}`;
     const sketchGridGallery = read(
       "src/components/episode/beat-workbench/sketch-grid-gallery.tsx",
     );
@@ -156,7 +172,10 @@ describe("beats sketch/render v2 contract", () => {
     const batchBarView = read(
       "src/modules/production/presentation/BatchBarView.tsx",
     );
-    const batchBarSources = `${batchBar}\n${batchBarView}`;
+    const batchBarController = read(
+      "src/modules/production/application/use-batch-bar-controller.ts",
+    );
+    const batchBarSources = `${batchBar}\n${batchBarController}\n${batchBarView}`;
     const actionPanel = read("src/components/episode/beat-workbench/action-panel.tsx");
     const viewToggles = read("src/components/episode/beat-workbench/view-toggles.tsx");
     const view = read(

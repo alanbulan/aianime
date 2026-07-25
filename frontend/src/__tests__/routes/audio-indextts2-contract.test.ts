@@ -26,7 +26,9 @@ describe("audio IndexTTS2 alignment contract", () => {
   it("uses audio_generation_indextts2 as the active audio task type", () => {
     const taskTypes = read("src/lib/task-types.ts");
     const stageRegistry = read("src/lib/episode-stage-registry.ts");
-    const batchBar = read("src/components/episode/beat-workbench/batch-bar.tsx");
+    const batchBarController = read(
+      "src/modules/production/application/use-batch-bar-controller.ts",
+    );
     const batchPanelController = read(
       "src/modules/production/application/use-batch-panel-controller.ts",
     );
@@ -35,7 +37,9 @@ describe("audio IndexTTS2 alignment contract", () => {
       'AUDIO_GENERATION_INDEXTTS2: "audio_generation_indextts2"',
     );
     expect(stageRegistry).toContain("TASK_TYPES.AUDIO_GENERATION_INDEXTTS2");
-    expect(batchBar).toContain("TASK_TYPES.AUDIO_GENERATION_INDEXTTS2");
+    expect(batchBarController).toContain(
+      "TASK_TYPES.AUDIO_GENERATION_INDEXTTS2",
+    );
     expect(batchPanelController).toContain(
       "TASK_TYPES.AUDIO_GENERATION_INDEXTTS2",
     );

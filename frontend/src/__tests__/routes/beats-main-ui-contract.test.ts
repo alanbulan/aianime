@@ -80,7 +80,10 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
     const batchBarView = read(
       "src/modules/production/presentation/BatchBarView.tsx",
     );
-    const batchBarSources = `${batchBar}\n${batchBarView}`;
+    const batchBarController = read(
+      "src/modules/production/application/use-batch-bar-controller.ts",
+    );
+    const batchBarSources = `${batchBar}\n${batchBarController}\n${batchBarView}`;
 
     expect(viewToggles).toContain("onBatchRegenSketch");
     expect(viewToggles).toContain("onBatchRegenRender");
@@ -211,7 +214,10 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
     const batchBarView = read(
       "src/modules/production/presentation/BatchBarView.tsx",
     );
-    const batchBarSources = `${batchBar}\n${batchBarView}`;
+    const batchBarController = read(
+      "src/modules/production/application/use-batch-bar-controller.ts",
+    );
+    const batchBarSources = `${batchBar}\n${batchBarController}\n${batchBarView}`;
     const actionPanel = read(
       "src/components/episode/beat-workbench/action-panel.tsx",
     );

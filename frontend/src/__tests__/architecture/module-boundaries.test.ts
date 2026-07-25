@@ -543,6 +543,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "modules/production/presentation/BatchBarView.tsx"),
       "utf8",
     );
+    const batchBarControllerSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/production/application/use-batch-bar-controller.ts",
+      ),
+      "utf8",
+    );
     const batchPanelSource = readFileSync(
       resolve(
         SRC_ROOT,
@@ -1102,30 +1109,70 @@ describe("frontend architecture boundaries", () => {
     expect(sketchGridGalleryDomainSource).toContain(
       "export function buildSketchGridGroups",
     );
-    expect(batchBarSource).toContain("episodeAudioModelCallCount(");
+    expect(batchBarControllerSource).toContain(
+      "episodeAudioModelCallCount(",
+    );
     expect(batchBarSource).not.toContain(
       "export function episodeAudioModelCallCount",
     );
     expect(batchBarSource).not.toContain("normalizeAudioTypeForCost");
+    expect(batchBarSource).toContain("useBatchBarController({");
     expect(batchBarSource).toContain("<BatchBarView");
+    expect(batchBarSource).toContain("controller={controller}");
     expect(batchBarSource).not.toContain("className=");
     expect(batchBarSource).not.toContain("<Button");
     expect(batchBarSource).not.toContain("<AlertDialog");
     expect(batchBarSource).not.toContain("<Tooltip");
     expect(batchBarSource).not.toContain("<CreditCostInline");
     expect(batchBarSource).not.toContain("<CreditCostPill");
+    expect(batchBarSource).not.toContain("useMemo(");
+    expect(batchBarSource).not.toContain("useState(");
+    expect(batchBarSource).not.toContain("useTaskController(");
+    expect(batchBarSource).not.toContain("useGenerationCreditCost(");
+    expect(batchBarSource).not.toContain("useAssignColors(");
+    expect(batchBarSource).not.toContain("useDetectIdentities(");
+    expect(batchBarSource).not.toContain("useGenerateAudio(");
+    expect(batchBarSource).not.toContain("useGlobalOptimize(");
+    expect(batchBarSource).not.toContain("useVideoBackends(");
+    expect(batchBarSource).not.toContain("toast.");
     expect(batchBarViewSource).toContain("className=");
     expect(batchBarViewSource).toContain("<Button");
     expect(batchBarViewSource).toContain("<AlertDialog");
     expect(batchBarViewSource).toContain("<Tooltip");
     expect(batchBarViewSource).toContain("<CreditCostInline");
     expect(batchBarViewSource).toContain("<CreditCostPill");
+    expect(batchBarViewSource).toContain("controller: BatchBarController");
     expect(batchBarViewSource).not.toContain("useAssignColors(");
     expect(batchBarViewSource).not.toContain("useDetectIdentities(");
     expect(batchBarViewSource).not.toContain("useGenerateAudio(");
     expect(batchBarViewSource).not.toContain("useGlobalOptimize(");
     expect(batchBarViewSource).not.toContain("useTaskController(");
     expect(batchBarViewSource).not.toContain("toast.");
+    expect(batchBarControllerSource).toContain(
+      "createUseBatchBarController",
+    );
+    expect(batchBarControllerSource).toContain("queries.useAssignColors");
+    expect(batchBarControllerSource).toContain(
+      "queries.useDetectIdentities",
+    );
+    expect(batchBarControllerSource).toContain("queries.useGenerateAudio");
+    expect(batchBarControllerSource).toContain("queries.useGlobalOptimize");
+    expect(batchBarControllerSource).toContain("queries.useVideoBackends");
+    expect(batchBarControllerSource).toContain(
+      "dependencies.useGenerationCreditCost",
+    );
+    expect(batchBarControllerSource).toContain("useTaskController(");
+    expect(batchBarControllerSource).toContain(
+      "TASK_TYPES.AUDIO_GENERATION_INDEXTTS2",
+    );
+    expect(batchBarControllerSource).toContain(
+      "TASK_TYPES.GLOBAL_OPTIMIZE_VIDEO",
+    );
+    expect(batchBarControllerSource).not.toContain("document.");
+    expect(batchBarControllerSource).not.toContain("navigator.");
+    expect(productionCompositionSource).toContain(
+      "createUseBatchBarController",
+    );
     expect(batchPanelSource).toContain(
       'from "@/modules/production/public"',
     );

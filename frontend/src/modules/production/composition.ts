@@ -33,6 +33,7 @@ import { createSketchPoseEditorQueryHooks } from "@/modules/production/applicati
 import { createSketchMarkerQueryHooks } from "@/modules/production/application/sketch-marker-query-hooks";
 import { createSketchGenerationQueryHooks } from "@/modules/production/application/sketch-generation-query-hooks";
 import { createUseAudioPaneController } from "@/modules/production/application/use-audio-pane-controller";
+import { createUseBatchBarController } from "@/modules/production/application/use-batch-bar-controller";
 import { createUseBatchPanelController } from "@/modules/production/application/use-batch-panel-controller";
 import { createUseBeatVideoGenerationController } from "@/modules/production/application/use-beat-video-generation-controller";
 import { createUseLegacyVideoPromptController } from "@/modules/production/application/use-legacy-video-prompt-controller";
@@ -99,6 +100,12 @@ const videoGenerationQueries = createVideoGenerationQueryHooks({
   currentPromptLanguage: () =>
     promptLanguageFromLocale(useAppStore.getState().language),
 });
+const videoBackendQueries = createVideoBackendQueryHooks(
+  httpProductionVideoGateway,
+);
+const sketchMarkerQueries = createSketchMarkerQueryHooks(
+  httpProductionVideoGateway,
+);
 const narratorVoiceQueries = createNarratorVoiceQueryHooks(
   httpProductionVideoGateway,
 );
@@ -162,6 +169,16 @@ export const useSketchGridCardController =
     },
     gridBrowserCommands,
   );
+export const useBatchBarController = createUseBatchBarController(
+  {
+    useAssignColors: sketchMarkerQueries.useAssignColors,
+    useDetectIdentities: sketchMarkerQueries.useDetectIdentities,
+    useGenerateAudio: audioGenerationQueries.useGenerateAudio,
+    useGlobalOptimize: videoGenerationQueries.useGlobalOptimize,
+    useVideoBackends: videoBackendQueries.useVideoBackends,
+  },
+  { formatCreditCost, useGenerationCreditCost },
+);
 export const useBatchPanelController = createUseBatchPanelController(
   {
     useGenerateAudio: audioGenerationQueries.useGenerateAudio,
@@ -295,9 +312,7 @@ export const useRenderSectionController = createUseRenderSectionController(
   },
 );
 
-export const { useVideoBackends } = createVideoBackendQueryHooks(
-  httpProductionVideoGateway,
-);
+export const { useVideoBackends } = videoBackendQueries;
 export const { useVideoPool, useVideoPoolSelect } = videoPoolQueries;
 export const {
   useGrids,
@@ -344,8 +359,7 @@ export const {
 } = imageSettingsQueries;
 export const { useSketchRegenQueue, useSaveSketchRegenQueue } =
   sketchRegenQueueQueries;
-export const { useAssignColors, useDetectIdentities } =
-  createSketchMarkerQueryHooks(httpProductionVideoGateway);
+export const { useAssignColors, useDetectIdentities } = sketchMarkerQueries;
 export const {
   useDirectorControlToSketch,
   useGenerateSketches,

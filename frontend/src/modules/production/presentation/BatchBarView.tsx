@@ -22,14 +22,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import type { BatchBarController } from "@/modules/production/application/use-batch-bar-controller";
 
 const TOOLBAR_CONTROL_CLASS =
   "h-[26px] gap-1.5 rounded-[6px] border border-border bg-muted px-2 py-0 text-[11px] font-medium text-foreground/85 transition-colors hover:border-primary/40 hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring disabled:text-muted-foreground/50";
-
-export interface BatchBarErrorDialog {
-  description: string;
-  title: string;
-}
 
 interface BatchBarConfirmation {
   costDisplay: string;
@@ -39,48 +35,37 @@ interface BatchBarConfirmation {
 }
 
 export interface BatchBarViewProps {
-  assignColorsPending: boolean;
-  audioPending: boolean;
-  audioUnavailableForVideoBackend: boolean;
-  detectIdentitiesCostDisplay: string | null;
-  detectIdentitiesPending: boolean;
-  episodeAudioCostDisplay: string;
-  errorDialog: BatchBarErrorDialog | null;
-  globalOptimizePending: boolean;
+  controller: BatchBarController;
   renderModelControl: ReactNode;
-  showEpisodeAudio: boolean;
-  showGlobalOptimize: boolean;
   sketchAspectControl: ReactNode;
   sketchModelControl: ReactNode;
-  onDetectIdentities(): void;
-  onDismissError(): void;
-  onGenerateAudio(): void;
-  onGlobalOptimize(): void;
-  onReassignColors(): void;
 }
 
 export function BatchBarView({
-  assignColorsPending,
-  audioPending,
-  audioUnavailableForVideoBackend,
-  detectIdentitiesCostDisplay,
-  detectIdentitiesPending,
-  episodeAudioCostDisplay,
-  errorDialog,
-  globalOptimizePending,
+  controller,
   renderModelControl,
-  showEpisodeAudio,
-  showGlobalOptimize,
   sketchAspectControl,
   sketchModelControl,
-  onDetectIdentities,
-  onDismissError,
-  onGenerateAudio,
-  onGlobalOptimize,
-  onReassignColors,
 }: BatchBarViewProps) {
   const { t } = useTranslation();
   const [confirm, setConfirm] = useState<BatchBarConfirmation | null>(null);
+  const {
+    assignColorsPending,
+    audioPending,
+    audioUnavailableForVideoBackend,
+    detectIdentitiesCostDisplay,
+    detectIdentitiesPending,
+    episodeAudioCostDisplay,
+    errorDialog,
+    globalOptimizePending,
+    showEpisodeAudio,
+    showGlobalOptimize,
+    onDetectIdentities,
+    onDismissError,
+    onGenerateAudio,
+    onGlobalOptimize,
+    onReassignColors,
+  } = controller;
 
   const askConfirm = (
     title: string,
