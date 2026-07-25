@@ -14,7 +14,7 @@ import {
   MEDIA_THUMB_CLASS,
   MEDIA_THUMB_IDLE_CLASS,
   MEDIA_THUMB_TIME_CLASS,
-} from "@/components/episode/beat-workbench/media-styles";
+} from "@/modules/production/presentation/media-styles";
 
 const VIDEO_PREVIEW_CLASS =
   "relative flex h-[220px] w-auto max-w-full justify-self-start items-center justify-center overflow-hidden rounded-[10px] border border-border bg-muted";

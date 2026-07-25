@@ -15,7 +15,7 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "commands/image.ts": 2,
   "components/credits/credit-visual.tsx": 6,
   "components/episode/beat-workbench/beat-card.tsx": 0,
-  "components/episode/beat-workbench/media-styles.ts": 0,
+  "modules/production/presentation/media-styles.ts": 0,
   "components/episode/beat-workbench/render-section.tsx": 0,
   "components/episode/beat-workbench/sketch-crop-dialog.tsx": 0,
   "components/episode/beat-workbench/sketch-pose-editor-dialog.tsx": 0,

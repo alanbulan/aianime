@@ -14,7 +14,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { MEDIA_PRIMARY_ACTION_BUTTON_CLASS } from "@/components/episode/beat-workbench/media-styles";
+import { MEDIA_PRIMARY_ACTION_BUTTON_CLASS } from "@/modules/production/presentation/media-styles";
 import type { AudioPaneController } from "@/modules/production/application/use-audio-pane-controller";
 
 export function AudioPaneView({

@@ -3,7 +3,7 @@ import { useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { AlertCircle, Crop, Loader2, Save, X } from "lucide-react";
 
-import { CROP_DIALOG_SAVE_BUTTON_CLASS } from "@/components/episode/beat-workbench/media-styles";
+import { CROP_DIALOG_SAVE_BUTTON_CLASS } from "@/modules/production/presentation/media-styles";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

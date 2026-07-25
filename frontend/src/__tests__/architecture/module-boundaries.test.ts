@@ -1081,6 +1081,10 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "modules/production/public.ts"),
       "utf8",
     );
+    const mediaStylesSource = readFileSync(
+      resolve(SRC_ROOT, "modules/production/presentation/media-styles.ts"),
+      "utf8",
+    );
     const renderPlanDialogSource = readFileSync(
       resolve(
         SRC_ROOT,
@@ -1365,6 +1369,16 @@ describe("frontend architecture boundaries", () => {
       false,
     );
     expect(existsSync(resolve(SRC_ROOT, "types/render-plan.ts"))).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "components/episode/beat-workbench/media-styles.ts",
+        ),
+      ),
+    ).toBe(false);
+    expect(mediaStylesSource).toContain("MEDIA_PREVIEW_CLASS");
+    expect(mediaStylesSource).toContain("VIDEO_PROMPT_TEXTAREA_CLASS");
     expect(
       existsSync(
         resolve(

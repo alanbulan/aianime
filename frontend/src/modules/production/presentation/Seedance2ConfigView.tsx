@@ -17,7 +17,7 @@ import { CreditCostInline } from "@/components/credit-cost-inline";
 import {
   MEDIA_PRIMARY_ACTION_BUTTON_CLASS,
   VIDEO_PROMPT_TEXTAREA_CLASS,
-} from "@/components/episode/beat-workbench/media-styles";
+} from "@/modules/production/presentation/media-styles";
 import { MentionTextarea } from "@/features/mention-textarea/public";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

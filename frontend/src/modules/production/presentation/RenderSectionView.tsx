@@ -31,7 +31,7 @@ import {
   MEDIA_THUMB_IDLE_CLASS,
   MEDIA_THUMB_NEW_CLASS,
   MEDIA_THUMB_TIME_CLASS,
-} from "@/components/episode/beat-workbench/media-styles";
+} from "@/modules/production/presentation/media-styles";
 import {
   AlertDialog,
   AlertDialogAction,

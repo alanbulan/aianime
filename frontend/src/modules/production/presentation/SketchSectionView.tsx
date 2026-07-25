@@ -43,7 +43,7 @@ import {
   MEDIA_THUMB_IDLE_CLASS,
   MEDIA_THUMB_NEW_CLASS,
   MEDIA_THUMB_TIME_CLASS,
-} from "@/components/episode/beat-workbench/media-styles";
+} from "@/modules/production/presentation/media-styles";
 import { GLASS_DIALOG_CONTENT_CLASS } from "@/lib/dialog-styles";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { cn } from "@/lib/utils";
