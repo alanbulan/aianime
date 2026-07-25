@@ -149,6 +149,7 @@ import {
 import { useCanvasDropIndicator } from './hooks/useCanvasDropIndicator';
 import { useCanvasEdgePan } from './hooks/useCanvasEdgePan';
 import { useCanvasExternalDialogs } from './hooks/useCanvasExternalDialogs';
+import { useCanvasGenerationResume } from './hooks/useCanvasGenerationResume';
 import { useCanvasMarqueeSelection } from './hooks/useCanvasMarqueeSelection';
 import { useCanvasMinimapVisibility } from './hooks/useCanvasMinimapVisibility';
 import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
@@ -359,7 +360,6 @@ export function Canvas({
   const pasteImageHandledRef = useRef(false);
 
   const activeGenerationPollNodeIdsRef = useRef(new Set<string>());
-  const activeTaskResumeNodeIdsRef = useRef(new Set<string>());
   const pasteFromClipboardRef = useRef<
     | ((
         snapshot: ClipboardSnapshot | null,
@@ -445,7 +445,7 @@ export function Canvas({
         .map((node) => node.id),
     ),
   );
-  const pendingResumeNodeKey = useCanvasStore(
+  const pendingResumeNodeIds = useCanvasStore(
     useShallow((state) => state.nodes.filter(nodeNeedsGenerationResume).map((node) => node.id)),
   );
   const applyNodesChange = useCanvasStore((state) => state.onNodesChange);
@@ -453,6 +453,30 @@ export function Canvas({
   const connectNodes = useCanvasStore((state) => state.onConnect);
   const replaceEdges = useCanvasStore((state) => state.replaceEdges);
   const updateNodeData = useCanvasStore((state) => state.updateNodeData);
+  const resumePendingGenerationNode = useCallback(
+    (nodeId: string, projectId: string): Promise<void> => {
+      const node = useCanvasStore.getState().nodes.find((item) => item.id === nodeId);
+      if (!node || !nodeNeedsGenerationResume(node)) {
+        return Promise.resolve();
+      }
+      return resumeNodeGeneration({
+        node,
+        projectId,
+        updateNodeData,
+        getNodeData: (currentNodeId) =>
+          (useCanvasStore
+            .getState()
+            .nodes
+            .find((item) => item.id === currentNodeId)?.data ?? null) as Record<string, unknown> | null,
+      });
+    },
+    [updateNodeData],
+  );
+  useCanvasGenerationResume({
+    projectId: canvasProject,
+    pendingNodeIds: pendingResumeNodeIds,
+    resumeNode: resumePendingGenerationNode,
+  });
   const addNode = useCanvasStore((state) => state.addNode);
   const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
   const selectedNodeId = useCanvasStore((state) => state.selectedNodeId);
@@ -735,37 +759,6 @@ export function Canvas({
       })();
     }
   }, [pendingJobNodeKey, updateNodeData]);
-
-  // Resume task_key-based generations (image / video / audio / 3D / script / 反推提示词)
-  // after a page refresh. The submit flows persist a GenerationTaskDescriptor on the
-  // node; here we re-attach to the task API so the result lands and the 生成中 overlay
-  // (driven by generationStartedAt) clears correctly.
-  useEffect(() => {
-    const projectId = readUrl().project;
-    if (!projectId) return;
-
-    const pendingTaskNodes = useCanvasStore.getState().nodes.filter(
-      (node) =>
-        nodeNeedsGenerationResume(node) &&
-        !activeTaskResumeNodeIdsRef.current.has(node.id),
-    );
-
-    for (const pendingNode of pendingTaskNodes) {
-      activeTaskResumeNodeIdsRef.current.add(pendingNode.id);
-      void resumeNodeGeneration({
-        node: pendingNode,
-        projectId,
-        updateNodeData,
-        getNodeData: (nodeId) =>
-          (useCanvasStore
-            .getState()
-            .nodes
-            .find((node) => node.id === nodeId)?.data ?? null) as Record<string, unknown> | null,
-      }).finally(() => {
-        activeTaskResumeNodeIdsRef.current.delete(pendingNode.id);
-      });
-    }
-  }, [pendingResumeNodeKey, updateNodeData]);
 
   const handleNodesChange = useCallback(
     (changes: NodeChange<CanvasNode>[]) => {

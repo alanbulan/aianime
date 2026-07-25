@@ -1853,6 +1853,48 @@ describe("frontend architecture boundaries", () => {
     expect(canvasSync).toContain("void scheduleSave({");
   });
 
+  it("keeps Canvas generation-resume concurrency in one presentation hook", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasGenerationResume.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const hookDeclaration = [
+      "export function",
+      "useCanvasGenerationResume(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(hookDeclaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasGenerationResume.ts",
+    ]);
+    expect(hookModel).toContain("activeNodeIdsRef");
+    expect(hookModel).toContain("resumeNode(nodeId, projectId).finally");
+    expect(canvasView).toContain("./hooks/useCanvasGenerationResume");
+    expect(canvasView).not.toContain("activeTaskResumeNodeIdsRef");
+    expect(canvasView).not.toContain("pendingResumeNodeKey");
+  });
+
   it("keeps Canvas marquee gestures in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
