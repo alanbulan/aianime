@@ -2143,11 +2143,25 @@ describe("frontend architecture boundaries", () => {
       )
       .map(relativeSource)
       .sort();
+    const rectSelectionDeclaration = [
+      "export function",
+      "collectCanvasNodeIdsInRect(",
+    ].join(" ");
+    const rectSelectionOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(rectSelectionDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(forbiddenImports).toEqual([]);
     expect(originViewportOwners).toEqual([
       "features/canvas/domain/viewportBookmarks.ts",
     ]);
+    expect(rectSelectionOwners).toEqual([
+      "features/canvas/domain/canvasSelection.ts",
+    ]);
+    expect(selectionModel).toContain(rectSelectionDeclaration);
     expect(selectionModel).toContain("export function resolveSelectedNodeId(");
     expect(selectionModel).toContain("export function resolveActiveToolDialog(");
     expect(viewportModel).toContain("export function replaceViewportBookmark(");
@@ -2165,6 +2179,10 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).toContain(
       "@/features/canvas/domain/viewportBookmarks",
     );
+    expect(canvasView).toContain(
+      "@/features/canvas/domain/canvasSelection",
+    );
+    expect(canvasView).not.toContain("const ancestorsOfHits");
     expect(canvasView).not.toContain("function resolveCenteredViewport(");
     expect(canvasView).not.toContain("const DEFAULT_VIEWPORT");
     expect(canvasStore).not.toContain("function resolveSelectedNodeId(");

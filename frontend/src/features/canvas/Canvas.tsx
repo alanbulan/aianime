@@ -42,9 +42,8 @@ import {
   getNodeSize,
   getTopLevelCanvasBounds,
   hasRectCollision,
-  rectsIntersect,
-  resolveAbsolutePosition,
 } from '@/features/canvas/domain/canvasGeometry';
+import { collectCanvasNodeIdsInRect } from '@/features/canvas/domain/canvasSelection';
 import { findLinkedCapturePartnerIds } from '@/features/canvas/domain/canvasCapturePartners';
 import {
   canNodeBeManualConnectionSource,
@@ -1701,47 +1700,7 @@ export function Canvas({
         width: Math.abs(endFlow.x - startFlow.x),
         height: Math.abs(endFlow.y - startFlow.y),
       };
-      // Hit-test in ABSOLUTE flow coords. `node.position` is parent-relative for
-      // grouped nodes (e.g. preset-projection children), so testing it raw against the
-      // absolute selectionRect made the marquee silently miss every grouped node even
-      // when the box visibly covered them. resolveAbsolutePosition walks the parent
-      // chain; for top-level nodes it returns node.position unchanged.
-      const nodeMap = new Map(nodes.map((node) => [node.id, node] as const));
-      const hitIds = new Set(
-        nodes
-          .filter((node) => {
-            const size = getNodeSize(node);
-            const absolute = resolveAbsolutePosition(node, nodeMap);
-            return rectsIntersect(selectionRect, {
-              x: absolute.x,
-              y: absolute.y,
-              width: size.width,
-              height: size.height,
-            });
-          })
-          .map((node) => node.id)
-      );
-      // When the box also touches a group that ENCLOSES some of the touched nodes, drop
-      // that container group and keep the inner nodes: "the box touched it, so select it"
-      // means the asset nodes the user sees, not the protected projection container that
-      // happens to wrap them — and selecting a parent together with its child makes React
-      // Flow apply the drag delta to both, double-moving the child. Any hit node that is an
-      // ancestor of another hit node is treated as such a container and removed.
-      const ancestorsOfHits = new Set<string>();
-      for (const id of hitIds) {
-        const visited = new Set<string>();
-        let parentId = nodeMap.get(id)?.parentId;
-        while (parentId && !visited.has(parentId)) {
-          visited.add(parentId);
-          if (hitIds.has(parentId)) {
-            ancestorsOfHits.add(parentId);
-          }
-          parentId = nodeMap.get(parentId)?.parentId;
-        }
-      }
-      const selectedIds = new Set(
-        [...hitIds].filter((id) => !ancestorsOfHits.has(id))
-      );
+      const selectedIds = collectCanvasNodeIdsInRect(nodes, selectionRect);
 
       const changes = nodes
         .filter((node) => Boolean(node.selected) !== selectedIds.has(node.id))
