@@ -41,12 +41,6 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("@/lib/queries/sketches", () => ({
-  useGenerateMissingManualSketches: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useBeatDirectorStageManifest: () => stageManifestMock(),
-  useBeatBackgroundAnchors: () => backgroundAnchorsMock(),
-  useUpdateBeatBackgroundAnchor: () => ({ mutateAsync: updateBackgroundAnchorMock, isPending: false }),
-  useUploadBeatBackgroundAnchor: () => ({ mutateAsync: uploadBackgroundAnchorMock, isPending: false }),
-  useDirectorControlFrameStatus: () => directorStatusMock(),
   useDirectorControlToSketch: () => ({ mutateAsync: directorConvertMock, isPending: false }),
 }));
 
@@ -105,6 +99,17 @@ vi.mock("@/lib/queries/generation-credit-cost", () => ({
 }));
 
 vi.mock("@/modules/asset_world/public", () => ({
+  useBeatDirectorStageManifest: () => stageManifestMock(),
+  useBeatBackgroundAnchors: () => backgroundAnchorsMock(),
+  useUpdateBeatBackgroundAnchor: () => ({
+    mutateAsync: updateBackgroundAnchorMock,
+    isPending: false,
+  }),
+  useUploadBeatBackgroundAnchor: () => ({
+    mutateAsync: uploadBackgroundAnchorMock,
+    isPending: false,
+  }),
+  useDirectorControlFrameStatus: () => directorStatusMock(),
   useCharacters: () => ({
     data: [{ name: "陆辰" }],
   }),
@@ -199,8 +204,8 @@ describe("SketchSection", () => {
       data: {
         ok: true,
         data: {
-          can_choose: true,
-          current_anchor: "master",
+          canChoose: true,
+          currentAnchor: "master",
           anchors: [
             { id: "master", label: "master", exists: true, url: "/static/master.png" },
           ],
@@ -213,7 +218,7 @@ describe("SketchSection", () => {
     updateBackgroundAnchorMock.mockReset();
     updateBackgroundAnchorMock.mockResolvedValue({
       ok: true,
-      data: { current_anchor: "selected_background", anchors: [] },
+      data: { currentAnchor: "selected_background", anchors: [] },
     });
     directorStatusMock.mockReturnValue({
       data: {
@@ -338,8 +343,8 @@ describe("SketchSection", () => {
       data: {
         ok: true,
         data: {
-          can_choose: true,
-          current_anchor: "master",
+          canChoose: true,
+          currentAnchor: "master",
           anchors: [
             { id: "master", label: "master", exists: true, url: "/static/master.png" },
           ],

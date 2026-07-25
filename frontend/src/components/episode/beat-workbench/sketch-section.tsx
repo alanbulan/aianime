@@ -7,19 +7,21 @@ import { Accessibility, Box, Crop, Download, ExternalLink, ImageIcon, Loader2, P
 import { isNoReferenceMarker } from "@/lib/beat-markers";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import {
-  useBeatBackgroundAnchors,
-  useBeatDirectorStageManifest,
-  useDirectorControlFrameStatus,
   useDirectorControlToSketch,
-  useUpdateBeatBackgroundAnchor,
-  type BeatBackgroundAnchorsData,
 } from "@/lib/queries/sketches";
 import {
   ThreeDDirectorDialog,
   type ThreeDDirectorCaptureMeta,
 } from "@/features/viewer-kit/three-d/ThreeDDirectorDialog";
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
-import { useCharacters } from "@/modules/asset_world/public";
+import {
+  useBeatBackgroundAnchors,
+  useBeatDirectorStageManifest,
+  useCharacters,
+  useDirectorControlFrameStatus,
+  useUpdateBeatBackgroundAnchor,
+  type BeatBackgroundAnchors,
+} from "@/modules/asset_world/public";
 import {
   useEpisodeDetail,
   useScript,
@@ -176,7 +178,7 @@ export function SketchSection({
   const [cropOpen, setCropOpen] = useState(false);
   const [backgroundDialogOpen, setBackgroundDialogOpen] = useState(false);
   const [backgroundDialogData, setBackgroundDialogData] =
-    useState<BeatBackgroundAnchorsData | null>(null);
+    useState<BeatBackgroundAnchors | null>(null);
   const [freezonePending, setFreezonePending] = useState(false);
   const now = useNow();
   const markSeen = useSeenPoolStore((s) => s.markSeen);
@@ -395,7 +397,7 @@ export function SketchSection({
       }
       const nextData =
         refreshed.data?.ok === true ? refreshed.data.data : backgroundData;
-      if (!nextData?.can_choose) {
+      if (!nextData?.canChoose) {
         toast.error(nextData?.error || t("episode.workbench.sketch.chooseBackgroundFailed"));
         return;
       }
@@ -857,7 +859,7 @@ export function SketchSection({
                       disabled={!anchor.exists || updateBackgroundAnchor.isPending}
                       onClick={() => handleChooseBackground(anchor.id)}
                     >
-                      {anchor.snapshot_to_selected_background
+                      {anchor.snapshotToSelectedBackground
                         ? t("episode.workbench.sketch.backgroundSnapshotUse")
                         : t("common.use")}
                     </Button>

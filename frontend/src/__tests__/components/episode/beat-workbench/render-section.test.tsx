@@ -92,44 +92,45 @@ vi.mock("@tanstack/react-query", async (importOriginal) => {
   };
 });
 
-vi.mock("@/lib/queries/sketches", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/queries/sketches")>();
-  return {
-    ...actual,
-    useBeatBackgroundAnchors: () => backgroundAnchorsMock(),
-    useBeatDirectorStageManifest: () => ({
+vi.mock("@/modules/asset_world/public", () => ({
+  useBeatBackgroundAnchors: () => backgroundAnchorsMock(),
+  useBeatDirectorStageManifest: () => ({
+    data: {
+      ok: true,
       data: {
-        ok: true,
-        data: {
-          viewer_kind: "three_d_director",
-          mode: "beat",
-          project: "demo",
-          scene_id: "地下室",
-          display_name: "地下室",
-          source: {
-            ply_url: "/static/director_worlds/scene/master_sharp.ply",
-            source_kind: "master",
-          },
-          palette: { actors: [], props: [], anonymous_colors: [] },
-          allowed_destinations: ["view", "beat_selected_background"],
+        viewer_kind: "three_d_director",
+        mode: "beat",
+        project: "demo",
+        scene_id: "地下室",
+        display_name: "地下室",
+        source: {
+          ply_url: "/static/director_worlds/scene/master_sharp.ply",
+          source_kind: "master",
         },
+        palette: { actors: [], props: [], anonymous_colors: [] },
+        allowed_destinations: ["view", "beat_selected_background"],
       },
-      isLoading: false,
-    }),
-    useUpdateBeatBackgroundAnchor: () => ({
-      mutateAsync: updateBackgroundAnchorMock,
-      isPending: false,
-    }),
-    useCropBeatBackgroundAnchor: () => ({
-      mutateAsync: cropBackgroundAnchorMock,
-      isPending: false,
-    }),
-    useUploadBeatBackgroundAnchor: () => ({
-      mutateAsync: uploadBackgroundAnchorMock,
-      isPending: false,
-    }),
-  };
-});
+    },
+    isLoading: false,
+  }),
+  useUpdateBeatBackgroundAnchor: () => ({
+    mutateAsync: updateBackgroundAnchorMock,
+    isPending: false,
+  }),
+  useCropBeatBackgroundAnchor: () => ({
+    mutateAsync: cropBackgroundAnchorMock,
+    isPending: false,
+  }),
+  useUploadBeatBackgroundAnchor: () => ({
+    mutateAsync: uploadBackgroundAnchorMock,
+    isPending: false,
+  }),
+  useScenePlatePreview: () => ({
+    data: scenePlatePreviewState.data
+      ? { ok: true, data: scenePlatePreviewState.data }
+      : undefined,
+  }),
+}));
 
 vi.mock("@/modules/production/public", () => ({
   StalePoolSelectError: class StalePoolSelectError extends Error {},
@@ -160,14 +161,6 @@ const scenePlatePreviewState: {
     };
   };
 } = { data: null };
-
-vi.mock("@/modules/asset_world/public", () => ({
-  useScenePlatePreview: () => ({
-    data: scenePlatePreviewState.data
-      ? { ok: true, data: scenePlatePreviewState.data }
-      : undefined,
-  }),
-}));
 
 vi.mock("@/lib/queries/generation-credit-cost", () => ({
   useGenerationCreditCost: () => ({
@@ -296,12 +289,12 @@ beforeEach(() => {
       ok: true,
       data: {
         episode: 1,
-        beat_num: 5,
-        scene_id: "地下室",
-        can_choose: true,
-        current_anchor: "master",
-        render_anchor_id: "selected_background",
-        current_reference: {
+        beatNumber: 5,
+        sceneId: "地下室",
+        canChoose: true,
+        currentAnchor: "master",
+        renderAnchorId: "selected_background",
+        currentReference: {
           id: "master",
           label: "master",
           url: "/static/selected-background.png",
@@ -456,12 +449,12 @@ describe("RenderSection", () => {
         ok: true,
         data: {
           episode: 1,
-          beat_num: 5,
-          scene_id: "地下室",
-          can_choose: true,
-          current_anchor: "",
-          render_anchor_id: "",
-          current_reference: null,
+          beatNumber: 5,
+          sceneId: "地下室",
+          canChoose: true,
+          currentAnchor: "",
+          renderAnchorId: "",
+          currentReference: null,
           anchors: [
             {
               id: "master",
@@ -616,25 +609,25 @@ describe("RenderSection", () => {
         ok: true,
         data: {
           episode: 1,
-          beat_num: 5,
-          scene_id: "地下室",
-          can_choose: true,
-          current_anchor: "selected_background",
-          current_source: "master",
-          render_anchor_id: "selected_background",
-          current_reference: {
+          beatNumber: 5,
+          sceneId: "地下室",
+          canChoose: true,
+          currentAnchor: "selected_background",
+          currentSource: "master",
+          renderAnchorId: "selected_background",
+          currentReference: {
             id: "selected_background",
             label: "截图/上传",
             url: "/static/selected-background.png",
             path: "/tmp/selected-background.png",
           },
-          display_reference: {
+          displayReference: {
             id: "master",
             label: "master",
             url: "/static/master.png",
             path: "/tmp/master.png",
           },
-          render_input: {
+          renderInput: {
             id: "selected_background",
             label: "selected_background",
             url: "/static/selected-background.png",

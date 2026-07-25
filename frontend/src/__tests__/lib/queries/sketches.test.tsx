@@ -11,16 +11,18 @@ vi.mock("@/shared/api/transport", () => ({
 }));
 
 import {
-  useBeatDirectorStageManifest,
-  useBeatBackgroundAnchors,
-  useCropBeatBackgroundAnchor,
-  useDirectorControlFrameStatus,
   useDirectorControlToSketch,
-  useUpdateBeatBackgroundAnchor,
-  useUploadBeatBackgroundAnchor,
 } from "@/lib/queries/sketches";
 import { server } from "@/__mocks__/msw/server";
 import { queryKeys } from "@/lib/query-keys";
+import {
+  useBeatBackgroundAnchors,
+  useBeatDirectorStageManifest,
+  useCropBeatBackgroundAnchor,
+  useDirectorControlFrameStatus,
+  useUpdateBeatBackgroundAnchor,
+  useUploadBeatBackgroundAnchor,
+} from "@/modules/asset_world/public";
 import {
   useAssignColors,
   useDetectIdentities,
@@ -207,7 +209,25 @@ describe("director control frame queries", () => {
               scene_id: "地下室",
               can_choose: true,
               current_anchor: "master",
-              anchors: [{ id: "master", label: "master", exists: true, url: "/static/master.png" }],
+              current_reference: {
+                id: "master",
+                label: "master",
+                anchor_id: "master",
+                rel_path: "scenes/地下室/master.png",
+                url: "/static/master.png",
+              },
+              anchors: [
+                {
+                  id: "master",
+                  anchor_id: "master",
+                  label: "master",
+                  current: true,
+                  exists: true,
+                  rel_path: "scenes/地下室/master.png",
+                  url: "/static/master.png",
+                  snapshot_to_selected_background: true,
+                },
+              ],
               error: "",
             },
           });
@@ -240,6 +260,24 @@ describe("director control frame queries", () => {
 
     await waitFor(() => expect(query.current.data).toBeDefined());
     expect(query.current.data?.ok).toBe(true);
+    if (!query.current.data?.ok) throw new Error("expected background anchors");
+    expect(query.current.data.data).toMatchObject({
+      beatNumber: 4,
+      sceneId: "地下室",
+      canChoose: true,
+      currentAnchor: "master",
+      currentReference: {
+        anchorId: "master",
+        relativePath: "scenes/地下室/master.png",
+      },
+      anchors: [
+        {
+          anchorId: "master",
+          relativePath: "scenes/地下室/master.png",
+          snapshotToSelectedBackground: true,
+        },
+      ],
+    });
 
     const { result: mutation } = renderHook(
       () => useUpdateBeatBackgroundAnchor("demo", 1, 4),
@@ -251,6 +289,10 @@ describe("director control frame queries", () => {
     expect(paths).toContain("/api/v1/projects/demo/episodes/1/beats/4/background-anchors");
     expect(paths).toContain("/api/v1/projects/demo/episodes/1/beats/4/background-anchor");
     expect(mutation.current.data?.ok).toBe(true);
+    if (!mutation.current.data?.ok) throw new Error("expected anchor update");
+    expect(mutation.current.data.data.currentAnchor).toBe(
+      "selected_background",
+    );
   });
 
   it("refreshes beat background anchors on focus without permanent polling", async () => {
@@ -419,6 +461,7 @@ describe("director control frame queries", () => {
               beat_num: 4,
               ready: true,
               path: "/tmp/director_control_frames/ep001/beat_04/combined.png",
+              rel_path: "director_control_frames/ep001/beat_04/combined.png",
               url: "/static/admin/demo/director_control_frames/ep001/beat_04/combined.png",
               scope: "director_control_to_sketch:ep001:beat_04",
             },
@@ -438,6 +481,10 @@ describe("director control frame queries", () => {
     );
     expect(result.current.data?.ok).toBe(true);
     if (!result.current.data?.ok) throw new Error("expected status to load");
+    expect(result.current.data.data.beatNumber).toBe(4);
+    expect(result.current.data.data.relativePath).toBe(
+      "director_control_frames/ep001/beat_04/combined.png",
+    );
     expect(result.current.data.data.ready).toBe(true);
     expect(result.current.data.data.scope).toBe(
       "director_control_to_sketch:ep001:beat_04",

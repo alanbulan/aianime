@@ -9,6 +9,7 @@ import { useNavigateToAsset } from "@/hooks/use-assets-deep-link";
 import { downloadBlobAsFile } from "@/lib/browserDownload";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import { isCeRuntime } from "@/lib/runtime-config";
+import { createBeatViewerQueryHooks } from "@/modules/asset_world/application/beat-viewer-query-hooks";
 import { useAssetReferenceIndex } from "@/modules/asset_world/application/use-asset-reference-index";
 import { createCharacterQueryHooks } from "@/modules/asset_world/application/character-query-hooks";
 import { createImageSourceQueryHooks } from "@/modules/asset_world/application/image-source-query-hooks";
@@ -60,6 +61,7 @@ import {
 import { createBrowserVoiceRecorder } from "@/modules/asset_world/infrastructure/browser-voice-recorder";
 import { httpCharacterGateway } from "@/modules/asset_world/infrastructure/http-character-gateway";
 import { httpAssetWorldGateway } from "@/modules/asset_world/infrastructure/http-asset-world-gateway";
+import { httpBeatViewerGateway } from "@/modules/asset_world/infrastructure/http-beat-viewer-gateway";
 import { httpImageSourceGateway } from "@/modules/asset_world/infrastructure/http-image-source-gateway";
 import { httpPropGateway } from "@/modules/asset_world/infrastructure/http-prop-gateway";
 import { httpSceneGateway } from "@/modules/asset_world/infrastructure/http-scene-gateway";
@@ -95,6 +97,7 @@ import {
 } from "@/modules/project_workspace/public";
 
 const styleQueries = createStyleQueryHooks(httpAssetWorldGateway);
+const beatViewerQueries = createBeatViewerQueryHooks(httpBeatViewerGateway);
 const characterQueries = createCharacterQueryHooks(httpCharacterGateway);
 const imageSourceQueries = createImageSourceQueryHooks(
   httpImageSourceGateway,
@@ -152,6 +155,15 @@ const useSceneAssetCardController = createUseSceneAssetCardController(
     useGenerationCreditCost,
   },
 );
+
+export const {
+  useBeatBackgroundAnchors,
+  useBeatDirectorStageManifest,
+  useCropBeatBackgroundAnchor,
+  useDirectorControlFrameStatus,
+  useUpdateBeatBackgroundAnchor,
+  useUploadBeatBackgroundAnchor,
+} = beatViewerQueries;
 
 export const {
   useBatchGeneratePropReferences,

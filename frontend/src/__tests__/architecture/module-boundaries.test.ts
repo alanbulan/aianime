@@ -408,6 +408,10 @@ describe("frontend architecture boundaries", () => {
 
   it("keeps Asset & World callers on its public API", () => {
     const moduleRoot = resolve(SRC_ROOT, "modules/asset_world");
+    const legacySketchQueries = readFileSync(
+      resolve(SRC_ROOT, "lib/queries/sketches.ts"),
+      "utf8",
+    );
     const externalSources = sourceFiles(SRC_ROOT)
       .filter((path) => !path.startsWith(moduleRoot))
       .filter((path) => !relativeSource(path).startsWith("__tests__/"));
@@ -495,6 +499,22 @@ describe("frontend architecture boundaries", () => {
     expect(presentationBoundaryFailures).toEqual([]);
     expect(internalImportFailures).toEqual([]);
     expect(directAssetEndpointFailures).toEqual([]);
+    expect(legacySketchQueries).not.toContain("useBeatBackgroundAnchors");
+    expect(legacySketchQueries).not.toContain(
+      "useBeatDirectorStageManifest",
+    );
+    expect(legacySketchQueries).not.toContain(
+      "useCropBeatBackgroundAnchor",
+    );
+    expect(legacySketchQueries).not.toContain(
+      "useDirectorControlFrameStatus",
+    );
+    expect(legacySketchQueries).not.toContain(
+      "useUpdateBeatBackgroundAnchor",
+    );
+    expect(legacySketchQueries).not.toContain(
+      "useUploadBeatBackgroundAnchor",
+    );
   });
 
   it("keeps the Styles route as an adapter", () => {

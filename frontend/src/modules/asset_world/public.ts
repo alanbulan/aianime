@@ -7,6 +7,8 @@ export {
   useAssetReferenceIndex,
   useAssetImageSourceSelection,
   useBatchGeneratePropReferences,
+  useBeatBackgroundAnchors,
+  useBeatDirectorStageManifest,
   useBuildScenes,
   useClearSceneDirectorWorld,
   stylesQueryOptions,
@@ -22,6 +24,7 @@ export {
   useCreateIdentity,
   useCreateProp,
   useCreateScene,
+  useCropBeatBackgroundAnchor,
   useDeleteStyle,
   useDeleteCharacter,
   useDeleteCharacterVoiceSample,
@@ -33,6 +36,7 @@ export {
   useDeleteSceneCustomPackage,
   useDeleteSceneMaster,
   useDeleteScenePano,
+  useDirectorControlFrameStatus,
   useGeneratePropReferenceAsync,
   useGenerateScene3gsPlyAsync,
   useGenerateSceneMasterAsync,
@@ -55,12 +59,14 @@ export {
   useStyles,
   useTrimCharacterVoiceSample,
   useUpdateAssetImageSourceSelection,
+  useUpdateBeatBackgroundAnchor,
   useUpdateCharacter,
   useUpdateIdentity,
   useUpdateProp,
   useUpdateScene,
   useUpdateScenePanoCorrection,
   useUploadCharacterVoiceSample,
+  useUploadBeatBackgroundAnchor,
   useUploadCostumeImage,
   useUploadIdentityImage,
   useUploadIdentityPortrait,
@@ -71,6 +77,7 @@ export {
   useUploadScenePano,
   useUploadStylePreview,
 } from "@/modules/asset_world/composition";
+export type { BeatViewerGateway } from "@/modules/asset_world/application/beat-viewer-gateway";
 export type {
   AssetDataResponse,
   AssetErrorResponse,
@@ -119,6 +126,13 @@ export {
 } from "@/modules/asset_world/domain/character";
 export type { CharacterMainCopy } from "@/modules/asset_world/domain/character";
 export type { PropAsset } from "@/modules/asset_world/domain/prop";
+export type {
+  BeatBackgroundAnchorCropCommand,
+  BeatBackgroundAnchorItem,
+  BeatBackgroundAnchors,
+  BeatBackgroundReference,
+  DirectorControlFrameStatus,
+} from "@/modules/asset_world/domain/beat-viewer";
 export {
   parseEnvironmentPrompt,
   serializeEnvironmentPrompt,

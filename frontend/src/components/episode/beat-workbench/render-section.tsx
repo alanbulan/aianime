@@ -32,13 +32,13 @@ import {
   useUploadBeatBackgroundAnchor,
   type BeatBackgroundAnchorItem,
   type BeatBackgroundReference,
-} from "@/lib/queries/sketches";
+  useScenePlatePreview,
+} from "@/modules/asset_world/public";
 import {
   ThreeDDirectorDialog,
   type ThreeDDirectorCaptureMeta,
 } from "@/features/viewer-kit/three-d/ThreeDDirectorDialog";
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
-import { useScenePlatePreview } from "@/modules/asset_world/public";
 import {
   StalePoolSelectError,
   type PoolImage,
@@ -216,14 +216,14 @@ export function RenderSection({
   const backgroundData =
     backgroundAnchors.data?.ok === true ? backgroundAnchors.data.data : null;
   const currentBackgroundSource =
-    backgroundData?.current_source ?? backgroundData?.current_anchor ?? null;
+    backgroundData?.currentSource ?? backgroundData?.currentAnchor ?? null;
   const currentBackground =
     backgroundData?.anchors.find((anchor) => anchor.id === currentBackgroundSource) ??
     backgroundData?.anchors.find((anchor) => anchor.current) ??
     backgroundData?.anchors.find((anchor) => anchor.exists) ??
     null;
   const currentBackgroundReference =
-    backgroundData?.display_reference ?? backgroundData?.current_reference ?? null;
+    backgroundData?.displayReference ?? backgroundData?.currentReference ?? null;
 
   const handleSelect = async (poolId: string) => {
     markSeen(project, episode, poolId);
@@ -594,11 +594,11 @@ export function RenderSection({
         anchor={currentBackground}
         sourceId={currentBackgroundSource}
         reference={currentBackgroundReference}
-        renderInput={backgroundData?.render_input ?? null}
+        renderInput={backgroundData?.renderInput ?? null}
         cropAspectLabel={aspectSpec.renderAspect}
         cropAspectRatio={aspectSpec.ratioValue}
         anchors={backgroundData?.anchors ?? []}
-        canChoose={backgroundData?.can_choose ?? false}
+        canChoose={backgroundData?.canChoose ?? false}
         loading={backgroundAnchors.isLoading}
         choosing={updateBackgroundAnchor.isPending}
         uploading={uploadBackgroundAnchor.isPending}
