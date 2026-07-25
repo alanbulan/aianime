@@ -61,4 +61,30 @@ describe('canvasStore edge creation', () => {
     expect(created.undo()).toBe(true);
     expect(useCanvasStore.getState().edges).toEqual([]);
   });
+
+  it('commits a React Flow connection with normalized handles and history', () => {
+    const source = node('source', CANVAS_NODE_TYPES.upload);
+    const target = node('target', CANVAS_NODE_TYPES.imageGen);
+    useCanvasStore.getState().setCanvasData([source, target], []);
+
+    useCanvasStore.getState().onConnect({
+      source: source.id,
+      target: target.id,
+      sourceHandle: ' source ',
+      targetHandle: null,
+    });
+
+    const connected = useCanvasStore.getState();
+    expect(connected.edges).toEqual([
+      expect.objectContaining({
+        source: source.id,
+        target: target.id,
+        sourceHandle: 'source',
+        targetHandle: 'target',
+        type: 'disconnectableEdge',
+      }),
+    ]);
+    expect(connected.history.past).toHaveLength(1);
+    expect(connected.userEditsSinceHydrate).toBe(1);
+  });
 });

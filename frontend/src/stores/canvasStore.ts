@@ -29,10 +29,7 @@ import {
   type CanvasHistoryState,
 } from '@/features/canvas/domain/canvasHistory';
 import { findAvailableNodePosition } from '@/features/canvas/domain/canvasGeometry';
-import {
-  normalizeEdgesWithNodes,
-  normalizeHandleId,
-} from '@/features/canvas/domain/canvasEdgeNormalization';
+import { normalizeEdgesWithNodes } from '@/features/canvas/domain/canvasEdgeNormalization';
 import {
   isDeleteToEmpty,
   trackEdit,
@@ -62,7 +59,6 @@ import {
 } from '@/features/canvas/domain/canvasGroupArrangement';
 import { ungroupCanvasNode } from '@/features/canvas/domain/canvasGroupRemoval';
 import { deleteCanvasEdge } from '@/features/canvas/domain/canvasEdgeDeletion';
-import { validateCanvasConnection } from '@/features/canvas/domain/canvasConnection';
 import {
   type ViewportBookmark,
   type ViewportBookmarks,
@@ -86,6 +82,7 @@ import {
 import {
   createCanvasDataEdge,
   createCanvasProgrammaticEdge,
+  prepareCanvasReactFlowConnection,
   type CanvasDataEdgeCreationOptions,
 } from '@/features/canvas/application/canvasEdgeCreation';
 import { applyCanvasNodeChangeEffects } from '@/features/canvas/application/canvasNodeChangeEffects';
@@ -388,23 +385,17 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   onConnect: (connection) => {
-    const sourceHandle = normalizeHandleId(connection.sourceHandle) ?? 'source';
-    const targetHandle = normalizeHandleId(connection.targetHandle) ?? 'target';
     set((state) => {
-      const validation = validateCanvasConnection(
+      const prepared = prepareCanvasReactFlowConnection(
         state.nodes,
         state.edges,
         connection,
-        'react_flow',
       );
-      if (!validation.ok) {
+      if (!prepared) {
         return {};
       }
       return {
-        edges: addEdge<CanvasEdge>(
-          { ...connection, sourceHandle, targetHandle, type: 'disconnectableEdge' },
-          state.edges
-        ),
+        edges: addEdge<CanvasEdge>(prepared, state.edges),
         history: {
           past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
           future: [],

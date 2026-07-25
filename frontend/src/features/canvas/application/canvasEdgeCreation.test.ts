@@ -9,6 +9,7 @@ import {
 import {
   createCanvasDataEdge,
   createCanvasProgrammaticEdge,
+  prepareCanvasReactFlowConnection,
 } from './canvasEdgeCreation';
 
 function node(id: string, type: CanvasNode['type']): CanvasNode {
@@ -16,6 +17,39 @@ function node(id: string, type: CanvasNode['type']): CanvasNode {
 }
 
 describe('Canvas edge creation', () => {
+  it('prepares normalized React Flow connections and enforces graph limits', () => {
+    const source = node('source', CANVAS_NODE_TYPES.upload);
+    const other = node('other', CANVAS_NODE_TYPES.upload);
+    const world = node('world', CANVAS_NODE_TYPES.threeDWorld);
+    const existing: CanvasEdge = {
+      id: 'existing',
+      source: other.id,
+      target: world.id,
+    };
+
+    expect(
+      prepareCanvasReactFlowConnection([source, world], [], {
+        source: source.id,
+        target: world.id,
+        sourceHandle: ' source ',
+        targetHandle: null,
+      }),
+    ).toEqual({
+      source: source.id,
+      target: world.id,
+      sourceHandle: 'source',
+      targetHandle: 'target',
+      type: 'disconnectableEdge',
+    });
+    expect(
+      prepareCanvasReactFlowConnection(
+        [source, other, world],
+        [existing],
+        { source: source.id, target: world.id },
+      ),
+    ).toBeNull();
+  });
+
   it('rejects invalid endpoints and creates a normalized programmatic edge', () => {
     const source = node('source', CANVAS_NODE_TYPES.upload);
     const target = node('target', CANVAS_NODE_TYPES.imageGen);

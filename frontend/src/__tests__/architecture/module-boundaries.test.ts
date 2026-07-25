@@ -2077,7 +2077,12 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/domain/canvasConnection.ts",
     );
+    const edgeCreationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasEdgeCreation.ts",
+    );
     const connectionModel = readFileSync(connectionPath, "utf8");
+    const edgeCreationModel = readFileSync(edgeCreationPath, "utf8");
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
@@ -2113,7 +2118,10 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/domain/canvasConnection.ts",
     ]);
     expect(connectionModel).toContain(validationDeclaration);
-    expect(canvasStore).toContain(
+    expect(edgeCreationModel).toContain(
+      "from '../domain/canvasConnection'",
+    );
+    expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasConnection",
     );
     expect(canvasStore).not.toContain("nodeHasSourceHandle(");
@@ -2124,7 +2132,7 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
-  it("keeps Canvas programmatic edge creation in the application layer", () => {
+  it("keeps Canvas edge creation in the application layer", () => {
     const creationPath = resolve(
       SRC_ROOT,
       "features/canvas/application/canvasEdgeCreation.ts",
@@ -2148,6 +2156,7 @@ describe("frontend architecture boundaries", () => {
         specifier === "@/features/canvas/nodeFactoryComposition",
     );
     const declarations = [
+      "prepareCanvasReactFlowConnection(",
       "createCanvasProgrammaticEdge(",
       "createCanvasDataEdge(",
     ].map((name) => ["export function", name].join(" "));
@@ -2176,6 +2185,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("const newEdge: CanvasEdge =");
     expect(canvasStore).not.toContain("validatePropagatingEdgeCandidate(");
     expect(canvasStore).not.toContain("validateCandidateBindingRoleCandidate(");
+    expect(canvasStore).not.toContain("normalizeHandleId(connection.sourceHandle)");
   });
 
   it("keeps Canvas edge deletion in the domain model", () => {

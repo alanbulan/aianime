@@ -23,6 +23,14 @@ export interface CanvasDataEdgeCreationOptions {
   targetHandle?: string;
 }
 
+export interface CanvasPreparedConnection {
+  source: string;
+  target: string;
+  sourceHandle: string;
+  targetHandle: string;
+  type: 'disconnectableEdge';
+}
+
 export type CanvasDataEdgeCreationOutcome =
   | { ok: true; result: CanvasEdgeCreationResult }
   | {
@@ -36,6 +44,34 @@ export type CanvasDataEdgeCreationOutcome =
       reason: string;
       edge: CanvasEdge;
     };
+
+export function prepareCanvasReactFlowConnection(
+  nodes: readonly CanvasNode[],
+  edges: readonly CanvasEdge[],
+  connection: {
+    source: string;
+    target: string;
+    sourceHandle?: string | null;
+    targetHandle?: string | null;
+  },
+): CanvasPreparedConnection | null {
+  const validation = validateCanvasConnection(
+    nodes,
+    edges,
+    connection,
+    'react_flow',
+  );
+  if (!validation.ok) {
+    return null;
+  }
+  return {
+    source: connection.source,
+    target: connection.target,
+    sourceHandle: normalizeHandleId(connection.sourceHandle) ?? 'source',
+    targetHandle: normalizeHandleId(connection.targetHandle) ?? 'target',
+    type: 'disconnectableEdge',
+  };
+}
 
 export function createCanvasProgrammaticEdge(
   nodes: readonly CanvasNode[],
