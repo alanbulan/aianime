@@ -127,12 +127,9 @@ const queryState: {
   },
 };
 
-vi.mock("@/modules/narrative_planning/public", async () => {
+vi.mock("@/modules/narrative_planning/composition", async () => {
   const { createUseInsertManualShotDialogController } = await import(
     "@/modules/narrative_planning/application/use-insert-manual-shot-dialog-controller"
-  );
-  const { InsertManualShotDialogView } = await import(
-    "@/modules/narrative_planning/presentation/InsertManualShotDialogView"
   );
 
   const useInsertManualShotDialogController =
@@ -150,7 +147,7 @@ vi.mock("@/modules/narrative_planning/public", async () => {
     });
 
   return {
-    InsertManualShotDialogView,
+    useBeatCardGridController: vi.fn(),
     useInsertManualShotDialogController,
   };
 });
@@ -159,7 +156,7 @@ vi.mock("sonner", () => ({
   toast: { error: vi.fn(), success: vi.fn() },
 }));
 
-import { InsertManualShotDialog } from "@/components/episode/beat-workbench/insert-manual-shot-dialog";
+import { InsertManualShotDialog } from "@/modules/narrative_planning/beat-card-grid-composition";
 
 function Wrapper({ children }: { children: ReactNode }) {
   const qc = new QueryClient({

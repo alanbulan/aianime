@@ -10,12 +10,12 @@ import { useTranslation } from "react-i18next";
 import { Brush, Clapperboard, Loader2, Play, RefreshCw } from "lucide-react";
 
 import { CreditCostInline } from "@/components/credit-cost-inline";
-import { BeatCardGrid } from "@/components/episode/beat-workbench/beat-card-grid";
 import {
   useEpisodeActionsSlot,
   useRegisterEpisodeActionsSlot,
 } from "@/components/episode/episode-actions-slot";
 import { ActionPanel } from "@/modules/narrative_planning/action-panel-composition";
+import { BeatCardGrid } from "@/modules/narrative_planning/beat-card-grid-composition";
 import { EpisodeEmptyState } from "@/components/episode/episode-empty-state";
 import { useHideHeaderOnScroll } from "@/components/episode/header-collapse";
 import { Button } from "@/components/ui/button";

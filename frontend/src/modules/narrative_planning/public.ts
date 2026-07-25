@@ -10,14 +10,12 @@ export {
   prefetchEpisodeDetail,
   readPipelineStatus,
   ScriptPageContent,
-  useBeatCardGridController,
   useDeleteManualShot,
   useEpisodeBeats,
   useEpisodeDetail,
   useEpisodes,
   useGenerateRewrite,
   useGenerateScript,
-  useInsertManualShotDialogController,
   useInsertManualShot,
   usePipelineStatus,
   usePlanEpisodeProps,
@@ -67,35 +65,6 @@ export type {
   SceneRef,
   Script,
 } from "@/modules/narrative_planning/domain/types";
-export { BeatCardGridView } from "@/modules/narrative_planning/presentation/BeatCardGridView";
-export type { BeatCardGridViewProps } from "@/modules/narrative_planning/presentation/BeatCardGridView";
-export { BeatCardView } from "@/modules/narrative_planning/presentation/BeatCardView";
-export type { BeatCardViewProps } from "@/modules/narrative_planning/presentation/BeatCardView";
-export { createBeatCardController } from "@/modules/narrative_planning/application/create-beat-card-controller";
-export type {
-  BeatCardAspectRatio,
-  BeatCardController,
-  BeatCardControllerOptions,
-  BeatCardMediaKind,
-} from "@/modules/narrative_planning/application/create-beat-card-controller";
-export type {
-  BeatCardGridController,
-  BeatCardGridControllerDependencies,
-  BeatCardGridControllerOptions,
-  BeatCardGridControllerQueries,
-  BeatCardGridDeleteTarget,
-  BeatCardGridSelection,
-  BeatCardGridToggleId,
-  BeatCardPrimarySlot,
-} from "@/modules/narrative_planning/application/use-beat-card-grid-controller";
-export { InsertManualShotDialogView } from "@/modules/narrative_planning/presentation/InsertManualShotDialogView";
-export type { InsertManualShotDialogViewProps } from "@/modules/narrative_planning/presentation/InsertManualShotDialogView";
-export type {
-  InsertManualShotDialogController,
-  InsertManualShotDialogControllerOptions,
-  InsertManualShotDialogControllerQueries,
-  ManualShotAudioType,
-} from "@/modules/narrative_planning/application/use-insert-manual-shot-dialog-controller";
 export { ViewToggles } from "@/modules/narrative_planning/presentation/ViewToggles";
 export type { ViewTogglesProps } from "@/modules/narrative_planning/presentation/ViewToggles";
 export { TextPane } from "@/modules/narrative_planning/text-pane-composition";

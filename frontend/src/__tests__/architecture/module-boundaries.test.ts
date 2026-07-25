@@ -499,12 +499,14 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
-    const insertManualShotDialogSource = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "components/episode/beat-workbench/insert-manual-shot-dialog.tsx",
-      ),
-      "utf8",
+    const beatCardGridCompositionPath = resolve(
+      moduleRoot,
+      "beat-card-grid-composition.ts",
+    );
+    const insertManualShotDialogSource = sourceSection(
+      beatCardGridCompositionPath,
+      "export interface InsertManualShotDialogProps",
+      "function BeatCardAdapter",
     );
     const insertManualShotDialogControllerSource = readFileSync(
       resolve(
@@ -517,19 +519,14 @@ describe("frontend architecture boundaries", () => {
       resolve(moduleRoot, "presentation/InsertManualShotDialogView.tsx"),
       "utf8",
     );
-    const beatCardGridSource = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "components/episode/beat-workbench/beat-card-grid.tsx",
-      ),
-      "utf8",
+    const beatCardGridSource = sourceSection(
+      beatCardGridCompositionPath,
+      "export interface BeatCardGridProps",
     );
-    const beatCardSource = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "components/episode/beat-workbench/beat-card.tsx",
-      ),
-      "utf8",
+    const beatCardSource = sourceSection(
+      beatCardGridCompositionPath,
+      "function BeatCardAdapter",
+      "export interface BeatCardGridProps",
     );
     const beatCardControllerSource = readFileSync(
       resolve(
@@ -632,6 +629,9 @@ describe("frontend architecture boundaries", () => {
       "components/episode/beat-workbench/text-pane.tsx",
       "components/episode/beat-workbench/action-panel.tsx",
       "components/episode/beat-workbench/single-beat-panel.tsx",
+      "components/episode/beat-workbench/beat-card-grid.tsx",
+      "components/episode/beat-workbench/beat-card.tsx",
+      "components/episode/beat-workbench/insert-manual-shot-dialog.tsx",
       "hooks/use-selection.ts",
       "hooks/use-view-toggles.ts",
       "types/episode.ts",
@@ -759,11 +759,31 @@ describe("frontend architecture boundaries", () => {
     expect(narrativePublicSource).not.toContain(
       "SingleBeatPanelControllerOptions",
     );
+    expect(beatsPageViewSource).toContain(
+      "@/modules/narrative_planning/beat-card-grid-composition",
+    );
+    expect(narrativePublicSource).not.toContain(
+      "useBeatCardGridController",
+    );
+    expect(narrativePublicSource).not.toContain(
+      "useInsertManualShotDialogController",
+    );
+    expect(narrativePublicSource).not.toContain("BeatCardGridView");
+    expect(narrativePublicSource).not.toContain("BeatCardView");
+    expect(narrativePublicSource).not.toContain(
+      "InsertManualShotDialogView",
+    );
+    expect(narrativePublicSource).not.toContain(
+      "BeatCardControllerOptions",
+    );
+    expect(narrativePublicSource).not.toContain(
+      "InsertManualShotDialogControllerOptions",
+    );
     expect(insertManualShotDialogSource).toContain(
       "useInsertManualShotDialogController({",
     );
     expect(insertManualShotDialogSource).toContain(
-      "<InsertManualShotDialogView",
+      "createElement(InsertManualShotDialogView",
     );
     expect(insertManualShotDialogSource).not.toContain("useState(");
     expect(insertManualShotDialogSource).not.toContain("useEpisodeBeats(");
@@ -806,7 +826,7 @@ describe("frontend architecture boundaries", () => {
       "useInsertManualShot(",
     );
     expect(insertManualShotDialogViewSource).not.toContain("toast.");
-    expect(beatCardSource).toContain("<BeatCardView");
+    expect(beatCardSource).toContain("createElement(BeatCardView");
     expect(beatCardSource).toContain("createBeatCardController(props)");
     expect(beatCardSource).not.toContain("className=");
     expect(beatCardSource).not.toContain("resolveImage(");
@@ -826,9 +846,13 @@ describe("frontend architecture boundaries", () => {
     expect(beatCardViewSource).toContain("className=");
     expect(beatCardViewSource).not.toContain("resolveImage(");
     expect(beatCardGridSource).toContain("useBeatCardGridController({");
-    expect(beatCardGridSource).toContain("<BeatCardGridView");
-    expect(beatCardGridSource).toContain("<BeatCard");
-    expect(beatCardGridSource).toContain("<InsertManualShotDialog");
+    expect(beatCardGridSource).toContain(
+      "createElement(BeatCardGridView",
+    );
+    expect(beatCardGridSource).toContain("createElement(BeatCard");
+    expect(beatCardGridSource).toContain(
+      "createElement(InsertManualShotDialog",
+    );
     expect(beatCardGridSource).not.toContain("useState(");
     expect(beatCardGridSource).not.toContain("useEffect(");
     expect(beatCardGridSource).not.toContain("useGridsByBeat(");

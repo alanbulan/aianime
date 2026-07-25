@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { BeatCard } from "@/components/episode/beat-workbench/beat-card";
+import { BeatCard } from "@/modules/narrative_planning/beat-card-grid-composition";
 import type { Beat } from "@/modules/narrative_planning/public";
 
 vi.mock("react-i18next", () => ({
