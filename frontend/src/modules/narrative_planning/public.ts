@@ -76,6 +76,15 @@ export type {
 } from "@/modules/narrative_planning/application/use-action-panel-controller";
 export { BeatCardGridView } from "@/modules/narrative_planning/presentation/BeatCardGridView";
 export type { BeatCardGridViewProps } from "@/modules/narrative_planning/presentation/BeatCardGridView";
+export { BeatCardView } from "@/modules/narrative_planning/presentation/BeatCardView";
+export type { BeatCardViewProps } from "@/modules/narrative_planning/presentation/BeatCardView";
+export { createBeatCardController } from "@/modules/narrative_planning/application/create-beat-card-controller";
+export type {
+  BeatCardAspectRatio,
+  BeatCardController,
+  BeatCardControllerOptions,
+  BeatCardMediaKind,
+} from "@/modules/narrative_planning/application/create-beat-card-controller";
 export type {
   BeatCardGridController,
   BeatCardGridControllerDependencies,

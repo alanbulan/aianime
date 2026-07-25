@@ -409,6 +409,24 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const beatCardSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "components/episode/beat-workbench/beat-card.tsx",
+      ),
+      "utf8",
+    );
+    const beatCardControllerSource = readFileSync(
+      resolve(
+        moduleRoot,
+        "application/create-beat-card-controller.ts",
+      ),
+      "utf8",
+    );
+    const beatCardViewSource = readFileSync(
+      resolve(moduleRoot, "presentation/BeatCardView.tsx"),
+      "utf8",
+    );
     const beatCardGridControllerSource = readFileSync(
       resolve(
         moduleRoot,
@@ -632,6 +650,25 @@ describe("frontend architecture boundaries", () => {
       "useInsertManualShot(",
     );
     expect(insertManualShotDialogViewSource).not.toContain("toast.");
+    expect(beatCardSource).toContain("<BeatCardView");
+    expect(beatCardSource).toContain("createBeatCardController(props)");
+    expect(beatCardSource).not.toContain("className=");
+    expect(beatCardSource).not.toContain("resolveImage(");
+    expect(beatCardSource).not.toContain("resolveMediaUrl(");
+    expect(beatCardSource).not.toContain("useTranslation(");
+    expect(beatCardControllerSource).toContain(
+      "createBeatCardController",
+    );
+    expect(beatCardControllerSource).toContain("resolveImage(");
+    expect(beatCardControllerSource).toContain("mainMediaKind");
+    expect(beatCardControllerSource).not.toContain("className=");
+    expect(beatCardControllerSource).not.toContain("useTranslation(");
+    expect(beatCardViewSource).toContain(
+      "controller: BeatCardController",
+    );
+    expect(beatCardViewSource).toContain("function ImageSlot");
+    expect(beatCardViewSource).toContain("className=");
+    expect(beatCardViewSource).not.toContain("resolveImage(");
     expect(beatCardGridSource).toContain("useBeatCardGridController({");
     expect(beatCardGridSource).toContain("<BeatCardGridView");
     expect(beatCardGridSource).toContain("<BeatCard");
