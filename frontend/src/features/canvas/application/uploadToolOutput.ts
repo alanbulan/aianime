@@ -1,6 +1,8 @@
 // Copyright (c) 2026 AI anime
-import type { CanvasAssetGateway } from './ports';
-import { dataUrlToBlob } from './imageData';
+import type {
+  CanvasAssetGateway,
+  CanvasAssetSourceGateway,
+} from './ports';
 
 /**
  * Locally-produced images (crop / annotate / split frames / 360 captures /
@@ -14,6 +16,7 @@ import { dataUrlToBlob } from './imageData';
  */
 export async function uploadLocalImageToBackend(
   assetGateway: CanvasAssetGateway,
+  assetSourceGateway: CanvasAssetSourceGateway,
   projectId: string | null | undefined,
   localImageUrl: string,
   filename: string
@@ -33,19 +36,7 @@ export async function uploadLocalImageToBackend(
   }
 
   try {
-    // CSP `connect-src 'self'` blocks `fetch('data:...')` in production, so
-    // decode data URLs directly instead of fetching them. Other (same-origin)
-    // local paths still go through fetch.
-    let blob: Blob;
-    if (trimmed.startsWith('data:')) {
-      blob = dataUrlToBlob(trimmed);
-    } else {
-      const resp = await fetch(trimmed);
-      if (!resp.ok) {
-        throw new Error(`fetch local image failed: ${resp.status}`);
-      }
-      blob = await resp.blob();
-    }
+    const blob = await assetSourceGateway.read(trimmed);
     return await assetGateway.upload(projectId, blob, filename);
   } catch (error) {
     console.warn('[upload-tool-output] upload failed, keeping local URL', { filename, error });

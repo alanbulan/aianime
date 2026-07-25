@@ -1,14 +1,21 @@
 // Copyright (c) 2026 AI anime
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { migratePastedNodeAssets } from '@/features/canvas/application/crossProjectAssets';
-import type { CanvasAssetGateway } from '@/features/canvas/application/ports';
+import type {
+  CanvasAssetGateway,
+  CanvasAssetSourceGateway,
+} from '@/features/canvas/application/ports';
 import type { CanvasNodeData } from '@/features/canvas/domain/canvasNodes';
 
 const uploadAsset = vi.fn();
+const readAsset = vi.fn();
 const assetGateway: CanvasAssetGateway = {
   upload: (projectId, file, filename, options) =>
     uploadAsset(projectId, file, filename, options),
+};
+const assetSourceGateway: CanvasAssetSourceGateway = {
+  read: (source, options) => readAsset(source, options),
 };
 
 function asData(value: Record<string, unknown>): CanvasNodeData {
@@ -22,20 +29,13 @@ function liveFrom(nodes: Array<{ id: string; data: CanvasNodeData }>) {
 
 describe('migratePastedNodeAssets', () => {
   beforeEach(() => {
+    readAsset.mockReset().mockResolvedValue(new Blob(['x']));
     uploadAsset.mockReset();
     // Each upload returns a new-project URL derived from the source filename.
     uploadAsset.mockImplementation(
       async (project: string, _blob: Blob, filename: string) =>
         `/static/projects/${project}/videos/${filename}`,
     );
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => ({ ok: true, blob: async () => new Blob(['x']) })),
-    );
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
   });
 
   it('re-uploads source-project media and rewrites URLs, incl. nested arrays', async () => {
@@ -58,7 +58,7 @@ describe('migratePastedNodeAssets', () => {
       },
     ];
 
-    const summary = await migratePastedNodeAssets(assetGateway, {
+    const summary = await migratePastedNodeAssets(assetGateway, assetSourceGateway, {
       currentOrigin: 'http://localhost',
       nodes,
       targetProject: 'projB',
@@ -68,6 +68,10 @@ describe('migratePastedNodeAssets', () => {
 
     expect(summary.failed).toBe(0);
     expect(summary.migrated).toBe(3); // clip.mp4 + a.png + b.png (deduped per URL)
+    expect(readAsset).toHaveBeenCalledWith(
+      'http://localhost/static/projects/projA/videos/clip.mp4',
+      { includeCredentials: true },
+    );
     expect(uploadAsset).toHaveBeenCalledWith(
       'projB',
       expect.any(Blob),
@@ -93,7 +97,7 @@ describe('migratePastedNodeAssets', () => {
       { id: 'n1', data: asData({ imageUrl: reused, previewImageUrl: reused }) },
       { id: 'n2', data: asData({ imageUrl: reused }) },
     ];
-    await migratePastedNodeAssets(assetGateway, {
+    await migratePastedNodeAssets(assetGateway, assetSourceGateway, {
       currentOrigin: 'http://localhost',
       nodes,
       targetProject: 'projB',
@@ -110,7 +114,7 @@ describe('migratePastedNodeAssets', () => {
     const nodes = [
       { id: 'n1', data: asData({ videoUrl: '/static/projects/projA/videos/clip.mp4' }) },
     ];
-    const summary = await migratePastedNodeAssets(assetGateway, {
+    const summary = await migratePastedNodeAssets(assetGateway, assetSourceGateway, {
       currentOrigin: 'http://localhost',
       nodes,
       targetProject: 'projB',
@@ -139,7 +143,7 @@ describe('migratePastedNodeAssets', () => {
       }),
     };
 
-    const summary = await migratePastedNodeAssets(assetGateway, {
+    const summary = await migratePastedNodeAssets(assetGateway, assetSourceGateway, {
       currentOrigin: 'http://localhost',
       nodes: snapshot,
       targetProject: 'projB',

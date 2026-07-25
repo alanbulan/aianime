@@ -28,6 +28,17 @@ export interface CanvasAssetGateway {
   ) => Promise<string>;
 }
 
+export interface CanvasAssetSourceReadOptions {
+  includeCredentials?: boolean;
+}
+
+export interface CanvasAssetSourceGateway {
+  read: (
+    source: string,
+    options?: CanvasAssetSourceReadOptions,
+  ) => Promise<Blob>;
+}
+
 export interface CanvasGraphSnapshot {
   nodes: readonly CanvasNode[];
   edges: readonly CanvasEdge[];

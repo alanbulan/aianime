@@ -85,10 +85,14 @@ export function detectAspectRatio(imageUrl: string) {
 export function migratePastedNodeAssets(
   params: Omit<MigratePastedNodeAssetsParams, 'currentOrigin'>,
 ) {
-  return migratePastedNodeAssetsUseCase(freezoneAssetGateway, {
-    ...params,
-    currentOrigin: window.location.origin,
-  });
+  return migratePastedNodeAssetsUseCase(
+    freezoneAssetGateway,
+    freezoneAssetGateway,
+    {
+      ...params,
+      currentOrigin: window.location.origin,
+    },
+  );
 }
 
 export function uploadLocalImageToBackend(
@@ -96,6 +100,7 @@ export function uploadLocalImageToBackend(
   filename: string,
 ) {
   return uploadLocalImageToBackendUseCase(
+    freezoneAssetGateway,
     freezoneAssetGateway,
     readUrl().project,
     localImageUrl,

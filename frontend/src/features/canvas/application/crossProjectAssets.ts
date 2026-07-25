@@ -1,5 +1,8 @@
 // Copyright (c) 2026 AI anime
-import type { CanvasAssetGateway } from '@/features/canvas/application/ports';
+import type {
+  CanvasAssetGateway,
+  CanvasAssetSourceGateway,
+} from '@/features/canvas/application/ports';
 import type { CanvasNodeData } from '@/features/canvas/domain/canvasNodes';
 
 /**
@@ -75,6 +78,7 @@ function filenameFromUrl(fetchUrl: string): string {
 
 async function uploadAssetToProject(
   assetGateway: CanvasAssetGateway,
+  assetSourceGateway: CanvasAssetSourceGateway,
   rawUrl: string,
   targetProject: string,
   currentOrigin: string,
@@ -83,11 +87,9 @@ async function uploadAssetToProject(
   if (!fetchUrl) {
     return rawUrl;
   }
-  const response = await fetch(fetchUrl, { credentials: 'include' });
-  if (!response.ok) {
-    throw new Error(`fetch source asset failed: ${response.status}`);
-  }
-  const blob = await response.blob();
+  const blob = await assetSourceGateway.read(fetchUrl, {
+    includeCredentials: true,
+  });
   // 与图片同一个 /freezone/upload 接口，后端按通用 blob 处理；timeoutMs:false 关掉
   // ky 默认 30s 超时，避免大视频上传被中断。
   return assetGateway.upload(targetProject, blob, filenameFromUrl(fetchUrl), {
@@ -222,6 +224,7 @@ export interface MigratePastedNodeAssetsParams {
 
 export async function migratePastedNodeAssets(
   assetGateway: CanvasAssetGateway,
+  assetSourceGateway: CanvasAssetSourceGateway,
   params: MigratePastedNodeAssetsParams,
 ): Promise<AssetMigrationSummary> {
   const {
@@ -250,6 +253,7 @@ export async function migratePastedNodeAssets(
     [...urls].map((url) =>
       limit(() => uploadAssetToProject(
         assetGateway,
+        assetSourceGateway,
         url,
         targetProject,
         currentOrigin,

@@ -272,6 +272,10 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes("performance.now("))
       .map(relativeSource)
       .sort();
+    const directFetchUsers = sourceFiles(applicationRoot)
+      .filter((path) => readFileSync(path, "utf8").includes("fetch("))
+      .map(relativeSource)
+      .sort();
     const directCommandUsers = sourceFiles(applicationRoot)
       .filter((path) =>
         importSpecifiers(path).some((specifier) =>
@@ -417,6 +421,7 @@ describe("frontend architecture boundaries", () => {
     expect(directImageConstructorUsers).toEqual([]);
     expect(directFileReaderUsers).toEqual([]);
     expect(directPerformanceUsers).toEqual([]);
+    expect(directFetchUsers).toEqual([]);
     expect(directCommandUsers).toEqual([]);
     expect(
       existsSync(resolve(applicationRoot, "useUpstreamGraph.ts")),
@@ -470,6 +475,9 @@ describe("frontend architecture boundaries", () => {
     expect(composition).toContain("freezoneGenerationTaskGateway");
     expect(assetGateway).toContain("uploadFreezoneImage(");
     expect(assetGateway).toContain("{ timeoutMs: false }");
+    expect(assetGateway).toContain("async read(source, options)");
+    expect(assetGateway).toContain("dataUrlToBlob(source)");
+    expect(assetGateway).toContain("credentials: 'include'");
     expect(graphGateway).toContain("useCanvasStore.getState()");
     expect(services).not.toContain("infrastructure/");
     expect(selectedBackgroundSlot).toContain(
@@ -479,6 +487,7 @@ describe("frontend architecture boundaries", () => {
     expect(uploadToolOutput).toContain(
       "projectId: string | null | undefined",
     );
+    expect(uploadToolOutput).toContain("assetSourceGateway.read(trimmed)");
     expect(upstreamGraphHook).toContain("useCanvasStore(");
     expect(upstreamGraphHook).toContain("useShallow(");
     expect(upstreamGraphHook).toContain("upstreamNodesInEdgeOrder(");
@@ -490,6 +499,7 @@ describe("frontend architecture boundaries", () => {
       "resolveNodeGenerationTaskState({",
     );
     expect(crossProjectAssets).toContain("currentOrigin: string");
+    expect(crossProjectAssets).toContain("assetSourceGateway.read(fetchUrl");
     expect(generationErrorReport).toContain(
       "export function resolveGenerationOsInfo(",
     );

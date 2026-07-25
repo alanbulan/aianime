@@ -2,16 +2,24 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { uploadLocalImageToBackend } from '@/features/canvas/application/uploadToolOutput';
-import type { CanvasAssetGateway } from '@/features/canvas/application/ports';
+import type {
+  CanvasAssetGateway,
+  CanvasAssetSourceGateway,
+} from '@/features/canvas/application/ports';
 
 const uploadAsset = vi.fn();
+const readAsset = vi.fn();
 const assetGateway: CanvasAssetGateway = {
   upload: (projectId, file, filename, options) =>
     uploadAsset(projectId, file, filename, options),
 };
+const assetSourceGateway: CanvasAssetSourceGateway = {
+  read: (source, options) => readAsset(source, options),
+};
 
 describe('uploadLocalImageToBackend', () => {
   beforeEach(() => {
+    readAsset.mockReset().mockResolvedValue(new Blob(['x'], { type: 'image/png' }));
     uploadAsset.mockReset();
     uploadAsset.mockResolvedValue('/static/projects/proj/uploads/output.png');
   });
@@ -25,20 +33,31 @@ describe('uploadLocalImageToBackend', () => {
     const url = 'https://cdn.example.com/output.png';
 
     await expect(
-      uploadLocalImageToBackend(assetGateway, 'proj', url, 'output.png'),
+      uploadLocalImageToBackend(
+        assetGateway,
+        assetSourceGateway,
+        'proj',
+        url,
+        'output.png',
+      ),
     ).resolves.toBe(url);
     expect(uploadAsset).not.toHaveBeenCalled();
   });
 
-  it('decodes data URLs and uploads them through the asset gateway', async () => {
+  it('reads data URLs and uploads them through the asset gateway', async () => {
     const result = await uploadLocalImageToBackend(
       assetGateway,
+      assetSourceGateway,
       'proj',
       'data:image/png;base64,eA==',
       'output.png',
     );
 
     expect(result).toBe('/static/projects/proj/uploads/output.png');
+    expect(readAsset).toHaveBeenCalledWith(
+      'data:image/png;base64,eA==',
+      undefined,
+    );
     expect(uploadAsset).toHaveBeenCalledWith(
       'proj',
       expect.any(Blob),
@@ -51,6 +70,7 @@ describe('uploadLocalImageToBackend', () => {
     await expect(
       uploadLocalImageToBackend(
         assetGateway,
+        assetSourceGateway,
         null,
         '/local/output.png',
         'output.png',
@@ -66,6 +86,7 @@ describe('uploadLocalImageToBackend', () => {
     await expect(
       uploadLocalImageToBackend(
         assetGateway,
+        assetSourceGateway,
         'proj',
         'data:image/png;base64,eA==',
         'output.png',
