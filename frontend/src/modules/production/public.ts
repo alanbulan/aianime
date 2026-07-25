@@ -59,6 +59,10 @@ export type {
 export { Seedance2AssetCropDialog } from "@/modules/production/presentation/Seedance2AssetCropDialog";
 export { Seedance2AudioTrimDialog } from "@/modules/production/presentation/Seedance2AudioTrimDialog";
 export {
+  Seedance2ReferenceAssetsView,
+  Seedance2ReferenceCropAssetsView,
+} from "@/modules/production/presentation/Seedance2ReferenceAssetsView";
+export {
   Seedance2Checkbox,
   Seedance2Field,
   Seedance2SummaryPill,

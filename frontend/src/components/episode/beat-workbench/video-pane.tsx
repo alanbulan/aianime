@@ -13,17 +13,11 @@ import { toast } from "sonner";
 import {
   Download,
   Film,
-  ChevronDown,
   Image as ImageIcon,
-  Library,
   Loader2,
-  Mic,
   RefreshCw,
-  Scissors,
   Settings2,
   Square,
-  Trash2,
-  Upload,
   WandSparkles,
 } from "lucide-react";
 
@@ -85,9 +79,10 @@ import {
   serializeSeedance2Config,
   Seedance2AssetCropDialog,
   Seedance2AudioTrimDialog,
+  Seedance2ReferenceAssetsView,
+  Seedance2ReferenceCropAssetsView,
   Seedance2SummaryPill,
   seedance2CropAspectForMode,
-  seedance2CropTargetForAsset,
   useGenerateBeatVideoPrompt,
   useGenerateSeedance2Prompt,
   useRegenerateBeatVideo,
@@ -169,14 +164,10 @@ const VIDEO_PARAM_ACTION_CLASS =
   "!h-[30px] gap-1.5 rounded-[7px] border border-border bg-muted px-2.5 text-[12px] font-normal leading-none text-foreground/86 shadow-none transition-[background-color,border-color,color,transform] hover:border-foreground/25 hover:bg-accent hover:text-foreground active:scale-95 disabled:border-border disabled:bg-muted disabled:text-muted-foreground/45 [&_svg]:size-3.5";
 const SEEDANCE2_TEXTAREA_CLASS =
   "rounded-[8px] border-border bg-muted text-sm shadow-none focus-visible:border-primary/45 focus-visible:ring-primary/10";
-const SEEDANCE2_SECONDARY_ACTION_CLASS =
-  "h-7 gap-1 rounded-[7px] border-border bg-muted px-2.5 text-[12px] font-normal text-foreground/76 shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground disabled:border-border disabled:bg-muted disabled:text-muted-foreground/45";
 const SEEDANCE2_PILL_ACTION_CLASS =
   "h-6 rounded-full border border-border bg-muted px-2 text-[11px] font-normal text-muted-foreground shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground";
 const SEEDANCE2_SEGMENTED_OPTION_CLASS =
   "h-7 rounded-[7px] border px-1.5 text-xs font-normal shadow-none transition-[background-color,border-color,color] duration-150";
-const SEEDANCE2_COLLAPSE_TRIGGER_CLASS =
-  "-ml-1 h-6 gap-1.5 px-1 text-xs font-medium text-foreground/78 !bg-transparent hover:!bg-transparent hover:text-foreground aria-expanded:!bg-transparent dark:hover:!bg-transparent";
 interface VideoPaneProps {
   beat: Beat;
   project: string;
@@ -238,7 +229,6 @@ export function VideoPane({
   const videoBackends = videoBackendsRes?.data ?? [];
   const beatVideoPromptCost = useGenerationCreditCost("feature", "beat_video_prompt");
   const seedance2PromptCost = useGenerationCreditCost("feature", "seedance2_prompt");
-  const seedance2UploadInputRef = useRef<HTMLInputElement>(null);
   const [regenConfirm, setRegenConfirm] = useState(false);
   const assetOperations = useSeedance2AssetOperationsController({
     beatNumber: beat.beat_number,
@@ -1424,101 +1414,14 @@ export function VideoPane({
       )}
 
       {!showPromptConfig && showReferenceDetails && (
-        <div
-          className={cn(
-            "col-span-2 rounded-[10px] border border-border bg-card",
-            showHappyHorseConfig && "order-1",
-          )}
-        >
-          <div className="flex items-center gap-2 px-3 py-2">
-            <Button
-              type="button"
-              size="xs"
-              variant="ghost"
-              aria-expanded={seedance2ReferencesOpen}
-              onClick={() => setSeedance2ReferencesOpen((open) => !open)}
-              className={SEEDANCE2_COLLAPSE_TRIGGER_CLASS}
-            >
-              <ChevronDown
-                className={cn(
-                  "size-3.5 transition-transform",
-                  !seedance2ReferencesOpen && "-rotate-90",
-                )}
-              />
-              <Library className="size-3.5 text-muted-foreground/78" />
-              <span>{t("episode.workbench.video.seedance2ReferenceDetails")}</span>
-            </Button>
-            <span className="inline-flex h-5 items-center rounded-full border border-border bg-muted px-2 text-[11px] leading-none text-muted-foreground">
-              {referenceCropImageItems.length}
-            </span>
-          </div>
-          {seedance2ReferencesOpen && (
-            <div className="border-t border-border p-3">
-              {referenceCropImageItems.length > 0 ? (
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(6.75rem,6.75rem))] gap-2">
-                  {referenceCropImageItems.map((asset) => {
-                    const assetImageSrc = resolveMediaUrl(asset.url || asset.path);
-                    return (
-                      <div
-                        key={asset.key}
-                        data-seedance2-reference-tile
-                        className="group/reference-tile relative w-[6.75rem] overflow-hidden rounded-[7px] border border-border bg-muted transition-[border-color,background-color,box-shadow] duration-200 hover:border-foreground/25 hover:bg-accent"
-                        style={{ aspectRatio: ratioToCss(spec.sketchAspect) }}
-                        title={asset.note || asset.label}
-                      >
-                        {assetImageSrc ? (
-                          <img
-                            src={assetImageSrc}
-                            alt={asset.label}
-                            className="absolute inset-0 h-full w-full object-cover"
-                            decoding="async"
-                          />
-                        ) : (
-                          <div className="absolute inset-0 flex items-center justify-center bg-muted">
-                            <ImageIcon className="size-6 text-muted-foreground/70" />
-                          </div>
-                        )}
-                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-media/80 via-media/45 to-transparent p-1.5 pt-5">
-                          <div className="truncate text-[10px] font-medium leading-3 text-media-foreground/90">
-                            {asset.label}
-                          </div>
-                          {asset.note && (
-                            <div className="truncate text-[9px] leading-3 text-media-foreground/50">
-                              {asset.note}
-                            </div>
-                          )}
-                        </div>
-                        {asset.can_crop && (
-                          <div className="absolute bottom-1.5 right-1.5 opacity-0 transition-opacity duration-150 group-hover/reference-tile:opacity-100 group-focus-within/reference-tile:opacity-100">
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              className="size-6 rounded-[6px] border border-media-foreground/20 bg-media/70 text-media-foreground/90 shadow-lg backdrop-blur-sm hover:border-media-foreground/30 hover:bg-media-foreground/15 hover:text-media-foreground"
-                              aria-label={t("episode.workbench.video.seedance2AssetCrop")}
-                              onClick={() =>
-                                assetOperations.openCrop({
-                                  asset,
-                                  target: "first_frame",
-                                })
-                              }
-                            >
-                              <Scissors className="size-3.5" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="rounded-[8px] border border-dashed border-border bg-muted p-2 text-xs text-muted-foreground">
-                  {t("episode.workbench.video.seedance2ReferenceEmpty")}
-                </p>
-              )}
-            </div>
-          )}
-        </div>
+        <Seedance2ReferenceCropAssetsView
+          aspectRatio={ratioToCss(spec.sketchAspect)}
+          assets={referenceCropImageItems}
+          className={showHappyHorseConfig ? "order-1" : undefined}
+          controller={assetOperations}
+          open={seedance2ReferencesOpen}
+          onOpenChange={setSeedance2ReferencesOpen}
+        />
       )}
 
       {showPromptConfig && (
@@ -1568,236 +1471,17 @@ export function VideoPane({
             </span>
           </div>
 
-          <div className="rounded-[10px] border border-border bg-card">
-            <div className="flex items-center gap-2 px-3 py-2">
-              <Button
-                type="button"
-                size="xs"
-                variant="ghost"
-                aria-expanded={seedance2ReferencesOpen}
-                onClick={() => setSeedance2ReferencesOpen((open) => !open)}
-                className={SEEDANCE2_COLLAPSE_TRIGGER_CLASS}
-              >
-                <ChevronDown
-                  className={cn(
-                    "size-3.5 transition-transform",
-                    !seedance2ReferencesOpen && "-rotate-90",
-                  )}
-                />
-                <Library className="size-3.5 text-muted-foreground/78" />
-                <span>{t("episode.workbench.video.seedance2ReferenceDetails")}</span>
-              </Button>
-              <span className="inline-flex h-5 items-center rounded-full border border-border bg-muted px-2 text-[11px] leading-none text-muted-foreground">
-                {t("episode.workbench.video.seedance2ReferenceStats", {
-                  selected: seedance2StatusData?.assets.selected ?? 0,
-                  missing: seedance2StatusData?.assets.missing ?? 0,
-                })}
-              </span>
-              <Button
-                type="button"
-                size="xs"
-                variant="outline"
-                disabled={assetOperations.uploadPending}
-                onClick={() => seedance2UploadInputRef.current?.click()}
-                className={cn("ml-auto", SEEDANCE2_SECONDARY_ACTION_CLASS)}
-              >
-                {assetOperations.uploadPending ? (
-                  <Loader2 className="size-3 animate-spin" />
-                ) : (
-                  <Upload className="size-3" />
-                )}
-                {t("episode.workbench.video.seedance2AssetUpload")}
-              </Button>
-              <input
-                ref={seedance2UploadInputRef}
-                type="file"
-                className="hidden"
-                accept={showHappyHorseConfig || showGrokVideoConfig ? "image/*" : "image/*,audio/*"}
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (file) void assetOperations.uploadAsset(file);
-                  event.target.value = "";
-                }}
-              />
-            </div>
-            {seedance2ReferencesOpen && (
-              <div className="border-t border-border p-3">
-                {modelReferenceAssetItems.length > 0 ? (
-                  <div className="grid grid-cols-[repeat(auto-fill,minmax(6.75rem,6.75rem))] gap-2">
-                    {modelReferenceAssetItems.map((asset) => {
-                      const referenceLabel =
-                        asset.reference_label && asset.reference_label !== "未发送"
-                          ? asset.reference_label
-                          : "";
-                      const canInsertReference =
-                        referenceLabel.length > 0 && asset.exists !== false;
-                      const isMissingImage =
-                        asset.media_type === "image" && asset.exists === false;
-                      const displayReferenceLabel = referenceLabel || (
-                        isMissingImage
-                          ? t("episode.workbench.video.seedance2ReferenceImage")
-                          : asset.reference_label
-                      );
-                      const assetImageSrc =
-                        asset.media_type === "image" &&
-                        asset.exists !== false &&
-                        (asset.url || asset.path)
-                          ? resolveMediaUrl(asset.url || asset.path)
-                          : null;
-                      const hasFallback =
-                        !asset.selected &&
-                        asset.media_type === "image" &&
-                        asset.exists === false &&
-                        asset.note.trim().length > 0;
-                      const showTileText =
-                        Boolean(assetImageSrc) ||
-                        asset.media_type === "audio" ||
-                        hasFallback ||
-                        asset.exists === false;
-                      const hasTileActions =
-                        (asset.can_crop && asset.media_type === "image") ||
-                        (asset.can_trim && asset.media_type === "audio") ||
-                        asset.can_delete;
-                      const stateLabel = asset.selected
-                        ? t("episode.workbench.video.seedance2ReferenceSent")
-                        : hasFallback
-                          ? t("episode.workbench.video.seedance2ReferenceFallback")
-                          : asset.exists === false
-                            ? t("episode.workbench.video.seedance2ReferenceMissing")
-                            : t("episode.workbench.video.seedance2ReferenceUnused");
-                      return (
-                        <div
-                          key={asset.key}
-                          data-seedance2-reference-tile
-                          draggable={canInsertReference}
-                          onDragStart={(event) => {
-                            if (referenceLabel) {
-                              handleSeedance2ReferenceDragStart(event, referenceLabel);
-                            }
-                          }}
-                          className={cn(
-                            "group/reference-tile relative aspect-square w-[6.75rem] overflow-hidden rounded-[7px] border border-border bg-muted transition-[border-color,background-color,box-shadow] duration-200 hover:border-foreground/25 hover:bg-accent",
-                            canInsertReference &&
-                              "cursor-grab active:cursor-grabbing hover:shadow-xl",
-                          )}
-                          title={asset.note || asset.label}
-                        >
-                          {assetImageSrc ? (
-                            <img
-                              src={assetImageSrc}
-                              alt={asset.label}
-                              draggable={canInsertReference}
-                              onDragStart={(event) => {
-                                if (referenceLabel) {
-                                  handleSeedance2ReferenceDragStart(event, referenceLabel);
-                                }
-                              }}
-                              className={cn(
-                                "absolute inset-0 h-full w-full object-cover",
-                                canInsertReference && "cursor-grab active:cursor-grabbing",
-                              )}
-                              decoding="async"
-                            />
-                          ) : (
-                            <div className="absolute inset-0 flex items-center justify-center bg-muted">
-                              {asset.media_type === "audio" ? (
-                                <Mic className="size-6 text-muted-foreground/70" />
-                              ) : (
-                                <ImageIcon className="size-6 text-muted-foreground/70" />
-                              )}
-                            </div>
-                          )}
-                          <div className="absolute inset-x-1 top-1 flex min-w-0 items-center justify-between gap-1">
-                            <span className="truncate rounded-[4px] border border-media-foreground/10 bg-media/55 px-1 py-0.5 text-[10px] font-medium leading-none text-media-foreground/90 shadow-sm backdrop-blur-sm">
-                              {displayReferenceLabel}
-                            </span>
-                            <span
-                              className={cn(
-                                "shrink-0 rounded-[4px] border px-1 py-0.5 text-[10px] leading-none shadow-sm backdrop-blur-sm",
-                                asset.selected
-                                  ? "border-primary/35 bg-primary/18 text-primary"
-                                  : "border-media-foreground/10 bg-media/50 text-media-foreground/60",
-                              )}
-                            >
-                              {stateLabel}
-                            </span>
-                          </div>
-                          {showTileText && (
-                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-media/80 via-media/45 to-transparent p-1.5 pt-5">
-                              <div className="truncate text-[10px] font-medium leading-3 text-media-foreground/90">
-                                {asset.label}
-                              </div>
-                              {asset.note && (
-                                <div className="truncate text-[9px] leading-3 text-media-foreground/50">
-                                  {asset.note}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          {hasTileActions && (
-                            <div className="absolute bottom-1.5 right-1.5 flex gap-1 opacity-0 transition-opacity duration-150 group-hover/reference-tile:opacity-100 group-focus-within/reference-tile:opacity-100">
-                              {asset.can_crop && asset.media_type === "image" && (
-                                <Button
-                                  type="button"
-                                  size="icon"
-                                  variant="ghost"
-                                  className="size-6 rounded-[6px] border border-media-foreground/20 bg-media/70 text-media-foreground/90 shadow-lg backdrop-blur-sm hover:border-media-foreground/30 hover:bg-media-foreground/15 hover:text-media-foreground"
-                                  aria-label={t("episode.workbench.video.seedance2AssetCrop")}
-                                  onClick={() =>
-                                    assetOperations.openCrop({
-                                      asset,
-                                      target: seedance2CropTargetForAsset(
-                                        seedance2Draft.mode,
-                                        asset,
-                                      ),
-                                    })
-                                  }
-                                >
-                                  <Scissors className="size-3.5" />
-                                </Button>
-                              )}
-                              {asset.can_trim && asset.media_type === "audio" && (
-                                <Button
-                                  type="button"
-                                  size="icon"
-                                  variant="ghost"
-                                  className="size-6 rounded-[6px] border border-media-foreground/20 bg-media/70 text-media-foreground/90 shadow-lg backdrop-blur-sm hover:border-media-foreground/30 hover:bg-media-foreground/15 hover:text-media-foreground"
-                                  aria-label={t("episode.workbench.video.seedance2AssetCrop")}
-                                  title={t("episode.workbench.video.seedance2AssetAudioTrim")}
-                                  onClick={() => assetOperations.openTrim(asset)}
-                                >
-                                  <Scissors className="size-3.5" />
-                                </Button>
-                              )}
-                              {asset.can_delete && (
-                                <Button
-                                  type="button"
-                                  size="icon"
-                                  variant="ghost"
-                                  disabled={assetOperations.deletePending}
-                                  className="size-5 rounded-[5px] border border-media-foreground/10 bg-media/35 text-media-foreground/60 hover:bg-destructive/15 hover:text-destructive"
-                                  aria-label={t("episode.workbench.video.seedance2AssetDelete")}
-                                  onClick={() =>
-                                    void assetOperations.deleteAsset(asset)
-                                  }
-                                >
-                                  <Trash2 className="size-2.5" />
-                                </Button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="rounded-[8px] border border-dashed border-border bg-muted p-2 text-xs text-muted-foreground">
-                    {t("episode.workbench.video.seedance2ReferenceEmpty")}
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
+          <Seedance2ReferenceAssetsView
+            assets={modelReferenceAssetItems}
+            controller={assetOperations}
+            imageOnly={showHappyHorseConfig || showGrokVideoConfig}
+            missingCount={seedance2StatusData?.assets.missing ?? 0}
+            mode={seedance2Draft.mode}
+            open={seedance2ReferencesOpen}
+            selectedCount={seedance2StatusData?.assets.selected ?? 0}
+            onOpenChange={setSeedance2ReferencesOpen}
+            onReferenceDragStart={handleSeedance2ReferenceDragStart}
+          />
 
           <div className="grid gap-3 rounded-[10px] border border-border bg-card p-3 md:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr]">
             <Seedance2Field
