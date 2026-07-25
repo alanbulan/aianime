@@ -86,15 +86,13 @@ import {
   resolveSelectedNodeId,
 } from '@/features/canvas/domain/canvasSelection';
 import {
-  BEAT_CONTEXT_NODE_DEFAULT_MEASURED,
-  SKILL_NODE_DEFAULT_MEASURED,
   createDefaultStoryboardExportOptions,
 } from '@/features/canvas/application/canvasNodeHydration';
 import { normalizeCanvasData } from '@/features/canvas/application/canvasDataNormalization';
+import { createCanvasNode } from '@/features/canvas/application/canvasNodeCreation';
 import { canvasNodeFactory } from '@/features/canvas/nodeFactoryComposition';
 import {
   isImageAutoResizableType,
-  maybeApplyImageAutoResize,
   resolveAutoImageNodeDimensions,
   resolveGeneratedImageNodeDimensions,
   withManualSizeLock,
@@ -612,16 +610,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   addNode: (type, position, data = {}) => {
     const state = get();
-    const createdNode = maybeApplyImageAutoResize(
-      canvasNodeFactory.createNode(type, position, data),
-      data,
-    );
-    const newNode =
-      createdNode.type === CANVAS_NODE_TYPES.skill && !createdNode.measured
-        ? ({ ...createdNode, measured: SKILL_NODE_DEFAULT_MEASURED } as CanvasNode)
-        : createdNode.type === CANVAS_NODE_TYPES.beatContext && !createdNode.measured
-          ? ({ ...createdNode, measured: BEAT_CONTEXT_NODE_DEFAULT_MEASURED } as CanvasNode)
-          : createdNode;
+    const newNode = createCanvasNode(type, position, data, canvasNodeFactory);
     set({
       nodes: [...state.nodes, newNode],
       history: {

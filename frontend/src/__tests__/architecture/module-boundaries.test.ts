@@ -1635,6 +1635,57 @@ describe("frontend architecture boundaries", () => {
     }
   });
 
+  it("keeps Canvas node creation in the application layer", () => {
+    const creationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasNodeCreation.ts",
+    );
+    const creationModel = readFileSync(creationPath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(creationPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/features/canvas/nodeFactoryComposition",
+    );
+    const creationDeclaration = [
+      "export function",
+      "createCanvasNode(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(creationDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/application/canvasNodeCreation.ts",
+    ]);
+    expect(creationModel).toContain(creationDeclaration);
+    expect(creationModel).toContain("nodeFactory: NodeFactory");
+    expect(creationModel).toContain("maybeApplyImageAutoResize(");
+    expect(canvasStore).toContain(
+      "@/features/canvas/application/canvasNodeCreation",
+    );
+    expect(canvasStore).toContain("canvasNodeFactory);");
+    expect(canvasStore).not.toContain("const createdNode =");
+    expect(canvasStore).not.toContain(
+      "createdNode.type === CANVAS_NODE_TYPES.skill",
+    );
+  });
+
   it("keeps Canvas node data updates out of the Zustand store", () => {
     const nodeDataPath = resolve(
       SRC_ROOT,
