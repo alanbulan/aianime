@@ -25,6 +25,9 @@ describe("beats sketch/render v2 contract", () => {
     const stageRegistry = read("src/lib/episode-stage-registry.ts");
     const batchBar = read("src/components/episode/beat-workbench/batch-bar.tsx");
     const batchPanel = read("src/components/episode/beat-workbench/batch-panel.tsx");
+    const batchPanelController = read(
+      "src/modules/production/application/use-batch-panel-controller.ts",
+    );
     const actionPanel = read("src/components/episode/beat-workbench/action-panel.tsx");
     const productionGateway = read(
       "src/modules/production/infrastructure/http-production-video-gateway.ts",
@@ -52,9 +55,9 @@ describe("beats sketch/render v2 contract", () => {
 
     // Render regen fans out into N selected_regen grid tasks; track them by id
     // via the batch-invalidation hook rather than a single-scope controller.
-    expect(batchPanel).toContain("useScopedTaskBatchInvalidation");
-    expect(batchPanel).toContain("TASK_TYPES.SELECTED_REGEN");
-    expect(batchPanel).toContain('matchBy: "task_id"');
+    expect(batchPanelController).toContain("useScopedTaskBatchInvalidation");
+    expect(batchPanelController).toContain("TASK_TYPES.SELECTED_REGEN");
+    expect(batchPanelController).toContain('matchBy: "task_id"');
     expect(batchPanel).toContain("<RenderPlanDialog");
     expect(batchPanel).not.toContain("handleBatchVideo");
     expect(productionGateway).toContain("render/plan");
@@ -110,7 +113,9 @@ describe("beats sketch/render v2 contract", () => {
   it("keeps selected-beat render regeneration backed by render_plan", () => {
     const taskTypes = read("src/lib/task-types.ts");
     const stageRegistry = read("src/lib/episode-stage-registry.ts");
-    const batchPanel = read("src/components/episode/beat-workbench/batch-panel.tsx");
+    const batchPanelController = read(
+      "src/modules/production/application/use-batch-panel-controller.ts",
+    );
     const renderSection = read("src/components/episode/beat-workbench/render-section.tsx");
     const renderSectionController = read(
       "src/modules/production/application/use-render-section-controller.ts",
@@ -119,9 +124,9 @@ describe("beats sketch/render v2 contract", () => {
     expect(taskTypes).not.toContain('RENDER_PLAN: "render_plan"');
     expect(stageRegistry).not.toContain("TASK_TYPES.RENDER_PLAN");
 
-    expect(batchPanel).toContain("useScopedTaskBatchInvalidation");
-    expect(batchPanel).toContain("TASK_TYPES.SELECTED_REGEN");
-    expect(batchPanel).toContain('matchBy: "task_id"');
+    expect(batchPanelController).toContain("useScopedTaskBatchInvalidation");
+    expect(batchPanelController).toContain("TASK_TYPES.SELECTED_REGEN");
+    expect(batchPanelController).toContain('matchBy: "task_id"');
     expect(renderSection).not.toContain("useRegenerateRenderBeats");
     expect(renderSectionController).toContain("useRegenerateRenderBeats");
     expect(renderSectionController).toContain('taskType: "selected_regen"');
@@ -160,13 +165,15 @@ describe("beats sketch/render v2 contract", () => {
   });
 
   it("dispatches selected-beat sketch plans directly without persistent queue cards", () => {
-    const batchPanel = read("src/components/episode/beat-workbench/batch-panel.tsx");
+    const batchPanelController = read(
+      "src/modules/production/application/use-batch-panel-controller.ts",
+    );
 
-    expect(batchPanel).toContain("dispatchSketchPlanItems");
-    expect(batchPanel).not.toContain("sketchDispatchQueue");
-    expect(batchPanel).not.toContain("sketchDispatchRun");
-    expect(batchPanel).not.toContain("handleDispatchSketchItem");
-    expect(batchPanel).toContain("onClearSelection()");
+    expect(batchPanelController).toContain("dispatchSketchPlanItems");
+    expect(batchPanelController).not.toContain("sketchDispatchQueue");
+    expect(batchPanelController).not.toContain("sketchDispatchRun");
+    expect(batchPanelController).not.toContain("handleDispatchSketchItem");
+    expect(batchPanelController).toContain("onClearSelection()");
   });
 
   it("labels the selected sketch grid action as batch redraw instead of auto combine", () => {

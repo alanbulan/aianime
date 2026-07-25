@@ -23,10 +23,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  sketchPlanGridLabel,
-  type SketchRegenQueueItem,
-} from "@/modules/production/domain/sketch-regen-queue";
+import type { BatchPanelController } from "@/modules/production/application/use-batch-panel-controller";
+import { sketchPlanGridLabel } from "@/modules/production/domain/sketch-regen-queue";
 
 interface BatchPanelConfirmation {
   title: string;
@@ -35,52 +33,35 @@ interface BatchPanelConfirmation {
 }
 
 export interface BatchPanelViewProps {
-  actionDisabled: {
-    audio: boolean;
-    render: boolean;
-    sketch: boolean;
-  };
-  audioPending: boolean;
-  beatNumbers: readonly number[];
-  isSeedance2Backend: boolean;
-  lockedSketchItemIds: ReadonlySet<string>;
+  controller: BatchPanelController;
   renderPlanDialog: ReactNode;
-  singleSketchUnlockedCount: number;
-  sketchPlanCostDisplay?: string | null;
-  sketchPlanItems: readonly SketchRegenQueueItem[];
-  sketchPlanOpen: boolean;
-  sketchPlanUnlockedCount: number;
-  onBatchAudio(): void;
-  onClearSelection(): void;
-  onConfirmSketchPlan(): void;
-  onDispatchSingleSketches(): void;
-  onOpenRenderPlan(forceOneByOne: boolean): void;
-  onOpenSketchPlan(): void;
-  onSketchPlanOpenChange(open: boolean): void;
 }
 
 export function BatchPanelView({
-  actionDisabled,
-  audioPending,
-  beatNumbers,
-  isSeedance2Backend,
-  lockedSketchItemIds,
+  controller,
   renderPlanDialog,
-  singleSketchUnlockedCount,
-  sketchPlanCostDisplay,
-  sketchPlanItems,
-  sketchPlanOpen,
-  sketchPlanUnlockedCount,
-  onBatchAudio,
-  onClearSelection,
-  onConfirmSketchPlan,
-  onDispatchSingleSketches,
-  onOpenRenderPlan,
-  onOpenSketchPlan,
-  onSketchPlanOpenChange,
 }: BatchPanelViewProps) {
   const { t } = useTranslation();
   const [confirm, setConfirm] = useState<BatchPanelConfirmation | null>(null);
+  const {
+    actionDisabled,
+    audioPending,
+    beatNumbers,
+    isSeedance2Backend,
+    lockedSketchItemIds,
+    onBatchAudio,
+    onClearSelection,
+    onConfirmSketchPlan,
+    onDispatchSingleSketches,
+    onOpenRenderPlan,
+    onOpenSketchPlan,
+    onSketchPlanOpenChange,
+    singleSketchUnlockedCount,
+    sketchPlanCostDisplay,
+    sketchPlanItems,
+    sketchPlanOpen,
+    sketchPlanUnlockedCount,
+  } = controller;
   const count = beatNumbers.length;
 
   const askConfirm = (

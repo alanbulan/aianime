@@ -8,11 +8,13 @@ const read = (path: string) => readFileSync(resolve(root, path), "utf8");
 
 describe("selected beat video task binding", () => {
   it("keeps BatchPanel pending while selected single_video tasks are active", () => {
-    const batchPanel = read("src/components/episode/beat-workbench/batch-panel.tsx");
+    const batchPanelController = read(
+      "src/modules/production/application/use-batch-panel-controller.ts",
+    );
 
-    expect(batchPanel).toContain("useTasks");
-    expect(batchPanel).toContain("TASK_TYPES.SINGLE_VIDEO");
-    expect(batchPanel).toContain("selectedVideoRunning");
-    expect(batchPanel).toContain("isActiveStatus");
+    expect(batchPanelController).toContain("dependencies.useTasks");
+    expect(batchPanelController).toContain("TASK_TYPES.SINGLE_VIDEO");
+    expect(batchPanelController).toContain("selectedVideoRunning");
+    expect(batchPanelController).toContain("isActiveStatus");
   });
 });

@@ -549,6 +549,17 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const batchPanelControllerSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/production/application/use-batch-panel-controller.ts",
+      ),
+      "utf8",
+    );
+    const productionCompositionSource = readFileSync(
+      resolve(SRC_ROOT, "modules/production/composition.ts"),
+      "utf8",
+    );
     const sketchRegenQueueDomainSource = readFileSync(
       resolve(
         SRC_ROOT,
@@ -1020,11 +1031,21 @@ describe("frontend architecture boundaries", () => {
     );
     expect(batchPanelSource).toContain("<BatchPanelView");
     expect(batchPanelSource).toContain("<RenderPlanDialog");
+    expect(batchPanelSource).toContain("useBatchPanelController({");
+    expect(batchPanelSource).toContain("useProjectAspectRatio(project)");
     expect(batchPanelSource).not.toContain("className=");
     expect(batchPanelSource).not.toContain("<Button");
     expect(batchPanelSource).not.toContain("<AlertDialog");
     expect(batchPanelSource).not.toContain("<CreditCostInline");
     expect(batchPanelSource).not.toContain("sketchPlanGridLabel");
+    expect(batchPanelSource).not.toContain("useState(");
+    expect(batchPanelSource).not.toContain("useEffect(");
+    expect(batchPanelSource).not.toContain("useTasks(");
+    expect(batchPanelSource).not.toContain("useRegenerateSketches(");
+    expect(batchPanelSource).not.toContain("useGenerateAudio(");
+    expect(batchPanelSource).not.toContain("TASK_TYPES");
+    expect(batchPanelSource).not.toContain("toast.");
+    expect(batchPanelSource).not.toContain("localStorage");
     expect(batchPanelSource).not.toContain("@/lib/regen-modes");
     expect(batchPanelSource).not.toContain(
       "export function createSketchRegenPlanItems",
@@ -1038,11 +1059,36 @@ describe("frontend architecture boundaries", () => {
     expect(batchPanelViewSource).toContain("<AlertDialog");
     expect(batchPanelViewSource).toContain("<CreditCostInline");
     expect(batchPanelViewSource).toContain("sketchPlanGridLabel");
+    expect(batchPanelViewSource).toContain(
+      "controller: BatchPanelController",
+    );
     expect(batchPanelViewSource).not.toContain("useTasks(");
     expect(batchPanelViewSource).not.toContain("useRegenerateSketches(");
     expect(batchPanelViewSource).not.toContain("useGenerateAudio(");
     expect(batchPanelViewSource).not.toContain("toast.");
     expect(batchPanelViewSource).not.toContain("localStorage");
+    expect(batchPanelControllerSource).toContain(
+      "createUseBatchPanelController",
+    );
+    expect(batchPanelControllerSource).toContain("queries.useGenerateAudio");
+    expect(batchPanelControllerSource).toContain(
+      "queries.useRegenerateSketches",
+    );
+    expect(batchPanelControllerSource).toContain("dependencies.useTasks");
+    expect(batchPanelControllerSource).toContain(
+      "useScopedTaskBatchInvalidation",
+    );
+    expect(batchPanelControllerSource).toContain("useTaskController(");
+    expect(batchPanelControllerSource).toContain(
+      "dependencies.removeStoredValue",
+    );
+    expect(batchPanelControllerSource).not.toContain("localStorage");
+    expect(batchPanelControllerSource).not.toContain("document.");
+    expect(batchPanelControllerSource).not.toContain("navigator.");
+    expect(productionCompositionSource).toContain(
+      "createUseBatchPanelController",
+    );
+    expect(productionCompositionSource).toContain("localStorage.removeItem");
     expect(sketchRegenQueueDomainSource).toContain(
       "export function createSketchRegenPlanItems",
     );

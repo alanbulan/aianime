@@ -1,6 +1,7 @@
 export {
   AudioPaneContent,
   useAssignColors,
+  useBatchPanelController,
   useComposeEpisode,
   useCopyProjectNarratorVoice,
   useCropSeedance2Asset,
@@ -88,6 +89,12 @@ export { VideoPaneMediaView } from "@/modules/production/presentation/VideoPaneM
 export { VideoPaneView } from "@/modules/production/presentation/VideoPaneView";
 export { BatchPanelView } from "@/modules/production/presentation/BatchPanelView";
 export type { BatchPanelViewProps } from "@/modules/production/presentation/BatchPanelView";
+export type {
+  BatchPanelController,
+  BatchPanelControllerDependencies,
+  BatchPanelControllerOptions,
+  BatchPanelControllerQueries,
+} from "@/modules/production/application/use-batch-panel-controller";
 export { SketchSectionView } from "@/modules/production/presentation/SketchSectionView";
 export type { SketchSectionViewProps } from "@/modules/production/presentation/SketchSectionView";
 export { RenderSectionView } from "@/modules/production/presentation/RenderSectionView";

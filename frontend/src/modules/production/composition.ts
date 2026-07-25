@@ -2,10 +2,12 @@
 import { createElement } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
+import { formatCreditCost } from "@/components/credits/credit-visual";
 import { withImageCacheBust } from "@/features/canvas/application/imageData";
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
 import { useNow } from "@/hooks/use-now";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
+import { useTasks } from "@/lib/queries/tasks";
 import { queryKeys } from "@/lib/query-keys";
 import type { Beat } from "@/modules/narrative_planning/public";
 import { useAppStore } from "@/stores/app-store";
@@ -26,6 +28,7 @@ import { createSketchPoseEditorQueryHooks } from "@/modules/production/applicati
 import { createSketchMarkerQueryHooks } from "@/modules/production/application/sketch-marker-query-hooks";
 import { createSketchGenerationQueryHooks } from "@/modules/production/application/sketch-generation-query-hooks";
 import { createUseAudioPaneController } from "@/modules/production/application/use-audio-pane-controller";
+import { createUseBatchPanelController } from "@/modules/production/application/use-batch-panel-controller";
 import { createUseBeatVideoGenerationController } from "@/modules/production/application/use-beat-video-generation-controller";
 import { createUseLegacyVideoPromptController } from "@/modules/production/application/use-legacy-video-prompt-controller";
 import { createUseNarratorVoicePanelController } from "@/modules/production/application/use-narrator-voice-panel-controller";
@@ -72,6 +75,9 @@ const imageSettingsQueries = createImageSettingsQueryHooks(
   httpProductionVideoGateway,
 );
 const sketchGenerationQueries = createSketchGenerationQueryHooks(
+  httpProductionVideoGateway,
+);
+const sketchRegenQueueQueries = createSketchRegenQueueQueryHooks(
   httpProductionVideoGateway,
 );
 const videoGenerationQueries = createVideoGenerationQueryHooks({
@@ -142,6 +148,28 @@ export const useSketchGridCardController =
     },
     gridBrowserCommands,
   );
+export const useBatchPanelController = createUseBatchPanelController(
+  {
+    useGenerateAudio: audioGenerationQueries.useGenerateAudio,
+    useRegenerateSketches: sketchGenerationQueries.useRegenerateSketches,
+    useSaveSketchRegenQueue:
+      sketchRegenQueueQueries.useSaveSketchRegenQueue,
+    useSketchRegenQueue: sketchRegenQueueQueries.useSketchRegenQueue,
+    useSketchSettings: imageSettingsQueries.useSketchSettings,
+  },
+  {
+    formatCreditCost,
+    removeStoredValue: (key) => {
+      try {
+        localStorage.removeItem(key);
+      } catch {
+        /* ignore */
+      }
+    },
+    useGenerationCreditCost,
+    useTasks,
+  },
+);
 export const useSketchSectionController = createUseSketchSectionController(
   {
     useDirectorControlToSketch:
@@ -270,7 +298,7 @@ export const {
 export const { useRenderPlan, useRenderExecute } =
   createRenderPlanQueryHooks(httpProductionVideoGateway);
 export const { useSketchRegenQueue, useSaveSketchRegenQueue } =
-  createSketchRegenQueueQueryHooks(httpProductionVideoGateway);
+  sketchRegenQueueQueries;
 export const {
   useSketchPoseEditor,
   useSaveSketchPoseEditor,
