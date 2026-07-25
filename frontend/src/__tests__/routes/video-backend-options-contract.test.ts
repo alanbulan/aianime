@@ -6,9 +6,14 @@ import { describe, expect, it } from "vitest";
 const root = process.cwd();
 const read = (path: string) => readFileSync(resolve(root, path), "utf8");
 
+function readVideoPaneComposition() {
+  const source = read("src/modules/production/video-pane-composition.ts");
+  return source.slice(source.indexOf("export interface VideoPaneProps"));
+}
+
 describe("video backend options alignment", () => {
   it("does not hardcode the VideoPane backend list", () => {
-    const videoPane = read("src/components/episode/beat-workbench/video-pane.tsx");
+    const videoPane = readVideoPaneComposition();
     const videoPaneController = read(
       "src/modules/production/application/use-video-pane-controller.ts",
     );

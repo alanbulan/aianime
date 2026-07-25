@@ -19,6 +19,7 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "modules/production/presentation/media-styles.ts": 0,
   "modules/production/render-section-composition.ts": 0,
   "modules/production/sketch-section-composition.ts": 0,
+  "modules/production/video-pane-composition.ts": 0,
   "modules/production/presentation/Seedance2AssetCropDialog.tsx": 1,
   "modules/production/presentation/RenderSectionView.tsx": 1,
   "modules/production/presentation/SketchCropDialogView.tsx": 1,

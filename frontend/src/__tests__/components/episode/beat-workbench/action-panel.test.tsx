@@ -90,6 +90,7 @@ vi.mock("@/modules/production/public", () => ({
   AudioPaneContent: () => <div>AudioPane</div>,
   RenderSection: () => <div>RenderSection</div>,
   SketchSection: () => <div>SketchSection</div>,
+  VideoPane: () => <div>VideoPane</div>,
 }));
 
 vi.mock("@/hooks/use-escape-to-close", () => ({
@@ -102,10 +103,6 @@ vi.mock("@/components/save-status", () => ({
 
 vi.mock("@/components/episode/beat-workbench/text-pane", () => ({
   TextPane: () => <div>TextPane</div>,
-}));
-
-vi.mock("@/components/episode/beat-workbench/video-pane", () => ({
-  VideoPane: () => <div>VideoPane</div>,
 }));
 
 function makeBeat(beatNumber: number): Beat {

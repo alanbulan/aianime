@@ -6,6 +6,11 @@ import { describe, expect, it } from "vitest";
 const root = process.cwd();
 const read = (path: string) => readFileSync(resolve(root, path), "utf8");
 
+function readVideoPaneComposition() {
+  const source = read("src/modules/production/video-pane-composition.ts");
+  return source.slice(source.indexOf("export interface VideoPaneProps"));
+}
+
 describe("Seedance2 minimal config alignment", () => {
   it("keeps seedance2_config_json on Beat and BeatUpdate", () => {
     const narrativeTypes = read(
@@ -18,7 +23,7 @@ describe("Seedance2 minimal config alignment", () => {
   });
 
   it("shows and saves minimal Seedance2 config from the video pane", () => {
-    const videoPane = read("src/components/episode/beat-workbench/video-pane.tsx");
+    const videoPane = readVideoPaneComposition();
     const videoPaneController = read(
       "src/modules/production/application/use-video-pane-controller.ts",
     );

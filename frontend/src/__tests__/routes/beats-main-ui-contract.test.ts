@@ -14,6 +14,11 @@ function readBatchBarComposition() {
   );
 }
 
+function readVideoPaneComposition() {
+  const source = read("src/modules/production/video-pane-composition.ts");
+  return source.slice(source.indexOf("export interface VideoPaneProps"));
+}
+
 const route = read(
   "src/routes/_app/projects.$project/episodes.$episode/beats.lazy.tsx",
 );
@@ -174,9 +179,7 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
     const singleBeatPanel = read(
       "src/components/episode/beat-workbench/single-beat-panel.tsx",
     );
-    const videoPane = read(
-      "src/components/episode/beat-workbench/video-pane.tsx",
-    );
+    const videoPane = readVideoPaneComposition();
     const videoPaneView = read(
       "src/modules/production/presentation/VideoPaneView.tsx",
     );
@@ -187,7 +190,7 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
     expect(view).toContain("showAudioMediaStatus={isNarratedProject}");
     expect(actionPanel).toContain("showAudioMediaStatus");
     expect(singleBeatPanel).toContain("showAudioMediaStatus");
-    expect(videoPane).toContain("showAudioMediaStatus={showAudioMediaStatus}");
+    expect(videoPane).toContain("showAudioMediaStatus,");
     expect(videoPaneView).toContain(
       "showAudioMediaStatus={showAudioMediaStatus}",
     );
@@ -238,9 +241,7 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
     const batchPanel = read(
       "src/components/episode/beat-workbench/batch-panel.tsx",
     );
-    const videoPane = read(
-      "src/components/episode/beat-workbench/video-pane.tsx",
-    );
+    const videoPane = readVideoPaneComposition();
     const videoGeneration = read(
       "src/modules/production/domain/video-generation.ts",
     );

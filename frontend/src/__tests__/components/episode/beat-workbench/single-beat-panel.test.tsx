@@ -101,6 +101,7 @@ vi.mock("@/modules/production/public", () => ({
       打开草图预览
     </button>
   ),
+  VideoPane: () => <div>VideoPane</div>,
 }));
 
 vi.mock("@/hooks/use-escape-to-close", () => ({
@@ -113,10 +114,6 @@ vi.mock("@/components/save-status", () => ({
 
 vi.mock("@/components/episode/beat-workbench/text-pane", () => ({
   TextPane: () => <div>TextPane</div>,
-}));
-
-vi.mock("@/components/episode/beat-workbench/video-pane", () => ({
-  VideoPane: () => <div>VideoPane</div>,
 }));
 
 function makeBeat(overrides: Partial<Beat> = {}): Beat {

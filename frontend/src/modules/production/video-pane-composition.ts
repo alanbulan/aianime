@@ -1,35 +1,30 @@
 // Copyright (c) 2026 AI anime
+import { createElement } from "react";
+
 import {
   useUpdateBeat,
   type Beat,
 } from "@/modules/narrative_planning/public";
-import {
-  useVideoPaneController,
-  VideoPaneView,
-} from "@/modules/production/public";
+import { useVideoPaneController } from "@/modules/production/composition";
+import { VideoPaneView } from "@/modules/production/presentation/VideoPaneView";
 import type { BeatStageState } from "@/types/beat-state";
 
-interface VideoPaneProps {
+export interface VideoPaneProps {
   beat: Beat;
-  project: string;
-  episode: number;
-  state: BeatStageState;
-  /** Episode-level video backend selected in the video panel. */
   defaultBackend: string;
+  episode: number;
+  project: string;
   showAudioMediaStatus?: boolean;
+  state: BeatStageState;
 }
 
-/**
- * 视频 sub-tab — first-frame preview + video preview + per-beat regen.
- * Per-beat backend override is deferred (see v3 spec P4 follow-up).
- */
 export function VideoPane({
   beat,
-  project,
-  episode,
-  state,
   defaultBackend,
+  episode,
+  project,
   showAudioMediaStatus = true,
+  state,
 }: VideoPaneProps) {
   const updateBeat = useUpdateBeat(project, episode);
   const controller = useVideoPaneController({
@@ -42,10 +37,8 @@ export function VideoPane({
     updateBeat: (command) => updateBeat.mutateAsync(command),
   });
 
-  return (
-    <VideoPaneView
-      controller={controller}
-      showAudioMediaStatus={showAudioMediaStatus}
-    />
-  );
+  return createElement(VideoPaneView, {
+    controller,
+    showAudioMediaStatus,
+  });
 }

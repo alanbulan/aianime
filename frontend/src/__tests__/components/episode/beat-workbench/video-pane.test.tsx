@@ -6,9 +6,9 @@ import i18next from "i18next";
 import { beforeAll, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { toast } from "sonner";
 
-import { VideoPane } from "@/components/episode/beat-workbench/video-pane";
 import { useAspectRatioStore } from "@/stores/aspect-ratio-store";
 import type { Beat } from "@/modules/narrative_planning/public";
+import { VideoPane } from "@/modules/production/video-pane-composition";
 import type { Seedance2AssetItem } from "@/modules/production/public";
 
 const i18n = i18next.createInstance();
@@ -452,8 +452,7 @@ const videoQueryMocks = vi.hoisted(() => ({
   }),
 }));
 
-vi.mock("@/modules/production/public", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/modules/production/public")>();
+vi.mock("@/modules/production/composition", async () => {
   const { createUseBeatVideoGenerationController } = await import(
     "@/modules/production/application/use-beat-video-generation-controller"
   );
@@ -468,6 +467,9 @@ vi.mock("@/modules/production/public", async (importOriginal) => {
   );
   const { createUseVideoPaneController } = await import(
     "@/modules/production/application/use-video-pane-controller"
+  );
+  const { useSeedance2MentionController } = await import(
+    "@/modules/production/application/use-seedance2-mention-controller"
   );
   const { useProjectAspectRatio } = await import(
     "@/stores/aspect-ratio-store"
@@ -639,28 +641,12 @@ vi.mock("@/modules/production/public", async (importOriginal) => {
       useProjectAspectRatio,
       useSeedance2AssetOperationsController,
       useSeedance2ConfigController,
-      useSeedance2MentionController:
-        actual.useSeedance2MentionController,
+      useSeedance2MentionController,
       useVideoPaneMediaController,
     },
   );
   return {
-    ...actual,
-    useBeatVideoGenerationController,
-    useSeedance2AssetOperationsController,
-    useSeedance2ConfigController,
-    useSeedance2BeatStatus: videoQueryMocks.useSeedance2BeatStatus,
-    useLegacyVideoPromptController,
-    useNarratorVoiceStatus: videoQueryMocks.useNarratorVoiceStatus,
-    useNarratorVoiceSources: videoQueryMocks.useNarratorVoiceSources,
-    useUploadNarratorVoice: videoQueryMocks.useUploadNarratorVoice,
-    useRecordNarratorVoice: videoQueryMocks.useRecordNarratorVoice,
-    useCopyProjectNarratorVoice: videoQueryMocks.useCopyProjectNarratorVoice,
-    useTrimNarratorVoice: videoQueryMocks.useTrimNarratorVoice,
-    useDeleteNarratorVoice: videoQueryMocks.useDeleteNarratorVoice,
-    useVideoBackends,
     useVideoPaneController,
-    useVideoPaneMediaController,
   };
 });
 

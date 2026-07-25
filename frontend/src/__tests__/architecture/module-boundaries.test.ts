@@ -1183,12 +1183,9 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
-    const videoPaneSource = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "components/episode/beat-workbench/video-pane.tsx",
-      ),
-      "utf8",
+    const videoPaneSource = sourceSection(
+      resolve(SRC_ROOT, "modules/production/video-pane-composition.ts"),
+      "export interface VideoPaneProps",
     );
     const videoPaneViewSource = readFileSync(
       resolve(SRC_ROOT, "modules/production/presentation/VideoPaneView.tsx"),
@@ -1378,6 +1375,7 @@ describe("frontend architecture boundaries", () => {
       "components/episode/beat-workbench/render-section.tsx",
       "components/episode/beat-workbench/render-grid-gallery.tsx",
       "components/episode/beat-workbench/sketch-grid-gallery.tsx",
+      "components/episode/beat-workbench/video-pane.tsx",
     ]) {
       expect(existsSync(resolve(SRC_ROOT, legacyPath)), legacyPath).toBe(false);
     }
@@ -1500,7 +1498,7 @@ describe("frontend architecture boundaries", () => {
     expect(videoPaneSource).not.toContain("handleMentionKeyDown");
     expect(videoPaneSource).not.toContain("handleReferenceDragStart");
     expect(videoPaneSource).not.toContain("renderReferenceControls");
-    expect(videoPaneSource).toContain("<VideoPaneView");
+    expect(videoPaneSource).toContain("createElement(VideoPaneView");
     expect(videoPaneSource).not.toContain("<VideoPaneMediaView");
     expect(videoPaneSource).not.toContain("<LegacyVideoPromptView");
     expect(videoPaneSource).not.toContain("<VideoParamField");
@@ -1520,7 +1518,7 @@ describe("frontend architecture boundaries", () => {
     expect(videoPaneSource).not.toContain("<AlertDialog");
     expect(videoPaneSource).toContain("useUpdateBeat(");
     expect(videoPaneSource).toContain("useVideoPaneController({");
-    expect(videoPaneSource).toContain("controller={controller}");
+    expect(videoPaneSource).toContain("controller,");
     expect(videoPaneSource).not.toContain("useMemo(");
     expect(videoPaneSource).not.toContain("useState(");
     expect(videoPaneSource).not.toContain("useProjectAspectRatio(");
@@ -1576,6 +1574,18 @@ describe("frontend architecture boundaries", () => {
     expect(videoPaneControllerSource).not.toContain("navigator.");
     expect(productionCompositionSource).toContain(
       "createUseVideoPaneController",
+    );
+    expect(productionPublicSource).toContain(
+      'export { VideoPane } from "@/modules/production/video-pane-composition";',
+    );
+    expect(productionPublicSource).not.toContain(
+      "useVideoPaneController",
+    );
+    expect(productionPublicSource).not.toContain(
+      'export { VideoPaneView }',
+    );
+    expect(productionPublicSource).not.toContain(
+      "VideoPaneControllerOptions",
     );
     expect(sketchSectionSource).toContain(
       "createElement(SketchSectionView",

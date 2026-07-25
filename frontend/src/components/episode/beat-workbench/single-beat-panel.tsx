@@ -9,11 +9,11 @@ import {
   AudioPaneContent,
   RenderSection,
   SketchSection,
+  VideoPane,
 } from "@/modules/production/public";
 import type { BeatStageState } from "@/types/beat-state";
 
 import { TextPane } from "./text-pane";
-import { VideoPane } from "./video-pane";
 
 export type { SectionId } from "@/modules/narrative_planning/public";
 
