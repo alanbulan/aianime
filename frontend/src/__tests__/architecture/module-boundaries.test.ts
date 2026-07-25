@@ -1068,13 +1068,18 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/application/canvasGroupCreation.ts",
     );
+    const autoGroupingPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/canvasAutoGrouping.ts",
+    );
     const groupingModel = readFileSync(groupingPath, "utf8");
     const creationModel = readFileSync(creationPath, "utf8");
+    const autoGroupingModel = readFileSync(autoGroupingPath, "utf8");
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
     );
-    const forbiddenImports = [groupingPath, creationPath].flatMap((path) =>
+    const forbiddenImports = [groupingPath, creationPath, autoGroupingPath].flatMap((path) =>
       importSpecifiers(path)
         .filter(
           (specifier) =>
@@ -1085,6 +1090,9 @@ describe("frontend architecture boundaries", () => {
             specifier === "zustand" ||
             specifier.startsWith("zustand/") ||
             specifier.startsWith("@/stores/") ||
+            (path !== creationPath &&
+              (specifier.startsWith("@/features/canvas/application/") ||
+                /^(?:\.\.\/)+application(?:\/|$)/.test(specifier))) ||
             specifier.startsWith("@/features/canvas/infrastructure/") ||
             specifier === "@/features/canvas/composition" ||
             specifier === "@/features/canvas/nodeFactoryComposition",
@@ -1099,10 +1107,18 @@ describe("frontend architecture boundaries", () => {
       "export function",
       "createCanvasNodeGroup(",
     ].join(" ");
+    const autoGroupingDeclaration = [
+      "export function",
+      "planCanvasAutoGroupSpawn(",
+    ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => {
         const source = readFileSync(path, "utf8");
-        return source.includes(groupingDeclaration) || source.includes(creationDeclaration);
+        return (
+          source.includes(groupingDeclaration) ||
+          source.includes(creationDeclaration) ||
+          source.includes(autoGroupingDeclaration)
+        );
       })
       .map(relativeSource)
       .sort();
@@ -1110,10 +1126,12 @@ describe("frontend architecture boundaries", () => {
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
       "features/canvas/application/canvasGroupCreation.ts",
+      "features/canvas/domain/canvasAutoGrouping.ts",
       "features/canvas/domain/canvasGrouping.ts",
     ]);
     expect(groupingModel).toContain(groupingDeclaration);
     expect(creationModel).toContain(creationDeclaration);
+    expect(autoGroupingModel).toContain(autoGroupingDeclaration);
     expect(creationModel).toContain("nodeFactory: NodeFactory");
     expect(creationModel).toContain("resolveCanvasGroupMembers(nodes, nodeIds)");
     expect(canvasStore).toContain(
@@ -1122,10 +1140,16 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).toContain(
       "@/features/canvas/domain/canvasGrouping",
     );
+    expect(canvasStore).toContain(
+      "@/features/canvas/domain/canvasAutoGrouping",
+    );
     expect(canvasStore).not.toContain("const selectedSet = new Set(existingIds)");
     expect(canvasStore).not.toContain("const absoluteBounds = members.reduce(");
     expect(canvasStore).not.toContain("const SIDE_PADDING = 20 + extraPadding");
     expect(canvasStore).not.toContain("groupDisplayName = opts?.label");
+    expect(canvasStore).not.toContain("let enclosing: CanvasNode | null");
+    expect(canvasStore).not.toContain("spawnedNodeIds.map(");
+    expect(canvasStore).not.toContain("spawnedSet.has(node.id)");
   });
 
   it("keeps Canvas storyboard node layout out of the Zustand store", () => {

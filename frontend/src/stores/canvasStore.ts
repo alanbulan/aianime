@@ -73,6 +73,7 @@ import {
 } from '@/features/canvas/domain/canvasNodePositions';
 import { deleteCanvasNodes } from '@/features/canvas/domain/groupSelectionDelete';
 import { resolveCanvasGroupMembers } from '@/features/canvas/domain/canvasGrouping';
+import { planCanvasAutoGroupSpawn } from '@/features/canvas/domain/canvasAutoGrouping';
 import { validateCanvasConnection } from '@/features/canvas/domain/canvasConnection';
 import { EXPORT_RESULT_DISPLAY_NAME } from '@/features/canvas/domain/nodeDisplay';
 import {
@@ -1181,58 +1182,23 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   autoGroupSpawn: (sourceNodeId, spawnedNodeIds, opts) => {
     const state = get();
-    const nodeMap = new Map(state.nodes.map((node) => [node.id, node] as const));
-    const source = nodeMap.get(sourceNodeId);
-    if (!source) return null;
-    // 只收编「自由」的新节点；已有归属的不抢。
-    const spawned = spawnedNodeIds
-      .map((nodeId) => nodeMap.get(nodeId))
-      .filter((node): node is CanvasNode => Boolean(node && !node.parentId));
-    if (spawned.length === 0) return null;
-
-    // 源节点最近的祖先组。
-    let enclosing: CanvasNode | null = null;
-    let parentId = source.parentId;
-    const visited = new Set<string>();
-    while (parentId && !visited.has(parentId)) {
-      visited.add(parentId);
-      const parent = nodeMap.get(parentId);
-      if (!parent) break;
-      if (isGroupNode(parent)) {
-        enclosing = parent;
-        break;
-      }
-      parentId = parent.parentId;
+    const plan = planCanvasAutoGroupSpawn(
+      state.nodes,
+      sourceNodeId,
+      spawnedNodeIds,
+    );
+    if (!plan) {
+      return null;
     }
-
-    if (!enclosing) {
-      // 自动组比手动 Ctrl+G 的边界更宽松些，给成员四周多留 20px 呼吸感。
-      return get().groupNodes([sourceNodeId, ...spawned.map((node) => node.id)], {
+    if (plan.kind === 'create_group') {
+      return get().groupNodes(plan.nodeIds, {
         label: opts?.label,
         extraPadding: 20,
       });
     }
-    // 在谓词检查前先取 id（isStoryboardGroupNode 等共享 isGroupNode 的类型谓词，
-    // 检查后 enclosing 会被 TS 收窄成 never，同 fitGroupToChildren 的注释）。
-    const groupId = enclosing.id;
-    // 分镜组按宫格自排版、投影组受保护——都不往里塞成员。
-    if (isStoryboardGroupNode(enclosing) || isProtectedProjectionGroupNode(enclosing)) {
-      return null;
-    }
-
-    // 派生位置全部基于源节点的「原始 position」计算（findNodePosition 与各节点的
-    // 手写布局都不解析 parentId）。源在组内时该基准本就是组内相对坐标，因此新节点
-    // 的 position 可直接当作组内相对坐标使用，无需绝对↔相对换算。
-    const spawnedSet = new Set(spawned.map((node) => node.id));
-    const nextNodes = state.nodes.map((node) =>
-      // 不设 extent:'parent'：普通组成员可自由拖动，拖动时实时撑大组框（同 groupNodes）。
-      spawnedSet.has(node.id)
-        ? { ...node, parentId: groupId, extent: undefined }
-        : node,
-    );
 
     set({
-      nodes: nextNodes,
+      nodes: plan.nodes,
       history: {
         past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
         future: [],
@@ -1240,9 +1206,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       dragHistorySnapshot: null,
       ...trackEdit(state),
     });
-    // 新成员通常落在组边界外（spawn 习惯放在源节点左/右侧），撑大组以容纳。
-    get().fitGroupToChildren(groupId);
-    return groupId;
+    get().fitGroupToChildren(plan.groupNodeId);
+    return plan.groupNodeId;
   },
 
   mergeStoryboardGroup: (nodeIds) => {
