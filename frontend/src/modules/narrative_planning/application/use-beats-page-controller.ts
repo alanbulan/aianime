@@ -19,6 +19,10 @@ import type {
   BeatsSketchPlanControllerOptions,
   SketchAspectRatio,
 } from "@/modules/narrative_planning/application/use-beats-sketch-plan-controller";
+import type {
+  SketchStudioController,
+  SketchStudioControllerOptions,
+} from "@/modules/narrative_planning/application/use-sketch-studio-controller";
 import {
   backendErrorToastMessage,
   BillingRuleNotConfiguredError,
@@ -96,6 +100,10 @@ type UseBeatsSketchPlanController = (
   options: BeatsSketchPlanControllerOptions,
 ) => BeatsSketchPlanController;
 
+type UseSketchStudioController = (
+  options: SketchStudioControllerOptions,
+) => SketchStudioController;
+
 function creditCostDisplay(
   query: CreditCostQuery,
   billingRuleFallback: string,
@@ -112,6 +120,7 @@ export function createUseBeatsPageController(
   queries: NarrativePlanningQueryHooks,
   dependencies: BeatsPageControllerDependencies,
   useSketchPlanController: UseBeatsSketchPlanController,
+  useSketchStudioController: UseSketchStudioController,
 ) {
   return function useBeatsPageController(options: BeatsPageControllerOptions) {
     const {
@@ -145,6 +154,12 @@ export function createUseBeatsPageController(
     );
     const { states } = useBeatStates(project, episodeNumber);
     const beats = beatsResponse?.data ?? [];
+    const sketchStudio = useSketchStudioController({
+      beats,
+      episode: episodeNumber,
+      project,
+      propMenu: episodeResponse?.data.prop_menu ?? [],
+    });
     const identityIds = episodeResponse?.data?.identity_ids ?? [];
     const identityPlanReady = identityIds.length > 0;
     const isNarratedProject =
@@ -423,6 +438,7 @@ export function createUseBeatsPageController(
       setSketchAspectRatio,
       sketchAspectRatio,
       sketchPlan,
+      sketchStudio,
       spineTemplate,
       states,
       targetSection,

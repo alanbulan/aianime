@@ -332,6 +332,18 @@ describe("frontend architecture boundaries", () => {
 
   it("keeps Narrative Planning callers on its public API", () => {
     const moduleRoot = resolve(SRC_ROOT, "modules/narrative_planning");
+    const beatsPageViewSource = readFileSync(
+      resolve(moduleRoot, "presentation/BeatsPageView.tsx"),
+      "utf8",
+    );
+    const sketchStudioControllerSource = readFileSync(
+      resolve(moduleRoot, "application/use-sketch-studio-controller.ts"),
+      "utf8",
+    );
+    const sketchStudioViewSource = readFileSync(
+      resolve(moduleRoot, "presentation/SketchStudioActionsView.tsx"),
+      "utf8",
+    );
     const externalSources = sourceFiles(SRC_ROOT)
       .filter((path) => !path.startsWith(moduleRoot))
       .filter((path) => !relativeSource(path).startsWith("__tests__/"));
@@ -394,6 +406,7 @@ describe("frontend architecture boundaries", () => {
       "lib/episode-stats.ts",
       "lib/queries/episodes.ts",
       "lib/queries/scripts.ts",
+      "components/episode/beat-workbench/sketch-studio-actions.tsx",
       "types/episode.ts",
       "types/script.ts",
     ]) {
@@ -404,6 +417,18 @@ describe("frontend architecture boundaries", () => {
     expect(presentationBoundaryFailures).toEqual([]);
     expect(internalImportFailures).toEqual([]);
     expect(directEndpointFailures).toEqual([]);
+    expect(beatsPageViewSource).toContain(
+      "<SketchColorLegendView controller={sketchStudio} />",
+    );
+    expect(beatsPageViewSource).toContain("<SketchStudioActionsView");
+    expect(sketchStudioControllerSource).toContain("queries.useScript");
+    expect(sketchStudioControllerSource).toContain(
+      "dependencies.useCharacters",
+    );
+    expect(sketchStudioViewSource).not.toContain("useScript(");
+    expect(sketchStudioViewSource).not.toContain("useCharacters(");
+    expect(sketchStudioViewSource).not.toContain("useEpisodeBeats(");
+    expect(sketchStudioViewSource).not.toContain("useEpisodeDetail(");
   });
 
   it("keeps Asset & World callers on its public API", () => {

@@ -15,10 +15,16 @@ const controller = read(
 const sketchPlanController = read(
   "src/modules/narrative_planning/application/use-beats-sketch-plan-controller.ts",
 );
+const sketchStudioController = read(
+  "src/modules/narrative_planning/application/use-sketch-studio-controller.ts",
+);
 const view = read(
   "src/modules/narrative_planning/presentation/BeatsPageView.tsx",
 );
-const pageSources = `${controller}\n${sketchPlanController}\n${view}`;
+const sketchStudioView = read(
+  "src/modules/narrative_planning/presentation/SketchStudioActionsView.tsx",
+);
+const pageSources = `${controller}\n${sketchPlanController}\n${sketchStudioController}\n${view}\n${sketchStudioView}`;
 
 describe("beats workbench v2-storage sketch-studio contract", () => {
   it("keeps the Beats route limited to URL adaptation", () => {
@@ -115,10 +121,6 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
   });
 
   it("shows the sketch grid gallery for all projects while render grids stay narrated-only", () => {
-    const actions = read(
-      "src/components/episode/beat-workbench/sketch-studio-actions.tsx",
-    );
-
     expect(controller).toContain('spine_template === "narrated"');
     expect(view).not.toContain(
       "showGridGalleryActions={isNarratedProject}",
@@ -129,8 +131,11 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
     expect(view).toContain("onOpenRenderGridGallery={");
     expect(view).toContain("isNarratedProject");
     expect(view).toContain(": undefined");
-    expect(actions).toContain("showGridGalleryActions");
-    expect(actions).toContain("showGridGalleryActions &&");
+    expect(sketchStudioView).toContain("showGridGalleryActions");
+    expect(sketchStudioView).toContain("showGridGalleryActions &&");
+    expect(sketchStudioController).toContain("queries.useScript");
+    expect(sketchStudioController).toContain("dependencies.useCharacters");
+    expect(view).toContain("controller={sketchStudio}");
   });
 
   it("keeps image pool rebuild available outside narrated-only gallery actions", () => {

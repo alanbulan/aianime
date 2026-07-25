@@ -16,10 +16,6 @@ import { BeatCardGrid } from "@/components/episode/beat-workbench/beat-card-grid
 import { RenderGridGallery } from "@/components/episode/beat-workbench/render-grid-gallery";
 import { RenderPlanDialog } from "@/components/episode/beat-workbench/render-plan-dialog";
 import { SketchGridGallery } from "@/components/episode/beat-workbench/sketch-grid-gallery";
-import {
-  SketchColorLegend,
-  SketchStudioActions,
-} from "@/components/episode/beat-workbench/sketch-studio-actions";
 import { ViewToggles } from "@/components/episode/beat-workbench/view-toggles";
 import {
   useEpisodeActionsSlot,
@@ -49,6 +45,10 @@ import {
 import { GLASS_ALERT_DIALOG_CONTENT_CLASS } from "@/lib/dialog-styles";
 import { cn } from "@/lib/utils";
 import type { BeatsPageController } from "@/modules/narrative_planning/application/use-beats-page-controller";
+import {
+  SketchColorLegendView,
+  SketchStudioActionsView,
+} from "@/modules/narrative_planning/presentation/SketchStudioActionsView";
 
 const SHOW_EPISODE_FREEZONE_ENTRY = false;
 
@@ -91,6 +91,7 @@ export function BeatsPageView({
     setSketchAspectRatio,
     sketchAspectRatio,
     sketchPlan,
+    sketchStudio,
     spineTemplate,
     states,
     targetSection,
@@ -261,10 +262,7 @@ export function BeatsPageView({
                 onBatchRegenSketch={openSketchPlan}
                 onBatchRegenRender={openRenderPlan}
                 legendSlot={
-                  <SketchColorLegend
-                    project={project}
-                    episode={episodeNumber}
-                  />
+                  <SketchColorLegendView controller={sketchStudio} />
                 }
               />
               <BeatCardGrid
@@ -340,9 +338,8 @@ export function BeatsPageView({
                       {t("episode.workbench.actionPanel.episodeFreezone")}
                     </Button>
                   )}
-                  <SketchStudioActions
-                    project={project}
-                    episode={episodeNumber}
+                  <SketchStudioActionsView
+                    controller={sketchStudio}
                     onOpenGridGallery={() => setGridGalleryOpen(true)}
                     onOpenRenderGridGallery={
                       isNarratedProject

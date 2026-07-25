@@ -15,6 +15,7 @@ import { createUseBeatsSketchPlanController } from "@/modules/narrative_planning
 import { createUseEpisodeListItemController } from "@/modules/narrative_planning/application/use-episode-list-item-controller";
 import { createUseEpisodesPageController } from "@/modules/narrative_planning/application/use-episodes-page-controller";
 import { createUseScriptPageController } from "@/modules/narrative_planning/application/use-script-page-controller";
+import { createUseSketchStudioController } from "@/modules/narrative_planning/application/use-sketch-studio-controller";
 import type { Episode } from "@/modules/narrative_planning/domain/types";
 import { httpNarrativePlanningGateway } from "@/modules/narrative_planning/infrastructure/http-narrative-planning-gateway";
 import { BeatsPageView } from "@/modules/narrative_planning/presentation/BeatsPageView";
@@ -99,6 +100,10 @@ const useBeatsSketchPlanController = createUseBeatsSketchPlanController({
   useRegenerateSketches,
   useTasks,
 });
+const useSketchStudioController = createUseSketchStudioController(
+  { useScript: narrativePlanningQueries.useScript },
+  { useCharacters },
+);
 const useBeatsPageController = createUseBeatsPageController(
   narrativePlanningQueries,
   {
@@ -112,6 +117,7 @@ const useBeatsPageController = createUseBeatsPageController(
     useVideoBackends,
   },
   useBeatsSketchPlanController,
+  useSketchStudioController,
 );
 
 function EpisodeListItemContent({
