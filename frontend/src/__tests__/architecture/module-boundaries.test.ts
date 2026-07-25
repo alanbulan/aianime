@@ -1165,6 +1165,61 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("function collectDroppedMediaFiles(");
   });
 
+  it("keeps Canvas connection gesture adapters in one UI helper", () => {
+    const interactionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/canvasConnectionInteraction.ts",
+    );
+    const interactionModel = readFileSync(interactionPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(interactionPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declarations = [
+      "getClientPosition(",
+      "createPreviewPath(",
+      "cssEscape(",
+      "resolveConnectEndHandleId(",
+    ].map((name) => ["export function", name].join(" "));
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => {
+        const source = readFileSync(path, "utf8");
+        return declarations.some((declaration) => source.includes(declaration));
+      })
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/ui/canvasConnectionInteraction.ts",
+    ]);
+    for (const declaration of declarations) {
+      expect(interactionModel).toContain(declaration);
+    }
+    expect(canvasView).toContain("./ui/canvasConnectionInteraction");
+    expect(canvasView).not.toContain("function getClientPosition(");
+    expect(canvasView).not.toContain("function createPreviewPath(");
+    expect(canvasView).not.toContain("function cssEscape(");
+    expect(canvasView).not.toContain("function handleIdFromElement(");
+    expect(canvasView).not.toContain("function isVisibleConnectionHandle(");
+    expect(canvasView).not.toContain("function nearestHandleIdAtPoint(");
+    expect(canvasView).not.toContain("function resolveConnectEndHandleId(");
+    expect(canvasView).not.toContain("interface PreviewConnectionLine");
+  });
+
   it("keeps Canvas node position reducers out of the Zustand store", () => {
     const positionsPath = resolve(
       SRC_ROOT,
