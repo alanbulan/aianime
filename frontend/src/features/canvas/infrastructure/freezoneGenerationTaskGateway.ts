@@ -8,6 +8,8 @@ import { awaitTaskCompletion, listTasks } from '@/api/tasks';
 
 import type { CanvasGenerationTaskGateway } from '../application/ports';
 
+type FreezoneResultTaskType = Parameters<typeof fetchFreezoneJobResult>[1];
+
 export const freezoneGenerationTaskGateway: CanvasGenerationTaskGateway = {
   async hasTask(projectId, taskKey) {
     const tasks = await listTasks(projectId);
@@ -22,7 +24,7 @@ export const freezoneGenerationTaskGateway: CanvasGenerationTaskGateway = {
   async fetchResultUrl(projectId, taskType, jobId) {
     const result = await fetchFreezoneJobResult(
       projectId,
-      taskType,
+      taskType as FreezoneResultTaskType,
       jobId,
     );
     return result.url;

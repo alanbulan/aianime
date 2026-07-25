@@ -29,7 +29,7 @@ import {
 import { awaitTaskCompletion } from '@/api/tasks';
 import {
   stageSelectedBackgroundOutputForSkill,
-} from '@/features/canvas/application/selectedBackgroundSlot';
+} from '@/features/canvas/composition';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import {
   type CanvasEdge,

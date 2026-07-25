@@ -28,6 +28,34 @@ export interface CanvasAssetGateway {
   ) => Promise<string>;
 }
 
+export interface CanvasGraphSnapshot {
+  nodes: readonly CanvasNode[];
+  edges: readonly CanvasEdge[];
+}
+
+export interface CanvasGraphGateway {
+  getSnapshot: () => CanvasGraphSnapshot;
+  addNode: (
+    type: CanvasNodeType,
+    position: XYPosition,
+    data?: Partial<CanvasNodeData>,
+  ) => string | null;
+  addEdgeWithData: (
+    source: string,
+    target: string,
+    data: Record<string, unknown>,
+    options?: {
+      id?: string;
+      sourceHandle?: string;
+      targetHandle?: string;
+    },
+  ) => string | null;
+  updateNodeData: (
+    nodeId: string,
+    data: Partial<CanvasNodeData>,
+  ) => void;
+}
+
 export interface CanvasGenerationTaskRef {
   job_id: string;
   task_key: string;

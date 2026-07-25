@@ -1,6 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { readUrl } from '@/lib/url-params';
 
+import { canvasEventBus } from './application/canvasServices';
 import {
   migratePastedNodeAssets as migratePastedNodeAssetsUseCase,
   type MigratePastedNodeAssetsParams,
@@ -15,8 +16,10 @@ import {
   type ResumeNodeGenerationParams,
 } from './application/resumeGeneration';
 import {
+  stageSelectedBackgroundOutputForSkill as stageSelectedBackgroundOutputForSkillUseCase,
   uploadAndAutoCommitSelectedBackgroundCandidate as uploadAndAutoCommitSelectedBackgroundCandidateUseCase,
   type SelectedBackgroundTarget,
+  type StageSelectedBackgroundOptions,
   type UploadSelectedBackgroundCandidateOptions,
 } from './application/selectedBackgroundSlot';
 import {
@@ -26,7 +29,9 @@ import { freezoneAssetGateway } from './infrastructure/freezoneAssetGateway';
 import { freezoneAiGateway } from './infrastructure/freezoneAiGateway';
 import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerationTaskGateway';
 import { freezoneRedrawTaskGateway } from './infrastructure/freezoneRedrawTaskGateway';
+import { uuidGenerator } from './infrastructure/idGenerator';
 import { webImageSplitGateway } from './infrastructure/webImageSplitGateway';
+import { zustandCanvasGraphGateway } from './infrastructure/zustandCanvasGraphGateway';
 
 export { canvasNodeFactory } from './nodeFactoryComposition';
 
@@ -61,9 +66,25 @@ export function uploadAndAutoCommitSelectedBackgroundCandidate(
 ) {
   return uploadAndAutoCommitSelectedBackgroundCandidateUseCase(
     freezoneAssetGateway,
+    zustandCanvasGraphGateway,
+    canvasEventBus,
+    readUrl().project,
     target,
     blob,
     filename,
+    options,
+  );
+}
+
+export function stageSelectedBackgroundOutputForSkill(
+  target: SelectedBackgroundTarget,
+  imageUrl: string,
+  options: StageSelectedBackgroundOptions,
+) {
+  return stageSelectedBackgroundOutputForSkillUseCase(
+    zustandCanvasGraphGateway,
+    target,
+    imageUrl,
     options,
   );
 }

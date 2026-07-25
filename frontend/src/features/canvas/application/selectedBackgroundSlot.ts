@@ -5,18 +5,19 @@ import type {
   CanvasNode,
   CanvasNodeData,
 } from '@/features/canvas/domain/canvasNodes';
-import type { CanvasAssetGateway } from '@/features/canvas/application/ports';
+import type {
+  CanvasAssetGateway,
+  CanvasEventBus,
+  CanvasGraphGateway,
+} from '@/features/canvas/application/ports';
 import { CANVAS_NODE_TYPES } from '@/features/canvas/domain/canvasNodes';
-import { canvasEventBus } from '@/features/canvas/application/canvasServices';
-import { readUrl } from '@/lib/url-params';
-import { useCanvasStore } from '@/stores/canvasStore';
 
 export type SelectedBackgroundTarget = {
   episode: number | string;
   beat: number | string;
 };
 
-type StageSelectedBackgroundOptions = {
+export type StageSelectedBackgroundOptions = {
   sourceSkillNodeId: string;
   label?: string;
   extraData?: Partial<CanvasNodeData> & Record<string, unknown>;
@@ -87,11 +88,12 @@ function selectedBackgroundCandidatePosition(sourceNode: CanvasNode): { x: numbe
 }
 
 export function stageSelectedBackgroundOutputForSkill(
+  graphGateway: CanvasGraphGateway,
   target: SelectedBackgroundTarget,
   imageUrl: string,
   options: StageSelectedBackgroundOptions,
 ): string | null {
-  const state = useCanvasStore.getState();
+  const state = graphGateway.getSnapshot();
   const outputEdge = state.edges.find(
     (edge) =>
       edge.source === options.sourceSkillNodeId &&
@@ -102,7 +104,7 @@ export function stageSelectedBackgroundOutputForSkill(
     : undefined;
 
   if (outputNode) {
-    useCanvasStore.getState().updateNodeData(
+    graphGateway.updateNodeData(
       outputNode.id,
       selectedBackgroundOutputPatchForNode(outputNode, imageUrl, target, options),
     );
@@ -115,7 +117,7 @@ export function stageSelectedBackgroundOutputForSkill(
   }
 
   const nodeType: CanvasNodeType = CANVAS_NODE_TYPES.imageGen;
-  const nodeId = useCanvasStore.getState().addNode(
+  const nodeId = graphGateway.addNode(
     nodeType,
     selectedBackgroundCandidatePosition(sourceNode),
     {
@@ -135,7 +137,7 @@ export function stageSelectedBackgroundOutputForSkill(
   if (!nodeId) {
     return null;
   }
-  useCanvasStore.getState().addEdgeWithData(
+  graphGateway.addEdgeWithData(
     options.sourceSkillNodeId,
     nodeId,
     {
@@ -153,19 +155,20 @@ export function stageSelectedBackgroundOutputForSkill(
   return nodeId;
 }
 
-export function stageSelectedBackgroundCandidateFromNode(
+function stageSelectedBackgroundCandidateFromNode(
+  graphGateway: CanvasGraphGateway,
   target: SelectedBackgroundTarget,
   imageUrl: string,
   options: StageSelectedBackgroundCandidateOptions,
 ): string | null {
-  const state = useCanvasStore.getState();
+  const state = graphGateway.getSnapshot();
   const sourceNode = state.nodes.find((node) => node.id === options.sourceNodeId);
   if (!sourceNode) {
     return null;
   }
 
   const nodeType: CanvasNodeType = CANVAS_NODE_TYPES.imageGen;
-  const nodeId = useCanvasStore.getState().addNode(
+  const nodeId = graphGateway.addNode(
     nodeType,
     selectedBackgroundCandidatePosition(sourceNode),
     selectedBackgroundOutputPatchForNode(
@@ -186,7 +189,7 @@ export function stageSelectedBackgroundCandidateFromNode(
   if (!nodeId) {
     return null;
   }
-  useCanvasStore.getState().addEdgeWithData(
+  graphGateway.addEdgeWithData(
     options.sourceNodeId,
     nodeId,
     {
@@ -206,23 +209,30 @@ export function stageSelectedBackgroundCandidateFromNode(
 
 export async function uploadAndAutoCommitSelectedBackgroundCandidate(
   assetGateway: CanvasAssetGateway,
+  graphGateway: CanvasGraphGateway,
+  eventBus: CanvasEventBus,
+  projectId: string | null | undefined,
   target: SelectedBackgroundTarget,
   blob: Blob,
   filename: string,
   options: UploadSelectedBackgroundCandidateOptions,
 ): Promise<{ nodeId: string; url: string }> {
-  const projectId = readUrl().project;
   if (!projectId) {
     throw new Error('缺少项目');
   }
   const uploadedUrl = await assetGateway.upload(projectId, blob, filename, {
     disableTimeout: true,
   });
-  const nodeId = stageSelectedBackgroundCandidateFromNode(target, uploadedUrl, options);
+  const nodeId = stageSelectedBackgroundCandidateFromNode(
+    graphGateway,
+    target,
+    uploadedUrl,
+    options,
+  );
   if (!nodeId) {
     throw new Error('无法创建当前背景候选节点');
   }
-  canvasEventBus.publish('freezone/commit-node', {
+  eventBus.publish('freezone/commit-node', {
     nodeId,
     auto: true,
     successMessage: options.successMessage

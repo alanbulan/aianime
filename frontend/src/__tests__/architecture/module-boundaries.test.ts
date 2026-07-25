@@ -257,6 +257,13 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const graphGateway = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasGraphGateway.ts",
+      ),
+      "utf8",
+    );
     const services = readFileSync(
       resolve(applicationRoot, "canvasServices.ts"),
       "utf8",
@@ -269,15 +276,17 @@ describe("frontend architecture boundaries", () => {
       resolve(applicationRoot, "resumeGeneration.ts"),
       "utf8",
     );
+    const selectedBackgroundSlot = readFileSync(
+      resolve(applicationRoot, "selectedBackgroundSlot.ts"),
+      "utf8",
+    );
 
     expect(failures).toEqual([]);
     expect(directApiUsers).toEqual([]);
     expect(directCanvasStoreUsers).toEqual([
-      "features/canvas/application/selectedBackgroundSlot.ts",
       "features/canvas/application/useUpstreamGraph.ts",
     ]);
     expect(directUrlUsers).toEqual([
-      "features/canvas/application/selectedBackgroundSlot.ts",
       "features/canvas/application/uploadToolOutput.ts",
     ]);
     expect(composition).toContain(
@@ -300,6 +309,11 @@ describe("frontend architecture boundaries", () => {
     expect(composition).toContain(
       "uploadAndAutoCommitSelectedBackgroundCandidateUseCase(",
     );
+    expect(composition).toContain(
+      "stageSelectedBackgroundOutputForSkillUseCase(",
+    );
+    expect(composition).toContain("zustandCanvasGraphGateway");
+    expect(composition).toContain("canvasEventBus");
     expect(composition).toContain("regenerateExportImageNodeUseCase(");
     expect(composition).toContain("projectId: readUrl().project");
     expect(composition).toContain("freezoneRedrawTaskGateway");
@@ -307,7 +321,12 @@ describe("frontend architecture boundaries", () => {
     expect(composition).toContain("freezoneGenerationTaskGateway");
     expect(assetGateway).toContain("uploadFreezoneImage(");
     expect(assetGateway).toContain("{ timeoutMs: false }");
+    expect(graphGateway).toContain("useCanvasStore.getState()");
     expect(services).not.toContain("infrastructure/");
+    expect(selectedBackgroundSlot).toContain(
+      "graphGateway: CanvasGraphGateway",
+    );
+    expect(selectedBackgroundSlot).toContain("eventBus: CanvasEventBus");
     expect(regenerateExportNode).toContain("aiGateway: AiGateway");
     expect(regenerateExportNode).toContain(
       "params: RegenerateExportImageNodeParams",
