@@ -71,6 +71,7 @@ import {
   type CanvasGroupArrangementMode,
 } from '@/features/canvas/domain/canvasGroupArrangement';
 import { ungroupCanvasNode } from '@/features/canvas/domain/canvasGroupRemoval';
+import { deleteCanvasEdge } from '@/features/canvas/domain/canvasEdgeDeletion';
 import { validateCanvasConnection } from '@/features/canvas/domain/canvasConnection';
 import { EXPORT_RESULT_DISPLAY_NAME } from '@/features/canvas/domain/nodeDisplay';
 import {
@@ -141,7 +142,6 @@ import {
   validateCandidateBindingRoleCandidate,
   validatePropagatingEdgeCandidate,
 } from '@/features/freezone/context/mainlineContext';
-import { isPresetManagedEdge } from '@/features/canvas/domain/mainlineNodeFlags';
 import { scopeProjectionGraphIds } from '@/features/freezone/projectionGraphIds';
 
 export type {
@@ -1387,13 +1387,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   deleteEdge: (edgeId) => {
     set((state) => {
-      const edge = state.edges.find((candidate) => candidate.id === edgeId);
-      if (!edge || isPresetManagedEdge(edge)) {
+      const edges = deleteCanvasEdge(state.edges, edgeId);
+      if (!edges) {
         return {};
       }
 
       return {
-        edges: state.edges.filter((edge) => edge.id !== edgeId),
+        edges,
         history: {
           past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
           future: [],

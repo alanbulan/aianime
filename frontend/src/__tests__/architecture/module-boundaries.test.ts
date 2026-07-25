@@ -1919,6 +1919,56 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps Canvas edge deletion in the domain model", () => {
+    const deletionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/canvasEdgeDeletion.ts",
+    );
+    const deletionModel = readFileSync(deletionPath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(deletionPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
+        specifier === "@/features/canvas/composition",
+    );
+    const deletionDeclaration = [
+      "export function",
+      "deleteCanvasEdge(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(deletionDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/domain/canvasEdgeDeletion.ts",
+    ]);
+    expect(deletionModel).toContain(deletionDeclaration);
+    expect(canvasStore).toContain(
+      "@/features/canvas/domain/canvasEdgeDeletion",
+    );
+    expect(canvasStore).not.toContain("isPresetManagedEdge(");
+    expect(canvasStore).not.toContain(
+      "state.edges.filter((edge) => edge.id !== edgeId)",
+    );
+  });
+
   it("keeps shared code independent from application and business layers", () => {
     const forbiddenPrefixes = [
       "@/app/",
