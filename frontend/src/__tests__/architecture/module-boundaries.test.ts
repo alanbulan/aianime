@@ -1201,6 +1201,50 @@ describe("frontend architecture boundaries", () => {
     }
   });
 
+  it("keeps Canvas node data updates out of the Zustand store", () => {
+    const nodeDataPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasNodeData.ts",
+    );
+    const nodeDataModel = readFileSync(nodeDataPath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(nodeDataPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier === "zustand" ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const updateDeclaration = [
+      "export function",
+      "updateCanvasNodeData(",
+    ].join(" ");
+    const ruleOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(updateDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(ruleOwners).toEqual([
+      "features/canvas/application/canvasNodeData.ts",
+    ]);
+    expect(nodeDataModel).toContain(updateDeclaration);
+    expect(nodeDataModel).toContain("maybeApplyImageAutoResize(");
+    expect(canvasStore).toContain(
+      "@/features/canvas/application/canvasNodeData",
+    );
+    expect(canvasStore).not.toContain("const hasDataChange = Object.entries(data)");
+    expect(canvasStore).not.toContain("const mergedData = {\n          ...node.data");
+  });
+
   it("keeps shared code independent from application and business layers", () => {
     const forbiddenPrefixes = [
       "@/app/",

@@ -112,6 +112,7 @@ import {
   classifyCanvasNodeChanges,
   hasMeaningfulCanvasEdgeChange,
 } from '@/features/canvas/application/canvasChangeIntent';
+import { updateCanvasNodeData } from '@/features/canvas/application/canvasNodeData';
 import {
   createClosedCanvasImageViewer,
   navigateCanvasImageViewer,
@@ -1279,42 +1280,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   updateNodeData: (nodeId, data) => {
     set((state) => {
-      let changed = false;
-      const nextNodes = state.nodes.map((node) => {
-        if (node.id !== nodeId) {
-          return node;
-        }
-
-        const hasDataChange = Object.entries(data).some(([key, nextValue]) => {
-          const previousValue = (node.data as Record<string, unknown>)[key];
-          return !Object.is(previousValue, nextValue);
-        });
-        if (!hasDataChange) {
-          return node;
-        }
-
-        const mergedData = {
-          ...node.data,
-          ...data,
-        } as CanvasNodeData;
-        const resizedNode = maybeApplyImageAutoResize(
-          {
-            ...node,
-            data: mergedData,
-          },
-          data
-        );
-
-        changed = true;
-        return resizedNode;
-      });
-
-      if (!changed) {
+      const result = updateCanvasNodeData(state.nodes, nodeId, data);
+      if (!result.changed) {
         return {};
       }
 
       return {
-        nodes: nextNodes,
+        nodes: result.nodes,
         history: {
           past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
           future: [],
