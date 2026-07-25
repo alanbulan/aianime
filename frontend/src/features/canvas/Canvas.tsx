@@ -51,13 +51,9 @@ import { SKILL_SCHEMA_VERSION, type SkillDefinition } from '@/features/freezone/
 import { translateSkillName } from '@/features/freezone/context/skillI18n';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import {
-  CURRENT_RUNTIME_SESSION_ID,
-  canvasAiGateway,
-  prepareNodeImage,
   migratePastedNodeAssets,
+  pollExportImageGeneration,
   resumeNodeGeneration,
-  showErrorDialog,
-  uploadLocalImageToBackend,
 } from '@/features/canvas/composition';
 import {
   CANVAS_NODE_TYPES,
@@ -85,10 +81,6 @@ import {
   isPresetManagedNode,
 } from '@/features/canvas/domain/mainlineNodeFlags';
 import { cloneCanvasNodeData } from '@/features/canvas/application/canvasNodeData';
-import {
-  buildGenerationErrorReport,
-  extractRequestId,
-} from '@/features/canvas/application/generationErrorReport';
 import { nodeNeedsGenerationResume } from '@/features/canvas/application/resumeGeneration';
 import { readUrl } from '@/lib/url-params';
 import { useQueryClient } from '@tanstack/react-query';
@@ -101,7 +93,6 @@ import {
 } from '@/features/canvas/domain/nodeRegistry';
 import { nodeCatalog } from '@/features/canvas/application/nodeCatalog';
 import { applySkillRoleBindingConnection } from '@/features/canvas/domain/skillConnectionEdges';
-import { embedStoryboardImageMetadata } from '@/commands/image';
 import { nodeTypes as canvasNodeTypes } from './nodes';
 import { edgeTypes as canvasEdgeTypes } from './edges';
 import { NodeSelectionMenu } from './NodeSelectionMenu';
@@ -242,7 +233,6 @@ interface DuplicateResult {
 }
 
 const ALT_DRAG_COPY_Z_INDEX = 2000;
-const GENERATION_JOB_POLL_INTERVAL_MS = 1400;
 // Where the batch-connect "+" spawns its new downstream node relative to the
 // selection's bounding box: this far to the right, and lifted by ~half a node so
 // the fan-in lands roughly centered on the selection.
@@ -250,12 +240,6 @@ const BATCH_CONNECT_SPAWN_GAP = 140;
 const BATCH_CONNECT_SPAWN_VERTICAL_OFFSET = 160;
 const NODE_PLACEMENT_PREVIEW_WIDTH = 320;
 const NODE_PLACEMENT_PREVIEW_HEIGHT = 200;
-
-interface GenerationStoryboardMetadata {
-  gridRows: number;
-  gridCols: number;
-  frameNotes: string[];
-}
 
 interface PlusConnectDragParams {
   nodeId: string;
@@ -430,7 +414,7 @@ export function Canvas({
   // Stable signatures of the nodes that need polling / resume, so those effects
   // only re-run when the *set* of pending generations changes — not on every
   // drag frame (which rebuilds the whole `nodes` array). See the two effects below.
-  const pendingJobNodeKey = useCanvasStore(
+  const pendingJobNodeIds = useCanvasStore(
     useShallow((state) =>
       state.nodes
         .filter((node) => {
@@ -453,6 +437,20 @@ export function Canvas({
   const connectNodes = useCanvasStore((state) => state.onConnect);
   const replaceEdges = useCanvasStore((state) => state.replaceEdges);
   const updateNodeData = useCanvasStore((state) => state.updateNodeData);
+  const pollExportImageNode = useCallback(
+    (nodeId: string): Promise<void> =>
+      pollExportImageGeneration({
+        nodeId,
+        errorTitle: t('common.error'),
+        getNodeData: (currentNodeId) =>
+          (useCanvasStore
+            .getState()
+            .nodes
+            .find((item) => item.id === currentNodeId)?.data ?? null) as Record<string, unknown> | null,
+        updateNodeData,
+      }),
+    [t, updateNodeData],
+  );
   const resumePendingGenerationNode = useCallback(
     (nodeId: string, projectId: string): Promise<void> => {
       const node = useCanvasStore.getState().nodes.find((item) => item.id === nodeId);
@@ -621,144 +619,16 @@ export function Canvas({
   });
 
   useEffect(() => {
-    const sleep = (delayMs: number) =>
-      new Promise<void>((resolve) => {
-        window.setTimeout(resolve, delayMs);
-      });
-
-    const pendingExportNodes = useCanvasStore.getState().nodes.filter((node) => {
-      if (node.type !== CANVAS_NODE_TYPES.exportImage) {
-        return false;
-      }
-      const data = node.data as Record<string, unknown>;
-      return data.isGenerating === true && typeof data.generationJobId === 'string' && data.generationJobId.length > 0;
-    });
-
-    for (const pendingNode of pendingExportNodes) {
-      if (activeGenerationPollNodeIdsRef.current.has(pendingNode.id)) {
+    for (const nodeId of pendingJobNodeIds) {
+      if (activeGenerationPollNodeIdsRef.current.has(nodeId)) {
         continue;
       }
-      activeGenerationPollNodeIdsRef.current.add(pendingNode.id);
-
-      void (async () => {
-        try {
-          while (true) {
-            const currentNode = useCanvasStore.getState().nodes.find((node) => node.id === pendingNode.id);
-            if (!currentNode) {
-              break;
-            }
-
-            const currentData = currentNode.data as Record<string, unknown>;
-            const jobId = typeof currentData.generationJobId === 'string' ? currentData.generationJobId : '';
-            const isGenerating = currentData.isGenerating === true;
-            if (!jobId || !isGenerating) {
-              break;
-            }
-
-            const status = await canvasAiGateway.getGenerateImageJob(jobId).catch((error) => {
-              console.warn('[GenerationJob] poll failed', { nodeId: pendingNode.id, jobId, error });
-              return null;
-            });
-            if (!status) {
-              await sleep(GENERATION_JOB_POLL_INTERVAL_MS);
-              continue;
-            }
-
-            if (status.status === 'queued' || status.status === 'running') {
-              await sleep(GENERATION_JOB_POLL_INTERVAL_MS);
-              continue;
-            }
-
-            if (status.status === 'succeeded' && typeof status.result === 'string' && status.result.trim()) {
-              const resultUrl = status.result.trim();
-              const prepared = await prepareNodeImage(resultUrl);
-              const storyboardMetadataRaw = currentData.generationStoryboardMetadata as GenerationStoryboardMetadata | undefined;
-              const hasStoryboardMetadata = Boolean(
-                storyboardMetadataRaw
-                && Number.isFinite(storyboardMetadataRaw.gridRows)
-                && Number.isFinite(storyboardMetadataRaw.gridCols)
-                && Array.isArray(storyboardMetadataRaw.frameNotes)
-              );
-              // Prefer the backend result URL as the canonical imageUrl so
-              // downstream requests carry a real http URL, not the re-localized
-              // base64. Only the storyboard case needs local processing (to embed
-              // grid metadata into the pixels) — re-upload that so imageUrl stays
-              // a backend URL too. previewImageUrl mirrors the final imageUrl so
-              // the persisted node never carries the local base64 from
-              // prepareNodeImage (which would bloat PUT /default).
-              let imageUrl = resultUrl;
-              if (hasStoryboardMetadata && storyboardMetadataRaw) {
-                const imageWithMetadata = await embedStoryboardImageMetadata(prepared.imageUrl, {
-                  gridRows: Math.max(1, Math.round(storyboardMetadataRaw.gridRows)),
-                  gridCols: Math.max(1, Math.round(storyboardMetadataRaw.gridCols)),
-                  frameNotes: storyboardMetadataRaw.frameNotes,
-                }).catch((error) => {
-                  console.warn('[GenerationJob] embed storyboard metadata failed', {
-                    nodeId: pendingNode.id,
-                    error,
-                  });
-                  return prepared.imageUrl;
-                });
-                imageUrl = await uploadLocalImageToBackend(
-                  imageWithMetadata,
-                  `storyboard-gen-${pendingNode.id}-${Date.now()}.png`
-                );
-              }
-              const previewImageUrl = imageUrl;
-
-              updateNodeData(pendingNode.id, {
-                imageUrl,
-                previewImageUrl,
-                aspectRatio: prepared.aspectRatio,
-                isGenerating: false,
-                generationStartedAt: null,
-                generationJobId: null,
-                generationProviderId: null,
-                generationClientSessionId: null,
-                generationStoryboardMetadata: undefined,
-                generationError: null,
-                generationErrorDetails: null,
-                generationDebugContext: undefined,
-              });
-              break;
-            }
-
-            const errorMessage = status.error ?? (status.status === 'not_found' ? 'generation job not found' : 'generation failed');
-            const generationClientSessionId = typeof currentData.generationClientSessionId === 'string'
-              ? currentData.generationClientSessionId
-              : '';
-            const shouldShowDialog = generationClientSessionId === CURRENT_RUNTIME_SESSION_ID;
-            if (shouldShowDialog) {
-              const reportText = buildGenerationErrorReport({
-                errorMessage,
-                errorDetails: status.error ?? undefined,
-                context: currentData.generationDebugContext,
-              });
-              void showErrorDialog(errorMessage, t('common.error'), status.error ?? undefined, reportText);
-            }
-            updateNodeData(pendingNode.id, {
-              isGenerating: false,
-              generationStartedAt: null,
-              generationJobId: null,
-              generationProviderId: null,
-              generationClientSessionId: null,
-              // Keep generationStoryboardMetadata + generationRequestPayload intact so
-              // 重新生成 can re-submit (and re-embed grid metadata) after an async failure.
-              generationError: errorMessage,
-              generationErrorDetails: status.error ?? null,
-              // Surface the upstream request_id so the failure card can show it
-              // (async failures previously dropped it — see ImageGenNode banner).
-              generationErrorRequestId:
-                extractRequestId(errorMessage) ?? extractRequestId(status.error),
-            });
-            break;
-          }
-        } finally {
-          activeGenerationPollNodeIdsRef.current.delete(pendingNode.id);
-        }
-      })();
+      activeGenerationPollNodeIdsRef.current.add(nodeId);
+      void pollExportImageNode(nodeId).finally(() => {
+        activeGenerationPollNodeIdsRef.current.delete(nodeId);
+      });
     }
-  }, [pendingJobNodeKey, updateNodeData]);
+  }, [pendingJobNodeIds, pollExportImageNode]);
 
   const handleNodesChange = useCallback(
     (changes: NodeChange<CanvasNode>[]) => {

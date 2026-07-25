@@ -1,5 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { readUrl } from '@/lib/url-params';
+import { embedStoryboardImageMetadata } from '@/commands/image';
 
 import { canvasEventBus } from './application/canvasServices';
 import {
@@ -11,6 +12,10 @@ import {
   prepareNodeImage as prepareNodeImageUseCase,
   prepareNodeImageFromFile as prepareNodeImageFromFileUseCase,
 } from './application/imagePreparation';
+import {
+  pollExportImageGeneration as pollExportImageGenerationUseCase,
+  type PollExportImageGenerationParams,
+} from './application/pollExportImageGeneration';
 import { CanvasToolProcessor } from './application/toolProcessor';
 import {
   regenerateExportImageNode as regenerateExportImageNodeUseCase,
@@ -40,6 +45,7 @@ import { freezoneRedrawTaskGateway } from './infrastructure/freezoneRedrawTaskGa
 import { uuidGenerator } from './infrastructure/idGenerator';
 import { webImageSplitGateway } from './infrastructure/webImageSplitGateway';
 import { zustandCanvasGraphGateway } from './infrastructure/zustandCanvasGraphGateway';
+import { showErrorDialog as showErrorDialogInfrastructure } from './infrastructure/globalErrorDialog';
 
 export { canvasNodeFactory } from './nodeFactoryComposition';
 export { showErrorDialog } from './infrastructure/globalErrorDialog';
@@ -161,5 +167,29 @@ export function resumeNodeGeneration(params: ResumeNodeGenerationParams) {
   return resumeNodeGenerationUseCase(
     params,
     freezoneGenerationTaskGateway,
+  );
+}
+
+export function pollExportImageGeneration(
+  params: Omit<PollExportImageGenerationParams, 'runtimeSessionId'>,
+) {
+  return pollExportImageGenerationUseCase(
+    {
+      ...params,
+      runtimeSessionId: CURRENT_RUNTIME_SESSION_ID,
+    },
+    {
+      getGenerateImageJob: (jobId) => freezoneAiGateway.getGenerateImageJob(jobId),
+      prepareNodeImage,
+      embedStoryboardImageMetadata,
+      uploadLocalImage: uploadLocalImageToBackend,
+      showErrorDialog: showErrorDialogInfrastructure,
+      sleep: (delayMs) =>
+        new Promise<void>((resolve) => {
+          window.setTimeout(resolve, delayMs);
+        }),
+      now: () => Date.now(),
+      warn: (message, context) => console.warn(message, context),
+    },
   );
 }

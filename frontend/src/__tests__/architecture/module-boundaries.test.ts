@@ -1895,6 +1895,58 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("pendingResumeNodeKey");
   });
 
+  it("keeps export-image job polling in one application use case", () => {
+    const useCasePath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/pollExportImageGeneration.ts",
+    );
+    const useCaseModel = readFileSync(useCasePath, "utf8");
+    const composition = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/composition.ts"),
+      "utf8",
+    );
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(useCasePath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/commands/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declaration = [
+      "export async function",
+      "pollExportImageGeneration(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/application/pollExportImageGeneration.ts",
+    ]);
+    expect(useCaseModel).toContain("EXPORT_IMAGE_GENERATION_POLL_INTERVAL_MS = 1400");
+    expect(useCaseModel).toContain("buildGenerationErrorReport({");
+    expect(useCaseModel).toContain("embedStoryboardImageMetadata(");
+    expect(composition).toContain("pollExportImageGenerationUseCase(");
+    expect(canvasView).toContain("pollExportImageGeneration({");
+    expect(canvasView).not.toContain("getGenerateImageJob(");
+    expect(canvasView).not.toContain("GENERATION_JOB_POLL_INTERVAL_MS");
+    expect(canvasView).not.toContain("buildGenerationErrorReport");
+    expect(canvasView).not.toContain("embedStoryboardImageMetadata");
+  });
+
   it("keeps Canvas marquee gestures in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
