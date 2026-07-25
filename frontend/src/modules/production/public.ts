@@ -61,6 +61,7 @@ export type {
 } from "@/modules/production/domain/audio-prerequisite";
 export { Seedance2AssetCropDialog } from "@/modules/production/presentation/Seedance2AssetCropDialog";
 export { Seedance2AudioTrimDialog } from "@/modules/production/presentation/Seedance2AudioTrimDialog";
+export { Seedance2ConfigView } from "@/modules/production/presentation/Seedance2ConfigView";
 export { LegacyVideoPromptView } from "@/modules/production/presentation/LegacyVideoPromptView";
 export {
   BeatVideoGenerationAction,

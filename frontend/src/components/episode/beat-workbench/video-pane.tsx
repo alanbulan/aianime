@@ -1,28 +1,10 @@
 // Copyright (c) 2026 AI anime
-import {
-  useId,
-  useMemo,
-  useState,
-  type DragEvent,
-  type KeyboardEvent,
-} from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Download,
-  Image as ImageIcon,
-  Loader2,
-  Settings2,
-  WandSparkles,
-} from "lucide-react";
 
-import { resolveMediaUrl } from "@/lib/media-url";
 import { ratioToCss } from "@/lib/aspect-ratio";
 import { useProjectAspectRatio } from "@/stores/aspect-ratio-store";
 import { cn } from "@/lib/utils";
-import { CreditCostInline } from "@/components/credit-cost-inline";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { MentionTextarea } from "@/components/episode/beat-workbench/mention-textarea";
 import { Input } from "@/components/ui/input";
 import {
   useUpdateBeat,
@@ -33,20 +15,14 @@ import {
   BeatVideoGenerationConfirmDialog,
   clampDuration,
   isSeedanceReferenceCropBackend,
-  normalizeGrokVideoRatio,
   normalizeHappyHorseMode,
   normalizeHappyHorseRatio,
-  normalizeSeedance2Mode,
-  normalizeSeedance2Ratio,
   normalizeSeedance2Resolution,
   LegacyVideoPromptView,
-  Seedance2Checkbox,
-  Seedance2Field,
   Seedance2AssetCropDialog,
   Seedance2AudioTrimDialog,
-  Seedance2ReferenceAssetsView,
+  Seedance2ConfigView,
   Seedance2ReferenceCropAssetsView,
-  Seedance2SummaryPill,
   seedance2CropAspectForMode,
   useBeatVideoGenerationController,
   useLegacyVideoPromptController,
@@ -59,7 +35,6 @@ import {
   VideoPaneMediaView,
   VideoParamField,
   videoInputCropAspectForProjectAspect,
-  type Seedance2MentionField,
 } from "@/modules/production/public";
 import {
   Select,
@@ -69,57 +44,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { BeatStageState } from "@/types/beat-state";
-import {
-  MEDIA_PRIMARY_ACTION_BUTTON_CLASS,
-  VIDEO_PROMPT_TEXTAREA_CLASS,
-} from "./media-styles";
 
-const SEEDANCE2_REFERENCE_DRAG_TYPE =
-  "application/x-ai-anime-seedance2-reference";
-const SEEDANCE2_PROMPT_GUIDANCE_TEMPLATES = [
-  {
-    key: "subject",
-    labelKey: "seedance2GuidanceSubject",
-    text: "主体：明确画面核心人物或物体、当前动作和状态，避免多个主体争抢焦点。",
-  },
-  {
-    key: "scene",
-    labelKey: "seedance2GuidanceScene",
-    text: "场景：补充空间背景、地点关系、关键道具和环境材质，保持与参考图一致。",
-  },
-  {
-    key: "lighting",
-    labelKey: "seedance2GuidanceLighting",
-    text: "光影：描述主光源、明暗层次、色温和氛围，避免忽明忽暗。",
-  },
-  {
-    key: "camera",
-    labelKey: "seedance2GuidanceCamera",
-    text: "镜头：说明景别、视角、运镜速度和运动方向，保持镜头运动清晰可执行。",
-  },
-  {
-    key: "style",
-    labelKey: "seedance2GuidanceStyle",
-    text: "风格：限定画面质感、时代感、色彩倾向和真实度，避免风格漂移。",
-  },
-  {
-    key: "no_subtitle",
-    labelKey: "seedance2GuidanceNoSubtitle",
-    text: "无字幕：避免生成任何文字或字幕，保持画面纯净。",
-  },
-] as const;
 const VIDEO_GRID_CLASS =
   "grid grid-cols-[auto_minmax(260px,1fr)] items-start gap-x-4 gap-y-3";
-const SEEDANCE2_CONTROL_CLASS =
-  "rounded-[8px] border-border bg-muted text-sm shadow-none focus-visible:border-primary/45 focus-visible:ring-primary/10";
 const VIDEO_PARAM_CONTROL_CLASS =
   "!h-[30px] rounded-[7px] border border-border bg-muted px-2.5 text-[12px] font-normal leading-none text-foreground/86 shadow-none transition-colors hover:border-foreground/25 hover:bg-accent focus-visible:border-primary/45 focus-visible:ring-primary/10 [&>svg]:size-3.5";
 const VIDEO_PARAM_ACTION_CLASS =
   "!h-[30px] gap-1.5 rounded-[7px] border border-border bg-muted px-2.5 text-[12px] font-normal leading-none text-foreground/86 shadow-none transition-[background-color,border-color,color,transform] hover:border-foreground/25 hover:bg-accent hover:text-foreground active:scale-95 disabled:border-border disabled:bg-muted disabled:text-muted-foreground/45 [&_svg]:size-3.5";
-const SEEDANCE2_PILL_ACTION_CLASS =
-  "h-6 rounded-full border border-border bg-muted px-2 text-[11px] font-normal text-muted-foreground shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground";
-const SEEDANCE2_SEGMENTED_OPTION_CLASS =
-  "h-7 rounded-[7px] border px-1.5 text-xs font-normal shadow-none transition-[background-color,border-color,color] duration-150";
 interface VideoPaneProps {
   beat: Beat;
   project: string;
@@ -145,7 +76,6 @@ export function VideoPane({
   const { t } = useTranslation();
   const { spec } = useProjectAspectRatio(project);
   const frameAspectCss = ratioToCss(spec.renderAspect);
-  const seedance2Id = useId();
   const updateBeat = useUpdateBeat(project, episode);
   const legacyPrompt = useLegacyVideoPromptController({
     beat,
@@ -199,10 +129,7 @@ export function VideoPane({
   const happyHorseResolutionOptions =
     videoConfig.happyHorseResolutionOptions;
   const happyHorseRatioOptions = videoConfig.happyHorseRatioOptions;
-  const grokVideoResolutionOptions = videoConfig.grokResolutionOptions;
-  const grokVideoRatioOptions = videoConfig.grokRatioOptions;
   const isSd15ProConfig = videoConfig.isSeedance15ProConfig;
-  const showSeedance2ValueStyle = videoConfig.isValueStyle;
   const sd15DurationBounds = videoConfig.seedance15DurationBounds;
   const sd15Resolution = videoConfig.seedance15Resolution;
   const sd15Duration = videoConfig.seedance15Duration;
@@ -211,8 +138,6 @@ export function VideoPane({
   const changeSeedance2Draft = videoConfig.changeDraft;
   const updateSeedance2Draft = videoConfig.updateDraft;
   const updateSeedance2Mode = videoConfig.updateMode;
-  const seedance2Ready = videoConfig.ready;
-  const seedance2PromptCostDisplay = videoConfig.promptCostDisplay;
   const seedance2AssetItems = seedance2StatusData?.assets.items ?? [];
   const modelReferenceAssetItems = useMemo(
     () =>
@@ -243,33 +168,6 @@ export function VideoPane({
     },
     [seedance2AssetItems, showGrokVideoConfig, showHappyHorseConfig, showSeedance2Config],
   );
-  const seedance2ReturnedLastFrameAsset = useMemo(
-    () =>
-      seedance2AssetItems.find((asset) => {
-        if (asset.media_type !== "image" || !(asset.url || asset.path)) {
-          return false;
-        }
-        return [
-          "returned_last_frame",
-          "return_last_frame",
-          "last_frame_output",
-        ].includes(asset.key);
-      }) ?? null,
-    [seedance2AssetItems],
-  );
-  const seedance2ReturnedLastFrameSrc =
-    seedance2Draft.return_last_frame && seedance2ReturnedLastFrameAsset
-      ? resolveMediaUrl(
-          seedance2ReturnedLastFrameAsset.url ||
-            seedance2ReturnedLastFrameAsset.path,
-        )
-      : null;
-  const seedance2ReturnedLastFrameAspectCss = ratioToCss(
-    seedance2Draft.ratio || spec.renderAspect,
-  );
-  const seedance2PromptStatus = seedance2Ready
-    ? t("episode.workbench.video.seedance2Ready")
-    : t("episode.workbench.video.seedance2Missing");
   const generation = useBeatVideoGenerationController({
     applyNormalizedDraft: videoConfig.applyDraft,
     beatNumber: beat.beat_number,
@@ -295,149 +193,6 @@ export function VideoPane({
     useSeedance2Preview: showSeedance2Config,
   });
   const hasGeneratedVideo = mediaController.hasGeneratedVideo;
-
-  const rememberSeedance2PromptSelection = (
-    field: Seedance2MentionField,
-    target: HTMLTextAreaElement,
-  ) => {
-    mentionController.rememberSelection(field, {
-      start: target.selectionStart,
-      end: target.selectionEnd,
-    });
-  };
-  const handleSeedance2ReferenceDragStart = (
-    event: DragEvent<HTMLElement>,
-    label: string,
-  ) => {
-    event.dataTransfer.effectAllowed = "copy";
-    event.dataTransfer.setData(SEEDANCE2_REFERENCE_DRAG_TYPE, label);
-    event.dataTransfer.setData("text/plain", `@${label}`);
-  };
-  const handleSeedance2ReferenceDragOver = (
-    event: DragEvent<HTMLTextAreaElement>,
-  ) => {
-    const types = Array.from(event.dataTransfer.types);
-    const mayBeReferenceDrop =
-      mentionController.referenceOptions.length > 0 &&
-      (types.length === 0 ||
-        types.includes(SEEDANCE2_REFERENCE_DRAG_TYPE) ||
-        types.includes("text/plain") ||
-        types.includes("text/uri-list") ||
-        types.includes("text/html"));
-    if (mayBeReferenceDrop) {
-      event.preventDefault();
-      event.dataTransfer.dropEffect = "copy";
-    }
-  };
-  const handleSeedance2ReferenceDrop = (
-    field: Seedance2MentionField,
-    event: DragEvent<HTMLTextAreaElement>,
-  ) => {
-    const customLabel = event.dataTransfer.getData(
-      SEEDANCE2_REFERENCE_DRAG_TYPE,
-    );
-    const plainLabel = event.dataTransfer.getData("text/plain").replace(/^@/, "");
-    const label = (customLabel || plainLabel).trim();
-    if (!mentionController.acceptsReference(label)) return;
-    event.preventDefault();
-    const selection =
-      document.activeElement === event.currentTarget
-        ? {
-            start: event.currentTarget.selectionStart,
-            end: event.currentTarget.selectionEnd,
-          }
-        : undefined;
-    mentionController.insertDroppedReference(field, label, selection);
-  };
-  const handleMentionKeyDown = (
-    field: Seedance2MentionField,
-    event: KeyboardEvent<HTMLTextAreaElement>,
-  ) => {
-    mentionController.setActiveField(field);
-    if (!mentionController.mentionOpen || event.nativeEvent.isComposing) return;
-    switch (event.key) {
-      case "ArrowDown":
-        event.preventDefault();
-        mentionController.moveActiveIndex(1);
-        break;
-      case "ArrowUp":
-        event.preventDefault();
-        mentionController.moveActiveIndex(-1);
-        break;
-      case "Enter":
-      case "Tab":
-      case " ": {
-        if (event.key === "Enter" && event.shiftKey) return;
-        if (mentionController.selectActiveMention(field)) {
-          event.preventDefault();
-        }
-        break;
-      }
-      case "Escape":
-        event.preventDefault();
-        mentionController.dismissMention(field);
-        break;
-    }
-  };
-  const renderSeedance2ReferenceControls = (field: Seedance2MentionField) => {
-    if (mentionController.activeField !== field) return null;
-
-    if (mentionController.mentionOpen) {
-      return (
-        <div className="rounded-[8px] border border-border bg-muted p-1.5">
-          <div className="mb-1 text-[10px] font-medium text-muted-foreground/78">
-            {t("episode.workbench.video.seedance2MentionCandidates")}
-          </div>
-          <div className="flex flex-wrap gap-1">
-            {mentionController.mentionOptions.map((asset, index) => (
-              <Button
-                key={asset.key}
-                type="button"
-                size="xs"
-                variant="ghost"
-                aria-pressed={index === mentionController.activeIndex}
-                className={cn(
-                  "h-6 rounded-[6px] border px-1.5 text-[10px] font-normal shadow-none",
-                  index === mentionController.activeIndex
-                    ? "border-primary/35 bg-primary/[0.10] text-primary hover:bg-primary/[0.14] hover:text-primary"
-                    : "border-border bg-card text-muted-foreground hover:border-foreground/25 hover:bg-accent hover:text-foreground",
-                )}
-                onMouseEnter={() => mentionController.setActiveIndex(index)}
-                onClick={() =>
-                  mentionController.selectMention(field, asset.reference_label)
-                }
-              >
-                @{asset.reference_label}
-              </Button>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    if (mentionController.referenceOptions.length <= 0) return null;
-    return (
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-[11px] text-muted-foreground/78">
-          {t("episode.workbench.video.seedance2AtReferences")}
-        </span>
-        {mentionController.referenceOptions.map((asset) => (
-          <Button
-            key={asset.key}
-            type="button"
-            size="xs"
-            variant="ghost"
-            className={SEEDANCE2_PILL_ACTION_CLASS}
-            onClick={() =>
-              mentionController.appendReference(field, asset.reference_label)
-            }
-          >
-            @{asset.reference_label}
-          </Button>
-        ))}
-      </div>
-    );
-  };
   return (
     <div className={VIDEO_GRID_CLASS}>
       <VideoPaneMediaView
@@ -647,464 +402,26 @@ export function VideoPane({
       )}
 
       {showPromptConfig && (
-        <div className="col-span-2 space-y-4 rounded-[10px] border border-border bg-card p-3">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-            <Settings2 className="size-3.5 text-muted-foreground/78" />
-            <Label className="text-xs font-medium text-foreground/82">
-              {showGrokVideoConfig
-                ? "Grok Video 检视器"
-                : showHappyHorseConfig
-                ? "HappyHorse 检视器"
-                : t("episode.workbench.video.seedance2Inspector")}
-            </Label>
-            <Seedance2SummaryPill
-              active={seedance2StatusData?.media.render_ready ?? !!beat.frame_url}
-              label={t("episode.workbench.video.renderReady")}
-            />
-            {showAudioMediaStatus && (
-              <Seedance2SummaryPill
-                active={seedance2StatusData?.media.audio_ready ?? !!beat.audio_url}
-                label={t("episode.workbench.video.audioReady")}
-              />
-            )}
-            <Seedance2SummaryPill
-              active={seedance2Ready}
-              label={seedance2PromptStatus}
-            />
-            {showSeedance2Config && (
-              <Seedance2SummaryPill
-                active={seedance2StatusData?.voice.ready ?? false}
-                label={
-                  seedance2StatusData?.voice.label ??
-                  t("episode.workbench.video.narratorVoiceMissing")
-                }
-              />
-            )}
-            <span className="inline-flex h-5 max-w-full items-center rounded-full border border-border bg-muted px-2 text-[11px] leading-none text-muted-foreground">
-              {t("episode.workbench.video.seedance2ReferenceStats", {
-                selected: seedance2StatusData?.assets.selected ?? 0,
-                missing: seedance2StatusData?.assets.missing ?? 0,
-              })}
-            </span>
-            <span className="inline-flex h-5 max-w-full items-center rounded-full border border-border bg-muted px-2 text-[11px] leading-none text-muted-foreground">
-              {t("episode.workbench.video.videoVersions", {
-                count: mediaController.candidateCount,
-              })}
-            </span>
-          </div>
-
-          <Seedance2ReferenceAssetsView
-            assets={modelReferenceAssetItems}
-            controller={assetOperations}
-            imageOnly={showHappyHorseConfig || showGrokVideoConfig}
-            missingCount={seedance2StatusData?.assets.missing ?? 0}
-            mode={seedance2Draft.mode}
-            open={seedance2ReferencesOpen}
-            selectedCount={seedance2StatusData?.assets.selected ?? 0}
-            onOpenChange={setSeedance2ReferencesOpen}
-            onReferenceDragStart={handleSeedance2ReferenceDragStart}
-          />
-
-          <div className="grid gap-3 rounded-[10px] border border-border bg-card p-3 md:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr]">
-            <Seedance2Field
-              label={t("episode.workbench.video.mode")}
-              htmlFor={`${seedance2Id}-mode`}
-            >
-              <Select
-                value={seedance2Draft.mode}
-                onValueChange={(v) =>
-                  updateSeedance2Mode(
-                    showHappyHorseConfig || showGrokVideoConfig
-                      ? normalizeHappyHorseMode(v)
-                      : normalizeSeedance2Mode(v),
-                  )
-                }
-              >
-                <SelectTrigger
-                  id={`${seedance2Id}-mode`}
-                  className={cn("!h-9", SEEDANCE2_CONTROL_CLASS)}
-                >
-                  <span
-                    data-slot="select-value"
-                    className="flex flex-1 items-center gap-1.5 text-left"
-                  >
-                    {t(
-                      `episode.workbench.video.seedance2ModeLabels.${
-                        showHappyHorseConfig
-                          ? normalizeHappyHorseMode(seedance2Draft.mode)
-                          : showGrokVideoConfig
-                          ? normalizeHappyHorseMode(seedance2Draft.mode)
-                          : seedance2Draft.mode
-                      }`,
-                    )}
-                  </span>
-                </SelectTrigger>
-                <SelectContent alignItemWithTrigger={false}>
-                  <SelectItem value="first_frame">
-                    {t("episode.workbench.video.seedance2ModeLabels.first_frame")}
-                  </SelectItem>
-                  {!showHappyHorseConfig && !showGrokVideoConfig && (
-                    <SelectItem value="first_last_frame">
-                      {t("episode.workbench.video.seedance2ModeLabels.first_last_frame")}
-                    </SelectItem>
-                  )}
-                  <SelectItem value="multimodal_reference">
-                    {t("episode.workbench.video.seedance2ModeLabels.multimodal_reference")}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </Seedance2Field>
-            <Seedance2Field
-              label={t("episode.workbench.video.duration")}
-              htmlFor={`${seedance2Id}-duration`}
-            >
-              <Input
-                id={`${seedance2Id}-duration`}
-                aria-label={t("episode.workbench.video.duration")}
-                type="number"
-                min={seedance2DurationBounds.min}
-                max={seedance2DurationBounds.max}
-                value={seedance2Draft.duration}
-                onChange={(e) =>
-                  updateSeedance2Draft(
-                    "duration",
-                    clampDuration(e.target.value, seedance2DurationBounds),
-                  )
-                }
-                className={cn("!h-9", SEEDANCE2_CONTROL_CLASS)}
-              />
-            </Seedance2Field>
-            <Seedance2Field
-              label={t("episode.workbench.video.resolution")}
-              htmlFor={`${seedance2Id}-resolution`}
-            >
-              <Select
-                value={seedance2Draft.resolution}
-                onValueChange={(v) =>
-                  updateSeedance2Draft(
-                    "resolution",
-                    normalizeSeedance2Resolution(
-                      v,
-                      showGrokVideoConfig
-                        ? grokVideoResolutionOptions[0]
-                        : showHappyHorseConfig
-                        ? happyHorseResolutionOptions[0]
-                        : seedance2ResolutionOptions[0],
-                    ),
-                  )
-                }
-              >
-                <SelectTrigger
-                  id={`${seedance2Id}-resolution`}
-                  className={cn("!h-9", SEEDANCE2_CONTROL_CLASS)}
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent alignItemWithTrigger={false}>
-                  {(showHappyHorseConfig
-                    ? happyHorseResolutionOptions
-                    : showGrokVideoConfig
-                    ? grokVideoResolutionOptions
-                    : seedance2ResolutionOptions
-                  ).map((resolution) => (
-                    <SelectItem key={resolution} value={resolution}>
-                      {resolution}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Seedance2Field>
-            <Seedance2Field
-              label={t("episode.workbench.video.ratio")}
-              htmlFor={`${seedance2Id}-ratio`}
-            >
-              <Select
-                value={seedance2Draft.ratio}
-                onValueChange={(v) =>
-                  updateSeedance2Draft(
-                    "ratio",
-                    showGrokVideoConfig
-                      ? normalizeGrokVideoRatio(v)
-                      : showHappyHorseConfig
-                      ? normalizeHappyHorseRatio(v)
-                      : normalizeSeedance2Ratio(v),
-                  )
-                }
-              >
-                <SelectTrigger
-                  id={`${seedance2Id}-ratio`}
-                  className={cn("!h-9", SEEDANCE2_CONTROL_CLASS)}
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent alignItemWithTrigger={false}>
-                  {(showHappyHorseConfig
-                    ? happyHorseRatioOptions
-                    : showGrokVideoConfig
-                    ? grokVideoRatioOptions
-                    : (["9:16", "16:9", "1:1", "4:3", "3:4", "21:9"] as const)
-                  ).map((ratio) => (
-                    <SelectItem key={ratio} value={ratio}>
-                      {ratio}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Seedance2Field>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 px-1 text-xs text-muted-foreground">
-            {showSeedance2Config && (
-              <Seedance2Checkbox
-                id={`${seedance2Id}-return-last-frame`}
-                checked={seedance2Draft.return_last_frame}
-                label={t("episode.workbench.video.returnLastFrame")}
-                onChange={(checked) => updateSeedance2Draft("return_last_frame", checked)}
-              />
-            )}
-            {showSeedance2ValueStyle && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] text-muted-foreground/80">
-                  {t("episode.workbench.video.seedance2GuidanceStyle")}
-                </span>
-                <div
-                  role="radiogroup"
-                  aria-label={t("episode.workbench.video.seedance2GuidanceStyle")}
-                  className="inline-flex items-center gap-1"
-                >
-                  {(["anime", "realistic"] as const).map((style) => {
-                    const active = seedance2Draft.scene_optimize === style;
-                    return (
-                      <button
-                        key={style}
-                        type="button"
-                        role="radio"
-                        aria-checked={active}
-                        className={cn(
-                          SEEDANCE2_SEGMENTED_OPTION_CLASS,
-                          active
-                            ? "border-primary/45 bg-primary/10 text-primary"
-                            : "border-border bg-muted text-muted-foreground hover:border-foreground/25 hover:bg-accent hover:text-foreground",
-                        )}
-                        onClick={() =>
-                          updateSeedance2Draft("scene_optimize", style)
-                        }
-                      >
-                        {t(
-                          `episode.workbench.video.seedance2SceneOptimizeLabels.${style}`,
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-          {showSeedance2Config && seedance2Draft.return_last_frame && (
-            <div
-              data-seedance2-returned-last-frame
-              data-testid="seedance2-returned-last-frame-panel"
-              className="inline-flex w-fit max-w-full flex-col rounded-[8px] border border-border bg-card p-1.5"
-            >
-              <div className="mb-1 flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
-                <ImageIcon className="size-3" />
-                <span>{t("episode.workbench.video.returnLastFrame")}</span>
-                {seedance2ReturnedLastFrameSrc && seedance2ReturnedLastFrameAsset && (
-                  <a
-                    href={seedance2ReturnedLastFrameSrc}
-                    download
-                    className="ml-auto inline-flex h-6 items-center gap-1 rounded-[6px] border border-border bg-muted px-2 text-[10px] text-foreground/78 hover:border-foreground/25 hover:bg-accent hover:text-foreground"
-                  >
-                    <Download className="size-3" />
-                    {t("common.download")}
-                  </a>
-                )}
-              </div>
-              <div
-                data-testid="seedance2-returned-last-frame-box"
-                className={cn(
-                  "relative w-[7.5rem] max-w-full overflow-hidden rounded-[7px] bg-muted",
-                  seedance2ReturnedLastFrameSrc && seedance2ReturnedLastFrameAsset
-                    ? "border border-border"
-                    : "border border-dashed border-border",
-                )}
-                style={{ aspectRatio: seedance2ReturnedLastFrameAspectCss }}
-              >
-                {seedance2ReturnedLastFrameSrc && seedance2ReturnedLastFrameAsset ? (
-                  <img
-                    src={seedance2ReturnedLastFrameSrc}
-                    alt={seedance2ReturnedLastFrameAsset.label}
-                    className="absolute inset-0 h-full w-full object-contain"
-                    decoding="async"
-                  />
-                ) : (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-center text-[10px] text-muted-foreground/72">
-                    <ImageIcon className="size-5 opacity-60" />
-                    <span>{t("episode.workbench.video.returnLastFramePending")}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div
-            data-testid="seedance2-prompt-panel"
-            className="rounded-[10px] border border-border bg-card p-3"
-          >
-            <div className="grid gap-3">
-              <Seedance2Field
-                label={t("episode.workbench.video.seedance2PromptGuidance")}
-                htmlFor={`${seedance2Id}-prompt-guidance`}
-              >
-                <MentionTextarea
-                  id={`${seedance2Id}-prompt-guidance`}
-                  aria-label={t("episode.workbench.video.seedance2PromptGuidance")}
-                  value={seedance2Draft.prompt_guidance}
-                  onChange={(e) => {
-                    updateSeedance2Draft("prompt_guidance", e.target.value);
-                    rememberSeedance2PromptSelection(
-                      "prompt_guidance",
-                      e.currentTarget,
-                    );
-                  }}
-                  onFocus={(e) =>
-                    rememberSeedance2PromptSelection(
-                      "prompt_guidance",
-                      e.currentTarget,
-                    )
-                  }
-                  onKeyDown={(e) => handleMentionKeyDown("prompt_guidance", e)}
-                  onKeyUp={(e) =>
-                    rememberSeedance2PromptSelection(
-                      "prompt_guidance",
-                      e.currentTarget,
-                    )
-                  }
-                  onMouseUp={(e) =>
-                    rememberSeedance2PromptSelection(
-                      "prompt_guidance",
-                      e.currentTarget,
-                    )
-                  }
-                  onSelect={(e) =>
-                    rememberSeedance2PromptSelection(
-                      "prompt_guidance",
-                      e.currentTarget,
-                    )
-                  }
-                  onDragOver={handleSeedance2ReferenceDragOver}
-                  onDrop={(e) => handleSeedance2ReferenceDrop("prompt_guidance", e)}
-                  mentionLabels={mentionController.mentionLabels}
-                  mentionPreviews={mentionController.mentionPreviews}
-                  rows={2}
-                  className={cn("min-h-[72px]", VIDEO_PROMPT_TEXTAREA_CLASS)}
-                />
-              </Seedance2Field>
-              {renderSeedance2ReferenceControls("prompt_guidance")}
-              <div className="flex flex-wrap gap-1.5">
-                {SEEDANCE2_PROMPT_GUIDANCE_TEMPLATES.map((template) => (
-                  <Button
-                    key={template.key}
-                    type="button"
-                    size="xs"
-                    variant="ghost"
-                    disabled={updateBeat.isPending}
-                    className={SEEDANCE2_PILL_ACTION_CLASS}
-                    onClick={() =>
-                      mentionController.appendGuidanceTemplate(template.text)
-                    }
-                  >
-                    {t(`episode.workbench.video.${template.labelKey}`)}
-                  </Button>
-                ))}
-              </div>
-              <div className="min-w-0 space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Label
-                    htmlFor={`${seedance2Id}-prompt`}
-                    className="text-[11px] text-muted-foreground/78"
-                  >
-                    {showGrokVideoConfig
-                      ? "Grok 提示词"
-                      : showHappyHorseConfig
-                      ? "主体提示词"
-                      : t("episode.workbench.video.seedance2Prompt")}
-                  </Label>
-                </div>
-                <MentionTextarea
-                  id={`${seedance2Id}-prompt`}
-                  aria-label={t("episode.workbench.video.seedance2Prompt")}
-                  value={seedance2Draft.final_prompt}
-                  onChange={(e) => {
-                    updateSeedance2Draft("final_prompt", e.target.value);
-                    rememberSeedance2PromptSelection(
-                      "final_prompt",
-                      e.currentTarget,
-                    );
-                  }}
-                  onFocus={(e) =>
-                    rememberSeedance2PromptSelection(
-                      "final_prompt",
-                      e.currentTarget,
-                    )
-                  }
-                  onKeyDown={(e) => handleMentionKeyDown("final_prompt", e)}
-                  onKeyUp={(e) =>
-                    rememberSeedance2PromptSelection(
-                      "final_prompt",
-                      e.currentTarget,
-                    )
-                  }
-                  onMouseUp={(e) =>
-                    rememberSeedance2PromptSelection(
-                      "final_prompt",
-                      e.currentTarget,
-                    )
-                  }
-                  onSelect={(e) =>
-                    rememberSeedance2PromptSelection(
-                      "final_prompt",
-                      e.currentTarget,
-                    )
-                  }
-                  onDragOver={handleSeedance2ReferenceDragOver}
-                  onDrop={(e) => handleSeedance2ReferenceDrop("final_prompt", e)}
-                  mentionLabels={mentionController.mentionLabels}
-                  mentionPreviews={mentionController.mentionPreviews}
-                  rows={2}
-                  className={cn("min-h-[72px]", VIDEO_PROMPT_TEXTAREA_CLASS)}
-                />
-                {renderSeedance2ReferenceControls("final_prompt")}
-              </div>
-              <div className="flex flex-wrap justify-start gap-2 pt-1">
-                <Button
-                  size="xs"
-                  variant="outline"
-                  disabled={videoConfig.promptPending}
-                  onClick={() => void videoConfig.generatePrompt()}
-                  className={MEDIA_PRIMARY_ACTION_BUTTON_CLASS}
-                >
-                  {videoConfig.promptPending ? (
-                    <Loader2 className="size-3 animate-spin" />
-                  ) : (
-                    <WandSparkles className="size-3" />
-                  )}
-                  {showGrokVideoConfig
-                    ? "生成 Grok 提示词"
-                    : showHappyHorseConfig
-                    ? "生成主体提示词"
-                    : t("episode.workbench.video.seedance2GeneratePrompt")}
-                  <CreditCostInline display={seedance2PromptCostDisplay} />
-                </Button>
-                <BeatVideoGenerationAction
-                  className={MEDIA_PRIMARY_ACTION_BUTTON_CLASS}
-                  controller={generation}
-                  hasGeneratedVideo={hasGeneratedVideo}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+        <Seedance2ConfigView
+          assetOperations={assetOperations}
+          assets={modelReferenceAssetItems}
+          config={videoConfig}
+          fallbackAudioReady={Boolean(beat.audio_url)}
+          fallbackFrameReady={Boolean(beat.frame_url)}
+          generation={generation}
+          hasGeneratedVideo={hasGeneratedVideo}
+          mediaCandidateCount={mediaController.candidateCount}
+          mention={mentionController}
+          projectAspect={spec.renderAspect}
+          referencesOpen={seedance2ReferencesOpen}
+          savePending={updateBeat.isPending}
+          showAudioMediaStatus={showAudioMediaStatus}
+          showGrokVideoConfig={showGrokVideoConfig}
+          showHappyHorseConfig={showHappyHorseConfig}
+          showSeedance2Config={showSeedance2Config}
+          status={seedance2StatusData}
+          onReferencesOpenChange={setSeedance2ReferencesOpen}
+        />
       )}
 
       <Seedance2AssetCropDialog
