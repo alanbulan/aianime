@@ -71,7 +71,7 @@ import {
   setCanvasNodePositions,
   updateCanvasNodePosition,
 } from '@/features/canvas/domain/canvasNodePositions';
-import { collectNodeIdsWithDescendants } from '@/features/canvas/domain/groupSelectionDelete';
+import { deleteCanvasNodes } from '@/features/canvas/domain/groupSelectionDelete';
 import { validateCanvasConnection } from '@/features/canvas/domain/canvasConnection';
 import { EXPORT_RESULT_DISPLAY_NAME } from '@/features/canvas/domain/nodeDisplay';
 import {
@@ -133,10 +133,7 @@ import {
   validateCandidateBindingRoleCandidate,
   validatePropagatingEdgeCandidate,
 } from '@/features/freezone/context/mainlineContext';
-import {
-  isPresetManagedEdge,
-  isPresetManagedNode,
-} from '@/features/canvas/domain/mainlineNodeFlags';
+import { isPresetManagedEdge } from '@/features/canvas/domain/mainlineNodeFlags';
 import { scopeProjectionGraphIds } from '@/features/freezone/projectionGraphIds';
 
 export type {
@@ -1114,71 +1111,36 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   deleteNodes: (nodeIds) => {
-    const uniqueIds = Array.from(new Set(nodeIds.filter((nodeId) => nodeId.trim().length > 0)));
-    if (uniqueIds.length === 0) {
+    const state = get();
+    const result = deleteCanvasNodes(state.nodes, state.edges, nodeIds);
+    if (!result) {
       return;
     }
 
-    set((state) => {
-      const existingIds = uniqueIds.filter((nodeId) => {
-        const node = state.nodes.find((candidate) => candidate.id === nodeId);
-        return Boolean(node && !isPresetManagedNode(node));
-      });
-      if (existingIds.length === 0) {
-        return {};
-      }
+    const editSource: CanvasMutationSource = isDeleteToEmpty(
+      state.nodes.length,
+      result.nodes.length,
+    )
+      ? "delete_to_empty"
+      : "user_edit";
 
-      const nodeMap = new Map(state.nodes.map((node) => [node.id, node] as const));
-      const deleteSet = collectNodeIdsWithDescendants(state.nodes, existingIds);
-      for (const node of state.nodes) {
-        if (deleteSet.has(node.id) && isPresetManagedNode(node)) {
-          deleteSet.delete(node.id);
-        }
-      }
-      const nextNodes = state.nodes
-        .filter((node) => !deleteSet.has(node.id))
-        .map((node) => {
-          if (!node.parentId || !deleteSet.has(node.parentId)) {
-            return node;
-          }
-          const absolute = resolveAbsolutePosition(node, nodeMap);
-          return {
-            ...node,
-            parentId: undefined,
-            extent: undefined,
-            position: {
-              x: Math.round(absolute.x),
-              y: Math.round(absolute.y),
-            },
-          };
-        });
-      const nextEdges = state.edges.filter(
-        (edge) => !deleteSet.has(edge.source) && !deleteSet.has(edge.target)
-      );
-
-      const editSource: CanvasMutationSource = isDeleteToEmpty(
-        state.nodes.length,
-        nextNodes.length,
-      )
-        ? "delete_to_empty"
-        : "user_edit";
-
-      return {
-        nodes: nextNodes,
-        edges: nextEdges,
-        selectedNodeId:
-          state.selectedNodeId && deleteSet.has(state.selectedNodeId) ? null : state.selectedNodeId,
-        activeToolDialog:
-          state.activeToolDialog && deleteSet.has(state.activeToolDialog.nodeId)
-            ? null
-            : state.activeToolDialog,
-        history: {
-          past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-          future: [],
-        },
-        dragHistorySnapshot: null,
-        ...trackEdit(state, editSource),
-      };
+    set({
+      nodes: result.nodes,
+      edges: result.edges,
+      selectedNodeId:
+        state.selectedNodeId && result.deletedNodeIds.has(state.selectedNodeId)
+          ? null
+          : state.selectedNodeId,
+      activeToolDialog:
+        state.activeToolDialog && result.deletedNodeIds.has(state.activeToolDialog.nodeId)
+          ? null
+          : state.activeToolDialog,
+      history: {
+        past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
+        future: [],
+      },
+      dragHistorySnapshot: null,
+      ...trackEdit(state, editSource),
     });
   },
 

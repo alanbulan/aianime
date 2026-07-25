@@ -1,9 +1,14 @@
 // Copyright (c) 2026 AI anime
-import { CANVAS_NODE_TYPES, type CanvasNode } from "./canvasNodes";
+import {
+  CANVAS_NODE_TYPES,
+  type CanvasEdge,
+  type CanvasNode,
+} from "./canvasNodes";
+import { resolveAbsolutePosition } from "./canvasGeometry";
 import { isPresetManagedNode } from "./mainlineNodeFlags";
 
 export function collectNodeIdsWithDescendants(
-  nodes: CanvasNode[],
+  nodes: readonly CanvasNode[],
   seedIds: Iterable<string>,
 ): Set<string> {
   const collected = new Set(seedIds);
@@ -23,6 +28,69 @@ export function collectNodeIdsWithDescendants(
   }
 
   return collected;
+}
+
+export interface CanvasNodeDeletionResult {
+  nodes: CanvasNode[];
+  edges: CanvasEdge[];
+  deletedNodeIds: ReadonlySet<string>;
+}
+
+export function deleteCanvasNodes(
+  nodes: readonly CanvasNode[],
+  edges: readonly CanvasEdge[],
+  nodeIds: Iterable<string>,
+): CanvasNodeDeletionResult | null {
+  const uniqueIds = Array.from(
+    new Set(Array.from(nodeIds).filter((nodeId) => nodeId.trim().length > 0)),
+  );
+  if (uniqueIds.length === 0) {
+    return null;
+  }
+
+  const nodeMap = new Map(nodes.map((node) => [node.id, node] as const));
+  const existingIds = uniqueIds.filter((nodeId) => {
+    const node = nodeMap.get(nodeId);
+    return Boolean(node && !isPresetManagedNode(node));
+  });
+  if (existingIds.length === 0) {
+    return null;
+  }
+
+  const deletedNodeIds = collectNodeIdsWithDescendants(nodes, existingIds);
+  for (const node of nodes) {
+    if (deletedNodeIds.has(node.id) && isPresetManagedNode(node)) {
+      deletedNodeIds.delete(node.id);
+    }
+  }
+
+  const nextNodes = nodes
+    .filter((node) => !deletedNodeIds.has(node.id))
+    .map((node) => {
+      if (!node.parentId || !deletedNodeIds.has(node.parentId)) {
+        return node;
+      }
+      const absolute = resolveAbsolutePosition(node, nodeMap);
+      return {
+        ...node,
+        parentId: undefined,
+        extent: undefined,
+        position: {
+          x: Math.round(absolute.x),
+          y: Math.round(absolute.y),
+        },
+      };
+    });
+  const nextEdges = edges.filter(
+    (edge) =>
+      !deletedNodeIds.has(edge.source) && !deletedNodeIds.has(edge.target),
+  );
+
+  return {
+    nodes: nextNodes,
+    edges: nextEdges,
+    deletedNodeIds,
+  };
 }
 
 /**

@@ -1025,11 +1025,25 @@ describe("frontend architecture boundaries", () => {
         )
         .map((specifier) => `${relativeSource(path)}: ${specifier}`),
     );
+    const deletionDeclaration = [
+      "export function",
+      "deleteCanvasNodes(",
+    ].join(" ");
+    const deletionOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(deletionDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(forbiddenImports).toEqual([]);
+    expect(deletionOwners).toEqual([
+      "features/canvas/domain/groupSelectionDelete.ts",
+    ]);
     expect(deletionModel).toContain(
       "export function collectNodeIdsWithDescendants(",
     );
+    expect(deletionModel).toContain(deletionDeclaration);
     expect(storyboardModel).toContain(
       "export function restoreStoryboardEdges(",
     );
@@ -1039,6 +1053,9 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain(
       "function collectNodeIdsWithDescendants(",
     );
+    expect(canvasStore).not.toContain("collectNodeIdsWithDescendants(");
+    expect(canvasStore).not.toContain("isPresetManagedNode(");
+    expect(canvasStore).not.toContain("const deleteSet =");
     expect(canvasStore).not.toContain("function restoreStoryboardEdges(");
   });
 
