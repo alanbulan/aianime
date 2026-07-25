@@ -35,8 +35,6 @@ export {
   useRegenerateRenderBeats,
   useRegenerateSketches,
   useRebuildPoolIndex,
-  useRenderGridCardController,
-  useRenderGridGalleryController,
   useRenderPlanDialogController,
   useRenderSettings,
   useSeedance2BeatStatus,
@@ -45,8 +43,6 @@ export {
   useSaveSketchRegenQueue,
   useSketchRegenQueue,
   useSketchGridPreview,
-  useSketchGridCardController,
-  useSketchGridGalleryController,
   useSketchSettings,
   useTrimSeedance2Asset,
   useTrimNarratorVoice,
@@ -130,47 +126,12 @@ export type {
 } from "@/modules/production/application/use-batch-panel-controller";
 export { NarratorVoicePanelView } from "@/modules/production/presentation/NarratorVoicePanelView";
 export type { NarratorVoicePanelViewProps } from "@/modules/production/presentation/NarratorVoicePanelView";
-export {
-  RenderGridCardView,
-  RenderGridGalleryView,
-} from "@/modules/production/presentation/RenderGridGalleryView";
-export type {
-  RenderGridCardViewProps,
-  RenderGridGalleryViewProps,
-} from "@/modules/production/presentation/RenderGridGalleryView";
-export {
-  SketchGridCardView,
-  SketchGridGalleryView,
-} from "@/modules/production/presentation/SketchGridGalleryView";
-export type {
-  SketchGridCardViewProps,
-  SketchGridGalleryViewProps,
-} from "@/modules/production/presentation/SketchGridGalleryView";
 export type {
   NarratorVoicePanelController,
   NarratorVoicePanelControllerDependencies,
   NarratorVoicePanelControllerOptions,
   NarratorVoicePanelQueries,
 } from "@/modules/production/application/use-narrator-voice-panel-controller";
-export type {
-  RenderGridCardController,
-  RenderGridCardControllerDependencies,
-  RenderGridCardControllerOptions,
-  RenderGridCardControllerQueries,
-  RenderGridGalleryController,
-  RenderGridGalleryControllerOptions,
-  RenderGridGalleryControllerQueries,
-} from "@/modules/production/application/use-render-grid-gallery-controller";
-export type {
-  SketchGridCardController,
-  SketchGridCardControllerDependencies,
-  SketchGridCardControllerOptions,
-  SketchGridCardControllerQueries,
-  SketchGridFallbackCellViewModel,
-  SketchGridGalleryController,
-  SketchGridGalleryControllerOptions,
-  SketchGridGalleryControllerQueries,
-} from "@/modules/production/application/use-sketch-grid-gallery-controller";
 export { StalePoolSelectError } from "@/modules/production/application/image-pool-errors";
 export { isProductionErrorResponse } from "@/modules/production/application/ports";
 export {
@@ -203,14 +164,6 @@ export type {
   ImagePoolSelectionResult,
   PoolImage,
 } from "@/modules/production/domain/image-pool";
-export type {
-  RenderGridBeat,
-  RenderGridGroup,
-} from "@/modules/production/domain/render-grid-gallery";
-export type {
-  SketchGridBeat,
-  SketchGridGroup,
-} from "@/modules/production/domain/sketch-grid-gallery";
 export type {
   GenerateSketchesCommand,
   RegenerateGridCommand,
@@ -369,3 +322,11 @@ export { RenderSection } from "@/modules/production/render-section-composition";
 export type { RenderSectionProps } from "@/modules/production/render-section-composition";
 export { SketchSection } from "@/modules/production/sketch-section-composition";
 export type { SketchSectionProps } from "@/modules/production/sketch-section-composition";
+export {
+  RenderGridGallery,
+  SketchGridGallery,
+} from "@/modules/production/grid-gallery-composition";
+export type {
+  RenderGridGalleryProps,
+  SketchGridGalleryProps,
+} from "@/modules/production/grid-gallery-composition";

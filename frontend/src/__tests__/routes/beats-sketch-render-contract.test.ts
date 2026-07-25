@@ -19,6 +19,13 @@ function readRenderSectionComposition() {
   return source.slice(source.indexOf("export interface RenderSectionProps"));
 }
 
+function readSketchGridGalleryComposition() {
+  const source = read("src/modules/production/grid-gallery-composition.ts");
+  return source.slice(
+    source.indexOf("export interface SketchGridGalleryProps"),
+  );
+}
+
 describe("beats sketch/render v2 contract", () => {
   it("does not expose the legacy /sketches/batch auto-select action", () => {
     const batchBar = readBatchBarComposition();
@@ -139,9 +146,7 @@ describe("beats sketch/render v2 contract", () => {
       "src/modules/production/application/use-batch-bar-controller.ts",
     );
     const batchBarSources = `${batchBar}\n${batchBarController}\n${batchBarView}`;
-    const sketchGridGallery = read(
-      "src/components/episode/beat-workbench/sketch-grid-gallery.tsx",
-    );
+    const sketchGridGallery = readSketchGridGalleryComposition();
     const sketchGridController = read(
       "src/modules/production/application/use-sketch-grid-gallery-controller.ts",
     );

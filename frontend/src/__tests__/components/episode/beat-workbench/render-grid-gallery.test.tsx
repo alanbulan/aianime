@@ -5,8 +5,8 @@ import { I18nextProvider, initReactI18next } from "react-i18next";
 import i18next from "i18next";
 import { beforeAll, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 
-import { RenderGridGallery } from "@/components/episode/beat-workbench/render-grid-gallery";
 import type { Beat } from "@/modules/narrative_planning/public";
+import { RenderGridGallery } from "@/modules/production/grid-gallery-composition";
 import type { PoolImage } from "@/modules/production/public";
 
 const i18n = i18next.createInstance();
@@ -82,10 +82,7 @@ function beatWithScene(beatNumber: number, sceneId: string): Beat {
   };
 }
 
-vi.mock("@/modules/production/public", async (importOriginal) => {
-  const actual = await importOriginal<
-    typeof import("@/modules/production/public")
-  >();
+vi.mock("@/modules/production/composition", async () => {
   const {
     createUseRenderGridCardController,
     createUseRenderGridGalleryController,
@@ -135,7 +132,6 @@ vi.mock("@/modules/production/public", async (importOriginal) => {
     },
   );
   return {
-    ...actual,
     useRenderGridCardController,
     useRenderGridGalleryController,
   };

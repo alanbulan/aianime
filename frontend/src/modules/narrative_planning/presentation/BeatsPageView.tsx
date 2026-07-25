@@ -12,8 +12,6 @@ import { Brush, Clapperboard, Loader2, Play, RefreshCw } from "lucide-react";
 import { CreditCostInline } from "@/components/credit-cost-inline";
 import { ActionPanel } from "@/components/episode/beat-workbench/action-panel";
 import { BeatCardGrid } from "@/components/episode/beat-workbench/beat-card-grid";
-import { RenderGridGallery } from "@/components/episode/beat-workbench/render-grid-gallery";
-import { SketchGridGallery } from "@/components/episode/beat-workbench/sketch-grid-gallery";
 import {
   useEpisodeActionsSlot,
   useRegisterEpisodeActionsSlot,
@@ -24,7 +22,9 @@ import { Button } from "@/components/ui/button";
 import { EMPTY_STATE_ACTION_BUTTON_CLASS } from "@/components/ui/empty-state-styles";
 import {
   BatchBar,
+  RenderGridGallery,
   RenderPlanDialog,
+  SketchGridGallery,
   sketchPlanGridLabel,
 } from "@/modules/production/public";
 import {

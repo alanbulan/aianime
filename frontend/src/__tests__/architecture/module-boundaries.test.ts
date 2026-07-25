@@ -1093,6 +1093,13 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const gridGalleryCompositionSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/production/grid-gallery-composition.ts",
+      ),
+      "utf8",
+    );
     const productionPublicSource = readFileSync(
       resolve(SRC_ROOT, "modules/production/public.ts"),
       "utf8",
@@ -1234,12 +1241,10 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
-    const renderGridGallerySource = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "components/episode/beat-workbench/render-grid-gallery.tsx",
-      ),
-      "utf8",
+    const renderGridGallerySource = sourceSection(
+      resolve(SRC_ROOT, "modules/production/grid-gallery-composition.ts"),
+      "export interface RenderGridGalleryProps",
+      "export interface SketchGridGalleryProps",
     );
     const renderGridGalleryViewSource = readFileSync(
       resolve(
@@ -1262,12 +1267,9 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
-    const sketchGridGallerySource = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "components/episode/beat-workbench/sketch-grid-gallery.tsx",
-      ),
-      "utf8",
+    const sketchGridGallerySource = sourceSection(
+      resolve(SRC_ROOT, "modules/production/grid-gallery-composition.ts"),
+      "export interface SketchGridGalleryProps",
     );
     const sketchGridGalleryViewSource = readFileSync(
       resolve(
@@ -1374,6 +1376,8 @@ describe("frontend architecture boundaries", () => {
       "components/episode/beat-workbench/sketch-crop-dialog.tsx",
       "components/episode/beat-workbench/sketch-pose-editor-dialog.tsx",
       "components/episode/beat-workbench/render-section.tsx",
+      "components/episode/beat-workbench/render-grid-gallery.tsx",
+      "components/episode/beat-workbench/sketch-grid-gallery.tsx",
     ]) {
       expect(existsSync(resolve(SRC_ROOT, legacyPath)), legacyPath).toBe(false);
     }
@@ -1757,8 +1761,12 @@ describe("frontend architecture boundaries", () => {
       "@/modules/asset_world/public",
     );
     expect(productionCompositionSource).not.toContain("useQueryClient");
-    expect(renderGridGallerySource).toContain("<RenderGridGalleryView");
-    expect(renderGridGallerySource).toContain("<RenderGridCardView");
+    expect(renderGridGallerySource).toContain(
+      "RenderGridGalleryView,",
+    );
+    expect(renderGridGallerySource).toContain(
+      "createElement(RenderGridCardView",
+    );
     expect(renderGridGallerySource).not.toContain("className=");
     expect(renderGridGallerySource).not.toContain("<Button");
     expect(renderGridGallerySource).not.toContain("<Dialog");
@@ -1806,8 +1814,12 @@ describe("frontend architecture boundaries", () => {
     expect(renderGridGalleryDomainSource).toContain(
       "export function buildRenderGridGroups",
     );
-    expect(sketchGridGallerySource).toContain("<SketchGridGalleryView");
-    expect(sketchGridGallerySource).toContain("<SketchGridCardView");
+    expect(sketchGridGallerySource).toContain(
+      "SketchGridGalleryView,",
+    );
+    expect(sketchGridGallerySource).toContain(
+      "createElement(SketchGridCardView",
+    );
     expect(sketchGridGallerySource).not.toContain("className=");
     expect(sketchGridGallerySource).not.toContain("<Button");
     expect(sketchGridGallerySource).not.toContain("<Dialog");
@@ -1865,6 +1877,25 @@ describe("frontend architecture boundaries", () => {
     expect(sketchGridGalleryDomainSource).toContain(
       "export function buildSketchGridGroups",
     );
+    expect(gridGalleryCompositionSource).toContain(
+      'from "@/modules/production/composition"',
+    );
+    expect(gridGalleryCompositionSource).toContain(
+      "useProjectAspectRatio(project)",
+    );
+    expect(productionPublicSource).toContain(
+      'from "@/modules/production/grid-gallery-composition";',
+    );
+    expect(productionPublicSource).not.toContain(
+      "useRenderGridGalleryController",
+    );
+    expect(productionPublicSource).not.toContain(
+      "useSketchGridGalleryController",
+    );
+    expect(productionPublicSource).not.toContain("RenderGridGalleryView");
+    expect(productionPublicSource).not.toContain("SketchGridGalleryView");
+    expect(productionPublicSource).not.toContain("RenderGridGroup");
+    expect(productionPublicSource).not.toContain("SketchGridGroup");
     expect(batchBarControllerSource).toContain(
       "episodeAudioModelCallCount(",
     );
