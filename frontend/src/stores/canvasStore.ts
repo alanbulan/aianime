@@ -14,8 +14,6 @@ import {
   CANVAS_NODE_TYPES,
   DEFAULT_ASPECT_RATIO,
   DEFAULT_NODE_WIDTH,
-  EXPORT_RESULT_NODE_DEFAULT_WIDTH,
-  EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   EXPORT_RESULT_NODE_MIN_HEIGHT,
   EXPORT_RESULT_NODE_MIN_WIDTH,
   type ActiveToolDialog,
@@ -65,11 +63,12 @@ import {
 import { nodeCatalog } from '@/features/canvas/application/nodeCatalog';
 import { canvasNodeFactory } from '@/features/canvas/nodeFactoryComposition';
 import {
-  aspectRatioFromImageDimensions,
-  ensureAtLeastOneMinEdge,
-  resolveMinEdgeFittedSize,
-  resolveSizeInsideTargetBox,
-} from '@/features/canvas/application/imageNodeSizing';
+  isImageAutoResizableType,
+  maybeApplyImageAutoResize,
+  resolveAutoImageNodeDimensions,
+  resolveGeneratedImageNodeDimensions,
+  withManualSizeLock,
+} from '@/features/canvas/application/imageNodeLayout';
 import {
   validateCandidateBindingRoleCandidate,
   validatePropagatingEdgeCandidate,
@@ -92,7 +91,6 @@ export type {
 
 const SKILL_NODE_DEFAULT_MEASURED = { width: 380, height: 520 };
 const BEAT_CONTEXT_NODE_DEFAULT_MEASURED = { width: 420, height: 560 };
-const IMAGE_NODE_VISUAL_MIN_EDGE = 300;
 const STORYBOARD_SPLIT_NODE_MIN_WIDTH = 440;
 const STORYBOARD_SPLIT_NODE_MAX_WIDTH = 860;
 const STORYBOARD_SPLIT_FRAME_TARGET_WIDTH = 150;
@@ -838,93 +836,6 @@ function getNodeSize(node: CanvasNode): { width: number; height: number } {
   };
 }
 
-function isImageAutoResizableType(type: CanvasNodeType): boolean {
-  return type === CANVAS_NODE_TYPES.upload
-    || type === CANVAS_NODE_TYPES.imageEdit
-    || type === CANVAS_NODE_TYPES.exportImage
-    || type === CANVAS_NODE_TYPES.imageGen
-    || type === CANVAS_NODE_TYPES.video;
-}
-
-function withManualSizeLock(node: CanvasNode): CanvasNode {
-  const nodeData = node.data as CanvasNodeData & {
-    isSizeManuallyAdjusted?: boolean;
-    aspectRatio?: string;
-  };
-
-  // 缩放结束时把节点框吸附回图片真实比例：图片用 object-contain 显示，一旦节点
-  // 宽高比偏离图片比例（自由缩放、或历史上被拉歪并保存的旧节点）就会露出容器
-  // 底色形成黑边。按「在缩放后的框内、保持图片比例的最大尺寸」吸附即可消除黑边。
-  const aspectRatio = typeof nodeData.aspectRatio === 'string' ? nodeData.aspectRatio : '';
-  const currentWidth =
-    (typeof node.width === 'number' ? node.width : null)
-    ?? (typeof node.measured?.width === 'number' ? node.measured.width : null)
-    ?? (typeof node.style?.width === 'number' ? node.style.width : null);
-  const currentHeight =
-    (typeof node.height === 'number' ? node.height : null)
-    ?? (typeof node.measured?.height === 'number' ? node.measured.height : null)
-    ?? (typeof node.style?.height === 'number' ? node.style.height : null);
-
-  let snapped: { width: number; height: number } | null = null;
-  if (aspectRatio && typeof currentWidth === 'number' && typeof currentHeight === 'number') {
-    const fitted = resolveSizeInsideTargetBox(aspectRatio, {
-      width: currentWidth,
-      height: currentHeight,
-    });
-    if (Math.abs(fitted.width - currentWidth) > 1 || Math.abs(fitted.height - currentHeight) > 1) {
-      snapped = fitted;
-    }
-  }
-
-  if (nodeData.isSizeManuallyAdjusted && !snapped) {
-    return node;
-  }
-
-  return {
-    ...node,
-    ...(snapped
-      ? {
-          width: snapped.width,
-          height: snapped.height,
-          style: { ...(node.style ?? {}), width: snapped.width, height: snapped.height },
-        }
-      : {}),
-    data: {
-      ...node.data,
-      isSizeManuallyAdjusted: true,
-    } as CanvasNodeData,
-  };
-}
-
-function resolveAutoImageNodeDimensions(
-  aspectRatio: string,
-  options?: {
-    minWidth?: number;
-    minHeight?: number;
-  }
-): { width: number; height: number } {
-  const minWidth = options?.minWidth ?? EXPORT_RESULT_NODE_MIN_WIDTH;
-  const minHeight = options?.minHeight ?? EXPORT_RESULT_NODE_MIN_HEIGHT;
-  return resolveMinEdgeFittedSize(aspectRatio, { minWidth, minHeight });
-}
-
-function resolveGeneratedImageNodeDimensions(
-  aspectRatio: string,
-  options?: {
-    minWidth?: number;
-    minHeight?: number;
-  }
-): { width: number; height: number } {
-  const size = resolveSizeInsideTargetBox(aspectRatio, {
-    width: EXPORT_RESULT_NODE_DEFAULT_WIDTH,
-    height: EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
-  });
-  const minWidth = options?.minWidth ?? IMAGE_NODE_VISUAL_MIN_EDGE;
-  const minHeight = options?.minHeight ?? IMAGE_NODE_VISUAL_MIN_EDGE;
-
-  return ensureAtLeastOneMinEdge(size, { minWidth, minHeight });
-}
-
 function parseAspectRatioValue(aspectRatio: string | undefined): number {
   const [rawWidth = "1", rawHeight = "1"] = (aspectRatio || DEFAULT_ASPECT_RATIO).split(":");
   const width = Number(rawWidth);
@@ -998,98 +909,6 @@ function resolveDerivedAspectRatio(
 
   const imageLikeAspect = (sourceNode.data as { aspectRatio?: string }).aspectRatio;
   return imageLikeAspect || fallbackAspectRatio;
-}
-
-function maybeApplyImageAutoResize(node: CanvasNode, patch: Partial<CanvasNodeData>): CanvasNode {
-  if (!isImageAutoResizableType(node.type)) {
-    return node;
-  }
-
-  const isVideo = node.type === CANVAS_NODE_TYPES.video;
-  const nodeData = node.data as CanvasNodeData & {
-    imageUrl?: string | null;
-    videoUrl?: string | null;
-    aspectRatio?: string;
-    widthPx?: number;
-    heightPx?: number;
-    isSizeManuallyAdjusted?: boolean;
-  };
-  const patchData = patch as Partial<CanvasNodeData> & {
-    imageUrl?: string | null;
-    videoUrl?: string | null;
-    aspectRatio?: string;
-    widthPx?: number;
-    heightPx?: number;
-    isSizeManuallyAdjusted?: boolean;
-  };
-
-  // 视频以 widthPx/heightPx/aspectRatio 作为触发点 —— 这些只有在 <video> 元素
-  // 拿到 metadata 后才会更新，避免拿到 videoUrl 但 metadata 未就绪时就用默认
-  // aspectRatio 错误地 resize 一次。
-  const hasImageRelatedChange = isVideo
-    ? ('aspectRatio' in patchData || 'widthPx' in patchData || 'heightPx' in patchData)
-    : ('imageUrl' in patchData || 'previewImageUrl' in patchData || 'aspectRatio' in patchData);
-  if (!hasImageRelatedChange) {
-    return node;
-  }
-
-  const isSizeManuallyAdjusted = patchData.isSizeManuallyAdjusted ?? nodeData.isSizeManuallyAdjusted ?? false;
-  if (isSizeManuallyAdjusted) {
-    return node;
-  }
-
-  // 没有实际媒体内容时不要乱改尺寸 —— 视频以 videoUrl、图片以 imageUrl 作为「已加载」信号。
-  const nextAssetUrl = isVideo
-    ? (patchData.videoUrl ?? nodeData.videoUrl)
-    : (patchData.imageUrl ?? nodeData.imageUrl);
-  if (typeof nextAssetUrl !== 'string' || nextAssetUrl.trim().length === 0) {
-    return node;
-  }
-
-  // 视频节点的展示比例应跟随视频真实像素（widthPx/heightPx），而不是生成预设
-  // aspectRatio（那只是「下一次生成」想要的比例，可能与既有视频本身的像素比
-  // 不一致——例如 9:16 的素材视频，预设却是 16:9，否则节点会被撑成 16:9 给视频
-  // 加黑边）。拿不到像素时再回退到预设 aspectRatio。
-  const presetAspectRatio = patchData.aspectRatio ?? nodeData.aspectRatio ?? DEFAULT_ASPECT_RATIO;
-  const videoPixelAspectRatio = isVideo
-    ? (() => {
-        const w = patchData.widthPx ?? nodeData.widthPx;
-        const h = patchData.heightPx ?? nodeData.heightPx;
-        return typeof w === 'number' && typeof h === 'number' && w > 0 && h > 0
-          ? aspectRatioFromImageDimensions(w, h)
-          : null;
-      })()
-    : null;
-  const nextAspectRatio = videoPixelAspectRatio ?? presetAspectRatio;
-  // 各节点类型的内部 MIN_WIDTH / MIN_HEIGHT 决定了 React Flow 给它的 width /
-  // height 会不会被 clamp 掉 —— 这里直接对齐节点自己的下限，否则 store 算
-  // 出来的尺寸会被节点 component 再 clamp 一次，比例又被拉成方块。
-  const resizeMins = (() => {
-    if (node.type === CANVAS_NODE_TYPES.exportImage) {
-      return { minWidth: EXPORT_RESULT_NODE_MIN_WIDTH, minHeight: EXPORT_RESULT_NODE_MIN_HEIGHT };
-    }
-    if (node.type === CANVAS_NODE_TYPES.video) {
-      return { minWidth: 480, minHeight: 280 };
-    }
-    if (node.type === CANVAS_NODE_TYPES.imageGen) {
-      return { minWidth: 480, minHeight: 260 };
-    }
-    return undefined;
-  })();
-  const nextSize = resizeMins
-    ? resolveAutoImageNodeDimensions(nextAspectRatio, resizeMins)
-    : resolveAutoImageNodeDimensions(nextAspectRatio);
-
-  return {
-    ...node,
-    width: nextSize.width,
-    height: nextSize.height,
-    style: {
-      ...(node.style ?? {}),
-      width: nextSize.width,
-      height: nextSize.height,
-    },
-  };
 }
 
 export function resolveAbsolutePosition(

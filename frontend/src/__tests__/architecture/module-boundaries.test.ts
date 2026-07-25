@@ -649,6 +649,40 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps Canvas image node layout rules out of the Zustand store", () => {
+    const layoutPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/imageNodeLayout.ts",
+    );
+    const layoutModel = readFileSync(layoutPath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const forbiddenLayoutImports = importSpecifiers(layoutPath).filter(
+      (specifier) =>
+        specifier === "zustand" ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/"),
+    );
+    const ruleNames = [
+      "isImageAutoResizableType",
+      "withManualSizeLock",
+      "resolveAutoImageNodeDimensions",
+      "resolveGeneratedImageNodeDimensions",
+      "maybeApplyImageAutoResize",
+    ];
+
+    expect(forbiddenLayoutImports).toEqual([]);
+    expect(canvasStore).toContain(
+      "@/features/canvas/application/imageNodeLayout",
+    );
+    for (const ruleName of ruleNames) {
+      expect(layoutModel).toContain(`export function ${ruleName}(`);
+      expect(canvasStore).not.toContain(`function ${ruleName}(`);
+    }
+  });
+
   it("keeps shared code independent from application and business layers", () => {
     const forbiddenPrefixes = [
       "@/app/",
