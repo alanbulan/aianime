@@ -160,6 +160,7 @@ import {
   getClientPosition,
   resolveConnectEndHandleId,
 } from './ui/canvasConnectionInteraction';
+import { useCanvasMinimapVisibility } from './hooks/useCanvasMinimapVisibility';
 
 const DEFAULT_EDGE_OPTIONS = { type: 'disconnectableEdge' };
 const REACT_FLOW_PRO_OPTIONS = { hideAttribution: true };
@@ -311,37 +312,12 @@ export function Canvas({
     start: { x: number; y: number };
   } | null>(null);
 
-  const [minimapPinned, setMinimapPinned] = useState(false);
-  const [minimapHovered, setMinimapHovered] = useState(false);
-  const minimapVisible = minimapPinned || minimapHovered;
-  // 小地图弹层（含上方的书签数字行）靠 hover 显示。数字行是小地图上方、隔着间隙的
-  // 独立 DOM 子树:鼠标从小地图移到数字按钮的途中会先离开小地图,若立即把
-  // minimapHovered 置 false,整个 overlay 会在点到按钮前卸载,导致「点不了」。
-  // 这里给「隐藏」加一个短延迟:离开时延迟 false,任意区域(小地图/触发按钮/数字行)
-  // 重新 hover 会取消该延迟,从而能稳定跨越间隙去点击。
-  const minimapHideTimerRef = useRef<number | null>(null);
-  const setMinimapHover = useCallback((hovered: boolean) => {
-    if (minimapHideTimerRef.current !== null) {
-      window.clearTimeout(minimapHideTimerRef.current);
-      minimapHideTimerRef.current = null;
-    }
-    if (hovered) {
-      setMinimapHovered(true);
-    } else {
-      minimapHideTimerRef.current = window.setTimeout(() => {
-        setMinimapHovered(false);
-        minimapHideTimerRef.current = null;
-      }, 180);
-    }
-  }, []);
-  useEffect(
-    () => () => {
-      if (minimapHideTimerRef.current !== null) {
-        window.clearTimeout(minimapHideTimerRef.current);
-      }
-    },
-    [],
-  );
+  const {
+    pinned: minimapPinned,
+    visible: minimapVisible,
+    setHovered: setMinimapHover,
+    togglePinned: toggleMinimapPinned,
+  } = useCanvasMinimapVisibility();
   // hover 节点 id 放在 store 里：除了喂给 NodeSpawnPlusOverlay 的「+」，
   // NodeSideActionRail 的上传/替换按钮栏也要据此「hover 才显示」。
   const hoveredNodeId = useCanvasStore((state) => state.hoveredNodeId);
@@ -1626,12 +1602,12 @@ export function Canvas({
         return;
       }
       event.preventDefault();
-      setMinimapPinned((value) => !value);
+      toggleMinimapPinned();
     };
 
     window.addEventListener('keydown', handleMinimapKey);
     return () => window.removeEventListener('keydown', handleMinimapKey);
-  }, []);
+  }, [toggleMinimapPinned]);
 
   // Track the space bar so the marquee box-select can yield to space-pan.
   // Ignored while typing (space is a normal character there). Reset on blur so a
@@ -4241,7 +4217,7 @@ export function Canvas({
 
       <CanvasMinimapButton
         pinned={minimapPinned}
-        onTogglePin={() => setMinimapPinned((value) => !value)}
+        onTogglePin={toggleMinimapPinned}
         onHoverChange={setMinimapHover}
         placement={controlsPlacement}
       />

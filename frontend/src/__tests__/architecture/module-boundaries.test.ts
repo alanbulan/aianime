@@ -1220,6 +1220,46 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("interface PreviewConnectionLine");
   });
 
+  it("keeps Canvas minimap visibility state in one presentation hook", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasMinimapVisibility.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const hookDeclaration = [
+      "export function",
+      "useCanvasMinimapVisibility(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(hookDeclaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasMinimapVisibility.ts",
+    ]);
+    expect(hookModel).toContain(hookDeclaration);
+    expect(canvasView).toContain("./hooks/useCanvasMinimapVisibility");
+    expect(canvasView).not.toContain("const [minimapPinned,");
+    expect(canvasView).not.toContain("const [minimapHovered,");
+    expect(canvasView).not.toContain("minimapHideTimerRef");
+    expect(canvasView).not.toContain("setMinimapPinned(");
+  });
+
   it("keeps Canvas node position reducers out of the Zustand store", () => {
     const positionsPath = resolve(
       SRC_ROOT,
