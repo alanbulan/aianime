@@ -89,7 +89,6 @@ import {
   resolveActiveToolDialog,
   resolveSelectedNodeId,
 } from '@/features/canvas/domain/canvasSelection';
-import { nodeCatalog } from '@/features/canvas/application/nodeCatalog';
 import {
   BEAT_CONTEXT_NODE_DEFAULT_MEASURED,
   SKILL_NODE_DEFAULT_MEASURED,
@@ -113,6 +112,7 @@ import {
   hasMeaningfulCanvasEdgeChange,
 } from '@/features/canvas/application/canvasChangeIntent';
 import { updateCanvasNodeData } from '@/features/canvas/application/canvasNodeData';
+import { convertCanvasNodeType } from '@/features/canvas/application/canvasNodeConversion';
 import {
   updateCanvasNodeSize,
   type CanvasNodeSizeUpdateOptions,
@@ -1247,31 +1247,17 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   convertNodeType: (nodeId, newType, dataOverrides = {}) => {
     const state = get();
-    const target = state.nodes.find((n) => n.id === nodeId);
-    if (!target || target.type === newType) {
+    const result = convertCanvasNodeType(
+      state.nodes,
+      nodeId,
+      newType,
+      dataOverrides,
+    );
+    if (!result.changed) {
       return false;
     }
-    const definition = nodeCatalog.getDefinition(newType);
-    const mergedData = {
-      ...definition.createDefaultData(),
-      ...dataOverrides,
-    } as CanvasNodeData;
-    const nextNodes = state.nodes.map((node) =>
-      node.id === nodeId
-        ? ({
-            ...node,
-            type: newType,
-            data: mergedData,
-            // Reset measured size — the new node type can pick its own default
-            // and ReactFlow will re-measure after the swap.
-            measured: undefined,
-            width: undefined,
-            height: undefined,
-          } as CanvasNode)
-        : node
-    );
     set({
-      nodes: nextNodes,
+      nodes: result.nodes,
       history: {
         past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
         future: [],

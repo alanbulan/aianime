@@ -1245,6 +1245,53 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("const mergedData = {\n          ...node.data");
   });
 
+  it("keeps Canvas node type conversion out of the Zustand store", () => {
+    const conversionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasNodeConversion.ts",
+    );
+    const conversionModel = readFileSync(conversionPath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(conversionPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier === "zustand" ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const conversionDeclaration = [
+      "export function",
+      "convertCanvasNodeType(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(conversionDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/application/canvasNodeConversion.ts",
+    ]);
+    expect(conversionModel).toContain(conversionDeclaration);
+    expect(conversionModel).toContain("nodeCatalog.getDefinition(newType)");
+    expect(canvasStore).toContain(
+      "@/features/canvas/application/canvasNodeConversion",
+    );
+    expect(canvasStore).not.toContain(
+      "@/features/canvas/application/nodeCatalog",
+    );
+    expect(canvasStore).not.toContain("definition.createDefaultData()");
+    expect(canvasStore).not.toContain("target.type === newType");
+  });
+
   it("keeps Canvas node size updates out of the Zustand store", () => {
     const nodeSizePath = resolve(
       SRC_ROOT,
