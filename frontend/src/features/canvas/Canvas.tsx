@@ -117,11 +117,6 @@ import { CanvasSnapAlignButton } from './snap-align/CanvasSnapAlignButton';
 import { useTrackpadPanStore } from './trackpad-pan/trackpadPanStore';
 import { SnapAlignGuides } from './snap-align/SnapAlignGuides';
 import { useSnapAlignStore } from './snap-align/snapAlignStore';
-import {
-  buildSnapAlignIndex,
-  computeSnapAlignFromIndex,
-  type SnapAlignIndex,
-} from './snap-align/computeSnapAlign';
 import { computeAutoLayout } from './application/autoLayout';
 import { PAN_ACTIVATION_KEY_CODE } from './ui/canvasInteractionTargets';
 import { collectDroppedMediaFiles } from './ui/canvasMediaTransfer';
@@ -149,6 +144,10 @@ import { useCanvasPaneContextMenu } from './hooks/useCanvasPaneContextMenu';
 import { useCanvasPendingNodeFocus } from './hooks/useCanvasPendingNodeFocus';
 import { useCanvasSelectionSync } from './hooks/useCanvasSelectionSync';
 import { useCanvasSkillRegistry } from './hooks/useCanvasSkillRegistry';
+import {
+  useCanvasSnapAlignment,
+  type CanvasSnapAlignmentPort,
+} from './hooks/useCanvasSnapAlignment';
 import { useCanvasViewportBookmarkShortcuts } from './hooks/useCanvasViewportBookmarkShortcuts';
 import { useCanvasViewportCommit } from './hooks/useCanvasViewportCommit';
 import { useCanvasViewportMetrics } from './hooks/useCanvasViewportMetrics';
@@ -222,6 +221,12 @@ const BATCH_CONNECT_SPAWN_GAP = 140;
 const BATCH_CONNECT_SPAWN_VERTICAL_OFFSET = 160;
 const NODE_PLACEMENT_PREVIEW_WIDTH = 320;
 const NODE_PLACEMENT_PREVIEW_HEIGHT = 200;
+
+const CANVAS_SNAP_ALIGNMENT_PORT: CanvasSnapAlignmentPort = {
+  isEnabled: () => useSnapAlignStore.getState().enabled,
+  setGuides: (guides) => useSnapAlignStore.getState().setGuides(guides),
+  clearGuides: () => useSnapAlignStore.getState().clearGuides(),
+};
 
 interface PlusConnectDragParams {
   nodeId: string;
@@ -325,9 +330,6 @@ export function Canvas({
     partnerStarts: Map<string, { x: number; y: number }>;
     draggedStart: { x: number; y: number };
   } | null>(null);
-  // 吸附对齐索引缓存：单节点拖动期间其它节点不动,索引在拖动开始(nodeId 变化)时建一次,
-  // 之后每帧只做二分查找,避免每帧 filter + 重扫全部节点。拖动结束时清空。
-  const snapAlignIndexRef = useRef<{ nodeId: string; index: SnapAlignIndex } | null>(null);
   const nodes = useCanvasStore((state) => state.nodes);
   const edges = useCanvasStore((state) => state.edges);
   // 连线可见性：隐藏时只给 ReactFlow 的边打 `hidden`，真实 edges 一动不动（见
@@ -536,6 +538,10 @@ export function Canvas({
     setViewport: setViewportState,
     closeImageViewer,
   });
+  const {
+    alignNodeChanges,
+    clearSnapAlignment,
+  } = useCanvasSnapAlignment(CANVAS_SNAP_ALIGNMENT_PORT);
 
   const nodeFocusViewportPort = useMemo(
     () => ({
@@ -567,55 +573,14 @@ export function Canvas({
       if (unlockedChanges.length === 0) {
         return;
       }
-      // 吸附对齐：仅在用户启用、且只有一个节点正在被拖动时介入。
-      // 多选拖动暂不做吸附 —— 各节点单独算 snap delta 会导致它们之间出现错位。
-      // alt-复制拖动也跳过：handleNodeDrag 会把 source 复位 / 把 copy 按 delta 跟上，
-      // 这里再吸附会和它打架。
-      let effectiveChanges = unlockedChanges;
-      const snapEnabled = useSnapAlignStore.getState().enabled;
-      if (snapEnabled && !altDragCopyRef.current) {
-        const draggingPositionChanges = unlockedChanges.filter(
-          (change) =>
-            change.type === 'position' &&
-            'dragging' in change &&
-            change.dragging === true &&
-            change.position
-        );
-        if (draggingPositionChanges.length === 1) {
-          const change = draggingPositionChanges[0] as Extract<
-            NodeChange<CanvasNode>,
-            { type: 'position' }
-          > & { position: { x: number; y: number }; dragging: true };
-          const draggedNode = nodes.find((n) => n.id === change.id);
-          if (draggedNode) {
-            // 仅在新一次拖动(目标节点变化)时重建索引;同一拖动的后续帧复用。
-            if (snapAlignIndexRef.current?.nodeId !== change.id) {
-              const otherNodes = nodes.filter(
-                (n) => n.id !== change.id && n.type !== CANVAS_NODE_TYPES.group
-              );
-              snapAlignIndexRef.current = {
-                nodeId: change.id,
-                index: buildSnapAlignIndex(otherNodes),
-              };
-            }
-            const snap = computeSnapAlignFromIndex(
-              draggedNode,
-              change.position,
-              snapAlignIndexRef.current.index
-            );
-            useSnapAlignStore.getState().setGuides(snap.guides);
-            effectiveChanges = unlockedChanges.map((c) =>
-              c === change ? { ...change, position: snap.position } : c
-            );
-          }
-        } else if (draggingPositionChanges.length > 1) {
-          // 多选拖动期间隐藏引导线，避免误导。
-          useSnapAlignStore.getState().clearGuides();
-        }
-      }
+      const effectiveChanges = alignNodeChanges({
+        nodes,
+        changes: unlockedChanges,
+        copyDragActive: altDragCopyRef.current !== null,
+      });
       applyNodesChange(effectiveChanges);
     },
-    [applyNodesChange]
+    [alignNodeChanges, applyNodesChange]
   );
 
   const handleEdgesChange = useCallback(
@@ -1851,8 +1816,7 @@ export function Canvas({
 
   const handleNodeDragStop = useCallback(
     (_event: ReactMouseEvent, node: CanvasNode) => {
-      useSnapAlignStore.getState().clearGuides();
-      snapAlignIndexRef.current = null;
+      clearSnapAlignment();
       // 联动拖动收尾:partner 的最终位置已在拖动期间(dragging:true)写入,松手时
       // React Flow 对被拖节点发出的 dragging:false 变更会统一压入同一条撤销记录,
       // 故这里只需清掉引用,不再额外提交以免产生重复的 undo 步骤。
@@ -1932,7 +1896,7 @@ export function Canvas({
         setSelectedNode(altCopyState.copiedNodeIds[0]);
       }
     },
-    [applyNodesChange, setSelectedNode]
+    [applyNodesChange, clearSnapAlignment, setSelectedNode]
   );
 
   // 拖「选区框」整体移动多选节点时，React Flow 走 onSelectionDrag* 而非 onNodeDrag*，

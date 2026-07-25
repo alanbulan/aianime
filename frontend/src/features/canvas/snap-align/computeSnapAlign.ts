@@ -1,7 +1,10 @@
 // Copyright (c) 2026 AI anime
 import type { CanvasNode } from '@/features/canvas/domain/canvasNodes';
 
-import type { SnapAlignGuides } from './snapAlignStore';
+export interface SnapAlignGuides {
+  vertical: number[];
+  horizontal: number[];
+}
 
 interface Bbox {
   left: number;

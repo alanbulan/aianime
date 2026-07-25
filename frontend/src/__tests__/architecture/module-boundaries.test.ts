@@ -1841,6 +1841,51 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("const lockedEdgeIds");
   });
 
+  it("keeps Canvas snap-alignment orchestration in one presentation hook", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasSnapAlignment.ts",
+    );
+    const computePath = resolve(
+      SRC_ROOT,
+      "features/canvas/snap-align/computeSnapAlign.ts",
+    );
+    const storePath = resolve(
+      SRC_ROOT,
+      "features/canvas/snap-align/snapAlignStore.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const computeModel = readFileSync(computePath, "utf8");
+    const storeModel = readFileSync(storePath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+
+    expect(forbiddenImports).toEqual([]);
+    expect(hookModel).toContain("snapAlignIndexRef");
+    expect(hookModel).toContain("computeSnapAlignFromIndex(");
+    expect(computeModel).toContain("export interface SnapAlignGuides");
+    expect(computeModel).not.toContain("./snapAlignStore");
+    expect(storeModel).toContain("from './computeSnapAlign'");
+    expect(canvasView).toContain("./hooks/useCanvasSnapAlignment");
+    expect(canvasView).toContain("alignNodeChanges({");
+    expect(canvasView).not.toContain("snapAlignIndexRef");
+    expect(canvasView).not.toContain("const draggingPositionChanges");
+    expect(canvasView).not.toContain("computeSnapAlignFromIndex(");
+  });
+
   it("keeps Canvas pane context-menu state in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,

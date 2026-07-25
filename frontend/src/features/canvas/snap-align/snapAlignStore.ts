@@ -1,6 +1,8 @@
 // Copyright (c) 2026 AI anime
 import { create } from 'zustand';
 
+import type { SnapAlignGuides } from './computeSnapAlign';
+
 // 吸附对齐：节点拖动时显示蓝色虚线，指示当前位置与其它节点的边/中线对齐。
 // 状态独立成一个轻量 store，避免和 canvas 内容 store 混在一起，订阅它的
 // 组件（按钮、引导线 overlay）也不会因 canvas 节点变动而重渲染。
@@ -23,13 +25,6 @@ function persistEnabled(value: boolean): void {
   } catch {
     // localStorage 写不进去就算了，下次进来从默认值开始。
   }
-}
-
-export interface SnapAlignGuides {
-  /** Flow 坐标下的垂直引导线（即固定 x 的竖线）。 */
-  vertical: number[];
-  /** Flow 坐标下的水平引导线（即固定 y 的横线）。 */
-  horizontal: number[];
 }
 
 const EMPTY_GUIDES: SnapAlignGuides = { vertical: [], horizontal: [] };
