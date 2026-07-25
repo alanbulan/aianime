@@ -39,6 +39,7 @@ import { CreditDisplayHiddenProvider } from '@/components/credits/credit-visual'
 import { isCeRuntime } from '@/lib/runtime-config';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { resolveAbsolutePosition } from '@/features/canvas/domain/canvasGeometry';
+import { findLinkedCapturePartnerIds } from '@/features/canvas/domain/canvasCapturePartners';
 import { useAppStore } from '@/stores/app-store';
 import { getSkillRegistry } from '@/api/skills';
 import { SKILL_SCHEMA_VERSION, type SkillDefinition } from '@/features/freezone/context/skillRoles';
@@ -297,72 +298,6 @@ function getNodeSize(node: CanvasNode): { width: number; height: number } {
     width: node.measured?.width ?? styleWidth ?? DEFAULT_NODE_WIDTH,
     height: node.measured?.height ?? styleHeight ?? 200,
   };
-}
-
-// 「导演世界」源节点与它的「导演世界输出」组互为一体:拖动任意一方,另一方应按
-// 相同位移联动。两者在数据上是各自独立、仅靠连线相连的节点(源节点不是组的子节点),
-// 所以 React Flow 不会自动带动。这里从图里推导配对关系——兼容历史画布、无需迁移:
-// 组里的 capture 子节点(带 captureMetadata)由源节点连线产出,故
-// 「源节点 ←→ 子节点.parentId(组)」即为配对。返回被拖节点应联动的另一方 id。
-//
-// 仅限「两者都是顶层节点」的场景(原始诉求)。若被拖节点本身在某个组内(有 parentId),
-// 一律不联动:否则当源节点和它的 capture 子节点同处一个组时,会把「自己的父组」当成
-// partner,拖动→每帧移动父组→父组带动包括自己在内的所有子节点再移一次,双重位移互相
-// 打架,表现为卡顿/重合。组内成员的整体性已由 React Flow 的父子关系保证,无需联动。
-function findLinkedCapturePartnerIds(
-  draggedId: string,
-  nodes: CanvasNode[],
-  edges: CanvasEdge[],
-): string[] {
-  const nodeById = new Map(nodes.map((node) => [node.id, node] as const));
-  const dragged = nodeById.get(draggedId);
-  if (!dragged || dragged.parentId) {
-    return [];
-  }
-
-  const isCaptureChild = (node: CanvasNode | undefined): boolean =>
-    Boolean(
-      node?.parentId &&
-        (node.data as { captureMetadata?: unknown } | undefined)?.captureMetadata,
-    );
-
-  const partners = new Set<string>();
-
-  // 拖的是组:找出它的 capture 子节点,再回溯连到这些子节点的源节点。
-  if (dragged.type === CANVAS_NODE_TYPES.group) {
-    const childIds = new Set(
-      nodes.filter((node) => node.parentId === draggedId && isCaptureChild(node)).map((node) => node.id),
-    );
-    if (childIds.size === 0) {
-      return [];
-    }
-    for (const edge of edges) {
-      if (!childIds.has(edge.target)) {
-        continue;
-      }
-      const source = nodeById.get(edge.source);
-      if (source && !source.parentId && source.id !== draggedId) {
-        partners.add(source.id);
-      }
-    }
-    return [...partners];
-  }
-
-  // 拖的是源节点:顺着连线找它产出的 capture 子节点,取它们所属的组(顶层组)。
-  for (const edge of edges) {
-    if (edge.source !== draggedId) {
-      continue;
-    }
-    const target = nodeById.get(edge.target);
-    if (!isCaptureChild(target) || !target?.parentId) {
-      continue;
-    }
-    const group = nodeById.get(target.parentId);
-    if (group?.type === CANVAS_NODE_TYPES.group && !group.parentId) {
-      partners.add(group.id);
-    }
-  }
-  return [...partners];
 }
 
 function hasRectCollision(

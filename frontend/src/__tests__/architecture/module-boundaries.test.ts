@@ -971,6 +971,47 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps Canvas capture partner rules in the domain model", () => {
+    const partnersPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/canvasCapturePartners.ts",
+    );
+    const partnersModel = readFileSync(partnersPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(partnersPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier === "zustand" ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const ruleDeclaration = [
+      "export function",
+      "findLinkedCapturePartnerIds(",
+    ].join(" ");
+    const ruleOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(ruleDeclaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(ruleOwners).toEqual([
+      "features/canvas/domain/canvasCapturePartners.ts",
+    ]);
+    expect(partnersModel).toContain(ruleDeclaration);
+    expect(canvasView).toContain(
+      "@/features/canvas/domain/canvasCapturePartners",
+    );
+    expect(canvasView).not.toContain(ruleDeclaration);
+  });
+
   it("keeps Canvas node position reducers out of the Zustand store", () => {
     const positionsPath = resolve(
       SRC_ROOT,
