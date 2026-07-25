@@ -39,6 +39,7 @@ import {
   hasRectCollision,
 } from '@/features/canvas/domain/canvasGeometry';
 import { findLinkedCapturePartnerIds } from '@/features/canvas/domain/canvasCapturePartners';
+import { resolveCanvasSelectionDeletion } from '@/features/canvas/domain/canvasSelectionDeletion';
 import {
   canNodeBeManualConnectionSource,
   canNodeTypeBeManualConnectionSource,
@@ -941,31 +942,19 @@ export function Canvas({
   }, [groupNodes, selectedNodeIds]);
 
   const deleteSelectedElements = useCallback((): boolean => {
-    // Read the latest edges so selection changes cannot be stale in the key handler.
-    const allEdges = useCanvasStore.getState().edges;
-    const deletableEdgeIds = allEdges
-      .filter((edge) => edge.selected && !isPresetManagedEdge(edge))
-      .map((edge) => edge.id);
-    const hasSelectedEdge = allEdges.some((edge) => edge.selected);
-    const idsToDelete = selectedNodeIds.length > 0
-      ? selectedNodeIds
-      : selectedNodeId
-        ? [selectedNodeId]
-        : [];
-    const lockedNodeIds = new Set(nodes.filter(isPresetManagedNode).map((node) => node.id));
-    const deletableNodeIds = idsToDelete.filter((nodeId) => !lockedNodeIds.has(nodeId));
-
-    if (deletableNodeIds.length === 0 && deletableEdgeIds.length === 0) {
-      return idsToDelete.length > 0 || hasSelectedEdge;
+    const deletion = resolveCanvasSelectionDeletion({
+      nodes,
+      edges: useCanvasStore.getState().edges,
+      selectedNodeIds,
+      selectedNodeId,
+    });
+    deletion.edgeIds.forEach((edgeId) => deleteEdge(edgeId));
+    if (deletion.nodeIds.length === 1) {
+      deleteNode(deletion.nodeIds[0]);
+    } else if (deletion.nodeIds.length > 1) {
+      deleteNodes(deletion.nodeIds);
     }
-
-    deletableEdgeIds.forEach((edgeId) => deleteEdge(edgeId));
-    if (deletableNodeIds.length === 1) {
-      deleteNode(deletableNodeIds[0]);
-    } else if (deletableNodeIds.length > 1) {
-      deleteNodes(deletableNodeIds);
-    }
-    return true;
+    return deletion.hasSelectedTargets;
   }, [deleteEdge, deleteNode, deleteNodes, nodes, selectedNodeId, selectedNodeIds]);
 
   const handlePaneClick = useCallback((event: ReactMouseEvent) => {

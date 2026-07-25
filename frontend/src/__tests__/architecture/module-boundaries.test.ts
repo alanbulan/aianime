@@ -1765,6 +1765,49 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("resolveCanvasOriginViewport(");
   });
 
+  it("keeps Canvas selection deletion rules in the domain", () => {
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/canvasSelectionDeletion.ts",
+    );
+    const domainModel = readFileSync(domainPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(domainPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declaration = [
+      "export function",
+      "resolveCanvasSelectionDeletion(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/domain/canvasSelectionDeletion.ts",
+    ]);
+    expect(domainModel).toContain("isPresetManagedNode");
+    expect(domainModel).toContain("isPresetManagedEdge");
+    expect(canvasView).toContain("resolveCanvasSelectionDeletion({");
+    expect(canvasView).not.toContain("const deletableEdgeIds");
+    expect(canvasView).not.toContain("const hasSelectedEdge");
+    expect(canvasView).not.toContain("const idsToDelete");
+  });
+
   it("keeps Canvas pane context-menu state in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
@@ -3016,7 +3059,9 @@ describe("frontend architecture boundaries", () => {
     expect(lifecycleView).toContain("../domain/viewportBookmarks");
     expect(canvasView).not.toContain("domain/viewportBookmarks");
     expect(marqueeView).toContain("../domain/canvasSelection");
-    expect(canvasView).not.toContain("domain/canvasSelection");
+    expect(canvasView).not.toContain(
+      "from '@/features/canvas/domain/canvasSelection'",
+    );
     expect(canvasView).not.toContain("const ancestorsOfHits");
     expect(canvasView).not.toContain("function resolveCenteredViewport(");
     expect(canvasView).not.toContain("const DEFAULT_VIEWPORT");
