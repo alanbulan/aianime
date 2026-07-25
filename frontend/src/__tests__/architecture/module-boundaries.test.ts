@@ -615,6 +615,10 @@ describe("frontend architecture boundaries", () => {
     expect(videoPaneSource).not.toContain("function isErrorResponse");
     expect(videoPaneSource).not.toContain("function videoBackendDisplayLabel");
     expect(videoPaneSource).not.toContain("function getSeedance2MentionQuery");
+    expect(videoPaneSource).not.toContain("useVideoPool(");
+    expect(videoPaneSource).not.toContain("useVideoPoolSelect(");
+    expect(videoPaneSource).not.toContain("formatRelativeTime");
+    expect(videoPaneSource).not.toContain("MEDIA_THUMB_CLASS");
     expect(legacySketchQueries).not.toContain("useAssignColors");
     expect(legacySketchQueries).not.toContain("useDetectIdentities");
     expect(legacySketchQueries).not.toContain("useDirectorControlToSketch");

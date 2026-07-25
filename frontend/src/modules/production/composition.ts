@@ -1,6 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { createElement } from "react";
 
+import { useNow } from "@/hooks/use-now";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import type { Beat } from "@/modules/narrative_planning/public";
 import { useAppStore } from "@/stores/app-store";
@@ -20,6 +21,7 @@ import { createSketchPoseEditorQueryHooks } from "@/modules/production/applicati
 import { createSketchMarkerQueryHooks } from "@/modules/production/application/sketch-marker-query-hooks";
 import { createSketchGenerationQueryHooks } from "@/modules/production/application/sketch-generation-query-hooks";
 import { createUseAudioPaneController } from "@/modules/production/application/use-audio-pane-controller";
+import { createUseVideoPaneMediaController } from "@/modules/production/application/use-video-pane-media-controller";
 import { httpProductionVideoGateway } from "@/modules/production/infrastructure/http-production-video-gateway";
 import { promptLanguageFromLocale } from "@/modules/production/domain/video-generation";
 import { AudioPaneView } from "@/modules/production/presentation/AudioPaneView";
@@ -33,13 +35,18 @@ const useAudioPaneController = createUseAudioPaneController(
   audioGenerationQueries,
   { useGenerationCreditCost },
 );
+const videoPoolQueries = createVideoPoolQueryHooks(
+  httpProductionVideoGateway,
+);
+export const useVideoPaneMediaController = createUseVideoPaneMediaController(
+  videoPoolQueries,
+  { useNow },
+);
 
 export const { useVideoBackends } = createVideoBackendQueryHooks(
   httpProductionVideoGateway,
 );
-export const { useVideoPool, useVideoPoolSelect } = createVideoPoolQueryHooks(
-  httpProductionVideoGateway,
-);
+export const { useVideoPool, useVideoPoolSelect } = videoPoolQueries;
 export const {
   useGrids,
   useGridsByBeat,

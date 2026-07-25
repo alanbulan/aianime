@@ -469,43 +469,51 @@ vi.mock("@/modules/production/public", async (importOriginal) => {
     useCopyProjectNarratorVoice: videoQueryMocks.useCopyProjectNarratorVoice,
     useTrimNarratorVoice: videoQueryMocks.useTrimNarratorVoice,
     useDeleteNarratorVoice: videoQueryMocks.useDeleteNarratorVoice,
-    useVideoPool: () => ({
-      data: {
-        ok: true,
-        data: {
-          episode: 1,
-          beat_assignments: { "1": "vid-2" },
-          videos: [
-            {
-              id: "vid-1",
-              beat_num: 1,
-              video_path: "old.mp4",
-              video_url: "/static/old.mp4",
-              generated_at: "2026-05-16T09:00:00Z",
-              duration: 5,
-              video_mode: "first_frame",
-              backend: "newapi_seedance-2.0-fast",
-              prompt: "old",
-            },
-            {
-              id: "vid-2",
-              beat_num: 1,
-              video_path: "new.mp4",
-              video_url: "/static/new.mp4",
-              generated_at: "2026-05-16T10:00:00Z",
-              duration: 5,
-              video_mode: "first_frame",
-              backend: "newapi_seedance-2.0-fast",
-              prompt: "new",
-            },
-          ],
+    useVideoPaneMediaController: (options: {
+      beatNumber: number;
+      state: "missing" | "generating" | "ready" | "failed";
+      videoActive: boolean;
+      videoProgress: number;
+      videoUrl?: string | null;
+      useSeedance2Preview: boolean;
+    }) => {
+      const downloadUrl = options.videoUrl || null;
+      const candidates =
+        options.beatNumber === 1
+          ? [
+              {
+                active: true,
+                backendLabel: "Seedance2.0 Fast",
+                id: "vid-2",
+                previewSource: "/static/new.mp4#t=0.1",
+                timeLabel: "1h",
+              },
+              {
+                active: false,
+                backendLabel: "Seedance2.0 Fast",
+                id: "vid-1",
+                previewSource: "/static/old.mp4#t=0.1",
+                timeLabel: "2h",
+              },
+            ]
+          : [];
+      return {
+        beatNumber: options.beatNumber,
+        candidateCount: candidates.length,
+        candidates,
+        downloadUrl,
+        hasGeneratedVideo: Boolean(downloadUrl) || candidates.length > 0,
+        previewSource: downloadUrl ? `${downloadUrl}#t=0.1` : null,
+        selectionPending: false,
+        state: options.state,
+        useSeedance2Preview: options.useSeedance2Preview,
+        videoActive: options.videoActive,
+        videoPercent: Math.round(options.videoProgress * 100),
+        selectCandidate: async (poolId: string) => {
+          await poolSelectMock({ beatNum: options.beatNumber, poolId });
         },
-      },
-    }),
-    useVideoPoolSelect: () => ({
-      mutateAsync: poolSelectMock,
-      isPending: false,
-    }),
+      };
+    },
     useVideoBackends: () => ({
       data: {
         ok: true,

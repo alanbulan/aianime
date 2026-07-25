@@ -35,8 +35,6 @@ import { resolveMediaUrl } from "@/lib/media-url";
 import { ratioToCss } from "@/lib/aspect-ratio";
 import { useProjectAspectRatio } from "@/stores/aspect-ratio-store";
 import { cn } from "@/lib/utils";
-import { formatRelativeTime } from "@/lib/format-relative-time";
-import { useNow } from "@/hooks/use-now";
 import { useTaskController } from "@/hooks/use-task-controller";
 import { queryKeys } from "@/lib/query-keys";
 import { normalizeMentionSeparatorSpaces } from "@/lib/mention-markers";
@@ -52,7 +50,6 @@ import {
   type Beat,
 } from "@/modules/narrative_planning/public";
 import {
-  BeatVideoPlayer,
   buildSeedance2LabelIdentityMaps,
   clampDuration,
   findSeedance2TrailingMention,
@@ -89,7 +86,6 @@ import {
   serializeSeedance2Config,
   Seedance2AssetCropDialog,
   Seedance2AudioTrimDialog,
-  Seedance2MediaPreview,
   Seedance2SummaryPill,
   seedance2CropAspectForMode,
   seedance2CropTargetForAsset,
@@ -102,10 +98,9 @@ import {
   useTrimSeedance2Asset,
   useUploadSeedance2Asset,
   useVideoBackends,
-  useVideoPool,
-  useVideoPoolSelect,
+  useVideoPaneMediaController,
+  VideoPaneMediaView,
   VideoParamField,
-  videoBackendDisplayLabel,
   videoInputCropAspectForProjectAspect,
   type Seedance2AssetItem,
   type Seedance2ConfigDraft,
@@ -135,11 +130,6 @@ import {
 import type { BeatStageState } from "@/types/beat-state";
 import {
   MEDIA_PRIMARY_ACTION_BUTTON_CLASS,
-  MEDIA_THUMB_ACTIVE_CLASS,
-  MEDIA_THUMB_ACTIVE_MARK_CLASS,
-  MEDIA_THUMB_CLASS,
-  MEDIA_THUMB_IDLE_CLASS,
-  MEDIA_THUMB_TIME_CLASS,
 } from "./media-styles";
 
 const SEEDANCE2_REFERENCE_DRAG_TYPE =
@@ -178,10 +168,6 @@ const SEEDANCE2_PROMPT_GUIDANCE_TEMPLATES = [
 ] as const;
 const VIDEO_GRID_CLASS =
   "grid grid-cols-[auto_minmax(260px,1fr)] items-start gap-x-4 gap-y-3";
-const VIDEO_PREVIEW_CLASS =
-  "relative flex h-[220px] w-auto max-w-full justify-self-start items-center justify-center overflow-hidden rounded-[10px] border border-border bg-muted";
-const VIDEO_CANDIDATES_CLASS =
-  "flex max-h-[220px] flex-wrap content-start gap-2 overflow-y-auto pr-1";
 const SEEDANCE2_CONTROL_CLASS =
   "rounded-[8px] border-border bg-muted text-sm shadow-none focus-visible:border-primary/45 focus-visible:ring-primary/10";
 const VIDEO_PARAM_CONTROL_CLASS =
@@ -259,13 +245,10 @@ export function VideoPane({
     },
     invalidateKeys: [queryKeys.beats(project, episode)],
   });
-  const poolSelect = useVideoPoolSelect(project, episode);
-  const { data: poolRes } = useVideoPool(project, episode);
   const { data: videoBackendsRes } = useVideoBackends(project);
   const videoBackends = videoBackendsRes?.data ?? [];
   const beatVideoPromptCost = useGenerationCreditCost("feature", "beat_video_prompt");
   const seedance2PromptCost = useGenerationCreditCost("feature", "seedance2_prompt");
-  const now = useNow();
   const seedance2UploadInputRef = useRef<HTMLInputElement>(null);
   const [regenConfirm, setRegenConfirm] = useState(false);
   const [seedance2CropIntent, setSeedance2CropIntent] =
@@ -289,39 +272,6 @@ export function VideoPane({
     prompt_guidance: null,
     final_prompt: null,
   });
-  // #t=0.1 forces a seek so Safari/iOS paints the real first frame without
-  // relying on a poster image (which was the beat's sketch PNG, not the video).
-  const videoSrc = beat.video_url
-    ? `${resolveMediaUrl(beat.video_url)}#t=0.1`
-    : null;
-  // Clean URL (no #t=0.1 fragment) for the download anchor.
-  const videoDownloadUrl = beat.video_url ? resolveMediaUrl(beat.video_url) : null;
-
-  const { candidates, activePoolId } = useMemo(() => {
-    const poolData = poolRes?.data ?? null;
-    if (!poolData) return { candidates: [], activePoolId: null as string | null };
-    const filtered = poolData.videos
-      .filter((v) => v.beat_num === beat.beat_number)
-      .sort((a, b) => {
-        const ta = a.generated_at ? Date.parse(a.generated_at) : 0;
-        const tb = b.generated_at ? Date.parse(b.generated_at) : 0;
-        return tb - ta;
-      });
-    const activeId =
-      poolData.beat_assignments[String(beat.beat_number)] ?? null;
-    return { candidates: filtered, activePoolId: activeId };
-  }, [poolRes, beat.beat_number]);
-  const hasGeneratedVideo = !!beat.video_url || candidates.length > 0;
-  const videoActionLabel = hasGeneratedVideo
-    ? t("common.regenerate")
-    : t("episode.workbench.video.generateVideo");
-  const videoBackendLabelByValue = useMemo(() => {
-    const labels = new Map<string, string>();
-    for (const backend of videoBackends) {
-      labels.set(backend.value, backend.label);
-    }
-    return labels;
-  }, [videoBackends]);
   const selectedBackend = videoBackends.find((b) => b.value === defaultBackend);
   const showSeedance2Config = selectedBackend?.is_seedance2 === true;
   const showHappyHorseConfig = selectedBackend?.is_happyhorse === true;
@@ -426,15 +376,21 @@ export function VideoPane({
     beat.video_prompt,
     legacyPromptField,
   ]);
-  const previewAspectCss = "16 / 9";
-  // Live loading state for the video preview while a single-shot regen runs.
-  // Progress comes from the active task's SSE stream (0–1) and survives refresh
-  // because the controller reconciles against the persisted task row.
-  const videoActive = regenTask.started;
-  const videoPercent = Math.max(
-    0,
-    Math.min(100, Math.round((regenTask.stream?.progress ?? 0) * 100)),
-  );
+  const mediaController = useVideoPaneMediaController({
+    beatNumber: beat.beat_number,
+    episode,
+    project,
+    state,
+    videoActive: regenTask.started,
+    videoBackends,
+    videoProgress: regenTask.stream?.progress ?? 0,
+    videoUrl: beat.video_url,
+    useSeedance2Preview: showSeedance2Config,
+  });
+  const hasGeneratedVideo = mediaController.hasGeneratedVideo;
+  const videoActionLabel = hasGeneratedVideo
+    ? t("common.regenerate")
+    : t("episode.workbench.video.generateVideo");
   const seedance2Status = useSeedance2BeatStatus(
     project,
     episode,
@@ -679,16 +635,6 @@ export function VideoPane({
     if (!validateVideoPromptReady()) return;
     setRegenConfirm(true);
   };
-  const handleSelect = async (poolId: string) => {
-    if (poolId === activePoolId) return;
-    try {
-      await poolSelect.mutateAsync({ beatNum: beat.beat_number, poolId });
-      toast.success(t("episode.workbench.video.switched", { n: beat.beat_number }));
-    } catch {
-      toast.error(t("episode.workbench.video.switchFailed"));
-    }
-  };
-
   const handleRegen = async () => {
     try {
       let happyHorseConfigJson: string | undefined;
@@ -1327,127 +1273,10 @@ export function VideoPane({
 
   return (
     <div className={VIDEO_GRID_CLASS}>
-      {/* Left: video player — fixed-aspect container keeps layout stable when
-          src changes, so switching history versions doesn't reset scroll. */}
-      <div
-        className={VIDEO_PREVIEW_CLASS}
-        style={{ aspectRatio: previewAspectCss }}
-      >
-        {showSeedance2Config ? (
-          <Seedance2MediaPreview
-            src={videoSrc}
-            state={state}
-          />
-        ) : videoSrc ? (
-          <BeatVideoPlayer src={videoSrc} beatNum={beat.beat_number} />
-        ) : (
-          <span className="text-xs text-muted-foreground">
-            {state === "generating"
-              ? t("episode.workbench.video.generating")
-              : state === "failed"
-                ? `⚠ ${t("episode.workbench.video.genFailed")}`
-                : t("episode.workbench.video.notGenerated")}
-          </span>
-        )}
-        {/* Download overlay — sibling of the branch so it shows for both the
-            Seedance2 preview and the plain player whenever a video exists. */}
-        {videoDownloadUrl && (
-          <a
-            href={videoDownloadUrl}
-            download={`beat_${beat.beat_number}_video.mp4`}
-            onClick={(event) => event.stopPropagation()}
-            aria-label={t("common.download")}
-            title={t("common.download")}
-            className="absolute right-2 top-2 z-10 inline-flex size-7 items-center justify-center rounded-[7px] border border-media-foreground/20 bg-media/65 text-media-foreground/90 backdrop-blur-sm transition hover:border-media-foreground/30 hover:bg-media/80 hover:text-media-foreground"
-          >
-            <Download className="size-3.5" />
-          </a>
-        )}
-        {videoActive && (
-          <div
-            className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 rounded-[10px] bg-media/55 backdrop-blur-[1px]"
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={videoPercent}
-          >
-            <Loader2 aria-hidden className="size-5 animate-spin text-media-foreground/90" />
-            <div className="flex items-baseline leading-none text-media-foreground">
-              <span className="text-2xl font-semibold tabular-nums tracking-tight">
-                {videoPercent}
-              </span>
-              <span className="ml-0.5 text-xs font-medium text-media-foreground/70">%</span>
-            </div>
-            <div className="h-1 w-24 overflow-hidden rounded-full bg-media-foreground/20">
-              <div
-                className="h-full rounded-full bg-media-foreground/85 transition-[width] duration-300 ease-out"
-                style={{ width: `${videoPercent}%` }}
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Right: candidate thumbs */}
-      <div className="flex min-h-0 flex-col gap-2.5">
-        {candidates.length > 0 && (
-          <div className={VIDEO_CANDIDATES_CLASS}>
-            {candidates.map((entry) => {
-              const baseSrc = resolveMediaUrl(entry.video_url);
-              // #t=0.1 forces a seek so Safari/iOS paints the first frame
-              // without needing a poster image.
-              const src = baseSrc ? `${baseSrc}#t=0.1` : null;
-              const isActive = entry.id === activePoolId;
-              const timeLabel = formatRelativeTime(entry.generated_at ?? null, now);
-              const backendLabel = videoBackendDisplayLabel(
-                entry.backend,
-                videoBackendLabelByValue,
-              );
-              return (
-                <button
-                  key={entry.id}
-                  type="button"
-                  onClick={() => handleSelect(entry.id)}
-                  disabled={poolSelect.isPending}
-                  className={cn(
-                    MEDIA_THUMB_CLASS,
-                    isActive ? MEDIA_THUMB_ACTIVE_CLASS : MEDIA_THUMB_IDLE_CLASS,
-                    poolSelect.isPending && "cursor-wait",
-                  )}
-                  title={backendLabel}
-                >
-                  <div className="h-[76px] bg-media" style={{ aspectRatio: frameAspectCss }}>
-                    {src && (
-                      <video
-                        src={src}
-                        muted
-                        playsInline
-                        preload="metadata"
-                        disableRemotePlayback
-                        disablePictureInPicture
-                        className="h-full w-full object-cover"
-                      />
-                    )}
-                  </div>
-                  <span className="absolute left-0 top-0 rounded-br bg-media/70 px-1 py-0.5 text-[9px] font-medium leading-none text-media-foreground">
-                    {backendLabel}
-                  </span>
-                  {timeLabel && (
-                    <span className={MEDIA_THUMB_TIME_CLASS}>
-                      {timeLabel}
-                    </span>
-                  )}
-                  {isActive && (
-                    <span className={MEDIA_THUMB_ACTIVE_MARK_CLASS}>
-                      ✓
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      <VideoPaneMediaView
+        controller={mediaController}
+        frameAspectCss={frameAspectCss}
+      />
 
       {!showPromptConfig && (
         <div
@@ -1842,7 +1671,7 @@ export function VideoPane({
             </span>
             <span className="inline-flex h-5 max-w-full items-center rounded-full border border-border bg-muted px-2 text-[11px] leading-none text-muted-foreground">
               {t("episode.workbench.video.videoVersions", {
-                count: candidates.length,
+                count: mediaController.candidateCount,
               })}
             </span>
           </div>

@@ -48,6 +48,7 @@ export {
   useUpdateRenderSettings,
   useUpdateSketchSettings,
   useVideoBackends,
+  useVideoPaneMediaController,
   useVideoPool,
   useVideoPoolSelect,
 } from "@/modules/production/composition";
@@ -57,13 +58,12 @@ export type {
 export { Seedance2AssetCropDialog } from "@/modules/production/presentation/Seedance2AssetCropDialog";
 export { Seedance2AudioTrimDialog } from "@/modules/production/presentation/Seedance2AudioTrimDialog";
 export {
-  BeatVideoPlayer,
   Seedance2Checkbox,
   Seedance2Field,
-  Seedance2MediaPreview,
   Seedance2SummaryPill,
   VideoParamField,
 } from "@/modules/production/presentation/VideoPaneParts";
+export { VideoPaneMediaView } from "@/modules/production/presentation/VideoPaneMediaView";
 export { StalePoolSelectError } from "@/modules/production/application/image-pool-errors";
 export { isProductionErrorResponse } from "@/modules/production/application/ports";
 export type {
