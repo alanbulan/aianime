@@ -864,6 +864,41 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("function restoreStoryboardEdges(");
   });
 
+  it("keeps Canvas storyboard node layout out of the Zustand store", () => {
+    const layoutPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/storyboardNodeLayout.ts",
+    );
+    const layoutModel = readFileSync(layoutPath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(layoutPath).filter(
+      (specifier) =>
+        specifier === "zustand" ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+
+    expect(forbiddenImports).toEqual([]);
+    expect(layoutModel).toContain(
+      "export function resolveStoryboardSplitNodeDimensions(",
+    );
+    expect(layoutModel).toContain(
+      "export function resolveDerivedAspectRatio(",
+    );
+    expect(canvasStore).toContain(
+      "@/features/canvas/application/storyboardNodeLayout",
+    );
+    expect(canvasStore).not.toContain("function parseAspectRatioValue(");
+    expect(canvasStore).not.toContain(
+      "function resolveStoryboardSplitNodeDimensions(",
+    );
+    expect(canvasStore).not.toContain("function resolveDerivedAspectRatio(");
+  });
+
   it("keeps Canvas viewport and selection rules outside the Zustand store", () => {
     const selectionPath = resolve(
       SRC_ROOT,
