@@ -212,6 +212,9 @@ describe("beats sketch/render v2 contract", () => {
       "src/modules/production/presentation/SketchSectionView.tsx",
     );
     const renderSection = read("src/components/episode/beat-workbench/render-section.tsx");
+    const renderSectionView = read(
+      "src/modules/production/presentation/RenderSectionView.tsx",
+    );
     const productionPublic = read("src/modules/production/public.ts");
     const productionGateway = read(
       "src/modules/production/infrastructure/http-production-video-gateway.ts",
@@ -225,7 +228,8 @@ describe("beats sketch/render v2 contract", () => {
     expect(sketchSection).not.toContain('title={t("common.comingSoon")}');
     expect(sketchSectionView).not.toContain('title={t("common.comingSoon")}');
     expect(renderSection).not.toContain('title={t("common.comingSoon")}');
+    expect(renderSectionView).not.toContain('title={t("common.comingSoon")}');
     expect(sketchSectionView).toContain('type="file"');
-    expect(renderSection).toContain('type="file"');
+    expect(renderSectionView).toContain('type="file"');
   });
 });

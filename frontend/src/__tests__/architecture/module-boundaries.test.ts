@@ -567,6 +567,20 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const renderSectionSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "components/episode/beat-workbench/render-section.tsx",
+      ),
+      "utf8",
+    );
+    const renderSectionViewSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/production/presentation/RenderSectionView.tsx",
+      ),
+      "utf8",
+    );
     const legacySketchQueries = readFileSync(
       resolve(SRC_ROOT, "lib/queries/sketches.ts"),
       "utf8",
@@ -726,6 +740,19 @@ describe("frontend architecture boundaries", () => {
     expect(sketchSectionViewSource).toContain('type="file"');
     expect(sketchSectionViewSource).toContain("<AlertDialog");
     expect(sketchSectionViewSource).toContain("MEDIA_THUMB_CLASS");
+    expect(renderSectionSource).toContain("<RenderSectionView");
+    expect(renderSectionSource).not.toContain("className=");
+    expect(renderSectionSource).not.toContain("<Button");
+    expect(renderSectionSource).not.toContain("<AlertDialog");
+    expect(renderSectionSource).not.toContain('type="file"');
+    expect(renderSectionSource).not.toContain("MEDIA_THUMB_CLASS");
+    expect(renderSectionViewSource).toContain('type="file"');
+    expect(renderSectionViewSource).toContain("<AlertDialog");
+    expect(renderSectionViewSource).toContain("MEDIA_THUMB_CLASS");
+    expect(renderSectionViewSource).toContain(
+      "function RenderBackgroundReferencePanel",
+    );
+    expect(renderSectionViewSource).toContain("function clampCropBox");
     expect(legacySketchQueries).not.toContain("useAssignColors");
     expect(legacySketchQueries).not.toContain("useDetectIdentities");
     expect(legacySketchQueries).not.toContain("useDirectorControlToSketch");

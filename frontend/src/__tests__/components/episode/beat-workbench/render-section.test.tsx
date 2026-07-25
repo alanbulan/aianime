@@ -132,25 +132,31 @@ vi.mock("@/modules/asset_world/public", () => ({
   }),
 }));
 
-vi.mock("@/modules/production/public", () => ({
-  StalePoolSelectError: class StalePoolSelectError extends Error {},
-  usePoolSelect: () => ({ mutateAsync: poolSelectMock, isPending: false }),
-  useRegenerateRenderBeats: () => ({
-    mutateAsync: regenerateMock,
-    isPending: false,
-  }),
-  useRenderSettings: () => ({
-    data: {
-      ok: true,
+vi.mock("@/modules/production/public", async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import("@/modules/production/public")
+  >();
+  return {
+    ...actual,
+    StalePoolSelectError: class StalePoolSelectError extends Error {},
+    usePoolSelect: () => ({ mutateAsync: poolSelectMock, isPending: false }),
+    useRegenerateRenderBeats: () => ({
+      mutateAsync: regenerateMock,
+      isPending: false,
+    }),
+    useRenderSettings: () => ({
       data: {
-        render_image_selection: "doubao_seedream-3.0-t2i",
-        options: {},
-        sketch_aspect_padding: true,
+        ok: true,
+        data: {
+          render_image_selection: "doubao_seedream-3.0-t2i",
+          options: {},
+          sketch_aspect_padding: true,
+        },
       },
-    },
-  }),
-  useUploadBeatImage: () => ({ mutateAsync: uploadMock, isPending: false }),
-}));
+    }),
+    useUploadBeatImage: () => ({ mutateAsync: uploadMock, isPending: false }),
+  };
+});
 
 const scenePlatePreviewState: {
   data: null | {

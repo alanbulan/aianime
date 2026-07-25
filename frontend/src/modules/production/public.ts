@@ -82,6 +82,12 @@ export { VideoPaneMediaView } from "@/modules/production/presentation/VideoPaneM
 export { VideoPaneView } from "@/modules/production/presentation/VideoPaneView";
 export { SketchSectionView } from "@/modules/production/presentation/SketchSectionView";
 export type { SketchSectionViewProps } from "@/modules/production/presentation/SketchSectionView";
+export { RenderSectionView } from "@/modules/production/presentation/RenderSectionView";
+export type {
+  RenderBackgroundReferenceViewModel,
+  RenderCandidateViewModel,
+  RenderSectionViewProps,
+} from "@/modules/production/presentation/RenderSectionView";
 export type {
   DirectorCaptureMeta,
   SketchBackgroundAnchorViewModel,
