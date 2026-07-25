@@ -141,6 +141,7 @@ import { useCanvasDropIndicator } from './hooks/useCanvasDropIndicator';
 import { useCanvasEdgePan } from './hooks/useCanvasEdgePan';
 import { useCanvasExternalDialogs } from './hooks/useCanvasExternalDialogs';
 import { useCanvasAsyncNodeTasks } from './hooks/useCanvasAsyncNodeTasks';
+import { useCanvasKeyboardShortcuts } from './hooks/useCanvasKeyboardShortcuts';
 import { useCanvasMarqueeSelection } from './hooks/useCanvasMarqueeSelection';
 import { useCanvasMinimapVisibility } from './hooks/useCanvasMinimapVisibility';
 import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
@@ -1046,177 +1047,91 @@ export function Canvas({
     });
   }, [edges, nodes, reactFlowInstance, setNodePositions]);
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (isTypingTarget(event.target)) {
-        return;
-      }
-      // 沉浸式查看器(3GS 导演台全屏)打开时由它独占键盘(放置/删除 marker 等);
-      // 画布的全局快捷键(Delete 删节点 / 复制粘贴等)让位,避免「删假人却删了 3D 节点」。
-      if (isImmersiveViewerActive()) {
-        return;
-      }
+  const copySelectedNodes = useCallback(() => {
+    const selectedIdSet = new Set(selectedNodeIds);
+    const snapshot: ClipboardSnapshot = {
+      nodes: nodes
+        .filter((node) => selectedIdSet.has(node.id))
+        .map((node) => ({
+          ...node,
+          data: cloneCanvasNodeData(node.data),
+          selected: false,
+          dragging: false,
+        })),
+      edges: edges
+        .filter((edge) => selectedIdSet.has(edge.source) && selectedIdSet.has(edge.target))
+        .map((edge) => ({ ...edge })),
+      sourceProject: readUrl().project ?? null,
+    };
+    copiedSnapshotRef.current = snapshot;
+    sharedNodeClipboard = snapshot;
+    pasteIterationRef.current = 0;
+    // Replacing the system clipboard keeps the most recent copy source authoritative.
+    void navigator.clipboard?.writeText('').catch(() => undefined);
+  }, [edges, nodes, selectedNodeIds]);
 
-      const commandPressed = event.ctrlKey || event.metaKey;
-      const key = event.key.toLowerCase();
-      const isUndo = commandPressed && key === 'z' && !event.shiftKey;
-      const isRedo = commandPressed && (key === 'y' || (key === 'z' && event.shiftKey));
-      const isGroup = commandPressed && key === 'g';
-      const isCopy = commandPressed && key === 'c' && !event.shiftKey;
-      const isPaste = commandPressed && key === 'v' && !event.shiftKey;
-      const isOrganize = event.altKey && event.shiftKey && key === 'f' && !commandPressed;
-
-      if (event.key === 'Escape') {
-        if (pendingNodePlacement) {
-          event.preventDefault();
-          cancelNodePlacement();
-          return;
-        }
-        if (showNodeMenu) {
-          event.preventDefault();
-          closeNodeMenu();
-        }
-        return;
-      }
-
-      if (isOrganize) {
-        event.preventDefault();
-        handleOrganizeCanvas();
-        return;
-      }
-
-      if (isCopy) {
-        if (selectedNodeIds.length === 0) {
-          return;
-        }
-        event.preventDefault();
-        const selectedIdSet = new Set(selectedNodeIds);
-        // Deep-clone into a self-contained snapshot so paste no longer depends
-        // on the originals still existing, and mirror it to the module-level
-        // clipboard for cross-canvas paste.
-        const snapshot: ClipboardSnapshot = {
-          nodes: nodes
-            .filter((node) => selectedIdSet.has(node.id))
-            .map((node) => ({
-              ...node,
-              data: cloneCanvasNodeData(node.data),
-              selected: false,
-              dragging: false,
-            })),
-          edges: edges
-            .filter(
-              (edge) => selectedIdSet.has(edge.source) && selectedIdSet.has(edge.target)
-            )
-            .map((edge) => ({ ...edge })),
-          sourceProject: readUrl().project ?? null,
-        };
-        copiedSnapshotRef.current = snapshot;
-        sharedNodeClipboard = snapshot;
-        pasteIterationRef.current = 0;
-        // 清空系统剪贴板（写空串会整体替换剪贴板内容，旧的图片/文件随之清掉），
-        // 维持「最近一次复制赢」的标准语义——否则更早复制的系统图片会在 ⌘V 时
-        // 永远抢在节点粘贴前面。写空串而非标记文本：标记会作为字面量泄漏进任何
-        // 文本粘贴目标（站内输入框 / 外部应用）。写失败（权限/焦点）无妨，只是
-        // 退化为「剪贴板里有媒体文件就先贴文件」。
-        void navigator.clipboard?.writeText('').catch(() => undefined);
-        return;
-      }
-
-      if (isPaste) {
-        // 不能在这里 preventDefault / 立即贴快照：要让 paste 事件先触发，
-        // 由它裁决系统剪贴板里的媒体文件（贴进选中的上传节点，或生成新
-        // 上传节点）。处理过则置 pasteImageHandledRef，这里就不再贴节点快照。
+  const pasteCopiedNodes = useCallback(() => {
+    // Let the paste event claim system media before falling back to the node snapshot.
+    pasteImageHandledRef.current = false;
+    window.setTimeout(() => {
+      if (pasteImageHandledRef.current) {
         pasteImageHandledRef.current = false;
-        window.setTimeout(() => {
-          if (pasteImageHandledRef.current) {
-            pasteImageHandledRef.current = false;
-            return;
-          }
-          if (!copiedSnapshotRef.current || copiedSnapshotRef.current.nodes.length === 0) {
-            return;
-          }
-          pasteFromClipboardRef.current?.(copiedSnapshotRef.current);
-        }, 0);
         return;
       }
-
-      if (isUndo || isRedo) {
-        event.preventDefault();
-        if (isUndo) {
-          undo();
-        } else {
-          redo();
-        }
+      if (!copiedSnapshotRef.current || copiedSnapshotRef.current.nodes.length === 0) {
         return;
       }
+      pasteFromClipboardRef.current?.(copiedSnapshotRef.current);
+    }, 0);
+  }, []);
 
-      if (isGroup) {
-        if (selectedNodeIds.length < 2) {
-          return;
-        }
-        event.preventDefault();
-        groupNodes(selectedNodeIds);
-        return;
-      }
+  const groupSelectedNodes = useCallback(() => {
+    groupNodes(selectedNodeIds);
+  }, [groupNodes, selectedNodeIds]);
 
-      if (event.key !== 'Delete' && event.key !== 'Backspace') {
-        return;
-      }
+  const deleteSelectedElements = useCallback((): boolean => {
+    // Read the latest edges so selection changes cannot be stale in the key handler.
+    const allEdges = useCanvasStore.getState().edges;
+    const deletableEdgeIds = allEdges
+      .filter((edge) => edge.selected && !isPresetManagedEdge(edge))
+      .map((edge) => edge.id);
+    const hasSelectedEdge = allEdges.some((edge) => edge.selected);
+    const idsToDelete = selectedNodeIds.length > 0
+      ? selectedNodeIds
+      : selectedNodeId
+        ? [selectedNodeId]
+        : [];
+    const lockedNodeIds = new Set(nodes.filter(isPresetManagedNode).map((node) => node.id));
+    const deletableNodeIds = idsToDelete.filter((nodeId) => !lockedNodeIds.has(nodeId));
 
-      // 选中的连线也支持快捷键删除:剔除 preset-managed 锁定的连线,
-      // 与双击断开(handleEdgeDoubleClick)用同一套锁定规则。读 getState()
-      // 取最新 edges,避免 keydown 闭包里拿到陈旧的选中状态。
-      const allEdges = useCanvasStore.getState().edges;
-      const deletableEdgeIds = allEdges
-        .filter((edge) => edge.selected && !isPresetManagedEdge(edge))
-        .map((edge) => edge.id);
-      const hasSelectedEdge = allEdges.some((edge) => edge.selected);
+    if (deletableNodeIds.length === 0 && deletableEdgeIds.length === 0) {
+      return idsToDelete.length > 0 || hasSelectedEdge;
+    }
 
-      const idsToDelete = selectedNodeIds.length > 0
-        ? selectedNodeIds
-        : selectedNodeId
-          ? [selectedNodeId]
-          : [];
+    deletableEdgeIds.forEach((edgeId) => deleteEdge(edgeId));
+    if (deletableNodeIds.length === 1) {
+      deleteNode(deletableNodeIds[0]);
+    } else if (deletableNodeIds.length > 1) {
+      deleteNodes(deletableNodeIds);
+    }
+    return true;
+  }, [deleteEdge, deleteNode, deleteNodes, nodes, selectedNodeId, selectedNodeIds]);
 
-      const lockedNodeIds = new Set(nodes.filter(isPresetManagedNode).map((node) => node.id));
-      const deletableNodeIds = idsToDelete.filter((nodeId) => !lockedNodeIds.has(nodeId));
-
-      if (deletableNodeIds.length === 0 && deletableEdgeIds.length === 0) {
-        // 有选中目标(哪怕全被锁定)时仍吞掉默认行为,避免退格触发浏览器返回。
-        if (idsToDelete.length > 0 || hasSelectedEdge) {
-          event.preventDefault();
-        }
-        return;
-      }
-
-      event.preventDefault();
-      deletableEdgeIds.forEach((edgeId) => deleteEdge(edgeId));
-      if (deletableNodeIds.length === 1) {
-        deleteNode(deletableNodeIds[0]);
-      } else if (deletableNodeIds.length > 1) {
-        deleteNodes(deletableNodeIds);
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [
-    selectedNodeId,
-    selectedNodeIds,
-    deleteNode,
-    deleteNodes,
-    deleteEdge,
-    groupNodes,
+  useCanvasKeyboardShortcuts({
+    placementActive: pendingNodePlacement !== null,
+    nodeMenuOpen: showNodeMenu,
+    canCopySelection: selectedNodeIds.length > 0,
+    canGroupSelection: selectedNodeIds.length >= 2,
+    cancelPlacement: cancelNodePlacement,
+    closeNodeMenu,
+    organizeCanvas: handleOrganizeCanvas,
+    copySelection: copySelectedNodes,
+    pasteSelection: pasteCopiedNodes,
     undo,
     redo,
-    handleOrganizeCanvas,
-    showNodeMenu,
-    closeNodeMenu,
-    pendingNodePlacement,
-    cancelNodePlacement,
-  ]);
+    groupSelection: groupSelectedNodes,
+    deleteSelection: deleteSelectedElements,
+  });
 
   const handlePaneClick = useCallback((event: ReactMouseEvent) => {
     if (pendingNodePlacement) {
