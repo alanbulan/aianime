@@ -1447,6 +1447,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const marqueeView = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasMarqueeSelection.ts",
+      ),
+      "utf8",
+    );
     const forbiddenImports = importSpecifiers(hookPath).filter(
       (specifier) =>
         specifier === "@xyflow/react" ||
@@ -1474,7 +1481,9 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("isSpacePanKey");
     expect(hookModel).toContain("isTypingTarget");
     expect(hookModel).toContain("isImmersiveViewerActive");
-    expect(canvasView).toContain("./hooks/useCanvasSpacePan");
+    expect(marqueeView).toContain("./useCanvasSpacePan");
+    expect(canvasView).toContain("./hooks/useCanvasMarqueeSelection");
+    expect(canvasView).not.toContain("./hooks/useCanvasSpacePan");
     expect(canvasView).not.toContain("spacePanActiveRef");
     expect(canvasView).not.toContain("isSpacePanKey");
     expect(canvasView).not.toContain("event.code !== 'Space'");
@@ -1519,6 +1528,50 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("const [contextMenu, setContextMenu]");
     expect(canvasView).not.toContain("addEventListener('contextmenu'");
     expect(canvasView).not.toContain("setContextMenu(");
+  });
+
+  it("keeps Canvas marquee gestures in one presentation hook", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasMarqueeSelection.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const hookDeclaration = [
+      "export function",
+      "useCanvasMarqueeSelection(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(hookDeclaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasMarqueeSelection.ts",
+    ]);
+    expect(hookModel).toContain("MARQUEE_SELECTION_MIN_DISTANCE_PX = 6");
+    expect(hookModel).toContain("collectCanvasNodeIdsInRect");
+    expect(hookModel).toContain("useCanvasSpacePan");
+    expect(canvasView).toContain("./hooks/useCanvasMarqueeSelection");
+    expect(canvasView).not.toContain("marqueeSelectionRef");
+    expect(canvasView).not.toContain("swallowMarqueeClickRef");
+    expect(canvasView).not.toContain("MARQUEE_SELECTION_MIN_DISTANCE");
+    expect(canvasView).not.toContain("collectCanvasNodeIdsInRect");
   });
 
   it("keeps Canvas node position reducers out of the Zustand store", () => {
@@ -2244,6 +2297,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const marqueeView = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasMarqueeSelection.ts",
+      ),
+      "utf8",
+    );
     const forbiddenImports = [selectionPath, viewportPath].flatMap((path) =>
       importSpecifiers(path)
         .filter(
@@ -2305,9 +2365,8 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).toContain(
       "@/features/canvas/domain/viewportBookmarks",
     );
-    expect(canvasView).toContain(
-      "@/features/canvas/domain/canvasSelection",
-    );
+    expect(marqueeView).toContain("../domain/canvasSelection");
+    expect(canvasView).not.toContain("domain/canvasSelection");
     expect(canvasView).not.toContain("const ancestorsOfHits");
     expect(canvasView).not.toContain("function resolveCenteredViewport(");
     expect(canvasView).not.toContain("const DEFAULT_VIEWPORT");

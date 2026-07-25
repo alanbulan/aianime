@@ -43,7 +43,6 @@ import {
   getTopLevelCanvasBounds,
   hasRectCollision,
 } from '@/features/canvas/domain/canvasGeometry';
-import { collectCanvasNodeIdsInRect } from '@/features/canvas/domain/canvasSelection';
 import { findLinkedCapturePartnerIds } from '@/features/canvas/domain/canvasCapturePartners';
 import {
   canNodeBeManualConnectionSource,
@@ -158,11 +157,11 @@ import {
 } from './ui/canvasConnectionInteraction';
 import { useCanvasDropIndicator } from './hooks/useCanvasDropIndicator';
 import { useCanvasEdgePan } from './hooks/useCanvasEdgePan';
+import { useCanvasMarqueeSelection } from './hooks/useCanvasMarqueeSelection';
 import { useCanvasMinimapVisibility } from './hooks/useCanvasMinimapVisibility';
 import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
 import { useCanvasNodePlacementConfirm } from './hooks/useCanvasNodePlacementConfirm';
 import { useCanvasPaneContextMenu } from './hooks/useCanvasPaneContextMenu';
-import { useCanvasSpacePan } from './hooks/useCanvasSpacePan';
 import { useCanvasViewportCommit } from './hooks/useCanvasViewportCommit';
 
 const DEFAULT_EDGE_OPTIONS = { type: 'disconnectableEdge' };
@@ -244,14 +243,8 @@ interface DuplicateResult {
   idMap: Map<string, string>;
 }
 
-interface MarqueeSelectionState {
-  start: { x: number; y: number };
-  current: { x: number; y: number };
-}
-
 const ALT_DRAG_COPY_Z_INDEX = 2000;
 const GENERATION_JOB_POLL_INTERVAL_MS = 1400;
-const MARQUEE_SELECTION_MIN_DISTANCE = 6;
 // Where the batch-connect "+" spawns its new downstream node relative to the
 // selection's bounding box: this far to the right, and lifted by ~half a node so
 // the fan-in lands roughly centered on the selection.
@@ -294,12 +287,6 @@ export function Canvas({
   const edgeTypes = useMemo(() => canvasEdgeTypes, []);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const suppressNextPaneClickRef = useRef(false);
-  // After a marquee box-select we must swallow the trailing pane `click` at the capture
-  // phase: React Flow's Pane onClick calls resetSelectedElements() unconditionally (right
-  // after onPaneClick), which would instantly wipe the selection we just applied. Gating
-  // our own onPaneClick is not enough — that reset runs regardless. See the capture-phase
-  // click listener in the marquee effect.
-  const swallowMarqueeClickRef = useRef(false);
   const plusConnectStartRef = useRef<PendingConnectStart | null>(null);
   // 手动「+」拖线时，当前被高亮为合法落点的节点 DOM。手动连线走自绘预览线
   // （非 React Flow 原生连线），RF 不会给目标 handle 挂 connectingto/valid，所以
@@ -353,9 +340,6 @@ export function Canvas({
   const [previewConnectionVisual, setPreviewConnectionVisual] =
     useState<PreviewConnectionVisual | null>(null);
   const [skillRegistry, setSkillRegistry] = useState<SkillDefinition[]>([]);
-  const [marqueeSelection, setMarqueeSelection] = useState<MarqueeSelectionState | null>(
-    null
-  );
 
   const isRestoringCanvasRef = useRef(true);
   const initialViewportCorrectionPendingRef = useRef(false);
@@ -437,12 +421,6 @@ export function Canvas({
   // 吸附对齐索引缓存：单节点拖动期间其它节点不动,索引在拖动开始(nodeId 变化)时建一次,
   // 之后每帧只做二分查找,避免每帧 filter + 重扫全部节点。拖动结束时清空。
   const snapAlignIndexRef = useRef<{ nodeId: string; index: SnapAlignIndex } | null>(null);
-  const marqueeSelectionRef = useRef<{
-    active: boolean;
-    pointerId: number;
-    startClient: { x: number; y: number };
-    startLocal: { x: number; y: number };
-  } | null>(null);
   const nodes = useCanvasStore((state) => state.nodes);
   const edges = useCanvasStore((state) => state.edges);
   // 连线可见性：隐藏时只给 ReactFlow 的边打 `hidden`，真实 edges 一动不动（见
@@ -534,6 +512,26 @@ export function Canvas({
     viewportPort: reactFlowInstance,
     commitViewport: setViewportState,
   });
+  const handleMarqueeStart = useCallback(() => {
+    setShowNodeMenu(false);
+    setMenuAllowedTypes(undefined);
+    setPendingConnectStart(null);
+    setPreviewConnectionVisual(null);
+  }, []);
+  const setNativeSelectionActive = useCallback(
+    (active: boolean) => reactFlowStore.setState({ nodesSelectionActive: active }),
+    [reactFlowStore],
+  );
+  const { marqueeSelectionRect } = useCanvasMarqueeSelection({
+    wrapperRef,
+    disabled: pendingNodePlacement !== null,
+    nodes,
+    coordinatePort: reactFlowInstance,
+    applyNodeSelectionChanges: applyNodesChange,
+    setNativeSelectionActive,
+    setSelectedNodeId: setSelectedNode,
+    onMarqueeStart: handleMarqueeStart,
+  });
   // ReactFlow only mounts after useCanvasSync has hydrated the store (freezone
   // web mode renders <Canvas> behind a loading gate), so the restored camera is
   // already in `currentViewport` by our first render. Capture it here and feed
@@ -578,12 +576,6 @@ export function Canvas({
     if (!edgesHidden) return edges;
     return edges.map((edge) => (edge.hidden ? edge : { ...edge, hidden: true }));
   }, [edges, edgesHidden]);
-
-  const clearMarqueeSelection = useCallback(() => {
-    marqueeSelectionRef.current = null;
-    setMarqueeSelection(null);
-  }, []);
-  const { isSpacePanActive } = useCanvasSpacePan(clearMarqueeSelection);
 
   useEffect(() => {
     let cancelled = false;
@@ -1380,202 +1372,6 @@ export function Canvas({
     window.addEventListener('keydown', handleMinimapKey);
     return () => window.removeEventListener('keydown', handleMinimapKey);
   }, [toggleMinimapPinned]);
-
-  useEffect(() => {
-    const wrapperElement = wrapperRef.current;
-    if (!wrapperElement) {
-      return;
-    }
-
-    const handlePointerDown = (event: PointerEvent) => {
-      // Any fresh pointer interaction clears a stale "swallow the marquee click" flag so a
-      // marquee that produced no trailing click can't eat a later, unrelated click.
-      swallowMarqueeClickRef.current = false;
-      if (pendingNodePlacement) {
-        return;
-      }
-      if (event.button !== 0) {
-        return;
-      }
-      // Space + left-drag is a pan gesture (React Flow's panActivationKeyCode).
-      // Don't start a marquee on top of it, or a dashed box shows while panning.
-      if (isSpacePanActive()) {
-        clearMarqueeSelection();
-        return;
-      }
-      if (!isCanvasPaneTarget(event.target, wrapperElement)) {
-        return;
-      }
-
-      const containerRect = wrapperElement.getBoundingClientRect();
-      const startLocal = {
-        x: event.clientX - containerRect.left,
-        y: event.clientY - containerRect.top,
-      };
-      // Only record a candidate gesture here. We deliberately do NOT
-      // preventDefault/stopPropagation on pointer down so a plain left click (no drag)
-      // still reaches React Flow's onPaneClick — keeping deselect-on-click and
-      // double-click-opens-node-menu working. Suppression starts once the marquee activates.
-      marqueeSelectionRef.current = {
-        active: false,
-        pointerId: event.pointerId,
-        startClient: { x: event.clientX, y: event.clientY },
-        startLocal,
-      };
-    };
-
-    const handlePointerMove = (event: PointerEvent) => {
-      const gesture = marqueeSelectionRef.current;
-      if (!gesture || event.pointerId !== gesture.pointerId) {
-        return;
-      }
-      if (isSpacePanActive()) {
-        clearMarqueeSelection();
-        return;
-      }
-
-      const distance = Math.hypot(
-        event.clientX - gesture.startClient.x,
-        event.clientY - gesture.startClient.y
-      );
-      if (!gesture.active && distance < MARQUEE_SELECTION_MIN_DISTANCE) {
-        // Below the drag threshold: leave the event alone so a click can still form.
-        return;
-      }
-      if (!gesture.active) {
-        gesture.active = true;
-        setShowNodeMenu(false);
-        setMenuAllowedTypes(undefined);
-        setPendingConnectStart(null);
-        setPreviewConnectionVisual(null);
-        setSelectedNode(null);
-        // Drop any prior selection frame so it doesn't linger behind the new marquee.
-        reactFlowStore.setState({ nodesSelectionActive: false });
-      }
-
-      const containerRect = wrapperElement.getBoundingClientRect();
-      setMarqueeSelection({
-        start: gesture.startLocal,
-        current: {
-          x: event.clientX - containerRect.left,
-          y: event.clientY - containerRect.top,
-        },
-      });
-      event.preventDefault();
-      event.stopPropagation();
-    };
-
-    const handlePointerUp = (event: PointerEvent) => {
-      const gesture = marqueeSelectionRef.current;
-      if (!gesture || event.pointerId !== gesture.pointerId) {
-        return;
-      }
-      if (isSpacePanActive()) {
-        clearMarqueeSelection();
-        return;
-      }
-
-      const distance = Math.hypot(
-        event.clientX - gesture.startClient.x,
-        event.clientY - gesture.startClient.y
-      );
-      // Decide purely on the start→end travel distance, NOT on gesture.active.
-      // A fast flick can go pointerdown → pointerup with zero pointermove events in
-      // between, so `active` (only flipped inside pointermove) stays false even though
-      // the pointer travelled a real box's worth of distance. Gating on `active` here
-      // dropped those quick marquees. The start point was captured on pointerdown, so we
-      // can resolve the selection rect from start/end alone regardless of `active`.
-      if (distance < MARQUEE_SELECTION_MIN_DISTANCE) {
-        // No real drag → treat as a plain pane click and let React Flow's onPaneClick
-        // run (deselect on single click, open the node menu on double click).
-        clearMarqueeSelection();
-        return;
-      }
-
-      event.preventDefault();
-      event.stopPropagation();
-
-      const startFlow = reactFlowInstance.screenToFlowPosition(gesture.startClient);
-      const endFlow = reactFlowInstance.screenToFlowPosition({
-        x: event.clientX,
-        y: event.clientY,
-      });
-      const selectionRect = {
-        x: Math.min(startFlow.x, endFlow.x),
-        y: Math.min(startFlow.y, endFlow.y),
-        width: Math.abs(endFlow.x - startFlow.x),
-        height: Math.abs(endFlow.y - startFlow.y),
-      };
-      const selectedIds = collectCanvasNodeIdsInRect(nodes, selectionRect);
-
-      const changes = nodes
-        .filter((node) => Boolean(node.selected) !== selectedIds.has(node.id))
-        .map((node) => ({
-          id: node.id,
-          type: 'select' as const,
-          selected: selectedIds.has(node.id),
-        }));
-      if (changes.length > 0) {
-        applyNodesChange(changes);
-      }
-      // Surface React Flow's native selection frame (.react-flow__nodesselection-rect,
-      // styled as the white dashed box in index.css) around the right-drag result,
-      // matching Ctrl/⌘ box-select. Programmatic selection alone never sets this flag,
-      // so we set it explicitly; the nodes-prop reconcile keeps it true while ≥1 node
-      // stays selected, and the native pane-click path clears it like any other selection.
-      reactFlowStore.setState({ nodesSelectionActive: selectedIds.size > 0 });
-      setSelectedNode(selectedIds.size === 1 ? Array.from(selectedIds)[0] : null);
-      // The browser fires a `click` on the pane right after this drag (mousedown + mouseup
-      // share the pane as target). React Flow's Pane onClick runs resetSelectedElements()
-      // unconditionally, which would wipe the selection we just applied. Swallow that one
-      // click at the capture phase (handleClickCapture) before React Flow ever sees it.
-      swallowMarqueeClickRef.current = true;
-      clearMarqueeSelection();
-    };
-
-    const handleClickCapture = (event: MouseEvent) => {
-      if (!swallowMarqueeClickRef.current) {
-        return;
-      }
-      swallowMarqueeClickRef.current = false;
-      // Stop the event during capture so it never reaches React Flow's Pane onClick (and
-      // thus never triggers resetSelectedElements / nodesSelectionActive=false).
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation();
-    };
-
-    const handlePointerCancel = (event: PointerEvent) => {
-      const gesture = marqueeSelectionRef.current;
-      if (!gesture || event.pointerId !== gesture.pointerId) {
-        return;
-      }
-      clearMarqueeSelection();
-    };
-
-    wrapperElement.addEventListener('pointerdown', handlePointerDown, true);
-    wrapperElement.addEventListener('click', handleClickCapture, true);
-    window.addEventListener('pointermove', handlePointerMove, true);
-    window.addEventListener('pointerup', handlePointerUp, true);
-    window.addEventListener('pointercancel', handlePointerCancel, true);
-
-    return () => {
-      wrapperElement.removeEventListener('pointerdown', handlePointerDown, true);
-      wrapperElement.removeEventListener('click', handleClickCapture, true);
-      window.removeEventListener('pointermove', handlePointerMove, true);
-      window.removeEventListener('pointerup', handlePointerUp, true);
-      window.removeEventListener('pointercancel', handlePointerCancel, true);
-    };
-  }, [
-    applyNodesChange,
-    clearMarqueeSelection,
-    isSpacePanActive,
-    nodes,
-    pendingNodePlacement,
-    reactFlowInstance,
-    reactFlowStore,
-    setSelectedNode,
-  ]);
 
   const selectedNodeIds = useMemo(
     () => nodes.filter((node) => Boolean(node.selected)).map((node) => node.id),
@@ -3557,17 +3353,6 @@ export function Canvas({
       </div>
     );
   }, [t]);
-  const marqueeSelectionRect = useMemo(() => {
-    if (!marqueeSelection) {
-      return null;
-    }
-    return {
-      left: Math.min(marqueeSelection.start.x, marqueeSelection.current.x),
-      top: Math.min(marqueeSelection.start.y, marqueeSelection.current.y),
-      width: Math.abs(marqueeSelection.current.x - marqueeSelection.start.x),
-      height: Math.abs(marqueeSelection.current.y - marqueeSelection.start.y),
-    };
-  }, [marqueeSelection]);
   const nodePlacementPreview = useMemo(() => {
     if (!pendingNodePlacement || !nodePlacementClientPosition) {
       return null;
