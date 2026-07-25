@@ -1,5 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { I18nextProvider, initReactI18next } from "react-i18next";
 import i18next from "i18next";
 import { beforeAll, describe, expect, it, vi } from "vitest";
@@ -17,6 +18,9 @@ beforeAll(async () => {
     resources: {
       zh: {
         translation: {
+          common: {
+            close: "关闭",
+          },
           episode: {
             beat: {
               sectionText: "文案",
@@ -35,6 +39,13 @@ beforeAll(async () => {
               deleteManualShotTitle: "删除手工镜头？",
               deleteManualShotDesc: "删除 Beat #{{n}}？",
             },
+            workbench: {
+              batch: { videoModel: "视频模型" },
+              video: {
+                noteDefault: "默认",
+                noteDialogue: "对白镜头",
+              },
+            },
           },
         },
       },
@@ -42,9 +53,12 @@ beforeAll(async () => {
   });
 });
 
-vi.mock("@/modules/narrative_planning/public", () => ({
-  useDeleteManualShot: () => ({ mutateAsync: vi.fn(), isPending: false }),
-}));
+vi.mock("@/modules/narrative_planning/public", async () => {
+  const { SingleBeatPanelView } = await import(
+    "@/modules/narrative_planning/presentation/SingleBeatPanelView"
+  );
+  return { SingleBeatPanelView };
+});
 
 vi.mock("@/modules/production/public", () => ({
   AudioPaneContent: () => <div>AudioPane</div>,
@@ -54,9 +68,18 @@ vi.mock("@/modules/production/public", () => ({
       ok: true,
       data: [
         {
+          value: "standard",
+          label: "Standard",
+          is_default: true,
+          is_seedance2: false,
+          dialogue_only: false,
+        },
+        {
           value: "huimeng_seedance-2.0-fast",
           label: "Seedance 2.0 Fast",
+          is_default: false,
           is_seedance2: true,
+          dialogue_only: false,
         },
       ],
     },
@@ -87,7 +110,11 @@ vi.mock("@/components/episode/beat-workbench/text-pane", () => ({
 }));
 
 vi.mock("@/components/episode/beat-workbench/sketch-section", () => ({
-  SketchSection: () => <div>SketchSection</div>,
+  SketchSection: ({ onPreview }: { onPreview(url: string): void }) => (
+    <button type="button" onClick={() => onPreview("/sketch.png")}>
+      打开草图预览
+    </button>
+  ),
 }));
 
 vi.mock("@/components/episode/beat-workbench/render-section", () => ({
@@ -116,7 +143,11 @@ function makeBeat(overrides: Partial<Beat> = {}): Beat {
 }
 
 function renderPanel(
-  options: { isSeedance2Backend?: boolean; spineTemplate?: "drama" | "narrated" } = {},
+  options: {
+    onDefaultBackendChange?: (backend: string) => void;
+    onToggleSection?: (id: SectionId) => void;
+    spineTemplate?: "drama" | "narrated";
+  } = {},
 ) {
   const openSections = new Set<SectionId>(["text", "sketch", "render", "audio", "video"]);
   return render(
@@ -127,11 +158,10 @@ function renderPanel(
         episode={1}
         stages={{ audio: "missing", video: "missing", sketch: "ready", render: "ready" }}
         defaultBackend="huimeng_seedance-2.0-fast"
-        onDefaultBackendChange={vi.fn()}
+        onDefaultBackendChange={options.onDefaultBackendChange ?? vi.fn()}
         spineTemplate={options.spineTemplate}
-        isSeedance2Backend={options.isSeedance2Backend}
         openSections={openSections}
-        onToggleSection={vi.fn()}
+        onToggleSection={options.onToggleSection ?? vi.fn()}
       />
     </I18nextProvider>,
   );
@@ -139,7 +169,7 @@ function renderPanel(
 
 describe("SingleBeatPanel", () => {
   it("shows the audio pane for 解说剧 (narrated) projects", () => {
-    renderPanel({ isSeedance2Backend: true, spineTemplate: "narrated" });
+    renderPanel({ spineTemplate: "narrated" });
 
     expect(screen.getByText("音频")).toBeInTheDocument();
     expect(screen.getByText("AudioPane")).toBeInTheDocument();
@@ -147,10 +177,42 @@ describe("SingleBeatPanel", () => {
   });
 
   it("hides the audio pane for 精品剧 (drama) projects", () => {
-    renderPanel({ isSeedance2Backend: true, spineTemplate: "drama" });
+    renderPanel({ spineTemplate: "drama" });
 
     expect(screen.queryByText("音频")).not.toBeInTheDocument();
     expect(screen.queryByText("AudioPane")).not.toBeInTheDocument();
     expect(screen.getByText("VideoPane")).toBeInTheDocument();
+  });
+
+  it("delegates section and video backend changes", async () => {
+    const user = userEvent.setup();
+    const onDefaultBackendChange = vi.fn();
+    const onToggleSection = vi.fn();
+    renderPanel({
+      onDefaultBackendChange,
+      onToggleSection,
+      spineTemplate: "narrated",
+    });
+
+    await user.click(screen.getByRole("button", { name: "文案" }));
+    await user.click(screen.getByRole("combobox", { name: "视频模型" }));
+    await user.click(screen.getByRole("option", { name: /Standard/ }));
+
+    expect(onToggleSection).toHaveBeenCalledWith("text");
+    expect(onDefaultBackendChange).toHaveBeenCalledWith("standard");
+  });
+
+  it("opens and closes the shared image preview", async () => {
+    const user = userEvent.setup();
+    renderPanel({ spineTemplate: "narrated" });
+
+    await user.click(screen.getByRole("button", { name: "打开草图预览" }));
+    expect(screen.getByRole("img", { name: "Preview" })).toHaveAttribute(
+      "src",
+      "/sketch.png",
+    );
+
+    await user.click(screen.getByRole("button", { name: "关闭" }));
+    expect(screen.queryByRole("img", { name: "Preview" })).not.toBeInTheDocument();
   });
 });

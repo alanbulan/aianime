@@ -32,7 +32,6 @@ import {
   useRebuildPoolIndex,
   useRegenerateSketches,
   useSketchSettings,
-  useVideoBackends,
 } from "@/modules/production/public";
 import {
   useProject,
@@ -114,7 +113,6 @@ const useBeatsPageController = createUseBeatsPageController(
     useRebuildPoolIndex,
     useSketchSettings,
     useUpdateProject,
-    useVideoBackends,
   },
   useBeatsSketchPlanController,
   useSketchStudioController,

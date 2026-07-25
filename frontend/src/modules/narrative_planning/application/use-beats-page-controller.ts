@@ -43,12 +43,6 @@ interface ProjectConfigQuery {
   };
 }
 
-interface VideoBackendsQuery {
-  data?: {
-    data: Array<{ value: string; is_seedance2?: boolean }>;
-  };
-}
-
 interface ProjectPreferencesMutation {
   mutateAsync(data: {
     aspect_ratio?: "2:3" | "9:16" | "16:9";
@@ -83,7 +77,6 @@ export interface BeatsPageControllerDependencies {
   ): RebuildPoolIndexMutation;
   useSketchSettings(project: string): SketchSettingsQuery;
   useUpdateProject(project: string): ProjectPreferencesMutation;
-  useVideoBackends(project: string): VideoBackendsQuery;
 }
 
 export interface BeatsPageControllerOptions {
@@ -146,7 +139,6 @@ export function createUseBeatsPageController(
     const { data: sketchSettingsResponse } =
       dependencies.useSketchSettings(project);
     const projectConfig = dependencies.useProject(project);
-    const videoBackends = dependencies.useVideoBackends(project);
     const updateProject = dependencies.useUpdateProject(project);
     const rebuildPoolIndex = dependencies.useRebuildPoolIndex(
       project,
@@ -247,10 +239,6 @@ export function createUseBeatsPageController(
 
     const imageGenerationSelection =
       sketchSettingsResponse?.data.sketch_image_selection;
-    const isSeedance2Backend =
-      videoBackends.data?.data.find(
-        (backend) => backend.value === videoBackend,
-      )?.is_seedance2 === true;
     const checkedBeatNumbers = useMemo(
       () =>
         selection.mode === "multi"
@@ -423,7 +411,6 @@ export function createUseBeatsPageController(
       imageGenerationSelection,
       isLoading,
       isNarratedProject,
-      isSeedance2Backend,
       onCancelPendingAspect: () => setPendingAspect(null),
       onConfirmPendingAspect: () => {
         if (pendingAspect) applyAspect(pendingAspect);

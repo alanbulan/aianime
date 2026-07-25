@@ -48,9 +48,12 @@ beforeEach(() => {
   useEpisodeWorkbenchStore.getState().reset();
 });
 
-vi.mock("@/modules/narrative_planning/public", () => ({
-  useDeleteManualShot: () => ({ mutateAsync: vi.fn(), isPending: false }),
-}));
+vi.mock("@/modules/narrative_planning/public", async () => {
+  const { SingleBeatPanelView } = await import(
+    "@/modules/narrative_planning/presentation/SingleBeatPanelView"
+  );
+  return { SingleBeatPanelView };
+});
 
 vi.mock("@/modules/production/public", () => ({
   AudioPaneContent: () => <div>AudioPane</div>,

@@ -194,6 +194,8 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
     expect(controller).toContain("projectConfig.data?.video_backend");
     expect(controller).toContain("handleVideoBackendChange");
     expect(controller).toContain("video_backend: backend");
+    expect(controller).not.toContain("useVideoBackends");
+    expect(view).not.toContain("isSeedance2Backend");
     expect(pageSources).not.toContain('"video-backend"');
   });
 

@@ -60,3 +60,10 @@ export type {
   SceneRef,
   Script,
 } from "@/modules/narrative_planning/domain/types";
+export { SingleBeatPanelView } from "@/modules/narrative_planning/presentation/SingleBeatPanelView";
+export type {
+  SectionId,
+  SingleBeatPanelViewProps,
+  SingleBeatSectionViewModel,
+  VideoBackendHeaderOption,
+} from "@/modules/narrative_planning/presentation/SingleBeatPanelView";

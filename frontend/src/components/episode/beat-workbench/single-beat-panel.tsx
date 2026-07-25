@@ -1,40 +1,27 @@
 // Copyright (c) 2026 AI anime
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { Check, ChevronDown, FileText, Image as ImageIcon, Mic2, Pencil, Video, X } from "lucide-react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-
-import { SaveStatus } from "@/components/save-status";
-import { useEscapeToClose } from "@/hooks/use-escape-to-close";
 import { resolveImage } from "@/lib/resolve-image";
-import { saveScopes, useSaveState } from "@/stores/save-status-store";
-import { cn } from "@/lib/utils";
 import { useAssetWorkspaceNavigation } from "@/modules/asset_world/public";
-import type { Beat } from "@/modules/narrative_planning/public";
+import {
+  SingleBeatPanelView,
+  type Beat,
+  type SectionId,
+  type SingleBeatSectionViewModel,
+  type VideoBackendHeaderOption,
+} from "@/modules/narrative_planning/public";
 import {
   AudioPaneContent,
   useGridsByBeat,
   useVideoBackends,
 } from "@/modules/production/public";
+import { saveScopes, useSaveState } from "@/stores/save-status-store";
 import type { BeatStageState } from "@/types/beat-state";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  WORKBENCH_SELECT_CONTENT_CLASS,
-  WORKBENCH_SELECT_ITEM_CLASS,
-} from "@/lib/workbench-select-styles";
 
-import { TextPane } from "./text-pane";
-import { SketchSection } from "./sketch-section";
 import { RenderSection } from "./render-section";
+import { SketchSection } from "./sketch-section";
+import { TextPane } from "./text-pane";
 import { VideoPane } from "./video-pane";
 
-export type SectionId = "text" | "sketch" | "render" | "audio" | "video";
+export type { SectionId } from "@/modules/narrative_planning/public";
 
 interface SingleBeatPanelProps {
   beat: Beat;
@@ -44,19 +31,25 @@ interface SingleBeatPanelProps {
   defaultBackend: string;
   onDefaultBackendChange: (backend: string) => void;
   spineTemplate?: "drama" | "narrated";
-  isSeedance2Backend?: boolean;
   showAudioMediaStatus?: boolean;
-  /** Accordion open/close state — owned by parent so it persists across beat changes. */
   openSections: Set<SectionId>;
   onToggleSection: (id: SectionId) => void;
 }
 
-function isRenderImageMatch(img: { type?: string; id?: string; cell_path?: string | null; grid_path?: string | null; original_beat?: number | null }, assignment: string) {
+interface GridImageMatch {
+  cell_path?: string | null;
+  grid_path?: string | null;
+  id?: string;
+  original_beat?: number | null;
+  type?: string;
+}
+
+function isRenderImageMatch(image: GridImageMatch, assignment: string) {
   return (
-    img.type === "render" &&
-    (img.id === assignment ||
-      img.cell_path === assignment ||
-      img.grid_path === assignment)
+    image.type === "render" &&
+    (image.id === assignment ||
+      image.cell_path === assignment ||
+      image.grid_path === assignment)
   );
 }
 
@@ -68,11 +61,26 @@ function sectionStatusKey(
   hasRender: boolean,
 ): string {
   switch (id) {
-    case "text": return beat.narration_segment ? "episode.beat.edited" : "episode.beat.notEdited";
-    case "sketch": return hasSketch || stages?.sketch === "ready" ? "episode.beat.selected" : "episode.beat.notSelected";
-    case "render": return hasRender ? "episode.beat.rendered" : "episode.beat.notRendered";
-    case "audio": return beat.audio_url ? "episode.beat.generated" : "episode.beat.notGenerated";
-    case "video": return beat.video_url ? "episode.beat.generated" : "episode.beat.notGenerated";
+    case "text":
+      return beat.narration_segment
+        ? "episode.beat.edited"
+        : "episode.beat.notEdited";
+    case "sketch":
+      return hasSketch || stages?.sketch === "ready"
+        ? "episode.beat.selected"
+        : "episode.beat.notSelected";
+    case "render":
+      return hasRender
+        ? "episode.beat.rendered"
+        : "episode.beat.notRendered";
+    case "audio":
+      return beat.audio_url
+        ? "episode.beat.generated"
+        : "episode.beat.notGenerated";
+    case "video":
+      return beat.video_url
+        ? "episode.beat.generated"
+        : "episode.beat.notGenerated";
   }
 }
 
@@ -85,295 +93,153 @@ function isReadyStatus(statusKey: string) {
   );
 }
 
-const SECTIONS: { id: SectionId; labelKey: string; icon: React.ElementType }[] = [
-  { id: "text", labelKey: "episode.beat.sectionText", icon: FileText },
-  { id: "sketch", labelKey: "episode.beat.sectionSketch", icon: Pencil },
-  { id: "render", labelKey: "episode.beat.sectionRender", icon: ImageIcon },
-  { id: "audio", labelKey: "episode.beat.sectionAudio", icon: Mic2 },
-  { id: "video", labelKey: "episode.beat.sectionVideo", icon: Video },
+const SECTION_IDS: readonly SectionId[] = [
+  "text",
+  "sketch",
+  "render",
+  "audio",
+  "video",
 ];
-
-const SECTION_MOTION_EASE = [0.22, 1, 0.36, 1] as const;
 
 export function SingleBeatPanel({
   beat,
-  project,
-  episode,
-  stages,
   defaultBackend,
+  episode,
   onDefaultBackendChange,
-  spineTemplate = "drama",
-  showAudioMediaStatus = true,
-  openSections,
   onToggleSection,
+  openSections,
+  project,
+  showAudioMediaStatus = true,
+  spineTemplate = "drama",
+  stages,
 }: SingleBeatPanelProps) {
-  const { t } = useTranslation();
   const openAssetWorkspace = useAssetWorkspaceNavigation(project);
-  const { byBeat, assignments } = useGridsByBeat(project, episode);
+  const { assignments, byBeat } = useGridsByBeat(project, episode);
+  const { data: videoBackendsResponse } = useVideoBackends(project);
   const images = byBeat.get(beat.beat_number) ?? [];
-  const resolvedSketch = resolveImage(images, assignments, beat.beat_number, "sketch", beat.sketch_url ?? null);
+  const resolvedSketch = resolveImage(
+    images,
+    assignments,
+    beat.beat_number,
+    "sketch",
+    beat.sketch_url ?? null,
+  );
   const renderAssignment = assignments[String(beat.beat_number)] ?? null;
   const hasRender =
     !!beat.frame_url ||
-    (renderAssignment !== null && images.some((image) => isRenderImageMatch(image, renderAssignment))) ||
-    images.some((image) => image.type === "render" && image.original_beat === beat.beat_number && !!image.cell_url);
-  const hasSketch = !!resolvedSketch.url;
-
-  // Image preview popup
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  useEscapeToClose(previewUrl !== null, () => setPreviewUrl(null));
-
-  const beatTextScope = saveScopes.beatText(project, episode, beat.beat_number);
+    (renderAssignment !== null &&
+      images.some((image) => isRenderImageMatch(image, renderAssignment))) ||
+    images.some(
+      (image) =>
+        image.type === "render" &&
+        image.original_beat === beat.beat_number &&
+        !!image.cell_url,
+    );
+  const beatTextScope = saveScopes.beatText(
+    project,
+    episode,
+    beat.beat_number,
+  );
   const textSaveState = useSaveState(beatTextScope);
-
-  // 精品剧 (spine_template === "drama") bakes narration into the rendered video
-  // and has no standalone audio stage — hide the 音频 section for it.
-  const sections =
+  const visibleSectionIds =
     spineTemplate === "drama"
-      ? SECTIONS.filter((section) => section.id !== "audio")
-      : SECTIONS;
+      ? SECTION_IDS.filter((id) => id !== "audio")
+      : SECTION_IDS;
+  const sections: SingleBeatSectionViewModel[] = visibleSectionIds.map((id) => {
+    const statusKey = sectionStatusKey(
+      id,
+      beat,
+      stages,
+      !!resolvedSketch.url,
+      hasRender,
+    );
+    return {
+      id,
+      isOpen: openSections.has(id),
+      ready: isReadyStatus(statusKey),
+      statusKey,
+    };
+  });
+  const videoBackends: VideoBackendHeaderOption[] = (
+    videoBackendsResponse?.data ?? []
+  ).map((backend) => ({
+    dialogueOnly: backend.dialogue_only,
+    isDefault: backend.is_default,
+    isSeedance2: backend.is_seedance2,
+    label: backend.label,
+    value: backend.value,
+  }));
 
-  return (
-    <div className="flex h-full flex-col overflow-hidden">
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        {sections.map(({ id, labelKey, icon: Icon }) => {
-          const isOpen = openSections.has(id);
-          const statusKey = sectionStatusKey(id, beat, stages, hasSketch, hasRender);
-          const ready = isReadyStatus(statusKey);
-          return (
-            <div key={id}>
-              <div
-                className={cn(
-                  "sticky top-0 z-20 flex min-h-11 items-center border-b border-border bg-background text-sm font-semibold text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground",
-                  isOpen && "bg-muted text-foreground/90",
-                )}
-              >
-                <button
-                  type="button"
-                  onClick={() => onToggleSection(id)}
-                  className="flex min-w-0 flex-1 items-center gap-2.5 px-3 py-2.5 text-left"
-                >
-                  <ChevronDown
-                    className={cn(
-                      "size-3.5 text-muted-foreground/55 transition-transform",
-                      !isOpen && "-rotate-90",
-                      isOpen && "text-muted-foreground/75",
-                    )}
-                  />
-                  <Icon className={cn("size-4", isOpen ? "text-primary" : "text-muted-foreground/85")} />
-                  <span className={cn("font-semibold tracking-tight", isOpen ? "text-foreground" : "text-foreground/90")}>{t(labelKey)}</span>
-                </button>
-                {id === "video" && (
-                  <VideoBackendHeaderSelect
-                    project={project}
-                    value={defaultBackend}
-                    onChange={onDefaultBackendChange}
-                  />
-                )}
-                <span
-                  className={cn(
-                    "mr-3 inline-flex h-5 shrink-0 items-center gap-1.5 rounded-full border px-2 text-[10px] font-normal",
-                    ready
-                      ? "border-primary/18 bg-primary/[0.09] text-primary"
-                      : "border-border bg-muted text-muted-foreground",
-                  )}
-                >
-                  {id === "text" && <SaveStatus scope={beatTextScope} variant="inline" />}
-                  {id === "text" &&
-                    textSaveState.status !== "saving" &&
-                    textSaveState.status !== "error" &&
-                    statusKey === "episode.beat.edited" && (
-                      <Check className="size-2.5 text-primary" />
-                    )}
-                  <span
-                    aria-hidden
-                    className={cn(
-                      "size-1.5 rounded-full",
-                      ready ? "bg-primary" : "bg-muted-foreground/30",
-                    )}
-                  />
-                  {t(statusKey)}
-                </span>
-              </div>
-              <AnimatedSectionContent open={isOpen}>
-                <div className="border-b border-border bg-card px-3 py-3">
-                  {id === "text" && (
-                    <TextPane
-                      beat={beat}
-                      project={project}
-                      episode={episode}
-                      spineTemplate={spineTemplate}
-                    />
-                  )}
-                  {id === "sketch" && (
-                    <SketchSection
-                      beat={beat}
-                      project={project}
-                      episode={episode}
-                      images={images}
-                      assignments={assignments}
-                      onPreview={setPreviewUrl}
-                    />
-                  )}
-                  {id === "render" && (
-                    <RenderSection
-                      beat={beat}
-                      project={project}
-                      episode={episode}
-                      images={images}
-                      assignments={assignments}
-                      onPreview={setPreviewUrl}
-                    />
-                  )}
-                  {id === "audio" && (
-                    <AudioPaneContent
-                      beat={beat}
-                      project={project}
-                      episode={episode}
-                      state={stages?.audio ?? "missing"}
-                      onConfigureVoice={openAssetWorkspace}
-                    />
-                  )}
-                  {id === "video" && (
-                    <VideoPane
-                      beat={beat}
-                      project={project}
-                      episode={episode}
-                      state={stages?.video ?? "missing"}
-                      defaultBackend={defaultBackend}
-                      showAudioMediaStatus={showAudioMediaStatus}
-                    />
-                  )}
-                </div>
-              </AnimatedSectionContent>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Image preview overlay */}
-      {previewUrl && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-media/90 p-8"
-          onClick={() => setPreviewUrl(null)}
-        >
-          <button
-            type="button"
-            onClick={() => setPreviewUrl(null)}
-            className="absolute right-4 top-4 rounded-full bg-background/80 p-2 text-foreground hover:bg-background"
-          >
-            <X className="size-5" />
-          </button>
-          <img
-            src={previewUrl}
-            alt="Preview"
-            className="max-h-full max-w-full object-contain"
-            decoding="async"
-            onClick={(e) => e.stopPropagation()}
+  const renderSectionContent = (
+    id: SectionId,
+    onPreview: (url: string) => void,
+  ) => {
+    switch (id) {
+      case "text":
+        return (
+          <TextPane
+            beat={beat}
+            project={project}
+            episode={episode}
+            spineTemplate={spineTemplate}
           />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function VideoBackendHeaderSelect({
-  project,
-  value,
-  onChange,
-}: {
-  project: string;
-  value: string;
-  onChange: (backend: string) => void;
-}) {
-  const { t } = useTranslation();
-  const { data: videoBackendsRes } = useVideoBackends(project);
-  const videoBackends = videoBackendsRes?.data ?? [];
-  const selectedBackend = videoBackends.find((backend) => backend.value === value);
-
-  return (
-    <div
-      className="mr-4 hidden shrink-0 items-center md:flex"
-      onClick={(event) => event.stopPropagation()}
-    >
-      <Select value={value} onValueChange={(next) => onChange(next ?? "")}>
-        <SelectTrigger
-          aria-label={t("episode.workbench.batch.videoModel")}
-          className="!h-[26px] w-auto min-w-[150px] rounded-[7px] border-border bg-muted px-2.5 text-xs font-normal text-foreground/80 shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground focus-visible:border-primary/45 focus-visible:bg-muted focus-visible:ring-primary/10 [&>svg]:ml-1.5 [&>svg]:size-3.5"
-        >
-          <SelectValue>
-            {() => selectedBackend?.label ?? value}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent
-          align="start"
-          sideOffset={8}
-          alignItemWithTrigger={false}
-          className={WORKBENCH_SELECT_CONTENT_CLASS}
-        >
-          {videoBackends.map((backend) => (
-            <SelectItem
-              key={backend.value}
-              value={backend.value}
-              className={WORKBENCH_SELECT_ITEM_CLASS}
-            >
-              <span className="flex items-center gap-2">
-                {backend.label}
-                {backend.is_default && (
-                  <span className="text-[10px] text-muted-foreground">
-                    {t("episode.workbench.video.noteDefault")}
-                  </span>
-                )}
-                {backend.is_seedance2 && (
-                  <span className="text-[10px] text-muted-foreground">
-                    Seedance2
-                  </span>
-                )}
-                {backend.dialogue_only && (
-                  <span className="text-[10px] text-muted-foreground">
-                    {t("episode.workbench.video.noteDialogue")}
-                  </span>
-                )}
-              </span>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-}
-
-function AnimatedSectionContent({
-  open,
-  children,
-}: {
-  open: boolean;
-  children: React.ReactNode;
-}) {
-  const reducedMotion = useReducedMotion();
+        );
+      case "sketch":
+        return (
+          <SketchSection
+            beat={beat}
+            project={project}
+            episode={episode}
+            images={images}
+            assignments={assignments}
+            onPreview={onPreview}
+          />
+        );
+      case "render":
+        return (
+          <RenderSection
+            beat={beat}
+            project={project}
+            episode={episode}
+            images={images}
+            assignments={assignments}
+            onPreview={onPreview}
+          />
+        );
+      case "audio":
+        return (
+          <AudioPaneContent
+            beat={beat}
+            project={project}
+            episode={episode}
+            state={stages?.audio ?? "missing"}
+            onConfigureVoice={openAssetWorkspace}
+          />
+        );
+      case "video":
+        return (
+          <VideoPane
+            beat={beat}
+            project={project}
+            episode={episode}
+            state={stages?.video ?? "missing"}
+            defaultBackend={defaultBackend}
+            showAudioMediaStatus={showAudioMediaStatus}
+          />
+        );
+    }
+  };
 
   return (
-    <AnimatePresence initial={false}>
-      {open ? (
-        <motion.div
-          key="section-content"
-          initial={reducedMotion ? false : { height: 0, opacity: 0, y: -4 }}
-          animate={{ height: "auto", opacity: 1, y: 0 }}
-          exit={reducedMotion ? { opacity: 0 } : { height: 0, opacity: 0, y: -2 }}
-          transition={
-            reducedMotion
-              ? { duration: 0 }
-              : {
-                  height: { duration: 0.4, ease: SECTION_MOTION_EASE },
-                  opacity: { duration: 0.4, ease: SECTION_MOTION_EASE },
-                  y: { duration: 0.4, ease: SECTION_MOTION_EASE },
-                }
-          }
-          style={{ overflow: "hidden" }}
-        >
-          {children}
-        </motion.div>
-      ) : null}
-    </AnimatePresence>
+    <SingleBeatPanelView
+      beatTextScope={beatTextScope}
+      onDefaultBackendChange={onDefaultBackendChange}
+      onToggleSection={onToggleSection}
+      renderSectionContent={renderSectionContent}
+      sections={sections}
+      textSaveStatus={textSaveState.status}
+      videoBackend={defaultBackend}
+      videoBackends={videoBackends}
+    />
   );
 }

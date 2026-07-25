@@ -79,7 +79,6 @@ export function BeatsPageView({
     imageGenerationSelection,
     isLoading,
     isNarratedProject,
-    isSeedance2Backend,
     onCancelPendingAspect,
     onConfirmPendingAspect,
     openingEpisodeFreezone,
@@ -361,7 +360,6 @@ export function BeatsPageView({
                   defaultBackend={videoBackend}
                   onDefaultBackendChange={handleVideoBackendChange}
                   spineTemplate={spineTemplate}
-                  isSeedance2Backend={isSeedance2Backend}
                   showAudioMediaStatus={isNarratedProject}
                   targetSection={targetSection}
                 />

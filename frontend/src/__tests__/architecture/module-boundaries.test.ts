@@ -344,6 +344,17 @@ describe("frontend architecture boundaries", () => {
       resolve(moduleRoot, "presentation/SketchStudioActionsView.tsx"),
       "utf8",
     );
+    const singleBeatPanelSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "components/episode/beat-workbench/single-beat-panel.tsx",
+      ),
+      "utf8",
+    );
+    const singleBeatPanelViewSource = readFileSync(
+      resolve(moduleRoot, "presentation/SingleBeatPanelView.tsx"),
+      "utf8",
+    );
     const externalSources = sourceFiles(SRC_ROOT)
       .filter((path) => !path.startsWith(moduleRoot))
       .filter((path) => !relativeSource(path).startsWith("__tests__/"));
@@ -429,6 +440,23 @@ describe("frontend architecture boundaries", () => {
     expect(sketchStudioViewSource).not.toContain("useCharacters(");
     expect(sketchStudioViewSource).not.toContain("useEpisodeBeats(");
     expect(sketchStudioViewSource).not.toContain("useEpisodeDetail(");
+    expect(singleBeatPanelSource).toContain("<SingleBeatPanelView");
+    expect(singleBeatPanelSource).toContain(
+      "renderSectionContent={renderSectionContent}",
+    );
+    expect(singleBeatPanelSource).not.toContain("className=");
+    expect(singleBeatPanelSource).not.toContain("<Select");
+    expect(singleBeatPanelSource).not.toContain("<motion.");
+    expect(singleBeatPanelSource).not.toContain("useState(");
+    expect(singleBeatPanelSource).not.toContain("useEscapeToClose(");
+    expect(singleBeatPanelViewSource).toContain("className=");
+    expect(singleBeatPanelViewSource).toContain("<Select");
+    expect(singleBeatPanelViewSource).toContain("<motion.div");
+    expect(singleBeatPanelViewSource).toContain("useState<string");
+    expect(singleBeatPanelViewSource).toContain("useEscapeToClose(");
+    expect(singleBeatPanelViewSource).not.toContain("useGridsByBeat(");
+    expect(singleBeatPanelViewSource).not.toContain("useVideoBackends(");
+    expect(singleBeatPanelViewSource).not.toContain("resolveImage(");
   });
 
   it("keeps Asset & World callers on its public API", () => {

@@ -22,7 +22,6 @@ interface ActionPanelProps {
   defaultBackend: string;
   onDefaultBackendChange: (backend: string) => void;
   spineTemplate?: "drama" | "narrated";
-  isSeedance2Backend?: boolean;
   showAudioMediaStatus?: boolean;
   targetSection?: SectionId | null;
 }
@@ -36,7 +35,6 @@ export function ActionPanel({
   defaultBackend,
   onDefaultBackendChange,
   spineTemplate = "drama",
-  isSeedance2Backend = false,
   showAudioMediaStatus = true,
   targetSection,
 }: ActionPanelProps) {
@@ -88,7 +86,6 @@ export function ActionPanel({
         defaultBackend={defaultBackend}
         onDefaultBackendChange={onDefaultBackendChange}
         spineTemplate={spineTemplate}
-        isSeedance2Backend={isSeedance2Backend}
         showAudioMediaStatus={showAudioMediaStatus}
         openSections={openSections}
         onToggleSection={toggleSection}
