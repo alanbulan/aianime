@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { resolveErrorContent } from './errorDialog';
-import { CURRENT_RUNTIME_SESSION_ID, extractRequestId } from './generationErrorReport';
+import { extractRequestId } from './generationErrorReport';
 import type {
   AiGateway,
   CanvasRedrawTaskGateway,
@@ -23,6 +23,7 @@ export interface RegenerateExportImageNodeParams {
   nodeId: string;
   nodeData: Record<string, unknown>;
   projectId: string | null | undefined;
+  runtimeSessionId: string;
   updateNodeData: (
     nodeId: string,
     patch: Record<string, unknown>,
@@ -121,7 +122,7 @@ export async function regenerateExportImageNode(
   aiGateway: AiGateway,
   redrawGateway: CanvasRedrawTaskGateway,
 ): Promise<void> {
-  const { nodeData, nodeId, updateNodeData } = params;
+  const { nodeData, nodeId, runtimeSessionId, updateNodeData } = params;
   if (nodeData.isGenerating === true) {
     return;
   }
@@ -155,7 +156,7 @@ export async function regenerateExportImageNode(
     const jobId = await aiGateway.submitGenerateImageJob({ ...payload, nodeId });
     updateNodeData(nodeId, {
       generationJobId: jobId,
-      generationClientSessionId: CURRENT_RUNTIME_SESSION_ID,
+      generationClientSessionId: runtimeSessionId,
     });
   } catch (error) {
     const resolved = resolveErrorContent(error, '图像生成失败');

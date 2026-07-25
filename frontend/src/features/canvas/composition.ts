@@ -25,6 +25,7 @@ import {
 import {
   uploadLocalImageToBackend as uploadLocalImageToBackendUseCase,
 } from './application/uploadToolOutput';
+import { browserGenerationRuntimeGateway } from './infrastructure/browserGenerationRuntimeGateway';
 import { freezoneAssetGateway } from './infrastructure/freezoneAssetGateway';
 import { freezoneAiGateway } from './infrastructure/freezoneAiGateway';
 import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerationTaskGateway';
@@ -40,6 +41,12 @@ export const canvasToolProcessor = new CanvasToolProcessor(
   uuidGenerator,
 );
 export const canvasAiGateway = freezoneAiGateway;
+export const CURRENT_RUNTIME_SESSION_ID =
+  browserGenerationRuntimeGateway.runtimeSessionId;
+
+export function getRuntimeDiagnostics() {
+  return browserGenerationRuntimeGateway.getRuntimeDiagnostics();
+}
 
 export function migratePastedNodeAssets(
   params: Omit<MigratePastedNodeAssetsParams, 'currentOrigin'>,
@@ -94,12 +101,16 @@ export function stageSelectedBackgroundOutputForSkill(
 }
 
 export function regenerateExportImageNode(
-  params: Omit<RegenerateExportImageNodeParams, 'projectId'>,
+  params: Omit<
+    RegenerateExportImageNodeParams,
+    'projectId' | 'runtimeSessionId'
+  >,
 ) {
   return regenerateExportImageNodeUseCase(
     {
       ...params,
       projectId: readUrl().project,
+      runtimeSessionId: CURRENT_RUNTIME_SESSION_ID,
     },
     freezoneAiGateway,
     freezoneRedrawTaskGateway,

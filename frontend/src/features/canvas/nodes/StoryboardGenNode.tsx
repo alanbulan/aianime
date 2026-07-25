@@ -29,7 +29,9 @@ import { EXPORT_RESULT_DISPLAY_NAME, resolveNodeDisplayName } from '@/features/c
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import {
+  CURRENT_RUNTIME_SESSION_ID,
   canvasAiGateway,
+  getRuntimeDiagnostics,
   uploadLocalImageToBackend,
 } from '@/features/canvas/composition';
 import { useUpstreamImages } from '@/features/canvas/hooks/useUpstreamGraph';
@@ -43,9 +45,7 @@ import {
 } from '@/features/canvas/application/imageData';
 import {
   buildGenerationErrorReport,
-  CURRENT_RUNTIME_SESSION_ID,
   createReferenceImagePlaceholders,
-  getRuntimeDiagnostics,
   resolveGenerationErrorDiagnostics,
   type GenerationDebugContext,
 } from '@/features/canvas/application/generationErrorReport';

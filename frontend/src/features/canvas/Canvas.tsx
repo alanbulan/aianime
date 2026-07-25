@@ -44,6 +44,7 @@ import { SKILL_SCHEMA_VERSION, type SkillDefinition } from '@/features/freezone/
 import { translateSkillName } from '@/features/freezone/context/skillI18n';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import {
+  CURRENT_RUNTIME_SESSION_ID,
   canvasAiGateway,
   migratePastedNodeAssets,
   resumeNodeGeneration,
@@ -79,7 +80,6 @@ import { prepareNodeImage } from '@/features/canvas/application/imageData';
 import { isVideoFile } from '@/features/canvas/application/videoFileTypes';
 import {
   buildGenerationErrorReport,
-  CURRENT_RUNTIME_SESSION_ID,
   extractRequestId,
 } from '@/features/canvas/application/generationErrorReport';
 import { showErrorDialog } from '@/features/canvas/application/errorDialog';

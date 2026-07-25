@@ -248,6 +248,10 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes("window."))
       .map(relativeSource)
       .sort();
+    const directNavigatorUsers = sourceFiles(applicationRoot)
+      .filter((path) => readFileSync(path, "utf8").includes("navigator."))
+      .map(relativeSource)
+      .sort();
     const composition = readFileSync(
       resolve(SRC_ROOT, "features/canvas/composition.ts"),
       "utf8",
@@ -313,6 +317,17 @@ describe("frontend architecture boundaries", () => {
       resolve(applicationRoot, "crossProjectAssets.ts"),
       "utf8",
     );
+    const generationErrorReport = readFileSync(
+      resolve(applicationRoot, "generationErrorReport.ts"),
+      "utf8",
+    );
+    const generationRuntimeGateway = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/browserGenerationRuntimeGateway.ts",
+      ),
+      "utf8",
+    );
 
     expect(failures).toEqual([]);
     expect(directApiUsers).toEqual([]);
@@ -320,6 +335,7 @@ describe("frontend architecture boundaries", () => {
     expect(directUrlUsers).toEqual([]);
     expect(directTaskCenterStoreUsers).toEqual([]);
     expect(directWindowUsers).toEqual([]);
+    expect(directNavigatorUsers).toEqual([]);
     expect(
       existsSync(resolve(applicationRoot, "useUpstreamGraph.ts")),
     ).toBe(false);
@@ -340,6 +356,8 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("@/features/canvas/composition");
     expect(composition).toContain("new CanvasToolProcessor(");
     expect(composition).toContain("freezoneAiGateway");
+    expect(composition).toContain("browserGenerationRuntimeGateway");
+    expect(composition).toContain("getRuntimeDiagnostics()");
     expect(composition).toContain("uuidGenerator");
     expect(composition).toContain("webImageSplitGateway");
     expect(composition).toContain("freezoneAssetGateway");
@@ -381,6 +399,11 @@ describe("frontend architecture boundaries", () => {
       "resolveNodeGenerationTaskState({",
     );
     expect(crossProjectAssets).toContain("currentOrigin: string");
+    expect(generationErrorReport).toContain(
+      "export function resolveGenerationOsInfo(",
+    );
+    expect(generationRuntimeGateway).toContain("navigator.userAgent");
+    expect(generationRuntimeGateway).toContain("runtimeSessionId:");
     expect(regenerateExportNode).toContain("aiGateway: AiGateway");
     expect(regenerateExportNode).toContain(
       "params: RegenerateExportImageNodeParams",

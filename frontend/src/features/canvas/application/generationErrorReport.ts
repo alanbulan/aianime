@@ -1,5 +1,7 @@
 // Copyright (c) 2026 AI anime
-export interface GenerationDebugContext {
+import type { GenerationRuntimeDiagnostics } from './ports';
+
+export interface GenerationDebugContext extends Partial<GenerationRuntimeDiagnostics> {
   sourceType: 'imageEdit' | 'storyboardGen' | 'imageGen' | 'unknown';
   providerId?: string;
   requestModel?: string;
@@ -9,18 +11,7 @@ export interface GenerationDebugContext {
   extraParams?: Record<string, unknown>;
   referenceImageCount?: number;
   referenceImagePlaceholders?: string[];
-  appVersion?: string;
-  osName?: string;
-  osVersion?: string;
-  osBuild?: string;
-  userAgent?: string;
 }
-
-export const CURRENT_RUNTIME_SESSION_ID = `runtime-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-let runtimeDiagnosticsPromise: Promise<Pick<
-  GenerationDebugContext,
-  'appVersion' | 'osName' | 'osVersion' | 'osBuild' | 'userAgent'
->> | null = null;
 
 interface BuildGenerationErrorReportInput {
   errorMessage: string;
@@ -79,7 +70,9 @@ export function createReferenceImagePlaceholders(count: number): string[] {
   return Array.from({ length: safeCount }, (_, index) => `[IMAGE_${index + 1}]`);
 }
 
-function parseOsInfo(userAgent: string): { osName: string; osVersion: string } {
+export function resolveGenerationOsInfo(
+  userAgent: string,
+): { osName: string; osVersion: string } {
   const ua = userAgent || '';
 
   const windowsMatch = ua.match(/Windows NT ([0-9.]+)/i);
@@ -102,32 +95,6 @@ function parseOsInfo(userAgent: string): { osName: string; osVersion: string } {
   }
 
   return { osName: 'Unknown', osVersion: 'unknown' };
-}
-
-export async function getRuntimeDiagnostics(): Promise<
-  Pick<GenerationDebugContext, 'appVersion' | 'osName' | 'osVersion' | 'osBuild' | 'userAgent'>
-> {
-  if (!runtimeDiagnosticsPromise) {
-    runtimeDiagnosticsPromise = (async () => {
-      const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
-      const osInfo = parseOsInfo(userAgent);
-
-      let appVersion = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'unknown';
-      let resolvedOsName = osInfo.osName;
-      let resolvedOsVersion = osInfo.osVersion;
-      let resolvedOsBuild = 'unknown';
-
-      return {
-        appVersion,
-        osName: resolvedOsName,
-        osVersion: resolvedOsVersion,
-        osBuild: resolvedOsBuild,
-        userAgent,
-      };
-    })();
-  }
-
-  return runtimeDiagnosticsPromise;
 }
 
 export function buildGenerationErrorReport(

@@ -36,6 +36,7 @@ async function regenerate(
       nodeData,
       nodeId: 'export-node',
       projectId,
+      runtimeSessionId: 'runtime-test',
       updateNodeData,
     },
     aiGateway,
@@ -69,7 +70,7 @@ describe('regenerateExportImageNode', () => {
     );
     expect(submitRedraw).not.toHaveBeenCalled();
     expect(updateNodeData).toHaveBeenLastCalledWith('export-node', {
-      generationClientSessionId: expect.any(String),
+      generationClientSessionId: 'runtime-test',
       generationJobId: 'image-job',
     });
   });

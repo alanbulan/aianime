@@ -35,7 +35,11 @@ import {
 import { readUrl } from '@/lib/url-params';
 import { useDetachUpstream } from '@/features/canvas/hooks/useDetachUpstream';
 import { useReferenceMentionSync } from '@/features/canvas/nodes/useReferenceMentionSync';
-import { canvasAiGateway } from '@/features/canvas/composition';
+import {
+  CURRENT_RUNTIME_SESSION_ID,
+  canvasAiGateway,
+  getRuntimeDiagnostics,
+} from '@/features/canvas/composition';
 import {
   collectUpstreamReferenceUrls,
   joinUpstreamText,
@@ -54,9 +58,7 @@ import {
 } from '@/features/canvas/application/imageData';
 import {
   buildGenerationErrorReport,
-  CURRENT_RUNTIME_SESSION_ID,
   createReferenceImagePlaceholders,
-  getRuntimeDiagnostics,
   resolveGenerationErrorDiagnostics,
   type GenerationDebugContext,
 } from '@/features/canvas/application/generationErrorReport';
