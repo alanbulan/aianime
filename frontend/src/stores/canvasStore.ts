@@ -114,6 +114,10 @@ import {
 } from '@/features/canvas/application/canvasChangeIntent';
 import { updateCanvasNodeData } from '@/features/canvas/application/canvasNodeData';
 import {
+  updateCanvasNodeSize,
+  type CanvasNodeSizeUpdateOptions,
+} from '@/features/canvas/application/canvasNodeSize';
+import {
   createClosedCanvasImageViewer,
   navigateCanvasImageViewer,
   openCanvasImageViewer,
@@ -267,7 +271,7 @@ interface CanvasState extends CanvasMutationState {
   updateNodeSize: (
     nodeId: string,
     size: { width: number; height: number },
-    options?: { lockManualSize?: boolean; data?: Partial<CanvasNodeData> },
+    options?: CanvasNodeSizeUpdateOptions,
   ) => void;
   /**
    * Swap a node's `type` in place while keeping its `id`, position, and any
@@ -1298,62 +1302,14 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   updateNodeSize: (nodeId, size, options) => {
-    const nextWidth = Math.max(1, Math.round(size.width));
-    const nextHeight = Math.max(1, Math.round(size.height));
     set((state) => {
-      let changed = false;
-      const nextNodes = state.nodes.map((node) => {
-        if (node.id !== nodeId) {
-          return node;
-        }
-        const currentWidth =
-          (typeof node.width === 'number' ? node.width : null)
-          ?? (typeof node.style?.width === 'number' ? node.style.width : null);
-        const currentHeight =
-          (typeof node.height === 'number' ? node.height : null)
-          ?? (typeof node.style?.height === 'number' ? node.style.height : null);
-        const manualSizePatch =
-          options?.lockManualSize === false
-            ? { isSizeManuallyAdjusted: false }
-            : options?.lockManualSize === true
-              ? { isSizeManuallyAdjusted: true }
-              : {};
-        const dataPatch = {
-          ...(options?.data ?? {}),
-          ...manualSizePatch,
-        };
-        const hasDataPatch = Object.keys(dataPatch).some((key) => {
-          return !Object.is(
-            (node.data as Record<string, unknown>)[key],
-            (dataPatch as Record<string, unknown>)[key],
-          );
-        });
-        if (currentWidth === nextWidth && currentHeight === nextHeight && !hasDataPatch) {
-          return node;
-        }
-        changed = true;
-        return {
-          ...node,
-          width: nextWidth,
-          height: nextHeight,
-          style: {
-            ...(node.style ?? {}),
-            width: nextWidth,
-            height: nextHeight,
-          },
-          data: {
-            ...node.data,
-            ...dataPatch,
-          } as CanvasNodeData,
-        };
-      });
-
-      if (!changed) {
+      const result = updateCanvasNodeSize(state.nodes, nodeId, size, options);
+      if (!result.changed) {
         return {};
       }
 
       return {
-        nodes: nextNodes,
+        nodes: result.nodes,
         history: {
           past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
           future: [],

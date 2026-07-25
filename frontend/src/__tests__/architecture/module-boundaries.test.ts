@@ -1245,6 +1245,63 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("const mergedData = {\n          ...node.data");
   });
 
+  it("keeps Canvas node size updates out of the Zustand store", () => {
+    const nodeSizePath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasNodeSize.ts",
+    );
+    const nodeSizeModel = readFileSync(nodeSizePath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(nodeSizePath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier === "zustand" ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const updateDeclaration = [
+      "export function",
+      "updateCanvasNodeSize(",
+    ].join(" ");
+    const contractDeclaration = [
+      "export interface",
+      "CanvasNodeSizeUpdateOptions",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(updateDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
+    const contractOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(contractDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/application/canvasNodeSize.ts",
+    ]);
+    expect(contractOwners).toEqual([
+      "features/canvas/application/canvasNodeSize.ts",
+    ]);
+    expect(nodeSizeModel).toContain(updateDeclaration);
+    expect(canvasStore).toContain(
+      "@/features/canvas/application/canvasNodeSize",
+    );
+    expect(canvasStore).not.toContain("const manualSizePatch =");
+    expect(canvasStore).not.toContain("const currentWidth =");
+    expect(canvasStore).not.toContain("Math.max(1, Math.round(size.width))");
+  });
+
   it("keeps shared code independent from application and business layers", () => {
     const forbiddenPrefixes = [
       "@/app/",
