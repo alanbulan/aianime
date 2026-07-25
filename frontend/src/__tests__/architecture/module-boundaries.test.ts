@@ -1724,6 +1724,47 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("type BeatContextNodeData");
   });
 
+  it("keeps Canvas mount and unmount effects in one lifecycle hook", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasLifecycle.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const hookDeclaration = [
+      "export function",
+      "useCanvasLifecycle(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(hookDeclaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasLifecycle.ts",
+    ]);
+    expect(hookModel).toContain("resolveCanvasOriginViewport(");
+    expect(hookModel).toContain("return closeImageViewer;");
+    expect(canvasView).toContain("./hooks/useCanvasLifecycle");
+    expect(canvasView).not.toContain("useEffect(");
+    expect(canvasView).not.toContain("resolveCanvasOriginViewport(");
+  });
+
   it("keeps Canvas pane context-menu state in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
@@ -2910,6 +2951,10 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const lifecycleView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/hooks/useCanvasLifecycle.ts"),
+      "utf8",
+    );
     const forbiddenImports = [selectionPath, viewportPath].flatMap((path) =>
       importSpecifiers(path)
         .filter(
@@ -2968,9 +3013,8 @@ describe("frontend architecture boundaries", () => {
       "@/features/canvas/domain/canvasSelection",
     );
     expect(canvasStore).toContain("replaceViewportBookmark(current, index, bookmark)");
-    expect(canvasView).toContain(
-      "@/features/canvas/domain/viewportBookmarks",
-    );
+    expect(lifecycleView).toContain("../domain/viewportBookmarks");
+    expect(canvasView).not.toContain("domain/viewportBookmarks");
     expect(marqueeView).toContain("../domain/canvasSelection");
     expect(canvasView).not.toContain("domain/canvasSelection");
     expect(canvasView).not.toContain("const ancestorsOfHits");

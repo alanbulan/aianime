@@ -2,7 +2,6 @@
 import {
   useState,
   useCallback,
-  useEffect,
   useMemo,
   useRef,
   type DragEvent as ReactDragEvent,
@@ -73,7 +72,6 @@ import { hydrateAssetDragPayload } from '@/features/canvas/domain/assetDragHydra
 import type { CanvasAsset } from '@/features/canvas/domain/canvasAssets';
 import { CanvasMinimapBookmarksOverlay } from '@/features/canvas/ui/CanvasMinimapBookmarksOverlay';
 import { captureCurrentViewport, jumpToBookmark } from '@/features/canvas/application/bookmarkActions';
-import { resolveCanvasOriginViewport } from '@/features/canvas/domain/viewportBookmarks';
 import {
   isPresetManagedEdge,
   isPresetManagedNode,
@@ -137,6 +135,7 @@ import { useCanvasExternalDialogs } from './hooks/useCanvasExternalDialogs';
 import { useCanvasAsyncNodeTasks } from './hooks/useCanvasAsyncNodeTasks';
 import { useCanvasBeatContextPrefetch } from './hooks/useCanvasBeatContextPrefetch';
 import { useCanvasKeyboardShortcuts } from './hooks/useCanvasKeyboardShortcuts';
+import { useCanvasLifecycle } from './hooks/useCanvasLifecycle';
 import { useCanvasMarqueeSelection } from './hooks/useCanvasMarqueeSelection';
 import { useCanvasMediaPaste } from './hooks/useCanvasMediaPaste';
 import { useCanvasMinimapVisibility } from './hooks/useCanvasMinimapVisibility';
@@ -525,24 +524,16 @@ export function Canvas({
     return edges.map((edge) => (edge.hidden ? edge : { ...edge, hidden: true }));
   }, [edges, edgesHidden]);
 
-  useEffect(() => {
-    if (useCanvasStore.getState().nodes.length === 0) {
-      // useCanvasSync owns the camera and has already restored it into the
-      // store. Only center the view for a genuinely empty/new canvas;
-      // otherwise we'd clobber the restored
-      // viewport (and the localStorage copy that mirrors it) with the empty
-      // center, snapping the user back to {w/2, h/2} on every refresh.
-      setViewportState(
-        resolveCanvasOriginViewport(wrapperRef.current?.getBoundingClientRect()),
-      );
-    }
-    return () => {
-      closeImageViewer();
-    };
-  }, [
+  const isCanvasEmpty = useCallback(
+    () => useCanvasStore.getState().nodes.length === 0,
+    [],
+  );
+  useCanvasLifecycle({
+    wrapperRef,
+    isCanvasEmpty,
+    setViewport: setViewportState,
     closeImageViewer,
-    setViewportState,
-  ]);
+  });
 
   const nodeFocusViewportPort = useMemo(
     () => ({
