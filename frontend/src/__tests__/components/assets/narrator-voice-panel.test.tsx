@@ -49,31 +49,47 @@ beforeAll(async () => {
 const mutateTrim = vi.hoisted(() => vi.fn());
 let mockHasVoice = false;
 
-vi.mock("@/modules/production/public", () => ({
-  useNarratorVoiceStatus: () => ({
-    data: {
-      ok: true,
+vi.mock("@/modules/production/public", async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import("@/modules/production/public")
+  >();
+  return {
+    ...actual,
+    useNarratorVoiceStatus: () => ({
       data: {
-        narration_style: "first_person",
-        source: "protagonist_identity",
-        reference_path: mockHasVoice ? "assets/narrator/voice.mp3" : "",
-        reference_url: mockHasVoice ? "/static/demo/assets/narrator/voice.mp3" : "",
-        heading: "第一人称解说声线",
-        detail: "",
-        explanation: "第一人称解说使用主角声线。",
-        is_first_person: true,
+        ok: true,
+        data: {
+          narration_style: "first_person",
+          source: "protagonist_identity",
+          reference_path: mockHasVoice ? "assets/narrator/voice.mp3" : "",
+          reference_url: mockHasVoice
+            ? "/static/demo/assets/narrator/voice.mp3"
+            : "",
+          heading: "第一人称解说声线",
+          detail: "",
+          explanation: "第一人称解说使用主角声线。",
+          is_first_person: true,
+        },
       },
-    },
-    isLoading: false,
-    isError: false,
-  }),
-  useNarratorVoiceSources: () => ({ data: { ok: true, data: { options: [] } } }),
-  useUploadNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useRecordNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useCopyProjectNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useTrimNarratorVoice: () => ({ mutateAsync: mutateTrim, isPending: false }),
-  useDeleteNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
-}));
+      isLoading: false,
+      isError: false,
+    }),
+    useNarratorVoiceSources: () => ({
+      data: { ok: true, data: { options: [] } },
+    }),
+    useUploadNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
+    useRecordNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
+    useCopyProjectNarratorVoice: () => ({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    }),
+    useTrimNarratorVoice: () => ({
+      mutateAsync: mutateTrim,
+      isPending: false,
+    }),
+    useDeleteNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  };
+});
 
 vi.mock("sonner", () => ({
   toast: { error: vi.fn(), success: vi.fn() },

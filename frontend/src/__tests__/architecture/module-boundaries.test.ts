@@ -588,6 +588,20 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const narratorVoicePanelSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "components/episode/beat-workbench/narrator-voice-panel.tsx",
+      ),
+      "utf8",
+    );
+    const narratorVoicePanelViewSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/production/presentation/NarratorVoicePanelView.tsx",
+      ),
+      "utf8",
+    );
     const legacySketchQueries = readFileSync(
       resolve(SRC_ROOT, "lib/queries/sketches.ts"),
       "utf8",
@@ -784,6 +798,20 @@ describe("frontend architecture boundaries", () => {
     expect(renderSectionControllerSource).not.toContain("@/features/");
     expect(renderSectionControllerSource).not.toContain("@/stores/");
     expect(renderSectionControllerSource).not.toContain("document.");
+    expect(narratorVoicePanelSource).toContain("<NarratorVoicePanelView");
+    expect(narratorVoicePanelSource).not.toContain("className=");
+    expect(narratorVoicePanelSource).not.toContain("<Button");
+    expect(narratorVoicePanelSource).not.toContain("<Dialog");
+    expect(narratorVoicePanelSource).not.toContain("<Input");
+    expect(narratorVoicePanelSource).not.toContain("<Select");
+    expect(narratorVoicePanelSource).not.toContain('type="file"');
+    expect(narratorVoicePanelSource).toContain("MediaRecorder");
+    expect(narratorVoicePanelViewSource).toContain('type="file"');
+    expect(narratorVoicePanelViewSource).toContain("<Dialog");
+    expect(narratorVoicePanelViewSource).toContain("<Select");
+    expect(narratorVoicePanelViewSource).not.toContain(
+      "useNarratorVoiceStatus",
+    );
     expect(legacySketchQueries).not.toContain("useAssignColors");
     expect(legacySketchQueries).not.toContain("useDetectIdentities");
     expect(legacySketchQueries).not.toContain("useDirectorControlToSketch");

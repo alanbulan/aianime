@@ -85,6 +85,8 @@ export { SketchSectionView } from "@/modules/production/presentation/SketchSecti
 export type { SketchSectionViewProps } from "@/modules/production/presentation/SketchSectionView";
 export { RenderSectionView } from "@/modules/production/presentation/RenderSectionView";
 export type { RenderSectionViewProps } from "@/modules/production/presentation/RenderSectionView";
+export { NarratorVoicePanelView } from "@/modules/production/presentation/NarratorVoicePanelView";
+export type { NarratorVoicePanelViewProps } from "@/modules/production/presentation/NarratorVoicePanelView";
 export type {
   CropRenderBackgroundMutation,
   RenderBackgroundAnchorsQuery,

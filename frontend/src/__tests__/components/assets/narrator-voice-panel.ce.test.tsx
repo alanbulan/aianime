@@ -20,31 +20,42 @@ vi.mock("sonner", () => ({
   },
 }));
 
-vi.mock("@/modules/production/public", () => ({
-  useNarratorVoiceStatus: () => ({
-    data: {
-      ok: true,
+vi.mock("@/modules/production/public", async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import("@/modules/production/public")
+  >();
+  return {
+    ...actual,
+    useNarratorVoiceStatus: () => ({
       data: {
-        narration_style: "third_person",
-        source: "project_narrator",
-        reference_path: "assets/narrator/voice.mp3",
-        reference_url: "/static/demo/assets/narrator/voice.mp3",
-        heading: "Narrator voice",
-        detail: "",
-        explanation: "Project narrator voice.",
-        is_first_person: false,
+        ok: true,
+        data: {
+          narration_style: "third_person",
+          source: "project_narrator",
+          reference_path: "assets/narrator/voice.mp3",
+          reference_url: "/static/demo/assets/narrator/voice.mp3",
+          heading: "Narrator voice",
+          detail: "",
+          explanation: "Project narrator voice.",
+          is_first_person: false,
+        },
       },
-    },
-    isLoading: false,
-    isError: false,
-  }),
-  useNarratorVoiceSources: () => ({ data: { ok: true, data: { options: [] } } }),
-  useUploadNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useRecordNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useCopyProjectNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useTrimNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useDeleteNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
-}));
+      isLoading: false,
+      isError: false,
+    }),
+    useNarratorVoiceSources: () => ({
+      data: { ok: true, data: { options: [] } },
+    }),
+    useUploadNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
+    useRecordNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
+    useCopyProjectNarratorVoice: () => ({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    }),
+    useTrimNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
+    useDeleteNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  };
+});
 
 const i18n = i18next.createInstance();
 
