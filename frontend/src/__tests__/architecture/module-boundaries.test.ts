@@ -220,8 +220,19 @@ describe("frontend architecture boundaries", () => {
         )
         .map((specifier) => `${relativeSource(path)}: ${specifier}`),
     );
+    const directApiOpsUsers = sourceFiles(applicationRoot)
+      .filter((path) => importSpecifiers(path).includes("@/api/ops"))
+      .map(relativeSource)
+      .sort();
     const composition = readFileSync(
       resolve(SRC_ROOT, "features/canvas/composition.ts"),
+      "utf8",
+    );
+    const assetGateway = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/freezoneAssetGateway.ts",
+      ),
       "utf8",
     );
     const services = readFileSync(
@@ -234,11 +245,21 @@ describe("frontend architecture boundaries", () => {
     );
 
     expect(failures).toEqual([]);
+    expect(directApiOpsUsers).toEqual([
+      "features/canvas/application/regenerateExportNode.ts",
+      "features/canvas/application/resumeGeneration.ts",
+      "features/canvas/application/selectedBackgroundSlot.ts",
+      "features/canvas/application/uploadToolOutput.ts",
+    ]);
     expect(composition).toContain("new CanvasNodeFactory(");
     expect(composition).toContain("new CanvasToolProcessor(");
     expect(composition).toContain("freezoneAiGateway");
     expect(composition).toContain("uuidGenerator");
     expect(composition).toContain("webImageSplitGateway");
+    expect(composition).toContain("freezoneAssetGateway");
+    expect(composition).toContain("migratePastedNodeAssetsUseCase(");
+    expect(assetGateway).toContain("uploadFreezoneImage(");
+    expect(assetGateway).toContain("{ timeoutMs: false }");
     expect(services).not.toContain("infrastructure/");
     expect(regenerateExportNode).toContain("aiGateway: AiGateway");
     expect(regenerateExportNode).toContain(

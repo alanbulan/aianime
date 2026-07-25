@@ -15,6 +15,19 @@ export interface IdGenerator {
   next: () => string;
 }
 
+export interface CanvasAssetUploadOptions {
+  disableTimeout?: boolean;
+}
+
+export interface CanvasAssetGateway {
+  upload: (
+    projectId: string,
+    file: File | Blob,
+    filename: string,
+    options?: CanvasAssetUploadOptions,
+  ) => Promise<string>;
+}
+
 export interface NodeCatalog {
   getDefinition: (type: CanvasNodeType) => CanvasNodeDefinition;
   getMenuDefinitions: () => CanvasNodeDefinition[];

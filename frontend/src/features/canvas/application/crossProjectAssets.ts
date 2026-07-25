@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { uploadFreezoneImage } from '@/api/ops';
+import type { CanvasAssetGateway } from '@/features/canvas/application/ports';
 import type { CanvasNodeData } from '@/features/canvas/domain/canvasNodes';
 
 /**
@@ -65,7 +65,11 @@ function filenameFromUrl(fetchUrl: string): string {
   }
 }
 
-async function uploadAssetToProject(rawUrl: string, targetProject: string): Promise<string> {
+async function uploadAssetToProject(
+  assetGateway: CanvasAssetGateway,
+  rawUrl: string,
+  targetProject: string,
+): Promise<string> {
   const fetchUrl = toFetchableAssetUrl(rawUrl);
   if (!fetchUrl) {
     return rawUrl;
@@ -77,10 +81,9 @@ async function uploadAssetToProject(rawUrl: string, targetProject: string): Prom
   const blob = await response.blob();
   // 与图片同一个 /freezone/upload 接口，后端按通用 blob 处理；timeoutMs:false 关掉
   // ky 默认 30s 超时，避免大视频上传被中断。
-  const uploaded = await uploadFreezoneImage(targetProject, blob, filenameFromUrl(fetchUrl), {
-    timeoutMs: false,
+  return assetGateway.upload(targetProject, blob, filenameFromUrl(fetchUrl), {
+    disableTimeout: true,
   });
-  return uploaded.url;
 }
 
 interface RemapResult {
@@ -196,12 +199,17 @@ export interface AssetMigrationSummary {
  * 纯改写——这样上传期间用户对节点的编辑（改 URL、往画册加卡片等）不会被旧快照覆盖；
  * 节点若已被删除 / 切走项目则跳过。相同 URL 只上传一次。
  */
-export async function migratePastedNodeAssets(params: {
+export interface MigratePastedNodeAssetsParams {
   nodes: PastedNodeForMigration[];
   targetProject: string;
   getLiveNodeData: (id: string) => CanvasNodeData | null;
   updateNodeData: (id: string, patch: Partial<CanvasNodeData>) => void;
-}): Promise<AssetMigrationSummary> {
+}
+
+export async function migratePastedNodeAssets(
+  assetGateway: CanvasAssetGateway,
+  params: MigratePastedNodeAssetsParams,
+): Promise<AssetMigrationSummary> {
   const { nodes, targetProject, getLiveNodeData, updateNodeData } = params;
 
   // 1. 从快照收集去重的可迁移资产 URL。
@@ -220,7 +228,7 @@ export async function migratePastedNodeAssets(params: {
   let failed = 0;
   await Promise.all(
     [...urls].map((url) =>
-      limit(() => uploadAssetToProject(url, targetProject))
+      limit(() => uploadAssetToProject(assetGateway, url, targetProject))
         .then((newUrl) => {
           if (newUrl !== url) {
             urlMap.set(url, newUrl);

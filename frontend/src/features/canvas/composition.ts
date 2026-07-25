@@ -1,7 +1,12 @@
 // Copyright (c) 2026 AI anime
 import { nodeCatalog } from './application/nodeCatalog';
 import { CanvasNodeFactory } from './application/nodeFactory';
+import {
+  migratePastedNodeAssets as migratePastedNodeAssetsUseCase,
+  type MigratePastedNodeAssetsParams,
+} from './application/crossProjectAssets';
 import { CanvasToolProcessor } from './application/toolProcessor';
+import { freezoneAssetGateway } from './infrastructure/freezoneAssetGateway';
 import { freezoneAiGateway } from './infrastructure/freezoneAiGateway';
 import { uuidGenerator } from './infrastructure/idGenerator';
 import { webImageSplitGateway } from './infrastructure/webImageSplitGateway';
@@ -15,3 +20,9 @@ export const canvasToolProcessor = new CanvasToolProcessor(
   uuidGenerator,
 );
 export const canvasAiGateway = freezoneAiGateway;
+
+export function migratePastedNodeAssets(
+  params: MigratePastedNodeAssetsParams,
+) {
+  return migratePastedNodeAssetsUseCase(freezoneAssetGateway, params);
+}

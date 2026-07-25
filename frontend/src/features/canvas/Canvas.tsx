@@ -43,7 +43,10 @@ import { getSkillRegistry } from '@/api/skills';
 import { SKILL_SCHEMA_VERSION, type SkillDefinition } from '@/features/freezone/context/skillRoles';
 import { translateSkillName } from '@/features/freezone/context/skillI18n';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
-import { canvasAiGateway } from '@/features/canvas/composition';
+import {
+  canvasAiGateway,
+  migratePastedNodeAssets,
+} from '@/features/canvas/composition';
 import {
   CANVAS_NODE_TYPES,
   type BeatContextNodeData,
@@ -127,7 +130,6 @@ import {
   type SnapAlignIndex,
 } from './snap-align/computeSnapAlign';
 import { computeAutoLayout } from './application/autoLayout';
-import { migratePastedNodeAssets } from './application/crossProjectAssets';
 
 const DEFAULT_VIEWPORT: Viewport = { x: 0, y: 0, zoom: 1 };
 const DEFAULT_EDGE_OPTIONS = { type: 'disconnectableEdge' };

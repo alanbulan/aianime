@@ -2,13 +2,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { migratePastedNodeAssets } from '@/features/canvas/application/crossProjectAssets';
+import type { CanvasAssetGateway } from '@/features/canvas/application/ports';
 import type { CanvasNodeData } from '@/features/canvas/domain/canvasNodes';
 
-const uploadFreezoneImage = vi.hoisted(() => vi.fn());
-
-vi.mock('@/api/ops', () => ({
-  uploadFreezoneImage,
-}));
+const uploadAsset = vi.fn();
+const assetGateway: CanvasAssetGateway = {
+  upload: (projectId, file, filename, options) =>
+    uploadAsset(projectId, file, filename, options),
+};
 
 function asData(value: Record<string, unknown>): CanvasNodeData {
   return value as unknown as CanvasNodeData;
@@ -21,11 +22,12 @@ function liveFrom(nodes: Array<{ id: string; data: CanvasNodeData }>) {
 
 describe('migratePastedNodeAssets', () => {
   beforeEach(() => {
-    uploadFreezoneImage.mockReset();
+    uploadAsset.mockReset();
     // Each upload returns a new-project URL derived from the source filename.
-    uploadFreezoneImage.mockImplementation(async (project: string, _blob: Blob, filename: string) => ({
-      url: `/static/projects/${project}/videos/${filename}`,
-    }));
+    uploadAsset.mockImplementation(
+      async (project: string, _blob: Blob, filename: string) =>
+        `/static/projects/${project}/videos/${filename}`,
+    );
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => ({ ok: true, blob: async () => new Blob(['x']) })),
@@ -56,7 +58,7 @@ describe('migratePastedNodeAssets', () => {
       },
     ];
 
-    const summary = await migratePastedNodeAssets({
+    const summary = await migratePastedNodeAssets(assetGateway, {
       nodes,
       targetProject: 'projB',
       getLiveNodeData: liveFrom(nodes),
@@ -65,6 +67,12 @@ describe('migratePastedNodeAssets', () => {
 
     expect(summary.failed).toBe(0);
     expect(summary.migrated).toBe(3); // clip.mp4 + a.png + b.png (deduped per URL)
+    expect(uploadAsset).toHaveBeenCalledWith(
+      'projB',
+      expect.any(Blob),
+      'clip.mp4',
+      { disableTimeout: true },
+    );
     expect(updates).toHaveLength(1);
 
     const patch = updates[0].patch as Record<string, unknown>;
@@ -84,23 +92,23 @@ describe('migratePastedNodeAssets', () => {
       { id: 'n1', data: asData({ imageUrl: reused, previewImageUrl: reused }) },
       { id: 'n2', data: asData({ imageUrl: reused }) },
     ];
-    await migratePastedNodeAssets({
+    await migratePastedNodeAssets(assetGateway, {
       nodes,
       targetProject: 'projB',
       getLiveNodeData: liveFrom(nodes),
       updateNodeData: () => undefined,
     });
-    expect(uploadFreezoneImage).toHaveBeenCalledTimes(1);
+    expect(uploadAsset).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the original URL and counts failures when upload fails', async () => {
-    uploadFreezoneImage.mockRejectedValue(new Error('boom'));
+    uploadAsset.mockRejectedValue(new Error('boom'));
     const updates: Array<{ id: string; patch: Partial<CanvasNodeData> }> = [];
 
     const nodes = [
       { id: 'n1', data: asData({ videoUrl: '/static/projects/projA/videos/clip.mp4' }) },
     ];
-    const summary = await migratePastedNodeAssets({
+    const summary = await migratePastedNodeAssets(assetGateway, {
       nodes,
       targetProject: 'projB',
       getLiveNodeData: liveFrom(nodes),
@@ -128,7 +136,7 @@ describe('migratePastedNodeAssets', () => {
       }),
     };
 
-    const summary = await migratePastedNodeAssets({
+    const summary = await migratePastedNodeAssets(assetGateway, {
       nodes: snapshot,
       targetProject: 'projB',
       getLiveNodeData: (id) => live[id] ?? null,
