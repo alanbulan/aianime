@@ -3703,6 +3703,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const multiSelectionConnectButton = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/ui/MultiSelectionConnectButton.tsx",
+      ),
+      "utf8",
+    );
     const forbiddenImports = importSpecifiers(planningPath).filter(
       (specifier) =>
         specifier === "react" ||
@@ -3748,6 +3755,15 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("nodeHasTargetHandle(");
     expect(canvasView).not.toContain("const sourceIdSet = new Set(drag.sourceIds)");
     expect(canvasView).not.toContain("let minY = Infinity");
+    expect(multiSelectionConnectButton).toContain(
+      "@/features/canvas/domain/canvasBatchConnection",
+    );
+    expect(multiSelectionConnectButton).toContain(
+      "resolveCanvasBatchConnectContext(nodes)",
+    );
+    expect(multiSelectionConnectButton).not.toContain("getDownstreamSpawnTypes");
+    expect(multiSelectionConnectButton).not.toContain("nodeHasSourceHandle");
+    expect(multiSelectionConnectButton).not.toContain("new Set(selectedSourceIds)");
   });
 
   it("keeps Canvas edge creation in the application layer", () => {

@@ -4,11 +4,7 @@ import { NodeToolbar as ReactFlowNodeToolbar, Position } from '@xyflow/react';
 import { Plus } from 'lucide-react';
 
 import { useCanvasStore } from '@/stores/canvasStore';
-import type { CanvasNodeType } from '@/features/canvas/domain/canvasNodes';
-import {
-  getDownstreamSpawnTypes,
-  nodeHasSourceHandle,
-} from '@/features/canvas/domain/nodeRegistry';
+import { resolveCanvasBatchConnectContext } from '@/features/canvas/domain/canvasBatchConnection';
 
 const DRAG_THRESHOLD_PX = 5;
 
@@ -51,35 +47,10 @@ export const MultiSelectionConnectButton = memo(
       [nodes],
     );
 
-    // Only the source-capable selected nodes can actually be fanned out.
-    const selectedSourceIds = useMemo(
-      () =>
-        nodes
-          .filter((node) => Boolean(node.selected) && nodeHasSourceHandle(node.type))
-          .map((node) => node.id),
+    const batchConnectContext = useMemo(
+      () => resolveCanvasBatchConnectContext(nodes),
       [nodes],
     );
-
-    // Downstream types valid for EVERY selected source — intersection so the
-    // spawned/target node is a legal downstream of all of them.
-    const allowedTypes = useMemo<CanvasNodeType[]>(() => {
-      if (selectedSourceIds.length < 2) {
-        return [];
-      }
-      const idSet = new Set(selectedSourceIds);
-      let acc: CanvasNodeType[] | null = null;
-      for (const node of nodes) {
-        if (!idSet.has(node.id)) {
-          continue;
-        }
-        const downstream = getDownstreamSpawnTypes(node.type);
-        acc = acc === null ? downstream : acc.filter((type) => downstream.includes(type));
-        if (acc.length === 0) {
-          break;
-        }
-      }
-      return acc ?? [];
-    }, [nodes, selectedSourceIds]);
 
     const dragStartRef = useRef<{ x: number; y: number; pointerId: number } | null>(null);
     const draggedRef = useRef(false);
@@ -139,7 +110,7 @@ export const MultiSelectionConnectButton = memo(
       [onBatchDragEnd, onBatchDragMove, onBatchDragStart],
     );
 
-    if (selectedSourceIds.length < 2 || allowedTypes.length === 0) {
+    if (!batchConnectContext) {
       return null;
     }
 
