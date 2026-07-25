@@ -4,6 +4,7 @@ import { render, screen, waitFor, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
+import type { RenderPlanDialogControllerQueries } from "@/modules/production/application/use-render-plan-dialog-controller";
 
 // ─── react-i18next: return the key so assertions can read stable text ──────
 vi.mock("react-i18next", () => ({
@@ -38,9 +39,13 @@ let executeHandler: (params: unknown) => Promise<unknown> = async () => ({
 });
 
 vi.mock("@/modules/production/public", async () => {
-  const { RenderPlanDialogView } = await import(
-    "@/modules/production/presentation/RenderPlanDialogView"
-  );
+  const [{ RenderPlanDialogView }, { createUseRenderPlanDialogController }] =
+    await Promise.all([
+      import("@/modules/production/presentation/RenderPlanDialogView"),
+      import(
+        "@/modules/production/application/use-render-plan-dialog-controller"
+      ),
+    ]);
   const mockUse = (handler: () => (params: unknown) => Promise<unknown>) => {
     return () => {
       // useMutation-shaped facade (only the fields the dialog actually reads)
@@ -61,11 +66,24 @@ vi.mock("@/modules/production/public", async () => {
       };
     };
   };
+  const useRenderPlanDialogController = createUseRenderPlanDialogController(
+    {
+      useRenderPlan: mockUse(
+        () => planHandler,
+      ) as RenderPlanDialogControllerQueries["useRenderPlan"],
+      useRenderExecute: mockUse(
+        () => executeHandler,
+      ) as RenderPlanDialogControllerQueries["useRenderExecute"],
+      useRenderSettings: () => ({ data: undefined }),
+    },
+    {
+      formatCreditCost: String,
+      useGenerationCreditCosts: () => [],
+    },
+  );
   return {
     RenderPlanDialogView,
-    useRenderPlan: mockUse(() => planHandler),
-    useRenderExecute: mockUse(() => executeHandler),
-    useRenderSettings: () => ({ data: undefined }),
+    useRenderPlanDialogController,
   };
 });
 

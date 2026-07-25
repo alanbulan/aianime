@@ -11,7 +11,10 @@ vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost:3000/" }),
 }));
 
-import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
+import {
+  useGenerationCreditCost,
+  useGenerationCreditCosts,
+} from "@/lib/queries/generation-credit-cost";
 import { BillingRuleNotConfiguredError } from "@/shared/api/errors";
 
 const server = setupServer();
@@ -275,5 +278,50 @@ describe("generation credit cost query hook", () => {
     expect(requestedModeKey).toBe("2x2_1-1");
     expect(requestedImageRole).toBe("render");
     expect(result.current.data?.data.display).toBe("18");
+  });
+
+  it("queries multiple image mode costs through the shared batch hook", async () => {
+    const requestedModeKeys: string[] = [];
+    server.use(
+      http.get(
+        "http://localhost:3000/api/v1/generation-credit-cost",
+        ({ request }) => {
+          const modeKey = new URL(request.url).searchParams.get("mode_key") ?? "";
+          requestedModeKeys.push(modeKey);
+          return HttpResponse.json({
+            ok: true,
+            data: {
+              cost: modeKey === "1x1_2-3" ? 2 : 5,
+              display: modeKey === "1x1_2-3" ? "2" : "5",
+            },
+          });
+        },
+      ),
+    );
+
+    const requests = ["1x1_2-3", "2x3_1-1"].map((modeKey) => ({
+      kind: "image_selection",
+      value: "newapi_gpt_image2",
+      options: {
+        surface: "ai_anime" as const,
+        modeKey,
+        imageRole: "render",
+      },
+    }));
+    const { result } = renderHook(() => useGenerationCreditCosts(requests), {
+      wrapper,
+    });
+
+    await waitFor(() =>
+      expect(result.current.every((query) => query.data)).toBe(true),
+    );
+    expect([...new Set(requestedModeKeys)].sort()).toEqual([
+      "1x1_2-3",
+      "2x3_1-1",
+    ]);
+    expect(result.current.map((query) => query.data?.data.cost)).toEqual([
+      2,
+      5,
+    ]);
   });
 });

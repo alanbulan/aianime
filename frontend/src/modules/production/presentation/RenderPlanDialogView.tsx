@@ -15,24 +15,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { GLASS_ALERT_DIALOG_CONTENT_CLASS } from "@/lib/dialog-styles";
 import { cn } from "@/lib/utils";
+import type { PlanEntry } from "@/modules/production/domain/render-plan";
 import type {
-  PlanEntry,
-  RenderPlan,
-} from "@/modules/production/domain/render-plan";
+  RenderPlanDialogController,
+} from "@/modules/production/application/use-render-plan-dialog-controller";
 
-export type RenderPlanStaleBanner = "input" | "plan" | null;
-
-export interface RenderPlanDialogViewProps {
-  beatCount: number;
-  executePending: boolean;
-  open: boolean;
-  plan: RenderPlan | null;
-  planPending: boolean;
-  renderPlanCostDisplay?: string | null;
-  staleBanner: RenderPlanStaleBanner;
-  onConfirm(): void;
-  onOpenChange(open: boolean): void;
-}
+export type RenderPlanDialogViewProps = RenderPlanDialogController;
 
 export function RenderPlanDialogView({
   beatCount,

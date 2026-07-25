@@ -6,7 +6,10 @@ import { formatCreditCost } from "@/components/credits/credit-visual";
 import { withImageCacheBust } from "@/features/canvas/application/imageData";
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
 import { useNow } from "@/hooks/use-now";
-import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
+import {
+  useGenerationCreditCost,
+  useGenerationCreditCosts,
+} from "@/lib/queries/generation-credit-cost";
 import { useTasks } from "@/lib/queries/tasks";
 import { queryKeys } from "@/lib/query-keys";
 import type { Beat } from "@/modules/narrative_planning/public";
@@ -37,6 +40,7 @@ import {
   createUseRenderGridGalleryController,
 } from "@/modules/production/application/use-render-grid-gallery-controller";
 import { createUseRenderSectionController } from "@/modules/production/application/use-render-section-controller";
+import { createUseRenderPlanDialogController } from "@/modules/production/application/use-render-plan-dialog-controller";
 import { createUseSeedance2AssetOperationsController } from "@/modules/production/application/use-seedance2-asset-operations-controller";
 import { createUseSeedance2ConfigController } from "@/modules/production/application/use-seedance2-config-controller";
 import {
@@ -72,6 +76,9 @@ const imageGridQueries = createImageGridQueryHooks(
   httpProductionVideoGateway,
 );
 const imageSettingsQueries = createImageSettingsQueryHooks(
+  httpProductionVideoGateway,
+);
+const renderPlanQueries = createRenderPlanQueryHooks(
   httpProductionVideoGateway,
 );
 const sketchGenerationQueries = createSketchGenerationQueryHooks(
@@ -170,6 +177,18 @@ export const useBatchPanelController = createUseBatchPanelController(
     useTasks,
   },
 );
+export const useRenderPlanDialogController =
+  createUseRenderPlanDialogController(
+    {
+      useRenderExecute: renderPlanQueries.useRenderExecute,
+      useRenderPlan: renderPlanQueries.useRenderPlan,
+      useRenderSettings: imageSettingsQueries.useRenderSettings,
+    },
+    {
+      formatCreditCost,
+      useGenerationCreditCosts,
+    },
+  );
 export const useSketchSectionController = createUseSketchSectionController(
   {
     useDirectorControlToSketch:
@@ -295,8 +314,6 @@ export const {
   useSketchSettings,
   useUpdateSketchSettings,
 } = imageSettingsQueries;
-export const { useRenderPlan, useRenderExecute } =
-  createRenderPlanQueryHooks(httpProductionVideoGateway);
 export const { useSketchRegenQueue, useSaveSketchRegenQueue } =
   sketchRegenQueueQueries;
 export const {

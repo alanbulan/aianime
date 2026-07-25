@@ -11,11 +11,13 @@ vi.mock("@/shared/api/transport", () => ({
 }));
 
 import { server } from "@/__mocks__/msw/server";
-import {
-  useRenderExecute,
-  useRenderPlan,
-  type RenderPlan,
-} from "@/modules/production/public";
+import { createRenderPlanQueryHooks } from "@/modules/production/application/render-plan-query-hooks";
+import { httpProductionVideoGateway } from "@/modules/production/infrastructure/http-production-video-gateway";
+import type { RenderPlan } from "@/modules/production/public";
+
+const { useRenderExecute, useRenderPlan } = createRenderPlanQueryHooks(
+  httpProductionVideoGateway,
+);
 
 const mockPlan: RenderPlan = {
   plan: [

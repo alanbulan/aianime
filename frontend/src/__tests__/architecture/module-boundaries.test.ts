@@ -567,6 +567,13 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const renderPlanDialogControllerSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/production/application/use-render-plan-dialog-controller.ts",
+      ),
+      "utf8",
+    );
     const renderPlanDialogViewSource = readFileSync(
       resolve(
         SRC_ROOT,
@@ -1104,13 +1111,49 @@ describe("frontend architecture boundaries", () => {
     );
     expect(productionCompositionSource).toContain("localStorage.removeItem");
     expect(renderPlanDialogSource).toContain("<RenderPlanDialogView");
-    expect(renderPlanDialogSource).toContain("useRenderPlan(");
-    expect(renderPlanDialogSource).toContain("useRenderExecute(");
-    expect(renderPlanDialogSource).toContain("useQueries(");
+    expect(renderPlanDialogSource).toContain(
+      "useRenderPlanDialogController(",
+    );
+    expect(renderPlanDialogSource).not.toContain("useEffect(");
+    expect(renderPlanDialogSource).not.toContain("useMemo(");
+    expect(renderPlanDialogSource).not.toContain("useState(");
+    expect(renderPlanDialogSource).not.toContain("useRenderPlan(");
+    expect(renderPlanDialogSource).not.toContain("useRenderExecute(");
+    expect(renderPlanDialogSource).not.toContain("useRenderSettings(");
+    expect(renderPlanDialogSource).not.toContain("useQueries(");
+    expect(renderPlanDialogSource).not.toContain("toast.");
+    expect(renderPlanDialogSource).not.toContain("@/shared/api/transport");
+    expect(renderPlanDialogSource).not.toContain("generation-credit-cost");
     expect(renderPlanDialogSource).not.toContain("className=");
     expect(renderPlanDialogSource).not.toContain("<AlertDialog");
     expect(renderPlanDialogSource).not.toContain("<CreditCostInline");
     expect(renderPlanDialogSource).not.toContain("function PlanCard");
+    expect(renderPlanDialogControllerSource).toContain(
+      "createUseRenderPlanDialogController",
+    );
+    expect(renderPlanDialogControllerSource).toContain(
+      "queries.useRenderPlan",
+    );
+    expect(renderPlanDialogControllerSource).toContain(
+      "queries.useRenderExecute",
+    );
+    expect(renderPlanDialogControllerSource).toContain(
+      "queries.useRenderSettings",
+    );
+    expect(renderPlanDialogControllerSource).toContain(
+      "dependencies.useGenerationCreditCosts",
+    );
+    expect(renderPlanDialogControllerSource).toContain("toast.");
+    expect(renderPlanDialogControllerSource).not.toContain("useQueries(");
+    expect(renderPlanDialogControllerSource).not.toContain(
+      "@/shared/api/transport",
+    );
+    expect(productionCompositionSource).toContain(
+      "createUseRenderPlanDialogController",
+    );
+    expect(productionCompositionSource).toContain(
+      "useGenerationCreditCosts",
+    );
     expect(renderPlanDialogViewSource).toContain("className=");
     expect(renderPlanDialogViewSource).toContain("<AlertDialog");
     expect(renderPlanDialogViewSource).toContain("<CreditCostInline");

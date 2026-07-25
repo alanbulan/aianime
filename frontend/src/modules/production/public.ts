@@ -32,10 +32,9 @@ export {
   useRegenerateRenderBeats,
   useRegenerateSketches,
   useRebuildPoolIndex,
-  useRenderExecute,
   useRenderGridCardController,
   useRenderGridGalleryController,
-  useRenderPlan,
+  useRenderPlanDialogController,
   useRenderSectionController,
   useRenderSettings,
   useSeedance2BeatStatus,
@@ -92,8 +91,15 @@ export type { BatchPanelViewProps } from "@/modules/production/presentation/Batc
 export { RenderPlanDialogView } from "@/modules/production/presentation/RenderPlanDialogView";
 export type {
   RenderPlanDialogViewProps,
-  RenderPlanStaleBanner,
 } from "@/modules/production/presentation/RenderPlanDialogView";
+export type {
+  RenderPlanCreditCostRequest,
+  RenderPlanDialogController,
+  RenderPlanDialogControllerDependencies,
+  RenderPlanDialogControllerOptions,
+  RenderPlanDialogControllerQueries,
+  RenderPlanStaleBanner,
+} from "@/modules/production/application/use-render-plan-dialog-controller";
 export type {
   BatchPanelController,
   BatchPanelControllerDependencies,

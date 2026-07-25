@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { useQuery } from "@tanstack/react-query";
+import { queryOptions, useQueries, useQuery } from "@tanstack/react-query";
 
 import {
   BillingRuleNotConfiguredError,
@@ -25,6 +25,12 @@ export type GenerationCreditCostOptions = {
   imageRole?: string | null;
 };
 
+export interface GenerationCreditCostRequest {
+  kind: string;
+  value?: string | null;
+  options?: GenerationCreditCostOptions;
+}
+
 export const generationCreditCostQueryKey = (
   kind: string,
   value?: string | null,
@@ -41,7 +47,7 @@ export const generationCreditCostQueryKey = (
     options.imageRole ?? "",
   ] as const;
 
-export function useGenerationCreditCost(
+function generationCreditCostQueryOptions(
   kind: string,
   value?: string | null,
   options: GenerationCreditCostOptions = {},
@@ -58,7 +64,7 @@ export function useGenerationCreditCost(
     cleanKind === "fixed_image" ||
     cleanKind === "video_backend" ||
     cleanKind === "feature";
-  return useQuery({
+  return queryOptions({
     queryKey: generationCreditCostQueryKey(cleanKind, cleanValue, {
       params: options.params,
       surface: cleanSurface as GenerationCreditCostOptions["surface"],
@@ -86,5 +92,23 @@ export function useGenerationCreditCost(
     retry: (failureCount, error) =>
       !(error instanceof BillingRuleNotConfiguredError) && failureCount < 3,
     staleTime: 60_000,
+  });
+}
+
+export function useGenerationCreditCost(
+  kind: string,
+  value?: string | null,
+  options: GenerationCreditCostOptions = {},
+) {
+  return useQuery(generationCreditCostQueryOptions(kind, value, options));
+}
+
+export function useGenerationCreditCosts(
+  requests: readonly GenerationCreditCostRequest[],
+) {
+  return useQueries({
+    queries: requests.map(({ kind, options, value }) =>
+      generationCreditCostQueryOptions(kind, value, options),
+    ),
   });
 }
