@@ -242,6 +242,14 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/composition.ts"),
       "utf8",
     );
+    const nodeFactoryComposition = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodeFactoryComposition.ts"),
+      "utf8",
+    );
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
     const assetGateway = readFileSync(
       resolve(
         SRC_ROOT,
@@ -272,7 +280,16 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/application/selectedBackgroundSlot.ts",
       "features/canvas/application/uploadToolOutput.ts",
     ]);
-    expect(composition).toContain("new CanvasNodeFactory(");
+    expect(composition).toContain(
+      "export { canvasNodeFactory } from './nodeFactoryComposition';",
+    );
+    expect(nodeFactoryComposition).toContain("new CanvasNodeFactory(");
+    expect(nodeFactoryComposition).toContain("uuidGenerator");
+    expect(nodeFactoryComposition).toContain("nodeCatalog");
+    expect(canvasStore).toContain(
+      "@/features/canvas/nodeFactoryComposition",
+    );
+    expect(canvasStore).not.toContain("@/features/canvas/composition");
     expect(composition).toContain("new CanvasToolProcessor(");
     expect(composition).toContain("freezoneAiGateway");
     expect(composition).toContain("uuidGenerator");

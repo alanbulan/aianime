@@ -54,7 +54,7 @@ import {
   normalizeBookmarks,
 } from '@/features/canvas/domain/viewportBookmarks';
 import { nodeCatalog } from '@/features/canvas/application/nodeCatalog';
-import { canvasNodeFactory } from '@/features/canvas/composition';
+import { canvasNodeFactory } from '@/features/canvas/nodeFactoryComposition';
 import {
   aspectRatioFromImageDimensions,
   ensureAtLeastOneMinEdge,
