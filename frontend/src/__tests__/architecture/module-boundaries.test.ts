@@ -248,7 +248,6 @@ describe("frontend architecture boundaries", () => {
     expect(directApiOpsUsers).toEqual([
       "features/canvas/application/regenerateExportNode.ts",
       "features/canvas/application/resumeGeneration.ts",
-      "features/canvas/application/selectedBackgroundSlot.ts",
     ]);
     expect(composition).toContain("new CanvasNodeFactory(");
     expect(composition).toContain("new CanvasToolProcessor(");
@@ -258,6 +257,9 @@ describe("frontend architecture boundaries", () => {
     expect(composition).toContain("freezoneAssetGateway");
     expect(composition).toContain("migratePastedNodeAssetsUseCase(");
     expect(composition).toContain("uploadLocalImageToBackendUseCase(");
+    expect(composition).toContain(
+      "uploadAndAutoCommitSelectedBackgroundCandidateUseCase(",
+    );
     expect(assetGateway).toContain("uploadFreezoneImage(");
     expect(assetGateway).toContain("{ timeoutMs: false }");
     expect(services).not.toContain("infrastructure/");

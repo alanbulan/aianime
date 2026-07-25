@@ -5,13 +5,13 @@ import type {
   CanvasNode,
   CanvasNodeData,
 } from '@/features/canvas/domain/canvasNodes';
-import { uploadFreezoneImage } from '@/api/ops';
+import type { CanvasAssetGateway } from '@/features/canvas/application/ports';
 import { CANVAS_NODE_TYPES } from '@/features/canvas/domain/canvasNodes';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import { readUrl } from '@/lib/url-params';
 import { useCanvasStore } from '@/stores/canvasStore';
 
-type SelectedBackgroundTarget = {
+export type SelectedBackgroundTarget = {
   episode: number | string;
   beat: number | string;
 };
@@ -27,7 +27,7 @@ type StageSelectedBackgroundCandidateOptions = {
   label?: string;
 };
 
-type UploadSelectedBackgroundCandidateOptions = StageSelectedBackgroundCandidateOptions & {
+export type UploadSelectedBackgroundCandidateOptions = StageSelectedBackgroundCandidateOptions & {
   successMessage?: string;
 };
 
@@ -205,6 +205,7 @@ export function stageSelectedBackgroundCandidateFromNode(
 }
 
 export async function uploadAndAutoCommitSelectedBackgroundCandidate(
+  assetGateway: CanvasAssetGateway,
   target: SelectedBackgroundTarget,
   blob: Blob,
   filename: string,
@@ -214,8 +215,10 @@ export async function uploadAndAutoCommitSelectedBackgroundCandidate(
   if (!projectId) {
     throw new Error('缺少项目');
   }
-  const uploaded = await uploadFreezoneImage(projectId, blob, filename, { timeoutMs: false });
-  const nodeId = stageSelectedBackgroundCandidateFromNode(target, uploaded.url, options);
+  const uploadedUrl = await assetGateway.upload(projectId, blob, filename, {
+    disableTimeout: true,
+  });
+  const nodeId = stageSelectedBackgroundCandidateFromNode(target, uploadedUrl, options);
   if (!nodeId) {
     throw new Error('无法创建当前背景候选节点');
   }
@@ -225,5 +228,5 @@ export async function uploadAndAutoCommitSelectedBackgroundCandidate(
     successMessage: options.successMessage
       ?? '已设置当前背景',
   });
-  return { nodeId, url: uploaded.url };
+  return { nodeId, url: uploadedUrl };
 }

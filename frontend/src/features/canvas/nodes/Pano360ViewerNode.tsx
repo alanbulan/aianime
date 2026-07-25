@@ -61,7 +61,7 @@ import { useUpstreamNodes } from '@/features/canvas/application/useUpstreamGraph
 import { useCanvasStore } from '@/stores/canvasStore';
 import {
   uploadAndAutoCommitSelectedBackgroundCandidate,
-} from '@/features/canvas/application/selectedBackgroundSlot';
+} from '@/features/canvas/composition';
 import { getFreezoneCanvasMetadata } from '@/features/freezone/canvasMetadataContext';
 
 type Pano360ViewerNodeProps = NodeProps & {

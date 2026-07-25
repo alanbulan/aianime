@@ -88,7 +88,7 @@ import {
 } from '@/api/ops';
 import {
   uploadAndAutoCommitSelectedBackgroundCandidate,
-} from '@/features/canvas/application/selectedBackgroundSlot';
+} from '@/features/canvas/composition';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import { getBeatDirectorStageManifest } from '@/api/viewerManifests';
 import { BackgroundCropperDialog } from '@/features/canvas/ui/BackgroundCropperDialog';

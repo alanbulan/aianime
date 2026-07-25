@@ -7,6 +7,11 @@ import {
 } from './application/crossProjectAssets';
 import { CanvasToolProcessor } from './application/toolProcessor';
 import {
+  uploadAndAutoCommitSelectedBackgroundCandidate as uploadAndAutoCommitSelectedBackgroundCandidateUseCase,
+  type SelectedBackgroundTarget,
+  type UploadSelectedBackgroundCandidateOptions,
+} from './application/selectedBackgroundSlot';
+import {
   uploadLocalImageToBackend as uploadLocalImageToBackendUseCase,
 } from './application/uploadToolOutput';
 import { freezoneAssetGateway } from './infrastructure/freezoneAssetGateway';
@@ -38,5 +43,20 @@ export function uploadLocalImageToBackend(
     freezoneAssetGateway,
     localImageUrl,
     filename,
+  );
+}
+
+export function uploadAndAutoCommitSelectedBackgroundCandidate(
+  target: SelectedBackgroundTarget,
+  blob: Blob,
+  filename: string,
+  options: UploadSelectedBackgroundCandidateOptions,
+) {
+  return uploadAndAutoCommitSelectedBackgroundCandidateUseCase(
+    freezoneAssetGateway,
+    target,
+    blob,
+    filename,
+    options,
   );
 }

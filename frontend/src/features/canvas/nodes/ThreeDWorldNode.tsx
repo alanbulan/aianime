@@ -29,7 +29,7 @@ import { awaitTaskCompletion, type TaskState } from '@/api/tasks';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import {
   uploadAndAutoCommitSelectedBackgroundCandidate,
-} from '@/features/canvas/application/selectedBackgroundSlot';
+} from '@/features/canvas/composition';
 import {
   getBeatDirectorStageManifest,
   getDirectorStagePalette,
