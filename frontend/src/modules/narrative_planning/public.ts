@@ -23,6 +23,7 @@ export {
   usePlanEpisodes,
   usePlanIdentities,
   useSaveScript,
+  useSingleBeatPanelController,
   useScript,
   useUpdateBeat,
   useUpdateEpisode,
@@ -61,9 +62,13 @@ export type {
   Script,
 } from "@/modules/narrative_planning/domain/types";
 export { SingleBeatPanelView } from "@/modules/narrative_planning/presentation/SingleBeatPanelView";
+export type { SingleBeatPanelViewProps } from "@/modules/narrative_planning/presentation/SingleBeatPanelView";
 export type {
   SectionId,
-  SingleBeatPanelViewProps,
+  SingleBeatPanelController,
+  SingleBeatPanelControllerDependencies,
+  SingleBeatPanelControllerOptions,
+  SingleBeatPanelControllerQueries,
   SingleBeatSectionViewModel,
   VideoBackendHeaderOption,
-} from "@/modules/narrative_planning/presentation/SingleBeatPanelView";
+} from "@/modules/narrative_planning/application/use-single-beat-panel-controller";

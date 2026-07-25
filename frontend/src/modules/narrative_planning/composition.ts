@@ -2,7 +2,10 @@ import { createElement, type ReactNode } from "react";
 
 import { formatCreditCost } from "@/components/credits/credit-visual";
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
-import { useCharacters } from "@/modules/asset_world/public";
+import {
+  useAssetWorkspaceNavigation,
+  useCharacters,
+} from "@/modules/asset_world/public";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import { useTasks } from "@/lib/queries/tasks";
 import { TASK_TYPES, isActiveStatus } from "@/lib/task-types";
@@ -15,6 +18,7 @@ import { createUseBeatsSketchPlanController } from "@/modules/narrative_planning
 import { createUseEpisodeListItemController } from "@/modules/narrative_planning/application/use-episode-list-item-controller";
 import { createUseEpisodesPageController } from "@/modules/narrative_planning/application/use-episodes-page-controller";
 import { createUseScriptPageController } from "@/modules/narrative_planning/application/use-script-page-controller";
+import { createUseSingleBeatPanelController } from "@/modules/narrative_planning/application/use-single-beat-panel-controller";
 import { createUseSketchStudioController } from "@/modules/narrative_planning/application/use-sketch-studio-controller";
 import type { Episode } from "@/modules/narrative_planning/domain/types";
 import { httpNarrativePlanningGateway } from "@/modules/narrative_planning/infrastructure/http-narrative-planning-gateway";
@@ -29,14 +33,17 @@ import {
   createSketchRegenPlanItems,
   getLockedSketchRegenItemIds,
   sketchRegenModelCallCount,
+  useGridsByBeat,
   useRebuildPoolIndex,
   useRegenerateSketches,
   useSketchSettings,
+  useVideoBackends,
 } from "@/modules/production/public";
 import {
   useProject,
   useUpdateProject,
 } from "@/modules/project_workspace/public";
+import { saveScopes, useSaveState } from "@/stores/save-status-store";
 
 export const narrativePlanningQueries = createNarrativePlanningQueryHooks(
   httpNarrativePlanningGateway,
@@ -103,6 +110,15 @@ const useSketchStudioController = createUseSketchStudioController(
   { useScript: narrativePlanningQueries.useScript },
   { useCharacters },
 );
+export const useSingleBeatPanelController =
+  createUseSingleBeatPanelController(
+    { useGridsByBeat, useVideoBackends },
+    {
+      beatTextScope: saveScopes.beatText,
+      useAssetWorkspaceNavigation,
+      useSaveState,
+    },
+  );
 const useBeatsPageController = createUseBeatsPageController(
   narrativePlanningQueries,
   {

@@ -355,6 +355,13 @@ describe("frontend architecture boundaries", () => {
       resolve(moduleRoot, "presentation/SingleBeatPanelView.tsx"),
       "utf8",
     );
+    const singleBeatPanelControllerSource = readFileSync(
+      resolve(
+        moduleRoot,
+        "application/use-single-beat-panel-controller.ts",
+      ),
+      "utf8",
+    );
     const externalSources = sourceFiles(SRC_ROOT)
       .filter((path) => !path.startsWith(moduleRoot))
       .filter((path) => !relativeSource(path).startsWith("__tests__/"));
@@ -442,6 +449,9 @@ describe("frontend architecture boundaries", () => {
     expect(sketchStudioViewSource).not.toContain("useEpisodeDetail(");
     expect(singleBeatPanelSource).toContain("<SingleBeatPanelView");
     expect(singleBeatPanelSource).toContain(
+      "useSingleBeatPanelController({",
+    );
+    expect(singleBeatPanelSource).toContain(
       "renderSectionContent={renderSectionContent}",
     );
     expect(singleBeatPanelSource).not.toContain("className=");
@@ -449,6 +459,10 @@ describe("frontend architecture boundaries", () => {
     expect(singleBeatPanelSource).not.toContain("<motion.");
     expect(singleBeatPanelSource).not.toContain("useState(");
     expect(singleBeatPanelSource).not.toContain("useEscapeToClose(");
+    expect(singleBeatPanelSource).not.toContain("useGridsByBeat(");
+    expect(singleBeatPanelSource).not.toContain("useVideoBackends(");
+    expect(singleBeatPanelSource).not.toContain("resolveImage(");
+    expect(singleBeatPanelSource).not.toContain("useSaveState(");
     expect(singleBeatPanelViewSource).toContain("className=");
     expect(singleBeatPanelViewSource).toContain("<Select");
     expect(singleBeatPanelViewSource).toContain("<motion.div");
@@ -457,6 +471,27 @@ describe("frontend architecture boundaries", () => {
     expect(singleBeatPanelViewSource).not.toContain("useGridsByBeat(");
     expect(singleBeatPanelViewSource).not.toContain("useVideoBackends(");
     expect(singleBeatPanelViewSource).not.toContain("resolveImage(");
+    expect(singleBeatPanelViewSource).toContain(
+      "controller: SingleBeatPanelController",
+    );
+    expect(singleBeatPanelControllerSource).toContain(
+      "createUseSingleBeatPanelController",
+    );
+    expect(singleBeatPanelControllerSource).toContain(
+      "queries.useGridsByBeat",
+    );
+    expect(singleBeatPanelControllerSource).toContain(
+      "queries.useVideoBackends",
+    );
+    expect(singleBeatPanelControllerSource).toContain(
+      "dependencies.useAssetWorkspaceNavigation",
+    );
+    expect(singleBeatPanelControllerSource).toContain(
+      "dependencies.useSaveState",
+    );
+    expect(singleBeatPanelControllerSource).not.toContain("className=");
+    expect(singleBeatPanelControllerSource).not.toContain("document.");
+    expect(singleBeatPanelControllerSource).not.toContain("navigator.");
   });
 
   it("keeps Asset & World callers on its public API", () => {

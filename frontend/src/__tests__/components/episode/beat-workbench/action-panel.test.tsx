@@ -49,38 +49,28 @@ beforeEach(() => {
 });
 
 vi.mock("@/modules/narrative_planning/public", async () => {
+  const { createUseSingleBeatPanelController } = await import(
+    "@/modules/narrative_planning/application/use-single-beat-panel-controller"
+  );
   const { SingleBeatPanelView } = await import(
     "@/modules/narrative_planning/presentation/SingleBeatPanelView"
   );
-  return { SingleBeatPanelView };
+  const useSingleBeatPanelController = createUseSingleBeatPanelController(
+    {
+      useGridsByBeat: () => ({ byBeat: new Map(), assignments: {} }),
+      useVideoBackends: () => ({ data: { data: [] } }),
+    },
+    {
+      beatTextScope: () => "beat-text",
+      useAssetWorkspaceNavigation: () => vi.fn(),
+      useSaveState: () => ({ status: "idle" }),
+    },
+  );
+  return { SingleBeatPanelView, useSingleBeatPanelController };
 });
 
 vi.mock("@/modules/production/public", () => ({
   AudioPaneContent: () => <div>AudioPane</div>,
-  useGridsByBeat: () => ({ byBeat: new Map(), assignments: {} }),
-  useVideoBackends: () => ({
-    data: {
-      ok: true,
-      data: [
-        {
-          value: "huimeng_seedance-2.0-fast",
-          label: "Seedance 2.0 Fast",
-          is_seedance2: true,
-        },
-      ],
-    },
-  }),
-}));
-
-vi.mock("@/modules/asset_world/public", () => ({
-  useAssetWorkspaceNavigation: () => vi.fn(),
-}));
-
-vi.mock("@/stores/save-status-store", () => ({
-  saveScopes: {
-    beatText: () => "beat-text",
-  },
-  useSaveState: () => ({ status: "idle" }),
 }));
 
 vi.mock("@/hooks/use-escape-to-close", () => ({

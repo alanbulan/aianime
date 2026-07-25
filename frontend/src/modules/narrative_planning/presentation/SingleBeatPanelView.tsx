@@ -27,36 +27,18 @@ import {
   WORKBENCH_SELECT_CONTENT_CLASS,
   WORKBENCH_SELECT_ITEM_CLASS,
 } from "@/lib/workbench-select-styles";
-
-export type SectionId = "text" | "sketch" | "render" | "audio" | "video";
-
-export interface SingleBeatSectionViewModel {
-  id: SectionId;
-  isOpen: boolean;
-  ready: boolean;
-  statusKey: string;
-}
-
-export interface VideoBackendHeaderOption {
-  dialogueOnly: boolean;
-  isDefault: boolean;
-  isSeedance2: boolean;
-  label: string;
-  value: string;
-}
+import type {
+  SectionId,
+  SingleBeatPanelController,
+  VideoBackendHeaderOption,
+} from "@/modules/narrative_planning/application/use-single-beat-panel-controller";
 
 export interface SingleBeatPanelViewProps {
-  beatTextScope: string;
-  onDefaultBackendChange(backend: string): void;
-  onToggleSection(id: SectionId): void;
+  controller: SingleBeatPanelController;
   renderSectionContent(
     id: SectionId,
     onPreview: (url: string) => void,
   ): ReactNode;
-  sections: readonly SingleBeatSectionViewModel[];
-  textSaveStatus: string;
-  videoBackend: string;
-  videoBackends: readonly VideoBackendHeaderOption[];
 }
 
 const SECTION_DEFINITIONS: Record<
@@ -73,18 +55,21 @@ const SECTION_DEFINITIONS: Record<
 const SECTION_MOTION_EASE = [0.22, 1, 0.36, 1] as const;
 
 export function SingleBeatPanelView({
-  beatTextScope,
-  onDefaultBackendChange,
-  onToggleSection,
+  controller,
   renderSectionContent,
-  sections,
-  textSaveStatus,
-  videoBackend,
-  videoBackends,
 }: SingleBeatPanelViewProps) {
   const { t } = useTranslation();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   useEscapeToClose(previewUrl !== null, () => setPreviewUrl(null));
+  const {
+    beatTextScope,
+    onDefaultBackendChange,
+    onToggleSection,
+    sections,
+    textSaveStatus,
+    videoBackend,
+    videoBackends,
+  } = controller;
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
