@@ -784,6 +784,46 @@ describe("frontend architecture boundaries", () => {
     }
   });
 
+  it("keeps Canvas node hydration in the application layer", () => {
+    const hydrationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasNodeHydration.ts",
+    );
+    const hydrationModel = readFileSync(hydrationPath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hydrationPath).filter(
+      (specifier) =>
+        specifier === "zustand" ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const legacyRuleNames = [
+      "isNoReferenceNode",
+      "nodeHydratePriority",
+      "dedupeNodesById",
+      "detachMissingParents",
+      "sortParentNodesBeforeChildren",
+      "normalizeCanvasNodes",
+      "createDefaultStoryboardExportOptions",
+    ];
+
+    expect(forbiddenImports).toEqual([]);
+    expect(hydrationModel).toContain("export function normalizeCanvasNodes(");
+    expect(hydrationModel).toContain(
+      "export function createDefaultStoryboardExportOptions(",
+    );
+    expect(canvasStore).toContain(
+      "@/features/canvas/application/canvasNodeHydration",
+    );
+    for (const ruleName of legacyRuleNames) {
+      expect(canvasStore).not.toContain(`function ${ruleName}(`);
+    }
+  });
+
   it("keeps Canvas viewport and selection rules outside the Zustand store", () => {
     const selectionPath = resolve(
       SRC_ROOT,
