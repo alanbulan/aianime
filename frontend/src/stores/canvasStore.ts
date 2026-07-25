@@ -23,7 +23,6 @@ import {
   createSnapshot,
   normalizeHistory,
   pushSnapshot,
-  recordCanvasInteractionHistory,
   redoHistory,
   undoHistory,
   type CanvasHistorySnapshot,
@@ -79,10 +78,6 @@ import { normalizeCanvasData } from '@/features/canvas/application/canvasDataNor
 import { createCanvasNode } from '@/features/canvas/application/canvasNodeCreation';
 import { canvasNodeFactory } from '@/features/canvas/nodeFactoryComposition';
 import {
-  isImageAutoResizableType,
-  withManualSizeLock,
-} from '@/features/canvas/application/imageNodeLayout';
-import {
   createCanvasDerivedExportNode,
   createCanvasDerivedUploadNode,
   createCanvasStoryboardSplitNode,
@@ -94,9 +89,9 @@ import {
   type CanvasDataEdgeCreationOptions,
 } from '@/features/canvas/application/canvasEdgeCreation';
 import {
-  classifyCanvasNodeChanges,
   hasMeaningfulCanvasEdgeChange,
 } from '@/features/canvas/application/canvasChangeIntent';
+import { applyCanvasNodeChangeEffects } from '@/features/canvas/application/canvasNodeChangeEffects';
 import { updateCanvasNodeData } from '@/features/canvas/application/canvasNodeData';
 import { convertCanvasNodeType } from '@/features/canvas/application/canvasNodeConversion';
 import {
@@ -382,41 +377,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   onNodesChange: (changes) => {
     set((state) => {
-      const intent = classifyCanvasNodeChanges(changes);
-
-      let nextNodes = applyNodeChanges<CanvasNode>(changes, state.nodes);
-      if (intent.resizedNodeIds.size > 0) {
-        nextNodes = nextNodes.map((node) => {
-          if (!intent.resizedNodeIds.has(node.id) || !isImageAutoResizableType(node.type)) {
-            return node;
-          }
-          return withManualSizeLock(node);
-        });
-      }
-      const historyResult = recordCanvasInteractionHistory(
-        {
-          history: state.history,
-          dragHistorySnapshot: state.dragHistorySnapshot,
-        },
-        createSnapshot(state.nodes, state.edges),
-        intent,
-      );
-
-      const editSource: CanvasMutationSource = isDeleteToEmpty(
-        state.nodes.length,
-        nextNodes.length,
-      )
-        ? "delete_to_empty"
-        : "user_edit";
-
-      return {
-        nodes: nextNodes,
-        selectedNodeId: resolveSelectedNodeId(state.selectedNodeId, nextNodes),
-        activeToolDialog: resolveActiveToolDialog(state.activeToolDialog, nextNodes),
-        history: historyResult.history,
-        dragHistorySnapshot: historyResult.dragHistorySnapshot,
-        ...(historyResult.editPushed ? trackEdit(state, editSource) : {}),
-      };
+      const changedNodes = applyNodeChanges<CanvasNode>(changes, state.nodes);
+      return applyCanvasNodeChangeEffects(state, changedNodes, changes);
     });
   },
 

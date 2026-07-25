@@ -654,11 +654,16 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/application/canvasChangeIntent.ts",
     );
+    const changeEffectsPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasNodeChangeEffects.ts",
+    );
     const historyPath = resolve(
       SRC_ROOT,
       "features/canvas/domain/canvasHistory.ts",
     );
     const changeIntent = readFileSync(changeIntentPath, "utf8");
+    const changeEffects = readFileSync(changeEffectsPath, "utf8");
     const historyModel = readFileSync(historyPath, "utf8");
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
@@ -668,14 +673,18 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
-    const forbiddenIntentImports = importSpecifiers(changeIntentPath).filter(
-      (specifier) =>
-        specifier === "react" ||
-        specifier.startsWith("react/") ||
-        specifier === "@xyflow/react" ||
-        specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+    const forbiddenIntentImports = [changeIntentPath, changeEffectsPath].flatMap((path) =>
+      importSpecifiers(path)
+        .filter(
+          (specifier) =>
+            specifier === "react" ||
+            specifier.startsWith("react/") ||
+            specifier === "@xyflow/react" ||
+            specifier.startsWith("@/stores/") ||
+            specifier.startsWith("@/features/canvas/infrastructure/") ||
+            specifier === "@/features/canvas/composition",
+        )
+        .map((specifier) => `${relativeSource(path)}: ${specifier}`),
     );
     const interactionHistoryDeclaration = [
       "export function",
@@ -687,23 +696,44 @@ describe("frontend architecture boundaries", () => {
       )
       .map(relativeSource)
       .sort();
+    const changeEffectsDeclaration = [
+      "export function",
+      "applyCanvasNodeChangeEffects(",
+    ].join(" ");
+    const changeEffectsOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(changeEffectsDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(forbiddenIntentImports).toEqual([]);
     expect(interactionHistoryOwners).toEqual([
       "features/canvas/domain/canvasHistory.ts",
+    ]);
+    expect(changeEffectsOwners).toEqual([
+      "features/canvas/application/canvasNodeChangeEffects.ts",
     ]);
     expect(changeIntent).toContain("export function classifyCanvasNodeChanges(");
     expect(changeIntent).toContain(
       "export function hasMeaningfulCanvasEdgeChange(",
     );
     expect(historyModel).toContain(interactionHistoryDeclaration);
+    expect(changeEffects).toContain(changeEffectsDeclaration);
+    expect(changeEffects).toContain("recordCanvasInteractionHistory(");
+    expect(changeEffects).toContain("withManualSizeLock(node)");
     expect(canvasStore).toContain(
       "@/features/canvas/application/canvasChangeIntent",
     );
     expect(canvasView).toContain(
       "@/features/canvas/application/canvasChangeIntent",
     );
-    expect(canvasStore).toContain("recordCanvasInteractionHistory(");
+    expect(canvasStore).toContain(
+      "@/features/canvas/application/canvasNodeChangeEffects",
+    );
+    expect(canvasStore).not.toContain("recordCanvasInteractionHistory(");
+    expect(canvasStore).not.toContain("classifyCanvasNodeChanges(");
+    expect(canvasStore).not.toContain("withManualSizeLock(");
     for (const source of [canvasStore, canvasView]) {
       expect(source).not.toContain("const hasDragMove =");
       expect(source).not.toContain("const hasDragEnd =");
@@ -1614,7 +1644,12 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/application/imageNodeLayout.ts",
     );
+    const changeEffectsPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasNodeChangeEffects.ts",
+    );
     const layoutModel = readFileSync(layoutPath, "utf8");
+    const changeEffectsModel = readFileSync(changeEffectsPath, "utf8");
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
@@ -1634,7 +1669,10 @@ describe("frontend architecture boundaries", () => {
     ];
 
     expect(forbiddenLayoutImports).toEqual([]);
-    expect(canvasStore).toContain(
+    expect(changeEffectsModel).toContain(
+      "from './imageNodeLayout'",
+    );
+    expect(canvasStore).not.toContain(
       "@/features/canvas/application/imageNodeLayout",
     );
     for (const ruleName of ruleNames) {
