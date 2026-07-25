@@ -73,12 +73,13 @@ import { hydrateAssetDragPayload } from '@/features/canvas/domain/assetDragHydra
 import type { CanvasAsset } from '@/features/canvas/domain/canvasAssets';
 import { CanvasMinimapBookmarksOverlay } from '@/features/canvas/ui/CanvasMinimapBookmarksOverlay';
 import { captureCurrentViewport, jumpToBookmark } from '@/features/canvas/application/bookmarkActions';
-import {
-  isPresetManagedEdge,
-  isPresetManagedNode,
-} from '@/features/canvas/domain/mainlineNodeFlags';
+import { isPresetManagedEdge } from '@/features/canvas/domain/mainlineNodeFlags';
 import { cloneCanvasNodeData } from '@/features/canvas/application/canvasNodeData';
 import { createCanvasClipboardSnapshot } from '@/features/canvas/application/createCanvasClipboardSnapshot';
+import {
+  filterPresetManagedEdgeChanges,
+  filterPresetManagedNodeChanges,
+} from '@/features/canvas/application/canvasManagedChangeGuard';
 import type { CanvasClipboardSnapshot } from '@/features/canvas/domain/canvasClipboard';
 import { nodeNeedsGenerationResume } from '@/features/canvas/application/resumeGeneration';
 import { readUrl } from '@/lib/url-params';
@@ -562,16 +563,7 @@ export function Canvas({
       // 拖拽时 applyNodeChanges 每帧重建 nodes 数组。这里只在事件回调里「读一次」当前快照,
       // 不把 nodes 列进依赖,避免该回调每帧重建、进而打穿下游 memo。
       const nodes = useCanvasStore.getState().nodes;
-      const lockedNodeIds = new Set(nodes.filter(isPresetManagedNode).map((node) => node.id));
-      const unlockedChanges = changes.filter((change) => {
-        if (!('id' in change)) {
-          return true;
-        }
-        if (!lockedNodeIds.has(change.id)) {
-          return true;
-        }
-        return change.type !== 'remove';
-      });
+      const unlockedChanges = filterPresetManagedNodeChanges(nodes, changes);
       if (unlockedChanges.length === 0) {
         return;
       }
@@ -629,16 +621,7 @@ export function Canvas({
   const handleEdgesChange = useCallback(
     (changes: EdgeChange<CanvasEdge>[]) => {
       const edges = useCanvasStore.getState().edges;
-      const lockedEdgeIds = new Set(edges.filter(isPresetManagedEdge).map((edge) => edge.id));
-      const unlockedChanges = changes.filter((change) => {
-        if (!('id' in change)) {
-          return true;
-        }
-        if (!lockedEdgeIds.has(change.id)) {
-          return true;
-        }
-        return change.type === 'select';
-      });
+      const unlockedChanges = filterPresetManagedEdgeChanges(edges, changes);
       if (unlockedChanges.length === 0) {
         return;
       }

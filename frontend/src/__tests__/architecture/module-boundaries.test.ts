@@ -1808,6 +1808,39 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("const idsToDelete");
   });
 
+  it("keeps preset-managed Canvas change guards in the application layer", () => {
+    const guardPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasManagedChangeGuard.ts",
+    );
+    const guardModel = readFileSync(guardPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(guardPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+
+    expect(forbiddenImports).toEqual([]);
+    expect(guardModel).toContain("filterPresetManagedNodeChanges");
+    expect(guardModel).toContain("filterPresetManagedEdgeChanges");
+    expect(canvasView).toContain("filterPresetManagedNodeChanges(nodes, changes)");
+    expect(canvasView).toContain("filterPresetManagedEdgeChanges(edges, changes)");
+    expect(canvasView).not.toContain("const lockedNodeIds");
+    expect(canvasView).not.toContain("const lockedEdgeIds");
+  });
+
   it("keeps Canvas pane context-menu state in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
