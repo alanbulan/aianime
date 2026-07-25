@@ -602,6 +602,26 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const narratorVoicePanelControllerSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/production/application/use-narrator-voice-panel-controller.ts",
+      ),
+      "utf8",
+    );
+    const browserVoiceRecorderSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "shared/voice-recording/browser-voice-recorder.ts",
+      ),
+      "utf8",
+    );
+    const mediaRecorderImplementations = sourceFiles(SRC_ROOT)
+      .filter((path) => !relativeSource(path).startsWith("__tests__/"))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("new MediaRecorder("),
+      )
+      .map(relativeSource);
     const legacySketchQueries = readFileSync(
       resolve(SRC_ROOT, "lib/queries/sketches.ts"),
       "utf8",
@@ -799,19 +819,66 @@ describe("frontend architecture boundaries", () => {
     expect(renderSectionControllerSource).not.toContain("@/stores/");
     expect(renderSectionControllerSource).not.toContain("document.");
     expect(narratorVoicePanelSource).toContain("<NarratorVoicePanelView");
+    expect(narratorVoicePanelSource).toContain(
+      "useNarratorVoicePanelController({",
+    );
     expect(narratorVoicePanelSource).not.toContain("className=");
     expect(narratorVoicePanelSource).not.toContain("<Button");
     expect(narratorVoicePanelSource).not.toContain("<Dialog");
     expect(narratorVoicePanelSource).not.toContain("<Input");
     expect(narratorVoicePanelSource).not.toContain("<Select");
     expect(narratorVoicePanelSource).not.toContain('type="file"');
-    expect(narratorVoicePanelSource).toContain("MediaRecorder");
+    expect(narratorVoicePanelSource).not.toContain("MediaRecorder");
+    expect(narratorVoicePanelSource).not.toContain("useState(");
+    expect(narratorVoicePanelSource).not.toContain("toast.");
+    expect(narratorVoicePanelSource).not.toContain("useNarratorVoiceStatus");
     expect(narratorVoicePanelViewSource).toContain('type="file"');
     expect(narratorVoicePanelViewSource).toContain("<Dialog");
     expect(narratorVoicePanelViewSource).toContain("<Select");
+    expect(narratorVoicePanelViewSource).toContain(
+      "controller: NarratorVoicePanelController",
+    );
     expect(narratorVoicePanelViewSource).not.toContain(
       "useNarratorVoiceStatus",
     );
+    expect(narratorVoicePanelControllerSource).toContain(
+      "createUseNarratorVoicePanelController",
+    );
+    expect(narratorVoicePanelControllerSource).toContain(
+      "queries.useNarratorVoiceStatus",
+    );
+    expect(narratorVoicePanelControllerSource).toContain(
+      "dependencies.createVoiceRecorder()",
+    );
+    expect(narratorVoicePanelControllerSource).not.toContain(
+      "new MediaRecorder(",
+    );
+    expect(narratorVoicePanelControllerSource).not.toContain(
+      "navigator.mediaDevices",
+    );
+    expect(browserVoiceRecorderSource).toContain("new MediaRecorder(");
+    expect(browserVoiceRecorderSource).toContain(
+      "navigator.mediaDevices.getUserMedia",
+    );
+    expect(mediaRecorderImplementations).toEqual([
+      "shared/voice-recording/browser-voice-recorder.ts",
+    ]);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "modules/asset_world/application/voice-recorder.ts",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "modules/asset_world/infrastructure/browser-voice-recorder.ts",
+        ),
+      ),
+    ).toBe(false);
     expect(legacySketchQueries).not.toContain("useAssignColors");
     expect(legacySketchQueries).not.toContain("useDetectIdentities");
     expect(legacySketchQueries).not.toContain("useDirectorControlToSketch");

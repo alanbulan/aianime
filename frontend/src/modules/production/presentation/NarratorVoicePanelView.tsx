@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import type { NarratorVoicePanelController } from "@/modules/production/application/use-narrator-voice-panel-controller";
 import type { NarratorVoiceSourceOption } from "@/modules/production/domain/narrator-voice";
 
 const SUPPORTED_AUDIO_ACCEPT = ".mp3,.wav,.m4a,.aac,.ogg,audio/*";
@@ -36,84 +37,52 @@ const SECONDARY_ACTION_CLASS =
   "h-7 gap-1 rounded-[7px] border-border bg-muted px-2.5 text-[12px] font-normal text-foreground/76 shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground disabled:border-border disabled:bg-muted disabled:text-muted-foreground/45";
 
 export interface NarratorVoicePanelViewProps {
-  audioSrc: string | null;
-  canEdit: boolean;
-  copyPending: boolean;
-  explanation?: string | null;
-  hasVoice: boolean;
-  heading?: string | null;
-  pending: boolean;
-  projectAudioOpen: boolean;
-  recordedDataUrl: string;
-  recording: boolean;
-  recordOpen: boolean;
-  recordPending: boolean;
-  recordStatus: string;
-  selectedSourcePath: string;
-  sourceOptions: NarratorVoiceSourceOption[];
-  sourcesLoading: boolean;
-  trimDuration: string;
-  trimOpen: boolean;
-  trimPending: boolean;
-  trimStart: string;
-  onApplyTrim(): void | Promise<void>;
-  onDelete(): void | Promise<void>;
-  onOpenProjectAudio(): void;
-  onOpenRecord(): void;
-  onOpenTrim(): void;
-  onProjectAudioOpenChange(open: boolean): void;
-  onRecordOpenChange(open: boolean): void;
-  onSaveRecording(): void | Promise<void>;
-  onSelectedSourcePathChange(path: string): void;
-  onStartRecording(): void | Promise<void>;
-  onStopRecording(): void;
-  onTrimDurationChange(value: string): void;
-  onTrimOpenChange(open: boolean): void;
-  onTrimStartChange(value: string): void;
-  onUpload(file: File): void | Promise<void>;
-  onUseProjectAudio(): void | Promise<void>;
+  controller: NarratorVoicePanelController;
 }
 
 export function NarratorVoicePanelView({
-  audioSrc,
-  canEdit,
-  copyPending,
-  explanation,
-  hasVoice,
-  heading,
-  pending,
-  projectAudioOpen,
-  recordedDataUrl,
-  recording,
-  recordOpen,
-  recordPending,
-  recordStatus,
-  selectedSourcePath,
-  sourceOptions,
-  sourcesLoading,
-  trimDuration,
-  trimOpen,
-  trimPending,
-  trimStart,
-  onApplyTrim,
-  onDelete,
-  onOpenProjectAudio,
-  onOpenRecord,
-  onOpenTrim,
-  onProjectAudioOpenChange,
-  onRecordOpenChange,
-  onSaveRecording,
-  onSelectedSourcePathChange,
-  onStartRecording,
-  onStopRecording,
-  onTrimDurationChange,
-  onTrimOpenChange,
-  onTrimStartChange,
-  onUpload,
-  onUseProjectAudio,
+  controller,
 }: NarratorVoicePanelViewProps) {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const {
+    audioSrc,
+    canEdit,
+    copyPending,
+    explanation,
+    hasVoice,
+    heading,
+    pending,
+    projectAudioOpen,
+    recordedDataUrl,
+    recording,
+    recordOpen,
+    recordPending,
+    recordStatus,
+    selectedSourcePath,
+    sourceOptions,
+    sourcesLoading,
+    trimDuration,
+    trimOpen,
+    trimPending,
+    trimStart,
+    onApplyTrim,
+    onDelete,
+    onOpenProjectAudio,
+    onOpenRecord,
+    onOpenTrim,
+    onProjectAudioOpenChange,
+    onRecordOpenChange,
+    onSaveRecording,
+    onSelectedSourcePathChange,
+    onStartRecording,
+    onStopRecording,
+    onTrimDurationChange,
+    onTrimOpenChange,
+    onTrimStartChange,
+    onUpload,
+    onUseProjectAudio,
+  } = controller;
 
   return (
     <section className="w-full max-w-[640px] rounded-[10px] border border-border bg-card p-4">

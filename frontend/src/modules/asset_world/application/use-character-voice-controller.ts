@@ -11,7 +11,7 @@ import {
 import {
   VoiceRecorderStartError,
   type VoiceRecorder,
-} from "@/modules/asset_world/application/voice-recorder";
+} from "@/shared/voice-recording/voice-recorder";
 import type {
   Character,
   CharacterVoiceSlot,

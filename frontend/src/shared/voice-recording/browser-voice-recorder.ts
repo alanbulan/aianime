@@ -4,7 +4,7 @@ import {
   type VoiceRecorder,
   type VoiceRecorderCallbacks,
   type VoiceRecorderStartFailureReason,
-} from "@/modules/asset_world/application/voice-recorder";
+} from "@/shared/voice-recording/voice-recorder";
 
 function dataUrlFromBlob(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {

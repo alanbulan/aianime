@@ -28,6 +28,7 @@ import { createSketchGenerationQueryHooks } from "@/modules/production/applicati
 import { createUseAudioPaneController } from "@/modules/production/application/use-audio-pane-controller";
 import { createUseBeatVideoGenerationController } from "@/modules/production/application/use-beat-video-generation-controller";
 import { createUseLegacyVideoPromptController } from "@/modules/production/application/use-legacy-video-prompt-controller";
+import { createUseNarratorVoicePanelController } from "@/modules/production/application/use-narrator-voice-panel-controller";
 import { createUseRenderSectionController } from "@/modules/production/application/use-render-section-controller";
 import { createUseSeedance2AssetOperationsController } from "@/modules/production/application/use-seedance2-asset-operations-controller";
 import { createUseSeedance2ConfigController } from "@/modules/production/application/use-seedance2-config-controller";
@@ -37,6 +38,7 @@ import { httpProductionVideoGateway } from "@/modules/production/infrastructure/
 import { promptLanguageFromLocale } from "@/modules/production/domain/video-generation";
 import { AudioPaneView } from "@/modules/production/presentation/AudioPaneView";
 import type { VoiceConfigurationTarget } from "@/modules/production/domain/audio-prerequisite";
+import { createBrowserVoiceRecorder } from "@/shared/voice-recording/browser-voice-recorder";
 import type { BeatStageState } from "@/types/beat-state";
 
 const audioGenerationQueries = createAudioGenerationQueryHooks(
@@ -66,6 +68,9 @@ const videoGenerationQueries = createVideoGenerationQueryHooks({
   currentPromptLanguage: () =>
     promptLanguageFromLocale(useAppStore.getState().language),
 });
+const narratorVoiceQueries = createNarratorVoiceQueryHooks(
+  httpProductionVideoGateway,
+);
 export const useBeatVideoGenerationController =
   createUseBeatVideoGenerationController(videoGenerationQueries, {
     useGenerationCreditCost,
@@ -84,6 +89,10 @@ export const useVideoPaneMediaController = createUseVideoPaneMediaController(
   videoPoolQueries,
   { useNow },
 );
+export const useNarratorVoicePanelController =
+  createUseNarratorVoicePanelController(narratorVoiceQueries, {
+    createVoiceRecorder: createBrowserVoiceRecorder,
+  });
 export const useSketchSectionController = createUseSketchSectionController(
   {
     useDirectorControlToSketch:
@@ -200,7 +209,7 @@ export const {
   useCopyProjectNarratorVoice,
   useTrimNarratorVoice,
   useDeleteNarratorVoice,
-} = createNarratorVoiceQueryHooks(httpProductionVideoGateway);
+} = narratorVoiceQueries;
 export const { useGenerateAudio, useRegenerateBeatAudio } =
   audioGenerationQueries;
 export const {

@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { useState } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { I18nextProvider, initReactI18next } from "react-i18next";
@@ -55,39 +56,53 @@ vi.mock("@/modules/production/public", async (importOriginal) => {
   >();
   return {
     ...actual,
-    useNarratorVoiceStatus: () => ({
-      data: {
-        ok: true,
-        data: {
-          narration_style: "first_person",
-          source: "protagonist_identity",
-          reference_path: mockHasVoice ? "assets/narrator/voice.mp3" : "",
-          reference_url: mockHasVoice
-            ? "/static/demo/assets/narrator/voice.mp3"
-            : "",
-          heading: "第一人称解说声线",
-          detail: "",
-          explanation: "第一人称解说使用主角声线。",
-          is_first_person: true,
+    useNarratorVoicePanelController: (options: {
+      allowFirstPersonProjectVoice?: boolean;
+    }) => {
+      const [trimOpen, setTrimOpen] = useState(false);
+      return {
+        audioSrc: mockHasVoice
+          ? "/static/projects/demo/assets/narrator/voice.mp3"
+          : null,
+        canEdit: Boolean(options.allowFirstPersonProjectVoice),
+        copyPending: false,
+        explanation: "第一人称解说使用主角声线。",
+        hasVoice: mockHasVoice,
+        heading: "第一人称解说声线",
+        pending: false,
+        projectAudioOpen: false,
+        recordedDataUrl: "",
+        recording: false,
+        recordOpen: false,
+        recordPending: false,
+        recordStatus: "",
+        selectedSourcePath: "",
+        sourceOptions: [],
+        sourcesLoading: false,
+        trimDuration: "4",
+        trimOpen,
+        trimPending: false,
+        trimStart: "0",
+        onApplyTrim: async () => {
+          await mutateTrim({ startSeconds: 0, durationSeconds: 4 });
         },
-      },
-      isLoading: false,
-      isError: false,
-    }),
-    useNarratorVoiceSources: () => ({
-      data: { ok: true, data: { options: [] } },
-    }),
-    useUploadNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
-    useRecordNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
-    useCopyProjectNarratorVoice: () => ({
-      mutateAsync: vi.fn(),
-      isPending: false,
-    }),
-    useTrimNarratorVoice: () => ({
-      mutateAsync: mutateTrim,
-      isPending: false,
-    }),
-    useDeleteNarratorVoice: () => ({ mutateAsync: vi.fn(), isPending: false }),
+        onDelete: async () => undefined,
+        onOpenProjectAudio: vi.fn(),
+        onOpenRecord: vi.fn(),
+        onOpenTrim: () => setTrimOpen(true),
+        onProjectAudioOpenChange: vi.fn(),
+        onRecordOpenChange: vi.fn(),
+        onSaveRecording: async () => undefined,
+        onSelectedSourcePathChange: vi.fn(),
+        onStartRecording: async () => undefined,
+        onStopRecording: vi.fn(),
+        onTrimDurationChange: vi.fn(),
+        onTrimOpenChange: setTrimOpen,
+        onTrimStartChange: vi.fn(),
+        onUpload: async () => undefined,
+        onUseProjectAudio: async () => undefined,
+      };
+    },
   };
 });
 

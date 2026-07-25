@@ -23,6 +23,7 @@ export {
   useFinalVideo,
   useNarratorVoiceSources,
   useNarratorVoiceStatus,
+  useNarratorVoicePanelController,
   useRecordNarratorVoice,
   useRegenerateBeatVideo,
   useRegenerateBeatAudio,
@@ -87,6 +88,12 @@ export { RenderSectionView } from "@/modules/production/presentation/RenderSecti
 export type { RenderSectionViewProps } from "@/modules/production/presentation/RenderSectionView";
 export { NarratorVoicePanelView } from "@/modules/production/presentation/NarratorVoicePanelView";
 export type { NarratorVoicePanelViewProps } from "@/modules/production/presentation/NarratorVoicePanelView";
+export type {
+  NarratorVoicePanelController,
+  NarratorVoicePanelControllerDependencies,
+  NarratorVoicePanelControllerOptions,
+  NarratorVoicePanelQueries,
+} from "@/modules/production/application/use-narrator-voice-panel-controller";
 export type {
   CropRenderBackgroundMutation,
   RenderBackgroundAnchorsQuery,

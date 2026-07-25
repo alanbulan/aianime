@@ -59,7 +59,7 @@ import {
   writeStoredAssetTab,
 } from "@/modules/asset_world/infrastructure/asset-tab-storage";
 import { useAssetWorkspaceNavigation } from "@/modules/asset_world/infrastructure/asset-workspace-navigation";
-import { createBrowserVoiceRecorder } from "@/modules/asset_world/infrastructure/browser-voice-recorder";
+import { createBrowserVoiceRecorder } from "@/shared/voice-recording/browser-voice-recorder";
 import { httpCharacterGateway } from "@/modules/asset_world/infrastructure/http-character-gateway";
 import { httpAssetWorldGateway } from "@/modules/asset_world/infrastructure/http-asset-world-gateway";
 import { httpBeatViewerGateway } from "@/modules/asset_world/infrastructure/http-beat-viewer-gateway";
