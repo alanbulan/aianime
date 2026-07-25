@@ -7,10 +7,9 @@ import {
 import { awaitTaskCompletion } from '@/api/tasks';
 import { readUrl } from '@/lib/url-params';
 import { useCanvasStore } from '@/stores/canvasStore';
-import { canvasAiGateway } from './canvasServices';
 import { resolveErrorContent } from './errorDialog';
 import { CURRENT_RUNTIME_SESSION_ID, extractRequestId } from './generationErrorReport';
-import type { GenerateImagePayload } from './ports';
+import type { AiGateway, GenerateImagePayload } from './ports';
 import { generationTaskDescriptor } from './resumeGeneration';
 
 /**
@@ -106,7 +105,10 @@ async function regenerateFreezoneRedrawNode(
  * `generationRequestPayload` on the node at creation; here we re-submit it and
  * re-arm `generationJobId` so the existing Canvas polling effect picks it up.
  */
-export async function regenerateExportImageNode(nodeId: string): Promise<void> {
+export async function regenerateExportImageNode(
+  nodeId: string,
+  aiGateway: AiGateway,
+): Promise<void> {
   const store = useCanvasStore.getState();
   const node = store.nodes.find((n) => n.id === nodeId);
   if (!node) {
@@ -140,7 +142,7 @@ export async function regenerateExportImageNode(nodeId: string): Promise<void> {
   });
 
   try {
-    const jobId = await canvasAiGateway.submitGenerateImageJob({ ...payload, nodeId });
+    const jobId = await aiGateway.submitGenerateImageJob({ ...payload, nodeId });
     store.updateNodeData(nodeId, {
       generationJobId: jobId,
       generationClientSessionId: CURRENT_RUNTIME_SESSION_ID,

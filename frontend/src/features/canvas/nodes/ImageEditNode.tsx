@@ -35,7 +35,7 @@ import {
 import { readUrl } from '@/lib/url-params';
 import { useDetachUpstream } from '@/features/canvas/hooks/useDetachUpstream';
 import { useReferenceMentionSync } from '@/features/canvas/nodes/useReferenceMentionSync';
-import { canvasAiGateway } from '@/features/canvas/application/canvasServices';
+import { canvasAiGateway } from '@/features/canvas/composition';
 import {
   collectUpstreamReferenceUrls,
   joinUpstreamText,

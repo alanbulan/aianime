@@ -42,7 +42,8 @@ import { useAppStore } from '@/stores/app-store';
 import { getSkillRegistry } from '@/api/skills';
 import { SKILL_SCHEMA_VERSION, type SkillDefinition } from '@/features/freezone/context/skillRoles';
 import { translateSkillName } from '@/features/freezone/context/skillI18n';
-import { canvasAiGateway, canvasEventBus } from '@/features/canvas/application/canvasServices';
+import { canvasEventBus } from '@/features/canvas/application/canvasServices';
+import { canvasAiGateway } from '@/features/canvas/composition';
 import {
   CANVAS_NODE_TYPES,
   type BeatContextNodeData,

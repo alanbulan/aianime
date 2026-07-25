@@ -10,10 +10,8 @@ import {
   type NodeToolType,
 } from '@/features/canvas/domain/canvasNodes';
 import { EXPORT_RESULT_DISPLAY_NAME } from '@/features/canvas/domain/nodeDisplay';
-import {
-  canvasEventBus,
-  canvasToolProcessor,
-} from '@/features/canvas/application/canvasServices';
+import { canvasEventBus } from '@/features/canvas/application/canvasServices';
+import { canvasToolProcessor } from '@/features/canvas/composition';
 import { prepareNodeImage, resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import { readStoryboardImageMetadata } from '@/commands/image';
 import { uploadLocalImageToBackend } from '@/features/canvas/application/uploadToolOutput';

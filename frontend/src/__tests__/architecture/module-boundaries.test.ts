@@ -204,6 +204,48 @@ describe("frontend architecture boundaries", () => {
     expect(failures).toEqual([]);
   });
 
+  it("keeps Canvas infrastructure assembly out of application", () => {
+    const applicationRoot = resolve(
+      SRC_ROOT,
+      "features/canvas/application",
+    );
+    const failures = sourceFiles(applicationRoot).flatMap((path) =>
+      importSpecifiers(path)
+        .filter(
+          (specifier) =>
+            /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
+            specifier.startsWith("@/features/canvas/infrastructure/") ||
+            /^(?:\.\.\/)+composition$/.test(specifier) ||
+            specifier === "@/features/canvas/composition",
+        )
+        .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+    );
+    const composition = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/composition.ts"),
+      "utf8",
+    );
+    const services = readFileSync(
+      resolve(applicationRoot, "canvasServices.ts"),
+      "utf8",
+    );
+    const regenerateExportNode = readFileSync(
+      resolve(applicationRoot, "regenerateExportNode.ts"),
+      "utf8",
+    );
+
+    expect(failures).toEqual([]);
+    expect(composition).toContain("new CanvasNodeFactory(");
+    expect(composition).toContain("new CanvasToolProcessor(");
+    expect(composition).toContain("freezoneAiGateway");
+    expect(composition).toContain("uuidGenerator");
+    expect(composition).toContain("webImageSplitGateway");
+    expect(services).not.toContain("infrastructure/");
+    expect(regenerateExportNode).toContain("aiGateway: AiGateway");
+    expect(regenerateExportNode).toContain(
+      "aiGateway.submitGenerateImageJob",
+    );
+  });
+
   it("keeps shared code independent from application and business layers", () => {
     const forbiddenPrefixes = [
       "@/app/",

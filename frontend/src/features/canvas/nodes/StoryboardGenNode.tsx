@@ -28,7 +28,7 @@ import {
 import { EXPORT_RESULT_DISPLAY_NAME, resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { canvasAiGateway } from '@/features/canvas/application/canvasServices';
+import { canvasAiGateway } from '@/features/canvas/composition';
 import { useUpstreamImages } from '@/features/canvas/application/useUpstreamGraph';
 import { resolveErrorContent, showErrorDialog } from '@/features/canvas/application/errorDialog';
 import { backendErrorToastMessage } from '@/shared/api/errors';

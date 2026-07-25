@@ -48,6 +48,7 @@ import {
   canRegenerateExportImageNode,
   regenerateExportImageNode,
 } from '@/features/canvas/application/regenerateExportNode';
+import { canvasAiGateway } from '@/features/canvas/composition';
 import { useNodeGenerationTaskState } from '@/features/canvas/application/useNodeGenerationTaskState';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -298,7 +299,9 @@ export const ImageNode = memo(({ id, data, selected, type, width, height }: Imag
             {canRegenerateExportImageNode(data as Record<string, unknown>) && (
               <div className="mt-1">
                 <RegenerateButton
-                  onClick={() => void regenerateExportImageNode(id)}
+                  onClick={() =>
+                    void regenerateExportImageNode(id, canvasAiGateway)
+                  }
                   busy={isGenerating}
                 />
               </div>
