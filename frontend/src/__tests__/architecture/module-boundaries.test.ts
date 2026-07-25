@@ -791,17 +791,34 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/features/canvas/application/") ||
         specifier.startsWith("@/features/canvas/infrastructure/"),
     );
+    const placementDeclaration = [
+      "export function",
+      "findAvailableNodePosition(",
+    ].join(" ");
+    const placementOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(placementDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(forbiddenGeometryImports).toEqual([]);
+    expect(placementOwners).toEqual([
+      "features/canvas/domain/canvasGeometry.ts",
+    ]);
     expect(geometryModel).toContain("export function getNodeSize(");
     expect(geometryModel).toContain("export function resolveAbsolutePosition(");
     expect(geometryModel).toContain("export function getDerivedNodePosition(");
+    expect(geometryModel).toContain(placementDeclaration);
     expect(canvasStore).toContain(
       "@/features/canvas/domain/canvasGeometry",
     );
+    expect(canvasStore).toContain("return findAvailableNodePosition({");
     expect(canvasStore).not.toContain("function getNodeSize(");
     expect(canvasStore).not.toContain("function resolveAbsolutePosition(");
     expect(canvasStore).not.toContain("function getDerivedNodePosition(");
+    expect(canvasStore).not.toContain("const collides =");
+    expect(canvasStore).not.toContain("const overflowAmount =");
     expect(canvasView).toContain(
       "@/features/canvas/domain/canvasGeometry",
     );

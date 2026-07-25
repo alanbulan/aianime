@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { CANVAS_NODE_TYPES, type CanvasNode } from './canvasNodes';
 import {
+  findAvailableNodePosition,
   getDerivedNodePosition,
   getNodeSize,
   resolveAbsolutePosition,
@@ -61,5 +62,88 @@ describe('Canvas geometry', () => {
 
     expect(getDerivedNodePosition([source], source.id)).toEqual({ x: 430, y: 20 });
     expect(getDerivedNodePosition([], 'missing')).toEqual({ x: 100, y: 100 });
+  });
+
+  it('uses the empty fallback when placement source is missing', () => {
+    expect(
+      findAvailableNodePosition({
+        nodes: [],
+        sourceNodeId: 'missing',
+        newNodeWidth: 50,
+        newNodeHeight: 50,
+        viewport: { x: 0, y: 0, zoom: 1 },
+        viewportSize: { width: 0, height: 0 },
+      }),
+    ).toEqual({ x: 100, y: 100 });
+  });
+
+  it('places from React Flow measurements without applying group-size fallbacks', () => {
+    const measuredSource = node('source', { x: 0, y: 0 }, {
+      width: 50,
+      height: 50,
+      measured: { width: 100, height: 80 },
+    });
+    const unmeasuredSource = node('unmeasured', { x: 0, y: 0 }, {
+      width: 50,
+      height: 50,
+    });
+    const common = {
+      newNodeWidth: 50,
+      newNodeHeight: 50,
+      viewport: { x: 0, y: 0, zoom: 1 },
+      viewportSize: { width: 0, height: 0 },
+    };
+
+    expect(
+      findAvailableNodePosition({
+        ...common,
+        nodes: [measuredSource],
+        sourceNodeId: measuredSource.id,
+      }),
+    ).toEqual({ x: 128, y: 0 });
+    expect(
+      findAvailableNodePosition({
+        ...common,
+        nodes: [unmeasuredSource],
+        sourceNodeId: unmeasuredSource.id,
+      }),
+    ).toEqual({ x: 348, y: 0 });
+  });
+
+  it('skips a colliding right-hand slot using the existing candidate order', () => {
+    const source = node('source', { x: 0, y: 0 }, {
+      measured: { width: 100, height: 100 },
+    });
+    const obstacle = node('obstacle', { x: 128, y: 0 }, {
+      measured: { width: 50, height: 50 },
+    });
+
+    expect(
+      findAvailableNodePosition({
+        nodes: [source, obstacle],
+        sourceNodeId: source.id,
+        newNodeWidth: 50,
+        newNodeHeight: 50,
+        viewport: { x: 0, y: 0, zoom: 1 },
+        viewportSize: { width: 0, height: 0 },
+      }),
+    ).toEqual({ x: 128, y: 108 });
+  });
+
+  it('prefers a visible slot over the closer off-screen anchor', () => {
+    const source = node('source', { x: 300, y: 0 }, {
+      measured: { width: 80, height: 80 },
+    });
+
+    expect(
+      findAvailableNodePosition({
+        nodes: [source],
+        sourceNodeId: source.id,
+        newNodeWidth: 80,
+        newNodeHeight: 80,
+        viewport: { x: 0, y: 0, zoom: 1 },
+        viewportSize: { width: 400, height: 300 },
+      }),
+    ).toEqual({ x: 300, y: 100 });
   });
 });
