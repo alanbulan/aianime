@@ -1345,6 +1345,65 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain(" - 副本`");
   });
 
+  it("keeps Canvas pano capture creation out of the Zustand store", () => {
+    const capturePath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/panoCaptureNodes.ts",
+    );
+    const captureModel = readFileSync(capturePath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(capturePath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier === "zustand" ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/features/canvas/nodeFactoryComposition",
+    );
+    const creationDeclaration = [
+      "export function",
+      "createPanoCaptureNodes(",
+    ].join(" ");
+    const captureContractDeclaration = [
+      "export interface",
+      "CanvasPanoCapture",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(creationDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
+    const contractOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(captureContractDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/application/panoCaptureNodes.ts",
+    ]);
+    expect(contractOwners).toEqual([
+      "features/canvas/application/panoCaptureNodes.ts",
+    ]);
+    expect(captureModel).toContain(creationDeclaration);
+    expect(captureModel).toContain("nodeFactory: NodeFactory");
+    expect(canvasStore).toContain(
+      "@/features/canvas/application/panoCaptureNodes",
+    );
+    expect(canvasStore).not.toContain("const onlyDisplayUrl =");
+    expect(canvasStore).not.toContain("const gcd =");
+    expect(canvasStore).not.toContain("全景截图组 (");
+  });
+
   it("keeps Canvas node size updates out of the Zustand store", () => {
     const nodeSizePath = resolve(
       SRC_ROOT,

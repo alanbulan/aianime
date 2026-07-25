@@ -118,6 +118,11 @@ import {
   duplicateCanvasNodesAsSiblings,
 } from '@/features/canvas/application/canvasNodeDuplication';
 import {
+  createPanoCaptureNodes,
+  type CanvasPanoCapture,
+  type CanvasPanoCaptureOptions,
+} from '@/features/canvas/application/panoCaptureNodes';
+import {
   updateCanvasNodeSize,
   type CanvasNodeSizeUpdateOptions,
 } from '@/features/canvas/application/canvasNodeSize';
@@ -258,17 +263,8 @@ interface CanvasState extends CanvasMutationState {
    */
   addPanoCaptureGroup: (
     sourceNodeId: string,
-    captures: {
-      dataUrl: string;
-      width: number;
-      height: number;
-      label: string;
-      /** Backend URL once uploaded; falls back to dataUrl for imageUrl when absent. */
-      uploadedUrl?: string;
-      /** Optional viewer snapshot / render metadata kept on the generated image node. */
-      metadata?: Record<string, unknown>;
-    }[],
-    options?: { cols?: number; groupName?: string }
+    captures: CanvasPanoCapture[],
+    options?: CanvasPanoCaptureOptions,
   ) => string | null;
 
   updateNodeData: (nodeId: string, data: Partial<CanvasNodeData>) => void;
@@ -718,188 +714,22 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   addPanoCaptureGroup: (sourceNodeId, captures, options) => {
     const state = get();
-    if (captures.length === 0) {
-      return null;
-    }
-    const source = state.nodes.find((node) => node.id === sourceNodeId);
-    if (!source) {
-      return null;
-    }
-
-    const nodeMap = new Map(state.nodes.map((node) => [node.id, node] as const));
-    const sourceAbs = resolveAbsolutePosition(source, nodeMap);
-    const sourceSize = getNodeSize(source);
-
-    const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
-    const ratioOf = (w: number, h: number) => {
-      const divisor = gcd(w, h) || 1;
-      return `${Math.round(w / divisor)}:${Math.round(h / divisor)}`;
-    };
-
-    // Single capture (截当前): no group — just one connected image node to the
-    // right of the source.
-    if (captures.length === 1) {
-      const only = captures[0];
-      const NODE_WIDTH = 320;
-      const nodeHeight = Math.max(
-        80,
-        Math.round((NODE_WIDTH * only.height) / Math.max(1, only.width))
-      );
-      // 优先用上传后的后端 URL（含 previewImageUrl）——base64 dataUrl 持久化时
-      // 会被 sanitizePreviewImageUrls 剥掉并告警，且下游生成也需要真实 URL。
-      // 仅在上传缺失（uploadedUrl 为空/空串）时才回退到本地 dataUrl 兜底显示。
-      const onlyDisplayUrl =
-        typeof only.uploadedUrl === 'string' && only.uploadedUrl.length > 0
-          ? only.uploadedUrl
-          : only.dataUrl;
-      const singleNode = canvasNodeFactory.createNode(
-        CANVAS_NODE_TYPES.exportImage,
-        {
-          x: Math.round(sourceAbs.x + sourceSize.width + 80),
-          y: Math.round(sourceAbs.y),
-        },
-        {
-          imageUrl: onlyDisplayUrl,
-          previewImageUrl: onlyDisplayUrl,
-          aspectRatio: ratioOf(only.width, only.height),
-          displayName: only.label,
-          captureMetadata: only.metadata ?? null,
-        }
-      );
-      singleNode.width = NODE_WIDTH;
-      singleNode.height = nodeHeight;
-      singleNode.style = {
-        ...(singleNode.style ?? {}),
-        width: NODE_WIDTH,
-        height: nodeHeight,
-      };
-      singleNode.selected = true;
-
-      set({
-        nodes: [
-          ...state.nodes.map((node) =>
-            node.selected ? { ...node, selected: false } : node
-          ),
-          singleNode,
-        ],
-        edges: [
-          ...state.edges,
-          {
-            id: `e-${sourceNodeId}-${singleNode.id}`,
-            source: sourceNodeId,
-            target: singleNode.id,
-            sourceHandle: 'source',
-            targetHandle: 'target',
-            type: 'disconnectableEdge',
-          },
-        ],
-        selectedNodeId: singleNode.id,
-        history: {
-          past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-          future: [],
-        },
-        dragHistorySnapshot: null,
-        ...trackEdit(state),
-      });
-
-      return singleNode.id;
-    }
-
-    const cols = Math.max(1, options?.cols ?? Math.ceil(Math.sqrt(captures.length)));
-    const rows = Math.ceil(captures.length / cols);
-
-    const first = captures[0];
-    const aspectRatio = ratioOf(first.width, first.height);
-    // Export image nodes auto-fit to the same min-edge constraints after the
-    // image loads. Lay the group out with that final size up front so children
-    // do not grow beyond the parent and overlap each other.
-    const cellSize = resolveAutoImageNodeDimensions(aspectRatio, {
-      minWidth: EXPORT_RESULT_NODE_MIN_WIDTH,
-      minHeight: EXPORT_RESULT_NODE_MIN_HEIGHT,
-    });
-    const CELL_WIDTH = cellSize.width;
-    const cellHeight = cellSize.height;
-    const CELL_GAP = 24;
-    const SIDE_PADDING = 20;
-    const TOP_PADDING = 34;
-    const BOTTOM_PADDING = 20;
-
-    const groupWidth = SIDE_PADDING * 2 + cols * CELL_WIDTH + (cols - 1) * CELL_GAP;
-    const groupHeight =
-      TOP_PADDING + BOTTOM_PADDING + rows * cellHeight + (rows - 1) * CELL_GAP;
-    const groupX = Math.round(sourceAbs.x + sourceSize.width + 80);
-    const groupY = Math.round(sourceAbs.y);
-
-    const groupDisplayName = options?.groupName ?? `全景截图组 (${captures.length} 张)`;
-    const groupNode = canvasNodeFactory.createNode(
-      CANVAS_NODE_TYPES.group,
-      { x: groupX, y: groupY },
-      { label: groupDisplayName, displayName: groupDisplayName }
+    const result = createPanoCaptureNodes(
+      state.nodes,
+      state.edges,
+      sourceNodeId,
+      captures,
+      options,
+      canvasNodeFactory,
     );
-    groupNode.width = groupWidth;
-    groupNode.height = groupHeight;
-    groupNode.style = { width: groupWidth, height: groupHeight };
-    groupNode.selected = false;
-
-    const childNodes: CanvasNode[] = captures.map((capture, index) => {
-      const col = index % cols;
-      const row = Math.floor(index / cols);
-      const position = {
-        x: SIDE_PADDING + col * (CELL_WIDTH + CELL_GAP),
-        y: TOP_PADDING + row * (cellHeight + CELL_GAP),
-      };
-      // 同单图分支：previewImageUrl 也优先用上传后的后端 URL，避免持久化 base64
-      // 触发 sanitize 告警；仅上传缺失时回退本地 dataUrl。
-      const childDisplayUrl =
-        typeof capture.uploadedUrl === 'string' && capture.uploadedUrl.length > 0
-          ? capture.uploadedUrl
-          : capture.dataUrl;
-      const childNode = canvasNodeFactory.createNode(
-        CANVAS_NODE_TYPES.exportImage,
-        position,
-        {
-          imageUrl: childDisplayUrl,
-          previewImageUrl: childDisplayUrl,
-          aspectRatio,
-          displayName: capture.label,
-          captureMetadata: capture.metadata ?? null,
-        }
-      );
-      childNode.parentId = groupNode.id;
-      childNode.extent = 'parent';
-      childNode.width = CELL_WIDTH;
-      childNode.height = cellHeight;
-      childNode.style = {
-        ...(childNode.style ?? {}),
-        width: CELL_WIDTH,
-        height: cellHeight,
-      };
-      childNode.selected = false;
-      return childNode;
-    });
-
-    // Wire each capture back to its source 360 viewer node so the provenance is
-    // visible on the canvas (matches the reference design).
-    const newEdges: CanvasEdge[] = childNodes.map((childNode) => ({
-      id: `e-${sourceNodeId}-${childNode.id}`,
-      source: sourceNodeId,
-      target: childNode.id,
-      sourceHandle: 'source',
-      targetHandle: 'target',
-      type: 'disconnectableEdge',
-    }));
+    if (!result) {
+      return null;
+    }
 
     set({
-      // Parent group must precede its children in the array for React Flow.
-      nodes: [
-        ...state.nodes.map((node) =>
-          node.selected ? { ...node, selected: false } : node
-        ),
-        groupNode,
-        ...childNodes,
-      ],
-      edges: [...state.edges, ...newEdges],
-      selectedNodeId: groupNode.id,
+      nodes: result.nodes,
+      edges: result.edges,
+      selectedNodeId: result.selectedNodeId,
       history: {
         past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
         future: [],
@@ -908,7 +738,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       ...trackEdit(state),
     });
 
-    return groupNode.id;
+    return result.selectedNodeId;
   },
 
   addEdge: (source, target) => {
