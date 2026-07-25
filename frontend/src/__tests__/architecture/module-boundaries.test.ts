@@ -252,6 +252,10 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes("navigator."))
       .map(relativeSource)
       .sort();
+    const directWorkerUsers = sourceFiles(applicationRoot)
+      .filter((path) => readFileSync(path, "utf8").includes("new Worker("))
+      .map(relativeSource)
+      .sort();
     const composition = readFileSync(
       resolve(SRC_ROOT, "features/canvas/composition.ts"),
       "utf8",
@@ -328,6 +332,17 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const matteClient = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/matteClient.ts",
+      ),
+      "utf8",
+    );
+    const nodeActionToolbar = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/ui/NodeActionToolbar.tsx"),
+      "utf8",
+    );
 
     expect(failures).toEqual([]);
     expect(directApiUsers).toEqual([]);
@@ -336,6 +351,7 @@ describe("frontend architecture boundaries", () => {
     expect(directTaskCenterStoreUsers).toEqual([]);
     expect(directWindowUsers).toEqual([]);
     expect(directNavigatorUsers).toEqual([]);
+    expect(directWorkerUsers).toEqual([]);
     expect(
       existsSync(resolve(applicationRoot, "useUpstreamGraph.ts")),
     ).toBe(false);
@@ -344,6 +360,8 @@ describe("frontend architecture boundaries", () => {
         resolve(applicationRoot, "useNodeGenerationTaskState.ts"),
       ),
     ).toBe(false);
+    expect(existsSync(resolve(applicationRoot, "matteClient.ts"))).toBe(false);
+    expect(existsSync(resolve(applicationRoot, "matteWorker.ts"))).toBe(false);
     expect(composition).toContain(
       "export { canvasNodeFactory } from './nodeFactoryComposition';",
     );
@@ -404,6 +422,10 @@ describe("frontend architecture boundaries", () => {
     );
     expect(generationRuntimeGateway).toContain("navigator.userAgent");
     expect(generationRuntimeGateway).toContain("runtimeSessionId:");
+    expect(matteClient).toContain('new URL("./matteWorker.ts"');
+    expect(nodeActionToolbar).toContain(
+      "@/features/canvas/infrastructure/matteClient",
+    );
     expect(regenerateExportNode).toContain("aiGateway: AiGateway");
     expect(regenerateExportNode).toContain(
       "params: RegenerateExportImageNodeParams",

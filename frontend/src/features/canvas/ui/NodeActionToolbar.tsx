@@ -101,7 +101,7 @@ import { useCanvasProjectionStatus } from "@/features/freezone/projectionStatusS
 import {
   matteInWorker,
   preloadMatteWorker,
-} from "@/features/canvas/application/matteClient";
+} from "@/features/canvas/infrastructure/matteClient";
 import { getNodeToolPlugins } from "@/features/canvas/tools";
 import type { ToolIconKey } from "@/features/canvas/tools";
 import { UiChipButton, UiPanel } from "@/components/ui";
