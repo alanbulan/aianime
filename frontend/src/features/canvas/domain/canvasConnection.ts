@@ -3,8 +3,12 @@ import {
   CANVAS_NODE_TYPES,
   type CanvasEdge,
   type CanvasNode,
+  type CanvasNodeType,
 } from './canvasNodes';
 import {
+  getAllowedUpstreamSourceTypes,
+  getConnectMenuNodeTypes,
+  getDownstreamSpawnTypes,
   isUpstreamConnectionAllowed,
   nodeHasSourceHandle,
   nodeHasTargetHandle,
@@ -21,6 +25,94 @@ export type CanvasConnectionRejectionReason =
 export type CanvasConnectionValidation =
   | { ok: true }
   | { ok: false; reason: CanvasConnectionRejectionReason };
+
+const THREE_D_WORLD_MANUAL_SOURCE_TYPES = new Set<CanvasNodeType>([
+  CANVAS_NODE_TYPES.upload,
+  CANVAS_NODE_TYPES.exportImage,
+  CANVAS_NODE_TYPES.imageGen,
+  CANVAS_NODE_TYPES.imageEdit,
+  CANVAS_NODE_TYPES.storyboardGen,
+  CANVAS_NODE_TYPES.textAnnotation,
+]);
+
+const PANO_360_DOWNSTREAM_IMAGE_TYPES = new Set<CanvasNodeType>([
+  CANVAS_NODE_TYPES.upload,
+  CANVAS_NODE_TYPES.imageEdit,
+  CANVAS_NODE_TYPES.imageGen,
+  CANVAS_NODE_TYPES.exportImage,
+]);
+
+export function resolveAllowedNodeTypes(
+  handleType: 'source' | 'target',
+  originNodeType?: CanvasNodeType,
+): CanvasNodeType[] {
+  if (handleType === 'source') {
+    return getDownstreamSpawnTypes(originNodeType);
+  }
+  const base = getConnectMenuNodeTypes(handleType);
+  if (originNodeType === CANVAS_NODE_TYPES.threeDWorld) {
+    const allowed = new Set<CanvasNodeType>([
+      CANVAS_NODE_TYPES.textAnnotation,
+      CANVAS_NODE_TYPES.imageGen,
+    ]);
+    return base.filter((type) => allowed.has(type));
+  }
+  if (originNodeType === CANVAS_NODE_TYPES.imageGen) {
+    return [
+      CANVAS_NODE_TYPES.textAnnotation,
+      CANVAS_NODE_TYPES.script,
+      CANVAS_NODE_TYPES.upload,
+    ];
+  }
+  if (originNodeType === CANVAS_NODE_TYPES.video) {
+    return [
+      CANVAS_NODE_TYPES.textAnnotation,
+      CANVAS_NODE_TYPES.imageGen,
+      CANVAS_NODE_TYPES.audio,
+    ];
+  }
+  if (originNodeType) {
+    const allowedUpstream = getAllowedUpstreamSourceTypes(originNodeType);
+    if (allowedUpstream) {
+      return [...allowedUpstream];
+    }
+  }
+  return base;
+}
+
+export function canNodeTypeBeManualConnectionSource(
+  type: CanvasNodeType,
+  targetType?: CanvasNodeType,
+): boolean {
+  if (targetType === CANVAS_NODE_TYPES.threeDWorld) {
+    return THREE_D_WORLD_MANUAL_SOURCE_TYPES.has(type);
+  }
+  if (type === CANVAS_NODE_TYPES.pano360Viewer) {
+    return targetType ? PANO_360_DOWNSTREAM_IMAGE_TYPES.has(targetType) : true;
+  }
+  if (targetType && getAllowedUpstreamSourceTypes(targetType)) {
+    return isUpstreamConnectionAllowed(type, targetType);
+  }
+  return getDownstreamSpawnTypes(type).length > 0;
+}
+
+export function canNodeBeManualConnectionSource(
+  nodeId: string | null | undefined,
+  nodes: readonly CanvasNode[],
+  targetNodeId?: string | null,
+): boolean {
+  if (!nodeId) {
+    return false;
+  }
+  const node = nodes.find((item) => item.id === nodeId);
+  if (!node) {
+    return false;
+  }
+  const targetType = targetNodeId
+    ? nodes.find((item) => item.id === targetNodeId)?.type
+    : undefined;
+  return canNodeTypeBeManualConnectionSource(node.type, targetType);
+}
 
 export function validateCanvasConnection(
   nodes: readonly CanvasNode[],

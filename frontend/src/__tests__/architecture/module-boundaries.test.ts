@@ -2209,6 +2209,10 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
     );
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
     const forbiddenImports = importSpecifiers(connectionPath).filter(
       (specifier) =>
         specifier === "react" ||
@@ -2228,10 +2232,28 @@ describe("frontend architecture boundaries", () => {
       "export function",
       "validateCanvasConnection(",
     ].join(" ");
+    const menuDeclaration = [
+      "export function",
+      "resolveAllowedNodeTypes(",
+    ].join(" ");
+    const typeEligibilityDeclaration = [
+      "export function",
+      "canNodeTypeBeManualConnectionSource(",
+    ].join(" ");
+    const nodeEligibilityDeclaration = [
+      "export function",
+      "canNodeBeManualConnectionSource(",
+    ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
-      .filter((path) =>
-        readFileSync(path, "utf8").includes(validationDeclaration),
-      )
+      .filter((path) => {
+        const source = readFileSync(path, "utf8");
+        return (
+          source.includes(validationDeclaration) ||
+          source.includes(menuDeclaration) ||
+          source.includes(typeEligibilityDeclaration) ||
+          source.includes(nodeEligibilityDeclaration)
+        );
+      })
       .map(relativeSource)
       .sort();
 
@@ -2240,9 +2262,22 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/domain/canvasConnection.ts",
     ]);
     expect(connectionModel).toContain(validationDeclaration);
+    expect(connectionModel).toContain(menuDeclaration);
+    expect(connectionModel).toContain(typeEligibilityDeclaration);
+    expect(connectionModel).toContain(nodeEligibilityDeclaration);
     expect(edgeCreationModel).toContain(
       "from '../domain/canvasConnection'",
     );
+    expect(canvasView).toContain(
+      "@/features/canvas/domain/canvasConnection",
+    );
+    expect(canvasView).not.toContain("function resolveAllowedNodeTypes(");
+    expect(canvasView).not.toContain(
+      "function canNodeTypeBeManualConnectionSource(",
+    );
+    expect(canvasView).not.toContain("function canNodeBeManualConnectionSource(");
+    expect(canvasView).not.toContain("THREE_D_WORLD_MANUAL_SOURCE_TYPES");
+    expect(canvasView).not.toContain("PANO_360_DOWNSTREAM_IMAGE_TYPES");
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasConnection",
     );

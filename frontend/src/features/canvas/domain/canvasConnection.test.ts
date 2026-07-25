@@ -7,7 +7,12 @@ import {
   type CanvasNode,
   type CanvasNodeType,
 } from './canvasNodes';
-import { validateCanvasConnection } from './canvasConnection';
+import {
+  canNodeBeManualConnectionSource,
+  canNodeTypeBeManualConnectionSource,
+  resolveAllowedNodeTypes,
+  validateCanvasConnection,
+} from './canvasConnection';
 
 function node(id: string, type: CanvasNodeType): CanvasNode {
   return {
@@ -19,6 +24,80 @@ function node(id: string, type: CanvasNodeType): CanvasNode {
 }
 
 describe('Canvas connection rules', () => {
+  it('resolves the creation menu from the dragged handle and origin type', () => {
+    expect(resolveAllowedNodeTypes('source', CANVAS_NODE_TYPES.video)).toEqual([
+      CANVAS_NODE_TYPES.textAnnotation,
+      CANVAS_NODE_TYPES.video,
+      CANVAS_NODE_TYPES.videoCompose,
+      CANVAS_NODE_TYPES.script,
+    ]);
+    expect(resolveAllowedNodeTypes('target', CANVAS_NODE_TYPES.threeDWorld)).toEqual([]);
+    expect(resolveAllowedNodeTypes('target', CANVAS_NODE_TYPES.imageGen)).toEqual([
+      CANVAS_NODE_TYPES.textAnnotation,
+      CANVAS_NODE_TYPES.script,
+      CANVAS_NODE_TYPES.upload,
+    ]);
+    expect(resolveAllowedNodeTypes('target', CANVAS_NODE_TYPES.video)).toEqual([
+      CANVAS_NODE_TYPES.textAnnotation,
+      CANVAS_NODE_TYPES.imageGen,
+      CANVAS_NODE_TYPES.audio,
+    ]);
+    expect(resolveAllowedNodeTypes('target', CANVAS_NODE_TYPES.audio)).toEqual([
+      CANVAS_NODE_TYPES.textAnnotation,
+    ]);
+  });
+
+  it('applies manual source restrictions for world, panorama and typed inputs', () => {
+    expect(
+      canNodeTypeBeManualConnectionSource(
+        CANVAS_NODE_TYPES.exportImage,
+        CANVAS_NODE_TYPES.threeDWorld,
+      ),
+    ).toBe(true);
+    expect(
+      canNodeTypeBeManualConnectionSource(
+        CANVAS_NODE_TYPES.video,
+        CANVAS_NODE_TYPES.threeDWorld,
+      ),
+    ).toBe(false);
+    expect(
+      canNodeTypeBeManualConnectionSource(
+        CANVAS_NODE_TYPES.pano360Viewer,
+        CANVAS_NODE_TYPES.upload,
+      ),
+    ).toBe(true);
+    expect(
+      canNodeTypeBeManualConnectionSource(
+        CANVAS_NODE_TYPES.pano360Viewer,
+        CANVAS_NODE_TYPES.video,
+      ),
+    ).toBe(false);
+    expect(
+      canNodeTypeBeManualConnectionSource(
+        CANVAS_NODE_TYPES.textAnnotation,
+        CANVAS_NODE_TYPES.audio,
+      ),
+    ).toBe(true);
+    expect(
+      canNodeTypeBeManualConnectionSource(
+        CANVAS_NODE_TYPES.upload,
+        CANVAS_NODE_TYPES.audio,
+      ),
+    ).toBe(false);
+  });
+
+  it('resolves manual source eligibility from graph node ids', () => {
+    const source = node('source', CANVAS_NODE_TYPES.exportImage);
+    const invalidSource = node('invalid-source', CANVAS_NODE_TYPES.video);
+    const target = node('target', CANVAS_NODE_TYPES.threeDWorld);
+    const nodes = [source, invalidSource, target];
+
+    expect(canNodeBeManualConnectionSource(source.id, nodes, target.id)).toBe(true);
+    expect(canNodeBeManualConnectionSource(invalidSource.id, nodes, target.id)).toBe(false);
+    expect(canNodeBeManualConnectionSource('missing', nodes, target.id)).toBe(false);
+    expect(canNodeBeManualConnectionSource(null, nodes)).toBe(false);
+  });
+
   it('lets React Flow own missing endpoint and handle validation', () => {
     expect(
       validateCanvasConnection(

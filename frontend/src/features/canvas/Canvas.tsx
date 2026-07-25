@@ -45,6 +45,11 @@ import {
   resolveAbsolutePosition,
 } from '@/features/canvas/domain/canvasGeometry';
 import { findLinkedCapturePartnerIds } from '@/features/canvas/domain/canvasCapturePartners';
+import {
+  canNodeBeManualConnectionSource,
+  canNodeTypeBeManualConnectionSource,
+  resolveAllowedNodeTypes,
+} from '@/features/canvas/domain/canvasConnection';
 import { useAppStore } from '@/stores/app-store';
 import { getSkillRegistry } from '@/api/skills';
 import { SKILL_SCHEMA_VERSION, type SkillDefinition } from '@/features/freezone/context/skillRoles';
@@ -96,9 +101,7 @@ import { readUrl } from '@/lib/url-params';
 import { useQueryClient } from '@tanstack/react-query';
 import { prefetchEpisodeBeats, prefetchEpisodeDetail } from '@/modules/narrative_planning/public';
 import {
-  getConnectMenuNodeTypes,
   getDownstreamSpawnTypes,
-  getAllowedUpstreamSourceTypes,
   isUpstreamConnectionAllowed,
   nodeHasSourceHandle,
   nodeHasTargetHandle,
@@ -380,111 +383,6 @@ function collectDroppedMediaFiles(dataTransfer: DataTransfer): File[] {
       isVideoFile(file) ||
       file.type.startsWith('audio/')
   );
-}
-
-function resolveAllowedNodeTypes(
-  handleType: HandleType,
-  originNodeType?: CanvasNodeType,
-): CanvasNodeType[] {
-  // 拖线落空时弹出的「创建新节点」菜单，与 NodeSpawnPlusOverlay 的 + 菜单
-  // 共用同一份白名单：source 端用 getDownstreamSpawnTypes(originType)。
-  if (handleType === 'source') {
-    return getDownstreamSpawnTypes(originNodeType);
-  }
-  const base = getConnectMenuNodeTypes(handleType);
-  // 3D 世界节点的上游仅允许文本 / 图片节点（Phase 1）。
-  if (originNodeType === CANVAS_NODE_TYPES.threeDWorld && handleType === 'target') {
-    const allowed = new Set<CanvasNodeType>([
-      CANVAS_NODE_TYPES.textAnnotation,
-      CANVAS_NODE_TYPES.imageGen,
-    ]);
-    return base.filter((type) => allowed.has(type));
-  }
-  // 图片节点的上游仅允许 文本（textAnnotation / script）+ 图片（upload）
-  // —— 不收音频 / 视频 / 3D 世界。这里不沿用 base 过滤，因为 base 只看
-  // `fromTarget: true`，textAnnotation / imageGen 等 fromTarget 默认为 false
-  // 会被错杀；我们对 imageGen target 直接重写候选集。
-  if (originNodeType === CANVAS_NODE_TYPES.imageGen && handleType === 'target') {
-    return [
-      CANVAS_NODE_TYPES.textAnnotation,
-      CANVAS_NODE_TYPES.script,
-      CANVAS_NODE_TYPES.upload,
-    ];
-  }
-  // 视频节点的上游仅允许 文本 / 图片（imageGen） / 音频 —— 跟
-  // NodeSpawnPlusOverlay 左侧「+」按钮的白名单保持一致。
-  if (originNodeType === CANVAS_NODE_TYPES.video && handleType === 'target') {
-    return [
-      CANVAS_NODE_TYPES.textAnnotation,
-      CANVAS_NODE_TYPES.imageGen,
-      CANVAS_NODE_TYPES.audio,
-    ];
-  }
-  // 受上游类型白名单约束的目标（如音频←文本）：直接返回领域层白名单，保证连线
-  // 菜单、手动拖线、isValidConnection、store 建边收口共用同一份规则。这里不沿用
-  // base 过滤——base 只看 connectMenu.fromTarget，textAnnotation 的 fromTarget
-  // 为 false 会被错杀。
-  if (handleType === 'target' && originNodeType) {
-    const allowedUpstream = getAllowedUpstreamSourceTypes(originNodeType);
-    if (allowedUpstream) {
-      return [...allowedUpstream];
-    }
-  }
-  return base;
-}
-
-// 3D 世界节点的目标允许的手动拖线源：任何可以承载图片或文本结果的节点。
-const THREE_D_WORLD_MANUAL_SOURCE_TYPES = new Set<CanvasNodeType>([
-  CANVAS_NODE_TYPES.upload,
-  CANVAS_NODE_TYPES.exportImage,
-  CANVAS_NODE_TYPES.imageGen,
-  CANVAS_NODE_TYPES.imageEdit,
-  CANVAS_NODE_TYPES.storyboardGen,
-  CANVAS_NODE_TYPES.textAnnotation,
-]);
-
-// 360° 全景查看器的下游手动连线只允许图片类节点。
-const PANO_360_DOWNSTREAM_IMAGE_TYPES = new Set<CanvasNodeType>([
-  CANVAS_NODE_TYPES.upload,
-  CANVAS_NODE_TYPES.imageEdit,
-  CANVAS_NODE_TYPES.imageGen,
-  CANVAS_NODE_TYPES.exportImage,
-]);
-
-function canNodeTypeBeManualConnectionSource(
-  type: CanvasNodeType,
-  targetType?: CanvasNodeType,
-): boolean {
-  if (targetType === CANVAS_NODE_TYPES.threeDWorld) {
-    return THREE_D_WORLD_MANUAL_SOURCE_TYPES.has(type);
-  }
-  if (type === CANVAS_NODE_TYPES.pano360Viewer) {
-    return targetType ? PANO_360_DOWNSTREAM_IMAGE_TYPES.has(targetType) : true;
-  }
-  // 受上游类型白名单约束的目标（如音频←文本）走领域层统一规则。
-  if (targetType && getAllowedUpstreamSourceTypes(targetType)) {
-    return isUpstreamConnectionAllowed(type, targetType);
-  }
-  // 只要 getDownstreamSpawnTypes 给这种类型留了至少一个合法下游，就允许从右侧
-  // source handle 拖线创建 —— 这样 + 菜单和拖线菜单始终对齐，新增节点类型时
-  // 只需要更新 getDownstreamSpawnTypes 一处。
-  return getDownstreamSpawnTypes(type).length > 0;
-}
-
-function canNodeBeManualConnectionSource(
-  nodeId: string | null | undefined,
-  nodes: CanvasNode[],
-  targetNodeId?: string | null | undefined,
-): boolean {
-  if (!nodeId) {
-    return false;
-  }
-  const node = nodes.find((item) => item.id === nodeId);
-  if (!node) return false;
-  const targetType = targetNodeId
-    ? nodes.find((item) => item.id === targetNodeId)?.type
-    : undefined;
-  return canNodeTypeBeManualConnectionSource(node.type, targetType);
 }
 
 function getClientPosition(event: MouseEvent | TouchEvent): { x: number; y: number } | null {
