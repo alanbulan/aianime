@@ -1253,11 +1253,15 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useCanvasMinimapVisibility.ts",
     ]);
     expect(hookModel).toContain(hookDeclaration);
+    expect(hookModel).toContain("isTypingTarget");
+    expect(hookModel).toContain("isImmersiveViewerActive");
     expect(canvasView).toContain("./hooks/useCanvasMinimapVisibility");
     expect(canvasView).not.toContain("const [minimapPinned,");
     expect(canvasView).not.toContain("const [minimapHovered,");
     expect(canvasView).not.toContain("minimapHideTimerRef");
     expect(canvasView).not.toContain("setMinimapPinned(");
+    expect(canvasView).not.toContain("handleMinimapKey");
+    expect(canvasView).not.toContain("event.key.toLowerCase() !== 'm'");
   });
 
   it("keeps Canvas transient node UI timing in presentation hooks", () => {

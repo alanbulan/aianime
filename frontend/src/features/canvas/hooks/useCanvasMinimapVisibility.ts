@@ -1,6 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
+
+import { isTypingTarget } from '../ui/canvasInteractionTargets';
+
 const MINIMAP_HIDE_DELAY_MS = 180;
 
 export interface CanvasMinimapVisibilityController {
@@ -37,6 +41,27 @@ export function useCanvasMinimapVisibility(): CanvasMinimapVisibilityController 
   const togglePinned = useCallback(() => {
     setPinned((current) => !current);
   }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.ctrlKey
+        || event.metaKey
+        || event.shiftKey
+        || event.altKey
+        || event.key.toLowerCase() !== 'm'
+        || isTypingTarget(event.target)
+        || isImmersiveViewerActive()
+      ) {
+        return;
+      }
+      event.preventDefault();
+      togglePinned();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [togglePinned]);
 
   useEffect(() => clearHideTimer, [clearHideTimer]);
 

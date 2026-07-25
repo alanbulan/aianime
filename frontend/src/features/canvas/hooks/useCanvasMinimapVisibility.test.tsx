@@ -2,6 +2,8 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { useViewerImmersiveBody } from '@/features/viewer-kit/useViewerImmersiveBody';
+
 import { useCanvasMinimapVisibility } from './useCanvasMinimapVisibility';
 
 describe('useCanvasMinimapVisibility', () => {
@@ -45,5 +47,39 @@ describe('useCanvasMinimapVisibility', () => {
     expect(vi.getTimerCount()).toBe(1);
     unmount();
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('toggles with an unmodified M key outside typing and immersive contexts', () => {
+    const { result } = renderHook(() => useCanvasMinimapVisibility());
+    const toggleEvent = new KeyboardEvent('keydown', {
+      key: 'm',
+      cancelable: true,
+    });
+
+    act(() => window.dispatchEvent(toggleEvent));
+    expect(toggleEvent.defaultPrevented).toBe(true);
+    expect(result.current.pinned).toBe(true);
+    act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'M' })));
+    expect(result.current.pinned).toBe(false);
+
+    act(() => window.dispatchEvent(new KeyboardEvent('keydown', {
+      key: 'm',
+      ctrlKey: true,
+    })));
+    expect(result.current.pinned).toBe(false);
+
+    const input = document.createElement('input');
+    document.body.append(input);
+    act(() => input.dispatchEvent(new KeyboardEvent('keydown', {
+      bubbles: true,
+      key: 'm',
+    })));
+    expect(result.current.pinned).toBe(false);
+
+    const immersiveViewer = renderHook(() => useViewerImmersiveBody(true));
+    act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'm' })));
+    expect(result.current.pinned).toBe(false);
+    immersiveViewer.unmount();
+    input.remove();
   });
 });

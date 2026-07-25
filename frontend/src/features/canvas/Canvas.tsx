@@ -1352,27 +1352,6 @@ export function Canvas({
     return () => window.removeEventListener('keydown', handleBookmarkKeys);
   }, [reactFlowInstance]);
 
-  // M — toggle the canvas minimap (pin / unpin). Bare key only, so it never
-  // collides with ⌘M (minimize) or text input.
-  useEffect(() => {
-    const handleMinimapKey = (event: KeyboardEvent) => {
-      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
-        return;
-      }
-      if (event.key.toLowerCase() !== 'm') {
-        return;
-      }
-      if (isTypingTarget(event.target) || isImmersiveViewerActive()) {
-        return;
-      }
-      event.preventDefault();
-      toggleMinimapPinned();
-    };
-
-    window.addEventListener('keydown', handleMinimapKey);
-    return () => window.removeEventListener('keydown', handleMinimapKey);
-  }, [toggleMinimapPinned]);
-
   const selectedNodeIds = useMemo(
     () => nodes.filter((node) => Boolean(node.selected)).map((node) => node.id),
     [nodes]
