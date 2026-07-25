@@ -44,7 +44,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { centerCropBoxForRatio, zoomCropBox } from "@/lib/aspect-ratio";
+import {
+  centerCropBoxForRatio,
+  clampCropBox,
+  cropBoxPercentStyle,
+  zoomCropBox,
+} from "@/lib/aspect-ratio";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { cn } from "@/lib/utils";
 import type {
@@ -74,23 +79,6 @@ const RENDER_BACKGROUND_ANCHOR_LABEL_KEYS: Record<string, string> = {
   master: "episode.workbench.render.backgroundAnchorLabels.master",
   reverse: "episode.workbench.render.backgroundAnchorLabels.reverse",
 };
-
-function clampCropBox(
-  crop: { x: number; y: number; width: number; height: number },
-  imageSize: { width: number; height: number },
-) {
-  return {
-    ...crop,
-    x: Math.min(
-      Math.max(0, Math.round(crop.x)),
-      Math.max(0, imageSize.width - crop.width),
-    ),
-    y: Math.min(
-      Math.max(0, Math.round(crop.y)),
-      Math.max(0, imageSize.height - crop.height),
-    ),
-  };
-}
 
 export interface RenderSectionViewProps {
   controller: RenderSectionController;
@@ -573,17 +561,22 @@ function RenderBackgroundReferencePanel({
       x: drag.crop.x + (event.clientX - drag.clientX) * scaleX,
       y: drag.crop.y + (event.clientY - drag.clientY) * scaleY,
     };
-    setCropBox(clampCropBox(nextCrop, cropNaturalSize));
+    setCropBox(
+      clampCropBox(
+        nextCrop,
+        cropNaturalSize.width,
+        cropNaturalSize.height,
+      ),
+    );
   };
 
   const cropBoxStyle =
     cropBox && cropNaturalSize
-      ? {
-          left: `${(cropBox.x / cropNaturalSize.width) * 100}%`,
-          top: `${(cropBox.y / cropNaturalSize.height) * 100}%`,
-          width: `${(cropBox.width / cropNaturalSize.width) * 100}%`,
-          height: `${(cropBox.height / cropNaturalSize.height) * 100}%`,
-        }
+      ? cropBoxPercentStyle(
+          cropBox,
+          cropNaturalSize.width,
+          cropNaturalSize.height,
+        )
       : undefined;
 
   return (

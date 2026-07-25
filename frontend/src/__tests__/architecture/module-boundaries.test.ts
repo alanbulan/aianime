@@ -926,7 +926,8 @@ describe("frontend architecture boundaries", () => {
     expect(renderSectionViewSource).toContain(
       "function RenderBackgroundReferencePanel",
     );
-    expect(renderSectionViewSource).toContain("function clampCropBox");
+    expect(renderSectionViewSource).toContain("clampCropBox(");
+    expect(renderSectionViewSource).not.toContain("function clampCropBox");
     expect(renderSectionControllerSource).toContain(
       "createUseRenderSectionController",
     );

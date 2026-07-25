@@ -209,6 +209,7 @@ vi.mock("@/modules/production/public", () => ({
 }));
 
 vi.mock("@/lib/queries/generation-credit-cost", () => ({
+  useGenerationCreditCosts: () => [],
   useGenerationCreditCost: () => ({
     data: {
       ok: true,

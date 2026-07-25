@@ -645,6 +645,7 @@ vi.mock("@/modules/narrative_planning/public", () => ({
 }));
 
 vi.mock("@/lib/queries/generation-credit-cost", () => ({
+  useGenerationCreditCosts: () => [],
   useGenerationCreditCost: (kind: string, value?: string) => ({
     data:
       kind === "feature" && value === "beat_video_prompt"

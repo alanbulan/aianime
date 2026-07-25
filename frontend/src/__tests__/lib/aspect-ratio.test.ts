@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   aspectRatioForOrientation,
+  clampCropBox,
+  cropBoxPercentStyle,
   orientationForAspectRatio,
   orientationForSpineTemplate,
   zoomCropBox,
@@ -33,5 +35,21 @@ describe("aspect ratio helpers", () => {
     expect(
       zoomCropBox({ x: 200, y: 100, width: 200, height: 100 }, 300, 180, 2),
     ).toEqual({ x: 0, y: 30, width: 300, height: 150 });
+  });
+
+  it("clamps crop geometry and projects it to percentage styles", () => {
+    const crop = clampCropBox(
+      { x: 900, y: -20, width: 300, height: 220 },
+      1000,
+      600,
+    );
+
+    expect(crop).toEqual({ x: 700, y: 0, width: 300, height: 220 });
+    expect(cropBoxPercentStyle(crop, 1000, 600)).toEqual({
+      left: "70%",
+      top: "0%",
+      width: "30%",
+      height: "36.666666666666664%",
+    });
   });
 });

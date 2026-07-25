@@ -3,12 +3,12 @@ import { useEffect, useRef, useState } from "react";
 
 import {
   centerCropBoxForRatio,
+  clampCropBox,
   zoomCropBox,
   type CropBox,
 } from "@/lib/aspect-ratio";
 import { resolveMediaUrl } from "@/lib/media-url";
 import {
-  clampSeedance2CropBox,
   cropAspectRatioValue,
   type Seedance2CropAspect,
   type Seedance2CropIntent,
@@ -99,7 +99,7 @@ export function useSeedance2AssetCropController(
     const scaleX = imageSize.width / imageRect.width;
     const scaleY = imageSize.height / imageRect.height;
     setCrop(
-      clampSeedance2CropBox(
+      clampCropBox(
         {
           ...drag.crop,
           x: drag.crop.x + (clientX - drag.clientX) * scaleX,

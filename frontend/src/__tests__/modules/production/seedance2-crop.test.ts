@@ -2,7 +2,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  clampSeedance2CropBox,
   isSeedanceReferenceCropBackend,
   seedance2CropAspectForMode,
   seedance2CropTargetForAsset,
@@ -53,15 +52,5 @@ describe("Production Seedance2 crop rules", () => {
     );
     expect(isSeedanceReferenceCropBackend("seedance-1.5-pro")).toBe(true);
     expect(isSeedanceReferenceCropBackend("grok-video")).toBe(false);
-  });
-
-  it("clamps moved crop boxes to source bounds", () => {
-    expect(
-      clampSeedance2CropBox(
-        { x: 900, y: -20, width: 300, height: 220 },
-        1000,
-        600,
-      ),
-    ).toEqual({ x: 700, y: 0, width: 300, height: 220 });
   });
 });

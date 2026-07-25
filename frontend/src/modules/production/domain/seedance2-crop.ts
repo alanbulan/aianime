@@ -1,5 +1,4 @@
 // Copyright (c) 2026 AI anime
-import type { CropBox } from "@/lib/aspect-ratio";
 import type {
   Seedance2AssetItem,
   VideoInputCropTarget,
@@ -61,26 +60,4 @@ export function cropAspectRatioValue(aspect: Seedance2CropAspect): number {
   if (aspect === "16:9") return 16 / 9;
   if (aspect === "2:3") return 2 / 3;
   return 9 / 16;
-}
-
-export function clampSeedance2CropBox(
-  crop: CropBox,
-  sourceWidth: number,
-  sourceHeight: number,
-): CropBox {
-  const width = Math.max(1, Math.min(Math.round(crop.width), sourceWidth));
-  const height = Math.max(1, Math.min(Math.round(crop.height), sourceHeight));
-
-  return {
-    x: Math.min(
-      Math.max(0, Math.round(crop.x)),
-      Math.max(0, sourceWidth - width),
-    ),
-    y: Math.min(
-      Math.max(0, Math.round(crop.y)),
-      Math.max(0, sourceHeight - height),
-    ),
-    width,
-    height,
-  };
 }

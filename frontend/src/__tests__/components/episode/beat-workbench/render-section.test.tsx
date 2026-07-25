@@ -210,6 +210,7 @@ const scenePlatePreviewState: {
 } = { data: null };
 
 vi.mock("@/lib/queries/generation-credit-cost", () => ({
+  useGenerationCreditCosts: () => [],
   useGenerationCreditCost: () => ({
     data: {
       ok: true,

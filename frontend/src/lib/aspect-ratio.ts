@@ -113,6 +113,13 @@ export interface CropBox {
   height: number;
 }
 
+export interface CropBoxPercentStyle {
+  left: string;
+  top: string;
+  width: string;
+  height: string;
+}
+
 export const FULL_SOURCE_CROP_SIZE = 999_999;
 
 export function centerCropBoxForRatio(
@@ -183,5 +190,43 @@ export function zoomCropBox(
     ),
     width: nextWidth,
     height: nextHeight,
+  };
+}
+
+export function clampCropBox(
+  crop: CropBox,
+  sourceWidth: number,
+  sourceHeight: number,
+): CropBox {
+  const width = Math.max(1, Math.min(Math.round(crop.width), sourceWidth));
+  const height = Math.max(1, Math.min(Math.round(crop.height), sourceHeight));
+
+  return {
+    x: Math.min(
+      Math.max(0, Math.round(crop.x)),
+      Math.max(0, sourceWidth - width),
+    ),
+    y: Math.min(
+      Math.max(0, Math.round(crop.y)),
+      Math.max(0, sourceHeight - height),
+    ),
+    width,
+    height,
+  };
+}
+
+export function cropBoxPercentStyle(
+  crop: CropBox,
+  sourceWidth: number,
+  sourceHeight: number,
+): CropBoxPercentStyle {
+  const safeWidth = Math.max(1, sourceWidth);
+  const safeHeight = Math.max(1, sourceHeight);
+
+  return {
+    left: `${(crop.x / safeWidth) * 100}%`,
+    top: `${(crop.y / safeHeight) * 100}%`,
+    width: `${(crop.width / safeWidth) * 100}%`,
+    height: `${(crop.height / safeHeight) * 100}%`,
   };
 }

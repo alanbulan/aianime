@@ -1,9 +1,11 @@
 // Copyright (c) 2026 AI anime
-import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { Loader2, Scissors, X } from "lucide-react";
 
-import type { CropBox } from "@/lib/aspect-ratio";
+import {
+  cropBoxPercentStyle,
+  type CropBox,
+} from "@/lib/aspect-ratio";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -156,20 +158,4 @@ export function Seedance2AssetCropDialog({
       </DialogContent>
     </Dialog>
   );
-}
-
-function cropBoxPercentStyle(
-  crop: CropBox,
-  sourceWidth: number,
-  sourceHeight: number,
-): CSSProperties {
-  const safeWidth = Math.max(1, sourceWidth);
-  const safeHeight = Math.max(1, sourceHeight);
-
-  return {
-    left: `${(crop.x / safeWidth) * 100}%`,
-    top: `${(crop.y / safeHeight) * 100}%`,
-    width: `${(crop.width / safeWidth) * 100}%`,
-    height: `${(crop.height / safeHeight) * 100}%`,
-  };
 }

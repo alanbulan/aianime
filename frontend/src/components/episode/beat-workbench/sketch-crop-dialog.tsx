@@ -3,7 +3,6 @@ import {
   useEffect,
   useRef,
   useState,
-  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { useTranslation } from "react-i18next";
@@ -22,7 +21,12 @@ import {
   useSketchPoseEditor,
 } from "@/modules/production/public";
 import { resolveMediaUrl } from "@/lib/media-url";
-import { centerCropBoxForRatio, zoomCropBox } from "@/lib/aspect-ratio";
+import {
+  centerCropBoxForRatio,
+  clampCropBox,
+  cropBoxPercentStyle,
+  zoomCropBox,
+} from "@/lib/aspect-ratio";
 import { useProjectAspectRatio } from "@/stores/aspect-ratio-store";
 import { withImageCacheBust } from "@/features/canvas/application/imageData";
 import { CROP_DIALOG_SAVE_BUTTON_CLASS } from "./media-styles";
@@ -243,36 +247,4 @@ export function SketchCropDialog({
       </DialogContent>
     </Dialog>
   );
-}
-
-function cropBoxPercentStyle(
-  crop: SketchCrop,
-  sourceWidth: number,
-  sourceHeight: number,
-): CSSProperties {
-  const safeWidth = Math.max(1, sourceWidth);
-  const safeHeight = Math.max(1, sourceHeight);
-
-  return {
-    left: `${(crop.x / safeWidth) * 100}%`,
-    top: `${(crop.y / safeHeight) * 100}%`,
-    width: `${(crop.width / safeWidth) * 100}%`,
-    height: `${(crop.height / safeHeight) * 100}%`,
-  };
-}
-
-function clampCropBox(
-  crop: SketchCrop,
-  sourceWidth: number,
-  sourceHeight: number,
-): SketchCrop {
-  const width = Math.max(1, Math.min(Math.round(crop.width), sourceWidth));
-  const height = Math.max(1, Math.min(Math.round(crop.height), sourceHeight));
-
-  return {
-    x: Math.min(Math.max(0, Math.round(crop.x)), Math.max(0, sourceWidth - width)),
-    y: Math.min(Math.max(0, Math.round(crop.y)), Math.max(0, sourceHeight - height)),
-    width,
-    height,
-  };
 }
