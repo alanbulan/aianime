@@ -79,25 +79,32 @@ const episodeDetailState: {
   }[];
 } = { identity_ids: [], prop_menu: [], scene_menu: [] };
 
-vi.mock("@/modules/narrative_planning/public", () => ({
-  useUpdateBeat: () => ({
-    mutateAsync,
-    mutate,
-    isPending: updateState.isPending,
-  }),
-  useEpisodeDetail: () => ({
-    data: {
-      ok: true,
+vi.mock("@/modules/narrative_planning/public", async () => {
+  const { TextPaneView } = await import(
+    "@/modules/narrative_planning/presentation/TextPaneView"
+  );
+
+  return {
+    TextPaneView,
+    useUpdateBeat: () => ({
+      mutateAsync,
+      mutate,
+      isPending: updateState.isPending,
+    }),
+    useEpisodeDetail: () => ({
       data: {
-        number: 1,
-        title: "ep1",
-        identity_ids: episodeDetailState.identity_ids,
-        prop_menu: episodeDetailState.prop_menu,
-        scene_menu: episodeDetailState.scene_menu,
+        ok: true,
+        data: {
+          number: 1,
+          title: "ep1",
+          identity_ids: episodeDetailState.identity_ids,
+          prop_menu: episodeDetailState.prop_menu,
+          scene_menu: episodeDetailState.scene_menu,
+        },
       },
-    },
-  }),
-}));
+    }),
+  };
+});
 
 const scenesState: {
   names: string[];

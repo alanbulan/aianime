@@ -95,6 +95,12 @@ export type {
 } from "@/modules/narrative_planning/application/use-insert-manual-shot-dialog-controller";
 export { SingleBeatPanelView } from "@/modules/narrative_planning/presentation/SingleBeatPanelView";
 export type { SingleBeatPanelViewProps } from "@/modules/narrative_planning/presentation/SingleBeatPanelView";
+export { TextPaneView } from "@/modules/narrative_planning/presentation/TextPaneView";
+export type {
+  TextPaneAssetType,
+  TextPaneViewModel,
+  TextPaneViewProps,
+} from "@/modules/narrative_planning/presentation/TextPaneView";
 export type {
   SectionId,
   SingleBeatPanelController,

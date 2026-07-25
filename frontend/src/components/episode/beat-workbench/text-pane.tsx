@@ -2,20 +2,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { ArrowUpRight } from "lucide-react";
-
-import { Label } from "@/components/ui/label";
-import { MentionTextarea } from "@/components/episode/beat-workbench/mention-textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { saveScopes, trackSave } from "@/stores/save-status-store";
 import { useNavigateToAsset } from "@/hooks/use-assets-deep-link";
 import {
+  TextPaneView,
   useEpisodeDetail,
   useUpdateBeat,
   type Beat,
@@ -36,8 +26,7 @@ import {
   sceneRefToName,
   type SceneRefRecordLike,
 } from "@/lib/scene-ref";
-import { timeOfDayLabel, timeOfDayOptions } from "@/lib/time-of-day";
-import { cn } from "@/lib/utils";
+import { timeOfDayOptions } from "@/lib/time-of-day";
 
 interface TextPaneProps {
   beat: Beat;
@@ -48,10 +37,6 @@ interface TextPaneProps {
 
 const NO_CHARACTER_MARKER = "__NO_CHARACTER__";
 const NO_PROP_MARKER = "__NO_PROP__";
-const NO_SCENE_MARKER = "__none__";
-const NO_SCENE_VARIANT_MARKER = "__NO_SCENE_VARIANT__";
-const NO_TIME_OF_DAY_MARKER = "__NO_TIME_OF_DAY__";
-const NO_SPEAKER_MARKER = "__NO_SPEAKER__";
 type TextPaneDirtyFields = {
   narration: boolean;
   visual: boolean;
@@ -59,25 +44,6 @@ type TextPaneDirtyFields = {
   timeOfDay: boolean;
   speaker: boolean;
 };
-
-const CONTROL_CLASS =
-  "rounded-[8px] border-border bg-muted text-[13px] text-foreground/88 shadow-none placeholder:text-muted-foreground hover:bg-accent focus-visible:border-primary/45 focus-visible:bg-muted focus-visible:ring-0";
-const COMPACT_CONTROL_CLASS = cn(CONTROL_CLASS, "h-8 px-3");
-// Dropdown popup polish — open below the trigger (not item-aligned/overlapping),
-// inset padding so the highlight rounds nicely, capped height with scroll.
-const SELECT_POPUP_CLASS = "max-h-72 p-1";
-const SELECT_ITEM_CLASS = "py-1.5";
-const MENTION_TEXTAREA_CLASS = cn(CONTROL_CLASS, "min-h-[72px]");
-const MENTION_TEXTAREA_INPUT_CLASS = "px-3 py-2 text-[13px] leading-6";
-
-function audioTypeLabel(
-  t: ReturnType<typeof useTranslation>["t"],
-  value: string | undefined | null,
-) {
-  if (value === "silence") return t("episode.workbench.text.silence");
-  if (value === "dialogue") return t("episode.workbench.text.dialogue");
-  return t("episode.workbench.text.narrationLabel");
-}
 
 /**
  * 文案 sub-tab — per-beat full metadata editor. Autosaves on blur (text inputs)
@@ -440,472 +406,93 @@ export function TextPane({ beat, project, episode, spineTemplate = "drama" }: Te
     () => timeOfDayOptions(timeOfDay, beat.time_of_day),
     [beat.time_of_day, timeOfDay],
   );
-  return (
-    <div className="space-y-3.5">
-      {/* 台词 — full width */}
-      <Field label={t("episode.workbench.text.narration")}>
-        <MentionTextarea
-          value={narration}
-          onChange={(e) => {
-            dirtyRef.current.narration = true;
-            setNarration(e.target.value);
-          }}
-          onBlur={saveNarration}
-          rows={2}
-          mentionLabels={mentionLabels}
-          placeholder={t("episode.workbench.text.narrationPlaceholder")}
-          className={MENTION_TEXTAREA_CLASS}
-          inputClassName={MENTION_TEXTAREA_INPUT_CLASS}
-        />
-      </Field>
-
-      <MetadataSection>
-        {/* 类型 + 场景 + 时间 — compact inline row */}
-        <div className="col-span-full grid grid-cols-[auto_minmax(0,1fr)_minmax(7rem,12rem)_auto] gap-x-3 gap-y-3">
-          <Field label={t("episode.workbench.text.type")}>
-            <Select
-              value={audioType}
-              onValueChange={(v) => {
-                const next = v ?? "narration";
-                setAudioType(next);
-                if (next !== (beat.audio_type ?? "narration")) {
-                  const patch: BeatUpdate = { audio_type: next };
-                  if ((spineTemplate !== "narrated" || next !== "dialogue") && speaker.trim()) {
-                    patch.speaker = "";
-                    setSpeaker("");
-                  }
-                  saveField(patch);
-                }
-              }}
-            >
-              <SelectTrigger
-                aria-label={t("episode.workbench.text.type")}
-                className={cn(COMPACT_CONTROL_CLASS, "w-full")}
-              >
-                <SelectValue>
-                  {audioTypeLabel(t, audioType)}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent
-                align="start"
-                alignItemWithTrigger={false}
-                className={SELECT_POPUP_CLASS}
-              >
-                {audioTypeOptions.map((value) => (
-                  <SelectItem
-                    key={value}
-                    value={value}
-                    className={SELECT_ITEM_CLASS}
-                  >
-                    {audioTypeLabel(t, value)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field
-            label={t("episode.workbench.text.location")}
-            action={
-              sceneId.trim() ? (
-                <button
-                  type="button"
-                  onClick={() => navigateToAsset("scene", sceneId.trim())}
-                  className="inline-flex items-center gap-0.5 text-xs text-muted-foreground transition-colors hover:text-primary"
-                  title={t("assets.common.jumpToAsset", { name: sceneId.trim() })}
-                >
-                  <ArrowUpRight className="size-3" />
-                </button>
-              ) : undefined
-            }
-          >
-            <Select
-              value={currentSceneRef.scene_id || NO_SCENE_MARKER}
-              onValueChange={(v) => {
-                const nextBase = v === NO_SCENE_MARKER ? "" : (v ?? "");
-                const nextSceneId = sceneNameForRef(nextBase, "");
-                dirtyRef.current.sceneRef = true;
-                setSceneId(nextSceneId);
-                saveSceneRefValue(nextBase, "");
-              }}
-            >
-              <SelectTrigger
-                aria-label={t("episode.workbench.text.location")}
-                className={cn(COMPACT_CONTROL_CLASS, "w-full")}
-              >
-                <SelectValue
-                  placeholder={t("episode.workbench.text.locationPlaceholder")}
-                >
-                  {sceneId || t("episode.workbench.text.locationPlaceholder")}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent
-                align="start"
-                alignItemWithTrigger={false}
-                className={SELECT_POPUP_CLASS}
-              >
-                <SelectItem value={NO_SCENE_MARKER} className={SELECT_ITEM_CLASS}>
-                  {t("episode.workbench.text.locationNone")}
-                </SelectItem>
-                {baseSceneChoices.map((id) => (
-                  <SelectItem key={id} value={id} className={SELECT_ITEM_CLASS}>
-                    {id}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field label={t("episode.workbench.text.sceneVariant", { defaultValue: "变体" })}>
-            <Select
-              value={currentSceneRef.variant_id || NO_SCENE_VARIANT_MARKER}
-              onValueChange={(v) => {
-                const nextVariant =
-                  v === NO_SCENE_VARIANT_MARKER ? "" : String(v ?? "");
-                const nextSceneId = sceneNameForRef(
-                  currentSceneRef.scene_id,
-                  nextVariant,
-                );
-                dirtyRef.current.sceneRef = true;
-                setSceneId(nextSceneId);
-                saveSceneRefValue(currentSceneRef.scene_id, nextVariant);
-              }}
-              disabled={!currentSceneRef.scene_id}
-            >
-              <SelectTrigger
-                aria-label={t("episode.workbench.text.sceneVariant", { defaultValue: "变体" })}
-                className={cn(COMPACT_CONTROL_CLASS, "w-full")}
-              >
-                <SelectValue>
-                  {currentSceneRef.variant_id ||
-                    t("episode.workbench.text.noSceneVariant", {
-                      defaultValue: "无变体",
-                    })}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent
-                align="start"
-                alignItemWithTrigger={false}
-                className={SELECT_POPUP_CLASS}
-              >
-                <SelectItem
-                  value={NO_SCENE_VARIANT_MARKER}
-                  className={SELECT_ITEM_CLASS}
-                >
-                  {t("episode.workbench.text.noSceneVariant", {
-                    defaultValue: "无变体",
-                  })}
-                </SelectItem>
-                {sceneVariantChoices.map((variant) => (
-                  <SelectItem
-                    key={variant}
-                    value={variant}
-                    className={SELECT_ITEM_CLASS}
-                  >
-                    {variant}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field label={t("episode.workbench.text.timeOfDay")}>
-            <Select
-              value={timeOfDay || NO_TIME_OF_DAY_MARKER}
-              onValueChange={(v) => {
-                const next = v === NO_TIME_OF_DAY_MARKER ? "" : (v ?? "");
-                dirtyRef.current.timeOfDay = true;
-                setTimeOfDay(next);
-                if (next !== (beat.time_of_day ?? "")) {
-                  saveField({ time_of_day: next });
-                }
-              }}
-            >
-              <SelectTrigger
-                aria-label={t("episode.workbench.text.timeOfDay")}
-                className={cn(COMPACT_CONTROL_CLASS, "w-full")}
-              >
-                <SelectValue
-                  placeholder={t("episode.workbench.text.timeOfDayPlaceholder")}
-                >
-                  {timeOfDayLabel(timeOfDay)}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent
-                align="start"
-                alignItemWithTrigger={false}
-                className={SELECT_POPUP_CLASS}
-              >
-                <SelectItem
-                  value={NO_TIME_OF_DAY_MARKER}
-                  className={SELECT_ITEM_CLASS}
-                >
-                  {timeOfDayLabel("")}
-                </SelectItem>
-                {timeOfDayChoices.map((value) => (
-                  <SelectItem key={value} value={value} className={SELECT_ITEM_CLASS}>
-                    {timeOfDayLabel(value)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-        </div>
-        {scenePlateRender?.label ? (
-          <p className="col-span-full rounded-[8px] border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
-            {scenePlateRender.label}
-          </p>
-        ) : null}
-
-        {/* 画面描述 — full width */}
-        <div className="col-span-full">
-          <Field label={t("episode.workbench.text.visualDescription")}>
-            <MentionTextarea
-              value={visual}
-              onChange={(e) => {
-                dirtyRef.current.visual = true;
-                setVisual(e.target.value);
-              }}
-              onBlur={saveVisual}
-              rows={2}
-              mentionLabels={mentionLabels}
-              className={MENTION_TEXTAREA_CLASS}
-              inputClassName={MENTION_TEXTAREA_INPUT_CLASS}
-            />
-          </Field>
-        </div>
-
-        {/* 出场身份 */}
-        <div className="col-span-full">
-          <Field label={t("episode.workbench.text.identities")}>
-            <IdentityBadgeGroup
-              options={identityOptions}
-              selected={identities}
-              onToggle={toggleIdentity}
-              onJump={(id) => navigateToAsset("identity", id)}
-              noJumpIds={[NO_CHARACTER_MARKER]}
-              labels={{
-                [NO_CHARACTER_MARKER]: t("episode.workbench.text.noCharacter"),
-              }}
-              jumpLabel={t("assets.common.jumpToAsset", { name: "" }).trim()}
-              emptyMessage={t("episode.workbench.text.identitiesNotPlanned")}
-              ariaLabel={t("episode.workbench.text.identities")}
-              removedLabel={t("common.removed")}
-            />
-            {!hasIdentityDetectionState ? (
-              <p className="mt-1 text-xs text-warning">
-                {t("episode.workbench.text.identityDetectionRequired")}
-              </p>
-            ) : null}
-          </Field>
-        </div>
-
-        {/* 出场道具 */}
-        <div className="col-span-full">
-          <Field label={t("episode.workbench.text.props")}>
-            <IdentityBadgeGroup
-              options={propOptions}
-              selected={props}
-              onToggle={toggleProp}
-              onJump={(id) => navigateToAsset("prop", id)}
-              noJumpIds={[NO_PROP_MARKER]}
-              labels={{
-                [NO_PROP_MARKER]: t("episode.workbench.text.noProp"),
-              }}
-              jumpLabel={t("assets.common.jumpToAsset", { name: "" }).trim()}
-              emptyMessage={t("episode.workbench.text.propsNotPlanned")}
-              ariaLabel={t("episode.workbench.text.props")}
-              removedLabel={t("common.removed")}
-            />
-          </Field>
-        </div>
-
-        {audioType === "dialogue" && spineTemplate === "narrated" ? (
-          <Field label={t("episode.workbench.text.speaker")}>
-            <Select
-              value={
-                episodeIdentityIds.includes(speaker)
-                  ? speaker
-                  : NO_SPEAKER_MARKER
-              }
-              onValueChange={(value) => {
-                const next = value === NO_SPEAKER_MARKER ? "" : String(value ?? "");
-                dirtyRef.current.speaker = true;
-                setSpeaker(next);
-                if (next !== (beat.speaker ?? "")) {
-                  saveField({ speaker: next });
-                }
-              }}
-            >
-              <SelectTrigger
-                aria-label={t("episode.workbench.text.speaker")}
-                className={cn(COMPACT_CONTROL_CLASS, "w-full")}
-              >
-                <SelectValue
-                  placeholder={t("episode.workbench.text.speakerRequired")}
-                >
-                  {episodeIdentityIds.includes(speaker)
-                    ? speaker
-                    : t("episode.workbench.text.speakerRequired")}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent
-                align="start"
-                alignItemWithTrigger={false}
-                className={SELECT_POPUP_CLASS}
-              >
-                {episodeIdentityIds.length === 0 ? (
-                  <SelectItem
-                    value={NO_SPEAKER_MARKER}
-                    className={SELECT_ITEM_CLASS}
-                  >
-                    {t("episode.workbench.text.speakerRequired")}
-                  </SelectItem>
-                ) : null}
-                {episodeIdentityIds.map((id) => (
-                  <SelectItem key={id} value={id} className={SELECT_ITEM_CLASS}>
-                    {id}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-        ) : audioType === "narration" && spineTemplate === "narrated" ? (
-          <Field label={t("episode.workbench.text.narrator")}>
-            <div
-              className={cn(
-                COMPACT_CONTROL_CLASS,
-                "flex items-center text-muted-foreground/90",
-              )}
-            >
-              {t("episode.workbench.text.projectNarrator")}
-            </div>
-          </Field>
-        ) : null}
-      </MetadataSection>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  action,
-  children,
-}: {
-  label: string;
-  action?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="min-w-0 space-y-1.5">
-      <div className="flex items-center justify-between gap-2">
-        <Label className="truncate text-[12px] font-medium leading-none text-muted-foreground/82">
-          {label}
-        </Label>
-        {action}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function IdentityBadgeGroup({
-  options,
-  selected,
-  onToggle,
-  onJump,
-  jumpLabel,
-  noJumpIds,
-  labels,
-  emptyMessage,
-  ariaLabel,
-  removedLabel,
-}: {
-  options: string[];
-  selected: string[];
-  onToggle: (id: string) => void;
-  onJump?: (id: string) => void;
-  jumpLabel?: string;
-  noJumpIds?: string[];
-  labels?: Record<string, string>;
-  emptyMessage: string;
-  ariaLabel: string;
-  removedLabel: string;
-}) {
-  if (options.length === 0) {
-    return (
-      <p
-        role="status"
-        className="rounded-[8px] border border-dashed border-border bg-muted px-3 py-2.5 text-[13px] text-muted-foreground"
-      >
-        {emptyMessage}
-      </p>
+  const onAudioTypeChange = (next: string) => {
+    setAudioType(next);
+    if (next === (beat.audio_type ?? "narration")) return;
+    const patch: BeatUpdate = { audio_type: next };
+    if (
+      (spineTemplate !== "narrated" || next !== "dialogue") &&
+      speaker.trim()
+    ) {
+      patch.speaker = "";
+      setSpeaker("");
+    }
+    saveField(patch);
+  };
+  const onSceneChange = (nextBase: string) => {
+    const nextSceneId = sceneNameForRef(nextBase, "");
+    dirtyRef.current.sceneRef = true;
+    setSceneId(nextSceneId);
+    saveSceneRefValue(nextBase, "");
+  };
+  const onSceneVariantChange = (nextVariant: string) => {
+    const nextSceneId = sceneNameForRef(
+      currentSceneRef.scene_id,
+      nextVariant,
     );
-  }
-
-  const seen = new Set<string>();
-  const noJump = new Set(noJumpIds ?? []);
-  const ordered: { id: string; stale: boolean }[] = [];
-  for (const id of options) {
-    if (!seen.has(id)) {
-      ordered.push({ id, stale: false });
-      seen.add(id);
+    dirtyRef.current.sceneRef = true;
+    setSceneId(nextSceneId);
+    saveSceneRefValue(currentSceneRef.scene_id, nextVariant);
+  };
+  const onTimeOfDayChange = (next: string) => {
+    dirtyRef.current.timeOfDay = true;
+    setTimeOfDay(next);
+    if (next !== (beat.time_of_day ?? "")) {
+      saveField({ time_of_day: next });
     }
-  }
-  for (const id of selected) {
-    if (!seen.has(id)) {
-      ordered.push({ id, stale: true });
-      seen.add(id);
+  };
+  const onSpeakerChange = (next: string) => {
+    dirtyRef.current.speaker = true;
+    setSpeaker(next);
+    if (next !== (beat.speaker ?? "")) {
+      saveField({ speaker: next });
     }
-  }
+  };
 
   return (
-    <div role="group" aria-label={ariaLabel} className="flex flex-wrap gap-1.5">
-      {ordered.map(({ id, stale }) => {
-        const isSelected = selected.includes(id);
-        const label = labels?.[id] ?? id;
-        return (
-          <span
-            key={id}
-            className={cn(
-              "flex items-center gap-1.5 rounded-[8px] border px-2.5 py-1.5 text-[12px] transition-colors",
-              isSelected
-                ? stale
-                  ? "border-destructive/45 bg-destructive/[0.07] text-foreground/82"
-                  : "border-primary/65 bg-primary/[0.07] text-foreground/86"
-                : "border-border bg-muted text-muted-foreground hover:border-foreground/25 hover:bg-accent hover:text-foreground",
-            )}
-          >
-            <button
-              type="button"
-              aria-pressed={isSelected}
-              onClick={() => onToggle(id)}
-              className="flex items-center gap-1.5 hover:opacity-80"
-            >
-              {label}
-              {stale && isSelected ? (
-                <span className="text-xs text-destructive">{removedLabel}</span>
-              ) : null}
-            </button>
-            {onJump && !noJump.has(id) ? (
-              <button
-                type="button"
-                aria-label={jumpLabel}
-                title={jumpLabel}
-                onClick={() => onJump(id)}
-                className="text-muted-foreground transition-colors hover:text-primary"
-              >
-                <ArrowUpRight className="size-3" />
-              </button>
-            ) : null}
-          </span>
-        );
-      })}
-    </div>
-  );
-}
-
-function MetadataSection({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="grid grid-cols-2 gap-x-4 gap-y-4 border-t border-border pt-4">
-      {children}
-    </div>
+    <TextPaneView
+      model={{
+        audioType,
+        audioTypeOptions,
+        baseSceneChoices,
+        currentSceneRef,
+        episodeIdentityIds,
+        hasIdentityDetectionState,
+        identities,
+        identityOptions,
+        mentionLabels,
+        narration,
+        noCharacterMarker: NO_CHARACTER_MARKER,
+        noPropMarker: NO_PROP_MARKER,
+        onAudioTypeChange,
+        onIdentityToggle: toggleIdentity,
+        onJumpToAsset: navigateToAsset,
+        onNarrationBlur: saveNarration,
+        onNarrationChange: (value) => {
+          dirtyRef.current.narration = true;
+          setNarration(value);
+        },
+        onPropToggle: toggleProp,
+        onSceneChange,
+        onSceneVariantChange,
+        onSpeakerChange,
+        onTimeOfDayChange,
+        onVisualBlur: saveVisual,
+        onVisualChange: (value) => {
+          dirtyRef.current.visual = true;
+          setVisual(value);
+        },
+        propOptions,
+        props,
+        sceneId,
+        scenePlateLabel: scenePlateRender?.label ?? null,
+        sceneVariantChoices,
+        speaker,
+        spineTemplate,
+        timeOfDay,
+        timeOfDayChoices,
+        visual,
+      }}
+    />
   );
 }

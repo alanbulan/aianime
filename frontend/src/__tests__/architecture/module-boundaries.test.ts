@@ -420,6 +420,17 @@ describe("frontend architecture boundaries", () => {
       resolve(moduleRoot, "presentation/BeatCardGridView.tsx"),
       "utf8",
     );
+    const textPaneSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "components/episode/beat-workbench/text-pane.tsx",
+      ),
+      "utf8",
+    );
+    const textPaneViewSource = readFileSync(
+      resolve(moduleRoot, "presentation/TextPaneView.tsx"),
+      "utf8",
+    );
     const externalSources = sourceFiles(SRC_ROOT)
       .filter((path) => !path.startsWith(moduleRoot))
       .filter((path) => !relativeSource(path).startsWith("__tests__/"));
@@ -657,6 +668,33 @@ describe("frontend architecture boundaries", () => {
     expect(beatCardGridViewSource).not.toContain("useGridsByBeat(");
     expect(beatCardGridViewSource).not.toContain("useDeleteManualShot(");
     expect(beatCardGridViewSource).not.toContain("toast.");
+    expect(textPaneSource).toContain("<TextPaneView");
+    expect(textPaneSource).toContain("useUpdateBeat(");
+    expect(textPaneSource).toContain("useEpisodeDetail(");
+    expect(textPaneSource).toContain("useScenes(");
+    expect(textPaneSource).toContain("trackSave(");
+    expect(textPaneSource).not.toContain("className=");
+    expect(textPaneSource).not.toContain("<Select");
+    expect(textPaneSource).not.toContain("<MentionTextarea");
+    expect(textPaneSource).not.toContain("<ArrowUpRight");
+    expect(textPaneSource).not.toContain("function Field");
+    expect(textPaneSource).not.toContain("function IdentityBadgeGroup");
+    expect(textPaneSource).not.toContain("function MetadataSection");
+    expect(textPaneSource).not.toContain("timeOfDayLabel(");
+    expect(textPaneViewSource).toContain("className=");
+    expect(textPaneViewSource).toContain("<Select");
+    expect(textPaneViewSource).toContain("<MentionTextarea");
+    expect(textPaneViewSource).toContain("function IdentityBadgeGroup");
+    expect(textPaneViewSource).toContain("function MetadataSection");
+    expect(textPaneViewSource).toContain("timeOfDayLabel(");
+    expect(textPaneViewSource).not.toContain("useUpdateBeat(");
+    expect(textPaneViewSource).not.toContain("useEpisodeDetail(");
+    expect(textPaneViewSource).not.toContain("useScenes(");
+    expect(textPaneViewSource).not.toContain("useScenePlatePreview(");
+    expect(textPaneViewSource).not.toContain("trackSave(");
+    expect(textPaneViewSource).not.toContain("toast.");
+    expect(textPaneViewSource).not.toContain("mentionsToProgramMarkers");
+    expect(textPaneViewSource).not.toContain("extractIdentityMarkers");
   });
 
   it("keeps Asset & World callers on its public API", () => {
