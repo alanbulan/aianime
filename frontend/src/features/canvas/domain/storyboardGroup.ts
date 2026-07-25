@@ -40,7 +40,7 @@ export const STORYBOARD_HEADER_PADDING = 34;
 
 /** Restore member endpoints and hidden internal edges when a storyboard group is removed. */
 export function restoreStoryboardEdges(
-  edges: CanvasEdge[],
+  edges: readonly CanvasEdge[],
   groupNodeId: string,
   childIds: ReadonlySet<string>,
 ): CanvasEdge[] {

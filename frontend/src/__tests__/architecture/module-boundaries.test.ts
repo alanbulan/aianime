@@ -1194,13 +1194,18 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/domain/canvasStoryboardGroupMembers.ts",
     );
+    const conversionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/canvasStoryboardGroupConversion.ts",
+    );
     const configModel = readFileSync(configPath, "utf8");
     const membersModel = readFileSync(membersPath, "utf8");
+    const conversionModel = readFileSync(conversionPath, "utf8");
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
     );
-    const forbiddenImports = [configPath, membersPath].flatMap((path) =>
+    const forbiddenImports = [configPath, membersPath, conversionPath].flatMap((path) =>
       importSpecifiers(path)
         .filter(
           (specifier) =>
@@ -1226,10 +1231,18 @@ describe("frontend architecture boundaries", () => {
       "export function",
       "reorderCanvasStoryboardGroupMember(",
     ].join(" ");
+    const conversionDeclaration = [
+      "export function",
+      "convertCanvasStoryboardGroupToPlain(",
+    ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => {
         const source = readFileSync(path, "utf8");
-        return source.includes(configDeclaration) || source.includes(reorderDeclaration);
+        return (
+          source.includes(configDeclaration) ||
+          source.includes(reorderDeclaration) ||
+          source.includes(conversionDeclaration)
+        );
       })
       .map(relativeSource)
       .sort();
@@ -1237,21 +1250,33 @@ describe("frontend architecture boundaries", () => {
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
       "features/canvas/domain/canvasStoryboardGroupConfig.ts",
+      "features/canvas/domain/canvasStoryboardGroupConversion.ts",
       "features/canvas/domain/canvasStoryboardGroupMembers.ts",
     ]);
     expect(configModel).toContain(configDeclaration);
     expect(membersModel).toContain(reorderDeclaration);
+    expect(conversionModel).toContain(conversionDeclaration);
     expect(canvasStore).toContain(
       "@/features/canvas/domain/canvasStoryboardGroupConfig",
     );
     expect(canvasStore).toContain(
       "@/features/canvas/domain/canvasStoryboardGroupMembers",
     );
+    expect(canvasStore).toContain(
+      "@/features/canvas/domain/canvasStoryboardGroupConversion",
+    );
     expect(canvasStore).not.toContain("const nextAspect = config.aspectKey");
     expect(canvasStore).not.toContain("const childCount = state.nodes.reduce(");
     expect(canvasStore).not.toContain("storyboardShowIndex: nextShowIndex");
     expect(canvasStore).not.toContain("const reordered = [...members]");
     expect(canvasStore).not.toContain("fromIndex >= members.length");
+    expect(canvasStore).not.toContain("storyboardGroup: _storyboardGroup");
+    expect(canvasStore).not.toContain(
+      "const groupWidth = Math.max(220, Math.round(maxX + SIDE_PAD))",
+    );
+    expect(canvasStore).not.toContain(
+      "node.parentId === groupNodeId && node.hidden",
+    );
   });
 
   it("keeps Canvas storyboard member addition outside the Zustand store", () => {

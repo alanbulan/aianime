@@ -23,7 +23,6 @@ import {
   type ExportImageNodeResultKind,
   type NodeToolType,
   type StoryboardFrameItem,
-  type GroupNodeData,
   isGroupNode,
   isProtectedProjectionGroupNode,
   isStoryboardGroupNode,
@@ -72,6 +71,7 @@ import {
   type CanvasStoryboardGroupConfig,
 } from '@/features/canvas/domain/canvasStoryboardGroupConfig';
 import { reorderCanvasStoryboardGroupMember } from '@/features/canvas/domain/canvasStoryboardGroupMembers';
+import { convertCanvasStoryboardGroupToPlain } from '@/features/canvas/domain/canvasStoryboardGroupConversion';
 import { validateCanvasConnection } from '@/features/canvas/domain/canvasConnection';
 import { EXPORT_RESULT_DISPLAY_NAME } from '@/features/canvas/domain/nodeDisplay';
 import {
@@ -1314,61 +1314,18 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   convertStoryboardGroupToPlain: (groupNodeId) => {
     const state = get();
-    const groupNode = state.nodes.find((node) => node.id === groupNodeId);
-    if (!isStoryboardGroupNode(groupNode)) {
+    const result = convertCanvasStoryboardGroupToPlain(
+      state.nodes,
+      state.edges,
+      groupNodeId,
+    );
+    if (!result) {
       return;
     }
 
-    // Reveal the members (they were hidden thumbnails) and size the group to wrap
-    // them at full size, so it becomes an ordinary group showing real nodes.
-    const children = state.nodes.filter((node) => node.parentId === groupNodeId);
-    const SIDE_PAD = 20;
-    let maxX = 0;
-    let maxY = 0;
-    for (const child of children) {
-      const size = getNodeSize(child);
-      maxX = Math.max(maxX, child.position.x + size.width);
-      maxY = Math.max(maxY, child.position.y + size.height);
-    }
-    const groupWidth = Math.max(220, Math.round(maxX + SIDE_PAD));
-    const groupHeight = Math.max(140, Math.round(maxY + SIDE_PAD));
-
-    const nextNodes = state.nodes.map((node) => {
-      if (node.id === groupNodeId) {
-        const {
-          storyboardGroup: _storyboardGroup,
-          storyboardAspect: _storyboardAspect,
-          storyboardCols: _storyboardCols,
-          storyboardShowIndex: _storyboardShowIndex,
-          storyboardBaseWidth: _storyboardBaseWidth,
-          storyboardBaseHeight: _storyboardBaseHeight,
-          ...restData
-        } = node.data as GroupNodeData;
-        return {
-          ...node,
-          // Plain group again → draggable anywhere, no header-only handle.
-          dragHandle: undefined,
-          // 同步显式 width/height（React Flow 渲染优先级高于 style）。
-          width: groupWidth,
-          height: groupHeight,
-          style: { ...(node.style ?? {}), width: groupWidth, height: groupHeight },
-          data: restData as GroupNodeData,
-        };
-      }
-      if (node.parentId === groupNodeId && node.hidden) {
-        return { ...node, hidden: false };
-      }
-      return node;
-    });
-
-    // Members are visible again → re-anchor their re-pointed edges back and reveal
-    // the hidden internal ones.
-    const childIds = new Set(children.map((child) => child.id));
-    const nextEdges = restoreStoryboardEdges(state.edges, groupNodeId, childIds);
-
     set({
-      nodes: nextNodes,
-      edges: nextEdges,
+      nodes: result.nodes,
+      edges: result.edges,
       history: {
         past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
         future: [],
