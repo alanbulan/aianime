@@ -77,6 +77,7 @@ import {
   configureCanvasStoryboardGroup,
   type CanvasStoryboardGroupConfig,
 } from '@/features/canvas/domain/canvasStoryboardGroupConfig';
+import { reorderCanvasStoryboardGroupMember } from '@/features/canvas/domain/canvasStoryboardGroupMembers';
 import { validateCanvasConnection } from '@/features/canvas/domain/canvasConnection';
 import { EXPORT_RESULT_DISPLAY_NAME } from '@/features/canvas/domain/nodeDisplay';
 import {
@@ -1269,63 +1270,18 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   reorderStoryboardMember: (groupNodeId, fromIndex, toIndex) => {
     const state = get();
-    const group = state.nodes.find((node) => node.id === groupNodeId);
-    if (!isStoryboardGroupNode(group)) {
-      return;
-    }
-    // Reading order = members sorted by their (hidden) full-grid position.
-    const members = state.nodes
-      .filter((node) => node.parentId === groupNodeId)
-      .sort((a, b) => a.position.y - b.position.y || a.position.x - b.position.x);
-    if (
-      fromIndex < 0 ||
-      fromIndex >= members.length ||
-      toIndex < 0 ||
-      toIndex >= members.length ||
-      fromIndex === toIndex
-    ) {
-      return;
-    }
-
-    const reordered = [...members];
-    const [moved] = reordered.splice(fromIndex, 1);
-    reordered.splice(toIndex, 0, moved);
-
-    // Reassign the full-grid positions in the new order so the sort (and thus the
-    // rendered board) reflects it, and ungroup still spreads them cleanly.
-    const baseWidth =
-      group.data.storyboardBaseWidth ??
-      Math.max(...members.map((node) => getNodeSize(node).width));
-    const baseHeight =
-      group.data.storyboardBaseHeight ??
-      Math.max(...members.map((node) => getNodeSize(node).height));
-    const cols = resolveStoryboardCols(reordered.length, group.data.storyboardCols);
-    const { cellWidth, cellHeight } = computeStoryboardCell(
-      baseWidth,
-      baseHeight,
-      group.data.storyboardAspect ?? DEFAULT_STORYBOARD_ASPECT
+    const nodes = reorderCanvasStoryboardGroupMember(
+      state.nodes,
+      groupNodeId,
+      fromIndex,
+      toIndex,
     );
-    const layout = computeStoryboardGridLayout({
-      count: reordered.length,
-      cols,
-      cellWidth,
-      cellHeight,
-    });
-    const posById = new Map<string, { x: number; y: number }>();
-    reordered.forEach((node, index) => {
-      const cell = layout.cells[index];
-      if (cell) {
-        posById.set(node.id, { x: cell.x, y: cell.y });
-      }
-    });
-
-    const nextNodes = state.nodes.map((node) => {
-      const position = posById.get(node.id);
-      return position ? { ...node, position } : node;
-    });
+    if (!nodes) {
+      return;
+    }
 
     set({
-      nodes: nextNodes,
+      nodes,
       history: {
         past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
         future: [],

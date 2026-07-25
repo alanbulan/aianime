@@ -1185,52 +1185,73 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("__sbOrigSource: edge.source");
   });
 
-  it("keeps Canvas storyboard group configuration in the domain model", () => {
+  it("keeps Canvas storyboard group updates in the domain model", () => {
     const configPath = resolve(
       SRC_ROOT,
       "features/canvas/domain/canvasStoryboardGroupConfig.ts",
     );
+    const membersPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/canvasStoryboardGroupMembers.ts",
+    );
     const configModel = readFileSync(configPath, "utf8");
+    const membersModel = readFileSync(membersPath, "utf8");
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
     );
-    const forbiddenImports = importSpecifiers(configPath).filter(
-      (specifier) =>
-        specifier === "react" ||
-        specifier.startsWith("react/") ||
-        specifier === "@xyflow/react" ||
-        specifier.startsWith("@xyflow/react/") ||
-        specifier === "zustand" ||
-        specifier.startsWith("zustand/") ||
-        specifier.startsWith("@/stores/") ||
-        specifier.startsWith("@/features/canvas/application/") ||
-        /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
-        specifier.startsWith("@/features/canvas/infrastructure/") ||
-        specifier === "@/features/canvas/composition",
+    const forbiddenImports = [configPath, membersPath].flatMap((path) =>
+      importSpecifiers(path)
+        .filter(
+          (specifier) =>
+            specifier === "react" ||
+            specifier.startsWith("react/") ||
+            specifier === "@xyflow/react" ||
+            specifier.startsWith("@xyflow/react/") ||
+            specifier === "zustand" ||
+            specifier.startsWith("zustand/") ||
+            specifier.startsWith("@/stores/") ||
+            specifier.startsWith("@/features/canvas/application/") ||
+            /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
+            specifier.startsWith("@/features/canvas/infrastructure/") ||
+            specifier === "@/features/canvas/composition",
+        )
+        .map((specifier) => `${relativeSource(path)}: ${specifier}`),
     );
     const configDeclaration = [
       "export function",
       "configureCanvasStoryboardGroup(",
     ].join(" ");
+    const reorderDeclaration = [
+      "export function",
+      "reorderCanvasStoryboardGroupMember(",
+    ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
-      .filter((path) =>
-        readFileSync(path, "utf8").includes(configDeclaration),
-      )
+      .filter((path) => {
+        const source = readFileSync(path, "utf8");
+        return source.includes(configDeclaration) || source.includes(reorderDeclaration);
+      })
       .map(relativeSource)
       .sort();
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
       "features/canvas/domain/canvasStoryboardGroupConfig.ts",
+      "features/canvas/domain/canvasStoryboardGroupMembers.ts",
     ]);
     expect(configModel).toContain(configDeclaration);
+    expect(membersModel).toContain(reorderDeclaration);
     expect(canvasStore).toContain(
       "@/features/canvas/domain/canvasStoryboardGroupConfig",
+    );
+    expect(canvasStore).toContain(
+      "@/features/canvas/domain/canvasStoryboardGroupMembers",
     );
     expect(canvasStore).not.toContain("const nextAspect = config.aspectKey");
     expect(canvasStore).not.toContain("const childCount = state.nodes.reduce(");
     expect(canvasStore).not.toContain("storyboardShowIndex: nextShowIndex");
+    expect(canvasStore).not.toContain("const reordered = [...members]");
+    expect(canvasStore).not.toContain("fromIndex >= members.length");
   });
 
   it("keeps Canvas storyboard node layout out of the Zustand store", () => {
