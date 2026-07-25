@@ -234,8 +234,11 @@ describe("beats sketch/render v2 contract", () => {
 
   it("wires NiceGUI Render model/settings into React controls and task payloads", () => {
     const batchBar = read("src/components/episode/beat-workbench/batch-bar.tsx");
-    const renderSettingsControls = read(
-      "src/components/episode/beat-workbench/render-settings-controls.tsx",
+    const batchBarController = read(
+      "src/modules/production/application/use-batch-bar-controller.ts",
+    );
+    const batchBarView = read(
+      "src/modules/production/presentation/BatchBarView.tsx",
     );
     const productionGateway = read(
       "src/modules/production/infrastructure/http-production-video-gateway.ts",
@@ -245,11 +248,13 @@ describe("beats sketch/render v2 contract", () => {
       "src/modules/project_workspace/domain/project.ts",
     );
 
-    expect(batchBar).toContain("RenderModelSelect");
-    expect(batchBar).toContain("<RenderModelSelect project={project} />");
-    expect(batchBar).not.toContain("RenderCheckboxes");
-    expect(renderSettingsControls).toContain("useRenderSettings");
-    expect(renderSettingsControls).toContain("useUpdateRenderSettings");
+    expect(batchBar).toContain("useBatchBarController");
+    expect(batchBar).toContain("<BatchBarView controller={controller} />");
+    expect(batchBar).not.toContain("RenderModelSelect");
+    expect(batchBarController).toContain("queries.useRenderSettings");
+    expect(batchBarController).toContain("queries.useUpdateRenderSettings");
+    expect(batchBarView).toContain("BatchBarModelSelect");
+    expect(batchBarView).toContain("episode.renderSettings.model");
     expect(productionGateway).toContain("render-settings");
     expect(queryKeys).toContain("renderSettings");
 
@@ -257,10 +262,10 @@ describe("beats sketch/render v2 contract", () => {
     expect(productionGateway).toContain("sketch_aspect_padding");
     expect(projectTypes).toContain("render_image_selection?: string");
     expect(projectTypes).toContain("sketch_aspect_padding?: boolean");
-    expect(renderSettingsControls).not.toContain("sketchAspectPadding");
-    expect(renderSettingsControls).not.toContain("render-sketch-aspect-padding");
-    expect(renderSettingsControls).not.toContain("forceHalfK");
-    expect(renderSettingsControls).not.toContain("force_half_k");
+    expect(batchBarController).not.toContain("sketchAspectPadding");
+    expect(batchBarController).not.toContain("render-sketch-aspect-padding");
+    expect(batchBarController).not.toContain("forceHalfK");
+    expect(batchBarController).not.toContain("force_half_k");
     expect(productionGateway).not.toContain("forceHalfK");
     expect(productionGateway).not.toContain("force_half_k");
     expect(projectTypes).not.toContain("force_half_k?: boolean");

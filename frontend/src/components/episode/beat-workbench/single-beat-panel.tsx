@@ -27,7 +27,7 @@ import {
 import {
   WORKBENCH_SELECT_CONTENT_CLASS,
   WORKBENCH_SELECT_ITEM_CLASS,
-} from "./toolbar-select-styles";
+} from "@/lib/workbench-select-styles";
 
 import { TextPane } from "./text-pane";
 import { SketchSection } from "./sketch-section";

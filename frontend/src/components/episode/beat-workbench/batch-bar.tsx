@@ -6,12 +6,6 @@ import {
   useBatchBarController,
 } from "@/modules/production/public";
 
-import { RenderModelSelect } from "./render-settings-controls";
-import {
-  SketchAspectCheckbox,
-  SketchModelSelect,
-} from "./sketch-settings-controls";
-
 interface BatchBarProps {
   project: string;
   episode: number;
@@ -34,23 +28,12 @@ export function BatchBar({
   const controller = useBatchBarController({
     beats,
     episode,
+    onSketchAspectRatioChange,
     project,
+    sketchAspectRatio,
     spineTemplate,
     videoBackend,
   });
 
-  return (
-    <BatchBarView
-      controller={controller}
-      renderModelControl={<RenderModelSelect project={project} />}
-      sketchAspectControl={
-        <SketchAspectCheckbox
-          aspectRatio={sketchAspectRatio}
-          onAspectRatioChange={onSketchAspectRatioChange}
-          flat
-        />
-      }
-      sketchModelControl={<SketchModelSelect project={project} />}
-    />
-  );
+  return <BatchBarView controller={controller} />;
 }

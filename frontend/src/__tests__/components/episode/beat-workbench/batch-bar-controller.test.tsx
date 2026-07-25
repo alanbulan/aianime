@@ -66,6 +66,9 @@ const assignColors = vi.fn();
 const detectIdentities = vi.fn();
 const generateAudio = vi.fn();
 const globalOptimize = vi.fn();
+const onSketchAspectRatioChange = vi.fn();
+const updateRenderSettings = vi.fn();
+const updateSketchSettings = vi.fn();
 const assignColorsMutation = {
   isPending: false,
   mutateAsync: assignColors,
@@ -81,6 +84,35 @@ const generateAudioMutation = {
 const globalOptimizeMutation = {
   isPending: false,
   mutateAsync: globalOptimize,
+};
+const renderSettingsQuery = {
+  data: {
+    ok: true as const,
+    data: {
+      render_image_selection: "render-a",
+      options: { "render-a": "Render A", "render-b": "Render B" },
+      sketch_aspect_padding: false,
+    },
+  },
+  isLoading: false,
+};
+const sketchSettingsQuery = {
+  data: {
+    ok: true as const,
+    data: {
+      sketch_image_selection: "sketch-a",
+      options: { "sketch-a": "Sketch A", "sketch-b": "Sketch B" },
+    },
+  },
+  isLoading: false,
+};
+const updateRenderSettingsMutation = {
+  isPending: false,
+  mutateAsync: updateRenderSettings,
+};
+const updateSketchSettingsMutation = {
+  isPending: false,
+  mutateAsync: updateSketchSettings,
 };
 const videoBackendsQuery = {
   data: {
@@ -110,6 +142,10 @@ const useBatchBarController = createUseBatchBarController(
     useDetectIdentities: () => detectIdentitiesMutation,
     useGenerateAudio: () => generateAudioMutation,
     useGlobalOptimize: () => globalOptimizeMutation,
+    useRenderSettings: () => renderSettingsQuery,
+    useSketchSettings: () => sketchSettingsQuery,
+    useUpdateRenderSettings: () => updateRenderSettingsMutation,
+    useUpdateSketchSettings: () => updateSketchSettingsMutation,
     useVideoBackends: () => videoBackendsQuery,
   },
   {
@@ -146,7 +182,9 @@ const beats: Beat[] = [
 const defaultOptions: BatchBarControllerOptions = {
   beats,
   episode: 1,
+  onSketchAspectRatioChange,
   project: "demo",
+  sketchAspectRatio: "2:3",
   spineTemplate: "narrated",
   videoBackend: "seedance2",
 };
@@ -156,6 +194,9 @@ beforeEach(() => {
   detectIdentities.mockReset();
   generateAudio.mockReset();
   globalOptimize.mockReset();
+  onSketchAspectRatioChange.mockReset();
+  updateRenderSettings.mockReset();
+  updateSketchSettings.mockReset();
   hookMocks.audioStart.mockReset();
   hookMocks.audioStarted = false;
   hookMocks.globalOnError = undefined;
@@ -169,6 +210,8 @@ beforeEach(() => {
   detectIdentitiesMutation.isPending = false;
   generateAudioMutation.isPending = false;
   globalOptimizeMutation.isPending = false;
+  updateRenderSettingsMutation.isPending = false;
+  updateSketchSettingsMutation.isPending = false;
 });
 
 describe("BatchBar controller", () => {
@@ -182,6 +225,27 @@ describe("BatchBar controller", () => {
     expect(result.current.audioUnavailableForVideoBackend).toBe(true);
     expect(result.current.detectIdentitiesCostDisplay).toBe("7");
     expect(result.current.episodeAudioCostDisplay).toBe("credits:10");
+    expect(result.current.renderModel).toMatchObject({
+      isLoading: false,
+      isPending: false,
+      isVisible: true,
+      options: [
+        { label: "Render A", value: "render-a" },
+        { label: "Render B", value: "render-b" },
+      ],
+      value: "render-a",
+    });
+    expect(result.current.sketchAspectRatio).toBe("2:3");
+    expect(result.current.sketchModel).toMatchObject({
+      isLoading: false,
+      isPending: false,
+      isVisible: true,
+      options: [
+        { label: "Sketch A", value: "sketch-a" },
+        { label: "Sketch B", value: "sketch-b" },
+      ],
+      value: "sketch-a",
+    });
     expect(result.current.showEpisodeAudio).toBe(true);
     expect(result.current.showGlobalOptimize).toBe(true);
 
@@ -194,6 +258,52 @@ describe("BatchBar controller", () => {
     expect(result.current.audioUnavailableForVideoBackend).toBe(false);
     expect(result.current.showEpisodeAudio).toBe(false);
     expect(result.current.showGlobalOptimize).toBe(false);
+  });
+
+  it("updates render, sketch, and aspect settings through one controller", async () => {
+    updateRenderSettings.mockResolvedValue({
+      ok: true,
+      data: renderSettingsQuery.data.data,
+    });
+    updateSketchSettings.mockResolvedValue({
+      ok: true,
+      data: sketchSettingsQuery.data.data,
+    });
+    const { result } = renderHook(() =>
+      useBatchBarController(defaultOptions),
+    );
+
+    await act(async () => result.current.renderModel.onChange("render-b"));
+    await act(async () => result.current.sketchModel.onChange("sketch-b"));
+    act(() => result.current.onSketchAspectRatioChange("16:9"));
+
+    expect(updateRenderSettings).toHaveBeenCalledWith({
+      renderImageSelection: "render-b",
+    });
+    expect(updateSketchSettings).toHaveBeenCalledWith({
+      sketchImageSelection: "sketch-b",
+    });
+    expect(onSketchAspectRatioChange).toHaveBeenCalledWith("16:9");
+  });
+
+  it("reports rejected model setting updates", async () => {
+    updateRenderSettings.mockResolvedValue({
+      ok: false,
+      error: "Render 设置失败",
+    });
+    updateSketchSettings.mockRejectedValue(new Error("network"));
+    const { result } = renderHook(() =>
+      useBatchBarController(defaultOptions),
+    );
+
+    await act(async () => result.current.renderModel.onChange("render-b"));
+    await act(async () => result.current.sketchModel.onChange("sketch-b"));
+
+    expect(hookMocks.toastError).toHaveBeenNthCalledWith(
+      1,
+      "Render 设置失败",
+    );
+    expect(hookMocks.toastError).toHaveBeenNthCalledWith(2, "common.error");
   });
 
   it("starts episode audio tracking and exposes response failures", async () => {

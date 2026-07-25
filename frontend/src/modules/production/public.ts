@@ -103,6 +103,8 @@ export type {
   BatchBarControllerOptions,
   BatchBarControllerQueries,
   BatchBarErrorDialog,
+  BatchBarModelControl,
+  BatchBarModelOption,
 } from "@/modules/production/application/use-batch-bar-controller";
 export { RenderPlanDialogView } from "@/modules/production/presentation/RenderPlanDialogView";
 export type {

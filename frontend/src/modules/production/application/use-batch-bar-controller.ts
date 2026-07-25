@@ -17,6 +17,13 @@ import {
   type GenerateAudioCommand,
 } from "@/modules/production/domain/audio-generation";
 import type {
+  RenderSettingsData,
+  SketchAspectRatio,
+  SketchSettingsData,
+  UpdateRenderSettingsCommand,
+  UpdateSketchSettingsCommand,
+} from "@/modules/production/domain/image-settings";
+import type {
   AssignColorsResult,
   DetectIdentitiesResult,
 } from "@/modules/production/domain/sketch-markers";
@@ -58,6 +65,34 @@ interface VideoBackendsQuery {
   data?: ProductionDataResponse<VideoBackendOption[]>;
 }
 
+interface RenderSettingsQuery {
+  data?: ProductionDataResponse<RenderSettingsData>;
+  isLoading: boolean;
+}
+
+interface SketchSettingsQuery {
+  data?: ProductionDataResponse<SketchSettingsData>;
+  isLoading: boolean;
+}
+
+interface UpdateRenderSettingsMutation {
+  isPending: boolean;
+  mutateAsync(
+    command: UpdateRenderSettingsCommand,
+  ): Promise<
+    ProductionDataResponse<RenderSettingsData> | ProductionErrorResponse
+  >;
+}
+
+interface UpdateSketchSettingsMutation {
+  isPending: boolean;
+  mutateAsync(
+    command: UpdateSketchSettingsCommand,
+  ): Promise<
+    ProductionDataResponse<SketchSettingsData> | ProductionErrorResponse
+  >;
+}
+
 interface CreditCostQuery {
   data?: {
     data: {
@@ -79,6 +114,10 @@ export interface BatchBarControllerQueries {
     project: string,
     episode: number,
   ): GlobalOptimizeMutation;
+  useRenderSettings(project: string): RenderSettingsQuery;
+  useSketchSettings(project: string): SketchSettingsQuery;
+  useUpdateRenderSettings(project: string): UpdateRenderSettingsMutation;
+  useUpdateSketchSettings(project: string): UpdateSketchSettingsMutation;
   useVideoBackends(project: string): VideoBackendsQuery;
 }
 
@@ -93,7 +132,9 @@ export interface BatchBarControllerDependencies {
 export interface BatchBarControllerOptions {
   beats: readonly Beat[];
   episode: number;
+  onSketchAspectRatioChange(aspectRatio: SketchAspectRatio): void;
   project: string;
+  sketchAspectRatio: SketchAspectRatio;
   spineTemplate: "drama" | "narrated";
   videoBackend: string;
 }
@@ -101,6 +142,20 @@ export interface BatchBarControllerOptions {
 export interface BatchBarErrorDialog {
   description: string;
   title: string;
+}
+
+export interface BatchBarModelOption {
+  label: string;
+  value: string;
+}
+
+export interface BatchBarModelControl {
+  isLoading: boolean;
+  isPending: boolean;
+  isVisible: boolean;
+  onChange(value: string): Promise<void>;
+  options: readonly BatchBarModelOption[];
+  value: string;
 }
 
 export interface BatchBarController {
@@ -112,6 +167,9 @@ export interface BatchBarController {
   episodeAudioCostDisplay: string;
   errorDialog: BatchBarErrorDialog | null;
   globalOptimizePending: boolean;
+  renderModel: BatchBarModelControl;
+  sketchAspectRatio: SketchAspectRatio;
+  sketchModel: BatchBarModelControl;
   showEpisodeAudio: boolean;
   showGlobalOptimize: boolean;
   onDetectIdentities(): Promise<void>;
@@ -119,6 +177,7 @@ export interface BatchBarController {
   onGenerateAudio(): Promise<void>;
   onGlobalOptimize(): Promise<void>;
   onReassignColors(): Promise<void>;
+  onSketchAspectRatioChange(aspectRatio: SketchAspectRatio): void;
 }
 
 export function createUseBatchBarController(
@@ -128,7 +187,9 @@ export function createUseBatchBarController(
   return function useBatchBarController({
     beats,
     episode,
+    onSketchAspectRatioChange,
     project,
+    sketchAspectRatio,
     spineTemplate,
     videoBackend,
   }: BatchBarControllerOptions): BatchBarController {
@@ -137,6 +198,10 @@ export function createUseBatchBarController(
     const detectIdentities = queries.useDetectIdentities(project, episode);
     const generateAudio = queries.useGenerateAudio(project, episode);
     const globalOptimize = queries.useGlobalOptimize(project, episode);
+    const renderSettings = queries.useRenderSettings(project);
+    const sketchSettings = queries.useSketchSettings(project);
+    const updateRenderSettings = queries.useUpdateRenderSettings(project);
+    const updateSketchSettings = queries.useUpdateSketchSettings(project);
     const videoBackends = queries.useVideoBackends(project);
     const detectIdentitiesCost = dependencies.useGenerationCreditCost(
       "feature",
@@ -195,6 +260,50 @@ export function createUseBatchBarController(
       (detectIdentitiesCost.error instanceof BillingRuleNotConfiguredError
         ? t("common.billingRuleNotConfiguredShort")
         : null);
+    const renderSettingsData = renderSettings.data?.data;
+    const sketchSettingsData = sketchSettings.data?.data;
+    const renderModelOptions = useMemo(
+      () =>
+        Object.entries(renderSettingsData?.options ?? {}).map(
+          ([value, label]) => ({ label, value }),
+        ),
+      [renderSettingsData?.options],
+    );
+    const sketchModelOptions = useMemo(
+      () =>
+        Object.entries(sketchSettingsData?.options ?? {}).map(
+          ([value, label]) => ({ label, value }),
+        ),
+      [sketchSettingsData?.options],
+    );
+
+    const onRenderModelChange = async (value: string) => {
+      if (!value || value === renderSettingsData?.render_image_selection) {
+        return;
+      }
+      try {
+        const response = await updateRenderSettings.mutateAsync({
+          renderImageSelection: value,
+        });
+        if (!response.ok) toast.error(response.error || t("common.error"));
+      } catch {
+        toast.error(t("common.error"));
+      }
+    };
+
+    const onSketchModelChange = async (value: string) => {
+      if (!value || value === sketchSettingsData?.sketch_image_selection) {
+        return;
+      }
+      try {
+        const response = await updateSketchSettings.mutateAsync({
+          sketchImageSelection: value,
+        });
+        if (!response.ok) toast.error(response.error || t("common.error"));
+      } catch {
+        toast.error(t("common.error"));
+      }
+    };
 
     const onGenerateAudio = async () => {
       try {
@@ -302,6 +411,23 @@ export function createUseBatchBarController(
       errorDialog,
       globalOptimizePending:
         globalOptimize.isPending || globalOptimizeTask.started,
+      renderModel: {
+        isLoading: renderSettings.isLoading,
+        isPending: updateRenderSettings.isPending,
+        isVisible: renderSettingsData !== undefined,
+        onChange: onRenderModelChange,
+        options: renderModelOptions,
+        value: renderSettingsData?.render_image_selection ?? "",
+      },
+      sketchAspectRatio,
+      sketchModel: {
+        isLoading: sketchSettings.isLoading,
+        isPending: updateSketchSettings.isPending,
+        isVisible: sketchSettingsData !== undefined,
+        onChange: onSketchModelChange,
+        options: sketchModelOptions,
+        value: sketchSettingsData?.sketch_image_selection ?? "",
+      },
       showEpisodeAudio: spineTemplate !== "drama",
       showGlobalOptimize: spineTemplate === "narrated",
       onDetectIdentities,
@@ -309,6 +435,7 @@ export function createUseBatchBarController(
       onGenerateAudio,
       onGlobalOptimize,
       onReassignColors,
+      onSketchAspectRatioChange,
     };
   };
 }

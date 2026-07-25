@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { SketchAspectCheckbox } from "@/components/episode/beat-workbench/sketch-settings-controls";
+import { SketchAspectSelect } from "@/modules/production/presentation/BatchBarView";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -14,21 +14,22 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-describe("SketchAspectCheckbox", () => {
-  it("uses a dropdown with explicit 2:3 and 16:9 choices", async () => {
+describe("BatchBarView sketch aspect select", () => {
+  it("uses explicit 2:3 and 16:9 choices", async () => {
     const user = userEvent.setup();
     const onAspectRatioChange = vi.fn();
 
     render(
-      <SketchAspectCheckbox
+      <SketchAspectSelect
         aspectRatio="16:9"
         onAspectRatioChange={onAspectRatioChange}
-        flat
       />,
     );
 
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: "画幅" })).toHaveTextContent("16:9");
+    expect(screen.getByRole("combobox", { name: "画幅" })).toHaveTextContent(
+      "16:9",
+    );
 
     await user.click(screen.getByRole("combobox", { name: "画幅" }));
     expect(await screen.findByRole("option", { name: "2:3" })).toBeInTheDocument();

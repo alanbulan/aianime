@@ -860,6 +860,30 @@ describe("frontend architecture boundaries", () => {
       existsSync(
         resolve(
           SRC_ROOT,
+          "components/episode/beat-workbench/render-settings-controls.tsx",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "components/episode/beat-workbench/sketch-settings-controls.tsx",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
+          "components/episode/beat-workbench/toolbar-select-styles.ts",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        resolve(
+          SRC_ROOT,
           "components/episode/beat-workbench/audio-pane.tsx",
         ),
       ),
@@ -1185,6 +1209,11 @@ describe("frontend architecture boundaries", () => {
     expect(batchBarSource).toContain("useBatchBarController({");
     expect(batchBarSource).toContain("<BatchBarView");
     expect(batchBarSource).toContain("controller={controller}");
+    expect(batchBarSource).toContain("sketchAspectRatio,");
+    expect(batchBarSource).toContain("onSketchAspectRatioChange,");
+    expect(batchBarSource).not.toContain("RenderModelSelect");
+    expect(batchBarSource).not.toContain("SketchModelSelect");
+    expect(batchBarSource).not.toContain("SketchAspectCheckbox");
     expect(batchBarSource).not.toContain("className=");
     expect(batchBarSource).not.toContain("<Button");
     expect(batchBarSource).not.toContain("<AlertDialog");
@@ -1208,6 +1237,10 @@ describe("frontend architecture boundaries", () => {
     expect(batchBarViewSource).toContain("<CreditCostInline");
     expect(batchBarViewSource).toContain("<CreditCostPill");
     expect(batchBarViewSource).toContain("controller: BatchBarController");
+    expect(batchBarViewSource).toContain("BatchBarModelSelect");
+    expect(batchBarViewSource).toContain("SketchAspectSelect");
+    expect(batchBarViewSource).toContain("episode.renderSettings.model");
+    expect(batchBarViewSource).toContain("episode.sketchSettings.model");
     expect(batchBarViewSource).not.toContain("useAssignColors(");
     expect(batchBarViewSource).not.toContain("useDetectIdentities(");
     expect(batchBarViewSource).not.toContain("useGenerateAudio(");
@@ -1223,6 +1256,14 @@ describe("frontend architecture boundaries", () => {
     );
     expect(batchBarControllerSource).toContain("queries.useGenerateAudio");
     expect(batchBarControllerSource).toContain("queries.useGlobalOptimize");
+    expect(batchBarControllerSource).toContain("queries.useRenderSettings");
+    expect(batchBarControllerSource).toContain("queries.useSketchSettings");
+    expect(batchBarControllerSource).toContain(
+      "queries.useUpdateRenderSettings",
+    );
+    expect(batchBarControllerSource).toContain(
+      "queries.useUpdateSketchSettings",
+    );
     expect(batchBarControllerSource).toContain("queries.useVideoBackends");
     expect(batchBarControllerSource).toContain(
       "dependencies.useGenerationCreditCost",

@@ -100,6 +100,7 @@ beforeAll(async () => {
               sketchAspectPadding: "草图适配",
             },
             sketchSettings: {
+              aspectRatio: "画幅",
               model: "草图模型",
               modelPlaceholder: "请选择草图模型",
               wide16x9: "16:9",
@@ -117,9 +118,15 @@ beforeAll(async () => {
 const {
   assignColorsMock,
   detectIdentitiesMock,
+  renderModelChangeMock,
+  sketchAspectChangeMock,
+  sketchModelChangeMock,
 } = vi.hoisted(() => ({
   assignColorsMock: vi.fn(),
   detectIdentitiesMock: vi.fn(),
+  renderModelChangeMock: vi.fn(),
+  sketchAspectChangeMock: vi.fn(),
+  sketchModelChangeMock: vi.fn(),
 }));
 
 vi.mock("@/modules/production/public", async () => {
@@ -144,6 +151,29 @@ vi.mock("@/modules/production/public", async () => {
       episodeAudioCostDisplay: "5",
       errorDialog: null,
       globalOptimizePending: false,
+      renderModel: {
+        isLoading: false,
+        isPending: false,
+        isVisible: true,
+        onChange: renderModelChangeMock,
+        options: [
+          { label: "Render Model A", value: "render-a" },
+          { label: "Render Model B", value: "render-b" },
+        ],
+        value: "render-a",
+      },
+      sketchAspectRatio: "2:3" as const,
+      sketchModel: {
+        isLoading: false,
+        isPending: false,
+        isVisible: true,
+        onChange: sketchModelChangeMock,
+        options: [
+          { label: "Sketch Model A", value: "sketch-a" },
+          { label: "Sketch Model B", value: "sketch-b" },
+        ],
+        value: "sketch-a",
+      },
       showEpisodeAudio: spineTemplate !== "drama",
       showGlobalOptimize: spineTemplate === "narrated",
       onDetectIdentities: detectIdentitiesMock,
@@ -151,23 +181,17 @@ vi.mock("@/modules/production/public", async () => {
       onGenerateAudio: vi.fn(),
       onGlobalOptimize: vi.fn(),
       onReassignColors: assignColorsMock,
+      onSketchAspectRatioChange: sketchAspectChangeMock,
     }),
   };
 });
 
-vi.mock("@/components/episode/beat-workbench/render-settings-controls", () => ({
-  RenderModelSelect: () => <div data-testid="render-model-select" />,
-  RenderCheckboxes: () => <div data-testid="render-checkboxes" />,
-}));
-
-vi.mock("@/components/episode/beat-workbench/sketch-settings-controls", () => ({
-  SketchModelSelect: () => <div data-testid="sketch-model-select" />,
-  SketchAspectCheckbox: () => <div data-testid="sketch-aspect-checkbox" />,
-}));
-
 beforeEach(() => {
   assignColorsMock.mockReset();
   detectIdentitiesMock.mockReset();
+  renderModelChangeMock.mockReset();
+  sketchAspectChangeMock.mockReset();
+  sketchModelChangeMock.mockReset();
 });
 
 const DEFAULT_BEATS = [
@@ -268,6 +292,33 @@ describe("BatchBar", () => {
     );
 
     expect(screen.queryByText("0.5K")).not.toBeInTheDocument();
+  });
+
+  it("delegates model and aspect changes to the controller", async () => {
+    const user = userEvent.setup();
+    render(
+      <I18nextProvider i18n={i18n}>
+        <BatchBar
+          project="demo"
+          episode={1}
+          beats={DEFAULT_BEATS}
+          videoBackend="seedance"
+          sketchAspectRatio="2:3"
+          onSketchAspectRatioChange={vi.fn()}
+        />
+      </I18nextProvider>,
+    );
+
+    await user.click(screen.getByRole("combobox", { name: "草图模型" }));
+    await user.click(screen.getByRole("option", { name: "Sketch Model B" }));
+    await user.click(screen.getByRole("combobox", { name: "模型" }));
+    await user.click(screen.getByRole("option", { name: "Render Model B" }));
+    await user.click(screen.getByRole("combobox", { name: "画幅" }));
+    await user.click(screen.getByRole("option", { name: "16:9" }));
+
+    expect(sketchModelChangeMock).toHaveBeenCalledWith("sketch-b");
+    expect(renderModelChangeMock).toHaveBeenCalledWith("render-b");
+    expect(sketchAspectChangeMock).toHaveBeenCalledWith("16:9");
   });
 
   it("shows whole-episode video prompt generation only for narrated projects", () => {
