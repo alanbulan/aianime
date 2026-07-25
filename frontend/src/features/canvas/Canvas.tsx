@@ -158,6 +158,7 @@ import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
 import { useCanvasNodeMenuShortcut } from './hooks/useCanvasNodeMenuShortcut';
 import { useCanvasNodePlacementConfirm } from './hooks/useCanvasNodePlacementConfirm';
 import { useCanvasPaneContextMenu } from './hooks/useCanvasPaneContextMenu';
+import { useCanvasSelectionSync } from './hooks/useCanvasSelectionSync';
 import { useCanvasViewportBookmarkShortcuts } from './hooks/useCanvasViewportBookmarkShortcuts';
 import { useCanvasViewportCommit } from './hooks/useCanvasViewportCommit';
 import { useCanvasViewportMetrics } from './hooks/useCanvasViewportMetrics';
@@ -1229,33 +1230,14 @@ export function Canvas({
     [commitNodePlacementAtClientPosition, pendingNodePlacement, reactFlowInstance],
   );
 
-  const selectedNodeIds = useMemo(
-    () => nodes.filter((node) => Boolean(node.selected)).map((node) => node.id),
-    [nodes]
-  );
-  const selectedUploadNodeId = useMemo(() => {
-    if (selectedNodeIds.length !== 1) {
-      return null;
-    }
-    const selectedNode = nodes.find((node) => node.id === selectedNodeIds[0]);
-    if (!selectedNode || selectedNode.type !== CANVAS_NODE_TYPES.upload) {
-      return null;
-    }
-    return selectedNode.id;
-  }, [nodes, selectedNodeIds]);
-
-  useEffect(() => {
-    if (selectedNodeIds.length === 1) {
-      if (selectedNodeId !== selectedNodeIds[0]) {
-        setSelectedNode(selectedNodeIds[0]);
-      }
-      return;
-    }
-
-    if (selectedNodeId !== null) {
-      setSelectedNode(null);
-    }
-  }, [selectedNodeId, selectedNodeIds, setSelectedNode]);
+  const {
+    selectedNodeIds,
+    selectedUploadNodeId,
+  } = useCanvasSelectionSync({
+    nodes,
+    selectedNodeId,
+    setSelectedNodeId: setSelectedNode,
+  });
 
   useEffect(() => {
     const handlePaste = (event: ClipboardEvent) => {

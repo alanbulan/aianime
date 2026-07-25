@@ -1661,6 +1661,48 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("new ResizeObserver(");
   });
 
+  it("keeps Canvas selected-node projection in one presentation hook", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasSelectionSync.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const hookDeclaration = [
+      "export function",
+      "useCanvasSelectionSync(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(hookDeclaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasSelectionSync.ts",
+    ]);
+    expect(hookModel).toContain("CANVAS_NODE_TYPES.upload");
+    expect(canvasView).toContain("./hooks/useCanvasSelectionSync");
+    expect(canvasView).not.toContain("selectedNodeIds.length === 1");
+    expect(canvasView).not.toContain(
+      "nodes.filter((node) => Boolean(node.selected)).map((node) => node.id)",
+    );
+  });
+
   it("keeps Canvas marquee gestures in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
