@@ -1,3 +1,7 @@
+export { MentionTextarea } from "@/features/mention-textarea/MentionTextarea";
+export type {
+  MentionTextareaProps,
+} from "@/features/mention-textarea/MentionTextarea";
 export {
   buildMentionSegments,
   detectMentionQuery,

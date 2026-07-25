@@ -219,11 +219,19 @@ describe("frontend architecture boundaries", () => {
     expect(failures).toEqual([]);
   });
 
-  it("keeps mention textarea text rules in its feature domain", () => {
+  it("keeps mention textarea domain, interaction, and view ownership separate", () => {
+    const legacyComponentPath = resolve(
+      SRC_ROOT,
+      "components/episode/beat-workbench/mention-textarea.tsx",
+    );
     const componentSource = readFileSync(
+      resolve(SRC_ROOT, "features/mention-textarea/MentionTextarea.tsx"),
+      "utf8",
+    );
+    const controllerSource = readFileSync(
       resolve(
         SRC_ROOT,
-        "components/episode/beat-workbench/mention-textarea.tsx",
+        "features/mention-textarea/application/use-mention-textarea-controller.ts",
       ),
       "utf8",
     );
@@ -238,15 +246,45 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/mention-textarea/public.ts"),
       "utf8",
     );
+    const viewSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/mention-textarea/presentation/MentionTextareaView.tsx",
+      ),
+      "utf8",
+    );
+    const legacyImports = sourceFiles(SRC_ROOT)
+      .flatMap((path) => importSpecifiers(path))
+      .filter(
+        (specifier) =>
+          specifier ===
+          "@/components/episode/beat-workbench/mention-textarea",
+      );
+    const externalInternalImports = sourceFiles(SRC_ROOT)
+      .filter(
+        (path) =>
+          !relativeSource(path).startsWith("features/mention-textarea/"),
+      )
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter(
+            (specifier) =>
+              specifier.startsWith("@/features/mention-textarea/") &&
+              specifier !== "@/features/mention-textarea/public",
+          )
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      );
 
-    expect(componentSource).toContain(
-      'from "@/features/mention-textarea/public"',
-    );
-    expect(componentSource).not.toContain("function buildSegments");
-    expect(componentSource).not.toContain(
-      "export function findMentionTokenAtSelection",
-    );
-    expect(componentSource).not.toContain("before.match(");
+    expect(existsSync(legacyComponentPath)).toBe(false);
+    expect(legacyImports).toEqual([]);
+    expect(externalInternalImports).toEqual([]);
+    expect(componentSource).toContain("useMentionTextareaController");
+    expect(componentSource).toContain("<MentionTextareaView");
+    expect(componentSource).not.toContain("useState");
+    expect(controllerSource).toContain("normalizeMentionSeparatorSpaces");
+    expect(controllerSource).toContain("findMentionTokenAtSelection");
+    expect(controllerSource).not.toContain("createPortal");
+    expect(controllerSource).not.toContain("className=");
     expect(domainSource).toContain("export function buildMentionSegments");
     expect(domainSource).toContain(
       "export function findMentionTokenAtSelection",
@@ -256,6 +294,12 @@ describe("frontend architecture boundaries", () => {
     expect(domainSource).not.toContain('from "react"');
     expect(domainSource).not.toContain("document.");
     expect(domainSource).not.toContain("window.");
+    expect(viewSource).toContain("createPortal");
+    expect(viewSource).toContain("<textarea");
+    expect(viewSource).not.toContain("useState");
+    expect(viewSource).not.toContain("detectMentionQuery");
+    expect(viewSource).not.toContain("normalizeMentionSeparatorSpaces");
+    expect(publicSource).toContain("export { MentionTextarea }");
     expect(publicSource).toContain("findMentionTokenAtSelection,");
   });
 

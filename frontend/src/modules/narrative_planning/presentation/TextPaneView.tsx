@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowUpRight } from "lucide-react";
 
-import { MentionTextarea } from "@/components/episode/beat-workbench/mention-textarea";
+import { MentionTextarea } from "@/features/mention-textarea/public";
 import { Label } from "@/components/ui/label";
 import {
   Select,

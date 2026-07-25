@@ -18,7 +18,7 @@ import {
   MEDIA_PRIMARY_ACTION_BUTTON_CLASS,
   VIDEO_PROMPT_TEXTAREA_CLASS,
 } from "@/components/episode/beat-workbench/media-styles";
-import { MentionTextarea } from "@/components/episode/beat-workbench/mention-textarea";
+import { MentionTextarea } from "@/features/mention-textarea/public";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

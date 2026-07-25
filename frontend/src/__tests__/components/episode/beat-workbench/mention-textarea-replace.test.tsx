@@ -4,8 +4,8 @@ import { fireEvent, render } from "@testing-library/react";
 
 import {
   findMentionTokenAtSelection,
+  MentionTextarea,
 } from "@/features/mention-textarea/public";
-import { MentionTextarea } from "@/components/episode/beat-workbench/mention-textarea";
 
 describe("findMentionTokenAtSelection", () => {
   const text = "参考 @图片1 收尾"; // @图片1 在 [3,7)
