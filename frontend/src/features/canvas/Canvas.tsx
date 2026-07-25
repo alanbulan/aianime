@@ -50,7 +50,6 @@ import { getSkillRegistry } from '@/api/skills';
 import { SKILL_SCHEMA_VERSION, type SkillDefinition } from '@/features/freezone/context/skillRoles';
 import { translateSkillName } from '@/features/freezone/context/skillI18n';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
-import { classifyCanvasNodeChanges } from '@/features/canvas/application/canvasChangeIntent';
 import {
   CURRENT_RUNTIME_SESSION_ID,
   canvasAiGateway,
@@ -217,7 +216,6 @@ interface DuplicateOptions {
   explicitOffset?: { x: number; y: number };
   disableOffsetIteration?: boolean;
   suppressSelect?: boolean;
-  suppressPersist?: boolean;
   /**
    * Paste from a serialized clipboard snapshot instead of looking the source
    * nodes up by id in the live canvas — lets paste work after the originals are
@@ -343,8 +341,6 @@ export function Canvas({
     skillById,
   } = useCanvasSkillRegistry(getSkillRegistry);
 
-  const isRestoringCanvasRef = useRef(true);
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const copiedSnapshotRef = useRef<ClipboardSnapshot | null>(sharedNodeClipboard);
   const getContextMenuCapabilities = useCallback(() => {
     const history = useCanvasStore.getState().history;
@@ -452,8 +448,6 @@ export function Canvas({
   const pendingResumeNodeKey = useCanvasStore(
     useShallow((state) => state.nodes.filter(nodeNeedsGenerationResume).map((node) => node.id)),
   );
-  const history = useCanvasStore((state) => state.history);
-  const dragHistorySnapshot = useCanvasStore((state) => state.dragHistorySnapshot);
   const applyNodesChange = useCanvasStore((state) => state.onNodesChange);
   const applyEdgesChange = useCanvasStore((state) => state.onEdgesChange);
   const connectNodes = useCanvasStore((state) => state.onConnect);
@@ -562,28 +556,7 @@ export function Canvas({
     return edges.map((edge) => (edge.hidden ? edge : { ...edge, hidden: true }));
   }, [edges, edgesHidden]);
 
-  const persistCanvasSnapshot = useCallback(() => {
-    // ai-anime-fe web mode persists through useCanvasSync's Zustand
-    // subscription. This callback is kept so canvas-local event handlers can
-    // still schedule a save boundary without coupling to persistence details.
-  }, []);
-
-  const scheduleCanvasPersist = useCallback(
-    (delayMs = 140) => {
-      if (saveTimerRef.current) {
-        clearTimeout(saveTimerRef.current);
-      }
-
-      saveTimerRef.current = setTimeout(() => {
-        saveTimerRef.current = null;
-        persistCanvasSnapshot();
-      }, delayMs);
-    },
-    [persistCanvasSnapshot]
-  );
-
   useEffect(() => {
-    isRestoringCanvasRef.current = true;
     if (useCanvasStore.getState().nodes.length === 0) {
       // useCanvasSync owns the camera and has already restored it into the
       // store. Only center the view for a genuinely empty/new canvas;
@@ -594,32 +567,13 @@ export function Canvas({
         resolveCanvasOriginViewport(wrapperRef.current?.getBoundingClientRect()),
       );
     }
-    const restoreTimer = setTimeout(() => {
-      isRestoringCanvasRef.current = false;
-    }, 0);
-
     return () => {
-      clearTimeout(restoreTimer);
-      if (saveTimerRef.current) {
-        clearTimeout(saveTimerRef.current);
-        saveTimerRef.current = null;
-      }
       closeImageViewer();
-      persistCanvasSnapshot();
     };
   }, [
     closeImageViewer,
-    persistCanvasSnapshot,
     setViewportState,
   ]);
-
-  useEffect(() => {
-    if (isRestoringCanvasRef.current || dragHistorySnapshot) {
-      return;
-    }
-
-    scheduleCanvasPersist();
-  }, [nodes, edges, history, dragHistorySnapshot, scheduleCanvasPersist]);
 
   const nodeFocusViewportPort = useMemo(
     () => ({
@@ -878,21 +832,8 @@ export function Canvas({
         }
       }
       applyNodesChange(effectiveChanges);
-
-      const intent = classifyCanvasNodeChanges(effectiveChanges);
-
-      if (intent.hasInteractionMove) {
-        return;
-      }
-
-      if (intent.hasInteractionEnd) {
-        scheduleCanvasPersist(0);
-        return;
-      }
-
-      scheduleCanvasPersist();
     },
-    [applyNodesChange, scheduleCanvasPersist]
+    [applyNodesChange]
   );
 
   const handleEdgesChange = useCallback(
@@ -912,9 +853,8 @@ export function Canvas({
         return;
       }
       applyEdgesChange(unlockedChanges);
-      scheduleCanvasPersist();
     },
-    [applyEdgesChange, scheduleCanvasPersist]
+    [applyEdgesChange]
   );
 
   const handleEdgeDoubleClick = useCallback(
@@ -925,9 +865,8 @@ export function Canvas({
         return;
       }
       deleteEdge(edge.id);
-      scheduleCanvasPersist(0);
     },
-    [deleteEdge, scheduleCanvasPersist]
+    [deleteEdge]
   );
 
   const connectSkillRoleBinding = useCallback(
@@ -1022,9 +961,8 @@ export function Canvas({
         return;
       }
       connectGraphNodes(connection);
-      scheduleCanvasPersist(0);
     },
-    [connectGraphNodes, nodes, scheduleCanvasPersist]
+    [connectGraphNodes, nodes]
   );
 
   // 3D 世界节点只用一张上游图生成 —— 入边唯一。已有上游时实时拒绝再连入(连线
@@ -1110,7 +1048,6 @@ export function Canvas({
         bindSingleBeatContextInput(newNodeId, pendingNodePlacement.skill);
       }
       triggerPlacementConfirm(newNodeId);
-      scheduleCanvasPersist(0);
       setPendingNodePlacement(null);
       setNodePlacementClientPosition(null);
       suppressNextPaneClickRef.current = true;
@@ -1121,7 +1058,6 @@ export function Canvas({
       bindSingleBeatContextInput,
       pendingNodePlacement,
       reactFlowInstance,
-      scheduleCanvasPersist,
       setSelectedNode,
       triggerPlacementConfirm,
     ],
@@ -1226,7 +1162,6 @@ export function Canvas({
       if (lastNodeId) {
         setSelectedNode(lastNodeId);
       }
-      scheduleCanvasPersist(0);
     };
 
     document.addEventListener('paste', handlePaste);
@@ -1237,7 +1172,6 @@ export function Canvas({
     addNode,
     getPreferredCanvasPointerPosition,
     reactFlowInstance,
-    scheduleCanvasPersist,
     selectedUploadNodeId,
     setSelectedNode,
   ]);
@@ -1249,12 +1183,11 @@ export function Canvas({
     }
     if (changedCount > 0) {
       setNodePositions(positions);
-      scheduleCanvasPersist(0);
     }
     window.requestAnimationFrame(() => {
       reactFlowInstance.fitView({ duration: 240, padding: 0.2 });
     });
-  }, [edges, nodes, reactFlowInstance, scheduleCanvasPersist, setNodePositions]);
+  }, [edges, nodes, reactFlowInstance, setNodePositions]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -1352,9 +1285,10 @@ export function Canvas({
 
       if (isUndo || isRedo) {
         event.preventDefault();
-        const changed = isUndo ? undo() : redo();
-        if (changed) {
-          scheduleCanvasPersist(0);
+        if (isUndo) {
+          undo();
+        } else {
+          redo();
         }
         return;
       }
@@ -1364,10 +1298,7 @@ export function Canvas({
           return;
         }
         event.preventDefault();
-        const createdGroupId = groupNodes(selectedNodeIds);
-        if (createdGroupId) {
-          scheduleCanvasPersist(0);
-        }
+        groupNodes(selectedNodeIds);
         return;
       }
 
@@ -1408,7 +1339,6 @@ export function Canvas({
       } else if (deletableNodeIds.length > 1) {
         deleteNodes(deletableNodeIds);
       }
-      scheduleCanvasPersist(0);
     };
 
     document.addEventListener('keydown', handleKeyDown);
@@ -1424,7 +1354,6 @@ export function Canvas({
     groupNodes,
     undo,
     redo,
-    scheduleCanvasPersist,
     handleOrganizeCanvas,
     showNodeMenu,
     closeNodeMenu,
@@ -1506,7 +1435,6 @@ export function Canvas({
             basePosition,
           );
           setSelectedNode(newNodeId);
-          scheduleCanvasPersist(0);
         })();
         return;
       }
@@ -1546,14 +1474,12 @@ export function Canvas({
       if (lastNodeId) {
         setSelectedNode(lastNodeId);
       }
-      scheduleCanvasPersist(0);
     },
     [
       addNode,
       acceptsCanvasDrop,
       reactFlowInstance,
       resetCanvasDropIndicator,
-      scheduleCanvasPersist,
       setSelectedNode,
     ]
   );
@@ -1597,7 +1523,6 @@ export function Canvas({
         }
       }
 
-      scheduleCanvasPersist(0);
       setShowNodeMenu(false);
       setMenuAllowedTypes(undefined);
       setPendingConnectStart(null);
@@ -1608,7 +1533,6 @@ export function Canvas({
       connectGraphNodes,
       pendingBatchConnectIds,
       pendingConnectStart,
-      scheduleCanvasPersist,
       setPreviewConnectionVisual,
     ],
   );
@@ -1727,9 +1651,8 @@ export function Canvas({
     (type: CanvasNodeType) => {
       const newNodeId = addNode(type, spawnAtViewportCenter());
       setSelectedNode(newNodeId);
-      scheduleCanvasPersist(0);
     },
-    [addNode, scheduleCanvasPersist, setSelectedNode, spawnAtViewportCenter],
+    [addNode, setSelectedNode, spawnAtViewportCenter],
   );
 
   const handleQuickAddSkill = useCallback(
@@ -1741,9 +1664,8 @@ export function Canvas({
       } as Partial<CanvasNodeData>);
       setSelectedNode(newNodeId);
       bindSingleBeatContextInput(newNodeId, skill);
-      scheduleCanvasPersist(0);
     },
-    [addNode, bindSingleBeatContextInput, scheduleCanvasPersist, setSelectedNode, spawnAtViewportCenter],
+    [addNode, bindSingleBeatContextInput, setSelectedNode, spawnAtViewportCenter],
   );
 
   // 历史资产弹窗「使用」：把该资产作为新节点生成到视口中心（复用素材落点的 spawnAssetNode）。
@@ -1785,18 +1707,16 @@ export function Canvas({
           : origin;
       const newNodeId = spawnAssetNode(useCanvasStore.getState(), payload, position);
       setSelectedNode(newNodeId);
-      scheduleCanvasPersist(0);
     },
-    [scheduleCanvasPersist, setSelectedNode, spawnAtViewportCenter],
+    [setSelectedNode, spawnAtViewportCenter],
   );
 
   // 历史资产弹窗「删除」：从画布移除该资产对应的源节点。
   const handleDeleteHistoryNode = useCallback(
     (nodeId: string) => {
       deleteNode(nodeId);
-      scheduleCanvasPersist(0);
     },
-    [deleteNode, scheduleCanvasPersist],
+    [deleteNode],
   );
 
   const duplicateNodes = useCallback(
@@ -1972,10 +1892,6 @@ export function Canvas({
           setSelectedNode(firstNodeId);
         }
       }
-      if (!options.suppressPersist) {
-        scheduleCanvasPersist(0);
-      }
-
       // 跨项目粘贴：把节点里指向「源项目」的媒体资产重新上传到当前项目，完成后静默
       // 改写 URL。后台执行、不阻塞粘贴；单条失败保留原 URL 并提示。仅当来自序列化
       // 剪贴板（paste）且源项目与当前项目不同才触发——同项目复制/副本无需迁移。
@@ -2000,9 +1916,6 @@ export function Canvas({
             } else if (migrated > 0) {
               toast.success(t('canvas.crossProjectAssets.success', { count: migrated }));
             }
-            if (migrated > 0) {
-              scheduleCanvasPersist(0);
-            }
           })
           .catch((error) => {
             console.warn('[canvas] cross-project asset migration failed', error);
@@ -2017,7 +1930,6 @@ export function Canvas({
       connectNodes,
       edges,
       nodes,
-      scheduleCanvasPersist,
       setSelectedNode,
       t,
       updateNodeData,
@@ -2184,7 +2096,6 @@ export function Canvas({
       const duplicateResult = duplicateNodes(sourceNodeIds, {
         explicitOffset: { x: 0, y: 0 },
         disableOffsetIteration: true,
-        suppressPersist: true,
         suppressSelect: true,
       });
       if (!duplicateResult) {
@@ -2390,9 +2301,8 @@ export function Canvas({
       if (altCopyState.copiedNodeIds.length > 0) {
         setSelectedNode(altCopyState.copiedNodeIds[0]);
       }
-      scheduleCanvasPersist(0);
     },
-    [applyNodesChange, scheduleCanvasPersist, setSelectedNode]
+    [applyNodesChange, setSelectedNode]
   );
 
   // 拖「选区框」整体移动多选节点时，React Flow 走 onSelectionDrag* 而非 onNodeDrag*，
@@ -2488,7 +2398,6 @@ export function Canvas({
             sourceHandle,
             targetHandle,
           });
-          scheduleCanvasPersist(0);
           setPendingConnectStart(null);
           setPreviewConnectionVisual(null);
           return;
@@ -2569,7 +2478,6 @@ export function Canvas({
       nodes,
       pendingConnectStart,
       reactFlowInstance,
-      scheduleCanvasPersist,
     ]
   );
 
@@ -2840,7 +2748,6 @@ export function Canvas({
             sourceHandle,
             targetHandle,
           });
-          scheduleCanvasPersist(0);
           setPendingConnectStart(null);
           setPreviewConnectionVisual(null);
           return;
@@ -2887,7 +2794,6 @@ export function Canvas({
       connectGraphNodes,
       nodes,
       reactFlowInstance,
-      scheduleCanvasPersist,
       clearDropTargetHighlight,
       resolveManualDropTargetEl,
     ],
@@ -3045,7 +2951,6 @@ export function Canvas({
       if (dropNodeId && !sourceIdSet.has(dropNodeId)) {
         const targetNode = nodes.find((node) => node.id === dropNodeId);
         if (targetNode && nodeHasTargetHandle(targetNode.type)) {
-          let connected = 0;
           for (const sourceId of drag.sourceIds) {
             const sourceNode = nodes.find((node) => node.id === sourceId);
             if (
@@ -3059,11 +2964,7 @@ export function Canvas({
                 sourceHandle: 'source',
                 targetHandle: 'target',
               });
-              connected += 1;
             }
-          }
-          if (connected > 0) {
-            scheduleCanvasPersist(0);
           }
           setPreviewConnectionVisual(null);
           return;
@@ -3089,7 +2990,6 @@ export function Canvas({
       nodes,
       openBatchSpawnMenu,
       reactFlowInstance,
-      scheduleCanvasPersist,
       setPreviewConnectionVisual,
     ],
   );
@@ -3292,7 +3192,6 @@ export function Canvas({
                     y: contextMenu.clientY,
                   });
                   addNode(CANVAS_NODE_TYPES.upload, flowPos);
-                  scheduleCanvasPersist(0);
                 },
               },
               {
@@ -3312,9 +3211,7 @@ export function Canvas({
                 shortcut: '⌘Z',
                 disabled: !contextMenu.canUndo,
                 onSelect: () => {
-                  if (undo()) {
-                    scheduleCanvasPersist(0);
-                  }
+                  undo();
                 },
               },
               {
@@ -3323,9 +3220,7 @@ export function Canvas({
                 shortcut: '⇧⌘Z',
                 disabled: !contextMenu.canRedo,
                 onSelect: () => {
-                  if (redo()) {
-                    scheduleCanvasPersist(0);
-                  }
+                  redo();
                 },
               },
             ],

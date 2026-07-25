@@ -788,7 +788,8 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasChangeIntent",
     );
-    expect(canvasView).toContain(
+    expect(changeEffects).toContain("from './canvasChangeIntent';");
+    expect(canvasView).not.toContain(
       "@/features/canvas/application/canvasChangeIntent",
     );
     expect(canvasStore).toContain(
@@ -1830,6 +1831,26 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).toContain("./hooks/useCanvasPendingNodeFocus");
     expect(canvasView).not.toContain("getInternalNode(pendingFocusNodeId)");
     expect(canvasView).not.toContain("Math.max(currentZoom, 0.6)");
+  });
+
+  it("keeps Canvas persistence owned by useCanvasSync", () => {
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const canvasSync = readFileSync(
+      resolve(SRC_ROOT, "features/freezone/useCanvasSync.ts"),
+      "utf8",
+    );
+
+    expect(canvasView).not.toContain("persistCanvasSnapshot");
+    expect(canvasView).not.toContain("scheduleCanvasPersist");
+    expect(canvasView).not.toContain("saveTimerRef");
+    expect(canvasView).not.toContain("isRestoringCanvasRef");
+    expect(canvasSync).toContain(
+      "const unsubscribeCanvas = useCanvasStore.subscribe((state, prev) =>",
+    );
+    expect(canvasSync).toContain("void scheduleSave({");
   });
 
   it("keeps Canvas marquee gestures in one presentation hook", () => {
