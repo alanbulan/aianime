@@ -1,15 +1,13 @@
 // Copyright (c) 2026 AI anime
-import {
-  fetchFreezoneJobResult,
-  submitFreezoneRedraw,
-  type FreezoneRedrawAspectRatio,
-} from '@/api/ops';
-import { awaitTaskCompletion } from '@/api/tasks';
 import { readUrl } from '@/lib/url-params';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { resolveErrorContent } from './errorDialog';
 import { CURRENT_RUNTIME_SESSION_ID, extractRequestId } from './generationErrorReport';
-import type { AiGateway, GenerateImagePayload } from './ports';
+import type {
+  AiGateway,
+  CanvasRedrawTaskGateway,
+  GenerateImagePayload,
+} from './ports';
 import { generationTaskDescriptor } from './resumeGeneration';
 
 /**
@@ -42,6 +40,7 @@ function readFreezoneRedrawRequest(
 async function regenerateFreezoneRedrawNode(
   nodeId: string,
   request: FreezoneRedrawRequest,
+  redrawGateway: CanvasRedrawTaskGateway,
 ): Promise<void> {
   const store = useCanvasStore.getState();
   const project = readUrl().project;
@@ -57,20 +56,25 @@ async function regenerateFreezoneRedrawNode(
   });
 
   try {
-    const ref = await submitFreezoneRedraw(project, {
+    const ref = await redrawGateway.submit(project, {
       sourceUrl: request.sourceUrl,
       maskUrl: request.maskUrl,
-      aspectRatio: request.aspectRatio as FreezoneRedrawAspectRatio,
-      numImages: 1,
+      aspectRatio: request.aspectRatio,
       imageSize: request.imageSize,
     });
     useCanvasStore.getState().updateNodeData(nodeId, generationTaskDescriptor(ref));
-    const completed = await awaitTaskCompletion(ref.task_key, project);
+    const completed = await redrawGateway.awaitCompletion(
+      ref.task_key,
+      project,
+    );
     const directUrl = completed.result?.['output_url'] as string | undefined;
     let url = directUrl;
     if (!url) {
-      const fallback = await fetchFreezoneJobResult(project, ref.task_type, ref.job_id);
-      url = fallback.url;
+      url = await redrawGateway.fetchResultUrl(
+        project,
+        ref.task_type,
+        ref.job_id,
+      );
     }
     useCanvasStore.getState().updateNodeData(nodeId, {
       imageUrl: url,
@@ -108,6 +112,7 @@ async function regenerateFreezoneRedrawNode(
 export async function regenerateExportImageNode(
   nodeId: string,
   aiGateway: AiGateway,
+  redrawGateway: CanvasRedrawTaskGateway,
 ): Promise<void> {
   const store = useCanvasStore.getState();
   const node = store.nodes.find((n) => n.id === nodeId);
@@ -122,7 +127,11 @@ export async function regenerateExportImageNode(
 
   const freezoneRequest = readFreezoneRedrawRequest(data);
   if (freezoneRequest) {
-    await regenerateFreezoneRedrawNode(nodeId, freezoneRequest);
+    await regenerateFreezoneRedrawNode(
+      nodeId,
+      freezoneRequest,
+      redrawGateway,
+    );
     return;
   }
 

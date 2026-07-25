@@ -14,7 +14,6 @@ import {
   fetchFreezoneJobResult,
   fetchFreezoneReversePromptResult,
   fetchFreezoneStoryScriptResult,
-  type FreezoneJobRef,
 } from '@/api/ops';
 import { awaitTaskCompletion, listTasks, type TaskState } from '@/api/tasks';
 import { resolveErrorContent } from '@/features/canvas/application/errorDialog';
@@ -24,8 +23,9 @@ import {
   isStaleGenerationTask,
   shouldWriteGenerationError,
 } from '@/features/canvas/application/generationTaskArbitration';
+import type { CanvasGenerationTaskRef } from '@/features/canvas/application/ports';
 
-type FreezoneTaskType = FreezoneJobRef['task_type'];
+type FreezoneTaskType = CanvasGenerationTaskRef['task_type'];
 
 /**
  * The persisted handle that lets a refreshed page re-attach to a running job.
@@ -56,7 +56,9 @@ const sessionOwnedTaskKeys = new Set<string>();
  * Also marks the task key as session-owned so {@link nodeNeedsGenerationResume}
  * won't double-attach while the originating flow is still awaiting it.
  */
-export function generationTaskDescriptor(ref: FreezoneJobRef): GenerationTaskDescriptor {
+export function generationTaskDescriptor(
+  ref: CanvasGenerationTaskRef,
+): GenerationTaskDescriptor {
   sessionOwnedTaskKeys.add(ref.task_key);
   return {
     generationTaskKey: ref.task_key,

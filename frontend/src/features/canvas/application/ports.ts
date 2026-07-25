@@ -28,6 +28,35 @@ export interface CanvasAssetGateway {
   ) => Promise<string>;
 }
 
+export interface CanvasGenerationTaskRef {
+  job_id: string;
+  task_key: string;
+  task_type: string;
+}
+
+export interface CanvasRedrawCommand {
+  aspectRatio: string;
+  imageSize: string;
+  maskUrl: string;
+  sourceUrl: string;
+}
+
+export interface CanvasRedrawTaskGateway {
+  submit: (
+    projectId: string,
+    command: CanvasRedrawCommand,
+  ) => Promise<CanvasGenerationTaskRef>;
+  awaitCompletion: (
+    taskKey: string,
+    projectId: string,
+  ) => Promise<{ result?: Record<string, unknown> | null }>;
+  fetchResultUrl: (
+    projectId: string,
+    taskType: string,
+    jobId: string,
+  ) => Promise<string>;
+}
+
 export interface NodeCatalog {
   getDefinition: (type: CanvasNodeType) => CanvasNodeDefinition;
   getMenuDefinitions: () => CanvasNodeDefinition[];

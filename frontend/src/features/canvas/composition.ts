@@ -7,6 +7,9 @@ import {
 } from './application/crossProjectAssets';
 import { CanvasToolProcessor } from './application/toolProcessor';
 import {
+  regenerateExportImageNode as regenerateExportImageNodeUseCase,
+} from './application/regenerateExportNode';
+import {
   uploadAndAutoCommitSelectedBackgroundCandidate as uploadAndAutoCommitSelectedBackgroundCandidateUseCase,
   type SelectedBackgroundTarget,
   type UploadSelectedBackgroundCandidateOptions,
@@ -16,6 +19,7 @@ import {
 } from './application/uploadToolOutput';
 import { freezoneAssetGateway } from './infrastructure/freezoneAssetGateway';
 import { freezoneAiGateway } from './infrastructure/freezoneAiGateway';
+import { freezoneRedrawTaskGateway } from './infrastructure/freezoneRedrawTaskGateway';
 import { uuidGenerator } from './infrastructure/idGenerator';
 import { webImageSplitGateway } from './infrastructure/webImageSplitGateway';
 
@@ -58,5 +62,13 @@ export function uploadAndAutoCommitSelectedBackgroundCandidate(
     blob,
     filename,
     options,
+  );
+}
+
+export function regenerateExportImageNode(nodeId: string) {
+  return regenerateExportImageNodeUseCase(
+    nodeId,
+    freezoneAiGateway,
+    freezoneRedrawTaskGateway,
   );
 }
