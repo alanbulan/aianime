@@ -7,25 +7,13 @@ import { useTranslation } from 'react-i18next';
 import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
 import { MOD_KEY_LABEL } from '@/lib/platform';
 import { CANVAS_CONTROL_GLASS_CLASS } from './canvasControlStyles';
+import { isTypingTarget } from './canvasInteractionTargets';
 import { useEdgeVisibilityStore } from './edgeVisibilityStore';
 
 const ZOOM_STEP = 1.2;
 const ZOOM_MIN = 0.1;
 const ZOOM_MAX = 8;
 const ZOOM_PRESETS = [50, 100, 800];
-
-function isTypingTarget(target: EventTarget | null): boolean {
-  const element = target as HTMLElement | null;
-  if (!element) return false;
-  const tagName = element.tagName.toLowerCase();
-  return (
-    tagName === 'input' ||
-    tagName === 'textarea' ||
-    tagName === 'select' ||
-    element.isContentEditable ||
-    Boolean(element.closest('[role="textbox"]'))
-  );
-}
 
 interface CanvasZoomControlProps {
   onOrganize: () => void;

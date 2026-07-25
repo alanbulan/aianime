@@ -144,6 +144,12 @@ import {
   type SnapAlignIndex,
 } from './snap-align/computeSnapAlign';
 import { computeAutoLayout } from './application/autoLayout';
+import {
+  isCanvasPaneTarget,
+  isSpacePanKey,
+  isTypingTarget,
+  PAN_ACTIVATION_KEY_CODE,
+} from './ui/canvasInteractionTargets';
 
 const DEFAULT_EDGE_OPTIONS = { type: 'disconnectableEdge' };
 const REACT_FLOW_PRO_OPTIONS = { hideAttribution: true };
@@ -158,7 +164,6 @@ const CONNECTION_SNAP_RADIUS = 160;
 // 不必压到节点里面才触发落点高亮/建边，节点周围一圈邻域内即可吸附。
 const MANUAL_DROP_PROXIMITY_PX = 56;
 const MULTI_SELECTION_KEY_CODES = ['Control', 'Meta'];
-const PAN_ACTIVATION_KEY_CODE = 'Space';
 // Pan the canvas only by holding the middle mouse button (scroll-wheel) and dragging
 // (button 1). Left drag (0) runs the custom marquee box-select on the empty pane;
 // right click (2) opens the canvas context menu.
@@ -248,43 +253,11 @@ interface GenerationStoryboardMetadata {
   frameNotes: string[];
 }
 
-function isCanvasPaneTarget(target: EventTarget | null, wrapperElement: HTMLElement): boolean {
-  const element = target as HTMLElement | null;
-  if (!element || !wrapperElement.contains(element)) {
-    return false;
-  }
-  if (!element.closest('.react-flow__pane')) {
-    return false;
-  }
-  return !element.closest(
-    '.react-flow__node, .react-flow__edge, .react-flow__controls, .react-flow__minimap, .nodrag, .nopan, button, input, textarea, select, [role="button"]'
-  );
-}
-
 function cloneNodeData<T>(value: T): T {
   if (typeof structuredClone === 'function') {
     return structuredClone(value);
   }
   return JSON.parse(JSON.stringify(value)) as T;
-}
-
-function isTypingTarget(target: EventTarget | null): boolean {
-  const element = target as HTMLElement | null;
-  if (!element) {
-    return false;
-  }
-  const tagName = element.tagName.toLowerCase();
-  return (
-    tagName === 'input' ||
-    tagName === 'textarea' ||
-    tagName === 'select' ||
-    element.isContentEditable ||
-    Boolean(element.closest('[role="textbox"]'))
-  );
-}
-
-function isSpacePanKey(event: KeyboardEvent): boolean {
-  return event.code === PAN_ACTIVATION_KEY_CODE || event.key === ' ' || event.key === 'Spacebar';
 }
 
 function resolveClipboardImageFile(event: ClipboardEvent): File | null {

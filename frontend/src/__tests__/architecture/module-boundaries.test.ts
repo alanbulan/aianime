@@ -1068,6 +1068,58 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain(ruleDeclaration);
   });
 
+  it("keeps Canvas DOM interaction rules in one UI helper", () => {
+    const interactionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/canvasInteractionTargets.ts",
+    );
+    const interactionModel = readFileSync(interactionPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const zoomView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/ui/CanvasZoomControl.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(interactionPath).filter(
+      (specifier) =>
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declarations = [
+      "isCanvasPaneTarget(",
+      "isTypingTarget(",
+      "isSpacePanKey(",
+    ].map((name) => ["export function", name].join(" "));
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => {
+        const source = readFileSync(path, "utf8");
+        return declarations.some((declaration) => source.includes(declaration));
+      })
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/ui/canvasInteractionTargets.ts",
+    ]);
+    for (const declaration of declarations) {
+      expect(interactionModel).toContain(declaration);
+    }
+    expect(canvasView).toContain("./ui/canvasInteractionTargets");
+    expect(zoomView).toContain("./canvasInteractionTargets");
+    expect(canvasView).not.toContain("function isCanvasPaneTarget(");
+    expect(canvasView).not.toContain("function isTypingTarget(");
+    expect(canvasView).not.toContain("function isSpacePanKey(");
+    expect(canvasView).not.toContain("const PAN_ACTIVATION_KEY_CODE");
+    expect(zoomView).not.toContain("function isTypingTarget(");
+  });
+
   it("keeps Canvas node position reducers out of the Zustand store", () => {
     const positionsPath = resolve(
       SRC_ROOT,
