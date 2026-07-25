@@ -41,6 +41,12 @@ import {
   type CanvasHistoryState,
 } from '@/features/canvas/domain/canvasHistory';
 import {
+  isDeleteToEmpty,
+  trackEdit,
+  type CanvasMutationSource,
+  type CanvasMutationState,
+} from '@/features/canvas/domain/canvasMutation';
+import {
   DEFAULT_STORYBOARD_ASPECT,
   computeStoryboardBoardLayout,
   computeStoryboardCell,
@@ -98,43 +104,9 @@ const STORYBOARD_SPLIT_FRAME_NOTE_HEIGHT = 40;
 const STORYBOARD_SPLIT_NODE_CHROME_HEIGHT = 70;
 const STORYBOARD_SPLIT_GRID_GAP = 1;
 
-/**
- * Why the canvas content was last mutated.
- *
- * - `user_edit`     — any normal user-driven mutation (add / move / update node, etc.).
- * - `delete_to_empty` — a user-driven removal that left zero nodes. `useCanvasSync`
- *   treats this as an implicit "manual clear" so autosave can flush the empty
- *   canvas instead of being rejected by the dangerous-empty guard.
- * - `manual_clear`  — `clearCanvas()` was invoked (explicit "clear canvas" UI).
- * - `null`          — fresh hydrate / canvas switch with no edits yet.
- *
- * Persisted only on the client; the backend never sees this enum directly. It
- * is the input to `decideSaveAction` (canvasSyncCore.ts), which converts it
- * into the `save_source` / `allow_empty_overwrite` fields sent over the wire.
- */
-export type CanvasMutationSource =
-  | "user_edit"
-  | "delete_to_empty"
-  | "manual_clear";
-
-interface CanvasState {
+interface CanvasState extends CanvasMutationState {
   nodes: CanvasNode[];
   edges: CanvasEdge[];
-  /**
-   * Counts user-driven mutations since the last hydrate (or canvas switch). A
-   * value of 0 means "the user has not touched this canvas yet", which lets
-   * `useCanvasSync` distinguish a real empty canvas from an accidental
-   * HMR/store-reset that produced an empty `nodes` array.
-   */
-  userEditsSinceHydrate: number;
-  /** See `CanvasMutationSource`. Reset to null on hydrate / canvas switch. */
-  lastMutationSource: CanvasMutationSource | null;
-  /**
-   * Set by `clearCanvas()` to signal "the next autosave with empty nodes is
-   * intentional". `useCanvasSync` acknowledges it after a successful
-   * `manual_clear` save by calling `acknowledgePendingClear()`.
-   */
-  pendingClearIntent: boolean;
   selectedNodeId: string | null;
   /**
    * 当前由顶部工具栏打开了二级功能浮层（全景 / 多角度 / 打光 / 重绘 / 扩图 /
@@ -177,11 +149,7 @@ interface CanvasState {
     nodes: CanvasNode[];
     edges: CanvasEdge[];
     history?: CanvasHistoryState | null;
-    mutation: {
-      userEditsSinceHydrate: number;
-      lastMutationSource: CanvasMutationSource | null;
-      pendingClearIntent: boolean;
-    };
+    mutation: CanvasMutationState;
   }) => void;
   addNode: (
     type: CanvasNodeType,
@@ -377,28 +345,6 @@ interface CanvasState {
    * not influence later autosaves.
    */
   acknowledgePendingClear: () => void;
-}
-
-/**
- * Build the patch that records a user-driven edit. Spread into every
- * `set((state) => ({ ... }))` that mutates `nodes` / `edges` so that
- * `useCanvasSync` can tell intentional edits apart from HMR / store-reset
- * accidents. The default source is `"user_edit"`; deletions that empty the
- * canvas pass `"delete_to_empty"`, and `clearCanvas` passes `"manual_clear"`.
- */
-function trackEdit(
-  state: Pick<CanvasState, "userEditsSinceHydrate">,
-  source: CanvasMutationSource = "user_edit",
-): Pick<CanvasState, "userEditsSinceHydrate" | "lastMutationSource"> {
-  return {
-    userEditsSinceHydrate: state.userEditsSinceHydrate + 1,
-    lastMutationSource: source,
-  };
-}
-
-/** True when `nextNodeCount === 0 && prevNodeCount > 0` — used to flag a removal that empties the canvas. */
-function isDeleteToEmpty(prevNodeCount: number, nextNodeCount: number): boolean {
-  return prevNodeCount > 0 && nextNodeCount === 0;
 }
 
 function normalizeHandleId(value: unknown): string | undefined {

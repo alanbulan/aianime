@@ -12,7 +12,7 @@ import {
   sanitizePreviewImageUrls,
   type SaveSnapshot,
 } from "@/features/freezone/canvasSyncCore";
-import type { CanvasMutationSource } from "@/stores/canvasStore";
+import type { CanvasMutationSource } from "@/features/canvas/domain/canvasMutation";
 
 // Helper to build a snapshot with sensible defaults; tests override only what
 // they care about so the intent of each case is obvious from the diff.

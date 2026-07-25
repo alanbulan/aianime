@@ -7,10 +7,13 @@ import {
 } from "@/lib/localStorageQuota";
 import type {
   CanvasEdge,
-  CanvasMutationSource,
   CanvasNode,
 } from "@/stores/canvasStore";
 import type { CanvasHistoryState } from "@/features/canvas/domain/canvasHistory";
+import {
+  isCanvasMutationState,
+  type CanvasMutationState,
+} from "@/features/canvas/domain/canvasMutation";
 
 export const CANVAS_DRAFT_MAX_BYTES = 1_500_000;
 const CANVAS_DRAFT_VERSION = 1;
@@ -27,12 +30,6 @@ const CANVAS_VIEWPORT_PREFIX = "freezone:canvas-viewport:";
 // Unified time-to-live for every per-canvas key.
 export const FREEZONE_CANVAS_TTL_MS = CANVAS_DRAFT_TTL_MS;
 
-export interface CanvasDraftMutationState {
-  userEditsSinceHydrate: number;
-  lastMutationSource: CanvasMutationSource | null;
-  pendingClearIntent: boolean;
-}
-
 export interface CanvasDraftInput {
   baseRevision: number | null;
   nodes: CanvasNode[];
@@ -40,7 +37,7 @@ export interface CanvasDraftInput {
   viewport: unknown;
   metadata: Record<string, unknown> | null;
   history: CanvasHistoryState | null;
-  mutation: CanvasDraftMutationState;
+  mutation: CanvasMutationState;
   updatedAt: number;
 }
 
@@ -115,19 +112,6 @@ function sortJsonValue(value: unknown): unknown {
   return output;
 }
 
-function isMutationState(value: unknown): value is CanvasDraftMutationState {
-  if (!value || typeof value !== "object") return false;
-  const mutation = value as Partial<CanvasDraftMutationState>;
-  return (
-    typeof mutation.userEditsSinceHydrate === "number" &&
-    (mutation.lastMutationSource === null ||
-      mutation.lastMutationSource === "user_edit" ||
-      mutation.lastMutationSource === "delete_to_empty" ||
-      mutation.lastMutationSource === "manual_clear") &&
-    typeof mutation.pendingClearIntent === "boolean"
-  );
-}
-
 function parseStoredDraft(
   value: unknown,
   project: string,
@@ -144,7 +128,7 @@ function parseStoredDraft(
     typeof draft.signature !== "string" ||
     typeof draft.updatedAt !== "number" ||
     !(typeof draft.baseRevision === "number" || draft.baseRevision === null) ||
-    !isMutationState(draft.mutation)
+    !isCanvasMutationState(draft.mutation)
   ) {
     return null;
   }

@@ -649,6 +649,63 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps Canvas mutation and persistence state in the domain model", () => {
+    const mutationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/canvasMutation.ts",
+    );
+    const mutationModel = readFileSync(mutationPath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const canvasSyncCore = readFileSync(
+      resolve(SRC_ROOT, "features/freezone/canvasSyncCore.ts"),
+      "utf8",
+    );
+    const draftStorage = readFileSync(
+      resolve(SRC_ROOT, "features/freezone/canvasDraftStorage.ts"),
+      "utf8",
+    );
+    const forbiddenMutationImports = importSpecifiers(mutationPath).filter(
+      (specifier) =>
+        specifier === "zustand" ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/"),
+    );
+    const mutationContractDeclaration = [
+      "export interface",
+      "CanvasMutationState",
+    ].join(" ");
+    const mutationContractOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(mutationContractDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenMutationImports).toEqual([]);
+    expect(mutationContractOwners).toEqual([
+      "features/canvas/domain/canvasMutation.ts",
+    ]);
+    expect(mutationModel).toContain("export function trackEdit(");
+    expect(mutationModel).toContain("export function isDeleteToEmpty(");
+    expect(canvasStore).toContain(
+      "@/features/canvas/domain/canvasMutation",
+    );
+    expect(canvasStore).not.toContain("export type CanvasMutationSource");
+    expect(canvasStore).not.toContain("function trackEdit(");
+    expect(canvasStore).not.toContain("function isDeleteToEmpty(");
+    expect(canvasSyncCore).toContain(
+      "@/features/canvas/domain/canvasMutation",
+    );
+    expect(draftStorage).toContain(
+      "@/features/canvas/domain/canvasMutation",
+    );
+    expect(draftStorage).not.toContain("interface CanvasDraftMutationState");
+  });
+
   it("keeps Canvas image node layout rules out of the Zustand store", () => {
     const layoutPath = resolve(
       SRC_ROOT,

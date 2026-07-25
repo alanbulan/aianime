@@ -18,7 +18,7 @@ import type {
   CanvasSaveSource,
   FreezoneCanvasPayload,
 } from "@/api/canvas";
-import type { CanvasMutationSource } from "@/stores/canvasStore";
+import type { CanvasMutationSource } from "@/features/canvas/domain/canvasMutation";
 
 /**
  * Caps on canvas payload size. Mirror of the backend's Pydantic / body
