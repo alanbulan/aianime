@@ -1576,6 +1576,50 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("setContextMenu(");
   });
 
+  it("keeps Canvas node-menu pointer and shortcut state in one presentation hook", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasNodeMenuShortcut.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const hookDeclaration = [
+      "export function",
+      "useCanvasNodeMenuShortcut(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(hookDeclaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasNodeMenuShortcut.ts",
+    ]);
+    expect(hookModel).toContain("isCanvasPaneTarget");
+    expect(hookModel).toContain("isTypingTarget");
+    expect(hookModel).toContain("isImmersiveViewerActive");
+    expect(canvasView).toContain("./hooks/useCanvasNodeMenuShortcut");
+    expect(canvasView).not.toContain("lastCanvasPointerClientPositionRef");
+    expect(canvasView).not.toContain("ReactPointerEvent");
+    expect(canvasView).not.toContain("event.key !== 'Tab'");
+    expect(canvasView).not.toContain(".react-flow__pane");
+  });
+
   it("keeps Canvas marquee gestures in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,

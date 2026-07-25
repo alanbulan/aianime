@@ -7,7 +7,6 @@ import {
   useRef,
   type DragEvent as ReactDragEvent,
   type MouseEvent as ReactMouseEvent,
-  type PointerEvent as ReactPointerEvent,
 } from 'react';
 import {
   ReactFlow,
@@ -138,7 +137,6 @@ import {
 } from './snap-align/computeSnapAlign';
 import { computeAutoLayout } from './application/autoLayout';
 import {
-  isCanvasPaneTarget,
   isTypingTarget,
   PAN_ACTIVATION_KEY_CODE,
 } from './ui/canvasInteractionTargets';
@@ -157,6 +155,7 @@ import { useCanvasEdgePan } from './hooks/useCanvasEdgePan';
 import { useCanvasMarqueeSelection } from './hooks/useCanvasMarqueeSelection';
 import { useCanvasMinimapVisibility } from './hooks/useCanvasMinimapVisibility';
 import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
+import { useCanvasNodeMenuShortcut } from './hooks/useCanvasNodeMenuShortcut';
 import { useCanvasNodePlacementConfirm } from './hooks/useCanvasNodePlacementConfirm';
 import { useCanvasPaneContextMenu } from './hooks/useCanvasPaneContextMenu';
 import { useCanvasViewportBookmarkShortcuts } from './hooks/useCanvasViewportBookmarkShortcuts';
@@ -359,37 +358,6 @@ export function Canvas({
   });
   const pasteIterationRef = useRef(0);
   const pasteImageHandledRef = useRef(false);
-  const lastCanvasPointerClientPositionRef = useRef<{ x: number; y: number } | null>(null);
-
-  const handleCanvasPointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
-    const wrapperElement = wrapperRef.current;
-    if (!wrapperElement) {
-      return;
-    }
-
-    if (pendingNodePlacement) {
-      const rect = wrapperElement.getBoundingClientRect();
-      if (
-        event.clientX >= rect.left &&
-        event.clientX <= rect.right &&
-        event.clientY >= rect.top &&
-        event.clientY <= rect.bottom
-      ) {
-        const clientPosition = { x: event.clientX, y: event.clientY };
-        lastCanvasPointerClientPositionRef.current = clientPosition;
-        setNodePlacementClientPosition(clientPosition);
-      }
-      return;
-    }
-
-    if (!isCanvasPaneTarget(event.target, wrapperElement)) {
-      return;
-    }
-    lastCanvasPointerClientPositionRef.current = {
-      x: event.clientX,
-      y: event.clientY,
-    };
-  }, [pendingNodePlacement]);
 
   const activeGenerationPollNodeIdsRef = useRef(new Set<string>());
   const activeTaskResumeNodeIdsRef = useRef(new Set<string>());
@@ -1208,6 +1176,16 @@ export function Canvas({
     setSelectedNode(null);
     setShowNodeMenu(true);
   }, [reactFlowInstance, setSelectedNode]);
+  const {
+    handleCanvasPointerMove,
+    getLastCanvasPointerPosition,
+    getPreferredCanvasPointerPosition,
+  } = useCanvasNodeMenuShortcut({
+    wrapperRef,
+    placementActive: pendingNodePlacement !== null,
+    setPlacementClientPosition: setNodePlacementClientPosition,
+    openNodeMenu: openNodeMenuAtClientPosition,
+  });
 
   const closeNodeMenu = useCallback(() => {
     setShowNodeMenu(false);
@@ -1286,46 +1264,6 @@ export function Canvas({
     [commitNodePlacementAtClientPosition, pendingNodePlacement, reactFlowInstance],
   );
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (
-        event.defaultPrevented ||
-        event.isComposing ||
-        event.metaKey ||
-        event.ctrlKey ||
-        event.altKey ||
-        event.shiftKey ||
-        event.key !== 'Tab' ||
-        isTypingTarget(event.target) ||
-        isImmersiveViewerActive()
-      ) {
-        return;
-      }
-
-      const wrapperElement = wrapperRef.current;
-      const fallbackRect = wrapperElement
-        ?.querySelector<HTMLElement>('.react-flow__pane')
-        ?.getBoundingClientRect()
-        ?? wrapperElement?.getBoundingClientRect();
-      const clientPosition = lastCanvasPointerClientPositionRef.current
-        ?? (fallbackRect
-          ? {
-              x: fallbackRect.left + fallbackRect.width / 2,
-              y: fallbackRect.top + fallbackRect.height / 2,
-            }
-          : null);
-      if (!clientPosition) {
-        return;
-      }
-
-      event.preventDefault();
-      openNodeMenuAtClientPosition(clientPosition);
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [openNodeMenuAtClientPosition]);
-
   const selectedNodeIds = useMemo(
     () => nodes.filter((node) => Boolean(node.selected)).map((node) => node.id),
     [nodes]
@@ -1389,18 +1327,7 @@ export function Canvas({
       event.preventDefault();
       pasteImageHandledRef.current = true;
 
-      const wrapperElement = wrapperRef.current;
-      const fallbackRect = wrapperElement
-        ?.querySelector<HTMLElement>('.react-flow__pane')
-        ?.getBoundingClientRect()
-        ?? wrapperElement?.getBoundingClientRect();
-      const clientPosition = lastCanvasPointerClientPositionRef.current
-        ?? (fallbackRect
-          ? {
-              x: fallbackRect.left + fallbackRect.width / 2,
-              y: fallbackRect.top + fallbackRect.height / 2,
-            }
-          : null);
+      const clientPosition = getPreferredCanvasPointerPosition();
       if (!clientPosition) {
         return;
       }
@@ -1436,6 +1363,7 @@ export function Canvas({
     };
   }, [
     addNode,
+    getPreferredCanvasPointerPosition,
     reactFlowInstance,
     scheduleCanvasPersist,
     selectedUploadNodeId,
@@ -1847,7 +1775,7 @@ export function Canvas({
           : null;
         const clientPosition =
           selectionClientPosition ??
-          lastCanvasPointerClientPositionRef.current ??
+          getLastCanvasPointerPosition() ??
           fallbackClientPosition;
         setShowNodeMenu(false);
         setMenuAllowedTypes(undefined);
@@ -1865,6 +1793,7 @@ export function Canvas({
       addNode,
       finalizeNodeSpawn,
       flowPosition,
+      getLastCanvasPointerPosition,
       menuAllowedTypes,
       menuPosition.x,
       menuPosition.y,
@@ -1890,7 +1819,7 @@ export function Canvas({
           }
         : null;
       const clientPosition =
-        lastCanvasPointerClientPositionRef.current ??
+        getLastCanvasPointerPosition() ??
         fallbackClientPosition;
       setShowNodeMenu(false);
       setMenuAllowedTypes(undefined);
@@ -1904,6 +1833,7 @@ export function Canvas({
       suppressNextPaneClickRef.current = false;
     },
     [
+      getLastCanvasPointerPosition,
       menuPosition.x,
       menuPosition.y,
       setSelectedNode,
