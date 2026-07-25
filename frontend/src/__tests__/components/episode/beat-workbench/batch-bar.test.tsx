@@ -5,10 +5,7 @@ import { I18nextProvider, initReactI18next } from "react-i18next";
 import i18next from "i18next";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  BatchBar,
-  episodeAudioModelCallCount,
-} from "@/components/episode/beat-workbench/batch-bar";
+import { BatchBar } from "@/components/episode/beat-workbench/batch-bar";
 
 const i18n = i18next.createInstance();
 
@@ -168,45 +165,51 @@ vi.mock("@/lib/queries/tasks", () => ({
   }),
 }));
 
-vi.mock("@/modules/production/public", () => ({
-  useAssignColors: () => ({
-    mutateAsync: assignColorsMock,
-    isPending: false,
-  }),
-  useDetectIdentities: () => ({
-    mutateAsync: detectIdentitiesMock,
-    isPending: false,
-  }),
-  useGenerateAudio: () => ({
-    mutateAsync: vi.fn(),
-    isPending: false,
-  }),
-  useGlobalOptimize: () => ({
-    mutateAsync: vi.fn(),
-    isPending: false,
-  }),
-  useVideoBackends: () => ({
-    data: {
-      ok: true,
-      data: [
-        {
-          value: "seedance",
-          label: "Seedance 1.0",
-          is_default: true,
-          is_seedance2: false,
-          dialogue_only: false,
-        },
-        {
-          value: "huimeng_seedance-2.0-fast",
-          label: "Seedance 2.0 Fast",
-          is_default: false,
-          is_seedance2: true,
-          dialogue_only: false,
-        },
-      ],
-    },
-  }),
-}));
+vi.mock("@/modules/production/public", async () => {
+  const { episodeAudioModelCallCount } = await import(
+    "@/modules/production/domain/audio-generation"
+  );
+  return {
+    episodeAudioModelCallCount,
+    useAssignColors: () => ({
+      mutateAsync: assignColorsMock,
+      isPending: false,
+    }),
+    useDetectIdentities: () => ({
+      mutateAsync: detectIdentitiesMock,
+      isPending: false,
+    }),
+    useGenerateAudio: () => ({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    }),
+    useGlobalOptimize: () => ({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    }),
+    useVideoBackends: () => ({
+      data: {
+        ok: true,
+        data: [
+          {
+            value: "seedance",
+            label: "Seedance 1.0",
+            is_default: true,
+            is_seedance2: false,
+            dialogue_only: false,
+          },
+          {
+            value: "huimeng_seedance-2.0-fast",
+            label: "Seedance 2.0 Fast",
+            is_default: false,
+            is_seedance2: true,
+            dialogue_only: false,
+          },
+        ],
+      },
+    }),
+  };
+});
 
 vi.mock("@/lib/queries/generation-credit-cost", () => ({
   useGenerationCreditCosts: () => [],
@@ -309,40 +312,6 @@ const DEFAULT_BEATS = [
 ];
 
 describe("BatchBar", () => {
-  it("estimates whole-episode audio model calls from eligible beats", () => {
-    expect(
-      episodeAudioModelCallCount([
-        ...DEFAULT_BEATS,
-        {
-          beat_number: 4,
-          narration_segment: "no audio",
-          visual_description: "v4",
-          audio_type: "silence",
-        },
-        {
-          beat_number: 5,
-          narration_segment: "manual",
-          visual_description: "v5",
-          audio_type: "narration",
-          is_manual_shot: true,
-        },
-        {
-          beat_number: 6,
-          narration_segment: "dialogue",
-          visual_description: "v6",
-          audio_type: "dialogue",
-          speaker: "Hero_Main",
-        },
-        {
-          beat_number: 7,
-          narration_segment: "",
-          visual_description: "v7",
-          audio_type: "narration",
-        },
-      ]),
-    ).toBe(3);
-  });
-
   it("hides whole-episode script rewrite from the batch toolbar", () => {
     render(
       <I18nextProvider i18n={i18n}>

@@ -252,6 +252,12 @@ export type {
   UpdateRenderSettingsCommand,
   UpdateSketchSettingsCommand,
 } from "@/modules/production/domain/image-settings";
+export {
+  episodeAudioModelCallCount,
+} from "@/modules/production/domain/audio-generation";
+export type {
+  EpisodeAudioCostBeat,
+} from "@/modules/production/domain/audio-generation";
 export type {
   PlanEntry,
   RenderExecuteResult,

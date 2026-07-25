@@ -535,6 +535,10 @@ describe("frontend architecture boundaries", () => {
 
   it("keeps Production callers on its public API", () => {
     const moduleRoot = resolve(SRC_ROOT, "modules/production");
+    const batchBarSource = readFileSync(
+      resolve(SRC_ROOT, "components/episode/beat-workbench/batch-bar.tsx"),
+      "utf8",
+    );
     const batchPanelSource = readFileSync(
       resolve(
         SRC_ROOT,
@@ -1094,6 +1098,11 @@ describe("frontend architecture boundaries", () => {
     expect(sketchGridGalleryDomainSource).toContain(
       "export function buildSketchGridGroups",
     );
+    expect(batchBarSource).toContain("episodeAudioModelCallCount(");
+    expect(batchBarSource).not.toContain(
+      "export function episodeAudioModelCallCount",
+    );
+    expect(batchBarSource).not.toContain("normalizeAudioTypeForCost");
     expect(batchPanelSource).toContain(
       'from "@/modules/production/public"',
     );

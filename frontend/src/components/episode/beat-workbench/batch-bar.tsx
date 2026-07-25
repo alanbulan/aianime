@@ -23,6 +23,7 @@ import { CreditCostInline } from "@/components/credit-cost-inline";
 import { CreditCostPill, formatCreditCost } from "@/components/credits/credit-visual";
 import type { Beat } from "@/modules/narrative_planning/public";
 import {
+  episodeAudioModelCallCount,
   useAssignColors,
   useDetectIdentities,
   type SketchAspectRatio,
@@ -61,30 +62,6 @@ interface BatchBarProps {
   spineTemplate?: "drama" | "narrated";
   sketchAspectRatio: SketchAspectRatio;
   onSketchAspectRatioChange: (aspectRatio: SketchAspectRatio) => void;
-}
-
-type AudioCostBeat = Beat & {
-  narration?: string | null;
-};
-
-function normalizeAudioTypeForCost(beat: AudioCostBeat): string {
-  const audioType = String(beat.audio_type || "").trim();
-  if (audioType === "action") return "silence";
-  if (audioType) return audioType;
-  if (String(beat.speaker || "").trim()) return "dialogue";
-  return "narration";
-}
-
-export function episodeAudioModelCallCount(beats: readonly Beat[]): number {
-  return beats.reduce((count, beat) => {
-    const beatNumber = Number(beat.beat_number || 0);
-    if (beatNumber <= 0 || beat.is_manual_shot) return count;
-
-    const audioType = normalizeAudioTypeForCost(beat);
-    if (audioType !== "narration" && audioType !== "dialogue") return count;
-
-    return count + 1;
-  }, 0);
 }
 
 export function BatchBar({
