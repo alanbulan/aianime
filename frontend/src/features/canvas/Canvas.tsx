@@ -72,7 +72,6 @@ import {
 } from '@/features/canvas/domain/assetDrag';
 import { hydrateAssetDragPayload } from '@/features/canvas/domain/assetDragHydrate';
 import type { CanvasAsset } from '@/features/canvas/domain/canvasAssets';
-import { isImmersiveViewerActive } from '@/features/viewer-kit/useViewerImmersiveBody';
 import { CanvasMinimapBookmarksOverlay } from '@/features/canvas/ui/CanvasMinimapBookmarksOverlay';
 import { captureCurrentViewport, jumpToBookmark } from '@/features/canvas/application/bookmarkActions';
 import { resolveCanvasOriginViewport } from '@/features/canvas/domain/viewportBookmarks';
@@ -123,14 +122,8 @@ import {
   type SnapAlignIndex,
 } from './snap-align/computeSnapAlign';
 import { computeAutoLayout } from './application/autoLayout';
-import {
-  isTypingTarget,
-  PAN_ACTIVATION_KEY_CODE,
-} from './ui/canvasInteractionTargets';
-import {
-  collectDroppedMediaFiles,
-  resolveClipboardImageFile,
-} from './ui/canvasMediaTransfer';
+import { PAN_ACTIVATION_KEY_CODE } from './ui/canvasInteractionTargets';
+import { collectDroppedMediaFiles } from './ui/canvasMediaTransfer';
 import {
   createPreviewPath,
   cssEscape,
@@ -143,6 +136,7 @@ import { useCanvasExternalDialogs } from './hooks/useCanvasExternalDialogs';
 import { useCanvasAsyncNodeTasks } from './hooks/useCanvasAsyncNodeTasks';
 import { useCanvasKeyboardShortcuts } from './hooks/useCanvasKeyboardShortcuts';
 import { useCanvasMarqueeSelection } from './hooks/useCanvasMarqueeSelection';
+import { useCanvasMediaPaste } from './hooks/useCanvasMediaPaste';
 import { useCanvasMinimapVisibility } from './hooks/useCanvasMinimapVisibility';
 import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
 import { useCanvasNodeMenuShortcut } from './hooks/useCanvasNodeMenuShortcut';
@@ -342,7 +336,6 @@ export function Canvas({
     getCapabilities: getContextMenuCapabilities,
   });
   const pasteIterationRef = useRef(0);
-  const pasteImageHandledRef = useRef(false);
 
   const pasteFromClipboardRef = useRef<
     | ((
@@ -958,81 +951,39 @@ export function Canvas({
     setSelectedNodeId: setSelectedNode,
   });
 
-  useEffect(() => {
-    const handlePaste = (event: ClipboardEvent) => {
-      pasteImageHandledRef.current = false;
-      if (isTypingTarget(event.target) || isImmersiveViewerActive()) {
-        return;
-      }
-
-      // 选中了上传节点：剪贴板里的图片直接贴进该节点（原有行为）。
-      if (selectedUploadNodeId) {
-        const imageFile = resolveClipboardImageFile(event);
-        if (imageFile) {
-          event.preventDefault();
-          pasteImageHandledRef.current = true;
-          canvasEventBus.publish('upload-node/paste-image', {
-            nodeId: selectedUploadNodeId,
-            file: imageFile,
-          });
-          return;
-        }
-      }
-
-      // 系统剪贴板里的图片 / 视频 / 音频 → 在光标处生成上传节点。
-      // 与「粘贴节点快照」的优先级裁决靠 ⌘C 复制节点时清空系统剪贴板实现：
-      // 复制节点后剪贴板里不再有媒体文件，这里自然落空、让位给快照粘贴。
-      // clipboardData 就是 DataTransfer，直接复用文件拖放的收集与生成管线。
-      const mediaFiles = event.clipboardData
-        ? collectDroppedMediaFiles(event.clipboardData)
-        : [];
-      if (mediaFiles.length === 0) {
-        return;
-      }
-
-      event.preventDefault();
-      pasteImageHandledRef.current = true;
-
-      const clientPosition = getPreferredCanvasPointerPosition();
-      if (!clientPosition) {
-        return;
-      }
-      const basePosition = reactFlowInstance.screenToFlowPosition(clientPosition);
-
-      let lastNodeId: string | null = null;
-      mediaFiles.forEach((file, index) => {
-        const position = {
-          x: basePosition.x + index * 36,
-          y: basePosition.y + index * 36,
-        };
-        // 与文件拖放同样标记 user_spawned，见 handleCanvasDrop 的说明。
-        const newNodeId = addNode(
-          CANVAS_NODE_TYPES.upload,
-          position,
-          { user_spawned: true } as Partial<CanvasNodeData>,
-        );
-        lastNodeId = newNodeId;
-        requestAnimationFrame(() => {
-          canvasEventBus.publish('upload-node/external-file', { nodeId: newNodeId, file });
-        });
-      });
-
-      if (lastNodeId) {
-        setSelectedNode(lastNodeId);
-      }
-    };
-
-    document.addEventListener('paste', handlePaste);
-    return () => {
-      document.removeEventListener('paste', handlePaste);
-    };
-  }, [
-    addNode,
-    getPreferredCanvasPointerPosition,
-    reactFlowInstance,
+  const mediaPasteEventPort = useMemo(
+    () => ({
+      pasteImageIntoNode: (nodeId: string, file: File) => {
+        canvasEventBus.publish('upload-node/paste-image', { nodeId, file });
+      },
+      attachExternalFile: (nodeId: string, file: File) => {
+        canvasEventBus.publish('upload-node/external-file', { nodeId, file });
+      },
+    }),
+    [],
+  );
+  const screenToCanvasPosition = useCallback(
+    (position: { x: number; y: number }) =>
+      reactFlowInstance.screenToFlowPosition(position),
+    [reactFlowInstance],
+  );
+  const createPastedUploadNode = useCallback(
+    (position: { x: number; y: number }) =>
+      addNode(
+        CANVAS_NODE_TYPES.upload,
+        position,
+        { user_spawned: true } as Partial<CanvasNodeData>,
+      ),
+    [addNode],
+  );
+  const { queueSnapshotPaste } = useCanvasMediaPaste({
     selectedUploadNodeId,
-    setSelectedNode,
-  ]);
+    getPreferredClientPosition: getPreferredCanvasPointerPosition,
+    screenToCanvasPosition,
+    createUploadNode: createPastedUploadNode,
+    selectNode: setSelectedNode,
+    eventPort: mediaPasteEventPort,
+  });
 
   const handleOrganizeCanvas = useCallback(() => {
     const { positions, changedCount } = computeAutoLayout(nodes, edges);
@@ -1071,19 +1022,13 @@ export function Canvas({
   }, [edges, nodes, selectedNodeIds]);
 
   const pasteCopiedNodes = useCallback(() => {
-    // Let the paste event claim system media before falling back to the node snapshot.
-    pasteImageHandledRef.current = false;
-    window.setTimeout(() => {
-      if (pasteImageHandledRef.current) {
-        pasteImageHandledRef.current = false;
-        return;
-      }
+    queueSnapshotPaste(() => {
       if (!copiedSnapshotRef.current || copiedSnapshotRef.current.nodes.length === 0) {
         return;
       }
       pasteFromClipboardRef.current?.(copiedSnapshotRef.current);
-    }, 0);
-  }, []);
+    });
+  }, [queueSnapshotPaste]);
 
   const groupSelectedNodes = useCallback(() => {
     groupNodes(selectedNodeIds);
