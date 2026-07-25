@@ -59,6 +59,7 @@ describe('migratePastedNodeAssets', () => {
     ];
 
     const summary = await migratePastedNodeAssets(assetGateway, {
+      currentOrigin: 'http://localhost',
       nodes,
       targetProject: 'projB',
       getLiveNodeData: liveFrom(nodes),
@@ -93,6 +94,7 @@ describe('migratePastedNodeAssets', () => {
       { id: 'n2', data: asData({ imageUrl: reused }) },
     ];
     await migratePastedNodeAssets(assetGateway, {
+      currentOrigin: 'http://localhost',
       nodes,
       targetProject: 'projB',
       getLiveNodeData: liveFrom(nodes),
@@ -109,6 +111,7 @@ describe('migratePastedNodeAssets', () => {
       { id: 'n1', data: asData({ videoUrl: '/static/projects/projA/videos/clip.mp4' }) },
     ];
     const summary = await migratePastedNodeAssets(assetGateway, {
+      currentOrigin: 'http://localhost',
       nodes,
       targetProject: 'projB',
       getLiveNodeData: liveFrom(nodes),
@@ -137,6 +140,7 @@ describe('migratePastedNodeAssets', () => {
     };
 
     const summary = await migratePastedNodeAssets(assetGateway, {
+      currentOrigin: 'http://localhost',
       nodes: snapshot,
       targetProject: 'projB',
       getLiveNodeData: (id) => live[id] ?? null,

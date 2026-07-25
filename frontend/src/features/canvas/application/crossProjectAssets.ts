@@ -26,7 +26,10 @@ const MAX_CONCURRENT_UPLOADS = 4;
  * 按当前路由项目重锚定，从而读到目标项目里并不存在的文件。迁移要拿的是源项目的字节，
  * 因此直接用存储路径打到 `/static`（代理按路径直供，与「当前项目」无关）。
  */
-function toFetchableAssetUrl(raw: string): string | null {
+function toFetchableAssetUrl(
+  raw: string,
+  currentOrigin: string,
+): string | null {
   const trimmed = raw.trim();
   if (!trimmed) {
     return null;
@@ -35,7 +38,12 @@ function toFetchableAssetUrl(raw: string): string | null {
   if (trimmed.startsWith('data:') || trimmed.startsWith('blob:') || trimmed.startsWith('//')) {
     return null;
   }
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
+  let origin: string;
+  try {
+    origin = new URL(currentOrigin).origin;
+  } catch {
+    return null;
+  }
   let parsed: URL;
   try {
     parsed = new URL(trimmed, origin);
@@ -46,7 +54,7 @@ function toFetchableAssetUrl(raw: string): string | null {
     return null;
   }
   // 跨源媒体本部署不支持（后端 /static 始终同源经边缘代理）。
-  if (typeof window !== 'undefined' && parsed.origin !== window.location.origin) {
+  if (parsed.origin !== origin) {
     return null;
   }
   if (!parsed.pathname.startsWith('/static/') && !parsed.pathname.startsWith('/api/')) {
@@ -69,8 +77,9 @@ async function uploadAssetToProject(
   assetGateway: CanvasAssetGateway,
   rawUrl: string,
   targetProject: string,
+  currentOrigin: string,
 ): Promise<string> {
-  const fetchUrl = toFetchableAssetUrl(rawUrl);
+  const fetchUrl = toFetchableAssetUrl(rawUrl, currentOrigin);
   if (!fetchUrl) {
     return rawUrl;
   }
@@ -92,22 +101,26 @@ interface RemapResult {
 }
 
 /** 收集一份节点数据里所有「可迁移」的媒体资产 URL（key 以 Url 结尾、值是同源静态资产）。 */
-function collectAssetUrls(value: unknown, out: Set<string>): void {
+function collectAssetUrls(
+  value: unknown,
+  out: Set<string>,
+  currentOrigin: string,
+): void {
   if (Array.isArray(value)) {
     for (const item of value) {
-      collectAssetUrls(item, out);
+      collectAssetUrls(item, out, currentOrigin);
     }
     return;
   }
   if (value && typeof value === 'object') {
     for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
       if (typeof child === 'string' && /url$/i.test(key)) {
-        if (toFetchableAssetUrl(child)) {
+        if (toFetchableAssetUrl(child, currentOrigin)) {
           out.add(child);
         }
         continue;
       }
-      collectAssetUrls(child, out);
+      collectAssetUrls(child, out, currentOrigin);
     }
   }
 }
@@ -202,6 +215,7 @@ export interface AssetMigrationSummary {
 export interface MigratePastedNodeAssetsParams {
   nodes: PastedNodeForMigration[];
   targetProject: string;
+  currentOrigin: string;
   getLiveNodeData: (id: string) => CanvasNodeData | null;
   updateNodeData: (id: string, patch: Partial<CanvasNodeData>) => void;
 }
@@ -210,12 +224,18 @@ export async function migratePastedNodeAssets(
   assetGateway: CanvasAssetGateway,
   params: MigratePastedNodeAssetsParams,
 ): Promise<AssetMigrationSummary> {
-  const { nodes, targetProject, getLiveNodeData, updateNodeData } = params;
+  const {
+    nodes,
+    targetProject,
+    currentOrigin,
+    getLiveNodeData,
+    updateNodeData,
+  } = params;
 
   // 1. 从快照收集去重的可迁移资产 URL。
   const urls = new Set<string>();
   for (const { data } of nodes) {
-    collectAssetUrls(data, urls);
+    collectAssetUrls(data, urls, currentOrigin);
   }
   if (urls.size === 0) {
     return { migrated: 0, failed: 0 };
@@ -228,7 +248,12 @@ export async function migratePastedNodeAssets(
   let failed = 0;
   await Promise.all(
     [...urls].map((url) =>
-      limit(() => uploadAssetToProject(assetGateway, url, targetProject))
+      limit(() => uploadAssetToProject(
+        assetGateway,
+        url,
+        targetProject,
+        currentOrigin,
+      ))
         .then((newUrl) => {
           if (newUrl !== url) {
             urlMap.set(url, newUrl);

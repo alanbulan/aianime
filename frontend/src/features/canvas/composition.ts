@@ -42,9 +42,12 @@ export const canvasToolProcessor = new CanvasToolProcessor(
 export const canvasAiGateway = freezoneAiGateway;
 
 export function migratePastedNodeAssets(
-  params: MigratePastedNodeAssetsParams,
+  params: Omit<MigratePastedNodeAssetsParams, 'currentOrigin'>,
 ) {
-  return migratePastedNodeAssetsUseCase(freezoneAssetGateway, params);
+  return migratePastedNodeAssetsUseCase(freezoneAssetGateway, {
+    ...params,
+    currentOrigin: window.location.origin,
+  });
 }
 
 export function uploadLocalImageToBackend(

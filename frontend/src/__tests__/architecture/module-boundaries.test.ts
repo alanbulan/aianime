@@ -244,6 +244,10 @@ describe("frontend architecture boundaries", () => {
       )
       .map(relativeSource)
       .sort();
+    const directWindowUsers = sourceFiles(applicationRoot)
+      .filter((path) => readFileSync(path, "utf8").includes("window."))
+      .map(relativeSource)
+      .sort();
     const composition = readFileSync(
       resolve(SRC_ROOT, "features/canvas/composition.ts"),
       "utf8",
@@ -305,12 +309,17 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const crossProjectAssets = readFileSync(
+      resolve(applicationRoot, "crossProjectAssets.ts"),
+      "utf8",
+    );
 
     expect(failures).toEqual([]);
     expect(directApiUsers).toEqual([]);
     expect(directCanvasStoreUsers).toEqual([]);
     expect(directUrlUsers).toEqual([]);
     expect(directTaskCenterStoreUsers).toEqual([]);
+    expect(directWindowUsers).toEqual([]);
     expect(
       existsSync(resolve(applicationRoot, "useUpstreamGraph.ts")),
     ).toBe(false);
@@ -335,6 +344,7 @@ describe("frontend architecture boundaries", () => {
     expect(composition).toContain("webImageSplitGateway");
     expect(composition).toContain("freezoneAssetGateway");
     expect(composition).toContain("migratePastedNodeAssetsUseCase(");
+    expect(composition).toContain("currentOrigin: window.location.origin");
     expect(composition).toContain("uploadLocalImageToBackendUseCase(");
     expect(composition).toContain(
       "uploadAndAutoCommitSelectedBackgroundCandidateUseCase(",
@@ -370,6 +380,7 @@ describe("frontend architecture boundaries", () => {
     expect(nodeGenerationTaskStateHook).toContain(
       "resolveNodeGenerationTaskState({",
     );
+    expect(crossProjectAssets).toContain("currentOrigin: string");
     expect(regenerateExportNode).toContain("aiGateway: AiGateway");
     expect(regenerateExportNode).toContain(
       "params: RegenerateExportImageNodeParams",
