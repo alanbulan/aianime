@@ -1,6 +1,4 @@
 // Copyright (c) 2026 AI anime
-import { readUrl } from '@/lib/url-params';
-import { useCanvasStore } from '@/stores/canvasStore';
 import { resolveErrorContent } from './errorDialog';
 import { CURRENT_RUNTIME_SESSION_ID, extractRequestId } from './generationErrorReport';
 import type {
@@ -21,6 +19,16 @@ interface FreezoneRedrawRequest {
   imageSize: string;
 }
 
+export interface RegenerateExportImageNodeParams {
+  nodeId: string;
+  nodeData: Record<string, unknown>;
+  projectId: string | null | undefined;
+  updateNodeData: (
+    nodeId: string,
+    patch: Record<string, unknown>,
+  ) => void;
+}
+
 function readFreezoneRedrawRequest(
   data: Record<string, unknown>,
 ): FreezoneRedrawRequest | undefined {
@@ -38,45 +46,44 @@ function readFreezoneRedrawRequest(
 
 /** Retry a failed 擦除/重绘 export node by re-running its stored freezone redraw. */
 async function regenerateFreezoneRedrawNode(
-  nodeId: string,
+  params: RegenerateExportImageNodeParams,
   request: FreezoneRedrawRequest,
   redrawGateway: CanvasRedrawTaskGateway,
 ): Promise<void> {
-  const store = useCanvasStore.getState();
-  const project = readUrl().project;
-  if (!project) {
-    store.updateNodeData(nodeId, { generationError: '当前 URL 没有 project，无法重试' });
+  const { nodeId, projectId, updateNodeData } = params;
+  if (!projectId) {
+    updateNodeData(nodeId, { generationError: '当前 URL 没有 project，无法重试' });
     return;
   }
 
-  store.updateNodeData(nodeId, {
+  updateNodeData(nodeId, {
     isGenerating: true,
     generationStartedAt: Date.now(),
     generationError: null,
   });
 
   try {
-    const ref = await redrawGateway.submit(project, {
+    const ref = await redrawGateway.submit(projectId, {
       sourceUrl: request.sourceUrl,
       maskUrl: request.maskUrl,
       aspectRatio: request.aspectRatio,
       imageSize: request.imageSize,
     });
-    useCanvasStore.getState().updateNodeData(nodeId, generationTaskDescriptor(ref));
+    updateNodeData(nodeId, generationTaskDescriptor(ref));
     const completed = await redrawGateway.awaitCompletion(
       ref.task_key,
-      project,
+      projectId,
     );
     const directUrl = completed.result?.['output_url'] as string | undefined;
     let url = directUrl;
     if (!url) {
       url = await redrawGateway.fetchResultUrl(
-        project,
+        projectId,
         ref.task_type,
         ref.job_id,
       );
     }
-    useCanvasStore.getState().updateNodeData(nodeId, {
+    updateNodeData(nodeId, {
       imageUrl: url,
       previewImageUrl: url,
       isGenerating: false,
@@ -89,7 +96,7 @@ async function regenerateFreezoneRedrawNode(
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('[regenerate] freezone redraw failed', error);
-    useCanvasStore.getState().updateNodeData(nodeId, {
+    updateNodeData(nodeId, {
       isGenerating: false,
       generationStartedAt: null,
       generationError: message,
@@ -110,38 +117,32 @@ async function regenerateFreezoneRedrawNode(
  * re-arm `generationJobId` so the existing Canvas polling effect picks it up.
  */
 export async function regenerateExportImageNode(
-  nodeId: string,
+  params: RegenerateExportImageNodeParams,
   aiGateway: AiGateway,
   redrawGateway: CanvasRedrawTaskGateway,
 ): Promise<void> {
-  const store = useCanvasStore.getState();
-  const node = store.nodes.find((n) => n.id === nodeId);
-  if (!node) {
+  const { nodeData, nodeId, updateNodeData } = params;
+  if (nodeData.isGenerating === true) {
     return;
   }
 
-  const data = node.data as Record<string, unknown>;
-  if (data.isGenerating === true) {
-    return;
-  }
-
-  const freezoneRequest = readFreezoneRedrawRequest(data);
+  const freezoneRequest = readFreezoneRedrawRequest(nodeData);
   if (freezoneRequest) {
     await regenerateFreezoneRedrawNode(
-      nodeId,
+      params,
       freezoneRequest,
       redrawGateway,
     );
     return;
   }
 
-  const payload = data.generationRequestPayload as GenerateImagePayload | undefined;
+  const payload = nodeData.generationRequestPayload as GenerateImagePayload | undefined;
   if (!payload) {
     console.warn('[regenerate] export node has no stored payload, cannot retry', nodeId);
     return;
   }
 
-  store.updateNodeData(nodeId, {
+  updateNodeData(nodeId, {
     isGenerating: true,
     generationStartedAt: Date.now(),
     generationJobId: null,
@@ -152,13 +153,13 @@ export async function regenerateExportImageNode(
 
   try {
     const jobId = await aiGateway.submitGenerateImageJob({ ...payload, nodeId });
-    store.updateNodeData(nodeId, {
+    updateNodeData(nodeId, {
       generationJobId: jobId,
       generationClientSessionId: CURRENT_RUNTIME_SESSION_ID,
     });
   } catch (error) {
     const resolved = resolveErrorContent(error, '图像生成失败');
-    store.updateNodeData(nodeId, {
+    updateNodeData(nodeId, {
       isGenerating: false,
       generationStartedAt: null,
       generationJobId: null,

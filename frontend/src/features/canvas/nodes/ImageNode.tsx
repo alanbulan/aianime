@@ -298,7 +298,13 @@ export const ImageNode = memo(({ id, data, selected, type, width, height }: Imag
             {canRegenerateExportImageNode(data as Record<string, unknown>) && (
               <div className="mt-1">
                 <RegenerateButton
-                  onClick={() => void regenerateExportImageNode(id)}
+                  onClick={() => {
+                    void regenerateExportImageNode({
+                      nodeData: data as Record<string, unknown>,
+                      nodeId: id,
+                      updateNodeData,
+                    });
+                  }}
                   busy={isGenerating}
                 />
               </div>

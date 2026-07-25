@@ -1,4 +1,6 @@
 // Copyright (c) 2026 AI anime
+import { readUrl } from '@/lib/url-params';
+
 import { nodeCatalog } from './application/nodeCatalog';
 import { CanvasNodeFactory } from './application/nodeFactory';
 import {
@@ -8,6 +10,7 @@ import {
 import { CanvasToolProcessor } from './application/toolProcessor';
 import {
   regenerateExportImageNode as regenerateExportImageNodeUseCase,
+  type RegenerateExportImageNodeParams,
 } from './application/regenerateExportNode';
 import {
   resumeNodeGeneration as resumeNodeGenerationUseCase,
@@ -70,9 +73,14 @@ export function uploadAndAutoCommitSelectedBackgroundCandidate(
   );
 }
 
-export function regenerateExportImageNode(nodeId: string) {
+export function regenerateExportImageNode(
+  params: Omit<RegenerateExportImageNodeParams, 'projectId'>,
+) {
   return regenerateExportImageNodeUseCase(
-    nodeId,
+    {
+      ...params,
+      projectId: readUrl().project,
+    },
     freezoneAiGateway,
     freezoneRedrawTaskGateway,
   );

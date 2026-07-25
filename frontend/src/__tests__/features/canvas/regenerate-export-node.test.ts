@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { regenerateExportImageNode } from '@/features/canvas/application/regenerateExportNode';
 import type {
@@ -7,18 +7,8 @@ import type {
   CanvasRedrawTaskGateway,
 } from '@/features/canvas/application/ports';
 
-const store = vi.hoisted(() => ({
-  nodes: [] as Array<{ data: Record<string, unknown>; id: string }>,
-  updateNodeData: vi.fn(),
-}));
-
-vi.mock('@/stores/canvasStore', () => ({
-  useCanvasStore: {
-    getState: () => store,
-  },
-}));
-
 const submitImage = vi.fn();
+const updateNodeData = vi.fn();
 const aiGateway: AiGateway = {
   generateImage: vi.fn(),
   getGenerateImageJob: vi.fn(),
@@ -37,67 +27,54 @@ const redrawGateway: CanvasRedrawTaskGateway = {
   submit: (projectId, command) => submitRedraw(projectId, command),
 };
 
+async function regenerate(
+  nodeData: Record<string, unknown>,
+  projectId: string | null = 'proj',
+): Promise<void> {
+  await regenerateExportImageNode(
+    {
+      nodeData,
+      nodeId: 'export-node',
+      projectId,
+      updateNodeData,
+    },
+    aiGateway,
+    redrawGateway,
+  );
+}
+
 describe('regenerateExportImageNode', () => {
   beforeEach(() => {
-    store.nodes = [];
-    store.updateNodeData.mockReset();
+    updateNodeData.mockReset();
     submitImage.mockReset();
     submitRedraw.mockReset();
     awaitRedraw.mockReset();
     fetchRedrawResultUrl.mockReset();
-    window.history.replaceState({}, '', '/projects/proj/freezone');
-  });
-
-  afterEach(() => {
-    window.history.replaceState({}, '', '/');
   });
 
   it('re-submits a stored image generation through the injected AI gateway', async () => {
-    store.nodes = [
-      {
-        id: 'export-node',
-        data: {
-          generationRequestPayload: {
-            aspectRatio: '16:9',
-            model: 'openai/gpt-image-2',
-            prompt: '重新生成',
-            size: '2K',
-          },
-        },
-      },
-    ];
     submitImage.mockResolvedValue('image-job');
 
-    await regenerateExportImageNode(
-      'export-node',
-      aiGateway,
-      redrawGateway,
-    );
+    await regenerate({
+      generationRequestPayload: {
+        aspectRatio: '16:9',
+        model: 'openai/gpt-image-2',
+        prompt: '重新生成',
+        size: '2K',
+      },
+    });
 
     expect(submitImage).toHaveBeenCalledWith(
       expect.objectContaining({ nodeId: 'export-node', prompt: '重新生成' }),
     );
     expect(submitRedraw).not.toHaveBeenCalled();
-    expect(store.updateNodeData).toHaveBeenLastCalledWith('export-node', {
+    expect(updateNodeData).toHaveBeenLastCalledWith('export-node', {
       generationClientSessionId: expect.any(String),
       generationJobId: 'image-job',
     });
   });
 
   it('replays a stored redraw and writes its completed output URL', async () => {
-    store.nodes = [
-      {
-        id: 'export-node',
-        data: {
-          freezoneRedrawRequest: {
-            aspectRatio: 'original',
-            imageSize: '2K',
-            maskUrl: '/static/proj/mask.png',
-            sourceUrl: '/static/proj/source.png',
-          },
-        },
-      },
-    ];
     submitRedraw.mockResolvedValue({
       job_id: 'redraw-job',
       task_key: 'freezone_redraw:redraw-job',
@@ -107,11 +84,14 @@ describe('regenerateExportImageNode', () => {
       result: { output_url: '/static/proj/redraw.png' },
     });
 
-    await regenerateExportImageNode(
-      'export-node',
-      aiGateway,
-      redrawGateway,
-    );
+    await regenerate({
+      freezoneRedrawRequest: {
+        aspectRatio: 'original',
+        imageSize: '2K',
+        maskUrl: '/static/proj/mask.png',
+        sourceUrl: '/static/proj/source.png',
+      },
+    });
 
     expect(submitRedraw).toHaveBeenCalledWith('proj', {
       aspectRatio: 'original',
@@ -120,7 +100,7 @@ describe('regenerateExportImageNode', () => {
       sourceUrl: '/static/proj/source.png',
     });
     expect(fetchRedrawResultUrl).not.toHaveBeenCalled();
-    expect(store.updateNodeData).toHaveBeenLastCalledWith(
+    expect(updateNodeData).toHaveBeenLastCalledWith(
       'export-node',
       expect.objectContaining({
         generationTaskJobId: null,
@@ -132,19 +112,6 @@ describe('regenerateExportImageNode', () => {
   });
 
   it('falls back to the redraw result endpoint when completion has no URL', async () => {
-    store.nodes = [
-      {
-        id: 'export-node',
-        data: {
-          freezoneRedrawRequest: {
-            aspectRatio: '16:9',
-            imageSize: '2K',
-            maskUrl: '/static/proj/mask.png',
-            sourceUrl: '/static/proj/source.png',
-          },
-        },
-      },
-    ];
     submitRedraw.mockResolvedValue({
       job_id: 'redraw-job',
       task_key: 'freezone_redraw:redraw-job',
@@ -153,20 +120,40 @@ describe('regenerateExportImageNode', () => {
     awaitRedraw.mockResolvedValue({ result: {} });
     fetchRedrawResultUrl.mockResolvedValue('/static/proj/fallback.png');
 
-    await regenerateExportImageNode(
-      'export-node',
-      aiGateway,
-      redrawGateway,
-    );
+    await regenerate({
+      freezoneRedrawRequest: {
+        aspectRatio: '16:9',
+        imageSize: '2K',
+        maskUrl: '/static/proj/mask.png',
+        sourceUrl: '/static/proj/source.png',
+      },
+    });
 
     expect(fetchRedrawResultUrl).toHaveBeenCalledWith(
       'proj',
       'freezone_redraw',
       'redraw-job',
     );
-    expect(store.updateNodeData).toHaveBeenLastCalledWith(
+    expect(updateNodeData).toHaveBeenLastCalledWith(
       'export-node',
       expect.objectContaining({ imageUrl: '/static/proj/fallback.png' }),
     );
+  });
+
+  it('reports a missing project without submitting a redraw task', async () => {
+    await regenerate(
+      {
+        freezoneRedrawRequest: {
+          maskUrl: '/static/proj/mask.png',
+          sourceUrl: '/static/proj/source.png',
+        },
+      },
+      null,
+    );
+
+    expect(submitRedraw).not.toHaveBeenCalled();
+    expect(updateNodeData).toHaveBeenCalledWith('export-node', {
+      generationError: '当前 URL 没有 project，无法重试',
+    });
   });
 });

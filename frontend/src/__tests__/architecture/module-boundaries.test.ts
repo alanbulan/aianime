@@ -226,6 +226,18 @@ describe("frontend architecture boundaries", () => {
       )
       .map(relativeSource)
       .sort();
+    const directCanvasStoreUsers = sourceFiles(applicationRoot)
+      .filter((path) =>
+        importSpecifiers(path).includes("@/stores/canvasStore"),
+      )
+      .map(relativeSource)
+      .sort();
+    const directUrlUsers = sourceFiles(applicationRoot)
+      .filter((path) =>
+        importSpecifiers(path).includes("@/lib/url-params"),
+      )
+      .map(relativeSource)
+      .sort();
     const composition = readFileSync(
       resolve(SRC_ROOT, "features/canvas/composition.ts"),
       "utf8",
@@ -252,6 +264,14 @@ describe("frontend architecture boundaries", () => {
 
     expect(failures).toEqual([]);
     expect(directApiUsers).toEqual([]);
+    expect(directCanvasStoreUsers).toEqual([
+      "features/canvas/application/selectedBackgroundSlot.ts",
+      "features/canvas/application/useUpstreamGraph.ts",
+    ]);
+    expect(directUrlUsers).toEqual([
+      "features/canvas/application/selectedBackgroundSlot.ts",
+      "features/canvas/application/uploadToolOutput.ts",
+    ]);
     expect(composition).toContain("new CanvasNodeFactory(");
     expect(composition).toContain("new CanvasToolProcessor(");
     expect(composition).toContain("freezoneAiGateway");
@@ -264,6 +284,7 @@ describe("frontend architecture boundaries", () => {
       "uploadAndAutoCommitSelectedBackgroundCandidateUseCase(",
     );
     expect(composition).toContain("regenerateExportImageNodeUseCase(");
+    expect(composition).toContain("projectId: readUrl().project");
     expect(composition).toContain("freezoneRedrawTaskGateway");
     expect(composition).toContain("resumeNodeGenerationUseCase(");
     expect(composition).toContain("freezoneGenerationTaskGateway");
@@ -271,6 +292,9 @@ describe("frontend architecture boundaries", () => {
     expect(assetGateway).toContain("{ timeoutMs: false }");
     expect(services).not.toContain("infrastructure/");
     expect(regenerateExportNode).toContain("aiGateway: AiGateway");
+    expect(regenerateExportNode).toContain(
+      "params: RegenerateExportImageNodeParams",
+    );
     expect(regenerateExportNode).toContain(
       "aiGateway.submitGenerateImageJob",
     );
