@@ -10045,6 +10045,59 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("const REFERENCE_CAPS_BY_MODE");
   });
 
+  it("keeps VideoNode empty and upload states in one presentation view", () => {
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoNodeEmptyState.tsx",
+    );
+    const viewSource = readFileSync(viewPath, "utf8");
+    const videoNode = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(viewPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declarations = [
+      ["export function", "VideoUploadActionRail("].join(" "),
+      ["export function", "VideoNodeEmptyState("].join(" "),
+    ];
+    const implementationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual(
+      declarations.map(() => [
+        "features/canvas/nodes/VideoNodeEmptyState.tsx",
+      ]),
+    );
+    expect(viewSource).toContain("<NodeSideActionRail");
+    expect(viewSource).toContain("首尾帧生成视频");
+    expect(viewSource).toContain("hasUpstreamVideo");
+    expect(videoNode).toContain(
+      "@/features/canvas/nodes/VideoNodeEmptyState",
+    );
+    expect(videoNode).toContain("<VideoUploadActionRail");
+    expect(videoNode).toContain("<VideoNodeEmptyState");
+    expect(videoNode).not.toContain("<NodeSideActionRail");
+    expect(videoNode).not.toContain("<span>首尾帧生成视频</span>");
+    expect(videoNode).not.toContain("<Layers");
+    expect(videoNode).not.toContain("<Sparkles");
+  });
+
   it("keeps VideoNode camera movement trigger in one presentation view", () => {
     const viewPath = resolve(
       SRC_ROOT,

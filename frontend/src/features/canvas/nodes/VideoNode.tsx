@@ -19,11 +19,7 @@ import {
   AlertTriangle,
   ArrowUp,
   Languages,
-  Layers,
   Loader2,
-  Play,
-  Sparkles,
-  Upload as UploadIcon,
   Video as VideoIcon,
   X as XIcon,
 } from "lucide-react";
@@ -147,11 +143,6 @@ import {
   NODE_INLINE_ICON_BUTTON_ACTIVE_CLASS,
   NODE_INLINE_ICON_BUTTON_CLASS,
 } from "@/features/canvas/ui/nodeControlStyles";
-import {
-  NODE_SIDE_ACTION_BUTTON_CLASS,
-  NODE_SIDE_ACTION_ICON_CLASS,
-  NodeSideActionRail,
-} from "@/features/canvas/ui/NodeSideActionRail";
 import { VideoClipPanel } from "@/features/canvas/nodes/VideoClipPanel";
 import { VideoPlayerControls } from "@/features/canvas/nodes/VideoPlayerControls";
 import {
@@ -171,6 +162,10 @@ import {
   VideoAlbumToggleButton,
 } from "@/features/canvas/nodes/VideoAlbumControls";
 import { VideoGenerationModeSelect } from "@/features/canvas/nodes/VideoGenerationModeSelect";
+import {
+  VideoNodeEmptyState,
+  VideoUploadActionRail,
+} from "@/features/canvas/nodes/VideoNodeEmptyState";
 import { resolveVideoGenerationModeOptions } from "@/features/canvas/nodes/videoGenerationModeOptions";
 import {
   CAMERA_MOVEMENT_PRESETS,
@@ -2242,20 +2237,11 @@ export const VideoNode = memo(
         />
 
         {!videoSource && !isUploading && !isGenerating && !data.isUpscaleNode && (
-          <NodeSideActionRail nodeId={id} autoHide selected={Boolean(selected)}>
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                handleUploadClick();
-              }}
-              className={NODE_SIDE_ACTION_BUTTON_CLASS}
-              title={t("node.videoNode.clickToUpload")}
-            >
-              <UploadIcon className={NODE_SIDE_ACTION_ICON_CLASS} />
-              <span>{t("node.videoNode.upload")}</span>
-            </button>
-          </NodeSideActionRail>
+          <VideoUploadActionRail
+            nodeId={id}
+            selected={Boolean(selected)}
+            onUpload={handleUploadClick}
+          />
         )}
 
         <div
@@ -2386,52 +2372,14 @@ export const VideoNode = memo(
                 />
               </div>
             </div>
-          ) : data.isUpscaleNode ? (
-            <div className="flex h-full w-full items-center justify-center px-6">
-              <span className="text-center text-sm font-medium text-text-dark/78">
-                {t("node.videoUpscale.placeholder")}
-              </span>
-            </div>
-          ) : isConnected ? (
-            // 已连线：不再显示文字 CTA，只在节点中间放一个图标（对齐 libtv）。
-            <div className="flex h-full w-full items-center justify-center">
-              <Play className="h-9 w-9 text-text-muted/46" />
-            </div>
           ) : (
-            <div className="flex h-full w-full items-center px-8">
-              {/* 上游含视频时只能走全能参考，首尾帧/首帧这两个 CTA 会引导到被禁用的
-                  firstLastFrame 模式，所以此时隐藏。 */}
-              {upstreamCounts.videos === 0 && (
-                <div className="flex min-h-0 flex-col justify-center gap-2 py-4">
-                  <div className="text-xs text-[var(--canvas-node-input-helper)]">试试：</div>
-                  <div className="flex flex-col gap-0.5">
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        spawnFrameUploads("firstLastFrame");
-                      }}
-                      className="nodrag -mx-2 inline-flex items-center gap-3 rounded-lg px-2 py-2 text-sm text-foreground transition-colors hover:bg-muted"
-                    >
-                      <Layers className="h-4 w-4 text-text-muted/90" />
-                      <span>首尾帧生成视频</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        spawnFrameUploads("firstFrame");
-                      }}
-                      className="nodrag -mx-2 inline-flex items-center gap-3 rounded-lg px-2 py-2 text-sm text-foreground transition-colors hover:bg-muted"
-                    >
-                      <Sparkles className="h-4 w-4 text-text-muted/90" />
-                      <span>首帧生成视频</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-              <Play className="ml-auto mr-20 h-9 w-9 text-text-muted/46" />
-            </div>
+            <VideoNodeEmptyState
+              isUpscaleNode={Boolean(data.isUpscaleNode)}
+              isConnected={isConnected}
+              hasUpstreamVideo={upstreamCounts.videos > 0}
+              onSpawnFirstLastFrame={() => spawnFrameUploads("firstLastFrame")}
+              onSpawnFirstFrame={() => spawnFrameUploads("firstFrame")}
+            />
           )}
 
           {videoSource && videoLoadError && !isGenerating && !isUploading && (
