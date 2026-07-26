@@ -8,6 +8,8 @@ import {
   type CanvasImageViewerDirection,
   type CanvasImageViewerState,
 } from '../application/canvasImageViewer';
+import { findAvailableNodePosition } from '../domain/canvasGeometry';
+import type { CanvasNode } from '../domain/canvasNodes';
 import {
   createEmptyBookmarks,
   normalizeBookmarks,
@@ -33,10 +35,19 @@ export interface CanvasViewportSlice {
   openImageViewer: (imageUrl: string, imageList?: string[]) => void;
   closeImageViewer: () => void;
   navigateImageViewer: (direction: CanvasImageViewerDirection) => void;
+  findNodePosition: (
+    sourceNodeId: string,
+    newNodeWidth: number,
+    newNodeHeight: number,
+  ) => { x: number; y: number };
+}
+
+interface CanvasViewportSliceState extends CanvasViewportSlice {
+  nodes: CanvasNode[];
 }
 
 interface CanvasViewportSliceStore {
-  getState: () => CanvasViewportSlice;
+  getState: () => CanvasViewportSliceState;
   setState: (patch: Partial<CanvasViewportSlice>) => void;
 }
 
@@ -89,6 +100,18 @@ export function createZustandCanvasViewportSlice(
       if (next !== current) {
         store.setState({ imageViewer: next });
       }
+    },
+
+    findNodePosition(sourceNodeId, newNodeWidth, newNodeHeight) {
+      const state = store.getState();
+      return findAvailableNodePosition({
+        nodes: state.nodes,
+        sourceNodeId,
+        newNodeWidth,
+        newNodeHeight,
+        viewport: state.currentViewport,
+        viewportSize: state.canvasViewportSize,
+      });
     },
   };
 }

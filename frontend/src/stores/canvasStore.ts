@@ -14,7 +14,6 @@ import {
   createSnapshot,
   pushSnapshot,
 } from '@/features/canvas/domain/canvasHistory';
-import { findAvailableNodePosition } from '@/features/canvas/domain/canvasGeometry';
 import { trackEdit } from '@/features/canvas/domain/canvasMutation';
 import { planCanvasAutoGroupSpawn } from '@/features/canvas/domain/canvasAutoGrouping';
 import {
@@ -94,7 +93,6 @@ interface CanvasState
   selectedNodeId: string | null;
   activeToolDialog: ActiveToolDialog | null;
 
-  findNodePosition: (sourceNodeId: string, newNodeWidth: number, newNodeHeight: number) => { x: number; y: number };
   groupNodes: (
     nodeIds: string[],
     opts?: CanvasGroupCreationOptions
@@ -186,18 +184,6 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     getState: get,
     setState: (patch) => set(patch),
   }),
-
-  findNodePosition: (sourceNodeId, newNodeWidth, newNodeHeight) => {
-    const state = get();
-    return findAvailableNodePosition({
-      nodes: state.nodes,
-      sourceNodeId,
-      newNodeWidth,
-      newNodeHeight,
-      viewport: state.currentViewport,
-      viewportSize: state.canvasViewportSize,
-    });
-  },
 
   groupNodes: (nodeIds, opts) => {
     const state = get();

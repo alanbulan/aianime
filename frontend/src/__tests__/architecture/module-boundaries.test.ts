@@ -954,6 +954,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
     );
+    const viewportSlice = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasViewportSlice.ts",
+      ),
+      "utf8",
+    );
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -1036,10 +1043,13 @@ describe("frontend architecture boundaries", () => {
     expect(geometryModel).toContain("export function resolveAbsolutePosition(");
     expect(geometryModel).toContain("export function getDerivedNodePosition(");
     expect(geometryModel).toContain(placementDeclaration);
-    expect(canvasStore).toContain(
+    expect(viewportSlice).toContain(
+      "../domain/canvasGeometry",
+    );
+    expect(viewportSlice).toContain("return findAvailableNodePosition({");
+    expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasGeometry",
     );
-    expect(canvasStore).toContain("return findAvailableNodePosition({");
     expect(canvasStore).not.toContain("function getNodeSize(");
     expect(canvasStore).not.toContain("function resolveAbsolutePosition(");
     expect(canvasStore).not.toContain("function getDerivedNodePosition(");
@@ -8022,6 +8032,7 @@ describe("frontend architecture boundaries", () => {
       ["openImageViewer", "(imageUrl, imageList = []) {"],
       ["closeImageViewer", "() {"],
       ["navigateImageViewer", "(direction) {"],
+      ["findNodePosition", "(sourceNodeId, newNodeWidth, newNodeHeight) {"],
     ].map(([name, parameters]) => `${name}${parameters}`);
 
     for (const implementation of implementations) {
@@ -8037,6 +8048,8 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(slicePath)).toEqual([
       "@xyflow/react",
       "../application/canvasImageViewer",
+      "../domain/canvasGeometry",
+      "../domain/canvasNodes",
       "../domain/viewportBookmarks",
     ]);
     expect(canvasStore).toMatch(
