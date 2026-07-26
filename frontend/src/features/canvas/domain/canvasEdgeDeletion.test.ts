@@ -2,7 +2,10 @@
 import { describe, expect, it } from 'vitest';
 
 import type { CanvasEdge } from './canvasNodes';
-import { deleteCanvasEdge } from './canvasEdgeDeletion';
+import {
+  canDeleteCanvasEdge,
+  deleteCanvasEdge,
+} from './canvasEdgeDeletion';
 
 function edge(
   id: string,
@@ -19,6 +22,7 @@ function edge(
 describe('Canvas edge deletion', () => {
   it('returns null when the edge does not exist', () => {
     expect(deleteCanvasEdge([edge('kept')], 'missing')).toBeNull();
+    expect(canDeleteCanvasEdge(undefined)).toBe(false);
   });
 
   it('rejects backend-managed edges', () => {
@@ -27,6 +31,8 @@ describe('Canvas edge deletion', () => {
 
     expect(deleteCanvasEdge([preset], preset.id)).toBeNull();
     expect(deleteCanvasEdge([projection], projection.id)).toBeNull();
+    expect(canDeleteCanvasEdge(preset)).toBe(false);
+    expect(canDeleteCanvasEdge(projection)).toBe(false);
   });
 
   it('removes only the requested user edge', () => {
@@ -37,5 +43,6 @@ describe('Canvas edge deletion', () => {
     });
 
     expect(deleteCanvasEdge([kept, removed], removed.id)).toEqual([kept]);
+    expect(canDeleteCanvasEdge(removed)).toBe(true);
   });
 });

@@ -15,8 +15,6 @@ import {
   SelectionMode,
   useReactFlow,
   useStoreApi,
-  type EdgeChange,
-  type NodeChange,
 } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -46,7 +44,6 @@ import {
 } from '@/features/canvas/composition';
 import {
   CANVAS_NODE_TYPES,
-  type CanvasEdge,
   type CanvasNode,
   type CanvasNodeData,
   type CanvasNodeType,
@@ -61,13 +58,8 @@ import { hydrateAssetDragPayload } from '@/features/canvas/domain/assetDragHydra
 import type { CanvasAsset } from '@/features/canvas/domain/canvasAssets';
 import { CanvasMinimapBookmarksOverlay } from '@/features/canvas/ui/CanvasMinimapBookmarksOverlay';
 import { captureCurrentViewport, jumpToBookmark } from '@/features/canvas/application/bookmarkActions';
-import { isPresetManagedEdge } from '@/features/canvas/domain/mainlineNodeFlags';
 import { cloneCanvasNodeData } from '@/features/canvas/application/canvasNodeData';
 import { createCanvasClipboardSnapshot } from '@/features/canvas/application/createCanvasClipboardSnapshot';
-import {
-  filterPresetManagedEdgeChanges,
-  filterPresetManagedNodeChanges,
-} from '@/features/canvas/application/canvasManagedChangeGuard';
 import type { CanvasClipboardSnapshot } from '@/features/canvas/domain/canvasClipboard';
 import { nodeNeedsGenerationResume } from '@/features/canvas/application/resumeGeneration';
 import {
@@ -114,6 +106,7 @@ import {
   type CanvasAutoLayoutViewportOptions,
 } from './hooks/useCanvasAutoLayoutController';
 import { useCanvasBeatContextPrefetch } from './hooks/useCanvasBeatContextPrefetch';
+import { useCanvasGraphChangeController } from './hooks/useCanvasGraphChangeController';
 import {
   useCanvasBatchConnectionController,
   type CanvasBatchConnectionMenuRequest,
@@ -490,53 +483,26 @@ export function Canvas({
     clearPendingFocus,
   });
 
-  const handleNodesChange = useCallback(
-    (changes: NodeChange<CanvasNode>[]) => {
-      // 拖拽时 applyNodeChanges 每帧重建 nodes 数组。这里只在事件回调里「读一次」当前快照,
-      // 不把 nodes 列进依赖,避免该回调每帧重建、进而打穿下游 memo。
-      const nodes = useCanvasStore.getState().nodes;
-      const unlockedChanges = filterPresetManagedNodeChanges(nodes, changes);
-      if (unlockedChanges.length === 0) {
-        return;
-      }
-      const effectiveChanges = alignNodeChanges({
-        nodes,
-        changes: unlockedChanges,
-        copyDragActive: altDragCopyRef.current !== null,
-      });
-      applyNodesChange(effectiveChanges);
-    },
-    [alignNodeChanges, applyNodesChange]
-  );
-
-  const handleEdgesChange = useCallback(
-    (changes: EdgeChange<CanvasEdge>[]) => {
-      const edges = useCanvasStore.getState().edges;
-      const unlockedChanges = filterPresetManagedEdgeChanges(edges, changes);
-      if (unlockedChanges.length === 0) {
-        return;
-      }
-      applyEdgesChange(unlockedChanges);
-    },
-    [applyEdgesChange]
-  );
-
-  const handleEdgeDoubleClick = useCallback(
-    (event: ReactMouseEvent, edge: CanvasEdge) => {
-      event.preventDefault();
-      event.stopPropagation();
-      if (isPresetManagedEdge(edge)) {
-        return;
-      }
-      deleteEdge(edge.id);
-    },
-    [deleteEdge]
-  );
-
   const getCanvasGraph = useCallback(() => {
     const { nodes: currentNodes, edges: currentEdges } = useCanvasStore.getState();
     return { nodes: currentNodes, edges: currentEdges };
   }, []);
+  const isCopyDragActive = useCallback(
+    () => altDragCopyRef.current !== null,
+    [],
+  );
+  const {
+    handleNodesChange,
+    handleEdgesChange,
+    handleEdgeDoubleClick,
+  } = useCanvasGraphChangeController({
+    getGraph: getCanvasGraph,
+    isCopyDragActive,
+    alignNodeChanges,
+    applyNodeChanges: applyNodesChange,
+    applyEdgeChanges: applyEdgesChange,
+    deleteEdge,
+  });
   const {
     connectGraphNodes,
     connectManualGraphNodes: handleConnect,

@@ -2014,6 +2014,13 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/application/canvasManagedChangeGuard.ts",
     );
     const guardModel = readFileSync(guardPath, "utf8");
+    const graphChangeController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasGraphChangeController.ts",
+      ),
+      "utf8",
+    );
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -2035,10 +2042,61 @@ describe("frontend architecture boundaries", () => {
     expect(forbiddenImports).toEqual([]);
     expect(guardModel).toContain("filterPresetManagedNodeChanges");
     expect(guardModel).toContain("filterPresetManagedEdgeChanges");
-    expect(canvasView).toContain("filterPresetManagedNodeChanges(nodes, changes)");
-    expect(canvasView).toContain("filterPresetManagedEdgeChanges(edges, changes)");
+    expect(graphChangeController).toContain(
+      "filterPresetManagedNodeChanges(nodes, changes)",
+    );
+    expect(graphChangeController).toContain(
+      "filterPresetManagedEdgeChanges(edges, changes)",
+    );
+    expect(canvasView).not.toContain("filterPresetManagedNodeChanges(");
+    expect(canvasView).not.toContain("filterPresetManagedEdgeChanges(");
     expect(canvasView).not.toContain("const lockedNodeIds");
     expect(canvasView).not.toContain("const lockedEdgeIds");
+  });
+
+  it("keeps Canvas graph-change orchestration in one presentation controller", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasGraphChangeController.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/features/canvas/nodeFactoryComposition",
+    );
+    const declaration = [
+      "export function",
+      "useCanvasGraphChangeController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasGraphChangeController.ts",
+    ]);
+    expect(hookModel).toContain("alignNodeChanges({");
+    expect(hookModel).toContain("copyDragActive: isCopyDragActive()");
+    expect(hookModel).toContain("canDeleteCanvasEdge(edge)");
+    expect(hookModel).toContain("deleteEdge(edge.id)");
+    expect(hookModel).not.toContain("isPresetManagedEdge(");
+    expect(canvasView).toContain("./hooks/useCanvasGraphChangeController");
+    expect(canvasView).not.toContain("const handleNodesChange = useCallback");
+    expect(canvasView).not.toContain("const handleEdgesChange = useCallback");
+    expect(canvasView).not.toContain("const handleEdgeDoubleClick = useCallback");
+    expect(canvasView).not.toContain("isPresetManagedEdge(");
   });
 
   it("keeps Canvas snap-alignment orchestration in one presentation hook", () => {
@@ -2057,6 +2115,13 @@ describe("frontend architecture boundaries", () => {
     const hookModel = readFileSync(hookPath, "utf8");
     const computeModel = readFileSync(computePath, "utf8");
     const storeModel = readFileSync(storePath, "utf8");
+    const graphChangeController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasGraphChangeController.ts",
+      ),
+      "utf8",
+    );
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -2080,7 +2145,8 @@ describe("frontend architecture boundaries", () => {
     expect(computeModel).not.toContain("./snapAlignStore");
     expect(storeModel).toContain("from './computeSnapAlign'");
     expect(canvasView).toContain("./hooks/useCanvasSnapAlignment");
-    expect(canvasView).toContain("alignNodeChanges({");
+    expect(graphChangeController).toContain("alignNodeChanges({");
+    expect(canvasView).not.toContain("alignNodeChanges({");
     expect(canvasView).not.toContain("snapAlignIndexRef");
     expect(canvasView).not.toContain("const draggingPositionChanges");
     expect(canvasView).not.toContain("computeSnapAlignFromIndex(");
@@ -4319,6 +4385,17 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
     );
+    const graphChangeController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasGraphChangeController.ts",
+      ),
+      "utf8",
+    );
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
     const forbiddenImports = importSpecifiers(deletionPath).filter(
       (specifier) =>
         specifier === "react" ||
@@ -4338,9 +4415,19 @@ describe("frontend architecture boundaries", () => {
       "export function",
       "deleteCanvasEdge(",
     ].join(" ");
+    const eligibilityDeclaration = [
+      "export function",
+      "canDeleteCanvasEdge(",
+    ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) =>
         readFileSync(path, "utf8").includes(deletionDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
+    const eligibilityOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(eligibilityDeclaration),
       )
       .map(relativeSource)
       .sort();
@@ -4349,7 +4436,12 @@ describe("frontend architecture boundaries", () => {
     expect(implementationOwners).toEqual([
       "features/canvas/domain/canvasEdgeDeletion.ts",
     ]);
+    expect(eligibilityOwners).toEqual([
+      "features/canvas/domain/canvasEdgeDeletion.ts",
+    ]);
     expect(deletionModel).toContain(deletionDeclaration);
+    expect(deletionModel).toContain(eligibilityDeclaration);
+    expect(deletionModel).toContain("canDeleteCanvasEdge(edge)");
     expect(canvasStore).toContain(
       "@/features/canvas/domain/canvasEdgeDeletion",
     );
@@ -4357,6 +4449,10 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain(
       "state.edges.filter((edge) => edge.id !== edgeId)",
     );
+    expect(graphChangeController).toContain("canDeleteCanvasEdge(edge)");
+    expect(graphChangeController).toContain("deleteEdge(edge.id)");
+    expect(graphChangeController).not.toContain("isPresetManagedEdge(");
+    expect(canvasView).not.toContain("isPresetManagedEdge(");
   });
 
   it("keeps shared code independent from application and business layers", () => {
