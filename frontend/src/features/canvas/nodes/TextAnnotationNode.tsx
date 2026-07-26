@@ -45,15 +45,11 @@ import {
 } from '@/features/canvas/ui/nodeFrameStyles';
 import { useCanvasStore } from '@/stores/canvasStore';
 import {
-  ensureBackendImageUrl,
-  fetchFreezoneReversePromptResult,
-  submitFreezoneReversePrompt,
-} from '@/api/ops';
-import {
+  awaitCanvasGenerationTaskCompletion,
+  generateCanvasReversePrompt,
   submitVideoGeneration,
   translateCanvasText,
 } from '@/features/canvas/composition';
-import { awaitTaskCompletion } from '@/api/tasks';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import { readUrl } from '@/lib/url-params';
@@ -333,25 +329,23 @@ export const TextAnnotationNode = memo(({
     }
     updateNodeData(id, { isGenerating: true, generationStartedAt: Date.now() });
     try {
-      // Backend looks up the file by static path — `data:` URLs get uploaded
-      // first via /freezone/upload to obtain a real path; `?v=<ts>` cache
-      // busters are stripped either way.
-      const sourceUrl = await ensureBackendImageUrl(projectId, rawUrl);
-      const ref = await submitFreezoneReversePrompt(projectId, {
-        sourceUrl,
-        canvasId: readUrl().canvas ?? 'default',
-        nodeId: id,
-      });
-      // Persist the task handle so a page refresh can resume this job.
-      updateNodeData(id, generationTaskDescriptor(ref));
-      await awaitTaskCompletion(ref.task_key, projectId);
-      // SSE task.result only carries `{ output_format: "json" }`; the prompt
-      // text comes from the dedicated job-result endpoint.
-      const { prompt } = await fetchFreezoneReversePromptResult(projectId, ref.job_id);
+      const result = await generateCanvasReversePrompt(
+        {
+          projectId,
+          rawSourceUrl: rawUrl,
+          canvasId: readUrl().canvas ?? 'default',
+          nodeId: id,
+        },
+        (task) => {
+          // Persist the task handle so a page refresh can resume this job.
+          updateNodeData(id, generationTaskDescriptor(task));
+        },
+      );
+      const { prompt } = result;
       if (prompt && prompt.trim().length > 0) {
         updateNodeData(id, { content: prompt, isGenerating: false, generationStartedAt: null });
       } else {
-        console.warn('[text-node] reverse-prompt returned empty prompt', { jobId: ref.job_id });
+        console.warn('[text-node] reverse-prompt returned empty prompt', { jobId: result.task.job_id });
         updateNodeData(id, { isGenerating: false, generationStartedAt: null });
       }
     } catch (error) {
@@ -432,7 +426,10 @@ export const TextAnnotationNode = memo(({
         });
         // Persist the task handle so a page refresh can resume this job.
         updateNodeData(videoNodeId, generationTaskDescriptor(ref));
-        const completed = await awaitTaskCompletion(ref.task_key, projectId);
+        const completed = await awaitCanvasGenerationTaskCompletion(
+          ref.task_key,
+          projectId,
+        );
         const url = resolveGenerationOutputUrl(completed.result, 'video');
         if (url) {
           updateNodeData(videoNodeId, {

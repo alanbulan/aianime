@@ -1510,6 +1510,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百一十三批已将脚本节点上游文本/视频/音频/图片分类、视频时长换算、图片回退、文本主输入优先级、steering prompt、角色参考投影、空输入门禁、任务提交/持久化/等待及脚本结果读取迁入唯一 application 模块 `generateCanvasStoryScript`，脚本行/结果 DTO 同步由 application ports 持有；`freezoneStoryScriptGenerationGateway` infrastructure 适配器唯一调用故事脚本提交端点，composition 注入既有任务 gateway 并保持先记录任务句柄再等待的恢复时序，`ScriptNode` 只保留 URL/生成状态、节点写回、表格与面板交互，不再依赖 Freezone DTO、`api/ops` 或任务 API；节点由 1276 行降至 1157 行，用例 219 行、适配器 21 行，composition 由 337 行调整为 354 行；用例与适配器共 2 个测试文件 5 项、新增后的架构门禁 168 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百一十四批已将文本标注节点图片反推提示词的源图后端 URL 准备、任务提交/持久化/等待及专用结果读取迁入唯一 application 用例 `generateCanvasReversePrompt`，`freezoneReversePromptGenerationGateway` infrastructure 适配器唯一调用源图准备与反推任务提交端点，composition 注入既有任务 gateway；`TextAnnotationNode` 只保留输入/生成状态门禁、任务句柄与节点状态写回，不再直接依赖 `api/ops` 或任务 API，其文本生成视频仍仅从 SSE completion 结果解析 URL，未引入专用结果接口回退；节点由 876 行降至 873 行，用例 65 行、适配器 20 行，composition 由 354 行调整为 377 行；用例与适配器共 2 个测试文件 2 项、新增后的架构门禁 169 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

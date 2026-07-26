@@ -17,6 +17,10 @@ import {
   type EraseVideoSubtitlesParams,
 } from './application/eraseVideoSubtitles';
 import {
+  generateCanvasReversePrompt as generateCanvasReversePromptUseCase,
+  type GenerateCanvasReversePromptParams,
+} from './application/generateCanvasReversePrompt';
+import {
   generateCanvasStoryScript as generateCanvasStoryScriptUseCase,
   type GenerateCanvasStoryScriptParams,
 } from './application/generateCanvasStoryScript';
@@ -92,6 +96,7 @@ import { freezoneCanvasTextTranslationGateway } from './infrastructure/freezoneC
 import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerationTaskGateway';
 import { freezoneGenerationHistoryGateway } from './infrastructure/freezoneGenerationHistoryGateway';
 import { freezoneRedrawTaskGateway } from './infrastructure/freezoneRedrawTaskGateway';
+import { freezoneReversePromptGenerationGateway } from './infrastructure/freezoneReversePromptGenerationGateway';
 import { freezoneStoryScriptGenerationGateway } from './infrastructure/freezoneStoryScriptGenerationGateway';
 import { freezoneVideoClipComposeGateway } from './infrastructure/freezoneVideoClipComposeGateway';
 import { freezoneVideoGenerationSubmissionGateway } from './infrastructure/freezoneVideoGenerationSubmissionGateway';
@@ -306,6 +311,24 @@ export function generateCanvasStoryScript(
     taskGateway: freezoneGenerationTaskGateway,
     onTaskSubmitted,
   });
+}
+
+export function generateCanvasReversePrompt(
+  params: GenerateCanvasReversePromptParams,
+  onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
+) {
+  return generateCanvasReversePromptUseCase(params, {
+    submissionGateway: freezoneReversePromptGenerationGateway,
+    taskGateway: freezoneGenerationTaskGateway,
+    onTaskSubmitted,
+  });
+}
+
+export function awaitCanvasGenerationTaskCompletion(
+  taskKey: string,
+  projectId: string,
+) {
+  return freezoneGenerationTaskGateway.awaitCompletion(taskKey, projectId);
 }
 
 export function translateCanvasText(params: TranslateCanvasTextParams) {

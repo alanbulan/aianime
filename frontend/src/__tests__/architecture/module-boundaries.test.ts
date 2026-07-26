@@ -8720,6 +8720,68 @@ describe("frontend architecture boundaries", () => {
     expect(scriptNodeSource).not.toContain("FreezoneStoryScriptRow");
   });
 
+  it("keeps Canvas reverse-prompt generation orchestration in application", () => {
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/generateCanvasReversePrompt.ts",
+    );
+    const infrastructurePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneReversePromptGenerationGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const textNodePath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/TextAnnotationNode.tsx",
+    );
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const infrastructureSource = readFileSync(infrastructurePath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const textNodeSource = readFileSync(textNodePath, "utf8");
+
+    expect(importSpecifiers(applicationPath)).toEqual(["./ports"]);
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).toContain(
+      "export async function generateCanvasReversePrompt(",
+    );
+    expect(applicationSource).toContain(
+      "dependencies.submissionGateway.prepareSourceUrl(",
+    );
+    expect(applicationSource).toContain(
+      "dependencies.onTaskSubmitted(task)",
+    );
+    expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
+      new Set(["@/api/ops", "../application/generateCanvasReversePrompt"]),
+    );
+    expect(infrastructureSource).toContain(
+      "freezoneReversePromptGenerationGateway: CanvasReversePromptSubmissionGateway",
+    );
+    expect(compositionSource).toContain(
+      "generateCanvasReversePromptUseCase(params, {",
+    );
+    expect(compositionSource).toContain(
+      "submissionGateway: freezoneReversePromptGenerationGateway",
+    );
+    expect(compositionSource).toContain(
+      "freezoneGenerationTaskGateway.awaitCompletion(taskKey, projectId)",
+    );
+    expect(importSpecifiers(textNodePath)).not.toContain("@/api/ops");
+    expect(importSpecifiers(textNodePath)).not.toContain("@/api/tasks");
+    expect(textNodeSource).toContain("await generateCanvasReversePrompt(");
+    expect(textNodeSource).toContain(
+      "await awaitCanvasGenerationTaskCompletion(",
+    );
+    expect(textNodeSource).not.toContain("ensureBackendImageUrl");
+    expect(textNodeSource).not.toContain("submitFreezoneReversePrompt");
+    expect(textNodeSource).not.toContain("fetchFreezoneReversePromptResult");
+    expect(textNodeSource).not.toContain("awaitTaskCompletion");
+  });
+
   it("keeps Canvas asset extraction independent from media URL infrastructure", () => {
     const assetPath = resolve(
       SRC_ROOT,
