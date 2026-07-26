@@ -6,16 +6,15 @@ import type { PushTarget } from "@/features/freezone/public";
 import { CommitDialog } from "@/features/freezone/commit/CommitDialog";
 import { promoteToAsset, previewAssetImpact } from "@/features/freezone/commit/promoteToAsset";
 
-vi.mock("@/api/projects", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/api/projects")>()),
+vi.mock("@/modules/asset_world/public", () => ({
+  listScenes: vi.fn(async () => [{ name: "公寓楼电梯间" }]),
   listCharacters: vi.fn(async () => []),
-  listEpisodes: vi.fn(async () => []),
-  listBeats: vi.fn(async () => []),
   listCharacterIdentities: vi.fn(async () => []),
 }));
 
-vi.mock("@/modules/asset_world/public", () => ({
-  listScenes: vi.fn(async () => [{ name: "公寓楼电梯间" }]),
+vi.mock("@/modules/narrative_planning/public", () => ({
+  listEpisodes: vi.fn(async () => []),
+  listBeats: vi.fn(async () => []),
 }));
 
 vi.mock("@/features/freezone/commit/promoteToAsset", async (importOriginal) => ({

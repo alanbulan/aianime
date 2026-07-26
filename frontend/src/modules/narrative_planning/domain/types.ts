@@ -37,6 +37,7 @@ export interface Episode {
 }
 
 export interface Beat {
+  beat_index?: number;
   beat_number: number;
   narration_segment: string;
   visual_description: string;

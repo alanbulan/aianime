@@ -1,17 +1,19 @@
 // Copyright (c) 2026 AI anime
 import { useEffect, useMemo, useState } from "react";
 import {
-  listEpisodes,
-  listBeats,
   deriveSketchUrl,
   deriveDirectorRenderUrl,
-  type AiAnimeEpisodeSummary,
-  type AiAnimeBeat,
 } from "@/api/projects";
 import {
   listCharacters,
   type Character,
 } from "@/modules/asset_world/public";
+import {
+  listBeats,
+  listEpisodes,
+  type Beat,
+  type Episode,
+} from "@/modules/narrative_planning/public";
 import {
   UiButton,
   UiCheckbox,
@@ -67,10 +69,10 @@ const DEFAULT_KIND_TOGGLES: KindToggles = {
 
 export function ImportPanel({ project, onClose, onImport }: ImportPanelProps) {
   const [characters, setCharacters] = useState<Character[]>([]);
-  const [episodes, setEpisodes] = useState<AiAnimeEpisodeSummary[]>([]);
+  const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [selectedCharacters, setSelectedCharacters] = useState<Set<string>>(new Set());
   const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
-  const [beats, setBeats] = useState<AiAnimeBeat[]>([]);
+  const [beats, setBeats] = useState<Beat[]>([]);
   const [selectedBeats, setSelectedBeats] = useState<Set<number>>(new Set());
   const [kinds, setKinds] = useState<KindToggles>(DEFAULT_KIND_TOGGLES);
   const [loading, setLoading] = useState(true);
@@ -89,9 +91,7 @@ export function ImportPanel({ project, onClose, onImport }: ImportPanelProps) {
         setEpisodes(eps);
         setSelectedCharacters(new Set(chars.map((c) => c.name)));
         if (eps.length > 0) {
-          const firstEp =
-            typeof eps[0].episode_num === "number" ? eps[0].episode_num : 1;
-          setSelectedEpisode(firstEp);
+          setSelectedEpisode(eps[0].number);
         }
         setLoading(false);
       })
@@ -337,7 +337,7 @@ function EpisodePicker({
   selectedEpisode,
   onSelect,
 }: {
-  episodes: AiAnimeEpisodeSummary[];
+  episodes: Episode[];
   selectedEpisode: number | null;
   onSelect: (ep: number) => void;
 }) {
@@ -350,8 +350,8 @@ function EpisodePicker({
           onChange={(e) => onSelect(Number(e.target.value))}
         >
           {episodes.map((ep) => (
-            <option key={ep.episode_num} value={ep.episode_num}>
-              ep{ep.episode_num} {ep.title ? `- ${ep.title}` : ""}
+            <option key={ep.number} value={ep.number}>
+              ep{ep.number} {ep.title ? `- ${ep.title}` : ""}
             </option>
           ))}
         </UiSelect>
@@ -430,7 +430,7 @@ interface CollectArgs {
   project: string;
   characters: Character[];
   selectedCharacters: Set<string>;
-  beats: AiAnimeBeat[];
+  beats: Beat[];
   selectedBeats: Set<number>;
   episode: number | null;
   kinds: KindToggles;

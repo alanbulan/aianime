@@ -16,6 +16,10 @@ import {
   createNarrativePlanningQueryHooks,
   isPlanEpisodeAssetsResult,
 } from "@/modules/narrative_planning/application/query-hooks";
+import {
+  listBeats as listBeatsUseCase,
+  listEpisodes as listEpisodesUseCase,
+} from "@/modules/narrative_planning/application/catalog-queries";
 import { createUseActionPanelController } from "@/modules/narrative_planning/application/use-action-panel-controller";
 import { createUseBeatCardGridController } from "@/modules/narrative_planning/application/use-beat-card-grid-controller";
 import { createUseInsertManualShotDialogController } from "@/modules/narrative_planning/application/use-insert-manual-shot-dialog-controller";
@@ -129,6 +133,12 @@ export const updateBeat = (
   beat: number,
   data: BeatUpdate,
 ) => httpNarrativePlanningGateway.updateBeat(project, episode, beat, data);
+
+export const listEpisodes = (project: string) =>
+  listEpisodesUseCase(project, httpNarrativePlanningGateway);
+
+export const listBeats = (project: string, episode: number) =>
+  listBeatsUseCase(project, episode, httpNarrativePlanningGateway);
 
 const useEpisodesPageController = createUseEpisodesPageController(
   narrativePlanningQueries,

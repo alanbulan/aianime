@@ -9,11 +9,6 @@ import {
   type DropMediaType,
 } from "@/stores/assetDropStore";
 import {
-  listEpisodes,
-  listBeats,
-  type AiAnimeEpisodeSummary,
-} from "@/api/projects";
-import {
   listCharacterIdentities,
   listCharacters,
   listScenes,
@@ -21,6 +16,11 @@ import {
   type Identity,
   type SceneAsset,
 } from "@/modules/asset_world/public";
+import {
+  listBeats,
+  listEpisodes,
+  type Episode,
+} from "@/modules/narrative_planning/public";
 import { UiButton, UiInput, UiPanel, UiSelect } from "@/components/ui";
 import {
   UI_DIALOG_TRANSITION_MS,
@@ -286,7 +286,7 @@ export function CommitDialog({
       : "",
   );
 
-  const [episodes, setEpisodes] = useState<AiAnimeEpisodeSummary[]>([]);
+  const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [scenes, setScenes] = useState<SceneAsset[]>([]);
   const [scenesLoading, setScenesLoading] = useState(false);
   const [beatOptions, setBeatOptions] = useState<number[]>([]);
@@ -315,7 +315,7 @@ export function CommitDialog({
         setCharacters(chars);
         setEpisodes(eps);
         if (episode === null && eps.length > 0) {
-          setEpisode(eps[0].episode_num ?? 1);
+          setEpisode(eps[0].number);
         }
         if (character === null && chars.length > 0) {
           setCharacter(chars[0].name);
@@ -741,8 +741,8 @@ export function CommitDialog({
                     menuClassName={COMMIT_SELECT_MENU_CLASS}
                   >
                     {episodes.map((ep) => (
-                      <option key={ep.episode_num} value={ep.episode_num}>
-                        ep{ep.episode_num}
+                      <option key={ep.number} value={ep.number}>
+                        ep{ep.number}
                         {ep.title ? ` · ${ep.title}` : ""}
                       </option>
                     ))}

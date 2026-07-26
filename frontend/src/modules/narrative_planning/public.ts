@@ -5,6 +5,8 @@ export {
   episodesQueryOptions,
   EpisodesPageContent,
   isPlanEpisodeAssetsResult,
+  listBeats,
+  listEpisodes,
   pipelineStatusQueryOptions,
   prefetchEpisodeBeats,
   prefetchEpisodeDetail,

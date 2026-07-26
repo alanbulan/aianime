@@ -7462,6 +7462,88 @@ describe("frontend architecture boundaries", () => {
     expect(textPaneControllerSource).not.toContain("<MentionTextarea");
   });
 
+  it("keeps episode and Beat catalog reads behind the Narrative Planning application port", () => {
+    const legacyApiPath = resolve(SRC_ROOT, "api/projects.ts");
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "modules/narrative_planning/application/catalog-queries.ts",
+    );
+    const gatewayPath = resolve(
+      SRC_ROOT,
+      "modules/narrative_planning/infrastructure/http-narrative-planning-gateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "modules/narrative_planning/composition.ts",
+    );
+    const publicPath = resolve(
+      SRC_ROOT,
+      "modules/narrative_planning/public.ts",
+    );
+    const legacyApiSource = readFileSync(legacyApiPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const publicSource = readFileSync(publicPath, "utf8");
+    const consumerPaths = [
+      "features/freezone/commit/CommitDialog.tsx",
+      "pipeline-import/ImportPanel.tsx",
+    ];
+    const episodeListEndpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          ".get(p`api/v1/projects/${project}/episodes`,",
+        ),
+      )
+      .map(relativeSource)
+      .sort();
+    const beatListEndpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          ".get(p`api/v1/projects/${project}/episodes/${episode}/beats`,",
+        ),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set([
+        "@/modules/narrative_planning/application/ports",
+        "@/modules/narrative_planning/domain/types",
+      ]),
+    );
+    expect(legacyApiSource).not.toContain(
+      "export interface AiAnimeEpisodeSummary",
+    );
+    expect(legacyApiSource).not.toContain("export interface AiAnimeBeat");
+    expect(legacyApiSource).not.toContain("function listEpisodes(");
+    expect(legacyApiSource).not.toContain("function listBeats(");
+    expect(episodeListEndpointOwners).toEqual([
+      "modules/narrative_planning/infrastructure/http-narrative-planning-gateway.ts",
+    ]);
+    expect(beatListEndpointOwners).toEqual([
+      "modules/narrative_planning/infrastructure/http-narrative-planning-gateway.ts",
+    ]);
+    for (const consumerPath of consumerPaths) {
+      expect(importSpecifiers(resolve(SRC_ROOT, consumerPath))).toContain(
+        "@/modules/narrative_planning/public",
+      );
+    }
+    expect(importSpecifiers(resolve(SRC_ROOT, consumerPaths[0]))).not.toContain(
+      "@/api/projects",
+    );
+    expect(compositionSource).toContain("listEpisodesUseCase(");
+    expect(compositionSource).toContain("listBeatsUseCase(");
+    expect(publicSource).toContain("listEpisodes,");
+    expect(publicSource).toContain("listBeats,");
+    expect(readFileSync(gatewayPath, "utf8")).toContain(
+      "async listEpisodes(project, signal)",
+    );
+    expect(readFileSync(gatewayPath, "utf8")).toContain(
+      "async getBeats(project, episode, signal)",
+    );
+  });
+
   it("keeps Asset & World callers on its public API", () => {
     const moduleRoot = resolve(SRC_ROOT, "modules/asset_world");
     const legacySketchQueries = readFileSync(
