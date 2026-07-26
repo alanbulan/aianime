@@ -674,6 +674,7 @@ describe("frontend architecture boundaries", () => {
             (specifier) =>
               specifier.includes("features/freezone/domain/skillContract") ||
               specifier.includes("features/freezone/domain/skillExecution") ||
+              specifier.includes("features/freezone/domain/sceneAssets") ||
               specifier.includes("features/freezone/context/skillRoles") ||
               specifier.includes("freezone/context/skillRoles"),
           )
@@ -689,6 +690,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "@/features/freezone/domain/skillContract",
         "@/features/freezone/domain/skillExecution",
+        "@/features/freezone/domain/sceneAssets",
       ]),
     );
     expect(externalContractImportFailures).toEqual([]);
@@ -9136,6 +9138,102 @@ describe("frontend architecture boundaries", () => {
       "../../../api/skills.ts",
     );
     expect(nodeSource).not.toContain("awaitTaskCompletion");
+  });
+
+  it("keeps Beat scene-asset queries behind Canvas composition", () => {
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/freezone/domain/sceneAssets.ts",
+    );
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/sceneAssets.ts",
+    );
+    const adapterPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneSceneAssetsGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const nodePath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/SkillNode.tsx",
+    );
+    const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    const legacyApiPath = resolve(SRC_ROOT, "api/sceneAssets.ts");
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const adapterSource = readFileSync(adapterPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const nodeSource = readFileSync(nodePath, "utf8");
+    const publicSource = readFileSync(publicPath, "utf8");
+    const endpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          "freezone/scene-assets-for-beat?",
+        ),
+      )
+      .map(relativeSource)
+      .sort();
+    const removedEndpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          "freezone/director-capture/sync-background",
+        ),
+      )
+      .map(relativeSource)
+      .sort();
+    const contractDeclaration = [
+      "export interface",
+      "SceneAssetsForBeat {",
+    ].join(" ");
+    const contractOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(contractDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(existsSync(legacyApiPath)).toBe(false);
+    expect(importSpecifiers(domainPath)).toEqual([]);
+    expect(importSpecifiers(applicationPath)).toEqual([
+      "@/features/freezone/public",
+    ]);
+    expect(new Set(importSpecifiers(adapterPath))).toEqual(
+      new Set([
+        "@/shared/api/client",
+        "@/features/freezone/public",
+        "../application/sceneAssets",
+      ]),
+    );
+    expect(applicationSource).not.toContain("@/api/");
+    expect(adapterSource).toContain("encodeURIComponent(projectId)");
+    expect(endpointOwners).toEqual([
+      "features/canvas/infrastructure/freezoneSceneAssetsGateway.ts",
+    ]);
+    expect(removedEndpointOwners).toEqual([]);
+    expect(contractOwners).toEqual([
+      "features/freezone/domain/sceneAssets.ts",
+    ]);
+    expect(publicSource).toContain(
+      'from "@/features/freezone/domain/sceneAssets"',
+    );
+    expect(importSpecifiers(nodePath)).toContain(
+      "@/features/canvas/composition",
+    );
+    expect(importSpecifiers(nodePath)).toContain(
+      "@/features/freezone/public",
+    );
+    expect(importSpecifiers(nodePath)).not.toContain("@/api/sceneAssets");
+    expect(
+      nodeSource.match(/getCanvasSceneAssetsForBeat\(\{/g),
+    ).toHaveLength(2);
+    expect(compositionSource).toContain(
+      "getCanvasSceneAssetsForBeatUseCase(\n    params,\n    freezoneSceneAssetsGateway,",
+    );
   });
 
   it("keeps Canvas image-to-3D generation orchestration out of views", () => {

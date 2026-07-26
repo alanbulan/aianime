@@ -131,6 +131,10 @@ import {
   type StartCanvasSkillRunParams,
 } from './application/skillExecution';
 import {
+  getCanvasSceneAssetsForBeat as getCanvasSceneAssetsForBeatUseCase,
+  type GetCanvasSceneAssetsForBeatParams,
+} from './application/sceneAssets';
+import {
   uploadLocalImageToBackend as uploadLocalImageToBackendUseCase,
 } from './application/uploadToolOutput';
 import {
@@ -163,6 +167,7 @@ import { freezoneRedrawTaskGateway } from './infrastructure/freezoneRedrawTaskGa
 import { freezoneRelightGenerationGateway } from './infrastructure/freezoneRelightGenerationGateway';
 import { freezoneReversePromptGenerationGateway } from './infrastructure/freezoneReversePromptGenerationGateway';
 import { freezoneScene360GenerationGateway } from './infrastructure/freezoneScene360GenerationGateway';
+import { freezoneSceneAssetsGateway } from './infrastructure/freezoneSceneAssetsGateway';
 import { freezoneSkillExecutionGateway } from './infrastructure/freezoneSkillExecutionGateway';
 import { freezoneStoryScriptGenerationGateway } from './infrastructure/freezoneStoryScriptGenerationGateway';
 import { freezoneUpscaleGenerationGateway } from './infrastructure/freezoneUpscaleGenerationGateway';
@@ -539,6 +544,15 @@ export function awaitCanvasGenerationTaskCompletion(
 
 export function startCanvasSkillRun(params: StartCanvasSkillRunParams) {
   return startCanvasSkillRunUseCase(params, freezoneSkillExecutionGateway);
+}
+
+export function getCanvasSceneAssetsForBeat(
+  params: GetCanvasSceneAssetsForBeatParams,
+) {
+  return getCanvasSceneAssetsForBeatUseCase(
+    params,
+    freezoneSceneAssetsGateway,
+  );
 }
 
 export function awaitCanvasSkillRunResult(

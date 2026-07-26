@@ -31,3 +31,7 @@ export type {
   SkillRunResponse,
   SkillRunResult,
 } from "@/features/freezone/domain/skillExecution";
+export type {
+  SceneAssetsForBeat,
+  SceneAssetsForBeatResult,
+} from "@/features/freezone/domain/sceneAssets";

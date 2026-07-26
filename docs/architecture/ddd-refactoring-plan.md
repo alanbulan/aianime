@@ -1556,6 +1556,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百三十六批已将 Skill 运行请求、回执、输出、Graph Patch、结果、终态判断和结构化错误文案迁入唯一 116 行 `freezone/domain/skillExecution`，经 Freezone public 发布；提交/结果查询 port、默认 700ms 间隔与 30 次结果轮询迁入 71 行 Canvas application 用例，两个原 URL 及编码规则迁入唯一 22 行 `freezoneSkillExecutionGateway` infrastructure 适配器，composition 注入浏览器等待器并继续复用既有任务 gateway；`SkillNode` 删除本地状态判断、错误映射、延迟和轮询实现，由 1882 行降至 1848 行，不再直接依赖 API，Freezone 输出模型也不再反向导入 API 类型；原 102 行 `api/skills.ts` 整体删除，不保留兼容出口或第二套 DTO，提交、刷新恢复、任务句柄和输出物化语义不变；相关 4 个测试文件 19 项、新增后的架构门禁 188 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百三十七批已将 Beat 场景素材响应契约迁入唯一 15 行 `freezone/domain/sceneAssets` 并经 Freezone public 发布，将查询参数、port 与委托用例迁入 21 行 Canvas application，将项目编码、查询串和 `scene-assets-for-beat` URL 迁入唯一 16 行 `freezoneSceneAssetsGateway` infrastructure 适配器并由 composition 注入；`SkillNode` 的首次加载与强制刷新统一改经 composition，不再直接依赖 `api/sceneAssets`，原 58 行旧 API 文件整体删除，其中无人调用的 `syncDirectorEnvOnlyToSelectedBackground` 出口不保留替代或兼容转发；查询 method/path、Beat 参数、缓存状态与返回素材字段语义均未改变；相关 3 个测试文件 14 项、新增后的架构门禁 189 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

@@ -12,14 +12,11 @@ import { Handle, Position, useUpdateNodeInternals, type NodeProps } from '@xyflo
 import { Boxes, Camera, Crop, FileText, Loader2, Play } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import {
-  getSceneAssetsForBeat,
-  type SceneAssetsForBeat,
-} from '@/api/sceneAssets';
 import { getBeatDirectorStageManifest } from '@/api/viewerManifests';
 import {
   awaitCanvasSkillRunResult,
   awaitCanvasGenerationTaskCompletion,
+  getCanvasSceneAssetsForBeat,
   startCanvasSkillRun,
   stageSelectedBackgroundOutputForSkill,
   uploadCanvasAsset,
@@ -61,6 +58,7 @@ import {
 import {
   isSkillRunFailureStatus,
   skillRunErrorMessage,
+  type SceneAssetsForBeat,
   type SkillInputRole,
   type SkillProvider,
   type SkillRunOutput,
@@ -816,7 +814,11 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
     setSourcePickerBusy(true);
     setSourcePickerError(null);
     try {
-      const assets = await getSceneAssetsForBeat(projectId, beatTarget.episode, beatTarget.beat);
+      const assets = await getCanvasSceneAssetsForBeat({
+        projectId,
+        episode: beatTarget.episode,
+        beat: beatTarget.beat,
+      });
       setSceneAssets(assets);
       return assets;
     } catch (error) {
@@ -833,7 +835,11 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
     if (!projectId) return;
     let cancelled = false;
     setSourcePickerBusy(true);
-    void getSceneAssetsForBeat(projectId, beatTarget.episode, beatTarget.beat)
+    void getCanvasSceneAssetsForBeat({
+      projectId,
+      episode: beatTarget.episode,
+      beat: beatTarget.beat,
+    })
       .then((assets) => {
         if (!cancelled) setSceneAssets(assets);
       })
