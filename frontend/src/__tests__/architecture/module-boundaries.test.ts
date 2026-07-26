@@ -7758,4 +7758,24 @@ describe("frontend architecture boundaries", () => {
       "void clearSystemClipboard().catch(() => undefined)",
     );
   });
+
+  it("keeps Canvas media transfer events in one shared adapter", () => {
+    const canvasSource = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const externalFilePublishCount = (
+      canvasSource.match(
+        /canvasEventBus\.publish\('upload-node\/external-file'/g,
+      ) ?? []
+    ).length;
+
+    expect(externalFilePublishCount).toBe(1);
+    expect(canvasSource).toContain("const mediaTransferEventPort = useMemo");
+    expect(canvasSource).toContain("eventPort: mediaTransferEventPort");
+    expect(canvasSource).toContain(
+      "attachExternalFile: mediaTransferEventPort.attachExternalFile",
+    );
+    expect(canvasSource).not.toContain("const attachDroppedExternalFile");
+  });
 });

@@ -618,7 +618,7 @@ export function Canvas({
     setSelectedNodeId: setSelectedNode,
   });
 
-  const mediaPasteEventPort = useMemo(
+  const mediaTransferEventPort = useMemo(
     () => ({
       pasteImageIntoNode: (nodeId: string, file: File) => {
         canvasEventBus.publish('upload-node/paste-image', { nodeId, file });
@@ -649,7 +649,7 @@ export function Canvas({
     screenToCanvasPosition,
     createUploadNode: createPastedUploadNode,
     selectNode: setSelectedNode,
-    eventPort: mediaPasteEventPort,
+    eventPort: mediaTransferEventPort,
   });
 
   const fitAutoLayoutViewport = useCallback(
@@ -702,12 +702,6 @@ export function Canvas({
       ),
     [addNode],
   );
-  const attachDroppedExternalFile = useCallback(
-    (nodeId: string, file: File) => {
-      canvasEventBus.publish('upload-node/external-file', { nodeId, file });
-    },
-    [],
-  );
   const {
     isCanvasDropActive,
     handleCanvasDragEnter,
@@ -720,7 +714,7 @@ export function Canvas({
     spawnAsset: spawnDroppedAsset,
     createUploadNode: createDroppedUploadNode,
     selectNode: setSelectedNode,
-    attachExternalFile: attachDroppedExternalFile,
+    attachExternalFile: mediaTransferEventPort.attachExternalFile,
   });
 
   const {
