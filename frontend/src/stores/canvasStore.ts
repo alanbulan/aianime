@@ -15,12 +15,7 @@ import {
   pushSnapshot,
 } from '@/features/canvas/domain/canvasHistory';
 import { findAvailableNodePosition } from '@/features/canvas/domain/canvasGeometry';
-import {
-  isDeleteToEmpty,
-  trackEdit,
-  type CanvasMutationSource,
-} from '@/features/canvas/domain/canvasMutation';
-import { deleteCanvasNodes } from '@/features/canvas/domain/groupSelectionDelete';
+import { trackEdit } from '@/features/canvas/domain/canvasMutation';
 import { planCanvasAutoGroupSpawn } from '@/features/canvas/domain/canvasAutoGrouping';
 import {
   configureCanvasStoryboardGroup,
@@ -72,6 +67,10 @@ import {
   createZustandCanvasDerivedNodeCreationSlice,
   type CanvasDerivedNodeCreationSlice,
 } from '@/features/canvas/infrastructure/zustandCanvasDerivedNodeCreationSlice';
+import {
+  createZustandCanvasNodeDeletionSlice,
+  type CanvasNodeDeletionSlice,
+} from '@/features/canvas/infrastructure/zustandCanvasNodeDeletionSlice';
 
 export type {
   ActiveToolDialog,
@@ -90,13 +89,12 @@ interface CanvasState
     CanvasGraphMutationSlice,
     CanvasDocumentLifecycleSlice,
     CanvasNodeMutationSlice,
-    CanvasDerivedNodeCreationSlice {
+    CanvasDerivedNodeCreationSlice,
+    CanvasNodeDeletionSlice {
   selectedNodeId: string | null;
   activeToolDialog: ActiveToolDialog | null;
 
   findNodePosition: (sourceNodeId: string, newNodeWidth: number, newNodeHeight: number) => { x: number; y: number };
-  deleteNode: (nodeId: string) => void;
-  deleteNodes: (nodeIds: string[]) => void;
   groupNodes: (
     nodeIds: string[],
     opts?: CanvasGroupCreationOptions
@@ -184,6 +182,10 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     getState: get,
     setState: (patch) => set(patch),
   }),
+  ...createZustandCanvasNodeDeletionSlice({
+    getState: get,
+    setState: (patch) => set(patch),
+  }),
 
   findNodePosition: (sourceNodeId, newNodeWidth, newNodeHeight) => {
     const state = get();
@@ -194,44 +196,6 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       newNodeHeight,
       viewport: state.currentViewport,
       viewportSize: state.canvasViewportSize,
-    });
-  },
-
-  deleteNode: (nodeId) => {
-    get().deleteNodes([nodeId]);
-  },
-
-  deleteNodes: (nodeIds) => {
-    const state = get();
-    const result = deleteCanvasNodes(state.nodes, state.edges, nodeIds);
-    if (!result) {
-      return;
-    }
-
-    const editSource: CanvasMutationSource = isDeleteToEmpty(
-      state.nodes.length,
-      result.nodes.length,
-    )
-      ? "delete_to_empty"
-      : "user_edit";
-
-    set({
-      nodes: result.nodes,
-      edges: result.edges,
-      selectedNodeId:
-        state.selectedNodeId && result.deletedNodeIds.has(state.selectedNodeId)
-          ? null
-          : state.selectedNodeId,
-      activeToolDialog:
-        state.activeToolDialog && result.deletedNodeIds.has(state.activeToolDialog.nodeId)
-          ? null
-          : state.activeToolDialog,
-      history: {
-        past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-        future: [],
-      },
-      dragHistorySnapshot: null,
-      ...trackEdit(state, editSource),
     });
   },
 

@@ -3375,6 +3375,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
     );
+    const nodeDeletionSlice = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasNodeDeletionSlice.ts",
+      ),
+      "utf8",
+    );
     const forbiddenImports = [
       deletionPath,
       storyboardPath,
@@ -3423,7 +3430,10 @@ describe("frontend architecture boundaries", () => {
       "export function restoreStoryboardEdges(",
     );
     expect(removalModel).toContain(removalDeclaration);
-    expect(canvasStore).toContain(
+    expect(nodeDeletionSlice).toContain(
+      "../domain/groupSelectionDelete",
+    );
+    expect(canvasStore).not.toContain(
       "@/features/canvas/domain/groupSelectionDelete",
     );
     expect(canvasStore).toContain(
@@ -8363,6 +8373,49 @@ describe("frontend architecture boundaries", () => {
     );
     expect(canvasStore).toContain("nodeFactory: canvasNodeFactory");
     expect(sliceSource).not.toContain("nodeFactoryComposition");
+    expect(sliceSource).not.toContain("@/features/canvas/composition");
+    expect(sliceSource).not.toContain("@/stores/canvasStore");
+  });
+
+  it("keeps Canvas node deletion in one Zustand slice", () => {
+    const slicePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/zustandCanvasNodeDeletionSlice.ts",
+    );
+    const sliceSource = readFileSync(slicePath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const canvasStateHeader = canvasStore.match(
+      /interface CanvasState[\s\S]*?\{/,
+    )?.[0];
+    const implementations = [
+      ["deleteNode", "(nodeId) {"],
+      ["deleteNodes", "(nodeIds) {"],
+    ].map(([name, parameters]) => `${name}${parameters}`);
+
+    for (const implementation of implementations) {
+      const owners = sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(implementation))
+        .map(relativeSource)
+        .sort();
+      expect(owners).toEqual([
+        "features/canvas/infrastructure/zustandCanvasNodeDeletionSlice.ts",
+      ]);
+    }
+
+    expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
+      "../domain/canvasHistory",
+      "../domain/canvasMutation",
+      "../domain/canvasNodes",
+      "../domain/groupSelectionDelete",
+    ]));
+    expect(canvasStateHeader).toContain("CanvasNodeDeletionSlice");
+    expect(canvasStore).toContain(
+      "...createZustandCanvasNodeDeletionSlice({",
+    );
+    expect(canvasStore).not.toContain("deleteCanvasNodes(");
     expect(sliceSource).not.toContain("@/features/canvas/composition");
     expect(sliceSource).not.toContain("@/stores/canvasStore");
   });
