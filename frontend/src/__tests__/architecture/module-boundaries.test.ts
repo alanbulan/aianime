@@ -7528,6 +7528,7 @@ describe("frontend architecture boundaries", () => {
 
     for (const legacyPath of [
       "api/assets.ts",
+      "api/backgroundAnchor.ts",
       "lib/queries/character-image-selection.ts",
       "lib/queries/characters.ts",
       "lib/character-main-copy.ts",
