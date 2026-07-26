@@ -1,7 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { useEffect, useMemo, useState } from "react";
-import { listCharacters, type AiAnimeCharacter } from "@/api/projects";
-import { createIdentityAsset } from "@/modules/asset_world/public";
+import {
+  createIdentityAsset,
+  listCharacters,
+  type Character,
+} from "@/modules/asset_world/public";
 
 interface CreateIdentityDialogProps {
   project: string;
@@ -28,7 +31,7 @@ export function CreateIdentityDialog({
   onClose,
   onSuccess,
 }: CreateIdentityDialogProps) {
-  const [characters, setCharacters] = useState<AiAnimeCharacter[]>([]);
+  const [characters, setCharacters] = useState<Character[]>([]);
   const [loadingCharacters, setLoadingCharacters] = useState(true);
   const [character, setCharacter] = useState(defaultCharacter ?? "");
   const [identityName, setIdentityName] = useState("");

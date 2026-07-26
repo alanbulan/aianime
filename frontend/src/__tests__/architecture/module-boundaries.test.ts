@@ -7640,6 +7640,78 @@ describe("frontend architecture boundaries", () => {
     expect(publicSource).toContain("createIdentityAsset,");
   });
 
+  it("keeps character catalog reads behind the Asset & World application port", () => {
+    const legacyApiPath = resolve(SRC_ROOT, "api/projects.ts");
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "modules/asset_world/application/character-catalog.ts",
+    );
+    const gatewayPath = resolve(
+      SRC_ROOT,
+      "modules/asset_world/infrastructure/http-character-gateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "modules/asset_world/composition.ts",
+    );
+    const publicPath = resolve(SRC_ROOT, "modules/asset_world/public.ts");
+    const legacyApiSource = readFileSync(legacyApiPath, "utf8");
+    const gatewaySource = readFileSync(gatewayPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const publicSource = readFileSync(publicPath, "utf8");
+    const consumerPaths = [
+      "features/freezone/commit/CommitDialog.tsx",
+      "pipeline-import/CreateIdentityDialog.tsx",
+      "pipeline-import/ImportPanel.tsx",
+    ];
+    const characterListEndpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          ".get(p`api/v1/projects/${project}/characters`,",
+        ),
+      )
+      .map(relativeSource)
+      .sort();
+    const identityListEndpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          ".get(p`api/v1/projects/${project}/characters/${name}/identities`,",
+        ),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set([
+        "@/modules/asset_world/application/ports",
+        "@/modules/asset_world/domain/character",
+      ]),
+    );
+    expect(legacyApiSource).not.toContain("export interface AiAnimeCharacter");
+    expect(legacyApiSource).not.toContain("export interface AiAnimeIdentity");
+    expect(legacyApiSource).not.toContain("function listCharacters(");
+    expect(legacyApiSource).not.toContain("function listCharacterIdentities(");
+    expect(characterListEndpointOwners).toEqual([
+      "modules/asset_world/infrastructure/http-character-gateway.ts",
+    ]);
+    expect(identityListEndpointOwners).toEqual([
+      "modules/asset_world/infrastructure/http-character-gateway.ts",
+    ]);
+    for (const consumerPath of consumerPaths) {
+      expect(importSpecifiers(resolve(SRC_ROOT, consumerPath))).toContain(
+        "@/modules/asset_world/public",
+      );
+    }
+    expect(gatewaySource).toContain("async listCharacters(project, signal)");
+    expect(gatewaySource).toContain("async listIdentities(project, name, signal)");
+    expect(compositionSource).toContain("listCharactersUseCase(");
+    expect(compositionSource).toContain("listCharacterIdentitiesUseCase(");
+    expect(publicSource).toContain("listCharacters,");
+    expect(publicSource).toContain("listCharacterIdentities,");
+  });
+
   it("keeps the Styles route as an adapter", () => {
     const route = readFileSync(
       resolve(SRC_ROOT, "routes/_app/projects.$project/styles.tsx"),

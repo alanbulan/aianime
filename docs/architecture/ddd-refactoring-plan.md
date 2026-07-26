@@ -1580,6 +1580,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百四十八批已确认原 91 行 `api/backgroundAnchor.ts` 在全仓库零导入，其中 Beat 背景源选择和截图上传能力均已由既有唯一 `httpBeatViewerGateway` 承担并经 Asset World 查询 hooks 使用；直接删除该不可达旧文件并将其加入 legacy 不存在性门禁，不新增替代出口、兼容转发或第二套实现；所有可达前端行为、请求路径、方法和 payload 均未修改；架构门禁 199 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
 
+第二百四十九批已将 `projects.ts` 中人物与 Identity 目录的响应解包迁入唯一 Asset World `character-catalog` application 用例，直接复用既有 `CharacterGateway` 和 `httpCharacterGateway`，未新增 HTTP adapter；Asset World composition/public 发布命令式读取入口，`CommitDialog`、`CreateIdentityDialog` 和 `ImportPanel` 三个调用方改用公开领域 `Character/Identity` 契约，领域模型补齐目录响应实际存在的展示名、内联 Identity 与历史别名字段；`projects.ts` 删除重复类型和两个 HTTP 实现共 37 行，人物及 Identity 列表端点各只剩一个生产所有者，剧集、Beat 和导入 URL 规则仍留待独立批次；对话框缺失当前 Identity 时的合成选项显式补齐 `identity_name`，保持原 ID 展示回退且不放宽核心领域必填约束；相关 3 个测试文件 15 项、新增后的架构门禁 200 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

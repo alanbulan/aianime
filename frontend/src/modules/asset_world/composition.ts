@@ -25,6 +25,10 @@ import type {
 } from "@/modules/asset_world/application/scene-gateway";
 import { useAssetReferenceIndex } from "@/modules/asset_world/application/use-asset-reference-index";
 import { createCharacterQueryHooks } from "@/modules/asset_world/application/character-query-hooks";
+import {
+  listCharacterIdentities as listCharacterIdentitiesUseCase,
+  listCharacters as listCharactersUseCase,
+} from "@/modules/asset_world/application/character-catalog";
 import { createImageSourceQueryHooks } from "@/modules/asset_world/application/image-source-query-hooks";
 import {
   createIdentityAsset as createIdentityAssetUseCase,
@@ -229,6 +233,21 @@ export function createIdentityAsset(
   return createIdentityAssetUseCase(
     { projectId, payload },
     httpIdentityAssetGateway,
+  );
+}
+
+export function listCharacters(project: string) {
+  return listCharactersUseCase(project, httpCharacterGateway);
+}
+
+export function listCharacterIdentities(
+  project: string,
+  character: string,
+) {
+  return listCharacterIdentitiesUseCase(
+    project,
+    character,
+    httpCharacterGateway,
   );
 }
 

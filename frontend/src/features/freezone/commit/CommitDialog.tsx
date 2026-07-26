@@ -9,16 +9,16 @@ import {
   type DropMediaType,
 } from "@/stores/assetDropStore";
 import {
-  listCharacters,
-  listCharacterIdentities,
   listEpisodes,
   listBeats,
-  type AiAnimeCharacter,
-  type AiAnimeIdentity,
   type AiAnimeEpisodeSummary,
 } from "@/api/projects";
 import {
+  listCharacterIdentities,
+  listCharacters,
   listScenes,
+  type Character,
+  type Identity,
   type SceneAsset,
 } from "@/modules/asset_world/public";
 import { UiButton, UiInput, UiPanel, UiSelect } from "@/components/ui";
@@ -291,8 +291,8 @@ export function CommitDialog({
   const [scenesLoading, setScenesLoading] = useState(false);
   const [beatOptions, setBeatOptions] = useState<number[]>([]);
   const [beatsLoading, setBeatsLoading] = useState(false);
-  const [characters, setCharacters] = useState<AiAnimeCharacter[]>([]);
-  const [identityOptions, setIdentityOptions] = useState<AiAnimeIdentity[]>([]);
+  const [characters, setCharacters] = useState<Character[]>([]);
+  const [identityOptions, setIdentityOptions] = useState<Identity[]>([]);
   const [identitiesLoading, setIdentitiesLoading] = useState(false);
   const [impactBeats, setImpactBeats] = useState<ImpactBeat[]>([]);
   const [impactLoading, setImpactLoading] = useState(false);
@@ -973,12 +973,12 @@ export function CommitDialog({
   );
 }
 
-function identityOptionValue(identity: AiAnimeIdentity): string {
+function identityOptionValue(identity: Identity): string {
   const value = identity.identity_id || identity.id || identity.name || "";
   return String(value).trim();
 }
 
-function identityOptionLabel(identity: AiAnimeIdentity): string {
+function identityOptionLabel(identity: Identity): string {
   const value = identityOptionValue(identity);
   const displayName = String(identity.identity_name || identity.name || "").trim();
   if (displayName && displayName !== value) {
@@ -987,7 +987,7 @@ function identityOptionLabel(identity: AiAnimeIdentity): string {
   return value;
 }
 
-function firstIdentityOptionValue(identities: AiAnimeIdentity[]): string | null {
+function firstIdentityOptionValue(identities: Identity[]): string | null {
   for (const identity of identities) {
     const value = identityOptionValue(identity);
     if (value) return value;
@@ -1077,15 +1077,22 @@ function looksLikeAssetFilename(value: string): boolean {
 }
 
 function identityOptionsForSelect(
-  identities: AiAnimeIdentity[],
+  identities: Identity[],
   currentIdentityId: string | null,
-): AiAnimeIdentity[] {
+): Identity[] {
   const options = identities.filter((identity) => identityOptionValue(identity));
   if (
     currentIdentityId &&
     !options.some((identity) => identityOptionValue(identity) === currentIdentityId)
   ) {
-    return [{ id: currentIdentityId, identity_id: currentIdentityId }, ...options];
+    return [
+      {
+        id: currentIdentityId,
+        identity_id: currentIdentityId,
+        identity_name: currentIdentityId,
+      },
+      ...options,
+    ];
   }
   return options;
 }

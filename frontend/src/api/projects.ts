@@ -1,43 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { apiCall } from "@/shared/api/client";
 
-// ---------- Characters ---------- //
-
-export interface AiAnimeIdentity {
-  id: string;
-  identity_id?: string;
-  identity_name?: string;
-  name?: string;
-  url?: string;
-  image_url?: string;
-  portrait_image_url?: string;
-  costume_image_url?: string;
-  [key: string]: unknown;
-}
-
-export interface AiAnimeCharacter {
-  name: string;
-  display_name?: string;
-  portrait_url?: string;
-  identities?: AiAnimeIdentity[];
-  [key: string]: unknown;
-}
-
-export async function listCharacters(projectId: string): Promise<AiAnimeCharacter[]> {
-  return await apiCall<AiAnimeCharacter[]>(
-    `projects/${encodeURIComponent(projectId)}/characters`,
-  );
-}
-
-export async function listCharacterIdentities(
-  projectId: string,
-  character: string,
-): Promise<AiAnimeIdentity[]> {
-  return await apiCall<AiAnimeIdentity[]>(
-    `projects/${encodeURIComponent(projectId)}/characters/${encodeURIComponent(character)}/identities`,
-  );
-}
-
 // ---------- Episodes ---------- //
 
 export interface AiAnimeEpisodeSummary {

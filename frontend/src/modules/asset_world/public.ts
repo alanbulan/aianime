@@ -2,6 +2,8 @@ export {
   CharactersPageContent,
   clearSceneDirectorWorld,
   createIdentityAsset,
+  listCharacterIdentities,
+  listCharacters,
   PropsPanelContent,
   ScenesPanelContent,
   StylesPageContent,

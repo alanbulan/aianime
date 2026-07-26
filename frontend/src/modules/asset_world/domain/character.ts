@@ -59,6 +59,7 @@ export interface CharacterAssetRestoreResult {
 
 export interface Character {
   name: string;
+  display_name?: string;
   aliases?: string[];
   description?: string;
   role?: string;
@@ -74,13 +75,17 @@ export interface Character {
   voice_samples_by_age_group?: Record<string, CharacterVoiceSample>;
   portrait_path?: string | null;
   portrait_url?: string | null;
+  identities?: Identity[];
   history_url?: string;
   restore_url?: string;
 }
 
 export interface Identity {
+  id?: string;
   identity_id: string;
   identity_name: string;
+  name?: string;
+  url?: string;
   appearance_details?: string;
   face_prompt?: string;
   age_group?: string;

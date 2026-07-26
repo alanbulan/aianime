@@ -1,15 +1,17 @@
 // Copyright (c) 2026 AI anime
 import { useEffect, useMemo, useState } from "react";
 import {
-  listCharacters,
   listEpisodes,
   listBeats,
   deriveSketchUrl,
   deriveDirectorRenderUrl,
-  type AiAnimeCharacter,
   type AiAnimeEpisodeSummary,
   type AiAnimeBeat,
 } from "@/api/projects";
+import {
+  listCharacters,
+  type Character,
+} from "@/modules/asset_world/public";
 import {
   UiButton,
   UiCheckbox,
@@ -64,7 +66,7 @@ const DEFAULT_KIND_TOGGLES: KindToggles = {
 };
 
 export function ImportPanel({ project, onClose, onImport }: ImportPanelProps) {
-  const [characters, setCharacters] = useState<AiAnimeCharacter[]>([]);
+  const [characters, setCharacters] = useState<Character[]>([]);
   const [episodes, setEpisodes] = useState<AiAnimeEpisodeSummary[]>([]);
   const [selectedCharacters, setSelectedCharacters] = useState<Set<string>>(new Set());
   const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
@@ -300,7 +302,7 @@ function CharactersList({
   selected,
   onToggle,
 }: {
-  characters: AiAnimeCharacter[];
+  characters: Character[];
   selected: Set<string>;
   onToggle: (name: string) => void;
 }) {
@@ -426,7 +428,7 @@ function BeatRange({
 
 interface CollectArgs {
   project: string;
-  characters: AiAnimeCharacter[];
+  characters: Character[];
   selectedCharacters: Set<string>;
   beats: AiAnimeBeat[];
   selectedBeats: Set<number>;
