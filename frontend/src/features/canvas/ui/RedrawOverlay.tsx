@@ -27,14 +27,22 @@ import {
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
+import {
+  CANVAS_REDRAW_ASPECT_RATIOS,
+  CANVAS_REDRAW_IMAGE_SIZES,
+  CANVAS_REDRAW_NUM_IMAGES,
+  DEFAULT_CANVAS_REDRAW_ASPECT_RATIO,
+  DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
+  DEFAULT_CANVAS_REDRAW_NUM_IMAGES,
+  type CanvasRedrawAspectRatio,
+  type CanvasRedrawImageSize,
+  type CanvasRedrawNumImages,
+} from '@/features/canvas/domain/redraw';
 import { useCanvasStore } from '@/stores/canvasStore';
 import {
-  fetchFreezoneJobResult,
-  submitFreezoneRedraw,
-  type FreezoneRedrawAspectRatio,
-} from '@/api/ops';
-import { uploadCanvasAsset } from '@/features/canvas/composition';
-import { awaitTaskCompletion } from '@/api/tasks';
+  generateCanvasRedraw,
+  uploadCanvasAsset,
+} from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { readUrl } from '@/lib/url-params';
 import {
@@ -59,17 +67,6 @@ interface RedrawOverlayProps {
 
 type Tool = 'brush' | 'rect' | 'eraser';
 
-const ASPECT_RATIO_OPTIONS: readonly FreezoneRedrawAspectRatio[] = [
-  'original',
-  '1:1',
-  '4:3',
-  '3:4',
-  '16:9',
-  '9:16',
-] as const;
-
-const IMAGE_SIZE_OPTIONS = ['1K', '2K', '4K'] as const;
-const NUM_IMAGE_OPTIONS = [1, 2, 3, 4] as const;
 // 数量 > 1 时多个结果节点纵向错开摆放的间距。
 const RESULT_STACK_GAP = 24;
 const BRUSH_MIN = 4;
@@ -128,9 +125,15 @@ export const RedrawOverlay = memo(({ node, imageSource, onClose }: RedrawOverlay
   const [prompt, setPrompt] = useState('');
   const [modelId, setModelId] = useState<string>(DEFAULT_SHARED_MODEL_ID);
   const { models: availableModels } = useFreezoneImageModels();
-  const [imageSize, setImageSize] = useState<string>('2K');
-  const [numImages, setNumImages] = useState<number>(1);
-  const [aspectRatio, setAspectRatio] = useState<FreezoneRedrawAspectRatio>('original');
+  const [imageSize, setImageSize] = useState<CanvasRedrawImageSize>(
+    DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
+  );
+  const [numImages, setNumImages] = useState<CanvasRedrawNumImages>(
+    DEFAULT_CANVAS_REDRAW_NUM_IMAGES,
+  );
+  const [aspectRatio, setAspectRatio] = useState<CanvasRedrawAspectRatio>(
+    DEFAULT_CANVAS_REDRAW_ASPECT_RATIO,
+  );
   const selectedModel =
     availableModels.find((m) => m.id === modelId)
     ?? availableModels[0]
@@ -436,23 +439,20 @@ export const RedrawOverlay = memo(({ node, imageSource, onClose }: RedrawOverlay
       apiModel: string,
     ) => {
       try {
-        const ref = await submitFreezoneRedraw(project, {
-          sourceUrl,
-          maskUrl,
-          prompt,
-          aspectRatio,
-          numImages: 1,
-          imageSize,
-          model: apiModel,
-        });
-        updateNodeData(nodeId, generationTaskDescriptor(ref));
-        const completed = await awaitTaskCompletion(ref.task_key, project);
-        const directUrl = completed.result?.['output_url'] as string | undefined;
-        let url = directUrl;
-        if (!url) {
-          const fallback = await fetchFreezoneJobResult(project, ref.task_type, ref.job_id);
-          url = fallback.url;
-        }
+        const { url } = await generateCanvasRedraw(
+          {
+            projectId: project,
+            sourceUrl,
+            maskUrl,
+            prompt,
+            aspectRatio,
+            imageSize,
+            model: apiModel,
+          },
+          (task) => {
+            updateNodeData(nodeId, generationTaskDescriptor(task));
+          },
+        );
         updateNodeData(nodeId, {
           imageUrl: url,
           previewImageUrl: url,
@@ -699,10 +699,12 @@ export const RedrawOverlay = memo(({ node, imageSource, onClose }: RedrawOverlay
             <Field label="image_size">
               <RedrawSelect
                 value={imageSize}
-                onChange={(event) => setImageSize(event.target.value)}
+                onChange={(event) =>
+                  setImageSize(event.target.value as CanvasRedrawImageSize)
+                }
                 disabled={submitting}
               >
-                {IMAGE_SIZE_OPTIONS.map((s) => (
+                {CANVAS_REDRAW_IMAGE_SIZES.map((s) => (
                   <option key={s} value={s}>
                     {s}
                   </option>
@@ -712,10 +714,12 @@ export const RedrawOverlay = memo(({ node, imageSource, onClose }: RedrawOverlay
             <Field label="数量">
               <RedrawSelect
                 value={numImages}
-                onChange={(event) => setNumImages(Number(event.target.value))}
+                onChange={(event) =>
+                  setNumImages(Number(event.target.value) as CanvasRedrawNumImages)
+                }
                 disabled={submitting}
               >
-                {NUM_IMAGE_OPTIONS.map((n) => (
+                {CANVAS_REDRAW_NUM_IMAGES.map((n) => (
                   <option key={n} value={n}>
                     {n}
                   </option>
@@ -726,11 +730,11 @@ export const RedrawOverlay = memo(({ node, imageSource, onClose }: RedrawOverlay
               <RedrawSelect
                 value={aspectRatio}
                 onChange={(event) =>
-                  setAspectRatio(event.target.value as FreezoneRedrawAspectRatio)
+                  setAspectRatio(event.target.value as CanvasRedrawAspectRatio)
                 }
                 disabled={submitting}
               >
-                {ASPECT_RATIO_OPTIONS.map((a) => (
+                {CANVAS_REDRAW_ASPECT_RATIOS.map((a) => (
                   <option key={a} value={a}>
                     {a}
                   </option>

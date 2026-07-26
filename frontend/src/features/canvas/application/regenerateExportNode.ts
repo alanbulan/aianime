@@ -1,6 +1,13 @@
 // Copyright (c) 2026 AI anime
 import { resolveErrorContent } from './errorDialog';
 import { extractRequestId } from './generationErrorReport';
+import {
+  resolveCanvasRedrawAspectRatio,
+  resolveCanvasRedrawImageSize,
+  type CanvasRedrawAspectRatio,
+  type CanvasRedrawImageSize,
+} from '../domain/redraw';
+import { completeCanvasMediaGenerationTask } from './completeCanvasMediaGenerationTask';
 import type {
   AiGateway,
   CanvasRedrawTaskGateway,
@@ -15,8 +22,8 @@ import { generationTaskDescriptor } from './resumeGeneration';
 interface FreezoneRedrawRequest {
   sourceUrl: string;
   maskUrl: string;
-  aspectRatio: string;
-  imageSize: string;
+  aspectRatio: CanvasRedrawAspectRatio;
+  imageSize: CanvasRedrawImageSize;
 }
 
 export interface RegenerateExportImageNodeParams {
@@ -40,8 +47,8 @@ function readFreezoneRedrawRequest(
   return {
     sourceUrl: req.sourceUrl,
     maskUrl: req.maskUrl,
-    aspectRatio: typeof req.aspectRatio === 'string' ? req.aspectRatio : 'original',
-    imageSize: typeof req.imageSize === 'string' ? req.imageSize : '2K',
+    aspectRatio: resolveCanvasRedrawAspectRatio(req.aspectRatio),
+    imageSize: resolveCanvasRedrawImageSize(req.imageSize),
   };
 }
 
@@ -70,20 +77,15 @@ async function regenerateFreezoneRedrawNode(
       aspectRatio: request.aspectRatio,
       imageSize: request.imageSize,
     });
-    updateNodeData(nodeId, generationTaskDescriptor(ref));
-    const completed = await redrawGateway.awaitCompletion(
-      ref.task_key,
-      projectId,
+    const url = await completeCanvasMediaGenerationTask(
+      { projectId, task: ref },
+      {
+        taskGateway: redrawGateway,
+        onTaskSubmitted: (task) => {
+          updateNodeData(nodeId, generationTaskDescriptor(task));
+        },
+      },
     );
-    const directUrl = completed.result?.['output_url'] as string | undefined;
-    let url = directUrl;
-    if (!url) {
-      url = await redrawGateway.fetchResultUrl(
-        projectId,
-        ref.task_type,
-        ref.job_id,
-      );
-    }
     updateNodeData(nodeId, {
       imageUrl: url,
       previewImageUrl: url,

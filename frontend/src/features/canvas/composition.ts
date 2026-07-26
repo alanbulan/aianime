@@ -41,6 +41,10 @@ import {
   type GenerateCanvasRelightParams,
 } from './application/generateCanvasRelight';
 import {
+  generateCanvasRedraw as generateCanvasRedrawUseCase,
+  type GenerateCanvasRedrawParams,
+} from './application/generateCanvasRedraw';
+import {
   generateCanvasUpscale as generateCanvasUpscaleUseCase,
   type GenerateCanvasUpscaleParams,
 } from './application/generateCanvasUpscale';
@@ -410,6 +414,16 @@ export function generateCanvasRelight(
   return generateCanvasRelightUseCase(params, {
     submissionGateway: freezoneRelightGenerationGateway,
     taskGateway: freezoneGenerationTaskGateway,
+    onTaskSubmitted,
+  });
+}
+
+export function generateCanvasRedraw(
+  params: GenerateCanvasRedrawParams,
+  onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
+) {
+  return generateCanvasRedrawUseCase(params, {
+    redrawGateway: freezoneRedrawTaskGateway,
     onTaskSubmitted,
   });
 }

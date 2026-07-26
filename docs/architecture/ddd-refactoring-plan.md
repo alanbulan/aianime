@@ -1526,6 +1526,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百二十一批已将图片扩图的 6 种目标比例、`1K/2K/4K` 尺寸、`1-4` 结果数量、默认值及“保持原图尺寸、仅扩展必要维度”的画框几何迁入唯一领域模块 `outpaint`，源图查询参数清理、单图命令组装、任务提交及完成迁入唯一 application 用例 `generateCanvasOutpaint`，并复用 `completeCanvasMediaGenerationTask`；后端单次仅出 1 张的契约保持在用例中，Overlay 仍按用户数量创建 N 个节点并发起 N 个独立用例，没有改变节点与结果的一对一回填；`freezoneOutpaintGenerationGateway` infrastructure 适配器唯一调用 Freezone outpaint 端点，composition 注入既有任务 gateway；旧 `api/ops` 删除重复比例类型并复用领域比例/尺寸/数量默认值，由 2455 行调整为 2456 行，`OutpaintEditorOverlay` 只保留模型/计费、节点/连线、批量关联、状态写回与错误展示，不再直接依赖 `api/ops` 或任务 API，由 555 行降至 543 行；领域模块 56 行、用例 65 行、适配器 16 行，composition 由 473 行调整为 489 行；领域、用例与适配器共 3 个测试文件 4 项、新增后的架构门禁 176 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百二十二批已将局部重绘/擦除共用的 6 种比例、`1K/2K/4K` 尺寸、`1-4` 结果数量、默认值及失败重试持久化值归一化迁入唯一领域模块 `redraw`；`CanvasRedrawCommand` 升级为显式领域比例/尺寸并补齐 prompt/model，唯一 `freezoneRedrawTaskGateway` 直接投影完整命令，不新增第二个 redraw adapter；单图任务提交及完成迁入唯一 application 用例 `generateCanvasRedraw`，`RedrawOverlay` 改经 composition 调用，失败重试 `regenerateExportNode` 同步改用 `completeCanvasMediaGenerationTask`，删除其重复的等待与结果回退实现；旧 `api/ops` 删除重复比例类型并复用领域默认值，由 2456 行调整为 2457 行，`EraseOverlay` 作为同一 API 契约的存量调用方同步切换领域类型，本批未改其生成流程；`RedrawOverlay`、`EraseOverlay`、失败重试和 ports 因显式契约分别由 826、924、178、377 行调整为 830、930、180、383 行，既有 adapter 由 23 行降至 22 行，领域模块 41 行、用例 52 行，composition 由 489 行调整为 503 行；领域、用例、适配器与失败重试共 4 个测试文件 8 项、新增后的架构门禁 177 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

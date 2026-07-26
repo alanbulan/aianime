@@ -14,6 +14,14 @@ import {
   type CanvasOutpaintNumImages,
 } from "@/features/canvas/domain/outpaint";
 import {
+  DEFAULT_CANVAS_REDRAW_ASPECT_RATIO,
+  DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
+  DEFAULT_CANVAS_REDRAW_NUM_IMAGES,
+  type CanvasRedrawAspectRatio,
+  type CanvasRedrawImageSize,
+  type CanvasRedrawNumImages,
+} from "@/features/canvas/domain/redraw";
+import {
   DEFAULT_CANVAS_UPSCALE_SCALE_FACTOR,
   type CanvasUpscaleScaleFactor,
 } from "@/features/canvas/domain/upscale";
@@ -1400,22 +1408,14 @@ export async function submitFreezoneAnalyze(
 
 // /freezone/redraw -------------------------------------------------------- //
 
-export type FreezoneRedrawAspectRatio =
-  | "original"
-  | "1:1"
-  | "4:3"
-  | "3:4"
-  | "16:9"
-  | "9:16";
-
 export interface FreezoneRedrawPayload {
   sourceUrl: string;
   /** Optional mask static URL. Transparent pixels = editable region (局部重绘). */
   maskUrl?: string | null;
   prompt?: string;
-  aspectRatio?: FreezoneRedrawAspectRatio;
-  numImages?: number;
-  imageSize?: string;
+  aspectRatio?: CanvasRedrawAspectRatio;
+  numImages?: CanvasRedrawNumImages;
+  imageSize?: CanvasRedrawImageSize;
   model?: string;
 }
 
@@ -1431,9 +1431,10 @@ export async function submitFreezoneRedraw(
         source_url: payload.sourceUrl,
         mask_url: payload.maskUrl ?? null,
         prompt: payload.prompt ?? "",
-        aspect_ratio: payload.aspectRatio ?? "original",
-        num_images: payload.numImages ?? 1,
-        image_size: payload.imageSize ?? "2K",
+        aspect_ratio:
+          payload.aspectRatio ?? DEFAULT_CANVAS_REDRAW_ASPECT_RATIO,
+        num_images: payload.numImages ?? DEFAULT_CANVAS_REDRAW_NUM_IMAGES,
+        image_size: payload.imageSize ?? DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
         ...(payload.model ? { model: payload.model } : {}),
       },
     },

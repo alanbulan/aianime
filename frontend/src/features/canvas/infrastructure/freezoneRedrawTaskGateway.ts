@@ -1,8 +1,5 @@
 // Copyright (c) 2026 AI anime
-import {
-  submitFreezoneRedraw,
-  type FreezoneRedrawAspectRatio,
-} from '@/api/ops';
+import { submitFreezoneRedraw } from '@/api/ops';
 
 import type { CanvasRedrawTaskGateway } from '../application/ports';
 import { freezoneGenerationTaskGateway } from './freezoneGenerationTaskGateway';
@@ -13,10 +10,12 @@ export const freezoneRedrawTaskGateway: CanvasRedrawTaskGateway = {
 
   async submit(projectId, command) {
     return await submitFreezoneRedraw(projectId, {
-      aspectRatio: command.aspectRatio as FreezoneRedrawAspectRatio,
+      aspectRatio: command.aspectRatio,
       imageSize: command.imageSize,
       maskUrl: command.maskUrl,
+      model: command.model,
       numImages: 1,
+      prompt: command.prompt,
       sourceUrl: command.sourceUrl,
     });
   },

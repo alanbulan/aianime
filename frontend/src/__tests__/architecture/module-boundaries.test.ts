@@ -9384,6 +9384,104 @@ describe("frontend architecture boundaries", () => {
     expect(opsSource).not.toContain("FreezoneOutpaintAspectRatio");
   });
 
+  it("keeps Canvas redraw rules and generation orchestration out of views", () => {
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/redraw.ts",
+    );
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/generateCanvasRedraw.ts",
+    );
+    const infrastructurePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneRedrawTaskGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const overlayPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/RedrawOverlay.tsx",
+    );
+    const retryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/regenerateExportNode.ts",
+    );
+    const portsPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/ports.ts",
+    );
+    const opsPath = resolve(SRC_ROOT, "api/ops.ts");
+    const domainSource = readFileSync(domainPath, "utf8");
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const infrastructureSource = readFileSync(infrastructurePath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const overlaySource = readFileSync(overlayPath, "utf8");
+    const retrySource = readFileSync(retryPath, "utf8");
+    const portsSource = readFileSync(portsPath, "utf8");
+    const opsSource = readFileSync(opsPath, "utf8");
+
+    expect(importSpecifiers(domainPath)).toEqual([]);
+    expect(domainSource).toContain(
+      "export const CANVAS_REDRAW_ASPECT_RATIOS",
+    );
+    expect(domainSource).toContain(
+      "export function resolveCanvasRedrawAspectRatio(",
+    );
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set([
+        "../domain/redraw",
+        "./completeCanvasMediaGenerationTask",
+        "./ports",
+      ]),
+    );
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).toContain(
+      "export async function generateCanvasRedraw(",
+    );
+    expect(applicationSource).toContain(
+      "completeCanvasMediaGenerationTask(",
+    );
+    expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
+      new Set([
+        "@/api/ops",
+        "../application/ports",
+        "./freezoneGenerationTaskGateway",
+      ]),
+    );
+    expect(infrastructureSource).toContain(
+      "freezoneRedrawTaskGateway: CanvasRedrawTaskGateway",
+    );
+    expect(infrastructureSource).toContain("prompt: command.prompt");
+    expect(infrastructureSource).toContain("model: command.model");
+    expect(compositionSource).toContain(
+      "generateCanvasRedrawUseCase(params, {",
+    );
+    expect(compositionSource).toContain(
+      "redrawGateway: freezoneRedrawTaskGateway",
+    );
+    expect(importSpecifiers(overlayPath)).toContain(
+      "@/features/canvas/domain/redraw",
+    );
+    expect(importSpecifiers(overlayPath)).not.toContain("@/api/ops");
+    expect(importSpecifiers(overlayPath)).not.toContain("@/api/tasks");
+    expect(overlaySource).toContain("await generateCanvasRedraw(");
+    expect(overlaySource).not.toContain("submitFreezoneRedraw");
+    expect(overlaySource).not.toContain("fetchFreezoneJobResult");
+    expect(overlaySource).not.toContain("awaitTaskCompletion");
+    expect(retrySource).toContain("completeCanvasMediaGenerationTask(");
+    expect(retrySource).not.toContain("redrawGateway.awaitCompletion(");
+    expect(retrySource).not.toContain("redrawGateway.fetchResultUrl(");
+    expect(portsSource).toContain("prompt?: string");
+    expect(portsSource).toContain("model?: string");
+    expect(opsSource).toContain("@/features/canvas/domain/redraw");
+    expect(opsSource).not.toContain("FreezoneRedrawAspectRatio");
+  });
+
   it("keeps Canvas asset extraction independent from media URL infrastructure", () => {
     const assetPath = resolve(
       SRC_ROOT,

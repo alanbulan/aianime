@@ -10,6 +10,10 @@ import type {
   StoryboardFrameItem,
 } from '../domain/canvasNodes';
 import type { CanvasNodeDefinition } from '../domain/nodeRegistry';
+import type {
+  CanvasRedrawAspectRatio,
+  CanvasRedrawImageSize,
+} from '../domain/redraw';
 
 export interface IdGenerator {
   next: () => string;
@@ -143,9 +147,11 @@ export interface CanvasGenerationTaskGateway extends CanvasTaskResultGateway {
 }
 
 export interface CanvasRedrawCommand {
-  aspectRatio: string;
-  imageSize: string;
-  maskUrl: string;
+  aspectRatio: CanvasRedrawAspectRatio;
+  imageSize: CanvasRedrawImageSize;
+  maskUrl: string | null;
+  model?: string;
+  prompt?: string;
   sourceUrl: string;
 }
 

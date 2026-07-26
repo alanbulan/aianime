@@ -28,11 +28,16 @@ import {
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
+import {
+  CANVAS_REDRAW_IMAGE_SIZES,
+  DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
+  type CanvasRedrawAspectRatio,
+  type CanvasRedrawImageSize,
+} from '@/features/canvas/domain/redraw';
 import { useCanvasStore } from '@/stores/canvasStore';
 import {
   fetchFreezoneJobResult,
   submitFreezoneRedraw,
-  type FreezoneRedrawAspectRatio,
 } from '@/api/ops';
 import { uploadCanvasAsset } from '@/features/canvas/composition';
 import { awaitTaskCompletion } from '@/api/tasks';
@@ -57,7 +62,7 @@ interface EraseOverlayProps {
 
 type Tool = 'brush' | 'rect' | 'eraser';
 
-const ASPECT_RATIO_OPTIONS: readonly FreezoneRedrawAspectRatio[] = [
+const ASPECT_RATIO_OPTIONS: readonly CanvasRedrawAspectRatio[] = [
   '16:9',
   '9:16',
   '1:1',
@@ -65,7 +70,7 @@ const ASPECT_RATIO_OPTIONS: readonly FreezoneRedrawAspectRatio[] = [
   '3:4',
 ] as const;
 
-const ASPECT_RATIO_LABELS: Record<FreezoneRedrawAspectRatio, string> = {
+const ASPECT_RATIO_LABELS: Record<CanvasRedrawAspectRatio, string> = {
   original: '原图',
   '1:1': '1:1',
   '4:3': '4:3',
@@ -74,7 +79,6 @@ const ASPECT_RATIO_LABELS: Record<FreezoneRedrawAspectRatio, string> = {
   '9:16': '9:16',
 };
 
-const IMAGE_SIZE_OPTIONS = ['1K', '2K', '4K'] as const;
 const NUM_IMAGE_OPTIONS = [1, 2, 3, 4] as const;
 const BRUSH_MIN = 4;
 const BRUSH_MAX = 200;
@@ -126,9 +130,11 @@ export const EraseOverlay = memo(({ node, imageSource, onClose }: EraseOverlayPr
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [imageSize, setImageSize] = useState<string>('2K');
+  const [imageSize, setImageSize] = useState<CanvasRedrawImageSize>(
+    DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
+  );
   const [numImages, setNumImages] = useState<number>(1);
-  const [aspectRatio, setAspectRatio] = useState<FreezoneRedrawAspectRatio>('16:9');
+  const [aspectRatio, setAspectRatio] = useState<CanvasRedrawAspectRatio>('16:9');
   const { models: imageModels } = useFreezoneImageModels();
   const selectedModel = imageModels[0];
   const creditCost = useGenerationCreditCost('image_selection', selectedModel?.apiModel ?? null, {
@@ -457,7 +463,7 @@ export const EraseOverlay = memo(({ node, imageSource, onClose }: EraseOverlayPr
       nodeId: string,
       sourceUrl: string,
       maskUrl: string,
-      resultAspectRatio: string,
+      resultAspectRatio: CanvasRedrawAspectRatio,
     ) => {
       // 失败后「重新生成」按钮据此重跑同一次擦除（走重绘接口）。
       updateNodeData(nodeId, {
@@ -472,7 +478,7 @@ export const EraseOverlay = memo(({ node, imageSource, onClose }: EraseOverlayPr
         const ref = await submitFreezoneRedraw(project, {
           sourceUrl,
           maskUrl,
-          aspectRatio: resultAspectRatio as FreezoneRedrawAspectRatio,
+          aspectRatio: resultAspectRatio,
           numImages: 1,
           imageSize,
         });
@@ -719,17 +725,17 @@ export const EraseOverlay = memo(({ node, imageSource, onClose }: EraseOverlayPr
           className={`flex items-center gap-1 ${CANVAS_NODE_TOOLBAR_PILL_CLASS}`}
           onClick={(event) => event.stopPropagation()}
         >
-          <EraseDropdown<FreezoneRedrawAspectRatio>
+          <EraseDropdown<CanvasRedrawAspectRatio>
             label="比例"
             value={aspectRatio}
             options={ASPECT_RATIO_OPTIONS}
             renderLabel={(v) => ASPECT_RATIO_LABELS[v]}
             onChange={setAspectRatio}
           />
-          <EraseDropdown<string>
+          <EraseDropdown<CanvasRedrawImageSize>
             label="分辨率"
             value={imageSize}
-            options={IMAGE_SIZE_OPTIONS}
+            options={CANVAS_REDRAW_IMAGE_SIZES}
             renderLabel={(v) => v}
             onChange={setImageSize}
           />
