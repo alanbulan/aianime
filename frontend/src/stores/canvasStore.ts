@@ -22,7 +22,6 @@ import {
   createSnapshot,
   normalizeHistory,
   pushSnapshot,
-  type CanvasHistorySnapshot,
   type CanvasHistoryState,
 } from '@/features/canvas/domain/canvasHistory';
 import { findAvailableNodePosition } from '@/features/canvas/domain/canvasGeometry';
@@ -74,7 +73,6 @@ import {
 } from '@/features/canvas/application/canvasEdgeCreation';
 import { applyCanvasNodeChangeEffects } from '@/features/canvas/application/canvasNodeChangeEffects';
 import { applyCanvasEdgeChangeEffects } from '@/features/canvas/application/canvasEdgeChangeEffects';
-import { navigateCanvasHistory } from '@/features/canvas/application/canvasHistoryNavigation';
 import { updateCanvasNodeData } from '@/features/canvas/application/canvasNodeData';
 import { convertCanvasNodeType } from '@/features/canvas/application/canvasNodeConversion';
 import {
@@ -107,6 +105,10 @@ import {
   createZustandCanvasTransientInteractionSlice,
   type CanvasTransientInteractionSlice,
 } from '@/features/canvas/infrastructure/zustandCanvasTransientInteractionSlice';
+import {
+  createZustandCanvasHistorySlice,
+  type CanvasHistorySlice,
+} from '@/features/canvas/infrastructure/zustandCanvasHistorySlice';
 
 export type {
   ActiveToolDialog,
@@ -121,13 +123,12 @@ export type {
 interface CanvasState
   extends CanvasMutationState,
     CanvasViewportSlice,
-    CanvasTransientInteractionSlice {
+    CanvasTransientInteractionSlice,
+    CanvasHistorySlice {
   nodes: CanvasNode[];
   edges: CanvasEdge[];
   selectedNodeId: string | null;
   activeToolDialog: ActiveToolDialog | null;
-  history: CanvasHistoryState;
-  dragHistorySnapshot: CanvasHistorySnapshot | null;
 
   onNodesChange: (changes: NodeChange<CanvasNode>[]) => void;
   onEdgesChange: (changes: EdgeChange<CanvasEdge>[]) => void;
@@ -293,15 +294,6 @@ interface CanvasState
   openToolDialog: (dialog: ActiveToolDialog) => void;
   closeToolDialog: () => void;
 
-  undo: () => boolean;
-  redo: () => boolean;
-  /**
-   * Replace the in-memory undo/redo stacks — used to restore the history that
-   * was mirrored to localStorage so undo survives a page refresh. Touches only
-   * `history`, never nodes/edges, so it cannot trigger a content save.
-   */
-  restoreHistory: (history: CanvasHistoryState) => void;
-
   clearCanvas: () => void;
   /**
    * Clear `pendingClearIntent` after `useCanvasSync` has successfully flushed
@@ -319,13 +311,15 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   pendingClearIntent: false,
   selectedNodeId: null,
   activeToolDialog: null,
-  history: { past: [], future: [] },
-  dragHistorySnapshot: null,
   ...createZustandCanvasViewportSlice({
     getState: get,
     setState: (patch) => set(patch),
   }),
   ...createZustandCanvasTransientInteractionSlice({
+    getState: get,
+    setState: (patch) => set(patch),
+  }),
+  ...createZustandCanvasHistorySlice({
     getState: get,
     setState: (patch) => set(patch),
   }),
@@ -1143,30 +1137,6 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   closeToolDialog: () => {
     set({ activeToolDialog: null });
-  },
-
-  undo: () => {
-    const state = get();
-    const result = navigateCanvasHistory(state, 'undo');
-    if (!result) {
-      return false;
-    }
-    set(result);
-    return true;
-  },
-
-  redo: () => {
-    const state = get();
-    const result = navigateCanvasHistory(state, 'redo');
-    if (!result) {
-      return false;
-    }
-    set(result);
-    return true;
-  },
-
-  restoreHistory: (history) => {
-    set({ history: normalizeHistory(history, normalizeCanvasData) });
   },
 
   clearCanvas: () => {

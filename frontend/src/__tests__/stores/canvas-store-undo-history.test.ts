@@ -54,4 +54,31 @@ describe("canvasStore undo history — 创建节点后一次撤销即可移除",
     // resize 是真实编辑,应额外压入历史。
     expect(useCanvasStore.getState().history.past).toHaveLength(2);
   });
+
+  it("通过公开命令撤销后可以重做", () => {
+    useCanvasStore
+      .getState()
+      .addNode(CANVAS_NODE_TYPES.upload, { x: 0, y: 0 }, {});
+
+    expect(useCanvasStore.getState().undo()).toBe(true);
+    expect(useCanvasStore.getState().nodes).toHaveLength(0);
+    expect(useCanvasStore.getState().redo()).toBe(true);
+    expect(useCanvasStore.getState().nodes).toHaveLength(1);
+  });
+
+  it("恢复历史时执行规范化且不替换当前图", () => {
+    useCanvasStore
+      .getState()
+      .addNode(CANVAS_NODE_TYPES.upload, { x: 0, y: 0 }, {});
+    const currentNodes = useCanvasStore.getState().nodes;
+    const snapshot = { nodes: [], edges: [] };
+
+    useCanvasStore.getState().restoreHistory({
+      past: Array.from({ length: 60 }, () => snapshot),
+      future: [],
+    });
+
+    expect(useCanvasStore.getState().history.past).toHaveLength(50);
+    expect(useCanvasStore.getState().nodes).toBe(currentNodes);
+  });
 });

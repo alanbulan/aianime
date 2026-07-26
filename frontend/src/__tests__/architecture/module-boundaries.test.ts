@@ -601,8 +601,13 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/application/canvasHistoryNavigation.ts",
     );
+    const historySlicePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/zustandCanvasHistorySlice.ts",
+    );
     const historyModel = readFileSync(historyPath, "utf8");
     const navigationModel = readFileSync(navigationPath, "utf8");
+    const historySlice = readFileSync(historySlicePath, "utf8");
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
@@ -677,7 +682,8 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("function redoHistory(");
     expect(canvasStore).not.toContain("undoHistory(");
     expect(canvasStore).not.toContain("redoHistory(");
-    expect(canvasStore).toContain(
+    expect(historySlice).toContain("../application/canvasHistoryNavigation");
+    expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasHistoryNavigation",
     );
     expect(canvasSync).toContain(
@@ -7922,6 +7928,47 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("activeOverlayNodeId: null");
     expect(canvasStore).not.toContain("hoveredNodeId: null");
     expect(canvasStore).not.toContain("pendingFocusNodeId: null");
+    expect(sliceSource).not.toContain("@/stores/canvasStore");
+  });
+
+  it("keeps Canvas history state and commands in one Zustand slice", () => {
+    const slicePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/zustandCanvasHistorySlice.ts",
+    );
+    const sliceSource = readFileSync(slicePath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const canvasStateHeader = canvasStore.match(
+      /interface CanvasState[\s\S]*?\{/,
+    )?.[0];
+    const implementations = [
+      ["undo", ": () => commitNavigation('undo')"],
+      ["redo", ": () => commitNavigation('redo')"],
+      ["restoreHistory", "(history) {"],
+    ].map(([name, suffix]) => `${name}${suffix}`);
+
+    for (const implementation of implementations) {
+      const owners = sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(implementation))
+        .map(relativeSource)
+        .sort();
+      expect(owners).toEqual([
+        "features/canvas/infrastructure/zustandCanvasHistorySlice.ts",
+      ]);
+    }
+
+    expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
+      "../domain/canvasHistory",
+      "../application/canvasDataNormalization",
+      "../application/canvasHistoryNavigation",
+    ]));
+    expect(canvasStateHeader).toContain("CanvasHistorySlice");
+    expect(canvasStore).toContain("...createZustandCanvasHistorySlice({");
+    expect(canvasStore).not.toContain("history: { past: [], future: [] }");
+    expect(canvasStore).not.toContain("navigateCanvasHistory(state");
     expect(sliceSource).not.toContain("@/stores/canvasStore");
   });
 });
