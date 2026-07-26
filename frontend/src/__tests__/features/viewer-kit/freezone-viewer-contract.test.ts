@@ -497,9 +497,17 @@ describe("freezone viewer contracts", () => {
 
   it("keeps viewer purpose and capture metadata as explicit shared contracts", () => {
     const purpose = read("src/features/viewer-kit/viewerPurpose.ts");
-    const store = read("src/stores/canvasStore.ts");
+    const capturePartners = read(
+      "src/features/canvas/domain/canvasCapturePartners.ts",
+    );
+    const captureCreation = read(
+      "src/features/canvas/application/panoCaptureNodes.ts",
+    );
 
     expect(purpose).toContain('ViewerPurpose = "mainline" | "freezone" | "asset" | "beat"');
-    expect(store).toContain("captureMetadata");
+    expect(capturePartners).toContain("captureMetadata");
+    expect(captureCreation).toContain(
+      "captureMetadata: capture.metadata ?? null",
+    );
   });
 });
