@@ -4,7 +4,6 @@ import {
   useCallback,
   useMemo,
   useRef,
-  type DragEvent as ReactDragEvent,
   type MouseEvent as ReactMouseEvent,
 } from 'react';
 import {
@@ -55,7 +54,6 @@ import {
   isStoryboardGroupNode,
 } from '@/features/canvas/domain/canvasNodes';
 import {
-  readAssetDragPayload,
   spawnAssetNode,
   type CanvasAssetDragPayload,
 } from '@/features/canvas/domain/assetDrag';
@@ -103,14 +101,12 @@ import { SnapAlignGuides } from './snap-align/SnapAlignGuides';
 import { useSnapAlignStore } from './snap-align/snapAlignStore';
 import { computeAutoLayout } from './application/autoLayout';
 import { PAN_ACTIVATION_KEY_CODE } from './ui/canvasInteractionTargets';
-import { collectDroppedMediaFiles } from './ui/canvasMediaTransfer';
 import {
   createPreviewPath,
   type CanvasConnectionMenuRequest,
   type CanvasConnectionPreviewRequest,
   type CanvasPendingConnectionStart,
 } from './ui/canvasConnectionInteraction';
-import { useCanvasDropIndicator } from './hooks/useCanvasDropIndicator';
 import { useCanvasEdgePan } from './hooks/useCanvasEdgePan';
 import { useCanvasExternalDialogs } from './hooks/useCanvasExternalDialogs';
 import { useCanvasAsyncNodeTasks } from './hooks/useCanvasAsyncNodeTasks';
@@ -126,6 +122,7 @@ import { useCanvasKeyboardShortcuts } from './hooks/useCanvasKeyboardShortcuts';
 import { useCanvasLifecycle } from './hooks/useCanvasLifecycle';
 import { useCanvasMarqueeSelection } from './hooks/useCanvasMarqueeSelection';
 import { useCanvasMediaPaste } from './hooks/useCanvasMediaPaste';
+import { useCanvasMediaDropController } from './hooks/useCanvasMediaDropController';
 import { useCanvasMinimapVisibility } from './hooks/useCanvasMinimapVisibility';
 import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
 import { useCanvasNodeClipboard } from './hooks/useCanvasNodeClipboard';
@@ -891,97 +888,44 @@ export function Canvas({
     setSelectedNode,
   ]);
 
-  // 直接把图片 / 视频 / 音频文件从系统拖进画布 → 在落点生成上传节点并把文件喂给它。
-  // UploadNode 会按文件类型自行处理：图片就地上传，视频 / 音频 morph 成对应节点。
-  // 复用既有上传管道，无需在画布层重复实现上传 / 转码逻辑。
+  const hydrateDroppedAsset = useCallback(
+    (payload: CanvasAssetDragPayload) => hydrateAssetDragPayload(payload),
+    [],
+  );
+  const spawnDroppedAsset = useCallback(
+    (payload: CanvasAssetDragPayload, position: { x: number; y: number }) =>
+      spawnAssetNode(useCanvasStore.getState(), payload, position),
+    [],
+  );
+  const createDroppedUploadNode = useCallback(
+    (position: { x: number; y: number }) =>
+      addNode(
+        CANVAS_NODE_TYPES.upload,
+        position,
+        { user_spawned: true } as Partial<CanvasNodeData>,
+      ),
+    [addNode],
+  );
+  const attachDroppedExternalFile = useCallback(
+    (nodeId: string, file: File) => {
+      canvasEventBus.publish('upload-node/external-file', { nodeId, file });
+    },
+    [],
+  );
   const {
     isCanvasDropActive,
-    acceptsCanvasDrop,
     handleCanvasDragEnter,
     handleCanvasDragOver,
     handleCanvasDragLeave,
-    resetCanvasDropIndicator,
-  } = useCanvasDropIndicator();
-
-  const handleCanvasDrop = useCallback(
-    (event: ReactDragEvent<HTMLDivElement>) => {
-      if (!acceptsCanvasDrop(event)) {
-        return;
-      }
-      event.preventDefault();
-      resetCanvasDropIndicator();
-
-      const basePosition = reactFlowInstance.screenToFlowPosition({
-        x: event.clientX,
-        y: event.clientY,
-      });
-
-      // ── Sidebar asset drop path ──
-      // 侧栏素材卡片(图片 / 视频 / 音频 / 3GS)拖进来 → 在落点直接生成对应节点。
-      // 与「加入」按钮共用 spawnAssetNode,保持节点构造一致。
-      const assetPayload = readAssetDragPayload(event.dataTransfer);
-      if (assetPayload) {
-        void (async () => {
-          let hydratedPayload = assetPayload;
-          try {
-            hydratedPayload = await hydrateAssetDragPayload(assetPayload);
-          } catch (error) {
-            console.warn('[canvas] scene director world manifest unavailable during import', error);
-          }
-          const newNodeId = spawnAssetNode(
-            useCanvasStore.getState(),
-            hydratedPayload,
-            basePosition,
-          );
-          setSelectedNode(newNodeId);
-        })();
-        return;
-      }
-
-      // ── File drop path ──
-      // Files become uploadNode spawns. Pre-existing behavior; preserved on
-      // every canvas now that the mainline preset reject is lifted.
-      const mediaFiles = collectDroppedMediaFiles(event.dataTransfer);
-      if (mediaFiles.length === 0) {
-        return;
-      }
-
-      let lastNodeId: string | null = null;
-      mediaFiles.forEach((file, index) => {
-        const position = {
-          x: basePosition.x + index * 36,
-          y: basePosition.y + index * 36,
-        };
-        // File drops are user actions by definition — stamp user_spawned: true
-        // so the new node is correctly classified by `nodeMainlineFlags`
-        // (and survives `_merge_restored_preset_canvas` refresh). Without
-        // this, dropped uploads on a mainline preset canvas would be locked
-        // by the canvas-level fallback in `NodeActionToolbar`, breaking the
-        // mixed-canvas contract.
-        const newNodeId = addNode(
-          CANVAS_NODE_TYPES.upload,
-          position,
-          { user_spawned: true } as Partial<CanvasNodeData>,
-        );
-        lastNodeId = newNodeId;
-        // 等新节点挂载并订阅事件后再投递文件（与 UploadNode 内部 morph 的时序一致）。
-        requestAnimationFrame(() => {
-          canvasEventBus.publish('upload-node/external-file', { nodeId: newNodeId, file });
-        });
-      });
-
-      if (lastNodeId) {
-        setSelectedNode(lastNodeId);
-      }
-    },
-    [
-      addNode,
-      acceptsCanvasDrop,
-      reactFlowInstance,
-      resetCanvasDropIndicator,
-      setSelectedNode,
-    ]
-  );
+    handleCanvasDrop,
+  } = useCanvasMediaDropController({
+    screenToFlowPosition,
+    hydrateAsset: hydrateDroppedAsset,
+    spawnAsset: spawnDroppedAsset,
+    createUploadNode: createDroppedUploadNode,
+    selectNode: setSelectedNode,
+    attachExternalFile: attachDroppedExternalFile,
+  });
 
   const finalizeNodeSpawn = useCallback(
     (newNodeId: string, explicitSkill?: SkillDefinition | null) => {

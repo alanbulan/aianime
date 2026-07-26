@@ -1133,6 +1133,17 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const mediaPasteController = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/hooks/useCanvasMediaPaste.ts"),
+      "utf8",
+    );
+    const mediaDropController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasMediaDropController.ts",
+      ),
+      "utf8",
+    );
     const forbiddenImports = importSpecifiers(transferPath).filter(
       (specifier) =>
         specifier === "zustand" ||
@@ -1163,7 +1174,9 @@ describe("frontend architecture boundaries", () => {
     expect(transferModel).toContain(
       "@/features/canvas/application/videoFileTypes",
     );
-    expect(canvasView).toContain("./ui/canvasMediaTransfer");
+    expect(mediaPasteController).toContain("../ui/canvasMediaTransfer");
+    expect(mediaDropController).toContain("../ui/canvasMediaTransfer");
+    expect(canvasView).not.toContain("./ui/canvasMediaTransfer");
     expect(canvasView).not.toContain("function resolveClipboardImageFile(");
     expect(canvasView).not.toContain("function collectDroppedMediaFiles(");
   });
@@ -1404,6 +1417,13 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useCanvasDropIndicator.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
+    const mediaDropController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasMediaDropController.ts",
+      ),
+      "utf8",
+    );
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -1433,12 +1453,64 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useCanvasDropIndicator.ts",
     ]);
     expect(hookModel).toContain("CANVAS_ASSET_DRAG_MIME");
-    expect(canvasView).toContain("./hooks/useCanvasDropIndicator");
+    expect(mediaDropController).toContain("./useCanvasDropIndicator");
+    expect(canvasView).not.toContain("./hooks/useCanvasDropIndicator");
     expect(canvasView).not.toContain("fileDragDepthRef");
     expect(canvasView).not.toContain("setIsFileDropActive");
     expect(canvasView).not.toContain("hasDraggedFiles");
     expect(canvasView).not.toContain("hasDraggedAsset");
     expect(canvasView).not.toContain("hasDraggedAnyPayload");
+  });
+
+  it("keeps Canvas media-drop orchestration in one presentation controller", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasMediaDropController.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/features/canvas/nodeFactoryComposition",
+    );
+    const declaration = [
+      "export function",
+      "useCanvasMediaDropController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasMediaDropController.ts",
+    ]);
+    expect(hookModel).toContain("readAssetDragPayload(");
+    expect(hookModel).toContain("collectDroppedMediaFiles(");
+    expect(hookModel).toContain("DROPPED_FILE_OFFSET = 36");
+    expect(hookModel).toContain("scheduleAfterMount(");
+    expect(canvasView).toContain("./hooks/useCanvasMediaDropController");
+    expect(canvasView).not.toContain("const handleCanvasDrop = useCallback");
+    expect(canvasView).not.toContain("readAssetDragPayload(");
+    expect(canvasView).not.toContain("collectDroppedMediaFiles(");
+    expect(canvasView).not.toContain("index * 36");
+    expect(canvasView).not.toMatch(
+      /requestAnimationFrame\(\(\) => \{\s*canvasEventBus\.publish\('upload-node\/external-file'/,
+    );
   });
 
   it("keeps Canvas viewport commit throttling in one presentation hook", () => {
