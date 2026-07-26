@@ -10494,6 +10494,40 @@ describe("frontend architecture boundaries", () => {
       .not.toContain("function resolveUrlFromResult(");
   });
 
+  it("keeps audio reference display-name projection in one application module", () => {
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/audioReferenceDisplayName.ts",
+    );
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const videoNode = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      "utf8",
+    );
+    const declaration = [
+      "export function",
+      "resolveAudioReferenceDisplayName(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(importSpecifiers(applicationPath)).toEqual([]);
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("window");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(implementationOwners).toEqual([
+      "features/canvas/application/audioReferenceDisplayName.ts",
+    ]);
+    expect(videoNode).toContain(
+      "@/features/canvas/application/audioReferenceDisplayName",
+    );
+    expect(videoNode).not.toContain("function audioReferenceFileName(");
+    expect(videoNode).toContain("resolveAudioReferenceDisplayName(");
+  });
+
   it("keeps VideoNode album chrome in one presentation view", () => {
     const viewPath = resolve(
       SRC_ROOT,

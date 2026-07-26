@@ -67,6 +67,7 @@ import {
   resolveImageDisplayUrl,
   snapToAllowedAspectRatio,
 } from "@/features/canvas/application/imageData";
+import { resolveAudioReferenceDisplayName } from "@/features/canvas/application/audioReferenceDisplayName";
 import { resolveGenerationOutputUrl } from "@/features/canvas/application/generationOutputUrl";
 import { resolveDroppedVideoFile } from "@/features/canvas/application/resolveDroppedVideoFile";
 import { probeAudioDurationMs } from "@/features/canvas/infrastructure/browserAudioMetadata";
@@ -281,24 +282,6 @@ const COUNT_OPTIONS: ReadonlyArray<VideoGenCount> = [1, 2, 4];
 // 用 15.2s 作拦截阈值，避免把后端本会放行的 15.0~15.2s 音频误拦。
 const MAX_AUDIO_TOTAL_DURATION_MS = 15_200;
 
-// 音频引用 chip 的展示文件名：优先节点的 displayName，否则从 audioUrl 取末段文件名。
-// 仅用于前端展示（音频_<文件名>），不影响序列化给后端的 @音频N。
-function audioReferenceFileName(item: {
-  displayName?: string | null;
-  audioUrl: string;
-}): string | null {
-  const name = item.displayName?.trim();
-  if (name) return name;
-  try {
-    const origin =
-      typeof window !== "undefined" ? window.location.origin : "http://localhost";
-    const path = new URL(item.audioUrl, origin).pathname;
-    const base = decodeURIComponent(path.split("/").filter(Boolean).pop() ?? "");
-    return base || null;
-  } catch {
-    return null;
-  }
-}
 export const VideoNode = memo(
   ({ id, data, selected, width, height }: VideoNodeProps) => {
     const { t } = useTranslation();
@@ -749,7 +732,12 @@ export const VideoNode = memo(
             imageUrl: "",
             index: audioIdx,
             audioUrl: resolveImageDisplayUrl(item.audioUrl),
-            displayName: audioReferenceFileName(item),
+            displayName: resolveAudioReferenceDisplayName(
+              item,
+              typeof window !== "undefined"
+                ? window.location.origin
+                : "http://localhost",
+            ),
           });
         }
       }
