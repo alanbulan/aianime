@@ -10,10 +10,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { server } from "@/__mocks__/msw/server";
 import { apiCall } from "@/shared/api/client";
 import {
-  getFreezoneCanvas,
   listFreezoneCanvases,
   putFreezoneCanvas,
 } from "@/api/canvas";
+import { freezoneCanvasStorageGateway } from "@/features/canvas/infrastructure/freezoneCanvasStorageGateway";
 import { fetchFreezoneJobResult, submitFreezoneGen } from "@/api/ops";
 import { pushToPipeline } from "@/api/push";
 import { createStreamClient } from "@/task-center/stream-client";
@@ -301,7 +301,10 @@ describe("M06 frontend L2 contract", () => {
       });
 
     const canvases = await listFreezoneCanvases("demo");
-    const canvas = await getFreezoneCanvas("demo", "default");
+    const canvas = await freezoneCanvasStorageGateway.getCanvas({
+      projectId: "demo",
+      canvasId: "default",
+    });
     const saveResult = await putFreezoneCanvas("demo", "default", {
       ...canvas,
       nodes: [{ id: "n1", type: "freezoneImageNode", data: { imageUrl: "/input.png" } }],

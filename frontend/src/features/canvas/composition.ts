@@ -5,6 +5,7 @@ import {
   loadBeatDirectorStageManifest,
   loadSceneDirectorStageManifest,
 } from '@/modules/asset_world/public';
+import type { FreezonePresetCanvasRequest } from '@/features/freezone/public';
 
 import { canvasEventBus } from './application/canvasServices';
 import {
@@ -20,6 +21,10 @@ import {
   getCanvasDirectorStagePalette as getCanvasDirectorStagePaletteUseCase,
   type GetCanvasDirectorStagePaletteParams,
 } from './application/directorStagePalette';
+import {
+  createCanvasFromPreset as createCanvasFromPresetUseCase,
+  getFreezoneCanvas as getFreezoneCanvasUseCase,
+} from './application/freezoneCanvasStorage';
 import {
   completeVideoGenerationTask as completeVideoGenerationTaskUseCase,
   type CompleteVideoGenerationTaskParams,
@@ -169,6 +174,7 @@ import { freezoneAiGateway } from './infrastructure/freezoneAiGateway';
 import { freezoneAudioSeparationGateway } from './infrastructure/freezoneAudioSeparationGateway';
 import { freezoneCanvasTextTranslationGateway } from './infrastructure/freezoneCanvasTextTranslationGateway';
 import { freezoneDirectorStagePaletteGateway } from './infrastructure/freezoneDirectorStagePaletteGateway';
+import { freezoneCanvasStorageGateway } from './infrastructure/freezoneCanvasStorageGateway';
 import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerationTaskGateway';
 import { freezoneGenerationHistoryGateway } from './infrastructure/freezoneGenerationHistoryGateway';
 import { freezoneGridActionGenerationGateway } from './infrastructure/freezoneGridActionGenerationGateway';
@@ -588,6 +594,27 @@ export function getCanvasDirectorStagePalette(
   return getCanvasDirectorStagePaletteUseCase(
     params,
     freezoneDirectorStagePaletteGateway,
+  );
+}
+
+export function getFreezoneCanvas(
+  projectId: string,
+  canvasId: string,
+  options?: { signal?: AbortSignal },
+) {
+  return getFreezoneCanvasUseCase(
+    { projectId, canvasId, signal: options?.signal },
+    freezoneCanvasStorageGateway,
+  );
+}
+
+export function createCanvasFromPreset(
+  projectId: string,
+  payload: FreezonePresetCanvasRequest,
+) {
+  return createCanvasFromPresetUseCase(
+    { projectId, payload },
+    freezoneCanvasStorageGateway,
   );
 }
 

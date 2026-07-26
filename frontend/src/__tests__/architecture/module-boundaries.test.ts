@@ -645,7 +645,7 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
-  it("publishes the Freezone skill contract through one public API", () => {
+  it("publishes Freezone contracts through one public API", () => {
     const freezoneRoot = resolve(SRC_ROOT, "features/freezone");
     const contractPath = resolve(
       freezoneRoot,
@@ -675,6 +675,8 @@ describe("frontend architecture boundaries", () => {
               specifier.includes("features/freezone/domain/skillContract") ||
               specifier.includes("features/freezone/domain/skillExecution") ||
               specifier.includes("features/freezone/domain/sceneAssets") ||
+              specifier.includes("features/freezone/domain/beatContext") ||
+              specifier.includes("features/freezone/domain/canvasStorage") ||
               specifier.includes("features/freezone/context/skillRoles") ||
               specifier.includes("freezone/context/skillRoles"),
           )
@@ -688,6 +690,9 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(new Set(importSpecifiers(publicPath))).toEqual(
       new Set([
+        "@/features/freezone/composition",
+        "@/features/freezone/domain/beatContext",
+        "@/features/freezone/domain/canvasStorage",
         "@/features/freezone/domain/skillContract",
         "@/features/freezone/domain/skillExecution",
         "@/features/freezone/domain/sceneAssets",
@@ -696,6 +701,133 @@ describe("frontend architecture boundaries", () => {
     expect(externalContractImportFailures).toEqual([]);
     expect(importSpecifiers(nodeRegistryPath)).toContain(
       "@/features/freezone/public",
+    );
+  });
+
+  it("keeps Freezone canvas and Beat Context transport behind application ports", () => {
+    const canvasContractPath = resolve(
+      SRC_ROOT,
+      "features/freezone/domain/canvasStorage.ts",
+    );
+    const beatContextContractPath = resolve(
+      SRC_ROOT,
+      "features/freezone/domain/beatContext.ts",
+    );
+    const canvasApplicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/freezoneCanvasStorage.ts",
+    );
+    const canvasInfrastructurePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneCanvasStorageGateway.ts",
+    );
+    const freezoneApplicationPath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/contextQueries.ts",
+    );
+    const freezoneInfrastructurePath = resolve(
+      SRC_ROOT,
+      "features/freezone/infrastructure/httpFreezoneContextQueryGateway.ts",
+    );
+    const canvasCompositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const freezoneCompositionPath = resolve(
+      SRC_ROOT,
+      "features/freezone/composition.ts",
+    );
+    const beatContextNodePath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/BeatContextNode.tsx",
+    );
+    const apiCanvasPath = resolve(SRC_ROOT, "api/canvas.ts");
+    const apiProjectsPath = resolve(SRC_ROOT, "api/projects.ts");
+    const queryPath = resolve(SRC_ROOT, "lib/queries/freezone.ts");
+    const canvasCompositionSource = readFileSync(canvasCompositionPath, "utf8");
+    const freezoneCompositionSource = readFileSync(freezoneCompositionPath, "utf8");
+    const beatContextNodeSource = readFileSync(beatContextNodePath, "utf8");
+    const apiCanvasSource = readFileSync(apiCanvasPath, "utf8");
+    const apiProjectsSource = readFileSync(apiProjectsPath, "utf8");
+    const querySource = readFileSync(queryPath, "utf8");
+    const presetEndpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("freezone/canvases:from-preset"),
+      )
+      .map(relativeSource)
+      .sort();
+    const beatContextEndpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("freezone/assets/beat-context"),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(importSpecifiers(canvasContractPath)).toEqual([]);
+    expect(importSpecifiers(beatContextContractPath)).toEqual([
+      "../context/mainlineContext",
+    ]);
+    expect(importSpecifiers(canvasApplicationPath)).toEqual([
+      "@/features/freezone/public",
+    ]);
+    expect(new Set(importSpecifiers(canvasInfrastructurePath))).toEqual(
+      new Set([
+        "@/features/freezone/public",
+        "@/shared/api/client",
+        "../application/freezoneCanvasStorage",
+      ]),
+    );
+    expect(importSpecifiers(freezoneApplicationPath)).toEqual([
+      "../domain/beatContext",
+    ]);
+    expect(new Set(importSpecifiers(freezoneInfrastructurePath))).toEqual(
+      new Set([
+        "@/shared/api/client",
+        "../application/contextQueries",
+        "../domain/beatContext",
+      ]),
+    );
+    expect(presetEndpointOwners).toEqual([
+      "features/canvas/infrastructure/freezoneCanvasStorageGateway.ts",
+    ]);
+    expect(beatContextEndpointOwners).toEqual([
+      "features/freezone/infrastructure/httpFreezoneContextQueryGateway.ts",
+    ]);
+    expect(apiCanvasSource).not.toContain(
+      "export async function getFreezoneCanvas(",
+    );
+    expect(apiCanvasSource).not.toContain(
+      "export async function createCanvasFromPreset(",
+    );
+    expect(apiCanvasSource).not.toContain(
+      "export interface FreezoneCanvasPayload",
+    );
+    expect(apiProjectsSource).not.toContain("export interface BeatUpdatePayload");
+    expect(apiProjectsSource).not.toContain("export async function updateBeat(");
+    expect(apiProjectsSource).not.toContain(
+      "export async function listFreezoneBeatContext(",
+    );
+    expect(apiProjectsSource).not.toContain(
+      "export async function listFreezoneProjectAssets(",
+    );
+    expect(querySource).not.toContain("function createFreezonePresetCanvas(");
+    expect(querySource).not.toContain("useCreateFreezonePresetCanvas");
+    expect(importSpecifiers(beatContextNodePath)).toContain(
+      "@/features/canvas/composition",
+    );
+    expect(importSpecifiers(beatContextNodePath)).toContain(
+      "@/features/freezone/public",
+    );
+    expect(importSpecifiers(beatContextNodePath)).toContain(
+      "@/modules/narrative_planning/public",
+    );
+    expect(beatContextNodeSource).not.toContain("@/api/canvas");
+    expect(beatContextNodeSource).not.toContain("@/api/projects");
+    expect(canvasCompositionSource).toContain("freezoneCanvasStorageGateway");
+    expect(freezoneCompositionSource).toContain(
+      "httpFreezoneContextQueryGateway",
     );
   });
 

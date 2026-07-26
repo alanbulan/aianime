@@ -27,7 +27,10 @@ import { createUseScriptPageController } from "@/modules/narrative_planning/appl
 import { createUseSingleBeatPanelController } from "@/modules/narrative_planning/application/use-single-beat-panel-controller";
 import { createUseSketchStudioController } from "@/modules/narrative_planning/application/use-sketch-studio-controller";
 import { createUseTextPaneController } from "@/modules/narrative_planning/application/use-text-pane-controller";
-import type { Episode } from "@/modules/narrative_planning/domain/types";
+import type {
+  BeatUpdate,
+  Episode,
+} from "@/modules/narrative_planning/domain/types";
 import { useEpisodeWorkbenchSectionState } from "@/modules/narrative_planning/infrastructure/episode-workbench-section-state";
 import { httpNarrativePlanningGateway } from "@/modules/narrative_planning/infrastructure/http-narrative-planning-gateway";
 import { useBeatSelection } from "@/modules/narrative_planning/infrastructure/use-beat-selection";
@@ -119,6 +122,13 @@ export const readPipelineStatus = (
   project: string,
   signal?: AbortSignal,
 ) => httpNarrativePlanningGateway.getPipelineStatus(project, signal);
+
+export const updateBeat = (
+  project: string,
+  episode: number,
+  beat: number,
+  data: BeatUpdate,
+) => httpNarrativePlanningGateway.updateBeat(project, episode, beat, data);
 
 const useEpisodesPageController = createUseEpisodesPageController(
   narrativePlanningQueries,

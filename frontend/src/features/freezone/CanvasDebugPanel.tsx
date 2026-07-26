@@ -19,12 +19,12 @@ import { useState } from "react";
 import { ChevronDown, ChevronUp, RotateCcw, Wrench } from "lucide-react";
 import {
   extractHistoryId,
-  getFreezoneCanvas,
   listFreezoneCanvasHistory,
   restoreFreezoneCanvasVersion,
-  type CanvasBackupStatus,
   type FreezoneCanvasHistoryEntry,
 } from "@/api/canvas";
+import { getFreezoneCanvas } from "@/features/canvas/composition";
+import type { CanvasBackupStatus } from "@/features/freezone/public";
 import { ApiError } from "@/shared/api/errors";
 
 interface CanvasDebugPanelProps {

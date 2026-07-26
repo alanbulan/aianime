@@ -7,8 +7,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const listFreezoneBeatContext = vi.fn();
 const listFreezoneProjectAssets = vi.fn();
 
-vi.mock("@/api/projects", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/api/projects")>()),
+vi.mock("@/features/freezone/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/features/freezone/public")>()),
   listFreezoneBeatContext: (...args: unknown[]) => listFreezoneBeatContext(...args),
   listFreezoneProjectAssets: (...args: unknown[]) => listFreezoneProjectAssets(...args),
 }));

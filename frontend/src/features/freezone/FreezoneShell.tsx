@@ -8,8 +8,8 @@ import type { ProjectSummary } from "@/modules/project_workspace/public";
 import {
   buildProjectionFromPreset,
   getProjectionStatuses,
-  type FreezonePresetCanvasRequest,
 } from "@/api/canvas";
+import type { FreezonePresetCanvasRequest } from "@/features/freezone/public";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -1469,7 +1469,7 @@ function CanvasConflictOverlay({
 function BackupStatusIndicator({
   status,
 }: {
-  status: import("@/api/canvas").CanvasBackupStatus | null;
+  status: import("@/features/freezone/public").CanvasBackupStatus | null;
 }) {
   if (status !== "pending" && status !== "failed") {
     return null;

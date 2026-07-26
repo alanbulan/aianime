@@ -24,7 +24,7 @@ import {
   type FreezoneBeatContextBeat,
   type FreezoneBeatContextResponse,
   type FreezoneProjectAsset,
-} from "@/api/projects";
+} from "@/features/freezone/public";
 import {
   useFreezoneBeatContext,
   useFreezoneProjectAssets,

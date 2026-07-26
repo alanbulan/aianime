@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { FreezoneCanvasPayload } from "@/api/canvas";
+import type { FreezoneCanvasPayload } from "@/features/freezone/public";
 import type { CanvasEdge, CanvasNode } from "@/stores/canvasStore";
 
 export type RemoteCanvasMerge = (

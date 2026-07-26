@@ -11,15 +11,19 @@ import type {
   CanvasHistoryState,
 } from "@/features/canvas/domain/canvasHistory";
 import {
-  createCanvasFromPreset,
   generateClientSaveId,
-  getFreezoneCanvas,
   putFreezoneCanvas,
-  type CanvasBackupStatus,
-  type FreezoneCanvasPayload,
-  type FreezoneCanvasSaveResult,
-  type FreezonePresetCanvasRequest,
 } from "@/api/canvas";
+import {
+  createCanvasFromPreset,
+  getFreezoneCanvas,
+} from "@/features/canvas/composition";
+import type {
+  CanvasBackupStatus,
+  FreezoneCanvasPayload,
+  FreezoneCanvasSaveResult,
+  FreezonePresetCanvasRequest,
+} from "@/features/freezone/public";
 import { ApiError } from "@/shared/api/errors";
 import {
   buildSavePayload,

@@ -22,13 +22,7 @@ import {
 import {
   createCanvasFromPreset,
   getFreezoneCanvas,
-  type FreezonePresetCanvasRequest,
-} from "@/api/canvas";
-import {
-  listFreezoneBeatContext,
-  updateBeat,
-  type BeatUpdatePayload,
-} from "@/api/projects";
+} from "@/features/canvas/composition";
 import {
   type BeatContextNodeData,
   type CanvasEdge,
@@ -55,7 +49,16 @@ import { buildBeatContextNodeRefreshPatch } from "@/features/freezone/context/be
 import { syncBeatContextMainlineEdges } from "@/features/freezone/context/beatContextProjection";
 import { parseBeatContextVisualMarkers } from "@/features/freezone/context/currentBeatContext";
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
-import { useEpisodeBeats, useEpisodeDetail } from "@/modules/narrative_planning/public";
+import {
+  listFreezoneBeatContext,
+  type FreezonePresetCanvasRequest,
+} from "@/features/freezone/public";
+import {
+  updateBeat,
+  useEpisodeBeats,
+  useEpisodeDetail,
+  type BeatUpdate,
+} from "@/modules/narrative_planning/public";
 import { queryKeys } from "@/lib/query-keys";
 import { sceneNameToRef, sceneRefToName } from "@/lib/scene-ref";
 import { parseColorValue } from "@/lib/sketch-colors";
@@ -434,7 +437,7 @@ function mergeRestoredCanvasWithLocalUserWork(
 
 function mergeBeatRefreshPatch(
   refreshPatch: Partial<BeatContextNodeData>,
-  localPatch?: BeatUpdatePayload,
+  localPatch?: BeatUpdate,
 ): Partial<BeatContextNodeData> {
   if (!localPatch) return refreshPatch;
   const snapshot = {
@@ -479,7 +482,7 @@ function mergeBeatRefreshPatch(
 
 function localBeatPatchFromCurrentData(
   data: BeatContextNodeData,
-  localPatch: BeatUpdatePayload,
+  localPatch: BeatUpdate,
 ): Partial<BeatContextNodeData> {
   return mergeBeatRefreshPatch(
     {
@@ -499,7 +502,7 @@ function localBeatPatchFromCurrentData(
 
 function beatUpdatePayloadFromNodeData(
   data: BeatContextNodeData,
-): BeatUpdatePayload {
+): BeatUpdate {
   const snapshot = data.snapshot ?? {};
   const editFields = data.beat_edit_fields ?? {};
   const visualDescription = String(
@@ -876,7 +879,7 @@ export const BeatContextNode = memo(
     // 编辑 BeatContextNode 字段只更新画布节点草稿；主线技能消费这个草稿。
     // 只有点击“同步到主线”时才写回 DB。
     const handleBeatFieldUpdate = useCallback(
-      (patch: BeatUpdatePayload) => {
+      (patch: BeatUpdate) => {
         if (
           !projectId ||
           typeof episode !== "number" ||
@@ -1032,7 +1035,7 @@ export const BeatContextNode = memo(
         const nextCaret = isStandaloneContext
           ? before.length + 2
           : before.length + candidate.token.length + spacer.length;
-        const patch: BeatUpdatePayload = {
+        const patch: BeatUpdate = {
           visual_description: nextText.trim(),
         };
 

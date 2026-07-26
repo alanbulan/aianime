@@ -39,13 +39,13 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("@/api/projects", () => ({
+vi.mock("@/features/freezone/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/features/freezone/public")>()),
   listFreezoneBeatContext: (...args: unknown[]) =>
     listFreezoneBeatContext(...args),
-  updateBeat: (...args: unknown[]) => updateBeat(...args),
 }));
 
-vi.mock("@/api/canvas", () => ({
+vi.mock("@/features/canvas/composition", () => ({
   createCanvasFromPreset: (...args: unknown[]) =>
     createCanvasFromPreset(...args),
   getFreezoneCanvas: (...args: unknown[]) => getFreezoneCanvas(...args),
@@ -61,6 +61,7 @@ vi.mock("@/features/canvas/ui/NodeHeader", () => ({
 }));
 
 vi.mock("@/modules/narrative_planning/public", () => ({
+  updateBeat: (...args: unknown[]) => updateBeat(...args),
   useEpisodeDetail: () => ({
     data: {
       ok: true,

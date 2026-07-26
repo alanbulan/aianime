@@ -1568,6 +1568,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百四十二批已将 Beat overlay 读取/保存、control-frame 保存和 AI staging prop 生成的 DTO、port 与委托用例迁入 70 行 Viewer Kit application，将路径构造、项目编码、POST method 与 payload 迁入唯一 59 行 `freezoneDirectorStageGateway` infrastructure 适配器，并新增 60 行 Viewer Kit composition 与 11 行 public API；`ThreeDDirectorDialog` 和 Freezone 导演成品提交统一改经 Viewer Kit public，原 URL、响应类型、调用顺序和错误处理未改变；`api/viewerManifests.ts` 剩余 73 行整体删除，不保留 legacy 文件、re-export 或双轨实现，前几批门禁同步提升为断言旧文件不存在；相关 5 个测试文件 94 项、新增后的架构门禁 194 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百四十三批已将画布 payload、保存结果、preset 请求/响应及 Beat Context/项目素材 DTO 迁入唯一 Freezone domain 契约并经 public API 发布；画布读取与 preset 恢复的 port/委托用例迁入 Canvas application，项目编码、取消信号、GET/POST method 和 `canvases:from-preset` URL 迁入唯一 `freezoneCanvasStorageGateway` infrastructure 适配器并由 Canvas composition 注入；项目素材与 Beat Context 查询的 port/委托用例、查询串和 HTTP 实现迁入 Freezone application/infrastructure/composition；`BeatContextNode` 只经 Canvas composition、Freezone public 和 Narrative Planning public 读取画布、刷新上下文及更新 Beat，复用既有 `httpNarrativePlanningGateway`，不再直连旧 API；`api/canvas.ts` 删除画布读取、preset 创建和重复 DTO，`api/projects.ts` 删除 Beat 更新、项目素材与 Beat Context 实现，`lib/queries/freezone.ts` 同步删除零调用的第二套 preset 创建函数/hook，不保留兼容转发；请求路径、方法、payload、取消信号、缓存键和手动同步语义均未改变；相关 10 个测试文件 69 项、新增后的架构门禁 195 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

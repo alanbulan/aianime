@@ -2,7 +2,8 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getFreezoneCanvas, putFreezoneCanvas } from "@/api/canvas";
+import { putFreezoneCanvas } from "@/api/canvas";
+import { getFreezoneCanvas } from "@/features/canvas/composition";
 import { ApiError } from "@/shared/api/errors";
 import {
   FREEZONE_HYDRATE_RELEASE_GRACE_MS,
@@ -28,10 +29,14 @@ vi.mock("@/api/canvas", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/api/canvas")>();
   return {
     ...actual,
-    getFreezoneCanvas: vi.fn(),
     putFreezoneCanvas: vi.fn(),
   };
 });
+
+vi.mock("@/features/canvas/composition", () => ({
+  createCanvasFromPreset: vi.fn(),
+  getFreezoneCanvas: vi.fn(),
+}));
 
 vi.mock("@xyflow/react", () => ({
   useReactFlow: () => ({

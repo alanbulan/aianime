@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { FreezonePresetCanvasRequest } from "@/api/canvas";
+import type { FreezonePresetCanvasRequest } from "@/features/freezone/public";
 import type { CanvasEdge, CanvasNode } from "@/stores/canvasStore";
 import {
   projectionScopedId,

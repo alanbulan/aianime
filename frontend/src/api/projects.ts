@@ -1,7 +1,5 @@
 // Copyright (c) 2026 AI anime
 import { apiCall } from "@/shared/api/client";
-import type { PushTarget } from "./push";
-import type { MainlineContext } from "@/features/freezone/context/mainlineContext";
 
 // ---------- Characters ---------- //
 
@@ -95,29 +93,6 @@ export async function listBeats(
   );
 }
 
-export interface BeatUpdatePayload {
-  visual_description?: string;
-  scene_ref?: { scene_id?: string; variant_id?: string };
-  time_of_day?: string;
-  detected_identities?: string[];
-  detected_props?: string[];
-}
-
-export async function updateBeat(
-  projectId: string,
-  episodeNum: number,
-  beatNum: number,
-  payload: BeatUpdatePayload,
-): Promise<AiAnimeBeat> {
-  return await apiCall<AiAnimeBeat>(
-    `projects/${encodeURIComponent(projectId)}/episodes/${episodeNum}/beats/${beatNum}`,
-    {
-      method: "PATCH",
-      json: payload,
-    },
-  );
-}
-
 // ---------- Static URL helpers ---------- //
 
 // AI anime serves user assets at `/static/<user>/<project>/...`. The backend
@@ -162,95 +137,4 @@ export function deriveDirectorRenderUrl(
   const prefix = staticPrefixOf(anchorUrl);
   if (!prefix) return null;
   return `${prefix}director_control_frames/ep${pad(episode, 3)}/beat_${pad(beatNum, 2)}/combined.png`;
-}
-
-// ---------- Freezone Assets ---------- //
-
-export type FreezoneAssetMediaType = "image" | "video" | "audio" | "text" | "file";
-
-export interface FreezoneProjectAsset {
-  id: string;
-  tab: "beat" | "characters" | "scenes" | "props" | "director";
-  kind: string;
-  role: string;
-  label: string;
-  sublabel?: string;
-  rel_path?: string;
-  url?: string | null;
-  exists?: boolean;
-  media_type?: FreezoneAssetMediaType | string;
-  aspect_ratio?: string;
-  meta?: Record<string, unknown>;
-  mainline_context?: MainlineContext[];
-  /** Director combined assets carry the complete bundle, not only combined.png. */
-  director_control_bundle?: Record<string, unknown> | null;
-  /** 后端是否认为该资产可推送回主流程。 */
-  pushable?: boolean;
-  /**
-   * 后端直接给出的 canonical 提交目标(免去前端按 kind/role 猜)。
-   * 用 `PushTarget | null`;业务层用 `isSlotTarget` 校验后再用。
-   */
-  slot_target?: PushTarget | null;
-}
-
-export async function listFreezoneProjectAssets(
-  projectId: string,
-  options?: { signal?: AbortSignal },
-): Promise<FreezoneProjectAsset[]> {
-  return await apiCall<FreezoneProjectAsset[]>(
-    `projects/${encodeURIComponent(projectId)}/freezone/assets`,
-    options?.signal ? { signal: options.signal } : undefined,
-  );
-}
-
-// ---------- Freezone Beat Context ---------- //
-
-export interface FreezoneBeatContextBeat {
-  episode: number;
-  beat: number;
-  label?: string;
-  visual_description?: string;
-  narration_segment?: string;
-  scene_id?: string;
-  scene_variant_id?: string;
-  time_of_day?: string;
-  detected_identities?: string[];
-  detected_props?: string[];
-  sketch_colors?: Record<string, string>;
-  prop_marker_colors?: Record<string, string>;
-  asset_count?: number;
-  assets: FreezoneProjectAsset[];
-}
-
-export interface FreezoneBeatContextEpisode {
-  episode: number;
-  beats: FreezoneBeatContextBeat[];
-}
-
-export interface FreezoneBeatContextResponse {
-  scope: {
-    episode: number | null;
-    beat: number | null;
-  };
-  episodes: FreezoneBeatContextEpisode[];
-  assets: FreezoneProjectAsset[];
-}
-
-export async function listFreezoneBeatContext(
-  projectId: string,
-  opts?: { episode?: number; beat?: number; signal?: AbortSignal },
-): Promise<FreezoneBeatContextResponse> {
-  const params = new URLSearchParams();
-  if (typeof opts?.episode === "number") {
-    params.set("episode", String(opts.episode));
-  }
-  if (typeof opts?.beat === "number") {
-    params.set("beat", String(opts.beat));
-  }
-  const qs = params.toString();
-  const suffix = qs ? `?${qs}` : "";
-  return await apiCall<FreezoneBeatContextResponse>(
-    `projects/${encodeURIComponent(projectId)}/freezone/assets/beat-context${suffix}`,
-    opts?.signal ? { signal: opts.signal } : undefined,
-  );
 }

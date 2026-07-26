@@ -5,7 +5,6 @@ import { apiCall } from "@/shared/api/client";
 import {
   buildProjectionFromPreset,
   createBlankFreezoneCanvas,
-  getFreezoneCanvas,
   getProjectionStatuses,
   putFreezoneCanvas,
 } from "@/api/canvas";
@@ -17,24 +16,6 @@ vi.mock("@/shared/api/client", () => ({
 describe("canvas projection api", () => {
   beforeEach(() => {
     vi.mocked(apiCall).mockReset();
-  });
-
-  it("passes abort signals through canvas detail GETs", async () => {
-    const controller = new AbortController();
-    vi.mocked(apiCall).mockResolvedValueOnce({
-      nodes: [],
-      edges: [],
-      revision: 4,
-    });
-
-    await getFreezoneCanvas("project-a", "user_eric", {
-      signal: controller.signal,
-    });
-
-    expect(apiCall).toHaveBeenCalledWith(
-      "projects/project-a/freezone/canvases/user_eric",
-      { signal: controller.signal },
-    );
   });
 
   it("builds a preset projection graph without a target canvas", async () => {

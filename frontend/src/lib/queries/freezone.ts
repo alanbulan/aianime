@@ -1,71 +1,11 @@
 // Copyright (c) 2026 AI anime
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { listFreezoneCanvases } from "@/api/canvas";
 import {
   listFreezoneBeatContext,
   listFreezoneProjectAssets,
-} from "@/api/projects";
-import { api } from "@/shared/api/transport";
-import { p } from "@/shared/api/path";
+} from "@/features/freezone/public";
 import { queryKeys } from "@/lib/query-keys";
-import type { OkResponse } from "@/types/api";
-
-export type FreezonePresetCanvasRequest =
-  | {
-      scope: "episode";
-      episode: number;
-    }
-  | {
-      scope: "beat";
-      episode: number;
-      beat: number;
-      primary_slot?: "sketch" | "frame" | "render" | string;
-    }
-  | {
-      scope: "asset";
-      asset_kind: "character";
-      character: string;
-    }
-  | {
-      scope: "asset";
-      asset_kind: "portrait";
-      character: string;
-    }
-  | {
-      scope: "asset";
-      asset_kind: "identity";
-      character: string;
-      identity_id: string;
-    }
-  | {
-      scope: "asset";
-      asset_kind: "prop" | "prop_ref";
-      asset_id: string;
-    }
-  | {
-      scope: "asset";
-      asset_kind: "scene";
-      asset_id: string;
-    };
-
-export interface FreezonePresetCanvasData {
-  canvas_id: string;
-  reused: boolean;
-  url: string;
-}
-
-export function createFreezonePresetCanvas(project: string, data: FreezonePresetCanvasRequest) {
-  return api
-    .post(p`api/v1/projects/${project}/freezone/canvases:from-preset`, { json: data })
-    .json<OkResponse<FreezonePresetCanvasData>>();
-}
-
-export function useCreateFreezonePresetCanvas(project: string) {
-  return useMutation({
-    mutationFn: (data: FreezonePresetCanvasRequest) =>
-      createFreezonePresetCanvas(project, data),
-  });
-}
 
 export function useFreezoneCanvases(
   project: string | null | undefined,
