@@ -1,13 +1,5 @@
 // Copyright (c) 2026 AI anime
 import { create } from 'zustand';
-import {
-  addEdge,
-  applyEdgeChanges,
-  applyNodeChanges,
-  type Connection,
-  type EdgeChange,
-  type NodeChange,
-} from '@xyflow/react';
 
 import {
   type ActiveToolDialog,
@@ -25,7 +17,6 @@ import {
   type CanvasHistoryState,
 } from '@/features/canvas/domain/canvasHistory';
 import { findAvailableNodePosition } from '@/features/canvas/domain/canvasGeometry';
-import { normalizeEdgesWithNodes } from '@/features/canvas/domain/canvasEdgeNormalization';
 import {
   isDeleteToEmpty,
   trackEdit,
@@ -68,11 +59,8 @@ import {
 import {
   createCanvasDataEdge,
   createCanvasProgrammaticEdge,
-  prepareCanvasReactFlowConnection,
   type CanvasDataEdgeCreationOptions,
 } from '@/features/canvas/application/canvasEdgeCreation';
-import { applyCanvasNodeChangeEffects } from '@/features/canvas/application/canvasNodeChangeEffects';
-import { applyCanvasEdgeChangeEffects } from '@/features/canvas/application/canvasEdgeChangeEffects';
 import { updateCanvasNodeData } from '@/features/canvas/application/canvasNodeData';
 import { convertCanvasNodeType } from '@/features/canvas/application/canvasNodeConversion';
 import {
@@ -109,6 +97,10 @@ import {
   createZustandCanvasHistorySlice,
   type CanvasHistorySlice,
 } from '@/features/canvas/infrastructure/zustandCanvasHistorySlice';
+import {
+  createZustandCanvasGraphMutationSlice,
+  type CanvasGraphMutationSlice,
+} from '@/features/canvas/infrastructure/zustandCanvasGraphMutationSlice';
 
 export type {
   ActiveToolDialog,
@@ -124,16 +116,10 @@ interface CanvasState
   extends CanvasMutationState,
     CanvasViewportSlice,
     CanvasTransientInteractionSlice,
-    CanvasHistorySlice {
-  nodes: CanvasNode[];
-  edges: CanvasEdge[];
+    CanvasHistorySlice,
+    CanvasGraphMutationSlice {
   selectedNodeId: string | null;
   activeToolDialog: ActiveToolDialog | null;
-
-  onNodesChange: (changes: NodeChange<CanvasNode>[]) => void;
-  onEdgesChange: (changes: EdgeChange<CanvasEdge>[]) => void;
-  onConnect: (connection: Connection) => void;
-  replaceEdges: (edges: CanvasEdge[]) => void;
 
   setCanvasData: (nodes: CanvasNode[], edges: CanvasEdge[], history?: CanvasHistoryState) => void;
   applyCanvasDataEdit: (nodes: CanvasNode[], edges: CanvasEdge[]) => void;
@@ -304,8 +290,6 @@ interface CanvasState
 }
 
 export const useCanvasStore = create<CanvasState>((set, get) => ({
-  nodes: [],
-  edges: [],
   userEditsSinceHydrate: 0,
   lastMutationSource: null,
   pendingClearIntent: false,
@@ -323,60 +307,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     getState: get,
     setState: (patch) => set(patch),
   }),
-
-  onNodesChange: (changes) => {
-    set((state) => {
-      const changedNodes = applyNodeChanges<CanvasNode>(changes, state.nodes);
-      return applyCanvasNodeChangeEffects(state, changedNodes, changes);
-    });
-  },
-
-  onEdgesChange: (changes) => {
-    set((state) => {
-      const changedEdges = applyEdgeChanges<CanvasEdge>(changes, state.edges);
-      return applyCanvasEdgeChangeEffects(state, changedEdges, changes);
-    });
-  },
-
-  onConnect: (connection) => {
-    set((state) => {
-      const prepared = prepareCanvasReactFlowConnection(
-        state.nodes,
-        state.edges,
-        connection,
-      );
-      if (!prepared) {
-        return {};
-      }
-      return {
-        edges: addEdge<CanvasEdge>(prepared, state.edges),
-        history: {
-          past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-          future: [],
-        },
-        dragHistorySnapshot: null,
-        ...trackEdit(state),
-      };
-    });
-  },
-
-  replaceEdges: (edges) => {
-    set((state) => {
-      if (state.edges === edges) {
-        return {};
-      }
-      const normalizedEdges = normalizeEdgesWithNodes(edges, state.nodes);
-      return {
-        edges: normalizedEdges,
-        history: {
-          past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-          future: [],
-        },
-        dragHistorySnapshot: null,
-        ...trackEdit(state),
-      };
-    });
-  },
+  ...createZustandCanvasGraphMutationSlice({
+    setState: (update) => set((state) => update(state)),
+  }),
 
   setCanvasData: (nodes, edges, history) => {
     const normalizedCanvas = normalizeCanvasData(nodes, edges);
