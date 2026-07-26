@@ -1610,6 +1610,96 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("duration: 240");
   });
 
+  it("keeps Canvas history-asset planning and orchestration outside the view", () => {
+    const plannerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasHistoryAssetSpawn.ts",
+    );
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasHistoryAssetController.ts",
+    );
+    const plannerModel = readFileSync(plannerPath, "utf8");
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const quickActionView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/ui/CanvasQuickActionBar.tsx"),
+      "utf8",
+    );
+    const historyAssetsView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/ui/CanvasHistoryAssetsModal.tsx"),
+      "utf8",
+    );
+    const plannerForbiddenImports = importSpecifiers(plannerPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/features/canvas/nodeFactoryComposition",
+    );
+    const hookForbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/features/canvas/nodeFactoryComposition",
+    );
+    const declarations = [
+      ["export function", "createCanvasHistoryAssetPayload("].join(" "),
+      ["export function", "resolveCanvasHistoryAssetPosition("].join(" "),
+      ["export function", "useCanvasHistoryAssetController("].join(" "),
+    ];
+    const implementationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(plannerForbiddenImports).toEqual([]);
+    expect(hookForbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      ["features/canvas/application/canvasHistoryAssetSpawn.ts"],
+      ["features/canvas/application/canvasHistoryAssetSpawn.ts"],
+      ["features/canvas/hooks/useCanvasHistoryAssetController.ts"],
+    ]);
+    expect(plannerModel).toContain("restoreAsGeneratedImage: true");
+    expect(plannerModel).toContain("HISTORY_ASSET_GRID_MAX_COLUMNS = 4");
+    expect(plannerModel).toContain("HISTORY_ASSET_GRID_GAP = 320");
+    expect(hookModel).toContain("createCanvasHistoryAssetPayload(asset)");
+    expect(hookModel).toContain("resolveCanvasHistoryAssetPosition(");
+    expect(hookModel).toContain("selectNode(nodeId)");
+    expect(canvasView).toContain("./hooks/useCanvasHistoryAssetController");
+    expect(canvasView).not.toContain("const handleUseHistoryAsset = useCallback");
+    expect(canvasView).not.toContain("const handleDeleteHistoryNode = useCallback");
+    expect(canvasView).not.toContain("restoreAsGeneratedImage: true");
+    expect(canvasView).not.toContain("Math.min(4, placement.total)");
+    expect(canvasView).not.toContain("@/features/canvas/domain/canvasAssets");
+    expect(quickActionView).toContain("CanvasHistoryAssetPlacement");
+    expect(historyAssetsView).toContain("CanvasHistoryAssetPlacement");
+    expect(quickActionView).not.toContain(
+      "placement?: { index: number; total: number }",
+    );
+    expect(historyAssetsView).not.toContain(
+      "placement?: { index: number; total: number }",
+    );
+  });
+
   it("keeps Canvas viewport commit throttling in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,

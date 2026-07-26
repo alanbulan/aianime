@@ -5,6 +5,7 @@ import { Clock, HelpCircle, Keyboard, Plus } from 'lucide-react';
 
 import type { CanvasNodeType } from '@/features/canvas/domain/canvasNodes';
 import type { CanvasAsset } from '@/features/canvas/domain/canvasAssets';
+import type { CanvasHistoryAssetPlacement } from '@/features/canvas/application/canvasHistoryAssetSpawn';
 import type { SkillDefinition } from '@/features/freezone/context/skillRoles';
 
 import { CanvasAddNodePanel } from './CanvasAddNodePanel';
@@ -23,7 +24,10 @@ interface CanvasQuickActionBarProps {
   skillItems: SkillDefinition[];
   onAddNode: (type: CanvasNodeType) => void;
   onAddSkill: (skill: SkillDefinition) => void;
-  onUseAsset: (asset: CanvasAsset) => void;
+  onUseAsset: (
+    asset: CanvasAsset,
+    placement?: CanvasHistoryAssetPlacement,
+  ) => void;
   onDeleteNode: (nodeId: string) => void;
 }
 

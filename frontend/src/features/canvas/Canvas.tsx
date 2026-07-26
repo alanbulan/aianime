@@ -53,7 +53,6 @@ import {
   type CanvasAssetDragPayload,
 } from '@/features/canvas/domain/assetDrag';
 import { hydrateAssetDragPayload } from '@/features/canvas/domain/assetDragHydrate';
-import type { CanvasAsset } from '@/features/canvas/domain/canvasAssets';
 import { CanvasMinimapBookmarksOverlay } from '@/features/canvas/ui/CanvasMinimapBookmarksOverlay';
 import { captureCurrentViewport, jumpToBookmark } from '@/features/canvas/application/bookmarkActions';
 import { cloneCanvasNodeData } from '@/features/canvas/application/canvasNodeData';
@@ -105,6 +104,7 @@ import {
 } from './hooks/useCanvasAutoLayoutController';
 import { useCanvasBeatContextPrefetch } from './hooks/useCanvasBeatContextPrefetch';
 import { useCanvasGraphChangeController } from './hooks/useCanvasGraphChangeController';
+import { useCanvasHistoryAssetController } from './hooks/useCanvasHistoryAssetController';
 import {
   useCanvasBatchConnectionController,
   type CanvasBatchConnectionMenuRequest,
@@ -1015,56 +1015,15 @@ export function Canvas({
     [addNode, bindSingleBeatContextInput, setSelectedNode, spawnAtViewportCenter],
   );
 
-  // 历史资产弹窗「使用」：把该资产作为新节点生成到视口中心（复用素材落点的 spawnAssetNode）。
-  // 批量使用时传 placement，把多个新节点在视口中心附近铺成网格，避免全部叠在同一点。
-  const handleUseHistoryAsset = useCallback(
-    (asset: CanvasAsset, placement?: { index: number; total: number }) => {
-      const payload: CanvasAssetDragPayload = {
-        kind: asset.kind,
-        label: asset.label ?? '',
-        // 历史记录里存的原始提示词，回填到新建视频节点的提示词框（见 spawnAssetNode）。
-        prompt: asset.prompt ?? undefined,
-        url: asset.url,
-        // 世界模型节点用 coverUrl 当封面（previewImageUrl）；其余类型无封面。
-        coverUrl: asset.kind === 'model' ? asset.previewUrl : null,
-        // 历史「使用」还原的是生成产物：图片应还原成成品「图片节点」(imageGen)——
-        // 带回提示词、展开操作区、按图自适应比例，而非只读的上传参考图节点（见 spawnAssetNode）。
-        restoreAsGeneratedImage: true,
-        // 原始生成的注册表模型 id / 生成模式,透传给还原节点以复现原次生成配置
-        // （视频写回 data.model+data.genMode；图片写回 data.model）。旧记录为 undefined。
-        model: asset.model ?? undefined,
-        genMode: asset.genMode ?? undefined,
-        source: {},
-      };
-      const origin = spawnAtViewportCenter();
-      // 网格铺开：每行最多 4 个，格间距 320，整体大致以视口中心为中心。
-      const position =
-        placement && placement.total > 1
-          ? (() => {
-              const perRow = Math.min(4, placement.total);
-              const gap = 320;
-              const col = placement.index % perRow;
-              const row = Math.floor(placement.index / perRow);
-              const rows = Math.ceil(placement.total / perRow);
-              return {
-                x: origin.x + (col - (perRow - 1) / 2) * gap,
-                y: origin.y + (row - (rows - 1) / 2) * gap,
-              };
-            })()
-          : origin;
-      const newNodeId = spawnAssetNode(useCanvasStore.getState(), payload, position);
-      setSelectedNode(newNodeId);
-    },
-    [setSelectedNode, spawnAtViewportCenter],
-  );
-
-  // 历史资产弹窗「删除」：从画布移除该资产对应的源节点。
-  const handleDeleteHistoryNode = useCallback(
-    (nodeId: string) => {
-      deleteNode(nodeId);
-    },
-    [deleteNode],
-  );
+  const {
+    useHistoryAsset: handleUseHistoryAsset,
+    deleteHistoryNode: handleDeleteHistoryNode,
+  } = useCanvasHistoryAssetController({
+    getViewportCenter: spawnAtViewportCenter,
+    spawnAsset: spawnDroppedAsset,
+    selectNode: setSelectedNode,
+    deleteNode,
+  });
 
   const duplicateNodes = useCallback(
     (sourceNodeIds: string[], options: DuplicateOptions = {}) => {

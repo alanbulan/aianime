@@ -26,6 +26,7 @@ import {
   type CanvasAssetKind,
 } from '@/features/canvas/domain/canvasAssets';
 import { CANVAS_NODE_TYPES } from '@/features/canvas/domain/canvasNodes';
+import type { CanvasHistoryAssetPlacement } from '@/features/canvas/application/canvasHistoryAssetSpawn';
 import { useCanvasGenerationHistory } from '@/features/canvas/hooks/useCanvasGenerationHistory';
 import {
   historyRecordOutputUrl,
@@ -172,7 +173,10 @@ interface CanvasHistoryAssetsModalProps {
    * 「使用」：把该资产作为一个新节点加入画布（落在视口中心）。批量使用时传 placement，
    * 由外层把多个节点在视口中心附近铺成网格。
    */
-  onUseAsset: (asset: CanvasAsset, placement?: { index: number; total: number }) => void;
+  onUseAsset: (
+    asset: CanvasAsset,
+    placement?: CanvasHistoryAssetPlacement,
+  ) => void;
   /** 「删除」：从画布移除该资产对应的源节点。 */
   onDeleteNode: (nodeId: string) => void;
   /** 仅展示图片 tab（用于分镜组只接受图片的取图场景）。 */
