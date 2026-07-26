@@ -4,7 +4,7 @@ import {
   type RefObject,
 } from 'react';
 
-import type { SkillDefinition } from '@/features/freezone/context/skillRoles';
+import type { SkillDefinition } from '@/features/freezone/public';
 
 import { createCanvasSkillNodeData } from '../application/canvasNodeMenuSelection';
 import {

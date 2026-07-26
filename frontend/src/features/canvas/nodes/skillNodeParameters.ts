@@ -2,7 +2,7 @@
 import type {
   SkillDefinition,
   SkillParameterSpec,
-} from '@/features/freezone/context/skillRoles';
+} from '@/features/freezone/public';
 
 const PARAMETER_LABELS: Record<string, string> = {
   aspect_ratio: '比例',

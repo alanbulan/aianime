@@ -18,7 +18,7 @@ import {
   CANVAS_NODE_TYPES,
   type CanvasNodeType,
 } from '@/features/canvas/domain/canvasNodes';
-import type { SkillDefinition, SkillProvider } from '@/features/freezone/context/skillRoles';
+import type { SkillDefinition, SkillProvider } from '@/features/freezone/public';
 import {
   translateSkillDescription,
   translateSkillName,

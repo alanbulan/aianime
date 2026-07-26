@@ -25,7 +25,7 @@ import {
   type VideoStoryNodeData,
 } from './canvasNodes';
 import { DEFAULT_NODE_DISPLAY_NAME } from './nodeDisplay';
-import { SKILL_SCHEMA_VERSION } from '@/features/freezone/context/skillRoles';
+import { SKILL_SCHEMA_VERSION } from '@/features/freezone/public';
 import {
   DEFAULT_IMAGE_MODEL_ID,
   DEFAULT_SHARED_MODEL_ID,

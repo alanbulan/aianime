@@ -66,7 +66,7 @@ import type {
   SkillDefinition,
   SkillInputRole,
   SkillProvider,
-} from '@/features/freezone/context/skillRoles';
+} from '@/features/freezone/public';
 import {
   translateSkillDescription,
   translateSkillCardinality,

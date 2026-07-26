@@ -6,7 +6,7 @@ import type {
   SkillCardinality,
   SkillInputRole,
   SkillOutputRole,
-} from "@/features/freezone/context/skillRoles";
+} from "@/features/freezone/domain/skillContract";
 
 function tWithFallback(t: TFunction, key: string, fallback: string): string {
   const translated = t(key);

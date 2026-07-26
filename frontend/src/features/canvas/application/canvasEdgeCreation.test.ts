@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import type { SkillDefinition } from '@/features/freezone/context/skillRoles';
+import type { SkillDefinition } from '@/features/freezone/public';
 
 import {
   CANVAS_NODE_TYPES,

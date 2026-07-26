@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { applySkillRoleBindingConnection } from "@/features/canvas/domain/skillConnectionEdges";
 import type { CanvasEdge, CanvasNode } from "@/features/canvas/domain/canvasNodes";
-import type { SkillDefinition } from "@/features/freezone/context/skillRoles";
+import type { SkillDefinition } from "@/features/freezone/public";
 
 const skill: SkillDefinition = {
   id: "freezone.sketch_from_context",

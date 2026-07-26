@@ -6,7 +6,7 @@ import { isPresetManagedEdge } from './mainlineNodeFlags';
 import { getCurrentBeatContextFromNode } from '../../freezone/context/currentBeatContext.ts';
 import { inputAcceptsNode } from '../../freezone/context/skillNodeInputs.ts';
 import { inferSkillConnectionRole } from '../../freezone/context/inferSkillConnectionRole.ts';
-import type { SkillDefinition, SkillInputRole } from '../../freezone/context/skillRoles.ts';
+import type { SkillDefinition, SkillInputRole } from '@/features/freezone/public';
 
 export interface SkillRoleBindingEdgeData {
   edgeKind: 'role_binding';

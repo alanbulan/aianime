@@ -5,7 +5,7 @@ import {
   normalizedSkillParameters,
   skillParameterEntries,
 } from '@/features/canvas/nodes/skillNodeParameters';
-import type { SkillDefinition } from '@/features/freezone/context/skillRoles';
+import type { SkillDefinition } from '@/features/freezone/public';
 
 const skill: SkillDefinition = {
   id: 'freezone.frame_from_context',

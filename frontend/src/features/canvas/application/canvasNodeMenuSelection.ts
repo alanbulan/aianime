@@ -2,7 +2,7 @@
 import {
   SKILL_SCHEMA_VERSION,
   type SkillDefinition,
-} from '@/features/freezone/context/skillRoles';
+} from '@/features/freezone/public';
 
 import {
   CANVAS_NODE_TYPES,

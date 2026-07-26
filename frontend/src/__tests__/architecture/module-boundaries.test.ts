@@ -645,6 +645,54 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("publishes the Freezone skill contract through one public API", () => {
+    const freezoneRoot = resolve(SRC_ROOT, "features/freezone");
+    const contractPath = resolve(
+      freezoneRoot,
+      "domain/skillContract.ts",
+    );
+    const publicPath = resolve(freezoneRoot, "public.ts");
+    const legacyPath = resolve(freezoneRoot, "context/skillRoles.ts");
+    const nodeRegistryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/nodeRegistry.ts",
+    );
+    const declarationOwners = sourceFiles(freezoneRoot)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          "export const SKILL_SCHEMA_VERSION",
+        ),
+      )
+      .map(relativeSource)
+      .sort();
+    const externalContractImportFailures = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.startsWith(freezoneRoot))
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter(
+            (specifier) =>
+              specifier.includes("features/freezone/domain/skillContract") ||
+              specifier.includes("features/freezone/context/skillRoles") ||
+              specifier.includes("freezone/context/skillRoles"),
+          )
+          .map((specifier) => `${relativeSource(path)} -> ${specifier}`),
+      );
+
+    expect(existsSync(legacyPath)).toBe(false);
+    expect(importSpecifiers(contractPath)).toEqual([]);
+    expect(declarationOwners).toEqual([
+      "features/freezone/domain/skillContract.ts",
+    ]);
+    expect(new Set(importSpecifiers(publicPath))).toEqual(
+      new Set(["@/features/freezone/domain/skillContract"]),
+    );
+    expect(externalContractImportFailures).toEqual([]);
+    expect(importSpecifiers(nodeRegistryPath)).toContain(
+      "@/features/freezone/public",
+    );
+  });
+
   it("keeps Canvas node preferences behind one browser gateway", () => {
     const legacyDomainPath = resolve(
       SRC_ROOT,

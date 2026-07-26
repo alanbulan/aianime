@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { SkillInputRole } from "./skillRoles.ts";
+import type { SkillInputRole } from "../domain/skillContract";
 
 /**
  * 画布连线「落到技能节点的哪个输入口」推断。

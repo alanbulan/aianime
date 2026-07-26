@@ -3,7 +3,7 @@ import type { TFunction } from 'i18next';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { SkillDefinition } from '@/features/freezone/context/skillRoles';
+import type { SkillDefinition } from '@/features/freezone/public';
 
 import { CANVAS_NODE_TYPES } from '../domain/canvasNodes';
 import { useCanvasNodeCatalogController } from './useCanvasNodeCatalogController';

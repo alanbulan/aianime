@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { resolveInputsForSkill } from "@/features/freezone/context/skillNodeInputs";
 import { nodeDataForOutput } from "@/features/freezone/context/skillNodeOutputs";
-import type { SkillDefinition } from "@/features/freezone/context/skillRoles";
+import type { SkillDefinition } from "@/features/freezone/public";
 
 const beatContextSkill: SkillDefinition = {
   id: "freezone.frame_from_context",

@@ -6,7 +6,7 @@ import { Clock, HelpCircle, Keyboard, Plus } from 'lucide-react';
 import type { CanvasNodeType } from '@/features/canvas/domain/canvasNodes';
 import type { CanvasAsset } from '@/features/canvas/domain/canvasAssets';
 import type { CanvasHistoryAssetPlacement } from '@/features/canvas/application/canvasHistoryAssetSpawn';
-import type { SkillDefinition } from '@/features/freezone/context/skillRoles';
+import type { SkillDefinition } from '@/features/freezone/public';
 
 import { CanvasAddNodePanel } from './CanvasAddNodePanel';
 import { CanvasShortcutsPanel } from './CanvasShortcutsPanel';

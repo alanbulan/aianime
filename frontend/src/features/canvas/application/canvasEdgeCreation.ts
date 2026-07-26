@@ -3,7 +3,7 @@ import {
   validateCandidateBindingRoleCandidate,
   validatePropagatingEdgeCandidate,
 } from '@/features/freezone/context/mainlineContext';
-import type { SkillDefinition } from '@/features/freezone/context/skillRoles';
+import type { SkillDefinition } from '@/features/freezone/public';
 
 import {
   validateCanvasConnection,

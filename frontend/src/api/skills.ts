@@ -5,7 +5,7 @@ import type {
   SkillDefinition,
   SkillMediaType,
   SkillOutputRole,
-} from "@/features/freezone/context/skillRoles";
+} from "@/features/freezone/public";
 
 const REGISTRY_CACHE_TTL_MS = 5 * 60 * 1000;
 
