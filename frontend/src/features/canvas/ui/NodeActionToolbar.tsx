@@ -95,6 +95,10 @@ import {
   type NodeToolType,
 } from "@/features/canvas/domain/canvasNodes";
 import { GROUP_COLOR_PRESETS } from "@/features/canvas/domain/groupColors";
+import type {
+  GridActionKey,
+  GridActionRequest,
+} from "@/features/canvas/domain/gridAction";
 import { StoryboardGroupToolbar } from "@/features/canvas/ui/StoryboardGroupToolbar";
 import { canvasEventBus } from "@/features/canvas/application/canvasServices";
 import { useCanvasProjectionStatus } from "@/features/freezone/projectionStatusStore";
@@ -128,11 +132,6 @@ import {
   NODE_TOOLBAR_OFFSET,
   NODE_TOOLBAR_POSITION,
 } from "./nodeToolbarConfig";
-import type {
-  GridActionKey,
-  GridActionRequest,
-} from "./GridActionConfirmOverlay";
-
 interface NodeActionToolbarProps {
   node: CanvasNode;
   onOpenMultiAngleEditor: (nodeId: string) => void;

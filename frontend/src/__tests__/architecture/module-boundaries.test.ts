@@ -9051,6 +9051,98 @@ describe("frontend architecture boundaries", () => {
     expect(overlaySource).not.toContain("awaitTaskCompletion");
   });
 
+  it("keeps Canvas grid-action rules and generation orchestration out of views", () => {
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/gridAction.ts",
+    );
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/generateCanvasGridAction.ts",
+    );
+    const infrastructurePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneGridActionGenerationGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const overlayPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/GridActionConfirmOverlay.tsx",
+    );
+    const toolbarPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeActionToolbar.tsx",
+    );
+    const selectedOverlayPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/SelectedNodeOverlay.tsx",
+    );
+    const domainSource = readFileSync(domainPath, "utf8");
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const infrastructureSource = readFileSync(infrastructurePath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const overlaySource = readFileSync(overlayPath, "utf8");
+
+    expect(importSpecifiers(domainPath)).toEqual([]);
+    expect(domainSource).toContain(
+      "export function resolveGridActionTemplateMode(",
+    );
+    expect(domainSource).toContain("export interface GridActionRequest");
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set([
+        "../domain/gridAction",
+        "./completeCanvasImageGenerationTask",
+        "./ports",
+      ]),
+    );
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).toContain(
+      "export async function generateCanvasGridAction(",
+    );
+    expect(applicationSource).toContain(
+      "mode: resolveGridActionTemplateMode(params.actionKey)",
+    );
+    expect(applicationSource).toContain(
+      "completeCanvasImageGenerationTask(",
+    );
+    expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
+      new Set(["@/api/ops", "../application/generateCanvasGridAction"]),
+    );
+    expect(infrastructureSource).toContain(
+      "freezoneGridActionGenerationGateway: CanvasGridActionGenerationGateway",
+    );
+    expect(compositionSource).toContain(
+      "generateCanvasGridActionUseCase(params, {",
+    );
+    expect(compositionSource).toContain(
+      "submissionGateway: freezoneGridActionGenerationGateway",
+    );
+    expect(importSpecifiers(overlayPath)).toContain(
+      "@/features/canvas/domain/gridAction",
+    );
+    expect(importSpecifiers(overlayPath)).not.toContain("@/api/ops");
+    expect(importSpecifiers(overlayPath)).not.toContain("@/api/tasks");
+    expect(overlaySource).toContain("await generateCanvasGridAction(");
+    expect(overlaySource).not.toContain("GRID_ACTION_MODE_MAP");
+    expect(overlaySource).not.toContain("submitFreezoneTemplateEdit");
+    expect(overlaySource).not.toContain("fetchFreezoneJobResult");
+    expect(overlaySource).not.toContain("awaitTaskCompletion");
+    expect(importSpecifiers(toolbarPath)).toContain(
+      "@/features/canvas/domain/gridAction",
+    );
+    expect(importSpecifiers(toolbarPath)).not.toContain(
+      "./GridActionConfirmOverlay",
+    );
+    expect(importSpecifiers(selectedOverlayPath)).toContain(
+      "@/features/canvas/domain/gridAction",
+    );
+  });
+
   it("keeps Canvas asset extraction independent from media URL infrastructure", () => {
     const assetPath = resolve(
       SRC_ROOT,

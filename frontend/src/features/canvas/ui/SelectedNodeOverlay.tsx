@@ -20,6 +20,7 @@ import {
   type CanvasNode,
   type ExportImageNodeResultKind,
 } from '@/features/canvas/domain/canvasNodes';
+import type { GridActionRequest } from '@/features/canvas/domain/gridAction';
 import { NodeActionToolbar } from './NodeActionToolbar';
 import { AssetCommitHandle } from './AssetCommitHandle';
 import { MultiAngleEditorOverlay } from './MultiAngleEditorOverlay';
@@ -31,10 +32,7 @@ import { UpscaleEditorOverlay } from './UpscaleEditorOverlay';
 import { VideoUpscaleEditorOverlay } from './VideoUpscaleEditorOverlay';
 import { OutpaintEditorOverlay } from './OutpaintEditorOverlay';
 import { RotateEditorOverlay } from './RotateEditorOverlay';
-import {
-  GridActionConfirmOverlay,
-  type GridActionRequest,
-} from './GridActionConfirmOverlay';
+import { GridActionConfirmOverlay } from './GridActionConfirmOverlay';
 
 // Image/video nodes only need the floating action toolbar once they actually
 // have a resource to act on. While the node is empty (no upload, no generated

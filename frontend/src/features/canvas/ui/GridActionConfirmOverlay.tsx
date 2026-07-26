@@ -11,43 +11,19 @@ import {
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
+import type {
+  GridActionKey,
+  GridActionRequest,
+} from '@/features/canvas/domain/gridAction';
 import { useCanvasStore } from '@/stores/canvasStore';
-import {
-  fetchFreezoneJobResult,
-  submitFreezoneTemplateEdit,
-  type FreezoneTemplateEditMode,
-} from '@/api/ops';
 import { CreditCostInline } from '@/components/credit-cost-inline';
-import { awaitTaskCompletion } from '@/api/tasks';
+import { generateCanvasGridAction } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
 import { useGenerationCreditCost } from '@/lib/queries/generation-credit-cost';
 import { readUrl } from '@/lib/url-params';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
 import { CANVAS_NODE_TOOLBAR_PILL_CLASS } from './nodeFrameStyles';
-
-export type GridActionKey =
-  | 'multiCameraGrid'
-  | 'plotFourGrid'
-  | 'faceThreeView'
-  | 'productThreeView'
-  | 'serialStoryboard25'
-  | 'cinematicLightCorrection'
-  | 'characterThreeView'
-  | 'frameProjection3sLater'
-  | 'frameProjection5sEarlier';
-
-const GRID_ACTION_MODE_MAP: Record<GridActionKey, FreezoneTemplateEditMode> = {
-  multiCameraGrid: 'multi_camera_nine_grid',
-  plotFourGrid: 'story_pitch_four_grid',
-  faceThreeView: 'character_face_three_view',
-  productThreeView: 'product_three_view',
-  serialStoryboard25: 'storyboard_25_grid',
-  cinematicLightCorrection: 'cinematic_light_correction',
-  characterThreeView: 'character_three_view_generation',
-  frameProjection3sLater: 'image_projection_after_3s',
-  frameProjection5sEarlier: 'image_projection_before_5s',
-};
 
 function imageModelSupportsQuality(apiModel: string | null | undefined): boolean {
   const normalized = String(apiModel ?? '').trim().toLowerCase();
@@ -57,14 +33,6 @@ function imageModelSupportsQuality(apiModel: string | null | undefined): boolean
     || normalized === 'image-2-official'
     || normalized.includes('gpt-image')
   );
-}
-
-export interface GridActionRequest {
-  nodeId: string;
-  key: GridActionKey;
-  label: string;
-  prompt: string;
-  cost: number;
 }
 
 export interface GridActionSubmitPayload {
@@ -142,19 +110,17 @@ export const GridActionConfirmOverlay = memo(
       onClose();
 
       try {
-        const ref = await submitFreezoneTemplateEdit(project, {
-          sourceUrl: imageSource.split('?')[0],
-          mode: GRID_ACTION_MODE_MAP[request.key],
-          prompt: request.label,
-        });
-        updateNodeData(nextNodeId, generationTaskDescriptor(ref));
-        const completed = await awaitTaskCompletion(ref.task_key, project);
-        const directUrl = completed.result?.['output_url'] as string | undefined;
-        let url = directUrl;
-        if (!url) {
-          const fallback = await fetchFreezoneJobResult(project, ref.task_type, ref.job_id);
-          url = fallback.url;
-        }
+        const { url } = await generateCanvasGridAction(
+          {
+            projectId: project,
+            sourceUrl: imageSource,
+            actionKey: request.key,
+            prompt: request.label,
+          },
+          (task) => {
+            updateNodeData(nextNodeId, generationTaskDescriptor(task));
+          },
+        );
         updateNodeData(nextNodeId, {
           imageUrl: url,
           previewImageUrl: url,
