@@ -10297,6 +10297,46 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("function isGrokVideoChannelModel(");
   });
 
+  it("keeps video reference URL projection in one pure domain module", () => {
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/videoReferenceMedia.ts",
+    );
+    const domainSource = readFileSync(domainPath, "utf8");
+    const videoNode = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      "utf8",
+    );
+    const declarations = [
+      ["export function", "referenceImageUrl("].join(" "),
+      ["export function", "referenceVideoUrl("].join(" "),
+      ["export function", "submittableImageUrl("].join(" "),
+    ];
+    const implementationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(importSpecifiers(domainPath)).toEqual(["./canvasNodes"]);
+    expect(domainSource).not.toContain("react");
+    expect(domainSource).not.toContain("window");
+    expect(domainSource).not.toContain("@/api/");
+    expect(domainSource).not.toContain("@/stores/");
+    expect(implementationOwners).toEqual(
+      declarations.map(() => [
+        "features/canvas/domain/videoReferenceMedia.ts",
+      ]),
+    );
+    expect(videoNode).toContain(
+      "@/features/canvas/domain/videoReferenceMedia",
+    );
+    expect(videoNode).not.toContain("function referenceImageUrl(");
+    expect(videoNode).not.toContain("function referenceVideoUrl(");
+    expect(videoNode).not.toContain("function submittableImageUrl(");
+  });
+
   it("keeps box-selection projection in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
