@@ -15,24 +15,13 @@ import {
   pushSnapshot,
 } from '@/features/canvas/domain/canvasHistory';
 import { trackEdit } from '@/features/canvas/domain/canvasMutation';
-import { planCanvasAutoGroupSpawn } from '@/features/canvas/domain/canvasAutoGrouping';
 import {
   configureCanvasStoryboardGroup,
   type CanvasStoryboardGroupConfig,
 } from '@/features/canvas/domain/canvasStoryboardGroupConfig';
 import { reorderCanvasStoryboardGroupMember } from '@/features/canvas/domain/canvasStoryboardGroupMembers';
 import { convertCanvasStoryboardGroupToPlain } from '@/features/canvas/domain/canvasStoryboardGroupConversion';
-import { fitCanvasGroupToChildren } from '@/features/canvas/domain/canvasGroupFit';
-import {
-  arrangeCanvasGroupChildren,
-  type CanvasGroupArrangementMode,
-} from '@/features/canvas/domain/canvasGroupArrangement';
-import { ungroupCanvasNode } from '@/features/canvas/domain/canvasGroupRemoval';
 import { canvasNodeFactory } from '@/features/canvas/nodeFactoryComposition';
-import {
-  createCanvasNodeGroup,
-  type CanvasGroupCreationOptions,
-} from '@/features/canvas/application/canvasGroupCreation';
 import { createCanvasStoryboardGroup } from '@/features/canvas/application/canvasStoryboardGroupCreation';
 import {
   addCanvasStoryboardGroupMembers,
@@ -70,6 +59,10 @@ import {
   createZustandCanvasNodeDeletionSlice,
   type CanvasNodeDeletionSlice,
 } from '@/features/canvas/infrastructure/zustandCanvasNodeDeletionSlice';
+import {
+  createZustandCanvasGroupLifecycleSlice,
+  type CanvasGroupLifecycleSlice,
+} from '@/features/canvas/infrastructure/zustandCanvasGroupLifecycleSlice';
 
 export type {
   ActiveToolDialog,
@@ -89,24 +82,11 @@ interface CanvasState
     CanvasDocumentLifecycleSlice,
     CanvasNodeMutationSlice,
     CanvasDerivedNodeCreationSlice,
-    CanvasNodeDeletionSlice {
+    CanvasNodeDeletionSlice,
+    CanvasGroupLifecycleSlice {
   selectedNodeId: string | null;
   activeToolDialog: ActiveToolDialog | null;
 
-  groupNodes: (
-    nodeIds: string[],
-    opts?: CanvasGroupCreationOptions
-  ) => string | null;
-  /**
-   * 快捷派生（spawn）后的自动打组：源节点未在组内 → 与新节点一起新建组；已在
-   * 普通组内 → 把新节点并入该组并撑大边界；在分镜组/投影保护组内 → 不打组。
-   * opts.label 作为新建组的名字（如「图片反推提示词组」）。返回组 id。
-   */
-  autoGroupSpawn: (
-    sourceNodeId: string,
-    spawnedNodeIds: string[],
-    opts?: { label?: string }
-  ) => string | null;
   /**
    * 合并分镜组: group nodes into a "分镜组" whose members are packed into a
    * uniform 宫格 grid (reading order). Returns the new group id, or null.
@@ -126,19 +106,6 @@ interface CanvasState
   ) => void;
   /** Drop the storyboard behaviour, leaving a plain group with the same members. */
   convertStoryboardGroupToPlain: (groupNodeId: string) => void;
-  /**
-   * Grow a group's box (and nudge members inward) so it always encloses its
-   * children — covers nodes that auto-resize after their image loads, floating
-   * headers, etc. Grow-only, so it never fights a manual resize. No-op when the
-   * box already fits. Pure layout: no history / autosave churn.
-   */
-  fitGroupToChildren: (groupNodeId: string) => void;
-  /** 把组内子节点按指定方式重新排列（横向 / 纵向 / 网格），并收紧组框。 */
-  arrangeGroupChildren: (
-    groupNodeId: string,
-    mode: CanvasGroupArrangementMode,
-  ) => void;
-  ungroupNode: (groupNodeId: string) => boolean;
   setSelectedNode: (nodeId: string | null) => void;
 
   openToolDialog: (dialog: ActiveToolDialog) => void;
@@ -184,66 +151,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     getState: get,
     setState: (patch) => set(patch),
   }),
-
-  groupNodes: (nodeIds, opts) => {
-    const state = get();
-    const result = createCanvasNodeGroup(
-      state.nodes,
-      nodeIds,
-      opts,
-      canvasNodeFactory,
-    );
-    if (!result) {
-      return null;
-    }
-
-    set({
-      nodes: result.nodes,
-      selectedNodeId: result.groupNodeId,
-      activeToolDialog:
-        state.activeToolDialog && result.groupedNodeIds.has(state.activeToolDialog.nodeId)
-          ? null
-          : state.activeToolDialog,
-      history: {
-        past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-        future: [],
-      },
-      dragHistorySnapshot: null,
-      ...trackEdit(state),
-    });
-
-    return result.groupNodeId;
-  },
-
-  autoGroupSpawn: (sourceNodeId, spawnedNodeIds, opts) => {
-    const state = get();
-    const plan = planCanvasAutoGroupSpawn(
-      state.nodes,
-      sourceNodeId,
-      spawnedNodeIds,
-    );
-    if (!plan) {
-      return null;
-    }
-    if (plan.kind === 'create_group') {
-      return get().groupNodes(plan.nodeIds, {
-        label: opts?.label,
-        extraPadding: 20,
-      });
-    }
-
-    set({
-      nodes: plan.nodes,
-      history: {
-        past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-        future: [],
-      },
-      dragHistorySnapshot: null,
-      ...trackEdit(state),
-    });
-    get().fitGroupToChildren(plan.groupNodeId);
-    return plan.groupNodeId;
-  },
+  ...createZustandCanvasGroupLifecycleSlice({
+    nodeFactory: canvasNodeFactory,
+    getState: get,
+    setState: (patch) => set(patch),
+  }),
 
   mergeStoryboardGroup: (nodeIds) => {
     const state = get();
@@ -365,57 +277,6 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       dragHistorySnapshot: null,
       ...trackEdit(state),
     });
-  },
-
-  fitGroupToChildren: (groupNodeId) => {
-    const state = get();
-    const nodes = fitCanvasGroupToChildren(state.nodes, groupNodeId);
-    if (!nodes) {
-      return;
-    }
-    set({ nodes });
-  },
-
-  arrangeGroupChildren: (groupNodeId, mode) => {
-    const state = get();
-    const nodes = arrangeCanvasGroupChildren(state.nodes, groupNodeId, mode);
-    if (!nodes) {
-      return;
-    }
-
-    set({
-      nodes,
-      history: {
-        past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-        future: [],
-      },
-      dragHistorySnapshot: null,
-      ...trackEdit(state),
-    });
-  },
-
-  ungroupNode: (groupNodeId) => {
-    const state = get();
-    const result = ungroupCanvasNode(state.nodes, state.edges, groupNodeId);
-    if (!result) {
-      return false;
-    }
-
-    set({
-      nodes: result.nodes,
-      edges: result.edges,
-      selectedNodeId: state.selectedNodeId === groupNodeId ? null : state.selectedNodeId,
-      activeToolDialog:
-        state.activeToolDialog?.nodeId === groupNodeId ? null : state.activeToolDialog,
-      history: {
-        past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-        future: [],
-      },
-      dragHistorySnapshot: null,
-      ...trackEdit(state),
-    });
-
-    return true;
   },
 
   setSelectedNode: (nodeId) => {

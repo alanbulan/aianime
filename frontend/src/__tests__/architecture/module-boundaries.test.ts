@@ -3392,6 +3392,13 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const groupLifecycleSlice = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasGroupLifecycleSlice.ts",
+      ),
+      "utf8",
+    );
     const forbiddenImports = [
       deletionPath,
       storyboardPath,
@@ -3446,7 +3453,10 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/groupSelectionDelete",
     );
-    expect(canvasStore).toContain(
+    expect(groupLifecycleSlice).toContain(
+      "../domain/canvasGroupRemoval",
+    );
+    expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasGroupRemoval",
     );
     expect(canvasStore).not.toContain(
@@ -3483,6 +3493,13 @@ describe("frontend architecture boundaries", () => {
     const storyboardCreationModel = readFileSync(storyboardCreationPath, "utf8");
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const groupLifecycleSlice = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasGroupLifecycleSlice.ts",
+      ),
       "utf8",
     );
     const applicationPaths = new Set([creationPath, storyboardCreationPath]);
@@ -3563,13 +3580,19 @@ describe("frontend architecture boundaries", () => {
     expect(storyboardCreationModel).toContain(
       "assembleCanvasGroupNodes(nodes, groupNode, updatedMembers)",
     );
-    expect(canvasStore).toContain(
+    expect(groupLifecycleSlice).toContain(
+      "../application/canvasGroupCreation",
+    );
+    expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasGroupCreation",
     );
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasGrouping",
     );
-    expect(canvasStore).toContain(
+    expect(groupLifecycleSlice).toContain(
+      "../domain/canvasAutoGrouping",
+    );
+    expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasAutoGrouping",
     );
     expect(canvasStore).toContain(
@@ -3762,6 +3785,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
     );
+    const groupLifecycleSlice = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasGroupLifecycleSlice.ts",
+      ),
+      "utf8",
+    );
     const forbiddenImports = [fitPath, arrangementPath].flatMap((path) =>
       importSpecifiers(path)
         .filter(
@@ -3803,10 +3833,16 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(fitModel).toContain(fitDeclaration);
     expect(arrangementModel).toContain(arrangementDeclaration);
-    expect(canvasStore).toContain(
+    expect(groupLifecycleSlice).toContain(
+      "../domain/canvasGroupFit",
+    );
+    expect(groupLifecycleSlice).toContain(
+      "../domain/canvasGroupArrangement",
+    );
+    expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasGroupFit",
     );
-    expect(canvasStore).toContain(
+    expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasGroupArrangement",
     );
     expect(canvasStore).not.toContain("const groupStyle = group.style");
@@ -8429,6 +8465,58 @@ describe("frontend architecture boundaries", () => {
       "...createZustandCanvasNodeDeletionSlice({",
     );
     expect(canvasStore).not.toContain("deleteCanvasNodes(");
+    expect(sliceSource).not.toContain("@/features/canvas/composition");
+    expect(sliceSource).not.toContain("@/stores/canvasStore");
+  });
+
+  it("keeps Canvas group lifecycle in one Zustand slice", () => {
+    const slicePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/zustandCanvasGroupLifecycleSlice.ts",
+    );
+    const sliceSource = readFileSync(slicePath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const canvasStateHeader = canvasStore.match(
+      /interface CanvasState[\s\S]*?\{/,
+    )?.[0];
+    const implementations = [
+      ["groupNodes", "(nodeIds, options) {"],
+      ["autoGroupSpawn", "(sourceNodeId, spawnedNodeIds, options) {"],
+      ["fitGroupToChildren", "(groupNodeId) {"],
+      ["arrangeGroupChildren", "(groupNodeId, mode) {"],
+      ["ungroupNode", "(groupNodeId) {"],
+    ].map(([name, parameters]) => `${name}${parameters}`);
+
+    for (const implementation of implementations) {
+      const owners = sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(implementation))
+        .map(relativeSource)
+        .sort();
+      expect(owners).toEqual([
+        "features/canvas/infrastructure/zustandCanvasGroupLifecycleSlice.ts",
+      ]);
+    }
+
+    expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
+      "../domain/canvasAutoGrouping",
+      "../domain/canvasGroupArrangement",
+      "../domain/canvasGroupFit",
+      "../domain/canvasGroupRemoval",
+      "../domain/canvasHistory",
+      "../domain/canvasMutation",
+      "../domain/canvasNodes",
+      "../application/canvasGroupCreation",
+      "../application/ports",
+    ]));
+    expect(canvasStateHeader).toContain("CanvasGroupLifecycleSlice");
+    expect(canvasStore).toContain(
+      "...createZustandCanvasGroupLifecycleSlice({",
+    );
+    expect(canvasStore).toContain("nodeFactory: canvasNodeFactory");
+    expect(sliceSource).not.toContain("nodeFactoryComposition");
     expect(sliceSource).not.toContain("@/features/canvas/composition");
     expect(sliceSource).not.toContain("@/stores/canvasStore");
   });
