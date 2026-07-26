@@ -618,53 +618,6 @@ export async function submitFreezoneGen(
   );
 }
 
-// /freezone/video/erase --------------------------------------------------- //
-
-/**
- * Per `FreezoneVideoEraseRequest` in openapi.json:
- * - `smart_subtitle`: backend auto-estimates the bottom subtitle band.
- * - `box`: front-end supplies a normalized box (0..1 against source frame).
- */
-export type FreezoneVideoEraseMode = "smart_subtitle" | "box";
-
-export interface FreezoneVideoEraseBox {
-  /** Top-left x, normalized 0..1 against the source video frame. */
-  x: number;
-  /** Top-left y, normalized 0..1 against the source video frame. */
-  y: number;
-  /** Width, normalized (0, 1]. */
-  width: number;
-  /** Height, normalized (0, 1]. */
-  height: number;
-}
-
-export interface FreezoneVideoErasePayload {
-  sourceUrl: string;
-  mode: FreezoneVideoEraseMode;
-  /** Required when `mode === "box"`; ignored otherwise. */
-  box?: FreezoneVideoEraseBox | null;
-}
-
-export async function submitFreezoneVideoErase(
-  project: string,
-  payload: FreezoneVideoErasePayload,
-): Promise<FreezoneJobRef> {
-  const body: Record<string, unknown> = {
-    source_url: payload.sourceUrl,
-    mode: payload.mode,
-  };
-  if (payload.mode === "box" && payload.box) {
-    body.box_x = payload.box.x;
-    body.box_y = payload.box.y;
-    body.box_width = payload.box.width;
-    body.box_height = payload.box.height;
-  }
-  return await apiCall<FreezoneJobRef>(
-    `projects/${encodeURIComponent(project)}/freezone/video/erase`,
-    { method: "POST", json: body },
-  );
-}
-
 // /freezone/video/audio-separate ----------------------------------------- //
 
 /**

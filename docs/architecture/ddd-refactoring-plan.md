@@ -1596,6 +1596,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百五十六批已将 Freezone 视频合成的项目路径编码、POST method、camelCase 到 snake_case 请求映射及默认值从 `api/ops.ts` 迁入已有唯一 `freezoneVideoComposeGateway` infrastructure 适配器，Canvas 单视频剪辑与时间线合成继续复用同一 application 用例和 composition 装配；旧 `submitFreezoneVideoCompose` 实现及失效的领域类型导入直接删除，不保留 facade、re-export 或第二套 HTTP 映射，`freezone/video/compose` 端点只有该 gateway 一个生产所有者，`api/ops.ts` 由 2,105 行降至 2,069 行；请求路径、方法、默认分辨率/FPS/背景色/原音策略、封面和轨道条目字段语义均未改变；相关 4 个测试文件 21 项、架构门禁 206 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
 
+第二百五十七批已将视频字幕擦除的项目路径编码、POST method、source/mode 及 box 坐标映射从 `api/ops.ts` 迁入已有唯一 `freezoneVideoSubtitleEraseGateway` infrastructure 适配器，smart 模式继续不发送 box 字段，Canvas application 仍统一负责 UI 模式归一、任务等待和结果 URL 解包；旧 `FreezoneVideoEraseMode`、`FreezoneVideoEraseBox`、`FreezoneVideoErasePayload` 和 `submitFreezoneVideoErase` 直接删除，不保留 facade、re-export 或第二套 HTTP 映射，`freezone/video/erase` 端点只有该 gateway 一个生产所有者，`api/ops.ts` 由 2,069 行降至 2,022 行；请求路径、方法、任务回执、智能擦除与指定区域擦除语义均未改变；相关 2 个测试文件 4 项、架构门禁 206 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

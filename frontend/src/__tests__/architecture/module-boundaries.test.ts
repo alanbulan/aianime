@@ -14025,9 +14025,11 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/composition.ts",
     );
+    const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
+    const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const videoNode = readFileSync(
       resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
       "utf8",
@@ -14038,6 +14040,13 @@ describe("frontend architecture boundaries", () => {
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+    const endpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("}/freezone/video/erase`"),
+      )
       .map(relativeSource)
       .sort();
 
@@ -14052,13 +14061,29 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(applicationSource).toContain('params.mode === "box"');
     expect(applicationSource).toContain('"smart_subtitle"');
-    expect(importSpecifiers(adapterPath)).toEqual([
-      "@/api/ops",
-      "../application/eraseVideoSubtitles",
-    ]);
+    expect(new Set(importSpecifiers(adapterPath))).toEqual(
+      new Set([
+        "@/shared/api/client",
+        "../application/eraseVideoSubtitles",
+        "../application/ports",
+      ]),
+    );
     expect(adapterSource).not.toContain("react");
     expect(adapterSource).not.toContain("@/stores/");
-    expect(adapterSource).toContain("submitFreezoneVideoErase(");
+    expect(adapterSource).toContain('method: "POST"');
+    expect(adapterSource).toContain("source_url: submission.sourceUrl");
+    expect(endpointOwners).toEqual([
+      "features/canvas/infrastructure/freezoneVideoSubtitleEraseGateway.ts",
+    ]);
+    for (const legacySymbol of [
+      "FreezoneVideoEraseMode",
+      "FreezoneVideoEraseBox",
+      "FreezoneVideoErasePayload",
+      "submitFreezoneVideoErase",
+    ]) {
+      expect(legacyOpsSource).not.toContain(legacySymbol);
+    }
+    expect(legacyOpsSource).not.toContain("}/freezone/video/erase`");
     expect(compositionSource).toContain(
       "eraseGateway: freezoneVideoSubtitleEraseGateway",
     );
