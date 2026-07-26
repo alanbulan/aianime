@@ -4,6 +4,7 @@ export {
   ScenesPanelContent,
   StylesPageContent,
   listScenes,
+  loadBeatDirectorStageManifest,
   useAssetReferenceIndex,
   useAssetImageSourceSelection,
   useAssetWorkspaceNavigation,

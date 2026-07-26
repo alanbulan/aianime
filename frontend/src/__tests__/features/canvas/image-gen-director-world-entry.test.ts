@@ -32,7 +32,7 @@ describe("ImageGenNode director combined world entry", () => {
       "utf8",
     );
 
-    expect(source).toContain("getBeatDirectorStageManifest");
+    expect(source).toContain("getCanvasBeatDirectorManifest");
     expect(source).toContain("sourceRole === \"director_combined\"");
     expect(source).toContain("onSubmitDirectorCombined={handleDirectorCaptureCombined}");
     expect(source).toContain("onCaptureCanvasNode={handleDirectorOutputCanvasNode}");

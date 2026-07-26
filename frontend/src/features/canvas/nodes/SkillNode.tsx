@@ -12,10 +12,10 @@ import { Handle, Position, useUpdateNodeInternals, type NodeProps } from '@xyflo
 import { Boxes, Camera, Crop, FileText, Loader2, Play } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { getBeatDirectorStageManifest } from '@/api/viewerManifests';
 import {
   awaitCanvasSkillRunResult,
   awaitCanvasGenerationTaskCompletion,
+  getCanvasBeatDirectorManifest,
   getCanvasSceneAssetsForBeat,
   startCanvasSkillRun,
   stageSelectedBackgroundOutputForSkill,
@@ -1174,7 +1174,11 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
     setSourcePickerError(null);
     try {
       const assets = await ensureSceneAssets();
-      const manifest = await getBeatDirectorStageManifest(projectId, beatTarget.episode, beatTarget.beat);
+      const manifest = await getCanvasBeatDirectorManifest({
+        projectId,
+        episode: beatTarget.episode,
+        beat: beatTarget.beat,
+      });
       setDirectorStageManifest(
         mergeManifestWithCanvasBeatContext(
           directorManifestWithScenePanoSource(manifest, assets),

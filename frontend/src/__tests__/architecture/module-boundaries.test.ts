@@ -9236,6 +9236,99 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("reuses the Asset World Beat director manifest through Canvas composition", () => {
+    const assetApplicationPath = resolve(
+      SRC_ROOT,
+      "modules/asset_world/application/load-beat-director-manifest.ts",
+    );
+    const assetGatewayPath = resolve(
+      SRC_ROOT,
+      "modules/asset_world/infrastructure/http-beat-viewer-gateway.ts",
+    );
+    const assetCompositionPath = resolve(
+      SRC_ROOT,
+      "modules/asset_world/composition.ts",
+    );
+    const assetPublicPath = resolve(
+      SRC_ROOT,
+      "modules/asset_world/public.ts",
+    );
+    const canvasApplicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/beatDirectorManifest.ts",
+    );
+    const canvasCompositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const legacyApiPath = resolve(SRC_ROOT, "api/viewerManifests.ts");
+    const duplicateAdapterPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneBeatDirectorManifestGateway.ts",
+    );
+    const nodePaths = [
+      "features/canvas/nodes/ImageGenNode.tsx",
+      "features/canvas/nodes/SkillNode.tsx",
+      "features/canvas/nodes/ThreeDWorldNode.tsx",
+      "features/canvas/nodes/UploadNode.tsx",
+    ].map((path) => resolve(SRC_ROOT, path));
+    const assetApplicationSource = readFileSync(assetApplicationPath, "utf8");
+    const assetGatewaySource = readFileSync(assetGatewayPath, "utf8");
+    const assetCompositionSource = readFileSync(assetCompositionPath, "utf8");
+    const assetPublicSource = readFileSync(assetPublicPath, "utf8");
+    const canvasCompositionSource = readFileSync(canvasCompositionPath, "utf8");
+    const legacyApiSource = readFileSync(legacyApiPath, "utf8");
+    const endpointDeclaration = [
+      "async getDirectorStageManifest(",
+      "project, episode, beatNumber, signal",
+    ].join("");
+    const endpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(endpointDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(existsSync(duplicateAdapterPath)).toBe(false);
+    expect(new Set(importSpecifiers(assetApplicationPath))).toEqual(
+      new Set([
+        "@/features/viewer-kit/three-d/directorManifest",
+        "@/modules/asset_world/application/beat-viewer-gateway",
+      ]),
+    );
+    expect(importSpecifiers(canvasApplicationPath)).toEqual([
+      "@/features/viewer-kit/three-d/directorManifest",
+    ]);
+    expect(assetApplicationSource).toContain(
+      "gateway.getDirectorStageManifest(",
+    );
+    expect(assetApplicationSource).toContain("if (!response.ok)");
+    expect(assetGatewaySource).toContain('"director-stage/manifest"');
+    expect(endpointOwners).toEqual([
+      "modules/asset_world/infrastructure/http-beat-viewer-gateway.ts",
+    ]);
+    expect(assetCompositionSource).toContain(
+      "loadBeatDirectorStageManifestUseCase(",
+    );
+    expect(assetPublicSource).toContain("loadBeatDirectorStageManifest,");
+    expect(importSpecifiers(canvasCompositionPath)).toContain(
+      "@/modules/asset_world/public",
+    );
+    expect(canvasCompositionSource).toContain(
+      "const canvasBeatDirectorManifestGateway",
+    );
+    expect(canvasCompositionSource).toContain(
+      "getCanvasBeatDirectorManifestUseCase(",
+    );
+    expect(legacyApiSource).not.toContain("getBeatDirectorStageManifest");
+    for (const nodePath of nodePaths) {
+      const nodeSource = readFileSync(nodePath, "utf8");
+      expect(nodeSource).toContain("getCanvasBeatDirectorManifest");
+      expect(nodeSource).not.toContain("getBeatDirectorStageManifest");
+    }
+  });
+
   it("keeps Canvas image-to-3D generation orchestration out of views", () => {
     const domainPath = resolve(
       SRC_ROOT,

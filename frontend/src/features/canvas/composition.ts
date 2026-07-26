@@ -2,12 +2,18 @@
 import { readUrl } from '@/lib/url-params';
 import { embedStoryboardImageMetadata } from '@/commands/image';
 import { getSceneDirectorStageManifest } from '@/api/viewerManifests';
+import { loadBeatDirectorStageManifest } from '@/modules/asset_world/public';
 
 import { canvasEventBus } from './application/canvasServices';
 import {
   analyzeCanvasVideoStory as analyzeCanvasVideoStoryUseCase,
   type AnalyzeCanvasVideoStoryParams,
 } from './application/analyzeCanvasVideoStory';
+import {
+  getCanvasBeatDirectorManifest as getCanvasBeatDirectorManifestUseCase,
+  type CanvasBeatDirectorManifestGateway,
+  type GetCanvasBeatDirectorManifestParams,
+} from './application/beatDirectorManifest';
 import {
   completeVideoGenerationTask as completeVideoGenerationTaskUseCase,
   type CompleteVideoGenerationTaskParams,
@@ -185,6 +191,11 @@ import type { CanvasAssetDragPayload } from './domain/assetDrag';
 
 const canvasSceneDirectorManifestGateway: CanvasSceneDirectorManifestGateway = {
   getSceneDirectorStageManifest,
+};
+
+const canvasBeatDirectorManifestGateway: CanvasBeatDirectorManifestGateway = {
+  getBeatManifest: ({ projectId, episode, beat }) =>
+    loadBeatDirectorStageManifest(projectId, episode, beat),
 };
 
 export { canvasNodeFactory } from './nodeFactoryComposition';
@@ -552,6 +563,15 @@ export function getCanvasSceneAssetsForBeat(
   return getCanvasSceneAssetsForBeatUseCase(
     params,
     freezoneSceneAssetsGateway,
+  );
+}
+
+export function getCanvasBeatDirectorManifest(
+  params: GetCanvasBeatDirectorManifestParams,
+) {
+  return getCanvasBeatDirectorManifestUseCase(
+    params,
+    canvasBeatDirectorManifestGateway,
   );
 }
 

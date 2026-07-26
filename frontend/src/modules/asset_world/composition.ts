@@ -10,6 +10,9 @@ import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import { isCeRuntime } from "@/lib/runtime-config";
 import { NarratorVoicePanel } from "@/modules/production/public";
 import { createBeatViewerQueryHooks } from "@/modules/asset_world/application/beat-viewer-query-hooks";
+import {
+  loadBeatDirectorStageManifest as loadBeatDirectorStageManifestUseCase,
+} from "@/modules/asset_world/application/load-beat-director-manifest";
 import { useAssetReferenceIndex } from "@/modules/asset_world/application/use-asset-reference-index";
 import { createCharacterQueryHooks } from "@/modules/asset_world/application/character-query-hooks";
 import { createImageSourceQueryHooks } from "@/modules/asset_world/application/image-source-query-hooks";
@@ -205,6 +208,17 @@ export { useAssetReferenceIndex, useAssetWorkspaceNavigation };
 export async function listScenes(project: string): Promise<SceneAsset[]> {
   const response = await httpSceneGateway.listScenes(project);
   return response.data;
+}
+
+export function loadBeatDirectorStageManifest(
+  project: string,
+  episode: number,
+  beatNumber: number,
+) {
+  return loadBeatDirectorStageManifestUseCase(
+    { project, episode, beatNumber },
+    httpBeatViewerGateway,
+  );
 }
 
 function PropDialogContent(options: PropDialogControllerOptions) {

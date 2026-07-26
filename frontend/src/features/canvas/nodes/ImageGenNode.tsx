@@ -82,12 +82,12 @@ import { useShallow } from 'zustand/react/shallow';
 import { getFreezoneCanvasMetadata } from '@/features/freezone/canvasMetadataContext';
 import {
   generateCanvasImage,
+  getCanvasBeatDirectorManifest,
   translateCanvasText,
   uploadAndAutoCommitSelectedBackgroundCandidate,
   uploadCanvasAsset,
 } from '@/features/canvas/composition';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
-import { getBeatDirectorStageManifest } from '@/api/viewerManifests';
 import { BackgroundCropperDialog } from '@/features/canvas/ui/BackgroundCropperDialog';
 import {
   ThreeDDirectorDialog,
@@ -1089,7 +1089,11 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
     if (!projectId || effectiveEpisode === null || effectiveBeat === null) return;
     setDirectorStageBusy(true);
     try {
-      const manifest = await getBeatDirectorStageManifest(projectId, effectiveEpisode, effectiveBeat);
+      const manifest = await getCanvasBeatDirectorManifest({
+        projectId,
+        episode: effectiveEpisode,
+        beat: effectiveBeat,
+      });
       setDirectorStageManifest(manifest);
       setDirectorStageOpen(true);
     } catch (err) {

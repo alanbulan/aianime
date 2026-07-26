@@ -30,16 +30,6 @@ export async function getBeatPanoViewerManifest(
   );
 }
 
-export async function getBeatDirectorStageManifest(
-  project: string,
-  episode: number,
-  beat: number,
-): Promise<DirectorStageManifest> {
-  return await apiCall<DirectorStageManifest>(
-    `projects/${encodeURIComponent(project)}/episodes/${episode}/beats/${beat}/director-stage/manifest`,
-  );
-}
-
 export async function getBeatDirectorStageOverlay(
   project: string,
   episode: number,

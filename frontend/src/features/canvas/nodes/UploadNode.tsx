@@ -53,6 +53,7 @@ import {
   withImageCacheBust,
 } from '@/features/canvas/application/imageData';
 import {
+  getCanvasBeatDirectorManifest,
   prepareNodeImageFromFile,
   uploadCanvasAsset,
   uploadLocalImageToBackend,
@@ -69,7 +70,6 @@ import {
   hasMainlineContexts,
 } from '@/features/freezone/context/NodeContextBadges';
 import { collectCandidateBindingsForNode } from '@/features/freezone/context/mainlineContext';
-import { getBeatDirectorStageManifest } from '@/api/viewerManifests';
 import {
   ThreeDDirectorDialog,
   type ThreeDDirectorCaptureMeta,
@@ -638,7 +638,11 @@ export const UploadNode = memo(({ id, data, selected, width, height }: UploadNod
     if (!projectId || sourceEpisode === null || sourceBeat === null) return;
     setDirectorStageBusy(true);
     try {
-      const manifest = await getBeatDirectorStageManifest(projectId, sourceEpisode, sourceBeat);
+      const manifest = await getCanvasBeatDirectorManifest({
+        projectId,
+        episode: sourceEpisode,
+        beat: sourceBeat,
+      });
       const directorControlBundleSourceId = resolveDirectorControlBundleSourceId(directorControlBundle);
       const allowedDestinations = manifest.allowed_destinations.includes("canvas_screenshot_node")
         ? manifest.allowed_destinations

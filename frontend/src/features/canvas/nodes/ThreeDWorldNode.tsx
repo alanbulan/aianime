@@ -23,14 +23,12 @@ import type { CanvasGenerationHistoryRecord } from '@/features/canvas/applicatio
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import {
   generateCanvasImageTo3d,
+  getCanvasBeatDirectorManifest,
   uploadAndAutoCommitSelectedBackgroundCandidate,
   uploadCanvasAsset,
   uploadLocalImageToBackend,
 } from '@/features/canvas/composition';
-import {
-  getBeatDirectorStageManifest,
-  getDirectorStagePalette,
-} from '@/api/viewerManifests';
+import { getDirectorStagePalette } from '@/api/viewerManifests';
 import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import { useNodeGenerationHistory } from '@/features/canvas/hooks/useNodeGenerationHistory';
@@ -893,7 +891,11 @@ export const ThreeDWorldNode = memo(({ id, data, selected, width, height }: Thre
       let manifest: DirectorStageManifest | null = null;
       if (beatContext) {
         try {
-          manifest = await getBeatDirectorStageManifest(projectId, beatContext.episode, beatContext.beat);
+          manifest = await getCanvasBeatDirectorManifest({
+            projectId,
+            episode: beatContext.episode,
+            beat: beatContext.beat,
+          });
           manifest = mergeDirectorStageManifestSources(
             manifest,
             directorSourcesForNode(data, upstreamPanoSources),
