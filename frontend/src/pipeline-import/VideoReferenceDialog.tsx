@@ -3,9 +3,10 @@ import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FileVideo, Film, Loader2, Upload, X } from "lucide-react";
 
-import { submitFreezoneExtract, uploadFreezoneImage } from "@/api/ops";
+import { submitFreezoneExtract } from "@/api/ops";
 import { awaitTaskCompletion, type TaskState } from "@/api/tasks";
 import { UiButton, UiPanel } from "@/components/ui";
+import { uploadCanvasAsset } from "@/features/canvas/composition";
 import {
   UI_CONTENT_OVERLAY_INSET_CLASS,
   UI_DIALOG_TRANSITION_MS,
@@ -74,7 +75,7 @@ export function VideoReferenceDialog({
     setError(null);
     try {
       setProgress({ stage: "uploading", message: "上传视频...", progress: 0.2 });
-      const upload = await uploadFreezoneImage(project, file, file.name);
+      const upload = await uploadCanvasAsset(project, file, file.name);
 
       setProgress({
         stage: "extracting",

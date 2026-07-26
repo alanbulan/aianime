@@ -6,9 +6,14 @@ export {
   getProjectionStatuses,
   listFreezoneBeatContext,
   listFreezoneProjectAssets,
+  uploadFreezoneAsset,
   useFreezoneBeatContext,
   useFreezoneProjectAssets,
 } from "@/features/freezone/composition";
+export type {
+  FreezoneAssetUploadOptions,
+  FreezoneAssetUploadResult,
+} from "@/features/freezone/domain/assetUpload";
 export { SKILL_SCHEMA_VERSION } from "@/features/freezone/domain/skillContract";
 export {
   isSkillRunDoneStatus,

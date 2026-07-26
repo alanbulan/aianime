@@ -37,6 +37,10 @@ import type {
 } from "@/features/canvas/domain/assetLibrary";
 import type { CanvasVideoComposeRequest } from "@/features/canvas/domain/videoCompose";
 import type { CanvasImageTo3dSourceKind } from "@/features/canvas/domain/imageTo3d";
+import {
+  ensureBackendImageUrl,
+  ensureBackendImageUrls,
+} from "@/features/canvas/infrastructure/freezoneAssetGateway";
 
 // Per-node generation history -------------------------------------------- //
 
@@ -1829,7 +1833,7 @@ export interface FreezoneAudioVoiceItem {
 }
 
 export interface CreateFreezoneAudioVoiceOptions {
-  /** 同 uploadFreezoneImage：上传大文件时用 false 关闭 ky 默认 30s 超时。 */
+  /** 上传大文件时用 false 关闭 ky 默认 30s 超时。 */
   timeoutMs?: number | false;
 }
 
@@ -1994,120 +1998,6 @@ export async function fetchFreezoneStoryScriptResult(
 ): Promise<FreezoneStoryScriptResult> {
   return await apiCall<FreezoneStoryScriptResult>(
     `projects/${encodeURIComponent(project)}/freezone/jobs/freezone_story_script/${encodeURIComponent(jobId)}/result`,
-  );
-}
-
-// /freezone/upload (multipart) -------------------------------------------- //
-
-export interface FreezoneUploadResult {
-  url: string;
-  filename: string;
-  size: number;
-}
-
-export interface FreezoneUploadOptions {
-  /**
-   * Override the default ky timeout (30s). Pass `false` to disable —
-   * required for multi-MB video uploads on slow links, otherwise ky aborts
-   * the in-flight request and DevTools shows the row as `canceled`.
-   */
-  timeoutMs?: number | false;
-}
-
-export async function uploadFreezoneImage(
-  project: string,
-  file: File | Blob,
-  filename?: string,
-  options?: FreezoneUploadOptions,
-): Promise<FreezoneUploadResult> {
-  const fd = new FormData();
-  fd.append("file", file, filename ?? (file instanceof File ? file.name : "upload.png"));
-  // ky's `body: FormData` skips the json envelope helper, so we go direct.
-  const resp = await apiRequest(
-    `projects/${encodeURIComponent(project)}/freezone/upload`,
-    {
-      method: "POST",
-      body: fd,
-      timeout: options?.timeoutMs ?? undefined,
-    },
-  ).json<{ ok: boolean; data?: FreezoneUploadResult; error?: string }>();
-  if (!resp.ok || !resp.data) {
-    throw new Error(resp.error ?? "upload failed");
-  }
-  return resp.data;
-}
-
-/** Same endpoint as image upload — backend treats the upload as a generic blob. */
-export async function uploadFreezoneVideo(
-  project: string,
-  file: File | Blob,
-  filename?: string,
-): Promise<FreezoneUploadResult> {
-  // Disable the 30s default timeout: video files routinely run into the tens
-  // of MB and the upload streams the body, so a short timeout cancels the
-  // request before the server ever sees the end of the body.
-  return await uploadFreezoneImage(project, file, filename, { timeoutMs: false });
-}
-
-function dataUrlToBlob(dataUrl: string): Blob {
-  const [meta, payload = ""] = dataUrl.split(",", 2);
-  const mimeMatch = /data:([^;]+)/.exec(meta);
-  const mime = mimeMatch?.[1] ?? "image/png";
-  const binary = atob(payload);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-  return new Blob([bytes], { type: mime });
-}
-
-function extensionForMime(mime: string): string {
-  if (mime === "image/png") return "png";
-  if (mime === "image/jpeg" || mime === "image/jpg") return "jpg";
-  if (mime === "image/webp") return "webp";
-  if (mime === "image/gif") return "gif";
-  return "png";
-}
-
-/**
- * Coerce an arbitrary image reference into a backend-resolvable static path.
- *
- * - `data:` URLs are uploaded via `/freezone/upload` first; the response URL
- *   is what backends like `/freezone/image/reverse-prompt` can actually open.
- * - Anything else (already a `/static/...` path, http(s) URL, blob:, etc.) is
- *   returned as-is, minus the `?v=<ts>` cache buster that breaks backend path
- *   lookup (same strip pattern as `RedrawOverlay`).
- */
-export async function ensureBackendImageUrl(
-  project: string,
-  rawUrl: string,
-): Promise<string> {
-  if (rawUrl.startsWith("data:")) {
-    const blob = dataUrlToBlob(rawUrl);
-    const ext = extensionForMime(blob.type);
-    const uploaded = await uploadFreezoneImage(
-      project,
-      blob,
-      `paste-${Date.now()}.${ext}`,
-    );
-    return uploaded.url.split("?")[0];
-  }
-  return rawUrl.split("?")[0];
-}
-
-/**
- * Batch variant of {@link ensureBackendImageUrl}: coerce a list of image
- * references into backend-resolvable static URLs. Empty / blank entries are
- * dropped; original order is preserved; uploads run in parallel.
- */
-export async function ensureBackendImageUrls(
-  project: string,
-  rawUrls: readonly string[] | null | undefined,
-): Promise<string[]> {
-  if (!rawUrls || rawUrls.length === 0) return [];
-  const cleaned = rawUrls.filter(
-    (url): url is string => typeof url === "string" && url.trim().length > 0,
-  );
-  return await Promise.all(
-    cleaned.map((url) => ensureBackendImageUrl(project, url)),
   );
 }
 

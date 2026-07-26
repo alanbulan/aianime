@@ -4,6 +4,9 @@ import {
   getFreezoneAssetImpact as getFreezoneAssetImpactUseCase,
 } from "./application/assetCommit";
 import {
+  uploadFreezoneAsset as uploadFreezoneAssetUseCase,
+} from "./application/assetUpload";
+import {
   listFreezoneBeatContext as listFreezoneBeatContextUseCase,
   listFreezoneProjectAssets as listFreezoneProjectAssetsUseCase,
   type FreezoneBeatContextQueryOptions,
@@ -15,13 +18,27 @@ import {
   getProjectionStatuses as getProjectionStatusesUseCase,
 } from "./application/canvasProjection";
 import type { PushTarget } from "./domain/assetCommit";
+import type { FreezoneAssetUploadOptions } from "./domain/assetUpload";
 import type { FreezoneProjectionPresetRequest } from "./domain/canvasProjection";
 import { httpFreezoneAssetCommitGateway } from "./infrastructure/httpFreezoneAssetCommitGateway";
+import { httpFreezoneAssetUploadGateway } from "./infrastructure/httpFreezoneAssetUploadGateway";
 import { httpFreezoneCanvasProjectionGateway } from "./infrastructure/httpFreezoneCanvasProjectionGateway";
 import { httpFreezoneContextQueryGateway } from "./infrastructure/httpFreezoneContextQueryGateway";
 
 export const { useFreezoneBeatContext, useFreezoneProjectAssets } =
   createFreezoneContextQueryHooks(httpFreezoneContextQueryGateway);
+
+export function uploadFreezoneAsset(
+  projectId: string,
+  file: File | Blob,
+  filename: string,
+  options?: FreezoneAssetUploadOptions,
+) {
+  return uploadFreezoneAssetUseCase(
+    { projectId, file, filename, options },
+    httpFreezoneAssetUploadGateway,
+  );
+}
 
 export function commitFreezoneAsset(
   projectId: string,

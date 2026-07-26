@@ -1592,6 +1592,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百五十四批已确认 `submitFreezoneSketchFromContext`、`submitFreezoneFrameFromContext`、`submitFreezoneScene360FromMaster`、重复的 `submitFreezoneExtractFrames` 与重复的 `submitFreezoneAnalyzeShots` 在全前端零调用，连同 6 个仅服务这些函数的 DTO/类型和失效说明共从 `api/ops.ts` 删除 187 行，不新增替代出口或兼容转发；复杂场景 pano 生成继续由唯一 Asset World `http-scene-gateway` 承担，`extract-frames` 与 `analyze-shots` 分别保留正在使用的 `submitFreezoneExtract` 与 `submitFreezoneAnalyze` 唯一客户端，`ensureBackendImageUrls` 因仍被图片生成和编辑内部复用而明确保留；后端端点与 contract 测试均未修改；新增后的架构门禁 205 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
 
+第二百五十五批已将上传结果与选项迁入唯一 Freezone `assetUpload` domain 契约，将上传命令/port、multipart POST 与响应解包分别迁入 application 和唯一 `httpFreezoneAssetUploadGateway`，并经 Freezone composition/public 发布；Canvas `freezoneAssetGateway` 改为调用 Freezone public 能力并接管 `data:` 图片上传、缓存串清理和批量归一 helper，Asset World 道具参考图上传同步移除第二套 multipart 实现，三个 pipeline-import 对话框统一改经 Canvas `uploadCanvasAsset` 用例；`api/ops.ts` 删除旧上传 DTO、`uploadFreezoneImage`、零调用 `uploadFreezoneVideo`、multipart transport 和重复 URL helper 共净减 110 行，仅临时导入唯一 Canvas helper 给尚未迁移的生成客户端使用；项目编码、`file` 表单字段、POST 路径、默认/禁用超时、错误文案、上传结果、文件名、data URL 和 cache-buster 语义均未改变；相关 4 个测试文件 11 项、新增后的架构门禁 206 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

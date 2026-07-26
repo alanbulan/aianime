@@ -1,8 +1,6 @@
 // Copyright (c) 2026 AI anime
-import {
-  ensureBackendImageUrl,
-  submitFreezoneReversePrompt,
-} from "@/api/ops";
+import { submitFreezoneReversePrompt } from "@/api/ops";
+import { ensureBackendImageUrl } from "./freezoneAssetGateway";
 
 import type { CanvasReversePromptSubmissionGateway } from "../application/generateCanvasReversePrompt";
 

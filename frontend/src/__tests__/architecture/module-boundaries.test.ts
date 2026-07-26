@@ -518,8 +518,9 @@ describe("frontend architecture boundaries", () => {
     expect(composition).toContain("freezoneRedrawTaskGateway");
     expect(composition).toContain("resumeNodeGenerationUseCase(");
     expect(composition).toContain("freezoneGenerationTaskGateway");
-    expect(assetGateway).toContain("uploadFreezoneImage(");
-    expect(assetGateway).toContain("{ timeoutMs: false }");
+    expect(assetGateway).toContain("uploadFreezoneAsset(");
+    expect(assetGateway).toContain("@/features/freezone/public");
+    expect(assetGateway).not.toContain("@/api/ops");
     expect(assetGateway).toContain("async read(source, options)");
     expect(assetGateway).toContain("dataUrlToBlob(source)");
     expect(assetGateway).toContain("credentials: 'include'");
@@ -694,6 +695,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "@/features/freezone/composition",
         "@/features/freezone/domain/assetCommit",
+        "@/features/freezone/domain/assetUpload",
         "@/features/freezone/domain/beatContext",
         "@/features/freezone/domain/canvasProjection",
         "@/features/freezone/domain/canvasStorage",
@@ -956,7 +958,113 @@ describe("frontend architecture boundaries", () => {
     expect(scenePanoEndpointOwners).toEqual([
       "modules/asset_world/infrastructure/http-scene-gateway.ts",
     ]);
-    expect(opsSource).toContain("ensureBackendImageUrls(");
+  });
+
+  it("keeps Freezone asset upload behind one application gateway", () => {
+    const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/assetUpload.ts",
+    );
+    const infrastructurePath = resolve(
+      SRC_ROOT,
+      "features/freezone/infrastructure/httpFreezoneAssetUploadGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/freezone/composition.ts",
+    );
+    const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    const canvasGatewayPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneAssetGateway.ts",
+    );
+    const propGatewayPath = resolve(
+      SRC_ROOT,
+      "modules/asset_world/infrastructure/http-prop-gateway.ts",
+    );
+    const pipelineConsumerPaths = [
+      "pipeline-import/ExtractFramesDialog.tsx",
+      "pipeline-import/MaskEditor.tsx",
+      "pipeline-import/VideoReferenceDialog.tsx",
+    ].map((path) => resolve(SRC_ROOT, path));
+    const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
+    const infrastructureSource = readFileSync(infrastructurePath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const publicSource = readFileSync(publicPath, "utf8");
+    const canvasGatewaySource = readFileSync(canvasGatewayPath, "utf8");
+    const propGatewaySource = readFileSync(propGatewayPath, "utf8");
+    const uploadEndpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("}/freezone/upload`"),
+      )
+      .map(relativeSource)
+      .sort();
+    const helperDeclarations = [
+      ["export async function", "ensureBackendImageUrl("].join(" "),
+      ["export async function", "ensureBackendImageUrls("].join(" "),
+    ];
+    const helperOwners = helperDeclarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => !path.includes(".test."))
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(importSpecifiers(applicationPath)).toEqual([
+      "../domain/assetUpload",
+    ]);
+    expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
+      new Set([
+        "@/shared/api/client",
+        "../application/assetUpload",
+        "../domain/assetUpload",
+      ]),
+    );
+    expect(uploadEndpointOwners).toEqual([
+      "features/freezone/infrastructure/httpFreezoneAssetUploadGateway.ts",
+    ]);
+    expect(infrastructureSource).toContain('method: "POST"');
+    expect(infrastructureSource).toContain(
+      "params.options?.disableTimeout ? false : undefined",
+    );
+    expect(compositionSource).toContain("uploadFreezoneAssetUseCase(");
+    expect(compositionSource).toContain("httpFreezoneAssetUploadGateway");
+    expect(publicSource).toContain("uploadFreezoneAsset,");
+    expect(publicSource).toContain("FreezoneAssetUploadResult,");
+    expect(helperOwners).toEqual(
+      helperDeclarations.map(() => [
+        "features/canvas/infrastructure/freezoneAssetGateway.ts",
+      ]),
+    );
+    expect(importSpecifiers(canvasGatewayPath)).toContain(
+      "@/features/freezone/public",
+    );
+    expect(importSpecifiers(canvasGatewayPath)).not.toContain("@/api/ops");
+    expect(canvasGatewaySource).toContain("uploadFreezoneAsset(");
+    expect(importSpecifiers(propGatewayPath)).toContain(
+      "@/features/freezone/public",
+    );
+    expect(propGatewaySource).toContain("uploadFreezoneAsset(");
+    expect(propGatewaySource).not.toContain("}/freezone/upload`");
+    expect(importSpecifiers(legacyOpsPath)).toContain(
+      "@/features/canvas/infrastructure/freezoneAssetGateway",
+    );
+    expect(legacyOpsSource).not.toContain("FreezoneUploadResult");
+    expect(legacyOpsSource).not.toContain("FreezoneUploadOptions");
+    expect(legacyOpsSource).not.toContain("uploadFreezoneImage");
+    expect(legacyOpsSource).not.toContain("uploadFreezoneVideo");
+    expect(legacyOpsSource).not.toContain("}/freezone/upload`");
+    for (const consumerPath of pipelineConsumerPaths) {
+      const source = readFileSync(consumerPath, "utf8");
+      expect(importSpecifiers(consumerPath)).toContain(
+        "@/features/canvas/composition",
+      );
+      expect(source).toContain("uploadCanvasAsset(");
+      expect(source).not.toContain("uploadFreezoneImage");
+    }
   });
 
   it("keeps all non-projection canvas persistence behind the Canvas composition", () => {
@@ -9753,7 +9861,11 @@ describe("frontend architecture boundaries", () => {
       "dependencies.onTaskSubmitted(task)",
     );
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
-      new Set(["@/api/ops", "../application/generateCanvasReversePrompt"]),
+      new Set([
+        "@/api/ops",
+        "./freezoneAssetGateway",
+        "../application/generateCanvasReversePrompt",
+      ]),
     );
     expect(infrastructureSource).toContain(
       "freezoneReversePromptGenerationGateway: CanvasReversePromptSubmissionGateway",
@@ -14196,13 +14308,11 @@ describe("frontend architecture boundaries", () => {
     expect(implementationOwners).toEqual([
       "features/canvas/application/uploadCanvasAsset.ts",
     ]);
-    expect(adapterSource).toContain("uploadFreezoneImage(");
-    expect(adapterSource).toContain("options?.disableTimeout");
+    expect(adapterSource).toContain("uploadFreezoneAsset(");
+    expect(adapterSource).toContain("options");
     expect(compositionSource).toContain("uploadCanvasAssetUseCase(");
     expect(compositionSource).toContain("freezoneAssetGateway");
-    expect(directImageUploadOwners).toEqual([
-      "features/canvas/infrastructure/freezoneAssetGateway.ts",
-    ]);
+    expect(directImageUploadOwners).toEqual([]);
     expect(directVideoUploadOwners).toEqual([]);
     for (const consumerSource of consumerSources) {
       expect(consumerSource).toContain("uploadCanvasAsset(");

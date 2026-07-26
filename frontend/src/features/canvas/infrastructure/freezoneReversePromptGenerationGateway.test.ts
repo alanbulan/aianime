@@ -5,9 +5,9 @@ const ensureBackendImageUrl = vi.hoisted(() => vi.fn());
 const submitFreezoneReversePrompt = vi.hoisted(() => vi.fn());
 
 vi.mock("@/api/ops", () => ({
-  ensureBackendImageUrl,
   submitFreezoneReversePrompt,
 }));
+vi.mock("./freezoneAssetGateway", () => ({ ensureBackendImageUrl }));
 
 import { freezoneReversePromptGenerationGateway } from "./freezoneReversePromptGenerationGateway";
 

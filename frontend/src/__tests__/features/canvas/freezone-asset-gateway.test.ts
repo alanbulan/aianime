@@ -1,17 +1,21 @@
 // Copyright (c) 2026 AI anime
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const uploadFreezoneImage = vi.hoisted(() => vi.fn());
+const uploadFreezoneAsset = vi.hoisted(() => vi.fn());
 
-vi.mock('@/api/ops', () => ({
-  uploadFreezoneImage,
+vi.mock('@/features/freezone/public', () => ({
+  uploadFreezoneAsset,
 }));
 
-import { freezoneAssetGateway } from '@/features/canvas/infrastructure/freezoneAssetGateway';
+import {
+  ensureBackendImageUrl,
+  ensureBackendImageUrls,
+  freezoneAssetGateway,
+} from '@/features/canvas/infrastructure/freezoneAssetGateway';
 
 describe('freezone asset source gateway', () => {
   afterEach(() => {
-    uploadFreezoneImage.mockReset();
+    uploadFreezoneAsset.mockReset();
     vi.unstubAllGlobals();
   });
 
@@ -22,19 +26,51 @@ describe('freezone asset source gateway', () => {
       size: 42,
     };
     const blob = new Blob(['asset'], { type: 'image/png' });
-    uploadFreezoneImage.mockResolvedValue(uploaded);
+    uploadFreezoneAsset.mockResolvedValue(uploaded);
 
     await expect(
       freezoneAssetGateway.upload('project-1', blob, '../upload.png', {
         disableTimeout: true,
       }),
     ).resolves.toEqual(uploaded);
-    expect(uploadFreezoneImage).toHaveBeenCalledWith(
+    expect(uploadFreezoneAsset).toHaveBeenCalledWith(
       'project-1',
       blob,
       '../upload.png',
-      { timeoutMs: false },
+      { disableTimeout: true },
     );
+  });
+
+  it('uploads data URLs and strips the response cache buster', async () => {
+    uploadFreezoneAsset.mockResolvedValue({
+      url: '/static/upload.png?v=123',
+      filename: 'upload.png',
+      size: 1,
+    });
+
+    await expect(
+      ensureBackendImageUrl('project-1', 'data:image/png;base64,eA=='),
+    ).resolves.toBe('/static/upload.png');
+    expect(uploadFreezoneAsset).toHaveBeenCalledWith(
+      'project-1',
+      expect.any(Blob),
+      expect.stringMatching(/^paste-\d+\.png$/),
+    );
+  });
+
+  it('normalizes static URL batches without uploading blank entries', async () => {
+    await expect(
+      ensureBackendImageUrls('project-1', [
+        '',
+        '   ',
+        '/static/source-a.png?v=1',
+        '/static/source-b.png',
+      ]),
+    ).resolves.toEqual([
+      '/static/source-a.png',
+      '/static/source-b.png',
+    ]);
+    expect(uploadFreezoneAsset).not.toHaveBeenCalled();
   });
 
   it('decodes data URLs without using fetch', async () => {

@@ -2,10 +2,10 @@
 import { useEffect, useRef, useState } from "react";
 import {
   submitFreezoneRedraw,
-  uploadFreezoneImage,
   fetchFreezoneJobResult,
 } from "@/api/ops";
 import { awaitTaskCompletion } from "@/api/tasks";
+import { uploadCanvasAsset } from "@/features/canvas/composition";
 
 interface MaskEditorProps {
   project: string;
@@ -216,7 +216,11 @@ export function MaskEditor({
       const maskBlob = await buildMaskBlob();
       const maskFile = new File([maskBlob], "mask.png", { type: "image/png" });
       setProgressMsg("上传 mask...");
-      const uploaded = await uploadFreezoneImage(project, maskFile);
+      const uploaded = await uploadCanvasAsset(
+        project,
+        maskFile,
+        maskFile.name,
+      );
 
       setProgressMsg("提交局部重绘...");
       const ref = await submitFreezoneRedraw(project, {
