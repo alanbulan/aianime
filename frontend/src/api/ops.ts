@@ -1215,80 +1215,6 @@ export async function submitFreezoneEdit(
   );
 }
 
-// /freezone/sketch-from-context ------------------------------------------- //
-
-export type FreezoneSketchContextSource =
-  | "beat"
-  | "selected_background"
-  | "director_combined"
-  | "background_candidate";
-
-export interface FreezoneSketchFromContextPayload extends FreezoneNodeContext {
-  episode: number;
-  beat: number;
-  sourceKind?: FreezoneSketchContextSource;
-  sourceUrl?: string | null;
-  provider?: FreezoneProvider | null;
-  model?: string | null;
-  quality?: string | null;
-}
-
-export async function submitFreezoneSketchFromContext(
-  project: string,
-  payload: FreezoneSketchFromContextPayload,
-): Promise<FreezoneJobRef> {
-  return await apiCall<FreezoneJobRef>(
-    `projects/${encodeURIComponent(project)}/freezone/sketch-from-context`,
-    {
-      method: "POST",
-      json: {
-        episode: payload.episode,
-        beat: payload.beat,
-        source_kind: payload.sourceKind ?? "beat",
-        source_url: payload.sourceUrl ?? null,
-        provider: payload.provider ?? null,
-        model: payload.model ?? null,
-        quality: payload.quality ?? null,
-        ...nodeContextBody(payload),
-      },
-    },
-  );
-}
-
-// /freezone/frame-from-context -------------------------------------------- //
-
-export interface FreezoneFrameFromContextPayload extends FreezoneNodeContext {
-  episode: number;
-  beat: number;
-  sketchUrl: string;
-  backgroundUrl?: string | null;
-  provider?: FreezoneProvider | null;
-  model?: string | null;
-  quality?: string | null;
-}
-
-export async function submitFreezoneFrameFromContext(
-  project: string,
-  payload: FreezoneFrameFromContextPayload,
-): Promise<FreezoneJobRef> {
-  return await apiCall<FreezoneJobRef>(
-    `projects/${encodeURIComponent(project)}/freezone/frame-from-context`,
-    {
-      method: "POST",
-      json: {
-        episode: payload.episode,
-        beat: payload.beat,
-        sketch_url: payload.sketchUrl,
-        background_url: payload.backgroundUrl ?? null,
-        provider: payload.provider ?? null,
-        model: payload.model ?? null,
-        quality: payload.quality ?? null,
-        ...nodeContextBody(payload),
-      },
-    },
-  );
-}
-
 // /freezone/image-to-3gs --------------------------------------------------- //
 
 export interface FreezoneImageTo3GSPayload extends FreezoneNodeContext {
@@ -1586,8 +1512,8 @@ export interface FreezoneScene360Payload {
  * **单图 360 (simple pipeline)** — 老路径,只把一张图当 reference 走通用
  * 图编辑生成 panorama。不做 master/reverse overlap 分析、空间合约、缝合,
  * 适合 freezone 自由画布上 \"拿任一张图试试 360\" 的快速生成。
- * Asset-scoped scene 360 generation uses
- * {@link submitFreezoneScene360FromMaster} (复杂工作流),不是这条。
+ * Asset-scoped scene 360 generation uses the Asset & World scene gateway,
+ * not this endpoint.
  */
 export async function submitFreezoneScene360(
   project: string,
@@ -1610,75 +1536,6 @@ export async function submitFreezoneScene360(
       },
     },
   );
-}
-
-// /scenes/{name}/pano/generate-async --------------------------------------- //
-
-export interface ScenePanoFromMasterPayload {
-  sceneId: string;
-  /** 后端会自动 fallback 到 text 如果 master 不存在;FE 默认传 'master'。 */
-  source?: "master" | "text";
-  style?: string;
-  provider?: string;
-  model?: string;
-  imageSize?: string;
-  quality?: string;
-  timeoutSeconds?: number;
-}
-
-/**
- * **复杂场景 360 工作流 (complex pipeline)** — 走 stage_asset
- * `pano_from_master` step:
- *  - 读 scene 的 master + reverse_master 文件
- *  - 跑 overlap analyzer (master/reverse 边缘融合分析)
- *  - 跑 spatial contract analyzer (空间合约)
- *  - 调 BuilderGPT/ai_anime_scene_360_gpt_image2.py 生成 pano_360.png
- *  - 写到 stage_manifest canonical 路径 (跟资产画布 pano viewer 同一份文件)
- *
- * Asset-scoped scene 360 generation uses this complex path, not the simple
- * `/freezone/scene-360` endpoint.
- *
- * 注: 走的是 scenes 路由 (不是 freezone 路由),所以返回的是
- * `{ok, task_type:"stage_asset", task_key, scope, task_id, backend}` 结构 —
- * cast 成 FreezoneJobRef shape (task_key + job_id + task_type) 给上层用。
- */
-export async function submitFreezoneScene360FromMaster(
-  project: string,
-  payload: ScenePanoFromMasterPayload,
-): Promise<FreezoneJobRef> {
-  const sceneId = payload.sceneId;
-  if (!sceneId) throw new Error("submitFreezoneScene360FromMaster: missing sceneId");
-  const result = await apiCall<{
-    ok: boolean;
-    task_type: string;
-    task_key: string;
-    task_id?: string;
-    scope?: string;
-    backend?: string;
-    error?: string;
-  }>(
-    `projects/${encodeURIComponent(project)}/scenes/${encodeURIComponent(sceneId)}/pano/generate-async`,
-    {
-      method: "POST",
-      json: {
-        source: payload.source ?? "master",
-        ...(payload.style ? { style: payload.style } : {}),
-        ...(payload.provider ? { provider: payload.provider } : {}),
-        ...(payload.model ? { model: payload.model } : {}),
-        ...(payload.imageSize ? { image_size: payload.imageSize } : {}),
-        ...(payload.quality ? { quality: payload.quality } : {}),
-        ...(payload.timeoutSeconds ? { timeout_seconds: payload.timeoutSeconds } : {}),
-      },
-    },
-  );
-  if (!result.ok || result.error) {
-    throw new Error(result.error ?? "scene 360 from master failed");
-  }
-  return {
-    task_key: result.task_key,
-    job_id: result.task_id ?? result.scope ?? sceneId,
-    task_type: "stage_asset",
-  } as FreezoneJobRef;
 }
 
 // /freezone/template-edit ------------------------------------------------- //
@@ -2251,50 +2108,6 @@ export async function ensureBackendImageUrls(
   );
   return await Promise.all(
     cleaned.map((url) => ensureBackendImageUrl(project, url)),
-  );
-}
-
-// /freezone/extract-frames + analyze-shots -------------------------------- //
-
-export interface FreezoneExtractFramesPayload {
-  videoUrl: string;
-  maxFrames?: number;
-  sceneThreshold?: number;
-}
-
-export async function submitFreezoneExtractFrames(
-  project: string,
-  payload: FreezoneExtractFramesPayload,
-): Promise<unknown> {
-  return await apiCall<unknown>(
-    `projects/${encodeURIComponent(project)}/freezone/extract-frames`,
-    {
-      method: "POST",
-      json: {
-        video_url: payload.videoUrl,
-        max_frames: payload.maxFrames ?? 20,
-        scene_threshold: payload.sceneThreshold ?? 0.3,
-      },
-    },
-  );
-}
-
-export interface FreezoneAnalyzeShotsPayload {
-  frameUrls: string[];
-}
-
-export async function submitFreezoneAnalyzeShots(
-  project: string,
-  payload: FreezoneAnalyzeShotsPayload,
-): Promise<unknown> {
-  return await apiCall<unknown>(
-    `projects/${encodeURIComponent(project)}/freezone/analyze-shots`,
-    {
-      method: "POST",
-      json: {
-        frame_urls: payload.frameUrls,
-      },
-    },
   );
 }
 

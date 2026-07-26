@@ -914,6 +914,51 @@ describe("frontend architecture boundaries", () => {
     expect(endpointOwners).toEqual([]);
   });
 
+  it("does not retain unreachable frontend Freezone operation clients", () => {
+    const opsPath = resolve(SRC_ROOT, "api/ops.ts");
+    const opsSource = readFileSync(opsPath, "utf8");
+    const retiredSymbols = [
+      "FreezoneSketchContextSource",
+      "FreezoneSketchFromContextPayload",
+      "submitFreezoneSketchFromContext",
+      "FreezoneFrameFromContextPayload",
+      "submitFreezoneFrameFromContext",
+      "ScenePanoFromMasterPayload",
+      "submitFreezoneScene360FromMaster",
+      "FreezoneExtractFramesPayload",
+      "submitFreezoneExtractFrames",
+      "FreezoneAnalyzeShotsPayload",
+      "submitFreezoneAnalyzeShots",
+    ];
+    const retiredEndpointOwners = [
+      "freezone/sketch-from-context",
+      "freezone/frame-from-context",
+      "freezone/analyze-shots",
+    ].map((fragment) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => !path.includes(".test."))
+        .filter((path) => readFileSync(path, "utf8").includes(fragment))
+        .map(relativeSource)
+        .sort(),
+    );
+    const scenePanoEndpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("/pano/generate-async"),
+      )
+      .map(relativeSource)
+      .sort();
+
+    for (const symbol of retiredSymbols) {
+      expect(opsSource).not.toContain(symbol);
+    }
+    expect(retiredEndpointOwners).toEqual([[], [], ["api/ops.ts"]]);
+    expect(scenePanoEndpointOwners).toEqual([
+      "modules/asset_world/infrastructure/http-scene-gateway.ts",
+    ]);
+    expect(opsSource).toContain("ensureBackendImageUrls(");
+  });
+
   it("keeps all non-projection canvas persistence behind the Canvas composition", () => {
     const apiCanvasPath = resolve(SRC_ROOT, "api/canvas.ts");
     const canvasContractPath = resolve(
