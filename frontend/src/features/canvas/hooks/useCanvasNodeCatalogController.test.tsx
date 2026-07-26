@@ -8,11 +8,11 @@ import type { SkillDefinition } from '@/features/freezone/public';
 import { CANVAS_NODE_TYPES } from '../domain/canvasNodes';
 import { useCanvasNodeCatalogController } from './useCanvasNodeCatalogController';
 
-const skillApiMocks = vi.hoisted(() => ({
-  getSkillRegistry: vi.fn(),
+const catalogMocks = vi.hoisted(() => ({
+  loadCanvasSkillRegistry: vi.fn(),
 }));
 
-vi.mock('@/api/skills', () => skillApiMocks);
+vi.mock('@/features/canvas/catalogComposition', () => catalogMocks);
 
 describe('useCanvasNodeCatalogController', () => {
   beforeEach(() => {
@@ -25,7 +25,7 @@ describe('useCanvasNodeCatalogController', () => {
       display_name: 'Fallback skill name',
       description: '',
     } as SkillDefinition;
-    skillApiMocks.getSkillRegistry.mockResolvedValue([skill]);
+    catalogMocks.loadCanvasSkillRegistry.mockResolvedValue([skill]);
     const translate = vi.fn((key: string) => {
       if (key === 'node.menu.uploadImage') return '上传图片';
       if (key.endsWith('.name')) return '测试技能';
@@ -45,6 +45,6 @@ describe('useCanvasNodeCatalogController', () => {
       type: CANVAS_NODE_TYPES.skill,
       skill,
     })).toBe('测试技能');
-    expect(skillApiMocks.getSkillRegistry).toHaveBeenCalledOnce();
+    expect(catalogMocks.loadCanvasSkillRegistry).toHaveBeenCalledOnce();
   });
 });

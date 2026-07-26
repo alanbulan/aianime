@@ -1552,6 +1552,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百三十四批已将原 `freezone/context/skillRoles.ts` 的 105 行 Skill 跨上下文契约逐字迁入唯一 `freezone/domain/skillContract.ts`，并新增 18 行 `freezone/public.ts` 作为版本号、Skill 定义、输入输出角色和解析输入 DTO 的稳定公开边界；Freezone 内部三个消费者直接依赖 domain，Canvas、API 及测试调用方全部改经 public API，旧 context 文件直接删除，不保留 re-export 或双轨；`nodeRegistry` 不再读取 Freezone 内部 context，`skill.v1`、输入接受条件、参数、能力和媒体类型契约均未改变；相关 14 个测试文件 61 项、新增后的架构门禁 188 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百三十五批已将 Skill 注册表的场景 360 必填输入覆盖迁入唯一 29 行 `skillCatalog` 领域模块，将目录 port 与带五分钟缓存、并发请求复用的 Freezone HTTP 实现分别迁入 6 行 application 契约和 43 行 `freezoneSkillCatalogGateway` infrastructure 适配器，`catalogComposition` 统一装配；`useCanvasNodeCatalogController` 与 `SkillNode` 改为复用同一 `useCanvasSkillRegistry` 加载、错误和卸载保护，节点删除重复注册表 effect，由 1907 行降至 1882 行；旧 `api/skills.ts` 删除目录 HTTP、缓存和覆盖实现，由 159 行降至 102 行，仅保留 Skill 运行与结果接口，`getSkillRegistry` 旧出口直接删除且 `freezone/skills` 目录端点只有一个生产所有者；相关 6 个测试文件 22 项、新增后的架构门禁 188 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

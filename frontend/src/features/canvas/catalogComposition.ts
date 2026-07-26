@@ -1,5 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { freezoneGenerationCatalogGateway } from './infrastructure/freezoneGenerationCatalogGateway';
+import { freezoneSkillCatalogGateway } from './infrastructure/freezoneSkillCatalogGateway';
+
+export function loadCanvasSkillRegistry() {
+  return freezoneSkillCatalogGateway.listSkills();
+}
 
 export function loadCanvasImageModels(projectId: string) {
   return freezoneGenerationCatalogGateway.listImageModels(projectId);

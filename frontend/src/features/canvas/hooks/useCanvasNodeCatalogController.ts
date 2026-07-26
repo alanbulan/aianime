@@ -2,7 +2,7 @@
 import { useCallback } from 'react';
 import type { TFunction } from 'i18next';
 
-import { getSkillRegistry } from '@/api/skills';
+import { loadCanvasSkillRegistry } from '@/features/canvas/catalogComposition';
 import { translateSkillName } from '@/features/freezone/context/skillI18n';
 
 import { nodeCatalog } from '../application/nodeCatalog';
@@ -23,7 +23,7 @@ export interface CanvasNodeCatalogController extends CanvasSkillRegistryResult {
 export function useCanvasNodeCatalogController({
   translate,
 }: CanvasNodeCatalogControllerOptions): CanvasNodeCatalogController {
-  const registry = useCanvasSkillRegistry(getSkillRegistry);
+  const registry = useCanvasSkillRegistry(loadCanvasSkillRegistry);
   const resolvePlacementLabel = useCallback(
     (placement: CanvasNodePlacement): string => {
       const definition = nodeCatalog.getDefinition(placement.type);

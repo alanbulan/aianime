@@ -1,21 +1,10 @@
 // Copyright (c) 2026 AI anime
-import { apiCall, apiRequest } from "@/shared/api/client";
+import { apiRequest } from "@/shared/api/client";
 import type {
   ResolvedSkillInput,
-  SkillDefinition,
   SkillMediaType,
   SkillOutputRole,
 } from "@/features/freezone/public";
-
-const REGISTRY_CACHE_TTL_MS = 5 * 60 * 1000;
-
-let registryCache:
-  | {
-      loadedAt: number;
-      value: SkillDefinition[];
-    }
-  | null = null;
-let registryInFlight: Promise<SkillDefinition[]> | null = null;
 
 export interface SkillRunRequest {
   schema_version?: string;
@@ -90,52 +79,6 @@ export interface SkillRunResult {
   task_type?: string | null;
   job_id?: string | null;
   error?: SkillErrorEnvelope | string | null;
-}
-
-// 前端对后端 skill 注册表的「必填」覆盖：把指定 skill 的指定输入口强制为必填，
-// 让 UI 标签（必填/可选）与提交就绪判断（isSkillReadyToSubmit）都按更严格的规则生效。
-// key = skill id，value = 需要强制必填的 input role 集合。
-const REQUIRED_INPUT_OVERRIDES: Readonly<Record<string, ReadonlySet<string>>> = {
-  // 生成 360 全景图：场景提示 / 场景主图 / 场景背面图 三个输入全部必填。
-  freezone_scene_360: new Set(["scene", "scene_master", "scene_reverse_master"]),
-};
-
-function applyRequiredOverrides(registry: SkillDefinition[]): SkillDefinition[] {
-  return registry.map((skill) => {
-    const requiredRoles = REQUIRED_INPUT_OVERRIDES[skill.id];
-    if (!requiredRoles) {
-      return skill;
-    }
-    return {
-      ...skill,
-      inputs: skill.inputs.map((input) =>
-        requiredRoles.has(input.role) && !input.required
-          ? { ...input, required: true }
-          : input,
-      ),
-    };
-  });
-}
-
-export async function getSkillRegistry(): Promise<SkillDefinition[]> {
-  const now = Date.now();
-  if (registryCache && now - registryCache.loadedAt < REGISTRY_CACHE_TTL_MS) {
-    return registryCache.value;
-  }
-  if (registryInFlight) {
-    return registryInFlight;
-  }
-
-  registryInFlight = apiCall<SkillDefinition[]>("freezone/skills")
-    .then((value) => {
-      const normalized = applyRequiredOverrides(value);
-      registryCache = { loadedAt: Date.now(), value: normalized };
-      return normalized;
-    })
-    .finally(() => {
-      registryInFlight = null;
-    });
-  return registryInFlight;
 }
 
 export async function runSkill(

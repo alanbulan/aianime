@@ -18,13 +18,13 @@ import {
 } from '@/api/sceneAssets';
 import { getBeatDirectorStageManifest } from '@/api/viewerManifests';
 import {
-  getSkillRegistry,
   getSkillRunResult,
   runSkill,
   type SkillErrorEnvelope,
   type SkillRunOutput,
   type SkillRunResult,
 } from '@/api/skills';
+import { loadCanvasSkillRegistry } from '@/features/canvas/catalogComposition';
 import {
   awaitCanvasGenerationTaskCompletion,
   stageSelectedBackgroundOutputForSkill,
@@ -45,6 +45,7 @@ import {
   normalizedSkillParameters,
   skillParameterEntries,
 } from '@/features/canvas/nodes/skillNodeParameters';
+import { useCanvasSkillRegistry } from '@/features/canvas/hooks/useCanvasSkillRegistry';
 import {
   ThreeDDirectorDialog,
   type ThreeDDirectorCaptureMeta,
@@ -63,7 +64,6 @@ import {
   outputText,
 } from '@/features/freezone/context/skillNodeOutputs';
 import type {
-  SkillDefinition,
   SkillInputRole,
   SkillProvider,
 } from '@/features/freezone/public';
@@ -641,9 +641,9 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
       return state.nodes.filter((node) => sourceIds.has(node.id));
     })
   );
-  const [registry, setRegistry] = useState<SkillDefinition[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const { skills: registry, isLoading, loadError } = useCanvasSkillRegistry(
+    loadCanvasSkillRegistry,
+  );
   const [sceneAssets, setSceneAssets] = useState<SceneAssetsForBeat | null>(null);
   const [sourcePickerError, setSourcePickerError] = useState<string | null>(null);
   const [sourcePickerBusy, setSourcePickerBusy] = useState(false);
@@ -657,31 +657,6 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
   const [submitInFlight, setSubmitInFlight] = useState(false);
   const [taskRecordGraceUntil, setTaskRecordGraceUntil] = useState(0);
   void selected;
-
-  useEffect(() => {
-    let cancelled = false;
-    setIsLoading(true);
-    setLoadError(null);
-    getSkillRegistry()
-      .then((items) => {
-        if (!cancelled) {
-          setRegistry(items);
-        }
-      })
-      .catch((error) => {
-        if (!cancelled) {
-          setLoadError(error instanceof Error ? error.message : String(error));
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const skill = useMemo(
     () => registry.find((item) => item.id === data.skill_id) ?? null,

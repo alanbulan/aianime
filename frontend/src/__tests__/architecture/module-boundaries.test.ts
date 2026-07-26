@@ -3679,6 +3679,22 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps Canvas skill-registry loading in one presentation hook", () => {
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/skillCatalog.ts",
+    );
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/skillCatalog.ts",
+    );
+    const adapterPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneSkillCatalogGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/catalogComposition.ts",
+    );
     const hookPath = resolve(
       SRC_ROOT,
       "features/canvas/hooks/useCanvasSkillRegistry.ts",
@@ -3687,8 +3703,18 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/hooks/useCanvasNodeCatalogController.ts",
     );
+    const skillNodePath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/SkillNode.tsx",
+    );
+    const legacyApiPath = resolve(SRC_ROOT, "api/skills.ts");
+    const domainModel = readFileSync(domainPath, "utf8");
+    const adapterModel = readFileSync(adapterPath, "utf8");
+    const compositionModel = readFileSync(compositionPath, "utf8");
     const hookModel = readFileSync(hookPath, "utf8");
     const controllerModel = readFileSync(controllerPath, "utf8");
+    const skillNodeModel = readFileSync(skillNodePath, "utf8");
+    const legacyApiModel = readFileSync(legacyApiPath, "utf8");
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -3723,8 +3749,36 @@ describe("frontend architecture boundaries", () => {
       )
       .map(relativeSource)
       .sort();
+    const endpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          'apiCall<SkillDefinition[]>("freezone/skills")',
+        ),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(forbiddenImports).toEqual([]);
+    expect(new Set(importSpecifiers(domainPath))).toEqual(
+      new Set(["@/features/freezone/public"]),
+    );
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set(["@/features/freezone/public"]),
+    );
+    expect(new Set(importSpecifiers(adapterPath))).toEqual(
+      new Set([
+        "@/shared/api/client",
+        "@/features/freezone/public",
+        "../application/skillCatalog",
+        "../domain/skillCatalog",
+      ]),
+    );
+    expect(domainModel).toContain("normalizeCanvasSkillCatalog(");
+    expect(adapterModel).toContain("REGISTRY_CACHE_TTL_MS");
+    expect(endpointOwners).toEqual([
+      "features/canvas/infrastructure/freezoneSkillCatalogGateway.ts",
+    ]);
     expect(implementationOwners).toEqual([
       "features/canvas/hooks/useCanvasSkillRegistry.ts",
     ]);
@@ -3733,10 +3787,17 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(hookModel).toContain("loadSkillRegistry()");
     expect(hookModel).toContain("cancelled = true");
+    expect(compositionModel).toContain("freezoneSkillCatalogGateway.listSkills()");
     expect(controllerModel).toContain("./useCanvasSkillRegistry");
-    expect(controllerModel).toContain("getSkillRegistry");
+    expect(controllerModel).toContain("loadCanvasSkillRegistry");
     expect(controllerModel).toContain("nodeCatalog.getDefinition");
     expect(controllerModel).toContain("translateSkillName");
+    expect(skillNodeModel).toContain(
+      "useCanvasSkillRegistry(\n    loadCanvasSkillRegistry,",
+    );
+    expect(skillNodeModel).not.toContain("getSkillRegistry");
+    expect(legacyApiModel).not.toContain("getSkillRegistry");
+    expect(legacyApiModel).not.toContain("REGISTRY_CACHE_TTL_MS");
     expect(canvasView).toContain(
       "./hooks/useCanvasNodeCreationSurfaceController",
     );
@@ -8664,6 +8725,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(importSpecifiers(compositionPath)).toEqual([
       "./infrastructure/freezoneGenerationCatalogGateway",
+      "./infrastructure/freezoneSkillCatalogGateway",
     ]);
     expect(compositionSource).toContain(
       "freezoneGenerationCatalogGateway.listImageModels(projectId)",

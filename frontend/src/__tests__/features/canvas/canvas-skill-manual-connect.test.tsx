@@ -78,8 +78,8 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("@/api/skills", () => ({
-  getSkillRegistry: vi.fn().mockResolvedValue([
+vi.mock("@/features/canvas/catalogComposition", () => ({
+  loadCanvasSkillRegistry: vi.fn().mockResolvedValue([
     {
       id: "freezone.sketch_from_context",
       provider: "freezone_mainline",

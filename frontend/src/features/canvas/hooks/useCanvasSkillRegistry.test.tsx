@@ -25,7 +25,10 @@ describe('useCanvasSkillRegistry', () => {
     );
 
     expect(result.current.skills).toEqual([]);
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.loadError).toBeNull();
     await waitFor(() => expect(result.current.skills).toEqual([first, second]));
+    expect(result.current.isLoading).toBe(false);
     expect(result.current.skillById.get('skill-1')).toBe(first);
     expect(result.current.skillById.get('skill-2')).toBe(second);
     expect(loadSkillRegistry).toHaveBeenCalledOnce();
@@ -46,6 +49,8 @@ describe('useCanvasSkillRegistry', () => {
     ));
     expect(result.current.skills).toEqual([]);
     expect(result.current.skillById.size).toBe(0);
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.loadError).toBe('registry unavailable');
   });
 
   it('ignores a response that arrives after unmount', async () => {
