@@ -10444,6 +10444,56 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("mediaNeedsCrossOrigin");
   });
 
+  it("keeps generation output URL projection in one application module", () => {
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/generationOutputUrl.ts",
+    );
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const consumerPaths = [
+      "features/canvas/application/resumeGeneration.ts",
+      "features/canvas/nodes/ImageGenNode.tsx",
+      "features/canvas/nodes/TextAnnotationNode.tsx",
+      "features/canvas/nodes/VideoNode.tsx",
+    ];
+    const consumerSources = Object.fromEntries(
+      consumerPaths.map((path) => [
+        path,
+        readFileSync(resolve(SRC_ROOT, path), "utf8"),
+      ]),
+    );
+    const declaration = [
+      "export function",
+      "resolveGenerationOutputUrl(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(importSpecifiers(applicationPath)).toEqual([]);
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("window");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(implementationOwners).toEqual([
+      "features/canvas/application/generationOutputUrl.ts",
+    ]);
+    for (const source of Object.values(consumerSources)) {
+      expect(source).toContain(
+        "@/features/canvas/application/generationOutputUrl",
+      );
+    }
+    expect(consumerSources["features/canvas/nodes/ImageGenNode.tsx"])
+      .not.toContain("function resolveOutputUrl(");
+    expect(consumerSources["features/canvas/nodes/TextAnnotationNode.tsx"])
+      .not.toContain("function resolveVideoOutputUrl(");
+    expect(consumerSources["features/canvas/nodes/VideoNode.tsx"])
+      .not.toContain("function resolveOutputUrl(");
+    expect(consumerSources["features/canvas/application/resumeGeneration.ts"])
+      .not.toContain("function resolveUrlFromResult(");
+  });
+
   it("keeps VideoNode album chrome in one presentation view", () => {
     const viewPath = resolve(
       SRC_ROOT,

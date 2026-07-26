@@ -11,6 +11,7 @@
 import type { CanvasNode, CanvasNodeType } from '@/features/canvas/domain/canvasNodes';
 import { CANVAS_NODE_TYPES } from '@/features/canvas/domain/canvasNodes';
 import { resolveErrorContent } from '@/features/canvas/application/errorDialog';
+import { resolveGenerationOutputUrl } from '@/features/canvas/application/generationOutputUrl';
 import { providerErrorMessage } from '@/shared/api/errors';
 import { extractRequestId } from '@/features/canvas/application/generationErrorReport';
 import {
@@ -88,18 +89,6 @@ function resumeKindForNodeType(type: CanvasNodeType): ResumeKind | null {
   }
 }
 
-function resolveUrlFromResult(
-  result: Record<string, unknown> | null | undefined,
-  keys: string[],
-): string | null {
-  if (!result) return null;
-  for (const key of keys) {
-    const value = result[key];
-    if (typeof value === 'string' && value.length > 0) return value;
-  }
-  return null;
-}
-
 // Mirror ThreeDWorldNode's pickPlyUrlFromResult so 3D scenes resume the same way.
 function pickPlyUrlFromResult(
   result: CanvasGenerationTaskCompletion['result'],
@@ -151,7 +140,7 @@ async function buildSuccessPatch(
 ): Promise<Record<string, unknown>> {
   switch (kind) {
     case 'image': {
-      let url = resolveUrlFromResult(completed.result, ['output_url', 'image_url', 'url']);
+      let url = resolveGenerationOutputUrl(completed.result, 'image');
       if (!url && jobId) {
         url = await gateway.fetchResultUrl(projectId, taskType, jobId).catch(() => null);
       }
@@ -161,7 +150,7 @@ async function buildSuccessPatch(
       return { ...CLEARED_TASK_FIELDS, imageUrl: url, previewImageUrl: url, generationError: null };
     }
     case 'video': {
-      let url = resolveUrlFromResult(completed.result, ['video_url', 'output_url', 'url']);
+      let url = resolveGenerationOutputUrl(completed.result, 'video');
       if (!url && jobId) {
         url = await gateway.fetchResultUrl(projectId, taskType, jobId).catch(() => null);
       }
@@ -178,7 +167,7 @@ async function buildSuccessPatch(
       };
     }
     case 'audio': {
-      let url = resolveUrlFromResult(completed.result, ['audio_url', 'output_url', 'url']);
+      let url = resolveGenerationOutputUrl(completed.result, 'audio');
       if (!url && jobId) {
         url = await gateway.fetchResultUrl(projectId, taskType, jobId).catch(() => null);
       }

@@ -67,6 +67,7 @@ import {
   resolveImageDisplayUrl,
   snapToAllowedAspectRatio,
 } from "@/features/canvas/application/imageData";
+import { resolveGenerationOutputUrl } from "@/features/canvas/application/generationOutputUrl";
 import { resolveDroppedVideoFile } from "@/features/canvas/application/resolveDroppedVideoFile";
 import { probeAudioDurationMs } from "@/features/canvas/infrastructure/browserAudioMetadata";
 import { captureVideoFrameBlob } from "@/features/canvas/infrastructure/browserVideoFrameCapture";
@@ -298,17 +299,6 @@ function audioReferenceFileName(item: {
     return null;
   }
 }
-function resolveOutputUrl(
-  result: Record<string, unknown> | null | undefined,
-): string | null {
-  if (!result) return null;
-  for (const key of ["video_url", "output_url", "url"]) {
-    const value = result[key];
-    if (typeof value === "string" && value.length > 0) return value;
-  }
-  return null;
-}
-
 export const VideoNode = memo(
   ({ id, data, selected, width, height }: VideoNodeProps) => {
     const { t } = useTranslation();
@@ -1950,7 +1940,7 @@ export const VideoNode = memo(
             const completed = await awaitTaskCompletion(ref.task_key, projectId);
             // Prefer the dedicated result endpoint — SSE `task.result` may only
             // carry metadata (same pattern as reverse_prompt + video_erase).
-            let url = resolveOutputUrl(completed.result);
+            let url = resolveGenerationOutputUrl(completed.result, "video");
             if (!url) {
               try {
                 const result = await fetchFreezoneJobResult(

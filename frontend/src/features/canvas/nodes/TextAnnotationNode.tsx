@@ -28,6 +28,7 @@ import {
   type VideoNodeData,
 } from '@/features/canvas/domain/canvasNodes';
 import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
+import { resolveGenerationOutputUrl } from '@/features/canvas/application/generationOutputUrl';
 import { isSystemManagedNodeData } from '@/features/canvas/domain/mainlineNodeFlags';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
 import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
@@ -128,15 +129,6 @@ const REAL_MODES = new Set<TextNodeMode>([
   'textToMusic',
   'textToMusicGen',
 ]);
-
-function resolveVideoOutputUrl(result: Record<string, unknown> | null | undefined): string | null {
-  if (!result) return null;
-  for (const key of ['video_url', 'output_url', 'url']) {
-    const value = result[key];
-    if (typeof value === 'string' && value.length > 0) return value;
-  }
-  return null;
-}
 
 function qualityToResolution(q: VideoGenQuality): FreezoneVideoResolution {
   return q.toLowerCase() as FreezoneVideoResolution;
@@ -440,7 +432,7 @@ export const TextAnnotationNode = memo(({
         // Persist the task handle so a page refresh can resume this job.
         updateNodeData(videoNodeId, generationTaskDescriptor(ref));
         const completed = await awaitTaskCompletion(ref.task_key, projectId);
-        const url = resolveVideoOutputUrl(completed.result);
+        const url = resolveGenerationOutputUrl(completed.result, 'video');
         if (url) {
           updateNodeData(videoNodeId, {
             videoUrl: url,

@@ -40,6 +40,7 @@ import {
   snapToAllowedAspectRatio,
   withImageCacheBust,
 } from '@/features/canvas/application/imageData';
+import { resolveGenerationOutputUrl } from '@/features/canvas/application/generationOutputUrl';
 import {
   aspectRatioFromImageDimensions,
   resolveMinEdgeFittedSize,
@@ -241,15 +242,6 @@ const NODE_COUNT_OPTION_BASE_CLASS =
 // 后端也只在 gpt-image-2 上识别该字段。其余模型隐藏该选择器。
 function isImage2Model(apiModel: string | null | undefined): boolean {
   return /image[-_]?2/i.test(apiModel ?? '');
-}
-
-function resolveOutputUrl(result: Record<string, unknown> | null | undefined): string | null {
-  if (!result) return null;
-  for (const key of ['output_url', 'image_url', 'url']) {
-    const value = result[key];
-    if (typeof value === 'string' && value.length > 0) return value;
-  }
-  return null;
 }
 
 export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGenNodeProps) => {
@@ -940,7 +932,7 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
           updateNodeData(id, generationTaskDescriptor(ref));
         }
         const completed = await awaitTaskCompletion(ref.task_key, projectId);
-        let url = resolveOutputUrl(completed.result as Record<string, unknown> | null);
+        let url = resolveGenerationOutputUrl(completed.result, 'image');
         if (!url) {
           try {
             const fallback = await fetchFreezoneJobResult(projectId, ref.task_type, ref.job_id);
