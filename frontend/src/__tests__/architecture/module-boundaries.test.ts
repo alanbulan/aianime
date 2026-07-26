@@ -2524,8 +2524,13 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/hooks/useCanvasBeatContextPrefetch.ts",
     );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasProjectContextController.ts",
+    );
     const domainModel = readFileSync(domainPath, "utf8");
     const hookModel = readFileSync(hookPath, "utf8");
+    const controllerModel = readFileSync(controllerPath, "utf8");
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -2553,12 +2558,47 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/features/canvas/composition",
     );
+    const controllerForbiddenImports = importSpecifiers(controllerPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const controllerDeclaration = [
+      "export function",
+      "useCanvasProjectContextController(",
+    ].join(" ");
+    const controllerOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(controllerDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(domainForbiddenImports).toEqual([]);
     expect(hookForbiddenImports).toEqual([]);
+    expect(controllerForbiddenImports).toEqual([]);
+    expect(controllerOwners).toEqual([
+      "features/canvas/hooks/useCanvasProjectContextController.ts",
+    ]);
     expect(domainModel).toContain("collectCanvasBeatContextEpisodeReferences");
     expect(hookModel).toContain("stableReferencesRef");
-    expect(canvasView).toContain("./hooks/useCanvasBeatContextPrefetch");
+    expect(controllerModel).toContain("./useCanvasBeatContextPrefetch");
+    expect(controllerModel).toContain("prefetchEpisodeBeats");
+    expect(controllerModel).toContain("prefetchEpisodeDetail");
+    expect(controllerModel).toContain("readUrl().project");
+    expect(canvasView).toContain("./hooks/useCanvasProjectContextController");
+    expect(canvasView).not.toContain("./hooks/useCanvasBeatContextPrefetch");
+    expect(canvasView).not.toContain("useQueryClient");
+    expect(canvasView).not.toContain("prefetchEpisodeBeats");
+    expect(canvasView).not.toContain("prefetchEpisodeDetail");
+    expect(canvasView).not.toContain("readUrl().project");
     expect(canvasView).not.toContain("beatContextEpisodesKey");
     expect(canvasView).not.toContain("lastIndexOf(':')");
     expect(canvasView).not.toContain("type BeatContextNodeData");

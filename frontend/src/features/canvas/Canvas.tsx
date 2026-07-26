@@ -25,9 +25,6 @@ import { getSkillRegistry } from '@/api/skills';
 import { translateSkillName } from '@/features/freezone/context/skillI18n';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import { CanvasMinimapBookmarksOverlay } from '@/features/canvas/ui/CanvasMinimapBookmarksOverlay';
-import { readUrl } from '@/lib/url-params';
-import { useQueryClient } from '@tanstack/react-query';
-import { prefetchEpisodeBeats, prefetchEpisodeDetail } from '@/modules/narrative_planning/public';
 import { nodeCatalog } from '@/features/canvas/application/nodeCatalog';
 import { nodeTypes as canvasNodeTypes } from './nodes';
 import { edgeTypes as canvasEdgeTypes } from './edges';
@@ -72,7 +69,6 @@ import {
   useCanvasAutoLayoutController,
   type CanvasAutoLayoutViewportOptions,
 } from './hooks/useCanvasAutoLayoutController';
-import { useCanvasBeatContextPrefetch } from './hooks/useCanvasBeatContextPrefetch';
 import { useCanvasGraphChangeController } from './hooks/useCanvasGraphChangeController';
 import { useCanvasDragLifecycleController } from './hooks/useCanvasDragLifecycleController';
 import { useCanvasGroupFitDragController } from './hooks/useCanvasGroupFitDragController';
@@ -104,6 +100,7 @@ import {
 import { useCanvasNodePlacementConfirm } from './hooks/useCanvasNodePlacementConfirm';
 import { useCanvasCommandSurfaceController } from './hooks/useCanvasCommandSurfaceController';
 import { useCanvasPaneClickController } from './hooks/useCanvasPaneClickController';
+import { useCanvasProjectContextController } from './hooks/useCanvasProjectContextController';
 import { useCanvasSelectionSync } from './hooks/useCanvasSelectionSync';
 import { useCanvasSelectionCommandController } from './hooks/useCanvasSelectionCommandController';
 import { useCanvasSkillRegistry } from './hooks/useCanvasSkillRegistry';
@@ -201,20 +198,8 @@ export function Canvas({
   // edgeVisibilityStore）。持久化/自动布局/导出全部照用 store 里的真实连线。
   const edgesHidden = useEdgeVisibilityStore((state) => state.hidden);
 
-  const queryClient = useQueryClient();
-  // 项目 ID 取自 URL,在画布生命周期内不变,memo 一次,避免在每次 store 变更的 selector 里重复解析。
-  const canvasProject = useMemo(() => readUrl().project, []);
-  const prefetchBeatContextEpisode = useCallback(
-    ({ projectId, episode }: { projectId: string; episode: number }) => {
-      prefetchEpisodeBeats(queryClient, projectId, episode);
-      prefetchEpisodeDetail(queryClient, projectId, episode);
-    },
-    [queryClient],
-  );
-  useCanvasBeatContextPrefetch({
+  const { projectId: canvasProject } = useCanvasProjectContextController({
     nodes,
-    defaultProjectId: canvasProject,
-    prefetchEpisode: prefetchBeatContextEpisode,
   });
   // 触控板平移开关：开启后用 ReactFlow 的 panOnScroll（两指滑动平移、捏合缩放），
   // 关闭则回到默认的滚轮缩放。
