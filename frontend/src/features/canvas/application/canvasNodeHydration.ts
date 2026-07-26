@@ -9,6 +9,8 @@ import {
   type StoryboardFrameItem,
 } from '../domain/canvasNodes';
 import { nodeCatalog } from './nodeCatalog';
+import { createCanvasNodeDefaultData } from './canvasNodeDefaultData';
+import type { CanvasNodeDefaultDataGateway } from './ports';
 
 export const SKILL_NODE_DEFAULT_MEASURED = { width: 380, height: 520 };
 export const BEAT_CONTEXT_NODE_DEFAULT_MEASURED = { width: 420, height: 560 };
@@ -161,16 +163,22 @@ function sortParentNodesBeforeChildren(nodes: CanvasNode[]): CanvasNode[] {
   return sorted;
 }
 
-export function normalizeCanvasNodes(rawNodes: CanvasNode[]): CanvasNode[] {
+export function normalizeCanvasNodes(
+  rawNodes: CanvasNode[],
+  nodeDefaultDataGateway?: CanvasNodeDefaultDataGateway,
+): CanvasNode[] {
   const normalizedNodes = rawNodes
     .map((node) => {
       if (!Object.values(CANVAS_NODE_TYPES).includes(node.type as CanvasNodeType)) {
         return null;
       }
 
-      const definition = nodeCatalog.getDefinition(node.type as CanvasNodeType);
       const mergedData = {
-        ...definition.createDefaultData(),
+        ...createCanvasNodeDefaultData(
+          node.type as CanvasNodeType,
+          nodeCatalog,
+          nodeDefaultDataGateway,
+        ),
         ...(node.data as Partial<CanvasNodeData>),
       } as CanvasNodeData;
 

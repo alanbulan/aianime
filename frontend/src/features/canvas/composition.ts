@@ -176,6 +176,7 @@ const canvasSceneDirectorManifestGateway: CanvasSceneDirectorManifestGateway = {
 };
 
 export { canvasNodeFactory } from './nodeFactoryComposition';
+export { rememberLastVideoModel } from './nodeFactoryComposition';
 export { showErrorDialog } from './infrastructure/globalErrorDialog';
 export { clearBrowserClipboard };
 export {

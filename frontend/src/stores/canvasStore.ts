@@ -10,7 +10,10 @@ import {
   type NodeToolType,
   type StoryboardFrameItem,
 } from '@/features/canvas/domain/canvasNodes';
-import { canvasNodeFactory } from '@/features/canvas/nodeFactoryComposition';
+import {
+  canvasNodeDefaultDataGateway,
+  canvasNodeFactory,
+} from '@/features/canvas/nodeFactoryComposition';
 import {
   createZustandCanvasViewportSlice,
   type CanvasViewportSlice,
@@ -92,6 +95,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     setState: (patch) => set(patch),
   }),
   ...createZustandCanvasHistorySlice({
+    nodeDefaultDataGateway: canvasNodeDefaultDataGateway,
     getState: get,
     setState: (patch) => set(patch),
   }),
@@ -101,10 +105,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     updateState: (update) => set((state) => update(state)),
   }),
   ...createZustandCanvasDocumentLifecycleSlice({
+    nodeDefaultDataGateway: canvasNodeDefaultDataGateway,
     setState: (patch) => set(patch),
     updateState: (update) => set((state) => update(state)),
   }),
   ...createZustandCanvasNodeMutationSlice({
+    nodeDefaultDataGateway: canvasNodeDefaultDataGateway,
     nodeFactory: canvasNodeFactory,
     getState: get,
     setState: (patch) => set(patch),

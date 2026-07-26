@@ -29,7 +29,10 @@ import {
   updateCanvasNodeSize,
   type CanvasNodeSizeUpdateOptions,
 } from '../application/canvasNodeSize';
-import type { NodeFactory } from '../application/ports';
+import type {
+  CanvasNodeDefaultDataGateway,
+  NodeFactory,
+} from '../application/ports';
 
 export interface CanvasNodeMutationSlice {
   addNode: (
@@ -76,6 +79,7 @@ interface CanvasNodeMutationState extends CanvasMutationState {
 }
 
 interface CanvasNodeMutationSliceDependencies {
+  nodeDefaultDataGateway: CanvasNodeDefaultDataGateway;
   nodeFactory: NodeFactory;
   getState: () => CanvasNodeMutationState;
   setState: (patch: Partial<CanvasNodeMutationState>) => void;
@@ -120,6 +124,7 @@ export function createZustandCanvasNodeMutationSlice(
         nodeId,
         newType,
         dataOverrides,
+        dependencies.nodeDefaultDataGateway,
       );
       if (!result.changed) {
         return false;

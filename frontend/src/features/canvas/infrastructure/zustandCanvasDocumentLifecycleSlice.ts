@@ -17,6 +17,7 @@ import type {
   CanvasNode,
 } from '../domain/canvasNodes';
 import { normalizeCanvasData } from '../application/canvasDataNormalization';
+import type { CanvasNodeDefaultDataGateway } from '../application/ports';
 
 export interface CanvasDraftHydration {
   nodes: CanvasNode[];
@@ -47,6 +48,7 @@ interface CanvasDocumentLifecycleState extends CanvasMutationState {
 }
 
 interface CanvasDocumentLifecycleSliceStore {
+  nodeDefaultDataGateway: CanvasNodeDefaultDataGateway;
   setState: (patch: Partial<CanvasDocumentLifecycleState>) => void;
   updateState: (
     update: (
@@ -58,19 +60,22 @@ interface CanvasDocumentLifecycleSliceStore {
 export function createZustandCanvasDocumentLifecycleSlice(
   store: CanvasDocumentLifecycleSliceStore,
 ): CanvasDocumentLifecycleSlice {
+  const normalizeData = (nodes: CanvasNode[], edges: CanvasEdge[]) =>
+    normalizeCanvasData(nodes, edges, store.nodeDefaultDataGateway);
+
   return {
     userEditsSinceHydrate: 0,
     lastMutationSource: null,
     pendingClearIntent: false,
 
     setCanvasData(nodes, edges, history) {
-      const normalizedCanvas = normalizeCanvasData(nodes, edges);
+      const normalizedCanvas = normalizeData(nodes, edges);
       store.setState({
         nodes: normalizedCanvas.nodes,
         edges: normalizedCanvas.edges,
         selectedNodeId: null,
         activeToolDialog: null,
-        history: normalizeHistory(history, normalizeCanvasData),
+        history: normalizeHistory(history, normalizeData),
         dragHistorySnapshot: null,
         userEditsSinceHydrate: 0,
         lastMutationSource: null,
@@ -79,7 +84,7 @@ export function createZustandCanvasDocumentLifecycleSlice(
     },
 
     applyCanvasDataEdit(nodes, edges) {
-      const normalizedCanvas = normalizeCanvasData(nodes, edges);
+      const normalizedCanvas = normalizeData(nodes, edges);
       store.updateState((state) => {
         const editSource = isDeleteToEmpty(
           state.nodes.length,
@@ -106,7 +111,7 @@ export function createZustandCanvasDocumentLifecycleSlice(
     },
 
     hydrateCanvasDraft(draft) {
-      const normalizedCanvas = normalizeCanvasData(draft.nodes, draft.edges);
+      const normalizedCanvas = normalizeData(draft.nodes, draft.edges);
       store.setState({
         nodes: normalizedCanvas.nodes,
         edges: normalizedCanvas.edges,
@@ -114,7 +119,7 @@ export function createZustandCanvasDocumentLifecycleSlice(
         activeToolDialog: null,
         history: normalizeHistory(
           draft.history ?? undefined,
-          normalizeCanvasData,
+          normalizeData,
         ),
         dragHistorySnapshot: null,
         userEditsSinceHydrate: draft.mutation.userEditsSinceHydrate,

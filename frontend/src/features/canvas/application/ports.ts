@@ -167,6 +167,10 @@ export interface NodeCatalog {
   getMenuDefinitions: () => CanvasNodeDefinition[];
 }
 
+export interface CanvasNodeDefaultDataGateway {
+  getOverrides: (type: CanvasNodeType) => Partial<CanvasNodeData>;
+}
+
 export interface NodeFactory {
   createNode: (
     type: CanvasNodeType,

@@ -10,6 +10,7 @@ import {
   type CanvasHistoryDirection,
   type CanvasHistoryNavigationState,
 } from '../application/canvasHistoryNavigation';
+import type { CanvasNodeDefaultDataGateway } from '../application/ports';
 
 export interface CanvasHistorySlice {
   history: CanvasHistoryState;
@@ -21,6 +22,7 @@ export interface CanvasHistorySlice {
 }
 
 interface CanvasHistorySliceStore {
+  nodeDefaultDataGateway: CanvasNodeDefaultDataGateway;
   getState: () => CanvasHistoryNavigationState;
   setState: (patch: Partial<CanvasHistoryNavigationState>) => void;
 }
@@ -45,7 +47,13 @@ export function createZustandCanvasHistorySlice(
 
     restoreHistory(history) {
       store.setState({
-        history: normalizeHistory(history, normalizeCanvasData),
+        history: normalizeHistory(history, (nodes, edges) =>
+          normalizeCanvasData(
+            nodes,
+            edges,
+            store.nodeDefaultDataGateway,
+          ),
+        ),
       });
     },
   };

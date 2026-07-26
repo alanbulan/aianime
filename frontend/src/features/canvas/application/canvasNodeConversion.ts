@@ -4,7 +4,9 @@ import type {
   CanvasNodeData,
   CanvasNodeType,
 } from '../domain/canvasNodes';
+import { createCanvasNodeDefaultData } from './canvasNodeDefaultData';
 import { nodeCatalog } from './nodeCatalog';
+import type { CanvasNodeDefaultDataGateway } from './ports';
 
 export interface CanvasNodeConversionResult {
   nodes: CanvasNode[];
@@ -16,15 +18,19 @@ export function convertCanvasNodeType(
   nodeId: string,
   newType: CanvasNodeType,
   dataOverrides: Partial<CanvasNodeData> = {},
+  nodeDefaultDataGateway?: CanvasNodeDefaultDataGateway,
 ): CanvasNodeConversionResult {
   const target = nodes.find((node) => node.id === nodeId);
   if (!target || target.type === newType) {
     return { nodes, changed: false };
   }
 
-  const definition = nodeCatalog.getDefinition(newType);
   const mergedData = {
-    ...definition.createDefaultData(),
+    ...createCanvasNodeDefaultData(
+      newType,
+      nodeCatalog,
+      nodeDefaultDataGateway,
+    ),
     ...dataOverrides,
   } as CanvasNodeData;
   const nextNodes = nodes.map((node) =>

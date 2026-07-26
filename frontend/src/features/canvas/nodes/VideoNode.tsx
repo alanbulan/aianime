@@ -110,6 +110,7 @@ import {
   translateCanvasText,
   uploadCanvasAsset,
   validateVideoReferenceAudioDuration,
+  rememberLastVideoModel,
 } from "@/features/canvas/composition";
 import { backendErrorToastMessage } from "@/shared/api/errors";
 import { resolveGenerationErrorDiagnostics } from "@/features/canvas/application/generationErrorReport";
@@ -210,7 +211,6 @@ import {
   DEFAULT_VIDEO_MODEL_ID,
   ProviderModelPicker,
 } from "@/features/canvas/ui/ProviderModelPicker";
-import { writeLastVideoModel } from "@/features/canvas/domain/lastVideoModel";
 import {
   CreditCostPill,
   formatCreditCost,
@@ -2495,7 +2495,7 @@ export const VideoNode = memo(
                           : {}),
                       });
                       // 记住这次选择，后续新建的视频节点将继承它。
-                      writeLastVideoModel(nextModelId);
+                      rememberLastVideoModel(nextModelId);
                     }}
                     domain="video"
                     popoverPlacement="top"

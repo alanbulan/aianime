@@ -593,6 +593,108 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps Canvas node preferences behind one browser gateway", () => {
+    const legacyDomainPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/lastVideoModel.ts",
+    );
+    const registryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/nodeRegistry.ts",
+    );
+    const defaultDataPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasNodeDefaultData.ts",
+    );
+    const nodeFactoryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/nodeFactory.ts",
+    );
+    const adapterPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/browserCanvasNodeDefaultDataGateway.ts",
+    );
+    const nodeFactoryCompositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodeFactoryComposition.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const videoNodePath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoNode.tsx",
+    );
+    const canvasStorePath = resolve(SRC_ROOT, "stores/canvasStore.ts");
+    const registrySource = readFileSync(registryPath, "utf8");
+    const defaultDataSource = readFileSync(defaultDataPath, "utf8");
+    const nodeFactorySource = readFileSync(nodeFactoryPath, "utf8");
+    const adapterSource = readFileSync(adapterPath, "utf8");
+    const nodeFactoryCompositionSource = readFileSync(
+      nodeFactoryCompositionPath,
+      "utf8",
+    );
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const videoNodeSource = readFileSync(videoNodePath, "utf8");
+    const canvasStoreSource = readFileSync(canvasStorePath, "utf8");
+    const domainRuntimeOwners = sourceFiles(
+      resolve(SRC_ROOT, "features/canvas/domain"),
+    )
+      .filter((path) => {
+        const source = readFileSync(path, "utf8");
+        return source.includes("window.") || source.includes("localStorage");
+      })
+      .map(relativeSource)
+      .sort();
+    const storageOwners = sourceFiles(
+      resolve(SRC_ROOT, "features/canvas"),
+    )
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("canvas.lastVideoModel"),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(existsSync(legacyDomainPath)).toBe(false);
+    expect(domainRuntimeOwners).toEqual([]);
+    expect(storageOwners).toEqual([
+      "features/canvas/infrastructure/browserCanvasNodeDefaultDataGateway.ts",
+    ]);
+    expect(registrySource).not.toContain("readLastVideoModel");
+    expect(registrySource).toContain("model: DEFAULT_VIDEO_MODEL_ID");
+    expect(new Set(importSpecifiers(defaultDataPath))).toEqual(
+      new Set(["../domain/canvasNodes", "./ports"]),
+    );
+    expect(defaultDataSource).toContain(
+      "nodeDefaultDataGateway?.getOverrides(type)",
+    );
+    expect(nodeFactorySource).toContain("createCanvasNodeDefaultData(");
+    expect(new Set(importSpecifiers(adapterPath))).toEqual(
+      new Set(["../domain/canvasNodes", "../application/ports"]),
+    );
+    expect(adapterSource).toContain(
+      'const LAST_VIDEO_MODEL_STORAGE_KEY = "canvas.lastVideoModel"',
+    );
+    expect(nodeFactoryCompositionSource).toContain(
+      "browserCanvasNodeDefaultDataGateway",
+    );
+    expect(nodeFactoryCompositionSource).toContain(
+      "canvasNodeDefaultDataGateway,",
+    );
+    expect(compositionSource).toContain(
+      "export { rememberLastVideoModel } from './nodeFactoryComposition';",
+    );
+    expect(videoNodeSource).toContain("rememberLastVideoModel(nextModelId)");
+    expect(videoNodeSource).not.toContain("domain/lastVideoModel");
+    expect(
+      canvasStoreSource.match(
+        /nodeDefaultDataGateway: canvasNodeDefaultDataGateway/g,
+      ),
+    ).toHaveLength(3);
+  });
+
   it("keeps Canvas history rules in the domain model", () => {
     const historyPath = resolve(
       SRC_ROOT,
@@ -4078,7 +4180,9 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(hydrationModel).toContain("export function normalizeCanvasNodes(");
     expect(normalizationModel).toContain(normalizationDeclaration);
-    expect(normalizationModel).toContain("normalizeCanvasNodes(scoped.nodes)");
+    expect(normalizationModel).toContain(
+      "normalizeCanvasNodes(scoped.nodes, nodeDefaultDataGateway)",
+    );
     expect(normalizationModel).toContain(
       "normalizeEdgesWithNodes(scoped.edges, nodes)",
     );
@@ -5198,7 +5302,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/application/canvasNodeConversion.ts",
     ]);
     expect(conversionModel).toContain(conversionDeclaration);
-    expect(conversionModel).toContain("nodeCatalog.getDefinition(newType)");
+    expect(conversionModel).toContain("createCanvasNodeDefaultData(");
     expect(nodeMutationSlice).toContain(
       "../application/canvasNodeConversion",
     );
@@ -10824,6 +10928,7 @@ describe("frontend architecture boundaries", () => {
       "../domain/canvasHistory",
       "../application/canvasDataNormalization",
       "../application/canvasHistoryNavigation",
+      "../application/ports",
     ]));
     expect(canvasStateHeader).toContain("CanvasHistorySlice");
     expect(canvasStore).toContain("...createZustandCanvasHistorySlice({");
@@ -10940,6 +11045,7 @@ describe("frontend architecture boundaries", () => {
       "../domain/canvasMutation",
       "../domain/canvasNodes",
       "../application/canvasDataNormalization",
+      "../application/ports",
     ]));
     expect(canvasStateHeader).toContain("CanvasDocumentLifecycleSlice");
     expect(canvasStore).toContain(

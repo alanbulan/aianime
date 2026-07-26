@@ -2,12 +2,19 @@
 import type { XYPosition } from '@xyflow/react';
 
 import type { CanvasNode, CanvasNodeData, CanvasNodeType } from '../domain/canvasNodes';
-import type { IdGenerator, NodeCatalog, NodeFactory } from './ports';
+import { createCanvasNodeDefaultData } from './canvasNodeDefaultData';
+import type {
+  CanvasNodeDefaultDataGateway,
+  IdGenerator,
+  NodeCatalog,
+  NodeFactory,
+} from './ports';
 
 export class CanvasNodeFactory implements NodeFactory {
   constructor(
     private readonly idGenerator: IdGenerator,
-    private readonly nodeCatalog: NodeCatalog
+    private readonly nodeCatalog: NodeCatalog,
+    private readonly nodeDefaultDataGateway: CanvasNodeDefaultDataGateway,
   ) {}
 
   createNode(
@@ -15,9 +22,12 @@ export class CanvasNodeFactory implements NodeFactory {
     position: XYPosition,
     data: Partial<CanvasNodeData> = {}
   ): CanvasNode {
-    const definition = this.nodeCatalog.getDefinition(type);
     const nodeData = {
-      ...definition.createDefaultData(),
+      ...createCanvasNodeDefaultData(
+        type,
+        this.nodeCatalog,
+        this.nodeDefaultDataGateway,
+      ),
       ...data,
     } as CanvasNodeData;
 

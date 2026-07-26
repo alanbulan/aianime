@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { CANVAS_NODE_TYPES, type CanvasNode } from '../domain/canvasNodes';
 import { convertCanvasNodeType } from './canvasNodeConversion';
+import type { CanvasNodeDefaultDataGateway } from './ports';
 
 function uploadNode(): CanvasNode {
   return {
@@ -57,5 +58,33 @@ describe('Canvas node type conversion', () => {
     expect(
       convertCanvasNodeType(nodes, source.id, CANVAS_NODE_TYPES.upload),
     ).toEqual({ nodes, changed: false });
+  });
+
+  it('applies runtime defaults before explicit conversion overrides', () => {
+    const source = uploadNode();
+    const gateway: CanvasNodeDefaultDataGateway = {
+      getOverrides: () => ({ model: 'remembered-model' }),
+    };
+    const preferred = convertCanvasNodeType(
+      [source],
+      source.id,
+      CANVAS_NODE_TYPES.video,
+      {},
+      gateway,
+    );
+    const explicit = convertCanvasNodeType(
+      [source],
+      source.id,
+      CANVAS_NODE_TYPES.video,
+      { model: 'explicit-model' },
+      gateway,
+    );
+
+    expect(preferred.nodes[0]?.data).toMatchObject({
+      model: 'remembered-model',
+    });
+    expect(explicit.nodes[0]?.data).toMatchObject({
+      model: 'explicit-model',
+    });
   });
 });

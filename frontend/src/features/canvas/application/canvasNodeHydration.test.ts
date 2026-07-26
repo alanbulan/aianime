@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { CANVAS_NODE_TYPES, type CanvasNode } from '../domain/canvasNodes';
+import type { CanvasNodeDefaultDataGateway } from './ports';
 import {
   BEAT_CONTEXT_NODE_DEFAULT_MEASURED,
   SKILL_NODE_DEFAULT_MEASURED,
@@ -54,6 +55,21 @@ describe('Canvas node hydration', () => {
       generationStartedAt: 456,
       generationTaskKey: 'task-key',
     });
+  });
+
+  it('applies runtime defaults before persisted node data', () => {
+    const gateway: CanvasNodeDefaultDataGateway = {
+      getOverrides: () => ({ model: 'remembered-model' }),
+    };
+    const normalized = normalizeCanvasNodes([
+      node('preferred', CANVAS_NODE_TYPES.video),
+      node('persisted', CANVAS_NODE_TYPES.video, {
+        model: 'persisted-model',
+      }),
+    ], gateway);
+
+    expect(normalized[0]?.data).toMatchObject({ model: 'remembered-model' });
+    expect(normalized[1]?.data).toMatchObject({ model: 'persisted-model' });
   });
 
   it('keeps the projected duplicate and orders a parent before its child', () => {
