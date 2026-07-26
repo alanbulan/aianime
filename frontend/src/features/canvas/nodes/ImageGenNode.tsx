@@ -40,7 +40,6 @@ import {
   snapToAllowedAspectRatio,
   withImageCacheBust,
 } from '@/features/canvas/application/imageData';
-import { resolveGenerationOutputUrl } from '@/features/canvas/application/generationOutputUrl';
 import {
   aspectRatioFromImageDimensions,
   resolveMinEdgeFittedSize,
@@ -82,10 +81,7 @@ import { useCanvasStore } from '@/stores/canvasStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getFreezoneCanvasMetadata } from '@/features/freezone/canvasMetadataContext';
 import {
-  fetchFreezoneJobResult,
-  submitFreezoneGen,
-} from '@/api/ops';
-import {
+  generateCanvasImage,
   translateCanvasText,
   uploadAndAutoCommitSelectedBackgroundCandidate,
   uploadCanvasAsset,
@@ -98,7 +94,6 @@ import {
   type ThreeDDirectorCaptureMeta,
 } from '@/features/viewer-kit/three-d/ThreeDDirectorDialog';
 import type { DirectorStageManifest } from '@/features/viewer-kit/three-d/directorManifest';
-import { awaitTaskCompletion } from '@/api/tasks';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { backendErrorToastMessage } from '@/shared/api/errors';
 import { readUrl } from '@/lib/url-params';
@@ -915,27 +910,23 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
     const runOne = async (runIndex: number) => {
       let taskKey: string | null = null;
       try {
-        const ref = await submitFreezoneGen(projectId, {
-          ...genPayload,
-          canvasId,
-          nodeId: id,
-        });
-        taskKey = ref.task_key;
-        // Persist the task handle so a page refresh can resume polling this
-        // job. With N concurrent runs on one node only one handle can persist —
-        // keep the first (main-image) run's.
-        if (runIndex === 0) {
-          updateNodeData(id, generationTaskDescriptor(ref));
-        }
-        const completed = await awaitTaskCompletion(ref.task_key, projectId);
-        let url = resolveGenerationOutputUrl(completed.result, 'image');
-        if (!url) {
-          try {
-            const fallback = await fetchFreezoneJobResult(projectId, ref.task_type, ref.job_id);
-            url = fallback.url;
-          } catch (error) {
-            console.warn('[image-gen] fallback fetch failed', error);
-          }
+        const { task, url, resultFallbackError } = await generateCanvasImage(
+          {
+            projectId,
+            ...genPayload,
+            canvasId,
+            nodeId: id,
+          },
+          (submittedTask) => {
+            taskKey = submittedTask.task_key;
+            // With N concurrent runs on one node only one handle can persist.
+            if (runIndex === 0) {
+              updateNodeData(id, generationTaskDescriptor(submittedTask));
+            }
+          },
+        );
+        if (resultFallbackError) {
+          console.warn('[image-gen] fallback fetch failed', resultFallbackError);
         }
         if (url) {
           completedUrls.push(url);
@@ -952,7 +943,7 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
             });
           }
         } else {
-          console.warn('[image-gen] generation completed without output url', completed);
+          console.warn('[image-gen] generation completed without output url', task);
           // 只有 run 0（任务句柄的归属者）且尚无任何成功时才终结 loading——
           // 非首个任务先「无 URL 完成」不能把还在跑的整体 loading 提前掐掉。
           if (runIndex === 0 && completedUrls.length === 0) {

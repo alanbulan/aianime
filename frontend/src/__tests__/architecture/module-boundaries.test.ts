@@ -8883,6 +8883,85 @@ describe("frontend architecture boundaries", () => {
     expect(opsSource).not.toContain("FreezoneImageTo3GSKind");
   });
 
+  it("keeps Canvas image generation tasks behind one shared gateway", () => {
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/generateCanvasImage.ts",
+    );
+    const adapterPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneImageGenerationGateway.ts",
+    );
+    const legacyGatewayPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneAiGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const nodePath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/ImageGenNode.tsx",
+    );
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const adapterSource = readFileSync(adapterPath, "utf8");
+    const legacyGatewaySource = readFileSync(legacyGatewayPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const nodeSource = readFileSync(nodePath, "utf8");
+    const productionCanvasSources = sourceFiles(
+      resolve(SRC_ROOT, "features/canvas"),
+    ).filter((path) => !path.includes(".test."));
+    const submitOwners = productionCanvasSources
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("submitFreezoneGen("),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set(["./completeCanvasMediaGenerationTask", "./ports"]),
+    );
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).toContain(
+      "completeCanvasMediaGenerationTask(",
+    );
+    expect(new Set(importSpecifiers(adapterPath))).toEqual(
+      new Set(["@/api/ops", "../application/generateCanvasImage"]),
+    );
+    expect(adapterSource).toContain(
+      "freezoneImageGenerationGateway: CanvasImageGenerationSubmissionGateway",
+    );
+    expect(submitOwners).toEqual([
+      "features/canvas/infrastructure/freezoneImageGenerationGateway.ts",
+    ]);
+    expect(importSpecifiers(legacyGatewayPath)).toContain(
+      "./freezoneImageGenerationGateway",
+    );
+    expect(legacyGatewaySource).toContain(
+      "freezoneImageGenerationGateway.submit(projectId, {",
+    );
+    expect(legacyGatewaySource).not.toContain("submitFreezoneGen");
+    expect(compositionSource).toContain(
+      "generateCanvasImageUseCase(params, {",
+    );
+    expect(compositionSource).toContain(
+      "submissionGateway: freezoneImageGenerationGateway",
+    );
+    expect(importSpecifiers(nodePath)).toContain(
+      "@/features/canvas/composition",
+    );
+    expect(importSpecifiers(nodePath)).not.toContain("@/api/ops");
+    expect(importSpecifiers(nodePath)).not.toContain("@/api/tasks");
+    expect(nodeSource).toContain("await generateCanvasImage(");
+    expect(nodeSource).not.toContain("submitFreezoneGen");
+    expect(nodeSource).not.toContain("fetchFreezoneJobResult");
+    expect(nodeSource).not.toContain("awaitTaskCompletion");
+    expect(nodeSource).not.toContain("resolveGenerationOutputUrl");
+  });
+
   it("keeps Canvas scene-360 generation orchestration in application", () => {
     const domainPath = resolve(
       SRC_ROOT,
@@ -12922,7 +13001,6 @@ describe("frontend architecture boundaries", () => {
     const applicationSource = readFileSync(applicationPath, "utf8");
     const consumerPaths = [
       "features/canvas/application/resumeGeneration.ts",
-      "features/canvas/nodes/ImageGenNode.tsx",
       "features/canvas/nodes/TextAnnotationNode.tsx",
     ];
     const consumerSources = Object.fromEntries(
@@ -12940,6 +13018,10 @@ describe("frontend architecture boundaries", () => {
     );
     const videoNode = readFileSync(
       resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      "utf8",
+    );
+    const imageGenNode = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/ImageGenNode.tsx"),
       "utf8",
     );
     const declaration = [
@@ -12965,8 +13047,10 @@ describe("frontend architecture boundaries", () => {
       );
     }
     expect(completionSource).toContain('./generationOutputUrl');
-    expect(consumerSources["features/canvas/nodes/ImageGenNode.tsx"])
-      .not.toContain("function resolveOutputUrl(");
+    expect(imageGenNode).not.toContain(
+      "@/features/canvas/application/generationOutputUrl",
+    );
+    expect(imageGenNode).not.toContain("function resolveOutputUrl(");
     expect(consumerSources["features/canvas/nodes/TextAnnotationNode.tsx"])
       .not.toContain("function resolveVideoOutputUrl(");
     expect(videoNode).not.toContain("function resolveOutputUrl(");

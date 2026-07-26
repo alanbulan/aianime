@@ -1538,6 +1538,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百二十七批已将图片/反向主图/全景三类 3DGS 来源及 `scene_reverse_master` 判定迁入唯一领域模块 `imageTo3d`，图片转 3DGS 的命令组装、任务提交/持久化/等待、SOG URL 提取、来源标签和无结果错误迁入唯一 application 用例 `generateCanvasImageTo3d`；`freezoneImageTo3dGenerationGateway` infrastructure 适配器唯一调用 Freezone image-to-3GS 端点，composition 注入既有任务 gateway；`ThreeDWorldNode` 只保留项目/上游门禁、原始全景源合并、节点状态写回和历史刷新，不再依赖 `api/ops`、`api/tasks` 或 transport `TaskState`，由 1482 行降至 1463 行；旧 `api/ops` 删除重复来源类型并复用领域契约，由 2413 行降至 2411 行，领域、用例和适配器分别为 35、59、15 行；领域、用例、适配器与既有 3D 源共 4 个测试文件 20 项及目标 Viewer 合约 1 项通过，新增后的架构门禁 182 项和前端 `tsc -b --pretty false` 通过。Viewer 合约全文件另有 1 项提交前既有失败：旧断言仍要求 `Canvas.tsx` 直接调用 `hydrateAssetDragPayload`，但 `HEAD` 中该调用已迁至 `useCanvasMediaTransferController`，本批未修改无关合约。
 
+第二百二十八批已将单次图片生成的完整命令投影、任务提交/持久化/等待、SSE 图片 URL 读取及专用结果接口回退迁入唯一 application 用例 `generateCanvasImage`，并复用 `completeCanvasMediaGenerationTask`；`freezoneImageGenerationGateway` infrastructure 适配器成为 `submitFreezoneGen` 的唯一生产所有者，旧 `freezoneAiGateway` 同步复用该网关，不保留第二套提交 adapter；`ImageGenNode` 只保留批量并发、首个任务句柄归属、首图回填、自动提交、任务仲裁和节点状态写回，专用结果接口失败仍只记录警告而不把已完成任务升级为失败，不再直接依赖 `api/ops`、`api/tasks` 或结果 URL 投影，由 2357 行降至 2348 行；用例和适配器分别为 112、32 行，共 2 个测试文件 5 项、新增后的架构门禁 183 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

@@ -18,7 +18,6 @@
 import {
   fetchFreezoneJobResult,
   submitFreezoneEdit,
-  submitFreezoneGen,
   type FreezoneProvider,
   type FreezoneJobRef,
 } from "@/api/ops";
@@ -41,6 +40,7 @@ import type {
   AiGateway,
   GenerateImagePayload,
 } from "../application/ports";
+import { freezoneImageGenerationGateway } from "./freezoneImageGenerationGateway";
 
 interface ProviderModel {
   provider: FreezoneProvider | null;
@@ -167,7 +167,7 @@ async function submitJob(
 
   const canvasId = currentCanvasId();
   if (refs.length === 0) {
-    const ref = await submitFreezoneGen(projectId, {
+    const ref = await freezoneImageGenerationGateway.submit(projectId, {
       prompt: finalPrompt,
       aspectRatio: effectiveAspectRatio || toAspectRatio(payload),
       imageSize: effectiveSize || toImageSize(payload),

@@ -41,6 +41,10 @@ import {
   type GenerateCanvasGridActionParams,
 } from './application/generateCanvasGridAction';
 import {
+  generateCanvasImage as generateCanvasImageUseCase,
+  type GenerateCanvasImageParams,
+} from './application/generateCanvasImage';
+import {
   generateCanvasImageTo3d as generateCanvasImageTo3dUseCase,
   type GenerateCanvasImageTo3dParams,
 } from './application/generateCanvasImageTo3d';
@@ -136,6 +140,7 @@ import { freezoneCanvasTextTranslationGateway } from './infrastructure/freezoneC
 import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerationTaskGateway';
 import { freezoneGenerationHistoryGateway } from './infrastructure/freezoneGenerationHistoryGateway';
 import { freezoneGridActionGenerationGateway } from './infrastructure/freezoneGridActionGenerationGateway';
+import { freezoneImageGenerationGateway } from './infrastructure/freezoneImageGenerationGateway';
 import { freezoneImageTo3dGenerationGateway } from './infrastructure/freezoneImageTo3dGenerationGateway';
 import { freezoneMultiAngleGenerationGateway } from './infrastructure/freezoneMultiAngleGenerationGateway';
 import { freezoneOutpaintGenerationGateway } from './infrastructure/freezoneOutpaintGenerationGateway';
@@ -432,6 +437,17 @@ export function generateCanvasImageTo3d(
     taskGateway: freezoneGenerationTaskGateway,
     onTaskSubmitted,
     now: () => Date.now(),
+  });
+}
+
+export function generateCanvasImage(
+  params: GenerateCanvasImageParams,
+  onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
+) {
+  return generateCanvasImageUseCase(params, {
+    submissionGateway: freezoneImageGenerationGateway,
+    taskGateway: freezoneGenerationTaskGateway,
+    onTaskSubmitted,
   });
 }
 
