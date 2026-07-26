@@ -1,14 +1,12 @@
 // Copyright (c) 2026 AI anime
 import { useSyncExternalStore } from "react";
 
-import {
-  fetchFreezoneVideoCameraTemplates,
-  type FreezoneVideoCameraTemplate,
-} from "@/api/ops";
+import { fetchFreezoneVideoCameraTemplates } from "@/api/ops";
+import type { CameraMovementPreset } from "@/features/canvas/domain/cameraMovementPresets";
 import { readUrl } from "@/lib/url-params";
 
 export interface UseFreezoneVideoCameraTemplatesResult {
-  templates: FreezoneVideoCameraTemplate[];
+  templates: CameraMovementPreset[];
   isLoading: boolean;
   error: Error | null;
 }

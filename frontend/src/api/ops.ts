@@ -1,5 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { apiCall, apiRequest } from "@/shared/api/client";
+import type { CameraMovementPreset } from "@/features/canvas/domain/cameraMovementPresets";
 
 // Per-node generation history -------------------------------------------- //
 
@@ -1124,18 +1125,7 @@ export async function fetchFreezoneVideoModels(
 
 // /freezone/video/camera-templates --------------------------------------- //
 
-export interface FreezoneVideoCameraTemplate {
-  /** Stable id used by the picker + sent to backend as `camera_template_id`. */
-  id: string;
-  /** Display label (e.g. "镜头下降"). */
-  label: string;
-  /** Prompt fragment prepended to the user's prompt when this template is active. */
-  promptFragment: string;
-  /** Optional preview video URL. Falls back to `/video/camera-presets/<id>.mp4`. */
-  videoUrl: string | null;
-}
-
-function coerceCameraTemplateList(payload: unknown): FreezoneVideoCameraTemplate[] {
+function coerceCameraTemplateList(payload: unknown): CameraMovementPreset[] {
   // openapi.json schema is empty `{}` — backend shape isn't documented.
   // Accept several common envelopes defensively.
   let candidate: unknown = payload;
@@ -1147,7 +1137,7 @@ function coerceCameraTemplateList(payload: unknown): FreezoneVideoCameraTemplate
     else if (Array.isArray(wrapper.camera_templates)) candidate = wrapper.camera_templates;
   }
   if (!Array.isArray(candidate)) return [];
-  const result: FreezoneVideoCameraTemplate[] = [];
+  const result: CameraMovementPreset[] = [];
   for (const item of candidate) {
     if (!item || typeof item !== "object") continue;
     const entry = item as Record<string, unknown>;
@@ -1180,7 +1170,7 @@ function coerceCameraTemplateList(payload: unknown): FreezoneVideoCameraTemplate
 
 export async function fetchFreezoneVideoCameraTemplates(
   project: string,
-): Promise<FreezoneVideoCameraTemplate[]> {
+): Promise<CameraMovementPreset[]> {
   const payload = await apiCall<unknown>(
     `projects/${encodeURIComponent(project)}/freezone/video/camera-templates`,
   );

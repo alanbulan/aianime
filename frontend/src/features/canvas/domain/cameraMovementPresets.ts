@@ -5,9 +5,16 @@
 // `useFreezoneVideoCameraTemplates`. Mirrors libtv's 23-entry 运镜 catalog;
 // each entry ships with a short .mp4 preview at `public/video/camera-presets/`.
 
-import type { FreezoneVideoCameraTemplate } from "@/api/ops";
-
-export type CameraMovementPreset = FreezoneVideoCameraTemplate;
+export interface CameraMovementPreset {
+  /** Stable id used by the picker and sent as `camera_template_id`. */
+  id: string;
+  /** User-facing template label. */
+  label: string;
+  /** Fragment prepended to the generation prompt. */
+  promptFragment: string;
+  /** Optional preview video; local presets provide a bundled fallback. */
+  videoUrl: string | null;
+}
 
 export const CAMERA_MOVEMENT_PRESETS: ReadonlyArray<CameraMovementPreset> = [
   { id: 'fixed', label: '固定镜头', videoUrl: '/video/camera-presets/fixed.mp4', promptFragment: '固定镜头' },

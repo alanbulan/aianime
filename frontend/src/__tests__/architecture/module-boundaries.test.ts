@@ -7252,4 +7252,34 @@ describe("frontend architecture boundaries", () => {
       ),
     ).toBe(false);
   });
+
+  it("keeps Canvas camera preset contracts owned by the domain", () => {
+    const presetPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/cameraMovementPresets.ts",
+    );
+    const presetSource = readFileSync(presetPath, "utf8");
+    const opsSource = readFileSync(resolve(SRC_ROOT, "api/ops.ts"), "utf8");
+    const hookSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useFreezoneVideoCameraTemplates.ts",
+      ),
+      "utf8",
+    );
+
+    expect(
+      importSpecifiers(presetPath).filter((specifier) =>
+        specifier.startsWith("@/api/"),
+      ),
+    ).toEqual([]);
+    expect(presetSource).toContain("export interface CameraMovementPreset");
+    expect(opsSource).toContain(
+      'import type { CameraMovementPreset } from "@/features/canvas/domain/cameraMovementPresets";',
+    );
+    expect(opsSource).not.toContain(
+      "export interface FreezoneVideoCameraTemplate",
+    );
+    expect(hookSource).not.toContain("type FreezoneVideoCameraTemplate");
+  });
 });
