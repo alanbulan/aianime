@@ -1528,6 +1528,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百二十二批已将局部重绘/擦除共用的 6 种比例、`1K/2K/4K` 尺寸、`1-4` 结果数量、默认值及失败重试持久化值归一化迁入唯一领域模块 `redraw`；`CanvasRedrawCommand` 升级为显式领域比例/尺寸并补齐 prompt/model，唯一 `freezoneRedrawTaskGateway` 直接投影完整命令，不新增第二个 redraw adapter；单图任务提交及完成迁入唯一 application 用例 `generateCanvasRedraw`，`RedrawOverlay` 改经 composition 调用，失败重试 `regenerateExportNode` 同步改用 `completeCanvasMediaGenerationTask`，删除其重复的等待与结果回退实现；旧 `api/ops` 删除重复比例类型并复用领域默认值，由 2456 行调整为 2457 行，`EraseOverlay` 作为同一 API 契约的存量调用方同步切换领域类型，本批未改其生成流程；`RedrawOverlay`、`EraseOverlay`、失败重试和 ports 因显式契约分别由 826、924、178、377 行调整为 830、930、180、383 行，既有 adapter 由 23 行降至 22 行，领域模块 41 行、用例 52 行，composition 由 489 行调整为 503 行；领域、用例、适配器与失败重试共 4 个测试文件 8 项、新增后的架构门禁 177 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百二十三批已将 `EraseOverlay` 的擦除任务提交、任务句柄持久化、完成等待、SSE `output_url` 优先读取及专用结果接口回退统一改由既有 `generateCanvasRedraw` application 用例执行，删除视图对 `api/ops`、`api/tasks` 的直连和重复编排，不新增擦除专用 adapter 或第二套完成逻辑；为保持擦除原本不指定提示词和模型的请求语义，`GenerateCanvasRedrawParams` 将 `prompt/model` 明确为可选，局部重绘调用方仍继续传入所选值；结果节点创建、蒙版上传、失败重试请求持久化、并发单图生成和成功/失败状态写回保持不变，`EraseOverlay` 由 930 行降至 925 行，共用用例仍为 52 行；redraw 用例、适配器与失败重试共 3 个测试文件 6 项、新增后的架构门禁 178 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

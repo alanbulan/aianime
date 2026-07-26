@@ -9482,6 +9482,24 @@ describe("frontend architecture boundaries", () => {
     expect(opsSource).not.toContain("FreezoneRedrawAspectRatio");
   });
 
+  it("routes Canvas erase generation through the redraw use case", () => {
+    const overlayPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/EraseOverlay.tsx",
+    );
+    const overlaySource = readFileSync(overlayPath, "utf8");
+    const imports = importSpecifiers(overlayPath);
+
+    expect(imports).toContain("@/features/canvas/composition");
+    expect(imports).toContain("@/features/canvas/domain/redraw");
+    expect(imports).not.toContain("@/api/ops");
+    expect(imports).not.toContain("@/api/tasks");
+    expect(overlaySource).toContain("await generateCanvasRedraw(");
+    expect(overlaySource).not.toContain("submitFreezoneRedraw");
+    expect(overlaySource).not.toContain("fetchFreezoneJobResult");
+    expect(overlaySource).not.toContain("awaitTaskCompletion");
+  });
+
   it("keeps Canvas asset extraction independent from media URL infrastructure", () => {
     const assetPath = resolve(
       SRC_ROOT,

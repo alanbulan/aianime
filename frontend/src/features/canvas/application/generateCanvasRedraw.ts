@@ -13,10 +13,10 @@ export interface GenerateCanvasRedrawParams {
   readonly projectId: string;
   readonly sourceUrl: string;
   readonly maskUrl: string | null;
-  readonly prompt: string;
+  readonly prompt?: string;
   readonly aspectRatio: CanvasRedrawAspectRatio;
   readonly imageSize: CanvasRedrawImageSize;
-  readonly model: string;
+  readonly model?: string;
 }
 
 export interface GenerateCanvasRedrawDependencies {

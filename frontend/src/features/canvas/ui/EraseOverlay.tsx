@@ -36,11 +36,9 @@ import {
 } from '@/features/canvas/domain/redraw';
 import { useCanvasStore } from '@/stores/canvasStore';
 import {
-  fetchFreezoneJobResult,
-  submitFreezoneRedraw,
-} from '@/api/ops';
-import { uploadCanvasAsset } from '@/features/canvas/composition';
-import { awaitTaskCompletion } from '@/api/tasks';
+  generateCanvasRedraw,
+  uploadCanvasAsset,
+} from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { readUrl } from '@/lib/url-params';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
@@ -456,7 +454,7 @@ export const EraseOverlay = memo(({ node, imageSource, onClose }: EraseOverlayPr
     [addEdge, addNode, node.id],
   );
 
-  // 针对已建好的节点提交单图擦除（走重绘接口）→ 轮询 → 回填。
+  // 针对已建好的节点通过统一重绘用例提交单图擦除并回填。
   const runEraseGeneration = useCallback(
     async (
       project: string,
@@ -475,21 +473,18 @@ export const EraseOverlay = memo(({ node, imageSource, onClose }: EraseOverlayPr
         },
       });
       try {
-        const ref = await submitFreezoneRedraw(project, {
-          sourceUrl,
-          maskUrl,
-          aspectRatio: resultAspectRatio,
-          numImages: 1,
-          imageSize,
-        });
-        updateNodeData(nodeId, generationTaskDescriptor(ref));
-        const completed = await awaitTaskCompletion(ref.task_key, project);
-        const directUrl = completed.result?.['output_url'] as string | undefined;
-        let url = directUrl;
-        if (!url) {
-          const fallback = await fetchFreezoneJobResult(project, ref.task_type, ref.job_id);
-          url = fallback.url;
-        }
+        const { url } = await generateCanvasRedraw(
+          {
+            projectId: project,
+            sourceUrl,
+            maskUrl,
+            aspectRatio: resultAspectRatio,
+            imageSize,
+          },
+          (task) => {
+            updateNodeData(nodeId, generationTaskDescriptor(task));
+          },
+        );
         updateNodeData(nodeId, {
           imageUrl: url,
           previewImageUrl: url,
