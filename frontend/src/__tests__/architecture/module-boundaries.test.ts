@@ -2308,6 +2308,58 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("findLinkedCapturePartnerIds(");
   });
 
+  it("keeps Canvas node-menu selection orchestration in one presentation controller", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasNodeMenuSelectionController.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/features/canvas/nodeFactoryComposition",
+    );
+    const declaration = [
+      "export function",
+      "useCanvasNodeMenuSelectionController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasNodeMenuSelectionController.ts",
+    ]);
+    expect(hookModel).toContain("planCanvasNodeMenuSelection({");
+    expect(hookModel).toContain("createCanvasSkillNodeData(skill)");
+    expect(hookModel).toContain("preferredPosition");
+    expect(hookModel).toContain("getLastCanvasPointerPosition()");
+    expect(hookModel).toContain("fallbackPosition");
+    expect(hookModel).toContain("connectSpawnedNode({");
+    expect(hookModel).toContain("closeNodeMenu()");
+    expect(canvasView).toContain("./hooks/useCanvasNodeMenuSelectionController");
+    expect(canvasView).toContain("selectNodeType: handleNodeSelect");
+    expect(canvasView).toContain("selectSkill: handleSkillSelect");
+    expect(canvasView).not.toContain("const finalizeNodeSpawn = useCallback");
+    expect(canvasView).not.toContain("const handleNodeSelect = useCallback");
+    expect(canvasView).not.toContain("const handleSkillSelect = useCallback");
+    expect(canvasView).not.toContain("planCanvasNodeMenuSelection({");
+    expect(canvasView).not.toContain("createCanvasSkillNodeData(skill)");
+  });
+
   it("keeps Canvas Beat Context prefetch projection outside the view", () => {
     const domainPath = resolve(
       SRC_ROOT,
@@ -3946,6 +3998,13 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/application/canvasNodeMenuSelection.ts",
     );
     const selectionModel = readFileSync(selectionPath, "utf8");
+    const menuController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasNodeMenuSelectionController.ts",
+      ),
+      "utf8",
+    );
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -3984,7 +4043,10 @@ describe("frontend architecture boundaries", () => {
       expect(selectionModel).toContain(declaration);
     }
     expect(selectionModel).toContain("SKILL_SCHEMA_VERSION");
-    expect(canvasView).toContain(
+    expect(menuController).toContain("../application/canvasNodeMenuSelection");
+    expect(menuController).toContain("planCanvasNodeMenuSelection({");
+    expect(menuController).toContain("createCanvasSkillNodeData(skill)");
+    expect(canvasView).not.toContain(
       "@/features/canvas/application/canvasNodeMenuSelection",
     );
     expect(canvasView).not.toContain("const isPlainAddNodeMenu");

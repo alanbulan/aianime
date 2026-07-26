@@ -29,7 +29,6 @@ import { useCanvasStore } from '@/stores/canvasStore';
 import { resolveCanvasSelectionDeletion } from '@/features/canvas/domain/canvasSelectionDeletion';
 import { useAppStore } from '@/stores/app-store';
 import { getSkillRegistry } from '@/api/skills';
-import type { SkillDefinition } from '@/features/freezone/context/skillRoles';
 import { translateSkillName } from '@/features/freezone/context/skillI18n';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import {
@@ -52,10 +51,6 @@ import { CanvasMinimapBookmarksOverlay } from '@/features/canvas/ui/CanvasMinima
 import { captureCurrentViewport, jumpToBookmark } from '@/features/canvas/application/bookmarkActions';
 import { createCanvasClipboardSnapshot } from '@/features/canvas/application/createCanvasClipboardSnapshot';
 import { nodeNeedsGenerationResume } from '@/features/canvas/application/resumeGeneration';
-import {
-  createCanvasSkillNodeData,
-  planCanvasNodeMenuSelection,
-} from '@/features/canvas/application/canvasNodeMenuSelection';
 import { readUrl } from '@/lib/url-params';
 import { useQueryClient } from '@tanstack/react-query';
 import { prefetchEpisodeBeats, prefetchEpisodeDetail } from '@/modules/narrative_planning/public';
@@ -127,6 +122,7 @@ import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
 import { useCanvasNodeClickController } from './hooks/useCanvasNodeClickController';
 import { useCanvasNodeClipboard } from './hooks/useCanvasNodeClipboard';
 import { useCanvasNodeMenuShortcut } from './hooks/useCanvasNodeMenuShortcut';
+import { useCanvasNodeMenuSelectionController } from './hooks/useCanvasNodeMenuSelectionController';
 import {
   useCanvasNodePlacementController,
   type CanvasNodePlacement,
@@ -674,6 +670,13 @@ export function Canvas({
     setPendingBatchConnectIds(null);
     setPreviewConnectionVisual(null);
   }, []);
+  const hideNodeMenuForPlacement = useCallback(() => {
+    setShowNodeMenu(false);
+    setMenuAllowedTypes(undefined);
+  }, []);
+  const releasePaneClickSuppression = useCallback(() => {
+    suppressNextPaneClickRef.current = false;
+  }, []);
 
   const { handleNodeClick } = useCanvasNodeClickController({
     placementActive,
@@ -828,114 +831,26 @@ export function Canvas({
     attachExternalFile: attachDroppedExternalFile,
   });
 
-  const finalizeNodeSpawn = useCallback(
-    (newNodeId: string, explicitSkill?: SkillDefinition | null) => {
-      connectSpawnedNode({
-        spawnedNodeId: newNodeId,
-        pendingConnection: pendingConnectStart,
-        batchSourceIds: pendingBatchConnectIds,
-        explicitSkill,
-      });
-
-      setShowNodeMenu(false);
-      setMenuAllowedTypes(undefined);
-      setPendingConnectStart(null);
-      setPendingBatchConnectIds(null);
-      setPreviewConnectionVisual(null);
-    },
-    [
-      connectSpawnedNode,
-      pendingBatchConnectIds,
-      pendingConnectStart,
-      setPreviewConnectionVisual,
-    ],
-  );
-
-  const handleNodeSelect = useCallback(
-    (type: CanvasNodeType, selectionClientPosition?: { x: number; y: number }) => {
-      const selectionPlan = planCanvasNodeMenuSelection({
-        type,
-        nodes,
-        pendingConnection: pendingConnectStart,
-        hasPendingBatchConnection: pendingBatchConnectIds !== null,
-        hasAllowedTypeFilter: menuAllowedTypes !== undefined,
-      });
-      if (selectionPlan.kind === 'placement') {
-        const containerRect = wrapperRef.current?.getBoundingClientRect();
-        const fallbackClientPosition = containerRect
-          ? {
-              x: containerRect.left + menuPosition.x,
-              y: containerRect.top + menuPosition.y,
-            }
-          : null;
-        const clientPosition =
-          selectionClientPosition ??
-          getLastCanvasPointerPosition() ??
-          fallbackClientPosition;
-        setShowNodeMenu(false);
-        setMenuAllowedTypes(undefined);
-        beginNodePlacement(
-          { type, initialData: selectionPlan.initialData },
-          clientPosition,
-        );
-        setSelectedNode(null);
-        suppressNextPaneClickRef.current = false;
-        return;
-      }
-
-      const newNodeId = addNode(type, flowPosition, selectionPlan.initialData);
-      finalizeNodeSpawn(newNodeId);
-    },
-    [
-      addNode,
-      beginNodePlacement,
-      finalizeNodeSpawn,
-      flowPosition,
-      getLastCanvasPointerPosition,
-      menuAllowedTypes,
-      menuPosition.x,
-      menuPosition.y,
-      nodes,
-      pendingBatchConnectIds,
-      pendingConnectStart,
-      setSelectedNode,
-    ]
-  );
-
-  const handleSkillSelect = useCallback(
-    (skill: SkillDefinition) => {
-      const initialData = createCanvasSkillNodeData(skill);
-      const containerRect = wrapperRef.current?.getBoundingClientRect();
-      const fallbackClientPosition = containerRect
-        ? {
-            x: containerRect.left + menuPosition.x,
-            y: containerRect.top + menuPosition.y,
-          }
-        : null;
-      const clientPosition =
-        getLastCanvasPointerPosition() ??
-        fallbackClientPosition;
-      setShowNodeMenu(false);
-      setMenuAllowedTypes(undefined);
-      beginNodePlacement(
-        {
-          type: CANVAS_NODE_TYPES.skill,
-          initialData,
-          skill,
-        },
-        clientPosition,
-      );
-      setSelectedNode(null);
-      suppressNextPaneClickRef.current = false;
-    },
-    [
-      beginNodePlacement,
-      getLastCanvasPointerPosition,
-      menuPosition.x,
-      menuPosition.y,
-      setSelectedNode,
-    ],
-  );
+  const {
+    selectNodeType: handleNodeSelect,
+    selectSkill: handleSkillSelect,
+  } = useCanvasNodeMenuSelectionController({
+    wrapperRef,
+    nodes,
+    flowPosition,
+    menuPosition,
+    menuAllowedTypes,
+    pendingConnection: pendingConnectStart,
+    pendingBatchSourceIds: pendingBatchConnectIds,
+    getLastCanvasPointerPosition,
+    createNode: addNode,
+    beginNodePlacement,
+    connectSpawnedNode,
+    selectNode: setSelectedNode,
+    hideMenuForPlacement: hideNodeMenuForPlacement,
+    closeNodeMenu,
+    releasePaneClickSuppression,
+  });
 
   const {
     getViewportCenter: getQuickAddViewportCenter,
