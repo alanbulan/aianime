@@ -1602,6 +1602,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百五十九批已将视频超分的项目路径编码、POST method、分辨率、插帧、降噪和节点上下文字段映射从 `api/ops.ts` 迁入已有唯一 `freezoneVideoUpscaleGenerationGateway` infrastructure 适配器，Canvas application 继续负责清理源 URL 缓存参数、固定基础版插帧策略、完成任务和回传结果；旧 `FreezoneVideoUpscalePayload`、`submitFreezoneVideoUpscale` 及 `ops.ts` 对 `videoUpscale` 领域常量的临时依赖直接删除，不保留 facade、re-export 或第二套 HTTP 映射，`freezone/video/upscale` 端点只有该 gateway 一个生产所有者，`api/ops.ts` 由 1,976 行降至 1,938 行；请求路径、方法、2K/4K 档位、降噪、空节点上下文省略和任务回执语义均未改变；相关 3 个测试文件 4 项、架构门禁 206 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
 
+第二百六十批已将 Canvas 文本翻译的提交请求与专用结果查询从 `api/ops.ts` 迁入已有唯一 `freezoneCanvasTextTranslationGateway` infrastructure 适配器，gateway 只解包 application 所需的 `translated_text`，Canvas application 继续统一负责任务等待与结果返回，五个节点调用方保持只依赖 composition；旧 `FreezoneTextTranslateNodeType`、payload/result DTO、提交与结果函数直接删除，不保留 facade、re-export 或第二套 HTTP 映射，提交与结果端点均只有该 gateway 一个生产所有者，`api/ops.ts` 由 1,938 行降至 1,890 行；请求路径、方法、节点类型提示、空节点上下文省略、任务回执和翻译文本语义均未改变；相关 2 个测试文件 3 项、架构门禁 206 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

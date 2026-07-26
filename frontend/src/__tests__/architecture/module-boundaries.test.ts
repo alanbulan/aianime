@@ -14140,9 +14140,11 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/composition.ts",
     );
+    const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
+    const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const consumerPaths = [
       "features/canvas/nodes/AudioOperationsPanel.tsx",
       "features/canvas/nodes/ImageGenNode.tsx",
@@ -14158,6 +14160,17 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
       .map(relativeSource)
       .sort();
+    const endpointFragments = [
+      "}/freezone/text/translate`",
+      "/freezone/jobs/freezone_text_translate/",
+    ];
+    const endpointOwners = endpointFragments.map((fragment) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => !path.includes(".test."))
+        .filter((path) => readFileSync(path, "utf8").includes(fragment))
+        .map(relativeSource)
+        .sort(),
+    );
 
     expect(importSpecifiers(applicationPath)).toEqual(["./ports"]);
     expect(applicationSource).not.toContain("react");
@@ -14167,12 +14180,29 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/application/translateCanvasText.ts",
     ]);
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
-      new Set(["@/api/ops", "../application/translateCanvasText"]),
+      new Set([
+        "@/shared/api/client",
+        "../application/ports",
+        "../application/translateCanvasText",
+      ]),
     );
     expect(adapterSource).not.toContain("react");
     expect(adapterSource).not.toContain("@/stores/");
-    expect(adapterSource).toContain("submitFreezoneTextTranslate(");
-    expect(adapterSource).toContain("fetchFreezoneTextTranslateResult(");
+    expect(adapterSource).toContain('method: "POST"');
+    expect(endpointOwners).toEqual(
+      endpointFragments.map(() => [
+        "features/canvas/infrastructure/freezoneCanvasTextTranslationGateway.ts",
+      ]),
+    );
+    for (const legacySymbol of [
+      "FreezoneTextTranslateNodeType",
+      "FreezoneTextTranslatePayload",
+      "FreezoneTextTranslateResult",
+      "submitFreezoneTextTranslate",
+      "fetchFreezoneTextTranslateResult",
+    ]) {
+      expect(legacyOpsSource).not.toContain(legacySymbol);
+    }
     expect(compositionSource).toContain(
       "translationGateway: freezoneCanvasTextTranslationGateway",
     );

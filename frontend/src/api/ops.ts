@@ -1697,54 +1697,6 @@ export async function createFreezoneAudioVoice(
   return resp.data;
 }
 
-// /freezone/text/translate ------------------------------------------------ //
-
-export type FreezoneTextTranslateNodeType =
-  | "generic"
-  | "image"
-  | "video"
-  | "audio"
-  | "text";
-
-export interface FreezoneTextTranslatePayload extends FreezoneNodeContext {
-  text: string;
-  /** Hints the translator at the calling node's tone. Defaults to "generic". */
-  nodeType?: FreezoneTextTranslateNodeType;
-}
-
-export async function submitFreezoneTextTranslate(
-  project: string,
-  payload: FreezoneTextTranslatePayload,
-): Promise<FreezoneJobRef> {
-  return await apiCall<FreezoneJobRef>(
-    `projects/${encodeURIComponent(project)}/freezone/text/translate`,
-    {
-      method: "POST",
-      json: {
-        text: payload.text,
-        node_type: payload.nodeType ?? "generic",
-        ...nodeContextBody(payload),
-      },
-    },
-  );
-}
-
-export interface FreezoneTextTranslateResult {
-  translated_text: string;
-  source_language: "zh" | "en";
-  target_language: "zh" | "en";
-  node_type: FreezoneTextTranslateNodeType;
-}
-
-export async function fetchFreezoneTextTranslateResult(
-  project: string,
-  jobId: string,
-): Promise<FreezoneTextTranslateResult> {
-  return await apiCall<FreezoneTextTranslateResult>(
-    `projects/${encodeURIComponent(project)}/freezone/jobs/freezone_text_translate/${encodeURIComponent(jobId)}/result`,
-  );
-}
-
 // /freezone/text/story-script -------------------------------------------- //
 
 /** 角色参考输入项（角色生成脚本用）。 */
