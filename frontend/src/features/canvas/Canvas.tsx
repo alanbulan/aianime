@@ -102,6 +102,7 @@ import {
 } from './hooks/useCanvasAutoLayoutController';
 import { useCanvasBeatContextPrefetch } from './hooks/useCanvasBeatContextPrefetch';
 import { useCanvasGraphChangeController } from './hooks/useCanvasGraphChangeController';
+import { useCanvasGroupFitDragController } from './hooks/useCanvasGroupFitDragController';
 import { useCanvasHistoryAssetController } from './hooks/useCanvasHistoryAssetController';
 import {
   useCanvasBatchConnectionController,
@@ -236,10 +237,6 @@ export function Canvas({
     skillById,
   } = useCanvasSkillRegistry(getSkillRegistry);
 
-  // 正在拖动的组内成员所属的组 id 集合（libtv 式：拖动期间不动框，松手后按成员最终
-  // 落点逐组 fitGroupToChildren 重新包住）。多选拖动可能同时带上多个组的成员，所以
-  // 记数组而非单个 id。null = 当前没有组内成员在拖。
-  const groupFitDragRef = useRef<{ groupIds: string[] } | null>(null);
   // 「导演世界」源节点 ←→「导演世界输出」组联动拖动：拖动开始时记下另一方(partner)及
   // 其起始坐标,拖动期间按相同位移把 partner 一起移动。null = 当前拖动不涉及联动。
   const linkedDragRef = useRef<{
@@ -350,6 +347,7 @@ export function Canvas({
   const deleteNode = useCanvasStore((state) => state.deleteNode);
   const deleteNodes = useCanvasStore((state) => state.deleteNodes);
   const groupNodes = useCanvasStore((state) => state.groupNodes);
+  const fitGroupToChildren = useCanvasStore((state) => state.fitGroupToChildren);
   const setNodePositions = useCanvasStore((state) => state.setNodePositions);
   const undo = useCanvasStore((state) => state.undo);
   const redo = useCanvasStore((state) => state.redo);
@@ -1062,6 +1060,14 @@ export function Canvas({
     selectNode: setSelectedNode,
   });
   const {
+    beginNodeDrag: beginGroupFitNodeDrag,
+    beginSelectionDrag: beginGroupFitSelectionDrag,
+    finishDrag: finishGroupFitDrag,
+  } = useCanvasGroupFitDragController({
+    getGraph: getCanvasGraph,
+    fitGroupToChildren,
+  });
+  const {
     handleNodesChange,
     handleEdgesChange,
     handleEdgeDoubleClick,
@@ -1130,26 +1136,14 @@ export function Canvas({
 
   const handleNodeDragStart = useCallback(
     (event: ReactMouseEvent, node: CanvasNode, draggedNodes: CanvasNode[]) => {
-      // 组内成员拖动：记下「所有被拖成员」（多选时第三参带全量）所属的组 id，松手时
-      // 逐组按成员最终落点 fitGroupToChildren 重新包住（libtv 式，拖动期间不动框）。
-      // 只看被抓节点会漏掉多选里其它组的成员 —— 它们没有 extent:'parent' 钳制，
-      // 拖完不 refit 就永久悬在组框外。alt 复制拖动不参与（原节点回弹）。
-      // parentId 从 store 读 —— React Flow 传给拖动回调的 node 参数是精简 drag item，
-      // 可能不带 parentId，直接用 node.parentId 会取不到。
-      groupFitDragRef.current = null;
+      beginGroupFitNodeDrag(
+        event.altKey,
+        node.id,
+        draggedNodes?.map((draggedNode) => draggedNode.id) ?? [],
+      );
       linkedDragRef.current = null;
       if (!event.altKey) {
         const stateNodes = useCanvasStore.getState().nodes;
-        const dragged = draggedNodes?.length ? draggedNodes : [node];
-        const groupIds = new Set<string>();
-        for (const item of dragged) {
-          const parentId = stateNodes.find((n) => n.id === item.id)?.parentId;
-          if (parentId) groupIds.add(parentId);
-        }
-        if (groupIds.size > 0) {
-          groupFitDragRef.current = { groupIds: [...groupIds] };
-        }
-
         // 单节点拖动时,若被拖的是「导演世界」源节点或其「导演世界输出」组,记下另一方
         // 并准备按相同位移联动(多选/框选拖动不联动,交给用户自行摆放)。
         if (!draggedNodes || draggedNodes.length <= 1) {
@@ -1177,7 +1171,7 @@ export function Canvas({
 
       beginAltDragCopy(event.altKey, node.id);
     },
-    [beginAltDragCopy]
+    [beginAltDragCopy, beginGroupFitNodeDrag]
   );
 
   const handleNodeDrag = useCallback(
@@ -1211,47 +1205,19 @@ export function Canvas({
       // React Flow 对被拖节点发出的 dragging:false 变更会统一压入同一条撤销记录,
       // 故这里只需清掉引用,不再额外提交以免产生重复的 undo 步骤。
       linkedDragRef.current = null;
-      // 组内成员拖动收尾（libtv 式）：按成员的最终落点把每个涉及的组框重新撑大包住
-      //（fitGroupToChildren 含左/上方向的整体平移）。普通组成员不带 extent，可自由落点。
-      const groupFit = groupFitDragRef.current;
-      groupFitDragRef.current = null;
-      if (groupFit) {
-        const { fitGroupToChildren } = useCanvasStore.getState();
-        for (const groupId of groupFit.groupIds) {
-          fitGroupToChildren(groupId);
-        }
-      }
+      finishGroupFitDrag();
       finishAltDragCopy(node.id, node.position);
     },
-    [clearSnapAlignment, finishAltDragCopy]
+    [clearSnapAlignment, finishAltDragCopy, finishGroupFitDrag]
   );
 
-  // 拖「选区框」整体移动多选节点时，React Flow 走 onSelectionDrag* 而非 onNodeDrag*，
-  // 组成员的 refit 同样要在这条路径上收尾，否则组成员被拖出框后无人包住。
   const handleSelectionDragStart = useCallback(
     (_event: ReactMouseEvent, draggedNodes: CanvasNode[]) => {
-      const stateNodes = useCanvasStore.getState().nodes;
-      const groupIds = new Set<string>();
-      for (const item of draggedNodes) {
-        const parentId = stateNodes.find((n) => n.id === item.id)?.parentId;
-        if (parentId) groupIds.add(parentId);
-      }
-      groupFitDragRef.current =
-        groupIds.size > 0 ? { groupIds: [...groupIds] } : null;
+      beginGroupFitSelectionDrag(draggedNodes.map((node) => node.id));
     },
-    []
+    [beginGroupFitSelectionDrag]
   );
-
-  const handleSelectionDragStop = useCallback(() => {
-    const groupFit = groupFitDragRef.current;
-    groupFitDragRef.current = null;
-    if (groupFit) {
-      const { fitGroupToChildren } = useCanvasStore.getState();
-      for (const groupId of groupFit.groupIds) {
-        fitGroupToChildren(groupId);
-      }
-    }
-  }, []);
+  const handleSelectionDragStop = finishGroupFitDrag;
 
   const emptyHint = useMemo(() => {
     return (

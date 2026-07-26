@@ -2199,6 +2199,57 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("disableOffsetIteration: true");
   });
 
+  it("keeps Canvas group-fit drag lifecycle in one presentation controller", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasGroupFitDragController.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/features/canvas/nodeFactoryComposition",
+    );
+    const declaration = [
+      "export function",
+      "useCanvasGroupFitDragController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasGroupFitDragController.ts",
+    ]);
+    expect(hookModel).toContain("resolveParentGroupIds(");
+    expect(hookModel).toContain("const groupIds = new Set<string>()");
+    expect(hookModel).toContain("draggedNodeIds.length > 0");
+    expect(hookModel).toContain("if (altKey)");
+    expect(hookModel).toContain("fitGroupToChildren(groupId)");
+    expect(canvasView).toContain("./hooks/useCanvasGroupFitDragController");
+    expect(canvasView).toContain("beginGroupFitNodeDrag(");
+    expect(canvasView).toContain("beginGroupFitSelectionDrag(");
+    expect(canvasView).toContain("finishGroupFitDrag()");
+    expect(canvasView).toContain(
+      "const handleSelectionDragStop = finishGroupFitDrag",
+    );
+    expect(canvasView).not.toContain("groupFitDragRef");
+    expect(canvasView).not.toContain("fitGroupToChildren(groupId)");
+  });
+
   it("keeps Canvas Beat Context prefetch projection outside the view", () => {
     const domainPath = resolve(
       SRC_ROOT,
