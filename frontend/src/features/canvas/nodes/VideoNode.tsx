@@ -158,11 +158,12 @@ import {
 } from "@/features/canvas/domain/cameraMovementPresets";
 import { useFreezoneVideoCameraTemplates } from "@/features/canvas/hooks/useFreezoneVideoCameraTemplates";
 import { useFreezoneVideoModels } from "@/features/canvas/hooks/useFreezoneVideoModels";
+import { useIsBoxSelecting } from "@/features/canvas/hooks/useIsBoxSelecting";
 import {
   AssetLibraryModal,
   type AssetLibrarySelection,
 } from "@/features/canvas/ui/AssetLibraryModal";
-import { useCanvasStore, useIsBoxSelecting } from "@/stores/canvasStore";
+import { useCanvasStore } from "@/stores/canvasStore";
 import {
   fetchFreezoneJobResult,
   fetchFreezoneTextTranslateResult,

@@ -51,6 +51,10 @@ import {
   createZustandCanvasStoryboardGroupSlice,
   type CanvasStoryboardGroupSlice,
 } from '@/features/canvas/infrastructure/zustandCanvasStoryboardGroupSlice';
+import {
+  createZustandCanvasSelectionSlice,
+  type CanvasSelectionSlice,
+} from '@/features/canvas/infrastructure/zustandCanvasSelectionSlice';
 
 export type {
   ActiveToolDialog,
@@ -72,19 +76,13 @@ interface CanvasState
     CanvasDerivedNodeCreationSlice,
     CanvasNodeDeletionSlice,
     CanvasGroupLifecycleSlice,
-    CanvasStoryboardGroupSlice {
-  selectedNodeId: string | null;
-  activeToolDialog: ActiveToolDialog | null;
-
-  setSelectedNode: (nodeId: string | null) => void;
-
-  openToolDialog: (dialog: ActiveToolDialog) => void;
-  closeToolDialog: () => void;
-}
+    CanvasStoryboardGroupSlice,
+    CanvasSelectionSlice {}
 
 export const useCanvasStore = create<CanvasState>((set, get) => ({
-  selectedNodeId: null,
-  activeToolDialog: null,
+  ...createZustandCanvasSelectionSlice({
+    setState: (patch) => set(patch),
+  }),
   ...createZustandCanvasViewportSlice({
     getState: get,
     setState: (patch) => set(patch),
@@ -131,38 +129,4 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     getState: get,
     setState: (patch) => set(patch),
   }),
-
-  setSelectedNode: (nodeId) => {
-    set({ selectedNodeId: nodeId });
-  },
-
-  openToolDialog: (dialog) => {
-    set({ activeToolDialog: dialog });
-  },
-
-  closeToolDialog: () => {
-    set({ activeToolDialog: null });
-  },
 }));
-
-/**
- * True while a box-selection spans 2+ nodes. Node components use this to hide
- * their per-node bottom ops panel during a multi-select (the panels only make
- * sense for a single, intentionally-clicked node and otherwise clutter the
- * canvas). The selector returns a boolean so subscribers only re-render when
- * the multi-select state actually flips.
- */
-export function useIsBoxSelecting(): boolean {
-  return useCanvasStore((state) => {
-    let count = 0;
-    for (const node of state.nodes) {
-      if (node.selected) {
-        count += 1;
-        if (count > 1) {
-          return true;
-        }
-      }
-    }
-    return false;
-  });
-}

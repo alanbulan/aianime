@@ -30,6 +30,7 @@ import {
 import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import { isSystemManagedNodeData } from '@/features/canvas/domain/mainlineNodeFlags';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
+import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
 import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from '@/features/canvas/ui/NodeHeader';
 import { NodeResizeHandle } from '@/features/canvas/ui/NodeResizeHandle';
 import { NodeGenerationOverlay } from '@/features/canvas/ui/NodeGenerationOverlay';
@@ -40,7 +41,7 @@ import {
   CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
   CANVAS_NODE_INPUT_SURFACE_CLASS,
 } from '@/features/canvas/ui/nodeFrameStyles';
-import { useCanvasStore, useIsBoxSelecting } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/stores/canvasStore';
 import {
   ensureBackendImageUrl,
   fetchFreezoneReversePromptResult,

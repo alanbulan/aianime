@@ -8621,4 +8621,88 @@ describe("frontend architecture boundaries", () => {
     expect(sliceSource).not.toContain("@/features/canvas/composition");
     expect(sliceSource).not.toContain("@/stores/canvasStore");
   });
+
+  it("keeps Canvas selection state in one Zustand slice", () => {
+    const slicePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/zustandCanvasSelectionSlice.ts",
+    );
+    const sliceSource = readFileSync(slicePath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const canvasStateHeader = canvasStore.match(
+      /interface CanvasState[\s\S]*?\{/,
+    )?.[0];
+    const implementations = [
+      ["setSelectedNode", "(nodeId) {"],
+      ["openToolDialog", "(dialog) {"],
+      ["closeToolDialog", "() {"],
+    ].map(([name, parameters]) => `${name}${parameters}`);
+
+    for (const implementation of implementations) {
+      const owners = sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(implementation))
+        .map(relativeSource)
+        .sort();
+      expect(owners).toEqual([
+        "features/canvas/infrastructure/zustandCanvasSelectionSlice.ts",
+      ]);
+    }
+
+    expect(importSpecifiers(slicePath)).toEqual([
+      "../domain/canvasNodes",
+    ]);
+    expect(canvasStateHeader).toContain("CanvasSelectionSlice");
+    expect(canvasStore).toContain(
+      "...createZustandCanvasSelectionSlice({",
+    );
+    expect(canvasStore).not.toContain("selectedNodeId: null");
+    expect(canvasStore).not.toContain("activeToolDialog: null");
+    expect(sliceSource).not.toContain("@/features/canvas/composition");
+    expect(sliceSource).not.toContain("@/stores/canvasStore");
+  });
+
+  it("keeps box-selection projection in one presentation hook", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useIsBoxSelecting.ts",
+    );
+    const hookSource = readFileSync(hookPath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const declaration = [
+      "export function",
+      "useIsBoxSelecting(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+    const consumerPaths = [
+      "features/canvas/nodes/AudioNode.tsx",
+      "features/canvas/nodes/ImageGenNode.tsx",
+      "features/canvas/nodes/TextAnnotationNode.tsx",
+      "features/canvas/nodes/VideoNode.tsx",
+    ];
+
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useIsBoxSelecting.ts",
+    ]);
+    expect(importSpecifiers(hookPath)).toEqual([
+      "@/stores/canvasStore",
+    ]);
+    expect(hookSource).toContain("return useCanvasStore((state) => {");
+    expect(canvasStore).not.toContain("useIsBoxSelecting");
+    for (const consumerPath of consumerPaths) {
+      const source = readFileSync(resolve(SRC_ROOT, consumerPath), "utf8");
+      expect(source).toContain(
+        "@/features/canvas/hooks/useIsBoxSelecting",
+      );
+      expect(source).not.toContain("useCanvasStore, useIsBoxSelecting");
+    }
+  });
 });

@@ -68,6 +68,7 @@ import {
   useAlbumPendingTotal,
 } from '@/features/canvas/nodes/shared/albumPendingTotals';
 import { downloadUrlAsFile } from '@/lib/browserDownload';
+import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
 import {
   CANVAS_NODE_INPUT_BODY_FRAME_CLASS,
   CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
@@ -76,7 +77,7 @@ import {
   CANVAS_NODE_PANEL_SURFACE_CLASS,
   canvasNodeFrameClass,
 } from '@/features/canvas/ui/nodeFrameStyles';
-import { useCanvasStore, useIsBoxSelecting } from '@/stores/canvasStore';
+import { useCanvasStore } from '@/stores/canvasStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getFreezoneCanvasMetadata } from '@/features/freezone/canvasMetadataContext';
 import {
