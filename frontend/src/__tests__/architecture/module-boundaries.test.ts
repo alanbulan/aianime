@@ -10372,6 +10372,40 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("function resolveDroppedVideoFile(");
   });
 
+  it("keeps browser audio duration probing in one infrastructure adapter", () => {
+    const infrastructurePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/browserAudioMetadata.ts",
+    );
+    const infrastructureSource = readFileSync(infrastructurePath, "utf8");
+    const videoNode = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      "utf8",
+    );
+    const declaration = [
+      "export function",
+      "probeAudioDurationMs(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(importSpecifiers(infrastructurePath)).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/infrastructure/browserAudioMetadata.ts",
+    ]);
+    expect(infrastructureSource).toContain('document.createElement("audio")');
+    expect(infrastructureSource).toContain(
+      "window.setTimeout(() => finish(null), 8000)",
+    );
+    expect(infrastructureSource).toContain('audio.removeAttribute("src")');
+    expect(videoNode).toContain(
+      "@/features/canvas/infrastructure/browserAudioMetadata",
+    );
+    expect(videoNode).not.toContain("function probeAudioDurationMs(");
+  });
+
   it("keeps VideoNode album chrome in one presentation view", () => {
     const viewPath = resolve(
       SRC_ROOT,

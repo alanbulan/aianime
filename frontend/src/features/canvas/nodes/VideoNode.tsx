@@ -69,6 +69,7 @@ import {
   snapToAllowedAspectRatio,
 } from "@/features/canvas/application/imageData";
 import { resolveDroppedVideoFile } from "@/features/canvas/application/resolveDroppedVideoFile";
+import { probeAudioDurationMs } from "@/features/canvas/infrastructure/browserAudioMetadata";
 import { ensureWebSafeVideo } from "@/features/canvas/infrastructure/videoTranscode";
 import { isVideoFile, VIDEO_FILE_ACCEPT } from "@/features/canvas/application/videoFileTypes";
 import { resolveNodeDisplayName } from "@/features/canvas/domain/nodeDisplay";
@@ -279,37 +280,6 @@ const COUNT_OPTIONS: ReadonlyArray<VideoGenCount> = [1, 2, 4];
 // 用 15.2s 作拦截阈值，避免把后端本会放行的 15.0~15.2s 音频误拦。
 const MAX_AUDIO_TOTAL_DURATION_MS = 15_200;
 
-// 音频节点的 durationMs 是懒加载的（波形播放器挂载读元数据后才写入），刚上传、
-// 从未渲染过的音频节点可能为 null。提交前用一个临时 <audio> 探测真实时长兜底，
-// 探测失败（CORS/网络等）返回 null，不阻断提交，交由后端兜底。
-function probeAudioDurationMs(url: string): Promise<number | null> {
-  return new Promise((resolve) => {
-    if (!url) {
-      resolve(null);
-      return;
-    }
-    const audio = document.createElement("audio");
-    let settled = false;
-    const finish = (ms: number | null) => {
-      if (settled) return;
-      settled = true;
-      window.clearTimeout(timer);
-      audio.onloadedmetadata = null;
-      audio.onerror = null;
-      audio.removeAttribute("src");
-      audio.load();
-      resolve(ms);
-    };
-    const timer = window.setTimeout(() => finish(null), 8000);
-    audio.preload = "metadata";
-    audio.onloadedmetadata = () => {
-      const secs = audio.duration;
-      finish(Number.isFinite(secs) && secs > 0 ? Math.round(secs * 1000) : null);
-    };
-    audio.onerror = () => finish(null);
-    audio.src = url;
-  });
-}
 // 音频引用 chip 的展示文件名：优先节点的 displayName，否则从 audioUrl 取末段文件名。
 // 仅用于前端展示（音频_<文件名>），不影响序列化给后端的 @音频N。
 function audioReferenceFileName(item: {
