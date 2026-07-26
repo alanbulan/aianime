@@ -1,5 +1,4 @@
 // Copyright (c) 2026 AI anime
-import type { PanoViewerManifest } from "@/features/viewer-kit/pano/panoManifest";
 import type {
   DirectorStageManifest,
   DirectorStageOverlayStatus,
@@ -10,16 +9,6 @@ import { apiCall } from "@/shared/api/client";
 export interface AiStagingPropResult {
   prop?: Record<string, unknown>;
   model?: string;
-}
-
-export async function getBeatPanoViewerManifest(
-  project: string,
-  episode: number,
-  beat: number,
-): Promise<PanoViewerManifest> {
-  return await apiCall<PanoViewerManifest>(
-    `projects/${encodeURIComponent(project)}/episodes/${episode}/beats/${beat}/pano-background/manifest`,
-  );
 }
 
 export async function getBeatDirectorStageOverlay(
@@ -72,19 +61,6 @@ export async function saveBeatDirectorControlFrame(
   );
 }
 
-export async function startDirectorControlToSketch(
-  project: string,
-  episode: number,
-  beat: number,
-): Promise<{ task_type?: string; scope?: string; message?: string; error?: string }> {
-  return await apiCall<{ task_type?: string; scope?: string; message?: string; error?: string }>(
-    `projects/${encodeURIComponent(project)}/episodes/${episode}/beats/${beat}/director-control-to-sketch`,
-    {
-      method: "POST",
-    },
-  );
-}
-
 export async function generateAiStagingProp(
   project: string,
   payload: Record<string, unknown>,
@@ -95,15 +71,6 @@ export async function generateAiStagingProp(
       method: "POST",
       json: payload,
     },
-  );
-}
-
-export async function getScenePanoViewerManifest(
-  project: string,
-  sceneId: string,
-): Promise<PanoViewerManifest> {
-  return await apiCall<PanoViewerManifest>(
-    `projects/${encodeURIComponent(project)}/scenes/${encodeURIComponent(sceneId)}/pano/manifest`,
   );
 }
 

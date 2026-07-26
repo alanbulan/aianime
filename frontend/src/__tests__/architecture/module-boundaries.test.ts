@@ -9403,6 +9403,29 @@ describe("frontend architecture boundaries", () => {
     expect(legacyApiSource).not.toContain("DirectorStagePalette");
   });
 
+  it("does not retain unused viewer manifest API exports", () => {
+    const apiPath = resolve(SRC_ROOT, "api/viewerManifests.ts");
+    const dialogTestPath = resolve(
+      SRC_ROOT,
+      "__tests__/features/viewer-kit/three-d/ThreeDDirectorDialog.test.tsx",
+    );
+    const apiSource = readFileSync(apiPath, "utf8");
+    const dialogTestSource = readFileSync(dialogTestPath, "utf8");
+    const removedExports = [
+      "getBeatPanoViewerManifest",
+      "getScenePanoViewerManifest",
+      "startDirectorControlToSketch",
+    ];
+
+    expect(importSpecifiers(apiPath)).not.toContain(
+      "@/features/viewer-kit/pano/panoManifest",
+    );
+    for (const exportName of removedExports) {
+      expect(apiSource).not.toContain(exportName);
+      expect(dialogTestSource).not.toContain(exportName);
+    }
+  });
+
   it("keeps Canvas image-to-3D generation orchestration out of views", () => {
     const domainPath = resolve(
       SRC_ROOT,

@@ -1562,6 +1562,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百三十九批已将导演世界默认 palette 类型和查询 port 迁入 19 行 Canvas application，将项目编码与 `director-stage/palette` URL 迁入唯一 15 行 `freezoneDirectorStagePaletteGateway` infrastructure 适配器并由 composition 注入；`ThreeDWorldNode` 改经 composition 获取无 Beat manifest 时的默认 palette，不再导入 `api/viewerManifests`，旧 API 中对应类型别名和函数共 8 行直接删除；同步将一条仍要求 `Canvas.tsx` 直接执行素材水合的旧 viewer 契约断言更新为当前唯一 `useCanvasMediaTransferController` 所有者，未修改水合实现；查询 method/path、项目编码、返回 palette 和节点失败回退语义均未改变；相关 3 个测试文件 26 项、新增后的架构门禁 191 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百四十批已确认 `getBeatPanoViewerManifest`、`getScenePanoViewerManifest` 在全仓库零调用，`startDirectorControlToSketch` 仅剩组件测试中的未使用 mock；从 `api/viewerManifests.ts` 直接删除三项共 33 行不可达实现及随之失效的 Pano manifest 类型导入，并从 `ThreeDDirectorDialog` 测试删除 5 行死 mock，不新增替代出口或兼容转发；后端端点与所有可达前端行为均未修改；导演对话框测试 1 个文件 60 项、新增后的架构门禁 192 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。
