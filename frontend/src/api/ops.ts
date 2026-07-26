@@ -1110,65 +1110,6 @@ export async function submitFreezoneAnalyze(
   );
 }
 
-// /freezone/relight ------------------------------------------------------- //
-
-export type FreezoneRelightScope = "global" | "local";
-
-export type FreezoneRelightKeyLightDirection =
-  | "left"
-  | "top"
-  | "right"
-  | "front"
-  | "bottom"
-  | "back";
-
-export interface FreezoneRelightPayload {
-  sourceUrl: string;
-  lightingReferenceUrl?: string | null;
-  scope?: FreezoneRelightScope;
-  smartMode?: boolean;
-  brightness?: number;
-  colorHex?: string;
-  /** 色温（开尔文）。后端 `color_temperature_kelvin: int | null`，范围 1500-10000。 */
-  colorTemperatureKelvin?: number | null;
-  keyLightDirection?: FreezoneRelightKeyLightDirection;
-  rimLight?: boolean;
-  prompt?: string;
-  imageSize?: string;
-  model?: string;
-}
-
-export async function submitFreezoneRelight(
-  project: string,
-  payload: FreezoneRelightPayload,
-): Promise<FreezoneJobRef> {
-  // 源图与光照参考图都要走静态 URL，base64 先上传。
-  const sourceUrl = await ensureBackendImageUrl(project, payload.sourceUrl);
-  const lightingReferenceUrl = payload.lightingReferenceUrl
-    ? await ensureBackendImageUrl(project, payload.lightingReferenceUrl)
-    : null;
-  return await apiCall<FreezoneJobRef>(
-    `projects/${encodeURIComponent(project)}/freezone/relight`,
-    {
-      method: "POST",
-      json: {
-        source_url: sourceUrl,
-        lighting_reference_url: lightingReferenceUrl,
-        scope: payload.scope ?? "global",
-        smart_mode: payload.smartMode ?? true,
-        brightness: payload.brightness ?? 50,
-        color_hex: payload.colorHex ?? "#ffffff",
-        color_temperature_kelvin: payload.colorTemperatureKelvin ?? null,
-        key_light_direction: payload.keyLightDirection ?? "front",
-        rim_light: payload.rimLight ?? false,
-        prompt: payload.prompt ?? "",
-        image_size: payload.imageSize ?? "2K",
-        ...(payload.model ? { model: payload.model } : {}),
-      },
-    },
-  );
-}
-
 // /freezone/scene-360 ----------------------------------------------------- //
 
 export interface FreezoneScene360Payload {

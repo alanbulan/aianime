@@ -1,23 +1,35 @@
 // Copyright (c) 2026 AI anime
-import { submitFreezoneRelight } from "@/api/ops";
+import { apiCall } from "@/shared/api/client";
 
 import type { CanvasRelightGenerationGateway } from "../application/generateCanvasRelight";
+import type { CanvasGenerationTaskRef } from "../application/ports";
+import { ensureBackendImageUrl } from "./freezoneAssetGateway";
 
 export const freezoneRelightGenerationGateway: CanvasRelightGenerationGateway = {
   async submit(projectId, command) {
-    return await submitFreezoneRelight(projectId, {
-      sourceUrl: command.sourceUrl,
-      lightingReferenceUrl: command.lightingReferenceUrl,
-      scope: command.scope,
-      smartMode: command.smartMode,
-      brightness: command.brightness,
-      colorHex: command.colorHex,
-      colorTemperatureKelvin: command.colorTemperatureKelvin,
-      keyLightDirection: command.keyLightDirection,
-      rimLight: command.rimLight,
-      prompt: command.prompt,
-      imageSize: command.imageSize,
-      model: command.model,
-    });
+    const sourceUrl = await ensureBackendImageUrl(
+      projectId,
+      command.sourceUrl,
+    );
+    return await apiCall<CanvasGenerationTaskRef>(
+      `projects/${encodeURIComponent(projectId)}/freezone/relight`,
+      {
+        method: "POST",
+        json: {
+          source_url: sourceUrl,
+          lighting_reference_url: command.lightingReferenceUrl,
+          scope: command.scope,
+          smart_mode: command.smartMode,
+          brightness: command.brightness,
+          color_hex: command.colorHex,
+          color_temperature_kelvin: command.colorTemperatureKelvin,
+          key_light_direction: command.keyLightDirection,
+          rim_light: command.rimLight,
+          prompt: command.prompt,
+          image_size: command.imageSize,
+          ...(command.model ? { model: command.model } : {}),
+        },
+      },
+    );
   },
 };

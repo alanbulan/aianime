@@ -11025,12 +11025,21 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/ui/LightEditorOverlay.tsx",
     );
+    const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const domainSource = readFileSync(domainPath, "utf8");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const panelSource = readFileSync(panelPath, "utf8");
     const overlaySource = readFileSync(overlayPath, "utf8");
+    const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
+    const endpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("}/freezone/relight`"),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(importSpecifiers(domainPath)).toEqual([]);
     expect(domainSource).toContain(
@@ -11060,7 +11069,12 @@ describe("frontend architecture boundaries", () => {
       "completeCanvasMediaGenerationTask(",
     );
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
-      new Set(["@/api/ops", "../application/generateCanvasRelight"]),
+      new Set([
+        "@/shared/api/client",
+        "../application/generateCanvasRelight",
+        "../application/ports",
+        "./freezoneAssetGateway",
+      ]),
     );
     expect(infrastructureSource).toContain(
       "freezoneRelightGenerationGateway: CanvasRelightGenerationGateway",
@@ -11084,6 +11098,18 @@ describe("frontend architecture boundaries", () => {
     expect(overlaySource).not.toContain("submitFreezoneRelight");
     expect(overlaySource).not.toContain("fetchFreezoneJobResult");
     expect(overlaySource).not.toContain("awaitTaskCompletion");
+    expect(endpointOwners).toEqual([
+      "features/canvas/infrastructure/freezoneRelightGenerationGateway.ts",
+    ]);
+    for (const legacySymbol of [
+      "FreezoneRelightScope",
+      "FreezoneRelightKeyLightDirection",
+      "FreezoneRelightPayload",
+      "submitFreezoneRelight",
+    ]) {
+      expect(legacyOpsSource).not.toContain(legacySymbol);
+    }
+    expect(legacyOpsSource).not.toContain("}/freezone/relight`");
   });
 
   it("keeps Canvas grid-action rules and generation orchestration out of views", () => {

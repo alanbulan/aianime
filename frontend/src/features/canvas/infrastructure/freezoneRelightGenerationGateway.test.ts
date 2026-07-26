@@ -1,22 +1,30 @@
 // Copyright (c) 2026 AI anime
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const submitFreezoneRelight = vi.hoisted(() => vi.fn());
+import { apiCall } from "@/shared/api/client";
+import { ensureBackendImageUrl } from "./freezoneAssetGateway";
 
-vi.mock("@/api/ops", () => ({ submitFreezoneRelight }));
+vi.mock("@/shared/api/client", () => ({ apiCall: vi.fn() }));
+vi.mock("./freezoneAssetGateway", () => ({ ensureBackendImageUrl: vi.fn() }));
 
 import { freezoneRelightGenerationGateway } from "./freezoneRelightGenerationGateway";
 
+beforeEach(() => {
+  vi.mocked(apiCall).mockReset();
+  vi.mocked(ensureBackendImageUrl).mockReset();
+});
+
 describe("freezoneRelightGenerationGateway", () => {
-  it("maps the Canvas command to the Freezone client", async () => {
+  it("normalizes the source and maps the command to the encoded endpoint", async () => {
     const task = {
       task_key: "relight-task",
       task_type: "freezone_relight",
       job_id: "relight-job",
     };
-    submitFreezoneRelight.mockResolvedValue(task);
+    vi.mocked(ensureBackendImageUrl).mockResolvedValue("/static/source.png");
+    vi.mocked(apiCall).mockResolvedValue(task);
     const command = {
-      sourceUrl: "/static/source.png",
+      sourceUrl: "data:image/png;base64,eA==",
       lightingReferenceUrl: null,
       scope: "global" as const,
       smartMode: true,
@@ -31,8 +39,31 @@ describe("freezoneRelightGenerationGateway", () => {
     };
 
     await expect(
-      freezoneRelightGenerationGateway.submit("project-1", command),
+      freezoneRelightGenerationGateway.submit("project/1", command),
     ).resolves.toBe(task);
-    expect(submitFreezoneRelight).toHaveBeenCalledWith("project-1", command);
+    expect(ensureBackendImageUrl).toHaveBeenCalledWith(
+      "project/1",
+      "data:image/png;base64,eA==",
+    );
+    expect(apiCall).toHaveBeenCalledWith(
+      "projects/project%2F1/freezone/relight",
+      {
+        method: "POST",
+        json: {
+          source_url: "/static/source.png",
+          lighting_reference_url: null,
+          scope: "global",
+          smart_mode: true,
+          brightness: 72,
+          color_hex: "#ffeecc",
+          color_temperature_kelvin: 4200,
+          key_light_direction: "left",
+          rim_light: true,
+          prompt: "golden hour",
+          image_size: "2K",
+          model: "image-model",
+        },
+      },
+    );
   });
 });
