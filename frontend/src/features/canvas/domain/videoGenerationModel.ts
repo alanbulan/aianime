@@ -117,6 +117,15 @@ export function isHappyHorseVideoModel(
   return normalized.includes("happyhorse10");
 }
 
+export function isSeedance20VideoModel(
+  modelId: string | null | undefined,
+): boolean {
+  const normalized = String(modelId ?? "")
+    .replace(/[\s._-]/g, "")
+    .toLowerCase();
+  return normalized.includes("seedance2");
+}
+
 export function isVideoModeSupportedByModel(
   mode: VideoGenMode,
   modelId: string | null | undefined,

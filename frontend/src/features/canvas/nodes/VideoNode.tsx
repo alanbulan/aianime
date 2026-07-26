@@ -42,6 +42,7 @@ import {
   clampVideoDuration,
   defaultSceneOptimizeForModel,
   isHappyHorseVideoModel,
+  isSeedance20VideoModel,
   isVideoModeSupportedByModel,
   normalizeSceneOptimize,
   normalizeVideoQuality,
@@ -175,6 +176,7 @@ import {
 import {
   VideoNodeGenerationHistoryPanel,
 } from "@/features/canvas/nodes/VideoNodeGenerationHistoryPanel";
+import { VideoHumanReviewSwitch } from "@/features/canvas/nodes/VideoHumanReviewSwitch";
 import { resolveVideoGenerationModeOptions } from "@/features/canvas/nodes/videoGenerationModeOptions";
 import {
   CAMERA_MOVEMENT_PRESETS,
@@ -421,9 +423,7 @@ export const VideoNode = memo(
       defaultSceneOptimizeForModel(selectedVideoModel),
     );
     const generateAudio = Boolean(data.generateAudio);
-    // 真人素材审核开关只对 Seedance 2.0 系列模型生效。归一化掉分隔符后匹配
-    // `seedance2`，覆盖 `huimeng_seedance20_fast` / 未来可能的 `seedance_2_0` 等 id。
-    const isSeedance20Model = /seedance2/i.test(modelId.replace(/[\s._-]/g, ""));
+    const isSeedance20Model = isSeedance20VideoModel(modelId);
     const humanReview = Boolean(data.humanReview);
     const count: VideoGenCount = (data.count ?? 1) as VideoGenCount;
     useEffect(() => {
@@ -2569,36 +2569,12 @@ export const VideoNode = memo(
                     onChange={(patch) => updateNodeData(id, patch)}
                   />
                   {isSeedance20Model && (
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={humanReview}
-                      title="素材含真实人脸时开启，可能增加审核时间，不保证通过。"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        updateNodeData(id, { humanReview: !humanReview });
-                      }}
-                      className={`nodrag inline-flex h-7 items-center gap-1.5 rounded px-1 text-xs font-medium transition-colors ${
-                        humanReview
-                          ? "text-text-dark"
-                          : "text-text-dark/72 hover:text-text-dark"
-                      }`}
-                    >
-                      <span>真人验证</span>
-                      <span
-                        className={`relative inline-flex h-3.5 w-6 shrink-0 items-center rounded-full transition-colors ${
-                          humanReview
-                            ? "bg-primary"
-                            : "bg-input"
-                        }`}
-                      >
-                        <span
-                          className={`inline-block h-2.5 w-2.5 transform rounded-full bg-card shadow-sm transition-transform ${
-                            humanReview ? "translate-x-3" : "translate-x-0.5"
-                          }`}
-                        />
-                      </span>
-                    </button>
+                    <VideoHumanReviewSwitch
+                      checked={humanReview}
+                      onChange={(checked) =>
+                        updateNodeData(id, { humanReview: checked })
+                      }
+                    />
                   )}
                   <VideoCountPicker
                     value={count}

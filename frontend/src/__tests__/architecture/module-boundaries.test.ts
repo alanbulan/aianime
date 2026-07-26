@@ -10292,6 +10292,51 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("NODE_OPS_PANEL_ENTER_CLASS");
   });
 
+  it("keeps VideoNode human review switch in one presentation view", () => {
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoHumanReviewSwitch.tsx",
+    );
+    const viewSource = readFileSync(viewPath, "utf8");
+    const videoNode = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(viewPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declaration = [
+      "export function",
+      "VideoHumanReviewSwitch(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/nodes/VideoHumanReviewSwitch.tsx",
+    ]);
+    expect(viewSource).toContain('role="switch"');
+    expect(viewSource).toContain("真人验证");
+    expect(videoNode).toContain(
+      "@/features/canvas/nodes/VideoHumanReviewSwitch",
+    );
+    expect(videoNode).toContain("<VideoHumanReviewSwitch");
+    expect(videoNode).not.toContain('role="switch"');
+    expect(videoNode).not.toContain("<span>真人验证</span>");
+  });
+
   it("keeps VideoNode camera movement trigger in one presentation view", () => {
     const viewPath = resolve(
       SRC_ROOT,
@@ -10565,6 +10610,7 @@ describe("frontend architecture boundaries", () => {
       ["export function", "videoDurationBoundsForModel("].join(" "),
       ["export function", "clampVideoDuration("].join(" "),
       ["export function", "isHappyHorseVideoModel("].join(" "),
+      ["export function", "isSeedance20VideoModel("].join(" "),
       ["export function", "isVideoModeSupportedByModel("].join(" "),
       ["export function", "videoModelReferenceDisabledReason("].join(" "),
       ["export function", "sceneOptimizeOptionsForModel("].join(" "),
@@ -10593,6 +10639,8 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("function resolutionToQuality(");
     expect(videoNode).not.toContain("function isSeedance1xModel(");
     expect(videoNode).not.toContain("function isGrokVideoChannelModel(");
+    expect(videoNode).toContain("isSeedance20VideoModel(modelId)");
+    expect(videoNode).not.toContain("/seedance2/i.test(");
   });
 
   it("keeps video reference URL projection in one pure domain module", () => {

@@ -6,6 +6,7 @@ import {
   clampVideoDuration,
   defaultSceneOptimizeForModel,
   isHappyHorseVideoModel,
+  isSeedance20VideoModel,
   isVideoModeSupportedByModel,
   normalizeSceneOptimize,
   normalizeVideoQuality,
@@ -67,6 +68,14 @@ describe("videoGenerationModel", () => {
     expect(
       isVideoModeSupportedByModel("firstLastFrame", "seedance-2.0"),
     ).toBe(true);
+  });
+
+  it("recognizes Seedance 2.0 model id variants", () => {
+    expect(isSeedance20VideoModel("huimeng_seedance20_fast")).toBe(true);
+    expect(isSeedance20VideoModel("newapi-seedance-2.0-value")).toBe(true);
+    expect(isSeedance20VideoModel("seedance_2_0")).toBe(true);
+    expect(isSeedance20VideoModel("seedance-1.5-pro")).toBe(false);
+    expect(isSeedance20VideoModel(undefined)).toBe(false);
   });
 
   it("reports model-specific reference restrictions", () => {
