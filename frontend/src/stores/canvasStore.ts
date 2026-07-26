@@ -42,6 +42,7 @@ import {
   setCanvasNodePositions,
   updateCanvasNodePosition,
 } from '@/features/canvas/domain/canvasNodePositions';
+import { elevateCanvasNodes } from '@/features/canvas/domain/canvasNodeLayering';
 import { deleteCanvasNodes } from '@/features/canvas/domain/groupSelectionDelete';
 import { planCanvasAutoGroupSpawn } from '@/features/canvas/domain/canvasAutoGrouping';
 import {
@@ -251,6 +252,7 @@ interface CanvasState extends CanvasMutationState {
   ) => boolean;
   updateNodePosition: (nodeId: string, position: { x: number; y: number }) => void;
   setNodePositions: (positions: Record<string, { x: number; y: number }>) => void;
+  elevateNodes: (nodeIds: string[], zIndex: number) => void;
   updateStoryboardFrame: (
     nodeId: string,
     frameId: string,
@@ -863,6 +865,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         ...trackEdit(state),
       };
     });
+  },
+
+  elevateNodes: (nodeIds, zIndex) => {
+    set((state) => ({
+      nodes: elevateCanvasNodes(state.nodes, nodeIds, zIndex),
+    }));
   },
 
   updateStoryboardFrame: (nodeId, frameId, data) => {

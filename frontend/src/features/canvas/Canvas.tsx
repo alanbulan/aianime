@@ -335,6 +335,7 @@ export function Canvas({
   const groupNodes = useCanvasStore((state) => state.groupNodes);
   const fitGroupToChildren = useCanvasStore((state) => state.fitGroupToChildren);
   const setNodePositions = useCanvasStore((state) => state.setNodePositions);
+  const elevateNodes = useCanvasStore((state) => state.elevateNodes);
   const undo = useCanvasStore((state) => state.undo);
   const redo = useCanvasStore((state) => state.redo);
   const openToolDialog = useCanvasStore((state) => state.openToolDialog);
@@ -817,23 +818,6 @@ export function Canvas({
     reportMigrationError: reportCanvasClipboardMigrationError,
   });
 
-  const elevateAltDragCopyNodes = useCallback(
-    (nodeIds: string[], zIndex: number) => {
-      const nodeIdSet = new Set(nodeIds);
-      useCanvasStore.setState((state) => ({
-        nodes: state.nodes.map((node) =>
-          nodeIdSet.has(node.id)
-            ? {
-                ...node,
-                zIndex,
-                style: { ...(node.style ?? {}), zIndex },
-              }
-            : node,
-        ),
-      }));
-    },
-    [],
-  );
   const commitDragNodePositions = useCallback(
     (updates: CanvasAltDragPositionCommit[]) => {
       applyNodesChange(updates.map((update) => ({
@@ -854,7 +838,7 @@ export function Canvas({
     nodes,
     selectedNodeIds,
     duplicateNodes,
-    elevateNodes: elevateAltDragCopyNodes,
+    elevateNodes,
     commitNodePositions: commitDragNodePositions,
     selectNode: setSelectedNode,
   });

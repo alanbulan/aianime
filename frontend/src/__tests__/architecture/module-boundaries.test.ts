@@ -7656,4 +7656,62 @@ describe("frontend architecture boundaries", () => {
       canvasSource.indexOf("<CanvasConnectionPreviewOverlay"),
     );
   });
+
+  it("keeps Canvas node layering in one domain rule and Store command", () => {
+    const layeringPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/canvasNodeLayering.ts",
+    );
+    const layeringSource = readFileSync(layeringPath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const canvasSource = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const altDragController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasAltDragCopyController.ts",
+      ),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(layeringPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declaration = [
+      "export function",
+      "elevateCanvasNodes(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/domain/canvasNodeLayering.ts",
+    ]);
+    expect(layeringSource).toContain("style: { ...(node.style ?? {}), zIndex }");
+    expect(canvasStore).toContain("elevateCanvasNodes(state.nodes, nodeIds, zIndex)");
+    expect(altDragController).toContain(
+      "elevateNodes(copiedNodeIds, ALT_DRAG_COPY_Z_INDEX)",
+    );
+    expect(canvasSource).toContain("state.elevateNodes");
+    expect(canvasSource).not.toContain("useCanvasStore.setState");
+    expect(canvasSource).not.toContain("const nodeIdSet = new Set(nodeIds)");
+  });
 });
