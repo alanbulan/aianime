@@ -1600,6 +1600,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百五十八批已将音视频分离的提交请求映射与专用结果查询从 `api/ops.ts` 迁入已有唯一 `freezoneAudioSeparationGateway` infrastructure 适配器，项目、任务 ID 编码和两个 endpoint 由该 gateway 统一持有，Canvas application 继续负责等待任务、优先解析完成回执、缺失产物时回退查询及非致命错误保留；旧 `FreezoneAudioSeparatePayload`、`submitFreezoneAudioSeparate` 和 `fetchFreezoneAudioSeparateResult` 直接删除，不保留 facade、re-export 或第二套 HTTP 映射，提交与结果端点均只有该 gateway 一个生产所有者，`api/ops.ts` 由 2,022 行降至 1,976 行；请求路径、方法、目标 Episode/Beat、任务类型校验、音频与静音视频产物语义均未改变；相关 2 个测试文件 6 项、架构门禁 206 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
 
+第二百五十九批已将视频超分的项目路径编码、POST method、分辨率、插帧、降噪和节点上下文字段映射从 `api/ops.ts` 迁入已有唯一 `freezoneVideoUpscaleGenerationGateway` infrastructure 适配器，Canvas application 继续负责清理源 URL 缓存参数、固定基础版插帧策略、完成任务和回传结果；旧 `FreezoneVideoUpscalePayload`、`submitFreezoneVideoUpscale` 及 `ops.ts` 对 `videoUpscale` 领域常量的临时依赖直接删除，不保留 facade、re-export 或第二套 HTTP 映射，`freezone/video/upscale` 端点只有该 gateway 一个生产所有者，`api/ops.ts` 由 1,976 行降至 1,938 行；请求路径、方法、2K/4K 档位、降噪、空节点上下文省略和任务回执语义均未改变；相关 3 个测试文件 4 项、架构门禁 206 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

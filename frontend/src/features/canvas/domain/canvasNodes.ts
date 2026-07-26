@@ -157,7 +157,7 @@ export interface VideoNodeData extends NodeDisplayData {
   // 视频高清（upscale）标记 ----------------------------------------------------
   // 视频节点「高清」操作 spawn 的视频节点带这些字段：复用 video 节点的播放器 / 角标 /
   // 尺寸（与普通视频节点一致），但用 isUpscaleNode 抑制底部生成面板，改走选中时常驻的
-  // VideoUpscaleEditorOverlay（提交 submitFreezoneVideoUpscale，高清结果回写到本节点
+  // VideoUpscaleEditorOverlay（提交 Canvas 视频超分用例，高清结果回写到本节点
   // videoUrl）。
   /** 标记此视频节点是「视频高清」节点（参数面板 + upscale 提交，而非常规生成）。 */
   isUpscaleNode?: boolean;

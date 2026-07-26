@@ -11261,6 +11261,13 @@ describe("frontend architecture boundaries", () => {
     const compositionSource = readFileSync(compositionPath, "utf8");
     const overlaySource = readFileSync(overlayPath, "utf8");
     const opsSource = readFileSync(opsPath, "utf8");
+    const endpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("}/freezone/video/upscale`"),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(importSpecifiers(domainPath)).toEqual([]);
     expect(domainSource).toContain(
@@ -11290,7 +11297,11 @@ describe("frontend architecture boundaries", () => {
       "completeCanvasMediaGenerationTask(",
     );
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
-      new Set(["@/api/ops", "../application/generateCanvasVideoUpscale"]),
+      new Set([
+        "@/shared/api/client",
+        "../application/generateCanvasVideoUpscale",
+        "../application/ports",
+      ]),
     );
     expect(infrastructureSource).toContain(
       "freezoneVideoUpscaleGenerationGateway: CanvasVideoUpscaleGenerationGateway",
@@ -11310,7 +11321,13 @@ describe("frontend architecture boundaries", () => {
     expect(overlaySource).not.toContain("submitFreezoneVideoUpscale");
     expect(overlaySource).not.toContain("fetchFreezoneJobResult");
     expect(overlaySource).not.toContain("awaitTaskCompletion");
-    expect(opsSource).toContain("@/features/canvas/domain/videoUpscale");
+    expect(endpointOwners).toEqual([
+      "features/canvas/infrastructure/freezoneVideoUpscaleGenerationGateway.ts",
+    ]);
+    expect(opsSource).not.toContain("@/features/canvas/domain/videoUpscale");
+    expect(opsSource).not.toContain("FreezoneVideoUpscalePayload");
+    expect(opsSource).not.toContain("submitFreezoneVideoUpscale");
+    expect(opsSource).not.toContain("}/freezone/video/upscale`");
     expect(opsSource).not.toContain("FreezoneVideoUpscaleResolution");
     expect(opsSource).not.toContain("FreezoneVideoUpscaleDenoise");
   });

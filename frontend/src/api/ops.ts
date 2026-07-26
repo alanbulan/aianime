@@ -25,12 +25,6 @@ import {
   DEFAULT_CANVAS_UPSCALE_SCALE_FACTOR,
   type CanvasUpscaleScaleFactor,
 } from "@/features/canvas/domain/upscale";
-import {
-  DEFAULT_CANVAS_VIDEO_UPSCALE_DENOISE,
-  DEFAULT_CANVAS_VIDEO_UPSCALE_RESOLUTION,
-  type CanvasVideoUpscaleDenoise,
-  type CanvasVideoUpscaleResolution,
-} from "@/features/canvas/domain/videoUpscale";
 import type {
   CanvasAssetLibraryMedia,
   CanvasAssetLibrarySource,
@@ -280,38 +274,6 @@ export async function submitFreezoneVideoGen(
         ...(payload.genMode ? { gen_mode: payload.genMode } : {}),
         human_review: payload.humanReview ?? false,
         scene_optimize: payload.sceneOptimize ?? null,
-        ...nodeContextBody(payload),
-      },
-    },
-  );
-}
-
-// /freezone/video/upscale ------------------------------------------------- //
-
-export interface FreezoneVideoUpscalePayload extends FreezoneNodeContext {
-  /** Static URL of the source video to upscale. */
-  sourceUrl: string;
-  resolution?: CanvasVideoUpscaleResolution;
-  /** Base version only supports "none" (frame rate unchanged). */
-  frameInterpolation?: "none";
-  denoiseStrength?: CanvasVideoUpscaleDenoise;
-}
-
-export async function submitFreezoneVideoUpscale(
-  project: string,
-  payload: FreezoneVideoUpscalePayload,
-): Promise<FreezoneJobRef> {
-  return await apiCall<FreezoneJobRef>(
-    `projects/${encodeURIComponent(project)}/freezone/video/upscale`,
-    {
-      method: "POST",
-      json: {
-        source_url: payload.sourceUrl,
-        resolution:
-          payload.resolution ?? DEFAULT_CANVAS_VIDEO_UPSCALE_RESOLUTION,
-        frame_interpolation: payload.frameInterpolation ?? "none",
-        denoise_strength:
-          payload.denoiseStrength ?? DEFAULT_CANVAS_VIDEO_UPSCALE_DENOISE,
         ...nodeContextBody(payload),
       },
     },

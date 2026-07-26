@@ -1,20 +1,24 @@
 // Copyright (c) 2026 AI anime
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const submitFreezoneVideoUpscale = vi.hoisted(() => vi.fn());
-
-vi.mock("@/api/ops", () => ({ submitFreezoneVideoUpscale }));
+import { apiCall } from "@/shared/api/client";
 
 import { freezoneVideoUpscaleGenerationGateway } from "./freezoneVideoUpscaleGenerationGateway";
 
+vi.mock("@/shared/api/client", () => ({ apiCall: vi.fn() }));
+
+beforeEach(() => {
+  vi.mocked(apiCall).mockReset();
+});
+
 describe("freezoneVideoUpscaleGenerationGateway", () => {
-  it("maps the Canvas command to the Freezone client", async () => {
+  it("maps the Canvas command to the encoded upscale endpoint", async () => {
     const task = {
       task_key: "video-upscale-task",
       task_type: "freezone_video_upscale",
       job_id: "video-upscale-job",
     };
-    submitFreezoneVideoUpscale.mockResolvedValue(task);
+    vi.mocked(apiCall).mockResolvedValue(task);
     const command = {
       sourceUrl: "/static/source.mp4",
       resolution: "2k" as const,
@@ -25,11 +29,21 @@ describe("freezoneVideoUpscaleGenerationGateway", () => {
     };
 
     await expect(
-      freezoneVideoUpscaleGenerationGateway.submit("project-1", command),
+      freezoneVideoUpscaleGenerationGateway.submit("project/1", command),
     ).resolves.toBe(task);
-    expect(submitFreezoneVideoUpscale).toHaveBeenCalledWith(
-      "project-1",
-      command,
+    expect(apiCall).toHaveBeenCalledWith(
+      "projects/project%2F1/freezone/video/upscale",
+      {
+        method: "POST",
+        json: {
+          source_url: "/static/source.mp4",
+          resolution: "2k",
+          frame_interpolation: "none",
+          denoise_strength: "1x",
+          canvas_id: "canvas-1",
+          node_id: "video-1",
+        },
+      },
     );
   });
 });
