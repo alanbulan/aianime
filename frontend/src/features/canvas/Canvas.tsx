@@ -482,7 +482,7 @@ export function Canvas({
   const openNodeMenuAtClientPosition = useCallback(
     (clientPosition: { x: number; y: number }) => {
       const containerRect = wrapperRef.current?.getBoundingClientRect();
-      const flowPos = reactFlowInstance.screenToFlowPosition(clientPosition);
+      const flowPos = screenToFlowPosition(clientPosition);
       openPlainNodeMenu({
         flowPosition: flowPos,
         menuPosition: {
@@ -493,7 +493,12 @@ export function Canvas({
       cancelNodePlacement();
       setSelectedNode(null);
     },
-    [cancelNodePlacement, openPlainNodeMenu, reactFlowInstance, setSelectedNode],
+    [
+      cancelNodePlacement,
+      openPlainNodeMenu,
+      screenToFlowPosition,
+      setSelectedNode,
+    ],
   );
   const {
     handlePaneClick,
@@ -526,11 +531,11 @@ export function Canvas({
     (request: CanvasConnectionMenuRequest) => {
       openConnectionMenuState(
         request,
-        reactFlowInstance.screenToFlowPosition(request.clientPosition),
+        screenToFlowPosition(request.clientPosition),
       );
       suppressNextPaneClick();
     },
-    [openConnectionMenuState, reactFlowInstance, suppressNextPaneClick],
+    [openConnectionMenuState, screenToFlowPosition, suppressNextPaneClick],
   );
   const clearHoveredNode = useCallback(
     () => setHoveredNodeId(null),
@@ -629,11 +634,6 @@ export function Canvas({
     }),
     [],
   );
-  const screenToCanvasPosition = useCallback(
-    (position: { x: number; y: number }) =>
-      reactFlowInstance.screenToFlowPosition(position),
-    [reactFlowInstance],
-  );
   const createPastedUploadNode = useCallback(
     (position: { x: number; y: number }) =>
       addNode(
@@ -646,7 +646,7 @@ export function Canvas({
   const { queueSnapshotPaste } = useCanvasMediaPaste({
     selectedUploadNodeId,
     getPreferredClientPosition: getPreferredCanvasPointerPosition,
-    screenToCanvasPosition,
+    screenToCanvasPosition: screenToFlowPosition,
     createUploadNode: createPastedUploadNode,
     selectNode: setSelectedNode,
     eventPort: mediaTransferEventPort,

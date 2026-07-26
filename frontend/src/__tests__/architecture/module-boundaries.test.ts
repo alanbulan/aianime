@@ -7778,4 +7778,21 @@ describe("frontend architecture boundaries", () => {
     );
     expect(canvasSource).not.toContain("const attachDroppedExternalFile");
   });
+
+  it("keeps Canvas client-to-Flow conversion in one adapter", () => {
+    const canvasSource = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const directConversionCount = (
+      canvasSource.match(/reactFlowInstance\.screenToFlowPosition\(/g) ?? []
+    ).length;
+
+    expect(directConversionCount).toBe(1);
+    expect(canvasSource).toContain("const screenToFlowPosition = useCallback");
+    expect(canvasSource).toContain(
+      "screenToCanvasPosition: screenToFlowPosition",
+    );
+    expect(canvasSource).not.toContain("const screenToCanvasPosition");
+  });
 });
