@@ -769,9 +769,12 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(beatContextContractPath)).toEqual([
       "../context/mainlineContext",
     ]);
-    expect(importSpecifiers(canvasApplicationPath)).toEqual([
-      "@/features/freezone/public",
-    ]);
+    expect(new Set(importSpecifiers(canvasApplicationPath))).toEqual(
+      new Set([
+        "@/features/freezone/public",
+        "./ports",
+      ]),
+    );
     expect(new Set(importSpecifiers(canvasInfrastructurePath))).toEqual(
       new Set([
         "@/features/freezone/public",
@@ -829,6 +832,97 @@ describe("frontend architecture boundaries", () => {
     expect(freezoneCompositionSource).toContain(
       "httpFreezoneContextQueryGateway",
     );
+  });
+
+  it("keeps all non-projection canvas persistence behind the Canvas composition", () => {
+    const apiCanvasPath = resolve(SRC_ROOT, "api/canvas.ts");
+    const canvasContractPath = resolve(
+      SRC_ROOT,
+      "features/freezone/domain/canvasStorage.ts",
+    );
+    const canvasApplicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/freezoneCanvasStorage.ts",
+    );
+    const canvasInfrastructurePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneCanvasStorageGateway.ts",
+    );
+    const canvasCompositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const publicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    const apiCanvasSource = readFileSync(apiCanvasPath, "utf8");
+    const canvasApplicationSource = readFileSync(canvasApplicationPath, "utf8");
+    const canvasInfrastructureSource = readFileSync(
+      canvasInfrastructurePath,
+      "utf8",
+    );
+    const canvasCompositionSource = readFileSync(canvasCompositionPath, "utf8");
+    const publicSource = readFileSync(publicPath, "utf8");
+    const directCanvasApiConsumers = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) => importSpecifiers(path).includes("@/api/canvas"))
+      .map(relativeSource)
+      .sort();
+    const extractHistoryIdOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          ["export function", "extractHistoryId("].join(" "),
+        ),
+      )
+      .map(relativeSource)
+      .sort();
+    const migratedConsumerPaths = [
+      "features/freezone/CanvasDebugPanel.tsx",
+      "features/freezone/CanvasesTab.tsx",
+      "features/freezone/useCanvasSync.ts",
+      "lib/queries/freezone.ts",
+    ];
+    const removedApiDeclarations = [
+      "export interface FreezoneCanvasSummary",
+      "export interface CreateBlankFreezoneCanvasRequest",
+      "export interface FreezoneCanvasHistoryEntry",
+      "export interface FreezoneCanvasRestoreRequest",
+      "export function generateClientSaveId(",
+      "export function extractHistoryId(",
+      "export async function listFreezoneCanvases(",
+      "export async function putFreezoneCanvas(",
+      "export async function createBlankFreezoneCanvas(",
+      "export async function deleteFreezoneCanvas(",
+      "export async function listFreezoneCanvasHistory(",
+      "export async function restoreFreezoneCanvasVersion(",
+    ];
+
+    expect(importSpecifiers(canvasContractPath)).toEqual([]);
+    expect(extractHistoryIdOwners).toEqual([
+      "features/freezone/domain/canvasStorage.ts",
+    ]);
+    expect(directCanvasApiConsumers).toEqual([
+      "features/freezone/FreezoneShell.tsx",
+      "features/freezone/openPresetProjection.ts",
+      "features/freezone/projectionStatusStore.ts",
+    ]);
+    for (const declaration of removedApiDeclarations) {
+      expect(apiCanvasSource).not.toContain(declaration);
+    }
+    for (const consumerPath of migratedConsumerPaths) {
+      const source = readFileSync(resolve(SRC_ROOT, consumerPath), "utf8");
+      expect(source).not.toContain("@/api/canvas");
+      expect(source).toContain("@/features/canvas/composition");
+    }
+    expect(canvasApplicationSource).toContain("idGenerator.next()");
+    expect(canvasApplicationSource).not.toContain("@/shared/api/");
+    expect(canvasInfrastructureSource).toContain('method: "PUT"');
+    expect(canvasInfrastructureSource).toContain('method: "DELETE"');
+    expect(canvasInfrastructureSource).toContain("/history");
+    expect(canvasInfrastructureSource).toContain("/restore");
+    expect(canvasCompositionSource).toContain(
+      "generateClientSaveIdUseCase(uuidGenerator)",
+    );
+    expect(publicSource).toContain("extractHistoryId");
   });
 
   it("keeps Canvas node preferences behind one browser gateway", () => {

@@ -9,10 +9,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { server } from "@/__mocks__/msw/server";
 import { apiCall } from "@/shared/api/client";
-import {
-  listFreezoneCanvases,
-  putFreezoneCanvas,
-} from "@/api/canvas";
 import { freezoneCanvasStorageGateway } from "@/features/canvas/infrastructure/freezoneCanvasStorageGateway";
 import { fetchFreezoneJobResult, submitFreezoneGen } from "@/api/ops";
 import { pushToPipeline } from "@/api/push";
@@ -300,16 +296,22 @@ describe("M06 frontend L2 contract", () => {
         affected_count: 1,
       });
 
-    const canvases = await listFreezoneCanvases("demo");
+    const canvases = await freezoneCanvasStorageGateway.listCanvases({
+      projectId: "demo",
+    });
     const canvas = await freezoneCanvasStorageGateway.getCanvas({
       projectId: "demo",
       canvasId: "default",
     });
-    const saveResult = await putFreezoneCanvas("demo", "default", {
-      ...canvas,
-      nodes: [{ id: "n1", type: "freezoneImageNode", data: { imageUrl: "/input.png" } }],
-      client_save_id: "save-1",
-      base_revision: 4,
+    const saveResult = await freezoneCanvasStorageGateway.saveCanvas({
+      projectId: "demo",
+      canvasId: "default",
+      payload: {
+        ...canvas,
+        nodes: [{ id: "n1", type: "freezoneImageNode", data: { imageUrl: "/input.png" } }],
+        client_save_id: "save-1",
+        base_revision: 4,
+      },
     });
     const job = await submitFreezoneGen("demo", {
       prompt: "cinematic frame",

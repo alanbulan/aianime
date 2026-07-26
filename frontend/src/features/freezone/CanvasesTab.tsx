@@ -18,8 +18,8 @@ import {
 import {
   createBlankFreezoneCanvas,
   deleteFreezoneCanvas,
-  type FreezoneCanvasSummary,
-} from "@/api/canvas";
+} from "@/features/canvas/composition";
+import type { FreezoneCanvasSummary } from "@/features/freezone/public";
 import { ApiError } from "@/shared/api/errors";
 import { writeUrl } from "@/lib/url-params";
 import { useTranslation } from "react-i18next";

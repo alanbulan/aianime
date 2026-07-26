@@ -4,9 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiCall } from "@/shared/api/client";
 import {
   buildProjectionFromPreset,
-  createBlankFreezoneCanvas,
   getProjectionStatuses,
-  putFreezoneCanvas,
 } from "@/api/canvas";
 
 vi.mock("@/shared/api/client", () => ({
@@ -76,63 +74,4 @@ describe("canvas projection api", () => {
     );
   });
 
-  it("persists canvas changes with a PUT request body", async () => {
-    const payload = {
-      nodes: [{ id: "n1" }],
-      edges: [],
-      base_revision: 7,
-      client_save_id: "save-1",
-    };
-    vi.mocked(apiCall).mockResolvedValueOnce({
-      saved: true,
-      revision: 8,
-    });
-
-    await putFreezoneCanvas("project-a", "user_eric", payload);
-
-    expect(apiCall).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(apiCall).mock.calls[0]).toEqual([
-      "projects/project-a/freezone/canvases/user_eric",
-      {
-        method: "PUT",
-        json: payload,
-      },
-    ]);
-  });
-
-  it("creates a named blank canvas with creator metadata", async () => {
-    vi.mocked(apiCall).mockResolvedValueOnce({
-      saved: true,
-      revision: 1,
-    });
-
-    await createBlankFreezoneCanvas("project-a", {
-      canvasId: "canvas_story_lab_abc123",
-      name: "故事实验",
-      creatorUsername: "alice",
-    });
-
-    expect(apiCall).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(apiCall).mock.calls[0]).toEqual([
-      "projects/project-a/freezone/canvases/canvas_story_lab_abc123",
-      {
-        method: "PUT",
-        json: expect.objectContaining({
-          schema_version: 2,
-          canvas_id: "canvas_story_lab_abc123",
-          project_id: "project-a",
-          base_revision: null,
-          save_source: "manual_save",
-          nodes: [],
-          edges: [],
-          viewport: null,
-          metadata: {
-            canvas_origin: "user_created",
-            display_name: "故事实验",
-            creator_username: "alice",
-          },
-        }),
-      },
-    ]);
-  });
 });

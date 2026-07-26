@@ -13,6 +13,21 @@ describe("freezoneCanvasStorageGateway", () => {
     vi.mocked(apiCall).mockReset();
   });
 
+  it("lists canvases and forwards cancellation", async () => {
+    const controller = new AbortController();
+    vi.mocked(apiCall).mockResolvedValueOnce([]);
+
+    await freezoneCanvasStorageGateway.listCanvases({
+      projectId: "project/a",
+      signal: controller.signal,
+    });
+
+    expect(apiCall).toHaveBeenCalledWith(
+      "projects/project%2Fa/freezone/canvases",
+      { signal: controller.signal },
+    );
+  });
+
   it("reads an encoded canvas path and forwards cancellation", async () => {
     const controller = new AbortController();
     vi.mocked(apiCall).mockResolvedValueOnce({ nodes: [], edges: [] });
@@ -52,5 +67,62 @@ describe("freezoneCanvasStorageGateway", () => {
       "projects/project-a/freezone/canvases:from-preset",
       { method: "POST", json: payload },
     );
+  });
+
+  it("persists canvas changes with a PUT request body", async () => {
+    const payload = {
+      nodes: [{ id: "n1" }],
+      edges: [],
+      base_revision: 7,
+      client_save_id: "save-1",
+    };
+    vi.mocked(apiCall).mockResolvedValueOnce({ saved: true, revision: 8 });
+
+    await freezoneCanvasStorageGateway.saveCanvas({
+      projectId: "project-a",
+      canvasId: "user_eric",
+      payload,
+    });
+
+    expect(apiCall).toHaveBeenCalledWith(
+      "projects/project-a/freezone/canvases/user_eric",
+      { method: "PUT", json: payload },
+    );
+  });
+
+  it("owns canvas deletion and history transport", async () => {
+    vi.mocked(apiCall)
+      .mockResolvedValueOnce({ deleted: true })
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce({ saved: true, revision: 9 });
+
+    await freezoneCanvasStorageGateway.deleteCanvas({
+      projectId: "project-a",
+      canvasId: "story-lab",
+    });
+    await freezoneCanvasStorageGateway.listHistory({
+      projectId: "project-a",
+      canvasId: "story-lab",
+    });
+    await freezoneCanvasStorageGateway.restoreVersion({
+      projectId: "project-a",
+      canvasId: "story-lab",
+      payload: { history_id: "rev-8", base_revision: 8 },
+    });
+
+    expect(vi.mocked(apiCall).mock.calls).toEqual([
+      [
+        "projects/project-a/freezone/canvases/story-lab",
+        { method: "DELETE" },
+      ],
+      ["projects/project-a/freezone/canvases/story-lab/history"],
+      [
+        "projects/project-a/freezone/canvases/story-lab/restore",
+        {
+          method: "POST",
+          json: { history_id: "rev-8", base_revision: 8 },
+        },
+      ],
+    ]);
   });
 });

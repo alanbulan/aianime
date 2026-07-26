@@ -11,12 +11,10 @@ import type {
   CanvasHistoryState,
 } from "@/features/canvas/domain/canvasHistory";
 import {
-  generateClientSaveId,
-  putFreezoneCanvas,
-} from "@/api/canvas";
-import {
   createCanvasFromPreset,
+  generateClientSaveId,
   getFreezoneCanvas,
+  putFreezoneCanvas,
 } from "@/features/canvas/composition";
 import type {
   CanvasBackupStatus,

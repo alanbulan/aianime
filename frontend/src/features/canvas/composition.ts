@@ -5,7 +5,12 @@ import {
   loadBeatDirectorStageManifest,
   loadSceneDirectorStageManifest,
 } from '@/modules/asset_world/public';
-import type { FreezonePresetCanvasRequest } from '@/features/freezone/public';
+import type {
+  CreateBlankFreezoneCanvasRequest,
+  FreezoneCanvasPayload,
+  FreezoneCanvasRestoreRequest,
+  FreezonePresetCanvasRequest,
+} from '@/features/freezone/public';
 
 import { canvasEventBus } from './application/canvasServices';
 import {
@@ -23,7 +28,14 @@ import {
 } from './application/directorStagePalette';
 import {
   createCanvasFromPreset as createCanvasFromPresetUseCase,
+  createBlankFreezoneCanvas as createBlankFreezoneCanvasUseCase,
+  deleteFreezoneCanvas as deleteFreezoneCanvasUseCase,
+  generateClientSaveId as generateClientSaveIdUseCase,
   getFreezoneCanvas as getFreezoneCanvasUseCase,
+  listFreezoneCanvasHistory as listFreezoneCanvasHistoryUseCase,
+  listFreezoneCanvases as listFreezoneCanvasesUseCase,
+  putFreezoneCanvas as putFreezoneCanvasUseCase,
+  restoreFreezoneCanvasVersion as restoreFreezoneCanvasVersionUseCase,
 } from './application/freezoneCanvasStorage';
 import {
   completeVideoGenerationTask as completeVideoGenerationTaskUseCase,
@@ -604,6 +616,71 @@ export function getFreezoneCanvas(
 ) {
   return getFreezoneCanvasUseCase(
     { projectId, canvasId, signal: options?.signal },
+    freezoneCanvasStorageGateway,
+  );
+}
+
+export function listFreezoneCanvases(
+  projectId: string,
+  options?: { signal?: AbortSignal },
+) {
+  return listFreezoneCanvasesUseCase(
+    { projectId, signal: options?.signal },
+    freezoneCanvasStorageGateway,
+  );
+}
+
+export function putFreezoneCanvas(
+  projectId: string,
+  canvasId: string,
+  payload: FreezoneCanvasPayload,
+) {
+  return putFreezoneCanvasUseCase(
+    { projectId, canvasId, payload },
+    freezoneCanvasStorageGateway,
+  );
+}
+
+export function generateClientSaveId() {
+  return generateClientSaveIdUseCase(uuidGenerator);
+}
+
+export function createBlankFreezoneCanvas(
+  projectId: string,
+  request: CreateBlankFreezoneCanvasRequest,
+) {
+  return createBlankFreezoneCanvasUseCase(
+    projectId,
+    request,
+    freezoneCanvasStorageGateway,
+    uuidGenerator,
+  );
+}
+
+export function deleteFreezoneCanvas(projectId: string, canvasId: string) {
+  return deleteFreezoneCanvasUseCase(
+    { projectId, canvasId },
+    freezoneCanvasStorageGateway,
+  );
+}
+
+export function listFreezoneCanvasHistory(
+  projectId: string,
+  canvasId: string,
+) {
+  return listFreezoneCanvasHistoryUseCase(
+    { projectId, canvasId },
+    freezoneCanvasStorageGateway,
+  );
+}
+
+export function restoreFreezoneCanvasVersion(
+  projectId: string,
+  canvasId: string,
+  payload: FreezoneCanvasRestoreRequest,
+) {
+  return restoreFreezoneCanvasVersionUseCase(
+    { projectId, canvasId, payload },
     freezoneCanvasStorageGateway,
   );
 }

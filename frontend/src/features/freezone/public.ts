@@ -20,12 +20,17 @@ export type {
 export type {
   CanvasBackupStatus,
   CanvasSaveSource,
+  CreateBlankFreezoneCanvasRequest,
   FreezoneCanvasPayload,
+  FreezoneCanvasHistoryEntry,
+  FreezoneCanvasRestoreRequest,
   FreezoneCanvasSaveResult,
   FreezoneCanvasScope,
+  FreezoneCanvasSummary,
   FreezonePresetCanvasRequest,
   FreezonePresetCanvasResponse,
 } from "@/features/freezone/domain/canvasStorage";
+export { extractHistoryId } from "@/features/freezone/domain/canvasStorage";
 export type {
   CandidateOrigin,
   ResolvedSkillInput,

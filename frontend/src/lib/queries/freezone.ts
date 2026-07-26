@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { useQuery } from "@tanstack/react-query";
-import { listFreezoneCanvases } from "@/api/canvas";
+import { listFreezoneCanvases } from "@/features/canvas/composition";
 import {
   listFreezoneBeatContext,
   listFreezoneProjectAssets,

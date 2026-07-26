@@ -1570,6 +1570,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百四十三批已将画布 payload、保存结果、preset 请求/响应及 Beat Context/项目素材 DTO 迁入唯一 Freezone domain 契约并经 public API 发布；画布读取与 preset 恢复的 port/委托用例迁入 Canvas application，项目编码、取消信号、GET/POST method 和 `canvases:from-preset` URL 迁入唯一 `freezoneCanvasStorageGateway` infrastructure 适配器并由 Canvas composition 注入；项目素材与 Beat Context 查询的 port/委托用例、查询串和 HTTP 实现迁入 Freezone application/infrastructure/composition；`BeatContextNode` 只经 Canvas composition、Freezone public 和 Narrative Planning public 读取画布、刷新上下文及更新 Beat，复用既有 `httpNarrativePlanningGateway`，不再直连旧 API；`api/canvas.ts` 删除画布读取、preset 创建和重复 DTO，`api/projects.ts` 删除 Beat 更新、项目素材与 Beat Context 实现，`lib/queries/freezone.ts` 同步删除零调用的第二套 preset 创建函数/hook，不保留兼容转发；请求路径、方法、payload、取消信号、缓存键和手动同步语义均未改变；相关 10 个测试文件 69 项、新增后的架构门禁 195 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百四十四批已将画布摘要、空白画布命令、历史条目/恢复 DTO 和历史 ID 别名解析迁入唯一 Freezone canvas storage domain 契约并经 public API 发布；扩展既有 `freezoneCanvasStorage` application port/用例，统一画布列表、读取、保存、空白创建、删除、preset 创建、历史读取和版本恢复，空白画布 payload 组装留在 application，保存幂等 ID 复用既有 `IdGenerator` port 与 `uuidGenerator` 装配；同一个 `freezoneCanvasStorageGateway` 成为上述 GET/PUT/POST/DELETE 路径的唯一 HTTP 所有者，Canvas composition 对外提供运行时入口；`useCanvasSync`、`CanvasesTab`、`CanvasDebugPanel` 和 Freezone query hook 不再直连 `api/canvas.ts`，旧文件删除全部持久化函数、DTO、ID 生成与历史解析，只剩三个调用方使用的 projection 契约和接口，不保留转发；请求路径、方法、payload、取消信号、空白画布 metadata、历史 ID 优先级及 UUID 幂等语义均未改变；相关 8 个测试文件 73 项、新增后的架构门禁 196 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

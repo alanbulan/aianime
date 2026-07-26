@@ -1,42 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { apiCall } from "@/shared/api/client";
-import type {
-  FreezoneCanvasPayload,
-  FreezoneCanvasSaveResult,
-  FreezoneCanvasScope,
-  FreezonePresetCanvasRequest,
-} from "@/features/freezone/public";
-
-// Canvas storage lives under `/api/v1/projects/<project_id>/freezone/canvases/*`.
-// The wire format is intentionally generic: `{nodes, edges, viewport}`. The
-// backend treats the canvas graph as opaque JSON, so node/capability evolutions stay
-// client-side until a specific semantic needs indexing.
-
-export interface FreezoneCanvasSummary {
-  id: string;
-  modified_at: string;
-  size: number;
-  schema_version?: 2 | number | null;
-  canvas_scope?: FreezoneCanvasScope | string | null;
-  episode?: number | null;
-  beat?: number | null;
-  asset_target?: Record<string, unknown> | null;
-  revision?: number | null;
-  metadata?: Record<string, unknown> | null;
-}
-
-/**
- * Mint an idempotency token for a single canvas save attempt. Callers should
- * reuse the same id across retries of the same logical save (network blip,
- * 503 canvas_lock_busy) and only generate a new one when fresh local content
- * is being sent — see useCanvasSync for the policy.
- */
-export function generateClientSaveId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  return `save-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-}
+import type { FreezonePresetCanvasRequest } from "@/features/freezone/public";
 
 export interface FreezoneProjectionPresetRequest
   extends Omit<FreezonePresetCanvasRequest, "canvas_id" | "overwrite_existing"> {
@@ -72,65 +36,6 @@ export interface FreezoneProjectionStatusResponse {
   projections: FreezoneProjectionStatusItem[];
 }
 
-export async function listFreezoneCanvases(
-  projectId: string,
-  options?: { signal?: AbortSignal },
-): Promise<FreezoneCanvasSummary[]> {
-  return await apiCall<FreezoneCanvasSummary[]>(
-    `projects/${encodeURIComponent(projectId)}/freezone/canvases`,
-    options?.signal ? { signal: options.signal } : undefined,
-  );
-}
-
-export async function putFreezoneCanvas(
-  projectId: string,
-  canvasId: string,
-  payload: FreezoneCanvasPayload,
-): Promise<FreezoneCanvasSaveResult> {
-  return await apiCall<FreezoneCanvasSaveResult>(
-    `projects/${encodeURIComponent(projectId)}/freezone/canvases/${encodeURIComponent(canvasId)}`,
-    { method: "PUT", json: payload },
-  );
-}
-
-export interface CreateBlankFreezoneCanvasRequest {
-  canvasId: string;
-  name: string;
-  creatorUsername?: string | null;
-}
-
-export async function createBlankFreezoneCanvas(
-  projectId: string,
-  payload: CreateBlankFreezoneCanvasRequest,
-): Promise<FreezoneCanvasSaveResult> {
-  return await putFreezoneCanvas(projectId, payload.canvasId, {
-    schema_version: 2,
-    canvas_id: payload.canvasId,
-    project_id: projectId,
-    base_revision: null,
-    client_save_id: generateClientSaveId(),
-    save_source: "manual_save",
-    nodes: [],
-    edges: [],
-    viewport: null,
-    metadata: {
-      canvas_origin: "user_created",
-      display_name: payload.name,
-      creator_username: payload.creatorUsername ?? null,
-    },
-  });
-}
-
-export async function deleteFreezoneCanvas(
-  projectId: string,
-  canvasId: string,
-): Promise<{ deleted: boolean }> {
-  return await apiCall<{ deleted: boolean }>(
-    `projects/${encodeURIComponent(projectId)}/freezone/canvases/${encodeURIComponent(canvasId)}`,
-    { method: "DELETE" },
-  );
-}
-
 export async function buildProjectionFromPreset(
   projectId: string,
   payload: FreezoneProjectionPresetRequest,
@@ -149,81 +54,5 @@ export async function getProjectionStatuses(
   return await apiCall<FreezoneProjectionStatusResponse>(
     `projects/${encodeURIComponent(projectId)}/freezone/canvases/${encodeURIComponent(canvasId)}/projections:status`,
     { method: "POST", json: { projection_keys: projectionKeys ?? null } },
-  );
-}
-
-/**
- * One entry in the `canvas_history/<canvas_id>/` directory. Backend writes
- * `<timestamp>_rev<n>.json` snapshots before every accepted overwrite (see
- * AI anime spec §3.2). The primary key is whatever string the backend
- * uses to address a single snapshot — restore calls pass it as `history_id`.
- *
- * The exact key name has shifted across backend revisions (seen as `id`,
- * `history_id`, `filename`, `name`), so we accept any of them and let the
- * helper `extractHistoryId` pick the first one that's a string. The `string`
- * index signature keeps `console.log(entry)` honest when the backend adds
- * fields we have not modeled yet.
- *
- * NOTE: the listing / restore endpoints are part of the planned canvas
- * reliability work and may return 404 on environments where the backend
- * change has not landed yet. Callers should treat that as "feature pending"
- * rather than a hard error.
- */
-export interface FreezoneCanvasHistoryEntry {
-  id?: string;
-  history_id?: string;
-  filename?: string;
-  name?: string;
-  revision?: number | null;
-  size?: number | null;
-  modified_at?: string | null;
-  save_source?: string | null;
-  updated_by?: string | null;
-  [key: string]: unknown;
-}
-
-/**
- * Pull the snapshot identifier out of a list-response entry. The current
- * backend returns it as `history_id`; we check the other aliases too so a
- * future field-name shift does not break the panel silently.
- */
-export function extractHistoryId(
-  entry: FreezoneCanvasHistoryEntry,
-): string | null {
-  for (const key of ["history_id", "id", "filename", "name"] as const) {
-    const value = entry[key];
-    if (typeof value === "string" && value.length > 0) {
-      return value;
-    }
-  }
-  return null;
-}
-
-export async function listFreezoneCanvasHistory(
-  projectId: string,
-  canvasId: string,
-): Promise<FreezoneCanvasHistoryEntry[]> {
-  return await apiCall<FreezoneCanvasHistoryEntry[]>(
-    `projects/${encodeURIComponent(projectId)}/freezone/canvases/${encodeURIComponent(canvasId)}/history`,
-  );
-}
-
-export interface FreezoneCanvasRestoreRequest {
-  history_id: string;
-  /**
-   * Optional optimistic-lock guard. Pass the current revision when restoring
-   * from a stale tab; omit (or pass `null`) to force-replace.
-   */
-  base_revision?: number | null;
-}
-
-export async function restoreFreezoneCanvasVersion(
-  projectId: string,
-  canvasId: string,
-  payload: FreezoneCanvasRestoreRequest,
-): Promise<FreezoneCanvasSaveResult> {
-  return await apiCall<FreezoneCanvasSaveResult>(
-    `projects/${encodeURIComponent(projectId)}/freezone/canvases/${encodeURIComponent(canvasId)}/restore`,
-    { method: "POST", json: payload },
   );
 }

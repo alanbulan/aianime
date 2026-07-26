@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
 
-import type { FreezoneCanvasSummary } from "@/api/canvas";
+import type { FreezoneCanvasSummary } from "@/features/freezone/public";
 import {
   buildCanvasBrowserSections,
   canDeleteCanvasSummary,

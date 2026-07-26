@@ -7,8 +7,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const listFreezoneCanvases = vi.fn();
 const deleteFreezoneCanvas = vi.fn();
 
-vi.mock("@/api/canvas", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/api/canvas")>()),
+vi.mock("@/features/canvas/composition", () => ({
+  createBlankFreezoneCanvas: vi.fn(),
   listFreezoneCanvases: (...args: unknown[]) => listFreezoneCanvases(...args),
   deleteFreezoneCanvas: (...args: unknown[]) => deleteFreezoneCanvas(...args),
 }));
