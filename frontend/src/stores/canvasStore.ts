@@ -1,7 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { create } from 'zustand';
 import {
-  type Viewport,
   addEdge,
   applyEdgeChanges,
   applyNodeChanges,
@@ -58,13 +57,6 @@ import {
 } from '@/features/canvas/domain/canvasGroupArrangement';
 import { ungroupCanvasNode } from '@/features/canvas/domain/canvasGroupRemoval';
 import { deleteCanvasEdge } from '@/features/canvas/domain/canvasEdgeDeletion';
-import {
-  type ViewportBookmark,
-  type ViewportBookmarks,
-  createEmptyBookmarks,
-  normalizeBookmarks,
-  replaceViewportBookmark,
-} from '@/features/canvas/domain/viewportBookmarks';
 import { normalizeCanvasData } from '@/features/canvas/application/canvasDataNormalization';
 import { createCanvasNode } from '@/features/canvas/application/canvasNodeCreation';
 import { canvasNodeFactory } from '@/features/canvas/nodeFactoryComposition';
@@ -108,12 +100,9 @@ import {
   type CanvasNodeSizeUpdateOptions,
 } from '@/features/canvas/application/canvasNodeSize';
 import {
-  createClosedCanvasImageViewer,
-  navigateCanvasImageViewer,
-  openCanvasImageViewer,
-  type CanvasImageViewerDirection,
-  type CanvasImageViewerState,
-} from '@/features/canvas/application/canvasImageViewer';
+  createZustandCanvasViewportSlice,
+  type CanvasViewportSlice,
+} from '@/features/canvas/infrastructure/zustandCanvasViewportSlice';
 
 export type {
   ActiveToolDialog,
@@ -125,7 +114,7 @@ export type {
   StoryboardFrameItem,
 };
 
-interface CanvasState extends CanvasMutationState {
+interface CanvasState extends CanvasMutationState, CanvasViewportSlice {
   nodes: CanvasNode[];
   edges: CanvasEdge[];
   selectedNodeId: string | null;
@@ -147,12 +136,6 @@ interface CanvasState extends CanvasMutationState {
   activeToolDialog: ActiveToolDialog | null;
   history: CanvasHistoryState;
   dragHistorySnapshot: CanvasHistorySnapshot | null;
-  currentViewport: Viewport;
-  canvasViewportSize: { width: number; height: number };
-  /** 10 fixed viewport bookmark slots (index 0..9 -> digit 1..9,0). Navigation
-   * preference, NOT part of undo history; persisted via canvas metadata. */
-  viewportBookmarks: ViewportBookmarks;
-  imageViewer: CanvasImageViewerState;
 
   onNodesChange: (changes: NodeChange<CanvasNode>[]) => void;
   onEdgesChange: (changes: EdgeChange<CanvasEdge>[]) => void;
@@ -322,14 +305,6 @@ interface CanvasState extends CanvasMutationState {
 
   openToolDialog: (dialog: ActiveToolDialog) => void;
   closeToolDialog: () => void;
-  setViewportState: (viewport: Viewport) => void;
-  setViewportBookmark: (index: number, bookmark: ViewportBookmark | null) => void;
-  clearViewportBookmarks: () => void;
-  hydrateViewportBookmarks: (list: unknown) => void;
-  setCanvasViewportSize: (size: { width: number; height: number }) => void;
-  openImageViewer: (imageUrl: string, imageList?: string[]) => void;
-  closeImageViewer: () => void;
-  navigateImageViewer: (direction: CanvasImageViewerDirection) => void;
 
   undo: () => boolean;
   redo: () => boolean;
@@ -362,10 +337,10 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   activeToolDialog: null,
   history: { past: [], future: [] },
   dragHistorySnapshot: null,
-  currentViewport: { x: 0, y: 0, zoom: 1 },
-  canvasViewportSize: { width: 0, height: 0 },
-  viewportBookmarks: createEmptyBookmarks(),
-  imageViewer: createClosedCanvasImageViewer(),
+  ...createZustandCanvasViewportSlice({
+    getState: get,
+    setState: (patch) => set(patch),
+  }),
 
   onNodesChange: (changes) => {
     set((state) => {
@@ -481,47 +456,6 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       lastMutationSource: draft.mutation.lastMutationSource,
       pendingClearIntent: draft.mutation.pendingClearIntent,
     });
-  },
-
-  setViewportState: (viewport) => {
-    set({ currentViewport: viewport });
-  },
-
-  setViewportBookmark: (index, bookmark) => {
-    const current = get().viewportBookmarks;
-    const next = replaceViewportBookmark(current, index, bookmark);
-    if (next === current) {
-      return;
-    }
-    set({ viewportBookmarks: next });
-  },
-
-  clearViewportBookmarks: () => {
-    set({ viewportBookmarks: createEmptyBookmarks() });
-  },
-
-  hydrateViewportBookmarks: (list) => {
-    set({ viewportBookmarks: normalizeBookmarks(list) });
-  },
-
-  setCanvasViewportSize: (size) => {
-    set({ canvasViewportSize: size });
-  },
-
-  openImageViewer: (imageUrl, imageList = []) => {
-    set({ imageViewer: openCanvasImageViewer(imageUrl, imageList) });
-  },
-
-  closeImageViewer: () => {
-    set({ imageViewer: createClosedCanvasImageViewer() });
-  },
-
-  navigateImageViewer: (direction) => {
-    const current = get().imageViewer;
-    const next = navigateCanvasImageViewer(current, direction);
-    if (next !== current) {
-      set({ imageViewer: next });
-    }
   },
 
   addNode: (type, position, data = {}) => {

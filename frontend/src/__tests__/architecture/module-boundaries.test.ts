@@ -816,6 +816,13 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/application/canvasImageViewer.ts",
     );
     const viewerModel = readFileSync(viewerPath, "utf8");
+    const viewportSlice = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasViewportSlice.ts",
+      ),
+      "utf8",
+    );
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
@@ -847,10 +854,13 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(viewerModel).toContain("export function openCanvasImageViewer(");
     expect(viewerModel).toContain("export function navigateCanvasImageViewer(");
-    expect(canvasStore).toContain(
+    expect(viewportSlice).toContain("../application/canvasImageViewer");
+    expect(viewportSlice).toContain(
+      "imageViewer: createClosedCanvasImageViewer()",
+    );
+    expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasImageViewer",
     );
-    expect(canvasStore).toContain("imageViewer: createClosedCanvasImageViewer()");
     expect(canvasStore).not.toContain("const list = imageList.length");
     expect(canvasStore).not.toContain("const newIndex = currentIndex");
     expect(
@@ -3856,6 +3866,13 @@ describe("frontend architecture boundaries", () => {
     );
     const selectionModel = readFileSync(selectionPath, "utf8");
     const viewportModel = readFileSync(viewportPath, "utf8");
+    const viewportSlice = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasViewportSlice.ts",
+      ),
+      "utf8",
+    );
     const nodeEffectsModel = readFileSync(nodeEffectsPath, "utf8");
     const historyNavigationModel = readFileSync(historyNavigationPath, "utf8");
     const canvasStore = readFileSync(
@@ -3934,7 +3951,10 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasSelection",
     );
-    expect(canvasStore).toContain("replaceViewportBookmark(current, index, bookmark)");
+    expect(viewportSlice).toContain(
+      "replaceViewportBookmark(current, index, bookmark)",
+    );
+    expect(canvasStore).not.toContain("replaceViewportBookmark(");
     expect(lifecycleView).toContain("../domain/viewportBookmarks");
     expect(canvasView).not.toContain("domain/viewportBookmarks");
     expect(marqueeView).toContain("../domain/canvasSelection");
@@ -7816,5 +7836,51 @@ describe("frontend architecture boundaries", () => {
     ).toHaveLength(2);
     expect(canvasSource).not.toContain("createPastedUploadNode");
     expect(canvasSource).not.toContain("createDroppedUploadNode");
+  });
+
+  it("keeps Canvas viewport infrastructure in one Zustand slice", () => {
+    const slicePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/zustandCanvasViewportSlice.ts",
+    );
+    const sliceSource = readFileSync(slicePath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const implementations = [
+      ["setViewportState", "(viewport) {"],
+      ["setViewportBookmark", "(index, bookmark) {"],
+      ["clearViewportBookmarks", "() {"],
+      ["hydrateViewportBookmarks", "(list) {"],
+      ["setCanvasViewportSize", "(size) {"],
+      ["openImageViewer", "(imageUrl, imageList = []) {"],
+      ["closeImageViewer", "() {"],
+      ["navigateImageViewer", "(direction) {"],
+    ].map(([name, parameters]) => `${name}${parameters}`);
+
+    for (const implementation of implementations) {
+      const owners = sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(implementation))
+        .map(relativeSource)
+        .sort();
+      expect(owners).toEqual([
+        "features/canvas/infrastructure/zustandCanvasViewportSlice.ts",
+      ]);
+    }
+
+    expect(importSpecifiers(slicePath)).toEqual([
+      "@xyflow/react",
+      "../application/canvasImageViewer",
+      "../domain/viewportBookmarks",
+    ]);
+    expect(canvasStore).toContain(
+      "interface CanvasState extends CanvasMutationState, CanvasViewportSlice",
+    );
+    expect(canvasStore).toContain("...createZustandCanvasViewportSlice({");
+    expect(canvasStore).not.toContain("currentViewport: { x: 0, y: 0, zoom: 1 }");
+    expect(canvasStore).not.toContain("viewportBookmarks: createEmptyBookmarks()");
+    expect(canvasStore).not.toContain("imageViewer: createClosedCanvasImageViewer()");
+    expect(sliceSource).not.toContain("@/stores/canvasStore");
   });
 });
