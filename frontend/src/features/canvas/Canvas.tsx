@@ -99,7 +99,6 @@ import { CanvasSnapAlignButton } from './snap-align/CanvasSnapAlignButton';
 import { useTrackpadPanStore } from './trackpad-pan/trackpadPanStore';
 import { SnapAlignGuides } from './snap-align/SnapAlignGuides';
 import { useSnapAlignStore } from './snap-align/snapAlignStore';
-import { computeAutoLayout } from './application/autoLayout';
 import { PAN_ACTIVATION_KEY_CODE } from './ui/canvasInteractionTargets';
 import {
   createPreviewPath,
@@ -110,6 +109,10 @@ import {
 import { useCanvasEdgePan } from './hooks/useCanvasEdgePan';
 import { useCanvasExternalDialogs } from './hooks/useCanvasExternalDialogs';
 import { useCanvasAsyncNodeTasks } from './hooks/useCanvasAsyncNodeTasks';
+import {
+  useCanvasAutoLayoutController,
+  type CanvasAutoLayoutViewportOptions,
+} from './hooks/useCanvasAutoLayoutController';
 import { useCanvasBeatContextPrefetch } from './hooks/useCanvasBeatContextPrefetch';
 import {
   useCanvasBatchConnectionController,
@@ -824,18 +827,19 @@ export function Canvas({
     eventPort: mediaPasteEventPort,
   });
 
-  const handleOrganizeCanvas = useCallback(() => {
-    const { positions, changedCount } = computeAutoLayout(nodes, edges);
-    if (Object.keys(positions).length === 0) {
-      return;
-    }
-    if (changedCount > 0) {
-      setNodePositions(positions);
-    }
-    window.requestAnimationFrame(() => {
-      reactFlowInstance.fitView({ duration: 240, padding: 0.2 });
+  const fitAutoLayoutViewport = useCallback(
+    (options: CanvasAutoLayoutViewportOptions) => {
+      void reactFlowInstance.fitView(options);
+    },
+    [reactFlowInstance],
+  );
+  const { organizeCanvas: handleOrganizeCanvas } =
+    useCanvasAutoLayoutController({
+      nodes,
+      edges,
+      setNodePositions,
+      fitViewport: fitAutoLayoutViewport,
     });
-  }, [edges, nodes, reactFlowInstance, setNodePositions]);
 
   const groupSelectedNodes = useCallback(() => {
     groupNodes(selectedNodeIds);

@@ -1513,6 +1513,54 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps Canvas auto-layout orchestration in one presentation controller", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasAutoLayoutController.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/features/canvas/nodeFactoryComposition",
+    );
+    const declaration = [
+      "export function",
+      "useCanvasAutoLayoutController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasAutoLayoutController.ts",
+    ]);
+    expect(hookModel).toContain("computeAutoLayout(nodes, edges)");
+    expect(hookModel).toContain("changedCount > 0");
+    expect(hookModel).toContain("scheduleAfterLayout(");
+    expect(hookModel).toContain("duration: 240");
+    expect(hookModel).toContain("padding: 0.2");
+    expect(canvasView).toContain("./hooks/useCanvasAutoLayoutController");
+    expect(canvasView).not.toContain("computeAutoLayout(");
+    expect(canvasView).not.toContain("const handleOrganizeCanvas = useCallback");
+    expect(canvasView).not.toContain("Object.keys(positions)");
+    expect(canvasView).not.toContain("requestAnimationFrame");
+    expect(canvasView).not.toContain("duration: 240");
+  });
+
   it("keeps Canvas viewport commit throttling in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
