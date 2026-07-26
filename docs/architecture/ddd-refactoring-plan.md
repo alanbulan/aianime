@@ -1520,6 +1520,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百一十八批已将宫格快捷编辑的 9 类动作键、Freezone 模板编辑模式投影及 Toolbar/SelectedOverlay/确认 Overlay 共享请求契约迁入唯一领域模块 `gridAction`，源图查询参数清理、标签 prompt 投影、任务提交及完成迁入唯一 application 用例 `generateCanvasGridAction`，并复用 `completeCanvasImageGenerationTask`；`freezoneGridActionGenerationGateway` infrastructure 适配器唯一调用 Freezone template-edit 端点，composition 注入既有任务 gateway；`NodeActionToolbar` 与 `SelectedNodeOverlay` 不再从 `GridActionConfirmOverlay` 反向导入类型，分别由 2482、634 行调整为 2481、632 行，确认 Overlay 只保留节点/连线、费用展示、状态写回与错误展示，不再直接依赖 `api/ops` 或任务 API，由 228 行降至 194 行；领域模块 51 行、用例 61 行、适配器 14 行，composition 由 425 行调整为 441 行；领域、用例与适配器共 3 个测试文件 3 项、新增后的架构门禁 173 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百一十九批已将图片高清放大的 `1K/2K/4K` 目标尺寸、`2x/4x/6x` 倍率、默认值及持久化值归一化迁入唯一领域模块 `upscale`，源图查询参数清理、已选模型/尺寸/倍率命令组装、任务提交及完成迁入唯一 application 用例 `generateCanvasUpscale`，并复用 `completeCanvasImageGenerationTask`；`freezoneUpscaleGenerationGateway` infrastructure 适配器唯一调用 Freezone upscale 端点，composition 注入既有任务 gateway；旧 `api/ops` 删除重复倍率类型并直接复用领域契约，源码因显式导入与默认值换行由 2450 行调整为 2453 行；`UpscaleEditorOverlay` 仅保留模型查询/计费展示、设置交互、生成状态与节点写回，不再直接依赖 `api/ops` 或任务 API，由 382 行降至 372 行；领域模块 28 行、用例 63 行、适配器 15 行，composition 由 441 行调整为 457 行；领域、用例与适配器共 3 个测试文件 4 项、新增后的架构门禁 174 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

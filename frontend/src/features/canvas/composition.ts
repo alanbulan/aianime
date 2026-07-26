@@ -37,6 +37,10 @@ import {
   type GenerateCanvasRelightParams,
 } from './application/generateCanvasRelight';
 import {
+  generateCanvasUpscale as generateCanvasUpscaleUseCase,
+  type GenerateCanvasUpscaleParams,
+} from './application/generateCanvasUpscale';
+import {
   generateCanvasStoryScript as generateCanvasStoryScriptUseCase,
   type GenerateCanvasStoryScriptParams,
 } from './application/generateCanvasStoryScript';
@@ -118,6 +122,7 @@ import { freezoneRelightGenerationGateway } from './infrastructure/freezoneRelig
 import { freezoneReversePromptGenerationGateway } from './infrastructure/freezoneReversePromptGenerationGateway';
 import { freezoneScene360GenerationGateway } from './infrastructure/freezoneScene360GenerationGateway';
 import { freezoneStoryScriptGenerationGateway } from './infrastructure/freezoneStoryScriptGenerationGateway';
+import { freezoneUpscaleGenerationGateway } from './infrastructure/freezoneUpscaleGenerationGateway';
 import { freezoneVideoClipComposeGateway } from './infrastructure/freezoneVideoClipComposeGateway';
 import { freezoneVideoGenerationSubmissionGateway } from './infrastructure/freezoneVideoGenerationSubmissionGateway';
 import { freezoneVideoSubtitleEraseGateway } from './infrastructure/freezoneVideoSubtitleEraseGateway';
@@ -383,6 +388,17 @@ export function generateCanvasRelight(
 ) {
   return generateCanvasRelightUseCase(params, {
     submissionGateway: freezoneRelightGenerationGateway,
+    taskGateway: freezoneGenerationTaskGateway,
+    onTaskSubmitted,
+  });
+}
+
+export function generateCanvasUpscale(
+  params: GenerateCanvasUpscaleParams,
+  onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
+) {
+  return generateCanvasUpscaleUseCase(params, {
+    submissionGateway: freezoneUpscaleGenerationGateway,
     taskGateway: freezoneGenerationTaskGateway,
     onTaskSubmitted,
   });

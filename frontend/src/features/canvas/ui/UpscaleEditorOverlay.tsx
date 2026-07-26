@@ -5,13 +5,16 @@ import { ArrowUp, Check, ChevronDown, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { type CanvasNode } from '@/features/canvas/domain/canvasNodes';
-import { useCanvasStore } from '@/stores/canvasStore';
 import {
-  fetchFreezoneJobResult,
-  submitFreezoneUpscale,
-  type FreezoneUpscaleScaleFactor,
-} from '@/api/ops';
-import { awaitTaskCompletion } from '@/api/tasks';
+  CANVAS_UPSCALE_IMAGE_SIZES,
+  CANVAS_UPSCALE_SCALE_FACTORS,
+  resolveCanvasUpscaleImageSize,
+  resolveCanvasUpscaleScaleFactor,
+  type CanvasUpscaleImageSize,
+  type CanvasUpscaleScaleFactor,
+} from '@/features/canvas/domain/upscale';
+import { useCanvasStore } from '@/stores/canvasStore';
+import { generateCanvasUpscale } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { readUrl } from '@/lib/url-params';
 import {
@@ -31,13 +34,6 @@ import {
 } from './nodeControlStyles';
 import { ZoomScaledToolbar } from './ZoomScaledToolbar';
 
-const UPSCALE_IMAGE_SIZES = ['1K', '2K', '4K'] as const;
-type UpscaleImageSize = (typeof UPSCALE_IMAGE_SIZES)[number];
-const DEFAULT_UPSCALE_IMAGE_SIZE: UpscaleImageSize = '2K';
-
-const SCALE_FACTORS: FreezoneUpscaleScaleFactor[] = [2, 4, 6];
-const DEFAULT_UPSCALE_SCALE_FACTOR: FreezoneUpscaleScaleFactor = 2;
-
 function imageModelSupportsQuality(apiModel: string | null | undefined): boolean {
   if (!apiModel) return false;
   const normalized = apiModel.toLowerCase();
@@ -52,8 +48,8 @@ function imageModelSupportsQuality(apiModel: string | null | undefined): boolean
 interface UpscalePersistedFields {
   upscaleSourceUrl?: string;
   upscaleModelId?: string;
-  upscaleImageSize?: UpscaleImageSize;
-  upscaleScaleFactor?: FreezoneUpscaleScaleFactor;
+  upscaleImageSize?: CanvasUpscaleImageSize;
+  upscaleScaleFactor?: CanvasUpscaleScaleFactor;
 }
 
 interface UpscaleEditorOverlayProps {
@@ -76,14 +72,10 @@ export const UpscaleEditorOverlay = memo(({ node }: UpscaleEditorOverlayProps) =
   const persistedModelId =
     typeof persisted.upscaleModelId === 'string' ? persisted.upscaleModelId : DEFAULT_SHARED_MODEL_ID;
   const { models: availableModels } = useFreezoneImageModels();
-  const persistedImageSize: UpscaleImageSize =
-    persisted.upscaleImageSize && (UPSCALE_IMAGE_SIZES as readonly string[]).includes(persisted.upscaleImageSize)
-      ? persisted.upscaleImageSize
-      : DEFAULT_UPSCALE_IMAGE_SIZE;
-  const persistedScaleFactor: FreezoneUpscaleScaleFactor =
-    persisted.upscaleScaleFactor === 4 || persisted.upscaleScaleFactor === 6
-      ? persisted.upscaleScaleFactor
-      : DEFAULT_UPSCALE_SCALE_FACTOR;
+  const persistedImageSize = resolveCanvasUpscaleImageSize(persisted.upscaleImageSize);
+  const persistedScaleFactor = resolveCanvasUpscaleScaleFactor(
+    persisted.upscaleScaleFactor,
+  );
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const selectedModel =
@@ -109,14 +101,14 @@ export const UpscaleEditorOverlay = memo(({ node }: UpscaleEditorOverlayProps) =
   );
 
   const handleImageSizeChange = useCallback(
-    (size: UpscaleImageSize) => {
+    (size: CanvasUpscaleImageSize) => {
       updateNodeData(node.id, { upscaleImageSize: size });
     },
     [node.id, updateNodeData],
   );
 
   const handleScaleFactorChange = useCallback(
-    (factor: FreezoneUpscaleScaleFactor) => {
+    (factor: CanvasUpscaleScaleFactor) => {
       updateNodeData(node.id, { upscaleScaleFactor: factor });
     },
     [node.id, updateNodeData],
@@ -152,20 +144,18 @@ export const UpscaleEditorOverlay = memo(({ node }: UpscaleEditorOverlayProps) =
     });
 
     try {
-      const ref = await submitFreezoneUpscale(project, {
-        sourceUrl: sourceUrl.split('?')[0],
-        scaleFactor: persistedScaleFactor,
-        imageSize: persistedImageSize,
-        model: apiModel,
-      });
-      updateNodeData(node.id, generationTaskDescriptor(ref));
-      const completed = await awaitTaskCompletion(ref.task_key, project);
-      const directUrl = completed.result?.['output_url'] as string | undefined;
-      let url = directUrl;
-      if (!url) {
-        const fallback = await fetchFreezoneJobResult(project, ref.task_type, ref.job_id);
-        url = fallback.url;
-      }
+      const { url } = await generateCanvasUpscale(
+        {
+          projectId: project,
+          sourceUrl,
+          scaleFactor: persistedScaleFactor,
+          imageSize: persistedImageSize,
+          model: apiModel,
+        },
+        (task) => {
+          updateNodeData(node.id, generationTaskDescriptor(task));
+        },
+      );
       updateNodeData(node.id, {
         imageUrl: url,
         previewImageUrl: url,
@@ -275,8 +265,8 @@ function PanelRow({ label, children }: { label: string; children: React.ReactNod
 }
 
 interface QualityPickerProps {
-  value: UpscaleImageSize;
-  onChange: (value: UpscaleImageSize) => void;
+  value: CanvasUpscaleImageSize;
+  onChange: (value: CanvasUpscaleImageSize) => void;
 }
 
 function QualityPicker({ value, onChange }: QualityPickerProps) {
@@ -324,7 +314,7 @@ function QualityPicker({ value, onChange }: QualityPickerProps) {
         >
           <div className="mb-1 text-[11px] uppercase tracking-wide text-text-muted">{title}</div>
           <div className="flex gap-1.5">
-            {UPSCALE_IMAGE_SIZES.map((size) => {
+            {CANVAS_UPSCALE_IMAGE_SIZES.map((size) => {
               const isActive = value === size;
               return (
                 <button
@@ -353,14 +343,14 @@ function QualityPicker({ value, onChange }: QualityPickerProps) {
 }
 
 interface ScaleFactorPickerProps {
-  value: FreezoneUpscaleScaleFactor;
-  onChange: (next: FreezoneUpscaleScaleFactor) => void;
+  value: CanvasUpscaleScaleFactor;
+  onChange: (next: CanvasUpscaleScaleFactor) => void;
 }
 
 function ScaleFactorPicker({ value, onChange }: ScaleFactorPickerProps) {
   return (
     <div className="inline-flex items-center gap-1 rounded-lg border border-border bg-muted p-0.5">
-      {SCALE_FACTORS.map((factor) => {
+      {CANVAS_UPSCALE_SCALE_FACTORS.map((factor) => {
         const isActive = value === factor;
         return (
           <button

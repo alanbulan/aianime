@@ -5,6 +5,10 @@ import {
   DEFAULT_CANVAS_SCENE_360_ASPECT_RATIO,
   type CanvasScene360AspectRatio,
 } from "@/features/canvas/domain/scene360";
+import {
+  DEFAULT_CANVAS_UPSCALE_SCALE_FACTOR,
+  type CanvasUpscaleScaleFactor,
+} from "@/features/canvas/domain/upscale";
 
 // Per-node generation history -------------------------------------------- //
 
@@ -1428,11 +1432,9 @@ export async function submitFreezoneRedraw(
 
 // /freezone/upscale ------------------------------------------------------- //
 
-export type FreezoneUpscaleScaleFactor = 2 | 4 | 6;
-
 export interface FreezoneUpscalePayload {
   sourceUrl: string;
-  scaleFactor?: FreezoneUpscaleScaleFactor;
+  scaleFactor?: CanvasUpscaleScaleFactor;
   imageSize?: string;
   model?: string;
 }
@@ -1447,7 +1449,8 @@ export async function submitFreezoneUpscale(
       method: "POST",
       json: {
         source_url: payload.sourceUrl,
-        scale_factor: payload.scaleFactor ?? 2,
+        scale_factor:
+          payload.scaleFactor ?? DEFAULT_CANVAS_UPSCALE_SCALE_FACTOR,
         image_size: payload.imageSize ?? "2K",
         ...(payload.model ? { model: payload.model } : {}),
       },

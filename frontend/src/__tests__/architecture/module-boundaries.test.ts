@@ -9143,6 +9143,86 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps Canvas image-upscale rules and generation orchestration out of views", () => {
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/upscale.ts",
+    );
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/generateCanvasUpscale.ts",
+    );
+    const infrastructurePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneUpscaleGenerationGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const overlayPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/UpscaleEditorOverlay.tsx",
+    );
+    const opsPath = resolve(SRC_ROOT, "api/ops.ts");
+    const domainSource = readFileSync(domainPath, "utf8");
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const infrastructureSource = readFileSync(infrastructurePath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const overlaySource = readFileSync(overlayPath, "utf8");
+    const opsSource = readFileSync(opsPath, "utf8");
+
+    expect(importSpecifiers(domainPath)).toEqual([]);
+    expect(domainSource).toContain(
+      "export const CANVAS_UPSCALE_IMAGE_SIZES",
+    );
+    expect(domainSource).toContain(
+      "export function resolveCanvasUpscaleImageSize(",
+    );
+    expect(domainSource).toContain(
+      "export function resolveCanvasUpscaleScaleFactor(",
+    );
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set([
+        "../domain/upscale",
+        "./completeCanvasImageGenerationTask",
+        "./ports",
+      ]),
+    );
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).toContain(
+      "export async function generateCanvasUpscale(",
+    );
+    expect(applicationSource).toContain(
+      "completeCanvasImageGenerationTask(",
+    );
+    expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
+      new Set(["@/api/ops", "../application/generateCanvasUpscale"]),
+    );
+    expect(infrastructureSource).toContain(
+      "freezoneUpscaleGenerationGateway: CanvasUpscaleGenerationGateway",
+    );
+    expect(compositionSource).toContain(
+      "generateCanvasUpscaleUseCase(params, {",
+    );
+    expect(compositionSource).toContain(
+      "submissionGateway: freezoneUpscaleGenerationGateway",
+    );
+    expect(importSpecifiers(overlayPath)).toContain(
+      "@/features/canvas/domain/upscale",
+    );
+    expect(importSpecifiers(overlayPath)).not.toContain("@/api/ops");
+    expect(importSpecifiers(overlayPath)).not.toContain("@/api/tasks");
+    expect(overlaySource).toContain("await generateCanvasUpscale(");
+    expect(overlaySource).not.toContain("submitFreezoneUpscale");
+    expect(overlaySource).not.toContain("fetchFreezoneJobResult");
+    expect(overlaySource).not.toContain("awaitTaskCompletion");
+    expect(opsSource).toContain("@/features/canvas/domain/upscale");
+    expect(opsSource).not.toContain("FreezoneUpscaleScaleFactor");
+  });
+
   it("keeps Canvas asset extraction independent from media URL infrastructure", () => {
     const assetPath = resolve(
       SRC_ROOT,
