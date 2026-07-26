@@ -9826,6 +9826,61 @@ describe("frontend architecture boundaries", () => {
     expect(sliceSource).not.toContain("@/stores/canvasStore");
   });
 
+  it("keeps VideoNode subtitle-erase controls in one presentation view", () => {
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoSubtitleEraseControls.tsx",
+    );
+    const viewSource = readFileSync(viewPath, "utf8");
+    const videoNode = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(viewPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declarations = [
+      "SubtitleEraseBoxOverlay(",
+      "SubtitleEraseOpsPanel(",
+    ].map((name) => ["export function", name].join(" "));
+    const implementationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      ["features/canvas/nodes/VideoSubtitleEraseControls.tsx"],
+      ["features/canvas/nodes/VideoSubtitleEraseControls.tsx"],
+    ]);
+    expect(viewSource).toContain("new ResizeObserver(");
+    expect(viewSource).toContain("setPointerCapture(event.pointerId)");
+    expect(viewSource).toContain("width < 0.01 || height < 0.01");
+    expect(viewSource).toContain(
+      'mode === "box" && !hasBox',
+    );
+    expect(videoNode).toContain(
+      "@/features/canvas/nodes/VideoSubtitleEraseControls",
+    );
+    expect(videoNode).toContain("<SubtitleEraseBoxOverlay");
+    expect(videoNode).toContain("<SubtitleEraseOpsPanel");
+    expect(videoNode).not.toContain("interface DisplayedRect");
+    expect(videoNode).not.toContain("new ResizeObserver(");
+    expect(videoNode).not.toContain("setPointerCapture(event.pointerId)");
+    expect(videoNode).not.toContain("interface SubtitleEraseOpsPanelProps");
+  });
+
   it("keeps VideoNode player controls in one presentation view", () => {
     const viewPath = resolve(
       SRC_ROOT,
