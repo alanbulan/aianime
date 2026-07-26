@@ -1586,6 +1586,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百五十一批已将导入面板的静态素材前缀、分镜草图和导演合成图 URL 推导迁入唯一 `pipeline-import/domain/asset-urls.ts` 纯领域规则，`ImportPanel` 改为直接依赖该规则；原 47 行 `api/projects.ts` 整体删除，不保留 facade、re-export 或第二套实现，前端生产代码对 `@/api/projects` 的引用归零，三个 URL 函数各只剩一个声明所有者；静态前缀约束、集数与 Beat 补零、草图路径、导演成品路径及无有效锚点时跳过导入的行为均未改变；新增纯函数测试 5 项、新增后的架构门禁 202 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
 
+第二百五十二批已将画布列表 React Query 适配器迁入 Canvas `freezoneCanvasQueryHooks` application 工厂，将项目素材与 Beat Context React Query 适配器迁入 Freezone `contextQueryHooks` application 工厂，并由各自 composition 注入既有 `freezoneCanvasStorageGateway` 与 `httpFreezoneContextQueryGateway`；`CanvasesTab` 改经 Canvas composition 使用画布 hook，`AssetLibraryPanel` 改经 Freezone public API 使用上下文 hooks，列表用例依赖同步收窄为实际所需的 `listCanvases` 子能力；原 72 行 `lib/queries/freezone.ts` 及旧位置测试整体删除，不保留转发或第二套 hooks，前端生产代码对旧查询路径的引用归零；查询键、15 秒 stale time、取消信号、同 scope 请求复用、reload refetch、错误恢复和视图过滤行为均未改变；相关 4 个测试文件 36 项、新增后的架构门禁 203 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

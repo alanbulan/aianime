@@ -72,7 +72,7 @@ export interface FreezoneCanvasStorageGateway {
 
 export function listFreezoneCanvases(
   params: ListFreezoneCanvasesParams,
-  gateway: FreezoneCanvasStorageGateway,
+  gateway: Pick<FreezoneCanvasStorageGateway, "listCanvases">,
 ): Promise<FreezoneCanvasSummary[]> {
   return gateway.listCanvases(params);
 }

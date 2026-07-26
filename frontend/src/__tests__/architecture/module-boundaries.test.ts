@@ -747,11 +747,10 @@ describe("frontend architecture boundaries", () => {
     );
     const apiCanvasPath = resolve(SRC_ROOT, "api/canvas.ts");
     const apiProjectsPath = resolve(SRC_ROOT, "api/projects.ts");
-    const queryPath = resolve(SRC_ROOT, "lib/queries/freezone.ts");
+    const legacyQueryPath = resolve(SRC_ROOT, "lib/queries/freezone.ts");
     const canvasCompositionSource = readFileSync(canvasCompositionPath, "utf8");
     const freezoneCompositionSource = readFileSync(freezoneCompositionPath, "utf8");
     const beatContextNodeSource = readFileSync(beatContextNodePath, "utf8");
-    const querySource = readFileSync(queryPath, "utf8");
     const presetEndpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
       .filter((path) =>
@@ -803,8 +802,7 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(existsSync(apiCanvasPath)).toBe(false);
     expect(existsSync(apiProjectsPath)).toBe(false);
-    expect(querySource).not.toContain("function createFreezonePresetCanvas(");
-    expect(querySource).not.toContain("useCreateFreezonePresetCanvas");
+    expect(existsSync(legacyQueryPath)).toBe(false);
     expect(importSpecifiers(beatContextNodePath)).toContain(
       "@/features/canvas/composition",
     );
@@ -820,6 +818,90 @@ describe("frontend architecture boundaries", () => {
     expect(freezoneCompositionSource).toContain(
       "httpFreezoneContextQueryGateway",
     );
+  });
+
+  it("keeps Freezone React Query adapters inside their owning features", () => {
+    const legacyQueryPath = resolve(SRC_ROOT, "lib/queries/freezone.ts");
+    const canvasQueryHooksPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/freezoneCanvasQueryHooks.ts",
+    );
+    const contextQueryHooksPath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/contextQueryHooks.ts",
+    );
+    const canvasCompositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const freezoneCompositionPath = resolve(
+      SRC_ROOT,
+      "features/freezone/composition.ts",
+    );
+    const freezonePublicPath = resolve(SRC_ROOT, "features/freezone/public.ts");
+    const canvasesTabPath = resolve(
+      SRC_ROOT,
+      "features/freezone/CanvasesTab.tsx",
+    );
+    const assetLibraryPath = resolve(
+      SRC_ROOT,
+      "features/freezone/AssetLibraryPanel.tsx",
+    );
+    const declarations = [
+      ["export function", "createFreezoneCanvasQueryHooks("].join(" "),
+      ["export function", "createFreezoneContextQueryHooks("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => !path.includes(".test."))
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+    const legacyConsumers = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        importSpecifiers(path).includes("@/lib/queries/freezone"),
+      )
+      .map(relativeSource)
+      .sort();
+    const canvasCompositionSource = readFileSync(canvasCompositionPath, "utf8");
+    const freezoneCompositionSource = readFileSync(freezoneCompositionPath, "utf8");
+    const freezonePublicSource = readFileSync(freezonePublicPath, "utf8");
+
+    expect(existsSync(legacyQueryPath)).toBe(false);
+    expect(new Set(importSpecifiers(canvasQueryHooksPath))).toEqual(
+      new Set([
+        "@tanstack/react-query",
+        "@/lib/query-keys",
+        "./freezoneCanvasStorage",
+      ]),
+    );
+    expect(new Set(importSpecifiers(contextQueryHooksPath))).toEqual(
+      new Set([
+        "@tanstack/react-query",
+        "@/lib/query-keys",
+        "./contextQueries",
+      ]),
+    );
+    expect(declarationOwners).toEqual([
+      ["features/canvas/application/freezoneCanvasQueryHooks.ts"],
+      ["features/freezone/application/contextQueryHooks.ts"],
+    ]);
+    expect(legacyConsumers).toEqual([]);
+    expect(importSpecifiers(canvasesTabPath)).toContain(
+      "@/features/canvas/composition",
+    );
+    expect(importSpecifiers(assetLibraryPath)).toContain(
+      "@/features/freezone/public",
+    );
+    expect(canvasCompositionSource).toContain("createFreezoneCanvasQueryHooks(");
+    expect(canvasCompositionSource).toContain("freezoneCanvasStorageGateway,");
+    expect(freezoneCompositionSource).toContain(
+      "createFreezoneContextQueryHooks(httpFreezoneContextQueryGateway)",
+    );
+    expect(freezonePublicSource).toContain("useFreezoneBeatContext,");
+    expect(freezonePublicSource).toContain("useFreezoneProjectAssets,");
   });
 
   it("keeps all non-projection canvas persistence behind the Canvas composition", () => {
@@ -866,7 +948,6 @@ describe("frontend architecture boundaries", () => {
       "features/freezone/CanvasDebugPanel.tsx",
       "features/freezone/CanvasesTab.tsx",
       "features/freezone/useCanvasSync.ts",
-      "lib/queries/freezone.ts",
     ];
 
     expect(existsSync(apiCanvasPath)).toBe(false);

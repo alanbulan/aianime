@@ -9,6 +9,7 @@ import {
   type FreezoneBeatContextQueryOptions,
   type FreezoneQueryOptions,
 } from "./application/contextQueries";
+import { createFreezoneContextQueryHooks } from "./application/contextQueryHooks";
 import {
   buildProjectionFromPreset as buildProjectionFromPresetUseCase,
   getProjectionStatuses as getProjectionStatusesUseCase,
@@ -18,6 +19,9 @@ import type { FreezoneProjectionPresetRequest } from "./domain/canvasProjection"
 import { httpFreezoneAssetCommitGateway } from "./infrastructure/httpFreezoneAssetCommitGateway";
 import { httpFreezoneCanvasProjectionGateway } from "./infrastructure/httpFreezoneCanvasProjectionGateway";
 import { httpFreezoneContextQueryGateway } from "./infrastructure/httpFreezoneContextQueryGateway";
+
+export const { useFreezoneBeatContext, useFreezoneProjectAssets } =
+  createFreezoneContextQueryHooks(httpFreezoneContextQueryGateway);
 
 export function commitFreezoneAsset(
   projectId: string,

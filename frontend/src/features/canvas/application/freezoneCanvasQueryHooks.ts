@@ -1,0 +1,37 @@
+// Copyright (c) 2026 AI anime
+import { useQuery } from "@tanstack/react-query";
+
+import { queryKeys } from "@/lib/query-keys";
+import {
+  listFreezoneCanvases,
+  type FreezoneCanvasStorageGateway,
+} from "./freezoneCanvasStorage";
+
+export function createFreezoneCanvasQueryHooks(
+  gateway: Pick<FreezoneCanvasStorageGateway, "listCanvases">,
+) {
+  function useFreezoneCanvases(
+    project: string | null | undefined,
+    enabled = true,
+  ) {
+    return useQuery({
+      queryKey: project
+        ? queryKeys.freezoneCanvases(project)
+        : ["projects", "__missing__", "freezone", "canvases"],
+      queryFn: ({ signal }) => {
+        if (!project) {
+          throw new Error("project is required");
+        }
+        return listFreezoneCanvases({ projectId: project, signal }, gateway);
+      },
+      enabled: enabled && Boolean(project),
+      staleTime: 15_000,
+    });
+  }
+
+  return { useFreezoneCanvases };
+}
+
+export type FreezoneCanvasQueryHooks = ReturnType<
+  typeof createFreezoneCanvasQueryHooks
+>;

@@ -6,6 +6,8 @@ export {
   getProjectionStatuses,
   listFreezoneBeatContext,
   listFreezoneProjectAssets,
+  useFreezoneBeatContext,
+  useFreezoneProjectAssets,
 } from "@/features/freezone/composition";
 export { SKILL_SCHEMA_VERSION } from "@/features/freezone/domain/skillContract";
 export {

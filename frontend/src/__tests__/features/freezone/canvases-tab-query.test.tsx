@@ -7,11 +7,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const listFreezoneCanvases = vi.fn();
 const deleteFreezoneCanvas = vi.fn();
 
-vi.mock("@/features/canvas/composition", () => ({
-  createBlankFreezoneCanvas: vi.fn(),
-  listFreezoneCanvases: (...args: unknown[]) => listFreezoneCanvases(...args),
-  deleteFreezoneCanvas: (...args: unknown[]) => deleteFreezoneCanvas(...args),
-}));
+vi.mock("@/features/canvas/composition", async () => {
+  const { createFreezoneCanvasQueryHooks } = await import(
+    "@/features/canvas/application/freezoneCanvasQueryHooks"
+  );
+  return {
+    createBlankFreezoneCanvas: vi.fn(),
+    deleteFreezoneCanvas: (...args: unknown[]) => deleteFreezoneCanvas(...args),
+    ...createFreezoneCanvasQueryHooks({
+      listCanvases: (params) => listFreezoneCanvases(params),
+    }),
+  };
+});
 
 import { CanvasesTab } from "@/features/freezone/CanvasesTab";
 

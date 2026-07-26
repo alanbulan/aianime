@@ -37,6 +37,7 @@ import {
   putFreezoneCanvas as putFreezoneCanvasUseCase,
   restoreFreezoneCanvasVersion as restoreFreezoneCanvasVersionUseCase,
 } from './application/freezoneCanvasStorage';
+import { createFreezoneCanvasQueryHooks } from './application/freezoneCanvasQueryHooks';
 import {
   completeVideoGenerationTask as completeVideoGenerationTaskUseCase,
   type CompleteVideoGenerationTaskParams,
@@ -241,6 +242,9 @@ export const canvasToolProcessor = new CanvasToolProcessor(
 export const canvasAiGateway = freezoneAiGateway;
 export const CURRENT_RUNTIME_SESSION_ID =
   browserGenerationRuntimeGateway.runtimeSessionId;
+export const { useFreezoneCanvases } = createFreezoneCanvasQueryHooks(
+  freezoneCanvasStorageGateway,
+);
 
 export function getRuntimeDiagnostics() {
   return browserGenerationRuntimeGateway.getRuntimeDiagnostics();

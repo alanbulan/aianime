@@ -18,6 +18,7 @@ import {
 import {
   createBlankFreezoneCanvas,
   deleteFreezoneCanvas,
+  useFreezoneCanvases,
 } from "@/features/canvas/composition";
 import type { FreezoneCanvasSummary } from "@/features/freezone/public";
 import { ApiError } from "@/shared/api/errors";
@@ -25,7 +26,6 @@ import { writeUrl } from "@/lib/url-params";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/modules/identity_access/public";
 import { personalCanvasIdForUsername } from "@/features/freezone/projections";
-import { useFreezoneCanvases } from "@/lib/queries/freezone";
 import { BackendStatusError } from "@/shared/api/errors";
 
 const PERSONAL_CANVAS_DISPLAY_NAME = "__personal_canvas__";

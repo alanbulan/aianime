@@ -24,11 +24,9 @@ import {
   type FreezoneBeatContextBeat,
   type FreezoneBeatContextResponse,
   type FreezoneProjectAsset,
-} from "@/features/freezone/public";
-import {
   useFreezoneBeatContext,
   useFreezoneProjectAssets,
-} from "@/lib/queries/freezone";
+} from "@/features/freezone/public";
 import { DEFAULT_NODE_WIDTH } from "@/features/canvas/domain/canvasNodes";
 import { withImageCacheBust } from "@/features/canvas/application/imageData";
 import {

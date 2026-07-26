@@ -7,11 +7,21 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const listFreezoneBeatContext = vi.fn();
 const listFreezoneProjectAssets = vi.fn();
 
-vi.mock("@/features/freezone/public", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/features/freezone/public")>()),
-  listFreezoneBeatContext: (...args: unknown[]) => listFreezoneBeatContext(...args),
-  listFreezoneProjectAssets: (...args: unknown[]) => listFreezoneProjectAssets(...args),
-}));
+vi.mock("@/features/freezone/public", async (importOriginal) => {
+  const { createFreezoneContextQueryHooks } = await import(
+    "@/features/freezone/application/contextQueryHooks"
+  );
+  const queryHooks = createFreezoneContextQueryHooks({
+    listBeatContext: (projectId, options) =>
+      listFreezoneBeatContext(projectId, options),
+    listProjectAssets: (projectId, options) =>
+      listFreezoneProjectAssets(projectId, options),
+  });
+  return {
+    ...(await importOriginal<typeof import("@/features/freezone/public")>()),
+    ...queryHooks,
+  };
+});
 
 vi.mock("@/features/freezone/CanvasesTab", () => ({
   CanvasesTab: () => null,
