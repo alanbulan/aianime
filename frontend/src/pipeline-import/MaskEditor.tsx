@@ -1,11 +1,13 @@
 // Copyright (c) 2026 AI anime
 import { useEffect, useRef, useState } from "react";
 import {
-  submitFreezoneRedraw,
-  fetchFreezoneJobResult,
-} from "@/api/ops";
-import { awaitTaskCompletion } from "@/api/tasks";
-import { uploadCanvasAsset } from "@/features/canvas/composition";
+  generateCanvasRedraw,
+  uploadCanvasAsset,
+} from "@/features/canvas/composition";
+import {
+  DEFAULT_CANVAS_REDRAW_ASPECT_RATIO,
+  DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
+} from "@/features/canvas/domain/redraw";
 
 interface MaskEditorProps {
   project: string;
@@ -223,19 +225,19 @@ export function MaskEditor({
       );
 
       setProgressMsg("提交局部重绘...");
-      const ref = await submitFreezoneRedraw(project, {
-        sourceUrl: baseUrl,
-        maskUrl: uploaded.url.split("?")[0],
-        prompt,
-      });
-      setProgressMsg("处理中（30-60s）...");
-      const completed = await awaitTaskCompletion(ref.task_key, project);
-      const directUrl =
-        (completed.result?.["output_url"] as string | undefined) || undefined;
-      const url =
-        directUrl ??
-        (await fetchFreezoneJobResult(project, ref.task_type, ref.job_id))
-          .url;
+      const { url } = await generateCanvasRedraw(
+        {
+          projectId: project,
+          sourceUrl: baseUrl,
+          maskUrl: uploaded.url.split("?")[0],
+          prompt,
+          aspectRatio: DEFAULT_CANVAS_REDRAW_ASPECT_RATIO,
+          imageSize: DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
+        },
+        () => {
+          setProgressMsg("处理中（30-60s）...");
+        },
+      );
       setProgressMsg("完成");
       onResult(url);
       onClose();

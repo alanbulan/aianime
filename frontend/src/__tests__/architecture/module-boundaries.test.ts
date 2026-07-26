@@ -11475,6 +11475,10 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/application/ports.ts",
     );
     const opsPath = resolve(SRC_ROOT, "api/ops.ts");
+    const pipelineEditorPath = resolve(
+      SRC_ROOT,
+      "pipeline-import/MaskEditor.tsx",
+    );
     const domainSource = readFileSync(domainPath, "utf8");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
@@ -11483,6 +11487,14 @@ describe("frontend architecture boundaries", () => {
     const retrySource = readFileSync(retryPath, "utf8");
     const portsSource = readFileSync(portsPath, "utf8");
     const opsSource = readFileSync(opsPath, "utf8");
+    const pipelineEditorSource = readFileSync(pipelineEditorPath, "utf8");
+    const endpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("}/freezone/redraw`"),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(importSpecifiers(domainPath)).toEqual([]);
     expect(domainSource).toContain(
@@ -11509,7 +11521,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
       new Set([
-        "@/api/ops",
+        "@/shared/api/client",
         "../application/ports",
         "./freezoneGenerationTaskGateway",
       ]),
@@ -11539,7 +11551,22 @@ describe("frontend architecture boundaries", () => {
     expect(retrySource).not.toContain("redrawGateway.fetchResultUrl(");
     expect(portsSource).toContain("prompt?: string");
     expect(portsSource).toContain("model?: string");
-    expect(opsSource).toContain("@/features/canvas/domain/redraw");
+    expect(endpointOwners).toEqual([
+      "features/canvas/infrastructure/freezoneRedrawTaskGateway.ts",
+    ]);
+    expect(importSpecifiers(pipelineEditorPath)).toContain(
+      "@/features/canvas/composition",
+    );
+    expect(importSpecifiers(pipelineEditorPath)).toContain(
+      "@/features/canvas/domain/redraw",
+    );
+    expect(importSpecifiers(pipelineEditorPath)).not.toContain("@/api/ops");
+    expect(importSpecifiers(pipelineEditorPath)).not.toContain("@/api/tasks");
+    expect(pipelineEditorSource).toContain("await generateCanvasRedraw(");
+    expect(opsSource).not.toContain("@/features/canvas/domain/redraw");
+    expect(opsSource).not.toContain("FreezoneRedrawPayload");
+    expect(opsSource).not.toContain("submitFreezoneRedraw");
+    expect(opsSource).not.toContain("}/freezone/redraw`");
     expect(opsSource).not.toContain("FreezoneRedrawAspectRatio");
   });
 

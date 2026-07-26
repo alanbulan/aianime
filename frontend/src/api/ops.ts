@@ -5,14 +5,6 @@ import {
   DEFAULT_CANVAS_SCENE_360_ASPECT_RATIO,
   type CanvasScene360AspectRatio,
 } from "@/features/canvas/domain/scene360";
-import {
-  DEFAULT_CANVAS_REDRAW_ASPECT_RATIO,
-  DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
-  DEFAULT_CANVAS_REDRAW_NUM_IMAGES,
-  type CanvasRedrawAspectRatio,
-  type CanvasRedrawImageSize,
-  type CanvasRedrawNumImages,
-} from "@/features/canvas/domain/redraw";
 import type {
   CanvasAssetLibraryMedia,
   CanvasAssetLibrarySource,
@@ -1113,41 +1105,6 @@ export async function submitFreezoneAnalyze(
         frame_urls: payload.frameUrls,
         provider: payload.provider ?? null,
         model: payload.model ?? null,
-      },
-    },
-  );
-}
-
-// /freezone/redraw -------------------------------------------------------- //
-
-export interface FreezoneRedrawPayload {
-  sourceUrl: string;
-  /** Optional mask static URL. Transparent pixels = editable region (局部重绘). */
-  maskUrl?: string | null;
-  prompt?: string;
-  aspectRatio?: CanvasRedrawAspectRatio;
-  numImages?: CanvasRedrawNumImages;
-  imageSize?: CanvasRedrawImageSize;
-  model?: string;
-}
-
-export async function submitFreezoneRedraw(
-  project: string,
-  payload: FreezoneRedrawPayload,
-): Promise<FreezoneJobRef> {
-  return await apiCall<FreezoneJobRef>(
-    `projects/${encodeURIComponent(project)}/freezone/redraw`,
-    {
-      method: "POST",
-      json: {
-        source_url: payload.sourceUrl,
-        mask_url: payload.maskUrl ?? null,
-        prompt: payload.prompt ?? "",
-        aspect_ratio:
-          payload.aspectRatio ?? DEFAULT_CANVAS_REDRAW_ASPECT_RATIO,
-        num_images: payload.numImages ?? DEFAULT_CANVAS_REDRAW_NUM_IMAGES,
-        image_size: payload.imageSize ?? DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
-        ...(payload.model ? { model: payload.model } : {}),
       },
     },
   );

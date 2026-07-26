@@ -1,7 +1,10 @@
 // Copyright (c) 2026 AI anime
-import { submitFreezoneRedraw } from '@/api/ops';
+import { apiCall } from '@/shared/api/client';
 
-import type { CanvasRedrawTaskGateway } from '../application/ports';
+import type {
+  CanvasGenerationTaskRef,
+  CanvasRedrawTaskGateway,
+} from '../application/ports';
 import { freezoneGenerationTaskGateway } from './freezoneGenerationTaskGateway';
 
 export const freezoneRedrawTaskGateway: CanvasRedrawTaskGateway = {
@@ -9,14 +12,20 @@ export const freezoneRedrawTaskGateway: CanvasRedrawTaskGateway = {
   fetchResultUrl: freezoneGenerationTaskGateway.fetchResultUrl,
 
   async submit(projectId, command) {
-    return await submitFreezoneRedraw(projectId, {
-      aspectRatio: command.aspectRatio,
-      imageSize: command.imageSize,
-      maskUrl: command.maskUrl,
-      model: command.model,
-      numImages: 1,
-      prompt: command.prompt,
-      sourceUrl: command.sourceUrl,
-    });
+    return await apiCall<CanvasGenerationTaskRef>(
+      `projects/${encodeURIComponent(projectId)}/freezone/redraw`,
+      {
+        method: 'POST',
+        json: {
+          source_url: command.sourceUrl,
+          mask_url: command.maskUrl ?? null,
+          prompt: command.prompt ?? '',
+          aspect_ratio: command.aspectRatio,
+          num_images: 1,
+          image_size: command.imageSize,
+          ...(command.model ? { model: command.model } : {}),
+        },
+      },
+    );
   },
 };
