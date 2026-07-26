@@ -67,6 +67,10 @@ import { CanvasQuickActionBar } from './ui/CanvasQuickActionBar';
 import { BackToNodesHint } from './ui/BackToNodesHint';
 import { CanvasMinimapButton } from './ui/CanvasMinimapButton';
 import { CanvasFpsMeter } from './ui/CanvasFpsMeter';
+import {
+  projectCanvasEdgesForRender,
+  projectCanvasNodesForRender,
+} from './ui/canvasRenderProjection';
 import { CanvasSnapAlignButton } from './snap-align/CanvasSnapAlignButton';
 import { useTrackpadPanStore } from './trackpad-pan/trackpadPanStore';
 import { SnapAlignGuides } from './snap-align/SnapAlignGuides';
@@ -377,29 +381,14 @@ export function Canvas({
     openToolDialog,
     closeToolDialog,
   });
-  const renderedNodes = useMemo(() => {
-    if (!placementConfirmNodeId) {
-      return nodes;
-    }
-    return nodes.map((node) => {
-      if (node.id !== placementConfirmNodeId) {
-        return node;
-      }
-      return {
-        ...node,
-        className: [node.className, 'canvas-node-placement-confirm']
-          .filter(Boolean)
-          .join(' '),
-      };
-    });
-  }, [nodes, placementConfirmNodeId]);
-
-  // 隐藏连线时给每条边补 `hidden: true`——ReactFlow 会跳过渲染但边仍在图里，
-  // 连接、reconnect、持久化都不受影响。显示时直接透传真实 edges，零额外分配。
-  const renderedEdges = useMemo(() => {
-    if (!edgesHidden) return edges;
-    return edges.map((edge) => (edge.hidden ? edge : { ...edge, hidden: true }));
-  }, [edges, edgesHidden]);
+  const renderedNodes = useMemo(
+    () => projectCanvasNodesForRender(nodes, placementConfirmNodeId),
+    [nodes, placementConfirmNodeId],
+  );
+  const renderedEdges = useMemo(
+    () => projectCanvasEdgesForRender(edges, edgesHidden),
+    [edges, edgesHidden],
+  );
 
   const isCanvasEmpty = useCallback(
     () => useCanvasStore.getState().nodes.length === 0,

@@ -7535,4 +7535,64 @@ describe("frontend architecture boundaries", () => {
     expect(canvasSource).not.toContain("contextMenu.clientX");
     expect(canvasSource).not.toContain("label: '上传'");
   });
+
+  it("keeps Canvas render projection in one pure presentation model", () => {
+    const projectionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/canvasRenderProjection.ts",
+    );
+    const projectionSource = readFileSync(projectionPath, "utf8");
+    const canvasSource = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(projectionPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const nodeProjectionDeclaration = [
+      "export function",
+      "projectCanvasNodesForRender(",
+    ].join(" ");
+    const edgeProjectionDeclaration = [
+      "export function",
+      "projectCanvasEdgesForRender(",
+    ].join(" ");
+    const nodeProjectionOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(
+        nodeProjectionDeclaration,
+      ))
+      .map(relativeSource)
+      .sort();
+    const edgeProjectionOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(
+        edgeProjectionDeclaration,
+      ))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(nodeProjectionOwners).toEqual([
+      "features/canvas/ui/canvasRenderProjection.ts",
+    ]);
+    expect(edgeProjectionOwners).toEqual([
+      "features/canvas/ui/canvasRenderProjection.ts",
+    ]);
+    expect(projectionSource).toContain("PLACEMENT_CONFIRM_CLASS_NAME");
+    expect(projectionSource).toContain("edge.hidden ? edge");
+    expect(canvasSource).toContain("projectCanvasNodesForRender(");
+    expect(canvasSource).toContain("projectCanvasEdgesForRender(");
+    expect(canvasSource).not.toContain("canvas-node-placement-confirm");
+    expect(canvasSource).not.toContain("edge.hidden ? edge");
+  });
 });
