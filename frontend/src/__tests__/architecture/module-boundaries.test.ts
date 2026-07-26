@@ -673,6 +673,7 @@ describe("frontend architecture boundaries", () => {
           .filter(
             (specifier) =>
               specifier.includes("features/freezone/domain/skillContract") ||
+              specifier.includes("features/freezone/domain/skillExecution") ||
               specifier.includes("features/freezone/context/skillRoles") ||
               specifier.includes("freezone/context/skillRoles"),
           )
@@ -685,7 +686,10 @@ describe("frontend architecture boundaries", () => {
       "features/freezone/domain/skillContract.ts",
     ]);
     expect(new Set(importSpecifiers(publicPath))).toEqual(
-      new Set(["@/features/freezone/domain/skillContract"]),
+      new Set([
+        "@/features/freezone/domain/skillContract",
+        "@/features/freezone/domain/skillExecution",
+      ]),
     );
     expect(externalContractImportFailures).toEqual([]);
     expect(importSpecifiers(nodeRegistryPath)).toContain(
@@ -3714,7 +3718,6 @@ describe("frontend architecture boundaries", () => {
     const hookModel = readFileSync(hookPath, "utf8");
     const controllerModel = readFileSync(controllerPath, "utf8");
     const skillNodeModel = readFileSync(skillNodePath, "utf8");
-    const legacyApiModel = readFileSync(legacyApiPath, "utf8");
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -3796,8 +3799,7 @@ describe("frontend architecture boundaries", () => {
       "useCanvasSkillRegistry(\n    loadCanvasSkillRegistry,",
     );
     expect(skillNodeModel).not.toContain("getSkillRegistry");
-    expect(legacyApiModel).not.toContain("getSkillRegistry");
-    expect(legacyApiModel).not.toContain("REGISTRY_CACHE_TTL_MS");
+    expect(existsSync(legacyApiPath)).toBe(false);
     expect(canvasView).toContain(
       "./hooks/useCanvasNodeCreationSurfaceController",
     );
@@ -9048,19 +9050,91 @@ describe("frontend architecture boundaries", () => {
     expect(textNodeSource).not.toContain("awaitTaskCompletion");
   });
 
-  it("keeps Skill node task waiting behind Canvas composition", () => {
+  it("keeps Skill execution and task waiting behind Canvas composition", () => {
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/freezone/domain/skillExecution.ts",
+    );
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/skillExecution.ts",
+    );
+    const adapterPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneSkillExecutionGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
     const nodePath = resolve(
       SRC_ROOT,
       "features/canvas/nodes/SkillNode.tsx",
     );
+    const outputModelPath = resolve(
+      SRC_ROOT,
+      "features/freezone/context/skillNodeOutputs.ts",
+    );
+    const legacyApiPath = resolve(SRC_ROOT, "api/skills.ts");
+    const domainSource = readFileSync(domainPath, "utf8");
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const adapterSource = readFileSync(adapterPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
     const nodeSource = readFileSync(nodePath, "utf8");
     const imports = importSpecifiers(nodePath);
+    const endpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          "/freezone/skills/runs/${encodeURIComponent(runId)}/result",
+        ),
+      )
+      .map(relativeSource)
+      .sort();
 
+    expect(existsSync(legacyApiPath)).toBe(false);
+    expect(importSpecifiers(domainPath)).toEqual(["./skillContract"]);
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set(["@/features/freezone/public"]),
+    );
+    expect(new Set(importSpecifiers(adapterPath))).toEqual(
+      new Set([
+        "@/shared/api/client",
+        "@/features/freezone/public",
+        "../application/skillExecution",
+      ]),
+    );
+    expect(domainSource).toContain("isSkillRunTerminalStatus(");
+    expect(applicationSource).toContain("dependencies.gateway.getRunResult(");
+    expect(applicationSource).not.toContain("window.");
+    expect(adapterSource).toContain("encodeURIComponent(skillId)");
+    expect(endpointOwners).toEqual([
+      "features/canvas/infrastructure/freezoneSkillExecutionGateway.ts",
+    ]);
     expect(imports).toContain("@/features/canvas/composition");
+    expect(imports).not.toContain("@/api/skills");
     expect(imports).not.toContain("@/api/tasks");
     expect(
       nodeSource.match(/await awaitCanvasGenerationTaskCompletion\(/g),
     ).toHaveLength(2);
+    expect(
+      nodeSource.match(/await awaitCanvasSkillRunResult\(/g),
+    ).toHaveLength(2);
+    expect(nodeSource).toContain("await startCanvasSkillRun({");
+    expect(nodeSource).not.toContain("function isFailureStatus(");
+    expect(nodeSource).not.toContain("function awaitSkillRunResult(");
+    expect(compositionSource).toContain(
+      "startCanvasSkillRunUseCase(params, freezoneSkillExecutionGateway)",
+    );
+    expect(compositionSource).toContain(
+      "awaitCanvasSkillRunResultUseCase(params, {",
+    );
+    expect(importSpecifiers(outputModelPath)).toContain(
+      "../domain/skillExecution",
+    );
+    expect(importSpecifiers(outputModelPath)).not.toContain(
+      "../../../api/skills.ts",
+    );
     expect(nodeSource).not.toContain("awaitTaskCompletion");
   });
 

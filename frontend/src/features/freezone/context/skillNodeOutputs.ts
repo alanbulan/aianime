@@ -4,7 +4,7 @@ import {
   type CanvasNodeData,
   type CanvasNodeType,
 } from "../../canvas/domain/canvasNodes.ts";
-import type { SkillRunOutput } from "../../../api/skills.ts";
+import type { SkillRunOutput } from "../domain/skillExecution";
 
 function recordValue(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" ? value as Record<string, unknown> : null;

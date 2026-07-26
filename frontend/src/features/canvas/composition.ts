@@ -125,6 +125,12 @@ import {
   type UploadSelectedBackgroundCandidateOptions,
 } from './application/selectedBackgroundSlot';
 import {
+  awaitCanvasSkillRunResult as awaitCanvasSkillRunResultUseCase,
+  startCanvasSkillRun as startCanvasSkillRunUseCase,
+  type AwaitCanvasSkillRunResultParams,
+  type StartCanvasSkillRunParams,
+} from './application/skillExecution';
+import {
   uploadLocalImageToBackend as uploadLocalImageToBackendUseCase,
 } from './application/uploadToolOutput';
 import {
@@ -157,6 +163,7 @@ import { freezoneRedrawTaskGateway } from './infrastructure/freezoneRedrawTaskGa
 import { freezoneRelightGenerationGateway } from './infrastructure/freezoneRelightGenerationGateway';
 import { freezoneReversePromptGenerationGateway } from './infrastructure/freezoneReversePromptGenerationGateway';
 import { freezoneScene360GenerationGateway } from './infrastructure/freezoneScene360GenerationGateway';
+import { freezoneSkillExecutionGateway } from './infrastructure/freezoneSkillExecutionGateway';
 import { freezoneStoryScriptGenerationGateway } from './infrastructure/freezoneStoryScriptGenerationGateway';
 import { freezoneUpscaleGenerationGateway } from './infrastructure/freezoneUpscaleGenerationGateway';
 import { freezoneVideoComposeGateway } from './infrastructure/freezoneVideoComposeGateway';
@@ -528,6 +535,22 @@ export function awaitCanvasGenerationTaskCompletion(
   projectId: string,
 ) {
   return freezoneGenerationTaskGateway.awaitCompletion(taskKey, projectId);
+}
+
+export function startCanvasSkillRun(params: StartCanvasSkillRunParams) {
+  return startCanvasSkillRunUseCase(params, freezoneSkillExecutionGateway);
+}
+
+export function awaitCanvasSkillRunResult(
+  params: AwaitCanvasSkillRunResultParams,
+) {
+  return awaitCanvasSkillRunResultUseCase(params, {
+    gateway: freezoneSkillExecutionGateway,
+    sleep: (delayMs) =>
+      new Promise<void>((resolve) => {
+        window.setTimeout(resolve, delayMs);
+      }),
+  });
 }
 
 export function translateCanvasText(params: TranslateCanvasTextParams) {

@@ -18,18 +18,13 @@ import {
 } from '@/api/sceneAssets';
 import { getBeatDirectorStageManifest } from '@/api/viewerManifests';
 import {
-  getSkillRunResult,
-  runSkill,
-  type SkillErrorEnvelope,
-  type SkillRunOutput,
-  type SkillRunResult,
-} from '@/api/skills';
-import { loadCanvasSkillRegistry } from '@/features/canvas/catalogComposition';
-import {
+  awaitCanvasSkillRunResult,
   awaitCanvasGenerationTaskCompletion,
+  startCanvasSkillRun,
   stageSelectedBackgroundOutputForSkill,
   uploadCanvasAsset,
 } from '@/features/canvas/composition';
+import { loadCanvasSkillRegistry } from '@/features/canvas/catalogComposition';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import {
   type CanvasEdge,
@@ -63,9 +58,12 @@ import {
   outputLabel,
   outputText,
 } from '@/features/freezone/context/skillNodeOutputs';
-import type {
-  SkillInputRole,
-  SkillProvider,
+import {
+  isSkillRunFailureStatus,
+  skillRunErrorMessage,
+  type SkillInputRole,
+  type SkillProvider,
+  type SkillRunOutput,
 } from '@/features/freezone/public';
 import {
   translateSkillDescription,
@@ -96,8 +94,6 @@ type DirectorWorldDestination = 'selected_background' | 'director_combined';
 const DEFAULT_WIDTH = 380;
 const OUTPUT_X_OFFSET = 460;
 const OUTPUT_Y_SPACING = 260;
-const RESULT_POLL_DELAY_MS = 700;
-const RESULT_POLL_ATTEMPTS = 30;
 const TASK_RECORD_GRACE_MS = 5000;
 const SELECTED_BACKGROUND_CROP_ASPECT_OPTIONS = ['2:3', '16:9'] as const;
 const PROVIDER_LABELS: Record<SkillProvider, string> = {
@@ -260,45 +256,8 @@ function isNoReferenceEdge(edge: CanvasEdge, role: SkillInputRole): boolean {
     : target.prop_id === '__NO_PROP__';
 }
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => window.setTimeout(resolve, ms));
-}
-
-function isDoneStatus(status: string): boolean {
-  return ['done', 'completed', 'succeeded', 'success'].includes(status.toLowerCase());
-}
-
-function isFailureStatus(status: string): boolean {
-  return ['failed', 'failure', 'error', 'cancelled', 'canceled'].includes(status.toLowerCase());
-}
-
-async function awaitSkillRunResult(projectId: string, runId: string): Promise<SkillRunResult> {
-  let latest: SkillRunResult | null = null;
-  for (let attempt = 0; attempt < RESULT_POLL_ATTEMPTS; attempt += 1) {
-    latest = await getSkillRunResult(projectId, runId);
-    if (isDoneStatus(latest.status) || isFailureStatus(latest.status)) {
-      return latest;
-    }
-    await delay(RESULT_POLL_DELAY_MS);
-  }
-  throw new Error(`Skill run ${runId} did not finish; latest status: ${latest?.status ?? 'unknown'}`);
-}
-
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
-}
-
-function skillErrorMessage(error: SkillRunResult['error']): string | null {
-  if (!error) {
-    return null;
-  }
-  if (typeof error === 'string') {
-    return error;
-  }
-  const envelope = error as SkillErrorEnvelope;
-  return envelope.user_action_hint
-    ? `${envelope.message} ${envelope.user_action_hint}`
-    : envelope.message;
 }
 
 function selectedBackgroundTarget(output: SkillRunOutput): { episode?: unknown; beat?: unknown } | null {
@@ -1131,12 +1090,12 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
         if (taskKey) {
           await awaitCanvasGenerationTaskCompletion(taskKey, projectId);
         }
-        const result = await awaitSkillRunResult(projectId, runId);
+        const result = await awaitCanvasSkillRunResult({ projectId, runId });
         if (cancelled) {
           return;
         }
-        if (isFailureStatus(result.status)) {
-          throw new Error(skillErrorMessage(result.error) ?? `Skill run failed with status ${result.status}`);
+        if (isSkillRunFailureStatus(result.status)) {
+          throw new Error(skillRunErrorMessage(result.error) ?? `Skill run failed with status ${result.status}`);
         }
         materializeOutputs(result.outputs ?? [], projectId, canvasId, runId, startedAt);
         updateNodeData(id, {
@@ -1326,12 +1285,16 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
         generationTaskType: null,
         generationTaskJobId: null,
       });
-      const response = await runSkill(projectId, data.skill_id, {
-        skill_node_id: id,
-        canvas_id: canvasId,
-        idempotency_key: idempotencyKey,
-        resolved_inputs: resolvedInputs,
-        parameters: currentParameters,
+      const response = await startCanvasSkillRun({
+        projectId,
+        skillId: data.skill_id,
+        request: {
+          skill_node_id: id,
+          canvas_id: canvasId,
+          idempotency_key: idempotencyKey,
+          resolved_inputs: resolvedInputs,
+          parameters: currentParameters,
+        },
       });
       const runKey = `${projectId}:${canvasId}:${id}:${response.run_id}`;
       activeRunKey = runKey;
@@ -1349,9 +1312,12 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
         submitInFlightRef.current = false;
         await awaitCanvasGenerationTaskCompletion(response.task_key, projectId);
       }
-      const result = await awaitSkillRunResult(projectId, response.run_id);
-      if (isFailureStatus(result.status)) {
-        throw new Error(skillErrorMessage(result.error) ?? `Skill run failed with status ${result.status}`);
+      const result = await awaitCanvasSkillRunResult({
+        projectId,
+        runId: response.run_id,
+      });
+      if (isSkillRunFailureStatus(result.status)) {
+        throw new Error(skillRunErrorMessage(result.error) ?? `Skill run failed with status ${result.status}`);
       }
       materializeOutputs(result.outputs ?? [], projectId, canvasId, response.run_id, startedAt);
       updateNodeData(id, {

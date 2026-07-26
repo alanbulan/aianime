@@ -1554,6 +1554,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百三十五批已将 Skill 注册表的场景 360 必填输入覆盖迁入唯一 29 行 `skillCatalog` 领域模块，将目录 port 与带五分钟缓存、并发请求复用的 Freezone HTTP 实现分别迁入 6 行 application 契约和 43 行 `freezoneSkillCatalogGateway` infrastructure 适配器，`catalogComposition` 统一装配；`useCanvasNodeCatalogController` 与 `SkillNode` 改为复用同一 `useCanvasSkillRegistry` 加载、错误和卸载保护，节点删除重复注册表 effect，由 1907 行降至 1882 行；旧 `api/skills.ts` 删除目录 HTTP、缓存和覆盖实现，由 159 行降至 102 行，仅保留 Skill 运行与结果接口，`getSkillRegistry` 旧出口直接删除且 `freezone/skills` 目录端点只有一个生产所有者；相关 6 个测试文件 22 项、新增后的架构门禁 188 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百三十六批已将 Skill 运行请求、回执、输出、Graph Patch、结果、终态判断和结构化错误文案迁入唯一 116 行 `freezone/domain/skillExecution`，经 Freezone public 发布；提交/结果查询 port、默认 700ms 间隔与 30 次结果轮询迁入 71 行 Canvas application 用例，两个原 URL 及编码规则迁入唯一 22 行 `freezoneSkillExecutionGateway` infrastructure 适配器，composition 注入浏览器等待器并继续复用既有任务 gateway；`SkillNode` 删除本地状态判断、错误映射、延迟和轮询实现，由 1882 行降至 1848 行，不再直接依赖 API，Freezone 输出模型也不再反向导入 API 类型；原 102 行 `api/skills.ts` 整体删除，不保留兼容出口或第二套 DTO，提交、刷新恢复、任务句柄和输出物化语义不变；相关 4 个测试文件 19 项、新增后的架构门禁 188 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。
