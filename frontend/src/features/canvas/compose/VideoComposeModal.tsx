@@ -54,6 +54,7 @@ import {
   type FreezoneVideoComposeResolution,
 } from "@/api/ops";
 import { awaitTaskCompletion } from "@/api/tasks";
+import { VIDEO_CLIP_MIN_DURATION_MS } from "@/features/canvas/domain/videoClipRange";
 import { useViewerImmersiveBody } from "@/features/viewer-kit/useViewerImmersiveBody";
 import {
   getCachedAudioPeaks,
@@ -73,7 +74,6 @@ import {
   packTrackClips,
   reorderIndexForDrag,
   AUDIO_TRACK_ID,
-  MIN_CLIP_MS,
   sourceSpanMs,
   timelineDurationMs,
   VIDEO_TRACK_ID,
@@ -1096,8 +1096,10 @@ export function VideoComposeModal({
   const canSplitInside =
     selectedSourceMs != null &&
     selectedClip != null &&
-    selectedSourceMs > selectedClip.clip.trimStartMs + MIN_CLIP_MS &&
-    selectedSourceMs < selectedClip.clip.trimEndMs - MIN_CLIP_MS;
+    selectedSourceMs >
+      selectedClip.clip.trimStartMs + VIDEO_CLIP_MIN_DURATION_MS &&
+    selectedSourceMs <
+      selectedClip.clip.trimEndMs - VIDEO_CLIP_MIN_DURATION_MS;
 
   const splitSelected = useCallback(() => {
     if (!selectedClip || selectedSourceMs == null || !canSplitInside) return;
@@ -1355,7 +1357,11 @@ export function VideoComposeModal({
         // drag is in timeline px → source ms uses the clip's speed.
         const dms = ((ev.clientX - startX) / pxPerMsRef.current) * speed;
         if (edge === "start") {
-          const next = clamp(snapSource(origStart + dms), 0, origEnd - MIN_CLIP_MS);
+          const next = clamp(
+            snapSource(origStart + dms),
+            0,
+            origEnd - VIDEO_CLIP_MIN_DURATION_MS,
+          );
           // 拖左把手：源入点变化，同时把左边缘随之平移，使右边缘保持不动。
           const nextTimelineStart = Math.max(
             0,
@@ -1366,7 +1372,11 @@ export function VideoComposeModal({
             timelineStartMs: nextTimelineStart,
           });
         } else {
-          const next = clamp(snapSource(origEnd + dms), origStart + MIN_CLIP_MS, maxEnd);
+          const next = clamp(
+            snapSource(origEnd + dms),
+            origStart + VIDEO_CLIP_MIN_DURATION_MS,
+            maxEnd,
+          );
           updateClip(track.id, clip.id, { trimEndMs: Math.round(next) });
         }
       };

@@ -12,6 +12,12 @@ import { Check, Loader2, Repeat, Type as TypeIcon, VolumeX, X } from 'lucide-rea
 
 import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import type { CaptureVideoFrameStrip } from '@/features/canvas/application/videoFrameStrip';
+import {
+  VIDEO_CLIP_MIN_DURATION_MS,
+  constrainVideoClipEndMs,
+  constrainVideoClipStartMs,
+  resolveVideoClipRange,
+} from '@/features/canvas/domain/videoClipRange';
 import { CANVAS_NODE_OPS_PANEL_CLASS } from '@/features/canvas/ui/nodeFrameStyles';
 
 interface VideoClipPanelProps {
@@ -27,7 +33,6 @@ interface VideoClipPanelProps {
 }
 
 const THUMB_COUNT = 8;
-const MIN_CLIP_MS = 200;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -52,20 +57,15 @@ export const VideoClipPanel = memo(function VideoClipPanel({
   onExit,
   onSubmit,
 }: VideoClipPanelProps) {
-  const totalMs = useMemo(() => {
-    if (typeof durationMs === 'number' && durationMs > 0) return durationMs;
-    return null;
-  }, [durationMs]);
-
-  const startMs = useMemo(() => {
-    if (typeof clipStartMs === 'number') return clamp(clipStartMs, 0, totalMs ?? clipStartMs);
-    return 0;
-  }, [clipStartMs, totalMs]);
-
-  const endMs = useMemo(() => {
-    if (typeof clipEndMs === 'number') return clamp(clipEndMs, 0, totalMs ?? clipEndMs);
-    return totalMs ?? 0;
-  }, [clipEndMs, totalMs]);
+  const { totalMs, startMs, endMs, selectionMs } = useMemo(
+    () =>
+      resolveVideoClipRange({
+        durationMs,
+        startMs: clipStartMs,
+        endMs: clipEndMs,
+      }),
+    [clipEndMs, clipStartMs, durationMs],
+  );
 
   const trackRef = useRef<HTMLDivElement>(null);
   const [dragMode, setDragMode] = useState<DragMode>(null);
@@ -102,7 +102,7 @@ export const VideoClipPanel = memo(function VideoClipPanel({
   const setStart = useCallback(
     (nextStart: number) => {
       if (!totalMs) return;
-      const clamped = clamp(nextStart, 0, Math.max(0, endMs - MIN_CLIP_MS));
+      const clamped = constrainVideoClipStartMs(nextStart, endMs);
       onChange({ clipStartMs: clamped });
     },
     [endMs, onChange, totalMs],
@@ -111,7 +111,7 @@ export const VideoClipPanel = memo(function VideoClipPanel({
   const setEnd = useCallback(
     (nextEnd: number) => {
       if (!totalMs) return;
-      const clamped = clamp(nextEnd, startMs + MIN_CLIP_MS, totalMs);
+      const clamped = constrainVideoClipEndMs(nextEnd, startMs, totalMs);
       onChange({ clipEndMs: clamped });
     },
     [onChange, startMs, totalMs],
@@ -144,8 +144,6 @@ export const VideoClipPanel = memo(function VideoClipPanel({
 
   const startPct = totalMs ? (startMs / totalMs) * 100 : 0;
   const endPct = totalMs ? (endMs / totalMs) * 100 : 100;
-  const selectionMs = Math.max(0, endMs - startMs);
-
   const handleSubmit = useCallback(() => {
     if (!totalMs || isSubmitting) return;
     onSubmit(startMs, endMs);
@@ -275,7 +273,11 @@ export const VideoClipPanel = memo(function VideoClipPanel({
         type="button"
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-colors hover:bg-foreground/90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
         onClick={handleSubmit}
-        disabled={!totalMs || selectionMs < MIN_CLIP_MS || isSubmitting}
+        disabled={
+          !totalMs ||
+          selectionMs < VIDEO_CLIP_MIN_DURATION_MS ||
+          isSubmitting
+        }
         title={isSubmitting ? '剪辑中…' : '提交剪辑'}
       >
         {isSubmitting ? (

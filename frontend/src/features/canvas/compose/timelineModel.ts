@@ -77,7 +77,6 @@ export interface ComposeTimelineState {
 
 /** 默认裁剪长度（ms）—— 源时长未知时的兜底，避免长度为 0 无法排布/预览。 */
 export const FALLBACK_CLIP_MS = 5000;
-export const MIN_CLIP_MS = 200;
 
 /**
  * 主视频轨 / 主音频轨的固定 id。主视频轨是唯一的「磁吸」轨：片段永远无缝紧贴、

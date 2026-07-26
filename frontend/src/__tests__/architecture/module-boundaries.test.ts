@@ -10692,6 +10692,60 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("/seedance2/i.test(");
   });
 
+  it("keeps video clip range rules in one pure domain module", () => {
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/videoClipRange.ts",
+    );
+    const clipPanelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoClipPanel.tsx",
+    );
+    const timelinePath = resolve(
+      SRC_ROOT,
+      "features/canvas/compose/timelineModel.ts",
+    );
+    const composeModalPath = resolve(
+      SRC_ROOT,
+      "features/canvas/compose/VideoComposeModal.tsx",
+    );
+    const domainSource = readFileSync(domainPath, "utf8");
+    const clipPanelSource = readFileSync(clipPanelPath, "utf8");
+    const timelineSource = readFileSync(timelinePath, "utf8");
+    const composeModalSource = readFileSync(composeModalPath, "utf8");
+    const declarations = [
+      ["export const", "VIDEO_CLIP_MIN_DURATION_MS = 200"].join(" "),
+      ["export function", "resolveVideoClipRange("].join(" "),
+      ["export function", "constrainVideoClipStartMs("].join(" "),
+      ["export function", "constrainVideoClipEndMs("].join(" "),
+    ];
+    const implementationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(importSpecifiers(domainPath)).toEqual([]);
+    expect(domainSource).not.toContain("react");
+    expect(domainSource).not.toContain("document");
+    expect(domainSource).not.toContain("@/api/");
+    expect(domainSource).not.toContain("@/stores/");
+    expect(implementationOwners).toEqual(
+      declarations.map(() => ["features/canvas/domain/videoClipRange.ts"]),
+    );
+    expect(clipPanelSource).toContain(
+      "@/features/canvas/domain/videoClipRange",
+    );
+    expect(clipPanelSource).toContain("resolveVideoClipRange({");
+    expect(clipPanelSource).not.toContain("const MIN_CLIP_MS = 200");
+    expect(timelineSource).not.toContain("export const MIN_CLIP_MS");
+    expect(composeModalSource).toContain(
+      "@/features/canvas/domain/videoClipRange",
+    );
+    expect(composeModalSource).not.toContain("MIN_CLIP_MS");
+  });
+
   it("keeps video reference URL projection in one pure domain module", () => {
     const domainPath = resolve(
       SRC_ROOT,
