@@ -1544,6 +1544,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百三十批已将音视频分离结果的 canonical `audio_url/mute_video_url` 优先级、camelCase 别名、嵌套媒体探测、可服务 URL 排序及旧 `/output/` 路径末级回退迁入唯一纯 application 模块 `audioSeparationResult`，任务提交/等待、SSE 结果解析、缺失结果专用接口补齐及回退失败降级迁入唯一用例 `separateCanvasAudioVideo`；`freezoneAudioSeparationGateway` infrastructure 适配器成为提交与专用结果接口的唯一生产调用方，composition 注入既有任务 gateway；`NodeActionToolbar` 只保留 loading 状态、输出节点命名/创建、连线和警告展示，不再持有任务协议或递归结果解析，由 2450 行降至 2295 行，Canvas presentation 对 `api/ops`、`api/tasks` 的直接导入归零；结果投影、用例和适配器分别为 96、89、32 行，共 3 个测试文件 9 项、新增后的架构门禁 185 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百三十一批已将 `freezoneAiGateway` 内重复的任务等待与通用结果接口读取切换到唯一 `freezoneGenerationTaskGateway`，文字生图继续复用 `freezoneImageGenerationGateway`，参考图编辑仍由该 AI adapter 提交；未新增任务 adapter、用例或兼容转发，提示词/镜头元数据/参考图角色组合、provider/model 投影、内存任务状态和 `output_url` 优先语义均未改变，文件因显式 gateway 调用由 262 行调整为 267 行；新增约束后的架构门禁 185 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

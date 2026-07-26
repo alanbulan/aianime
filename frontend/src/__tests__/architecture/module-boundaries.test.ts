@@ -8940,10 +8940,22 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(legacyGatewayPath)).toContain(
       "./freezoneImageGenerationGateway",
     );
+    expect(importSpecifiers(legacyGatewayPath)).toContain(
+      "./freezoneGenerationTaskGateway",
+    );
     expect(legacyGatewaySource).toContain(
       "freezoneImageGenerationGateway.submit(projectId, {",
     );
+    expect(legacyGatewaySource).toContain(
+      "freezoneGenerationTaskGateway.awaitCompletion(",
+    );
+    expect(legacyGatewaySource).toContain(
+      "freezoneGenerationTaskGateway.fetchResultUrl(",
+    );
     expect(legacyGatewaySource).not.toContain("submitFreezoneGen");
+    expect(legacyGatewaySource).not.toContain("fetchFreezoneJobResult");
+    expect(legacyGatewaySource).not.toContain("awaitTaskCompletion");
+    expect(importSpecifiers(legacyGatewayPath)).not.toContain("@/api/tasks");
     expect(compositionSource).toContain(
       "generateCanvasImageUseCase(params, {",
     );

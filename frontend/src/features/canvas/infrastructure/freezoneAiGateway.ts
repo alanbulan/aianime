@@ -16,12 +16,10 @@
 //   - extraParams.quality is forwarded for openai gpt-image-2
 
 import {
-  fetchFreezoneJobResult,
   submitFreezoneEdit,
   type FreezoneProvider,
   type FreezoneJobRef,
 } from "@/api/ops";
-import { awaitTaskCompletion } from "@/api/tasks";
 import { readUrl } from "@/lib/url-params";
 import {
   mergeShotMetadata,
@@ -40,6 +38,7 @@ import type {
   AiGateway,
   GenerateImagePayload,
 } from "../application/ports";
+import { freezoneGenerationTaskGateway } from "./freezoneGenerationTaskGateway";
 import { freezoneImageGenerationGateway } from "./freezoneImageGenerationGateway";
 
 interface ProviderModel {
@@ -204,12 +203,18 @@ async function awaitJobAndFetchUrl(
   ref: FreezoneJobRef,
   projectId: string,
 ): Promise<string> {
-  const completed = await awaitTaskCompletion(ref.task_key, projectId);
+  const completed = await freezoneGenerationTaskGateway.awaitCompletion(
+    ref.task_key,
+    projectId,
+  );
   // Backend writes the output URL into the result payload directly.
   const directUrl = (completed.result?.["output_url"] as string | undefined) || undefined;
   if (directUrl) return directUrl;
-  const fallback = await fetchFreezoneJobResult(projectId, ref.task_type, ref.job_id);
-  return fallback.url;
+  return await freezoneGenerationTaskGateway.fetchResultUrl(
+    projectId,
+    ref.task_type,
+    ref.job_id,
+  );
 }
 
 export const freezoneAiGateway: AiGateway = {
