@@ -10746,6 +10746,64 @@ describe("frontend architecture boundaries", () => {
     expect(composeModalSource).not.toContain("MIN_CLIP_MS");
   });
 
+  it("keeps single-video clip composition in one application use case", () => {
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/composeVideoClip.ts",
+    );
+    const adapterPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneVideoClipComposeGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const adapterSource = readFileSync(adapterPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const videoNode = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      "utf8",
+    );
+    const declaration = ["export async function", "composeVideoClip("].join(
+      " ",
+    );
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set(["../domain/canvasNodes", "./ports"]),
+    );
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(implementationOwners).toEqual([
+      "features/canvas/application/composeVideoClip.ts",
+    ]);
+    expect(applicationSource).toContain("params.startMs / 1000");
+    expect(applicationSource).toContain("params.endMs / 1000");
+    expect(importSpecifiers(adapterPath)).toEqual([
+      "@/api/ops",
+      "../application/composeVideoClip",
+    ]);
+    expect(adapterSource).not.toContain("react");
+    expect(adapterSource).not.toContain("@/stores/");
+    expect(adapterSource).toContain("submitFreezoneVideoCompose(");
+    expect(compositionSource).toContain(
+      "composeGateway: freezoneVideoClipComposeGateway",
+    );
+    expect(compositionSource).toContain(
+      "taskGateway: freezoneGenerationTaskGateway",
+    );
+    expect(videoNode).toContain("composeVideoClip({");
+    expect(videoNode).not.toContain("submitFreezoneVideoCompose");
+    expect(videoNode).not.toContain("`track_${id}_video`");
+    expect(videoNode).not.toContain("sourceStart: startMs / 1000");
+  });
+
   it("keeps video reference URL projection in one pure domain module", () => {
     const domainPath = resolve(
       SRC_ROOT,

@@ -5,6 +5,10 @@ import { getSceneDirectorStageManifest } from '@/api/viewerManifests';
 
 import { canvasEventBus } from './application/canvasServices';
 import {
+  composeVideoClip as composeVideoClipUseCase,
+  type ComposeVideoClipParams,
+} from './application/composeVideoClip';
+import {
   hydrateAssetDragPayload as hydrateAssetDragPayloadUseCase,
   type CanvasSceneDirectorManifestGateway,
 } from './application/assetDragHydration';
@@ -48,6 +52,7 @@ import { freezoneAssetGateway } from './infrastructure/freezoneAssetGateway';
 import { freezoneAiGateway } from './infrastructure/freezoneAiGateway';
 import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerationTaskGateway';
 import { freezoneRedrawTaskGateway } from './infrastructure/freezoneRedrawTaskGateway';
+import { freezoneVideoClipComposeGateway } from './infrastructure/freezoneVideoClipComposeGateway';
 import { uuidGenerator } from './infrastructure/idGenerator';
 import { webImageSplitGateway } from './infrastructure/webImageSplitGateway';
 import { zustandCanvasGraphGateway } from './infrastructure/zustandCanvasGraphGateway';
@@ -187,6 +192,14 @@ export function resumeNodeGeneration(params: ResumeNodeGenerationParams) {
     params,
     freezoneGenerationTaskGateway,
   );
+}
+
+export function composeVideoClip(params: ComposeVideoClipParams) {
+  return composeVideoClipUseCase(params, {
+    composeGateway: freezoneVideoClipComposeGateway,
+    taskGateway: freezoneGenerationTaskGateway,
+    now: () => Date.now(),
+  });
 }
 
 export function pollExportImageGeneration(

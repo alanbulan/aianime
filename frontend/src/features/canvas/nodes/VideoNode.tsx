@@ -98,7 +98,10 @@ import { ReferenceTextChip } from "@/features/canvas/nodes/shared/ReferenceTextC
 import { useReferenceMentionSync } from "@/features/canvas/nodes/useReferenceMentionSync";
 import { useNodeGenerationTaskState } from "@/features/canvas/hooks/useNodeGenerationTaskState";
 import { resolveErrorContent } from "@/features/canvas/application/errorDialog";
-import { showErrorDialog } from "@/features/canvas/composition";
+import {
+  composeVideoClip,
+  showErrorDialog,
+} from "@/features/canvas/composition";
 import { backendErrorToastMessage } from "@/shared/api/errors";
 import { resolveGenerationErrorDiagnostics } from "@/features/canvas/application/generationErrorReport";
 import {
@@ -196,7 +199,6 @@ import {
   fetchFreezoneJobResult,
   fetchFreezoneTextTranslateResult,
   submitFreezoneTextTranslate,
-  submitFreezoneVideoCompose,
   submitFreezoneVideoErase,
   submitFreezoneVideoEdit,
   submitFreezoneVideoGen,
@@ -1490,37 +1492,17 @@ export const VideoNode = memo(
           console.error("[video-node] clip: no project in URL");
           return;
         }
-        // Compose only supports 720p / 1080p — fall back to 720p for 480P sources.
-        const composeResolution = quality === "1080P" ? "1080p" : "720p";
         setIsComposingClip(true);
         setClipError(null);
         try {
-          const sourceStart = startMs / 1000;
-          const sourceEnd = endMs / 1000;
-          const ref = await submitFreezoneVideoCompose(projectId, {
-            resolution: composeResolution,
-            tracks: [
-              {
-                trackId: `track_${id}_video`,
-                kind: "video",
-                items: [
-                  {
-                    itemId: `item_${id}_${Date.now()}`,
-                    sourceUrl,
-                    timelineStart: 0,
-                    sourceStart,
-                    sourceEnd,
-                  },
-                ],
-              },
-            ],
-          });
-          await awaitTaskCompletion(ref.task_key, projectId);
-          const result = await fetchFreezoneJobResult(
+          const result = await composeVideoClip({
             projectId,
-            "freezone_video_compose",
-            ref.job_id,
-          );
+            nodeId: id,
+            sourceUrl,
+            startMs,
+            endMs,
+            quality,
+          });
           if (result.url) {
             const state = useCanvasStore.getState();
             const position = state.findNodePosition(
@@ -1530,7 +1512,7 @@ export const VideoNode = memo(
             );
             const newNodeId = addNode(CANVAS_NODE_TYPES.video, position, {
               videoUrl: result.url,
-              durationMs: Math.round((sourceEnd - sourceStart) * 1000),
+              durationMs: result.durationMs,
               displayName: "剪辑",
             });
             addEdge(id, newNodeId);
