@@ -1590,6 +1590,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const transferController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasMediaTransferController.ts",
+      ),
+      "utf8",
+    );
     const forbiddenImports = importSpecifiers(hookPath).filter(
       (specifier) =>
         specifier === "@xyflow/react" ||
@@ -1621,7 +1628,9 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("collectDroppedMediaFiles(");
     expect(hookModel).toContain("DROPPED_FILE_OFFSET = 36");
     expect(hookModel).toContain("scheduleAfterMount(");
-    expect(canvasView).toContain("./hooks/useCanvasMediaDropController");
+    expect(transferController).toContain("./useCanvasMediaDropController");
+    expect(canvasView).toContain("./hooks/useCanvasMediaTransferController");
+    expect(canvasView).not.toContain("./hooks/useCanvasMediaDropController");
     expect(canvasView).not.toContain("const handleCanvasDrop = useCallback");
     expect(canvasView).not.toContain("readAssetDragPayload(");
     expect(canvasView).not.toContain("collectDroppedMediaFiles(");
@@ -2076,6 +2085,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const transferController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasMediaTransferController.ts",
+      ),
+      "utf8",
+    );
     const forbiddenImports = importSpecifiers(hookPath).filter(
       (specifier) =>
         specifier === "@xyflow/react" ||
@@ -2103,7 +2119,8 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("resolveClipboardImageFile");
     expect(hookModel).toContain("collectDroppedMediaFiles");
     expect(hookModel).toContain("mediaPasteHandledRef");
-    expect(canvasView).toContain("./hooks/useCanvasMediaPaste");
+    expect(transferController).toContain("./useCanvasMediaPaste");
+    expect(canvasView).not.toContain("./hooks/useCanvasMediaPaste");
     expect(canvasView).not.toContain("document.addEventListener('paste'");
     expect(canvasView).not.toContain("pasteImageHandledRef");
     expect(canvasView).not.toContain("resolveClipboardImageFile");
@@ -8163,18 +8180,35 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasMediaTransferController.ts",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
     const externalFilePublishCount = (
-      canvasSource.match(
-        /canvasEventBus\.publish\('upload-node\/external-file'/g,
+      controllerSource.match(
+        /eventBus\.publish\('upload-node\/external-file'/g,
       ) ?? []
     ).length;
+    const declaration = [
+      "export function",
+      "useCanvasMediaTransferController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
 
     expect(externalFilePublishCount).toBe(1);
-    expect(canvasSource).toContain("const mediaTransferEventPort = useMemo");
-    expect(canvasSource).toContain("eventPort: mediaTransferEventPort");
-    expect(canvasSource).toContain(
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasMediaTransferController.ts",
+    ]);
+    expect(controllerSource).toContain("const mediaTransferEventPort = useMemo");
+    expect(controllerSource).toContain("eventPort: mediaTransferEventPort");
+    expect(controllerSource).toContain(
       "attachExternalFile: mediaTransferEventPort.attachExternalFile",
     );
+    expect(canvasSource).not.toContain("const mediaTransferEventPort");
     expect(canvasSource).not.toContain("const attachDroppedExternalFile");
   });
 
@@ -8189,7 +8223,14 @@ describe("frontend architecture boundaries", () => {
 
     expect(directConversionCount).toBe(1);
     expect(canvasSource).toContain("const screenToFlowPosition = useCallback");
-    expect(canvasSource).toContain(
+    const transferController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasMediaTransferController.ts",
+      ),
+      "utf8",
+    );
+    expect(transferController).toContain(
       "screenToCanvasPosition: screenToFlowPosition",
     );
     expect(canvasSource).not.toContain("const screenToCanvasPosition");
@@ -8200,19 +8241,27 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const transferController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasMediaTransferController.ts",
+      ),
+      "utf8",
+    );
     const transferredMarkerCount = (
-      canvasSource.match(/\{ user_spawned: true \}/g) ?? []
+      transferController.match(/\{ user_spawned: true \}/g) ?? []
     ).length;
 
     expect(transferredMarkerCount).toBe(1);
-    expect(canvasSource).toContain(
+    expect(transferController).toContain(
       "const createTransferredUploadNode = useCallback",
     );
     expect(
-      canvasSource.match(
+      transferController.match(
         /createUploadNode: createTransferredUploadNode/g,
       ),
     ).toHaveLength(2);
+    expect(canvasSource).not.toContain("createTransferredUploadNode");
     expect(canvasSource).not.toContain("createPastedUploadNode");
     expect(canvasSource).not.toContain("createDroppedUploadNode");
   });

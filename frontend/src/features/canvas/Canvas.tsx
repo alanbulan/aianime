@@ -27,17 +27,11 @@ import { translateSkillName } from '@/features/freezone/context/skillI18n';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import {
   clearBrowserClipboard,
-  hydrateAssetDragPayload,
   migratePastedNodeAssets,
 } from '@/features/canvas/composition';
 import {
   CANVAS_NODE_TYPES,
-  type CanvasNodeData,
 } from '@/features/canvas/domain/canvasNodes';
-import {
-  spawnAssetNode,
-  type CanvasAssetDragPayload,
-} from '@/features/canvas/domain/assetDrag';
 import { CanvasMinimapBookmarksOverlay } from '@/features/canvas/ui/CanvasMinimapBookmarksOverlay';
 import { createCanvasClipboardSnapshot } from '@/features/canvas/application/createCanvasClipboardSnapshot';
 import { readUrl } from '@/lib/url-params';
@@ -109,8 +103,7 @@ import { useCanvasKeyboardShortcuts } from './hooks/useCanvasKeyboardShortcuts';
 import { useCanvasLifecycle } from './hooks/useCanvasLifecycle';
 import { useCanvasLinkedCaptureDragController } from './hooks/useCanvasLinkedCaptureDragController';
 import { useCanvasMarqueeSelection } from './hooks/useCanvasMarqueeSelection';
-import { useCanvasMediaPaste } from './hooks/useCanvasMediaPaste';
-import { useCanvasMediaDropController } from './hooks/useCanvasMediaDropController';
+import { useCanvasMediaTransferController } from './hooks/useCanvasMediaTransferController';
 import { useCanvasMinimapVisibility } from './hooks/useCanvasMinimapVisibility';
 import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
 import { useCanvasNodeClickController } from './hooks/useCanvasNodeClickController';
@@ -517,33 +510,21 @@ export function Canvas({
     setSelectedNodeId: setSelectedNode,
   });
 
-  const mediaTransferEventPort = useMemo(
-    () => ({
-      pasteImageIntoNode: (nodeId: string, file: File) => {
-        canvasEventBus.publish('upload-node/paste-image', { nodeId, file });
-      },
-      attachExternalFile: (nodeId: string, file: File) => {
-        canvasEventBus.publish('upload-node/external-file', { nodeId, file });
-      },
-    }),
-    [],
-  );
-  const createTransferredUploadNode = useCallback(
-    (position: { x: number; y: number }) =>
-      addNode(
-        CANVAS_NODE_TYPES.upload,
-        position,
-        { user_spawned: true } as Partial<CanvasNodeData>,
-      ),
-    [addNode],
-  );
-  const { queueSnapshotPaste } = useCanvasMediaPaste({
+  const {
+    queueSnapshotPaste,
+    spawnAsset: spawnTransferredAsset,
+    isCanvasDropActive,
+    handleCanvasDragEnter,
+    handleCanvasDragOver,
+    handleCanvasDragLeave,
+    handleCanvasDrop,
+  } = useCanvasMediaTransferController({
     selectedUploadNodeId,
     getPreferredClientPosition: getPreferredCanvasPointerPosition,
-    screenToCanvasPosition: screenToFlowPosition,
-    createUploadNode: createTransferredUploadNode,
+    screenToFlowPosition,
+    createNode: addNode,
     selectNode: setSelectedNode,
-    eventPort: mediaTransferEventPort,
+    eventBus: canvasEventBus,
   });
 
   const fitAutoLayoutViewport = useCallback(
@@ -576,30 +557,6 @@ export function Canvas({
     deleteEdge,
     deleteNode,
     deleteNodes,
-  });
-
-  const hydrateDroppedAsset = useCallback(
-    (payload: CanvasAssetDragPayload) => hydrateAssetDragPayload(payload),
-    [],
-  );
-  const spawnDroppedAsset = useCallback(
-    (payload: CanvasAssetDragPayload, position: { x: number; y: number }) =>
-      spawnAssetNode(useCanvasStore.getState(), payload, position),
-    [],
-  );
-  const {
-    isCanvasDropActive,
-    handleCanvasDragEnter,
-    handleCanvasDragOver,
-    handleCanvasDragLeave,
-    handleCanvasDrop,
-  } = useCanvasMediaDropController({
-    screenToFlowPosition,
-    hydrateAsset: hydrateDroppedAsset,
-    spawnAsset: spawnDroppedAsset,
-    createUploadNode: createTransferredUploadNode,
-    selectNode: setSelectedNode,
-    attachExternalFile: mediaTransferEventPort.attachExternalFile,
   });
 
   const {
@@ -640,7 +597,7 @@ export function Canvas({
     deleteHistoryNode: handleDeleteHistoryNode,
   } = useCanvasHistoryAssetController({
     getViewportCenter: getQuickAddViewportCenter,
-    spawnAsset: spawnDroppedAsset,
+    spawnAsset: spawnTransferredAsset,
     selectNode: setSelectedNode,
     deleteNode,
   });
