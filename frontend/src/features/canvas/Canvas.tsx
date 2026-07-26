@@ -93,6 +93,10 @@ import { useCanvasEdgePan } from './hooks/useCanvasEdgePan';
 import { useCanvasExternalDialogs } from './hooks/useCanvasExternalDialogs';
 import { useCanvasAsyncNodeTasks } from './hooks/useCanvasAsyncNodeTasks';
 import {
+  useCanvasAltDragCopyController,
+  type CanvasAltDragPositionCommit,
+} from './hooks/useCanvasAltDragCopyController';
+import {
   useCanvasAutoLayoutController,
   type CanvasAutoLayoutViewportOptions,
 } from './hooks/useCanvasAutoLayoutController';
@@ -170,8 +174,6 @@ interface PreviewConnectionVisual {
   height: number;
 }
 
-const ALT_DRAG_COPY_Z_INDEX = 2000;
-
 const CANVAS_SNAP_ALIGNMENT_PORT: CanvasSnapAlignmentPort = {
   isEnabled: () => useSnapAlignStore.getState().enabled,
   setGuides: (guides) => useSnapAlignStore.getState().setGuides(guides),
@@ -234,12 +236,6 @@ export function Canvas({
     skillById,
   } = useCanvasSkillRegistry(getSkillRegistry);
 
-  const altDragCopyRef = useRef<{
-    sourceNodeIds: string[];
-    startPositions: Map<string, { x: number; y: number }>;
-    copiedNodeIds: string[];
-    sourceToCopyIdMap: Map<string, string>;
-  } | null>(null);
   // 正在拖动的组内成员所属的组 id 集合（libtv 式：拖动期间不动框，松手后按成员最终
   // 落点逐组 fitGroupToChildren 重新包住）。多选拖动可能同时带上多个组的成员，所以
   // 记数组而非单个 id。null = 当前没有组内成员在拖。
@@ -468,22 +464,6 @@ export function Canvas({
     const { nodes: currentNodes, edges: currentEdges } = useCanvasStore.getState();
     return { nodes: currentNodes, edges: currentEdges };
   }, []);
-  const isCopyDragActive = useCallback(
-    () => altDragCopyRef.current !== null,
-    [],
-  );
-  const {
-    handleNodesChange,
-    handleEdgesChange,
-    handleEdgeDoubleClick,
-  } = useCanvasGraphChangeController({
-    getGraph: getCanvasGraph,
-    isCopyDragActive,
-    alignNodeChanges,
-    applyNodeChanges: applyNodesChange,
-    applyEdgeChanges: applyEdgesChange,
-    deleteEdge,
-  });
   const {
     connectGraphNodes,
     connectManualGraphNodes: handleConnect,
@@ -1040,6 +1020,60 @@ export function Canvas({
     reportMigrationError: reportCanvasClipboardMigrationError,
   });
 
+  const elevateAltDragCopyNodes = useCallback(
+    (nodeIds: string[], zIndex: number) => {
+      const nodeIdSet = new Set(nodeIds);
+      useCanvasStore.setState((state) => ({
+        nodes: state.nodes.map((node) =>
+          nodeIdSet.has(node.id)
+            ? {
+                ...node,
+                zIndex,
+                style: { ...(node.style ?? {}), zIndex },
+              }
+            : node,
+        ),
+      }));
+    },
+    [],
+  );
+  const commitAltDragNodePositions = useCallback(
+    (updates: CanvasAltDragPositionCommit[]) => {
+      applyNodesChange(updates.map((update) => ({
+        id: update.nodeId,
+        type: 'position' as const,
+        position: update.position,
+        dragging: update.dragging,
+      })));
+    },
+    [applyNodesChange],
+  );
+  const {
+    beginCopyDrag: beginAltDragCopy,
+    updateCopyDrag: updateAltDragCopy,
+    finishCopyDrag: finishAltDragCopy,
+    isCopyDragActive,
+  } = useCanvasAltDragCopyController({
+    nodes,
+    selectedNodeIds,
+    duplicateNodes,
+    elevateNodes: elevateAltDragCopyNodes,
+    commitNodePositions: commitAltDragNodePositions,
+    selectNode: setSelectedNode,
+  });
+  const {
+    handleNodesChange,
+    handleEdgesChange,
+    handleEdgeDoubleClick,
+  } = useCanvasGraphChangeController({
+    getGraph: getCanvasGraph,
+    isCopyDragActive,
+    alignNodeChanges,
+    applyNodeChanges: applyNodesChange,
+    applyEdgeChanges: applyEdgesChange,
+    deleteEdge,
+  });
+
   const createClipboardSnapshot = useCallback(
     () => createCanvasClipboardSnapshot({
       nodes,
@@ -1141,77 +1175,9 @@ export function Canvas({
         }
       }
 
-      if (!event.altKey) {
-        altDragCopyRef.current = null;
-        return;
-      }
-
-      const sourceNodeIds = selectedNodeIds.includes(node.id)
-        ? selectedNodeIds
-        : [node.id];
-      if (sourceNodeIds.length === 0) {
-        altDragCopyRef.current = null;
-        return;
-      }
-      const startPositions = new Map<string, { x: number; y: number }>();
-      for (const sourceNodeId of sourceNodeIds) {
-        const sourceNode = nodes.find((item) => item.id === sourceNodeId);
-        if (!sourceNode) {
-          continue;
-        }
-        startPositions.set(sourceNodeId, {
-          x: sourceNode.position.x,
-          y: sourceNode.position.y,
-        });
-      }
-      if (startPositions.size === 0) {
-        altDragCopyRef.current = null;
-        return;
-      }
-
-      const duplicateResult = duplicateNodes(sourceNodeIds, {
-        explicitOffset: { x: 0, y: 0 },
-        disableOffsetIteration: true,
-        suppressSelect: true,
-      });
-      if (!duplicateResult) {
-        altDragCopyRef.current = null;
-        return;
-      }
-
-      const copiedNodeIds = sourceNodeIds
-        .map((sourceId) => duplicateResult.idMap.get(sourceId))
-        .filter((id): id is string => Boolean(id));
-      if (copiedNodeIds.length === 0) {
-        altDragCopyRef.current = null;
-        return;
-      }
-
-      // Keep the duplicated nodes visually above the original dragged node.
-      useCanvasStore.setState((state) => ({
-        nodes: state.nodes.map((currentNode) => {
-          if (!copiedNodeIds.includes(currentNode.id)) {
-            return currentNode;
-          }
-          return {
-            ...currentNode,
-            zIndex: ALT_DRAG_COPY_Z_INDEX,
-            style: {
-              ...(currentNode.style ?? {}),
-              zIndex: ALT_DRAG_COPY_Z_INDEX,
-            },
-          };
-        }),
-      }));
-
-      altDragCopyRef.current = {
-        sourceNodeIds,
-        startPositions,
-        copiedNodeIds,
-        sourceToCopyIdMap: duplicateResult.idMap,
-      };
+      beginAltDragCopy(event.altKey, node.id);
     },
-    [duplicateNodes, nodes, selectedNodeIds]
+    [beginAltDragCopy]
   );
 
   const handleNodeDrag = useCallback(
@@ -1233,66 +1199,9 @@ export function Canvas({
         }
       }
 
-      const altCopyState = altDragCopyRef.current;
-      if (!altCopyState) {
-        return;
-      }
-
-      const startPosition = altCopyState.startPositions.get(node.id);
-      if (!startPosition) {
-        return;
-      }
-
-      const deltaX = node.position.x - startPosition.x;
-      const deltaY = node.position.y - startPosition.y;
-
-      const restoreSourceChanges = altCopyState.sourceNodeIds
-        .map((sourceId) => {
-          const sourceStart = altCopyState.startPositions.get(sourceId);
-          if (!sourceStart) {
-            return null;
-          }
-          return {
-            id: sourceId,
-            type: 'position' as const,
-            position: sourceStart,
-            dragging: true,
-          };
-        })
-        .filter((change): change is {
-          id: string;
-          type: 'position';
-          position: { x: number; y: number };
-          dragging: true;
-        } => Boolean(change));
-
-      const moveCopyChanges = altCopyState.sourceNodeIds
-        .map((sourceId) => {
-          const sourceStart = altCopyState.startPositions.get(sourceId);
-          const copyId = altCopyState.sourceToCopyIdMap.get(sourceId);
-          if (!sourceStart || !copyId) {
-            return null;
-          }
-          return {
-            id: copyId,
-            type: 'position' as const,
-            position: { x: sourceStart.x + deltaX, y: sourceStart.y + deltaY },
-            dragging: true,
-          };
-        })
-        .filter((change): change is {
-          id: string;
-          type: 'position';
-          position: { x: number; y: number };
-          dragging: true;
-        } => Boolean(change));
-
-      const allChanges = [...restoreSourceChanges, ...moveCopyChanges];
-      if (allChanges.length > 0) {
-        applyNodesChange(allChanges);
-      }
+      updateAltDragCopy(node.id, node.position);
     },
-    [applyNodesChange]
+    [applyNodesChange, updateAltDragCopy]
   );
 
   const handleNodeDragStop = useCallback(
@@ -1312,72 +1221,9 @@ export function Canvas({
           fitGroupToChildren(groupId);
         }
       }
-      const altCopyState = altDragCopyRef.current;
-      if (!altCopyState) {
-        return;
-      }
-      altDragCopyRef.current = null;
-
-      const startPosition = altCopyState.startPositions.get(node.id);
-      if (!startPosition) {
-        return;
-      }
-
-      const offset = {
-        x: node.position.x - startPosition.x,
-        y: node.position.y - startPosition.y,
-      };
-
-      const restoreSourceChanges = altCopyState.sourceNodeIds
-        .map((sourceId) => {
-          const sourceStart = altCopyState.startPositions.get(sourceId);
-          if (!sourceStart) {
-            return null;
-          }
-          return {
-            id: sourceId,
-            type: 'position' as const,
-            position: sourceStart,
-            dragging: false,
-          };
-        })
-        .filter((change): change is {
-          id: string;
-          type: 'position';
-          position: { x: number; y: number };
-          dragging: false;
-        } => Boolean(change));
-
-      const finalizeCopyChanges = altCopyState.sourceNodeIds
-        .map((sourceId) => {
-          const sourceStart = altCopyState.startPositions.get(sourceId);
-          const copyId = altCopyState.sourceToCopyIdMap.get(sourceId);
-          if (!sourceStart || !copyId) {
-            return null;
-          }
-          return {
-            id: copyId,
-            type: 'position' as const,
-            position: { x: sourceStart.x + offset.x, y: sourceStart.y + offset.y },
-            dragging: false,
-          };
-        })
-        .filter((change): change is {
-          id: string;
-          type: 'position';
-          position: { x: number; y: number };
-          dragging: false;
-        } => Boolean(change));
-
-      const allChanges = [...restoreSourceChanges, ...finalizeCopyChanges];
-      if (allChanges.length > 0) {
-        applyNodesChange(allChanges);
-      }
-      if (altCopyState.copiedNodeIds.length > 0) {
-        setSelectedNode(altCopyState.copiedNodeIds[0]);
-      }
+      finishAltDragCopy(node.id, node.position);
     },
-    [applyNodesChange, clearSnapAlignment, setSelectedNode]
+    [clearSnapAlignment, finishAltDragCopy]
   );
 
   // 拖「选区框」整体移动多选节点时，React Flow 走 onSelectionDrag* 而非 onNodeDrag*，

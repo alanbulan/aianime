@@ -2148,6 +2148,57 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("getNodeSize(");
   });
 
+  it("keeps Canvas Alt-drag copy lifecycle in one presentation controller", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasAltDragCopyController.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/features/canvas/nodeFactoryComposition",
+    );
+    const declaration = [
+      "export function",
+      "useCanvasAltDragCopyController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasAltDragCopyController.ts",
+    ]);
+    expect(hookModel).toContain("ALT_DRAG_COPY_Z_INDEX = 2000");
+    expect(hookModel).toContain("const copyStateRef = useRef<");
+    expect(hookModel).toContain("createPositionCommits(");
+    expect(hookModel).toContain("disableOffsetIteration: true");
+    expect(hookModel).toContain("selectNode(state.copiedNodeIds[0])");
+    expect(canvasView).toContain("./hooks/useCanvasAltDragCopyController");
+    expect(canvasView).toContain("beginAltDragCopy(event.altKey, node.id)");
+    expect(canvasView).toContain("updateAltDragCopy(node.id, node.position)");
+    expect(canvasView).toContain("finishAltDragCopy(node.id, node.position)");
+    expect(canvasView).toContain("isCopyDragActive,");
+    expect(canvasView).not.toContain("altDragCopyRef");
+    expect(canvasView).not.toContain("ALT_DRAG_COPY_Z_INDEX");
+    expect(canvasView).not.toContain("sourceToCopyIdMap");
+    expect(canvasView).not.toContain("disableOffsetIteration: true");
+  });
+
   it("keeps Canvas Beat Context prefetch projection outside the view", () => {
     const domainPath = resolve(
       SRC_ROOT,
