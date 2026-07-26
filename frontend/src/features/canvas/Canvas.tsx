@@ -38,10 +38,6 @@ import {
 import { findLinkedCapturePartnerIds } from '@/features/canvas/domain/canvasCapturePartners';
 import { resolveCanvasSelectionDeletion } from '@/features/canvas/domain/canvasSelectionDeletion';
 import {
-  canConnectCanvasNodesManually,
-  resolveAllowedNodeTypes,
-} from '@/features/canvas/domain/canvasConnection';
-import {
   planCanvasBatchConnectTarget,
   resolveCanvasBatchConnectContext,
 } from '@/features/canvas/domain/canvasBatchConnection';
@@ -115,12 +111,8 @@ import { PAN_ACTIVATION_KEY_CODE } from './ui/canvasInteractionTargets';
 import { collectDroppedMediaFiles } from './ui/canvasMediaTransfer';
 import {
   createPreviewPath,
-  cssEscape,
   resolveCanvasConnectionEnd,
   resolveCanvasConnectionStart,
-  resolveConnectEndHandleId,
-  resolveManualDropTargetElement,
-  type CanvasHandleType,
   type CanvasPendingConnectionStart,
 } from './ui/canvasConnectionInteraction';
 import { useCanvasDropIndicator } from './hooks/useCanvasDropIndicator';
@@ -129,6 +121,11 @@ import { useCanvasExternalDialogs } from './hooks/useCanvasExternalDialogs';
 import { useCanvasAsyncNodeTasks } from './hooks/useCanvasAsyncNodeTasks';
 import { useCanvasBeatContextPrefetch } from './hooks/useCanvasBeatContextPrefetch';
 import { useCanvasConnectionController } from './hooks/useCanvasConnectionController';
+import {
+  useCanvasPlusConnectionController,
+  type CanvasConnectionPreviewRequest,
+  type CanvasPlusConnectionMenuRequest,
+} from './hooks/useCanvasPlusConnectionController';
 import { useCanvasKeyboardShortcuts } from './hooks/useCanvasKeyboardShortcuts';
 import { useCanvasLifecycle } from './hooks/useCanvasLifecycle';
 import { useCanvasMarqueeSelection } from './hooks/useCanvasMarqueeSelection';
@@ -213,12 +210,6 @@ const CANVAS_SNAP_ALIGNMENT_PORT: CanvasSnapAlignmentPort = {
   clearGuides: () => useSnapAlignStore.getState().clearGuides(),
 };
 
-interface PlusConnectDragParams {
-  nodeId: string;
-  handleType: CanvasHandleType;
-  clientPosition: { x: number; y: number };
-}
-
 interface PendingNodePlacement {
   type: CanvasNodeType;
   initialData?: Partial<Record<string, unknown>>;
@@ -241,12 +232,6 @@ export function Canvas({
   const edgeTypes = useMemo(() => canvasEdgeTypes, []);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const suppressNextPaneClickRef = useRef(false);
-  const plusConnectStartRef = useRef<CanvasPendingConnectionStart | null>(null);
-  // 手动「+」拖线时，当前被高亮为合法落点的节点 DOM。手动连线走自绘预览线
-  // （非 React Flow 原生连线），RF 不会给目标 handle 挂 connectingto/valid，所以
-  // 落点动画靠这里在 dragMove 时直接给命中节点的 wrapper 加类、离开时摘掉，避免把
-  // 落点状态塞进 node.data 触发全量节点重渲染。
-  const dropTargetElRef = useRef<HTMLElement | null>(null);
   // Source node ids waiting to be fanned into the next spawned node (batch "+").
   const batchConnectDragRef = useRef<{
     sourceIds: string[];
@@ -281,7 +266,6 @@ export function Canvas({
     useState<PendingNodePlacement | null>(null);
   const [nodePlacementClientPosition, setNodePlacementClientPosition] =
     useState<{ x: number; y: number } | null>(null);
-  const [isPlusConnectDragging, setIsPlusConnectDragging] = useState(false);
   const [menuAllowedTypes, setMenuAllowedTypes] = useState<CanvasNodeType[] | undefined>(
     undefined
   );
@@ -605,6 +589,76 @@ export function Canvas({
     connectRegular: connectNodes,
     replaceEdges,
     skillById,
+  });
+
+  const updateConnectionPreview = useCallback(
+    (preview: CanvasConnectionPreviewRequest | null) => {
+      setPreviewConnectionVisual(
+        preview
+          ? {
+              d: createPreviewPath(preview.line),
+              stroke: PREVIEW_CONNECTION_STROKE,
+              strokeWidth: 1,
+              strokeLinecap: 'round',
+              left: 0,
+              top: 0,
+              width: preview.containerSize.width,
+              height: preview.containerSize.height,
+            }
+          : null,
+      );
+    },
+    [],
+  );
+  const preparePlusConnectionDrag = useCallback(
+    (pending: CanvasPendingConnectionStart) => {
+      setPendingConnectStart(pending);
+      setShowNodeMenu(false);
+      setMenuAllowedTypes(undefined);
+      setPreviewConnectionVisual(null);
+    },
+    [],
+  );
+  const clearPlusConnection = useCallback(() => {
+    setPendingConnectStart(null);
+    setPreviewConnectionVisual(null);
+  }, []);
+  const openPlusConnectionMenu = useCallback(
+    (request: CanvasPlusConnectionMenuRequest) => {
+      setPendingConnectStart(request.pending);
+      updateConnectionPreview(request.preview);
+      setFlowPosition(
+        reactFlowInstance.screenToFlowPosition(request.clientPosition),
+      );
+      setMenuPosition(request.menuPosition);
+      setMenuAllowedTypes(request.allowedTypes);
+      suppressNextPaneClickRef.current = true;
+      setShowNodeMenu(true);
+    },
+    [reactFlowInstance, updateConnectionPreview],
+  );
+  const clearHoveredNode = useCallback(
+    () => setHoveredNodeId(null),
+    [setHoveredNodeId],
+  );
+  const {
+    isPlusConnectDragging,
+    beginPlusConnectDrag,
+    endPlusConnectDrag,
+    handlePlusOpenMenu,
+    handlePlusConnectDragStart,
+    handlePlusConnectDragMove,
+    handlePlusConnectDragEnd,
+  } = useCanvasPlusConnectionController({
+    wrapperRef,
+    nodes,
+    clearHoveredNodeTimer,
+    clearHoveredNode,
+    prepareConnectionDrag: preparePlusConnectionDrag,
+    clearConnection: clearPlusConnection,
+    updateConnectionPreview,
+    openConnectionMenu: openPlusConnectionMenu,
+    connectNodes: connectGraphNodes,
   });
 
   const openNodeMenuAtClientPosition = useCallback((clientPosition: { x: number; y: number }) => {
@@ -1822,263 +1876,6 @@ export function Canvas({
     ]
   );
 
-  const handlePlusOpenMenu = useCallback(
-    (params: PlusConnectDragParams) => {
-      const containerRect = wrapperRef.current?.getBoundingClientRect();
-      if (!containerRect) return;
-
-      const nodeElement = wrapperRef.current?.querySelector<HTMLElement>(
-        `.react-flow__node[data-id="${cssEscape(params.nodeId)}"]`,
-      );
-      const handleElement = nodeElement?.querySelector<HTMLElement>(
-        `.react-flow__handle-${params.handleType}`,
-      );
-      const handleRect = handleElement?.getBoundingClientRect();
-      const nodeRect = nodeElement?.getBoundingClientRect();
-      const start = handleRect
-        ? {
-            x: handleRect.left - containerRect.left + handleRect.width / 2,
-            y: handleRect.top - containerRect.top + handleRect.height / 2,
-          }
-        : nodeRect
-          ? {
-              x: (params.handleType === 'source' ? nodeRect.right : nodeRect.left) - containerRect.left,
-              y: nodeRect.top - containerRect.top + nodeRect.height / 2,
-            }
-          : {
-              x: params.clientPosition.x - containerRect.left,
-              y: params.clientPosition.y - containerRect.top,
-            };
-
-      const originNode = nodes.find((node) => node.id === params.nodeId);
-      const allowedTypes = resolveAllowedNodeTypes(params.handleType, originNode?.type);
-      if (allowedTypes.length === 0) return;
-
-      setPendingConnectStart({
-        nodeId: params.nodeId,
-        handleType: params.handleType,
-        start,
-      });
-      setPreviewConnectionVisual(null);
-      setFlowPosition(reactFlowInstance.screenToFlowPosition(params.clientPosition));
-      setMenuPosition({
-        x: params.clientPosition.x - containerRect.left,
-        y: params.clientPosition.y - containerRect.top,
-      });
-      setMenuAllowedTypes(allowedTypes);
-      suppressNextPaneClickRef.current = true;
-      setShowNodeMenu(true);
-    },
-    [nodes, reactFlowInstance],
-  );
-
-  // 摘掉当前落点高亮（拖线结束/离开合法节点时调用）。
-  const clearDropTargetHighlight = useCallback(() => {
-    if (dropTargetElRef.current) {
-      dropTargetElRef.current.classList.remove('canvas-node-drop-target');
-      dropTargetElRef.current = null;
-    }
-  }, []);
-
-  const resolveManualDropTargetEl = useCallback(
-    (clientPosition: { x: number; y: number }, pending: CanvasPendingConnectionStart) =>
-      resolveManualDropTargetElement({
-        clientPosition,
-        pending,
-        nodes,
-        wrapperElement: wrapperRef.current,
-      }),
-    [nodes],
-  );
-
-  const handlePlusConnectDragStart = useCallback((params: PlusConnectDragParams) => {
-    const containerRect = wrapperRef.current?.getBoundingClientRect();
-    if (!containerRect) return;
-    clearHoveredNodeTimer();
-    clearDropTargetHighlight();
-    setHoveredNodeId(null);
-    setIsPlusConnectDragging(true);
-
-    const nodeElement = wrapperRef.current?.querySelector<HTMLElement>(
-      `.react-flow__node[data-id="${cssEscape(params.nodeId)}"]`,
-    );
-    const handleElement = nodeElement?.querySelector<HTMLElement>(
-      `.react-flow__handle-${params.handleType}`,
-    );
-    const handleRect = handleElement?.getBoundingClientRect();
-    const nodeRect = nodeElement?.getBoundingClientRect();
-    const start = handleRect
-      ? {
-          x: handleRect.left - containerRect.left + handleRect.width / 2,
-          y: handleRect.top - containerRect.top + handleRect.height / 2,
-        }
-      : nodeRect
-        ? {
-            x: (params.handleType === 'source' ? nodeRect.right : nodeRect.left) - containerRect.left,
-            y: nodeRect.top - containerRect.top + nodeRect.height / 2,
-          }
-        : {
-            x: params.clientPosition.x - containerRect.left,
-            y: params.clientPosition.y - containerRect.top,
-          };
-
-    const pending: CanvasPendingConnectionStart = {
-      nodeId: params.nodeId,
-      handleType: params.handleType,
-      start,
-    };
-
-    plusConnectStartRef.current = pending;
-    setPendingConnectStart(pending);
-    setShowNodeMenu(false);
-    setMenuAllowedTypes(undefined);
-    setPreviewConnectionVisual(null);
-  }, [clearHoveredNodeTimer, clearDropTargetHighlight]);
-
-  const handlePlusConnectDragMove = useCallback((params: PlusConnectDragParams) => {
-    const pending = plusConnectStartRef.current;
-    const containerRect = wrapperRef.current?.getBoundingClientRect();
-    if (!pending || !containerRect || !pending.start) return;
-
-    setPreviewConnectionVisual({
-      d: createPreviewPath({
-        start: pending.start,
-        end: {
-          x: params.clientPosition.x - containerRect.left,
-          y: params.clientPosition.y - containerRect.top,
-        },
-        handleType: pending.handleType,
-      }),
-      stroke: PREVIEW_CONNECTION_STROKE,
-      strokeWidth: 1,
-      strokeLinecap: 'round',
-      left: 0,
-      top: 0,
-      width: containerRect.width,
-      height: containerRect.height,
-    });
-
-    // 落点反馈：光标进入某个合法目标节点时高亮它（呼吸+发光），离开则摘掉。
-    const dropEl = resolveManualDropTargetEl(params.clientPosition, pending);
-    if (dropEl !== dropTargetElRef.current) {
-      clearDropTargetHighlight();
-      if (dropEl) {
-        dropEl.classList.add('canvas-node-drop-target');
-        dropTargetElRef.current = dropEl;
-      }
-    }
-  }, [clearDropTargetHighlight, resolveManualDropTargetEl]);
-
-  const handlePlusConnectDragEnd = useCallback(
-    (params: PlusConnectDragParams) => {
-      const pending = plusConnectStartRef.current;
-      plusConnectStartRef.current = null;
-      setIsPlusConnectDragging(false);
-      clearDropTargetHighlight();
-
-      const containerRect = wrapperRef.current?.getBoundingClientRect();
-      if (!pending || !containerRect) {
-        setPendingConnectStart(null);
-        setPreviewConnectionVisual(null);
-        return;
-      }
-
-      // 与拖动高亮同一套邻域判定：松手时落在节点周围一圈邻域内即可建边，不必压进节点内部。
-      const dropNodeElement = resolveManualDropTargetEl(params.clientPosition, pending);
-      const dropNodeId = dropNodeElement?.dataset?.id ?? null;
-
-      if (dropNodeId && dropNodeId !== pending.nodeId) {
-        const sourceNode =
-          pending.handleType === 'source'
-            ? nodes.find((node) => node.id === pending.nodeId)
-            : nodes.find((node) => node.id === dropNodeId);
-        const targetNode =
-          pending.handleType === 'source'
-            ? nodes.find((node) => node.id === dropNodeId)
-            : nodes.find((node) => node.id === pending.nodeId);
-
-        if (
-          sourceNode &&
-          targetNode &&
-          canConnectCanvasNodesManually(sourceNode, targetNode)
-        ) {
-          const sourceHandle =
-            pending.handleType === 'source'
-              ? pending.handleId ?? 'source'
-              : resolveConnectEndHandleId({
-                  eventTarget: dropNodeElement,
-                  nodeElement: dropNodeElement,
-                  nodeId: sourceNode.id,
-                  handleType: 'source',
-                  clientPosition: params.clientPosition,
-                }) ?? 'source';
-          const targetHandle =
-            pending.handleType === 'source'
-              ? resolveConnectEndHandleId({
-                  eventTarget: dropNodeElement,
-                  nodeElement: dropNodeElement,
-                  nodeId: targetNode.id,
-                  handleType: 'target',
-                  clientPosition: params.clientPosition,
-                }) ?? 'target'
-              : pending.handleId ?? 'target';
-          connectGraphNodes({
-            source: sourceNode.id,
-            target: targetNode.id,
-            sourceHandle,
-            targetHandle,
-          });
-          setPendingConnectStart(null);
-          setPreviewConnectionVisual(null);
-          return;
-        }
-      }
-
-      const originNode = nodes.find((node) => node.id === pending.nodeId);
-      const allowedTypes = resolveAllowedNodeTypes(pending.handleType, originNode?.type);
-      if (allowedTypes.length === 0) {
-        setPendingConnectStart(null);
-        setPreviewConnectionVisual(null);
-        return;
-      }
-
-      const end = {
-        x: params.clientPosition.x - containerRect.left,
-        y: params.clientPosition.y - containerRect.top,
-      };
-      const start = pending.start ?? end;
-      setPendingConnectStart(pending);
-      setPreviewConnectionVisual({
-        d: createPreviewPath({
-          start,
-          end,
-          handleType: pending.handleType,
-        }),
-        stroke: PREVIEW_CONNECTION_STROKE,
-        strokeWidth: 1,
-        strokeLinecap: 'round',
-        left: 0,
-        top: 0,
-        width: containerRect.width,
-        height: containerRect.height,
-      });
-
-      const flowPos = reactFlowInstance.screenToFlowPosition(params.clientPosition);
-      setFlowPosition(flowPos);
-      setMenuPosition(end);
-      setMenuAllowedTypes(allowedTypes);
-      suppressNextPaneClickRef.current = true;
-      setShowNodeMenu(true);
-    },
-    [
-      connectGraphNodes,
-      nodes,
-      reactFlowInstance,
-      clearDropTargetHighlight,
-      resolveManualDropTargetEl,
-    ],
-  );
-
   // ---- Batch connect from the multi-selection "+" -------------------------
   // Selected source-capable nodes + the downstream types valid for ALL of them
   // + the right-center of their bounding box (where a spawned node is anchored).
@@ -2147,13 +1944,13 @@ export function Canvas({
           y: clientPosition.y - containerRect.top,
         },
       };
-      setIsPlusConnectDragging(true);
+      beginPlusConnectDrag();
       setShowNodeMenu(false);
       setMenuAllowedTypes(undefined);
       setPendingConnectStart(null);
       setPreviewConnectionVisual(null);
     },
-    [batchConnectContext, setPreviewConnectionVisual],
+    [batchConnectContext, beginPlusConnectDrag, setPreviewConnectionVisual],
   );
 
   const handleBatchConnectDragMove = useCallback(
@@ -2188,7 +1985,7 @@ export function Canvas({
     ({ clientPosition }: BatchConnectParams) => {
       const drag = batchConnectDragRef.current;
       batchConnectDragRef.current = null;
-      setIsPlusConnectDragging(false);
+      endPlusConnectDrag();
 
       const containerRect = wrapperRef.current?.getBoundingClientRect();
       if (!drag || !containerRect) {
@@ -2232,6 +2029,7 @@ export function Canvas({
     [
       batchConnectContext,
       connectGraphNodes,
+      endPlusConnectDrag,
       nodes,
       openBatchSpawnMenu,
       reactFlowInstance,

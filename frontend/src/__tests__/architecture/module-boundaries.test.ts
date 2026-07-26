@@ -1195,6 +1195,8 @@ describe("frontend architecture boundaries", () => {
       "getClientPosition(",
       "resolveCanvasConnectionStart(",
       "resolveCanvasConnectionEnd(",
+      "resolveCanvasPlusConnectionStart(",
+      "resolveCanvasPlusConnectionEnd(",
       "createPreviewPath(",
       "cssEscape(",
       "resolveConnectEndHandleId(",
@@ -3601,6 +3603,13 @@ describe("frontend architecture boundaries", () => {
     );
     const connectionModel = readFileSync(connectionPath, "utf8");
     const edgeCreationModel = readFileSync(edgeCreationPath, "utf8");
+    const interactionModel = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/ui/canvasConnectionInteraction.ts",
+      ),
+      "utf8",
+    );
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
@@ -3670,7 +3679,8 @@ describe("frontend architecture boundaries", () => {
     expect(edgeCreationModel).toContain(
       "from '../domain/canvasConnection'",
     );
-    expect(canvasView).toContain(
+    expect(interactionModel).toContain("../domain/canvasConnection");
+    expect(canvasView).not.toContain(
       "@/features/canvas/domain/canvasConnection",
     );
     expect(canvasView).not.toContain("function resolveAllowedNodeTypes(");
@@ -3868,6 +3878,68 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain(
       "rejected role binding before skill registry loaded",
     );
+  });
+
+  it("keeps Canvas plus-connection gesture state in one presentation controller", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasPlusConnectionController.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/features/canvas/nodeFactoryComposition",
+    );
+    const declaration = [
+      "export function",
+      "useCanvasPlusConnectionController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasPlusConnectionController.ts",
+    ]);
+    expect(hookModel).toContain("resolveCanvasPlusConnectionStart({");
+    expect(hookModel).toContain("resolveCanvasPlusConnectionEnd({");
+    expect(hookModel).toContain("resolveManualDropTargetElement({");
+    expect(hookModel).toContain("canvas-node-drop-target");
+    expect(canvasView).toContain(
+      "./hooks/useCanvasPlusConnectionController",
+    );
+    expect(canvasView).not.toContain("const plusConnectStartRef");
+    expect(canvasView).not.toContain("const dropTargetElRef");
+    expect(canvasView).not.toContain("setIsPlusConnectDragging");
+    expect(canvasView).not.toContain("const handlePlusOpenMenu = useCallback");
+    expect(canvasView).not.toContain(
+      "const handlePlusConnectDragStart = useCallback",
+    );
+    expect(canvasView).not.toContain(
+      "const handlePlusConnectDragMove = useCallback",
+    );
+    expect(canvasView).not.toContain(
+      "const handlePlusConnectDragEnd = useCallback",
+    );
+    expect(canvasView).not.toContain("canvas-node-drop-target");
+    expect(canvasView).not.toContain("resolveManualDropTargetElement(");
+    expect(canvasView).not.toContain("resolveConnectEndHandleId(");
+    expect(canvasView).not.toContain("resolveAllowedNodeTypes(");
+    expect(canvasView).not.toContain("canConnectCanvasNodesManually(");
   });
 
   it("keeps Canvas edge deletion in the domain model", () => {

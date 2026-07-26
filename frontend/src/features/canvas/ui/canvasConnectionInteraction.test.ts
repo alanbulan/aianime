@@ -8,6 +8,8 @@ import {
   getClientPosition,
   resolveCanvasConnectionEnd,
   resolveCanvasConnectionStart,
+  resolveCanvasPlusConnectionEnd,
+  resolveCanvasPlusConnectionStart,
   resolveConnectEndHandleId,
   resolveManualDropTargetElement,
 } from './canvasConnectionInteraction';
@@ -23,7 +25,7 @@ function handle(
   rect: { left: number; top: number; width: number; height: number },
 ): HTMLElement {
   const element = document.createElement('div');
-  element.className = `react-flow__handle ${type}`;
+  element.className = `react-flow__handle react-flow__handle-${type} ${type}`;
   element.dataset.nodeid = nodeId;
   element.dataset.handleid = handleId;
   element.getBoundingClientRect = () => ({
@@ -153,6 +155,58 @@ describe('Canvas connection interaction', () => {
       handleId: null,
       start: { x: 50, y: 60 },
     });
+  });
+
+  it('resolves a plus connection anchor and its allowed spawn types', () => {
+    const origin = canvasNode('origin', CANVAS_NODE_TYPES.upload);
+    const wrapper = flowNode('wrapper', {
+      left: 10,
+      top: 20,
+      width: 500,
+      height: 400,
+    });
+    const originElement = flowNode(origin.id, {
+      left: 100,
+      top: 80,
+      width: 200,
+      height: 120,
+    });
+    const sourceHandle = handle(origin.id, 'source', 'source', {
+      left: 296,
+      top: 126,
+      width: 8,
+      height: 8,
+    });
+    originElement.append(sourceHandle);
+    wrapper.append(originElement);
+
+    const resolution = resolveCanvasPlusConnectionStart({
+      params: {
+        nodeId: origin.id,
+        handleType: 'source',
+        clientPosition: { x: 320, y: 140 },
+      },
+      nodes: [origin],
+      wrapperElement: wrapper,
+    });
+
+    expect(resolution).toMatchObject({
+      pending: {
+        nodeId: origin.id,
+        handleType: 'source',
+        start: { x: 290, y: 110 },
+      },
+      menuPosition: { x: 310, y: 120 },
+    });
+    expect(resolution?.allowedTypes).toHaveLength(6);
+    expect(resolution?.allowedTypes).toEqual(expect.arrayContaining([
+      CANVAS_NODE_TYPES.textAnnotation,
+      CANVAS_NODE_TYPES.imageGen,
+      CANVAS_NODE_TYPES.video,
+      CANVAS_NODE_TYPES.script,
+      CANVAS_NODE_TYPES.pano360Viewer,
+      CANVAS_NODE_TYPES.threeDWorld,
+    ]));
   });
 
   it('resolves a manual connection end with the exact handle under the pointer', () => {
@@ -446,6 +500,51 @@ describe('Canvas connection interaction', () => {
         wrapperElement: wrapper,
         maxDistance: 5,
       })).toBeNull();
+    } finally {
+      if (original) {
+        Object.defineProperty(document, 'elementFromPoint', original);
+      } else {
+        Reflect.deleteProperty(document, 'elementFromPoint');
+      }
+    }
+  });
+
+  it('resolves a plus drag end through the same manual drop neighborhood', () => {
+    const origin = canvasNode('origin', CANVAS_NODE_TYPES.upload);
+    const target = canvasNode('target', CANVAS_NODE_TYPES.imageGen);
+    const wrapper = flowNode('wrapper', {
+      left: 0,
+      top: 0,
+      width: 500,
+      height: 400,
+    });
+    wrapper.append(
+      flowNode(origin.id, { left: 0, top: 0, width: 10, height: 10 }),
+      flowNode(target.id, { left: 30, top: 0, width: 100, height: 100 }),
+    );
+    const original = Object.getOwnPropertyDescriptor(document, 'elementFromPoint');
+    Object.defineProperty(document, 'elementFromPoint', {
+      configurable: true,
+      value: () => null,
+    });
+
+    try {
+      expect(resolveCanvasPlusConnectionEnd({
+        clientPosition: { x: 10, y: 5 },
+        pending: {
+          nodeId: origin.id,
+          handleType: 'source',
+          start: { x: 10, y: 5 },
+        },
+        nodes: [origin, target],
+        wrapperElement: wrapper,
+      })).toEqual({
+        kind: 'connect',
+        source: origin.id,
+        target: target.id,
+        sourceHandle: 'source',
+        targetHandle: 'target',
+      });
     } finally {
       if (original) {
         Object.defineProperty(document, 'elementFromPoint', original);
