@@ -1411,6 +1411,55 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("const nodePlacementPreview = useMemo");
   });
 
+  it("keeps Canvas node-click orchestration in one presentation controller", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasNodeClickController.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/features/canvas/nodeFactoryComposition",
+    );
+    const declaration = [
+      "export function",
+      "useCanvasNodeClickController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasNodeClickController.ts",
+    ]);
+    expect(hookModel).toContain("isStoryboardGroupNode(node)");
+    expect(hookModel).toContain("DEFAULT_NODE_WIDTH");
+    expect(hookModel).toContain("DEFAULT_STORYBOARD_GROUP_HEIGHT = 240");
+    expect(hookModel).toContain("zoom: 1");
+    expect(hookModel).toContain("duration: 320");
+    expect(canvasView).toContain("./hooks/useCanvasNodeClickController");
+    expect(canvasView).not.toContain("const handleNodeClick = useCallback");
+    expect(canvasView).not.toContain("isStoryboardGroupNode(");
+    expect(canvasView).not.toContain("DEFAULT_NODE_WIDTH");
+    expect(canvasView).not.toContain("node.position.x + width / 2");
+  });
+
   it("keeps Canvas drop indicator state in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,

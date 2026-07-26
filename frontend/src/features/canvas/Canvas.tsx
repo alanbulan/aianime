@@ -47,8 +47,6 @@ import {
   type CanvasNode,
   type CanvasNodeData,
   type CanvasNodeType,
-  DEFAULT_NODE_WIDTH,
-  isStoryboardGroupNode,
 } from '@/features/canvas/domain/canvasNodes';
 import {
   spawnAssetNode,
@@ -121,6 +119,7 @@ import { useCanvasMediaPaste } from './hooks/useCanvasMediaPaste';
 import { useCanvasMediaDropController } from './hooks/useCanvasMediaDropController';
 import { useCanvasMinimapVisibility } from './hooks/useCanvasMinimapVisibility';
 import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
+import { useCanvasNodeClickController } from './hooks/useCanvasNodeClickController';
 import { useCanvasNodeClipboard } from './hooks/useCanvasNodeClipboard';
 import { useCanvasNodeMenuShortcut } from './hooks/useCanvasNodeMenuShortcut';
 import {
@@ -722,33 +721,11 @@ export function Canvas({
     setPreviewConnectionVisual(null);
   }, []);
 
-  // Clicking a storyboard board focuses it; during node placement, any node click
-  // is treated as confirming the preview location instead of selecting that node.
-  const handleNodeClick = useCallback(
-    (event: ReactMouseEvent, node: CanvasNode) => {
-      if (placementActive) {
-        event.preventDefault();
-        event.stopPropagation();
-        commitNodePlacementAtClientPosition({ x: event.clientX, y: event.clientY });
-        return;
-      }
-      if (!isStoryboardGroupNode(node)) {
-        return;
-      }
-      const width =
-        node.measured?.width ??
-        (typeof node.width === 'number' ? node.width : DEFAULT_NODE_WIDTH);
-      const height =
-        node.measured?.height ??
-        (typeof node.height === 'number' ? node.height : 240);
-      reactFlowInstance.setCenter(
-        node.position.x + width / 2,
-        node.position.y + height / 2,
-        { zoom: 1, duration: 320 },
-      );
-    },
-    [commitNodePlacementAtClientPosition, placementActive, reactFlowInstance],
-  );
+  const { handleNodeClick } = useCanvasNodeClickController({
+    placementActive,
+    commitPlacement: commitNodePlacementAtClientPosition,
+    centerViewport: nodeFocusViewportPort.centerAt,
+  });
 
   const {
     selectedNodeIds,
