@@ -56,23 +56,16 @@ import { PAN_ACTIVATION_KEY_CODE } from './ui/canvasInteractionTargets';
 import { useCanvasExternalDialogs } from './hooks/useCanvasExternalDialogs';
 import { useCanvasGenerationRecoveryController } from './hooks/useCanvasGenerationRecoveryController';
 import {
-  useCanvasAltDragCopyController,
-  type CanvasAltDragPositionCommit,
-} from './hooks/useCanvasAltDragCopyController';
-import {
   useCanvasAutoLayoutController,
   type CanvasAutoLayoutViewportOptions,
 } from './hooks/useCanvasAutoLayoutController';
-import { useCanvasGraphChangeController } from './hooks/useCanvasGraphChangeController';
-import { useCanvasDragLifecycleController } from './hooks/useCanvasDragLifecycleController';
-import { useCanvasGroupFitDragController } from './hooks/useCanvasGroupFitDragController';
+import { useCanvasGraphInteractionController } from './hooks/useCanvasGraphInteractionController';
 import { useCanvasHistoryAssetController } from './hooks/useCanvasHistoryAssetController';
 import { useCanvasConnectionController } from './hooks/useCanvasConnectionController';
 import { useCanvasClipboardController } from './hooks/useCanvasClipboardController';
 import { useCanvasConnectionGestureController } from './hooks/useCanvasConnectionGestureController';
 import { useCanvasQuickAddController } from './hooks/useCanvasQuickAddController';
 import { useCanvasLifecycle } from './hooks/useCanvasLifecycle';
-import { useCanvasLinkedCaptureDragController } from './hooks/useCanvasLinkedCaptureDragController';
 import { useCanvasMarqueeSelection } from './hooks/useCanvasMarqueeSelection';
 import { useCanvasMediaTransferController } from './hooks/useCanvasMediaTransferController';
 import { useCanvasMinimapVisibility } from './hooks/useCanvasMinimapVisibility';
@@ -524,57 +517,28 @@ export function Canvas({
     queueSnapshotPaste,
   });
 
-  const commitDragNodePositions = useCallback(
-    (updates: CanvasAltDragPositionCommit[]) => {
-      applyNodesChange(updates.map((update) => ({
-        id: update.nodeId,
-        type: 'position' as const,
-        position: update.position,
-        dragging: update.dragging,
-      })));
-    },
-    [applyNodesChange],
-  );
-  const {
-    beginCopyDrag: beginAltDragCopy,
-    updateCopyDrag: updateAltDragCopy,
-    finishCopyDrag: finishAltDragCopy,
-    isCopyDragActive,
-  } = useCanvasAltDragCopyController({
-    nodes,
-    selectedNodeIds,
-    duplicateNodes,
-    elevateNodes,
-    commitNodePositions: commitDragNodePositions,
-    selectNode: setSelectedNode,
-  });
-  const {
-    beginNodeDrag: beginGroupFitNodeDrag,
-    beginSelectionDrag: beginGroupFitSelectionDrag,
-    finishDrag: finishGroupFitDrag,
-  } = useCanvasGroupFitDragController({
-    getGraph: getCanvasGraph,
-    fitGroupToChildren,
-  });
-  const {
-    beginLinkedDrag: beginLinkedCaptureDrag,
-    updateLinkedDrag: updateLinkedCaptureDrag,
-    finishLinkedDrag: finishLinkedCaptureDrag,
-  } = useCanvasLinkedCaptureDragController({
-    getGraph: getCanvasGraph,
-    commitNodePositions: commitDragNodePositions,
-  });
   const {
     handleNodesChange,
     handleEdgesChange,
     handleEdgeDoubleClick,
-  } = useCanvasGraphChangeController({
+    handleNodeDragStart,
+    handleNodeDrag,
+    handleNodeDragStop,
+    handleSelectionDragStart,
+    handleSelectionDragStop,
+  } = useCanvasGraphInteractionController({
+    nodes,
+    selectedNodeIds,
+    duplicateNodes,
+    elevateNodes,
+    selectNode: setSelectedNode,
     getGraph: getCanvasGraph,
-    isCopyDragActive,
+    fitGroupToChildren,
     alignNodeChanges,
     applyNodeChanges: applyNodesChange,
     applyEdgeChanges: applyEdgesChange,
     deleteEdge,
+    clearSnapAlignment,
   });
 
   const {
@@ -600,25 +564,6 @@ export function Canvas({
     groupSelection: groupSelectedNodes,
     deleteSelection: deleteSelectedElements,
     pasteAt,
-  });
-
-  const {
-    handleNodeDragStart,
-    handleNodeDrag,
-    handleNodeDragStop,
-    handleSelectionDragStart,
-    handleSelectionDragStop,
-  } = useCanvasDragLifecycleController({
-    beginGroupFitNodeDrag,
-    beginGroupFitSelectionDrag,
-    finishGroupFitDrag,
-    beginLinkedCaptureDrag,
-    updateLinkedCaptureDrag,
-    finishLinkedCaptureDrag,
-    beginAltDragCopy,
-    updateAltDragCopy,
-    finishAltDragCopy,
-    clearSnapAlignment,
   });
 
   return (
