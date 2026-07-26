@@ -10159,6 +10159,46 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("新视频生成中…");
   });
 
+  it("keeps video metadata persistence projection in one application module", () => {
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/videoMetadataPatch.ts",
+    );
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const videoNode = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      "utf8",
+    );
+    const declaration = [
+      "export function",
+      "buildVideoMetadataPatch(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(importSpecifiers(applicationPath)).toEqual([
+      "../domain/canvasNodes",
+    ]);
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("window");
+    expect(applicationSource).not.toContain("document");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(implementationOwners).toEqual([
+      "features/canvas/application/videoMetadataPatch.ts",
+    ]);
+    expect(applicationSource).not.toContain("aspectRatio");
+    expect(videoNode).toContain(
+      "@/features/canvas/application/videoMetadataPatch",
+    );
+    expect(videoNode).toContain("buildVideoMetadataPatch(");
+    expect(videoNode).not.toContain(
+      "if (data.widthPx !== el.videoWidth)",
+    );
+  });
+
   it("keeps VideoNode camera movement trigger in one presentation view", () => {
     const viewPath = resolve(
       SRC_ROOT,

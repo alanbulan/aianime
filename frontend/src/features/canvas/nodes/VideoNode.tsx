@@ -70,6 +70,7 @@ import {
 import { resolveAudioReferenceDisplayName } from "@/features/canvas/application/audioReferenceDisplayName";
 import { resolveGenerationOutputUrl } from "@/features/canvas/application/generationOutputUrl";
 import { resolveDroppedVideoFile } from "@/features/canvas/application/resolveDroppedVideoFile";
+import { buildVideoMetadataPatch } from "@/features/canvas/application/videoMetadataPatch";
 import { probeAudioDurationMs } from "@/features/canvas/infrastructure/browserAudioMetadata";
 import { captureVideoFrameBlob } from "@/features/canvas/infrastructure/browserVideoFrameCapture";
 import { ensureWebSafeVideo } from "@/features/canvas/infrastructure/videoTranscode";
@@ -2272,22 +2273,20 @@ export const VideoNode = memo(
                 const el = event.currentTarget;
                 setHasMetadata(true);
                 setVideoLoadError(false);
-                if (el.videoWidth && el.videoHeight) {
-                  // 只把视频真实像素记到 widthPx/heightPx；不要写回 aspectRatio。
-                  // aspectRatio 仅保存用户选的比例预设（16:9 / auto…），否则
-                  // chip 会显示成像素串(1248:704)，且会作为非法 aspect_ratio 带进
-                  // 下一次生成请求。
-                  const updates: Partial<VideoNodeData> = {};
-                  if (data.widthPx !== el.videoWidth)
-                    updates.widthPx = el.videoWidth;
-                  if (data.heightPx !== el.videoHeight)
-                    updates.heightPx = el.videoHeight;
-                  if (data.durationMs !== Math.round(el.duration * 1000)) {
-                    updates.durationMs = Math.round(el.duration * 1000);
-                  }
-                  if (Object.keys(updates).length > 0) {
-                    updateNodeData(id, updates);
-                  }
+                const updates = buildVideoMetadataPatch(
+                  {
+                    widthPx: data.widthPx,
+                    heightPx: data.heightPx,
+                    durationMs: data.durationMs,
+                  },
+                  {
+                    widthPx: el.videoWidth,
+                    heightPx: el.videoHeight,
+                    durationMs: Math.round(el.duration * 1000),
+                  },
+                );
+                if (Object.keys(updates).length > 0) {
+                  updateNodeData(id, updates);
                 }
               }}
               onError={() => {
