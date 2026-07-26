@@ -1,6 +1,4 @@
 // Copyright (c) 2026 AI anime
-import { resolveMediaUrl } from '@/lib/media-url';
-
 import { CANVAS_NODE_TYPES, type CanvasNode } from './canvasNodes';
 
 export type CanvasAssetKind = 'image' | 'video' | 'audio' | 'model';
@@ -39,6 +37,10 @@ export interface CanvasAssetBuckets {
    *  pano image; `previewUrl` is the cover used as a card thumbnail. */
   model: CanvasAsset[];
 }
+
+export type CanvasMediaUrlResolver = (
+  rawUrl: string | null | undefined,
+) => string | null;
 
 function asRecord(data: unknown): Record<string, unknown> {
   return data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
@@ -90,7 +92,10 @@ function labelOf(data: Record<string, unknown>): string | null {
  * round-trip): we walk each node, pick the media url that matches its kind, and
  * dedupe by resolved url so the same asset referenced twice shows once.
  */
-export function extractCanvasAssets(nodes: CanvasNode[]): CanvasAssetBuckets {
+export function extractCanvasAssets(
+  nodes: CanvasNode[],
+  resolveMediaUrl: CanvasMediaUrlResolver,
+): CanvasAssetBuckets {
   const buckets: CanvasAssetBuckets = { image: [], video: [], audio: [], model: [] };
   const seen = new Set<string>();
 

@@ -258,7 +258,7 @@ export function CanvasHistoryAssetsModal({
     () =>
       useHistory
         ? recordsToAssetBuckets(records, resolveNodeMeta)
-        : extractCanvasAssets(nodes),
+        : extractCanvasAssets(nodes, resolveMediaUrl),
     [useHistory, records, nodes, resolveNodeMeta],
   );
   const activeAssets = buckets[activeTab];

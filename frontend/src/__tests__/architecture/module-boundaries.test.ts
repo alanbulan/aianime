@@ -7282,4 +7282,22 @@ describe("frontend architecture boundaries", () => {
     );
     expect(hookSource).not.toContain("type FreezoneVideoCameraTemplate");
   });
+
+  it("keeps Canvas asset extraction independent from media URL infrastructure", () => {
+    const assetPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/canvasAssets.ts",
+    );
+    const assetSource = readFileSync(assetPath, "utf8");
+    const historyViewSource = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/ui/CanvasHistoryAssetsModal.tsx"),
+      "utf8",
+    );
+
+    expect(importSpecifiers(assetPath)).not.toContain("@/lib/media-url");
+    expect(assetSource).toContain("resolveMediaUrl: CanvasMediaUrlResolver");
+    expect(historyViewSource).toContain(
+      "extractCanvasAssets(nodes, resolveMediaUrl)",
+    );
+  });
 });
