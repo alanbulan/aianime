@@ -11003,6 +11003,59 @@ describe("frontend architecture boundaries", () => {
     }
   });
 
+  it("keeps active video task completion in one application use case", () => {
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/completeVideoGenerationTask.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const videoNodePath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoNode.tsx",
+    );
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const videoNode = readFileSync(videoNodePath, "utf8");
+    const declaration = [
+      "export async function",
+      "completeVideoGenerationTask(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set([
+        "./generationOutputUrl",
+        "./ports",
+        "./submitVideoGeneration",
+      ]),
+    );
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).toContain(
+      'resolveGenerationOutputUrl(completion.result, "video")',
+    );
+    expect(applicationSource).toContain(
+      "dependencies.taskGateway.fetchResultUrl(",
+    );
+    expect(implementationOwners).toEqual([
+      "features/canvas/application/completeVideoGenerationTask.ts",
+    ]);
+    expect(compositionSource).toContain(
+      "taskGateway: freezoneGenerationTaskGateway",
+    );
+    expect(videoNode).toContain("completeVideoGenerationTask({");
+    expect(videoNode).not.toContain("fetchFreezoneJobResult");
+    expect(videoNode).not.toContain("awaitTaskCompletion");
+    expect(videoNode).not.toContain("resolveGenerationOutputUrl");
+  });
+
   it("keeps video reference URL projection in one pure domain module", () => {
     const domainPath = resolve(
       SRC_ROOT,
@@ -11225,13 +11278,23 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/application/resumeGeneration.ts",
       "features/canvas/nodes/ImageGenNode.tsx",
       "features/canvas/nodes/TextAnnotationNode.tsx",
-      "features/canvas/nodes/VideoNode.tsx",
     ];
     const consumerSources = Object.fromEntries(
       consumerPaths.map((path) => [
         path,
         readFileSync(resolve(SRC_ROOT, path), "utf8"),
       ]),
+    );
+    const completionSource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/application/completeVideoGenerationTask.ts",
+      ),
+      "utf8",
+    );
+    const videoNode = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      "utf8",
     );
     const declaration = [
       "export function",
@@ -11255,12 +11318,12 @@ describe("frontend architecture boundaries", () => {
         "@/features/canvas/application/generationOutputUrl",
       );
     }
+    expect(completionSource).toContain('./generationOutputUrl');
     expect(consumerSources["features/canvas/nodes/ImageGenNode.tsx"])
       .not.toContain("function resolveOutputUrl(");
     expect(consumerSources["features/canvas/nodes/TextAnnotationNode.tsx"])
       .not.toContain("function resolveVideoOutputUrl(");
-    expect(consumerSources["features/canvas/nodes/VideoNode.tsx"])
-      .not.toContain("function resolveOutputUrl(");
+    expect(videoNode).not.toContain("function resolveOutputUrl(");
     expect(consumerSources["features/canvas/application/resumeGeneration.ts"])
       .not.toContain("function resolveUrlFromResult(");
   });

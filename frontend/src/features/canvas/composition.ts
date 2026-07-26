@@ -5,6 +5,10 @@ import { getSceneDirectorStageManifest } from '@/api/viewerManifests';
 
 import { canvasEventBus } from './application/canvasServices';
 import {
+  completeVideoGenerationTask as completeVideoGenerationTaskUseCase,
+  type CompleteVideoGenerationTaskParams,
+} from './application/completeVideoGenerationTask';
+import {
   composeVideoClip as composeVideoClipUseCase,
   type ComposeVideoClipParams,
 } from './application/composeVideoClip';
@@ -234,6 +238,14 @@ export function translateCanvasText(params: TranslateCanvasTextParams) {
 export function submitVideoGeneration(params: SubmitVideoGenerationParams) {
   return submitVideoGenerationUseCase(params, {
     submissionGateway: freezoneVideoGenerationSubmissionGateway,
+  });
+}
+
+export function completeVideoGenerationTask(
+  params: CompleteVideoGenerationTaskParams,
+) {
+  return completeVideoGenerationTaskUseCase(params, {
+    taskGateway: freezoneGenerationTaskGateway,
   });
 }
 

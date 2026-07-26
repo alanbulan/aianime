@@ -1492,6 +1492,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百零四批已将视频节点 5 种生成模式及文本标注节点文字生成视频的 6 处提交收口为唯一 application 用例 `submitVideoGeneration`，以 `text`、`keyframes`、`imageReferences`、`videoEdit`、`allReferences` 判别联合统一完成画质到分辨率投影；`freezoneVideoGenerationSubmissionGateway` infrastructure 适配器唯一分派 5 个 Freezone 视频端点并校验后端统一返回 `freezone_video_gen` 任务类型，两个节点不再直接引用这些端点，文本标注节点原有重复画质转换同步删除，素材收集/上限/时长门禁及批量执行写回仍留在调用方；显式契约使 `VideoNode`、`TextAnnotationNode` 分别由 2667、874 行调整为 2675、876 行，用例 184 行、适配器 96 行；用例与适配器共 2 个测试文件 7 项、架构门禁 161 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百零五批已将活动视频任务的等待、SSE `task.result` 视频 URL 优先解析、专用结果接口回退及回退查询错误保留迁入唯一 application 用例 `completeVideoGenerationTask`，通过既有 `freezoneGenerationTaskGateway` 完成基础设施调用；`VideoNode` 删除任务 API、结果 API 与结果投影器的直接依赖，只消费完成结果并保留批量成功/失败 UI 写回、日志和告警，源码由 2675 行降至 2668 行，用例 46 行；用例测试 3 项、更新后的架构门禁 162 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

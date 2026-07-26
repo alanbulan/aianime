@@ -69,7 +69,6 @@ import {
   snapToAllowedAspectRatio,
 } from "@/features/canvas/application/imageData";
 import { resolveAudioReferenceDisplayName } from "@/features/canvas/application/audioReferenceDisplayName";
-import { resolveGenerationOutputUrl } from "@/features/canvas/application/generationOutputUrl";
 import { resolveDroppedVideoFile } from "@/features/canvas/application/resolveDroppedVideoFile";
 import type {
   VideoGenerationAspectRatio,
@@ -103,6 +102,7 @@ import { useReferenceMentionSync } from "@/features/canvas/nodes/useReferenceMen
 import { useNodeGenerationTaskState } from "@/features/canvas/hooks/useNodeGenerationTaskState";
 import { resolveErrorContent } from "@/features/canvas/application/errorDialog";
 import {
+  completeVideoGenerationTask,
   composeVideoClip,
   eraseVideoSubtitles,
   showErrorDialog,
@@ -203,11 +203,9 @@ import {
 } from "@/features/canvas/ui/AssetLibraryModal";
 import { useCanvasStore } from "@/stores/canvasStore";
 import {
-  fetchFreezoneJobResult,
   uploadFreezoneImage,
   uploadFreezoneVideo,
 } from "@/api/ops";
-import { awaitTaskCompletion } from "@/api/tasks";
 import { generationTaskDescriptor } from "@/features/canvas/application/resumeGeneration";
 import { useNodeGenerationHistory } from "@/features/canvas/hooks/useNodeGenerationHistory";
 import { historyRecordOutputUrl } from "@/features/canvas/ui/NodeGenerationHistory";
@@ -1915,22 +1913,17 @@ export const VideoNode = memo(
             if (runIndex === 0) {
               updateNodeData(id, generationTaskDescriptor(ref));
             }
-            const completed = await awaitTaskCompletion(ref.task_key, projectId);
-            // Prefer the dedicated result endpoint — SSE `task.result` may only
-            // carry metadata (same pattern as reverse_prompt + video_erase).
-            let url = resolveGenerationOutputUrl(completed.result, "video");
-            if (!url) {
-              try {
-                const result = await fetchFreezoneJobResult(
-                  projectId,
-                  ref.task_type,
-                  ref.job_id,
-                );
-                url = result.url || null;
-              } catch (error) {
-                console.error("[video-node] fetch job result failed", error);
-              }
+            const completed = await completeVideoGenerationTask({
+              projectId,
+              task: ref,
+            });
+            if (completed.resultLookupError) {
+              console.error(
+                "[video-node] fetch job result failed",
+                completed.resultLookupError,
+              );
             }
+            const url = completed.url;
             if (url) {
               completedUrls.push(url);
               const isFirstCompleted = completedUrls.length === 1;
@@ -1952,7 +1945,7 @@ export const VideoNode = memo(
             } else {
               console.warn(
                 "[video-node] video gen completed without output url",
-                completed,
+                completed.completion,
               );
               // 只有 run 0（任务句柄归属者）且尚无任何成功时才终结 loading——
               // 非首个任务先「无 URL 完成」不能把还在跑的整体 loading 掐掉。
