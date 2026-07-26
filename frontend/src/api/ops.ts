@@ -2400,12 +2400,3 @@ export async function deleteFreezoneVideoCharacterLibraryItem(
     { method: "DELETE" },
   );
 }
-
-// /freezone/init ---------------------------------------------------------- //
-
-export async function initFreezone(project: string): Promise<{ freezone_dir: string }> {
-  return await apiCall<{ freezone_dir: string }>(
-    `projects/${encodeURIComponent(project)}/freezone/init`,
-    { method: "POST" },
-  );
-}

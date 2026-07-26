@@ -904,6 +904,16 @@ describe("frontend architecture boundaries", () => {
     expect(freezonePublicSource).toContain("useFreezoneProjectAssets,");
   });
 
+  it("does not retain an unreachable frontend Freezone bootstrap client", () => {
+    const endpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) => readFileSync(path, "utf8").includes("freezone/init"))
+      .map(relativeSource)
+      .sort();
+
+    expect(endpointOwners).toEqual([]);
+  });
+
   it("keeps all non-projection canvas persistence behind the Canvas composition", () => {
     const apiCanvasPath = resolve(SRC_ROOT, "api/canvas.ts");
     const canvasContractPath = resolve(
