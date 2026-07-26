@@ -70,6 +70,11 @@ import {
   uploadCanvasAsset as uploadCanvasAssetUseCase,
   type UploadCanvasAssetOptions,
 } from './application/uploadCanvasAsset';
+import {
+  validateVideoReferenceAudioDuration as validateVideoReferenceAudioDurationUseCase,
+  type ValidateVideoReferenceAudioDurationParams,
+} from './application/validateVideoReferenceAudioDuration';
+import { browserAudioMetadataGateway } from './infrastructure/browserAudioMetadata';
 import { clearBrowserClipboard } from './infrastructure/browserClipboardGateway';
 import { browserGenerationRuntimeGateway } from './infrastructure/browserGenerationRuntimeGateway';
 import { browserImageRuntimeGateway } from './infrastructure/browserImageRuntime';
@@ -196,6 +201,15 @@ export function uploadCanvasAsset(
   return uploadCanvasAssetUseCase(
     { projectId, file, filename, options },
     freezoneAssetGateway,
+  );
+}
+
+export function validateVideoReferenceAudioDuration(
+  params: ValidateVideoReferenceAudioDurationParams,
+) {
+  return validateVideoReferenceAudioDurationUseCase(
+    params,
+    browserAudioMetadataGateway,
   );
 }
 

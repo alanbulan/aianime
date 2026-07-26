@@ -11328,27 +11328,58 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("function resolveDroppedVideoFile(");
   });
 
-  it("keeps browser audio duration probing in one infrastructure adapter", () => {
+  it("keeps reference audio duration validation in application", () => {
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/validateVideoReferenceAudioDuration.ts",
+    );
     const infrastructurePath = resolve(
       SRC_ROOT,
       "features/canvas/infrastructure/browserAudioMetadata.ts",
     );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const applicationSource = readFileSync(applicationPath, "utf8");
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
     const videoNode = readFileSync(
       resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
       "utf8",
     );
-    const declaration = [
+    const probeDeclaration = [
       "export function",
       "probeAudioDurationMs(",
     ].join(" ");
-    const implementationOwners = sourceFiles(SRC_ROOT)
-      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+    const useCaseDeclaration = [
+      "export async function",
+      "validateVideoReferenceAudioDuration(",
+    ].join(" ");
+    const probeOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(probeDeclaration))
+      .map(relativeSource)
+      .sort();
+    const useCaseOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(useCaseDeclaration))
       .map(relativeSource)
       .sort();
 
-    expect(importSpecifiers(infrastructurePath)).toEqual([]);
-    expect(implementationOwners).toEqual([
+    expect(importSpecifiers(applicationPath)).toEqual([]);
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("document");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).toContain(
+      "SEEDANCE_2_MAX_REFERENCE_AUDIO_DURATION_MS = 15_200",
+    );
+    expect(applicationSource).toContain("gateway.probeDurationMs(");
+    expect(useCaseOwners).toEqual([
+      "features/canvas/application/validateVideoReferenceAudioDuration.ts",
+    ]);
+    expect(importSpecifiers(infrastructurePath)).toEqual([
+      "../application/validateVideoReferenceAudioDuration",
+    ]);
+    expect(probeOwners).toEqual([
       "features/canvas/infrastructure/browserAudioMetadata.ts",
     ]);
     expect(infrastructureSource).toContain('document.createElement("audio")');
@@ -11356,9 +11387,15 @@ describe("frontend architecture boundaries", () => {
       "window.setTimeout(() => finish(null), 8000)",
     );
     expect(infrastructureSource).toContain('audio.removeAttribute("src")');
-    expect(videoNode).toContain(
+    expect(compositionSource).toContain(
+      "browserAudioMetadataGateway",
+    );
+    expect(videoNode).toContain("validateVideoReferenceAudioDuration({");
+    expect(videoNode).not.toContain(
       "@/features/canvas/infrastructure/browserAudioMetadata",
     );
+    expect(videoNode).not.toContain("MAX_AUDIO_TOTAL_DURATION_MS");
+    expect(videoNode).not.toContain("probeAudioDurationMs(");
     expect(videoNode).not.toContain("function probeAudioDurationMs(");
   });
 

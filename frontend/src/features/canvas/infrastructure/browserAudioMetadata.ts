@@ -1,4 +1,6 @@
 // Copyright (c) 2026 AI anime
+import type { VideoReferenceAudioDurationGateway } from "../application/validateVideoReferenceAudioDuration";
+
 export function probeAudioDurationMs(url: string): Promise<number | null> {
   return new Promise((resolve) => {
     if (!url) {
@@ -33,3 +35,7 @@ export function probeAudioDurationMs(url: string): Promise<number | null> {
     audio.src = url;
   });
 }
+
+export const browserAudioMetadataGateway: VideoReferenceAudioDurationGateway = {
+  probeDurationMs: probeAudioDurationMs,
+};

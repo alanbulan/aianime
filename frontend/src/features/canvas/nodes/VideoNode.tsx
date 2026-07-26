@@ -76,7 +76,6 @@ import type {
   VideoGenerationReference,
 } from "@/features/canvas/application/submitVideoGeneration";
 import { buildVideoMetadataPatch } from "@/features/canvas/application/videoMetadataPatch";
-import { probeAudioDurationMs } from "@/features/canvas/infrastructure/browserAudioMetadata";
 import { captureVideoFrameBlob } from "@/features/canvas/infrastructure/browserVideoFrameCapture";
 import { captureBrowserVideoFrameStrip } from "@/features/canvas/infrastructure/browserVideoFrameStrip";
 import { ensureWebSafeVideo } from "@/features/canvas/infrastructure/videoTranscode";
@@ -110,6 +109,7 @@ import {
   submitVideoGeneration,
   translateCanvasText,
   uploadCanvasAsset,
+  validateVideoReferenceAudioDuration,
 } from "@/features/canvas/composition";
 import { backendErrorToastMessage } from "@/shared/api/errors";
 import { resolveGenerationErrorDiagnostics } from "@/features/canvas/application/generationErrorReport";
@@ -259,11 +259,6 @@ const ASPECT_RATIOS: ReadonlyArray<VideoGenerationAspectRatio> = [
   "21:9",
 ];
 const COUNT_OPTIONS: ReadonlyArray<VideoGenCount> = [1, 2, 4];
-
-// Seedance 2.0(doubao-seedance-2-0，r2v）后端硬上限：一次请求的音频总时长
-// 必须 ≤ 15.2s，超了会以 InvalidParameter 报错。对用户按「15 秒」提示，实际
-// 用 15.2s 作拦截阈值，避免把后端本会放行的 15.0~15.2s 音频误拦。
-const MAX_AUDIO_TOTAL_DURATION_MS = 15_200;
 
 export const VideoNode = memo(
   ({ id, data, selected, width, height }: VideoNodeProps) => {
@@ -1825,18 +1820,11 @@ export const VideoNode = memo(
           // 报错。提交前先本地校验：durationMs 缺失时用 <audio> 探测兜底，超限就
           // 弹窗拦下，避免白跑一趟后端。仅对 seedance2 生效（其它模型上限可能不同）。
           if (isSeedance20Model && audioRefs.length > 0) {
-            const resolvedDurations = await Promise.all(
-              audioRefs.map((ref) =>
-                typeof ref.durationMs === "number" && ref.durationMs > 0
-                  ? Promise.resolve(ref.durationMs)
-                  : probeAudioDurationMs(ref.url),
-              ),
-            );
-            const totalAudioMs = resolvedDurations.reduce<number>(
-              (sum, ms) => sum + (ms ?? 0),
-              0,
-            );
-            if (totalAudioMs > MAX_AUDIO_TOTAL_DURATION_MS) {
+            const audioDuration =
+              await validateVideoReferenceAudioDuration({
+                references: audioRefs,
+              });
+            if (audioDuration.exceedsLimit) {
               void showErrorDialog(
                 t("node.videoNode.audio.durationExceeded", { max: 15 }),
                 t("common.error"),
