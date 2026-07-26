@@ -10078,6 +10078,66 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("interface CharacterLibraryChipProps");
   });
 
+  it("keeps VideoNode count selection in one presentation view", () => {
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoCountPicker.tsx",
+    );
+    const viewSource = readFileSync(viewPath, "utf8");
+    const videoNode = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(viewPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declaration = ["export function", "VideoCountPicker("].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+    const activeClass = [
+      "bg-primary/12",
+      "text-foreground",
+      "ring-1",
+      "ring-primary/30",
+    ].join(" ");
+    const activeClassOwners = [
+      viewPath,
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/ui/nodeControlStyles.ts"),
+    ]
+      .filter((path) => readFileSync(path, "utf8").includes(activeClass))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/nodes/VideoCountPicker.tsx",
+    ]);
+    expect(activeClassOwners).toEqual([
+      "features/canvas/ui/nodeControlStyles.ts",
+    ]);
+    expect(viewSource).toContain("options.map((option)");
+    expect(viewSource).toContain("NODE_OPTION_ACTIVE_BUTTON_CLASS");
+    expect(videoNode).toContain(
+      "@/features/canvas/nodes/VideoCountPicker",
+    );
+    expect(videoNode).toContain("<VideoCountPicker");
+    expect(videoNode).toContain("options={COUNT_OPTIONS}");
+    expect(videoNode).not.toContain("interface CountPickerProps");
+    expect(videoNode).not.toContain("VIDEO_COUNT_OPTION_BASE_CLASS");
+  });
+
   it("keeps box-selection projection in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,

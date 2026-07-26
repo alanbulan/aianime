@@ -33,6 +33,9 @@ export const NODE_INLINE_ICON_BUTTON_CLASS =
 
 export const NODE_INLINE_ICON_BUTTON_ACTIVE_CLASS = 'bg-muted text-foreground';
 
+export const NODE_OPTION_ACTIVE_BUTTON_CLASS =
+  'bg-primary/12 text-foreground ring-1 ring-primary/30';
+
 export const NODE_FLOATING_PANEL_SURFACE_CLASS =
   'rounded-[10px] border border-border bg-popover/96 shadow-xl backdrop-blur-md';
 
