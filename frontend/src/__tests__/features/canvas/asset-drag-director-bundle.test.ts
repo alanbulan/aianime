@@ -4,7 +4,10 @@ import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { spawnAssetNode } from "@/features/canvas/domain/assetDrag";
+import {
+  spawnAssetNode,
+  type CanvasAssetNodeSpawnPort,
+} from "@/features/canvas/domain/assetDrag";
 import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
 import { usableDirectorWorldPreviewUrl } from "@/features/canvas/nodes/ThreeDWorldNode";
 import { directorControlBundleFromAssetSource } from "@/features/freezone/AssetLibraryPanel";
@@ -28,15 +31,15 @@ describe("director bundle canvas assets", () => {
       },
     };
     const calls: Array<{ type: string; data: Record<string, unknown> }> = [];
-    const store = {
-      addNode: (type: string, _position: { x: number; y: number }, data: Record<string, unknown>) => {
-        calls.push({ type, data });
+    const store: CanvasAssetNodeSpawnPort = {
+      addNode: (type, _position, data) => {
+        calls.push({ type, data: data as Record<string, unknown> });
         return "node-1";
       },
     };
 
     const nodeId = spawnAssetNode(
-      store as Parameters<typeof spawnAssetNode>[0],
+      store,
       {
         kind: "image",
         label: "导演合成图",
@@ -67,15 +70,15 @@ describe("director bundle canvas assets", () => {
 
   it("downgrades library mainline assets to editable canvas candidates", () => {
     const calls: Array<{ type: string; data: Record<string, unknown> }> = [];
-    const store = {
-      addNode: (type: string, _position: { x: number; y: number }, data: Record<string, unknown>) => {
-        calls.push({ type, data });
+    const store: CanvasAssetNodeSpawnPort = {
+      addNode: (type, _position, data) => {
+        calls.push({ type, data: data as Record<string, unknown> });
         return "node-1";
       },
     };
 
     spawnAssetNode(
-      store as Parameters<typeof spawnAssetNode>[0],
+      store,
       {
         kind: "model",
         label: "公寓楼电梯间 / 导演世界",

@@ -7204,4 +7204,23 @@ describe("frontend architecture boundaries", () => {
     expect(route).not.toContain("useTaskController");
     expect(route).not.toContain("useGenerationCreditCost");
   });
+
+  it("keeps canvas asset spawning independent from Zustand stores", () => {
+    const assetDragPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/assetDrag.ts",
+    );
+    const assetDragSource = readFileSync(assetDragPath, "utf8");
+    const forbiddenImports = importSpecifiers(assetDragPath).filter(
+      (specifier) =>
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("../../../stores/"),
+    );
+
+    expect(forbiddenImports).toEqual([]);
+    expect(assetDragSource).toContain(
+      "export interface CanvasAssetNodeSpawnPort",
+    );
+    expect(assetDragSource).not.toContain("useCanvasStore");
+  });
 });

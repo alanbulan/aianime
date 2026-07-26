@@ -1,7 +1,10 @@
 // Copyright (c) 2026 AI anime
-import { CANVAS_NODE_TYPES, type CanvasNodeData } from "./canvasNodes";
+import {
+  CANVAS_NODE_TYPES,
+  type CanvasNodeData,
+  type CanvasNodeType,
+} from "./canvasNodes";
 import { coerceSlotTarget } from "./mainlineNodeTypes";
-import type { useCanvasStore } from "@/stores/canvasStore";
 import type { DirectorWorldSource } from "@/features/viewer-kit/three-d/directorManifest";
 import type { ThreeDSceneSnapshot } from "@/features/viewer-kit/three-d/engine/viewerApp";
 
@@ -54,7 +57,13 @@ export interface CanvasAssetDragPayload {
   mainlineContext?: unknown[];
 }
 
-type CanvasStore = ReturnType<typeof useCanvasStore.getState>;
+export interface CanvasAssetNodeSpawnPort {
+  addNode: (
+    type: CanvasNodeType,
+    position: { x: number; y: number },
+    data: Partial<CanvasNodeData>,
+  ) => string;
+}
 
 /**
  * 在指定坐标按 payload 类型生成画布节点,返回新节点 id。
@@ -62,7 +71,7 @@ type CanvasStore = ReturnType<typeof useCanvasStore.getState>;
  * 注意:此函数只负责建节点,聚焦 / 选中由调用方决定(按钮聚焦、拖放选中)。
  */
 export function spawnAssetNode(
-  store: CanvasStore,
+  nodeSpawner: CanvasAssetNodeSpawnPort,
   payload: CanvasAssetDragPayload,
   position: { x: number; y: number },
 ): string {
@@ -96,7 +105,7 @@ export function spawnAssetNode(
         (activeSource?.source_type === "pano360" ? activeSource.url : undefined);
       const plyUrl = payload.plyUrl ?? activePlyUrl ?? (modelSources ? null : payload.url);
       const panoUrl = payload.panoUrl ?? activePanoUrl ?? null;
-      return store.addNode(
+      return nodeSpawner.addNode(
         CANVAS_NODE_TYPES.threeDWorld,
         position,
         {
@@ -118,7 +127,7 @@ export function spawnAssetNode(
       );
     }
     case "video":
-      return store.addNode(
+      return nodeSpawner.addNode(
         CANVAS_NODE_TYPES.video,
         position,
         {
@@ -142,7 +151,7 @@ export function spawnAssetNode(
         } as Record<string, unknown> as Partial<CanvasNodeData>,
       );
     case "audio":
-      return store.addNode(
+      return nodeSpawner.addNode(
         CANVAS_NODE_TYPES.audio,
         position,
         {
@@ -163,7 +172,7 @@ export function spawnAssetNode(
       // committed_* 使其与生成完成后落地的节点字段一致(成品图直接展示、可继续再生成)。
       // 普通拖拽 / 素材库参考图(无此标记)仍建 upload 节点(替换素材)。
       if (payload.restoreAsGeneratedImage) {
-        return store.addNode(
+        return nodeSpawner.addNode(
           CANVAS_NODE_TYPES.imageGen,
           position,
           {
@@ -184,7 +193,7 @@ export function spawnAssetNode(
           } as Record<string, unknown> as Partial<CanvasNodeData>,
         );
       }
-      return store.addNode(
+      return nodeSpawner.addNode(
         CANVAS_NODE_TYPES.upload,
         position,
         {

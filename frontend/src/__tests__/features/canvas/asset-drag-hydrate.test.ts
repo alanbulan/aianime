@@ -4,7 +4,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getSceneDirectorStageManifest } from "@/api/viewerManifests";
 import { hydrateAssetDragPayload } from "@/features/canvas/domain/assetDragHydrate";
 import { spawnAssetNode } from "@/features/canvas/domain/assetDrag";
-import type { CanvasAssetDragPayload } from "@/features/canvas/domain/assetDrag";
+import type {
+  CanvasAssetDragPayload,
+  CanvasAssetNodeSpawnPort,
+} from "@/features/canvas/domain/assetDrag";
 import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
 import type { ThreeDSceneSnapshot } from "@/features/viewer-kit/three-d/engine/viewerApp";
 import type { DirectorStageManifest } from "@/features/viewer-kit/three-d/directorManifest";
@@ -121,20 +124,15 @@ describe("hydrateAssetDragPayload", () => {
 });
 
 describe("spawnAssetNode — 还原链路 model/genMode", () => {
-  // 最小假 store：捕获每次 addNode(type, position, data)，返回稳定 id。spawnAssetNode
-  // 只用到 store.addNode，其余方法用不到。
+  // 最小节点生成端口：捕获每次 addNode(type, position, data)，返回稳定 id。
   function fakeStore() {
     const created: Array<{ type: string; data: Record<string, unknown> }> = [];
-    const store = {
-      addNode: (
-        type: string,
-        _position: { x: number; y: number },
-        data: Record<string, unknown>,
-      ) => {
-        created.push({ type, data });
+    const store: CanvasAssetNodeSpawnPort = {
+      addNode: (type, _position, data) => {
+        created.push({ type, data: data as Record<string, unknown> });
         return `node-${created.length}`;
       },
-    } as unknown as Parameters<typeof spawnAssetNode>[0];
+    };
     return { store, created };
   }
 
