@@ -9826,6 +9826,54 @@ describe("frontend architecture boundaries", () => {
     expect(sliceSource).not.toContain("@/stores/canvasStore");
   });
 
+  it("keeps VideoNode player controls in one presentation view", () => {
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoPlayerControls.tsx",
+    );
+    const viewSource = readFileSync(viewPath, "utf8");
+    const videoNode = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(viewPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declaration = [
+      "export function",
+      "VideoPlayerControls(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/nodes/VideoPlayerControls.tsx",
+    ]);
+    expect(viewSource).toContain('videoEl.addEventListener("play"');
+    expect(viewSource).toContain('videoEl.addEventListener("timeupdate"');
+    expect(viewSource).toContain('videoEl.addEventListener("volumechange"');
+    expect(viewSource).toContain("videoEl.currentTime = next");
+    expect(videoNode).toContain(
+      "@/features/canvas/nodes/VideoPlayerControls",
+    );
+    expect(videoNode).toContain("<VideoPlayerControls");
+    expect(videoNode).not.toContain("interface VideoPlayerControlsProps");
+    expect(videoNode).not.toContain('videoEl.addEventListener("play"');
+    expect(videoNode).not.toContain("function formatTime(");
+  });
+
   it("keeps box-selection projection in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
