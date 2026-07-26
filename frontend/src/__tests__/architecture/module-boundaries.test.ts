@@ -8782,6 +8782,22 @@ describe("frontend architecture boundaries", () => {
     expect(textNodeSource).not.toContain("awaitTaskCompletion");
   });
 
+  it("keeps Skill node task waiting behind Canvas composition", () => {
+    const nodePath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/SkillNode.tsx",
+    );
+    const nodeSource = readFileSync(nodePath, "utf8");
+    const imports = importSpecifiers(nodePath);
+
+    expect(imports).toContain("@/features/canvas/composition");
+    expect(imports).not.toContain("@/api/tasks");
+    expect(
+      nodeSource.match(/await awaitCanvasGenerationTaskCompletion\(/g),
+    ).toHaveLength(2);
+    expect(nodeSource).not.toContain("awaitTaskCompletion");
+  });
+
   it("keeps Canvas scene-360 generation orchestration in application", () => {
     const domainPath = resolve(
       SRC_ROOT,

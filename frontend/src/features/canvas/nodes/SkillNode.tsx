@@ -25,8 +25,8 @@ import {
   type SkillRunOutput,
   type SkillRunResult,
 } from '@/api/skills';
-import { awaitTaskCompletion } from '@/api/tasks';
 import {
+  awaitCanvasGenerationTaskCompletion,
   stageSelectedBackgroundOutputForSkill,
   uploadCanvasAsset,
 } from '@/features/canvas/composition';
@@ -1154,7 +1154,7 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
       try {
         const taskKey = typeof data.generationTaskKey === 'string' ? data.generationTaskKey : '';
         if (taskKey) {
-          await awaitTaskCompletion(taskKey, projectId);
+          await awaitCanvasGenerationTaskCompletion(taskKey, projectId);
         }
         const result = await awaitSkillRunResult(projectId, runId);
         if (cancelled) {
@@ -1372,7 +1372,7 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
         setTaskRecordGraceUntil(Date.now() + TASK_RECORD_GRACE_MS);
         setSubmitInFlight(false);
         submitInFlightRef.current = false;
-        await awaitTaskCompletion(response.task_key, projectId);
+        await awaitCanvasGenerationTaskCompletion(response.task_key, projectId);
       }
       const result = await awaitSkillRunResult(projectId, response.run_id);
       if (isFailureStatus(result.status)) {
