@@ -114,6 +114,7 @@ import { useCanvasMediaDropController } from './hooks/useCanvasMediaDropControll
 import { useCanvasMinimapVisibility } from './hooks/useCanvasMinimapVisibility';
 import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
 import { useCanvasNodeClickController } from './hooks/useCanvasNodeClickController';
+import { useCanvasNodeFocusController } from './hooks/useCanvasNodeFocusController';
 import { useCanvasNodeClipboard } from './hooks/useCanvasNodeClipboard';
 import { useCanvasNodeMenuShortcut } from './hooks/useCanvasNodeMenuShortcut';
 import { useCanvasNodeMenuSelectionController } from './hooks/useCanvasNodeMenuSelectionController';
@@ -125,7 +126,6 @@ import {
 import { useCanvasNodePlacementConfirm } from './hooks/useCanvasNodePlacementConfirm';
 import { useCanvasContextMenuController } from './hooks/useCanvasContextMenuController';
 import { useCanvasPaneClickController } from './hooks/useCanvasPaneClickController';
-import { useCanvasPendingNodeFocus } from './hooks/useCanvasPendingNodeFocus';
 import { useCanvasSelectionSync } from './hooks/useCanvasSelectionSync';
 import { useCanvasSelectionCommandController } from './hooks/useCanvasSelectionCommandController';
 import { useCanvasSkillRegistry } from './hooks/useCanvasSkillRegistry';
@@ -318,24 +318,10 @@ export function Canvas({
     clearSnapAlignment,
   } = useCanvasSnapAlignment(CANVAS_SNAP_ALIGNMENT_PORT);
 
-  const nodeFocusViewportPort = useMemo(
-    () => ({
-      getNodeAbsolutePosition: (nodeId: string) =>
-        reactFlowInstance.getInternalNode(nodeId)?.internals.positionAbsolute ?? null,
-      getZoom: () => reactFlowInstance.getZoom(),
-      centerAt: (
-        position: { x: number; y: number },
-        options: { zoom: number; duration: number },
-      ) => {
-        void reactFlowInstance.setCenter(position.x, position.y, options);
-      },
-    }),
-    [reactFlowInstance],
-  );
-  useCanvasPendingNodeFocus({
+  const { centerViewport: centerNodeViewport } = useCanvasNodeFocusController({
     pendingNodeId: pendingFocusNodeId,
     nodes,
-    viewportPort: nodeFocusViewportPort,
+    runtimePort: reactFlowInstance,
     clearPendingFocus,
   });
 
@@ -519,7 +505,7 @@ export function Canvas({
     placementActive,
     commitPlacement: commitNodePlacementAtClientPosition,
     suppressNextPaneClick,
-    centerViewport: nodeFocusViewportPort.centerAt,
+    centerViewport: centerNodeViewport,
   });
 
   const {

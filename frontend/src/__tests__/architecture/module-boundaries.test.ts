@@ -3048,6 +3048,11 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasNodeFocusController.ts",
+    );
+    const controllerModel = readFileSync(controllerPath, "utf8");
     const forbiddenImports = importSpecifiers(hookPath).filter(
       (specifier) =>
         specifier === "@xyflow/react" ||
@@ -3068,15 +3073,42 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes(hookDeclaration))
       .map(relativeSource)
       .sort();
+    const controllerDeclaration = [
+      "export function",
+      "useCanvasNodeFocusController(",
+    ].join(" ");
+    const controllerOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(controllerDeclaration))
+      .map(relativeSource)
+      .sort();
+    const forbiddenControllerImports = importSpecifiers(controllerPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
 
     expect(forbiddenImports).toEqual([]);
+    expect(forbiddenControllerImports).toEqual([]);
     expect(implementationOwners).toEqual([
       "features/canvas/hooks/useCanvasPendingNodeFocus.ts",
     ]);
+    expect(controllerOwners).toEqual([
+      "features/canvas/hooks/useCanvasNodeFocusController.ts",
+    ]);
     expect(hookModel).toContain("getNodeSize(target)");
     expect(hookModel).toContain("viewportPort.getNodeAbsolutePosition");
-    expect(canvasView).toContain("./hooks/useCanvasPendingNodeFocus");
-    expect(canvasView).not.toContain("getInternalNode(pendingFocusNodeId)");
+    expect(controllerModel).toContain("./useCanvasPendingNodeFocus");
+    expect(controllerModel).toContain("runtimePort.getInternalNode(nodeId)");
+    expect(controllerModel).toContain("runtimePort.setCenter(");
+    expect(canvasView).toContain("./hooks/useCanvasNodeFocusController");
+    expect(canvasView).not.toContain("./hooks/useCanvasPendingNodeFocus");
+    expect(canvasView).not.toContain("nodeFocusViewportPort");
+    expect(canvasView).not.toContain("getInternalNode(");
     expect(canvasView).not.toContain("Math.max(currentZoom, 0.6)");
   });
 
