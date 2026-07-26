@@ -111,10 +111,8 @@ import { extractRequestId } from '@/features/canvas/application/generationErrorR
 import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
 import { useNodeGenerationHistory } from '@/features/canvas/hooks/useNodeGenerationHistory';
 import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
-import {
-  AssetLibraryModal,
-  type AssetLibrarySelection,
-} from '@/features/canvas/ui/AssetLibraryModal';
+import { AssetLibraryModal } from '@/features/canvas/ui/AssetLibraryModal';
+import type { CanvasAssetLibrarySelection } from '@/features/canvas/domain/assetLibrary';
 import {
   NodeGenerationHistory,
   hasCompletedHistoryRecords,
@@ -543,7 +541,7 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
   // they feed the multi-reference generation. Image-only here (the modal is
   // opened with allowedMedia=['image']), but we still guard on media.
   const spawnAssetLibraryReferences = useCallback(
-    (selections: ReadonlyArray<AssetLibrarySelection>) => {
+    (selections: ReadonlyArray<CanvasAssetLibrarySelection>) => {
       const imageSelections = selections.filter((sel) => sel.media === 'image');
       if (imageSelections.length === 0) return;
       const state = useCanvasStore.getState();

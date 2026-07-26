@@ -28,10 +28,8 @@ import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from '@/features/canv
 import { NodeResizeHandle } from '@/features/canvas/ui/NodeResizeHandle';
 import { ReferenceDetachButton } from '@/features/canvas/nodes/shared/ReferenceDetachButton';
 import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
-import {
-  AssetLibraryModal,
-  type AssetLibrarySelection,
-} from '@/features/canvas/ui/AssetLibraryModal';
+import { AssetLibraryModal } from '@/features/canvas/ui/AssetLibraryModal';
+import type { CanvasAssetLibrarySelection } from '@/features/canvas/domain/assetLibrary';
 import { readUrl } from '@/lib/url-params';
 import { useDetachUpstream } from '@/features/canvas/hooks/useDetachUpstream';
 import { useReferenceMentionSync } from '@/features/canvas/nodes/useReferenceMentionSync';
@@ -911,7 +909,7 @@ export const ImageEditNode = memo(({ id, data, selected, width, height }: ImageE
   // the left of this node and wired upstream so they become @-mention references
   // for the edit. Image-only (modal opened with allowedMedia=['image']).
   const spawnAssetLibraryReferences = useCallback(
-    (selections: ReadonlyArray<AssetLibrarySelection>) => {
+    (selections: ReadonlyArray<CanvasAssetLibrarySelection>) => {
       const imageSelections = selections.filter((sel) => sel.media === 'image');
       if (imageSelections.length === 0) return;
       const state = useCanvasStore.getState();

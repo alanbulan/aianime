@@ -199,10 +199,8 @@ import {
 import { useFreezoneVideoCameraTemplates } from "@/features/canvas/hooks/useFreezoneVideoCameraTemplates";
 import { useFreezoneVideoModels } from "@/features/canvas/hooks/useFreezoneVideoModels";
 import { useIsBoxSelecting } from "@/features/canvas/hooks/useIsBoxSelecting";
-import {
-  AssetLibraryModal,
-  type AssetLibrarySelection,
-} from "@/features/canvas/ui/AssetLibraryModal";
+import { AssetLibraryModal } from "@/features/canvas/ui/AssetLibraryModal";
+import type { CanvasAssetLibrarySelection } from "@/features/canvas/domain/assetLibrary";
 import { useCanvasStore } from "@/stores/canvasStore";
 import { generationTaskDescriptor } from "@/features/canvas/application/resumeGeneration";
 import { useNodeGenerationHistory } from "@/features/canvas/hooks/useNodeGenerationHistory";
@@ -1148,7 +1146,7 @@ export const VideoNode = memo(
     // type depends on the media: images/videos become upload nodes carrying
     // imageUrl/videoUrl, audio becomes an audio node carrying audioUrl.
     const spawnCharacterLibraryReferences = useCallback(
-      (selections: ReadonlyArray<AssetLibrarySelection>) => {
+      (selections: ReadonlyArray<CanvasAssetLibrarySelection>) => {
         if (selections.length === 0) return;
         const state = useCanvasStore.getState();
         const self = state.nodes.find((n) => n.id === id);

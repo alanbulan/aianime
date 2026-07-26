@@ -13,13 +13,17 @@ import {
 } from 'lucide-react';
 
 import {
-  deleteFreezoneVideoCharacterLibraryItem,
-  fetchFreezoneVideoCharacterLibrary,
-  submitFreezoneAddVideoCharacterLibraryItem,
-  syncFreezoneAssetLibraryFromMainline,
-  type FreezoneAssetLibraryMedia,
-  type FreezoneAssetLibrarySource,
-} from '@/api/ops';
+  addCanvasAssetLibraryItem,
+  deleteCanvasAssetLibraryItem,
+  loadCanvasAssetLibrary,
+  syncCanvasAssetLibraryFromMainline,
+} from '@/features/canvas/assetLibraryComposition';
+import type {
+  CanvasAssetLibraryItem,
+  CanvasAssetLibraryMedia,
+  CanvasAssetLibrarySelection,
+  CanvasAssetLibrarySource,
+} from '@/features/canvas/domain/assetLibrary';
 import { uploadCanvasAsset } from '@/features/canvas/composition';
 import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import { Button } from '@/components/ui/button';
@@ -33,31 +37,13 @@ const ASSET_LIBRARY_CARD_HOVER_CLASS =
 const ASSET_LIBRARY_UPLOAD_CARD_CLASS =
   'flex aspect-square flex-col items-center justify-center gap-3 rounded-[12px] border border-dashed border-border bg-card px-4 text-foreground transition-colors hover:border-foreground/25 hover:bg-muted';
 
-export type AssetLibraryMedia = FreezoneAssetLibraryMedia;
-
 interface PendingUpload {
   id: string;
   fileName: string;
   previewUrl: string;
-  media: AssetLibraryMedia;
+  media: CanvasAssetLibraryMedia;
   status: 'uploading' | 'failed';
   error?: string;
-}
-
-interface LibraryItem {
-  id: string | null;
-  name: string;
-  media: AssetLibraryMedia;
-  source: FreezoneAssetLibrarySource;
-  /** 该条目在其 media 类型下的主展示 / 引用地址。 */
-  url: string;
-  raw: Record<string, unknown>;
-}
-
-export interface AssetLibrarySelection {
-  media: AssetLibraryMedia;
-  url: string;
-  name: string;
 }
 
 export interface AssetLibraryModalProps {
@@ -65,10 +51,10 @@ export interface AssetLibraryModalProps {
   project: string | null;
   onClose: () => void;
   onSuccess?: () => void;
-  onConfirm?: (selections: AssetLibrarySelection[]) => void;
+  onConfirm?: (selections: CanvasAssetLibrarySelection[]) => void;
   maxSelectable?: number;
   /** 允许的媒体类型 Tab;缺省三类都开。生图/图片编辑节点只传 ['image']。 */
-  allowedMedia?: AssetLibraryMedia[];
+  allowedMedia?: CanvasAssetLibraryMedia[];
 }
 
 type AssetTabKey = 'image' | 'scene' | 'video' | 'audio';
@@ -77,12 +63,12 @@ interface AssetTab {
   key: AssetTabKey;
   label: string;
   /** 该 Tab 对应的媒体类型——决定上传接口、卡片渲染与 accept。 */
-  media: AssetLibraryMedia;
+  media: CanvasAssetLibraryMedia;
   accept: string;
   /** 是否允许在该 Tab 本地上传。场景为主线同步的只读类目。 */
   allowUpload: boolean;
   /** 该 Tab 展示哪些库条目。 */
-  matches: (entry: LibraryItem) => boolean;
+  matches: (entry: CanvasAssetLibraryItem) => boolean;
 }
 
 // 场景在数据上仍是 image（master 静帧），但按产品要求单独成一个浏览 Tab；
@@ -122,7 +108,7 @@ const ASSET_TABS: AssetTab[] = [
   },
 ];
 
-const SOURCE_LABEL: Record<FreezoneAssetLibrarySource, string> = {
+const SOURCE_LABEL: Record<CanvasAssetLibrarySource, string> = {
   upload: '上传',
   character: '人物',
   scene: '场景',
@@ -136,56 +122,6 @@ function makeId(): string {
 function stripExtension(name: string): string {
   const dot = name.lastIndexOf('.');
   return dot > 0 ? name.slice(0, dot) : name;
-}
-
-function itemUrl(media: AssetLibraryMedia, it: Record<string, unknown>): string {
-  if (media === 'video') return typeof it.video_url === 'string' ? it.video_url : '';
-  if (media === 'audio') return typeof it.audio_url === 'string' ? it.audio_url : '';
-  const urls = it.image_urls ?? it.imageUrls ?? it.images;
-  if (Array.isArray(urls)) {
-    const first = urls.find((u): u is string => typeof u === 'string');
-    if (first) return first;
-  }
-  return typeof it.cover_url === 'string' ? it.cover_url : '';
-}
-
-function normalizeLibraryList(payload: unknown): LibraryItem[] {
-  let arr: unknown[] = [];
-  if (Array.isArray(payload)) {
-    arr = payload;
-  } else if (payload && typeof payload === 'object') {
-    const rec = payload as Record<string, unknown>;
-    for (const key of ['items', 'data', 'characters', 'list', 'records']) {
-      if (Array.isArray(rec[key])) {
-        arr = rec[key] as unknown[];
-        break;
-      }
-    }
-  }
-  return arr
-    .filter(
-      (it): it is Record<string, unknown> =>
-        Boolean(it && typeof it === 'object' && !Array.isArray(it)),
-    )
-    .map((it) => {
-      const idRaw = it.id ?? it.item_id ?? it.itemId ?? null;
-      const id =
-        typeof idRaw === 'string' ? idRaw : idRaw != null ? String(idRaw) : null;
-      const name = typeof it.name === 'string' ? it.name : '';
-      // 缺省 image 兼容老数据（历史条目没有 media 字段）。
-      const mediaRaw = typeof it.media === 'string' ? it.media : 'image';
-      const media: AssetLibraryMedia =
-        mediaRaw === 'video' || mediaRaw === 'audio' ? mediaRaw : 'image';
-      const sourceRaw = typeof it.source === 'string' ? it.source : 'upload';
-      const source: FreezoneAssetLibrarySource =
-        sourceRaw === 'character' ||
-        sourceRaw === 'scene' ||
-        sourceRaw === 'prop'
-          ? sourceRaw
-          : 'upload';
-      return { id, name, media, source, url: itemUrl(media, it), raw: it };
-    })
-    .filter((it) => Boolean(it.url));
 }
 
 export function AssetLibraryModal({
@@ -209,7 +145,7 @@ export function AssetLibraryModal({
   // 函数身份就触发「打开自动同步」effect 反复重跑。
   const onSuccessRef = useRef(onSuccess);
   onSuccessRef.current = onSuccess;
-  const [library, setLibrary] = useState<LibraryItem[]>([]);
+  const [library, setLibrary] = useState<CanvasAssetLibraryItem[]>([]);
   const [isLoadingLibrary, setIsLoadingLibrary] = useState(false);
   const [libraryError, setLibraryError] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -236,11 +172,10 @@ export function AssetLibraryModal({
   }, [tabs, activeTabKey]);
 
   // 纯加载已有库：失败不弹红条(缺库文件/后端未就绪都当空处理)，返回加载到的条目。
-  const refreshLibrary = useCallback(async (): Promise<LibraryItem[]> => {
+  const refreshLibrary = useCallback(async (): Promise<CanvasAssetLibraryItem[]> => {
     if (!project) return [];
     try {
-      const payload = await fetchFreezoneVideoCharacterLibrary(project);
-      const items = normalizeLibraryList(payload);
+      const items = await loadCanvasAssetLibrary(project);
       setLibrary(items);
       return items;
     } catch (err) {
@@ -261,9 +196,9 @@ export function AssetLibraryModal({
       if (isCancelled?.()) return;
       setIsSyncing(true);
       try {
-        const items = await syncFreezoneAssetLibraryFromMainline(project);
+        const items = await syncCanvasAssetLibraryFromMainline(project);
         if (isCancelled?.()) return;
-        setLibrary(normalizeLibraryList(items));
+        setLibrary(items);
         onSuccessRef.current?.();
       } catch (err) {
         if (isCancelled?.()) return;
@@ -318,8 +253,8 @@ export function AssetLibraryModal({
     setIsSyncing(true);
     setLibraryError(null);
     try {
-      const items = await syncFreezoneAssetLibraryFromMainline(project);
-      setLibrary(normalizeLibraryList(items));
+      const items = await syncCanvasAssetLibraryFromMainline(project);
+      setLibrary(items);
       onSuccess?.();
     } catch (err) {
       console.error('[asset-library] sync failed', err);
@@ -348,12 +283,10 @@ export function AssetLibraryModal({
                 disableTimeout: true,
               });
         const cleanUrl = uploaded.url.split('?')[0];
-        await submitFreezoneAddVideoCharacterLibraryItem(project, {
+        await addCanvasAssetLibraryItem(project, {
           name: stripExtension(file.name),
           media: entry.media,
-          imageUrls: entry.media === 'image' ? [cleanUrl] : undefined,
-          videoUrl: entry.media === 'video' ? cleanUrl : undefined,
-          audioUrl: entry.media === 'audio' ? cleanUrl : undefined,
+          url: cleanUrl,
         });
         URL.revokeObjectURL(entry.previewUrl);
         setPendingUploads((prev) => prev.filter((p) => p.id !== entry.id));
@@ -373,7 +306,7 @@ export function AssetLibraryModal({
   );
 
   const acceptsFile = useCallback(
-    (file: File, media: AssetLibraryMedia) => {
+    (file: File, media: CanvasAssetLibraryMedia) => {
       if (media === 'image') return file.type.startsWith('image/');
       if (media === 'video') return file.type.startsWith('video/');
       return file.type.startsWith('audio/');
@@ -407,7 +340,7 @@ export function AssetLibraryModal({
   );
 
   const handleDeleteEntry = useCallback(
-    async (entry: LibraryItem) => {
+    async (entry: CanvasAssetLibraryItem) => {
       if (!project || !entry.id) return;
       const confirmed = window.confirm(
         `确定要删除「${entry.name || entry.id}」？`,
@@ -415,7 +348,7 @@ export function AssetLibraryModal({
       if (!confirmed) return;
       setDeletingId(entry.id);
       try {
-        await deleteFreezoneVideoCharacterLibraryItem(project, entry.id);
+        await deleteCanvasAssetLibraryItem(project, entry.id);
         await refreshLibrary();
       } catch (err) {
         console.error('[asset-library] delete failed', err);
@@ -456,7 +389,7 @@ export function AssetLibraryModal({
   );
 
   const selectionKey = useCallback(
-    (entry: LibraryItem) =>
+    (entry: CanvasAssetLibraryItem) =>
       `${entry.media}:${entry.id ?? `url:${entry.url}`}`,
     [],
   );
@@ -485,7 +418,7 @@ export function AssetLibraryModal({
     }
     if (onConfirm) {
       const byKey = new Map(library.map((entry) => [selectionKey(entry), entry]));
-      const selections: AssetLibrarySelection[] = [];
+      const selections: CanvasAssetLibrarySelection[] = [];
       for (const key of selectedKeys) {
         const entry = byKey.get(key);
         if (entry && entry.url) {

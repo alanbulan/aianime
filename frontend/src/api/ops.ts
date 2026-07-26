@@ -31,6 +31,10 @@ import {
   type CanvasVideoUpscaleDenoise,
   type CanvasVideoUpscaleResolution,
 } from "@/features/canvas/domain/videoUpscale";
+import type {
+  CanvasAssetLibraryMedia,
+  CanvasAssetLibrarySource,
+} from "@/features/canvas/domain/assetLibrary";
 
 // Per-node generation history -------------------------------------------- //
 
@@ -2368,18 +2372,11 @@ export async function submitFreezoneAnalyzeVideoStory(
 
 // /freezone/video/character-library -------------------------------------- //
 
-export type FreezoneAssetLibraryMedia = "image" | "video" | "audio";
-export type FreezoneAssetLibrarySource =
-  | "upload"
-  | "character"
-  | "scene"
-  | "prop";
-
 export interface FreezoneVideoCharacterLibraryItem {
   id?: string;
   name: string;
-  media?: FreezoneAssetLibraryMedia;
-  source?: FreezoneAssetLibrarySource;
+  media?: CanvasAssetLibraryMedia;
+  source?: CanvasAssetLibrarySource;
   image_urls?: string[];
   video_url?: string | null;
   audio_url?: string | null;
@@ -2391,7 +2388,7 @@ export interface FreezoneVideoCharacterLibraryItem {
 
 export interface FreezoneAddVideoCharacterLibraryItemPayload {
   name: string;
-  media?: FreezoneAssetLibraryMedia;
+  media?: CanvasAssetLibraryMedia;
   imageUrls?: string[];
   videoUrl?: string;
   audioUrl?: string;
