@@ -7439,4 +7439,48 @@ describe("frontend architecture boundaries", () => {
     expect(canvasSource).not.toContain("setPendingBatchConnectIds(");
     expect(canvasSource).not.toContain("setPreviewConnectionVisual(");
   });
+
+  it("keeps Canvas pane-click orchestration in one presentation controller", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasPaneClickController.ts",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const canvasSource = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(controllerPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declaration = [
+      "export function",
+      "useCanvasPaneClickController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasPaneClickController.ts",
+    ]);
+    expect(controllerSource).toContain("paneClickSuppressedRef");
+    expect(controllerSource).toContain("event.detail >= 2");
+    expect(controllerSource).toContain("commitPlacement({");
+    expect(canvasSource).toContain("./hooks/useCanvasPaneClickController");
+    expect(canvasSource).not.toContain("suppressNextPaneClickRef");
+    expect(canvasSource).not.toContain("event.detail >= 2");
+    expect(canvasSource).not.toContain("const handlePaneClick = useCallback");
+  });
 });

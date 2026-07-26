@@ -43,7 +43,6 @@ export interface CanvasNodePlacementControllerOptions {
   selectNode: (nodeId: string) => void;
   bindSkill: (nodeId: string, skill: SkillDefinition) => void;
   confirmPlacement: (nodeId: string) => void;
-  suppressNextPaneClick: () => void;
   resolvePlacementLabel: (placement: CanvasNodePlacement) => string;
 }
 
@@ -70,7 +69,6 @@ export function useCanvasNodePlacementController({
   selectNode,
   bindSkill,
   confirmPlacement,
-  suppressNextPaneClick,
   resolvePlacementLabel,
 }: CanvasNodePlacementControllerOptions): CanvasNodePlacementController {
   const [pendingPlacement, setPendingPlacement] =
@@ -114,7 +112,6 @@ export function useCanvasNodePlacementController({
       confirmPlacement(nodeId);
       setPendingPlacement(null);
       setPlacementClientPosition(null);
-      suppressNextPaneClick();
       return true;
     },
     [
@@ -124,7 +121,6 @@ export function useCanvasNodePlacementController({
       pendingPlacement,
       screenToFlowPosition,
       selectNode,
-      suppressNextPaneClick,
     ],
   );
 

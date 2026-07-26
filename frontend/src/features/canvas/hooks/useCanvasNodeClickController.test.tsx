@@ -48,7 +48,8 @@ function createOptions(
 ): CanvasNodeClickControllerOptions {
   return {
     placementActive: false,
-    commitPlacement: vi.fn(),
+    commitPlacement: vi.fn(() => true),
+    suppressNextPaneClick: vi.fn(),
     centerViewport: vi.fn(),
     ...overrides,
   };
@@ -70,6 +71,7 @@ describe('useCanvasNodeClickController', () => {
     expect(clickEvent.preventDefault).toHaveBeenCalledOnce();
     expect(clickEvent.stopPropagation).toHaveBeenCalledOnce();
     expect(options.commitPlacement).toHaveBeenCalledWith({ x: 120, y: 80 });
+    expect(options.suppressNextPaneClick).toHaveBeenCalledOnce();
     expect(options.centerViewport).not.toHaveBeenCalled();
   });
 
@@ -84,7 +86,23 @@ describe('useCanvasNodeClickController', () => {
 
     expect(clickEvent.preventDefault).not.toHaveBeenCalled();
     expect(options.commitPlacement).not.toHaveBeenCalled();
+    expect(options.suppressNextPaneClick).not.toHaveBeenCalled();
     expect(options.centerViewport).not.toHaveBeenCalled();
+  });
+
+  it('does not suppress the pane when placement is no longer available', () => {
+    const options = createOptions({
+      placementActive: true,
+      commitPlacement: vi.fn(() => false),
+    });
+    const { result } = renderHook(() =>
+      useCanvasNodeClickController(options),
+    );
+
+    act(() => result.current.handleNodeClick(event(), node()));
+
+    expect(options.commitPlacement).toHaveBeenCalledOnce();
+    expect(options.suppressNextPaneClick).not.toHaveBeenCalled();
   });
 
   it('centers a storyboard group using its measured size', () => {

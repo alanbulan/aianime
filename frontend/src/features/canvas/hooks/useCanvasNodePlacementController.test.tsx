@@ -34,7 +34,6 @@ function createOptions(): CanvasNodePlacementControllerOptions {
     selectNode: vi.fn(),
     bindSkill: vi.fn(),
     confirmPlacement: vi.fn(),
-    suppressNextPaneClick: vi.fn(),
     resolvePlacementLabel: vi.fn(() => 'Skill label'),
   };
 }
@@ -103,7 +102,6 @@ describe('useCanvasNodePlacementController', () => {
     expect(options.selectNode).toHaveBeenCalledWith('created');
     expect(options.bindSkill).toHaveBeenCalledWith('created', skill);
     expect(options.confirmPlacement).toHaveBeenCalledWith('created');
-    expect(options.suppressNextPaneClick).toHaveBeenCalledOnce();
     expect(result.current.placementActive).toBe(false);
   });
 

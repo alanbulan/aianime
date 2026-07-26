@@ -15,7 +15,8 @@ const STORYBOARD_FOCUS_OPTIONS = { zoom: 1, duration: 320 } as const;
 
 export interface CanvasNodeClickControllerOptions {
   placementActive: boolean;
-  commitPlacement: (position: { x: number; y: number }) => void;
+  commitPlacement: (position: { x: number; y: number }) => boolean;
+  suppressNextPaneClick: () => void;
   centerViewport: (
     position: { x: number; y: number },
     options: { zoom: number; duration: number },
@@ -32,6 +33,7 @@ export interface CanvasNodeClickController {
 export function useCanvasNodeClickController({
   placementActive,
   commitPlacement,
+  suppressNextPaneClick,
   centerViewport,
 }: CanvasNodeClickControllerOptions): CanvasNodeClickController {
   const handleNodeClick = useCallback(
@@ -39,7 +41,9 @@ export function useCanvasNodeClickController({
       if (placementActive) {
         event.preventDefault();
         event.stopPropagation();
-        commitPlacement({ x: event.clientX, y: event.clientY });
+        if (commitPlacement({ x: event.clientX, y: event.clientY })) {
+          suppressNextPaneClick();
+        }
         return;
       }
       if (!isStoryboardGroupNode(node)) {
@@ -60,7 +64,12 @@ export function useCanvasNodeClickController({
         STORYBOARD_FOCUS_OPTIONS,
       );
     },
-    [centerViewport, commitPlacement, placementActive],
+    [
+      centerViewport,
+      commitPlacement,
+      placementActive,
+      suppressNextPaneClick,
+    ],
   );
 
   return { handleNodeClick };

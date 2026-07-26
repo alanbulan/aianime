@@ -3,7 +3,6 @@ import {
   useCallback,
   useMemo,
   useRef,
-  type MouseEvent as ReactMouseEvent,
 } from 'react';
 import {
   ReactFlow,
@@ -123,6 +122,7 @@ import {
   type CanvasNodePlacement,
 } from './hooks/useCanvasNodePlacementController';
 import { useCanvasNodePlacementConfirm } from './hooks/useCanvasNodePlacementConfirm';
+import { useCanvasPaneClickController } from './hooks/useCanvasPaneClickController';
 import { useCanvasPaneContextMenu } from './hooks/useCanvasPaneContextMenu';
 import { useCanvasPendingNodeFocus } from './hooks/useCanvasPendingNodeFocus';
 import { useCanvasSelectionSync } from './hooks/useCanvasSelectionSync';
@@ -175,7 +175,6 @@ export function Canvas({
   const nodeTypes = useMemo(() => canvasNodeTypes, []);
   const edgeTypes = useMemo(() => canvasEdgeTypes, []);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const suppressNextPaneClickRef = useRef(false);
 
   const {
     pinned: minimapPinned,
@@ -470,9 +469,6 @@ export function Canvas({
     },
     [t],
   );
-  const suppressPaneClickAfterPlacement = useCallback(() => {
-    suppressNextPaneClickRef.current = true;
-  }, []);
   const {
     placementActive,
     placementPreview: nodePlacementPreview,
@@ -487,8 +483,35 @@ export function Canvas({
     selectNode: setSelectedNode,
     bindSkill: bindSingleBeatContextInput,
     confirmPlacement: triggerPlacementConfirm,
-    suppressNextPaneClick: suppressPaneClickAfterPlacement,
     resolvePlacementLabel: resolveNodePlacementLabel,
+  });
+  const openNodeMenuAtClientPosition = useCallback(
+    (clientPosition: { x: number; y: number }) => {
+      const containerRect = wrapperRef.current?.getBoundingClientRect();
+      const flowPos = reactFlowInstance.screenToFlowPosition(clientPosition);
+      openPlainNodeMenu({
+        flowPosition: flowPos,
+        menuPosition: {
+          x: clientPosition.x - (containerRect?.left ?? 0),
+          y: clientPosition.y - (containerRect?.top ?? 0),
+        },
+      });
+      cancelNodePlacement();
+      setSelectedNode(null);
+    },
+    [cancelNodePlacement, openPlainNodeMenu, reactFlowInstance, setSelectedNode],
+  );
+  const {
+    handlePaneClick,
+    suppressNextPaneClick,
+    releasePaneClickSuppression,
+  } = useCanvasPaneClickController({
+    placementActive,
+    commitPlacement: commitNodePlacementAtClientPosition,
+    openNodeMenu: openNodeMenuAtClientPosition,
+    setSelectedNodeId: setSelectedNode,
+    dismissNodeMenu: dismissNodeMenuForPaneClick,
+    onBlankPaneClick,
   });
   const setNativeSelectionActive = useCallback(
     (active: boolean) => reactFlowStore.setState({ nodesSelectionActive: active }),
@@ -511,9 +534,9 @@ export function Canvas({
         request,
         reactFlowInstance.screenToFlowPosition(request.clientPosition),
       );
-      suppressNextPaneClickRef.current = true;
+      suppressNextPaneClick();
     },
-    [openConnectionMenuState, reactFlowInstance],
+    [openConnectionMenuState, reactFlowInstance, suppressNextPaneClick],
   );
   const clearHoveredNode = useCallback(
     () => setHoveredNodeId(null),
@@ -553,9 +576,9 @@ export function Canvas({
   const openBatchConnectionMenu = useCallback(
     (request: CanvasBatchConnectionMenuRequest) => {
       openBatchConnectionMenuState(request);
-      suppressNextPaneClickRef.current = true;
+      suppressNextPaneClick();
     },
-    [openBatchConnectionMenuState],
+    [openBatchConnectionMenuState, suppressNextPaneClick],
   );
   const {
     handleBatchConnectOpenMenu,
@@ -574,19 +597,6 @@ export function Canvas({
     connectNodes: connectGraphNodes,
   });
 
-  const openNodeMenuAtClientPosition = useCallback((clientPosition: { x: number; y: number }) => {
-    const containerRect = wrapperRef.current?.getBoundingClientRect();
-    const flowPos = reactFlowInstance.screenToFlowPosition(clientPosition);
-    openPlainNodeMenu({
-      flowPosition: flowPos,
-      menuPosition: {
-        x: clientPosition.x - (containerRect?.left ?? 0),
-        y: clientPosition.y - (containerRect?.top ?? 0),
-      },
-    });
-    cancelNodePlacement();
-    setSelectedNode(null);
-  }, [cancelNodePlacement, openPlainNodeMenu, reactFlowInstance, setSelectedNode]);
   const {
     handleCanvasPointerMove,
     getLastCanvasPointerPosition,
@@ -598,13 +608,10 @@ export function Canvas({
     openNodeMenu: openNodeMenuAtClientPosition,
   });
 
-  const releasePaneClickSuppression = useCallback(() => {
-    suppressNextPaneClickRef.current = false;
-  }, []);
-
   const { handleNodeClick } = useCanvasNodeClickController({
     placementActive,
     commitPlacement: commitNodePlacementAtClientPosition,
+    suppressNextPaneClick,
     centerViewport: nodeFocusViewportPort.centerAt,
   });
 
@@ -682,35 +689,6 @@ export function Canvas({
     deleteNode,
     deleteNodes,
   });
-
-  const handlePaneClick = useCallback((event: ReactMouseEvent) => {
-    if (placementActive) {
-      commitNodePlacementAtClientPosition({ x: event.clientX, y: event.clientY });
-      return;
-    }
-
-    if (suppressNextPaneClickRef.current) {
-      suppressNextPaneClickRef.current = false;
-      return;
-    }
-
-    if (event.detail >= 2) {
-      openNodeMenuAtClientPosition({ x: event.clientX, y: event.clientY });
-      suppressNextPaneClickRef.current = true;
-      return;
-    }
-
-    setSelectedNode(null);
-    dismissNodeMenuForPaneClick();
-    onBlankPaneClick?.();
-  }, [
-    commitNodePlacementAtClientPosition,
-    dismissNodeMenuForPaneClick,
-    onBlankPaneClick,
-    openNodeMenuAtClientPosition,
-    placementActive,
-    setSelectedNode,
-  ]);
 
   const hydrateDroppedAsset = useCallback(
     (payload: CanvasAssetDragPayload) => hydrateAssetDragPayload(payload),
