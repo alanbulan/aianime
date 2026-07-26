@@ -80,7 +80,9 @@ describe("freezone viewer contracts", () => {
 
   it("keeps scene director world assets scene-scoped when they are added to freezone", () => {
     const panel = read("src/features/freezone/AssetLibraryPanel.tsx");
-    const canvas = read("src/features/canvas/Canvas.tsx");
+    const mediaTransferController = read(
+      "src/features/canvas/hooks/useCanvasMediaTransferController.ts",
+    );
     const hydrate = read("src/features/canvas/application/assetDragHydration.ts");
     const composition = read("src/features/canvas/composition.ts");
 
@@ -90,7 +92,7 @@ describe("freezone viewer contracts", () => {
     expect(panel).toContain('kind: "scene"');
     expect(panel).toContain("sceneId,");
     expect(panel).toContain("hydrateAssetDragPayload(payload)");
-    expect(canvas).toContain("hydrateAssetDragPayload(payload)");
+    expect(mediaTransferController).toContain("hydrateAssetDragPayload(payload)");
     expect(hydrate).toContain("manifestGateway.getSceneDirectorStageManifest");
     expect(hydrate).not.toContain('from "@/api/');
     expect(composition).toContain("hydrateAssetDragPayloadUseCase(");
@@ -164,13 +166,15 @@ describe("freezone viewer contracts", () => {
     const manifest = read("src/features/viewer-kit/three-d/directorManifest.ts");
     const worldNode = read("src/features/canvas/nodes/ThreeDWorldNode.tsx");
     const viewerManifestsApi = read("src/api/viewerManifests.ts");
+    const canvasComposition = read("src/features/canvas/composition.ts");
     const skillNode = read("src/features/canvas/nodes/SkillNode.tsx");
     const zh = read("public/locales/zh/translation.json");
     const en = read("public/locales/en/translation.json");
 
     expect(manifest).toContain("anonymous_prop_colors: string[];");
-    expect(viewerManifestsApi).toContain("getDirectorStagePalette");
-    expect(worldNode).toContain("getDirectorStagePalette(projectId)");
+    expect(viewerManifestsApi).not.toContain("getDirectorStagePalette");
+    expect(canvasComposition).toContain("getCanvasDirectorStagePalette");
+    expect(worldNode).toContain("getCanvasDirectorStagePalette({ projectId })");
     expect(worldNode).toContain("defaultPalette");
     expect(worldNode).not.toContain("ANONYMOUS_DIRECTOR_COLORS");
     expect(worldNode).not.toContain("ANONYMOUS_DIRECTOR_PROP_COLORS");

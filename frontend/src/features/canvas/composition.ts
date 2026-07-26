@@ -15,6 +15,10 @@ import {
   type GetCanvasBeatDirectorManifestParams,
 } from './application/beatDirectorManifest';
 import {
+  getCanvasDirectorStagePalette as getCanvasDirectorStagePaletteUseCase,
+  type GetCanvasDirectorStagePaletteParams,
+} from './application/directorStagePalette';
+import {
   completeVideoGenerationTask as completeVideoGenerationTaskUseCase,
   type CompleteVideoGenerationTaskParams,
 } from './application/completeVideoGenerationTask';
@@ -162,6 +166,7 @@ import { freezoneAssetGateway } from './infrastructure/freezoneAssetGateway';
 import { freezoneAiGateway } from './infrastructure/freezoneAiGateway';
 import { freezoneAudioSeparationGateway } from './infrastructure/freezoneAudioSeparationGateway';
 import { freezoneCanvasTextTranslationGateway } from './infrastructure/freezoneCanvasTextTranslationGateway';
+import { freezoneDirectorStagePaletteGateway } from './infrastructure/freezoneDirectorStagePaletteGateway';
 import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerationTaskGateway';
 import { freezoneGenerationHistoryGateway } from './infrastructure/freezoneGenerationHistoryGateway';
 import { freezoneGridActionGenerationGateway } from './infrastructure/freezoneGridActionGenerationGateway';
@@ -572,6 +577,15 @@ export function getCanvasBeatDirectorManifest(
   return getCanvasBeatDirectorManifestUseCase(
     params,
     canvasBeatDirectorManifestGateway,
+  );
+}
+
+export function getCanvasDirectorStagePalette(
+  params: GetCanvasDirectorStagePaletteParams,
+) {
+  return getCanvasDirectorStagePaletteUseCase(
+    params,
+    freezoneDirectorStagePaletteGateway,
   );
 }
 

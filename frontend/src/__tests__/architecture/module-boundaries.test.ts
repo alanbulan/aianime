@@ -9329,6 +9329,80 @@ describe("frontend architecture boundaries", () => {
     }
   });
 
+  it("keeps the Canvas director palette query behind one gateway", () => {
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/directorStagePalette.ts",
+    );
+    const adapterPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneDirectorStagePaletteGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const nodePath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/ThreeDWorldNode.tsx",
+    );
+    const legacyApiPath = resolve(SRC_ROOT, "api/viewerManifests.ts");
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const adapterSource = readFileSync(adapterPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const nodeSource = readFileSync(nodePath, "utf8");
+    const legacyApiSource = readFileSync(legacyApiPath, "utf8");
+    const endpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("director-stage/palette"),
+      )
+      .map(relativeSource)
+      .sort();
+    const paletteDeclaration = [
+      "export type DirectorStagePalette",
+      " =",
+    ].join("");
+    const contractOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(paletteDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(importSpecifiers(applicationPath)).toEqual([
+      "@/features/viewer-kit/three-d/directorManifest",
+    ]);
+    expect(new Set(importSpecifiers(adapterPath))).toEqual(
+      new Set([
+        "@/shared/api/client",
+        "../application/directorStagePalette",
+      ]),
+    );
+    expect(applicationSource).toContain("gateway.getPalette(params.projectId)");
+    expect(adapterSource).toContain("encodeURIComponent(projectId)");
+    expect(endpointOwners).toEqual([
+      "features/canvas/infrastructure/freezoneDirectorStagePaletteGateway.ts",
+    ]);
+    expect(contractOwners).toEqual([
+      "features/canvas/application/directorStagePalette.ts",
+    ]);
+    expect(compositionSource).toContain(
+      "getCanvasDirectorStagePaletteUseCase(",
+    );
+    expect(importSpecifiers(nodePath)).toContain(
+      "@/features/canvas/composition",
+    );
+    expect(importSpecifiers(nodePath)).not.toContain(
+      "@/api/viewerManifests",
+    );
+    expect(nodeSource).toContain(
+      "getCanvasDirectorStagePalette({ projectId })",
+    );
+    expect(legacyApiSource).not.toContain("getDirectorStagePalette");
+    expect(legacyApiSource).not.toContain("DirectorStagePalette");
+  });
+
   it("keeps Canvas image-to-3D generation orchestration out of views", () => {
     const domainPath = resolve(
       SRC_ROOT,

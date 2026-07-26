@@ -7,17 +7,9 @@ import type {
 import type { ThreeDSceneSnapshot } from "@/features/viewer-kit/three-d/engine/viewerApp";
 import { apiCall } from "@/shared/api/client";
 
-export type DirectorStagePalette = DirectorStageManifest["palette"];
-
 export interface AiStagingPropResult {
   prop?: Record<string, unknown>;
   model?: string;
-}
-
-export async function getDirectorStagePalette(project: string): Promise<DirectorStagePalette> {
-  return await apiCall<DirectorStagePalette>(
-    `projects/${encodeURIComponent(project)}/director-stage/palette`,
-  );
 }
 
 export async function getBeatPanoViewerManifest(

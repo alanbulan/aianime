@@ -1560,6 +1560,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百三十八批已将 Beat 导演世界 manifest 的成功响应解包与失败响应抛错迁入 29 行 Asset World application 用例，经该模块 composition 和 public API 发布，继续复用既有唯一 `httpBeatViewerGateway`，未新增第二个 HTTP adapter；Canvas 新增 21 行跨上下文查询 port，由 composition 将 Asset World public 能力注入，`ImageGenNode`、`SkillNode`、`ThreeDWorldNode` 和 `UploadNode` 四个调用方统一改经 Canvas composition；原 `api/viewerManifests.ts` 中 10 行 `getBeatDirectorStageManifest` 实现删除，其他 palette、overlay、control-frame、场景级 manifest 与场景世界写入接口未动；查询 method/path、项目编码、Beat 参数、返回 manifest 和节点失败回退语义均未改变；相关 5 个测试文件 41 项、新增后的架构门禁 190 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百三十九批已将导演世界默认 palette 类型和查询 port 迁入 19 行 Canvas application，将项目编码与 `director-stage/palette` URL 迁入唯一 15 行 `freezoneDirectorStagePaletteGateway` infrastructure 适配器并由 composition 注入；`ThreeDWorldNode` 改经 composition 获取无 Beat manifest 时的默认 palette，不再导入 `api/viewerManifests`，旧 API 中对应类型别名和函数共 8 行直接删除；同步将一条仍要求 `Canvas.tsx` 直接执行素材水合的旧 viewer 契约断言更新为当前唯一 `useCanvasMediaTransferController` 所有者，未修改水合实现；查询 method/path、项目编码、返回 palette 和节点失败回退语义均未改变；相关 3 个测试文件 26 项、新增后的架构门禁 191 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

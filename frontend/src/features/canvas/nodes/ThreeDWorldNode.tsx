@@ -24,11 +24,11 @@ import { generationTaskDescriptor } from '@/features/canvas/application/resumeGe
 import {
   generateCanvasImageTo3d,
   getCanvasBeatDirectorManifest,
+  getCanvasDirectorStagePalette,
   uploadAndAutoCommitSelectedBackgroundCandidate,
   uploadCanvasAsset,
   uploadLocalImageToBackend,
 } from '@/features/canvas/composition';
-import { getDirectorStagePalette } from '@/api/viewerManifests';
 import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import { useNodeGenerationHistory } from '@/features/canvas/hooks/useNodeGenerationHistory';
@@ -907,7 +907,7 @@ export const ThreeDWorldNode = memo(({ id, data, selected, width, height }: Thre
       let defaultPalette: DirectorStageManifest['palette'] | null = null;
       if (!manifest) {
         try {
-          defaultPalette = await getDirectorStagePalette(projectId);
+          defaultPalette = await getCanvasDirectorStagePalette({ projectId });
         } catch (error) {
           console.warn('[3d-world] default director palette unavailable', error);
         }
