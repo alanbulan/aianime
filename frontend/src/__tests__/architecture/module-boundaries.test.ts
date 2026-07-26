@@ -2141,6 +2141,11 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasClipboardController.ts",
+    );
+    const controllerModel = readFileSync(controllerPath, "utf8");
     const builderForbiddenImports = importSpecifiers(builderPath).filter(
       (specifier) =>
         specifier === "react" ||
@@ -2163,14 +2168,28 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/features/canvas/composition",
     );
+    const controllerDeclaration = [
+      "export function",
+      "useCanvasClipboardController(",
+    ].join(" ");
+    const controllerOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(controllerDeclaration))
+      .map(relativeSource)
+      .sort();
 
     expect(builderForbiddenImports).toEqual([]);
     expect(hookForbiddenImports).toEqual([]);
+    expect(controllerOwners).toEqual([
+      "features/canvas/hooks/useCanvasClipboardController.ts",
+    ]);
     expect(builderModel).toContain("cloneCanvasNodeData(node.data)");
     expect(hookModel).toContain("sharedCanvasNodeClipboard");
     expect(hookModel).toContain("queueSnapshotPaste(() =>");
-    expect(canvasView).toContain("./hooks/useCanvasNodeClipboard");
-    expect(canvasView).toContain("createCanvasClipboardSnapshot({");
+    expect(controllerModel).toContain("./useCanvasNodeClipboard");
+    expect(controllerModel).toContain("createCanvasClipboardSnapshot({");
+    expect(canvasView).toContain("./hooks/useCanvasClipboardController");
+    expect(canvasView).not.toContain("./hooks/useCanvasNodeClipboard");
+    expect(canvasView).not.toContain("createCanvasClipboardSnapshot({");
     expect(canvasView).not.toContain("sharedNodeClipboard");
     expect(canvasView).not.toContain("copiedSnapshotRef");
     expect(canvasView).not.toContain("pasteFromClipboardRef");
@@ -2190,6 +2209,13 @@ describe("frontend architecture boundaries", () => {
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const controllerModel = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasClipboardController.ts",
+      ),
       "utf8",
     );
     const plannerForbiddenImports = importSpecifiers(plannerPath).filter(
@@ -2246,8 +2272,10 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("planCanvasClipboardDuplication({");
     expect(hookModel).toContain("commitNodeSelection(");
     expect(hookModel).toContain("void migrateAssets({");
-    expect(canvasView).toContain("./hooks/useCanvasClipboardDuplicationController");
-    expect(canvasView).toContain("migrateAssets: migratePastedNodeAssets");
+    expect(controllerModel).toContain("./useCanvasClipboardDuplicationController");
+    expect(controllerModel).toContain("migrateAssets: migratePastedNodeAssets");
+    expect(canvasView).not.toContain("./hooks/useCanvasClipboardDuplicationController");
+    expect(canvasView).not.toContain("migrateAssets: migratePastedNodeAssets");
     expect(canvasView).not.toContain("interface DuplicateOptions");
     expect(canvasView).not.toContain("const duplicateNodes = useCallback");
     expect(canvasView).not.toContain("pasteIterationRef");
@@ -8152,6 +8180,13 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const canvasClipboardController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasClipboardController.ts",
+      ),
+      "utf8",
+    );
     const declaration = [
       "export function",
       "clearBrowserClipboard(",
@@ -8166,9 +8201,10 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(adapterSource).toContain("runtime?.clipboard?.writeText('')");
     expect(compositionSource).toContain("export { clearBrowserClipboard };");
-    expect(canvasSource).toContain(
+    expect(canvasClipboardController).toContain(
       "clearSystemClipboard: clearBrowserClipboard",
     );
+    expect(canvasSource).not.toContain("clearSystemClipboard: clearBrowserClipboard");
     expect(canvasSource).not.toContain("navigator.clipboard");
     expect(clipboardController).toContain(
       "void clearSystemClipboard().catch(() => undefined)",

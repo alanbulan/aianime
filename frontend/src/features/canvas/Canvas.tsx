@@ -15,7 +15,6 @@ import {
   useStoreApi,
 } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 import '@xyflow/react/dist/style.css';
 
 import { CreditDisplayHiddenProvider } from '@/components/credits/credit-visual';
@@ -26,14 +25,9 @@ import { getSkillRegistry } from '@/api/skills';
 import { translateSkillName } from '@/features/freezone/context/skillI18n';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import {
-  clearBrowserClipboard,
-  migratePastedNodeAssets,
-} from '@/features/canvas/composition';
-import {
   CANVAS_NODE_TYPES,
 } from '@/features/canvas/domain/canvasNodes';
 import { CanvasMinimapBookmarksOverlay } from '@/features/canvas/ui/CanvasMinimapBookmarksOverlay';
-import { createCanvasClipboardSnapshot } from '@/features/canvas/application/createCanvasClipboardSnapshot';
 import { readUrl } from '@/lib/url-params';
 import { useQueryClient } from '@tanstack/react-query';
 import { prefetchEpisodeBeats, prefetchEpisodeDetail } from '@/modules/narrative_planning/public';
@@ -91,11 +85,7 @@ import {
   type CanvasBatchConnectionMenuRequest,
 } from './hooks/useCanvasBatchConnectionController';
 import { useCanvasConnectionController } from './hooks/useCanvasConnectionController';
-import {
-  useCanvasClipboardDuplicationController,
-  type CanvasClipboardNodeDimensionCommit,
-  type CanvasClipboardNodeSelectionCommit,
-} from './hooks/useCanvasClipboardDuplicationController';
+import { useCanvasClipboardController } from './hooks/useCanvasClipboardController';
 import { useCanvasPlusConnectionController } from './hooks/useCanvasPlusConnectionController';
 import { useCanvasQuickAddController } from './hooks/useCanvasQuickAddController';
 import { useCanvasReactFlowConnectionController } from './hooks/useCanvasReactFlowConnectionController';
@@ -108,7 +98,6 @@ import { useCanvasMinimapVisibility } from './hooks/useCanvasMinimapVisibility';
 import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
 import { useCanvasNodeClickController } from './hooks/useCanvasNodeClickController';
 import { useCanvasNodeFocusController } from './hooks/useCanvasNodeFocusController';
-import { useCanvasNodeClipboard } from './hooks/useCanvasNodeClipboard';
 import { useCanvasNodeMenuShortcut } from './hooks/useCanvasNodeMenuShortcut';
 import { useCanvasNodeMenuSelectionController } from './hooks/useCanvasNodeMenuSelectionController';
 import { useCanvasNodeMenuStateController } from './hooks/useCanvasNodeMenuStateController';
@@ -142,10 +131,6 @@ const MULTI_SELECTION_KEY_CODES = ['Control', 'Meta'];
 // (button 1). Left drag (0) runs the custom marquee box-select on the empty pane;
 // right click (2) opens the canvas context menu.
 const PAN_ON_DRAG_BUTTONS = [1];
-function reportCanvasClipboardMigrationError(error: unknown): void {
-  console.warn('[canvas] cross-project asset migration failed', error);
-}
-
 const CANVAS_SNAP_ALIGNMENT_PORT: CanvasSnapAlignmentPort = {
   isEnabled: () => useSnapAlignStore.getState().enabled,
   setGuides: (guides) => useSnapAlignStore.getState().setGuides(guides),
@@ -602,57 +587,24 @@ export function Canvas({
     deleteNode,
   });
 
-  const commitClipboardNodeDimensions = useCallback(
-    (updates: CanvasClipboardNodeDimensionCommit[]) => {
-      applyNodesChange(updates.map((update) => ({
-        id: update.nodeId,
-        type: 'dimensions' as const,
-        dimensions: { width: update.width, height: update.height },
-        resizing: false,
-        setAttributes: true,
-      })));
-    },
-    [applyNodesChange],
-  );
-  const commitClipboardNodeSelection = useCallback(
-    (updates: CanvasClipboardNodeSelectionCommit[]) => {
-      applyNodesChange(updates.map((update) => ({
-        id: update.nodeId,
-        type: 'select' as const,
-        selected: update.selected,
-      })));
-    },
-    [applyNodesChange],
-  );
-  const notifyClipboardMigrationSuccess = useCallback(
-    (count: number) => {
-      toast.success(t('canvas.crossProjectAssets.success', { count }));
-    },
-    [t],
-  );
-  const notifyClipboardMigrationPartialFailure = useCallback(
-    (count: number) => {
-      toast.error(t('canvas.crossProjectAssets.partialFailure', { count }));
-    },
-    [t],
-  );
   const {
     duplicateNodes,
-    pasteFromClipboard,
-    resetPasteIteration,
-  } = useCanvasClipboardDuplicationController({
+    hasCopiedNodes,
+    copySelection,
+    pasteSelection,
+    pasteAt,
+  } = useCanvasClipboardController({
+    nodes,
+    edges,
+    selectedNodeIds,
+    currentProject: canvasProject,
     getGraph: getCanvasGraph,
     createNode: addNode,
-    commitNodeDimensions: commitClipboardNodeDimensions,
+    applyNodeChanges: applyNodesChange,
     connectNodes,
-    commitNodeSelection: commitClipboardNodeSelection,
     selectNode: setSelectedNode,
-    currentProject: canvasProject ?? null,
-    migrateAssets: migratePastedNodeAssets,
     updateNodeData,
-    notifyMigrationSuccess: notifyClipboardMigrationSuccess,
-    notifyMigrationPartialFailure: notifyClipboardMigrationPartialFailure,
-    reportMigrationError: reportCanvasClipboardMigrationError,
+    queueSnapshotPaste,
   });
 
   const commitDragNodePositions = useCallback(
@@ -708,27 +660,6 @@ export function Canvas({
     deleteEdge,
   });
 
-  const createClipboardSnapshot = useCallback(
-    () => createCanvasClipboardSnapshot({
-      nodes,
-      edges,
-      selectedNodeIds,
-      sourceProject: canvasProject,
-    }),
-    [canvasProject, edges, nodes, selectedNodeIds],
-  );
-  const {
-    hasCopiedNodes,
-    copySelection,
-    pasteSelection,
-    pasteAt,
-  } = useCanvasNodeClipboard({
-    createSnapshot: createClipboardSnapshot,
-    pasteSnapshot: pasteFromClipboard,
-    queueSnapshotPaste,
-    resetPasteIteration,
-    clearSystemClipboard: clearBrowserClipboard,
-  });
   const getContextMenuCapabilities = useCallback(() => {
     const history = useCanvasStore.getState().history;
     return {
