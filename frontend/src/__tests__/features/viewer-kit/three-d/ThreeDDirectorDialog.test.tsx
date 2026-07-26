@@ -15,7 +15,7 @@ import {
   getBeatDirectorStageOverlay,
   saveBeatDirectorControlFrame,
   saveBeatDirectorStageOverlay,
-} from "@/api/viewerManifests";
+} from "@/features/viewer-kit/public";
 
 const viewerMock = vi.hoisted(() => ({
   hasCollision: vi.fn(() => true),
@@ -211,7 +211,7 @@ vi.mock("sonner", () => ({
   },
 }));
 
-vi.mock("@/api/viewerManifests", () => ({
+vi.mock("@/features/viewer-kit/public", () => ({
   generateAiStagingProp: vi.fn(async () => ({
     prop: {
       prop_id: "horse_mount",

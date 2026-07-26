@@ -165,14 +165,12 @@ describe("freezone viewer contracts", () => {
     const dialog = read("src/features/viewer-kit/three-d/ThreeDDirectorDialog.tsx");
     const manifest = read("src/features/viewer-kit/three-d/directorManifest.ts");
     const worldNode = read("src/features/canvas/nodes/ThreeDWorldNode.tsx");
-    const viewerManifestsApi = read("src/api/viewerManifests.ts");
     const canvasComposition = read("src/features/canvas/composition.ts");
     const skillNode = read("src/features/canvas/nodes/SkillNode.tsx");
     const zh = read("public/locales/zh/translation.json");
     const en = read("public/locales/en/translation.json");
 
     expect(manifest).toContain("anonymous_prop_colors: string[];");
-    expect(viewerManifestsApi).not.toContain("getDirectorStagePalette");
     expect(canvasComposition).toContain("getCanvasDirectorStagePalette");
     expect(worldNode).toContain("getCanvasDirectorStagePalette({ projectId })");
     expect(worldNode).toContain("defaultPalette");

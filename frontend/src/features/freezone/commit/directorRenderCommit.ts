@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
-import { saveBeatDirectorControlFrame } from "@/api/viewerManifests";
 import type { PushResult, PushTarget } from "@/api/push";
+import { saveBeatDirectorControlFrame } from "@/features/viewer-kit/public";
 
 type DirectorRenderTarget = Extract<PushTarget, { kind: "director_render" }>;
 

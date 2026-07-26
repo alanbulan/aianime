@@ -1,10 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { saveBeatDirectorControlFrame } from "@/api/viewerManifests";
 import { commitDirectorRenderFromCanvasSource } from "@/features/freezone/commit/directorRenderCommit";
+import { saveBeatDirectorControlFrame } from "@/features/viewer-kit/public";
 
-vi.mock("@/api/viewerManifests", () => ({
+vi.mock("@/features/viewer-kit/public", () => ({
   saveBeatDirectorControlFrame: vi.fn(async () => ({
     rel_paths: {
       combined: "director_control_frames/ep001/beat_06/combined.png",

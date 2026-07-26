@@ -9277,7 +9277,6 @@ describe("frontend architecture boundaries", () => {
     const assetCompositionSource = readFileSync(assetCompositionPath, "utf8");
     const assetPublicSource = readFileSync(assetPublicPath, "utf8");
     const canvasCompositionSource = readFileSync(canvasCompositionPath, "utf8");
-    const legacyApiSource = readFileSync(legacyApiPath, "utf8");
     const endpointDeclaration = [
       "async getDirectorStageManifest(",
       "project, episode, beatNumber, signal",
@@ -9291,6 +9290,7 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(existsSync(duplicateAdapterPath)).toBe(false);
+    expect(existsSync(legacyApiPath)).toBe(false);
     expect(new Set(importSpecifiers(assetApplicationPath))).toEqual(
       new Set([
         "@/features/viewer-kit/three-d/directorManifest",
@@ -9321,7 +9321,6 @@ describe("frontend architecture boundaries", () => {
     expect(canvasCompositionSource).toContain(
       "getCanvasBeatDirectorManifestUseCase(",
     );
-    expect(legacyApiSource).not.toContain("getBeatDirectorStageManifest");
     for (const nodePath of nodePaths) {
       const nodeSource = readFileSync(nodePath, "utf8");
       expect(nodeSource).toContain("getCanvasBeatDirectorManifest");
@@ -9351,7 +9350,6 @@ describe("frontend architecture boundaries", () => {
     const adapterSource = readFileSync(adapterPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const nodeSource = readFileSync(nodePath, "utf8");
-    const legacyApiSource = readFileSync(legacyApiPath, "utf8");
     const endpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
       .filter((path) =>
@@ -9373,6 +9371,7 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(applicationPath)).toEqual([
       "@/features/viewer-kit/three-d/directorManifest",
     ]);
+    expect(existsSync(legacyApiPath)).toBe(false);
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
       new Set([
         "@/shared/api/client",
@@ -9399,8 +9398,6 @@ describe("frontend architecture boundaries", () => {
     expect(nodeSource).toContain(
       "getCanvasDirectorStagePalette({ projectId })",
     );
-    expect(legacyApiSource).not.toContain("getDirectorStagePalette");
-    expect(legacyApiSource).not.toContain("DirectorStagePalette");
   });
 
   it("does not retain unused viewer manifest API exports", () => {
@@ -9409,7 +9406,6 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "__tests__/features/viewer-kit/three-d/ThreeDDirectorDialog.test.tsx",
     );
-    const apiSource = readFileSync(apiPath, "utf8");
     const dialogTestSource = readFileSync(dialogTestPath, "utf8");
     const removedExports = [
       "getBeatPanoViewerManifest",
@@ -9417,11 +9413,8 @@ describe("frontend architecture boundaries", () => {
       "startDirectorControlToSketch",
     ];
 
-    expect(importSpecifiers(apiPath)).not.toContain(
-      "@/features/viewer-kit/pano/panoManifest",
-    );
+    expect(existsSync(apiPath)).toBe(false);
     for (const exportName of removedExports) {
-      expect(apiSource).not.toContain(exportName);
       expect(dialogTestSource).not.toContain(exportName);
     }
   });
@@ -9466,7 +9459,6 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const freezoneCommitSource = readFileSync(freezoneCommitPath, "utf8");
-    const legacyApiSource = readFileSync(legacyApiPath, "utf8");
     const sourceEndpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
       .filter((path) =>
@@ -9493,6 +9485,7 @@ describe("frontend architecture boundaries", () => {
         "@/modules/asset_world/application/scene-gateway",
       ]),
     );
+    expect(existsSync(legacyApiPath)).toBe(false);
     expect(applicationSource).toContain(
       "unwrapSceneDirectorWorldResponse(",
     );
@@ -9532,14 +9525,90 @@ describe("frontend architecture boundaries", () => {
     expect(freezoneCommitSource).toContain(
       "await loadSceneDirectorStageManifest(project, sceneId)",
     );
-    for (const legacyName of [
-      "getSceneDirectorStageManifest",
-      "saveSceneDirectorWorld",
-      "saveSceneDirectorWorldSource",
-      "clearSceneDirectorWorld",
-    ]) {
-      expect(legacyApiSource).not.toContain(legacyName);
-    }
+  });
+
+  it("keeps Beat director editing behind the Viewer Kit public API", () => {
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/viewer-kit/three-d/application/directorStageOperations.ts",
+    );
+    const adapterPath = resolve(
+      SRC_ROOT,
+      "features/viewer-kit/three-d/infrastructure/freezoneDirectorStageGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/viewer-kit/three-d/composition.ts",
+    );
+    const publicPath = resolve(SRC_ROOT, "features/viewer-kit/public.ts");
+    const dialogPath = resolve(
+      SRC_ROOT,
+      "features/viewer-kit/three-d/ThreeDDirectorDialog.tsx",
+    );
+    const freezoneCommitPath = resolve(
+      SRC_ROOT,
+      "features/freezone/commit/directorRenderCommit.ts",
+    );
+    const legacyApiPath = resolve(SRC_ROOT, "api/viewerManifests.ts");
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const adapterSource = readFileSync(adapterPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const publicSource = readFileSync(publicPath, "utf8");
+    const dialogSource = readFileSync(dialogPath, "utf8");
+    const freezoneCommitSource = readFileSync(freezoneCommitPath, "utf8");
+    const endpointOwner = (endpoint: string) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => !path.includes(".test."))
+        .filter((path) => readFileSync(path, "utf8").includes(endpoint))
+        .map(relativeSource)
+        .sort();
+    const expectedAdapter = [
+      "features/viewer-kit/three-d/infrastructure/freezoneDirectorStageGateway.ts",
+    ];
+
+    expect(existsSync(legacyApiPath)).toBe(false);
+    expect(importSpecifiers(applicationPath)).toEqual([
+      "../directorManifest",
+    ]);
+    expect(new Set(importSpecifiers(adapterPath))).toEqual(
+      new Set([
+        "@/shared/api/client",
+        "../directorManifest",
+        "../application/directorStageOperations",
+      ]),
+    );
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(adapterSource).toContain("beatDirectorPath(");
+    expect(endpointOwner("director-stage/${suffix}")).toEqual(
+      expectedAdapter,
+    );
+    expect(adapterSource).toContain('"overlay"');
+    expect(adapterSource).toContain('"control-frame"');
+    expect(endpointOwner("freezone/ai-staging-prop")).toEqual(
+      expectedAdapter,
+    );
+    expect(compositionSource).toContain(
+      "saveBeatDirectorControlFrameUseCase(",
+    );
+    expect(compositionSource).toContain("freezoneDirectorStageGateway");
+    expect(publicSource).toContain("saveBeatDirectorControlFrame,");
+    expect(importSpecifiers(dialogPath)).toContain(
+      "@/features/viewer-kit/public",
+    );
+    expect(importSpecifiers(dialogPath)).not.toContain(
+      "@/api/viewerManifests",
+    );
+    expect(dialogSource).toContain("saveBeatDirectorStageOverlay(");
+    expect(importSpecifiers(freezoneCommitPath)).toContain(
+      "@/features/viewer-kit/public",
+    );
+    expect(importSpecifiers(freezoneCommitPath)).not.toContain(
+      "@/api/viewerManifests",
+    );
+    expect(freezoneCommitSource).toContain(
+      "await saveBeatDirectorControlFrame(",
+    );
   });
 
   it("keeps Canvas image-to-3D generation orchestration out of views", () => {
