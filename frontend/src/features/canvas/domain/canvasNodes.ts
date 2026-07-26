@@ -173,7 +173,7 @@ export interface VideoNodeData extends NodeDisplayData {
 /**
  * 「视频合成」节点。把 ≥2 个上游视频节点（可选音频节点）连进来后，打开 libtv 风格
  * 的时间线剪辑器（{@link VideoComposeModal}）编排导出。最终合成走后端
- * `submitFreezoneVideoCompose`，导出地址回写到 `resultVideoUrl`。
+ * Canvas 视频合成用例，导出地址回写到 `resultVideoUrl`。
  */
 export interface VideoComposeNodeData extends NodeDisplayData {
   /** 最近一次合成导出的视频 url。 */

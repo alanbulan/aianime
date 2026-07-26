@@ -13854,9 +13854,11 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/composition.ts",
     );
+    const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
+    const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const videoNode = readFileSync(
       resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
       "utf8",
@@ -13866,6 +13868,13 @@ describe("frontend architecture boundaries", () => {
     );
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+    const endpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("}/freezone/video/compose`"),
+      )
       .map(relativeSource)
       .sort();
 
@@ -13881,13 +13890,25 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).toContain("params.startMs / 1000");
     expect(applicationSource).toContain("params.endMs / 1000");
     expect(applicationSource).toContain("composeCanvasVideo(");
-    expect(importSpecifiers(adapterPath)).toEqual([
-      "@/api/ops",
-      "../application/composeCanvasVideo",
-    ]);
+    expect(new Set(importSpecifiers(adapterPath))).toEqual(
+      new Set([
+        "@/shared/api/client",
+        "../application/composeCanvasVideo",
+        "../application/ports",
+      ]),
+    );
     expect(adapterSource).not.toContain("react");
     expect(adapterSource).not.toContain("@/stores/");
-    expect(adapterSource).toContain("submitFreezoneVideoCompose(");
+    expect(adapterSource).toContain('method: "POST"');
+    expect(adapterSource).toContain("canvas_id: request.canvasId ?? \"\"");
+    expect(endpointOwners).toEqual([
+      "features/canvas/infrastructure/freezoneVideoComposeGateway.ts",
+    ]);
+    expect(legacyOpsSource).not.toContain("submitFreezoneVideoCompose");
+    expect(legacyOpsSource).not.toContain("}/freezone/video/compose`");
+    expect(importSpecifiers(legacyOpsPath)).not.toContain(
+      "@/features/canvas/domain/videoCompose",
+    );
     expect(compositionSource).toContain(
       "composeGateway: freezoneVideoComposeGateway",
     );
@@ -13982,9 +14003,10 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain(
       "composeCanvasVideoUseCase(params, {",
     );
-    expect(opsSource).toContain(
+    expect(opsSource).not.toContain(
       "@/features/canvas/domain/videoCompose",
     );
+    expect(opsSource).not.toContain("submitFreezoneVideoCompose");
     expect(opsSource).not.toContain("FreezoneVideoComposeResolution");
     expect(opsSource).not.toContain("FreezoneVideoComposePayload");
     expect(existsSync(oldAdapterPath)).toBe(false);

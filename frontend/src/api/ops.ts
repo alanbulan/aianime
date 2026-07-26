@@ -35,7 +35,6 @@ import type {
   CanvasAssetLibraryMedia,
   CanvasAssetLibrarySource,
 } from "@/features/canvas/domain/assetLibrary";
-import type { CanvasVideoComposeRequest } from "@/features/canvas/domain/videoCompose";
 import type { CanvasImageTo3dSourceKind } from "@/features/canvas/domain/imageTo3d";
 import {
   ensureBackendImageUrl,
@@ -662,41 +661,6 @@ export async function submitFreezoneVideoErase(
   }
   return await apiCall<FreezoneJobRef>(
     `projects/${encodeURIComponent(project)}/freezone/video/erase`,
-    { method: "POST", json: body },
-  );
-}
-
-// /freezone/video/compose ------------------------------------------------- //
-
-export async function submitFreezoneVideoCompose(
-  project: string,
-  payload: CanvasVideoComposeRequest,
-): Promise<FreezoneJobRef> {
-  const body: Record<string, unknown> = {
-    title: payload.title ?? "",
-    canvas_id: payload.canvasId ?? "",
-    resolution: payload.resolution ?? "1080p",
-    fps: payload.fps ?? 30,
-    background_color: payload.backgroundColor ?? "#000000",
-    keep_original_audio: payload.keepOriginalAudio ?? true,
-    cover_url: payload.coverUrl ?? "",
-    tracks: payload.tracks.map((track) => ({
-      track_id: track.trackId,
-      kind: track.kind,
-      items: track.items.map((item) => ({
-        item_id: item.itemId,
-        source_url: item.sourceUrl,
-        timeline_start: item.timelineStart ?? 0,
-        source_start: item.sourceStart ?? 0,
-        source_end: item.sourceEnd,
-        volume: item.volume ?? 1,
-        muted: item.muted ?? false,
-        speed: item.speed ?? 1,
-      })),
-    })),
-  };
-  return await apiCall<FreezoneJobRef>(
-    `projects/${encodeURIComponent(project)}/freezone/video/compose`,
     { method: "POST", json: body },
   );
 }
