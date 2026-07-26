@@ -21,10 +21,6 @@ import {
   type CanvasRedrawImageSize,
   type CanvasRedrawNumImages,
 } from "@/features/canvas/domain/redraw";
-import {
-  DEFAULT_CANVAS_UPSCALE_SCALE_FACTOR,
-  type CanvasUpscaleScaleFactor,
-} from "@/features/canvas/domain/upscale";
 import type {
   CanvasAssetLibraryMedia,
   CanvasAssetLibrarySource,
@@ -1159,34 +1155,6 @@ export async function submitFreezoneRedraw(
           payload.aspectRatio ?? DEFAULT_CANVAS_REDRAW_ASPECT_RATIO,
         num_images: payload.numImages ?? DEFAULT_CANVAS_REDRAW_NUM_IMAGES,
         image_size: payload.imageSize ?? DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
-        ...(payload.model ? { model: payload.model } : {}),
-      },
-    },
-  );
-}
-
-// /freezone/upscale ------------------------------------------------------- //
-
-export interface FreezoneUpscalePayload {
-  sourceUrl: string;
-  scaleFactor?: CanvasUpscaleScaleFactor;
-  imageSize?: string;
-  model?: string;
-}
-
-export async function submitFreezoneUpscale(
-  project: string,
-  payload: FreezoneUpscalePayload,
-): Promise<FreezoneJobRef> {
-  return await apiCall<FreezoneJobRef>(
-    `projects/${encodeURIComponent(project)}/freezone/upscale`,
-    {
-      method: "POST",
-      json: {
-        source_url: payload.sourceUrl,
-        scale_factor:
-          payload.scaleFactor ?? DEFAULT_CANVAS_UPSCALE_SCALE_FACTOR,
-        image_size: payload.imageSize ?? "2K",
         ...(payload.model ? { model: payload.model } : {}),
       },
     },

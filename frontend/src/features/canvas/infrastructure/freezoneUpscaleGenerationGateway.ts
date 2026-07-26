@@ -1,15 +1,22 @@
 // Copyright (c) 2026 AI anime
-import { submitFreezoneUpscale } from "@/api/ops";
+import { apiCall } from "@/shared/api/client";
 
 import type { CanvasUpscaleGenerationGateway } from "../application/generateCanvasUpscale";
+import type { CanvasGenerationTaskRef } from "../application/ports";
 
 export const freezoneUpscaleGenerationGateway: CanvasUpscaleGenerationGateway = {
   async submit(projectId, command) {
-    return await submitFreezoneUpscale(projectId, {
-      sourceUrl: command.sourceUrl,
-      scaleFactor: command.scaleFactor,
-      imageSize: command.imageSize,
-      model: command.model,
-    });
+    return await apiCall<CanvasGenerationTaskRef>(
+      `projects/${encodeURIComponent(projectId)}/freezone/upscale`,
+      {
+        method: "POST",
+        json: {
+          source_url: command.sourceUrl,
+          scale_factor: command.scaleFactor,
+          image_size: command.imageSize,
+          ...(command.model ? { model: command.model } : {}),
+        },
+      },
+    );
   },
 };

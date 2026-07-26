@@ -11181,6 +11181,13 @@ describe("frontend architecture boundaries", () => {
     const compositionSource = readFileSync(compositionPath, "utf8");
     const overlaySource = readFileSync(overlayPath, "utf8");
     const opsSource = readFileSync(opsPath, "utf8");
+    const endpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("}/freezone/upscale`"),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(importSpecifiers(domainPath)).toEqual([]);
     expect(domainSource).toContain(
@@ -11209,7 +11216,11 @@ describe("frontend architecture boundaries", () => {
       "completeCanvasMediaGenerationTask(",
     );
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
-      new Set(["@/api/ops", "../application/generateCanvasUpscale"]),
+      new Set([
+        "@/shared/api/client",
+        "../application/generateCanvasUpscale",
+        "../application/ports",
+      ]),
     );
     expect(infrastructureSource).toContain(
       "freezoneUpscaleGenerationGateway: CanvasUpscaleGenerationGateway",
@@ -11229,7 +11240,13 @@ describe("frontend architecture boundaries", () => {
     expect(overlaySource).not.toContain("submitFreezoneUpscale");
     expect(overlaySource).not.toContain("fetchFreezoneJobResult");
     expect(overlaySource).not.toContain("awaitTaskCompletion");
-    expect(opsSource).toContain("@/features/canvas/domain/upscale");
+    expect(endpointOwners).toEqual([
+      "features/canvas/infrastructure/freezoneUpscaleGenerationGateway.ts",
+    ]);
+    expect(opsSource).not.toContain("@/features/canvas/domain/upscale");
+    expect(opsSource).not.toContain("FreezoneUpscalePayload");
+    expect(opsSource).not.toContain("submitFreezoneUpscale");
+    expect(opsSource).not.toContain("}/freezone/upscale`");
     expect(opsSource).not.toContain("FreezoneUpscaleScaleFactor");
   });
 
