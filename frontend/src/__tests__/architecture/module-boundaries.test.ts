@@ -1341,6 +1341,66 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps Canvas viewport surface assembly in one presentation controller", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasViewportSurfaceController.ts",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(controllerPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declaration = [
+      "export function",
+      "useCanvasViewportSurfaceController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+    const childControllers = [
+      "./useCanvasMinimapVisibility",
+      "./useCanvasViewportRuntimeController",
+      "./useCanvasLifecycle",
+      "./useCanvasSnapAlignment",
+      "./useCanvasNodeFocusController",
+      "./useCanvasAutoLayoutController",
+    ];
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasViewportSurfaceController.ts",
+    ]);
+    for (const childController of childControllers) {
+      expect(controllerSource).toContain(childController);
+      expect(canvasView).not.toContain(
+        childController.replace("./", "./hooks/"),
+      );
+    }
+    expect(controllerSource).toContain("../trackpad-pan/trackpadPanStore");
+    expect(controllerSource).toContain("../snap-align/snapAlignStore");
+    expect(controllerSource).toContain("viewportPort.fitView(options)");
+    expect(controllerSource).toContain("useSnapAlignStore.getState()");
+    expect(canvasView).toContain("./hooks/useCanvasViewportSurfaceController");
+    expect(canvasView).not.toContain("useTrackpadPanStore");
+    expect(canvasView).not.toContain("useSnapAlignStore");
+    expect(canvasView).not.toContain("CANVAS_SNAP_ALIGNMENT_PORT");
+    expect(canvasView).not.toContain("fitAutoLayoutViewport");
+  });
+
   it("keeps Canvas minimap visibility state in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
@@ -1376,7 +1436,8 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain(hookDeclaration);
     expect(hookModel).toContain("isTypingTarget");
     expect(hookModel).toContain("isImmersiveViewerActive");
-    expect(canvasView).toContain("./hooks/useCanvasMinimapVisibility");
+    expect(canvasView).toContain("./hooks/useCanvasViewportSurfaceController");
+    expect(canvasView).not.toContain("./hooks/useCanvasMinimapVisibility");
     expect(canvasView).not.toContain("const [minimapPinned,");
     expect(canvasView).not.toContain("const [minimapHovered,");
     expect(canvasView).not.toContain("minimapHideTimerRef");
@@ -1695,7 +1756,8 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("scheduleAfterLayout(");
     expect(hookModel).toContain("duration: 240");
     expect(hookModel).toContain("padding: 0.2");
-    expect(canvasView).toContain("./hooks/useCanvasAutoLayoutController");
+    expect(canvasView).toContain("./hooks/useCanvasViewportSurfaceController");
+    expect(canvasView).not.toContain("./hooks/useCanvasAutoLayoutController");
     expect(canvasView).not.toContain("computeAutoLayout(");
     expect(canvasView).not.toContain("const handleOrganizeCanvas = useCallback");
     expect(canvasView).not.toContain("Object.keys(positions)");
@@ -1886,7 +1948,8 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(hookModel).toContain("VIEWPORT_COMMIT_INTERVAL_MS = 120");
     expect(viewportController).toContain("./useCanvasViewportCommit");
-    expect(canvasView).toContain("./hooks/useCanvasViewportRuntimeController");
+    expect(canvasView).toContain("./hooks/useCanvasViewportSurfaceController");
+    expect(canvasView).not.toContain("./hooks/useCanvasViewportRuntimeController");
     expect(canvasView).not.toContain("./hooks/useCanvasViewportCommit");
     expect(canvasView).not.toContain("lastViewportCommitRef");
     expect(canvasView).not.toContain("handleMoveStart");
@@ -2664,7 +2727,8 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(hookModel).toContain("resolveCanvasOriginViewport(");
     expect(hookModel).toContain("return closeImageViewer;");
-    expect(canvasView).toContain("./hooks/useCanvasLifecycle");
+    expect(canvasView).toContain("./hooks/useCanvasViewportSurfaceController");
+    expect(canvasView).not.toContain("./hooks/useCanvasLifecycle");
     expect(canvasView).not.toContain("useEffect(");
     expect(canvasView).not.toContain("resolveCanvasOriginViewport(");
   });
@@ -2869,7 +2933,8 @@ describe("frontend architecture boundaries", () => {
     expect(computeModel).toContain("export interface SnapAlignGuides");
     expect(computeModel).not.toContain("./snapAlignStore");
     expect(storeModel).toContain("from './computeSnapAlign'");
-    expect(canvasView).toContain("./hooks/useCanvasSnapAlignment");
+    expect(canvasView).toContain("./hooks/useCanvasViewportSurfaceController");
+    expect(canvasView).not.toContain("./hooks/useCanvasSnapAlignment");
     expect(graphChangeController).toContain("alignNodeChanges({");
     expect(canvasView).not.toContain("alignNodeChanges({");
     expect(canvasView).not.toContain("snapAlignIndexRef");
@@ -3259,7 +3324,8 @@ describe("frontend architecture boundaries", () => {
     expect(controllerModel).toContain("./useCanvasPendingNodeFocus");
     expect(controllerModel).toContain("runtimePort.getInternalNode(nodeId)");
     expect(controllerModel).toContain("runtimePort.setCenter(");
-    expect(canvasView).toContain("./hooks/useCanvasNodeFocusController");
+    expect(canvasView).toContain("./hooks/useCanvasViewportSurfaceController");
+    expect(canvasView).not.toContain("./hooks/useCanvasNodeFocusController");
     expect(canvasView).not.toContain("./hooks/useCanvasPendingNodeFocus");
     expect(canvasView).not.toContain("nodeFocusViewportPort");
     expect(canvasView).not.toContain("getInternalNode(");

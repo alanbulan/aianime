@@ -19,25 +19,16 @@ import {
   projectCanvasEdgesForRender,
   projectCanvasNodesForRender,
 } from './ui/canvasRenderProjection';
-import { useTrackpadPanStore } from './trackpad-pan/trackpadPanStore';
-import { useSnapAlignStore } from './snap-align/snapAlignStore';
 import { useCanvasExternalDialogs } from './hooks/useCanvasExternalDialogs';
 import { useCanvasGenerationRecoveryController } from './hooks/useCanvasGenerationRecoveryController';
-import {
-  useCanvasAutoLayoutController,
-  type CanvasAutoLayoutViewportOptions,
-} from './hooks/useCanvasAutoLayoutController';
 import { useCanvasGraphInteractionController } from './hooks/useCanvasGraphInteractionController';
 import { useCanvasHistoryAssetController } from './hooks/useCanvasHistoryAssetController';
 import { useCanvasConnectionController } from './hooks/useCanvasConnectionController';
 import { useCanvasClipboardController } from './hooks/useCanvasClipboardController';
 import { useCanvasConnectionGestureController } from './hooks/useCanvasConnectionGestureController';
-import { useCanvasLifecycle } from './hooks/useCanvasLifecycle';
 import { useCanvasMarqueeSelection } from './hooks/useCanvasMarqueeSelection';
 import { useCanvasMediaTransferController } from './hooks/useCanvasMediaTransferController';
-import { useCanvasMinimapVisibility } from './hooks/useCanvasMinimapVisibility';
 import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
-import { useCanvasNodeFocusController } from './hooks/useCanvasNodeFocusController';
 import { useCanvasNodeInteractionController } from './hooks/useCanvasNodeInteractionController';
 import { useCanvasNodeMenuStateController } from './hooks/useCanvasNodeMenuStateController';
 import { useCanvasNodeCatalogController } from './hooks/useCanvasNodeCatalogController';
@@ -46,17 +37,7 @@ import { useCanvasCommandSurfaceController } from './hooks/useCanvasCommandSurfa
 import { useCanvasProjectContextController } from './hooks/useCanvasProjectContextController';
 import { useCanvasSelectionSync } from './hooks/useCanvasSelectionSync';
 import { useCanvasSelectionCommandController } from './hooks/useCanvasSelectionCommandController';
-import {
-  useCanvasSnapAlignment,
-  type CanvasSnapAlignmentPort,
-} from './hooks/useCanvasSnapAlignment';
-import { useCanvasViewportRuntimeController } from './hooks/useCanvasViewportRuntimeController';
-
-const CANVAS_SNAP_ALIGNMENT_PORT: CanvasSnapAlignmentPort = {
-  isEnabled: () => useSnapAlignStore.getState().enabled,
-  setGuides: (guides) => useSnapAlignStore.getState().setGuides(guides),
-  clearGuides: () => useSnapAlignStore.getState().clearGuides(),
-};
+import { useCanvasViewportSurfaceController } from './hooks/useCanvasViewportSurfaceController';
 
 interface CanvasProps {
   onBlankPaneClick?: () => void;
@@ -72,12 +53,6 @@ export function Canvas({
   const reactFlowStore = useStoreApi();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  const {
-    pinned: minimapPinned,
-    visible: minimapVisible,
-    setHovered: setMinimapHover,
-    togglePinned: toggleMinimapPinned,
-  } = useCanvasMinimapVisibility();
   // hover 节点 id 放在 store 里：除了喂给 NodeSpawnPlusOverlay 的「+」，
   // NodeSideActionRail 的上传/替换按钮栏也要据此「hover 才显示」。
   const hoveredNodeId = useCanvasStore((state) => state.hoveredNodeId);
@@ -128,9 +103,6 @@ export function Canvas({
   const { projectId: canvasProject } = useCanvasProjectContextController({
     nodes,
   });
-  // 触控板平移开关：开启后用 ReactFlow 的 panOnScroll（两指滑动平移、捏合缩放），
-  // 关闭则回到默认的滚轮缩放。
-  const trackpadPanEnabled = useTrackpadPanStore((state) => state.enabled);
   // 底部任务中心面板展开时，让出底部空间——隐藏画布快捷操作栏，避免与面板重叠。
   const taskPanelOpen = useAppStore((state) => state.taskPanelOpen);
   useCanvasGenerationRecoveryController({
@@ -160,18 +132,6 @@ export function Canvas({
   const closeToolDialog = useCanvasStore((state) => state.closeToolDialog);
   const setViewportState = useCanvasStore((state) => state.setViewportState);
   const setCanvasViewportSize = useCanvasStore((state) => state.setCanvasViewportSize);
-  const {
-    initialViewport,
-    handleMove,
-    handleMoveEnd,
-    handleEdgeClick,
-  } = useCanvasViewportRuntimeController({
-    wrapperRef,
-    viewportPort: reactFlowInstance,
-    transformStore: reactFlowStore,
-    commitViewport: setViewportState,
-    setViewportSize: setCanvasViewportSize,
-  });
   const imageViewer = useCanvasStore((state) => state.imageViewer);
   const closeImageViewer = useCanvasStore((state) => state.closeImageViewer);
   const navigateImageViewer = useCanvasStore((state) => state.navigateImageViewer);
@@ -193,22 +153,33 @@ export function Canvas({
     () => useCanvasStore.getState().nodes.length === 0,
     [],
   );
-  useCanvasLifecycle({
-    wrapperRef,
-    isCanvasEmpty,
-    setViewport: setViewportState,
-    closeImageViewer,
-  });
   const {
+    pinned: minimapPinned,
+    visible: minimapVisible,
+    setHovered: setMinimapHover,
+    togglePinned: toggleMinimapPinned,
+    trackpadPanEnabled,
+    initialViewport,
+    handleMove,
+    handleMoveEnd,
+    handleEdgeClick,
     alignNodeChanges,
     clearSnapAlignment,
-  } = useCanvasSnapAlignment(CANVAS_SNAP_ALIGNMENT_PORT);
-
-  const { centerViewport: centerNodeViewport } = useCanvasNodeFocusController({
-    pendingNodeId: pendingFocusNodeId,
+    centerNodeViewport,
+    organizeCanvas: handleOrganizeCanvas,
+  } = useCanvasViewportSurfaceController({
+    wrapperRef,
+    viewportPort: reactFlowInstance,
+    transformStore: reactFlowStore,
+    commitViewport: setViewportState,
+    setViewportSize: setCanvasViewportSize,
     nodes,
-    runtimePort: reactFlowInstance,
+    edges,
+    pendingNodeId: pendingFocusNodeId,
     clearPendingFocus,
+    setNodePositions,
+    isCanvasEmpty,
+    closeImageViewer,
   });
 
   const getCanvasGraph = useCallback(() => {
@@ -338,20 +309,6 @@ export function Canvas({
     selectNode: setSelectedNode,
     eventBus: canvasEventBus,
   });
-
-  const fitAutoLayoutViewport = useCallback(
-    (options: CanvasAutoLayoutViewportOptions) => {
-      void reactFlowInstance.fitView(options);
-    },
-    [reactFlowInstance],
-  );
-  const { organizeCanvas: handleOrganizeCanvas } =
-    useCanvasAutoLayoutController({
-      nodes,
-      edges,
-      setNodePositions,
-      fitViewport: fitAutoLayoutViewport,
-    });
 
   const getCurrentSelectionEdges = useCallback(
     () => getCanvasGraph().edges,
