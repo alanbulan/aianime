@@ -22,11 +22,10 @@ import {
 import { useCanvasExternalDialogs } from './hooks/useCanvasExternalDialogs';
 import { useCanvasGenerationRecoveryController } from './hooks/useCanvasGenerationRecoveryController';
 import { useCanvasGraphInteractionController } from './hooks/useCanvasGraphInteractionController';
-import { useCanvasHistoryAssetController } from './hooks/useCanvasHistoryAssetController';
 import { useCanvasConnectionController } from './hooks/useCanvasConnectionController';
 import { useCanvasClipboardController } from './hooks/useCanvasClipboardController';
 import { useCanvasConnectionGestureController } from './hooks/useCanvasConnectionGestureController';
-import { useCanvasMediaTransferController } from './hooks/useCanvasMediaTransferController';
+import { useCanvasMediaSurfaceController } from './hooks/useCanvasMediaSurfaceController';
 import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
 import { useCanvasNodeInteractionController } from './hooks/useCanvasNodeInteractionController';
 import { useCanvasNodeMenuStateController } from './hooks/useCanvasNodeMenuStateController';
@@ -292,28 +291,21 @@ export function Canvas({
 
   const {
     queueSnapshotPaste,
-    spawnAsset: spawnTransferredAsset,
     isCanvasDropActive,
     handleCanvasDragEnter,
     handleCanvasDragOver,
     handleCanvasDragLeave,
     handleCanvasDrop,
-  } = useCanvasMediaTransferController({
+    useHistoryAsset: handleUseHistoryAsset,
+    deleteHistoryNode: handleDeleteHistoryNode,
+  } = useCanvasMediaSurfaceController({
     selectedUploadNodeId,
     getPreferredClientPosition: getPreferredCanvasPointerPosition,
     screenToFlowPosition,
     createNode: addNode,
     selectNode: setSelectedNode,
     eventBus: canvasEventBus,
-  });
-
-  const {
-    useHistoryAsset: handleUseHistoryAsset,
-    deleteHistoryNode: handleDeleteHistoryNode,
-  } = useCanvasHistoryAssetController({
     getViewportCenter: getQuickAddViewportCenter,
-    spawnAsset: spawnTransferredAsset,
-    selectNode: setSelectedNode,
     deleteNode,
   });
 

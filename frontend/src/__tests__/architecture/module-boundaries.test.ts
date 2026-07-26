@@ -1705,7 +1705,8 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("DROPPED_FILE_OFFSET = 36");
     expect(hookModel).toContain("scheduleAfterMount(");
     expect(transferController).toContain("./useCanvasMediaDropController");
-    expect(canvasView).toContain("./hooks/useCanvasMediaTransferController");
+    expect(canvasView).toContain("./hooks/useCanvasMediaSurfaceController");
+    expect(canvasView).not.toContain("./hooks/useCanvasMediaTransferController");
     expect(canvasView).not.toContain("./hooks/useCanvasMediaDropController");
     expect(canvasView).not.toContain("const handleCanvasDrop = useCallback");
     expect(canvasView).not.toContain("readAssetDragPayload(");
@@ -1839,7 +1840,8 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("createCanvasHistoryAssetPayload(asset)");
     expect(hookModel).toContain("resolveCanvasHistoryAssetPosition(");
     expect(hookModel).toContain("selectNode(nodeId)");
-    expect(canvasView).toContain("./hooks/useCanvasHistoryAssetController");
+    expect(canvasView).toContain("./hooks/useCanvasMediaSurfaceController");
+    expect(canvasView).not.toContain("./hooks/useCanvasHistoryAssetController");
     expect(canvasView).not.toContain("const handleUseHistoryAsset = useCallback");
     expect(canvasView).not.toContain("const handleDeleteHistoryNode = useCallback");
     expect(canvasView).not.toContain("restoreAsGeneratedImage: true");
@@ -2162,6 +2164,58 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("document.addEventListener('keydown'");
     expect(canvasView).not.toContain("const isUndo =");
     expect(canvasView).not.toContain("const isOrganize =");
+  });
+
+  it("keeps Canvas media surface assembly in one presentation controller", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasMediaSurfaceController.ts",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(controllerPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declaration = [
+      "export function",
+      "useCanvasMediaSurfaceController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+    const childControllers = [
+      "./useCanvasMediaTransferController",
+      "./useCanvasHistoryAssetController",
+    ];
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasMediaSurfaceController.ts",
+    ]);
+    for (const childController of childControllers) {
+      expect(controllerSource).toContain(childController);
+      expect(canvasView).not.toContain(
+        childController.replace("./", "./hooks/"),
+      );
+    }
+    expect(controllerSource).toContain("'spawnAsset'");
+    expect(controllerSource).toContain("...mediaTransfer");
+    expect(controllerSource).toContain("spawnAsset,");
+    expect(canvasView).toContain("./hooks/useCanvasMediaSurfaceController");
+    expect(canvasView).not.toContain("spawnTransferredAsset");
   });
 
   it("keeps Canvas media paste coordination in one presentation hook", () => {
