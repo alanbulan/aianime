@@ -2,10 +2,10 @@
 import { describe, expect, it } from "vitest";
 
 import { hasCompletedHistoryRecords } from "@/features/canvas/ui/NodeGenerationHistory";
-import type { FreezoneGenerationHistoryRecord } from "@/api/ops";
+import type { CanvasGenerationHistoryRecord } from "@/features/canvas/application/generationHistory";
 
-function record(status: string): FreezoneGenerationHistoryRecord {
-  return { id: `r-${status}`, status, recorded_at: "2026-06-15T00:00:00Z" } as unknown as FreezoneGenerationHistoryRecord;
+function record(status: string): CanvasGenerationHistoryRecord {
+  return { id: `r-${status}`, status, recorded_at: "2026-06-15T00:00:00Z" } as unknown as CanvasGenerationHistoryRecord;
 }
 
 describe("hasCompletedHistoryRecords", () => {

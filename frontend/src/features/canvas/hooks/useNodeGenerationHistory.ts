@@ -1,14 +1,12 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useEffect, useState } from "react";
 
-import {
-  fetchNodeGenerationHistory,
-  type FreezoneGenerationHistoryRecord,
-} from "@/api/ops";
+import type { CanvasGenerationHistoryRecord } from "@/features/canvas/application/generationHistory";
+import { getNodeGenerationHistory } from "@/features/canvas/composition";
 import { readUrl } from "@/lib/url-params";
 
 export interface UseNodeGenerationHistoryResult {
-  records: FreezoneGenerationHistoryRecord[];
+  records: CanvasGenerationHistoryRecord[];
   isLoading: boolean;
   error: Error | null;
   /** Re-fetch the node's history (e.g. after a generation completes). */
@@ -30,7 +28,7 @@ export function useNodeGenerationHistory(
 ): UseNodeGenerationHistoryResult {
   const enabled = options?.enabled ?? true;
   const limit = options?.limit ?? 100;
-  const [records, setRecords] = useState<FreezoneGenerationHistoryRecord[]>([]);
+  const [records, setRecords] = useState<CanvasGenerationHistoryRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -40,12 +38,12 @@ export function useNodeGenerationHistory(
     const canvasId = readUrl().canvas ?? "default";
     setIsLoading(true);
     try {
-      const recs = await fetchNodeGenerationHistory(
-        project,
+      const recs = await getNodeGenerationHistory({
+        projectId: project,
         canvasId,
         nodeId,
         limit,
-      );
+      });
       setRecords(recs);
       setError(null);
     } catch (err) {

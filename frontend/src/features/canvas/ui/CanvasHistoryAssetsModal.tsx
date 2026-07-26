@@ -35,7 +35,7 @@ import {
   historyRecordStrictWorldUrl,
   historyRecordWorldUrl,
 } from './NodeGenerationHistory';
-import type { FreezoneGenerationHistoryRecord } from '@/api/ops';
+import type { CanvasGenerationHistoryRecord } from '@/features/canvas/application/generationHistory';
 import { resolveMediaUrl } from '@/lib/media-url';
 import { readUrl } from '@/lib/url-params';
 import {
@@ -86,7 +86,7 @@ export interface HistoryNodeMeta {
 }
 
 export function recordsToAssetBuckets(
-  records: FreezoneGenerationHistoryRecord[],
+  records: CanvasGenerationHistoryRecord[],
   resolveNodeMeta?: (nodeId: string) => HistoryNodeMeta,
 ): CanvasAssetBuckets {
   const buckets: CanvasAssetBuckets = { image: [], video: [], audio: [], model: [] };

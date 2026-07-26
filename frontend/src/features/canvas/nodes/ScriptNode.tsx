@@ -59,10 +59,10 @@ import { useCanvasStore } from '@/stores/canvasStore';
 import {
   fetchFreezoneStoryScriptResult,
   submitFreezoneStoryScript,
-  type FreezoneGenerationHistoryRecord,
   type FreezoneStoryScriptResult,
   type FreezoneStoryScriptRow,
 } from '@/api/ops';
+import type { CanvasGenerationHistoryRecord } from '@/features/canvas/application/generationHistory';
 import { translateCanvasText } from '@/features/canvas/composition';
 import { awaitTaskCompletion } from '@/api/tasks';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
@@ -939,7 +939,7 @@ interface ScriptOperationsPanelProps {
   /** 与节点本体「重试」共用的提交实例 + 历史（见 ScriptNode 里的 hook 调用）。 */
   onSubmit: () => Promise<void>;
   isGenerating: boolean;
-  historyRecords: FreezoneGenerationHistoryRecord[];
+  historyRecords: CanvasGenerationHistoryRecord[];
   historyLoading: boolean;
   refreshHistory: () => Promise<void>;
 }
@@ -961,7 +961,7 @@ function ScriptOperationsPanel({
   const scriptCost = useGenerationCreditCost('freezone_story_script');
 
   const handleRestoreHistory = useCallback(
-    (record: FreezoneGenerationHistoryRecord) => {
+    (record: CanvasGenerationHistoryRecord) => {
       // Only story-script records carry a usable `{ title, rows }` payload.
       if (!isScriptResult(record.result)) return;
       updateNodeData(nodeId, {

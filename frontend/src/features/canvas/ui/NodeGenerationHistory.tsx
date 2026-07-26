@@ -13,7 +13,7 @@ import {
   FileText,
 } from 'lucide-react';
 
-import type { FreezoneGenerationHistoryRecord } from '@/api/ops';
+import type { CanvasGenerationHistoryRecord } from '@/features/canvas/application/generationHistory';
 import { resolveMediaUrl } from '@/lib/media-url';
 
 /**
@@ -21,7 +21,7 @@ import { resolveMediaUrl } from '@/lib/media-url';
  * The shape varies by task_type, so we probe the known keys in priority order.
  */
 export function historyRecordOutputUrl(
-  record: FreezoneGenerationHistoryRecord,
+  record: CanvasGenerationHistoryRecord,
 ): string | null {
   const result = record.result ?? {};
   for (const key of [
@@ -50,7 +50,7 @@ const THREE_GS_EXT_RE = /\.(ply|sog|splat|ksplat|spz)(\?|#|$)/i;
  * 与 ThreeDWorldNode 的 restore 取值逻辑保持一致,作为世界历史的单一真源。
  */
 export function historyRecordWorldUrl(
-  record: FreezoneGenerationHistoryRecord,
+  record: CanvasGenerationHistoryRecord,
 ): string | null {
   const candidates: string[] = [];
   const visit = (value: unknown, depth: number) => {
@@ -114,7 +114,7 @@ export function historyRecordWorldUrl(
  * 嗅探产物结构。返回值优先 .sog → splat 包 → 裸 .ply → 首个命中。
  */
 export function historyRecordStrictWorldUrl(
-  record: FreezoneGenerationHistoryRecord,
+  record: CanvasGenerationHistoryRecord,
 ): string | null {
   const candidates: string[] = [];
   const visit = (value: unknown, depth: number) => {
@@ -150,7 +150,7 @@ export function historyRecordStrictWorldUrl(
  * 探测结果里常见的预览/源图字段;没有则返回 null,由 host 传入的 fallback 兜底。
  */
 export function historyRecordPreviewImageUrl(
-  record: FreezoneGenerationHistoryRecord,
+  record: CanvasGenerationHistoryRecord,
 ): string | null {
   const result = record.result ?? {};
   for (const key of [
@@ -208,7 +208,7 @@ const INPUT_CONTAINER_KEYS = [
  *  products (3GS worlds etc.). Only accepts image-extension urls so we never
  *  hand back the .sog/.ply product itself. */
 export function historyRecordInputImageUrl(
-  record: FreezoneGenerationHistoryRecord,
+  record: CanvasGenerationHistoryRecord,
 ): string | null {
   const result = (record.result ?? {}) as Record<string, unknown>;
   const pickImage = (scope: unknown): string | null => {
@@ -271,7 +271,7 @@ function pickPromptString(obj: unknown): string | null {
  * echoed under `result.input`/`params`/etc. or alongside `result` — search all.
  */
 export function historyRecordPrompt(
-  record: FreezoneGenerationHistoryRecord,
+  record: CanvasGenerationHistoryRecord,
 ): string | null {
   const result = (record.result ?? {}) as Record<string, unknown>;
   const top = record as unknown as Record<string, unknown>;
@@ -286,7 +286,7 @@ export function historyRecordPrompt(
   return null;
 }
 
-function isCompleted(record: FreezoneGenerationHistoryRecord): boolean {
+function isCompleted(record: CanvasGenerationHistoryRecord): boolean {
   return record.status === 'completed' || record.status === 'succeeded';
 }
 
@@ -297,7 +297,7 @@ function isCompleted(record: FreezoneGenerationHistoryRecord): boolean {
  * (not on `records.length`) or they render an empty bordered box. See VideoNode.
  */
 export function hasCompletedHistoryRecords(
-  records: FreezoneGenerationHistoryRecord[],
+  records: CanvasGenerationHistoryRecord[],
 ): boolean {
   return records.some(isCompleted);
 }
@@ -327,17 +327,17 @@ function MediaFallbackIcon({ mediaType }: { mediaType: string }) {
 }
 
 interface NodeGenerationHistoryProps {
-  records: FreezoneGenerationHistoryRecord[];
+  records: CanvasGenerationHistoryRecord[];
   isLoading?: boolean;
   /** Invoked when the user clicks a (completed) history entry to restore it. */
-  onRestore: (record: FreezoneGenerationHistoryRecord) => void;
+  onRestore: (record: CanvasGenerationHistoryRecord) => void;
   onRefresh?: () => void;
   /**
    * Returns true for the record currently shown on the host node, so the strip
    * can highlight it. The host owns the identity (URL / payload match) since the
    * strip stays media-agnostic.
    */
-  isActive?: (record: FreezoneGenerationHistoryRecord) => boolean;
+  isActive?: (record: CanvasGenerationHistoryRecord) => boolean;
   /**
    * 产物非图片(如 3D 世界 .sog)且记录自身没有预览图时,用这张兜底缩略图
    * (通常是 host 节点的 previewImageUrl,例如场景 pano)。

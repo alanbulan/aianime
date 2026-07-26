@@ -1,61 +1,15 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useEffect, useState } from "react";
 
-import {
-  fetchCanvasGenerationHistory,
-  fetchNodeGenerationHistory,
-  type FreezoneGenerationHistoryRecord,
-} from "@/api/ops";
-import { ApiError } from "@/shared/api/errors";
+import type { CanvasGenerationHistoryRecord } from "@/features/canvas/application/generationHistory";
+import { getCanvasGenerationHistory } from "@/features/canvas/composition";
 import { readUrl } from "@/lib/url-params";
 
 export interface UseCanvasGenerationHistoryResult {
-  records: FreezoneGenerationHistoryRecord[];
+  records: CanvasGenerationHistoryRecord[];
   isLoading: boolean;
   error: Error | null;
   refresh: () => Promise<void>;
-}
-
-/** Fan-out concurrency cap for the per-node fallback. */
-const FANOUT_CONCURRENCY = 6;
-
-function sortNewestFirst(
-  records: FreezoneGenerationHistoryRecord[],
-): FreezoneGenerationHistoryRecord[] {
-  return [...records].sort(
-    (a, b) =>
-      new Date(b.recorded_at).getTime() - new Date(a.recorded_at).getTime(),
-  );
-}
-
-/**
- * Legacy per-node aggregation: one request per live node id (capped
- * concurrency), merged + deduped + sorted newest-first. Used only as a fallback
- * when the backend lacks the canvas-level aggregate endpoint (older deploy).
- */
-async function aggregatePerNode(
-  project: string,
-  canvasId: string,
-  nodeIds: string[],
-): Promise<FreezoneGenerationHistoryRecord[]> {
-  const out: FreezoneGenerationHistoryRecord[] = [];
-  for (let i = 0; i < nodeIds.length; i += FANOUT_CONCURRENCY) {
-    const slice = nodeIds.slice(i, i + FANOUT_CONCURRENCY);
-    const batches = await Promise.all(
-      slice.map((nodeId) =>
-        fetchNodeGenerationHistory(project, canvasId, nodeId).catch(() => []),
-      ),
-    );
-    for (const batch of batches) out.push(...batch);
-  }
-  const seen = new Set<string>();
-  return sortNewestFirst(
-    out.filter((record) => {
-      if (seen.has(record.id)) return false;
-      seen.add(record.id);
-      return true;
-    }),
-  );
 }
 
 /**
@@ -80,7 +34,7 @@ export function useCanvasGenerationHistory(
   options?: { enabled?: boolean },
 ): UseCanvasGenerationHistoryResult {
   const enabled = options?.enabled ?? true;
-  const [records, setRecords] = useState<FreezoneGenerationHistoryRecord[]>([]);
+  const [records, setRecords] = useState<CanvasGenerationHistoryRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -94,19 +48,11 @@ export function useCanvasGenerationHistory(
     const canvasId = readUrl().canvas ?? "default";
     setIsLoading(true);
     try {
-      let recs: FreezoneGenerationHistoryRecord[];
-      try {
-        recs = await fetchCanvasGenerationHistory(project, canvasId);
-      } catch (err) {
-        // Backend without the aggregate route (older deploy) → 404. Fall back to
-        // the per-node fan-out so history still shows during version skew.
-        if (err instanceof ApiError && err.status === 404) {
-          const ids = nodeIdsKey ? nodeIdsKey.split(",") : [];
-          recs = await aggregatePerNode(project, canvasId, ids);
-        } else {
-          throw err;
-        }
-      }
+      const recs = await getCanvasGenerationHistory({
+        projectId: project,
+        canvasId,
+        fallbackNodeIds: nodeIdsKey ? nodeIdsKey.split(",") : [],
+      });
       setRecords(recs);
       setError(null);
     } catch (err) {

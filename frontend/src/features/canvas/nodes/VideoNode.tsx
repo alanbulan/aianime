@@ -70,6 +70,7 @@ import {
 } from "@/features/canvas/application/imageData";
 import { resolveAudioReferenceDisplayName } from "@/features/canvas/application/audioReferenceDisplayName";
 import { resolveDroppedVideoFile } from "@/features/canvas/application/resolveDroppedVideoFile";
+import type { CanvasGenerationHistoryRecord } from "@/features/canvas/application/generationHistory";
 import type {
   VideoGenerationAspectRatio,
   VideoGenerationReference,
@@ -206,7 +207,6 @@ import { useCanvasStore } from "@/stores/canvasStore";
 import { generationTaskDescriptor } from "@/features/canvas/application/resumeGeneration";
 import { useNodeGenerationHistory } from "@/features/canvas/hooks/useNodeGenerationHistory";
 import { historyRecordOutputUrl } from "@/features/canvas/ui/NodeGenerationHistory";
-import type { FreezoneGenerationHistoryRecord } from "@/api/ops";
 import { readUrl } from "@/lib/url-params";
 import {
   DEFAULT_VIDEO_MODEL_ID,
@@ -502,7 +502,7 @@ export const VideoNode = memo(
     }, [isGenerating]);
 
     const handleRestoreHistory = useCallback(
-      (record: FreezoneGenerationHistoryRecord) => {
+      (record: CanvasGenerationHistoryRecord) => {
         const url = historyRecordOutputUrl(record);
         if (!url) return;
         // 生成进行中：仅做非破坏性预览，绝不动 videoUrl，也不打断在途任务。

@@ -7,11 +7,11 @@ import {
   historyRecordPreviewImageUrl,
   historyRecordStrictWorldUrl,
 } from "@/features/canvas/ui/NodeGenerationHistory";
-import type { FreezoneGenerationHistoryRecord } from "@/api/ops";
+import type { CanvasGenerationHistoryRecord } from "@/features/canvas/application/generationHistory";
 
 function record(
-  partial: Partial<FreezoneGenerationHistoryRecord>,
-): FreezoneGenerationHistoryRecord {
+  partial: Partial<CanvasGenerationHistoryRecord>,
+): CanvasGenerationHistoryRecord {
   return {
     id: "rec-1",
     status: "completed",
@@ -19,7 +19,7 @@ function record(
     media_type: "image",
     result: {},
     ...partial,
-  } as FreezoneGenerationHistoryRecord;
+  } as CanvasGenerationHistoryRecord;
 }
 
 describe("historyRecordStrictWorldUrl", () => {

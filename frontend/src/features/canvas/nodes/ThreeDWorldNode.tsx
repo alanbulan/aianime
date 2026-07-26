@@ -22,8 +22,8 @@ import { ArrowRight, Loader2, Orbit } from 'lucide-react';
 import {
   submitFreezoneImageTo3GS,
   type FreezoneImageTo3GSKind,
-  type FreezoneGenerationHistoryRecord,
 } from '@/api/ops';
+import type { CanvasGenerationHistoryRecord } from '@/features/canvas/application/generationHistory';
 import { awaitTaskCompletion, type TaskState } from '@/api/tasks';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import {
@@ -740,9 +740,9 @@ function OpsPanel({
 }
 
 interface HistoryPanelProps {
-  records: FreezoneGenerationHistoryRecord[];
+  records: CanvasGenerationHistoryRecord[];
   isLoading: boolean;
-  onRestore: (record: FreezoneGenerationHistoryRecord) => void;
+  onRestore: (record: CanvasGenerationHistoryRecord) => void;
   onRefresh: () => void;
   currentPlyUrl?: string | null;
   previewThumbnailUrl?: string | null;
@@ -802,7 +802,7 @@ export const ThreeDWorldNode = memo(({ id, data, selected, width, height }: Thre
   } = useNodeGenerationHistory(id, { enabled: Boolean(selected) });
 
   const handleRestoreHistory = useCallback(
-    (record: FreezoneGenerationHistoryRecord) => {
+    (record: CanvasGenerationHistoryRecord) => {
       // 3GS results nest the PLY url under various keys — reuse the same
       // extractor the live submit path uses.
       const plyUrl = pickPlyUrlFromResult(record.result);

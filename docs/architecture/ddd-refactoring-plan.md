@@ -1496,6 +1496,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百零六批已将 Canvas 14 个生产调用文件中的 24 处图片、视频及控制帧上传统一迁入唯一 application 用例 `uploadCanvasAsset`，复用既有 `CanvasAssetGateway` 与 `freezoneAssetGateway`；共享上传端口升级为完整 `{ url, filename, size }` DTO，跨项目迁移、工具输出与背景候选等旧用例显式投影 URL，3D 控制帧继续保留后端净化后的文件名，原有 12 处大文件/控制帧关闭超时策略保持不变；Canvas 生产代码中的 `uploadFreezoneImage` 只剩唯一 infrastructure 适配器，`uploadFreezoneVideo` 归零，`VideoNode` 由 2668 行降至 2666 行，新用例 28 行；共享端口相关 5 个测试文件 17 项、架构门禁 163 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百零七批已将节点级/画布级生成历史查询、画布聚合接口 404 兼容、按 6 并发逐节点回退、失败忽略、记录去重及时间排序迁入唯一 application 查询模块 `generationHistory`，并定义 Canvas 自有历史 DTO 与 gateway；`freezoneGenerationHistoryGateway` infrastructure 适配器唯一调用两个历史 API、识别 404 并投影 transport DTO，composition 完成装配，两个 hooks 只保留 URL 上下文和 loading/error 状态，三个节点与两个历史 UI 不再依赖 `FreezoneGenerationHistoryRecord`；画布历史 hook 由 125 行降至 71 行，节点历史 hook 由 64 行降至 62 行，application 模块 122 行、适配器 57 行；历史相关 5 个测试文件 27 项、架构门禁 164 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

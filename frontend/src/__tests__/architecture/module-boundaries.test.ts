@@ -11143,6 +11143,116 @@ describe("frontend architecture boundaries", () => {
     ).toHaveLength(12);
   });
 
+  it("keeps generation history queries behind one application boundary", () => {
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/generationHistory.ts",
+    );
+    const adapterPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneGenerationHistoryGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const hookPaths = [
+      "features/canvas/hooks/useCanvasGenerationHistory.ts",
+      "features/canvas/hooks/useNodeGenerationHistory.ts",
+    ].map((path) => resolve(SRC_ROOT, path));
+    const consumerPaths = [
+      ...hookPaths,
+      resolve(SRC_ROOT, "features/canvas/nodes/ScriptNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/nodes/ThreeDWorldNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      resolve(SRC_ROOT, "features/canvas/ui/CanvasHistoryAssetsModal.tsx"),
+      resolve(SRC_ROOT, "features/canvas/ui/NodeGenerationHistory.tsx"),
+    ];
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const adapterSource = readFileSync(adapterPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const hookSources = hookPaths.map((path) => readFileSync(path, "utf8"));
+    const consumerSources = consumerPaths.map((path) =>
+      readFileSync(path, "utf8"),
+    );
+    const declarations = [
+      ["export function", "queryNodeGenerationHistory("].join(" "),
+      ["export async function", "queryCanvasGenerationHistory("].join(" "),
+    ];
+    const implementationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+    const productionCanvasSources = sourceFiles(
+      resolve(SRC_ROOT, "features/canvas"),
+    ).filter((path) => !path.includes(".test."));
+
+    expect(importSpecifiers(applicationPath)).toEqual([]);
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).toContain("const FALLBACK_CONCURRENCY = 6");
+    expect(applicationSource).toContain("if (aggregate !== null)");
+    expect(implementationOwners).toEqual([
+      ["features/canvas/application/generationHistory.ts"],
+      ["features/canvas/application/generationHistory.ts"],
+    ]);
+    expect(new Set(importSpecifiers(adapterPath))).toEqual(
+      new Set([
+        "@/api/ops",
+        "@/shared/api/errors",
+        "../application/generationHistory",
+      ]),
+    );
+    expect(adapterSource).toContain("fetchNodeGenerationHistory(");
+    expect(adapterSource).toContain("fetchCanvasGenerationHistory(");
+    expect(adapterSource).toContain("error.status === 404");
+    expect(compositionSource).toContain(
+      "queryNodeGenerationHistory(",
+    );
+    expect(compositionSource).toContain(
+      "queryCanvasGenerationHistory(",
+    );
+    for (const hookSource of hookSources) {
+      expect(hookSource).toContain("@/features/canvas/composition");
+      expect(hookSource).not.toContain("@/api/ops");
+      expect(hookSource).not.toContain("ApiError");
+      expect(hookSource).not.toContain("FANOUT_CONCURRENCY");
+    }
+    for (const consumerSource of consumerSources) {
+      expect(consumerSource).not.toContain(
+        "FreezoneGenerationHistoryRecord",
+      );
+      expect(consumerSource).not.toContain("fetchNodeGenerationHistory(");
+      expect(consumerSource).not.toContain("fetchCanvasGenerationHistory(");
+    }
+    for (const apiCall of [
+      "fetchNodeGenerationHistory(",
+      "fetchCanvasGenerationHistory(",
+    ]) {
+      const owners = productionCanvasSources
+        .filter((path) => readFileSync(path, "utf8").includes(apiCall))
+        .map(relativeSource)
+        .sort();
+      expect(owners).toEqual([
+        "features/canvas/infrastructure/freezoneGenerationHistoryGateway.ts",
+      ]);
+    }
+    const transportTypeOwners = productionCanvasSources
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          "FreezoneGenerationHistoryRecord",
+        ),
+      )
+      .map(relativeSource)
+      .sort();
+    expect(transportTypeOwners).toEqual([
+      "features/canvas/infrastructure/freezoneGenerationHistoryGateway.ts",
+    ]);
+  });
+
   it("keeps video reference URL projection in one pure domain module", () => {
     const domainPath = resolve(
       SRC_ROOT,
