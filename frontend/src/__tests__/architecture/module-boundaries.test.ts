@@ -1828,6 +1828,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const viewportController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasViewportRuntimeController.ts",
+      ),
+      "utf8",
+    );
     const forbiddenImports = importSpecifiers(hookPath).filter(
       (specifier) =>
         specifier === "@xyflow/react" ||
@@ -1853,7 +1860,9 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useCanvasViewportCommit.ts",
     ]);
     expect(hookModel).toContain("VIEWPORT_COMMIT_INTERVAL_MS = 120");
-    expect(canvasView).toContain("./hooks/useCanvasViewportCommit");
+    expect(viewportController).toContain("./useCanvasViewportCommit");
+    expect(canvasView).toContain("./hooks/useCanvasViewportRuntimeController");
+    expect(canvasView).not.toContain("./hooks/useCanvasViewportCommit");
     expect(canvasView).not.toContain("lastViewportCommitRef");
     expect(canvasView).not.toContain("handleMoveStart");
     expect(canvasView).not.toContain("onMoveStart=");
@@ -1867,6 +1876,13 @@ describe("frontend architecture boundaries", () => {
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const viewportController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasViewportRuntimeController.ts",
+      ),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(hookPath).filter(
@@ -1896,7 +1912,11 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("digitToBookmarkIndex");
     expect(hookModel).toContain("isTypingTarget");
     expect(hookModel).toContain("isImmersiveViewerActive");
-    expect(canvasView).toContain("./hooks/useCanvasViewportBookmarkShortcuts");
+    expect(viewportController).toContain("./useCanvasViewportBookmarkShortcuts");
+    expect(viewportController).toContain("captureCurrentViewport(viewportPort)");
+    expect(viewportController).toContain("jumpToBookmark(viewportPort, bookmark)");
+    expect(canvasView).not.toContain("./hooks/useCanvasViewportBookmarkShortcuts");
+    expect(canvasView).not.toContain("captureCurrentViewport");
     expect(canvasView).not.toContain("handleBookmarkKeys");
     expect(canvasView).not.toContain("digitToBookmarkIndex");
   });
@@ -1909,6 +1929,13 @@ describe("frontend architecture boundaries", () => {
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const viewportController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasViewportRuntimeController.ts",
+      ),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(hookPath).filter(
@@ -1936,7 +1963,8 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useCanvasEdgePan.ts",
     ]);
     expect(hookModel).toContain("EDGE_PAN_DRAG_THRESHOLD_PX = 4");
-    expect(canvasView).toContain("./hooks/useCanvasEdgePan");
+    expect(viewportController).toContain("./useCanvasEdgePan");
+    expect(canvasView).not.toContain("./hooks/useCanvasEdgePan");
     expect(canvasView).not.toContain("edgePanGestureRef");
     expect(canvasView).not.toContain("suppressNextEdgeClickRef");
     expect(canvasView).not.toContain("react-flow__edge-interaction");
@@ -2834,6 +2862,11 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const viewportControllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasViewportRuntimeController.ts",
+    );
+    const viewportController = readFileSync(viewportControllerPath, "utf8");
     const forbiddenImports = importSpecifiers(hookPath).filter(
       (specifier) =>
         specifier === "@xyflow/react" ||
@@ -2860,7 +2893,20 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(hookModel).toContain("--ai-anime-canvas-zoom");
     expect(hookModel).toContain("new ResizeObserver(updateSize)");
-    expect(canvasView).toContain("./hooks/useCanvasViewportMetrics");
+    const controllerDeclaration = [
+      "export function",
+      "useCanvasViewportRuntimeController(",
+    ].join(" ");
+    const controllerOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(controllerDeclaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(controllerOwners).toEqual([
+      "features/canvas/hooks/useCanvasViewportRuntimeController.ts",
+    ]);
+    expect(viewportController).toContain("./useCanvasViewportMetrics");
+    expect(canvasView).not.toContain("./hooks/useCanvasViewportMetrics");
     expect(canvasView).not.toContain("style.setProperty('--ai-anime-canvas-zoom'");
     expect(canvasView).not.toContain("new ResizeObserver(");
   });

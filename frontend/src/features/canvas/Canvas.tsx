@@ -39,7 +39,6 @@ import {
   type CanvasAssetDragPayload,
 } from '@/features/canvas/domain/assetDrag';
 import { CanvasMinimapBookmarksOverlay } from '@/features/canvas/ui/CanvasMinimapBookmarksOverlay';
-import { captureCurrentViewport, jumpToBookmark } from '@/features/canvas/application/bookmarkActions';
 import { createCanvasClipboardSnapshot } from '@/features/canvas/application/createCanvasClipboardSnapshot';
 import { readUrl } from '@/lib/url-params';
 import { useQueryClient } from '@tanstack/react-query';
@@ -78,7 +77,6 @@ import { PAN_ACTIVATION_KEY_CODE } from './ui/canvasInteractionTargets';
 import {
   type CanvasConnectionMenuRequest,
 } from './ui/canvasConnectionInteraction';
-import { useCanvasEdgePan } from './hooks/useCanvasEdgePan';
 import { useCanvasExternalDialogs } from './hooks/useCanvasExternalDialogs';
 import { useCanvasGenerationRecoveryController } from './hooks/useCanvasGenerationRecoveryController';
 import {
@@ -135,9 +133,7 @@ import {
   useCanvasSnapAlignment,
   type CanvasSnapAlignmentPort,
 } from './hooks/useCanvasSnapAlignment';
-import { useCanvasViewportBookmarkShortcuts } from './hooks/useCanvasViewportBookmarkShortcuts';
-import { useCanvasViewportCommit } from './hooks/useCanvasViewportCommit';
-import { useCanvasViewportMetrics } from './hooks/useCanvasViewportMetrics';
+import { useCanvasViewportRuntimeController } from './hooks/useCanvasViewportRuntimeController';
 
 const DEFAULT_EDGE_OPTIONS = { type: 'disconnectableEdge' };
 const REACT_FLOW_PRO_OPTIONS = { hideAttribution: true };
@@ -278,41 +274,18 @@ export function Canvas({
   const closeToolDialog = useCanvasStore((state) => state.closeToolDialog);
   const setViewportState = useCanvasStore((state) => state.setViewportState);
   const setCanvasViewportSize = useCanvasStore((state) => state.setCanvasViewportSize);
-  useCanvasViewportMetrics({
-    wrapperRef,
-    transformStore: reactFlowStore,
-    setViewportSize: setCanvasViewportSize,
-  });
-  const { handleMove, handleMoveEnd } = useCanvasViewportCommit(setViewportState);
-  const { handleEdgeClick } = useCanvasEdgePan({
+  const {
+    initialViewport,
+    handleMove,
+    handleMoveEnd,
+    handleEdgeClick,
+  } = useCanvasViewportRuntimeController({
     wrapperRef,
     viewportPort: reactFlowInstance,
+    transformStore: reactFlowStore,
     commitViewport: setViewportState,
+    setViewportSize: setCanvasViewportSize,
   });
-  const viewportBookmarkCommands = useMemo(
-    () => ({
-      clearBookmarks: () => useCanvasStore.getState().clearViewportBookmarks(),
-      captureBookmark: (index: number) => {
-        useCanvasStore
-          .getState()
-          .setViewportBookmark(index, captureCurrentViewport(reactFlowInstance));
-      },
-      jumpToBookmarkSlot: (index: number) => {
-        const bookmark = useCanvasStore.getState().viewportBookmarks[index];
-        if (bookmark) {
-          jumpToBookmark(reactFlowInstance, bookmark);
-        }
-      },
-    }),
-    [reactFlowInstance],
-  );
-  useCanvasViewportBookmarkShortcuts(viewportBookmarkCommands);
-  // ReactFlow only mounts after useCanvasSync has hydrated the store (freezone
-  // web mode renders <Canvas> behind a loading gate), so the restored camera is
-  // already in `currentViewport` by our first render. Capture it here and feed
-  // it as `defaultViewport` so ReactFlow initializes straight to the saved
-  // position instead of {0,0,1} (which dumped all nodes to the bottom-right).
-  const initialViewportRef = useRef(useCanvasStore.getState().currentViewport);
   const imageViewer = useCanvasStore((state) => state.imageViewer);
   const closeImageViewer = useCanvasStore((state) => state.closeImageViewer);
   const navigateImageViewer = useCanvasStore((state) => state.navigateImageViewer);
@@ -914,7 +887,7 @@ export function Canvas({
         edgeTypes={edgeTypes}
         defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
         connectionMode={ConnectionMode.Loose}
-        defaultViewport={initialViewportRef.current}
+        defaultViewport={initialViewport}
         connectionRadius={CONNECTION_SNAP_RADIUS}
         minZoom={0.1}
         maxZoom={8}
