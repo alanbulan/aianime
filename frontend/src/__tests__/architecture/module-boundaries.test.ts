@@ -2269,6 +2269,60 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("resolveClipboardImageFile");
   });
 
+  it("keeps Canvas graph-editing assembly in one presentation controller", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasGraphEditingSurfaceController.ts",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(controllerPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declaration = [
+      "export function",
+      "useCanvasGraphEditingSurfaceController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+    const childControllers = [
+      "./useCanvasClipboardController",
+      "./useCanvasGraphInteractionController",
+    ];
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasGraphEditingSurfaceController.ts",
+    ]);
+    for (const childController of childControllers) {
+      expect(controllerSource).toContain(childController);
+      expect(canvasView).not.toContain(
+        childController.replace("./", "./hooks/"),
+      );
+    }
+    expect(controllerSource).toContain("'duplicateNodes'");
+    expect(controllerSource).toContain("...clipboard");
+    expect(controllerSource).toContain("duplicateNodes,");
+    expect(canvasView).toContain(
+      "./hooks/useCanvasGraphEditingSurfaceController",
+    );
+    expect(canvasView).not.toContain("duplicateNodes");
+  });
+
   it("keeps Canvas node clipboard state in one controller", () => {
     const builderPath = resolve(
       SRC_ROOT,
@@ -2330,7 +2384,10 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("queueSnapshotPaste(() =>");
     expect(controllerModel).toContain("./useCanvasNodeClipboard");
     expect(controllerModel).toContain("createCanvasClipboardSnapshot({");
-    expect(canvasView).toContain("./hooks/useCanvasClipboardController");
+    expect(canvasView).toContain(
+      "./hooks/useCanvasGraphEditingSurfaceController",
+    );
+    expect(canvasView).not.toContain("./hooks/useCanvasClipboardController");
     expect(canvasView).not.toContain("./hooks/useCanvasNodeClipboard");
     expect(canvasView).not.toContain("createCanvasClipboardSnapshot({");
     expect(canvasView).not.toContain("sharedNodeClipboard");
@@ -2472,7 +2529,12 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("createPositionCommits(");
     expect(hookModel).toContain("disableOffsetIteration: true");
     expect(hookModel).toContain("selectNode(state.copiedNodeIds[0])");
-    expect(canvasView).toContain("./hooks/useCanvasGraphInteractionController");
+    expect(canvasView).toContain(
+      "./hooks/useCanvasGraphEditingSurfaceController",
+    );
+    expect(canvasView).not.toContain(
+      "./hooks/useCanvasGraphInteractionController",
+    );
     expect(canvasView).not.toContain("./hooks/useCanvasAltDragCopyController");
     expect(lifecycleModel).toContain("beginAltDragCopy(event.altKey, node.id)");
     expect(lifecycleModel).toContain("updateAltDragCopy(node.id, node.position)");
@@ -2531,7 +2593,12 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("draggedNodeIds.length > 0");
     expect(hookModel).toContain("if (altKey)");
     expect(hookModel).toContain("fitGroupToChildren(groupId)");
-    expect(canvasView).toContain("./hooks/useCanvasGraphInteractionController");
+    expect(canvasView).toContain(
+      "./hooks/useCanvasGraphEditingSurfaceController",
+    );
+    expect(canvasView).not.toContain(
+      "./hooks/useCanvasGraphInteractionController",
+    );
     expect(canvasView).not.toContain("./hooks/useCanvasGroupFitDragController");
     expect(lifecycleModel).toContain("beginGroupFitNodeDrag(");
     expect(lifecycleModel).toContain("beginGroupFitSelectionDrag(");
@@ -2590,7 +2657,12 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("draggedNodeCount > 1");
     expect(hookModel).toContain("partner && !partner.parentId");
     expect(hookModel).toContain("dragging: true as const");
-    expect(canvasView).toContain("./hooks/useCanvasGraphInteractionController");
+    expect(canvasView).toContain(
+      "./hooks/useCanvasGraphEditingSurfaceController",
+    );
+    expect(canvasView).not.toContain(
+      "./hooks/useCanvasGraphInteractionController",
+    );
     expect(canvasView).not.toContain(
       "./hooks/useCanvasLinkedCaptureDragController",
     );
@@ -2938,7 +3010,12 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("canDeleteCanvasEdge(edge)");
     expect(hookModel).toContain("deleteEdge(edge.id)");
     expect(hookModel).not.toContain("isPresetManagedEdge(");
-    expect(canvasView).toContain("./hooks/useCanvasGraphInteractionController");
+    expect(canvasView).toContain(
+      "./hooks/useCanvasGraphEditingSurfaceController",
+    );
+    expect(canvasView).not.toContain(
+      "./hooks/useCanvasGraphInteractionController",
+    );
     expect(canvasView).not.toContain("./hooks/useCanvasGraphChangeController");
     expect(canvasView).not.toContain("const handleNodesChange = useCallback");
     expect(canvasView).not.toContain("const handleEdgesChange = useCallback");
@@ -8239,6 +8316,9 @@ describe("frontend architecture boundaries", () => {
       "isCopyDragActive: altDragCopy.isCopyDragActive",
     );
     expect(canvasSource).toContain(
+      "./hooks/useCanvasGraphEditingSurfaceController",
+    );
+    expect(canvasSource).not.toContain(
       "./hooks/useCanvasGraphInteractionController",
     );
     expect(canvasSource).not.toContain("./hooks/useCanvasDragLifecycleController");

@@ -21,9 +21,8 @@ import {
 } from './ui/canvasRenderProjection';
 import { useCanvasExternalDialogs } from './hooks/useCanvasExternalDialogs';
 import { useCanvasGenerationRecoveryController } from './hooks/useCanvasGenerationRecoveryController';
-import { useCanvasGraphInteractionController } from './hooks/useCanvasGraphInteractionController';
+import { useCanvasGraphEditingSurfaceController } from './hooks/useCanvasGraphEditingSurfaceController';
 import { useCanvasConnectionController } from './hooks/useCanvasConnectionController';
-import { useCanvasClipboardController } from './hooks/useCanvasClipboardController';
 import { useCanvasConnectionGestureController } from './hooks/useCanvasConnectionGestureController';
 import { useCanvasMediaSurfaceController } from './hooks/useCanvasMediaSurfaceController';
 import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
@@ -310,12 +309,19 @@ export function Canvas({
   });
 
   const {
-    duplicateNodes,
     hasCopiedNodes,
     copySelection,
     pasteSelection,
     pasteAt,
-  } = useCanvasClipboardController({
+    handleNodesChange,
+    handleEdgesChange,
+    handleEdgeDoubleClick,
+    handleNodeDragStart,
+    handleNodeDrag,
+    handleNodeDragStop,
+    handleSelectionDragStart,
+    handleSelectionDragStop,
+  } = useCanvasGraphEditingSurfaceController({
     nodes,
     edges,
     selectedNodeIds,
@@ -327,27 +333,9 @@ export function Canvas({
     selectNode: setSelectedNode,
     updateNodeData,
     queueSnapshotPaste,
-  });
-
-  const {
-    handleNodesChange,
-    handleEdgesChange,
-    handleEdgeDoubleClick,
-    handleNodeDragStart,
-    handleNodeDrag,
-    handleNodeDragStop,
-    handleSelectionDragStart,
-    handleSelectionDragStop,
-  } = useCanvasGraphInteractionController({
-    nodes,
-    selectedNodeIds,
-    duplicateNodes,
     elevateNodes,
-    selectNode: setSelectedNode,
-    getGraph: getCanvasGraph,
     fitGroupToChildren,
     alignNodeChanges,
-    applyNodeChanges: applyNodesChange,
     applyEdgeChanges: applyEdgesChange,
     deleteEdge,
     clearSnapAlignment,
