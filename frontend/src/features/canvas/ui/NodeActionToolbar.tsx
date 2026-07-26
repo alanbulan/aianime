@@ -115,15 +115,11 @@ import { resolveImageDisplayUrl } from "@/features/canvas/application/imageData"
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useCanvasStore } from "@/stores/canvasStore";
 import {
-  fetchFreezoneAudioSeparateResult,
-  submitFreezoneAudioSeparate,
-} from "@/api/ops";
-import {
   analyzeCanvasVideoStory,
+  separateCanvasAudioVideo,
   uploadCanvasAsset,
 } from "@/features/canvas/composition";
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
-import { awaitTaskCompletion } from "@/api/tasks";
 import { readUrl } from "@/lib/url-params";
 import { sanitizeStoryboardText } from "@/features/canvas/application/storyboardText";
 import { buildGenerationErrorReport } from "@/features/canvas/application/generationErrorReport";
@@ -1715,176 +1711,25 @@ export const NodeActionToolbar = memo(
                   }
                   updateNodeData(node.id, { isSeparatingAv: true });
                   try {
-                    const ref = await submitFreezoneAudioSeparate(
+                    const {
+                      audioUrl: audioOutputUrl,
+                      silentVideoUrl: silentVideoOutputUrl,
+                      resultFallbackError,
+                    } = await separateCanvasAudioVideo({
                       projectId,
-                      { sourceUrl: videoUrl },
-                    );
-                    const completed = await awaitTaskCompletion(ref.task_key, projectId);
-                    console.info(
-                      "[audio-separate] task completed",
-                      completed.result,
-                    );
-
-                    // Walk an arbitrary JSON tree and pull every string that
-                    // looks like a URL/path. Backend hasn't typed the result
-                    // schema, so we can't rely on key names alone.
-                    const collectStrings = (
-                      value: unknown,
-                      out: string[],
-                    ): void => {
-                      if (typeof value === "string") {
-                        if (value.length > 0) out.push(value);
-                        return;
-                      }
-                      if (Array.isArray(value)) {
-                        for (const item of value) collectStrings(item, out);
-                        return;
-                      }
-                      if (value && typeof value === "object") {
-                        for (const item of Object.values(
-                          value as Record<string, unknown>,
-                        )) {
-                          collectStrings(item, out);
-                        }
-                      }
-                    };
-
-                    // Fallback only: some legacy results carry a backend
-                    // filesystem path (e.g. `/data/output/<user>/<project>/...`)
-                    // instead of a servable URL. Rewriting `<...>/output/` into
-                    // `/static/<user>/<project>/...` yields the LEGACY scheme,
-                    // which production now rejects with 410 — so this is used
-                    // strictly as a last resort when no `*_url` field exists.
-                    const toStaticUrl = (raw: string): string => {
-                      if (!raw) return raw;
-                      if (
-                        raw.startsWith("/static/") ||
-                        raw.startsWith("http://") ||
-                        raw.startsWith("https://") ||
-                        raw.startsWith("blob:") ||
-                        raw.startsWith("data:")
-                      ) {
-                        return raw;
-                      }
-                      const outputIdx = raw.lastIndexOf("/output/");
-                      if (outputIdx >= 0) {
-                        return `/static/${raw.slice(outputIdx + "/output/".length)}`;
-                      }
-                      return raw;
-                    };
-
-                    const pickUrlField = (
-                      source: Record<string, unknown>,
-                      keys: string[],
-                    ): string | null => {
-                      for (const key of keys) {
-                        const value = source[key];
-                        if (typeof value === "string" && value.length > 0) {
-                          return value;
-                        }
-                      }
-                      return null;
-                    };
-
-                    const classify = (
-                      source: Record<string, unknown> | null | undefined,
-                    ): { audio: string | null; video: string | null } => {
-                      if (!source)
-                        return { audio: null, video: null };
-
-                      // Prefer the backend-provided canonical URLs. The result
-                      // carries BOTH a filesystem `*_path`
-                      // (`/data/output/<user>/<project>/...`) and a
-                      // ready-to-serve `*_url` (`/static/projects/<project_id>/...`).
-                      // Only the `*_url` form is reachable online — OpenResty
-                      // returns 410 for legacy `/static/<user>/<project>/...`.
-                      // Never derive a URL from `*_path`.
-                      let audio = pickUrlField(source, ["audio_url", "audioUrl"]);
-                      let video = pickUrlField(source, [
-                        "mute_video_url",
-                        "muteVideoUrl",
-                      ]);
-
-                      // Fallback heuristic for results that don't carry explicit
-                      // URL fields: walk the tree and pick by extension,
-                      // preferring already-servable `/static`/http URLs over raw
-                      // filesystem paths so we never reconstruct a legacy URL.
-                      if (!audio || !video) {
-                        const strings: string[] = [];
-                        collectStrings(source, strings);
-                        const isServable = (s: string) =>
-                          s.startsWith("/static/") ||
-                          s.startsWith("http://") ||
-                          s.startsWith("https://");
-                        strings.sort(
-                          (a, b) =>
-                            Number(isServable(b)) - Number(isServable(a)),
-                        );
-                        const audioExt =
-                          /\.(mp3|m4a|aac|wav|flac|ogg|opus)(\?|$)/i;
-                        const videoExt =
-                          /\.(mp4|mov|webm|mkv|avi|m4v)(\?|$)/i;
-                        for (const s of strings) {
-                          if (
-                            !audio &&
-                            (audioExt.test(s) || /audio|sound/i.test(s))
-                          ) {
-                            audio = s;
-                          } else if (
-                            !video &&
-                            (videoExt.test(s) ||
-                              /silent|mute|no[_-]?audio|video/i.test(s))
-                          ) {
-                            video = s;
-                          }
-                          if (audio && video) break;
-                        }
-                      }
-
-                      return {
-                        audio: audio ? toStaticUrl(audio) : null,
-                        video: video ? toStaticUrl(video) : null,
-                      };
-                    };
-
-                    let { audio: audioOutputUrl, video: silentVideoOutputUrl } =
-                      classify(
-                        (completed.result ?? null) as Record<
-                          string,
-                          unknown
-                        > | null,
+                      sourceUrl: videoUrl,
+                    });
+                    if (resultFallbackError) {
+                      console.warn(
+                        "[audio-separate] job result fetch failed",
+                        resultFallbackError,
                       );
-
-                    // Fallback: hit the dedicated job-result endpoint when SSE
-                    // result didn't carry the URLs (some freezone task types
-                    // surface artifacts only via /jobs/.../result).
-                    if (!audioOutputUrl || !silentVideoOutputUrl) {
-                      try {
-                        const jobResult =
-                          await fetchFreezoneAudioSeparateResult(
-                            projectId,
-                            ref.job_id,
-                          );
-                        console.info(
-                          "[audio-separate] job result",
-                          jobResult,
-                        );
-                        const classified = classify(jobResult);
-                        audioOutputUrl = audioOutputUrl ?? classified.audio;
-                        silentVideoOutputUrl =
-                          silentVideoOutputUrl ?? classified.video;
-                      } catch (jobErr) {
-                        console.warn(
-                          "[audio-separate] job result fetch failed",
-                          jobErr,
-                        );
-                      }
                     }
 
                     if (!audioOutputUrl || !silentVideoOutputUrl) {
                       console.warn(
                         "[audio-separate] could not resolve audio/video urls",
-                        { sseResult: completed.result },
+                        { audioOutputUrl, silentVideoOutputUrl },
                       );
                       return;
                     }

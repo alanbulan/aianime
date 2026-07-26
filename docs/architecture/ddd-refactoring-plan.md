@@ -1542,6 +1542,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百二十九批已将视频故事分析的毫秒/秒时长投影、异步任务识别与等待、同步内联响应兼容及故事行归一化迁入唯一 application 用例 `analyzeCanvasVideoStory`；`freezoneVideoStoryAnalysisGateway` infrastructure 适配器唯一调用 Freezone 视频故事分析端点并将不稳定的 transport 响应投影为任务键/内联结果，composition 注入既有任务 gateway；`NodeActionToolbar` 只保留即时 loading 故事节点创建、连线、结果回填和失败状态写回，不再识别 `task_key` 或直接调用分析 API，由 2481 行降至 2450 行，音视频分离的 `api/ops`、`api/tasks` 直连留待独立批次；用例和适配器分别为 57、27 行，共 2 个测试文件 4 项、新增后的架构门禁 184 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百三十批已将音视频分离结果的 canonical `audio_url/mute_video_url` 优先级、camelCase 别名、嵌套媒体探测、可服务 URL 排序及旧 `/output/` 路径末级回退迁入唯一纯 application 模块 `audioSeparationResult`，任务提交/等待、SSE 结果解析、缺失结果专用接口补齐及回退失败降级迁入唯一用例 `separateCanvasAudioVideo`；`freezoneAudioSeparationGateway` infrastructure 适配器成为提交与专用结果接口的唯一生产调用方，composition 注入既有任务 gateway；`NodeActionToolbar` 只保留 loading 状态、输出节点命名/创建、连线和警告展示，不再持有任务协议或递归结果解析，由 2450 行降至 2295 行，Canvas presentation 对 `api/ops`、`api/tasks` 的直接导入归零；结果投影、用例和适配器分别为 96、89、32 行，共 3 个测试文件 9 项、新增后的架构门禁 185 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

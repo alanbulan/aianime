@@ -9025,6 +9025,94 @@ describe("frontend architecture boundaries", () => {
     expect(toolbarSource).not.toContain("normalizeVideoStoryRows");
   });
 
+  it("keeps Canvas audio separation orchestration and result mapping out of UI", () => {
+    const resultPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/audioSeparationResult.ts",
+    );
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/separateCanvasAudioVideo.ts",
+    );
+    const adapterPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneAudioSeparationGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const toolbarPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeActionToolbar.tsx",
+    );
+    const resultSource = readFileSync(resultPath, "utf8");
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const adapterSource = readFileSync(adapterPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const toolbarSource = readFileSync(toolbarPath, "utf8");
+    const productionCanvasSources = sourceFiles(
+      resolve(SRC_ROOT, "features/canvas"),
+    ).filter((path) => !path.includes(".test."));
+    const submitOwners = productionCanvasSources
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("submitFreezoneAudioSeparate("),
+      )
+      .map(relativeSource)
+      .sort();
+    const resultOwners = productionCanvasSources
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          "fetchFreezoneAudioSeparateResult(",
+        ),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(importSpecifiers(resultPath)).toEqual([]);
+    expect(resultSource).toContain(
+      "export function resolveCanvasAudioSeparationOutputs(",
+    );
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set(["./audioSeparationResult", "./ports"]),
+    );
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).toContain(
+      "dependencies.taskGateway.awaitCompletion(",
+    );
+    expect(applicationSource).toContain(
+      "dependencies.audioSeparationGateway.fetchResult(",
+    );
+    expect(new Set(importSpecifiers(adapterPath))).toEqual(
+      new Set(["@/api/ops", "../application/separateCanvasAudioVideo"]),
+    );
+    expect(adapterSource).toContain(
+      "freezoneAudioSeparationGateway: CanvasAudioSeparationGateway",
+    );
+    expect(submitOwners).toEqual([
+      "features/canvas/infrastructure/freezoneAudioSeparationGateway.ts",
+    ]);
+    expect(resultOwners).toEqual([
+      "features/canvas/infrastructure/freezoneAudioSeparationGateway.ts",
+    ]);
+    expect(compositionSource).toContain(
+      "separateCanvasAudioVideoUseCase(params, {",
+    );
+    expect(compositionSource).toContain(
+      "audioSeparationGateway: freezoneAudioSeparationGateway",
+    );
+    expect(importSpecifiers(toolbarPath)).not.toContain("@/api/ops");
+    expect(importSpecifiers(toolbarPath)).not.toContain("@/api/tasks");
+    expect(toolbarSource).toContain("await separateCanvasAudioVideo({");
+    expect(toolbarSource).not.toContain("submitFreezoneAudioSeparate");
+    expect(toolbarSource).not.toContain("fetchFreezoneAudioSeparateResult");
+    expect(toolbarSource).not.toContain("awaitTaskCompletion");
+    expect(toolbarSource).not.toContain("collectStrings");
+    expect(toolbarSource).not.toContain("toStaticUrl");
+  });
+
   it("keeps Canvas scene-360 generation orchestration in application", () => {
     const domainPath = resolve(
       SRC_ROOT,

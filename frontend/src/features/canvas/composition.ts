@@ -25,6 +25,10 @@ import {
   type EraseVideoSubtitlesParams,
 } from './application/eraseVideoSubtitles';
 import {
+  separateCanvasAudioVideo as separateCanvasAudioVideoUseCase,
+  type SeparateCanvasAudioVideoParams,
+} from './application/separateCanvasAudioVideo';
+import {
   generateCanvasReversePrompt as generateCanvasReversePromptUseCase,
   type GenerateCanvasReversePromptParams,
 } from './application/generateCanvasReversePrompt';
@@ -140,6 +144,7 @@ import { captureVideoFrameBlob } from './infrastructure/browserVideoFrameCapture
 import { captureBrowserVideoFrameStrip } from './infrastructure/browserVideoFrameStrip';
 import { freezoneAssetGateway } from './infrastructure/freezoneAssetGateway';
 import { freezoneAiGateway } from './infrastructure/freezoneAiGateway';
+import { freezoneAudioSeparationGateway } from './infrastructure/freezoneAudioSeparationGateway';
 import { freezoneCanvasTextTranslationGateway } from './infrastructure/freezoneCanvasTextTranslationGateway';
 import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerationTaskGateway';
 import { freezoneGenerationHistoryGateway } from './infrastructure/freezoneGenerationHistoryGateway';
@@ -363,6 +368,15 @@ export function composeCanvasVideo(params: ComposeCanvasVideoParams) {
 export function eraseVideoSubtitles(params: EraseVideoSubtitlesParams) {
   return eraseVideoSubtitlesUseCase(params, {
     eraseGateway: freezoneVideoSubtitleEraseGateway,
+    taskGateway: freezoneGenerationTaskGateway,
+  });
+}
+
+export function separateCanvasAudioVideo(
+  params: SeparateCanvasAudioVideoParams,
+) {
+  return separateCanvasAudioVideoUseCase(params, {
+    audioSeparationGateway: freezoneAudioSeparationGateway,
     taskGateway: freezoneGenerationTaskGateway,
   });
 }
