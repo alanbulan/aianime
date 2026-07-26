@@ -9929,6 +9929,71 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("function formatTime(");
   });
 
+  it("keeps VideoNode reference media in one presentation view", () => {
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoReferenceMedia.tsx",
+    );
+    const viewSource = readFileSync(viewPath, "utf8");
+    const videoNode = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(viewPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declarations = [
+      ["export function", "ReferenceMediaRow("].join(" "),
+      ["function", "useHoverPreviewPos("].join(" "),
+      ["function", "ReferenceImageChip("].join(" "),
+      ["function", "ReferenceVideoChip("].join(" "),
+      ["function", "ReferenceAudioChip("].join(" "),
+    ];
+    const implementationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual(
+      declarations.map(() => [
+        "features/canvas/nodes/VideoReferenceMedia.tsx",
+      ]),
+    );
+    expect(viewSource).toContain(
+      'event.dataTransfer.setData("text/plain", item.nodeId)',
+    );
+    expect(viewSource).toContain("new Audio()");
+    expect(viewSource).toContain("createPortal(");
+    expect(viewSource).not.toContain("REFERENCE_CAPS_BY_MODE");
+    expect(videoNode).toContain(
+      "@/features/canvas/nodes/VideoReferenceMedia",
+    );
+    expect(videoNode).toContain("<ReferenceMediaRow");
+    expect(videoNode).toContain(
+      "const REFERENCE_CAPS_BY_MODE",
+    );
+    expect(videoNode).toContain(
+      "caps={REFERENCE_CAPS_BY_MODE[genMode] ?? null}",
+    );
+    expect(videoNode).not.toContain("interface ReferenceMediaRowProps");
+    expect(videoNode).not.toContain(declarations[1]);
+    expect(videoNode).not.toContain(declarations[2]);
+    expect(videoNode).not.toContain(declarations[3]);
+    expect(videoNode).not.toContain(declarations[4]);
+  });
+
   it("keeps box-selection projection in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,

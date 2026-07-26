@@ -8,7 +8,6 @@ import {
   useState,
   type ChangeEvent,
   type DragEvent,
-  type ReactNode,
 } from "react";
 import {
   Handle,
@@ -27,8 +26,6 @@ import {
   Layers,
   Library,
   Loader2,
-  Music,
-  Pause,
   Play,
   Sparkles,
   Upload as UploadIcon,
@@ -81,7 +78,6 @@ import {
   upstreamNodesInEdgeOrder,
 } from "@/features/canvas/nodes/referenceOrdering";
 import { ReferenceTextChip } from "@/features/canvas/nodes/shared/ReferenceTextChip";
-import { ReferenceDetachButton } from "@/features/canvas/nodes/shared/ReferenceDetachButton";
 import { useReferenceMentionSync } from "@/features/canvas/nodes/useReferenceMentionSync";
 import { useNodeGenerationTaskState } from "@/features/canvas/hooks/useNodeGenerationTaskState";
 import { resolveErrorContent } from "@/features/canvas/application/errorDialog";
@@ -133,8 +129,6 @@ import {
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
   NODE_INLINE_ICON_BUTTON_ACTIVE_CLASS,
   NODE_INLINE_ICON_BUTTON_CLASS,
-  NODE_REFERENCE_MEDIA_CHIP_CLASS,
-  NODE_REFERENCE_MEDIA_DETACH_CLASS,
   NODE_TEXT_CONTROL_ICON_CLASS,
   NODE_TEXT_CONTROL_TRIGGER_CLASS,
 } from "@/features/canvas/ui/nodeControlStyles";
@@ -146,6 +140,12 @@ import {
 import { createPortal } from "react-dom";
 import { VideoClipPanel } from "@/features/canvas/nodes/VideoClipPanel";
 import { VideoPlayerControls } from "@/features/canvas/nodes/VideoPlayerControls";
+import {
+  ReferenceMediaRow,
+  type ReferenceMediaCapEntry,
+  type ReferenceMediaCaps,
+  type ReferenceMediaItem,
+} from "@/features/canvas/nodes/VideoReferenceMedia";
 import {
   SubtitleEraseBoxOverlay,
   SubtitleEraseOpsPanel,
@@ -262,9 +262,7 @@ const HAPPYHORSE_TAB_ORDER: ReadonlyArray<VideoGenMode> = [
 //   - firstLastFrame       ：仅图片 2 张（首帧 + 尾帧），不允许任何视频 / 音频。
 //                            图片 >2 时另有自动切到 allReference 的兜底（见
 //                            VideoNode 内部 effect）。
-const REFERENCE_CAPS_BY_MODE: Partial<
-  Record<VideoGenMode, { image: number; video: number; audio: number }>
-> = {
+const REFERENCE_CAPS_BY_MODE: Partial<Record<VideoGenMode, ReferenceMediaCaps>> = {
   allReference: { image: 9, video: 3, audio: 3 },
   firstLastFrame: { image: 2, video: 0, audio: 0 },
 };
@@ -1076,7 +1074,7 @@ export const VideoNode = memo(
     // 当前 genMode 在 REFERENCE_CAPS_BY_MODE 里没有条目（如 textToVideo /
     // imageToVideo / imageReference），统一按 within=true 处理；下游 chip /
     // mention 候选会决定是否消费 within。
-    const referenceMediaCapInfo = useMemo(() => {
+    const referenceMediaCapInfo = useMemo<ReferenceMediaCapEntry[]>(() => {
       const counts = { image: 0, video: 0, audio: 0 };
       const caps = REFERENCE_CAPS_BY_MODE[genMode];
       return referenceMedia.map((item) => {
@@ -3134,8 +3132,9 @@ export const VideoNode = memo(
                 {referenceMedia.length > 0 && (
                   <ReferenceMediaRow
                     items={referenceMediaCapInfo}
-                    enforceCap={REFERENCE_CAPS_BY_MODE[genMode] != null}
-                    genMode={genMode}
+                    caps={REFERENCE_CAPS_BY_MODE[genMode] ?? null}
+                    showFrameSlotLabels={genMode === "firstLastFrame"}
+                    resolveUrl={resolveImageDisplayUrl}
                     onFocus={(nodeId) => setSelectedNode(nodeId)}
                     onDetach={handleDetachUpstream}
                     onReorder={(ids) =>
@@ -4055,494 +4054,5 @@ function CountPicker({ value, onChange }: CountPickerProps) {
         </div>
       )}
     </div>
-  );
-}
-
-type ReferenceMediaItem =
-  | {
-      kind: "image";
-      nodeId: string;
-      imageUrl: string;
-      displayName?: string | null;
-    }
-  | {
-      kind: "video";
-      nodeId: string;
-      videoUrl: string;
-      thumbUrl?: string | null;
-      displayName?: string | null;
-    }
-  | {
-      kind: "audio";
-      nodeId: string;
-      audioUrl: string;
-      displayName?: string | null;
-    };
-
-interface ReferenceMediaCapEntry {
-  item: ReferenceMediaItem;
-  /** 1-based 同类型序号（图片/视频/音频 各自累加），与 chip 角标 + @ 提及对齐。 */
-  typeIndex: number;
-  /** 是否在当前模式的引用上限内；表里没有的模式默认 true。 */
-  withinCap: boolean;
-}
-
-interface ReferenceMediaRowProps {
-  items: ReadonlyArray<ReferenceMediaCapEntry>;
-  /** 当前 genMode 是否在 REFERENCE_CAPS_BY_MODE 表里 —— 只有有 cap 的模式
-   *  才把超额 chip 标灰。 */
-  enforceCap: boolean;
-  /** 当前 genMode；用来决定 firstLastFrame 模式下给前两张图片打 首帧/尾帧 角标。 */
-  genMode: VideoGenMode;
-  onFocus: (nodeId: string) => void;
-  onDetach: (nodeId: string) => void;
-  // 拖动 chip 换位后，回传新的「按可视顺序排列的上游节点 id 列表」。
-  onReorder: (orderedNodeIds: string[]) => void;
-}
-
-function ReferenceMediaRow({
-  items,
-  enforceCap,
-  genMode,
-  onFocus,
-  onDetach,
-  onReorder,
-}: ReferenceMediaRowProps) {
-  // 同时管理整行音频的「当前播放节点」—— 同一时间只允许一个 audio chip 在
-  // 播放。点击另一个会切换；再点同一个会暂停。
-  const [playingAudioNodeId, setPlayingAudioNodeId] = useState<string | null>(
-    null,
-  );
-  // 拖拽换位的临时状态：正在被拖的 chip / 当前悬停落点 chip。
-  const [dragNodeId, setDragNodeId] = useState<string | null>(null);
-  const [overNodeId, setOverNodeId] = useState<string | null>(null);
-
-  const clearDrag = useCallback(() => {
-    setDragNodeId(null);
-    setOverNodeId(null);
-  }, []);
-
-  const handleDrop = useCallback(
-    (targetNodeId: string) => {
-      const sourceId = dragNodeId;
-      clearDrag();
-      if (!sourceId || sourceId === targetNodeId) return;
-      const ids = items.map((entry) => entry.item.nodeId);
-      const from = ids.indexOf(sourceId);
-      const to = ids.indexOf(targetNodeId);
-      if (from === -1 || to === -1) return;
-      ids.splice(from, 1);
-      ids.splice(to, 0, sourceId);
-      onReorder(ids);
-    },
-    [dragNodeId, items, onReorder, clearDrag],
-  );
-
-  return (
-    <div className="ml-4 flex shrink-0 items-center gap-1.5">
-      {items.map((entry) => {
-        const { item, typeIndex, withinCap } = entry;
-        // 「超出当前模式上限」只在 REFERENCE_CAPS_BY_MODE 里登记过的模式生效
-        // （目前是 allReference / firstLastFrame）；其它模式即便挂了 12 张图，
-        // imageReference / firstLastFrame 自己有 slice 兜底，不在 chip 行额
-        // 外标记。
-        const overCap = enforceCap && !withinCap;
-        const modeCap = REFERENCE_CAPS_BY_MODE[genMode]?.[item.kind] ?? 0;
-        const modeLabel =
-          genMode === "firstLastFrame" ? "首尾帧" : "全能参考";
-        const overCapTitle = overCap
-          ? `${
-              item.kind === "image"
-                ? "图片"
-                : item.kind === "video"
-                  ? "视频"
-                  : "音频"
-            }引用超出${modeLabel}上限（${modeCap}${
-              item.kind === "image" ? "张" : "段"
-            }），本次生成不会使用该素材`
-          : undefined;
-        // 首尾帧模式下，前两张图片打 首帧/尾帧 角标；超出 cap 的图片就回退到
-        // 数字角标，让用户看到「这张图被忽略」的同时仍能在 prompt 里通过原序号
-        // 对照——不过那种状态主要靠自动切换到 allReference 兜底，正常不会发生。
-        const slotLabel =
-          genMode === "firstLastFrame" &&
-          item.kind === "image" &&
-          withinCap
-            ? typeIndex === 1
-              ? "首帧"
-              : typeIndex === 2
-                ? "尾帧"
-                : undefined
-            : undefined;
-        let chip: ReactNode;
-        if (item.kind === "image") {
-          chip = (
-            <ReferenceImageChip
-              item={item}
-              index={typeIndex - 1}
-              slotLabel={slotLabel}
-              onFocus={onFocus}
-              onDetach={onDetach}
-            />
-          );
-        } else if (item.kind === "video") {
-          chip = (
-            <ReferenceVideoChip
-              item={item}
-              index={typeIndex - 1}
-              onFocus={onFocus}
-              onDetach={onDetach}
-            />
-          );
-        } else {
-          chip = (
-            <ReferenceAudioChip
-              item={item}
-              index={typeIndex - 1}
-              isPlaying={playingAudioNodeId === item.nodeId}
-              onToggle={(playing) =>
-                setPlayingAudioNodeId(playing ? item.nodeId : null)
-              }
-              onFocus={onFocus}
-              onDetach={onDetach}
-            />
-          );
-        }
-
-        const isDragging = dragNodeId === item.nodeId;
-        const isDropTarget =
-          overNodeId === item.nodeId && dragNodeId !== null && !isDragging;
-
-        return (
-          <div
-            key={item.nodeId}
-            title={overCapTitle}
-            draggable
-            onDragStart={(event) => {
-              event.dataTransfer.effectAllowed = "move";
-              event.dataTransfer.setData("text/plain", item.nodeId);
-              setDragNodeId(item.nodeId);
-            }}
-            onDragOver={(event) => {
-              if (!dragNodeId) return;
-              event.preventDefault();
-              event.dataTransfer.dropEffect = "move";
-              if (overNodeId !== item.nodeId) setOverNodeId(item.nodeId);
-            }}
-            onDragLeave={() => {
-              setOverNodeId((cur) => (cur === item.nodeId ? null : cur));
-            }}
-            onDrop={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              handleDrop(item.nodeId);
-            }}
-            onDragEnd={clearDrag}
-            className={`nodrag relative cursor-grab rounded-md transition active:cursor-grabbing ${
-              isDragging ? "opacity-40" : ""
-            } ${
-              isDropTarget
-                ? "ring-2 ring-accent ring-offset-1 ring-offset-surface-dark"
-                : ""
-            } ${
-              // omni 上限外的 chip：去饱和 + 半透明 + 琥珀色描边；hover 时通过
-              // 父层 title 显示「超出上限不会使用」。配 detach 按钮提示用户主动
-              // 移除超额素材。
-              overCap
-                ? "opacity-50 grayscale ring-1 ring-warning/45 ring-offset-1 ring-offset-surface-dark"
-                : ""
-            }`}
-          >
-            {chip}
-            {overCap && (
-              <span className="pointer-events-none absolute -bottom-1 -left-1 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-warning/90 text-[10px] font-bold leading-none text-warning-foreground shadow ring-1 ring-surface-dark">
-                !
-              </span>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function useHoverPreviewPos(
-  buttonRef: React.RefObject<HTMLElement | null>,
-  width: number,
-) {
-  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
-  const PREVIEW_OFFSET = 10;
-  const show = useCallback(() => {
-    const rect = buttonRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const left = Math.max(
-      8,
-      Math.min(
-        window.innerWidth - width - 8,
-        rect.left + rect.width / 2 - width / 2,
-      ),
-    );
-    const top = rect.top - PREVIEW_OFFSET;
-    setPos({ left, top });
-  }, [buttonRef, width]);
-  const hide = useCallback(() => setPos(null), []);
-  return { pos, show, hide };
-}
-
-interface ReferenceImageChipProps {
-  item: Extract<ReferenceMediaItem, { kind: "image" }>;
-  index: number;
-  /** 给角标显示自定义文案（如「首帧」「尾帧」）。未设置时使用数字角标。 */
-  slotLabel?: string;
-  onFocus: (nodeId: string) => void;
-  onDetach: (nodeId: string) => void;
-}
-
-function ReferenceImageChip({
-  item,
-  index,
-  slotLabel,
-  onFocus,
-  onDetach,
-}: ReferenceImageChipProps) {
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const PREVIEW_W = 140;
-  const { pos, show, hide } = useHoverPreviewPos(buttonRef, PREVIEW_W);
-  const label =
-    item.displayName?.trim() || slotLabel || `引用 ${index + 1}`;
-
-  return (
-    <>
-      <button
-        ref={buttonRef}
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          onFocus(item.nodeId);
-        }}
-        onMouseEnter={show}
-        onMouseLeave={hide}
-        className={`nodrag ${NODE_REFERENCE_MEDIA_CHIP_CLASS}`}
-        title={label}
-      >
-        <img
-          src={resolveImageDisplayUrl(item.imageUrl)}
-          alt={label}
-          className="h-full w-full object-cover"
-          draggable={false}
-        />
-        {slotLabel ? (
-          // 首尾帧角标：结构信息（不是序号），保留。前端按产品要求不再显示
-          // 「图片N」的数字角标——引用统一呈现为「图片」，序号只存在于提交给
-          // 后端的 prompt（@图片N）里，不在引用缩略图上暴露。
-          <span
-            className="pointer-events-none absolute bottom-1 left-1 z-10 text-[9px] font-medium leading-none text-media-foreground"
-            style={{ textShadow: "0 0 2px rgba(0,0,0,0.65), 0 1px 1px rgba(0,0,0,0.55)" }}
-          >
-            {slotLabel}
-          </span>
-        ) : null}
-        <ReferenceDetachButton
-          nodeId={item.nodeId}
-          onDetach={onDetach}
-          className={NODE_REFERENCE_MEDIA_DETACH_CLASS}
-        />
-      </button>
-      {pos &&
-        typeof document !== "undefined" &&
-        createPortal(
-          <div
-            className="pointer-events-none fixed z-[400] -translate-y-full"
-            style={{ left: pos.left, top: pos.top, width: PREVIEW_W }}
-          >
-            <div className="overflow-hidden rounded-xl border border-border bg-surface-dark/95 shadow-2xl backdrop-blur-sm">
-              <img
-                src={resolveImageDisplayUrl(item.imageUrl)}
-                alt={label}
-                className="block h-auto w-full object-contain"
-                draggable={false}
-              />
-            </div>
-          </div>,
-          document.body,
-        )}
-    </>
-  );
-}
-
-interface ReferenceVideoChipProps {
-  item: Extract<ReferenceMediaItem, { kind: "video" }>;
-  index: number;
-  onFocus: (nodeId: string) => void;
-  onDetach: (nodeId: string) => void;
-}
-
-function ReferenceVideoChip({ item, index, onFocus, onDetach }: ReferenceVideoChipProps) {
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const PREVIEW_W = 140;
-  const { pos, show, hide } = useHoverPreviewPos(buttonRef, PREVIEW_W);
-  const label = item.displayName?.trim() || `视频引用 ${index + 1}`;
-
-  // chip 缩略图：有 previewImageUrl 用静态图；否则用一个 muted 静止 <video>
-  // 显示首帧。preload=metadata 让 Safari/Chrome 自动定位到首帧。
-  const thumb = item.thumbUrl ? (
-    <img
-      src={resolveImageDisplayUrl(item.thumbUrl)}
-      alt={label}
-      className="h-full w-full object-cover"
-      draggable={false}
-    />
-  ) : (
-    <video
-      src={resolveImageDisplayUrl(item.videoUrl)}
-      className="h-full w-full object-cover"
-      muted
-      playsInline
-      preload="metadata"
-      draggable={false}
-    />
-  );
-
-  return (
-    <>
-      <button
-        ref={buttonRef}
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          onFocus(item.nodeId);
-        }}
-        onMouseEnter={show}
-        onMouseLeave={hide}
-        className={`nodrag ${NODE_REFERENCE_MEDIA_CHIP_CLASS}`}
-        title={label}
-      >
-        {thumb}
-        <ReferenceDetachButton
-          nodeId={item.nodeId}
-          onDetach={onDetach}
-          className={NODE_REFERENCE_MEDIA_DETACH_CLASS}
-        />
-      </button>
-      {pos &&
-        typeof document !== "undefined" &&
-        createPortal(
-          <div
-            className="pointer-events-none fixed z-[400] -translate-y-full"
-            style={{ left: pos.left, top: pos.top, width: PREVIEW_W }}
-          >
-            <div className="overflow-hidden rounded-xl border border-border bg-surface-dark/95 shadow-2xl backdrop-blur-sm">
-              {/* hover 时 autoplay + loop + muted —— 不弹声音不打扰其它正在
-                  播放的 audio chip。 */}
-              <video
-                src={resolveImageDisplayUrl(item.videoUrl)}
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="block h-auto w-full object-contain"
-              />
-            </div>
-          </div>,
-          document.body,
-        )}
-    </>
-  );
-}
-
-interface ReferenceAudioChipProps {
-  item: Extract<ReferenceMediaItem, { kind: "audio" }>;
-  index: number;
-  isPlaying: boolean;
-  onToggle: (playing: boolean) => void;
-  onFocus: (nodeId: string) => void;
-  onDetach: (nodeId: string) => void;
-}
-
-function ReferenceAudioChip({
-  item,
-  index,
-  isPlaying,
-  onToggle,
-  onFocus,
-  onDetach,
-}: ReferenceAudioChipProps) {
-  // 用 ref 持有一个 HTMLAudioElement —— 比挂在 DOM 上的 <audio> 简单：可以
-  // 直接 .play()/.pause()，也方便处理同时只放一个的逻辑（父层告诉这个
-  // chip 它不再是当前正在播的）。
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  if (audioRef.current === null && typeof Audio !== "undefined") {
-    audioRef.current = new Audio();
-  }
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const src = resolveImageDisplayUrl(item.audioUrl);
-    if (audio.src !== src) {
-      audio.src = src;
-    }
-  }, [item.audioUrl]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (isPlaying) {
-      void audio.play().catch(() => {
-        // 自动播放被浏览器拦或资源加载失败 —— 回滚父层状态。
-        onToggle(false);
-      });
-    } else {
-      audio.pause();
-    }
-  }, [isPlaying, onToggle]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const handleEnded = () => onToggle(false);
-    audio.addEventListener("ended", handleEnded);
-    return () => audio.removeEventListener("ended", handleEnded);
-  }, [onToggle]);
-
-  // 卸载时停掉播放，避免脏状态留在浏览器。
-  useEffect(() => {
-    return () => {
-      const audio = audioRef.current;
-      if (!audio) return;
-      audio.pause();
-      audio.src = "";
-    };
-  }, []);
-
-  const label = item.displayName?.trim() || `音频引用 ${index + 1}`;
-
-  return (
-    <button
-      type="button"
-      onClick={(event) => {
-        event.stopPropagation();
-        // 单击：切换播放；同时把焦点切到上游节点（方便用户跳过去看）。
-        onFocus(item.nodeId);
-        onToggle(!isPlaying);
-      }}
-      className={`group/refmedia nodrag relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md border transition-colors ${
-        isPlaying
-          ? "border-primary/60 bg-primary/15"
-          : "border-border bg-muted hover:border-foreground/30"
-      }`}
-      title={label}
-    >
-      {isPlaying ? (
-        <Pause className="h-4 w-4 text-primary" />
-      ) : (
-        <Music className="h-4 w-4 text-text-dark/90" />
-      )}
-      <ReferenceDetachButton
-        nodeId={item.nodeId}
-        onDetach={onDetach}
-        className={NODE_REFERENCE_MEDIA_DETACH_CLASS}
-      />
-    </button>
   );
 }
