@@ -1622,6 +1622,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百六十九批已将图片转 3D 的项目路径编码、POST method、源图、来源类型和可选节点上下文字段映射从 `api/ops.ts` 迁入已有唯一 `freezoneImageTo3dGenerationGateway` infrastructure 适配器，Canvas application 继续负责提交、任务持久化、等待和 3D 世界结果转换，领域模块继续唯一持有来源类型判定规则；旧 `FreezoneImageTo3GSPayload`、`submitFreezoneImageTo3GS` 及 `api/ops.ts` 对 `domain/imageTo3d` 的依赖直接删除，不保留 facade、re-export 或第二套 HTTP 映射，`freezone/image-to-3gs` 端点只有该 gateway 一个生产所有者，`api/ops.ts` 由 1,555 行降至 1,528 行；请求路径、方法、源图、来源类型、非空 `canvas_id`/`node_id` 和任务回执语义均未改变；相关 3 个测试文件 6 项、架构门禁 206 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
 
+第二百七十批已将故事脚本生成的项目路径编码、POST method、源文本、视频、时长、角色参考、提示词和可选节点上下文字段映射从 `api/ops.ts` 迁入已有唯一 `freezoneStoryScriptGenerationGateway` infrastructure 适配器，gateway 只承载既有 application command 的真实字段，Canvas application 继续负责引用分类、命令构建、提交、任务持久化、等待和结果获取；旧 `FreezoneStoryScriptCharacterRef`、`FreezoneStoryScriptPayload` 和 `submitFreezoneStoryScript` 直接删除，不保留 facade、re-export 或第二套 HTTP 映射，`freezone/text/story-script` 提交端点只有该 gateway 一个生产所有者，故事脚本结果类型和查询仍由唯一 `freezoneGenerationTaskGateway` 使用，`api/ops.ts` 由 1,528 行降至 1,470 行；真实调用链的请求路径、方法、字段省略规则、角色字段映射和任务回执语义均未改变；相关 2 个测试文件 5 项、架构门禁 206 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

@@ -9770,11 +9770,20 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/nodes/ScriptNode.tsx",
     );
+    const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
     const portsSource = readFileSync(portsPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const scriptNodeSource = readFileSync(scriptNodePath, "utf8");
+    const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
+    const endpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("}/freezone/text/story-script`"),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set(["../domain/canvasNodes", "./ports"]),
@@ -9795,7 +9804,11 @@ describe("frontend architecture boundaries", () => {
       "dependencies.onTaskSubmitted(task)",
     );
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
-      new Set(["@/api/ops", "../application/generateCanvasStoryScript"]),
+      new Set([
+        "@/shared/api/client",
+        "../application/generateCanvasStoryScript",
+        "../application/ports",
+      ]),
     );
     expect(infrastructureSource).toContain(
       "freezoneStoryScriptGenerationGateway: CanvasStoryScriptSubmissionGateway",
@@ -9823,6 +9836,17 @@ describe("frontend architecture boundaries", () => {
     expect(scriptNodeSource).not.toContain("awaitTaskCompletion");
     expect(scriptNodeSource).not.toContain("FreezoneStoryScriptResult");
     expect(scriptNodeSource).not.toContain("FreezoneStoryScriptRow");
+    expect(endpointOwners).toEqual([
+      "features/canvas/infrastructure/freezoneStoryScriptGenerationGateway.ts",
+    ]);
+    for (const legacySymbol of [
+      "FreezoneStoryScriptCharacterRef",
+      "FreezoneStoryScriptPayload",
+      "submitFreezoneStoryScript",
+    ]) {
+      expect(legacyOpsSource).not.toContain(legacySymbol);
+    }
+    expect(legacyOpsSource).not.toContain("}/freezone/text/story-script`");
   });
 
   it("keeps Canvas reverse-prompt generation orchestration in application", () => {

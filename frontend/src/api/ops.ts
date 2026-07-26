@@ -1335,64 +1335,6 @@ export async function createFreezoneAudioVoice(
   return resp.data;
 }
 
-// /freezone/text/story-script -------------------------------------------- //
-
-/** 角色参考输入项（角色生成脚本用）。 */
-export interface FreezoneStoryScriptCharacterRef {
-  /** 角色名或角色标签。 */
-  name?: string;
-  /** 可选：已有角色描述。 */
-  description?: string;
-  /** 角色参考图静态 URL（/static/...）。 */
-  imageUrl?: string;
-  /** 可选：角色定位或叙事功能（如「女主」）。 */
-  role?: string;
-}
-
-export interface FreezoneStoryScriptPayload extends FreezoneNodeContext {
-  /**
-   * 文本输入：剧本 / 情节文本。后端要求 source_text / source_url / video_url /
-   * character_refs 至少给一个。
-   */
-  sourceText?: string;
-  /** 文本资源静态 URL，后端拉取后走生成流程。 */
-  sourceUrl?: string;
-  /** 视频输入：已上传视频的静态 URL，后端会先解析视频再生成同样的故事脚本表。 */
-  videoUrl?: string;
-  /** 视频总时长（秒），让脚本表的时间戳更准。 */
-  durationSec?: number;
-  /** 角色参考输入：无文本 / 视频时，基于角色图和描述生成故事脚本表。 */
-  characterRefs?: FreezoneStoryScriptCharacterRef[];
-  /** 用户额外补充的提示词（steering），例如风格、镜头偏好等。 */
-  prompt?: string;
-}
-
-export async function submitFreezoneStoryScript(
-  project: string,
-  payload: FreezoneStoryScriptPayload,
-): Promise<FreezoneJobRef> {
-  const body: Record<string, unknown> = { ...nodeContextBody(payload) };
-  if (payload.sourceText != null) body.source_text = payload.sourceText;
-  if (payload.sourceUrl != null) body.source_url = payload.sourceUrl;
-  if (payload.videoUrl != null) body.video_url = payload.videoUrl;
-  if (payload.durationSec != null) body.duration_sec = payload.durationSec;
-  if (payload.prompt != null) body.prompt = payload.prompt;
-  if (payload.characterRefs && payload.characterRefs.length > 0) {
-    body.character_refs = payload.characterRefs.map((ref) => {
-      const item: Record<string, unknown> = {};
-      if (ref.name != null) item.name = ref.name;
-      if (ref.description != null) item.description = ref.description;
-      if (ref.imageUrl != null) item.image_url = ref.imageUrl;
-      if (ref.role != null) item.role = ref.role;
-      return item;
-    });
-  }
-  return await apiCall<FreezoneJobRef>(
-    `projects/${encodeURIComponent(project)}/freezone/text/story-script`,
-    { method: "POST", json: body },
-  );
-}
-
 export interface FreezoneStoryScriptRow {
   shot_no?: string | number | null;
   duration?: string | number | null;
