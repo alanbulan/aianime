@@ -1700,6 +1700,55 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps Canvas quick-add orchestration in one presentation controller", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasQuickAddController.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/features/canvas/nodeFactoryComposition",
+    );
+    const declaration = [
+      "export function",
+      "useCanvasQuickAddController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasQuickAddController.ts",
+    ]);
+    expect(hookModel).toContain("wrapperRef.current?.getBoundingClientRect()");
+    expect(hookModel).toContain("window.innerWidth / 2");
+    expect(hookModel).toContain("createCanvasSkillNodeData(skill)");
+    expect(hookModel).toContain("bindSkill(nodeId, skill)");
+    expect(canvasView).toContain("./hooks/useCanvasQuickAddController");
+    expect(canvasView).toContain(
+      "getViewportCenter: getQuickAddViewportCenter",
+    );
+    expect(canvasView).not.toContain("const spawnAtViewportCenter = useCallback");
+    expect(canvasView).not.toContain("const handleQuickAddNode = useCallback");
+    expect(canvasView).not.toContain("const handleQuickAddSkill = useCallback");
+    expect(canvasView).not.toContain("window.innerWidth / 2");
+  });
+
   it("keeps Canvas viewport commit throttling in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,

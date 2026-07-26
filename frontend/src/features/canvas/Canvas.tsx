@@ -111,6 +111,7 @@ import {
 } from './hooks/useCanvasBatchConnectionController';
 import { useCanvasConnectionController } from './hooks/useCanvasConnectionController';
 import { useCanvasPlusConnectionController } from './hooks/useCanvasPlusConnectionController';
+import { useCanvasQuickAddController } from './hooks/useCanvasQuickAddController';
 import { useCanvasReactFlowConnectionController } from './hooks/useCanvasReactFlowConnectionController';
 import { useCanvasKeyboardShortcuts } from './hooks/useCanvasKeyboardShortcuts';
 import { useCanvasLifecycle } from './hooks/useCanvasLifecycle';
@@ -983,43 +984,23 @@ export function Canvas({
     ],
   );
 
-  // Bottom quick-action bar spawns at the current viewport center (no click /
-  // pending-connect context), unlike the right-click / double-click menu which
-  // drops the node at the cursor.
-  const spawnAtViewportCenter = useCallback((): { x: number; y: number } => {
-    const rect = wrapperRef.current?.getBoundingClientRect();
-    const center = rect
-      ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
-      : { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-    return reactFlowInstance.screenToFlowPosition(center);
-  }, [reactFlowInstance]);
-
-  const handleQuickAddNode = useCallback(
-    (type: CanvasNodeType) => {
-      const newNodeId = addNode(type, spawnAtViewportCenter());
-      setSelectedNode(newNodeId);
-    },
-    [addNode, setSelectedNode, spawnAtViewportCenter],
-  );
-
-  const handleQuickAddSkill = useCallback(
-    (skill: SkillDefinition) => {
-      const newNodeId = addNode(
-        CANVAS_NODE_TYPES.skill,
-        spawnAtViewportCenter(),
-        createCanvasSkillNodeData(skill),
-      );
-      setSelectedNode(newNodeId);
-      bindSingleBeatContextInput(newNodeId, skill);
-    },
-    [addNode, bindSingleBeatContextInput, setSelectedNode, spawnAtViewportCenter],
-  );
+  const {
+    getViewportCenter: getQuickAddViewportCenter,
+    quickAddNode: handleQuickAddNode,
+    quickAddSkill: handleQuickAddSkill,
+  } = useCanvasQuickAddController({
+    wrapperRef,
+    screenToFlowPosition,
+    createNode: addNode,
+    selectNode: setSelectedNode,
+    bindSkill: bindSingleBeatContextInput,
+  });
 
   const {
     useHistoryAsset: handleUseHistoryAsset,
     deleteHistoryNode: handleDeleteHistoryNode,
   } = useCanvasHistoryAssetController({
-    getViewportCenter: spawnAtViewportCenter,
+    getViewportCenter: getQuickAddViewportCenter,
     spawnAsset: spawnDroppedAsset,
     selectNode: setSelectedNode,
     deleteNode,
