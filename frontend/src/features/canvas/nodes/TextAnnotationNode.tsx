@@ -53,11 +53,11 @@ import {
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import { readUrl } from '@/lib/url-params';
+import { ProviderModelPicker } from '@/features/canvas/ui/ProviderModelPicker';
 import {
   DEFAULT_SHARED_MODEL_ID,
   DEFAULT_VIDEO_MODEL_ID,
-  ProviderModelPicker,
-} from '@/features/canvas/ui/ProviderModelPicker';
+} from '@/features/canvas/domain/modelDefaults';
 import {
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_GENERATE_BUTTON_DISABLED_CLASS,

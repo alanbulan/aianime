@@ -26,11 +26,11 @@ import {
 } from './canvasNodes';
 import { DEFAULT_NODE_DISPLAY_NAME } from './nodeDisplay';
 import { SKILL_SCHEMA_VERSION } from '@/features/freezone/context/skillRoles';
-import { DEFAULT_IMAGE_MODEL_ID } from '../models';
 import {
+  DEFAULT_IMAGE_MODEL_ID,
   DEFAULT_SHARED_MODEL_ID,
   DEFAULT_VIDEO_MODEL_ID,
-} from '../ui/ProviderModelPicker';
+} from './modelDefaults';
 
 export type MenuIconKey = 'upload' | 'sparkles' | 'layout' | 'text' | 'video' | 'audio' | 'script' | 'pano360' | 'threeDWorld' | 'videoCompose';
 

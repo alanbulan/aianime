@@ -98,10 +98,10 @@ import { generationTaskDescriptor } from '@/features/canvas/application/resumeGe
 import { backendErrorToastMessage } from '@/shared/api/errors';
 import { readUrl } from '@/lib/url-params';
 import {
-  DEFAULT_SHARED_MODEL_ID,
   ProviderModelPicker,
   SHARED_MODELS,
 } from '@/features/canvas/ui/ProviderModelPicker';
+import { DEFAULT_SHARED_MODEL_ID } from '@/features/canvas/domain/modelDefaults';
 import { extractRequestId } from '@/features/canvas/application/generationErrorReport';
 import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
 import { useNodeGenerationHistory } from '@/features/canvas/hooks/useNodeGenerationHistory';

@@ -1548,6 +1548,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百三十二批已将视频节点最近模型的 `localStorage` 读写从 domain 迁入唯一 `browserCanvasNodeDefaultDataGateway` infrastructure 适配器，原 30 行 `domain/lastVideoModel.ts` 删除，`nodeRegistry` 恢复为静态默认且由 753 行降至 751 行；application 新增唯一 20 行 `createCanvasNodeDefaultData` 合并函数和 `CanvasNodeDefaultDataGateway` 端口，节点工厂、类型转换、当前图/历史/草稿水合统一按“静态默认 < 本地偏好 < 显式或持久化节点数据”顺序复用，`nodeFactoryComposition` 将同一 35 行浏览器 adapter 注入工厂与三个 Zustand 入口，VideoNode 仅经 composition 记录选择，不直接依赖存储实现；节点工厂由 31 行调整为 41 行，旧存储键和无效值回退语义不变，Canvas domain 对 `window/localStorage` 的直接访问归零；相关 6 个测试文件 14 项、新增后的架构门禁 186 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百三十三批已将模型注册型图片、Freezone 图片能力和 Freezone 视频生成的三个默认模型 ID 从动态 `models/registry` 与展示组件 `ProviderModelPicker` 迁入唯一纯领域模块 `modelDefaults`，`nodeRegistry` 不再反向依赖带 `import.meta.glob` 的模型基础设施或 UI；模型注册表、五个节点和三个编辑器全部直接复用同一领域声明，原模型注册表与 Picker 出口直接删除，不保留兼容转发；图片模型 alias、未知模型 fallback、实时模型列表首项选择和持久化节点数据语义均未改变，新增 7 行领域模块，模型注册表由 109 行降至 105 行，Picker 由 354 行降至 346 行；默认值与节点注册定向测试 2 项、新增后的架构门禁 187 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

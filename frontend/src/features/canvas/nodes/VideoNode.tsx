@@ -207,10 +207,8 @@ import { generationTaskDescriptor } from "@/features/canvas/application/resumeGe
 import { useNodeGenerationHistory } from "@/features/canvas/hooks/useNodeGenerationHistory";
 import { historyRecordOutputUrl } from "@/features/canvas/ui/NodeGenerationHistory";
 import { readUrl } from "@/lib/url-params";
-import {
-  DEFAULT_VIDEO_MODEL_ID,
-  ProviderModelPicker,
-} from "@/features/canvas/ui/ProviderModelPicker";
+import { ProviderModelPicker } from "@/features/canvas/ui/ProviderModelPicker";
+import { DEFAULT_VIDEO_MODEL_ID } from "@/features/canvas/domain/modelDefaults";
 import {
   CreditCostPill,
   formatCreditCost,

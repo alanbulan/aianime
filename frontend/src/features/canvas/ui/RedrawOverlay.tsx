@@ -46,10 +46,10 @@ import {
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { readUrl } from '@/lib/url-params';
 import {
-  DEFAULT_SHARED_MODEL_ID,
   ProviderModelPicker,
   SHARED_MODELS,
 } from '@/features/canvas/ui/ProviderModelPicker';
+import { DEFAULT_SHARED_MODEL_ID } from '@/features/canvas/domain/modelDefaults';
 import {
   CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
 } from '@/features/canvas/ui/nodeFrameStyles';

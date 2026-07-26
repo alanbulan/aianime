@@ -18,10 +18,10 @@ import { generateCanvasUpscale } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { readUrl } from '@/lib/url-params';
 import {
-  DEFAULT_SHARED_MODEL_ID,
   ProviderModelPicker,
   SHARED_MODELS,
 } from '@/features/canvas/ui/ProviderModelPicker';
+import { DEFAULT_SHARED_MODEL_ID } from '@/features/canvas/domain/modelDefaults';
 import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/lib/queries/generation-credit-cost';

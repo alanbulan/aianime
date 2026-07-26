@@ -5,6 +5,7 @@ import type {
   ModelProviderDefinition,
   ResolutionOption,
 } from './types';
+import { DEFAULT_IMAGE_MODEL_ID } from '../domain/modelDefaults';
 
 const providerModules = import.meta.glob<{ provider: ModelProviderDefinition }>(
   './providers/*.ts',
@@ -40,11 +41,6 @@ const providerMap = new Map<string, ModelProviderDefinition>(
 const imageModelMap = new Map<string, ImageModelDefinition>(
   imageModels.map((model) => [model.id, model])
 );
-
-// Freezone is project scoped, not BYO-provider scoped. Expose only
-// backend-supported image providers; old canvas model ids are normalized by the
-// alias map below instead of keeping old provider modules in the bundle.
-export const DEFAULT_IMAGE_MODEL_ID = 'openrouter/default';
 
 const imageModelAliasMap = new Map<string, string>([
   ['gemini-3.1-flash', DEFAULT_IMAGE_MODEL_ID],

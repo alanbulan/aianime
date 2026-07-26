@@ -593,6 +593,58 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps Canvas model defaults in one pure domain owner", () => {
+    const defaultsPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/modelDefaults.ts",
+    );
+    const nodeRegistryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/nodeRegistry.ts",
+    );
+    const modelRegistryPath = resolve(
+      SRC_ROOT,
+      "features/canvas/models/registry.ts",
+    );
+    const pickerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/ProviderModelPicker.tsx",
+    );
+    const defaultNames = [
+      "DEFAULT_IMAGE_MODEL_ID",
+      "DEFAULT_SHARED_MODEL_ID",
+      "DEFAULT_VIDEO_MODEL_ID",
+    ];
+    const declarationOwners = sourceFiles(
+      resolve(SRC_ROOT, "features/canvas"),
+    )
+      .filter((path) => !path.includes(".test."))
+      .filter((path) => {
+        const source = readFileSync(path, "utf8");
+        return defaultNames.some((name) =>
+          source.includes(`export const ${name}`),
+        );
+      })
+      .map(relativeSource)
+      .sort();
+
+    expect(importSpecifiers(defaultsPath)).toEqual([]);
+    expect(declarationOwners).toEqual([
+      "features/canvas/domain/modelDefaults.ts",
+    ]);
+    expect(importSpecifiers(nodeRegistryPath)).toContain("./modelDefaults");
+    expect(importSpecifiers(nodeRegistryPath)).not.toContain("../models");
+    expect(importSpecifiers(nodeRegistryPath)).not.toContain(
+      "../ui/ProviderModelPicker",
+    );
+    expect(importSpecifiers(modelRegistryPath)).toContain(
+      "../domain/modelDefaults",
+    );
+    expect(readFileSync(pickerPath, "utf8")).not.toContain(
+      "export const DEFAULT_",
+    );
+  });
+
   it("keeps Canvas node preferences behind one browser gateway", () => {
     const legacyDomainPath = resolve(
       SRC_ROOT,

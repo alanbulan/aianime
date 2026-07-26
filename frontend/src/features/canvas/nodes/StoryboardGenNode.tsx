@@ -61,12 +61,12 @@ import {
   resolveReferenceAwareDeleteRange,
 } from '@/features/canvas/application/referenceTokenEditing';
 import {
-  DEFAULT_IMAGE_MODEL_ID,
   getImageModel,
   listImageModels,
   resolveImageModelResolution,
   resolveImageModelResolutions,
 } from '@/features/canvas/models';
+import { DEFAULT_IMAGE_MODEL_ID } from '@/features/canvas/domain/modelDefaults';
 import { resolveModelPriceDisplay } from '@/features/canvas/pricing';
 import { ModelParamsControls } from '@/features/canvas/ui/ModelParamsControls';
 import { CanvasNodeImage } from '@/features/canvas/ui/CanvasNodeImage';
