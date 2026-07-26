@@ -7595,4 +7595,65 @@ describe("frontend architecture boundaries", () => {
     expect(canvasSource).not.toContain("canvas-node-placement-confirm");
     expect(canvasSource).not.toContain("edge.hidden ? edge");
   });
+
+  it("keeps Canvas transient overlay markup in presentation views", () => {
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/CanvasTransientOverlays.tsx",
+    );
+    const viewSource = readFileSync(viewPath, "utf8");
+    const canvasSource = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(viewPath).filter(
+      (specifier) =>
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const overlaysDeclaration = [
+      "export function",
+      "CanvasTransientOverlays(",
+    ].join(" ");
+    const connectionPreviewDeclaration = [
+      "export function",
+      "CanvasConnectionPreviewOverlay(",
+    ].join(" ");
+    const overlaysOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(
+        overlaysDeclaration,
+      ))
+      .map(relativeSource)
+      .sort();
+    const connectionPreviewOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(
+        connectionPreviewDeclaration,
+      ))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(overlaysOwners).toEqual([
+      "features/canvas/ui/CanvasTransientOverlays.tsx",
+    ]);
+    expect(connectionPreviewOwners).toEqual([
+      "features/canvas/ui/CanvasTransientOverlays.tsx",
+    ]);
+    expect(viewSource).toContain("z-[130]");
+    expect(viewSource).toContain("z-[135]");
+    expect(viewSource).toContain("z-[120]");
+    expect(viewSource).toContain("absolute z-40 overflow-visible");
+    expect(canvasSource).toContain("<CanvasTransientOverlays");
+    expect(canvasSource).toContain("<CanvasConnectionPreviewOverlay");
+    expect(canvasSource).not.toContain("const emptyHint = useMemo");
+    expect(canvasSource).not.toContain("释放以添加到画布");
+    expect(canvasSource.indexOf("<CanvasQuickActionBar")).toBeLessThan(
+      canvasSource.indexOf("<CanvasConnectionPreviewOverlay"),
+    );
+  });
 });

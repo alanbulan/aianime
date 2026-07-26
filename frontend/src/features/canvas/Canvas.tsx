@@ -16,7 +16,6 @@ import {
 } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { MousePointerClick, Upload } from 'lucide-react';
 import '@xyflow/react/dist/style.css';
 
 import { useShallow } from 'zustand/react/shallow';
@@ -67,6 +66,10 @@ import { CanvasQuickActionBar } from './ui/CanvasQuickActionBar';
 import { BackToNodesHint } from './ui/BackToNodesHint';
 import { CanvasMinimapButton } from './ui/CanvasMinimapButton';
 import { CanvasFpsMeter } from './ui/CanvasFpsMeter';
+import {
+  CanvasConnectionPreviewOverlay,
+  CanvasTransientOverlays,
+} from './ui/CanvasTransientOverlays';
 import {
   projectCanvasEdgesForRender,
   projectCanvasNodesForRender,
@@ -973,20 +976,6 @@ export function Canvas({
     clearSnapAlignment,
   });
 
-  const emptyHint = useMemo(() => {
-    return (
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/95 px-4 py-2 text-muted-foreground shadow-sm">
-          <MousePointerClick className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          <span className="text-sm">
-            {t('canvas.emptyHintBeforeTab')}
-            <span className="text-primary">Tab</span>
-            {t('canvas.emptyHintAfterTab')}
-          </span>
-        </div>
-      </div>
-    );
-  }, [t]);
   return (
     <CreditDisplayHiddenProvider value={isCeRuntime()}>
     <div
@@ -1086,50 +1075,12 @@ export function Canvas({
         <SnapAlignGuides />
       </ReactFlow>
 
-      {marqueeSelectionRect && (
-        <div
-          className="pointer-events-none absolute z-[130] rounded-md border border-dashed border-foreground/55 bg-foreground/[0.04]"
-          style={{
-            left: marqueeSelectionRect.left,
-            top: marqueeSelectionRect.top,
-            width: marqueeSelectionRect.width,
-            height: marqueeSelectionRect.height,
-          }}
-        />
-      )}
-
-      {nodePlacementPreview && (
-        <div
-          className="pointer-events-none absolute z-[135] select-none rounded-2xl border border-primary/45 bg-popover/90 shadow-xl backdrop-blur-md"
-          style={{
-            left: nodePlacementPreview.left,
-            top: nodePlacementPreview.top,
-            width: nodePlacementPreview.width,
-            height: nodePlacementPreview.height,
-          }}
-        >
-          <div className="absolute inset-0 rounded-2xl bg-primary/10" />
-          <div className="relative flex h-full flex-col justify-between p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <div className="truncate text-[15px] font-medium leading-5 text-popover-foreground/90">
-                  {nodePlacementPreview.label}
-                </div>
-                <div className="mt-1 text-[12px] leading-4 text-muted-foreground">
-                  {t('canvas.nodePlacement.previewHint')}
-                </div>
-              </div>
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <MousePointerClick className="h-4 w-4" aria-hidden="true" />
-              </div>
-            </div>
-            <div className="flex items-center justify-between gap-3 text-[11px] leading-4 text-muted-foreground/80">
-              <span>{t('canvas.nodePlacement.confirmHint')}</span>
-              <span>{t('canvas.nodePlacement.cancelHint')}</span>
-            </div>
-          </div>
-        </div>
-      )}
+      <CanvasTransientOverlays
+        isCanvasEmpty={nodes.length === 0}
+        marqueeSelectionRect={marqueeSelectionRect}
+        nodePlacementPreview={nodePlacementPreview}
+        isCanvasDropActive={isCanvasDropActive}
+      />
 
       {contextMenu && (
         <CanvasContextMenu
@@ -1137,19 +1088,6 @@ export function Canvas({
           onClose={closeContextMenu}
           sections={contextMenuSections}
         />
-      )}
-
-      {nodes.length === 0 && emptyHint}
-
-      {isCanvasDropActive && (
-        <div className="pointer-events-none absolute inset-0 z-[120] flex items-center justify-center">
-          <div className="absolute inset-3 rounded-2xl border-2 border-dashed border-primary/70 bg-primary/[0.06]" />
-          <div className="relative flex flex-col items-center gap-3 rounded-2xl bg-surface-dark/90 px-8 py-6 text-center shadow-2xl ring-1 ring-border">
-            <Upload className="h-8 w-8 text-primary" />
-            <div className="text-sm font-medium text-text-dark">释放以添加到画布</div>
-            <div className="text-xs text-text-muted">支持图片、视频、音频，自动生成对应节点</div>
-          </div>
-        </div>
       )}
 
       <CanvasMinimapButton
@@ -1181,28 +1119,7 @@ export function Canvas({
         />
       )}
 
-      {previewConnectionVisual && (
-        <svg
-          className="pointer-events-none absolute z-40 overflow-visible"
-          style={{
-            left: previewConnectionVisual.left,
-            top: previewConnectionVisual.top,
-            width: previewConnectionVisual.width,
-            height: previewConnectionVisual.height,
-          }}
-          width={previewConnectionVisual.width}
-          height={previewConnectionVisual.height}
-        >
-          <path
-            className="pointer-events-none"
-            d={previewConnectionVisual.d}
-            fill="none"
-            stroke={previewConnectionVisual.stroke}
-            strokeWidth={previewConnectionVisual.strokeWidth}
-            strokeLinecap={previewConnectionVisual.strokeLinecap}
-          />
-        </svg>
-      )}
+      <CanvasConnectionPreviewOverlay preview={previewConnectionVisual} />
 
       {showNodeMenu && (
         <NodeSelectionMenu
