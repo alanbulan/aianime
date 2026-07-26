@@ -115,22 +115,18 @@ import {
 } from "@/features/freezone/context/NodeContextBadges";
 import { RegenerateButton } from "@/features/canvas/ui/RegenerateButton";
 import {
-  NODE_CONTEXT_CONTROL_TRIGGER_CLASS,
   NODE_CREDIT_PILL_FLAT_CLASS,
-  NODE_FLOATING_PANEL_SURFACE_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_GENERATE_BUTTON_DISABLED_CLASS,
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
   NODE_INLINE_ICON_BUTTON_ACTIVE_CLASS,
   NODE_INLINE_ICON_BUTTON_CLASS,
-  NODE_OPTION_ACTIVE_BUTTON_CLASS,
 } from "@/features/canvas/ui/nodeControlStyles";
 import {
   NODE_SIDE_ACTION_BUTTON_CLASS,
   NODE_SIDE_ACTION_ICON_CLASS,
   NodeSideActionRail,
 } from "@/features/canvas/ui/NodeSideActionRail";
-import { createPortal } from "react-dom";
 import { VideoClipPanel } from "@/features/canvas/nodes/VideoClipPanel";
 import { VideoPlayerControls } from "@/features/canvas/nodes/VideoPlayerControls";
 import {
@@ -147,6 +143,8 @@ import { CameraMovementChip } from "@/features/canvas/nodes/CameraMovementChip";
 import { CharacterLibraryChip } from "@/features/canvas/nodes/CharacterLibraryChip";
 import { VideoCountPicker } from "@/features/canvas/nodes/VideoCountPicker";
 import { VideoConfigChip } from "@/features/canvas/nodes/VideoConfigChip";
+import { VideoGenerationModeSelect } from "@/features/canvas/nodes/VideoGenerationModeSelect";
+import { resolveVideoGenerationModeOptions } from "@/features/canvas/nodes/videoGenerationModeOptions";
 import {
   CAMERA_MOVEMENT_PRESETS,
   findCameraMovementPreset,
@@ -229,24 +227,6 @@ const OPERATIONS_PANEL_OVERHANG = 120;
 const OPERATIONS_PANEL_EXPANDED_HEIGHT = 560;
 const OPERATIONS_PANEL_EXPANDED_WIDTH = 1040;
 
-const MODE_TABS: ReadonlyArray<{ key: VideoGenMode; labelKey: string }> = [
-  { key: "textToVideo", labelKey: "node.videoNode.tabs.textToVideo" },
-  { key: "allReference", labelKey: "node.videoNode.tabs.allReference" },
-  { key: "imageToVideo", labelKey: "node.videoNode.tabs.imageToVideo" },
-  { key: "firstLastFrame", labelKey: "node.videoNode.tabs.firstLastFrame" },
-  { key: "imageReference", labelKey: "node.videoNode.tabs.imageReference" },
-  { key: "videoEdit", labelKey: "node.videoNode.tabs.videoEdit" },
-];
-
-// HappyHorse 的模式面板顺序：文生视频 → 首帧 → 图片参考 → 视频编辑。
-// 与上游文档 4 大功能一一对应，且与产品设计稿一致。
-const HAPPYHORSE_TAB_ORDER: ReadonlyArray<VideoGenMode> = [
-  "textToVideo",
-  "imageToVideo",
-  "imageReference",
-  "videoEdit",
-];
-
 // 各 genMode 对上游引用数量的硬上限。UI 用这张表把后端字段约束（多图 / 多模态
 // 场景下）显式表达出来：超额 chip 标灰 + 从 @ 候选剔除，避免「prompt 引用了
 // @图片10 但提交时被静默丢掉」。
@@ -275,13 +255,6 @@ const ASPECT_RATIOS: ReadonlyArray<FreezoneVideoAspectRatio> = [
 const QUALITIES: ReadonlyArray<VideoGenQuality> = ["480P", "720P", "1080P"];
 const COUNT_OPTIONS: ReadonlyArray<VideoGenCount> = [1, 2, 4];
 const SCENE_OPTIMIZE_OPTIONS: ReadonlyArray<Seedance2SceneOptimize> = ["anime", "realistic"];
-const VIDEO_MODE_POPOVER_CLASS =
-  `nodrag nowheel fixed z-[10000] w-[132px] overflow-visible p-1 ${NODE_FLOATING_PANEL_SURFACE_CLASS}`;
-// 禁用模式的 hover 提示气泡：悬浮在菜单右侧，深色圆角小胶囊，与设计稿一致。
-const VIDEO_MODE_TOOLTIP_CLASS =
-  "pointer-events-none absolute left-full top-1/2 z-[10001] ml-2 -translate-y-1/2 " +
-  "whitespace-nowrap rounded-md border border-border bg-popover px-2.5 py-1.5 text-[11px] font-medium " +
-  "text-popover-foreground/90 shadow-lg";
 const DEFAULT_DURATION_MIN = 5;
 const DEFAULT_DURATION_MAX = 15;
 
@@ -397,7 +370,7 @@ function isHappyHorseVideoModel(modelId: string | null | undefined): boolean {
   return normalized.includes("happyhorse10");
 }
 
-// 某 genMode 是否被指定模型支持（与 GenModeSelect 的可见 tab 口径一致）：
+// 某 genMode 是否被指定模型支持（与模式选项投影的可见范围一致）：
 // videoEdit 是 HappyHorse 专属；firstLastFrame / allReference 是非 HappyHorse 专属。
 // 切换模型时用它判断是否要重置残留 genMode，避免提交打到不支持的端点。
 function isVideoModeSupportedByModel(
@@ -1201,6 +1174,17 @@ export const VideoNode = memo(
       }
       return { images, videos, audios };
     }, [upstreamNodes]);
+    const generationModeOptions = useMemo(
+      () =>
+        resolveVideoGenerationModeOptions({
+          isHappyHorseModel,
+          // HappyHorse 按上游节点类型判断，空图片节点也算；其它模型按已解析素材判断。
+          upstreamCounts: isHappyHorseModel
+            ? upstreamTypeCounts
+            : upstreamCounts,
+        }),
+      [isHappyHorseModel, upstreamCounts, upstreamTypeCounts],
+    );
     const isClipMode = Boolean(data.isClipMode);
     const clipStartMs =
       typeof data.clipStartMs === "number" ? data.clipStartMs : null;
@@ -3088,14 +3072,9 @@ export const VideoNode = memo(
                   />
                 </div>
                 <div className="ml-3 flex shrink-0 items-center gap-3">
-                  <GenModeSelect
+                  <VideoGenerationModeSelect
                     value={genMode}
-                    modelId={selectedVideoModel?.apiModel ?? selectedVideoModel?.id ?? modelId}
-                    // HappyHorse 的可选模式由上游节点类型（含未填图的空节点）决定，
-                    // 其余模型仍按已解析素材 URL 计数。
-                    upstreamCounts={
-                      isHappyHorseModel ? upstreamTypeCounts : upstreamCounts
-                    }
+                    options={generationModeOptions}
                     onChange={(nextMode) => updateNodeData(id, { genMode: nextMode })}
                   />
                   <NodeContextPromptPaletteButton
@@ -3364,210 +3343,3 @@ export const VideoNode = memo(
 );
 
 VideoNode.displayName = "VideoNode";
-
-interface GenModeSelectProps {
-  value: VideoGenMode;
-  modelId: string | null | undefined;
-  upstreamCounts: { videos: number; images: number; audios: number };
-  onChange: (next: VideoGenMode) => void;
-}
-
-function videoModeDisabledReason(
-  mode: VideoGenMode,
-  modelId: string | null | undefined,
-  upstreamCounts: { videos: number; images: number; audios: number },
-): string | null {
-  // HappyHorse 的模式可用性完全由上游节点类型决定（文档 4 大功能）：
-  //   文生视频  — 仅无上游时可用
-  //   首帧      — 仅上游正好 1 张图片时可用
-  //   图片参考  — 上游 1~9 张图片时可用
-  //   视频编辑  — 仅上游有 1 个视频时可用
-  // 不可用时返回 hover 文案（提示用户需要连接什么）。
-  if (isHappyHorseVideoModel(modelId)) {
-    const { images, videos } = upstreamCounts;
-    switch (mode) {
-      case "textToVideo":
-        if (videos > 0) return "已连接视频节点，请使用「视频编辑」";
-        if (images > 0) return "已连接图片节点，请选择「首帧」或「图片参考」";
-        return null;
-      case "imageToVideo": // 首帧 (i2v)
-        if (videos > 0) return "已连接视频节点，「首帧」不可用";
-        if (images === 0) return "需要连接图片节点（1个）";
-        if (images > 1) return "「首帧」仅支持单张图片，请用「图片参考」";
-        return null;
-      case "imageReference": // 图片参考 (r2v)
-        if (videos > 0) return "已连接视频节点，「图片参考」不可用";
-        if (images === 0) return "需要连接图片节点（1~9个）";
-        if (images > 9) return "「图片参考」最多支持 9 张图片";
-        return null;
-      case "videoEdit":
-        if (videos === 0) return "需要连接视频节点（1个）";
-        if (videos > 1) return "「视频编辑」仅支持连接 1 个视频节点";
-        return null;
-      default:
-        return "HappyHorse 不支持该模式";
-    }
-  }
-  if (upstreamCounts.videos > 0 && mode !== "allReference") {
-    return "上游含视频素材时只能用「全能参考」";
-  }
-  if (
-    mode === "textToVideo" &&
-    (upstreamCounts.images > 0 || upstreamCounts.audios > 0)
-  ) {
-    return "已引用图片/音频素材时不可用";
-  }
-  if (mode === "imageToVideo" && upstreamCounts.videos >= 2) {
-    return "上游有多个视频时不可用";
-  }
-  if (mode === "firstLastFrame" && upstreamCounts.images > 2) {
-    return "上游图片超过 2 张时不可用";
-  }
-  return null;
-}
-
-function GenModeSelect({ value, modelId, upstreamCounts, onChange }: GenModeSelectProps) {
-  const { t } = useTranslation();
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const popoverRef = useRef<HTMLDivElement>(null);
-  const [isOpen, setIsOpen] = useState(false);
-  const [hoveredKey, setHoveredKey] = useState<VideoGenMode | null>(null);
-  const [popoverPosition, setPopoverPosition] = useState<{
-    left: number;
-    top: number;
-  } | null>(null);
-  // HappyHorse 的模式面板对齐文档 4 大功能：文生视频 / 首帧 / 图片参考 / 视频编辑。
-  //   - 隐藏「首尾帧」「全能参考」：HappyHorse 无这两种能力，点了只会报错。
-  //   - 把「图生视频」显示为「首帧」：它本就是单图首帧 i2v，直接叫「首帧」跟「图片
-  //     参考」一眼分清。
-  //   - 上游接入视频后，「首帧」「图片参考」整项隐藏（文档：视频节点下没有这两个
-  //     选项），只保留「文生视频」(禁用) 与「视频编辑」。
-  // 非 HappyHorse 不暴露「视频编辑」(它是 HappyHorse 专属功能)。
-  const visibleTabs = useMemo(() => {
-    if (!isHappyHorseVideoModel(modelId)) {
-      return MODE_TABS.filter((tab) => tab.key !== "videoEdit");
-    }
-    const order =
-      upstreamCounts.videos > 0
-        ? (["textToVideo", "videoEdit"] as VideoGenMode[])
-        : HAPPYHORSE_TAB_ORDER;
-    return order
-      .map((key) => MODE_TABS.find((tab) => tab.key === key))
-      .filter((tab): tab is (typeof MODE_TABS)[number] => Boolean(tab))
-      .map((tab) =>
-        tab.key === "imageToVideo"
-          ? { ...tab, labelKey: "node.videoNode.tabs.firstFrame" }
-          : tab,
-      );
-  }, [modelId, upstreamCounts.videos]);
-  const activeTab = visibleTabs.find((tab) => tab.key === value) ?? visibleTabs[0];
-
-  const syncPopoverPosition = useCallback(() => {
-    const trigger = triggerRef.current;
-    if (!trigger) return;
-    const rect = trigger.getBoundingClientRect();
-    const margin = 8;
-    setPopoverPosition({
-      left: Math.min(Math.max(margin, rect.left), window.innerWidth - 132 - margin),
-      top: rect.bottom + 8,
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!isOpen) {
-      setHoveredKey(null);
-      return;
-    }
-    syncPopoverPosition();
-    const onPointerDown = (event: MouseEvent) => {
-      if (
-        triggerRef.current?.contains(event.target as Node) ||
-        popoverRef.current?.contains(event.target as Node)
-      ) {
-        return;
-      }
-      setIsOpen(false);
-    };
-    const onViewportChange = () => syncPopoverPosition();
-    document.addEventListener("mousedown", onPointerDown, true);
-    window.addEventListener("resize", onViewportChange);
-    window.addEventListener("scroll", onViewportChange, true);
-    return () => {
-      document.removeEventListener("mousedown", onPointerDown, true);
-      window.removeEventListener("resize", onViewportChange);
-      window.removeEventListener("scroll", onViewportChange, true);
-    };
-  }, [isOpen, syncPopoverPosition]);
-
-  return (
-    <div className="relative shrink-0">
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          setIsOpen((prev) => !prev);
-        }}
-        className={NODE_CONTEXT_CONTROL_TRIGGER_CLASS}
-      >
-        <span>{t(activeTab.labelKey)}</span>
-        <ChevronDown className="h-3 w-3 text-text-muted/90" />
-      </button>
-      {isOpen && popoverPosition && createPortal(
-        <div
-          ref={popoverRef}
-          className={VIDEO_MODE_POPOVER_CLASS}
-          style={{
-            left: popoverPosition.left,
-            top: popoverPosition.top,
-          }}
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={(event) => event.stopPropagation()}
-        >
-          {visibleTabs.map((tab) => {
-            const isActive = tab.key === value;
-            const disabledReason = videoModeDisabledReason(tab.key, modelId, upstreamCounts);
-            const isDisabled = disabledReason != null && !isActive;
-            // 禁用按钮在多数浏览器里不触发 mouse 事件，hover 提示挂在外层 div 上；
-            // 提示气泡定位到菜单右侧，与设计稿一致。
-            return (
-              <div
-                key={tab.key}
-                className="relative"
-                onMouseEnter={() =>
-                  isDisabled ? setHoveredKey(tab.key) : setHoveredKey(null)
-                }
-                onMouseLeave={() =>
-                  setHoveredKey((prev) => (prev === tab.key ? null : prev))
-                }
-              >
-                <button
-                  type="button"
-                  disabled={isDisabled}
-                  onClick={() => {
-                    if (isDisabled) return;
-                    onChange(tab.key);
-                    setIsOpen(false);
-                  }}
-                  className={`block w-full rounded-[6px] px-3 py-1.5 text-left text-xs transition-colors ${
-                    isActive
-                      ? NODE_OPTION_ACTIVE_BUTTON_CLASS
-                      : isDisabled
-                        ? "cursor-not-allowed text-text-muted/40"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  }`}
-                >
-                  {t(tab.labelKey)}
-                </button>
-                {isDisabled && hoveredKey === tab.key && disabledReason && (
-                  <div className={VIDEO_MODE_TOOLTIP_CLASS}>{disabledReason}</div>
-                )}
-              </div>
-            );
-          })}
-        </div>,
-        document.body,
-      )}
-    </div>
-  );
-}

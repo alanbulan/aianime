@@ -10186,6 +10186,71 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("VIDEO_PARAM_POPOVER_CLASS");
   });
 
+  it("keeps VideoNode generation-mode projection separate from its view", () => {
+    const projectionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/videoGenerationModeOptions.ts",
+    );
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoGenerationModeSelect.tsx",
+    );
+    const projectionSource = readFileSync(projectionPath, "utf8");
+    const viewSource = readFileSync(viewPath, "utf8");
+    const videoNode = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      "utf8",
+    );
+    const forbiddenViewImports = importSpecifiers(viewPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declarations = [
+      ["export function", "resolveVideoGenerationModeOptions("].join(" "),
+      ["export function", "VideoGenerationModeSelect("].join(" "),
+    ];
+    const implementationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(importSpecifiers(projectionPath)).toEqual([
+      "@/features/canvas/domain/canvasNodes",
+    ]);
+    expect(forbiddenViewImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      ["features/canvas/nodes/videoGenerationModeOptions.ts"],
+      ["features/canvas/nodes/VideoGenerationModeSelect.tsx"],
+    ]);
+    expect(projectionSource).toContain("HAPPYHORSE_MODE_ORDER");
+    expect(projectionSource).toContain("上游含视频素材时只能用");
+    expect(viewSource).toContain("options.map((option)");
+    expect(viewSource).toContain("option.disabledReason");
+    expect(viewSource).not.toContain("HappyHorse");
+    expect(viewSource).not.toContain("上游含视频素材时只能用");
+    expect(videoNode).toContain(
+      "@/features/canvas/nodes/videoGenerationModeOptions",
+    );
+    expect(videoNode).toContain(
+      "@/features/canvas/nodes/VideoGenerationModeSelect",
+    );
+    expect(videoNode).toContain("resolveVideoGenerationModeOptions({");
+    expect(videoNode).toContain("<VideoGenerationModeSelect");
+    expect(videoNode).not.toContain("interface GenModeSelectProps");
+    expect(videoNode).not.toContain("function videoModeDisabledReason(");
+    expect(videoNode).not.toContain("const MODE_TABS");
+  });
+
   it("keeps box-selection projection in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
