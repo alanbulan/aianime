@@ -38,6 +38,7 @@ const baseProps: VideoNodeClipPanelProps = {
   clipStartMs: 0,
   clipEndMs: 1_000,
   isSubmitting: false,
+  captureFrameStrip: vi.fn(),
   onChange: vi.fn(),
   onExit: vi.fn(),
   onSubmit: vi.fn(),

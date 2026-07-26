@@ -1480,6 +1480,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第一百九十八批已将 `VideoNode` 的剪辑模式/视频源显示门禁、节点下方定位、`VideoClipPanel` 组合及剪辑错误展示迁入唯一 `VideoNodeClipPanel` presentation view；节点继续唯一持有剪辑区间 Store 写回、退出状态清理和合成任务提交，只向视图传递显式状态与命令，不保留第二套剪辑面板 JSX，源码由 2702 行降至 2693 行，独立视图 37 行；显示门禁、布局/错误与变更/退出/提交命令测试 3 项、架构门禁 155 项及前端 `tsc -b --pretty false` 均通过。
 
+第一百九十九批已将剪辑缩略图与合成时间线胶片条中重复的离屏 video/canvas 装载、跨域设置、等距 seek、JPEG 编码和媒体清理收口为唯一 application 端口 `videoFrameStrip` 与 infrastructure 适配器 `browserVideoFrameStrip`；`VideoClipPanel` 通过显式端口接收适配器并保留固定 8 帧/160px 展示策略，`filmstrip` 复用同一适配器并保留按时长 6 至 40 帧、120px 及 URL 缓存策略，两个旧 DOM 实现删除，不保留第二套采帧逻辑；剪辑视图由 377 行降至 289 行，胶片条由 138 行降至 56 行，端口 15 行、适配器 96 行，`VideoNode` 仅因注入由 2693 行调整为 2695 行；适配器、剪辑视图、胶片条与组合视图共 4 个测试文件 11 项、架构门禁 156 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

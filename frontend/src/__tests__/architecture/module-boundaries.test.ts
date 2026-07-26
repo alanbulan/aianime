@@ -10839,6 +10839,71 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("mediaNeedsCrossOrigin");
   });
 
+  it("keeps browser video frame-strip capture in one infrastructure adapter", () => {
+    const contractPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/videoFrameStrip.ts",
+    );
+    const infrastructurePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/browserVideoFrameStrip.ts",
+    );
+    const clipPanelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoClipPanel.tsx",
+    );
+    const filmstripPath = resolve(
+      SRC_ROOT,
+      "features/canvas/compose/filmstrip.ts",
+    );
+    const contractSource = readFileSync(contractPath, "utf8");
+    const infrastructureSource = readFileSync(infrastructurePath, "utf8");
+    const clipPanelSource = readFileSync(clipPanelPath, "utf8");
+    const filmstripSource = readFileSync(filmstripPath, "utf8");
+    const videoNode = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      "utf8",
+    );
+    const declaration = [
+      "export async function",
+      "captureBrowserVideoFrameStrip(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(importSpecifiers(contractPath)).toEqual([]);
+    expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
+      new Set([
+        "../application/imageData",
+        "../application/videoFrameStrip",
+      ]),
+    );
+    expect(contractSource).not.toContain("react");
+    expect(contractSource).not.toContain("document");
+    expect(implementationOwners).toEqual([
+      "features/canvas/infrastructure/browserVideoFrameStrip.ts",
+    ]);
+    expect(infrastructureSource).not.toContain("react");
+    expect(infrastructureSource).not.toContain("@/stores/");
+    expect(infrastructureSource).not.toContain("@/api/");
+    expect(infrastructureSource).toContain('document.createElement("video")');
+    expect(infrastructureSource).toContain('document.createElement("canvas")');
+    expect(clipPanelSource).toContain("captureFrameStrip(resolved, {");
+    expect(clipPanelSource).not.toContain('document.createElement("video")');
+    expect(clipPanelSource).not.toContain("function captureFrames(");
+    expect(filmstripSource).toContain("captureBrowserVideoFrameStrip(");
+    expect(filmstripSource).not.toContain('document.createElement("video")');
+    expect(filmstripSource).not.toContain("function captureFilmstrip(");
+    expect(videoNode).toContain(
+      "@/features/canvas/infrastructure/browserVideoFrameStrip",
+    );
+    expect(videoNode).toContain(
+      "captureFrameStrip={captureBrowserVideoFrameStrip}",
+    );
+  });
+
   it("keeps generation output URL projection in one application module", () => {
     const applicationPath = resolve(
       SRC_ROOT,

@@ -10,10 +10,8 @@ import {
 } from 'react';
 import { Check, Loader2, Repeat, Type as TypeIcon, VolumeX, X } from 'lucide-react';
 
-import {
-  mediaNeedsCrossOrigin,
-  resolveImageDisplayUrl,
-} from '@/features/canvas/application/imageData';
+import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
+import type { CaptureVideoFrameStrip } from '@/features/canvas/application/videoFrameStrip';
 import { CANVAS_NODE_OPS_PANEL_CLASS } from '@/features/canvas/ui/nodeFrameStyles';
 
 interface VideoClipPanelProps {
@@ -22,6 +20,7 @@ interface VideoClipPanelProps {
   clipStartMs: number | null | undefined;
   clipEndMs: number | null | undefined;
   isSubmitting?: boolean;
+  captureFrameStrip: CaptureVideoFrameStrip;
   onChange: (patch: { clipStartMs?: number | null; clipEndMs?: number | null }) => void;
   onExit: () => void;
   onSubmit: (start: number, end: number) => void;
@@ -40,97 +39,6 @@ function formatSeconds(ms: number): string {
   return `${seconds.toFixed(2)} s`;
 }
 
-/**
- * Render N evenly-spaced thumbnails for a video via a hidden <video> + <canvas>.
- *
- * Notes:
- * - Cross-origin CDN media (absolute http(s) URL, the production case) loads
- *   with `crossOrigin='anonymous'` so the frames can be drawn to a canvas and
- *   exported without tainting it. Same-origin `/static/*` (the dev vite proxy)
- *   skips it — that origin doesn't echo `Access-Control-Allow-Origin`, and a
- *   same-origin draw is never tainted.
- * - We wait for `loadeddata` (one usable frame) before the first seek so the
- *   first drawImage doesn't render the black initial buffer.
- */
-async function captureFrames(src: string, count: number): Promise<string[]> {
-  return await new Promise((resolve, reject) => {
-    const video = document.createElement('video');
-    video.muted = true;
-    video.playsInline = true;
-    video.preload = 'auto';
-    if (mediaNeedsCrossOrigin(src)) video.crossOrigin = 'anonymous';
-
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      reject(new Error('canvas context unavailable'));
-      return;
-    }
-
-    const cleanup = () => {
-      video.removeAttribute('src');
-      try {
-        video.load();
-      } catch {
-        // ignored
-      }
-    };
-
-    const fail = (reason: unknown) => {
-      cleanup();
-      reject(reason instanceof Error ? reason : new Error(String(reason)));
-    };
-
-    video.addEventListener('error', () => fail('video element error'));
-
-    video.addEventListener('loadeddata', () => {
-      const duration = video.duration;
-      if (!isFinite(duration) || duration <= 0) {
-        fail('invalid duration for thumbnails');
-        return;
-      }
-      const targetWidth = 160;
-      const ratio = video.videoHeight / Math.max(video.videoWidth, 1);
-      canvas.width = targetWidth;
-      canvas.height = Math.max(1, Math.round(targetWidth * ratio));
-
-      const thumbs: string[] = [];
-      let index = 0;
-
-      const seekNext = () => {
-        if (index >= count) {
-          cleanup();
-          resolve(thumbs);
-          return;
-        }
-        const t = (duration * (index + 0.5)) / count;
-        video.currentTime = clamp(t, 0, Math.max(0, duration - 0.05));
-      };
-
-      video.addEventListener('seeked', () => {
-        try {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          thumbs.push(canvas.toDataURL('image/jpeg', 0.6));
-        } catch (error) {
-          fail(error);
-          return;
-        }
-        index += 1;
-        seekNext();
-      });
-
-      seekNext();
-    });
-
-    video.src = src;
-    try {
-      video.load();
-    } catch {
-      // ignored — `src` assignment already kicks off the fetch in most browsers
-    }
-  });
-}
-
 type DragMode = 'start' | 'end' | null;
 
 export const VideoClipPanel = memo(function VideoClipPanel({
@@ -139,6 +47,7 @@ export const VideoClipPanel = memo(function VideoClipPanel({
   clipStartMs,
   clipEndMs,
   isSubmitting = false,
+  captureFrameStrip,
   onChange,
   onExit,
   onSubmit,
@@ -172,10 +81,13 @@ export const VideoClipPanel = memo(function VideoClipPanel({
       setThumbsState('error');
       return;
     }
-    void captureFrames(resolved, THUMB_COUNT)
+    void captureFrameStrip(resolved, {
+      count: THUMB_COUNT,
+      targetWidth: 160,
+    })
       .then((frames) => {
         if (cancelled) return;
-        setThumbs(frames);
+        setThumbs(frames.map((frame) => frame.url));
         setThumbsState('ready');
       })
       .catch((error) => {
@@ -185,7 +97,7 @@ export const VideoClipPanel = memo(function VideoClipPanel({
     return () => {
       cancelled = true;
     };
-  }, [videoUrl]);
+  }, [captureFrameStrip, videoUrl]);
 
   const setStart = useCallback(
     (nextStart: number) => {

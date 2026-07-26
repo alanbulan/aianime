@@ -74,6 +74,7 @@ import { resolveDroppedVideoFile } from "@/features/canvas/application/resolveDr
 import { buildVideoMetadataPatch } from "@/features/canvas/application/videoMetadataPatch";
 import { probeAudioDurationMs } from "@/features/canvas/infrastructure/browserAudioMetadata";
 import { captureVideoFrameBlob } from "@/features/canvas/infrastructure/browserVideoFrameCapture";
+import { captureBrowserVideoFrameStrip } from "@/features/canvas/infrastructure/browserVideoFrameStrip";
 import { ensureWebSafeVideo } from "@/features/canvas/infrastructure/videoTranscode";
 import { isVideoFile, VIDEO_FILE_ACCEPT } from "@/features/canvas/application/videoFileTypes";
 import { resolveNodeDisplayName } from "@/features/canvas/domain/nodeDisplay";
@@ -2407,6 +2408,7 @@ export const VideoNode = memo(
           clipStartMs={clipStartMs}
           clipEndMs={clipEndMs}
           isSubmitting={isComposingClip}
+          captureFrameStrip={captureBrowserVideoFrameStrip}
           error={clipError}
           topOffsetPx={OPERATIONS_PANEL_GAP}
           onChange={(patch) => updateNodeData(id, patch)}
