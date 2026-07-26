@@ -5,6 +5,10 @@ import { getSceneDirectorStageManifest } from '@/api/viewerManifests';
 
 import { canvasEventBus } from './application/canvasServices';
 import {
+  analyzeCanvasVideoStory as analyzeCanvasVideoStoryUseCase,
+  type AnalyzeCanvasVideoStoryParams,
+} from './application/analyzeCanvasVideoStory';
+import {
   completeVideoGenerationTask as completeVideoGenerationTaskUseCase,
   type CompleteVideoGenerationTaskParams,
 } from './application/completeVideoGenerationTask';
@@ -152,6 +156,7 @@ import { freezoneStoryScriptGenerationGateway } from './infrastructure/freezoneS
 import { freezoneUpscaleGenerationGateway } from './infrastructure/freezoneUpscaleGenerationGateway';
 import { freezoneVideoComposeGateway } from './infrastructure/freezoneVideoComposeGateway';
 import { freezoneVideoGenerationSubmissionGateway } from './infrastructure/freezoneVideoGenerationSubmissionGateway';
+import { freezoneVideoStoryAnalysisGateway } from './infrastructure/freezoneVideoStoryAnalysisGateway';
 import { freezoneVideoSubtitleEraseGateway } from './infrastructure/freezoneVideoSubtitleEraseGateway';
 import { freezoneVideoUpscaleGenerationGateway } from './infrastructure/freezoneVideoUpscaleGenerationGateway';
 import { uuidGenerator } from './infrastructure/idGenerator';
@@ -358,6 +363,15 @@ export function composeCanvasVideo(params: ComposeCanvasVideoParams) {
 export function eraseVideoSubtitles(params: EraseVideoSubtitlesParams) {
   return eraseVideoSubtitlesUseCase(params, {
     eraseGateway: freezoneVideoSubtitleEraseGateway,
+    taskGateway: freezoneGenerationTaskGateway,
+  });
+}
+
+export function analyzeCanvasVideoStory(
+  params: AnalyzeCanvasVideoStoryParams,
+) {
+  return analyzeCanvasVideoStoryUseCase(params, {
+    submissionGateway: freezoneVideoStoryAnalysisGateway,
     taskGateway: freezoneGenerationTaskGateway,
   });
 }

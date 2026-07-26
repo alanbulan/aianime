@@ -116,13 +116,14 @@ import { useSettingsStore } from "@/stores/settingsStore";
 import { useCanvasStore } from "@/stores/canvasStore";
 import {
   fetchFreezoneAudioSeparateResult,
-  submitFreezoneAnalyzeVideoStory,
   submitFreezoneAudioSeparate,
 } from "@/api/ops";
-import { uploadCanvasAsset } from "@/features/canvas/composition";
+import {
+  analyzeCanvasVideoStory,
+  uploadCanvasAsset,
+} from "@/features/canvas/composition";
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
 import { awaitTaskCompletion } from "@/api/tasks";
-import { normalizeVideoStoryRows } from "@/features/canvas/application/videoStoryNormalizer";
 import { readUrl } from "@/lib/url-params";
 import { sanitizeStoryboardText } from "@/features/canvas/application/storyboardText";
 import { buildGenerationErrorReport } from "@/features/canvas/application/generationErrorReport";
@@ -1593,43 +1594,11 @@ export const NodeActionToolbar = memo(
                   addEdge(node.id, storyNodeId);
 
                   try {
-                    const durationSec =
-                      typeof videoData.durationMs === "number" && videoData.durationMs > 0
-                        ? videoData.durationMs / 1000
-                        : undefined;
-                    const submitResp = (await submitFreezoneAnalyzeVideoStory(
+                    const { rawResult, rows } = await analyzeCanvasVideoStory({
                       projectId,
-                      { videoUrl, durationSec },
-                    )) as unknown;
-                    console.info("[video-analyze] submit response", submitResp);
-
-                    const submitRecord =
-                      submitResp && typeof submitResp === "object"
-                        ? (submitResp as Record<string, unknown>)
-                        : {};
-                    const taskKey =
-                      typeof submitRecord.task_key === "string"
-                        ? submitRecord.task_key
-                        : null;
-
-                    let rawResult: Record<string, unknown>;
-                    if (taskKey) {
-                      const completed = await awaitTaskCompletion(taskKey, projectId);
-                      console.info(
-                        "[video-analyze] task completed",
-                        completed.result,
-                      );
-                      rawResult = (completed.result ?? {}) as Record<string, unknown>;
-                    } else {
-                      // Endpoint returned the result synchronously (OpenAPI 200 is `{}` —
-                      // not guaranteed to be the async FreezoneJobAcceptedResponse).
-                      console.info(
-                        "[video-analyze] no task_key, treating response as inline result",
-                      );
-                      rawResult = submitRecord;
-                    }
-
-                    const rows = normalizeVideoStoryRows(rawResult);
+                      videoUrl,
+                      durationMs: videoData.durationMs,
+                    });
                     console.info(
                       "[video-analyze] normalized rows",
                       rows.length,

@@ -8962,6 +8962,69 @@ describe("frontend architecture boundaries", () => {
     expect(nodeSource).not.toContain("resolveGenerationOutputUrl");
   });
 
+  it("keeps Canvas video story analysis behind application", () => {
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/analyzeCanvasVideoStory.ts",
+    );
+    const adapterPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneVideoStoryAnalysisGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const toolbarPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/NodeActionToolbar.tsx",
+    );
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const adapterSource = readFileSync(adapterPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const toolbarSource = readFileSync(toolbarPath, "utf8");
+    const productionCanvasSources = sourceFiles(
+      resolve(SRC_ROOT, "features/canvas"),
+    ).filter((path) => !path.includes(".test."));
+    const submitOwners = productionCanvasSources
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          "submitFreezoneAnalyzeVideoStory(",
+        ),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set(["./ports", "./videoStoryNormalizer"]),
+    );
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).toContain(
+      "dependencies.taskGateway.awaitCompletion(",
+    );
+    expect(applicationSource).toContain("normalizeVideoStoryRows(rawResult)");
+    expect(new Set(importSpecifiers(adapterPath))).toEqual(
+      new Set(["@/api/ops", "../application/analyzeCanvasVideoStory"]),
+    );
+    expect(adapterSource).toContain(
+      "freezoneVideoStoryAnalysisGateway: CanvasVideoStoryAnalysisSubmissionGateway",
+    );
+    expect(submitOwners).toEqual([
+      "features/canvas/infrastructure/freezoneVideoStoryAnalysisGateway.ts",
+    ]);
+    expect(compositionSource).toContain(
+      "analyzeCanvasVideoStoryUseCase(params, {",
+    );
+    expect(compositionSource).toContain(
+      "submissionGateway: freezoneVideoStoryAnalysisGateway",
+    );
+    expect(toolbarSource).toContain("await analyzeCanvasVideoStory({");
+    expect(toolbarSource).not.toContain("submitFreezoneAnalyzeVideoStory");
+    expect(toolbarSource).not.toContain("normalizeVideoStoryRows");
+  });
+
   it("keeps Canvas scene-360 generation orchestration in application", () => {
     const domainPath = resolve(
       SRC_ROOT,

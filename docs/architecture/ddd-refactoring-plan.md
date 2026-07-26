@@ -1540,6 +1540,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百二十八批已将单次图片生成的完整命令投影、任务提交/持久化/等待、SSE 图片 URL 读取及专用结果接口回退迁入唯一 application 用例 `generateCanvasImage`，并复用 `completeCanvasMediaGenerationTask`；`freezoneImageGenerationGateway` infrastructure 适配器成为 `submitFreezoneGen` 的唯一生产所有者，旧 `freezoneAiGateway` 同步复用该网关，不保留第二套提交 adapter；`ImageGenNode` 只保留批量并发、首个任务句柄归属、首图回填、自动提交、任务仲裁和节点状态写回，专用结果接口失败仍只记录警告而不把已完成任务升级为失败，不再直接依赖 `api/ops`、`api/tasks` 或结果 URL 投影，由 2357 行降至 2348 行；用例和适配器分别为 112、32 行，共 2 个测试文件 5 项、新增后的架构门禁 183 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百二十九批已将视频故事分析的毫秒/秒时长投影、异步任务识别与等待、同步内联响应兼容及故事行归一化迁入唯一 application 用例 `analyzeCanvasVideoStory`；`freezoneVideoStoryAnalysisGateway` infrastructure 适配器唯一调用 Freezone 视频故事分析端点并将不稳定的 transport 响应投影为任务键/内联结果，composition 注入既有任务 gateway；`NodeActionToolbar` 只保留即时 loading 故事节点创建、连线、结果回填和失败状态写回，不再识别 `task_key` 或直接调用分析 API，由 2481 行降至 2450 行，音视频分离的 `api/ops`、`api/tasks` 直连留待独立批次；用例和适配器分别为 57、27 行，共 2 个测试文件 4 项、新增后的架构门禁 184 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。
