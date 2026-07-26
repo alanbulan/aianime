@@ -69,6 +69,14 @@ export interface CanvasConnectionPreviewRequest {
   containerSize: { width: number; height: number };
 }
 
+export interface CanvasConnectionMenuRequest {
+  pending: CanvasPendingConnectionStart;
+  clientPosition: { x: number; y: number };
+  menuPosition: { x: number; y: number };
+  allowedTypes: CanvasNodeType[];
+  preview: CanvasConnectionPreviewRequest | null;
+}
+
 export function getClientPosition(
   event: MouseEvent | TouchEvent,
 ): { x: number; y: number } | null {

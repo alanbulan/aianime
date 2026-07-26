@@ -3956,6 +3956,58 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps Canvas React Flow connection gestures in one presentation controller", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasReactFlowConnectionController.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/features/canvas/nodeFactoryComposition",
+    );
+    const declaration = [
+      "export function",
+      "useCanvasReactFlowConnectionController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasReactFlowConnectionController.ts",
+    ]);
+    expect(hookModel).toContain("resolveCanvasConnectionStart({");
+    expect(hookModel).toContain("resolveCanvasConnectionEnd({");
+    expect(canvasView).toContain(
+      "./hooks/useCanvasReactFlowConnectionController",
+    );
+    expect(canvasView).not.toContain(
+      "const handleConnectStart = useCallback",
+    );
+    expect(canvasView).not.toContain(
+      "const handleConnectEnd = useCallback",
+    );
+    expect(canvasView).not.toContain("resolveCanvasConnectionStart(");
+    expect(canvasView).not.toContain("resolveCanvasConnectionEnd(");
+    expect(canvasView).not.toContain("FinalConnectionState");
+    expect(canvasView).not.toContain("OnConnectStartParams");
+  });
+
   it("keeps Canvas plus-connection gesture state in one presentation controller", () => {
     const hookPath = resolve(
       SRC_ROOT,

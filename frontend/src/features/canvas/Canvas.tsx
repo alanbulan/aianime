@@ -17,9 +17,7 @@ import {
   useReactFlow,
   useStoreApi,
   type EdgeChange,
-  type FinalConnectionState,
   type NodeChange,
-  type OnConnectStartParams,
 } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -104,8 +102,7 @@ import { PAN_ACTIVATION_KEY_CODE } from './ui/canvasInteractionTargets';
 import { collectDroppedMediaFiles } from './ui/canvasMediaTransfer';
 import {
   createPreviewPath,
-  resolveCanvasConnectionEnd,
-  resolveCanvasConnectionStart,
+  type CanvasConnectionMenuRequest,
   type CanvasConnectionPreviewRequest,
   type CanvasPendingConnectionStart,
 } from './ui/canvasConnectionInteraction';
@@ -119,10 +116,8 @@ import {
   type CanvasBatchConnectionMenuRequest,
 } from './hooks/useCanvasBatchConnectionController';
 import { useCanvasConnectionController } from './hooks/useCanvasConnectionController';
-import {
-  useCanvasPlusConnectionController,
-  type CanvasPlusConnectionMenuRequest,
-} from './hooks/useCanvasPlusConnectionController';
+import { useCanvasPlusConnectionController } from './hooks/useCanvasPlusConnectionController';
+import { useCanvasReactFlowConnectionController } from './hooks/useCanvasReactFlowConnectionController';
 import { useCanvasKeyboardShortcuts } from './hooks/useCanvasKeyboardShortcuts';
 import { useCanvasLifecycle } from './hooks/useCanvasLifecycle';
 import { useCanvasMarqueeSelection } from './hooks/useCanvasMarqueeSelection';
@@ -597,8 +592,8 @@ export function Canvas({
     },
     [],
   );
-  const preparePlusConnectionDrag = useCallback(
-    (pending: CanvasPendingConnectionStart) => {
+  const prepareConnectionStart = useCallback(
+    (pending: CanvasPendingConnectionStart | null) => {
       setPendingConnectStart(pending);
       setShowNodeMenu(false);
       setMenuAllowedTypes(undefined);
@@ -606,12 +601,12 @@ export function Canvas({
     },
     [],
   );
-  const clearPlusConnection = useCallback(() => {
+  const clearConnection = useCallback(() => {
     setPendingConnectStart(null);
     setPreviewConnectionVisual(null);
   }, []);
-  const openPlusConnectionMenu = useCallback(
-    (request: CanvasPlusConnectionMenuRequest) => {
+  const openConnectionMenu = useCallback(
+    (request: CanvasConnectionMenuRequest) => {
       setPendingConnectStart(request.pending);
       updateConnectionPreview(request.preview);
       setFlowPosition(
@@ -641,10 +636,22 @@ export function Canvas({
     nodes,
     clearHoveredNodeTimer,
     clearHoveredNode,
-    prepareConnectionDrag: preparePlusConnectionDrag,
-    clearConnection: clearPlusConnection,
+    prepareConnectionDrag: prepareConnectionStart,
+    clearConnection,
     updateConnectionPreview,
-    openConnectionMenu: openPlusConnectionMenu,
+    openConnectionMenu,
+    connectNodes: connectGraphNodes,
+  });
+  const {
+    handleConnectStart,
+    handleConnectEnd,
+  } = useCanvasReactFlowConnectionController({
+    wrapperRef,
+    nodes,
+    pendingConnection: pendingConnectStart,
+    prepareConnectionStart,
+    clearConnection,
+    openConnectionMenu,
     connectNodes: connectGraphNodes,
   });
   const prepareBatchConnectionDrag = useCallback(() => {
@@ -1519,21 +1526,6 @@ export function Canvas({
     deleteSelection: deleteSelectedElements,
   });
 
-  const handleConnectStart = useCallback(
-    (event: MouseEvent | TouchEvent, params: OnConnectStartParams) => {
-      setShowNodeMenu(false);
-      setMenuAllowedTypes(undefined);
-      setPreviewConnectionVisual(null);
-      setPendingConnectStart(resolveCanvasConnectionStart({
-        event,
-        params,
-        nodes,
-        containerRect: wrapperRef.current?.getBoundingClientRect(),
-      }));
-    },
-    [nodes]
-  );
-
   const handleNodeDragStart = useCallback(
     (event: ReactMouseEvent, node: CanvasNode, draggedNodes: CanvasNode[]) => {
       // 组内成员拖动：记下「所有被拖成员」（多选时第三参带全量）所属的组 id，松手时
@@ -1846,61 +1838,6 @@ export function Canvas({
       }
     }
   }, []);
-
-  const handleConnectEnd = useCallback(
-    (event: MouseEvent | TouchEvent, connectionState: FinalConnectionState) => {
-      const resolution = resolveCanvasConnectionEnd({
-        event,
-        connectionState,
-        pending: pendingConnectStart,
-        nodes,
-        wrapperElement: wrapperRef.current,
-      });
-      if (resolution.kind === 'cancel') {
-        setPendingConnectStart(null);
-        setPreviewConnectionVisual(null);
-        return;
-      }
-      if (resolution.kind === 'connect') {
-        connectGraphNodes({
-          source: resolution.source,
-          target: resolution.target,
-          sourceHandle: resolution.sourceHandle,
-          targetHandle: resolution.targetHandle,
-        });
-        setPendingConnectStart(null);
-        setPreviewConnectionVisual(null);
-        return;
-      }
-      setPreviewConnectionVisual(
-        resolution.previewLine
-          ? {
-              d: createPreviewPath(resolution.previewLine),
-              stroke: PREVIEW_CONNECTION_STROKE,
-              strokeWidth: 1,
-              strokeLinecap: 'round',
-              left: 0,
-              top: 0,
-              width: resolution.containerSize.width,
-              height: resolution.containerSize.height,
-            }
-          : null,
-      );
-      setFlowPosition(
-        reactFlowInstance.screenToFlowPosition(resolution.clientPosition),
-      );
-      setMenuPosition(resolution.menuPosition);
-      setMenuAllowedTypes(resolution.allowedTypes);
-      suppressNextPaneClickRef.current = true;
-      setShowNodeMenu(true);
-    },
-    [
-      connectGraphNodes,
-      nodes,
-      pendingConnectStart,
-      reactFlowInstance,
-    ]
-  );
 
   const emptyHint = useMemo(() => {
     return (

@@ -7,11 +7,12 @@ import {
   type RefObject,
 } from 'react';
 
-import type { CanvasNode, CanvasNodeType } from '../domain/canvasNodes';
+import type { CanvasNode } from '../domain/canvasNodes';
 import {
   resolveCanvasPlusConnectionEnd,
   resolveCanvasPlusConnectionStart,
   resolveManualDropTargetElement,
+  type CanvasConnectionMenuRequest,
   type CanvasConnectionPreviewRequest,
   type CanvasManualConnectionRequest,
   type CanvasPendingConnectionStart,
@@ -19,14 +20,6 @@ import {
 } from '../ui/canvasConnectionInteraction';
 
 const DROP_TARGET_CLASS_NAME = 'canvas-node-drop-target';
-
-export interface CanvasPlusConnectionMenuRequest {
-  pending: CanvasPendingConnectionStart;
-  clientPosition: { x: number; y: number };
-  menuPosition: { x: number; y: number };
-  allowedTypes: CanvasNodeType[];
-  preview: CanvasConnectionPreviewRequest | null;
-}
 
 export interface CanvasPlusConnectionControllerOptions {
   wrapperRef: RefObject<HTMLDivElement | null>;
@@ -38,7 +31,7 @@ export interface CanvasPlusConnectionControllerOptions {
   updateConnectionPreview: (
     preview: CanvasConnectionPreviewRequest | null,
   ) => void;
-  openConnectionMenu: (request: CanvasPlusConnectionMenuRequest) => void;
+  openConnectionMenu: (request: CanvasConnectionMenuRequest) => void;
   connectNodes: (connection: CanvasManualConnectionRequest) => void;
 }
 
