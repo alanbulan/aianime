@@ -1,14 +1,22 @@
 // Copyright (c) 2026 AI anime
-import { submitFreezoneTemplateEdit } from "@/api/ops";
+import { apiCall } from "@/shared/api/client";
 
 import type { CanvasGridActionGenerationGateway } from "../application/generateCanvasGridAction";
+import type { CanvasGenerationTaskRef } from "../application/ports";
 
 export const freezoneGridActionGenerationGateway: CanvasGridActionGenerationGateway = {
   async submit(projectId, command) {
-    return await submitFreezoneTemplateEdit(projectId, {
-      sourceUrl: command.sourceUrl,
-      mode: command.mode,
-      prompt: command.prompt,
-    });
+    return await apiCall<CanvasGenerationTaskRef>(
+      `projects/${encodeURIComponent(projectId)}/freezone/template-edit`,
+      {
+        method: "POST",
+        json: {
+          source_url: command.sourceUrl,
+          mode: command.mode,
+          prompt: command.prompt,
+          image_size: "2K",
+        },
+      },
+    );
   },
 };

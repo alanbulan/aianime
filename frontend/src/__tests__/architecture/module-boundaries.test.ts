@@ -11141,11 +11141,20 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/ui/SelectedNodeOverlay.tsx",
     );
+    const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const domainSource = readFileSync(domainPath, "utf8");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const overlaySource = readFileSync(overlayPath, "utf8");
+    const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
+    const endpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("}/freezone/template-edit`"),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(importSpecifiers(domainPath)).toEqual([]);
     expect(domainSource).toContain(
@@ -11172,7 +11181,11 @@ describe("frontend architecture boundaries", () => {
       "completeCanvasMediaGenerationTask(",
     );
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
-      new Set(["@/api/ops", "../application/generateCanvasGridAction"]),
+      new Set([
+        "@/shared/api/client",
+        "../application/generateCanvasGridAction",
+        "../application/ports",
+      ]),
     );
     expect(infrastructureSource).toContain(
       "freezoneGridActionGenerationGateway: CanvasGridActionGenerationGateway",
@@ -11202,6 +11215,17 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(selectedOverlayPath)).toContain(
       "@/features/canvas/domain/gridAction",
     );
+    expect(endpointOwners).toEqual([
+      "features/canvas/infrastructure/freezoneGridActionGenerationGateway.ts",
+    ]);
+    for (const legacySymbol of [
+      "FreezoneTemplateEditMode",
+      "FreezoneTemplateEditPayload",
+      "submitFreezoneTemplateEdit",
+    ]) {
+      expect(legacyOpsSource).not.toContain(legacySymbol);
+    }
+    expect(legacyOpsSource).not.toContain("}/freezone/template-edit`");
   });
 
   it("keeps Canvas image-upscale rules and generation orchestration out of views", () => {

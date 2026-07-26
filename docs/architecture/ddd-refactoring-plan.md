@@ -1614,6 +1614,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百六十五批已将重新打光的源图静态化、项目路径编码、POST method、智能模式、亮度、颜色/色温、主光方向、轮廓光、提示词、尺寸和模型字段映射从 `api/ops.ts` 迁入已有唯一 `freezoneRelightGenerationGateway` infrastructure 适配器，gateway 复用既有唯一 `ensureBackendImageUrl`，Canvas application/domain 继续负责源 URL 缓存清理、方向归一和智能提示词合成；旧 `FreezoneRelightScope`、`FreezoneRelightKeyLightDirection`、`FreezoneRelightPayload` 和 `submitFreezoneRelight` 直接删除，不保留 facade、re-export 或第二套 HTTP 映射，`freezone/relight` 端点只有该 gateway 一个生产所有者，`api/ops.ts` 由 1,724 行降至 1,665 行；请求路径、方法、源图上传、全局模式、光照参数、空参考图/模型和任务回执语义均未改变；相关 3 个测试文件 4 项、架构门禁 206 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
 
+第二百六十六批已将网格动作生成的项目路径编码、POST method、源图、模板模式、提示词和固定 2K 尺寸字段映射从 `api/ops.ts` 迁入已有唯一 `freezoneGridActionGenerationGateway` infrastructure 适配器，Canvas application 继续负责源 URL 缓存清理、任务完成和结果回传，领域模块继续唯一持有动作到模板模式的映射规则；旧 `FreezoneTemplateEditMode`、`FreezoneTemplateEditPayload` 和 `submitFreezoneTemplateEdit` 直接删除，不保留 facade、re-export 或第二套 HTTP 映射，`freezone/template-edit` 端点只有该 gateway 一个生产所有者，`api/ops.ts` 由 1,665 行降至 1,625 行；请求路径、方法、模板模式、提示词、固定 2K 输出和任务回执语义均未改变；相关 3 个测试文件 3 项、架构门禁 206 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

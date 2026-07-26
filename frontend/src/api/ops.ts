@@ -1150,46 +1150,6 @@ export async function submitFreezoneScene360(
   );
 }
 
-// /freezone/template-edit ------------------------------------------------- //
-
-export type FreezoneTemplateEditMode =
-  | "multi_camera_nine_grid"
-  | "story_pitch_four_grid"
-  | "character_face_three_view"
-  | "product_three_view"
-  | "storyboard_25_grid"
-  | "cinematic_light_correction"
-  | "character_three_view_generation"
-  | "image_projection_after_3s"
-  | "image_projection_before_5s";
-
-export interface FreezoneTemplateEditPayload {
-  sourceUrl: string;
-  mode: FreezoneTemplateEditMode;
-  prompt?: string;
-  imageSize?: string;
-  model?: string;
-}
-
-export async function submitFreezoneTemplateEdit(
-  project: string,
-  payload: FreezoneTemplateEditPayload,
-): Promise<FreezoneJobRef> {
-  return await apiCall<FreezoneJobRef>(
-    `projects/${encodeURIComponent(project)}/freezone/template-edit`,
-    {
-      method: "POST",
-      json: {
-        source_url: payload.sourceUrl,
-        mode: payload.mode,
-        prompt: payload.prompt ?? "",
-        image_size: payload.imageSize ?? "2K",
-        ...(payload.model ? { model: payload.model } : {}),
-      },
-    },
-  );
-}
-
 // /freezone/jobs/{type}/{id}/result --------------------------------------- //
 
 export interface FreezoneJobResult {
