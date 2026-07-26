@@ -103,6 +103,10 @@ import {
   createZustandCanvasViewportSlice,
   type CanvasViewportSlice,
 } from '@/features/canvas/infrastructure/zustandCanvasViewportSlice';
+import {
+  createZustandCanvasTransientInteractionSlice,
+  type CanvasTransientInteractionSlice,
+} from '@/features/canvas/infrastructure/zustandCanvasTransientInteractionSlice';
 
 export type {
   ActiveToolDialog,
@@ -114,25 +118,13 @@ export type {
   StoryboardFrameItem,
 };
 
-interface CanvasState extends CanvasMutationState, CanvasViewportSlice {
+interface CanvasState
+  extends CanvasMutationState,
+    CanvasViewportSlice,
+    CanvasTransientInteractionSlice {
   nodes: CanvasNode[];
   edges: CanvasEdge[];
   selectedNodeId: string | null;
-  /**
-   * 当前由顶部工具栏打开了二级功能浮层（全景 / 多角度 / 打光 / 重绘 / 扩图 /
-   * 旋转 / 九宫格）的目标节点 id。浮层打开时，节点自身依赖 `selected` 显示的
-   * 操作面板（如 ImageGenNode 底部的生成面板）必须让位给浮层——否则两块操作区
-   * 会在节点下方重叠。功能浮层优先级更高。
-   */
-  activeOverlayNodeId: string | null;
-  /**
-   * 当前鼠标悬停的节点 id（由 Canvas 的 onNodeMouseEnter/Leave 维护，离开带短
-   * 延迟，避免鼠标移到节点上方的浮动按钮栏时按钮提前消失）。供 NodeSpawnPlusOverlay
-   * 的「+」、NodeSideActionRail 的上传/替换按钮栏等「hover 才显示」的浮层读取。
-   */
-  hoveredNodeId: string | null;
-  /** 一次性的视口聚焦请求：Canvas 监听到后会 setCenter 然后清掉。 */
-  pendingFocusNodeId: string | null;
   activeToolDialog: ActiveToolDialog | null;
   history: CanvasHistoryState;
   dragHistorySnapshot: CanvasHistorySnapshot | null;
@@ -297,11 +289,6 @@ interface CanvasState extends CanvasMutationState, CanvasViewportSlice {
   ungroupNode: (groupNodeId: string) => boolean;
   deleteEdge: (edgeId: string) => void;
   setSelectedNode: (nodeId: string | null) => void;
-  setActiveOverlayNodeId: (nodeId: string | null) => void;
-  setHoveredNodeId: (nodeId: string | null) => void;
-  /** 请求将视口聚焦到目标节点；Canvas 处理完会通过 clearPendingFocus 复位。 */
-  requestFocusNode: (nodeId: string) => void;
-  clearPendingFocus: () => void;
 
   openToolDialog: (dialog: ActiveToolDialog) => void;
   closeToolDialog: () => void;
@@ -331,13 +318,14 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   lastMutationSource: null,
   pendingClearIntent: false,
   selectedNodeId: null,
-  activeOverlayNodeId: null,
-  hoveredNodeId: null,
-  pendingFocusNodeId: null,
   activeToolDialog: null,
   history: { past: [], future: [] },
   dragHistorySnapshot: null,
   ...createZustandCanvasViewportSlice({
+    getState: get,
+    setState: (patch) => set(patch),
+  }),
+  ...createZustandCanvasTransientInteractionSlice({
     getState: get,
     setState: (patch) => set(patch),
   }),
@@ -1147,27 +1135,6 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   setSelectedNode: (nodeId) => {
     set({ selectedNodeId: nodeId });
-  },
-
-  setActiveOverlayNodeId: (nodeId) => {
-    set((state) =>
-      state.activeOverlayNodeId === nodeId ? state : { activeOverlayNodeId: nodeId }
-    );
-  },
-
-  setHoveredNodeId: (nodeId) => {
-    set((state) =>
-      state.hoveredNodeId === nodeId ? state : { hoveredNodeId: nodeId }
-    );
-  },
-
-  requestFocusNode: (nodeId) => {
-    // 用「重新指向」的策略而不是去重：哪怕是同一个 id，连续点也会触发新的聚焦。
-    set({ pendingFocusNodeId: nodeId });
-  },
-
-  clearPendingFocus: () => {
-    set({ pendingFocusNodeId: null });
   },
 
   openToolDialog: (dialog) => {

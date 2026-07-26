@@ -7874,13 +7874,54 @@ describe("frontend architecture boundaries", () => {
       "../application/canvasImageViewer",
       "../domain/viewportBookmarks",
     ]);
-    expect(canvasStore).toContain(
-      "interface CanvasState extends CanvasMutationState, CanvasViewportSlice",
+    expect(canvasStore).toMatch(
+      /interface CanvasState[\s\S]*?CanvasViewportSlice/,
     );
     expect(canvasStore).toContain("...createZustandCanvasViewportSlice({");
     expect(canvasStore).not.toContain("currentViewport: { x: 0, y: 0, zoom: 1 }");
     expect(canvasStore).not.toContain("viewportBookmarks: createEmptyBookmarks()");
     expect(canvasStore).not.toContain("imageViewer: createClosedCanvasImageViewer()");
+    expect(sliceSource).not.toContain("@/stores/canvasStore");
+  });
+
+  it("keeps Canvas transient interaction state in one Zustand slice", () => {
+    const slicePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/zustandCanvasTransientInteractionSlice.ts",
+    );
+    const sliceSource = readFileSync(slicePath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const canvasStateHeader = canvasStore.match(
+      /interface CanvasState[\s\S]*?\{/,
+    )?.[0];
+    const implementations = [
+      ["setActiveOverlayNodeId", "(nodeId) {"],
+      ["setHoveredNodeId", "(nodeId) {"],
+      ["requestFocusNode", "(nodeId) {"],
+      ["clearPendingFocus", "() {"],
+    ].map(([name, parameters]) => `${name}${parameters}`);
+
+    for (const implementation of implementations) {
+      const owners = sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(implementation))
+        .map(relativeSource)
+        .sort();
+      expect(owners).toEqual([
+        "features/canvas/infrastructure/zustandCanvasTransientInteractionSlice.ts",
+      ]);
+    }
+
+    expect(importSpecifiers(slicePath)).toEqual([]);
+    expect(canvasStateHeader).toContain("CanvasTransientInteractionSlice");
+    expect(canvasStore).toContain(
+      "...createZustandCanvasTransientInteractionSlice({",
+    );
+    expect(canvasStore).not.toContain("activeOverlayNodeId: null");
+    expect(canvasStore).not.toContain("hoveredNodeId: null");
+    expect(canvasStore).not.toContain("pendingFocusNodeId: null");
     expect(sliceSource).not.toContain("@/stores/canvasStore");
   });
 });
