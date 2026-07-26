@@ -41,7 +41,8 @@ import {
   hasMainlineContexts,
   NodeContextBadges,
 } from '@/features/freezone/context/NodeContextBadges';
-import { fetchFreezoneAudioReferences } from '@/api/ops';
+import type { CanvasAudioReference } from '@/features/canvas/application/audioVoiceCatalog';
+import { loadCanvasAudioReferences } from '@/features/canvas/audioComposition';
 import { uploadCanvasAsset } from '@/features/canvas/composition';
 import { readUrl } from '@/lib/url-params';
 
@@ -77,13 +78,13 @@ function isAudioFile(file: File): boolean {
 // （都 await 同一个 in-flight promise），不会出现并发风暴。
 const audioReferencesPromiseCache = new Map<
   string,
-  Promise<Awaited<ReturnType<typeof fetchFreezoneAudioReferences>>>
+  Promise<CanvasAudioReference[]>
 >();
 
 function getCachedAudioReferences(project: string) {
   let p = audioReferencesPromiseCache.get(project);
   if (!p) {
-    p = fetchFreezoneAudioReferences(project).catch((err) => {
+    p = loadCanvasAudioReferences(project).catch((err) => {
       // 失败时把 promise 从缓存里清掉，下一次挂载有机会重试。
       audioReferencesPromiseCache.delete(project);
       throw err;
@@ -213,7 +214,7 @@ export const AudioNode = memo(({ id, data, selected, width, height }: AudioNodeP
       try {
         const res = await getCachedAudioReferences(project);
         if (cancelled) return;
-        const first = (res.available ?? [])[0];
+        const first = res[0];
         if (!first) return;
         const fresh = useCanvasStore.getState().nodes.find((n) => n.id === id);
         if (!fresh) return;
@@ -227,13 +228,7 @@ export const AudioNode = memo(({ id, data, selected, width, height }: AudioNodeP
           !cur.slot &&
           !cur.voiceId;
         if (cur != null && !curIsFactory) return;
-        const ref: AudioVoiceRef = {
-          scope: first.scope,
-          characterName: first.character_name ?? undefined,
-          identityId: first.identity_id ?? undefined,
-          slot: first.slot ?? undefined,
-          voiceId: first.voice_id ?? undefined,
-        };
+        const ref: AudioVoiceRef = { ...first.ref };
         const nextLabel = first.label ?? '';
         const nextLanguage = first.language ?? '';
         // 若算出来的默认音色跟当前已经一致就跳过：当首条 reference 本身就是裸

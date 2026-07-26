@@ -430,8 +430,8 @@ export type AudioTextSegment =
 
 /**
  * 后端 freezone-audio 声线引用：scope 必填，character_name / identity_id / slot
- * 视 scope 而定。与 ops.ts 中的 `FreezoneAudioVoiceRef` 同构，但这里保留前端
- * 自带的 camelCase 字段，避免节点数据被序列化为 snake_case。
+ * 视 scope 而定。Canvas 保留 camelCase 字段，transport 映射由 infrastructure
+ * 负责，避免节点数据被序列化为 snake_case。
  */
 export interface AudioVoiceRef {
   scope:

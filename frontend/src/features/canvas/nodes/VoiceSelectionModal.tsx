@@ -11,12 +11,12 @@ import { createPortal } from 'react-dom';
 import { Loader2, Plus, Search, X, AudioWaveform } from 'lucide-react';
 import { toast } from 'sonner';
 
-import type { AudioVoiceRef } from '@/features/canvas/domain/canvasNodes';
+import type { CanvasAudioReference } from '@/features/canvas/application/audioVoiceCatalog';
 import {
-  createFreezoneAudioVoice,
-  fetchFreezoneAudioReferences,
-  type FreezoneAudioReferenceItem,
-} from '@/api/ops';
+  createCanvasAudioVoice,
+  loadCanvasAudioReferences,
+} from '@/features/canvas/audioComposition';
+import type { AudioVoiceRef } from '@/features/canvas/domain/canvasNodes';
 import { readUrl } from '@/lib/url-params';
 import { CANVAS_NODE_INPUT_PLACEHOLDER_CLASS } from '@/features/canvas/ui/nodeFrameStyles';
 
@@ -92,7 +92,7 @@ export function VoiceSelectionModal({
   onPick,
 }: VoiceSelectionModalProps) {
   const [tab, setTab] = useState<TabId>('library');
-  const [items, setItems] = useState<FreezoneAudioReferenceItem[]>([]);
+  const [items, setItems] = useState<CanvasAudioReference[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -105,8 +105,7 @@ export function VoiceSelectionModal({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetchFreezoneAudioReferences(project);
-      setItems(res.available ?? []);
+      setItems(await loadCanvasAudioReferences(project));
     } catch (err) {
       setError(err instanceof Error ? err.message : '加载声线失败');
     } finally {
@@ -133,7 +132,7 @@ export function VoiceSelectionModal({
   // 音色库 = available 完整字段；我的音色 = available 里 scope=user_custom 的子集。
   const libraryItems = items;
   const myItems = useMemo(
-    () => items.filter((it) => it.scope === 'user_custom'),
+    () => items.filter((it) => it.ref.scope === 'user_custom'),
     [items],
   );
 
@@ -231,7 +230,7 @@ function TabsRow({ tab, onChange }: TabsRowProps) {
 interface LibraryTabProps {
   currentRef: AudioVoiceRef;
   onPick: (result: VoicePickResult) => void;
-  items: FreezoneAudioReferenceItem[];
+  items: CanvasAudioReference[];
   loading: boolean;
   error: string | null;
 }
@@ -246,9 +245,9 @@ function LibraryTab({ currentRef, onPick, items, loading, error }: LibraryTabPro
     return items.filter((item) => {
       const fields = [
         item.label ?? '',
-        item.character_name ?? '',
-        item.identity_id ?? '',
-        item.slot ?? '',
+        item.ref.characterName ?? '',
+        item.ref.identityId ?? '',
+        item.ref.slot ?? '',
         item.language ?? '',
       ];
       return fields.some((s) => String(s).toLowerCase().includes(q));
@@ -297,13 +296,7 @@ function LibraryTab({ currentRef, onPick, items, loading, error }: LibraryTabPro
             // voiceId 必须带上 —— user_custom scope 全靠它区分，漏了的话
             // 同一 scope 的多条 ref 会撞同一个 key（参考 voiceRefKey），
             // 列表里所有用户音色都会被错误地标成"已选"。
-            const ref: AudioVoiceRef = {
-              scope: item.scope,
-              characterName: item.character_name ?? undefined,
-              identityId: item.identity_id ?? undefined,
-              slot: item.slot ?? undefined,
-              voiceId: item.voice_id ?? undefined,
-            };
+            const ref: AudioVoiceRef = { ...item.ref };
             const key = voiceRefKey(ref);
             const isActive = key === currentKey;
             return (
@@ -311,7 +304,7 @@ function LibraryTab({ currentRef, onPick, items, loading, error }: LibraryTabPro
                 key={`${key}-${idx}`}
                 title={item.label ?? describeVoiceRef(ref)}
                 language={item.language ?? null}
-                gender={readGender(item)}
+                gender={item.gender}
                 isActive={isActive}
                 onSelect={() =>
                   onPick({
@@ -342,7 +335,7 @@ function LibraryTab({ currentRef, onPick, items, loading, error }: LibraryTabPro
 interface MyVoicesTabProps {
   currentRef: AudioVoiceRef;
   onPick: (result: VoicePickResult) => void;
-  items: FreezoneAudioReferenceItem[];
+  items: CanvasAudioReference[];
   loading: boolean;
   error: string | null;
   onReload: () => Promise<void>;
@@ -391,7 +384,7 @@ function MyVoicesTab({
       try {
         // 文件名（去扩展名）作为默认音色名，避免空字符串。
         const stem = file.name.replace(/\.[^/.]+$/, '');
-        await createFreezoneAudioVoice(project, file, stem || undefined);
+        await createCanvasAudioVoice(project, file, stem || undefined);
         await onReload();
       } catch (err) {
         const raw = err instanceof Error ? err.message : '';
@@ -414,7 +407,7 @@ function MyVoicesTab({
     return items.filter((item) => {
       const fields = [
         item.label ?? '',
-        item.voice_id ?? '',
+        item.ref.voiceId ?? '',
         item.language ?? '',
       ];
       return fields.some((s) => String(s).toLowerCase().includes(q));
@@ -480,7 +473,7 @@ function MyVoicesTab({
         {!loading &&
           !error &&
           pageItems.map((item, idx) => {
-            const voiceId = item.voice_id ?? '';
+            const voiceId = item.ref.voiceId ?? '';
             const ref: AudioVoiceRef = {
               scope: 'user_custom',
               voiceId: voiceId || undefined,
@@ -493,7 +486,7 @@ function MyVoicesTab({
                 key={voiceId ? `${voiceId}` : `mine-${idx}`}
                 title={label}
                 language={item.language ?? null}
-                gender={readGender(item)}
+                gender={item.gender}
                 isActive={isActive}
                 onSelect={() =>
                   onPick({
@@ -814,12 +807,4 @@ function describeVoiceRef(ref: AudioVoiceRef): string {
     default:
       return ref.scope;
   }
-}
-
-function readGender(item: FreezoneAudioReferenceItem): string | null {
-  const raw =
-    (item as Record<string, unknown>).gender ??
-    (item as Record<string, unknown>).sex;
-  if (typeof raw === 'string' && raw.trim()) return raw;
-  return null;
 }

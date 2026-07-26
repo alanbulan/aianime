@@ -1504,6 +1504,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百一十批已将图片模型、视频模型、相机参数、风格模板和运镜模板 5 类只读目录契约迁入 Canvas application 的 `generationCatalog`，由唯一 `freezoneGenerationCatalogGateway` infrastructure 适配器调用 `api/ops` transport 客户端并完成风格 `style_prompt`、相机 `camera_bodies/focal_lengths_mm` 等字段的 camelCase 投影，轻量 `catalogComposition` 负责装配；5 个共享缓存 hooks 与 `StylePickerPopover` 不再直接依赖 API，`CameraPickerPopover` 只消费 Canvas DTO，原有按项目单次加载、预取、空目录回退、错误状态和 UI 选择逻辑保持不变；application 契约 55 行、适配器 94 行、组合根 22 行，适配器测试 3 项、新增后的架构门禁 165 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百一十一批已将音色引用目录与自定义音色上传收口到 Canvas application 的 `audioVoiceCatalog` 端口，唯一 `freezoneAudioVoiceCatalogGateway` infrastructure 适配器负责 `character_name/identity_id/voice_id/preview_url` 到 Canvas DTO 的投影，并统一保留 `gender` 到旧 `sex` 字段的兼容优先级，轻量 `audioComposition` 完成装配；`AudioNode` 与 `VoiceSelectionModal` 不再直接依赖 `api/ops`，两处重复的 `AudioVoiceRef` 组装及视图内性别读取同步删除，原有按项目 Promise 去重与失败重试、StrictMode 初始化保护、音色搜索/分页、5MB 上传前置门禁及错误提示保持不变；两个视图分别由 371、825 行降至 366、810 行，application 契约 19 行、适配器 47 行、组合根 14 行；适配器测试 2 项、新增后的架构门禁 166 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

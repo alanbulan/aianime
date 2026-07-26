@@ -8488,6 +8488,77 @@ describe("frontend architecture boundaries", () => {
     expect(cameraPicker).not.toContain("focal_lengths_mm");
   });
 
+  it("keeps Canvas audio voice catalogs behind an application-owned gateway", () => {
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/audioVoiceCatalog.ts",
+    );
+    const infrastructurePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneAudioVoiceCatalogGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/audioComposition.ts",
+    );
+    const audioNodePath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/AudioNode.tsx",
+    );
+    const voiceModalPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VoiceSelectionModal.tsx",
+    );
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const infrastructureSource = readFileSync(infrastructurePath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const audioNodeSource = readFileSync(audioNodePath, "utf8");
+    const voiceModalSource = readFileSync(voiceModalPath, "utf8");
+
+    expect(importSpecifiers(applicationPath)).toEqual([
+      "../domain/canvasNodes",
+    ]);
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).toContain(
+      "export interface CanvasAudioVoiceCatalogGateway",
+    );
+    expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
+      new Set(["@/api/ops", "../application/audioVoiceCatalog"]),
+    );
+    expect(infrastructureSource).toContain(
+      "freezoneAudioVoiceCatalogGateway: CanvasAudioVoiceCatalogGateway",
+    );
+    expect(infrastructureSource).toContain("characterName: item.character_name");
+    expect(infrastructureSource).toContain("voiceId: item.voice_id");
+    expect(infrastructureSource).toContain(
+      "item.gender ?? (item as Record<string, unknown>).sex",
+    );
+    expect(importSpecifiers(compositionPath)).toEqual([
+      "./infrastructure/freezoneAudioVoiceCatalogGateway",
+    ]);
+    expect(compositionSource).toContain(
+      "freezoneAudioVoiceCatalogGateway.listReferences(projectId)",
+    );
+    expect(compositionSource).toContain(
+      "freezoneAudioVoiceCatalogGateway.createVoice(projectId, file, name)",
+    );
+    expect(importSpecifiers(audioNodePath)).not.toContain("@/api/ops");
+    expect(importSpecifiers(voiceModalPath)).not.toContain("@/api/ops");
+    expect(audioNodeSource).toContain("loadCanvasAudioReferences(project)");
+    expect(voiceModalSource).toContain(
+      "loadCanvasAudioReferences(project)",
+    );
+    expect(voiceModalSource).toContain(
+      "createCanvasAudioVoice(project, file, stem || undefined)",
+    );
+    expect(audioNodeSource).not.toContain("character_name");
+    expect(audioNodeSource).not.toContain("voice_id");
+    expect(voiceModalSource).not.toContain("character_name");
+    expect(voiceModalSource).not.toContain("voice_id");
+    expect(voiceModalSource).not.toContain("function readGender(");
+  });
+
   it("keeps Canvas asset extraction independent from media URL infrastructure", () => {
     const assetPath = resolve(
       SRC_ROOT,
