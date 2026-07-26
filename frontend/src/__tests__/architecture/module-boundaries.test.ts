@@ -10245,6 +10245,53 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("onLoadedMetadata={(event)");
   });
 
+  it("keeps VideoNode generation history panel in one presentation view", () => {
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoNodeGenerationHistoryPanel.tsx",
+    );
+    const viewSource = readFileSync(viewPath, "utf8");
+    const videoNode = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(viewPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declaration = [
+      "export function",
+      "VideoNodeGenerationHistoryPanel(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/nodes/VideoNodeGenerationHistoryPanel.tsx",
+    ]);
+    expect(viewSource).toContain("<NodeGenerationHistory");
+    expect(viewSource).toContain("hasCompletedHistoryRecords(records)");
+    expect(viewSource).toContain("historyRecordOutputUrl(record)");
+    expect(videoNode).toContain(
+      "@/features/canvas/nodes/VideoNodeGenerationHistoryPanel",
+    );
+    expect(videoNode).toContain("<VideoNodeGenerationHistoryPanel");
+    expect(videoNode).not.toContain("<NodeGenerationHistory");
+    expect(videoNode).not.toContain("hasCompletedHistoryRecords(");
+    expect(videoNode).not.toContain("NODE_OPS_PANEL_ENTER_CLASS");
+  });
+
   it("keeps VideoNode camera movement trigger in one presentation view", () => {
     const viewPath = resolve(
       SRC_ROOT,

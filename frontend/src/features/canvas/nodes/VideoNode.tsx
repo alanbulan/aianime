@@ -115,10 +115,7 @@ import {
 } from "@/features/canvas/ui/NodeHeader";
 import { NodeResizeHandle } from "@/features/canvas/ui/NodeResizeHandle";
 import { PanelExpandButton } from "@/features/canvas/ui/PanelExpandButton";
-import {
-  NODE_OPS_PANEL_ENTER_CLASS,
-  OperationPanelShell,
-} from "@/features/canvas/ui/OperationPanelShell";
+import { OperationPanelShell } from "@/features/canvas/ui/OperationPanelShell";
 import {
   CANVAS_NODE_INPUT_BODY_FRAME_CLASS,
   CANVAS_NODE_INPUT_BODY_SELECTED_FRAME_CLASS,
@@ -175,6 +172,9 @@ import {
   VideoNodePrimaryVideo,
   type VideoElementMetadata,
 } from "@/features/canvas/nodes/VideoNodePrimaryVideo";
+import {
+  VideoNodeGenerationHistoryPanel,
+} from "@/features/canvas/nodes/VideoNodeGenerationHistoryPanel";
 import { resolveVideoGenerationModeOptions } from "@/features/canvas/nodes/videoGenerationModeOptions";
 import {
   CAMERA_MOVEMENT_PRESETS,
@@ -209,11 +209,7 @@ import {
 import { awaitTaskCompletion } from "@/api/tasks";
 import { generationTaskDescriptor } from "@/features/canvas/application/resumeGeneration";
 import { useNodeGenerationHistory } from "@/features/canvas/hooks/useNodeGenerationHistory";
-import {
-  NodeGenerationHistory,
-  hasCompletedHistoryRecords,
-  historyRecordOutputUrl,
-} from "@/features/canvas/ui/NodeGenerationHistory";
+import { historyRecordOutputUrl } from "@/features/canvas/ui/NodeGenerationHistory";
 import type { FreezoneGenerationHistoryRecord } from "@/api/ops";
 import { readUrl } from "@/lib/url-params";
 import {
@@ -2667,39 +2663,27 @@ export const VideoNode = memo(
             </OperationPanelShell>
           )}
 
-        {selected &&
-          !isBoxSelecting &&
-          !albumExpanded &&
-          !isClipMode &&
-          !subtitleEraseMode &&
-          !data.referenceOnly &&
-          hasCompletedHistoryRecords(historyRecords) && (
-            <div
-              className={`nodrag absolute z-[300] rounded-[var(--node-radius)] ${CANVAS_NODE_OPS_PANEL_CLASS} ${NODE_OPS_PANEL_ENTER_CLASS} px-3 py-2`}
-              style={{
-                top: `calc(100% + ${OPERATIONS_PANEL_GAP * 2 + panelHeight}px)`,
-                left: -panelOverhang,
-                right: -panelOverhang,
-              }}
-              onClick={(event) => event.stopPropagation()}
-            >
-              <NodeGenerationHistory
-                records={historyRecords}
-                isLoading={historyLoading}
-                onRestore={handleRestoreHistory}
-                onRefresh={() => void refreshHistory()}
-                isActive={(record) => {
-                  const url = historyRecordOutputUrl(record);
-                  if (!url) return false;
-                  // 预览态下高亮正在预览的历史条，否则高亮当前主视频。
-                  if (isGenerating && historyPreviewUrl) {
-                    return url === historyPreviewUrl;
-                  }
-                  return url === data.videoUrl;
-                }}
-              />
-            </div>
-          )}
+        <VideoNodeGenerationHistoryPanel
+          visible={
+            Boolean(selected) &&
+            !isBoxSelecting &&
+            !albumExpanded &&
+            !isClipMode &&
+            !subtitleEraseMode &&
+            !data.referenceOnly
+          }
+          records={historyRecords}
+          isLoading={historyLoading}
+          activeOutputUrl={
+            isGenerating && historyPreviewUrl
+              ? historyPreviewUrl
+              : (data.videoUrl ?? null)
+          }
+          topOffsetPx={OPERATIONS_PANEL_GAP * 2 + panelHeight}
+          horizontalOverhangPx={panelOverhang}
+          onRestore={handleRestoreHistory}
+          onRefresh={() => void refreshHistory()}
+        />
 
         {subtitleEraseMode && (
           <div
