@@ -17,6 +17,10 @@ import {
   type TranslateCanvasTextParams,
 } from './application/translateCanvasText';
 import {
+  submitVideoGeneration as submitVideoGenerationUseCase,
+  type SubmitVideoGenerationParams,
+} from './application/submitVideoGeneration';
+import {
   hydrateAssetDragPayload as hydrateAssetDragPayloadUseCase,
   type CanvasSceneDirectorManifestGateway,
 } from './application/assetDragHydration';
@@ -62,6 +66,7 @@ import { freezoneCanvasTextTranslationGateway } from './infrastructure/freezoneC
 import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerationTaskGateway';
 import { freezoneRedrawTaskGateway } from './infrastructure/freezoneRedrawTaskGateway';
 import { freezoneVideoClipComposeGateway } from './infrastructure/freezoneVideoClipComposeGateway';
+import { freezoneVideoGenerationSubmissionGateway } from './infrastructure/freezoneVideoGenerationSubmissionGateway';
 import { freezoneVideoSubtitleEraseGateway } from './infrastructure/freezoneVideoSubtitleEraseGateway';
 import { uuidGenerator } from './infrastructure/idGenerator';
 import { webImageSplitGateway } from './infrastructure/webImageSplitGateway';
@@ -223,6 +228,12 @@ export function translateCanvasText(params: TranslateCanvasTextParams) {
   return translateCanvasTextUseCase(params, {
     translationGateway: freezoneCanvasTextTranslationGateway,
     taskGateway: freezoneGenerationTaskGateway,
+  });
+}
+
+export function submitVideoGeneration(params: SubmitVideoGenerationParams) {
+  return submitVideoGenerationUseCase(params, {
+    submissionGateway: freezoneVideoGenerationSubmissionGateway,
   });
 }
 

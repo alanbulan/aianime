@@ -71,6 +71,10 @@ import {
 import { resolveAudioReferenceDisplayName } from "@/features/canvas/application/audioReferenceDisplayName";
 import { resolveGenerationOutputUrl } from "@/features/canvas/application/generationOutputUrl";
 import { resolveDroppedVideoFile } from "@/features/canvas/application/resolveDroppedVideoFile";
+import type {
+  VideoGenerationAspectRatio,
+  VideoGenerationReference,
+} from "@/features/canvas/application/submitVideoGeneration";
 import { buildVideoMetadataPatch } from "@/features/canvas/application/videoMetadataPatch";
 import { probeAudioDurationMs } from "@/features/canvas/infrastructure/browserAudioMetadata";
 import { captureVideoFrameBlob } from "@/features/canvas/infrastructure/browserVideoFrameCapture";
@@ -102,6 +106,7 @@ import {
   composeVideoClip,
   eraseVideoSubtitles,
   showErrorDialog,
+  submitVideoGeneration,
   translateCanvasText,
 } from "@/features/canvas/composition";
 import { backendErrorToastMessage } from "@/shared/api/errors";
@@ -199,16 +204,8 @@ import {
 import { useCanvasStore } from "@/stores/canvasStore";
 import {
   fetchFreezoneJobResult,
-  submitFreezoneVideoEdit,
-  submitFreezoneVideoGen,
-  submitFreezoneVideoI2v,
-  submitFreezoneVideoKeyframes,
-  submitFreezoneVideoOmniGen,
   uploadFreezoneImage,
   uploadFreezoneVideo,
-  type FreezoneJobRef,
-  type FreezoneVideoAspectRatio,
-  type FreezoneVideoReferenceItem,
 } from "@/api/ops";
 import { awaitTaskCompletion } from "@/api/tasks";
 import { generationTaskDescriptor } from "@/features/canvas/application/resumeGeneration";
@@ -257,7 +254,7 @@ const OPERATIONS_PANEL_OVERHANG = 120;
 const OPERATIONS_PANEL_EXPANDED_HEIGHT = 560;
 const OPERATIONS_PANEL_EXPANDED_WIDTH = 1040;
 
-const ASPECT_RATIOS: ReadonlyArray<FreezoneVideoAspectRatio> = [
+const ASPECT_RATIOS: ReadonlyArray<VideoGenerationAspectRatio> = [
   "auto",
   "16:9",
   "4:3",
@@ -376,18 +373,18 @@ export const VideoNode = memo(
     const isHappyHorseModel = isHappyHorseVideoModel(selectedVideoModelId);
     // aspectRatio 只认合法的比例预设（含 "auto"）；历史上曾被写成像素串(如
     // "1248:704")的旧节点在这里吸附到最接近的合法视频比例，保证 chip 显示干净。
-    const aspectRatio: FreezoneVideoAspectRatio = (
+    const aspectRatio: VideoGenerationAspectRatio = (
       ASPECT_RATIOS as readonly string[]
     ).includes(String(data.aspectRatio))
-      ? (data.aspectRatio as FreezoneVideoAspectRatio)
+      ? (data.aspectRatio as VideoGenerationAspectRatio)
       : (snapToAllowedAspectRatio(
           String(data.aspectRatio ?? ""),
           VIDEO_GENERATION_ASPECT_RATIOS,
           "16:9",
-        ) as FreezoneVideoAspectRatio);
+        ) as VideoGenerationAspectRatio);
     // 提交给后端的比例必须是 6 个合法视频比例之一、绝不发 "auto"：auto 时按节点
     // 真实像素(若有)推导最接近的比例，否则回退 16:9。
-    const submitAspectRatio: FreezoneVideoAspectRatio =
+    const submitAspectRatio: VideoGenerationAspectRatio =
       aspectRatio === "auto"
         ? (snapToAllowedAspectRatio(
             typeof data.widthPx === "number" &&
@@ -398,7 +395,7 @@ export const VideoNode = memo(
               : "",
             VIDEO_GENERATION_ASPECT_RATIOS,
             "16:9",
-          ) as FreezoneVideoAspectRatio)
+          ) as VideoGenerationAspectRatio)
         : aspectRatio;
     const qualityOptions = useMemo(
       () => videoQualityOptionsForModel(selectedVideoModel),
@@ -1647,7 +1644,9 @@ export const VideoNode = memo(
 
         // 后端不再支持一次出多条，改为按「生成数量」并发调用 N 次接口。先按
         // genMode 组装出一个「调一次接口」的闭包 doSubmit，校验失败则置空提前返回。
-        let doSubmit: ((targetId: string) => Promise<FreezoneJobRef>) | null = null;
+        let doSubmit:
+          | ((targetId: string) => ReturnType<typeof submitVideoGeneration>)
+          | null = null;
         if (genMode === "firstLastFrame") {
           const imageUrls = collectUpstreamImageUrls();
           const firstFrameUrl = imageUrls[0] ?? null;
@@ -1663,13 +1662,15 @@ export const VideoNode = memo(
             return;
           }
           doSubmit = (targetId) =>
-            submitFreezoneVideoKeyframes(projectId, {
+            submitVideoGeneration({
+              kind: "keyframes",
+              projectId,
               firstFrameUrl,
               lastFrameUrl,
               prompt: composedPrompt,
               cameraTemplateId,
               aspectRatio: submitAspectRatio,
-              resolution: qualityToResolution(quality),
+              quality,
               durationSeconds: durationClamped,
               generateAudio,
               model: modelId,
@@ -1691,12 +1692,14 @@ export const VideoNode = memo(
             return;
           }
           doSubmit = (targetId) =>
-            submitFreezoneVideoI2v(projectId, {
+            submitVideoGeneration({
+              kind: "imageReferences",
+              projectId,
               imageUrls,
               prompt: composedPrompt,
               cameraTemplateId,
               aspectRatio: submitAspectRatio,
-              resolution: qualityToResolution(quality),
+              quality,
               durationSeconds: durationClamped,
               generateAudio,
               model: modelId,
@@ -1730,15 +1733,16 @@ export const VideoNode = memo(
           }
           const imageUrls = allImageUrls.slice(0, 5);
           doSubmit = (targetId) =>
-            submitFreezoneVideoEdit(projectId, {
+            submitVideoGeneration({
+              kind: "videoEdit",
+              projectId,
               videoUrl,
               imageUrls,
               prompt: composedPrompt,
               cameraTemplateId,
               aspectRatio: submitAspectRatio,
-              resolution: qualityToResolution(quality),
+              quality,
               durationSeconds: durationClamped,
-              audioSetting: "auto",
               generateAudio,
               model: modelId,
               genMode,
@@ -1760,7 +1764,7 @@ export const VideoNode = memo(
           // Omni-gen: classify each upstream node by its media type.
           // backend caps: image≤9, video≤3, audio≤3, total≤12.
           const upstream = collectUpstream();
-          const references: FreezoneVideoReferenceItem[] = [];
+          const references: VideoGenerationReference[] = [];
           // 与 references 里 type==="audio" 的项一一对应，用于提交前校验音频总时长。
           const audioRefs: { url: string; durationMs: number | null }[] = [];
           let imageCount = 0;
@@ -1849,12 +1853,14 @@ export const VideoNode = memo(
             }
           }
           doSubmit = (targetId) =>
-            submitFreezoneVideoOmniGen(projectId, {
+            submitVideoGeneration({
+              kind: "allReferences",
+              projectId,
               prompt: composedPrompt,
               cameraTemplateId,
               references,
               aspectRatio: submitAspectRatio,
-              resolution: qualityToResolution(quality),
+              quality,
               durationSeconds: durationClamped,
               generateAudio,
               model: modelId,
@@ -1867,11 +1873,13 @@ export const VideoNode = memo(
         } else {
           // textToVideo (default).
           doSubmit = (targetId) =>
-            submitFreezoneVideoGen(projectId, {
+            submitVideoGeneration({
+              kind: "text",
+              projectId,
               prompt: composedPrompt,
               cameraTemplateId,
               aspectRatio: submitAspectRatio,
-              resolution: qualityToResolution(quality),
+              quality,
               durationSeconds: durationClamped,
               generateAudio,
               model: modelId,

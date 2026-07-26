@@ -29,6 +29,7 @@ import {
 } from '@/features/canvas/domain/canvasNodes';
 import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import { resolveGenerationOutputUrl } from '@/features/canvas/application/generationOutputUrl';
+import type { VideoGenerationAspectRatio } from '@/features/canvas/application/submitVideoGeneration';
 import { isSystemManagedNodeData } from '@/features/canvas/domain/mainlineNodeFlags';
 import { resolveNodeDisplayName } from '@/features/canvas/domain/nodeDisplay';
 import { useIsBoxSelecting } from '@/features/canvas/hooks/useIsBoxSelecting';
@@ -47,11 +48,11 @@ import {
   ensureBackendImageUrl,
   fetchFreezoneReversePromptResult,
   submitFreezoneReversePrompt,
-  submitFreezoneVideoGen,
-  type FreezoneVideoAspectRatio,
-  type FreezoneVideoResolution,
 } from '@/api/ops';
-import { translateCanvasText } from '@/features/canvas/composition';
+import {
+  submitVideoGeneration,
+  translateCanvasText,
+} from '@/features/canvas/composition';
 import { awaitTaskCompletion } from '@/api/tasks';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
@@ -128,10 +129,6 @@ const REAL_MODES = new Set<TextNodeMode>([
   'textToMusic',
   'textToMusicGen',
 ]);
-
-function qualityToResolution(q: VideoGenQuality): FreezoneVideoResolution {
-  return q.toLowerCase() as FreezoneVideoResolution;
-}
 
 const MODES: ReadonlyArray<{
   key: TextNodeMode;
@@ -381,7 +378,7 @@ export const TextAnnotationNode = memo(({
       return;
     }
     const videoData = targetNode.data as VideoNodeData;
-    const aspectRatio = (videoData.aspectRatio ?? '16:9') as FreezoneVideoAspectRatio;
+    const aspectRatio = (videoData.aspectRatio ?? '16:9') as VideoGenerationAspectRatio;
     const quality: VideoGenQuality = videoData.quality ?? '720P';
     const durationSec = typeof videoData.durationSec === 'number' ? videoData.durationSec : 5;
     const generateAudio = Boolean(videoData.generateAudio);
@@ -418,13 +415,18 @@ export const TextAnnotationNode = memo(({
 
     const runOne = async (videoNodeId: string) => {
       try {
-        const ref = await submitFreezoneVideoGen(projectId, {
+        const ref = await submitVideoGeneration({
+          kind: 'text',
+          projectId,
           prompt: promptText,
+          cameraTemplateId: null,
           aspectRatio,
-          resolution: qualityToResolution(quality),
+          quality,
           durationSeconds: durationSec,
           generateAudio,
           model: videoModel,
+          humanReview: false,
+          sceneOptimize: null,
           canvasId: readUrl().canvas ?? 'default',
           nodeId: videoNodeId,
         });

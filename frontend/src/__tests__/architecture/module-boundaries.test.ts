@@ -10924,6 +10924,85 @@ describe("frontend architecture boundaries", () => {
     }
   });
 
+  it("keeps canvas video generation submission in one application use case", () => {
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/submitVideoGeneration.ts",
+    );
+    const adapterPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneVideoGenerationSubmissionGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const videoNodePath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoNode.tsx",
+    );
+    const textNodePath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/TextAnnotationNode.tsx",
+    );
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const adapterSource = readFileSync(adapterPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const videoNode = readFileSync(videoNodePath, "utf8");
+    const textNode = readFileSync(textNodePath, "utf8");
+    const declaration = [
+      "export async function",
+      "submitVideoGeneration(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+    const directApiCalls = [
+      "submitFreezoneVideoEdit",
+      "submitFreezoneVideoGen",
+      "submitFreezoneVideoI2v",
+      "submitFreezoneVideoKeyframes",
+      "submitFreezoneVideoOmniGen",
+    ];
+
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set([
+        "../domain/canvasNodes",
+        "../domain/videoGenerationModel",
+        "./ports",
+      ]),
+    );
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).toContain("qualityToResolution(params.quality)");
+    expect(implementationOwners).toEqual([
+      "features/canvas/application/submitVideoGeneration.ts",
+    ]);
+    expect(new Set(importSpecifiers(adapterPath))).toEqual(
+      new Set(["@/api/ops", "../application/submitVideoGeneration"]),
+    );
+    expect(adapterSource).not.toContain("react");
+    expect(adapterSource).not.toContain("@/stores/");
+    expect(compositionSource).toContain(
+      "submissionGateway: freezoneVideoGenerationSubmissionGateway",
+    );
+    expect(videoNode.match(/submitVideoGeneration\(\{/g)).toHaveLength(5);
+    expect(textNode.match(/submitVideoGeneration\(\{/g)).toHaveLength(1);
+    for (const apiCall of directApiCalls) {
+      const owners = sourceFiles(resolve(SRC_ROOT, "features/canvas"))
+        .filter((path) => !path.includes(".test."))
+        .filter((path) => readFileSync(path, "utf8").includes(`${apiCall}(`))
+        .map(relativeSource)
+        .sort();
+      expect(owners).toEqual([
+        "features/canvas/infrastructure/freezoneVideoGenerationSubmissionGateway.ts",
+      ]);
+      expect(adapterSource).toContain(`${apiCall}(`);
+    }
+  });
+
   it("keeps video reference URL projection in one pure domain module", () => {
     const domainPath = resolve(
       SRC_ROOT,

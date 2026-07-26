@@ -1490,6 +1490,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百零三批已将音频、图片、脚本、文本标注和视频 5 个节点中重复的提示词翻译提交、任务等待和翻译结果读取迁入唯一 application 用例 `translateCanvasText`，`freezoneCanvasTextTranslationGateway` infrastructure 适配器唯一负责 Freezone payload 与 `translated_text` 投影，`composition.ts` 注入既有任务 gateway；各节点只保留输入/生成状态门禁、loading/error 和自身字段写回，不再直接引用翻译 API，`AudioOperationsPanel`、`ImageGenNode`、`ScriptNode`、`TextAnnotationNode`、`VideoNode` 分别由 654、2361、1278、876、2672 行降至 649、2359、1276、874、2667 行，用例 63 行、适配器 22 行；用例与适配器共 2 个测试文件 2 项、架构门禁 160 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百零四批已将视频节点 5 种生成模式及文本标注节点文字生成视频的 6 处提交收口为唯一 application 用例 `submitVideoGeneration`，以 `text`、`keyframes`、`imageReferences`、`videoEdit`、`allReferences` 判别联合统一完成画质到分辨率投影；`freezoneVideoGenerationSubmissionGateway` infrastructure 适配器唯一分派 5 个 Freezone 视频端点并校验后端统一返回 `freezone_video_gen` 任务类型，两个节点不再直接引用这些端点，文本标注节点原有重复画质转换同步删除，素材收集/上限/时长门禁及批量执行写回仍留在调用方；显式契约使 `VideoNode`、`TextAnnotationNode` 分别由 2667、874 行调整为 2675、876 行，用例 184 行、适配器 96 行；用例与适配器共 2 个测试文件 7 项、架构门禁 161 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。
