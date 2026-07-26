@@ -1,7 +1,6 @@
 // Copyright (c) 2026 AI anime
 import {
   useCallback,
-  useMemo,
   useRef,
 } from 'react';
 import {
@@ -13,12 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useAppStore } from '@/stores/app-store';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
-import { useEdgeVisibilityStore } from './ui/edgeVisibilityStore';
 import { CanvasStageView } from './ui/CanvasStageView';
-import {
-  projectCanvasEdgesForRender,
-  projectCanvasNodesForRender,
-} from './ui/canvasRenderProjection';
 import { useCanvasExternalDialogs } from './hooks/useCanvasExternalDialogs';
 import { useCanvasGraphEditingSurfaceController } from './hooks/useCanvasGraphEditingSurfaceController';
 import { useCanvasConnectionController } from './hooks/useCanvasConnectionController';
@@ -28,9 +22,9 @@ import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
 import { useCanvasNodeInteractionController } from './hooks/useCanvasNodeInteractionController';
 import { useCanvasNodeMenuStateController } from './hooks/useCanvasNodeMenuStateController';
 import { useCanvasNodeCatalogController } from './hooks/useCanvasNodeCatalogController';
-import { useCanvasNodePlacementConfirm } from './hooks/useCanvasNodePlacementConfirm';
 import { useCanvasCommandSurfaceController } from './hooks/useCanvasCommandSurfaceController';
 import { useCanvasProjectSurfaceController } from './hooks/useCanvasProjectSurfaceController';
+import { useCanvasRenderSurfaceController } from './hooks/useCanvasRenderSurfaceController';
 import { useCanvasSelectionSurfaceController } from './hooks/useCanvasSelectionSurfaceController';
 import { useCanvasViewportSurfaceController } from './hooks/useCanvasViewportSurfaceController';
 
@@ -59,11 +53,6 @@ export function Canvas({
     handleNodeMouseLeave,
   } = useCanvasNodeHover(setHoveredNodeId);
   const {
-    placementConfirmNodeId,
-    triggerPlacementConfirm,
-  } = useCanvasNodePlacementConfirm();
-
-  const {
     showNodeMenu,
     menuPosition,
     flowPosition,
@@ -91,9 +80,11 @@ export function Canvas({
 
   const nodes = useCanvasStore((state) => state.nodes);
   const edges = useCanvasStore((state) => state.edges);
-  // 连线可见性：隐藏时只给 ReactFlow 的边打 `hidden`，真实 edges 一动不动（见
-  // edgeVisibilityStore）。持久化/自动布局/导出全部照用 store 里的真实连线。
-  const edgesHidden = useEdgeVisibilityStore((state) => state.hidden);
+  const {
+    renderedNodes,
+    renderedEdges,
+    triggerPlacementConfirm,
+  } = useCanvasRenderSurfaceController({ nodes, edges });
 
   const { projectId: canvasProject } = useCanvasProjectSurfaceController({
     nodes,
@@ -132,15 +123,6 @@ export function Canvas({
     openToolDialog,
     closeToolDialog,
   });
-  const renderedNodes = useMemo(
-    () => projectCanvasNodesForRender(nodes, placementConfirmNodeId),
-    [nodes, placementConfirmNodeId],
-  );
-  const renderedEdges = useMemo(
-    () => projectCanvasEdgesForRender(edges, edgesHidden),
-    [edges, edgesHidden],
-  );
-
   const isCanvasEmpty = useCallback(
     () => useCanvasStore.getState().nodes.length === 0,
     [],

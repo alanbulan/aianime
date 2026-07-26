@@ -1490,7 +1490,8 @@ describe("frontend architecture boundaries", () => {
       ["features/canvas/hooks/useCanvasNodePlacementConfirm.ts"],
     ]);
     expect(canvasView).toContain("./hooks/useCanvasNodeHover");
-    expect(canvasView).toContain("./hooks/useCanvasNodePlacementConfirm");
+    expect(canvasView).toContain("./hooks/useCanvasRenderSurfaceController");
+    expect(canvasView).not.toContain("./hooks/useCanvasNodePlacementConfirm");
     expect(canvasView).not.toContain("hoveredNodeClearTimerRef");
     expect(canvasView).not.toContain("NODE_SPAWN_PLUS_HIDE_DELAY_MS");
     expect(canvasView).not.toContain("placementConfirmTimerRef");
@@ -8603,12 +8604,68 @@ describe("frontend architecture boundaries", () => {
     expect(canvasSource).not.toContain("label: '上传'");
   });
 
+  it("keeps Canvas render assembly in one presentation controller", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasRenderSurfaceController.ts",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const canvasSource = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(controllerPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declaration = [
+      "export function",
+      "useCanvasRenderSurfaceController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+    const internalDependencies = [
+      "../ui/edgeVisibilityStore",
+      "../ui/canvasRenderProjection",
+      "./useCanvasNodePlacementConfirm",
+    ];
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasRenderSurfaceController.ts",
+    ]);
+    for (const dependency of internalDependencies) {
+      expect(controllerSource).toContain(dependency);
+    }
+    expect(canvasSource).toContain("./hooks/useCanvasRenderSurfaceController");
+    expect(canvasSource).not.toContain("./ui/edgeVisibilityStore");
+    expect(canvasSource).not.toContain("./ui/canvasRenderProjection");
+    expect(canvasSource).not.toContain("./hooks/useCanvasNodePlacementConfirm");
+    expect(canvasSource).not.toContain("placementConfirmNodeId");
+    expect(canvasSource).not.toContain("edgesHidden");
+  });
+
   it("keeps Canvas render projection in one pure presentation model", () => {
     const projectionPath = resolve(
       SRC_ROOT,
       "features/canvas/ui/canvasRenderProjection.ts",
     );
     const projectionSource = readFileSync(projectionPath, "utf8");
+    const renderController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasRenderSurfaceController.ts",
+      ),
+      "utf8",
+    );
     const canvasSource = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -8657,8 +8714,11 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(projectionSource).toContain("PLACEMENT_CONFIRM_CLASS_NAME");
     expect(projectionSource).toContain("edge.hidden ? edge");
-    expect(canvasSource).toContain("projectCanvasNodesForRender(");
-    expect(canvasSource).toContain("projectCanvasEdgesForRender(");
+    expect(renderController).toContain("projectCanvasNodesForRender(");
+    expect(renderController).toContain("projectCanvasEdgesForRender(");
+    expect(canvasSource).toContain("./hooks/useCanvasRenderSurfaceController");
+    expect(canvasSource).not.toContain("projectCanvasNodesForRender(");
+    expect(canvasSource).not.toContain("projectCanvasEdgesForRender(");
     expect(canvasSource).not.toContain("canvas-node-placement-confirm");
     expect(canvasSource).not.toContain("edge.hidden ? edge");
   });
