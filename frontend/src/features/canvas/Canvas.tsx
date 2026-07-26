@@ -634,7 +634,7 @@ export function Canvas({
     }),
     [],
   );
-  const createPastedUploadNode = useCallback(
+  const createTransferredUploadNode = useCallback(
     (position: { x: number; y: number }) =>
       addNode(
         CANVAS_NODE_TYPES.upload,
@@ -647,7 +647,7 @@ export function Canvas({
     selectedUploadNodeId,
     getPreferredClientPosition: getPreferredCanvasPointerPosition,
     screenToCanvasPosition: screenToFlowPosition,
-    createUploadNode: createPastedUploadNode,
+    createUploadNode: createTransferredUploadNode,
     selectNode: setSelectedNode,
     eventPort: mediaTransferEventPort,
   });
@@ -693,15 +693,6 @@ export function Canvas({
       spawnAssetNode(useCanvasStore.getState(), payload, position),
     [],
   );
-  const createDroppedUploadNode = useCallback(
-    (position: { x: number; y: number }) =>
-      addNode(
-        CANVAS_NODE_TYPES.upload,
-        position,
-        { user_spawned: true } as Partial<CanvasNodeData>,
-      ),
-    [addNode],
-  );
   const {
     isCanvasDropActive,
     handleCanvasDragEnter,
@@ -712,7 +703,7 @@ export function Canvas({
     screenToFlowPosition,
     hydrateAsset: hydrateDroppedAsset,
     spawnAsset: spawnDroppedAsset,
-    createUploadNode: createDroppedUploadNode,
+    createUploadNode: createTransferredUploadNode,
     selectNode: setSelectedNode,
     attachExternalFile: mediaTransferEventPort.attachExternalFile,
   });

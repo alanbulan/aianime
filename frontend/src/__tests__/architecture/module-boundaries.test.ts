@@ -7795,4 +7795,26 @@ describe("frontend architecture boundaries", () => {
     );
     expect(canvasSource).not.toContain("const screenToCanvasPosition");
   });
+
+  it("keeps Canvas transferred Upload-node creation in one adapter", () => {
+    const canvasSource = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const transferredMarkerCount = (
+      canvasSource.match(/\{ user_spawned: true \}/g) ?? []
+    ).length;
+
+    expect(transferredMarkerCount).toBe(1);
+    expect(canvasSource).toContain(
+      "const createTransferredUploadNode = useCallback",
+    );
+    expect(
+      canvasSource.match(
+        /createUploadNode: createTransferredUploadNode/g,
+      ),
+    ).toHaveLength(2);
+    expect(canvasSource).not.toContain("createPastedUploadNode");
+    expect(canvasSource).not.toContain("createDroppedUploadNode");
+  });
 });
