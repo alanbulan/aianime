@@ -1472,6 +1472,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第一百九十四批已将主视频 loadedmetadata 的尺寸/时长差异投影迁入唯一纯 application 模块 `videoMetadataPatch`；只有视频宽高都存在时才比较并按需写回 `widthPx`、`heightPx`、`durationMs`，无变化返回空 patch 且绝不改写用户选择的 `aspectRatio`，`VideoNode` 继续持有 DOM 事件、加载状态与 Store 写回编排，源码由 2736 行降至 2735 行，应用模块 32 行；全量/部分/无变化与缺失尺寸测试 4 项、架构门禁 151 项及前端 `tsc -b --pretty false` 均通过。
 
+第一百九十五批已将 `VideoNode` 的主视频 element、ref 生命周期、固定媒体属性及 loadedmetadata DOM 投影迁入唯一 `VideoNodePrimaryVideo` presentation view；视图把原生宽高和秒数转换为 `{ widthPx, heightPx, durationMs }`，节点通过稳定的选中、元数据和加载错误回调继续唯一编排 Store 与 `videoMetadataPatch`，播放器控制条继续消费同一 element ref，不保留第二套 video JSX；为显式回调边界节点源码由 2735 行调整为 2742 行，独立视图 42 行；ref/选择/错误与元数据事件测试 3 项、架构门禁 152 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

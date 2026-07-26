@@ -171,6 +171,10 @@ import {
   VideoMetadataLoadingOverlay,
   VideoUploadingState,
 } from "@/features/canvas/nodes/VideoNodeMediaStatus";
+import {
+  VideoNodePrimaryVideo,
+  type VideoElementMetadata,
+} from "@/features/canvas/nodes/VideoNodePrimaryVideo";
 import { resolveVideoGenerationModeOptions } from "@/features/canvas/nodes/videoGenerationModeOptions";
 import {
   CAMERA_MOVEMENT_PRESETS,
@@ -288,7 +292,7 @@ export const VideoNode = memo(
     const inputRef = useRef<HTMLInputElement>(null);
     // 在途守卫：持到本批所有并发任务 allSettled 才释放（见 handleSubmit）。
     const submittingRef = useRef(false);
-    // Mirror the actual <video> element into state so VideoPlayerControls 能
+    // Mirror the actual video element into state so VideoPlayerControls 能
     // 在挂载/卸载时重新订阅事件（仅 ref 不会触发重渲染）。同时保留可写的
     // ref，给非 React 路径（capture frame 之类）继续用 .current。
     const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -1402,6 +1406,37 @@ export const VideoNode = memo(
       setHasMetadata(false);
       setVideoLoadError(false);
     }, [videoSource]);
+    const handleVideoSelect = useCallback(() => {
+      setSelectedNode(id);
+    }, [id, setSelectedNode]);
+    const handleVideoMetadata = useCallback(
+      (metadata: VideoElementMetadata) => {
+        setHasMetadata(true);
+        setVideoLoadError(false);
+        const updates = buildVideoMetadataPatch(
+          {
+            widthPx: data.widthPx,
+            heightPx: data.heightPx,
+            durationMs: data.durationMs,
+          },
+          metadata,
+        );
+        if (Object.keys(updates).length > 0) {
+          updateNodeData(id, updates);
+        }
+      },
+      [
+        data.durationMs,
+        data.heightPx,
+        data.widthPx,
+        id,
+        updateNodeData,
+      ],
+    );
+    const handleVideoLoadError = useCallback(() => {
+      setHasMetadata(true);
+      setVideoLoadError(true);
+    }, []);
 
     // ---- subtitle erase mode (libtv-style 智能去字幕) ------------------------
     const subtitleEraseMode = data.subtitleEraseMode ?? null;
@@ -2259,40 +2294,12 @@ export const VideoNode = memo(
               若不加这层 guard，旧视频会一直占位、isGenerating 分支永远到不了。
               失败时 isGenerating 归 false，旧视频自动复现（videoUrl 未被清空）。 */}
           {!isGenerating && !isUploading && videoSource ? (
-            <video
-              ref={setVideoRef}
-              src={videoPosterSource ?? undefined}
-              className="h-full w-full object-contain"
-              playsInline
-              preload="metadata"
-              onClick={() => {
-                // 点击视频本体只负责选中节点 —— 播放/暂停统一交给左下角按钮。
-                setSelectedNode(id);
-              }}
-              onLoadedMetadata={(event) => {
-                const el = event.currentTarget;
-                setHasMetadata(true);
-                setVideoLoadError(false);
-                const updates = buildVideoMetadataPatch(
-                  {
-                    widthPx: data.widthPx,
-                    heightPx: data.heightPx,
-                    durationMs: data.durationMs,
-                  },
-                  {
-                    widthPx: el.videoWidth,
-                    heightPx: el.videoHeight,
-                    durationMs: Math.round(el.duration * 1000),
-                  },
-                );
-                if (Object.keys(updates).length > 0) {
-                  updateNodeData(id, updates);
-                }
-              }}
-              onError={() => {
-                setHasMetadata(true);
-                setVideoLoadError(true);
-              }}
+            <VideoNodePrimaryVideo
+              source={videoPosterSource}
+              onElementChange={setVideoRef}
+              onSelect={handleVideoSelect}
+              onMetadata={handleVideoMetadata}
+              onError={handleVideoLoadError}
             />
           ) : isUploading ? (
             <VideoUploadingState />
