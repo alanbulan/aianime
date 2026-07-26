@@ -18,7 +18,7 @@ export interface CanvasNodeMenuConnectionOrigin {
 
 export interface CanvasNodeMenuSelectionPlan {
   kind: 'placement' | 'spawn';
-  initialData?: Partial<Record<string, unknown>>;
+  initialData?: Partial<CanvasNodeData>;
 }
 
 export function planCanvasNodeMenuSelection({
@@ -34,7 +34,7 @@ export function planCanvasNodeMenuSelection({
   hasPendingBatchConnection: boolean;
   hasAllowedTypeFilter: boolean;
 }): CanvasNodeMenuSelectionPlan {
-  let initialData: Partial<Record<string, unknown>> | undefined;
+  let initialData: Partial<CanvasNodeData> | undefined;
   if (pendingConnection && type === CANVAS_NODE_TYPES.imageEdit) {
     initialData = {
       generationMode: 'image_reference',

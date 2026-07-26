@@ -130,6 +130,10 @@ import { useCanvasMinimapVisibility } from './hooks/useCanvasMinimapVisibility';
 import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
 import { useCanvasNodeClipboard } from './hooks/useCanvasNodeClipboard';
 import { useCanvasNodeMenuShortcut } from './hooks/useCanvasNodeMenuShortcut';
+import {
+  useCanvasNodePlacementController,
+  type CanvasNodePlacement,
+} from './hooks/useCanvasNodePlacementController';
 import { useCanvasNodePlacementConfirm } from './hooks/useCanvasNodePlacementConfirm';
 import { useCanvasPaneContextMenu } from './hooks/useCanvasPaneContextMenu';
 import { useCanvasPendingNodeFocus } from './hooks/useCanvasPendingNodeFocus';
@@ -192,20 +196,12 @@ interface DuplicateResult {
 }
 
 const ALT_DRAG_COPY_Z_INDEX = 2000;
-const NODE_PLACEMENT_PREVIEW_WIDTH = 320;
-const NODE_PLACEMENT_PREVIEW_HEIGHT = 200;
 
 const CANVAS_SNAP_ALIGNMENT_PORT: CanvasSnapAlignmentPort = {
   isEnabled: () => useSnapAlignStore.getState().enabled,
   setGuides: (guides) => useSnapAlignStore.getState().setGuides(guides),
   clearGuides: () => useSnapAlignStore.getState().clearGuides(),
 };
-
-interface PendingNodePlacement {
-  type: CanvasNodeType;
-  initialData?: Partial<Record<string, unknown>>;
-  skill?: SkillDefinition;
-}
 
 interface CanvasProps {
   onBlankPaneClick?: () => void;
@@ -248,10 +244,6 @@ export function Canvas({
   const [showNodeMenu, setShowNodeMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [flowPosition, setFlowPosition] = useState({ x: 0, y: 0 });
-  const [pendingNodePlacement, setPendingNodePlacement] =
-    useState<PendingNodePlacement | null>(null);
-  const [nodePlacementClientPosition, setNodePlacementClientPosition] =
-    useState<{ x: number; y: number } | null>(null);
   const [menuAllowedTypes, setMenuAllowedTypes] = useState<CanvasNodeType[] | undefined>(
     undefined
   );
@@ -406,26 +398,6 @@ export function Canvas({
     viewportPort: reactFlowInstance,
     commitViewport: setViewportState,
   });
-  const handleMarqueeStart = useCallback(() => {
-    setShowNodeMenu(false);
-    setMenuAllowedTypes(undefined);
-    setPendingConnectStart(null);
-    setPreviewConnectionVisual(null);
-  }, []);
-  const setNativeSelectionActive = useCallback(
-    (active: boolean) => reactFlowStore.setState({ nodesSelectionActive: active }),
-    [reactFlowStore],
-  );
-  const { marqueeSelectionRect } = useCanvasMarqueeSelection({
-    wrapperRef,
-    disabled: pendingNodePlacement !== null,
-    nodes,
-    coordinatePort: reactFlowInstance,
-    applyNodeSelectionChanges: applyNodesChange,
-    setNativeSelectionActive,
-    setSelectedNodeId: setSelectedNode,
-    onMarqueeStart: handleMarqueeStart,
-  });
   const viewportBookmarkCommands = useMemo(
     () => ({
       clearBookmarks: () => useCanvasStore.getState().clearViewportBookmarks(),
@@ -577,6 +549,62 @@ export function Canvas({
     replaceEdges,
     skillById,
   });
+  const screenToFlowPosition = useCallback(
+    (clientPosition: { x: number; y: number }) =>
+      reactFlowInstance.screenToFlowPosition(clientPosition),
+    [reactFlowInstance],
+  );
+  const resolveNodePlacementLabel = useCallback(
+    (placement: CanvasNodePlacement): string => {
+      const definition = nodeCatalog.getDefinition(placement.type);
+      return placement.skill
+        ? translateSkillName(placement.skill, t)
+        : definition
+          ? t(definition.menuLabelKey)
+          : placement.type;
+    },
+    [t],
+  );
+  const suppressPaneClickAfterPlacement = useCallback(() => {
+    suppressNextPaneClickRef.current = true;
+  }, []);
+  const {
+    placementActive,
+    placementPreview: nodePlacementPreview,
+    beginNodePlacement,
+    updateNodePlacementClientPosition,
+    cancelNodePlacement,
+    commitNodePlacementAtClientPosition,
+  } = useCanvasNodePlacementController({
+    wrapperRef,
+    screenToFlowPosition,
+    createNode: addNode,
+    selectNode: setSelectedNode,
+    bindSkill: bindSingleBeatContextInput,
+    confirmPlacement: triggerPlacementConfirm,
+    suppressNextPaneClick: suppressPaneClickAfterPlacement,
+    resolvePlacementLabel: resolveNodePlacementLabel,
+  });
+  const handleMarqueeStart = useCallback(() => {
+    setShowNodeMenu(false);
+    setMenuAllowedTypes(undefined);
+    setPendingConnectStart(null);
+    setPreviewConnectionVisual(null);
+  }, []);
+  const setNativeSelectionActive = useCallback(
+    (active: boolean) => reactFlowStore.setState({ nodesSelectionActive: active }),
+    [reactFlowStore],
+  );
+  const { marqueeSelectionRect } = useCanvasMarqueeSelection({
+    wrapperRef,
+    disabled: placementActive,
+    nodes,
+    coordinatePort: reactFlowInstance,
+    applyNodeSelectionChanges: applyNodesChange,
+    setNativeSelectionActive,
+    setSelectedNodeId: setSelectedNode,
+    onMarqueeStart: handleMarqueeStart,
+  });
 
   const updateConnectionPreview = useCallback(
     (preview: CanvasConnectionPreviewRequest | null) => {
@@ -677,11 +705,6 @@ export function Canvas({
     },
     [],
   );
-  const screenToFlowPosition = useCallback(
-    (clientPosition: { x: number; y: number }) =>
-      reactFlowInstance.screenToFlowPosition(clientPosition),
-    [reactFlowInstance],
-  );
   const {
     handleBatchConnectOpenMenu,
     handleBatchConnectDragStart,
@@ -710,19 +733,18 @@ export function Canvas({
     setMenuAllowedTypes(undefined);
     setPendingConnectStart(null);
     setPreviewConnectionVisual(null);
-    setPendingNodePlacement(null);
-    setNodePlacementClientPosition(null);
+    cancelNodePlacement();
     setSelectedNode(null);
     setShowNodeMenu(true);
-  }, [reactFlowInstance, setSelectedNode]);
+  }, [cancelNodePlacement, reactFlowInstance, setSelectedNode]);
   const {
     handleCanvasPointerMove,
     getLastCanvasPointerPosition,
     getPreferredCanvasPointerPosition,
   } = useCanvasNodeMenuShortcut({
     wrapperRef,
-    placementActive: pendingNodePlacement !== null,
-    setPlacementClientPosition: setNodePlacementClientPosition,
+    placementActive,
+    setPlacementClientPosition: updateNodePlacementClientPosition,
     openNodeMenu: openNodeMenuAtClientPosition,
   });
 
@@ -734,50 +756,11 @@ export function Canvas({
     setPreviewConnectionVisual(null);
   }, []);
 
-  const cancelNodePlacement = useCallback(() => {
-    setPendingNodePlacement(null);
-    setNodePlacementClientPosition(null);
-  }, []);
-
-  const commitNodePlacementAtClientPosition = useCallback(
-    (clientPosition: { x: number; y: number }) => {
-      if (!pendingNodePlacement) {
-        return false;
-      }
-
-      const newNodeId = addNode(
-        pendingNodePlacement.type,
-        reactFlowInstance.screenToFlowPosition({
-          x: clientPosition.x - NODE_PLACEMENT_PREVIEW_WIDTH / 2,
-          y: clientPosition.y - NODE_PLACEMENT_PREVIEW_HEIGHT / 2,
-        }),
-        pendingNodePlacement.initialData,
-      );
-      setSelectedNode(newNodeId);
-      if (pendingNodePlacement.skill) {
-        bindSingleBeatContextInput(newNodeId, pendingNodePlacement.skill);
-      }
-      triggerPlacementConfirm(newNodeId);
-      setPendingNodePlacement(null);
-      setNodePlacementClientPosition(null);
-      suppressNextPaneClickRef.current = true;
-      return true;
-    },
-    [
-      addNode,
-      bindSingleBeatContextInput,
-      pendingNodePlacement,
-      reactFlowInstance,
-      setSelectedNode,
-      triggerPlacementConfirm,
-    ],
-  );
-
   // Clicking a storyboard board focuses it; during node placement, any node click
   // is treated as confirming the preview location instead of selecting that node.
   const handleNodeClick = useCallback(
     (event: ReactMouseEvent, node: CanvasNode) => {
-      if (pendingNodePlacement) {
+      if (placementActive) {
         event.preventDefault();
         event.stopPropagation();
         commitNodePlacementAtClientPosition({ x: event.clientX, y: event.clientY });
@@ -798,7 +781,7 @@ export function Canvas({
         { zoom: 1, duration: 320 },
       );
     },
-    [commitNodePlacementAtClientPosition, pendingNodePlacement, reactFlowInstance],
+    [commitNodePlacementAtClientPosition, placementActive, reactFlowInstance],
   );
 
   const {
@@ -878,7 +861,7 @@ export function Canvas({
   }, [deleteEdge, deleteNode, deleteNodes, nodes, selectedNodeId, selectedNodeIds]);
 
   const handlePaneClick = useCallback((event: ReactMouseEvent) => {
-    if (pendingNodePlacement) {
+    if (placementActive) {
       commitNodePlacementAtClientPosition({ x: event.clientX, y: event.clientY });
       return;
     }
@@ -904,7 +887,7 @@ export function Canvas({
     commitNodePlacementAtClientPosition,
     onBlankPaneClick,
     openNodeMenuAtClientPosition,
-    pendingNodePlacement,
+    placementActive,
     setSelectedNode,
   ]);
 
@@ -1046,8 +1029,10 @@ export function Canvas({
           fallbackClientPosition;
         setShowNodeMenu(false);
         setMenuAllowedTypes(undefined);
-        setPendingNodePlacement({ type, initialData: selectionPlan.initialData });
-        setNodePlacementClientPosition(clientPosition);
+        beginNodePlacement(
+          { type, initialData: selectionPlan.initialData },
+          clientPosition,
+        );
         setSelectedNode(null);
         suppressNextPaneClickRef.current = false;
         return;
@@ -1058,6 +1043,7 @@ export function Canvas({
     },
     [
       addNode,
+      beginNodePlacement,
       finalizeNodeSpawn,
       flowPosition,
       getLastCanvasPointerPosition,
@@ -1086,16 +1072,19 @@ export function Canvas({
         fallbackClientPosition;
       setShowNodeMenu(false);
       setMenuAllowedTypes(undefined);
-      setPendingNodePlacement({
-        type: CANVAS_NODE_TYPES.skill,
-        initialData,
-        skill,
-      });
-      setNodePlacementClientPosition(clientPosition);
+      beginNodePlacement(
+        {
+          type: CANVAS_NODE_TYPES.skill,
+          initialData,
+          skill,
+        },
+        clientPosition,
+      );
       setSelectedNode(null);
       suppressNextPaneClickRef.current = false;
     },
     [
+      beginNodePlacement,
       getLastCanvasPointerPosition,
       menuPosition.x,
       menuPosition.y,
@@ -1463,11 +1452,11 @@ export function Canvas({
   }, [hasCopiedNodes]);
   const { contextMenu, closeContextMenu } = useCanvasPaneContextMenu({
     wrapperRef,
-    disabled: pendingNodePlacement !== null,
+    disabled: placementActive,
     getCapabilities: getContextMenuCapabilities,
   });
   useCanvasKeyboardShortcuts({
-    placementActive: pendingNodePlacement !== null,
+    placementActive,
     nodeMenuOpen: showNodeMenu,
     canCopySelection: selectedNodeIds.length > 0,
     canGroupSelection: selectedNodeIds.length >= 2,
@@ -1809,31 +1798,6 @@ export function Canvas({
       </div>
     );
   }, [t]);
-  const nodePlacementPreview = useMemo(() => {
-    if (!pendingNodePlacement || !nodePlacementClientPosition) {
-      return null;
-    }
-    const wrapperRect = wrapperRef.current?.getBoundingClientRect();
-    if (!wrapperRect) {
-      return null;
-    }
-    const definition = nodeCatalog.getDefinition(pendingNodePlacement.type);
-    const label = pendingNodePlacement.skill
-      ? translateSkillName(pendingNodePlacement.skill, t)
-      : definition ? t(definition.menuLabelKey) : pendingNodePlacement.type;
-    return {
-      left:
-        nodePlacementClientPosition.x -
-        wrapperRect.left -
-        NODE_PLACEMENT_PREVIEW_WIDTH / 2,
-      top:
-        nodePlacementClientPosition.y -
-        wrapperRect.top -
-        NODE_PLACEMENT_PREVIEW_HEIGHT / 2,
-      label,
-    };
-  }, [nodePlacementClientPosition, pendingNodePlacement, t]);
-
   return (
     <CreditDisplayHiddenProvider value={isCeRuntime()}>
     <div
@@ -1951,8 +1915,8 @@ export function Canvas({
           style={{
             left: nodePlacementPreview.left,
             top: nodePlacementPreview.top,
-            width: NODE_PLACEMENT_PREVIEW_WIDTH,
-            height: NODE_PLACEMENT_PREVIEW_HEIGHT,
+            width: nodePlacementPreview.width,
+            height: nodePlacementPreview.height,
           }}
         >
           <div className="absolute inset-0 rounded-2xl bg-primary/10" />

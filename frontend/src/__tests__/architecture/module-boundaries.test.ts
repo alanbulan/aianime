@@ -1341,6 +1341,63 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("setPlacementConfirmNodeId");
   });
 
+  it("keeps Canvas node placement state in one presentation controller", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasNodePlacementController.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/features/canvas/nodeFactoryComposition",
+    );
+    const declaration = [
+      "export function",
+      "useCanvasNodePlacementController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasNodePlacementController.ts",
+    ]);
+    expect(hookModel).toContain("NODE_PLACEMENT_PREVIEW_WIDTH");
+    expect(hookModel).toContain("NODE_PLACEMENT_PREVIEW_HEIGHT");
+    expect(hookModel).toContain("createNode(");
+    expect(hookModel).toContain("bindSkill(");
+    expect(hookModel).toContain("confirmPlacement(");
+    expect(canvasView).toContain(
+      "./hooks/useCanvasNodePlacementController",
+    );
+    expect(canvasView).not.toContain("const [pendingNodePlacement");
+    expect(canvasView).not.toContain("nodePlacementClientPosition");
+    expect(canvasView).not.toContain("setPendingNodePlacement");
+    expect(canvasView).not.toContain("setNodePlacementClientPosition");
+    expect(canvasView).not.toContain("NODE_PLACEMENT_PREVIEW_WIDTH");
+    expect(canvasView).not.toContain("NODE_PLACEMENT_PREVIEW_HEIGHT");
+    expect(canvasView).not.toContain(
+      "const commitNodePlacementAtClientPosition = useCallback",
+    );
+    expect(canvasView).not.toContain("const nodePlacementPreview = useMemo");
+  });
+
   it("keeps Canvas drop indicator state in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
