@@ -1516,6 +1516,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百一十六批已将多角度生图的 7 类编辑器预设投影、Yaw `(-180, 180]` 归一化、景别/图片尺寸契约迁入唯一领域模块 `multiAngle`，源图查询参数清理、命令组装与提交迁入唯一 application 用例 `generateCanvasMultiAngle`，`freezoneMultiAngleGenerationGateway` infrastructure 适配器唯一调用 Freezone 多视角端点；新增唯一共享应用函数 `completeCanvasImageGenerationTask`，统一任务句柄持久化、完成等待、SSE `output_url` 优先读取及专用结果回退，多角度与已迁移的 360 场景共用该实现，不保留两套流程；`MultiAngleEditorPanel` 只保留预设展示和交互状态，由 682 行降至 666 行，`MultiAngleEditorOverlay` 只保留节点/连线、状态写回和错误展示，不再直接依赖 `api/ops` 或任务 API，由 175 行降至 151 行；领域模块 55 行、共享完成函数 33 行、多角度用例 79 行、适配器 19 行，360 用例由 59 行降至 54 行，composition 由 393 行调整为 409 行；领域、共享完成函数、多角度用例、360 回归与适配器共 5 个测试文件 8 项、新增后的架构门禁 171 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百一十七批已将重新布光的 6 类主光方向校验与无效值回退、智能模式用户/预设提示词按原顺序组合迁入唯一领域模块 `relight`，源图查询参数清理、全局布光命令投影、任务提交及完成迁入唯一 application 用例 `generateCanvasRelight`，并复用 `completeCanvasImageGenerationTask`；`freezoneRelightGenerationGateway` infrastructure 适配器唯一调用 Freezone relight 端点，composition 注入既有任务 gateway；`LightEditorPanel` 改用领域主光方向契约且继续仅持有光球预览、色温和交互状态，由 1143 行降至 1136 行，`LightEditorOverlay` 只保留节点/连线、状态写回和错误展示，不再直接依赖 `api/ops` 或任务 API，由 206 行降至 169 行；领域模块 41 行、用例 88 行、适配器 23 行，composition 由 409 行调整为 425 行；领域、用例与适配器共 3 个测试文件 4 项、新增后的架构门禁 172 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

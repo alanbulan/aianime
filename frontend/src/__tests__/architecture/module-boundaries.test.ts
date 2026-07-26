@@ -8965,6 +8965,92 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps Canvas relight rules and generation orchestration out of views", () => {
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/relight.ts",
+    );
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/generateCanvasRelight.ts",
+    );
+    const infrastructurePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneRelightGenerationGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const panelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/LightEditorPanel.tsx",
+    );
+    const overlayPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/LightEditorOverlay.tsx",
+    );
+    const domainSource = readFileSync(domainPath, "utf8");
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const infrastructureSource = readFileSync(infrastructurePath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const panelSource = readFileSync(panelPath, "utf8");
+    const overlaySource = readFileSync(overlayPath, "utf8");
+
+    expect(importSpecifiers(domainPath)).toEqual([]);
+    expect(domainSource).toContain(
+      "export function resolveCanvasRelightKeyLightDirection(",
+    );
+    expect(domainSource).toContain(
+      "export function buildCanvasRelightPrompt(",
+    );
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set([
+        "../domain/relight",
+        "./completeCanvasImageGenerationTask",
+        "./ports",
+      ]),
+    );
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).toContain(
+      "export async function generateCanvasRelight(",
+    );
+    expect(applicationSource).toContain(
+      "resolveCanvasRelightKeyLightDirection(",
+    );
+    expect(applicationSource).toContain("buildCanvasRelightPrompt(");
+    expect(applicationSource).toContain(
+      "completeCanvasImageGenerationTask(",
+    );
+    expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
+      new Set(["@/api/ops", "../application/generateCanvasRelight"]),
+    );
+    expect(infrastructureSource).toContain(
+      "freezoneRelightGenerationGateway: CanvasRelightGenerationGateway",
+    );
+    expect(compositionSource).toContain(
+      "generateCanvasRelightUseCase(params, {",
+    );
+    expect(compositionSource).toContain(
+      "submissionGateway: freezoneRelightGenerationGateway",
+    );
+    expect(importSpecifiers(panelPath)).toContain(
+      "@/features/canvas/domain/relight",
+    );
+    expect(panelSource).not.toContain("export type LightDirectionKey");
+    expect(importSpecifiers(overlayPath)).not.toContain("@/api/ops");
+    expect(importSpecifiers(overlayPath)).not.toContain("@/api/tasks");
+    expect(overlaySource).toContain("await generateCanvasRelight(");
+    expect(overlaySource).not.toContain("KEY_LIGHT_DIRECTIONS");
+    expect(overlaySource).not.toContain("resolveKeyLightDirection");
+    expect(overlaySource).not.toContain("buildRelightPrompt");
+    expect(overlaySource).not.toContain("submitFreezoneRelight");
+    expect(overlaySource).not.toContain("fetchFreezoneJobResult");
+    expect(overlaySource).not.toContain("awaitTaskCompletion");
+  });
+
   it("keeps Canvas asset extraction independent from media URL infrastructure", () => {
     const assetPath = resolve(
       SRC_ROOT,

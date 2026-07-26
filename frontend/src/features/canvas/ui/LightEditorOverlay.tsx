@@ -16,12 +16,7 @@ import {
   type LightMainLightDescriptor,
   type LightSmartModeDescriptor,
 } from '@/features/canvas/ui/LightEditorPanel';
-import {
-  fetchFreezoneJobResult,
-  submitFreezoneRelight,
-  type FreezoneRelightKeyLightDirection,
-} from '@/api/ops';
-import { awaitTaskCompletion } from '@/api/tasks';
+import { generateCanvasRelight } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { readUrl } from '@/lib/url-params';
 import { inheritMainlineFields } from '@/features/canvas/domain/inheritMainlineFields';
@@ -47,33 +42,6 @@ interface LightEditorOverlayProps {
   node: CanvasNode;
   imageSource: string;
   onClose: () => void;
-}
-
-const KEY_LIGHT_DIRECTIONS: readonly FreezoneRelightKeyLightDirection[] = [
-  'left',
-  'top',
-  'right',
-  'front',
-  'bottom',
-  'back',
-] as const;
-
-function resolveKeyLightDirection(
-  mainLight: LightMainLightDescriptor,
-): FreezoneRelightKeyLightDirection {
-  const candidate = mainLight.nearestPreset;
-  if (candidate && (KEY_LIGHT_DIRECTIONS as readonly string[]).includes(candidate)) {
-    return candidate as FreezoneRelightKeyLightDirection;
-  }
-  return 'front';
-}
-
-function buildRelightPrompt(smart: LightSmartModeDescriptor): string {
-  if (!smart.enabled) return '';
-  const parts: string[] = [];
-  if (smart.prompt) parts.push(smart.prompt);
-  if (smart.presetPrompt) parts.push(smart.presetPrompt);
-  return parts.join('\n');
 }
 
 export const LightEditorOverlay = memo(
@@ -130,28 +98,23 @@ export const LightEditorOverlay = memo(
         onClose();
 
         try {
-          const ref = await submitFreezoneRelight(project, {
-            sourceUrl: imageSource.split('?')[0],
-            lightingReferenceUrl: null,
-            scope: 'global',
-            smartMode: payload.smartMode.enabled,
-            brightness: payload.brightness,
-            colorHex: payload.color,
-            colorTemperatureKelvin: payload.colorTemperatureKelvin,
-            keyLightDirection: resolveKeyLightDirection(payload.mainLight),
-            rimLight: payload.rimLight,
-            prompt: buildRelightPrompt(payload.smartMode),
-            imageSize: payload.imageSize,
-            model: payload.apiModel,
-          });
-          updateNodeData(nextNodeId, generationTaskDescriptor(ref));
-          const completed = await awaitTaskCompletion(ref.task_key, project);
-          const directUrl = completed.result?.['output_url'] as string | undefined;
-          let url = directUrl;
-          if (!url) {
-            const fallback = await fetchFreezoneJobResult(project, ref.task_type, ref.job_id);
-            url = fallback.url;
-          }
+          const { url } = await generateCanvasRelight(
+            {
+              projectId: project,
+              sourceUrl: imageSource,
+              brightness: payload.brightness,
+              colorHex: payload.color,
+              colorTemperatureKelvin: payload.colorTemperatureKelvin,
+              keyLightCandidate: payload.mainLight.nearestPreset,
+              rimLight: payload.rimLight,
+              smartMode: payload.smartMode,
+              imageSize: payload.imageSize,
+              model: payload.apiModel,
+            },
+            (task) => {
+              updateNodeData(nextNodeId, generationTaskDescriptor(task));
+            },
+          );
           updateNodeData(nextNodeId, {
             imageUrl: url,
             previewImageUrl: url,

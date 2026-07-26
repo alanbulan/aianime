@@ -16,6 +16,7 @@ import { UiTextArea } from "@/components/ui";
 import { Slider } from "@/components/shadcn/slider";
 import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
 import { useFreezoneImageModels } from "@/features/canvas/hooks/useFreezoneImageModels";
+import type { CanvasRelightKeyLightDirection } from "@/features/canvas/domain/relight";
 import {
   NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_FLOATING_PANEL_SURFACE_CLASS,
@@ -25,14 +26,6 @@ import {
 import {
   CANVAS_NODE_TOOLBAR_CARD_CLASS,
 } from "@/features/canvas/ui/nodeFrameStyles";
-
-export type LightDirectionKey =
-  | "left"
-  | "top"
-  | "right"
-  | "front"
-  | "bottom"
-  | "back";
 
 export type LightPresetKey =
   | "overexposedFilm"
@@ -54,7 +47,7 @@ export interface LightVector {
   depth: LightDepth;
 }
 
-const LIGHT_DIRECTIONS: LightDirectionKey[] = [
+const LIGHT_DIRECTIONS: CanvasRelightKeyLightDirection[] = [
   "left",
   "top",
   "right",
@@ -63,7 +56,7 @@ const LIGHT_DIRECTIONS: LightDirectionKey[] = [
   "back",
 ];
 
-const DIRECTION_PRESETS: Record<LightDirectionKey, LightVector> = {
+const DIRECTION_PRESETS: Record<CanvasRelightKeyLightDirection, LightVector> = {
   left: { x: -0.7, y: 0, depth: "front" },
   right: { x: 0.7, y: 0, depth: "front" },
   top: { x: 0, y: -0.7, depth: "front" },
@@ -135,7 +128,7 @@ const DEFAULT_LIGHT_IMAGE_SIZE: LightImageSize = "2K";
 export interface LightMainLightDescriptor {
   vector: { x: number; y: number };
   depth: LightDepth;
-  nearestPreset: LightDirectionKey | null;
+  nearestPreset: CanvasRelightKeyLightDirection | null;
   label: string;
 }
 
@@ -217,8 +210,8 @@ function describeVector(vector: LightVector, t: (k: string) => string): string {
   );
 }
 
-function nearestPreset(vector: LightVector): LightDirectionKey | null {
-  let best: { key: LightDirectionKey; dist: number } | null = null;
+function nearestPreset(vector: LightVector): CanvasRelightKeyLightDirection | null {
+  let best: { key: CanvasRelightKeyLightDirection; dist: number } | null = null;
   for (const key of LIGHT_DIRECTIONS) {
     const preset = DIRECTION_PRESETS[key];
     if (preset.depth !== vector.depth) continue;
@@ -510,8 +503,8 @@ function LightSpherePreview({
 }
 
 interface DirectionPickerProps {
-  value: LightDirectionKey | null;
-  onChange: (next: LightDirectionKey) => void;
+  value: CanvasRelightKeyLightDirection | null;
+  onChange: (next: CanvasRelightKeyLightDirection) => void;
   t: (k: string) => string;
 }
 
@@ -903,7 +896,7 @@ export function LightEditorPanel({
     };
   }, [onClose]);
 
-  const handlePickDirection = useCallback((dir: LightDirectionKey) => {
+  const handlePickDirection = useCallback((dir: CanvasRelightKeyLightDirection) => {
     setVector(DIRECTION_PRESETS[dir]);
   }, []);
 
