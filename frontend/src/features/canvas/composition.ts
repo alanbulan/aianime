@@ -40,6 +40,7 @@ import {
 import {
   uploadLocalImageToBackend as uploadLocalImageToBackendUseCase,
 } from './application/uploadToolOutput';
+import { clearBrowserClipboard } from './infrastructure/browserClipboardGateway';
 import { browserGenerationRuntimeGateway } from './infrastructure/browserGenerationRuntimeGateway';
 import { browserImageRuntimeGateway } from './infrastructure/browserImageRuntime';
 import { browserToolImageGateway } from './infrastructure/browserToolImageGateway';
@@ -59,6 +60,7 @@ const canvasSceneDirectorManifestGateway: CanvasSceneDirectorManifestGateway = {
 
 export { canvasNodeFactory } from './nodeFactoryComposition';
 export { showErrorDialog } from './infrastructure/globalErrorDialog';
+export { clearBrowserClipboard };
 
 export const canvasToolProcessor = new CanvasToolProcessor(
   webImageSplitGateway,

@@ -7714,4 +7714,48 @@ describe("frontend architecture boundaries", () => {
     expect(canvasSource).not.toContain("useCanvasStore.setState");
     expect(canvasSource).not.toContain("const nodeIdSet = new Set(nodeIds)");
   });
+
+  it("keeps Canvas system clipboard access in one browser adapter", () => {
+    const adapterPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/browserClipboardGateway.ts",
+    );
+    const adapterSource = readFileSync(adapterPath, "utf8");
+    const compositionSource = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/composition.ts"),
+      "utf8",
+    );
+    const canvasSource = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const clipboardController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasNodeClipboard.ts",
+      ),
+      "utf8",
+    );
+    const declaration = [
+      "export function",
+      "clearBrowserClipboard(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(implementationOwners).toEqual([
+      "features/canvas/infrastructure/browserClipboardGateway.ts",
+    ]);
+    expect(adapterSource).toContain("runtime?.clipboard?.writeText('')");
+    expect(compositionSource).toContain("export { clearBrowserClipboard };");
+    expect(canvasSource).toContain(
+      "clearSystemClipboard: clearBrowserClipboard",
+    );
+    expect(canvasSource).not.toContain("navigator.clipboard");
+    expect(clipboardController).toContain(
+      "void clearSystemClipboard().catch(() => undefined)",
+    );
+  });
 });

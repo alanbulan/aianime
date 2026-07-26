@@ -28,6 +28,7 @@ import { getSkillRegistry } from '@/api/skills';
 import { translateSkillName } from '@/features/freezone/context/skillI18n';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import {
+  clearBrowserClipboard,
   hydrateAssetDragPayload,
   migratePastedNodeAssets,
   pollExportImageGeneration,
@@ -880,10 +881,6 @@ export function Canvas({
     }),
     [canvasProject, edges, nodes, selectedNodeIds],
   );
-  const clearSystemClipboard = useCallback(
-    () => navigator.clipboard?.writeText('') ?? Promise.resolve(),
-    [],
-  );
   const {
     hasCopiedNodes,
     copySelection,
@@ -894,7 +891,7 @@ export function Canvas({
     pasteSnapshot: pasteFromClipboard,
     queueSnapshotPaste,
     resetPasteIteration,
-    clearSystemClipboard,
+    clearSystemClipboard: clearBrowserClipboard,
   });
   const getContextMenuCapabilities = useCallback(() => {
     const history = useCanvasStore.getState().history;
