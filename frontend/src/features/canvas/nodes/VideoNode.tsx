@@ -18,8 +18,6 @@ import {
 import {
   AlertTriangle,
   ArrowUp,
-  ChevronDown,
-  Download,
   Languages,
   Layers,
   Loader2,
@@ -160,6 +158,11 @@ import { CameraMovementChip } from "@/features/canvas/nodes/CameraMovementChip";
 import { CharacterLibraryChip } from "@/features/canvas/nodes/CharacterLibraryChip";
 import { VideoCountPicker } from "@/features/canvas/nodes/VideoCountPicker";
 import { VideoConfigChip } from "@/features/canvas/nodes/VideoConfigChip";
+import {
+  VideoAlbumDeck,
+  VideoAlbumGallery,
+  VideoAlbumToggleButton,
+} from "@/features/canvas/nodes/VideoAlbumControls";
 import { VideoGenerationModeSelect } from "@/features/canvas/nodes/VideoGenerationModeSelect";
 import { resolveVideoGenerationModeOptions } from "@/features/canvas/nodes/videoGenerationModeOptions";
 import {
@@ -1016,7 +1019,6 @@ export const VideoNode = memo(
     // 收拢时主视频后探出 N-1 张卡片边；hover 出现右上角数量徽标，点开展开成
     // 宫格画册。展开态点视频设为主视频、可单独「应用到画布」/ 下载。
     const albumRootRef = useRef<HTMLDivElement | null>(null);
-    const albumPointerDownPosRef = useRef<{ x: number; y: number } | null>(null);
     const [albumExpanded, setAlbumExpanded] = useState(false);
     // 本次会话内"应到条数"——未完成的在画册里占位。存模块级登记表而非组件
     // state：onlyRenderVisibleElements 下平移出视口会卸载组件，state 会丢。
@@ -2355,35 +2357,11 @@ export const VideoNode = memo(
         onDrop={handleDrop}
         onDragOver={handleDragOver}
       >
-        {/* 叠卡画册的卡片边：从主视频右侧探出（与图片节点同款），点卡边也能展开画册。 */}
         {hasAlbum && !albumExpanded && videoSource && (
-          <>
-            {Array.from({ length: Math.min(albumTotalSlots - 1, 3) }, (_, index) => {
-              const step = index + 1;
-              return (
-                <div
-                  key={`album-deck-${index}`}
-                  role="button"
-                  tabIndex={-1}
-                  title="展开画册"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    handleToggleAlbumExpanded();
-                  }}
-                  className="absolute cursor-pointer rounded-[var(--node-radius)] border border-border bg-gradient-to-b from-muted to-card shadow-lg"
-                  style={{
-                    top: step * 7,
-                    bottom: step * 7,
-                    left: step * 6,
-                    right: -step * 7,
-                    transform: `rotate(${step * 1.1}deg)`,
-                    transformOrigin: 'center right',
-                    opacity: 1 - step * 0.18,
-                  }}
-                />
-              );
-            })}
-          </>
+          <VideoAlbumDeck
+            totalSlots={albumTotalSlots}
+            onExpand={handleToggleAlbumExpanded}
+          />
         )}
         <Handle
           type="target"
@@ -2658,29 +2636,15 @@ export const VideoNode = memo(
               />
             )}
 
-          {/* 画册数量徽标：hover 节点出现，hover 徽标箭头下探，点击展开画册。 */}
           {hasAlbum && !isGenerating && videoSource && (
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                handleToggleAlbumExpanded();
-              }}
-              onPointerDown={(event) => event.stopPropagation()}
-              title={`展开 ${albumTotalSlots} 条生成结果`}
-              className="nodrag group/albumpill absolute right-2 top-2 z-10 hidden items-center gap-1 rounded-full bg-media/65 px-2.5 py-1 text-[12px] font-medium tabular-nums text-media-foreground shadow-lg backdrop-blur-sm transition-colors hover:bg-media/85 group-hover:inline-flex"
-            >
-              {albumPendingCount > 0
-                ? `${albumUrls.length}/${albumPendingTotal}`
-                : albumUrls.length}
-              <ChevronDown
-                className={`h-3.5 w-3.5 transition-transform duration-200 ${
-                  albumExpanded
-                    ? 'rotate-180 group-hover/albumpill:-translate-y-[2px]'
-                    : 'group-hover/albumpill:translate-y-[2px]'
-                }`}
-              />
-            </button>
+            <VideoAlbumToggleButton
+              totalSlots={albumTotalSlots}
+              completedCount={albumUrls.length}
+              pendingTotal={albumPendingTotal}
+              pendingCount={albumPendingCount}
+              expanded={albumExpanded}
+              onToggle={handleToggleAlbumExpanded}
+            />
           )}
 
           {videoSource && subtitleEraseMode === "box" && (
@@ -2704,109 +2668,19 @@ export const VideoNode = memo(
           )}
         </div>
 
-        {/* 展开的画册宫格：与图片节点同构——「组」式轮廓 + 2 列宫格；点视频设为
-            主视频并收拢；hover 出现「应用到画布」+ 下载；按住可拖动整个节点。 */}
         {albumExpanded && hasAlbum && (
-          <div
-            className="nowheel absolute -left-3 -top-3 z-[80] cursor-grab rounded-2xl border border-border bg-card p-3 shadow-xl active:cursor-grabbing"
-            style={{ width: resolvedWidth * 2 + 12 + 24 }}
-            onClick={(event) => event.stopPropagation()}
-            onPointerDownCapture={(event) => {
-              albumPointerDownPosRef.current = { x: event.clientX, y: event.clientY };
-            }}
-          >
-            <div className="mb-2 flex items-center gap-1.5 px-1 text-[12px] font-medium text-muted-foreground">
-              <VideoIcon className="h-3.5 w-3.5 text-muted-foreground" />
-              画册 · {albumTotalSlots} 条
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {albumUrls.map((url, index) => {
-                const isMain = url === data.videoUrl;
-                return (
-                  <div
-                    key={`album-cell-${index}`}
-                    role="button"
-                    tabIndex={-1}
-                    title="点击设为主视频"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      // 拖动画册（移动节点）后松手补发的 click 不算选主视频。
-                      const start = albumPointerDownPosRef.current;
-                      if (
-                        start
-                        && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 5
-                      ) {
-                        return;
-                      }
-                      handleSetAlbumMainVideo(url);
-                    }}
-                    className={`group/albumcell relative cursor-pointer overflow-hidden rounded-[var(--node-radius)] border bg-media shadow-xl transition-colors ${
-                      isMain
-                        ? 'border-primary/80 ring-2 ring-primary/40'
-                        : 'border-border hover:border-foreground/35'
-                    }`}
-                    style={{ width: resolvedWidth, height: resolvedHeight }}
-                  >
-                    <video
-                      src={resolveImageDisplayUrl(url)}
-                      muted
-                      playsInline
-                      preload="metadata"
-                      className="h-full w-full object-cover"
-                      onMouseEnter={(event) => {
-                        void event.currentTarget.play().catch(() => undefined);
-                      }}
-                      onMouseLeave={(event) => {
-                        event.currentTarget.pause();
-                        event.currentTarget.currentTime = 0;
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleApplyAlbumVideoToCanvas(url);
-                      }}
-                      title="把这条视频作为独立视频节点放到画布上"
-                      className="nodrag absolute left-2 top-2 z-10 hidden h-7 items-center gap-1 rounded-md bg-media/70 px-2.5 text-[12px] font-medium text-media-foreground backdrop-blur-sm transition-colors hover:bg-media/90 group-hover/albumcell:inline-flex"
-                    >
-                      <UploadIcon className="h-3.5 w-3.5" />
-                      应用到画布
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        void handleDownloadAlbumVideo(url, index);
-                      }}
-                      title="下载这条视频"
-                      className="nodrag absolute right-2 top-2 z-10 hidden h-7 w-7 items-center justify-center rounded-full bg-media/70 text-media-foreground backdrop-blur-sm transition-colors hover:bg-media/90 group-hover/albumcell:inline-flex"
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                    </button>
-                    {isMain && (
-                      <span className="absolute bottom-2 left-2 z-10 rounded-md bg-media/65 px-2 py-0.5 text-[11px] font-medium text-media-foreground backdrop-blur-sm">
-                        主视频
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-              {/* 还在生成中的槽位：占位骨架，完成一条替换一条。 */}
-              {Array.from({ length: albumPendingCount }, (_, index) => (
-                <div
-                  key={`album-pending-${index}`}
-                  className="relative flex items-center justify-center overflow-hidden rounded-[var(--node-radius)] border border-border bg-media shadow-xl"
-                  style={{ width: resolvedWidth, height: resolvedHeight }}
-                >
-                  <div className="flex flex-col items-center gap-2 text-text-muted/70">
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                    <span className="text-[12px]">生成中…</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <VideoAlbumGallery
+            width={resolvedWidth}
+            height={resolvedHeight}
+            totalSlots={albumTotalSlots}
+            urls={albumUrls}
+            mainVideoUrl={data.videoUrl}
+            pendingCount={albumPendingCount}
+            resolveUrl={resolveImageDisplayUrl}
+            onSetMain={handleSetAlbumMainVideo}
+            onApply={handleApplyAlbumVideoToCanvas}
+            onDownload={handleDownloadAlbumVideo}
+          />
         )}
 
         {isClipMode && videoSource && (

@@ -10337,6 +10337,60 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("function submittableImageUrl(");
   });
 
+  it("keeps VideoNode album chrome in one presentation view", () => {
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoAlbumControls.tsx",
+    );
+    const viewSource = readFileSync(viewPath, "utf8");
+    const videoNode = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(viewPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declarations = [
+      ["export function", "VideoAlbumDeck("].join(" "),
+      ["export function", "VideoAlbumToggleButton("].join(" "),
+      ["export function", "VideoAlbumGallery("].join(" "),
+    ];
+    const implementationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual(
+      declarations.map(() => [
+        "features/canvas/nodes/VideoAlbumControls.tsx",
+      ]),
+    );
+    expect(viewSource).toContain("Math.min(totalSlots - 1, 3)");
+    expect(viewSource).toContain("Math.hypot(");
+    expect(viewSource).toContain("onDownload(url, index)");
+    expect(videoNode).toContain(
+      "@/features/canvas/nodes/VideoAlbumControls",
+    );
+    expect(videoNode).toContain("<VideoAlbumDeck");
+    expect(videoNode).toContain("<VideoAlbumToggleButton");
+    expect(videoNode).toContain("<VideoAlbumGallery");
+    expect(videoNode).not.toContain("albumPointerDownPosRef");
+    expect(videoNode).not.toContain("albumUrls.map((url, index)");
+    expect(videoNode).not.toContain("title=\"点击设为主视频\"");
+  });
+
   it("keeps box-selection projection in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
