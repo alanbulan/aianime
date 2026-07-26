@@ -36,6 +36,7 @@ import type {
   CanvasAssetLibrarySource,
 } from "@/features/canvas/domain/assetLibrary";
 import type { CanvasVideoComposeRequest } from "@/features/canvas/domain/videoCompose";
+import type { CanvasImageTo3dSourceKind } from "@/features/canvas/domain/imageTo3d";
 
 // Per-node generation history -------------------------------------------- //
 
@@ -1290,14 +1291,11 @@ export async function submitFreezoneFrameFromContext(
 
 // /freezone/image-to-3gs --------------------------------------------------- //
 
-/** SHARP / 3GS 来源类型；master/reverse 单面 SOG，pano 用 360 全景生成。 */
-export type FreezoneImageTo3GSKind = "master" | "reverse" | "pano";
-
 export interface FreezoneImageTo3GSPayload extends FreezoneNodeContext {
   /** 源图静态地址，通常来自 Freezone 图片节点。 */
   sourceUrl: string;
   /** 默认 master；当前 3D 世界节点仅使用 master。 */
-  sourceKind?: FreezoneImageTo3GSKind;
+  sourceKind?: CanvasImageTo3dSourceKind;
 }
 
 export async function submitFreezoneImageTo3GS(

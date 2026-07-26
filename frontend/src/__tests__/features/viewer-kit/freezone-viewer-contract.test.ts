@@ -417,6 +417,10 @@ describe("freezone viewer contracts", () => {
     const toolbar = read("src/features/canvas/ui/NodeActionToolbar.tsx");
     const overlay = read("src/features/canvas/ui/SelectedNodeOverlay.tsx");
     const worldNode = read("src/features/canvas/nodes/ThreeDWorldNode.tsx");
+    const sourceKindDomain = read("src/features/canvas/domain/imageTo3d.ts");
+    const generationUseCase = read(
+      "src/features/canvas/application/generateCanvasImageTo3d.ts",
+    );
     const zh = read("public/locales/zh/translation.json");
     const en = read("public/locales/en/translation.json");
 
@@ -432,10 +436,12 @@ describe("freezone viewer contracts", () => {
     expect(worldNode).toContain("onReferenceImageChange");
     expect(worldNode).toContain("const inferredImageSourceKind");
     expect(worldNode).toContain("if (isPanoImageCanvasNode(sourceNodeForGeneration)) return 'pano';");
-    expect(worldNode).toContain("function imageTo3gsKindForSource");
-    expect(worldNode).toContain("const sourceKind = imageTo3gsKindForSource(sourceNode, selectedImageSourceKind)");
-    expect(worldNode).toContain("submitFreezoneImageTo3GS");
-    expect(worldNode).toContain("sourceFromImageTo3gsResult");
+    expect(worldNode).toContain("resolveCanvasImageTo3dSourceKind(");
+    expect(worldNode).toContain("await generateCanvasImageTo3d(");
+    expect(worldNode).not.toContain("submitFreezoneImageTo3GS");
+    expect(worldNode).not.toContain("awaitTaskCompletion");
+    expect(sourceKindDomain).toContain('sourceRole === "scene_reverse_master"');
+    expect(generationUseCase).toContain("sourceFromImageTo3gsResult(");
     expect(zh).toContain('"generateDirectorWorld": "生成3DGS世界"');
     expect(en).toContain('"generateDirectorWorld": "Generate 3DGS World"');
   });

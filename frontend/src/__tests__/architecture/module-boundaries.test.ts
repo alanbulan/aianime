@@ -8798,6 +8798,91 @@ describe("frontend architecture boundaries", () => {
     expect(nodeSource).not.toContain("awaitTaskCompletion");
   });
 
+  it("keeps Canvas image-to-3D generation orchestration out of views", () => {
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/imageTo3d.ts",
+    );
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/generateCanvasImageTo3d.ts",
+    );
+    const adapterPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneImageTo3dGenerationGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const nodePath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/ThreeDWorldNode.tsx",
+    );
+    const opsPath = resolve(SRC_ROOT, "api/ops.ts");
+    const domainSource = readFileSync(domainPath, "utf8");
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const adapterSource = readFileSync(adapterPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const nodeSource = readFileSync(nodePath, "utf8");
+    const opsSource = readFileSync(opsPath, "utf8");
+    const declaration = [
+      "export async function",
+      "generateCanvasImageTo3d(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(importSpecifiers(domainPath)).toEqual(["./canvasNodes"]);
+    expect(domainSource).toContain(
+      "export function resolveCanvasImageTo3dSourceKind(",
+    );
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set([
+        "../domain/directorWorldSources",
+        "../domain/imageTo3d",
+        "./ports",
+      ]),
+    );
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).toContain(
+      "dependencies.taskGateway.awaitCompletion(",
+    );
+    expect(applicationSource).toContain("sourceFromImageTo3gsResult(");
+    expect(implementationOwners).toEqual([
+      "features/canvas/application/generateCanvasImageTo3d.ts",
+    ]);
+    expect(new Set(importSpecifiers(adapterPath))).toEqual(
+      new Set(["@/api/ops", "../application/generateCanvasImageTo3d"]),
+    );
+    expect(adapterSource).toContain(
+      "freezoneImageTo3dGenerationGateway: CanvasImageTo3dSubmissionGateway",
+    );
+    expect(compositionSource).toContain(
+      "generateCanvasImageTo3dUseCase(params, {",
+    );
+    expect(compositionSource).toContain(
+      "submissionGateway: freezoneImageTo3dGenerationGateway",
+    );
+    expect(importSpecifiers(nodePath)).toContain(
+      "@/features/canvas/domain/imageTo3d",
+    );
+    expect(importSpecifiers(nodePath)).toContain(
+      "@/features/canvas/composition",
+    );
+    expect(importSpecifiers(nodePath)).not.toContain("@/api/ops");
+    expect(importSpecifiers(nodePath)).not.toContain("@/api/tasks");
+    expect(nodeSource).toContain("await generateCanvasImageTo3d(");
+    expect(nodeSource).not.toContain("submitFreezoneImageTo3GS");
+    expect(nodeSource).not.toContain("awaitTaskCompletion");
+    expect(opsSource).toContain("@/features/canvas/domain/imageTo3d");
+    expect(opsSource).not.toContain("FreezoneImageTo3GSKind");
+  });
+
   it("keeps Canvas scene-360 generation orchestration in application", () => {
     const domainPath = resolve(
       SRC_ROOT,

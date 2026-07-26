@@ -19,14 +19,10 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { ArrowRight, Loader2, Orbit } from 'lucide-react';
 
-import {
-  submitFreezoneImageTo3GS,
-  type FreezoneImageTo3GSKind,
-} from '@/api/ops';
 import type { CanvasGenerationHistoryRecord } from '@/features/canvas/application/generationHistory';
-import { awaitTaskCompletion, type TaskState } from '@/api/tasks';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import {
+  generateCanvasImageTo3d,
   uploadAndAutoCommitSelectedBackgroundCandidate,
   uploadCanvasAsset,
   uploadLocalImageToBackend,
@@ -50,8 +46,11 @@ import {
   mergeDirectorStageManifestSources,
   mergeDirectorSavedSceneMaps,
   mergeDirectorWorldSources,
-  sourceFromImageTo3gsResult,
 } from '@/features/canvas/domain/directorWorldSources';
+import {
+  resolveCanvasImageTo3dSourceKind,
+  type CanvasImageTo3dVisibleSourceKind,
+} from '@/features/canvas/domain/imageTo3d';
 import { setDirectorWorldSceneSaveHandler } from '@/features/canvas/domain/directorWorldSceneSaveRegistry';
 import {
   ThreeDDirectorDialog,
@@ -150,7 +149,7 @@ function upstreamRef(node: CanvasNode | undefined | null): UpstreamRef | null {
   return null;
 }
 
-function pickPlyUrlFromResult(result: TaskState['result'] | undefined): string | null {
+function pickPlyUrlFromResult(result: unknown): string | null {
   if (!result) return null;
   const candidates: string[] = [];
   const visit = (value: unknown, depth: number) => {
@@ -217,9 +216,7 @@ function resolveNodeDimension(value: number | undefined, fallback: number): numb
 }
 
 type LocalDirectorManifestSource = DirectorStageManifest['source'];
-type DirectorImageSourceKind = 'master' | 'pano';
-
-const DIRECTOR_IMAGE_SOURCE_OPTIONS: Array<{ value: DirectorImageSourceKind; labelKey: string }> = [
+const DIRECTOR_IMAGE_SOURCE_OPTIONS: Array<{ value: CanvasImageTo3dVisibleSourceKind; labelKey: string }> = [
   { value: 'master', labelKey: 'nodeToolbar.normalImage' },
   { value: 'pano', labelKey: 'nodeToolbar.image360' },
 ];
@@ -518,21 +515,6 @@ function imageSize(dataUrl: string): Promise<{ width: number; height: number }> 
   });
 }
 
-function imageTo3gsKindForSource(
-  sourceNode: CanvasNode | null,
-  visibleSourceKind: DirectorImageSourceKind,
-): FreezoneImageTo3GSKind {
-  if (visibleSourceKind === 'pano') return 'pano';
-  const source = sourceNode?.data as { output_role?: unknown; __freezone_source?: unknown } | undefined;
-  const outputRole = typeof source?.output_role === 'string' ? source.output_role : '';
-  const sourceRole = typeof (source?.__freezone_source as { role?: unknown } | undefined)?.role === 'string'
-    ? (source?.__freezone_source as { role?: string }).role
-    : '';
-  return outputRole === 'scene_reverse_master' || sourceRole === 'scene_reverse_master'
-    ? 'reverse'
-    : 'master';
-}
-
 function ReferenceImageThumb({
   item,
   onFocus,
@@ -609,13 +591,13 @@ interface OpsPanelProps {
   isGenerating: boolean;
   hasUpstream: boolean;
   errorMessage?: string | null;
-  sourceKind: DirectorImageSourceKind;
+  sourceKind: CanvasImageTo3dVisibleSourceKind;
   referenceImages: ReferenceImageRef[];
   selectedReferenceNodeId: string | null;
   referenceImage: ReferenceImageRef | null;
   referenceText: ReferenceTextRef | null;
   onReferenceImageChange: (nodeId: string) => void;
-  onSourceKindChange: (next: DirectorImageSourceKind) => void;
+  onSourceKindChange: (next: CanvasImageTo3dVisibleSourceKind) => void;
   onSubmit: () => void;
   onFocusUpstream: (nodeId: string) => void;
   onDetachUpstream: (nodeId: string) => void;
@@ -704,7 +686,7 @@ function OpsPanel({
         >
           <select
             value={sourceKind}
-            onChange={(event) => onSourceKindChange(event.target.value as DirectorImageSourceKind)}
+            onChange={(event) => onSourceKindChange(event.target.value as CanvasImageTo3dVisibleSourceKind)}
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => event.stopPropagation()}
             className="nodrag bg-transparent pr-1 text-[11px] text-text-dark/90 focus:text-text-dark focus:outline-none"
@@ -949,12 +931,12 @@ export const ThreeDWorldNode = memo(({ id, data, selected, width, height }: Thre
     if (upstream?.kind !== 'image') return null;
     return upstreamNodes.find((node) => node.id === upstream.nodeId) ?? null;
   }, [upstream, upstreamNodes]);
-  const inferredImageSourceKind: DirectorImageSourceKind = (() => {
+  const inferredImageSourceKind: CanvasImageTo3dVisibleSourceKind = (() => {
     if (!sourceNodeForGeneration) return 'master';
     if (isPanoImageCanvasNode(sourceNodeForGeneration)) return 'pano';
     return 'master';
   })();
-  const selectedImageSourceKind: DirectorImageSourceKind =
+  const selectedImageSourceKind: CanvasImageTo3dVisibleSourceKind =
     data.plyKind === 'pano' || data.plyKind === 'master'
       ? data.plyKind
       : inferredImageSourceKind;
@@ -978,7 +960,10 @@ export const ThreeDWorldNode = memo(({ id, data, selected, width, height }: Thre
     const sourceUrl = imageUrlFromCanvasNode(sourceNode);
     if (!sourceUrl) return;
 
-    const sourceKind = imageTo3gsKindForSource(sourceNode, selectedImageSourceKind);
+    const sourceKind = resolveCanvasImageTo3dSourceKind(
+      sourceNode,
+      selectedImageSourceKind,
+    );
     const rawPanoSource = sourceKind === 'pano'
       ? directorPanoSourceFromCanvasNode(sourceNode) ?? {
           id: `upstream-pano:${sourceNode.id}`,
@@ -1009,25 +994,21 @@ export const ThreeDWorldNode = memo(({ id, data, selected, width, height }: Thre
     });
 
     try {
-      const ref = await submitFreezoneImageTo3GS(projectId, {
-        sourceUrl,
-        sourceKind,
-        canvasId: readUrl().canvas ?? 'default',
-        nodeId: id,
-      });
-      updateNodeData(id, { taskKey: ref.task_key, ...generationTaskDescriptor(ref) });
-      const completed = await awaitTaskCompletion(ref.task_key, projectId);
-      const generatedSource = sourceFromImageTo3gsResult(completed.result, {
-        id: `generated-sog:${sourceKind}:${Date.now()}`,
-        sourceKind,
-        label:
-          sourceKind === 'pano'
-            ? '360 3DGS'
-            : '图片 3DGS',
-      });
-      if (!generatedSource) {
-        throw new Error('未能在 task.result 中找到 3D 世界地址');
-      }
+      const { source: generatedSource } = await generateCanvasImageTo3d(
+        {
+          projectId,
+          sourceUrl,
+          sourceKind,
+          canvasId: readUrl().canvas ?? 'default',
+          nodeId: id,
+        },
+        (task) => {
+          updateNodeData(id, {
+            taskKey: task.task_key,
+            ...generationTaskDescriptor(task),
+          });
+        },
+      );
       const currentWorld = useCanvasStore.getState().nodes.find((node) => node.id === id);
       const currentSources = (
         (currentWorld?.data as { sources?: DirectorWorldSource[] } | undefined)?.sources ?? []
@@ -1412,7 +1393,7 @@ export const ThreeDWorldNode = memo(({ id, data, selected, width, height }: Thre
             }
             onReferenceImageChange={(nodeId) => {
               const node = upstreamNodes.find((item) => item.id === nodeId) ?? null;
-              const nextKind: DirectorImageSourceKind = node && isPanoImageCanvasNode(node)
+              const nextKind: CanvasImageTo3dVisibleSourceKind = node && isPanoImageCanvasNode(node)
                 ? 'pano'
                 : 'master';
               updateNodeData(id, { sourceNodeId: nodeId, plyKind: nextKind });
