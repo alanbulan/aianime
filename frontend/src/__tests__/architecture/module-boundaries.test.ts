@@ -7387,4 +7387,56 @@ describe("frontend architecture boundaries", () => {
     expect(canvasSource).not.toContain("const handleNodeDragStop = useCallback");
     expect(canvasSource).not.toContain("const handleSelectionDragStart = useCallback");
   });
+
+  it("keeps Canvas node-menu state in one presentation controller", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasNodeMenuStateController.ts",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const canvasSource = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(controllerPath).filter(
+      (specifier) =>
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declaration = [
+      "export function",
+      "useCanvasNodeMenuStateController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasNodeMenuStateController.ts",
+    ]);
+    expect(controllerSource).toContain("createPreviewPath(preview.line)");
+    expect(controllerSource).toContain(
+      "handleMarqueeStart: resetActiveConnectionMenu",
+    );
+    expect(controllerSource).toContain(
+      "prepareBatchConnectionDrag: resetActiveConnectionMenu",
+    );
+    expect(controllerSource).toContain(
+      "dismissNodeMenuForPaneClick: resetActiveConnectionMenu",
+    );
+    expect(canvasSource).toContain("./hooks/useCanvasNodeMenuStateController");
+    expect(canvasSource).not.toContain("useState(");
+    expect(canvasSource).not.toContain("setShowNodeMenu(");
+    expect(canvasSource).not.toContain("setMenuAllowedTypes(");
+    expect(canvasSource).not.toContain("setPendingConnectStart(");
+    expect(canvasSource).not.toContain("setPendingBatchConnectIds(");
+    expect(canvasSource).not.toContain("setPreviewConnectionVisual(");
+  });
 });

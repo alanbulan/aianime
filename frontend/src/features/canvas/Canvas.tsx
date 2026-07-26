@@ -1,6 +1,5 @@
 // Copyright (c) 2026 AI anime
 import {
-  useState,
   useCallback,
   useMemo,
   useRef,
@@ -39,7 +38,6 @@ import {
 import {
   CANVAS_NODE_TYPES,
   type CanvasNodeData,
-  type CanvasNodeType,
 } from '@/features/canvas/domain/canvasNodes';
 import {
   spawnAssetNode,
@@ -76,10 +74,7 @@ import { SnapAlignGuides } from './snap-align/SnapAlignGuides';
 import { useSnapAlignStore } from './snap-align/snapAlignStore';
 import { PAN_ACTIVATION_KEY_CODE } from './ui/canvasInteractionTargets';
 import {
-  createPreviewPath,
   type CanvasConnectionMenuRequest,
-  type CanvasConnectionPreviewRequest,
-  type CanvasPendingConnectionStart,
 } from './ui/canvasConnectionInteraction';
 import { useCanvasEdgePan } from './hooks/useCanvasEdgePan';
 import { useCanvasExternalDialogs } from './hooks/useCanvasExternalDialogs';
@@ -122,6 +117,7 @@ import { useCanvasNodeClickController } from './hooks/useCanvasNodeClickControll
 import { useCanvasNodeClipboard } from './hooks/useCanvasNodeClipboard';
 import { useCanvasNodeMenuShortcut } from './hooks/useCanvasNodeMenuShortcut';
 import { useCanvasNodeMenuSelectionController } from './hooks/useCanvasNodeMenuSelectionController';
+import { useCanvasNodeMenuStateController } from './hooks/useCanvasNodeMenuStateController';
 import {
   useCanvasNodePlacementController,
   type CanvasNodePlacement,
@@ -154,21 +150,8 @@ const MULTI_SELECTION_KEY_CODES = ['Control', 'Meta'];
 // (button 1). Left drag (0) runs the custom marquee box-select on the empty pane;
 // right click (2) opens the canvas context menu.
 const PAN_ON_DRAG_BUTTONS = [1];
-const PREVIEW_CONNECTION_STROKE = 'rgb(var(--text-rgb) / 0.82)';
-
 function reportCanvasClipboardMigrationError(error: unknown): void {
   console.warn('[canvas] cross-project asset migration failed', error);
-}
-
-interface PreviewConnectionVisual {
-  d: string;
-  stroke: string;
-  strokeWidth: number;
-  strokeLinecap: 'butt' | 'round' | 'square';
-  left: number;
-  top: number;
-  width: number;
-  height: number;
 }
 
 const CANVAS_SNAP_ALIGNMENT_PORT: CanvasSnapAlignmentPort = {
@@ -215,19 +198,26 @@ export function Canvas({
     triggerPlacementConfirm,
   } = useCanvasNodePlacementConfirm();
 
-  const [showNodeMenu, setShowNodeMenu] = useState(false);
-  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
-  const [flowPosition, setFlowPosition] = useState({ x: 0, y: 0 });
-  const [menuAllowedTypes, setMenuAllowedTypes] = useState<CanvasNodeType[] | undefined>(
-    undefined
-  );
-  const [pendingConnectStart, setPendingConnectStart] =
-    useState<CanvasPendingConnectionStart | null>(null);
-  // When set, the next spawned node (from the batch "+") is fanned into by all
-  // these source nodes instead of the single `pendingConnectStart`.
-  const [pendingBatchConnectIds, setPendingBatchConnectIds] = useState<string[] | null>(null);
-  const [previewConnectionVisual, setPreviewConnectionVisual] =
-    useState<PreviewConnectionVisual | null>(null);
+  const {
+    showNodeMenu,
+    menuPosition,
+    flowPosition,
+    menuAllowedTypes,
+    pendingConnectStart,
+    pendingBatchConnectIds,
+    previewConnectionVisual,
+    handleMarqueeStart,
+    prepareBatchConnectionDrag,
+    dismissNodeMenuForPaneClick,
+    updateConnectionPreview,
+    prepareConnectionStart,
+    clearConnection,
+    openConnectionMenu: openConnectionMenuState,
+    openBatchConnectionMenu: openBatchConnectionMenuState,
+    openPlainNodeMenu,
+    closeNodeMenu,
+    hideNodeMenuForPlacement,
+  } = useCanvasNodeMenuStateController();
   const {
     skills: skillRegistry,
     skillById,
@@ -500,12 +490,6 @@ export function Canvas({
     suppressNextPaneClick: suppressPaneClickAfterPlacement,
     resolvePlacementLabel: resolveNodePlacementLabel,
   });
-  const handleMarqueeStart = useCallback(() => {
-    setShowNodeMenu(false);
-    setMenuAllowedTypes(undefined);
-    setPendingConnectStart(null);
-    setPreviewConnectionVisual(null);
-  }, []);
   const setNativeSelectionActive = useCallback(
     (active: boolean) => reactFlowStore.setState({ nodesSelectionActive: active }),
     [reactFlowStore],
@@ -521,51 +505,15 @@ export function Canvas({
     onMarqueeStart: handleMarqueeStart,
   });
 
-  const updateConnectionPreview = useCallback(
-    (preview: CanvasConnectionPreviewRequest | null) => {
-      setPreviewConnectionVisual(
-        preview
-          ? {
-              d: createPreviewPath(preview.line),
-              stroke: PREVIEW_CONNECTION_STROKE,
-              strokeWidth: 1,
-              strokeLinecap: 'round',
-              left: 0,
-              top: 0,
-              width: preview.containerSize.width,
-              height: preview.containerSize.height,
-            }
-          : null,
-      );
-    },
-    [],
-  );
-  const prepareConnectionStart = useCallback(
-    (pending: CanvasPendingConnectionStart | null) => {
-      setPendingConnectStart(pending);
-      setShowNodeMenu(false);
-      setMenuAllowedTypes(undefined);
-      setPreviewConnectionVisual(null);
-    },
-    [],
-  );
-  const clearConnection = useCallback(() => {
-    setPendingConnectStart(null);
-    setPreviewConnectionVisual(null);
-  }, []);
   const openConnectionMenu = useCallback(
     (request: CanvasConnectionMenuRequest) => {
-      setPendingConnectStart(request.pending);
-      updateConnectionPreview(request.preview);
-      setFlowPosition(
+      openConnectionMenuState(
+        request,
         reactFlowInstance.screenToFlowPosition(request.clientPosition),
       );
-      setMenuPosition(request.menuPosition);
-      setMenuAllowedTypes(request.allowedTypes);
       suppressNextPaneClickRef.current = true;
-      setShowNodeMenu(true);
     },
-    [reactFlowInstance, updateConnectionPreview],
+    [openConnectionMenuState, reactFlowInstance],
   );
   const clearHoveredNode = useCallback(
     () => setHoveredNodeId(null),
@@ -602,23 +550,12 @@ export function Canvas({
     openConnectionMenu,
     connectNodes: connectGraphNodes,
   });
-  const prepareBatchConnectionDrag = useCallback(() => {
-    setShowNodeMenu(false);
-    setMenuAllowedTypes(undefined);
-    setPendingConnectStart(null);
-    setPreviewConnectionVisual(null);
-  }, []);
   const openBatchConnectionMenu = useCallback(
     (request: CanvasBatchConnectionMenuRequest) => {
-      setPendingConnectStart(null);
-      setPendingBatchConnectIds(request.sourceIds);
-      setFlowPosition(request.spawnFlowPosition);
-      setMenuPosition(request.menuPosition);
-      setMenuAllowedTypes(request.allowedTypes);
+      openBatchConnectionMenuState(request);
       suppressNextPaneClickRef.current = true;
-      setShowNodeMenu(true);
     },
-    [],
+    [openBatchConnectionMenuState],
   );
   const {
     handleBatchConnectOpenMenu,
@@ -640,18 +577,16 @@ export function Canvas({
   const openNodeMenuAtClientPosition = useCallback((clientPosition: { x: number; y: number }) => {
     const containerRect = wrapperRef.current?.getBoundingClientRect();
     const flowPos = reactFlowInstance.screenToFlowPosition(clientPosition);
-    setFlowPosition(flowPos);
-    setMenuPosition({
-      x: clientPosition.x - (containerRect?.left ?? 0),
-      y: clientPosition.y - (containerRect?.top ?? 0),
+    openPlainNodeMenu({
+      flowPosition: flowPos,
+      menuPosition: {
+        x: clientPosition.x - (containerRect?.left ?? 0),
+        y: clientPosition.y - (containerRect?.top ?? 0),
+      },
     });
-    setMenuAllowedTypes(undefined);
-    setPendingConnectStart(null);
-    setPreviewConnectionVisual(null);
     cancelNodePlacement();
     setSelectedNode(null);
-    setShowNodeMenu(true);
-  }, [cancelNodePlacement, reactFlowInstance, setSelectedNode]);
+  }, [cancelNodePlacement, openPlainNodeMenu, reactFlowInstance, setSelectedNode]);
   const {
     handleCanvasPointerMove,
     getLastCanvasPointerPosition,
@@ -663,17 +598,6 @@ export function Canvas({
     openNodeMenu: openNodeMenuAtClientPosition,
   });
 
-  const closeNodeMenu = useCallback(() => {
-    setShowNodeMenu(false);
-    setMenuAllowedTypes(undefined);
-    setPendingConnectStart(null);
-    setPendingBatchConnectIds(null);
-    setPreviewConnectionVisual(null);
-  }, []);
-  const hideNodeMenuForPlacement = useCallback(() => {
-    setShowNodeMenu(false);
-    setMenuAllowedTypes(undefined);
-  }, []);
   const releasePaneClickSuppression = useCallback(() => {
     suppressNextPaneClickRef.current = false;
   }, []);
@@ -777,13 +701,11 @@ export function Canvas({
     }
 
     setSelectedNode(null);
-    setShowNodeMenu(false);
-    setMenuAllowedTypes(undefined);
-    setPendingConnectStart(null);
-    setPreviewConnectionVisual(null);
+    dismissNodeMenuForPaneClick();
     onBlankPaneClick?.();
   }, [
     commitNodePlacementAtClientPosition,
+    dismissNodeMenuForPaneClick,
     onBlankPaneClick,
     openNodeMenuAtClientPosition,
     placementActive,
