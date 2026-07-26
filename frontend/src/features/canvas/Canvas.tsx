@@ -26,10 +26,6 @@ import { useShallow } from 'zustand/react/shallow';
 import { CreditDisplayHiddenProvider } from '@/components/credits/credit-visual';
 import { isCeRuntime } from '@/lib/runtime-config';
 import { useCanvasStore } from '@/stores/canvasStore';
-import {
-  getNodeSize,
-  hasRectCollision,
-} from '@/features/canvas/domain/canvasGeometry';
 import { findLinkedCapturePartnerIds } from '@/features/canvas/domain/canvasCapturePartners';
 import { resolveCanvasSelectionDeletion } from '@/features/canvas/domain/canvasSelectionDeletion';
 import { useAppStore } from '@/stores/app-store';
@@ -55,9 +51,7 @@ import {
 import { hydrateAssetDragPayload } from '@/features/canvas/domain/assetDragHydrate';
 import { CanvasMinimapBookmarksOverlay } from '@/features/canvas/ui/CanvasMinimapBookmarksOverlay';
 import { captureCurrentViewport, jumpToBookmark } from '@/features/canvas/application/bookmarkActions';
-import { cloneCanvasNodeData } from '@/features/canvas/application/canvasNodeData';
 import { createCanvasClipboardSnapshot } from '@/features/canvas/application/createCanvasClipboardSnapshot';
-import type { CanvasClipboardSnapshot } from '@/features/canvas/domain/canvasClipboard';
 import { nodeNeedsGenerationResume } from '@/features/canvas/application/resumeGeneration';
 import {
   createCanvasSkillNodeData,
@@ -110,6 +104,11 @@ import {
   type CanvasBatchConnectionMenuRequest,
 } from './hooks/useCanvasBatchConnectionController';
 import { useCanvasConnectionController } from './hooks/useCanvasConnectionController';
+import {
+  useCanvasClipboardDuplicationController,
+  type CanvasClipboardNodeDimensionCommit,
+  type CanvasClipboardNodeSelectionCommit,
+} from './hooks/useCanvasClipboardDuplicationController';
 import { useCanvasPlusConnectionController } from './hooks/useCanvasPlusConnectionController';
 import { useCanvasQuickAddController } from './hooks/useCanvasQuickAddController';
 import { useCanvasReactFlowConnectionController } from './hooks/useCanvasReactFlowConnectionController';
@@ -156,6 +155,10 @@ const MULTI_SELECTION_KEY_CODES = ['Control', 'Meta'];
 const PAN_ON_DRAG_BUTTONS = [1];
 const PREVIEW_CONNECTION_STROKE = 'rgb(var(--text-rgb) / 0.82)';
 
+function reportCanvasClipboardMigrationError(error: unknown): void {
+  console.warn('[canvas] cross-project asset migration failed', error);
+}
+
 interface PreviewConnectionVisual {
   d: string;
   stroke: string;
@@ -165,27 +168,6 @@ interface PreviewConnectionVisual {
   top: number;
   width: number;
   height: number;
-}
-
-interface DuplicateOptions {
-  explicitOffset?: { x: number; y: number };
-  disableOffsetIteration?: boolean;
-  suppressSelect?: boolean;
-  /**
-   * Paste from a serialized clipboard snapshot instead of looking the source
-   * nodes up by id in the live canvas — lets paste work after the originals are
-   * deleted and across canvases.
-   */
-  sourceSnapshot?: CanvasClipboardSnapshot;
-  /** Place the pasted group's top-left at this flow position (cursor paste). */
-  targetFlowPosition?: { x: number; y: number };
-  /** Select every pasted node (not just the first) — used by paste. */
-  selectAll?: boolean;
-}
-
-interface DuplicateResult {
-  firstNodeId: string | null;
-  idMap: Map<string, string>;
 }
 
 const ALT_DRAG_COPY_Z_INDEX = 2000;
@@ -252,7 +234,6 @@ export function Canvas({
     skillById,
   } = useCanvasSkillRegistry(getSkillRegistry);
 
-  const pasteIterationRef = useRef(0);
   const altDragCopyRef = useRef<{
     sourceNodeIds: string[];
     startPositions: Map<string, { x: number; y: number }>;
@@ -1006,244 +987,58 @@ export function Canvas({
     deleteNode,
   });
 
-  const duplicateNodes = useCallback(
-    (sourceNodeIds: string[], options: DuplicateOptions = {}) => {
-      // Source is either a serialized clipboard snapshot (paste) or live nodes
-      // looked up by id (duplicate / 创建副本).
-      const snapshot = options.sourceSnapshot;
-      const sourceNodes = snapshot
-        ? snapshot.nodes
-        : nodes.filter((node) => sourceNodeIds.includes(node.id));
-      if (sourceNodes.length === 0) {
-        return null as DuplicateResult | null;
-      }
-
-      const sourceIdSet = new Set(sourceNodes.map((node) => node.id));
-      const internalEdges = snapshot
-        ? snapshot.edges
-        : edges.filter(
-            (edge) => sourceIdSet.has(edge.source) && sourceIdSet.has(edge.target)
-          );
-
-      // Cursor paste: lay the group out with its top-left at the target flow
-      // position instead of the offset-from-original layout used by duplicate.
-      const targetPos = options.targetFlowPosition;
-      const groupMinX = targetPos
-        ? Math.min(...sourceNodes.map((node) => node.position.x))
-        : 0;
-      const groupMinY = targetPos
-        ? Math.min(...sourceNodes.map((node) => node.position.y))
-        : 0;
-
-      const baseOffsets = [
-        { x: 44, y: 30 },
-        { x: 72, y: 8 },
-        { x: 18, y: 68 },
-        { x: 96, y: 42 },
-      ];
-      const existingNodes = useCanvasStore.getState().nodes;
-      const ignoreNodeIds = new Set<string>();
-      const offsetStep = options.disableOffsetIteration ? 0 : pasteIterationRef.current;
-      let chosenOffset = options.explicitOffset ?? baseOffsets[0];
-
-      const isOffsetAvailable = (offset: { x: number; y: number }) => sourceNodes.every((node) => {
-        const size = getNodeSize(node);
-        return !hasRectCollision(
-          {
-            x: node.position.x + offset.x + offsetStep * 8,
-            y: node.position.y + offset.y + offsetStep * 6,
-            width: size.width,
-            height: size.height,
-          },
-          existingNodes,
-          ignoreNodeIds
-        );
-      });
-
-      if (!targetPos && !options.explicitOffset) {
-        const matchedBaseOffset = baseOffsets.find((offset) => isOffsetAvailable(offset));
-        if (matchedBaseOffset) {
-          chosenOffset = matchedBaseOffset;
-        } else {
-          const maxStep = 16;
-          for (let step = 1; step <= maxStep; step += 1) {
-            const candidate = { x: 24 + step * 26, y: 16 + step * 18 };
-            if (isOffsetAvailable(candidate)) {
-              chosenOffset = candidate;
-              break;
-            }
-          }
-        }
-      }
-
-      const idMap = new Map<string, string>();
-      const sizeMap = new Map<string, { width: number; height: number }>();
-      const pastedForMigration: Array<{ id: string; data: CanvasNodeData }> = [];
-      for (const sourceNode of sourceNodes) {
-        const data = cloneCanvasNodeData(sourceNode.data);
-        if ('isGenerating' in (data as Record<string, unknown>)) {
-          (data as { isGenerating?: boolean }).isGenerating = false;
-        }
-        if ('generationStartedAt' in (data as Record<string, unknown>)) {
-          (data as { generationStartedAt?: number | null }).generationStartedAt = null;
-        }
-        if ('generationJobId' in (data as Record<string, unknown>)) {
-          (data as { generationJobId?: string | null }).generationJobId = null;
-        }
-        if ('generationProviderId' in (data as Record<string, unknown>)) {
-          (data as { generationProviderId?: string | null }).generationProviderId = null;
-        }
-        if ('generationClientSessionId' in (data as Record<string, unknown>)) {
-          (data as { generationClientSessionId?: string | null }).generationClientSessionId = null;
-        }
-        if ('generationStoryboardMetadata' in (data as Record<string, unknown>)) {
-          (data as { generationStoryboardMetadata?: unknown }).generationStoryboardMetadata = undefined;
-        }
-        if ('generationError' in (data as Record<string, unknown>)) {
-          (data as { generationError?: string | null }).generationError = null;
-        }
-        if ('generationErrorDetails' in (data as Record<string, unknown>)) {
-          (data as { generationErrorDetails?: string | null }).generationErrorDetails = null;
-        }
-        if ('generationDebugContext' in (data as Record<string, unknown>)) {
-          (data as { generationDebugContext?: unknown }).generationDebugContext = undefined;
-        }
-
-        const position = targetPos
-          ? {
-              x: targetPos.x + (sourceNode.position.x - groupMinX),
-              y: targetPos.y + (sourceNode.position.y - groupMinY),
-            }
-          : {
-              x: sourceNode.position.x + chosenOffset.x + offsetStep * 8,
-              y: sourceNode.position.y + chosenOffset.y + offsetStep * 6,
-            };
-        const nextNodeId = addNode(
-          sourceNode.type as CanvasNodeType,
-          position,
-          { ...data }
-        );
-        idMap.set(sourceNode.id, nextNodeId);
-        sizeMap.set(nextNodeId, getNodeSize(sourceNode));
-        pastedForMigration.push({ id: nextNodeId, data });
-      }
-
-      const sizeSyncChanges = Array.from(sizeMap.entries()).map(([nodeId, size]) => ({
-        id: nodeId,
+  const commitClipboardNodeDimensions = useCallback(
+    (updates: CanvasClipboardNodeDimensionCommit[]) => {
+      applyNodesChange(updates.map((update) => ({
+        id: update.nodeId,
         type: 'dimensions' as const,
-        dimensions: { width: size.width, height: size.height },
+        dimensions: { width: update.width, height: update.height },
         resizing: false,
         setAttributes: true,
-      }));
-      if (sizeSyncChanges.length > 0) {
-        applyNodesChange(sizeSyncChanges);
-      }
-
-      for (const edge of internalEdges) {
-        const nextSource = idMap.get(edge.source);
-        const nextTarget = idMap.get(edge.target);
-        if (!nextSource || !nextTarget) {
-          continue;
-        }
-        connectNodes({
-          source: nextSource,
-          target: nextTarget,
-          sourceHandle: edge.sourceHandle ?? 'source',
-          targetHandle: edge.targetHandle ?? 'target',
-        });
-      }
-
-      if (!options.disableOffsetIteration && !targetPos) {
-        pasteIterationRef.current += 1;
-      }
-      const firstNodeId = idMap.get(sourceNodes[0].id) ?? null;
-      if (!options.suppressSelect) {
-        if (options.selectAll && idMap.size > 0) {
-          // Select the whole pasted group (and deselect the originals) so it can
-          // be dragged immediately — same selection model as a box-select.
-          const pastedIds = new Set(idMap.values());
-          applyNodesChange(
-            useCanvasStore
-              .getState()
-              .nodes.filter(
-                (node) => Boolean(node.selected) !== pastedIds.has(node.id),
-              )
-              .map((node) => ({
-                id: node.id,
-                type: 'select' as const,
-                selected: pastedIds.has(node.id),
-              })),
-          );
-          setSelectedNode(pastedIds.size === 1 ? firstNodeId : null);
-        } else if (firstNodeId) {
-          setSelectedNode(firstNodeId);
-        }
-      }
-      // 跨项目粘贴：把节点里指向「源项目」的媒体资产重新上传到当前项目，完成后静默
-      // 改写 URL。后台执行、不阻塞粘贴；单条失败保留原 URL 并提示。仅当来自序列化
-      // 剪贴板（paste）且源项目与当前项目不同才触发——同项目复制/副本无需迁移。
-      const sourceProject = snapshot?.sourceProject ?? null;
-      const currentProject = readUrl().project ?? null;
-      if (
-        sourceProject
-        && currentProject
-        && sourceProject !== currentProject
-        && pastedForMigration.length > 0
-      ) {
-        void migratePastedNodeAssets({
-          nodes: pastedForMigration,
-          targetProject: currentProject,
-          getLiveNodeData: (nodeId) =>
-            useCanvasStore.getState().nodes.find((node) => node.id === nodeId)?.data ?? null,
-          updateNodeData,
-        })
-          .then(({ migrated, failed }) => {
-            if (failed > 0) {
-              toast.error(t('canvas.crossProjectAssets.partialFailure', { count: failed }));
-            } else if (migrated > 0) {
-              toast.success(t('canvas.crossProjectAssets.success', { count: migrated }));
-            }
-          })
-          .catch((error) => {
-            console.warn('[canvas] cross-project asset migration failed', error);
-          });
-      }
-
-      return { firstNodeId, idMap };
+      })));
     },
-    [
-      addNode,
-      applyNodesChange,
-      connectNodes,
-      edges,
-      nodes,
-      setSelectedNode,
-      t,
-      updateNodeData,
-    ]
+    [applyNodesChange],
   );
-
-  // Paste the clipboard snapshot as fresh, self-contained nodes. `targetFlow`
-  // (cursor flow position) lays the group out under the cursor; without it the
-  // group is offset from its copied position (keyboard paste).
-  const pasteFromClipboard = useCallback(
-    (
-      snapshot: CanvasClipboardSnapshot | null,
-      targetFlow?: { x: number; y: number },
-    ): string | null => {
-      if (!snapshot || snapshot.nodes.length === 0) {
-        return null;
-      }
-      return (
-        duplicateNodes([], {
-          sourceSnapshot: snapshot,
-          targetFlowPosition: targetFlow,
-          selectAll: true,
-        })?.firstNodeId ?? null
-      );
+  const commitClipboardNodeSelection = useCallback(
+    (updates: CanvasClipboardNodeSelectionCommit[]) => {
+      applyNodesChange(updates.map((update) => ({
+        id: update.nodeId,
+        type: 'select' as const,
+        selected: update.selected,
+      })));
     },
-    [duplicateNodes],
+    [applyNodesChange],
   );
+  const notifyClipboardMigrationSuccess = useCallback(
+    (count: number) => {
+      toast.success(t('canvas.crossProjectAssets.success', { count }));
+    },
+    [t],
+  );
+  const notifyClipboardMigrationPartialFailure = useCallback(
+    (count: number) => {
+      toast.error(t('canvas.crossProjectAssets.partialFailure', { count }));
+    },
+    [t],
+  );
+  const {
+    duplicateNodes,
+    pasteFromClipboard,
+    resetPasteIteration,
+  } = useCanvasClipboardDuplicationController({
+    getGraph: getCanvasGraph,
+    createNode: addNode,
+    commitNodeDimensions: commitClipboardNodeDimensions,
+    connectNodes,
+    commitNodeSelection: commitClipboardNodeSelection,
+    selectNode: setSelectedNode,
+    currentProject: canvasProject ?? null,
+    migrateAssets: migratePastedNodeAssets,
+    updateNodeData,
+    notifyMigrationSuccess: notifyClipboardMigrationSuccess,
+    notifyMigrationPartialFailure: notifyClipboardMigrationPartialFailure,
+    reportMigrationError: reportCanvasClipboardMigrationError,
+  });
 
   const createClipboardSnapshot = useCallback(
     () => createCanvasClipboardSnapshot({
@@ -1254,9 +1049,6 @@ export function Canvas({
     }),
     [canvasProject, edges, nodes, selectedNodeIds],
   );
-  const resetPasteIteration = useCallback(() => {
-    pasteIterationRef.current = 0;
-  }, []);
   const clearSystemClipboard = useCallback(
     () => navigator.clipboard?.writeText('') ?? Promise.resolve(),
     [],

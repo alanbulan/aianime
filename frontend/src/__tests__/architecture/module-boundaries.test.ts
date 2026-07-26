@@ -929,6 +929,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const clipboardDuplicationPlanner = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/application/canvasClipboardDuplication.ts",
+      ),
+      "utf8",
+    );
     const backToNodesView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/ui/BackToNodesHint.tsx"),
       "utf8",
@@ -1009,7 +1016,8 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("function getDerivedNodePosition(");
     expect(canvasStore).not.toContain("const collides =");
     expect(canvasStore).not.toContain("const overflowAmount =");
-    expect(canvasView).toContain(
+    expect(clipboardDuplicationPlanner).toContain("../domain/canvasGeometry");
+    expect(canvasView).not.toContain(
       "@/features/canvas/domain/canvasGeometry",
     );
     expect(canvasView).not.toContain("function getNodeSize(");
@@ -2061,6 +2069,83 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("copiedSnapshotRef");
     expect(canvasView).not.toContain("pasteFromClipboardRef");
     expect(canvasView).not.toContain("interface ClipboardSnapshot");
+  });
+
+  it("keeps Canvas clipboard duplication planning and orchestration outside the view", () => {
+    const plannerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasClipboardDuplication.ts",
+    );
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasClipboardDuplicationController.ts",
+    );
+    const plannerModel = readFileSync(plannerPath, "utf8");
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const plannerForbiddenImports = importSpecifiers(plannerPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/features/canvas/nodeFactoryComposition",
+    );
+    const hookForbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/features/canvas/nodeFactoryComposition",
+    );
+    const plannerDeclaration = [
+      "export function",
+      "planCanvasClipboardDuplication(",
+    ].join(" ");
+    const hookDeclaration = [
+      "export function",
+      "useCanvasClipboardDuplicationController(",
+    ].join(" ");
+    const implementationOwners = [plannerDeclaration, hookDeclaration].map(
+      (declaration) =>
+        sourceFiles(SRC_ROOT)
+          .filter((path) => readFileSync(path, "utf8").includes(declaration))
+          .map(relativeSource)
+          .sort(),
+    );
+
+    expect(plannerForbiddenImports).toEqual([]);
+    expect(hookForbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      ["features/canvas/application/canvasClipboardDuplication.ts"],
+      ["features/canvas/hooks/useCanvasClipboardDuplicationController.ts"],
+    ]);
+    expect(plannerModel).toContain("DUPLICATION_FALLBACK_MAX_STEP = 16");
+    expect(plannerModel).toContain("PASTE_ITERATION_OFFSET = { x: 8, y: 6 }");
+    expect(plannerModel).toContain("generationClientSessionId = null");
+    expect(plannerModel).toContain("sourceHandle: edge.sourceHandle ?? 'source'");
+    expect(hookModel).toContain("const pasteIterationRef = useRef(0)");
+    expect(hookModel).toContain("planCanvasClipboardDuplication({");
+    expect(hookModel).toContain("commitNodeSelection(");
+    expect(hookModel).toContain("void migrateAssets({");
+    expect(canvasView).toContain("./hooks/useCanvasClipboardDuplicationController");
+    expect(canvasView).toContain("migrateAssets: migratePastedNodeAssets");
+    expect(canvasView).not.toContain("interface DuplicateOptions");
+    expect(canvasView).not.toContain("const duplicateNodes = useCallback");
+    expect(canvasView).not.toContain("pasteIterationRef");
+    expect(canvasView).not.toContain("getNodeSize(");
   });
 
   it("keeps Canvas Beat Context prefetch projection outside the view", () => {
@@ -3815,6 +3900,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const clipboardDuplicationPlanner = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/application/canvasClipboardDuplication.ts",
+      ),
+      "utf8",
+    );
     const forbiddenImports = importSpecifiers(nodeDataPath).filter(
       (specifier) =>
         specifier === "react" ||
@@ -3853,7 +3945,8 @@ describe("frontend architecture boundaries", () => {
     );
     expect(canvasStore).not.toContain("const hasDataChange = Object.entries(data)");
     expect(canvasStore).not.toContain("const mergedData = {\n          ...node.data");
-    expect(canvasView).toContain(
+    expect(clipboardDuplicationPlanner).toContain("./canvasNodeData");
+    expect(canvasView).not.toContain(
       "@/features/canvas/application/canvasNodeData",
     );
     expect(canvasView).not.toContain("function cloneNodeData<");
