@@ -1,20 +1,24 @@
 // Copyright (c) 2026 AI anime
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const submitFreezoneOutpaint = vi.hoisted(() => vi.fn());
-
-vi.mock("@/api/ops", () => ({ submitFreezoneOutpaint }));
+import { apiCall } from "@/shared/api/client";
 
 import { freezoneOutpaintGenerationGateway } from "./freezoneOutpaintGenerationGateway";
 
+vi.mock("@/shared/api/client", () => ({ apiCall: vi.fn() }));
+
+beforeEach(() => {
+  vi.mocked(apiCall).mockReset();
+});
+
 describe("freezoneOutpaintGenerationGateway", () => {
-  it("maps the Canvas command to the Freezone client", async () => {
+  it("maps the Canvas command to the encoded outpaint endpoint", async () => {
     const task = {
       task_key: "outpaint-task",
       task_type: "freezone_outpaint",
       job_id: "outpaint-job",
     };
-    submitFreezoneOutpaint.mockResolvedValue(task);
+    vi.mocked(apiCall).mockResolvedValue(task);
     const command = {
       sourceUrl: "/static/source.png",
       targetAspectRatio: "9:16" as const,
@@ -24,8 +28,20 @@ describe("freezoneOutpaintGenerationGateway", () => {
     };
 
     await expect(
-      freezoneOutpaintGenerationGateway.submit("project-1", command),
+      freezoneOutpaintGenerationGateway.submit("project/1", command),
     ).resolves.toBe(task);
-    expect(submitFreezoneOutpaint).toHaveBeenCalledWith("project-1", command);
+    expect(apiCall).toHaveBeenCalledWith(
+      "projects/project%2F1/freezone/outpaint",
+      {
+        method: "POST",
+        json: {
+          source_url: "/static/source.png",
+          target_aspect_ratio: "9:16",
+          num_images: 1,
+          image_size: "2K",
+          model: "image-model",
+        },
+      },
+    );
   });
 });

@@ -11377,6 +11377,13 @@ describe("frontend architecture boundaries", () => {
     const compositionSource = readFileSync(compositionPath, "utf8");
     const overlaySource = readFileSync(overlayPath, "utf8");
     const opsSource = readFileSync(opsPath, "utf8");
+    const endpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("}/freezone/outpaint`"),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(importSpecifiers(domainPath)).toEqual([]);
     expect(domainSource).toContain(
@@ -11403,7 +11410,11 @@ describe("frontend architecture boundaries", () => {
       "completeCanvasMediaGenerationTask(",
     );
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
-      new Set(["@/api/ops", "../application/generateCanvasOutpaint"]),
+      new Set([
+        "@/shared/api/client",
+        "../application/generateCanvasOutpaint",
+        "../application/ports",
+      ]),
     );
     expect(infrastructureSource).toContain(
       "freezoneOutpaintGenerationGateway: CanvasOutpaintGenerationGateway",
@@ -11424,7 +11435,13 @@ describe("frontend architecture boundaries", () => {
     expect(overlaySource).not.toContain("submitFreezoneOutpaint");
     expect(overlaySource).not.toContain("fetchFreezoneJobResult");
     expect(overlaySource).not.toContain("awaitTaskCompletion");
-    expect(opsSource).toContain("@/features/canvas/domain/outpaint");
+    expect(endpointOwners).toEqual([
+      "features/canvas/infrastructure/freezoneOutpaintGenerationGateway.ts",
+    ]);
+    expect(opsSource).not.toContain("@/features/canvas/domain/outpaint");
+    expect(opsSource).not.toContain("FreezoneOutpaintPayload");
+    expect(opsSource).not.toContain("submitFreezoneOutpaint");
+    expect(opsSource).not.toContain("}/freezone/outpaint`");
     expect(opsSource).not.toContain("FreezoneOutpaintAspectRatio");
   });
 

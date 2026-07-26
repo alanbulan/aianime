@@ -1606,6 +1606,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百六十一批已将图片超分的项目路径编码、POST method、缩放倍数、输出尺寸和模型字段映射从 `api/ops.ts` 迁入已有唯一 `freezoneUpscaleGenerationGateway` infrastructure 适配器，Canvas application 继续负责清理源 URL 缓存参数、完成任务和回传结果，领域模块继续唯一持有持久化值归一与默认档位；旧 `FreezoneUpscalePayload`、`submitFreezoneUpscale` 及 `ops.ts` 对 `domain/upscale` 的临时依赖直接删除，不保留 facade、re-export 或第二套 HTTP 映射，`freezone/upscale` 端点只有该 gateway 一个生产所有者，`api/ops.ts` 由 1,890 行降至 1,858 行；请求路径、方法、2/4/6 倍缩放、1K/2K/4K 尺寸、空模型省略和任务回执语义均未改变；相关 3 个测试文件 4 项、架构门禁 206 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
 
+第二百六十二批已将扩图的项目路径编码、POST method、目标宽高比、输出数量、尺寸和模型字段映射从 `api/ops.ts` 迁入已有唯一 `freezoneOutpaintGenerationGateway` infrastructure 适配器，Canvas application 继续负责清理源 URL 缓存参数、固定单图输出、完成任务和回传结果，领域模块继续唯一持有画框计算及默认档位；旧 `FreezoneOutpaintPayload`、`submitFreezoneOutpaint` 及 `ops.ts` 对 `domain/outpaint` 的临时依赖直接删除，不保留 facade、re-export 或第二套 HTTP 映射，`freezone/outpaint` 端点只有该 gateway 一个生产所有者，`api/ops.ts` 由 1,858 行降至 1,820 行；请求路径、方法、宽高比、单图数量、1K/2K/4K 尺寸、空模型省略和任务回执语义均未改变；相关 3 个测试文件 4 项、架构门禁 206 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

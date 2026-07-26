@@ -6,14 +6,6 @@ import {
   type CanvasScene360AspectRatio,
 } from "@/features/canvas/domain/scene360";
 import {
-  DEFAULT_CANVAS_OUTPAINT_ASPECT_RATIO,
-  DEFAULT_CANVAS_OUTPAINT_IMAGE_SIZE,
-  DEFAULT_CANVAS_OUTPAINT_NUM_IMAGES,
-  type CanvasOutpaintAspectRatio,
-  type CanvasOutpaintImageSize,
-  type CanvasOutpaintNumImages,
-} from "@/features/canvas/domain/outpaint";
-import {
   DEFAULT_CANVAS_REDRAW_ASPECT_RATIO,
   DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
   DEFAULT_CANVAS_REDRAW_NUM_IMAGES,
@@ -1155,36 +1147,6 @@ export async function submitFreezoneRedraw(
           payload.aspectRatio ?? DEFAULT_CANVAS_REDRAW_ASPECT_RATIO,
         num_images: payload.numImages ?? DEFAULT_CANVAS_REDRAW_NUM_IMAGES,
         image_size: payload.imageSize ?? DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
-        ...(payload.model ? { model: payload.model } : {}),
-      },
-    },
-  );
-}
-
-// /freezone/outpaint ------------------------------------------------------ //
-
-export interface FreezoneOutpaintPayload {
-  sourceUrl: string;
-  targetAspectRatio?: CanvasOutpaintAspectRatio;
-  numImages?: CanvasOutpaintNumImages;
-  imageSize?: CanvasOutpaintImageSize;
-  model?: string;
-}
-
-export async function submitFreezoneOutpaint(
-  project: string,
-  payload: FreezoneOutpaintPayload,
-): Promise<FreezoneJobRef> {
-  return await apiCall<FreezoneJobRef>(
-    `projects/${encodeURIComponent(project)}/freezone/outpaint`,
-    {
-      method: "POST",
-      json: {
-        source_url: payload.sourceUrl,
-        target_aspect_ratio:
-          payload.targetAspectRatio ?? DEFAULT_CANVAS_OUTPAINT_ASPECT_RATIO,
-        num_images: payload.numImages ?? DEFAULT_CANVAS_OUTPAINT_NUM_IMAGES,
-        image_size: payload.imageSize ?? DEFAULT_CANVAS_OUTPAINT_IMAGE_SIZE,
         ...(payload.model ? { model: payload.model } : {}),
       },
     },
