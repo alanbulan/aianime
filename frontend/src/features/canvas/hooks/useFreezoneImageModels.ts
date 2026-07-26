@@ -1,10 +1,8 @@
 // Copyright (c) 2026 AI anime
 import { useSyncExternalStore } from "react";
 
-import {
-  fetchFreezoneImageModels,
-  type FreezoneImageModelInfo,
-} from "@/api/ops";
+import type { CanvasImageModel } from "@/features/canvas/application/generationCatalog";
+import { loadCanvasImageModels } from "@/features/canvas/catalogComposition";
 import { readUrl } from "@/lib/url-params";
 import {
   SHARED_MODELS,
@@ -52,7 +50,7 @@ function writeState(project: string, next: UseFreezoneImageModelsResult) {
   emit(project);
 }
 
-function toModelOptions(models: FreezoneImageModelInfo[]): ModelOption[] {
+function toModelOptions(models: CanvasImageModel[]): ModelOption[] {
   return models;
 }
 
@@ -66,7 +64,7 @@ function ensureLoaded(project: string) {
     isFallback: true,
     error: null,
   });
-  fetchFreezoneImageModels(project)
+  loadCanvasImageModels(project)
     .then((models) => {
       if (models.length === 0) {
         writeState(project, {

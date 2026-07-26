@@ -8403,6 +8403,91 @@ describe("frontend architecture boundaries", () => {
     expect(hookSource).not.toContain("type FreezoneVideoCameraTemplate");
   });
 
+  it("keeps Canvas generation catalogs behind an application-owned gateway", () => {
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/generationCatalog.ts",
+    );
+    const infrastructurePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneGenerationCatalogGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/catalogComposition.ts",
+    );
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const infrastructureSource = readFileSync(infrastructurePath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const hookPaths = [
+      "useFreezoneCameraOptions.ts",
+      "useFreezoneImageModels.ts",
+      "useFreezoneStyleTemplates.ts",
+      "useFreezoneVideoCameraTemplates.ts",
+      "useFreezoneVideoModels.ts",
+    ].map((filename) =>
+      resolve(SRC_ROOT, "features/canvas/hooks", filename),
+    );
+    const hookSources = hookPaths.map((path) => readFileSync(path, "utf8"));
+    const stylePicker = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/StylePickerPopover.tsx"),
+      "utf8",
+    );
+    const cameraPicker = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/CameraPickerPopover.tsx"),
+      "utf8",
+    );
+
+    expect(importSpecifiers(applicationPath)).toEqual([
+      "../domain/cameraMovementPresets",
+    ]);
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).toContain(
+      "export interface CanvasGenerationCatalogGateway",
+    );
+    expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
+      new Set(["@/api/ops", "../application/generationCatalog"]),
+    );
+    expect(infrastructureSource).toContain(
+      "freezoneGenerationCatalogGateway: CanvasGenerationCatalogGateway",
+    );
+    expect(infrastructureSource).toContain(
+      "cameraBodies: options.camera_bodies",
+    );
+    expect(infrastructureSource).toContain(
+      "stylePrompt: template.style_prompt",
+    );
+    expect(importSpecifiers(compositionPath)).toEqual([
+      "./infrastructure/freezoneGenerationCatalogGateway",
+    ]);
+    expect(compositionSource).toContain(
+      "freezoneGenerationCatalogGateway.listImageModels(projectId)",
+    );
+    expect(compositionSource).toContain(
+      "freezoneGenerationCatalogGateway.listVideoCameraTemplates(projectId)",
+    );
+    expect(
+      hookPaths.flatMap((path) =>
+        importSpecifiers(path).filter((specifier) =>
+          specifier.startsWith("@/api/"),
+        ),
+      ),
+    ).toEqual([]);
+    for (const source of hookSources) {
+      expect(source).toContain("@/features/canvas/catalogComposition");
+    }
+    expect(stylePicker).toContain(
+      "@/features/canvas/application/generationCatalog",
+    );
+    expect(stylePicker).not.toContain("@/api/ops");
+    expect(stylePicker).not.toContain("style_prompt");
+    expect(cameraPicker).toContain("options?.cameraBodies");
+    expect(cameraPicker).toContain("options?.focalLengthsMm");
+    expect(cameraPicker).not.toContain("camera_bodies");
+    expect(cameraPicker).not.toContain("focal_lengths_mm");
+  });
+
   it("keeps Canvas asset extraction independent from media URL infrastructure", () => {
     const assetPath = resolve(
       SRC_ROOT,

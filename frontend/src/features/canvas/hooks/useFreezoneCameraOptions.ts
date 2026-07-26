@@ -1,14 +1,12 @@
 // Copyright (c) 2026 AI anime
 import { useSyncExternalStore } from "react";
 
-import {
-  fetchFreezoneCameraOptions,
-  type FreezoneCameraOptions,
-} from "@/api/ops";
+import type { CanvasCameraOptions } from "@/features/canvas/application/generationCatalog";
+import { loadCanvasCameraOptions } from "@/features/canvas/catalogComposition";
 import { readUrl } from "@/lib/url-params";
 
 export interface UseFreezoneCameraOptionsResult {
-  options: FreezoneCameraOptions | null;
+  options: CanvasCameraOptions | null;
   isLoading: boolean;
   error: Error | null;
 }
@@ -36,7 +34,7 @@ function writeState(project: string, next: UseFreezoneCameraOptionsResult) {
 function ensureLoaded(project: string) {
   if (states.has(project)) return;
   states.set(project, { options: null, isLoading: true, error: null });
-  fetchFreezoneCameraOptions(project)
+  loadCanvasCameraOptions(project)
     .then((options) => {
       writeState(project, { options, isLoading: false, error: null });
     })

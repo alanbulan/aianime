@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useSyncExternalStore } from "react";
 
-import { fetchFreezoneVideoCameraTemplates } from "@/api/ops";
+import { loadCanvasVideoCameraTemplates } from "@/features/canvas/catalogComposition";
 import type { CameraMovementPreset } from "@/features/canvas/domain/cameraMovementPresets";
 import { readUrl } from "@/lib/url-params";
 
@@ -33,7 +33,7 @@ function writeState(project: string, next: UseFreezoneVideoCameraTemplatesResult
 function ensureLoaded(project: string) {
   if (states.has(project)) return;
   states.set(project, { templates: [], isLoading: true, error: null });
-  fetchFreezoneVideoCameraTemplates(project)
+  loadCanvasVideoCameraTemplates(project)
     .then((templates) => {
       writeState(project, { templates, isLoading: false, error: null });
     })

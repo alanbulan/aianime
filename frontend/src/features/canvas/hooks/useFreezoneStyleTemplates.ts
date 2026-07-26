@@ -1,14 +1,12 @@
 // Copyright (c) 2026 AI anime
 import { useSyncExternalStore } from "react";
 
-import {
-  listFreezoneStyleTemplates,
-  type FreezoneStyleTemplate,
-} from "@/api/ops";
+import type { CanvasStyleTemplate } from "@/features/canvas/application/generationCatalog";
+import { loadCanvasStyleTemplates } from "@/features/canvas/catalogComposition";
 import { readUrl } from "@/lib/url-params";
 
 export interface UseFreezoneStyleTemplatesResult {
-  templates: FreezoneStyleTemplate[];
+  templates: CanvasStyleTemplate[];
   isLoading: boolean;
   error: Error | null;
 }
@@ -36,7 +34,7 @@ function writeState(project: string, next: UseFreezoneStyleTemplatesResult) {
 function ensureLoaded(project: string) {
   if (states.has(project)) return;
   states.set(project, { templates: [], isLoading: true, error: null });
-  listFreezoneStyleTemplates(project)
+  loadCanvasStyleTemplates(project)
     .then((templates) => {
       writeState(project, { templates, isLoading: false, error: null });
     })

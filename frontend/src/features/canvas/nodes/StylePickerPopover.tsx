@@ -2,7 +2,7 @@
 import { useMemo } from 'react';
 import { Check, X } from 'lucide-react';
 
-import type { FreezoneStyleTemplate } from '@/api/ops';
+import type { CanvasStyleTemplate } from '@/features/canvas/application/generationCatalog';
 import { useFreezoneStyleTemplates } from '@/features/canvas/hooks/useFreezoneStyleTemplates';
 import { NODE_FLOATING_PANEL_SURFACE_CLASS } from '@/features/canvas/ui/nodeControlStyles';
 
@@ -22,7 +22,7 @@ export function StylePickerPopover({
   // Stable groups: backend `category` first (insertion order), un-categorized
   // bucket goes last under 「其他」.
   const grouped = useMemo(() => {
-    const buckets = new Map<string, FreezoneStyleTemplate[]>();
+    const buckets = new Map<string, CanvasStyleTemplate[]>();
     for (const item of templates) {
       const key = item.category && item.category.trim().length > 0
         ? item.category
@@ -91,7 +91,7 @@ export function StylePickerPopover({
                     key={item.id}
                     type="button"
                     onClick={() => onSelect(item.id)}
-                    title={item.style_prompt}
+                    title={item.stylePrompt}
                     className={`-mx-2 flex min-h-8 items-center justify-between gap-2 rounded-[6px] px-2 py-1.5 text-left text-xs font-medium leading-snug transition-colors ${
                       isActive
                         ? 'bg-primary/12 text-foreground ring-1 ring-primary/30'
@@ -113,8 +113,8 @@ export function StylePickerPopover({
 
 export function describeStyleSelection(
   selectedId: string | null,
-  templates: FreezoneStyleTemplate[],
-): FreezoneStyleTemplate | null {
+  templates: CanvasStyleTemplate[],
+): CanvasStyleTemplate | null {
   if (!selectedId) return null;
   return templates.find((item) => item.id === selectedId) ?? null;
 }

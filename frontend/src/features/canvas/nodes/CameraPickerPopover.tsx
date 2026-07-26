@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Aperture, Camera, ChevronDown, Focus, X } from 'lucide-react';
 
+import type { CanvasCameraOptions } from '@/features/canvas/application/generationCatalog';
 import type { ImageGenCameraSelection } from '@/features/canvas/domain/canvasNodes';
 import { useFreezoneCameraOptions } from '@/features/canvas/hooks/useFreezoneCameraOptions';
 import { NODE_FLOATING_PANEL_SURFACE_CLASS } from '@/features/canvas/ui/nodeControlStyles';
@@ -83,9 +84,9 @@ export function CameraPickerPopover({
   const containerRef = useRef<HTMLDivElement>(null);
   const { options, isLoading } = useFreezoneCameraOptions();
 
-  const cameraBodies = options?.camera_bodies ?? [];
+  const cameraBodies = options?.cameraBodies ?? [];
   const lenses = options?.lenses ?? [];
-  const focalLengths = options?.focal_lengths_mm ?? [];
+  const focalLengths = options?.focalLengthsMm ?? [];
   const apertures = options?.apertures ?? [];
 
   // Draft state — committed only on 使用.
@@ -413,12 +414,12 @@ function Thumbnail({ src, label, kind, isSelected }: ThumbnailProps) {
 
 export function describeCameraSelection(
   selection: ImageGenCameraSelection | null,
-  options: { camera_bodies?: { id: string; label: string }[]; lenses?: { id: string; label: string }[] } | null,
+  options: CanvasCameraOptions | null,
 ): string | null {
   if (!selection) return null;
   const parts: string[] = [];
   if (selection.cameraBodyId) {
-    const found = options?.camera_bodies?.find((x) => x.id === selection.cameraBodyId);
+    const found = options?.cameraBodies.find((x) => x.id === selection.cameraBodyId);
     if (found) parts.push(found.label);
   }
   if (selection.lensId) {
