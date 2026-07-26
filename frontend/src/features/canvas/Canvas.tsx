@@ -122,8 +122,8 @@ import {
   type CanvasNodePlacement,
 } from './hooks/useCanvasNodePlacementController';
 import { useCanvasNodePlacementConfirm } from './hooks/useCanvasNodePlacementConfirm';
+import { useCanvasContextMenuController } from './hooks/useCanvasContextMenuController';
 import { useCanvasPaneClickController } from './hooks/useCanvasPaneClickController';
-import { useCanvasPaneContextMenu } from './hooks/useCanvasPaneContextMenu';
 import { useCanvasPendingNodeFocus } from './hooks/useCanvasPendingNodeFocus';
 import { useCanvasSelectionSync } from './hooks/useCanvasSelectionSync';
 import { useCanvasSelectionCommandController } from './hooks/useCanvasSelectionCommandController';
@@ -928,10 +928,26 @@ export function Canvas({
       canPaste: hasCopiedNodes(),
     };
   }, [hasCopiedNodes]);
-  const { contextMenu, closeContextMenu } = useCanvasPaneContextMenu({
+  const createContextMenuUploadNode = useCallback(
+    (position: { x: number; y: number }) => {
+      addNode(CANVAS_NODE_TYPES.upload, position);
+    },
+    [addNode],
+  );
+  const {
+    contextMenu,
+    sections: contextMenuSections,
+    closeContextMenu,
+  } = useCanvasContextMenuController({
     wrapperRef,
     disabled: placementActive,
     getCapabilities: getContextMenuCapabilities,
+    screenToFlowPosition,
+    createUploadNode: createContextMenuUploadNode,
+    openNodeMenu: openNodeMenuAtClientPosition,
+    undo,
+    redo,
+    pasteAt,
   });
   useCanvasKeyboardShortcuts({
     placementActive,
@@ -1130,67 +1146,7 @@ export function Canvas({
         <CanvasContextMenu
           position={{ x: contextMenu.x, y: contextMenu.y }}
           onClose={closeContextMenu}
-          sections={[
-            [
-              {
-                key: 'upload',
-                label: '上传',
-                onSelect: () => {
-                  const flowPos = reactFlowInstance.screenToFlowPosition({
-                    x: contextMenu.clientX,
-                    y: contextMenu.clientY,
-                  });
-                  addNode(CANVAS_NODE_TYPES.upload, flowPos);
-                },
-              },
-              {
-                key: 'add-node',
-                label: '添加节点',
-                onSelect: () =>
-                  openNodeMenuAtClientPosition({
-                    x: contextMenu.clientX,
-                    y: contextMenu.clientY,
-                  }),
-              },
-            ],
-            [
-              {
-                key: 'undo',
-                label: '撤销',
-                shortcut: '⌘Z',
-                disabled: !contextMenu.canUndo,
-                onSelect: () => {
-                  undo();
-                },
-              },
-              {
-                key: 'redo',
-                label: '重做',
-                shortcut: '⇧⌘Z',
-                disabled: !contextMenu.canRedo,
-                onSelect: () => {
-                  redo();
-                },
-              },
-            ],
-            [
-              {
-                key: 'paste',
-                label: '粘贴',
-                shortcut: '⌘V',
-                disabled: !contextMenu.canPaste,
-                onSelect: () => {
-                  // Paste the group with its top-left at the right-click point.
-                  pasteAt(
-                    reactFlowInstance.screenToFlowPosition({
-                      x: contextMenu.clientX,
-                      y: contextMenu.clientY,
-                    }),
-                  );
-                },
-              },
-            ],
-          ]}
+          sections={contextMenuSections}
         />
       )}
 

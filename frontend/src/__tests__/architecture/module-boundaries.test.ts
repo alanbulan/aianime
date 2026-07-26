@@ -2684,6 +2684,13 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useCanvasPaneContextMenu.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
+    const controllerModel = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasContextMenuController.ts",
+      ),
+      "utf8",
+    );
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -2713,7 +2720,9 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useCanvasPaneContextMenu.ts",
     ]);
     expect(hookModel).toContain("isCanvasPaneTarget");
-    expect(canvasView).toContain("./hooks/useCanvasPaneContextMenu");
+    expect(controllerModel).toContain("./useCanvasPaneContextMenu");
+    expect(canvasView).toContain("./hooks/useCanvasContextMenuController");
+    expect(canvasView).not.toContain("./hooks/useCanvasPaneContextMenu");
     expect(canvasView).not.toContain("const [contextMenu, setContextMenu]");
     expect(canvasView).not.toContain("addEventListener('contextmenu'");
     expect(canvasView).not.toContain("setContextMenu(");
@@ -7482,5 +7491,48 @@ describe("frontend architecture boundaries", () => {
     expect(canvasSource).not.toContain("suppressNextPaneClickRef");
     expect(canvasSource).not.toContain("event.detail >= 2");
     expect(canvasSource).not.toContain("const handlePaneClick = useCallback");
+  });
+
+  it("keeps Canvas context-menu commands in one presentation controller", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasContextMenuController.ts",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const canvasSource = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(controllerPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declaration = [
+      "export function",
+      "useCanvasContextMenuController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasContextMenuController.ts",
+    ]);
+    expect(controllerSource).toContain("useCanvasPaneContextMenu({");
+    expect(controllerSource).toContain("label: '上传'");
+    expect(controllerSource).toContain("screenToFlowPosition(clientPosition)");
+    expect(canvasSource).toContain("sections={contextMenuSections}");
+    expect(canvasSource).not.toContain("contextMenu.clientX");
+    expect(canvasSource).not.toContain("label: '上传'");
   });
 });
