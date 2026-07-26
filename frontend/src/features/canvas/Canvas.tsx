@@ -565,6 +565,7 @@ export function Canvas({
     connectGraphNodes,
     connectManualGraphNodes: handleConnect,
     bindSingleBeatContextInput,
+    connectSpawnedNode,
     isValidGraphConnection: isValidConnection,
   } = useCanvasConnectionController({
     getGraph: getCanvasGraph,
@@ -997,42 +998,12 @@ export function Canvas({
 
   const finalizeNodeSpawn = useCallback(
     (newNodeId: string, explicitSkill?: SkillDefinition | null) => {
-      if (pendingBatchConnectIds && pendingBatchConnectIds.length > 0) {
-        // Batch "+": fan every selected source node into the freshly spawned node.
-        for (const sourceId of pendingBatchConnectIds) {
-          connectGraphNodes(
-            {
-              source: sourceId,
-              target: newNodeId,
-              sourceHandle: 'source',
-              targetHandle: 'target',
-            },
-            explicitSkill,
-          );
-        }
-      } else if (pendingConnectStart) {
-        if (pendingConnectStart.handleType === 'source') {
-          connectGraphNodes(
-            {
-              source: pendingConnectStart.nodeId,
-              target: newNodeId,
-              sourceHandle: 'source',
-              targetHandle: 'target',
-            },
-            explicitSkill,
-          );
-        } else {
-          connectGraphNodes(
-            {
-              source: newNodeId,
-              target: pendingConnectStart.nodeId,
-              sourceHandle: 'source',
-              targetHandle: 'target',
-            },
-            explicitSkill,
-          );
-        }
-      }
+      connectSpawnedNode({
+        spawnedNodeId: newNodeId,
+        pendingConnection: pendingConnectStart,
+        batchSourceIds: pendingBatchConnectIds,
+        explicitSkill,
+      });
 
       setShowNodeMenu(false);
       setMenuAllowedTypes(undefined);
@@ -1041,7 +1012,7 @@ export function Canvas({
       setPreviewConnectionVisual(null);
     },
     [
-      connectGraphNodes,
+      connectSpawnedNode,
       pendingBatchConnectIds,
       pendingConnectStart,
       setPreviewConnectionVisual,

@@ -3880,6 +3880,7 @@ describe("frontend architecture boundaries", () => {
       "createCanvasProgrammaticEdge(",
       "createCanvasDataEdge(",
       "planCanvasGraphConnection(",
+      "planCanvasSpawnConnections(",
       "planSingleBeatContextBinding(",
     ].map((name) => ["export function", name].join(" "));
     const implementationOwners = sourceFiles(SRC_ROOT)
@@ -3944,12 +3945,20 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useCanvasConnectionController.ts",
     ]);
     expect(hookModel).toContain("planCanvasGraphConnection({");
+    expect(hookModel).toContain("planCanvasSpawnConnections({");
     expect(hookModel).toContain("planSingleBeatContextBinding(");
     expect(hookModel).toContain("validateCanvasConnection(");
     expect(canvasView).toContain("./hooks/useCanvasConnectionController");
     expect(canvasView).not.toContain("const connectSkillRoleBinding");
     expect(canvasView).not.toContain("applySkillRoleBindingConnection({");
     expect(canvasView).not.toContain("planSingleBeatContextBinding(");
+    expect(canvasView).not.toContain("planCanvasSpawnConnections(");
+    expect(canvasView).not.toContain(
+      "for (const sourceId of pendingBatchConnectIds)",
+    );
+    expect(canvasView).not.toContain(
+      "pendingConnectStart.handleType === 'source'",
+    );
     expect(canvasView).not.toContain("validateCanvasConnection(");
     expect(canvasView).not.toContain(
       "rejected role binding before skill registry loaded",

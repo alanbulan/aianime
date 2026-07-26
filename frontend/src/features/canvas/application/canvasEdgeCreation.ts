@@ -44,6 +44,11 @@ export interface CanvasGraphConnection {
   targetHandle: string | null;
 }
 
+export interface CanvasSpawnConnectionOrigin {
+  nodeId: string;
+  handleType: 'source' | 'target';
+}
+
 export type CanvasGraphConnectionPlan =
   | { kind: 'regular' }
   | { kind: 'skill_binding'; edges: CanvasEdge[] }
@@ -148,6 +153,41 @@ export function planSingleBeatContextBinding(
     sourceHandle: 'source',
     targetHandle: 'beat_context',
   };
+}
+
+export function planCanvasSpawnConnections({
+  spawnedNodeId,
+  pendingConnection,
+  batchSourceIds,
+}: {
+  spawnedNodeId: string;
+  pendingConnection: CanvasSpawnConnectionOrigin | null;
+  batchSourceIds: readonly string[] | null;
+}): CanvasGraphConnection[] {
+  if (batchSourceIds && batchSourceIds.length > 0) {
+    return batchSourceIds.map((sourceId) => ({
+      source: sourceId,
+      target: spawnedNodeId,
+      sourceHandle: 'source',
+      targetHandle: 'target',
+    }));
+  }
+  if (!pendingConnection) {
+    return [];
+  }
+  return pendingConnection.handleType === 'source'
+    ? [{
+        source: pendingConnection.nodeId,
+        target: spawnedNodeId,
+        sourceHandle: 'source',
+        targetHandle: 'target',
+      }]
+    : [{
+        source: spawnedNodeId,
+        target: pendingConnection.nodeId,
+        sourceHandle: 'source',
+        targetHandle: 'target',
+      }];
 }
 
 export function prepareCanvasReactFlowConnection(

@@ -6,7 +6,9 @@ import type { SkillDefinition } from '@/features/freezone/context/skillRoles';
 
 import {
   planCanvasGraphConnection,
+  planCanvasSpawnConnections,
   planSingleBeatContextBinding,
+  type CanvasSpawnConnectionOrigin,
 } from '../application/canvasEdgeCreation';
 import {
   canNodeBeManualConnectionSource,
@@ -27,6 +29,13 @@ export interface CanvasConnectionControllerOptions {
   reportMissingSkill?: (skillId: string, skillNodeId: string) => void;
 }
 
+export interface CanvasSpawnedNodeConnectionRequest {
+  spawnedNodeId: string;
+  pendingConnection: CanvasSpawnConnectionOrigin | null;
+  batchSourceIds: readonly string[] | null;
+  explicitSkill?: SkillDefinition | null;
+}
+
 export interface CanvasConnectionController {
   connectGraphNodes: (
     connection: Connection,
@@ -37,6 +46,7 @@ export interface CanvasConnectionController {
     skillNodeId: string,
     skill: SkillDefinition,
   ) => void;
+  connectSpawnedNode: (request: CanvasSpawnedNodeConnectionRequest) => void;
   isValidGraphConnection: (connection: Connection | Edge) => boolean;
 }
 
@@ -103,6 +113,25 @@ export function useCanvasConnectionController({
     [connectGraphNodes, getGraph],
   );
 
+  const connectSpawnedNode = useCallback(
+    ({
+      spawnedNodeId,
+      pendingConnection,
+      batchSourceIds,
+      explicitSkill,
+    }: CanvasSpawnedNodeConnectionRequest): void => {
+      const connections = planCanvasSpawnConnections({
+        spawnedNodeId,
+        pendingConnection,
+        batchSourceIds,
+      });
+      for (const connection of connections) {
+        connectGraphNodes(connection, explicitSkill);
+      }
+    },
+    [connectGraphNodes],
+  );
+
   const isValidGraphConnection = useCallback(
     (connection: Connection | Edge): boolean => {
       const graph = getGraph();
@@ -120,6 +149,7 @@ export function useCanvasConnectionController({
     connectGraphNodes,
     connectManualGraphNodes,
     bindSingleBeatContextInput,
+    connectSpawnedNode,
     isValidGraphConnection,
   };
 }

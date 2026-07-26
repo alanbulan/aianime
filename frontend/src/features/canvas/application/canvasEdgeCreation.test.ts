@@ -12,6 +12,7 @@ import {
   createCanvasDataEdge,
   createCanvasProgrammaticEdge,
   planCanvasGraphConnection,
+  planCanvasSpawnConnections,
   planSingleBeatContextBinding,
   prepareCanvasReactFlowConnection,
 } from './canvasEdgeCreation';
@@ -126,6 +127,52 @@ describe('Canvas edge creation', () => {
     });
     expect(planSingleBeatContextBinding([beat, secondBeat], 'skill', skill())).toBeNull();
     expect(planSingleBeatContextBinding([beat], 'skill', skill('skill-2', false))).toBeNull();
+  });
+
+  it('plans spawned-node connections with batch priority and stable direction', () => {
+    expect(planCanvasSpawnConnections({
+      spawnedNodeId: 'spawned',
+      pendingConnection: { nodeId: 'pending', handleType: 'target' },
+      batchSourceIds: ['first', 'second'],
+    })).toEqual([
+      {
+        source: 'first',
+        target: 'spawned',
+        sourceHandle: 'source',
+        targetHandle: 'target',
+      },
+      {
+        source: 'second',
+        target: 'spawned',
+        sourceHandle: 'source',
+        targetHandle: 'target',
+      },
+    ]);
+    expect(planCanvasSpawnConnections({
+      spawnedNodeId: 'spawned',
+      pendingConnection: { nodeId: 'origin', handleType: 'source' },
+      batchSourceIds: [],
+    })).toEqual([{
+      source: 'origin',
+      target: 'spawned',
+      sourceHandle: 'source',
+      targetHandle: 'target',
+    }]);
+    expect(planCanvasSpawnConnections({
+      spawnedNodeId: 'spawned',
+      pendingConnection: { nodeId: 'origin', handleType: 'target' },
+      batchSourceIds: null,
+    })).toEqual([{
+      source: 'spawned',
+      target: 'origin',
+      sourceHandle: 'source',
+      targetHandle: 'target',
+    }]);
+    expect(planCanvasSpawnConnections({
+      spawnedNodeId: 'spawned',
+      pendingConnection: null,
+      batchSourceIds: null,
+    })).toEqual([]);
   });
 
   it('prepares normalized React Flow connections and enforces graph limits', () => {

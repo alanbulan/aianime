@@ -141,4 +141,31 @@ describe('useCanvasConnectionController', () => {
       targetHandle: 'target',
     })).toBe(false);
   });
+
+  it('connects a spawned node through the shared graph connection entry', () => {
+    const first = node('first', CANVAS_NODE_TYPES.upload);
+    const second = node('second', CANVAS_NODE_TYPES.video);
+    const spawned = node('spawned', CANVAS_NODE_TYPES.textAnnotation);
+    const options = createOptions({ nodes: [first, second, spawned], edges: [] });
+    const { result } = renderHook(() => useCanvasConnectionController(options));
+
+    act(() => result.current.connectSpawnedNode({
+      spawnedNodeId: spawned.id,
+      pendingConnection: { nodeId: 'ignored', handleType: 'target' },
+      batchSourceIds: [first.id, second.id],
+    }));
+
+    expect(options.connectRegular).toHaveBeenNthCalledWith(1, {
+      source: first.id,
+      target: spawned.id,
+      sourceHandle: 'source',
+      targetHandle: 'target',
+    });
+    expect(options.connectRegular).toHaveBeenNthCalledWith(2, {
+      source: second.id,
+      target: spawned.id,
+      sourceHandle: 'source',
+      targetHandle: 'target',
+    });
+  });
 });
