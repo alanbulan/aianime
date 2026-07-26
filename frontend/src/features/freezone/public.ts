@@ -1,5 +1,7 @@
 // Copyright (c) 2026 AI anime
 export {
+  buildProjectionFromPreset,
+  getProjectionStatuses,
   listFreezoneBeatContext,
   listFreezoneProjectAssets,
 } from "@/features/freezone/composition";
@@ -17,6 +19,12 @@ export type {
   FreezoneAssetMediaType,
   FreezoneProjectAsset,
 } from "@/features/freezone/domain/beatContext";
+export type {
+  FreezoneProjectionBuildResponse,
+  FreezoneProjectionPresetRequest,
+  FreezoneProjectionStatusItem,
+  FreezoneProjectionStatusResponse,
+} from "@/features/freezone/domain/canvasProjection";
 export type {
   CanvasBackupStatus,
   CanvasSaveSource,

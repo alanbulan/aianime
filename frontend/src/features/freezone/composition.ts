@@ -5,7 +5,34 @@ import {
   type FreezoneBeatContextQueryOptions,
   type FreezoneQueryOptions,
 } from "./application/contextQueries";
+import {
+  buildProjectionFromPreset as buildProjectionFromPresetUseCase,
+  getProjectionStatuses as getProjectionStatusesUseCase,
+} from "./application/canvasProjection";
+import type { FreezoneProjectionPresetRequest } from "./domain/canvasProjection";
+import { httpFreezoneCanvasProjectionGateway } from "./infrastructure/httpFreezoneCanvasProjectionGateway";
 import { httpFreezoneContextQueryGateway } from "./infrastructure/httpFreezoneContextQueryGateway";
+
+export function buildProjectionFromPreset(
+  projectId: string,
+  payload: FreezoneProjectionPresetRequest,
+) {
+  return buildProjectionFromPresetUseCase(
+    { projectId, payload },
+    httpFreezoneCanvasProjectionGateway,
+  );
+}
+
+export function getProjectionStatuses(
+  projectId: string,
+  canvasId: string,
+  projectionKeys?: string[],
+) {
+  return getProjectionStatusesUseCase(
+    { projectId, canvasId, projectionKeys },
+    httpFreezoneCanvasProjectionGateway,
+  );
+}
 
 export function listFreezoneProjectAssets(
   projectId: string,

@@ -8,8 +8,8 @@ import { personalCanvasIdForUsername } from "@/features/freezone/projections";
 
 const buildProjectionFromPreset = vi.fn();
 
-vi.mock("@/api/canvas", async () => {
-  const actual = await vi.importActual<typeof import("@/api/canvas")>("@/api/canvas");
+vi.mock("@/features/freezone/public", async () => {
+  const actual = await vi.importActual<typeof import("@/features/freezone/public")>("@/features/freezone/public");
   return {
     ...actual,
     buildProjectionFromPreset: (...args: unknown[]) => buildProjectionFromPreset(...args),

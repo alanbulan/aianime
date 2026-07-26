@@ -1,6 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { apiCall } from "@/shared/api/client";
-import type { FreezonePresetCanvasRequest } from "@/features/freezone/public";
+import type { FreezonePresetCanvasRequest } from "./canvasStorage";
 
 export interface FreezoneProjectionPresetRequest
   extends Omit<FreezonePresetCanvasRequest, "canvas_id" | "overwrite_existing"> {
@@ -34,25 +33,4 @@ export interface FreezoneProjectionStatusResponse {
   canvas_id: string;
   revision?: number | null;
   projections: FreezoneProjectionStatusItem[];
-}
-
-export async function buildProjectionFromPreset(
-  projectId: string,
-  payload: FreezoneProjectionPresetRequest,
-): Promise<FreezoneProjectionBuildResponse> {
-  return await apiCall<FreezoneProjectionBuildResponse>(
-    `projects/${encodeURIComponent(projectId)}/freezone/projections:build-from-preset`,
-    { method: "POST", json: payload },
-  );
-}
-
-export async function getProjectionStatuses(
-  projectId: string,
-  canvasId: string,
-  projectionKeys?: string[],
-): Promise<FreezoneProjectionStatusResponse> {
-  return await apiCall<FreezoneProjectionStatusResponse>(
-    `projects/${encodeURIComponent(projectId)}/freezone/canvases/${encodeURIComponent(canvasId)}/projections:status`,
-    { method: "POST", json: { projection_keys: projectionKeys ?? null } },
-  );
 }

@@ -8,8 +8,8 @@ import type { ProjectSummary } from "@/modules/project_workspace/public";
 import {
   buildProjectionFromPreset,
   getProjectionStatuses,
-} from "@/api/canvas";
-import type { FreezonePresetCanvasRequest } from "@/features/freezone/public";
+  type FreezonePresetCanvasRequest,
+} from "@/features/freezone/public";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,

@@ -1572,6 +1572,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百四十四批已将画布摘要、空白画布命令、历史条目/恢复 DTO 和历史 ID 别名解析迁入唯一 Freezone canvas storage domain 契约并经 public API 发布；扩展既有 `freezoneCanvasStorage` application port/用例，统一画布列表、读取、保存、空白创建、删除、preset 创建、历史读取和版本恢复，空白画布 payload 组装留在 application，保存幂等 ID 复用既有 `IdGenerator` port 与 `uuidGenerator` 装配；同一个 `freezoneCanvasStorageGateway` 成为上述 GET/PUT/POST/DELETE 路径的唯一 HTTP 所有者，Canvas composition 对外提供运行时入口；`useCanvasSync`、`CanvasesTab`、`CanvasDebugPanel` 和 Freezone query hook 不再直连 `api/canvas.ts`，旧文件删除全部持久化函数、DTO、ID 生成与历史解析，只剩三个调用方使用的 projection 契约和接口，不保留转发；请求路径、方法、payload、取消信号、空白画布 metadata、历史 ID 优先级及 UUID 幂等语义均未改变；相关 8 个测试文件 73 项、新增后的架构门禁 196 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百四十五批已将 projection 构建请求/响应和状态项/响应 DTO 迁入唯一 Freezone `canvasProjection` domain 契约，将构建与状态查询 port/委托用例迁入 application，将项目/画布编码、两个 POST method、`projections:build-from-preset` 与 `projections:status` 路径迁入唯一 `httpFreezoneCanvasProjectionGateway` infrastructure 适配器，并经 Freezone composition/public 发布；`FreezoneShell`、`openPresetProjection` 和 `projectionStatusStore` 三个剩余调用方统一改经 public API，不再依赖旧技术目录；原 58 行 `api/canvas.ts` 及其失效 API 测试整体删除，不保留 facade、re-export 或第二套 DTO，前端生产代码对 `@/api/canvas` 的引用归零；请求路径、方法、payload、projection key、facts signature、强制刷新和 stale 状态语义均未改变；相关 4 个测试文件 26 项、新增后的架构门禁 197 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。
