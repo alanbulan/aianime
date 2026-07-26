@@ -560,7 +560,8 @@ describe("frontend architecture boundaries", () => {
     expect(videoTranscode).toContain(
       'await import("./videoTranscodeFfmpeg")',
     );
-    expect(videoNode).toContain(
+    expect(composition).toContain("ensureWebSafeVideo");
+    expect(videoNode).not.toContain(
       "@/features/canvas/infrastructure/videoTranscode",
     );
     expect(toolProcessor).toContain("CanvasToolImageGateway");
@@ -11400,10 +11401,15 @@ describe("frontend architecture boundaries", () => {
   });
 
   it("keeps URL-based video frame capture in one infrastructure adapter", () => {
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
     const infrastructurePath = resolve(
       SRC_ROOT,
       "features/canvas/infrastructure/browserVideoFrameCapture.ts",
     );
+    const compositionSource = readFileSync(compositionPath, "utf8");
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
     const videoNode = readFileSync(
       resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
@@ -11430,14 +11436,23 @@ describe("frontend architecture boundaries", () => {
     expect(infrastructureSource).toContain('document.createElement("video")');
     expect(infrastructureSource).toContain('document.createElement("canvas")');
     expect(infrastructureSource).toContain("mediaNeedsCrossOrigin(source)");
-    expect(videoNode).toContain(
+    expect(compositionSource).toContain(
+      "./infrastructure/browserVideoFrameCapture",
+    );
+    expect(compositionSource).toContain("captureVideoFrameBlob");
+    expect(videoNode).not.toContain(
       "@/features/canvas/infrastructure/browserVideoFrameCapture",
     );
+    expect(videoNode).toContain("captureVideoFrameBlob(src, seekSec)");
     expect(videoNode).not.toContain("function captureVideoFrameBlob(");
     expect(videoNode).not.toContain("mediaNeedsCrossOrigin");
   });
 
   it("keeps browser video frame-strip capture in one infrastructure adapter", () => {
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
     const contractPath = resolve(
       SRC_ROOT,
       "features/canvas/application/videoFrameStrip.ts",
@@ -11455,6 +11470,7 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/compose/filmstrip.ts",
     );
     const contractSource = readFileSync(contractPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
     const clipPanelSource = readFileSync(clipPanelPath, "utf8");
     const filmstripSource = readFileSync(filmstripPath, "utf8");
@@ -11492,9 +11508,17 @@ describe("frontend architecture boundaries", () => {
     expect(clipPanelSource).not.toContain('document.createElement("video")');
     expect(clipPanelSource).not.toContain("function captureFrames(");
     expect(filmstripSource).toContain("captureBrowserVideoFrameStrip(");
+    expect(filmstripSource).toContain("@/features/canvas/composition");
+    expect(filmstripSource).not.toContain(
+      "@/features/canvas/infrastructure/browserVideoFrameStrip",
+    );
     expect(filmstripSource).not.toContain('document.createElement("video")');
     expect(filmstripSource).not.toContain("function captureFilmstrip(");
-    expect(videoNode).toContain(
+    expect(compositionSource).toContain(
+      "./infrastructure/browserVideoFrameStrip",
+    );
+    expect(compositionSource).toContain("captureBrowserVideoFrameStrip");
+    expect(videoNode).not.toContain(
       "@/features/canvas/infrastructure/browserVideoFrameStrip",
     );
     expect(videoNode).toContain(

@@ -1500,6 +1500,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百零八批已将 Seedance 2.0 视频引用音频的时长补探测、总时长计算及 15.2 秒后端上限判断迁入唯一 application 用例 `validateVideoReferenceAudioDuration`，已知正时长直接复用，缺失、零值或无效时长才通过 gateway 探测，探测失败继续按零计入，恰好 15.2 秒放行；`browserAudioMetadataGateway` infrastructure 适配器唯一承接浏览器音频元数据探测，composition 完成注入，`VideoNode` 只保留模型门禁、超限弹窗及提交流程，不再直接引用探测适配器或私有上限常量，源码由 2666 行降至 2654 行，用例 42 行；用例与适配器共 2 个测试文件 7 项、架构门禁 164 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百零九批已将 URL 视频帧截图、视频帧条抽取和上传前浏览器视频转码三项平台能力统一收口到 `composition.ts` 公开装配边界；`VideoNode` 的 3 处 infrastructure 直连及 `compose/filmstrip` 的 1 处帧条适配器直连全部归零，继续复用唯一 `browserVideoFrameCapture`、`browserVideoFrameStrip` 和 `videoTranscode` 实现，函数名、参数、返回值、截图上传、剪辑缩略图、胶片条缓存及尽力转码行为均未改变，也未新增空壳 application 用例；`VideoNode` 保持 2654 行、胶片条保持 56 行，composition 由 329 行调整为 337 行；截图、抽帧和胶片条共 3 个测试文件 10 项、架构门禁 164 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

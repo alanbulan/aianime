@@ -79,6 +79,8 @@ import { clearBrowserClipboard } from './infrastructure/browserClipboardGateway'
 import { browserGenerationRuntimeGateway } from './infrastructure/browserGenerationRuntimeGateway';
 import { browserImageRuntimeGateway } from './infrastructure/browserImageRuntime';
 import { browserToolImageGateway } from './infrastructure/browserToolImageGateway';
+import { captureVideoFrameBlob } from './infrastructure/browserVideoFrameCapture';
+import { captureBrowserVideoFrameStrip } from './infrastructure/browserVideoFrameStrip';
 import { freezoneAssetGateway } from './infrastructure/freezoneAssetGateway';
 import { freezoneAiGateway } from './infrastructure/freezoneAiGateway';
 import { freezoneCanvasTextTranslationGateway } from './infrastructure/freezoneCanvasTextTranslationGateway';
@@ -89,6 +91,7 @@ import { freezoneVideoClipComposeGateway } from './infrastructure/freezoneVideoC
 import { freezoneVideoGenerationSubmissionGateway } from './infrastructure/freezoneVideoGenerationSubmissionGateway';
 import { freezoneVideoSubtitleEraseGateway } from './infrastructure/freezoneVideoSubtitleEraseGateway';
 import { uuidGenerator } from './infrastructure/idGenerator';
+import { ensureWebSafeVideo } from './infrastructure/videoTranscode';
 import { webImageSplitGateway } from './infrastructure/webImageSplitGateway';
 import { zustandCanvasGraphGateway } from './infrastructure/zustandCanvasGraphGateway';
 import { showErrorDialog as showErrorDialogInfrastructure } from './infrastructure/globalErrorDialog';
@@ -101,6 +104,11 @@ const canvasSceneDirectorManifestGateway: CanvasSceneDirectorManifestGateway = {
 export { canvasNodeFactory } from './nodeFactoryComposition';
 export { showErrorDialog } from './infrastructure/globalErrorDialog';
 export { clearBrowserClipboard };
+export {
+  captureBrowserVideoFrameStrip,
+  captureVideoFrameBlob,
+  ensureWebSafeVideo,
+};
 
 export const canvasToolProcessor = new CanvasToolProcessor(
   webImageSplitGateway,

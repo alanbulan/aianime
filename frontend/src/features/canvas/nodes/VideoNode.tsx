@@ -76,9 +76,6 @@ import type {
   VideoGenerationReference,
 } from "@/features/canvas/application/submitVideoGeneration";
 import { buildVideoMetadataPatch } from "@/features/canvas/application/videoMetadataPatch";
-import { captureVideoFrameBlob } from "@/features/canvas/infrastructure/browserVideoFrameCapture";
-import { captureBrowserVideoFrameStrip } from "@/features/canvas/infrastructure/browserVideoFrameStrip";
-import { ensureWebSafeVideo } from "@/features/canvas/infrastructure/videoTranscode";
 import { isVideoFile, VIDEO_FILE_ACCEPT } from "@/features/canvas/application/videoFileTypes";
 import { resolveNodeDisplayName } from "@/features/canvas/domain/nodeDisplay";
 import { toast } from "sonner";
@@ -102,8 +99,11 @@ import { useReferenceMentionSync } from "@/features/canvas/nodes/useReferenceMen
 import { useNodeGenerationTaskState } from "@/features/canvas/hooks/useNodeGenerationTaskState";
 import { resolveErrorContent } from "@/features/canvas/application/errorDialog";
 import {
+  captureBrowserVideoFrameStrip,
+  captureVideoFrameBlob,
   completeVideoGenerationTask,
   composeVideoClip,
+  ensureWebSafeVideo,
   eraseVideoSubtitles,
   showErrorDialog,
   submitVideoGeneration,

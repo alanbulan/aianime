@@ -5,7 +5,7 @@ import type { VideoFrameStripCaptureOptions } from "@/features/canvas/applicatio
 
 const captureBrowserVideoFrameStrip = vi.hoisted(() => vi.fn());
 
-vi.mock("@/features/canvas/infrastructure/browserVideoFrameStrip", () => ({
+vi.mock("@/features/canvas/composition", () => ({
   captureBrowserVideoFrameStrip,
 }));
 

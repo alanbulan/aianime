@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { resolveImageDisplayUrl } from "@/features/canvas/application/imageData";
 import type { VideoFrameStripFrame } from "@/features/canvas/application/videoFrameStrip";
-import { captureBrowserVideoFrameStrip } from "@/features/canvas/infrastructure/browserVideoFrameStrip";
+import { captureBrowserVideoFrameStrip } from "@/features/canvas/composition";
 
 /**
  * 视频「胶片条」抽帧 —— 给时间线片段铺满采样帧（libtv 风格）。
