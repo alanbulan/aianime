@@ -20,15 +20,6 @@ import {
   trackEdit,
   type CanvasMutationSource,
 } from '@/features/canvas/domain/canvasMutation';
-import {
-  reorderStoryboardFrameInGraph,
-  updateStoryboardFrameInGraph,
-} from '@/features/canvas/domain/storyboardFrames';
-import {
-  setCanvasNodePositions,
-  updateCanvasNodePosition,
-} from '@/features/canvas/domain/canvasNodePositions';
-import { elevateCanvasNodes } from '@/features/canvas/domain/canvasNodeLayering';
 import { deleteCanvasNodes } from '@/features/canvas/domain/groupSelectionDelete';
 import { planCanvasAutoGroupSpawn } from '@/features/canvas/domain/canvasAutoGrouping';
 import {
@@ -44,7 +35,6 @@ import {
 } from '@/features/canvas/domain/canvasGroupArrangement';
 import { ungroupCanvasNode } from '@/features/canvas/domain/canvasGroupRemoval';
 import { deleteCanvasEdge } from '@/features/canvas/domain/canvasEdgeDeletion';
-import { createCanvasNode } from '@/features/canvas/application/canvasNodeCreation';
 import { canvasNodeFactory } from '@/features/canvas/nodeFactoryComposition';
 import {
   createCanvasDerivedExportNode,
@@ -57,8 +47,6 @@ import {
   createCanvasProgrammaticEdge,
   type CanvasDataEdgeCreationOptions,
 } from '@/features/canvas/application/canvasEdgeCreation';
-import { updateCanvasNodeData } from '@/features/canvas/application/canvasNodeData';
-import { convertCanvasNodeType } from '@/features/canvas/application/canvasNodeConversion';
 import {
   duplicateCanvasNodeAsSibling,
   duplicateCanvasNodesAsSiblings,
@@ -77,10 +65,6 @@ import {
   addCanvasStoryboardGroupMembers,
   type CanvasStoryboardMemberImage,
 } from '@/features/canvas/application/canvasStoryboardGroupMemberAddition';
-import {
-  updateCanvasNodeSize,
-  type CanvasNodeSizeUpdateOptions,
-} from '@/features/canvas/application/canvasNodeSize';
 import {
   createZustandCanvasViewportSlice,
   type CanvasViewportSlice,
@@ -101,6 +85,10 @@ import {
   createZustandCanvasDocumentLifecycleSlice,
   type CanvasDocumentLifecycleSlice,
 } from '@/features/canvas/infrastructure/zustandCanvasDocumentLifecycleSlice';
+import {
+  createZustandCanvasNodeMutationSlice,
+  type CanvasNodeMutationSlice,
+} from '@/features/canvas/infrastructure/zustandCanvasNodeMutationSlice';
 
 export type {
   ActiveToolDialog,
@@ -117,15 +105,11 @@ interface CanvasState
     CanvasTransientInteractionSlice,
     CanvasHistorySlice,
     CanvasGraphMutationSlice,
-    CanvasDocumentLifecycleSlice {
+    CanvasDocumentLifecycleSlice,
+    CanvasNodeMutationSlice {
   selectedNodeId: string | null;
   activeToolDialog: ActiveToolDialog | null;
 
-  addNode: (
-    type: CanvasNodeType,
-    position: { x: number; y: number },
-    data?: Partial<CanvasNodeData>
-  ) => string;
   addEdge: (source: string, target: string) => string | null;
   addEdgeWithData: (
     source: string,
@@ -186,37 +170,6 @@ interface CanvasState
     captures: CanvasPanoCapture[],
     options?: CanvasPanoCaptureOptions,
   ) => string | null;
-
-  updateNodeData: (nodeId: string, data: Partial<CanvasNodeData>) => void;
-  updateNodeSize: (
-    nodeId: string,
-    size: { width: number; height: number },
-    options?: CanvasNodeSizeUpdateOptions,
-  ) => void;
-  /**
-   * Swap a node's `type` in place while keeping its `id`, position, and any
-   * already-attached edges. Used when an UploadNode's user picks a video file
-   * and the node needs to morph into a VideoNode so the header / toolbar /
-   * connectivity match the new resource type.
-   */
-  convertNodeType: (
-    nodeId: string,
-    newType: CanvasNodeType,
-    dataOverrides?: Partial<CanvasNodeData>
-  ) => boolean;
-  updateNodePosition: (nodeId: string, position: { x: number; y: number }) => void;
-  setNodePositions: (positions: Record<string, { x: number; y: number }>) => void;
-  elevateNodes: (nodeIds: string[], zIndex: number) => void;
-  updateStoryboardFrame: (
-    nodeId: string,
-    frameId: string,
-    data: Partial<StoryboardFrameItem>
-  ) => void;
-  reorderStoryboardFrame: (
-    nodeId: string,
-    draggedFrameId: string,
-    targetFrameId: string
-  ) => void;
 
   deleteNode: (nodeId: string) => void;
   deleteNodes: (nodeIds: string[]) => void;
@@ -295,21 +248,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     setState: (patch) => set(patch),
     updateState: (update) => set((state) => update(state)),
   }),
-
-  addNode: (type, position, data = {}) => {
-    const state = get();
-    const newNode = createCanvasNode(type, position, data, canvasNodeFactory);
-    set({
-      nodes: [...state.nodes, newNode],
-      history: {
-        past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-        future: [],
-      },
-      dragHistorySnapshot: null,
-      ...trackEdit(state),
-    });
-    return newNode.id;
-  },
+  ...createZustandCanvasNodeMutationSlice({
+    nodeFactory: canvasNodeFactory,
+    getState: get,
+    setState: (patch) => set(patch),
+    updateState: (update) => set((state) => update(state)),
+  }),
 
   duplicateNodeAsSibling: (sourceNodeId, index, dataOverrides = {}) => {
     const state = get();
@@ -546,151 +490,6 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     });
 
     return node.id;
-  },
-
-  convertNodeType: (nodeId, newType, dataOverrides = {}) => {
-    const state = get();
-    const result = convertCanvasNodeType(
-      state.nodes,
-      nodeId,
-      newType,
-      dataOverrides,
-    );
-    if (!result.changed) {
-      return false;
-    }
-    set({
-      nodes: result.nodes,
-      history: {
-        past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-        future: [],
-      },
-      dragHistorySnapshot: null,
-      ...trackEdit(state),
-    });
-    return true;
-  },
-
-  updateNodeData: (nodeId, data) => {
-    set((state) => {
-      const result = updateCanvasNodeData(state.nodes, nodeId, data);
-      if (!result.changed) {
-        return {};
-      }
-
-      return {
-        nodes: result.nodes,
-        history: {
-          past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-          future: [],
-        },
-        dragHistorySnapshot: null,
-        ...trackEdit(state),
-      };
-    });
-  },
-
-  updateNodeSize: (nodeId, size, options) => {
-    set((state) => {
-      const result = updateCanvasNodeSize(state.nodes, nodeId, size, options);
-      if (!result.changed) {
-        return {};
-      }
-
-      return {
-        nodes: result.nodes,
-        history: {
-          past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-          future: [],
-        },
-        dragHistorySnapshot: null,
-        ...trackEdit(state),
-      };
-    });
-  },
-
-  updateNodePosition: (nodeId, position) => {
-    set((state) => {
-      const result = updateCanvasNodePosition(state.nodes, nodeId, position);
-      if (!result.changed) {
-        return {};
-      }
-
-      return { nodes: result.nodes };
-    });
-  },
-
-  setNodePositions: (positions) => {
-    set((state) => {
-      const result = setCanvasNodePositions(state.nodes, positions);
-      if (!result.changed) {
-        return {};
-      }
-
-      return {
-        nodes: result.nodes,
-        history: {
-          past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-          future: [],
-        },
-        dragHistorySnapshot: null,
-        ...trackEdit(state),
-      };
-    });
-  },
-
-  elevateNodes: (nodeIds, zIndex) => {
-    set((state) => ({
-      nodes: elevateCanvasNodes(state.nodes, nodeIds, zIndex),
-    }));
-  },
-
-  updateStoryboardFrame: (nodeId, frameId, data) => {
-    set((state) => {
-      const result = updateStoryboardFrameInGraph(
-        state.nodes,
-        nodeId,
-        frameId,
-        data,
-      );
-      if (!result.changed) {
-        return {};
-      }
-
-      return {
-        nodes: result.nodes,
-        history: {
-          past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-          future: [],
-        },
-        dragHistorySnapshot: null,
-        ...trackEdit(state),
-      };
-    });
-  },
-
-  reorderStoryboardFrame: (nodeId, draggedFrameId, targetFrameId) => {
-    set((state) => {
-      const result = reorderStoryboardFrameInGraph(
-        state.nodes,
-        nodeId,
-        draggedFrameId,
-        targetFrameId,
-      );
-      if (!result.changed) {
-        return {};
-      }
-
-      return {
-        nodes: result.nodes,
-        history: {
-          past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-          future: [],
-        },
-        dragHistorySnapshot: null,
-        ...trackEdit(state),
-      };
-    });
   },
 
   deleteNode: (nodeId) => {

@@ -3182,6 +3182,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
     );
+    const nodeMutationSlice = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasNodeMutationSlice.ts",
+      ),
+      "utf8",
+    );
     const forbiddenImports = importSpecifiers(positionsPath).filter(
       (specifier) =>
         specifier === "react" ||
@@ -3214,7 +3221,10 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(positionsModel).toContain(singleDeclaration);
     expect(positionsModel).toContain(batchDeclaration);
-    expect(canvasStore).toContain(
+    expect(nodeMutationSlice).toContain(
+      "../domain/canvasNodePositions",
+    );
+    expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasNodePositions",
     );
     expect(canvasStore).not.toContain("const nextX = Math.round(next.x)");
@@ -3844,6 +3854,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
     );
+    const nodeMutationSlice = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasNodeMutationSlice.ts",
+      ),
+      "utf8",
+    );
     const forbiddenImports = importSpecifiers(framesPath).filter(
       (specifier) =>
         specifier === "react" ||
@@ -3876,7 +3893,8 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(framesModel).toContain(updateDeclaration);
     expect(framesModel).toContain(reorderDeclaration);
-    expect(canvasStore).toContain(
+    expect(nodeMutationSlice).toContain("../domain/storyboardFrames");
+    expect(canvasStore).not.toContain(
       "@/features/canvas/domain/storyboardFrames",
     );
     expect(canvasStore).not.toContain("const patchEntries = Object.entries(data)");
@@ -4058,6 +4076,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
     );
+    const nodeMutationSlice = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasNodeMutationSlice.ts",
+      ),
+      "utf8",
+    );
     const forbiddenImports = importSpecifiers(creationPath).filter(
       (specifier) =>
         specifier === "react" ||
@@ -4089,10 +4114,14 @@ describe("frontend architecture boundaries", () => {
     expect(creationModel).toContain(creationDeclaration);
     expect(creationModel).toContain("nodeFactory: NodeFactory");
     expect(creationModel).toContain("maybeApplyImageAutoResize(");
-    expect(canvasStore).toContain(
+    expect(nodeMutationSlice).toContain(
+      "../application/canvasNodeCreation",
+    );
+    expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasNodeCreation",
     );
-    expect(canvasStore).toContain("canvasNodeFactory);");
+    expect(canvasStore).toContain("nodeFactory: canvasNodeFactory");
+    expect(nodeMutationSlice).toContain("dependencies.nodeFactory");
     expect(canvasStore).not.toContain("const createdNode =");
     expect(canvasStore).not.toContain(
       "createdNode.type === CANVAS_NODE_TYPES.skill",
@@ -4225,6 +4254,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
     );
+    const nodeMutationSlice = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasNodeMutationSlice.ts",
+      ),
+      "utf8",
+    );
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -4269,7 +4305,8 @@ describe("frontend architecture boundaries", () => {
     expect(nodeDataModel).toContain(updateDeclaration);
     expect(nodeDataModel).toContain(cloneDeclaration);
     expect(nodeDataModel).toContain("maybeApplyImageAutoResize(");
-    expect(canvasStore).toContain(
+    expect(nodeMutationSlice).toContain("../application/canvasNodeData");
+    expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasNodeData",
     );
     expect(canvasStore).not.toContain("const hasDataChange = Object.entries(data)");
@@ -4290,6 +4327,13 @@ describe("frontend architecture boundaries", () => {
     const conversionModel = readFileSync(conversionPath, "utf8");
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const nodeMutationSlice = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasNodeMutationSlice.ts",
+      ),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(conversionPath).filter(
@@ -4319,7 +4363,10 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(conversionModel).toContain(conversionDeclaration);
     expect(conversionModel).toContain("nodeCatalog.getDefinition(newType)");
-    expect(canvasStore).toContain(
+    expect(nodeMutationSlice).toContain(
+      "../application/canvasNodeConversion",
+    );
+    expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasNodeConversion",
     );
     expect(canvasStore).not.toContain(
@@ -4451,6 +4498,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
     );
+    const nodeMutationSlice = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasNodeMutationSlice.ts",
+      ),
+      "utf8",
+    );
     const forbiddenImports = importSpecifiers(nodeSizePath).filter(
       (specifier) =>
         specifier === "react" ||
@@ -4490,7 +4544,8 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/application/canvasNodeSize.ts",
     ]);
     expect(nodeSizeModel).toContain(updateDeclaration);
-    expect(canvasStore).toContain(
+    expect(nodeMutationSlice).toContain("../application/canvasNodeSize");
+    expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasNodeSize",
     );
     expect(canvasStore).not.toContain("const manualSizePatch =");
@@ -7724,6 +7779,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
     );
+    const nodeMutationSlice = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasNodeMutationSlice.ts",
+      ),
+      "utf8",
+    );
     const canvasSource = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -7763,7 +7825,10 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/domain/canvasNodeLayering.ts",
     ]);
     expect(layeringSource).toContain("style: { ...(node.style ?? {}), zIndex }");
-    expect(canvasStore).toContain("elevateCanvasNodes(state.nodes, nodeIds, zIndex)");
+    expect(nodeMutationSlice).toContain(
+      "elevateCanvasNodes(state.nodes, nodeIds, zIndex)",
+    );
+    expect(canvasStore).not.toContain("elevateCanvasNodes(");
     expect(altDragController).toContain(
       "elevateNodes(copiedNodeIds, ALT_DRAG_COPY_Z_INDEX)",
     );
@@ -8098,6 +8163,81 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("userEditsSinceHydrate: 0");
     expect(canvasStore).not.toContain("pendingClearIntent: false");
     expect(canvasStore).not.toContain("normalizeCanvasData(");
+    expect(sliceSource).not.toContain("@/stores/canvasStore");
+  });
+
+  it("keeps Canvas node mutations in one Zustand slice", () => {
+    const slicePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/zustandCanvasNodeMutationSlice.ts",
+    );
+    const sliceSource = readFileSync(slicePath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const graphGateway = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasGraphGateway.ts",
+      ),
+      "utf8",
+    );
+    const canvasStateHeader = canvasStore.match(
+      /interface CanvasState[\s\S]*?\{/,
+    )?.[0];
+    const implementations = [
+      ["addNode", "(type, position, data = {}) {"],
+      ["convertNodeType", "(nodeId, newType, dataOverrides = {}) {"],
+      ["updateNodeData", "(nodeId, data) {"],
+      ["updateNodeSize", "(nodeId, size, options) {"],
+      ["updateNodePosition", "(nodeId, position) {"],
+      ["setNodePositions", "(positions) {"],
+      ["elevateNodes", "(nodeIds, zIndex) {"],
+      ["updateStoryboardFrame", "(nodeId, frameId, data) {"],
+      ["reorderStoryboardFrame", "(nodeId, draggedFrameId, targetFrameId) {"],
+    ].map(([name, parameters]) => `${name}${parameters}`);
+
+    for (const implementation of implementations) {
+      const owners = sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(implementation))
+        .map(relativeSource)
+        .sort();
+      expect(owners).toEqual(
+        implementation.startsWith("updateNodeData")
+          ? [
+              "features/canvas/infrastructure/zustandCanvasGraphGateway.ts",
+              "features/canvas/infrastructure/zustandCanvasNodeMutationSlice.ts",
+            ]
+          : [
+              "features/canvas/infrastructure/zustandCanvasNodeMutationSlice.ts",
+            ],
+      );
+    }
+
+    expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
+      "../domain/canvasHistory",
+      "../domain/canvasNodeLayering",
+      "../domain/canvasNodePositions",
+      "../domain/canvasMutation",
+      "../domain/canvasNodes",
+      "../domain/storyboardFrames",
+      "../application/canvasNodeConversion",
+      "../application/canvasNodeCreation",
+      "../application/canvasNodeData",
+      "../application/canvasNodeSize",
+      "../application/ports",
+    ]));
+    expect(canvasStateHeader).toContain("CanvasNodeMutationSlice");
+    expect(canvasStore).toContain(
+      "...createZustandCanvasNodeMutationSlice({",
+    );
+    expect(canvasStore).toContain("nodeFactory: canvasNodeFactory");
+    expect(graphGateway).toContain(
+      "useCanvasStore.getState().updateNodeData(nodeId, data)",
+    );
+    expect(sliceSource).not.toContain("nodeFactoryComposition");
+    expect(sliceSource).not.toContain("@/features/canvas/composition");
     expect(sliceSource).not.toContain("@/stores/canvasStore");
   });
 });
