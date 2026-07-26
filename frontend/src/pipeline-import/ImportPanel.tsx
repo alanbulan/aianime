@@ -1,9 +1,9 @@
 // Copyright (c) 2026 AI anime
 import { useEffect, useMemo, useState } from "react";
 import {
-  deriveSketchUrl,
   deriveDirectorRenderUrl,
-} from "@/api/projects";
+  deriveSketchUrl,
+} from "@/pipeline-import/domain/asset-urls";
 import {
   listCharacters,
   type Character,

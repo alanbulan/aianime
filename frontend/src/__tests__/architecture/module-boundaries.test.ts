@@ -751,7 +751,6 @@ describe("frontend architecture boundaries", () => {
     const canvasCompositionSource = readFileSync(canvasCompositionPath, "utf8");
     const freezoneCompositionSource = readFileSync(freezoneCompositionPath, "utf8");
     const beatContextNodeSource = readFileSync(beatContextNodePath, "utf8");
-    const apiProjectsSource = readFileSync(apiProjectsPath, "utf8");
     const querySource = readFileSync(queryPath, "utf8");
     const presetEndpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
@@ -803,14 +802,7 @@ describe("frontend architecture boundaries", () => {
       "features/freezone/infrastructure/httpFreezoneContextQueryGateway.ts",
     ]);
     expect(existsSync(apiCanvasPath)).toBe(false);
-    expect(apiProjectsSource).not.toContain("export interface BeatUpdatePayload");
-    expect(apiProjectsSource).not.toContain("export async function updateBeat(");
-    expect(apiProjectsSource).not.toContain(
-      "export async function listFreezoneBeatContext(",
-    );
-    expect(apiProjectsSource).not.toContain(
-      "export async function listFreezoneProjectAssets(",
-    );
+    expect(existsSync(apiProjectsPath)).toBe(false);
     expect(querySource).not.toContain("function createFreezonePresetCanvas(");
     expect(querySource).not.toContain("useCreateFreezonePresetCanvas");
     expect(importSpecifiers(beatContextNodePath)).toContain(
@@ -7480,7 +7472,6 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/narrative_planning/public.ts",
     );
-    const legacyApiSource = readFileSync(legacyApiPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const publicSource = readFileSync(publicPath, "utf8");
     const consumerPaths = [
@@ -7512,12 +7503,7 @@ describe("frontend architecture boundaries", () => {
         "@/modules/narrative_planning/domain/types",
       ]),
     );
-    expect(legacyApiSource).not.toContain(
-      "export interface AiAnimeEpisodeSummary",
-    );
-    expect(legacyApiSource).not.toContain("export interface AiAnimeBeat");
-    expect(legacyApiSource).not.toContain("function listEpisodes(");
-    expect(legacyApiSource).not.toContain("function listBeats(");
+    expect(existsSync(legacyApiPath)).toBe(false);
     expect(episodeListEndpointOwners).toEqual([
       "modules/narrative_planning/infrastructure/http-narrative-planning-gateway.ts",
     ]);
@@ -7525,13 +7511,10 @@ describe("frontend architecture boundaries", () => {
       "modules/narrative_planning/infrastructure/http-narrative-planning-gateway.ts",
     ]);
     for (const consumerPath of consumerPaths) {
-      expect(importSpecifiers(resolve(SRC_ROOT, consumerPath))).toContain(
-        "@/modules/narrative_planning/public",
-      );
+      const imports = importSpecifiers(resolve(SRC_ROOT, consumerPath));
+      expect(imports).toContain("@/modules/narrative_planning/public");
+      expect(imports).not.toContain("@/api/projects");
     }
-    expect(importSpecifiers(resolve(SRC_ROOT, consumerPaths[0]))).not.toContain(
-      "@/api/projects",
-    );
     expect(compositionSource).toContain("listEpisodesUseCase(");
     expect(compositionSource).toContain("listBeatsUseCase(");
     expect(publicSource).toContain("listEpisodes,");
@@ -7541,6 +7524,37 @@ describe("frontend architecture boundaries", () => {
     );
     expect(readFileSync(gatewayPath, "utf8")).toContain(
       "async getBeats(project, episode, signal)",
+    );
+  });
+
+  it("keeps pipeline import asset URL rules in its domain", () => {
+    const legacyApiPath = resolve(SRC_ROOT, "api/projects.ts");
+    const domainPath = resolve(
+      SRC_ROOT,
+      "pipeline-import/domain/asset-urls.ts",
+    );
+    const consumerPath = resolve(SRC_ROOT, "pipeline-import/ImportPanel.tsx");
+    const declarations = [
+      ["export function", "staticPrefixOf("].join(" "),
+      ["export function", "deriveSketchUrl("].join(" "),
+      ["export function", "deriveDirectorRenderUrl("].join(" "),
+    ];
+    const declarationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => !path.includes(".test."))
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(existsSync(legacyApiPath)).toBe(false);
+    expect(importSpecifiers(domainPath)).toEqual([]);
+    expect(importSpecifiers(consumerPath)).toContain(
+      "@/pipeline-import/domain/asset-urls",
+    );
+    expect(importSpecifiers(consumerPath)).not.toContain("@/api/projects");
+    expect(declarationOwners).toEqual(
+      declarations.map(() => ["pipeline-import/domain/asset-urls.ts"]),
     );
   });
 
@@ -7737,7 +7751,6 @@ describe("frontend architecture boundaries", () => {
       "modules/asset_world/composition.ts",
     );
     const publicPath = resolve(SRC_ROOT, "modules/asset_world/public.ts");
-    const legacyApiSource = readFileSync(legacyApiPath, "utf8");
     const gatewaySource = readFileSync(gatewayPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const publicSource = readFileSync(publicPath, "utf8");
@@ -7771,10 +7784,7 @@ describe("frontend architecture boundaries", () => {
         "@/modules/asset_world/domain/character",
       ]),
     );
-    expect(legacyApiSource).not.toContain("export interface AiAnimeCharacter");
-    expect(legacyApiSource).not.toContain("export interface AiAnimeIdentity");
-    expect(legacyApiSource).not.toContain("function listCharacters(");
-    expect(legacyApiSource).not.toContain("function listCharacterIdentities(");
+    expect(existsSync(legacyApiPath)).toBe(false);
     expect(characterListEndpointOwners).toEqual([
       "modules/asset_world/infrastructure/http-character-gateway.ts",
     ]);
@@ -7782,9 +7792,9 @@ describe("frontend architecture boundaries", () => {
       "modules/asset_world/infrastructure/http-character-gateway.ts",
     ]);
     for (const consumerPath of consumerPaths) {
-      expect(importSpecifiers(resolve(SRC_ROOT, consumerPath))).toContain(
-        "@/modules/asset_world/public",
-      );
+      const imports = importSpecifiers(resolve(SRC_ROOT, consumerPath));
+      expect(imports).toContain("@/modules/asset_world/public");
+      expect(imports).not.toContain("@/api/projects");
     }
     expect(gatewaySource).toContain("async listCharacters(project, signal)");
     expect(gatewaySource).toContain("async listIdentities(project, name, signal)");

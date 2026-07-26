@@ -1584,6 +1584,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百五十批已将 `projects.ts` 中剧集与 Beat 目录的响应解包迁入唯一 Narrative Planning `catalog-queries` application 用例，直接复用既有 `NarrativePlanningGateway` 和 `httpNarrativePlanningGateway`，未新增 HTTP adapter；Narrative Planning composition/public 发布命令式读取入口，`CommitDialog` 与 `ImportPanel` 改用公开领域 `Episode/Beat` 契约和后端原生 `Episode.number`，删除历史 `episode_num` 归一 DTO，并在 Beat 领域契约保留旧响应可能出现的 `beat_index` 别名；`projects.ts` 删除重复 DTO、归一逻辑和两个 HTTP 实现共 56 行，剧集及 Beat 列表端点各只剩一个生产所有者，文件现在仅保留待独立迁移的纯静态 URL 推导；提交对话框测试同步从旧技术目录 mock 改为两个领域 public API；请求路径、返回列表、首集选择、Beat 编号回退和导入行为均未改变；相关 3 个测试文件 15 项、新增后的架构门禁 201 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
 
+第二百五十一批已将导入面板的静态素材前缀、分镜草图和导演合成图 URL 推导迁入唯一 `pipeline-import/domain/asset-urls.ts` 纯领域规则，`ImportPanel` 改为直接依赖该规则；原 47 行 `api/projects.ts` 整体删除，不保留 facade、re-export 或第二套实现，前端生产代码对 `@/api/projects` 的引用归零，三个 URL 函数各只剩一个声明所有者；静态前缀约束、集数与 Beat 补零、草图路径、导演成品路径及无有效锚点时跳过导入的行为均未改变；新增纯函数测试 5 项、新增后的架构门禁 202 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。
