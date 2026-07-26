@@ -3264,6 +3264,59 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps Canvas node-menu selection rules in the application layer", () => {
+    const selectionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/canvasNodeMenuSelection.ts",
+    );
+    const selectionModel = readFileSync(selectionPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(selectionPath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/features/canvas/nodeFactoryComposition",
+    );
+    const declarations = [
+      "planCanvasNodeMenuSelection(",
+      "createCanvasSkillNodeData(",
+    ].map((name) => ["export function", name].join(" "));
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => {
+        const source = readFileSync(path, "utf8");
+        return declarations.some((declaration) => source.includes(declaration));
+      })
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/application/canvasNodeMenuSelection.ts",
+    ]);
+    for (const declaration of declarations) {
+      expect(selectionModel).toContain(declaration);
+    }
+    expect(selectionModel).toContain("SKILL_SCHEMA_VERSION");
+    expect(canvasView).toContain(
+      "@/features/canvas/application/canvasNodeMenuSelection",
+    );
+    expect(canvasView).not.toContain("const isPlainAddNodeMenu");
+    expect(canvasView).not.toContain("generationMode: 'image_reference'");
+    expect(canvasView).not.toContain("initialData = { imageOnly: true }");
+    expect(canvasView).not.toContain("skill_schema_version:");
+  });
+
   it("keeps Canvas derived node creation in the application layer", () => {
     const creationPath = resolve(
       SRC_ROOT,

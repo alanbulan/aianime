@@ -37,7 +37,7 @@ import { findLinkedCapturePartnerIds } from '@/features/canvas/domain/canvasCapt
 import { resolveCanvasSelectionDeletion } from '@/features/canvas/domain/canvasSelectionDeletion';
 import { useAppStore } from '@/stores/app-store';
 import { getSkillRegistry } from '@/api/skills';
-import { SKILL_SCHEMA_VERSION, type SkillDefinition } from '@/features/freezone/context/skillRoles';
+import type { SkillDefinition } from '@/features/freezone/context/skillRoles';
 import { translateSkillName } from '@/features/freezone/context/skillI18n';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import {
@@ -72,6 +72,10 @@ import {
 } from '@/features/canvas/application/canvasManagedChangeGuard';
 import type { CanvasClipboardSnapshot } from '@/features/canvas/domain/canvasClipboard';
 import { nodeNeedsGenerationResume } from '@/features/canvas/application/resumeGeneration';
+import {
+  createCanvasSkillNodeData,
+  planCanvasNodeMenuSelection,
+} from '@/features/canvas/application/canvasNodeMenuSelection';
 import { readUrl } from '@/lib/url-params';
 import { useQueryClient } from '@tanstack/react-query';
 import { prefetchEpisodeBeats, prefetchEpisodeDetail } from '@/modules/narrative_planning/public';
@@ -1021,29 +1025,14 @@ export function Canvas({
 
   const handleNodeSelect = useCallback(
     (type: CanvasNodeType, selectionClientPosition?: { x: number; y: number }) => {
-      // 「上传资源」改成直接在画布生成一个空的上传节点；选择具体文件
-      // （图片 / 视频）由节点内部 UI 负责，并根据文件类型自行 morph 成
-      // video 节点。这样画布菜单的所有入口都保持一致：点选即生成节点。
-      let initialData: Partial<Record<string, unknown>> | undefined;
-      if (pendingConnectStart && type === CANVAS_NODE_TYPES.imageEdit) {
-        initialData = { generationMode: 'image_reference', requestAspectRatio: 'auto' };
-      } else if (
-        pendingConnectStart
-        && pendingConnectStart.handleType === 'target'
-        && type === CANVAS_NODE_TYPES.upload
-      ) {
-        // 从 imageGen 的 target handle 拖出来 → 点「图片」落到 upload 节点
-        // 时，按「上传图片」语义初始化（同步 ImageGen 的 spawn-upstream-image
-        // 按钮：拒视频）。
-        const originNode = nodes.find((node) => node.id === pendingConnectStart.nodeId);
-        if (originNode?.type === CANVAS_NODE_TYPES.imageGen) {
-          initialData = { imageOnly: true };
-        }
-      }
-
-      const isPlainAddNodeMenu =
-        !pendingConnectStart && !pendingBatchConnectIds && !menuAllowedTypes;
-      if (isPlainAddNodeMenu) {
+      const selectionPlan = planCanvasNodeMenuSelection({
+        type,
+        nodes,
+        pendingConnection: pendingConnectStart,
+        hasPendingBatchConnection: pendingBatchConnectIds !== null,
+        hasAllowedTypeFilter: menuAllowedTypes !== undefined,
+      });
+      if (selectionPlan.kind === 'placement') {
         const containerRect = wrapperRef.current?.getBoundingClientRect();
         const fallbackClientPosition = containerRect
           ? {
@@ -1057,14 +1046,14 @@ export function Canvas({
           fallbackClientPosition;
         setShowNodeMenu(false);
         setMenuAllowedTypes(undefined);
-        setPendingNodePlacement({ type, initialData });
+        setPendingNodePlacement({ type, initialData: selectionPlan.initialData });
         setNodePlacementClientPosition(clientPosition);
         setSelectedNode(null);
         suppressNextPaneClickRef.current = false;
         return;
       }
 
-      const newNodeId = addNode(type, flowPosition, initialData);
+      const newNodeId = addNode(type, flowPosition, selectionPlan.initialData);
       finalizeNodeSpawn(newNodeId);
     },
     [
@@ -1084,11 +1073,7 @@ export function Canvas({
 
   const handleSkillSelect = useCallback(
     (skill: SkillDefinition) => {
-      const initialData = {
-        skill_id: skill.id,
-        skill_schema_version: skill.schema_version ?? SKILL_SCHEMA_VERSION,
-        displayName: skill.display_name,
-      } as Partial<CanvasNodeData>;
+      const initialData = createCanvasSkillNodeData(skill);
       const containerRect = wrapperRef.current?.getBoundingClientRect();
       const fallbackClientPosition = containerRect
         ? {
@@ -1139,11 +1124,11 @@ export function Canvas({
 
   const handleQuickAddSkill = useCallback(
     (skill: SkillDefinition) => {
-      const newNodeId = addNode(CANVAS_NODE_TYPES.skill, spawnAtViewportCenter(), {
-        skill_id: skill.id,
-        skill_schema_version: skill.schema_version ?? SKILL_SCHEMA_VERSION,
-        displayName: skill.display_name,
-      } as Partial<CanvasNodeData>);
+      const newNodeId = addNode(
+        CANVAS_NODE_TYPES.skill,
+        spawnAtViewportCenter(),
+        createCanvasSkillNodeData(skill),
+      );
       setSelectedNode(newNodeId);
       bindSingleBeatContextInput(newNodeId, skill);
     },
