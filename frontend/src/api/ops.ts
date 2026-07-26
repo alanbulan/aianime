@@ -9,6 +9,12 @@ import {
   DEFAULT_CANVAS_UPSCALE_SCALE_FACTOR,
   type CanvasUpscaleScaleFactor,
 } from "@/features/canvas/domain/upscale";
+import {
+  DEFAULT_CANVAS_VIDEO_UPSCALE_DENOISE,
+  DEFAULT_CANVAS_VIDEO_UPSCALE_RESOLUTION,
+  type CanvasVideoUpscaleDenoise,
+  type CanvasVideoUpscaleResolution,
+} from "@/features/canvas/domain/videoUpscale";
 
 // Per-node generation history -------------------------------------------- //
 
@@ -257,19 +263,13 @@ export async function submitFreezoneVideoGen(
 
 // /freezone/video/upscale ------------------------------------------------- //
 
-/** Target clarity tier. Scales by long edge: 1080p=1920, 2k=2560, 4k=3840. */
-export type FreezoneVideoUpscaleResolution = "1080p" | "2k" | "4k";
-
-/** Denoise strength. none=off, 1x=light, 2x=medium. */
-export type FreezoneVideoUpscaleDenoise = "none" | "1x" | "2x";
-
 export interface FreezoneVideoUpscalePayload extends FreezoneNodeContext {
   /** Static URL of the source video to upscale. */
   sourceUrl: string;
-  resolution?: FreezoneVideoUpscaleResolution;
+  resolution?: CanvasVideoUpscaleResolution;
   /** Base version only supports "none" (frame rate unchanged). */
   frameInterpolation?: "none";
-  denoiseStrength?: FreezoneVideoUpscaleDenoise;
+  denoiseStrength?: CanvasVideoUpscaleDenoise;
 }
 
 export async function submitFreezoneVideoUpscale(
@@ -282,9 +282,11 @@ export async function submitFreezoneVideoUpscale(
       method: "POST",
       json: {
         source_url: payload.sourceUrl,
-        resolution: payload.resolution ?? "1080p",
+        resolution:
+          payload.resolution ?? DEFAULT_CANVAS_VIDEO_UPSCALE_RESOLUTION,
         frame_interpolation: payload.frameInterpolation ?? "none",
-        denoise_strength: payload.denoiseStrength ?? "1x",
+        denoise_strength:
+          payload.denoiseStrength ?? DEFAULT_CANVAS_VIDEO_UPSCALE_DENOISE,
         ...nodeContextBody(payload),
       },
     },

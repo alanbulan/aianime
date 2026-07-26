@@ -7,7 +7,7 @@ import {
   type MultiAnglePresetKey,
   type MultiAngleZoomLevel,
 } from "../domain/multiAngle";
-import { completeCanvasImageGenerationTask } from "./completeCanvasImageGenerationTask";
+import { completeCanvasMediaGenerationTask } from "./completeCanvasMediaGenerationTask";
 import type {
   CanvasGenerationTaskRef,
   CanvasTaskResultGateway,
@@ -68,7 +68,7 @@ export async function generateCanvasMultiAngle(
     model: params.model,
     imageSize: params.imageSize,
   });
-  const url = await completeCanvasImageGenerationTask(
+  const url = await completeCanvasMediaGenerationTask(
     { projectId: params.projectId, task },
     {
       taskGateway: dependencies.taskGateway,

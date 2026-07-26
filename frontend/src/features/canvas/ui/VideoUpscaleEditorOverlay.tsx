@@ -5,14 +5,17 @@ import { ArrowUp, Check, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { type CanvasNode } from '@/features/canvas/domain/canvasNodes';
-import { useCanvasStore } from '@/stores/canvasStore';
 import {
-  fetchFreezoneJobResult,
-  submitFreezoneVideoUpscale,
-  type FreezoneVideoUpscaleDenoise,
-  type FreezoneVideoUpscaleResolution,
-} from '@/api/ops';
-import { awaitTaskCompletion } from '@/api/tasks';
+  CANVAS_VIDEO_UPSCALE_DENOISE_OPTIONS,
+  CANVAS_VIDEO_UPSCALE_RESOLUTIONS,
+  CANVAS_VIDEO_UPSCALE_RESOLUTION_LABEL,
+  resolveCanvasVideoUpscaleDenoise,
+  resolveCanvasVideoUpscaleResolution,
+  type CanvasVideoUpscaleDenoise,
+  type CanvasVideoUpscaleResolution,
+} from '@/features/canvas/domain/videoUpscale';
+import { useCanvasStore } from '@/stores/canvasStore';
+import { generateCanvasVideoUpscale } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { readUrl } from '@/lib/url-params';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
@@ -24,21 +27,10 @@ import {
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
 } from './nodeControlStyles';
 
-const RESOLUTIONS: FreezoneVideoUpscaleResolution[] = ['1080p', '2k', '4k'];
-const RESOLUTION_LABEL: Record<FreezoneVideoUpscaleResolution, string> = {
-  '1080p': '1080P',
-  '2k': '2K',
-  '4k': '4K',
-};
-const DEFAULT_RESOLUTION: FreezoneVideoUpscaleResolution = '1080p';
-
-const DENOISE_OPTIONS: FreezoneVideoUpscaleDenoise[] = ['none', '1x', '2x'];
-const DEFAULT_DENOISE: FreezoneVideoUpscaleDenoise = '1x';
-
 interface VideoUpscalePersistedFields {
   upscaleSourceUrl?: string;
-  upscaleResolution?: FreezoneVideoUpscaleResolution;
-  upscaleDenoise?: FreezoneVideoUpscaleDenoise;
+  upscaleResolution?: CanvasVideoUpscaleResolution;
+  upscaleDenoise?: CanvasVideoUpscaleDenoise;
 }
 
 interface VideoUpscaleEditorOverlayProps {
@@ -59,30 +51,26 @@ export const VideoUpscaleEditorOverlay = memo(
 
     const persisted = node.data as VideoUpscalePersistedFields;
     const sourceUrl = persisted.upscaleSourceUrl ?? '';
-    const resolution: FreezoneVideoUpscaleResolution =
-      persisted.upscaleResolution && RESOLUTIONS.includes(persisted.upscaleResolution)
-        ? persisted.upscaleResolution
-        : DEFAULT_RESOLUTION;
-    const denoise: FreezoneVideoUpscaleDenoise =
-      persisted.upscaleDenoise && DENOISE_OPTIONS.includes(persisted.upscaleDenoise)
-        ? persisted.upscaleDenoise
-        : DEFAULT_DENOISE;
+    const resolution = resolveCanvasVideoUpscaleResolution(
+      persisted.upscaleResolution,
+    );
+    const denoise = resolveCanvasVideoUpscaleDenoise(persisted.upscaleDenoise);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleResolutionChange = useCallback(
-      (next: FreezoneVideoUpscaleResolution) => {
+      (next: CanvasVideoUpscaleResolution) => {
         updateNodeData(node.id, {
           upscaleResolution: next,
           // Keep the title's resolution badge in sync.
-          displayName: `${t('node.videoUpscale.nodeTitle')}（${RESOLUTION_LABEL[next]}）`,
+          displayName: `${t('node.videoUpscale.nodeTitle')}（${CANVAS_VIDEO_UPSCALE_RESOLUTION_LABEL[next]}）`,
         });
       },
       [node.id, t, updateNodeData],
     );
 
     const handleDenoiseChange = useCallback(
-      (next: FreezoneVideoUpscaleDenoise) => {
+      (next: CanvasVideoUpscaleDenoise) => {
         updateNodeData(node.id, { upscaleDenoise: next });
       },
       [node.id, updateNodeData],
@@ -114,22 +102,19 @@ export const VideoUpscaleEditorOverlay = memo(
       });
 
       try {
-        const ref = await submitFreezoneVideoUpscale(project, {
-          sourceUrl: sourceUrl.split('?')[0],
-          resolution,
-          frameInterpolation: 'none',
-          denoiseStrength: denoise,
-          canvasId,
-          nodeId: node.id,
-        });
-        updateNodeData(node.id, generationTaskDescriptor(ref));
-        const completed = await awaitTaskCompletion(ref.task_key, project);
-        const directUrl = completed.result?.['output_url'] as string | undefined;
-        let url = directUrl;
-        if (!url) {
-          const fallback = await fetchFreezoneJobResult(project, ref.task_type, ref.job_id);
-          url = fallback.url;
-        }
+        const { url } = await generateCanvasVideoUpscale(
+          {
+            projectId: project,
+            sourceUrl,
+            resolution,
+            denoiseStrength: denoise,
+            canvasId,
+            nodeId: node.id,
+          },
+          (task) => {
+            updateNodeData(node.id, generationTaskDescriptor(task));
+          },
+        );
         updateNodeData(node.id, {
           videoUrl: url,
           isGenerating: false,
@@ -171,7 +156,7 @@ export const VideoUpscaleEditorOverlay = memo(
                   {t('node.videoUpscale.panel.resolution')}
                 </span>
                 <div className="inline-flex items-center gap-0.5 rounded border border-border bg-muted p-0.5">
-                  {RESOLUTIONS.map((value) => {
+                  {CANVAS_VIDEO_UPSCALE_RESOLUTIONS.map((value) => {
                     const isActive = resolution === value;
                     return (
                       <button
@@ -184,7 +169,7 @@ export const VideoUpscaleEditorOverlay = memo(
                             : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                         }`}
                       >
-                        {RESOLUTION_LABEL[value]}
+                        {CANVAS_VIDEO_UPSCALE_RESOLUTION_LABEL[value]}
                       </button>
                     );
                   })}
@@ -235,8 +220,8 @@ export const VideoUpscaleEditorOverlay = memo(
 VideoUpscaleEditorOverlay.displayName = 'VideoUpscaleEditorOverlay';
 
 interface DenoisePickerProps {
-  value: FreezoneVideoUpscaleDenoise;
-  onChange: (value: FreezoneVideoUpscaleDenoise) => void;
+  value: CanvasVideoUpscaleDenoise;
+  onChange: (value: CanvasVideoUpscaleDenoise) => void;
 }
 
 function DenoisePicker({ value, onChange }: DenoisePickerProps) {
@@ -260,7 +245,7 @@ function DenoisePicker({ value, onChange }: DenoisePickerProps) {
     return () => document.removeEventListener('mousedown', onPointerDown, true);
   }, [isOpen]);
 
-  const denoiseLabel = (option: FreezoneVideoUpscaleDenoise) =>
+  const denoiseLabel = (option: CanvasVideoUpscaleDenoise) =>
     option === 'none' ? t('node.videoUpscale.panel.denoiseNone') : option;
 
   return (
@@ -280,7 +265,7 @@ function DenoisePicker({ value, onChange }: DenoisePickerProps) {
           className="absolute bottom-full right-0 z-50 mb-2 w-[160px] rounded-[10px] border border-border bg-popover/96 p-1 shadow-xl backdrop-blur-md"
           onPointerDown={(event) => event.stopPropagation()}
         >
-          {DENOISE_OPTIONS.map((option) => {
+          {CANVAS_VIDEO_UPSCALE_DENOISE_OPTIONS.map((option) => {
             const isActive = value === option;
             return (
               <button

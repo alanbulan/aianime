@@ -1,16 +1,16 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it, vi } from "vitest";
 
-import { completeCanvasImageGenerationTask } from "./completeCanvasImageGenerationTask";
+import { completeCanvasMediaGenerationTask } from "./completeCanvasMediaGenerationTask";
 import type { CanvasTaskResultGateway } from "./ports";
 
 const task = {
-  task_key: "image-task",
-  task_type: "freezone_image_task",
-  job_id: "image-job",
+  task_key: "media-task",
+  task_type: "freezone_media_task",
+  job_id: "media-job",
 };
 
-describe("completeCanvasImageGenerationTask", () => {
+describe("completeCanvasMediaGenerationTask", () => {
   it("persists the task before returning its embedded output URL", async () => {
     const onTaskSubmitted = vi.fn();
     const taskGateway: CanvasTaskResultGateway = {
@@ -21,7 +21,7 @@ describe("completeCanvasImageGenerationTask", () => {
     };
 
     await expect(
-      completeCanvasImageGenerationTask(
+      completeCanvasMediaGenerationTask(
         { projectId: "project-1", task },
         { taskGateway, onTaskSubmitted },
       ),
@@ -36,19 +36,19 @@ describe("completeCanvasImageGenerationTask", () => {
   it("falls back to the dedicated result endpoint", async () => {
     const taskGateway: CanvasTaskResultGateway = {
       awaitCompletion: vi.fn().mockResolvedValue({ result: null }),
-      fetchResultUrl: vi.fn().mockResolvedValue("/static/fallback.png"),
+      fetchResultUrl: vi.fn().mockResolvedValue("/static/fallback.mp4"),
     };
 
     await expect(
-      completeCanvasImageGenerationTask(
+      completeCanvasMediaGenerationTask(
         { projectId: "project-1", task },
         { taskGateway, onTaskSubmitted: vi.fn() },
       ),
-    ).resolves.toBe("/static/fallback.png");
+    ).resolves.toBe("/static/fallback.mp4");
     expect(taskGateway.fetchResultUrl).toHaveBeenCalledWith(
       "project-1",
-      "freezone_image_task",
-      "image-job",
+      "freezone_media_task",
+      "media-job",
     );
   });
 });

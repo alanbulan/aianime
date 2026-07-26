@@ -4,7 +4,7 @@ import {
   type CanvasTemplateEditMode,
   type GridActionKey,
 } from "../domain/gridAction";
-import { completeCanvasImageGenerationTask } from "./completeCanvasImageGenerationTask";
+import { completeCanvasMediaGenerationTask } from "./completeCanvasMediaGenerationTask";
 import type {
   CanvasGenerationTaskRef,
   CanvasTaskResultGateway,
@@ -50,7 +50,7 @@ export async function generateCanvasGridAction(
     mode: resolveGridActionTemplateMode(params.actionKey),
     prompt: params.prompt,
   });
-  const url = await completeCanvasImageGenerationTask(
+  const url = await completeCanvasMediaGenerationTask(
     { projectId: params.projectId, task },
     {
       taskGateway: dependencies.taskGateway,

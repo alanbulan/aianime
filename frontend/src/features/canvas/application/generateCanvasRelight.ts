@@ -5,7 +5,7 @@ import {
   type CanvasRelightKeyLightDirection,
   type CanvasRelightSmartPrompt,
 } from "../domain/relight";
-import { completeCanvasImageGenerationTask } from "./completeCanvasImageGenerationTask";
+import { completeCanvasMediaGenerationTask } from "./completeCanvasMediaGenerationTask";
 import type {
   CanvasGenerationTaskRef,
   CanvasTaskResultGateway,
@@ -77,7 +77,7 @@ export async function generateCanvasRelight(
     imageSize: params.imageSize,
     model: params.model,
   });
-  const url = await completeCanvasImageGenerationTask(
+  const url = await completeCanvasMediaGenerationTask(
     { projectId: params.projectId, task },
     {
       taskGateway: dependencies.taskGateway,

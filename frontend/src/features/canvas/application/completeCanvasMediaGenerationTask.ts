@@ -4,19 +4,19 @@ import type {
   CanvasTaskResultGateway,
 } from "./ports";
 
-export interface CompleteCanvasImageGenerationTaskParams {
+export interface CompleteCanvasMediaGenerationTaskParams {
   readonly projectId: string;
   readonly task: CanvasGenerationTaskRef;
 }
 
-export interface CompleteCanvasImageGenerationTaskDependencies {
+export interface CompleteCanvasMediaGenerationTaskDependencies {
   readonly taskGateway: CanvasTaskResultGateway;
   readonly onTaskSubmitted: (task: CanvasGenerationTaskRef) => void;
 }
 
-export async function completeCanvasImageGenerationTask(
-  params: CompleteCanvasImageGenerationTaskParams,
-  dependencies: CompleteCanvasImageGenerationTaskDependencies,
+export async function completeCanvasMediaGenerationTask(
+  params: CompleteCanvasMediaGenerationTaskParams,
+  dependencies: CompleteCanvasMediaGenerationTaskDependencies,
 ): Promise<string> {
   dependencies.onTaskSubmitted(params.task);
   const completion = await dependencies.taskGateway.awaitCompletion(

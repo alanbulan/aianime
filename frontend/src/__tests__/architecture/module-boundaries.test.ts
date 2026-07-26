@@ -8818,7 +8818,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
         "../domain/scene360",
-        "./completeCanvasImageGenerationTask",
+        "./completeCanvasMediaGenerationTask",
         "./ports",
       ]),
     );
@@ -8832,7 +8832,7 @@ describe("frontend architecture boundaries", () => {
       'referenceUrl: params.referenceUrl.split("?")[0]',
     );
     expect(applicationSource).toContain(
-      "completeCanvasImageGenerationTask(",
+      "completeCanvasMediaGenerationTask(",
     );
     expect(applicationSource).toContain(
       "onTaskSubmitted: dependencies.onTaskSubmitted",
@@ -8867,7 +8867,7 @@ describe("frontend architecture boundaries", () => {
     );
     const completionPath = resolve(
       SRC_ROOT,
-      "features/canvas/application/completeCanvasImageGenerationTask.ts",
+      "features/canvas/application/completeCanvasMediaGenerationTask.ts",
     );
     const applicationPath = resolve(
       SRC_ROOT,
@@ -8919,7 +8919,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
         "../domain/multiAngle",
-        "./completeCanvasImageGenerationTask",
+        "./completeCanvasMediaGenerationTask",
         "./ports",
       ]),
     );
@@ -8961,7 +8961,7 @@ describe("frontend architecture boundaries", () => {
     expect(overlaySource).not.toContain("fetchFreezoneJobResult");
     expect(overlaySource).not.toContain("awaitTaskCompletion");
     expect(sceneApplicationSource).toContain(
-      "completeCanvasImageGenerationTask(",
+      "completeCanvasMediaGenerationTask(",
     );
   });
 
@@ -9007,7 +9007,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
         "../domain/relight",
-        "./completeCanvasImageGenerationTask",
+        "./completeCanvasMediaGenerationTask",
         "./ports",
       ]),
     );
@@ -9022,7 +9022,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(applicationSource).toContain("buildCanvasRelightPrompt(");
     expect(applicationSource).toContain(
-      "completeCanvasImageGenerationTask(",
+      "completeCanvasMediaGenerationTask(",
     );
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
       new Set(["@/api/ops", "../application/generateCanvasRelight"]),
@@ -9094,7 +9094,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
         "../domain/gridAction",
-        "./completeCanvasImageGenerationTask",
+        "./completeCanvasMediaGenerationTask",
         "./ports",
       ]),
     );
@@ -9108,7 +9108,7 @@ describe("frontend architecture boundaries", () => {
       "mode: resolveGridActionTemplateMode(params.actionKey)",
     );
     expect(applicationSource).toContain(
-      "completeCanvasImageGenerationTask(",
+      "completeCanvasMediaGenerationTask(",
     );
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
       new Set(["@/api/ops", "../application/generateCanvasGridAction"]),
@@ -9185,7 +9185,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
         "../domain/upscale",
-        "./completeCanvasImageGenerationTask",
+        "./completeCanvasMediaGenerationTask",
         "./ports",
       ]),
     );
@@ -9196,7 +9196,7 @@ describe("frontend architecture boundaries", () => {
       "export async function generateCanvasUpscale(",
     );
     expect(applicationSource).toContain(
-      "completeCanvasImageGenerationTask(",
+      "completeCanvasMediaGenerationTask(",
     );
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
       new Set(["@/api/ops", "../application/generateCanvasUpscale"]),
@@ -9221,6 +9221,88 @@ describe("frontend architecture boundaries", () => {
     expect(overlaySource).not.toContain("awaitTaskCompletion");
     expect(opsSource).toContain("@/features/canvas/domain/upscale");
     expect(opsSource).not.toContain("FreezoneUpscaleScaleFactor");
+  });
+
+  it("keeps Canvas video-upscale rules and generation orchestration out of views", () => {
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/videoUpscale.ts",
+    );
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/generateCanvasVideoUpscale.ts",
+    );
+    const infrastructurePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneVideoUpscaleGenerationGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const overlayPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/VideoUpscaleEditorOverlay.tsx",
+    );
+    const opsPath = resolve(SRC_ROOT, "api/ops.ts");
+    const domainSource = readFileSync(domainPath, "utf8");
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const infrastructureSource = readFileSync(infrastructurePath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const overlaySource = readFileSync(overlayPath, "utf8");
+    const opsSource = readFileSync(opsPath, "utf8");
+
+    expect(importSpecifiers(domainPath)).toEqual([]);
+    expect(domainSource).toContain(
+      "export const CANVAS_VIDEO_UPSCALE_RESOLUTIONS",
+    );
+    expect(domainSource).toContain(
+      "export function resolveCanvasVideoUpscaleResolution(",
+    );
+    expect(domainSource).toContain(
+      "export function resolveCanvasVideoUpscaleDenoise(",
+    );
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set([
+        "../domain/videoUpscale",
+        "./completeCanvasMediaGenerationTask",
+        "./ports",
+      ]),
+    );
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).toContain(
+      "export async function generateCanvasVideoUpscale(",
+    );
+    expect(applicationSource).toContain('frameInterpolation: "none"');
+    expect(applicationSource).toContain(
+      "completeCanvasMediaGenerationTask(",
+    );
+    expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
+      new Set(["@/api/ops", "../application/generateCanvasVideoUpscale"]),
+    );
+    expect(infrastructureSource).toContain(
+      "freezoneVideoUpscaleGenerationGateway: CanvasVideoUpscaleGenerationGateway",
+    );
+    expect(compositionSource).toContain(
+      "generateCanvasVideoUpscaleUseCase(params, {",
+    );
+    expect(compositionSource).toContain(
+      "submissionGateway: freezoneVideoUpscaleGenerationGateway",
+    );
+    expect(importSpecifiers(overlayPath)).toContain(
+      "@/features/canvas/domain/videoUpscale",
+    );
+    expect(importSpecifiers(overlayPath)).not.toContain("@/api/ops");
+    expect(importSpecifiers(overlayPath)).not.toContain("@/api/tasks");
+    expect(overlaySource).toContain("await generateCanvasVideoUpscale(");
+    expect(overlaySource).not.toContain("submitFreezoneVideoUpscale");
+    expect(overlaySource).not.toContain("fetchFreezoneJobResult");
+    expect(overlaySource).not.toContain("awaitTaskCompletion");
+    expect(opsSource).toContain("@/features/canvas/domain/videoUpscale");
+    expect(opsSource).not.toContain("FreezoneVideoUpscaleResolution");
+    expect(opsSource).not.toContain("FreezoneVideoUpscaleDenoise");
   });
 
   it("keeps Canvas asset extraction independent from media URL infrastructure", () => {
