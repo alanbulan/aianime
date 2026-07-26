@@ -10337,6 +10337,41 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("function submittableImageUrl(");
   });
 
+  it("keeps dropped video file selection in one application module", () => {
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/resolveDroppedVideoFile.ts",
+    );
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const videoNode = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      "utf8",
+    );
+    const declaration = [
+      "export function",
+      "resolveDroppedVideoFile(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(importSpecifiers(applicationPath)).toEqual(["./videoFileTypes"]);
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(implementationOwners).toEqual([
+      "features/canvas/application/resolveDroppedVideoFile.ts",
+    ]);
+    expect(videoNode).toContain(
+      "@/features/canvas/application/resolveDroppedVideoFile",
+    );
+    expect(videoNode).toContain(
+      "resolveDroppedVideoFile(event.dataTransfer)",
+    );
+    expect(videoNode).not.toContain("function resolveDroppedVideoFile(");
+  });
+
   it("keeps VideoNode album chrome in one presentation view", () => {
     const viewPath = resolve(
       SRC_ROOT,

@@ -68,6 +68,7 @@ import {
   resolveImageDisplayUrl,
   snapToAllowedAspectRatio,
 } from "@/features/canvas/application/imageData";
+import { resolveDroppedVideoFile } from "@/features/canvas/application/resolveDroppedVideoFile";
 import { ensureWebSafeVideo } from "@/features/canvas/infrastructure/videoTranscode";
 import { isVideoFile, VIDEO_FILE_ACCEPT } from "@/features/canvas/application/videoFileTypes";
 import { resolveNodeDisplayName } from "@/features/canvas/domain/nodeDisplay";
@@ -327,22 +328,6 @@ function audioReferenceFileName(item: {
     return null;
   }
 }
-function resolveDroppedVideoFile(event: DragEvent<HTMLElement>): File | null {
-  const directFile = event.dataTransfer.files?.[0];
-  if (directFile && isVideoFile(directFile)) {
-    return directFile;
-  }
-  // items[].type 同样对 .mxf 为空串，先按 MIME 粗筛拿到 File 再用扩展名兜底。
-  const candidates = Array.from(event.dataTransfer.items || []).filter(
-    (candidate) => candidate.kind === "file",
-  );
-  for (const candidate of candidates) {
-    const file = candidate.getAsFile();
-    if (file && isVideoFile(file)) return file;
-  }
-  return null;
-}
-
 function resolveOutputUrl(
   result: Record<string, unknown> | null | undefined,
 ): string | null {
@@ -1188,7 +1173,7 @@ export const VideoNode = memo(
       async (event: DragEvent<HTMLElement>) => {
         event.preventDefault();
         event.stopPropagation();
-        const file = resolveDroppedVideoFile(event);
+        const file = resolveDroppedVideoFile(event.dataTransfer);
         if (file) await processFile(file);
       },
       [processFile],
