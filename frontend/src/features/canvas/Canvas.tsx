@@ -38,7 +38,6 @@ import {
 } from '@/features/canvas/composition';
 import {
   CANVAS_NODE_TYPES,
-  type CanvasNode,
   type CanvasNodeData,
   type CanvasNodeType,
 } from '@/features/canvas/domain/canvasNodes';
@@ -95,6 +94,7 @@ import {
 } from './hooks/useCanvasAutoLayoutController';
 import { useCanvasBeatContextPrefetch } from './hooks/useCanvasBeatContextPrefetch';
 import { useCanvasGraphChangeController } from './hooks/useCanvasGraphChangeController';
+import { useCanvasDragLifecycleController } from './hooks/useCanvasDragLifecycleController';
 import { useCanvasGroupFitDragController } from './hooks/useCanvasGroupFitDragController';
 import { useCanvasHistoryAssetController } from './hooks/useCanvasHistoryAssetController';
 import {
@@ -1049,53 +1049,24 @@ export function Canvas({
     deleteSelection: deleteSelectedElements,
   });
 
-  const handleNodeDragStart = useCallback(
-    (event: ReactMouseEvent, node: CanvasNode, draggedNodes: CanvasNode[]) => {
-      beginGroupFitNodeDrag(
-        event.altKey,
-        node.id,
-        draggedNodes?.map((draggedNode) => draggedNode.id) ?? [],
-      );
-      beginLinkedCaptureDrag(
-        event.altKey,
-        node.id,
-        draggedNodes?.length ?? 0,
-      );
-      beginAltDragCopy(event.altKey, node.id);
-    },
-    [beginAltDragCopy, beginGroupFitNodeDrag, beginLinkedCaptureDrag]
-  );
-
-  const handleNodeDrag = useCallback(
-    (_event: ReactMouseEvent, node: CanvasNode) => {
-      updateLinkedCaptureDrag(node.position);
-      updateAltDragCopy(node.id, node.position);
-    },
-    [updateAltDragCopy, updateLinkedCaptureDrag]
-  );
-
-  const handleNodeDragStop = useCallback(
-    (_event: ReactMouseEvent, node: CanvasNode) => {
-      clearSnapAlignment();
-      finishLinkedCaptureDrag();
-      finishGroupFitDrag();
-      finishAltDragCopy(node.id, node.position);
-    },
-    [
-      clearSnapAlignment,
-      finishAltDragCopy,
-      finishGroupFitDrag,
-      finishLinkedCaptureDrag,
-    ]
-  );
-
-  const handleSelectionDragStart = useCallback(
-    (_event: ReactMouseEvent, draggedNodes: CanvasNode[]) => {
-      beginGroupFitSelectionDrag(draggedNodes.map((node) => node.id));
-    },
-    [beginGroupFitSelectionDrag]
-  );
-  const handleSelectionDragStop = finishGroupFitDrag;
+  const {
+    handleNodeDragStart,
+    handleNodeDrag,
+    handleNodeDragStop,
+    handleSelectionDragStart,
+    handleSelectionDragStop,
+  } = useCanvasDragLifecycleController({
+    beginGroupFitNodeDrag,
+    beginGroupFitSelectionDrag,
+    finishGroupFitDrag,
+    beginLinkedCaptureDrag,
+    updateLinkedCaptureDrag,
+    finishLinkedCaptureDrag,
+    beginAltDragCopy,
+    updateAltDragCopy,
+    finishAltDragCopy,
+    clearSnapAlignment,
+  });
 
   const emptyHint = useMemo(() => {
     return (

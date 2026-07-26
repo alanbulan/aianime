@@ -2163,6 +2163,13 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useCanvasAltDragCopyController.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
+    const lifecycleModel = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasDragLifecycleController.ts",
+      ),
+      "utf8",
+    );
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -2198,9 +2205,9 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("disableOffsetIteration: true");
     expect(hookModel).toContain("selectNode(state.copiedNodeIds[0])");
     expect(canvasView).toContain("./hooks/useCanvasAltDragCopyController");
-    expect(canvasView).toContain("beginAltDragCopy(event.altKey, node.id)");
-    expect(canvasView).toContain("updateAltDragCopy(node.id, node.position)");
-    expect(canvasView).toContain("finishAltDragCopy(node.id, node.position)");
+    expect(lifecycleModel).toContain("beginAltDragCopy(event.altKey, node.id)");
+    expect(lifecycleModel).toContain("updateAltDragCopy(node.id, node.position)");
+    expect(lifecycleModel).toContain("finishAltDragCopy(node.id, node.position)");
     expect(canvasView).toContain("isCopyDragActive,");
     expect(canvasView).not.toContain("altDragCopyRef");
     expect(canvasView).not.toContain("ALT_DRAG_COPY_Z_INDEX");
@@ -2214,6 +2221,13 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useCanvasGroupFitDragController.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
+    const lifecycleModel = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasDragLifecycleController.ts",
+      ),
+      "utf8",
+    );
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -2249,11 +2263,11 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("if (altKey)");
     expect(hookModel).toContain("fitGroupToChildren(groupId)");
     expect(canvasView).toContain("./hooks/useCanvasGroupFitDragController");
-    expect(canvasView).toContain("beginGroupFitNodeDrag(");
-    expect(canvasView).toContain("beginGroupFitSelectionDrag(");
-    expect(canvasView).toContain("finishGroupFitDrag()");
-    expect(canvasView).toContain(
-      "const handleSelectionDragStop = finishGroupFitDrag",
+    expect(lifecycleModel).toContain("beginGroupFitNodeDrag(");
+    expect(lifecycleModel).toContain("beginGroupFitSelectionDrag(");
+    expect(lifecycleModel).toContain("finishGroupFitDrag()");
+    expect(lifecycleModel).toContain(
+      "handleSelectionDragStop: finishGroupFitDrag",
     );
     expect(canvasView).not.toContain("groupFitDragRef");
     expect(canvasView).not.toContain("fitGroupToChildren(groupId)");
@@ -2265,6 +2279,13 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useCanvasLinkedCaptureDragController.ts",
     );
     const hookModel = readFileSync(hookPath, "utf8");
+    const lifecycleModel = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasDragLifecycleController.ts",
+      ),
+      "utf8",
+    );
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -2300,9 +2321,9 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("partner && !partner.parentId");
     expect(hookModel).toContain("dragging: true as const");
     expect(canvasView).toContain("./hooks/useCanvasLinkedCaptureDragController");
-    expect(canvasView).toContain("beginLinkedCaptureDrag(");
-    expect(canvasView).toContain("updateLinkedCaptureDrag(node.position)");
-    expect(canvasView).toContain("finishLinkedCaptureDrag()");
+    expect(lifecycleModel).toContain("beginLinkedCaptureDrag(");
+    expect(lifecycleModel).toContain("updateLinkedCaptureDrag(node.position)");
+    expect(lifecycleModel).toContain("finishLinkedCaptureDrag()");
     expect(canvasView).not.toContain("linkedDragRef");
     expect(canvasView).not.toContain("partnerStarts");
     expect(canvasView).not.toContain("findLinkedCapturePartnerIds(");
@@ -7319,5 +7340,51 @@ describe("frontend architecture boundaries", () => {
     expect(historyViewSource).toContain(
       "extractCanvasAssets(nodes, resolveMediaUrl)",
     );
+  });
+
+  it("keeps Canvas drag lifecycle orchestration in one presentation controller", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasDragLifecycleController.ts",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const canvasSource = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(controllerPath).filter(
+      (specifier) =>
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declaration = [
+      "export function",
+      "useCanvasDragLifecycleController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasDragLifecycleController.ts",
+    ]);
+    expect(controllerSource).toContain("beginGroupFitNodeDrag(");
+    expect(controllerSource).toContain("beginLinkedCaptureDrag(");
+    expect(controllerSource).toContain("beginAltDragCopy(");
+    expect(controllerSource).toContain("finishLinkedCaptureDrag();");
+    expect(controllerSource).toContain("finishGroupFitDrag();");
+    expect(controllerSource).toContain("finishAltDragCopy(node.id, node.position)");
+    expect(canvasSource).toContain("./hooks/useCanvasDragLifecycleController");
+    expect(canvasSource).not.toContain("const handleNodeDragStart = useCallback");
+    expect(canvasSource).not.toContain("const handleNodeDrag = useCallback");
+    expect(canvasSource).not.toContain("const handleNodeDragStop = useCallback");
+    expect(canvasSource).not.toContain("const handleSelectionDragStart = useCallback");
   });
 });
