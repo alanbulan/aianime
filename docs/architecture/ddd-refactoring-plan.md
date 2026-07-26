@@ -1506,6 +1506,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百一十一批已将音色引用目录与自定义音色上传收口到 Canvas application 的 `audioVoiceCatalog` 端口，唯一 `freezoneAudioVoiceCatalogGateway` infrastructure 适配器负责 `character_name/identity_id/voice_id/preview_url` 到 Canvas DTO 的投影，并统一保留 `gender` 到旧 `sex` 字段的兼容优先级，轻量 `audioComposition` 完成装配；`AudioNode` 与 `VoiceSelectionModal` 不再直接依赖 `api/ops`，两处重复的 `AudioVoiceRef` 组装及视图内性别读取同步删除，原有按项目 Promise 去重与失败重试、StrictMode 初始化保护、音色搜索/分页、5MB 上传前置门禁及错误提示保持不变；两个视图分别由 371、825 行降至 366、810 行，application 契约 19 行、适配器 47 行、组合根 14 行；适配器测试 2 项、新增后的架构门禁 166 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百一十二批已将语音/音乐分派、情绪提示词去空白、默认解说音色、音乐参数默认值、任务提交回执、完成等待及结果 URL 查询迁入唯一 application 用例 `generateCanvasAudio`，并把旧 `segments` 文本兼容与上游/本地提示词拼接一并迁入纯 application 函数；`freezoneAudioGenerationGateway` infrastructure 适配器唯一调用两个音频提交端点，`audioComposition` 注入既有任务 gateway 并通过提交回调维持“先持久化任务句柄、再等待完成”的刷新恢复时序，`useAudioGeneration` 只保留 URL/生成状态门禁、节点状态写回和错误展示，不再直接依赖 `api/ops` 或任务 API；hook 由 123 行降至 99 行，用例 128 行、适配器 25 行，音频组合根由 14 行调整为 32 行；用例与适配器共 2 个测试文件 5 项、新增后的架构门禁 167 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

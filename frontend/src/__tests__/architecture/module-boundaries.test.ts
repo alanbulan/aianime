@@ -8534,9 +8534,9 @@ describe("frontend architecture boundaries", () => {
     expect(infrastructureSource).toContain(
       "item.gender ?? (item as Record<string, unknown>).sex",
     );
-    expect(importSpecifiers(compositionPath)).toEqual([
+    expect(importSpecifiers(compositionPath)).toContain(
       "./infrastructure/freezoneAudioVoiceCatalogGateway",
-    ]);
+    );
     expect(compositionSource).toContain(
       "freezoneAudioVoiceCatalogGateway.listReferences(projectId)",
     );
@@ -8557,6 +8557,91 @@ describe("frontend architecture boundaries", () => {
     expect(voiceModalSource).not.toContain("character_name");
     expect(voiceModalSource).not.toContain("voice_id");
     expect(voiceModalSource).not.toContain("function readGender(");
+  });
+
+  it("keeps Canvas audio generation orchestration in application", () => {
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/generateCanvasAudio.ts",
+    );
+    const infrastructurePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneAudioGenerationGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/audioComposition.ts",
+    );
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/useAudioGeneration.ts",
+    );
+    const panelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/AudioOperationsPanel.tsx",
+    );
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const infrastructureSource = readFileSync(infrastructurePath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const hookSource = readFileSync(hookPath, "utf8");
+    const panelSource = readFileSync(panelPath, "utf8");
+
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set(["../domain/canvasNodes", "./ports"]),
+    );
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).toContain(
+      "export async function generateCanvasAudio(",
+    );
+    expect(applicationSource).toContain(
+      "dependencies.submissionGateway.submitMusic(",
+    );
+    expect(applicationSource).toContain(
+      "dependencies.submissionGateway.submitSpeech(",
+    );
+    expect(applicationSource).toContain(
+      "dependencies.onTaskSubmitted(task)",
+    );
+    expect(applicationSource).toContain(
+      '"freezone_audio_eleven_music"',
+    );
+    expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
+      new Set(["@/api/ops", "../application/generateCanvasAudio"]),
+    );
+    expect(infrastructureSource).toContain(
+      "freezoneAudioGenerationGateway: CanvasAudioGenerationSubmissionGateway",
+    );
+    expect(new Set(importSpecifiers(compositionPath))).toEqual(
+      new Set([
+        "./application/generateCanvasAudio",
+        "./application/ports",
+        "./infrastructure/freezoneAudioGenerationGateway",
+        "./infrastructure/freezoneAudioVoiceCatalogGateway",
+        "./infrastructure/freezoneGenerationTaskGateway",
+      ]),
+    );
+    expect(compositionSource).toContain("generateCanvasAudioUseCase(params, {");
+    expect(compositionSource).toContain(
+      "submissionGateway: freezoneAudioGenerationGateway",
+    );
+    expect(compositionSource).toContain(
+      "taskGateway: freezoneGenerationTaskGateway",
+    );
+    expect(importSpecifiers(hookPath)).not.toContain("@/api/ops");
+    expect(importSpecifiers(hookPath)).not.toContain("@/api/tasks");
+    expect(hookSource).toContain("await generateCanvasAudio(");
+    expect(hookSource).not.toContain("submitFreezoneAudioMusic");
+    expect(hookSource).not.toContain("submitFreezoneAudioSpeech");
+    expect(hookSource).not.toContain("fetchFreezoneJobResult");
+    expect(hookSource).not.toContain("awaitTaskCompletion");
+    expect(panelSource).toContain(
+      "@/features/canvas/application/generateCanvasAudio",
+    );
+    expect(panelSource).not.toContain(
+      "deriveAudioText, useAudioGeneration",
+    );
   });
 
   it("keeps Canvas asset extraction independent from media URL infrastructure", () => {

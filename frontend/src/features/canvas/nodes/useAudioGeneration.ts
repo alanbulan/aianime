@@ -1,36 +1,15 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useMemo } from 'react';
 
-import {
-  fetchFreezoneJobResult,
-  submitFreezoneAudioMusic,
-  submitFreezoneAudioSpeech,
-} from '@/api/ops';
-import { awaitTaskCompletion } from '@/api/tasks';
-import {
-  type AudioNodeData,
-  type AudioTextSegment,
-} from '@/features/canvas/domain/canvasNodes';
+import type { AudioNodeData } from '@/features/canvas/domain/canvasNodes';
+import { buildCanvasAudioPrompt } from '@/features/canvas/application/generateCanvasAudio';
 import { joinUpstreamText } from '@/features/canvas/application/graphContentResolver';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
+import { generateCanvasAudio } from '@/features/canvas/audioComposition';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
 import { useUpstreamContents } from '@/features/canvas/hooks/useUpstreamGraph';
 import { readUrl } from '@/lib/url-params';
 import { useCanvasStore } from '@/stores/canvasStore';
-
-/**
- * 老节点数据可能还带着 segments（旧版分段编辑器留下的）。新版直接读 `text`，
- * 没的话回退去拼 segments — 这样老节点打开后用户就能继续编辑。
- */
-export function deriveAudioText(data: AudioNodeData): string {
-  if (typeof data.text === 'string') return data.text;
-  if (Array.isArray(data.segments)) {
-    return data.segments
-      .map((seg: AudioTextSegment) => (seg.type === 'text' ? seg.value : ''))
-      .join('');
-  }
-  return '';
-}
 
 /**
  * 音频节点的生成逻辑——提交按钮（面板）和失败重试（节点本体）共用。
@@ -48,11 +27,7 @@ export function useAudioGeneration(nodeId: string, data: AudioNodeData) {
   const isMusic = data.audioKind === 'music';
   // 有效 prompt：上游引用的文本不回显进输入框，仅在提交时与本地输入「拼接」成最终
   // prompt（上游在前、本地在后，与 joinUpstreamText 一致用空行分隔，过滤空段）。
-  const ownText = deriveAudioText(data);
-  const effectivePrompt = [upstreamTextJoined.trim(), ownText.trim()]
-    .filter((segment) => segment.length > 0)
-    .join('\n\n');
-  const emotionPrompt = data.emotionPrompt ?? '';
+  const effectivePrompt = buildCanvasAudioPrompt(data, upstreamTextJoined);
 
   const generate = useCallback(async () => {
     if (isGenerating) return;
@@ -69,30 +44,31 @@ export function useAudioGeneration(nodeId: string, data: AudioNodeData) {
       generationError: null,
     });
     try {
-      const ref = isMusic
-        ? await submitFreezoneAudioMusic(project, {
-            prompt: trimmed,
-            musicLengthMs:
-              typeof data.musicLengthMs === 'number' ? data.musicLengthMs : undefined,
-            forceInstrumental: data.forceInstrumental ?? true,
-            respectSectionsDurations: data.respectSectionsDurations ?? true,
-          })
-        : await submitFreezoneAudioSpeech(project, {
-            text: trimmed,
-            emotionPrompt: emotionPrompt.trim() || undefined,
-            voiceRef: data.voiceRef ?? { scope: 'project_narrator' },
-          });
-      // Persist the task handle so a page refresh can resume this job.
-      updateNodeData(nodeId, generationTaskDescriptor(ref));
-      await awaitTaskCompletion(ref.task_key, project);
-      const result = await fetchFreezoneJobResult(
-        project,
-        isMusic ? 'freezone_audio_eleven_music' : 'freezone_audio_speech',
-        ref.job_id,
+      const result = await generateCanvasAudio(
+        isMusic
+          ? {
+              kind: 'music',
+              projectId: project,
+              prompt: trimmed,
+              musicLengthMs: data.musicLengthMs,
+              forceInstrumental: data.forceInstrumental,
+              respectSectionsDurations: data.respectSectionsDurations,
+            }
+          : {
+              kind: 'speech',
+              projectId: project,
+              prompt: trimmed,
+              emotionPrompt: data.emotionPrompt,
+              voiceRef: data.voiceRef,
+            },
+        (task) => {
+          // Persist the task handle so a page refresh can resume this job.
+          updateNodeData(nodeId, generationTaskDescriptor(task));
+        },
       );
       updateNodeData(nodeId, {
         isGenerating: false,
-        audioUrl: result.url,
+        audioUrl: result.audioUrl,
         durationMs: null,
         generationError: null,
       });
@@ -113,8 +89,8 @@ export function useAudioGeneration(nodeId: string, data: AudioNodeData) {
     data.forceInstrumental,
     data.respectSectionsDurations,
     data.voiceRef,
+    data.emotionPrompt,
     effectivePrompt,
-    emotionPrompt,
     nodeId,
     updateNodeData,
   ]);
