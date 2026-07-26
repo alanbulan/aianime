@@ -20,7 +20,6 @@ import {
   projectCanvasNodesForRender,
 } from './ui/canvasRenderProjection';
 import { useCanvasExternalDialogs } from './hooks/useCanvasExternalDialogs';
-import { useCanvasGenerationRecoveryController } from './hooks/useCanvasGenerationRecoveryController';
 import { useCanvasGraphEditingSurfaceController } from './hooks/useCanvasGraphEditingSurfaceController';
 import { useCanvasConnectionController } from './hooks/useCanvasConnectionController';
 import { useCanvasConnectionGestureController } from './hooks/useCanvasConnectionGestureController';
@@ -31,7 +30,7 @@ import { useCanvasNodeMenuStateController } from './hooks/useCanvasNodeMenuState
 import { useCanvasNodeCatalogController } from './hooks/useCanvasNodeCatalogController';
 import { useCanvasNodePlacementConfirm } from './hooks/useCanvasNodePlacementConfirm';
 import { useCanvasCommandSurfaceController } from './hooks/useCanvasCommandSurfaceController';
-import { useCanvasProjectContextController } from './hooks/useCanvasProjectContextController';
+import { useCanvasProjectSurfaceController } from './hooks/useCanvasProjectSurfaceController';
 import { useCanvasSelectionSurfaceController } from './hooks/useCanvasSelectionSurfaceController';
 import { useCanvasViewportSurfaceController } from './hooks/useCanvasViewportSurfaceController';
 
@@ -96,15 +95,12 @@ export function Canvas({
   // edgeVisibilityStore）。持久化/自动布局/导出全部照用 store 里的真实连线。
   const edgesHidden = useEdgeVisibilityStore((state) => state.hidden);
 
-  const { projectId: canvasProject } = useCanvasProjectContextController({
+  const { projectId: canvasProject } = useCanvasProjectSurfaceController({
     nodes,
+    errorTitle: t('common.error'),
   });
   // 底部任务中心面板展开时，让出底部空间——隐藏画布快捷操作栏，避免与面板重叠。
   const taskPanelOpen = useAppStore((state) => state.taskPanelOpen);
-  useCanvasGenerationRecoveryController({
-    projectId: canvasProject,
-    errorTitle: t('common.error'),
-  });
   const applyNodesChange = useCanvasStore((state) => state.onNodesChange);
   const applyEdgesChange = useCanvasStore((state) => state.onEdgesChange);
   const connectNodes = useCanvasStore((state) => state.onConnect);

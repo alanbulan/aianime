@@ -2729,6 +2729,58 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("createCanvasSkillNodeData(skill)");
   });
 
+  it("keeps Canvas project assembly in one presentation controller", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasProjectSurfaceController.ts",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(controllerPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declaration = [
+      "export function",
+      "useCanvasProjectSurfaceController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+    const childControllers = [
+      "./useCanvasProjectContextController",
+      "./useCanvasGenerationRecoveryController",
+    ];
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasProjectSurfaceController.ts",
+    ]);
+    for (const childController of childControllers) {
+      expect(controllerSource).toContain(childController);
+      expect(canvasView).not.toContain(
+        childController.replace("./", "./hooks/"),
+      );
+    }
+    expect(controllerSource).toContain("projectContext.projectId");
+    expect(canvasView).toContain("./hooks/useCanvasProjectSurfaceController");
+    expect(
+      canvasView.match(/useCanvasProjectSurfaceController\(\{/g),
+    ).toHaveLength(1);
+  });
+
   it("keeps Canvas Beat Context prefetch projection outside the view", () => {
     const domainPath = resolve(
       SRC_ROOT,
@@ -2807,7 +2859,10 @@ describe("frontend architecture boundaries", () => {
     expect(controllerModel).toContain("prefetchEpisodeBeats");
     expect(controllerModel).toContain("prefetchEpisodeDetail");
     expect(controllerModel).toContain("readUrl().project");
-    expect(canvasView).toContain("./hooks/useCanvasProjectContextController");
+    expect(canvasView).toContain("./hooks/useCanvasProjectSurfaceController");
+    expect(canvasView).not.toContain(
+      "./hooks/useCanvasProjectContextController",
+    );
     expect(canvasView).not.toContain("./hooks/useCanvasBeatContextPrefetch");
     expect(canvasView).not.toContain("useQueryClient");
     expect(canvasView).not.toContain("prefetchEpisodeBeats");
@@ -3608,8 +3663,10 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("runNode(nodeId).finally");
     expect(recoveryController).toContain("./useCanvasAsyncNodeTasks");
     expect(recoveryController.match(/useCanvasAsyncNodeTasks\(\{/g)).toHaveLength(2);
-    expect(canvasView).toContain("./hooks/useCanvasGenerationRecoveryController");
-    expect(canvasView.match(/useCanvasGenerationRecoveryController\(\{/g)).toHaveLength(1);
+    expect(canvasView).toContain("./hooks/useCanvasProjectSurfaceController");
+    expect(canvasView).not.toContain(
+      "./hooks/useCanvasGenerationRecoveryController",
+    );
     expect(canvasView).not.toContain("./hooks/useCanvasAsyncNodeTasks");
     expect(canvasView).not.toContain("pendingExportImageNodeIds");
     expect(canvasView).not.toContain("pendingGenerationResumeNodeIds");
