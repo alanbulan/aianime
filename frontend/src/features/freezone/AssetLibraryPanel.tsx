@@ -43,7 +43,7 @@ import { useAssetDropStore, type DropMediaType } from "@/stores/assetDropStore";
 import { assetToPushTarget } from "@/features/freezone/commit/pushTarget";
 import { promoteToAsset } from "@/features/freezone/commit/promoteToAsset";
 import { commitDirectorRenderFromCanvasSource } from "@/features/freezone/commit/directorRenderCommit";
-import type { PushResult, PushTarget } from "@/api/push";
+import type { PushResult, PushTarget } from "@/features/freezone/public";
 import type { MainlineContext } from "@/features/freezone/context/mainlineContext";
 import type { DirectorWorldSource } from "@/features/viewer-kit/three-d/directorManifest";
 

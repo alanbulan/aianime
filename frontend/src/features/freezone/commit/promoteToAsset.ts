@@ -1,11 +1,13 @@
 // Copyright (c) 2026 AI anime
 import {
-  fetchPushImpact,
-  pushToPipeline,
-  type ImpactResult,
-  type PushResult,
-  type PushTarget,
-} from "@/api/push";
+  commitFreezoneAsset,
+  getFreezoneAssetImpact,
+} from "../composition";
+import type {
+  ImpactResult,
+  PushResult,
+  PushTarget,
+} from "../domain/assetCommit";
 
 export interface PromoteToAssetOptions {
   mark_stale?: boolean;
@@ -23,7 +25,7 @@ export async function promoteToAsset(
   options?: PromoteToAssetOptions,
 ): Promise<PushResult> {
   validateCommitTarget(target);
-  return await pushToPipeline(project, sourceUrl, target, options);
+  return await commitFreezoneAsset(project, sourceUrl, target, options);
 }
 
 export async function previewAssetImpact(
@@ -31,7 +33,7 @@ export async function previewAssetImpact(
   target: PushTarget,
 ): Promise<ImpactResult> {
   validateCommitTarget(target);
-  return await fetchPushImpact(project, target);
+  return await getFreezoneAssetImpact(project, target);
 }
 
 function validateCommitTarget(target: PushTarget): void {

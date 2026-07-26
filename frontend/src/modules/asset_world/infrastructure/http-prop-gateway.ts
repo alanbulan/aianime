@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { commitFreezoneAsset } from "@/features/freezone/public";
 import type {
   AssetDataResponse,
   AssetErrorResponse,
@@ -52,15 +53,13 @@ export const httpPropGateway: PropGateway = {
       .post(p`api/v1/projects/${project}/freezone/upload`, { body: formData })
       .json<AssetDataResponse<{ url: string; filename: string; size: number }>>();
 
-    return api
-      .post(p`api/v1/projects/${project}/freezone/push`, {
-        json: {
-          source_url: uploaded.data.url,
-          target: { kind: "prop_ref", prop_id: name },
-          mark_stale: true,
-        },
-      })
-      .json<AssetResponse<unknown>>();
+    const committed = await commitFreezoneAsset(
+      project,
+      uploaded.data.url,
+      { kind: "prop_ref", prop_id: name },
+      { mark_stale: true },
+    );
+    return { ok: true, data: committed };
   },
 
   async scheduleBatchReferences(project, input) {

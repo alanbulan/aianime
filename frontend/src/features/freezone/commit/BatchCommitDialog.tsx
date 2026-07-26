@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { useState } from "react";
-import type { PushTarget } from "@/api/push";
+import type { PushTarget } from "@/features/freezone/public";
 import { promoteToAsset } from "./promoteToAsset";
 
 const GLOBAL_SLOT_KINDS = new Set<PushTarget["kind"]>([

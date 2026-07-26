@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { PushResult, PushTarget } from "@/api/push";
+import type { PushResult, PushTarget } from "@/features/freezone/public";
 import {
   clearSceneDirectorWorld,
   loadSceneDirectorStageManifest,

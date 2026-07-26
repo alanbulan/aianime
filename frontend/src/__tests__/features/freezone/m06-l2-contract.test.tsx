@@ -10,8 +10,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { server } from "@/__mocks__/msw/server";
 import { apiCall } from "@/shared/api/client";
 import { freezoneCanvasStorageGateway } from "@/features/canvas/infrastructure/freezoneCanvasStorageGateway";
+import { httpFreezoneAssetCommitGateway } from "@/features/freezone/infrastructure/httpFreezoneAssetCommitGateway";
 import { fetchFreezoneJobResult, submitFreezoneGen } from "@/api/ops";
-import { pushToPipeline } from "@/api/push";
 import { createStreamClient } from "@/task-center/stream-client";
 import { useTaskStream } from "@/hooks/use-task-stream";
 import { useStartIngest } from "@/modules/story_intake/public";
@@ -321,12 +321,12 @@ describe("M06 frontend L2 contract", () => {
       nodeId: "n1",
     });
     const jobResult = await fetchFreezoneJobResult("demo", job.task_type, job.job_id);
-    const pushResult = await pushToPipeline(
-      "demo",
-      jobResult.url,
-      { kind: "frame", episode: 1, beat: 2 },
-      { mark_stale: true },
-    );
+    const pushResult = await httpFreezoneAssetCommitGateway.commitAsset({
+      projectId: "demo",
+      sourceUrl: jobResult.url,
+      target: { kind: "frame", episode: 1, beat: 2 },
+      markStale: true,
+    });
 
     expect(canvases).toEqual([
       expect.objectContaining({ id: "default", revision: 4 }),

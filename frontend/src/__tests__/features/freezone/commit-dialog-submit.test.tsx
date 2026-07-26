@@ -2,7 +2,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { PushTarget } from "@/api/push";
+import type { PushTarget } from "@/features/freezone/public";
 import { CommitDialog } from "@/features/freezone/commit/CommitDialog";
 import { promoteToAsset, previewAssetImpact } from "@/features/freezone/commit/promoteToAsset";
 

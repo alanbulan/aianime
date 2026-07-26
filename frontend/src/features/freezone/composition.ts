@@ -1,5 +1,9 @@
 // Copyright (c) 2026 AI anime
 import {
+  commitFreezoneAsset as commitFreezoneAssetUseCase,
+  getFreezoneAssetImpact as getFreezoneAssetImpactUseCase,
+} from "./application/assetCommit";
+import {
   listFreezoneBeatContext as listFreezoneBeatContextUseCase,
   listFreezoneProjectAssets as listFreezoneProjectAssetsUseCase,
   type FreezoneBeatContextQueryOptions,
@@ -9,9 +13,38 @@ import {
   buildProjectionFromPreset as buildProjectionFromPresetUseCase,
   getProjectionStatuses as getProjectionStatusesUseCase,
 } from "./application/canvasProjection";
+import type { PushTarget } from "./domain/assetCommit";
 import type { FreezoneProjectionPresetRequest } from "./domain/canvasProjection";
+import { httpFreezoneAssetCommitGateway } from "./infrastructure/httpFreezoneAssetCommitGateway";
 import { httpFreezoneCanvasProjectionGateway } from "./infrastructure/httpFreezoneCanvasProjectionGateway";
 import { httpFreezoneContextQueryGateway } from "./infrastructure/httpFreezoneContextQueryGateway";
+
+export function commitFreezoneAsset(
+  projectId: string,
+  sourceUrl: string,
+  target: PushTarget,
+  options?: { mark_stale?: boolean },
+) {
+  return commitFreezoneAssetUseCase(
+    {
+      projectId,
+      sourceUrl,
+      target,
+      markStale: options?.mark_stale,
+    },
+    httpFreezoneAssetCommitGateway,
+  );
+}
+
+export function getFreezoneAssetImpact(
+  projectId: string,
+  target: PushTarget,
+) {
+  return getFreezoneAssetImpactUseCase(
+    { projectId, target },
+    httpFreezoneAssetCommitGateway,
+  );
+}
 
 export function buildProjectionFromPreset(
   projectId: string,

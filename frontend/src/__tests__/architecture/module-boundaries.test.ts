@@ -675,6 +675,7 @@ describe("frontend architecture boundaries", () => {
               specifier.includes("features/freezone/domain/skillContract") ||
               specifier.includes("features/freezone/domain/skillExecution") ||
               specifier.includes("features/freezone/domain/sceneAssets") ||
+              specifier.includes("features/freezone/domain/assetCommit") ||
               specifier.includes("features/freezone/domain/beatContext") ||
               specifier.includes("features/freezone/domain/canvasProjection") ||
               specifier.includes("features/freezone/domain/canvasStorage") ||
@@ -692,6 +693,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(publicPath))).toEqual(
       new Set([
         "@/features/freezone/composition",
+        "@/features/freezone/domain/assetCommit",
         "@/features/freezone/domain/beatContext",
         "@/features/freezone/domain/canvasProjection",
         "@/features/freezone/domain/canvasStorage",
@@ -769,6 +771,7 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(canvasContractPath)).toEqual([]);
     expect(importSpecifiers(beatContextContractPath)).toEqual([
       "../context/mainlineContext",
+      "./assetCommit",
     ]);
     expect(new Set(importSpecifiers(canvasApplicationPath))).toEqual(
       new Set([
@@ -966,6 +969,94 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain(
       "httpFreezoneCanvasProjectionGateway",
     );
+  });
+
+  it("keeps Freezone asset commits behind one application gateway", () => {
+    const legacyApiPath = resolve(SRC_ROOT, "api/push.ts");
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/freezone/domain/assetCommit.ts",
+    );
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/assetCommit.ts",
+    );
+    const infrastructurePath = resolve(
+      SRC_ROOT,
+      "features/freezone/infrastructure/httpFreezoneAssetCommitGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/freezone/composition.ts",
+    );
+    const promotePath = resolve(
+      SRC_ROOT,
+      "features/freezone/commit/promoteToAsset.ts",
+    );
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const directLegacyConsumers = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        importSpecifiers(path).some((specifier) => specifier.includes("api/push")),
+      )
+      .map(relativeSource)
+      .sort();
+    const pushEndpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("}/freezone/push`"),
+      )
+      .map(relativeSource)
+      .sort();
+    const impactEndpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("}/freezone/impact`"),
+      )
+      .map(relativeSource)
+      .sort();
+    const publicConsumerPaths = [
+      "features/freezone/FreezoneShell.tsx",
+      "features/freezone/AssetLibraryPanel.tsx",
+      "features/freezone/commit/CommitDialog.tsx",
+      "features/freezone/commit/BatchCommitDialog.tsx",
+      "features/freezone/commit/directorRenderCommit.ts",
+      "features/freezone/commit/sceneDirectorWorldCommit.ts",
+      "features/freezone/commit/committedNodePatch.ts",
+      "features/freezone/commit/pushTarget.ts",
+      "features/canvas/domain/mainlineNodeTypes.ts",
+      "modules/asset_world/infrastructure/http-prop-gateway.ts",
+    ];
+
+    expect(existsSync(legacyApiPath)).toBe(false);
+    expect(importSpecifiers(domainPath)).toEqual([]);
+    expect(importSpecifiers(applicationPath)).toEqual([
+      "../domain/assetCommit",
+    ]);
+    expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
+      new Set([
+        "@/shared/api/client",
+        "../application/assetCommit",
+        "../domain/assetCommit",
+      ]),
+    );
+    expect(directLegacyConsumers).toEqual([]);
+    expect(pushEndpointOwners).toEqual([
+      "features/freezone/infrastructure/httpFreezoneAssetCommitGateway.ts",
+    ]);
+    expect(impactEndpointOwners).toEqual([
+      "features/freezone/infrastructure/httpFreezoneAssetCommitGateway.ts",
+    ]);
+    for (const consumerPath of publicConsumerPaths) {
+      const imports = importSpecifiers(resolve(SRC_ROOT, consumerPath));
+      expect(imports).toContain("@/features/freezone/public");
+      expect(imports).not.toContain("@/api/push");
+    }
+    expect(importSpecifiers(promotePath)).toContain("../composition");
+    expect(importSpecifiers(promotePath)).not.toContain("@/api/push");
+    expect(applicationSource).not.toContain("@/shared/api/");
+    expect(compositionSource).toContain("httpFreezoneAssetCommitGateway");
   });
 
   it("keeps Canvas node preferences behind one browser gateway", () => {

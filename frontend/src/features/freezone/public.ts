@@ -1,6 +1,8 @@
 // Copyright (c) 2026 AI anime
 export {
   buildProjectionFromPreset,
+  commitFreezoneAsset,
+  getFreezoneAssetImpact,
   getProjectionStatuses,
   listFreezoneBeatContext,
   listFreezoneProjectAssets,
@@ -12,6 +14,13 @@ export {
   isSkillRunTerminalStatus,
   skillRunErrorMessage,
 } from "@/features/freezone/domain/skillExecution";
+export type {
+  ImpactBeat,
+  ImpactResult,
+  PushResult,
+  PushTarget,
+  PushTargetKind,
+} from "@/features/freezone/domain/assetCommit";
 export type {
   FreezoneBeatContextBeat,
   FreezoneBeatContextEpisode,

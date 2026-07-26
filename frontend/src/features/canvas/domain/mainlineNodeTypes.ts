@@ -20,9 +20,9 @@
  * a role string.
  */
 
-import type { PushTarget, PushTargetKind } from "../../../api/push.ts";
+import type { PushTarget, PushTargetKind } from "@/features/freezone/public";
 
-export type { PushTargetKind } from "../../../api/push.ts";
+export type { PushTargetKind } from "@/features/freezone/public";
 
 /** Alias for `PushTarget` expressing node intent: "this node's Push default target". */
 export type SlotTarget = PushTarget;

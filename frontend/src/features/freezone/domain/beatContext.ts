@@ -1,5 +1,6 @@
 // Copyright (c) 2026 AI anime
 import type { MainlineContext } from "../context/mainlineContext";
+import type { PushTarget } from "./assetCommit";
 
 export type FreezoneAssetMediaType = "image" | "video" | "audio" | "text" | "file";
 
@@ -22,7 +23,7 @@ export interface FreezoneProjectAsset {
   /** Whether the backend considers this asset eligible for mainline commit. */
   pushable?: boolean;
   /** Canonical backend target; validate it with coerceSlotTarget before use. */
-  slot_target?: Record<string, unknown> | null;
+  slot_target?: PushTarget | null;
 }
 
 export interface FreezoneBeatContextBeat {

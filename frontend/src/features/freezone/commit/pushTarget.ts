@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type { PushTarget, PushTargetKind } from "@/api/push";
+import type { PushTarget, PushTargetKind } from "@/features/freezone/public";
 import { coerceSlotTarget } from "@/features/canvas/domain/mainlineNodeTypes";
 
 /** 来自 `__freezone_source` / 资产 source 的来源描述。 */

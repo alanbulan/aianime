@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
 
-import type { PushResult, PushTarget } from "@/api/push";
+import type { PushResult, PushTarget } from "@/features/freezone/public";
 import { nodeDataAfterCommittedSlot } from "@/features/freezone/commit/committedNodePatch";
 
 // Regression guard for the SHARED commit-node patch that the Director World
