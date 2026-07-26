@@ -3720,6 +3720,13 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const batchConnectionController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasBatchConnectionController.ts",
+      ),
+      "utf8",
+    );
     const forbiddenImports = importSpecifiers(planningPath).filter(
       (specifier) =>
         specifier === "react" ||
@@ -3757,7 +3764,16 @@ describe("frontend architecture boundaries", () => {
     expect(planningModel).toContain("canConnectCanvasNodesManually(");
     expect(planningModel).toContain("getDownstreamSpawnTypes(");
     expect(planningModel).toContain("getNodeSize(");
-    expect(canvasView).toContain(
+    expect(batchConnectionController).toContain(
+      "../domain/canvasBatchConnection",
+    );
+    expect(batchConnectionController).toContain(
+      "resolveCanvasBatchConnectContext(nodes)",
+    );
+    expect(batchConnectionController).toContain(
+      "planCanvasBatchConnectTarget(",
+    );
+    expect(canvasView).not.toContain(
       "@/features/canvas/domain/canvasBatchConnection",
     );
     expect(canvasView).not.toContain("getDownstreamSpawnTypes(");
@@ -3774,6 +3790,66 @@ describe("frontend architecture boundaries", () => {
     expect(multiSelectionConnectButton).not.toContain("getDownstreamSpawnTypes");
     expect(multiSelectionConnectButton).not.toContain("nodeHasSourceHandle");
     expect(multiSelectionConnectButton).not.toContain("new Set(selectedSourceIds)");
+  });
+
+  it("keeps Canvas batch-connection orchestration in one presentation controller", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasBatchConnectionController.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/features/canvas/nodeFactoryComposition",
+    );
+    const declaration = [
+      "export function",
+      "useCanvasBatchConnectionController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasBatchConnectionController.ts",
+    ]);
+    expect(hookModel).toContain("resolveCanvasBatchConnectContext(nodes)");
+    expect(hookModel).toContain("planCanvasBatchConnectTarget(");
+    expect(canvasView).toContain(
+      "./hooks/useCanvasBatchConnectionController",
+    );
+    expect(canvasView).not.toContain("batchConnectDragRef");
+    expect(canvasView).not.toContain("BATCH_CONNECT_SPAWN_GAP");
+    expect(canvasView).not.toContain("BATCH_CONNECT_SPAWN_VERTICAL_OFFSET");
+    expect(canvasView).not.toContain("openBatchSpawnMenu");
+    expect(canvasView).not.toContain(
+      "const handleBatchConnectOpenMenu = useCallback",
+    );
+    expect(canvasView).not.toContain(
+      "const handleBatchConnectDragStart = useCallback",
+    );
+    expect(canvasView).not.toContain(
+      "const handleBatchConnectDragMove = useCallback",
+    );
+    expect(canvasView).not.toContain(
+      "const handleBatchConnectDragEnd = useCallback",
+    );
+    expect(canvasView).not.toContain("resolveCanvasBatchConnectContext(");
+    expect(canvasView).not.toContain("planCanvasBatchConnectTarget(");
   });
 
   it("keeps Canvas edge creation in the application layer", () => {

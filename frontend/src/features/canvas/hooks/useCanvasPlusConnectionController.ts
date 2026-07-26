@@ -12,17 +12,13 @@ import {
   resolveCanvasPlusConnectionEnd,
   resolveCanvasPlusConnectionStart,
   resolveManualDropTargetElement,
+  type CanvasConnectionPreviewRequest,
+  type CanvasManualConnectionRequest,
   type CanvasPendingConnectionStart,
   type CanvasPlusConnectionParams,
-  type PreviewConnectionLine,
 } from '../ui/canvasConnectionInteraction';
 
 const DROP_TARGET_CLASS_NAME = 'canvas-node-drop-target';
-
-export interface CanvasConnectionPreviewRequest {
-  line: PreviewConnectionLine;
-  containerSize: { width: number; height: number };
-}
 
 export interface CanvasPlusConnectionMenuRequest {
   pending: CanvasPendingConnectionStart;
@@ -30,13 +26,6 @@ export interface CanvasPlusConnectionMenuRequest {
   menuPosition: { x: number; y: number };
   allowedTypes: CanvasNodeType[];
   preview: CanvasConnectionPreviewRequest | null;
-}
-
-interface CanvasManualConnectionRequest {
-  source: string;
-  target: string;
-  sourceHandle: string;
-  targetHandle: string;
 }
 
 export interface CanvasPlusConnectionControllerOptions {

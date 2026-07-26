@@ -21,6 +21,13 @@ export interface CanvasPendingConnectionStart {
   start?: { x: number; y: number };
 }
 
+export interface CanvasManualConnectionRequest {
+  source: string;
+  target: string;
+  sourceHandle: string;
+  targetHandle: string;
+}
+
 export interface CanvasPlusConnectionParams {
   nodeId: string;
   handleType: CanvasHandleType;
@@ -55,6 +62,11 @@ export interface PreviewConnectionLine {
   start: { x: number; y: number };
   end: { x: number; y: number };
   handleType: CanvasHandleType;
+}
+
+export interface CanvasConnectionPreviewRequest {
+  line: PreviewConnectionLine;
+  containerSize: { width: number; height: number };
 }
 
 export function getClientPosition(

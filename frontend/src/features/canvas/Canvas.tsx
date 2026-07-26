@@ -37,10 +37,6 @@ import {
 } from '@/features/canvas/domain/canvasGeometry';
 import { findLinkedCapturePartnerIds } from '@/features/canvas/domain/canvasCapturePartners';
 import { resolveCanvasSelectionDeletion } from '@/features/canvas/domain/canvasSelectionDeletion';
-import {
-  planCanvasBatchConnectTarget,
-  resolveCanvasBatchConnectContext,
-} from '@/features/canvas/domain/canvasBatchConnection';
 import { useAppStore } from '@/stores/app-store';
 import { getSkillRegistry } from '@/api/skills';
 import { SKILL_SCHEMA_VERSION, type SkillDefinition } from '@/features/freezone/context/skillRoles';
@@ -87,10 +83,7 @@ import { edgeTypes as canvasEdgeTypes } from './edges';
 import { NodeSelectionMenu } from './NodeSelectionMenu';
 import { SelectedNodeOverlay } from './ui/SelectedNodeOverlay';
 import { MultiSelectionToolbar } from './ui/MultiSelectionToolbar';
-import {
-  MultiSelectionConnectButton,
-  type BatchConnectParams,
-} from './ui/MultiSelectionConnectButton';
+import { MultiSelectionConnectButton } from './ui/MultiSelectionConnectButton';
 import { NodeSpawnPlusOverlay } from './ui/NodeSpawnPlusOverlay';
 import { CanvasContextMenu } from './ui/CanvasContextMenu';
 import { NodeToolDialog } from './ui/NodeToolDialog';
@@ -113,6 +106,7 @@ import {
   createPreviewPath,
   resolveCanvasConnectionEnd,
   resolveCanvasConnectionStart,
+  type CanvasConnectionPreviewRequest,
   type CanvasPendingConnectionStart,
 } from './ui/canvasConnectionInteraction';
 import { useCanvasDropIndicator } from './hooks/useCanvasDropIndicator';
@@ -120,10 +114,13 @@ import { useCanvasEdgePan } from './hooks/useCanvasEdgePan';
 import { useCanvasExternalDialogs } from './hooks/useCanvasExternalDialogs';
 import { useCanvasAsyncNodeTasks } from './hooks/useCanvasAsyncNodeTasks';
 import { useCanvasBeatContextPrefetch } from './hooks/useCanvasBeatContextPrefetch';
+import {
+  useCanvasBatchConnectionController,
+  type CanvasBatchConnectionMenuRequest,
+} from './hooks/useCanvasBatchConnectionController';
 import { useCanvasConnectionController } from './hooks/useCanvasConnectionController';
 import {
   useCanvasPlusConnectionController,
-  type CanvasConnectionPreviewRequest,
   type CanvasPlusConnectionMenuRequest,
 } from './hooks/useCanvasPlusConnectionController';
 import { useCanvasKeyboardShortcuts } from './hooks/useCanvasKeyboardShortcuts';
@@ -196,11 +193,6 @@ interface DuplicateResult {
 }
 
 const ALT_DRAG_COPY_Z_INDEX = 2000;
-// Where the batch-connect "+" spawns its new downstream node relative to the
-// selection's bounding box: this far to the right, and lifted by ~half a node so
-// the fan-in lands roughly centered on the selection.
-const BATCH_CONNECT_SPAWN_GAP = 140;
-const BATCH_CONNECT_SPAWN_VERTICAL_OFFSET = 160;
 const NODE_PLACEMENT_PREVIEW_WIDTH = 320;
 const NODE_PLACEMENT_PREVIEW_HEIGHT = 200;
 
@@ -232,11 +224,6 @@ export function Canvas({
   const edgeTypes = useMemo(() => canvasEdgeTypes, []);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const suppressNextPaneClickRef = useRef(false);
-  // Source node ids waiting to be fanned into the next spawned node (batch "+").
-  const batchConnectDragRef = useRef<{
-    sourceIds: string[];
-    start: { x: number; y: number };
-  } | null>(null);
 
   const {
     pinned: minimapPinned,
@@ -658,6 +645,45 @@ export function Canvas({
     clearConnection: clearPlusConnection,
     updateConnectionPreview,
     openConnectionMenu: openPlusConnectionMenu,
+    connectNodes: connectGraphNodes,
+  });
+  const prepareBatchConnectionDrag = useCallback(() => {
+    setShowNodeMenu(false);
+    setMenuAllowedTypes(undefined);
+    setPendingConnectStart(null);
+    setPreviewConnectionVisual(null);
+  }, []);
+  const openBatchConnectionMenu = useCallback(
+    (request: CanvasBatchConnectionMenuRequest) => {
+      setPendingConnectStart(null);
+      setPendingBatchConnectIds(request.sourceIds);
+      setFlowPosition(request.spawnFlowPosition);
+      setMenuPosition(request.menuPosition);
+      setMenuAllowedTypes(request.allowedTypes);
+      suppressNextPaneClickRef.current = true;
+      setShowNodeMenu(true);
+    },
+    [],
+  );
+  const screenToFlowPosition = useCallback(
+    (clientPosition: { x: number; y: number }) =>
+      reactFlowInstance.screenToFlowPosition(clientPosition),
+    [reactFlowInstance],
+  );
+  const {
+    handleBatchConnectOpenMenu,
+    handleBatchConnectDragStart,
+    handleBatchConnectDragMove,
+    handleBatchConnectDragEnd,
+  } = useCanvasBatchConnectionController({
+    wrapperRef,
+    nodes,
+    screenToFlowPosition,
+    beginConnectionDrag: beginPlusConnectDrag,
+    endConnectionDrag: endPlusConnectDrag,
+    prepareConnectionDrag: prepareBatchConnectionDrag,
+    updateConnectionPreview,
+    openConnectionMenu: openBatchConnectionMenu,
     connectNodes: connectGraphNodes,
   });
 
@@ -1874,167 +1900,6 @@ export function Canvas({
       pendingConnectStart,
       reactFlowInstance,
     ]
-  );
-
-  // ---- Batch connect from the multi-selection "+" -------------------------
-  // Selected source-capable nodes + the downstream types valid for ALL of them
-  // + the right-center of their bounding box (where a spawned node is anchored).
-  const batchConnectContext = useMemo(
-    () => resolveCanvasBatchConnectContext(nodes),
-    [nodes],
-  );
-
-  // Open the spawn menu pre-armed to fan all selected sources into the new node.
-  const openBatchSpawnMenu = useCallback(
-    (
-      sourceIds: string[],
-      allowedTypes: CanvasNodeType[],
-      spawnFlowPosition: { x: number; y: number },
-      menuClientPosition: { x: number; y: number },
-    ) => {
-      const containerRect = wrapperRef.current?.getBoundingClientRect();
-      if (!containerRect) {
-        return;
-      }
-      setPendingConnectStart(null);
-      setPendingBatchConnectIds(sourceIds);
-      setFlowPosition(spawnFlowPosition);
-      setMenuPosition({
-        x: menuClientPosition.x - containerRect.left,
-        y: menuClientPosition.y - containerRect.top,
-      });
-      setMenuAllowedTypes(allowedTypes);
-      suppressNextPaneClickRef.current = true;
-      setShowNodeMenu(true);
-    },
-    [],
-  );
-
-  const handleBatchConnectOpenMenu = useCallback(
-    ({ clientPosition }: BatchConnectParams) => {
-      const ctx = batchConnectContext;
-      if (!ctx) {
-        return;
-      }
-      setPreviewConnectionVisual(null);
-      openBatchSpawnMenu(
-        ctx.sourceIds,
-        ctx.allowedTypes,
-        {
-          x: ctx.bboxRightCenter.x + BATCH_CONNECT_SPAWN_GAP,
-          y: ctx.bboxRightCenter.y - BATCH_CONNECT_SPAWN_VERTICAL_OFFSET,
-        },
-        clientPosition,
-      );
-    },
-    [batchConnectContext, openBatchSpawnMenu, setPreviewConnectionVisual],
-  );
-
-  const handleBatchConnectDragStart = useCallback(
-    ({ clientPosition }: BatchConnectParams) => {
-      const containerRect = wrapperRef.current?.getBoundingClientRect();
-      const ctx = batchConnectContext;
-      if (!containerRect || !ctx) {
-        return;
-      }
-      batchConnectDragRef.current = {
-        sourceIds: ctx.sourceIds,
-        start: {
-          x: clientPosition.x - containerRect.left,
-          y: clientPosition.y - containerRect.top,
-        },
-      };
-      beginPlusConnectDrag();
-      setShowNodeMenu(false);
-      setMenuAllowedTypes(undefined);
-      setPendingConnectStart(null);
-      setPreviewConnectionVisual(null);
-    },
-    [batchConnectContext, beginPlusConnectDrag, setPreviewConnectionVisual],
-  );
-
-  const handleBatchConnectDragMove = useCallback(
-    ({ clientPosition }: BatchConnectParams) => {
-      const drag = batchConnectDragRef.current;
-      const containerRect = wrapperRef.current?.getBoundingClientRect();
-      if (!drag || !containerRect) {
-        return;
-      }
-      setPreviewConnectionVisual({
-        d: createPreviewPath({
-          start: drag.start,
-          end: {
-            x: clientPosition.x - containerRect.left,
-            y: clientPosition.y - containerRect.top,
-          },
-          handleType: 'source',
-        }),
-        stroke: PREVIEW_CONNECTION_STROKE,
-        strokeWidth: 1,
-        strokeLinecap: 'round',
-        left: 0,
-        top: 0,
-        width: containerRect.width,
-        height: containerRect.height,
-      });
-    },
-    [setPreviewConnectionVisual],
-  );
-
-  const handleBatchConnectDragEnd = useCallback(
-    ({ clientPosition }: BatchConnectParams) => {
-      const drag = batchConnectDragRef.current;
-      batchConnectDragRef.current = null;
-      endPlusConnectDrag();
-
-      const containerRect = wrapperRef.current?.getBoundingClientRect();
-      if (!drag || !containerRect) {
-        setPreviewConnectionVisual(null);
-        return;
-      }
-
-      const dropNodeElement = document
-        .elementFromPoint(clientPosition.x, clientPosition.y)
-        ?.closest?.('.react-flow__node[data-id]') as HTMLElement | null;
-      const dropNodeId = dropNodeElement?.dataset?.id ?? null;
-
-      // Dropped on an existing node → fan every valid source straight into it.
-      const targetPlan = planCanvasBatchConnectTarget(nodes, drag.sourceIds, dropNodeId);
-      if (targetPlan) {
-        for (const sourceId of targetPlan.sourceIds) {
-          connectGraphNodes({
-            source: sourceId,
-            target: targetPlan.targetId,
-            sourceHandle: 'source',
-            targetHandle: 'target',
-          });
-        }
-        setPreviewConnectionVisual(null);
-        return;
-      }
-
-      // Dropped on empty canvas (or an invalid target) → spawn menu at the drop.
-      const ctx = batchConnectContext;
-      if (!ctx) {
-        setPreviewConnectionVisual(null);
-        return;
-      }
-      openBatchSpawnMenu(
-        ctx.sourceIds,
-        ctx.allowedTypes,
-        reactFlowInstance.screenToFlowPosition(clientPosition),
-        clientPosition,
-      );
-    },
-    [
-      batchConnectContext,
-      connectGraphNodes,
-      endPlusConnectDrag,
-      nodes,
-      openBatchSpawnMenu,
-      reactFlowInstance,
-      setPreviewConnectionVisual,
-    ],
   );
 
   const emptyHint = useMemo(() => {
