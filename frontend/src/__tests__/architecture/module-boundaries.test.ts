@@ -10180,7 +10180,7 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).toContain("<VideoConfigChip");
     expect(videoNode).toContain("aspectRatioOptions={ASPECT_RATIOS}");
     expect(videoNode).toContain("clampVideoDuration(value, durationBounds)");
-    expect(videoNode).toContain("function clampVideoDuration(");
+    expect(videoNode).not.toContain("function clampVideoDuration(");
     expect(videoNode).not.toContain("interface VideoConfigChipProps");
     expect(videoNode).not.toContain("durationDraft");
     expect(videoNode).not.toContain("VIDEO_PARAM_POPOVER_CLASS");
@@ -10249,6 +10249,52 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("interface GenModeSelectProps");
     expect(videoNode).not.toContain("function videoModeDisabledReason(");
     expect(videoNode).not.toContain("const MODE_TABS");
+  });
+
+  it("keeps video model generation rules in one pure domain module", () => {
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/videoGenerationModel.ts",
+    );
+    const domainSource = readFileSync(domainPath, "utf8");
+    const videoNode = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      "utf8",
+    );
+    const declarations = [
+      ["export function", "qualityToResolution("].join(" "),
+      ["export function", "videoQualityOptionsForModel("].join(" "),
+      ["export function", "videoDurationBoundsForModel("].join(" "),
+      ["export function", "clampVideoDuration("].join(" "),
+      ["export function", "isHappyHorseVideoModel("].join(" "),
+      ["export function", "isVideoModeSupportedByModel("].join(" "),
+      ["export function", "videoModelReferenceDisabledReason("].join(" "),
+      ["export function", "sceneOptimizeOptionsForModel("].join(" "),
+      ["export function", "normalizeSceneOptimize("].join(" "),
+    ];
+    const implementationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(importSpecifiers(domainPath)).toEqual(["./canvasNodes"]);
+    expect(domainSource).not.toContain("react");
+    expect(domainSource).not.toContain("@/api/");
+    expect(domainSource).not.toContain("@/stores/");
+    expect(implementationOwners).toEqual(
+      declarations.map(() => [
+        "features/canvas/domain/videoGenerationModel.ts",
+      ]),
+    );
+    expect(videoNode).toContain(
+      "@/features/canvas/domain/videoGenerationModel",
+    );
+    expect(videoNode).not.toContain("const DEFAULT_DURATION_MIN");
+    expect(videoNode).not.toContain("function resolutionToQuality(");
+    expect(videoNode).not.toContain("function isSeedance1xModel(");
+    expect(videoNode).not.toContain("function isGrokVideoChannelModel(");
   });
 
   it("keeps box-selection projection in one presentation hook", () => {

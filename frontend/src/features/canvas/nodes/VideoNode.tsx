@@ -41,12 +41,24 @@ import {
   isUploadNode,
   isVideoNode,
   type CanvasNode,
-  type Seedance2SceneOptimize,
   type VideoGenCount,
   type VideoGenMode,
-  type VideoGenQuality,
   type VideoNodeData,
 } from "@/features/canvas/domain/canvasNodes";
+import {
+  DEFAULT_VIDEO_DURATION_SEC,
+  clampVideoDuration,
+  defaultSceneOptimizeForModel,
+  isHappyHorseVideoModel,
+  isVideoModeSupportedByModel,
+  normalizeSceneOptimize,
+  normalizeVideoQuality,
+  qualityToResolution,
+  sceneOptimizeOptionsForModel,
+  videoDurationBoundsForModel,
+  videoModelReferenceDisabledReason,
+  videoQualityOptionsForModel,
+} from "@/features/canvas/domain/videoGenerationModel";
 import {
   VIDEO_GENERATION_ASPECT_RATIOS,
   mediaNeedsCrossOrigin,
@@ -174,7 +186,6 @@ import {
   type FreezoneJobRef,
   type FreezoneVideoAspectRatio,
   type FreezoneVideoReferenceItem,
-  type FreezoneVideoResolution,
 } from "@/api/ops";
 import { awaitTaskCompletion } from "@/api/tasks";
 import { generationTaskDescriptor } from "@/features/canvas/application/resumeGeneration";
@@ -252,54 +263,7 @@ const ASPECT_RATIOS: ReadonlyArray<FreezoneVideoAspectRatio> = [
   "9:16",
   "21:9",
 ];
-const QUALITIES: ReadonlyArray<VideoGenQuality> = ["480P", "720P", "1080P"];
 const COUNT_OPTIONS: ReadonlyArray<VideoGenCount> = [1, 2, 4];
-const SCENE_OPTIMIZE_OPTIONS: ReadonlyArray<Seedance2SceneOptimize> = ["anime", "realistic"];
-const DEFAULT_DURATION_MIN = 5;
-const DEFAULT_DURATION_MAX = 15;
-
-function qualityToResolution(q: VideoGenQuality): FreezoneVideoResolution {
-  return q.toLowerCase() as FreezoneVideoResolution;
-}
-
-function resolutionToQuality(resolution: string): VideoGenQuality | null {
-  const normalized = resolution.trim().toLowerCase();
-  if (normalized === "480p") return "480P";
-  if (normalized === "720p") return "720P";
-  if (normalized === "1080p") return "1080P";
-  return null;
-}
-
-function videoQualityOptionsForModel(
-  model: { resolutionOptions?: string[] } | null | undefined,
-): readonly VideoGenQuality[] {
-  const options = (model?.resolutionOptions ?? [])
-    .map(resolutionToQuality)
-    .filter((item): item is VideoGenQuality => Boolean(item));
-  return options.length > 0 ? options : QUALITIES;
-}
-
-function normalizeVideoQuality(
-  value: VideoGenQuality | undefined,
-  options: readonly VideoGenQuality[],
-): VideoGenQuality {
-  const fallback = options.includes("720P") ? "720P" : options[0] ?? "720P";
-  return value && options.includes(value) ? value : fallback;
-}
-
-function videoDurationBoundsForModel(
-  model: { minDuration?: number | null; maxDuration?: number | null } | null | undefined,
-): { min: number; max: number } {
-  const min = Number(model?.minDuration);
-  const max = Number(model?.maxDuration);
-  const resolvedMin = Number.isFinite(min) && min > 0 ? min : DEFAULT_DURATION_MIN;
-  const resolvedMax = Number.isFinite(max) && max >= resolvedMin ? max : DEFAULT_DURATION_MAX;
-  return { min: resolvedMin, max: resolvedMax };
-}
-
-function clampVideoDuration(value: number, bounds: { min: number; max: number }): number {
-  return Math.min(Math.max(Math.round(value), bounds.min), bounds.max);
-}
 
 // Seedance 2.0(doubao-seedance-2-0，r2v）后端硬上限：一次请求的音频总时长
 // 必须 ≤ 15.2s，超了会以 InvalidParameter 报错。对用户按「15 秒」提示，实际
@@ -337,114 +301,6 @@ function probeAudioDurationMs(url: string): Promise<number | null> {
     audio.src = url;
   });
 }
-
-function isSeedance2ValueModel(modelId: string | null | undefined): boolean {
-  const normalized = String(modelId ?? "").trim().toLowerCase();
-  return normalized === "newapi_seedance-2.0-value" ||
-    normalized === "newapi_seedance-2.0-fast-value" ||
-    normalized === "huimeng_seedance-2.0-value" ||
-    normalized === "huimeng_seedance-2.0-fast-value";
-}
-
-// Seedance 1 全系列(1.0 Pro Fast / 1.5 Pro / …)。素材去掉分隔符后版本号
-// `1.x` → `1x`,匹配 `seedance1` 后跟任意数字,避免误命中 2.0(`20`)。
-// 引用了素材时这些模型不可用。
-function isSeedance1xModel(modelId: string | null | undefined): boolean {
-  const normalized = String(modelId ?? "")
-    .replace(/[\s._-]/g, "")
-    .toLowerCase();
-  return /seedance1\d/.test(normalized);
-}
-
-function isGrokVideoChannelModel(modelId: string | null | undefined): boolean {
-  const normalized = String(modelId ?? "")
-    .replace(/[\s._-]/g, "")
-    .toLowerCase();
-  return normalized.includes("grokvideochannel");
-}
-
-function isHappyHorseVideoModel(modelId: string | null | undefined): boolean {
-  const normalized = String(modelId ?? "")
-    .replace(/[\s._-]/g, "")
-    .toLowerCase();
-  return normalized.includes("happyhorse10");
-}
-
-// 某 genMode 是否被指定模型支持（与模式选项投影的可见范围一致）：
-// videoEdit 是 HappyHorse 专属；firstLastFrame / allReference 是非 HappyHorse 专属。
-// 切换模型时用它判断是否要重置残留 genMode，避免提交打到不支持的端点。
-function isVideoModeSupportedByModel(
-  mode: VideoGenMode,
-  modelId: string | null | undefined,
-): boolean {
-  if (isHappyHorseVideoModel(modelId)) {
-    return (
-      mode === "textToVideo" ||
-      mode === "imageToVideo" ||
-      mode === "imageReference" ||
-      mode === "videoEdit"
-    );
-  }
-  return mode !== "videoEdit";
-}
-
-function videoModelReferenceDisabledReason(
-  modelId: string | null | undefined,
-  counts: { images: number; videos: number; audios: number },
-): string | null {
-  if (isGrokVideoChannelModel(modelId)) {
-    if (counts.videos > 0 || counts.audios > 0) {
-      return "Grok Video Channel 仅支持图片素材";
-    }
-    if (counts.images > 8) {
-      return "Grok Video Channel 最多支持 1 张首帧和 7 张参考图";
-    }
-    return null;
-  }
-  if (isSeedance1xModel(modelId)) {
-    if (counts.images > 0 || counts.videos > 0 || counts.audios > 0) {
-      return "该模型不支持当前接入的素材";
-    }
-  }
-  return null;
-}
-
-function sceneOptimizeOptionsForModel(
-  model: {
-    id?: string;
-    apiModel?: string;
-    sceneOptimizeOptions?: Array<"anime" | "realistic">;
-  } | null | undefined,
-): readonly Seedance2SceneOptimize[] {
-  if (model?.sceneOptimizeOptions?.length) {
-    return model.sceneOptimizeOptions;
-  }
-  return isSeedance2ValueModel(model?.apiModel ?? model?.id) ? SCENE_OPTIMIZE_OPTIONS : [];
-}
-
-function defaultSceneOptimizeForModel(
-  model: {
-    id?: string;
-    apiModel?: string;
-    defaultSceneOptimize?: "anime" | "realistic" | null;
-  } | null | undefined,
-): Seedance2SceneOptimize {
-  if (model?.defaultSceneOptimize === "anime" || model?.defaultSceneOptimize === "realistic") {
-    return model.defaultSceneOptimize;
-  }
-  const modelId = String(model?.apiModel ?? model?.id ?? "").toLowerCase();
-  return modelId.includes("fast-value") ? "realistic" : "anime";
-}
-
-function normalizeSceneOptimize(
-  value: Seedance2SceneOptimize | undefined,
-  options: readonly Seedance2SceneOptimize[],
-  fallback: Seedance2SceneOptimize,
-): Seedance2SceneOptimize | undefined {
-  if (options.length === 0) return undefined;
-  return value && options.includes(value) ? value : fallback;
-}
-
 // 音频引用 chip 的展示文件名：优先节点的 displayName，否则从 audioUrl 取末段文件名。
 // 仅用于前端展示（音频_<文件名>），不影响序列化给后端的 @音频N。
 function audioReferenceFileName(item: {
@@ -775,7 +631,9 @@ export const VideoNode = memo(
       [selectedVideoModel],
     );
     const durationSec = clampVideoDuration(
-      typeof data.durationSec === "number" ? data.durationSec : DEFAULT_DURATION_MIN,
+      typeof data.durationSec === "number"
+        ? data.durationSec
+        : DEFAULT_VIDEO_DURATION_SEC,
       durationBounds,
     );
     const sceneOptimizeOptions = useMemo(
