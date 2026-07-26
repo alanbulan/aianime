@@ -23,7 +23,6 @@ import {
   Download,
   Languages,
   Layers,
-  Library,
   Loader2,
   Play,
   Sparkles,
@@ -128,7 +127,6 @@ import {
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
   NODE_INLINE_ICON_BUTTON_ACTIVE_CLASS,
   NODE_INLINE_ICON_BUTTON_CLASS,
-  NODE_TEXT_CONTROL_ICON_CLASS,
   NODE_TEXT_CONTROL_TRIGGER_CLASS,
 } from "@/features/canvas/ui/nodeControlStyles";
 import {
@@ -150,6 +148,7 @@ import {
   SubtitleEraseOpsPanel,
 } from "@/features/canvas/nodes/VideoSubtitleEraseControls";
 import { CameraMovementChip } from "@/features/canvas/nodes/CameraMovementChip";
+import { CharacterLibraryChip } from "@/features/canvas/nodes/CharacterLibraryChip";
 import {
   CAMERA_MOVEMENT_PRESETS,
   findCameraMovementPreset,
@@ -3839,25 +3838,6 @@ function VideoConfigChip({
         </div>
       )}
     </div>
-  );
-}
-interface CharacterLibraryChipProps {
-  onOpen: () => void;
-}
-
-function CharacterLibraryChip({ onOpen }: CharacterLibraryChipProps) {
-  return (
-    <button
-      type="button"
-      onClick={(event) => {
-        event.stopPropagation();
-        onOpen();
-      }}
-      className={`${NODE_TEXT_CONTROL_TRIGGER_CLASS} group/asset px-1.5`}
-    >
-      <Library className={`${NODE_TEXT_CONTROL_ICON_CLASS} group-hover/asset:text-text-dark`} />
-      <span>资产库</span>
-    </button>
   );
 }
 

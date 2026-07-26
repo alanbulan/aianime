@@ -10040,6 +10040,44 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps VideoNode asset-library trigger in one presentation view", () => {
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/CharacterLibraryChip.tsx",
+    );
+    const videoNode = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(viewPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declaration = ["export function", "CharacterLibraryChip("].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/nodes/CharacterLibraryChip.tsx",
+    ]);
+    expect(videoNode).toContain(
+      "@/features/canvas/nodes/CharacterLibraryChip",
+    );
+    expect(videoNode).toContain("<CharacterLibraryChip");
+    expect(videoNode).not.toContain("interface CharacterLibraryChipProps");
+  });
+
   it("keeps box-selection projection in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
