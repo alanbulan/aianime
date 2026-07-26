@@ -10710,24 +10710,28 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/ui/NodeActionToolbar.tsx",
     );
+    const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const resultSource = readFileSync(resultPath, "utf8");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const toolbarSource = readFileSync(toolbarPath, "utf8");
-    const productionCanvasSources = sourceFiles(
-      resolve(SRC_ROOT, "features/canvas"),
-    ).filter((path) => !path.includes(".test."));
-    const submitOwners = productionCanvasSources
+    const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
+    const productionSources = sourceFiles(SRC_ROOT).filter(
+      (path) => !path.includes(".test."),
+    );
+    const submitEndpointOwners = productionSources
       .filter((path) =>
-        readFileSync(path, "utf8").includes("submitFreezoneAudioSeparate("),
+        readFileSync(path, "utf8").includes(
+          "}/freezone/video/audio-separate`",
+        ),
       )
       .map(relativeSource)
       .sort();
-    const resultOwners = productionCanvasSources
+    const resultEndpointOwners = productionSources
       .filter((path) =>
         readFileSync(path, "utf8").includes(
-          "fetchFreezoneAudioSeparateResult(",
+          "/freezone/jobs/freezone_audio_separate/",
         ),
       )
       .map(relativeSource)
@@ -10750,17 +10754,28 @@ describe("frontend architecture boundaries", () => {
       "dependencies.audioSeparationGateway.fetchResult(",
     );
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
-      new Set(["@/api/ops", "../application/separateCanvasAudioVideo"]),
+      new Set([
+        "@/shared/api/client",
+        "../application/ports",
+        "../application/separateCanvasAudioVideo",
+      ]),
     );
     expect(adapterSource).toContain(
       "freezoneAudioSeparationGateway: CanvasAudioSeparationGateway",
     );
-    expect(submitOwners).toEqual([
+    expect(submitEndpointOwners).toEqual([
       "features/canvas/infrastructure/freezoneAudioSeparationGateway.ts",
     ]);
-    expect(resultOwners).toEqual([
+    expect(resultEndpointOwners).toEqual([
       "features/canvas/infrastructure/freezoneAudioSeparationGateway.ts",
     ]);
+    for (const legacySymbol of [
+      "FreezoneAudioSeparatePayload",
+      "submitFreezoneAudioSeparate",
+      "fetchFreezoneAudioSeparateResult",
+    ]) {
+      expect(legacyOpsSource).not.toContain(legacySymbol);
+    }
     expect(compositionSource).toContain(
       "separateCanvasAudioVideoUseCase(params, {",
     );

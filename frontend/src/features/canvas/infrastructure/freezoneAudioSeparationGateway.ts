@@ -1,20 +1,22 @@
 // Copyright (c) 2026 AI anime
-import {
-  fetchFreezoneAudioSeparateResult,
-  submitFreezoneAudioSeparate,
-} from "@/api/ops";
+import { apiCall } from "@/shared/api/client";
 
 import type { CanvasAudioSeparationGateway } from "../application/separateCanvasAudioVideo";
+import type { CanvasGenerationTaskRef } from "../application/ports";
 
 export const freezoneAudioSeparationGateway: CanvasAudioSeparationGateway = {
   async submit(projectId, command) {
-    const task = await submitFreezoneAudioSeparate(projectId, {
-      sourceUrl: command.sourceUrl,
-      ...(command.targetEpisode != null
-        ? { targetEpisode: command.targetEpisode }
-        : {}),
-      ...(command.targetBeat != null ? { targetBeat: command.targetBeat } : {}),
-    });
+    const task = await apiCall<CanvasGenerationTaskRef>(
+      `projects/${encodeURIComponent(projectId)}/freezone/video/audio-separate`,
+      {
+        method: "POST",
+        json: {
+          source_url: command.sourceUrl,
+          target_episode: command.targetEpisode,
+          target_beat: command.targetBeat,
+        },
+      },
+    );
     if (task.task_type !== "freezone_audio_separate") {
       throw new Error(
         `Unexpected audio separation task type: ${task.task_type}`,
@@ -27,6 +29,8 @@ export const freezoneAudioSeparationGateway: CanvasAudioSeparationGateway = {
     };
   },
   async fetchResult(projectId, jobId) {
-    return await fetchFreezoneAudioSeparateResult(projectId, jobId);
+    return await apiCall<Record<string, unknown>>(
+      `projects/${encodeURIComponent(projectId)}/freezone/jobs/freezone_audio_separate/${encodeURIComponent(jobId)}/result`,
+    );
   },
 };

@@ -618,52 +618,6 @@ export async function submitFreezoneGen(
   );
 }
 
-// /freezone/video/audio-separate ----------------------------------------- //
-
-/**
- * Per `FreezoneAudioSeparateRequest` in openapi.json the only required field is
- * `source_url`. Backend returns two artifacts via the task SSE: the extracted
- * audio track and a silent (muted) version of the original video.
- */
-export interface FreezoneAudioSeparatePayload {
-  sourceUrl: string;
-  /** 目标 beat;给定后分离出的音频会带上 beat_audio slot_target,可直接 commit。 */
-  targetEpisode?: number;
-  targetBeat?: number;
-}
-
-export async function submitFreezoneAudioSeparate(
-  project: string,
-  payload: FreezoneAudioSeparatePayload,
-): Promise<FreezoneJobRef> {
-  return await apiCall<FreezoneJobRef>(
-    `projects/${encodeURIComponent(project)}/freezone/video/audio-separate`,
-    {
-      method: "POST",
-      json: {
-        source_url: payload.sourceUrl,
-        target_episode: payload.targetEpisode,
-        target_beat: payload.targetBeat,
-      },
-    },
-  );
-}
-
-/**
- * Result shape for `freezone_audio_separate` isn't typed in openapi.json — the
- * endpoint declares `{}` (free-form). The light-version backend ships two
- * artifacts (audio track + silent video); callers walk the tree to find the
- * two URLs by extension.
- */
-export async function fetchFreezoneAudioSeparateResult(
-  project: string,
-  jobId: string,
-): Promise<Record<string, unknown>> {
-  return await apiCall<Record<string, unknown>>(
-    `projects/${encodeURIComponent(project)}/freezone/jobs/freezone_audio_separate/${encodeURIComponent(jobId)}/result`,
-  );
-}
-
 // /freezone/image/reverse-prompt ----------------------------------------- //
 
 /**
