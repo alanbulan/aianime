@@ -1524,6 +1524,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百二十批已将视频高清放大的 `1080p/2k/4k` 分辨率、`none/1x/2x` 降噪强度、展示标签、默认值及持久化值归一化迁入唯一领域模块 `videoUpscale`，源视频查询参数清理、固定无插帧策略、Canvas/节点上下文、任务提交及完成迁入唯一 application 用例 `generateCanvasVideoUpscale`；原 `completeCanvasImageGenerationTask` 在加入视频调用方前直接改名为唯一 `completeCanvasMediaGenerationTask`，5 个已迁移图片用例与视频高清放大共用同一 33 行实现，旧文件、旧符号与兼容别名均删除；`freezoneVideoUpscaleGenerationGateway` infrastructure 适配器唯一调用 Freezone video-upscale 端点，composition 注入既有任务 gateway；旧 `api/ops` 删除重复分辨率/降噪类型并复用领域契约，由 2453 行调整为 2455 行，`VideoUpscaleEditorOverlay` 仅保留设置交互、生成状态与节点写回，不再直接依赖 `api/ops` 或任务 API，由 308 行降至 293 行；领域模块 39 行、用例 68 行、适配器 17 行，composition 由 457 行调整为 473 行；共享完成函数改名回归、领域、用例、适配器及 5 个已有调用方共 9 个测试文件 12 项、新增后的架构门禁 175 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百二十一批已将图片扩图的 6 种目标比例、`1K/2K/4K` 尺寸、`1-4` 结果数量、默认值及“保持原图尺寸、仅扩展必要维度”的画框几何迁入唯一领域模块 `outpaint`，源图查询参数清理、单图命令组装、任务提交及完成迁入唯一 application 用例 `generateCanvasOutpaint`，并复用 `completeCanvasMediaGenerationTask`；后端单次仅出 1 张的契约保持在用例中，Overlay 仍按用户数量创建 N 个节点并发起 N 个独立用例，没有改变节点与结果的一对一回填；`freezoneOutpaintGenerationGateway` infrastructure 适配器唯一调用 Freezone outpaint 端点，composition 注入既有任务 gateway；旧 `api/ops` 删除重复比例类型并复用领域比例/尺寸/数量默认值，由 2455 行调整为 2456 行，`OutpaintEditorOverlay` 只保留模型/计费、节点/连线、批量关联、状态写回与错误展示，不再直接依赖 `api/ops` 或任务 API，由 555 行降至 543 行；领域模块 56 行、用例 65 行、适配器 16 行，composition 由 473 行调整为 489 行；领域、用例与适配器共 3 个测试文件 4 项、新增后的架构门禁 176 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

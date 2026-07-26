@@ -29,6 +29,10 @@ import {
   type GenerateCanvasMultiAngleParams,
 } from './application/generateCanvasMultiAngle';
 import {
+  generateCanvasOutpaint as generateCanvasOutpaintUseCase,
+  type GenerateCanvasOutpaintParams,
+} from './application/generateCanvasOutpaint';
+import {
   generateCanvasGridAction as generateCanvasGridActionUseCase,
   type GenerateCanvasGridActionParams,
 } from './application/generateCanvasGridAction';
@@ -121,6 +125,7 @@ import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerati
 import { freezoneGenerationHistoryGateway } from './infrastructure/freezoneGenerationHistoryGateway';
 import { freezoneGridActionGenerationGateway } from './infrastructure/freezoneGridActionGenerationGateway';
 import { freezoneMultiAngleGenerationGateway } from './infrastructure/freezoneMultiAngleGenerationGateway';
+import { freezoneOutpaintGenerationGateway } from './infrastructure/freezoneOutpaintGenerationGateway';
 import { freezoneRedrawTaskGateway } from './infrastructure/freezoneRedrawTaskGateway';
 import { freezoneRelightGenerationGateway } from './infrastructure/freezoneRelightGenerationGateway';
 import { freezoneReversePromptGenerationGateway } from './infrastructure/freezoneReversePromptGenerationGateway';
@@ -371,6 +376,17 @@ export function generateCanvasMultiAngle(
 ) {
   return generateCanvasMultiAngleUseCase(params, {
     submissionGateway: freezoneMultiAngleGenerationGateway,
+    taskGateway: freezoneGenerationTaskGateway,
+    onTaskSubmitted,
+  });
+}
+
+export function generateCanvasOutpaint(
+  params: GenerateCanvasOutpaintParams,
+  onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
+) {
+  return generateCanvasOutpaintUseCase(params, {
+    submissionGateway: freezoneOutpaintGenerationGateway,
     taskGateway: freezoneGenerationTaskGateway,
     onTaskSubmitted,
   });

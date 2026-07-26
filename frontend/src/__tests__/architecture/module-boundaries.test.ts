@@ -9305,6 +9305,85 @@ describe("frontend architecture boundaries", () => {
     expect(opsSource).not.toContain("FreezoneVideoUpscaleDenoise");
   });
 
+  it("keeps Canvas outpaint rules and generation orchestration out of views", () => {
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/outpaint.ts",
+    );
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/generateCanvasOutpaint.ts",
+    );
+    const infrastructurePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneOutpaintGenerationGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const overlayPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/OutpaintEditorOverlay.tsx",
+    );
+    const opsPath = resolve(SRC_ROOT, "api/ops.ts");
+    const domainSource = readFileSync(domainPath, "utf8");
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const infrastructureSource = readFileSync(infrastructurePath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const overlaySource = readFileSync(overlayPath, "utf8");
+    const opsSource = readFileSync(opsPath, "utf8");
+
+    expect(importSpecifiers(domainPath)).toEqual([]);
+    expect(domainSource).toContain(
+      "export const CANVAS_OUTPAINT_ASPECT_RATIOS",
+    );
+    expect(domainSource).toContain(
+      "export function calculateCanvasOutpaintFrame(",
+    );
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set([
+        "../domain/outpaint",
+        "./completeCanvasMediaGenerationTask",
+        "./ports",
+      ]),
+    );
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).toContain(
+      "export async function generateCanvasOutpaint(",
+    );
+    expect(applicationSource).toContain("numImages: 1");
+    expect(applicationSource).toContain(
+      "completeCanvasMediaGenerationTask(",
+    );
+    expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
+      new Set(["@/api/ops", "../application/generateCanvasOutpaint"]),
+    );
+    expect(infrastructureSource).toContain(
+      "freezoneOutpaintGenerationGateway: CanvasOutpaintGenerationGateway",
+    );
+    expect(compositionSource).toContain(
+      "generateCanvasOutpaintUseCase(params, {",
+    );
+    expect(compositionSource).toContain(
+      "submissionGateway: freezoneOutpaintGenerationGateway",
+    );
+    expect(importSpecifiers(overlayPath)).toContain(
+      "@/features/canvas/domain/outpaint",
+    );
+    expect(importSpecifiers(overlayPath)).not.toContain("@/api/ops");
+    expect(importSpecifiers(overlayPath)).not.toContain("@/api/tasks");
+    expect(overlaySource).toContain("calculateCanvasOutpaintFrame(");
+    expect(overlaySource).toContain("await generateCanvasOutpaint(");
+    expect(overlaySource).not.toContain("submitFreezoneOutpaint");
+    expect(overlaySource).not.toContain("fetchFreezoneJobResult");
+    expect(overlaySource).not.toContain("awaitTaskCompletion");
+    expect(opsSource).toContain("@/features/canvas/domain/outpaint");
+    expect(opsSource).not.toContain("FreezoneOutpaintAspectRatio");
+  });
+
   it("keeps Canvas asset extraction independent from media URL infrastructure", () => {
     const assetPath = resolve(
       SRC_ROOT,

@@ -22,13 +22,19 @@ import {
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
-import { useCanvasStore } from '@/stores/canvasStore';
 import {
-  fetchFreezoneJobResult,
-  submitFreezoneOutpaint,
-  type FreezoneOutpaintAspectRatio,
-} from '@/api/ops';
-import { awaitTaskCompletion } from '@/api/tasks';
+  CANVAS_OUTPAINT_IMAGE_SIZES,
+  CANVAS_OUTPAINT_NUM_IMAGES,
+  DEFAULT_CANVAS_OUTPAINT_ASPECT_RATIO,
+  DEFAULT_CANVAS_OUTPAINT_IMAGE_SIZE,
+  DEFAULT_CANVAS_OUTPAINT_NUM_IMAGES,
+  calculateCanvasOutpaintFrame,
+  type CanvasOutpaintAspectRatio,
+  type CanvasOutpaintImageSize,
+  type CanvasOutpaintNumImages,
+} from '@/features/canvas/domain/outpaint';
+import { useCanvasStore } from '@/stores/canvasStore';
+import { generateCanvasOutpaint } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { readUrl } from '@/lib/url-params';
 import {
@@ -49,27 +55,20 @@ import {
   NODE_GENERATE_BUTTON_DISABLED_CLASS,
 } from './nodeControlStyles';
 
-const OUTPAINT_IMAGE_SIZES = ['1K', '2K', '4K'] as const;
-type OutpaintImageSize = (typeof OUTPAINT_IMAGE_SIZES)[number];
-
-const OUTPAINT_NUM_IMAGES = [1, 2, 3, 4] as const;
-type OutpaintNumImages = (typeof OUTPAINT_NUM_IMAGES)[number];
-
 // 数量 > 1 时多个结果节点纵向错开摆放的间距。
 const RESULT_STACK_GAP = 24;
 
 const OUTPAINT_ASPECT_OPTIONS: {
-  value: FreezoneOutpaintAspectRatio;
-  ratio: number | null; // null = preserve original
+  value: CanvasOutpaintAspectRatio;
   i18nKey: string;
   Icon: typeof RectangleHorizontal;
 }[] = [
-  { value: 'original', ratio: null, i18nKey: 'outpaintEditor.aspect.original', Icon: ImageIcon },
-  { value: '1:1', ratio: 1, i18nKey: 'outpaintEditor.aspect.s1_1', Icon: Square },
-  { value: '4:3', ratio: 4 / 3, i18nKey: 'outpaintEditor.aspect.s4_3', Icon: RectangleHorizontal },
-  { value: '3:4', ratio: 3 / 4, i18nKey: 'outpaintEditor.aspect.s3_4', Icon: RectangleVertical },
-  { value: '16:9', ratio: 16 / 9, i18nKey: 'outpaintEditor.aspect.s16_9', Icon: RectangleHorizontal },
-  { value: '9:16', ratio: 9 / 16, i18nKey: 'outpaintEditor.aspect.s9_16', Icon: RectangleVertical },
+  { value: 'original', i18nKey: 'outpaintEditor.aspect.original', Icon: ImageIcon },
+  { value: '1:1', i18nKey: 'outpaintEditor.aspect.s1_1', Icon: Square },
+  { value: '4:3', i18nKey: 'outpaintEditor.aspect.s4_3', Icon: RectangleHorizontal },
+  { value: '3:4', i18nKey: 'outpaintEditor.aspect.s3_4', Icon: RectangleVertical },
+  { value: '16:9', i18nKey: 'outpaintEditor.aspect.s16_9', Icon: RectangleHorizontal },
+  { value: '9:16', i18nKey: 'outpaintEditor.aspect.s9_16', Icon: RectangleVertical },
 ];
 
 function imageModelSupportsQuality(apiModel: string | null | undefined): boolean {
@@ -99,9 +98,13 @@ export const OutpaintEditorOverlay = memo(
     const updateNodeData = useCanvasStore((state) => state.updateNodeData);
 
     const [aspectRatio, setAspectRatio] =
-      useState<FreezoneOutpaintAspectRatio>('original');
-    const [imageSize, setImageSize] = useState<OutpaintImageSize>('2K');
-    const [numImages, setNumImages] = useState<OutpaintNumImages>(1);
+      useState<CanvasOutpaintAspectRatio>(DEFAULT_CANVAS_OUTPAINT_ASPECT_RATIO);
+    const [imageSize, setImageSize] = useState<CanvasOutpaintImageSize>(
+      DEFAULT_CANVAS_OUTPAINT_IMAGE_SIZE,
+    );
+    const [numImages, setNumImages] = useState<CanvasOutpaintNumImages>(
+      DEFAULT_CANVAS_OUTPAINT_NUM_IMAGES,
+    );
     const [modelId, setModelId] = useState<string>(DEFAULT_SHARED_MODEL_ID);
     const { models: availableModels } = useFreezoneImageModels();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -134,22 +137,10 @@ export const OutpaintEditorOverlay = memo(
           ? node.height
           : nodeWidth;
 
-    const frame = useMemo(() => {
-      const option = OUTPAINT_ASPECT_OPTIONS.find((o) => o.value === aspectRatio);
-      const targetRatio = option?.ratio ?? null;
-      if (targetRatio === null) {
-        return { width: nodeWidth, height: nodeHeight };
-      }
-      const nodeRatio = nodeWidth / nodeHeight;
-      // Keep the original image at its native size; extend only the dimension
-      // that needs to grow so the frame still contains it.
-      if (targetRatio >= nodeRatio) {
-        // Target is wider → grow horizontally.
-        return { width: nodeHeight * targetRatio, height: nodeHeight };
-      }
-      // Target is taller → grow vertically.
-      return { width: nodeWidth, height: nodeWidth / targetRatio };
-    }, [aspectRatio, nodeHeight, nodeWidth]);
+    const frame = useMemo(
+      () => calculateCanvasOutpaintFrame(nodeWidth, nodeHeight, aspectRatio),
+      [aspectRatio, nodeHeight, nodeWidth],
+    );
 
     const verticalExtension = Math.max(0, (frame.height - nodeHeight) / 2);
     const horizontalExtension = Math.max(0, (frame.width - nodeWidth) / 2);
@@ -189,21 +180,18 @@ export const OutpaintEditorOverlay = memo(
     const runOutpaintGeneration = useCallback(
       async (project: string, nodeId: string, apiModel: string) => {
         try {
-          const ref = await submitFreezoneOutpaint(project, {
-            sourceUrl: imageSource.split('?')[0],
-            targetAspectRatio: aspectRatio,
-            numImages: 1,
-            imageSize,
-            model: apiModel,
-          });
-          updateNodeData(nodeId, generationTaskDescriptor(ref));
-          const completed = await awaitTaskCompletion(ref.task_key, project);
-          const directUrl = completed.result?.['output_url'] as string | undefined;
-          let url = directUrl;
-          if (!url) {
-            const fallback = await fetchFreezoneJobResult(project, ref.task_type, ref.job_id);
-            url = fallback.url;
-          }
+          const { url } = await generateCanvasOutpaint(
+            {
+              projectId: project,
+              sourceUrl: imageSource,
+              targetAspectRatio: aspectRatio,
+              imageSize,
+              model: apiModel,
+            },
+            (task) => {
+              updateNodeData(nodeId, generationTaskDescriptor(task));
+            },
+          );
           updateNodeData(nodeId, {
             imageUrl: url,
             previewImageUrl: url,
@@ -347,16 +335,16 @@ export const OutpaintEditorOverlay = memo(
 
             <ProviderModelPicker selectedModelId={modelId} onChange={setModelId} />
             <AspectRatioPicker value={aspectRatio} onChange={setAspectRatio} />
-            <SimpleSegmentedDropdown<OutpaintImageSize>
+            <SimpleSegmentedDropdown<CanvasOutpaintImageSize>
               value={imageSize}
-              options={OUTPAINT_IMAGE_SIZES}
+              options={CANVAS_OUTPAINT_IMAGE_SIZES}
               onChange={setImageSize}
               renderLabel={(v) => v}
               titleI18nKey="outpaintEditor.qualityLabel"
             />
-            <SimpleSegmentedDropdown<OutpaintNumImages>
+            <SimpleSegmentedDropdown<CanvasOutpaintNumImages>
               value={numImages}
-              options={OUTPAINT_NUM_IMAGES}
+              options={CANVAS_OUTPAINT_NUM_IMAGES}
               onChange={setNumImages}
               renderLabel={(v) => t('outpaintEditor.numImages', { count: v })}
               titleI18nKey="outpaintEditor.numImagesLabel"
@@ -389,8 +377,8 @@ export const OutpaintEditorOverlay = memo(
 OutpaintEditorOverlay.displayName = 'OutpaintEditorOverlay';
 
 interface AspectRatioPickerProps {
-  value: FreezoneOutpaintAspectRatio;
-  onChange: (next: FreezoneOutpaintAspectRatio) => void;
+  value: CanvasOutpaintAspectRatio;
+  onChange: (next: CanvasOutpaintAspectRatio) => void;
 }
 
 function AspectRatioPicker({ value, onChange }: AspectRatioPickerProps) {

@@ -6,6 +6,14 @@ import {
   type CanvasScene360AspectRatio,
 } from "@/features/canvas/domain/scene360";
 import {
+  DEFAULT_CANVAS_OUTPAINT_ASPECT_RATIO,
+  DEFAULT_CANVAS_OUTPAINT_IMAGE_SIZE,
+  DEFAULT_CANVAS_OUTPAINT_NUM_IMAGES,
+  type CanvasOutpaintAspectRatio,
+  type CanvasOutpaintImageSize,
+  type CanvasOutpaintNumImages,
+} from "@/features/canvas/domain/outpaint";
+import {
   DEFAULT_CANVAS_UPSCALE_SCALE_FACTOR,
   type CanvasUpscaleScaleFactor,
 } from "@/features/canvas/domain/upscale";
@@ -1462,19 +1470,11 @@ export async function submitFreezoneUpscale(
 
 // /freezone/outpaint ------------------------------------------------------ //
 
-export type FreezoneOutpaintAspectRatio =
-  | "original"
-  | "1:1"
-  | "4:3"
-  | "3:4"
-  | "16:9"
-  | "9:16";
-
 export interface FreezoneOutpaintPayload {
   sourceUrl: string;
-  targetAspectRatio?: FreezoneOutpaintAspectRatio;
-  numImages?: number;
-  imageSize?: string;
+  targetAspectRatio?: CanvasOutpaintAspectRatio;
+  numImages?: CanvasOutpaintNumImages;
+  imageSize?: CanvasOutpaintImageSize;
   model?: string;
 }
 
@@ -1488,9 +1488,10 @@ export async function submitFreezoneOutpaint(
       method: "POST",
       json: {
         source_url: payload.sourceUrl,
-        target_aspect_ratio: payload.targetAspectRatio ?? "original",
-        num_images: payload.numImages ?? 1,
-        image_size: payload.imageSize ?? "2K",
+        target_aspect_ratio:
+          payload.targetAspectRatio ?? DEFAULT_CANVAS_OUTPAINT_ASPECT_RATIO,
+        num_images: payload.numImages ?? DEFAULT_CANVAS_OUTPAINT_NUM_IMAGES,
+        image_size: payload.imageSize ?? DEFAULT_CANVAS_OUTPAINT_IMAGE_SIZE,
         ...(payload.model ? { model: payload.model } : {}),
       },
     },
