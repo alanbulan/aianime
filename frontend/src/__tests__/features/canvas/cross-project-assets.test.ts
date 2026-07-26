@@ -33,8 +33,11 @@ describe('migratePastedNodeAssets', () => {
     uploadAsset.mockReset();
     // Each upload returns a new-project URL derived from the source filename.
     uploadAsset.mockImplementation(
-      async (project: string, _blob: Blob, filename: string) =>
-        `/static/projects/${project}/videos/${filename}`,
+      async (project: string, blob: Blob, filename: string) => ({
+        url: `/static/projects/${project}/videos/${filename}`,
+        filename,
+        size: blob.size,
+      }),
     );
   });
 

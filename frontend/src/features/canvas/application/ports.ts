@@ -19,13 +19,19 @@ export interface CanvasAssetUploadOptions {
   disableTimeout?: boolean;
 }
 
+export interface CanvasAssetUploadResult {
+  readonly url: string;
+  readonly filename: string;
+  readonly size: number;
+}
+
 export interface CanvasAssetGateway {
   upload: (
     projectId: string,
     file: File | Blob,
     filename: string,
     options?: CanvasAssetUploadOptions,
-  ) => Promise<string>;
+  ) => Promise<CanvasAssetUploadResult>;
 }
 
 export interface CanvasAssetSourceReadOptions {

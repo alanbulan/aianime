@@ -41,7 +41,8 @@ import {
   hasMainlineContexts,
   NodeContextBadges,
 } from '@/features/freezone/context/NodeContextBadges';
-import { fetchFreezoneAudioReferences, uploadFreezoneImage } from '@/api/ops';
+import { fetchFreezoneAudioReferences } from '@/api/ops';
+import { uploadCanvasAsset } from '@/features/canvas/composition';
 import { readUrl } from '@/lib/url-params';
 
 type AudioNodeProps = NodeProps & {
@@ -152,7 +153,7 @@ export const AudioNode = memo(({ id, data, selected, width, height }: AudioNodeP
       }
       updateNodeData(id, { isUploading: true });
       try {
-        const uploaded = await uploadFreezoneImage(projectId, file, file.name);
+        const uploaded = await uploadCanvasAsset(projectId, file, file.name);
         updateNodeData(id, {
           audioUrl: uploaded.url,
           sourceFileName: file.name,

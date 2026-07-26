@@ -17,11 +17,10 @@ import {
   fetchFreezoneVideoCharacterLibrary,
   submitFreezoneAddVideoCharacterLibraryItem,
   syncFreezoneAssetLibraryFromMainline,
-  uploadFreezoneImage,
-  uploadFreezoneVideo,
   type FreezoneAssetLibraryMedia,
   type FreezoneAssetLibrarySource,
 } from '@/api/ops';
+import { uploadCanvasAsset } from '@/features/canvas/composition';
 import { resolveImageDisplayUrl } from '@/features/canvas/application/imageData';
 import { Button } from '@/components/ui/button';
 
@@ -344,8 +343,10 @@ export function AssetLibraryModal({
       try {
         const uploaded =
           entry.media === 'image'
-            ? await uploadFreezoneImage(project, file, file.name)
-            : await uploadFreezoneVideo(project, file, file.name);
+            ? await uploadCanvasAsset(project, file, file.name)
+            : await uploadCanvasAsset(project, file, file.name, {
+                disableTimeout: true,
+              });
         const cleanUrl = uploaded.url.split('?')[0];
         await submitFreezoneAddVideoCharacterLibraryItem(project, {
           name: stripExtension(file.name),

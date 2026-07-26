@@ -220,9 +220,10 @@ export async function uploadAndAutoCommitSelectedBackgroundCandidate(
   if (!projectId) {
     throw new Error('缺少项目');
   }
-  const uploadedUrl = await assetGateway.upload(projectId, blob, filename, {
+  const uploaded = await assetGateway.upload(projectId, blob, filename, {
     disableTimeout: true,
   });
+  const uploadedUrl = uploaded.url;
   const nodeId = stageSelectedBackgroundCandidateFromNode(
     graphGateway,
     target,

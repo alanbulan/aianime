@@ -31,9 +31,9 @@ import { useCanvasStore } from '@/stores/canvasStore';
 import {
   fetchFreezoneJobResult,
   submitFreezoneRedraw,
-  uploadFreezoneImage,
   type FreezoneRedrawAspectRatio,
 } from '@/api/ops';
+import { uploadCanvasAsset } from '@/features/canvas/composition';
 import { awaitTaskCompletion } from '@/api/tasks';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { readUrl } from '@/lib/url-params';
@@ -518,7 +518,11 @@ export const RedrawOverlay = memo(({ node, imageSource, onClose }: RedrawOverlay
         const maskFile = new File([maskBlob], `mask-${node.id}-${Date.now()}.png`, {
           type: 'image/png',
         });
-        const uploaded = await uploadFreezoneImage(project, maskFile);
+        const uploaded = await uploadCanvasAsset(
+          project,
+          maskFile,
+          maskFile.name,
+        );
         maskUrl = uploaded.url.split('?')[0];
       }
       const apiModel = selectedModel?.apiModel ?? modelId;

@@ -16,8 +16,8 @@ import {
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { uploadFreezoneImage } from '@/api/ops';
 import { readUrl } from '@/lib/url-params';
+import { uploadCanvasAsset } from '@/features/canvas/composition';
 import { CanvasHistoryAssetsModal } from '@/features/canvas/ui/CanvasHistoryAssetsModal';
 import type { CanvasAsset } from '@/features/canvas/domain/canvasAssets';
 import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from '@/features/canvas/ui/NodeHeader';
@@ -124,7 +124,7 @@ export const GroupNode = memo(({ id, data, selected }: GroupNodeProps) => {
       try {
         const uploaded = await Promise.all(
           imageFiles.map(async (file) => {
-            const result = await uploadFreezoneImage(projectId, file, file.name);
+            const result = await uploadCanvasAsset(projectId, file, file.name);
             return { imageUrl: result.url, previewImageUrl: result.url, displayName: file.name };
           })
         );

@@ -11056,6 +11056,93 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("resolveGenerationOutputUrl");
   });
 
+  it("keeps canvas asset uploads behind one application use case", () => {
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/uploadCanvasAsset.ts",
+    );
+    const adapterPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneAssetGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const consumerPaths = [
+      "features/canvas/compose/CoverEditor.tsx",
+      "features/canvas/compose/VideoComposeModal.tsx",
+      "features/canvas/nodes/AudioNode.tsx",
+      "features/canvas/nodes/GroupNode.tsx",
+      "features/canvas/nodes/ImageGenNode.tsx",
+      "features/canvas/nodes/SkillNode.tsx",
+      "features/canvas/nodes/ThreeDWorldNode.tsx",
+      "features/canvas/nodes/UploadNode.tsx",
+      "features/canvas/nodes/VideoNode.tsx",
+      "features/canvas/ui/AssetLibraryModal.tsx",
+      "features/canvas/ui/EraseOverlay.tsx",
+      "features/canvas/ui/NodeActionToolbar.tsx",
+      "features/canvas/ui/RedrawOverlay.tsx",
+      "features/canvas/ui/RotateEditorOverlay.tsx",
+    ].map((path) => resolve(SRC_ROOT, path));
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const adapterSource = readFileSync(adapterPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const consumerSources = consumerPaths.map((path) =>
+      readFileSync(path, "utf8"),
+    );
+    const declaration = [
+      "export async function",
+      "uploadCanvasAsset(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+    const productionCanvasSources = sourceFiles(
+      resolve(SRC_ROOT, "features/canvas"),
+    ).filter((path) => !path.includes(".test."));
+    const directImageUploadOwners = productionCanvasSources
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("uploadFreezoneImage("),
+      )
+      .map(relativeSource)
+      .sort();
+    const directVideoUploadOwners = productionCanvasSources
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("uploadFreezoneVideo("),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(importSpecifiers(applicationPath)).toEqual(["./ports"]);
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(implementationOwners).toEqual([
+      "features/canvas/application/uploadCanvasAsset.ts",
+    ]);
+    expect(adapterSource).toContain("uploadFreezoneImage(");
+    expect(adapterSource).toContain("options?.disableTimeout");
+    expect(compositionSource).toContain("uploadCanvasAssetUseCase(");
+    expect(compositionSource).toContain("freezoneAssetGateway");
+    expect(directImageUploadOwners).toEqual([
+      "features/canvas/infrastructure/freezoneAssetGateway.ts",
+    ]);
+    expect(directVideoUploadOwners).toEqual([]);
+    for (const consumerSource of consumerSources) {
+      expect(consumerSource).toContain("uploadCanvasAsset(");
+      expect(consumerSource).not.toContain("uploadFreezoneImage");
+      expect(consumerSource).not.toContain("uploadFreezoneVideo");
+      expect(consumerSource).not.toContain("timeoutMs: false");
+    }
+    expect(
+      consumerSources
+        .join("\n")
+        .match(/disableTimeout: true/g),
+    ).toHaveLength(12);
+  });
+
   it("keeps video reference URL projection in one pure domain module", () => {
     const domainPath = resolve(
       SRC_ROOT,

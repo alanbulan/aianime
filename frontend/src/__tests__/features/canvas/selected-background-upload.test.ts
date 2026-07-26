@@ -59,7 +59,11 @@ describe('selected background staging', () => {
     addNode.mockReset().mockReturnValue('candidate-node');
     publish.mockReset();
     updateNodeData.mockReset();
-    uploadAsset.mockReset().mockResolvedValue('/static/proj/background.png');
+    uploadAsset.mockReset().mockResolvedValue({
+      url: '/static/proj/background.png',
+      filename: 'background.png',
+      size: 5,
+    });
   });
 
   it('uploads, stages, and auto-commits the selected background', async () => {

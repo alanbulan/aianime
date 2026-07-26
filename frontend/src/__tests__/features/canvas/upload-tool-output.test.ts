@@ -21,7 +21,11 @@ describe('uploadLocalImageToBackend', () => {
   beforeEach(() => {
     readAsset.mockReset().mockResolvedValue(new Blob(['x'], { type: 'image/png' }));
     uploadAsset.mockReset();
-    uploadAsset.mockResolvedValue('/static/projects/proj/uploads/output.png');
+    uploadAsset.mockResolvedValue({
+      url: '/static/projects/proj/uploads/output.png',
+      filename: 'output.png',
+      size: 1,
+    });
   });
 
   afterEach(() => {

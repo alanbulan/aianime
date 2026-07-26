@@ -92,9 +92,13 @@ async function uploadAssetToProject(
   });
   // 与图片同一个 /freezone/upload 接口，后端按通用 blob 处理；timeoutMs:false 关掉
   // ky 默认 30s 超时，避免大视频上传被中断。
-  return assetGateway.upload(targetProject, blob, filenameFromUrl(fetchUrl), {
-    disableTimeout: true,
-  });
+  const uploaded = await assetGateway.upload(
+    targetProject,
+    blob,
+    filenameFromUrl(fetchUrl),
+    { disableTimeout: true },
+  );
+  return uploaded.url;
 }
 
 interface RemapResult {

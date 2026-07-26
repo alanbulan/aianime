@@ -50,9 +50,9 @@ import {
 import {
   submitFreezoneVideoCompose,
   fetchFreezoneJobResult,
-  uploadFreezoneVideo,
   type FreezoneVideoComposeResolution,
 } from "@/api/ops";
+import { uploadCanvasAsset } from "@/features/canvas/composition";
 import { awaitTaskCompletion } from "@/api/tasks";
 import { VIDEO_CLIP_MIN_DURATION_MS } from "@/features/canvas/domain/videoClipRange";
 import { useViewerImmersiveBody } from "@/features/viewer-kit/useViewerImmersiveBody";
@@ -1505,10 +1505,11 @@ export function VideoComposeModal({
   const exportToCanvas = useCallback(
     async (url: string) => {
       const blob = await fetchComposedBlob(url);
-      const uploaded = await uploadFreezoneVideo(
+      const uploaded = await uploadCanvasAsset(
         project,
         blob,
         composedFileName(url),
+        { disableTimeout: true },
       );
       onComposed(uploaded.url, timelineRef.current.cover?.url ?? null);
     },

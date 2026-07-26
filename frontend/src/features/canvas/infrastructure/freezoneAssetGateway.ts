@@ -29,6 +29,6 @@ export const freezoneAssetGateway: CanvasAssetGateway & CanvasAssetSourceGateway
       filename,
       options?.disableTimeout ? { timeoutMs: false } : undefined,
     );
-    return uploaded.url;
+    return uploaded;
   },
 };

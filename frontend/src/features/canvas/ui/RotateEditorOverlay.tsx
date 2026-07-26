@@ -16,7 +16,7 @@ import {
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
 import { useCanvasStore } from '@/stores/canvasStore';
-import { uploadFreezoneImage } from '@/api/ops';
+import { uploadCanvasAsset } from '@/features/canvas/composition';
 import { loadImageElement } from '@/features/canvas/infrastructure/browserImageRuntime';
 import { readUrl } from '@/lib/url-params';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
@@ -135,7 +135,7 @@ export const RotateEditorOverlay = memo(
         });
 
         const filename = `rotate-${node.id}-${Date.now()}.png`;
-        const uploaded = await uploadFreezoneImage(project, blob, filename);
+        const uploaded = await uploadCanvasAsset(project, blob, filename);
 
         const newAspectRatio = `${dw}:${dh}`;
         updateNodeData(node.id, {

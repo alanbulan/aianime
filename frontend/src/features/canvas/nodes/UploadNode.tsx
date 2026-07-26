@@ -54,6 +54,7 @@ import {
 } from '@/features/canvas/application/imageData';
 import {
   prepareNodeImageFromFile,
+  uploadCanvasAsset,
   uploadLocalImageToBackend,
 } from '@/features/canvas/composition';
 import { CanvasNodeImage } from '@/features/canvas/ui/CanvasNodeImage';
@@ -68,7 +69,6 @@ import {
   hasMainlineContexts,
 } from '@/features/freezone/context/NodeContextBadges';
 import { collectCandidateBindingsForNode } from '@/features/freezone/context/mainlineContext';
-import { uploadFreezoneImage } from '@/api/ops';
 import { getBeatDirectorStageManifest } from '@/api/viewerManifests';
 import {
   ThreeDDirectorDialog,
@@ -216,13 +216,23 @@ async function uploadDirectorCaptureBundle(
 ): Promise<DirectorControlFrameBundle> {
   const stamp = Date.now();
   const [combined, envOnly, frameMeta] = await Promise.all([
-    uploadFreezoneImage(projectId, meta.combined, `director-world-${nodeId}-combined-${stamp}.png`, { timeoutMs: false }),
-    uploadFreezoneImage(projectId, meta.env_only, `director-world-${nodeId}-env-only-${stamp}.png`, { timeoutMs: false }),
-    uploadFreezoneImage(
+    uploadCanvasAsset(
+      projectId,
+      meta.combined,
+      `director-world-${nodeId}-combined-${stamp}.png`,
+      { disableTimeout: true },
+    ),
+    uploadCanvasAsset(
+      projectId,
+      meta.env_only,
+      `director-world-${nodeId}-env-only-${stamp}.png`,
+      { disableTimeout: true },
+    ),
+    uploadCanvasAsset(
       projectId,
       new Blob([JSON.stringify(meta.frame_meta)], { type: 'application/json' }),
       `director-world-${nodeId}-frame-meta-${stamp}.json`,
-      { timeoutMs: false },
+      { disableTimeout: true },
     ),
   ]);
 
@@ -401,7 +411,7 @@ export const UploadNode = memo(({ id, data, selected, width, height }: UploadNod
             console.warn('[upload-node] local prepare failed, continuing with backend URL only', err);
             return null;
           }),
-          uploadFreezoneImage(projectId, file, file.name),
+          uploadCanvasAsset(projectId, file, file.name),
         ]);
 
         if (uploadSequenceRef.current !== sequence) {

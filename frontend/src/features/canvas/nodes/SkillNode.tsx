@@ -12,7 +12,6 @@ import { Handle, Position, useUpdateNodeInternals, type NodeProps } from '@xyflo
 import { Boxes, Camera, Crop, FileText, Loader2, Play } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { uploadFreezoneImage } from '@/api/ops';
 import {
   getSceneAssetsForBeat,
   type SceneAssetsForBeat,
@@ -29,6 +28,7 @@ import {
 import { awaitTaskCompletion } from '@/api/tasks';
 import {
   stageSelectedBackgroundOutputForSkill,
+  uploadCanvasAsset,
 } from '@/features/canvas/composition';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import {
@@ -858,7 +858,9 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
     if (!projectId || !beatTarget) {
       throw new Error('缺少项目或镜头上下文');
     }
-    const uploaded = await uploadFreezoneImage(projectId, blob, filename, { timeoutMs: false });
+    const uploaded = await uploadCanvasAsset(projectId, blob, filename, {
+      disableTimeout: true,
+    });
     const nodeId = stageSelectedBackground(beatTarget, uploaded.url, label);
     if (!nodeId) {
       throw new Error('当前背景输出节点不可用');
@@ -934,11 +936,11 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
     const bundle = directorControlBundleFromMeta(meta);
     let imageUrl = directorControlBundleImageUrl(bundle, 'combined') || meta?.controlFrameUrl || '';
     if (!imageUrl) {
-      const uploaded = await uploadFreezoneImage(
+      const uploaded = await uploadCanvasAsset(
         projectId,
         blob,
         `director_combined_3gs_${Date.now()}.png`,
-        { timeoutMs: false },
+        { disableTimeout: true },
       );
       imageUrl = uploaded.url;
     }

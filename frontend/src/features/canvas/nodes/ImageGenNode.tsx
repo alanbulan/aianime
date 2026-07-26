@@ -84,11 +84,11 @@ import { getFreezoneCanvasMetadata } from '@/features/freezone/canvasMetadataCon
 import {
   fetchFreezoneJobResult,
   submitFreezoneGen,
-  uploadFreezoneImage,
 } from '@/api/ops';
 import {
   translateCanvasText,
   uploadAndAutoCommitSelectedBackgroundCandidate,
+  uploadCanvasAsset,
 } from '@/features/canvas/composition';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import { getBeatDirectorStageManifest } from '@/api/viewerManifests';
@@ -759,7 +759,7 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
       }
       setIsUploading(true);
       try {
-        const result = await uploadFreezoneImage(projectId, file, file.name);
+        const result = await uploadCanvasAsset(projectId, file, file.name);
         updateNodeData(id, { referenceImageUrl: result.url });
       } catch (error) {
         console.error('[image-gen] upload failed', error);
@@ -1121,11 +1121,11 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
         ?? meta.controlFrameBundle?.urls?.combined
         ?? '';
       if (!imageUrl) {
-        const uploaded = await uploadFreezoneImage(
+        const uploaded = await uploadCanvasAsset(
           projectId,
           blob,
           `director_combined_${Date.now()}.png`,
-          { timeoutMs: false },
+          { disableTimeout: true },
         );
         imageUrl = uploaded.url;
       }

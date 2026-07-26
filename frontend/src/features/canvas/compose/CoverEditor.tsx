@@ -11,7 +11,7 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { ImageUp, Loader2, X } from "lucide-react";
 
-import { uploadFreezoneImage } from "@/api/ops";
+import { uploadCanvasAsset } from "@/features/canvas/composition";
 import {
   mediaNeedsCrossOrigin,
   resolveImageDisplayUrl,
@@ -154,7 +154,7 @@ export function CoverEditor({
       const name = `cover_${Date.now()}.jpg`;
       if (tab === "upload") {
         if (!uploadFile) return;
-        const res = await uploadFreezoneImage(project, uploadFile, name);
+        const res = await uploadCanvasAsset(project, uploadFile, name);
         onApply({ source: "upload", frameMs: null, url: res.url });
       } else {
         const el = videoRef.current;
@@ -163,7 +163,7 @@ export function CoverEditor({
         if (el) await waitForVideoFrameReady(el);
         const blob = el ? await captureVideoFrame(el) : null;
         if (!blob) throw new Error(t("videoCompose.cover.captureFailed"));
-        const res = await uploadFreezoneImage(project, blob, name);
+        const res = await uploadCanvasAsset(project, blob, name);
         onApply({ source: "frame", frameMs, url: res.url });
       }
       // 成功后由父级关闭编辑器，这里不复位 busy（避免闪烁）。

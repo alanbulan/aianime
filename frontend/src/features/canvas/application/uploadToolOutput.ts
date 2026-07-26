@@ -37,7 +37,8 @@ export async function uploadLocalImageToBackend(
 
   try {
     const blob = await assetSourceGateway.read(trimmed);
-    return await assetGateway.upload(projectId, blob, filename);
+    const uploaded = await assetGateway.upload(projectId, blob, filename);
+    return uploaded.url;
   } catch (error) {
     console.warn('[upload-tool-output] upload failed, keeping local URL', { filename, error });
     return localImageUrl;

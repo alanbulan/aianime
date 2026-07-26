@@ -1,15 +1,40 @@
 // Copyright (c) 2026 AI anime
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+const uploadFreezoneImage = vi.hoisted(() => vi.fn());
+
 vi.mock('@/api/ops', () => ({
-  uploadFreezoneImage: vi.fn(),
+  uploadFreezoneImage,
 }));
 
 import { freezoneAssetGateway } from '@/features/canvas/infrastructure/freezoneAssetGateway';
 
 describe('freezone asset source gateway', () => {
   afterEach(() => {
+    uploadFreezoneImage.mockReset();
     vi.unstubAllGlobals();
+  });
+
+  it('returns complete upload metadata and maps the disabled timeout option', async () => {
+    const uploaded = {
+      url: '/static/upload.png',
+      filename: 'sanitized-upload.png',
+      size: 42,
+    };
+    const blob = new Blob(['asset'], { type: 'image/png' });
+    uploadFreezoneImage.mockResolvedValue(uploaded);
+
+    await expect(
+      freezoneAssetGateway.upload('project-1', blob, '../upload.png', {
+        disableTimeout: true,
+      }),
+    ).resolves.toEqual(uploaded);
+    expect(uploadFreezoneImage).toHaveBeenCalledWith(
+      'project-1',
+      blob,
+      '../upload.png',
+      { timeoutMs: false },
+    );
   });
 
   it('decodes data URLs without using fetch', async () => {

@@ -114,8 +114,8 @@ import {
   fetchFreezoneAudioSeparateResult,
   submitFreezoneAnalyzeVideoStory,
   submitFreezoneAudioSeparate,
-  uploadFreezoneImage,
 } from "@/api/ops";
+import { uploadCanvasAsset } from "@/features/canvas/composition";
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
 import { awaitTaskCompletion } from "@/api/tasks";
 import { normalizeVideoStoryRows } from "@/features/canvas/application/videoStoryNormalizer";
@@ -933,7 +933,7 @@ export const NodeActionToolbar = memo(
           // 是否可用,主线程都不阻塞,点击抠图后画布保持流畅。
           const mattedBlob = await matteInWorker(sourceBlob);
           const filename = `matte-${node.id}-${Date.now()}.png`;
-          const uploaded = await uploadFreezoneImage(
+          const uploaded = await uploadCanvasAsset(
             projectId,
             mattedBlob,
             filename,

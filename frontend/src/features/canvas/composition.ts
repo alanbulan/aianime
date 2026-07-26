@@ -60,6 +60,10 @@ import {
 import {
   uploadLocalImageToBackend as uploadLocalImageToBackendUseCase,
 } from './application/uploadToolOutput';
+import {
+  uploadCanvasAsset as uploadCanvasAssetUseCase,
+  type UploadCanvasAssetOptions,
+} from './application/uploadCanvasAsset';
 import { clearBrowserClipboard } from './infrastructure/browserClipboardGateway';
 import { browserGenerationRuntimeGateway } from './infrastructure/browserGenerationRuntimeGateway';
 import { browserImageRuntimeGateway } from './infrastructure/browserImageRuntime';
@@ -155,6 +159,18 @@ export function uploadLocalImageToBackend(
     readUrl().project,
     localImageUrl,
     filename,
+  );
+}
+
+export function uploadCanvasAsset(
+  projectId: string,
+  file: File | Blob,
+  filename: string,
+  options?: UploadCanvasAssetOptions,
+) {
+  return uploadCanvasAssetUseCase(
+    { projectId, file, filename, options },
+    freezoneAssetGateway,
   );
 }
 

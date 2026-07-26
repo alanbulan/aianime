@@ -108,6 +108,7 @@ import {
   showErrorDialog,
   submitVideoGeneration,
   translateCanvasText,
+  uploadCanvasAsset,
 } from "@/features/canvas/composition";
 import { backendErrorToastMessage } from "@/shared/api/errors";
 import { resolveGenerationErrorDiagnostics } from "@/features/canvas/application/generationErrorReport";
@@ -202,10 +203,6 @@ import {
   type AssetLibrarySelection,
 } from "@/features/canvas/ui/AssetLibraryModal";
 import { useCanvasStore } from "@/stores/canvasStore";
-import {
-  uploadFreezoneImage,
-  uploadFreezoneVideo,
-} from "@/api/ops";
 import { generationTaskDescriptor } from "@/features/canvas/application/resumeGeneration";
 import { useNodeGenerationHistory } from "@/features/canvas/hooks/useNodeGenerationHistory";
 import { historyRecordOutputUrl } from "@/features/canvas/ui/NodeGenerationHistory";
@@ -976,10 +973,11 @@ export const VideoNode = memo(
             transientUrlRef.current = preparedUrl;
             setTransientPreviewUrl(preparedUrl);
           }
-          const uploaded = await uploadFreezoneVideo(
+          const uploaded = await uploadCanvasAsset(
             projectId,
             prepared.file,
             prepared.file.name,
+            { disableTimeout: true },
           );
           updateNodeData(id, {
             videoUrl: uploaded.url,
@@ -2129,7 +2127,7 @@ export const VideoNode = memo(
           const blob = await captureVideoFrameBlob(src, seekSec);
           const filename = `frame-${mode}-${Date.now()}.png`;
           const file = new File([blob], filename, { type: "image/png" });
-          const uploaded = await uploadFreezoneImage(
+          const uploaded = await uploadCanvasAsset(
             projectId,
             file,
             filename,
