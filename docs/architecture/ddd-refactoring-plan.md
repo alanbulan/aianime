@@ -1576,6 +1576,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百四十六批已将资产提交目标、结果和影响查询 DTO 迁入唯一 Freezone `assetCommit` domain 契约，将提交/影响查询 port 与委托用例迁入 application，将项目编码、两个 POST method、`freezone/push` 与 `freezone/impact` 路径迁入唯一 `httpFreezoneAssetCommitGateway` infrastructure 适配器，并经 Freezone composition/public 发布；Freezone 提交视图、提交辅助逻辑和 Canvas slot target 统一改经 public/composition，原 201 行 `api/push.ts` 整体删除，不保留 facade、re-export 或第二套 DTO；边界核对同时发现 Asset World 道具参考图上传仍直接调用同一 push 端点，已改为上传后经 Freezone public API 提交并保持原 `{ ok: true, data }` 返回形状，两个端点各只剩一个生产所有者；请求路径、方法、payload、目标校验、影响预览、stale 标记和提交后节点更新语义均未改变；相关 9 个测试文件 68 项、新增后的架构门禁 198 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百四十七批已将 Freezone 图片创建 Identity 资产的请求与结果 DTO 迁入 Asset World `identity-asset` domain 契约，将创建 port 与委托用例迁入 application，将项目编码、POST method 和 `freezone/assets/identities` 路径迁入唯一 `httpIdentityAssetGateway` infrastructure 适配器，并经 Asset World composition/public 发布；`CreateIdentityDialog` 改经 public API 提交，原 29 行 `api/assets.ts` 整体删除，不保留 facade、re-export 或第二套 DTO；该接口与既有“先创建空 Identity”的 `characters/{name}/identities` 语义不同，继续保持独立用例，未错误合并；请求路径、方法、payload、结果字段、表单校验和成功提示语义均未改变；相关 1 个测试文件 2 项、新增后的架构门禁 199 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

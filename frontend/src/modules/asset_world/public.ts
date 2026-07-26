@@ -1,6 +1,7 @@
 export {
   CharactersPageContent,
   clearSceneDirectorWorld,
+  createIdentityAsset,
   PropsPanelContent,
   ScenesPanelContent,
   StylesPageContent,
@@ -103,6 +104,10 @@ export type {
   ScenePayload,
 } from "@/modules/asset_world/application/scene-gateway";
 export type { AssetSortKey } from "@/modules/asset_world/domain/asset-collection";
+export type {
+  CreateIdentityAssetPayload,
+  CreateIdentityAssetResult,
+} from "@/modules/asset_world/domain/identity-asset";
 export {
   filterAssets,
   sortAssets,

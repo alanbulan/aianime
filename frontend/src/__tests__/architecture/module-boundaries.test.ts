@@ -7527,6 +7527,7 @@ describe("frontend architecture boundaries", () => {
     );
 
     for (const legacyPath of [
+      "api/assets.ts",
       "lib/queries/character-image-selection.ts",
       "lib/queries/characters.ts",
       "lib/character-main-copy.ts",
@@ -7571,6 +7572,71 @@ describe("frontend architecture boundaries", () => {
     expect(legacySketchQueries).not.toContain(
       "useUploadBeatBackgroundAnchor",
     );
+  });
+
+  it("keeps Freezone identity asset creation behind the Asset & World application port", () => {
+    const legacyApiPath = resolve(SRC_ROOT, "api/assets.ts");
+    const domainPath = resolve(
+      SRC_ROOT,
+      "modules/asset_world/domain/identity-asset.ts",
+    );
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "modules/asset_world/application/identity-asset.ts",
+    );
+    const infrastructurePath = resolve(
+      SRC_ROOT,
+      "modules/asset_world/infrastructure/http-identity-asset-gateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "modules/asset_world/composition.ts",
+    );
+    const publicPath = resolve(SRC_ROOT, "modules/asset_world/public.ts");
+    const consumerPath = resolve(
+      SRC_ROOT,
+      "pipeline-import/CreateIdentityDialog.tsx",
+    );
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const publicSource = readFileSync(publicPath, "utf8");
+    const directLegacyConsumers = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) => importSpecifiers(path).includes("@/api/assets"))
+      .map(relativeSource)
+      .sort();
+    const endpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          "}/freezone/assets/identities`",
+        ),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(existsSync(legacyApiPath)).toBe(false);
+    expect(importSpecifiers(domainPath)).toEqual([]);
+    expect(importSpecifiers(applicationPath)).toEqual([
+      "@/modules/asset_world/domain/identity-asset",
+    ]);
+    expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
+      new Set([
+        "@/modules/asset_world/application/identity-asset",
+        "@/modules/asset_world/domain/identity-asset",
+        "@/shared/api/client",
+      ]),
+    );
+    expect(directLegacyConsumers).toEqual([]);
+    expect(endpointOwners).toEqual([
+      "modules/asset_world/infrastructure/http-identity-asset-gateway.ts",
+    ]);
+    expect(importSpecifiers(consumerPath)).toContain(
+      "@/modules/asset_world/public",
+    );
+    expect(importSpecifiers(consumerPath)).not.toContain("@/api/assets");
+    expect(compositionSource).toContain("createIdentityAssetUseCase(");
+    expect(compositionSource).toContain("httpIdentityAssetGateway");
+    expect(publicSource).toContain("createIdentityAsset,");
   });
 
   it("keeps the Styles route as an adapter", () => {

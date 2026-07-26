@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useEffect, useMemo, useState } from "react";
-import { createIdentityAsset } from "@/api/assets";
 import { listCharacters, type AiAnimeCharacter } from "@/api/projects";
+import { createIdentityAsset } from "@/modules/asset_world/public";
 
 interface CreateIdentityDialogProps {
   project: string;

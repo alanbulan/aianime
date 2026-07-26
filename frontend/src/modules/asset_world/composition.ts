@@ -26,6 +26,9 @@ import type {
 import { useAssetReferenceIndex } from "@/modules/asset_world/application/use-asset-reference-index";
 import { createCharacterQueryHooks } from "@/modules/asset_world/application/character-query-hooks";
 import { createImageSourceQueryHooks } from "@/modules/asset_world/application/image-source-query-hooks";
+import {
+  createIdentityAsset as createIdentityAssetUseCase,
+} from "@/modules/asset_world/application/identity-asset";
 import { createPropQueryHooks } from "@/modules/asset_world/application/prop-query-hooks";
 import { createSceneQueryHooks } from "@/modules/asset_world/application/scene-query-hooks";
 import { createStyleQueryHooks } from "@/modules/asset_world/application/style-query-hooks";
@@ -64,6 +67,7 @@ import type {
   Character,
   CharacterAssetKind,
 } from "@/modules/asset_world/domain/character";
+import type { CreateIdentityAssetPayload } from "@/modules/asset_world/domain/identity-asset";
 import type { PropAsset } from "@/modules/asset_world/domain/prop";
 import type { SceneAsset } from "@/modules/asset_world/domain/scene";
 import type { Style } from "@/modules/asset_world/domain/style";
@@ -77,6 +81,9 @@ import { httpCharacterGateway } from "@/modules/asset_world/infrastructure/http-
 import { httpAssetWorldGateway } from "@/modules/asset_world/infrastructure/http-asset-world-gateway";
 import { httpBeatViewerGateway } from "@/modules/asset_world/infrastructure/http-beat-viewer-gateway";
 import { httpImageSourceGateway } from "@/modules/asset_world/infrastructure/http-image-source-gateway";
+import {
+  httpIdentityAssetGateway,
+} from "@/modules/asset_world/infrastructure/http-identity-asset-gateway";
 import { httpPropGateway } from "@/modules/asset_world/infrastructure/http-prop-gateway";
 import { httpSceneGateway } from "@/modules/asset_world/infrastructure/http-scene-gateway";
 import {
@@ -214,6 +221,16 @@ export const {
 } = sceneQueries;
 
 export { useAssetReferenceIndex, useAssetWorkspaceNavigation };
+
+export function createIdentityAsset(
+  projectId: string,
+  payload: CreateIdentityAssetPayload,
+) {
+  return createIdentityAssetUseCase(
+    { projectId, payload },
+    httpIdentityAssetGateway,
+  );
+}
 
 export async function listScenes(project: string): Promise<SceneAsset[]> {
   const response = await httpSceneGateway.listScenes(project);

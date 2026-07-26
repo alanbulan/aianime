@@ -1,6 +1,4 @@
 // Copyright (c) 2026 AI anime
-import { apiCall } from "@/shared/api/client";
-
 export interface CreateIdentityAssetPayload {
   source_url: string;
   character: string;
@@ -16,14 +14,4 @@ export interface CreateIdentityAssetResult {
   identity_name: string;
   target_path: string;
   target_url: string;
-}
-
-export async function createIdentityAsset(
-  projectId: string,
-  payload: CreateIdentityAssetPayload,
-): Promise<CreateIdentityAssetResult> {
-  return await apiCall<CreateIdentityAssetResult>(
-    `projects/${encodeURIComponent(projectId)}/freezone/assets/identities`,
-    { method: "POST", json: payload },
-  );
 }
