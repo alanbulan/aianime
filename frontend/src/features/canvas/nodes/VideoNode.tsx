@@ -138,7 +138,7 @@ import {
   NODE_INLINE_ICON_BUTTON_ACTIVE_CLASS,
   NODE_INLINE_ICON_BUTTON_CLASS,
 } from "@/features/canvas/ui/nodeControlStyles";
-import { VideoClipPanel } from "@/features/canvas/nodes/VideoClipPanel";
+import { VideoNodeClipPanel } from "@/features/canvas/nodes/VideoNodeClipPanel";
 import { VideoPlayerControls } from "@/features/canvas/nodes/VideoPlayerControls";
 import {
   ReferenceMediaRow,
@@ -2400,34 +2400,25 @@ export const VideoNode = memo(
           />
         )}
 
-        {isClipMode && videoSource && (
-          <div
-            className="absolute left-0 right-0 z-10 flex flex-col gap-1"
-            style={{ top: `calc(100% + ${OPERATIONS_PANEL_GAP}px)` }}
-          >
-            <VideoClipPanel
-              videoUrl={videoSource}
-              durationMs={durationMs}
-              clipStartMs={clipStartMs}
-              clipEndMs={clipEndMs}
-              isSubmitting={isComposingClip}
-              onChange={(patch) => updateNodeData(id, patch)}
-              onExit={() => {
-                if (isComposingClip) return;
-                setClipError(null);
-                updateNodeData(id, { isClipMode: false });
-              }}
-              onSubmit={(start, end) => {
-                void handleClipSubmit(start, end);
-              }}
-            />
-            {clipError && (
-              <div className="break-words rounded-md border border-destructive/30 bg-destructive/10 px-3 py-1.5 text-[11px] text-destructive [overflow-wrap:anywhere]">
-                剪辑失败：{clipError}
-              </div>
-            )}
-          </div>
-        )}
+        <VideoNodeClipPanel
+          visible={isClipMode}
+          videoUrl={videoSource}
+          durationMs={durationMs}
+          clipStartMs={clipStartMs}
+          clipEndMs={clipEndMs}
+          isSubmitting={isComposingClip}
+          error={clipError}
+          topOffsetPx={OPERATIONS_PANEL_GAP}
+          onChange={(patch) => updateNodeData(id, patch)}
+          onExit={() => {
+            if (isComposingClip) return;
+            setClipError(null);
+            updateNodeData(id, { isClipMode: false });
+          }}
+          onSubmit={(start, end) => {
+            void handleClipSubmit(start, end);
+          }}
+        />
 
         {showVideoOpsPanel && (
             <OperationPanelShell

@@ -1478,6 +1478,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第一百九十七批已将 Seedance 2.0 系列模型 ID 的分隔符归一化与能力识别迁入既有唯一纯领域模块 `videoGenerationModel`，真人审核请求、音频引用时长上限和开关可见性继续消费同一判定；`VideoNode` 的真人验证 switch JSX 同步迁入唯一 `VideoHumanReviewSwitch` presentation view，节点只传递布尔状态和写回命令，不保留私有正则或第二套控件，源码由 2726 行降至 2702 行，独立视图 41 行；模型规则与开关视图共 9 项测试、架构门禁 154 项及前端 `tsc -b --pretty false` 均通过。
 
+第一百九十八批已将 `VideoNode` 的剪辑模式/视频源显示门禁、节点下方定位、`VideoClipPanel` 组合及剪辑错误展示迁入唯一 `VideoNodeClipPanel` presentation view；节点继续唯一持有剪辑区间 Store 写回、退出状态清理和合成任务提交，只向视图传递显式状态与命令，不保留第二套剪辑面板 JSX，源码由 2702 行降至 2693 行，独立视图 37 行；显示门禁、布局/错误与变更/退出/提交命令测试 3 项、架构门禁 155 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

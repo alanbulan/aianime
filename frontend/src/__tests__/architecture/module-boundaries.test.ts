@@ -10337,6 +10337,55 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("<span>真人验证</span>");
   });
 
+  it("keeps VideoNode clip operation panel in one presentation view", () => {
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoNodeClipPanel.tsx",
+    );
+    const viewSource = readFileSync(viewPath, "utf8");
+    const videoNode = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(viewPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declaration = [
+      "export function",
+      "VideoNodeClipPanel(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/nodes/VideoNodeClipPanel.tsx",
+    ]);
+    expect(viewSource).toContain("<VideoClipPanel");
+    expect(viewSource).toContain("if (!visible || !videoUrl) return null");
+    expect(viewSource).toContain("剪辑失败：{error}");
+    expect(videoNode).toContain(
+      "@/features/canvas/nodes/VideoNodeClipPanel",
+    );
+    expect(videoNode).toContain("<VideoNodeClipPanel");
+    expect(videoNode).not.toContain(
+      'from "@/features/canvas/nodes/VideoClipPanel"',
+    );
+    expect(videoNode).not.toContain("<VideoClipPanel");
+    expect(videoNode).not.toContain("剪辑失败：{clipError}");
+  });
+
   it("keeps VideoNode camera movement trigger in one presentation view", () => {
     const viewPath = resolve(
       SRC_ROOT,
