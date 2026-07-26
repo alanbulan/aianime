@@ -2,10 +2,10 @@
 import type { PushResult, PushTarget } from "@/api/push";
 import {
   clearSceneDirectorWorld,
-  getSceneDirectorStageManifest,
+  loadSceneDirectorStageManifest,
   saveSceneDirectorWorld,
   saveSceneDirectorWorldSource,
-} from "@/api/viewerManifests";
+} from "@/modules/asset_world/public";
 import { directorSourceIdentityUrl } from "@/features/canvas/domain/directorWorldSources";
 import type { ThreeDSceneSnapshot } from "@/features/viewer-kit/three-d/engine/viewerApp";
 import type { DirectorWorldSource } from "@/features/viewer-kit/three-d/directorManifest";
@@ -211,7 +211,7 @@ async function existingSceneDirectorWorldSourceIds(
   sceneId: string,
 ): Promise<Set<string>> {
   try {
-    const manifest = await getSceneDirectorStageManifest(project, sceneId);
+    const manifest = await loadSceneDirectorStageManifest(project, sceneId);
     const ids = new Set<string>();
     const activeSourceId = stringValue(manifest.active_source_id);
     if (activeSourceId) ids.add(activeSourceId);

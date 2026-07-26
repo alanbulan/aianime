@@ -9426,6 +9426,122 @@ describe("frontend architecture boundaries", () => {
     }
   });
 
+  it("keeps scene director world persistence in Asset World", () => {
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "modules/asset_world/application/scene-director-world.ts",
+    );
+    const gatewayPath = resolve(
+      SRC_ROOT,
+      "modules/asset_world/application/scene-gateway.ts",
+    );
+    const adapterPath = resolve(
+      SRC_ROOT,
+      "modules/asset_world/infrastructure/http-scene-gateway.ts",
+    );
+    const moduleCompositionPath = resolve(
+      SRC_ROOT,
+      "modules/asset_world/composition.ts",
+    );
+    const publicPath = resolve(SRC_ROOT, "modules/asset_world/public.ts");
+    const canvasCompositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const freezoneCommitPath = resolve(
+      SRC_ROOT,
+      "features/freezone/commit/sceneDirectorWorldCommit.ts",
+    );
+    const legacyApiPath = resolve(SRC_ROOT, "api/viewerManifests.ts");
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const gatewaySource = readFileSync(gatewayPath, "utf8");
+    const adapterSource = readFileSync(adapterPath, "utf8");
+    const moduleCompositionSource = readFileSync(
+      moduleCompositionPath,
+      "utf8",
+    );
+    const publicSource = readFileSync(publicPath, "utf8");
+    const canvasCompositionSource = readFileSync(
+      canvasCompositionPath,
+      "utf8",
+    );
+    const freezoneCommitSource = readFileSync(freezoneCommitPath, "utf8");
+    const legacyApiSource = readFileSync(legacyApiPath, "utf8");
+    const sourceEndpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          "director-stage/world/source",
+        ),
+      )
+      .map(relativeSource)
+      .sort();
+    const clearEndpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          "director-stage/world/clear",
+        ),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set([
+        "@/features/viewer-kit/three-d/directorManifest",
+        "@/modules/asset_world/application/ports",
+        "@/modules/asset_world/application/scene-gateway",
+      ]),
+    );
+    expect(applicationSource).toContain(
+      "unwrapSceneDirectorWorldResponse(",
+    );
+    expect(applicationSource).not.toContain("react");
+    expect(gatewaySource).toContain(
+      "export interface SceneDirectorWorldSourceGateway",
+    );
+    expect(adapterSource).toContain(
+      "SceneGateway & SceneDirectorWorldSourceGateway",
+    );
+    expect(sourceEndpointOwners).toEqual([
+      "modules/asset_world/infrastructure/http-scene-gateway.ts",
+    ]);
+    expect(clearEndpointOwners).toEqual([
+      "modules/asset_world/infrastructure/http-scene-gateway.ts",
+    ]);
+    expect(moduleCompositionSource).toContain(
+      "loadSceneDirectorStageManifestUseCase(",
+    );
+    expect(moduleCompositionSource).toContain(
+      "saveSceneDirectorWorldSourceUseCase(",
+    );
+    expect(publicSource).toContain("loadSceneDirectorStageManifest,");
+    expect(publicSource).toContain("saveSceneDirectorWorldSource,");
+    expect(importSpecifiers(canvasCompositionPath)).toContain(
+      "@/modules/asset_world/public",
+    );
+    expect(canvasCompositionSource).toContain(
+      "getSceneDirectorStageManifest: loadSceneDirectorStageManifest",
+    );
+    expect(importSpecifiers(freezoneCommitPath)).toContain(
+      "@/modules/asset_world/public",
+    );
+    expect(importSpecifiers(freezoneCommitPath)).not.toContain(
+      "@/api/viewerManifests",
+    );
+    expect(freezoneCommitSource).toContain(
+      "await loadSceneDirectorStageManifest(project, sceneId)",
+    );
+    for (const legacyName of [
+      "getSceneDirectorStageManifest",
+      "saveSceneDirectorWorld",
+      "saveSceneDirectorWorldSource",
+      "clearSceneDirectorWorld",
+    ]) {
+      expect(legacyApiSource).not.toContain(legacyName);
+    }
+  });
+
   it("keeps Canvas image-to-3D generation orchestration out of views", () => {
     const domainPath = resolve(
       SRC_ROOT,

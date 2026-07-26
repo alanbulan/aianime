@@ -1,9 +1,7 @@
 // Copyright (c) 2026 AI anime
 import type {
-  DirectorStageManifest,
   DirectorStageOverlayStatus,
 } from "@/features/viewer-kit/three-d/directorManifest";
-import type { ThreeDSceneSnapshot } from "@/features/viewer-kit/three-d/engine/viewerApp";
 import { apiCall } from "@/shared/api/client";
 
 export interface AiStagingPropResult {
@@ -70,65 +68,6 @@ export async function generateAiStagingProp(
     {
       method: "POST",
       json: payload,
-    },
-  );
-}
-
-export async function getSceneDirectorStageManifest(
-  project: string,
-  sceneId: string,
-): Promise<DirectorStageManifest> {
-  return await apiCall<DirectorStageManifest>(
-    `projects/${encodeURIComponent(project)}/scenes/${encodeURIComponent(sceneId)}/director-stage/manifest`,
-  );
-}
-
-export async function saveSceneDirectorWorld(
-  project: string,
-  sceneId: string,
-  payload: {
-    active_source_id: string;
-    snapshot: ThreeDSceneSnapshot;
-    active_source?: Record<string, unknown>;
-  },
-): Promise<{ active_source_id: string; manifest?: DirectorStageManifest | null }> {
-  return await apiCall<{ active_source_id: string; manifest?: DirectorStageManifest | null }>(
-    `projects/${encodeURIComponent(project)}/scenes/${encodeURIComponent(sceneId)}/director-stage/world`,
-    {
-      method: "POST",
-      json: payload,
-    },
-  );
-}
-
-export async function saveSceneDirectorWorldSource(
-  project: string,
-  sceneId: string,
-  payload: {
-    source_id: string;
-    snapshot: ThreeDSceneSnapshot;
-    source?: Record<string, unknown>;
-  },
-): Promise<{ active_source_id: string; manifest?: DirectorStageManifest | null }> {
-  return await apiCall<{ active_source_id: string; manifest?: DirectorStageManifest | null }>(
-    `projects/${encodeURIComponent(project)}/scenes/${encodeURIComponent(sceneId)}/director-stage/world/source`,
-    {
-      method: "POST",
-      json: payload,
-    },
-  );
-}
-
-export async function clearSceneDirectorWorld(
-  project: string,
-  sceneId: string,
-  activeSourceId?: string,
-): Promise<{ active_source_id: string }> {
-  return await apiCall<{ active_source_id: string }>(
-    `projects/${encodeURIComponent(project)}/scenes/${encodeURIComponent(sceneId)}/director-stage/world/clear`,
-    {
-      method: "POST",
-      json: { active_source_id: activeSourceId ?? "" },
     },
   );
 }

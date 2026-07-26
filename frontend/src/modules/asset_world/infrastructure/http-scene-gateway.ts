@@ -7,7 +7,11 @@ import type {
   AssetResponse,
   AssetTaskResponse,
 } from "@/modules/asset_world/application/ports";
-import type { SceneGateway } from "@/modules/asset_world/application/scene-gateway";
+import type {
+  SceneDirectorWorldSaveResult,
+  SceneDirectorWorldSourceGateway,
+  SceneGateway,
+} from "@/modules/asset_world/application/scene-gateway";
 import type {
   SceneAsset,
   ScenePlatePreview,
@@ -22,7 +26,7 @@ function uploadBody(file: File): FormData {
   return formData;
 }
 
-export const httpSceneGateway: SceneGateway = {
+export const httpSceneGateway: SceneGateway & SceneDirectorWorldSourceGateway = {
   async listScenes(project, signal) {
     return api
       .get(p`api/v1/projects/${project}/scenes`, { signal })
@@ -78,7 +82,16 @@ export const httpSceneGateway: SceneGateway = {
       .post(p`api/v1/projects/${project}/scenes/${name}/director-stage/world`, {
         json: input,
       })
-      .json<AssetResponse<{ active_source_id: string }>>();
+      .json<AssetResponse<SceneDirectorWorldSaveResult>>();
+  },
+
+  async saveDirectorWorldSource(project, name, input) {
+    return api
+      .post(
+        p`api/v1/projects/${project}/scenes/${name}/director-stage/world/source`,
+        { json: input },
+      )
+      .json<AssetResponse<SceneDirectorWorldSaveResult>>();
   },
 
   async clearDirectorWorld(project, name, activeSourceId) {

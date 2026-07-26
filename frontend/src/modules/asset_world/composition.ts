@@ -13,6 +13,16 @@ import { createBeatViewerQueryHooks } from "@/modules/asset_world/application/be
 import {
   loadBeatDirectorStageManifest as loadBeatDirectorStageManifestUseCase,
 } from "@/modules/asset_world/application/load-beat-director-manifest";
+import {
+  clearSceneDirectorWorld as clearSceneDirectorWorldUseCase,
+  loadSceneDirectorStageManifest as loadSceneDirectorStageManifestUseCase,
+  saveSceneDirectorWorld as saveSceneDirectorWorldUseCase,
+  saveSceneDirectorWorldSource as saveSceneDirectorWorldSourceUseCase,
+} from "@/modules/asset_world/application/scene-director-world";
+import type {
+  SceneDirectorWorldPayload,
+  SceneDirectorWorldSourcePayload,
+} from "@/modules/asset_world/application/scene-gateway";
 import { useAssetReferenceIndex } from "@/modules/asset_world/application/use-asset-reference-index";
 import { createCharacterQueryHooks } from "@/modules/asset_world/application/character-query-hooks";
 import { createImageSourceQueryHooks } from "@/modules/asset_world/application/image-source-query-hooks";
@@ -218,6 +228,49 @@ export function loadBeatDirectorStageManifest(
   return loadBeatDirectorStageManifestUseCase(
     { project, episode, beatNumber },
     httpBeatViewerGateway,
+  );
+}
+
+export function loadSceneDirectorStageManifest(
+  project: string,
+  sceneId: string,
+) {
+  return loadSceneDirectorStageManifestUseCase(
+    { project, sceneId },
+    httpSceneGateway,
+  );
+}
+
+export function saveSceneDirectorWorld(
+  project: string,
+  sceneId: string,
+  payload: SceneDirectorWorldPayload,
+) {
+  return saveSceneDirectorWorldUseCase(
+    { project, sceneId, payload },
+    httpSceneGateway,
+  );
+}
+
+export function saveSceneDirectorWorldSource(
+  project: string,
+  sceneId: string,
+  payload: SceneDirectorWorldSourcePayload,
+) {
+  return saveSceneDirectorWorldSourceUseCase(
+    { project, sceneId, payload },
+    httpSceneGateway,
+  );
+}
+
+export function clearSceneDirectorWorld(
+  project: string,
+  sceneId: string,
+  activeSourceId: string,
+) {
+  return clearSceneDirectorWorldUseCase(
+    { project, sceneId, activeSourceId },
+    httpSceneGateway,
   );
 }
 

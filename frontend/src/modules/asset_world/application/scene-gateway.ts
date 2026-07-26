@@ -34,6 +34,25 @@ export interface SceneDirectorWorldPayload {
   active_source?: Record<string, unknown>;
 }
 
+export interface SceneDirectorWorldSourcePayload {
+  source_id: string;
+  snapshot: ThreeDSceneSnapshot;
+  source?: Record<string, unknown>;
+}
+
+export interface SceneDirectorWorldSaveResult {
+  active_source_id: string;
+  manifest?: DirectorStageManifest | null;
+}
+
+export interface SceneDirectorWorldSourceGateway {
+  saveDirectorWorldSource(
+    project: string,
+    name: string,
+    input: SceneDirectorWorldSourcePayload,
+  ): Promise<AssetResponse<SceneDirectorWorldSaveResult>>;
+}
+
 export interface SceneGateway {
   listScenes(
     project: string,
@@ -65,7 +84,7 @@ export interface SceneGateway {
     project: string,
     name: string,
     input: SceneDirectorWorldPayload,
-  ): Promise<AssetResponse<{ active_source_id: string }>>;
+  ): Promise<AssetResponse<SceneDirectorWorldSaveResult>>;
   clearDirectorWorld(
     project: string,
     name: string,

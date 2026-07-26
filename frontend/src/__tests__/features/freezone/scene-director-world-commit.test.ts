@@ -3,19 +3,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   clearSceneDirectorWorld,
-  getSceneDirectorStageManifest,
+  loadSceneDirectorStageManifest,
   saveSceneDirectorWorld,
   saveSceneDirectorWorldSource,
-} from "@/api/viewerManifests";
+} from "@/modules/asset_world/public";
 import {
   commitSceneDirectorWorldFromCanvasNode,
   hasDirectorWorldSceneState,
   nodeDataAfterDirectorWorldSourceSlotCommit,
 } from "@/features/freezone/commit/sceneDirectorWorldCommit";
 
-vi.mock("@/api/viewerManifests", () => ({
+vi.mock("@/modules/asset_world/public", () => ({
   clearSceneDirectorWorld: vi.fn(async () => ({ active_source_id: "" })),
-  getSceneDirectorStageManifest: vi.fn(async () => ({
+  loadSceneDirectorStageManifest: vi.fn(async () => ({
     viewer_kind: "three_d_director",
     mode: "scene",
     project: "proj",
@@ -40,8 +40,8 @@ vi.mock("@/api/viewerManifests", () => ({
 describe("commitSceneDirectorWorldFromCanvasNode", () => {
   beforeEach(() => {
     vi.mocked(clearSceneDirectorWorld).mockClear();
-    vi.mocked(getSceneDirectorStageManifest).mockClear();
-    vi.mocked(getSceneDirectorStageManifest).mockResolvedValue({
+    vi.mocked(loadSceneDirectorStageManifest).mockClear();
+    vi.mocked(loadSceneDirectorStageManifest).mockResolvedValue({
       viewer_kind: "three_d_director",
       mode: "scene",
       project: "proj",
@@ -116,7 +116,7 @@ describe("commitSceneDirectorWorldFromCanvasNode", () => {
   });
 
   it("saves new source states before clearing stale mainline source states", async () => {
-    vi.mocked(getSceneDirectorStageManifest).mockResolvedValue({
+    vi.mocked(loadSceneDirectorStageManifest).mockResolvedValue({
       viewer_kind: "three_d_director",
       mode: "scene",
       project: "proj",
@@ -162,7 +162,7 @@ describe("commitSceneDirectorWorldFromCanvasNode", () => {
   });
 
   it("does not clear existing mainline state when saving the replacement manifest fails", async () => {
-    vi.mocked(getSceneDirectorStageManifest).mockResolvedValue({
+    vi.mocked(loadSceneDirectorStageManifest).mockResolvedValue({
       viewer_kind: "three_d_director",
       mode: "scene",
       project: "proj",
@@ -415,7 +415,7 @@ describe("commitSceneDirectorWorldFromCanvasNode", () => {
       stagings: [],
       world: { activeSourceId: "legacy:reverse:sog:/static/reverse.sog" },
     };
-    vi.mocked(getSceneDirectorStageManifest).mockResolvedValue({
+    vi.mocked(loadSceneDirectorStageManifest).mockResolvedValue({
       viewer_kind: "three_d_director",
       mode: "scene",
       project: "proj",
@@ -550,7 +550,7 @@ describe("commitSceneDirectorWorldFromCanvasNode", () => {
       stagings: [],
       world: { activeSourceId: reverseSourceId },
     };
-    vi.mocked(getSceneDirectorStageManifest).mockResolvedValue({
+    vi.mocked(loadSceneDirectorStageManifest).mockResolvedValue({
       viewer_kind: "three_d_director",
       mode: "scene",
       project: "proj",

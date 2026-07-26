@@ -1,10 +1,14 @@
 export {
   CharactersPageContent,
+  clearSceneDirectorWorld,
   PropsPanelContent,
   ScenesPanelContent,
   StylesPageContent,
   listScenes,
   loadBeatDirectorStageManifest,
+  loadSceneDirectorStageManifest,
+  saveSceneDirectorWorld,
+  saveSceneDirectorWorldSource,
   useAssetReferenceIndex,
   useAssetImageSourceSelection,
   useAssetWorkspaceNavigation,
@@ -93,6 +97,8 @@ export type {
 } from "@/modules/asset_world/application/prop-gateway";
 export type {
   SceneDirectorWorldPayload,
+  SceneDirectorWorldSaveResult,
+  SceneDirectorWorldSourcePayload,
   SceneGateway,
   ScenePayload,
 } from "@/modules/asset_world/application/scene-gateway";

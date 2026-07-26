@@ -1564,6 +1564,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百四十批已确认 `getBeatPanoViewerManifest`、`getScenePanoViewerManifest` 在全仓库零调用，`startDirectorControlToSketch` 仅剩组件测试中的未使用 mock；从 `api/viewerManifests.ts` 直接删除三项共 33 行不可达实现及随之失效的 Pano manifest 类型导入，并从 `ThreeDDirectorDialog` 测试删除 5 行死 mock，不新增替代出口或兼容转发；后端端点与所有可达前端行为均未修改；导演对话框测试 1 个文件 60 项、新增后的架构门禁 192 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百四十一批已在 Asset World 的 scene gateway 契约中补齐 source 级导演世界保存 payload、结果和 port，并由既有唯一 `httpSceneGateway` 实现 `director-stage/world/source`；新增 72 行 `scene-director-world` application 用例统一解包场景 manifest、整世界保存、source 保存和单 source 清理响应，经 Asset World composition/public 发布；Canvas 素材水合和 Freezone 场景导演世界提交均改经该 public API，原提交排序、`pruneStale`、source ID 归一化和 payload 组装逻辑未动；`api/viewerManifests.ts` 中四项重复 scene 实现及失效类型导入共 61 行删除，不保留兼容转发；请求 method/path、路径编码、响应字段和失败回退语义均未改变；相关 5 个测试文件 50 项、新增后的架构门禁 193 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

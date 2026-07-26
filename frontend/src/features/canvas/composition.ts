@@ -1,8 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { readUrl } from '@/lib/url-params';
 import { embedStoryboardImageMetadata } from '@/commands/image';
-import { getSceneDirectorStageManifest } from '@/api/viewerManifests';
-import { loadBeatDirectorStageManifest } from '@/modules/asset_world/public';
+import {
+  loadBeatDirectorStageManifest,
+  loadSceneDirectorStageManifest,
+} from '@/modules/asset_world/public';
 
 import { canvasEventBus } from './application/canvasServices';
 import {
@@ -195,7 +197,7 @@ import { showErrorDialog as showErrorDialogInfrastructure } from './infrastructu
 import type { CanvasAssetDragPayload } from './domain/assetDrag';
 
 const canvasSceneDirectorManifestGateway: CanvasSceneDirectorManifestGateway = {
-  getSceneDirectorStageManifest,
+  getSceneDirectorStageManifest: loadSceneDirectorStageManifest,
 };
 
 const canvasBeatDirectorManifestGateway: CanvasBeatDirectorManifestGateway = {
