@@ -4856,6 +4856,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
     );
+    const graphMutationSlice = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasGraphMutationSlice.ts",
+      ),
+      "utf8",
+    );
     const forbiddenImports = importSpecifiers(creationPath).filter(
       (specifier) =>
         specifier === "react" ||
@@ -4896,7 +4903,10 @@ describe("frontend architecture boundaries", () => {
     expect(creationModel).toContain("applySkillRoleBindingConnection({");
     expect(creationModel).toContain("validatePropagatingEdgeCandidate(");
     expect(creationModel).toContain("validateCandidateBindingRoleCandidate(");
-    expect(canvasStore).toContain(
+    expect(graphMutationSlice).toContain(
+      "../application/canvasEdgeCreation",
+    );
+    expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasEdgeCreation",
     );
     expect(canvasStore).not.toContain("const edgeId = `e-${source}-${target}`");
@@ -5083,6 +5093,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
     );
+    const graphMutationSlice = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasGraphMutationSlice.ts",
+      ),
+      "utf8",
+    );
     const graphChangeController = readFileSync(
       resolve(
         SRC_ROOT,
@@ -5140,7 +5157,10 @@ describe("frontend architecture boundaries", () => {
     expect(deletionModel).toContain(deletionDeclaration);
     expect(deletionModel).toContain(eligibilityDeclaration);
     expect(deletionModel).toContain("canDeleteCanvasEdge(edge)");
-    expect(canvasStore).toContain(
+    expect(graphMutationSlice).toContain(
+      "../domain/canvasEdgeDeletion",
+    );
+    expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasEdgeDeletion",
     );
     expect(canvasStore).not.toContain("isPresetManagedEdge(");
@@ -8101,7 +8121,7 @@ describe("frontend architecture boundaries", () => {
     expect(sliceSource).not.toContain("@/stores/canvasStore");
   });
 
-  it("keeps Canvas React Flow graph mutations in one Zustand slice", () => {
+  it("keeps Canvas graph mutations in one Zustand slice", () => {
     const slicePath = resolve(
       SRC_ROOT,
       "features/canvas/infrastructure/zustandCanvasGraphMutationSlice.ts",
@@ -8109,6 +8129,13 @@ describe("frontend architecture boundaries", () => {
     const sliceSource = readFileSync(slicePath, "utf8");
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const graphGateway = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasGraphGateway.ts",
+      ),
       "utf8",
     );
     const canvasStateHeader = canvasStore.match(
@@ -8119,6 +8146,9 @@ describe("frontend architecture boundaries", () => {
       ["onEdgesChange", "(changes) {"],
       ["onConnect", "(connection) {"],
       ["replaceEdges", "(edges) {"],
+      ["addEdge", "(source, target) {"],
+      ["addEdgeWithData", "(source, target, data, options) {"],
+      ["deleteEdge", "(edgeId) {"],
     ].map(([name, parameters]) => `${name}${parameters}`);
 
     for (const implementation of implementations) {
@@ -8126,14 +8156,22 @@ describe("frontend architecture boundaries", () => {
         .filter((path) => readFileSync(path, "utf8").includes(implementation))
         .map(relativeSource)
         .sort();
-      expect(owners).toEqual([
-        "features/canvas/infrastructure/zustandCanvasGraphMutationSlice.ts",
-      ]);
+      expect(owners).toEqual(
+        implementation.startsWith("addEdgeWithData")
+          ? [
+              "features/canvas/infrastructure/zustandCanvasGraphGateway.ts",
+              "features/canvas/infrastructure/zustandCanvasGraphMutationSlice.ts",
+            ]
+          : [
+              "features/canvas/infrastructure/zustandCanvasGraphMutationSlice.ts",
+            ],
+      );
     }
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
       "@xyflow/react",
       "../domain/canvasHistory",
+      "../domain/canvasEdgeDeletion",
       "../domain/canvasEdgeNormalization",
       "../domain/canvasMutation",
       "../domain/canvasNodes",
@@ -8149,6 +8187,9 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("applyNodeChanges<CanvasNode>");
     expect(canvasStore).not.toContain("applyEdgeChanges<CanvasEdge>");
     expect(canvasStore).not.toContain("prepareCanvasReactFlowConnection(");
+    expect(graphGateway).toContain(
+      ".addEdgeWithData(source, target, data, options)",
+    );
     expect(sliceSource).not.toContain("@/stores/canvasStore");
   });
 

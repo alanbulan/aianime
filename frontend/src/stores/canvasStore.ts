@@ -34,13 +34,7 @@ import {
   type CanvasGroupArrangementMode,
 } from '@/features/canvas/domain/canvasGroupArrangement';
 import { ungroupCanvasNode } from '@/features/canvas/domain/canvasGroupRemoval';
-import { deleteCanvasEdge } from '@/features/canvas/domain/canvasEdgeDeletion';
 import { canvasNodeFactory } from '@/features/canvas/nodeFactoryComposition';
-import {
-  createCanvasDataEdge,
-  createCanvasProgrammaticEdge,
-  type CanvasDataEdgeCreationOptions,
-} from '@/features/canvas/application/canvasEdgeCreation';
 import {
   createCanvasNodeGroup,
   type CanvasGroupCreationOptions,
@@ -100,13 +94,6 @@ interface CanvasState
   selectedNodeId: string | null;
   activeToolDialog: ActiveToolDialog | null;
 
-  addEdge: (source: string, target: string) => string | null;
-  addEdgeWithData: (
-    source: string,
-    target: string,
-    data: Record<string, unknown>,
-    options?: CanvasDataEdgeCreationOptions,
-  ) => string | null;
   findNodePosition: (sourceNodeId: string, newNodeWidth: number, newNodeHeight: number) => { x: number; y: number };
   deleteNode: (nodeId: string) => void;
   deleteNodes: (nodeIds: string[]) => void;
@@ -156,7 +143,6 @@ interface CanvasState
     mode: CanvasGroupArrangementMode,
   ) => void;
   ungroupNode: (groupNodeId: string) => boolean;
-  deleteEdge: (edgeId: string) => void;
   setSelectedNode: (nodeId: string | null) => void;
 
   openToolDialog: (dialog: ActiveToolDialog) => void;
@@ -179,7 +165,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     setState: (patch) => set(patch),
   }),
   ...createZustandCanvasGraphMutationSlice({
-    setState: (update) => set((state) => update(state)),
+    getState: get,
+    setState: (patch) => set(patch),
+    updateState: (update) => set((state) => update(state)),
   }),
   ...createZustandCanvasDocumentLifecycleSlice({
     setState: (patch) => set(patch),
@@ -196,64 +184,6 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     getState: get,
     setState: (patch) => set(patch),
   }),
-
-  addEdge: (source, target) => {
-    const state = get();
-    const result = createCanvasProgrammaticEdge(
-      state.nodes,
-      state.edges,
-      source,
-      target,
-    );
-    if (!result) {
-      return null;
-    }
-    if (!result.created) {
-      return result.edgeId;
-    }
-
-    set({
-      edges: result.edges,
-      ...trackEdit(state),
-    });
-
-    return result.edgeId;
-  },
-
-  addEdgeWithData: (source, target, data, options) => {
-    const state = get();
-    const outcome = createCanvasDataEdge(
-      state.nodes,
-      state.edges,
-      source,
-      target,
-      data,
-      options,
-    );
-    if (!outcome.ok) {
-      if (outcome.stage === 'propagation') {
-        console.warn('[freezone] rejected propagating edge', outcome.reason, outcome.edge);
-      } else if (outcome.stage === 'role') {
-        console.warn('[freezone] rejected role binding edge', outcome.reason, outcome.edge);
-      }
-      return null;
-    }
-    if (!outcome.result.created) {
-      return outcome.result.edgeId;
-    }
-
-    set({
-      edges: outcome.result.edges,
-      history: {
-        past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-        future: [],
-      },
-      dragHistorySnapshot: null,
-      ...trackEdit(state),
-    });
-
-    return outcome.result.edgeId;
-  },
 
   findNodePosition: (sourceNodeId, newNodeWidth, newNodeHeight) => {
     const state = get();
@@ -536,25 +466,6 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     });
 
     return true;
-  },
-
-  deleteEdge: (edgeId) => {
-    set((state) => {
-      const edges = deleteCanvasEdge(state.edges, edgeId);
-      if (!edges) {
-        return {};
-      }
-
-      return {
-        edges,
-        history: {
-          past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-          future: [],
-        },
-        dragHistorySnapshot: null,
-        ...trackEdit(state),
-      };
-    });
   },
 
   setSelectedNode: (nodeId) => {
