@@ -14,13 +14,10 @@ import { useAppStore } from '@/stores/app-store';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import { CanvasStageView } from './ui/CanvasStageView';
 import { useCanvasGraphEditingSurfaceController } from './hooks/useCanvasGraphEditingSurfaceController';
-import { useCanvasConnectionController } from './hooks/useCanvasConnectionController';
 import { useCanvasConnectionGestureController } from './hooks/useCanvasConnectionGestureController';
 import { useCanvasMediaSurfaceController } from './hooks/useCanvasMediaSurfaceController';
 import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
-import { useCanvasNodeInteractionController } from './hooks/useCanvasNodeInteractionController';
-import { useCanvasNodeMenuStateController } from './hooks/useCanvasNodeMenuStateController';
-import { useCanvasNodeCatalogController } from './hooks/useCanvasNodeCatalogController';
+import { useCanvasNodeCreationSurfaceController } from './hooks/useCanvasNodeCreationSurfaceController';
 import { useCanvasCommandSurfaceController } from './hooks/useCanvasCommandSurfaceController';
 import { useCanvasProjectSurfaceController } from './hooks/useCanvasProjectSurfaceController';
 import { useCanvasRenderSurfaceController } from './hooks/useCanvasRenderSurfaceController';
@@ -52,32 +49,6 @@ export function Canvas({
     handleNodeMouseEnter,
     handleNodeMouseLeave,
   } = useCanvasNodeHover(setHoveredNodeId);
-  const {
-    showNodeMenu,
-    menuPosition,
-    flowPosition,
-    menuAllowedTypes,
-    pendingConnectStart,
-    pendingBatchConnectIds,
-    previewConnectionVisual,
-    handleMarqueeStart,
-    prepareBatchConnectionDrag,
-    dismissNodeMenuForPaneClick,
-    updateConnectionPreview,
-    prepareConnectionStart,
-    clearConnection,
-    openConnectionMenu: openConnectionMenuState,
-    openBatchConnectionMenu: openBatchConnectionMenuState,
-    openPlainNodeMenu,
-    closeNodeMenu,
-    hideNodeMenuForPlacement,
-  } = useCanvasNodeMenuStateController();
-  const {
-    skills: skillRegistry,
-    skillById,
-    resolvePlacementLabel: resolveNodePlacementLabel,
-  } = useCanvasNodeCatalogController({ translate: t });
-
   const nodes = useCanvasStore((state) => state.nodes);
   const edges = useCanvasStore((state) => state.edges);
   const {
@@ -157,24 +128,29 @@ export function Canvas({
     const { nodes: currentNodes, edges: currentEdges } = useCanvasStore.getState();
     return { nodes: currentNodes, edges: currentEdges };
   }, []);
-  const {
-    connectGraphNodes,
-    connectManualGraphNodes: handleConnect,
-    bindSingleBeatContextInput,
-    connectSpawnedNode,
-    isValidGraphConnection: isValidConnection,
-  } = useCanvasConnectionController({
-    getGraph: getCanvasGraph,
-    connectRegular: connectNodes,
-    replaceEdges,
-    skillById,
-  });
   const screenToFlowPosition = useCallback(
     (clientPosition: { x: number; y: number }) =>
       reactFlowInstance.screenToFlowPosition(clientPosition),
     [reactFlowInstance],
   );
   const {
+    skills: skillRegistry,
+    showNodeMenu,
+    menuPosition,
+    menuAllowedTypes,
+    pendingConnectStart,
+    previewConnectionVisual,
+    handleMarqueeStart,
+    prepareBatchConnectionDrag,
+    updateConnectionPreview,
+    prepareConnectionStart,
+    clearConnection,
+    openConnectionMenu: openConnectionMenuState,
+    openBatchConnectionMenu: openBatchConnectionMenuState,
+    closeNodeMenu,
+    connectGraphNodes,
+    connectManualGraphNodes: handleConnect,
+    isValidGraphConnection: isValidConnection,
     placementActive,
     placementPreview: nodePlacementPreview,
     cancelNodePlacement,
@@ -189,27 +165,19 @@ export function Canvas({
     getViewportCenter: getQuickAddViewportCenter,
     quickAddNode: handleQuickAddNode,
     quickAddSkill: handleQuickAddSkill,
-  } = useCanvasNodeInteractionController({
+  } = useCanvasNodeCreationSurfaceController({
+    translate: t,
     wrapperRef,
     nodes,
     screenToFlowPosition,
     createNode: addNode,
     selectNode: setSelectedNode,
-    bindSkill: bindSingleBeatContextInput,
     confirmPlacement: triggerPlacementConfirm,
-    resolvePlacementLabel: resolveNodePlacementLabel,
-    openPlainNodeMenu,
-    dismissNodeMenu: dismissNodeMenuForPaneClick,
     onBlankPaneClick,
     centerViewport: centerNodeViewport,
-    flowPosition,
-    menuPosition,
-    menuAllowedTypes,
-    pendingConnection: pendingConnectStart,
-    pendingBatchSourceIds: pendingBatchConnectIds,
-    connectSpawnedNode,
-    hideMenuForPlacement: hideNodeMenuForPlacement,
-    closeNodeMenu,
+    getGraph: getCanvasGraph,
+    connectRegular: connectNodes,
+    replaceEdges,
   });
   const {
     marqueeSelectionRect,

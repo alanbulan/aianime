@@ -1540,7 +1540,12 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("createNode(");
     expect(hookModel).toContain("bindSkill(");
     expect(hookModel).toContain("confirmPlacement(");
-    expect(canvasView).toContain("./hooks/useCanvasNodeInteractionController");
+    expect(canvasView).toContain(
+      "./hooks/useCanvasNodeCreationSurfaceController",
+    );
+    expect(canvasView).not.toContain(
+      "./hooks/useCanvasNodeInteractionController",
+    );
     expect(canvasView).not.toContain(
       "./hooks/useCanvasNodePlacementController",
     );
@@ -1598,7 +1603,12 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("DEFAULT_STORYBOARD_GROUP_HEIGHT = 240");
     expect(hookModel).toContain("zoom: 1");
     expect(hookModel).toContain("duration: 320");
-    expect(canvasView).toContain("./hooks/useCanvasNodeInteractionController");
+    expect(canvasView).toContain(
+      "./hooks/useCanvasNodeCreationSurfaceController",
+    );
+    expect(canvasView).not.toContain(
+      "./hooks/useCanvasNodeInteractionController",
+    );
     expect(canvasView).not.toContain("./hooks/useCanvasNodeClickController");
     expect(canvasView).not.toContain("const handleNodeClick = useCallback");
     expect(canvasView).not.toContain("isStoryboardGroupNode(");
@@ -1897,7 +1907,12 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("window.innerWidth / 2");
     expect(hookModel).toContain("createCanvasSkillNodeData(skill)");
     expect(hookModel).toContain("bindSkill(nodeId, skill)");
-    expect(canvasView).toContain("./hooks/useCanvasNodeInteractionController");
+    expect(canvasView).toContain(
+      "./hooks/useCanvasNodeCreationSurfaceController",
+    );
+    expect(canvasView).not.toContain(
+      "./hooks/useCanvasNodeInteractionController",
+    );
     expect(canvasView).not.toContain("./hooks/useCanvasQuickAddController");
     expect(canvasView).toContain(
       "getViewportCenter: getQuickAddViewportCenter",
@@ -2717,7 +2732,12 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("fallbackPosition");
     expect(hookModel).toContain("connectSpawnedNode({");
     expect(hookModel).toContain("closeNodeMenu()");
-    expect(canvasView).toContain("./hooks/useCanvasNodeInteractionController");
+    expect(canvasView).toContain(
+      "./hooks/useCanvasNodeCreationSurfaceController",
+    );
+    expect(canvasView).not.toContain(
+      "./hooks/useCanvasNodeInteractionController",
+    );
     expect(canvasView).not.toContain(
       "./hooks/useCanvasNodeMenuSelectionController",
     );
@@ -3228,7 +3248,12 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("isCanvasPaneTarget");
     expect(hookModel).toContain("isTypingTarget");
     expect(hookModel).toContain("isImmersiveViewerActive");
-    expect(canvasView).toContain("./hooks/useCanvasNodeInteractionController");
+    expect(canvasView).toContain(
+      "./hooks/useCanvasNodeCreationSurfaceController",
+    );
+    expect(canvasView).not.toContain(
+      "./hooks/useCanvasNodeInteractionController",
+    );
     expect(canvasView).not.toContain("./hooks/useCanvasNodeMenuShortcut");
     expect(canvasView).not.toContain("lastCanvasPointerClientPositionRef");
     expect(canvasView).not.toContain("ReactPointerEvent");
@@ -3450,7 +3475,10 @@ describe("frontend architecture boundaries", () => {
     expect(controllerModel).toContain("getSkillRegistry");
     expect(controllerModel).toContain("nodeCatalog.getDefinition");
     expect(controllerModel).toContain("translateSkillName");
-    expect(canvasView).toContain("./hooks/useCanvasNodeCatalogController");
+    expect(canvasView).toContain(
+      "./hooks/useCanvasNodeCreationSurfaceController",
+    );
+    expect(canvasView).not.toContain("./hooks/useCanvasNodeCatalogController");
     expect(canvasView).not.toContain("./hooks/useCanvasSkillRegistry");
     expect(canvasView).not.toContain("getSkillRegistry");
     expect(canvasView).not.toContain("nodeCatalog");
@@ -5698,7 +5726,10 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("planCanvasSpawnConnections({");
     expect(hookModel).toContain("planSingleBeatContextBinding(");
     expect(hookModel).toContain("validateCanvasConnection(");
-    expect(canvasView).toContain("./hooks/useCanvasConnectionController");
+    expect(canvasView).toContain(
+      "./hooks/useCanvasNodeCreationSurfaceController",
+    );
+    expect(canvasView).not.toContain("./hooks/useCanvasConnectionController");
     expect(canvasView).not.toContain("const connectSkillRoleBinding");
     expect(canvasView).not.toContain("applySkillRoleBindingConnection({");
     expect(canvasView).not.toContain("planSingleBeatContextBinding(");
@@ -8430,6 +8461,69 @@ describe("frontend architecture boundaries", () => {
     expect(canvasSource).not.toContain("const handleSelectionDragStart = useCallback");
   });
 
+  it("keeps Canvas node-creation assembly in one presentation controller", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasNodeCreationSurfaceController.ts",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const canvasSource = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(controllerPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declaration = [
+      "export function",
+      "useCanvasNodeCreationSurfaceController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+    const childControllers = [
+      "./useCanvasNodeMenuStateController",
+      "./useCanvasNodeCatalogController",
+      "./useCanvasConnectionController",
+      "./useCanvasNodeInteractionController",
+    ];
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasNodeCreationSurfaceController.ts",
+    ]);
+    for (const childController of childControllers) {
+      expect(controllerSource).toContain(childController);
+      expect(canvasSource).not.toContain(
+        childController.replace("./", "./hooks/"),
+      );
+    }
+    expect(controllerSource).toContain("skillById: nodeCatalog.skillById");
+    expect(controllerSource).toContain(
+      "bindSkill: connection.bindSingleBeatContextInput",
+    );
+    expect(controllerSource).toContain(
+      "connectSpawnedNode: connection.connectSpawnedNode",
+    );
+    expect(canvasSource).toContain(
+      "./hooks/useCanvasNodeCreationSurfaceController",
+    );
+    expect(canvasSource).not.toContain("skillById");
+    expect(canvasSource).not.toContain("resolvePlacementLabel");
+    expect(canvasSource).not.toContain("bindSingleBeatContextInput");
+    expect(canvasSource).not.toContain("connectSpawnedNode");
+  });
+
   it("keeps Canvas node-menu state in one presentation controller", () => {
     const controllerPath = resolve(
       SRC_ROOT,
@@ -8473,7 +8567,12 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain(
       "dismissNodeMenuForPaneClick: resetActiveConnectionMenu",
     );
-    expect(canvasSource).toContain("./hooks/useCanvasNodeMenuStateController");
+    expect(canvasSource).toContain(
+      "./hooks/useCanvasNodeCreationSurfaceController",
+    );
+    expect(canvasSource).not.toContain(
+      "./hooks/useCanvasNodeMenuStateController",
+    );
     expect(canvasSource).not.toContain("useState(");
     expect(canvasSource).not.toContain("setShowNodeMenu(");
     expect(canvasSource).not.toContain("setMenuAllowedTypes(");
@@ -8571,6 +8670,9 @@ describe("frontend architecture boundaries", () => {
     );
     expect(nodeInteractionSource).toContain("selectNode(null)");
     expect(canvasSource).toContain(
+      "./hooks/useCanvasNodeCreationSurfaceController",
+    );
+    expect(canvasSource).not.toContain(
       "./hooks/useCanvasNodeInteractionController",
     );
     expect(canvasSource).not.toContain("./hooks/useCanvasPaneClickController");
