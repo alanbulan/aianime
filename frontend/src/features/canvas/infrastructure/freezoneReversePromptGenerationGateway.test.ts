@@ -1,43 +1,52 @@
 // Copyright (c) 2026 AI anime
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const ensureBackendImageUrl = vi.hoisted(() => vi.fn());
-const submitFreezoneReversePrompt = vi.hoisted(() => vi.fn());
+import { apiCall } from "@/shared/api/client";
+import { ensureBackendImageUrl } from "./freezoneAssetGateway";
 
-vi.mock("@/api/ops", () => ({
-  submitFreezoneReversePrompt,
-}));
-vi.mock("./freezoneAssetGateway", () => ({ ensureBackendImageUrl }));
+vi.mock("@/shared/api/client", () => ({ apiCall: vi.fn() }));
+vi.mock("./freezoneAssetGateway", () => ({ ensureBackendImageUrl: vi.fn() }));
 
 import { freezoneReversePromptGenerationGateway } from "./freezoneReversePromptGenerationGateway";
 
+beforeEach(() => {
+  vi.mocked(apiCall).mockReset();
+  vi.mocked(ensureBackendImageUrl).mockReset();
+});
+
 describe("freezoneReversePromptGenerationGateway", () => {
-  it("maps source preparation and submission to the Freezone client", async () => {
+  it("maps source preparation and submission to the encoded endpoint", async () => {
     const task = { task_key: "task-1", task_type: "reverse", job_id: "job-1" };
-    ensureBackendImageUrl.mockResolvedValue("/static/source.png");
-    submitFreezoneReversePrompt.mockResolvedValue(task);
+    vi.mocked(ensureBackendImageUrl).mockResolvedValue("/static/source.png");
+    vi.mocked(apiCall).mockResolvedValue(task);
 
     await expect(
       freezoneReversePromptGenerationGateway.prepareSourceUrl(
-        "project-1",
+        "project/1",
         "data:image/png;base64,source",
       ),
     ).resolves.toBe("/static/source.png");
     await expect(
-      freezoneReversePromptGenerationGateway.submit("project-1", {
+      freezoneReversePromptGenerationGateway.submit("project/1", {
         sourceUrl: "/static/source.png",
         canvasId: "canvas-1",
         nodeId: "text-1",
       }),
     ).resolves.toBe(task);
     expect(ensureBackendImageUrl).toHaveBeenCalledWith(
-      "project-1",
+      "project/1",
       "data:image/png;base64,source",
     );
-    expect(submitFreezoneReversePrompt).toHaveBeenCalledWith("project-1", {
-      sourceUrl: "/static/source.png",
-      canvasId: "canvas-1",
-      nodeId: "text-1",
-    });
+    expect(apiCall).toHaveBeenCalledWith(
+      "projects/project%2F1/freezone/image/reverse-prompt",
+      {
+        method: "POST",
+        json: {
+          source_url: "/static/source.png",
+          canvas_id: "canvas-1",
+          node_id: "text-1",
+        },
+      },
+    );
   });
 });

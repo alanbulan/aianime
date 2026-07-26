@@ -556,32 +556,6 @@ export async function submitFreezoneGen(
   );
 }
 
-// /freezone/image/reverse-prompt ----------------------------------------- //
-
-/**
- * Per `FreezoneImageReversePromptRequest` in openapi.json the only field is
- * `source_url` (required). No `model`, no `prompt` steering on the backend.
- */
-export interface FreezoneReversePromptPayload extends FreezoneNodeContext {
-  sourceUrl: string;
-}
-
-export async function submitFreezoneReversePrompt(
-  project: string,
-  payload: FreezoneReversePromptPayload,
-): Promise<FreezoneJobRef> {
-  return await apiCall<FreezoneJobRef>(
-    `projects/${encodeURIComponent(project)}/freezone/image/reverse-prompt`,
-    {
-      method: "POST",
-      json: {
-        source_url: payload.sourceUrl,
-        ...nodeContextBody(payload),
-      },
-    },
-  );
-}
-
 // /freezone/image/style-templates ---------------------------------------- //
 
 export interface FreezoneStyleTemplate {

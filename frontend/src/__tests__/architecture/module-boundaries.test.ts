@@ -9842,10 +9842,21 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/nodes/TextAnnotationNode.tsx",
     );
+    const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const textNodeSource = readFileSync(textNodePath, "utf8");
+    const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
+    const endpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          "}/freezone/image/reverse-prompt`",
+        ),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(importSpecifiers(applicationPath)).toEqual(["./ports"]);
     expect(applicationSource).not.toContain("react");
@@ -9862,9 +9873,10 @@ describe("frontend architecture boundaries", () => {
     );
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
       new Set([
-        "@/api/ops",
-        "./freezoneAssetGateway",
+        "@/shared/api/client",
         "../application/generateCanvasReversePrompt",
+        "../application/ports",
+        "./freezoneAssetGateway",
       ]),
     );
     expect(infrastructureSource).toContain(
@@ -9889,6 +9901,18 @@ describe("frontend architecture boundaries", () => {
     expect(textNodeSource).not.toContain("submitFreezoneReversePrompt");
     expect(textNodeSource).not.toContain("fetchFreezoneReversePromptResult");
     expect(textNodeSource).not.toContain("awaitTaskCompletion");
+    expect(endpointOwners).toEqual([
+      "features/canvas/infrastructure/freezoneReversePromptGenerationGateway.ts",
+    ]);
+    for (const legacySymbol of [
+      "FreezoneReversePromptPayload",
+      "submitFreezoneReversePrompt",
+    ]) {
+      expect(legacyOpsSource).not.toContain(legacySymbol);
+    }
+    expect(legacyOpsSource).not.toContain(
+      "}/freezone/image/reverse-prompt`",
+    );
   });
 
   it("keeps Skill execution and task waiting behind Canvas composition", () => {

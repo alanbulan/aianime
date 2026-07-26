@@ -1618,6 +1618,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百六十七批已将单图 360 生成的参考图静态化、项目路径编码、POST method、参考图、固定 2K 尺寸、候选模式和宽高比字段映射从 `api/ops.ts` 迁入已有唯一 `freezoneScene360GenerationGateway` infrastructure 适配器，gateway 复用既有唯一 `ensureBackendImageUrl`，Canvas application 继续负责参考 URL 缓存清理、任务完成和结果回传，领域模块继续唯一持有可选宽高比与默认值规则；旧 `FreezoneScene360Payload`、`submitFreezoneScene360` 及 `api/ops.ts` 对 `domain/scene360` 的依赖直接删除，不保留 facade、re-export 或第二套 HTTP/上传映射，`freezone/scene-360` 端点只有该 gateway 一个生产所有者，`api/ops.ts` 由 1,625 行降至 1,581 行；请求路径、方法、参考图上传、固定 2K 输出、候选模式、宽高比和任务回执语义均未改变；相关 2 个测试文件 3 项、架构门禁 206 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
 
+第二百六十八批已将反向提示词生成的项目路径编码、POST method、源图和可选节点上下文字段映射从 `api/ops.ts` 迁入已有唯一 `freezoneReversePromptGenerationGateway` infrastructure 适配器，gateway 继续复用既有唯一 `ensureBackendImageUrl` 准备后端静态 URL，Canvas application 继续负责源图准备、提交、任务持久化、等待和结果获取；旧 `FreezoneReversePromptPayload` 和 `submitFreezoneReversePrompt` 直接删除，不保留 facade、re-export 或第二套 HTTP 映射，`freezone/image/reverse-prompt` 提交端点只有该 gateway 一个生产所有者，反向提示词结果查询仍由唯一 `freezoneGenerationTaskGateway` 负责，`api/ops.ts` 由 1,581 行降至 1,555 行；请求路径、方法、源图、非空 `canvas_id`/`node_id` 和任务回执语义均未改变；相关 2 个测试文件 2 项、架构门禁 206 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。
