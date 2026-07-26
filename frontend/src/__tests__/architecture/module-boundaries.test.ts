@@ -9982,16 +9982,67 @@ describe("frontend architecture boundaries", () => {
     );
     expect(videoNode).toContain("<ReferenceMediaRow");
     expect(videoNode).toContain(
-      "const REFERENCE_CAPS_BY_MODE",
+      "@/features/canvas/domain/videoReferenceLimits",
     );
     expect(videoNode).toContain(
-      "caps={REFERENCE_CAPS_BY_MODE[genMode] ?? null}",
+      "caps={referenceMediaCaps}",
     );
+    expect(videoNode).not.toContain("const REFERENCE_CAPS_BY_MODE");
     expect(videoNode).not.toContain("interface ReferenceMediaRowProps");
     expect(videoNode).not.toContain(declarations[1]);
     expect(videoNode).not.toContain(declarations[2]);
     expect(videoNode).not.toContain(declarations[3]);
     expect(videoNode).not.toContain(declarations[4]);
+  });
+
+  it("keeps video reference limits in one pure domain module", () => {
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/videoReferenceLimits.ts",
+    );
+    const domainSource = readFileSync(domainPath, "utf8");
+    const videoNode = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      "utf8",
+    );
+    const referenceView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoReferenceMedia.tsx"),
+      "utf8",
+    );
+    const declarations = [
+      ["export function", "videoReferenceCapsForMode("].join(" "),
+      ["export function", "classifyVideoReferenceItems("].join(" "),
+    ];
+    const implementationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(importSpecifiers(domainPath)).toEqual(["./canvasNodes"]);
+    expect(domainSource).not.toContain("react");
+    expect(domainSource).not.toContain("window");
+    expect(domainSource).not.toContain("@/api/");
+    expect(domainSource).not.toContain("@/stores/");
+    expect(implementationOwners).toEqual(
+      declarations.map(() => [
+        "features/canvas/domain/videoReferenceLimits.ts",
+      ]),
+    );
+    expect(domainSource).toContain(
+      "allReference: { image: 9, video: 3, audio: 3 }",
+    );
+    expect(domainSource).toContain(
+      "firstLastFrame: { image: 2, video: 0, audio: 0 }",
+    );
+    expect(videoNode).toContain(
+      "@/features/canvas/domain/videoReferenceLimits",
+    );
+    expect(referenceView).toContain(
+      "@/features/canvas/domain/videoReferenceLimits",
+    );
+    expect(videoNode).not.toContain("const REFERENCE_CAPS_BY_MODE");
   });
 
   it("keeps VideoNode camera movement trigger in one presentation view", () => {

@@ -2,10 +2,8 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  ReferenceMediaRow,
-  type ReferenceMediaCapEntry,
-} from "./VideoReferenceMedia";
+import type { VideoReferenceCapEntry } from "@/features/canvas/domain/videoReferenceLimits";
+import { ReferenceMediaRow } from "./VideoReferenceMedia";
 
 const resolveUrl = (url: string) => url;
 
@@ -50,7 +48,7 @@ describe("VideoReferenceMedia", () => {
 
   it("reorders references by the visible mixed-media order", () => {
     const onReorder = vi.fn();
-    const items: ReferenceMediaCapEntry[] = [
+    const items: VideoReferenceCapEntry[] = [
       {
         item: {
           kind: "image",
@@ -120,7 +118,7 @@ describe("VideoReferenceMedia", () => {
   it("shows frame slots and caps while routing preview, focus and detach", () => {
     const onFocus = vi.fn();
     const onDetach = vi.fn();
-    const items: ReferenceMediaCapEntry[] = [
+    const items: VideoReferenceCapEntry[] = [
       {
         item: {
           kind: "image",
@@ -188,7 +186,7 @@ describe("VideoReferenceMedia", () => {
 
   it("allows only one audio reference to play at a time", () => {
     const onFocus = vi.fn();
-    const items: ReferenceMediaCapEntry[] = [
+    const items: VideoReferenceCapEntry[] = [
       {
         item: {
           kind: "audio",

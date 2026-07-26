@@ -63,6 +63,12 @@ import {
   submittableImageUrl,
 } from "@/features/canvas/domain/videoReferenceMedia";
 import {
+  classifyVideoReferenceItems,
+  videoReferenceCapsForMode,
+  type VideoReferenceCapEntry,
+  type VideoReferenceItem,
+} from "@/features/canvas/domain/videoReferenceLimits";
+import {
   VIDEO_GENERATION_ASPECT_RATIOS,
   resolveImageDisplayUrl,
   snapToAllowedAspectRatio,
@@ -150,9 +156,6 @@ import { VideoClipPanel } from "@/features/canvas/nodes/VideoClipPanel";
 import { VideoPlayerControls } from "@/features/canvas/nodes/VideoPlayerControls";
 import {
   ReferenceMediaRow,
-  type ReferenceMediaCapEntry,
-  type ReferenceMediaCaps,
-  type ReferenceMediaItem,
 } from "@/features/canvas/nodes/VideoReferenceMedia";
 import {
   SubtitleEraseBoxOverlay,
@@ -249,22 +252,6 @@ const OPERATIONS_PANEL_OVERHANG = 120;
 // 「放大」后用居中弹窗展示，给提示词编辑更舒适的空间。
 const OPERATIONS_PANEL_EXPANDED_HEIGHT = 560;
 const OPERATIONS_PANEL_EXPANDED_WIDTH = 1040;
-
-// 各 genMode 对上游引用数量的硬上限。UI 用这张表把后端字段约束（多图 / 多模态
-// 场景下）显式表达出来：超额 chip 标灰 + 从 @ 候选剔除，避免「prompt 引用了
-// @图片10 但提交时被静默丢掉」。
-//
-// 表里没出现的模式默认不限制（textToVideo 不消费上游、imageToVideo 走
-// `.slice(0, 9)` 自带兜底），各自走原有路径。
-//   - allReference (omni)  ：image 1-9 / video 0-3 / audio 0-3。总时长 ≤ 15s
-//                            的部分前端拿不到精确媒体元数据，延后交给服务端。
-//   - firstLastFrame       ：仅图片 2 张（首帧 + 尾帧），不允许任何视频 / 音频。
-//                            图片 >2 时另有自动切到 allReference 的兜底（见
-//                            VideoNode 内部 effect）。
-const REFERENCE_CAPS_BY_MODE: Partial<Record<VideoGenMode, ReferenceMediaCaps>> = {
-  allReference: { image: 9, video: 3, audio: 3 },
-  firstLastFrame: { image: 2, video: 0, audio: 0 },
-};
 
 const ASPECT_RATIOS: ReadonlyArray<FreezoneVideoAspectRatio> = [
   "auto",
@@ -576,12 +563,12 @@ export const VideoNode = memo(
     // 统一的「图 / 视 / 音」上游引用条目，给 chips 行用。顺序按连接顺序
     // （与 referenceImages 同步），让 chip 编号 1/2/3... 跟可视顺序一致。
     // text 上游不进这一行 —— 上面已经单独渲染了「@文本 chip」。
-    const referenceMedia = useMemo<ReferenceMediaItem[]>(() => {
+    const referenceMedia = useMemo<VideoReferenceItem[]>(() => {
       const upstream = sortUpstreamByReferenceOrder(
         upstreamNodes,
         data.referenceOrder,
       );
-      const items: ReferenceMediaItem[] = [];
+      const items: VideoReferenceItem[] = [];
       for (const node of upstream) {
         const videoUrl = referenceVideoUrl(node);
         if (videoUrl) {
@@ -672,28 +659,19 @@ export const VideoNode = memo(
       applyPromptRemap,
     );
 
-    // 给每个 referenceMedia 条目补上「同类型序号 + 是否在当前模式上限内」。
-    // 当前 genMode 在 REFERENCE_CAPS_BY_MODE 里没有条目（如 textToVideo /
-    // imageToVideo / imageReference），统一按 within=true 处理；下游 chip /
-    // mention 候选会决定是否消费 within。
-    const referenceMediaCapInfo = useMemo<ReferenceMediaCapEntry[]>(() => {
-      const counts = { image: 0, video: 0, audio: 0 };
-      const caps = REFERENCE_CAPS_BY_MODE[genMode];
-      return referenceMedia.map((item) => {
-        counts[item.kind] += 1;
-        const cap = caps?.[item.kind];
-        const withinCap = cap == null || counts[item.kind] <= cap;
-        return { item, typeIndex: counts[item.kind], withinCap };
-      });
-    }, [referenceMedia, genMode]);
+    const referenceMediaCaps = videoReferenceCapsForMode(genMode);
+    const referenceMediaCapInfo = useMemo<VideoReferenceCapEntry[]>(
+      () => classifyVideoReferenceItems(referenceMedia, genMode),
+      [referenceMedia, genMode],
+    );
 
     // @ 提及候选 —— 图片、音频都可引用，但编号按 *各自类型* 的序号走，
     // *不* 按行内混合位置。后端按上传的图片数量来对应 图片N，若用混合位置编号
     // （音频排第一时图片就成了「图片2」），后端只看到 1 张图却被要求引用图片2
     // 会报错。所以图片用图片序号、音频用音频序号，各自独立计数。
     //
-    // 在 REFERENCE_CAPS_BY_MODE 表里有条目的模式（当前是 allReference /
-    // firstLastFrame），超过 cap 的条目不能进 @ 候选 —— 服务端会直接丢弃，留
+    // 存在领域 cap 的模式（当前是 allReference / firstLastFrame），超过 cap 的
+    // 条目不能进 @ 候选 —— 服务端会直接丢弃，留
     // 在候选里只会让用户选了之后被静默忽略。其它模式（imageReference 等）各自
     // 已有提交时 `.slice(0, N)` 兜底，本次不动。
     const mentionCandidates = useMemo<MentionCandidate[]>(() => {
@@ -701,7 +679,7 @@ export const VideoNode = memo(
       let imageIdx = 0;
       let videoIdx = 0;
       let audioIdx = 0;
-      const enforceCap = REFERENCE_CAPS_BY_MODE[genMode] != null;
+      const enforceCap = referenceMediaCaps != null;
       for (const info of referenceMediaCapInfo) {
         const item = info.item;
         if (item.kind === "image") {
@@ -742,7 +720,7 @@ export const VideoNode = memo(
         }
       }
       return out;
-    }, [referenceMediaCapInfo, genMode]);
+    }, [referenceMediaCapInfo, referenceMediaCaps]);
 
     // 取消关联某个上游素材：删掉「该上游节点 → 本节点」的连线。collectInputContents
     // 只走一跳，item.nodeId 就是直接相连的上游节点，可精确定位要删的边。
@@ -2616,7 +2594,7 @@ export const VideoNode = memo(
                 {referenceMedia.length > 0 && (
                   <ReferenceMediaRow
                     items={referenceMediaCapInfo}
-                    caps={REFERENCE_CAPS_BY_MODE[genMode] ?? null}
+                    caps={referenceMediaCaps}
                     showFrameSlotLabels={genMode === "firstLastFrame"}
                     resolveUrl={resolveImageDisplayUrl}
                     onFocus={(nodeId) => setSelectedNode(nodeId)}

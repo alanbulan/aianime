@@ -10,49 +10,21 @@ import {
 import { Music, Pause } from "lucide-react";
 import { createPortal } from "react-dom";
 
+import type {
+  VideoReferenceCapEntry,
+  VideoReferenceCaps,
+  VideoReferenceItem,
+} from "@/features/canvas/domain/videoReferenceLimits";
 import { ReferenceDetachButton } from "@/features/canvas/nodes/shared/ReferenceDetachButton";
 import {
   NODE_REFERENCE_MEDIA_CHIP_CLASS,
   NODE_REFERENCE_MEDIA_DETACH_CLASS,
 } from "@/features/canvas/ui/nodeControlStyles";
 
-export type ReferenceMediaItem =
-  | {
-      kind: "image";
-      nodeId: string;
-      imageUrl: string;
-      displayName?: string | null;
-    }
-  | {
-      kind: "video";
-      nodeId: string;
-      videoUrl: string;
-      thumbUrl?: string | null;
-      displayName?: string | null;
-    }
-  | {
-      kind: "audio";
-      nodeId: string;
-      audioUrl: string;
-      displayName?: string | null;
-    };
-
-export type ReferenceMediaCaps = Readonly<
-  Record<ReferenceMediaItem["kind"], number>
->;
-
-export interface ReferenceMediaCapEntry {
-  item: ReferenceMediaItem;
-  /** 1-based 同类型序号（图片/视频/音频各自累加），与 chip 角标和 @ 提及对齐。 */
-  typeIndex: number;
-  /** 是否在当前模式的引用上限内；没有上限的模式统一为 true。 */
-  withinCap: boolean;
-}
-
 export interface ReferenceMediaRowProps {
-  items: ReadonlyArray<ReferenceMediaCapEntry>;
+  items: ReadonlyArray<VideoReferenceCapEntry>;
   /** 当前生成模式的引用上限；没有上限时传 null。 */
-  caps: ReferenceMediaCaps | null;
+  caps: VideoReferenceCaps | null;
   /** 是否将上限内的前两张图片标记为首帧和尾帧。 */
   showFrameSlotLabels: boolean;
   resolveUrl: (url: string) => string;
@@ -241,7 +213,7 @@ function useHoverPreviewPos(
 }
 
 interface ReferenceImageChipProps {
-  item: Extract<ReferenceMediaItem, { kind: "image" }>;
+  item: Extract<VideoReferenceItem, { kind: "image" }>;
   index: number;
   slotLabel?: string;
   resolveUrl: (url: string) => string;
@@ -322,7 +294,7 @@ function ReferenceImageChip({
 }
 
 interface ReferenceVideoChipProps {
-  item: Extract<ReferenceMediaItem, { kind: "video" }>;
+  item: Extract<VideoReferenceItem, { kind: "video" }>;
   index: number;
   resolveUrl: (url: string) => string;
   onFocus: (nodeId: string) => void;
@@ -404,7 +376,7 @@ function ReferenceVideoChip({
 }
 
 interface ReferenceAudioChipProps {
-  item: Extract<ReferenceMediaItem, { kind: "audio" }>;
+  item: Extract<VideoReferenceItem, { kind: "audio" }>;
   index: number;
   isPlaying: boolean;
   resolveUrl: (url: string) => string;
