@@ -64,12 +64,12 @@ import {
 } from "@/features/canvas/domain/videoReferenceMedia";
 import {
   VIDEO_GENERATION_ASPECT_RATIOS,
-  mediaNeedsCrossOrigin,
   resolveImageDisplayUrl,
   snapToAllowedAspectRatio,
 } from "@/features/canvas/application/imageData";
 import { resolveDroppedVideoFile } from "@/features/canvas/application/resolveDroppedVideoFile";
 import { probeAudioDurationMs } from "@/features/canvas/infrastructure/browserAudioMetadata";
+import { captureVideoFrameBlob } from "@/features/canvas/infrastructure/browserVideoFrameCapture";
 import { ensureWebSafeVideo } from "@/features/canvas/infrastructure/videoTranscode";
 import { isVideoFile, VIDEO_FILE_ACCEPT } from "@/features/canvas/application/videoFileTypes";
 import { resolveNodeDisplayName } from "@/features/canvas/domain/nodeDisplay";
@@ -307,93 +307,6 @@ function resolveOutputUrl(
     if (typeof value === "string" && value.length > 0) return value;
   }
   return null;
-}
-
-/**
- * Render a single frame from a video URL into a PNG blob using an offscreen
- * <video>. Cross-origin CDN media (absolute http(s) URL, the production case)
- * must load with CORS, otherwise drawing it to the canvas taints it and
- * `toBlob` throws. Same-origin /static (the dev vite proxy) skips crossOrigin
- * since that origin doesn't echo Access-Control-Allow-Origin and isn't tainted.
- */
-async function captureVideoFrameBlob(
-  src: string,
-  seekSec: number,
-): Promise<Blob> {
-  return await new Promise((resolve, reject) => {
-    const video = document.createElement("video");
-    video.muted = true;
-    video.playsInline = true;
-    video.preload = "auto";
-    if (mediaNeedsCrossOrigin(src)) video.crossOrigin = "anonymous";
-
-    const cleanup = () => {
-      video.removeAttribute("src");
-      try {
-        video.load();
-      } catch {
-        // ignored
-      }
-    };
-    const fail = (reason: unknown) => {
-      cleanup();
-      reject(reason instanceof Error ? reason : new Error(String(reason)));
-    };
-
-    video.addEventListener("error", () => fail("video element error"));
-    video.addEventListener(
-      "loadeddata",
-      () => {
-        const duration = video.duration;
-        if (!Number.isFinite(duration) || duration <= 0) {
-          fail("invalid video duration");
-          return;
-        }
-        const targetTime = Math.max(
-          0,
-          Math.min(seekSec, Math.max(0, duration - 0.05)),
-        );
-        video.addEventListener(
-          "seeked",
-          () => {
-            const canvas = document.createElement("canvas");
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext("2d");
-            if (!ctx) {
-              fail("canvas context unavailable");
-              return;
-            }
-            try {
-              ctx.drawImage(video, 0, 0);
-            } catch (error) {
-              fail(error);
-              return;
-            }
-            canvas.toBlob((blob) => {
-              cleanup();
-              if (blob) resolve(blob);
-              else reject(new Error("canvas.toBlob returned null"));
-            }, "image/png");
-          },
-          { once: true },
-        );
-        try {
-          video.currentTime = targetTime;
-        } catch (error) {
-          fail(error);
-        }
-      },
-      { once: true },
-    );
-
-    video.src = src;
-    try {
-      video.load();
-    } catch {
-      // ignored
-    }
-  });
 }
 
 export const VideoNode = memo(

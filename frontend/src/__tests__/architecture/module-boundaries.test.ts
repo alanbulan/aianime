@@ -10406,6 +10406,44 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("function probeAudioDurationMs(");
   });
 
+  it("keeps URL-based video frame capture in one infrastructure adapter", () => {
+    const infrastructurePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/browserVideoFrameCapture.ts",
+    );
+    const infrastructureSource = readFileSync(infrastructurePath, "utf8");
+    const videoNode = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      "utf8",
+    );
+    const declaration = [
+      "export async function",
+      "captureVideoFrameBlob(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(importSpecifiers(infrastructurePath)).toEqual([
+      "../application/imageData",
+    ]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/infrastructure/browserVideoFrameCapture.ts",
+    ]);
+    expect(infrastructureSource).not.toContain("react");
+    expect(infrastructureSource).not.toContain("@/stores/");
+    expect(infrastructureSource).not.toContain("@/api/");
+    expect(infrastructureSource).toContain('document.createElement("video")');
+    expect(infrastructureSource).toContain('document.createElement("canvas")');
+    expect(infrastructureSource).toContain("mediaNeedsCrossOrigin(source)");
+    expect(videoNode).toContain(
+      "@/features/canvas/infrastructure/browserVideoFrameCapture",
+    );
+    expect(videoNode).not.toContain("function captureVideoFrameBlob(");
+    expect(videoNode).not.toContain("mediaNeedsCrossOrigin");
+  });
+
   it("keeps VideoNode album chrome in one presentation view", () => {
     const viewPath = resolve(
       SRC_ROOT,
