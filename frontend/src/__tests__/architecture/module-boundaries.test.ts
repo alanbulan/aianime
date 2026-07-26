@@ -10804,6 +10804,64 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("sourceStart: startMs / 1000");
   });
 
+  it("keeps video subtitle erasure in one application use case", () => {
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/eraseVideoSubtitles.ts",
+    );
+    const adapterPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneVideoSubtitleEraseGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const adapterSource = readFileSync(adapterPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const videoNode = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      "utf8",
+    );
+    const declaration = [
+      "export async function",
+      "eraseVideoSubtitles(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set(["../domain/canvasNodes", "./ports"]),
+    );
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(implementationOwners).toEqual([
+      "features/canvas/application/eraseVideoSubtitles.ts",
+    ]);
+    expect(applicationSource).toContain('params.mode === "box"');
+    expect(applicationSource).toContain('"smart_subtitle"');
+    expect(importSpecifiers(adapterPath)).toEqual([
+      "@/api/ops",
+      "../application/eraseVideoSubtitles",
+    ]);
+    expect(adapterSource).not.toContain("react");
+    expect(adapterSource).not.toContain("@/stores/");
+    expect(adapterSource).toContain("submitFreezoneVideoErase(");
+    expect(compositionSource).toContain(
+      "eraseGateway: freezoneVideoSubtitleEraseGateway",
+    );
+    expect(compositionSource).toContain(
+      "taskGateway: freezoneGenerationTaskGateway",
+    );
+    expect(videoNode).toContain("eraseVideoSubtitles({");
+    expect(videoNode).not.toContain("submitFreezoneVideoErase");
+    expect(videoNode).not.toContain('mode: "smart_subtitle"');
+  });
+
   it("keeps video reference URL projection in one pure domain module", () => {
     const domainPath = resolve(
       SRC_ROOT,

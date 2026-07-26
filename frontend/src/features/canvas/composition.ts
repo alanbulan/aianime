@@ -9,6 +9,10 @@ import {
   type ComposeVideoClipParams,
 } from './application/composeVideoClip';
 import {
+  eraseVideoSubtitles as eraseVideoSubtitlesUseCase,
+  type EraseVideoSubtitlesParams,
+} from './application/eraseVideoSubtitles';
+import {
   hydrateAssetDragPayload as hydrateAssetDragPayloadUseCase,
   type CanvasSceneDirectorManifestGateway,
 } from './application/assetDragHydration';
@@ -53,6 +57,7 @@ import { freezoneAiGateway } from './infrastructure/freezoneAiGateway';
 import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerationTaskGateway';
 import { freezoneRedrawTaskGateway } from './infrastructure/freezoneRedrawTaskGateway';
 import { freezoneVideoClipComposeGateway } from './infrastructure/freezoneVideoClipComposeGateway';
+import { freezoneVideoSubtitleEraseGateway } from './infrastructure/freezoneVideoSubtitleEraseGateway';
 import { uuidGenerator } from './infrastructure/idGenerator';
 import { webImageSplitGateway } from './infrastructure/webImageSplitGateway';
 import { zustandCanvasGraphGateway } from './infrastructure/zustandCanvasGraphGateway';
@@ -199,6 +204,13 @@ export function composeVideoClip(params: ComposeVideoClipParams) {
     composeGateway: freezoneVideoClipComposeGateway,
     taskGateway: freezoneGenerationTaskGateway,
     now: () => Date.now(),
+  });
+}
+
+export function eraseVideoSubtitles(params: EraseVideoSubtitlesParams) {
+  return eraseVideoSubtitlesUseCase(params, {
+    eraseGateway: freezoneVideoSubtitleEraseGateway,
+    taskGateway: freezoneGenerationTaskGateway,
   });
 }
 

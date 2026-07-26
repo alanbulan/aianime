@@ -100,6 +100,7 @@ import { useNodeGenerationTaskState } from "@/features/canvas/hooks/useNodeGener
 import { resolveErrorContent } from "@/features/canvas/application/errorDialog";
 import {
   composeVideoClip,
+  eraseVideoSubtitles,
   showErrorDialog,
 } from "@/features/canvas/composition";
 import { backendErrorToastMessage } from "@/shared/api/errors";
@@ -199,7 +200,6 @@ import {
   fetchFreezoneJobResult,
   fetchFreezoneTextTranslateResult,
   submitFreezoneTextTranslate,
-  submitFreezoneVideoErase,
   submitFreezoneVideoEdit,
   submitFreezoneVideoGen,
   submitFreezoneVideoI2v,
@@ -1554,17 +1554,12 @@ export const VideoNode = memo(
       }
       setIsErasing(true);
       try {
-        const ref = await submitFreezoneVideoErase(projectId, {
+        const result = await eraseVideoSubtitles({
+          projectId,
           sourceUrl: data.videoUrl,
-          mode: subtitleEraseMode === "box" ? "box" : "smart_subtitle",
+          mode: subtitleEraseMode ?? "smart",
           box: subtitleEraseMode === "box" ? subtitleEraseBox : null,
         });
-        await awaitTaskCompletion(ref.task_key, projectId);
-        const result = await fetchFreezoneJobResult(
-          projectId,
-          "freezone_video_erase",
-          ref.job_id,
-        );
         if (result.url) {
           updateNodeData(id, {
             videoUrl: result.url,

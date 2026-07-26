@@ -1486,6 +1486,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百零一批已将视频节点单片段剪辑的质量到 720p/1080p 投影、轨道/条目 ID 构造、毫秒到秒转换、compose 提交、任务等待和结果 URL 读取迁入唯一 application 用例 `composeVideoClip`，`freezoneVideoClipComposeGateway` infrastructure 适配器唯一负责后端 payload 映射，`composition.ts` 注入既有任务 gateway 与时钟；`VideoNode` 删除直接 compose API 调用和内联单轨 payload，只保留输入门禁、loading/error 及派生节点/连线写回，源码由 2695 行降至 2677 行，用例 69 行、适配器 27 行；用例与适配器共 2 个测试文件 3 项、架构门禁 158 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百零二批已将视频字幕擦除的模式投影、后端提交、任务等待和结果 URL 读取迁入唯一 application 用例 `eraseVideoSubtitles`，`freezoneVideoSubtitleEraseGateway` infrastructure 适配器唯一负责后端 payload 映射，`composition.ts` 注入既有任务 gateway；`VideoNode` 删除直接擦除 API 调用、任务等待和结果查询，只保留选框完整性门禁、loading/error 及视频 URL 写回，源码由 2677 行降至 2672 行，用例 59 行、适配器 14 行；用例与适配器共 2 个测试文件 3 项、架构门禁 159 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。
