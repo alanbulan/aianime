@@ -18,8 +18,6 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import '@xyflow/react/dist/style.css';
 
-import { useShallow } from 'zustand/react/shallow';
-
 import { CreditDisplayHiddenProvider } from '@/components/credits/credit-visual';
 import { isCeRuntime } from '@/lib/runtime-config';
 import { useCanvasStore } from '@/stores/canvasStore';
@@ -31,8 +29,6 @@ import {
   clearBrowserClipboard,
   hydrateAssetDragPayload,
   migratePastedNodeAssets,
-  pollExportImageGeneration,
-  resumeNodeGeneration,
 } from '@/features/canvas/composition';
 import {
   CANVAS_NODE_TYPES,
@@ -45,7 +41,6 @@ import {
 import { CanvasMinimapBookmarksOverlay } from '@/features/canvas/ui/CanvasMinimapBookmarksOverlay';
 import { captureCurrentViewport, jumpToBookmark } from '@/features/canvas/application/bookmarkActions';
 import { createCanvasClipboardSnapshot } from '@/features/canvas/application/createCanvasClipboardSnapshot';
-import { nodeNeedsGenerationResume } from '@/features/canvas/application/resumeGeneration';
 import { readUrl } from '@/lib/url-params';
 import { useQueryClient } from '@tanstack/react-query';
 import { prefetchEpisodeBeats, prefetchEpisodeDetail } from '@/modules/narrative_planning/public';
@@ -85,7 +80,7 @@ import {
 } from './ui/canvasConnectionInteraction';
 import { useCanvasEdgePan } from './hooks/useCanvasEdgePan';
 import { useCanvasExternalDialogs } from './hooks/useCanvasExternalDialogs';
-import { useCanvasAsyncNodeTasks } from './hooks/useCanvasAsyncNodeTasks';
+import { useCanvasGenerationRecoveryController } from './hooks/useCanvasGenerationRecoveryController';
 import {
   useCanvasAltDragCopyController,
   type CanvasAltDragPositionCommit,
@@ -256,75 +251,15 @@ export function Canvas({
   const trackpadPanEnabled = useTrackpadPanStore((state) => state.enabled);
   // 底部任务中心面板展开时，让出底部空间——隐藏画布快捷操作栏，避免与面板重叠。
   const taskPanelOpen = useAppStore((state) => state.taskPanelOpen);
-  // Stable node-id lists keep the async task hooks idle while drag frames rebuild nodes.
-  const pendingJobNodeIds = useCanvasStore(
-    useShallow((state) =>
-      state.nodes
-        .filter((node) => {
-          if (node.type !== CANVAS_NODE_TYPES.exportImage) return false;
-          const data = node.data as Record<string, unknown>;
-          return (
-            data.isGenerating === true &&
-            typeof data.generationJobId === 'string' &&
-            (data.generationJobId as string).length > 0
-          );
-        })
-        .map((node) => node.id),
-    ),
-  );
-  const pendingResumeNodeIds = useCanvasStore(
-    useShallow((state) => state.nodes.filter(nodeNeedsGenerationResume).map((node) => node.id)),
-  );
+  useCanvasGenerationRecoveryController({
+    projectId: canvasProject,
+    errorTitle: t('common.error'),
+  });
   const applyNodesChange = useCanvasStore((state) => state.onNodesChange);
   const applyEdgesChange = useCanvasStore((state) => state.onEdgesChange);
   const connectNodes = useCanvasStore((state) => state.onConnect);
   const replaceEdges = useCanvasStore((state) => state.replaceEdges);
   const updateNodeData = useCanvasStore((state) => state.updateNodeData);
-  const pollExportImageNode = useCallback(
-    (nodeId: string): Promise<void> =>
-      pollExportImageGeneration({
-        nodeId,
-        errorTitle: t('common.error'),
-        getNodeData: (currentNodeId) =>
-          (useCanvasStore
-            .getState()
-            .nodes
-            .find((item) => item.id === currentNodeId)?.data ?? null) as Record<string, unknown> | null,
-        updateNodeData,
-      }),
-    [t, updateNodeData],
-  );
-  const resumePendingGenerationNode = useCallback(
-    (nodeId: string): Promise<void> => {
-      if (!canvasProject) {
-        return Promise.resolve();
-      }
-      const node = useCanvasStore.getState().nodes.find((item) => item.id === nodeId);
-      if (!node || !nodeNeedsGenerationResume(node)) {
-        return Promise.resolve();
-      }
-      return resumeNodeGeneration({
-        node,
-        projectId: canvasProject,
-        updateNodeData,
-        getNodeData: (currentNodeId) =>
-          (useCanvasStore
-            .getState()
-            .nodes
-            .find((item) => item.id === currentNodeId)?.data ?? null) as Record<string, unknown> | null,
-      });
-    },
-    [canvasProject, updateNodeData],
-  );
-  useCanvasAsyncNodeTasks({
-    enabled: Boolean(canvasProject),
-    pendingNodeIds: pendingResumeNodeIds,
-    runNode: resumePendingGenerationNode,
-  });
-  useCanvasAsyncNodeTasks({
-    pendingNodeIds: pendingJobNodeIds,
-    runNode: pollExportImageNode,
-  });
   const addNode = useCanvasStore((state) => state.addNode);
   const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
   const selectedNodeId = useCanvasStore((state) => state.selectedNodeId);

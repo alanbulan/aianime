@@ -3064,6 +3064,11 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const recoveryControllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasGenerationRecoveryController.ts",
+    );
+    const recoveryController = readFileSync(recoveryControllerPath, "utf8");
     const forbiddenImports = importSpecifiers(hookPath).filter(
       (specifier) =>
         specifier === "@xyflow/react" ||
@@ -3076,6 +3081,15 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/features/canvas/composition",
     );
+    const forbiddenRecoveryControllerImports = importSpecifiers(
+      recoveryControllerPath,
+    ).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/"),
+    );
     const hookDeclaration = [
       "export function",
       "useCanvasAsyncNodeTasks(",
@@ -3084,15 +3098,34 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes(hookDeclaration))
       .map(relativeSource)
       .sort();
+    const recoveryControllerDeclaration = [
+      "export function",
+      "useCanvasGenerationRecoveryController(",
+    ].join(" ");
+    const recoveryControllerOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(recoveryControllerDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(forbiddenImports).toEqual([]);
+    expect(forbiddenRecoveryControllerImports).toEqual([]);
     expect(implementationOwners).toEqual([
       "features/canvas/hooks/useCanvasAsyncNodeTasks.ts",
     ]);
+    expect(recoveryControllerOwners).toEqual([
+      "features/canvas/hooks/useCanvasGenerationRecoveryController.ts",
+    ]);
     expect(hookModel).toContain("activeNodeIdsRef");
     expect(hookModel).toContain("runNode(nodeId).finally");
-    expect(canvasView).toContain("./hooks/useCanvasAsyncNodeTasks");
-    expect(canvasView.match(/useCanvasAsyncNodeTasks\(\{/g)).toHaveLength(2);
+    expect(recoveryController).toContain("./useCanvasAsyncNodeTasks");
+    expect(recoveryController.match(/useCanvasAsyncNodeTasks\(\{/g)).toHaveLength(2);
+    expect(canvasView).toContain("./hooks/useCanvasGenerationRecoveryController");
+    expect(canvasView.match(/useCanvasGenerationRecoveryController\(\{/g)).toHaveLength(1);
+    expect(canvasView).not.toContain("./hooks/useCanvasAsyncNodeTasks");
+    expect(canvasView).not.toContain("pendingExportImageNodeIds");
+    expect(canvasView).not.toContain("pendingGenerationResumeNodeIds");
     expect(canvasView).not.toContain("useCanvasGenerationResume");
     expect(canvasView).not.toContain("activeGenerationPollNodeIdsRef");
     expect(canvasView).not.toContain("activeTaskResumeNodeIdsRef");
@@ -3111,6 +3144,13 @@ describe("frontend architecture boundaries", () => {
     );
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const recoveryController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasGenerationRecoveryController.ts",
+      ),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(useCasePath).filter(
@@ -3144,7 +3184,8 @@ describe("frontend architecture boundaries", () => {
     expect(useCaseModel).toContain("buildGenerationErrorReport({");
     expect(useCaseModel).toContain("embedStoryboardImageMetadata(");
     expect(composition).toContain("pollExportImageGenerationUseCase(");
-    expect(canvasView).toContain("pollExportImageGeneration({");
+    expect(recoveryController).toContain("pollExportImageGeneration({");
+    expect(canvasView).not.toContain("pollExportImageGeneration({");
     expect(canvasView).not.toContain("getGenerateImageJob(");
     expect(canvasView).not.toContain("GENERATION_JOB_POLL_INTERVAL_MS");
     expect(canvasView).not.toContain("buildGenerationErrorReport");
