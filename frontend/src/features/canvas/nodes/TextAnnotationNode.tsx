@@ -46,13 +46,12 @@ import { useCanvasStore } from '@/stores/canvasStore';
 import {
   ensureBackendImageUrl,
   fetchFreezoneReversePromptResult,
-  fetchFreezoneTextTranslateResult,
   submitFreezoneReversePrompt,
-  submitFreezoneTextTranslate,
   submitFreezoneVideoGen,
   type FreezoneVideoAspectRatio,
   type FreezoneVideoResolution,
 } from '@/api/ops';
+import { translateCanvasText } from '@/features/canvas/composition';
 import { awaitTaskCompletion } from '@/api/tasks';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
@@ -813,15 +812,14 @@ function WritingOpsPanel({
     }
     setIsTranslating(true);
     try {
-      const ref = await submitFreezoneTextTranslate(project, {
+      const result = await translateCanvasText({
+        projectId: project,
         text: content,
         nodeType: 'text',
         canvasId: readUrl().canvas ?? 'default',
         nodeId,
       });
-      await awaitTaskCompletion(ref.task_key, project);
-      const result = await fetchFreezoneTextTranslateResult(project, ref.job_id);
-      updateNodeData(nodeId, { content: result.translated_text });
+      updateNodeData(nodeId, { content: result.translatedText });
     } catch (error) {
       console.error('[text-node] translate failed', error);
     } finally {

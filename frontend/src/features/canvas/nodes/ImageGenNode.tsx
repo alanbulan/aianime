@@ -83,12 +83,11 @@ import { useShallow } from 'zustand/react/shallow';
 import { getFreezoneCanvasMetadata } from '@/features/freezone/canvasMetadataContext';
 import {
   fetchFreezoneJobResult,
-  fetchFreezoneTextTranslateResult,
   submitFreezoneGen,
-  submitFreezoneTextTranslate,
   uploadFreezoneImage,
 } from '@/api/ops';
 import {
+  translateCanvasText,
   uploadAndAutoCommitSelectedBackgroundCandidate,
 } from '@/features/canvas/composition';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
@@ -802,17 +801,16 @@ export const ImageGenNode = memo(({ id, data, selected, width, height }: ImageGe
     }
     setIsTranslatingPrompt(true);
     try {
-      const ref = await submitFreezoneTextTranslate(projectId, {
+      const result = await translateCanvasText({
+        projectId,
         text: prompt,
         nodeType: 'image',
         canvasId: readUrl().canvas ?? 'default',
         nodeId: id,
       });
-      await awaitTaskCompletion(ref.task_key, projectId);
-      const result = await fetchFreezoneTextTranslateResult(projectId, ref.job_id);
-      if (result.translated_text) {
-        setPromptDraft(result.translated_text);
-        updateNodeData(id, { prompt: result.translated_text });
+      if (result.translatedText) {
+        setPromptDraft(result.translatedText);
+        updateNodeData(id, { prompt: result.translatedText });
       }
     } catch (error) {
       console.error('[image-gen] translate failed', error);

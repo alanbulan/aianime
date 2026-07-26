@@ -58,13 +58,12 @@ import { PanelExpandButton } from '@/features/canvas/ui/PanelExpandButton';
 import { useCanvasStore } from '@/stores/canvasStore';
 import {
   fetchFreezoneStoryScriptResult,
-  fetchFreezoneTextTranslateResult,
   submitFreezoneStoryScript,
-  submitFreezoneTextTranslate,
   type FreezoneGenerationHistoryRecord,
   type FreezoneStoryScriptResult,
   type FreezoneStoryScriptRow,
 } from '@/api/ops';
+import { translateCanvasText } from '@/features/canvas/composition';
 import { awaitTaskCompletion } from '@/api/tasks';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
@@ -987,15 +986,14 @@ function ScriptOperationsPanel({
     }
     setIsTranslating(true);
     try {
-      const ref = await submitFreezoneTextTranslate(project, {
+      const result = await translateCanvasText({
+        projectId: project,
         text: prompt,
         nodeType: 'text',
         canvasId: readUrl().canvas ?? 'default',
         nodeId,
       });
-      await awaitTaskCompletion(ref.task_key, project);
-      const result = await fetchFreezoneTextTranslateResult(project, ref.job_id);
-      updateNodeData(nodeId, { prompt: result.translated_text });
+      updateNodeData(nodeId, { prompt: result.translatedText });
     } catch (error) {
       console.error('[script-node] translate failed', error);
     } finally {

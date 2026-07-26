@@ -13,6 +13,10 @@ import {
   type EraseVideoSubtitlesParams,
 } from './application/eraseVideoSubtitles';
 import {
+  translateCanvasText as translateCanvasTextUseCase,
+  type TranslateCanvasTextParams,
+} from './application/translateCanvasText';
+import {
   hydrateAssetDragPayload as hydrateAssetDragPayloadUseCase,
   type CanvasSceneDirectorManifestGateway,
 } from './application/assetDragHydration';
@@ -54,6 +58,7 @@ import { browserImageRuntimeGateway } from './infrastructure/browserImageRuntime
 import { browserToolImageGateway } from './infrastructure/browserToolImageGateway';
 import { freezoneAssetGateway } from './infrastructure/freezoneAssetGateway';
 import { freezoneAiGateway } from './infrastructure/freezoneAiGateway';
+import { freezoneCanvasTextTranslationGateway } from './infrastructure/freezoneCanvasTextTranslationGateway';
 import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerationTaskGateway';
 import { freezoneRedrawTaskGateway } from './infrastructure/freezoneRedrawTaskGateway';
 import { freezoneVideoClipComposeGateway } from './infrastructure/freezoneVideoClipComposeGateway';
@@ -210,6 +215,13 @@ export function composeVideoClip(params: ComposeVideoClipParams) {
 export function eraseVideoSubtitles(params: EraseVideoSubtitlesParams) {
   return eraseVideoSubtitlesUseCase(params, {
     eraseGateway: freezoneVideoSubtitleEraseGateway,
+    taskGateway: freezoneGenerationTaskGateway,
+  });
+}
+
+export function translateCanvasText(params: TranslateCanvasTextParams) {
+  return translateCanvasTextUseCase(params, {
+    translationGateway: freezoneCanvasTextTranslationGateway,
     taskGateway: freezoneGenerationTaskGateway,
   });
 }

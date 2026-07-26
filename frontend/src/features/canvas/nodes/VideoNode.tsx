@@ -102,6 +102,7 @@ import {
   composeVideoClip,
   eraseVideoSubtitles,
   showErrorDialog,
+  translateCanvasText,
 } from "@/features/canvas/composition";
 import { backendErrorToastMessage } from "@/shared/api/errors";
 import { resolveGenerationErrorDiagnostics } from "@/features/canvas/application/generationErrorReport";
@@ -198,8 +199,6 @@ import {
 import { useCanvasStore } from "@/stores/canvasStore";
 import {
   fetchFreezoneJobResult,
-  fetchFreezoneTextTranslateResult,
-  submitFreezoneTextTranslate,
   submitFreezoneVideoEdit,
   submitFreezoneVideoGen,
   submitFreezoneVideoI2v,
@@ -1230,19 +1229,15 @@ export const VideoNode = memo(
       }
       setIsTranslatingPrompt(true);
       try {
-        const ref = await submitFreezoneTextTranslate(project, {
+        const result = await translateCanvasText({
+          projectId: project,
           text: prompt,
           nodeType: "video",
           canvasId: readUrl().canvas ?? "default",
           nodeId: id,
         });
-        await awaitTaskCompletion(ref.task_key, project);
-        const result = await fetchFreezoneTextTranslateResult(
-          project,
-          ref.job_id,
-        );
-        if (result.translated_text) {
-          updateNodeData(id, { prompt: result.translated_text });
+        if (result.translatedText) {
+          updateNodeData(id, { prompt: result.translatedText });
         }
       } catch (error) {
         console.error("[video-node] translate failed", error);

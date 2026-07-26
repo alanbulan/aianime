@@ -20,11 +20,7 @@ import { useCanvasStore } from '@/stores/canvasStore';
 import { useUpstreamContents } from '@/features/canvas/hooks/useUpstreamGraph';
 import { ReferenceTextChip } from '@/features/canvas/nodes/shared/ReferenceTextChip';
 import { useDetachUpstream } from '@/features/canvas/hooks/useDetachUpstream';
-import {
-  fetchFreezoneTextTranslateResult,
-  submitFreezoneTextTranslate,
-} from '@/api/ops';
-import { awaitTaskCompletion } from '@/api/tasks';
+import { translateCanvasText } from '@/features/canvas/composition';
 import { deriveAudioText, useAudioGeneration } from '@/features/canvas/nodes/useAudioGeneration';
 import { readUrl } from '@/lib/url-params';
 import { PanelExpandButton } from '@/features/canvas/ui/PanelExpandButton';
@@ -172,15 +168,14 @@ export function AudioOperationsPanel({ nodeId, data }: AudioOperationsPanelProps
     }
     setIsTranslating(true);
     try {
-      const ref = await submitFreezoneTextTranslate(project, {
+      const result = await translateCanvasText({
+        projectId: project,
         text: trimmed,
         nodeType: 'audio',
         canvasId: readUrl().canvas ?? 'default',
         nodeId,
       });
-      await awaitTaskCompletion(ref.task_key, project);
-      const result = await fetchFreezoneTextTranslateResult(project, ref.job_id);
-      handleTextChange(result.translated_text);
+      handleTextChange(result.translatedText);
     } catch (error) {
       console.error('[audio-node] translate failed', error);
     } finally {

@@ -10862,6 +10862,68 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain('mode: "smart_subtitle"');
   });
 
+  it("keeps canvas text translation in one application use case", () => {
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/translateCanvasText.ts",
+    );
+    const adapterPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneCanvasTextTranslationGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const adapterSource = readFileSync(adapterPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const consumerPaths = [
+      "features/canvas/nodes/AudioOperationsPanel.tsx",
+      "features/canvas/nodes/ImageGenNode.tsx",
+      "features/canvas/nodes/ScriptNode.tsx",
+      "features/canvas/nodes/TextAnnotationNode.tsx",
+      "features/canvas/nodes/VideoNode.tsx",
+    ].map((path) => resolve(SRC_ROOT, path));
+    const declaration = [
+      "export async function",
+      "translateCanvasText(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(importSpecifiers(applicationPath)).toEqual(["./ports"]);
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(implementationOwners).toEqual([
+      "features/canvas/application/translateCanvasText.ts",
+    ]);
+    expect(new Set(importSpecifiers(adapterPath))).toEqual(
+      new Set(["@/api/ops", "../application/translateCanvasText"]),
+    );
+    expect(adapterSource).not.toContain("react");
+    expect(adapterSource).not.toContain("@/stores/");
+    expect(adapterSource).toContain("submitFreezoneTextTranslate(");
+    expect(adapterSource).toContain("fetchFreezoneTextTranslateResult(");
+    expect(compositionSource).toContain(
+      "translationGateway: freezoneCanvasTextTranslationGateway",
+    );
+    expect(compositionSource).toContain(
+      "taskGateway: freezoneGenerationTaskGateway",
+    );
+    for (const consumerPath of consumerPaths) {
+      const consumerSource = readFileSync(consumerPath, "utf8");
+      expect(consumerSource).toContain("translateCanvasText({");
+      expect(consumerSource).not.toContain("submitFreezoneTextTranslate");
+      expect(consumerSource).not.toContain(
+        "fetchFreezoneTextTranslateResult",
+      );
+    }
+  });
+
   it("keeps video reference URL projection in one pure domain module", () => {
     const domainPath = resolve(
       SRC_ROOT,
