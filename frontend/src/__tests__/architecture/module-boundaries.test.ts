@@ -1260,6 +1260,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const gestureController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasConnectionGestureController.ts",
+      ),
+      "utf8",
+    );
     const forbiddenImports = importSpecifiers(interactionPath).filter(
       (specifier) =>
         specifier === "react" ||
@@ -1299,7 +1306,8 @@ describe("frontend architecture boundaries", () => {
     for (const declaration of declarations) {
       expect(interactionModel).toContain(declaration);
     }
-    expect(canvasView).toContain("./ui/canvasConnectionInteraction");
+    expect(gestureController).toContain("../ui/canvasConnectionInteraction");
+    expect(canvasView).not.toContain("./ui/canvasConnectionInteraction");
     expect(canvasView).not.toContain("function getClientPosition(");
     expect(canvasView).not.toContain("getClientPosition(");
     expect(canvasView).not.toContain("canNodeBeManualConnectionSource(");
@@ -5148,6 +5156,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const gestureController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasConnectionGestureController.ts",
+      ),
+      "utf8",
+    );
     const forbiddenImports = importSpecifiers(hookPath).filter(
       (specifier) =>
         specifier === "zustand" ||
@@ -5175,7 +5190,11 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(hookModel).toContain("resolveCanvasBatchConnectContext(nodes)");
     expect(hookModel).toContain("planCanvasBatchConnectTarget(");
+    expect(gestureController).toContain("./useCanvasBatchConnectionController");
     expect(canvasView).toContain(
+      "./hooks/useCanvasConnectionGestureController",
+    );
+    expect(canvasView).not.toContain(
       "./hooks/useCanvasBatchConnectionController",
     );
     expect(canvasView).not.toContain("batchConnectDragRef");
@@ -5331,6 +5350,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const gestureController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasConnectionGestureController.ts",
+      ),
+      "utf8",
+    );
     const forbiddenImports = importSpecifiers(hookPath).filter(
       (specifier) =>
         specifier === "zustand" ||
@@ -5358,7 +5384,13 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(hookModel).toContain("resolveCanvasConnectionStart({");
     expect(hookModel).toContain("resolveCanvasConnectionEnd({");
+    expect(gestureController).toContain(
+      "./useCanvasReactFlowConnectionController",
+    );
     expect(canvasView).toContain(
+      "./hooks/useCanvasConnectionGestureController",
+    );
+    expect(canvasView).not.toContain(
       "./hooks/useCanvasReactFlowConnectionController",
     );
     expect(canvasView).not.toContain(
@@ -5383,6 +5415,11 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const gestureControllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasConnectionGestureController.ts",
+    );
+    const gestureController = readFileSync(gestureControllerPath, "utf8");
     const forbiddenImports = importSpecifiers(hookPath).filter(
       (specifier) =>
         specifier === "zustand" ||
@@ -5403,16 +5440,57 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
       .map(relativeSource)
       .sort();
+    const gestureForbiddenImports = importSpecifiers(
+      gestureControllerPath,
+    ).filter(
+      (specifier) =>
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/features/canvas/nodeFactoryComposition",
+    );
+    const gestureDeclaration = [
+      "export function",
+      "useCanvasConnectionGestureController(",
+    ].join(" ");
+    const gestureOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(gestureDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(forbiddenImports).toEqual([]);
+    expect(gestureForbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
       "features/canvas/hooks/useCanvasPlusConnectionController.ts",
+    ]);
+    expect(gestureOwners).toEqual([
+      "features/canvas/hooks/useCanvasConnectionGestureController.ts",
     ]);
     expect(hookModel).toContain("resolveCanvasPlusConnectionStart({");
     expect(hookModel).toContain("resolveCanvasPlusConnectionEnd({");
     expect(hookModel).toContain("resolveManualDropTargetElement({");
     expect(hookModel).toContain("canvas-node-drop-target");
+    expect(gestureController).toContain("./useCanvasPlusConnectionController");
+    expect(gestureController).toContain(
+      "./useCanvasReactFlowConnectionController",
+    );
+    expect(gestureController).toContain("./useCanvasBatchConnectionController");
+    expect(gestureController).toContain(
+      "screenToFlowPosition(request.clientPosition)",
+    );
+    expect(gestureController).toContain("suppressNextPaneClick()");
     expect(canvasView).toContain(
+      "./hooks/useCanvasConnectionGestureController",
+    );
+    expect(canvasView).not.toContain(
       "./hooks/useCanvasPlusConnectionController",
     );
     expect(canvasView).not.toContain("const plusConnectStartRef");

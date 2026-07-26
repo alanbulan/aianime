@@ -53,9 +53,6 @@ import { useTrackpadPanStore } from './trackpad-pan/trackpadPanStore';
 import { SnapAlignGuides } from './snap-align/SnapAlignGuides';
 import { useSnapAlignStore } from './snap-align/snapAlignStore';
 import { PAN_ACTIVATION_KEY_CODE } from './ui/canvasInteractionTargets';
-import {
-  type CanvasConnectionMenuRequest,
-} from './ui/canvasConnectionInteraction';
 import { useCanvasExternalDialogs } from './hooks/useCanvasExternalDialogs';
 import { useCanvasGenerationRecoveryController } from './hooks/useCanvasGenerationRecoveryController';
 import {
@@ -70,15 +67,10 @@ import { useCanvasGraphChangeController } from './hooks/useCanvasGraphChangeCont
 import { useCanvasDragLifecycleController } from './hooks/useCanvasDragLifecycleController';
 import { useCanvasGroupFitDragController } from './hooks/useCanvasGroupFitDragController';
 import { useCanvasHistoryAssetController } from './hooks/useCanvasHistoryAssetController';
-import {
-  useCanvasBatchConnectionController,
-  type CanvasBatchConnectionMenuRequest,
-} from './hooks/useCanvasBatchConnectionController';
 import { useCanvasConnectionController } from './hooks/useCanvasConnectionController';
 import { useCanvasClipboardController } from './hooks/useCanvasClipboardController';
-import { useCanvasPlusConnectionController } from './hooks/useCanvasPlusConnectionController';
+import { useCanvasConnectionGestureController } from './hooks/useCanvasConnectionGestureController';
 import { useCanvasQuickAddController } from './hooks/useCanvasQuickAddController';
-import { useCanvasReactFlowConnectionController } from './hooks/useCanvasReactFlowConnectionController';
 import { useCanvasLifecycle } from './hooks/useCanvasLifecycle';
 import { useCanvasLinkedCaptureDragController } from './hooks/useCanvasLinkedCaptureDragController';
 import { useCanvasMarqueeSelection } from './hooks/useCanvasMarqueeSelection';
@@ -364,72 +356,32 @@ export function Canvas({
     onMarqueeStart: handleMarqueeStart,
   });
 
-  const openConnectionMenu = useCallback(
-    (request: CanvasConnectionMenuRequest) => {
-      openConnectionMenuState(
-        request,
-        screenToFlowPosition(request.clientPosition),
-      );
-      suppressNextPaneClick();
-    },
-    [openConnectionMenuState, screenToFlowPosition, suppressNextPaneClick],
-  );
-  const clearHoveredNode = useCallback(
-    () => setHoveredNodeId(null),
-    [setHoveredNodeId],
-  );
   const {
     isPlusConnectDragging,
-    beginPlusConnectDrag,
-    endPlusConnectDrag,
     handlePlusOpenMenu,
     handlePlusConnectDragStart,
     handlePlusConnectDragMove,
     handlePlusConnectDragEnd,
-  } = useCanvasPlusConnectionController({
-    wrapperRef,
-    nodes,
-    clearHoveredNodeTimer,
-    clearHoveredNode,
-    prepareConnectionDrag: prepareConnectionStart,
-    clearConnection,
-    updateConnectionPreview,
-    openConnectionMenu,
-    connectNodes: connectGraphNodes,
-  });
-  const {
     handleConnectStart,
     handleConnectEnd,
-  } = useCanvasReactFlowConnectionController({
-    wrapperRef,
-    nodes,
-    pendingConnection: pendingConnectStart,
-    prepareConnectionStart,
-    clearConnection,
-    openConnectionMenu,
-    connectNodes: connectGraphNodes,
-  });
-  const openBatchConnectionMenu = useCallback(
-    (request: CanvasBatchConnectionMenuRequest) => {
-      openBatchConnectionMenuState(request);
-      suppressNextPaneClick();
-    },
-    [openBatchConnectionMenuState, suppressNextPaneClick],
-  );
-  const {
     handleBatchConnectOpenMenu,
     handleBatchConnectDragStart,
     handleBatchConnectDragMove,
     handleBatchConnectDragEnd,
-  } = useCanvasBatchConnectionController({
+  } = useCanvasConnectionGestureController({
     wrapperRef,
     nodes,
     screenToFlowPosition,
-    beginConnectionDrag: beginPlusConnectDrag,
-    endConnectionDrag: endPlusConnectDrag,
-    prepareConnectionDrag: prepareBatchConnectionDrag,
+    clearHoveredNodeTimer,
+    setHoveredNodeId,
+    pendingConnection: pendingConnectStart,
+    prepareConnectionStart,
+    prepareBatchConnectionDrag,
+    clearConnection,
     updateConnectionPreview,
-    openConnectionMenu: openBatchConnectionMenu,
+    openConnectionMenuState,
+    openBatchConnectionMenuState,
+    suppressNextPaneClick,
     connectNodes: connectGraphNodes,
   });
 
