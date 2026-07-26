@@ -36,7 +36,7 @@ import {
   spawnAssetNode,
   type CanvasAssetDragPayload,
 } from "@/features/canvas/domain/assetDrag";
-import { hydrateAssetDragPayload } from "@/features/canvas/domain/assetDragHydrate";
+import { hydrateAssetDragPayload } from "@/features/canvas/composition";
 import { directorSourceIdentityUrl } from "@/features/canvas/domain/directorWorldSources";
 import { useCanvasStore } from "@/stores/canvasStore";
 import { useAssetDropStore, type DropMediaType } from "@/stores/assetDropStore";

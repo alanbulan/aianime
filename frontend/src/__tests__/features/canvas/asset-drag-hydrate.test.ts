@@ -1,8 +1,10 @@
 // Copyright (c) 2026 AI anime
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { getSceneDirectorStageManifest } from "@/api/viewerManifests";
-import { hydrateAssetDragPayload } from "@/features/canvas/domain/assetDragHydrate";
+import {
+  hydrateAssetDragPayload,
+  type CanvasSceneDirectorManifestGateway,
+} from "@/features/canvas/application/assetDragHydration";
 import { spawnAssetNode } from "@/features/canvas/domain/assetDrag";
 import type {
   CanvasAssetDragPayload,
@@ -12,15 +14,7 @@ import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
 import type { ThreeDSceneSnapshot } from "@/features/viewer-kit/three-d/engine/viewerApp";
 import type { DirectorStageManifest } from "@/features/viewer-kit/three-d/directorManifest";
 
-vi.mock("@/api/viewerManifests", () => ({
-  getSceneDirectorStageManifest: vi.fn(),
-}));
-
 describe("hydrateAssetDragPayload", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("copies a scene director world manifest into a user-imported canvas payload", async () => {
     const scene = {
       schemaVersion: 1,
@@ -74,7 +68,10 @@ describe("hydrateAssetDragPayload", () => {
       palette: { actors: [], props: [], anonymous_colors: [], anonymous_prop_colors: [] },
       allowed_destinations: ["view"],
     } satisfies DirectorStageManifest;
-    vi.mocked(getSceneDirectorStageManifest).mockResolvedValueOnce(manifest);
+    const getSceneDirectorStageManifest = vi.fn().mockResolvedValueOnce(manifest);
+    const gateway: CanvasSceneDirectorManifestGateway = {
+      getSceneDirectorStageManifest,
+    };
 
     const payload = {
       kind: "model",
@@ -97,7 +94,7 @@ describe("hydrateAssetDragPayload", () => {
       },
     } satisfies CanvasAssetDragPayload;
 
-    const hydrated = await hydrateAssetDragPayload(payload);
+    const hydrated = await hydrateAssetDragPayload(gateway, payload);
 
     expect(getSceneDirectorStageManifest).toHaveBeenCalledWith("demo", "公寓楼电梯间");
     expect(hydrated.activeSourceId).toBe("reverse");
@@ -111,6 +108,10 @@ describe("hydrateAssetDragPayload", () => {
   });
 
   it("leaves non scene-director-world payloads untouched", async () => {
+    const getSceneDirectorStageManifest = vi.fn();
+    const gateway: CanvasSceneDirectorManifestGateway = {
+      getSceneDirectorStageManifest,
+    };
     const payload = {
       kind: "model",
       label: "自定义 3D",
@@ -118,7 +119,7 @@ describe("hydrateAssetDragPayload", () => {
       source: { kind: "scene", role: "scene_3gs_master_ply", projectId: "demo" },
     } satisfies CanvasAssetDragPayload;
 
-    await expect(hydrateAssetDragPayload(payload)).resolves.toBe(payload);
+    await expect(hydrateAssetDragPayload(gateway, payload)).resolves.toBe(payload);
     expect(getSceneDirectorStageManifest).not.toHaveBeenCalled();
   });
 });

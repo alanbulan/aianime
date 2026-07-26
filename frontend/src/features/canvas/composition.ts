@@ -1,8 +1,13 @@
 // Copyright (c) 2026 AI anime
 import { readUrl } from '@/lib/url-params';
 import { embedStoryboardImageMetadata } from '@/commands/image';
+import { getSceneDirectorStageManifest } from '@/api/viewerManifests';
 
 import { canvasEventBus } from './application/canvasServices';
+import {
+  hydrateAssetDragPayload as hydrateAssetDragPayloadUseCase,
+  type CanvasSceneDirectorManifestGateway,
+} from './application/assetDragHydration';
 import {
   migratePastedNodeAssets as migratePastedNodeAssetsUseCase,
   type MigratePastedNodeAssetsParams,
@@ -46,6 +51,11 @@ import { uuidGenerator } from './infrastructure/idGenerator';
 import { webImageSplitGateway } from './infrastructure/webImageSplitGateway';
 import { zustandCanvasGraphGateway } from './infrastructure/zustandCanvasGraphGateway';
 import { showErrorDialog as showErrorDialogInfrastructure } from './infrastructure/globalErrorDialog';
+import type { CanvasAssetDragPayload } from './domain/assetDrag';
+
+const canvasSceneDirectorManifestGateway: CanvasSceneDirectorManifestGateway = {
+  getSceneDirectorStageManifest,
+};
 
 export { canvasNodeFactory } from './nodeFactoryComposition';
 export { showErrorDialog } from './infrastructure/globalErrorDialog';
@@ -87,6 +97,13 @@ export function prepareNodeImageFromFile(
 
 export function detectAspectRatio(imageUrl: string) {
   return detectAspectRatioUseCase(browserImageRuntimeGateway, imageUrl);
+}
+
+export function hydrateAssetDragPayload(payload: CanvasAssetDragPayload) {
+  return hydrateAssetDragPayloadUseCase(
+    canvasSceneDirectorManifestGateway,
+    payload,
+  );
 }
 
 export function migratePastedNodeAssets(

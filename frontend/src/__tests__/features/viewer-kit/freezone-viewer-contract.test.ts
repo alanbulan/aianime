@@ -81,7 +81,8 @@ describe("freezone viewer contracts", () => {
   it("keeps scene director world assets scene-scoped when they are added to freezone", () => {
     const panel = read("src/features/freezone/AssetLibraryPanel.tsx");
     const canvas = read("src/features/canvas/Canvas.tsx");
-    const hydrate = read("src/features/canvas/domain/assetDragHydrate.ts");
+    const hydrate = read("src/features/canvas/application/assetDragHydration.ts");
+    const composition = read("src/features/canvas/composition.ts");
 
     expect(panel).toContain('const SCENE_DIRECTOR_WORLD_ROLE = "scene_director_world"');
     expect(panel).toContain('const sceneContext = existing?.find((ctx) => ctx.kind === "scene" && ctx.sceneId === sceneId)');
@@ -89,8 +90,10 @@ describe("freezone viewer contracts", () => {
     expect(panel).toContain('kind: "scene"');
     expect(panel).toContain("sceneId,");
     expect(panel).toContain("hydrateAssetDragPayload(payload)");
-    expect(canvas).toContain("hydrateAssetDragPayload(assetPayload)");
-    expect(hydrate).toContain("getSceneDirectorStageManifest");
+    expect(canvas).toContain("hydrateAssetDragPayload(payload)");
+    expect(hydrate).toContain("manifestGateway.getSceneDirectorStageManifest");
+    expect(hydrate).not.toContain('from "@/api/');
+    expect(composition).toContain("hydrateAssetDragPayloadUseCase(");
     expect(hydrate).toContain("directorWorldSourcesFromManifest");
     expect(hydrate).toContain('role !== SCENE_DIRECTOR_WORLD_ROLE');
     expect(panel).not.toContain("if (existing?.length) return existing;");

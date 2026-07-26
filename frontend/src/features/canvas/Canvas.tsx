@@ -32,6 +32,7 @@ import { getSkillRegistry } from '@/api/skills';
 import { translateSkillName } from '@/features/freezone/context/skillI18n';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import {
+  hydrateAssetDragPayload,
   migratePastedNodeAssets,
   pollExportImageGeneration,
   resumeNodeGeneration,
@@ -46,7 +47,6 @@ import {
   spawnAssetNode,
   type CanvasAssetDragPayload,
 } from '@/features/canvas/domain/assetDrag';
-import { hydrateAssetDragPayload } from '@/features/canvas/domain/assetDragHydrate';
 import { CanvasMinimapBookmarksOverlay } from '@/features/canvas/ui/CanvasMinimapBookmarksOverlay';
 import { captureCurrentViewport, jumpToBookmark } from '@/features/canvas/application/bookmarkActions';
 import { createCanvasClipboardSnapshot } from '@/features/canvas/application/createCanvasClipboardSnapshot';

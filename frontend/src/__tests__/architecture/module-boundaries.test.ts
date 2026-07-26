@@ -7223,4 +7223,33 @@ describe("frontend architecture boundaries", () => {
     );
     expect(assetDragSource).not.toContain("useCanvasStore");
   });
+
+  it("keeps canvas asset hydration behind the composition root", () => {
+    const hydrationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/assetDragHydration.ts",
+    );
+    const hydrationSource = readFileSync(hydrationPath, "utf8");
+    const compositionSource = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/composition.ts"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hydrationPath).filter(
+      (specifier) =>
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+
+    expect(forbiddenImports).toEqual([]);
+    expect(hydrationSource).toContain(
+      "manifestGateway.getSceneDirectorStageManifest",
+    );
+    expect(compositionSource).toContain("hydrateAssetDragPayloadUseCase(");
+    expect(
+      existsSync(
+        resolve(SRC_ROOT, "features/canvas/domain/assetDragHydrate.ts"),
+      ),
+    ).toBe(false);
+  });
 });
