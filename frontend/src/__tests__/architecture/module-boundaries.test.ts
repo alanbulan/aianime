@@ -10813,13 +10813,20 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/ui/Scene360Overlay.tsx",
     );
-    const opsPath = resolve(SRC_ROOT, "api/ops.ts");
+    const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const domainSource = readFileSync(domainPath, "utf8");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const overlaySource = readFileSync(overlayPath, "utf8");
-    const opsSource = readFileSync(opsPath, "utf8");
+    const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
+    const endpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("}/freezone/scene-360`"),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(importSpecifiers(domainPath)).toEqual([]);
     expect(domainSource).toContain(
@@ -10848,7 +10855,12 @@ describe("frontend architecture boundaries", () => {
       "onTaskSubmitted: dependencies.onTaskSubmitted",
     );
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
-      new Set(["@/api/ops", "../application/generateCanvasScene360"]),
+      new Set([
+        "@/shared/api/client",
+        "../application/generateCanvasScene360",
+        "../application/ports",
+        "./freezoneAssetGateway",
+      ]),
     );
     expect(infrastructureSource).toContain(
       "freezoneScene360GenerationGateway: CanvasScene360GenerationGateway",
@@ -10865,9 +10877,19 @@ describe("frontend architecture boundaries", () => {
     expect(overlaySource).not.toContain("submitFreezoneScene360");
     expect(overlaySource).not.toContain("fetchFreezoneJobResult");
     expect(overlaySource).not.toContain("awaitTaskCompletion");
-    expect(opsSource).toContain("@/features/canvas/domain/scene360");
-    expect(opsSource).not.toContain("FreezoneScene360AspectRatio");
-    expect(opsSource).not.toContain("FREEZONE_SCENE_360_ASPECT_RATIOS");
+    expect(endpointOwners).toEqual([
+      "features/canvas/infrastructure/freezoneScene360GenerationGateway.ts",
+    ]);
+    for (const legacySymbol of [
+      "FreezoneScene360Payload",
+      "submitFreezoneScene360",
+    ]) {
+      expect(legacyOpsSource).not.toContain(legacySymbol);
+    }
+    expect(legacyOpsSource).not.toContain("}/freezone/scene-360`");
+    expect(legacyOpsSource).not.toContain(
+      "@/features/canvas/domain/scene360",
+    );
   });
 
   it("keeps Canvas multi-angle generation rules and orchestration out of views", () => {

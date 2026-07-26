@@ -1,10 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { apiCall, apiRequest } from "@/shared/api/client";
 import type { CameraMovementPreset } from "@/features/canvas/domain/cameraMovementPresets";
-import {
-  DEFAULT_CANVAS_SCENE_360_ASPECT_RATIO,
-  type CanvasScene360AspectRatio,
-} from "@/features/canvas/domain/scene360";
 import type {
   CanvasAssetLibraryMedia,
   CanvasAssetLibrarySource,
@@ -1105,46 +1101,6 @@ export async function submitFreezoneAnalyze(
         frame_urls: payload.frameUrls,
         provider: payload.provider ?? null,
         model: payload.model ?? null,
-      },
-    },
-  );
-}
-
-// /freezone/scene-360 ----------------------------------------------------- //
-
-export interface FreezoneScene360Payload {
-  referenceUrl: string;
-  imageSize?: string;
-  aspectRatio?: CanvasScene360AspectRatio;
-  model?: string;
-  mode?: "candidate" | "commit";
-}
-
-/**
- * **单图 360 (simple pipeline)** — 老路径,只把一张图当 reference 走通用
- * 图编辑生成 panorama。不做 master/reverse overlap 分析、空间合约、缝合,
- * 适合 freezone 自由画布上 \"拿任一张图试试 360\" 的快速生成。
- * Asset-scoped scene 360 generation uses the Asset & World scene gateway,
- * not this endpoint.
- */
-export async function submitFreezoneScene360(
-  project: string,
-  payload: FreezoneScene360Payload,
-): Promise<FreezoneJobRef> {
-  // 参考图必须是后端可解析的静态 URL，base64 先上传。
-  const referenceUrl = await ensureBackendImageUrl(project, payload.referenceUrl);
-  return await apiCall<FreezoneJobRef>(
-    `projects/${encodeURIComponent(project)}/freezone/scene-360`,
-    {
-      method: "POST",
-      json: {
-        reference_url: referenceUrl,
-        image_size: payload.imageSize ?? "2K",
-        mode: payload.mode ?? "candidate",
-        aspect_ratio:
-          payload.aspectRatio ?? DEFAULT_CANVAS_SCENE_360_ASPECT_RATIO,
-        // 前端不能选模型，不传 model 让后端用默认；调用方显式传了才带上。
-        ...(payload.model ? { model: payload.model } : {}),
       },
     },
   );
