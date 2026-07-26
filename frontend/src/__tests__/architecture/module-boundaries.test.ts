@@ -1473,7 +1473,8 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("createNode(");
     expect(hookModel).toContain("bindSkill(");
     expect(hookModel).toContain("confirmPlacement(");
-    expect(canvasView).toContain(
+    expect(canvasView).toContain("./hooks/useCanvasNodeInteractionController");
+    expect(canvasView).not.toContain(
       "./hooks/useCanvasNodePlacementController",
     );
     expect(canvasView).not.toContain("const [pendingNodePlacement");
@@ -1530,7 +1531,8 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("DEFAULT_STORYBOARD_GROUP_HEIGHT = 240");
     expect(hookModel).toContain("zoom: 1");
     expect(hookModel).toContain("duration: 320");
-    expect(canvasView).toContain("./hooks/useCanvasNodeClickController");
+    expect(canvasView).toContain("./hooks/useCanvasNodeInteractionController");
+    expect(canvasView).not.toContain("./hooks/useCanvasNodeClickController");
     expect(canvasView).not.toContain("const handleNodeClick = useCallback");
     expect(canvasView).not.toContain("isStoryboardGroupNode(");
     expect(canvasView).not.toContain("DEFAULT_NODE_WIDTH");
@@ -1825,7 +1827,8 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("window.innerWidth / 2");
     expect(hookModel).toContain("createCanvasSkillNodeData(skill)");
     expect(hookModel).toContain("bindSkill(nodeId, skill)");
-    expect(canvasView).toContain("./hooks/useCanvasQuickAddController");
+    expect(canvasView).toContain("./hooks/useCanvasNodeInteractionController");
+    expect(canvasView).not.toContain("./hooks/useCanvasQuickAddController");
     expect(canvasView).toContain(
       "getViewportCenter: getQuickAddViewportCenter",
     );
@@ -2518,7 +2521,10 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("fallbackPosition");
     expect(hookModel).toContain("connectSpawnedNode({");
     expect(hookModel).toContain("closeNodeMenu()");
-    expect(canvasView).toContain("./hooks/useCanvasNodeMenuSelectionController");
+    expect(canvasView).toContain("./hooks/useCanvasNodeInteractionController");
+    expect(canvasView).not.toContain(
+      "./hooks/useCanvasNodeMenuSelectionController",
+    );
     expect(canvasView).toContain("selectNodeType: handleNodeSelect");
     expect(canvasView).toContain("selectSkill: handleSkillSelect");
     expect(canvasView).not.toContain("const finalizeNodeSpawn = useCallback");
@@ -2961,7 +2967,8 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("isCanvasPaneTarget");
     expect(hookModel).toContain("isTypingTarget");
     expect(hookModel).toContain("isImmersiveViewerActive");
-    expect(canvasView).toContain("./hooks/useCanvasNodeMenuShortcut");
+    expect(canvasView).toContain("./hooks/useCanvasNodeInteractionController");
+    expect(canvasView).not.toContain("./hooks/useCanvasNodeMenuShortcut");
     expect(canvasView).not.toContain("lastCanvasPointerClientPositionRef");
     expect(canvasView).not.toContain("ReactPointerEvent");
     expect(canvasView).not.toContain("event.key !== 'Tab'");
@@ -8116,6 +8123,11 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useCanvasPaneClickController.ts",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
+    const nodeInteractionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasNodeInteractionController.ts",
+    );
+    const nodeInteractionSource = readFileSync(nodeInteractionPath, "utf8");
     const canvasSource = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -8132,6 +8144,23 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/features/canvas/composition",
     );
+    const nodeInteractionForbiddenImports = importSpecifiers(
+      nodeInteractionPath,
+    ).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        /^(?:\.\.\/)+application(?:\/|$)/.test(specifier) ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        /^(?:\.\.\/)+infrastructure(?:\/|$)/.test(specifier) ||
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/features/canvas/nodeFactoryComposition",
+    );
     const declaration = [
       "export function",
       "useCanvasPaneClickController(",
@@ -8140,15 +8169,49 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
       .map(relativeSource)
       .sort();
+    const nodeInteractionDeclaration = [
+      "export function",
+      "useCanvasNodeInteractionController(",
+    ].join(" ");
+    const nodeInteractionOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(nodeInteractionDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(forbiddenImports).toEqual([]);
+    expect(nodeInteractionForbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
       "features/canvas/hooks/useCanvasPaneClickController.ts",
+    ]);
+    expect(nodeInteractionOwners).toEqual([
+      "features/canvas/hooks/useCanvasNodeInteractionController.ts",
     ]);
     expect(controllerSource).toContain("paneClickSuppressedRef");
     expect(controllerSource).toContain("event.detail >= 2");
     expect(controllerSource).toContain("commitPlacement({");
-    expect(canvasSource).toContain("./hooks/useCanvasPaneClickController");
+    expect(nodeInteractionSource).toContain(
+      "./useCanvasNodePlacementController",
+    );
+    expect(nodeInteractionSource).toContain("./useCanvasPaneClickController");
+    expect(nodeInteractionSource).toContain("./useCanvasNodeMenuShortcut");
+    expect(nodeInteractionSource).toContain("./useCanvasNodeClickController");
+    expect(nodeInteractionSource).toContain(
+      "./useCanvasNodeMenuSelectionController",
+    );
+    expect(nodeInteractionSource).toContain("./useCanvasQuickAddController");
+    expect(nodeInteractionSource).toContain(
+      "flowPosition: screenToFlowPosition(clientPosition)",
+    );
+    expect(nodeInteractionSource).toContain("selectNode(null)");
+    expect(canvasSource).toContain(
+      "./hooks/useCanvasNodeInteractionController",
+    );
+    expect(canvasSource).not.toContain("./hooks/useCanvasPaneClickController");
+    expect(canvasSource).not.toContain(
+      "openNodeMenuAtClientPosition = useCallback",
+    );
     expect(canvasSource).not.toContain("suppressNextPaneClickRef");
     expect(canvasSource).not.toContain("event.detail >= 2");
     expect(canvasSource).not.toContain("const handlePaneClick = useCallback");

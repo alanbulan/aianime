@@ -64,22 +64,17 @@ import { useCanvasHistoryAssetController } from './hooks/useCanvasHistoryAssetCo
 import { useCanvasConnectionController } from './hooks/useCanvasConnectionController';
 import { useCanvasClipboardController } from './hooks/useCanvasClipboardController';
 import { useCanvasConnectionGestureController } from './hooks/useCanvasConnectionGestureController';
-import { useCanvasQuickAddController } from './hooks/useCanvasQuickAddController';
 import { useCanvasLifecycle } from './hooks/useCanvasLifecycle';
 import { useCanvasMarqueeSelection } from './hooks/useCanvasMarqueeSelection';
 import { useCanvasMediaTransferController } from './hooks/useCanvasMediaTransferController';
 import { useCanvasMinimapVisibility } from './hooks/useCanvasMinimapVisibility';
 import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
-import { useCanvasNodeClickController } from './hooks/useCanvasNodeClickController';
 import { useCanvasNodeFocusController } from './hooks/useCanvasNodeFocusController';
-import { useCanvasNodeMenuShortcut } from './hooks/useCanvasNodeMenuShortcut';
-import { useCanvasNodeMenuSelectionController } from './hooks/useCanvasNodeMenuSelectionController';
+import { useCanvasNodeInteractionController } from './hooks/useCanvasNodeInteractionController';
 import { useCanvasNodeMenuStateController } from './hooks/useCanvasNodeMenuStateController';
 import { useCanvasNodeCatalogController } from './hooks/useCanvasNodeCatalogController';
-import { useCanvasNodePlacementController } from './hooks/useCanvasNodePlacementController';
 import { useCanvasNodePlacementConfirm } from './hooks/useCanvasNodePlacementConfirm';
 import { useCanvasCommandSurfaceController } from './hooks/useCanvasCommandSurfaceController';
-import { useCanvasPaneClickController } from './hooks/useCanvasPaneClickController';
 import { useCanvasProjectContextController } from './hooks/useCanvasProjectContextController';
 import { useCanvasSelectionSync } from './hooks/useCanvasSelectionSync';
 import { useCanvasSelectionCommandController } from './hooks/useCanvasSelectionCommandController';
@@ -288,51 +283,39 @@ export function Canvas({
   const {
     placementActive,
     placementPreview: nodePlacementPreview,
-    beginNodePlacement,
-    updateNodePlacementClientPosition,
     cancelNodePlacement,
-    commitNodePlacementAtClientPosition,
-  } = useCanvasNodePlacementController({
+    openNodeMenuAtClientPosition,
+    handlePaneClick,
+    suppressNextPaneClick,
+    handleCanvasPointerMove,
+    getPreferredCanvasPointerPosition,
+    handleNodeClick,
+    selectNodeType: handleNodeSelect,
+    selectSkill: handleSkillSelect,
+    getViewportCenter: getQuickAddViewportCenter,
+    quickAddNode: handleQuickAddNode,
+    quickAddSkill: handleQuickAddSkill,
+  } = useCanvasNodeInteractionController({
     wrapperRef,
+    nodes,
     screenToFlowPosition,
     createNode: addNode,
     selectNode: setSelectedNode,
     bindSkill: bindSingleBeatContextInput,
     confirmPlacement: triggerPlacementConfirm,
     resolvePlacementLabel: resolveNodePlacementLabel,
-  });
-  const openNodeMenuAtClientPosition = useCallback(
-    (clientPosition: { x: number; y: number }) => {
-      const containerRect = wrapperRef.current?.getBoundingClientRect();
-      const flowPos = screenToFlowPosition(clientPosition);
-      openPlainNodeMenu({
-        flowPosition: flowPos,
-        menuPosition: {
-          x: clientPosition.x - (containerRect?.left ?? 0),
-          y: clientPosition.y - (containerRect?.top ?? 0),
-        },
-      });
-      cancelNodePlacement();
-      setSelectedNode(null);
-    },
-    [
-      cancelNodePlacement,
-      openPlainNodeMenu,
-      screenToFlowPosition,
-      setSelectedNode,
-    ],
-  );
-  const {
-    handlePaneClick,
-    suppressNextPaneClick,
-    releasePaneClickSuppression,
-  } = useCanvasPaneClickController({
-    placementActive,
-    commitPlacement: commitNodePlacementAtClientPosition,
-    openNodeMenu: openNodeMenuAtClientPosition,
-    setSelectedNodeId: setSelectedNode,
+    openPlainNodeMenu,
     dismissNodeMenu: dismissNodeMenuForPaneClick,
     onBlankPaneClick,
+    centerViewport: centerNodeViewport,
+    flowPosition,
+    menuPosition,
+    menuAllowedTypes,
+    pendingConnection: pendingConnectStart,
+    pendingBatchSourceIds: pendingBatchConnectIds,
+    connectSpawnedNode,
+    hideMenuForPlacement: hideNodeMenuForPlacement,
+    closeNodeMenu,
   });
   const setNativeSelectionActive = useCallback(
     (active: boolean) => reactFlowStore.setState({ nodesSelectionActive: active }),
@@ -376,24 +359,6 @@ export function Canvas({
     openBatchConnectionMenuState,
     suppressNextPaneClick,
     connectNodes: connectGraphNodes,
-  });
-
-  const {
-    handleCanvasPointerMove,
-    getLastCanvasPointerPosition,
-    getPreferredCanvasPointerPosition,
-  } = useCanvasNodeMenuShortcut({
-    wrapperRef,
-    placementActive,
-    setPlacementClientPosition: updateNodePlacementClientPosition,
-    openNodeMenu: openNodeMenuAtClientPosition,
-  });
-
-  const { handleNodeClick } = useCanvasNodeClickController({
-    placementActive,
-    commitPlacement: commitNodePlacementAtClientPosition,
-    suppressNextPaneClick,
-    centerViewport: centerNodeViewport,
   });
 
   const {
@@ -452,39 +417,6 @@ export function Canvas({
     deleteEdge,
     deleteNode,
     deleteNodes,
-  });
-
-  const {
-    selectNodeType: handleNodeSelect,
-    selectSkill: handleSkillSelect,
-  } = useCanvasNodeMenuSelectionController({
-    wrapperRef,
-    nodes,
-    flowPosition,
-    menuPosition,
-    menuAllowedTypes,
-    pendingConnection: pendingConnectStart,
-    pendingBatchSourceIds: pendingBatchConnectIds,
-    getLastCanvasPointerPosition,
-    createNode: addNode,
-    beginNodePlacement,
-    connectSpawnedNode,
-    selectNode: setSelectedNode,
-    hideMenuForPlacement: hideNodeMenuForPlacement,
-    closeNodeMenu,
-    releasePaneClickSuppression,
-  });
-
-  const {
-    getViewportCenter: getQuickAddViewportCenter,
-    quickAddNode: handleQuickAddNode,
-    quickAddSkill: handleQuickAddSkill,
-  } = useCanvasQuickAddController({
-    wrapperRef,
-    screenToFlowPosition,
-    createNode: addNode,
-    selectNode: setSelectedNode,
-    bindSkill: bindSingleBeatContextInput,
   });
 
   const {
