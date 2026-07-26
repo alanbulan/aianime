@@ -24,9 +24,6 @@ import { useAppStore } from '@/stores/app-store';
 import { getSkillRegistry } from '@/api/skills';
 import { translateSkillName } from '@/features/freezone/context/skillI18n';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
-import {
-  CANVAS_NODE_TYPES,
-} from '@/features/canvas/domain/canvasNodes';
 import { CanvasMinimapBookmarksOverlay } from '@/features/canvas/ui/CanvasMinimapBookmarksOverlay';
 import { readUrl } from '@/lib/url-params';
 import { useQueryClient } from '@tanstack/react-query';
@@ -89,7 +86,6 @@ import { useCanvasClipboardController } from './hooks/useCanvasClipboardControll
 import { useCanvasPlusConnectionController } from './hooks/useCanvasPlusConnectionController';
 import { useCanvasQuickAddController } from './hooks/useCanvasQuickAddController';
 import { useCanvasReactFlowConnectionController } from './hooks/useCanvasReactFlowConnectionController';
-import { useCanvasKeyboardShortcuts } from './hooks/useCanvasKeyboardShortcuts';
 import { useCanvasLifecycle } from './hooks/useCanvasLifecycle';
 import { useCanvasLinkedCaptureDragController } from './hooks/useCanvasLinkedCaptureDragController';
 import { useCanvasMarqueeSelection } from './hooks/useCanvasMarqueeSelection';
@@ -106,7 +102,7 @@ import {
   type CanvasNodePlacement,
 } from './hooks/useCanvasNodePlacementController';
 import { useCanvasNodePlacementConfirm } from './hooks/useCanvasNodePlacementConfirm';
-import { useCanvasContextMenuController } from './hooks/useCanvasContextMenuController';
+import { useCanvasCommandSurfaceController } from './hooks/useCanvasCommandSurfaceController';
 import { useCanvasPaneClickController } from './hooks/useCanvasPaneClickController';
 import { useCanvasSelectionSync } from './hooks/useCanvasSelectionSync';
 import { useCanvasSelectionCommandController } from './hooks/useCanvasSelectionCommandController';
@@ -660,40 +656,19 @@ export function Canvas({
     deleteEdge,
   });
 
-  const getContextMenuCapabilities = useCallback(() => {
-    const history = useCanvasStore.getState().history;
-    return {
-      canUndo: history.past.length > 0,
-      canRedo: history.future.length > 0,
-      canPaste: hasCopiedNodes(),
-    };
-  }, [hasCopiedNodes]);
-  const createContextMenuUploadNode = useCallback(
-    (position: { x: number; y: number }) => {
-      addNode(CANVAS_NODE_TYPES.upload, position);
-    },
-    [addNode],
-  );
   const {
     contextMenu,
     sections: contextMenuSections,
     closeContextMenu,
-  } = useCanvasContextMenuController({
+  } = useCanvasCommandSurfaceController({
     wrapperRef,
-    disabled: placementActive,
-    getCapabilities: getContextMenuCapabilities,
-    screenToFlowPosition,
-    createUploadNode: createContextMenuUploadNode,
-    openNodeMenu: openNodeMenuAtClientPosition,
-    undo,
-    redo,
-    pasteAt,
-  });
-  useCanvasKeyboardShortcuts({
     placementActive,
     nodeMenuOpen: showNodeMenu,
-    canCopySelection: selectedNodeIds.length > 0,
-    canGroupSelection: selectedNodeIds.length >= 2,
+    selectedNodeCount: selectedNodeIds.length,
+    hasCopiedNodes,
+    screenToFlowPosition,
+    createNode: addNode,
+    openNodeMenu: openNodeMenuAtClientPosition,
     cancelPlacement: cancelNodePlacement,
     closeNodeMenu,
     organizeCanvas: handleOrganizeCanvas,
@@ -703,6 +678,7 @@ export function Canvas({
     redo,
     groupSelection: groupSelectedNodes,
     deleteSelection: deleteSelectedElements,
+    pasteAt,
   });
 
   const {

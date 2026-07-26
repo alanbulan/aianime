@@ -2042,6 +2042,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const commandSurface = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasCommandSurfaceController.ts",
+      ),
+      "utf8",
+    );
     const forbiddenImports = importSpecifiers(hookPath).filter(
       (specifier) =>
         specifier === "@xyflow/react" ||
@@ -2069,7 +2076,9 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("isTypingTarget");
     expect(hookModel).toContain("isImmersiveViewerActive");
     expect(hookModel).toContain("event.key === 'Escape'");
-    expect(canvasView).toContain("./hooks/useCanvasKeyboardShortcuts");
+    expect(commandSurface).toContain("./useCanvasKeyboardShortcuts");
+    expect(canvasView).toContain("./hooks/useCanvasCommandSurfaceController");
+    expect(canvasView).not.toContain("./hooks/useCanvasKeyboardShortcuts");
     expect(canvasView).not.toContain("document.addEventListener('keydown'");
     expect(canvasView).not.toContain("const isUndo =");
     expect(canvasView).not.toContain("const isOrganize =");
@@ -2820,6 +2829,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const commandSurface = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasCommandSurfaceController.ts",
+      ),
+      "utf8",
+    );
     const forbiddenImports = importSpecifiers(hookPath).filter(
       (specifier) =>
         specifier === "@xyflow/react" ||
@@ -2846,7 +2862,8 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(hookModel).toContain("isCanvasPaneTarget");
     expect(controllerModel).toContain("./useCanvasPaneContextMenu");
-    expect(canvasView).toContain("./hooks/useCanvasContextMenuController");
+    expect(commandSurface).toContain("./useCanvasContextMenuController");
+    expect(canvasView).not.toContain("./hooks/useCanvasContextMenuController");
     expect(canvasView).not.toContain("./hooks/useCanvasPaneContextMenu");
     expect(canvasView).not.toContain("const [contextMenu, setContextMenu]");
     expect(canvasView).not.toContain("addEventListener('contextmenu'");
@@ -7937,6 +7954,11 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const commandSurfacePath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasCommandSurfaceController.ts",
+    );
+    const commandSurface = readFileSync(commandSurfacePath, "utf8");
     const forbiddenImports = importSpecifiers(controllerPath).filter(
       (specifier) =>
         specifier === "@xyflow/react" ||
@@ -7957,15 +7979,32 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
       .map(relativeSource)
       .sort();
+    const commandSurfaceDeclaration = [
+      "export function",
+      "useCanvasCommandSurfaceController(",
+    ].join(" ");
+    const commandSurfaceOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(commandSurfaceDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
       "features/canvas/hooks/useCanvasContextMenuController.ts",
     ]);
+    expect(commandSurfaceOwners).toEqual([
+      "features/canvas/hooks/useCanvasCommandSurfaceController.ts",
+    ]);
     expect(controllerSource).toContain("useCanvasPaneContextMenu({");
     expect(controllerSource).toContain("label: '上传'");
     expect(controllerSource).toContain("screenToFlowPosition(clientPosition)");
+    expect(commandSurface).toContain("getContextMenuCapabilities");
+    expect(commandSurface).toContain("CANVAS_NODE_TYPES.upload");
     expect(canvasSource).toContain("sections={contextMenuSections}");
+    expect(canvasSource).not.toContain("getContextMenuCapabilities");
+    expect(canvasSource).not.toContain("createContextMenuUploadNode");
     expect(canvasSource).not.toContain("contextMenu.clientX");
     expect(canvasSource).not.toContain("label: '上传'");
   });
