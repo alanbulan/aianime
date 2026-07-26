@@ -16,6 +16,13 @@ import { Slider } from '@/components/shadcn/slider';
 import { useGenerationCreditCost } from '@/lib/queries/generation-credit-cost';
 import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
 import {
+  DEFAULT_MULTI_ANGLE_IMAGE_SIZE,
+  MULTI_ANGLE_IMAGE_SIZES,
+  type MultiAngleImageSize,
+  type MultiAnglePresetKey,
+  type MultiAngleZoomLevel,
+} from '@/features/canvas/domain/multiAngle';
+import {
   NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_FLOATING_PANEL_SURFACE_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,
@@ -25,25 +32,6 @@ import {
   CANVAS_NODE_TOOLBAR_CARD_CLASS,
 } from '@/features/canvas/ui/nodeFrameStyles';
 import { MultiAngleSphere } from '@/features/canvas/ui/MultiAngleSphere';
-
-export type MultiAnglePresetKey =
-  | 'custom'
-  | 'fisheye'
-  | 'tilted'
-  | 'frontTopDown'
-  | 'frontBottomUp'
-  | 'panoramaTopDown'
-  | 'backView';
-
-// 景别档位，直接采用后端 shot_size 枚举字符串（避免前后端映射错位）。
-export type MultiAngleZoomLevel =
-  | 'extreme_close_up'
-  | 'close_up'
-  | 'medium_close'
-  | 'medium'
-  | 'full_body'
-  | 'wide'
-  | 'extreme_wide';
 
 interface MultiAnglePresetConfig {
   horizontalDeg: number;
@@ -93,10 +81,6 @@ const ZOOM_LEVELS: MultiAngleZoomLevel[] = [
 ];
 
 export type MultiAngleProviderId = 'huimeng' | 'openrouter' | 'openai';
-
-export const MULTI_ANGLE_IMAGE_SIZES = ['1K', '2K', '4K'] as const;
-export type MultiAngleImageSize = (typeof MULTI_ANGLE_IMAGE_SIZES)[number];
-const DEFAULT_MULTI_ANGLE_IMAGE_SIZE: MultiAngleImageSize = '2K';
 
 export interface MultiAngleSubmitPayload {
   prompt: string;

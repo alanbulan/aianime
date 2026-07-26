@@ -25,6 +25,10 @@ import {
   type GenerateCanvasScene360Params,
 } from './application/generateCanvasScene360';
 import {
+  generateCanvasMultiAngle as generateCanvasMultiAngleUseCase,
+  type GenerateCanvasMultiAngleParams,
+} from './application/generateCanvasMultiAngle';
+import {
   generateCanvasStoryScript as generateCanvasStoryScriptUseCase,
   type GenerateCanvasStoryScriptParams,
 } from './application/generateCanvasStoryScript';
@@ -99,6 +103,7 @@ import { freezoneAiGateway } from './infrastructure/freezoneAiGateway';
 import { freezoneCanvasTextTranslationGateway } from './infrastructure/freezoneCanvasTextTranslationGateway';
 import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerationTaskGateway';
 import { freezoneGenerationHistoryGateway } from './infrastructure/freezoneGenerationHistoryGateway';
+import { freezoneMultiAngleGenerationGateway } from './infrastructure/freezoneMultiAngleGenerationGateway';
 import { freezoneRedrawTaskGateway } from './infrastructure/freezoneRedrawTaskGateway';
 import { freezoneReversePromptGenerationGateway } from './infrastructure/freezoneReversePromptGenerationGateway';
 import { freezoneScene360GenerationGateway } from './infrastructure/freezoneScene360GenerationGateway';
@@ -335,6 +340,17 @@ export function generateCanvasScene360(
 ) {
   return generateCanvasScene360UseCase(params, {
     submissionGateway: freezoneScene360GenerationGateway,
+    taskGateway: freezoneGenerationTaskGateway,
+    onTaskSubmitted,
+  });
+}
+
+export function generateCanvasMultiAngle(
+  params: GenerateCanvasMultiAngleParams,
+  onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
+) {
+  return generateCanvasMultiAngleUseCase(params, {
+    submissionGateway: freezoneMultiAngleGenerationGateway,
     taskGateway: freezoneGenerationTaskGateway,
     onTaskSubmitted,
   });

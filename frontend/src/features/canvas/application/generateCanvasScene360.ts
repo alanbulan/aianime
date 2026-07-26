@@ -1,5 +1,6 @@
 // Copyright (c) 2026 AI anime
 import type { CanvasScene360AspectRatio } from "../domain/scene360";
+import { completeCanvasImageGenerationTask } from "./completeCanvasImageGenerationTask";
 import type {
   CanvasGenerationTaskRef,
   CanvasTaskResultGateway,
@@ -42,18 +43,12 @@ export async function generateCanvasScene360(
     referenceUrl: params.referenceUrl.split("?")[0],
     aspectRatio: params.aspectRatio,
   });
-  dependencies.onTaskSubmitted(task);
-  const completion = await dependencies.taskGateway.awaitCompletion(
-    task.task_key,
-    params.projectId,
+  const url = await completeCanvasImageGenerationTask(
+    { projectId: params.projectId, task },
+    {
+      taskGateway: dependencies.taskGateway,
+      onTaskSubmitted: dependencies.onTaskSubmitted,
+    },
   );
-  const embeddedUrl = completion.result?.["output_url"] as string | undefined;
-  const url =
-    embeddedUrl ||
-    (await dependencies.taskGateway.fetchResultUrl(
-      params.projectId,
-      task.task_type,
-      task.job_id,
-    ));
   return { task, url };
 }

@@ -1514,6 +1514,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百一十五批已将 360 场景的参考图查询参数清理、任务提交/持久化/等待、SSE `output_url` 优先读取及专用结果接口回退迁入唯一 application 用例 `generateCanvasScene360`，`freezoneScene360GenerationGateway` infrastructure 适配器唯一调用 Freezone 提交端点，composition 注入既有任务 gateway；`2:1`/`21:9` 可选比例及默认值迁入唯一领域契约 `scene360`，旧 `api/ops` 删除重复类型和常量并直接复用领域契约；`Scene360Overlay` 只保留项目门禁、结果节点/连线/全景查看器写回、生成状态与错误展示，不再直接依赖 `api/ops` 或任务 API，由 284 行降至 280 行，领域契约 8 行、用例 59 行、适配器 13 行，composition 由 377 行调整为 393 行；用例与适配器共 2 个测试文件 3 项、新增后的架构门禁 170 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百一十六批已将多角度生图的 7 类编辑器预设投影、Yaw `(-180, 180]` 归一化、景别/图片尺寸契约迁入唯一领域模块 `multiAngle`，源图查询参数清理、命令组装与提交迁入唯一 application 用例 `generateCanvasMultiAngle`，`freezoneMultiAngleGenerationGateway` infrastructure 适配器唯一调用 Freezone 多视角端点；新增唯一共享应用函数 `completeCanvasImageGenerationTask`，统一任务句柄持久化、完成等待、SSE `output_url` 优先读取及专用结果回退，多角度与已迁移的 360 场景共用该实现，不保留两套流程；`MultiAngleEditorPanel` 只保留预设展示和交互状态，由 682 行降至 666 行，`MultiAngleEditorOverlay` 只保留节点/连线、状态写回和错误展示，不再直接依赖 `api/ops` 或任务 API，由 175 行降至 151 行；领域模块 55 行、共享完成函数 33 行、多角度用例 79 行、适配器 19 行，360 用例由 59 行降至 54 行，composition 由 393 行调整为 409 行；领域、共享完成函数、多角度用例、360 回归与适配器共 5 个测试文件 8 项、新增后的架构门禁 171 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

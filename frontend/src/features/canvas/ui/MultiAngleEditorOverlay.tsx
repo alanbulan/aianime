@@ -13,14 +13,8 @@ import { useCanvasStore } from '@/stores/canvasStore';
 import {
   MultiAngleEditorPanel,
   type MultiAngleSubmitPayload,
-  type MultiAnglePresetKey,
 } from '@/features/canvas/ui/MultiAngleEditorPanel';
-import {
-  fetchFreezoneJobResult,
-  submitFreezoneMultiView,
-  type FreezoneMultiViewPreset,
-} from '@/api/ops';
-import { awaitTaskCompletion } from '@/api/tasks';
+import { generateCanvasMultiAngle } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { readUrl } from '@/lib/url-params';
 import { inheritMainlineFields } from '@/features/canvas/domain/inheritMainlineFields';
@@ -31,22 +25,6 @@ interface MultiAngleEditorOverlayProps {
   node: CanvasNode;
   imageSource: string;
   onClose: () => void;
-}
-
-const PRESET_MAP: Record<MultiAnglePresetKey, FreezoneMultiViewPreset> = {
-  custom: 'custom',
-  fisheye: 'fisheye',
-  tilted: 'oblique',
-  frontTopDown: 'front',
-  frontBottomUp: 'front_up',
-  panoramaTopDown: 'custom',
-  backView: 'back',
-};
-
-function normalizeYaw(deg: number): number {
-  let v = ((deg + 180) % 360) - 180;
-  if (v <= -180) v += 360;
-  return v;
 }
 
 export const MultiAngleEditorOverlay = memo(
@@ -103,24 +81,22 @@ export const MultiAngleEditorOverlay = memo(
         onClose();
 
         try {
-          const ref = await submitFreezoneMultiView(project, {
-            sourceUrl: imageSource.split('?')[0],
-            preset: PRESET_MAP[payload.preset],
-            yawDegrees: normalizeYaw(payload.horizontalDeg),
-            pitchDegrees: payload.verticalDeg,
-            shotSize: payload.zoom,
-            prompt: payload.promptOverride ?? '',
-            model: payload.apiModel,
-            imageSize: payload.imageSize,
-          });
-          updateNodeData(nextNodeId, generationTaskDescriptor(ref));
-          const completed = await awaitTaskCompletion(ref.task_key, project);
-          const directUrl = completed.result?.['output_url'] as string | undefined;
-          let url = directUrl;
-          if (!url) {
-            const fallback = await fetchFreezoneJobResult(project, ref.task_type, ref.job_id);
-            url = fallback.url;
-          }
+          const { url } = await generateCanvasMultiAngle(
+            {
+              projectId: project,
+              sourceUrl: imageSource,
+              preset: payload.preset,
+              yawDegrees: payload.horizontalDeg,
+              pitchDegrees: payload.verticalDeg,
+              shotSize: payload.zoom,
+              promptOverride: payload.promptOverride,
+              model: payload.apiModel,
+              imageSize: payload.imageSize,
+            },
+            (task) => {
+              updateNodeData(nextNodeId, generationTaskDescriptor(task));
+            },
+          );
           updateNodeData(nextNodeId, {
             imageUrl: url,
             previewImageUrl: url,

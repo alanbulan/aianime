@@ -8816,7 +8816,11 @@ describe("frontend architecture boundaries", () => {
       "export const CANVAS_SCENE_360_ASPECT_RATIOS",
     );
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
-      new Set(["../domain/scene360", "./ports"]),
+      new Set([
+        "../domain/scene360",
+        "./completeCanvasImageGenerationTask",
+        "./ports",
+      ]),
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
@@ -8828,7 +8832,10 @@ describe("frontend architecture boundaries", () => {
       'referenceUrl: params.referenceUrl.split("?")[0]',
     );
     expect(applicationSource).toContain(
-      "dependencies.onTaskSubmitted(task)",
+      "completeCanvasImageGenerationTask(",
+    );
+    expect(applicationSource).toContain(
+      "onTaskSubmitted: dependencies.onTaskSubmitted",
     );
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
       new Set(["@/api/ops", "../application/generateCanvasScene360"]),
@@ -8851,6 +8858,111 @@ describe("frontend architecture boundaries", () => {
     expect(opsSource).toContain("@/features/canvas/domain/scene360");
     expect(opsSource).not.toContain("FreezoneScene360AspectRatio");
     expect(opsSource).not.toContain("FREEZONE_SCENE_360_ASPECT_RATIOS");
+  });
+
+  it("keeps Canvas multi-angle generation rules and orchestration out of views", () => {
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/multiAngle.ts",
+    );
+    const completionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/completeCanvasImageGenerationTask.ts",
+    );
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/generateCanvasMultiAngle.ts",
+    );
+    const infrastructurePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneMultiAngleGenerationGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const panelPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/MultiAngleEditorPanel.tsx",
+    );
+    const overlayPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/MultiAngleEditorOverlay.tsx",
+    );
+    const sceneApplicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/generateCanvasScene360.ts",
+    );
+    const domainSource = readFileSync(domainPath, "utf8");
+    const completionSource = readFileSync(completionPath, "utf8");
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const infrastructureSource = readFileSync(infrastructurePath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const panelSource = readFileSync(panelPath, "utf8");
+    const overlaySource = readFileSync(overlayPath, "utf8");
+    const sceneApplicationSource = readFileSync(sceneApplicationPath, "utf8");
+
+    expect(importSpecifiers(domainPath)).toEqual([]);
+    expect(domainSource).toContain(
+      "export function resolveMultiAngleGenerationPreset(",
+    );
+    expect(domainSource).toContain(
+      "export function normalizeMultiAngleYaw(",
+    );
+    expect(importSpecifiers(completionPath)).toEqual(["./ports"]);
+    expect(completionSource).toContain(
+      "dependencies.onTaskSubmitted(params.task)",
+    );
+    expect(completionSource).toContain(
+      "dependencies.taskGateway.fetchResultUrl(",
+    );
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set([
+        "../domain/multiAngle",
+        "./completeCanvasImageGenerationTask",
+        "./ports",
+      ]),
+    );
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).toContain(
+      "export async function generateCanvasMultiAngle(",
+    );
+    expect(applicationSource).toContain(
+      "preset: resolveMultiAngleGenerationPreset(params.preset)",
+    );
+    expect(applicationSource).toContain(
+      "yawDegrees: normalizeMultiAngleYaw(params.yawDegrees)",
+    );
+    expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
+      new Set(["@/api/ops", "../application/generateCanvasMultiAngle"]),
+    );
+    expect(infrastructureSource).toContain(
+      "freezoneMultiAngleGenerationGateway: CanvasMultiAngleGenerationGateway",
+    );
+    expect(compositionSource).toContain(
+      "generateCanvasMultiAngleUseCase(params, {",
+    );
+    expect(compositionSource).toContain(
+      "submissionGateway: freezoneMultiAngleGenerationGateway",
+    );
+    expect(importSpecifiers(panelPath)).toContain(
+      "@/features/canvas/domain/multiAngle",
+    );
+    expect(panelSource).not.toContain("export type MultiAnglePresetKey");
+    expect(panelSource).not.toContain("export type MultiAngleZoomLevel");
+    expect(importSpecifiers(overlayPath)).not.toContain("@/api/ops");
+    expect(importSpecifiers(overlayPath)).not.toContain("@/api/tasks");
+    expect(overlaySource).toContain("await generateCanvasMultiAngle(");
+    expect(overlaySource).not.toContain("PRESET_MAP");
+    expect(overlaySource).not.toContain("normalizeYaw");
+    expect(overlaySource).not.toContain("submitFreezoneMultiView");
+    expect(overlaySource).not.toContain("fetchFreezoneJobResult");
+    expect(overlaySource).not.toContain("awaitTaskCompletion");
+    expect(sceneApplicationSource).toContain(
+      "completeCanvasImageGenerationTask(",
+    );
   });
 
   it("keeps Canvas asset extraction independent from media URL infrastructure", () => {
