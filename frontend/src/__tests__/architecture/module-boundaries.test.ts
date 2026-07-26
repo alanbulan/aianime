@@ -3459,6 +3459,48 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("new Map(skillRegistry.map");
   });
 
+  it("keeps Canvas viewer assembly in one presentation controller", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasViewerSurfaceController.ts",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(controllerPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declaration = [
+      "export function",
+      "useCanvasViewerSurfaceController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasViewerSurfaceController.ts",
+    ]);
+    expect(controllerSource).toContain("@/stores/canvasStore");
+    expect(controllerSource).toContain("./useCanvasExternalDialogs");
+    expect(controllerSource).toContain("imageViewerProps:");
+    expect(controllerSource).toContain("videoViewerProps:");
+    expect(canvasView).toContain("./hooks/useCanvasViewerSurfaceController");
+    expect(canvasView).not.toContain("./hooks/useCanvasExternalDialogs");
+    expect(canvasView).not.toContain("state.imageViewer");
+    expect(canvasView).not.toContain("videoViewer.isOpen");
+  });
+
   it("keeps Canvas external dialog subscriptions in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
@@ -3497,7 +3539,8 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("eventPort.subscribe('tool-dialog/open'");
     expect(hookModel).toContain("const unsubscribeVideoOpen = eventPort.subscribe(");
     expect(hookModel).toContain("'video-viewer/open'");
-    expect(canvasView).toContain("./hooks/useCanvasExternalDialogs");
+    expect(canvasView).toContain("./hooks/useCanvasViewerSurfaceController");
+    expect(canvasView).not.toContain("./hooks/useCanvasExternalDialogs");
     expect(canvasView).not.toContain("setVideoViewer");
     expect(canvasView).not.toContain("canvasEventBus.subscribe('tool-dialog/open'");
   });

@@ -13,7 +13,6 @@ import { useCanvasStore } from '@/stores/canvasStore';
 import { useAppStore } from '@/stores/app-store';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import { CanvasStageView } from './ui/CanvasStageView';
-import { useCanvasExternalDialogs } from './hooks/useCanvasExternalDialogs';
 import { useCanvasGraphEditingSurfaceController } from './hooks/useCanvasGraphEditingSurfaceController';
 import { useCanvasConnectionController } from './hooks/useCanvasConnectionController';
 import { useCanvasConnectionGestureController } from './hooks/useCanvasConnectionGestureController';
@@ -26,6 +25,7 @@ import { useCanvasCommandSurfaceController } from './hooks/useCanvasCommandSurfa
 import { useCanvasProjectSurfaceController } from './hooks/useCanvasProjectSurfaceController';
 import { useCanvasRenderSurfaceController } from './hooks/useCanvasRenderSurfaceController';
 import { useCanvasSelectionSurfaceController } from './hooks/useCanvasSelectionSurfaceController';
+import { useCanvasViewerSurfaceController } from './hooks/useCanvasViewerSurfaceController';
 import { useCanvasViewportSurfaceController } from './hooks/useCanvasViewportSurfaceController';
 
 interface CanvasProps {
@@ -111,17 +111,14 @@ export function Canvas({
   const elevateNodes = useCanvasStore((state) => state.elevateNodes);
   const undo = useCanvasStore((state) => state.undo);
   const redo = useCanvasStore((state) => state.redo);
-  const openToolDialog = useCanvasStore((state) => state.openToolDialog);
-  const closeToolDialog = useCanvasStore((state) => state.closeToolDialog);
   const setViewportState = useCanvasStore((state) => state.setViewportState);
   const setCanvasViewportSize = useCanvasStore((state) => state.setCanvasViewportSize);
-  const imageViewer = useCanvasStore((state) => state.imageViewer);
-  const closeImageViewer = useCanvasStore((state) => state.closeImageViewer);
-  const navigateImageViewer = useCanvasStore((state) => state.navigateImageViewer);
-  const { videoViewer, closeVideoViewer } = useCanvasExternalDialogs({
+  const {
+    closeImageViewer,
+    imageViewerProps,
+    videoViewerProps,
+  } = useCanvasViewerSurfaceController({
     eventPort: canvasEventBus,
-    openToolDialog,
-    closeToolDialog,
   });
   const isCanvasEmpty = useCallback(
     () => useCanvasStore.getState().nodes.length === 0,
@@ -443,20 +440,8 @@ export function Canvas({
             }
           : null
       }
-      imageViewerProps={{
-        open: imageViewer.isOpen,
-        imageUrl: imageViewer.currentImageUrl || '',
-        imageList: imageViewer.imageList,
-        currentIndex: imageViewer.currentIndex,
-        onClose: closeImageViewer,
-        onNavigate: navigateImageViewer,
-      }}
-      videoViewerProps={{
-        open: videoViewer.isOpen,
-        videoUrl: videoViewer.videoUrl,
-        title: videoViewer.title,
-        onClose: closeVideoViewer,
-      }}
+      imageViewerProps={imageViewerProps}
+      videoViewerProps={videoViewerProps}
     />
   );
 }
