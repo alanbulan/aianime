@@ -26,7 +26,6 @@ import { useShallow } from 'zustand/react/shallow';
 import { CreditDisplayHiddenProvider } from '@/components/credits/credit-visual';
 import { isCeRuntime } from '@/lib/runtime-config';
 import { useCanvasStore } from '@/stores/canvasStore';
-import { resolveCanvasSelectionDeletion } from '@/features/canvas/domain/canvasSelectionDeletion';
 import { useAppStore } from '@/stores/app-store';
 import { getSkillRegistry } from '@/api/skills';
 import { translateSkillName } from '@/features/freezone/context/skillI18n';
@@ -131,6 +130,7 @@ import { useCanvasNodePlacementConfirm } from './hooks/useCanvasNodePlacementCon
 import { useCanvasPaneContextMenu } from './hooks/useCanvasPaneContextMenu';
 import { useCanvasPendingNodeFocus } from './hooks/useCanvasPendingNodeFocus';
 import { useCanvasSelectionSync } from './hooks/useCanvasSelectionSync';
+import { useCanvasSelectionCommandController } from './hooks/useCanvasSelectionCommandController';
 import { useCanvasSkillRegistry } from './hooks/useCanvasSkillRegistry';
 import {
   useCanvasSnapAlignment,
@@ -741,25 +741,23 @@ export function Canvas({
       fitViewport: fitAutoLayoutViewport,
     });
 
-  const groupSelectedNodes = useCallback(() => {
-    groupNodes(selectedNodeIds);
-  }, [groupNodes, selectedNodeIds]);
-
-  const deleteSelectedElements = useCallback((): boolean => {
-    const deletion = resolveCanvasSelectionDeletion({
-      nodes,
-      edges: useCanvasStore.getState().edges,
-      selectedNodeIds,
-      selectedNodeId,
-    });
-    deletion.edgeIds.forEach((edgeId) => deleteEdge(edgeId));
-    if (deletion.nodeIds.length === 1) {
-      deleteNode(deletion.nodeIds[0]);
-    } else if (deletion.nodeIds.length > 1) {
-      deleteNodes(deletion.nodeIds);
-    }
-    return deletion.hasSelectedTargets;
-  }, [deleteEdge, deleteNode, deleteNodes, nodes, selectedNodeId, selectedNodeIds]);
+  const getCurrentSelectionEdges = useCallback(
+    () => getCanvasGraph().edges,
+    [getCanvasGraph],
+  );
+  const {
+    groupSelection: groupSelectedNodes,
+    deleteSelection: deleteSelectedElements,
+  } = useCanvasSelectionCommandController({
+    nodes,
+    selectedNodeIds,
+    selectedNodeId,
+    getCurrentEdges: getCurrentSelectionEdges,
+    groupNodes,
+    deleteEdge,
+    deleteNode,
+    deleteNodes,
+  });
 
   const handlePaneClick = useCallback((event: ReactMouseEvent) => {
     if (placementActive) {

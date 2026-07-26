@@ -2456,6 +2456,11 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/domain/canvasSelectionDeletion.ts",
     );
     const domainModel = readFileSync(domainPath, "utf8");
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasSelectionCommandController.ts",
+    );
+    const controllerModel = readFileSync(controllerPath, "utf8");
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -2480,14 +2485,29 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
       .map(relativeSource)
       .sort();
+    const controllerForbiddenImports = importSpecifiers(controllerPath).filter(
+      (specifier) =>
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
 
     expect(forbiddenImports).toEqual([]);
+    expect(controllerForbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
       "features/canvas/domain/canvasSelectionDeletion.ts",
     ]);
     expect(domainModel).toContain("isPresetManagedNode");
     expect(domainModel).toContain("isPresetManagedEdge");
-    expect(canvasView).toContain("resolveCanvasSelectionDeletion({");
+    expect(controllerModel).toContain("resolveCanvasSelectionDeletion({");
+    expect(controllerModel).toContain("edges: getCurrentEdges()");
+    expect(canvasView).toContain("./hooks/useCanvasSelectionCommandController");
+    expect(canvasView).not.toContain("resolveCanvasSelectionDeletion({");
+    expect(canvasView).not.toContain("const deleteSelectedElements = useCallback");
     expect(canvasView).not.toContain("const deletableEdgeIds");
     expect(canvasView).not.toContain("const hasSelectedEdge");
     expect(canvasView).not.toContain("const idsToDelete");
