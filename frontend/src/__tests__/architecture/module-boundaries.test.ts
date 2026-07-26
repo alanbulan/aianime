@@ -10903,6 +10903,7 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/application/generateCanvasScene360.ts",
     );
+    const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const domainSource = readFileSync(domainPath, "utf8");
     const completionSource = readFileSync(completionPath, "utf8");
     const applicationSource = readFileSync(applicationPath, "utf8");
@@ -10911,6 +10912,14 @@ describe("frontend architecture boundaries", () => {
     const panelSource = readFileSync(panelPath, "utf8");
     const overlaySource = readFileSync(overlayPath, "utf8");
     const sceneApplicationSource = readFileSync(sceneApplicationPath, "utf8");
+    const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
+    const endpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("}/freezone/multi-view`"),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(importSpecifiers(domainPath)).toEqual([]);
     expect(domainSource).toContain(
@@ -10946,7 +10955,11 @@ describe("frontend architecture boundaries", () => {
       "yawDegrees: normalizeMultiAngleYaw(params.yawDegrees)",
     );
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
-      new Set(["@/api/ops", "../application/generateCanvasMultiAngle"]),
+      new Set([
+        "@/shared/api/client",
+        "../application/generateCanvasMultiAngle",
+        "../application/ports",
+      ]),
     );
     expect(infrastructureSource).toContain(
       "freezoneMultiAngleGenerationGateway: CanvasMultiAngleGenerationGateway",
@@ -10973,6 +10986,18 @@ describe("frontend architecture boundaries", () => {
     expect(sceneApplicationSource).toContain(
       "completeCanvasMediaGenerationTask(",
     );
+    expect(endpointOwners).toEqual([
+      "features/canvas/infrastructure/freezoneMultiAngleGenerationGateway.ts",
+    ]);
+    for (const legacySymbol of [
+      "FreezoneMultiViewPreset",
+      "FreezoneMultiViewShotSize",
+      "FreezoneMultiViewPayload",
+      "submitFreezoneMultiView",
+    ]) {
+      expect(legacyOpsSource).not.toContain(legacySymbol);
+    }
+    expect(legacyOpsSource).not.toContain("}/freezone/multi-view`");
   });
 
   it("keeps Canvas relight rules and generation orchestration out of views", () => {

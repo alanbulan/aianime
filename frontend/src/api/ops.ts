@@ -1110,59 +1110,6 @@ export async function submitFreezoneAnalyze(
   );
 }
 
-// /freezone/multi-view ---------------------------------------------------- //
-
-export type FreezoneMultiViewPreset =
-  | "custom"
-  | "fisheye"
-  | "oblique"
-  | "front"
-  | "front_up"
-  | "full_body"
-  | "back";
-
-export type FreezoneMultiViewShotSize =
-  | "extreme_close_up"
-  | "close_up"
-  | "medium_close"
-  | "medium"
-  | "full_body"
-  | "wide"
-  | "extreme_wide";
-
-export interface FreezoneMultiViewPayload {
-  sourceUrl: string;
-  preset?: FreezoneMultiViewPreset;
-  yawDegrees?: number;
-  pitchDegrees?: number;
-  shotSize?: FreezoneMultiViewShotSize;
-  prompt?: string;
-  imageSize?: string;
-  model?: string;
-}
-
-export async function submitFreezoneMultiView(
-  project: string,
-  payload: FreezoneMultiViewPayload,
-): Promise<FreezoneJobRef> {
-  return await apiCall<FreezoneJobRef>(
-    `projects/${encodeURIComponent(project)}/freezone/multi-view`,
-    {
-      method: "POST",
-      json: {
-        source_url: payload.sourceUrl,
-        preset: payload.preset ?? "custom",
-        yaw_degrees: payload.yawDegrees ?? 0,
-        pitch_degrees: payload.pitchDegrees ?? 0,
-        shot_size: payload.shotSize ?? "medium",
-        prompt: payload.prompt ?? "",
-        image_size: payload.imageSize ?? "2K",
-        ...(payload.model ? { model: payload.model } : {}),
-      },
-    },
-  );
-}
-
 // /freezone/relight ------------------------------------------------------- //
 
 export type FreezoneRelightScope = "global" | "local";

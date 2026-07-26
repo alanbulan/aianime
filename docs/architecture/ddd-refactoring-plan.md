@@ -1610,6 +1610,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百六十三批已将局部重绘的项目路径编码、POST method、源图、蒙版、提示词、宽高比、单图数量、尺寸和模型字段映射从 `api/ops.ts` 迁入已有唯一 `freezoneRedrawTaskGateway` infrastructure 适配器；同时将 `pipeline-import/MaskEditor` 的旧提交、任务等待和结果回退直连替换为唯一 `generateCanvasRedraw` composition，用领域默认 `original`/`2K` 保持原请求语义并继续复用统一完成逻辑；旧 `FreezoneRedrawPayload`、`submitFreezoneRedraw` 及 `ops.ts` 对 `domain/redraw` 的临时依赖直接删除，不保留 facade、re-export 或第二套 HTTP/任务编排，`freezone/redraw` 端点只有该 gateway 一个生产所有者，`api/ops.ts` 由 1,820 行降至 1,777 行；请求路径、方法、蒙版 URL、提示词、单图输出、空模型省略、进度提示和最终 URL 语义均未改变；相关 3 个测试文件 4 项、架构门禁 206 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
 
+第二百六十四批已将多角度生成的项目路径编码、POST method、预设、水平/俯仰角、景别、提示词、输出尺寸和模型字段映射从 `api/ops.ts` 迁入已有唯一 `freezoneMultiAngleGenerationGateway` infrastructure 适配器，Canvas application 继续负责源 URL 清理、预设转换、yaw 归一、任务完成和结果回传，领域模块继续唯一持有角度规则；旧 `FreezoneMultiViewPreset`、`FreezoneMultiViewShotSize`、`FreezoneMultiViewPayload` 和 `submitFreezoneMultiView` 直接删除，不保留 facade、re-export 或第二套 HTTP 映射，`freezone/multi-view` 端点只有该 gateway 一个生产所有者，`api/ops.ts` 由 1,777 行降至 1,724 行；请求路径、方法、角度、景别、提示词、2K/4K 输出、空模型省略和任务回执语义均未改变；相关 3 个测试文件 4 项、架构门禁 206 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

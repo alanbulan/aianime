@@ -1,20 +1,24 @@
 // Copyright (c) 2026 AI anime
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const submitFreezoneMultiView = vi.hoisted(() => vi.fn());
-
-vi.mock("@/api/ops", () => ({ submitFreezoneMultiView }));
+import { apiCall } from "@/shared/api/client";
 
 import { freezoneMultiAngleGenerationGateway } from "./freezoneMultiAngleGenerationGateway";
 
+vi.mock("@/shared/api/client", () => ({ apiCall: vi.fn() }));
+
+beforeEach(() => {
+  vi.mocked(apiCall).mockReset();
+});
+
 describe("freezoneMultiAngleGenerationGateway", () => {
-  it("maps the Canvas command to the Freezone client", async () => {
+  it("maps the Canvas command to the encoded multi-view endpoint", async () => {
     const task = {
       task_key: "multi-angle-task",
       task_type: "freezone_multi_view",
       job_id: "multi-angle-job",
     };
-    submitFreezoneMultiView.mockResolvedValue(task);
+    vi.mocked(apiCall).mockResolvedValue(task);
     const command = {
       sourceUrl: "/static/source.png",
       preset: "front_up" as const,
@@ -27,8 +31,23 @@ describe("freezoneMultiAngleGenerationGateway", () => {
     };
 
     await expect(
-      freezoneMultiAngleGenerationGateway.submit("project-1", command),
+      freezoneMultiAngleGenerationGateway.submit("project/1", command),
     ).resolves.toBe(task);
-    expect(submitFreezoneMultiView).toHaveBeenCalledWith("project-1", command);
+    expect(apiCall).toHaveBeenCalledWith(
+      "projects/project%2F1/freezone/multi-view",
+      {
+        method: "POST",
+        json: {
+          source_url: "/static/source.png",
+          preset: "front_up",
+          yaw_degrees: 30,
+          pitch_degrees: -20,
+          shot_size: "wide",
+          prompt: "low angle",
+          image_size: "4K",
+          model: "image-model",
+        },
+      },
+    );
   });
 });
