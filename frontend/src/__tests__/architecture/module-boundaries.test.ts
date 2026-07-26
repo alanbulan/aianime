@@ -3060,7 +3060,12 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/hooks/useCanvasSkillRegistry.ts",
     );
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasNodeCatalogController.ts",
+    );
     const hookModel = readFileSync(hookPath, "utf8");
+    const controllerModel = readFileSync(controllerPath, "utf8");
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -3085,14 +3090,35 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes(hookDeclaration))
       .map(relativeSource)
       .sort();
+    const controllerDeclaration = [
+      "export function",
+      "useCanvasNodeCatalogController(",
+    ].join(" ");
+    const controllerOwners = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(controllerDeclaration),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(forbiddenImports).toEqual([]);
     expect(implementationOwners).toEqual([
       "features/canvas/hooks/useCanvasSkillRegistry.ts",
     ]);
+    expect(controllerOwners).toEqual([
+      "features/canvas/hooks/useCanvasNodeCatalogController.ts",
+    ]);
     expect(hookModel).toContain("loadSkillRegistry()");
     expect(hookModel).toContain("cancelled = true");
-    expect(canvasView).toContain("./hooks/useCanvasSkillRegistry");
+    expect(controllerModel).toContain("./useCanvasSkillRegistry");
+    expect(controllerModel).toContain("getSkillRegistry");
+    expect(controllerModel).toContain("nodeCatalog.getDefinition");
+    expect(controllerModel).toContain("translateSkillName");
+    expect(canvasView).toContain("./hooks/useCanvasNodeCatalogController");
+    expect(canvasView).not.toContain("./hooks/useCanvasSkillRegistry");
+    expect(canvasView).not.toContain("getSkillRegistry");
+    expect(canvasView).not.toContain("nodeCatalog");
+    expect(canvasView).not.toContain("translateSkillName");
     expect(canvasView).not.toContain("setSkillRegistry");
     expect(canvasView).not.toContain("new Map(skillRegistry.map");
   });

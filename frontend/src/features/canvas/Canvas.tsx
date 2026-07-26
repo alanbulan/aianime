@@ -21,11 +21,8 @@ import { CreditDisplayHiddenProvider } from '@/components/credits/credit-visual'
 import { isCeRuntime } from '@/lib/runtime-config';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useAppStore } from '@/stores/app-store';
-import { getSkillRegistry } from '@/api/skills';
-import { translateSkillName } from '@/features/freezone/context/skillI18n';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import { CanvasMinimapBookmarksOverlay } from '@/features/canvas/ui/CanvasMinimapBookmarksOverlay';
-import { nodeCatalog } from '@/features/canvas/application/nodeCatalog';
 import { nodeTypes as canvasNodeTypes } from './nodes';
 import { edgeTypes as canvasEdgeTypes } from './edges';
 import { NodeSelectionMenu } from './NodeSelectionMenu';
@@ -93,17 +90,14 @@ import { useCanvasNodeFocusController } from './hooks/useCanvasNodeFocusControll
 import { useCanvasNodeMenuShortcut } from './hooks/useCanvasNodeMenuShortcut';
 import { useCanvasNodeMenuSelectionController } from './hooks/useCanvasNodeMenuSelectionController';
 import { useCanvasNodeMenuStateController } from './hooks/useCanvasNodeMenuStateController';
-import {
-  useCanvasNodePlacementController,
-  type CanvasNodePlacement,
-} from './hooks/useCanvasNodePlacementController';
+import { useCanvasNodeCatalogController } from './hooks/useCanvasNodeCatalogController';
+import { useCanvasNodePlacementController } from './hooks/useCanvasNodePlacementController';
 import { useCanvasNodePlacementConfirm } from './hooks/useCanvasNodePlacementConfirm';
 import { useCanvasCommandSurfaceController } from './hooks/useCanvasCommandSurfaceController';
 import { useCanvasPaneClickController } from './hooks/useCanvasPaneClickController';
 import { useCanvasProjectContextController } from './hooks/useCanvasProjectContextController';
 import { useCanvasSelectionSync } from './hooks/useCanvasSelectionSync';
 import { useCanvasSelectionCommandController } from './hooks/useCanvasSelectionCommandController';
-import { useCanvasSkillRegistry } from './hooks/useCanvasSkillRegistry';
 import {
   useCanvasSnapAlignment,
   type CanvasSnapAlignmentPort,
@@ -190,7 +184,8 @@ export function Canvas({
   const {
     skills: skillRegistry,
     skillById,
-  } = useCanvasSkillRegistry(getSkillRegistry);
+    resolvePlacementLabel: resolveNodePlacementLabel,
+  } = useCanvasNodeCatalogController({ translate: t });
 
   const nodes = useCanvasStore((state) => state.nodes);
   const edges = useCanvasStore((state) => state.edges);
@@ -304,17 +299,6 @@ export function Canvas({
     (clientPosition: { x: number; y: number }) =>
       reactFlowInstance.screenToFlowPosition(clientPosition),
     [reactFlowInstance],
-  );
-  const resolveNodePlacementLabel = useCallback(
-    (placement: CanvasNodePlacement): string => {
-      const definition = nodeCatalog.getDefinition(placement.type);
-      return placement.skill
-        ? translateSkillName(placement.skill, t)
-        : definition
-          ? t(definition.menuLabelKey)
-          : placement.type;
-    },
-    [t],
   );
   const {
     placementActive,
