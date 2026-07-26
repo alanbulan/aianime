@@ -17,6 +17,11 @@ import {
   type EraseVideoSubtitlesParams,
 } from './application/eraseVideoSubtitles';
 import {
+  generateCanvasStoryScript as generateCanvasStoryScriptUseCase,
+  type GenerateCanvasStoryScriptParams,
+} from './application/generateCanvasStoryScript';
+import type { CanvasGenerationTaskRef } from './application/ports';
+import {
   translateCanvasText as translateCanvasTextUseCase,
   type TranslateCanvasTextParams,
 } from './application/translateCanvasText';
@@ -87,6 +92,7 @@ import { freezoneCanvasTextTranslationGateway } from './infrastructure/freezoneC
 import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerationTaskGateway';
 import { freezoneGenerationHistoryGateway } from './infrastructure/freezoneGenerationHistoryGateway';
 import { freezoneRedrawTaskGateway } from './infrastructure/freezoneRedrawTaskGateway';
+import { freezoneStoryScriptGenerationGateway } from './infrastructure/freezoneStoryScriptGenerationGateway';
 import { freezoneVideoClipComposeGateway } from './infrastructure/freezoneVideoClipComposeGateway';
 import { freezoneVideoGenerationSubmissionGateway } from './infrastructure/freezoneVideoGenerationSubmissionGateway';
 import { freezoneVideoSubtitleEraseGateway } from './infrastructure/freezoneVideoSubtitleEraseGateway';
@@ -288,6 +294,17 @@ export function eraseVideoSubtitles(params: EraseVideoSubtitlesParams) {
   return eraseVideoSubtitlesUseCase(params, {
     eraseGateway: freezoneVideoSubtitleEraseGateway,
     taskGateway: freezoneGenerationTaskGateway,
+  });
+}
+
+export function generateCanvasStoryScript(
+  params: GenerateCanvasStoryScriptParams,
+  onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
+) {
+  return generateCanvasStoryScriptUseCase(params, {
+    submissionGateway: freezoneStoryScriptGenerationGateway,
+    taskGateway: freezoneGenerationTaskGateway,
+    onTaskSubmitted,
   });
 }
 

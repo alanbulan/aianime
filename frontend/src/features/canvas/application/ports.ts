@@ -96,9 +96,26 @@ export interface CanvasGenerationTaskCompletion {
   result?: Record<string, unknown> | null;
 }
 
+export interface CanvasStoryScriptRow {
+  shot_no?: string | number | null;
+  duration?: string | number | null;
+  visual_description?: string | null;
+  character?: string | null;
+  shot?: string | null;
+  action?: string | null;
+  emotion?: string | null;
+  scene_tags?: string | null;
+  lighting_mood?: string | null;
+  sound?: string | null;
+  dialogue?: string | null;
+  shot_prompt?: string | null;
+  video_motion_prompt?: string | null;
+  [key: string]: unknown;
+}
+
 export interface CanvasStoryScriptResult {
   title?: string | null;
-  rows: Array<Record<string, unknown>>;
+  rows: CanvasStoryScriptRow[];
 }
 
 export interface CanvasTaskResultGateway {

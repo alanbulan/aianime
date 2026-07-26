@@ -1508,6 +1508,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百一十二批已将语音/音乐分派、情绪提示词去空白、默认解说音色、音乐参数默认值、任务提交回执、完成等待及结果 URL 查询迁入唯一 application 用例 `generateCanvasAudio`，并把旧 `segments` 文本兼容与上游/本地提示词拼接一并迁入纯 application 函数；`freezoneAudioGenerationGateway` infrastructure 适配器唯一调用两个音频提交端点，`audioComposition` 注入既有任务 gateway 并通过提交回调维持“先持久化任务句柄、再等待完成”的刷新恢复时序，`useAudioGeneration` 只保留 URL/生成状态门禁、节点状态写回和错误展示，不再直接依赖 `api/ops` 或任务 API；hook 由 123 行降至 99 行，用例 128 行、适配器 25 行，音频组合根由 14 行调整为 32 行；用例与适配器共 2 个测试文件 5 项、新增后的架构门禁 167 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百一十三批已将脚本节点上游文本/视频/音频/图片分类、视频时长换算、图片回退、文本主输入优先级、steering prompt、角色参考投影、空输入门禁、任务提交/持久化/等待及脚本结果读取迁入唯一 application 模块 `generateCanvasStoryScript`，脚本行/结果 DTO 同步由 application ports 持有；`freezoneStoryScriptGenerationGateway` infrastructure 适配器唯一调用故事脚本提交端点，composition 注入既有任务 gateway 并保持先记录任务句柄再等待的恢复时序，`ScriptNode` 只保留 URL/生成状态、节点写回、表格与面板交互，不再依赖 Freezone DTO、`api/ops` 或任务 API；节点由 1276 行降至 1157 行，用例 219 行、适配器 21 行，composition 由 337 行调整为 354 行；用例与适配器共 2 个测试文件 5 项、新增后的架构门禁 168 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

@@ -24,13 +24,6 @@ import {
 
 import {
   CANVAS_NODE_TYPES,
-  isAudioNode,
-  isExportImageNode,
-  isImageEditNode,
-  isImageGenNode,
-  isTextAnnotationNode,
-  isUploadNode,
-  isVideoNode,
   type CanvasNode,
   type CanvasNodeType,
   type ScriptGenAction,
@@ -57,14 +50,18 @@ import { OperationPanelShell } from '@/features/canvas/ui/OperationPanelShell';
 import { PanelExpandButton } from '@/features/canvas/ui/PanelExpandButton';
 import { useCanvasStore } from '@/stores/canvasStore';
 import {
-  fetchFreezoneStoryScriptResult,
-  submitFreezoneStoryScript,
-  type FreezoneStoryScriptResult,
-  type FreezoneStoryScriptRow,
-} from '@/api/ops';
+  buildCanvasStoryScriptCommand,
+  classifyCanvasStoryScriptReference,
+  isCanvasStoryScriptResult as isScriptResult,
+  STORY_SCRIPT_SOURCE_REQUIRED_MESSAGE,
+  type CanvasStoryScriptReference as ScriptReference,
+} from '@/features/canvas/application/generateCanvasStoryScript';
 import type { CanvasGenerationHistoryRecord } from '@/features/canvas/application/generationHistory';
-import { translateCanvasText } from '@/features/canvas/composition';
-import { awaitTaskCompletion } from '@/api/tasks';
+import type { CanvasStoryScriptRow } from '@/features/canvas/application/ports';
+import {
+  generateCanvasStoryScript,
+  translateCanvasText,
+} from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { useUpstreamNodes } from '@/features/canvas/hooks/useUpstreamGraph';
 import { useNodeGenerationTaskState } from '@/features/canvas/hooks/useNodeGenerationTaskState';
@@ -146,7 +143,7 @@ const SCRIPT_ACTIONS: ScriptActionDef[] = [
 ];
 
 // 与 libtv 脚本表格列对齐：19 列、宽度按像素硬性给定，整体 min-width 由 tailwind 继承。
-// 后端 FreezoneStoryScriptRow 当前未提供 character_2 / character_image_* / reference 字段，
+// 当前脚本结果未提供 character_2 / character_image_* / reference 字段，
 // 通过 row[key] 软查询：缺值统一渲染 "-"。
 type ScriptCellRender = 'text' | 'image';
 
@@ -185,91 +182,6 @@ const SCRIPT_TABLE_MIN_WIDTH = SCRIPT_COLUMNS.reduce(
   0,
 );
 
-function isScriptResult(value: unknown): value is FreezoneStoryScriptResult {
-  if (!value || typeof value !== 'object') return false;
-  const candidate = value as { rows?: unknown };
-  return Array.isArray(candidate.rows);
-}
-
-type ScriptReferenceKind = 'text' | 'image' | 'video' | 'audio';
-
-interface ScriptReference {
-  nodeId: string;
-  kind: ScriptReferenceKind;
-  /** 用作 chip / 预览的图片（image / video 首帧）；text 节点不需要。 */
-  thumbUrl?: string | null;
-  /** text 节点的内容（提交时拼接到 source_text）；其它节点不需要。 */
-  text?: string | null;
-  /** video 节点：视频源 URL，用于 hover 预览的 <video>。 */
-  videoUrl?: string | null;
-  /** video 节点：视频总时长（秒），提交时作为 duration_sec 提升时间戳精度。 */
-  durationSec?: number | null;
-  /** 节点显示名（chip tooltip 用 / 角色名）。 */
-  displayName?: string | null;
-}
-
-function classifyUpstreamNode(node: CanvasNode): ScriptReference | null {
-  if (isTextAnnotationNode(node)) {
-    return {
-      nodeId: node.id,
-      kind: 'text',
-      text: typeof node.data.content === 'string' ? node.data.content : '',
-      displayName: node.data.displayName ?? null,
-    };
-  }
-  if (isVideoNode(node)) {
-    const videoUrl =
-      typeof node.data.videoUrl === 'string' && node.data.videoUrl.length > 0
-        ? node.data.videoUrl
-        : null;
-    const thumbUrl =
-      (typeof node.data.previewImageUrl === 'string' && node.data.previewImageUrl) ||
-      null;
-    const durationSec =
-      typeof node.data.durationMs === 'number' && node.data.durationMs > 0
-        ? node.data.durationMs / 1000
-        : null;
-    return {
-      nodeId: node.id,
-      kind: 'video',
-      thumbUrl,
-      videoUrl,
-      durationSec,
-      displayName: node.data.displayName ?? null,
-    };
-  }
-  if (isAudioNode(node)) {
-    return {
-      nodeId: node.id,
-      kind: 'audio',
-      displayName: node.data.displayName ?? null,
-    };
-  }
-  if (isImageGenNode(node)) {
-    const data = node.data;
-    const ref =
-      typeof data.referenceImageUrl === 'string' && data.referenceImageUrl.length > 0
-        ? data.referenceImageUrl
-        : null;
-    return {
-      nodeId: node.id,
-      kind: 'image',
-      thumbUrl: data.previewImageUrl || data.imageUrl || ref,
-      displayName: data.displayName ?? null,
-    };
-  }
-  if (isUploadNode(node) || isImageEditNode(node) || isExportImageNode(node)) {
-    const data = node.data;
-    return {
-      nodeId: node.id,
-      kind: 'image',
-      thumbUrl: data.previewImageUrl || data.imageUrl || null,
-      displayName: data.displayName ?? null,
-    };
-  }
-  return null;
-}
-
 // 提交逻辑抽成共享 hook：节点本体的「重试」按钮与底部操作面板的「生成」按钮共用同一条
 // 提交路径。错误统一写进 data.generationError（渲染在节点本体上），不再用面板本地 state。
 function useScriptStorySubmit(
@@ -291,40 +203,15 @@ function useScriptStorySubmit(
       return;
     }
 
-    // 同一个 story-script 接口支持三种输入，按上游连线类型分流（后端默认 newapi，
-    // 前端不传 / 不展示 provider/model）：
-    //  - 文本节点  → source_text
-    //  - 视频节点  → video_url (+ duration_sec)
-    //  - 角色图节点 → character_refs[]（image_url + 角色名）
-    // 文本框内容：有任一素材时作为 steering prompt；否则作为 source_text 主输入。
-    const upstreamText = references
-      .filter((ref) => ref.kind === 'text')
-      .map((ref) => (ref.text ?? '').trim())
-      .filter((text) => text.length > 0)
-      .join('\n\n');
-    const trimmedPrompt = prompt.trim();
-
-    const videoRef = references.find((ref) => ref.kind === 'video' && ref.videoUrl);
-    const characterRefs = references
-      .filter((ref) => ref.kind === 'image' && ref.thumbUrl)
-      .map((ref) => ({
-        imageUrl: ref.thumbUrl as string,
-        name: ref.displayName?.trim() || undefined,
-      }));
-
-    // 后端 story-script 接口目前只消费文本(source_text/source_url):视频 / 角色图片
-    // 参考仅作为画布上的视觉参考，模型并不直接读取它们。因此真正驱动生成的是用户手动
-    // 输入的提示词(参考 libtv:素材做参考、提示词驱动生成)。优先用上游文本节点内容，
-    // 否则把输入框里用户写的提示词作为 source_text 主输入 —— 而不是塞进 steering 后
-    // 让后端因缺 source_text 报 400(#65 视频参考、#66 图片参考失败的根因)。
-    const sourceText = upstreamText.length > 0 ? upstreamText : trimmedPrompt;
-    // 有上游文本节点时输入框内容退居 steering prompt；否则它已是主输入，不再重复下发。
-    const steeringPrompt =
-      upstreamText.length > 0 ? trimmedPrompt || undefined : undefined;
-
-    if (!sourceText || sourceText.length === 0) {
+    const command = buildCanvasStoryScriptCommand({
+      references,
+      prompt,
+      canvasId: readUrl().canvas ?? 'default',
+      nodeId,
+    });
+    if (!command) {
       updateNodeData(nodeId, {
-        generationError: '请输入提示词描述剧情（视频 / 角色图片仅作参考）',
+        generationError: STORY_SCRIPT_SOURCE_REQUIRED_MESSAGE,
       });
       return;
     }
@@ -335,24 +222,18 @@ function useScriptStorySubmit(
       generationError: null,
     });
     try {
-      const ref = await submitFreezoneStoryScript(project, {
-        sourceText,
-        videoUrl: videoRef?.videoUrl ?? undefined,
-        durationSec: videoRef?.durationSec ?? undefined,
-        characterRefs: characterRefs.length > 0 ? characterRefs : undefined,
-        prompt: steeringPrompt,
-        canvasId: readUrl().canvas ?? 'default',
-        nodeId,
-      });
-      // Persist the task handle so a page refresh can resume this job.
-      updateNodeData(nodeId, generationTaskDescriptor(ref));
-      await awaitTaskCompletion(ref.task_key, project);
-      const result = await fetchFreezoneStoryScriptResult(project, ref.job_id);
+      const result = await generateCanvasStoryScript(
+        { projectId: project, command },
+        (task) => {
+          // Persist the task handle so a page refresh can resume this job.
+          updateNodeData(nodeId, generationTaskDescriptor(task));
+        },
+      );
       updateNodeData(nodeId, {
         isGenerating: false,
         generationStartedAt: null,
-        scriptResult: result,
-        scriptTitle: result.title ?? null,
+        scriptResult: result.scriptResult,
+        scriptTitle: result.scriptResult.title ?? null,
         generationError: null,
       });
     } catch (error) {
@@ -423,7 +304,7 @@ export const ScriptNode = memo(({ id, data, selected, width, height }: ScriptNod
     const upstream = [...upstreamNodes];
     upstream.sort((a, b) => (a.position?.y ?? 0) - (b.position?.y ?? 0));
     return upstream
-      .map((node) => classifyUpstreamNode(node))
+      .map((node) => classifyCanvasStoryScriptReference(node))
       .filter((entry): entry is ScriptReference => entry != null);
   }, [upstreamNodes]);
   const hasUpstream = references.length > 0;
@@ -805,7 +686,7 @@ function ScriptResultHeader({ title, onFullscreen }: ScriptResultHeaderProps) {
 }
 
 interface ScriptResultTableProps {
-  rows: FreezoneStoryScriptRow[];
+  rows: CanvasStoryScriptRow[];
   onCellCommit?: (rowIndex: number, colKey: string, nextValue: string) => void;
 }
 
@@ -880,7 +761,7 @@ function ScriptResultTable({ rows, onCellCommit }: ScriptResultTableProps) {
 }
 
 interface ScriptResultCellProps {
-  row: FreezoneStoryScriptRow;
+  row: CanvasStoryScriptRow;
   col: ScriptColumnDef;
   onCommit?: (nextValue: string) => void;
 }

@@ -8644,6 +8644,82 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
+  it("keeps Canvas story-script generation orchestration in application", () => {
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/generateCanvasStoryScript.ts",
+    );
+    const infrastructurePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneStoryScriptGenerationGateway.ts",
+    );
+    const portsPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/ports.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const scriptNodePath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/ScriptNode.tsx",
+    );
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const infrastructureSource = readFileSync(infrastructurePath, "utf8");
+    const portsSource = readFileSync(portsPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const scriptNodeSource = readFileSync(scriptNodePath, "utf8");
+
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set(["../domain/canvasNodes", "./ports"]),
+    );
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).toContain(
+      "export function classifyCanvasStoryScriptReference(",
+    );
+    expect(applicationSource).toContain(
+      "export function buildCanvasStoryScriptCommand(",
+    );
+    expect(applicationSource).toContain(
+      "export async function generateCanvasStoryScript(",
+    );
+    expect(applicationSource).toContain(
+      "dependencies.onTaskSubmitted(task)",
+    );
+    expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
+      new Set(["@/api/ops", "../application/generateCanvasStoryScript"]),
+    );
+    expect(infrastructureSource).toContain(
+      "freezoneStoryScriptGenerationGateway: CanvasStoryScriptSubmissionGateway",
+    );
+    expect(portsSource).toContain("export interface CanvasStoryScriptRow");
+    expect(compositionSource).toContain(
+      "generateCanvasStoryScriptUseCase(params, {",
+    );
+    expect(compositionSource).toContain(
+      "submissionGateway: freezoneStoryScriptGenerationGateway",
+    );
+    expect(importSpecifiers(scriptNodePath)).not.toContain("@/api/ops");
+    expect(importSpecifiers(scriptNodePath)).not.toContain("@/api/tasks");
+    expect(scriptNodeSource).toContain(
+      "buildCanvasStoryScriptCommand({",
+    );
+    expect(scriptNodeSource).toContain(
+      "classifyCanvasStoryScriptReference(node)",
+    );
+    expect(scriptNodeSource).toContain(
+      "await generateCanvasStoryScript(",
+    );
+    expect(scriptNodeSource).not.toContain("submitFreezoneStoryScript");
+    expect(scriptNodeSource).not.toContain("fetchFreezoneStoryScriptResult");
+    expect(scriptNodeSource).not.toContain("awaitTaskCompletion");
+    expect(scriptNodeSource).not.toContain("FreezoneStoryScriptResult");
+    expect(scriptNodeSource).not.toContain("FreezoneStoryScriptRow");
+  });
+
   it("keeps Canvas asset extraction independent from media URL infrastructure", () => {
     const assetPath = resolve(
       SRC_ROOT,
