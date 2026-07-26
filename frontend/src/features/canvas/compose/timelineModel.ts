@@ -1,14 +1,14 @@
 // Copyright (c) 2026 AI anime
 import type {
-  FreezoneVideoComposePayload,
-  FreezoneVideoComposeResolution,
-} from "@/api/ops";
+  CanvasVideoComposeRequest,
+  CanvasVideoComposeResolution,
+} from "@/features/canvas/domain/videoCompose";
 
 /**
  * 前端「视频合成」时间线模型。
  *
  * 这层是纯逻辑（无 DOM / React），把 libtv 风格的多轨时间线编辑状态映射到后端
- * 已有的 `submitFreezoneVideoCompose` 契约（{@link FreezoneVideoComposePayload}）。
+ * Canvas 视频合成请求契约（{@link CanvasVideoComposeRequest}）。
  * 渲染/编码全部由后端 FFmpeg 完成 —— 前端只负责「编排 + 预览」。
  *
  * v2：每个片段在输出时间线上的位置由显式 `timelineStartMs` 决定，允许片段之间留有
@@ -70,7 +70,7 @@ export interface ComposeCover {
 
 export interface ComposeTimelineState {
   tracks: ComposeTrack[];
-  resolution: FreezoneVideoComposeResolution;
+  resolution: CanvasVideoComposeResolution;
   /** 合成封面（未设置时为空）。随草稿持久化。 */
   cover?: ComposeCover | null;
 }
@@ -238,7 +238,7 @@ export interface BuildComposeOptions {
 export function buildComposePayload(
   state: ComposeTimelineState,
   options: BuildComposeOptions = {},
-): FreezoneVideoComposePayload {
+): CanvasVideoComposeRequest {
   const tracks = state.tracks
     .map((track) => ({
       trackId: track.id,

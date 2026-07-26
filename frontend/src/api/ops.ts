@@ -35,6 +35,7 @@ import type {
   CanvasAssetLibraryMedia,
   CanvasAssetLibrarySource,
 } from "@/features/canvas/domain/assetLibrary";
+import type { CanvasVideoComposeRequest } from "@/features/canvas/domain/videoCompose";
 
 // Per-node generation history -------------------------------------------- //
 
@@ -662,51 +663,9 @@ export async function submitFreezoneVideoErase(
 
 // /freezone/video/compose ------------------------------------------------- //
 
-export type FreezoneVideoComposeResolution = "720p" | "1080p";
-export type FreezoneVideoComposeTrackKind = "video" | "audio";
-
-export interface FreezoneVideoComposeItemPayload {
-  itemId: string;
-  sourceUrl: string;
-  /** Position on the output timeline, in seconds. */
-  timelineStart?: number;
-  /** Trim start within source media, in seconds. */
-  sourceStart?: number;
-  /** Trim end within source media, in seconds. Must be > sourceStart. */
-  sourceEnd: number;
-  volume?: number;
-  muted?: boolean;
-  /**
-   * Playback rate (变速). 1 = original speed. ⚠️ Only honored if the BE compose
-   * endpoint implements it; otherwise the field is ignored (export stays 1×).
-   */
-  speed?: number;
-}
-
-export interface FreezoneVideoComposeTrackPayload {
-  trackId: string;
-  kind: FreezoneVideoComposeTrackKind;
-  items: FreezoneVideoComposeItemPayload[];
-}
-
-export interface FreezoneVideoComposePayload {
-  title?: string;
-  canvasId?: string;
-  resolution?: FreezoneVideoComposeResolution;
-  fps?: number;
-  backgroundColor?: string;
-  keepOriginalAudio?: boolean;
-  /**
-   * 封面图 URL（已上传到后端的稳定地址）。后端支持时会把它挂成 MP4 的封面流
-   * （attached_pic，不改正片时长）；不支持时忽略，前端缩略图仍用同一个 url。
-   */
-  coverUrl?: string | null;
-  tracks: FreezoneVideoComposeTrackPayload[];
-}
-
 export async function submitFreezoneVideoCompose(
   project: string,
-  payload: FreezoneVideoComposePayload,
+  payload: CanvasVideoComposeRequest,
 ): Promise<FreezoneJobRef> {
   const body: Record<string, unknown> = {
     title: payload.title ?? "",

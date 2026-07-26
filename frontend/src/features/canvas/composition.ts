@@ -9,6 +9,10 @@ import {
   type CompleteVideoGenerationTaskParams,
 } from './application/completeVideoGenerationTask';
 import {
+  composeCanvasVideo as composeCanvasVideoUseCase,
+  type ComposeCanvasVideoParams,
+} from './application/composeCanvasVideo';
+import {
   composeVideoClip as composeVideoClipUseCase,
   type ComposeVideoClipParams,
 } from './application/composeVideoClip';
@@ -136,7 +140,7 @@ import { freezoneReversePromptGenerationGateway } from './infrastructure/freezon
 import { freezoneScene360GenerationGateway } from './infrastructure/freezoneScene360GenerationGateway';
 import { freezoneStoryScriptGenerationGateway } from './infrastructure/freezoneStoryScriptGenerationGateway';
 import { freezoneUpscaleGenerationGateway } from './infrastructure/freezoneUpscaleGenerationGateway';
-import { freezoneVideoClipComposeGateway } from './infrastructure/freezoneVideoClipComposeGateway';
+import { freezoneVideoComposeGateway } from './infrastructure/freezoneVideoComposeGateway';
 import { freezoneVideoGenerationSubmissionGateway } from './infrastructure/freezoneVideoGenerationSubmissionGateway';
 import { freezoneVideoSubtitleEraseGateway } from './infrastructure/freezoneVideoSubtitleEraseGateway';
 import { freezoneVideoUpscaleGenerationGateway } from './infrastructure/freezoneVideoUpscaleGenerationGateway';
@@ -328,9 +332,16 @@ export function resumeNodeGeneration(params: ResumeNodeGenerationParams) {
 
 export function composeVideoClip(params: ComposeVideoClipParams) {
   return composeVideoClipUseCase(params, {
-    composeGateway: freezoneVideoClipComposeGateway,
+    composeGateway: freezoneVideoComposeGateway,
     taskGateway: freezoneGenerationTaskGateway,
     now: () => Date.now(),
+  });
+}
+
+export function composeCanvasVideo(params: ComposeCanvasVideoParams) {
+  return composeCanvasVideoUseCase(params, {
+    composeGateway: freezoneVideoComposeGateway,
+    taskGateway: freezoneGenerationTaskGateway,
   });
 }
 

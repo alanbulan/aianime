@@ -7,37 +7,26 @@ vi.mock("@/api/ops", () => ({
   submitFreezoneVideoCompose,
 }));
 
-import { freezoneVideoClipComposeGateway } from "./freezoneVideoClipComposeGateway";
+import { freezoneVideoComposeGateway } from "./freezoneVideoComposeGateway";
 
 beforeEach(() => {
   submitFreezoneVideoCompose.mockReset();
 });
 
-describe("freezoneVideoClipComposeGateway", () => {
-  it("maps the application submission to the compose API payload", async () => {
+describe("freezoneVideoComposeGateway", () => {
+  it("forwards the complete Canvas compose request", async () => {
     const task = {
       job_id: "job-1",
       task_key: "task-1",
       task_type: "freezone_video_compose",
     };
-    submitFreezoneVideoCompose.mockResolvedValue(task);
-
-    await expect(
-      freezoneVideoClipComposeGateway.submit("project-1", {
-        resolution: "1080p",
-        trackId: "track-video-1",
-        itemId: "item-video-1",
-        sourceUrl: "source.mp4",
-        sourceStartSeconds: 0.25,
-        sourceEndSeconds: 2.75,
-      }),
-    ).resolves.toEqual(task);
-    expect(submitFreezoneVideoCompose).toHaveBeenCalledWith("project-1", {
-      resolution: "1080p",
+    const request = {
+      canvasId: "canvas-1",
+      resolution: "1080p" as const,
       tracks: [
         {
           trackId: "track-video-1",
-          kind: "video",
+          kind: "video" as const,
           items: [
             {
               itemId: "item-video-1",
@@ -49,6 +38,15 @@ describe("freezoneVideoClipComposeGateway", () => {
           ],
         },
       ],
-    });
+    };
+    submitFreezoneVideoCompose.mockResolvedValue(task);
+
+    await expect(
+      freezoneVideoComposeGateway.submit("project-1", request),
+    ).resolves.toEqual(task);
+    expect(submitFreezoneVideoCompose).toHaveBeenCalledWith(
+      "project-1",
+      request,
+    );
   });
 });

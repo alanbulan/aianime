@@ -47,13 +47,11 @@ import {
   isAudioNode,
   isVideoNode,
 } from "@/features/canvas/domain/canvasNodes";
+import type { CanvasVideoComposeResolution } from "@/features/canvas/domain/videoCompose";
 import {
-  submitFreezoneVideoCompose,
-  fetchFreezoneJobResult,
-  type FreezoneVideoComposeResolution,
-} from "@/api/ops";
-import { uploadCanvasAsset } from "@/features/canvas/composition";
-import { awaitTaskCompletion } from "@/api/tasks";
+  composeCanvasVideo,
+  uploadCanvasAsset,
+} from "@/features/canvas/composition";
 import { VIDEO_CLIP_MIN_DURATION_MS } from "@/features/canvas/domain/videoClipRange";
 import { useViewerImmersiveBody } from "@/features/viewer-kit/useViewerImmersiveBody";
 import {
@@ -468,7 +466,7 @@ export function VideoComposeModal({
   const [exportDialog, setExportDialog] = useState<{
     open: boolean;
     location: "local" | "canvas";
-    resolution: FreezoneVideoComposeResolution;
+    resolution: CanvasVideoComposeResolution;
   }>({ open: false, location: "local", resolution: "1080p" });
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -1519,7 +1517,7 @@ export function VideoComposeModal({
   const runExport = useCallback(
     async (
       target: "local" | "canvas",
-      resolution: FreezoneVideoComposeResolution,
+      resolution: CanvasVideoComposeResolution,
     ) => {
       if (isExporting || !hasExportableClips(timeline)) return;
       // MVP 后端不支持视频重叠合成；导出前拦截并给出明确提示，而不是让后端报错。
@@ -1530,23 +1528,19 @@ export function VideoComposeModal({
       setIsExporting(true);
       setExportError(null);
       try {
-        const payload = buildComposePayload(
-          { ...timeline, resolution },
-          { canvasId, fps: 30 },
-        );
-        const ref = await submitFreezoneVideoCompose(project, payload);
-        await awaitTaskCompletion(ref.task_key, project);
-        const result = await fetchFreezoneJobResult(
-          project,
-          "freezone_video_compose",
-          ref.job_id,
-        );
-        if (!result.url) {
+        const { url } = await composeCanvasVideo({
+          projectId: project,
+          request: buildComposePayload(
+            { ...timeline, resolution },
+            { canvasId, fps: 30 },
+          ),
+        });
+        if (!url) {
           setExportError(t("videoCompose.error.noUrl"));
           return;
         }
-        if (target === "local") await exportToLocal(result.url);
-        else await exportToCanvas(result.url);
+        if (target === "local") await exportToLocal(url);
+        else await exportToCanvas(url);
       } catch (error) {
         setExportError(error instanceof Error ? error.message : String(error));
       } finally {
@@ -1810,7 +1804,7 @@ export function VideoComposeModal({
                         onChange={(e) =>
                           setExportDialog((d) => ({
                             ...d,
-                            resolution: e.target.value as FreezoneVideoComposeResolution,
+                            resolution: e.target.value as CanvasVideoComposeResolution,
                           }))
                         }
                         className="min-w-[160px] rounded-md border border-border bg-muted px-3 py-1.5 text-sm text-foreground outline-none focus:border-primary/45"

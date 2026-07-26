@@ -11851,7 +11851,7 @@ describe("frontend architecture boundaries", () => {
     );
     const adapterPath = resolve(
       SRC_ROOT,
-      "features/canvas/infrastructure/freezoneVideoClipComposeGateway.ts",
+      "features/canvas/infrastructure/freezoneVideoComposeGateway.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
@@ -11873,7 +11873,7 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
-      new Set(["../domain/canvasNodes", "./ports"]),
+      new Set(["../domain/canvasNodes", "./composeCanvasVideo"]),
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
@@ -11883,15 +11883,16 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(applicationSource).toContain("params.startMs / 1000");
     expect(applicationSource).toContain("params.endMs / 1000");
+    expect(applicationSource).toContain("composeCanvasVideo(");
     expect(importSpecifiers(adapterPath)).toEqual([
       "@/api/ops",
-      "../application/composeVideoClip",
+      "../application/composeCanvasVideo",
     ]);
     expect(adapterSource).not.toContain("react");
     expect(adapterSource).not.toContain("@/stores/");
     expect(adapterSource).toContain("submitFreezoneVideoCompose(");
     expect(compositionSource).toContain(
-      "composeGateway: freezoneVideoClipComposeGateway",
+      "composeGateway: freezoneVideoComposeGateway",
     );
     expect(compositionSource).toContain(
       "taskGateway: freezoneGenerationTaskGateway",
@@ -11900,6 +11901,96 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("submitFreezoneVideoCompose");
     expect(videoNode).not.toContain("`track_${id}_video`");
     expect(videoNode).not.toContain("sourceStart: startMs / 1000");
+  });
+
+  it("keeps timeline video composition behind the shared Canvas use case", () => {
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/videoCompose.ts",
+    );
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/composeCanvasVideo.ts",
+    );
+    const timelinePath = resolve(
+      SRC_ROOT,
+      "features/canvas/compose/timelineModel.ts",
+    );
+    const modalPath = resolve(
+      SRC_ROOT,
+      "features/canvas/compose/VideoComposeModal.tsx",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const opsPath = resolve(SRC_ROOT, "api/ops.ts");
+    const oldAdapterPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneVideoClipComposeGateway.ts",
+    );
+    const domainSource = readFileSync(domainPath, "utf8");
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const timelineSource = readFileSync(timelinePath, "utf8");
+    const modalSource = readFileSync(modalPath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const opsSource = readFileSync(opsPath, "utf8");
+    const declaration = ["export async function", "composeCanvasVideo("].join(
+      " ",
+    );
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(importSpecifiers(domainPath)).toEqual([]);
+    expect(domainSource).toContain(
+      "export interface CanvasVideoComposeRequest",
+    );
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set([
+        "../domain/videoCompose",
+        "./completeCanvasMediaGenerationTask",
+        "./ports",
+      ]),
+    );
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).toContain(
+      "completeCanvasMediaGenerationTask(",
+    );
+    expect(implementationOwners).toEqual([
+      "features/canvas/application/composeCanvasVideo.ts",
+    ]);
+    expect(importSpecifiers(timelinePath)).toContain(
+      "@/features/canvas/domain/videoCompose",
+    );
+    expect(importSpecifiers(timelinePath)).not.toContain("@/api/ops");
+    expect(timelineSource).toContain(
+      "): CanvasVideoComposeRequest {",
+    );
+    expect(importSpecifiers(modalPath)).toContain(
+      "@/features/canvas/composition",
+    );
+    expect(importSpecifiers(modalPath)).toContain(
+      "@/features/canvas/domain/videoCompose",
+    );
+    expect(importSpecifiers(modalPath)).not.toContain("@/api/ops");
+    expect(importSpecifiers(modalPath)).not.toContain("@/api/tasks");
+    expect(modalSource).toContain("await composeCanvasVideo({");
+    expect(modalSource).not.toContain("submitFreezoneVideoCompose");
+    expect(modalSource).not.toContain("fetchFreezoneJobResult");
+    expect(modalSource).not.toContain("awaitTaskCompletion");
+    expect(compositionSource).toContain(
+      "composeCanvasVideoUseCase(params, {",
+    );
+    expect(opsSource).toContain(
+      "@/features/canvas/domain/videoCompose",
+    );
+    expect(opsSource).not.toContain("FreezoneVideoComposeResolution");
+    expect(opsSource).not.toContain("FreezoneVideoComposePayload");
+    expect(existsSync(oldAdapterPath)).toBe(false);
   });
 
   it("keeps video subtitle erasure in one application use case", () => {

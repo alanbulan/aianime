@@ -2,10 +2,8 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { CanvasTaskResultGateway } from "./ports";
-import {
-  composeVideoClip,
-  type VideoClipComposeGateway,
-} from "./composeVideoClip";
+import { composeVideoClip } from "./composeVideoClip";
+import type { CanvasVideoComposeGateway } from "./composeCanvasVideo";
 
 function dependencies(options?: { resultUrl?: string }) {
   const task = {
@@ -13,7 +11,7 @@ function dependencies(options?: { resultUrl?: string }) {
     task_key: "task-1",
     task_type: "freezone_video_compose",
   };
-  const composeGateway: VideoClipComposeGateway = {
+  const composeGateway: CanvasVideoComposeGateway = {
     submit: vi.fn().mockResolvedValue(task),
   };
   const taskGateway: CanvasTaskResultGateway = {
@@ -47,11 +45,21 @@ describe("composeVideoClip", () => {
 
     expect(deps.composeGateway.submit).toHaveBeenCalledWith("project-1", {
       resolution: "1080p",
-      trackId: "track_video-1_video",
-      itemId: "item_video-1_1234",
-      sourceUrl: "source.mp4",
-      sourceStartSeconds: 0.25,
-      sourceEndSeconds: 2.75,
+      tracks: [
+        {
+          trackId: "track_video-1_video",
+          kind: "video",
+          items: [
+            {
+              itemId: "item_video-1_1234",
+              sourceUrl: "source.mp4",
+              timelineStart: 0,
+              sourceStart: 0.25,
+              sourceEnd: 2.75,
+            },
+          ],
+        },
+      ],
     });
     expect(deps.taskGateway.awaitCompletion).toHaveBeenCalledWith(
       "task-1",

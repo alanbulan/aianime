@@ -1532,6 +1532,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百二十四批已将资产库的图片/视频/音频媒体类型、上传/人物/场景/道具来源、归一化条目和跨节点选择 DTO 迁入唯一领域模块 `assetLibrary`，三个节点不再从 `AssetLibraryModal` 反向导入类型；application 定义资产库列表、主线同步、上传条目注册和删除 gateway，唯一 `freezoneAssetLibraryGateway` infrastructure 适配器负责兼容 `items/data/characters/list/records` 容器、历史字段别名、媒体 URL 与传输 payload 投影，轻量 `assetLibraryComposition` 完成装配；`AssetLibraryModal` 删除 transport DTO、兼容归一化和四个 Freezone API 直连，只保留打开自动同步、静默加载、上传状态、选择与错误展示，原有非图片上传关闭超时、上传后刷新、仅上传来源可删除及关闭取消回填行为不变，由 835 行降至 768 行；旧 `api/ops` 删除重复媒体/来源类型并复用领域契约，由 2457 行降至 2454 行，领域、application、adapter 和 composition 分别为 31、21、105、25 行；adapter 测试 3 项、新增后的架构门禁 179 项及前端 `tsc -b --pretty false` 均通过。
 
+第二百二十五批已将视频合成分辨率、轨道、片段和完整请求 DTO 从 `api/ops` 迁入唯一领域模块 `videoCompose`，纯时间线模型不再依赖 transport；新增唯一通用 application 用例 `composeCanvasVideo`，统一完整请求提交、任务等待、SSE `output_url` 优先读取及专用结果接口回退，时间线弹窗与单片段剪辑共用该实现；原 `composeVideoClip` 只保留画质、节点、裁剪毫秒与单轨请求投影，由 69 行降至 59 行，原 27 行单片段 adapter 删除并由 10 行通用 `freezoneVideoComposeGateway` 唯一替代，不保留旧文件或兼容别名；`VideoComposeModal` 删除 `api/ops`、`api/tasks` 直连和重复完成流程，由 2782 行降至 2776 行，时间线模型保持 307 行，领域模块与通用用例分别为 31、47 行；`api/ops` 删除重复合成类型并复用领域请求，由 2454 行降至 2413 行；通用用例、单片段回归、adapter 与时间线模型共 4 个测试文件 21 项、新增后的架构门禁 180 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。
