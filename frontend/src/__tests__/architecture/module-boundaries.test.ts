@@ -1446,6 +1446,62 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("event.key.toLowerCase() !== 'm'");
   });
 
+  it("keeps Canvas connection-gesture assembly in one presentation controller", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasConnectionGestureSurfaceController.ts",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(controllerPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        (specifier.startsWith("@/stores/") &&
+          specifier !== "@/stores/canvasStore") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declaration = [
+      "export function",
+      "useCanvasConnectionGestureSurfaceController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+    const childControllers = [
+      "./useCanvasNodeHover",
+      "./useCanvasConnectionGestureController",
+    ];
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasConnectionGestureSurfaceController.ts",
+    ]);
+    for (const childController of childControllers) {
+      expect(controllerSource).toContain(childController);
+      expect(canvasView).not.toContain(
+        childController.replace("./", "./hooks/"),
+      );
+    }
+    expect(controllerSource).toContain("@/stores/canvasStore");
+    expect(controllerSource).toContain(
+      "clearHoveredNodeTimer: hover.clearHoveredNodeTimer",
+    );
+    expect(controllerSource).toContain("setHoveredNodeId,");
+    expect(canvasView).toContain(
+      "./hooks/useCanvasConnectionGestureSurfaceController",
+    );
+    expect(canvasView).not.toContain("state.hoveredNodeId");
+    expect(canvasView).not.toContain("state.setHoveredNodeId");
+  });
+
   it("keeps Canvas transient node UI timing in presentation hooks", () => {
     const hoverHookPath = resolve(
       SRC_ROOT,
@@ -1489,7 +1545,10 @@ describe("frontend architecture boundaries", () => {
       ["features/canvas/hooks/useCanvasNodeHover.ts"],
       ["features/canvas/hooks/useCanvasNodePlacementConfirm.ts"],
     ]);
-    expect(canvasView).toContain("./hooks/useCanvasNodeHover");
+    expect(canvasView).toContain(
+      "./hooks/useCanvasConnectionGestureSurfaceController",
+    );
+    expect(canvasView).not.toContain("./hooks/useCanvasNodeHover");
     expect(canvasView).toContain("./hooks/useCanvasRenderSurfaceController");
     expect(canvasView).not.toContain("./hooks/useCanvasNodePlacementConfirm");
     expect(canvasView).not.toContain("hoveredNodeClearTimerRef");
@@ -5595,6 +5654,9 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("planCanvasBatchConnectTarget(");
     expect(gestureController).toContain("./useCanvasBatchConnectionController");
     expect(canvasView).toContain(
+      "./hooks/useCanvasConnectionGestureSurfaceController",
+    );
+    expect(canvasView).not.toContain(
       "./hooks/useCanvasConnectionGestureController",
     );
     expect(canvasView).not.toContain(
@@ -5794,6 +5856,9 @@ describe("frontend architecture boundaries", () => {
       "./useCanvasReactFlowConnectionController",
     );
     expect(canvasView).toContain(
+      "./hooks/useCanvasConnectionGestureSurfaceController",
+    );
+    expect(canvasView).not.toContain(
       "./hooks/useCanvasConnectionGestureController",
     );
     expect(canvasView).not.toContain(
@@ -5894,6 +5959,9 @@ describe("frontend architecture boundaries", () => {
     );
     expect(gestureController).toContain("suppressNextPaneClick()");
     expect(canvasView).toContain(
+      "./hooks/useCanvasConnectionGestureSurfaceController",
+    );
+    expect(canvasView).not.toContain(
       "./hooks/useCanvasConnectionGestureController",
     );
     expect(canvasView).not.toContain(

@@ -14,9 +14,8 @@ import { useAppStore } from '@/stores/app-store';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
 import { CanvasStageView } from './ui/CanvasStageView';
 import { useCanvasGraphEditingSurfaceController } from './hooks/useCanvasGraphEditingSurfaceController';
-import { useCanvasConnectionGestureController } from './hooks/useCanvasConnectionGestureController';
+import { useCanvasConnectionGestureSurfaceController } from './hooks/useCanvasConnectionGestureSurfaceController';
 import { useCanvasMediaSurfaceController } from './hooks/useCanvasMediaSurfaceController';
-import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
 import { useCanvasNodeCreationSurfaceController } from './hooks/useCanvasNodeCreationSurfaceController';
 import { useCanvasCommandSurfaceController } from './hooks/useCanvasCommandSurfaceController';
 import { useCanvasProjectSurfaceController } from './hooks/useCanvasProjectSurfaceController';
@@ -39,16 +38,6 @@ export function Canvas({
   const reactFlowStore = useStoreApi();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  // hover 节点 id 放在 store 里：除了喂给 NodeSpawnPlusOverlay 的「+」，
-  // NodeSideActionRail 的上传/替换按钮栏也要据此「hover 才显示」。
-  const hoveredNodeId = useCanvasStore((state) => state.hoveredNodeId);
-  const setHoveredNodeId = useCanvasStore((state) => state.setHoveredNodeId);
-  const {
-    clearHoveredNodeTimer,
-    scheduleHoveredNodeClear,
-    handleNodeMouseEnter,
-    handleNodeMouseLeave,
-  } = useCanvasNodeHover(setHoveredNodeId);
   const nodes = useCanvasStore((state) => state.nodes);
   const edges = useCanvasStore((state) => state.edges);
   const {
@@ -203,6 +192,11 @@ export function Canvas({
   });
 
   const {
+    hoveredNodeId,
+    clearHoveredNodeTimer,
+    scheduleHoveredNodeClear,
+    handleNodeMouseEnter,
+    handleNodeMouseLeave,
     isPlusConnectDragging,
     handlePlusOpenMenu,
     handlePlusConnectDragStart,
@@ -214,12 +208,10 @@ export function Canvas({
     handleBatchConnectDragStart,
     handleBatchConnectDragMove,
     handleBatchConnectDragEnd,
-  } = useCanvasConnectionGestureController({
+  } = useCanvasConnectionGestureSurfaceController({
     wrapperRef,
     nodes,
     screenToFlowPosition,
-    clearHoveredNodeTimer,
-    setHoveredNodeId,
     pendingConnection: pendingConnectStart,
     prepareConnectionStart,
     prepareBatchConnectionDrag,
