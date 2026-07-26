@@ -26,7 +26,6 @@ import { useShallow } from 'zustand/react/shallow';
 import { CreditDisplayHiddenProvider } from '@/components/credits/credit-visual';
 import { isCeRuntime } from '@/lib/runtime-config';
 import { useCanvasStore } from '@/stores/canvasStore';
-import { findLinkedCapturePartnerIds } from '@/features/canvas/domain/canvasCapturePartners';
 import { resolveCanvasSelectionDeletion } from '@/features/canvas/domain/canvasSelectionDeletion';
 import { useAppStore } from '@/stores/app-store';
 import { getSkillRegistry } from '@/api/skills';
@@ -119,6 +118,7 @@ import { useCanvasQuickAddController } from './hooks/useCanvasQuickAddController
 import { useCanvasReactFlowConnectionController } from './hooks/useCanvasReactFlowConnectionController';
 import { useCanvasKeyboardShortcuts } from './hooks/useCanvasKeyboardShortcuts';
 import { useCanvasLifecycle } from './hooks/useCanvasLifecycle';
+import { useCanvasLinkedCaptureDragController } from './hooks/useCanvasLinkedCaptureDragController';
 import { useCanvasMarqueeSelection } from './hooks/useCanvasMarqueeSelection';
 import { useCanvasMediaPaste } from './hooks/useCanvasMediaPaste';
 import { useCanvasMediaDropController } from './hooks/useCanvasMediaDropController';
@@ -237,12 +237,6 @@ export function Canvas({
     skillById,
   } = useCanvasSkillRegistry(getSkillRegistry);
 
-  // 「导演世界」源节点 ←→「导演世界输出」组联动拖动：拖动开始时记下另一方(partner)及
-  // 其起始坐标,拖动期间按相同位移把 partner 一起移动。null = 当前拖动不涉及联动。
-  const linkedDragRef = useRef<{
-    partnerStarts: Map<string, { x: number; y: number }>;
-    draggedStart: { x: number; y: number };
-  } | null>(null);
   const nodes = useCanvasStore((state) => state.nodes);
   const edges = useCanvasStore((state) => state.edges);
   // 连线可见性：隐藏时只给 ReactFlow 的边打 `hidden`，真实 edges 一动不动（见
@@ -1035,7 +1029,7 @@ export function Canvas({
     },
     [],
   );
-  const commitAltDragNodePositions = useCallback(
+  const commitDragNodePositions = useCallback(
     (updates: CanvasAltDragPositionCommit[]) => {
       applyNodesChange(updates.map((update) => ({
         id: update.nodeId,
@@ -1056,7 +1050,7 @@ export function Canvas({
     selectedNodeIds,
     duplicateNodes,
     elevateNodes: elevateAltDragCopyNodes,
-    commitNodePositions: commitAltDragNodePositions,
+    commitNodePositions: commitDragNodePositions,
     selectNode: setSelectedNode,
   });
   const {
@@ -1066,6 +1060,14 @@ export function Canvas({
   } = useCanvasGroupFitDragController({
     getGraph: getCanvasGraph,
     fitGroupToChildren,
+  });
+  const {
+    beginLinkedDrag: beginLinkedCaptureDrag,
+    updateLinkedDrag: updateLinkedCaptureDrag,
+    finishLinkedDrag: finishLinkedCaptureDrag,
+  } = useCanvasLinkedCaptureDragController({
+    getGraph: getCanvasGraph,
+    commitNodePositions: commitDragNodePositions,
   });
   const {
     handleNodesChange,
@@ -1141,74 +1143,37 @@ export function Canvas({
         node.id,
         draggedNodes?.map((draggedNode) => draggedNode.id) ?? [],
       );
-      linkedDragRef.current = null;
-      if (!event.altKey) {
-        const stateNodes = useCanvasStore.getState().nodes;
-        // 单节点拖动时,若被拖的是「导演世界」源节点或其「导演世界输出」组,记下另一方
-        // 并准备按相同位移联动(多选/框选拖动不联动,交给用户自行摆放)。
-        if (!draggedNodes || draggedNodes.length <= 1) {
-          const stateEdges = useCanvasStore.getState().edges;
-          const partnerIds = findLinkedCapturePartnerIds(node.id, stateNodes, stateEdges);
-          if (partnerIds.length > 0) {
-            const nodeById = new Map(stateNodes.map((n) => [n.id, n] as const));
-            const draggedNode = nodeById.get(node.id);
-            const partnerStarts = new Map<string, { x: number; y: number }>();
-            for (const partnerId of partnerIds) {
-              const partner = nodeById.get(partnerId);
-              if (partner && !partner.parentId) {
-                partnerStarts.set(partnerId, { x: partner.position.x, y: partner.position.y });
-              }
-            }
-            if (draggedNode && partnerStarts.size > 0) {
-              linkedDragRef.current = {
-                partnerStarts,
-                draggedStart: { x: draggedNode.position.x, y: draggedNode.position.y },
-              };
-            }
-          }
-        }
-      }
-
+      beginLinkedCaptureDrag(
+        event.altKey,
+        node.id,
+        draggedNodes?.length ?? 0,
+      );
       beginAltDragCopy(event.altKey, node.id);
     },
-    [beginAltDragCopy, beginGroupFitNodeDrag]
+    [beginAltDragCopy, beginGroupFitNodeDrag, beginLinkedCaptureDrag]
   );
 
   const handleNodeDrag = useCallback(
     (_event: ReactMouseEvent, node: CanvasNode) => {
-      // 联动拖动:把 partner(源节点或输出组)按被拖节点的位移同步移动。移动组时
-      // 其子节点(相对坐标)会自动跟随,无需额外处理。
-      const linked = linkedDragRef.current;
-      if (linked) {
-        const linkDeltaX = node.position.x - linked.draggedStart.x;
-        const linkDeltaY = node.position.y - linked.draggedStart.y;
-        const linkChanges = [...linked.partnerStarts].map(([partnerId, start]) => ({
-          id: partnerId,
-          type: 'position' as const,
-          position: { x: start.x + linkDeltaX, y: start.y + linkDeltaY },
-          dragging: true as const,
-        }));
-        if (linkChanges.length > 0) {
-          applyNodesChange(linkChanges);
-        }
-      }
-
+      updateLinkedCaptureDrag(node.position);
       updateAltDragCopy(node.id, node.position);
     },
-    [applyNodesChange, updateAltDragCopy]
+    [updateAltDragCopy, updateLinkedCaptureDrag]
   );
 
   const handleNodeDragStop = useCallback(
     (_event: ReactMouseEvent, node: CanvasNode) => {
       clearSnapAlignment();
-      // 联动拖动收尾:partner 的最终位置已在拖动期间(dragging:true)写入,松手时
-      // React Flow 对被拖节点发出的 dragging:false 变更会统一压入同一条撤销记录,
-      // 故这里只需清掉引用,不再额外提交以免产生重复的 undo 步骤。
-      linkedDragRef.current = null;
+      finishLinkedCaptureDrag();
       finishGroupFitDrag();
       finishAltDragCopy(node.id, node.position);
     },
-    [clearSnapAlignment, finishAltDragCopy, finishGroupFitDrag]
+    [
+      clearSnapAlignment,
+      finishAltDragCopy,
+      finishGroupFitDrag,
+      finishLinkedCaptureDrag,
+    ]
   );
 
   const handleSelectionDragStart = useCallback(

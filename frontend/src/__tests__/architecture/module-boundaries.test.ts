@@ -1044,6 +1044,13 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/domain/canvasCapturePartners.ts",
     );
     const partnersModel = readFileSync(partnersPath, "utf8");
+    const linkedDragController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/hooks/useCanvasLinkedCaptureDragController.ts",
+      ),
+      "utf8",
+    );
     const canvasView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -1073,7 +1080,9 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/domain/canvasCapturePartners.ts",
     ]);
     expect(partnersModel).toContain(ruleDeclaration);
-    expect(canvasView).toContain(
+    expect(linkedDragController).toContain("../domain/canvasCapturePartners");
+    expect(linkedDragController).toContain("findLinkedCapturePartnerIds(");
+    expect(canvasView).not.toContain(
       "@/features/canvas/domain/canvasCapturePartners",
     );
     expect(canvasView).not.toContain(ruleDeclaration);
@@ -2248,6 +2257,55 @@ describe("frontend architecture boundaries", () => {
     );
     expect(canvasView).not.toContain("groupFitDragRef");
     expect(canvasView).not.toContain("fitGroupToChildren(groupId)");
+  });
+
+  it("keeps Canvas linked-capture drag lifecycle in one presentation controller", () => {
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasLinkedCaptureDragController.ts",
+    );
+    const hookModel = readFileSync(hookPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(hookPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition" ||
+        specifier === "@/features/canvas/nodeFactoryComposition",
+    );
+    const declaration = [
+      "export function",
+      "useCanvasLinkedCaptureDragController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasLinkedCaptureDragController.ts",
+    ]);
+    expect(hookModel).toContain("findLinkedCapturePartnerIds(");
+    expect(hookModel).toContain("const linkedDragRef = useRef<");
+    expect(hookModel).toContain("draggedNodeCount > 1");
+    expect(hookModel).toContain("partner && !partner.parentId");
+    expect(hookModel).toContain("dragging: true as const");
+    expect(canvasView).toContain("./hooks/useCanvasLinkedCaptureDragController");
+    expect(canvasView).toContain("beginLinkedCaptureDrag(");
+    expect(canvasView).toContain("updateLinkedCaptureDrag(node.position)");
+    expect(canvasView).toContain("finishLinkedCaptureDrag()");
+    expect(canvasView).not.toContain("linkedDragRef");
+    expect(canvasView).not.toContain("partnerStarts");
+    expect(canvasView).not.toContain("findLinkedCapturePartnerIds(");
   });
 
   it("keeps Canvas Beat Context prefetch projection outside the view", () => {
