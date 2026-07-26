@@ -9994,6 +9994,52 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain(declarations[4]);
   });
 
+  it("keeps VideoNode camera movement trigger in one presentation view", () => {
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/CameraMovementChip.tsx",
+    );
+    const viewSource = readFileSync(viewPath, "utf8");
+    const videoNode = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(viewPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declaration = ["export function", "CameraMovementChip("].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/nodes/CameraMovementChip.tsx",
+    ]);
+    expect(viewSource).toContain("createPortal(");
+    expect(viewSource).toContain('window.addEventListener("resize"');
+    expect(viewSource).toContain('document.addEventListener("mousedown"');
+    expect(viewSource).toContain("findCameraMovementPreset(");
+    expect(videoNode).toContain(
+      "@/features/canvas/nodes/CameraMovementChip",
+    );
+    expect(videoNode).toContain("<CameraMovementChip");
+    expect(videoNode).not.toContain("interface CameraMovementChipProps");
+    expect(videoNode).not.toContain(
+      "CAMERA_MOVEMENT_POPOVER_MAX_HEIGHT",
+    );
+  });
+
   it("keeps box-selection projection in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
