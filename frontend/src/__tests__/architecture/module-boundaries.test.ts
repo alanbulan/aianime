@@ -10098,6 +10098,67 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).not.toContain("<Sparkles");
   });
 
+  it("keeps VideoNode media status views in one presentation module", () => {
+    const viewPath = resolve(
+      SRC_ROOT,
+      "features/canvas/nodes/VideoNodeMediaStatus.tsx",
+    );
+    const viewSource = readFileSync(viewPath, "utf8");
+    const videoNode = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/nodes/VideoNode.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(viewPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declarations = [
+      ["export function", "VideoUploadingState("].join(" "),
+      ["export function", "VideoGenerationHistoryPreview("].join(" "),
+      ["export function", "VideoGeneratingState("].join(" "),
+      ["export function", "VideoGenerationErrorState("].join(" "),
+      ["export function", "VideoLoadErrorOverlay("].join(" "),
+      ["export function", "VideoMetadataLoadingOverlay("].join(" "),
+    ];
+    const implementationOwners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual(
+      declarations.map(() => [
+        "features/canvas/nodes/VideoNodeMediaStatus.tsx",
+      ]),
+    );
+    expect(viewSource).toContain("<NodeGenerationOverlay");
+    expect(viewSource).toContain("<RegenerateButton");
+    expect(viewSource).toContain("新视频生成中…");
+    expect(videoNode).toContain(
+      "@/features/canvas/nodes/VideoNodeMediaStatus",
+    );
+    for (const declaration of declarations) {
+      const componentName = declaration.slice(
+        declaration.lastIndexOf(" ") + 1,
+        -1,
+      );
+      expect(videoNode).toContain(`<${componentName}`);
+    }
+    expect(videoNode).not.toContain("<NodeGenerationOverlay");
+    expect(videoNode).not.toContain("<RegenerateButton");
+    expect(videoNode).not.toContain("新视频生成中…");
+  });
+
   it("keeps VideoNode camera movement trigger in one presentation view", () => {
     const viewPath = resolve(
       SRC_ROOT,

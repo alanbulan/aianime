@@ -1468,6 +1468,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第一百九十二批已将 `VideoNode` 的右侧上传 rail、超分占位、已连接空态和首帧/首尾帧派生入口迁入唯一 `VideoNodeEmptyState` presentation view；上传与两个派生按钮继续阻止节点点击冒泡，上游含视频或已有连线时隐藏不适用 CTA、超分节点只显示等待占位的条件保持不变，上传文件选择和派生节点/连线命令仍由 `VideoNode` 唯一编排，新视图只接收明确状态与回调，不保留第二套 JSX，节点源码由 2845 行降至 2793 行，独立视图 113 行；命令路由与四类空态测试 4 项、架构门禁 149 项及前端 `tsc -b --pretty false` 均通过。
 
+第一百九十三批已将 `VideoNode` 的上传中、生成中历史预览、生成进度、生成失败、视频加载失败和元数据加载六类状态 JSX 迁入唯一 `VideoNodeMediaStatus` presentation 模块；历史预览返回、重新生成事件隔离、请求 ID 诊断、预览底图与进度覆盖层以及加载遮罩保持原实现，`VideoNode` 继续唯一决定“已有视频/上传/历史预览/生成/失败/空态”的优先级并传入已解析 URL 和命令，新模块不依赖 Store、API、application 或 infrastructure，节点源码由 2793 行降至 2736 行，状态视图 152 行；状态渲染与命令路由测试 5 项、架构门禁 150 项及前端 `tsc -b --pretty false` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

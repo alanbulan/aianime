@@ -16,12 +16,10 @@ import {
   type NodeProps,
 } from "@xyflow/react";
 import {
-  AlertTriangle,
   ArrowUp,
   Languages,
   Loader2,
   Video as VideoIcon,
-  X as XIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -120,7 +118,6 @@ import {
   NODE_OPS_PANEL_ENTER_CLASS,
   OperationPanelShell,
 } from "@/features/canvas/ui/OperationPanelShell";
-import { NodeGenerationOverlay } from "@/features/canvas/ui/NodeGenerationOverlay";
 import {
   CANVAS_NODE_INPUT_BODY_FRAME_CLASS,
   CANVAS_NODE_INPUT_BODY_SELECTED_FRAME_CLASS,
@@ -134,7 +131,6 @@ import {
   hasMainlineContexts,
   NodeContextBadges,
 } from "@/features/freezone/context/NodeContextBadges";
-import { RegenerateButton } from "@/features/canvas/ui/RegenerateButton";
 import {
   NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,
@@ -166,6 +162,14 @@ import {
   VideoNodeEmptyState,
   VideoUploadActionRail,
 } from "@/features/canvas/nodes/VideoNodeEmptyState";
+import {
+  VideoGeneratingState,
+  VideoGenerationErrorState,
+  VideoGenerationHistoryPreview,
+  VideoLoadErrorOverlay,
+  VideoMetadataLoadingOverlay,
+  VideoUploadingState,
+} from "@/features/canvas/nodes/VideoNodeMediaStatus";
 import { resolveVideoGenerationModeOptions } from "@/features/canvas/nodes/videoGenerationModeOptions";
 import {
   CAMERA_MOVEMENT_PRESETS,
@@ -2292,86 +2296,30 @@ export const VideoNode = memo(
               }}
             />
           ) : isUploading ? (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-text-muted/85">
-              <Loader2 className="h-7 w-7 animate-spin opacity-70" />
-              <span className="px-4 text-center text-[12px] leading-6">
-                {t("node.videoNode.uploading")}
-              </span>
-            </div>
+            <VideoUploadingState />
           ) : isGenerating && historyPreviewUrl ? (
-            // 生成进行中，但用户点了历史记录预览：临时播放那条历史视频，新视频
-            // 仍在后台生成。顶部 pill 提示「生成中」，右上「返回」回到 loading。
-            <div className="relative h-full w-full">
-              <video
-                src={resolveImageDisplayUrl(historyPreviewUrl)}
-                className="h-full w-full object-contain"
-                controls
-                playsInline
-                preload="metadata"
-                onClick={(event) => event.stopPropagation()}
-              />
-              <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between gap-2 p-2">
-                <span className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full bg-media/60 px-2.5 py-1 text-[11px] text-media-foreground/90 backdrop-blur">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  新视频生成中…
-                </span>
-                <button
-                  type="button"
-                  className="nodrag pointer-events-auto inline-flex items-center gap-1 rounded-full bg-media/60 px-2.5 py-1 text-[11px] text-media-foreground/90 backdrop-blur transition-colors hover:bg-media/75"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setHistoryPreviewUrl(null);
-                  }}
-                >
-                  <XIcon className="h-3 w-3" />
-                  返回
-                </button>
-              </div>
-            </div>
+            <VideoGenerationHistoryPreview
+              videoUrl={resolveImageDisplayUrl(historyPreviewUrl)}
+              onClose={() => setHistoryPreviewUrl(null)}
+            />
           ) : isGenerating ? (
-            <div className="relative h-full w-full">
-              {data.previewImageUrl ? (
-                <img
-                  src={resolveImageDisplayUrl(data.previewImageUrl)}
-                  alt=""
-                  className="h-full w-full object-contain"
-                  draggable={false}
-                />
-              ) : null}
-              <NodeGenerationOverlay
-                startedAt={data.generationStartedAt ?? null}
-                durationMs={data.generationDurationMs}
-                hasBackground={Boolean(data.previewImageUrl)}
-              />
-            </div>
+            <VideoGeneratingState
+              previewImageUrl={
+                data.previewImageUrl
+                  ? resolveImageDisplayUrl(data.previewImageUrl)
+                  : null
+              }
+              startedAt={data.generationStartedAt ?? null}
+              durationMs={data.generationDurationMs}
+            />
           ) : hasGenerationError ? (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-2 px-4 text-destructive">
-              <AlertTriangle className="h-7 w-7 opacity-90" />
-              <span className="text-center text-[12px] font-medium leading-5 text-destructive">
-                视频生成失败
-              </span>
-              <span className="max-h-[64px] overflow-y-auto break-words text-center text-[11px] leading-5 text-destructive [overflow-wrap:anywhere]">
-                {generationError}
-              </span>
-              {generationErrorRequestId && (
-                <div className="flex w-full max-w-[240px] items-center gap-1 rounded bg-destructive/10 px-2 py-1">
-                  <span className="shrink-0 text-[10px] text-destructive">请求ID</span>
-                  <code
-                    className="min-w-0 flex-1 truncate font-mono text-[10px] text-destructive"
-                    title={generationErrorRequestId}
-                  >
-                    {generationErrorRequestId}
-                  </code>
-                </div>
-              )}
-              <div className="mt-1">
-                <RegenerateButton
-                  onClick={() => void handleSubmit()}
-                  busy={isGenerating}
-                  disabled={submitDisabled}
-                />
-              </div>
-            </div>
+            <VideoGenerationErrorState
+              error={generationError}
+              requestId={generationErrorRequestId}
+              busy={isGenerating}
+              disabled={submitDisabled}
+              onRegenerate={() => void handleSubmit()}
+            />
           ) : (
             <VideoNodeEmptyState
               isUpscaleNode={Boolean(data.isUpscaleNode)}
@@ -2383,16 +2331,11 @@ export const VideoNode = memo(
           )}
 
           {videoSource && videoLoadError && !isGenerating && !isUploading && (
-            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 bg-media/80 px-4 text-center text-destructive">
-              <AlertTriangle className="h-6 w-6 text-destructive" />
-              <span className="text-[12px] font-medium">视频加载失败</span>
-            </div>
+            <VideoLoadErrorOverlay />
           )}
 
           {videoSource && !hasMetadata && !isUploading && !isGenerating && (
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-bg-dark/40">
-              <Loader2 className="h-6 w-6 animate-spin text-text-muted/70" />
-            </div>
+            <VideoMetadataLoadingOverlay />
           )}
 
           {videoSource &&
