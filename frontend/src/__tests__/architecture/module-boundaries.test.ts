@@ -3278,6 +3278,13 @@ describe("frontend architecture boundaries", () => {
     );
     const hydrationModel = readFileSync(hydrationPath, "utf8");
     const normalizationModel = readFileSync(normalizationPath, "utf8");
+    const documentLifecycleSlice = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasDocumentLifecycleSlice.ts",
+      ),
+      "utf8",
+    );
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
@@ -3327,7 +3334,10 @@ describe("frontend architecture boundaries", () => {
     expect(hydrationModel).toContain(
       "export function createDefaultStoryboardExportOptions(",
     );
-    expect(canvasStore).toContain(
+    expect(documentLifecycleSlice).toContain(
+      "../application/canvasDataNormalization",
+    );
+    expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasDataNormalization",
     );
     for (const ruleName of legacyRuleNames) {
@@ -8041,6 +8051,53 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain("applyNodeChanges<CanvasNode>");
     expect(canvasStore).not.toContain("applyEdgeChanges<CanvasEdge>");
     expect(canvasStore).not.toContain("prepareCanvasReactFlowConnection(");
+    expect(sliceSource).not.toContain("@/stores/canvasStore");
+  });
+
+  it("keeps Canvas document lifecycle in one Zustand slice", () => {
+    const slicePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/zustandCanvasDocumentLifecycleSlice.ts",
+    );
+    const sliceSource = readFileSync(slicePath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const canvasStateHeader = canvasStore.match(
+      /interface CanvasState[\s\S]*?\{/,
+    )?.[0];
+    const implementations = [
+      ["setCanvasData", "(nodes, edges, history) {"],
+      ["applyCanvasDataEdit", "(nodes, edges) {"],
+      ["hydrateCanvasDraft", "(draft) {"],
+      ["clearCanvas", "() {"],
+      ["acknowledgePendingClear", "() {"],
+    ].map(([name, parameters]) => `${name}${parameters}`);
+
+    for (const implementation of implementations) {
+      const owners = sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(implementation))
+        .map(relativeSource)
+        .sort();
+      expect(owners).toEqual([
+        "features/canvas/infrastructure/zustandCanvasDocumentLifecycleSlice.ts",
+      ]);
+    }
+
+    expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
+      "../domain/canvasHistory",
+      "../domain/canvasMutation",
+      "../domain/canvasNodes",
+      "../application/canvasDataNormalization",
+    ]));
+    expect(canvasStateHeader).toContain("CanvasDocumentLifecycleSlice");
+    expect(canvasStore).toContain(
+      "...createZustandCanvasDocumentLifecycleSlice({",
+    );
+    expect(canvasStore).not.toContain("userEditsSinceHydrate: 0");
+    expect(canvasStore).not.toContain("pendingClearIntent: false");
+    expect(canvasStore).not.toContain("normalizeCanvasData(");
     expect(sliceSource).not.toContain("@/stores/canvasStore");
   });
 });

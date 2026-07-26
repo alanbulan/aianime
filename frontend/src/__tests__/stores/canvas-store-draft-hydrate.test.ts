@@ -1,8 +1,21 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
+import {
+  CANVAS_NODE_TYPES,
+  NODE_TOOL_TYPES,
+  type CanvasNode,
+} from "@/features/canvas/domain/canvasNodes";
 import { useCanvasStore } from "@/stores/canvasStore";
+
+function sourceNode(): CanvasNode {
+  return {
+    id: "source",
+    type: CANVAS_NODE_TYPES.upload,
+    position: { x: 0, y: 0 },
+    data: {},
+  };
+}
 
 describe("canvasStore draft hydrate", () => {
   beforeEach(() => {
@@ -44,5 +57,58 @@ describe("canvasStore draft hydrate", () => {
     expect(state.userEditsSinceHydrate).toBe(4);
     expect(state.lastMutationSource).toBe("manual_clear");
     expect(state.pendingClearIntent).toBe(true);
+  });
+
+  it("resets mutation state when replacing the loaded canvas", () => {
+    useCanvasStore.getState().hydrateCanvasDraft({
+      nodes: [sourceNode()],
+      edges: [],
+      mutation: {
+        userEditsSinceHydrate: 4,
+        lastMutationSource: "manual_clear",
+        pendingClearIntent: true,
+      },
+    });
+
+    useCanvasStore.getState().setCanvasData([sourceNode()], []);
+
+    expect(useCanvasStore.getState()).toMatchObject({
+      userEditsSinceHydrate: 0,
+      lastMutationSource: null,
+      pendingClearIntent: false,
+    });
+  });
+
+  it("commits an external edit with history and UI cleanup", () => {
+    const source = sourceNode();
+    const store = useCanvasStore.getState();
+    store.setCanvasData([source], []);
+    store.setSelectedNode(source.id);
+    store.openToolDialog({ nodeId: source.id, toolType: NODE_TOOL_TYPES.crop });
+
+    useCanvasStore.getState().applyCanvasDataEdit([], []);
+
+    expect(useCanvasStore.getState()).toMatchObject({
+      nodes: [],
+      selectedNodeId: null,
+      activeToolDialog: null,
+      lastMutationSource: "delete_to_empty",
+    });
+    expect(useCanvasStore.getState().history.past).toHaveLength(1);
+  });
+
+  it("records and acknowledges a one-shot manual clear intent", () => {
+    useCanvasStore.getState().setCanvasData([sourceNode()], []);
+
+    useCanvasStore.getState().clearCanvas();
+    expect(useCanvasStore.getState()).toMatchObject({
+      nodes: [],
+      lastMutationSource: "manual_clear",
+      pendingClearIntent: true,
+    });
+    expect(useCanvasStore.getState().history.past).toHaveLength(1);
+
+    useCanvasStore.getState().acknowledgePendingClear();
+    expect(useCanvasStore.getState().pendingClearIntent).toBe(false);
   });
 });

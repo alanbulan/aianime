@@ -12,16 +12,13 @@ import {
 } from '@/features/canvas/domain/canvasNodes';
 import {
   createSnapshot,
-  normalizeHistory,
   pushSnapshot,
-  type CanvasHistoryState,
 } from '@/features/canvas/domain/canvasHistory';
 import { findAvailableNodePosition } from '@/features/canvas/domain/canvasGeometry';
 import {
   isDeleteToEmpty,
   trackEdit,
   type CanvasMutationSource,
-  type CanvasMutationState,
 } from '@/features/canvas/domain/canvasMutation';
 import {
   reorderStoryboardFrameInGraph,
@@ -47,7 +44,6 @@ import {
 } from '@/features/canvas/domain/canvasGroupArrangement';
 import { ungroupCanvasNode } from '@/features/canvas/domain/canvasGroupRemoval';
 import { deleteCanvasEdge } from '@/features/canvas/domain/canvasEdgeDeletion';
-import { normalizeCanvasData } from '@/features/canvas/application/canvasDataNormalization';
 import { createCanvasNode } from '@/features/canvas/application/canvasNodeCreation';
 import { canvasNodeFactory } from '@/features/canvas/nodeFactoryComposition';
 import {
@@ -101,6 +97,10 @@ import {
   createZustandCanvasGraphMutationSlice,
   type CanvasGraphMutationSlice,
 } from '@/features/canvas/infrastructure/zustandCanvasGraphMutationSlice';
+import {
+  createZustandCanvasDocumentLifecycleSlice,
+  type CanvasDocumentLifecycleSlice,
+} from '@/features/canvas/infrastructure/zustandCanvasDocumentLifecycleSlice';
 
 export type {
   ActiveToolDialog,
@@ -113,22 +113,14 @@ export type {
 };
 
 interface CanvasState
-  extends CanvasMutationState,
-    CanvasViewportSlice,
+  extends CanvasViewportSlice,
     CanvasTransientInteractionSlice,
     CanvasHistorySlice,
-    CanvasGraphMutationSlice {
+    CanvasGraphMutationSlice,
+    CanvasDocumentLifecycleSlice {
   selectedNodeId: string | null;
   activeToolDialog: ActiveToolDialog | null;
 
-  setCanvasData: (nodes: CanvasNode[], edges: CanvasEdge[], history?: CanvasHistoryState) => void;
-  applyCanvasDataEdit: (nodes: CanvasNode[], edges: CanvasEdge[]) => void;
-  hydrateCanvasDraft: (draft: {
-    nodes: CanvasNode[];
-    edges: CanvasEdge[];
-    history?: CanvasHistoryState | null;
-    mutation: CanvasMutationState;
-  }) => void;
   addNode: (
     type: CanvasNodeType,
     position: { x: number; y: number },
@@ -279,20 +271,9 @@ interface CanvasState
 
   openToolDialog: (dialog: ActiveToolDialog) => void;
   closeToolDialog: () => void;
-
-  clearCanvas: () => void;
-  /**
-   * Clear `pendingClearIntent` after `useCanvasSync` has successfully flushed
-   * a `manual_clear` save. The "intent" is one-shot — once consumed it must
-   * not influence later autosaves.
-   */
-  acknowledgePendingClear: () => void;
 }
 
 export const useCanvasStore = create<CanvasState>((set, get) => ({
-  userEditsSinceHydrate: 0,
-  lastMutationSource: null,
-  pendingClearIntent: false,
   selectedNodeId: null,
   activeToolDialog: null,
   ...createZustandCanvasViewportSlice({
@@ -310,68 +291,10 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   ...createZustandCanvasGraphMutationSlice({
     setState: (update) => set((state) => update(state)),
   }),
-
-  setCanvasData: (nodes, edges, history) => {
-    const normalizedCanvas = normalizeCanvasData(nodes, edges);
-
-    set({
-      nodes: normalizedCanvas.nodes,
-      edges: normalizedCanvas.edges,
-      selectedNodeId: null,
-      activeToolDialog: null,
-      history: normalizeHistory(history, normalizeCanvasData),
-      dragHistorySnapshot: null,
-      // Hydrate / canvas switch — treat the store as freshly loaded so the
-      // dangerous-empty guard does not misfire on the first signature pass.
-      userEditsSinceHydrate: 0,
-      lastMutationSource: null,
-      pendingClearIntent: false,
-    });
-  },
-
-  applyCanvasDataEdit: (nodes, edges) => {
-    const normalizedCanvas = normalizeCanvasData(nodes, edges);
-
-    set((state) => {
-      const editSource: CanvasMutationSource = isDeleteToEmpty(
-        state.nodes.length,
-        normalizedCanvas.nodes.length,
-      )
-        ? "delete_to_empty"
-        : "user_edit";
-      return {
-        nodes: normalizedCanvas.nodes,
-        edges: normalizedCanvas.edges,
-        selectedNodeId: null,
-        activeToolDialog: null,
-        history: {
-          past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-          future: [],
-        },
-        dragHistorySnapshot: null,
-        ...trackEdit(state, editSource),
-      };
-    });
-  },
-
-  hydrateCanvasDraft: (draft) => {
-    const normalizedCanvas = normalizeCanvasData(draft.nodes, draft.edges);
-
-    set({
-      nodes: normalizedCanvas.nodes,
-      edges: normalizedCanvas.edges,
-      selectedNodeId: null,
-      activeToolDialog: null,
-      history: normalizeHistory(
-        draft.history ?? undefined,
-        normalizeCanvasData,
-      ),
-      dragHistorySnapshot: null,
-      userEditsSinceHydrate: draft.mutation.userEditsSinceHydrate,
-      lastMutationSource: draft.mutation.lastMutationSource,
-      pendingClearIntent: draft.mutation.pendingClearIntent,
-    });
-  },
+  ...createZustandCanvasDocumentLifecycleSlice({
+    setState: (patch) => set(patch),
+    updateState: (update) => set((state) => update(state)),
+  }),
 
   addNode: (type, position, data = {}) => {
     const state = get();
@@ -1070,32 +993,6 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   closeToolDialog: () => {
     set({ activeToolDialog: null });
-  },
-
-  clearCanvas: () => {
-    set((state) => {
-      if (state.nodes.length === 0 && state.edges.length === 0) {
-        return {};
-      }
-
-      return {
-        nodes: [],
-        edges: [],
-        selectedNodeId: null,
-        activeToolDialog: null,
-        history: {
-          past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-          future: [],
-        },
-        dragHistorySnapshot: null,
-        ...trackEdit(state, "manual_clear"),
-        pendingClearIntent: true,
-      };
-    });
-  },
-
-  acknowledgePendingClear: () => {
-    set((state) => (state.pendingClearIntent ? { pendingClearIntent: false } : {}));
   },
 }));
 
