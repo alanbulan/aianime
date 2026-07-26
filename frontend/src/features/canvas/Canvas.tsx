@@ -5,54 +5,22 @@ import {
   useRef,
 } from 'react';
 import {
-  ReactFlow,
-  Background,
-  MiniMap,
-  BackgroundVariant,
-  ConnectionMode,
-  SelectionMode,
   useReactFlow,
   useStoreApi,
 } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
-import '@xyflow/react/dist/style.css';
 
-import { CreditDisplayHiddenProvider } from '@/components/credits/credit-visual';
-import { isCeRuntime } from '@/lib/runtime-config';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useAppStore } from '@/stores/app-store';
 import { canvasEventBus } from '@/features/canvas/application/canvasServices';
-import { CanvasMinimapBookmarksOverlay } from '@/features/canvas/ui/CanvasMinimapBookmarksOverlay';
-import { nodeTypes as canvasNodeTypes } from './nodes';
-import { edgeTypes as canvasEdgeTypes } from './edges';
-import { NodeSelectionMenu } from './NodeSelectionMenu';
-import { SelectedNodeOverlay } from './ui/SelectedNodeOverlay';
-import { MultiSelectionToolbar } from './ui/MultiSelectionToolbar';
-import { MultiSelectionConnectButton } from './ui/MultiSelectionConnectButton';
-import { NodeSpawnPlusOverlay } from './ui/NodeSpawnPlusOverlay';
-import { CanvasContextMenu } from './ui/CanvasContextMenu';
-import { NodeToolDialog } from './ui/NodeToolDialog';
-import { ImageViewerModal } from './ui/ImageViewerModal';
-import { VideoViewerModal } from './ui/VideoViewerModal';
-import { CanvasZoomControl } from './ui/CanvasZoomControl';
 import { useEdgeVisibilityStore } from './ui/edgeVisibilityStore';
-import { CanvasQuickActionBar } from './ui/CanvasQuickActionBar';
-import { BackToNodesHint } from './ui/BackToNodesHint';
-import { CanvasMinimapButton } from './ui/CanvasMinimapButton';
-import { CanvasFpsMeter } from './ui/CanvasFpsMeter';
-import {
-  CanvasConnectionPreviewOverlay,
-  CanvasTransientOverlays,
-} from './ui/CanvasTransientOverlays';
+import { CanvasStageView } from './ui/CanvasStageView';
 import {
   projectCanvasEdgesForRender,
   projectCanvasNodesForRender,
 } from './ui/canvasRenderProjection';
-import { CanvasSnapAlignButton } from './snap-align/CanvasSnapAlignButton';
 import { useTrackpadPanStore } from './trackpad-pan/trackpadPanStore';
-import { SnapAlignGuides } from './snap-align/SnapAlignGuides';
 import { useSnapAlignStore } from './snap-align/snapAlignStore';
-import { PAN_ACTIVATION_KEY_CODE } from './ui/canvasInteractionTargets';
 import { useCanvasExternalDialogs } from './hooks/useCanvasExternalDialogs';
 import { useCanvasGenerationRecoveryController } from './hooks/useCanvasGenerationRecoveryController';
 import {
@@ -84,20 +52,6 @@ import {
 } from './hooks/useCanvasSnapAlignment';
 import { useCanvasViewportRuntimeController } from './hooks/useCanvasViewportRuntimeController';
 
-const DEFAULT_EDGE_OPTIONS = { type: 'disconnectableEdge' };
-const REACT_FLOW_PRO_OPTIONS = { hideAttribution: true };
-// 拖线吸附半径(px,以光标到目标 handle 的距离计)。节点的 target handle 在左边
-// 缘的一个小点上,而节点本身宽 300~400px;半径太小(默认 20 / 旧值 50)时,把线
-// 拖到节点中部就已超出 handle 的吸附范围,既不自动吸附也没有「会连上」的视觉反
-// 馈,用户只能去瞄那个小点。调大到能覆盖到节点中部,拖到节点这一大片区域内即可
-// 自动吸附连线(React Flow 原生会高亮合法 handle 并把连线吸过去);更远处落到节
-// 点本体仍有 handleConnectEnd 里的 DOM 命中兜底。
-const CONNECTION_SNAP_RADIUS = 160;
-const MULTI_SELECTION_KEY_CODES = ['Control', 'Meta'];
-// Pan the canvas only by holding the middle mouse button (scroll-wheel) and dragging
-// (button 1). Left drag (0) runs the custom marquee box-select on the empty pane;
-// right click (2) opens the canvas context menu.
-const PAN_ON_DRAG_BUTTONS = [1];
 const CANVAS_SNAP_ALIGNMENT_PORT: CanvasSnapAlignmentPort = {
   isEnabled: () => useSnapAlignStore.getState().enabled,
   setGuides: (guides) => useSnapAlignStore.getState().setGuides(guides),
@@ -116,8 +70,6 @@ export function Canvas({
   const { t } = useTranslation();
   const reactFlowInstance = useReactFlow();
   const reactFlowStore = useStoreApi();
-  const nodeTypes = useMemo(() => canvasNodeTypes, []);
-  const edgeTypes = useMemo(() => canvasEdgeTypes, []);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -499,179 +451,118 @@ export function Canvas({
   });
 
   return (
-    <CreditDisplayHiddenProvider value={isCeRuntime()}>
-    <div
-      ref={wrapperRef}
-      className="relative h-full w-full bg-background"
-      onDragEnter={handleCanvasDragEnter}
-      onDragOver={handleCanvasDragOver}
-      onDragLeave={handleCanvasDragLeave}
-      onDrop={handleCanvasDrop}
-      onPointerMove={handleCanvasPointerMove}
-    >
-      <ReactFlow
-        nodes={renderedNodes}
-        edges={renderedEdges}
-        onNodesChange={handleNodesChange}
-        onEdgesChange={handleEdgesChange}
-        onEdgeClick={handleEdgeClick}
-        onEdgeDoubleClick={handleEdgeDoubleClick}
-        onConnect={handleConnect}
-        onConnectStart={handleConnectStart}
-        onConnectEnd={handleConnectEnd}
-        isValidConnection={isValidConnection}
-        onNodeMouseEnter={handleNodeMouseEnter}
-        onNodeMouseLeave={handleNodeMouseLeave}
-        onNodeClick={handleNodeClick}
-        onNodeDragStart={handleNodeDragStart}
-        onNodeDrag={handleNodeDrag}
-        onNodeDragStop={handleNodeDragStop}
-        onSelectionDragStart={handleSelectionDragStart}
-        onSelectionDragStop={handleSelectionDragStop}
-        onPaneClick={handlePaneClick}
-        onMove={handleMove}
-        onMoveEnd={handleMoveEnd}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
-        connectionMode={ConnectionMode.Loose}
-        defaultViewport={initialViewport}
-        connectionRadius={CONNECTION_SNAP_RADIUS}
-        minZoom={0.1}
-        maxZoom={8}
-        nodesDraggable
-        nodesConnectable
-        edgesReconnectable
-        panOnDrag={PAN_ON_DRAG_BUTTONS}
-        panOnScroll={trackpadPanEnabled}
-        zoomOnScroll={!trackpadPanEnabled}
-        panActivationKeyCode={PAN_ACTIVATION_KEY_CODE}
-        selectionMode={SelectionMode.Partial}
-        multiSelectionKeyCode={MULTI_SELECTION_KEY_CODES}
-        selectionKeyCode={null}
-        deleteKeyCode={null}
-        onlyRenderVisibleElements
-        zoomOnDoubleClick={false}
-        proOptions={REACT_FLOW_PRO_OPTIONS}
-        className="bg-background"
-      >
-        <Background
-          variant={BackgroundVariant.Dots}
-          gap={20}
-          size={2}
-          color="var(--canvas-grid-dot)"
-        />
-        {minimapVisible && (
-          <MiniMap
-            position={controlsPlacement === 'top-right' ? 'top-right' : 'bottom-right'}
-            className="canvas-minimap canvas-minimap--popover nopan nowheel !border-border !bg-card"
-            style={{ pointerEvents: 'all', zIndex: 10000 }}
-            nodeColor="var(--canvas-minimap-node)"
-            maskColor="var(--canvas-minimap-mask)"
-            pannable
-            zoomable
-            onMouseEnter={() => setMinimapHover(true)}
-            onMouseLeave={() => setMinimapHover(false)}
-          />
-        )}
-        {minimapVisible && <CanvasMinimapBookmarksOverlay onHoverChange={setMinimapHover} />}
-
-        <SelectedNodeOverlay />
-        <MultiSelectionToolbar />
-        <MultiSelectionConnectButton
-          onBatchOpenMenu={handleBatchConnectOpenMenu}
-          onBatchDragStart={handleBatchConnectDragStart}
-          onBatchDragMove={handleBatchConnectDragMove}
-          onBatchDragEnd={handleBatchConnectDragEnd}
-        />
-        <NodeSpawnPlusOverlay
-          hoveredNodeId={hoveredNodeId}
-          hidden={isPlusConnectDragging}
-          onOverlayHoverStart={clearHoveredNodeTimer}
-          onOverlayHoverEnd={scheduleHoveredNodeClear}
-          onPlusOpenMenu={handlePlusOpenMenu}
-          onPlusDragStart={handlePlusConnectDragStart}
-          onPlusDragMove={handlePlusConnectDragMove}
-          onPlusDragEnd={handlePlusConnectDragEnd}
-        />
-        <SnapAlignGuides />
-      </ReactFlow>
-
-      <CanvasTransientOverlays
-        isCanvasEmpty={nodes.length === 0}
-        marqueeSelectionRect={marqueeSelectionRect}
-        nodePlacementPreview={nodePlacementPreview}
-        isCanvasDropActive={isCanvasDropActive}
-      />
-
-      {contextMenu && (
-        <CanvasContextMenu
-          position={{ x: contextMenu.x, y: contextMenu.y }}
-          onClose={closeContextMenu}
-          sections={contextMenuSections}
-        />
-      )}
-
-      <CanvasMinimapButton
-        pinned={minimapPinned}
-        onTogglePin={toggleMinimapPinned}
-        onHoverChange={setMinimapHover}
-        placement={controlsPlacement}
-      />
-
-      <CanvasSnapAlignButton placement={controlsPlacement} />
-
-      <CanvasFpsMeter />
-
-      <BackToNodesHint />
-
-      <CanvasZoomControl
-        onOrganize={handleOrganizeCanvas}
-        placement={controlsPlacement}
-      />
-
-      {!taskPanelOpen && (
-        <CanvasQuickActionBar
-          placement={controlsPlacement}
-          skillItems={skillRegistry}
-          onAddNode={handleQuickAddNode}
-          onAddSkill={handleQuickAddSkill}
-          onUseAsset={handleUseHistoryAsset}
-          onDeleteNode={handleDeleteHistoryNode}
-        />
-      )}
-
-      <CanvasConnectionPreviewOverlay preview={previewConnectionVisual} />
-
-      {showNodeMenu && (
-        <NodeSelectionMenu
-          position={menuPosition}
-          allowedTypes={menuAllowedTypes}
-          onSelect={handleNodeSelect}
-          skillItems={menuAllowedTypes ? undefined : skillRegistry}
-          onSelectSkill={menuAllowedTypes ? undefined : handleSkillSelect}
-          onClose={closeNodeMenu}
-        />
-      )}
-
-      <NodeToolDialog />
-
-      <ImageViewerModal
-        open={imageViewer.isOpen}
-        imageUrl={imageViewer.currentImageUrl || ''}
-        imageList={imageViewer.imageList}
-        currentIndex={imageViewer.currentIndex}
-        onClose={closeImageViewer}
-        onNavigate={navigateImageViewer}
-      />
-
-      <VideoViewerModal
-        open={videoViewer.isOpen}
-        videoUrl={videoViewer.videoUrl}
-        title={videoViewer.title}
-        onClose={closeVideoViewer}
-      />
-    </div>
-    </CreditDisplayHiddenProvider>
+    <CanvasStageView
+      wrapperProps={{
+        ref: wrapperRef,
+        onDragEnter: handleCanvasDragEnter,
+        onDragOver: handleCanvasDragOver,
+        onDragLeave: handleCanvasDragLeave,
+        onDrop: handleCanvasDrop,
+        onPointerMove: handleCanvasPointerMove,
+      }}
+      flowProps={{
+        nodes: renderedNodes,
+        edges: renderedEdges,
+        onNodesChange: handleNodesChange,
+        onEdgesChange: handleEdgesChange,
+        onEdgeClick: handleEdgeClick,
+        onEdgeDoubleClick: handleEdgeDoubleClick,
+        onConnect: handleConnect,
+        onConnectStart: handleConnectStart,
+        onConnectEnd: handleConnectEnd,
+        isValidConnection,
+        onNodeMouseEnter: handleNodeMouseEnter,
+        onNodeMouseLeave: handleNodeMouseLeave,
+        onNodeClick: handleNodeClick,
+        onNodeDragStart: handleNodeDragStart,
+        onNodeDrag: handleNodeDrag,
+        onNodeDragStop: handleNodeDragStop,
+        onSelectionDragStart: handleSelectionDragStart,
+        onSelectionDragStop: handleSelectionDragStop,
+        onPaneClick: handlePaneClick,
+        onMove: handleMove,
+        onMoveEnd: handleMoveEnd,
+        defaultViewport: initialViewport,
+        panOnScroll: trackpadPanEnabled,
+        zoomOnScroll: !trackpadPanEnabled,
+      }}
+      controlsPlacement={controlsPlacement}
+      minimapProps={{
+        visible: minimapVisible,
+        pinned: minimapPinned,
+        onTogglePin: toggleMinimapPinned,
+        onHoverChange: setMinimapHover,
+      }}
+      transientOverlayProps={{
+        isCanvasEmpty: nodes.length === 0,
+        marqueeSelectionRect,
+        nodePlacementPreview,
+        isCanvasDropActive,
+      }}
+      contextMenuProps={
+        contextMenu
+          ? {
+              position: { x: contextMenu.x, y: contextMenu.y },
+              onClose: closeContextMenu,
+              sections: contextMenuSections,
+            }
+          : null
+      }
+      multiSelectionConnectProps={{
+        onBatchOpenMenu: handleBatchConnectOpenMenu,
+        onBatchDragStart: handleBatchConnectDragStart,
+        onBatchDragMove: handleBatchConnectDragMove,
+        onBatchDragEnd: handleBatchConnectDragEnd,
+      }}
+      nodeSpawnPlusProps={{
+        hoveredNodeId,
+        hidden: isPlusConnectDragging,
+        onOverlayHoverStart: clearHoveredNodeTimer,
+        onOverlayHoverEnd: scheduleHoveredNodeClear,
+        onPlusOpenMenu: handlePlusOpenMenu,
+        onPlusDragStart: handlePlusConnectDragStart,
+        onPlusDragMove: handlePlusConnectDragMove,
+        onPlusDragEnd: handlePlusConnectDragEnd,
+      }}
+      zoomControlProps={{ onOrganize: handleOrganizeCanvas }}
+      quickActionBarProps={
+        taskPanelOpen
+          ? null
+          : {
+              skillItems: skillRegistry,
+              onAddNode: handleQuickAddNode,
+              onAddSkill: handleQuickAddSkill,
+              onUseAsset: handleUseHistoryAsset,
+              onDeleteNode: handleDeleteHistoryNode,
+            }
+      }
+      connectionPreviewProps={{ preview: previewConnectionVisual }}
+      nodeSelectionMenuProps={
+        showNodeMenu
+          ? {
+              position: menuPosition,
+              allowedTypes: menuAllowedTypes,
+              onSelect: handleNodeSelect,
+              skillItems: menuAllowedTypes ? undefined : skillRegistry,
+              onSelectSkill: menuAllowedTypes ? undefined : handleSkillSelect,
+              onClose: closeNodeMenu,
+            }
+          : null
+      }
+      imageViewerProps={{
+        open: imageViewer.isOpen,
+        imageUrl: imageViewer.currentImageUrl || '',
+        imageList: imageViewer.imageList,
+        currentIndex: imageViewer.currentIndex,
+        onClose: closeImageViewer,
+        onNavigate: navigateImageViewer,
+      }}
+      videoViewerProps={{
+        open: videoViewer.isOpen,
+        videoUrl: videoViewer.videoUrl,
+        title: videoViewer.title,
+        onClose: closeVideoViewer,
+      }}
+    />
   );
 }

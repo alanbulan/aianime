@@ -1150,6 +1150,10 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
     );
+    const stageView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/ui/CanvasStageView.tsx"),
+      "utf8",
+    );
     const zoomView = readFileSync(
       resolve(SRC_ROOT, "features/canvas/ui/CanvasZoomControl.tsx"),
       "utf8",
@@ -1183,8 +1187,9 @@ describe("frontend architecture boundaries", () => {
     for (const declaration of declarations) {
       expect(interactionModel).toContain(declaration);
     }
-    expect(canvasView).toContain("./ui/canvasInteractionTargets");
+    expect(stageView).toContain("./canvasInteractionTargets");
     expect(zoomView).toContain("./canvasInteractionTargets");
+    expect(canvasView).not.toContain("./ui/canvasInteractionTargets");
     expect(canvasView).not.toContain("function isCanvasPaneTarget(");
     expect(canvasView).not.toContain("function isTypingTarget(");
     expect(canvasView).not.toContain("function isSpacePanKey(");
@@ -8275,7 +8280,7 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain("screenToFlowPosition(clientPosition)");
     expect(commandSurface).toContain("getContextMenuCapabilities");
     expect(commandSurface).toContain("CANVAS_NODE_TYPES.upload");
-    expect(canvasSource).toContain("sections={contextMenuSections}");
+    expect(canvasSource).toContain("sections: contextMenuSections");
     expect(canvasSource).not.toContain("getContextMenuCapabilities");
     expect(canvasSource).not.toContain("createContextMenuUploadNode");
     expect(canvasSource).not.toContain("contextMenu.clientX");
@@ -8342,12 +8347,17 @@ describe("frontend architecture boundaries", () => {
     expect(canvasSource).not.toContain("edge.hidden ? edge");
   });
 
-  it("keeps Canvas transient overlay markup in presentation views", () => {
+  it("keeps Canvas stage and transient overlay markup in presentation views", () => {
     const viewPath = resolve(
       SRC_ROOT,
       "features/canvas/ui/CanvasTransientOverlays.tsx",
     );
+    const stagePath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/CanvasStageView.tsx",
+    );
     const viewSource = readFileSync(viewPath, "utf8");
+    const stageSource = readFileSync(stagePath, "utf8");
     const canvasSource = readFileSync(
       resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
       "utf8",
@@ -8362,6 +8372,20 @@ describe("frontend architecture boundaries", () => {
         specifier.startsWith("@/features/canvas/infrastructure/") ||
         specifier === "@/features/canvas/composition",
     );
+    const stageForbiddenImports = importSpecifiers(stagePath).filter(
+      (specifier) =>
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const stageDeclaration = [
+      "export function",
+      "CanvasStageView(",
+    ].join(" ");
     const overlaysDeclaration = [
       "export function",
       "CanvasTransientOverlays(",
@@ -8382,8 +8406,31 @@ describe("frontend architecture boundaries", () => {
       ))
       .map(relativeSource)
       .sort();
+    const stageOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(
+        stageDeclaration,
+      ))
+      .map(relativeSource)
+      .sort();
+    const connectionRadiusDeclaration = [
+      "const CONNECTION_SNAP_RADIUS",
+      "= 160;",
+    ].join(" ");
+    const connectionRadiusOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(
+        connectionRadiusDeclaration,
+      ))
+      .map(relativeSource)
+      .sort();
 
     expect(forbiddenImports).toEqual([]);
+    expect(stageForbiddenImports).toEqual([]);
+    expect(stageOwners).toEqual([
+      "features/canvas/ui/CanvasStageView.tsx",
+    ]);
+    expect(connectionRadiusOwners).toEqual([
+      "features/canvas/ui/CanvasStageView.tsx",
+    ]);
     expect(overlaysOwners).toEqual([
       "features/canvas/ui/CanvasTransientOverlays.tsx",
     ]);
@@ -8394,13 +8441,23 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).toContain("z-[135]");
     expect(viewSource).toContain("z-[120]");
     expect(viewSource).toContain("absolute z-40 overflow-visible");
-    expect(canvasSource).toContain("<CanvasTransientOverlays");
-    expect(canvasSource).toContain("<CanvasConnectionPreviewOverlay");
+    expect(stageSource).toContain("@xyflow/react/dist/style.css");
+    expect(stageSource).toContain("<ReactFlow<CanvasNode, CanvasEdge>");
+    expect(stageSource).toContain("nodeTypes={canvasNodeTypes}");
+    expect(stageSource).toContain("edgeTypes={canvasEdgeTypes}");
+    expect(stageSource).toContain("<CanvasTransientOverlays");
+    expect(stageSource).toContain("<CanvasConnectionPreviewOverlay");
+    expect(stageSource.indexOf("<CanvasQuickActionBar")).toBeLessThan(
+      stageSource.indexOf("<CanvasConnectionPreviewOverlay"),
+    );
+    expect(canvasSource).toContain("<CanvasStageView");
+    expect(canvasSource).not.toContain("<ReactFlow");
+    expect(canvasSource).not.toContain("<CanvasTransientOverlays");
+    expect(canvasSource).not.toContain("<CanvasConnectionPreviewOverlay");
+    expect(canvasSource).not.toContain("@xyflow/react/dist/style.css");
+    expect(canvasSource).not.toContain("CONNECTION_SNAP_RADIUS");
     expect(canvasSource).not.toContain("const emptyHint = useMemo");
     expect(canvasSource).not.toContain("释放以添加到画布");
-    expect(canvasSource.indexOf("<CanvasQuickActionBar")).toBeLessThan(
-      canvasSource.indexOf("<CanvasConnectionPreviewOverlay"),
-    );
   });
 
   it("keeps Canvas node layering in one domain rule and Store command", () => {
