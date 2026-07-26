@@ -4201,6 +4201,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
     );
+    const derivedNodeCreationSlice = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasDerivedNodeCreationSlice.ts",
+      ),
+      "utf8",
+    );
     const forbiddenImports = importSpecifiers(creationPath).filter(
       (specifier) =>
         specifier === "react" ||
@@ -4236,7 +4243,13 @@ describe("frontend architecture boundaries", () => {
     }
     expect(creationModel).toContain("nodeFactory: NodeFactory");
     expect(creationModel).toContain("findAvailableNodePosition({");
+    expect(derivedNodeCreationSlice).toContain(
+      "../application/canvasDerivedNodeCreation",
+    );
     expect(canvasStore).toContain(
+      "@/features/canvas/infrastructure/zustandCanvasDerivedNodeCreationSlice",
+    );
+    expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasDerivedNodeCreation",
     );
     expect(canvasStore).not.toContain("const autoSize =");
@@ -4386,6 +4399,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
     );
+    const derivedNodeCreationSlice = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasDerivedNodeCreationSlice.ts",
+      ),
+      "utf8",
+    );
     const forbiddenImports = importSpecifiers(duplicationPath).filter(
       (specifier) =>
         specifier === "react" ||
@@ -4420,10 +4440,13 @@ describe("frontend architecture boundaries", () => {
     expect(duplicationModel).toContain(singleDeclaration);
     expect(duplicationModel).toContain(batchDeclaration);
     expect(duplicationModel).toContain("nodeFactory: NodeFactory");
-    expect(canvasStore).toContain(
+    expect(derivedNodeCreationSlice).toContain(
+      "../application/canvasNodeDuplication",
+    );
+    expect(derivedNodeCreationSlice).toContain("dependencies.nodeFactory,");
+    expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasNodeDuplication",
     );
-    expect(canvasStore).toContain("canvasNodeFactory,");
     expect(canvasStore).not.toContain("const clonedEdges:");
     expect(canvasStore).not.toContain("const idMap = new Map<string, string>()");
     expect(canvasStore).not.toContain(" - 副本`");
@@ -4437,6 +4460,13 @@ describe("frontend architecture boundaries", () => {
     const captureModel = readFileSync(capturePath, "utf8");
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const derivedNodeCreationSlice = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasDerivedNodeCreationSlice.ts",
+      ),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(capturePath).filter(
@@ -4480,7 +4510,10 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(captureModel).toContain(creationDeclaration);
     expect(captureModel).toContain("nodeFactory: NodeFactory");
-    expect(canvasStore).toContain(
+    expect(derivedNodeCreationSlice).toContain(
+      "../application/panoCaptureNodes",
+    );
+    expect(canvasStore).not.toContain(
       "@/features/canvas/application/panoCaptureNodes",
     );
     expect(canvasStore).not.toContain("const onlyDisplayUrl =");
@@ -8236,6 +8269,58 @@ describe("frontend architecture boundaries", () => {
     expect(graphGateway).toContain(
       "useCanvasStore.getState().updateNodeData(nodeId, data)",
     );
+    expect(sliceSource).not.toContain("nodeFactoryComposition");
+    expect(sliceSource).not.toContain("@/features/canvas/composition");
+    expect(sliceSource).not.toContain("@/stores/canvasStore");
+  });
+
+  it("keeps Canvas derived node creation in one Zustand slice", () => {
+    const slicePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/zustandCanvasDerivedNodeCreationSlice.ts",
+    );
+    const sliceSource = readFileSync(slicePath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const canvasStateHeader = canvasStore.match(
+      /interface CanvasState[\s\S]*?\{/,
+    )?.[0];
+    const implementations = [
+      /addDerivedUploadNode\(sourceNodeId, imageUrl, aspectRatio, previewImageUrl\) \{/,
+      /addDerivedExportNode\(\s+sourceNodeId,\s+imageUrl,\s+aspectRatio,\s+previewImageUrl,\s+options,\s+\) \{/,
+      /addStoryboardSplitNode\(\s+sourceNodeId,\s+rows,\s+cols,\s+frames,\s+frameAspectRatio,\s+\) \{/,
+      /duplicateNodeAsSibling\(sourceNodeId, index, dataOverrides = \{\}\) \{/,
+      /duplicateNodesAsSiblings\(nodeIds\) \{/,
+      /addPanoCaptureGroup\(sourceNodeId, captures, options\) \{/,
+    ];
+
+    for (const implementation of implementations) {
+      const owners = sourceFiles(SRC_ROOT)
+        .filter((path) => implementation.test(readFileSync(path, "utf8")))
+        .map(relativeSource)
+        .sort();
+      expect(owners).toEqual([
+        "features/canvas/infrastructure/zustandCanvasDerivedNodeCreationSlice.ts",
+      ]);
+    }
+
+    expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
+      "@xyflow/react",
+      "../domain/canvasHistory",
+      "../domain/canvasMutation",
+      "../domain/canvasNodes",
+      "../application/canvasDerivedNodeCreation",
+      "../application/canvasNodeDuplication",
+      "../application/panoCaptureNodes",
+      "../application/ports",
+    ]));
+    expect(canvasStateHeader).toContain("CanvasDerivedNodeCreationSlice");
+    expect(canvasStore).toContain(
+      "...createZustandCanvasDerivedNodeCreationSlice({",
+    );
+    expect(canvasStore).toContain("nodeFactory: canvasNodeFactory");
     expect(sliceSource).not.toContain("nodeFactoryComposition");
     expect(sliceSource).not.toContain("@/features/canvas/composition");
     expect(sliceSource).not.toContain("@/stores/canvasStore");

@@ -37,25 +37,10 @@ import { ungroupCanvasNode } from '@/features/canvas/domain/canvasGroupRemoval';
 import { deleteCanvasEdge } from '@/features/canvas/domain/canvasEdgeDeletion';
 import { canvasNodeFactory } from '@/features/canvas/nodeFactoryComposition';
 import {
-  createCanvasDerivedExportNode,
-  createCanvasDerivedUploadNode,
-  createCanvasStoryboardSplitNode,
-  type CanvasDerivedExportNodeOptions,
-} from '@/features/canvas/application/canvasDerivedNodeCreation';
-import {
   createCanvasDataEdge,
   createCanvasProgrammaticEdge,
   type CanvasDataEdgeCreationOptions,
 } from '@/features/canvas/application/canvasEdgeCreation';
-import {
-  duplicateCanvasNodeAsSibling,
-  duplicateCanvasNodesAsSiblings,
-} from '@/features/canvas/application/canvasNodeDuplication';
-import {
-  createPanoCaptureNodes,
-  type CanvasPanoCapture,
-  type CanvasPanoCaptureOptions,
-} from '@/features/canvas/application/panoCaptureNodes';
 import {
   createCanvasNodeGroup,
   type CanvasGroupCreationOptions,
@@ -89,6 +74,10 @@ import {
   createZustandCanvasNodeMutationSlice,
   type CanvasNodeMutationSlice,
 } from '@/features/canvas/infrastructure/zustandCanvasNodeMutationSlice';
+import {
+  createZustandCanvasDerivedNodeCreationSlice,
+  type CanvasDerivedNodeCreationSlice,
+} from '@/features/canvas/infrastructure/zustandCanvasDerivedNodeCreationSlice';
 
 export type {
   ActiveToolDialog,
@@ -106,7 +95,8 @@ interface CanvasState
     CanvasHistorySlice,
     CanvasGraphMutationSlice,
     CanvasDocumentLifecycleSlice,
-    CanvasNodeMutationSlice {
+    CanvasNodeMutationSlice,
+    CanvasDerivedNodeCreationSlice {
   selectedNodeId: string | null;
   activeToolDialog: ActiveToolDialog | null;
 
@@ -118,59 +108,6 @@ interface CanvasState
     options?: CanvasDataEdgeCreationOptions,
   ) => string | null;
   findNodePosition: (sourceNodeId: string, newNodeWidth: number, newNodeHeight: number) => { x: number; y: number };
-  addDerivedUploadNode: (
-    sourceNodeId: string,
-    imageUrl: string,
-    aspectRatio: string,
-    previewImageUrl?: string
-  ) => string | null;
-  addDerivedExportNode: (
-    sourceNodeId: string,
-    imageUrl: string,
-    aspectRatio: string,
-    previewImageUrl?: string,
-    options?: CanvasDerivedExportNodeOptions,
-  ) => string | null;
-  addStoryboardSplitNode: (
-    sourceNodeId: string,
-    rows: number,
-    cols: number,
-    frames: StoryboardFrameItem[],
-    frameAspectRatio?: string
-  ) => string | null;
-  /**
-   * Clone a node as a result sibling: same type, same params (data merged with
-   * `dataOverrides`), and the same upstream connections as the source. Stacked
-   * `index` slots below the source. Used by 图片/视频生成 to fan out N results
-   * when the user picks 生成数量 > 1 (each generation is its own API call).
-   */
-  duplicateNodeAsSibling: (
-    sourceNodeId: string,
-    index: number,
-    dataOverrides?: Partial<CanvasNodeData>
-  ) => string | null;
-  /**
-   * Batch-duplicate several nodes at once (used by the multi-selection toolbar's
-   * 「创建副本」). Each clone is stacked one slot below its source, keeps the
-   * source's upstream connections, and gets a "- 副本" suffix on its display
-   * name. The whole batch is a single undo step, and the new clones become the
-   * active selection. Returns the created node ids.
-   */
-  duplicateNodesAsSiblings: (nodeIds: string[]) => string[];
-
-  /**
-   * Turn a batch of panorama screenshots into image nodes laid out in a grid to
-   * the right of the source node, wrapped in a single display group. Used by the
-   * 360 viewer's 2×2 / 4×3 capture: each frame becomes its own exportImage node
-   * (no stitched canvas), and the group is purely a front-end container — no new
-   * node type. The whole batch is one undo step; returns the group node id.
-   */
-  addPanoCaptureGroup: (
-    sourceNodeId: string,
-    captures: CanvasPanoCapture[],
-    options?: CanvasPanoCaptureOptions,
-  ) => string | null;
-
   deleteNode: (nodeId: string) => void;
   deleteNodes: (nodeIds: string[]) => void;
   groupNodes: (
@@ -254,89 +191,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     setState: (patch) => set(patch),
     updateState: (update) => set((state) => update(state)),
   }),
-
-  duplicateNodeAsSibling: (sourceNodeId, index, dataOverrides = {}) => {
-    const state = get();
-    const result = duplicateCanvasNodeAsSibling(
-      state.nodes,
-      state.edges,
-      sourceNodeId,
-      index,
-      dataOverrides,
-      canvasNodeFactory,
-    );
-    if (!result) {
-      return null;
-    }
-
-    set({
-      nodes: result.nodes,
-      edges: result.edges,
-      history: {
-        past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-        future: [],
-      },
-      dragHistorySnapshot: null,
-      ...trackEdit(state),
-    });
-    return result.createdIds[0] ?? null;
-  },
-
-  duplicateNodesAsSiblings: (nodeIds) => {
-    const state = get();
-    const result = duplicateCanvasNodesAsSiblings(
-      state.nodes,
-      state.edges,
-      nodeIds,
-      canvasNodeFactory,
-    );
-    if (result.createdIds.length === 0) {
-      return [];
-    }
-
-    set({
-      nodes: result.nodes,
-      edges: result.edges,
-      selectedNodeId: result.createdIds.length === 1 ? result.createdIds[0] : null,
-      history: {
-        past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-        future: [],
-      },
-      dragHistorySnapshot: null,
-      ...trackEdit(state),
-    });
-
-    return result.createdIds;
-  },
-
-  addPanoCaptureGroup: (sourceNodeId, captures, options) => {
-    const state = get();
-    const result = createPanoCaptureNodes(
-      state.nodes,
-      state.edges,
-      sourceNodeId,
-      captures,
-      options,
-      canvasNodeFactory,
-    );
-    if (!result) {
-      return null;
-    }
-
-    set({
-      nodes: result.nodes,
-      edges: result.edges,
-      selectedNodeId: result.selectedNodeId,
-      history: {
-        past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-        future: [],
-      },
-      dragHistorySnapshot: null,
-      ...trackEdit(state),
-    });
-
-    return result.selectedNodeId;
-  },
+  ...createZustandCanvasDerivedNodeCreationSlice({
+    nodeFactory: canvasNodeFactory,
+    getState: get,
+    setState: (patch) => set(patch),
+  }),
 
   addEdge: (source, target) => {
     const state = get();
@@ -406,90 +265,6 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       viewport: state.currentViewport,
       viewportSize: state.canvasViewportSize,
     });
-  },
-
-  addDerivedUploadNode: (sourceNodeId, imageUrl, aspectRatio, previewImageUrl) => {
-    const state = get();
-    const node = createCanvasDerivedUploadNode(
-      state.nodes,
-      sourceNodeId,
-      imageUrl,
-      aspectRatio,
-      previewImageUrl,
-      canvasNodeFactory,
-    );
-
-    set({
-      nodes: [...state.nodes, node],
-      selectedNodeId: node.id,
-      activeToolDialog: null,
-      history: {
-        past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-        future: [],
-      },
-      dragHistorySnapshot: null,
-      ...trackEdit(state),
-    });
-
-    return node.id;
-  },
-
-  addDerivedExportNode: (sourceNodeId, imageUrl, aspectRatio, previewImageUrl, options) => {
-    const state = get();
-    const node = createCanvasDerivedExportNode(
-      {
-        nodes: state.nodes,
-        sourceNodeId,
-        imageUrl,
-        aspectRatio,
-        previewImageUrl,
-        options,
-        viewport: state.currentViewport,
-        viewportSize: state.canvasViewportSize,
-      },
-      canvasNodeFactory,
-    );
-
-    set({
-      nodes: [...state.nodes, node],
-      selectedNodeId: node.id,
-      activeToolDialog: null,
-      history: {
-        past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-        future: [],
-      },
-      dragHistorySnapshot: null,
-      ...trackEdit(state),
-    });
-
-    return node.id;
-  },
-
-  addStoryboardSplitNode: (sourceNodeId, rows, cols, frames, frameAspectRatio) => {
-    const state = get();
-    const node = createCanvasStoryboardSplitNode(
-      state.nodes,
-      sourceNodeId,
-      rows,
-      cols,
-      frames,
-      frameAspectRatio,
-      canvasNodeFactory,
-    );
-
-    set({
-      nodes: [...state.nodes, node],
-      selectedNodeId: node.id,
-      activeToolDialog: null,
-      history: {
-        past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-        future: [],
-      },
-      dragHistorySnapshot: null,
-      ...trackEdit(state),
-    });
-
-    return node.id;
   },
 
   deleteNode: (nodeId) => {
