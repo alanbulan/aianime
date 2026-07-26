@@ -1,15 +1,22 @@
 // Copyright (c) 2026 AI anime
-import { submitFreezoneImageTo3GS } from "@/api/ops";
+import { apiCall } from "@/shared/api/client";
 
 import type { CanvasImageTo3dSubmissionGateway } from "../application/generateCanvasImageTo3d";
+import type { CanvasGenerationTaskRef } from "../application/ports";
 
 export const freezoneImageTo3dGenerationGateway: CanvasImageTo3dSubmissionGateway = {
   async submit(projectId, command) {
-    return await submitFreezoneImageTo3GS(projectId, {
-      sourceUrl: command.sourceUrl,
-      sourceKind: command.sourceKind,
-      canvasId: command.canvasId,
-      nodeId: command.nodeId,
-    });
+    return await apiCall<CanvasGenerationTaskRef>(
+      `projects/${encodeURIComponent(projectId)}/freezone/image-to-3gs`,
+      {
+        method: "POST",
+        json: {
+          source_url: command.sourceUrl,
+          source_kind: command.sourceKind,
+          ...(command.canvasId ? { canvas_id: command.canvasId } : {}),
+          ...(command.nodeId ? { node_id: command.nodeId } : {}),
+        },
+      },
+    );
   },
 };

@@ -5,7 +5,6 @@ import type {
   CanvasAssetLibraryMedia,
   CanvasAssetLibrarySource,
 } from "@/features/canvas/domain/assetLibrary";
-import type { CanvasImageTo3dSourceKind } from "@/features/canvas/domain/imageTo3d";
 import {
   ensureBackendImageUrl,
   ensureBackendImageUrls,
@@ -996,32 +995,6 @@ export async function submitFreezoneEdit(
         ...(payload.modelId ? { model_id: payload.modelId } : {}),
         ...(payload.genMode ? { gen_mode: payload.genMode } : {}),
         quality: payload.quality ?? null,
-        ...nodeContextBody(payload),
-      },
-    },
-  );
-}
-
-// /freezone/image-to-3gs --------------------------------------------------- //
-
-export interface FreezoneImageTo3GSPayload extends FreezoneNodeContext {
-  /** 源图静态地址，通常来自 Freezone 图片节点。 */
-  sourceUrl: string;
-  /** 默认 master；当前 3D 世界节点仅使用 master。 */
-  sourceKind?: CanvasImageTo3dSourceKind;
-}
-
-export async function submitFreezoneImageTo3GS(
-  project: string,
-  payload: FreezoneImageTo3GSPayload,
-): Promise<FreezoneJobRef> {
-  return await apiCall<FreezoneJobRef>(
-    `projects/${encodeURIComponent(project)}/freezone/image-to-3gs`,
-    {
-      method: "POST",
-      json: {
-        source_url: payload.sourceUrl,
-        source_kind: payload.sourceKind ?? "master",
         ...nodeContextBody(payload),
       },
     },

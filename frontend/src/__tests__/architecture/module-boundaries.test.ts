@@ -10495,19 +10495,26 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/nodes/ThreeDWorldNode.tsx",
     );
-    const opsPath = resolve(SRC_ROOT, "api/ops.ts");
+    const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const domainSource = readFileSync(domainPath, "utf8");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const nodeSource = readFileSync(nodePath, "utf8");
-    const opsSource = readFileSync(opsPath, "utf8");
+    const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const declaration = [
       "export async function",
       "generateCanvasImageTo3d(",
     ].join(" ");
     const implementationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+    const endpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("}/freezone/image-to-3gs`"),
+      )
       .map(relativeSource)
       .sort();
 
@@ -10533,7 +10540,11 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/application/generateCanvasImageTo3d.ts",
     ]);
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
-      new Set(["@/api/ops", "../application/generateCanvasImageTo3d"]),
+      new Set([
+        "@/shared/api/client",
+        "../application/generateCanvasImageTo3d",
+        "../application/ports",
+      ]),
     );
     expect(adapterSource).toContain(
       "freezoneImageTo3dGenerationGateway: CanvasImageTo3dSubmissionGateway",
@@ -10555,8 +10566,19 @@ describe("frontend architecture boundaries", () => {
     expect(nodeSource).toContain("await generateCanvasImageTo3d(");
     expect(nodeSource).not.toContain("submitFreezoneImageTo3GS");
     expect(nodeSource).not.toContain("awaitTaskCompletion");
-    expect(opsSource).toContain("@/features/canvas/domain/imageTo3d");
-    expect(opsSource).not.toContain("FreezoneImageTo3GSKind");
+    expect(endpointOwners).toEqual([
+      "features/canvas/infrastructure/freezoneImageTo3dGenerationGateway.ts",
+    ]);
+    for (const legacySymbol of [
+      "FreezoneImageTo3GSPayload",
+      "submitFreezoneImageTo3GS",
+    ]) {
+      expect(legacyOpsSource).not.toContain(legacySymbol);
+    }
+    expect(legacyOpsSource).not.toContain("}/freezone/image-to-3gs`");
+    expect(legacyOpsSource).not.toContain(
+      "@/features/canvas/domain/imageTo3d",
+    );
   });
 
   it("keeps Canvas image generation tasks behind one shared gateway", () => {

@@ -1,34 +1,44 @@
 // Copyright (c) 2026 AI anime
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const submitFreezoneImageTo3GS = vi.hoisted(() => vi.fn());
+import { apiCall } from "@/shared/api/client";
 
-vi.mock("@/api/ops", () => ({ submitFreezoneImageTo3GS }));
+vi.mock("@/shared/api/client", () => ({ apiCall: vi.fn() }));
 
 import { freezoneImageTo3dGenerationGateway } from "./freezoneImageTo3dGenerationGateway";
 
+beforeEach(() => {
+  vi.mocked(apiCall).mockReset();
+});
+
 describe("freezoneImageTo3dGenerationGateway", () => {
-  it("maps the Canvas command to the image-to-3GS client", async () => {
+  it("maps the Canvas command to the encoded image-to-3GS endpoint", async () => {
     const task = {
       job_id: "job-1",
       task_key: "task-1",
       task_type: "freezone_image_to_3gs",
     };
-    submitFreezoneImageTo3GS.mockResolvedValue(task);
+    vi.mocked(apiCall).mockResolvedValue(task);
 
     await expect(
-      freezoneImageTo3dGenerationGateway.submit("project-1", {
+      freezoneImageTo3dGenerationGateway.submit("project/1", {
         sourceUrl: "/static/pano.png",
         sourceKind: "pano",
         canvasId: "canvas-1",
         nodeId: "world-1",
       }),
     ).resolves.toBe(task);
-    expect(submitFreezoneImageTo3GS).toHaveBeenCalledWith("project-1", {
-      sourceUrl: "/static/pano.png",
-      sourceKind: "pano",
-      canvasId: "canvas-1",
-      nodeId: "world-1",
-    });
+    expect(apiCall).toHaveBeenCalledWith(
+      "projects/project%2F1/freezone/image-to-3gs",
+      {
+        method: "POST",
+        json: {
+          source_url: "/static/pano.png",
+          source_kind: "pano",
+          canvas_id: "canvas-1",
+          node_id: "world-1",
+        },
+      },
+    );
   });
 });
