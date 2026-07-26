@@ -10,23 +10,7 @@ import {
   type NodeToolType,
   type StoryboardFrameItem,
 } from '@/features/canvas/domain/canvasNodes';
-import {
-  createSnapshot,
-  pushSnapshot,
-} from '@/features/canvas/domain/canvasHistory';
-import { trackEdit } from '@/features/canvas/domain/canvasMutation';
-import {
-  configureCanvasStoryboardGroup,
-  type CanvasStoryboardGroupConfig,
-} from '@/features/canvas/domain/canvasStoryboardGroupConfig';
-import { reorderCanvasStoryboardGroupMember } from '@/features/canvas/domain/canvasStoryboardGroupMembers';
-import { convertCanvasStoryboardGroupToPlain } from '@/features/canvas/domain/canvasStoryboardGroupConversion';
 import { canvasNodeFactory } from '@/features/canvas/nodeFactoryComposition';
-import { createCanvasStoryboardGroup } from '@/features/canvas/application/canvasStoryboardGroupCreation';
-import {
-  addCanvasStoryboardGroupMembers,
-  type CanvasStoryboardMemberImage,
-} from '@/features/canvas/application/canvasStoryboardGroupMemberAddition';
 import {
   createZustandCanvasViewportSlice,
   type CanvasViewportSlice,
@@ -63,6 +47,10 @@ import {
   createZustandCanvasGroupLifecycleSlice,
   type CanvasGroupLifecycleSlice,
 } from '@/features/canvas/infrastructure/zustandCanvasGroupLifecycleSlice';
+import {
+  createZustandCanvasStoryboardGroupSlice,
+  type CanvasStoryboardGroupSlice,
+} from '@/features/canvas/infrastructure/zustandCanvasStoryboardGroupSlice';
 
 export type {
   ActiveToolDialog,
@@ -83,29 +71,11 @@ interface CanvasState
     CanvasNodeMutationSlice,
     CanvasDerivedNodeCreationSlice,
     CanvasNodeDeletionSlice,
-    CanvasGroupLifecycleSlice {
+    CanvasGroupLifecycleSlice,
+    CanvasStoryboardGroupSlice {
   selectedNodeId: string | null;
   activeToolDialog: ActiveToolDialog | null;
 
-  /**
-   * 合并分镜组: group nodes into a "分镜组" whose members are packed into a
-   * uniform 宫格 grid (reading order). Returns the new group id, or null.
-   */
-  mergeStoryboardGroup: (nodeIds: string[]) => string | null;
-  /** Re-configure a storyboard group's grid (aspect / columns / index badge). */
-  setStoryboardGroupConfig: (
-    groupNodeId: string,
-    config: CanvasStoryboardGroupConfig
-  ) => void;
-  /** Move a storyboard member from one grid slot to another (drag-reorder). */
-  reorderStoryboardMember: (groupNodeId: string, fromIndex: number, toIndex: number) => void;
-  /** Add image members (from upload / history) to a storyboard group's grid. */
-  addStoryboardMembers: (
-    groupNodeId: string,
-    images: CanvasStoryboardMemberImage[]
-  ) => void;
-  /** Drop the storyboard behaviour, leaving a plain group with the same members. */
-  convertStoryboardGroupToPlain: (groupNodeId: string) => void;
   setSelectedNode: (nodeId: string | null) => void;
 
   openToolDialog: (dialog: ActiveToolDialog) => void;
@@ -156,128 +126,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     getState: get,
     setState: (patch) => set(patch),
   }),
-
-  mergeStoryboardGroup: (nodeIds) => {
-    const state = get();
-    const result = createCanvasStoryboardGroup(
-      state.nodes,
-      state.edges,
-      nodeIds,
-      canvasNodeFactory,
-    );
-    if (!result) {
-      return null;
-    }
-
-    set({
-      nodes: result.nodes,
-      edges: result.edges,
-      selectedNodeId: result.groupNodeId,
-      activeToolDialog:
-        state.activeToolDialog && result.groupedNodeIds.has(state.activeToolDialog.nodeId)
-          ? null
-          : state.activeToolDialog,
-      history: {
-        past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-        future: [],
-      },
-      dragHistorySnapshot: null,
-      ...trackEdit(state),
-    });
-
-    return result.groupNodeId;
-  },
-
-  setStoryboardGroupConfig: (groupNodeId, config) => {
-    const state = get();
-    const nodes = configureCanvasStoryboardGroup(
-      state.nodes,
-      groupNodeId,
-      config,
-    );
-    if (!nodes) {
-      return;
-    }
-
-    set({
-      nodes,
-      history: {
-        past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-        future: [],
-      },
-      dragHistorySnapshot: null,
-      ...trackEdit(state),
-    });
-  },
-
-  reorderStoryboardMember: (groupNodeId, fromIndex, toIndex) => {
-    const state = get();
-    const nodes = reorderCanvasStoryboardGroupMember(
-      state.nodes,
-      groupNodeId,
-      fromIndex,
-      toIndex,
-    );
-    if (!nodes) {
-      return;
-    }
-
-    set({
-      nodes,
-      history: {
-        past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-        future: [],
-      },
-      dragHistorySnapshot: null,
-      ...trackEdit(state),
-    });
-  },
-
-  addStoryboardMembers: (groupNodeId, images) => {
-    const state = get();
-    const result = addCanvasStoryboardGroupMembers(
-      state.nodes,
-      groupNodeId,
-      images,
-      canvasNodeFactory,
-    );
-    if (!result) {
-      return;
-    }
-
-    set({
-      nodes: result.nodes,
-      history: {
-        past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-        future: [],
-      },
-      dragHistorySnapshot: null,
-      ...trackEdit(state),
-    });
-  },
-
-  convertStoryboardGroupToPlain: (groupNodeId) => {
-    const state = get();
-    const result = convertCanvasStoryboardGroupToPlain(
-      state.nodes,
-      state.edges,
-      groupNodeId,
-    );
-    if (!result) {
-      return;
-    }
-
-    set({
-      nodes: result.nodes,
-      edges: result.edges,
-      history: {
-        past: pushSnapshot(state.history.past, createSnapshot(state.nodes, state.edges)),
-        future: [],
-      },
-      dragHistorySnapshot: null,
-      ...trackEdit(state),
-    });
-  },
+  ...createZustandCanvasStoryboardGroupSlice({
+    nodeFactory: canvasNodeFactory,
+    getState: get,
+    setState: (patch) => set(patch),
+  }),
 
   setSelectedNode: (nodeId) => {
     set({ selectedNodeId: nodeId });

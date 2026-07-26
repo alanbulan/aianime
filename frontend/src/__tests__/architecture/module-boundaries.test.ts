@@ -674,7 +674,10 @@ describe("frontend architecture boundaries", () => {
     expect(navigationModel).toContain(navigationDeclaration);
     expect(navigationModel).toContain("undoHistory(state.history, current)");
     expect(navigationModel).toContain("redoHistory(state.history, current)");
-    expect(canvasStore).toContain(
+    expect(historySlice).toContain(
+      "../domain/canvasHistory",
+    );
+    expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasHistory",
     );
     expect(canvasStore).not.toContain("function pushSnapshot(");
@@ -897,6 +900,13 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
       "utf8",
     );
+    const nodeDeletionSlice = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasNodeDeletionSlice.ts",
+      ),
+      "utf8",
+    );
     const canvasSyncCore = readFileSync(
       resolve(SRC_ROOT, "features/freezone/canvasSyncCore.ts"),
       "utf8",
@@ -929,7 +939,10 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(mutationModel).toContain("export function trackEdit(");
     expect(mutationModel).toContain("export function isDeleteToEmpty(");
-    expect(canvasStore).toContain(
+    expect(nodeDeletionSlice).toContain(
+      "../domain/canvasMutation",
+    );
+    expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasMutation",
     );
     expect(canvasStore).not.toContain("export type CanvasMutationSource");
@@ -3502,6 +3515,13 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
+    const storyboardGroupSlice = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasStoryboardGroupSlice.ts",
+      ),
+      "utf8",
+    );
     const applicationPaths = new Set([creationPath, storyboardCreationPath]);
     const forbiddenImports = [
       groupingPath,
@@ -3595,7 +3615,10 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasAutoGrouping",
     );
-    expect(canvasStore).toContain(
+    expect(storyboardGroupSlice).toContain(
+      "../application/canvasStoryboardGroupCreation",
+    );
+    expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasStoryboardGroupCreation",
     );
     expect(canvasStore).not.toContain("const selectedSet = new Set(existingIds)");
@@ -3627,6 +3650,13 @@ describe("frontend architecture boundaries", () => {
     const conversionModel = readFileSync(conversionPath, "utf8");
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const storyboardGroupSlice = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasStoryboardGroupSlice.ts",
+      ),
       "utf8",
     );
     const forbiddenImports = [configPath, membersPath, conversionPath].flatMap((path) =>
@@ -3680,13 +3710,22 @@ describe("frontend architecture boundaries", () => {
     expect(configModel).toContain(configDeclaration);
     expect(membersModel).toContain(reorderDeclaration);
     expect(conversionModel).toContain(conversionDeclaration);
-    expect(canvasStore).toContain(
+    expect(storyboardGroupSlice).toContain(
+      "../domain/canvasStoryboardGroupConfig",
+    );
+    expect(storyboardGroupSlice).toContain(
+      "../domain/canvasStoryboardGroupMembers",
+    );
+    expect(storyboardGroupSlice).toContain(
+      "../domain/canvasStoryboardGroupConversion",
+    );
+    expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasStoryboardGroupConfig",
     );
-    expect(canvasStore).toContain(
+    expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasStoryboardGroupMembers",
     );
-    expect(canvasStore).toContain(
+    expect(canvasStore).not.toContain(
       "@/features/canvas/domain/canvasStoryboardGroupConversion",
     );
     expect(canvasStore).not.toContain("const nextAspect = config.aspectKey");
@@ -3721,6 +3760,13 @@ describe("frontend architecture boundaries", () => {
     const creationModel = readFileSync(creationPath, "utf8");
     const canvasStore = readFileSync(
       resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const storyboardGroupSlice = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/zustandCanvasStoryboardGroupSlice.ts",
+      ),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(additionPath).filter(
@@ -3762,7 +3808,10 @@ describe("frontend architecture boundaries", () => {
     expect(membersModel).toContain(layoutDeclaration);
     expect(creationModel).toContain("layoutCanvasStoryboardGroupMembers(ordered)");
     expect(additionModel).toContain("layoutCanvasStoryboardGroupMembers(existing,");
-    expect(canvasStore).toContain(
+    expect(storyboardGroupSlice).toContain(
+      "../application/canvasStoryboardGroupMemberAddition",
+    );
+    expect(canvasStore).not.toContain(
       "@/features/canvas/application/canvasStoryboardGroupMemberAddition",
     );
     expect(canvasStore).not.toContain("const valid = images.filter(");
@@ -8514,6 +8563,58 @@ describe("frontend architecture boundaries", () => {
     expect(canvasStateHeader).toContain("CanvasGroupLifecycleSlice");
     expect(canvasStore).toContain(
       "...createZustandCanvasGroupLifecycleSlice({",
+    );
+    expect(canvasStore).toContain("nodeFactory: canvasNodeFactory");
+    expect(sliceSource).not.toContain("nodeFactoryComposition");
+    expect(sliceSource).not.toContain("@/features/canvas/composition");
+    expect(sliceSource).not.toContain("@/stores/canvasStore");
+  });
+
+  it("keeps Canvas storyboard group mutations in one Zustand slice", () => {
+    const slicePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/zustandCanvasStoryboardGroupSlice.ts",
+    );
+    const sliceSource = readFileSync(slicePath, "utf8");
+    const canvasStore = readFileSync(
+      resolve(SRC_ROOT, "stores/canvasStore.ts"),
+      "utf8",
+    );
+    const canvasStateHeader = canvasStore.match(
+      /interface CanvasState[\s\S]*?\{/,
+    )?.[0];
+    const implementations = [
+      ["mergeStoryboardGroup", "(nodeIds) {"],
+      ["setStoryboardGroupConfig", "(groupNodeId, config) {"],
+      ["reorderStoryboardMember", "(groupNodeId, fromIndex, toIndex) {"],
+      ["addStoryboardMembers", "(groupNodeId, images) {"],
+      ["convertStoryboardGroupToPlain", "(groupNodeId) {"],
+    ].map(([name, parameters]) => `${name}${parameters}`);
+
+    for (const implementation of implementations) {
+      const owners = sourceFiles(SRC_ROOT)
+        .filter((path) => readFileSync(path, "utf8").includes(implementation))
+        .map(relativeSource)
+        .sort();
+      expect(owners).toEqual([
+        "features/canvas/infrastructure/zustandCanvasStoryboardGroupSlice.ts",
+      ]);
+    }
+
+    expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
+      "../domain/canvasHistory",
+      "../domain/canvasMutation",
+      "../domain/canvasNodes",
+      "../domain/canvasStoryboardGroupConfig",
+      "../domain/canvasStoryboardGroupConversion",
+      "../domain/canvasStoryboardGroupMembers",
+      "../application/canvasStoryboardGroupCreation",
+      "../application/canvasStoryboardGroupMemberAddition",
+      "../application/ports",
+    ]));
+    expect(canvasStateHeader).toContain("CanvasStoryboardGroupSlice");
+    expect(canvasStore).toContain(
+      "...createZustandCanvasStoryboardGroupSlice({",
     );
     expect(canvasStore).toContain("nodeFactory: canvasNodeFactory");
     expect(sliceSource).not.toContain("nodeFactoryComposition");
