@@ -1,6 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { apiCall, apiRequest } from "@/shared/api/client";
 import type { CameraMovementPreset } from "@/features/canvas/domain/cameraMovementPresets";
+import {
+  DEFAULT_CANVAS_SCENE_360_ASPECT_RATIO,
+  type CanvasScene360AspectRatio,
+} from "@/features/canvas/domain/scene360";
 
 // Per-node generation history -------------------------------------------- //
 
@@ -1602,19 +1606,10 @@ export async function submitFreezoneRelight(
 
 // /freezone/scene-360 ----------------------------------------------------- //
 
-/** 全景输出比例。后端不传时按 "2:1" 处理；传其他值会被 Pydantic 校验拒绝。 */
-export type FreezoneScene360AspectRatio = "2:1" | "21:9";
-
-export const FREEZONE_SCENE_360_ASPECT_RATIOS: readonly FreezoneScene360AspectRatio[] =
-  ["2:1", "21:9"];
-
-export const DEFAULT_FREEZONE_SCENE_360_ASPECT_RATIO: FreezoneScene360AspectRatio =
-  "2:1";
-
 export interface FreezoneScene360Payload {
   referenceUrl: string;
   imageSize?: string;
-  aspectRatio?: FreezoneScene360AspectRatio;
+  aspectRatio?: CanvasScene360AspectRatio;
   model?: string;
   mode?: "candidate" | "commit";
 }
@@ -1641,7 +1636,7 @@ export async function submitFreezoneScene360(
         image_size: payload.imageSize ?? "2K",
         mode: payload.mode ?? "candidate",
         aspect_ratio:
-          payload.aspectRatio ?? DEFAULT_FREEZONE_SCENE_360_ASPECT_RATIO,
+          payload.aspectRatio ?? DEFAULT_CANVAS_SCENE_360_ASPECT_RATIO,
         // 前端不能选模型，不传 model 让后端用默认；调用方显式传了才带上。
         ...(payload.model ? { model: payload.model } : {}),
       },

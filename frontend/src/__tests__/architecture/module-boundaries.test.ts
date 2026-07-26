@@ -8782,6 +8782,77 @@ describe("frontend architecture boundaries", () => {
     expect(textNodeSource).not.toContain("awaitTaskCompletion");
   });
 
+  it("keeps Canvas scene-360 generation orchestration in application", () => {
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/scene360.ts",
+    );
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/generateCanvasScene360.ts",
+    );
+    const infrastructurePath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneScene360GenerationGateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "features/canvas/composition.ts",
+    );
+    const overlayPath = resolve(
+      SRC_ROOT,
+      "features/canvas/ui/Scene360Overlay.tsx",
+    );
+    const opsPath = resolve(SRC_ROOT, "api/ops.ts");
+    const domainSource = readFileSync(domainPath, "utf8");
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const infrastructureSource = readFileSync(infrastructurePath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const overlaySource = readFileSync(overlayPath, "utf8");
+    const opsSource = readFileSync(opsPath, "utf8");
+
+    expect(importSpecifiers(domainPath)).toEqual([]);
+    expect(domainSource).toContain(
+      "export const CANVAS_SCENE_360_ASPECT_RATIOS",
+    );
+    expect(new Set(importSpecifiers(applicationPath))).toEqual(
+      new Set(["../domain/scene360", "./ports"]),
+    );
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(applicationSource).not.toContain("@/stores/");
+    expect(applicationSource).toContain(
+      "export async function generateCanvasScene360(",
+    );
+    expect(applicationSource).toContain(
+      'referenceUrl: params.referenceUrl.split("?")[0]',
+    );
+    expect(applicationSource).toContain(
+      "dependencies.onTaskSubmitted(task)",
+    );
+    expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
+      new Set(["@/api/ops", "../application/generateCanvasScene360"]),
+    );
+    expect(infrastructureSource).toContain(
+      "freezoneScene360GenerationGateway: CanvasScene360GenerationGateway",
+    );
+    expect(compositionSource).toContain(
+      "generateCanvasScene360UseCase(params, {",
+    );
+    expect(compositionSource).toContain(
+      "submissionGateway: freezoneScene360GenerationGateway",
+    );
+    expect(importSpecifiers(overlayPath)).not.toContain("@/api/ops");
+    expect(importSpecifiers(overlayPath)).not.toContain("@/api/tasks");
+    expect(overlaySource).toContain("await generateCanvasScene360(");
+    expect(overlaySource).not.toContain("submitFreezoneScene360");
+    expect(overlaySource).not.toContain("fetchFreezoneJobResult");
+    expect(overlaySource).not.toContain("awaitTaskCompletion");
+    expect(opsSource).toContain("@/features/canvas/domain/scene360");
+    expect(opsSource).not.toContain("FreezoneScene360AspectRatio");
+    expect(opsSource).not.toContain("FREEZONE_SCENE_360_ASPECT_RATIOS");
+  });
+
   it("keeps Canvas asset extraction independent from media URL infrastructure", () => {
     const assetPath = resolve(
       SRC_ROOT,

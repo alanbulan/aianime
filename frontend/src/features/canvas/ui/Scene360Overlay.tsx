@@ -10,18 +10,16 @@ import {
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   type CanvasNode,
 } from '@/features/canvas/domain/canvasNodes';
+import {
+  CANVAS_SCENE_360_ASPECT_RATIOS,
+  DEFAULT_CANVAS_SCENE_360_ASPECT_RATIO,
+  type CanvasScene360AspectRatio,
+} from '@/features/canvas/domain/scene360';
 import { CreditCostInline } from '@/components/credit-cost-inline';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useGenerationCreditCost } from '@/lib/queries/generation-credit-cost';
 import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
-import {
-  fetchFreezoneJobResult,
-  submitFreezoneScene360,
-  FREEZONE_SCENE_360_ASPECT_RATIOS,
-  DEFAULT_FREEZONE_SCENE_360_ASPECT_RATIO,
-  type FreezoneScene360AspectRatio,
-} from '@/api/ops';
-import { awaitTaskCompletion } from '@/api/tasks';
+import { generateCanvasScene360 } from '@/features/canvas/composition';
 import { generationTaskDescriptor } from '@/features/canvas/application/resumeGeneration';
 import { readUrl } from '@/lib/url-params';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
@@ -62,8 +60,8 @@ export const Scene360Overlay = memo(
     );
 
     // 全景输出比例（生成参数，仅影响本次出图，不改节点的展示比例）。
-    const [aspectRatio, setAspectRatio] = useState<FreezoneScene360AspectRatio>(
-      DEFAULT_FREEZONE_SCENE_360_ASPECT_RATIO,
+    const [aspectRatio, setAspectRatio] = useState<CanvasScene360AspectRatio>(
+      DEFAULT_CANVAS_SCENE_360_ASPECT_RATIO,
     );
 
     const handleSubmit = useCallback(async () => {
@@ -99,18 +97,16 @@ export const Scene360Overlay = memo(
       onClose();
 
       try {
-        const ref = await submitFreezoneScene360(project, {
-          referenceUrl: imageSource.split('?')[0],
-          aspectRatio,
-        });
-        updateNodeData(nextNodeId, generationTaskDescriptor(ref));
-        const completed = await awaitTaskCompletion(ref.task_key, project);
-        const directUrl = completed.result?.['output_url'] as string | undefined;
-        let url = directUrl;
-        if (!url) {
-          const fallback = await fetchFreezoneJobResult(project, ref.task_type, ref.job_id);
-          url = fallback.url;
-        }
+        const { url } = await generateCanvasScene360(
+          {
+            projectId: project,
+            referenceUrl: imageSource,
+            aspectRatio,
+          },
+          (task) => {
+            updateNodeData(nextNodeId, generationTaskDescriptor(task));
+          },
+        );
         updateNodeData(nextNodeId, {
           imageUrl: url,
           previewImageUrl: url,
@@ -205,8 +201,8 @@ export const Scene360Overlay = memo(
 Scene360Overlay.displayName = 'Scene360Overlay';
 
 interface AspectRatioDropdownProps {
-  value: FreezoneScene360AspectRatio;
-  onChange: (value: FreezoneScene360AspectRatio) => void;
+  value: CanvasScene360AspectRatio;
+  onChange: (value: CanvasScene360AspectRatio) => void;
   label: string;
 }
 
@@ -255,7 +251,7 @@ function AspectRatioDropdown({ value, onChange, label }: AspectRatioDropdownProp
           className={`absolute bottom-full right-0 z-50 mb-2 min-w-[88px] p-1 ${NODE_FLOATING_PANEL_SURFACE_CLASS}`}
           onClick={(event) => event.stopPropagation()}
         >
-          {FREEZONE_SCENE_360_ASPECT_RATIOS.map((ratio) => {
+          {CANVAS_SCENE_360_ASPECT_RATIOS.map((ratio) => {
             const isActive = ratio === value;
             return (
               <button

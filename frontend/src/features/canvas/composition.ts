@@ -21,6 +21,10 @@ import {
   type GenerateCanvasReversePromptParams,
 } from './application/generateCanvasReversePrompt';
 import {
+  generateCanvasScene360 as generateCanvasScene360UseCase,
+  type GenerateCanvasScene360Params,
+} from './application/generateCanvasScene360';
+import {
   generateCanvasStoryScript as generateCanvasStoryScriptUseCase,
   type GenerateCanvasStoryScriptParams,
 } from './application/generateCanvasStoryScript';
@@ -97,6 +101,7 @@ import { freezoneGenerationTaskGateway } from './infrastructure/freezoneGenerati
 import { freezoneGenerationHistoryGateway } from './infrastructure/freezoneGenerationHistoryGateway';
 import { freezoneRedrawTaskGateway } from './infrastructure/freezoneRedrawTaskGateway';
 import { freezoneReversePromptGenerationGateway } from './infrastructure/freezoneReversePromptGenerationGateway';
+import { freezoneScene360GenerationGateway } from './infrastructure/freezoneScene360GenerationGateway';
 import { freezoneStoryScriptGenerationGateway } from './infrastructure/freezoneStoryScriptGenerationGateway';
 import { freezoneVideoClipComposeGateway } from './infrastructure/freezoneVideoClipComposeGateway';
 import { freezoneVideoGenerationSubmissionGateway } from './infrastructure/freezoneVideoGenerationSubmissionGateway';
@@ -319,6 +324,17 @@ export function generateCanvasReversePrompt(
 ) {
   return generateCanvasReversePromptUseCase(params, {
     submissionGateway: freezoneReversePromptGenerationGateway,
+    taskGateway: freezoneGenerationTaskGateway,
+    onTaskSubmitted,
+  });
+}
+
+export function generateCanvasScene360(
+  params: GenerateCanvasScene360Params,
+  onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
+) {
+  return generateCanvasScene360UseCase(params, {
+    submissionGateway: freezoneScene360GenerationGateway,
     taskGateway: freezoneGenerationTaskGateway,
     onTaskSubmitted,
   });
