@@ -26,7 +26,6 @@ import { useCanvasHistoryAssetController } from './hooks/useCanvasHistoryAssetCo
 import { useCanvasConnectionController } from './hooks/useCanvasConnectionController';
 import { useCanvasClipboardController } from './hooks/useCanvasClipboardController';
 import { useCanvasConnectionGestureController } from './hooks/useCanvasConnectionGestureController';
-import { useCanvasMarqueeSelection } from './hooks/useCanvasMarqueeSelection';
 import { useCanvasMediaTransferController } from './hooks/useCanvasMediaTransferController';
 import { useCanvasNodeHover } from './hooks/useCanvasNodeHover';
 import { useCanvasNodeInteractionController } from './hooks/useCanvasNodeInteractionController';
@@ -35,8 +34,7 @@ import { useCanvasNodeCatalogController } from './hooks/useCanvasNodeCatalogCont
 import { useCanvasNodePlacementConfirm } from './hooks/useCanvasNodePlacementConfirm';
 import { useCanvasCommandSurfaceController } from './hooks/useCanvasCommandSurfaceController';
 import { useCanvasProjectContextController } from './hooks/useCanvasProjectContextController';
-import { useCanvasSelectionSync } from './hooks/useCanvasSelectionSync';
-import { useCanvasSelectionCommandController } from './hooks/useCanvasSelectionCommandController';
+import { useCanvasSelectionSurfaceController } from './hooks/useCanvasSelectionSurfaceController';
 import { useCanvasViewportSurfaceController } from './hooks/useCanvasViewportSurfaceController';
 
 interface CanvasProps {
@@ -240,19 +238,27 @@ export function Canvas({
     hideMenuForPlacement: hideNodeMenuForPlacement,
     closeNodeMenu,
   });
-  const setNativeSelectionActive = useCallback(
-    (active: boolean) => reactFlowStore.setState({ nodesSelectionActive: active }),
-    [reactFlowStore],
-  );
-  const { marqueeSelectionRect } = useCanvasMarqueeSelection({
+  const {
+    marqueeSelectionRect,
+    selectedNodeIds,
+    selectedUploadNodeId,
+    groupSelection: groupSelectedNodes,
+    deleteSelection: deleteSelectedElements,
+  } = useCanvasSelectionSurfaceController({
     wrapperRef,
     disabled: placementActive,
     nodes,
     coordinatePort: reactFlowInstance,
     applyNodeSelectionChanges: applyNodesChange,
-    setNativeSelectionActive,
+    nativeSelectionStore: reactFlowStore,
+    selectedNodeId,
     setSelectedNodeId: setSelectedNode,
     onMarqueeStart: handleMarqueeStart,
+    getGraph: getCanvasGraph,
+    groupNodes,
+    deleteEdge,
+    deleteNode,
+    deleteNodes,
   });
 
   const {
@@ -285,15 +291,6 @@ export function Canvas({
   });
 
   const {
-    selectedNodeIds,
-    selectedUploadNodeId,
-  } = useCanvasSelectionSync({
-    nodes,
-    selectedNodeId,
-    setSelectedNodeId: setSelectedNode,
-  });
-
-  const {
     queueSnapshotPaste,
     spawnAsset: spawnTransferredAsset,
     isCanvasDropActive,
@@ -308,24 +305,6 @@ export function Canvas({
     createNode: addNode,
     selectNode: setSelectedNode,
     eventBus: canvasEventBus,
-  });
-
-  const getCurrentSelectionEdges = useCallback(
-    () => getCanvasGraph().edges,
-    [getCanvasGraph],
-  );
-  const {
-    groupSelection: groupSelectedNodes,
-    deleteSelection: deleteSelectedElements,
-  } = useCanvasSelectionCommandController({
-    nodes,
-    selectedNodeIds,
-    selectedNodeId,
-    getCurrentEdges: getCurrentSelectionEdges,
-    groupNodes,
-    deleteEdge,
-    deleteNode,
-    deleteNodes,
   });
 
   const {

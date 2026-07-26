@@ -2104,7 +2104,8 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("isTypingTarget");
     expect(hookModel).toContain("isImmersiveViewerActive");
     expect(marqueeView).toContain("./useCanvasSpacePan");
-    expect(canvasView).toContain("./hooks/useCanvasMarqueeSelection");
+    expect(canvasView).toContain("./hooks/useCanvasSelectionSurfaceController");
+    expect(canvasView).not.toContain("./hooks/useCanvasMarqueeSelection");
     expect(canvasView).not.toContain("./hooks/useCanvasSpacePan");
     expect(canvasView).not.toContain("spacePanActiveRef");
     expect(canvasView).not.toContain("isSpacePanKey");
@@ -2788,7 +2789,10 @@ describe("frontend architecture boundaries", () => {
     expect(domainModel).toContain("isPresetManagedEdge");
     expect(controllerModel).toContain("resolveCanvasSelectionDeletion({");
     expect(controllerModel).toContain("edges: getCurrentEdges()");
-    expect(canvasView).toContain("./hooks/useCanvasSelectionCommandController");
+    expect(canvasView).toContain("./hooks/useCanvasSelectionSurfaceController");
+    expect(canvasView).not.toContain(
+      "./hooks/useCanvasSelectionCommandController",
+    );
     expect(canvasView).not.toContain("resolveCanvasSelectionDeletion({");
     expect(canvasView).not.toContain("const deleteSelectedElements = useCallback");
     expect(canvasView).not.toContain("const deletableEdgeIds");
@@ -3104,6 +3108,59 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("new ResizeObserver(");
   });
 
+  it("keeps Canvas selection surface assembly in one presentation controller", () => {
+    const controllerPath = resolve(
+      SRC_ROOT,
+      "features/canvas/hooks/useCanvasSelectionSurfaceController.ts",
+    );
+    const controllerSource = readFileSync(controllerPath, "utf8");
+    const canvasView = readFileSync(
+      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      "utf8",
+    );
+    const forbiddenImports = importSpecifiers(controllerPath).filter(
+      (specifier) =>
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/stores/") ||
+        specifier.startsWith("@/api/") ||
+        specifier.startsWith("@/features/canvas/application/") ||
+        specifier.startsWith("@/features/canvas/infrastructure/") ||
+        specifier === "@/features/canvas/composition",
+    );
+    const declaration = [
+      "export function",
+      "useCanvasSelectionSurfaceController(",
+    ].join(" ");
+    const implementationOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(declaration))
+      .map(relativeSource)
+      .sort();
+    const childControllers = [
+      "./useCanvasMarqueeSelection",
+      "./useCanvasSelectionSync",
+      "./useCanvasSelectionCommandController",
+    ];
+
+    expect(forbiddenImports).toEqual([]);
+    expect(implementationOwners).toEqual([
+      "features/canvas/hooks/useCanvasSelectionSurfaceController.ts",
+    ]);
+    for (const childController of childControllers) {
+      expect(controllerSource).toContain(childController);
+      expect(canvasView).not.toContain(
+        childController.replace("./", "./hooks/"),
+      );
+    }
+    expect(controllerSource).toContain("nativeSelectionStore.setState({");
+    expect(controllerSource).toContain("() => getGraph().edges");
+    expect(canvasView).toContain("./hooks/useCanvasSelectionSurfaceController");
+    expect(canvasView).not.toContain("setNativeSelectionActive");
+    expect(canvasView).not.toContain("getCurrentSelectionEdges");
+  });
+
   it("keeps Canvas selected-node projection in one presentation hook", () => {
     const hookPath = resolve(
       SRC_ROOT,
@@ -3139,7 +3196,8 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/hooks/useCanvasSelectionSync.ts",
     ]);
     expect(hookModel).toContain("CANVAS_NODE_TYPES.upload");
-    expect(canvasView).toContain("./hooks/useCanvasSelectionSync");
+    expect(canvasView).toContain("./hooks/useCanvasSelectionSurfaceController");
+    expect(canvasView).not.toContain("./hooks/useCanvasSelectionSync");
     expect(canvasView).not.toContain("selectedNodeIds.length === 1");
     expect(canvasView).not.toContain(
       "nodes.filter((node) => Boolean(node.selected)).map((node) => node.id)",
@@ -3527,7 +3585,8 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("MARQUEE_SELECTION_MIN_DISTANCE_PX = 6");
     expect(hookModel).toContain("collectCanvasNodeIdsInRect");
     expect(hookModel).toContain("useCanvasSpacePan");
-    expect(canvasView).toContain("./hooks/useCanvasMarqueeSelection");
+    expect(canvasView).toContain("./hooks/useCanvasSelectionSurfaceController");
+    expect(canvasView).not.toContain("./hooks/useCanvasMarqueeSelection");
     expect(canvasView).not.toContain("marqueeSelectionRef");
     expect(canvasView).not.toContain("swallowMarqueeClickRef");
     expect(canvasView).not.toContain("MARQUEE_SELECTION_MIN_DISTANCE");
