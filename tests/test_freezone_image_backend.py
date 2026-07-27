@@ -25,7 +25,12 @@ from ai_anime.api.routes.freezone import (
     _split_provider_and_model,
     _template_edit_aspect_ratio,
 )
-from ai_anime.api.schemas import CanvasPayload, PresetCanvasRequest, PushRequest
+from ai_anime.api.schemas import (
+    CanvasPayload,
+    FreezoneImageReversePromptRequest,
+    PresetCanvasRequest,
+    PushRequest,
+)
 from ai_anime.config import NEWAPI_IMAGE_MODEL, OPENAI_IMAGE_MODEL
 from ai_anime.freezone import image_node
 from ai_anime.freezone.presets import (
@@ -273,21 +278,45 @@ async def test_freezone_reverse_prompt_limit_exception_bubbles_to_global_handler
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    project_dir, _output_dir = _patch_freezone_project(monkeypatch, tmp_path)
-    source = project_dir / "freezone" / "_uploads" / "source.png"
-    _write_image(source)
-    _patch_limit_exceeded_enqueue(monkeypatch, queue_kind="default")
+    failure = ProjectUserTaskLimitExceeded(
+        project_id="proj_freezone",
+        requester_user_id="owner_1",
+        queue_kind="default",
+        limit=1,
+        active=1,
+    )
+
+    async def fake_resolve_project_scope(*_args, **_kwargs):
+        return SimpleNamespace(
+            ctx=_project_ctx(tmp_path),
+            project_dir=tmp_path / "project",
+        )
+
+    class FailingUseCases:
+        async def start(self, _command):
+            raise failure
+
+    monkeypatch.setattr(
+        freezone_image_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
+    monkeypatch.setattr(
+        freezone_image_routes,
+        "creative_canvas_reverse_prompt_use_cases",
+        lambda: FailingUseCases(),
+    )
 
     with pytest.raises(ProjectUserTaskLimitExceeded) as exc:
-        await freezone_routes.freezone_image_reverse_prompt(
+        await freezone_image_routes.freezone_image_reverse_prompt(
             project="58",
-            body=freezone_routes.FreezoneImageReversePromptRequest(
+            body=FreezoneImageReversePromptRequest(
                 source_url="/static/admin/58/freezone/_uploads/source.png",
             ),
             user={"username": "admin"},
         )
 
-    assert exc.value.queue_kind == "default"
+    assert exc.value is failure
 
 
 @pytest.mark.asyncio

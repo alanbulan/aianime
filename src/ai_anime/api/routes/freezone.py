@@ -42,7 +42,6 @@ from ai_anime.api.schemas import (
     FreezoneFrameFromContextRequest,
     FreezoneGenRequest,
     FreezoneImageCameraConfig,
-    FreezoneImageReversePromptRequest,
     FreezoneImageStyleConfig,
     FreezoneImageTo3GSRequest,
     FreezoneImageToVideoRequest,
@@ -101,9 +100,6 @@ from ai_anime.freezone.history import (
     build_node_history_record,
     read_canvas_generation_history,
     read_generation_history,
-)
-from ai_anime.freezone.image_node import (
-    reverse_prompt_from_image,
 )
 from ai_anime.freezone.paths import (
     CANVAS_ID_RE,
@@ -6236,169 +6232,9 @@ async def freezone_story_script_generate(
     )
 
 
-def _start_freezone_image_reverse_prompt_task(
-    *,
-    username: str,
-    project: str,
-    project_dir: Path,
-    job_id: str,
-    source_path: Path,
-    canvas_id: str | None = None,
-    node_id: str | None = None,
-) -> None:
-    task_type = "freezone_image_reverse_prompt"
-    task_manager = get_task_manager()
-    metadata = {
-        "job_id": job_id,
-        "canvas_id": canvas_id or "",
-        "node_id": node_id or "",
-        "source_path": source_path.as_posix(),
-    }
-    task_manager.create_task(
-        task_type,
-        username,
-        project,
-        episode=0,
-        scope=job_id,
-        status="starting",
-        metadata=metadata,
-    )
-
-    async def _runner() -> None:
-        logs = ["开始反推图片提示词"]
-        try:
-            task_manager.update_progress(
-                task_type,
-                username,
-                project,
-                episode=0,
-                scope=job_id,
-                progress=0.1,
-                current_task="reverse_prompting_image",
-                logs=logs,
-            )
-            prompt = await reverse_prompt_from_image(image_path=source_path)
-            out = _image_reverse_prompt_output_path(project_dir, job_id)
-            out.parent.mkdir(parents=True, exist_ok=True)
-            out.write_text(
-                json.dumps({"prompt": prompt}, ensure_ascii=False, indent=2),
-                encoding="utf-8",
-            )
-            history_record = _record_freezone_node_history(
-                project_dir=project_dir,
-                canvas_id=canvas_id,
-                node_id=node_id,
-                task_type=task_type,
-                username=username,
-                project=project,
-                job_id=job_id,
-                status="completed",
-                media_type="text",
-                source_path=str(source_path),
-                result={"output_format": "json", "prompt": prompt},
-            )
-            result = {"output_format": "json"}
-            if history_record:
-                result["generation_history_record"] = history_record
-            task_manager.complete_task(
-                task_type,
-                username,
-                project,
-                episode=0,
-                scope=job_id,
-                result=result,
-                current_task="completed",
-                logs=["图片提示词反推完成"],
-                metadata=metadata,
-            )
-        except Exception as exc:
-            _record_freezone_node_history(
-                project_dir=project_dir,
-                canvas_id=canvas_id,
-                node_id=node_id,
-                task_type=task_type,
-                username=username,
-                project=project,
-                job_id=job_id,
-                status="failed",
-                media_type="text",
-                source_path=str(source_path),
-                error=str(exc),
-            )
-            task_manager.fail_task(
-                task_type,
-                username,
-                project,
-                episode=0,
-                scope=job_id,
-                error=str(exc),
-                current_task="failed",
-                logs=[f"错误: {exc}"],
-                metadata=metadata,
-            )
-
-    asyncio.create_task(_runner())
-
-
 # ============================================================
 # 视频处理：文生视频 / 运镜模板 / 角色库
 # ============================================================
-
-
-@router.post(
-    "/projects/{project}/freezone/image/reverse-prompt",
-    response_model=FreezoneJobAcceptedResponse,
-    tags=[TAG_FREEZONE_IMAGE],
-)
-async def freezone_image_reverse_prompt(
-    project: str,
-    body: FreezoneImageReversePromptRequest,
-    user: dict = Depends(get_api_user),
-):
-    """图片处理：异步反推图片提示词。"""
-    ctx, username, project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project, user
-    )
-    source_paths = _resolve_url_list(project_dir, [body.source_url])
-    if not source_paths:
-        raise HTTPException(400, "source_url is required")
-    source_path = Path(source_paths[0])
-    if not source_path.exists():
-        raise HTTPException(404, f"source not found: {source_path}")
-
-    try:
-        job_id = _new_job_id()
-        if ctx is not None:
-            return await _enqueue_freezone_background_job(
-                ctx=ctx,
-                project_dir=project_dir,
-                task_type="freezone_image_reverse_prompt",
-                job_id=job_id,
-                payload={
-                    "source_path": source_path.as_posix(),
-                    "canvas_id": body.canvas_id or "",
-                    "node_id": body.node_id or "",
-                },
-            )
-        _start_freezone_image_reverse_prompt_task(
-            username=username,
-            project=project_name,
-            project_dir=project_dir,
-            job_id=job_id,
-            source_path=source_path,
-            canvas_id=body.canvas_id or None,
-            node_id=body.node_id or None,
-        )
-    except RuntimeError as exc:
-        _handle_task_start_runtime_error("reverse prompt failed", exc)
-        raise HTTPException(500, f"reverse prompt failed: {exc}") from exc
-
-    return _accepted_job_response(
-        task_type="freezone_image_reverse_prompt",
-        username=username,
-        project=project_name,
-        job_id=job_id,
-    )
 
 
 @router.get("/projects/{project}/freezone/video/character-library", tags=[TAG_FREEZONE_VIDEO])

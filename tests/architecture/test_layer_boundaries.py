@@ -391,6 +391,36 @@ def test_freezone_mark_detection_route_delegates_to_application() -> None:
         assert implementation_detail not in source
 
 
+def test_freezone_reverse_prompt_route_delegates_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "image.py"
+    legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    runner = PACKAGE_ROOT / "task_backend" / "runners" / "freezone.py"
+    source = route.read_text(encoding="utf-8")
+    legacy_source = legacy_route.read_text(encoding="utf-8")
+    runner_source = runner.read_text(encoding="utf-8")
+
+    endpoint_path = '"/projects/{project}/freezone/image/reverse-prompt"'
+    assert source.count(endpoint_path) == 1
+    assert endpoint_path not in legacy_source
+    assert source.count("creative_canvas_reverse_prompt_use_cases().start(") == 1
+    assert "StartCreativeCanvasReversePromptCommand" in source
+    assert "async def freezone_image_reverse_prompt(" not in legacy_source
+    assert "def _start_freezone_image_reverse_prompt_task(" not in legacy_source
+    assert "FreezoneImageReversePromptRequest" not in legacy_source
+    assert "reverse_prompt_from_image" not in legacy_source
+    assert (
+        'register_project_task_runner(\n    "freezone_image_reverse_prompt",'
+        in runner_source
+    )
+    for implementation_detail in (
+        "get_task_backend",
+        "project_task_state_key",
+        "resolve_static_url_to_path",
+        "asyncio.create_task",
+    ):
+        assert implementation_detail not in source
+
+
 def test_freezone_bootstrap_route_delegates_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "bootstrap.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"

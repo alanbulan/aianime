@@ -1654,6 +1654,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百八十五批已将图片点击点或框选区域的局部标记检测迁入 Creative Canvas mark detection application port/use case、纯 domain 选择规则、项目静态 URL 解析适配器和唯一 Freezone Vision 适配器，并将既有 POST 端点收口到 image FastAPI 子 router；Vision 适配器继续委托唯一 `detect_freezone_mark` 实现，旧 `freezone.py` handler、请求/响应 schema 导入和检测实现导入直接删除，不保留转发函数或第二套检测链路；项目 editor 鉴权、主节点错误上下文、点选/框选规则、路径错误、检测失败文案、请求路径、OpenAPI tag/说明及响应 payload 均保持不变；标记检测定向回归 18 项、M06 完整合同 16 项和后端完整分层门禁 67 项均通过，8 条告警均为既有依赖弃用告警。
 
+第二百八十六批已将图片反向提示词任务提交迁入 Creative Canvas reverse-prompt application port/use case、共享图片源端口和唯一任务后端调度适配器，并将既有 POST 端点收口到 image FastAPI 子 router；生产项目解析始终提供 `ProjectContext`，任务后端也已有注册 runner，因此旧 `freezone.py` handler 和不可达的 `asyncio.create_task` 内联 runner 整段删除，不保留转发函数或第二套执行轨；项目 editor 鉴权、主节点错误上下文、源路径校验、任务类型/队列/payload、项目级 task key、限流异常透传、500 文案、请求路径、OpenAPI tag/说明及响应 payload 均保持不变；反向提示词定向回归 25 项、文本/图片后端回归 13 项、M06 完整合同 16 项和后端完整分层门禁 68 项均通过，8 条告警均为既有依赖弃用告警。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

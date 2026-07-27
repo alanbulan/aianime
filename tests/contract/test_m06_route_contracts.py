@@ -226,6 +226,18 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.modules.creative_canvas.public import (
         CreativeCanvasMarkDetectionResult,
     )
+    from ai_anime.modules.creative_canvas.application.reverse_prompt import (
+        CreativeCanvasReversePromptUseCases,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.image_sources import (
+        ProjectCreativeCanvasImageSourceResolver,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.media import (
+        FreezoneJobIdGenerator,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.reverse_prompt import (
+        TaskBackendCreativeCanvasReversePromptScheduler,
+    )
     from ai_anime.utils.path_resolver import (
         canonical_beat_director_env_only_path,
         canonical_beat_selected_background_path,
@@ -386,6 +398,16 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     def build(backend: str = "inline"):
         task_backend = _FakeTaskBackend(backend)
         task_manager = _FakeTaskManager()
+        reverse_prompt_use_cases = CreativeCanvasReversePromptUseCases(
+            ProjectCreativeCanvasImageSourceResolver(),
+            FreezoneJobIdGenerator(),
+            TaskBackendCreativeCanvasReversePromptScheduler(lambda: task_backend),
+        )
+        monkeypatch.setattr(
+            freezone_image,
+            "creative_canvas_reverse_prompt_use_cases",
+            lambda use_cases=reverse_prompt_use_cases: use_cases,
+        )
         monkeypatch.setattr(ingest, "get_task_backend", lambda tb=task_backend: tb)
         monkeypatch.setattr(freezone, "get_task_backend", lambda tb=task_backend: tb)
         monkeypatch.setattr(freezone, "get_task_manager", lambda tm=task_manager: tm)

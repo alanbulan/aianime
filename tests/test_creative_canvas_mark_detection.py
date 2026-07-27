@@ -22,9 +22,11 @@ from ai_anime.modules.creative_canvas.domain.mark_detection import (
 from ai_anime.modules.creative_canvas.infrastructure import (
     mark_detection as mark_detection_adapters,
 )
+from ai_anime.modules.creative_canvas.infrastructure.image_sources import (
+    ProjectCreativeCanvasImageSourceResolver,
+)
 from ai_anime.modules.creative_canvas.infrastructure.mark_detection import (
     FreezoneVisionMarkDetector,
-    ProjectCreativeCanvasImageSourceResolver,
 )
 
 

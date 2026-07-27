@@ -24,6 +24,14 @@ from ai_anime.modules.creative_canvas.application.mark_detection import (
     DetectCreativeCanvasMarkCommand,
     InvalidCreativeCanvasMarkRequest,
 )
+from ai_anime.modules.creative_canvas.application.reverse_prompt import (
+    CreativeCanvasReversePromptSourceMissing,
+    CreativeCanvasReversePromptStartFailed,
+    CreativeCanvasReversePromptTaskReceipt,
+    CreativeCanvasReversePromptUseCases,
+    InvalidCreativeCanvasReversePromptRequest,
+    StartCreativeCanvasReversePromptCommand,
+)
 from ai_anime.modules.creative_canvas.domain import (
     CreativeCanvasMarkSelection,
     CreativeCanvasScreenshotTooLarge,
@@ -64,6 +72,14 @@ def creative_canvas_mark_detection_use_cases() -> CreativeCanvasMarkDetectionUse
     return build()
 
 
+def creative_canvas_reverse_prompt_use_cases() -> CreativeCanvasReversePromptUseCases:
+    from ai_anime.modules.creative_canvas.composition import (
+        creative_canvas_reverse_prompt_use_cases as build,
+    )
+
+    return build()
+
+
 __all__ = [
     "CreativeCanvasBootstrapBusy",
     "CreativeCanvasBootstrapCorrupt",
@@ -74,6 +90,10 @@ __all__ = [
     "CreativeCanvasMarkDetectionResult",
     "CreativeCanvasMarkDetectionUseCases",
     "CreativeCanvasMarkSelection",
+    "CreativeCanvasReversePromptSourceMissing",
+    "CreativeCanvasReversePromptStartFailed",
+    "CreativeCanvasReversePromptTaskReceipt",
+    "CreativeCanvasReversePromptUseCases",
     "CreativeCanvasScreenshotResult",
     "CreativeCanvasScreenshotTooLarge",
     "CreativeCanvasUploadResult",
@@ -81,12 +101,15 @@ __all__ = [
     "DetectCreativeCanvasMarkCommand",
     "InvalidCreativeCanvasPngScreenshot",
     "InvalidCreativeCanvasMarkRequest",
+    "InvalidCreativeCanvasReversePromptRequest",
     "InitializeCreativeCanvasCommand",
     "SaveCreativeCanvasScreenshotCommand",
     "StoreCreativeCanvasUploadCommand",
+    "StartCreativeCanvasReversePromptCommand",
     "canvas_actor_id",
     "creative_canvas_bootstrap_use_cases",
     "creative_canvas_mark_detection_use_cases",
+    "creative_canvas_reverse_prompt_use_cases",
     "creative_canvas_media_use_cases",
     "generation_catalog_queries",
 ]

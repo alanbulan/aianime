@@ -14,11 +14,18 @@ from ai_anime.modules.creative_canvas.application.media import (
 from ai_anime.modules.creative_canvas.application.mark_detection import (
     CreativeCanvasMarkDetectionUseCases,
 )
+from ai_anime.modules.creative_canvas.application.reverse_prompt import (
+    CreativeCanvasReversePromptUseCases,
+)
+from ai_anime.ports import get_task_backend
 from ai_anime.modules.creative_canvas.infrastructure.bootstrap import (
     LocalCreativeCanvasBootstrapStorage,
 )
 from ai_anime.modules.creative_canvas.infrastructure.generation_catalog import (
     ConfiguredGenerationCatalogSource,
+)
+from ai_anime.modules.creative_canvas.infrastructure.image_sources import (
+    ProjectCreativeCanvasImageSourceResolver,
 )
 from ai_anime.modules.creative_canvas.infrastructure.media import (
     FreezoneJobIdGenerator,
@@ -26,7 +33,9 @@ from ai_anime.modules.creative_canvas.infrastructure.media import (
 )
 from ai_anime.modules.creative_canvas.infrastructure.mark_detection import (
     FreezoneVisionMarkDetector,
-    ProjectCreativeCanvasImageSourceResolver,
+)
+from ai_anime.modules.creative_canvas.infrastructure.reverse_prompt import (
+    TaskBackendCreativeCanvasReversePromptScheduler,
 )
 
 
@@ -53,4 +62,13 @@ def creative_canvas_mark_detection_use_cases() -> CreativeCanvasMarkDetectionUse
     return CreativeCanvasMarkDetectionUseCases(
         ProjectCreativeCanvasImageSourceResolver(),
         FreezoneVisionMarkDetector(),
+    )
+
+
+@lru_cache(maxsize=1)
+def creative_canvas_reverse_prompt_use_cases() -> CreativeCanvasReversePromptUseCases:
+    return CreativeCanvasReversePromptUseCases(
+        ProjectCreativeCanvasImageSourceResolver(),
+        FreezoneJobIdGenerator(),
+        TaskBackendCreativeCanvasReversePromptScheduler(get_task_backend),
     )

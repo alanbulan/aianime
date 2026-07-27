@@ -3,16 +3,10 @@
 from pathlib import Path
 
 from ai_anime.freezone.mark_node import detect_freezone_mark
-from ai_anime.freezone.paths import resolve_static_url_to_path
 from ai_anime.modules.creative_canvas.application.mark_detection import (
     DetectedCreativeCanvasMark,
 )
 from ai_anime.modules.creative_canvas.domain import CreativeCanvasMarkSelection
-
-
-class ProjectCreativeCanvasImageSourceResolver:
-    def resolve(self, project_dir: Path, source_url: str) -> Path:
-        return resolve_static_url_to_path(source_url, project_dir)
 
 
 class FreezoneVisionMarkDetector:

@@ -160,41 +160,6 @@ async def test_freezone_text_translate_route_returns_task_id(
 
 
 @pytest.mark.asyncio
-async def test_freezone_image_reverse_prompt_route_returns_task_id(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    project_dir = tmp_path / "project"
-    source = project_dir / "freezone" / "_uploads" / "sample.png"
-    source.parent.mkdir(parents=True, exist_ok=True)
-    source.write_bytes(b"fake")
-
-    _patch_project_resolution(monkeypatch, project_dir)
-    captured: dict[str, object] = {}
-
-    def _fake_start_image_reverse_prompt_task(**kwargs):
-        captured.update(kwargs)
-
-    monkeypatch.setattr(
-        freezone_routes,
-        "_start_freezone_image_reverse_prompt_task",
-        _fake_start_image_reverse_prompt_task,
-    )
-
-    result = await freezone_routes.freezone_image_reverse_prompt(
-        project="58",
-        body=freezone_routes.FreezoneImageReversePromptRequest(
-            source_url="/static/admin/58/freezone/_uploads/sample.png"
-        ),
-        user={"username": "admin"},
-    )
-
-    assert result["ok"] is True
-    assert result["data"]["task_type"] == "freezone_image_reverse_prompt"
-    assert captured["source_path"] == source
-
-
-@pytest.mark.asyncio
 async def test_freezone_story_script_route_uses_source_text(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
