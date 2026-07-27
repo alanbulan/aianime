@@ -60,6 +60,7 @@ from ai_anime.modules.creative_canvas.application.video_processing import (
     InvalidCreativeCanvasVideoProcessingRequest,
     StartCreativeCanvasFrameExtractionCommand,
     StartCreativeCanvasShotAnalysisCommand,
+    StartCreativeCanvasVideoUpscaleCommand,
     StartCreativeCanvasVideoStoryAnalysisCommand,
 )
 from ai_anime.modules.creative_canvas.application.video_generation import (
@@ -289,6 +290,7 @@ __all__ = [
     "StartCreativeCanvasKeyframeVideoCommand",
     "StartCreativeCanvasOmniVideoCommand",
     "StartCreativeCanvasShotAnalysisCommand",
+    "StartCreativeCanvasVideoUpscaleCommand",
     "StartCreativeCanvasTextVideoCommand",
     "StartCreativeCanvasVideoEditCommand",
     "StartCreativeCanvasVideoStoryAnalysisCommand",

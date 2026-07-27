@@ -392,29 +392,34 @@ def test_freezone_video_processing_routes_delegate_to_application() -> None:
         '"/projects/{project}/freezone/extract-frames"',
         '"/projects/{project}/freezone/analyze-shots"',
         '"/projects/{project}/freezone/analyze-video-story"',
+        '"/projects/{project}/freezone/video/upscale"',
     )
     for endpoint_path in endpoint_paths:
         assert source.count(endpoint_path) == 1
         assert endpoint_path not in legacy_source
 
-    assert source.count("creative_canvas_video_processing_use_cases().") == 3
+    assert source.count("creative_canvas_video_processing_use_cases().") == 4
     for command in (
         "StartCreativeCanvasFrameExtractionCommand",
         "StartCreativeCanvasShotAnalysisCommand",
         "StartCreativeCanvasVideoStoryAnalysisCommand",
+        "StartCreativeCanvasVideoUpscaleCommand",
     ):
         assert command in source
     for legacy_handler in (
         "async def freezone_extract_frames(",
         "async def freezone_analyze_shots(",
         "async def freezone_analyze_video_story(",
+        "async def freezone_video_upscale(",
         "async def _enqueue_or_start_freezone_video_analysis(",
+        "def _start_freezone_video_upscale_task(",
     ):
         assert legacy_handler not in legacy_source
     for legacy_schema in (
         "FreezoneExtractFramesRequest",
         "FreezoneAnalyzeShotsRequest",
         "FreezoneAnalyzeVideoStoryRequest",
+        "FreezoneVideoUpscaleRequest",
     ):
         assert legacy_schema not in legacy_source
     for implementation_detail in (
@@ -428,6 +433,7 @@ def test_freezone_video_processing_routes_delegate_to_application() -> None:
         ("freezone_extract", "run_freezone_extract"),
         ("freezone_analyze", "run_freezone_analyze"),
         ("freezone_video_story", "run_freezone_video_story"),
+        ("freezone_video_upscale", "run_freezone_video_upscale"),
     ):
         assert (
             runner_source.count(

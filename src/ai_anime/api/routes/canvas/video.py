@@ -12,11 +12,13 @@ from ai_anime.api.schemas import (
     FreezoneAnalyzeVideoStoryRequest,
     FreezoneExtractFramesRequest,
     FreezoneImageToVideoRequest,
+    FreezoneJobAcceptedResponse,
     FreezoneKeyframeVideoRequest,
     FreezoneVideoCharacterLibraryItemRequest,
     FreezoneVideoEditRequest,
     FreezoneVideoGenRequest,
     FreezoneVideoOmniGenRequest,
+    FreezoneVideoUpscaleRequest,
 )
 from ai_anime.modules.creative_canvas.public import (
     AddCreativeCanvasVideoAssetCommand,
@@ -39,12 +41,17 @@ from ai_anime.modules.creative_canvas.public import (
     StartCreativeCanvasShotAnalysisCommand,
     StartCreativeCanvasTextVideoCommand,
     StartCreativeCanvasVideoEditCommand,
+    StartCreativeCanvasVideoUpscaleCommand,
     StartCreativeCanvasVideoStoryAnalysisCommand,
     SyncCreativeCanvasVideoAssetsCommand,
     creative_canvas_video_asset_library_use_cases,
     creative_canvas_video_generation_use_cases,
     creative_canvas_video_processing_use_cases,
     generation_catalog_queries,
+)
+from ai_anime.task_backend.limits import (
+    ProjectTaskLimitExceeded,
+    ProjectUserTaskLimitExceeded,
 )
 
 logger = logging.getLogger("ai_anime.api.freezone")
@@ -407,6 +414,54 @@ async def freezone_analyze_video_story(
         raise HTTPException(400, str(exc)) from exc
     except CreativeCanvasVideoProcessingSourceMissing as exc:
         raise HTTPException(404, str(exc)) from exc
+    return _video_processing_response(result)
+
+
+@router.post(
+    "/projects/{project}/freezone/video/upscale",
+    response_model=FreezoneJobAcceptedResponse,
+    tags=["freezone-video"],
+)
+async def freezone_video_upscale(
+    project: str,
+    body: FreezoneVideoUpscaleRequest,
+    user: dict = Depends(get_api_user),
+):
+    """视频处理：基础版高清增强。
+
+    当前实现使用 ffmpeg 做传统缩放、轻度降噪和锐化：
+    - 保持原始画面比例
+    - 按 `resolution` 对长边缩放
+    - 保留原视频音轨
+    """
+    resolved = await _resolve_editor_project(project, user)
+    try:
+        result = await creative_canvas_video_processing_use_cases().start_video_upscale(
+            StartCreativeCanvasVideoUpscaleCommand(
+                context=resolved.ctx,
+                project_dir=resolved.project_dir,
+                source_url=body.source_url,
+                resolution=body.resolution,
+                frame_interpolation=body.frame_interpolation,
+                denoise_strength=body.denoise_strength,
+            )
+        )
+    except InvalidCreativeCanvasVideoProcessingRequest as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except CreativeCanvasVideoProcessingSourceMissing as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except (ProjectTaskLimitExceeded, ProjectUserTaskLimitExceeded):
+        raise
+    except RuntimeError as exc:
+        logger.warning(
+            "failed to start freezone video upscale task: %s",
+            exc,
+            exc_info=True,
+        )
+        raise HTTPException(
+            503,
+            f"failed to start freezone video upscale task: {exc}",
+        ) from exc
     return _video_processing_response(result)
 
 

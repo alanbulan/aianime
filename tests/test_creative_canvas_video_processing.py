@@ -16,11 +16,13 @@ from ai_anime.modules.creative_canvas.application.video_processing import (
     CREATIVE_CANVAS_FRAME_EXTRACTION_TASK_TYPE,
     CREATIVE_CANVAS_SHOT_ANALYSIS_TASK_TYPE,
     CREATIVE_CANVAS_VIDEO_STORY_TASK_TYPE,
+    CREATIVE_CANVAS_VIDEO_UPSCALE_TASK_TYPE,
     CreativeCanvasVideoProcessingSourceMissing,
     CreativeCanvasVideoProcessingUseCases,
     InvalidCreativeCanvasVideoProcessingRequest,
     StartCreativeCanvasFrameExtractionCommand,
     StartCreativeCanvasShotAnalysisCommand,
+    StartCreativeCanvasVideoUpscaleCommand,
     StartCreativeCanvasVideoStoryAnalysisCommand,
 )
 from ai_anime.modules.creative_canvas.infrastructure.media_sources import (
@@ -100,7 +102,7 @@ async def test_video_processing_enqueues_exact_task_payloads(tmp_path: Path) -> 
     scheduler = _CapturingScheduler(context)
     use_cases = CreativeCanvasVideoProcessingUseCases(
         ProjectCreativeCanvasMediaSourceResolver(),
-        _FixedJobIds("job-extract", "job-analyze", "job-story"),
+        _FixedJobIds("job-extract", "job-analyze", "job-story", "job-upscale"),
         scheduler,
     )
 
@@ -135,10 +137,21 @@ async def test_video_processing_enqueues_exact_task_payloads(tmp_path: Path) -> 
             duration_sec=None,
         )
     )
+    upscale = await use_cases.start_video_upscale(
+        StartCreativeCanvasVideoUpscaleCommand(
+            context=context,
+            project_dir=project_dir,
+            source_url="freezone/_uploads/clip.mp4",
+            resolution="2k",
+            frame_interpolation="none",
+            denoise_strength="2x",
+        )
+    )
 
     assert extract == _receipt(CREATIVE_CANVAS_FRAME_EXTRACTION_TASK_TYPE, "job-extract")
     assert analyze == _receipt(CREATIVE_CANVAS_SHOT_ANALYSIS_TASK_TYPE, "job-analyze")
     assert story == _receipt(CREATIVE_CANVAS_VIDEO_STORY_TASK_TYPE, "job-story")
+    assert upscale == _receipt(CREATIVE_CANVAS_VIDEO_UPSCALE_TASK_TYPE, "job-upscale")
     assert scheduler.tasks == [
         CreativeCanvasTaskSubmission(
             task_type=CREATIVE_CANVAS_FRAME_EXTRACTION_TASK_TYPE,
@@ -172,6 +185,18 @@ async def test_video_processing_enqueues_exact_task_payloads(tmp_path: Path) -> 
                 "max_frames": 20,
                 "scene_threshold": 0.3,
                 "duration_sec": None,
+            },
+        ),
+        CreativeCanvasTaskSubmission(
+            task_type=CREATIVE_CANVAS_VIDEO_UPSCALE_TASK_TYPE,
+            queue_kind="ffmpeg",
+            job_id="job-upscale",
+            project_dir=project_dir,
+            payload={
+                "source_path": video.as_posix(),
+                "resolution": "2k",
+                "frame_interpolation": "none",
+                "denoise_strength": "2x",
             },
         ),
     ]
@@ -215,6 +240,22 @@ async def test_video_processing_preserves_source_error_contracts(tmp_path: Path)
             )
         )
     assert video_exc.value.field_name == "video"
+
+    with pytest.raises(
+        CreativeCanvasVideoProcessingSourceMissing,
+        match="video source not found: ",
+    ) as upscale_exc:
+        await use_cases.start_video_upscale(
+            StartCreativeCanvasVideoUpscaleCommand(
+                context=context,
+                project_dir=context.output_dir,
+                source_url="freezone/_uploads/missing.mp4",
+                resolution="1080p",
+                frame_interpolation="none",
+                denoise_strength="1x",
+            )
+        )
+    assert upscale_exc.value.field_name == "video source"
 
     with pytest.raises(
         InvalidCreativeCanvasVideoProcessingRequest,

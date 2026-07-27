@@ -4,9 +4,20 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from fastapi import HTTPException
 
-from ai_anime.api.routes import freezone as freezone_routes
+from ai_anime.api.routes.canvas import video as video_routes
+from ai_anime.api.schemas import FreezoneVideoUpscaleRequest
 from ai_anime.freezone.jobs import _video_upscale_filter
+from ai_anime.modules.creative_canvas.application.task_submission import (
+    CreativeCanvasTaskReceipt,
+)
+from ai_anime.modules.creative_canvas.application.video_processing import (
+    CreativeCanvasVideoProcessingUseCases,
+)
+from ai_anime.modules.creative_canvas.infrastructure.media_sources import (
+    ProjectCreativeCanvasMediaSourceResolver,
+)
 
 
 def test_video_upscale_filter_uses_lanczos_and_enhancement() -> None:
@@ -26,42 +37,61 @@ async def test_freezone_video_upscale_route_starts_task(
 ) -> None:
     username = "admin"
     project = "58"
-    video_path = tmp_path / "clip.mp4"
+    video_path = tmp_path / "freezone" / "_uploads" / "clip.mp4"
+    video_path.parent.mkdir(parents=True)
     video_path.write_bytes(b"mp4")
     captured: dict[str, object] = {}
-    queued = SimpleNamespace(
-        backend="inline",
-        queue="ffmpeg",
-        task_state=SimpleNamespace(task_id="task-upscale"),
+    context = SimpleNamespace(project_id=project)
+    resolution = SimpleNamespace(ctx=context, project_dir=tmp_path)
+
+    async def fake_resolve_project_scope(project_: str, user: dict, **kwargs):
+        assert project_ == project
+        assert user == {"username": username}
+        assert kwargs == {
+            "required_role": "editor",
+            "operation": "access freezone project files",
+        }
+        return resolution
+
+    class FixedJobIds:
+        def new_id(self):
+            return "upscale_job"
+
+    class Scheduler:
+        async def enqueue(self, ctx, task):
+            captured["ctx"] = ctx
+            captured["task"] = task
+            return CreativeCanvasTaskReceipt(
+                task_type=task.task_type,
+                job_id=task.job_id,
+                task_key=f"task:{task.task_type}:{task.job_id}",
+                task_episode=0,
+                task_scope=task.job_id,
+                backend="inline",
+                queue="ffmpeg",
+                task_id="task-upscale",
+            )
+
+    use_cases = CreativeCanvasVideoProcessingUseCases(
+        ProjectCreativeCanvasMediaSourceResolver(),
+        FixedJobIds(),
+        Scheduler(),
     )
 
-    async def _fake_resolve(project_: str, user: dict, *, required_role: str = "editor"):
-        del user, required_role
-        ctx = SimpleNamespace(project_id=project_)
-        return ctx, username, project_, tmp_path, str(tmp_path)
-
-    monkeypatch.setattr(freezone_routes, "_resolve_freezone_project", _fake_resolve)
-    monkeypatch.setattr(freezone_routes, "_new_job_id", lambda: "upscale_job")
     monkeypatch.setattr(
-        freezone_routes,
-        "resolve_static_url_to_path",
-        lambda _url, _project_dir: video_path,
+        video_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
     )
-
-    async def fake_enqueue_project_task(ctx, **kwargs):
-        captured["ctx"] = ctx
-        captured.update(kwargs)
-        return queued
-
     monkeypatch.setattr(
-        freezone_routes,
-        "get_task_backend",
-        lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
+        video_routes,
+        "creative_canvas_video_processing_use_cases",
+        lambda: use_cases,
     )
 
-    result = await freezone_routes.freezone_video_upscale(
+    result = await video_routes.freezone_video_upscale(
         project=project,
-        body=freezone_routes.FreezoneVideoUpscaleRequest(
+        body=FreezoneVideoUpscaleRequest(
             source_url="/static/admin/58/freezone/_uploads/clip.mp4",
             resolution="2k",
             frame_interpolation="none",
@@ -78,11 +108,50 @@ async def test_freezone_video_upscale_route_starts_task(
     assert result["data"]["task_id"] == "task-upscale"
     assert "freezone_video_upscale" in result["data"]["task_key"]
     assert captured["ctx"].project_id == project
-    assert captured["task_type"] == "freezone_video_upscale"
-    assert captured["queue_kind"] == "ffmpeg"
-    assert captured["episode"] == 0
-    assert captured["scope"] == "upscale_job"
-    assert captured["payload"]["source_path"] == video_path.as_posix()
-    assert captured["payload"]["resolution"] == "2k"
-    assert captured["payload"]["frame_interpolation"] == "none"
-    assert captured["payload"]["denoise_strength"] == "2x"
+    task = captured["task"]
+    assert task.task_type == "freezone_video_upscale"
+    assert task.queue_kind == "ffmpeg"
+    assert task.job_id == "upscale_job"
+    assert task.payload["source_path"] == video_path.as_posix()
+    assert task.payload["resolution"] == "2k"
+    assert task.payload["frame_interpolation"] == "none"
+    assert task.payload["denoise_strength"] == "2x"
+
+
+@pytest.mark.asyncio
+async def test_freezone_video_upscale_route_maps_runtime_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def fake_resolve_project_scope(*_args, **_kwargs):
+        return SimpleNamespace(
+            ctx=SimpleNamespace(project_id="58"),
+            project_dir=tmp_path,
+        )
+
+    class FailingUseCases:
+        async def start_video_upscale(self, _command):
+            raise RuntimeError("ffmpeg queue unavailable")
+
+    monkeypatch.setattr(
+        video_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
+    monkeypatch.setattr(
+        video_routes,
+        "creative_canvas_video_processing_use_cases",
+        lambda: FailingUseCases(),
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        await video_routes.freezone_video_upscale(
+            project="58",
+            body=FreezoneVideoUpscaleRequest(source_url="clip.mp4"),
+            user={"username": "admin"},
+        )
+
+    assert exc.value.status_code == 503
+    assert exc.value.detail == (
+        "failed to start freezone video upscale task: ffmpeg queue unavailable"
+    )

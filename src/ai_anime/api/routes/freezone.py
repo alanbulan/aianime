@@ -45,7 +45,6 @@ from ai_anime.api.schemas import (
     FreezoneTextTranslateRequest,
     FreezoneVideoComposeRequest,
     FreezoneVideoEraseRequest,
-    FreezoneVideoUpscaleRequest,
     ImpactRequest,
     PresetCanvasRequest,
     ProjectionPresetCanvasRequest,
@@ -1522,7 +1521,6 @@ async def _enqueue_or_start_freezone_media_job(
     project_dir: Path,
     task_type: Literal[
         "freezone_video_erase",
-        "freezone_video_upscale",
         "freezone_audio_separate",
         "freezone_video_compose",
         "freezone_audio_eleven_music",
@@ -4457,79 +4455,6 @@ def _start_freezone_video_erase_task(
     asyncio.create_task(_runner())
 
 
-def _start_freezone_video_upscale_task(
-    *,
-    username: str,
-    project: str,
-    project_id: str,
-    project_dir: Path,
-    job_id: str,
-    source_path: Path,
-    body: FreezoneVideoUpscaleRequest,
-) -> None:
-    task_type = "freezone_video_upscale"
-    task_manager = get_task_manager()
-    task_manager.create_task(
-        task_type,
-        username,
-        project,
-        episode=0,
-        scope=job_id,
-        status="starting",
-    )
-
-    async def _runner() -> None:
-        try:
-            task_manager.update_progress(
-                task_type,
-                username,
-                project,
-                episode=0,
-                scope=job_id,
-                progress=0.05,
-                current_task="upscaling_video",
-                logs=["开始视频高清处理"],
-            )
-            from ai_anime.freezone.jobs import run_freezone_video_upscale
-
-            output_path, meta = await run_freezone_video_upscale(
-                project_dir=project_dir,
-                job_id=job_id,
-                source_path=str(source_path),
-                resolution=body.resolution,
-                frame_interpolation=body.frame_interpolation,
-                denoise_strength=body.denoise_strength,
-            )
-            rel = output_path.relative_to(project_dir).as_posix()
-            task_manager.complete_task(
-                task_type,
-                username,
-                project,
-                episode=0,
-                scope=job_id,
-                result={
-                    "output_format": "mp4",
-                    "output_url": project_static_url(project_id, rel, local_path=output_path),
-                    "meta": meta,
-                },
-                current_task="completed",
-                logs=["视频高清处理完成"],
-            )
-        except Exception as exc:
-            task_manager.fail_task(
-                task_type,
-                username,
-                project,
-                episode=0,
-                scope=job_id,
-                error=str(exc),
-                current_task="failed",
-                logs=[f"错误: {exc}"],
-            )
-
-    asyncio.create_task(_runner())
-
-
 def _start_freezone_audio_separate_task(
     *,
     username: str,
@@ -5269,75 +5194,6 @@ async def freezone_video_erase(
 
     return _accepted_job_response(
         task_type="freezone_video_erase",
-        username=username,
-        project=project_name,
-        job_id=job_id,
-    )
-
-
-@router.post(
-    "/projects/{project}/freezone/video/upscale",
-    response_model=FreezoneJobAcceptedResponse,
-    tags=[TAG_FREEZONE_VIDEO],
-)
-async def freezone_video_upscale(
-    project: str,
-    body: FreezoneVideoUpscaleRequest,
-    user: dict = Depends(get_api_user),
-):
-    """视频处理：基础版高清增强。
-
-    当前实现使用 ffmpeg 做传统缩放、轻度降噪和锐化：
-    - 保持原始画面比例
-    - 按 `resolution` 对长边缩放
-    - 保留原视频音轨
-    """
-    ctx, username, project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project, user
-    )
-
-    try:
-        source_path = resolve_static_url_to_path(body.source_url, project_dir)
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
-    if not source_path.exists():
-        raise HTTPException(404, f"video source not found: {source_path}")
-
-    try:
-        job_id = _new_job_id()
-        if ctx is not None:
-            return await _enqueue_or_start_freezone_media_job(
-                ctx=ctx,
-                username=username,
-                project=project_name,
-                project_dir=project_dir,
-                task_type="freezone_video_upscale",
-                job_id=job_id,
-                payload={
-                    "source_path": source_path.as_posix(),
-                    "resolution": body.resolution,
-                    "frame_interpolation": body.frame_interpolation,
-                    "denoise_strength": body.denoise_strength,
-                },
-            )
-        _start_freezone_video_upscale_task(
-            username=username,
-            project=project_name,
-            project_id=ctx.project_id,
-            project_dir=project_dir,
-            job_id=job_id,
-            source_path=source_path,
-            body=body,
-        )
-    except RuntimeError as exc:
-        _handle_task_start_runtime_error("failed to start freezone video upscale task", exc)
-        raise HTTPException(
-            503,
-            f"failed to start freezone video upscale task: {exc}",
-        ) from exc
-
-    return _accepted_job_response(
-        task_type="freezone_video_upscale",
         username=username,
         project=project_name,
         job_id=job_id,

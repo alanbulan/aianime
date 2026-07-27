@@ -20,6 +20,7 @@ from ai_anime.modules.project_workspace.public import ProjectContext
 CREATIVE_CANVAS_FRAME_EXTRACTION_TASK_TYPE = "freezone_extract"
 CREATIVE_CANVAS_SHOT_ANALYSIS_TASK_TYPE = "freezone_analyze"
 CREATIVE_CANVAS_VIDEO_STORY_TASK_TYPE = "freezone_video_story"
+CREATIVE_CANVAS_VIDEO_UPSCALE_TASK_TYPE = "freezone_video_upscale"
 CreativeCanvasShotAnalysisMode = Literal["shots", "video_story"]
 
 
@@ -60,6 +61,16 @@ class StartCreativeCanvasVideoStoryAnalysisCommand:
     max_frames: int
     scene_threshold: float
     duration_sec: float | None = None
+
+
+@dataclass(frozen=True)
+class StartCreativeCanvasVideoUpscaleCommand:
+    context: ProjectContext
+    project_dir: Path
+    source_url: str
+    resolution: str
+    frame_interpolation: str
+    denoise_strength: str
 
 
 class CreativeCanvasVideoProcessingUseCases:
@@ -141,6 +152,28 @@ class CreativeCanvasVideoProcessingUseCases:
                 "max_frames": command.max_frames,
                 "scene_threshold": command.scene_threshold,
                 "duration_sec": command.duration_sec,
+            },
+        )
+
+    async def start_video_upscale(
+        self,
+        command: StartCreativeCanvasVideoUpscaleCommand,
+    ) -> CreativeCanvasTaskReceipt:
+        source_path = self._resolve_existing_source(
+            command.project_dir,
+            command.source_url,
+            field_name="video source",
+        )
+        return await self._enqueue(
+            context=command.context,
+            project_dir=command.project_dir,
+            task_type=CREATIVE_CANVAS_VIDEO_UPSCALE_TASK_TYPE,
+            queue_kind="ffmpeg",
+            payload={
+                "source_path": source_path.as_posix(),
+                "resolution": command.resolution,
+                "frame_interpolation": command.frame_interpolation,
+                "denoise_strength": command.denoise_strength,
             },
         )
 
