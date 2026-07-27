@@ -5,6 +5,12 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections.abc import Mapping
+from typing import Any
+
+from ai_anime.modules.creative_canvas.domain.canvas_documents import (
+    is_preset_managed_canvas_node,
+)
 
 
 def _is_replaceable_projection_node(node: dict, projection_key: str) -> bool:
@@ -271,6 +277,191 @@ def remove_projected_preset_canvas(
     return merged
 
 
+_PRESET_FACTS_SIGNATURE_OMIT_KEYS = {
+    "created_at",
+    "createdAt",
+    "dragging",
+    "measured",
+    "position",
+    "revision",
+    "resizing",
+    "selected",
+    "updated_at",
+    "updatedAt",
+}
+
+
+def _canonical_preset_facts_value(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: _canonical_preset_facts_value(raw_value)
+            for key, raw_value in sorted(value.items())
+            if key not in _PRESET_FACTS_SIGNATURE_OMIT_KEYS
+            and not (isinstance(key, str) and key.startswith("__runtime"))
+        }
+    if isinstance(value, list):
+        return [_canonical_preset_facts_value(item) for item in value]
+    return value
+
+
+def preset_facts_signature(payload: Mapping[str, Any]) -> str:
+    nodes = [
+        node
+        for node in payload.get("nodes") or []
+        if isinstance(node, dict) and is_preset_managed_canvas_node(node)
+    ]
+    preset_node_ids = {str(node.get("id")) for node in nodes if node.get("id")}
+    edges: list[dict] = []
+    for edge in payload.get("edges") or []:
+        if not isinstance(edge, dict):
+            continue
+        data = edge.get("data") if isinstance(edge.get("data"), dict) else {}
+        source = str(edge.get("source") or "")
+        target = str(edge.get("target") or "")
+        if (
+            data.get("preset_managed") is True
+            or source in preset_node_ids
+            or target in preset_node_ids
+        ):
+            edges.append(edge)
+    canonical = {
+        "nodes": sorted(
+            (_canonical_preset_facts_value(node) for node in nodes),
+            key=lambda node: (
+                str(node.get("id") or "") if isinstance(node, dict) else ""
+            ),
+        ),
+        "edges": sorted(
+            (_canonical_preset_facts_value(edge) for edge in edges),
+            key=lambda edge: (
+                str(edge.get("source") or "") if isinstance(edge, dict) else "",
+                str(edge.get("target") or "") if isinstance(edge, dict) else "",
+                str(edge.get("id") or "") if isinstance(edge, dict) else "",
+            ),
+        ),
+    }
+    return _stable_json_digest(canonical)
+
+
+def stamp_preset_facts_signature(payload: dict, signature: str) -> None:
+    metadata = payload.setdefault("metadata", {})
+    if not isinstance(metadata, dict):
+        metadata = {}
+        payload["metadata"] = metadata
+    preset = metadata.setdefault("preset", {})
+    if not isinstance(preset, dict):
+        preset = {}
+        metadata["preset"] = preset
+    preset["facts_signature"] = signature
+
+
+def stamp_projection_key(payload: dict, projection_key: str) -> None:
+    nodes = [
+        node
+        for node in payload.get("nodes") or []
+        if isinstance(node, dict) and is_preset_managed_canvas_node(node)
+    ]
+    preset_node_ids = {str(node.get("id")) for node in nodes if node.get("id")}
+    for node in nodes:
+        data = node.setdefault("data", {})
+        if isinstance(data, dict):
+            data["preset_managed"] = True
+            data["projection_key"] = projection_key
+    for edge in payload.get("edges") or []:
+        if not isinstance(edge, dict):
+            continue
+        source = str(edge.get("source") or "")
+        target = str(edge.get("target") or "")
+        data = edge.setdefault("data", {})
+        if not isinstance(data, dict):
+            data = {}
+            edge["data"] = data
+        if (
+            data.get("preset_managed") is True
+            or source in preset_node_ids
+            or target in preset_node_ids
+        ):
+            data["preset_managed"] = True
+            data["projection_key"] = projection_key
+
+
+def projection_group_label(request: Mapping[str, Any]) -> str:
+    scope = request.get("scope")
+    episode = request.get("episode")
+    beat = request.get("beat")
+    if scope == "beat" and episode is not None and beat is not None:
+        return f"EP{episode}/B{beat}"
+    if scope == "episode" and episode is not None:
+        return f"EP{episode}"
+    if scope == "asset":
+        for key in ("character", "asset_id", "identity_id", "asset_kind"):
+            value = request.get(key)
+            if value:
+                return str(value)
+    return str(request.get("projection_key") or "")
+
+
+def stamp_projection_metadata(
+    payload: dict,
+    *,
+    projection_key: str,
+    preset_key: str,
+    request: Mapping[str, Any],
+    facts_signature: str,
+    last_synced_at: str,
+) -> None:
+    metadata = payload.setdefault("metadata", {})
+    if not isinstance(metadata, dict):
+        metadata = {}
+        payload["metadata"] = metadata
+    metadata.pop("preset", None)
+    projections = metadata.setdefault("projections", {})
+    if not isinstance(projections, dict):
+        projections = {}
+        metadata["projections"] = projections
+    projections[projection_key] = {
+        "projection_key": projection_key,
+        "preset_key": preset_key,
+        "scope": request.get("scope"),
+        "request": dict(request),
+        "facts_signature": facts_signature,
+        "last_synced_at": last_synced_at,
+    }
+    metadata["last_projection_key"] = projection_key
+
+
+def projection_facts_signature_from_payload(
+    payload: Mapping[str, Any] | None,
+    projection_key: str,
+) -> str:
+    if not isinstance(payload, Mapping):
+        return ""
+    metadata = payload.get("metadata")
+    if not isinstance(metadata, Mapping):
+        return ""
+    projections = metadata.get("projections")
+    if not isinstance(projections, Mapping):
+        return ""
+    projection = projections.get(projection_key)
+    if not isinstance(projection, Mapping):
+        return ""
+    signature = projection.get("facts_signature")
+    return signature if isinstance(signature, str) else ""
+
+
+def preset_facts_signature_from_payload(
+    payload: Mapping[str, Any] | None,
+) -> str:
+    if not isinstance(payload, Mapping):
+        return ""
+    metadata = payload.get("metadata")
+    preset = metadata.get("preset") if isinstance(metadata, Mapping) else None
+    if not isinstance(preset, Mapping):
+        return ""
+    signature = preset.get("facts_signature")
+    return signature if isinstance(signature, str) else ""
+
+
 def _projection_group_id(projection_key: str) -> str:
     slug = re.sub(r"[^A-Za-z0-9]+", "_", projection_key).strip("_").lower()
     if not slug:
@@ -281,8 +472,12 @@ def _projection_group_id(projection_key: str) -> str:
 
 
 def _projection_key_digest(projection_key: str) -> str:
+    return _stable_json_digest({"projection_key": projection_key})
+
+
+def _stable_json_digest(value: Any) -> str:
     encoded = json.dumps(
-        {"projection_key": projection_key},
+        value,
         ensure_ascii=False,
         sort_keys=True,
         separators=(",", ":"),
@@ -423,6 +618,13 @@ def wrap_projection_payload_in_group(
 
 __all__ = [
     "merge_projected_preset_canvas",
+    "preset_facts_signature",
+    "preset_facts_signature_from_payload",
+    "projection_facts_signature_from_payload",
+    "projection_group_label",
     "remove_projected_preset_canvas",
+    "stamp_preset_facts_signature",
+    "stamp_projection_key",
+    "stamp_projection_metadata",
     "wrap_projection_payload_in_group",
 ]

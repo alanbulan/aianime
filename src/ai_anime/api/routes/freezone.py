@@ -61,9 +61,16 @@ from ai_anime.modules.creative_canvas.public import (
     is_preset_managed_canvas_node,
     merge_projected_preset_canvas,
     merge_restored_preset_canvas,
+    preset_facts_signature,
+    preset_facts_signature_from_payload,
     prepare_creative_canvas_payload_for_write,
+    projection_facts_signature_from_payload,
+    projection_group_label,
     record_creative_canvas_event,
     remove_projected_preset_canvas,
+    stamp_preset_facts_signature,
+    stamp_projection_key,
+    stamp_projection_metadata,
     translate_creative_canvas_document_write_error,
     wrap_projection_payload_in_group,
 )
@@ -4230,187 +4237,6 @@ def _canvas_state_project_dir(ctx: ProjectContext | None, output_project_dir: Pa
     return output_project_dir
 
 
-_PRESET_FACTS_SIGNATURE_OMIT_KEYS = {
-    "created_at",
-    "createdAt",
-    "dragging",
-    "measured",
-    "position",
-    "revision",
-    "resizing",
-    "selected",
-    "updated_at",
-    "updatedAt",
-}
-
-
-def _canonical_preset_facts_value(value):
-    if isinstance(value, dict):
-        return {
-            key: _canonical_preset_facts_value(raw_value)
-            for key, raw_value in sorted(value.items())
-            if key not in _PRESET_FACTS_SIGNATURE_OMIT_KEYS
-            and not (isinstance(key, str) and key.startswith("__runtime"))
-        }
-    if isinstance(value, list):
-        return [_canonical_preset_facts_value(item) for item in value]
-    return value
-
-
-def _preset_facts_signature(payload: dict) -> str:
-    nodes = [
-        node
-        for node in payload.get("nodes") or []
-        if isinstance(node, dict) and is_preset_managed_canvas_node(node)
-    ]
-    preset_node_ids = {str(node.get("id")) for node in nodes if node.get("id")}
-    edges: list[dict] = []
-    for edge in payload.get("edges") or []:
-        if not isinstance(edge, dict):
-            continue
-        data = edge.get("data") if isinstance(edge.get("data"), dict) else {}
-        source = str(edge.get("source") or "")
-        target = str(edge.get("target") or "")
-        if (
-            data.get("preset_managed") is True
-            or source in preset_node_ids
-            or target in preset_node_ids
-        ):
-            edges.append(edge)
-    canonical = {
-        "nodes": sorted(
-            (_canonical_preset_facts_value(node) for node in nodes),
-            key=lambda node: str(node.get("id") or "") if isinstance(node, dict) else "",
-        ),
-        "edges": sorted(
-            (_canonical_preset_facts_value(edge) for edge in edges),
-            key=lambda edge: (
-                str(edge.get("source") or "") if isinstance(edge, dict) else "",
-                str(edge.get("target") or "") if isinstance(edge, dict) else "",
-                str(edge.get("id") or "") if isinstance(edge, dict) else "",
-            ),
-        ),
-    }
-    return canvas_store.canvas_request_hash(canonical)
-
-
-def _stamp_preset_facts_signature(payload: dict, signature: str) -> None:
-    metadata = payload.setdefault("metadata", {})
-    if not isinstance(metadata, dict):
-        metadata = {}
-        payload["metadata"] = metadata
-    preset = metadata.setdefault("preset", {})
-    if not isinstance(preset, dict):
-        preset = {}
-        metadata["preset"] = preset
-    preset["facts_signature"] = signature
-
-
-def _stamp_projection_key(payload: dict, projection_key: str) -> None:
-    nodes = [
-        node
-        for node in payload.get("nodes") or []
-        if isinstance(node, dict) and is_preset_managed_canvas_node(node)
-    ]
-    preset_node_ids = {str(node.get("id")) for node in nodes if node.get("id")}
-    for node in nodes:
-        data = node.setdefault("data", {})
-        if isinstance(data, dict):
-            data["preset_managed"] = True
-            data["projection_key"] = projection_key
-    for edge in payload.get("edges") or []:
-        if not isinstance(edge, dict):
-            continue
-        source = str(edge.get("source") or "")
-        target = str(edge.get("target") or "")
-        data = edge.setdefault("data", {})
-        if not isinstance(data, dict):
-            data = {}
-            edge["data"] = data
-        if (
-            data.get("preset_managed") is True
-            or source in preset_node_ids
-            or target in preset_node_ids
-        ):
-            data["preset_managed"] = True
-            data["projection_key"] = projection_key
-
-
-def _projection_group_label(body: ProjectionPresetCanvasRequest) -> str:
-    if body.scope == "beat" and body.episode is not None and body.beat is not None:
-        return f"EP{body.episode}/B{body.beat}"
-    if body.scope == "episode" and body.episode is not None:
-        return f"EP{body.episode}"
-    if body.scope == "asset":
-        if body.character:
-            return str(body.character)
-        if body.asset_id:
-            return str(body.asset_id)
-        if body.identity_id:
-            return str(body.identity_id)
-        if body.asset_kind:
-            return str(body.asset_kind)
-    return body.projection_key
-
-
-def _stamp_projection_metadata(
-    payload: dict,
-    *,
-    projection_key: str,
-    preset_key: str,
-    body: ProjectionPresetCanvasRequest,
-    facts_signature: str,
-) -> None:
-    metadata = payload.setdefault("metadata", {})
-    if not isinstance(metadata, dict):
-        metadata = {}
-        payload["metadata"] = metadata
-    metadata.pop("preset", None)
-    projections = metadata.setdefault("projections", {})
-    if not isinstance(projections, dict):
-        projections = {}
-        metadata["projections"] = projections
-    projections[projection_key] = {
-        "projection_key": projection_key,
-        "preset_key": preset_key,
-        "scope": body.scope,
-        "request": body.model_dump(
-            exclude={"base_revision", "force_refresh"},
-            exclude_none=True,
-        ),
-        "facts_signature": facts_signature,
-        "last_synced_at": canvas_store.utc_now_iso(),
-    }
-    metadata["last_projection_key"] = projection_key
-
-
-def _projection_facts_signature_from_payload(
-    payload: dict | None,
-    projection_key: str,
-) -> str:
-    if not isinstance(payload, dict):
-        return ""
-    metadata = payload.get("metadata")
-    if not isinstance(metadata, dict):
-        return ""
-    projections = metadata.get("projections")
-    if not isinstance(projections, dict):
-        return ""
-    projection = projections.get(projection_key)
-    if not isinstance(projection, dict):
-        return ""
-    signature = projection.get("facts_signature")
-    return signature if isinstance(signature, str) else ""
-
-
-def _preset_facts_signature_from_payload(payload: dict | None) -> str:
-    if not isinstance(payload, dict):
-        return ""
-    preset = (payload.get("metadata") or {}).get("preset")
-    if not isinstance(preset, dict):
-        return ""
-    signature = preset.get("facts_signature")
-    return signature if isinstance(signature, str) else ""
 
 
 async def _build_canvas_payload_for_preset_request(
@@ -4568,19 +4394,24 @@ async def _build_projection_payload_for_request(
         body=body,
         preset_key=preset_key,
     )
-    _stamp_projection_key(payload, body.projection_key)
+    projection_request = body.model_dump(
+        exclude={"base_revision", "force_refresh"},
+        exclude_none=True,
+    )
+    stamp_projection_key(payload, body.projection_key)
     wrap_projection_payload_in_group(
         payload,
         projection_key=body.projection_key,
-        label=_projection_group_label(body),
+        label=projection_group_label(projection_request),
     )
-    incoming_facts_signature = _preset_facts_signature(payload)
-    _stamp_projection_metadata(
+    incoming_facts_signature = preset_facts_signature(payload)
+    stamp_projection_metadata(
         payload,
         projection_key=body.projection_key,
         preset_key=preset_key,
-        body=body,
+        request=projection_request,
         facts_signature=incoming_facts_signature,
+        last_synced_at=canvas_store.utc_now_iso(),
     )
     return payload, preset_key, incoming_facts_signature
 
@@ -4770,8 +4601,8 @@ async def create_canvas_from_preset(
     else:
         raise HTTPException(400, f"unsupported preset scope: {body.scope}")
 
-    incoming_facts_signature = _preset_facts_signature(payload)
-    _stamp_preset_facts_signature(payload, incoming_facts_signature)
+    incoming_facts_signature = preset_facts_signature(payload)
+    stamp_preset_facts_signature(payload, incoming_facts_signature)
     canvas_id = overwrite_canvas_id or canonical_canvas_id
 
     def build_payload(existing_payload: dict | None) -> dict:
@@ -4780,7 +4611,7 @@ async def create_canvas_from_preset(
             if overwrite_canvas_id
             else payload
         )
-        _stamp_preset_facts_signature(raw_payload, incoming_facts_signature)
+        stamp_preset_facts_signature(raw_payload, incoming_facts_signature)
         return prepare_creative_canvas_payload_for_write(
             project_id=project,
             canvas_id=canvas_id,
@@ -4817,7 +4648,7 @@ async def create_canvas_from_preset(
     def skip_if_same_preset_facts(existing_payload: dict | None) -> dict | None:
         if not overwrite_canvas_id:
             return None
-        if _preset_facts_signature_from_payload(existing_payload) != incoming_facts_signature:
+        if preset_facts_signature_from_payload(existing_payload) != incoming_facts_signature:
             return None
         revision = existing_payload.get("revision") if isinstance(existing_payload, dict) else None
         updated_at = (
@@ -4959,12 +4790,19 @@ async def project_canvas_from_preset(
         project_dir=project_dir,
         body=body,
     )
+    projection_request = body.model_dump(
+        exclude={"base_revision", "force_refresh"},
+        exclude_none=True,
+    )
 
     def skip_if_same_projection_facts(existing_payload: dict | None) -> dict | None:
         if body.force_refresh:
             return None
         if (
-            _projection_facts_signature_from_payload(existing_payload, body.projection_key)
+            projection_facts_signature_from_payload(
+                existing_payload,
+                body.projection_key,
+            )
             != incoming_facts_signature
         ):
             return None
@@ -4986,12 +4824,13 @@ async def project_canvas_from_preset(
             existing_payload=existing_payload,
             projection_key=body.projection_key,
         )
-        _stamp_projection_metadata(
+        stamp_projection_metadata(
             raw_payload,
             projection_key=body.projection_key,
             preset_key=preset_key,
-            body=body,
+            request=projection_request,
             facts_signature=incoming_facts_signature,
+            last_synced_at=canvas_store.utc_now_iso(),
         )
         return prepare_creative_canvas_payload_for_write(
             project_id=project,
@@ -5278,6 +5117,10 @@ async def projection_status(
             request_body = ProjectionPresetCanvasRequest(
                 **{**request, "projection_key": projection_key, "base_revision": 0}
             )
+            projection_request = request_body.model_dump(
+                exclude={"base_revision", "force_refresh"},
+                exclude_none=True,
+            )
             preset_key = preset_key_for_request(
                 scope=request_body.scope,
                 episode=request_body.episode,
@@ -5296,13 +5139,13 @@ async def projection_status(
                 body=request_body,
                 preset_key=preset_key,
             )
-            _stamp_projection_key(payload, projection_key)
+            stamp_projection_key(payload, projection_key)
             wrap_projection_payload_in_group(
                 payload,
                 projection_key=projection_key,
-                label=_projection_group_label(request_body),
+                label=projection_group_label(projection_request),
             )
-            current_signature = _preset_facts_signature(payload)
+            current_signature = preset_facts_signature(payload)
         except Exception as exc:
             statuses.append(
                 {

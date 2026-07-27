@@ -1,6 +1,13 @@
 from ai_anime.modules.creative_canvas.public import (
     merge_projected_preset_canvas,
+    preset_facts_signature,
+    preset_facts_signature_from_payload,
+    projection_facts_signature_from_payload,
+    projection_group_label,
     remove_projected_preset_canvas,
+    stamp_preset_facts_signature,
+    stamp_projection_key,
+    stamp_projection_metadata,
     wrap_projection_payload_in_group,
 )
 
@@ -103,6 +110,80 @@ def test_projection_group_id_preserves_stable_hash_contract():
 
         group = next(item for item in wrapped["nodes"] if item["type"] == "groupNode")
         assert group["id"] == expected_group_id
+
+
+def test_preset_facts_signature_preserves_stable_canonical_contract():
+    payload = {
+        "nodes": [
+            {
+                "id": "n1",
+                "position": {"x": 1, "y": 2},
+                "data": {
+                    "preset_managed": True,
+                    "prompt": "hello",
+                    "updated_at": "volatile",
+                    "__runtimeCache": "drop",
+                },
+            }
+        ],
+        "edges": [],
+    }
+
+    signature = preset_facts_signature(payload)
+
+    assert signature == "61f957eff1b6c871b81f1324c7c7a29148620f3299fa4cf06d857116d988e4a9"
+    payload["nodes"][0]["position"] = {"x": 999, "y": 999}
+    payload["nodes"][0]["data"]["updated_at"] = "changed"
+    payload["nodes"][0]["data"]["__runtimeCache"] = "changed"
+    assert preset_facts_signature(payload) == signature
+    payload["nodes"][0]["data"]["prompt"] = "different"
+    assert preset_facts_signature(payload) != signature
+
+
+def test_projection_metadata_rules_use_plain_request_data():
+    payload = {
+        "nodes": [node("preset_node", preset=True)],
+        "edges": [edge("preset_edge", "preset_node", "user_node")],
+        "metadata": {"preset": {"scope": "beat"}},
+    }
+    request = {
+        "scope": "beat",
+        "projection_key": "beat:1:4",
+        "episode": 1,
+        "beat": 4,
+        "primary_slot": "render",
+    }
+
+    stamp_projection_key(payload, "beat:1:4")
+    assert payload["nodes"][0]["data"]["projection_key"] == "beat:1:4"
+    assert payload["edges"][0]["data"]["projection_key"] == "beat:1:4"
+    assert projection_group_label(request) == "EP1/B4"
+
+    stamp_preset_facts_signature(payload, "preset-signature")
+    assert preset_facts_signature_from_payload(payload) == "preset-signature"
+    stamp_projection_metadata(
+        payload,
+        projection_key="beat:1:4",
+        preset_key="beat:1:4:render",
+        request=request,
+        facts_signature="projection-signature",
+        last_synced_at="2026-07-27T12:00:00Z",
+    )
+
+    assert "preset" not in payload["metadata"]
+    projection = payload["metadata"]["projections"]["beat:1:4"]
+    assert projection == {
+        "projection_key": "beat:1:4",
+        "preset_key": "beat:1:4:render",
+        "scope": "beat",
+        "request": request,
+        "facts_signature": "projection-signature",
+        "last_synced_at": "2026-07-27T12:00:00Z",
+    }
+    assert (
+        projection_facts_signature_from_payload(payload, "beat:1:4")
+        == "projection-signature"
+    )
 
 
 def test_projection_merge_replaces_group_without_touching_user_nodes():

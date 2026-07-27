@@ -1109,7 +1109,14 @@ def test_freezone_canvas_projection_rules_belong_to_domain() -> None:
 
     for rule in (
         "merge_projected_preset_canvas",
+        "preset_facts_signature",
+        "preset_facts_signature_from_payload",
+        "projection_facts_signature_from_payload",
+        "projection_group_label",
         "remove_projected_preset_canvas",
+        "stamp_preset_facts_signature",
+        "stamp_projection_key",
+        "stamp_projection_metadata",
         "wrap_projection_payload_in_group",
     ):
         assert domain_source.count(f"def {rule}(") == 1
@@ -1126,12 +1133,28 @@ def test_freezone_canvas_projection_rules_belong_to_domain() -> None:
         "def _projection_group_id(",
         "def _node_display_size(",
         "def _wrap_projection_payload_in_group(",
+        "_PRESET_FACTS_SIGNATURE_OMIT_KEYS",
+        "def _canonical_preset_facts_value(",
+        "def _preset_facts_signature(",
+        "def _stamp_preset_facts_signature(",
+        "def _stamp_projection_key(",
+        "def _projection_group_label(",
+        "def _stamp_projection_metadata(",
+        "def _projection_facts_signature_from_payload(",
+        "def _preset_facts_signature_from_payload(",
     ):
         assert legacy_implementation not in legacy_source
 
     assert legacy_source.count("merge_projected_preset_canvas(") == 1
     assert legacy_source.count("remove_projected_preset_canvas(") == 1
     assert legacy_source.count("wrap_projection_payload_in_group(") == 2
+    assert legacy_source.count("= preset_facts_signature(") == 3
+    assert legacy_source.count("preset_facts_signature_from_payload(") == 1
+    assert legacy_source.count("projection_facts_signature_from_payload(") == 1
+    assert legacy_source.count("projection_group_label(") == 2
+    assert legacy_source.count("stamp_preset_facts_signature(") == 2
+    assert legacy_source.count("stamp_projection_key(") == 2
+    assert legacy_source.count("stamp_projection_metadata(") == 2
     assert "ai_anime.api.routes.freezone" not in test_source
     assert "ai_anime.modules.creative_canvas.public" in test_source
     assert "fastapi" not in domain_source

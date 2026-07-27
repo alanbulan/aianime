@@ -18,7 +18,14 @@ from ai_anime.modules.creative_canvas.domain.canvas_events import (
 )
 from ai_anime.modules.creative_canvas.domain.canvas_projections import (
     merge_projected_preset_canvas,
+    preset_facts_signature,
+    preset_facts_signature_from_payload,
+    projection_facts_signature_from_payload,
+    projection_group_label,
     remove_projected_preset_canvas,
+    stamp_preset_facts_signature,
+    stamp_projection_key,
+    stamp_projection_metadata,
     wrap_projection_payload_in_group,
 )
 from ai_anime.modules.creative_canvas.domain.image_to_3gs import (
@@ -127,7 +134,11 @@ __all__ = [
     "is_preset_managed_canvas_node",
     "merge_projected_preset_canvas",
     "merge_restored_preset_canvas",
+    "preset_facts_signature",
+    "preset_facts_signature_from_payload",
     "prepare_creative_canvas_payload_for_write",
+    "projection_facts_signature_from_payload",
+    "projection_group_label",
     "normalize_screenshot_label",
     "normalize_video_aspect_ratio",
     "normalize_video_resolution",
@@ -142,6 +153,9 @@ __all__ = [
     "get_video_camera_templates",
     "summarize_omni_reference_counts",
     "stamp_canvas_mainline_context_project_id",
+    "stamp_preset_facts_signature",
+    "stamp_projection_key",
+    "stamp_projection_metadata",
     "sync_frame_context_reference_edges",
     "validate_omni_reference_limits",
     "validate_video_composition_media_item_count",
