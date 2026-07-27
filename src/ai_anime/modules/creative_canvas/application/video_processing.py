@@ -26,6 +26,7 @@ CREATIVE_CANVAS_SHOT_ANALYSIS_TASK_TYPE = "freezone_analyze"
 CREATIVE_CANVAS_VIDEO_STORY_TASK_TYPE = "freezone_video_story"
 CREATIVE_CANVAS_VIDEO_ERASE_TASK_TYPE = "freezone_video_erase"
 CREATIVE_CANVAS_VIDEO_UPSCALE_TASK_TYPE = "freezone_video_upscale"
+CREATIVE_CANVAS_AUDIO_SEPARATION_TASK_TYPE = "freezone_audio_separate"
 CreativeCanvasShotAnalysisMode = Literal["shots", "video_story"]
 
 
@@ -88,6 +89,15 @@ class StartCreativeCanvasVideoEraseCommand:
     box_y: float | None = None
     box_width: float | None = None
     box_height: float | None = None
+
+
+@dataclass(frozen=True)
+class StartCreativeCanvasAudioSeparationCommand:
+    context: ProjectContext
+    project_dir: Path
+    source_url: str
+    target_episode: int | None = None
+    target_beat: int | None = None
 
 
 class CreativeCanvasVideoProcessingUseCases:
@@ -225,6 +235,27 @@ class CreativeCanvasVideoProcessingUseCases:
                 "box_y": command.box_y,
                 "box_width": command.box_width,
                 "box_height": command.box_height,
+            },
+        )
+
+    async def start_audio_separation(
+        self,
+        command: StartCreativeCanvasAudioSeparationCommand,
+    ) -> CreativeCanvasTaskReceipt:
+        source_path = self._resolve_existing_source(
+            command.project_dir,
+            command.source_url,
+            field_name="video source",
+        )
+        return await self._enqueue(
+            context=command.context,
+            project_dir=command.project_dir,
+            task_type=CREATIVE_CANVAS_AUDIO_SEPARATION_TASK_TYPE,
+            queue_kind="ffmpeg",
+            payload={
+                "source_path": source_path.as_posix(),
+                "target_episode": command.target_episode,
+                "target_beat": command.target_beat,
             },
         )
 

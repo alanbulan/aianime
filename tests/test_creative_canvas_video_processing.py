@@ -7,12 +7,17 @@ import pytest
 from fastapi import HTTPException
 
 from ai_anime.api.routes.canvas import video as video_processing_routes
-from ai_anime.api.schemas import FreezoneExtractFramesRequest, FreezoneVideoEraseRequest
+from ai_anime.api.schemas import (
+    FreezoneAudioSeparateRequest,
+    FreezoneExtractFramesRequest,
+    FreezoneVideoEraseRequest,
+)
 from ai_anime.modules.creative_canvas.application.task_submission import (
     CreativeCanvasTaskReceipt,
     CreativeCanvasTaskSubmission,
 )
 from ai_anime.modules.creative_canvas.application.video_processing import (
+    CREATIVE_CANVAS_AUDIO_SEPARATION_TASK_TYPE,
     CREATIVE_CANVAS_FRAME_EXTRACTION_TASK_TYPE,
     CREATIVE_CANVAS_SHOT_ANALYSIS_TASK_TYPE,
     CREATIVE_CANVAS_VIDEO_ERASE_TASK_TYPE,
@@ -21,6 +26,7 @@ from ai_anime.modules.creative_canvas.application.video_processing import (
     CreativeCanvasVideoProcessingSourceMissing,
     CreativeCanvasVideoProcessingUseCases,
     InvalidCreativeCanvasVideoProcessingRequest,
+    StartCreativeCanvasAudioSeparationCommand,
     StartCreativeCanvasFrameExtractionCommand,
     StartCreativeCanvasShotAnalysisCommand,
     StartCreativeCanvasVideoEraseCommand,
@@ -111,6 +117,7 @@ async def test_video_processing_enqueues_exact_task_payloads(tmp_path: Path) -> 
             "job-story",
             "job-upscale",
             "job-erase",
+            "job-audio",
         ),
         scheduler,
     )
@@ -168,12 +175,22 @@ async def test_video_processing_enqueues_exact_task_payloads(tmp_path: Path) -> 
             box_height=0.4,
         )
     )
+    separate = await use_cases.start_audio_separation(
+        StartCreativeCanvasAudioSeparationCommand(
+            context=context,
+            project_dir=project_dir,
+            source_url="freezone/_uploads/clip.mp4",
+            target_episode=3,
+            target_beat=5,
+        )
+    )
 
     assert extract == _receipt(CREATIVE_CANVAS_FRAME_EXTRACTION_TASK_TYPE, "job-extract")
     assert analyze == _receipt(CREATIVE_CANVAS_SHOT_ANALYSIS_TASK_TYPE, "job-analyze")
     assert story == _receipt(CREATIVE_CANVAS_VIDEO_STORY_TASK_TYPE, "job-story")
     assert upscale == _receipt(CREATIVE_CANVAS_VIDEO_UPSCALE_TASK_TYPE, "job-upscale")
     assert erase == _receipt(CREATIVE_CANVAS_VIDEO_ERASE_TASK_TYPE, "job-erase")
+    assert separate == _receipt(CREATIVE_CANVAS_AUDIO_SEPARATION_TASK_TYPE, "job-audio")
     assert scheduler.tasks == [
         CreativeCanvasTaskSubmission(
             task_type=CREATIVE_CANVAS_FRAME_EXTRACTION_TASK_TYPE,
@@ -233,6 +250,17 @@ async def test_video_processing_enqueues_exact_task_payloads(tmp_path: Path) -> 
                 "box_y": 0.2,
                 "box_width": 0.3,
                 "box_height": 0.4,
+            },
+        ),
+        CreativeCanvasTaskSubmission(
+            task_type=CREATIVE_CANVAS_AUDIO_SEPARATION_TASK_TYPE,
+            queue_kind="ffmpeg",
+            job_id="job-audio",
+            project_dir=project_dir,
+            payload={
+                "source_path": video.as_posix(),
+                "target_episode": 3,
+                "target_beat": 5,
             },
         ),
     ]
@@ -306,6 +334,19 @@ async def test_video_processing_preserves_source_error_contracts(tmp_path: Path)
             )
         )
     assert erase_exc.value.field_name == "video source"
+
+    with pytest.raises(
+        CreativeCanvasVideoProcessingSourceMissing,
+        match="video source not found: ",
+    ) as audio_exc:
+        await use_cases.start_audio_separation(
+            StartCreativeCanvasAudioSeparationCommand(
+                context=context,
+                project_dir=context.output_dir,
+                source_url="freezone/_uploads/missing.mp4",
+            )
+        )
+    assert audio_exc.value.field_name == "video source"
 
     with pytest.raises(
         InvalidCreativeCanvasVideoProcessingRequest,
@@ -536,6 +577,80 @@ async def test_video_erase_route_preserves_task_limit(
         await video_processing_routes.freezone_video_erase(
             project="project-1",
             body=FreezoneVideoEraseRequest(source_url="video.mp4"),
+            user={"username": "alice"},
+        )
+
+    assert exc.value is limit
+
+
+@pytest.mark.asyncio
+async def test_audio_separation_route_maps_runtime_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    context = _project_context(tmp_path)
+
+    async def fake_resolve_project_scope(*_args, **_kwargs):
+        return SimpleNamespace(ctx=context, project_dir=context.output_dir)
+
+    class FailingUseCases:
+        async def start_audio_separation(self, _command):
+            raise RuntimeError("ffmpeg queue unavailable")
+
+    monkeypatch.setattr(
+        video_processing_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
+    monkeypatch.setattr(
+        video_processing_routes,
+        "creative_canvas_video_processing_use_cases",
+        lambda: FailingUseCases(),
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        await video_processing_routes.freezone_audio_separate(
+            project="project-1",
+            body=FreezoneAudioSeparateRequest(source_url="video.mp4"),
+            user={"username": "alice"},
+        )
+
+    assert exc.value.status_code == 503
+    assert exc.value.detail == (
+        "failed to start freezone audio separate task: ffmpeg queue unavailable"
+    )
+
+
+@pytest.mark.asyncio
+async def test_audio_separation_route_preserves_task_limit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    context = _project_context(tmp_path)
+    limit = ProjectTaskLimitExceeded("project-1", "ffmpeg", 2, 2)
+
+    async def fake_resolve_project_scope(*_args, **_kwargs):
+        return SimpleNamespace(ctx=context, project_dir=context.output_dir)
+
+    class FailingUseCases:
+        async def start_audio_separation(self, _command):
+            raise limit
+
+    monkeypatch.setattr(
+        video_processing_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
+    monkeypatch.setattr(
+        video_processing_routes,
+        "creative_canvas_video_processing_use_cases",
+        lambda: FailingUseCases(),
+    )
+
+    with pytest.raises(ProjectTaskLimitExceeded) as exc:
+        await video_processing_routes.freezone_audio_separate(
+            project="project-1",
+            body=FreezoneAudioSeparateRequest(source_url="video.mp4"),
             user={"username": "alice"},
         )
 

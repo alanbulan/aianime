@@ -400,18 +400,20 @@ def test_freezone_video_processing_routes_delegate_to_application() -> None:
         '"/projects/{project}/freezone/analyze-video-story"',
         '"/projects/{project}/freezone/video/upscale"',
         '"/projects/{project}/freezone/video/erase"',
+        '"/projects/{project}/freezone/video/audio-separate"',
     )
     for endpoint_path in endpoint_paths:
         assert source.count(endpoint_path) == 1
         assert endpoint_path not in legacy_source
 
-    assert source.count("creative_canvas_video_processing_use_cases().") == 5
+    assert source.count("creative_canvas_video_processing_use_cases().") == 6
     for command in (
         "StartCreativeCanvasFrameExtractionCommand",
         "StartCreativeCanvasShotAnalysisCommand",
         "StartCreativeCanvasVideoStoryAnalysisCommand",
         "StartCreativeCanvasVideoUpscaleCommand",
         "StartCreativeCanvasVideoEraseCommand",
+        "StartCreativeCanvasAudioSeparationCommand",
     ):
         assert command in source
     for legacy_handler in (
@@ -420,9 +422,11 @@ def test_freezone_video_processing_routes_delegate_to_application() -> None:
         "async def freezone_analyze_video_story(",
         "async def freezone_video_upscale(",
         "async def freezone_video_erase(",
+        "async def freezone_audio_separate(",
         "async def _enqueue_or_start_freezone_video_analysis(",
         "def _start_freezone_video_upscale_task(",
         "def _start_freezone_video_erase_task(",
+        "def _start_freezone_audio_separate_task(",
     ):
         assert legacy_handler not in legacy_source
     for legacy_schema in (
@@ -431,6 +435,7 @@ def test_freezone_video_processing_routes_delegate_to_application() -> None:
         "FreezoneAnalyzeVideoStoryRequest",
         "FreezoneVideoUpscaleRequest",
         "FreezoneVideoEraseRequest",
+        "FreezoneAudioSeparateRequest",
     ):
         assert legacy_schema not in legacy_source
     for implementation_detail in (
@@ -446,6 +451,7 @@ def test_freezone_video_processing_routes_delegate_to_application() -> None:
         ("freezone_video_story", "run_freezone_video_story"),
         ("freezone_video_upscale", "run_freezone_video_upscale"),
         ("freezone_video_erase", "run_freezone_video_erase"),
+        ("freezone_audio_separate", "run_freezone_audio_separate"),
     ):
         assert (
             runner_source.count(

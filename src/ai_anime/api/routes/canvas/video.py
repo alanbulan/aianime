@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import resolve_project_scope
 from ai_anime.api.schemas import (
+    FreezoneAudioSeparateRequest,
     FreezoneAnalyzeShotsRequest,
     FreezoneAnalyzeVideoStoryRequest,
     FreezoneExtractFramesRequest,
@@ -35,6 +36,7 @@ from ai_anime.modules.creative_canvas.public import (
     InvalidCreativeCanvasVideoGenerationRequest,
     InvalidCreativeCanvasVideoAssetRequest,
     InvalidCreativeCanvasVideoProcessingRequest,
+    StartCreativeCanvasAudioSeparationCommand,
     StartCreativeCanvasImageVideoCommand,
     StartCreativeCanvasFrameExtractionCommand,
     StartCreativeCanvasKeyframeVideoCommand,
@@ -512,6 +514,52 @@ async def freezone_video_erase(
         raise HTTPException(
             503,
             f"failed to start freezone video erase task: {exc}",
+        ) from exc
+    return _video_processing_response(result)
+
+
+@router.post(
+    "/projects/{project}/freezone/video/audio-separate",
+    response_model=FreezoneJobAcceptedResponse,
+    tags=["freezone-video"],
+)
+async def freezone_audio_separate(
+    project: str,
+    body: FreezoneAudioSeparateRequest,
+    user: dict = Depends(get_api_user),
+):
+    """视频处理：音视频分离。
+
+    当前轻量版会同时产出：
+    - 提取出的纯音频
+    - 去掉音轨后的无声视频
+    """
+    resolved = await _resolve_editor_project(project, user)
+    try:
+        result = await creative_canvas_video_processing_use_cases().start_audio_separation(
+            StartCreativeCanvasAudioSeparationCommand(
+                context=resolved.ctx,
+                project_dir=resolved.project_dir,
+                source_url=body.source_url,
+                target_episode=body.target_episode,
+                target_beat=body.target_beat,
+            )
+        )
+    except InvalidCreativeCanvasVideoProcessingRequest as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except CreativeCanvasVideoProcessingSourceMissing as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except (ProjectTaskLimitExceeded, ProjectUserTaskLimitExceeded):
+        raise
+    except RuntimeError as exc:
+        logger.warning(
+            "failed to start freezone audio separate task: %s",
+            exc,
+            exc_info=True,
+        )
+        raise HTTPException(
+            503,
+            f"failed to start freezone audio separate task: {exc}",
         ) from exc
     return _video_processing_response(result)
 

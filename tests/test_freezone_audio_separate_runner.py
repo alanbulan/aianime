@@ -61,6 +61,8 @@ async def test_audio_separate_runner_returns_public_urls_without_internal_paths(
                 "job_id": "job",
                 "project_dir": str(project_dir),
                 "source_path": str(project_dir / "source.mp4"),
+                "target_episode": 2,
+                "target_beat": 4,
             },
         },
         ctx,
@@ -72,3 +74,9 @@ async def test_audio_separate_runner_returns_public_urls_without_internal_paths(
     assert result["mute_video_url"].startswith("/static/projects/proj_audio_123/")
     assert "/alice/demo/" not in result["audio_url"]
     assert "/alice/demo/" not in result["mute_video_url"]
+    assert result["pushable"] is True
+    assert result["slot_target"] == {
+        "kind": "beat_audio",
+        "episode": 2,
+        "beat": 4,
+    }
