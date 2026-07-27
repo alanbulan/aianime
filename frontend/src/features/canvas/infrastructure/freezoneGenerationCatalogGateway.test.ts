@@ -1,56 +1,46 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const fetchFreezoneCameraOptions = vi.hoisted(() => vi.fn());
-const fetchFreezoneImageModels = vi.hoisted(() => vi.fn());
-const fetchFreezoneVideoCameraTemplates = vi.hoisted(() => vi.fn());
-const fetchFreezoneVideoModels = vi.hoisted(() => vi.fn());
-const listFreezoneStyleTemplates = vi.hoisted(() => vi.fn());
+import { apiCall } from "@/shared/api/client";
 
-vi.mock("@/api/ops", () => ({
-  fetchFreezoneCameraOptions,
-  fetchFreezoneImageModels,
-  fetchFreezoneVideoCameraTemplates,
-  fetchFreezoneVideoModels,
-  listFreezoneStyleTemplates,
-}));
+vi.mock("@/shared/api/client", () => ({ apiCall: vi.fn() }));
 
 import { freezoneGenerationCatalogGateway } from "./freezoneGenerationCatalogGateway";
 
 beforeEach(() => {
-  fetchFreezoneCameraOptions.mockReset();
-  fetchFreezoneImageModels.mockReset();
-  fetchFreezoneVideoCameraTemplates.mockReset();
-  fetchFreezoneVideoModels.mockReset();
-  listFreezoneStyleTemplates.mockReset();
+  vi.mocked(apiCall).mockReset();
 });
 
 describe("freezoneGenerationCatalogGateway", () => {
-  it("maps image and video model transport records", async () => {
-    fetchFreezoneImageModels.mockResolvedValue([
-      {
-        id: "openai/gpt-image-2",
-        providerId: "openai",
-        apiModel: "gpt-image-2",
-        label: "GPT Image 2",
-      },
-    ]);
-    fetchFreezoneVideoModels.mockResolvedValue([
-      {
-        id: "seedance-2",
-        providerId: "seedance",
-        apiModel: "seedance-2",
-        label: "Seedance 2",
-        resolutionOptions: ["720p", "1080p"],
-        minDuration: 4,
-        maxDuration: 15,
-        sceneOptimizeOptions: ["anime", "realistic"],
-        defaultSceneOptimize: "anime",
-      },
-    ]);
+  it("normalizes image and video model transport records", async () => {
+    vi.mocked(apiCall)
+      .mockResolvedValueOnce({
+        openai: [
+          {
+            id: "openai/gpt-image-2",
+            model: "gpt-image-2",
+            display_name: "GPT Image 2",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            id: "seedance-2",
+            provider: "seedance",
+            model: "seedance-2",
+            display_name: "Seedance 2",
+            resolution_options: ["720P", "1080p", "4k"],
+            min_duration: "4",
+            maxDuration: 15,
+            scene_optimize_options: ["ANIME", "realistic", "invalid"],
+            default_scene_optimize: "ANIME",
+          },
+        ],
+      });
 
     await expect(
-      freezoneGenerationCatalogGateway.listImageModels("project-1"),
+      freezoneGenerationCatalogGateway.listImageModels("project/1"),
     ).resolves.toEqual([
       {
         id: "openai/gpt-image-2",
@@ -60,7 +50,7 @@ describe("freezoneGenerationCatalogGateway", () => {
       },
     ]);
     await expect(
-      freezoneGenerationCatalogGateway.listVideoModels("project-1"),
+      freezoneGenerationCatalogGateway.listVideoModels("project/1"),
     ).resolves.toEqual([
       {
         id: "seedance-2",
@@ -74,28 +64,35 @@ describe("freezoneGenerationCatalogGateway", () => {
         defaultSceneOptimize: "anime",
       },
     ]);
-    expect(fetchFreezoneImageModels).toHaveBeenCalledWith("project-1");
-    expect(fetchFreezoneVideoModels).toHaveBeenCalledWith("project-1");
+    expect(apiCall).toHaveBeenNthCalledWith(
+      1,
+      "projects/project%2F1/freezone/image/models",
+    );
+    expect(apiCall).toHaveBeenNthCalledWith(
+      2,
+      "projects/project%2F1/freezone/video/models",
+    );
   });
 
   it("maps camera and style transport fields to application DTOs", async () => {
-    fetchFreezoneCameraOptions.mockResolvedValue({
-      camera_bodies: [{ id: "arri", label: "ARRI" }],
-      lenses: [{ id: "cooke", label: "Cooke" }],
-      focal_lengths_mm: [35],
-      apertures: ["f/2.8"],
-    });
-    listFreezoneStyleTemplates.mockResolvedValue([
-      {
-        id: "anime",
-        label: "Anime",
-        style_prompt: "anime style",
-        category: "illustration",
-      },
-    ]);
+    vi.mocked(apiCall)
+      .mockResolvedValueOnce({
+        camera_bodies: [{ id: "arri", label: "ARRI" }],
+        lenses: [{ id: "cooke", label: "Cooke" }],
+        focal_lengths_mm: [35],
+        apertures: ["f/2.8"],
+      })
+      .mockResolvedValueOnce([
+        {
+          id: "anime",
+          label: "Anime",
+          style_prompt: "anime style",
+          category: "illustration",
+        },
+      ]);
 
     await expect(
-      freezoneGenerationCatalogGateway.getCameraOptions("project-2"),
+      freezoneGenerationCatalogGateway.getCameraOptions("project/2"),
     ).resolves.toEqual({
       cameraBodies: [{ id: "arri", label: "ARRI" }],
       lenses: [{ id: "cooke", label: "Cooke" }],
@@ -103,7 +100,7 @@ describe("freezoneGenerationCatalogGateway", () => {
       apertures: ["f/2.8"],
     });
     await expect(
-      freezoneGenerationCatalogGateway.listStyleTemplates("project-2"),
+      freezoneGenerationCatalogGateway.listStyleTemplates("project/2"),
     ).resolves.toEqual([
       {
         id: "anime",
@@ -112,22 +109,40 @@ describe("freezoneGenerationCatalogGateway", () => {
         category: "illustration",
       },
     ]);
+    expect(apiCall).toHaveBeenNthCalledWith(
+      1,
+      "projects/project%2F2/freezone/image/camera-options",
+    );
+    expect(apiCall).toHaveBeenNthCalledWith(
+      2,
+      "projects/project%2F2/freezone/image/style-templates",
+    );
   });
 
-  it("preserves domain camera movement presets", async () => {
-    const presets = [
+  it("normalizes camera movement templates to the domain contract", async () => {
+    vi.mocked(apiCall).mockResolvedValue({
+      camera_templates: [
+        {
+          template_id: "dolly-in",
+          display_name: "Dolly In",
+          prompt_fragment: "camera pushes in",
+          preview_url: "/camera/dolly-in.mp4",
+        },
+      ],
+    });
+
+    await expect(
+      freezoneGenerationCatalogGateway.listVideoCameraTemplates("project/3"),
+    ).resolves.toEqual([
       {
         id: "dolly-in",
         label: "Dolly In",
         promptFragment: "camera pushes in",
-        videoUrl: null,
+        videoUrl: "/camera/dolly-in.mp4",
       },
-    ];
-    fetchFreezoneVideoCameraTemplates.mockResolvedValue(presets);
-
-    await expect(
-      freezoneGenerationCatalogGateway.listVideoCameraTemplates("project-3"),
-    ).resolves.toBe(presets);
-    expect(fetchFreezoneVideoCameraTemplates).toHaveBeenCalledWith("project-3");
+    ]);
+    expect(apiCall).toHaveBeenCalledWith(
+      "projects/project%2F3/freezone/video/camera-templates",
+    );
   });
 });

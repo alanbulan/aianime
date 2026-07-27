@@ -1638,6 +1638,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百七十七批已将语音合成和文本生成音乐的项目路径编码、POST method、声线引用、情绪、音乐参数及 snake_case 请求字段映射从 `api/ops.ts` 迁入已有唯一 `freezoneAudioGenerationGateway` infrastructure 适配器，gateway 直接返回 application 持有的 `CanvasGenerationTaskRef`，Canvas application 继续负责默认声线、输入归一、任务等待和结果获取；旧 `FreezoneAudioVoiceRefScope`、`FreezoneAudioVoiceRef`、`FreezoneAudioSpeechPayload`、`FreezoneAudioMusicPayload` 及两个提交函数直接删除，不保留 facade、re-export 或第二套 HTTP/DTO 映射，两个音频生成端点只有该 gateway 一个生产所有者，`api/ops.ts` 由 1,025 行降至 910 行；请求路径、方法、空字符串兜底、声线字段、可选时长、布尔值和未设置目标字段语义均未改变；相关 1 个测试文件 2 项、架构门禁 207 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
 
+第二百七十八批已将图片/视频模型、相机选项、风格模板和运镜模板的 5 个项目目录路径编码、响应读取与防御性归一从 `api/ops.ts` 迁入已有唯一 `freezoneGenerationCatalogGateway` infrastructure 适配器，gateway 直接输出 application 持有的模型/相机/风格 DTO 和 domain 持有的 `CameraMovementPreset`，不再建立 `Freezone*` 中间 DTO；旧目录类型、5 个查询函数及 `api/ops.ts` 对 Canvas 运镜领域类型的反向依赖直接删除，不保留 facade、re-export 或第二套 HTTP/DTO 映射，5 个目录端点分别只有该 gateway 一个生产所有者，`api/ops.ts` 由 910 行降至 511 行；数组及 `models`/`data`/`items`/provider map 容器兼容、provider 推断、字符串数值转换、分辨率/场景优化枚举过滤、运镜字段别名和空结果语义均未改变；相关 1 个测试文件 3 项、架构门禁 207 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

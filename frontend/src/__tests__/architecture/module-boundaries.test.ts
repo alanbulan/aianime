@@ -9484,6 +9484,13 @@ describe("frontend architecture boundaries", () => {
     );
     const presetSource = readFileSync(presetPath, "utf8");
     const opsSource = readFileSync(resolve(SRC_ROOT, "api/ops.ts"), "utf8");
+    const catalogGatewaySource = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/canvas/infrastructure/freezoneGenerationCatalogGateway.ts",
+      ),
+      "utf8",
+    );
     const hookSource = readFileSync(
       resolve(
         SRC_ROOT,
@@ -9498,9 +9505,10 @@ describe("frontend architecture boundaries", () => {
       ),
     ).toEqual([]);
     expect(presetSource).toContain("export interface CameraMovementPreset");
-    expect(opsSource).toContain(
-      'import type { CameraMovementPreset } from "@/features/canvas/domain/cameraMovementPresets";',
+    expect(catalogGatewaySource).toContain(
+      'import type { CameraMovementPreset } from "../domain/cameraMovementPresets";',
     );
+    expect(opsSource).not.toContain("CameraMovementPreset");
     expect(opsSource).not.toContain(
       "export interface FreezoneVideoCameraTemplate",
     );
@@ -9541,6 +9549,15 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "features/canvas/nodes/CameraPickerPopover.tsx"),
       "utf8",
     );
+    const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
+    const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
+    const endpointFragments = [
+      "projects/${encodeURIComponent(projectId)}/freezone/image/models`",
+      "projects/${encodeURIComponent(projectId)}/freezone/video/models`",
+      "projects/${encodeURIComponent(projectId)}/freezone/image/camera-options`",
+      "projects/${encodeURIComponent(projectId)}/freezone/image/style-templates`",
+      "projects/${encodeURIComponent(projectId)}/freezone/video/camera-templates`",
+    ];
 
     expect(importSpecifiers(applicationPath)).toEqual([
       "../domain/cameraMovementPresets",
@@ -9551,7 +9568,11 @@ describe("frontend architecture boundaries", () => {
       "export interface CanvasGenerationCatalogGateway",
     );
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
-      new Set(["@/api/ops", "../application/generationCatalog"]),
+      new Set([
+        "@/shared/api/client",
+        "../application/generationCatalog",
+        "../domain/cameraMovementPresets",
+      ]),
     );
     expect(infrastructureSource).toContain(
       "freezoneGenerationCatalogGateway: CanvasGenerationCatalogGateway",
@@ -9591,6 +9612,34 @@ describe("frontend architecture boundaries", () => {
     expect(cameraPicker).toContain("options?.focalLengthsMm");
     expect(cameraPicker).not.toContain("camera_bodies");
     expect(cameraPicker).not.toContain("focal_lengths_mm");
+    for (const endpointFragment of endpointFragments) {
+      const owners = sourceFiles(SRC_ROOT)
+        .filter((path) => !path.includes(".test."))
+        .filter((path) =>
+          readFileSync(path, "utf8").includes(endpointFragment),
+        )
+        .map(relativeSource)
+        .sort();
+      expect(owners).toEqual([
+        "features/canvas/infrastructure/freezoneGenerationCatalogGateway.ts",
+      ]);
+      expect(legacyOpsSource).not.toContain(endpointFragment);
+    }
+    for (const legacySymbol of [
+      "FreezoneStyleTemplate",
+      "listFreezoneStyleTemplates",
+      "FreezoneCameraIdLabel",
+      "FreezoneCameraOptions",
+      "fetchFreezoneCameraOptions",
+      "FreezoneImageModelInfo",
+      "fetchFreezoneImageModels",
+      "FreezoneVideoProvider",
+      "FreezoneVideoModelInfo",
+      "fetchFreezoneVideoModels",
+      "fetchFreezoneVideoCameraTemplates",
+    ]) {
+      expect(legacyOpsSource).not.toContain(legacySymbol);
+    }
   });
 
   it("keeps Canvas audio voice catalogs behind an application-owned gateway", () => {
