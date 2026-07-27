@@ -5914,52 +5914,73 @@ async def test_freezone_job_result_uses_info_while_running(
 @pytest.mark.asyncio
 async def test_freezone_upscale_resolves_original_ratio_before_model_call(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    username = "admin"
-    project = "58"
-    project_dir, _output_dir = _patch_freezone_project(
-        monkeypatch, tmp_path, username=username, project=project
+    from ai_anime.modules.creative_canvas.application.image_upscale import (
+        CreativeCanvasImageUpscaleUseCases,
+        StartCreativeCanvasImageUpscaleCommand,
     )
+    from ai_anime.modules.creative_canvas.domain.image_upscale import (
+        CreativeCanvasImageCameraConfig,
+        CreativeCanvasImageStyleConfig,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.image_sources import (
+        ProjectCreativeCanvasImageSourceResolver,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.image_upscale import (
+        FreezoneCreativeCanvasImageModelRouter,
+        FreezoneCreativeCanvasImageUpscalePromptComposer,
+        PillowCreativeCanvasImageInspector,
+    )
+
+    context = _project_ctx(tmp_path)
+    project_dir = context.output_dir
     source = project_dir / "freezone" / "_uploads" / "sample.png"
     _write_image(source, size=(320, 180))
 
-    captured: dict[str, object] = {}
+    class FakeJobIds:
+        def new_id(self) -> str:
+            return "job-upscale"
 
-    monkeypatch.setattr(
-        freezone_routes,
-        "resolve_static_url_to_path",
-        lambda url, _project_dir: source,
+    class CapturingScheduler:
+        task = None
+
+        async def enqueue(self, received_context, task):
+            assert received_context is context
+            self.task = task
+            return SimpleNamespace(job_id=task.job_id)
+
+    scheduler = CapturingScheduler()
+    result = await CreativeCanvasImageUpscaleUseCases(
+        ProjectCreativeCanvasImageSourceResolver(),
+        PillowCreativeCanvasImageInspector(),
+        FreezoneCreativeCanvasImageUpscalePromptComposer(),
+        FreezoneCreativeCanvasImageModelRouter(),
+        FakeJobIds(),
+        scheduler,
+    ).start(
+        StartCreativeCanvasImageUpscaleCommand(
+            context=context,
+            project_dir=project_dir,
+            source_url="/static/admin/demo/freezone/_uploads/sample.png",
+            image_size="2K",
+            quality="low",
+            model="HuiMeng GPT Image 2",
+            style=CreativeCanvasImageStyleConfig(template_id="three_oclock_2300"),
+            camera=CreativeCanvasImageCameraConfig(
+                camera_body="Panavision DXL2",
+                lens="Arri Signature Prime",
+                focal_length_mm=35,
+                aperture="f/4",
+            ),
+        )
     )
-    _patch_celery_edit_enqueue(monkeypatch, captured)
 
-    body = freezone_routes.FreezoneUpscaleRequest(
-        source_url="/static/admin/58/freezone/_uploads/sample.png",
-        scale_factor=2,
-        image_size="2K",
-        quality="low",
-        model="HuiMeng GPT Image 2",
-        style=freezone_routes.FreezoneImageStyleConfig(template_id="three_oclock_2300"),
-        camera=freezone_routes.FreezoneImageCameraConfig(
-            camera_body="Panavision DXL2",
-            lens="Arri Signature Prime",
-            focal_length_mm=35,
-            aperture="f/4",
-        ),
-    )
-
-    result = await freezone_routes.freezone_upscale(
-        project=project,
-        body=body,
-        user={"username": username},
-    )
-
-    assert result["ok"] is True
-    assert captured["aspect_ratio"] == "16:9"
-    assert captured["quality"] == "low"
-    assert "新古典插画" in captured["prompt"]
-    assert "Panavision DXL2" in captured["prompt"]
-    assert "Arri Signature Prime" in captured["prompt"]
+    assert result.job_id == "job-upscale"
+    assert scheduler.task.payload["aspect_ratio"] == "16:9"
+    assert scheduler.task.payload["quality"] == "low"
+    assert "新古典插画" in scheduler.task.payload["prompt"]
+    assert "Panavision DXL2" in scheduler.task.payload["prompt"]
+    assert "Arri Signature Prime" in scheduler.task.payload["prompt"]
 
 
 @pytest.mark.asyncio

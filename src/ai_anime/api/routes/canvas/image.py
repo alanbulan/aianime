@@ -13,9 +13,13 @@ from ai_anime.api.schemas import (
     FreezoneMarkDetectRequest,
     FreezoneMarkDetectResponse,
     FreezoneStageAssetAcceptedResponse,
+    FreezoneUpscaleRequest,
 )
 from ai_anime.modules.creative_canvas.public import (
+    CreativeCanvasImageCameraConfig,
+    CreativeCanvasImageStyleConfig,
     CreativeCanvasImageToThreeGsSourceMissing,
+    CreativeCanvasImageUpscaleSourceMissing,
     CreativeCanvasMarkDetectionFailed,
     CreativeCanvasMarkSelection,
     CreativeCanvasReversePromptSourceMissing,
@@ -23,10 +27,13 @@ from ai_anime.modules.creative_canvas.public import (
     DetectCreativeCanvasMarkCommand,
     InvalidCreativeCanvasReversePromptRequest,
     InvalidCreativeCanvasImageToThreeGsRequest,
+    InvalidCreativeCanvasImageUpscaleRequest,
     InvalidCreativeCanvasMarkRequest,
     StartCreativeCanvasReversePromptCommand,
     StartCreativeCanvasImageToThreeGsCommand,
+    StartCreativeCanvasImageUpscaleCommand,
     creative_canvas_image_to_three_gs_use_cases,
+    creative_canvas_image_upscale_use_cases,
     creative_canvas_mark_detection_use_cases,
     creative_canvas_reverse_prompt_use_cases,
     generation_catalog_queries,
@@ -241,6 +248,69 @@ async def freezone_image_to_3gs(
     }
     if receipt.task_id:
         data["task_id"] = receipt.task_id
+    return {"ok": True, "data": data}
+
+
+@router.post("/projects/{project}/freezone/upscale", tags=["freezone-image"])
+async def freezone_upscale(
+    project: str,
+    body: FreezoneUpscaleRequest,
+    user: dict = Depends(get_api_user),
+):
+    """图片处理：高清放大接口。"""
+    resolved = await resolve_project_scope(
+        project,
+        user,
+        required_role="editor",
+        operation="access freezone project files",
+    )
+    try:
+        result = await creative_canvas_image_upscale_use_cases().start(
+            StartCreativeCanvasImageUpscaleCommand(
+                context=resolved.ctx,
+                project_dir=resolved.project_dir,
+                source_url=body.source_url,
+                image_size=body.image_size,
+                model=body.model,
+                quality=body.quality,
+                camera=(
+                    CreativeCanvasImageCameraConfig(
+                        camera_body=body.camera.camera_body,
+                        lens=body.camera.lens,
+                        focal_length_mm=body.camera.focal_length_mm,
+                        aperture=body.camera.aperture,
+                    )
+                    if body.camera
+                    else None
+                ),
+                style=(
+                    CreativeCanvasImageStyleConfig(
+                        template_id=body.style.template_id,
+                    )
+                    if body.style
+                    else None
+                ),
+            )
+        )
+    except InvalidCreativeCanvasImageUpscaleRequest as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except CreativeCanvasImageUpscaleSourceMissing as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except CreativeCanvasTaskStartFailed as exc:
+        logger.warning("failed to start upscale task: %s", exc, exc_info=True)
+        raise HTTPException(503, f"failed to start upscale task: {exc}") from exc
+
+    data = {
+        "task_type": result.task_type,
+        "job_id": result.job_id,
+        "task_key": result.task_key,
+        "task_episode": result.task_episode,
+        "task_scope": result.task_scope,
+        "backend": result.backend,
+        "queue": result.queue,
+    }
+    if result.task_id:
+        data["task_id"] = result.task_id
     return {"ok": True, "data": data}
 
 

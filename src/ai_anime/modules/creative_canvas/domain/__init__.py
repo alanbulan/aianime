@@ -7,6 +7,13 @@ from ai_anime.modules.creative_canvas.domain.image_to_3gs import (
     infer_image_to_three_gs_scene_id,
     plan_image_to_three_gs,
 )
+from ai_anime.modules.creative_canvas.domain.image_upscale import (
+    CreativeCanvasImageCameraConfig,
+    CreativeCanvasImageStyleConfig,
+    InvalidCreativeCanvasImageSize,
+    build_image_upscale_prompt,
+    resolve_original_image_aspect_ratio,
+)
 from ai_anime.modules.creative_canvas.domain.media import (
     CreativeCanvasScreenshotTooLarge,
     InvalidCreativeCanvasPngScreenshot,
@@ -22,14 +29,19 @@ from ai_anime.modules.creative_canvas.domain.principal import canvas_actor_id
 __all__ = [
     "CreativeCanvasImageToThreeGsPlan",
     "CreativeCanvasImageToThreeGsSourceKind",
+    "CreativeCanvasImageCameraConfig",
+    "CreativeCanvasImageStyleConfig",
     "CreativeCanvasScreenshotTooLarge",
     "CreativeCanvasMarkSelection",
     "CreativeCanvasMarkSelectionRequired",
     "InvalidCreativeCanvasPngScreenshot",
     "InvalidCreativeCanvasImageToThreeGsSource",
+    "InvalidCreativeCanvasImageSize",
+    "build_image_upscale_prompt",
     "canvas_actor_id",
     "decode_png_screenshot",
     "infer_image_to_three_gs_scene_id",
     "normalize_screenshot_label",
     "plan_image_to_three_gs",
+    "resolve_original_image_aspect_ratio",
 ]

@@ -451,6 +451,34 @@ def test_freezone_image_to_three_gs_route_delegates_to_application() -> None:
         assert implementation_detail not in source
 
 
+def test_freezone_image_upscale_route_delegates_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "image.py"
+    legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    runner = PACKAGE_ROOT / "task_backend" / "runners" / "freezone.py"
+    source = route.read_text(encoding="utf-8")
+    legacy_source = legacy_route.read_text(encoding="utf-8")
+    runner_source = runner.read_text(encoding="utf-8")
+
+    endpoint_path = '"/projects/{project}/freezone/upscale"'
+    assert source.count(endpoint_path) == 1
+    assert endpoint_path not in legacy_source
+    assert source.count("creative_canvas_image_upscale_use_cases().start(") == 1
+    assert "StartCreativeCanvasImageUpscaleCommand" in source
+    assert "async def freezone_upscale(" not in legacy_source
+    assert "FreezoneUpscaleRequest" not in legacy_source
+    assert "_build_upscale_prompt" not in legacy_source
+    assert 'register_project_task_runner("freezone_edit", run_freezone_edit)' in runner_source
+    for implementation_detail in (
+        "get_task_backend",
+        "project_task_state_key",
+        "resolve_static_url_to_path",
+        "_resolve_outpaint_aspect_ratio",
+        "_split_provider_and_model",
+        "_resolve_freezone_image_provider",
+    ):
+        assert implementation_detail not in source
+
+
 def test_freezone_bootstrap_route_delegates_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "bootstrap.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"

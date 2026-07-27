@@ -13,6 +13,10 @@ class CreativeCanvasTaskStartFailed(RuntimeError):
     pass
 
 
+class CreativeCanvasJobIds(Protocol):
+    def new_id(self) -> str: ...
+
+
 @dataclass(frozen=True)
 class CreativeCanvasTaskSubmission:
     task_type: str

@@ -55,7 +55,6 @@ from ai_anime.api.schemas import (
     FreezoneStoryScriptGenerateRequest,
     FreezoneTemplateEditRequest,
     FreezoneTextTranslateRequest,
-    FreezoneUpscaleRequest,
     FreezoneVideoCharacterLibraryItemRequest,
     FreezoneVideoComposeRequest,
     FreezoneVideoEditRequest,
@@ -141,9 +140,6 @@ from ai_anime.freezone.route_helpers import (
 )
 from ai_anime.freezone.route_helpers import (
     build_template_edit_prompt as _build_template_edit_prompt,
-)
-from ai_anime.freezone.route_helpers import (
-    build_upscale_prompt as _build_upscale_prompt,
 )
 from ai_anime.freezone.route_helpers import (
     infer_scene_id_from_master_path as _infer_scene_id_from_master_path,
@@ -4545,56 +4541,6 @@ def _freezone_not_implemented(endpoint: str) -> None:
             "Keep using the existing image routes or frontend-local tools for now."
         ),
     )
-
-
-@router.post("/projects/{project}/freezone/upscale", tags=[TAG_FREEZONE_IMAGE])
-async def freezone_upscale(
-    project: str,
-    body: FreezoneUpscaleRequest,
-    user: dict = Depends(get_api_user),
-):
-    """图片处理：高清放大接口。"""
-    ctx, username, project_name, project_dir, output_dir = await _resolve_freezone_project(
-        project, user
-    )
-
-    try:
-        source_path = resolve_static_url_to_path(body.source_url, project_dir)
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
-    if not source_path.exists():
-        raise HTTPException(404, f"source not found: {source_path}")
-
-    job_id = _new_job_id()
-    resolved_aspect_ratio = _resolve_outpaint_aspect_ratio(source_path, "original")
-    resolved_provider, resolved_model = _split_provider_and_model(
-        None,
-        body.model or FREEZONE_DEFAULT_IMAGE_MODEL,
-    )
-    provider = _resolve_freezone_image_provider(resolved_provider, strict=False)
-
-    try:
-        return await _start_or_enqueue_freezone_edit_path(
-            ctx=ctx,
-            username=username,
-            project=project_name,
-            project_dir=project_dir,
-            output_dir=output_dir,
-            job_id=job_id,
-            prompt=_merge_prompt_with_style_and_camera(
-                _build_upscale_prompt(), body.style, body.camera
-            ),
-            base_path=source_path,
-            extra_reference_paths=[],
-            aspect_ratio=resolved_aspect_ratio,
-            image_size=body.image_size,
-            provider=provider,
-            model=resolved_model,
-            quality=body.quality or "medium",
-        )
-    except RuntimeError as e:
-        _handle_task_start_runtime_error("failed to start upscale task", e)
-        raise HTTPException(503, f"failed to start upscale task: {e}") from e
 
 
 @router.post(

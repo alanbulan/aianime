@@ -229,11 +229,19 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.modules.creative_canvas.application.image_to_3gs import (
         CreativeCanvasImageToThreeGsUseCases,
     )
+    from ai_anime.modules.creative_canvas.application.image_upscale import (
+        CreativeCanvasImageUpscaleUseCases,
+    )
     from ai_anime.modules.creative_canvas.application.reverse_prompt import (
         CreativeCanvasReversePromptUseCases,
     )
     from ai_anime.modules.creative_canvas.infrastructure.image_sources import (
         ProjectCreativeCanvasImageSourceResolver,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.image_upscale import (
+        FreezoneCreativeCanvasImageModelRouter,
+        FreezoneCreativeCanvasImageUpscalePromptComposer,
+        PillowCreativeCanvasImageInspector,
     )
     from ai_anime.modules.creative_canvas.infrastructure.media import (
         FreezoneJobIdGenerator,
@@ -412,6 +420,14 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             FreezoneJobIdGenerator(),
             task_scheduler,
         )
+        image_upscale_use_cases = CreativeCanvasImageUpscaleUseCases(
+            ProjectCreativeCanvasImageSourceResolver(),
+            PillowCreativeCanvasImageInspector(),
+            FreezoneCreativeCanvasImageUpscalePromptComposer(),
+            FreezoneCreativeCanvasImageModelRouter(),
+            FreezoneJobIdGenerator(),
+            task_scheduler,
+        )
         monkeypatch.setattr(
             freezone_image,
             "creative_canvas_reverse_prompt_use_cases",
@@ -421,6 +437,11 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             freezone_image,
             "creative_canvas_image_to_three_gs_use_cases",
             lambda use_cases=image_to_three_gs_use_cases: use_cases,
+        )
+        monkeypatch.setattr(
+            freezone_image,
+            "creative_canvas_image_upscale_use_cases",
+            lambda use_cases=image_upscale_use_cases: use_cases,
         )
         monkeypatch.setattr(ingest, "get_task_backend", lambda tb=task_backend: tb)
         monkeypatch.setattr(freezone, "get_task_backend", lambda tb=task_backend: tb)

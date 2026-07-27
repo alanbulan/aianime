@@ -17,6 +17,12 @@ from ai_anime.modules.creative_canvas.application.image_to_3gs import (
     InvalidCreativeCanvasImageToThreeGsRequest,
     StartCreativeCanvasImageToThreeGsCommand,
 )
+from ai_anime.modules.creative_canvas.application.image_upscale import (
+    CreativeCanvasImageUpscaleSourceMissing,
+    CreativeCanvasImageUpscaleUseCases,
+    InvalidCreativeCanvasImageUpscaleRequest,
+    StartCreativeCanvasImageUpscaleCommand,
+)
 from ai_anime.modules.creative_canvas.application.media import (
     CreativeCanvasMediaUseCases,
     CreativeCanvasScreenshotResult,
@@ -42,10 +48,14 @@ from ai_anime.modules.creative_canvas.application.task_submission import (
     CreativeCanvasTaskStartFailed,
 )
 from ai_anime.modules.creative_canvas.domain import (
+    CreativeCanvasImageCameraConfig,
+    CreativeCanvasImageStyleConfig,
     CreativeCanvasMarkSelection,
     CreativeCanvasScreenshotTooLarge,
+    InvalidCreativeCanvasImageSize,
     InvalidCreativeCanvasPngScreenshot,
     canvas_actor_id,
+    resolve_original_image_aspect_ratio,
 )
 
 
@@ -97,6 +107,14 @@ def creative_canvas_image_to_three_gs_use_cases() -> CreativeCanvasImageToThreeG
     return build()
 
 
+def creative_canvas_image_upscale_use_cases() -> CreativeCanvasImageUpscaleUseCases:
+    from ai_anime.modules.creative_canvas.composition import (
+        creative_canvas_image_upscale_use_cases as build,
+    )
+
+    return build()
+
+
 __all__ = [
     "CreativeCanvasBootstrapBusy",
     "CreativeCanvasBootstrapCorrupt",
@@ -105,6 +123,10 @@ __all__ = [
     "CreativeCanvasImageToThreeGsResult",
     "CreativeCanvasImageToThreeGsSourceMissing",
     "CreativeCanvasImageToThreeGsUseCases",
+    "CreativeCanvasImageCameraConfig",
+    "CreativeCanvasImageStyleConfig",
+    "CreativeCanvasImageUpscaleSourceMissing",
+    "CreativeCanvasImageUpscaleUseCases",
     "CreativeCanvasMediaUseCases",
     "CreativeCanvasMarkDetectionFailed",
     "CreativeCanvasMarkDetectionResult",
@@ -121,6 +143,8 @@ __all__ = [
     "DetectCreativeCanvasMarkCommand",
     "InvalidCreativeCanvasPngScreenshot",
     "InvalidCreativeCanvasImageToThreeGsRequest",
+    "InvalidCreativeCanvasImageUpscaleRequest",
+    "InvalidCreativeCanvasImageSize",
     "InvalidCreativeCanvasMarkRequest",
     "InvalidCreativeCanvasReversePromptRequest",
     "InitializeCreativeCanvasCommand",
@@ -128,11 +152,14 @@ __all__ = [
     "StoreCreativeCanvasUploadCommand",
     "StartCreativeCanvasReversePromptCommand",
     "StartCreativeCanvasImageToThreeGsCommand",
+    "StartCreativeCanvasImageUpscaleCommand",
     "canvas_actor_id",
     "creative_canvas_bootstrap_use_cases",
     "creative_canvas_mark_detection_use_cases",
     "creative_canvas_image_to_three_gs_use_cases",
+    "creative_canvas_image_upscale_use_cases",
     "creative_canvas_reverse_prompt_use_cases",
     "creative_canvas_media_use_cases",
     "generation_catalog_queries",
+    "resolve_original_image_aspect_ratio",
 ]

@@ -11,6 +11,9 @@ from ai_anime.modules.creative_canvas.application.generation_catalog import (
 from ai_anime.modules.creative_canvas.application.image_to_3gs import (
     CreativeCanvasImageToThreeGsUseCases,
 )
+from ai_anime.modules.creative_canvas.application.image_upscale import (
+    CreativeCanvasImageUpscaleUseCases,
+)
 from ai_anime.modules.creative_canvas.application.media import (
     CreativeCanvasMediaUseCases,
 )
@@ -29,6 +32,11 @@ from ai_anime.modules.creative_canvas.infrastructure.generation_catalog import (
 )
 from ai_anime.modules.creative_canvas.infrastructure.image_sources import (
     ProjectCreativeCanvasImageSourceResolver,
+)
+from ai_anime.modules.creative_canvas.infrastructure.image_upscale import (
+    FreezoneCreativeCanvasImageModelRouter,
+    FreezoneCreativeCanvasImageUpscalePromptComposer,
+    PillowCreativeCanvasImageInspector,
 )
 from ai_anime.modules.creative_canvas.infrastructure.media import (
     FreezoneJobIdGenerator,
@@ -81,6 +89,18 @@ def creative_canvas_reverse_prompt_use_cases() -> CreativeCanvasReversePromptUse
 def creative_canvas_image_to_three_gs_use_cases() -> CreativeCanvasImageToThreeGsUseCases:
     return CreativeCanvasImageToThreeGsUseCases(
         ProjectCreativeCanvasImageSourceResolver(),
+        FreezoneJobIdGenerator(),
+        TaskBackendCreativeCanvasTaskScheduler(get_task_backend),
+    )
+
+
+@lru_cache(maxsize=1)
+def creative_canvas_image_upscale_use_cases() -> CreativeCanvasImageUpscaleUseCases:
+    return CreativeCanvasImageUpscaleUseCases(
+        ProjectCreativeCanvasImageSourceResolver(),
+        PillowCreativeCanvasImageInspector(),
+        FreezoneCreativeCanvasImageUpscalePromptComposer(),
+        FreezoneCreativeCanvasImageModelRouter(),
         FreezoneJobIdGenerator(),
         TaskBackendCreativeCanvasTaskScheduler(get_task_backend),
     )

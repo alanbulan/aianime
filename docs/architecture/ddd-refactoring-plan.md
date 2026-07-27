@@ -1658,6 +1658,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百八十七批已将图片转 3GS 的源图校验、scene id 推断和 master/reverse/pano SHARP 参数规划迁入 Creative Canvas image-to-3GS domain/application，并将既有 POST 端点收口到 image FastAPI 子 router；反向提示词与图片转 3GS 统一通过共享任务提交 port 和唯一 task-backend adapter 入队，旧反向提示词专用调度适配器、旧 `freezone.py` 3GS helper/handler/scene id 推断整段删除，不保留 facade、转发函数或第二套提交链路；项目 editor 鉴权、源路径与图片后缀校验、任务类型/world 队列/payload、项目级 task key、限流异常透传、503 文案、请求路径、OpenAPI tag/说明、响应 payload 和唯一 stage-asset runner 均保持不变；定向回归 25 项、3GS runner 回归 2 项、M06 完整合同 16 项和后端完整分层门禁 69 项均通过，8 条告警均为既有依赖弃用告警。
 
+第二百八十八批已将高清放大的源图解析、原图比例归一、提示词组合、模型路由和任务提交迁入 Creative Canvas image-upscale domain/application/adapter，并将既有 POST 端点收口到 image FastAPI 子 router；比例规则成为唯一 domain 实现，仍留在旧路由的 outpaint/redraw 通过 public API 委托同一规则，旧 `freezone.py` upscale handler 和旧提示词转发壳直接删除，不保留 facade、转发函数或第二套提交链路；项目 editor 鉴权、源路径校验、空模型默认值、风格/相机提示词、原图比例就近映射、任务类型/default 队列/payload、项目级 task key、限流异常透传、503 文案、请求路径、OpenAPI tag/说明、响应 payload 和唯一 freezone-edit runner 均保持不变；定向与注册表回归 18 项、图片编辑回归 4 项、M06 完整合同 16 项和后端完整分层门禁 70 项均通过，3 条冷启动导入检查通过，8 条告警均为既有依赖弃用告警。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

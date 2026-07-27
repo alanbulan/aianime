@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
 
 from ai_anime.modules.creative_canvas.application.image_sources import (
     CreativeCanvasExistingImageSourceResolver,
 )
 from ai_anime.modules.creative_canvas.application.task_submission import (
+    CreativeCanvasJobIds,
     CreativeCanvasTaskReceipt,
     CreativeCanvasTaskScheduler,
     CreativeCanvasTaskSubmission,
@@ -52,15 +52,11 @@ class CreativeCanvasImageToThreeGsResult:
     step: str
 
 
-class CreativeCanvasImageToThreeGsJobIds(Protocol):
-    def new_id(self) -> str: ...
-
-
 class CreativeCanvasImageToThreeGsUseCases:
     def __init__(
         self,
         sources: CreativeCanvasExistingImageSourceResolver,
-        job_ids: CreativeCanvasImageToThreeGsJobIds,
+        job_ids: CreativeCanvasJobIds,
         scheduler: CreativeCanvasTaskScheduler,
     ) -> None:
         self._sources = sources

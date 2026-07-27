@@ -21,6 +21,10 @@ from ai_anime.api.schemas import (
 )
 from ai_anime.config import IMAGE_GENERATION_SELECTIONS
 from ai_anime.freezone.paths import resolve_static_url_to_path, safe_upload_filename, uploads_dir
+from ai_anime.modules.creative_canvas.public import (
+    InvalidCreativeCanvasImageSize,
+    resolve_original_image_aspect_ratio,
+)
 from ai_anime.freezone.video_node import load_video_character_library
 from ai_anime.task_identity import task_state_key
 
@@ -861,43 +865,14 @@ def prepare_padded_outpaint_base(
 def resolve_outpaint_aspect_ratio(source_path: Path, target_aspect_ratio: str) -> str:
     if str(target_aspect_ratio or "").strip().lower() != "original":
         return target_aspect_ratio
-    from math import gcd
-
     from PIL import Image
 
     with Image.open(source_path) as image:
         width, height = image.size
-    if width <= 0 or height <= 0:
+    try:
+        return resolve_original_image_aspect_ratio(width, height)
+    except InvalidCreativeCanvasImageSize:
         raise HTTPException(400, f"invalid source image size: {source_path}")
-
-    normalized_gcd = gcd(width, height)
-    normalized_ratio = f"{width // normalized_gcd}:{height // normalized_gcd}"
-    supported_ratios = {
-        "1:1",
-        "3:2",
-        "2:3",
-        "16:9",
-        "9:16",
-        "5:4",
-        "4:5",
-        "4:3",
-        "3:4",
-        "21:9",
-        "9:21",
-        "1:3",
-        "3:1",
-        "2:1",
-        "1:2",
-    }
-    if normalized_ratio in supported_ratios:
-        return normalized_ratio
-
-    current_ratio = width / height
-    closest_ratio = min(
-        supported_ratios,
-        key=lambda ratio: abs((parse_aspect_ratio(ratio)[0] / parse_aspect_ratio(ratio)[1]) - current_ratio),
-    )
-    return closest_ratio
 
 
 def build_outpaint_prompt() -> str:
@@ -924,15 +899,6 @@ def build_erase_prompt() -> str:
         "Preserve the surrounding composition, subject identity, lighting, perspective, and image style. "
         "The regenerated area must blend seamlessly with nearby pixels and should not leave obvious "
         "repair traces, repeated textures, or artifacts."
-    )
-
-
-def build_upscale_prompt() -> str:
-    return (
-        "Upscale and restore the image while preserving the original composition, subject identity, "
-        "lighting, perspective, and style. Improve sharpness, edge definition, material detail, "
-        "skin and fabric texture fidelity, and overall clarity naturally. Do not redesign the image, "
-        "change the framing, alter the subject, or introduce extra objects, text, watermark, or artifacts."
     )
 
 
