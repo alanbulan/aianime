@@ -378,6 +378,17 @@ def test_release_notifications_route_delegates_to_application() -> None:
     assert "def normalize_locale(" not in source
 
 
+def test_runtime_config_route_delegates_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "config.py"
+    source = route.read_text(encoding="utf-8")
+
+    assert source.count("runtime_config_queries().current()") == 1
+    assert "ai_anime.modules.platform_release.public" in _imports(route)
+    assert "runtime_env" not in source
+    assert "os.environ" not in source
+    assert "ULID" not in source
+
+
 def test_freezone_skill_catalog_route_delegates_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "skills.py"
     legacy_route = LEGACY_FREEZONE_ROUTE

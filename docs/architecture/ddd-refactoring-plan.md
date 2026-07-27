@@ -1713,6 +1713,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百二十六批已将版本更新弹窗迁入 Platform Release presentation，将手动打开弹窗的浏览器事件迁入唯一 infrastructure 适配器，并由 composition 代理订阅以避免 presentation 越层依赖；AppLayout 改经 public API 装配，行为测试与颜色字面量基线同步迁入模块路径，旧 `features/version-update` 实现直接删除，不保留 facade、re-export 或第二套事件监听。未读版本自动打开并标记已读、相同 tag 不重复打开、手动入口忽略已读/静音、查询刷新、视频头图、文案与关闭交互均保持不变；弹窗与 AppLayout 回归 2 个测试文件 5 项、前端完整分层门禁 209 项、`tsc -b --pretty false`、迁移视图颜色字面量 0 项与 `git diff --check` 均通过。全局 `ui-color-literals` 门禁仍报告 6 个本批未改动的 Canvas 文件存在未分类颜色字面量，留待独立颜色治理批次处理，不混入本次结构迁移。
 
+第三百二十七批已将运行时 edition、桌面模式鉴权与实例 ID 投影规则迁入 Platform Release domain，将环境读取协议和当前配置查询迁入 application，并由唯一 process infrastructure 适配器持有 `os`、`runtime_env` 与进程级 ULID；composition 注入稳定 adapter，`/config` route 只保留 HTTP 路径和 `JSONResponse` 映射，不再直接读取环境或生成实例 ID。CE/EE 判定、`AI_ANIME_DESKTOP_MODE=1` 强制鉴权、同一进程实例 ID 稳定、请求路径和 `ok/data` 响应字段均保持不变；运行时配置领域/API 回归 3 项、应用工厂与 SPA 回归 10 项、完整后端分层门禁 93 项均通过，修改文件 Ruff、Python 编译与 `git diff --check` 通过。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。
