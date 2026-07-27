@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from ai_anime.api.routes import freezone as freezone_routes
+from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap_routes
 from ai_anime.api.routes.canvas import image as freezone_image_routes
 from ai_anime.api.routes.freezone import (
     FREEZONE_DEFAULT_IMAGE_MODEL,
@@ -1931,14 +1932,28 @@ async def test_init_freezone_creates_default_canvas(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _project_dir, _output_dir = _patch_freezone_project(monkeypatch, tmp_path)
+    ctx = _project_ctx(tmp_path)
+    project_dir = tmp_path / "project"
     state_dir = _canvas_state_dir(tmp_path)
 
-    first = await freezone_routes.init_freezone(
+    async def fake_resolve_project_scope(*_args, **_kwargs):
+        return SimpleNamespace(
+            ctx=ctx,
+            project_dir=project_dir,
+            state_dir=str(state_dir),
+        )
+
+    monkeypatch.setattr(
+        freezone_bootstrap_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
+
+    first = await freezone_bootstrap_routes.init_freezone(
         project="proj_freezone",
         user={"username": "admin", "id": "owner_1"},
     )
-    second = await freezone_routes.init_freezone(
+    second = await freezone_bootstrap_routes.init_freezone(
         project="proj_freezone",
         user={"username": "admin", "id": "owner_1"},
     )

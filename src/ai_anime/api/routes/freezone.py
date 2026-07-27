@@ -82,6 +82,7 @@ from ai_anime.director_world.staging_prop_ai import generate_ai_staging_prop
 from ai_anime.modules.asset_world.public import (
     runtime_prop_menu_for_episode,
 )
+from ai_anime.modules.creative_canvas.public import canvas_actor_id
 from ai_anime.modules.production.public import (
     production_generation_context_use_cases,
     production_image_settings_use_cases,
@@ -112,7 +113,6 @@ from ai_anime.freezone.image_node import (
 from ai_anime.freezone.mark_node import detect_freezone_mark
 from ai_anime.freezone.paths import (
     CANVAS_ID_RE,
-    canvases_dir,
     freezone_root,
     output_path_for_job,
     outputs_dir,
@@ -2078,7 +2078,6 @@ router = APIRouter()
 FrameReviewReviewer = Callable[[str], str | Awaitable[str]]
 _agent_review_frame_reviewer: FrameReviewReviewer | None = None
 
-TAG_FREEZONE_BOOTSTRAP = "freezone-bootstrap"
 TAG_FREEZONE_MEDIA = "freezone-media"
 TAG_FREEZONE_AUDIO = "freezone-audio"
 TAG_FREEZONE_IMAGE = "freezone-image"
@@ -8099,10 +8098,6 @@ def _canvas_state_project_dir(ctx: ProjectContext | None, output_project_dir: Pa
     return output_project_dir
 
 
-def _canvas_actor_id(user: dict) -> str:
-    return str(user.get("id") or user.get("user_id") or user.get("username") or "")
-
-
 def _canvas_scope_from_payload(canvas_id: str, payload: dict) -> str:
     raw_scope = payload.get("canvas_scope")
     if raw_scope in {"default", "episode", "beat", "asset"}:
@@ -8133,7 +8128,7 @@ def _prepare_canvas_payload_for_write(
     user: dict,
 ) -> dict:
     now = canvas_store.utc_now_iso()
-    actor_id = _canvas_actor_id(user)
+    actor_id = canvas_actor_id(user)
     payload = (
         body.model_dump(
             exclude={"base_revision", "client_save_id", "allow_empty_overwrite"},
@@ -9888,7 +9883,7 @@ async def list_canvases(project: str, user: dict = Depends(get_api_user)):
         canvas_store.ensure_default_canvas(
             canvas_project_dir,
             project_id=ctx.project_id,
-            actor_id=_canvas_actor_id(user),
+            actor_id=canvas_actor_id(user),
         )
         return {"ok": True, "data": canvas_store.list_canvases(canvas_project_dir)}
     except (canvas_store.CanvasStoreError, CanvasLockBusy) as exc:
@@ -9908,7 +9903,7 @@ async def get_canvas(project: str, canvas_id: str, user: dict = Depends(get_api_
             canvas_store.ensure_default_canvas(
                 canvas_project_dir,
                 project_id=ctx.project_id,
-                actor_id=_canvas_actor_id(user),
+                actor_id=canvas_actor_id(user),
             )
         payload = canvas_store.read_canvas(canvas_project_dir, canvas_id)
     except (canvas_store.CanvasStoreError, CanvasLockBusy) as exc:
@@ -10210,7 +10205,7 @@ async def delete_canvas(project: str, canvas_id: str, user: dict = Depends(get_a
         deleted_canvas = canvas_store.soft_delete_canvas(
             canvas_project_dir,
             canvas_id,
-            deleted_by=_canvas_actor_id(user),
+            deleted_by=canvas_actor_id(user),
         )
     except (canvas_store.CanvasStoreError, CanvasLockBusy) as exc:
         _raise_canvas_store_http(exc)
@@ -11768,36 +11763,5 @@ async def freezone_create_identity_asset(
             "identity_name": identity.identity_name,
             "target_path": str(target),
             "target_url": make_static_url_for_context(ctx, rel, local_path=target),
-        },
-    }
-
-
-@router.post("/projects/{project}/freezone/init", tags=[TAG_FREEZONE_BOOTSTRAP])
-async def init_freezone(project: str, user: dict = Depends(get_api_user)):
-    """懒创建 Freezone 目录树，可重复调用且幂等。"""
-    ctx, _username, _project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project, user
-    )
-    canvas_project_dir = _canvas_state_project_dir(ctx, project_dir)
-    freezone_root(project_dir).mkdir(parents=True, exist_ok=True)
-    uploads_dir(project_dir).mkdir(parents=True, exist_ok=True)
-    canvases_dir(canvas_project_dir).mkdir(parents=True, exist_ok=True)
-    try:
-        default_canvas = canvas_store.ensure_default_canvas(
-            canvas_project_dir,
-            project_id=ctx.project_id,
-            actor_id=_canvas_actor_id(user),
-        )
-    except (canvas_store.CanvasStoreError, CanvasLockBusy) as exc:
-        _raise_canvas_store_http(exc)
-    return {
-        "ok": True,
-        "data": {
-            "freezone_dir": str(freezone_root(project_dir)),
-            "default_canvas": {
-                "canvas_id": "default",
-                "created": default_canvas.created,
-                "revision": default_canvas.payload.get("revision"),
-            },
         },
     }

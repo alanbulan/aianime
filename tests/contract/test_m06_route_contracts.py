@@ -218,6 +218,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api import auth as api_auth
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.routes import freezone, ingest
+    from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap
     from ai_anime.freezone.paths import uploads_dir
     from ai_anime.utils.path_resolver import (
         canonical_beat_director_env_only_path,
@@ -275,7 +276,13 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         runtime_dir=str(runtime_dir),
     )
 
-    async def resolve_project_scope(project: str, user: dict, *, required_role: str = "viewer"):
+    async def resolve_project_scope(
+        project: str,
+        user: dict,
+        *,
+        required_role: str = "viewer",
+        operation: str = "resolve project files",
+    ):
         assert project == _PROJECT
         return resolution
 
@@ -305,6 +312,11 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         return f"/static/projects/{_PROJECT_ID}/{rel_path}"
 
     monkeypatch.setattr(ingest, "resolve_project_scope", resolve_project_scope)
+    monkeypatch.setattr(
+        freezone_bootstrap,
+        "resolve_project_scope",
+        resolve_project_scope,
+    )
     monkeypatch.setattr(freezone, "resolve_project_context", resolve_project_context)
     monkeypatch.setattr(freezone, "make_sqlite_store_for_context", make_store_for_context)
     monkeypatch.setattr(freezone, "make_cognee_store_for_context", make_store_for_context)
@@ -347,6 +359,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setattr(freezone, "get_task_manager", lambda tm=task_manager: tm)
         app = FastAPI()
         app.include_router(ingest.router, prefix="/api/v1")
+        app.include_router(freezone_bootstrap.router, prefix="/api/v1")
         app.include_router(freezone.router, prefix="/api/v1")
         user = {
             "id": "user-alice",
@@ -356,6 +369,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         }
         app.dependency_overrides[api_auth.get_api_user] = lambda user=user: user
         app.dependency_overrides[ingest.get_api_user] = lambda user=user: user
+        app.dependency_overrides[freezone_bootstrap.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone.get_api_user] = lambda user=user: user
 
         async def override_cognee_store():

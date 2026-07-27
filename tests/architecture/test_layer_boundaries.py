@@ -364,6 +364,32 @@ def test_freezone_generation_catalog_routes_delegate_to_application() -> None:
         assert implementation_detail not in legacy_source
 
 
+def test_freezone_bootstrap_route_delegates_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "bootstrap.py"
+    legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
+    source = route.read_text(encoding="utf-8")
+    legacy_source = legacy_route.read_text(encoding="utf-8")
+    api_router_source = api_router.read_text(encoding="utf-8")
+
+    assert source.count("creative_canvas_bootstrap_use_cases().initialize(") == 1
+    assert "InitializeCreativeCanvasCommand" in source
+    assert "freezone_bootstrap.router" in api_router_source
+    assert "async def init_freezone(" not in legacy_source
+    assert "def _canvas_actor_id(" not in legacy_source
+    assert "TAG_FREEZONE_BOOTSTRAP" not in legacy_source
+    assert "canvases_dir" not in legacy_source
+    for implementation_detail in (
+        "canvas_store",
+        "CanvasLockBusy",
+        "freezone_root",
+        "uploads_dir",
+        "canvases_dir",
+        "ensure_default_canvas",
+    ):
+        assert implementation_detail not in source
+
+
 def test_production_sketch_edit_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_sketch.py"
     source = route.read_text(encoding="utf-8")

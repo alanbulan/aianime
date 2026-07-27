@@ -1648,6 +1648,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百八十二批已建立后端 Creative Canvas generation catalog application port、配置基础设施适配器、composition 与 public API，将图片相机/风格/模型和视频运镜/模型共 5 个只读目录端点从 1.1 万行 `freezone.py` 迁入独立 image/video FastAPI 子 router 并由 v1 入口直接装配；图片模型 transport 映射同步迁出 HTTP 层，旧主路由中的 5 个 handler、配置导入和目录 helper 导入直接删除，不保留转发函数或第二套路由；项目 viewer 鉴权、主节点错误上下文、请求路径、OpenAPI tag/说明和响应 payload 均保持不变；目录与项目解析定向回归 13 项、完整后端分层门禁 64 项及 Ruff 检查均通过，新增 Creative Canvas public 边界、router 所有权及目录副本隔离门禁。
 
+第二百八十三批已将 Freezone 幂等初始化迁入 Creative Canvas bootstrap application port/use case、唯一 Local CanvasStore 适配器和独立 bootstrap FastAPI 子 router；用户 actor 优先级规则下沉为纯 domain 函数并供剩余画布路由复用，旧 `freezone.py` 中初始化 handler、私有 actor helper、bootstrap tag 和仅服务初始化的 `canvases_dir` 导入直接删除，不保留转发函数或第二套初始化路径；项目 editor 鉴权、主节点错误上下文、目录位置、默认画布 schema/revision/actor、CanvasStore 错误映射、请求路径、OpenAPI tag/说明及响应 payload 均保持不变；bootstrap 定向回归 9 项、M06 完整合同 14 项和后端完整分层门禁 65 项均通过，8 条告警均为既有依赖弃用告警。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。
