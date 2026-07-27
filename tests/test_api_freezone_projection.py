@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 @pytest.fixture()
 def projection_client(monkeypatch, tmp_path):
     from ai_anime.api.auth import get_api_user
-    from ai_anime.api.routes import freezone
+    from ai_anime.api.routes.canvas import projections
 
     project_dir = tmp_path / "project"
     project_dir.mkdir(parents=True, exist_ok=True)
@@ -26,18 +26,14 @@ def projection_client(monkeypatch, tmp_path):
         is_home_node=True,
     )
 
-    async def fake_resolve(project: str, user: dict, *, required_role: str = "editor"):
-        return ctx, "alice", "demo", project_dir, str(project_dir)
+    async def fake_resolve(project: str, user: dict):
+        return SimpleNamespace(ctx=ctx, project_dir=project_dir)
 
-    monkeypatch.setattr(freezone, "_resolve_freezone_project", fake_resolve)
-    monkeypatch.setattr(
-        freezone,
-        "record_creative_canvas_event",
-        lambda **_kwargs: None,
-    )
+    monkeypatch.setattr(projections, "_resolve_editor_project", fake_resolve)
+    monkeypatch.setattr(projections, "_resolve_viewer_project", fake_resolve)
 
     app = FastAPI()
-    app.include_router(freezone.router, prefix="/api/v1")
+    app.include_router(projections.router, prefix="/api/v1")
     app.dependency_overrides[get_api_user] = lambda: {
         "id": "u-alice",
         "username": "alice",
@@ -91,11 +87,11 @@ def test_build_projection_from_preset_does_not_write_canvas(
     projection_client,
     monkeypatch,
 ) -> None:
-    from ai_anime.api.routes import freezone
+    from ai_anime.modules.creative_canvas.infrastructure import canvas_projections
 
     client, project_dir = projection_client
 
-    async def fake_build_canvas_payload_for_preset_request(**_kwargs):
+    async def fake_build_preset_payload(_gateway, **_kwargs):
         return {
             "nodes": [
                 {
@@ -111,9 +107,9 @@ def test_build_projection_from_preset_does_not_write_canvas(
         }
 
     monkeypatch.setattr(
-        freezone,
-        "_build_canvas_payload_for_preset_request",
-        fake_build_canvas_payload_for_preset_request,
+        canvas_projections.LocalCreativeCanvasProjectionGateway,
+        "_build_preset_payload",
+        fake_build_preset_payload,
     )
 
     status, body = _build_projection(
@@ -147,7 +143,7 @@ def test_projection_scene_asset_includes_derived_base_master_input(
     projection_client,
     monkeypatch,
 ) -> None:
-    from ai_anime.api.routes import freezone
+    from ai_anime.modules.creative_canvas.infrastructure import canvas_projections
 
     client, project_dir = projection_client
     base_master_path = project_dir / "assets" / "scenes" / "城市街道" / "master.png"
@@ -181,7 +177,7 @@ def test_projection_scene_asset_includes_derived_base_master_input(
         return Store()
 
     monkeypatch.setattr(
-        freezone,
+        canvas_projections,
         "make_sqlite_store_for_context",
         fake_make_sqlite_store_for_context,
     )
@@ -211,11 +207,11 @@ def test_projection_scene_asset_includes_derived_base_master_input(
 
 
 def test_projection_wraps_preset_nodes_in_group(projection_client, monkeypatch) -> None:
-    from ai_anime.api.routes import freezone
+    from ai_anime.modules.creative_canvas.infrastructure import canvas_projections
 
     client, project_dir = projection_client
 
-    async def fake_build_canvas_payload_for_preset_request(**_kwargs):
+    async def fake_build_preset_payload(_gateway, **_kwargs):
         return {
             "nodes": [
                 {
@@ -238,9 +234,9 @@ def test_projection_wraps_preset_nodes_in_group(projection_client, monkeypatch) 
         }
 
     monkeypatch.setattr(
-        freezone,
-        "_build_canvas_payload_for_preset_request",
-        fake_build_canvas_payload_for_preset_request,
+        canvas_projections.LocalCreativeCanvasProjectionGateway,
+        "_build_preset_payload",
+        fake_build_preset_payload,
     )
 
     status, body = _project(
@@ -291,12 +287,12 @@ def test_projection_changed_facts_bypass_idempotency_cache(
     projection_client,
     monkeypatch,
 ) -> None:
-    from ai_anime.api.routes import freezone
+    from ai_anime.modules.creative_canvas.infrastructure import canvas_projections
 
     client, project_dir = projection_client
     scene_prompt = {"value": "old scene prompt"}
 
-    async def fake_build_canvas_payload_for_preset_request(**_kwargs):
+    async def fake_build_preset_payload(_gateway, **_kwargs):
         return {
             "nodes": [
                 {
@@ -314,9 +310,9 @@ def test_projection_changed_facts_bypass_idempotency_cache(
         }
 
     monkeypatch.setattr(
-        freezone,
-        "_build_canvas_payload_for_preset_request",
-        fake_build_canvas_payload_for_preset_request,
+        canvas_projections.LocalCreativeCanvasProjectionGateway,
+        "_build_preset_payload",
+        fake_build_preset_payload,
     )
 
     status, body = _project(
@@ -367,11 +363,11 @@ def test_projection_force_refresh_rewrites_dirty_projection_nodes(
     projection_client,
     monkeypatch,
 ) -> None:
-    from ai_anime.api.routes import freezone
+    from ai_anime.modules.creative_canvas.infrastructure import canvas_projections
 
     client, project_dir = projection_client
 
-    async def fake_build_canvas_payload_for_preset_request(**_kwargs):
+    async def fake_build_preset_payload(_gateway, **_kwargs):
         return {
             "nodes": [
                 {
@@ -389,9 +385,9 @@ def test_projection_force_refresh_rewrites_dirty_projection_nodes(
         }
 
     monkeypatch.setattr(
-        freezone,
-        "_build_canvas_payload_for_preset_request",
-        fake_build_canvas_payload_for_preset_request,
+        canvas_projections.LocalCreativeCanvasProjectionGateway,
+        "_build_preset_payload",
+        fake_build_preset_payload,
     )
 
     status, body = _project(
@@ -451,12 +447,12 @@ def test_projection_force_refresh_preserves_existing_group_position(
     projection_client,
     monkeypatch,
 ) -> None:
-    from ai_anime.api.routes import freezone
+    from ai_anime.modules.creative_canvas.infrastructure import canvas_projections
 
     client, project_dir = projection_client
     scene_prompt = {"value": "mainline scene prompt"}
 
-    async def fake_build_canvas_payload_for_preset_request(**_kwargs):
+    async def fake_build_preset_payload(_gateway, **_kwargs):
         return {
             "nodes": [
                 {
@@ -475,9 +471,9 @@ def test_projection_force_refresh_preserves_existing_group_position(
         }
 
     monkeypatch.setattr(
-        freezone,
-        "_build_canvas_payload_for_preset_request",
-        fake_build_canvas_payload_for_preset_request,
+        canvas_projections.LocalCreativeCanvasProjectionGateway,
+        "_build_preset_payload",
+        fake_build_preset_payload,
     )
 
     status, body = _project(
@@ -522,12 +518,12 @@ def test_projection_force_refresh_preserves_existing_node_layout(
     projection_client,
     monkeypatch,
 ) -> None:
-    from ai_anime.api.routes import freezone
+    from ai_anime.modules.creative_canvas.infrastructure import canvas_projections
 
     client, project_dir = projection_client
     scene_prompt = {"value": "mainline scene prompt"}
 
-    async def fake_build_canvas_payload_for_preset_request(**_kwargs):
+    async def fake_build_preset_payload(_gateway, **_kwargs):
         return {
             "nodes": [
                 {
@@ -546,9 +542,9 @@ def test_projection_force_refresh_preserves_existing_node_layout(
         }
 
     monkeypatch.setattr(
-        freezone,
-        "_build_canvas_payload_for_preset_request",
-        fake_build_canvas_payload_for_preset_request,
+        canvas_projections.LocalCreativeCanvasProjectionGateway,
+        "_build_preset_payload",
+        fake_build_preset_payload,
     )
 
     status, body = _project(

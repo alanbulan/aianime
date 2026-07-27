@@ -17,6 +17,7 @@ from ai_anime.modules.creative_canvas.domain.canvas_events import (
     canvas_event_actor,
 )
 from ai_anime.modules.creative_canvas.domain.canvas_projections import (
+    default_push_target_for_preset,
     merge_projected_preset_canvas,
     preset_facts_signature,
     preset_facts_signature_from_payload,
@@ -128,6 +129,7 @@ __all__ = [
     "canvas_actor_id",
     "canvas_event_actor",
     "decode_png_screenshot",
+    "default_push_target_for_preset",
     "detected_reference_ids_from_beat_context_data",
     "first_text_value",
     "infer_image_to_three_gs_scene_id",

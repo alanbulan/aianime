@@ -40,6 +40,16 @@ from ai_anime.modules.creative_canvas.application.canvas_events import (
     CreativeCanvasEventRecorder,
     RecordCreativeCanvasEventCommand,
 )
+from ai_anime.modules.creative_canvas.application.canvas_projections import (
+    BuildCreativeCanvasProjectionQuery,
+    CreativeCanvasProjectionCanvasNotFound,
+    CreativeCanvasProjectionSourceNotFound,
+    CreativeCanvasProjectionUseCases,
+    GetCreativeCanvasProjectionStatusQuery,
+    InvalidCreativeCanvasProjectionRequest,
+    ProjectCreativeCanvasProjectionCommand,
+    RemoveCreativeCanvasProjectionCommand,
+)
 from ai_anime.modules.creative_canvas.application.canvas_writes import (
     CreativeCanvasDocumentBaseRevisionRequired,
     CreativeCanvasDocumentCommands,
@@ -168,6 +178,7 @@ from ai_anime.modules.creative_canvas.domain import (
     build_freezone_omni_video_prompt,
     build_freezone_video_prompt,
     detected_reference_ids_from_beat_context_data,
+    default_push_target_for_preset,
     first_text_value,
     get_video_camera_template,
     get_video_camera_templates,
@@ -228,6 +239,14 @@ def creative_canvas_document_commands() -> CreativeCanvasDocumentCommands:
 def creative_canvas_event_recorder() -> CreativeCanvasEventRecorder:
     from ai_anime.modules.creative_canvas.composition import (
         creative_canvas_event_recorder as build,
+    )
+
+    return build()
+
+
+def creative_canvas_projection_use_cases() -> CreativeCanvasProjectionUseCases:
+    from ai_anime.modules.creative_canvas.composition import (
+        creative_canvas_projection_use_cases as build,
     )
 
     return build()
@@ -387,6 +406,7 @@ def is_seedance2_video_backend(backend: str | None) -> bool:
 
 
 __all__ = [
+    "BuildCreativeCanvasProjectionQuery",
     "CREATIVE_CANVAS_AUDIO_AGE_GROUP_LABELS",
     "DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL",
     "CreateCreativeCanvasAudioVoiceCommand",
@@ -409,6 +429,9 @@ __all__ = [
     "CreativeCanvasDocumentWriteError",
     "CreativeCanvasEventActor",
     "CreativeCanvasEventRecorder",
+    "CreativeCanvasProjectionCanvasNotFound",
+    "CreativeCanvasProjectionSourceNotFound",
+    "CreativeCanvasProjectionUseCases",
     "CreativeCanvasImageToThreeGsResult",
     "CreativeCanvasImageToThreeGsSourceMissing",
     "CreativeCanvasImageToThreeGsUseCases",
@@ -449,11 +472,13 @@ __all__ = [
     "CreativeCanvasUploadResult",
     "GenerationCatalogQueries",
     "GetCreativeCanvasDocumentQuery",
+    "GetCreativeCanvasProjectionStatusQuery",
     "GetCreativeCanvasAudioVoiceQuery",
     "DetectCreativeCanvasMarkCommand",
     "DangerousCreativeCanvasDocumentOverwrite",
     "DeleteCreativeCanvasDocumentCommand",
     "InvalidCreativeCanvasPngScreenshot",
+    "InvalidCreativeCanvasProjectionRequest",
     "InvalidCreativeCanvasAudioGenerationRequest",
     "InvalidCreativeCanvasAudioLibraryRequest",
     "InvalidCreativeCanvasDocumentQuery",
@@ -477,6 +502,8 @@ __all__ = [
     "ListCreativeCanvasGenerationHistoryQuery",
     "ListCreativeCanvasNodeGenerationHistoryQuery",
     "RecordCreativeCanvasEventCommand",
+    "ProjectCreativeCanvasProjectionCommand",
+    "RemoveCreativeCanvasProjectionCommand",
     "RestoreCreativeCanvasDocumentCommand",
     "SaveCreativeCanvasScreenshotCommand",
     "SaveCreativeCanvasDocumentCommand",
@@ -519,6 +546,7 @@ __all__ = [
     "creative_canvas_document_commands",
     "creative_canvas_document_queries",
     "creative_canvas_event_recorder",
+    "creative_canvas_projection_use_cases",
     "creative_canvas_mark_detection_use_cases",
     "creative_canvas_image_to_three_gs_use_cases",
     "creative_canvas_image_editing_use_cases",
@@ -531,6 +559,7 @@ __all__ = [
     "creative_canvas_reverse_prompt_use_cases",
     "creative_canvas_media_use_cases",
     "detected_reference_ids_from_beat_context_data",
+    "default_push_target_for_preset",
     "first_text_value",
     "generation_catalog_queries",
     "get_video_camera_template",

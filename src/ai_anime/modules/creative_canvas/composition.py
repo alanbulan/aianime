@@ -17,6 +17,9 @@ from ai_anime.modules.creative_canvas.application.canvas_documents import (
 from ai_anime.modules.creative_canvas.application.canvas_events import (
     CreativeCanvasEventRecorder,
 )
+from ai_anime.modules.creative_canvas.application.canvas_projections import (
+    CreativeCanvasProjectionUseCases,
+)
 from ai_anime.modules.creative_canvas.application.canvas_writes import (
     CreativeCanvasDocumentCommands,
 )
@@ -62,6 +65,9 @@ from ai_anime.modules.creative_canvas.infrastructure.canvas_documents import (
 )
 from ai_anime.modules.creative_canvas.infrastructure.canvas_events import (
     LocalCreativeCanvasEventWriter,
+)
+from ai_anime.modules.creative_canvas.infrastructure.canvas_projections import (
+    LocalCreativeCanvasProjectionGateway,
 )
 from ai_anime.modules.creative_canvas.infrastructure.canvas_writes import (
     LocalCreativeCanvasDocumentCommandGateway,
@@ -128,6 +134,14 @@ def creative_canvas_event_recorder() -> CreativeCanvasEventRecorder:
 def creative_canvas_document_commands() -> CreativeCanvasDocumentCommands:
     return CreativeCanvasDocumentCommands(
         LocalCreativeCanvasDocumentCommandGateway(),
+        creative_canvas_event_recorder(),
+    )
+
+
+@lru_cache(maxsize=1)
+def creative_canvas_projection_use_cases() -> CreativeCanvasProjectionUseCases:
+    return CreativeCanvasProjectionUseCases(
+        LocalCreativeCanvasProjectionGateway(),
         creative_canvas_event_recorder(),
     )
 

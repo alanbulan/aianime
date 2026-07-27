@@ -1075,7 +1075,7 @@ def test_freezone_canvas_document_writes_delegate_to_application() -> None:
     assert "def creative_canvas_document_commands(" in public_source
     assert (
         legacy_source.count("translate_creative_canvas_document_write_error(exc)")
-        == 6
+        == 2
     )
     assert (
         "def translate_creative_canvas_document_write_error(" in public_source
@@ -1091,8 +1091,17 @@ def test_freezone_canvas_document_writes_delegate_to_application() -> None:
     assert "ai_anime.api" not in adapter_source
 
 
-def test_freezone_canvas_projection_rules_belong_to_domain() -> None:
+def test_freezone_canvas_projection_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "projections.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
+    application = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "application"
+        / "canvas_projections.py"
+    )
     domain = (
         PACKAGE_ROOT
         / "modules"
@@ -1100,14 +1109,54 @@ def test_freezone_canvas_projection_rules_belong_to_domain() -> None:
         / "domain"
         / "canvas_projections.py"
     )
+    adapter = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "infrastructure"
+        / "canvas_projections.py"
+    )
+    composition = PACKAGE_ROOT / "modules" / "creative_canvas" / "composition.py"
     public = PACKAGE_ROOT / "modules" / "creative_canvas" / "public.py"
     projection_tests = REPO_ROOT / "tests" / "test_freezone_projection_merge.py"
+    route_source = route.read_text(encoding="utf-8")
     legacy_source = legacy_route.read_text(encoding="utf-8")
+    api_router_source = api_router.read_text(encoding="utf-8")
+    application_source = application.read_text(encoding="utf-8")
     domain_source = domain.read_text(encoding="utf-8")
+    adapter_source = adapter.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
     test_source = projection_tests.read_text(encoding="utf-8")
 
+    endpoint_paths = (
+        '"/projects/{project}/freezone/projections:build-from-preset"',
+        '"/projects/{project}/freezone/canvases/{canvas_id}/projections:from-preset"',
+        '"/projects/{project}/freezone/canvases/{canvas_id}/projections:remove"',
+        '"/projects/{project}/freezone/canvases/{canvas_id}/projections:status"',
+    )
+    for endpoint_path in endpoint_paths:
+        assert route_source.count(endpoint_path) == 1
+        assert endpoint_path not in legacy_source
+    for legacy_handler in (
+        "async def build_projection_from_preset(",
+        "async def project_canvas_from_preset(",
+        "async def remove_canvas_projection(",
+        "async def projection_status(",
+        "async def _build_projection_payload_for_request(",
+        "async def _build_canvas_payload_for_preset_request(",
+    ):
+        assert legacy_handler not in legacy_source
+
+    assert "freezone_projections.router" in api_router_source
+    assert route_source.count("creative_canvas_projection_use_cases().") == 4
+    assert "class CreativeCanvasProjectionUseCases" in application_source
+    assert "class LocalCreativeCanvasProjectionGateway" in adapter_source
+    assert "LocalCreativeCanvasProjectionGateway()" in composition_source
+    assert "def creative_canvas_projection_use_cases(" in public_source
+
     for rule in (
+        "default_push_target_for_preset",
         "merge_projected_preset_canvas",
         "preset_facts_signature",
         "preset_facts_signature_from_payload",
@@ -1142,29 +1191,35 @@ def test_freezone_canvas_projection_rules_belong_to_domain() -> None:
         "def _stamp_projection_metadata(",
         "def _projection_facts_signature_from_payload(",
         "def _preset_facts_signature_from_payload(",
+        "def _default_push_target_for_preset(",
     ):
         assert legacy_implementation not in legacy_source
 
-    assert legacy_source.count("merge_projected_preset_canvas(") == 1
-    assert legacy_source.count("remove_projected_preset_canvas(") == 1
-    assert legacy_source.count("wrap_projection_payload_in_group(") == 2
-    assert legacy_source.count("= preset_facts_signature(") == 3
-    assert legacy_source.count("preset_facts_signature_from_payload(") == 1
-    assert legacy_source.count("projection_facts_signature_from_payload(") == 1
-    assert legacy_source.count("projection_group_label(") == 2
-    assert legacy_source.count("stamp_preset_facts_signature(") == 2
-    assert legacy_source.count("stamp_projection_key(") == 2
-    assert legacy_source.count("stamp_projection_metadata(") == 2
+    for implementation_detail in (
+        "canvas_store",
+        "preset_key_for_request",
+        "build_canvas_payload_from_context",
+        "merge_projected_preset_canvas",
+        "remove_projected_preset_canvas",
+        "stamp_projection_metadata",
+    ):
+        assert implementation_detail not in route_source
     assert "ai_anime.api.routes.freezone" not in test_source
     assert "ai_anime.modules.creative_canvas.public" in test_source
     assert "fastapi" not in domain_source
     assert "ai_anime.api" not in domain_source
     assert "ai_anime.freezone" not in domain_source
     assert "canvas_store" not in domain_source
+    assert "fastapi" not in application_source
+    assert "ai_anime.api" not in application_source
+    assert "ai_anime.freezone" not in application_source
+    assert "fastapi" not in adapter_source
+    assert "ai_anime.api" not in adapter_source
 
 
 def test_freezone_canvas_events_delegate_to_application() -> None:
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    projection_route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "projections.py"
     domain = (
         PACKAGE_ROOT
         / "modules"
@@ -1179,6 +1234,20 @@ def test_freezone_canvas_events_delegate_to_application() -> None:
         / "application"
         / "canvas_events.py"
     )
+    projection_application = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "application"
+        / "canvas_projections.py"
+    )
+    projection_adapter = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "infrastructure"
+        / "canvas_projections.py"
+    )
     adapter = (
         PACKAGE_ROOT
         / "modules"
@@ -1189,14 +1258,30 @@ def test_freezone_canvas_events_delegate_to_application() -> None:
     composition = PACKAGE_ROOT / "modules" / "creative_canvas" / "composition.py"
     public = PACKAGE_ROOT / "modules" / "creative_canvas" / "public.py"
     legacy_source = legacy_route.read_text(encoding="utf-8")
+    projection_route_source = projection_route.read_text(encoding="utf-8")
     domain_source = domain.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
+    projection_application_source = projection_application.read_text(
+        encoding="utf-8"
+    )
+    projection_adapter_source = projection_adapter.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
 
-    assert legacy_source.count("record_creative_canvas_event(") == 13
-    assert legacy_source.count("canvas_event_actor(user)") == 13
+    assert legacy_source.count("record_creative_canvas_event(") == 9
+    for event_type in (
+        "canvas.projection_refresh.conflict",
+        "canvas.projection_remove.conflict",
+    ):
+        assert event_type in projection_application_source
+    for event_type in (
+        "canvas.projection_emitted",
+        "canvas.projection_removed",
+    ):
+        assert event_type in projection_adapter_source
+    assert legacy_source.count("canvas_event_actor(user)") == 9
+    assert projection_route_source.count("canvas_event_actor(user)") == 2
     for legacy_implementation in (
         "CANVAS_EVENT_SCHEMA_VERSION",
         "def _canvas_events_dir(",

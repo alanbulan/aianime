@@ -7,10 +7,8 @@ import pytest
 from ai_anime.api.routes.freezone import (
     _asset_record_from_path,
     _beat_context_asset_from_ref,
-    _default_push_target_for_preset,
     _is_freezone_scene_library_role,
 )
-from ai_anime.api.schemas import PresetCanvasRequest
 from ai_anime.freezone import presets as freezone_presets
 from ai_anime.freezone.presets import (
     _add_file_ref,
@@ -23,6 +21,7 @@ from ai_anime.freezone.presets import (
     build_canvas_payload_from_context,
 )
 from ai_anime.generators.nanobanana_prop import build_prop_reference_prompt
+from ai_anime.modules.creative_canvas.public import default_push_target_for_preset
 
 
 def test_preset_file_refs_include_media_type_for_beat_video_and_audio(tmp_path: Path) -> None:
@@ -2341,8 +2340,8 @@ async def test_prop_asset_context_prefers_episode_visual_prompt_over_profile_des
 
 
 def test_prop_preset_default_push_target_uses_prop_ref() -> None:
-    assert _default_push_target_for_preset(
-        PresetCanvasRequest(scope="asset", asset_kind="prop_ref", asset_id="业主守则")
+    assert default_push_target_for_preset(
+        {"scope": "asset", "asset_kind": "prop_ref", "asset_id": "业主守则"}
     ) == {"kind": "prop_ref", "prop_id": "业主守则"}
 
 
@@ -2524,8 +2523,8 @@ def test_scene_preset_default_push_targets_use_requested_scene_kind() -> None:
         "scene_3gs_custom_scene",
         "scene_3gs_collision_glb",
     ]:
-        assert _default_push_target_for_preset(
-            PresetCanvasRequest(scope="asset", asset_kind=asset_kind, asset_id="小区")
+        assert default_push_target_for_preset(
+            {"scope": "asset", "asset_kind": asset_kind, "asset_id": "小区"}
         ) == {"kind": asset_kind, "scene_id": "小区"}
 
 
@@ -2644,8 +2643,8 @@ async def test_scene_asset_preset_projects_derived_scene_effective_prompt(
 
 
 def test_scene_preset_default_push_target_keeps_scene_alias_as_master() -> None:
-    assert _default_push_target_for_preset(
-        PresetCanvasRequest(scope="asset", asset_kind="scene", asset_id="小区")
+    assert default_push_target_for_preset(
+        {"scope": "asset", "asset_kind": "scene", "asset_id": "小区"}
     ) == {"kind": "scene_master", "scene_id": "小区"}
 
 

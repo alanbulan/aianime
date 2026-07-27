@@ -385,6 +385,58 @@ def stamp_projection_key(payload: dict, projection_key: str) -> None:
             data["projection_key"] = projection_key
 
 
+def default_push_target_for_preset(request: Mapping[str, Any]) -> dict[str, Any]:
+    scope = request.get("scope")
+    if scope == "episode":
+        return {"kind": "manual", "episode": request.get("episode")}
+    if scope == "beat":
+        slot = request.get("primary_slot") or "render"
+        return {
+            "kind": "director_render" if slot == "render" else slot,
+            "episode": request.get("episode"),
+            "beat": request.get("beat"),
+        }
+
+    asset_kind = request.get("asset_kind")
+    if scope == "asset" and asset_kind in {"identity", "portrait", "character"}:
+        if asset_kind in {"portrait", "character"}:
+            return {"kind": "portrait", "character": request.get("character")}
+        return {
+            "kind": "identity",
+            "character": request.get("character"),
+            "identity_id": request.get("identity_id"),
+        }
+    if scope == "asset" and asset_kind in {
+        "scene",
+        "scene_master",
+        "scene_reverse_master",
+        "scene_spatial_layout",
+        "scene_360",
+        "scene_director_pano_360",
+        "scene_3gs_active_ply",
+        "scene_3gs_master_ply",
+        "scene_3gs_reverse_ply",
+        "scene_3gs_pano_ply",
+        "scene_3gs_custom_scene",
+        "scene_3gs_collision_glb",
+    }:
+        scene_id = (
+            request.get("asset_id")
+            or request.get("identity_id")
+            or request.get("character")
+        )
+        scene_kind = "scene_master" if asset_kind == "scene" else asset_kind
+        return {"kind": scene_kind, "scene_id": scene_id}
+    if scope == "asset" and asset_kind in {"prop", "prop_ref"}:
+        prop_id = (
+            request.get("asset_id")
+            or request.get("identity_id")
+            or request.get("character")
+        )
+        return {"kind": "prop_ref", "prop_id": prop_id}
+    return {"kind": "manual"}
+
+
 def projection_group_label(request: Mapping[str, Any]) -> str:
     scope = request.get("scope")
     episode = request.get("episode")
@@ -617,6 +669,7 @@ def wrap_projection_payload_in_group(
 
 
 __all__ = [
+    "default_push_target_for_preset",
     "merge_projected_preset_canvas",
     "preset_facts_signature",
     "preset_facts_signature_from_payload",
