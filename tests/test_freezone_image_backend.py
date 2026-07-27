@@ -25,6 +25,7 @@ from ai_anime.api.routes.freezone import (
 )
 from ai_anime.api.schemas import (
     CanvasPayload,
+    FreezoneGenRequest,
     FreezoneImageReversePromptRequest,
     FreezoneOutpaintRequest,
     FreezoneRedrawRequest,
@@ -181,6 +182,62 @@ def _patch_celery_edit_enqueue(
             queue="node.node_a.default",
         )
     monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
+
+
+def _patch_creative_canvas_image_generation(
+    monkeypatch: pytest.MonkeyPatch,
+    captured: dict[str, object],
+    *,
+    job_id: str,
+    task_id: str = "task_gen",
+) -> None:
+    from ai_anime.modules.creative_canvas.application.image_generation import (
+        CreativeCanvasImageGenerationUseCases,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.image_editing import (
+        FreezoneCreativeCanvasImagePromptComposer,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.image_generation import (
+        FreezoneCreativeCanvasImageGenerationModelRouter,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.image_sources import (
+        ProjectCreativeCanvasImageSourceResolver,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.task_submission import (
+        TaskBackendCreativeCanvasTaskScheduler,
+    )
+
+    class FixedJobIds:
+        def new_id(self) -> str:
+            return job_id
+
+    async def fake_enqueue_project_task(_ctx: ProjectContext, **kwargs):
+        captured.update(kwargs)
+        captured["payload"] = kwargs.get("payload") or {}
+        return SimpleNamespace(
+            task_state=SimpleNamespace(task_id=task_id),
+            backend="celery",
+            queue="node.node_a.default",
+        )
+
+    task_backend = SimpleNamespace(enqueue_project_task=fake_enqueue_project_task)
+    use_cases = CreativeCanvasImageGenerationUseCases(
+        ProjectCreativeCanvasImageSourceResolver(),
+        FreezoneCreativeCanvasImagePromptComposer(),
+        FreezoneCreativeCanvasImageGenerationModelRouter(),
+        FixedJobIds(),
+        TaskBackendCreativeCanvasTaskScheduler(lambda: task_backend),
+    )
+    monkeypatch.setattr(
+        freezone_image_routes,
+        "creative_canvas_image_generation_use_cases",
+        lambda: use_cases,
+    )
+    monkeypatch.setattr(
+        freezone_routes,
+        "creative_canvas_image_generation_use_cases",
+        lambda: use_cases,
+    )
 
 
 def _patch_limit_exceeded_enqueue(
@@ -2168,7 +2225,7 @@ async def test_masked_redraw_uses_default_newapi_model(
         CreativeCanvasImageEditingUseCases,
     )
     from ai_anime.modules.creative_canvas.infrastructure.image_editing import (
-        FreezoneCreativeCanvasImageEditingPromptComposer,
+        FreezoneCreativeCanvasImagePromptComposer,
         FreezoneCreativeCanvasImageModelRouter,
         PillowCreativeCanvasImageEditingStorage,
     )
@@ -2205,7 +2262,7 @@ async def test_masked_redraw_uses_default_newapi_model(
     use_cases = CreativeCanvasImageEditingUseCases(
         ProjectCreativeCanvasImageSourceResolver(),
         PillowCreativeCanvasImageEditingStorage(),
-        FreezoneCreativeCanvasImageEditingPromptComposer(),
+        FreezoneCreativeCanvasImagePromptComposer(),
         FreezoneCreativeCanvasImageModelRouter(),
         FreezoneJobIdGenerator(),
         TaskBackendCreativeCanvasTaskScheduler(lambda: task_backend),
@@ -2320,28 +2377,27 @@ async def test_freezone_gen_route_passes_output_dir_and_quality(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    username = "admin"
-    project = "58"
-    project_dir, _output_dir = _patch_freezone_project(
-        monkeypatch, tmp_path, username=username, project=project
-    )
+    context = _project_ctx(tmp_path)
+    project_dir = context.output_dir
     captured: dict[str, object] = {}
 
-    async def fake_enqueue_project_task(_ctx: ProjectContext, **kwargs):
-        captured.update(kwargs)
-        captured["payload"] = kwargs.get("payload") or {}
-        return SimpleNamespace(
-            task_state=SimpleNamespace(task_id="task_gen"),
-            backend="celery",
-            queue="node.node_a.default",
-        )
+    async def fake_resolve_project_scope(*_args, **_kwargs):
+        return SimpleNamespace(ctx=context, project_dir=project_dir)
 
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
-    monkeypatch.setattr(freezone_routes, "_new_job_id", lambda: "job_gen")
+    monkeypatch.setattr(
+        freezone_image_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
+    _patch_creative_canvas_image_generation(
+        monkeypatch,
+        captured,
+        job_id="job_gen",
+    )
 
-    result = await freezone_routes.freezone_gen(
+    result = await freezone_image_routes.freezone_gen(
         project="proj_freezone",
-        body=freezone_routes.FreezoneGenRequest(
+        body=FreezoneGenRequest(
             prompt="衣服好看点",
             aspect_ratio="16:9",
             image_size="1K",
@@ -2350,7 +2406,7 @@ async def test_freezone_gen_route_passes_output_dir_and_quality(
             canvas_id="default",
             node_id="node_gen",
         ),
-        user={"username": username},
+        user={"username": "admin"},
     )
 
     assert result["ok"] is True
@@ -2543,6 +2599,23 @@ async def test_freezone_celery_image_jobs_preserve_canvas_node_context(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    from ai_anime.modules.creative_canvas.application.image_generation import (
+        CreativeCanvasImageGenerationUseCases,
+        StartCreativeCanvasImageGenerationCommand,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.image_editing import (
+        FreezoneCreativeCanvasImagePromptComposer,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.image_generation import (
+        FreezoneCreativeCanvasImageGenerationModelRouter,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.image_sources import (
+        ProjectCreativeCanvasImageSourceResolver,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.task_submission import (
+        TaskBackendCreativeCanvasTaskScheduler,
+    )
+
     ctx = _project_ctx(tmp_path)
     project_dir = ctx.output_dir
     base = project_dir / "freezone" / "_uploads" / "base.png"
@@ -2556,26 +2629,33 @@ async def test_freezone_celery_image_jobs_preserve_canvas_node_context(
             backend="celery",
             queue="node.node_a.default",
         )
+
+    class FixedJobIds:
+        def new_id(self) -> str:
+            return "job_123"
+
+    task_backend = SimpleNamespace(enqueue_project_task=fake_enqueue_project_task)
     monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
     monkeypatch.setattr(freezone_routes, "_new_job_id", lambda: "job_123")
 
-    gen = await freezone_routes._start_or_enqueue_freezone_gen_job(
-        ctx=ctx,
-        username="admin",
-        project="demo",
-        project_dir=project_dir,
-        output_dir=str(project_dir),
-        prompt="generate",
-        aspect_ratio="1:1",
-        image_size="2K",
-        reference_urls=[],
-        camera=None,
-        style=None,
-        provider="newapi",
-        model="newapi_gpt_image2",
-        quality=None,
-        canvas_id="canvas_a",
-        node_id="node_gen",
+    gen = await CreativeCanvasImageGenerationUseCases(
+        ProjectCreativeCanvasImageSourceResolver(),
+        FreezoneCreativeCanvasImagePromptComposer(),
+        FreezoneCreativeCanvasImageGenerationModelRouter(),
+        FixedJobIds(),
+        TaskBackendCreativeCanvasTaskScheduler(lambda: task_backend),
+    ).start(
+        StartCreativeCanvasImageGenerationCommand(
+            context=ctx,
+            project_dir=project_dir,
+            prompt="generate",
+            aspect_ratio="1:1",
+            image_size="2K",
+            provider="newapi",
+            model="newapi_gpt_image2",
+            canvas_id="canvas_a",
+            node_id="node_gen",
+        )
     )
     edit = await freezone_routes._start_or_enqueue_freezone_edit_job(
         ctx=ctx,
@@ -2597,7 +2677,7 @@ async def test_freezone_celery_image_jobs_preserve_canvas_node_context(
         node_id="node_edit",
     )
 
-    assert gen["data"]["backend"] == "celery"
+    assert gen.backend == "celery"
     assert edit["data"]["backend"] == "celery"
     assert calls[0]["payload"]["canvas_id"] == "canvas_a"
     assert calls[0]["payload"]["node_id"] == "node_gen"
@@ -3696,25 +3776,20 @@ async def test_skill_run_standalone_sketch_from_context_queues_candidate_without
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     project_dir, _output_dir = _patch_freezone_project(monkeypatch, tmp_path)
-    captured: dict = {}
+    captured: dict[str, object] = {}
 
     async def fail_make_sqlite_store_for_context(_ctx):
         raise AssertionError("standalone beat context must not read or write beat DB")
 
-    async def fake_enqueue_project_task(_ctx: ProjectContext, **kwargs):
-        captured.update(kwargs)
-        captured["payload"] = kwargs.get("payload") or {}
-        return SimpleNamespace(
-            task_state=SimpleNamespace(task_id="task_standalone_sketch"),
-            backend="celery",
-            queue="node.node_a.default",
-        )
-
     monkeypatch.setattr(
         freezone_routes, "make_sqlite_store_for_context", fail_make_sqlite_store_for_context
     )
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
-    monkeypatch.setattr(freezone_routes, "_new_job_id", lambda: "job_standalone_sketch")
+    _patch_creative_canvas_image_generation(
+        monkeypatch,
+        captured,
+        job_id="job_standalone_sketch",
+        task_id="task_standalone_sketch",
+    )
     _write_image(project_dir / "freezone" / "bg.png")
 
     response = await freezone_routes.freezone_skill_run(
@@ -3762,25 +3837,20 @@ async def test_skill_run_standalone_returns_run_id_and_result_outputs_without_db
 ) -> None:
     project_dir, _output_dir = _patch_freezone_project(monkeypatch, tmp_path)
     ctx = _project_ctx(tmp_path)
-    captured: dict = {}
+    captured: dict[str, object] = {}
 
     async def fail_make_sqlite_store_for_context(_ctx):
         raise AssertionError("standalone beat context must not read or write beat DB")
 
-    async def fake_enqueue_project_task(_ctx: ProjectContext, **kwargs):
-        captured.update(kwargs)
-        captured["payload"] = kwargs.get("payload") or {}
-        return SimpleNamespace(
-            task_state=SimpleNamespace(task_id="task_standalone_skill"),
-            backend="celery",
-            queue="node.node_a.default",
-        )
-
     monkeypatch.setattr(
         freezone_routes, "make_sqlite_store_for_context", fail_make_sqlite_store_for_context
     )
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
-    monkeypatch.setattr(freezone_routes, "_new_job_id", lambda: "job_standalone_skill")
+    _patch_creative_canvas_image_generation(
+        monkeypatch,
+        captured,
+        job_id="job_standalone_skill",
+        task_id="task_standalone_skill",
+    )
     _write_image(project_dir / "freezone" / "bg.png")
 
     response = await freezone_routes.freezone_skill_run(
@@ -3869,25 +3939,20 @@ async def test_skill_run_standalone_director_sketch_queues_candidate_without_db_
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     project_dir, _output_dir = _patch_freezone_project(monkeypatch, tmp_path)
-    captured: dict = {}
+    captured: dict[str, object] = {}
 
     async def fail_make_sqlite_store_for_context(_ctx):
         raise AssertionError("standalone beat context must not read or write beat DB")
 
-    async def fake_enqueue_project_task(_ctx: ProjectContext, **kwargs):
-        captured.update(kwargs)
-        captured["payload"] = kwargs.get("payload") or {}
-        return SimpleNamespace(
-            task_state=SimpleNamespace(task_id="task_standalone_director_sketch"),
-            backend="celery",
-            queue="node.node_a.default",
-        )
-
     monkeypatch.setattr(
         freezone_routes, "make_sqlite_store_for_context", fail_make_sqlite_store_for_context
     )
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
-    monkeypatch.setattr(freezone_routes, "_new_job_id", lambda: "job_standalone_director_sketch")
+    _patch_creative_canvas_image_generation(
+        monkeypatch,
+        captured,
+        job_id="job_standalone_director_sketch",
+        task_id="task_standalone_director_sketch",
+    )
     _write_image(project_dir / "freezone" / "_uploads" / "combined.png")
 
     response = await freezone_routes.freezone_skill_run(
@@ -5998,7 +6063,7 @@ async def test_freezone_upscale_resolves_original_ratio_before_model_call(
         ProjectCreativeCanvasImageSourceResolver,
     )
     from ai_anime.modules.creative_canvas.infrastructure.image_editing import (
-        FreezoneCreativeCanvasImageEditingPromptComposer,
+        FreezoneCreativeCanvasImagePromptComposer,
         FreezoneCreativeCanvasImageModelRouter,
         PillowCreativeCanvasImageEditingStorage,
     )
@@ -6024,7 +6089,7 @@ async def test_freezone_upscale_resolves_original_ratio_before_model_call(
     result = await CreativeCanvasImageEditingUseCases(
         ProjectCreativeCanvasImageSourceResolver(),
         PillowCreativeCanvasImageEditingStorage(),
-        FreezoneCreativeCanvasImageEditingPromptComposer(),
+        FreezoneCreativeCanvasImagePromptComposer(),
         FreezoneCreativeCanvasImageModelRouter(),
         FakeJobIds(),
         scheduler,

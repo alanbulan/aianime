@@ -232,6 +232,9 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.modules.creative_canvas.application.image_editing import (
         CreativeCanvasImageEditingUseCases,
     )
+    from ai_anime.modules.creative_canvas.application.image_generation import (
+        CreativeCanvasImageGenerationUseCases,
+    )
     from ai_anime.modules.creative_canvas.application.reverse_prompt import (
         CreativeCanvasReversePromptUseCases,
     )
@@ -239,9 +242,12 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         ProjectCreativeCanvasImageSourceResolver,
     )
     from ai_anime.modules.creative_canvas.infrastructure.image_editing import (
-        FreezoneCreativeCanvasImageEditingPromptComposer,
+        FreezoneCreativeCanvasImagePromptComposer,
         FreezoneCreativeCanvasImageModelRouter,
         PillowCreativeCanvasImageEditingStorage,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.image_generation import (
+        FreezoneCreativeCanvasImageGenerationModelRouter,
     )
     from ai_anime.modules.creative_canvas.infrastructure.media import (
         FreezoneJobIdGenerator,
@@ -423,8 +429,15 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         image_editing_use_cases = CreativeCanvasImageEditingUseCases(
             ProjectCreativeCanvasImageSourceResolver(),
             PillowCreativeCanvasImageEditingStorage(),
-            FreezoneCreativeCanvasImageEditingPromptComposer(),
+            FreezoneCreativeCanvasImagePromptComposer(),
             FreezoneCreativeCanvasImageModelRouter(),
+            FreezoneJobIdGenerator(),
+            task_scheduler,
+        )
+        image_generation_use_cases = CreativeCanvasImageGenerationUseCases(
+            ProjectCreativeCanvasImageSourceResolver(),
+            FreezoneCreativeCanvasImagePromptComposer(),
+            FreezoneCreativeCanvasImageGenerationModelRouter(),
             FreezoneJobIdGenerator(),
             task_scheduler,
         )
@@ -442,6 +455,16 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             freezone_image,
             "creative_canvas_image_editing_use_cases",
             lambda use_cases=image_editing_use_cases: use_cases,
+        )
+        monkeypatch.setattr(
+            freezone_image,
+            "creative_canvas_image_generation_use_cases",
+            lambda use_cases=image_generation_use_cases: use_cases,
+        )
+        monkeypatch.setattr(
+            freezone,
+            "creative_canvas_image_generation_use_cases",
+            lambda use_cases=image_generation_use_cases: use_cases,
         )
         monkeypatch.setattr(ingest, "get_task_backend", lambda tb=task_backend: tb)
         monkeypatch.setattr(freezone, "get_task_backend", lambda tb=task_backend: tb)
@@ -931,25 +954,23 @@ def test_m06_freezone_task_backend_responses_are_ce_ee_isomorphic(
 def test_m06_freezone_task_backend_l1_helper_payloads_keep_backend_and_queue(
     m06_client_factory, backend: str
 ):
+    from ai_anime.modules.creative_canvas.application.image_generation import (
+        StartCreativeCanvasImageGenerationCommand,
+    )
+
     _client, _task_backend, _task_manager, project_dir, assets, _store = m06_client_factory(backend)
     freezone = assets.freezone
 
     async def run_helpers():
-        image = await freezone._start_or_enqueue_freezone_gen_job(
-            ctx=assets.ctx,
-            username=_USER,
-            project=_PROJECT,
-            project_dir=project_dir,
-            output_dir=str(project_dir),
-            prompt="l1 image",
-            aspect_ratio="1:1",
-            image_size="2K",
-            reference_urls=[],
-            camera=None,
-            style=None,
-            provider=None,
-            model=None,
-            quality="medium",
+        image = await freezone.creative_canvas_image_generation_use_cases().start(
+            StartCreativeCanvasImageGenerationCommand(
+                context=assets.ctx,
+                project_dir=project_dir,
+                prompt="l1 image",
+                aspect_ratio="1:1",
+                image_size="2K",
+                quality="medium",
+            )
         )
         text = await freezone._enqueue_freezone_background_job(
             ctx=assets.ctx,
@@ -960,8 +981,10 @@ def test_m06_freezone_task_backend_l1_helper_payloads_keep_backend_and_queue(
         )
         return image, text
 
-    image_payload, text_payload = asyncio.run(run_helpers())
-    _assert_helper_task_shape(image_payload, backend=backend, task_type="freezone_gen")
+    image_receipt, text_payload = asyncio.run(run_helpers())
+    assert image_receipt.task_type == "freezone_gen"
+    assert image_receipt.backend == backend
+    assert image_receipt.queue == ("inline" if backend == "inline" else "default")
     _assert_helper_task_shape(text_payload, backend=backend, task_type="freezone_text_translate")
 
 

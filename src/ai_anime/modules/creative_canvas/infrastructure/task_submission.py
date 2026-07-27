@@ -19,8 +19,14 @@ from ai_anime.task_identity import project_task_state_key
 
 
 class TaskBackendCreativeCanvasTaskScheduler:
-    def __init__(self, task_backend_provider: Callable[[], Any]) -> None:
+    def __init__(
+        self,
+        task_backend_provider: Callable[[], Any],
+        *,
+        translate_runtime_errors: bool = True,
+    ) -> None:
         self._task_backend_provider = task_backend_provider
+        self._translate_runtime_errors = translate_runtime_errors
 
     async def enqueue(
         self,
@@ -43,6 +49,8 @@ class TaskBackendCreativeCanvasTaskScheduler:
         except (ProjectTaskLimitExceeded, ProjectUserTaskLimitExceeded):
             raise
         except RuntimeError as exc:
+            if not self._translate_runtime_errors:
+                raise
             raise CreativeCanvasTaskStartFailed(str(exc)) from exc
 
         task_id = str(queued.task_state.task_id or "") or None

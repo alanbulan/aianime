@@ -23,6 +23,12 @@ from ai_anime.modules.creative_canvas.application.image_editing import (
     InvalidCreativeCanvasImageEditingRequest,
     StartCreativeCanvasImageEditingCommand,
 )
+from ai_anime.modules.creative_canvas.application.image_generation import (
+    CreativeCanvasImageGenerationReferenceMissing,
+    CreativeCanvasImageGenerationUseCases,
+    InvalidCreativeCanvasImageGenerationRequest,
+    StartCreativeCanvasImageGenerationCommand,
+)
 from ai_anime.modules.creative_canvas.application.media import (
     CreativeCanvasMediaUseCases,
     CreativeCanvasScreenshotResult,
@@ -48,14 +54,17 @@ from ai_anime.modules.creative_canvas.application.task_submission import (
     CreativeCanvasTaskStartFailed,
 )
 from ai_anime.modules.creative_canvas.domain import (
+    SUPPORTED_CREATIVE_CANVAS_IMAGE_PROVIDERS,
     CreativeCanvasImageCameraConfig,
     CreativeCanvasImageStyleConfig,
     CreativeCanvasMarkSelection,
     CreativeCanvasScreenshotTooLarge,
     InvalidCreativeCanvasImageSize,
+    UnsupportedCreativeCanvasImageProvider,
     InvalidCreativeCanvasPngScreenshot,
     canvas_actor_id,
     resolve_original_image_aspect_ratio,
+    resolve_image_provider,
 )
 
 
@@ -115,6 +124,14 @@ def creative_canvas_image_editing_use_cases() -> CreativeCanvasImageEditingUseCa
     return build()
 
 
+def creative_canvas_image_generation_use_cases() -> CreativeCanvasImageGenerationUseCases:
+    from ai_anime.modules.creative_canvas.composition import (
+        creative_canvas_image_generation_use_cases as build,
+    )
+
+    return build()
+
+
 __all__ = [
     "CreativeCanvasBootstrapBusy",
     "CreativeCanvasBootstrapCorrupt",
@@ -125,8 +142,11 @@ __all__ = [
     "CreativeCanvasImageToThreeGsUseCases",
     "CreativeCanvasImageCameraConfig",
     "CreativeCanvasImageStyleConfig",
+    "SUPPORTED_CREATIVE_CANVAS_IMAGE_PROVIDERS",
     "CreativeCanvasImageEditingSourceMissing",
     "CreativeCanvasImageEditingUseCases",
+    "CreativeCanvasImageGenerationReferenceMissing",
+    "CreativeCanvasImageGenerationUseCases",
     "CreativeCanvasMediaUseCases",
     "CreativeCanvasMarkDetectionFailed",
     "CreativeCanvasMarkDetectionResult",
@@ -144,7 +164,9 @@ __all__ = [
     "InvalidCreativeCanvasPngScreenshot",
     "InvalidCreativeCanvasImageToThreeGsRequest",
     "InvalidCreativeCanvasImageEditingRequest",
+    "InvalidCreativeCanvasImageGenerationRequest",
     "InvalidCreativeCanvasImageSize",
+    "UnsupportedCreativeCanvasImageProvider",
     "InvalidCreativeCanvasMarkRequest",
     "InvalidCreativeCanvasReversePromptRequest",
     "InitializeCreativeCanvasCommand",
@@ -153,13 +175,16 @@ __all__ = [
     "StartCreativeCanvasReversePromptCommand",
     "StartCreativeCanvasImageToThreeGsCommand",
     "StartCreativeCanvasImageEditingCommand",
+    "StartCreativeCanvasImageGenerationCommand",
     "canvas_actor_id",
     "creative_canvas_bootstrap_use_cases",
     "creative_canvas_mark_detection_use_cases",
     "creative_canvas_image_to_three_gs_use_cases",
     "creative_canvas_image_editing_use_cases",
+    "creative_canvas_image_generation_use_cases",
     "creative_canvas_reverse_prompt_use_cases",
     "creative_canvas_media_use_cases",
     "generation_catalog_queries",
     "resolve_original_image_aspect_ratio",
+    "resolve_image_provider",
 ]

@@ -40,7 +40,6 @@ from ai_anime.api.schemas import (
     FreezoneEditRequest,
     FreezoneExtractFramesRequest,
     FreezoneFrameFromContextRequest,
-    FreezoneGenRequest,
     FreezoneImageCameraConfig,
     FreezoneImageStyleConfig,
     FreezoneImageToVideoRequest,
@@ -73,9 +72,13 @@ from ai_anime.modules.asset_world.public import (
     runtime_prop_menu_for_episode,
 )
 from ai_anime.modules.creative_canvas.public import (
+    CreativeCanvasImageGenerationReferenceMissing,
     InvalidCreativeCanvasImageEditingRequest,
+    InvalidCreativeCanvasImageGenerationRequest,
+    StartCreativeCanvasImageGenerationCommand,
     canvas_actor_id,
     creative_canvas_image_editing_use_cases,
+    creative_canvas_image_generation_use_cases,
 )
 from ai_anime.modules.production.public import (
     production_generation_context_use_cases,
@@ -341,81 +344,6 @@ async def _start_or_enqueue_freezone_video_gen(
         }
 
     _raise_project_context_required("freezone_video_gen")
-
-
-async def _start_or_enqueue_freezone_gen_job(
-    *,
-    ctx: ProjectContext | None,
-    username: str,
-    project: str,
-    project_dir: Path,
-    output_dir: str,
-    prompt: str,
-    aspect_ratio: str,
-    image_size: str,
-    reference_urls: list[str],
-    camera: FreezoneImageCameraConfig | None,
-    style: FreezoneImageStyleConfig | None,
-    provider: str | None,
-    model: str | None,
-    quality: str | None,
-    canvas_id: str | None = None,
-    node_id: str | None = None,
-    model_id: str | None = None,
-    gen_mode: str | None = None,
-    task_display: dict[str, str] | None = None,
-) -> dict:
-    reference_paths = _resolve_url_list(project_dir, reference_urls)
-    for path_text in reference_paths:
-        if not Path(path_text).exists():
-            raise HTTPException(404, f"reference file not found: {path_text}")
-    job_id = _new_job_id()
-    resolved_provider, resolved_model = _split_provider_and_model(provider, model)
-    normalized_provider = _resolve_freezone_image_provider(resolved_provider)
-    prompt_text = _merge_prompt_with_style_and_camera(prompt, style, camera)
-    display_payload = {
-        "task_family": "freezone_canvas",
-        "task_label": "自由生成图片",
-        "display_name": "自由生成图片",
-        **(task_display or {}),
-    }
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type="freezone_gen",
-            queue_kind="default",
-            episode=0,
-            scope=job_id,
-            payload={
-                "job_id": job_id,
-                "project_dir": str(project_dir),
-                "prompt": prompt_text,
-                "aspect_ratio": aspect_ratio,
-                "image_size": image_size,
-                "reference_paths": reference_paths,
-                "provider": normalized_provider,
-                "model": resolved_model,
-                "quality": quality,
-                "canvas_id": canvas_id or "",
-                "node_id": node_id or "",
-                "model_id": model_id or "",
-                "gen_mode": gen_mode or "",
-                **display_payload,
-            },
-        )
-        return {
-            "ok": True,
-            "data": {
-                "task_type": "freezone_gen",
-                "job_id": job_id,
-                "task_id": queued.task_state.task_id,
-                "task_key": project_task_state_key("freezone_gen", ctx.project_id, 0, scope=job_id),
-                "backend": queued.backend,
-                "queue": queued.queue,
-            },
-        }
-
-    _raise_project_context_required("freezone_gen")
 
 
 async def _load_freezone_beat_context(
@@ -3667,42 +3595,6 @@ async def freezone_skills(user: dict = Depends(get_api_user)):
 
 
 @router.post(
-    "/projects/{project}/freezone/gen",
-    response_model=FreezoneJobAcceptedResponse,
-    tags=[TAG_FREEZONE_IMAGE],
-)
-async def freezone_gen(
-    project: str,
-    body: FreezoneGenRequest,
-    user: dict = Depends(get_api_user),
-):
-    """图片处理：启动文生图任务，返回可供 SSE 追踪的 `task_key`。"""
-    ctx, username, project_name, project_dir, output_dir = await _resolve_freezone_project(
-        project, user
-    )
-    return await _start_or_enqueue_freezone_gen_job(
-        ctx=ctx,
-        username=username,
-        project=project_name,
-        project_dir=project_dir,
-        output_dir=output_dir,
-        prompt=body.prompt,
-        aspect_ratio=body.aspect_ratio,
-        image_size=body.image_size,
-        reference_urls=list(body.reference_urls or []),
-        camera=body.camera,
-        style=body.style,
-        provider=body.provider,
-        model=body.model,
-        quality=body.quality,
-        canvas_id=body.canvas_id or None,
-        node_id=body.node_id or None,
-        model_id=body.model_id or None,
-        gen_mode=body.gen_mode or None,
-    )
-
-
-@router.post(
     "/projects/{project}/freezone/sketch-from-context",
     response_model=FreezoneJobAcceptedResponse,
     tags=[TAG_FREEZONE_IMAGE],
@@ -3975,39 +3867,51 @@ async def freezone_skill_run(
             reference_url = _required_image_url(reference_input, reference_role)
             reference_paths = _resolve_url_list(project_dir, [reference_url])
             model = str(parameters.get("model") or FREEZONE_DEFAULT_IMAGE_MODEL)
-            accepted = await _start_or_enqueue_freezone_gen_job(
-                ctx=ctx,
-                username=username,
-                project=project_name,
-                project_dir=project_dir,
-                output_dir=str(_output_dir),
-                prompt=_standalone_beat_context_unified_sketch_prompt(
-                    input_item=beat_input,
-                    project_dir=project_dir,
-                    reference_path=reference_paths[0] if reference_paths else "",
-                    reference_role=reference_role,
-                    aspect_ratio=aspect_ratio,
-                    provider=None,
-                    model=model,
-                ),
-                aspect_ratio=aspect_ratio,
-                image_size=str(parameters.get("image_size") or "2K"),
-                reference_urls=[reference_url],
-                camera=None,
-                style=None,
-                provider=None,
-                model=model,
-                quality=str(parameters.get("quality") or "medium"),
-                canvas_id=body.canvas_id,
-                node_id=body.skill_node_id,
-                task_display={
-                    "task_label": "生成草图",
-                    "display_name": "生成草图",
-                    "source_label": source_label,
-                    "target_label": "草图候选",
-                    "skill_id": skill_id,
+            try:
+                receipt = await creative_canvas_image_generation_use_cases().start(
+                    StartCreativeCanvasImageGenerationCommand(
+                        context=ctx,
+                        project_dir=project_dir,
+                        prompt=_standalone_beat_context_unified_sketch_prompt(
+                            input_item=beat_input,
+                            project_dir=project_dir,
+                            reference_path=reference_paths[0] if reference_paths else "",
+                            reference_role=reference_role,
+                            aspect_ratio=aspect_ratio,
+                            provider=None,
+                            model=model,
+                        ),
+                        aspect_ratio=aspect_ratio,
+                        image_size=str(parameters.get("image_size") or "2K"),
+                        reference_urls=(reference_url,),
+                        model=model,
+                        quality=str(parameters.get("quality") or "medium"),
+                        canvas_id=body.canvas_id,
+                        node_id=body.skill_node_id,
+                        task_display={
+                            "task_label": "生成草图",
+                            "display_name": "生成草图",
+                            "source_label": source_label,
+                            "target_label": "草图候选",
+                            "skill_id": skill_id,
+                        },
+                    )
+                )
+            except InvalidCreativeCanvasImageGenerationRequest as exc:
+                raise HTTPException(400, str(exc)) from exc
+            except CreativeCanvasImageGenerationReferenceMissing as exc:
+                raise HTTPException(404, str(exc)) from exc
+            accepted = {
+                "ok": True,
+                "data": {
+                    "task_type": receipt.task_type,
+                    "job_id": receipt.job_id,
+                    "task_id": receipt.task_id,
+                    "task_key": receipt.task_key,
+                    "backend": receipt.backend,
+                    "queue": receipt.queue,
                 },
-            )
+            }
         else:
             episode, beat = _episode_and_beat_from_input(beat_input)
             if skill_id == "freezone.sketch_from_director_combined":

@@ -8,13 +8,13 @@ from ai_anime.freezone.paths import safe_upload_filename, uploads_dir
 from ai_anime.freezone.route_helpers import (
     FREEZONE_DEFAULT_IMAGE_MODEL,
     merge_prompt_with_style_and_camera,
-    resolve_freezone_image_provider,
     split_provider_and_model,
 )
 from ai_anime.modules.creative_canvas.domain.image_editing import (
     CreativeCanvasImageCameraConfig,
     CreativeCanvasImageStyleConfig,
     plan_outpaint_canvas,
+    resolve_image_provider,
 )
 
 
@@ -54,7 +54,7 @@ class PillowCreativeCanvasImageEditingStorage:
         return padded_path
 
 
-class FreezoneCreativeCanvasImageEditingPromptComposer:
+class FreezoneCreativeCanvasImagePromptComposer:
     def compose(
         self,
         prompt: str,
@@ -71,6 +71,6 @@ class FreezoneCreativeCanvasImageModelRouter:
             model or FREEZONE_DEFAULT_IMAGE_MODEL,
         )
         return (
-            resolve_freezone_image_provider(provider, strict=False),
+            resolve_image_provider(provider, strict=False),
             resolved_model,
         )

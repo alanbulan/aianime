@@ -1662,6 +1662,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百八十九批已将高清放大、扩图和整体/遮罩重绘统一收口为 Creative Canvas image-editing domain/application/adapter，由一个用例统一承担源图与遮罩解析、输出数量校验、原图比例归一、扩图透明补白、操作提示词、风格/相机组合、模型路由和任务提交，原 image-upscale 三层专用模块直接删除；outpaint/redraw handler、两个路径提交 helper 及 route helper 中的比例、补白和提示词旧实现从 `freezone.py`/`route_helpers.py` 删除，三个 POST 端点统一迁入 image FastAPI 子 router，不保留 facade、转发函数或第二套实现；源图先于数量校验、明确比例不读取图片尺寸、空模型回退、扩图文件位置与居中透明画布、`freezone_edit`/`freezone_mask_edit` 任务选择、default 队列、payload、项目级 task key、限流透传、各操作 503 文案、请求路径、OpenAPI tag/说明和响应 payload 均保持不变；image-editing 定向回归 25 项、大型图片后端相关回归 6 项、M06 完整合同 16 项、任务注册表 3 项和后端完整分层门禁 70 项均通过，3 条冷启动导入检查及 Ruff 检查通过，8 条告警均为既有依赖弃用告警。
 
+第二百九十批已将文生图参考路径解析、存在性校验、提示词组合、严格 provider/model 路由、任务显示元数据和任务提交迁入 Creative Canvas image-generation application/adapter，并将 `/freezone/gen` POST 端点迁入 image FastAPI 子 router；standalone Beat Context 与导演合成图 Skill Run 同步改经同一 public 用例提交，旧 `freezone.py` gen handler 和 `_start_or_enqueue_freezone_gen_job` 整段删除，不保留 facade、转发函数或第二套提交链路；共享提示词适配器从 editing 专用命名收口为通用图片提示词组合器，图片 provider 归一规则下沉为唯一 domain 实现且旧 route helper 只保留 HTTP 错误映射，共享任务调度适配器增加显式 RuntimeError 翻译策略，使既有文生图未包装运行时错误语义保持不变；项目 editor 鉴权、主节点错误上下文、参考图空值跳过与 400/404 文案、默认 provider、模型选择、风格/相机提示词、`freezone_gen`/default 队列、payload、Canvas/Node/模型/模式字段、显示标签、项目级 task key、直达响应字段和 Skill Run 元数据均保持不变；image-generation 与调度器定向回归 13 项、历史集成回归 5 项、provider 与图片编辑回归 34 项、M06 完整合同 16 项、任务注册表 3 项和后端完整分层门禁 71 项均通过，4 条冷启动导入检查及 Ruff 检查通过，8 条告警均为既有依赖弃用告警。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

@@ -22,11 +22,15 @@ from ai_anime.api.schemas import (
 from ai_anime.config import IMAGE_GENERATION_SELECTIONS
 from ai_anime.freezone.paths import resolve_static_url_to_path
 from ai_anime.freezone.video_node import load_video_character_library
+from ai_anime.modules.creative_canvas.public import (
+    SUPPORTED_CREATIVE_CANVAS_IMAGE_PROVIDERS as SUPPORTED_FREEZONE_IMAGE_PROVIDERS,
+    UnsupportedCreativeCanvasImageProvider,
+    resolve_image_provider,
+)
 from ai_anime.task_identity import task_state_key
 
 FREEZONE_DEFAULT_IMAGE_SELECTION = "newapi_gpt_image2"
 FREEZONE_DEFAULT_IMAGE_MODEL = FREEZONE_DEFAULT_IMAGE_SELECTION
-SUPPORTED_FREEZONE_IMAGE_PROVIDERS = {"huimeng", "newapi", "openrouter", "openai"}
 FREEZONE_IMAGE_CAMERA_OPTIONS = {
     "camera_bodies": [
         {"id": "panavision_dxl2", "label": "Panavision DXL2"},
@@ -259,19 +263,10 @@ FREEZONE_IMAGE_STYLE_TEMPLATES = [
 
 def resolve_freezone_image_provider(provider: Optional[str], *, strict: bool = True) -> str:
     """把 Freezone 图片 provider 归一化到当前支持的 AI anime 范围内。"""
-    if provider and provider.strip():
-        normalized = provider.strip().lower()
-        if normalized not in SUPPORTED_FREEZONE_IMAGE_PROVIDERS:
-            if not strict:
-                return "newapi"
-            raise HTTPException(
-                400,
-                "unsupported freezone image provider: "
-                f"{provider}; expected one of {sorted(SUPPORTED_FREEZONE_IMAGE_PROVIDERS)}",
-            )
-        return normalized
-
-    return "newapi"
+    try:
+        return resolve_image_provider(provider, strict=strict)
+    except UnsupportedCreativeCanvasImageProvider as exc:
+        raise HTTPException(400, str(exc)) from exc
 
 
 def new_freezone_job_id() -> str:

@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import resolve_project_scope
 from ai_anime.api.schemas import (
+    FreezoneGenRequest,
     FreezoneImageTo3GSRequest,
     FreezoneImageCameraConfig,
     FreezoneImageReversePromptRequest,
@@ -25,6 +26,7 @@ from ai_anime.modules.creative_canvas.public import (
     CreativeCanvasImageStyleConfig,
     CreativeCanvasImageToThreeGsSourceMissing,
     CreativeCanvasImageEditingSourceMissing,
+    CreativeCanvasImageGenerationReferenceMissing,
     CreativeCanvasMarkDetectionFailed,
     CreativeCanvasMarkSelection,
     CreativeCanvasReversePromptSourceMissing,
@@ -33,12 +35,15 @@ from ai_anime.modules.creative_canvas.public import (
     InvalidCreativeCanvasReversePromptRequest,
     InvalidCreativeCanvasImageToThreeGsRequest,
     InvalidCreativeCanvasImageEditingRequest,
+    InvalidCreativeCanvasImageGenerationRequest,
     InvalidCreativeCanvasMarkRequest,
     StartCreativeCanvasReversePromptCommand,
     StartCreativeCanvasImageToThreeGsCommand,
     StartCreativeCanvasImageEditingCommand,
+    StartCreativeCanvasImageGenerationCommand,
     creative_canvas_image_to_three_gs_use_cases,
     creative_canvas_image_editing_use_cases,
+    creative_canvas_image_generation_use_cases,
     creative_canvas_mark_detection_use_cases,
     creative_canvas_reverse_prompt_use_cases,
     generation_catalog_queries,
@@ -95,6 +100,73 @@ async def freezone_image_models(
         operation="access freezone project files",
     )
     return {"ok": True, "data": generation_catalog_queries().image_models()}
+
+
+@router.post(
+    "/projects/{project}/freezone/gen",
+    response_model=FreezoneJobAcceptedResponse,
+    tags=["freezone-image"],
+)
+async def freezone_gen(
+    project: str,
+    body: FreezoneGenRequest,
+    user: dict = Depends(get_api_user),
+):
+    """图片处理：启动文生图任务，返回可供 SSE 追踪的 task key。"""
+    resolved = await resolve_project_scope(
+        project,
+        user,
+        required_role="editor",
+        operation="access freezone project files",
+    )
+    try:
+        result = await creative_canvas_image_generation_use_cases().start(
+            StartCreativeCanvasImageGenerationCommand(
+                context=resolved.ctx,
+                project_dir=resolved.project_dir,
+                prompt=body.prompt,
+                aspect_ratio=body.aspect_ratio,
+                image_size=body.image_size,
+                reference_urls=tuple(body.reference_urls or []),
+                camera=(
+                    CreativeCanvasImageCameraConfig(
+                        camera_body=body.camera.camera_body,
+                        lens=body.camera.lens,
+                        focal_length_mm=body.camera.focal_length_mm,
+                        aperture=body.camera.aperture,
+                    )
+                    if body.camera
+                    else None
+                ),
+                style=(
+                    CreativeCanvasImageStyleConfig(template_id=body.style.template_id)
+                    if body.style
+                    else None
+                ),
+                provider=body.provider,
+                model=body.model,
+                quality=body.quality,
+                canvas_id=body.canvas_id or None,
+                node_id=body.node_id or None,
+                model_id=body.model_id or None,
+                gen_mode=body.gen_mode or None,
+            )
+        )
+    except InvalidCreativeCanvasImageGenerationRequest as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except CreativeCanvasImageGenerationReferenceMissing as exc:
+        raise HTTPException(404, str(exc)) from exc
+
+    data = {
+        "task_type": result.task_type,
+        "job_id": result.job_id,
+        "task_key": result.task_key,
+        "backend": result.backend,
+        "queue": result.queue,
+    }
+    if result.task_id:
+        data["task_id"] = result.task_id
+    return {"ok": True, "data": data}
 
 
 @router.post(

@@ -14,6 +14,9 @@ from ai_anime.modules.creative_canvas.application.image_to_3gs import (
 from ai_anime.modules.creative_canvas.application.image_editing import (
     CreativeCanvasImageEditingUseCases,
 )
+from ai_anime.modules.creative_canvas.application.image_generation import (
+    CreativeCanvasImageGenerationUseCases,
+)
 from ai_anime.modules.creative_canvas.application.media import (
     CreativeCanvasMediaUseCases,
 )
@@ -34,9 +37,12 @@ from ai_anime.modules.creative_canvas.infrastructure.image_sources import (
     ProjectCreativeCanvasImageSourceResolver,
 )
 from ai_anime.modules.creative_canvas.infrastructure.image_editing import (
-    FreezoneCreativeCanvasImageEditingPromptComposer,
+    FreezoneCreativeCanvasImagePromptComposer,
     FreezoneCreativeCanvasImageModelRouter,
     PillowCreativeCanvasImageEditingStorage,
+)
+from ai_anime.modules.creative_canvas.infrastructure.image_generation import (
+    FreezoneCreativeCanvasImageGenerationModelRouter,
 )
 from ai_anime.modules.creative_canvas.infrastructure.media import (
     FreezoneJobIdGenerator,
@@ -99,8 +105,22 @@ def creative_canvas_image_editing_use_cases() -> CreativeCanvasImageEditingUseCa
     return CreativeCanvasImageEditingUseCases(
         ProjectCreativeCanvasImageSourceResolver(),
         PillowCreativeCanvasImageEditingStorage(),
-        FreezoneCreativeCanvasImageEditingPromptComposer(),
+        FreezoneCreativeCanvasImagePromptComposer(),
         FreezoneCreativeCanvasImageModelRouter(),
         FreezoneJobIdGenerator(),
         TaskBackendCreativeCanvasTaskScheduler(get_task_backend),
+    )
+
+
+@lru_cache(maxsize=1)
+def creative_canvas_image_generation_use_cases() -> CreativeCanvasImageGenerationUseCases:
+    return CreativeCanvasImageGenerationUseCases(
+        ProjectCreativeCanvasImageSourceResolver(),
+        FreezoneCreativeCanvasImagePromptComposer(),
+        FreezoneCreativeCanvasImageGenerationModelRouter(),
+        FreezoneJobIdGenerator(),
+        TaskBackendCreativeCanvasTaskScheduler(
+            get_task_backend,
+            translate_runtime_errors=False,
+        ),
     )

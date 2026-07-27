@@ -142,3 +142,21 @@ async def test_task_backend_scheduler_maps_runtime_failure(tmp_path: Path) -> No
         await TaskBackendCreativeCanvasTaskScheduler(
             lambda: FailingBackend()
         ).enqueue(_project_context(tmp_path), _task(tmp_path))
+
+
+@pytest.mark.asyncio
+async def test_task_backend_scheduler_can_preserve_runtime_failure(tmp_path: Path) -> None:
+    failure = RuntimeError("broker unavailable")
+
+    class FailingBackend:
+        async def enqueue_project_task(self, *_args, **_kwargs):
+            raise failure
+
+    scheduler = TaskBackendCreativeCanvasTaskScheduler(
+        lambda: FailingBackend(),
+        translate_runtime_errors=False,
+    )
+
+    with pytest.raises(RuntimeError) as exc:
+        await scheduler.enqueue(_project_context(tmp_path), _task(tmp_path))
+    assert exc.value is failure

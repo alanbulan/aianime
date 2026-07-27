@@ -8,16 +8,19 @@ from ai_anime.modules.creative_canvas.domain.image_to_3gs import (
     plan_image_to_three_gs,
 )
 from ai_anime.modules.creative_canvas.domain.image_editing import (
+    SUPPORTED_CREATIVE_CANVAS_IMAGE_PROVIDERS,
     CreativeCanvasImageCameraConfig,
     CreativeCanvasImageStyleConfig,
     InvalidCreativeCanvasImageAspectRatio,
     InvalidCreativeCanvasImageSize,
+    UnsupportedCreativeCanvasImageProvider,
     build_image_erase_prompt,
     build_image_outpaint_prompt,
     build_image_redraw_prompt,
     build_image_upscale_prompt,
     plan_outpaint_canvas,
     resolve_original_image_aspect_ratio,
+    resolve_image_provider,
     resolve_requested_image_aspect_ratio,
 )
 from ai_anime.modules.creative_canvas.domain.media import (
@@ -37,6 +40,7 @@ __all__ = [
     "CreativeCanvasImageToThreeGsSourceKind",
     "CreativeCanvasImageCameraConfig",
     "CreativeCanvasImageStyleConfig",
+    "SUPPORTED_CREATIVE_CANVAS_IMAGE_PROVIDERS",
     "CreativeCanvasScreenshotTooLarge",
     "CreativeCanvasMarkSelection",
     "CreativeCanvasMarkSelectionRequired",
@@ -44,6 +48,7 @@ __all__ = [
     "InvalidCreativeCanvasImageToThreeGsSource",
     "InvalidCreativeCanvasImageAspectRatio",
     "InvalidCreativeCanvasImageSize",
+    "UnsupportedCreativeCanvasImageProvider",
     "build_image_erase_prompt",
     "build_image_outpaint_prompt",
     "build_image_redraw_prompt",
@@ -55,5 +60,6 @@ __all__ = [
     "plan_image_to_three_gs",
     "plan_outpaint_canvas",
     "resolve_original_image_aspect_ratio",
+    "resolve_image_provider",
     "resolve_requested_image_aspect_ratio",
 ]

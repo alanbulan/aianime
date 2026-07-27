@@ -24,6 +24,9 @@ SUPPORTED_CREATIVE_CANVAS_IMAGE_ASPECT_RATIOS = frozenset(
         "1:2",
     }
 )
+SUPPORTED_CREATIVE_CANVAS_IMAGE_PROVIDERS = frozenset(
+    {"huimeng", "newapi", "openrouter", "openai"}
+)
 
 
 class InvalidCreativeCanvasImageSize(ValueError):
@@ -31,6 +34,10 @@ class InvalidCreativeCanvasImageSize(ValueError):
 
 
 class InvalidCreativeCanvasImageAspectRatio(ValueError):
+    pass
+
+
+class UnsupportedCreativeCanvasImageProvider(ValueError):
     pass
 
 
@@ -123,6 +130,21 @@ def parse_image_aspect_ratio(value: str) -> tuple[int, int]:
             f"invalid aspect_ratio: {value!r}"
         )
     return width, height
+
+
+def resolve_image_provider(provider: str | None, *, strict: bool = True) -> str:
+    if provider and provider.strip():
+        normalized = provider.strip().lower()
+        if normalized not in SUPPORTED_CREATIVE_CANVAS_IMAGE_PROVIDERS:
+            if not strict:
+                return "newapi"
+            raise UnsupportedCreativeCanvasImageProvider(
+                "unsupported freezone image provider: "
+                f"{provider}; expected one of "
+                f"{sorted(SUPPORTED_CREATIVE_CANVAS_IMAGE_PROVIDERS)}"
+            )
+        return normalized
+    return "newapi"
 
 
 def build_image_upscale_prompt() -> str:
