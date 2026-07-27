@@ -1,5 +1,8 @@
 """Creative Canvas domain rules."""
 
+from ai_anime.modules.creative_canvas.domain.audio_library import (
+    CREATIVE_CANVAS_AUDIO_AGE_GROUP_LABELS,
+)
 from ai_anime.modules.creative_canvas.domain.image_to_3gs import (
     CreativeCanvasImageToThreeGsPlan,
     CreativeCanvasImageToThreeGsSourceKind,
@@ -68,6 +71,7 @@ from ai_anime.modules.creative_canvas.domain.video_asset_library import (
 )
 
 __all__ = [
+    "CREATIVE_CANVAS_AUDIO_AGE_GROUP_LABELS",
     "DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL",
     "CreativeCanvasImageToThreeGsPlan",
     "CreativeCanvasImageToThreeGsSourceKind",

@@ -8,7 +8,6 @@ import respx
 from httpx import Response
 
 from ai_anime import config
-from ai_anime.api.routes import freezone as freezone_routes
 from ai_anime.freezone import audio_node
 from ai_anime.freezone.audio_node import (
     USER_VOICE_SCOPE,
@@ -159,115 +158,6 @@ def test_create_user_audio_voice_rejects_unsupported_extension(
             filename="sample.txt",
             content=b"fake-audio-bytes",
         )
-
-
-def test_freezone_audio_ref_payload_never_trusts_external_paths(tmp_path: Path) -> None:
-    project_dir = tmp_path / "project"
-    external = tmp_path / "outside.mp3"
-    external.write_bytes(b"audio")
-
-    payload = freezone_routes._freezone_audio_ref_payload(
-        username="admin",
-        project="demo",
-        project_id="proj_demo",
-        project_dir=project_dir,
-        scope="identity",
-        label="身份声线",
-        path=str(external),
-        identity_id="林小满_青年",
-    )
-
-    assert payload["path"] == str(external)
-    assert payload["url"] == ""
-    assert payload["exists"] is False
-    assert payload["identity_id"] == "林小满_青年"
-
-
-def test_freezone_audio_ref_payload_builds_project_static_url(tmp_path: Path) -> None:
-    project_dir = tmp_path / "project"
-    audio = project_dir / "assets" / "characters" / "林小满" / "voices" / "voice_default.mp3"
-    audio.parent.mkdir(parents=True)
-    audio.write_bytes(b"audio")
-
-    payload = freezone_routes._freezone_audio_ref_payload(
-        username="admin",
-        project="demo",
-        project_id="proj_demo",
-        project_dir=project_dir,
-        scope="character_default",
-        label="林小满 · 默认声线",
-        path="assets/characters/林小满/voices/voice_default.mp3",
-        character_name="林小满",
-        slot="default",
-    )
-
-    assert payload["exists"] is True
-    assert payload["url"].startswith(
-        "/static/projects/proj_demo/assets/characters/%E6%9E%97%E5%B0%8F%E6%BB%A1/voices/voice_default.mp3"
-    )
-    assert payload["character_name"] == "林小满"
-    assert payload["slot"] == "default"
-
-
-@pytest.mark.asyncio
-async def test_freezone_audio_references_use_requester_account_voices(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-) -> None:
-    seen_usernames: list[str] = []
-
-    ctx = SimpleNamespace(
-        project_id="proj_demo",
-        owner_username="owner",
-        project_name="demo",
-        requester_username="viewer",
-    )
-
-    async def fake_resolve(*_args, **_kwargs):
-        return ctx, "owner", "demo", tmp_path, str(tmp_path)
-
-    class Store:
-        async def list_characters(self):
-            return []
-
-    async def fake_store(_ctx):
-        return Store()
-
-    def fake_list_user_audio_voices(username: str):
-        seen_usernames.append(username)
-        return [
-            {
-                "scope": USER_VOICE_SCOPE,
-                "voice_id": "fv_viewer",
-                "label": "Viewer Voice",
-                "path": "_account/freezone/audio/voices/fv_viewer.mp3",
-                "exists": True,
-            }
-        ]
-
-    monkeypatch.setattr(freezone_routes, "_resolve_freezone_project", fake_resolve)
-    monkeypatch.setattr(freezone_routes, "make_sqlite_store_for_context", fake_store)
-    monkeypatch.setattr(freezone_routes, "list_user_audio_voices", fake_list_user_audio_voices)
-    monkeypatch.setattr(
-        freezone_routes,
-        "load_narrator_reference_audio",
-        lambda *_args, **_kwargs: {},
-    )
-    monkeypatch.setattr(
-        freezone_routes,
-        "load_effective_narration_style_for_voice",
-        lambda *_args, **_kwargs: {},
-    )
-
-    result = await freezone_routes.freezone_audio_references(
-        "proj_demo",
-        user={"username": "viewer"},
-    )
-
-    assert seen_usernames == ["viewer"]
-    assert result["data"]["user_voices"][0]["url"] == (
-        "/api/v1/projects/proj_demo/freezone/audio/voices/fv_viewer/media"
-    )
 
 
 @pytest.mark.asyncio

@@ -6,6 +6,14 @@ from ai_anime.modules.creative_canvas.application.audio_generation import (
     StartCreativeCanvasMusicGenerationCommand,
     StartCreativeCanvasSpeechGenerationCommand,
 )
+from ai_anime.modules.creative_canvas.application.audio_library import (
+    CreateCreativeCanvasAudioVoiceCommand,
+    CreativeCanvasAudioLibraryUseCases,
+    CreativeCanvasAudioVoiceMissing,
+    GetCreativeCanvasAudioVoiceQuery,
+    InvalidCreativeCanvasAudioLibraryRequest,
+    ListCreativeCanvasAudioReferencesQuery,
+)
 from ai_anime.modules.creative_canvas.application.bootstrap import (
     CreativeCanvasBootstrapBusy,
     CreativeCanvasBootstrapCorrupt,
@@ -104,6 +112,7 @@ from ai_anime.modules.creative_canvas.application.video_asset_library import (
     SyncCreativeCanvasVideoAssetsCommand,
 )
 from ai_anime.modules.creative_canvas.domain import (
+    CREATIVE_CANVAS_AUDIO_AGE_GROUP_LABELS,
     DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
     SUPPORTED_CREATIVE_CANVAS_IMAGE_PROVIDERS,
     CreativeCanvasImageCameraConfig,
@@ -220,6 +229,14 @@ def creative_canvas_audio_generation_use_cases() -> CreativeCanvasAudioGeneratio
     return build()
 
 
+def creative_canvas_audio_library_use_cases() -> CreativeCanvasAudioLibraryUseCases:
+    from ai_anime.modules.creative_canvas.composition import (
+        creative_canvas_audio_library_use_cases as build,
+    )
+
+    return build()
+
+
 def creative_canvas_text_processing_use_cases() -> CreativeCanvasTextProcessingUseCases:
     from ai_anime.modules.creative_canvas.composition import (
         creative_canvas_text_processing_use_cases as build,
@@ -265,8 +282,12 @@ def is_seedance2_video_backend(backend: str | None) -> bool:
 
 
 __all__ = [
+    "CREATIVE_CANVAS_AUDIO_AGE_GROUP_LABELS",
     "DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL",
+    "CreateCreativeCanvasAudioVoiceCommand",
     "CreativeCanvasAudioGenerationUseCases",
+    "CreativeCanvasAudioLibraryUseCases",
+    "CreativeCanvasAudioVoiceMissing",
     "CreativeCanvasBootstrapBusy",
     "CreativeCanvasBootstrapCorrupt",
     "CreativeCanvasBootstrapResult",
@@ -310,9 +331,11 @@ __all__ = [
     "CreativeCanvasScreenshotTooLarge",
     "CreativeCanvasUploadResult",
     "GenerationCatalogQueries",
+    "GetCreativeCanvasAudioVoiceQuery",
     "DetectCreativeCanvasMarkCommand",
     "InvalidCreativeCanvasPngScreenshot",
     "InvalidCreativeCanvasAudioGenerationRequest",
+    "InvalidCreativeCanvasAudioLibraryRequest",
     "InvalidCreativeCanvasImageToThreeGsRequest",
     "InvalidCreativeCanvasImageEditingRequest",
     "InvalidCreativeCanvasImageGenerationRequest",
@@ -326,6 +349,7 @@ __all__ = [
     "InvalidCreativeCanvasVideoGenerationRequest",
     "InvalidCreativeCanvasVideoAssetRequest",
     "InitializeCreativeCanvasCommand",
+    "ListCreativeCanvasAudioReferencesQuery",
     "SaveCreativeCanvasScreenshotCommand",
     "StoreCreativeCanvasUploadCommand",
     "StartCreativeCanvasMusicGenerationCommand",
@@ -360,6 +384,7 @@ __all__ = [
     "build_freezone_omni_video_prompt",
     "build_freezone_video_prompt",
     "creative_canvas_audio_generation_use_cases",
+    "creative_canvas_audio_library_use_cases",
     "creative_canvas_bootstrap_use_cases",
     "creative_canvas_mark_detection_use_cases",
     "creative_canvas_image_to_three_gs_use_cases",

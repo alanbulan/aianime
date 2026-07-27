@@ -5,6 +5,9 @@ from functools import lru_cache
 from ai_anime.modules.creative_canvas.application.audio_generation import (
     CreativeCanvasAudioGenerationUseCases,
 )
+from ai_anime.modules.creative_canvas.application.audio_library import (
+    CreativeCanvasAudioLibraryUseCases,
+)
 from ai_anime.modules.creative_canvas.application.bootstrap import (
     CreativeCanvasBootstrapUseCases,
 )
@@ -44,6 +47,9 @@ from ai_anime.modules.creative_canvas.application.video_asset_library import (
 from ai_anime.ports import get_task_backend
 from ai_anime.modules.creative_canvas.infrastructure.bootstrap import (
     LocalCreativeCanvasBootstrapStorage,
+)
+from ai_anime.modules.creative_canvas.infrastructure.audio_library import (
+    LocalCreativeCanvasAudioLibraryGateway,
 )
 from ai_anime.modules.creative_canvas.infrastructure.generation_catalog import (
     ConfiguredGenerationCatalogSource,
@@ -176,6 +182,13 @@ def creative_canvas_audio_generation_use_cases() -> CreativeCanvasAudioGeneratio
             get_task_backend,
             translate_runtime_errors=False,
         ),
+    )
+
+
+@lru_cache(maxsize=1)
+def creative_canvas_audio_library_use_cases() -> CreativeCanvasAudioLibraryUseCases:
+    return CreativeCanvasAudioLibraryUseCases(
+        LocalCreativeCanvasAudioLibraryGateway(),
     )
 
 

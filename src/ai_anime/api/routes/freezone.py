@@ -15,11 +15,10 @@ import re
 import shutil
 import uuid
 from pathlib import Path
-from typing import Annotated, Any, Awaitable, Callable, Literal, Optional
+from typing import Any, Awaitable, Callable, Literal, Optional
 from urllib.parse import quote, unquote, urlencode, urlsplit
 
-from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Query, UploadFile
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import (
@@ -51,6 +50,7 @@ from ai_anime.modules.asset_world.public import (
     runtime_prop_menu_for_episode,
 )
 from ai_anime.modules.creative_canvas.public import (
+    CREATIVE_CANVAS_AUDIO_AGE_GROUP_LABELS,
     CreativeCanvasImageGenerationReferenceMissing,
     InvalidCreativeCanvasImageGenerationRequest,
     StartCreativeCanvasImageGenerationCommand,
@@ -63,11 +63,8 @@ from ai_anime.modules.production.public import (
 )
 from ai_anime.freezone import canvas_store
 from ai_anime.freezone.audio_node import (
-    create_user_audio_voice,
     freezone_audio_eleven_music_output_path,
     freezone_audio_speech_output_path,
-    list_user_audio_voices,
-    resolve_user_audio_voice,
 )
 from ai_anime.freezone.canvas_lock import CanvasLockBusy
 from ai_anime.freezone.canvas_static_urls import (
@@ -144,16 +141,11 @@ from ai_anime.freezone.slots import (
     validate_source_for_slot,
 )
 from ai_anime.models import CharacterIdentity, beat_scene_id
-from ai_anime.project_config import (
-    load_effective_narration_style_for_voice,
-    load_narrator_reference_audio,
-)
 from ai_anime.modules.project_workspace.public import (
     ProjectContext,
     require_project_home_node,
     resolve_project_context,
 )
-from ai_anime.seedance2_i2v.voice_clone import resolve_character_voice
 from ai_anime.ports import get_task_backend
 from ai_anime.task_backend.limits import ProjectTaskLimitExceeded, ProjectUserTaskLimitExceeded
 from ai_anime.task_identity import (
@@ -1532,7 +1524,6 @@ router = APIRouter()
 FrameReviewReviewer = Callable[[str], str | Awaitable[str]]
 _agent_review_frame_reviewer: FrameReviewReviewer | None = None
 
-TAG_FREEZONE_AUDIO = "freezone-audio"
 TAG_FREEZONE_IMAGE = "freezone-image"
 TAG_FREEZONE_CANVAS = "freezone-canvas"
 TAG_FREEZONE_ASSETS = "freezone-assets"
@@ -4028,331 +4019,6 @@ def _copy_image_matching_existing_target(source_path: Path, target: Path) -> dic
             "target_size": list(target_size),
             "fitted_size": list(fitted.size),
         }
-
-
-FREEZONE_AUDIO_AGE_GROUP_LABELS = {
-    "child": "幼年",
-    "youth": "青年",
-    "middle": "中年",
-    "elder": "老年",
-}
-
-
-def _freezone_audio_ref_payload(
-    *,
-    username: str,
-    project: str,
-    project_id: str,
-    project_dir: Path,
-    scope: str,
-    label: str,
-    path: str,
-    sha256: str = "",
-    updated_at: str = "",
-    character_name: str = "",
-    identity_id: str = "",
-    identity_name: str = "",
-    slot: str = "",
-    age_group: str = "",
-) -> dict:
-    rel_path = str(path or "").strip()
-    abs_path = Path(rel_path)
-    if rel_path and not abs_path.is_absolute():
-        abs_path = project_dir / rel_path
-
-    exists = bool(rel_path and abs_path.exists())
-    url = ""
-    if exists:
-        try:
-            rel = abs_path.relative_to(project_dir).as_posix()
-            url = project_static_url(project_id, rel, local_path=abs_path)
-        except ValueError:
-            url = ""
-
-    return {
-        "scope": scope,
-        "label": label,
-        "path": rel_path,
-        "url": url,
-        "exists": exists and bool(url),
-        "sha256": str(sha256 or ""),
-        "updated_at": str(updated_at or ""),
-        "character_name": character_name,
-        "identity_id": identity_id,
-        "identity_name": identity_name,
-        "slot": slot,
-        "age_group": age_group,
-    }
-
-
-def _user_voice_media_url(project: str, voice_id: str) -> str:
-    safe_project = str(project or "").strip()
-    safe_voice_id = str(voice_id or "").strip()
-    return f"/api/v1/projects/{safe_project}/freezone/audio/voices/{safe_voice_id}/media"
-
-
-def _attach_user_voice_media_urls(project: str, voices: list[dict]) -> list[dict]:
-    out: list[dict] = []
-    for item in voices:
-        voice = dict(item)
-        voice_id = str(voice.get("voice_id") or "").strip()
-        if voice_id and voice.get("exists"):
-            voice["url"] = _user_voice_media_url(project, voice_id)
-        else:
-            voice["url"] = ""
-        out.append(voice)
-    return out
-
-
-def _freezone_character_audio_refs(
-    *,
-    username: str,
-    project: str,
-    project_id: str,
-    project_dir: Path,
-    character,
-) -> dict:
-    character_name = str(getattr(character, "name", "") or "")
-    voices = [
-        _freezone_audio_ref_payload(
-            username=username,
-            project=project,
-            project_id=project_id,
-            project_dir=project_dir,
-            scope="character_default",
-            label=f"{character_name} · 默认声线",
-            path=str(getattr(character, "reference_audio_path", "") or ""),
-            sha256=str(getattr(character, "reference_audio_sha256", "") or ""),
-            updated_at=str(getattr(character, "reference_audio_updated_at", "") or ""),
-            character_name=character_name,
-            slot="default",
-            age_group=str(getattr(character, "age_group", "") or ""),
-        )
-    ]
-
-    samples = getattr(character, "voice_samples_by_age_group", None) or {}
-    if isinstance(samples, dict):
-        for slot, slot_label in FREEZONE_AUDIO_AGE_GROUP_LABELS.items():
-            entry = samples.get(slot)
-            if not isinstance(entry, dict):
-                entry = {}
-            voices.append(
-                _freezone_audio_ref_payload(
-                    username=username,
-                    project=project,
-                    project_id=project_id,
-                    project_dir=project_dir,
-                    scope="character_age_group",
-                    label=f"{character_name} · {slot_label}声线",
-                    path=str(entry.get("path", "") or ""),
-                    sha256=str(entry.get("sha256", "") or ""),
-                    updated_at=str(entry.get("updated_at", "") or ""),
-                    character_name=character_name,
-                    slot=slot,
-                    age_group=slot,
-                )
-            )
-
-    identities = []
-    for identity in list(getattr(character, "identities", None) or []):
-        identity_id = str(getattr(identity, "identity_id", "") or "")
-        identity_name = str(getattr(identity, "identity_name", "") or "")
-        age_group = str(getattr(identity, "age_group", "") or "")
-        direct = _freezone_audio_ref_payload(
-            username=username,
-            project=project,
-            project_id=project_id,
-            project_dir=project_dir,
-            scope="identity",
-            label=f"{character_name} · {identity_name or identity_id}声线",
-            path=str(getattr(identity, "reference_audio_path", "") or ""),
-            sha256=str(getattr(identity, "reference_audio_sha256", "") or ""),
-            updated_at=str(getattr(identity, "reference_audio_updated_at", "") or ""),
-            character_name=character_name,
-            identity_id=identity_id,
-            identity_name=identity_name,
-            age_group=age_group,
-        )
-        resolved = resolve_character_voice(
-            project_dir=project_dir,
-            character=character,
-            identity=identity,
-        )
-        resolved_path = ""
-        if resolved.audio_path is not None:
-            try:
-                resolved_path = resolved.audio_path.relative_to(project_dir).as_posix()
-            except ValueError:
-                resolved_path = str(resolved.audio_path)
-        direct["resolved"] = (
-            _freezone_audio_ref_payload(
-                username=username,
-                project=project,
-                project_id=project_id,
-                project_dir=project_dir,
-                scope="identity_resolved",
-                label=f"{character_name} · {identity_name or identity_id}实际声线",
-                path=resolved_path,
-                sha256=resolved.sha256,
-                character_name=character_name,
-                identity_id=identity_id,
-                identity_name=identity_name,
-                slot=resolved.tier or "",
-                age_group=age_group,
-            )
-            if resolved.audio_path is not None
-            else None
-        )
-        identities.append(direct)
-
-    available_count = sum(1 for item in voices if item["exists"])
-    for item in identities:
-        if item["exists"]:
-            available_count += 1
-        resolved = item.get("resolved")
-        if isinstance(resolved, dict) and resolved.get("exists"):
-            available_count += 1
-
-    return {
-        "character_name": character_name,
-        "is_main": bool(getattr(character, "is_main", False)),
-        "age_group": str(getattr(character, "age_group", "") or ""),
-        "voices": voices,
-        "identities": identities,
-        "available_count": available_count,
-    }
-
-
-@router.get(
-    "/projects/{project}/freezone/audio/references",
-    tags=[TAG_FREEZONE_AUDIO],
-)
-async def freezone_audio_references(
-    project: str,
-    user: dict = Depends(get_api_user),
-):
-    """获取 Freezone 音频节点可用的账号级音色、项目解说人与角色参考音频。"""
-    ctx, username, project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project, user, required_role="viewer"
-    )
-    narrator_descriptor = load_narrator_reference_audio(username, project_name)
-    narration_style = load_effective_narration_style_for_voice(username, project_name)
-    requester_username = ctx.requester_username or username
-    user_voices = _attach_user_voice_media_urls(
-        project,
-        list_user_audio_voices(requester_username),
-    )
-
-    store = (
-        await make_sqlite_store_for_context(ctx)
-        if ctx is not None
-        else await make_sqlite_store(username, project_name)
-    )
-    try:
-        characters = list(await store.list_characters())
-    finally:
-        close = getattr(store, "close", None)
-        if close:
-            await close()
-
-    narrator = _freezone_audio_ref_payload(
-        username=username,
-        project=project_name,
-        project_id=ctx.project_id,
-        project_dir=project_dir,
-        scope="project_narrator",
-        label="项目解说人声线",
-        path=narrator_descriptor.get("path", ""),
-        sha256=narrator_descriptor.get("sha256", ""),
-        updated_at=narrator_descriptor.get("updated_at", ""),
-    )
-    character_payloads = [
-        _freezone_character_audio_refs(
-            username=username,
-            project=project_name,
-            project_id=ctx.project_id,
-            project_dir=project_dir,
-            character=character,
-        )
-        for character in characters
-    ]
-    available = [narrator] if narrator["exists"] else []
-    available.extend(item for item in user_voices if item["exists"])
-    for character in character_payloads:
-        available.extend(item for item in character["voices"] if item["exists"])
-        for item in character["identities"]:
-            if item["exists"]:
-                available.append(item)
-            resolved = item.get("resolved")
-            if isinstance(resolved, dict) and resolved.get("exists"):
-                available.append(resolved)
-
-    return {
-        "ok": True,
-        "data": {
-            "narration_style": narration_style,
-            "narrator": narrator,
-            "characters": character_payloads,
-            "user_voices": user_voices,
-            "available": available,
-        },
-    }
-
-
-@router.post(
-    "/projects/{project}/freezone/audio/voices",
-    tags=[TAG_FREEZONE_AUDIO],
-)
-async def create_freezone_audio_voice(
-    project: str,
-    file: Annotated[UploadFile, File(description="参考音频文件，支持 mp3/wav/m4a/aac/ogg/webm")],
-    name: Annotated[str, Form(description="音色名称，用于音色选择弹窗展示")] = "",
-    user: dict = Depends(get_api_user),
-):
-    """创建账号级“我的音色”。
-
-    这个接口不会写入项目解说人、角色默认声线、年龄段声线或身份声线；
-    它只把参考音频保存到账号级 Freezone 音色库。生成音频时传
-    `voice_ref={"scope":"user_custom","voice_id":"..."}` 即可使用。
-    """
-    ctx, username, _project_name, _project_dir, _output_dir = await _resolve_freezone_project(
-        project, user
-    )
-    username = ctx.requester_username if ctx is not None and ctx.requester_username else username
-    content = await file.read()
-    try:
-        voice = create_user_audio_voice(
-            username=username,
-            name=name or Path(file.filename or "").stem,
-            filename=file.filename,
-            content=content,
-            mime_type=file.content_type or "",
-        )
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
-    voice = _attach_user_voice_media_urls(project, [voice])[0]
-
-    return {"ok": True, "data": voice}
-
-
-@router.get(
-    "/projects/{project}/freezone/audio/voices/{voice_id}/media",
-    tags=[TAG_FREEZONE_AUDIO],
-)
-async def get_freezone_audio_voice_media(
-    project: str,
-    voice_id: str,
-    user: dict = Depends(get_api_user),
-):
-    ctx, username, _project_name, _project_dir, _output_dir = await _resolve_freezone_project(
-        project, user, required_role="viewer"
-    )
-    username = ctx.requester_username if ctx is not None and ctx.requester_username else username
-    try:
-        resolved = resolve_user_audio_voice(username, voice_id)
-    except RuntimeError as exc:
-        raise HTTPException(404, str(exc)) from exc
-    return FileResponse(path=str(resolved.audio_path))
 
 
 @router.get(
@@ -8020,7 +7686,7 @@ async def list_freezone_assets(
 
             voice_samples = getattr(character, "voice_samples_by_age_group", None) or {}
             if isinstance(voice_samples, dict):
-                for slot, slot_label in FREEZONE_AUDIO_AGE_GROUP_LABELS.items():
+                for slot, slot_label in CREATIVE_CANVAS_AUDIO_AGE_GROUP_LABELS.items():
                     entry = voice_samples.get(slot)
                     if not isinstance(entry, dict):
                         continue

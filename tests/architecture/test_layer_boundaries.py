@@ -837,6 +837,73 @@ def test_freezone_audio_generation_routes_delegate_to_application() -> None:
     )
 
 
+def test_freezone_audio_library_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "audio.py"
+    legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    application = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "application"
+        / "audio_library.py"
+    )
+    adapter = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "infrastructure"
+        / "audio_library.py"
+    )
+    composition = PACKAGE_ROOT / "modules" / "creative_canvas" / "composition.py"
+    source = route.read_text(encoding="utf-8")
+    legacy_source = legacy_route.read_text(encoding="utf-8")
+    application_source = application.read_text(encoding="utf-8")
+    adapter_source = adapter.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+
+    for endpoint_path in (
+        '"/projects/{project}/freezone/audio/references"',
+        '"/projects/{project}/freezone/audio/voices"',
+        '"/projects/{project}/freezone/audio/voices/{voice_id}/media"',
+    ):
+        assert source.count(endpoint_path) == 1
+        assert endpoint_path not in legacy_source
+
+    assert source.count("creative_canvas_audio_library_use_cases().") == 3
+    for application_contract in (
+        "ListCreativeCanvasAudioReferencesQuery",
+        "CreateCreativeCanvasAudioVoiceCommand",
+        "GetCreativeCanvasAudioVoiceQuery",
+    ):
+        assert application_contract in source
+    for legacy_implementation in (
+        "FREEZONE_AUDIO_AGE_GROUP_LABELS",
+        "def _freezone_audio_ref_payload(",
+        "def _user_voice_media_url(",
+        "def _attach_user_voice_media_urls(",
+        "def _freezone_character_audio_refs(",
+        "async def freezone_audio_references(",
+        "async def create_freezone_audio_voice(",
+        "async def get_freezone_audio_voice_media(",
+        "TAG_FREEZONE_AUDIO",
+        "create_user_audio_voice",
+        "list_user_audio_voices",
+        "resolve_user_audio_voice",
+        "load_effective_narration_style_for_voice",
+        "load_narrator_reference_audio",
+        "resolve_character_voice",
+    ):
+        assert legacy_implementation not in legacy_source
+
+    assert "fastapi" not in application_source
+    assert "ai_anime.api" not in application_source
+    assert "ai_anime.freezone" not in application_source
+    assert "fastapi" not in adapter_source
+    assert "ai_anime.api" not in adapter_source
+    assert "make_sqlite_store_for_context" in adapter_source
+    assert "LocalCreativeCanvasAudioLibraryGateway" in composition_source
+
+
 def test_freezone_text_processing_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "text.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
