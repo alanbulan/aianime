@@ -9718,6 +9718,19 @@ describe("frontend architecture boundaries", () => {
     const compositionSource = readFileSync(compositionPath, "utf8");
     const hookSource = readFileSync(hookPath, "utf8");
     const panelSource = readFileSync(panelPath, "utf8");
+    const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
+    const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
+    const endpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) => {
+        const source = readFileSync(path, "utf8");
+        return (
+          source.includes("}/freezone/audio/speech`") &&
+          source.includes("}/freezone/audio/eleven-music`")
+        );
+      })
+      .map(relativeSource)
+      .sort();
 
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set(["../domain/canvasNodes", "./ports"]),
@@ -9741,7 +9754,11 @@ describe("frontend architecture boundaries", () => {
       '"freezone_audio_eleven_music"',
     );
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
-      new Set(["@/api/ops", "../application/generateCanvasAudio"]),
+      new Set([
+        "@/shared/api/client",
+        "../application/generateCanvasAudio",
+        "../application/ports",
+      ]),
     );
     expect(infrastructureSource).toContain(
       "freezoneAudioGenerationGateway: CanvasAudioGenerationSubmissionGateway",
@@ -9775,6 +9792,21 @@ describe("frontend architecture boundaries", () => {
     expect(panelSource).not.toContain(
       "deriveAudioText, useAudioGeneration",
     );
+    expect(endpointOwners).toEqual([
+      "features/canvas/infrastructure/freezoneAudioGenerationGateway.ts",
+    ]);
+    for (const legacySymbol of [
+      "FreezoneAudioVoiceRefScope",
+      "FreezoneAudioVoiceRef",
+      "FreezoneAudioSpeechPayload",
+      "submitFreezoneAudioSpeech",
+      "FreezoneAudioMusicPayload",
+      "submitFreezoneAudioMusic",
+    ]) {
+      expect(legacyOpsSource).not.toContain(legacySymbol);
+    }
+    expect(legacyOpsSource).not.toContain("}/freezone/audio/speech`");
+    expect(legacyOpsSource).not.toContain("}/freezone/audio/eleven-music`");
   });
 
   it("keeps Canvas story-script generation orchestration in application", () => {
