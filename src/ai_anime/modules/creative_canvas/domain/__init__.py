@@ -16,6 +16,11 @@ from ai_anime.modules.creative_canvas.domain.canvas_events import (
     CreativeCanvasEventActor,
     canvas_event_actor,
 )
+from ai_anime.modules.creative_canvas.domain.canvas_projections import (
+    merge_projected_preset_canvas,
+    remove_projected_preset_canvas,
+    wrap_projection_payload_in_group,
+)
 from ai_anime.modules.creative_canvas.domain.image_to_3gs import (
     CreativeCanvasImageToThreeGsPlan,
     CreativeCanvasImageToThreeGsSourceKind,
@@ -120,6 +125,7 @@ __all__ = [
     "first_text_value",
     "infer_image_to_three_gs_scene_id",
     "is_preset_managed_canvas_node",
+    "merge_projected_preset_canvas",
     "merge_restored_preset_canvas",
     "prepare_creative_canvas_payload_for_write",
     "normalize_screenshot_label",
@@ -131,6 +137,7 @@ __all__ = [
     "resolve_image_provider",
     "resolve_image_template_aspect_ratio",
     "resolve_requested_image_aspect_ratio",
+    "remove_projected_preset_canvas",
     "get_video_camera_template",
     "get_video_camera_templates",
     "summarize_omni_reference_counts",
@@ -142,6 +149,7 @@ __all__ = [
     "validate_video_composition_track_count",
     "validate_video_composition_video_item_count",
     "validate_video_erase_box",
+    "wrap_projection_payload_in_group",
     "delete_video_asset_library_item",
     "upsert_video_asset_library_item",
 ]

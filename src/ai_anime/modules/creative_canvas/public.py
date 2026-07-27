@@ -172,11 +172,13 @@ from ai_anime.modules.creative_canvas.domain import (
     get_video_camera_template,
     get_video_camera_templates,
     is_preset_managed_canvas_node,
+    merge_projected_preset_canvas,
     merge_restored_preset_canvas,
     prepare_creative_canvas_payload_for_write,
     normalize_video_aspect_ratio,
     normalize_video_resolution,
     resolve_image_template_aspect_ratio,
+    remove_projected_preset_canvas,
     resolve_original_image_aspect_ratio,
     resolve_image_provider,
     summarize_omni_reference_counts,
@@ -188,6 +190,7 @@ from ai_anime.modules.creative_canvas.domain import (
     validate_video_composition_track_count,
     validate_video_composition_video_item_count,
     validate_video_erase_box,
+    wrap_projection_payload_in_group,
 )
 
 
@@ -527,6 +530,7 @@ __all__ = [
     "get_video_camera_templates",
     "is_seedance2_video_backend",
     "is_preset_managed_canvas_node",
+    "merge_projected_preset_canvas",
     "merge_restored_preset_canvas",
     "prepare_creative_canvas_payload_for_write",
     "normalize_video_aspect_ratio",
@@ -534,6 +538,7 @@ __all__ = [
     "resolve_original_image_aspect_ratio",
     "resolve_image_provider",
     "resolve_image_template_aspect_ratio",
+    "remove_projected_preset_canvas",
     "record_creative_canvas_event",
     "summarize_omni_reference_counts",
     "stamp_canvas_mainline_context_project_id",
@@ -545,4 +550,5 @@ __all__ = [
     "validate_video_composition_track_count",
     "validate_video_composition_video_item_count",
     "validate_video_erase_box",
+    "wrap_projection_payload_in_group",
 ]

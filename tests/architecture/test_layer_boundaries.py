@@ -1091,6 +1091,55 @@ def test_freezone_canvas_document_writes_delegate_to_application() -> None:
     assert "ai_anime.api" not in adapter_source
 
 
+def test_freezone_canvas_projection_rules_belong_to_domain() -> None:
+    legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    domain = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "domain"
+        / "canvas_projections.py"
+    )
+    public = PACKAGE_ROOT / "modules" / "creative_canvas" / "public.py"
+    projection_tests = REPO_ROOT / "tests" / "test_freezone_projection_merge.py"
+    legacy_source = legacy_route.read_text(encoding="utf-8")
+    domain_source = domain.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+    test_source = projection_tests.read_text(encoding="utf-8")
+
+    for rule in (
+        "merge_projected_preset_canvas",
+        "remove_projected_preset_canvas",
+        "wrap_projection_payload_in_group",
+    ):
+        assert domain_source.count(f"def {rule}(") == 1
+        assert rule in public_source
+    for legacy_implementation in (
+        "def _node_projection_key(",
+        "def _edge_projection_key(",
+        "def _is_replaceable_projection_node(",
+        "def _is_replaceable_projection_edge(",
+        "def _archive_projection_node(",
+        "def _user_owned_projection_node(",
+        "def _merge_projected_preset_canvas(",
+        "def _remove_projected_preset_canvas(",
+        "def _projection_group_id(",
+        "def _node_display_size(",
+        "def _wrap_projection_payload_in_group(",
+    ):
+        assert legacy_implementation not in legacy_source
+
+    assert legacy_source.count("merge_projected_preset_canvas(") == 1
+    assert legacy_source.count("remove_projected_preset_canvas(") == 1
+    assert legacy_source.count("wrap_projection_payload_in_group(") == 2
+    assert "ai_anime.api.routes.freezone" not in test_source
+    assert "ai_anime.modules.creative_canvas.public" in test_source
+    assert "fastapi" not in domain_source
+    assert "ai_anime.api" not in domain_source
+    assert "ai_anime.freezone" not in domain_source
+    assert "canvas_store" not in domain_source
+
+
 def test_freezone_canvas_events_delegate_to_application() -> None:
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     domain = (

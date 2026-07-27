@@ -1,7 +1,7 @@
-from ai_anime.api.routes.freezone import (
-    _merge_projected_preset_canvas,
-    _remove_projected_preset_canvas,
-    _wrap_projection_payload_in_group,
+from ai_anime.modules.creative_canvas.public import (
+    merge_projected_preset_canvas,
+    remove_projected_preset_canvas,
+    wrap_projection_payload_in_group,
 )
 
 
@@ -50,7 +50,7 @@ def test_projection_payload_is_wrapped_in_draggable_group():
         "metadata": {},
     }
 
-    wrapped = _wrap_projection_payload_in_group(
+    wrapped = wrap_projection_payload_in_group(
         payload,
         projection_key="beat:1:4",
         label="EP1/B4",
@@ -74,6 +74,37 @@ def test_projection_payload_is_wrapped_in_draggable_group():
     assert children["skill_node"]["position"] == {"x": 420, "y": 94}
 
 
+def test_projection_group_id_preserves_stable_hash_contract():
+    cases = (
+        ("场景:雨夜", "projection_group_f6812e174dfc"),
+        (
+            "beat:" + "a" * 60,
+            "projection_group_" + "beat_" + "a" * 30 + "_fbf8b00bce8a",
+        ),
+    )
+
+    for projection_key, expected_group_id in cases:
+        payload = {
+            "nodes": [
+                node(
+                    "projected_node",
+                    preset=True,
+                    projection_key=projection_key,
+                )
+            ],
+            "edges": [],
+        }
+
+        wrapped = wrap_projection_payload_in_group(
+            payload,
+            projection_key=projection_key,
+            label="Projection",
+        )
+
+        group = next(item for item in wrapped["nodes"] if item["type"] == "groupNode")
+        assert group["id"] == expected_group_id
+
+
 def test_projection_merge_replaces_group_without_touching_user_nodes():
     existing = {
         "nodes": [
@@ -93,7 +124,7 @@ def test_projection_merge_replaces_group_without_touching_user_nodes():
         "metadata": {"projections": {"beat:1:4": {"facts_signature": "new"}}},
     }
 
-    merged = _merge_projected_preset_canvas(
+    merged = merge_projected_preset_canvas(
         incoming_payload=incoming,
         existing_payload=existing,
         projection_key="beat:1:4",
@@ -126,7 +157,7 @@ def test_projection_merge_replaces_only_matching_preset_nodes():
         "metadata": {"projections": {"beat:1:4": {"facts_signature": "new"}}},
     }
 
-    merged = _merge_projected_preset_canvas(
+    merged = merge_projected_preset_canvas(
         incoming_payload=incoming,
         existing_payload=existing,
         projection_key="beat:1:4",
@@ -166,7 +197,7 @@ def test_projection_merge_does_not_touch_user_spawned_node_inside_projection():
         "metadata": {"projections": {"beat:1:4": {"facts_signature": "new"}}},
     }
 
-    merged = _merge_projected_preset_canvas(
+    merged = merge_projected_preset_canvas(
         incoming_payload=incoming,
         existing_payload=existing,
         projection_key="beat:1:4",
@@ -195,7 +226,7 @@ def test_projection_merge_preserves_user_spawned_node_even_with_stale_projection
         "metadata": {"projections": {"beat:1:4": {"facts_signature": "new"}}},
     }
 
-    merged = _merge_projected_preset_canvas(
+    merged = merge_projected_preset_canvas(
         incoming_payload=incoming,
         existing_payload=existing,
         projection_key="beat:1:4",
@@ -234,7 +265,7 @@ def test_projection_remove_drops_matching_projection_only():
         },
     }
 
-    removed = _remove_projected_preset_canvas(
+    removed = remove_projected_preset_canvas(
         existing_payload=existing,
         projection_key="beat:1:4",
     )
