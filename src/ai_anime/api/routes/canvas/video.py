@@ -13,11 +13,15 @@ from ai_anime.api.schemas import (
     FreezoneExtractFramesRequest,
     FreezoneImageToVideoRequest,
     FreezoneKeyframeVideoRequest,
+    FreezoneVideoCharacterLibraryItemRequest,
     FreezoneVideoEditRequest,
     FreezoneVideoGenRequest,
     FreezoneVideoOmniGenRequest,
 )
 from ai_anime.modules.creative_canvas.public import (
+    AddCreativeCanvasVideoAssetCommand,
+    CreativeCanvasVideoAssetMissing,
+    CreativeCanvasVideoAssetSourceMissing,
     CreativeCanvasTaskReceipt,
     CreativeCanvasTaskStartFailed,
     CreativeCanvasOmniVideoReference,
@@ -26,6 +30,7 @@ from ai_anime.modules.creative_canvas.public import (
     CreativeCanvasVideoGenerationResult,
     CreativeCanvasVideoProcessingSourceMissing,
     InvalidCreativeCanvasVideoGenerationRequest,
+    InvalidCreativeCanvasVideoAssetRequest,
     InvalidCreativeCanvasVideoProcessingRequest,
     StartCreativeCanvasImageVideoCommand,
     StartCreativeCanvasFrameExtractionCommand,
@@ -35,6 +40,8 @@ from ai_anime.modules.creative_canvas.public import (
     StartCreativeCanvasTextVideoCommand,
     StartCreativeCanvasVideoEditCommand,
     StartCreativeCanvasVideoStoryAnalysisCommand,
+    SyncCreativeCanvasVideoAssetsCommand,
+    creative_canvas_video_asset_library_use_cases,
     creative_canvas_video_generation_use_cases,
     creative_canvas_video_processing_use_cases,
     generation_catalog_queries,
@@ -74,6 +81,103 @@ async def freezone_video_models(
         operation="access freezone project files",
     )
     return {"ok": True, "data": generation_catalog_queries().video_models()}
+
+
+@router.get(
+    "/projects/{project}/freezone/video/character-library",
+    tags=["freezone-video"],
+)
+async def freezone_video_character_library(
+    project: str,
+    user: dict = Depends(get_api_user),
+):
+    """视频处理：获取文生视频角色素材库。"""
+    resolved = await resolve_project_scope(
+        project,
+        user,
+        required_role="viewer",
+        operation="access freezone project files",
+    )
+    items = creative_canvas_video_asset_library_use_cases().list_items(
+        resolved.project_dir
+    )
+    return {"ok": True, "data": [dict(item) for item in items]}
+
+
+@router.post(
+    "/projects/{project}/freezone/video/character-library",
+    tags=["freezone-video"],
+)
+async def freezone_add_video_character_library_item(
+    project: str,
+    body: FreezoneVideoCharacterLibraryItemRequest,
+    user: dict = Depends(get_api_user),
+):
+    """视频处理：把上传好的素材登记到资产库（图片/视频/音频）。"""
+    resolved = await _resolve_editor_project(project, user)
+    try:
+        item = creative_canvas_video_asset_library_use_cases().add_item(
+            AddCreativeCanvasVideoAssetCommand(
+                project_dir=resolved.project_dir,
+                name=body.name,
+                media=body.media,
+                image_urls=tuple(body.image_urls),
+                video_url=body.video_url,
+                audio_url=body.audio_url,
+            )
+        )
+    except InvalidCreativeCanvasVideoAssetRequest as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except CreativeCanvasVideoAssetSourceMissing as exc:
+        raise HTTPException(404, str(exc)) from exc
+    return {"ok": True, "data": dict(item)}
+
+
+@router.post(
+    "/projects/{project}/freezone/video/asset-library/sync-from-mainline",
+    tags=["freezone-video"],
+)
+async def freezone_sync_asset_library_from_mainline(
+    project: str,
+    user: dict = Depends(get_api_user),
+):
+    """视频处理：把主线的人物/场景/道具参考图与人物语音幂等同步进资产库。
+
+    走稳定合成 id（``mainline:<kind>:<name>``），重复同步只更新 URL、不产生重复。
+    """
+    resolved = await _resolve_editor_project(project, user)
+    result = await creative_canvas_video_asset_library_use_cases().sync_from_mainline(
+        SyncCreativeCanvasVideoAssetsCommand(
+            context=resolved.ctx,
+            project_dir=resolved.project_dir,
+        )
+    )
+    return {
+        "ok": True,
+        "data": [dict(item) for item in result.items],
+        "synced": result.synced,
+    }
+
+
+@router.delete(
+    "/projects/{project}/freezone/video/character-library/{item_id}",
+    tags=["freezone-video"],
+)
+async def freezone_delete_video_character_library_item(
+    project: str,
+    item_id: str,
+    user: dict = Depends(get_api_user),
+):
+    """视频处理：删除角色素材库条目。"""
+    resolved = await _resolve_editor_project(project, user)
+    try:
+        creative_canvas_video_asset_library_use_cases().delete_item(
+            resolved.project_dir,
+            item_id,
+        )
+    except CreativeCanvasVideoAssetMissing as exc:
+        raise HTTPException(404, str(exc)) from exc
+    return {"ok": True, "data": {"id": item_id, "deleted": True}}
 
 
 @router.post("/projects/{project}/freezone/video/gen", tags=["freezone-video"])

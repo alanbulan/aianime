@@ -75,6 +75,15 @@ from ai_anime.modules.creative_canvas.application.video_generation import (
     StartCreativeCanvasTextVideoCommand,
     StartCreativeCanvasVideoEditCommand,
 )
+from ai_anime.modules.creative_canvas.application.video_asset_library import (
+    AddCreativeCanvasVideoAssetCommand,
+    CreativeCanvasVideoAssetLibraryUseCases,
+    CreativeCanvasVideoAssetMissing,
+    CreativeCanvasVideoAssetSourceMissing,
+    CreativeCanvasVideoAssetSyncResult,
+    InvalidCreativeCanvasVideoAssetRequest,
+    SyncCreativeCanvasVideoAssetsCommand,
+)
 from ai_anime.modules.creative_canvas.domain import (
     DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
     SUPPORTED_CREATIVE_CANVAS_IMAGE_PROVIDERS,
@@ -196,6 +205,16 @@ def creative_canvas_video_generation_use_cases() -> (
     return build()
 
 
+def creative_canvas_video_asset_library_use_cases() -> (
+    CreativeCanvasVideoAssetLibraryUseCases
+):
+    from ai_anime.modules.creative_canvas.composition import (
+        creative_canvas_video_asset_library_use_cases as build,
+    )
+
+    return build()
+
+
 def is_seedance2_video_backend(backend: str | None) -> bool:
     from ai_anime.modules.creative_canvas.composition import (
         creative_canvas_video_model_policy,
@@ -234,6 +253,10 @@ __all__ = [
     "CreativeCanvasVideoGenerationOptions",
     "CreativeCanvasVideoGenerationResult",
     "CreativeCanvasVideoGenerationUseCases",
+    "CreativeCanvasVideoAssetLibraryUseCases",
+    "CreativeCanvasVideoAssetMissing",
+    "CreativeCanvasVideoAssetSourceMissing",
+    "CreativeCanvasVideoAssetSyncResult",
     "CreativeCanvasVideoProcessingSourceMissing",
     "CreativeCanvasVideoProcessingUseCases",
     "CreativeCanvasScreenshotResult",
@@ -252,6 +275,7 @@ __all__ = [
     "InvalidCreativeCanvasReversePromptRequest",
     "InvalidCreativeCanvasVideoProcessingRequest",
     "InvalidCreativeCanvasVideoGenerationRequest",
+    "InvalidCreativeCanvasVideoAssetRequest",
     "InitializeCreativeCanvasCommand",
     "SaveCreativeCanvasScreenshotCommand",
     "StoreCreativeCanvasUploadCommand",
@@ -268,6 +292,8 @@ __all__ = [
     "StartCreativeCanvasTextVideoCommand",
     "StartCreativeCanvasVideoEditCommand",
     "StartCreativeCanvasVideoStoryAnalysisCommand",
+    "AddCreativeCanvasVideoAssetCommand",
+    "SyncCreativeCanvasVideoAssetsCommand",
     "canvas_actor_id",
     "build_image_multi_view_prompt",
     "build_image_relight_prompt",
@@ -284,6 +310,7 @@ __all__ = [
     "creative_canvas_image_generation_use_cases",
     "creative_canvas_video_processing_use_cases",
     "creative_canvas_video_generation_use_cases",
+    "creative_canvas_video_asset_library_use_cases",
     "creative_canvas_reverse_prompt_use_cases",
     "creative_canvas_media_use_cases",
     "generation_catalog_queries",

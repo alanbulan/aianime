@@ -12,11 +12,6 @@ from ai_anime.generators.video_generator import (
     newapi_video_backend_options,
 )
 from ai_anime.generators.video_generator import VideoGenResult, VideoGenStatus
-from ai_anime.freezone.video_character_library import (
-    add_video_character_library_item,
-    delete_video_character_library_item,
-    load_video_character_library,
-)
 from ai_anime.modules.creative_canvas.public import (
     build_freezone_image_to_video_prompt,
     build_freezone_keyframe_video_prompt,
@@ -53,24 +48,6 @@ def test_video_camera_template_lookup_works() -> None:
 
     assert template is not None
     assert template["name"] == "固定镜头"
-
-
-def test_video_character_library_roundtrip(tmp_path: Path) -> None:
-    project_dir = tmp_path / "project"
-    item = add_video_character_library_item(
-        project_dir,
-        name="林小满",
-        image_urls=["/static/admin/58/freezone/_uploads/char.png"],
-    )
-
-    items = load_video_character_library(project_dir)
-    assert len(items) == 1
-    assert items[0]["id"] == item["id"]
-    assert items[0]["name"] == "林小满"
-
-    deleted = delete_video_character_library_item(project_dir, item["id"])
-    assert deleted is True
-    assert load_video_character_library(project_dir) == []
 
 
 def test_video_ratio_and_resolution_normalization() -> None:

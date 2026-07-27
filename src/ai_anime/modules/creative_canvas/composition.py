@@ -32,6 +32,9 @@ from ai_anime.modules.creative_canvas.application.video_processing import (
 from ai_anime.modules.creative_canvas.application.video_generation import (
     CreativeCanvasVideoGenerationUseCases,
 )
+from ai_anime.modules.creative_canvas.application.video_asset_library import (
+    CreativeCanvasVideoAssetLibraryUseCases,
+)
 from ai_anime.ports import get_task_backend
 from ai_anime.modules.creative_canvas.infrastructure.bootstrap import (
     LocalCreativeCanvasBootstrapStorage,
@@ -62,7 +65,12 @@ from ai_anime.modules.creative_canvas.infrastructure.task_submission import (
 )
 from ai_anime.modules.creative_canvas.infrastructure.video_generation import (
     ConfiguredCreativeCanvasVideoModelPolicy,
-    LocalCreativeCanvasVideoCharacterCatalog,
+)
+from ai_anime.modules.creative_canvas.infrastructure.video_asset_library import (
+    LocalCreativeCanvasVideoAssetRepository,
+    ProjectCreativeCanvasMainlineVideoAssetSource,
+    SystemCreativeCanvasClock,
+    UuidCreativeCanvasVideoAssetIdGenerator,
 )
 
 
@@ -169,13 +177,33 @@ def creative_canvas_video_model_policy() -> ConfiguredCreativeCanvasVideoModelPo
 
 
 @lru_cache(maxsize=1)
+def creative_canvas_video_asset_repository() -> (
+    LocalCreativeCanvasVideoAssetRepository
+):
+    return LocalCreativeCanvasVideoAssetRepository()
+
+
+@lru_cache(maxsize=1)
+def creative_canvas_video_asset_library_use_cases() -> (
+    CreativeCanvasVideoAssetLibraryUseCases
+):
+    return CreativeCanvasVideoAssetLibraryUseCases(
+        creative_canvas_video_asset_repository(),
+        ProjectCreativeCanvasMediaSourceResolver(),
+        ProjectCreativeCanvasMainlineVideoAssetSource(),
+        UuidCreativeCanvasVideoAssetIdGenerator(),
+        SystemCreativeCanvasClock(),
+    )
+
+
+@lru_cache(maxsize=1)
 def creative_canvas_video_generation_use_cases() -> (
     CreativeCanvasVideoGenerationUseCases
 ):
     return CreativeCanvasVideoGenerationUseCases(
         ProjectCreativeCanvasMediaSourceResolver(),
         creative_canvas_video_model_policy(),
-        LocalCreativeCanvasVideoCharacterCatalog(),
+        creative_canvas_video_asset_repository(),
         FreezoneJobIdGenerator(),
         TaskBackendCreativeCanvasTaskScheduler(get_task_backend),
     )

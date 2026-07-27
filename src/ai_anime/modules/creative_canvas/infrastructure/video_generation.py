@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any, Mapping
-
-from ai_anime.freezone.video_character_library import load_video_character_library
+from typing import Any
 from ai_anime.modules.creative_canvas.domain.video_generation import (
     default_seedance2_scene_optimize,
     is_seedance2_value_video_backend,
@@ -201,8 +198,3 @@ class ConfiguredCreativeCanvasVideoModelPolicy:
             if key != DEFAULT_VIDEO_BACKEND
         )
         return ordered
-
-
-class LocalCreativeCanvasVideoCharacterCatalog:
-    def list_items(self, project_dir: Path) -> tuple[Mapping[str, object], ...]:
-        return tuple(dict(item) for item in load_video_character_library(project_dir))

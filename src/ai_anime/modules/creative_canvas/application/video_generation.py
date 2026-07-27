@@ -15,6 +15,9 @@ from ai_anime.modules.creative_canvas.application.task_submission import (
     CreativeCanvasTaskScheduler,
     CreativeCanvasTaskSubmission,
 )
+from ai_anime.modules.creative_canvas.application.video_asset_library import (
+    CreativeCanvasVideoAssetReader,
+)
 from ai_anime.modules.creative_canvas.domain.video_generation import (
     build_freezone_image_to_video_prompt,
     build_freezone_keyframe_video_prompt,
@@ -58,10 +61,6 @@ class CreativeCanvasVideoGenerationModelPolicy(Protocol):
         backend: str | None,
         value: str | None,
     ) -> str: ...
-
-
-class CreativeCanvasVideoCharacterCatalog(Protocol):
-    def list_items(self, project_dir: Path) -> tuple[Mapping[str, object], ...]: ...
 
 
 @dataclass(frozen=True)
@@ -143,7 +142,7 @@ class CreativeCanvasVideoGenerationUseCases:
         self,
         sources: CreativeCanvasMediaSourceResolver,
         models: CreativeCanvasVideoGenerationModelPolicy,
-        characters: CreativeCanvasVideoCharacterCatalog,
+        characters: CreativeCanvasVideoAssetReader,
         job_ids: CreativeCanvasJobIds,
         scheduler: CreativeCanvasTaskScheduler,
     ) -> None:

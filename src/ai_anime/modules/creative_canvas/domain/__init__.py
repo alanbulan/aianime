@@ -54,6 +54,10 @@ from ai_anime.modules.creative_canvas.domain.video_generation import (
     summarize_omni_reference_counts,
     validate_omni_reference_limits,
 )
+from ai_anime.modules.creative_canvas.domain.video_asset_library import (
+    delete_video_asset_library_item,
+    upsert_video_asset_library_item,
+)
 
 __all__ = [
     "DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL",
@@ -98,4 +102,6 @@ __all__ = [
     "get_video_camera_templates",
     "summarize_omni_reference_counts",
     "validate_omni_reference_limits",
+    "delete_video_asset_library_item",
+    "upsert_video_asset_library_item",
 ]

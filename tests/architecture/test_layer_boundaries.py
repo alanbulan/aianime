@@ -548,6 +548,104 @@ def test_freezone_video_generation_routes_delegate_to_application() -> None:
     )
 
 
+def test_freezone_video_asset_library_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "video.py"
+    legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    domain = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "domain"
+        / "video_asset_library.py"
+    )
+    application = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "application"
+        / "video_asset_library.py"
+    )
+    adapter = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "infrastructure"
+        / "video_asset_library.py"
+    )
+    generation_application = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "application"
+        / "video_generation.py"
+    )
+    generation_adapter = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "infrastructure"
+        / "video_generation.py"
+    )
+    composition = PACKAGE_ROOT / "modules" / "creative_canvas" / "composition.py"
+    legacy_library = PACKAGE_ROOT / "freezone" / "video_character_library.py"
+    source = route.read_text(encoding="utf-8")
+    legacy_source = legacy_route.read_text(encoding="utf-8")
+    domain_source = domain.read_text(encoding="utf-8")
+    application_source = application.read_text(encoding="utf-8")
+    adapter_source = adapter.read_text(encoding="utf-8")
+    generation_application_source = generation_application.read_text(encoding="utf-8")
+    generation_adapter_source = generation_adapter.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+
+    base_path = '"/projects/{project}/freezone/video/character-library"'
+    sync_path = (
+        '"/projects/{project}/freezone/video/asset-library/sync-from-mainline"'
+    )
+    delete_path = (
+        '"/projects/{project}/freezone/video/character-library/{item_id}"'
+    )
+    assert source.count(base_path) == 2
+    assert source.count(sync_path) == 1
+    assert source.count(delete_path) == 1
+    for endpoint_path in (base_path, sync_path, delete_path):
+        assert endpoint_path not in legacy_source
+
+    assert source.count("creative_canvas_video_asset_library_use_cases().") == 4
+    for legacy_handler in (
+        "async def freezone_video_character_library(",
+        "async def freezone_add_video_character_library_item(",
+        "async def freezone_sync_asset_library_from_mainline(",
+        "async def freezone_delete_video_character_library_item(",
+    ):
+        assert legacy_handler not in legacy_source
+    assert "FreezoneVideoCharacterLibraryItemRequest" not in legacy_source
+    assert not legacy_library.exists()
+
+    for layered_source in (domain_source, application_source, adapter_source):
+        assert "fastapi" not in layered_source
+        assert "ai_anime.api" not in layered_source
+    assert "ai_anime.freezone" not in application_source
+    for implementation_detail in (
+        "resolve_static_url_to_path",
+        "make_sqlite_store_for_context",
+        "make_static_url_for_context",
+        "resolve_character_voice",
+    ):
+        assert implementation_detail not in source
+
+    assert "CreativeCanvasVideoAssetReader" in generation_application_source
+    assert "LocalCreativeCanvasVideoCharacterCatalog" not in generation_adapter_source
+    assert "video_character_library" not in generation_adapter_source
+    assert "creative_canvas_video_asset_repository()" in composition_source
+    repository_definitions = sum(
+        path.read_text(encoding="utf-8").count(
+            "class LocalCreativeCanvasVideoAssetRepository"
+        )
+        for path in _python_files(PACKAGE_ROOT)
+    )
+    assert repository_definitions == 1
+
+
 def test_freezone_mark_detection_route_delegates_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "image.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"

@@ -1670,6 +1670,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百九十三批已将文生视频、单图/多图参考视频、首尾帧视频、全能参考视频和 HappyHorse 视频编辑共 5 个 POST 端点统一收口到 Creative Canvas video-generation domain/application/adapter 与 video FastAPI 子 router；运镜模板、局部标记描述、四类提示词、画幅/分辨率规则和 Omni 参考限额成为纯 domain 唯一实现，application 统一承担模式校验、角色引用、项目媒体路径解析、首尾帧与 HappyHorse/Seedance 参考角色编排及 `freezone_video_gen` 任务提交，infrastructure 统一承担配置驱动的模型/别名/时长策略和本地角色目录读取；原混合生成规则与角色库 IO 的 `freezone/video_node.py` 整体删除，角色库持久化以 `video_character_library.py` 唯一命名保留，旧 route helper 的角色选择和 `freezone.py` 中 5 个 handler、共享提交 helper 全部删除，legacy job runner 改经 Creative Canvas public 查询模型能力，不保留 facade、转发函数、兼容壳或第二套实现；项目 editor 鉴权、校验顺序与 400/404 文案、模型选项和历史别名、HappyHorse r2v/i2v 角色语义、Seedance 首尾帧与 Omni 限额、场景优化、任务类型/video 队列/payload、调度器注入的 `job_id`/`project_dir`、项目级 task key、限流透传、分端点 503 日志与文案、请求路径、OpenAPI tag/说明、响应字段及 Omni `meta` 均保持不变；视频上下文回归 42 项、大型 Freezone/目录/runner 回归 151 项、M06 完整合同 16 项、任务注册表 3 项和后端完整分层门禁 73 项均通过，4 条冷启动导入、Ruff 与 `git diff --check` 通过，8 条告警均为既有依赖弃用告警。
 
+第二百九十四批已将视频角色/资产库的稳定 ID upsert、创建时间保留、更新时间刷新和删除规则迁入 Creative Canvas video-asset-library domain，将素材录入校验、项目媒体解析、列表/新增/删除及主线同步编排迁入 application ports/use case，并由唯一 JSON repository 与主线人物/语音/场景/道具 source adapter 承担本地持久化和 SQLite 投影；GET/POST 角色库、主线同步和 DELETE 共 4 个端点统一迁入 video FastAPI 子 router，视频生成直接复用同一个 repository 读取角色引用，原 `freezone/video_character_library.py` 与 `freezone.py` 中 4 个 handler 整体删除，不保留 facade、转发函数、兼容壳或第二套 JSON 实现；viewer/editor 鉴权、主节点错误上下文、名称/媒体地址/路径越界与文件缺失文案、稳定主线 ID、重复同步不增项、JSON 文件位置、时间字段、请求路径、OpenAPI tag 和响应 payload 均保持不变；视频上下文回归 42 项、大型 Freezone/目录/runner 回归 151 项、M06 完整合同 17 项、任务注册表 3 项和后端完整分层门禁 74 项均通过，4 条冷启动导入、Ruff 与 `git diff --check` 通过，8 条告警均为既有依赖弃用告警。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

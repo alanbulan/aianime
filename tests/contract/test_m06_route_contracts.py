@@ -242,6 +242,9 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.modules.creative_canvas.application.video_processing import (
         CreativeCanvasVideoProcessingUseCases,
     )
+    from ai_anime.modules.creative_canvas.application.video_asset_library import (
+        CreativeCanvasVideoAssetLibraryUseCases,
+    )
     from ai_anime.modules.creative_canvas.application.video_generation import (
         CreativeCanvasVideoGenerationUseCases,
     )
@@ -250,7 +253,12 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     )
     from ai_anime.modules.creative_canvas.infrastructure.video_generation import (
         ConfiguredCreativeCanvasVideoModelPolicy,
-        LocalCreativeCanvasVideoCharacterCatalog,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.video_asset_library import (
+        LocalCreativeCanvasVideoAssetRepository,
+        ProjectCreativeCanvasMainlineVideoAssetSource,
+        SystemCreativeCanvasClock,
+        UuidCreativeCanvasVideoAssetIdGenerator,
     )
     from ai_anime.modules.creative_canvas.infrastructure.image_editing import (
         FreezoneCreativeCanvasImagePromptComposer,
@@ -462,10 +470,21 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             FreezoneJobIdGenerator(),
             task_scheduler,
         )
+        video_asset_repository = LocalCreativeCanvasVideoAssetRepository()
+        video_asset_library_use_cases = CreativeCanvasVideoAssetLibraryUseCases(
+            video_asset_repository,
+            ProjectCreativeCanvasMediaSourceResolver(),
+            ProjectCreativeCanvasMainlineVideoAssetSource(
+                store_factory=make_store_for_context,
+                static_url_builder=static_url,
+            ),
+            UuidCreativeCanvasVideoAssetIdGenerator(),
+            SystemCreativeCanvasClock(),
+        )
         video_generation_use_cases = CreativeCanvasVideoGenerationUseCases(
             ProjectCreativeCanvasMediaSourceResolver(),
             ConfiguredCreativeCanvasVideoModelPolicy(),
-            LocalCreativeCanvasVideoCharacterCatalog(),
+            video_asset_repository,
             FreezoneJobIdGenerator(),
             task_scheduler,
         )
@@ -503,6 +522,11 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             freezone_video,
             "creative_canvas_video_processing_use_cases",
             lambda use_cases=video_processing_use_cases: use_cases,
+        )
+        monkeypatch.setattr(
+            freezone_video,
+            "creative_canvas_video_asset_library_use_cases",
+            lambda use_cases=video_asset_library_use_cases: use_cases,
         )
         monkeypatch.setattr(
             freezone_video,
@@ -662,6 +686,60 @@ def test_m06_freezone_media_upload_and_screenshot(m06_client_factory):
         f"/static/projects/{_PROJECT_ID}/freezone/_outputs/three_d_viewer/"
     )
     assert screenshot_path.read_bytes() == png
+
+
+def test_m06_video_asset_library_contract(m06_client_factory):
+    client, _backend, _task_manager, _project_dir, assets, _store = m06_client_factory(
+        "inline"
+    )
+    endpoint = f"/api/v1/projects/{_PROJECT}/freezone/video/character-library"
+
+    created = _assert_ok(
+        client.post(
+            endpoint,
+            json={
+                "name": "林昭参考",
+                "media": "image",
+                "image_urls": [assets.image_url],
+            },
+        )
+    )["data"]
+    assert created["name"] == "林昭参考"
+    assert created["image_urls"] == [assets.image_url]
+    assert created["cover_url"] == assets.image_url
+
+    listed = _assert_ok(client.get(endpoint))["data"]
+    assert [item["id"] for item in listed] == [created["id"]]
+
+    synced = _assert_ok(
+        client.post(
+            f"/api/v1/projects/{_PROJECT}/freezone/video/asset-library/"
+            "sync-from-mainline"
+        )
+    )
+    assert synced["synced"] == 3
+    assert {item["id"] for item in synced["data"]} == {
+        created["id"],
+        f"mainline:character:{_CHARACTER}",
+        f"mainline:scene:{_SCENE}",
+        f"mainline:prop:{_PROP}",
+    }
+
+    repeated = _assert_ok(
+        client.post(
+            f"/api/v1/projects/{_PROJECT}/freezone/video/asset-library/"
+            "sync-from-mainline"
+        )
+    )
+    assert len(repeated["data"]) == 4
+
+    deleted = _assert_ok(client.delete(f"{endpoint}/{created['id']}"))["data"]
+    assert deleted == {"id": created["id"], "deleted": True}
+    missing = client.delete(f"{endpoint}/{created['id']}")
+    assert missing.status_code == 404
+    assert missing.json()["detail"] == (
+        f"video character library item not found: {created['id']}"
+    )
 
 
 def test_m06_freezone_mark_detection_contract(m06_client_factory):
