@@ -1,5 +1,10 @@
 """Platform release application services."""
 
+from ai_anime.modules.platform_release.application.project_files import (
+    ProjectFileDelivery,
+    ProjectFileGateway,
+    ProjectFileQueries,
+)
 from ai_anime.modules.platform_release.application.release_notifications import (
     ReleaseNotificationQueries,
 )
@@ -9,6 +14,9 @@ from ai_anime.modules.platform_release.application.runtime_config import (
 )
 
 __all__ = [
+    "ProjectFileDelivery",
+    "ProjectFileGateway",
+    "ProjectFileQueries",
     "ReleaseNotificationQueries",
     "RuntimeConfigEnvironment",
     "RuntimeConfigQueries",

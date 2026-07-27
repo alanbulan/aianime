@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from ai_anime.api.auth import get_api_user
-from ai_anime.api.routes.files import preview_project_media_file
+from ai_anime.api.project_file_delivery import serve_project_file
 
 
 class SpaStaticFiles(StaticFiles):
@@ -52,7 +52,12 @@ def register_static_media_routes(application: FastAPI) -> None:
         file_path: str,
         user: dict = Depends(get_api_user),
     ):
-        return await preview_project_media_file(project, file_path, user)
+        return await serve_project_file(
+            project=project,
+            file_path=file_path,
+            user=user,
+            as_download=False,
+        )
 
     @application.get("/static/{legacy_path:path}", include_in_schema=False)
     async def legacy_static_media(legacy_path: str):

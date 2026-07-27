@@ -389,6 +389,23 @@ def test_runtime_config_route_delegates_to_application() -> None:
     assert "ULID" not in source
 
 
+def test_project_file_routes_delegate_to_platform_release() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "files.py"
+    shared_adapter = PACKAGE_ROOT / "api" / "project_file_delivery.py"
+    platform_routes = PACKAGE_ROOT / "api" / "platform_routes.py"
+    route_source = route.read_text(encoding="utf-8")
+    platform_source = platform_routes.read_text(encoding="utf-8")
+
+    assert route_source.count("serve_project_file(") == 2
+    assert "def _resolve_project_file(" not in route_source
+    assert "def _serve_or_redirect_to_oss(" not in route_source
+    assert "def preview_project_media_file(" not in route_source
+    assert "ai_anime.modules.platform_release.public" in _imports(shared_adapter)
+    assert "ai_anime.api.routes.files" not in _imports(platform_routes)
+    assert "ai_anime.api.project_file_delivery" in _imports(platform_routes)
+    assert platform_source.count("serve_project_file(") == 1
+
+
 def test_freezone_skill_catalog_route_delegates_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "skills.py"
     legacy_route = LEGACY_FREEZONE_ROUTE

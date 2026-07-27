@@ -182,6 +182,7 @@ class _FakeTaskBackend:
 def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime import ports as runtime_ports
     from ai_anime.api import auth as api_auth
+    from ai_anime.api import project_file_delivery
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.routes import (
         assets,
@@ -358,7 +359,11 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         "seedance2_panel_use_cases",
         lambda: seedance2_panel,
     )
-    monkeypatch.setattr(files, "resolve_project_scope", resolve_project_scope)
+    monkeypatch.setattr(
+        project_file_delivery,
+        "resolve_project_scope",
+        resolve_project_scope,
+    )
     monkeypatch.setattr(assets, "resolve_project_scope", resolve_project_scope)
     monkeypatch.setattr(assets, "make_sqlite_store_for_context", make_store_for_context)
     monkeypatch.setattr(assets, "get_project_dir", lambda username, project: project_dir, raising=False)
