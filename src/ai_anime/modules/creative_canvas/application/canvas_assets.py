@@ -15,11 +15,24 @@ class CreativeCanvasBeatNotFound(LookupError):
     pass
 
 
+class InvalidCreativeCanvasBeatContextQuery(ValueError):
+    pass
+
+
 @dataclass(frozen=True)
 class ListCreativeCanvasAssetsQuery:
     context: ProjectContext
     project_id: str
     project_dir: Path
+
+
+@dataclass(frozen=True)
+class ListCreativeCanvasBeatContextAssetsQuery:
+    context: ProjectContext
+    project_id: str
+    project_dir: Path
+    episode: int | None
+    beat: int | None
 
 
 @dataclass(frozen=True)
@@ -67,6 +80,16 @@ class CreativeCanvasAssetCatalogGateway(Protocol):
         project_id: str,
         project_dir: Path,
     ) -> Sequence[Mapping[str, Any]]: ...
+
+    async def list_beat_context_assets(
+        self,
+        *,
+        context: ProjectContext,
+        project_id: str,
+        project_dir: Path,
+        episode: int | None,
+        beat: int | None,
+    ) -> Mapping[str, Any]: ...
 
 
 class CreativeCanvasDirectorCaptureStorage(Protocol):
@@ -130,6 +153,22 @@ class CreativeCanvasAssetUseCases:
             context=query.context,
             project_id=query.project_id,
             project_dir=query.project_dir,
+        )
+
+    async def list_beat_context_assets(
+        self,
+        query: ListCreativeCanvasBeatContextAssetsQuery,
+    ) -> Mapping[str, Any]:
+        if query.episode is None and query.beat is not None:
+            raise InvalidCreativeCanvasBeatContextQuery(
+                "episode is required when beat is provided"
+            )
+        return await self._asset_catalog.list_beat_context_assets(
+            context=query.context,
+            project_id=query.project_id,
+            project_dir=query.project_dir,
+            episode=query.episode,
+            beat=query.beat,
         )
 
     async def director_capture(
@@ -238,6 +277,8 @@ __all__ = [
     "CreativeCanvasDirectorStageLinkBuilder",
     "GetCreativeCanvasDirectorCaptureQuery",
     "GetCreativeCanvasSceneAssetsQuery",
+    "InvalidCreativeCanvasBeatContextQuery",
     "ListCreativeCanvasAssetsQuery",
+    "ListCreativeCanvasBeatContextAssetsQuery",
     "SyncCreativeCanvasDirectorBackgroundCommand",
 ]

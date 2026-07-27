@@ -51,7 +51,6 @@ from ai_anime.modules.creative_canvas.public import (
     detected_reference_ids_from_beat_context_data,
     first_text_value,
     is_preset_managed_canvas_node,
-    project_creative_canvas_beat_context_asset,
     record_creative_canvas_event,
 )
 from ai_anime.modules.production.public import (
@@ -72,9 +71,6 @@ from ai_anime.freezone.paths import (
     output_path_for_job,
     outputs_dir,
     resolve_static_url_to_path,
-)
-from ai_anime.freezone.presets import (
-    build_beat_preset_context,
 )
 from ai_anime.freezone.route_helpers import (
     FREEZONE_DEFAULT_IMAGE_MODEL,
@@ -4014,176 +4010,6 @@ def _canvas_state_project_dir(ctx: ProjectContext | None, output_project_dir: Pa
 # ============================================================
 # Commit 到 canonical slot（Freezone → Slot）
 # ============================================================
-
-
-@router.get("/projects/{project}/freezone/assets/beat-context", tags=[TAG_FREEZONE_ASSETS])
-async def list_freezone_beat_context_assets(
-    project: str,
-    episode: Optional[int] = None,
-    beat: Optional[int] = None,
-    user: dict = Depends(get_api_user),
-):
-    """列出 default/project 画布可用的 ai_anime Beat 上下文资产。
-
-    这个接口只聚合 ai_anime canonical 产物，不扫描 `freezone/_uploads`
-    或 `freezone/_outputs`。用于 default 画布展示全局 Beat 资源；具体 Beat
-    预设画布仍可继续读取 canvas `metadata.references`。
-    """
-    ctx, username, project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project, user, required_role="viewer"
-    )
-    store = await make_sqlite_store_for_context(ctx)
-
-    requested_episode = int(episode) if episode is not None else None
-    requested_beat = int(beat) if beat is not None else None
-    if requested_episode is None and requested_beat is not None:
-        raise HTTPException(400, "episode is required when beat is provided")
-
-    flat_assets: list[dict] = []
-    episode_groups: list[dict] = []
-    try:
-        if requested_episode is not None:
-            episode_numbers = [requested_episode]
-        else:
-            episode_numbers = sorted(
-                {
-                    int(getattr(ep, "number", 0) or 0)
-                    for ep in getattr(store, "_episodes", {}).values()
-                    if int(getattr(ep, "number", 0) or 0) > 0
-                }
-            )
-            if not episode_numbers:
-                try:
-                    visual_beats = await store.list_visual_beats()
-                except Exception:
-                    visual_beats = []
-                episode_numbers = sorted(
-                    {
-                        int(getattr(item, "episode_number", 0) or 0)
-                        for item in visual_beats
-                        if int(getattr(item, "episode_number", 0) or 0) > 0
-                    }
-                )
-
-        for ep_num in episode_numbers:
-            try:
-                beats = await store.get_beats_as_dicts(ep_num)
-            except Exception as exc:
-                logger.warning("failed to load beats for asset context ep%s: %s", ep_num, exc)
-                beats = []
-            beat_numbers = sorted(
-                {
-                    int(item.get("beat_number") or 0)
-                    for item in beats
-                    if int(item.get("beat_number") or 0) > 0
-                }
-            )
-            if requested_beat is not None:
-                beat_numbers = [num for num in beat_numbers if num == requested_beat]
-
-            beat_groups: list[dict] = []
-            for beat_num in beat_numbers:
-                try:
-                    context = await build_beat_preset_context(
-                        project_id=ctx.project_id,
-                        username=username,
-                        project=project_name,
-                        project_dir=project_dir,
-                        store=store,
-                        episode=ep_num,
-                        beat=beat_num,
-                        primary_slot="render",
-                    )
-                    context = (
-                        migrate_canvas_static_urls_in_memory(
-                            context,
-                            project_id=ctx.project_id,
-                            owner_username=username,
-                            project_name=project_name,
-                            project_dir=project_dir,
-                        )
-                        or context
-                    )
-                except Exception as exc:
-                    logger.warning(
-                        "failed to build beat context assets for ep%s beat%s: %s",
-                        ep_num,
-                        beat_num,
-                        exc,
-                    )
-                    continue
-
-                beat_data = context.get("beat_data") if isinstance(context, dict) else {}
-                refs = context.get("refs") if isinstance(context, dict) else []
-                beat_facts = {
-                    "visual_description": str((beat_data or {}).get("visual_description") or ""),
-                    "narration_segment": str((beat_data or {}).get("narration_segment") or ""),
-                    "scene_id": beat_scene_id(beat_data or {}),
-                    "detected_identities": (beat_data or {}).get("detected_identities") or [],
-                    "detected_props": (beat_data or {}).get("detected_props") or [],
-                    "sketch_colors": (
-                        (context.get("sketch_context") or {}).get("sketch_colors") or {}
-                    ),
-                    "prop_marker_colors": (
-                        (context.get("sketch_context") or {}).get("prop_marker_colors") or {}
-                    ),
-                }
-                assets = [
-                    asset
-                    for ref in refs
-                    if isinstance(ref, dict)
-                    for asset in [
-                        project_creative_canvas_beat_context_asset(
-                            ref=ref,
-                            project_id=project,
-                            episode=ep_num,
-                            beat=beat_num,
-                            beat_facts=beat_facts,
-                        )
-                    ]
-                    if asset is not None
-                ]
-                existing_assets = [
-                    asset for asset in assets if asset.get("exists") and asset.get("url")
-                ]
-                flat_assets.extend(existing_assets)
-                beat_groups.append(
-                    {
-                        "episode": ep_num,
-                        "beat": beat_num,
-                        "label": f"EP{ep_num} / Beat {beat_num}",
-                        "scene_id": beat_facts["scene_id"],
-                        "detected_identities": beat_facts["detected_identities"],
-                        "detected_props": beat_facts["detected_props"],
-                        "sketch_colors": beat_facts["sketch_colors"],
-                        "prop_marker_colors": beat_facts["prop_marker_colors"],
-                        "visual_description": str(
-                            (beat_data or {}).get("visual_description") or ""
-                        ),
-                        "narration_segment": str((beat_data or {}).get("narration_segment") or ""),
-                        "assets": assets,
-                        "asset_count": len(existing_assets),
-                    }
-                )
-
-            if beat_groups:
-                episode_groups.append({"episode": ep_num, "beats": beat_groups})
-    finally:
-        close = getattr(store, "close", None)
-        if close:
-            await close()
-
-    return {
-        "ok": True,
-        "data": {
-            "scope": {
-                "episode": requested_episode,
-                "beat": requested_beat,
-            },
-            "episodes": episode_groups,
-            "assets": flat_assets,
-        },
-    }
 
 
 @router.post("/projects/{project}/freezone/assets/identities", tags=[TAG_FREEZONE_ASSETS])

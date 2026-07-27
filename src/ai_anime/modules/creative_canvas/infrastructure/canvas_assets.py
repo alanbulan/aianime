@@ -12,7 +12,9 @@ from typing import Any
 
 from ai_anime.director_world import DirectorWorldService
 from ai_anime.freezone import canvas_store
+from ai_anime.freezone.canvas_static_urls import migrate_canvas_static_urls_in_memory
 from ai_anime.freezone.paths import freezone_root
+from ai_anime.freezone.presets import build_beat_preset_context
 from ai_anime.models import beat_scene_id
 from ai_anime.modules.creative_canvas.application.canvas_assets import (
     CreativeCanvasBeatNotFound,
@@ -23,6 +25,7 @@ from ai_anime.modules.creative_canvas.domain.audio_library import (
 from ai_anime.modules.creative_canvas.domain.canvas_assets import (
     is_creative_canvas_scene_library_role,
     project_creative_canvas_asset_record,
+    project_creative_canvas_beat_context_asset,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.shared.infrastructure.project_stores import make_sqlite_store_for_context
@@ -44,6 +47,8 @@ logger = logging.getLogger(__name__)
 
 StoreFactory = Callable[[ProjectContext], Awaitable[Any]]
 StaticUrlBuilder = Callable[[ProjectContext, str, Path | None], str]
+BeatContextBuilder = Callable[..., Awaitable[dict[str, Any]]]
+CanvasStaticUrlMigrator = Callable[..., dict[str, Any] | None]
 
 DIRECTOR_CAPTURE_FILES: tuple[tuple[str, str, str], ...] = (
     ("combined.png", "director_combined", "3GS 导演合成图"),
@@ -149,9 +154,13 @@ class LocalCreativeCanvasAssetCatalogGateway:
         self,
         store_factory: StoreFactory | None = None,
         record_factory: LocalCreativeCanvasAssetRecordFactory | None = None,
+        beat_context_builder: BeatContextBuilder | None = None,
+        canvas_static_url_migrator: CanvasStaticUrlMigrator | None = None,
     ) -> None:
         self._store_factory = store_factory
         self._record_factory = record_factory or LocalCreativeCanvasAssetRecordFactory()
+        self._beat_context_builder = beat_context_builder
+        self._canvas_static_url_migrator = canvas_static_url_migrator
 
     async def list_assets(
         self,
@@ -488,6 +497,193 @@ class LocalCreativeCanvasAssetCatalogGateway:
             await _close_store(store)
         return assets
 
+    async def list_beat_context_assets(
+        self,
+        *,
+        context: ProjectContext,
+        project_id: str,
+        project_dir: Path,
+        episode: int | None,
+        beat: int | None,
+    ) -> Mapping[str, Any]:
+        store = await (self._store_factory or make_sqlite_store_for_context)(context)
+        flat_assets: list[dict[str, Any]] = []
+        episode_groups: list[dict[str, Any]] = []
+        try:
+            episode_numbers = (
+                [episode]
+                if episode is not None
+                else await self._list_episode_numbers(store)
+            )
+            for episode_number in episode_numbers:
+                try:
+                    beats = await store.get_beats_as_dicts(episode_number)
+                except Exception as exc:  # noqa: BLE001 - omit unreadable episodes
+                    logger.warning(
+                        "failed to load beats for asset context ep%s: %s",
+                        episode_number,
+                        exc,
+                    )
+                    beats = []
+                beat_numbers = sorted(
+                    {
+                        int(item.get("beat_number") or 0)
+                        for item in beats
+                        if int(item.get("beat_number") or 0) > 0
+                    }
+                )
+                if beat is not None:
+                    beat_numbers = [number for number in beat_numbers if number == beat]
+
+                beat_groups: list[dict[str, Any]] = []
+                for beat_number in beat_numbers:
+                    try:
+                        preset_context = await (
+                            self._beat_context_builder or build_beat_preset_context
+                        )(
+                            project_id=context.project_id,
+                            username=context.owner_username,
+                            project=context.project_name,
+                            project_dir=project_dir,
+                            store=store,
+                            episode=episode_number,
+                            beat=beat_number,
+                            primary_slot="render",
+                        )
+                        preset_context = (
+                            self._canvas_static_url_migrator
+                            or migrate_canvas_static_urls_in_memory
+                        )(
+                            preset_context,
+                            project_id=context.project_id,
+                            owner_username=context.owner_username,
+                            project_name=context.project_name,
+                            project_dir=project_dir,
+                        ) or preset_context
+                    except Exception as exc:  # noqa: BLE001 - omit invalid beats
+                        logger.warning(
+                            "failed to build beat context assets for ep%s beat%s: %s",
+                            episode_number,
+                            beat_number,
+                            exc,
+                        )
+                        continue
+
+                    beat_data = (
+                        preset_context.get("beat_data")
+                        if isinstance(preset_context, Mapping)
+                        else {}
+                    )
+                    refs = (
+                        preset_context.get("refs")
+                        if isinstance(preset_context, Mapping)
+                        else []
+                    )
+                    beat_facts = {
+                        "visual_description": str(
+                            (beat_data or {}).get("visual_description") or ""
+                        ),
+                        "narration_segment": str(
+                            (beat_data or {}).get("narration_segment") or ""
+                        ),
+                        "scene_id": beat_scene_id(beat_data or {}),
+                        "detected_identities": (beat_data or {}).get(
+                            "detected_identities"
+                        )
+                        or [],
+                        "detected_props": (beat_data or {}).get("detected_props") or [],
+                        "sketch_colors": (
+                            (preset_context.get("sketch_context") or {}).get(
+                                "sketch_colors"
+                            )
+                            or {}
+                        ),
+                        "prop_marker_colors": (
+                            (preset_context.get("sketch_context") or {}).get(
+                                "prop_marker_colors"
+                            )
+                            or {}
+                        ),
+                    }
+                    assets = [
+                        asset
+                        for ref in refs or []
+                        if isinstance(ref, Mapping)
+                        for asset in [
+                            project_creative_canvas_beat_context_asset(
+                                ref=ref,
+                                project_id=project_id,
+                                episode=episode_number,
+                                beat=beat_number,
+                                beat_facts=beat_facts,
+                            )
+                        ]
+                        if asset is not None
+                    ]
+                    existing_assets = [
+                        asset
+                        for asset in assets
+                        if asset.get("exists") and asset.get("url")
+                    ]
+                    flat_assets.extend(existing_assets)
+                    beat_groups.append(
+                        {
+                            "episode": episode_number,
+                            "beat": beat_number,
+                            "label": f"EP{episode_number} / Beat {beat_number}",
+                            "scene_id": beat_facts["scene_id"],
+                            "detected_identities": beat_facts["detected_identities"],
+                            "detected_props": beat_facts["detected_props"],
+                            "sketch_colors": beat_facts["sketch_colors"],
+                            "prop_marker_colors": beat_facts["prop_marker_colors"],
+                            "visual_description": str(
+                                (beat_data or {}).get("visual_description") or ""
+                            ),
+                            "narration_segment": str(
+                                (beat_data or {}).get("narration_segment") or ""
+                            ),
+                            "assets": assets,
+                            "asset_count": len(existing_assets),
+                        }
+                    )
+                if beat_groups:
+                    episode_groups.append(
+                        {"episode": episode_number, "beats": beat_groups}
+                    )
+        finally:
+            await _close_store(store)
+
+        return {
+            "scope": {"episode": episode, "beat": beat},
+            "episodes": episode_groups,
+            "assets": flat_assets,
+        }
+
+    @staticmethod
+    async def _list_episode_numbers(store: Any) -> list[int]:
+        episodes: Sequence[Any] = []
+        for method_name in ("get_all_episodes", "list_episodes"):
+            method = getattr(store, method_name, None)
+            if not callable(method):
+                continue
+            try:
+                value = method()
+                loaded = await value if inspect.isawaitable(value) else value
+                episodes = loaded or []
+            except Exception:  # noqa: BLE001 - fall back to visual beats
+                episodes = []
+            if episodes:
+                break
+
+        episode_numbers = _positive_int_attributes(episodes, "number")
+        if episode_numbers:
+            return episode_numbers
+        try:
+            visual_beats = await store.list_visual_beats()
+        except Exception:  # noqa: BLE001 - projects may not have visual beats
+            return []
+        return _positive_int_attributes(visual_beats, "episode_number")
+
 
 class LocalCreativeCanvasBeatSceneSource:
     def __init__(self, store_factory: StoreFactory | None = None) -> None:
@@ -687,6 +883,18 @@ class LocalCreativeCanvasDirectorStageLinkBuilder:
         except Exception as exc:  # noqa: BLE001 - stage links are optional
             logger.warning("failed to build 3GS director stage url: %s", exc)
             return None
+
+
+def _positive_int_attributes(items: Sequence[Any], attribute: str) -> list[int]:
+    values: set[int] = set()
+    for item in items:
+        try:
+            value = int(getattr(item, attribute, 0) or 0)
+        except (TypeError, ValueError):
+            continue
+        if value > 0:
+            values.add(value)
+    return sorted(values)
 
 
 async def _close_store(store: Any) -> None:

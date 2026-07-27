@@ -1307,6 +1307,7 @@ def test_freezone_canvas_asset_routes_delegate_to_application() -> None:
 
     for endpoint_path in (
         '"/projects/{project}/freezone/assets"',
+        '"/projects/{project}/freezone/assets/beat-context"',
         '"/projects/{project}/freezone/director-capture"',
         '"/projects/{project}/freezone/director-capture/sync-background"',
         '"/projects/{project}/freezone/scene-assets-for-beat"',
@@ -1324,6 +1325,7 @@ def test_freezone_canvas_asset_routes_delegate_to_application() -> None:
         "async def freezone_director_capture_sync_background(",
         "async def freezone_scene_assets_for_beat(",
         "async def list_freezone_assets(",
+        "async def list_freezone_beat_context_assets(",
         "def _asset_record_from_path(",
         "def _asset_record_from_optional_project_path(",
         "def _character_asset_history_links(",
@@ -1337,8 +1339,10 @@ def test_freezone_canvas_asset_routes_delegate_to_application() -> None:
         assert legacy_implementation not in legacy_source
 
     assert "freezone_assets.router" in api_router_source
-    assert route_source.count("creative_canvas_asset_use_cases().") == 4
+    assert route_source.count("creative_canvas_asset_use_cases().") == 5
     assert "class ListCreativeCanvasAssetsQuery" in application_source
+    assert "class ListCreativeCanvasBeatContextAssetsQuery" in application_source
+    assert "class InvalidCreativeCanvasBeatContextQuery" in application_source
     assert "class CreativeCanvasAssetCatalogGateway" in application_source
     assert "class CreativeCanvasAssetUseCases" in application_source
     assert "class CreativeCanvasBeatSceneSource" in application_source
@@ -1346,6 +1350,8 @@ def test_freezone_canvas_asset_routes_delegate_to_application() -> None:
     assert "class CreativeCanvasDirectorStageLinkBuilder" in application_source
     assert "class LocalCreativeCanvasAssetCatalogGateway" in adapter_source
     assert "class LocalCreativeCanvasAssetRecordFactory" in adapter_source
+    assert "async def list_beat_context_assets(" in adapter_source
+    assert 'getattr(store, "_episodes"' not in adapter_source
     assert "class LocalCreativeCanvasBeatSceneSource" in adapter_source
     assert "class LocalCreativeCanvasDirectorCaptureStorage" in adapter_source
     assert "class LocalCreativeCanvasDirectorStageLinkBuilder" in adapter_source
@@ -1355,6 +1361,8 @@ def test_freezone_canvas_asset_routes_delegate_to_application() -> None:
     assert "LocalCreativeCanvasAssetCatalogGateway()" in composition_source
     assert "def creative_canvas_asset_use_cases(" in public_source
     assert "ListCreativeCanvasAssetsQuery" in public_source
+    assert "ListCreativeCanvasBeatContextAssetsQuery" in public_source
+    assert "InvalidCreativeCanvasBeatContextQuery" in public_source
     assert "def project_creative_canvas_asset_record(" in domain_source
     assert "def project_creative_canvas_beat_context_asset(" in domain_source
     for route_implementation_detail in (
@@ -1364,6 +1372,11 @@ def test_freezone_canvas_asset_routes_delegate_to_application() -> None:
         "canonical_beat_selected_background_path",
         "canonical_scene_master_path",
         "canonical_scene_reverse_master_path",
+        "build_beat_preset_context",
+        "migrate_canvas_static_urls_in_memory",
+        "project_creative_canvas_beat_context_asset",
+        "get_beats_as_dicts",
+        'getattr(store, "_episodes"',
         "shutil",
         "os.utime",
     ):

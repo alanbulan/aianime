@@ -489,7 +489,6 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         static_url,
     )
     monkeypatch.setattr(freezone, "make_static_url_for_context", static_url)
-    monkeypatch.setattr(freezone, "build_beat_preset_context", build_beat_context)
     monkeypatch.setattr(
         canvas_presets,
         "make_sqlite_store_for_context",
@@ -1400,6 +1399,18 @@ def test_m06_freezone_assets_are_m06_scoped_and_identity_creation_works(m06_clie
         )
     )
     assert beat_context["data"]["scope"] == {"episode": 1, "beat": 1}
+    assert beat_context["data"]["episodes"][0]["beats"][0]["asset_count"] >= 1
+    assert any(
+        asset["role"] == "selected_background"
+        for asset in beat_context["data"]["assets"]
+    )
+    assert (
+        client.get(
+            f"/api/v1/projects/{_PROJECT}/freezone/assets/beat-context",
+            params={"beat": 1},
+        ).status_code
+        == 400
+    )
 
     scene_assets = _assert_ok(
         client.get(

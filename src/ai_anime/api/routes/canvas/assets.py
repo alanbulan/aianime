@@ -8,7 +8,9 @@ from ai_anime.modules.creative_canvas.public import (
     CreativeCanvasBeatNotFound,
     GetCreativeCanvasDirectorCaptureQuery,
     GetCreativeCanvasSceneAssetsQuery,
+    InvalidCreativeCanvasBeatContextQuery,
     ListCreativeCanvasAssetsQuery,
+    ListCreativeCanvasBeatContextAssetsQuery,
     SyncCreativeCanvasDirectorBackgroundCommand,
     creative_canvas_asset_use_cases,
 )
@@ -34,6 +36,32 @@ async def list_freezone_assets(
         )
     )
     return {"ok": True, "data": list(data)}
+
+
+@router.get(
+    "/projects/{project}/freezone/assets/beat-context",
+    tags=["freezone-assets"],
+)
+async def list_freezone_beat_context_assets(
+    project: str,
+    episode: int | None = None,
+    beat: int | None = None,
+    user: dict = Depends(get_api_user),
+):
+    resolved = await _resolve_viewer_project(project, user)
+    try:
+        data = await creative_canvas_asset_use_cases().list_beat_context_assets(
+            ListCreativeCanvasBeatContextAssetsQuery(
+                context=resolved.ctx,
+                project_id=project,
+                project_dir=resolved.project_dir,
+                episode=episode,
+                beat=beat,
+            )
+        )
+    except InvalidCreativeCanvasBeatContextQuery as exc:
+        raise HTTPException(400, str(exc)) from exc
+    return {"ok": True, "data": data}
 
 
 @router.get(
