@@ -390,6 +390,35 @@ def test_freezone_bootstrap_route_delegates_to_application() -> None:
         assert implementation_detail not in source
 
 
+def test_freezone_media_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "media.py"
+    legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
+    source = route.read_text(encoding="utf-8")
+    legacy_source = legacy_route.read_text(encoding="utf-8")
+    api_router_source = api_router.read_text(encoding="utf-8")
+
+    assert source.count("creative_canvas_media_use_cases().") == 2
+    assert "StoreCreativeCanvasUploadCommand" in source
+    assert "SaveCreativeCanvasScreenshotCommand" in source
+    assert "freezone_media.router" in api_router_source
+    assert "async def freezone_upload(" not in legacy_source
+    assert "async def freezone_three_d_viewer_screenshot(" not in legacy_source
+    assert "TAG_FREEZONE_MEDIA" not in legacy_source
+    assert "FreezoneThreeDViewerScreenshotRequest" not in legacy_source
+    assert "safe_upload_filename" not in legacy_source
+    for implementation_detail in (
+        "base64",
+        "binascii",
+        "write_bytes",
+        "output_path_for_job",
+        "safe_upload_filename",
+        "uploads_dir",
+        "project_static_url",
+    ):
+        assert implementation_detail not in source
+
+
 def test_production_sketch_edit_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_sketch.py"
     source = route.read_text(encoding="utf-8")

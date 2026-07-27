@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -219,6 +220,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.routes import freezone, ingest
     from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap
+    from ai_anime.api.routes.canvas import media as freezone_media
     from ai_anime.freezone.paths import uploads_dir
     from ai_anime.utils.path_resolver import (
         canonical_beat_director_env_only_path,
@@ -317,6 +319,11 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         "resolve_project_scope",
         resolve_project_scope,
     )
+    monkeypatch.setattr(
+        freezone_media,
+        "resolve_project_scope",
+        resolve_project_scope,
+    )
     monkeypatch.setattr(freezone, "resolve_project_context", resolve_project_context)
     monkeypatch.setattr(freezone, "make_sqlite_store_for_context", make_store_for_context)
     monkeypatch.setattr(freezone, "make_cognee_store_for_context", make_store_for_context)
@@ -360,6 +367,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app = FastAPI()
         app.include_router(ingest.router, prefix="/api/v1")
         app.include_router(freezone_bootstrap.router, prefix="/api/v1")
+        app.include_router(freezone_media.router, prefix="/api/v1")
         app.include_router(freezone.router, prefix="/api/v1")
         user = {
             "id": "user-alice",
@@ -370,6 +378,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app.dependency_overrides[api_auth.get_api_user] = lambda user=user: user
         app.dependency_overrides[ingest.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_bootstrap.get_api_user] = lambda user=user: user
+        app.dependency_overrides[freezone_media.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone.get_api_user] = lambda user=user: user
 
         async def override_cognee_store():
@@ -458,6 +467,49 @@ def test_m06_ingest_upload_preview_and_unsupported_format(m06_client_factory):
     payload = response.json()
     assert payload["ok"] is False
     assert payload["error_type"] == "unsupported"
+
+
+def test_m06_freezone_media_upload_and_screenshot(m06_client_factory):
+    client, _backend, _task_manager, project_dir, _assets, _store = m06_client_factory(
+        "inline"
+    )
+
+    upload_content = b"uploaded media"
+    upload = _assert_ok(
+        client.post(
+            f"/api/v1/projects/{_PROJECT}/freezone/upload",
+            files={"file": ("reference image.png", upload_content, "image/png")},
+        )
+    )["data"]
+    upload_path = project_dir / "freezone" / "_uploads" / upload["filename"]
+    assert upload["filename"].endswith("_reference_image.png")
+    assert upload["size"] == len(upload_content)
+    assert upload["url"].startswith(
+        f"/static/projects/{_PROJECT_ID}/freezone/_uploads/"
+    )
+    assert upload_path.read_bytes() == upload_content
+
+    png = _png_bytes()
+    screenshot = _assert_ok(
+        client.post(
+            f"/api/v1/projects/{_PROJECT}/freezone/three-d-viewer/screenshot",
+            json={
+                "data_url": "data:image/png;base64," + base64.b64encode(png).decode("ascii"),
+                "node_id": "three-d-node",
+                "label": " ",
+            },
+        )
+    )["data"]
+    screenshot_path = project_dir / screenshot["rel_path"]
+    assert len(screenshot["id"]) == 16
+    assert screenshot["label"] == "3D viewer screenshot"
+    assert screenshot["node_id"] == "three-d-node"
+    assert screenshot["media_type"] == "image"
+    assert screenshot["size"] == len(png)
+    assert screenshot["url"].startswith(
+        f"/static/projects/{_PROJECT_ID}/freezone/_outputs/three_d_viewer/"
+    )
+    assert screenshot_path.read_bytes() == png
 
 
 def test_m06_ingest_exposes_real_knowledge_graph_snapshot(m06_client_factory):

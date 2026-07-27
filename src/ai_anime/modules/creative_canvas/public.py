@@ -10,7 +10,18 @@ from ai_anime.modules.creative_canvas.application.bootstrap import (
 from ai_anime.modules.creative_canvas.application.generation_catalog import (
     GenerationCatalogQueries,
 )
-from ai_anime.modules.creative_canvas.domain import canvas_actor_id
+from ai_anime.modules.creative_canvas.application.media import (
+    CreativeCanvasMediaUseCases,
+    CreativeCanvasScreenshotResult,
+    CreativeCanvasUploadResult,
+    SaveCreativeCanvasScreenshotCommand,
+    StoreCreativeCanvasUploadCommand,
+)
+from ai_anime.modules.creative_canvas.domain import (
+    CreativeCanvasScreenshotTooLarge,
+    InvalidCreativeCanvasPngScreenshot,
+    canvas_actor_id,
+)
 
 
 def creative_canvas_bootstrap_use_cases() -> CreativeCanvasBootstrapUseCases:
@@ -29,14 +40,30 @@ def generation_catalog_queries() -> GenerationCatalogQueries:
     return build()
 
 
+def creative_canvas_media_use_cases() -> CreativeCanvasMediaUseCases:
+    from ai_anime.modules.creative_canvas.composition import (
+        creative_canvas_media_use_cases as build,
+    )
+
+    return build()
+
+
 __all__ = [
     "CreativeCanvasBootstrapBusy",
     "CreativeCanvasBootstrapCorrupt",
     "CreativeCanvasBootstrapResult",
     "CreativeCanvasBootstrapUseCases",
+    "CreativeCanvasMediaUseCases",
+    "CreativeCanvasScreenshotResult",
+    "CreativeCanvasScreenshotTooLarge",
+    "CreativeCanvasUploadResult",
     "GenerationCatalogQueries",
+    "InvalidCreativeCanvasPngScreenshot",
     "InitializeCreativeCanvasCommand",
+    "SaveCreativeCanvasScreenshotCommand",
+    "StoreCreativeCanvasUploadCommand",
     "canvas_actor_id",
     "creative_canvas_bootstrap_use_cases",
+    "creative_canvas_media_use_cases",
     "generation_catalog_queries",
 ]

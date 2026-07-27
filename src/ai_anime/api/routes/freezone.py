@@ -7,8 +7,6 @@ AI anime 现有鉴权约定（`Depends(get_api_user)`）。
 from __future__ import annotations
 
 import asyncio
-import base64
-import binascii
 import hashlib
 import json
 import logging
@@ -61,7 +59,6 @@ from ai_anime.api.schemas import (
     FreezoneStoryScriptGenerateRequest,
     FreezoneTemplateEditRequest,
     FreezoneTextTranslateRequest,
-    FreezoneThreeDViewerScreenshotRequest,
     FreezoneUpscaleRequest,
     FreezoneVideoCharacterLibraryItemRequest,
     FreezoneVideoComposeRequest,
@@ -117,8 +114,6 @@ from ai_anime.freezone.paths import (
     output_path_for_job,
     outputs_dir,
     resolve_static_url_to_path,
-    safe_upload_filename,
-    uploads_dir,
 )
 from ai_anime.freezone.presets import (
     build_asset_preset_context,
@@ -2078,7 +2073,6 @@ router = APIRouter()
 FrameReviewReviewer = Callable[[str], str | Awaitable[str]]
 _agent_review_frame_reviewer: FrameReviewReviewer | None = None
 
-TAG_FREEZONE_MEDIA = "freezone-media"
 TAG_FREEZONE_AUDIO = "freezone-audio"
 TAG_FREEZONE_IMAGE = "freezone-image"
 TAG_FREEZONE_VIDEO = "freezone-video"
@@ -3837,82 +3831,6 @@ async def _review_frame_text(
 @router.get("/freezone/skills", tags=[TAG_FREEZONE_SKILLS])
 async def freezone_skills(user: dict = Depends(get_api_user)):
     return {"ok": True, "data": [skill.model_dump(mode="json") for skill in list_skills()]}
-
-
-# ============================================================
-# 图片处理：上传
-# ============================================================
-
-
-@router.post("/projects/{project}/freezone/upload", tags=[TAG_FREEZONE_MEDIA])
-async def freezone_upload(
-    project: str,
-    file: Annotated[UploadFile, File()],
-    user: dict = Depends(get_api_user),
-):
-    """把外部资源上传保存到 `freezone/_uploads/`。"""
-    ctx, username, project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project, user
-    )
-    target_dir = uploads_dir(project_dir)
-    target_dir.mkdir(parents=True, exist_ok=True)
-    filename = safe_upload_filename(file.filename)
-    target = target_dir / filename
-    contents = await file.read()
-    target.write_bytes(contents)
-    rel = target.relative_to(project_dir).as_posix()
-    return {
-        "ok": True,
-        "data": {
-            "url": (make_static_url_for_context(ctx, rel, local_path=target)),
-            "filename": filename,
-            "size": len(contents),
-        },
-    }
-
-
-@router.post("/projects/{project}/freezone/three-d-viewer/screenshot", tags=[TAG_FREEZONE_MEDIA])
-async def freezone_three_d_viewer_screenshot(
-    project: str,
-    body: FreezoneThreeDViewerScreenshotRequest,
-    user: dict = Depends(get_api_user),
-):
-    """保存内置 3D viewer 普通截图到 Freezone 输出目录。"""
-
-    ctx, username, project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project, user
-    )
-    prefix = "data:image/png;base64,"
-    data_url = (body.data_url or "").strip()
-    if not data_url.startswith(prefix):
-        raise HTTPException(400, "expected PNG data URL")
-    try:
-        payload = base64.b64decode(data_url[len(prefix) :], validate=True)
-    except (binascii.Error, ValueError) as exc:
-        raise HTTPException(400, "invalid PNG data URL") from exc
-    if not payload.startswith(b"\x89PNG\r\n\x1a\n"):
-        raise HTTPException(400, "screenshot payload is not PNG")
-    if len(payload) > 20 * 1024 * 1024:
-        raise HTTPException(413, "screenshot is too large")
-
-    job_id = _new_job_id()
-    out = output_path_for_job(project_dir, "three_d_viewer", job_id)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_bytes(payload)
-    rel_path = out.relative_to(project_dir).as_posix()
-    label = (body.label or "3D viewer screenshot").strip() or "3D viewer screenshot"
-    return {
-        "ok": True,
-        "data": {
-            "id": job_id,
-            "label": label,
-            "node_id": body.node_id,
-            "rel_path": rel_path,
-            "url": (make_static_url_for_context(ctx, rel_path, local_path=out)),
-            "media_type": "image",
-            "size": len(payload),
-        },
-    }
 
 
 @router.post(

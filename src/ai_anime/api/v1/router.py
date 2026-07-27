@@ -39,6 +39,7 @@ from ai_anime.api.routes import (
 )
 from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap
 from ai_anime.api.routes.canvas import image as freezone_image
+from ai_anime.api.routes.canvas import media as freezone_media
 from ai_anime.api.routes.canvas import video as freezone_video
 from ai_anime.shared import runtime_env
 
@@ -110,6 +111,7 @@ def create_api_router(*, desktop_mode: bool | None = None) -> APIRouter:
     )
     router.include_router(freezone_bootstrap.router)
     router.include_router(freezone_image.router)
+    router.include_router(freezone_media.router)
     router.include_router(freezone_video.router)
     router.include_router(freezone.router)
 
