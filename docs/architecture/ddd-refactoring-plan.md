@@ -1721,6 +1721,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百三十批已建立前端 Model Usage domain/application/infrastructure/composition/public 边界，将生成费用 DTO 与查询参数契约迁入 domain，将查询键、参数归一、启用条件、重试和缓存策略迁入 application，并由唯一 HTTP gateway 持有 `/api/v1/generation-credit-cost` 端点；25 个生产与测试调用方全部改经 public API，旧 `lib/queries/generation-credit-cost.ts` 直接删除，不保留 facade、re-export 或第二套查询实现。请求参数、省略规则、查询键、缺少必填 value 时禁用、计费规则缺失不重试、60 秒缓存及 `{ ok, data }` 返回结构均保持不变；生成费用查询回归 2 个测试文件 10 项、代表性费用展示与编辑工作流 5 个测试文件 88 项、前端完整分层门禁 210 项、`tsc -b --pretty false` 与 `git diff --check` 均通过。
 
+第三百三十一批已建立后端 Model Usage domain/application/infrastructure/composition/public 边界，将生成费用类型、请求错误、报价 DTO、费用展示及参数归一/合并规则迁入 domain，将模型目录与 credit quote 定义为 application ports，并由唯一配置目录适配器解析既有图像选择、固定图像、视频后端、文本与音频模型；进程注册表 quote adapter 保持报价端口延迟解析和 EE 注入能力，本地零报价适配器改由 public factory 注册。`model_credits.py` 从 421 行收缩为 61 行 HTTP adapter，旧 `ports/credit_quote.py`、`ports/local/credit_quote.py` 和 `get_credit_quote` 直接删除，26 项 API 回归中的 7 处路由私有 helper patch 清零，不保留 facade、转发函数或第二套计费实现。请求路径、查询参数、模型/标签解析、Canvas 显式参数规则、默认图像参数、计费 kind、校验顺序、400 文案、字符计费字段及 `{ ok, data }` 响应均保持不变；生成费用 API 回归 26 项、CE 注册表与应用容器回归 14 项、完整后端分层门禁 97 项均通过，修改文件 Ruff、实现文件格式检查、Python 编译与 `git diff --check` 通过。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

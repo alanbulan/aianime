@@ -368,6 +368,53 @@ def test_platform_release_callers_use_the_public_api() -> None:
     assert not failures, "\n".join(failures)
 
 
+def test_model_usage_callers_use_the_public_api() -> None:
+    model_usage_module = PACKAGE_ROOT / "modules" / "model_usage"
+    failures: list[str] = []
+
+    for path in _python_files(PACKAGE_ROOT):
+        if path.is_relative_to(model_usage_module):
+            continue
+        relative = _relative(path)
+        for imported in _imports(path):
+            if not imported.startswith("ai_anime.modules.model_usage."):
+                continue
+            if imported == "ai_anime.modules.model_usage.public":
+                continue
+            failures.append(f"{relative}: {imported}")
+
+    assert not failures, "\n".join(failures)
+
+
+def test_model_usage_owns_credit_quote_and_generation_cost() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "model_credits.py"
+    composition = PACKAGE_ROOT / "modules" / "model_usage" / "composition.py"
+    registered_quote = (
+        PACKAGE_ROOT
+        / "modules"
+        / "model_usage"
+        / "infrastructure"
+        / "registered_credit_quote.py"
+    )
+    local_ports = PACKAGE_ROOT / "ports" / "local" / "__init__.py"
+    container = PACKAGE_ROOT / "bootstrap" / "container.py"
+    route_source = route.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    registered_quote_source = registered_quote.read_text(encoding="utf-8")
+
+    assert not (PACKAGE_ROOT / "ports" / "credit_quote.py").exists()
+    assert not (PACKAGE_ROOT / "ports" / "local" / "credit_quote.py").exists()
+    assert route_source.count("generation_credit_queries().cost(") == 1
+    assert "ai_anime.modules.model_usage.public" in _imports(route)
+    assert "get_credit_quote" not in route_source
+    assert "def _fixed_image_cost_model(" not in route_source
+    assert "def _image_selection_cost_model(" not in route_source
+    assert "RegisteredCreditQuote" in composition_source
+    assert registered_quote_source.count('get_port("credit_quote")') == 1
+    assert "ai_anime.modules.model_usage.public" in _imports(local_ports)
+    assert "ai_anime.modules.model_usage.public" in _imports(container)
+
+
 def test_platform_release_owns_release_feed_contract_and_adapters() -> None:
     composition = PACKAGE_ROOT / "modules" / "platform_release" / "composition.py"
     local_ports = PACKAGE_ROOT / "ports" / "local" / "__init__.py"

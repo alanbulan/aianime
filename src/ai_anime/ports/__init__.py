@@ -41,10 +41,6 @@ def get_audit_sink():
     return get_port("audit_sink")
 
 
-def get_credit_quote():
-    return get_port("credit_quote")
-
-
 def get_lifecycle_port():
     return get_port("lifecycle")
 
@@ -53,7 +49,6 @@ __all__ = [
     "get_audit_sink",
     "get_cancellation_store",
     "get_cloud_adapter",
-    "get_credit_quote",
     "get_lifecycle_port",
     "get_provider_instrumentation",
     "get_task_backend",

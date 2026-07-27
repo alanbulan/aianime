@@ -5,10 +5,10 @@ from __future__ import annotations
 import os
 
 from ai_anime.modules.identity_access.public import build_local_identity_adapters
+from ai_anime.modules.model_usage.public import build_local_credit_quote
 from ai_anime.modules.platform_release.public import build_local_release_feed
 from ai_anime.modules.project_workspace.public import build_local_project_adapters
 from ai_anime.ports.local.audit import NoOpAuditSink
-from ai_anime.ports.local.credit_quote import LocalCreditQuote
 from ai_anime.ports.local.lifecycle import NoOpLifecycle
 from ai_anime.ports.local.mock_cloud import MockCloudAdapter
 from ai_anime.ports.local.mock_tasks import MockCloudTaskBackend
@@ -31,7 +31,7 @@ def register_local_ports() -> None:
     register_port("project_access", project_access)
     register_port("usage_meter", NoOpUsageMeter())
     register_port("provider_instrumentation", NoOpProviderInstrumentation())
-    register_port("credit_quote", LocalCreditQuote())
+    register_port("credit_quote", build_local_credit_quote())
     register_port(
         "release_feed",
         build_local_release_feed(release_feed_name),
