@@ -10,7 +10,7 @@ import {
   ensureBackendImageUrls,
 } from "@/features/canvas/infrastructure/freezoneAssetGateway";
 
-// Per-node generation history -------------------------------------------- //
+// Generation node context ------------------------------------------------ //
 
 /**
  * Optional canvas/node context the backend uses to record a per-node
@@ -34,69 +34,6 @@ function nodeContextBody(ctx: FreezoneNodeContext): Record<string, string> {
   if (ctx.canvasId) out.canvas_id = ctx.canvasId;
   if (ctx.nodeId) out.node_id = ctx.nodeId;
   return out;
-}
-
-/** One recorded generation attempt for a node (see generation-history GET). */
-export interface FreezoneGenerationHistoryRecord {
-  schema_version: number;
-  canvas_id: string;
-  node_id: string;
-  /** ISO timestamp the backend recorded the attempt. */
-  recorded_at: string;
-  /** Stable record id, e.g. "freezone_gen:<job_id>". */
-  id: string;
-  task_type: string;
-  task_key: string;
-  job_id: string;
-  /** "completed" | "failed" | other backend status strings. */
-  status: string;
-  /** "image" | "video" | "audio" | "text" | "3d" ... */
-  media_type: string;
-  /** Raw task result payload; shape varies by task_type. */
-  result: Record<string, unknown>;
-  /** 注册表模型 id（还原时回填 data.model）。旧记录无此字段。 */
-  model?: string;
-  /** 生成模式（视频 genMode / 图片 generationMode）。旧记录无此字段。 */
-  gen_mode?: string;
-}
-
-/**
- * Read a node's recorded generation history (most recent first per the
- * backend). Returns `[]` when the node has no history yet. The endpoint is
- * independent of canvas JSON, so this never touches the saved-canvas flow.
- */
-export async function fetchNodeGenerationHistory(
-  project: string,
-  canvasId: string,
-  nodeId: string,
-  limit = 100,
-): Promise<FreezoneGenerationHistoryRecord[]> {
-  const data = await apiCall<{ records?: FreezoneGenerationHistoryRecord[] }>(
-    `projects/${encodeURIComponent(project)}/freezone/canvases/${encodeURIComponent(
-      canvasId,
-    )}/nodes/${encodeURIComponent(nodeId)}/generation-history?limit=${limit}`,
-  );
-  return data?.records ?? [];
-}
-
-/**
- * Read the whole canvas's generation history in one request (most recent
- * first). Unlike {@link fetchNodeGenerationHistory} this is not scoped to a
- * single node, and the backend aggregates across every node that ever recorded
- * history on this canvas — including nodes since deleted from the canvas — so
- * their past attempts stay visible in the history browser.
- */
-export async function fetchCanvasGenerationHistory(
-  project: string,
-  canvasId: string,
-  limit = 500,
-): Promise<FreezoneGenerationHistoryRecord[]> {
-  const data = await apiCall<{ records?: FreezoneGenerationHistoryRecord[] }>(
-    `projects/${encodeURIComponent(project)}/freezone/canvases/${encodeURIComponent(
-      canvasId,
-    )}/generation-history?limit=${limit}`,
-  );
-  return data?.records ?? [];
 }
 
 // /freezone/gen ----------------------------------------------------------- //

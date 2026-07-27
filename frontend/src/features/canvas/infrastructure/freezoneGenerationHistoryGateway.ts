@@ -1,9 +1,5 @@
 // Copyright (c) 2026 AI anime
-import {
-  fetchCanvasGenerationHistory,
-  fetchNodeGenerationHistory,
-  type FreezoneGenerationHistoryRecord,
-} from "@/api/ops";
+import { apiCall } from "@/shared/api/client";
 import { ApiError } from "@/shared/api/errors";
 
 import type {
@@ -12,7 +8,7 @@ import type {
 } from "../application/generationHistory";
 
 function toCanvasRecord(
-  record: FreezoneGenerationHistoryRecord,
+  record: CanvasGenerationHistoryRecord,
 ): CanvasGenerationHistoryRecord {
   return {
     schema_version: record.schema_version,
@@ -33,22 +29,25 @@ function toCanvasRecord(
 
 export const freezoneGenerationHistoryGateway: CanvasGenerationHistoryGateway = {
   async fetchNode(projectId, canvasId, nodeId, limit) {
-    const records = await fetchNodeGenerationHistory(
-      projectId,
-      canvasId,
-      nodeId,
-      limit,
+    const data = await apiCall<{
+      records?: CanvasGenerationHistoryRecord[];
+    }>(
+      `projects/${encodeURIComponent(projectId)}/freezone/canvases/${encodeURIComponent(
+        canvasId,
+      )}/nodes/${encodeURIComponent(nodeId)}/generation-history?limit=${limit}`,
     );
-    return records.map(toCanvasRecord);
+    return (data?.records ?? []).map(toCanvasRecord);
   },
   async fetchCanvas(projectId, canvasId, limit) {
     try {
-      const records = await fetchCanvasGenerationHistory(
-        projectId,
-        canvasId,
-        limit,
+      const data = await apiCall<{
+        records?: CanvasGenerationHistoryRecord[];
+      }>(
+        `projects/${encodeURIComponent(projectId)}/freezone/canvases/${encodeURIComponent(
+          canvasId,
+        )}/generation-history?limit=${limit}`,
       );
-      return records.map(toCanvasRecord);
+      return (data?.records ?? []).map(toCanvasRecord);
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) return null;
       throw error;

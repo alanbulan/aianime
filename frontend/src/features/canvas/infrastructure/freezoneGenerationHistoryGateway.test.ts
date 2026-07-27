@@ -1,13 +1,9 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const fetchCanvasGenerationHistory = vi.hoisted(() => vi.fn());
-const fetchNodeGenerationHistory = vi.hoisted(() => vi.fn());
+import { apiCall } from "@/shared/api/client";
 
-vi.mock("@/api/ops", () => ({
-  fetchCanvasGenerationHistory,
-  fetchNodeGenerationHistory,
-}));
+vi.mock("@/shared/api/client", () => ({ apiCall: vi.fn() }));
 
 import { ApiError } from "@/shared/api/errors";
 import { freezoneGenerationHistoryGateway } from "./freezoneGenerationHistoryGateway";
@@ -29,32 +25,43 @@ const record = {
 };
 
 beforeEach(() => {
-  fetchCanvasGenerationHistory.mockReset();
-  fetchNodeGenerationHistory.mockReset();
+  vi.mocked(apiCall).mockReset();
 });
 
 describe("freezoneGenerationHistoryGateway", () => {
   it("maps node history records into the application DTO", async () => {
-    fetchNodeGenerationHistory.mockResolvedValue([record]);
+    vi.mocked(apiCall).mockResolvedValue({ records: [record] });
 
     await expect(
       freezoneGenerationHistoryGateway.fetchNode(
-        "project-1",
-        "canvas-1",
-        "node-1",
+        "project/1",
+        "canvas/1",
+        "node/1",
         25,
       ),
     ).resolves.toEqual([record]);
-    expect(fetchNodeGenerationHistory).toHaveBeenCalledWith(
-      "project-1",
-      "canvas-1",
-      "node-1",
-      25,
+    expect(apiCall).toHaveBeenCalledWith(
+      "projects/project%2F1/freezone/canvases/canvas%2F1/nodes/node%2F1/generation-history?limit=25",
+    );
+  });
+
+  it("maps aggregate history records from the encoded canvas endpoint", async () => {
+    vi.mocked(apiCall).mockResolvedValue({ records: [record] });
+
+    await expect(
+      freezoneGenerationHistoryGateway.fetchCanvas(
+        "project/1",
+        "canvas/1",
+        500,
+      ),
+    ).resolves.toEqual([record]);
+    expect(apiCall).toHaveBeenCalledWith(
+      "projects/project%2F1/freezone/canvases/canvas%2F1/generation-history?limit=500",
     );
   });
 
   it("maps an unavailable aggregate endpoint to null", async () => {
-    fetchCanvasGenerationHistory.mockRejectedValue(
+    vi.mocked(apiCall).mockRejectedValue(
       new ApiError("not found", 404),
     );
 
@@ -69,7 +76,7 @@ describe("freezoneGenerationHistoryGateway", () => {
 
   it("preserves non-404 aggregate failures", async () => {
     const error = new ApiError("server error", 500);
-    fetchCanvasGenerationHistory.mockRejectedValue(error);
+    vi.mocked(apiCall).mockRejectedValue(error);
 
     await expect(
       freezoneGenerationHistoryGateway.fetchCanvas(
