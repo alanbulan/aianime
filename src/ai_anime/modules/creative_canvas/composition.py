@@ -1,7 +1,12 @@
 """Creative Canvas application composition."""
 
 from functools import lru_cache
+from typing import Literal
 
+from ai_anime.modules.creative_canvas.domain.text_generation import (
+    CreativeCanvasTextNodeType,
+    resolve_creative_canvas_story_script_model as resolve_story_script_model,
+)
 from ai_anime.modules.creative_canvas.application.audio_generation import (
     CreativeCanvasAudioGenerationUseCases,
 )
@@ -156,6 +161,10 @@ from ai_anime.modules.creative_canvas.infrastructure.task_submission import (
 from ai_anime.modules.creative_canvas.infrastructure.text_sources import (
     LocalCreativeCanvasTextSourceReader,
 )
+from ai_anime.modules.creative_canvas.infrastructure.text_generation import (
+    generate_creative_canvas_story_script as generate_story_script,
+    translate_creative_canvas_text as translate_text,
+)
 from ai_anime.modules.creative_canvas.infrastructure.video_generation import (
     ConfiguredCreativeCanvasVideoModelPolicy,
 )
@@ -165,6 +174,33 @@ from ai_anime.modules.creative_canvas.infrastructure.video_asset_library import 
     SystemCreativeCanvasClock,
     UuidCreativeCanvasVideoAssetIdGenerator,
 )
+
+
+async def translate_creative_canvas_text(
+    *,
+    text: str,
+    node_type: CreativeCanvasTextNodeType = "generic",
+) -> tuple[str, Literal["zh", "en"], Literal["zh", "en"]]:
+    return await translate_text(text=text, node_type=node_type)
+
+
+async def generate_creative_canvas_story_script(
+    *,
+    source_text: str,
+    prompt: str = "",
+    model: str | None = None,
+) -> dict[str, object]:
+    return await generate_story_script(
+        source_text=source_text,
+        prompt=prompt,
+        model=model,
+    )
+
+
+def resolve_creative_canvas_story_script_model(
+    model: str | None,
+) -> dict[str, str]:
+    return resolve_story_script_model(model)
 
 
 @lru_cache(maxsize=1)

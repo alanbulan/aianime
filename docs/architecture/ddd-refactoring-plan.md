@@ -1682,6 +1682,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百二十批已将遗留 `freezone/route_helpers.py` 中仍在使用的图片相机/风格目录与提示词组合规则迁入 Creative Canvas domain，将配置驱动的 provider/model 选择迁入唯一 infrastructure 适配器，并由媒体适配器直接实现任务 ID 生成；API schema 与预设画布同步复用领域默认图片模型，未知风格模板由 application 异常统一映射回原 HTTP 400 语义。全部生产调用方和测试已切换后删除旧 helper、未使用函数及其反向 API 依赖白名单，不保留转发壳、别名或第二套规则；图片目录/生成/编辑定向回归 45 项、全部 Freezone 回归 314 项、M06 与项目解析合同 20 项、完整后端分层门禁 89 项均通过，Python 编译、修改文件 Ruff 与 `git diff --check` 通过，8 条告警均为既有依赖弃用告警。
 
+第三百二十一批已将 `freezone/text_node.py` 中的模型选择、翻译任务和故事脚本任务构造迁入 Creative Canvas domain，将 PydanticAI Agent、私有结构化输出模型和执行逻辑迁入唯一 infrastructure 适配器，并由 composition/public 提供翻译、故事脚本生成和模型解析三个稳定入口；任务 runner、模型额度解析和运行时 Agent 缓存刷新全部改经新边界，故事脚本执行结果在适配器内转为普通字典，五个无端点引用的旧 API 输出 schema 与旧文本模块直接删除，不保留转发壳、公开基础设施模型或第二套实现。Creative Canvas 的反向 API 依赖归零，全仓非 API -> API 存量由 3 处降至 2 处；文本领域与执行回归 9 项、文本路由/应用回归 13 项、模型额度回归 26 项、模型网关回归 59 项、全部 Freezone 回归 300 项、M06 与项目解析合同 20 项、完整后端分层门禁 89 项均通过，Python 编译、修改文件 Ruff 与 `git diff --check` 通过，8 条告警均为既有依赖弃用告警。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。
@@ -1715,7 +1717,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
-2. 将后端非 API -> API 的反向依赖从阶段 0 的 28 处（当前 5 处）降为 0。
+2. 将后端非 API -> API 的反向依赖从阶段 0 的 28 处（当前 2 处）降为 0。
 3. 清空前端 legacy 目录违规基线；跨模块只保留 public API。
 4. 更新 README、领域地图、运行架构和开发约束。
 5. 执行全量测试、类型检查、Ruff、桌面 typecheck、OpenAPI diff 和数据兼容验证。
@@ -1756,7 +1758,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 | 指标 | 当前 | 最终目标 |
 | --- | --- | --- |
-| 非 API 业务模块反向依赖 `ai_anime.api.*` | 3 处（阶段 0：28 处） | 0 |
+| 非 API 业务模块反向依赖 `ai_anime.api.*` | 2 处（阶段 0：28 处） | 0 |
 | route 互相导入私有实现 | 0 | 0 |
 | 后端超 1,000 逻辑行 route 模块 | 4 个 | 0；兼容 facade 不含实现 |
 | 前端 route 超 500 逻辑行 | 8/19 | 0；route 仅做适配 |

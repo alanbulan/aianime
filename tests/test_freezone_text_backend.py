@@ -7,19 +7,21 @@ from types import SimpleNamespace
 import pytest
 
 from ai_anime.api.routes.canvas import jobs as freezone_job_routes
-from ai_anime.freezone.text_node import (
-    FREEZONE_TRANSLATION_MODEL,
-    FREEZONE_TRANSLATION_PROVIDER,
-    FreezoneTranslationResult,
-    build_freezone_story_script_task,
-    build_freezone_translation_task,
-    translate_freezone_text,
-)
 from ai_anime.modules.creative_canvas.application.job_results import (
     CreativeCanvasJobResultQueries,
 )
+from ai_anime.modules.creative_canvas.domain.text_generation import (
+    CREATIVE_CANVAS_TRANSLATION_MODEL,
+    CREATIVE_CANVAS_TRANSLATION_PROVIDER,
+    build_creative_canvas_story_script_task,
+    build_creative_canvas_translation_task,
+)
 from ai_anime.modules.creative_canvas.infrastructure.job_results import (
     LocalCreativeCanvasJobResultReader,
+)
+from ai_anime.modules.creative_canvas.public import (
+    generate_creative_canvas_story_script,
+    translate_creative_canvas_text,
 )
 
 
@@ -60,8 +62,8 @@ def _patch_project_resolution(
     )
 
 
-def test_build_freezone_translation_task_mentions_languages_and_node_type() -> None:
-    task = build_freezone_translation_task(
+def test_build_creative_canvas_translation_task_mentions_languages_and_node_type() -> None:
+    task = build_creative_canvas_translation_task(
         text="手持镜头，雨夜街头，人物缓慢向前走。",
         node_type="video",
     )
@@ -74,7 +76,7 @@ def test_build_freezone_translation_task_mentions_languages_and_node_type() -> N
 
 
 @pytest.mark.asyncio
-async def test_translate_freezone_text_trusts_model_detected_direction(
+async def test_translate_creative_canvas_text_trusts_model_detected_direction(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     captured: dict[str, str] = {}
@@ -84,7 +86,7 @@ async def test_translate_freezone_text_trusts_model_detected_direction(
             captured["task"] = task
 
             class Response:
-                output = FreezoneTranslationResult(
+                output = SimpleNamespace(
                     translated_text="生成一个 AI anime 节拍的故事板草图面板。",
                     source_language="en",
                     target_language="zh",
@@ -92,9 +94,13 @@ async def test_translate_freezone_text_trusts_model_detected_direction(
 
             return Response()
 
-    monkeypatch.setattr("ai_anime.freezone.text_node.get_freezone_translation_agent", FakeAgent)
+    monkeypatch.setattr(
+        "ai_anime.modules.creative_canvas.infrastructure.text_generation."
+        "_get_translation_agent",
+        FakeAgent,
+    )
 
-    translated, source_language, target_language = await translate_freezone_text(
+    translated, source_language, target_language = await translate_creative_canvas_text(
         text="Generate ONE storyboard sketch panel for this AI anime beat. 颜色法则：保留 [CM_6932]",
         node_type="image",
     )
@@ -107,13 +113,13 @@ async def test_translate_freezone_text_trusts_model_detected_direction(
 
 
 @pytest.mark.asyncio
-async def test_translate_freezone_text_flips_invalid_same_language_result(
+async def test_translate_creative_canvas_text_flips_invalid_same_language_result(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     class FakeAgent:
         async def run(self, _task: str):
             class Response:
-                output = FreezoneTranslationResult(
+                output = SimpleNamespace(
                     translated_text="雨夜街头",
                     source_language="zh",
                     target_language="zh",
@@ -121,9 +127,13 @@ async def test_translate_freezone_text_flips_invalid_same_language_result(
 
             return Response()
 
-    monkeypatch.setattr("ai_anime.freezone.text_node.get_freezone_translation_agent", FakeAgent)
+    monkeypatch.setattr(
+        "ai_anime.modules.creative_canvas.infrastructure.text_generation."
+        "_get_translation_agent",
+        FakeAgent,
+    )
 
-    translated, source_language, target_language = await translate_freezone_text(
+    translated, source_language, target_language = await translate_creative_canvas_text(
         text="雨夜街头",
         node_type="image",
     )
@@ -134,12 +144,12 @@ async def test_translate_freezone_text_flips_invalid_same_language_result(
 
 
 def test_translation_defaults_use_newapi_gemini_flash() -> None:
-    assert FREEZONE_TRANSLATION_PROVIDER == "newapi"
-    assert FREEZONE_TRANSLATION_MODEL == "ai-anime-freezone-translator-LLM"
+    assert CREATIVE_CANVAS_TRANSLATION_PROVIDER == "newapi"
+    assert CREATIVE_CANVAS_TRANSLATION_MODEL == "ai-anime-freezone-translator-LLM"
 
 
-def test_build_freezone_story_script_task_mentions_required_columns() -> None:
-    task = build_freezone_story_script_task(
+def test_build_creative_canvas_story_script_task_mentions_required_columns() -> None:
+    task = build_creative_canvas_story_script_task(
         source_text="沈昭昭在深夜办公室醒来。",
         prompt="节奏要快，压迫感强",
     )
@@ -156,6 +166,44 @@ def test_build_freezone_story_script_task_mentions_required_columns() -> None:
     assert "最好严格按 6 段写" in task
     assert "第二段尽量直接使用或轻改角色描述1" in task
     assert "技术参数段尽量保留" in task
+
+
+@pytest.mark.asyncio
+async def test_generate_creative_canvas_story_script_returns_plain_dict(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    expected = {
+        "title": "我在盛唐写天下",
+        "rows": [
+            {
+                "shot_no": 1,
+                "duration": 4,
+                "visual_description": "沈昭昭在办公室醒来。",
+            }
+        ],
+    }
+
+    class FakeOutput:
+        def model_dump(self) -> dict:
+            return expected
+
+    class FakeAgent:
+        async def run(self, task: str):
+            assert "沈昭昭" in task
+            return SimpleNamespace(output=FakeOutput())
+
+    monkeypatch.setattr(
+        "ai_anime.modules.creative_canvas.infrastructure.text_generation."
+        "_get_story_script_agent",
+        lambda _model=None: FakeAgent(),
+    )
+
+    result = await generate_creative_canvas_story_script(
+        source_text="沈昭昭在深夜办公室醒来。",
+    )
+
+    assert result == expected
+    assert isinstance(result, dict)
 
 
 @pytest.mark.asyncio

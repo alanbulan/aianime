@@ -753,7 +753,7 @@ async def _run_freezone_text_translate_async(
     from ai_anime.shared.project_media import make_static_url_for_context
     from ai_anime.freezone.jobs import ensure_freezone_dirs
     from ai_anime.freezone.paths import outputs_dir
-    from ai_anime.freezone.text_node import translate_freezone_text
+    from ai_anime.modules.creative_canvas.public import translate_creative_canvas_text
 
     payload = envelope.get("payload") or {}
     job_id = str(payload["job_id"])
@@ -761,9 +761,11 @@ async def _run_freezone_text_translate_async(
     ensure_freezone_dirs(project_dir)
     node_type = str(payload.get("node_type") or "generic")
     _update(ctx, "freezone_text_translate", job_id, 0.1, "开始翻译文本...")
-    translated_text, source_language, target_language = await translate_freezone_text(
-        text=str(payload.get("text") or ""),
-        node_type=node_type,
+    translated_text, source_language, target_language = (
+        await translate_creative_canvas_text(
+            text=str(payload.get("text") or ""),
+            node_type=node_type,
+        )
     )
     data = {
         "translated_text": translated_text,
@@ -807,14 +809,16 @@ async def _run_freezone_story_script_async(
     from ai_anime.shared.project_media import make_static_url_for_context
     from ai_anime.freezone.jobs import ensure_freezone_dirs
     from ai_anime.freezone.paths import outputs_dir
-    from ai_anime.freezone.text_node import generate_freezone_story_script
+    from ai_anime.modules.creative_canvas.public import (
+        generate_creative_canvas_story_script,
+    )
 
     payload = envelope.get("payload") or {}
     job_id = str(payload["job_id"])
     project_dir = Path(str(payload.get("project_dir") or ctx.output_dir))
     ensure_freezone_dirs(project_dir)
     _update(ctx, "freezone_story_script", job_id, 0.1, "开始生成故事脚本...")
-    data = await generate_freezone_story_script(
+    payload_data = await generate_creative_canvas_story_script(
         source_text=str(payload.get("source_text") or ""),
         prompt=str(payload.get("prompt") or ""),
         model=str(payload.get("model") or ""),
@@ -823,7 +827,6 @@ async def _run_freezone_story_script_async(
     out.parent.mkdir(parents=True, exist_ok=True)
     import json
 
-    payload_data = data.model_dump()
     out.write_text(json.dumps(payload_data, ensure_ascii=False, indent=2), encoding="utf-8")
     rel = out.relative_to(project_dir).as_posix()
     result = {

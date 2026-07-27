@@ -1,37 +1,31 @@
-"""Freezone 文本工具辅助逻辑。
-
-当前包含：
-- 中英文提示词互译
-- 故事脚本生成
-"""
+"""Creative Canvas text generation rules."""
 
 from __future__ import annotations
 
-from typing import Literal, Optional
-
-from pydantic import BaseModel, Field
-from pydantic_ai import Agent
+from typing import Literal
 
 from ai_anime.official_defaults import (
     DEFAULT_FREEZONE_STORY_SCRIPT_MODEL,
     DEFAULT_FREEZONE_TRANSLATION_MODEL,
 )
 
-FREEZONE_TRANSLATION_PROVIDER = "newapi"
-FREEZONE_TRANSLATION_MODEL = DEFAULT_FREEZONE_TRANSLATION_MODEL
-FREEZONE_STORY_SCRIPT_MODEL = {
+CreativeCanvasTextNodeType = Literal["generic", "image", "video", "audio", "text"]
+
+CREATIVE_CANVAS_TRANSLATION_PROVIDER = "newapi"
+CREATIVE_CANVAS_TRANSLATION_MODEL = DEFAULT_FREEZONE_TRANSLATION_MODEL
+CREATIVE_CANVAS_STORY_SCRIPT_MODEL = {
     "id": DEFAULT_FREEZONE_STORY_SCRIPT_MODEL,
     "provider": "newapi",
     "model": DEFAULT_FREEZONE_STORY_SCRIPT_MODEL,
     "label": "AI anime API Story Script",
 }
-LEGACY_FREEZONE_STORY_SCRIPT_MODEL_IDS = {
+LEGACY_CREATIVE_CANVAS_STORY_SCRIPT_MODEL_IDS = {
     "newapi_gemini_flash",
     "openrouter_gemini_flash",
     "OpenRouter Gemini 2.5 Flash",
 }
 
-FREEZONE_TRANSLATION_SYSTEM_PROMPT = """# Freezone Prompt Translator
+CREATIVE_CANVAS_TRANSLATION_SYSTEM_PROMPT = """# Freezone Prompt Translator
 
 You translate prompting text between Simplified Chinese and English for creative nodes.
 
@@ -58,7 +52,7 @@ You translate prompting text between Simplified Chinese and English for creative
 11. Return structured data matching the requested schema. Do not wrap with markdown.
 """
 
-FREEZONE_STORY_SCRIPT_SYSTEM_PROMPT = """# Freezone Story Script Generator
+CREATIVE_CANVAS_STORY_SCRIPT_SYSTEM_PROMPT = """# Freezone Story Script Generator
 
 You generate a structured story-script table from an uploaded script excerpt.
 
@@ -125,7 +119,7 @@ Example style for `video_motion_prompt`:
 - Preserve story logic and character-state progression across rows.
 """
 
-FREEZONE_NODE_TYPE_LABELS: dict[str, str] = {
+CREATIVE_CANVAS_NODE_TYPE_LABELS: dict[str, str] = {
     "generic": "通用提示词",
     "image": "图片节点提示词",
     "video": "视频节点提示词",
@@ -133,98 +127,30 @@ FREEZONE_NODE_TYPE_LABELS: dict[str, str] = {
     "text": "文本节点提示词",
 }
 
-_translation_agent: Optional[Agent] = None
-_story_script_agent: Optional[Agent] = None
-
-
-class FreezoneTranslationResult(BaseModel):
-    """Structured translation result produced by the LLM."""
-
-    translated_text: str = Field(description="Translated prompt text.")
-    source_language: Literal["zh", "en"] = Field(
-        description="Dominant natural language detected from the source text."
-    )
-    target_language: Literal["zh", "en"] = Field(
-        description="Opposite target language used for translation."
-    )
-
-
-def create_freezone_translation_agent() -> Agent:
-    """创建 Freezone 中英互译 Agent。"""
-    from ai_anime.config import get_newapi_text_pydantic_model
-
-    model = get_newapi_text_pydantic_model(
-        "FREEZONE_TRANSLATION_MODEL",
-        FREEZONE_TRANSLATION_MODEL,
-    )
-    return Agent(
-        model,
-        system_prompt=FREEZONE_TRANSLATION_SYSTEM_PROMPT,
-        output_type=FreezoneTranslationResult,
-        name="Freezone Prompt Translator",
-    )
-
-
-def get_freezone_translation_agent() -> Agent:
-    """获取翻译 Agent 单例。"""
-    global _translation_agent
-    if _translation_agent is None:
-        _translation_agent = create_freezone_translation_agent()
-    return _translation_agent
-
-
-def resolve_freezone_story_script_model(model: str | None) -> dict[str, str]:
+def resolve_creative_canvas_story_script_model(
+    model: str | None,
+) -> dict[str, str]:
     model_text = str(model or "").strip()
     if not model_text:
-        return dict(FREEZONE_STORY_SCRIPT_MODEL)
-    if model_text == FREEZONE_STORY_SCRIPT_MODEL["id"]:
-        return dict(FREEZONE_STORY_SCRIPT_MODEL)
-    if model_text.casefold() == FREEZONE_STORY_SCRIPT_MODEL["label"].casefold():
-        return dict(FREEZONE_STORY_SCRIPT_MODEL)
-    if model_text in LEGACY_FREEZONE_STORY_SCRIPT_MODEL_IDS:
-        return dict(FREEZONE_STORY_SCRIPT_MODEL)
+        return dict(CREATIVE_CANVAS_STORY_SCRIPT_MODEL)
+    if model_text == CREATIVE_CANVAS_STORY_SCRIPT_MODEL["id"]:
+        return dict(CREATIVE_CANVAS_STORY_SCRIPT_MODEL)
+    if (
+        model_text.casefold()
+        == CREATIVE_CANVAS_STORY_SCRIPT_MODEL["label"].casefold()
+    ):
+        return dict(CREATIVE_CANVAS_STORY_SCRIPT_MODEL)
+    if model_text in LEGACY_CREATIVE_CANVAS_STORY_SCRIPT_MODEL_IDS:
+        return dict(CREATIVE_CANVAS_STORY_SCRIPT_MODEL)
     raise ValueError(f"unsupported story script model: {model_text}")
 
 
-def create_freezone_story_script_agent(model: str | None = None) -> Agent:
-    """创建故事脚本生成 Agent。"""
-    from ai_anime.api.schemas import FreezoneStoryScriptGenerateData
-    from ai_anime.config import get_newapi_text_pydantic_model
-
-    resolved = resolve_freezone_story_script_model(model)
-    llm_model = get_newapi_text_pydantic_model(
-        "FREEZONE_STORY_SCRIPT_MODEL",
-        resolved["model"],
-    )
-    return Agent(
-        llm_model,
-        system_prompt=FREEZONE_STORY_SCRIPT_SYSTEM_PROMPT,
-        output_type=FreezoneStoryScriptGenerateData,
-        # 结构化脚本表字段多、且 shot_no/duration 是严格 int，模型偶尔会把时长写成
-        # "2-5"/"3秒" 之类而过不了校验。默认 output_retries=1 只给一次纠正机会不够，
-        # 抛 "Exceeded maximum output retries (1)"。对齐本仓其它复杂结构化 agent
-        # (episode_planner / content_rewriter)提到 3，让模型按回喂的校验错误自我修正。
-        output_retries=3,
-        name="Freezone Story Script Generator",
-    )
-
-
-def get_freezone_story_script_agent(model: str | None = None) -> Agent:
-    """获取故事脚本生成 Agent 单例。"""
-    global _story_script_agent
-    resolved = resolve_freezone_story_script_model(model)
-    if _story_script_agent is None:
-        _story_script_agent = create_freezone_story_script_agent(resolved["id"])
-    return _story_script_agent
-
-
-def build_freezone_translation_task(
+def build_creative_canvas_translation_task(
     *,
     text: str,
-    node_type: Literal["generic", "image", "video", "audio", "text"],
+    node_type: CreativeCanvasTextNodeType,
 ) -> str:
-    """构建翻译任务。"""
-    node_label = FREEZONE_NODE_TYPE_LABELS[node_type]
+    node_label = CREATIVE_CANVAS_NODE_TYPE_LABELS[node_type]
 
     parts = [
         f"Translate the following {node_label}.",
@@ -239,37 +165,11 @@ def build_freezone_translation_task(
     return "\n\n".join(parts)
 
 
-async def translate_freezone_text(
-    *,
-    text: str,
-    node_type: Literal["generic", "image", "video", "audio", "text"] = "generic",
-) -> tuple[str, Literal["zh", "en"], Literal["zh", "en"]]:
-    """执行 Freezone 中英互译。"""
-    if not text or not text.strip():
-        return "", "zh", "en"
-
-    task = build_freezone_translation_task(
-        text=text,
-        node_type=node_type,
-    )
-    response = await get_freezone_translation_agent().run(task)
-    result = response.output
-    target_language: Literal["zh", "en"] = result.target_language
-    if target_language == result.source_language:
-        target_language = "zh" if result.source_language == "en" else "en"
-    return (
-        result.translated_text.strip(),
-        result.source_language,
-        target_language,
-    )
-
-
-def build_freezone_story_script_task(
+def build_creative_canvas_story_script_task(
     *,
     source_text: str,
     prompt: str,
 ) -> str:
-    """构建故事脚本生成任务。"""
     parts = [
         "根据以下上传剧本内容生成一个完整的故事脚本表。",
         "输出字段必须覆盖：镜号、时长、画面描述、角色1、角色描述1、角色图1、参考、景别、角色动作、情绪、场景标签、光影氛围、音效、对白、分镜提示词、视频运动提示词。",
@@ -295,21 +195,3 @@ def build_freezone_story_script_task(
     )
     parts.append(f"源剧本内容：\n{source_text.strip()}")
     return "\n\n".join(parts)
-
-
-async def generate_freezone_story_script(
-    *,
-    source_text: str,
-    prompt: str = "",
-    model: str | None = None,
-):
-    """执行故事脚本生成。"""
-    if not source_text or not source_text.strip():
-        raise ValueError("source_text is required")
-
-    task = build_freezone_story_script_task(
-        source_text=source_text,
-        prompt=prompt,
-    )
-    response = await get_freezone_story_script_agent(model).run(task)
-    return response.output

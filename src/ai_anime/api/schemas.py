@@ -1540,18 +1540,6 @@ class FreezoneTextTranslateRequest(BaseModel):
     )
 
 
-class FreezoneTextTranslateData(BaseModel):
-    translated_text: str
-    source_language: Literal["zh", "en"]
-    target_language: Literal["zh", "en"]
-    node_type: Literal["generic", "image", "video", "audio", "text"]
-
-
-class FreezoneTextTranslateResponse(BaseModel):
-    ok: Literal[True] = True
-    data: FreezoneTextTranslateData
-
-
 class FreezoneStoryScriptGenerateRequest(BaseModel):
     """Freezone 文本节点：故事脚本生成请求。"""
 
@@ -1577,37 +1565,6 @@ class FreezoneStoryScriptGenerateRequest(BaseModel):
     node_id: str = Field(
         default="", description="可选：来源节点 id，用于记录节点生成历史"
     )
-
-
-class FreezoneStoryScriptRow(BaseModel):
-    shot_no: int = Field(description="镜号")
-    duration: int = Field(description="时长，单位秒")
-    visual_description: str = Field(description="画面描述")
-    character_1: str = Field(default="", description="角色1")
-    character_description_1: str = Field(default="", description="角色描述1")
-    character_image_1: str = Field(default="", description="角色图1，占位字段")
-    reference: str = Field(default="", description="参考")
-    shot: str = Field(default="", description="景别")
-    character_action: str = Field(default="", description="角色动作")
-    emotion: str = Field(default="", description="情绪")
-    scene_tags: str = Field(default="", description="场景标签")
-    lighting_mood: str = Field(default="", description="光影氛围")
-    sound: str = Field(default="", description="音效")
-    dialogue: str = Field(default="", description="对白")
-    shot_prompt: str = Field(default="", description="分镜提示词")
-    video_motion_prompt: str = Field(default="", description="视频运动提示词")
-
-
-class FreezoneStoryScriptGenerateData(BaseModel):
-    title: str = Field(default="", description="故事脚本标题")
-    rows: list[FreezoneStoryScriptRow] = Field(
-        default_factory=list, description="结构化故事脚本行"
-    )
-
-
-class FreezoneStoryScriptGenerateResponse(BaseModel):
-    ok: Literal[True] = True
-    data: FreezoneStoryScriptGenerateData
 
 
 class FreezoneJobAcceptedData(BaseModel):

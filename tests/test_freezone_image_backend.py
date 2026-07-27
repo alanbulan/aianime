@@ -2711,7 +2711,7 @@ async def test_freezone_celery_text_runner_records_project_node_history(
     ctx = _project_ctx(tmp_path)
     project_dir = ctx.output_dir
 
-    async def fake_translate_freezone_text(*, text: str, node_type: str):
+    async def fake_translate_creative_canvas_text(*, text: str, node_type: str):
         assert text == "你好"
         assert node_type == "text"
         return "hello", "zh", "en"
@@ -2721,8 +2721,8 @@ async def test_freezone_celery_text_runner_records_project_node_history(
             return None
 
     monkeypatch.setattr(
-        "ai_anime.freezone.text_node.translate_freezone_text",
-        fake_translate_freezone_text,
+        "ai_anime.modules.creative_canvas.public.translate_creative_canvas_text",
+        fake_translate_creative_canvas_text,
     )
     monkeypatch.setattr(freezone_runner, "get_task_manager", lambda: FakeTaskManager())
 
@@ -2751,6 +2751,70 @@ async def test_freezone_celery_text_runner_records_project_node_history(
         "task:freezone_text_translate:project:proj_freezone:0:job_text"
     )
     assert history[-1]["result"]["translated_text"] == "hello"
+
+
+@pytest.mark.asyncio
+async def test_freezone_celery_story_script_runner_accepts_plain_dict(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from ai_anime.freezone.history import read_generation_history
+    from ai_anime.task_backend.runners import freezone as freezone_runner
+
+    ctx = _project_ctx(tmp_path)
+    project_dir = ctx.output_dir
+    payload_data = {
+        "title": "我在盛唐写天下",
+        "rows": [{"shot_no": 1, "duration": 4, "visual_description": "深夜办公室"}],
+    }
+
+    async def fake_generate_creative_canvas_story_script(
+        *,
+        source_text: str,
+        prompt: str,
+        model: str,
+    ) -> dict:
+        assert source_text == "沈昭昭在深夜办公室醒来。"
+        assert prompt == "节奏要快"
+        assert model == "newapi_gemini_flash"
+        return payload_data
+
+    class FakeTaskManager:
+        def update_progress_for_project(self, *_args, **_kwargs):
+            return None
+
+    monkeypatch.setattr(
+        "ai_anime.modules.creative_canvas.public."
+        "generate_creative_canvas_story_script",
+        fake_generate_creative_canvas_story_script,
+    )
+    monkeypatch.setattr(freezone_runner, "get_task_manager", lambda: FakeTaskManager())
+
+    result = await freezone_runner._run_freezone_story_script_async(
+        {
+            "payload": {
+                "job_id": "job_story",
+                "project_dir": str(project_dir),
+                "source_text": "沈昭昭在深夜办公室醒来。",
+                "prompt": "节奏要快",
+                "model": "newapi_gemini_flash",
+                "canvas_id": "canvas_a",
+                "node_id": "node_story",
+            }
+        },
+        ctx,
+    )
+
+    output_payload = json.loads(Path(result["output_path"]).read_text(encoding="utf-8"))
+    history = read_generation_history(
+        project_dir=project_dir,
+        canvas_id="canvas_a",
+        node_id="node_story",
+    )
+    assert output_payload == payload_data
+    assert result["title"] == "我在盛唐写天下"
+    assert history[-1]["task_type"] == "freezone_story_script"
+    assert history[-1]["row_count"] == 1
 
 
 def test_freezone_image_to_3gs_runner_records_project_node_history(

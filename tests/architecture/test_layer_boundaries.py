@@ -11,12 +11,12 @@ ASSET_WORLD_VIEWER_ROUTE = PACKAGE_ROOT / "api" / "routes" / "asset_world_viewer
 LEGACY_GENERATION_ROUTE = PACKAGE_ROOT / "api" / "routes" / "generation.py"
 LEGACY_FREEZONE_ROUTE = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
 LEGACY_FREEZONE_HELPERS = PACKAGE_ROOT / "freezone" / "route_helpers.py"
+LEGACY_FREEZONE_TEXT_NODE = PACKAGE_ROOT / "freezone" / "text_node.py"
 COMPOSITION_ROOT_FILES = {"desktop_server.py"}
 
 # These are measured legacy dependencies, not approved architecture. Counts may
 # decrease during migration; any new file/module pair or count increase fails.
 LEGACY_REVERSE_API_IMPORT_MAX = {
-    ("freezone/text_node.py", "ai_anime.api.schemas"): 1,
     ("verification/routes.py", "ai_anime.api.auth"): 1,
     ("verification/routes.py", "ai_anime.api.deps"): 1,
 }
@@ -2008,15 +2008,35 @@ def test_freezone_text_processing_routes_delegate_to_application() -> None:
         / "infrastructure"
         / "text_sources.py"
     )
+    domain = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "domain"
+        / "text_generation.py"
+    )
+    generation_adapter = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "infrastructure"
+        / "text_generation.py"
+    )
     composition = PACKAGE_ROOT / "modules" / "creative_canvas" / "composition.py"
+    public = PACKAGE_ROOT / "modules" / "creative_canvas" / "public.py"
     runner = PACKAGE_ROOT / "task_backend" / "runners" / "freezone.py"
+    schemas = PACKAGE_ROOT / "api" / "schemas.py"
     source = route.read_text(encoding="utf-8")
     legacy_source = _removed_freezone_route_source(legacy_route)
     api_router_source = api_router.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
+    domain_source = domain.read_text(encoding="utf-8")
+    generation_adapter_source = generation_adapter.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
     runner_source = runner.read_text(encoding="utf-8")
+    schemas_source = schemas.read_text(encoding="utf-8")
 
     endpoint_paths = (
         '"/projects/{project}/freezone/text/translate"',
@@ -2055,12 +2075,40 @@ def test_freezone_text_processing_routes_delegate_to_application() -> None:
     ):
         assert implementation_detail not in source
 
-    for layered_source in (application_source, adapter_source):
+    assert not LEGACY_FREEZONE_TEXT_NODE.exists()
+    for layered_source in (
+        application_source,
+        adapter_source,
+        domain_source,
+        generation_adapter_source,
+    ):
         assert "fastapi" not in layered_source
         assert "ai_anime.api" not in layered_source
     assert "ai_anime.freezone" not in application_source
+    assert "pydantic" not in domain_source
+    assert "class _CreativeCanvasTranslationResult" in generation_adapter_source
+    assert "class _CreativeCanvasStoryScriptResult" in generation_adapter_source
+    assert "return response.output.model_dump()" in generation_adapter_source
     assert '("utf-8", "utf-8-sig", "gb18030")' in adapter_source
     assert "translate_runtime_errors=False" in composition_source
+    for stable_entry in (
+        "translate_creative_canvas_text",
+        "generate_creative_canvas_story_script",
+        "resolve_creative_canvas_story_script_model",
+    ):
+        assert f"def {stable_entry}(" in composition_source
+        assert f"def {stable_entry}(" in public_source
+    assert "ai_anime.modules.creative_canvas.public" in _imports(runner)
+    assert "translate_freezone_text" not in runner_source
+    assert "generate_freezone_story_script" not in runner_source
+    for removed_schema in (
+        "FreezoneTextTranslateData",
+        "FreezoneTextTranslateResponse",
+        "FreezoneStoryScriptRow",
+        "FreezoneStoryScriptGenerateData",
+        "FreezoneStoryScriptGenerateResponse",
+    ):
+        assert f"class {removed_schema}" not in schemas_source
     assert (
         runner_source.count(
             'register_project_task_runner("freezone_text_translate", '

@@ -402,6 +402,7 @@ def test_ee_cannot_mutate_ce_model_gateway_settings(monkeypatch, tmp_path):
 
 def test_ce_runtime_refresh_never_mutates_process_environment(monkeypatch, tmp_path):
     from ai_anime.agents import global_video_optimizer
+    from ai_anime.modules.creative_canvas.infrastructure import text_generation
 
     _isolate_settings_db(monkeypatch, tmp_path)
     tracked = {
@@ -418,6 +419,8 @@ def test_ce_runtime_refresh_never_mutates_process_environment(monkeypatch, tmp_p
     for key, value in tracked.items():
         monkeypatch.setenv(key, value)
     monkeypatch.setattr(global_video_optimizer, "_global_video_optimizer", object())
+    monkeypatch.setattr(text_generation, "_translation_agent", object())
+    monkeypatch.setattr(text_generation, "_story_script_agent", object())
     save_official_newapi_key(api_key="sk-database-secret", activate=True)
 
     runtime = refresh_model_gateway_runtime()
@@ -425,8 +428,20 @@ def test_ce_runtime_refresh_never_mutates_process_environment(monkeypatch, tmp_p
     assert runtime["configured"] is True
     assert {key: os.environ.get(key) for key in tracked} == tracked
     assert global_video_optimizer._global_video_optimizer is None
+    assert text_generation._translation_agent is None
+    assert text_generation._story_script_agent is None
     assert (
         "ai_anime.agents.global_video_optimizer._global_video_optimizer"
+        in runtime["clearedCaches"]
+    )
+    assert (
+        "ai_anime.modules.creative_canvas.infrastructure.text_generation."
+        "_translation_agent"
+        in runtime["clearedCaches"]
+    )
+    assert (
+        "ai_anime.modules.creative_canvas.infrastructure.text_generation."
+        "_story_script_agent"
         in runtime["clearedCaches"]
     )
 

@@ -2,7 +2,7 @@
 
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from ai_anime.modules.creative_canvas.application.audio_generation import (
     CreativeCanvasAudioGenerationUseCases,
@@ -228,6 +228,9 @@ from ai_anime.modules.creative_canvas.domain.mainline_generation import (
     standalone_character_map,
     standalone_prop_marker_colors,
     standalone_sketch_colors,
+)
+from ai_anime.modules.creative_canvas.domain.text_generation import (
+    CreativeCanvasTextNodeType,
 )
 from ai_anime.modules.creative_canvas.application.video_asset_library import (
     AddCreativeCanvasVideoAssetCommand,
@@ -511,6 +514,41 @@ def creative_canvas_text_processing_use_cases() -> CreativeCanvasTextProcessingU
     return build()
 
 
+async def translate_creative_canvas_text(
+    *,
+    text: str,
+    node_type: CreativeCanvasTextNodeType = "generic",
+) -> tuple[str, Literal["zh", "en"], Literal["zh", "en"]]:
+    from ai_anime.modules.creative_canvas.composition import (
+        translate_creative_canvas_text as run,
+    )
+
+    return await run(text=text, node_type=node_type)
+
+
+async def generate_creative_canvas_story_script(
+    *,
+    source_text: str,
+    prompt: str = "",
+    model: str | None = None,
+) -> dict[str, object]:
+    from ai_anime.modules.creative_canvas.composition import (
+        generate_creative_canvas_story_script as run,
+    )
+
+    return await run(source_text=source_text, prompt=prompt, model=model)
+
+
+def resolve_creative_canvas_story_script_model(
+    model: str | None,
+) -> dict[str, str]:
+    from ai_anime.modules.creative_canvas.composition import (
+        resolve_creative_canvas_story_script_model as resolve,
+    )
+
+    return resolve(model)
+
+
 def creative_canvas_video_processing_use_cases() -> CreativeCanvasVideoProcessingUseCases:
     from ai_anime.modules.creative_canvas.composition import (
         creative_canvas_video_processing_use_cases as build,
@@ -615,6 +653,7 @@ __all__ = [
     "CreativeCanvasTaskStartFailed",
     "CreativeCanvasTextProcessingSourceMissing",
     "CreativeCanvasTextProcessingUseCases",
+    "CreativeCanvasTextNodeType",
     "CreativeCanvasOmniVideoReference",
     "CreativeCanvasVideoCharacterMissing",
     "CreativeCanvasVideoGenerationOptions",
@@ -759,6 +798,7 @@ __all__ = [
     "creative_canvas_job_result_queries",
     "creative_canvas_mainline_generation_use_cases",
     "creative_canvas_text_processing_use_cases",
+    "generate_creative_canvas_story_script",
     "creative_canvas_video_processing_use_cases",
     "creative_canvas_video_generation_use_cases",
     "creative_canvas_video_asset_library_use_cases",
@@ -788,6 +828,7 @@ __all__ = [
     "normalize_video_resolution",
     "resolve_original_image_aspect_ratio",
     "resolve_image_provider",
+    "resolve_creative_canvas_story_script_model",
     "resolve_image_template_aspect_ratio",
     "remove_projected_preset_canvas",
     "record_creative_canvas_event",
@@ -800,6 +841,7 @@ __all__ = [
     "stamp_projection_key",
     "stamp_projection_metadata",
     "sync_frame_context_reference_edges",
+    "translate_creative_canvas_text",
     "validate_omni_reference_limits",
     "validate_video_composition_media_item_count",
     "validate_video_composition_source_range",

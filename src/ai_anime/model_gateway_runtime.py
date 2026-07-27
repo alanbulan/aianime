@@ -18,7 +18,10 @@ def _runtime_version(api_key: str, base_url: str) -> str:
 def _clear_agent_singletons() -> list[str]:
     cleared: list[str] = []
     targets = {
-        "ai_anime.freezone.text_node": ("_translation_agent", "_story_script_agent"),
+        "ai_anime.modules.creative_canvas.infrastructure.text_generation": (
+            "_translation_agent",
+            "_story_script_agent",
+        ),
         "ai_anime.agents.global_video_optimizer": ("_global_video_optimizer",),
     }
     for module_name, attrs in targets.items():

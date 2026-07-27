@@ -238,9 +238,11 @@ def _generation_credit_cost_model(kind: str, value: str) -> str:
 
         return resolve_freezone_vision_model()
     if kind == "freezone_story_script":
-        from ai_anime.freezone.text_node import resolve_freezone_story_script_model
+        from ai_anime.modules.creative_canvas.public import (
+            resolve_creative_canvas_story_script_model,
+        )
 
-        return resolve_freezone_story_script_model(clean_value or None)["model"]
+        return resolve_creative_canvas_story_script_model(clean_value or None)["model"]
     if kind == "style_analyzer":
         from ai_anime.config import get_newapi_text_model_name
 
