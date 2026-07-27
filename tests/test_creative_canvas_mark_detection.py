@@ -22,8 +22,8 @@ from ai_anime.modules.creative_canvas.domain.mark_detection import (
 from ai_anime.modules.creative_canvas.infrastructure import (
     mark_detection as mark_detection_adapters,
 )
-from ai_anime.modules.creative_canvas.infrastructure.image_sources import (
-    ProjectCreativeCanvasImageSourceResolver,
+from ai_anime.modules.creative_canvas.infrastructure.media_sources import (
+    ProjectCreativeCanvasMediaSourceResolver,
 )
 from ai_anime.modules.creative_canvas.infrastructure.mark_detection import (
     FreezoneVisionMarkDetector,
@@ -199,7 +199,7 @@ async def test_mark_detection_use_case_maps_source_and_detector_failures(
 def test_project_image_source_resolver_preserves_static_url_mapping(
     tmp_path: Path,
 ) -> None:
-    result = ProjectCreativeCanvasImageSourceResolver().resolve(
+    result = ProjectCreativeCanvasMediaSourceResolver().resolve(
         tmp_path,
         "/static/alice/demo/freezone/_uploads/source.png?v=1",
     )

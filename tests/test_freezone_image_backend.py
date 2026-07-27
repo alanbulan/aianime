@@ -189,8 +189,8 @@ def _patch_celery_edit_enqueue(
         FreezoneCreativeCanvasImagePromptComposer,
         PillowCreativeCanvasImageEditingStorage,
     )
-    from ai_anime.modules.creative_canvas.infrastructure.image_sources import (
-        ProjectCreativeCanvasImageSourceResolver,
+    from ai_anime.modules.creative_canvas.infrastructure.media_sources import (
+        ProjectCreativeCanvasMediaSourceResolver,
     )
     from ai_anime.modules.creative_canvas.infrastructure.media import (
         FreezoneJobIdGenerator,
@@ -213,7 +213,7 @@ def _patch_celery_edit_enqueue(
 
     task_backend = SimpleNamespace(enqueue_project_task=fake_enqueue_project_task)
     use_cases = CreativeCanvasImageEditingUseCases(
-        ProjectCreativeCanvasImageSourceResolver(),
+        ProjectCreativeCanvasMediaSourceResolver(),
         PillowCreativeCanvasImageEditingStorage(),
         FreezoneCreativeCanvasImagePromptComposer(),
         FreezoneCreativeCanvasImageModelRouter(),
@@ -246,8 +246,8 @@ def _patch_creative_canvas_image_generation(
     from ai_anime.modules.creative_canvas.infrastructure.image_generation import (
         FreezoneCreativeCanvasImageGenerationModelRouter,
     )
-    from ai_anime.modules.creative_canvas.infrastructure.image_sources import (
-        ProjectCreativeCanvasImageSourceResolver,
+    from ai_anime.modules.creative_canvas.infrastructure.media_sources import (
+        ProjectCreativeCanvasMediaSourceResolver,
     )
     from ai_anime.modules.creative_canvas.infrastructure.task_submission import (
         TaskBackendCreativeCanvasTaskScheduler,
@@ -268,7 +268,7 @@ def _patch_creative_canvas_image_generation(
 
     task_backend = SimpleNamespace(enqueue_project_task=fake_enqueue_project_task)
     use_cases = CreativeCanvasImageGenerationUseCases(
-        ProjectCreativeCanvasImageSourceResolver(),
+        ProjectCreativeCanvasMediaSourceResolver(),
         FreezoneCreativeCanvasImagePromptComposer(),
         FreezoneCreativeCanvasImageGenerationModelRouter(),
         FixedJobIds(),
@@ -2255,8 +2255,8 @@ async def test_masked_redraw_uses_default_newapi_model(
         FreezoneCreativeCanvasImageModelRouter,
         PillowCreativeCanvasImageEditingStorage,
     )
-    from ai_anime.modules.creative_canvas.infrastructure.image_sources import (
-        ProjectCreativeCanvasImageSourceResolver,
+    from ai_anime.modules.creative_canvas.infrastructure.media_sources import (
+        ProjectCreativeCanvasMediaSourceResolver,
     )
     from ai_anime.modules.creative_canvas.infrastructure.media import (
         FreezoneJobIdGenerator,
@@ -2286,7 +2286,7 @@ async def test_masked_redraw_uses_default_newapi_model(
 
     task_backend = SimpleNamespace(enqueue_project_task=fake_enqueue_project_task)
     use_cases = CreativeCanvasImageEditingUseCases(
-        ProjectCreativeCanvasImageSourceResolver(),
+        ProjectCreativeCanvasMediaSourceResolver(),
         PillowCreativeCanvasImageEditingStorage(),
         FreezoneCreativeCanvasImagePromptComposer(),
         FreezoneCreativeCanvasImageModelRouter(),
@@ -2640,8 +2640,8 @@ async def test_freezone_celery_image_jobs_preserve_canvas_node_context(
     from ai_anime.modules.creative_canvas.infrastructure.image_generation import (
         FreezoneCreativeCanvasImageGenerationModelRouter,
     )
-    from ai_anime.modules.creative_canvas.infrastructure.image_sources import (
-        ProjectCreativeCanvasImageSourceResolver,
+    from ai_anime.modules.creative_canvas.infrastructure.media_sources import (
+        ProjectCreativeCanvasMediaSourceResolver,
     )
     from ai_anime.modules.creative_canvas.infrastructure.task_submission import (
         TaskBackendCreativeCanvasTaskScheduler,
@@ -2668,7 +2668,7 @@ async def test_freezone_celery_image_jobs_preserve_canvas_node_context(
     task_backend = SimpleNamespace(enqueue_project_task=fake_enqueue_project_task)
 
     gen = await CreativeCanvasImageGenerationUseCases(
-        ProjectCreativeCanvasImageSourceResolver(),
+        ProjectCreativeCanvasMediaSourceResolver(),
         FreezoneCreativeCanvasImagePromptComposer(),
         FreezoneCreativeCanvasImageGenerationModelRouter(),
         FixedJobIds(),
@@ -2687,7 +2687,7 @@ async def test_freezone_celery_image_jobs_preserve_canvas_node_context(
         )
     )
     edit = await CreativeCanvasImageEditingUseCases(
-        ProjectCreativeCanvasImageSourceResolver(),
+        ProjectCreativeCanvasMediaSourceResolver(),
         PillowCreativeCanvasImageEditingStorage(),
         FreezoneCreativeCanvasImagePromptComposer(),
         FreezoneCreativeCanvasImageModelRouter(),
@@ -6087,8 +6087,8 @@ async def test_freezone_upscale_resolves_original_ratio_before_model_call(
         CreativeCanvasImageCameraConfig,
         CreativeCanvasImageStyleConfig,
     )
-    from ai_anime.modules.creative_canvas.infrastructure.image_sources import (
-        ProjectCreativeCanvasImageSourceResolver,
+    from ai_anime.modules.creative_canvas.infrastructure.media_sources import (
+        ProjectCreativeCanvasMediaSourceResolver,
     )
     from ai_anime.modules.creative_canvas.infrastructure.image_editing import (
         FreezoneCreativeCanvasImagePromptComposer,
@@ -6115,7 +6115,7 @@ async def test_freezone_upscale_resolves_original_ratio_before_model_call(
 
     scheduler = CapturingScheduler()
     result = await CreativeCanvasImageEditingUseCases(
-        ProjectCreativeCanvasImageSourceResolver(),
+        ProjectCreativeCanvasMediaSourceResolver(),
         PillowCreativeCanvasImageEditingStorage(),
         FreezoneCreativeCanvasImagePromptComposer(),
         FreezoneCreativeCanvasImageModelRouter(),

@@ -5,8 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from ai_anime.modules.creative_canvas.application.image_sources import (
-    CreativeCanvasExistingImageSourceResolver,
+from ai_anime.modules.creative_canvas.application.media_sources import (
+    CreativeCanvasExistingMediaSourceResolver,
 )
 from ai_anime.modules.creative_canvas.application.task_submission import (
     CreativeCanvasJobIds,
@@ -55,7 +55,7 @@ class CreativeCanvasImageToThreeGsResult:
 class CreativeCanvasImageToThreeGsUseCases:
     def __init__(
         self,
-        sources: CreativeCanvasExistingImageSourceResolver,
+        sources: CreativeCanvasExistingMediaSourceResolver,
         job_ids: CreativeCanvasJobIds,
         scheduler: CreativeCanvasTaskScheduler,
     ) -> None:

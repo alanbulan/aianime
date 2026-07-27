@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from ai_anime.api.routes import freezone as freezone_routes
+from ai_anime.api.routes.canvas import video as freezone_video_routes
+from ai_anime.api.schemas import (
+    FreezoneAnalyzeShotsRequest,
+    FreezoneAnalyzeVideoStoryRequest,
+)
 from ai_anime.freezone import vision_gateway
 from ai_anime.freezone.jobs import build_video_story_analysis_prompt
 from ai_anime.freezone.jobs import run_freezone_analyze_shots
@@ -16,11 +22,46 @@ def _patch_project_resolution(
     *,
     username: str = "admin",
 ):
-    async def _fake_resolve(project: str, user: dict, *, required_role: str = "editor"):
-        del user, required_role
+    context = object()
+
+    async def _fake_resolve(
+        project: str,
+        user: dict,
+        *,
+        required_role: str,
+        operation: str,
+    ):
+        assert user == {"username": username}
+        assert required_role == "editor"
+        assert operation == "access freezone project files"
+        return SimpleNamespace(ctx=context, project_dir=project_dir)
+
+    async def _fake_legacy_resolve(
+        project: str,
+        user: dict,
+        *,
+        required_role: str = "editor",
+    ):
+        assert user == {"username": username}
+        assert required_role == "viewer"
         return None, username, project, project_dir, str(project_dir)
 
-    monkeypatch.setattr(freezone_routes, "_resolve_freezone_project", _fake_resolve)
+    monkeypatch.setattr(freezone_video_routes, "resolve_project_scope", _fake_resolve)
+    monkeypatch.setattr(freezone_routes, "_resolve_freezone_project", _fake_legacy_resolve)
+    return context
+
+
+def _receipt(task_type: str, job_id: str):
+    return SimpleNamespace(
+        task_type=task_type,
+        job_id=job_id,
+        task_key=f"{task_type}:{job_id}",
+        task_episode=0,
+        task_scope=job_id,
+        backend="celery",
+        queue="default",
+        task_id="task-1",
+    )
 
 
 def test_video_story_prompt_requests_libtv_story_table() -> None:
@@ -37,7 +78,7 @@ def test_video_story_prompt_requests_libtv_story_table() -> None:
 
 
 def test_freezone_analyze_request_defaults_to_shots_mode() -> None:
-    body = freezone_routes.FreezoneAnalyzeShotsRequest(frame_urls=["/static/f1.png"])
+    body = FreezoneAnalyzeShotsRequest(frame_urls=["/static/f1.png"])
 
     assert body.analysis_mode == "shots"
     assert body.duration_sec is None
@@ -82,39 +123,24 @@ async def test_freezone_analyze_route_passes_video_story_options(
 ) -> None:
     username = "admin"
     project = "59"
-    frame_path = tmp_path / "frame.png"
-    frame_path.write_bytes(b"png")
     captured: dict[str, object] = {}
 
-    _patch_project_resolution(monkeypatch, tmp_path, username=username)
-    monkeypatch.setattr(freezone_routes, "_new_job_id", lambda: "story_job")
-    monkeypatch.setattr(
-        freezone_routes,
-        "resolve_static_url_to_path",
-        lambda _url, _project_dir: frame_path,
-    )
+    context = _patch_project_resolution(monkeypatch, tmp_path, username=username)
 
-    async def fake_enqueue_or_start_freezone_video_analysis(**kwargs):
-        captured.update(kwargs)
-        captured.update(kwargs["payload"])
-        return {
-            "ok": True,
-            "data": {
-                "task_type": kwargs["task_type"],
-                "job_id": kwargs["job_id"],
-                "task_key": f"{kwargs['task_type']}:{kwargs['job_id']}",
-            },
-        }
+    class CapturingUseCases:
+        async def start_shot_analysis(self, command):
+            captured["command"] = command
+            return _receipt("freezone_analyze", "story_job")
 
     monkeypatch.setattr(
-        freezone_routes,
-        "_enqueue_or_start_freezone_video_analysis",
-        fake_enqueue_or_start_freezone_video_analysis,
+        freezone_video_routes,
+        "creative_canvas_video_processing_use_cases",
+        lambda: CapturingUseCases(),
     )
 
-    result = await freezone_routes.freezone_analyze_shots(
+    result = await freezone_video_routes.freezone_analyze_shots(
         project=project,
-        body=freezone_routes.FreezoneAnalyzeShotsRequest(
+        body=FreezoneAnalyzeShotsRequest(
             frame_urls=["/static/admin/59/frame.png"],
             analysis_mode="video_story",
             duration_sec=15.0,
@@ -126,11 +152,14 @@ async def test_freezone_analyze_route_passes_video_story_options(
 
     assert result["ok"] is True
     assert result["data"]["task_type"] == "freezone_analyze"
-    assert captured["analysis_mode"] == "video_story"
-    assert captured["duration_sec"] == 15.0
-    assert "provider" not in captured
-    assert "model" not in captured
-    assert captured["frame_paths"] == [str(frame_path)]
+    command = captured["command"]
+    assert command.context is context
+    assert command.project_dir == tmp_path
+    assert command.frame_urls == ("/static/admin/59/frame.png",)
+    assert command.analysis_mode == "video_story"
+    assert command.duration_sec == 15.0
+    assert not hasattr(command, "provider")
+    assert not hasattr(command, "model")
 
 
 @pytest.mark.asyncio
@@ -140,39 +169,24 @@ async def test_freezone_analyze_video_story_route_starts_single_video_task(
 ) -> None:
     username = "admin"
     project = "59"
-    video_path = tmp_path / "clip.mp4"
-    video_path.write_bytes(b"mp4")
     captured: dict[str, object] = {}
 
-    _patch_project_resolution(monkeypatch, tmp_path, username=username)
-    monkeypatch.setattr(freezone_routes, "_new_job_id", lambda: "video_story_job")
-    monkeypatch.setattr(
-        freezone_routes,
-        "resolve_static_url_to_path",
-        lambda _url, _project_dir: video_path,
-    )
+    context = _patch_project_resolution(monkeypatch, tmp_path, username=username)
 
-    async def fake_enqueue_or_start_freezone_video_analysis(**kwargs):
-        captured.update(kwargs)
-        captured.update(kwargs["payload"])
-        return {
-            "ok": True,
-            "data": {
-                "task_type": kwargs["task_type"],
-                "job_id": kwargs["job_id"],
-                "task_key": f"{kwargs['task_type']}:{kwargs['job_id']}",
-            },
-        }
+    class CapturingUseCases:
+        async def start_video_story_analysis(self, command):
+            captured["command"] = command
+            return _receipt("freezone_video_story", "video_story_job")
 
     monkeypatch.setattr(
-        freezone_routes,
-        "_enqueue_or_start_freezone_video_analysis",
-        fake_enqueue_or_start_freezone_video_analysis,
+        freezone_video_routes,
+        "creative_canvas_video_processing_use_cases",
+        lambda: CapturingUseCases(),
     )
 
-    result = await freezone_routes.freezone_analyze_video_story(
+    result = await freezone_video_routes.freezone_analyze_video_story(
         project=project,
-        body=freezone_routes.FreezoneAnalyzeVideoStoryRequest(
+        body=FreezoneAnalyzeVideoStoryRequest(
             video_url="/static/admin/59/freezone/_uploads/clip.mp4",
             max_frames=12,
             scene_threshold=0.25,
@@ -185,12 +199,13 @@ async def test_freezone_analyze_video_story_route_starts_single_video_task(
     assert result["data"]["task_type"] == "freezone_video_story"
     assert result["data"]["job_id"] == "video_story_job"
     assert "freezone_video_story" in result["data"]["task_key"]
-    assert captured["video_path"] == video_path.as_posix()
-    assert captured["max_frames"] == 12
-    assert captured["scene_threshold"] == 0.25
-    assert captured["duration_sec"] == 15.0
-    assert "provider" not in captured
-    assert "model" not in captured
+    command = captured["command"]
+    assert command.context is context
+    assert command.project_dir == tmp_path
+    assert command.video_url == "/static/admin/59/freezone/_uploads/clip.mp4"
+    assert command.max_frames == 12
+    assert command.scene_threshold == 0.25
+    assert command.duration_sec == 15.0
 
 
 def test_public_video_story_result_excludes_local_paths() -> None:

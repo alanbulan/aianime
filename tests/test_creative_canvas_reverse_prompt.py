@@ -20,8 +20,8 @@ from ai_anime.modules.creative_canvas.application.task_submission import (
     CreativeCanvasTaskStartFailed,
     CreativeCanvasTaskSubmission,
 )
-from ai_anime.modules.creative_canvas.infrastructure.image_sources import (
-    ProjectCreativeCanvasImageSourceResolver,
+from ai_anime.modules.creative_canvas.infrastructure.media_sources import (
+    ProjectCreativeCanvasMediaSourceResolver,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 
@@ -213,7 +213,7 @@ def test_project_image_source_resolver_reports_file_existence(tmp_path: Path) ->
     source = tmp_path / "freezone" / "_uploads" / "source.png"
     source.parent.mkdir(parents=True)
     source.write_bytes(b"image")
-    resolver = ProjectCreativeCanvasImageSourceResolver()
+    resolver = ProjectCreativeCanvasMediaSourceResolver()
 
     resolved = resolver.resolve(
         tmp_path,

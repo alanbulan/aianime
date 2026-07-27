@@ -6,8 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
-from ai_anime.modules.creative_canvas.application.image_sources import (
-    CreativeCanvasImageSourceResolver,
+from ai_anime.modules.creative_canvas.application.media_sources import (
+    CreativeCanvasMediaSourceResolver,
 )
 from ai_anime.modules.creative_canvas.domain import (
     CreativeCanvasMarkSelection,
@@ -59,7 +59,7 @@ class CreativeCanvasMarkDetector(Protocol):
 class CreativeCanvasMarkDetectionUseCases:
     def __init__(
         self,
-        sources: CreativeCanvasImageSourceResolver,
+        sources: CreativeCanvasMediaSourceResolver,
         detector: CreativeCanvasMarkDetector,
     ) -> None:
         self._sources = sources

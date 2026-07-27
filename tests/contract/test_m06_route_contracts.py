@@ -222,6 +222,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap
     from ai_anime.api.routes.canvas import image as freezone_image
     from ai_anime.api.routes.canvas import media as freezone_media
+    from ai_anime.api.routes.canvas import video as freezone_video
     from ai_anime.freezone.paths import uploads_dir
     from ai_anime.modules.creative_canvas.public import (
         CreativeCanvasMarkDetectionResult,
@@ -238,8 +239,11 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.modules.creative_canvas.application.reverse_prompt import (
         CreativeCanvasReversePromptUseCases,
     )
-    from ai_anime.modules.creative_canvas.infrastructure.image_sources import (
-        ProjectCreativeCanvasImageSourceResolver,
+    from ai_anime.modules.creative_canvas.application.video_processing import (
+        CreativeCanvasVideoProcessingUseCases,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.media_sources import (
+        ProjectCreativeCanvasMediaSourceResolver,
     )
     from ai_anime.modules.creative_canvas.infrastructure.image_editing import (
         FreezoneCreativeCanvasImagePromptComposer,
@@ -378,6 +382,11 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         "resolve_project_scope",
         resolve_project_scope,
     )
+    monkeypatch.setattr(
+        freezone_video,
+        "resolve_project_scope",
+        resolve_project_scope,
+    )
     monkeypatch.setattr(freezone, "resolve_project_context", resolve_project_context)
     monkeypatch.setattr(freezone, "make_sqlite_store_for_context", make_store_for_context)
     monkeypatch.setattr(freezone, "make_cognee_store_for_context", make_store_for_context)
@@ -417,17 +426,17 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         task_manager = _FakeTaskManager()
         task_scheduler = TaskBackendCreativeCanvasTaskScheduler(lambda: task_backend)
         reverse_prompt_use_cases = CreativeCanvasReversePromptUseCases(
-            ProjectCreativeCanvasImageSourceResolver(),
+            ProjectCreativeCanvasMediaSourceResolver(),
             FreezoneJobIdGenerator(),
             task_scheduler,
         )
         image_to_three_gs_use_cases = CreativeCanvasImageToThreeGsUseCases(
-            ProjectCreativeCanvasImageSourceResolver(),
+            ProjectCreativeCanvasMediaSourceResolver(),
             FreezoneJobIdGenerator(),
             task_scheduler,
         )
         image_editing_use_cases = CreativeCanvasImageEditingUseCases(
-            ProjectCreativeCanvasImageSourceResolver(),
+            ProjectCreativeCanvasMediaSourceResolver(),
             PillowCreativeCanvasImageEditingStorage(),
             FreezoneCreativeCanvasImagePromptComposer(),
             FreezoneCreativeCanvasImageModelRouter(),
@@ -435,9 +444,14 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             task_scheduler,
         )
         image_generation_use_cases = CreativeCanvasImageGenerationUseCases(
-            ProjectCreativeCanvasImageSourceResolver(),
+            ProjectCreativeCanvasMediaSourceResolver(),
             FreezoneCreativeCanvasImagePromptComposer(),
             FreezoneCreativeCanvasImageGenerationModelRouter(),
+            FreezoneJobIdGenerator(),
+            task_scheduler,
+        )
+        video_processing_use_cases = CreativeCanvasVideoProcessingUseCases(
+            ProjectCreativeCanvasMediaSourceResolver(),
             FreezoneJobIdGenerator(),
             task_scheduler,
         )
@@ -471,6 +485,11 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             "creative_canvas_image_generation_use_cases",
             lambda use_cases=image_generation_use_cases: use_cases,
         )
+        monkeypatch.setattr(
+            freezone_video,
+            "creative_canvas_video_processing_use_cases",
+            lambda use_cases=video_processing_use_cases: use_cases,
+        )
         monkeypatch.setattr(ingest, "get_task_backend", lambda tb=task_backend: tb)
         monkeypatch.setattr(freezone, "get_task_backend", lambda tb=task_backend: tb)
         monkeypatch.setattr(freezone, "get_task_manager", lambda tm=task_manager: tm)
@@ -479,6 +498,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app.include_router(freezone_bootstrap.router, prefix="/api/v1")
         app.include_router(freezone_image.router, prefix="/api/v1")
         app.include_router(freezone_media.router, prefix="/api/v1")
+        app.include_router(freezone_video.router, prefix="/api/v1")
         app.include_router(freezone.router, prefix="/api/v1")
         user = {
             "id": "user-alice",
@@ -491,6 +511,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app.dependency_overrides[freezone_bootstrap.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_image.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_media.get_api_user] = lambda user=user: user
+        app.dependency_overrides[freezone_video.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone.get_api_user] = lambda user=user: user
 
         async def override_cognee_store():

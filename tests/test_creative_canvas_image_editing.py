@@ -41,8 +41,8 @@ from ai_anime.modules.creative_canvas.infrastructure.image_editing import (
     FreezoneCreativeCanvasImageModelRouter,
     PillowCreativeCanvasImageEditingStorage,
 )
-from ai_anime.modules.creative_canvas.infrastructure.image_sources import (
-    ProjectCreativeCanvasImageSourceResolver,
+from ai_anime.modules.creative_canvas.infrastructure.media_sources import (
+    ProjectCreativeCanvasMediaSourceResolver,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 
@@ -164,7 +164,7 @@ def _editing_use_cases(
     models = _FixedModels()
     return (
         CreativeCanvasImageEditingUseCases(
-            ProjectCreativeCanvasImageSourceResolver(),
+            ProjectCreativeCanvasMediaSourceResolver(),
             PillowCreativeCanvasImageEditingStorage(),
             prompts,
             models,
@@ -218,7 +218,7 @@ def test_image_editing_explicit_aspect_ratio_does_not_read_image_size(
             raise AssertionError("explicit aspect ratio must not read image size")
 
     use_cases = CreativeCanvasImageEditingUseCases(
-        ProjectCreativeCanvasImageSourceResolver(),
+        ProjectCreativeCanvasMediaSourceResolver(),
         UnusedStorage(),
         _CapturingPrompts(),
         _FixedModels(),
@@ -564,7 +564,7 @@ async def test_reference_image_editing_rejects_unknown_provider(tmp_path: Path) 
     _write_image(context.output_dir / "freezone" / "_uploads" / "base.png")
     scheduler = _CapturingScheduler(context)
     use_cases = CreativeCanvasImageEditingUseCases(
-        ProjectCreativeCanvasImageSourceResolver(),
+        ProjectCreativeCanvasMediaSourceResolver(),
         PillowCreativeCanvasImageEditingStorage(),
         _CapturingPrompts(),
         FreezoneCreativeCanvasImageModelRouter(),

@@ -54,6 +54,14 @@ from ai_anime.modules.creative_canvas.application.task_submission import (
     CreativeCanvasTaskReceipt,
     CreativeCanvasTaskStartFailed,
 )
+from ai_anime.modules.creative_canvas.application.video_processing import (
+    CreativeCanvasVideoProcessingSourceMissing,
+    CreativeCanvasVideoProcessingUseCases,
+    InvalidCreativeCanvasVideoProcessingRequest,
+    StartCreativeCanvasFrameExtractionCommand,
+    StartCreativeCanvasShotAnalysisCommand,
+    StartCreativeCanvasVideoStoryAnalysisCommand,
+)
 from ai_anime.modules.creative_canvas.domain import (
     DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
     SUPPORTED_CREATIVE_CANVAS_IMAGE_PROVIDERS,
@@ -147,6 +155,14 @@ def creative_canvas_image_generation_use_cases() -> CreativeCanvasImageGeneratio
     return build()
 
 
+def creative_canvas_video_processing_use_cases() -> CreativeCanvasVideoProcessingUseCases:
+    from ai_anime.modules.creative_canvas.composition import (
+        creative_canvas_video_processing_use_cases as build,
+    )
+
+    return build()
+
+
 __all__ = [
     "DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL",
     "CreativeCanvasBootstrapBusy",
@@ -172,6 +188,8 @@ __all__ = [
     "CreativeCanvasReversePromptUseCases",
     "CreativeCanvasTaskReceipt",
     "CreativeCanvasTaskStartFailed",
+    "CreativeCanvasVideoProcessingSourceMissing",
+    "CreativeCanvasVideoProcessingUseCases",
     "CreativeCanvasScreenshotResult",
     "CreativeCanvasScreenshotTooLarge",
     "CreativeCanvasUploadResult",
@@ -186,6 +204,7 @@ __all__ = [
     "UnsupportedCreativeCanvasImageProvider",
     "InvalidCreativeCanvasMarkRequest",
     "InvalidCreativeCanvasReversePromptRequest",
+    "InvalidCreativeCanvasVideoProcessingRequest",
     "InitializeCreativeCanvasCommand",
     "SaveCreativeCanvasScreenshotCommand",
     "StoreCreativeCanvasUploadCommand",
@@ -194,6 +213,9 @@ __all__ = [
     "StartCreativeCanvasImageEditingCommand",
     "StartCreativeCanvasReferenceImageEditingCommand",
     "StartCreativeCanvasImageGenerationCommand",
+    "StartCreativeCanvasFrameExtractionCommand",
+    "StartCreativeCanvasShotAnalysisCommand",
+    "StartCreativeCanvasVideoStoryAnalysisCommand",
     "canvas_actor_id",
     "build_image_multi_view_prompt",
     "build_image_relight_prompt",
@@ -204,6 +226,7 @@ __all__ = [
     "creative_canvas_image_editing_use_cases",
     "creative_canvas_reference_image_editing_use_cases",
     "creative_canvas_image_generation_use_cases",
+    "creative_canvas_video_processing_use_cases",
     "creative_canvas_reverse_prompt_use_cases",
     "creative_canvas_media_use_cases",
     "generation_catalog_queries",

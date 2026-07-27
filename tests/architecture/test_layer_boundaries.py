@@ -364,6 +364,97 @@ def test_freezone_generation_catalog_routes_delegate_to_application() -> None:
         assert implementation_detail not in legacy_source
 
 
+def test_freezone_video_processing_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "video.py"
+    legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    application = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "application"
+        / "video_processing.py"
+    )
+    source_adapter = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "infrastructure"
+        / "media_sources.py"
+    )
+    runner = PACKAGE_ROOT / "task_backend" / "runners" / "freezone.py"
+    source = route.read_text(encoding="utf-8")
+    legacy_source = legacy_route.read_text(encoding="utf-8")
+    application_source = application.read_text(encoding="utf-8")
+    adapter_source = source_adapter.read_text(encoding="utf-8")
+    runner_source = runner.read_text(encoding="utf-8")
+
+    endpoint_paths = (
+        '"/projects/{project}/freezone/extract-frames"',
+        '"/projects/{project}/freezone/analyze-shots"',
+        '"/projects/{project}/freezone/analyze-video-story"',
+    )
+    for endpoint_path in endpoint_paths:
+        assert source.count(endpoint_path) == 1
+        assert endpoint_path not in legacy_source
+
+    assert source.count("creative_canvas_video_processing_use_cases().") == 3
+    for command in (
+        "StartCreativeCanvasFrameExtractionCommand",
+        "StartCreativeCanvasShotAnalysisCommand",
+        "StartCreativeCanvasVideoStoryAnalysisCommand",
+    ):
+        assert command in source
+    for legacy_handler in (
+        "async def freezone_extract_frames(",
+        "async def freezone_analyze_shots(",
+        "async def freezone_analyze_video_story(",
+        "async def _enqueue_or_start_freezone_video_analysis(",
+    ):
+        assert legacy_handler not in legacy_source
+    for legacy_schema in (
+        "FreezoneExtractFramesRequest",
+        "FreezoneAnalyzeShotsRequest",
+        "FreezoneAnalyzeVideoStoryRequest",
+    ):
+        assert legacy_schema not in legacy_source
+    for implementation_detail in (
+        "get_task_backend",
+        "project_task_state_key",
+        "resolve_static_url_to_path",
+        "_new_job_id",
+    ):
+        assert implementation_detail not in source
+    for task_type, runner_name in (
+        ("freezone_extract", "run_freezone_extract"),
+        ("freezone_analyze", "run_freezone_analyze"),
+        ("freezone_video_story", "run_freezone_video_story"),
+    ):
+        assert (
+            runner_source.count(
+                f'register_project_task_runner("{task_type}", {runner_name})'
+            )
+            == 1
+        )
+    assert not (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "application"
+        / "image_sources.py"
+    ).exists()
+    assert not (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "infrastructure"
+        / "image_sources.py"
+    ).exists()
+    assert "fastapi" not in application_source
+    assert "ai_anime.api" not in application_source
+    assert "fastapi" not in adapter_source
+    assert "ai_anime.api" not in adapter_source
+
+
 def test_freezone_mark_detection_route_delegates_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "image.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"

@@ -6,8 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping, Protocol
 
-from ai_anime.modules.creative_canvas.application.image_sources import (
-    CreativeCanvasExistingImageSourceResolver,
+from ai_anime.modules.creative_canvas.application.media_sources import (
+    CreativeCanvasExistingMediaSourceResolver,
 )
 from ai_anime.modules.creative_canvas.application.task_submission import (
     CreativeCanvasJobIds,
@@ -74,7 +74,7 @@ class CreativeCanvasImageGenerationModelRouter(Protocol):
 class CreativeCanvasImageGenerationUseCases:
     def __init__(
         self,
-        sources: CreativeCanvasExistingImageSourceResolver,
+        sources: CreativeCanvasExistingMediaSourceResolver,
         prompts: CreativeCanvasImageGenerationPromptComposer,
         models: CreativeCanvasImageGenerationModelRouter,
         job_ids: CreativeCanvasJobIds,

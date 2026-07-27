@@ -31,12 +31,9 @@ from ai_anime.api.deps import (
 from ai_anime.api.schemas import (
     CanvasPayload,
     CreateIdentityAssetRequest,
-    FreezoneAnalyzeShotsRequest,
-    FreezoneAnalyzeVideoStoryRequest,
     FreezoneAudioMusicRequest,
     FreezoneAudioSeparateRequest,
     FreezoneAudioSpeechRequest,
-    FreezoneExtractFramesRequest,
     FreezoneFrameFromContextRequest,
     FreezoneImageCameraConfig,
     FreezoneImageStyleConfig,
@@ -1613,38 +1610,6 @@ def _project_job_response(
     if task_id:
         data["task_id"] = task_id
     return {"ok": True, "data": data}
-
-
-async def _enqueue_or_start_freezone_video_analysis(
-    *,
-    ctx: ProjectContext | None,
-    username: str,
-    project: str,
-    project_dir: Path,
-    output_dir: str,
-    task_type: Literal["freezone_extract", "freezone_analyze", "freezone_video_story"],
-    job_id: str,
-    payload: dict,
-) -> dict:
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type=task_type,
-            queue_kind="ffmpeg" if task_type != "freezone_analyze" else "default",
-            episode=0,
-            scope=job_id,
-            payload={"job_id": job_id, "project_dir": str(project_dir), **payload},
-        )
-        return _project_job_response(
-            task_type=task_type,
-            ctx=ctx,
-            job_id=job_id,
-            backend=queued.backend,
-            queue=queued.queue,
-            task_id=queued.task_state.task_id,
-        )
-
-    _raise_project_context_required(task_type)
 
 
 async def _enqueue_or_start_freezone_media_job(
@@ -4124,123 +4089,6 @@ def _freezone_not_implemented(endpoint: str) -> None:
             f"{endpoint} is reserved in the API surface but not implemented yet. "
             "Keep using the existing image routes or frontend-local tools for now."
         ),
-    )
-
-
-# ============================================================
-# 视频处理：抽帧 / 镜头分析
-# ============================================================
-
-
-@router.post("/projects/{project}/freezone/extract-frames", tags=[TAG_FREEZONE_VIDEO])
-async def freezone_extract_frames(
-    project: str,
-    body: FreezoneExtractFramesRequest,
-    user: dict = Depends(get_api_user),
-):
-    """视频处理：从视频中抽取关键帧，返回任务 `task_key`。"""
-    ctx, username, project_name, project_dir, output_dir = await _resolve_freezone_project(
-        project, user
-    )
-
-    try:
-        video_path = resolve_static_url_to_path(body.video_url, project_dir)
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
-    if not video_path.exists():
-        raise HTTPException(404, f"video not found: {video_path}")
-
-    job_id = _new_job_id()
-    return await _enqueue_or_start_freezone_video_analysis(
-        ctx=ctx,
-        username=username,
-        project=project_name,
-        project_dir=project_dir,
-        output_dir=output_dir,
-        task_type="freezone_extract",
-        job_id=job_id,
-        payload={
-            "video_path": video_path.as_posix(),
-            "max_frames": body.max_frames,
-            "scene_threshold": body.scene_threshold,
-        },
-    )
-
-
-@router.post("/projects/{project}/freezone/analyze-shots", tags=[TAG_FREEZONE_VIDEO])
-async def freezone_analyze_shots(
-    project: str,
-    body: FreezoneAnalyzeShotsRequest,
-    user: dict = Depends(get_api_user),
-):
-    """视频处理：分析一组关键帧的镜头内容，返回任务 `task_key`。"""
-    ctx, username, project_name, project_dir, output_dir = await _resolve_freezone_project(
-        project, user
-    )
-
-    if not body.frame_urls:
-        raise HTTPException(400, "frame_urls is required (non-empty)")
-
-    frame_paths: list[str] = []
-    for url in body.frame_urls:
-        try:
-            p = resolve_static_url_to_path(url, project_dir)
-        except ValueError as exc:
-            raise HTTPException(400, str(exc)) from exc
-        if not p.exists():
-            raise HTTPException(404, f"frame not found: {p}")
-        frame_paths.append(str(p))
-
-    job_id = _new_job_id()
-    return await _enqueue_or_start_freezone_video_analysis(
-        ctx=ctx,
-        username=username,
-        project=project_name,
-        project_dir=project_dir,
-        output_dir=output_dir,
-        task_type="freezone_analyze",
-        job_id=job_id,
-        payload={
-            "frame_paths": frame_paths,
-            "analysis_mode": body.analysis_mode,
-            "duration_sec": body.duration_sec,
-        },
-    )
-
-
-@router.post("/projects/{project}/freezone/analyze-video-story", tags=[TAG_FREEZONE_VIDEO])
-async def freezone_analyze_video_story(
-    project: str,
-    body: FreezoneAnalyzeVideoStoryRequest,
-    user: dict = Depends(get_api_user),
-):
-    """视频处理：抽帧并解析视频故事，返回任务 `task_key`。"""
-    ctx, username, project_name, project_dir, output_dir = await _resolve_freezone_project(
-        project, user
-    )
-
-    try:
-        video_path = resolve_static_url_to_path(body.video_url, project_dir)
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
-    if not video_path.exists():
-        raise HTTPException(404, f"video not found: {video_path}")
-
-    job_id = _new_job_id()
-    return await _enqueue_or_start_freezone_video_analysis(
-        ctx=ctx,
-        username=username,
-        project=project_name,
-        project_dir=project_dir,
-        output_dir=output_dir,
-        task_type="freezone_video_story",
-        job_id=job_id,
-        payload={
-            "video_path": video_path.as_posix(),
-            "max_frames": body.max_frames,
-            "scene_threshold": body.scene_threshold,
-            "duration_sec": body.duration_sec,
-        },
     )
 
 

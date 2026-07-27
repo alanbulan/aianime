@@ -1666,6 +1666,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百九十一批已将多角度重构、重新打光、模板编辑和通用参考图编辑共 4 个 POST 端点统一收口到 Creative Canvas image-editing application/adapter 与 image FastAPI 子 router；多角度、打光、模板提示词及模板比例成为纯 domain 唯一规则，共享 reference-edit 用例统一承担基准图/额外参考图解析、原图比例读取、严格 provider/model 路由、风格/相机提示词组合、任务显示元数据和 `freezone_edit` 提交，图片默认模型同步下沉为领域常量；旧 `freezone.py` 中 4 个 handler 和 `_start_or_enqueue_freezone_edit_job`、旧 `route_helpers.py` 中提示词/比例规则及无调用的 gen/edit 启动壳和路径校验 helper 全部删除，不保留 facade、转发函数、兼容壳或第二套实现；项目 editor 鉴权、基准图/参考图 400/404 文案、明确比例不读取图片尺寸、`original` 源图比例、特殊端点默认模型与 medium 质量、通用 edit 显式 provider/model/quality、Canvas/Node/模型/模式字段、任务类型/default 队列/payload、显示标签、项目级 task key、限流与 RuntimeError 透传、请求路径和响应字段均保持不变；领域/用例/路由定向回归 37 项、历史图片后端相关回归 12 项、M06 完整合同 16 项、任务注册表 3 项和后端完整分层门禁 71 项均通过，4 条冷启动导入、Ruff 与 `git diff --check` 通过，8 条告警均为既有依赖弃用告警。
 
+第二百九十二批已将抽帧、镜头分析和视频故事解析共 3 个 POST 端点收口到 Creative Canvas video-processing application 与 video FastAPI 子 router，由应用用例统一承担源视频/帧路径解析、存在性校验、任务 DTO 和任务提交；原图片专用源解析 port/adapter 同步收口为唯一通用媒体源实现，图片编辑、文生图、标记检测、反推提示词和图片转 3GS 全部改用该实现，旧 `image_sources.py` 两层文件直接删除；旧 `freezone.py` 中 3 个 handler 和 `_enqueue_or_start_freezone_video_analysis` 整段删除，不新增无领域规则的空壳 domain，不保留 facade、转发函数、兼容壳或第二套实现；项目 editor 鉴权、路径越界与缺失素材 400/404 文案、空帧列表校验、`provider/model` 忽略语义、`freezone_extract`/`freezone_analyze`/`freezone_video_story` 任务类型、ffmpeg/default 队列、payload、调度器注入的 `job_id`/`project_dir`、项目级 task key、限流与 RuntimeError 透传、请求路径、OpenAPI tag/说明、响应字段和唯一 runner 注册均保持不变；视频处理与历史视频故事回归 12 项、通用媒体源相关回归 215 项、M06 完整合同 16 项、任务注册表 3 项和后端完整分层门禁 72 项均通过，4 条冷启动导入、Ruff 与 `git diff --check` 通过，8 条告警均为既有依赖弃用告警。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。
