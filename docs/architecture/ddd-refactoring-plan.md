@@ -1630,6 +1630,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百七十三批已将节点与画布聚合生成历史的项目/画布/节点路径编码、limit 查询和响应记录映射从 `api/ops.ts` 迁入已有唯一 `freezoneGenerationHistoryGateway` infrastructure 适配器，gateway 直接使用 application 持有的唯一 `CanvasGenerationHistoryRecord` DTO，并继续将聚合接口 404 映射为 `null`，Canvas application 继续负责聚合优先、节点并发回退、去重和时间排序；旧 `FreezoneGenerationHistoryRecord`、`fetchNodeGenerationHistory` 和 `fetchCanvasGenerationHistory` 直接删除，不保留 facade、re-export 或第二套 HTTP/DTO 映射，两个 `generation-history` GET 端点只有该 gateway 一个生产所有者，`api/ops.ts` 由 1,364 行降至 1,301 行；请求路径、默认 limit、空记录回退、字段投影、404 兼容和其他错误透传语义均未改变；相关 2 个测试文件 7 项、架构门禁 206 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
 
+第二百七十四批已将素材库列表、主线同步、上传项登记和删除的项目/条目路径编码、HTTP method 与媒体字段映射从 `api/ops.ts` 迁入已有唯一 `freezoneAssetLibraryGateway` infrastructure 适配器，gateway 继续负责兼容数组及多种容器键、媒体 URL、来源和标识字段的宽松归一，Canvas application/domain 继续持有用例和唯一素材 DTO；旧 `FreezoneVideoCharacterLibraryItem`、`FreezoneAddVideoCharacterLibraryItemPayload` 及 4 个素材库 transport 函数直接删除，同时移除 `api/ops.ts` 对 `domain/assetLibrary` 的反向依赖，不保留 facade、re-export 或第二套 HTTP/DTO 映射，素材库 4 个端点只有该 gateway 一个生产所有者，`api/ops.ts` 由 1,301 行降至 1,223 行；请求路径、方法、媒体字段省略规则、同步返回归一和删除语义均未改变；相关 1 个测试文件 3 项、架构门禁 206 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

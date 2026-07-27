@@ -1,10 +1,5 @@
 // Copyright (c) 2026 AI anime
-import {
-  deleteFreezoneVideoCharacterLibraryItem,
-  fetchFreezoneVideoCharacterLibrary,
-  submitFreezoneAddVideoCharacterLibraryItem,
-  syncFreezoneAssetLibraryFromMainline,
-} from "@/api/ops";
+import { apiCall } from "@/shared/api/client";
 
 import type { CanvasAssetLibraryGateway } from "../application/assetLibrary";
 import type {
@@ -85,21 +80,45 @@ function normalizeItems(payload: unknown): CanvasAssetLibraryItem[] {
 
 export const freezoneAssetLibraryGateway: CanvasAssetLibraryGateway = {
   async list(projectId) {
-    return normalizeItems(await fetchFreezoneVideoCharacterLibrary(projectId));
+    return normalizeItems(
+      await apiCall<unknown>(
+        `projects/${encodeURIComponent(projectId)}/freezone/video/character-library`,
+      ),
+    );
   },
   async syncFromMainline(projectId) {
-    return normalizeItems(await syncFreezoneAssetLibraryFromMainline(projectId));
+    return normalizeItems(
+      await apiCall<unknown>(
+        `projects/${encodeURIComponent(projectId)}/freezone/video/asset-library/sync-from-mainline`,
+        { method: "POST" },
+      ),
+    );
   },
   async addUploadedItem(projectId, command) {
-    await submitFreezoneAddVideoCharacterLibraryItem(projectId, {
-      name: command.name,
-      media: command.media,
-      imageUrls: command.media === "image" ? [command.url] : undefined,
-      videoUrl: command.media === "video" ? command.url : undefined,
-      audioUrl: command.media === "audio" ? command.url : undefined,
-    });
+    await apiCall<unknown>(
+      `projects/${encodeURIComponent(projectId)}/freezone/video/character-library`,
+      {
+        method: "POST",
+        json: {
+          name: command.name,
+          media: command.media,
+          ...(command.media === "image"
+            ? { image_urls: [command.url] }
+            : {}),
+          ...(command.media === "video"
+            ? { video_url: command.url }
+            : {}),
+          ...(command.media === "audio"
+            ? { audio_url: command.url }
+            : {}),
+        },
+      },
+    );
   },
   async deleteItem(projectId, itemId) {
-    await deleteFreezoneVideoCharacterLibraryItem(projectId, itemId);
+    await apiCall<unknown>(
+      `projects/${encodeURIComponent(projectId)}/freezone/video/character-library/${encodeURIComponent(itemId)}`,
+      { method: "DELETE" },
+    );
   },
 };

@@ -14711,18 +14711,29 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/ui/AssetLibraryModal.tsx",
     );
-    const opsPath = resolve(SRC_ROOT, "api/ops.ts");
+    const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const domainSource = readFileSync(domainPath, "utf8");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const viewSource = readFileSync(viewPath, "utf8");
-    const opsSource = readFileSync(opsPath, "utf8");
+    const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const consumerPaths = [
       "features/canvas/nodes/ImageEditNode.tsx",
       "features/canvas/nodes/ImageGenNode.tsx",
       "features/canvas/nodes/VideoNode.tsx",
     ].map((path) => resolve(SRC_ROOT, path));
+    const endpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) => {
+        const source = readFileSync(path, "utf8");
+        return (
+          source.includes("freezone/video/character-library") &&
+          source.includes("freezone/video/asset-library/sync-from-mainline")
+        );
+      })
+      .map(relativeSource)
+      .sort();
 
     expect(importSpecifiers(domainPath)).toEqual([]);
     expect(domainSource).toContain(
@@ -14736,7 +14747,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
       new Set([
-        "@/api/ops",
+        "@/shared/api/client",
         "../application/assetLibrary",
         "../domain/assetLibrary",
       ]),
@@ -14744,11 +14755,10 @@ describe("frontend architecture boundaries", () => {
     expect(adapterSource).toContain(
       "freezoneAssetLibraryGateway: CanvasAssetLibraryGateway",
     );
+    expect(adapterSource).toContain("apiCall<unknown>(");
+    expect(adapterSource).toContain("freezone/video/character-library");
     expect(adapterSource).toContain(
-      "fetchFreezoneVideoCharacterLibrary(projectId)",
-    );
-    expect(adapterSource).toContain(
-      "syncFreezoneAssetLibraryFromMainline(projectId)",
+      "freezone/video/asset-library/sync-from-mainline",
     );
     expect(new Set(importSpecifiers(compositionPath))).toEqual(
       new Set([
@@ -14777,11 +14787,26 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).not.toContain(
       "deleteFreezoneVideoCharacterLibraryItem",
     );
-    expect(opsSource).toContain(
+    expect(endpointOwners).toEqual([
+      "features/canvas/infrastructure/freezoneAssetLibraryGateway.ts",
+    ]);
+    for (const legacySymbol of [
+      "FreezoneVideoCharacterLibraryItem",
+      "FreezoneAddVideoCharacterLibraryItemPayload",
+      "fetchFreezoneVideoCharacterLibrary",
+      "submitFreezoneAddVideoCharacterLibraryItem",
+      "syncFreezoneAssetLibraryFromMainline",
+      "deleteFreezoneVideoCharacterLibraryItem",
+    ]) {
+      expect(legacyOpsSource).not.toContain(legacySymbol);
+    }
+    expect(legacyOpsSource).not.toContain(
       "@/features/canvas/domain/assetLibrary",
     );
-    expect(opsSource).not.toContain("FreezoneAssetLibraryMedia");
-    expect(opsSource).not.toContain("FreezoneAssetLibrarySource");
+    expect(legacyOpsSource).not.toContain("freezone/video/character-library");
+    expect(legacyOpsSource).not.toContain(
+      "freezone/video/asset-library/sync-from-mainline",
+    );
     for (const consumerPath of consumerPaths) {
       const imports = importSpecifiers(consumerPath);
       expect(imports).toContain("@/features/canvas/domain/assetLibrary");

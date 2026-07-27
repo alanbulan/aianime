@@ -1,30 +1,19 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const fetchLibrary = vi.hoisted(() => vi.fn());
-const syncLibrary = vi.hoisted(() => vi.fn());
-const addItem = vi.hoisted(() => vi.fn());
-const deleteItem = vi.hoisted(() => vi.fn());
+import { apiCall } from "@/shared/api/client";
 
-vi.mock("@/api/ops", () => ({
-  deleteFreezoneVideoCharacterLibraryItem: deleteItem,
-  fetchFreezoneVideoCharacterLibrary: fetchLibrary,
-  submitFreezoneAddVideoCharacterLibraryItem: addItem,
-  syncFreezoneAssetLibraryFromMainline: syncLibrary,
-}));
+vi.mock("@/shared/api/client", () => ({ apiCall: vi.fn() }));
 
 import { freezoneAssetLibraryGateway } from "./freezoneAssetLibraryGateway";
 
 describe("freezoneAssetLibraryGateway", () => {
   beforeEach(() => {
-    fetchLibrary.mockReset();
-    syncLibrary.mockReset();
-    addItem.mockReset();
-    deleteItem.mockReset();
+    vi.mocked(apiCall).mockReset();
   });
 
   it("normalizes compatible list containers and media URLs", async () => {
-    fetchLibrary.mockResolvedValue({
+    vi.mocked(apiCall).mockResolvedValue({
       items: [
         {
           id: 7,
@@ -48,7 +37,9 @@ describe("freezoneAssetLibraryGateway", () => {
       ],
     });
 
-    await expect(freezoneAssetLibraryGateway.list("project-1")).resolves.toEqual([
+    await expect(
+      freezoneAssetLibraryGateway.list("project/1"),
+    ).resolves.toEqual([
       {
         id: "7",
         name: "Character",
@@ -71,10 +62,13 @@ describe("freezoneAssetLibraryGateway", () => {
         url: "/static/voice.mp3",
       },
     ]);
+    expect(apiCall).toHaveBeenCalledWith(
+      "projects/project%2F1/freezone/video/character-library",
+    );
   });
 
   it("normalizes the synchronized mainline library", async () => {
-    syncLibrary.mockResolvedValue([
+    vi.mocked(apiCall).mockResolvedValue([
       {
         id: "scene-1",
         name: "Scene",
@@ -84,7 +78,7 @@ describe("freezoneAssetLibraryGateway", () => {
     ]);
 
     await expect(
-      freezoneAssetLibraryGateway.syncFromMainline("project-1"),
+      freezoneAssetLibraryGateway.syncFromMainline("project/1"),
     ).resolves.toEqual([
       {
         id: "scene-1",
@@ -94,26 +88,38 @@ describe("freezoneAssetLibraryGateway", () => {
         url: "/static/scene.png",
       },
     ]);
+    expect(apiCall).toHaveBeenCalledWith(
+      "projects/project%2F1/freezone/video/asset-library/sync-from-mainline",
+      { method: "POST" },
+    );
   });
 
   it("maps uploaded media and deletes by item id", async () => {
-    addItem.mockResolvedValue({});
-    deleteItem.mockResolvedValue({});
+    vi.mocked(apiCall).mockResolvedValue({});
 
-    await freezoneAssetLibraryGateway.addUploadedItem("project-1", {
+    await freezoneAssetLibraryGateway.addUploadedItem("project/1", {
       name: "Clip",
       media: "video",
       url: "/static/clip.mp4",
     });
-    await freezoneAssetLibraryGateway.deleteItem("project-1", "video-1");
+    await freezoneAssetLibraryGateway.deleteItem("project/1", "video/1");
 
-    expect(addItem).toHaveBeenCalledWith("project-1", {
-      name: "Clip",
-      media: "video",
-      imageUrls: undefined,
-      videoUrl: "/static/clip.mp4",
-      audioUrl: undefined,
-    });
-    expect(deleteItem).toHaveBeenCalledWith("project-1", "video-1");
+    expect(apiCall).toHaveBeenNthCalledWith(
+      1,
+      "projects/project%2F1/freezone/video/character-library",
+      {
+        method: "POST",
+        json: {
+          name: "Clip",
+          media: "video",
+          video_url: "/static/clip.mp4",
+        },
+      },
+    );
+    expect(apiCall).toHaveBeenNthCalledWith(
+      2,
+      "projects/project%2F1/freezone/video/character-library/video%2F1",
+      { method: "DELETE" },
+    );
   });
 });
