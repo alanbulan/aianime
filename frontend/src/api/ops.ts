@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { apiCall, apiRequest } from "@/shared/api/client";
+import { apiCall } from "@/shared/api/client";
 import type { CameraMovementPreset } from "@/features/canvas/domain/cameraMovementPresets";
 import {
   ensureBackendImageUrl,
@@ -999,62 +999,6 @@ export interface FreezoneAudioVoiceRef {
   voiceId?: string;
 }
 
-/**
- * `GET /freezone/audio/references` 返回的单条记录。openapi 没给 schema（{}），
- * 这里按后端 description 推测，UI 防御性读取——遇到陌生字段就忽略。
- */
-export interface FreezoneAudioReferenceItem {
-  scope: FreezoneAudioVoiceRefScope;
-  /** scope=character_* 或 identity* 时有值。 */
-  character_name?: string | null;
-  /** scope=identity / identity_resolved 时有值。 */
-  identity_id?: string | null;
-  /** scope=character_age_group 时有值：child/youth/middle/elder。 */
-  slot?: string | null;
-  /** scope=user_custom 时有值：账号级音色 ID（来自 POST /freezone/audio/voices）。 */
-  voice_id?: string | null;
-  /** 展示名（后端给的，若没给前端兜底拼）。 */
-  label?: string | null;
-  /** 语言/腔调说明。 */
-  language?: string | null;
-  /** 性别（如果后端给）。 */
-  gender?: string | null;
-  /** 预览音频静态 URL（如果后端给）。 */
-  preview_url?: string | null;
-  [key: string]: unknown;
-}
-
-export interface FreezoneAudioReferencesResult {
-  /** 项目内可用的声线引用列表。 */
-  available: FreezoneAudioReferenceItem[];
-  [key: string]: unknown;
-}
-
-export async function fetchFreezoneAudioReferences(
-  project: string,
-): Promise<FreezoneAudioReferencesResult> {
-  const payload = await apiCall<unknown>(
-    `projects/${encodeURIComponent(project)}/freezone/audio/references`,
-  );
-  // 容错：后端可能直接返回数组、或 { available: [...] }，或 { items: [...] }。
-  if (Array.isArray(payload)) {
-    return { available: payload as FreezoneAudioReferenceItem[] };
-  }
-  if (payload && typeof payload === "object") {
-    const wrapper = payload as Record<string, unknown>;
-    if (Array.isArray(wrapper.available)) {
-      return wrapper as unknown as FreezoneAudioReferencesResult;
-    }
-    if (Array.isArray(wrapper.items)) {
-      return { available: wrapper.items as FreezoneAudioReferenceItem[] };
-    }
-    if (Array.isArray(wrapper.data)) {
-      return { available: wrapper.data as FreezoneAudioReferenceItem[] };
-    }
-  }
-  return { available: [] };
-}
-
 export interface FreezoneAudioSpeechPayload {
   /** 要合成的台词 / 旁白文本。 */
   text: string;
@@ -1138,57 +1082,6 @@ export async function submitFreezoneAudioMusic(
       },
     },
   );
-}
-
-// /freezone/audio/voices ------------------------------------------------- //
-//
-// 「我的音色」(scope=user_custom) 的列表统一通过 /freezone/audio/references
-// 拿（混在 available[] 里，按 scope 过滤）。这里只保留 POST：上传一段音频克
-// 隆出账号级音色。
-
-/**
- * POST /freezone/audio/voices 的响应。openapi 是空对象，按推测字段定义。
- * 调用方一般只需要 `voice_id`，其它仅用于上传后即时展示。
- */
-export interface FreezoneAudioVoiceItem {
-  voice_id: string;
-  name?: string | null;
-  language?: string | null;
-  gender?: string | null;
-  preview_url?: string | null;
-  [key: string]: unknown;
-}
-
-export interface CreateFreezoneAudioVoiceOptions {
-  /** 上传大文件时用 false 关闭 ky 默认 30s 超时。 */
-  timeoutMs?: number | false;
-}
-
-export async function createFreezoneAudioVoice(
-  project: string,
-  file: File | Blob,
-  name?: string,
-  options?: CreateFreezoneAudioVoiceOptions,
-): Promise<FreezoneAudioVoiceItem> {
-  const fd = new FormData();
-  fd.append(
-    "file",
-    file,
-    file instanceof File ? file.name : "voice.wav",
-  );
-  if (name && name.trim()) fd.append("name", name.trim());
-  const resp = await apiRequest(
-    `projects/${encodeURIComponent(project)}/freezone/audio/voices`,
-    {
-      method: "POST",
-      body: fd,
-      timeout: options?.timeoutMs ?? false,
-    },
-  ).json<{ ok: boolean; data?: FreezoneAudioVoiceItem; error?: string }>();
-  if (!resp.ok || !resp.data) {
-    throw new Error(resp.error ?? "voice upload failed");
-  }
-  return resp.data;
 }
 
 export interface FreezoneStoryScriptRow {

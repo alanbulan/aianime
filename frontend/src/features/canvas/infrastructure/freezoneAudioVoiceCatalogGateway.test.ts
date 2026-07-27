@@ -1,24 +1,26 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const createFreezoneAudioVoice = vi.hoisted(() => vi.fn());
-const fetchFreezoneAudioReferences = vi.hoisted(() => vi.fn());
+import { apiCall, apiRequest } from "@/shared/api/client";
 
-vi.mock("@/api/ops", () => ({
-  createFreezoneAudioVoice,
-  fetchFreezoneAudioReferences,
+const requestJson = vi.hoisted(() => vi.fn());
+
+vi.mock("@/shared/api/client", () => ({
+  apiCall: vi.fn(),
+  apiRequest: vi.fn(() => ({ json: requestJson })),
 }));
 
 import { freezoneAudioVoiceCatalogGateway } from "./freezoneAudioVoiceCatalogGateway";
 
 beforeEach(() => {
-  createFreezoneAudioVoice.mockReset();
-  fetchFreezoneAudioReferences.mockReset();
+  vi.mocked(apiCall).mockReset();
+  vi.mocked(apiRequest).mockClear();
+  requestJson.mockReset();
 });
 
 describe("freezoneAudioVoiceCatalogGateway", () => {
   it("maps audio reference transport fields to the Canvas DTO", async () => {
-    fetchFreezoneAudioReferences.mockResolvedValue({
+    vi.mocked(apiCall).mockResolvedValue({
       available: [
         {
           scope: "identity_resolved",
@@ -35,7 +37,7 @@ describe("freezoneAudioVoiceCatalogGateway", () => {
     });
 
     await expect(
-      freezoneAudioVoiceCatalogGateway.listReferences("project-1"),
+      freezoneAudioVoiceCatalogGateway.listReferences("project/1"),
     ).resolves.toEqual([
       {
         ref: {
@@ -50,24 +52,47 @@ describe("freezoneAudioVoiceCatalogGateway", () => {
         previewUrl: "/voice/lin.wav",
       },
     ]);
-    expect(fetchFreezoneAudioReferences).toHaveBeenCalledWith("project-1");
+    expect(apiCall).toHaveBeenCalledWith(
+      "projects/project%2F1/freezone/audio/references",
+    );
   });
 
-  it("delegates custom voice creation without exposing its transport DTO", async () => {
+  it("uploads a custom voice without exposing its transport DTO", async () => {
     const file = new File(["voice"], "voice.wav", { type: "audio/wav" });
-    createFreezoneAudioVoice.mockResolvedValue({ voice_id: "voice-1" });
+    requestJson.mockResolvedValue({ ok: true, data: { voice_id: "voice-1" } });
+
+    await expect(
+      freezoneAudioVoiceCatalogGateway.createVoice(
+        "project/2",
+        file,
+        " Voice ",
+      ),
+    ).resolves.toBeUndefined();
+    expect(apiRequest).toHaveBeenCalledWith(
+      "projects/project%2F2/freezone/audio/voices",
+      expect.objectContaining({ method: "POST", timeout: false }),
+    );
+    const requestBody = vi.mocked(apiRequest).mock.calls[0]?.[1]
+      ?.body as FormData;
+    const uploadedFile = requestBody.get("file");
+    expect(uploadedFile).toBeInstanceOf(File);
+    if (!(uploadedFile instanceof File)) {
+      throw new Error("voice upload did not include a file");
+    }
+    expect(uploadedFile.name).toBe("voice.wav");
+    expect(uploadedFile.type).toBe("audio/wav");
+    await expect(uploadedFile.text()).resolves.toBe("voice");
+    expect(requestBody.get("name")).toBe("Voice");
+  });
+
+  it("surfaces a custom voice upload error", async () => {
+    requestJson.mockResolvedValue({ ok: false, error: "voice rejected" });
 
     await expect(
       freezoneAudioVoiceCatalogGateway.createVoice(
         "project-2",
-        file,
-        "Voice",
+        new Blob(["voice"], { type: "audio/wav" }),
       ),
-    ).resolves.toBeUndefined();
-    expect(createFreezoneAudioVoice).toHaveBeenCalledWith(
-      "project-2",
-      file,
-      "Voice",
-    );
+    ).rejects.toThrow("voice rejected");
   });
 });

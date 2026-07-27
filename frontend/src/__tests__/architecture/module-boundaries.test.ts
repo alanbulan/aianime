@@ -9614,11 +9614,24 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/nodes/VoiceSelectionModal.tsx",
     );
+    const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const audioNodeSource = readFileSync(audioNodePath, "utf8");
     const voiceModalSource = readFileSync(voiceModalPath, "utf8");
+    const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
+    const endpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) => {
+        const source = readFileSync(path, "utf8");
+        return (
+          source.includes("}/freezone/audio/references`") &&
+          source.includes("}/freezone/audio/voices`")
+        );
+      })
+      .map(relativeSource)
+      .sort();
 
     expect(importSpecifiers(applicationPath)).toEqual([
       "../domain/canvasNodes",
@@ -9629,7 +9642,7 @@ describe("frontend architecture boundaries", () => {
       "export interface CanvasAudioVoiceCatalogGateway",
     );
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
-      new Set(["@/api/ops", "../application/audioVoiceCatalog"]),
+      new Set(["@/shared/api/client", "../application/audioVoiceCatalog"]),
     );
     expect(infrastructureSource).toContain(
       "freezoneAudioVoiceCatalogGateway: CanvasAudioVoiceCatalogGateway",
@@ -9637,7 +9650,7 @@ describe("frontend architecture boundaries", () => {
     expect(infrastructureSource).toContain("characterName: item.character_name");
     expect(infrastructureSource).toContain("voiceId: item.voice_id");
     expect(infrastructureSource).toContain(
-      "item.gender ?? (item as Record<string, unknown>).sex",
+      "item.gender ?? item.sex",
     );
     expect(importSpecifiers(compositionPath)).toContain(
       "./infrastructure/freezoneAudioVoiceCatalogGateway",
@@ -9662,6 +9675,21 @@ describe("frontend architecture boundaries", () => {
     expect(voiceModalSource).not.toContain("character_name");
     expect(voiceModalSource).not.toContain("voice_id");
     expect(voiceModalSource).not.toContain("function readGender(");
+    expect(endpointOwners).toEqual([
+      "features/canvas/infrastructure/freezoneAudioVoiceCatalogGateway.ts",
+    ]);
+    for (const legacySymbol of [
+      "FreezoneAudioReferenceItem",
+      "FreezoneAudioReferencesResult",
+      "fetchFreezoneAudioReferences",
+      "FreezoneAudioVoiceItem",
+      "CreateFreezoneAudioVoiceOptions",
+      "createFreezoneAudioVoice",
+    ]) {
+      expect(legacyOpsSource).not.toContain(legacySymbol);
+    }
+    expect(legacyOpsSource).not.toContain("}/freezone/audio/references`");
+    expect(legacyOpsSource).not.toContain("}/freezone/audio/voices`");
   });
 
   it("keeps Canvas audio generation orchestration in application", () => {
