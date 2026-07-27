@@ -216,10 +216,27 @@ class _FakeTaskManager:
             current_task="done",
         )
 
-    def get_task_for_project(self, _ctx, task_type: str, _episode: int, *, scope: str):
+    def get_task_for_project(
+        self,
+        _ctx,
+        task_type: str,
+        _episode: int,
+        *,
+        beat_num: int | None = None,
+        scope: str,
+    ):
         return self.tasks.get((task_type, scope))
 
-    def get_task(self, task_type: str, _username: str, _project: str, _episode: int, *, scope: str):
+    def get_task(
+        self,
+        task_type: str,
+        _username: str,
+        _project: str,
+        _episode: int,
+        *,
+        beat_num: int | None = None,
+        scope: str,
+    ):
         return self.tasks.get((task_type, scope))
 
 
@@ -227,7 +244,7 @@ class _FakeTaskManager:
 def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api import auth as api_auth
     from ai_anime.api.deps import ProjectResolution
-    from ai_anime.api.routes import freezone, ingest
+    from ai_anime.api.routes import ingest
     from ai_anime.api.routes.canvas import audio as freezone_audio
     from ai_anime.api.routes.canvas import assets as freezone_assets
     from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap
@@ -248,6 +265,12 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.modules.creative_canvas.application.audio_generation import (
         CreativeCanvasAudioGenerationUseCases,
     )
+    from ai_anime.modules.creative_canvas.application.canvas_commits import (
+        CreativeCanvasSlotCommitUseCases,
+    )
+    from ai_anime.modules.creative_canvas.application.canvas_events import (
+        CreativeCanvasEventRecorder,
+    )
     from ai_anime.modules.creative_canvas.application.image_to_3gs import (
         CreativeCanvasImageToThreeGsUseCases,
     )
@@ -262,6 +285,12 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     )
     from ai_anime.modules.creative_canvas.application.mainline_generation import (
         CreativeCanvasMainlineGenerationUseCases,
+    )
+    from ai_anime.modules.creative_canvas.application.skill_catalog import (
+        CreativeCanvasSkillCatalogQueries,
+    )
+    from ai_anime.modules.creative_canvas.application.skill_runs import (
+        CreativeCanvasSkillRunUseCases,
     )
     from ai_anime.modules.creative_canvas.application.reverse_prompt import (
         CreativeCanvasReversePromptUseCases,
@@ -296,6 +325,18 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         LocalCreativeCanvasMainlineGenerationConfigSource,
         LocalCreativeCanvasScene360Runtime,
         PillowCreativeCanvasImageAspectReader,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.canvas_commits import (
+        LocalCreativeCanvasSlotCommitGateway,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.canvas_events import (
+        LocalCreativeCanvasEventWriter,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.skill_runs import (
+        LocalCreativeCanvasSkillRunRepository,
+        LocalCreativeCanvasSkillWorkspace,
+        OptionalCreativeCanvasFrameReviewer,
+        TaskManagerCreativeCanvasSkillTaskReader,
     )
     from ai_anime.modules.creative_canvas.infrastructure.video_generation import (
         ConfiguredCreativeCanvasVideoModelPolicy,
@@ -388,12 +429,6 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     ):
         assert project == _PROJECT
         return resolution
-
-    async def resolve_project_context(
-        *, user: dict, project_id: str, required_role: str = "viewer"
-    ):
-        assert project_id == _PROJECT
-        return ctx
 
     class FakeMarkDetectionUseCases:
         async def detect(self, command):
@@ -490,8 +525,6 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         "resolve_project_scope",
         resolve_project_scope,
     )
-    monkeypatch.setattr(freezone, "resolve_project_context", resolve_project_context)
-    monkeypatch.setattr(freezone, "make_sqlite_store_for_context", make_store_for_context)
     monkeypatch.setattr(
         canvas_assets,
         "make_sqlite_store_for_context",
@@ -527,7 +560,6 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         "make_static_url_for_context",
         static_url,
     )
-    monkeypatch.setattr(freezone, "make_static_url_for_context", static_url)
     monkeypatch.setattr(
         canvas_presets,
         "make_sqlite_store_for_context",
@@ -562,7 +594,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         identity=identity,
         prop=prop,
         ctx=ctx,
-        freezone=freezone,
+        freezone=freezone_image,
         freezone_text=freezone_text,
     )
 
@@ -614,6 +646,29 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             LocalCreativeCanvasScene360Runtime(),
             FreezoneJobIdGenerator(),
             task_scheduler,
+        )
+        event_recorder = CreativeCanvasEventRecorder(LocalCreativeCanvasEventWriter())
+        slot_commit_use_cases = CreativeCanvasSlotCommitUseCases(
+            LocalCreativeCanvasSlotCommitGateway(
+                store_factory=make_store_for_context,
+                cognee_store_factory=make_store_for_context,
+                static_url_builder=static_url,
+            ),
+            event_recorder,
+        )
+        skill_run_use_cases = CreativeCanvasSkillRunUseCases(
+            CreativeCanvasSkillCatalogQueries(),
+            LocalCreativeCanvasSkillRunRepository(),
+            LocalCreativeCanvasSkillWorkspace(store_factory=make_store_for_context),
+            TaskManagerCreativeCanvasSkillTaskReader(
+                task_manager_factory=lambda: task_manager
+            ),
+            OptionalCreativeCanvasFrameReviewer(),
+            FreezoneJobIdGenerator(),
+            mainline_generation_use_cases,
+            image_generation_use_cases,
+            slot_commit_use_cases,
+            event_recorder,
         )
         video_processing_use_cases = CreativeCanvasVideoProcessingUseCases(
             ProjectCreativeCanvasMediaSourceResolver(),
@@ -680,19 +735,14 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             lambda queries=job_result_queries: queries,
         )
         monkeypatch.setattr(
-            freezone,
-            "creative_canvas_image_generation_use_cases",
-            lambda use_cases=image_generation_use_cases: use_cases,
-        )
-        monkeypatch.setattr(
-            freezone,
+            freezone_skills,
             "creative_canvas_mainline_generation_use_cases",
             lambda use_cases=mainline_generation_use_cases: use_cases,
         )
         monkeypatch.setattr(
             freezone_skills,
-            "creative_canvas_mainline_generation_use_cases",
-            lambda use_cases=mainline_generation_use_cases: use_cases,
+            "creative_canvas_skill_run_use_cases",
+            lambda use_cases=skill_run_use_cases: use_cases,
         )
         monkeypatch.setattr(
             freezone_video,
@@ -715,7 +765,6 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             lambda use_cases=video_generation_use_cases: use_cases,
         )
         monkeypatch.setattr(ingest, "get_task_backend", lambda tb=task_backend: tb)
-        monkeypatch.setattr(freezone, "get_task_manager", lambda tm=task_manager: tm)
         app = FastAPI()
         app.include_router(ingest.router, prefix="/api/v1")
         app.include_router(freezone_audio.router, prefix="/api/v1")
@@ -731,7 +780,6 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app.include_router(freezone_skills.router, prefix="/api/v1")
         app.include_router(freezone_text.router, prefix="/api/v1")
         app.include_router(freezone_video.router, prefix="/api/v1")
-        app.include_router(freezone.router, prefix="/api/v1")
         user = {
             "id": "user-alice",
             "user_id": "user-alice",
@@ -752,7 +800,6 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app.dependency_overrides[freezone_skills.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_text.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_video.get_api_user] = lambda user=user: user
-        app.dependency_overrides[freezone.get_api_user] = lambda user=user: user
 
         async def override_cognee_store():
             yield store

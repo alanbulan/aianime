@@ -14,17 +14,36 @@ from ai_anime.modules.creative_canvas.public import (
     CreativeCanvasMainlineBeatMissing,
     CreativeCanvasMainlineMediaMissing,
     CreativeCanvasStagingPropRejected,
+    CreativeCanvasSkillRunRejected,
     GenerateCreativeCanvasStagingPropCommand,
     GenerateCreativeCanvasFrameFromContextCommand,
     GenerateCreativeCanvasScene360Command,
     GenerateCreativeCanvasSketchFromContextCommand,
+    GetCreativeCanvasSkillRunResultQuery,
     InvalidCreativeCanvasMainlineGeneration,
+    RunCreativeCanvasSkillCommand,
+    SkillRunRequest,
+    SkillRunResponse,
+    SkillRunResult,
+    canvas_event_actor,
     creative_canvas_mainline_generation_use_cases,
     creative_canvas_skill_catalog_queries,
+    creative_canvas_skill_run_use_cases,
     creative_canvas_staging_prop_use_cases,
 )
 
 router = APIRouter()
+
+TAG_FREEZONE_SKILLS = "freezone-skills"
+
+_SKILL_RUN_HTTP_STATUS = {
+    "bad_request": 400,
+    "not_found": 404,
+    "conflict": 409,
+    "validation": 422,
+    "runtime": 500,
+    "unsupported": 501,
+}
 
 
 def _mainline_job_response(receipt) -> dict:
@@ -40,6 +59,13 @@ def _raise_mainline_generation_error(exc: Exception) -> None:
     ):
         raise HTTPException(404, str(exc)) from exc
     raise exc
+
+
+def _raise_skill_run_error(exc: CreativeCanvasSkillRunRejected) -> None:
+    raise HTTPException(
+        status_code=_SKILL_RUN_HTTP_STATUS[exc.kind],
+        detail=exc.detail,
+    ) from exc
 
 
 @router.get("/freezone/skills", tags=["freezone-skills"])
@@ -190,3 +216,65 @@ async def freezone_scene_360(
     ) as exc:
         _raise_mainline_generation_error(exc)
     return _mainline_job_response(receipt)
+
+
+@router.post(
+    "/projects/{project}/freezone/skills/{skill_id}/run",
+    response_model=SkillRunResponse,
+    tags=[TAG_FREEZONE_SKILLS],
+)
+async def freezone_skill_run(
+    project: str,
+    skill_id: str,
+    body: SkillRunRequest,
+    user: dict = Depends(get_api_user),
+):
+    scope = await resolve_project_scope(
+        project,
+        user,
+        required_role="editor",
+        operation="access freezone project files",
+    )
+    try:
+        return await creative_canvas_skill_run_use_cases().run(
+            RunCreativeCanvasSkillCommand(
+                context=scope.ctx,
+                project_id=project,
+                project_dir=scope.project_dir,
+                skill_id=skill_id,
+                request=body,
+                actor=canvas_event_actor(user),
+            )
+        )
+    except CreativeCanvasSkillRunRejected as exc:
+        _raise_skill_run_error(exc)
+
+
+@router.get(
+    "/projects/{project}/freezone/skills/runs/{run_id}/result",
+    response_model=SkillRunResult,
+    tags=[TAG_FREEZONE_SKILLS],
+)
+async def freezone_skill_run_result(
+    project: str,
+    run_id: str,
+    user: dict = Depends(get_api_user),
+):
+    scope = await resolve_project_scope(
+        project,
+        user,
+        required_role="viewer",
+        operation="access freezone project files",
+    )
+    try:
+        return await creative_canvas_skill_run_use_cases().result(
+            GetCreativeCanvasSkillRunResultQuery(
+                context=scope.ctx,
+                project_id=project,
+                project_dir=scope.project_dir,
+                run_id=run_id,
+                actor=canvas_event_actor(user),
+            )
+        )
+    except CreativeCanvasSkillRunRejected as exc:
+        _raise_skill_run_error(exc)

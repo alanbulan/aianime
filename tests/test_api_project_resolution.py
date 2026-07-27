@@ -1,10 +1,9 @@
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 from ai_anime.api import deps
-from ai_anime.api.routes import freezone, scenes
+from ai_anime.api.routes import scenes
 
 
 @pytest.mark.asyncio
@@ -47,49 +46,6 @@ async def test_project_resolution_always_uses_control_plane(monkeypatch, tmp_pat
 
 
 @pytest.mark.asyncio
-async def test_freezone_project_resolution_does_not_use_legacy_fallback(
-    monkeypatch, tmp_path
-):
-    ctx = SimpleNamespace(
-        owner_username="alice",
-        project_name="demo",
-        output_dir=tmp_path / "output",
-        state_dir=tmp_path / "state",
-        runtime_dir=tmp_path / "runtime",
-    )
-
-    async def fake_resolve_project_context(**kwargs):
-        return ctx
-
-    def fail_legacy_project_dir(username: str, project: str) -> Path:
-        raise AssertionError("legacy project path fallback should not be used")
-
-    monkeypatch.setattr(
-        freezone, "resolve_project_context", fake_resolve_project_context
-    )
-    monkeypatch.setattr(
-        freezone, "require_project_home_node", lambda *_args, **_kwargs: None
-    )
-    monkeypatch.setattr(
-        freezone, "get_project_dir", fail_legacy_project_dir, raising=False
-    )
-
-    resolved = await freezone._resolve_freezone_project(
-        "01PROJECT",
-        {"id": "user-1", "username": "alice"},
-        required_role="editor",
-    )
-
-    assert resolved == (
-        ctx,
-        "alice",
-        "demo",
-        tmp_path / "output",
-        str(tmp_path / "output"),
-    )
-
-
-@pytest.mark.asyncio
 async def test_scene_project_resolution_does_not_use_legacy_fallback(
     monkeypatch, tmp_path
 ):
@@ -109,7 +65,7 @@ async def test_scene_project_resolution_does_not_use_legacy_fallback(
         assert resolved_ctx is ctx
         return store
 
-    def fail_legacy_project_dir(username: str, project: str) -> Path:
+    def fail_legacy_project_dir(username: str, project: str):
         raise AssertionError("legacy project path fallback should not be used")
 
     monkeypatch.setattr(scenes, "resolve_project_context", fake_resolve_project_context)

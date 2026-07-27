@@ -1,8 +1,4 @@
-"""Freezone 路由辅助函数。
-
-把 `src/ai_anime/api/routes/freezone.py` 里的纯辅助逻辑抽离出来，
-让路由文件更聚焦于接口本身。
-"""
+"""Legacy Freezone transport helpers shared by Creative Canvas adapters."""
 
 from __future__ import annotations
 

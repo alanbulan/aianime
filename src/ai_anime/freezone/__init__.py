@@ -1,5 +1,5 @@
 """Image Freezone backend module.
 
-Houses the per-job generate/edit logic and path helpers used by both the
-FastAPI router (`ai_anime.api.routes.freezone`) and task backend runners.
+Houses legacy per-job generate/edit helpers used by Creative Canvas adapters
+and task backend runners.
 """

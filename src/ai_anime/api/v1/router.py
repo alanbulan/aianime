@@ -17,7 +17,6 @@ from ai_anime.api.routes import (
     content,
     episodes,
     files,
-    freezone,
     ingest,
     model_credits,
     model_gateway,
@@ -131,7 +130,6 @@ def create_api_router(*, desktop_mode: bool | None = None) -> APIRouter:
     router.include_router(freezone_skills.router)
     router.include_router(freezone_text.router)
     router.include_router(freezone_video.router)
-    router.include_router(freezone.router)
 
     from ai_anime.verification.routes import router as verification_router
 

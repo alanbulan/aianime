@@ -424,7 +424,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 | `api/routes/ingest.py` | `api/v1/routes/story_intake.py` + Story Intake use cases |
 | `api/routes/characters.py` | Asset & World 的 character/identity/voice route + use cases |
 | `api/routes/generation.py`（已删除） | Production 已按能力拆分；Asset & World Beat Viewer 已迁入 `asset_world_viewer.py` |
-| `api/routes/freezone.py` | Creative Canvas 的 10 个左右能力 router + use cases |
+| `api/routes/freezone.py`（已删除） | Creative Canvas 路由已按能力拆入 `api/routes/canvas/*`，用例迁入 `modules/creative_canvas` |
 | `models.py` | 各上下文 domain model；旧文件短期只重新导出 |
 | `sqlite_store.py` | 共享 SQLite UoW + 上下文 repository adapters |
 | `cognee/*` | Story Intake infrastructure/cognee，保留独立第三方隔离层 |

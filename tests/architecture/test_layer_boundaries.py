@@ -9,6 +9,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 PACKAGE_ROOT = REPO_ROOT / "src" / "ai_anime"
 ASSET_WORLD_VIEWER_ROUTE = PACKAGE_ROOT / "api" / "routes" / "asset_world_viewer.py"
 LEGACY_GENERATION_ROUTE = PACKAGE_ROOT / "api" / "routes" / "generation.py"
+LEGACY_FREEZONE_ROUTE = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
 COMPOSITION_ROOT_FILES = {"desktop_server.py"}
 
 # These are measured legacy dependencies, not approved architecture. Counts may
@@ -42,6 +43,12 @@ def _imports(path: Path) -> list[str]:
 
 def _relative(path: Path) -> str:
     return path.relative_to(PACKAGE_ROOT).as_posix()
+
+
+def _removed_freezone_route_source(path: Path) -> str:
+    assert path == LEGACY_FREEZONE_ROUTE
+    assert not path.exists()
+    return ""
 
 
 def _assert_ratchet(
@@ -331,14 +338,45 @@ def test_creative_canvas_callers_use_the_public_api() -> None:
 
 def test_freezone_skill_catalog_route_delegates_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "skills.py"
-    legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    legacy_route = LEGACY_FREEZONE_ROUTE
     legacy_catalog = PACKAGE_ROOT / "freezone" / "skill_registry.py"
-    application = (
+    catalog_application = (
         PACKAGE_ROOT
         / "modules"
         / "creative_canvas"
         / "application"
         / "skill_catalog.py"
+    )
+    run_application = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "application"
+        / "skill_runs.py"
+    )
+    run_contracts = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "application"
+        / "skill_run_contracts.py"
+    )
+    run_inputs = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "application"
+        / "skill_run_inputs.py"
+    )
+    run_domain = (
+        PACKAGE_ROOT / "modules" / "creative_canvas" / "domain" / "skill_runs.py"
+    )
+    run_adapter = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "infrastructure"
+        / "skill_runs.py"
     )
     composition = PACKAGE_ROOT / "modules" / "creative_canvas" / "composition.py"
     public = PACKAGE_ROOT / "modules" / "creative_canvas" / "public.py"
@@ -346,35 +384,61 @@ def test_freezone_skill_catalog_route_delegates_to_application() -> None:
     api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
 
     route_source = route.read_text(encoding="utf-8")
-    legacy_source = legacy_route.read_text(encoding="utf-8")
-    application_source = application.read_text(encoding="utf-8")
+    legacy_source = _removed_freezone_route_source(legacy_route)
+    catalog_source = catalog_application.read_text(encoding="utf-8")
+    run_application_source = run_application.read_text(encoding="utf-8")
+    run_contracts_source = run_contracts.read_text(encoding="utf-8")
+    run_inputs_source = run_inputs.read_text(encoding="utf-8")
+    run_domain_source = run_domain.read_text(encoding="utf-8")
+    run_adapter_source = run_adapter.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
     presets_source = presets.read_text(encoding="utf-8")
     api_router_source = api_router.read_text(encoding="utf-8")
 
     assert route_source.count("creative_canvas_skill_catalog_queries().list_skills()") == 1
-    assert legacy_source.count("creative_canvas_skill_catalog_queries().find_skill(") == 1
-    assert '"/freezone/skills"' not in legacy_source
-    assert "async def freezone_skills(" not in legacy_source
-    assert "class CreativeCanvasSkillCatalogQueries" in application_source
+    assert route_source.count("creative_canvas_skill_run_use_cases().run(") == 1
+    assert route_source.count("creative_canvas_skill_run_use_cases().result(") == 1
+    assert "class CreativeCanvasSkillCatalogQueries" in catalog_source
+    assert "class CreativeCanvasSkillRunUseCases" in run_application_source
+    assert "class CreativeCanvasSkillRunRepository" in run_contracts_source
+    assert "def group_and_validate_creative_canvas_skill_inputs(" in run_inputs_source
+    assert "class CreativeCanvasSkillRunRepository" not in run_application_source
+    assert "def group_and_validate_creative_canvas_skill_inputs(" not in (
+        run_application_source
+    )
+    assert "class LocalCreativeCanvasSkillRunRepository" in run_adapter_source
+    assert "class LocalCreativeCanvasSkillWorkspace" in run_adapter_source
+    assert "def normalize_creative_canvas_skill_input_url(" in run_domain_source
     assert "def creative_canvas_skill_catalog_queries(" in composition_source
+    assert "def creative_canvas_skill_run_use_cases(" in composition_source
     assert "def creative_canvas_skill_catalog_queries(" in public_source
+    assert "def creative_canvas_skill_run_use_cases(" in public_source
     assert "from ai_anime.modules.creative_canvas.public import SKILL_SCHEMA_VERSION" in (
         presets_source
     )
     assert "freezone_skills.router" in api_router_source
+    assert "freezone.router" not in api_router_source
     assert not legacy_catalog.exists()
 
-    assert "fastapi" not in application_source
-    assert "ai_anime.api" not in application_source
-    assert "ai_anime.freezone" not in application_source
+    for source in (
+        catalog_source,
+        run_application_source,
+        run_contracts_source,
+        run_inputs_source,
+        run_domain_source,
+        run_adapter_source,
+    ):
+        assert "fastapi" not in source
+        assert "ai_anime.api" not in source
+    assert "ai_anime.freezone" not in run_application_source
     assert "ai_anime.modules.creative_canvas.application" not in route_source
+    assert not legacy_source
 
 
 def test_freezone_staging_prop_route_delegates_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "skills.py"
-    legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    legacy_route = LEGACY_FREEZONE_ROUTE
     application = (
         PACKAGE_ROOT
         / "modules"
@@ -393,7 +457,7 @@ def test_freezone_staging_prop_route_delegates_to_application() -> None:
     public = PACKAGE_ROOT / "modules" / "creative_canvas" / "public.py"
 
     route_source = route.read_text(encoding="utf-8")
-    legacy_source = legacy_route.read_text(encoding="utf-8")
+    legacy_source = _removed_freezone_route_source(legacy_route)
     application_source = application.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
@@ -448,7 +512,7 @@ def test_freezone_job_result_route_delegates_to_application() -> None:
     api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
 
     route_source = route.read_text(encoding="utf-8")
-    legacy_source = legacy_route.read_text(encoding="utf-8")
+    legacy_source = _removed_freezone_route_source(legacy_route)
     application_source = application.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
@@ -528,7 +592,7 @@ def test_freezone_mainline_generation_routes_delegate_to_application() -> None:
     route_helpers = PACKAGE_ROOT / "freezone" / "route_helpers.py"
 
     route_source = route.read_text(encoding="utf-8")
-    legacy_source = legacy_route.read_text(encoding="utf-8")
+    legacy_source = _removed_freezone_route_source(legacy_route)
     application_source = application.read_text(encoding="utf-8")
     domain_source = domain.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
@@ -554,7 +618,14 @@ def test_freezone_mainline_generation_routes_delegate_to_application() -> None:
     assert "class LocalCreativeCanvasMainlineGenerationConfigSource" in adapter_source
     assert "def creative_canvas_mainline_generation_use_cases(" in composition_source
     assert "def creative_canvas_mainline_generation_use_cases(" in public_source
-    assert "creative_canvas_mainline_generation_use_cases().start_" in legacy_source
+    skill_run_application = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "application"
+        / "skill_runs.py"
+    ).read_text(encoding="utf-8")
+    assert "self._mainline_generation.start_" in skill_run_application
 
     for legacy_implementation in (
         "def _load_freezone_beat_context(",
@@ -601,7 +672,7 @@ def test_freezone_generation_catalog_routes_delegate_to_application() -> None:
     api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
     image_source = image_route.read_text(encoding="utf-8")
     video_source = video_route.read_text(encoding="utf-8")
-    legacy_source = legacy_route.read_text(encoding="utf-8")
+    legacy_source = _removed_freezone_route_source(legacy_route)
     api_router_source = api_router.read_text(encoding="utf-8")
 
     assert image_source.count("generation_catalog_queries().") == 3
@@ -659,7 +730,7 @@ def test_freezone_video_processing_routes_delegate_to_application() -> None:
     runner = PACKAGE_ROOT / "task_backend" / "runners" / "freezone.py"
     jobs = PACKAGE_ROOT / "freezone" / "jobs.py"
     source = route.read_text(encoding="utf-8")
-    legacy_source = legacy_route.read_text(encoding="utf-8")
+    legacy_source = _removed_freezone_route_source(legacy_route)
     application_source = application.read_text(encoding="utf-8")
     domain_source = domain.read_text(encoding="utf-8")
     adapter_source = source_adapter.read_text(encoding="utf-8")
@@ -819,7 +890,7 @@ def test_freezone_video_generation_routes_delegate_to_application() -> None:
     )
     runner = PACKAGE_ROOT / "task_backend" / "runners" / "video.py"
     source = route.read_text(encoding="utf-8")
-    legacy_source = legacy_route.read_text(encoding="utf-8")
+    legacy_source = _removed_freezone_route_source(legacy_route)
     helper_source = route_helpers.read_text(encoding="utf-8")
     domain_source = domain.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
@@ -926,7 +997,7 @@ def test_freezone_video_asset_library_routes_delegate_to_application() -> None:
     composition = PACKAGE_ROOT / "modules" / "creative_canvas" / "composition.py"
     legacy_library = PACKAGE_ROOT / "freezone" / "video_character_library.py"
     source = route.read_text(encoding="utf-8")
-    legacy_source = legacy_route.read_text(encoding="utf-8")
+    legacy_source = _removed_freezone_route_source(legacy_route)
     domain_source = domain.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
@@ -988,7 +1059,7 @@ def test_freezone_mark_detection_route_delegates_to_application() -> None:
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
     source = route.read_text(encoding="utf-8")
-    legacy_source = legacy_route.read_text(encoding="utf-8")
+    legacy_source = _removed_freezone_route_source(legacy_route)
     api_router_source = api_router.read_text(encoding="utf-8")
 
     endpoint_path = '"/projects/{project}/freezone/marks/detect"'
@@ -1015,7 +1086,7 @@ def test_freezone_reverse_prompt_route_delegates_to_application() -> None:
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     runner = PACKAGE_ROOT / "task_backend" / "runners" / "freezone.py"
     source = route.read_text(encoding="utf-8")
-    legacy_source = legacy_route.read_text(encoding="utf-8")
+    legacy_source = _removed_freezone_route_source(legacy_route)
     runner_source = runner.read_text(encoding="utf-8")
 
     endpoint_path = '"/projects/{project}/freezone/image/reverse-prompt"'
@@ -1054,7 +1125,7 @@ def test_freezone_audio_generation_routes_delegate_to_application() -> None:
     composition = PACKAGE_ROOT / "modules" / "creative_canvas" / "composition.py"
     runner = PACKAGE_ROOT / "task_backend" / "runners" / "freezone.py"
     source = route.read_text(encoding="utf-8")
-    legacy_source = legacy_route.read_text(encoding="utf-8")
+    legacy_source = _removed_freezone_route_source(legacy_route)
     api_router_source = api_router.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
@@ -1129,7 +1200,7 @@ def test_freezone_audio_library_routes_delegate_to_application() -> None:
     )
     composition = PACKAGE_ROOT / "modules" / "creative_canvas" / "composition.py"
     source = route.read_text(encoding="utf-8")
-    legacy_source = legacy_route.read_text(encoding="utf-8")
+    legacy_source = _removed_freezone_route_source(legacy_route)
     application_source = application.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
@@ -1203,7 +1274,7 @@ def test_freezone_canvas_document_queries_delegate_to_application() -> None:
         / "canvas_documents.py"
     )
     source = route.read_text(encoding="utf-8")
-    legacy_source = legacy_route.read_text(encoding="utf-8")
+    legacy_source = _removed_freezone_route_source(legacy_route)
     api_router_source = api_router.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
     domain_source = domain.read_text(encoding="utf-8")
@@ -1306,7 +1377,7 @@ def test_freezone_canvas_document_writes_delegate_to_application() -> None:
     public = PACKAGE_ROOT / "modules" / "creative_canvas" / "public.py"
     source = route.read_text(encoding="utf-8")
     errors_source = errors.read_text(encoding="utf-8")
-    legacy_source = legacy_route.read_text(encoding="utf-8")
+    legacy_source = _removed_freezone_route_source(legacy_route)
     application_source = application.read_text(encoding="utf-8")
     domain_source = domain.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
@@ -1388,7 +1459,7 @@ def test_freezone_canvas_preset_route_delegates_to_application() -> None:
     public = PACKAGE_ROOT / "modules" / "creative_canvas" / "public.py"
     preset_tests = REPO_ROOT / "tests" / "test_api_freezone_canvas_from_preset.py"
     route_source = route.read_text(encoding="utf-8")
-    legacy_source = legacy_route.read_text(encoding="utf-8")
+    legacy_source = _removed_freezone_route_source(legacy_route)
     api_router_source = api_router.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
@@ -1475,7 +1546,7 @@ def test_freezone_canvas_commit_routes_delegate_to_application() -> None:
     composition = PACKAGE_ROOT / "modules" / "creative_canvas" / "composition.py"
     public = PACKAGE_ROOT / "modules" / "creative_canvas" / "public.py"
     route_source = route.read_text(encoding="utf-8")
-    legacy_source = legacy_route.read_text(encoding="utf-8")
+    legacy_source = _removed_freezone_route_source(legacy_route)
     api_router_source = api_router.read_text(encoding="utf-8")
     slots_source = legacy_slots.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
@@ -1512,7 +1583,14 @@ def test_freezone_canvas_commit_routes_delegate_to_application() -> None:
     assert "freezone_commits.router" in api_router_source
     assert route_source.count("creative_canvas_slot_commit_use_cases().impact(") == 1
     assert route_source.count("creative_canvas_slot_commit_use_cases().commit(") == 1
-    assert legacy_source.count("creative_canvas_slot_commit_use_cases().copy(") == 1
+    skill_run_source = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "application"
+        / "skill_runs.py"
+    ).read_text(encoding="utf-8")
+    assert skill_run_source.count("self._slot_commits.copy(") == 1
     assert "class CreativeCanvasSlotCommitUseCases" in application_source
     assert "canvas.push_committed" in application_source
     assert "def compute_creative_canvas_slot_impact(" in domain_source
@@ -1570,7 +1648,7 @@ def test_freezone_canvas_asset_routes_delegate_to_application() -> None:
     composition = PACKAGE_ROOT / "modules" / "creative_canvas" / "composition.py"
     public = PACKAGE_ROOT / "modules" / "creative_canvas" / "public.py"
     route_source = route.read_text(encoding="utf-8")
-    legacy_source = legacy_route.read_text(encoding="utf-8")
+    legacy_source = _removed_freezone_route_source(legacy_route)
     api_router_source = api_router.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
@@ -1702,7 +1780,7 @@ def test_freezone_canvas_projection_routes_delegate_to_application() -> None:
     public = PACKAGE_ROOT / "modules" / "creative_canvas" / "public.py"
     projection_tests = REPO_ROOT / "tests" / "test_freezone_projection_merge.py"
     route_source = route.read_text(encoding="utf-8")
-    legacy_source = legacy_route.read_text(encoding="utf-8")
+    legacy_source = _removed_freezone_route_source(legacy_route)
     api_router_source = api_router.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
     domain_source = domain.read_text(encoding="utf-8")
@@ -1843,7 +1921,7 @@ def test_freezone_canvas_events_delegate_to_application() -> None:
     )
     composition = PACKAGE_ROOT / "modules" / "creative_canvas" / "composition.py"
     public = PACKAGE_ROOT / "modules" / "creative_canvas" / "public.py"
-    legacy_source = legacy_route.read_text(encoding="utf-8")
+    legacy_source = _removed_freezone_route_source(legacy_route)
     preset_route_source = preset_route.read_text(encoding="utf-8")
     projection_route_source = projection_route.read_text(encoding="utf-8")
     domain_source = domain.read_text(encoding="utf-8")
@@ -1856,7 +1934,19 @@ def test_freezone_canvas_events_delegate_to_application() -> None:
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
 
-    assert legacy_source.count("record_creative_canvas_event(") == 6
+    skill_route_source = (
+        PACKAGE_ROOT / "api" / "routes" / "canvas" / "skills.py"
+    ).read_text(encoding="utf-8")
+    skill_run_source = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "application"
+        / "skill_runs.py"
+    ).read_text(encoding="utf-8")
+    assert "skill.run_requested" in skill_run_source
+    assert "skill.run_completed" in skill_run_source
+    assert "skill.output_committed" in skill_run_source
     for event_type in (
         "canvas.projection_refresh.conflict",
         "canvas.projection_remove.conflict",
@@ -1867,7 +1957,7 @@ def test_freezone_canvas_events_delegate_to_application() -> None:
         "canvas.projection_removed",
     ):
         assert event_type in projection_adapter_source
-    assert legacy_source.count("canvas_event_actor(user)") == 6
+    assert skill_route_source.count("canvas_event_actor(user)") == 2
     assert preset_route_source.count("canvas_event_actor(user)") == 1
     assert projection_route_source.count("canvas_event_actor(user)") == 2
     for legacy_implementation in (
@@ -1915,7 +2005,7 @@ def test_freezone_text_processing_routes_delegate_to_application() -> None:
     composition = PACKAGE_ROOT / "modules" / "creative_canvas" / "composition.py"
     runner = PACKAGE_ROOT / "task_backend" / "runners" / "freezone.py"
     source = route.read_text(encoding="utf-8")
-    legacy_source = legacy_route.read_text(encoding="utf-8")
+    legacy_source = _removed_freezone_route_source(legacy_route)
     api_router_source = api_router.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
@@ -1986,7 +2076,7 @@ def test_freezone_image_to_three_gs_route_delegates_to_application() -> None:
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     runner = PACKAGE_ROOT / "task_backend" / "runners" / "stage_asset.py"
     source = route.read_text(encoding="utf-8")
-    legacy_source = legacy_route.read_text(encoding="utf-8")
+    legacy_source = _removed_freezone_route_source(legacy_route)
     runner_source = runner.read_text(encoding="utf-8")
 
     endpoint_path = '"/projects/{project}/freezone/image-to-3gs"'
@@ -2024,7 +2114,7 @@ def test_freezone_image_editing_routes_delegate_to_application() -> None:
     )
     runner = PACKAGE_ROOT / "task_backend" / "runners" / "freezone.py"
     source = route.read_text(encoding="utf-8")
-    legacy_source = legacy_route.read_text(encoding="utf-8")
+    legacy_source = _removed_freezone_route_source(legacy_route)
     legacy_helper_source = legacy_helpers.read_text(encoding="utf-8")
     prompt_rule_source = prompt_rules.read_text(encoding="utf-8")
     runner_source = runner.read_text(encoding="utf-8")
@@ -2135,7 +2225,14 @@ def test_freezone_image_generation_route_and_skill_delegate_to_application() -> 
     )
     runner = PACKAGE_ROOT / "task_backend" / "runners" / "freezone.py"
     source = route.read_text(encoding="utf-8")
-    legacy_source = legacy_route.read_text(encoding="utf-8")
+    legacy_source = _removed_freezone_route_source(legacy_route)
+    skill_run_source = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "application"
+        / "skill_runs.py"
+    ).read_text(encoding="utf-8")
     model_adapter_source = model_adapter.read_text(encoding="utf-8")
     runner_source = runner.read_text(encoding="utf-8")
 
@@ -2143,9 +2240,9 @@ def test_freezone_image_generation_route_and_skill_delegate_to_application() -> 
     assert source.count(endpoint_path) == 1
     assert endpoint_path not in legacy_source
     assert source.count("creative_canvas_image_generation_use_cases().start(") == 1
-    assert legacy_source.count("creative_canvas_image_generation_use_cases().start(") == 1
+    assert skill_run_source.count("self._image_generation.start(") == 1
     assert "StartCreativeCanvasImageGenerationCommand" in source
-    assert "StartCreativeCanvasImageGenerationCommand" in legacy_source
+    assert "StartCreativeCanvasImageGenerationCommand" in skill_run_source
     assert "async def freezone_gen(" not in legacy_source
     assert "def _start_or_enqueue_freezone_gen_job(" not in legacy_source
     assert "FreezoneGenRequest" not in legacy_source
@@ -2168,7 +2265,7 @@ def test_freezone_bootstrap_route_delegates_to_application() -> None:
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
     source = route.read_text(encoding="utf-8")
-    legacy_source = legacy_route.read_text(encoding="utf-8")
+    legacy_source = _removed_freezone_route_source(legacy_route)
     api_router_source = api_router.read_text(encoding="utf-8")
 
     assert source.count("creative_canvas_bootstrap_use_cases().initialize(") == 1
@@ -2194,7 +2291,7 @@ def test_freezone_media_routes_delegate_to_application() -> None:
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
     source = route.read_text(encoding="utf-8")
-    legacy_source = legacy_route.read_text(encoding="utf-8")
+    legacy_source = _removed_freezone_route_source(legacy_route)
     api_router_source = api_router.read_text(encoding="utf-8")
 
     assert source.count("creative_canvas_media_use_cases().") == 2
@@ -2624,7 +2721,7 @@ def test_production_director_control_sketch_route_delegates_to_application() -> 
     ):
         assert implementation_detail not in source
     assert "_start_or_enqueue_mainline_direct_sketch_task" not in (
-        freezone.read_text(encoding="utf-8")
+        _removed_freezone_route_source(freezone)
     )
     runner_source = sketch_runner.read_text(encoding="utf-8")
     assert "DIRECTOR_CONTROL_TO_SKETCH_TASK_KIND" in runner_source
@@ -2855,7 +2952,7 @@ def test_production_generation_context_routes_delegate_to_application() -> None:
         / "mainline_generation.py"
     )
     asset_world_source = ASSET_WORLD_VIEWER_ROUTE.read_text(encoding="utf-8")
-    freezone_source = freezone.read_text(encoding="utf-8")
+    freezone_source = _removed_freezone_route_source(freezone)
     mainline_adapter_source = mainline_adapter.read_text(encoding="utf-8")
 
     assert "production_generation_context_use_cases" not in asset_world_source
@@ -2867,7 +2964,6 @@ def test_production_generation_context_routes_delegate_to_application() -> None:
     ):
         assert legacy_helper not in asset_world_source
         assert legacy_helper not in freezone_source
-    assert "ai_anime.api.routes.generation" not in _imports(freezone)
 
 
 def test_production_sketch_color_rules_have_one_owner() -> None:
@@ -3103,7 +3199,7 @@ def test_runtime_prop_menu_uses_one_asset_world_implementation() -> None:
     route_source = route.read_text(encoding="utf-8")
     beat_viewer_source = beat_viewer.read_text(encoding="utf-8")
     beat_viewer_adapter_source = beat_viewer_adapter.read_text(encoding="utf-8")
-    freezone_source = freezone_route.read_text(encoding="utf-8")
+    freezone_source = _removed_freezone_route_source(freezone_route)
     mainline_adapter_source = mainline_adapter.read_text(encoding="utf-8")
     presets_source = freezone_presets.read_text(encoding="utf-8")
 
@@ -3337,9 +3433,7 @@ def test_asset_world_beat_director_stage_routes_delegate_to_application() -> Non
             "get_director_control_frame_status",
         }
     )
-    freezone = (PACKAGE_ROOT / "api" / "routes" / "freezone.py").read_text(
-        encoding="utf-8"
-    )
+    freezone = _removed_freezone_route_source(LEGACY_FREEZONE_ROUTE)
     public_api = (PACKAGE_ROOT / "modules" / "asset_world" / "public.py").read_text(
         encoding="utf-8"
     )
@@ -3478,7 +3572,7 @@ def test_asset_world_character_identity_routes_delegate_to_application() -> None
     )
     source = route.read_text(encoding="utf-8")
     canvas_source = canvas_route.read_text(encoding="utf-8")
-    legacy_source = legacy_route.read_text(encoding="utf-8")
+    legacy_source = _removed_freezone_route_source(legacy_route)
     application_source = application.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
 

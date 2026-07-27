@@ -44,6 +44,9 @@ from ai_anime.modules.creative_canvas.application.mainline_generation import (
 from ai_anime.modules.creative_canvas.application.skill_catalog import (
     CreativeCanvasSkillCatalogQueries,
 )
+from ai_anime.modules.creative_canvas.application.skill_runs import (
+    CreativeCanvasSkillRunUseCases,
+)
 from ai_anime.modules.creative_canvas.application.staging_prop import (
     CreativeCanvasStagingPropUseCases,
 )
@@ -119,6 +122,12 @@ from ai_anime.modules.creative_canvas.infrastructure.mainline_generation import 
     LocalCreativeCanvasMainlineGenerationConfigSource,
     LocalCreativeCanvasScene360Runtime,
     PillowCreativeCanvasImageAspectReader,
+)
+from ai_anime.modules.creative_canvas.infrastructure.skill_runs import (
+    LocalCreativeCanvasSkillRunRepository,
+    LocalCreativeCanvasSkillWorkspace,
+    OptionalCreativeCanvasFrameReviewer,
+    TaskManagerCreativeCanvasSkillTaskReader,
 )
 from ai_anime.modules.creative_canvas.infrastructure.media_sources import (
     ProjectCreativeCanvasMediaSourceResolver,
@@ -258,6 +267,22 @@ def creative_canvas_mainline_generation_use_cases() -> (
 @lru_cache(maxsize=1)
 def creative_canvas_skill_catalog_queries() -> CreativeCanvasSkillCatalogQueries:
     return CreativeCanvasSkillCatalogQueries()
+
+
+@lru_cache(maxsize=1)
+def creative_canvas_skill_run_use_cases() -> CreativeCanvasSkillRunUseCases:
+    return CreativeCanvasSkillRunUseCases(
+        creative_canvas_skill_catalog_queries(),
+        LocalCreativeCanvasSkillRunRepository(),
+        LocalCreativeCanvasSkillWorkspace(),
+        TaskManagerCreativeCanvasSkillTaskReader(),
+        OptionalCreativeCanvasFrameReviewer(),
+        FreezoneJobIdGenerator(),
+        creative_canvas_mainline_generation_use_cases(),
+        creative_canvas_image_generation_use_cases(),
+        creative_canvas_slot_commit_use_cases(),
+        creative_canvas_event_recorder(),
+    )
 
 
 @lru_cache(maxsize=1)

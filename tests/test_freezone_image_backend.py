@@ -10,7 +10,6 @@ from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 from PIL import Image
 
-from ai_anime.api.routes import freezone as freezone_routes
 from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap_routes
 from ai_anime.api.routes.canvas import commits as freezone_commit_routes
 from ai_anime.api.routes.canvas import documents as freezone_document_routes
@@ -69,6 +68,13 @@ from ai_anime.modules.creative_canvas.public import (
 from ai_anime.modules.creative_canvas.application.canvas_documents import (
     CreativeCanvasDocumentQueries,
 )
+from ai_anime.modules.creative_canvas.application.skill_run_inputs import (
+    creative_canvas_skill_output_metadata,
+    group_and_validate_creative_canvas_skill_inputs,
+)
+from ai_anime.modules.creative_canvas.application.skill_runs import (
+    CreativeCanvasSkillRunUseCases,
+)
 from ai_anime.modules.creative_canvas.domain.image_editing import (
     build_image_erase_prompt,
     resolve_requested_image_aspect_ratio,
@@ -87,6 +93,12 @@ from ai_anime.modules.creative_canvas.infrastructure.mainline_generation import 
     LocalCreativeCanvasMainlineGenerationConfigSource,
     LocalCreativeCanvasScene360Runtime,
     PillowCreativeCanvasImageAspectReader,
+)
+from ai_anime.modules.creative_canvas.infrastructure.skill_runs import (
+    LocalCreativeCanvasSkillRunRepository,
+    LocalCreativeCanvasSkillWorkspace,
+    OptionalCreativeCanvasFrameReviewer,
+    TaskManagerCreativeCanvasSkillTaskReader,
 )
 from ai_anime.modules.creative_canvas.infrastructure.media_sources import (
     ProjectCreativeCanvasMediaSourceResolver,
@@ -175,6 +187,89 @@ class _FakeContextBeatStore:
         ]
 
 
+class _CallableJobIds:
+    def __init__(self, factory):
+        self._factory = factory
+
+    def new_id(self) -> str:
+        return self._factory()
+
+
+class _SkillRunTestHarness:
+    def __init__(self) -> None:
+        from ai_anime.freezone.route_helpers import new_freezone_job_id
+        from ai_anime.shared.infrastructure.project_stores import (
+            make_sqlite_store_for_context,
+        )
+
+        self.store_factory = make_sqlite_store_for_context
+        self.task_manager_factory = get_task_manager
+        self.job_id_factory = new_freezone_job_id
+        self.reviewer = None
+        self.mainline_generation = None
+        self.image_generation = None
+
+    def build(self) -> CreativeCanvasSkillRunUseCases:
+        from ai_anime.modules.creative_canvas.application.canvas_commits import (
+            CreativeCanvasSlotCommitUseCases,
+        )
+        from ai_anime.modules.creative_canvas.application.canvas_events import (
+            CreativeCanvasEventRecorder,
+        )
+        from ai_anime.modules.creative_canvas.infrastructure.canvas_commits import (
+            LocalCreativeCanvasSlotCommitGateway,
+        )
+        from ai_anime.modules.creative_canvas.infrastructure.canvas_events import (
+            LocalCreativeCanvasEventWriter,
+        )
+        from ai_anime.modules.creative_canvas.public import (
+            creative_canvas_image_generation_use_cases,
+            creative_canvas_mainline_generation_use_cases,
+        )
+
+        events = CreativeCanvasEventRecorder(LocalCreativeCanvasEventWriter())
+        slots = CreativeCanvasSlotCommitUseCases(
+            LocalCreativeCanvasSlotCommitGateway(store_factory=self.store_factory),
+            events,
+        )
+        return CreativeCanvasSkillRunUseCases(
+            creative_canvas_skill_catalog_queries(),
+            LocalCreativeCanvasSkillRunRepository(),
+            LocalCreativeCanvasSkillWorkspace(store_factory=self.store_factory),
+            TaskManagerCreativeCanvasSkillTaskReader(
+                task_manager_factory=self.task_manager_factory
+            ),
+            OptionalCreativeCanvasFrameReviewer(self.reviewer),
+            _CallableJobIds(self.job_id_factory),
+            self.mainline_generation or creative_canvas_mainline_generation_use_cases(),
+            self.image_generation or creative_canvas_image_generation_use_cases(),
+            slots,
+            events,
+        )
+
+
+def _skill_run_harness() -> _SkillRunTestHarness:
+    return freezone_skill_routes._skill_run_test_harness
+
+
+@pytest.fixture(autouse=True)
+def _isolate_skill_run_harness(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        freezone_skill_routes,
+        "_skill_run_test_harness",
+        _SkillRunTestHarness(),
+        raising=False,
+    )
+
+
+def _write_skill_run_metadata(
+    project_dir: Path,
+    run_id: str,
+    metadata: dict,
+) -> None:
+    LocalCreativeCanvasSkillRunRepository().write_run(project_dir, run_id, metadata)
+
+
 def _patch_freezone_project(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -186,13 +281,21 @@ def _patch_freezone_project(
     output_dir = tmp_path / "output"
     ctx = _project_ctx(tmp_path)
 
-    async def fake_resolve_freezone_project(*_args, **_kwargs):
-        return ctx, username, project, project_dir, str(output_dir)
-
     async def fake_resolve_project_scope(*_args, **_kwargs):
         return SimpleNamespace(ctx=ctx, project_dir=project_dir)
 
-    monkeypatch.setattr(freezone_routes, "_resolve_freezone_project", fake_resolve_freezone_project)
+    harness = _SkillRunTestHarness()
+    monkeypatch.setattr(
+        freezone_skill_routes,
+        "_skill_run_test_harness",
+        harness,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        freezone_skill_routes,
+        "creative_canvas_skill_run_use_cases",
+        harness.build,
+    )
     monkeypatch.setattr(
         freezone_commit_routes,
         "resolve_project_scope",
@@ -233,7 +336,7 @@ def _patch_freezone_project(
 
 class _DelegatingFreezoneJobIds:
     def new_id(self) -> str:
-        return freezone_routes._new_job_id()
+        return _skill_run_harness().job_id_factory()
 
 
 def _patch_mainline_generation(
@@ -243,7 +346,7 @@ def _patch_mainline_generation(
     use_cases = CreativeCanvasMainlineGenerationUseCases(
         ProjectCreativeCanvasMediaSourceResolver(),
         LocalCreativeCanvasMainlineGenerationConfigSource(
-            store_factory=lambda ctx: freezone_routes.make_sqlite_store_for_context(ctx)
+            store_factory=lambda ctx: _skill_run_harness().store_factory(ctx)
         ),
         PillowCreativeCanvasImageAspectReader(),
         LocalCreativeCanvasScene360Runtime(),
@@ -253,11 +356,7 @@ def _patch_mainline_generation(
             translate_runtime_errors=False,
         ),
     )
-    monkeypatch.setattr(
-        freezone_routes,
-        "creative_canvas_mainline_generation_use_cases",
-        lambda: use_cases,
-    )
+    _skill_run_harness().mainline_generation = use_cases
     monkeypatch.setattr(
         freezone_skill_routes,
         "creative_canvas_mainline_generation_use_cases",
@@ -396,11 +495,7 @@ def _patch_creative_canvas_image_generation(
         "creative_canvas_image_generation_use_cases",
         lambda: use_cases,
     )
-    monkeypatch.setattr(
-        freezone_routes,
-        "creative_canvas_image_generation_use_cases",
-        lambda: use_cases,
-    )
+    _skill_run_harness().image_generation = use_cases
 
 
 def _override_api_user(app: FastAPI, dependency) -> None:
@@ -1849,7 +1944,7 @@ async def test_put_canvas_saves_oversized_payload_with_warning(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _project_dir, _output_dir = _patch_freezone_project(monkeypatch, tmp_path)
-    monkeypatch.setattr(freezone_routes.canvas_store, "CANVAS_PAYLOAD_SIZE_LIMIT_BYTES", 512)
+    monkeypatch.setattr(canvas_store, "CANVAS_PAYLOAD_SIZE_LIMIT_BYTES", 512)
     state_dir = _canvas_state_dir(tmp_path)
     canvas_file = state_dir / "freezone" / "canvases" / "default.json"
     canvas_file.parent.mkdir(parents=True)
@@ -2855,9 +2950,7 @@ async def test_sketch_from_context_uses_beat_db_and_routes_to_gen_without_source
         "resolve_project_scope",
         fake_resolve_project_scope,
     )
-    monkeypatch.setattr(
-        freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
-    )
+    _skill_run_harness().store_factory = fake_make_sqlite_store_for_context
     _patch_mainline_generation(
         monkeypatch,
         SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
@@ -2911,9 +3004,7 @@ async def test_frame_from_context_uses_sketch_as_base_and_optional_background_re
         "resolve_project_scope",
         fake_resolve_project_scope,
     )
-    monkeypatch.setattr(
-        freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
-    )
+    _skill_run_harness().store_factory = fake_make_sqlite_store_for_context
     _patch_mainline_generation(
         monkeypatch,
         SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
@@ -2975,9 +3066,7 @@ async def test_frame_from_context_infers_landscape_from_sketch_and_medium_qualit
         "resolve_project_scope",
         fake_resolve_project_scope,
     )
-    monkeypatch.setattr(
-        freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
-    )
+    _skill_run_harness().store_factory = fake_make_sqlite_store_for_context
     _patch_mainline_generation(
         monkeypatch,
         SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
@@ -3213,15 +3302,13 @@ def test_skill_contract_accepts_standalone_beat_context_for_every_beat_context_s
             if spec.required
         ]
 
-        grouped = freezone_routes._group_and_validate_skill_inputs(
+        grouped = group_and_validate_creative_canvas_skill_inputs(
             skill,
             SkillRunRequest(resolved_inputs=resolved_inputs).resolved_inputs,
-            project="proj_freezone",
-            ctx=ctx,
-            username="admin",
-            project_name="demo",
+            project_id="proj_freezone",
+            context=ctx,
         )
-        output = freezone_routes._skill_output_metadata(
+        output = creative_canvas_skill_output_metadata(
             skill,
             grouped,
             auto_commit=False,
@@ -3261,7 +3348,7 @@ def test_standalone_unified_sketch_prompt_keeps_missing_beat_number_null(
     monkeypatch.setattr(prompt_builder, "UnifiedPromptBuilder", FakePromptBuilder)
     monkeypatch.setattr(prompt_builder, "create_prompt_context", fake_create_prompt_context)
 
-    result = freezone_routes._standalone_beat_context_unified_sketch_prompt(
+    result = LocalCreativeCanvasSkillWorkspace().build_standalone_sketch_prompt(
         input_item=SkillRunRequest(resolved_inputs=[_standalone_skill_beat_input()]).resolved_inputs[
             0
         ],
@@ -3269,6 +3356,7 @@ def test_standalone_unified_sketch_prompt_keeps_missing_beat_number_null(
         reference_path=str(tmp_path / "combined.png"),
         reference_role="director_combined",
         aspect_ratio="16:9",
+        model="test-model",
     )
 
     assert result == "unified prompt"
@@ -3497,8 +3585,8 @@ async def test_skill_run_missing_required_role_returns_422(
 ) -> None:
     _patch_freezone_project(monkeypatch, tmp_path)
 
-    with pytest.raises(freezone_routes.HTTPException) as exc:
-        await freezone_routes.freezone_skill_run(
+    with pytest.raises(HTTPException) as exc:
+        await freezone_skill_routes.freezone_skill_run(
             project="proj_freezone",
             skill_id="freezone.frame_from_context",
             body=SkillRunRequest(
@@ -3537,16 +3625,14 @@ async def test_skill_run_frame_accepts_plain_canvas_image_as_sketch_input(
             queue="node.node_a.default",
         )
 
-    monkeypatch.setattr(
-        freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
-    )
+    _skill_run_harness().store_factory = fake_make_sqlite_store_for_context
     _patch_mainline_generation(
         monkeypatch,
         SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
     )
     _write_image(project_dir / "freezone" / "plain_sketch.png", size=(800, 1200))
 
-    await freezone_routes.freezone_skill_run(
+    await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="freezone.frame_from_context",
         body=SkillRunRequest(
@@ -3578,8 +3664,8 @@ async def test_skill_run_accept_mismatch_returns_422(
 ) -> None:
     _patch_freezone_project(monkeypatch, tmp_path)
 
-    with pytest.raises(freezone_routes.HTTPException) as exc:
-        await freezone_routes.freezone_skill_run(
+    with pytest.raises(HTTPException) as exc:
+        await freezone_skill_routes.freezone_skill_run(
             project="proj_freezone",
             skill_id="freezone.frame_from_context",
             body=SkillRunRequest(
@@ -3609,8 +3695,8 @@ async def test_skill_run_rejects_external_image_url(
 ) -> None:
     _patch_freezone_project(monkeypatch, tmp_path)
 
-    with pytest.raises(freezone_routes.HTTPException) as exc:
-        await freezone_routes.freezone_skill_run(
+    with pytest.raises(HTTPException) as exc:
+        await freezone_skill_routes.freezone_skill_run(
             project="proj_freezone",
             skill_id="freezone.sketch_from_context",
             body=SkillRunRequest(
@@ -3639,8 +3725,8 @@ async def test_skill_run_rejects_wrong_project_api_media_url(
 ) -> None:
     _patch_freezone_project(monkeypatch, tmp_path)
 
-    with pytest.raises(freezone_routes.HTTPException) as exc:
-        await freezone_routes.freezone_skill_run(
+    with pytest.raises(HTTPException) as exc:
+        await freezone_skill_routes.freezone_skill_run(
             project="proj_freezone",
             skill_id="freezone.sketch_from_context",
             body=SkillRunRequest(
@@ -3682,17 +3768,15 @@ async def test_skill_run_normalizes_project_media_url_before_dispatch(
             queue="node.node_a.default",
         )
 
-    monkeypatch.setattr(
-        freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
-    )
+    _skill_run_harness().store_factory = fake_make_sqlite_store_for_context
     _patch_mainline_generation(
         monkeypatch,
         SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
     )
-    monkeypatch.setattr(freezone_routes, "_new_job_id", lambda: "job_media_url")
+    _skill_run_harness().job_id_factory = lambda: "job_media_url"
     _write_image(project_dir / "freezone" / "bg.png")
 
-    await freezone_routes.freezone_skill_run(
+    await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="freezone.sketch_from_context",
         body=SkillRunRequest(
@@ -3738,16 +3822,14 @@ async def test_skill_run_background_sketch_accepts_landscape_aspect(
             queue="node.node_a.default",
         )
 
-    monkeypatch.setattr(
-        freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
-    )
+    _skill_run_harness().store_factory = fake_make_sqlite_store_for_context
     _patch_mainline_generation(
         monkeypatch,
         SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
     )
     _write_image(project_dir / "freezone" / "bg.png")
 
-    await freezone_routes.freezone_skill_run(
+    await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="freezone.sketch_from_context",
         body=SkillRunRequest(
@@ -3789,16 +3871,14 @@ async def test_skill_run_accepts_project_static_url_for_dispatch(
             queue="node.node_a.default",
         )
 
-    monkeypatch.setattr(
-        freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
-    )
+    _skill_run_harness().store_factory = fake_make_sqlite_store_for_context
     _patch_mainline_generation(
         monkeypatch,
         SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
     )
     _write_image(project_dir / "freezone" / "bg.png")
 
-    await freezone_routes.freezone_skill_run(
+    await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="freezone.sketch_from_context",
         body=SkillRunRequest(
@@ -3842,16 +3922,14 @@ async def test_skill_run_accepts_canonical_project_static_url_for_dispatch(
             queue="node.node_a.default",
         )
 
-    monkeypatch.setattr(
-        freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
-    )
+    _skill_run_harness().store_factory = fake_make_sqlite_store_for_context
     _patch_mainline_generation(
         monkeypatch,
         SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
     )
     _write_image(project_dir / "freezone" / "bg.png")
 
-    await freezone_routes.freezone_skill_run(
+    await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="freezone.sketch_from_context",
         body=SkillRunRequest(
@@ -3882,8 +3960,8 @@ async def test_skill_run_invalid_beat_context_returns_422(
 ) -> None:
     _patch_freezone_project(monkeypatch, tmp_path)
 
-    with pytest.raises(freezone_routes.HTTPException) as exc:
-        await freezone_routes.freezone_skill_run(
+    with pytest.raises(HTTPException) as exc:
+        await freezone_skill_routes.freezone_skill_run(
             project="proj_freezone",
             skill_id="freezone.sketch_from_context",
             body=SkillRunRequest(
@@ -3916,9 +3994,7 @@ async def test_skill_run_standalone_sketch_from_context_queues_candidate_without
     async def fail_make_sqlite_store_for_context(_ctx):
         raise AssertionError("standalone beat context must not read or write beat DB")
 
-    monkeypatch.setattr(
-        freezone_routes, "make_sqlite_store_for_context", fail_make_sqlite_store_for_context
-    )
+    _skill_run_harness().store_factory = fail_make_sqlite_store_for_context
     _patch_creative_canvas_image_generation(
         monkeypatch,
         captured,
@@ -3927,7 +4003,7 @@ async def test_skill_run_standalone_sketch_from_context_queues_candidate_without
     )
     _write_image(project_dir / "freezone" / "bg.png")
 
-    response = await freezone_routes.freezone_skill_run(
+    response = await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="freezone.sketch_from_context",
         body=SkillRunRequest(
@@ -3977,9 +4053,7 @@ async def test_skill_run_standalone_returns_run_id_and_result_outputs_without_db
     async def fail_make_sqlite_store_for_context(_ctx):
         raise AssertionError("standalone beat context must not read or write beat DB")
 
-    monkeypatch.setattr(
-        freezone_routes, "make_sqlite_store_for_context", fail_make_sqlite_store_for_context
-    )
+    _skill_run_harness().store_factory = fail_make_sqlite_store_for_context
     _patch_creative_canvas_image_generation(
         monkeypatch,
         captured,
@@ -3988,7 +4062,7 @@ async def test_skill_run_standalone_returns_run_id_and_result_outputs_without_db
     )
     _write_image(project_dir / "freezone" / "bg.png")
 
-    response = await freezone_routes.freezone_skill_run(
+    response = await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="freezone.sketch_from_context",
         body=SkillRunRequest(
@@ -4032,7 +4106,7 @@ async def test_skill_run_standalone_returns_run_id_and_result_outputs_without_db
         scope="job_standalone_skill",
         status="running",
     )
-    pending = await freezone_routes.freezone_skill_run_result(
+    pending = await freezone_skill_routes.freezone_skill_run_result(
         project="proj_freezone",
         run_id=response.run_id,
         user={"username": "admin"},
@@ -4047,7 +4121,7 @@ async def test_skill_run_standalone_returns_run_id_and_result_outputs_without_db
         scope="job_standalone_skill",
         result={"output_path": str(output_path)},
     )
-    result = await freezone_routes.freezone_skill_run_result(
+    result = await freezone_skill_routes.freezone_skill_run_result(
         project="proj_freezone",
         run_id=response.run_id,
         user={"username": "admin"},
@@ -4079,9 +4153,7 @@ async def test_skill_run_standalone_director_sketch_queues_candidate_without_db_
     async def fail_make_sqlite_store_for_context(_ctx):
         raise AssertionError("standalone beat context must not read or write beat DB")
 
-    monkeypatch.setattr(
-        freezone_routes, "make_sqlite_store_for_context", fail_make_sqlite_store_for_context
-    )
+    _skill_run_harness().store_factory = fail_make_sqlite_store_for_context
     _patch_creative_canvas_image_generation(
         monkeypatch,
         captured,
@@ -4090,7 +4162,7 @@ async def test_skill_run_standalone_director_sketch_queues_candidate_without_db_
     )
     _write_image(project_dir / "freezone" / "_uploads" / "combined.png")
 
-    response = await freezone_routes.freezone_skill_run(
+    response = await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="freezone.sketch_from_director_combined",
         body=SkillRunRequest(
@@ -4162,20 +4234,18 @@ async def test_skill_run_standalone_frame_from_context_queues_candidate_without_
             queue="node.node_a.default",
         )
 
-    monkeypatch.setattr(
-        freezone_routes, "make_sqlite_store_for_context", fail_make_sqlite_store_for_context
-    )
+    _skill_run_harness().store_factory = fail_make_sqlite_store_for_context
     _patch_mainline_generation(
         monkeypatch,
         SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
     )
-    monkeypatch.setattr(freezone_routes, "_new_job_id", lambda: "job_standalone_frame")
+    _skill_run_harness().job_id_factory = lambda: "job_standalone_frame"
     _write_image(project_dir / "freezone" / "sketch.png", size=(800, 1200))
     _write_image(project_dir / "freezone" / "background.png", size=(800, 1200))
     _write_image(project_dir / "assets" / "identity_kris.png")
     _write_image(project_dir / "assets" / "prop_umbrella.png")
 
-    response = await freezone_routes.freezone_skill_run(
+    response = await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="freezone.frame_from_context",
         body=SkillRunRequest(
@@ -4259,7 +4329,7 @@ async def test_skill_run_standalone_frame_from_context_queues_candidate_without_
         scope="job_standalone_frame",
         status="running",
     )
-    pending = await freezone_routes.freezone_skill_run_result(
+    pending = await freezone_skill_routes.freezone_skill_run_result(
         project="proj_freezone",
         run_id=response.run_id,
         user={"username": "admin"},
@@ -4274,7 +4344,7 @@ async def test_skill_run_standalone_frame_from_context_queues_candidate_without_
         scope="job_standalone_frame",
         result={"output_path": str(output_path)},
     )
-    result = await freezone_routes.freezone_skill_run_result(
+    result = await freezone_skill_routes.freezone_skill_run_result(
         project="proj_freezone",
         run_id=response.run_id,
         user={"username": "admin"},
@@ -4304,11 +4374,9 @@ async def test_skill_run_standalone_set_selected_background_returns_candidate_wi
     async def fail_make_sqlite_store_for_context(_ctx):
         raise AssertionError("standalone set background must not read or write beat DB")
 
-    monkeypatch.setattr(
-        freezone_routes, "make_sqlite_store_for_context", fail_make_sqlite_store_for_context
-    )
+    _skill_run_harness().store_factory = fail_make_sqlite_store_for_context
 
-    response = await freezone_routes.freezone_skill_run(
+    response = await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="freezone.set_selected_background",
         body=SkillRunRequest(
@@ -4327,7 +4395,7 @@ async def test_skill_run_standalone_set_selected_background_returns_candidate_wi
 
     assert response.status == "completed"
     assert not (project_dir / "director_control_frames" / "ep001" / "beat_08").exists()
-    result = await freezone_routes.freezone_skill_run_result(
+    result = await freezone_skill_routes.freezone_skill_run_result(
         project="proj_freezone",
         run_id=response.run_id,
         user={"username": "admin"},
@@ -4366,9 +4434,7 @@ async def test_skill_run_standalone_set_director_combined_returns_candidate_with
     async def fail_make_sqlite_store_for_context(_ctx):
         raise AssertionError("standalone set director combined must not read or write beat DB")
 
-    monkeypatch.setattr(
-        freezone_routes, "make_sqlite_store_for_context", fail_make_sqlite_store_for_context
-    )
+    _skill_run_harness().store_factory = fail_make_sqlite_store_for_context
     source_input = _skill_image_input(
         "source_image",
         image_url="/api/v1/projects/proj_freezone/media/freezone/_uploads/director_bundle/combined.png",
@@ -4382,7 +4448,7 @@ async def test_skill_run_standalone_set_director_combined_returns_candidate_with
         },
     }
 
-    response = await freezone_routes.freezone_skill_run(
+    response = await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="freezone.set_director_combined",
         body=SkillRunRequest(
@@ -4398,7 +4464,7 @@ async def test_skill_run_standalone_set_director_combined_returns_candidate_with
 
     assert response.status == "completed"
     assert not (project_dir / "director_control_frames" / "ep001" / "beat_08").exists()
-    result = await freezone_routes.freezone_skill_run_result(
+    result = await freezone_skill_routes.freezone_skill_run_result(
         project="proj_freezone",
         run_id=response.run_id,
         user={"username": "admin"},
@@ -4432,12 +4498,10 @@ async def test_skill_run_standalone_review_frame_uses_canvas_context_without_db_
         prompts.append(prompt)
         return "standalone review"
 
-    monkeypatch.setattr(
-        freezone_routes, "make_sqlite_store_for_context", fail_make_sqlite_store_for_context
-    )
-    monkeypatch.setattr(freezone_routes, "_agent_review_frame_reviewer", fake_reviewer)
+    _skill_run_harness().store_factory = fail_make_sqlite_store_for_context
+    _skill_run_harness().reviewer = fake_reviewer
 
-    response = await freezone_routes.freezone_skill_run(
+    response = await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="agent.review_frame",
         body=SkillRunRequest(
@@ -4454,7 +4518,7 @@ async def test_skill_run_standalone_review_frame_uses_canvas_context_without_db_
         ),
         user={"username": "admin"},
     )
-    result = await freezone_routes.freezone_skill_run_result(
+    result = await freezone_skill_routes.freezone_skill_run_result(
         project="proj_freezone",
         run_id=response.run_id,
         user={"username": "admin"},
@@ -4479,8 +4543,8 @@ async def test_skill_run_scene_360_rejects_beat_context_role(
     master = project_dir / "assets" / "scenes" / "小区" / "master.png"
     _write_image(master)
 
-    with pytest.raises(freezone_routes.HTTPException) as exc:
-        await freezone_routes.freezone_skill_run(
+    with pytest.raises(HTTPException) as exc:
+        await freezone_skill_routes.freezone_skill_run(
             project="proj_freezone",
             skill_id="freezone.scene_360",
             body=SkillRunRequest(
@@ -4528,17 +4592,15 @@ async def test_skill_run_mainline_returns_run_id_and_result_outputs(
             queue="node.node_a.default",
         )
 
-    monkeypatch.setattr(
-        freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
-    )
+    _skill_run_harness().store_factory = fake_make_sqlite_store_for_context
     _patch_mainline_generation(
         monkeypatch,
         SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
     )
-    monkeypatch.setattr(freezone_routes, "_new_job_id", lambda: "job_skill")
+    _skill_run_harness().job_id_factory = lambda: "job_skill"
     _write_image(project_dir / "freezone" / "bg.png")
 
-    response = await freezone_routes.freezone_skill_run(
+    response = await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="freezone.sketch_from_context",
         body=SkillRunRequest(
@@ -4587,7 +4649,7 @@ async def test_skill_run_mainline_returns_run_id_and_result_outputs(
         scope="job_skill",
         status="running",
     )
-    pending = await freezone_routes.freezone_skill_run_result(
+    pending = await freezone_skill_routes.freezone_skill_run_result(
         project="proj_freezone",
         run_id=response.run_id,
         user={"username": "admin"},
@@ -4603,7 +4665,7 @@ async def test_skill_run_mainline_returns_run_id_and_result_outputs(
         scope="job_skill",
         result={"output_path": str(output_path)},
     )
-    result = await freezone_routes.freezone_skill_run_result(
+    result = await freezone_skill_routes.freezone_skill_run_result(
         project="proj_freezone",
         run_id=response.run_id,
         user={"username": "admin"},
@@ -4670,11 +4732,9 @@ async def test_skill_run_set_selected_background_writes_beat_slot(
     async def fake_make_sqlite_store_for_context(_ctx):
         return Store()
 
-    monkeypatch.setattr(
-        freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
-    )
+    _skill_run_harness().store_factory = fake_make_sqlite_store_for_context
 
-    response = await freezone_routes.freezone_skill_run(
+    response = await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="freezone.set_selected_background",
         body=SkillRunRequest(
@@ -4709,7 +4769,7 @@ async def test_skill_run_set_selected_background_writes_beat_slot(
         }
     ]
 
-    result = await freezone_routes.freezone_skill_run_result(
+    result = await freezone_skill_routes.freezone_skill_run_result(
         project="proj_freezone",
         run_id=response.run_id,
         user={"username": "admin"},
@@ -4745,11 +4805,9 @@ async def test_user_created_set_selected_background_returns_pushable_candidate(
     async def fail_make_sqlite_store_for_context(_ctx):
         raise AssertionError("user-created set background must not write beat DB")
 
-    monkeypatch.setattr(
-        freezone_routes, "make_sqlite_store_for_context", fail_make_sqlite_store_for_context
-    )
+    _skill_run_harness().store_factory = fail_make_sqlite_store_for_context
 
-    response = await freezone_routes.freezone_skill_run(
+    response = await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="freezone.set_selected_background",
         body=SkillRunRequest(
@@ -4771,7 +4829,7 @@ async def test_user_created_set_selected_background_returns_pushable_candidate(
     )
     assert not selected.exists()
 
-    result = await freezone_routes.freezone_skill_run_result(
+    result = await freezone_skill_routes.freezone_skill_run_result(
         project="proj_freezone",
         run_id=response.run_id,
         user={"username": "admin"},
@@ -4849,7 +4907,7 @@ async def test_skill_run_set_director_combined_preserves_control_bundle(
         },
     }
 
-    response = await freezone_routes.freezone_skill_run(
+    response = await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="freezone.set_director_combined",
         body=SkillRunRequest(
@@ -4870,7 +4928,7 @@ async def test_skill_run_set_director_combined_preserves_control_bundle(
     assert (target_dir / "frame_meta.json").exists()
     assert json.loads((target_dir / "frame_meta.json").read_text())["camera"]["mode"] == "pano"
 
-    result = await freezone_routes.freezone_skill_run_result(
+    result = await freezone_skill_routes.freezone_skill_run_result(
         project="proj_freezone",
         run_id=response.run_id,
         user={"username": "admin"},
@@ -4906,17 +4964,15 @@ async def test_skill_run_sketch_accepts_director_combined_background(
             queue="node.node_a.default",
         )
 
-    monkeypatch.setattr(
-        freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
-    )
+    _skill_run_harness().store_factory = fake_make_sqlite_store_for_context
     _patch_mainline_generation(
         monkeypatch,
         SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
     )
-    monkeypatch.setattr(freezone_routes, "_new_job_id", lambda: "job_director")
+    _skill_run_harness().job_id_factory = lambda: "job_director"
     _write_image(project_dir / "freezone" / "_uploads" / "combined.png")
 
-    response = await freezone_routes.freezone_skill_run(
+    response = await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="freezone.sketch_from_director_combined",
         body=SkillRunRequest(
@@ -4966,18 +5022,16 @@ async def test_skill_run_sketch_prefers_director_combined_over_background(
             queue="node.node_a.default",
         )
 
-    monkeypatch.setattr(
-        freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
-    )
+    _skill_run_harness().store_factory = fake_make_sqlite_store_for_context
     _patch_mainline_generation(
         monkeypatch,
         SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
     )
-    monkeypatch.setattr(freezone_routes, "_new_job_id", lambda: "job_director_preferred")
+    _skill_run_harness().job_id_factory = lambda: "job_director_preferred"
     _write_image(project_dir / "freezone" / "_uploads" / "combined.png")
 
-    with pytest.raises(freezone_routes.HTTPException) as exc:
-        await freezone_routes.freezone_skill_run(
+    with pytest.raises(HTTPException) as exc:
+        await freezone_skill_routes.freezone_skill_run(
             project="proj_freezone",
             skill_id="freezone.sketch_from_context",
             body=SkillRunRequest(
@@ -5005,7 +5059,7 @@ async def test_skill_run_sketch_prefers_director_combined_over_background(
     assert exc.value.status_code == 422
     assert "director_combined" in str(exc.value.detail)
 
-    await freezone_routes.freezone_skill_run(
+    await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="freezone.sketch_from_director_combined",
         body=SkillRunRequest(
@@ -5051,9 +5105,7 @@ async def test_skill_run_frame_uses_resolved_identity_and_prop_references(
             queue="node.node_a.default",
         )
 
-    monkeypatch.setattr(
-        freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
-    )
+    _skill_run_harness().store_factory = fake_make_sqlite_store_for_context
     _patch_mainline_generation(
         monkeypatch,
         SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
@@ -5069,7 +5121,7 @@ async def test_skill_run_frame_uses_resolved_identity_and_prop_references(
     _write_image(project_dir / "assets" / "identity_a.png")
     _write_image(project_dir / "assets" / "prop_b.png")
 
-    await freezone_routes.freezone_skill_run(
+    await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="freezone.frame_from_context",
         body=SkillRunRequest(
@@ -5148,9 +5200,7 @@ async def test_skill_run_frame_filters_stale_canvas_identity_refs_by_beat_contex
             queue="node.node_a.default",
         )
 
-    monkeypatch.setattr(
-        freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
-    )
+    _skill_run_harness().store_factory = fake_make_sqlite_store_for_context
     _patch_mainline_generation(
         monkeypatch,
         SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
@@ -5159,7 +5209,7 @@ async def test_skill_run_frame_filters_stale_canvas_identity_refs_by_beat_contex
     _write_image(project_dir / "assets" / "identity_keep.png")
     _write_image(project_dir / "assets" / "identity_stale.png")
 
-    await freezone_routes.freezone_skill_run(
+    await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="freezone.frame_from_context",
         body=SkillRunRequest(
@@ -5225,16 +5275,14 @@ async def test_skill_run_frame_uses_sketch_aspect_ratio_and_quality(
             queue="node.node_a.default",
         )
 
-    monkeypatch.setattr(
-        freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
-    )
+    _skill_run_harness().store_factory = fake_make_sqlite_store_for_context
     _patch_mainline_generation(
         monkeypatch,
         SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
     )
     _write_image(project_dir / "freezone" / "sketch.png", size=(1600, 900))
 
-    await freezone_routes.freezone_skill_run(
+    await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="freezone.frame_from_context",
         body=SkillRunRequest(
@@ -5282,13 +5330,13 @@ async def test_skill_run_scene_360_uses_reverse_master_and_scene_slot_target(
         monkeypatch,
         SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
     )
-    monkeypatch.setattr(freezone_routes, "_new_job_id", lambda: "job_scene_360")
+    _skill_run_harness().job_id_factory = lambda: "job_scene_360"
     master = project_dir / "assets" / "scenes" / "小区" / "master.png"
     reverse = project_dir / "assets" / "scenes" / "小区" / "reverse.png"
     _write_image(master)
     _write_image(reverse)
 
-    response = await freezone_routes.freezone_skill_run(
+    response = await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="freezone.scene_360",
         body=SkillRunRequest(
@@ -5351,7 +5399,7 @@ async def test_skill_run_scene_360_uses_reverse_master_and_scene_slot_target(
         scope=response.job_id,
         result={"output_path": str(pano)},
     )
-    result = await freezone_routes.freezone_skill_run_result(
+    result = await freezone_skill_routes.freezone_skill_run_result(
         project="proj_freezone",
         run_id=response.run_id,
         user={"username": "admin"},
@@ -5386,8 +5434,8 @@ async def test_skill_run_scene_360_requires_scene_master_scene_id(
         SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
     )
 
-    with pytest.raises(freezone_routes.HTTPException) as exc:
-        await freezone_routes.freezone_skill_run(
+    with pytest.raises(HTTPException) as exc:
+        await freezone_skill_routes.freezone_skill_run(
             project="proj_freezone",
             skill_id="freezone.scene_360",
             body=SkillRunRequest(
@@ -5429,11 +5477,11 @@ async def test_skill_run_scene_360_infers_scene_id_from_mainline_context(
         monkeypatch,
         SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
     )
-    monkeypatch.setattr(freezone_routes, "_new_job_id", lambda: "job_scene_360")
+    _skill_run_harness().job_id_factory = lambda: "job_scene_360"
     master = project_dir / "assets" / "scenes" / "小区" / "master.png"
     _write_image(master)
 
-    await freezone_routes.freezone_skill_run(
+    await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="freezone.scene_360",
         body=SkillRunRequest(
@@ -5496,7 +5544,7 @@ async def test_preset_managed_scene_360_auto_commits_to_canonical_slot(
     _write_image(master)
     _write_image(reverse)
 
-    response = await freezone_routes.freezone_skill_run(
+    response = await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="freezone.scene_360",
         body=SkillRunRequest(
@@ -5535,7 +5583,7 @@ async def test_preset_managed_scene_360_auto_commits_to_canonical_slot(
         scope=response.job_id,
         result={"pano_path": str(pano)},
     )
-    result = await freezone_routes.freezone_skill_run_result(
+    result = await freezone_skill_routes.freezone_skill_run_result(
         project="proj_freezone",
         run_id=response.run_id,
         user={"username": "admin"},
@@ -5557,7 +5605,7 @@ async def test_skill_result_uses_task_result_dict_output_url(
 
     project_dir, _output_dir = _patch_freezone_project(monkeypatch, tmp_path)
     run_id = "freezone_gen:job_result_dict"
-    freezone_routes._write_skill_run_metadata(
+    _write_skill_run_metadata(
         project_dir,
         run_id,
         {
@@ -5585,9 +5633,9 @@ async def test_skill_result_uses_task_result_dict_output_url(
                 result={"output_url": "/static/admin/demo/freezone/_outputs/custom.webp"},
             )
 
-    monkeypatch.setattr(freezone_routes, "get_task_manager", lambda: FakeTaskManager())
+    _skill_run_harness().task_manager_factory = lambda: FakeTaskManager()
 
-    result = await freezone_routes.freezone_skill_run_result(
+    result = await freezone_skill_routes.freezone_skill_run_result(
         project="proj_freezone",
         run_id=run_id,
         user={"username": "admin"},
@@ -5605,7 +5653,7 @@ async def test_skill_result_falls_back_to_known_output_suffixes(
     project_dir, _output_dir = _patch_freezone_project(monkeypatch, tmp_path)
     ctx = _project_ctx(tmp_path)
     run_id = "freezone_edit:job_result_webp"
-    freezone_routes._write_skill_run_metadata(
+    _write_skill_run_metadata(
         project_dir,
         run_id,
         {
@@ -5632,7 +5680,7 @@ async def test_skill_result_falls_back_to_known_output_suffixes(
         scope="job_result_webp",
         status="running",
     )
-    pending = await freezone_routes.freezone_skill_run_result(
+    pending = await freezone_skill_routes.freezone_skill_run_result(
         project="proj_freezone",
         run_id=run_id,
         user={"username": "admin"},
@@ -5648,7 +5696,7 @@ async def test_skill_result_falls_back_to_known_output_suffixes(
         scope="job_result_webp",
         result={},
     )
-    result = await freezone_routes.freezone_skill_run_result(
+    result = await freezone_skill_routes.freezone_skill_run_result(
         project="proj_freezone",
         run_id=run_id,
         user={"username": "admin"},
@@ -5670,7 +5718,7 @@ async def test_skill_result_normalizes_nested_outputs_from_task_result(
 
     project_dir, _output_dir = _patch_freezone_project(monkeypatch, tmp_path)
     run_id = "freezone_edit:job_nested_outputs"
-    freezone_routes._write_skill_run_metadata(
+    _write_skill_run_metadata(
         project_dir,
         run_id,
         {
@@ -5715,9 +5763,9 @@ async def test_skill_result_normalizes_nested_outputs_from_task_result(
                 },
             )
 
-    monkeypatch.setattr(freezone_routes, "get_task_manager", lambda: FakeTaskManager())
+    _skill_run_harness().task_manager_factory = lambda: FakeTaskManager()
 
-    result = await freezone_routes.freezone_skill_run_result(
+    result = await freezone_skill_routes.freezone_skill_run_result(
         project="proj_freezone",
         run_id=run_id,
         user={"username": "admin"},
@@ -5743,7 +5791,7 @@ async def test_skill_result_normalizes_output_path_from_task_result(
     output_path = project_dir / "freezone" / "_outputs" / "custom" / "path_only.webp"
     _write_image(output_path)
     run_id = "freezone_edit:job_output_path"
-    freezone_routes._write_skill_run_metadata(
+    _write_skill_run_metadata(
         project_dir,
         run_id,
         {
@@ -5771,9 +5819,9 @@ async def test_skill_result_normalizes_output_path_from_task_result(
                 result={"output_path": str(output_path)},
             )
 
-    monkeypatch.setattr(freezone_routes, "get_task_manager", lambda: FakeTaskManager())
+    _skill_run_harness().task_manager_factory = lambda: FakeTaskManager()
 
-    result = await freezone_routes.freezone_skill_run_result(
+    result = await freezone_skill_routes.freezone_skill_run_result(
         project="proj_freezone",
         run_id=run_id,
         user={"username": "admin"},
@@ -5792,7 +5840,7 @@ async def test_agent_review_frame_returns_text_output_in_skill_result(
 ) -> None:
     _patch_freezone_project(monkeypatch, tmp_path)
 
-    response = await freezone_routes.freezone_skill_run(
+    response = await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="agent.review_frame",
         body=SkillRunRequest(
@@ -5809,7 +5857,7 @@ async def test_agent_review_frame_returns_text_output_in_skill_result(
         ),
         user={"username": "admin"},
     )
-    result = await freezone_routes.freezone_skill_run_result(
+    result = await freezone_skill_routes.freezone_skill_run_result(
         project="proj_freezone",
         run_id=response.run_id,
         user={"username": "admin"},
@@ -5836,9 +5884,9 @@ async def test_agent_review_frame_uses_injected_reviewer_text_in_skill_result(
         prompts.append(prompt)
         return "patched agent frame review"
 
-    monkeypatch.setattr(freezone_routes, "_agent_review_frame_reviewer", fake_reviewer)
+    _skill_run_harness().reviewer = fake_reviewer
 
-    response = await freezone_routes.freezone_skill_run(
+    response = await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="agent.review_frame",
         body=SkillRunRequest(
@@ -5856,7 +5904,7 @@ async def test_agent_review_frame_uses_injected_reviewer_text_in_skill_result(
         ),
         user={"username": "admin"},
     )
-    result = await freezone_routes.freezone_skill_run_result(
+    result = await freezone_skill_routes.freezone_skill_run_result(
         project="proj_freezone",
         run_id=response.run_id,
         user={"username": "admin"},
@@ -5883,7 +5931,7 @@ async def test_skill_run_reuses_response_for_same_idempotency_key_and_request(
         prompts.append(prompt)
         return f"review #{len(prompts)}"
 
-    monkeypatch.setattr(freezone_routes, "_agent_review_frame_reviewer", fake_reviewer)
+    _skill_run_harness().reviewer = fake_reviewer
 
     def request() -> SkillRunRequest:
         return SkillRunRequest(
@@ -5901,13 +5949,13 @@ async def test_skill_run_reuses_response_for_same_idempotency_key_and_request(
             ],
         )
 
-    first = await freezone_routes.freezone_skill_run(
+    first = await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="agent.review_frame",
         body=request(),
         user={"username": "admin"},
     )
-    second = await freezone_routes.freezone_skill_run(
+    second = await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="agent.review_frame",
         body=request(),
@@ -5959,14 +6007,14 @@ async def test_skill_run_rejects_same_idempotency_key_with_different_request(
         ],
     )
 
-    await freezone_routes.freezone_skill_run(
+    await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="agent.review_frame",
         body=base,
         user={"username": "admin"},
     )
-    with pytest.raises(freezone_routes.HTTPException) as exc:
-        await freezone_routes.freezone_skill_run(
+    with pytest.raises(HTTPException) as exc:
+        await freezone_skill_routes.freezone_skill_run(
             project="proj_freezone",
             skill_id="agent.review_frame",
             body=conflict,
@@ -5991,7 +6039,7 @@ async def test_skill_run_without_idempotency_key_runs_each_request(
         prompts.append(prompt)
         return f"review #{len(prompts)}"
 
-    monkeypatch.setattr(freezone_routes, "_agent_review_frame_reviewer", fake_reviewer)
+    _skill_run_harness().reviewer = fake_reviewer
     request = SkillRunRequest(
         skill_node_id="skill_review",
         canvas_id="canvas_a",
@@ -6005,13 +6053,13 @@ async def test_skill_run_without_idempotency_key_runs_each_request(
         ],
     )
 
-    first = await freezone_routes.freezone_skill_run(
+    first = await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="agent.review_frame",
         body=request,
         user={"username": "admin"},
     )
-    second = await freezone_routes.freezone_skill_run(
+    second = await freezone_skill_routes.freezone_skill_run(
         project="proj_freezone",
         skill_id="agent.review_frame",
         body=request,

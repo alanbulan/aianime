@@ -127,6 +127,14 @@ from ai_anime.modules.creative_canvas.application.skill_catalog import (
     SkillRunResponse,
     SkillRunResult,
 )
+from ai_anime.modules.creative_canvas.application.skill_run_contracts import (
+    CreativeCanvasSkillRunRejected,
+    GetCreativeCanvasSkillRunResultQuery,
+    RunCreativeCanvasSkillCommand,
+)
+from ai_anime.modules.creative_canvas.application.skill_runs import (
+    CreativeCanvasSkillRunUseCases,
+)
 from ai_anime.modules.creative_canvas.application.staging_prop import (
     CreativeCanvasStagingPropRejected,
     CreativeCanvasStagingPropUseCases,
@@ -407,6 +415,14 @@ def creative_canvas_skill_catalog_queries() -> CreativeCanvasSkillCatalogQueries
     return build()
 
 
+def creative_canvas_skill_run_use_cases() -> CreativeCanvasSkillRunUseCases:
+    from ai_anime.modules.creative_canvas.composition import (
+        creative_canvas_skill_run_use_cases as build,
+    )
+
+    return build()
+
+
 def creative_canvas_staging_prop_use_cases() -> CreativeCanvasStagingPropUseCases:
     from ai_anime.modules.creative_canvas.composition import (
         creative_canvas_staging_prop_use_cases as build,
@@ -616,6 +632,8 @@ __all__ = [
     "CreativeCanvasScreenshotResult",
     "CreativeCanvasScreenshotTooLarge",
     "CreativeCanvasSkillCatalogQueries",
+    "CreativeCanvasSkillRunRejected",
+    "CreativeCanvasSkillRunUseCases",
     "CreativeCanvasStagingPropRejected",
     "CreativeCanvasStagingPropUseCases",
     "CreativeCanvasUploadResult",
@@ -630,6 +648,7 @@ __all__ = [
     "GetCreativeCanvasProjectionStatusQuery",
     "GetCreativeCanvasSlotImpactQuery",
     "GetCreativeCanvasSceneAssetsQuery",
+    "GetCreativeCanvasSkillRunResultQuery",
     "GetCreativeCanvasAudioVoiceQuery",
     "DetectCreativeCanvasMarkCommand",
     "DangerousCreativeCanvasDocumentOverwrite",
@@ -665,6 +684,7 @@ __all__ = [
     "ListCreativeCanvasNodeGenerationHistoryQuery",
     "RecordCreativeCanvasEventCommand",
     "ResolvedSkillInput",
+    "RunCreativeCanvasSkillCommand",
     "ProjectCreativeCanvasProjectionCommand",
     "RemoveCreativeCanvasProjectionCommand",
     "RestoreCreativeCanvasDocumentCommand",
@@ -727,6 +747,7 @@ __all__ = [
     "creative_canvas_event_recorder",
     "creative_canvas_slot_commit_use_cases",
     "creative_canvas_skill_catalog_queries",
+    "creative_canvas_skill_run_use_cases",
     "creative_canvas_staging_prop_use_cases",
     "creative_canvas_preset_use_cases",
     "creative_canvas_projection_use_cases",
