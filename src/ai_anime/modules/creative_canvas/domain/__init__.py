@@ -42,6 +42,18 @@ from ai_anime.modules.creative_canvas.domain.mark_detection import (
     CreativeCanvasMarkSelectionRequired,
 )
 from ai_anime.modules.creative_canvas.domain.principal import canvas_actor_id
+from ai_anime.modules.creative_canvas.domain.video_generation import (
+    build_freezone_image_to_video_prompt,
+    build_freezone_keyframe_video_prompt,
+    build_freezone_omni_video_prompt,
+    build_freezone_video_prompt,
+    get_video_camera_template,
+    get_video_camera_templates,
+    normalize_video_aspect_ratio,
+    normalize_video_resolution,
+    summarize_omni_reference_counts,
+    validate_omni_reference_limits,
+)
 
 __all__ = [
     "DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL",
@@ -66,14 +78,24 @@ __all__ = [
     "build_image_redraw_prompt",
     "build_image_template_edit_prompt",
     "build_image_upscale_prompt",
+    "build_freezone_image_to_video_prompt",
+    "build_freezone_keyframe_video_prompt",
+    "build_freezone_omni_video_prompt",
+    "build_freezone_video_prompt",
     "canvas_actor_id",
     "decode_png_screenshot",
     "infer_image_to_three_gs_scene_id",
     "normalize_screenshot_label",
+    "normalize_video_aspect_ratio",
+    "normalize_video_resolution",
     "plan_image_to_three_gs",
     "plan_outpaint_canvas",
     "resolve_original_image_aspect_ratio",
     "resolve_image_provider",
     "resolve_image_template_aspect_ratio",
     "resolve_requested_image_aspect_ratio",
+    "get_video_camera_template",
+    "get_video_camera_templates",
+    "summarize_omni_reference_counts",
+    "validate_omni_reference_limits",
 ]

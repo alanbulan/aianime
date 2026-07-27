@@ -455,6 +455,99 @@ def test_freezone_video_processing_routes_delegate_to_application() -> None:
     assert "ai_anime.api" not in adapter_source
 
 
+def test_freezone_video_generation_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "video.py"
+    legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    route_helpers = PACKAGE_ROOT / "freezone" / "route_helpers.py"
+    domain = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "domain"
+        / "video_generation.py"
+    )
+    application = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "application"
+        / "video_generation.py"
+    )
+    adapter = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "infrastructure"
+        / "video_generation.py"
+    )
+    runner = PACKAGE_ROOT / "task_backend" / "runners" / "video.py"
+    source = route.read_text(encoding="utf-8")
+    legacy_source = legacy_route.read_text(encoding="utf-8")
+    helper_source = route_helpers.read_text(encoding="utf-8")
+    domain_source = domain.read_text(encoding="utf-8")
+    application_source = application.read_text(encoding="utf-8")
+    adapter_source = adapter.read_text(encoding="utf-8")
+    runner_source = runner.read_text(encoding="utf-8")
+
+    endpoint_paths = (
+        '"/projects/{project}/freezone/video/gen"',
+        '"/projects/{project}/freezone/video/i2v"',
+        '"/projects/{project}/freezone/video/keyframes"',
+        '"/projects/{project}/freezone/video/omni-gen"',
+        '"/projects/{project}/freezone/video/video-edit"',
+    )
+    for endpoint_path in endpoint_paths:
+        assert source.count(endpoint_path) == 1
+        assert endpoint_path not in legacy_source
+
+    assert source.count("creative_canvas_video_generation_use_cases().") == 5
+    for command in (
+        "StartCreativeCanvasTextVideoCommand",
+        "StartCreativeCanvasImageVideoCommand",
+        "StartCreativeCanvasKeyframeVideoCommand",
+        "StartCreativeCanvasOmniVideoCommand",
+        "StartCreativeCanvasVideoEditCommand",
+    ):
+        assert command in source
+    for legacy_handler in (
+        "async def freezone_video_gen(",
+        "async def freezone_video_i2v(",
+        "async def freezone_video_keyframes(",
+        "async def freezone_video_omni_gen(",
+        "async def freezone_video_edit(",
+        "async def _start_or_enqueue_freezone_video_gen(",
+    ):
+        assert legacy_handler not in legacy_source
+    for legacy_schema in (
+        "FreezoneVideoGenRequest",
+        "FreezoneImageToVideoRequest",
+        "FreezoneKeyframeVideoRequest",
+        "FreezoneVideoOmniGenRequest",
+        "FreezoneVideoEditRequest",
+    ):
+        assert legacy_schema not in legacy_source
+    for implementation_detail in (
+        "_resolve_url_list",
+        "_new_job_id",
+        "get_task_backend",
+        "resolve_freezone_video_backend",
+        "normalize_video_duration_for_backend",
+    ):
+        assert implementation_detail not in source
+    assert "load_video_character_items_by_ids" not in helper_source
+    assert not (PACKAGE_ROOT / "freezone" / "video_node.py").exists()
+    for layered_source in (domain_source, application_source, adapter_source):
+        assert "fastapi" not in layered_source
+        assert "ai_anime.api" not in layered_source
+    assert "ai_anime.freezone" not in application_source
+    assert (
+        runner_source.count(
+            'register_project_task_runner("freezone_video_gen", run_freezone_video_gen)'
+        )
+        == 1
+    )
+
+
 def test_freezone_mark_detection_route_delegates_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "image.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"

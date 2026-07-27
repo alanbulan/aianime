@@ -62,6 +62,19 @@ from ai_anime.modules.creative_canvas.application.video_processing import (
     StartCreativeCanvasShotAnalysisCommand,
     StartCreativeCanvasVideoStoryAnalysisCommand,
 )
+from ai_anime.modules.creative_canvas.application.video_generation import (
+    CreativeCanvasOmniVideoReference,
+    CreativeCanvasVideoCharacterMissing,
+    CreativeCanvasVideoGenerationOptions,
+    CreativeCanvasVideoGenerationResult,
+    CreativeCanvasVideoGenerationUseCases,
+    InvalidCreativeCanvasVideoGenerationRequest,
+    StartCreativeCanvasImageVideoCommand,
+    StartCreativeCanvasKeyframeVideoCommand,
+    StartCreativeCanvasOmniVideoCommand,
+    StartCreativeCanvasTextVideoCommand,
+    StartCreativeCanvasVideoEditCommand,
+)
 from ai_anime.modules.creative_canvas.domain import (
     DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
     SUPPORTED_CREATIVE_CANVAS_IMAGE_PROVIDERS,
@@ -77,9 +90,19 @@ from ai_anime.modules.creative_canvas.domain import (
     build_image_multi_view_prompt,
     build_image_relight_prompt,
     build_image_template_edit_prompt,
+    build_freezone_image_to_video_prompt,
+    build_freezone_keyframe_video_prompt,
+    build_freezone_omni_video_prompt,
+    build_freezone_video_prompt,
+    get_video_camera_template,
+    get_video_camera_templates,
+    normalize_video_aspect_ratio,
+    normalize_video_resolution,
     resolve_image_template_aspect_ratio,
     resolve_original_image_aspect_ratio,
     resolve_image_provider,
+    summarize_omni_reference_counts,
+    validate_omni_reference_limits,
 )
 
 
@@ -163,6 +186,24 @@ def creative_canvas_video_processing_use_cases() -> CreativeCanvasVideoProcessin
     return build()
 
 
+def creative_canvas_video_generation_use_cases() -> (
+    CreativeCanvasVideoGenerationUseCases
+):
+    from ai_anime.modules.creative_canvas.composition import (
+        creative_canvas_video_generation_use_cases as build,
+    )
+
+    return build()
+
+
+def is_seedance2_video_backend(backend: str | None) -> bool:
+    from ai_anime.modules.creative_canvas.composition import (
+        creative_canvas_video_model_policy,
+    )
+
+    return creative_canvas_video_model_policy().is_seedance2_backend(backend)
+
+
 __all__ = [
     "DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL",
     "CreativeCanvasBootstrapBusy",
@@ -188,6 +229,11 @@ __all__ = [
     "CreativeCanvasReversePromptUseCases",
     "CreativeCanvasTaskReceipt",
     "CreativeCanvasTaskStartFailed",
+    "CreativeCanvasOmniVideoReference",
+    "CreativeCanvasVideoCharacterMissing",
+    "CreativeCanvasVideoGenerationOptions",
+    "CreativeCanvasVideoGenerationResult",
+    "CreativeCanvasVideoGenerationUseCases",
     "CreativeCanvasVideoProcessingSourceMissing",
     "CreativeCanvasVideoProcessingUseCases",
     "CreativeCanvasScreenshotResult",
@@ -205,6 +251,7 @@ __all__ = [
     "InvalidCreativeCanvasMarkRequest",
     "InvalidCreativeCanvasReversePromptRequest",
     "InvalidCreativeCanvasVideoProcessingRequest",
+    "InvalidCreativeCanvasVideoGenerationRequest",
     "InitializeCreativeCanvasCommand",
     "SaveCreativeCanvasScreenshotCommand",
     "StoreCreativeCanvasUploadCommand",
@@ -214,12 +261,21 @@ __all__ = [
     "StartCreativeCanvasReferenceImageEditingCommand",
     "StartCreativeCanvasImageGenerationCommand",
     "StartCreativeCanvasFrameExtractionCommand",
+    "StartCreativeCanvasImageVideoCommand",
+    "StartCreativeCanvasKeyframeVideoCommand",
+    "StartCreativeCanvasOmniVideoCommand",
     "StartCreativeCanvasShotAnalysisCommand",
+    "StartCreativeCanvasTextVideoCommand",
+    "StartCreativeCanvasVideoEditCommand",
     "StartCreativeCanvasVideoStoryAnalysisCommand",
     "canvas_actor_id",
     "build_image_multi_view_prompt",
     "build_image_relight_prompt",
     "build_image_template_edit_prompt",
+    "build_freezone_image_to_video_prompt",
+    "build_freezone_keyframe_video_prompt",
+    "build_freezone_omni_video_prompt",
+    "build_freezone_video_prompt",
     "creative_canvas_bootstrap_use_cases",
     "creative_canvas_mark_detection_use_cases",
     "creative_canvas_image_to_three_gs_use_cases",
@@ -227,10 +283,18 @@ __all__ = [
     "creative_canvas_reference_image_editing_use_cases",
     "creative_canvas_image_generation_use_cases",
     "creative_canvas_video_processing_use_cases",
+    "creative_canvas_video_generation_use_cases",
     "creative_canvas_reverse_prompt_use_cases",
     "creative_canvas_media_use_cases",
     "generation_catalog_queries",
+    "get_video_camera_template",
+    "get_video_camera_templates",
+    "is_seedance2_video_backend",
+    "normalize_video_aspect_ratio",
+    "normalize_video_resolution",
     "resolve_original_image_aspect_ratio",
     "resolve_image_provider",
     "resolve_image_template_aspect_ratio",
+    "summarize_omni_reference_counts",
+    "validate_omni_reference_limits",
 ]

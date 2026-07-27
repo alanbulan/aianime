@@ -58,19 +58,19 @@ def test_generation_catalog_queries_return_detached_payloads() -> None:
     assert source.video_model_options[0]["id"] == "video-1"
 
 
-def test_generation_catalog_subrouters_own_only_catalog_paths() -> None:
+def test_generation_catalog_subrouters_include_catalog_paths() -> None:
     paths = {
         route.path
         for route in [*image_routes.router.routes, *video_routes.router.routes]
     }
 
-    assert paths == {
+    assert {
         "/projects/{project}/freezone/image/camera-options",
         "/projects/{project}/freezone/image/style-templates",
         "/projects/{project}/freezone/image/models",
         "/projects/{project}/freezone/video/camera-templates",
         "/projects/{project}/freezone/video/models",
-    }
+    } <= paths
 
 
 @pytest.mark.asyncio

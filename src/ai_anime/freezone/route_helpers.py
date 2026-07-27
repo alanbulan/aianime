@@ -18,7 +18,6 @@ from ai_anime.api.schemas import (
 )
 from ai_anime.config import IMAGE_GENERATION_SELECTIONS
 from ai_anime.freezone.paths import resolve_static_url_to_path
-from ai_anime.freezone.video_node import load_video_character_library
 from ai_anime.modules.creative_canvas.public import (
     DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
     SUPPORTED_CREATIVE_CANVAS_IMAGE_PROVIDERS as SUPPORTED_FREEZONE_IMAGE_PROVIDERS,
@@ -374,17 +373,6 @@ def merge_prompt_with_style_and_camera(
     camera_block = build_camera_prompt(camera)
     parts = [part for part in [base, style_block, camera_block] if part]
     return "\n\n".join(parts)
-
-
-def load_video_character_items_by_ids(project_dir: Path, ids: list[str]) -> list[dict]:
-    if not ids:
-        return []
-    items = load_video_character_library(project_dir)
-    mapping = {str(item.get("id")): item for item in items}
-    missing = [item_id for item_id in ids if item_id not in mapping]
-    if missing:
-        raise HTTPException(404, f"video character library item not found: {missing[0]}")
-    return [mapping[item_id] for item_id in ids]
 
 
 def split_provider_and_model(

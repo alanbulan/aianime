@@ -1162,7 +1162,7 @@ async def run_freezone_video_gen(
         for item in (reference_items or [])
         if str(item.get("path") or "").strip()
     ]
-    from ai_anime.freezone.video_node import is_freezone_seedance2_backend
+    from ai_anime.modules.creative_canvas.public import is_seedance2_video_backend
 
     video_gen = create_video_generator(
         backend=backend,
@@ -1186,7 +1186,7 @@ async def run_freezone_video_gen(
             (first_image_ref is None or not first_image_ref.path)
             and not str(backend).startswith("huimeng_")
             and not parse_newapi_video_backend(backend)
-            and not is_freezone_seedance2_backend(backend)
+            and not is_seedance2_video_backend(backend)
         ):
             raise RuntimeError(f"backend {backend} requires a first-frame image reference")
         extra_kwargs: dict[str, object] = {}

@@ -1,5 +1,8 @@
 """Creative Canvas video endpoints."""
 
+import logging
+from typing import Awaitable
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from ai_anime.api.auth import get_api_user
@@ -8,18 +11,36 @@ from ai_anime.api.schemas import (
     FreezoneAnalyzeShotsRequest,
     FreezoneAnalyzeVideoStoryRequest,
     FreezoneExtractFramesRequest,
+    FreezoneImageToVideoRequest,
+    FreezoneKeyframeVideoRequest,
+    FreezoneVideoEditRequest,
+    FreezoneVideoGenRequest,
+    FreezoneVideoOmniGenRequest,
 )
 from ai_anime.modules.creative_canvas.public import (
     CreativeCanvasTaskReceipt,
+    CreativeCanvasTaskStartFailed,
+    CreativeCanvasOmniVideoReference,
+    CreativeCanvasVideoCharacterMissing,
+    CreativeCanvasVideoGenerationOptions,
+    CreativeCanvasVideoGenerationResult,
     CreativeCanvasVideoProcessingSourceMissing,
+    InvalidCreativeCanvasVideoGenerationRequest,
     InvalidCreativeCanvasVideoProcessingRequest,
+    StartCreativeCanvasImageVideoCommand,
     StartCreativeCanvasFrameExtractionCommand,
+    StartCreativeCanvasKeyframeVideoCommand,
+    StartCreativeCanvasOmniVideoCommand,
     StartCreativeCanvasShotAnalysisCommand,
+    StartCreativeCanvasTextVideoCommand,
+    StartCreativeCanvasVideoEditCommand,
     StartCreativeCanvasVideoStoryAnalysisCommand,
+    creative_canvas_video_generation_use_cases,
     creative_canvas_video_processing_use_cases,
     generation_catalog_queries,
 )
 
+logger = logging.getLogger("ai_anime.api.freezone")
 router = APIRouter()
 
 
@@ -53,6 +74,142 @@ async def freezone_video_models(
         operation="access freezone project files",
     )
     return {"ok": True, "data": generation_catalog_queries().video_models()}
+
+
+@router.post("/projects/{project}/freezone/video/gen", tags=["freezone-video"])
+async def freezone_video_gen(
+    project: str,
+    body: FreezoneVideoGenRequest,
+    user: dict = Depends(get_api_user),
+):
+    """视频处理：文生视频。
+
+    `model` 可选，前端应优先使用 `/api/v1/projects/{project}/freezone/video/models`
+    返回的模型名称列表作为入参。
+
+    运镜通过模板库和补充提示词控制，角色库通过已上传的人物参考图提供身份一致性。
+    """
+    resolved = await _resolve_editor_project(project, user)
+    return await _start_video_generation(
+        creative_canvas_video_generation_use_cases().start_text_video(
+            StartCreativeCanvasTextVideoCommand(
+                context=resolved.ctx,
+                project_dir=resolved.project_dir,
+                options=_video_generation_options(body),
+                character_ids=tuple(body.character_ids),
+            )
+        ),
+        failure_message="failed to start freezone video gen task",
+    )
+
+
+@router.post("/projects/{project}/freezone/video/i2v", tags=["freezone-video"])
+async def freezone_video_i2v(
+    project: str,
+    body: FreezoneImageToVideoRequest,
+    user: dict = Depends(get_api_user),
+):
+    """视频处理：图片参考视频。
+
+    统一承接：
+    - 单图首帧图生视频
+    - 多图图片参考视频
+    """
+    resolved = await _resolve_editor_project(project, user)
+    return await _start_video_generation(
+        creative_canvas_video_generation_use_cases().start_image_video(
+            StartCreativeCanvasImageVideoCommand(
+                context=resolved.ctx,
+                project_dir=resolved.project_dir,
+                options=_video_generation_options(body),
+                image_urls=tuple(body.image_urls),
+            )
+        ),
+        failure_message="failed to start freezone image-to-video task",
+    )
+
+
+@router.post("/projects/{project}/freezone/video/keyframes", tags=["freezone-video"])
+async def freezone_video_keyframes(
+    project: str,
+    body: FreezoneKeyframeVideoRequest,
+    user: dict = Depends(get_api_user),
+):
+    """视频处理：首尾帧视频。
+
+    接受首帧和尾帧图片；至少需要提供一个。
+    """
+    resolved = await _resolve_editor_project(project, user)
+    return await _start_video_generation(
+        creative_canvas_video_generation_use_cases().start_keyframe_video(
+            StartCreativeCanvasKeyframeVideoCommand(
+                context=resolved.ctx,
+                project_dir=resolved.project_dir,
+                options=_video_generation_options(body),
+                first_frame_url=body.first_frame_url,
+                last_frame_url=body.last_frame_url,
+            )
+        ),
+        failure_message="failed to start freezone keyframe video task",
+    )
+
+
+@router.post("/projects/{project}/freezone/video/omni-gen", tags=["freezone-video"])
+async def freezone_video_omni_gen(
+    project: str,
+    body: FreezoneVideoOmniGenRequest,
+    user: dict = Depends(get_api_user),
+):
+    """视频处理：全能参考文生视频。
+
+    支持文本、图像、视频、音频混合输入，当前默认走 Seedance 2.0。
+    """
+    resolved = await _resolve_editor_project(project, user)
+    return await _start_video_generation(
+        creative_canvas_video_generation_use_cases().start_omni_video(
+            StartCreativeCanvasOmniVideoCommand(
+                context=resolved.ctx,
+                project_dir=resolved.project_dir,
+                options=_video_generation_options(body),
+                theme=body.theme,
+                references=tuple(
+                    CreativeCanvasOmniVideoReference(
+                        media_type=item.type,
+                        url=item.url,
+                        role=item.role,
+                    )
+                    for item in body.references
+                ),
+            )
+        ),
+        failure_message="failed to start freezone omni video gen task",
+    )
+
+
+@router.post("/projects/{project}/freezone/video/video-edit", tags=["freezone-video"])
+async def freezone_video_edit(
+    project: str,
+    body: FreezoneVideoEditRequest,
+    user: dict = Depends(get_api_user),
+):
+    """视频处理：视频编辑（HappyHorse 视频编辑功能）。
+
+    输入 1 个源视频 + 0-5 张参考图，走上游 video_url + reference_images。
+    """
+    resolved = await _resolve_editor_project(project, user)
+    return await _start_video_generation(
+        creative_canvas_video_generation_use_cases().start_video_edit(
+            StartCreativeCanvasVideoEditCommand(
+                context=resolved.ctx,
+                project_dir=resolved.project_dir,
+                options=_video_generation_options(body),
+                video_url=body.video_url,
+                image_urls=tuple(body.image_urls),
+                audio_setting=body.audio_setting,
+            )
+        ),
+        failure_message="failed to start freezone video edit task",
+    )
 
 
 @router.post("/projects/{project}/freezone/extract-frames", tags=["freezone-video"])
@@ -162,6 +319,65 @@ def _video_processing_response(result: CreativeCanvasTaskReceipt) -> dict:
     if result.task_id:
         data["task_id"] = result.task_id
     return {"ok": True, "data": data}
+
+
+async def _resolve_editor_project(project: str, user: dict):
+    return await resolve_project_scope(
+        project,
+        user,
+        required_role="editor",
+        operation="access freezone project files",
+    )
+
+
+def _video_generation_options(body) -> CreativeCanvasVideoGenerationOptions:
+    return CreativeCanvasVideoGenerationOptions(
+        prompt=body.prompt,
+        camera_template_id=body.camera_template_id,
+        marks=tuple(item.model_dump() for item in body.marks),
+        aspect_ratio=body.aspect_ratio,
+        resolution=body.resolution,
+        duration_seconds=body.duration_seconds,
+        generate_audio=body.generate_audio,
+        human_review=body.human_review,
+        scene_optimize=getattr(body, "scene_optimize", None),
+        model=body.model,
+        canvas_id=body.canvas_id or None,
+        node_id=body.node_id or None,
+        gen_mode=body.gen_mode,
+    )
+
+
+async def _start_video_generation(
+    start: Awaitable[CreativeCanvasVideoGenerationResult],
+    *,
+    failure_message: str,
+) -> dict:
+    try:
+        result = await start
+    except InvalidCreativeCanvasVideoGenerationRequest as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except CreativeCanvasVideoCharacterMissing as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except CreativeCanvasTaskStartFailed as exc:
+        logger.warning("%s: %s", failure_message, exc, exc_info=True)
+        raise HTTPException(503, f"{failure_message}: {exc}") from exc
+
+    receipt = result.receipt
+    response = {
+        "ok": True,
+        "data": {
+            "task_type": receipt.task_type,
+            "job_id": receipt.job_id,
+            "task_id": receipt.task_id,
+            "task_key": receipt.task_key,
+            "backend": receipt.backend,
+            "queue": receipt.queue,
+        },
+    }
+    if result.meta is not None:
+        response["meta"] = result.meta
+    return response
 
 
 __all__ = ["router"]

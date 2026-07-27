@@ -242,8 +242,15 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.modules.creative_canvas.application.video_processing import (
         CreativeCanvasVideoProcessingUseCases,
     )
+    from ai_anime.modules.creative_canvas.application.video_generation import (
+        CreativeCanvasVideoGenerationUseCases,
+    )
     from ai_anime.modules.creative_canvas.infrastructure.media_sources import (
         ProjectCreativeCanvasMediaSourceResolver,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.video_generation import (
+        ConfiguredCreativeCanvasVideoModelPolicy,
+        LocalCreativeCanvasVideoCharacterCatalog,
     )
     from ai_anime.modules.creative_canvas.infrastructure.image_editing import (
         FreezoneCreativeCanvasImagePromptComposer,
@@ -455,6 +462,13 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             FreezoneJobIdGenerator(),
             task_scheduler,
         )
+        video_generation_use_cases = CreativeCanvasVideoGenerationUseCases(
+            ProjectCreativeCanvasMediaSourceResolver(),
+            ConfiguredCreativeCanvasVideoModelPolicy(),
+            LocalCreativeCanvasVideoCharacterCatalog(),
+            FreezoneJobIdGenerator(),
+            task_scheduler,
+        )
         monkeypatch.setattr(
             freezone_image,
             "creative_canvas_reverse_prompt_use_cases",
@@ -489,6 +503,11 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             freezone_video,
             "creative_canvas_video_processing_use_cases",
             lambda use_cases=video_processing_use_cases: use_cases,
+        )
+        monkeypatch.setattr(
+            freezone_video,
+            "creative_canvas_video_generation_use_cases",
+            lambda use_cases=video_generation_use_cases: use_cases,
         )
         monkeypatch.setattr(ingest, "get_task_backend", lambda tb=task_backend: tb)
         monkeypatch.setattr(freezone, "get_task_backend", lambda tb=task_backend: tb)
@@ -849,6 +868,13 @@ def _freezone_task_cases(client: TestClient, assets: SimpleNamespace):
             ),
         ),
         (
+            "freezone_video_gen",
+            client.post(
+                f"/api/v1/projects/{p}/freezone/video/video-edit",
+                json={"video_url": video, "prompt": "restyle"},
+            ),
+        ),
+        (
             "freezone_video_erase",
             client.post(f"/api/v1/projects/{p}/freezone/video/erase", json={"source_url": video}),
         ),
@@ -924,7 +950,7 @@ def test_m06_freezone_task_backend_responses_are_ce_ee_isomorphic(
     client, task_backend, _task_manager, _project_dir, assets, _store = m06_client_factory(backend)
 
     cases = _freezone_task_cases(client, assets)
-    assert len(cases) == 28
+    assert len(cases) == 29
     for task_type, response in cases:
         assert response.status_code == 200, response.text
         _assert_freezone_http_task_shape(response.json(), task_type=task_type)

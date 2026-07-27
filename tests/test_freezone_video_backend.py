@@ -12,25 +12,24 @@ from ai_anime.generators.video_generator import (
     newapi_video_backend_options,
 )
 from ai_anime.generators.video_generator import VideoGenResult, VideoGenStatus
-from ai_anime.freezone.video_node import (
+from ai_anime.freezone.video_character_library import (
     add_video_character_library_item,
+    delete_video_character_library_item,
+    load_video_character_library,
+)
+from ai_anime.modules.creative_canvas.public import (
     build_freezone_image_to_video_prompt,
     build_freezone_keyframe_video_prompt,
     build_freezone_omni_video_prompt,
     build_freezone_video_prompt,
-    delete_video_character_library_item,
-    get_freezone_video_model_names,
-    get_freezone_video_model_options,
     get_video_camera_template,
-    is_freezone_happyhorse_backend,
-    is_freezone_seedance2_backend,
-    load_video_character_library,
     normalize_video_aspect_ratio,
     normalize_video_resolution,
-    normalize_video_resolution_for_backend,
-    resolve_freezone_video_backend,
     summarize_omni_reference_counts,
     validate_omni_reference_limits,
+)
+from ai_anime.modules.creative_canvas.infrastructure.video_generation import (
+    ConfiguredCreativeCanvasVideoModelPolicy,
 )
 
 
@@ -147,8 +146,9 @@ def test_build_freezone_keyframe_video_prompt_handles_first_and_last_frame() -> 
 
 
 def test_video_model_options_and_resolution_work() -> None:
-    names = get_freezone_video_model_names()
-    options = get_freezone_video_model_options()
+    policy = ConfiguredCreativeCanvasVideoModelPolicy()
+    names = policy.model_names()
+    options = policy.model_options()
     ids = {item["id"] for item in options}
     labels = {item["label"] for item in options}
     api_models = {item["apiModel"] for item in options}
@@ -173,7 +173,7 @@ def test_video_model_options_and_resolution_work() -> None:
     assert happyhorse["resolutionOptions"] == ["720p", "1080p"]
     assert happyhorse["minDuration"] == 3
     assert happyhorse["maxDuration"] == 15
-    assert normalize_video_resolution_for_backend("newapi_happyhorse-1.0", "480p") == "720p"
+    assert policy.normalize_resolution("newapi_happyhorse-1.0", "480p") == "720p"
 
 
 def test_grok_video_channel_is_not_exposed_even_if_configured(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -186,33 +186,37 @@ def test_grok_video_channel_is_not_exposed_even_if_configured(monkeypatch: pytes
     )
 
     assert "newapi_grok-video-channel" not in newapi_video_backend_options()
-    assert "newapi_grok-video-channel" not in get_freezone_video_model_names()
+    policy = ConfiguredCreativeCanvasVideoModelPolicy()
+    assert "newapi_grok-video-channel" not in policy.model_names()
     with pytest.raises(ValueError, match="unknown video model"):
-        resolve_freezone_video_backend("newapi_grok-video-channel")
+        policy.resolve_backend("newapi_grok-video-channel")
 
 
 def test_resolve_freezone_video_backend_accepts_id_and_label() -> None:
+    policy = ConfiguredCreativeCanvasVideoModelPolicy()
     assert (
-        resolve_freezone_video_backend("newapi_seedance-1.0-pro-fast")
+        policy.resolve_backend("newapi_seedance-1.0-pro-fast")
         == "newapi_seedance-1.0-pro-fast"
     )
-    assert resolve_freezone_video_backend("Seedance1.5 Pro") == "newapi_seedance-1.5-pro"
-    assert resolve_freezone_video_backend("huimeng_seedance20_fast") == "newapi_seedance-2.0-fast"
-    assert resolve_freezone_video_backend("seedance_fast") == "newapi_seedance-1.0-pro-fast"
-    assert resolve_freezone_video_backend("Seedance 1.5 有声") == "newapi_seedance-1.5-pro"
-    assert resolve_freezone_video_backend(None) == "newapi_seedance-2.0-fast"
+    assert policy.resolve_backend("Seedance1.5 Pro") == "newapi_seedance-1.5-pro"
+    assert policy.resolve_backend("huimeng_seedance20_fast") == "newapi_seedance-2.0-fast"
+    assert policy.resolve_backend("seedance_fast") == "newapi_seedance-1.0-pro-fast"
+    assert policy.resolve_backend("Seedance 1.5 有声") == "newapi_seedance-1.5-pro"
+    assert policy.resolve_backend(None) == "newapi_seedance-2.0-fast"
 
 
 def test_seedance2_backend_detection_accepts_newapi_and_legacy_values() -> None:
-    assert is_freezone_seedance2_backend("newapi_seedance-2.0-fast")
-    assert is_freezone_seedance2_backend("huimeng_seedance-2.0-fast")
-    assert is_freezone_seedance2_backend("seedance_2")
-    assert not is_freezone_seedance2_backend("newapi_seedance-1.5-pro")
+    policy = ConfiguredCreativeCanvasVideoModelPolicy()
+    assert policy.is_seedance2_backend("newapi_seedance-2.0-fast")
+    assert policy.is_seedance2_backend("huimeng_seedance-2.0-fast")
+    assert policy.is_seedance2_backend("seedance_2")
+    assert not policy.is_seedance2_backend("newapi_seedance-1.5-pro")
 
 
 def test_happyhorse_backend_detection_accepts_newapi_value() -> None:
-    assert is_freezone_happyhorse_backend("newapi_happyhorse-1.0")
-    assert not is_freezone_happyhorse_backend("newapi_seedance-2.0-fast")
+    policy = ConfiguredCreativeCanvasVideoModelPolicy()
+    assert policy.is_happyhorse_backend("newapi_happyhorse-1.0")
+    assert not policy.is_happyhorse_backend("newapi_seedance-2.0-fast")
 
 
 @pytest.mark.asyncio

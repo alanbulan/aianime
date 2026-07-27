@@ -12,9 +12,11 @@ from ai_anime.freezone.route_helpers import (
     get_freezone_image_camera_options,
     get_freezone_image_style_templates,
 )
-from ai_anime.freezone.video_node import (
-    get_freezone_video_model_options,
+from ai_anime.modules.creative_canvas.domain.video_generation import (
     get_video_camera_templates,
+)
+from ai_anime.modules.creative_canvas.infrastructure.video_generation import (
+    ConfiguredCreativeCanvasVideoModelPolicy,
 )
 
 
@@ -46,4 +48,4 @@ class ConfiguredGenerationCatalogSource:
         return get_video_camera_templates()
 
     def video_models(self) -> list[dict[str, Any]]:
-        return get_freezone_video_model_options()
+        return ConfiguredCreativeCanvasVideoModelPolicy().model_options()

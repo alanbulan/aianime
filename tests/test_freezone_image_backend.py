@@ -13,6 +13,7 @@ from PIL import Image
 from ai_anime.api.routes import freezone as freezone_routes
 from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap_routes
 from ai_anime.api.routes.canvas import image as freezone_image_routes
+from ai_anime.api.routes.canvas import video as freezone_video_routes
 from ai_anime.api.routes.freezone import (
     FREEZONE_DEFAULT_IMAGE_MODEL,
     _build_scene_360_prompt,
@@ -28,6 +29,7 @@ from ai_anime.api.schemas import (
     FreezoneOutpaintRequest,
     FreezoneRedrawRequest,
     FreezoneTemplateEditRequest,
+    FreezoneVideoOmniGenRequest,
     PresetCanvasRequest,
     PushRequest,
 )
@@ -55,7 +57,10 @@ from ai_anime.modules.creative_canvas.domain.image_editing_prompts import (
     build_image_template_edit_prompt,
     resolve_image_template_aspect_ratio,
 )
-from ai_anime.modules.creative_canvas.public import generation_catalog_queries
+from ai_anime.modules.creative_canvas.public import (
+    CreativeCanvasTaskStartFailed,
+    generation_catalog_queries,
+)
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.task_backend.limits import ProjectUserTaskLimitExceeded
 from ai_anime.task_state import get_task_manager
@@ -156,6 +161,11 @@ def _patch_freezone_project(
     monkeypatch.setattr(freezone_routes, "_resolve_freezone_project", fake_resolve_freezone_project)
     monkeypatch.setattr(
         freezone_image_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
+    monkeypatch.setattr(
+        freezone_video_routes,
         "resolve_project_scope",
         fake_resolve_project_scope,
     )
@@ -286,23 +296,6 @@ def _patch_creative_canvas_image_generation(
     )
 
 
-def _patch_limit_exceeded_enqueue(
-    monkeypatch: pytest.MonkeyPatch,
-    *,
-    queue_kind: str,
-) -> None:
-    async def fake_enqueue_project_task(_ctx: ProjectContext, **kwargs):
-        raise ProjectUserTaskLimitExceeded(
-            project_id=_ctx.project_id,
-            requester_user_id=_ctx.requester_user_id,
-            queue_kind=str(kwargs.get("queue_kind") or queue_kind),
-            limit=1,
-            active=1,
-        )
-
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
-
-
 def _override_api_user(app: FastAPI, dependency) -> None:
     for route in app.routes:
         dependant = getattr(route, "dependant", None)
@@ -313,45 +306,34 @@ def _override_api_user(app: FastAPI, dependency) -> None:
                 app.dependency_overrides[dep.call] = dependency
 
 
-def _patch_freezone_endpoint_globals(app: FastAPI, monkeypatch: pytest.MonkeyPatch) -> None:
-    for route in app.routes:
-        endpoint = getattr(route, "endpoint", None)
-        if getattr(endpoint, "__name__", "") != "freezone_video_omni_gen":
-            continue
-        monkeypatch.setitem(
-            endpoint.__globals__,
-            "_resolve_freezone_project",
-            freezone_routes._resolve_freezone_project,
-        )
-        monkeypatch.setitem(
-            endpoint.__globals__,
-            "get_task_backend",
-            freezone_routes.get_task_backend,
-        )
-
-
-def _patch_runtime_error_enqueue(
-    monkeypatch: pytest.MonkeyPatch,
-    message: str = "broker unavailable",
-) -> None:
-    async def fake_enqueue_project_task(_ctx: ProjectContext, **_kwargs):
-        raise RuntimeError(message)
-
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
-
-
 @pytest.mark.asyncio
 async def test_freezone_omni_video_limit_exception_bubbles_to_global_handler(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
     _patch_freezone_project(monkeypatch, tmp_path)
-    _patch_limit_exceeded_enqueue(monkeypatch, queue_kind="video")
+    failure = ProjectUserTaskLimitExceeded(
+        project_id="proj_freezone",
+        requester_user_id="owner_1",
+        queue_kind="video",
+        limit=1,
+        active=1,
+    )
+
+    class FailingUseCases:
+        async def start_omni_video(self, _command):
+            raise failure
+
+    monkeypatch.setattr(
+        freezone_video_routes,
+        "creative_canvas_video_generation_use_cases",
+        lambda: FailingUseCases(),
+    )
 
     with pytest.raises(ProjectUserTaskLimitExceeded) as exc:
-        await freezone_routes.freezone_video_omni_gen(
+        await freezone_video_routes.freezone_video_omni_gen(
             project="58",
-            body=freezone_routes.FreezoneVideoOmniGenRequest(prompt="雨夜街头，人物缓慢回头。"),
+            body=FreezoneVideoOmniGenRequest(prompt="雨夜街头，人物缓慢回头。"),
             user={"username": "admin"},
         )
 
@@ -459,9 +441,9 @@ async def test_freezone_video_omni_gen_rejects_happyhorse_model(
     _patch_freezone_project(monkeypatch, tmp_path)
 
     with pytest.raises(HTTPException) as exc:
-        await freezone_routes.freezone_video_omni_gen(
+        await freezone_video_routes.freezone_video_omni_gen(
             project="58",
-            body=freezone_routes.FreezoneVideoOmniGenRequest(
+            body=FreezoneVideoOmniGenRequest(
                 prompt="雨夜街头，人物缓慢回头。",
                 model="newapi_happyhorse-1.0",
             ),
@@ -479,12 +461,21 @@ async def test_freezone_video_start_runtime_error_is_logged(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     _patch_freezone_project(monkeypatch, tmp_path)
-    _patch_runtime_error_enqueue(monkeypatch)
+
+    class FailingUseCases:
+        async def start_omni_video(self, _command):
+            raise CreativeCanvasTaskStartFailed("broker unavailable")
+
+    monkeypatch.setattr(
+        freezone_video_routes,
+        "creative_canvas_video_generation_use_cases",
+        lambda: FailingUseCases(),
+    )
 
     with pytest.raises(HTTPException) as exc:
-        await freezone_routes.freezone_video_omni_gen(
+        await freezone_video_routes.freezone_video_omni_gen(
             project="58",
-            body=freezone_routes.FreezoneVideoOmniGenRequest(prompt="雨夜街头，人物缓慢回头。"),
+            body=FreezoneVideoOmniGenRequest(prompt="雨夜街头，人物缓慢回头。"),
             user={"username": "admin"},
         )
 
