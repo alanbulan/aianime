@@ -8,16 +8,9 @@ from fastapi import APIRouter, Depends, Query, Request
 
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.schemas import OkResponse
-from ai_anime.ports import get_release_feed_port
+from ai_anime.modules.platform_release.public import release_notification_queries
 
 router = APIRouter()
-
-
-def normalize_locale(value: str | None) -> str:
-    if not value:
-        return "zh"
-    primary = value.split(",", 1)[0].split(";", 1)[0].split("-", 1)[0].strip().lower()
-    return primary if primary in {"zh", "en"} else "zh"
 
 
 @router.get("/release-notifications", response_model=OkResponse)
@@ -26,6 +19,7 @@ async def get_release_notifications(
     locale: str | None = Query(default=None),
     _user: dict = Depends(get_api_user),
 ) -> OkResponse:
-    resolved_locale = normalize_locale(locale or request.headers.get("accept-language"))
-    feed = await get_release_feed_port().current(locale=resolved_locale)
+    feed = await release_notification_queries().current(
+        locale_hint=locale or request.headers.get("accept-language"),
+    )
     return OkResponse(data=asdict(feed))

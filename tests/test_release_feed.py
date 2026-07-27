@@ -8,7 +8,11 @@ from fastapi.testclient import TestClient
 
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.routes import release_notifications
-from ai_anime.api.routes.release_notifications import normalize_locale
+from ai_anime.modules.platform_release.public import (
+    ReleaseNotificationQueries,
+    normalize_release_locale,
+)
+from ai_anime.ports.release_feed import ReleaseFeed
 from ai_anime.ports.local.release_feed import MockReleaseFeed, NoOpReleaseFeed
 from ai_anime.ports.registry import _PORTS
 from ai_anime.release_notes import parse, validate_version_marker
@@ -103,7 +107,24 @@ def test_release_notification_locale_normalization(
     value: str | None,
     expected: str,
 ) -> None:
-    assert normalize_locale(value) == expected
+    assert normalize_release_locale(value) == expected
+
+
+@pytest.mark.asyncio
+async def test_release_notification_queries_normalize_locale_before_gateway() -> None:
+    seen: list[str] = []
+
+    class Feed:
+        async def current(self, *, locale: str) -> ReleaseFeed:
+            seen.append(locale)
+            return ReleaseFeed(source="none")
+
+    result = await ReleaseNotificationQueries(Feed()).current(
+        locale_hint="en-US,en;q=0.9",
+    )
+
+    assert result.source == "none"
+    assert seen == ["en"]
 
 
 def test_release_notification_api_returns_mock_feed(

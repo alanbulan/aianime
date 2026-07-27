@@ -350,6 +350,34 @@ def test_creative_canvas_callers_use_the_public_api() -> None:
     assert not failures, "\n".join(failures)
 
 
+def test_platform_release_callers_use_the_public_api() -> None:
+    platform_release_module = PACKAGE_ROOT / "modules" / "platform_release"
+    failures: list[str] = []
+
+    for path in _python_files(PACKAGE_ROOT):
+        if path.is_relative_to(platform_release_module):
+            continue
+        relative = _relative(path)
+        for imported in _imports(path):
+            if not imported.startswith("ai_anime.modules.platform_release."):
+                continue
+            if imported == "ai_anime.modules.platform_release.public":
+                continue
+            failures.append(f"{relative}: {imported}")
+
+    assert not failures, "\n".join(failures)
+
+
+def test_release_notifications_route_delegates_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "release_notifications.py"
+    source = route.read_text(encoding="utf-8")
+
+    assert source.count("release_notification_queries().current(") == 1
+    assert "ai_anime.modules.platform_release.public" in _imports(route)
+    assert "get_release_feed_port" not in source
+    assert "def normalize_locale(" not in source
+
+
 def test_freezone_skill_catalog_route_delegates_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "skills.py"
     legacy_route = LEGACY_FREEZONE_ROUTE
