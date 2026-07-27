@@ -1624,6 +1624,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百七十批已将故事脚本生成的项目路径编码、POST method、源文本、视频、时长、角色参考、提示词和可选节点上下文字段映射从 `api/ops.ts` 迁入已有唯一 `freezoneStoryScriptGenerationGateway` infrastructure 适配器，gateway 只承载既有 application command 的真实字段，Canvas application 继续负责引用分类、命令构建、提交、任务持久化、等待和结果获取；旧 `FreezoneStoryScriptCharacterRef`、`FreezoneStoryScriptPayload` 和 `submitFreezoneStoryScript` 直接删除，不保留 facade、re-export 或第二套 HTTP 映射，`freezone/text/story-script` 提交端点只有该 gateway 一个生产所有者，故事脚本结果类型和查询仍由唯一 `freezoneGenerationTaskGateway` 使用，`api/ops.ts` 由 1,528 行降至 1,470 行；真实调用链的请求路径、方法、字段省略规则、角色字段映射和任务回执语义均未改变；相关 2 个测试文件 5 项、架构门禁 206 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
 
+第二百七十一批已将视频故事分析的项目路径编码、POST method、视频 URL 和可选时长字段映射从 `api/ops.ts` 迁入已有唯一 `freezoneVideoStoryAnalysisGateway` infrastructure 适配器，gateway 继续负责异步任务回执与内联分析结果的双形态归一，Canvas application 继续负责任务等待和故事行标准化；旧 `FreezoneAnalyzeVideoStoryPayload` 和 `submitFreezoneAnalyzeVideoStory` 直接删除，不保留 facade、re-export 或第二套 HTTP 映射，`freezone/analyze-video-story` 端点只有该 gateway 一个生产所有者，`api/ops.ts` 由 1,470 行降至 1,441 行；真实调用链的请求路径、方法、视频 URL、可选时长、task key 和内联结果语义均未改变；相关 2 个测试文件 4 项、架构门禁 206 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

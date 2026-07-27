@@ -10713,17 +10713,17 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/ui/NodeActionToolbar.tsx",
     );
+    const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const toolbarSource = readFileSync(toolbarPath, "utf8");
-    const productionCanvasSources = sourceFiles(
-      resolve(SRC_ROOT, "features/canvas"),
-    ).filter((path) => !path.includes(".test."));
-    const submitOwners = productionCanvasSources
+    const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
+    const endpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
       .filter((path) =>
         readFileSync(path, "utf8").includes(
-          "submitFreezoneAnalyzeVideoStory(",
+          "}/freezone/analyze-video-story`",
         ),
       )
       .map(relativeSource)
@@ -10740,12 +10740,15 @@ describe("frontend architecture boundaries", () => {
     );
     expect(applicationSource).toContain("normalizeVideoStoryRows(rawResult)");
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
-      new Set(["@/api/ops", "../application/analyzeCanvasVideoStory"]),
+      new Set([
+        "@/shared/api/client",
+        "../application/analyzeCanvasVideoStory",
+      ]),
     );
     expect(adapterSource).toContain(
       "freezoneVideoStoryAnalysisGateway: CanvasVideoStoryAnalysisSubmissionGateway",
     );
-    expect(submitOwners).toEqual([
+    expect(endpointOwners).toEqual([
       "features/canvas/infrastructure/freezoneVideoStoryAnalysisGateway.ts",
     ]);
     expect(compositionSource).toContain(
@@ -10757,6 +10760,15 @@ describe("frontend architecture boundaries", () => {
     expect(toolbarSource).toContain("await analyzeCanvasVideoStory({");
     expect(toolbarSource).not.toContain("submitFreezoneAnalyzeVideoStory");
     expect(toolbarSource).not.toContain("normalizeVideoStoryRows");
+    for (const legacySymbol of [
+      "FreezoneAnalyzeVideoStoryPayload",
+      "submitFreezoneAnalyzeVideoStory",
+    ]) {
+      expect(legacyOpsSource).not.toContain(legacySymbol);
+    }
+    expect(legacyOpsSource).not.toContain(
+      "}/freezone/analyze-video-story`",
+    );
   });
 
   it("keeps Canvas audio separation orchestration and result mapping out of UI", () => {

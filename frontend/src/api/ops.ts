@@ -1366,35 +1366,6 @@ export async function fetchFreezoneStoryScriptResult(
   );
 }
 
-// /freezone/analyze-video-story ------------------------------------------ //
-
-export interface FreezoneAnalyzeVideoStoryPayload {
-  /** /static/... URL inside the project. */
-  videoUrl: string;
-  /** 3..50, defaults to 20 backend-side. */
-  maxFrames?: number;
-  /** 0..1 ffmpeg scene threshold; defaults to 0.3 backend-side. */
-  sceneThreshold?: number;
-  /** Optional total duration (seconds) — improves table timestamp accuracy. */
-  durationSec?: number;
-}
-
-export async function submitFreezoneAnalyzeVideoStory(
-  project: string,
-  payload: FreezoneAnalyzeVideoStoryPayload,
-): Promise<FreezoneJobRef> {
-  const body: Record<string, unknown> = {
-    video_url: payload.videoUrl,
-  };
-  if (payload.maxFrames != null) body.max_frames = payload.maxFrames;
-  if (payload.sceneThreshold != null) body.scene_threshold = payload.sceneThreshold;
-  if (payload.durationSec != null) body.duration_sec = payload.durationSec;
-  return await apiCall<FreezoneJobRef>(
-    `projects/${encodeURIComponent(project)}/freezone/analyze-video-story`,
-    { method: "POST", json: body },
-  );
-}
-
 // /freezone/video/character-library -------------------------------------- //
 
 export interface FreezoneVideoCharacterLibraryItem {
