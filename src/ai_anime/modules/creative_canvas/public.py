@@ -25,6 +25,13 @@ from ai_anime.modules.creative_canvas.application.bootstrap import (
     CreativeCanvasBootstrapUseCases,
     InitializeCreativeCanvasCommand,
 )
+from ai_anime.modules.creative_canvas.application.canvas_assets import (
+    CreativeCanvasAssetUseCases,
+    CreativeCanvasBeatNotFound,
+    GetCreativeCanvasDirectorCaptureQuery,
+    GetCreativeCanvasSceneAssetsQuery,
+    SyncCreativeCanvasDirectorBackgroundCommand,
+)
 from ai_anime.modules.creative_canvas.application.canvas_documents import (
     CreativeCanvasDocumentBusy,
     CreativeCanvasDocumentCorrupt,
@@ -252,6 +259,14 @@ def creative_canvas_document_commands() -> CreativeCanvasDocumentCommands:
     return build()
 
 
+def creative_canvas_asset_use_cases() -> CreativeCanvasAssetUseCases:
+    from ai_anime.modules.creative_canvas.composition import (
+        creative_canvas_asset_use_cases as build,
+    )
+
+    return build()
+
+
 def creative_canvas_event_recorder() -> CreativeCanvasEventRecorder:
     from ai_anime.modules.creative_canvas.composition import (
         creative_canvas_event_recorder as build,
@@ -437,6 +452,7 @@ __all__ = [
     "CopyCreativeCanvasSlotCommand",
     "CreateCreativeCanvasAudioVoiceCommand",
     "CreateCreativeCanvasPresetCommand",
+    "CreativeCanvasAssetUseCases",
     "CreativeCanvasAudioGenerationUseCases",
     "CreativeCanvasAudioLibraryUseCases",
     "CreativeCanvasAudioVoiceMissing",
@@ -444,6 +460,7 @@ __all__ = [
     "CreativeCanvasBootstrapCorrupt",
     "CreativeCanvasBootstrapResult",
     "CreativeCanvasBootstrapUseCases",
+    "CreativeCanvasBeatNotFound",
     "CreativeCanvasDocumentBusy",
     "CreativeCanvasDocumentBaseRevisionRequired",
     "CreativeCanvasDocumentCommands",
@@ -506,8 +523,10 @@ __all__ = [
     "CreativeCanvasUploadResult",
     "GenerationCatalogQueries",
     "GetCreativeCanvasDocumentQuery",
+    "GetCreativeCanvasDirectorCaptureQuery",
     "GetCreativeCanvasProjectionStatusQuery",
     "GetCreativeCanvasSlotImpactQuery",
+    "GetCreativeCanvasSceneAssetsQuery",
     "GetCreativeCanvasAudioVoiceQuery",
     "DetectCreativeCanvasMarkCommand",
     "DangerousCreativeCanvasDocumentOverwrite",
@@ -567,6 +586,7 @@ __all__ = [
     "StartCreativeCanvasVideoStoryAnalysisCommand",
     "AddCreativeCanvasVideoAssetCommand",
     "SyncCreativeCanvasVideoAssetsCommand",
+    "SyncCreativeCanvasDirectorBackgroundCommand",
     "canvas_actor_id",
     "canvas_event_actor",
     "build_image_multi_view_prompt",
@@ -579,6 +599,7 @@ __all__ = [
     "creative_canvas_audio_generation_use_cases",
     "creative_canvas_audio_library_use_cases",
     "creative_canvas_bootstrap_use_cases",
+    "creative_canvas_asset_use_cases",
     "creative_canvas_document_commands",
     "creative_canvas_document_queries",
     "creative_canvas_event_recorder",

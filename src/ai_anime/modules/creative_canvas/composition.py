@@ -8,6 +8,9 @@ from ai_anime.modules.creative_canvas.application.audio_generation import (
 from ai_anime.modules.creative_canvas.application.audio_library import (
     CreativeCanvasAudioLibraryUseCases,
 )
+from ai_anime.modules.creative_canvas.application.canvas_assets import (
+    CreativeCanvasAssetUseCases,
+)
 from ai_anime.modules.creative_canvas.application.bootstrap import (
     CreativeCanvasBootstrapUseCases,
 )
@@ -74,6 +77,11 @@ from ai_anime.modules.creative_canvas.infrastructure.canvas_events import (
 )
 from ai_anime.modules.creative_canvas.infrastructure.canvas_commits import (
     LocalCreativeCanvasSlotCommitGateway,
+)
+from ai_anime.modules.creative_canvas.infrastructure.canvas_assets import (
+    LocalCreativeCanvasBeatSceneSource,
+    LocalCreativeCanvasDirectorCaptureStorage,
+    LocalCreativeCanvasDirectorStageLinkBuilder,
 )
 from ai_anime.modules.creative_canvas.infrastructure.canvas_projections import (
     LocalCreativeCanvasProjectionGateway,
@@ -148,6 +156,15 @@ def creative_canvas_document_commands() -> CreativeCanvasDocumentCommands:
     return CreativeCanvasDocumentCommands(
         LocalCreativeCanvasDocumentCommandGateway(),
         creative_canvas_event_recorder(),
+    )
+
+
+@lru_cache(maxsize=1)
+def creative_canvas_asset_use_cases() -> CreativeCanvasAssetUseCases:
+    return CreativeCanvasAssetUseCases(
+        LocalCreativeCanvasBeatSceneSource(),
+        LocalCreativeCanvasDirectorCaptureStorage(),
+        LocalCreativeCanvasDirectorStageLinkBuilder(),
     )
 
 

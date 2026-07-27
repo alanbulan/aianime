@@ -38,6 +38,7 @@ from ai_anime.api.routes import (
     tasks,
 )
 from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap
+from ai_anime.api.routes.canvas import assets as freezone_assets
 from ai_anime.api.routes.canvas import commits as freezone_commits
 from ai_anime.api.routes.canvas import audio as freezone_audio
 from ai_anime.api.routes.canvas import documents as freezone_documents
@@ -116,6 +117,7 @@ def create_api_router(*, desktop_mode: bool | None = None) -> APIRouter:
         tags=["release-notifications"],
     )
     router.include_router(freezone_bootstrap.router)
+    router.include_router(freezone_assets.router)
     router.include_router(freezone_commits.router)
     router.include_router(freezone_audio.router)
     router.include_router(freezone_documents.router)

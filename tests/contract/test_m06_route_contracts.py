@@ -229,6 +229,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.routes import freezone, ingest
     from ai_anime.api.routes.canvas import audio as freezone_audio
+    from ai_anime.api.routes.canvas import assets as freezone_assets
     from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap
     from ai_anime.api.routes.canvas import commits as freezone_commits
     from ai_anime.api.routes.canvas import documents as freezone_documents
@@ -264,6 +265,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         CreativeCanvasVideoProcessingUseCases,
     )
     from ai_anime.modules.creative_canvas.infrastructure import (
+        canvas_assets,
         canvas_commits,
         canvas_presets,
     )
@@ -388,9 +390,6 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     async def make_store_for_context(_ctx):
         return store
 
-    async def beat_for_capture(*_args, **_kwargs):
-        return (await store.get_beats_as_dicts(1))[0]
-
     async def build_beat_context(**_kwargs):
         return {
             "beat_data": (await store.get_beats_as_dicts(1))[0],
@@ -402,6 +401,11 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         return f"/static/projects/{_PROJECT_ID}/{rel_path}"
 
     monkeypatch.setattr(ingest, "resolve_project_scope", resolve_project_scope)
+    monkeypatch.setattr(
+        freezone_assets,
+        "resolve_project_scope",
+        resolve_project_scope,
+    )
     monkeypatch.setattr(
         freezone_audio,
         "resolve_project_scope",
@@ -460,6 +464,16 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(freezone, "resolve_project_context", resolve_project_context)
     monkeypatch.setattr(freezone, "make_sqlite_store_for_context", make_store_for_context)
     monkeypatch.setattr(
+        canvas_assets,
+        "make_sqlite_store_for_context",
+        make_store_for_context,
+    )
+    monkeypatch.setattr(
+        canvas_assets,
+        "make_static_url_for_context",
+        static_url,
+    )
+    monkeypatch.setattr(
         canvas_commits,
         "make_sqlite_store_for_context",
         make_store_for_context,
@@ -475,7 +489,6 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         static_url,
     )
     monkeypatch.setattr(freezone, "make_static_url_for_context", static_url)
-    monkeypatch.setattr(freezone, "_beat_for_capture", beat_for_capture)
     monkeypatch.setattr(freezone, "build_beat_preset_context", build_beat_context)
     monkeypatch.setattr(
         canvas_presets,
@@ -638,6 +651,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app = FastAPI()
         app.include_router(ingest.router, prefix="/api/v1")
         app.include_router(freezone_audio.router, prefix="/api/v1")
+        app.include_router(freezone_assets.router, prefix="/api/v1")
         app.include_router(freezone_bootstrap.router, prefix="/api/v1")
         app.include_router(freezone_commits.router, prefix="/api/v1")
         app.include_router(freezone_documents.router, prefix="/api/v1")
@@ -657,6 +671,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app.dependency_overrides[api_auth.get_api_user] = lambda user=user: user
         app.dependency_overrides[ingest.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_audio.get_api_user] = lambda user=user: user
+        app.dependency_overrides[freezone_assets.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_bootstrap.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_commits.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_image.get_api_user] = lambda user=user: user

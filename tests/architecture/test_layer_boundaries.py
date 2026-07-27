@@ -1269,6 +1269,86 @@ def test_freezone_canvas_commit_routes_delegate_to_application() -> None:
     assert "ai_anime.api" not in adapter_source
 
 
+def test_freezone_canvas_asset_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "assets.py"
+    legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
+    application = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "application"
+        / "canvas_assets.py"
+    )
+    adapter = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "infrastructure"
+        / "canvas_assets.py"
+    )
+    composition = PACKAGE_ROOT / "modules" / "creative_canvas" / "composition.py"
+    public = PACKAGE_ROOT / "modules" / "creative_canvas" / "public.py"
+    route_source = route.read_text(encoding="utf-8")
+    legacy_source = legacy_route.read_text(encoding="utf-8")
+    api_router_source = api_router.read_text(encoding="utf-8")
+    application_source = application.read_text(encoding="utf-8")
+    adapter_source = adapter.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+
+    for endpoint_path in (
+        '"/projects/{project}/freezone/director-capture"',
+        '"/projects/{project}/freezone/director-capture/sync-background"',
+        '"/projects/{project}/freezone/scene-assets-for-beat"',
+    ):
+        assert route_source.count(endpoint_path) == 1
+        assert endpoint_path not in legacy_source
+    for legacy_implementation in (
+        "DIRECTOR_CAPTURE_FILES",
+        "def _freezone_director_control_frames_dir(",
+        "def _freezone_director_capture_base(",
+        "def _director_capture_file_payload(",
+        "async def _beat_for_capture(",
+        "def _sync_env_only_to_selected_background(",
+        "async def freezone_director_capture_manifest(",
+        "async def freezone_director_capture_sync_background(",
+        "async def freezone_scene_assets_for_beat(",
+    ):
+        assert legacy_implementation not in legacy_source
+
+    assert "freezone_assets.router" in api_router_source
+    assert route_source.count("creative_canvas_asset_use_cases().") == 3
+    assert "class CreativeCanvasAssetUseCases" in application_source
+    assert "class CreativeCanvasBeatSceneSource" in application_source
+    assert "class CreativeCanvasDirectorCaptureStorage" in application_source
+    assert "class CreativeCanvasDirectorStageLinkBuilder" in application_source
+    assert "class LocalCreativeCanvasBeatSceneSource" in adapter_source
+    assert "class LocalCreativeCanvasDirectorCaptureStorage" in adapter_source
+    assert "class LocalCreativeCanvasDirectorStageLinkBuilder" in adapter_source
+    assert "LocalCreativeCanvasBeatSceneSource()" in composition_source
+    assert "LocalCreativeCanvasDirectorCaptureStorage()" in composition_source
+    assert "LocalCreativeCanvasDirectorStageLinkBuilder()" in composition_source
+    assert "def creative_canvas_asset_use_cases(" in public_source
+    for route_implementation_detail in (
+        "DirectorWorldService",
+        "make_sqlite_store_for_context",
+        "canonical_beat_director_env_only_path",
+        "canonical_beat_selected_background_path",
+        "canonical_scene_master_path",
+        "canonical_scene_reverse_master_path",
+        "shutil",
+        "os.utime",
+    ):
+        assert route_implementation_detail not in route_source
+
+    assert "fastapi" not in application_source
+    assert "ai_anime.api" not in application_source
+    assert "ai_anime.freezone" not in application_source
+    assert "fastapi" not in adapter_source
+    assert "ai_anime.api" not in adapter_source
+
+
 def test_freezone_canvas_projection_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "projections.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
