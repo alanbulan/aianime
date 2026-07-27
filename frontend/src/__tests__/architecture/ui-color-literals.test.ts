@@ -88,7 +88,7 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "features/freezone/context/NodeContextBadges.tsx": 0,
   "features/freezone/FreezoneShell.tsx": 0,
   "features/superchat/superchat-panel.tsx": 0,
-  "features/version-update/VersionUpdateDialog.tsx": 0,
+  "modules/platform_release/presentation/VersionUpdateDialog.tsx": 0,
   "features/viewer-kit/pano/PanoCaptureSurface.tsx": 1,
   "features/viewer-kit/three-d/engine/viewerApp.ts": 9,
   "features/viewer-kit/three-d/ThreeDDirectorDialog.tsx": 26,

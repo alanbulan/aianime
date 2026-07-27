@@ -1,11 +1,18 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import ky from "ky";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 
 vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost:3000/" }),
@@ -29,7 +36,9 @@ vi.mock("react-i18next", () => ({
 vi.mock("@/components/ui/dialog", () => ({
   Dialog: ({ open, children }: React.PropsWithChildren<{ open: boolean }>) =>
     open ? <div role="dialog">{children}</div> : null,
-  DialogContent: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
+  DialogContent: ({ children }: React.PropsWithChildren) => (
+    <div>{children}</div>
+  ),
   DialogTitle: ({ children }: React.PropsWithChildren) => <h2>{children}</h2>,
 }));
 
@@ -41,9 +50,9 @@ vi.mock("@/components/ui/button", () => ({
   ),
 }));
 
-import { VersionUpdateDialog } from "@/features/version-update/VersionUpdateDialog";
-import { openVersionUpdateDialog } from "@/features/version-update/version-update-events";
 import { RELEASE_NOTIFICATIONS_MUTED_KEY } from "@/modules/platform_release/public";
+import { openVersionUpdateDialog } from "@/modules/platform_release/infrastructure/browser-version-update-dialog-events";
+import { VersionUpdateDialog } from "@/modules/platform_release/presentation/VersionUpdateDialog";
 
 const server = setupServer();
 
@@ -77,9 +86,11 @@ function feed(items = [{ title: "Current highlight", body: "Current body" }]) {
 }
 
 function renderDialog() {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   return render(
-    <QueryClientProvider client={qc}>
+    <QueryClientProvider client={queryClient}>
       <VersionUpdateDialog />
     </QueryClientProvider>,
   );

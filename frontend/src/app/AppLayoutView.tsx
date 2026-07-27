@@ -5,7 +5,7 @@ import { Header } from "@/components/layout/header";
 import { TaskPanel } from "@/components/task-center/panel";
 import { TaskStatusBar } from "@/components/task-center/status-bar";
 import type { AppLayoutController } from "@/app/use-app-layout-controller";
-import { VersionUpdateDialog } from "@/features/version-update/VersionUpdateDialog";
+import { VersionUpdateDialog } from "@/modules/platform_release/public";
 import { TaskCenterProvider } from "@/task-center/provider";
 
 export function AppLayoutView({

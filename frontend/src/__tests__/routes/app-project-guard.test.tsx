@@ -63,7 +63,7 @@ vi.mock("@/task-center/provider", () => ({
 }));
 vi.mock("@/components/task-center/status-bar", () => ({ TaskStatusBar: () => null }));
 vi.mock("@/components/task-center/panel", () => ({ TaskPanel: () => null }));
-vi.mock("@/features/version-update/VersionUpdateDialog", () => ({
+vi.mock("@/modules/platform_release/public", () => ({
   VersionUpdateDialog: () => null,
 }));
 vi.mock("framer-motion", () => ({

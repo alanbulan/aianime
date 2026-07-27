@@ -7188,6 +7188,8 @@ describe("frontend architecture boundaries", () => {
       "lib/version-update-watch.ts",
       "components/app-update-available.tsx",
       "components/app-update-required.tsx",
+      "features/version-update/VersionUpdateDialog.tsx",
+      "features/version-update/version-update-events.ts",
     ].filter((path) => existsSync(resolve(SRC_ROOT, path)));
 
     expect(existsSync(resolve(SRC_ROOT, "lib/queries/release-notifications.ts"))).toBe(false);

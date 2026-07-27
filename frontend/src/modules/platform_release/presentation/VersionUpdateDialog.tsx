@@ -1,26 +1,26 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+
 import { Button } from "@/components/ui/button";
-import { subscribeOpenVersionUpdateDialog } from "@/features/version-update/version-update-events";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
   ensureReleaseNotifications,
   markCurrentReleaseSeen,
-  normalizeReleaseLocale,
   shouldAutoShowCurrentRelease,
+  subscribeOpenVersionUpdateDialog,
   useReleaseNotifications,
-} from "@/modules/platform_release/public";
+} from "@/modules/platform_release/composition";
+import { normalizeReleaseLocale } from "@/modules/platform_release/domain/release-notifications";
 
-/** 更新弹窗顶部的头图视频。走 CDN 域名（OSS 默认域名会强制下载，播不了）。 */
 const UPDATE_HERO_VIDEO_URL = "/video/login-community-preview.mp4";
 
 export function VersionUpdateDialog() {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
-  const locale = normalizeReleaseLocale(i18n.resolvedLanguage ?? i18n.language);
+  const locale = normalizeReleaseLocale(
+    i18n.resolvedLanguage ?? i18n.language,
+  );
   const releaseNotifications = useReleaseNotifications(locale);
   const feed = releaseNotifications.data;
   const items = feed?.current_items ?? [];
@@ -29,7 +29,11 @@ export function VersionUpdateDialog() {
 
   useEffect(() => {
     const tag = feed?.current_tag ?? null;
-    if (!tag || autoOpenedTagRef.current === tag || !shouldAutoShowCurrentRelease(feed)) {
+    if (
+      !tag ||
+      autoOpenedTagRef.current === tag ||
+      !shouldAutoShowCurrentRelease(feed)
+    ) {
       return;
     }
     autoOpenedTagRef.current = tag;
@@ -40,7 +44,9 @@ export function VersionUpdateDialog() {
   useEffect(
     () =>
       subscribeOpenVersionUpdateDialog(() => {
-        void ensureReleaseNotifications(queryClient, locale).finally(() => setOpen(true));
+        void ensureReleaseNotifications(queryClient, locale).finally(() =>
+          setOpen(true),
+        );
       }),
     [locale, queryClient],
   );

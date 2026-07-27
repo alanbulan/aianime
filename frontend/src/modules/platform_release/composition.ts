@@ -14,6 +14,7 @@ import {
 } from "@/modules/platform_release/infrastructure/browser-release-notification-storage";
 import { installBrowserChunkLoadRecovery } from "@/modules/platform_release/infrastructure/browser-chunk-load-recovery";
 import { installBrowserVersionUpdateWatch } from "@/modules/platform_release/infrastructure/browser-version-update-watch";
+import { subscribeOpenVersionUpdateDialog as subscribeBrowserOpenVersionUpdateDialog } from "@/modules/platform_release/infrastructure/browser-version-update-dialog-events";
 import { httpReleaseNotificationGateway } from "@/modules/platform_release/infrastructure/http-release-notification-gateway";
 import { BUILD_ID } from "@/lib/app-version";
 
@@ -42,6 +43,12 @@ export function installVersionUpdateWatch(): () => void {
     runningBuildId: BUILD_ID,
     onUpdateAvailable: markUpdateAvailable,
   });
+}
+
+export function subscribeOpenVersionUpdateDialog(
+  listener: () => void,
+): () => void {
+  return subscribeBrowserOpenVersionUpdateDialog(listener);
 }
 
 export function markCurrentReleaseSeen(tag: string | null | undefined): void {

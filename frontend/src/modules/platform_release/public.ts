@@ -16,6 +16,7 @@ export {
 export { useChunkLoadRecoveryRequired } from "@/modules/platform_release/application/chunk-load-recovery";
 export { AppUpdateAvailable } from "@/modules/platform_release/presentation/AppUpdateAvailable";
 export { AppUpdateRequired } from "@/modules/platform_release/presentation/AppUpdateRequired";
+export { VersionUpdateDialog } from "@/modules/platform_release/presentation/VersionUpdateDialog";
 export { normalizeReleaseLocale } from "@/modules/platform_release/domain/release-notifications";
 export { isChunkLoadError } from "@/modules/platform_release/domain/runtime-update";
 export type {
