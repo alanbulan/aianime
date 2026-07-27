@@ -1,4 +1,4 @@
-"""Creative Canvas director-capture and scene-asset use cases."""
+"""Creative Canvas asset-library use cases."""
 
 from __future__ import annotations
 
@@ -13,6 +13,13 @@ from ai_anime.modules.project_workspace.public import ProjectContext
 
 class CreativeCanvasBeatNotFound(LookupError):
     pass
+
+
+@dataclass(frozen=True)
+class ListCreativeCanvasAssetsQuery:
+    context: ProjectContext
+    project_id: str
+    project_dir: Path
 
 
 @dataclass(frozen=True)
@@ -50,6 +57,16 @@ class CreativeCanvasBeatSceneSource(Protocol):
         episode: int,
         beat: int,
     ) -> str | None: ...
+
+
+class CreativeCanvasAssetCatalogGateway(Protocol):
+    async def list_assets(
+        self,
+        *,
+        context: ProjectContext,
+        project_id: str,
+        project_dir: Path,
+    ) -> Sequence[Mapping[str, Any]]: ...
 
 
 class CreativeCanvasDirectorCaptureStorage(Protocol):
@@ -98,10 +115,22 @@ class CreativeCanvasAssetUseCases:
         beat_scene_source: CreativeCanvasBeatSceneSource,
         capture_storage: CreativeCanvasDirectorCaptureStorage,
         stage_link_builder: CreativeCanvasDirectorStageLinkBuilder,
+        asset_catalog: CreativeCanvasAssetCatalogGateway,
     ) -> None:
         self._beat_scene_source = beat_scene_source
         self._capture_storage = capture_storage
         self._stage_link_builder = stage_link_builder
+        self._asset_catalog = asset_catalog
+
+    async def list_assets(
+        self,
+        query: ListCreativeCanvasAssetsQuery,
+    ) -> Sequence[Mapping[str, Any]]:
+        return await self._asset_catalog.list_assets(
+            context=query.context,
+            project_id=query.project_id,
+            project_dir=query.project_dir,
+        )
 
     async def director_capture(
         self,
@@ -201,6 +230,7 @@ class CreativeCanvasAssetUseCases:
 
 
 __all__ = [
+    "CreativeCanvasAssetCatalogGateway",
     "CreativeCanvasAssetUseCases",
     "CreativeCanvasBeatNotFound",
     "CreativeCanvasBeatSceneSource",
@@ -208,5 +238,6 @@ __all__ = [
     "CreativeCanvasDirectorStageLinkBuilder",
     "GetCreativeCanvasDirectorCaptureQuery",
     "GetCreativeCanvasSceneAssetsQuery",
+    "ListCreativeCanvasAssetsQuery",
     "SyncCreativeCanvasDirectorBackgroundCommand",
 ]

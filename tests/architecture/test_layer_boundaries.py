@@ -1280,6 +1280,13 @@ def test_freezone_canvas_asset_routes_delegate_to_application() -> None:
         / "application"
         / "canvas_assets.py"
     )
+    domain = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "domain"
+        / "canvas_assets.py"
+    )
     adapter = (
         PACKAGE_ROOT
         / "modules"
@@ -1294,10 +1301,12 @@ def test_freezone_canvas_asset_routes_delegate_to_application() -> None:
     api_router_source = api_router.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
+    domain_source = domain.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
 
     for endpoint_path in (
+        '"/projects/{project}/freezone/assets"',
         '"/projects/{project}/freezone/director-capture"',
         '"/projects/{project}/freezone/director-capture/sync-background"',
         '"/projects/{project}/freezone/scene-assets-for-beat"',
@@ -1314,22 +1323,40 @@ def test_freezone_canvas_asset_routes_delegate_to_application() -> None:
         "async def freezone_director_capture_manifest(",
         "async def freezone_director_capture_sync_background(",
         "async def freezone_scene_assets_for_beat(",
+        "async def list_freezone_assets(",
+        "def _asset_record_from_path(",
+        "def _asset_record_from_optional_project_path(",
+        "def _character_asset_history_links(",
+        "def _compact_mainline_context(",
+        "def _slot_target_for_asset_record(",
+        "def _mainline_context_for_asset_record(",
+        "def _director_control_bundle_from_combined_ref(",
+        "def _beat_context_asset_from_ref(",
+        "def _is_freezone_scene_library_role(",
     ):
         assert legacy_implementation not in legacy_source
 
     assert "freezone_assets.router" in api_router_source
-    assert route_source.count("creative_canvas_asset_use_cases().") == 3
+    assert route_source.count("creative_canvas_asset_use_cases().") == 4
+    assert "class ListCreativeCanvasAssetsQuery" in application_source
+    assert "class CreativeCanvasAssetCatalogGateway" in application_source
     assert "class CreativeCanvasAssetUseCases" in application_source
     assert "class CreativeCanvasBeatSceneSource" in application_source
     assert "class CreativeCanvasDirectorCaptureStorage" in application_source
     assert "class CreativeCanvasDirectorStageLinkBuilder" in application_source
+    assert "class LocalCreativeCanvasAssetCatalogGateway" in adapter_source
+    assert "class LocalCreativeCanvasAssetRecordFactory" in adapter_source
     assert "class LocalCreativeCanvasBeatSceneSource" in adapter_source
     assert "class LocalCreativeCanvasDirectorCaptureStorage" in adapter_source
     assert "class LocalCreativeCanvasDirectorStageLinkBuilder" in adapter_source
     assert "LocalCreativeCanvasBeatSceneSource()" in composition_source
     assert "LocalCreativeCanvasDirectorCaptureStorage()" in composition_source
     assert "LocalCreativeCanvasDirectorStageLinkBuilder()" in composition_source
+    assert "LocalCreativeCanvasAssetCatalogGateway()" in composition_source
     assert "def creative_canvas_asset_use_cases(" in public_source
+    assert "ListCreativeCanvasAssetsQuery" in public_source
+    assert "def project_creative_canvas_asset_record(" in domain_source
+    assert "def project_creative_canvas_beat_context_asset(" in domain_source
     for route_implementation_detail in (
         "DirectorWorldService",
         "make_sqlite_store_for_context",
@@ -1347,6 +1374,10 @@ def test_freezone_canvas_asset_routes_delegate_to_application() -> None:
     assert "ai_anime.freezone" not in application_source
     assert "fastapi" not in adapter_source
     assert "ai_anime.api" not in adapter_source
+    assert "fastapi" not in domain_source
+    assert "pydantic" not in domain_source
+    assert "ai_anime.api" not in domain_source
+    assert "ai_anime.freezone" not in domain_source
 
 
 def test_freezone_canvas_projection_routes_delegate_to_application() -> None:

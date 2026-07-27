@@ -79,6 +79,7 @@ from ai_anime.modules.creative_canvas.infrastructure.canvas_commits import (
     LocalCreativeCanvasSlotCommitGateway,
 )
 from ai_anime.modules.creative_canvas.infrastructure.canvas_assets import (
+    LocalCreativeCanvasAssetCatalogGateway,
     LocalCreativeCanvasBeatSceneSource,
     LocalCreativeCanvasDirectorCaptureStorage,
     LocalCreativeCanvasDirectorStageLinkBuilder,
@@ -165,6 +166,7 @@ def creative_canvas_asset_use_cases() -> CreativeCanvasAssetUseCases:
         LocalCreativeCanvasBeatSceneSource(),
         LocalCreativeCanvasDirectorCaptureStorage(),
         LocalCreativeCanvasDirectorStageLinkBuilder(),
+        LocalCreativeCanvasAssetCatalogGateway(),
     )
 
 

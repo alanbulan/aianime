@@ -4,11 +4,14 @@ from types import SimpleNamespace
 
 import pytest
 
-from ai_anime.api.routes.freezone import (
-    _asset_record_from_path,
-    _beat_context_asset_from_ref,
-    _is_freezone_scene_library_role,
+from ai_anime.modules.creative_canvas.domain.canvas_assets import (
+    is_creative_canvas_scene_library_role,
+    project_creative_canvas_beat_context_asset,
 )
+from ai_anime.modules.creative_canvas.infrastructure.canvas_assets import (
+    LocalCreativeCanvasAssetRecordFactory,
+)
+from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.freezone import presets as freezone_presets
 from ai_anime.freezone.presets import (
     _add_file_ref,
@@ -22,6 +25,28 @@ from ai_anime.freezone.presets import (
 )
 from ai_anime.generators.nanobanana_prop import build_prop_reference_prompt
 from ai_anime.modules.creative_canvas.public import default_push_target_for_preset
+
+
+ASSET_RECORD_FACTORY = LocalCreativeCanvasAssetRecordFactory()
+
+
+def _project_context(project_dir: Path, project_id: str = "proj_1") -> ProjectContext:
+    return ProjectContext(
+        project_id=project_id,
+        project_name="demo",
+        owner_type="user",
+        owner_id="user_admin",
+        owner_username="admin",
+        requester_user_id="user_admin",
+        requester_username="admin",
+        requester_principals=(("user", "user_admin"),),
+        effective_role="owner",
+        home_node_id="local",
+        output_dir=project_dir,
+        state_dir=project_dir / "state",
+        runtime_dir=project_dir / "runtime",
+        is_home_node=True,
+    )
 
 
 def test_preset_file_refs_include_media_type_for_beat_video_and_audio(tmp_path: Path) -> None:
@@ -69,7 +94,7 @@ def test_preset_file_refs_include_media_type_for_beat_video_and_audio(tmp_path: 
 
 
 def test_beat_context_asset_excludes_freezone_runtime_outputs() -> None:
-    asset = _beat_context_asset_from_ref(
+    asset = project_creative_canvas_beat_context_asset(
         ref={
             "kind": "video",
             "role": "current_video",
@@ -96,7 +121,7 @@ def test_beat_context_asset_excludes_freezone_runtime_outputs() -> None:
     assert not any(ctx.get("kind") == "beat" for ctx in asset["mainline_context"])
 
     assert (
-        _beat_context_asset_from_ref(
+        project_creative_canvas_beat_context_asset(
             ref={
                 "kind": "image",
                 "role": "candidate",
@@ -114,7 +139,7 @@ def test_beat_context_asset_excludes_freezone_runtime_outputs() -> None:
 
 
 def test_beat_audio_asset_has_push_target() -> None:
-    asset = _beat_context_asset_from_ref(
+    asset = project_creative_canvas_beat_context_asset(
         ref={
             "kind": "audio",
             "role": "current_audio",
@@ -170,9 +195,8 @@ def test_scene_asset_records_include_push_targets() -> None:
     ]
 
     for kind, role, path, target in cases:
-        record = _asset_record_from_path(
-            username="admin",
-            project="demo",
+        record = ASSET_RECORD_FACTORY.from_path(
+            context=_project_context(project_dir),
             project_dir=project_dir,
             project_id="proj_1",
             tab="scenes",
@@ -202,15 +226,14 @@ def test_freezone_scene_asset_library_roles_match_assets_scene_ui() -> None:
         "scene_3gs_collision_glb",
     }
 
-    assert all(_is_freezone_scene_library_role(role) for role in visible_roles)
-    assert not any(_is_freezone_scene_library_role(role) for role in hidden_roles)
+    assert all(is_creative_canvas_scene_library_role(role) for role in visible_roles)
+    assert not any(is_creative_canvas_scene_library_role(role) for role in hidden_roles)
 
 
 def test_identity_costume_asset_record_has_push_target() -> None:
     project_dir = Path(__file__).resolve().parents[1]
-    record = _asset_record_from_path(
-        username="admin",
-        project="demo",
+    record = ASSET_RECORD_FACTORY.from_path(
+        context=_project_context(project_dir),
         project_dir=project_dir,
         project_id="proj_1",
         tab="characters",
@@ -238,9 +261,8 @@ def test_identity_costume_asset_record_has_push_target() -> None:
 
 def test_identity_portrait_asset_record_has_push_target() -> None:
     project_dir = Path(__file__).resolve().parents[1]
-    record = _asset_record_from_path(
-        username="admin",
-        project="demo",
+    record = ASSET_RECORD_FACTORY.from_path(
+        context=_project_context(project_dir),
         project_dir=project_dir,
         project_id="proj_1",
         tab="characters",
@@ -267,9 +289,8 @@ def test_director_combined_asset_record_carries_control_bundle(tmp_path: Path) -
     (bundle_dir / "env_only.png").write_bytes(b"env")
     (bundle_dir / "frame_meta.json").write_text('{"frame_aspect": "16:9"}', encoding="utf-8")
 
-    record = _asset_record_from_path(
-        username="admin",
-        project="demo",
+    record = ASSET_RECORD_FACTORY.from_path(
+        context=_project_context(project_dir),
         project_dir=project_dir,
         project_id="proj_1",
         tab="beat",
@@ -1248,7 +1269,7 @@ def test_project_sketch_aspect_ratio_uses_episode_config_and_supported_fallback(
 
 
 def test_beat_context_asset_omits_beat_director_control_frames() -> None:
-    director_combined = _beat_context_asset_from_ref(
+    director_combined = project_creative_canvas_beat_context_asset(
         ref={
             "kind": "director",
             "role": "director_combined",
@@ -1271,7 +1292,7 @@ def test_beat_context_asset_omits_beat_director_control_frames() -> None:
         "frame_meta": "freezone/director_control_frames/ep001/beat_03/frame_meta.json",
     }
 
-    selected_background = _beat_context_asset_from_ref(
+    selected_background = project_creative_canvas_beat_context_asset(
         ref={
             "kind": "director",
             "role": "selected_background",
@@ -1290,7 +1311,7 @@ def test_beat_context_asset_omits_beat_director_control_frames() -> None:
     assert selected_background["role"] == "selected_background"
     assert selected_background["mainline_context"][0]["kind"] == "selected_background"
 
-    asset = _beat_context_asset_from_ref(
+    asset = project_creative_canvas_beat_context_asset(
         ref={
             "kind": "director",
             "role": "director_env",
@@ -1317,7 +1338,15 @@ def test_beat_context_asset_omits_director_blocking_json() -> None:
         "media_type": "file",
     }
 
-    assert _beat_context_asset_from_ref(ref=ref, project_id="proj_1", episode=1, beat=6) is None
+    assert (
+        project_creative_canvas_beat_context_asset(
+            ref=ref,
+            project_id="proj_1",
+            episode=1,
+            beat=6,
+        )
+        is None
+    )
     assert _is_asset_library_reference(ref) is False
 
 

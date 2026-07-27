@@ -30,6 +30,7 @@ from ai_anime.modules.creative_canvas.application.canvas_assets import (
     CreativeCanvasBeatNotFound,
     GetCreativeCanvasDirectorCaptureQuery,
     GetCreativeCanvasSceneAssetsQuery,
+    ListCreativeCanvasAssetsQuery,
     SyncCreativeCanvasDirectorBackgroundCommand,
 )
 from ai_anime.modules.creative_canvas.application.canvas_documents import (
@@ -206,6 +207,7 @@ from ai_anime.modules.creative_canvas.domain import (
     get_video_camera_template,
     get_video_camera_templates,
     is_preset_managed_canvas_node,
+    project_creative_canvas_beat_context_asset,
     merge_projected_preset_canvas,
     merge_restored_preset_canvas,
     preset_facts_signature,
@@ -552,6 +554,7 @@ __all__ = [
     "InvalidCreativeCanvasVideoAssetRequest",
     "InitializeCreativeCanvasCommand",
     "ListCreativeCanvasAudioReferencesQuery",
+    "ListCreativeCanvasAssetsQuery",
     "ListCreativeCanvasDocumentHistoryQuery",
     "ListCreativeCanvasDocumentsQuery",
     "ListCreativeCanvasGenerationHistoryQuery",
@@ -625,6 +628,7 @@ __all__ = [
     "get_video_camera_templates",
     "is_seedance2_video_backend",
     "is_preset_managed_canvas_node",
+    "project_creative_canvas_beat_context_asset",
     "merge_projected_preset_canvas",
     "merge_restored_preset_canvas",
     "preset_facts_signature",

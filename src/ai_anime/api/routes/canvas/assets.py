@@ -8,12 +8,32 @@ from ai_anime.modules.creative_canvas.public import (
     CreativeCanvasBeatNotFound,
     GetCreativeCanvasDirectorCaptureQuery,
     GetCreativeCanvasSceneAssetsQuery,
+    ListCreativeCanvasAssetsQuery,
     SyncCreativeCanvasDirectorBackgroundCommand,
     creative_canvas_asset_use_cases,
 )
 
 
 router = APIRouter()
+
+
+@router.get(
+    "/projects/{project}/freezone/assets",
+    tags=["freezone-assets"],
+)
+async def list_freezone_assets(
+    project: str,
+    user: dict = Depends(get_api_user),
+):
+    resolved = await _resolve_viewer_project(project, user)
+    data = await creative_canvas_asset_use_cases().list_assets(
+        ListCreativeCanvasAssetsQuery(
+            context=resolved.ctx,
+            project_id=project,
+            project_dir=resolved.project_dir,
+        )
+    )
+    return {"ok": True, "data": list(data)}
 
 
 @router.get(

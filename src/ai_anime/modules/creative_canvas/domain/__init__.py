@@ -24,6 +24,11 @@ from ai_anime.modules.creative_canvas.domain.canvas_commits import (
     creative_canvas_slot_asset_key,
     is_global_creative_canvas_slot,
 )
+from ai_anime.modules.creative_canvas.domain.canvas_assets import (
+    is_creative_canvas_scene_library_role,
+    project_creative_canvas_asset_record,
+    project_creative_canvas_beat_context_asset,
+)
 from ai_anime.modules.creative_canvas.domain.canvas_projections import (
     default_push_target_for_preset,
     merge_projected_preset_canvas,
@@ -148,11 +153,14 @@ __all__ = [
     "infer_image_to_three_gs_scene_id",
     "is_preset_managed_canvas_node",
     "is_global_creative_canvas_slot",
+    "is_creative_canvas_scene_library_role",
     "merge_projected_preset_canvas",
     "merge_restored_preset_canvas",
     "preset_facts_signature",
     "preset_facts_signature_from_payload",
     "prepare_creative_canvas_payload_for_write",
+    "project_creative_canvas_asset_record",
+    "project_creative_canvas_beat_context_asset",
     "projection_facts_signature_from_payload",
     "projection_group_label",
     "normalize_screenshot_label",

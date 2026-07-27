@@ -9,7 +9,6 @@ import pytest
 from ai_anime.api.deps import make_static_url_for_context
 from ai_anime.api.app import create_app
 from ai_anime.api.routes.canvas import documents as freezone_document_routes
-from ai_anime.api.routes.freezone import _asset_record_from_path
 from ai_anime.freezone.canvas_static_urls import (
     migrate_canvas_static_urls_in_memory,
     sanitize_project_local_paths_in_memory,
@@ -21,15 +20,24 @@ from ai_anime.modules.creative_canvas.application.canvas_documents import (
 from ai_anime.modules.creative_canvas.infrastructure.canvas_documents import (
     LocalCreativeCanvasDocumentQueryGateway,
 )
+from ai_anime.modules.creative_canvas.infrastructure.canvas_assets import (
+    LocalCreativeCanvasAssetRecordFactory,
+)
 from ai_anime.shared.project_media import make_project_asset_url_builder
 
 
 pytestmark = pytest.mark.m09
 
+ASSET_RECORD_FACTORY = LocalCreativeCanvasAssetRecordFactory()
 
-def _ctx(tmp_path: Path) -> ProjectContext:
+
+def _ctx(
+    tmp_path: Path,
+    *,
+    project_id: str = "01KS77361FXAQNKQF2W4EWWVCW",
+) -> ProjectContext:
     return ProjectContext(
-        project_id="01KS77361FXAQNKQF2W4EWWVCW",
+        project_id=project_id,
         project_name="xuanchuanpian",
         owner_type="user",
         owner_id="user_admin",
@@ -125,9 +133,8 @@ def test_freezone_asset_record_uses_project_static_url_when_project_id_exists(
     media.parent.mkdir(parents=True)
     media.write_bytes(b"png")
 
-    record = _asset_record_from_path(
-        username="admin",
-        project="demo",
+    record = ASSET_RECORD_FACTORY.from_path(
+        context=_ctx(tmp_path, project_id="proj_123"),
         project_dir=tmp_path,
         project_id="proj_123",
         tab="scenes",
@@ -149,9 +156,8 @@ def test_freezone_asset_record_rejects_missing_project_id(tmp_path: Path) -> Non
     media.write_bytes(b"png")
 
     try:
-        _asset_record_from_path(
-            username="admin",
-            project="demo",
+        ASSET_RECORD_FACTORY.from_path(
+            context=_ctx(tmp_path, project_id=""),
             project_dir=tmp_path,
             project_id="",
             tab="scenes",

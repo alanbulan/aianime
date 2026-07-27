@@ -1,4 +1,4 @@
-"""Local director-capture and scene-asset adapters for Creative Canvas."""
+"""Local asset-catalog and director-stage adapters for Creative Canvas."""
 
 from __future__ import annotations
 
@@ -17,12 +17,24 @@ from ai_anime.models import beat_scene_id
 from ai_anime.modules.creative_canvas.application.canvas_assets import (
     CreativeCanvasBeatNotFound,
 )
+from ai_anime.modules.creative_canvas.domain.audio_library import (
+    CREATIVE_CANVAS_AUDIO_AGE_GROUP_LABELS,
+)
+from ai_anime.modules.creative_canvas.domain.canvas_assets import (
+    is_creative_canvas_scene_library_role,
+    project_creative_canvas_asset_record,
+)
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.shared.infrastructure.project_stores import make_sqlite_store_for_context
 from ai_anime.shared.project_media import make_static_url_for_context
 from ai_anime.utils.path_resolver import (
     canonical_beat_director_env_only_path,
     canonical_beat_selected_background_path,
+    canonical_identity_costume_path,
+    canonical_identity_path,
+    canonical_identity_portrait_path,
+    canonical_portrait_path,
+    canonical_prop_reference_path,
     canonical_scene_master_path,
     canonical_scene_reverse_master_path,
 )
@@ -44,6 +56,437 @@ DIRECTOR_CAPTURE_FILES: tuple[tuple[str, str, str], ...] = (
     ("prop_staging_mask.png", "prop_staging_mask", "prop/staging mask"),
     ("frame_meta.json", "frame_meta", "3GS frame metadata"),
 )
+
+
+class LocalCreativeCanvasAssetRecordFactory:
+    def __init__(self, static_url_builder: StaticUrlBuilder | None = None) -> None:
+        self._static_url_builder = static_url_builder
+
+    def from_path(
+        self,
+        *,
+        context: ProjectContext,
+        project_dir: Path,
+        project_id: str,
+        tab: str,
+        kind: str,
+        role: str,
+        label: str,
+        abs_path: Path,
+        sublabel: str = "",
+        aspect_ratio: str = "1:1",
+        meta: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        relative_path = abs_path.relative_to(project_dir).as_posix()
+        exists = abs_path.exists()
+        if exists and not project_id:
+            raise ValueError("project_id is required for freezone asset static URLs")
+        url = (
+            (self._static_url_builder or make_static_url_for_context)(
+                context,
+                relative_path,
+                abs_path,
+            )
+            if exists
+            else None
+        )
+        return project_creative_canvas_asset_record(
+            project_id=project_id,
+            tab=tab,
+            kind=kind,
+            role=role,
+            label=label,
+            relative_path=relative_path,
+            url=url,
+            exists=exists,
+            sublabel=sublabel,
+            aspect_ratio=aspect_ratio,
+            meta=meta,
+        )
+
+    def from_optional_project_path(
+        self,
+        *,
+        context: ProjectContext,
+        project_dir: Path,
+        project_id: str,
+        tab: str,
+        kind: str,
+        role: str,
+        label: str,
+        stored_path: str,
+        sublabel: str = "",
+        aspect_ratio: str = "1:1",
+        meta: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
+        raw_path = str(stored_path or "").strip()
+        if not raw_path:
+            return None
+        absolute_path = Path(raw_path)
+        if not absolute_path.is_absolute():
+            absolute_path = project_dir / raw_path
+        try:
+            absolute_path.relative_to(project_dir)
+        except ValueError:
+            return None
+        return self.from_path(
+            context=context,
+            project_dir=project_dir,
+            project_id=project_id,
+            tab=tab,
+            kind=kind,
+            role=role,
+            label=label,
+            abs_path=absolute_path,
+            sublabel=sublabel,
+            aspect_ratio=aspect_ratio,
+            meta=meta,
+        )
+
+
+class LocalCreativeCanvasAssetCatalogGateway:
+    def __init__(
+        self,
+        store_factory: StoreFactory | None = None,
+        record_factory: LocalCreativeCanvasAssetRecordFactory | None = None,
+    ) -> None:
+        self._store_factory = store_factory
+        self._record_factory = record_factory or LocalCreativeCanvasAssetRecordFactory()
+
+    async def list_assets(
+        self,
+        *,
+        context: ProjectContext,
+        project_id: str,
+        project_dir: Path,
+    ) -> Sequence[Mapping[str, Any]]:
+        store = await (self._store_factory or make_sqlite_store_for_context)(context)
+        assets: list[dict[str, Any]] = []
+        try:
+            for character in store.get_all_characters():
+                assets.append(
+                    self._record_factory.from_path(
+                        context=context,
+                        project_dir=project_dir,
+                        project_id=project_id,
+                        tab="characters",
+                        kind="portrait",
+                        role="character_portrait",
+                        label=f"{character.name} / portrait",
+                        sublabel=character.name,
+                        abs_path=canonical_portrait_path(project_dir, character.name),
+                        aspect_ratio="1:1",
+                        meta={"character": character.name},
+                    )
+                )
+                default_voice = self._record_factory.from_optional_project_path(
+                    context=context,
+                    project_dir=project_dir,
+                    project_id=project_id,
+                    tab="characters",
+                    kind="audio",
+                    role="character_voice",
+                    label=f"{character.name} / 默认声线",
+                    sublabel=character.name,
+                    stored_path=str(
+                        getattr(character, "reference_audio_path", "") or ""
+                    ),
+                    meta={
+                        "character": character.name,
+                        "scope": "character_default",
+                        "slot": "default",
+                        "age_group": str(getattr(character, "age_group", "") or ""),
+                        "sha256": str(
+                            getattr(character, "reference_audio_sha256", "") or ""
+                        ),
+                        "updated_at": str(
+                            getattr(character, "reference_audio_updated_at", "") or ""
+                        ),
+                    },
+                )
+                if default_voice is not None:
+                    assets.append(default_voice)
+
+                voice_samples = (
+                    getattr(character, "voice_samples_by_age_group", None) or {}
+                )
+                if isinstance(voice_samples, dict):
+                    for (
+                        slot,
+                        slot_label,
+                    ) in CREATIVE_CANVAS_AUDIO_AGE_GROUP_LABELS.items():
+                        entry = voice_samples.get(slot)
+                        if not isinstance(entry, dict):
+                            continue
+                        age_voice = self._record_factory.from_optional_project_path(
+                            context=context,
+                            project_dir=project_dir,
+                            project_id=project_id,
+                            tab="characters",
+                            kind="audio",
+                            role="character_age_group_voice",
+                            label=f"{character.name} / {slot_label}声线",
+                            sublabel=character.name,
+                            stored_path=str(entry.get("path", "") or ""),
+                            meta={
+                                "character": character.name,
+                                "scope": "character_age_group",
+                                "slot": slot,
+                                "age_group": slot,
+                                "sha256": str(entry.get("sha256", "") or ""),
+                                "updated_at": str(entry.get("updated_at", "") or ""),
+                            },
+                        )
+                        if age_voice is not None:
+                            assets.append(age_voice)
+
+                for identity in character.identities or []:
+                    identity_name = (
+                        getattr(identity, "identity_name", "")
+                        or getattr(identity, "identity_id", "")
+                        or "identity"
+                    )
+                    identity_id = (
+                        getattr(identity, "identity_id", "")
+                        or f"{character.name}_{identity_name}"
+                    )
+                    assets.append(
+                        self._record_factory.from_path(
+                            context=context,
+                            project_dir=project_dir,
+                            project_id=project_id,
+                            tab="characters",
+                            kind="identity",
+                            role="character_identity",
+                            label=f"{character.name} / {identity_name}",
+                            sublabel=character.name,
+                            abs_path=canonical_identity_path(
+                                project_dir,
+                                character.name,
+                                identity_name,
+                            ),
+                            aspect_ratio="1:1",
+                            meta={
+                                "character": character.name,
+                                "identity_id": identity_id,
+                            },
+                        )
+                    )
+                    assets.append(
+                        self._record_factory.from_path(
+                            context=context,
+                            project_dir=project_dir,
+                            project_id=project_id,
+                            tab="characters",
+                            kind="identity_costume",
+                            role="identity_costume",
+                            label=f"{character.name} / {identity_name} costume",
+                            sublabel=character.name,
+                            abs_path=canonical_identity_costume_path(
+                                project_dir,
+                                character.name,
+                                identity_name,
+                            ),
+                            aspect_ratio="3:4",
+                            meta={
+                                "character": character.name,
+                                "identity_id": identity_id,
+                                "identity_name": identity_name,
+                            },
+                        )
+                    )
+                    assets.append(
+                        self._record_factory.from_path(
+                            context=context,
+                            project_dir=project_dir,
+                            project_id=project_id,
+                            tab="characters",
+                            kind="identity_portrait",
+                            role="identity_portrait",
+                            label=f"{character.name} / {identity_name} portrait",
+                            sublabel=character.name,
+                            abs_path=canonical_identity_portrait_path(
+                                project_dir,
+                                character.name,
+                                identity_name,
+                            ),
+                            aspect_ratio="3:4",
+                            meta={
+                                "character": character.name,
+                                "identity_id": identity_id,
+                                "identity_name": identity_name,
+                            },
+                        )
+                    )
+                    identity_voice = self._record_factory.from_optional_project_path(
+                        context=context,
+                        project_dir=project_dir,
+                        project_id=project_id,
+                        tab="characters",
+                        kind="audio",
+                        role="identity_voice",
+                        label=f"{character.name} / {identity_name}声线",
+                        sublabel=character.name,
+                        stored_path=str(
+                            getattr(identity, "reference_audio_path", "") or ""
+                        ),
+                        meta={
+                            "character": character.name,
+                            "identity_id": identity_id,
+                            "identity_name": identity_name,
+                            "scope": "identity",
+                            "age_group": str(getattr(identity, "age_group", "") or ""),
+                            "sha256": str(
+                                getattr(identity, "reference_audio_sha256", "") or ""
+                            ),
+                            "updated_at": str(
+                                getattr(identity, "reference_audio_updated_at", "")
+                                or ""
+                            ),
+                        },
+                    )
+                    if identity_voice is not None:
+                        assets.append(identity_voice)
+
+            for scene in await store.list_scenes():
+                scene_name = scene.name
+                director_pano_path = None
+                stage_manifest_module = None
+                try:
+                    from ai_anime.director_world import stage_manifest
+
+                    stage_manifest_module = stage_manifest
+                    director_pano_path = stage_manifest.resolve_pano_path(
+                        project_dir,
+                        scene_name,
+                    )
+                except Exception:  # noqa: BLE001 - stage assets are optional
+                    director_pano_path = None
+                for kind, role, label, path, aspect_ratio in (
+                    (
+                        "scene",
+                        "scene_master",
+                        f"{scene_name} / master",
+                        canonical_scene_master_path(project_dir, scene_name),
+                        "16:9",
+                    ),
+                    (
+                        "scene",
+                        "scene_reverse_master",
+                        f"{scene_name} / reverse master",
+                        canonical_scene_reverse_master_path(project_dir, scene_name),
+                        "16:9",
+                    ),
+                    (
+                        "scene",
+                        "scene_director_pano_360",
+                        f"{scene_name} / director pano 360",
+                        director_pano_path,
+                        "2:1",
+                    ),
+                ):
+                    if path is None or not is_creative_canvas_scene_library_role(role):
+                        continue
+                    assets.append(
+                        self._record_factory.from_path(
+                            context=context,
+                            project_dir=project_dir,
+                            project_id=project_id,
+                            tab="scenes",
+                            kind=kind,
+                            role=role,
+                            label=label,
+                            sublabel=scene_name,
+                            abs_path=path,
+                            aspect_ratio=aspect_ratio,
+                            meta={
+                                "scene": scene_name,
+                                "scene_id": scene_name,
+                                "scene_type": scene.scene_type,
+                            },
+                        )
+                    )
+                if stage_manifest_module is not None:
+                    seen_stage_asset_paths: set[str] = set()
+                    for ply_kind, role, label in (
+                        (
+                            "master",
+                            "scene_3gs_master_ply",
+                            f"{scene_name} / 3D 世界（正面）",
+                        ),
+                        (
+                            "reverse",
+                            "scene_3gs_reverse_ply",
+                            f"{scene_name} / 3D 世界（背面）",
+                        ),
+                        (
+                            "pano",
+                            "scene_3gs_pano_ply",
+                            f"{scene_name} / 3D 世界（360）",
+                        ),
+                        (
+                            "custom",
+                            "scene_3gs_custom_scene",
+                            f"{scene_name} / 3D 世界（自定义）",
+                        ),
+                    ):
+                        ply_path = stage_manifest_module.resolve_ply_path(
+                            project_dir,
+                            scene_name,
+                            ply_kind=ply_kind,
+                        )
+                        if (
+                            ply_path is None
+                            or not is_creative_canvas_scene_library_role(role)
+                        ):
+                            continue
+                        relative_path = ply_path.relative_to(project_dir).as_posix()
+                        if relative_path in seen_stage_asset_paths:
+                            continue
+                        seen_stage_asset_paths.add(relative_path)
+                        assets.append(
+                            self._record_factory.from_path(
+                                context=context,
+                                project_dir=project_dir,
+                                project_id=project_id,
+                                tab="scenes",
+                                kind="scene",
+                                role=role,
+                                label=label,
+                                sublabel=scene_name,
+                                abs_path=ply_path,
+                                aspect_ratio="1:1",
+                                meta={
+                                    "scene": scene_name,
+                                    "scene_id": scene_name,
+                                    "scene_type": scene.scene_type,
+                                    "ply_kind": ply_kind,
+                                },
+                            )
+                        )
+
+            for prop in await store.list_props():
+                assets.append(
+                    self._record_factory.from_path(
+                        context=context,
+                        project_dir=project_dir,
+                        project_id=project_id,
+                        tab="props",
+                        kind="prop",
+                        role="prop_reference",
+                        label=f"{prop.name} / reference",
+                        sublabel=prop.prop_type or "object",
+                        abs_path=canonical_prop_reference_path(
+                            project_dir,
+                            prop.name,
+                        ),
+                        aspect_ratio="1:1",
+                        meta={"prop_id": prop.name, "prop_type": prop.prop_type},
+                    )
+                )
+        finally:
+            await _close_store(store)
+        return assets
 
 
 class LocalCreativeCanvasBeatSceneSource:
@@ -256,6 +699,8 @@ async def _close_store(store: Any) -> None:
 
 
 __all__ = [
+    "LocalCreativeCanvasAssetCatalogGateway",
+    "LocalCreativeCanvasAssetRecordFactory",
     "LocalCreativeCanvasBeatSceneSource",
     "LocalCreativeCanvasDirectorCaptureStorage",
     "LocalCreativeCanvasDirectorStageLinkBuilder",
