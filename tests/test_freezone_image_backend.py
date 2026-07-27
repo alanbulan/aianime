@@ -16,6 +16,7 @@ from ai_anime.api.routes.canvas import commits as freezone_commit_routes
 from ai_anime.api.routes.canvas import documents as freezone_document_routes
 from ai_anime.api.routes.canvas import image as freezone_image_routes
 from ai_anime.api.routes.canvas import presets as freezone_preset_routes
+from ai_anime.api.routes.canvas import skills as freezone_skill_routes
 from ai_anime.api.routes.canvas import video as freezone_video_routes
 from ai_anime.api.routes.freezone import (
     FREEZONE_DEFAULT_IMAGE_MODEL,
@@ -47,6 +48,7 @@ from ai_anime.freezone.route_helpers import build_camera_prompt as _build_camera
 from ai_anime.modules.creative_canvas.public import (
     SKILL_SCHEMA_VERSION,
     CanvasGraphPatch,
+    CreativeCanvasStagingPropUseCases,
     CreativeCanvasTaskStartFailed,
     SkillRunOutput,
     SkillRunRequest,
@@ -185,6 +187,11 @@ def _patch_freezone_project(
     )
     monkeypatch.setattr(
         freezone_preset_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
+    monkeypatch.setattr(
+        freezone_skill_routes,
         "resolve_project_scope",
         fake_resolve_project_scope,
     )
@@ -528,24 +535,32 @@ def test_freezone_ai_staging_prop_endpoint_returns_ai_prop(monkeypatch, tmp_path
     _project_dir, _output_dir = _patch_freezone_project(monkeypatch, tmp_path)
     captured: dict[str, object] = {}
 
-    async def fake_run_ai_staging_prop(request: dict) -> dict:
-        captured.update(request)
-        return {
-            "ok": True,
-            "prop": {
-                "prop_id": "horse_mount",
-                "name": "可骑的马",
-                "marker_color": "#7c3aed",
-                "shape_hint": "quadruped_mount",
-                "scale": [1.4, 1.25, 2.2],
-                "position": [1, 0, 2],
-            },
-        }
+    class FakeGenerator:
+        async def generate(self, request: dict) -> dict:
+            captured.update(request)
+            return {
+                "ok": True,
+                "prop": {
+                    "prop_id": "horse_mount",
+                    "name": "可骑的马",
+                    "marker_color": "#7c3aed",
+                    "shape_hint": "quadruped_mount",
+                    "scale": [1.4, 1.25, 2.2],
+                    "position": [1, 0, 2],
+                },
+            }
 
-    monkeypatch.setattr(freezone_routes, "_run_ai_staging_prop", fake_run_ai_staging_prop)
+    use_cases = CreativeCanvasStagingPropUseCases(FakeGenerator())
+    monkeypatch.setattr(
+        freezone_skill_routes,
+        "creative_canvas_staging_prop_use_cases",
+        lambda: use_cases,
+    )
     app = FastAPI()
-    app.include_router(freezone_routes.router, prefix="/api/v1")
-    app.dependency_overrides[freezone_routes.get_api_user] = lambda: {"username": "admin"}
+    app.include_router(freezone_skill_routes.router, prefix="/api/v1")
+    app.dependency_overrides[freezone_skill_routes.get_api_user] = lambda: {
+        "username": "admin"
+    }
     client = TestClient(app)
 
     response = client.post(

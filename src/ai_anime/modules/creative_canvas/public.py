@@ -106,6 +106,11 @@ from ai_anime.modules.creative_canvas.application.skill_catalog import (
     SkillRunResponse,
     SkillRunResult,
 )
+from ai_anime.modules.creative_canvas.application.staging_prop import (
+    CreativeCanvasStagingPropRejected,
+    CreativeCanvasStagingPropUseCases,
+    GenerateCreativeCanvasStagingPropCommand,
+)
 from ai_anime.modules.creative_canvas.application.image_to_3gs import (
     CreativeCanvasImageToThreeGsResult,
     CreativeCanvasImageToThreeGsSourceMissing,
@@ -352,6 +357,14 @@ def creative_canvas_skill_catalog_queries() -> CreativeCanvasSkillCatalogQueries
     return build()
 
 
+def creative_canvas_staging_prop_use_cases() -> CreativeCanvasStagingPropUseCases:
+    from ai_anime.modules.creative_canvas.composition import (
+        creative_canvas_staging_prop_use_cases as build,
+    )
+
+    return build()
+
+
 def creative_canvas_media_use_cases() -> CreativeCanvasMediaUseCases:
     from ai_anime.modules.creative_canvas.composition import (
         creative_canvas_media_use_cases as build,
@@ -547,8 +560,11 @@ __all__ = [
     "CreativeCanvasScreenshotResult",
     "CreativeCanvasScreenshotTooLarge",
     "CreativeCanvasSkillCatalogQueries",
+    "CreativeCanvasStagingPropRejected",
+    "CreativeCanvasStagingPropUseCases",
     "CreativeCanvasUploadResult",
     "GenerationCatalogQueries",
+    "GenerateCreativeCanvasStagingPropCommand",
     "GetCreativeCanvasDocumentQuery",
     "GetCreativeCanvasDirectorCaptureQuery",
     "GetCreativeCanvasProjectionStatusQuery",
@@ -643,6 +659,7 @@ __all__ = [
     "creative_canvas_event_recorder",
     "creative_canvas_slot_commit_use_cases",
     "creative_canvas_skill_catalog_queries",
+    "creative_canvas_staging_prop_use_cases",
     "creative_canvas_preset_use_cases",
     "creative_canvas_projection_use_cases",
     "creative_canvas_mark_detection_use_cases",

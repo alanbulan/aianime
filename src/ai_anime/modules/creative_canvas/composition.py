@@ -38,6 +38,9 @@ from ai_anime.modules.creative_canvas.application.generation_catalog import (
 from ai_anime.modules.creative_canvas.application.skill_catalog import (
     CreativeCanvasSkillCatalogQueries,
 )
+from ai_anime.modules.creative_canvas.application.staging_prop import (
+    CreativeCanvasStagingPropUseCases,
+)
 from ai_anime.modules.creative_canvas.application.image_to_3gs import (
     CreativeCanvasImageToThreeGsUseCases,
 )
@@ -117,6 +120,9 @@ from ai_anime.modules.creative_canvas.infrastructure.image_generation import (
 from ai_anime.modules.creative_canvas.infrastructure.media import (
     FreezoneJobIdGenerator,
     LocalCreativeCanvasMediaStorage,
+)
+from ai_anime.modules.creative_canvas.infrastructure.staging_prop import (
+    DirectorWorldCreativeCanvasStagingPropGenerator,
 )
 from ai_anime.modules.creative_canvas.infrastructure.mark_detection import (
     FreezoneVisionMarkDetector,
@@ -216,6 +222,13 @@ def generation_catalog_queries() -> GenerationCatalogQueries:
 @lru_cache(maxsize=1)
 def creative_canvas_skill_catalog_queries() -> CreativeCanvasSkillCatalogQueries:
     return CreativeCanvasSkillCatalogQueries()
+
+
+@lru_cache(maxsize=1)
+def creative_canvas_staging_prop_use_cases() -> CreativeCanvasStagingPropUseCases:
+    return CreativeCanvasStagingPropUseCases(
+        DirectorWorldCreativeCanvasStagingPropGenerator()
+    )
 
 
 @lru_cache(maxsize=1)

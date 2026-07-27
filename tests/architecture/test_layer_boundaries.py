@@ -372,6 +372,60 @@ def test_freezone_skill_catalog_route_delegates_to_application() -> None:
     assert "ai_anime.modules.creative_canvas.application" not in route_source
 
 
+def test_freezone_staging_prop_route_delegates_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "skills.py"
+    legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    application = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "application"
+        / "staging_prop.py"
+    )
+    adapter = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "infrastructure"
+        / "staging_prop.py"
+    )
+    composition = PACKAGE_ROOT / "modules" / "creative_canvas" / "composition.py"
+    public = PACKAGE_ROOT / "modules" / "creative_canvas" / "public.py"
+
+    route_source = route.read_text(encoding="utf-8")
+    legacy_source = legacy_route.read_text(encoding="utf-8")
+    application_source = application.read_text(encoding="utf-8")
+    adapter_source = adapter.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+
+    assert route_source.count("creative_canvas_staging_prop_use_cases().generate(") == 1
+    assert "class CreativeCanvasStagingPropUseCases" in application_source
+    assert "class DirectorWorldCreativeCanvasStagingPropGenerator" in adapter_source
+    assert "DirectorWorldCreativeCanvasStagingPropGenerator()" in composition_source
+    assert "def creative_canvas_staging_prop_use_cases(" in public_source
+    assert '"/projects/{project}/freezone/ai-staging-prop"' not in legacy_source
+    assert "async def freezone_ai_staging_prop(" in route_source
+    for legacy_implementation in (
+        "async def _run_ai_staging_prop(",
+        "async def freezone_ai_staging_prop(",
+        "generate_ai_staging_prop",
+    ):
+        assert legacy_implementation not in legacy_source
+    for route_implementation_detail in (
+        "generate_ai_staging_prop",
+        'request.pop("api_key"',
+        'request.pop("base_url"',
+    ):
+        assert route_implementation_detail not in route_source
+
+    assert "fastapi" not in application_source
+    assert "ai_anime.api" not in application_source
+    assert "ai_anime.freezone" not in application_source
+    assert "fastapi" not in adapter_source
+    assert "ai_anime.api" not in adapter_source
+
+
 def test_freezone_generation_catalog_routes_delegate_to_application() -> None:
     image_route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "image.py"
     video_route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "video.py"

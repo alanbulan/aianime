@@ -6,7 +6,6 @@ AI anime 现有鉴权约定（`Depends(get_api_user)`）。
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import json
 import logging
@@ -16,7 +15,7 @@ from pathlib import Path
 from typing import Any, Awaitable, Callable, Literal, Optional
 from urllib.parse import unquote, urlsplit
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import (
@@ -34,7 +33,6 @@ from ai_anime.api.schemas import (
     FreezoneStageAssetAcceptedResponse,
     PushRequest,
 )
-from ai_anime.director_world.staging_prop_ai import generate_ai_staging_prop
 from ai_anime.modules.asset_world.public import (
     runtime_prop_menu_for_episode,
 )
@@ -3071,34 +3069,6 @@ async def freezone_scene_360(
             auto_commit=True,
         )
     return await _start_or_enqueue_mainline_scene_360_candidate_job(**kwargs)
-
-
-async def _run_ai_staging_prop(request: dict[str, object]) -> dict[str, object]:
-    return await asyncio.to_thread(generate_ai_staging_prop, request)
-
-
-@router.post("/projects/{project}/freezone/ai-staging-prop", tags=[TAG_FREEZONE_SKILLS])
-async def freezone_ai_staging_prop(
-    project: str,
-    request: dict[str, object] = Body(default_factory=dict),
-    user: dict = Depends(get_api_user),
-):
-    await _resolve_freezone_project(project, user, required_role="editor")
-    # Product requests always use the edition's effective NewAPI gateway.
-    # Keep low-level overrides available to offline helpers, but never accept
-    # credentials or an endpoint from an HTTP payload.
-    request = dict(request)
-    request.pop("api_key", None)
-    request.pop("base_url", None)
-    try:
-        result = await _run_ai_staging_prop(request)
-    except RuntimeError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
-    if not result.get("ok"):
-        raise HTTPException(
-            status_code=502, detail=str(result.get("error") or "AI staging prop failed")
-        )
-    return {"ok": True, "data": result}
 
 
 @router.post(
