@@ -43,7 +43,6 @@ from ai_anime.api.schemas import (
     FreezoneGenRequest,
     FreezoneImageCameraConfig,
     FreezoneImageStyleConfig,
-    FreezoneImageTo3GSRequest,
     FreezoneImageToVideoRequest,
     FreezoneJobAcceptedResponse,
     FreezoneKeyframeVideoRequest,
@@ -359,50 +358,6 @@ async def _start_or_enqueue_freezone_video_gen(
         }
 
     _raise_project_context_required("freezone_video_gen")
-
-
-async def _start_or_enqueue_freezone_image_to_3gs(
-    *,
-    ctx: ProjectContext | None,
-    username: str,
-    project: str,
-    project_dir: Path,
-    job_id: str,
-    scene_id: str,
-    source_path: Path,
-    source_kind: str,
-    params: dict,
-    canvas_id: str | None = None,
-    node_id: str | None = None,
-) -> dict:
-    task_type = "freezone_image_to_3gs"
-    payload = {
-        "job_id": job_id,
-        "scene_id": scene_id,
-        "source_path": source_path.as_posix(),
-        "source_kind": source_kind,
-        "params": params,
-        "project_dir": str(project_dir),
-        "canvas_id": canvas_id or "",
-        "node_id": node_id or "",
-    }
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type=task_type,
-            queue_kind="world",
-            episode=0,
-            scope=job_id,
-            payload=payload,
-        )
-        return {
-            "task_id": queued.task_state.task_id,
-            "task_key": project_task_state_key(task_type, ctx.project_id, 0, scope=job_id),
-            "backend": queued.backend,
-            "queue": queued.queue,
-        }
-
-    _raise_project_context_required(task_type)
 
 
 async def _start_or_enqueue_freezone_gen_job(
@@ -4592,90 +4547,6 @@ def _freezone_not_implemented(endpoint: str) -> None:
     )
 
 
-@router.post(
-    "/projects/{project}/freezone/image-to-3gs",
-    response_model=FreezoneStageAssetAcceptedResponse,
-    tags=[TAG_FREEZONE_IMAGE],
-)
-async def freezone_image_to_3gs(
-    project: str,
-    body: FreezoneImageTo3GSRequest,
-    user: dict = Depends(get_api_user),
-):
-    """图片处理：把 Freezone 图片节点作为 SHARP 输入，生成 Freezone 3GS PLY。"""
-    ctx, username, project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project, user
-    )
-
-    try:
-        source_path = resolve_static_url_to_path(body.source_url, project_dir)
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
-    if not source_path.exists():
-        raise HTTPException(404, f"source not found: {source_path}")
-    if source_path.suffix.lower() not in {".png", ".jpg", ".jpeg", ".webp"}:
-        raise HTTPException(400, f"source must be an image: {source_path}")
-
-    scene_id = _infer_image_to_3gs_scene_id(source_path, project_dir)
-    source_kind = body.source_kind
-    step = "pano_sharp" if source_kind == "pano" else "single_face_sharp"
-    job_id = _new_job_id()
-    if source_kind == "pano":
-        params = {
-            "pano_path": source_path.as_posix(),
-            "depth_source": "da2",
-            "depth_device": "auto",
-            "device": "auto",
-            "face_size": 768,
-            "internal_size": 1536,
-            "max_gaussians_per_face": 1_000_000,
-            "timeout_seconds": 1800,
-            "source_url": body.source_url,
-        }
-    else:
-        params = {
-            "image_path": source_path.as_posix(),
-            "source_kind": source_kind,
-            "face_name": "front",
-            "depth_meters": 8.0,
-            "device": "auto",
-            "face_size": 768,
-            "internal_size": 1536,
-            "max_gaussians_per_face": 1_000_000,
-            "timeout_seconds": 1800,
-            "source_url": body.source_url,
-        }
-    try:
-        task_data = await _start_or_enqueue_freezone_image_to_3gs(
-            ctx=ctx,
-            username=username,
-            project=project_name,
-            project_dir=project_dir,
-            job_id=job_id,
-            scene_id=scene_id,
-            source_path=source_path,
-            source_kind=source_kind,
-            params=params,
-            canvas_id=body.canvas_id or None,
-            node_id=body.node_id or None,
-        )
-    except RuntimeError as exc:
-        _handle_task_start_runtime_error("failed to start image-to-3gs task", exc)
-        raise HTTPException(503, f"failed to start image-to-3gs task: {exc}") from exc
-
-    return {
-        "ok": True,
-        "data": {
-            "task_type": "freezone_image_to_3gs",
-            "job_id": job_id,
-            "scope": job_id,
-            "scene_id": scene_id,
-            "step": step,
-            **task_data,
-        },
-    }
-
-
 @router.post("/projects/{project}/freezone/upscale", tags=[TAG_FREEZONE_IMAGE])
 async def freezone_upscale(
     project: str,
@@ -5279,20 +5150,6 @@ def _public_freezone_video_story_result(result: dict) -> dict:
     return {
         key: value for key, value in result.items() if key not in {"output_path", "frame_paths"}
     }
-
-
-def _infer_image_to_3gs_scene_id(source_path: Path, project_dir: Path) -> str:
-    """Best-effort label for Freezone image→3GS jobs; it no longer controls output path."""
-    try:
-        parts = source_path.resolve().relative_to(project_dir.resolve()).parts
-    except ValueError:
-        parts = source_path.parts
-    for marker in ("scenes", "director_worlds"):
-        if marker in parts:
-            idx = parts.index(marker)
-            if idx + 1 < len(parts):
-                return str(parts[idx + 1]).strip()
-    return source_path.stem or "freezone"
 
 
 def _copy_image_matching_existing_target(source_path: Path, target: Path) -> dict:

@@ -10,6 +10,13 @@ from ai_anime.modules.creative_canvas.application.bootstrap import (
 from ai_anime.modules.creative_canvas.application.generation_catalog import (
     GenerationCatalogQueries,
 )
+from ai_anime.modules.creative_canvas.application.image_to_3gs import (
+    CreativeCanvasImageToThreeGsResult,
+    CreativeCanvasImageToThreeGsSourceMissing,
+    CreativeCanvasImageToThreeGsUseCases,
+    InvalidCreativeCanvasImageToThreeGsRequest,
+    StartCreativeCanvasImageToThreeGsCommand,
+)
 from ai_anime.modules.creative_canvas.application.media import (
     CreativeCanvasMediaUseCases,
     CreativeCanvasScreenshotResult,
@@ -26,11 +33,13 @@ from ai_anime.modules.creative_canvas.application.mark_detection import (
 )
 from ai_anime.modules.creative_canvas.application.reverse_prompt import (
     CreativeCanvasReversePromptSourceMissing,
-    CreativeCanvasReversePromptStartFailed,
-    CreativeCanvasReversePromptTaskReceipt,
     CreativeCanvasReversePromptUseCases,
     InvalidCreativeCanvasReversePromptRequest,
     StartCreativeCanvasReversePromptCommand,
+)
+from ai_anime.modules.creative_canvas.application.task_submission import (
+    CreativeCanvasTaskReceipt,
+    CreativeCanvasTaskStartFailed,
 )
 from ai_anime.modules.creative_canvas.domain import (
     CreativeCanvasMarkSelection,
@@ -80,35 +89,49 @@ def creative_canvas_reverse_prompt_use_cases() -> CreativeCanvasReversePromptUse
     return build()
 
 
+def creative_canvas_image_to_three_gs_use_cases() -> CreativeCanvasImageToThreeGsUseCases:
+    from ai_anime.modules.creative_canvas.composition import (
+        creative_canvas_image_to_three_gs_use_cases as build,
+    )
+
+    return build()
+
+
 __all__ = [
     "CreativeCanvasBootstrapBusy",
     "CreativeCanvasBootstrapCorrupt",
     "CreativeCanvasBootstrapResult",
     "CreativeCanvasBootstrapUseCases",
+    "CreativeCanvasImageToThreeGsResult",
+    "CreativeCanvasImageToThreeGsSourceMissing",
+    "CreativeCanvasImageToThreeGsUseCases",
     "CreativeCanvasMediaUseCases",
     "CreativeCanvasMarkDetectionFailed",
     "CreativeCanvasMarkDetectionResult",
     "CreativeCanvasMarkDetectionUseCases",
     "CreativeCanvasMarkSelection",
     "CreativeCanvasReversePromptSourceMissing",
-    "CreativeCanvasReversePromptStartFailed",
-    "CreativeCanvasReversePromptTaskReceipt",
     "CreativeCanvasReversePromptUseCases",
+    "CreativeCanvasTaskReceipt",
+    "CreativeCanvasTaskStartFailed",
     "CreativeCanvasScreenshotResult",
     "CreativeCanvasScreenshotTooLarge",
     "CreativeCanvasUploadResult",
     "GenerationCatalogQueries",
     "DetectCreativeCanvasMarkCommand",
     "InvalidCreativeCanvasPngScreenshot",
+    "InvalidCreativeCanvasImageToThreeGsRequest",
     "InvalidCreativeCanvasMarkRequest",
     "InvalidCreativeCanvasReversePromptRequest",
     "InitializeCreativeCanvasCommand",
     "SaveCreativeCanvasScreenshotCommand",
     "StoreCreativeCanvasUploadCommand",
     "StartCreativeCanvasReversePromptCommand",
+    "StartCreativeCanvasImageToThreeGsCommand",
     "canvas_actor_id",
     "creative_canvas_bootstrap_use_cases",
     "creative_canvas_mark_detection_use_cases",
+    "creative_canvas_image_to_three_gs_use_cases",
     "creative_canvas_reverse_prompt_use_cases",
     "creative_canvas_media_use_cases",
     "generation_catalog_queries",

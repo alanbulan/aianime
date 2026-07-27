@@ -8,6 +8,9 @@ from ai_anime.modules.creative_canvas.application.bootstrap import (
 from ai_anime.modules.creative_canvas.application.generation_catalog import (
     GenerationCatalogQueries,
 )
+from ai_anime.modules.creative_canvas.application.image_to_3gs import (
+    CreativeCanvasImageToThreeGsUseCases,
+)
 from ai_anime.modules.creative_canvas.application.media import (
     CreativeCanvasMediaUseCases,
 )
@@ -34,8 +37,8 @@ from ai_anime.modules.creative_canvas.infrastructure.media import (
 from ai_anime.modules.creative_canvas.infrastructure.mark_detection import (
     FreezoneVisionMarkDetector,
 )
-from ai_anime.modules.creative_canvas.infrastructure.reverse_prompt import (
-    TaskBackendCreativeCanvasReversePromptScheduler,
+from ai_anime.modules.creative_canvas.infrastructure.task_submission import (
+    TaskBackendCreativeCanvasTaskScheduler,
 )
 
 
@@ -70,5 +73,14 @@ def creative_canvas_reverse_prompt_use_cases() -> CreativeCanvasReversePromptUse
     return CreativeCanvasReversePromptUseCases(
         ProjectCreativeCanvasImageSourceResolver(),
         FreezoneJobIdGenerator(),
-        TaskBackendCreativeCanvasReversePromptScheduler(get_task_backend),
+        TaskBackendCreativeCanvasTaskScheduler(get_task_backend),
+    )
+
+
+@lru_cache(maxsize=1)
+def creative_canvas_image_to_three_gs_use_cases() -> CreativeCanvasImageToThreeGsUseCases:
+    return CreativeCanvasImageToThreeGsUseCases(
+        ProjectCreativeCanvasImageSourceResolver(),
+        FreezoneJobIdGenerator(),
+        TaskBackendCreativeCanvasTaskScheduler(get_task_backend),
     )

@@ -7,20 +7,26 @@ from fastapi import APIRouter, Depends, HTTPException
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import resolve_project_scope
 from ai_anime.api.schemas import (
+    FreezoneImageTo3GSRequest,
     FreezoneImageReversePromptRequest,
     FreezoneJobAcceptedResponse,
     FreezoneMarkDetectRequest,
     FreezoneMarkDetectResponse,
+    FreezoneStageAssetAcceptedResponse,
 )
 from ai_anime.modules.creative_canvas.public import (
+    CreativeCanvasImageToThreeGsSourceMissing,
     CreativeCanvasMarkDetectionFailed,
     CreativeCanvasMarkSelection,
     CreativeCanvasReversePromptSourceMissing,
-    CreativeCanvasReversePromptStartFailed,
+    CreativeCanvasTaskStartFailed,
     DetectCreativeCanvasMarkCommand,
     InvalidCreativeCanvasReversePromptRequest,
+    InvalidCreativeCanvasImageToThreeGsRequest,
     InvalidCreativeCanvasMarkRequest,
     StartCreativeCanvasReversePromptCommand,
+    StartCreativeCanvasImageToThreeGsCommand,
+    creative_canvas_image_to_three_gs_use_cases,
     creative_canvas_mark_detection_use_cases,
     creative_canvas_reverse_prompt_use_cases,
     generation_catalog_queries,
@@ -168,7 +174,7 @@ async def freezone_image_reverse_prompt(
         raise HTTPException(400, str(exc)) from exc
     except CreativeCanvasReversePromptSourceMissing as exc:
         raise HTTPException(404, str(exc)) from exc
-    except CreativeCanvasReversePromptStartFailed as exc:
+    except CreativeCanvasTaskStartFailed as exc:
         logger.warning("reverse prompt failed: %s", exc, exc_info=True)
         raise HTTPException(500, f"reverse prompt failed: {exc}") from exc
 
@@ -183,6 +189,58 @@ async def freezone_image_reverse_prompt(
     }
     if result.task_id:
         data["task_id"] = result.task_id
+    return {"ok": True, "data": data}
+
+
+@router.post(
+    "/projects/{project}/freezone/image-to-3gs",
+    response_model=FreezoneStageAssetAcceptedResponse,
+    tags=["freezone-image"],
+)
+async def freezone_image_to_3gs(
+    project: str,
+    body: FreezoneImageTo3GSRequest,
+    user: dict = Depends(get_api_user),
+):
+    """图片处理：把 Freezone 图片节点作为 SHARP 输入，生成 Freezone 3GS PLY。"""
+    resolved = await resolve_project_scope(
+        project,
+        user,
+        required_role="editor",
+        operation="access freezone project files",
+    )
+    try:
+        result = await creative_canvas_image_to_three_gs_use_cases().start(
+            StartCreativeCanvasImageToThreeGsCommand(
+                context=resolved.ctx,
+                project_dir=resolved.project_dir,
+                source_url=body.source_url,
+                source_kind=body.source_kind,
+                canvas_id=body.canvas_id or None,
+                node_id=body.node_id or None,
+            )
+        )
+    except InvalidCreativeCanvasImageToThreeGsRequest as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except CreativeCanvasImageToThreeGsSourceMissing as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except CreativeCanvasTaskStartFailed as exc:
+        logger.warning("failed to start image-to-3gs task: %s", exc, exc_info=True)
+        raise HTTPException(503, f"failed to start image-to-3gs task: {exc}") from exc
+
+    receipt = result.receipt
+    data = {
+        "task_type": receipt.task_type,
+        "job_id": receipt.job_id,
+        "scope": result.scope,
+        "scene_id": result.scene_id,
+        "step": result.step,
+        "task_key": receipt.task_key,
+        "backend": receipt.backend,
+        "queue": receipt.queue,
+    }
+    if receipt.task_id:
+        data["task_id"] = receipt.task_id
     return {"ok": True, "data": data}
 
 

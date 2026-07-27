@@ -421,6 +421,36 @@ def test_freezone_reverse_prompt_route_delegates_to_application() -> None:
         assert implementation_detail not in source
 
 
+def test_freezone_image_to_three_gs_route_delegates_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "image.py"
+    legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    runner = PACKAGE_ROOT / "task_backend" / "runners" / "stage_asset.py"
+    source = route.read_text(encoding="utf-8")
+    legacy_source = legacy_route.read_text(encoding="utf-8")
+    runner_source = runner.read_text(encoding="utf-8")
+
+    endpoint_path = '"/projects/{project}/freezone/image-to-3gs"'
+    assert source.count(endpoint_path) == 1
+    assert endpoint_path not in legacy_source
+    assert source.count("creative_canvas_image_to_three_gs_use_cases().start(") == 1
+    assert "StartCreativeCanvasImageToThreeGsCommand" in source
+    assert "async def freezone_image_to_3gs(" not in legacy_source
+    assert "def _start_or_enqueue_freezone_image_to_3gs(" not in legacy_source
+    assert "def _infer_image_to_3gs_scene_id(" not in legacy_source
+    assert "FreezoneImageTo3GSRequest" not in legacy_source
+    assert (
+        'register_project_task_runner("freezone_image_to_3gs", '
+        "run_freezone_image_to_3gs)" in runner_source
+    )
+    for implementation_detail in (
+        "get_task_backend",
+        "project_task_state_key",
+        "resolve_static_url_to_path",
+        "_infer_image_to_3gs_scene_id",
+    ):
+        assert implementation_detail not in source
+
+
 def test_freezone_bootstrap_route_delegates_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "bootstrap.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"

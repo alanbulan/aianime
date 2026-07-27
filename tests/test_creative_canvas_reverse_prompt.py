@@ -11,24 +11,19 @@ from ai_anime.api.schemas import FreezoneImageReversePromptRequest
 from ai_anime.modules.creative_canvas.application.reverse_prompt import (
     CREATIVE_CANVAS_REVERSE_PROMPT_TASK_TYPE,
     CreativeCanvasReversePromptSourceMissing,
-    CreativeCanvasReversePromptStartFailed,
-    CreativeCanvasReversePromptTask,
-    CreativeCanvasReversePromptTaskReceipt,
     CreativeCanvasReversePromptUseCases,
     InvalidCreativeCanvasReversePromptRequest,
     StartCreativeCanvasReversePromptCommand,
 )
+from ai_anime.modules.creative_canvas.application.task_submission import (
+    CreativeCanvasTaskReceipt,
+    CreativeCanvasTaskStartFailed,
+    CreativeCanvasTaskSubmission,
+)
 from ai_anime.modules.creative_canvas.infrastructure.image_sources import (
     ProjectCreativeCanvasImageSourceResolver,
 )
-from ai_anime.modules.creative_canvas.infrastructure.reverse_prompt import (
-    TaskBackendCreativeCanvasReversePromptScheduler,
-)
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.task_backend.limits import (
-    ProjectTaskLimitExceeded,
-    ProjectUserTaskLimitExceeded,
-)
 
 
 def _project_context(tmp_path: Path) -> ProjectContext:
@@ -50,8 +45,8 @@ def _project_context(tmp_path: Path) -> ProjectContext:
     )
 
 
-def _receipt(job_id: str = "job-1") -> CreativeCanvasReversePromptTaskReceipt:
-    return CreativeCanvasReversePromptTaskReceipt(
+def _receipt(job_id: str = "job-1") -> CreativeCanvasTaskReceipt:
+    return CreativeCanvasTaskReceipt(
         task_type=CREATIVE_CANVAS_REVERSE_PROMPT_TASK_TYPE,
         job_id=job_id,
         task_key=f"task:key:{job_id}",
@@ -89,15 +84,19 @@ async def test_reverse_prompt_use_case_enqueues_resolved_source(
         async def enqueue(
             self,
             received_context: ProjectContext,
-            task: CreativeCanvasReversePromptTask,
-        ) -> CreativeCanvasReversePromptTaskReceipt:
+            task: CreativeCanvasTaskSubmission,
+        ) -> CreativeCanvasTaskReceipt:
             assert received_context is context
-            assert task == CreativeCanvasReversePromptTask(
+            assert task == CreativeCanvasTaskSubmission(
+                task_type=CREATIVE_CANVAS_REVERSE_PROMPT_TASK_TYPE,
+                queue_kind="default",
                 job_id="job-1",
                 project_dir=context.output_dir,
-                source_path=source_path,
-                canvas_id="canvas-1",
-                node_id="node-1",
+                payload={
+                    "source_path": source_path.as_posix(),
+                    "canvas_id": "canvas-1",
+                    "node_id": "node-1",
+                },
             )
             return expected
 
@@ -227,127 +226,6 @@ def test_project_image_source_resolver_reports_file_existence(tmp_path: Path) ->
 
 
 @pytest.mark.asyncio
-async def test_task_backend_reverse_prompt_scheduler_preserves_payload_and_receipt(
-    tmp_path: Path,
-) -> None:
-    context = _project_context(tmp_path)
-    captured: dict[str, object] = {}
-
-    class FakeBackend:
-        async def enqueue_project_task(self, received_context, **kwargs):
-            assert received_context is context
-            captured.update(kwargs)
-            return SimpleNamespace(
-                task_state=SimpleNamespace(task_id="task-1"),
-                backend="celery",
-                queue="node.local.default",
-            )
-
-    task = CreativeCanvasReversePromptTask(
-        job_id="job-1",
-        project_dir=context.output_dir,
-        source_path=context.output_dir / "freezone" / "_uploads" / "source.png",
-        canvas_id="canvas-1",
-        node_id="node-1",
-    )
-    result = await TaskBackendCreativeCanvasReversePromptScheduler(
-        lambda: FakeBackend()
-    ).enqueue(context, task)
-
-    assert captured == {
-        "task_type": CREATIVE_CANVAS_REVERSE_PROMPT_TASK_TYPE,
-        "queue_kind": "default",
-        "episode": 0,
-        "scope": "job-1",
-        "payload": {
-            "job_id": "job-1",
-            "project_dir": str(context.output_dir),
-            "source_path": task.source_path.as_posix(),
-            "canvas_id": "canvas-1",
-            "node_id": "node-1",
-        },
-    }
-    assert result.task_type == CREATIVE_CANVAS_REVERSE_PROMPT_TASK_TYPE
-    assert result.job_id == "job-1"
-    assert (
-        result.task_key
-        == "task:freezone_image_reverse_prompt:project:project-1:0:job-1"
-    )
-    assert result.task_episode == 0
-    assert result.task_scope == "job-1"
-    assert result.backend == "celery"
-    assert result.queue == "node.local.default"
-    assert result.task_id == "task-1"
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "failure",
-    [
-        ProjectTaskLimitExceeded(
-            project_id="project-1",
-            queue_kind="default",
-            limit=2,
-            active=2,
-        ),
-        ProjectUserTaskLimitExceeded(
-            project_id="project-1",
-            requester_user_id="user-1",
-            queue_kind="default",
-            limit=1,
-            active=1,
-        ),
-    ],
-)
-async def test_task_backend_reverse_prompt_scheduler_preserves_limit_errors(
-    tmp_path: Path,
-    failure: RuntimeError,
-) -> None:
-    class FailingBackend:
-        async def enqueue_project_task(self, *_args, **_kwargs):
-            raise failure
-
-    scheduler = TaskBackendCreativeCanvasReversePromptScheduler(
-        lambda: FailingBackend()
-    )
-
-    with pytest.raises(type(failure)) as exc:
-        await scheduler.enqueue(
-            _project_context(tmp_path),
-            CreativeCanvasReversePromptTask(
-                job_id="job-1",
-                project_dir=tmp_path,
-                source_path=tmp_path / "source.png",
-            ),
-        )
-    assert exc.value is failure
-
-
-@pytest.mark.asyncio
-async def test_task_backend_reverse_prompt_scheduler_maps_runtime_failure(
-    tmp_path: Path,
-) -> None:
-    class FailingBackend:
-        async def enqueue_project_task(self, *_args, **_kwargs):
-            raise RuntimeError("broker unavailable")
-
-    with pytest.raises(
-        CreativeCanvasReversePromptStartFailed,
-        match="broker unavailable",
-    ):
-        await TaskBackendCreativeCanvasReversePromptScheduler(
-            lambda: FailingBackend()
-        ).enqueue(
-            _project_context(tmp_path),
-            CreativeCanvasReversePromptTask(
-                job_id="job-1",
-                project_dir=tmp_path,
-                source_path=tmp_path / "source.png",
-            ),
-        )
-
-
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("failure", "status_code", "detail"),
     [
@@ -362,7 +240,7 @@ async def test_task_backend_reverse_prompt_scheduler_maps_runtime_failure(
             "source not found: missing.png",
         ),
         (
-            CreativeCanvasReversePromptStartFailed("broker unavailable"),
+            CreativeCanvasTaskStartFailed("broker unavailable"),
             500,
             "reverse prompt failed: broker unavailable",
         ),

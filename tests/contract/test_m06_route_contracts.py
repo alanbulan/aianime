@@ -226,6 +226,9 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.modules.creative_canvas.public import (
         CreativeCanvasMarkDetectionResult,
     )
+    from ai_anime.modules.creative_canvas.application.image_to_3gs import (
+        CreativeCanvasImageToThreeGsUseCases,
+    )
     from ai_anime.modules.creative_canvas.application.reverse_prompt import (
         CreativeCanvasReversePromptUseCases,
     )
@@ -235,8 +238,8 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.modules.creative_canvas.infrastructure.media import (
         FreezoneJobIdGenerator,
     )
-    from ai_anime.modules.creative_canvas.infrastructure.reverse_prompt import (
-        TaskBackendCreativeCanvasReversePromptScheduler,
+    from ai_anime.modules.creative_canvas.infrastructure.task_submission import (
+        TaskBackendCreativeCanvasTaskScheduler,
     )
     from ai_anime.utils.path_resolver import (
         canonical_beat_director_env_only_path,
@@ -398,15 +401,26 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     def build(backend: str = "inline"):
         task_backend = _FakeTaskBackend(backend)
         task_manager = _FakeTaskManager()
+        task_scheduler = TaskBackendCreativeCanvasTaskScheduler(lambda: task_backend)
         reverse_prompt_use_cases = CreativeCanvasReversePromptUseCases(
             ProjectCreativeCanvasImageSourceResolver(),
             FreezoneJobIdGenerator(),
-            TaskBackendCreativeCanvasReversePromptScheduler(lambda: task_backend),
+            task_scheduler,
+        )
+        image_to_three_gs_use_cases = CreativeCanvasImageToThreeGsUseCases(
+            ProjectCreativeCanvasImageSourceResolver(),
+            FreezoneJobIdGenerator(),
+            task_scheduler,
         )
         monkeypatch.setattr(
             freezone_image,
             "creative_canvas_reverse_prompt_use_cases",
             lambda use_cases=reverse_prompt_use_cases: use_cases,
+        )
+        monkeypatch.setattr(
+            freezone_image,
+            "creative_canvas_image_to_three_gs_use_cases",
+            lambda use_cases=image_to_three_gs_use_cases: use_cases,
         )
         monkeypatch.setattr(ingest, "get_task_backend", lambda tb=task_backend: tb)
         monkeypatch.setattr(freezone, "get_task_backend", lambda tb=task_backend: tb)

@@ -1,15 +1,14 @@
-"""Creative Canvas image reverse-prompt task adapter."""
+"""Creative Canvas project task backend adapter."""
 
 from __future__ import annotations
 
 from collections.abc import Callable
 from typing import Any
 
-from ai_anime.modules.creative_canvas.application.reverse_prompt import (
-    CREATIVE_CANVAS_REVERSE_PROMPT_TASK_TYPE,
-    CreativeCanvasReversePromptStartFailed,
-    CreativeCanvasReversePromptTask,
-    CreativeCanvasReversePromptTaskReceipt,
+from ai_anime.modules.creative_canvas.application.task_submission import (
+    CreativeCanvasTaskReceipt,
+    CreativeCanvasTaskStartFailed,
+    CreativeCanvasTaskSubmission,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.task_backend.limits import (
@@ -19,41 +18,39 @@ from ai_anime.task_backend.limits import (
 from ai_anime.task_identity import project_task_state_key
 
 
-class TaskBackendCreativeCanvasReversePromptScheduler:
+class TaskBackendCreativeCanvasTaskScheduler:
     def __init__(self, task_backend_provider: Callable[[], Any]) -> None:
         self._task_backend_provider = task_backend_provider
 
     async def enqueue(
         self,
         context: ProjectContext,
-        task: CreativeCanvasReversePromptTask,
-    ) -> CreativeCanvasReversePromptTaskReceipt:
+        task: CreativeCanvasTaskSubmission,
+    ) -> CreativeCanvasTaskReceipt:
         try:
             queued = await self._task_backend_provider().enqueue_project_task(
                 context,
-                task_type=CREATIVE_CANVAS_REVERSE_PROMPT_TASK_TYPE,
-                queue_kind="default",
+                task_type=task.task_type,
+                queue_kind=task.queue_kind,
                 episode=0,
                 scope=task.job_id,
                 payload={
+                    **task.payload,
                     "job_id": task.job_id,
                     "project_dir": str(task.project_dir),
-                    "source_path": task.source_path.as_posix(),
-                    "canvas_id": task.canvas_id or "",
-                    "node_id": task.node_id or "",
                 },
             )
         except (ProjectTaskLimitExceeded, ProjectUserTaskLimitExceeded):
             raise
         except RuntimeError as exc:
-            raise CreativeCanvasReversePromptStartFailed(str(exc)) from exc
+            raise CreativeCanvasTaskStartFailed(str(exc)) from exc
 
         task_id = str(queued.task_state.task_id or "") or None
-        return CreativeCanvasReversePromptTaskReceipt(
-            task_type=CREATIVE_CANVAS_REVERSE_PROMPT_TASK_TYPE,
+        return CreativeCanvasTaskReceipt(
+            task_type=task.task_type,
             job_id=task.job_id,
             task_key=project_task_state_key(
-                CREATIVE_CANVAS_REVERSE_PROMPT_TASK_TYPE,
+                task.task_type,
                 context.project_id,
                 0,
                 scope=task.job_id,

@@ -9,6 +9,11 @@ from typing import Protocol
 from ai_anime.modules.creative_canvas.application.image_sources import (
     CreativeCanvasExistingImageSourceResolver,
 )
+from ai_anime.modules.creative_canvas.application.task_submission import (
+    CreativeCanvasTaskReceipt,
+    CreativeCanvasTaskScheduler,
+    CreativeCanvasTaskSubmission,
+)
 from ai_anime.modules.project_workspace.public import ProjectContext
 
 CREATIVE_CANVAS_REVERSE_PROMPT_TASK_TYPE = "freezone_image_reverse_prompt"
@@ -24,10 +29,6 @@ class CreativeCanvasReversePromptSourceMissing(FileNotFoundError):
         super().__init__(f"source not found: {source_path}")
 
 
-class CreativeCanvasReversePromptStartFailed(RuntimeError):
-    pass
-
-
 @dataclass(frozen=True)
 class StartCreativeCanvasReversePromptCommand:
     context: ProjectContext
@@ -37,37 +38,8 @@ class StartCreativeCanvasReversePromptCommand:
     node_id: str | None = None
 
 
-@dataclass(frozen=True)
-class CreativeCanvasReversePromptTask:
-    job_id: str
-    project_dir: Path
-    source_path: Path
-    canvas_id: str | None = None
-    node_id: str | None = None
-
-
-@dataclass(frozen=True)
-class CreativeCanvasReversePromptTaskReceipt:
-    task_type: str
-    job_id: str
-    task_key: str
-    task_episode: int
-    task_scope: str
-    backend: str
-    queue: str | None
-    task_id: str | None
-
-
 class CreativeCanvasReversePromptJobIds(Protocol):
     def new_id(self) -> str: ...
-
-
-class CreativeCanvasReversePromptScheduler(Protocol):
-    async def enqueue(
-        self,
-        context: ProjectContext,
-        task: CreativeCanvasReversePromptTask,
-    ) -> CreativeCanvasReversePromptTaskReceipt: ...
 
 
 class CreativeCanvasReversePromptUseCases:
@@ -75,7 +47,7 @@ class CreativeCanvasReversePromptUseCases:
         self,
         sources: CreativeCanvasExistingImageSourceResolver,
         job_ids: CreativeCanvasReversePromptJobIds,
-        scheduler: CreativeCanvasReversePromptScheduler,
+        scheduler: CreativeCanvasTaskScheduler,
     ) -> None:
         self._sources = sources
         self._job_ids = job_ids
@@ -84,7 +56,7 @@ class CreativeCanvasReversePromptUseCases:
     async def start(
         self,
         command: StartCreativeCanvasReversePromptCommand,
-    ) -> CreativeCanvasReversePromptTaskReceipt:
+    ) -> CreativeCanvasTaskReceipt:
         if not command.source_url:
             raise InvalidCreativeCanvasReversePromptRequest("source_url is required")
         try:
@@ -99,11 +71,15 @@ class CreativeCanvasReversePromptUseCases:
 
         return await self._scheduler.enqueue(
             command.context,
-            CreativeCanvasReversePromptTask(
+            CreativeCanvasTaskSubmission(
+                task_type=CREATIVE_CANVAS_REVERSE_PROMPT_TASK_TYPE,
+                queue_kind="default",
                 job_id=self._job_ids.new_id(),
                 project_dir=command.project_dir,
-                source_path=source_path,
-                canvas_id=command.canvas_id,
-                node_id=command.node_id,
+                payload={
+                    "source_path": source_path.as_posix(),
+                    "canvas_id": command.canvas_id or "",
+                    "node_id": command.node_id or "",
+                },
             ),
         )

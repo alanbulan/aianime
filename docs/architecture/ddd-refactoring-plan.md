@@ -1656,6 +1656,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百八十六批已将图片反向提示词任务提交迁入 Creative Canvas reverse-prompt application port/use case、共享图片源端口和唯一任务后端调度适配器，并将既有 POST 端点收口到 image FastAPI 子 router；生产项目解析始终提供 `ProjectContext`，任务后端也已有注册 runner，因此旧 `freezone.py` handler 和不可达的 `asyncio.create_task` 内联 runner 整段删除，不保留转发函数或第二套执行轨；项目 editor 鉴权、主节点错误上下文、源路径校验、任务类型/队列/payload、项目级 task key、限流异常透传、500 文案、请求路径、OpenAPI tag/说明及响应 payload 均保持不变；反向提示词定向回归 25 项、文本/图片后端回归 13 项、M06 完整合同 16 项和后端完整分层门禁 68 项均通过，8 条告警均为既有依赖弃用告警。
 
+第二百八十七批已将图片转 3GS 的源图校验、scene id 推断和 master/reverse/pano SHARP 参数规划迁入 Creative Canvas image-to-3GS domain/application，并将既有 POST 端点收口到 image FastAPI 子 router；反向提示词与图片转 3GS 统一通过共享任务提交 port 和唯一 task-backend adapter 入队，旧反向提示词专用调度适配器、旧 `freezone.py` 3GS helper/handler/scene id 推断整段删除，不保留 facade、转发函数或第二套提交链路；项目 editor 鉴权、源路径与图片后缀校验、任务类型/world 队列/payload、项目级 task key、限流异常透传、503 文案、请求路径、OpenAPI tag/说明、响应 payload 和唯一 stage-asset runner 均保持不变；定向回归 25 项、3GS runner 回归 2 项、M06 完整合同 16 项和后端完整分层门禁 69 项均通过，8 条告警均为既有依赖弃用告警。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。
