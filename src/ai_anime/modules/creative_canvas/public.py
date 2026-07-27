@@ -1,5 +1,11 @@
 """Stable application API exposed by Creative Canvas."""
 
+from ai_anime.modules.creative_canvas.application.audio_generation import (
+    CreativeCanvasAudioGenerationUseCases,
+    InvalidCreativeCanvasAudioGenerationRequest,
+    StartCreativeCanvasMusicGenerationCommand,
+    StartCreativeCanvasSpeechGenerationCommand,
+)
 from ai_anime.modules.creative_canvas.application.bootstrap import (
     CreativeCanvasBootstrapBusy,
     CreativeCanvasBootstrapCorrupt,
@@ -206,6 +212,14 @@ def creative_canvas_image_generation_use_cases() -> CreativeCanvasImageGeneratio
     return build()
 
 
+def creative_canvas_audio_generation_use_cases() -> CreativeCanvasAudioGenerationUseCases:
+    from ai_anime.modules.creative_canvas.composition import (
+        creative_canvas_audio_generation_use_cases as build,
+    )
+
+    return build()
+
+
 def creative_canvas_text_processing_use_cases() -> CreativeCanvasTextProcessingUseCases:
     from ai_anime.modules.creative_canvas.composition import (
         creative_canvas_text_processing_use_cases as build,
@@ -252,6 +266,7 @@ def is_seedance2_video_backend(backend: str | None) -> bool:
 
 __all__ = [
     "DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL",
+    "CreativeCanvasAudioGenerationUseCases",
     "CreativeCanvasBootstrapBusy",
     "CreativeCanvasBootstrapCorrupt",
     "CreativeCanvasBootstrapResult",
@@ -297,6 +312,7 @@ __all__ = [
     "GenerationCatalogQueries",
     "DetectCreativeCanvasMarkCommand",
     "InvalidCreativeCanvasPngScreenshot",
+    "InvalidCreativeCanvasAudioGenerationRequest",
     "InvalidCreativeCanvasImageToThreeGsRequest",
     "InvalidCreativeCanvasImageEditingRequest",
     "InvalidCreativeCanvasImageGenerationRequest",
@@ -312,6 +328,8 @@ __all__ = [
     "InitializeCreativeCanvasCommand",
     "SaveCreativeCanvasScreenshotCommand",
     "StoreCreativeCanvasUploadCommand",
+    "StartCreativeCanvasMusicGenerationCommand",
+    "StartCreativeCanvasSpeechGenerationCommand",
     "StartCreativeCanvasAudioSeparationCommand",
     "StartCreativeCanvasReversePromptCommand",
     "StartCreativeCanvasImageToThreeGsCommand",
@@ -341,6 +359,7 @@ __all__ = [
     "build_freezone_keyframe_video_prompt",
     "build_freezone_omni_video_prompt",
     "build_freezone_video_prompt",
+    "creative_canvas_audio_generation_use_cases",
     "creative_canvas_bootstrap_use_cases",
     "creative_canvas_mark_detection_use_cases",
     "creative_canvas_image_to_three_gs_use_cases",

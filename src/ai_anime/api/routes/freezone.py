@@ -31,8 +31,6 @@ from ai_anime.api.deps import (
 from ai_anime.api.schemas import (
     CanvasPayload,
     CreateIdentityAssetRequest,
-    FreezoneAudioMusicRequest,
-    FreezoneAudioSpeechRequest,
     FreezoneFrameFromContextRequest,
     FreezoneImageCameraConfig,
     FreezoneImageStyleConfig,
@@ -68,7 +66,6 @@ from ai_anime.freezone.audio_node import (
     create_user_audio_voice,
     freezone_audio_eleven_music_output_path,
     freezone_audio_speech_output_path,
-    generate_freezone_audio_speech,
     list_user_audio_voices,
     resolve_user_audio_voice,
 )
@@ -4033,105 +4030,6 @@ def _copy_image_matching_existing_target(source_path: Path, target: Path) -> dic
         }
 
 
-def _start_freezone_audio_speech_task(
-    *,
-    username: str,
-    project: str,
-    account_voice_username: str | None,
-    project_id: str,
-    project_dir: Path,
-    job_id: str,
-    body: FreezoneAudioSpeechRequest,
-) -> None:
-    task_type = "freezone_audio_speech"
-    task_manager = get_task_manager()
-    task_manager.create_task(
-        task_type, username, project, episode=0, scope=job_id, status="starting"
-    )
-
-    async def _runner() -> None:
-        store = None
-        try:
-            task_manager.update_progress(
-                task_type,
-                username,
-                project,
-                episode=0,
-                scope=job_id,
-                progress=0.05,
-                current_task="preparing_audio_speech",
-                logs=["开始文本生成语音"],
-            )
-            task_manager.update_progress(
-                task_type,
-                username,
-                project,
-                episode=0,
-                scope=job_id,
-                progress=0.2,
-                current_task="calling_tts_provider",
-                logs=["正在调用 TTS 服务"],
-            )
-            store = await make_sqlite_store(username, project)
-            result = await generate_freezone_audio_speech(
-                store=store,
-                username=username,
-                project=project,
-                account_voice_username=account_voice_username,
-                project_dir=project_dir,
-                job_id=job_id,
-                text=body.text,
-                emotion_prompt=body.emotion_prompt,
-                voice_ref=body.voice_ref.model_dump() if body.voice_ref else None,
-            )
-            rel = result.audio_path.relative_to(project_dir).as_posix()
-            audio_url = project_static_url(project_id, rel, local_path=result.audio_path)
-            result_payload = {
-                "url": audio_url,
-                "audio_url": audio_url,
-                "audio_size": result.audio_path.stat().st_size,
-                "duration_ms": result.duration_ms,
-                "mime_type": result.mime_type,
-                "model": result.model,
-                "voice_source": result.voice_source,
-                "voice_sha256": result.voice_sha256,
-            }
-            if body.target_episode and body.target_beat:
-                result_payload["pushable"] = True
-                result_payload["slot_target"] = {
-                    "kind": "beat_audio",
-                    "episode": int(body.target_episode),
-                    "beat": int(body.target_beat),
-                }
-            task_manager.complete_task(
-                task_type,
-                username,
-                project,
-                episode=0,
-                scope=job_id,
-                result=result_payload,
-                current_task="completed",
-                logs=["文本生成语音完成"],
-            )
-        except Exception as exc:
-            task_manager.fail_task(
-                task_type,
-                username,
-                project,
-                episode=0,
-                scope=job_id,
-                error=str(exc),
-                current_task="failed",
-                logs=[f"错误: {exc}"],
-            )
-        finally:
-            close = getattr(store, "close", None) if store is not None else None
-            if close:
-                await close()
-
-    asyncio.create_task(_runner())
-
-
 FREEZONE_AUDIO_AGE_GROUP_LABELS = {
     "child": "幼年",
     "youth": "青年",
@@ -4455,119 +4353,6 @@ async def get_freezone_audio_voice_media(
     except RuntimeError as exc:
         raise HTTPException(404, str(exc)) from exc
     return FileResponse(path=str(resolved.audio_path))
-
-
-@router.post(
-    "/projects/{project}/freezone/audio/speech",
-    response_model=FreezoneJobAcceptedResponse,
-    tags=[TAG_FREEZONE_AUDIO],
-)
-async def freezone_audio_speech(
-    project: str,
-    body: FreezoneAudioSpeechRequest,
-    user: dict = Depends(get_api_user),
-):
-    """Freezone 音频节点：文本生成语音。"""
-    ctx, username, project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project, user
-    )
-    account_voice_username = (
-        ctx.requester_username if ctx is not None and ctx.requester_username else username
-    )
-
-    if not body.text.strip():
-        raise HTTPException(400, "text is required")
-    if len(body.text) > 10_000:
-        raise HTTPException(400, "text must be <= 10000 characters")
-
-    try:
-        job_id = _new_job_id()
-        if ctx is not None:
-            return await _enqueue_freezone_background_job(
-                ctx=ctx,
-                project_dir=project_dir,
-                task_type="freezone_audio_speech",
-                job_id=job_id,
-                payload={
-                    "text": body.text,
-                    "emotion_prompt": body.emotion_prompt,
-                    "voice_ref": body.voice_ref.model_dump() if body.voice_ref else None,
-                    "account_voice_username": account_voice_username,
-                    "target_episode": body.target_episode,
-                    "target_beat": body.target_beat,
-                },
-            )
-        _start_freezone_audio_speech_task(
-            username=username,
-            project=project_name,
-            account_voice_username=account_voice_username,
-            project_id=ctx.project_id,
-            project_dir=project_dir,
-            job_id=job_id,
-            body=body,
-        )
-    except RuntimeError as exc:
-        _handle_task_start_runtime_error("failed to start freezone audio speech task", exc)
-        raise HTTPException(503, f"failed to start freezone audio speech task: {exc}") from exc
-
-    return _accepted_job_response(
-        task_type="freezone_audio_speech",
-        username=username,
-        project=project_name,
-        job_id=job_id,
-    )
-
-
-@router.post(
-    "/projects/{project}/freezone/audio/eleven-music",
-    response_model=FreezoneJobAcceptedResponse,
-    tags=[TAG_FREEZONE_AUDIO],
-)
-async def freezone_audio_eleven_music(
-    project: str,
-    body: FreezoneAudioMusicRequest,
-    user: dict = Depends(get_api_user),
-):
-    """Freezone 音频节点：文本生成音乐。"""
-    ctx, username, project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project, user
-    )
-
-    prompt = body.input.strip()
-    if not prompt:
-        raise HTTPException(400, "input is required")
-    if len(prompt) > 4100:
-        raise HTTPException(400, "input must be <= 4100 characters")
-
-    try:
-        job_id = _new_job_id()
-        if ctx is not None:
-            return await _enqueue_freezone_background_job(
-                ctx=ctx,
-                project_dir=project_dir,
-                task_type="freezone_audio_eleven_music",
-                job_id=job_id,
-                payload={
-                    "input": prompt,
-                    "model": body.model,
-                    "response_format": body.response_format,
-                    "music_length_ms": body.music_length_ms,
-                    "force_instrumental": body.force_instrumental,
-                    "respect_sections_durations": body.respect_sections_durations,
-                    "output_format": body.output_format,
-                },
-            )
-        _raise_project_context_required("freezone_audio_eleven_music")
-    except RuntimeError as exc:
-        _handle_task_start_runtime_error("failed to start freezone audio music task", exc)
-        raise HTTPException(503, f"failed to start freezone audio music task: {exc}") from exc
-
-    return _accepted_job_response(
-        task_type="freezone_audio_eleven_music",
-        username=username,
-        project=project_name,
-        job_id=job_id,
-    )
 
 
 @router.get(

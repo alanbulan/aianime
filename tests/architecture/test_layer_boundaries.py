@@ -767,6 +767,76 @@ def test_freezone_reverse_prompt_route_delegates_to_application() -> None:
         assert implementation_detail not in source
 
 
+def test_freezone_audio_generation_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "audio.py"
+    legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
+    application = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "application"
+        / "audio_generation.py"
+    )
+    composition = PACKAGE_ROOT / "modules" / "creative_canvas" / "composition.py"
+    runner = PACKAGE_ROOT / "task_backend" / "runners" / "freezone.py"
+    source = route.read_text(encoding="utf-8")
+    legacy_source = legacy_route.read_text(encoding="utf-8")
+    api_router_source = api_router.read_text(encoding="utf-8")
+    application_source = application.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    runner_source = runner.read_text(encoding="utf-8")
+
+    endpoint_paths = (
+        '"/projects/{project}/freezone/audio/speech"',
+        '"/projects/{project}/freezone/audio/eleven-music"',
+    )
+    for endpoint_path in endpoint_paths:
+        assert source.count(endpoint_path) == 1
+        assert endpoint_path not in legacy_source
+
+    assert source.count("creative_canvas_audio_generation_use_cases().") == 2
+    assert "StartCreativeCanvasSpeechGenerationCommand" in source
+    assert "StartCreativeCanvasMusicGenerationCommand" in source
+    assert "freezone_audio.router" in api_router_source
+    for legacy_implementation in (
+        "async def freezone_audio_speech(",
+        "async def freezone_audio_eleven_music(",
+        "def _start_freezone_audio_speech_task(",
+        "FreezoneAudioSpeechRequest",
+        "FreezoneAudioMusicRequest",
+        "generate_freezone_audio_speech",
+    ):
+        assert legacy_implementation not in legacy_source
+    for implementation_detail in (
+        "get_task_backend",
+        "asyncio.create_task",
+        "ai_anime.freezone.audio_node",
+        "make_sqlite_store",
+        "project_static_url",
+    ):
+        assert implementation_detail not in source
+
+    assert "fastapi" not in application_source
+    assert "ai_anime.api" not in application_source
+    assert "ai_anime.freezone" not in application_source
+    assert "translate_runtime_errors=False" in composition_source
+    assert (
+        runner_source.count(
+            'register_project_task_runner("freezone_audio_speech", '
+            "run_freezone_audio_speech)"
+        )
+        == 1
+    )
+    assert (
+        runner_source.count(
+            'register_project_task_runner("freezone_audio_eleven_music", '
+            "run_freezone_audio_eleven_music)"
+        )
+        == 1
+    )
+
+
 def test_freezone_text_processing_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "text.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"

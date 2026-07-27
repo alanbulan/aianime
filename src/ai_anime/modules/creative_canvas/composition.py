@@ -2,6 +2,9 @@
 
 from functools import lru_cache
 
+from ai_anime.modules.creative_canvas.application.audio_generation import (
+    CreativeCanvasAudioGenerationUseCases,
+)
 from ai_anime.modules.creative_canvas.application.bootstrap import (
     CreativeCanvasBootstrapUseCases,
 )
@@ -157,6 +160,17 @@ def creative_canvas_image_generation_use_cases() -> CreativeCanvasImageGeneratio
         ProjectCreativeCanvasMediaSourceResolver(),
         FreezoneCreativeCanvasImagePromptComposer(),
         FreezoneCreativeCanvasImageGenerationModelRouter(),
+        FreezoneJobIdGenerator(),
+        TaskBackendCreativeCanvasTaskScheduler(
+            get_task_backend,
+            translate_runtime_errors=False,
+        ),
+    )
+
+
+@lru_cache(maxsize=1)
+def creative_canvas_audio_generation_use_cases() -> CreativeCanvasAudioGenerationUseCases:
+    return CreativeCanvasAudioGenerationUseCases(
         FreezoneJobIdGenerator(),
         TaskBackendCreativeCanvasTaskScheduler(
             get_task_backend,

@@ -219,6 +219,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api import auth as api_auth
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.routes import freezone, ingest
+    from ai_anime.api.routes.canvas import audio as freezone_audio
     from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap
     from ai_anime.api.routes.canvas import image as freezone_image
     from ai_anime.api.routes.canvas import media as freezone_media
@@ -227,6 +228,9 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.freezone.paths import uploads_dir
     from ai_anime.modules.creative_canvas.public import (
         CreativeCanvasMarkDetectionResult,
+    )
+    from ai_anime.modules.creative_canvas.application.audio_generation import (
+        CreativeCanvasAudioGenerationUseCases,
     )
     from ai_anime.modules.creative_canvas.application.image_to_3gs import (
         CreativeCanvasImageToThreeGsUseCases,
@@ -385,6 +389,11 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
     monkeypatch.setattr(ingest, "resolve_project_scope", resolve_project_scope)
     monkeypatch.setattr(
+        freezone_audio,
+        "resolve_project_scope",
+        resolve_project_scope,
+    )
+    monkeypatch.setattr(
         freezone_bootstrap,
         "resolve_project_scope",
         resolve_project_scope,
@@ -453,6 +462,10 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         task_backend = _FakeTaskBackend(backend)
         task_manager = _FakeTaskManager()
         task_scheduler = TaskBackendCreativeCanvasTaskScheduler(lambda: task_backend)
+        audio_generation_use_cases = CreativeCanvasAudioGenerationUseCases(
+            FreezoneJobIdGenerator(),
+            task_scheduler,
+        )
         reverse_prompt_use_cases = CreativeCanvasReversePromptUseCases(
             ProjectCreativeCanvasMediaSourceResolver(),
             FreezoneJobIdGenerator(),
@@ -506,6 +519,11 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             video_asset_repository,
             FreezoneJobIdGenerator(),
             task_scheduler,
+        )
+        monkeypatch.setattr(
+            freezone_audio,
+            "creative_canvas_audio_generation_use_cases",
+            lambda use_cases=audio_generation_use_cases: use_cases,
         )
         monkeypatch.setattr(
             freezone_image,
@@ -562,6 +580,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setattr(freezone, "get_task_manager", lambda tm=task_manager: tm)
         app = FastAPI()
         app.include_router(ingest.router, prefix="/api/v1")
+        app.include_router(freezone_audio.router, prefix="/api/v1")
         app.include_router(freezone_bootstrap.router, prefix="/api/v1")
         app.include_router(freezone_image.router, prefix="/api/v1")
         app.include_router(freezone_media.router, prefix="/api/v1")
@@ -576,6 +595,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         }
         app.dependency_overrides[api_auth.get_api_user] = lambda user=user: user
         app.dependency_overrides[ingest.get_api_user] = lambda user=user: user
+        app.dependency_overrides[freezone_audio.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_bootstrap.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_image.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_media.get_api_user] = lambda user=user: user
