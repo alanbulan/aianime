@@ -249,7 +249,7 @@ class CreativeCanvasImageEditingUseCases:
             )
         except ValueError as exc:
             raise InvalidCreativeCanvasImageEditingRequest(str(exc)) from exc
-        prompt = self._prompts.compose(command.prompt, command.style, command.camera)
+        prompt = self._compose_prompt(command.prompt, command.style, command.camera)
         return await self._scheduler.enqueue(
             command.context,
             CreativeCanvasTaskSubmission(
@@ -321,4 +321,15 @@ class CreativeCanvasImageEditingUseCases:
             prompt = build_image_erase_prompt()
         else:
             prompt = build_image_redraw_prompt(command.prompt)
-        return self._prompts.compose(prompt, command.style, command.camera)
+        return self._compose_prompt(prompt, command.style, command.camera)
+
+    def _compose_prompt(
+        self,
+        prompt: str,
+        style: CreativeCanvasImageStyleConfig | None,
+        camera: CreativeCanvasImageCameraConfig | None,
+    ) -> str:
+        try:
+            return self._prompts.compose(prompt, style, camera)
+        except ValueError as exc:
+            raise InvalidCreativeCanvasImageEditingRequest(str(exc)) from exc

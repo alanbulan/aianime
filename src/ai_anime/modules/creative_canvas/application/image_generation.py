@@ -99,7 +99,10 @@ class CreativeCanvasImageGenerationUseCases:
             provider, model = self._models.resolve(command.provider, command.model)
         except ValueError as exc:
             raise InvalidCreativeCanvasImageGenerationRequest(str(exc)) from exc
-        prompt = self._prompts.compose(command.prompt, command.style, command.camera)
+        try:
+            prompt = self._prompts.compose(command.prompt, command.style, command.camera)
+        except ValueError as exc:
+            raise InvalidCreativeCanvasImageGenerationRequest(str(exc)) from exc
         display_payload = {
             "task_family": "freezone_canvas",
             "task_label": "自由生成图片",

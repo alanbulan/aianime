@@ -31,6 +31,9 @@ from ai_anime.modules.creative_canvas.domain.image_editing import (
 from ai_anime.modules.creative_canvas.infrastructure.image_generation import (
     FreezoneCreativeCanvasImageGenerationModelRouter,
 )
+from ai_anime.modules.creative_canvas.infrastructure.image_editing import (
+    FreezoneCreativeCanvasImagePromptComposer,
+)
 from ai_anime.modules.project_workspace.public import ProjectContext
 
 
@@ -278,6 +281,42 @@ async def test_image_generation_maps_invalid_model_selection(tmp_path: Path) -> 
                 prompt="generate",
                 aspect_ratio="1:1",
                 image_size="2K",
+            )
+        )
+
+
+@pytest.mark.asyncio
+async def test_image_generation_maps_unknown_style_template(tmp_path: Path) -> None:
+    context = _project_context(tmp_path)
+
+    class FakeJobIds:
+        def new_id(self) -> str:
+            return "job-1"
+
+    class UnusedScheduler:
+        async def enqueue(self, *_args):
+            raise AssertionError("invalid style must not enqueue a task")
+
+    use_cases = CreativeCanvasImageGenerationUseCases(
+        SimpleNamespace(),
+        FreezoneCreativeCanvasImagePromptComposer(),
+        FreezoneCreativeCanvasImageGenerationModelRouter(),
+        FakeJobIds(),
+        UnusedScheduler(),
+    )
+
+    with pytest.raises(
+        InvalidCreativeCanvasImageGenerationRequest,
+        match="unknown image style template: missing-style",
+    ):
+        await use_cases.start(
+            StartCreativeCanvasImageGenerationCommand(
+                context=context,
+                project_dir=context.output_dir,
+                prompt="generate",
+                aspect_ratio="1:1",
+                image_size="2K",
+                style=CreativeCanvasImageStyleConfig(template_id="missing-style"),
             )
         )
 

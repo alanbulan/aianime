@@ -18,16 +18,10 @@ from ai_anime.api.routes.canvas import jobs as freezone_job_routes
 from ai_anime.api.routes.canvas import presets as freezone_preset_routes
 from ai_anime.api.routes.canvas import skills as freezone_skill_routes
 from ai_anime.api.routes.canvas import video as freezone_video_routes
-from ai_anime.freezone.route_helpers import (
-    FREEZONE_DEFAULT_IMAGE_MODEL,
-    resolve_freezone_image_provider as _resolve_freezone_image_provider,
-    split_provider_and_model as _split_provider_and_model,
-)
 from ai_anime.api.schemas import (
     CanvasPayload,
     FreezoneFrameFromContextRequest,
     FreezoneGenRequest,
-    FreezoneImageCameraConfig,
     FreezoneImageReversePromptRequest,
     FreezoneOutpaintRequest,
     FreezoneRedrawRequest,
@@ -46,8 +40,8 @@ from ai_anime.freezone.presets import (
     canvas_id_for_preset,
     preset_key_for_request,
 )
-from ai_anime.freezone.route_helpers import build_camera_prompt as _build_camera_prompt
 from ai_anime.modules.creative_canvas.public import (
+    DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
     SKILL_SCHEMA_VERSION,
     CanvasGraphPatch,
     CreativeCanvasMainlineGenerationUseCases,
@@ -64,6 +58,7 @@ from ai_anime.modules.creative_canvas.public import (
     standalone_character_map,
     is_preset_managed_canvas_node as _is_preset_managed_canvas_node,
     merge_restored_preset_canvas as _merge_restored_preset_canvas,
+    resolve_image_provider,
 )
 from ai_anime.modules.creative_canvas.application.canvas_documents import (
     CreativeCanvasDocumentQueries,
@@ -76,12 +71,16 @@ from ai_anime.modules.creative_canvas.application.skill_runs import (
     CreativeCanvasSkillRunUseCases,
 )
 from ai_anime.modules.creative_canvas.domain.image_editing import (
+    CreativeCanvasImageCameraConfig as DomainImageCameraConfig,
     build_image_erase_prompt,
     resolve_requested_image_aspect_ratio,
 )
 from ai_anime.modules.creative_canvas.domain.image_editing_prompts import (
     build_image_template_edit_prompt,
     resolve_image_template_aspect_ratio,
+)
+from ai_anime.modules.creative_canvas.domain.image_prompts import (
+    build_image_camera_prompt,
 )
 from ai_anime.modules.creative_canvas.infrastructure.canvas_documents import (
     LocalCreativeCanvasDocumentQueryGateway,
@@ -93,6 +92,9 @@ from ai_anime.modules.creative_canvas.infrastructure.mainline_generation import 
     LocalCreativeCanvasMainlineGenerationConfigSource,
     LocalCreativeCanvasScene360Runtime,
     PillowCreativeCanvasImageAspectReader,
+)
+from ai_anime.modules.creative_canvas.infrastructure.image_models import (
+    resolve_configured_image_model,
 )
 from ai_anime.modules.creative_canvas.infrastructure.skill_runs import (
     LocalCreativeCanvasSkillRunRepository,
@@ -197,14 +199,16 @@ class _CallableJobIds:
 
 class _SkillRunTestHarness:
     def __init__(self) -> None:
-        from ai_anime.freezone.route_helpers import new_freezone_job_id
+        from ai_anime.modules.creative_canvas.infrastructure.media import (
+            FreezoneJobIdGenerator,
+        )
         from ai_anime.shared.infrastructure.project_stores import (
             make_sqlite_store_for_context,
         )
 
         self.store_factory = make_sqlite_store_for_context
         self.task_manager_factory = get_task_manager
-        self.job_id_factory = new_freezone_job_id
+        self.job_id_factory = FreezoneJobIdGenerator().new_id
         self.reviewer = None
         self.mainline_generation = None
         self.image_generation = None
@@ -2419,23 +2423,23 @@ def test_template_edit_projection_prompt_requires_visible_time_change() -> None:
 
 
 def test_split_provider_and_model_accepts_sketch_selection_key() -> None:
-    provider, model = _split_provider_and_model(None, "openai_gpt_image2")
+    provider, model = resolve_configured_image_model(None, "openai_gpt_image2")
 
     assert provider == "openai"
     assert model == OPENAI_IMAGE_MODEL
 
 
 def test_split_provider_and_model_accepts_newapi_selection_key() -> None:
-    provider, model = _split_provider_and_model(None, "newapi_gpt_image2")
+    provider, model = resolve_configured_image_model(None, "newapi_gpt_image2")
 
     assert provider == "newapi"
     assert model == NEWAPI_IMAGE_MODEL
 
 
 def test_freezone_defaults_to_newapi_gpt_image2() -> None:
-    assert FREEZONE_DEFAULT_IMAGE_MODEL == "newapi_gpt_image2"
-    assert _resolve_freezone_image_provider(None) == "newapi"
-    assert _resolve_freezone_image_provider("newapi") == "newapi"
+    assert DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL == "newapi_gpt_image2"
+    assert resolve_image_provider(None) == "newapi"
+    assert resolve_image_provider("newapi") == "newapi"
 
 
 def test_erase_prompt_mentions_masked_region_and_cleanup() -> None:
@@ -2580,14 +2584,14 @@ async def test_mask_edit_job_uses_reference_edit_provider_routing(
 
 
 def test_camera_prompt_contains_camera_body_lens_focal_and_aperture() -> None:
-    camera = FreezoneImageCameraConfig(
+    camera = DomainImageCameraConfig(
         camera_body="Panavision DXL2",
         lens="Arri Signature Prime",
         focal_length_mm=35,
         aperture="f/4",
     )
 
-    prompt = _build_camera_prompt(camera)
+    prompt = build_image_camera_prompt(camera)
 
     assert "Panavision DXL2" in prompt
     assert "Arri Signature Prime" in prompt
@@ -6351,7 +6355,7 @@ async def test_template_edit_projection_preserves_source_aspect_ratio(
         source_url="/static/admin/59/freezone/_uploads/portrait.png",
         mode="image_projection_after_3s",
         image_size="2K",
-        model=FREEZONE_DEFAULT_IMAGE_MODEL,
+        model=DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
         quality="high",
     )
 
@@ -6391,7 +6395,7 @@ async def test_template_edit_light_correction_preserves_source_aspect_ratio(
         source_url="/static/admin/59/freezone/_uploads/portrait.png",
         mode="cinematic_light_correction",
         image_size="2K",
-        model=FREEZONE_DEFAULT_IMAGE_MODEL,
+        model=DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
     )
 
     result = await freezone_image_routes.freezone_template_edit(
@@ -6426,7 +6430,7 @@ async def test_template_edit_story_pitch_four_grid_preserves_source_aspect_ratio
         source_url="/static/admin/59/freezone/_uploads/portrait.png",
         mode="story_pitch_four_grid",
         image_size="2K",
-        model=FREEZONE_DEFAULT_IMAGE_MODEL,
+        model=DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
     )
 
     result = await freezone_image_routes.freezone_template_edit(
@@ -6460,7 +6464,7 @@ async def test_template_edit_multi_camera_grid_preserves_source_aspect_ratio(
         source_url="/static/admin/59/freezone/_uploads/portrait.png",
         mode="multi_camera_nine_grid",
         image_size="2K",
-        model=FREEZONE_DEFAULT_IMAGE_MODEL,
+        model=DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
     )
 
     result = await freezone_image_routes.freezone_template_edit(
@@ -6494,7 +6498,7 @@ async def test_template_edit_storyboard_25_grid_preserves_source_aspect_ratio(
         source_url="/static/admin/59/freezone/_uploads/portrait.png",
         mode="storyboard_25_grid",
         image_size="2K",
-        model=FREEZONE_DEFAULT_IMAGE_MODEL,
+        model=DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
     )
 
     result = await freezone_image_routes.freezone_template_edit(

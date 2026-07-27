@@ -5,16 +5,18 @@ from pathlib import Path
 from PIL import Image
 
 from ai_anime.freezone.paths import safe_upload_filename, uploads_dir
-from ai_anime.freezone.route_helpers import (
-    merge_prompt_with_style_and_camera,
-    split_provider_and_model,
-)
 from ai_anime.modules.creative_canvas.domain.image_editing import (
     DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
     CreativeCanvasImageCameraConfig,
     CreativeCanvasImageStyleConfig,
     plan_outpaint_canvas,
     resolve_image_provider,
+)
+from ai_anime.modules.creative_canvas.domain.image_prompts import (
+    merge_image_prompt_with_style_and_camera,
+)
+from ai_anime.modules.creative_canvas.infrastructure.image_models import (
+    resolve_configured_image_model,
 )
 
 
@@ -61,12 +63,12 @@ class FreezoneCreativeCanvasImagePromptComposer:
         style: CreativeCanvasImageStyleConfig | None,
         camera: CreativeCanvasImageCameraConfig | None,
     ) -> str:
-        return merge_prompt_with_style_and_camera(prompt, style, camera)
+        return merge_image_prompt_with_style_and_camera(prompt, style, camera)
 
 
 class FreezoneCreativeCanvasImageModelRouter:
     def resolve(self, model: str) -> tuple[str, str | None]:
-        provider, resolved_model = split_provider_and_model(
+        provider, resolved_model = resolve_configured_image_model(
             None,
             model or DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
         )
@@ -80,5 +82,7 @@ class FreezoneCreativeCanvasImageModelRouter:
         provider: str | None,
         model: str | None,
     ) -> tuple[str, str | None]:
-        resolved_provider, resolved_model = split_provider_and_model(provider, model)
+        resolved_provider, resolved_model = resolve_configured_image_model(
+            provider, model
+        )
         return resolve_image_provider(resolved_provider), resolved_model

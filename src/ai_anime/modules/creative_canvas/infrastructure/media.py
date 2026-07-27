@@ -1,5 +1,6 @@
 """Local Creative Canvas media adapters."""
 
+import uuid
 from pathlib import Path
 
 from ai_anime.freezone.paths import (
@@ -7,7 +8,6 @@ from ai_anime.freezone.paths import (
     safe_upload_filename,
     uploads_dir,
 )
-from ai_anime.freezone.route_helpers import new_freezone_job_id
 from ai_anime.modules.creative_canvas.application.media import (
     StoreCreativeCanvasUploadCommand,
     StoredCreativeCanvasMedia,
@@ -55,4 +55,4 @@ class LocalCreativeCanvasMediaStorage:
 
 class FreezoneJobIdGenerator:
     def new_id(self) -> str:
-        return new_freezone_job_id()
+        return uuid.uuid4().hex[:16]

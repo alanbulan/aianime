@@ -7,12 +7,15 @@ from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 
 from ai_anime.models import SceneRef
 from ai_anime.freezone.slots import SlotTarget
+from ai_anime.modules.creative_canvas.public import (
+    DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
+)
 from ai_anime.modules.production.public import DEFAULT_VIDEO_BACKEND
 from ai_anime.api.story_intake_schemas import IngestStart as IngestStart
 
 ProjectStatus = Literal["active", "archived", "deleted"]
 ProjectStatusFilter = Literal["all", "active", "archived", "deleted", "visible"]
-FREEZONE_DEFAULT_IMAGE_SELECTION = "newapi_gpt_image2"
+FREEZONE_DEFAULT_IMAGE_SELECTION = DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL
 FREEZONE_DEFAULT_IMAGE_MODEL = FREEZONE_DEFAULT_IMAGE_SELECTION
 CANVAS_MAX_NODES = 50_000
 CANVAS_MAX_EDGES = 200_000

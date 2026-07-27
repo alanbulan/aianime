@@ -1,30 +1,13 @@
-"""Legacy Freezone transport helpers shared by Creative Canvas adapters."""
+"""Creative Canvas image catalog and prompt rules."""
 
 from __future__ import annotations
 
-import uuid
-from pathlib import Path
-from typing import Optional
-
-from fastapi import HTTPException
-
-from ai_anime.api.schemas import (
-    FreezoneImageCameraConfig,
-    FreezoneImageStyleConfig,
+from ai_anime.modules.creative_canvas.domain.image_editing import (
+    CreativeCanvasImageCameraConfig,
+    CreativeCanvasImageStyleConfig,
 )
-from ai_anime.config import IMAGE_GENERATION_SELECTIONS
-from ai_anime.freezone.paths import resolve_static_url_to_path
-from ai_anime.modules.creative_canvas.public import (
-    DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
-    SUPPORTED_CREATIVE_CANVAS_IMAGE_PROVIDERS as SUPPORTED_FREEZONE_IMAGE_PROVIDERS,
-    UnsupportedCreativeCanvasImageProvider,
-    resolve_image_provider,
-)
-from ai_anime.task_identity import task_state_key
 
-FREEZONE_DEFAULT_IMAGE_SELECTION = DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL
-FREEZONE_DEFAULT_IMAGE_MODEL = FREEZONE_DEFAULT_IMAGE_SELECTION
-FREEZONE_IMAGE_CAMERA_OPTIONS = {
+CREATIVE_CANVAS_IMAGE_CAMERA_OPTIONS = {
     "camera_bodies": [
         {"id": "panavision_dxl2", "label": "Panavision DXL2"},
         {"id": "arri_alexa_65", "label": "ARRI ALEXA 65"},
@@ -40,7 +23,7 @@ FREEZONE_IMAGE_CAMERA_OPTIONS = {
     "focal_lengths_mm": [8, 14, 24, 35, 50, 75, 125],
     "apertures": ["f/1.4", "f/2", "f/2.8", "f/4", "f/5.6", "f/8"],
 }
-FREEZONE_IMAGE_STYLE_TEMPLATES = [
+CREATIVE_CANVAS_IMAGE_STYLE_TEMPLATES = [
     {
         "id": "three_oclock_2300",
         "label": "新古典插画 + 美式漫画黄金时代 + 新装饰线条",
@@ -254,56 +237,21 @@ FREEZONE_IMAGE_STYLE_TEMPLATES = [
 ]
 
 
-def resolve_freezone_image_provider(provider: Optional[str], *, strict: bool = True) -> str:
-    """把 Freezone 图片 provider 归一化到当前支持的 AI anime 范围内。"""
-    try:
-        return resolve_image_provider(provider, strict=strict)
-    except UnsupportedCreativeCanvasImageProvider as exc:
-        raise HTTPException(400, str(exc)) from exc
+class UnknownCreativeCanvasImageStyleTemplate(ValueError):
+    pass
 
 
-def new_freezone_job_id() -> str:
-    return uuid.uuid4().hex[:16]
+def creative_canvas_image_camera_options() -> dict:
+    return CREATIVE_CANVAS_IMAGE_CAMERA_OPTIONS
 
 
-def resolve_url_list(project_dir: Path, urls: list[str]) -> list[str]:
-    out: list[str] = []
-    for u in urls:
-        if not u:
-            continue
-        try:
-            out.append(resolve_static_url_to_path(u, project_dir).as_posix())
-        except ValueError as exc:
-            raise HTTPException(400, str(exc)) from exc
-    return out
+def creative_canvas_image_style_templates() -> list[dict]:
+    return list(CREATIVE_CANVAS_IMAGE_STYLE_TEMPLATES)
 
 
-def accepted_job_response(
-    *,
-    task_type: str,
-    username: str,
-    project: str,
-    job_id: str,
-) -> dict:
-    return {
-        "ok": True,
-        "data": {
-            "task_type": task_type,
-            "job_id": job_id,
-            "task_key": task_state_key(task_type, username, project, episode=0, scope=job_id),
-        },
-    }
-
-
-def get_freezone_image_camera_options() -> dict:
-    return FREEZONE_IMAGE_CAMERA_OPTIONS
-
-
-def get_freezone_image_style_templates() -> list[dict]:
-    return list(FREEZONE_IMAGE_STYLE_TEMPLATES)
-
-
-def build_camera_prompt(camera: Optional[FreezoneImageCameraConfig]) -> str:
+def build_image_camera_prompt(
+    camera: CreativeCanvasImageCameraConfig | None,
+) -> str:
     if camera is None:
         return ""
 
@@ -326,30 +274,24 @@ def build_camera_prompt(camera: Optional[FreezoneImageCameraConfig]) -> str:
     )
 
 
-def merge_prompt_with_camera(prompt: str, camera: Optional[FreezoneImageCameraConfig]) -> str:
-    camera_block = build_camera_prompt(camera)
-    base = (prompt or "").strip()
-    if base and camera_block:
-        return f"{base}\n\n{camera_block}"
-    if camera_block:
-        return camera_block
-    return base
-
-
-def resolve_freezone_image_style_template(style: Optional[FreezoneImageStyleConfig]) -> Optional[dict]:
+def resolve_creative_canvas_image_style_template(
+    style: CreativeCanvasImageStyleConfig | None,
+) -> dict | None:
     if style is None:
         return None
     template_id = str(style.template_id or "").strip()
     if not template_id:
         return None
-    for item in FREEZONE_IMAGE_STYLE_TEMPLATES:
+    for item in CREATIVE_CANVAS_IMAGE_STYLE_TEMPLATES:
         if item["id"] == template_id:
             return item
-    raise HTTPException(400, f"unknown image style template: {template_id}")
+    raise UnknownCreativeCanvasImageStyleTemplate(
+        f"unknown image style template: {template_id}"
+    )
 
 
-def build_style_prompt(style: Optional[FreezoneImageStyleConfig]) -> str:
-    template = resolve_freezone_image_style_template(style)
+def build_image_style_prompt(style: CreativeCanvasImageStyleConfig | None) -> str:
+    template = resolve_creative_canvas_image_style_template(style)
     if template is None:
         return ""
     return (
@@ -359,63 +301,13 @@ def build_style_prompt(style: Optional[FreezoneImageStyleConfig]) -> str:
     )
 
 
-def merge_prompt_with_style_and_camera(
+def merge_image_prompt_with_style_and_camera(
     prompt: str,
-    style: Optional[FreezoneImageStyleConfig],
-    camera: Optional[FreezoneImageCameraConfig],
+    style: CreativeCanvasImageStyleConfig | None,
+    camera: CreativeCanvasImageCameraConfig | None,
 ) -> str:
     base = (prompt or "").strip()
-    style_block = build_style_prompt(style)
-    camera_block = build_camera_prompt(camera)
+    style_block = build_image_style_prompt(style)
+    camera_block = build_image_camera_prompt(camera)
     parts = [part for part in [base, style_block, camera_block] if part]
     return "\n\n".join(parts)
-
-
-def split_provider_and_model(
-    provider: Optional[str],
-    model: Optional[str],
-    *,
-    fallback_model: Optional[str] = None,
-) -> tuple[Optional[str], Optional[str]]:
-    """解析 Freezone 图片模型。"""
-    model_text = str(model or "").strip()
-    if model_text:
-        if model_text in IMAGE_GENERATION_SELECTIONS:
-            entry = IMAGE_GENERATION_SELECTIONS[model_text]
-            return entry["provider"], entry["model"]
-
-    if provider:
-        return provider, model_text or fallback_model
-    if model_text and "/" in model_text:
-        provider_token, model_token = model_text.split("/", 1)
-        if provider_token in SUPPORTED_FREEZONE_IMAGE_PROVIDERS:
-            return provider_token, model_token or fallback_model
-    return provider, model_text or fallback_model
-
-
-def notes_suffix(*, style: str, notes: str, user_prompt: str) -> str:
-    lines = [f"Style: {style}."]
-    if notes.strip():
-        lines.append(f"Extra notes: {notes.strip()}.")
-    if user_prompt.strip():
-        lines.append(f"User prompt:\n{user_prompt.strip()}")
-    lines.extend(
-        [
-            "",
-            "Hard requirements:",
-            "- Production-ready AI anime asset candidate.",
-            "- No text, watermark, UI frame, contact sheet, or collage unless explicitly requested.",
-            "- Preserve useful identity / scene / prop cues from references.",
-        ]
-    )
-    return "\n".join(lines)
-
-
-def resolve_upscale_dimensions(source_path: Path, scale_factor: int) -> tuple[int, int]:
-    from PIL import Image
-
-    with Image.open(source_path) as image:
-        width, height = image.size
-    if width <= 0 or height <= 0:
-        raise HTTPException(400, f"invalid source image size: {source_path}")
-    return width * scale_factor, height * scale_factor

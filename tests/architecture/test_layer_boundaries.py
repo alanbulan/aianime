@@ -10,12 +10,12 @@ PACKAGE_ROOT = REPO_ROOT / "src" / "ai_anime"
 ASSET_WORLD_VIEWER_ROUTE = PACKAGE_ROOT / "api" / "routes" / "asset_world_viewer.py"
 LEGACY_GENERATION_ROUTE = PACKAGE_ROOT / "api" / "routes" / "generation.py"
 LEGACY_FREEZONE_ROUTE = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+LEGACY_FREEZONE_HELPERS = PACKAGE_ROOT / "freezone" / "route_helpers.py"
 COMPOSITION_ROOT_FILES = {"desktop_server.py"}
 
 # These are measured legacy dependencies, not approved architecture. Counts may
 # decrease during migration; any new file/module pair or count increase fails.
 LEGACY_REVERSE_API_IMPORT_MAX = {
-    ("freezone/route_helpers.py", "ai_anime.api.schemas"): 1,
     ("freezone/text_node.py", "ai_anime.api.schemas"): 1,
     ("verification/routes.py", "ai_anime.api.auth"): 1,
     ("verification/routes.py", "ai_anime.api.deps"): 1,
@@ -103,6 +103,10 @@ def test_legacy_generation_route_is_removed() -> None:
     assert not LEGACY_GENERATION_ROUTE.exists()
     assert "generation.router" not in api_router_source
     assert "asset_world_viewer.router" in api_router_source
+
+
+def test_legacy_freezone_route_helpers_are_removed() -> None:
+    assert not LEGACY_FREEZONE_HELPERS.exists()
 
 
 def test_new_backend_modules_follow_layer_dependencies() -> None:
@@ -414,9 +418,18 @@ def test_freezone_skill_catalog_route_delegates_to_application() -> None:
     assert "def creative_canvas_skill_run_use_cases(" in composition_source
     assert "def creative_canvas_skill_catalog_queries(" in public_source
     assert "def creative_canvas_skill_run_use_cases(" in public_source
-    assert "from ai_anime.modules.creative_canvas.public import SKILL_SCHEMA_VERSION" in (
-        presets_source
-    )
+    presets_tree = ast.parse(presets_source)
+    public_imports = {
+        alias.name
+        for node in ast.walk(presets_tree)
+        if isinstance(node, ast.ImportFrom)
+        and node.module == "ai_anime.modules.creative_canvas.public"
+        for alias in node.names
+    }
+    assert {
+        "DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL",
+        "SKILL_SCHEMA_VERSION",
+    } <= public_imports
     assert "freezone_skills.router" in api_router_source
     assert "freezone.router" not in api_router_source
     assert not legacy_catalog.exists()
@@ -589,8 +602,6 @@ def test_freezone_mainline_generation_routes_delegate_to_application() -> None:
     )
     composition = PACKAGE_ROOT / "modules" / "creative_canvas" / "composition.py"
     public = PACKAGE_ROOT / "modules" / "creative_canvas" / "public.py"
-    route_helpers = PACKAGE_ROOT / "freezone" / "route_helpers.py"
-
     route_source = route.read_text(encoding="utf-8")
     legacy_source = _removed_freezone_route_source(legacy_route)
     application_source = application.read_text(encoding="utf-8")
@@ -598,7 +609,6 @@ def test_freezone_mainline_generation_routes_delegate_to_application() -> None:
     adapter_source = adapter.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
-    helper_source = route_helpers.read_text(encoding="utf-8")
 
     for handler_name in (
         "freezone_sketch_from_context",
@@ -645,7 +655,6 @@ def test_freezone_mainline_generation_routes_delegate_to_application() -> None:
         "def build_scene_360_prompt(",
     ):
         assert moved_rule in domain_source
-        assert moved_rule not in helper_source
     for route_implementation_detail in (
         "make_sqlite_store_for_context",
         "enqueue_project_task",
@@ -866,7 +875,6 @@ def test_freezone_video_processing_routes_delegate_to_application() -> None:
 def test_freezone_video_generation_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "video.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
-    route_helpers = PACKAGE_ROOT / "freezone" / "route_helpers.py"
     domain = (
         PACKAGE_ROOT
         / "modules"
@@ -891,7 +899,6 @@ def test_freezone_video_generation_routes_delegate_to_application() -> None:
     runner = PACKAGE_ROOT / "task_backend" / "runners" / "video.py"
     source = route.read_text(encoding="utf-8")
     legacy_source = _removed_freezone_route_source(legacy_route)
-    helper_source = route_helpers.read_text(encoding="utf-8")
     domain_source = domain.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
@@ -942,7 +949,6 @@ def test_freezone_video_generation_routes_delegate_to_application() -> None:
         "normalize_video_duration_for_backend",
     ):
         assert implementation_detail not in source
-    assert "load_video_character_items_by_ids" not in helper_source
     assert not (PACKAGE_ROOT / "freezone" / "video_node.py").exists()
     for layered_source in (domain_source, application_source, adapter_source):
         assert "fastapi" not in layered_source
@@ -2104,7 +2110,6 @@ def test_freezone_image_to_three_gs_route_delegates_to_application() -> None:
 def test_freezone_image_editing_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "image.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
-    legacy_helpers = PACKAGE_ROOT / "freezone" / "route_helpers.py"
     prompt_rules = (
         PACKAGE_ROOT
         / "modules"
@@ -2115,7 +2120,6 @@ def test_freezone_image_editing_routes_delegate_to_application() -> None:
     runner = PACKAGE_ROOT / "task_backend" / "runners" / "freezone.py"
     source = route.read_text(encoding="utf-8")
     legacy_source = _removed_freezone_route_source(legacy_route)
-    legacy_helper_source = legacy_helpers.read_text(encoding="utf-8")
     prompt_rule_source = prompt_rules.read_text(encoding="utf-8")
     runner_source = runner.read_text(encoding="utf-8")
 
@@ -2166,23 +2170,6 @@ def test_freezone_image_editing_routes_delegate_to_application() -> None:
         "FreezoneRedrawRequest",
     ):
         assert legacy_schema not in legacy_source
-    for legacy_rule in (
-        "parse_aspect_ratio",
-        "prepare_padded_outpaint_base",
-        "resolve_outpaint_aspect_ratio",
-        "build_outpaint_prompt",
-        "build_redraw_prompt",
-        "build_erase_prompt",
-        "def build_multi_view_prompt(",
-        "def _describe_color_temperature(",
-        "def build_relight_prompt(",
-        "def build_template_edit_prompt(",
-        "def template_edit_aspect_ratio(",
-        "def ensure_existing_paths(",
-        "def start_freezone_gen_job(",
-        "def start_freezone_edit_job(",
-    ):
-        assert legacy_rule not in legacy_helper_source
     assert "_build_upscale_prompt" not in legacy_source
     assert (
         runner_source.count(

@@ -39,6 +39,7 @@ from ai_anime.modules.creative_canvas.domain.image_editing import (
 )
 from ai_anime.modules.creative_canvas.infrastructure.image_editing import (
     FreezoneCreativeCanvasImageModelRouter,
+    FreezoneCreativeCanvasImagePromptComposer,
     PillowCreativeCanvasImageEditingStorage,
 )
 from ai_anime.modules.creative_canvas.infrastructure.media_sources import (
@@ -585,6 +586,40 @@ async def test_reference_image_editing_rejects_unknown_provider(tmp_path: Path) 
                 aspect_ratio="16:9",
                 image_size="2K",
                 provider="unknown",
+            )
+        )
+    assert scheduler.task is None
+
+
+@pytest.mark.asyncio
+async def test_reference_image_editing_maps_unknown_style_template(
+    tmp_path: Path,
+) -> None:
+    context = _project_context(tmp_path)
+    _write_image(context.output_dir / "freezone" / "_uploads" / "base.png")
+    scheduler = _CapturingScheduler(context)
+    use_cases = CreativeCanvasImageEditingUseCases(
+        ProjectCreativeCanvasMediaSourceResolver(),
+        PillowCreativeCanvasImageEditingStorage(),
+        FreezoneCreativeCanvasImagePromptComposer(),
+        FreezoneCreativeCanvasImageModelRouter(),
+        _FixedJobIds(),
+        scheduler,
+    )
+
+    with pytest.raises(
+        InvalidCreativeCanvasImageEditingRequest,
+        match="unknown image style template: missing-style",
+    ):
+        await use_cases.start_reference_edit(
+            StartCreativeCanvasReferenceImageEditingCommand(
+                context=context,
+                project_dir=context.output_dir,
+                prompt="edit",
+                base_url="freezone/_uploads/base.png",
+                aspect_ratio="16:9",
+                image_size="2K",
+                style=CreativeCanvasImageStyleConfig(template_id="missing-style"),
             )
         )
     assert scheduler.task is None

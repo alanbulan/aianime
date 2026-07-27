@@ -28,7 +28,10 @@ from ai_anime.models import (
     build_prop_menu,
     build_scene_effective_prompt,
 )
-from ai_anime.modules.creative_canvas.public import SKILL_SCHEMA_VERSION
+from ai_anime.modules.creative_canvas.public import (
+    DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
+    SKILL_SCHEMA_VERSION,
+)
 from ai_anime.utils.path_resolver import (
     PathResolver,
     canonical_beat_director_env_only_path,
@@ -48,7 +51,7 @@ IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp"}
 VIDEO_EXTS = {".mp4", ".mov", ".webm"}
 AUDIO_EXTS = {".mp3", ".m4a", ".wav", ".aac", ".flac", ".ogg"}
 TEXT_EXTS = {".json", ".txt", ".md"}
-FREEZONE_PRESET_DEFAULT_IMAGE_MODEL = "newapi_gpt_image2"
+FREEZONE_PRESET_DEFAULT_IMAGE_MODEL = DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL
 FREEZONE_PRESET_IMAGE_ASPECT_RATIOS = (
     "1:1",
     "16:9",

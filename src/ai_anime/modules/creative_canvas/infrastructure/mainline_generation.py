@@ -8,14 +8,14 @@ from typing import Any, Mapping
 
 from PIL import Image
 
+from ai_anime import project_config
 from ai_anime.freezone.paths import outputs_dir
-from ai_anime.freezone.route_helpers import (
-    FREEZONE_DEFAULT_IMAGE_MODEL,
-    split_provider_and_model,
-)
 from ai_anime.modules.asset_world.public import runtime_prop_menu_for_episode
 from ai_anime.modules.creative_canvas.application.mainline_generation import (
     CreativeCanvasMainlineBeatMissing,
+)
+from ai_anime.modules.creative_canvas.domain.image_editing import (
+    DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
 )
 from ai_anime.modules.creative_canvas.domain.mainline_generation import (
     list_text_values,
@@ -24,12 +24,14 @@ from ai_anime.modules.creative_canvas.domain.mainline_generation import (
     standalone_prop_marker_colors,
     standalone_sketch_colors,
 )
+from ai_anime.modules.creative_canvas.infrastructure.image_models import (
+    resolve_configured_image_model,
+)
 from ai_anime.modules.production.public import (
     production_generation_context_use_cases,
     production_image_settings_use_cases,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime import project_config
 from ai_anime.shared.infrastructure.project_stores import make_sqlite_store_for_context
 
 
@@ -234,6 +236,8 @@ class LocalCreativeCanvasScene360Runtime:
         return outputs_dir(project_dir, "mainline_scene_360") / job_id
 
     def resolve_model(self, model: str | None) -> tuple[str, str | None]:
-        selected_model = model or FREEZONE_DEFAULT_IMAGE_MODEL
-        provider, resolved_model = split_provider_and_model("newapi", selected_model)
+        selected_model = model or DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL
+        provider, resolved_model = resolve_configured_image_model(
+            "newapi", selected_model
+        )
         return provider or "newapi", resolved_model or selected_model

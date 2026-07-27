@@ -8,9 +8,9 @@ from ai_anime.config import (
     IMAGE_GENERATION_SELECTIONS,
     image_generation_selection_options,
 )
-from ai_anime.freezone.route_helpers import (
-    get_freezone_image_camera_options,
-    get_freezone_image_style_templates,
+from ai_anime.modules.creative_canvas.domain.image_prompts import (
+    creative_canvas_image_camera_options,
+    creative_canvas_image_style_templates,
 )
 from ai_anime.modules.creative_canvas.domain.video_generation import (
     get_video_camera_templates,
@@ -22,10 +22,10 @@ from ai_anime.modules.creative_canvas.infrastructure.video_generation import (
 
 class ConfiguredGenerationCatalogSource:
     def image_camera_options(self) -> dict[str, Any]:
-        return get_freezone_image_camera_options()
+        return creative_canvas_image_camera_options()
 
     def image_style_templates(self) -> list[dict[str, Any]]:
-        return get_freezone_image_style_templates()
+        return creative_canvas_image_style_templates()
 
     def image_models(self) -> list[dict[str, Any]]:
         options = image_generation_selection_options()
