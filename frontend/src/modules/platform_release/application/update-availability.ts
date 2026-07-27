@@ -1,21 +1,13 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
 import { useSyncExternalStore } from "react";
 
-// Non-blocking "a new version is deployed" signal. Distinct from
-// chunk-load-recovery (which blocks the whole app once a chunk 404s): this one
-// is proactive and dismissible — the current version still works, we just nudge
-// the user to refresh when convenient.
-type UpdateState = "idle" | "available" | "dismissed";
+type UpdateAvailabilityState = "idle" | "available" | "dismissed";
 type Listener = () => void;
 
-let state: UpdateState = "idle";
+let state: UpdateAvailabilityState = "idle";
 const listeners = new Set<Listener>();
 
 function notify(): void {
-  for (const listener of listeners) {
-    listener();
-  }
+  for (const listener of listeners) listener();
 }
 
 export function markUpdateAvailable(): void {

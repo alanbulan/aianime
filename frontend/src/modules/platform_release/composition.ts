@@ -1,4 +1,6 @@
 import { createReleaseNotificationQueries } from "@/modules/platform_release/application/query-hooks";
+import { requestChunkLoadRecovery } from "@/modules/platform_release/application/chunk-load-recovery";
+import { markUpdateAvailable } from "@/modules/platform_release/application/update-availability";
 import {
   canAutoShowCurrentRelease,
   canShowUpgradeNudge,
@@ -10,7 +12,10 @@ import {
   releaseUpgradeKey,
   RELEASE_NOTIFICATIONS_MUTED_KEY,
 } from "@/modules/platform_release/infrastructure/browser-release-notification-storage";
+import { installBrowserChunkLoadRecovery } from "@/modules/platform_release/infrastructure/browser-chunk-load-recovery";
+import { installBrowserVersionUpdateWatch } from "@/modules/platform_release/infrastructure/browser-version-update-watch";
 import { httpReleaseNotificationGateway } from "@/modules/platform_release/infrastructure/http-release-notification-gateway";
+import { BUILD_ID } from "@/lib/app-version";
 
 const releaseNotificationQueries = createReleaseNotificationQueries(
   httpReleaseNotificationGateway,
@@ -27,6 +32,17 @@ export {
   releaseUpgradeKey,
   RELEASE_NOTIFICATIONS_MUTED_KEY,
 };
+
+export function installChunkLoadRecovery(): () => void {
+  return installBrowserChunkLoadRecovery(requestChunkLoadRecovery);
+}
+
+export function installVersionUpdateWatch(): () => void {
+  return installBrowserVersionUpdateWatch({
+    runningBuildId: BUILD_ID,
+    onUpdateAvailable: markUpdateAvailable,
+  });
+}
 
 export function markCurrentReleaseSeen(tag: string | null | undefined): void {
   browserReleaseNotificationStorage.markCurrentReleaseSeen(tag);

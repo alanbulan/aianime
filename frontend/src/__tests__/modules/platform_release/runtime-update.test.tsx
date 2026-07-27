@@ -1,15 +1,13 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { deployedVersionDiffers } from "@/lib/version-update-watch";
 import {
   dismissUpdateAvailable,
   markUpdateAvailable,
   resetUpdateAvailableForTests,
   useUpdateAvailable,
-} from "@/lib/app-update-available";
+} from "@/modules/platform_release/application/update-availability";
+import { deployedVersionDiffers } from "@/modules/platform_release/domain/runtime-update";
 
 describe("deployedVersionDiffers", () => {
   it("is false when the deployed version matches the running one", () => {
@@ -21,8 +19,6 @@ describe("deployedVersionDiffers", () => {
   });
 
   it("is false when the manifest could not be read (null)", () => {
-    // A failed/garbage fetch must never nag — better a missed nudge than a
-    // false one on every poll.
     expect(deployedVersionDiffers(null, "260630-abc123")).toBe(false);
   });
 });
@@ -48,7 +44,6 @@ describe("app-update-available store", () => {
     act(() => markUpdateAvailable());
     act(() => dismissUpdateAvailable());
     act(() => markUpdateAvailable());
-    // Once dismissed for this session we never re-nag.
     expect(result.current).toBe(false);
   });
 

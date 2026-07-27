@@ -4,8 +4,10 @@ import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { ThemedToaster } from "@/components/themed-toaster";
 import { DesktopTitleBar } from "@/components/layout/desktop-title-bar";
-import { AppUpdateRequired } from "@/components/app-update-required";
-import { isChunkLoadError } from "@/lib/chunk-load-recovery";
+import {
+  AppUpdateRequired,
+  isChunkLoadError,
+} from "@/modules/platform_release/public";
 
 /**
  * Moves keyboard focus to the main landmark on each navigation, so

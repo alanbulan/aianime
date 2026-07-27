@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
 import { RefreshCw, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -7,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import {
   dismissUpdateAvailable,
   useUpdateAvailable,
-} from "@/lib/app-update-available";
+} from "@/modules/platform_release/application/update-availability";
 
 export function AppUpdateAvailable() {
   const { t } = useTranslation();
@@ -19,7 +17,10 @@ export function AppUpdateAvailable() {
     <div className="pointer-events-none fixed inset-x-0 bottom-12 z-[1000] flex justify-center px-4">
       <div className="pointer-events-auto flex h-[54px] w-fit max-w-[calc(100vw-32px)] items-center gap-[22px] rounded-[8px] border border-border bg-popover/95 px-[11px] text-popover-foreground shadow-xl backdrop-blur-xl">
         <div className="flex min-w-0 items-center gap-[7px]">
-          <RefreshCw className="size-[13px] shrink-0 text-muted-foreground" aria-hidden="true" />
+          <RefreshCw
+            className="size-[13px] shrink-0 text-muted-foreground"
+            aria-hidden="true"
+          />
           <p className="min-w-0 max-w-[151px] truncate text-[12px] font-semibold text-foreground">
             {t("app.updateAvailable.title")}
           </p>

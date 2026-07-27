@@ -1709,6 +1709,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百二十四批已建立前端 Platform Release domain/application/infrastructure/composition/public 边界，将发布 feed 契约、locale 归一与纯展示判定迁入 domain，将查询编排和 HTTP/localStorage 契约迁入 application ports，并由唯一 HTTP gateway 与浏览器存储适配器分别持有端点和持久化键；Header、通知抽屉和版本更新弹窗全部改经 public API，旧 `lib/queries/release-notifications.ts` 与 `lib/release-notification-state.ts` 直接删除，不保留 facade、re-export 或第二套查询/存储实现。请求路径、查询键、locale 回退、缓存与聚焦刷新策略、localStorage 键、通知展示和已读/跳过语义均保持不变；发布通知相关 4 个测试文件 10 项、前端完整分层门禁 209 项、`tsc -b --pretty false` 与 `git diff --check` 均通过。
 
+第三百二十五批已将前端部署版本差异与 Chunk 加载错误识别迁入 Platform Release domain，将可关闭更新提示和强制刷新状态迁入 application，将 `/version.json` 轮询、可见性监听、Vite preload error 与未处理 Promise 拒绝监听迁入唯一 browser infrastructure 适配器，并将两张更新提示界面迁入 presentation；应用 bootstrap、router shell 与根路由错误兜底全部改经 public API，旧 `lib/version-update-watch.ts`、`lib/app-update-available.ts`、`lib/chunk-load-recovery.ts` 及两个旧 component 直接删除，不保留 facade、re-export 或第二套监听/状态实现。生产模式限定、120 秒轮询、no-store/cache-bust、后台暂停与恢复检查、会话内关闭后不再提示、Chunk 错误阻止冒泡、强制刷新覆盖层和普通路由错误语义均保持不变；运行时更新与恢复回归 2 个测试文件 12 项、前端完整分层门禁 209 项、`tsc -b --pretty false` 与 `git diff --check` 均通过。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

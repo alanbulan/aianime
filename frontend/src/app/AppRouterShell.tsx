@@ -1,10 +1,12 @@
 // Copyright (c) 2026 AI anime
 import { RouterProvider } from "@tanstack/react-router";
 
-import { AppUpdateAvailable } from "@/components/app-update-available";
-import { AppUpdateRequired } from "@/components/app-update-required";
-import { useChunkLoadRecoveryRequired } from "@/lib/chunk-load-recovery";
 import { router } from "@/app/router";
+import {
+  AppUpdateAvailable,
+  AppUpdateRequired,
+  useChunkLoadRecoveryRequired,
+} from "@/modules/platform_release/public";
 
 export function AppRouterShell() {
   const updateRequired = useChunkLoadRecoveryRequired();

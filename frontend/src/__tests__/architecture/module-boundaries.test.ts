@@ -7174,12 +7174,30 @@ describe("frontend architecture boundaries", () => {
         readFileSync(path, "utf8").includes("ai-anime:release-seen:"),
       )
       .map(relativeSource);
+    const versionManifestOwners = externalSources
+      .filter((path) => readFileSync(path, "utf8").includes("/version.json"))
+      .map(relativeSource);
+    const chunkRecoveryOwners = externalSources
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("vite:preloadError"),
+      )
+      .map(relativeSource);
+    const removedRuntimeUpdateFiles = [
+      "lib/app-update-available.ts",
+      "lib/chunk-load-recovery.ts",
+      "lib/version-update-watch.ts",
+      "components/app-update-available.tsx",
+      "components/app-update-required.tsx",
+    ].filter((path) => existsSync(resolve(SRC_ROOT, path)));
 
     expect(existsSync(resolve(SRC_ROOT, "lib/queries/release-notifications.ts"))).toBe(false);
     expect(existsSync(resolve(SRC_ROOT, "lib/release-notification-state.ts"))).toBe(false);
+    expect(removedRuntimeUpdateFiles).toEqual([]);
     expect(internalImportFailures).toEqual([]);
     expect(endpointOwners).toEqual([]);
     expect(storageOwners).toEqual([]);
+    expect(versionManifestOwners).toEqual([]);
+    expect(chunkRecoveryOwners).toEqual([]);
     expect(
       readFileSync(
         resolve(
@@ -7198,6 +7216,24 @@ describe("frontend architecture boundaries", () => {
         "utf8",
       ),
     ).toContain("ai-anime:release-seen:");
+    expect(
+      readFileSync(
+        resolve(
+          moduleRoot,
+          "infrastructure/browser-version-update-watch.ts",
+        ),
+        "utf8",
+      ),
+    ).toContain("/version.json");
+    expect(
+      readFileSync(
+        resolve(
+          moduleRoot,
+          "infrastructure/browser-chunk-load-recovery.ts",
+        ),
+        "utf8",
+      ),
+    ).toContain("vite:preloadError");
   });
 
   it("keeps Story Intake callers on its public API", () => {

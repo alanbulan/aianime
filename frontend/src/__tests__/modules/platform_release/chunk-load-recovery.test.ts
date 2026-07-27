@@ -1,15 +1,13 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 ClaymoreLab
-import { beforeEach, describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import {
-  installChunkLoadRecovery,
-  isChunkLoadError,
   requestChunkLoadRecovery,
   resetChunkLoadRecoveryForTests,
-} from "@/lib/chunk-load-recovery";
+} from "@/modules/platform_release/application/chunk-load-recovery";
+import { isChunkLoadError } from "@/modules/platform_release/domain/runtime-update";
+import { installChunkLoadRecovery } from "@/modules/platform_release/public";
 
 describe("chunk-load-recovery", () => {
   beforeEach(() => {
@@ -18,7 +16,9 @@ describe("chunk-load-recovery", () => {
 
   it("asks the user to refresh for dynamic import failures without auto-reloading", () => {
     const result = requestChunkLoadRecovery(
-      new TypeError("Failed to fetch dynamically imported module: /assets/freezone.lazy-old.js"),
+      new TypeError(
+        "Failed to fetch dynamically imported module: /assets/freezone.lazy-old.js",
+      ),
     );
 
     expect(result).toBe("needs-user-reload");
@@ -41,16 +41,28 @@ describe("chunk-load-recovery", () => {
   });
 
   it("recognizes common browser chunk failure messages", () => {
-    expect(isChunkLoadError(new Error("ChunkLoadError: Loading chunk 123 failed."))).toBe(true);
+    expect(
+      isChunkLoadError(new Error("ChunkLoadError: Loading chunk 123 failed.")),
+    ).toBe(true);
     expect(isChunkLoadError("Importing a module script failed.")).toBe(true);
-    expect(isChunkLoadError(new Error("Failed to fetch dynamically imported module"))).toBe(true);
-    expect(isChunkLoadError(new Error("network failed while saving canvas"))).toBe(false);
+    expect(
+      isChunkLoadError(
+        new Error("Failed to fetch dynamically imported module"),
+      ),
+    ).toBe(true);
+    expect(
+      isChunkLoadError(new Error("network failed while saving canvas")),
+    ).toBe(false);
   });
 
   it("prevents Vite preload chunk failures from bubbling into a retry loop", () => {
     const cleanup = installChunkLoadRecovery();
-    const event = new Event("vite:preloadError", { cancelable: true }) as Event & { payload?: unknown };
-    event.payload = new TypeError("Failed to fetch dynamically imported module: /assets/freezone.lazy-old.js");
+    const event = new Event("vite:preloadError", {
+      cancelable: true,
+    }) as Event & { payload?: unknown };
+    event.payload = new TypeError(
+      "Failed to fetch dynamically imported module: /assets/freezone.lazy-old.js",
+    );
 
     const dispatched = window.dispatchEvent(event);
 
@@ -64,13 +76,18 @@ describe("chunk-load-recovery", () => {
       "utf8",
     );
     const updatePromptSource = readFileSync(
-      resolve(process.cwd(), "src/components/app-update-required.tsx"),
+      resolve(
+        process.cwd(),
+        "src/modules/platform_release/presentation/AppUpdateRequired.tsx",
+      ),
       "utf8",
     );
 
     expect(shellSource).not.toContain("if (updateRequired) {");
     expect(shellSource).toContain("<RouterProvider router={router} />");
-    expect(shellSource).toContain("updateRequired ? <AppUpdateRequired /> : <AppUpdateAvailable />");
+    expect(shellSource).toContain(
+      "updateRequired ? <AppUpdateRequired /> : <AppUpdateAvailable />",
+    );
     expect(updatePromptSource).toContain("fixed inset-0");
   });
 });

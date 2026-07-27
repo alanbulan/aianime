@@ -6,13 +6,15 @@ import { installApiRuntime } from "@/app/api-runtime";
 import { queryClient } from "@/app/query-client";
 import { router } from "@/app/router";
 import { setAppRouter } from "@/lib/app-router";
-import { installChunkLoadRecovery } from "@/lib/chunk-load-recovery";
 import { loadClusterConfig } from "@/lib/cluster-config";
 import { initDevBackendWatch } from "@/lib/dev-backend-watch";
 import { installDomReconciliationGuard } from "@/lib/dom-reconciliation-guard";
 import { getOrCreateReactRoot } from "@/lib/react-root";
 import { loadRuntimeConfig } from "@/lib/runtime-config";
-import { installVersionUpdateWatch } from "@/lib/version-update-watch";
+import {
+  installChunkLoadRecovery,
+  installVersionUpdateWatch,
+} from "@/modules/platform_release/public";
 
 function installApplicationRuntime() {
   // The desktop CSP forbids eval, so Zod must use its non-JIT parser.
