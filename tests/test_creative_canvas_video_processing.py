@@ -7,7 +7,7 @@ import pytest
 from fastapi import HTTPException
 
 from ai_anime.api.routes.canvas import video as video_processing_routes
-from ai_anime.api.schemas import FreezoneExtractFramesRequest
+from ai_anime.api.schemas import FreezoneExtractFramesRequest, FreezoneVideoEraseRequest
 from ai_anime.modules.creative_canvas.application.task_submission import (
     CreativeCanvasTaskReceipt,
     CreativeCanvasTaskSubmission,
@@ -15,6 +15,7 @@ from ai_anime.modules.creative_canvas.application.task_submission import (
 from ai_anime.modules.creative_canvas.application.video_processing import (
     CREATIVE_CANVAS_FRAME_EXTRACTION_TASK_TYPE,
     CREATIVE_CANVAS_SHOT_ANALYSIS_TASK_TYPE,
+    CREATIVE_CANVAS_VIDEO_ERASE_TASK_TYPE,
     CREATIVE_CANVAS_VIDEO_STORY_TASK_TYPE,
     CREATIVE_CANVAS_VIDEO_UPSCALE_TASK_TYPE,
     CreativeCanvasVideoProcessingSourceMissing,
@@ -22,6 +23,7 @@ from ai_anime.modules.creative_canvas.application.video_processing import (
     InvalidCreativeCanvasVideoProcessingRequest,
     StartCreativeCanvasFrameExtractionCommand,
     StartCreativeCanvasShotAnalysisCommand,
+    StartCreativeCanvasVideoEraseCommand,
     StartCreativeCanvasVideoUpscaleCommand,
     StartCreativeCanvasVideoStoryAnalysisCommand,
 )
@@ -29,6 +31,7 @@ from ai_anime.modules.creative_canvas.infrastructure.media_sources import (
     ProjectCreativeCanvasMediaSourceResolver,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.task_backend.limits import ProjectTaskLimitExceeded
 
 
 def _project_context(tmp_path: Path) -> ProjectContext:
@@ -102,7 +105,13 @@ async def test_video_processing_enqueues_exact_task_payloads(tmp_path: Path) -> 
     scheduler = _CapturingScheduler(context)
     use_cases = CreativeCanvasVideoProcessingUseCases(
         ProjectCreativeCanvasMediaSourceResolver(),
-        _FixedJobIds("job-extract", "job-analyze", "job-story", "job-upscale"),
+        _FixedJobIds(
+            "job-extract",
+            "job-analyze",
+            "job-story",
+            "job-upscale",
+            "job-erase",
+        ),
         scheduler,
     )
 
@@ -147,11 +156,24 @@ async def test_video_processing_enqueues_exact_task_payloads(tmp_path: Path) -> 
             denoise_strength="2x",
         )
     )
+    erase = await use_cases.start_video_erase(
+        StartCreativeCanvasVideoEraseCommand(
+            context=context,
+            project_dir=project_dir,
+            source_url="freezone/_uploads/clip.mp4",
+            mode="box",
+            box_x=0.1,
+            box_y=0.2,
+            box_width=0.3,
+            box_height=0.4,
+        )
+    )
 
     assert extract == _receipt(CREATIVE_CANVAS_FRAME_EXTRACTION_TASK_TYPE, "job-extract")
     assert analyze == _receipt(CREATIVE_CANVAS_SHOT_ANALYSIS_TASK_TYPE, "job-analyze")
     assert story == _receipt(CREATIVE_CANVAS_VIDEO_STORY_TASK_TYPE, "job-story")
     assert upscale == _receipt(CREATIVE_CANVAS_VIDEO_UPSCALE_TASK_TYPE, "job-upscale")
+    assert erase == _receipt(CREATIVE_CANVAS_VIDEO_ERASE_TASK_TYPE, "job-erase")
     assert scheduler.tasks == [
         CreativeCanvasTaskSubmission(
             task_type=CREATIVE_CANVAS_FRAME_EXTRACTION_TASK_TYPE,
@@ -197,6 +219,20 @@ async def test_video_processing_enqueues_exact_task_payloads(tmp_path: Path) -> 
                 "resolution": "2k",
                 "frame_interpolation": "none",
                 "denoise_strength": "2x",
+            },
+        ),
+        CreativeCanvasTaskSubmission(
+            task_type=CREATIVE_CANVAS_VIDEO_ERASE_TASK_TYPE,
+            queue_kind="ffmpeg",
+            job_id="job-erase",
+            project_dir=project_dir,
+            payload={
+                "source_path": video.as_posix(),
+                "mode": "box",
+                "box_x": 0.1,
+                "box_y": 0.2,
+                "box_width": 0.3,
+                "box_height": 0.4,
             },
         ),
     ]
@@ -258,6 +294,20 @@ async def test_video_processing_preserves_source_error_contracts(tmp_path: Path)
     assert upscale_exc.value.field_name == "video source"
 
     with pytest.raises(
+        CreativeCanvasVideoProcessingSourceMissing,
+        match="video source not found: ",
+    ) as erase_exc:
+        await use_cases.start_video_erase(
+            StartCreativeCanvasVideoEraseCommand(
+                context=context,
+                project_dir=context.output_dir,
+                source_url="freezone/_uploads/missing.mp4",
+                mode="smart_subtitle",
+            )
+        )
+    assert erase_exc.value.field_name == "video source"
+
+    with pytest.raises(
         InvalidCreativeCanvasVideoProcessingRequest,
         match=r"frame_urls is required \(non-empty\)",
     ):
@@ -283,6 +333,48 @@ async def test_video_processing_preserves_source_error_contracts(tmp_path: Path)
             )
         )
     assert frame_exc.value.field_name == "frame"
+    assert scheduler.tasks == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "missing_field",
+    ("box_x", "box_y", "box_width", "box_height"),
+)
+async def test_video_erase_requires_complete_box(
+    tmp_path: Path,
+    missing_field: str,
+) -> None:
+    context = _project_context(tmp_path)
+    _write_media(context.output_dir / "freezone" / "_uploads" / "clip.mp4")
+    scheduler = _CapturingScheduler(context)
+    use_cases = CreativeCanvasVideoProcessingUseCases(
+        ProjectCreativeCanvasMediaSourceResolver(),
+        _FixedJobIds("unused"),
+        scheduler,
+    )
+    box = {
+        "box_x": 0.1,
+        "box_y": 0.2,
+        "box_width": 0.3,
+        "box_height": 0.4,
+    }
+    box[missing_field] = None
+
+    with pytest.raises(
+        InvalidCreativeCanvasVideoProcessingRequest,
+        match="box mode requires box_x, box_y, box_width and box_height",
+    ):
+        await use_cases.start_video_erase(
+            StartCreativeCanvasVideoEraseCommand(
+                context=context,
+                project_dir=context.output_dir,
+                source_url="freezone/_uploads/clip.mp4",
+                mode="box",
+                **box,
+            )
+        )
+
     assert scheduler.tasks == []
 
 
@@ -374,3 +466,77 @@ async def test_video_processing_route_preserves_runtime_error(
             body=FreezoneExtractFramesRequest(video_url="video.mp4"),
             user={"username": "alice"},
         )
+
+
+@pytest.mark.asyncio
+async def test_video_erase_route_maps_runtime_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    context = _project_context(tmp_path)
+
+    async def fake_resolve_project_scope(*_args, **_kwargs):
+        return SimpleNamespace(ctx=context, project_dir=context.output_dir)
+
+    class FailingUseCases:
+        async def start_video_erase(self, _command):
+            raise RuntimeError("ffmpeg queue unavailable")
+
+    monkeypatch.setattr(
+        video_processing_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
+    monkeypatch.setattr(
+        video_processing_routes,
+        "creative_canvas_video_processing_use_cases",
+        lambda: FailingUseCases(),
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        await video_processing_routes.freezone_video_erase(
+            project="project-1",
+            body=FreezoneVideoEraseRequest(source_url="video.mp4"),
+            user={"username": "alice"},
+        )
+
+    assert exc.value.status_code == 503
+    assert exc.value.detail == (
+        "failed to start freezone video erase task: ffmpeg queue unavailable"
+    )
+
+
+@pytest.mark.asyncio
+async def test_video_erase_route_preserves_task_limit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    context = _project_context(tmp_path)
+    limit = ProjectTaskLimitExceeded("project-1", "ffmpeg", 2, 2)
+
+    async def fake_resolve_project_scope(*_args, **_kwargs):
+        return SimpleNamespace(ctx=context, project_dir=context.output_dir)
+
+    class FailingUseCases:
+        async def start_video_erase(self, _command):
+            raise limit
+
+    monkeypatch.setattr(
+        video_processing_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
+    monkeypatch.setattr(
+        video_processing_routes,
+        "creative_canvas_video_processing_use_cases",
+        lambda: FailingUseCases(),
+    )
+
+    with pytest.raises(ProjectTaskLimitExceeded) as exc:
+        await video_processing_routes.freezone_video_erase(
+            project="project-1",
+            body=FreezoneVideoEraseRequest(source_url="video.mp4"),
+            user={"username": "alice"},
+        )
+
+    assert exc.value is limit

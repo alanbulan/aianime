@@ -15,11 +15,16 @@ from ai_anime.modules.creative_canvas.application.task_submission import (
     CreativeCanvasTaskScheduler,
     CreativeCanvasTaskSubmission,
 )
+from ai_anime.modules.creative_canvas.domain.video_processing import (
+    CreativeCanvasVideoEraseMode,
+    validate_video_erase_box,
+)
 from ai_anime.modules.project_workspace.public import ProjectContext
 
 CREATIVE_CANVAS_FRAME_EXTRACTION_TASK_TYPE = "freezone_extract"
 CREATIVE_CANVAS_SHOT_ANALYSIS_TASK_TYPE = "freezone_analyze"
 CREATIVE_CANVAS_VIDEO_STORY_TASK_TYPE = "freezone_video_story"
+CREATIVE_CANVAS_VIDEO_ERASE_TASK_TYPE = "freezone_video_erase"
 CREATIVE_CANVAS_VIDEO_UPSCALE_TASK_TYPE = "freezone_video_upscale"
 CreativeCanvasShotAnalysisMode = Literal["shots", "video_story"]
 
@@ -71,6 +76,18 @@ class StartCreativeCanvasVideoUpscaleCommand:
     resolution: str
     frame_interpolation: str
     denoise_strength: str
+
+
+@dataclass(frozen=True)
+class StartCreativeCanvasVideoEraseCommand:
+    context: ProjectContext
+    project_dir: Path
+    source_url: str
+    mode: CreativeCanvasVideoEraseMode
+    box_x: float | None = None
+    box_y: float | None = None
+    box_width: float | None = None
+    box_height: float | None = None
 
 
 class CreativeCanvasVideoProcessingUseCases:
@@ -174,6 +191,40 @@ class CreativeCanvasVideoProcessingUseCases:
                 "resolution": command.resolution,
                 "frame_interpolation": command.frame_interpolation,
                 "denoise_strength": command.denoise_strength,
+            },
+        )
+
+    async def start_video_erase(
+        self,
+        command: StartCreativeCanvasVideoEraseCommand,
+    ) -> CreativeCanvasTaskReceipt:
+        source_path = self._resolve_existing_source(
+            command.project_dir,
+            command.source_url,
+            field_name="video source",
+        )
+        try:
+            validate_video_erase_box(
+                command.mode,
+                box_x=command.box_x,
+                box_y=command.box_y,
+                box_width=command.box_width,
+                box_height=command.box_height,
+            )
+        except ValueError as exc:
+            raise InvalidCreativeCanvasVideoProcessingRequest(str(exc)) from exc
+        return await self._enqueue(
+            context=command.context,
+            project_dir=command.project_dir,
+            task_type=CREATIVE_CANVAS_VIDEO_ERASE_TASK_TYPE,
+            queue_kind="ffmpeg",
+            payload={
+                "source_path": source_path.as_posix(),
+                "mode": command.mode,
+                "box_x": command.box_x,
+                "box_y": command.box_y,
+                "box_width": command.box_width,
+                "box_height": command.box_height,
             },
         )
 

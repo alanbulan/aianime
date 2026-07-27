@@ -44,7 +44,6 @@ from ai_anime.api.schemas import (
     FreezoneStoryScriptGenerateRequest,
     FreezoneTextTranslateRequest,
     FreezoneVideoComposeRequest,
-    FreezoneVideoEraseRequest,
     ImpactRequest,
     PresetCanvasRequest,
     ProjectionPresetCanvasRequest,
@@ -1520,7 +1519,6 @@ async def _enqueue_or_start_freezone_media_job(
     project: str,
     project_dir: Path,
     task_type: Literal[
-        "freezone_video_erase",
         "freezone_audio_separate",
         "freezone_video_compose",
         "freezone_audio_eleven_music",
@@ -4387,74 +4385,6 @@ def _start_freezone_video_compose_task(
     asyncio.create_task(_runner())
 
 
-def _start_freezone_video_erase_task(
-    *,
-    username: str,
-    project: str,
-    project_dir: Path,
-    job_id: str,
-    source_path: Path,
-    body: FreezoneVideoEraseRequest,
-) -> None:
-    task_type = "freezone_video_erase"
-    task_manager = get_task_manager()
-    task_manager.create_task(
-        task_type, username, project, episode=0, scope=job_id, status="starting"
-    )
-
-    async def _runner() -> None:
-        try:
-            task_manager.update_progress(
-                task_type,
-                username,
-                project,
-                episode=0,
-                scope=job_id,
-                progress=0.05,
-                current_task="analyzing_video",
-                logs=["开始视频擦除处理"],
-            )
-            from ai_anime.freezone.jobs import run_freezone_video_erase
-
-            output_path, meta = await run_freezone_video_erase(
-                project_dir=project_dir,
-                job_id=job_id,
-                source_path=str(source_path),
-                mode=body.mode,
-                box_x=body.box_x,
-                box_y=body.box_y,
-                box_width=body.box_width,
-                box_height=body.box_height,
-            )
-            task_manager.complete_task(
-                task_type,
-                username,
-                project,
-                episode=0,
-                scope=job_id,
-                result={
-                    "output_format": "mp4",
-                    "output_path": str(output_path),
-                    "meta": meta,
-                },
-                current_task="completed",
-                logs=["视频擦除完成"],
-            )
-        except Exception as exc:
-            task_manager.fail_task(
-                task_type,
-                username,
-                project,
-                episode=0,
-                scope=job_id,
-                error=str(exc),
-                current_task="failed",
-                logs=[f"错误: {exc}"],
-            )
-
-    asyncio.create_task(_runner())
-
-
 def _start_freezone_audio_separate_task(
     *,
     username: str,
@@ -5126,74 +5056,6 @@ async def freezone_story_script_generate(
 
     return _accepted_job_response(
         task_type="freezone_story_script",
-        username=username,
-        project=project_name,
-        job_id=job_id,
-    )
-
-
-@router.post(
-    "/projects/{project}/freezone/video/erase",
-    response_model=FreezoneJobAcceptedResponse,
-    tags=[TAG_FREEZONE_VIDEO],
-)
-async def freezone_video_erase(
-    project: str,
-    body: FreezoneVideoEraseRequest,
-    user: dict = Depends(get_api_user),
-):
-    """视频处理：智能去字幕 / 框选擦除。
-
-    当前为稳定的一期实现：
-    - `smart_subtitle`：自动估计底部字幕区域后执行视频擦除
-    - `box`：按前端传入的固定框执行区域擦除
-    """
-    ctx, username, project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project, user
-    )
-
-    try:
-        source_path = resolve_static_url_to_path(body.source_url, project_dir)
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
-    if not source_path.exists():
-        raise HTTPException(404, f"video source not found: {source_path}")
-    if body.mode == "box" and None in {body.box_x, body.box_y, body.box_width, body.box_height}:
-        raise HTTPException(400, "box mode requires box_x, box_y, box_width and box_height")
-
-    try:
-        job_id = _new_job_id()
-        if ctx is not None:
-            return await _enqueue_or_start_freezone_media_job(
-                ctx=ctx,
-                username=username,
-                project=project_name,
-                project_dir=project_dir,
-                task_type="freezone_video_erase",
-                job_id=job_id,
-                payload={
-                    "source_path": source_path.as_posix(),
-                    "mode": body.mode,
-                    "box_x": body.box_x,
-                    "box_y": body.box_y,
-                    "box_width": body.box_width,
-                    "box_height": body.box_height,
-                },
-            )
-        _start_freezone_video_erase_task(
-            username=username,
-            project=project_name,
-            project_dir=project_dir,
-            job_id=job_id,
-            source_path=source_path,
-            body=body,
-        )
-    except RuntimeError as exc:
-        _handle_task_start_runtime_error("failed to start freezone video erase task", exc)
-        raise HTTPException(503, f"failed to start freezone video erase task: {exc}") from exc
-
-    return _accepted_job_response(
-        task_type="freezone_video_erase",
         username=username,
         project=project_name,
         job_id=job_id,

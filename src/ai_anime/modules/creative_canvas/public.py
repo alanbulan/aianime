@@ -60,6 +60,7 @@ from ai_anime.modules.creative_canvas.application.video_processing import (
     InvalidCreativeCanvasVideoProcessingRequest,
     StartCreativeCanvasFrameExtractionCommand,
     StartCreativeCanvasShotAnalysisCommand,
+    StartCreativeCanvasVideoEraseCommand,
     StartCreativeCanvasVideoUpscaleCommand,
     StartCreativeCanvasVideoStoryAnalysisCommand,
 )
@@ -92,6 +93,7 @@ from ai_anime.modules.creative_canvas.domain import (
     CreativeCanvasImageStyleConfig,
     CreativeCanvasMarkSelection,
     CreativeCanvasScreenshotTooLarge,
+    CreativeCanvasVideoEraseMode,
     InvalidCreativeCanvasImageSize,
     InvalidCreativeCanvasImageTemplateMode,
     UnsupportedCreativeCanvasImageProvider,
@@ -113,6 +115,7 @@ from ai_anime.modules.creative_canvas.domain import (
     resolve_image_provider,
     summarize_omni_reference_counts,
     validate_omni_reference_limits,
+    validate_video_erase_box,
 )
 
 
@@ -260,6 +263,7 @@ __all__ = [
     "CreativeCanvasVideoAssetSyncResult",
     "CreativeCanvasVideoProcessingSourceMissing",
     "CreativeCanvasVideoProcessingUseCases",
+    "CreativeCanvasVideoEraseMode",
     "CreativeCanvasScreenshotResult",
     "CreativeCanvasScreenshotTooLarge",
     "CreativeCanvasUploadResult",
@@ -290,6 +294,7 @@ __all__ = [
     "StartCreativeCanvasKeyframeVideoCommand",
     "StartCreativeCanvasOmniVideoCommand",
     "StartCreativeCanvasShotAnalysisCommand",
+    "StartCreativeCanvasVideoEraseCommand",
     "StartCreativeCanvasVideoUpscaleCommand",
     "StartCreativeCanvasTextVideoCommand",
     "StartCreativeCanvasVideoEditCommand",
@@ -326,4 +331,5 @@ __all__ = [
     "resolve_image_template_aspect_ratio",
     "summarize_omni_reference_counts",
     "validate_omni_reference_limits",
+    "validate_video_erase_box",
 ]

@@ -54,6 +54,10 @@ from ai_anime.modules.creative_canvas.domain.video_generation import (
     summarize_omni_reference_counts,
     validate_omni_reference_limits,
 )
+from ai_anime.modules.creative_canvas.domain.video_processing import (
+    CreativeCanvasVideoEraseMode,
+    validate_video_erase_box,
+)
 from ai_anime.modules.creative_canvas.domain.video_asset_library import (
     delete_video_asset_library_item,
     upsert_video_asset_library_item,
@@ -69,6 +73,7 @@ __all__ = [
     "CreativeCanvasScreenshotTooLarge",
     "CreativeCanvasMarkSelection",
     "CreativeCanvasMarkSelectionRequired",
+    "CreativeCanvasVideoEraseMode",
     "InvalidCreativeCanvasPngScreenshot",
     "InvalidCreativeCanvasImageToThreeGsSource",
     "InvalidCreativeCanvasImageAspectRatio",
@@ -102,6 +107,7 @@ __all__ = [
     "get_video_camera_templates",
     "summarize_omni_reference_counts",
     "validate_omni_reference_limits",
+    "validate_video_erase_box",
     "delete_video_asset_library_item",
     "upsert_video_asset_library_item",
 ]

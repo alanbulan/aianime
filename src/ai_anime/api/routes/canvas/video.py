@@ -16,6 +16,7 @@ from ai_anime.api.schemas import (
     FreezoneKeyframeVideoRequest,
     FreezoneVideoCharacterLibraryItemRequest,
     FreezoneVideoEditRequest,
+    FreezoneVideoEraseRequest,
     FreezoneVideoGenRequest,
     FreezoneVideoOmniGenRequest,
     FreezoneVideoUpscaleRequest,
@@ -41,6 +42,7 @@ from ai_anime.modules.creative_canvas.public import (
     StartCreativeCanvasShotAnalysisCommand,
     StartCreativeCanvasTextVideoCommand,
     StartCreativeCanvasVideoEditCommand,
+    StartCreativeCanvasVideoEraseCommand,
     StartCreativeCanvasVideoUpscaleCommand,
     StartCreativeCanvasVideoStoryAnalysisCommand,
     SyncCreativeCanvasVideoAssetsCommand,
@@ -461,6 +463,55 @@ async def freezone_video_upscale(
         raise HTTPException(
             503,
             f"failed to start freezone video upscale task: {exc}",
+        ) from exc
+    return _video_processing_response(result)
+
+
+@router.post(
+    "/projects/{project}/freezone/video/erase",
+    response_model=FreezoneJobAcceptedResponse,
+    tags=["freezone-video"],
+)
+async def freezone_video_erase(
+    project: str,
+    body: FreezoneVideoEraseRequest,
+    user: dict = Depends(get_api_user),
+):
+    """视频处理：智能去字幕 / 框选擦除。
+
+    当前为稳定的一期实现：
+    - `smart_subtitle`：自动估计底部字幕区域后执行视频擦除
+    - `box`：按前端传入的固定框执行区域擦除
+    """
+    resolved = await _resolve_editor_project(project, user)
+    try:
+        result = await creative_canvas_video_processing_use_cases().start_video_erase(
+            StartCreativeCanvasVideoEraseCommand(
+                context=resolved.ctx,
+                project_dir=resolved.project_dir,
+                source_url=body.source_url,
+                mode=body.mode,
+                box_x=body.box_x,
+                box_y=body.box_y,
+                box_width=body.box_width,
+                box_height=body.box_height,
+            )
+        )
+    except InvalidCreativeCanvasVideoProcessingRequest as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except CreativeCanvasVideoProcessingSourceMissing as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except (ProjectTaskLimitExceeded, ProjectUserTaskLimitExceeded):
+        raise
+    except RuntimeError as exc:
+        logger.warning(
+            "failed to start freezone video erase task: %s",
+            exc,
+            exc_info=True,
+        )
+        raise HTTPException(
+            503,
+            f"failed to start freezone video erase task: {exc}",
         ) from exc
     return _video_processing_response(result)
 

@@ -374,6 +374,9 @@ def test_freezone_video_processing_routes_delegate_to_application() -> None:
         / "application"
         / "video_processing.py"
     )
+    domain = (
+        PACKAGE_ROOT / "modules" / "creative_canvas" / "domain" / "video_processing.py"
+    )
     source_adapter = (
         PACKAGE_ROOT
         / "modules"
@@ -382,28 +385,33 @@ def test_freezone_video_processing_routes_delegate_to_application() -> None:
         / "media_sources.py"
     )
     runner = PACKAGE_ROOT / "task_backend" / "runners" / "freezone.py"
+    jobs = PACKAGE_ROOT / "freezone" / "jobs.py"
     source = route.read_text(encoding="utf-8")
     legacy_source = legacy_route.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
+    domain_source = domain.read_text(encoding="utf-8")
     adapter_source = source_adapter.read_text(encoding="utf-8")
     runner_source = runner.read_text(encoding="utf-8")
+    jobs_source = jobs.read_text(encoding="utf-8")
 
     endpoint_paths = (
         '"/projects/{project}/freezone/extract-frames"',
         '"/projects/{project}/freezone/analyze-shots"',
         '"/projects/{project}/freezone/analyze-video-story"',
         '"/projects/{project}/freezone/video/upscale"',
+        '"/projects/{project}/freezone/video/erase"',
     )
     for endpoint_path in endpoint_paths:
         assert source.count(endpoint_path) == 1
         assert endpoint_path not in legacy_source
 
-    assert source.count("creative_canvas_video_processing_use_cases().") == 4
+    assert source.count("creative_canvas_video_processing_use_cases().") == 5
     for command in (
         "StartCreativeCanvasFrameExtractionCommand",
         "StartCreativeCanvasShotAnalysisCommand",
         "StartCreativeCanvasVideoStoryAnalysisCommand",
         "StartCreativeCanvasVideoUpscaleCommand",
+        "StartCreativeCanvasVideoEraseCommand",
     ):
         assert command in source
     for legacy_handler in (
@@ -411,8 +419,10 @@ def test_freezone_video_processing_routes_delegate_to_application() -> None:
         "async def freezone_analyze_shots(",
         "async def freezone_analyze_video_story(",
         "async def freezone_video_upscale(",
+        "async def freezone_video_erase(",
         "async def _enqueue_or_start_freezone_video_analysis(",
         "def _start_freezone_video_upscale_task(",
+        "def _start_freezone_video_erase_task(",
     ):
         assert legacy_handler not in legacy_source
     for legacy_schema in (
@@ -420,6 +430,7 @@ def test_freezone_video_processing_routes_delegate_to_application() -> None:
         "FreezoneAnalyzeShotsRequest",
         "FreezoneAnalyzeVideoStoryRequest",
         "FreezoneVideoUpscaleRequest",
+        "FreezoneVideoEraseRequest",
     ):
         assert legacy_schema not in legacy_source
     for implementation_detail in (
@@ -434,6 +445,7 @@ def test_freezone_video_processing_routes_delegate_to_application() -> None:
         ("freezone_analyze", "run_freezone_analyze"),
         ("freezone_video_story", "run_freezone_video_story"),
         ("freezone_video_upscale", "run_freezone_video_upscale"),
+        ("freezone_video_erase", "run_freezone_video_erase"),
     ):
         assert (
             runner_source.count(
@@ -441,6 +453,16 @@ def test_freezone_video_processing_routes_delegate_to_application() -> None:
             )
             == 1
         )
+    assert domain_source.count(
+        "box mode requires box_x, box_y, box_width and box_height"
+    ) == 1
+    assert "validate_video_erase_box(" in application_source
+    assert "validate_video_erase_box(" in jobs_source
+    assert (
+        "box mode requires box_x, box_y, box_width and box_height"
+        not in application_source
+    )
+    assert "box mode requires box_x, box_y, box_width and box_height" not in jobs_source
     assert not (
         PACKAGE_ROOT
         / "modules"

@@ -1674,6 +1674,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百九十五批已将视频高清增强的源视频解析、存在性校验、参数 DTO 和 `freezone_video_upscale` 任务提交并入 Creative Canvas video-processing application，并将既有 POST 端点迁入 video FastAPI 子 router；生产项目解析始终提供 `ProjectContext` 且任务后端已有唯一 runner，因此旧 `freezone.py` handler、不可达的内联 `asyncio` 启动 helper 和共享媒体提交 helper 中的超分分支全部删除，不新增无领域规则的空壳 domain，不保留 facade、转发函数或第二套执行轨；项目 editor 鉴权、主节点错误上下文、路径越界和 `video source not found` 文案、1080p/2k/4k 与降噪/补帧参数、`freezone_video_upscale`/ffmpeg 队列/payload、项目级 task key、限流透传、503 日志与文案、请求路径、OpenAPI tag/说明、响应字段、结果查询和唯一 runner 均保持不变；视频上下文回归 45 项、大型 Freezone/目录/runner 回归 151 项、M06 完整合同 17 项、任务注册表 3 项和后端完整分层门禁 74 项均通过，4 条冷启动导入、Ruff 与 `git diff --check` 通过，8 条告警均为既有依赖弃用告警。
 
+第二百九十六批已将视频擦除的源视频解析、存在性校验、擦除参数 DTO 和 `freezone_video_erase` 任务提交并入 Creative Canvas video-processing application，并将既有 POST 端点迁入 video FastAPI 子 router；box 模式四项归一化坐标必须完整的规则迁入唯一纯 domain 函数，application 入队与既有 Freezone 执行任务共同复用，旧 `freezone.py` handler、不可达的内联 `asyncio` 启动 helper 和共享媒体提交 helper 中的擦除分支全部删除，不保留 facade、转发函数、重复校验或第二套执行轨；项目 editor 鉴权、主节点错误上下文、路径越界和 `video source not found` 文案、`smart_subtitle`/`box` 模式与缺参 400 文案、`freezone_video_erase`/ffmpeg 队列/payload、项目级 task key、限流透传、503 日志与文案、请求路径、OpenAPI tag/说明、响应字段、结果查询路径和唯一 runner 均保持不变；视频上下文回归 51 项、大型 Freezone 回归 301 项、M06 完整合同 17 项、任务注册表 3 项和后端完整分层门禁 74 项均通过，4 条冷启动导入、Ruff 与 `git diff --check` 通过，8 条告警均为既有依赖弃用告警。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

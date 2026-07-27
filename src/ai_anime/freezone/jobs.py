@@ -26,6 +26,7 @@ import numpy as np
 from PIL import Image
 
 from ai_anime.freezone.paths import output_path_for_job, outputs_dir
+from ai_anime.modules.creative_canvas.public import validate_video_erase_box
 
 logger = logging.getLogger(__name__)
 
@@ -1037,11 +1038,19 @@ async def run_freezone_video_erase(
     width, height = await _probe_video_size(source_path)
     with tempfile.TemporaryDirectory(prefix=f"freezone_erase_{job_id}_") as temp_dir_str:
         temp_dir = Path(temp_dir_str)
+        try:
+            validate_video_erase_box(
+                mode,
+                box_x=box_x,
+                box_y=box_y,
+                box_width=box_width,
+                box_height=box_height,
+            )
+        except ValueError as exc:
+            raise RuntimeError(str(exc)) from exc
         if mode == "smart_subtitle":
             x, y, w, h = await _detect_subtitle_box(source_path, temp_dir)
         elif mode == "box":
-            if None in {box_x, box_y, box_width, box_height}:
-                raise RuntimeError("box mode requires box_x, box_y, box_width and box_height")
             x, y, w, h = _normalized_box_to_pixels(
                 box_x=float(box_x),
                 box_y=float(box_y),
