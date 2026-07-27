@@ -25,7 +25,6 @@ from ai_anime.api.deps import (
     make_static_url_for_context,
 )
 from ai_anime.api.schemas import (
-    CreateIdentityAssetRequest,
     FreezoneFrameFromContextRequest,
     FreezoneImageCameraConfig,
     FreezoneImageStyleConfig,
@@ -112,11 +111,10 @@ from ai_anime.freezone.skill_registry import (
     list_skills,
 )
 from ai_anime.freezone.slots import (
-    IdentityTarget,
     SlotTarget,
     slot_target_path,
 )
-from ai_anime.models import CharacterIdentity, beat_scene_id
+from ai_anime.models import beat_scene_id
 from ai_anime.modules.project_workspace.public import (
     ProjectContext,
     require_project_home_node,
@@ -1496,7 +1494,6 @@ FrameReviewReviewer = Callable[[str], str | Awaitable[str]]
 _agent_review_frame_reviewer: FrameReviewReviewer | None = None
 
 TAG_FREEZONE_IMAGE = "freezone-image"
-TAG_FREEZONE_ASSETS = "freezone-assets"
 
 TAG_FREEZONE_JOBS = "freezone-jobs"
 TAG_FREEZONE_SKILLS = "freezone-skills"
@@ -4003,103 +4000,3 @@ def _canvas_state_project_dir(ctx: ProjectContext | None, output_project_dir: Pa
     if ctx is not None:
         return Path(ctx.state_dir)
     return output_project_dir
-
-
-
-
-# ============================================================
-# Commit 到 canonical slot（Freezone → Slot）
-# ============================================================
-
-
-@router.post("/projects/{project}/freezone/assets/identities", tags=[TAG_FREEZONE_ASSETS])
-async def freezone_create_identity_asset(
-    project: str,
-    body: CreateIdentityAssetRequest,
-    user: dict = Depends(get_api_user),
-):
-    """从选中的 Freezone 图片创建一个新的角色 identity。
-
-    这个接口故意和 `/freezone/push` 分开：
-    `push` 是覆盖已有 canonical slot，
-    这里则是新建一个全新的 identity slot，并注册进项目存储。
-    """
-    ctx, username, _project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project, user
-    )
-
-    character = body.character.strip()
-    identity_name = body.identity_name.strip()
-    if not character:
-        raise HTTPException(400, "character is required")
-    if not identity_name:
-        raise HTTPException(400, "identity_name is required")
-
-    try:
-        source_path = resolve_static_url_to_path(body.source_url, project_dir)
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
-    if not source_path.exists():
-        raise HTTPException(404, f"source file not found: {source_path}")
-
-    store = await make_sqlite_store_for_context(ctx)
-    try:
-        char = store.get_character(character)
-        if not char:
-            raise HTTPException(404, f"character not found: {character}")
-        identity = CharacterIdentity(
-            identity_id=f"{character}_{identity_name}",
-            character_name=character,
-            identity_name=identity_name,
-            appearance_details=body.appearance_details.strip(),
-            face_prompt=body.face_prompt.strip(),
-            age_group=body.age_group.strip(),
-            source="freezone",
-        )
-        if any(existing.identity_id == identity.identity_id for existing in char.identities):
-            raise HTTPException(409, f"identity already exists: {identity.identity_id}")
-        target = slot_target_path(
-            project_dir,
-            IdentityTarget(
-                character=character,
-                identity_id=identity.identity_id,
-            ),
-        )
-        if target.exists():
-            raise HTTPException(409, f"identity image already exists: {identity.identity_id}")
-        target.parent.mkdir(parents=True, exist_ok=True)
-        try:
-            from PIL import Image
-
-            with Image.open(source_path) as img:
-                img.convert("RGB").save(target, format="PNG")
-        except Exception:
-            shutil.copy2(source_path, target)
-        try:
-            await store.add_character_identity(character, identity)
-        except Exception:
-            try:
-                target.unlink(missing_ok=True)
-            except Exception:
-                logger.warning("failed to rollback copied identity image: %s", target)
-            raise
-    except HTTPException:
-        raise
-    except ValueError as exc:
-        raise HTTPException(409, str(exc)) from exc
-    finally:
-        close = getattr(store, "close", None)
-        if close:
-            await close()
-
-    rel = target.relative_to(project_dir).as_posix()
-    return {
-        "ok": True,
-        "data": {
-            "character": character,
-            "identity_id": identity.identity_id,
-            "identity_name": identity.identity_name,
-            "target_path": str(target),
-            "target_url": make_static_url_for_context(ctx, rel, local_path=target),
-        },
-    }

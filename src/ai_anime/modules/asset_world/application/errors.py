@@ -17,6 +17,10 @@ class CharacterIdentityNotFound(CharacterCatalogRejected):
     """The requested character identity does not exist."""
 
 
+class CharacterIdentityAssetSourceNotFound(CharacterCatalogRejected):
+    """The requested identity import source does not exist."""
+
+
 class InvalidCharacterInput(CharacterCatalogRejected):
     """Character input is not valid for the requested operation."""
 

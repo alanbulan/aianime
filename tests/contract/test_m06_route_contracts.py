@@ -269,6 +269,9 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         canvas_commits,
         canvas_presets,
     )
+    from ai_anime.modules.asset_world.infrastructure import (
+        character_identity as character_identity_infrastructure,
+    )
     from ai_anime.modules.creative_canvas.application.video_asset_library import (
         CreativeCanvasVideoAssetLibraryUseCases,
     )
@@ -470,6 +473,16 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     )
     monkeypatch.setattr(
         canvas_assets,
+        "make_static_url_for_context",
+        static_url,
+    )
+    monkeypatch.setattr(
+        character_identity_infrastructure,
+        "make_sqlite_store_for_context",
+        make_store_for_context,
+    )
+    monkeypatch.setattr(
+        character_identity_infrastructure,
         "make_static_url_for_context",
         static_url,
     )

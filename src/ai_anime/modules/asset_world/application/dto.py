@@ -152,6 +152,24 @@ class CreateIdentityCommand:
     identity_name: str
     age_group: str = ""
     appearance_details: str = ""
+    face_prompt: str = ""
+    source: str = "api"
+
+
+@dataclass(frozen=True)
+class ImportCharacterIdentityAssetCommand:
+    source_url: str
+    character_name: str
+    identity_name: str
+    appearance_details: str = ""
+    face_prompt: str = ""
+    age_group: str = ""
+
+
+@dataclass(frozen=True)
+class ImportedCharacterIdentityAsset:
+    target_path: Path
+    target_url: str
 
 
 @dataclass(frozen=True)

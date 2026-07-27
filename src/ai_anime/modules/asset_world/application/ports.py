@@ -22,6 +22,7 @@ from ai_anime.modules.asset_world.application.dto import (
     DirectorControlFrameExport,
     IdentityAssetPaths,
     IdentityGenerationAssets,
+    ImportedCharacterIdentityAsset,
     PropReferenceGenerationTask,
     SceneReferenceGenerationTask,
     SceneStageGenerationTask,
@@ -776,6 +777,18 @@ class CharacterIdentityAssets(Protocol):
         identity: Any,
         paths: IdentityAssetPaths,
     ) -> str: ...
+
+
+class CharacterIdentityAssetImporter(Protocol):
+    async def import_asset(
+        self,
+        *,
+        context: ProjectContext,
+        project_dir: Path,
+        source_url: str,
+        character_name: str,
+        identity: Any,
+    ) -> ImportedCharacterIdentityAsset: ...
 
 
 class CharacterVoiceRepository(Protocol):

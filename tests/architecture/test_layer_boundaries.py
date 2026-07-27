@@ -1308,6 +1308,7 @@ def test_freezone_canvas_asset_routes_delegate_to_application() -> None:
     for endpoint_path in (
         '"/projects/{project}/freezone/assets"',
         '"/projects/{project}/freezone/assets/beat-context"',
+        '"/projects/{project}/freezone/assets/identities"',
         '"/projects/{project}/freezone/director-capture"',
         '"/projects/{project}/freezone/director-capture/sync-background"',
         '"/projects/{project}/freezone/scene-assets-for-beat"',
@@ -1326,6 +1327,7 @@ def test_freezone_canvas_asset_routes_delegate_to_application() -> None:
         "async def freezone_scene_assets_for_beat(",
         "async def list_freezone_assets(",
         "async def list_freezone_beat_context_assets(",
+        "async def freezone_create_identity_asset(",
         "def _asset_record_from_path(",
         "def _asset_record_from_optional_project_path(",
         "def _character_asset_history_links(",
@@ -1363,6 +1365,7 @@ def test_freezone_canvas_asset_routes_delegate_to_application() -> None:
     assert "ListCreativeCanvasAssetsQuery" in public_source
     assert "ListCreativeCanvasBeatContextAssetsQuery" in public_source
     assert "InvalidCreativeCanvasBeatContextQuery" in public_source
+    assert "character_identity_use_cases().import_asset(" in route_source
     assert "def project_creative_canvas_asset_record(" in domain_source
     assert "def project_creative_canvas_beat_context_asset(" in domain_source
     for route_implementation_detail in (
@@ -1377,6 +1380,10 @@ def test_freezone_canvas_asset_routes_delegate_to_application() -> None:
         "project_creative_canvas_beat_context_asset",
         "get_beats_as_dicts",
         'getattr(store, "_episodes"',
+        "resolve_static_url_to_path",
+        "CharacterIdentity(",
+        "add_character_identity(",
+        "from PIL import Image",
         "shutil",
         "os.utime",
     ):
@@ -3162,17 +3169,43 @@ def test_asset_routes_share_one_project_media_url_builder() -> None:
 
 def test_asset_world_character_identity_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "characters.py"
+    canvas_route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "assets.py"
+    legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    application = (
+        PACKAGE_ROOT
+        / "modules"
+        / "asset_world"
+        / "application"
+        / "character_identity.py"
+    )
+    adapter = (
+        PACKAGE_ROOT
+        / "modules"
+        / "asset_world"
+        / "infrastructure"
+        / "character_identity.py"
+    )
     source = route.read_text(encoding="utf-8")
+    canvas_source = canvas_route.read_text(encoding="utf-8")
+    legacy_source = legacy_route.read_text(encoding="utf-8")
+    application_source = application.read_text(encoding="utf-8")
+    adapter_source = adapter.read_text(encoding="utf-8")
 
     assert "character_identity_use_cases" in source
+    assert "character_identity_use_cases().import_asset(" in canvas_source
+    assert "async def import_asset(" in application_source
+    assert "class LocalCharacterIdentityAssetImporter" in adapter_source
+    assert '"/projects/{project}/freezone/assets/identities"' not in legacy_source
     for legacy_implementation in (
         "from ai_anime.models import CharacterIdentity",
         "await store.add_character_identity(",
         "await store.delete_character_identity(",
         "characters = store.get_all_characters()",
         "for ident in target.identities",
+        "async def freezone_create_identity_asset(",
     ):
         assert legacy_implementation not in source
+        assert legacy_implementation not in legacy_source
 
 
 def test_asset_world_character_asset_history_routes_delegate_to_application() -> None:

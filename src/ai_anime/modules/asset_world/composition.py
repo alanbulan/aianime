@@ -75,6 +75,7 @@ from ai_anime.modules.asset_world.infrastructure.character_asset_history import 
     LocalCharacterAssetHistoryFiles,
 )
 from ai_anime.modules.asset_world.infrastructure.character_identity import (
+    LocalCharacterIdentityAssetImporter,
     LocalCharacterIdentityAssets,
     PydanticCharacterIdentityFactory,
 )
@@ -250,6 +251,7 @@ def character_identity_use_cases() -> CharacterIdentityUseCases:
     return CharacterIdentityUseCases(
         PydanticCharacterIdentityFactory(),
         LocalCharacterIdentityAssets(),
+        LocalCharacterIdentityAssetImporter(),
     )
 
 

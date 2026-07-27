@@ -14,15 +14,21 @@ from ai_anime.modules.asset_world.application.character_voice import (
 )
 from ai_anime.modules.asset_world.application.dto import (
     CreateIdentityCommand,
+    ImportCharacterIdentityAssetCommand,
     UpdateIdentityCommand,
 )
-from ai_anime.modules.asset_world.application.errors import CharacterNotFound
+from ai_anime.modules.asset_world.application.errors import (
+    CharacterNotFound,
+    InvalidCharacterInput,
+)
 from ai_anime.modules.asset_world.application.ports import (
+    CharacterIdentityAssetImporter,
     CharacterIdentityAssets,
     CharacterIdentityFactory,
     CharacterIdentityRepository,
 )
 from ai_anime.modules.asset_world.domain.character_identity import identity_id_for
+from ai_anime.modules.project_workspace.public import ProjectContext
 
 AssetUrl = Callable[[str | Path], str]
 
@@ -32,9 +38,11 @@ class CharacterIdentityUseCases:
         self,
         factory: CharacterIdentityFactory,
         assets: CharacterIdentityAssets,
+        asset_importer: CharacterIdentityAssetImporter,
     ) -> None:
         self._factory = factory
         self._assets = assets
+        self._asset_importer = asset_importer
 
     def list_identities(
         self,
@@ -85,6 +93,45 @@ class CharacterIdentityUseCases:
             "identity_name": command.identity_name,
             "age_group": command.age_group,
             "appearance_details": command.appearance_details,
+        }
+
+    async def import_asset(
+        self,
+        *,
+        context: ProjectContext,
+        project_dir: Path,
+        command: ImportCharacterIdentityAssetCommand,
+    ) -> dict[str, Any]:
+        character_name = command.character_name.strip()
+        identity_name = command.identity_name.strip()
+        if not character_name:
+            raise InvalidCharacterInput("character is required")
+        if not identity_name:
+            raise InvalidCharacterInput("identity_name is required")
+
+        identity = self._factory.create(
+            character_name,
+            CreateIdentityCommand(
+                identity_name=identity_name,
+                age_group=command.age_group.strip(),
+                appearance_details=command.appearance_details.strip(),
+                face_prompt=command.face_prompt.strip(),
+                source="freezone",
+            ),
+        )
+        imported = await self._asset_importer.import_asset(
+            context=context,
+            project_dir=project_dir,
+            source_url=command.source_url,
+            character_name=character_name,
+            identity=identity,
+        )
+        return {
+            "character": character_name,
+            "identity_id": identity.identity_id,
+            "identity_name": identity.identity_name,
+            "target_path": str(imported.target_path),
+            "target_url": imported.target_url,
         }
 
     async def update_identity(

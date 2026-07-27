@@ -11,9 +11,14 @@ from ai_anime.modules.asset_world.application.character_identity import (
 from ai_anime.modules.asset_world.application.dto import (
     CreateIdentityCommand,
     IdentityAssetPaths,
+    ImportCharacterIdentityAssetCommand,
+    ImportedCharacterIdentityAsset,
     UpdateIdentityCommand,
 )
-from ai_anime.modules.asset_world.application.errors import CharacterNotFound
+from ai_anime.modules.asset_world.application.errors import (
+    CharacterNotFound,
+    InvalidCharacterInput,
+)
 from ai_anime.modules.asset_world.domain.character_identity import identity_id_for
 
 
@@ -92,6 +97,8 @@ class _Factory:
             identity_name=command.identity_name,
             age_group=command.age_group,
             appearance_details=command.appearance_details,
+            face_prompt=command.face_prompt,
+            source=command.source,
         )
 
 
@@ -118,8 +125,26 @@ class _Assets:
         return identity.updated_at or character.updated_at or "2026-07-23T00:00:00Z"
 
 
-def _use_cases() -> CharacterIdentityUseCases:
-    return CharacterIdentityUseCases(_Factory(), _Assets())
+class _AssetImporter:
+    def __init__(self) -> None:
+        self.calls: list[dict] = []
+
+    async def import_asset(self, **kwargs) -> ImportedCharacterIdentityAsset:
+        self.calls.append(kwargs)
+        return ImportedCharacterIdentityAsset(
+            target_path=kwargs["project_dir"] / "identity.png",
+            target_url="/media/identity.png",
+        )
+
+
+def _use_cases(
+    asset_importer: _AssetImporter | None = None,
+) -> CharacterIdentityUseCases:
+    return CharacterIdentityUseCases(
+        _Factory(),
+        _Assets(),
+        asset_importer or _AssetImporter(),
+    )
 
 
 def test_list_projects_identity_assets_history_and_voice(tmp_path: Path) -> None:
@@ -201,6 +226,56 @@ async def test_create_identity_preserves_repository_duplicate_error() -> None:
             repository=repository,
             character_name="秦",
             command=CreateIdentityCommand(identity_name="幼年"),
+        )
+
+
+@pytest.mark.asyncio
+async def test_import_identity_asset_normalizes_fields_and_uses_freezone_source(
+    tmp_path: Path,
+) -> None:
+    importer = _AssetImporter()
+    use_cases = _use_cases(importer)
+
+    data = await use_cases.import_asset(
+        context=object(),
+        project_dir=tmp_path,
+        command=ImportCharacterIdentityAssetCommand(
+            source_url="/static/project/upload.png",
+            character_name=" 秦 ",
+            identity_name=" 雨夜 ",
+            appearance_details=" 湿发青衣 ",
+            face_prompt=" 冷峻 ",
+            age_group=" youth ",
+        ),
+    )
+
+    assert data == {
+        "character": "秦",
+        "identity_id": "秦_雨夜",
+        "identity_name": "雨夜",
+        "target_path": str(tmp_path / "identity.png"),
+        "target_url": "/media/identity.png",
+    }
+    identity = importer.calls[0]["identity"]
+    assert identity.appearance_details == "湿发青衣"
+    assert identity.face_prompt == "冷峻"
+    assert identity.age_group == "youth"
+    assert identity.source == "freezone"
+
+
+@pytest.mark.asyncio
+async def test_import_identity_asset_rejects_blank_names(tmp_path: Path) -> None:
+    use_cases = _use_cases()
+
+    with pytest.raises(InvalidCharacterInput, match="character is required"):
+        await use_cases.import_asset(
+            context=object(),
+            project_dir=tmp_path,
+            command=ImportCharacterIdentityAssetCommand(
+                source_url="/static/project/upload.png",
+                character_name=" ",
+                identity_name="雨夜",
+            ),
         )
 
 

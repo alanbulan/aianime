@@ -4,6 +4,15 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import resolve_project_scope
+from ai_anime.api.schemas import CreateIdentityAssetRequest
+from ai_anime.modules.asset_world.public import (
+    CharacterAlreadyExists,
+    CharacterIdentityAssetSourceNotFound,
+    CharacterNotFound,
+    ImportCharacterIdentityAssetCommand,
+    InvalidCharacterInput,
+    character_identity_use_cases,
+)
 from ai_anime.modules.creative_canvas.public import (
     CreativeCanvasBeatNotFound,
     GetCreativeCanvasDirectorCaptureQuery,
@@ -61,6 +70,38 @@ async def list_freezone_beat_context_assets(
         )
     except InvalidCreativeCanvasBeatContextQuery as exc:
         raise HTTPException(400, str(exc)) from exc
+    return {"ok": True, "data": data}
+
+
+@router.post(
+    "/projects/{project}/freezone/assets/identities",
+    tags=["freezone-assets"],
+)
+async def freezone_create_identity_asset(
+    project: str,
+    body: CreateIdentityAssetRequest,
+    user: dict = Depends(get_api_user),
+):
+    resolved = await _resolve_editor_project(project, user)
+    try:
+        data = await character_identity_use_cases().import_asset(
+            context=resolved.ctx,
+            project_dir=resolved.project_dir,
+            command=ImportCharacterIdentityAssetCommand(
+                source_url=body.source_url,
+                character_name=body.character,
+                identity_name=body.identity_name,
+                appearance_details=body.appearance_details,
+                face_prompt=body.face_prompt,
+                age_group=body.age_group,
+            ),
+        )
+    except InvalidCharacterInput as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except (CharacterNotFound, CharacterIdentityAssetSourceNotFound) as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except CharacterAlreadyExists as exc:
+        raise HTTPException(409, str(exc)) from exc
     return {"ok": True, "data": data}
 
 
