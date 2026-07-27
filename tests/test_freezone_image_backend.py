@@ -19,7 +19,6 @@ from ai_anime.api.routes.freezone import (
     FREEZONE_DEFAULT_IMAGE_MODEL,
     _build_scene_360_prompt,
     _infer_scene_id_from_master_path,
-    _merge_restored_preset_canvas,
     _resolve_freezone_image_provider,
     _split_provider_and_model,
 )
@@ -50,6 +49,9 @@ from ai_anime.freezone.skill_registry import (
     get_skill,
     list_skills,
 )
+from ai_anime.modules.creative_canvas.application.canvas_documents import (
+    CreativeCanvasDocumentQueries,
+)
 from ai_anime.modules.creative_canvas.domain.image_editing import (
     build_image_erase_prompt,
     resolve_requested_image_aspect_ratio,
@@ -58,9 +60,14 @@ from ai_anime.modules.creative_canvas.domain.image_editing_prompts import (
     build_image_template_edit_prompt,
     resolve_image_template_aspect_ratio,
 )
+from ai_anime.modules.creative_canvas.infrastructure.canvas_documents import (
+    LocalCreativeCanvasDocumentQueryGateway,
+)
 from ai_anime.modules.creative_canvas.public import (
     CreativeCanvasTaskStartFailed,
     generation_catalog_queries,
+    is_preset_managed_canvas_node as _is_preset_managed_canvas_node,
+    merge_restored_preset_canvas as _merge_restored_preset_canvas,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.task_backend.limits import ProjectUserTaskLimitExceeded
@@ -1540,17 +1547,20 @@ async def test_get_canvas_refreshes_beat_preset_from_mainline_context(
             "metadata": {"preset": {"scope": "beat"}},
         }
 
-    monkeypatch.setattr(
-        freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
+    queries = CreativeCanvasDocumentQueries(
+        LocalCreativeCanvasDocumentQueryGateway(
+            store_factory=fake_make_sqlite_store_for_context,
+            beat_preset_context_builder=fake_build_beat_preset_context,
+            canvas_payload_builder=fake_build_canvas_payload_from_context,
+        )
     )
     monkeypatch.setattr(
-        freezone_routes, "build_beat_preset_context", fake_build_beat_preset_context
-    )
-    monkeypatch.setattr(
-        freezone_routes, "build_canvas_payload_from_context", fake_build_canvas_payload_from_context
+        freezone_document_routes,
+        "creative_canvas_document_queries",
+        lambda: queries,
     )
 
-    result = await freezone_routes.get_canvas(
+    result = await freezone_document_routes.get_canvas(
         project="proj_freezone",
         canvas_id="beat_canvas",
         user={"username": "admin", "id": "owner_1"},
@@ -2060,7 +2070,7 @@ async def test_get_canvas_does_not_fallback_to_output_canvas(
         encoding="utf-8",
     )
 
-    result = await freezone_routes.get_canvas(
+    result = await freezone_document_routes.get_canvas(
         project="proj_freezone",
         canvas_id="default",
         user={"username": "admin", "id": "owner_1"},
@@ -6326,16 +6336,12 @@ def test_all_preset_node_factories_emit_preset_managed_true() -> None:
 
 def test_is_preset_managed_canvas_node_prefers_explicit_field() -> None:
     """Explicit `preset_managed === True` is the ownership source of truth."""
-    from ai_anime.api.routes.freezone import _is_preset_managed_canvas_node
-
     explicit = {"data": {"preset_managed": True, "user_spawned": True}}
     assert _is_preset_managed_canvas_node(explicit) is True
 
 
 def test_is_preset_managed_canvas_node_requires_explicit_preset_flag() -> None:
     """Only the explicit current protocol grants preset ownership."""
-    from ai_anime.api.routes.freezone import _is_preset_managed_canvas_node
-
     assert _is_preset_managed_canvas_node({"data": {"workflow_kind": "mainline"}}) is False
     assert _is_preset_managed_canvas_node({"data": {"workflow_kind": "mainline_slot"}}) is False
     assert (
@@ -6386,8 +6392,6 @@ def test_is_preset_managed_canvas_node_does_not_guess_from_mainline_context_only
     That context alone is not enough to prove preset ownership; otherwise a
     restore refresh can delete user-created nodes that predate user_spawned.
     """
-    from ai_anime.api.routes.freezone import _is_preset_managed_canvas_node
-
     assert (
         _is_preset_managed_canvas_node(
             {"data": {"imageUrl": "/dragged.png", "mainline_context": [{"kind": "beat"}]}}
@@ -6398,8 +6402,6 @@ def test_is_preset_managed_canvas_node_does_not_guess_from_mainline_context_only
 
 def test_is_preset_managed_canvas_node_explicit_false_falls_through() -> None:
     """`preset_managed: False` is not preset ownership."""
-    from ai_anime.api.routes.freezone import _is_preset_managed_canvas_node
-
     assert (
         _is_preset_managed_canvas_node(
             {"data": {"preset_managed": False, "workflow_kind": "mainline"}}

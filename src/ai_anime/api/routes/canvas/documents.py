@@ -8,6 +8,7 @@ from ai_anime.freezone.paths import CANVAS_ID_RE
 from ai_anime.modules.creative_canvas.public import (
     CreativeCanvasDocumentBusy,
     CreativeCanvasDocumentCorrupt,
+    GetCreativeCanvasDocumentQuery,
     InvalidCreativeCanvasDocumentQuery,
     ListCreativeCanvasDocumentHistoryQuery,
     ListCreativeCanvasDocumentsQuery,
@@ -45,6 +46,39 @@ async def list_canvases(
             headers={"Retry-After": "1"},
         ) from exc
     return {"ok": True, "data": documents}
+
+
+@router.get(
+    "/projects/{project}/freezone/canvases/{canvas_id}",
+    tags=["freezone-canvas"],
+)
+async def get_canvas(
+    project: str,
+    canvas_id: str,
+    user: dict = Depends(get_api_user),
+):
+    _validate_canvas_id(canvas_id)
+    resolved = await _resolve_viewer_project(project, user)
+    try:
+        document = await creative_canvas_document_queries().get_document(
+            GetCreativeCanvasDocumentQuery(
+                context=resolved.ctx,
+                project_dir=resolved.project_dir,
+                canvas_id=canvas_id,
+                actor_id=canvas_actor_id(user),
+            )
+        )
+    except InvalidCreativeCanvasDocumentQuery as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except CreativeCanvasDocumentCorrupt as exc:
+        raise HTTPException(500, str(exc)) from exc
+    except CreativeCanvasDocumentBusy as exc:
+        raise HTTPException(
+            503,
+            {"code": "canvas_lock_busy", "canvas_id": exc.canvas_id},
+            headers={"Retry-After": "1"},
+        ) from exc
+    return {"ok": True, "data": document}
 
 
 @router.get(

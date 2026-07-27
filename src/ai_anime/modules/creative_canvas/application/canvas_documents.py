@@ -31,6 +31,14 @@ class ListCreativeCanvasDocumentsQuery:
 
 
 @dataclass(frozen=True)
+class GetCreativeCanvasDocumentQuery:
+    context: ProjectContext
+    project_dir: Path
+    canvas_id: str
+    actor_id: str
+
+
+@dataclass(frozen=True)
 class ListCreativeCanvasDocumentHistoryQuery:
     context: ProjectContext
     canvas_id: str
@@ -54,6 +62,15 @@ class ListCreativeCanvasGenerationHistoryQuery:
 
 
 class CreativeCanvasDocumentQueryGateway(Protocol):
+    async def get_document(
+        self,
+        *,
+        context: ProjectContext,
+        project_dir: Path,
+        canvas_id: str,
+        actor_id: str,
+    ) -> Mapping[str, Any]: ...
+
     def list_documents(
         self,
         *,
@@ -100,6 +117,20 @@ class CreativeCanvasDocumentQueries:
             context=query.context,
             actor_id=query.actor_id,
         )
+
+    async def get_document(
+        self,
+        query: GetCreativeCanvasDocumentQuery,
+    ) -> Mapping[str, Any]:
+        try:
+            return await self._gateway.get_document(
+                context=query.context,
+                project_dir=query.project_dir,
+                canvas_id=query.canvas_id,
+                actor_id=query.actor_id,
+            )
+        except ValueError as exc:
+            raise InvalidCreativeCanvasDocumentQuery(str(exc)) from exc
 
     def list_document_history(
         self,
@@ -148,6 +179,7 @@ __all__ = [
     "CreativeCanvasDocumentCorrupt",
     "CreativeCanvasDocumentQueries",
     "CreativeCanvasDocumentQueryGateway",
+    "GetCreativeCanvasDocumentQuery",
     "InvalidCreativeCanvasDocumentQuery",
     "ListCreativeCanvasDocumentHistoryQuery",
     "ListCreativeCanvasDocumentsQuery",

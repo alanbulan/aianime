@@ -56,6 +56,12 @@ from ai_anime.modules.creative_canvas.public import (
     StartCreativeCanvasImageGenerationCommand,
     canvas_actor_id,
     creative_canvas_image_generation_use_cases,
+    detected_reference_ids_from_beat_context_data,
+    first_text_value,
+    is_preset_managed_canvas_node,
+    merge_restored_preset_canvas,
+    stamp_canvas_mainline_context_project_id,
+    sync_frame_context_reference_edges,
 )
 from ai_anime.modules.production.public import (
     production_generation_context_use_cases,
@@ -526,7 +532,7 @@ def _standalone_beat_context_unified_sketch_prompt(
     beat_payload = dict(_skill_beat_context_as_prompt_beat(input_item))
 
     is_director_combined = reference_role == "director_combined"
-    scene_id = _first_text_value(
+    scene_id = first_text_value(
         beat_context, ("scene_id", "sceneId", "scene_name", "sceneName", "title", "name")
     )
     ref = ResolvedAssetRef(
@@ -1771,24 +1777,16 @@ def _input_mainline_contexts(input_item: ResolvedSkillInput) -> list[dict]:
     return [context for context in contexts if isinstance(context, dict)]
 
 
-def _first_text_value(source: dict, keys: tuple[str, ...]) -> str:
-    for key in keys:
-        value = str(source.get(key) or "").strip()
-        if value:
-            return value
-    return ""
-
-
 def _inferred_slot_target_from_input(input_item: ResolvedSkillInput) -> dict | None:
     if input_item.slot_target:
         return input_item.slot_target
     for context in _input_mainline_contexts(input_item):
         kind = str(context.get("kind") or "").strip()
         role = str(context.get("role") or "").strip()
-        scene_id = _first_text_value(context, ("sceneId", "scene_id", "scene"))
+        scene_id = first_text_value(context, ("sceneId", "scene_id", "scene"))
         if kind == "scene" and scene_id and role in {"scene_master", "scene_reverse_master"}:
             return {"kind": role, "scene_id": scene_id}
-        identity_id = _first_text_value(
+        identity_id = first_text_value(
             context,
             ("identityId", "identity_id", "character"),
         )
@@ -1797,7 +1795,7 @@ def _inferred_slot_target_from_input(input_item: ResolvedSkillInput) -> dict | N
                 "kind": "portrait" if role == "portrait" else "identity",
                 "identity_id": identity_id,
             }
-        prop_id = _first_text_value(context, ("propId", "prop_id"))
+        prop_id = first_text_value(context, ("propId", "prop_id"))
         if kind == "prop" and prop_id:
             return {"kind": "prop", "prop_id": prop_id}
         if kind in {"sketch", "frame", "selected_background", "director_combined"}:
@@ -1816,13 +1814,13 @@ def _inferred_slot_target_from_input(input_item: ResolvedSkillInput) -> dict | N
     )
     role = str(source.get("role") or "").strip()
     meta = source.get("meta") if isinstance(source.get("meta"), dict) else {}
-    scene_id = _first_text_value(meta, ("scene_id", "scene", "scene_name", "name"))
+    scene_id = first_text_value(meta, ("scene_id", "scene", "scene_name", "name"))
     if scene_id and role in {"scene_master", "scene_reverse_master"}:
         return {"kind": role, "scene_id": scene_id}
-    identity_id = _first_text_value(meta, ("identity_id", "identityId", "character"))
+    identity_id = first_text_value(meta, ("identity_id", "identityId", "character"))
     if identity_id and role in {"identity", "portrait"}:
         return {"kind": role, "identity_id": identity_id}
-    prop_id = _first_text_value(meta, ("prop_id", "propId"))
+    prop_id = first_text_value(meta, ("prop_id", "propId"))
     if prop_id and role == "prop":
         return {"kind": "prop", "prop_id": prop_id}
     return None
@@ -1866,61 +1864,6 @@ def _canvas_references_from_inputs(
     ]
 
 
-def _string_id_set(value: object) -> set[str]:
-    if isinstance(value, (list, tuple, set)):
-        items = value
-    elif value is None:
-        return set()
-    else:
-        items = [value]
-    out: set[str] = set()
-    for item in items:
-        if isinstance(item, dict):
-            text = (
-                item.get("identity_id")
-                or item.get("identityId")
-                or item.get("prop_id")
-                or item.get("propId")
-                or item.get("id")
-            )
-        else:
-            text = item
-        text = str(text or "").strip()
-        if text:
-            out.add(text)
-    return out
-
-
-def _detected_reference_ids_from_beat_context_data(data: dict, role: str) -> set[str] | None:
-    if role == "identity":
-        snake_key = "detected_identities"
-        camel_key = "detectedIdentities"
-    elif role == "prop":
-        snake_key = "detected_props"
-        camel_key = "detectedProps"
-    else:
-        return None
-
-    edit_fields = data.get("beat_edit_fields")
-    if isinstance(edit_fields, dict) and snake_key in edit_fields:
-        return _string_id_set(edit_fields.get(snake_key))
-
-    snapshot = data.get("snapshot")
-    if isinstance(snapshot, dict) and camel_key in snapshot:
-        return _string_id_set(snapshot.get(camel_key))
-
-    for key in (snake_key, camel_key):
-        if key in data:
-            return _string_id_set(data.get(key))
-
-    contexts = data.get("mainline_context")
-    if isinstance(contexts, list):
-        for item in contexts:
-            if isinstance(item, dict) and item.get("kind") == "beat" and camel_key in item:
-                return _string_id_set(item.get(camel_key))
-    return None
-
-
 def _detected_reference_ids_from_skill_input(
     input_item: ResolvedSkillInput | None,
     role: str,
@@ -1928,25 +1871,7 @@ def _detected_reference_ids_from_skill_input(
     beat_context = (input_item.beat_context if input_item else None) or {}
     if not isinstance(beat_context, dict):
         return None
-    return _detected_reference_ids_from_beat_context_data(beat_context, role)
-
-
-def _reference_id_from_edge(edge: dict, role: str) -> str:
-    data = edge.get("data") if isinstance(edge.get("data"), dict) else {}
-    target = data.get("reference_target")
-    if isinstance(target, dict):
-        if role == "identity":
-            value = target.get("identity_id") or target.get("identityId")
-        else:
-            value = target.get("prop_id") or target.get("propId")
-        value = str(value or "").strip()
-        if value:
-            return value
-    handle = str(edge.get("targetHandle") or "")
-    prefix = f"{role}:"
-    if handle.startswith(prefix):
-        return handle[len(prefix) :].strip()
-    return ""
+    return detected_reference_ids_from_beat_context_data(beat_context, role)
 
 
 def _reference_id_from_canvas_reference(item: dict, role: str) -> str:
@@ -1955,94 +1880,6 @@ def _reference_id_from_canvas_reference(item: dict, role: str) -> str:
     if role == "prop":
         return str(item.get("prop_id") or "").strip()
     return ""
-
-
-def _reference_id_from_node(node: dict, role: str) -> str:
-    data = node.get("data") if isinstance(node.get("data"), dict) else {}
-    source = data.get("__freezone_source")
-    meta = (
-        source.get("meta")
-        if isinstance(source, dict) and isinstance(source.get("meta"), dict)
-        else {}
-    )
-    if role == "identity":
-        value = _first_text_value(meta, ("identity_id", "identityId", "character"))
-    elif role == "prop":
-        value = _first_text_value(meta, ("prop_id", "propId"))
-    else:
-        return ""
-    if value:
-        return value
-
-    contexts = data.get("mainline_context")
-    if isinstance(contexts, list):
-        for context in contexts:
-            if not isinstance(context, dict):
-                continue
-            kind = str(context.get("kind") or "").strip()
-            if role == "identity" and kind == "identity":
-                value = _first_text_value(context, ("identityId", "identity_id", "character"))
-            elif role == "prop" and kind == "prop":
-                value = _first_text_value(context, ("propId", "prop_id"))
-            else:
-                value = ""
-            if value:
-                return value
-    return ""
-
-
-def _reference_target_for_role(role: str, ref_id: str) -> dict:
-    if role == "identity":
-        return {"kind": "identity", "identity_id": ref_id}
-    return {"kind": "prop", "prop_id": ref_id}
-
-
-def _synced_reference_edge_id(
-    *,
-    source_id: str,
-    target_id: str,
-    role: str,
-    ref_id: str,
-    existing_ids: set[str],
-) -> str:
-    digest = hashlib.sha256(f"{source_id}\0{target_id}\0{role}\0{ref_id}".encode("utf-8"))
-    base_id = f"edge_{role}_{digest.hexdigest()[:16]}"
-    edge_id = base_id
-    suffix = 2
-    while edge_id in existing_ids:
-        edge_id = f"{base_id}_{suffix}"
-        suffix += 1
-    existing_ids.add(edge_id)
-    return edge_id
-
-
-def _synced_reference_edge(
-    *,
-    source_id: str,
-    target_id: str,
-    role: str,
-    ref_id: str,
-    existing_ids: set[str],
-) -> dict:
-    label = "Identity" if role == "identity" else "Prop"
-    return {
-        "id": _synced_reference_edge_id(
-            source_id=source_id,
-            target_id=target_id,
-            role=role,
-            ref_id=ref_id,
-            existing_ids=existing_ids,
-        ),
-        "source": source_id,
-        "target": target_id,
-        "targetHandle": f"{role}:{ref_id}",
-        "data": {
-            "edgeKind": "role_binding",
-            "role": role,
-            "label": label,
-            "reference_target": _reference_target_for_role(role, ref_id),
-        },
-    }
 
 
 def _filter_canvas_references_by_beat_context(
@@ -2058,99 +1895,6 @@ def _filter_canvas_references_by_beat_context(
         for item in items
         if not (ref_id := _reference_id_from_canvas_reference(item, role)) or ref_id in allowed
     ]
-
-
-def _sync_frame_context_reference_edges(payload: dict) -> None:
-    nodes = [node for node in payload.get("nodes") or [] if isinstance(node, dict)]
-    edges = [edge for edge in payload.get("edges") or [] if isinstance(edge, dict)]
-    node_by_id = {str(node.get("id")): node for node in nodes if node.get("id")}
-    frame_skill_ids = {
-        node_id
-        for node_id, node in node_by_id.items()
-        if ((node.get("data") if isinstance(node.get("data"), dict) else {}) or {}).get("skill_id")
-        == "freezone.frame_from_context"
-    }
-    if not frame_skill_ids:
-        return
-
-    allowed_by_skill: dict[str, dict[str, set[str] | None]] = {}
-    for edge in edges:
-        data = edge.get("data") if isinstance(edge.get("data"), dict) else {}
-        if data.get("role") != "beat_context":
-            continue
-        skill_id = str(edge.get("target") or "")
-        if skill_id not in frame_skill_ids:
-            continue
-        context_node = node_by_id.get(str(edge.get("source") or ""))
-        context_data = (
-            context_node.get("data")
-            if context_node and isinstance(context_node.get("data"), dict)
-            else {}
-        )
-        allowed_by_skill[skill_id] = {
-            "identity": _detected_reference_ids_from_beat_context_data(context_data, "identity"),
-            "prop": _detected_reference_ids_from_beat_context_data(context_data, "prop"),
-        }
-    if not allowed_by_skill:
-        return
-
-    pruned_edges: list[dict] = []
-    for edge in edges:
-        target = str(edge.get("target") or "")
-        data = edge.get("data") if isinstance(edge.get("data"), dict) else {}
-        role = str(data.get("role") or "")
-        allowed = allowed_by_skill.get(target, {}).get(role)
-        if role in {"identity", "prop"} and allowed is not None:
-            ref_id = _reference_id_from_edge(edge, role)
-            if ref_id and ref_id not in allowed:
-                continue
-        pruned_edges.append(edge)
-
-    source_by_role_ref: dict[str, dict[str, str]] = {"identity": {}, "prop": {}}
-    for node in nodes:
-        source_id = str(node.get("id") or "").strip()
-        if not source_id:
-            continue
-        for role in ("identity", "prop"):
-            ref_id = _reference_id_from_node(node, role)
-            if ref_id:
-                source_by_role_ref[role].setdefault(ref_id, source_id)
-
-    existing_ids = {str(edge.get("id") or "") for edge in pruned_edges if edge.get("id")}
-    existing_refs_by_skill_role: dict[tuple[str, str], set[str]] = {}
-    for edge in pruned_edges:
-        target = str(edge.get("target") or "")
-        data = edge.get("data") if isinstance(edge.get("data"), dict) else {}
-        role = str(data.get("role") or "")
-        if role not in {"identity", "prop"}:
-            continue
-        ref_id = _reference_id_from_edge(edge, role)
-        if ref_id:
-            existing_refs_by_skill_role.setdefault((target, role), set()).add(ref_id)
-
-    for skill_id, allowed_by_role in allowed_by_skill.items():
-        for role in ("identity", "prop"):
-            allowed = allowed_by_role.get(role)
-            if allowed is None:
-                continue
-            existing_refs = existing_refs_by_skill_role.setdefault((skill_id, role), set())
-            for ref_id in sorted(allowed):
-                if ref_id in existing_refs:
-                    continue
-                source_id = source_by_role_ref[role].get(ref_id)
-                if not source_id:
-                    continue
-                pruned_edges.append(
-                    _synced_reference_edge(
-                        source_id=source_id,
-                        target_id=skill_id,
-                        role=role,
-                        ref_id=ref_id,
-                        existing_ids=existing_ids,
-                    )
-                )
-                existing_refs.add(ref_id)
-    payload["edges"] = pruned_edges
 
 
 def _input_media_kind(input_item: ResolvedSkillInput) -> str:
@@ -2533,7 +2277,7 @@ def _skill_node_is_preset_managed(
         return False
     for node in payload.get("nodes") or []:
         if isinstance(node, dict) and str(node.get("id") or "") == node_id:
-            return _is_preset_managed_canvas_node(node)
+            return is_preset_managed_canvas_node(node)
     return False
 
 
@@ -4573,7 +4317,7 @@ def _prepare_canvas_payload_for_write(
     if "metadata" not in payload:
         payload["metadata"] = None
     _merge_canvas_metadata(existing, payload)
-    _sync_frame_context_reference_edges(payload)
+    sync_frame_context_reference_edges(payload)
 
     current_revision = existing.get("revision") if isinstance(existing, dict) else None
     if not isinstance(current_revision, int):
@@ -4605,109 +4349,6 @@ def _prepare_canvas_payload_for_write(
     payload["revision"] = (current_revision + 1) if current_revision is not None else 1
     payload.pop("base_revision", None)
     return payload
-
-
-async def _refresh_preset_canvas_payload_on_read(
-    *,
-    ctx: ProjectContext,
-    username: str,
-    project_name: str,
-    project_dir: Path,
-    payload: dict,
-) -> dict:
-    metadata = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
-    preset = metadata.get("preset") if isinstance(metadata.get("preset"), dict) else {}
-    if preset.get("scope") != "beat":
-        return payload
-
-    try:
-        episode = int(preset.get("episode") or 0)
-        beat = int(preset.get("beat") or 0)
-    except (TypeError, ValueError):
-        return payload
-    if episode <= 0 or beat <= 0:
-        return payload
-
-    primary_slot = str(preset.get("primary_slot") or "").strip() or "render"
-    store = await make_sqlite_store_for_context(ctx)
-    try:
-        context = await build_beat_preset_context(
-            project_id=ctx.project_id,
-            username=username,
-            project=project_name,
-            project_dir=project_dir,
-            store=store,
-            episode=episode,
-            beat=beat,
-            primary_slot=primary_slot,
-        )
-    except Exception as exc:  # noqa: BLE001 - stale canvas is better than failed read
-        logger.warning(
-            "failed to refresh beat preset canvas from mainline: ep=%s beat=%s: %s",
-            episode,
-            beat,
-            exc,
-        )
-        return payload
-    finally:
-        close = getattr(store, "close", None)
-        if close:
-            result = close()
-            if asyncio.iscoroutine(result):
-                await result
-
-    fresh_payload = build_canvas_payload_from_context(
-        context=context,
-        preset_key=str(preset.get("preset_key") or ""),
-        default_push_target={
-            "kind": "sketch" if primary_slot == "sketch" else "frame",
-            "episode": episode,
-            "beat": beat,
-        },
-        created_at=str(preset.get("created_at") or canvas_store.utc_now_iso()),
-    )
-    merged = _merge_restored_preset_canvas(fresh_payload, payload)
-    for key in (
-        "schema_version",
-        "canvas_id",
-        "project_id",
-        "canvas_scope",
-        "owner_principal_type",
-        "owner_principal_id",
-        "access_model",
-        "min_project_role",
-        "created_by",
-        "created_at",
-        "updated_by",
-        "updated_at",
-        "revision",
-    ):
-        if key in payload:
-            merged[key] = payload[key]
-    _stamp_canvas_mainline_context_project_id(merged, ctx.project_id)
-    _sync_frame_context_reference_edges(merged)
-    return merged
-
-
-def _stamp_canvas_mainline_context_project_id(payload: dict, project_id: str) -> None:
-    def stamp_contexts(value) -> None:
-        if isinstance(value, list):
-            for item in value:
-                if isinstance(item, dict) and item.get("kind") and not item.get("projectId"):
-                    item["projectId"] = project_id
-
-    stamp_contexts(payload.get("mainline_context"))
-    metadata = payload.get("metadata")
-    if isinstance(metadata, dict):
-        for ref in metadata.get("references") or []:
-            if isinstance(ref, dict):
-                stamp_contexts(ref.get("mainline_context"))
-    for node in payload.get("nodes") or []:
-        if not isinstance(node, dict):
-            continue
-        data = node.get("data")
-        if isinstance(data, dict):
-            stamp_contexts(data.get("mainline_context"))
 
 
 def _raise_canvas_store_http(exc: Exception) -> None:
@@ -4754,77 +4395,6 @@ def _raise_canvas_store_http(exc: Exception) -> None:
             headers={"Retry-After": "1"},
         ) from exc
     raise exc
-
-
-def _merge_restored_preset_canvas(new_payload: dict, existing_payload: dict | None) -> dict:
-    """Restore preset-managed graph while preserving user experiment nodes.
-
-    Preset restore should refresh protected mainline context/workflow/artifact
-    nodes from current DB facts, but it must not discard free side experiments
-    or already-produced candidates on the same canvas.
-    """
-    if not isinstance(existing_payload, dict):
-        return new_payload
-
-    new_nodes = [n for n in new_payload.get("nodes") or [] if isinstance(n, dict)]
-    new_edges = [e for e in new_payload.get("edges") or [] if isinstance(e, dict)]
-    new_node_ids = {str(n.get("id")) for n in new_nodes if n.get("id")}
-    new_edge_ids = {str(e.get("id")) for e in new_edges if e.get("id")}
-
-    preserved_nodes: list[dict] = []
-    for node in existing_payload.get("nodes") or []:
-        if not isinstance(node, dict):
-            continue
-        node_id = str(node.get("id") or "")
-        if not node_id:
-            preserved_nodes.append(node)
-            continue
-        if node_id in new_node_ids:
-            continue
-        if _is_preset_managed_canvas_node(node):
-            continue
-        preserved_nodes.append(node)
-
-    final_node_ids = new_node_ids | {str(n.get("id")) for n in preserved_nodes if n.get("id")}
-    # preset-managed 节点之间的 edge 归 preset 管 — 旧 preset emit 过、新 preset
-    # 不 emit 了的(比如 edge 方向反转、删了 workflow trigger 等)就该消失。
-    # 不然旧 edge 会跟新 edge 共存,画布出现重复/交叉连线 (X 形)。
-    preset_managed_node_ids = {
-        str(n.get("id"))
-        for n in [*new_nodes, *preserved_nodes]
-        if n.get("id") and _is_preset_managed_canvas_node(n)
-    }
-    preserved_edges: list[dict] = []
-    for edge in existing_payload.get("edges") or []:
-        if not isinstance(edge, dict):
-            continue
-        edge_id = str(edge.get("id") or "")
-        if edge_id and edge_id in new_edge_ids:
-            continue
-        source = str(edge.get("source") or "")
-        target = str(edge.get("target") or "")
-        if not source or not target:
-            continue
-        if source not in final_node_ids or target not in final_node_ids:
-            continue
-        edge_data = edge.get("data") if isinstance(edge.get("data"), dict) else {}
-        # Edges between two preset-managed nodes normally belong to the preset
-        # layer, including legacy edges emitted before explicit edge flags
-        # existed. User-created role-binding edges are the exception: they carry
-        # edgeKind=role_binding and must survive refresh.
-        if (
-            source in preset_managed_node_ids
-            and target in preset_managed_node_ids
-            and isinstance(edge_data, dict)
-            and edge_data.get("edgeKind") != "role_binding"
-        ):
-            continue
-        preserved_edges.append(edge)
-
-    new_payload["nodes"] = [*new_nodes, *preserved_nodes]
-    new_payload["edges"] = [*new_edges, *preserved_edges]
-    new_payload["viewport"] = existing_payload.get("viewport") or new_payload.get("viewport")
-    return new_payload
 
 
 def _node_projection_key(node: dict) -> str | None:
@@ -5063,21 +4633,6 @@ def _remove_projected_preset_canvas(
     return merged
 
 
-def _is_preset_managed_canvas_node(node: dict) -> bool:
-    """Decide whether a restored canvas node is preset-managed.
-
-    Current protocol is intentionally strict: only explicit
-    `data.preset_managed === True` gives preset ownership. Pre-release
-    heuristic fields such as workflow_kind, __freezone_source, mainline_role,
-    artifact_role, or mainline_context are treated as user data unless the
-    explicit ownership flag is present.
-    """
-    data = node.get("data") if isinstance(node.get("data"), dict) else {}
-    if not isinstance(data, dict):
-        return False
-    return data.get("preset_managed") is True
-
-
 _PRESET_FACTS_SIGNATURE_OMIT_KEYS = {
     "created_at",
     "createdAt",
@@ -5109,7 +4664,7 @@ def _preset_facts_signature(payload: dict) -> str:
     nodes = [
         node
         for node in payload.get("nodes") or []
-        if isinstance(node, dict) and _is_preset_managed_canvas_node(node)
+        if isinstance(node, dict) and is_preset_managed_canvas_node(node)
     ]
     preset_node_ids = {str(node.get("id")) for node in nodes if node.get("id")}
     edges: list[dict] = []
@@ -5158,7 +4713,7 @@ def _stamp_projection_key(payload: dict, projection_key: str) -> None:
     nodes = [
         node
         for node in payload.get("nodes") or []
-        if isinstance(node, dict) and _is_preset_managed_canvas_node(node)
+        if isinstance(node, dict) and is_preset_managed_canvas_node(node)
     ]
     preset_node_ids = {str(node.get("id")) for node in nodes if node.get("id")}
     for node in nodes:
@@ -5747,7 +5302,7 @@ async def create_canvas_from_preset(
 
     def build_payload(existing_payload: dict | None) -> dict:
         raw_payload = (
-            _merge_restored_preset_canvas(payload, existing_payload)
+            merge_restored_preset_canvas(payload, existing_payload)
             if overwrite_canvas_id
             else payload
         )
@@ -5760,7 +5315,7 @@ async def create_canvas_from_preset(
             existing=existing_payload,
             user=user,
         )
-        _stamp_canvas_mainline_context_project_id(prepared, project)
+        stamp_canvas_mainline_context_project_id(prepared, project)
         return prepared
 
     # Plan §10 — replays of the same preset request (network retry, double
@@ -5970,7 +5525,7 @@ async def project_canvas_from_preset(
             existing=existing_payload,
             user=user,
         )
-        _stamp_canvas_mainline_context_project_id(prepared, project)
+        stamp_canvas_mainline_context_project_id(prepared, project)
         return prepared
 
     projection_stable_hash = canvas_store.canvas_request_hash(
@@ -6117,7 +5672,7 @@ async def remove_canvas_projection(
             existing=existing_payload,
             user=user,
         )
-        _stamp_canvas_mainline_context_project_id(prepared, project)
+        stamp_canvas_mainline_context_project_id(prepared, project)
         return prepared
 
     remove_stable_hash = canvas_store.canvas_request_hash(
@@ -6303,46 +5858,6 @@ async def projection_status(
     }
 
 
-@router.get("/projects/{project}/freezone/canvases/{canvas_id}", tags=[TAG_FREEZONE_CANVAS])
-async def get_canvas(project: str, canvas_id: str, user: dict = Depends(get_api_user)):
-    if not CANVAS_ID_RE.match(canvas_id):
-        raise HTTPException(400, "invalid canvas_id")
-    ctx, username, project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project, user, required_role="viewer"
-    )
-    canvas_project_dir = _canvas_state_project_dir(ctx, project_dir)
-    try:
-        if canvas_id == "default":
-            canvas_store.ensure_default_canvas(
-                canvas_project_dir,
-                project_id=ctx.project_id,
-                actor_id=canvas_actor_id(user),
-            )
-        payload = canvas_store.read_canvas(canvas_project_dir, canvas_id)
-    except (canvas_store.CanvasStoreError, CanvasLockBusy) as exc:
-        _raise_canvas_store_http(exc)
-    if payload is None:
-        return {
-            "ok": True,
-            "data": {"nodes": [], "edges": [], "viewport": None},
-        }
-    refreshed_payload = await _refresh_preset_canvas_payload_on_read(
-        ctx=ctx,
-        username=username,
-        project_name=project_name,
-        project_dir=project_dir,
-        payload=payload,
-    )
-    migrated_payload = migrate_canvas_static_urls_in_memory(
-        refreshed_payload or {"nodes": [], "edges": []},
-        project_id=ctx.project_id,
-        owner_username=ctx.owner_username,
-        project_name=ctx.project_name,
-        project_dir=project_dir,
-    )
-    return {"ok": True, "data": migrated_payload or {"nodes": [], "edges": []}}
-
-
 @router.post(
     "/projects/{project}/freezone/canvases/{canvas_id}/restore",
     tags=[TAG_FREEZONE_CANVAS],
@@ -6371,7 +5886,7 @@ async def restore_canvas_history(
             existing=existing,
             user=user,
         )
-        _stamp_canvas_mainline_context_project_id(prepared, project)
+        stamp_canvas_mainline_context_project_id(prepared, project)
         return prepared
 
     try:
@@ -6437,7 +5952,7 @@ async def put_canvas(
             existing=existing,
             user=user,
         )
-        _stamp_canvas_mainline_context_project_id(prepared, project)
+        stamp_canvas_mainline_context_project_id(prepared, project)
         return prepared
 
     try:

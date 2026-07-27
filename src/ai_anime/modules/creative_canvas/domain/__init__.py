@@ -3,6 +3,14 @@
 from ai_anime.modules.creative_canvas.domain.audio_library import (
     CREATIVE_CANVAS_AUDIO_AGE_GROUP_LABELS,
 )
+from ai_anime.modules.creative_canvas.domain.canvas_documents import (
+    detected_reference_ids_from_beat_context_data,
+    first_text_value,
+    is_preset_managed_canvas_node,
+    merge_restored_preset_canvas,
+    stamp_canvas_mainline_context_project_id,
+    sync_frame_context_reference_edges,
+)
 from ai_anime.modules.creative_canvas.domain.image_to_3gs import (
     CreativeCanvasImageToThreeGsPlan,
     CreativeCanvasImageToThreeGsSourceKind,
@@ -101,7 +109,11 @@ __all__ = [
     "build_freezone_video_prompt",
     "canvas_actor_id",
     "decode_png_screenshot",
+    "detected_reference_ids_from_beat_context_data",
+    "first_text_value",
     "infer_image_to_three_gs_scene_id",
+    "is_preset_managed_canvas_node",
+    "merge_restored_preset_canvas",
     "normalize_screenshot_label",
     "normalize_video_aspect_ratio",
     "normalize_video_resolution",
@@ -114,6 +126,8 @@ __all__ = [
     "get_video_camera_template",
     "get_video_camera_templates",
     "summarize_omni_reference_counts",
+    "stamp_canvas_mainline_context_project_id",
+    "sync_frame_context_reference_edges",
     "validate_omni_reference_limits",
     "validate_video_composition_media_item_count",
     "validate_video_composition_source_range",

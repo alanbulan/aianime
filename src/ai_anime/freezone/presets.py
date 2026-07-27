@@ -1359,7 +1359,7 @@ def _text_node(
 ) -> dict[str, Any]:
     # preset_managed: True — every node returned by a `_*_node` factory in this
     # module is emitted by preset, so it must carry the explicit flag so frontend
-    # nodeMainlineFlags() and backend _is_preset_managed_canvas_node() can rely
+    # nodeMainlineFlags() and backend is_preset_managed_canvas_node() can rely
     # on a single source of truth (not heuristics over __freezone_source).
     return {
         "id": node_id,

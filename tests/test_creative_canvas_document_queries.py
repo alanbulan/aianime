@@ -13,6 +13,7 @@ from ai_anime.modules.creative_canvas.application.canvas_documents import (
     CreativeCanvasDocumentBusy,
     CreativeCanvasDocumentCorrupt,
     CreativeCanvasDocumentQueries,
+    GetCreativeCanvasDocumentQuery,
     InvalidCreativeCanvasDocumentQuery,
     ListCreativeCanvasDocumentHistoryQuery,
     ListCreativeCanvasDocumentsQuery,
@@ -143,6 +144,26 @@ def test_document_query_adapter_reads_and_projects_generation_history(
     }
 
 
+@pytest.mark.asyncio
+async def test_document_query_adapter_returns_empty_shape_for_missing_document(
+    tmp_path: Path,
+) -> None:
+    context = _project_context(tmp_path)
+    gateway = LocalCreativeCanvasDocumentQueryGateway()
+
+    document = await gateway.get_document(
+        context=context,
+        project_dir=context.output_dir,
+        canvas_id="missing_canvas",
+        actor_id="viewer-1",
+    )
+
+    assert document == {"nodes": [], "edges": [], "viewport": None}
+    assert not (
+        context.state_dir / "freezone" / "canvases" / "missing_canvas.json"
+    ).exists()
+
+
 def test_document_queries_translate_invalid_history_request(tmp_path: Path) -> None:
     context = _project_context(tmp_path)
 
@@ -167,7 +188,36 @@ def test_document_queries_translate_invalid_history_request(tmp_path: Path) -> N
         )
 
 
-def test_document_query_adapter_translates_storage_errors(tmp_path: Path) -> None:
+@pytest.mark.asyncio
+async def test_document_queries_translate_invalid_document_request(
+    tmp_path: Path,
+) -> None:
+    context = _project_context(tmp_path)
+
+    class Gateway:
+        async def get_document(self, **_kwargs):
+            raise ValueError("invalid canvas_id: '../bad'")
+
+    queries = CreativeCanvasDocumentQueries(Gateway())
+
+    with pytest.raises(
+        InvalidCreativeCanvasDocumentQuery,
+        match="invalid canvas_id",
+    ):
+        await queries.get_document(
+            GetCreativeCanvasDocumentQuery(
+                context=context,
+                project_dir=context.output_dir,
+                canvas_id="../bad",
+                actor_id="viewer-1",
+            )
+        )
+
+
+@pytest.mark.asyncio
+async def test_document_query_adapter_translates_storage_errors(
+    tmp_path: Path,
+) -> None:
     context = _project_context(tmp_path)
 
     def busy(*_args, **_kwargs):
@@ -179,6 +229,14 @@ def test_document_query_adapter_translates_storage_errors(tmp_path: Path) -> Non
     with pytest.raises(CreativeCanvasDocumentBusy) as busy_error:
         busy_gateway.list_documents(context=context, actor_id="viewer")
     assert busy_error.value.canvas_id == "default"
+    with pytest.raises(CreativeCanvasDocumentBusy) as get_busy_error:
+        await busy_gateway.get_document(
+            context=context,
+            project_dir=context.output_dir,
+            canvas_id="default",
+            actor_id="viewer",
+        )
+    assert get_busy_error.value.canvas_id == "default"
 
     def corrupt(*_args, **_kwargs):
         raise canvas_store.CanvasCorruptError("corrupt canvas json")
@@ -194,6 +252,62 @@ def test_document_query_adapter_translates_storage_errors(tmp_path: Path) -> Non
             context=context,
             canvas_id="default",
         )
+
+    corrupt_document_gateway = LocalCreativeCanvasDocumentQueryGateway(
+        read_canvas=corrupt,
+    )
+    with pytest.raises(
+        CreativeCanvasDocumentCorrupt,
+        match="corrupt canvas json",
+    ):
+        await corrupt_document_gateway.get_document(
+            context=context,
+            project_dir=context.output_dir,
+            canvas_id="corrupt",
+            actor_id="viewer",
+        )
+
+
+@pytest.mark.asyncio
+async def test_document_query_adapter_closes_store_and_keeps_stale_preset_on_refresh_error(
+    tmp_path: Path,
+) -> None:
+    context = _project_context(tmp_path)
+    canvas_path = context.state_dir / "freezone" / "canvases" / "beat_canvas.json"
+    canvas_path.parent.mkdir(parents=True)
+    canvas_path.write_text(
+        '{"canvas_id":"beat_canvas","revision":7,"nodes":[{"id":"old"}],'
+        '"edges":[],"metadata":{"preset":{"scope":"beat","episode":1,"beat":2}}}',
+        encoding="utf-8",
+    )
+    closed = False
+
+    class Store:
+        async def close(self):
+            nonlocal closed
+            closed = True
+
+    async def store_factory(_context):
+        return Store()
+
+    async def failing_context_builder(**_kwargs):
+        raise RuntimeError("mainline unavailable")
+
+    gateway = LocalCreativeCanvasDocumentQueryGateway(
+        store_factory=store_factory,
+        beat_preset_context_builder=failing_context_builder,
+    )
+
+    document = await gateway.get_document(
+        context=context,
+        project_dir=context.output_dir,
+        canvas_id="beat_canvas",
+        actor_id="viewer-1",
+    )
+
+    assert closed is True
+    assert document["revision"] == 7
+    assert document["nodes"] == [{"id": "old"}]
 
 
 @pytest.mark.asyncio
@@ -218,6 +332,10 @@ async def test_document_query_routes_preserve_permissions_and_payloads(
         return SimpleNamespace(ctx=context, project_dir=context.output_dir)
 
     class Queries:
+        async def get_document(self, query):
+            queries_seen.append(query)
+            return {"canvas_id": "default", "nodes": []}
+
         def list_documents(self, query):
             queries_seen.append(query)
             return [{"id": "default"}]
@@ -243,6 +361,11 @@ async def test_document_query_routes_preserve_permissions_and_payloads(
     user = {"id": "viewer-1", "username": "viewer"}
 
     documents = await document_routes.list_canvases("proj_canvas", user=user)
+    document = await document_routes.get_canvas(
+        "proj_canvas",
+        "default",
+        user=user,
+    )
     history = await document_routes.list_canvas_history(
         "proj_canvas",
         "default",
@@ -263,10 +386,15 @@ async def test_document_query_routes_preserve_permissions_and_payloads(
     )
 
     assert documents == {"ok": True, "data": [{"id": "default"}]}
+    assert document == {
+        "ok": True,
+        "data": {"canvas_id": "default", "nodes": []},
+    }
     assert history == {"ok": True, "data": [{"history_id": "rev1"}]}
     assert node_history["data"]["records"] == [{"id": "node-record"}]
     assert canvas_history["data"]["records"] == [{"id": "canvas-record"}]
     assert resolutions == [
+        ("viewer", "access freezone project files"),
         ("viewer", "access freezone project files"),
         ("viewer", "access freezone project files"),
         ("viewer", "access freezone project files"),
@@ -276,12 +404,18 @@ async def test_document_query_routes_preserve_permissions_and_payloads(
         context=context,
         actor_id="viewer-1",
     )
-    assert queries_seen[1] == ListCreativeCanvasDocumentHistoryQuery(
+    assert queries_seen[1] == GetCreativeCanvasDocumentQuery(
+        context=context,
+        project_dir=context.output_dir,
+        canvas_id="default",
+        actor_id="viewer-1",
+    )
+    assert queries_seen[2] == ListCreativeCanvasDocumentHistoryQuery(
         context=context,
         canvas_id="default",
     )
-    assert queries_seen[2].limit == 25
-    assert queries_seen[3] == ListCreativeCanvasGenerationHistoryQuery(
+    assert queries_seen[3].limit == 25
+    assert queries_seen[4] == ListCreativeCanvasGenerationHistoryQuery(
         context=context,
         project_dir=context.output_dir,
         canvas_id="default",
@@ -303,6 +437,11 @@ async def test_document_query_routes_map_validation_and_storage_errors(
         return SimpleNamespace(ctx=context, project_dir=context.output_dir)
 
     class Queries:
+        async def get_document(self, query):
+            if query.canvas_id == "busy":
+                raise CreativeCanvasDocumentBusy(query.canvas_id)
+            raise CreativeCanvasDocumentCorrupt("corrupt canvas json")
+
         def list_documents(self, _query):
             raise CreativeCanvasDocumentBusy("default")
 
@@ -320,7 +459,7 @@ async def test_document_query_routes_map_validation_and_storage_errors(
     )
 
     with pytest.raises(HTTPException) as invalid_id:
-        await document_routes.list_canvas_history(
+        await document_routes.get_canvas(
             "proj_canvas",
             "../bad",
             user={"username": "viewer"},
@@ -328,6 +467,28 @@ async def test_document_query_routes_map_validation_and_storage_errors(
     assert invalid_id.value.status_code == 400
     assert invalid_id.value.detail == "invalid canvas_id"
     assert resolve_calls == 0
+
+    with pytest.raises(HTTPException) as busy_document:
+        await document_routes.get_canvas(
+            "proj_canvas",
+            "busy",
+            user={"username": "viewer"},
+        )
+    assert busy_document.value.status_code == 503
+    assert busy_document.value.headers == {"Retry-After": "1"}
+    assert busy_document.value.detail == {
+        "code": "canvas_lock_busy",
+        "canvas_id": "busy",
+    }
+
+    with pytest.raises(HTTPException) as corrupt_document:
+        await document_routes.get_canvas(
+            "proj_canvas",
+            "corrupt",
+            user={"username": "viewer"},
+        )
+    assert corrupt_document.value.status_code == 500
+    assert corrupt_document.value.detail == "corrupt canvas json"
 
     with pytest.raises(HTTPException) as busy:
         await document_routes.list_canvases(
