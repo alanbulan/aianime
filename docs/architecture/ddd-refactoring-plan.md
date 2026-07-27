@@ -1644,6 +1644,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百八十批已将带参考图图片编辑的项目路径编码、基准图/额外参考图静态化、POST method、provider/model、质量及节点上下文字段映射从 `api/ops.ts` 迁入唯一真实消费者 `freezoneAiGateway` 的私有 infrastructure 函数，继续复用唯一 `freezoneAssetGateway` 和 application 持有的 `CanvasGenerationTaskRef`/图片 provider 契约；旧 `FreezoneNodeContext`、`FreezoneProvider`、`FreezoneEditPayload` 和 `submitFreezoneEdit` 直接删除，同时清除 `api/ops.ts` 对 Canvas infrastructure 的反向依赖，不保留 facade、re-export 或第二套 HTTP/DTO 映射，`freezone/edit` endpoint 只有该 gateway 一个生产所有者，`api/ops.ts` 由 168 行降至 83 行；参考图排序、静态化、模型占位符、provider 拆分、可选注册表模型/生成模式、质量、画布/节点上下文和任务完成语义均未改变；生成目录门禁对 5 个 endpoint 的重复全树扫描同步合并为单次扫描；相关 1 个测试文件 1 项、架构门禁 207 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
 
+第二百八十一批已将 pipeline-import 抽帧与镜头分析的 HTTP 提交、异步任务等待和结果解析从 `ExtractFramesDialog`/`VideoReferenceDialog` 迁入新增 `application/video-processing` 用例契约、唯一 `infrastructure/freezone-video-processing-gateway` 和 `composition` 装配层，两处 React 视图只保留上传、进度、错误和回调交互；最后两个 `submitFreezoneExtract`/`submitFreezoneAnalyze` 及其 transport DTO 随旧 `api/ops.ts` 整文件删除，不保留空壳、facade、re-export、双实现或死代码，`freezone/extract-frames` 与 `freezone/analyze-shots` 分别只有 pipeline gateway 一个生产所有者；视频 URL、最大帧数、场景阈值、OpenRouter provider、任务等待、字符串帧过滤、分析结果和分析失败降级语义均未改变；颜色字面量基线同步移除已删除文件，pipeline endpoint 门禁使用单次全树扫描；相关 1 个测试文件 2 项、架构门禁 208 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

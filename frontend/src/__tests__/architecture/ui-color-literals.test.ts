@@ -7,7 +7,6 @@ const COLOR_LITERAL_PATTERN =
   /#[0-9a-fA-F]{3,8}\b|(?:rgb|rgba|hsl|hsla|oklch|oklab)\([^)]*\)/g;
 
 const COLOR_LITERAL_MAX: Record<string, number> = {
-  "api/ops.ts": 2,
   "app/styles/base.css": 34,
   "app/styles/portal-overrides.css": 81,
   "app/styles/themes.css": 126,

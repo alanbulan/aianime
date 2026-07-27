@@ -3,8 +3,6 @@ import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FileVideo, Film, Loader2, Upload, X } from "lucide-react";
 
-import { submitFreezoneExtract } from "@/api/ops";
-import { awaitTaskCompletion, type TaskState } from "@/api/tasks";
 import { UiButton, UiPanel } from "@/components/ui";
 import { uploadCanvasAsset } from "@/features/canvas/composition";
 import {
@@ -13,6 +11,7 @@ import {
 } from "@/components/ui/motion";
 import { useDialogTransition } from "@/components/ui/useDialogTransition";
 import { Slider } from "@/components/shadcn/slider";
+import { extractPipelineVideoFrames } from "@/pipeline-import/composition";
 
 interface VideoReferenceDialogProps {
   project: string;
@@ -82,13 +81,12 @@ export function VideoReferenceDialog({
         message: `抽 ${maxFrames} 关键帧（构图 / 色调参考）...`,
         progress: 0.5,
       });
-      const ref = await submitFreezoneExtract(project, {
+      const urls = await extractPipelineVideoFrames({
+        projectId: project,
         videoUrl: upload.url,
         maxFrames,
         sceneThreshold: 0.4,
       });
-      const task = await awaitTaskCompletion(ref.task_key, project);
-      const urls = extractFrameUrls(task);
       if (urls.length === 0) {
         throw new Error("抽帧返回了空结果");
       }
@@ -317,13 +315,4 @@ function ProgressBar({ progress }: { progress: ProgressState }) {
       </div>
     </div>
   );
-}
-
-function extractFrameUrls(task: TaskState): string[] {
-  const result = task.result;
-  if (!result) return [];
-  const urls = result["frame_urls"];
-  return Array.isArray(urls)
-    ? (urls as string[]).filter((u) => typeof u === "string")
-    : [];
 }

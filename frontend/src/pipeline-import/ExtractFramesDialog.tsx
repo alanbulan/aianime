@@ -3,11 +3,6 @@ import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Clapperboard, FileVideo, Loader2, Upload, X } from "lucide-react";
 
-import {
-  submitFreezoneExtract,
-  submitFreezoneAnalyze,
-} from "@/api/ops";
-import { awaitTaskCompletion, type TaskState } from "@/api/tasks";
 import { UiButton, UiInput, UiPanel } from "@/components/ui";
 import { uploadCanvasAsset } from "@/features/canvas/composition";
 import {
@@ -15,6 +10,11 @@ import {
   UI_DIALOG_TRANSITION_MS,
 } from "@/components/ui/motion";
 import { useDialogTransition } from "@/components/ui/useDialogTransition";
+import type { PipelineShotAnalysis } from "@/pipeline-import/application/video-processing";
+import {
+  analyzePipelineVideoFrames,
+  extractPipelineVideoFrames,
+} from "@/pipeline-import/composition";
 
 interface ExtractFramesDialogProps {
   project: string;
@@ -30,17 +30,7 @@ interface ExtractFramesDialogProps {
 export interface ExtractedFrame {
   url: string;
   index: number;
-  analysis?: ShotAnalysis | null;
-}
-
-export interface ShotAnalysis {
-  shot_type?: string;
-  angle?: string;
-  camera_movement?: string;
-  subject_action?: string;
-  mood?: string;
-  color_tone?: string;
-  suggested_prompt?: string;
+  analysis?: PipelineShotAnalysis | null;
 }
 
 type Stage = "idle" | "uploading" | "extracting" | "analyzing" | "done" | "error";
@@ -93,18 +83,17 @@ export function ExtractFramesDialog({
         message: "ffmpeg 抽帧（最多 60 秒）...",
         progress: 0.3,
       });
-      const extractRef = await submitFreezoneExtract(project, {
+      const frameUrls = await extractPipelineVideoFrames({
+        projectId: project,
         videoUrl: upload.url,
         maxFrames,
         sceneThreshold,
       });
-      const extractTask = await awaitTaskCompletion(extractRef.task_key, project);
-      const frameUrls = extractFrameUrls(extractTask);
       if (frameUrls.length === 0) {
         throw new Error("抽帧返回了空结果，可能视频太短或格式不支持");
       }
 
-      let analyses: ShotAnalysis[] = [];
+      let analyses: PipelineShotAnalysis[] = [];
       if (analyzeShots) {
         setProgress({
           stage: "analyzing",
@@ -112,12 +101,10 @@ export function ExtractFramesDialog({
           progress: 0.7,
         });
         try {
-          const analyzeRef = await submitFreezoneAnalyze(project, {
+          analyses = await analyzePipelineVideoFrames({
+            projectId: project,
             frameUrls,
-            provider: "openrouter",
           });
-          const analyzeTask = await awaitTaskCompletion(analyzeRef.task_key, project);
-          analyses = extractAnalyses(analyzeTask);
         } catch (err) {
           console.warn("[freezone] shot analysis failed (continuing without):", err);
         }
@@ -391,18 +378,4 @@ function ProgressBar({ progress }: { progress: ProgressState }) {
       </div>
     </div>
   );
-}
-
-function extractFrameUrls(task: TaskState): string[] {
-  const result = task.result;
-  if (!result) return [];
-  const urls = result["frame_urls"];
-  return Array.isArray(urls) ? (urls as string[]).filter((u) => typeof u === "string") : [];
-}
-
-function extractAnalyses(task: TaskState): ShotAnalysis[] {
-  const result = task.result;
-  if (!result) return [];
-  const analyses = result["analyses"];
-  return Array.isArray(analyses) ? (analyses as ShotAnalysis[]) : [];
 }

@@ -1,5 +1,9 @@
 // Copyright (c) 2026 AI anime
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import {
+  existsSync,
+  readdirSync,
+  readFileSync as readFileSyncStrict,
+} from "node:fs";
 import { relative, resolve } from "node:path";
 import * as ts from "typescript";
 import { describe, expect, it } from "vitest";
@@ -8,6 +12,11 @@ const SRC_ROOT = resolve(process.cwd(), "src");
 const MODULES_ROOT = resolve(SRC_ROOT, "modules");
 const sourceFilesCache = new Map<string, string[]>();
 const importSpecifiersCache = new Map<string, string[]>();
+
+function readFileSync(path: string, encoding: "utf8"): string {
+  if (!existsSync(path) && relativeSource(path) === "api/ops.ts") return "";
+  return readFileSyncStrict(path, encoding);
+}
 
 // Existing routes are migrated context by context. Their direct data imports
 // may decrease, but no route may exceed this measured baseline.
@@ -918,20 +927,6 @@ describe("frontend architecture boundaries", () => {
 
   it("does not retain unreachable frontend Freezone operation clients", () => {
     const opsPath = resolve(SRC_ROOT, "api/ops.ts");
-    const opsSource = readFileSync(opsPath, "utf8");
-    const retiredSymbols = [
-      "FreezoneSketchContextSource",
-      "FreezoneSketchFromContextPayload",
-      "submitFreezoneSketchFromContext",
-      "FreezoneFrameFromContextPayload",
-      "submitFreezoneFrameFromContext",
-      "ScenePanoFromMasterPayload",
-      "submitFreezoneScene360FromMaster",
-      "FreezoneExtractFramesPayload",
-      "submitFreezoneExtractFrames",
-      "FreezoneAnalyzeShotsPayload",
-      "submitFreezoneAnalyzeShots",
-    ];
     const retiredEndpointOwners = [
       "freezone/sketch-from-context",
       "freezone/frame-from-context",
@@ -951,13 +946,95 @@ describe("frontend architecture boundaries", () => {
       .map(relativeSource)
       .sort();
 
-    for (const symbol of retiredSymbols) {
-      expect(opsSource).not.toContain(symbol);
-    }
-    expect(retiredEndpointOwners).toEqual([[], [], ["api/ops.ts"]]);
+    expect(existsSync(opsPath)).toBe(false);
+    expect(retiredEndpointOwners).toEqual([
+      [],
+      [],
+      ["pipeline-import/infrastructure/freezone-video-processing-gateway.ts"],
+    ]);
     expect(scenePanoEndpointOwners).toEqual([
       "modules/asset_world/infrastructure/http-scene-gateway.ts",
     ]);
+  });
+
+  it("keeps pipeline video processing behind application-owned use cases", () => {
+    const applicationPath = resolve(
+      SRC_ROOT,
+      "pipeline-import/application/video-processing.ts",
+    );
+    const infrastructurePath = resolve(
+      SRC_ROOT,
+      "pipeline-import/infrastructure/freezone-video-processing-gateway.ts",
+    );
+    const compositionPath = resolve(
+      SRC_ROOT,
+      "pipeline-import/composition.ts",
+    );
+    const viewPaths = [
+      resolve(SRC_ROOT, "pipeline-import/ExtractFramesDialog.tsx"),
+      resolve(SRC_ROOT, "pipeline-import/VideoReferenceDialog.tsx"),
+    ];
+    const applicationSource = readFileSync(applicationPath, "utf8");
+    const infrastructureSource = readFileSync(infrastructurePath, "utf8");
+    const compositionSource = readFileSync(compositionPath, "utf8");
+    const endpointFragments = [
+      "}/freezone/extract-frames`",
+      "}/freezone/analyze-shots`",
+    ];
+    const ownersByEndpoint = new Map(
+      endpointFragments.map((fragment) => [fragment, [] as string[]]),
+    );
+    for (const path of sourceFiles(SRC_ROOT).filter(
+      (sourcePath) => !sourcePath.includes(".test."),
+    )) {
+      const source = readFileSync(path, "utf8");
+      for (const endpointFragment of endpointFragments) {
+        if (source.includes(endpointFragment)) {
+          ownersByEndpoint.get(endpointFragment)?.push(relativeSource(path));
+        }
+      }
+    }
+
+    expect(importSpecifiers(applicationPath)).toEqual([]);
+    expect(applicationSource).toContain(
+      "export interface PipelineVideoProcessingGateway",
+    );
+    expect(applicationSource).not.toContain("react");
+    expect(applicationSource).not.toContain("@/api/");
+    expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
+      new Set([
+        "@/api/tasks",
+        "@/shared/api/client",
+        "../application/video-processing",
+      ]),
+    );
+    expect(infrastructureSource).toContain(
+      "freezonePipelineVideoProcessingGateway: PipelineVideoProcessingGateway",
+    );
+    expect(new Set(importSpecifiers(compositionPath))).toEqual(
+      new Set([
+        "./application/video-processing",
+        "./infrastructure/freezone-video-processing-gateway",
+      ]),
+    );
+    expect(compositionSource).toContain(
+      "gateway: freezonePipelineVideoProcessingGateway",
+    );
+    for (const viewPath of viewPaths) {
+      const viewSource = readFileSync(viewPath, "utf8");
+      expect(importSpecifiers(viewPath)).toContain(
+        "@/pipeline-import/composition",
+      );
+      expect(importSpecifiers(viewPath)).not.toContain("@/api/ops");
+      expect(importSpecifiers(viewPath)).not.toContain("@/api/tasks");
+      expect(viewSource).not.toContain("awaitTaskCompletion");
+    }
+    for (const endpointFragment of endpointFragments) {
+      const owners = ownersByEndpoint.get(endpointFragment)?.sort() ?? [];
+      expect(owners).toEqual([
+        "pipeline-import/infrastructure/freezone-video-processing-gateway.ts",
+      ]);
+    }
   });
 
   it("keeps Freezone asset upload behind one application gateway", () => {
