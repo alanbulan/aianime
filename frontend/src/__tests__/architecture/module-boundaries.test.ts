@@ -979,6 +979,10 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/infrastructure/freezoneAssetGateway.ts",
     );
+    const aiGatewayPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneAiGateway.ts",
+    );
     const propGatewayPath = resolve(
       SRC_ROOT,
       "modules/asset_world/infrastructure/http-prop-gateway.ts",
@@ -1049,7 +1053,10 @@ describe("frontend architecture boundaries", () => {
     );
     expect(propGatewaySource).toContain("uploadFreezoneAsset(");
     expect(propGatewaySource).not.toContain("}/freezone/upload`");
-    expect(importSpecifiers(legacyOpsPath)).toContain(
+    expect(importSpecifiers(aiGatewayPath)).toContain(
+      "./freezoneAssetGateway",
+    );
+    expect(importSpecifiers(legacyOpsPath)).not.toContain(
       "@/features/canvas/infrastructure/freezoneAssetGateway",
     );
     expect(legacyOpsSource).not.toContain("FreezoneUploadResult");
@@ -9558,6 +9565,19 @@ describe("frontend architecture boundaries", () => {
       "projects/${encodeURIComponent(projectId)}/freezone/image/style-templates`",
       "projects/${encodeURIComponent(projectId)}/freezone/video/camera-templates`",
     ];
+    const ownersByEndpoint = new Map(
+      endpointFragments.map((fragment) => [fragment, [] as string[]]),
+    );
+    for (const path of sourceFiles(SRC_ROOT).filter(
+      (sourcePath) => !sourcePath.includes(".test."),
+    )) {
+      const source = readFileSync(path, "utf8");
+      for (const endpointFragment of endpointFragments) {
+        if (source.includes(endpointFragment)) {
+          ownersByEndpoint.get(endpointFragment)?.push(relativeSource(path));
+        }
+      }
+    }
 
     expect(importSpecifiers(applicationPath)).toEqual([
       "../domain/cameraMovementPresets",
@@ -9613,13 +9633,7 @@ describe("frontend architecture boundaries", () => {
     expect(cameraPicker).not.toContain("camera_bodies");
     expect(cameraPicker).not.toContain("focal_lengths_mm");
     for (const endpointFragment of endpointFragments) {
-      const owners = sourceFiles(SRC_ROOT)
-        .filter((path) => !path.includes(".test."))
-        .filter((path) =>
-          readFileSync(path, "utf8").includes(endpointFragment),
-        )
-        .map(relativeSource)
-        .sort();
+      const owners = ownersByEndpoint.get(endpointFragment)?.sort() ?? [];
       expect(owners).toEqual([
         "features/canvas/infrastructure/freezoneGenerationCatalogGateway.ts",
       ]);
@@ -10749,6 +10763,13 @@ describe("frontend architecture boundaries", () => {
       )
       .map(relativeSource)
       .sort();
+    const editEndpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("}/freezone/edit`"),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set(["./completeCanvasMediaGenerationTask", "./ports"]),
@@ -10779,6 +10800,13 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(legacyGatewayPath)).toContain(
       "./freezoneGenerationTaskGateway",
     );
+    expect(importSpecifiers(legacyGatewayPath)).toContain(
+      "./freezoneAssetGateway",
+    );
+    expect(importSpecifiers(legacyGatewayPath)).toContain(
+      "@/shared/api/client",
+    );
+    expect(importSpecifiers(legacyGatewayPath)).not.toContain("@/api/ops");
     expect(legacyGatewaySource).toContain(
       "freezoneImageGenerationGateway.submit(projectId, {",
     );
@@ -10788,6 +10816,10 @@ describe("frontend architecture boundaries", () => {
     expect(legacyGatewaySource).toContain(
       "freezoneGenerationTaskGateway.fetchResultUrl(",
     );
+    expect(legacyGatewaySource).toContain("submitImageEdit(projectId, {");
+    expect(editEndpointOwners).toEqual([
+      "features/canvas/infrastructure/freezoneAiGateway.ts",
+    ]);
     expect(legacyGatewaySource).not.toContain("submitFreezoneGen");
     expect(legacyGatewaySource).not.toContain("fetchFreezoneJobResult");
     expect(legacyGatewaySource).not.toContain("awaitTaskCompletion");
@@ -10816,7 +10848,16 @@ describe("frontend architecture boundaries", () => {
     ]) {
       expect(legacyOpsSource).not.toContain(legacySymbol);
     }
+    for (const legacySymbol of [
+      "FreezoneNodeContext",
+      "FreezoneProvider",
+      "FreezoneEditPayload",
+      "submitFreezoneEdit",
+    ]) {
+      expect(legacyOpsSource).not.toContain(legacySymbol);
+    }
     expect(legacyOpsSource).not.toContain("}/freezone/gen`");
+    expect(legacyOpsSource).not.toContain("}/freezone/edit`");
   });
 
   it("keeps Canvas generation result queries behind one shared gateway", () => {

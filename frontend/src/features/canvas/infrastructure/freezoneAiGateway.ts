@@ -15,11 +15,7 @@
 //     (backend falls back to NANOBANANA_PROVIDER env)
 //   - extraParams.quality is forwarded for openai gpt-image-2
 
-import {
-  submitFreezoneEdit,
-  type FreezoneProvider,
-  type FreezoneJobRef,
-} from "@/api/ops";
+import { apiCall } from "@/shared/api/client";
 import { readUrl } from "@/lib/url-params";
 import {
   mergeShotMetadata,
@@ -36,19 +32,25 @@ import { composeCapability } from "@/features/freezone/capabilities/capabilityRe
 import { getFreezoneCanvasMetadata } from "@/features/freezone/canvasMetadataContext";
 import type {
   AiGateway,
+  CanvasGenerationTaskRef,
   GenerateImagePayload,
 } from "../application/ports";
+import type { CanvasImageModelProvider } from "../application/generationCatalog";
+import {
+  ensureBackendImageUrl,
+  ensureBackendImageUrls,
+} from "./freezoneAssetGateway";
 import { freezoneGenerationTaskGateway } from "./freezoneGenerationTaskGateway";
 import { freezoneImageGenerationGateway } from "./freezoneImageGenerationGateway";
 
 interface ProviderModel {
-  provider: FreezoneProvider | null;
+  provider: CanvasImageModelProvider | null;
   model: string | null;
 }
 
 /** Split frontend model strings into AI anime's provider/model pair. */
 const PLACEHOLDER_MODEL_TOKENS = new Set(["default", "auto", ""]);
-const SUPPORTED_PROVIDERS = new Set<FreezoneProvider>([
+const SUPPORTED_PROVIDERS = new Set<CanvasImageModelProvider>([
   "huimeng",
   "openai",
   "openrouter",
@@ -61,8 +63,10 @@ function splitProviderModel(input: string | undefined | null): ProviderModel {
     return { provider: null, model: input };
   }
   const providerToken = input.slice(0, idx);
-  const provider = SUPPORTED_PROVIDERS.has(providerToken as FreezoneProvider)
-    ? (providerToken as FreezoneProvider)
+  const provider = SUPPORTED_PROVIDERS.has(
+    providerToken as CanvasImageModelProvider,
+  )
+    ? (providerToken as CanvasImageModelProvider)
     : null;
   const rawModel = input.slice(idx + 1);
   // Model files use placeholder tokens like
@@ -80,7 +84,7 @@ function readQuality(payload: GenerateImagePayload): string | null {
 }
 
 interface JobRecord {
-  ref: FreezoneJobRef;
+  ref: CanvasGenerationTaskRef;
   projectId: string;
   promise: Promise<string>;
   status: "queued" | "running" | "succeeded" | "failed";
@@ -115,9 +119,55 @@ function toImageSize(payload: GenerateImagePayload): string {
   return raw;
 }
 
+interface ImageEditSubmission {
+  readonly prompt: string;
+  readonly baseUrl: string;
+  readonly extraReferenceUrls: string[];
+  readonly aspectRatio: string;
+  readonly imageSize: string;
+  readonly provider: CanvasImageModelProvider | null;
+  readonly model: string | null;
+  readonly modelId?: string;
+  readonly genMode?: string;
+  readonly quality: string | null | undefined;
+  readonly canvasId: string;
+  readonly nodeId?: string;
+}
+
+async function submitImageEdit(
+  projectId: string,
+  submission: ImageEditSubmission,
+): Promise<CanvasGenerationTaskRef> {
+  const baseUrl = await ensureBackendImageUrl(projectId, submission.baseUrl);
+  const extraReferenceUrls = await ensureBackendImageUrls(
+    projectId,
+    submission.extraReferenceUrls,
+  );
+  return await apiCall<CanvasGenerationTaskRef>(
+    `projects/${encodeURIComponent(projectId)}/freezone/edit`,
+    {
+      method: "POST",
+      json: {
+        prompt: submission.prompt,
+        base_url: baseUrl,
+        extra_reference_urls: extraReferenceUrls,
+        aspect_ratio: submission.aspectRatio ?? "2:3",
+        image_size: submission.imageSize ?? "2K",
+        provider: submission.provider ?? null,
+        model: submission.model ?? null,
+        ...(submission.modelId ? { model_id: submission.modelId } : {}),
+        ...(submission.genMode ? { gen_mode: submission.genMode } : {}),
+        quality: submission.quality ?? null,
+        ...(submission.canvasId ? { canvas_id: submission.canvasId } : {}),
+        ...(submission.nodeId ? { node_id: submission.nodeId } : {}),
+      },
+    },
+  );
+}
+
 async function submitJob(
   payload: GenerateImagePayload,
-): Promise<{ ref: FreezoneJobRef; projectId: string }> {
+): Promise<{ ref: CanvasGenerationTaskRef; projectId: string }> {
   const projectId = currentProjectId();
   const capabilityJob = payload.capabilityId
     ? composeCapability(payload.capabilityId, {
@@ -182,7 +232,7 @@ async function submitJob(
     return { ref, projectId };
   }
   const [base, ...extras] = refs;
-  const ref = await submitFreezoneEdit(projectId, {
+  const ref = await submitImageEdit(projectId, {
     prompt: finalPrompt,
     baseUrl: base,
     extraReferenceUrls: extras,
@@ -200,7 +250,7 @@ async function submitJob(
 }
 
 async function awaitJobAndFetchUrl(
-  ref: FreezoneJobRef,
+  ref: CanvasGenerationTaskRef,
   projectId: string,
 ): Promise<string> {
   const completed = await freezoneGenerationTaskGateway.awaitCompletion(
