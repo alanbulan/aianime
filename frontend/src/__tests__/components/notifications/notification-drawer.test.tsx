@@ -3,7 +3,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { ReleaseFeed } from "@/lib/queries/release-notifications";
+import type { ReleaseFeed } from "@/modules/platform_release/public";
 
 const feedState = vi.hoisted<{ feed: ReleaseFeed }>(() => ({
   feed: {
@@ -29,8 +29,12 @@ const feedState = vi.hoisted<{ feed: ReleaseFeed }>(() => ({
   },
 }));
 
-vi.mock("@/lib/queries/release-notifications", () => ({
-  useReleaseNotifications: () => ({ data: { ok: true, data: feedState.feed }, isLoading: false }),
+vi.mock("@/modules/platform_release/public", () => ({
+  useReleaseNotifications: () => ({ data: feedState.feed, isLoading: false }),
+  markUpgradeSeen: (tag: string) =>
+    localStorage.setItem(`ai-anime:release-upgrade:${tag}`, "seen"),
+  markUpgradeSkipped: (tag: string) =>
+    localStorage.setItem(`ai-anime:release-upgrade:${tag}`, "skipped"),
 }));
 
 vi.mock("react-i18next", () => ({

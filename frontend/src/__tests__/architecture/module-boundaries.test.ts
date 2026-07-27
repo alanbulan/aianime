@@ -7150,6 +7150,56 @@ describe("frontend architecture boundaries", () => {
     expect(transportFactories).toEqual(["shared/api/transport.ts"]);
   });
 
+  it("keeps Platform Release callers on its public API", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/platform_release");
+    const externalSources = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.startsWith(moduleRoot))
+      .filter((path) => !relativeSource(path).startsWith("__tests__/"));
+    const internalImportFailures = externalSources.flatMap((path) =>
+      importSpecifiers(path)
+        .filter(
+          (specifier) =>
+            specifier.startsWith("@/modules/platform_release/") &&
+            specifier !== "@/modules/platform_release/public",
+        )
+        .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+    );
+    const endpointOwners = externalSources
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("api/v1/release-notifications"),
+      )
+      .map(relativeSource);
+    const storageOwners = externalSources
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("ai-anime:release-seen:"),
+      )
+      .map(relativeSource);
+
+    expect(existsSync(resolve(SRC_ROOT, "lib/queries/release-notifications.ts"))).toBe(false);
+    expect(existsSync(resolve(SRC_ROOT, "lib/release-notification-state.ts"))).toBe(false);
+    expect(internalImportFailures).toEqual([]);
+    expect(endpointOwners).toEqual([]);
+    expect(storageOwners).toEqual([]);
+    expect(
+      readFileSync(
+        resolve(
+          moduleRoot,
+          "infrastructure/http-release-notification-gateway.ts",
+        ),
+        "utf8",
+      ),
+    ).toContain("api/v1/release-notifications");
+    expect(
+      readFileSync(
+        resolve(
+          moduleRoot,
+          "infrastructure/browser-release-notification-storage.ts",
+        ),
+        "utf8",
+      ),
+    ).toContain("ai-anime:release-seen:");
+  });
+
   it("keeps Story Intake callers on its public API", () => {
     const moduleRoot = resolve(SRC_ROOT, "modules/story_intake");
     const externalSources = sourceFiles(SRC_ROOT)

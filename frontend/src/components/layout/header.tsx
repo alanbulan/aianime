@@ -33,11 +33,11 @@ import { useAppStore } from "@/stores/app-store";
 import { authRequired, isCeRuntime } from "@/lib/runtime-config";
 import { resetUserSessionState } from "@/lib/reset-region-state";
 import { useModelGatewayConfig } from "@/lib/queries/model-gateway";
-import { useReleaseNotifications } from "@/lib/queries/release-notifications";
 import {
   markUpgradeSeen,
   shouldShowUpgradeNudge,
-} from "@/lib/release-notification-state";
+  useReleaseNotifications,
+} from "@/modules/platform_release/public";
 import {
   ProjectHeaderNavigation,
   ProjectSwitcher,
@@ -85,7 +85,7 @@ export function Header() {
     : "en";
   const modelGatewayConfig = useModelGatewayConfig(ceRuntime);
   const releaseNotifications = useReleaseNotifications(i18n.resolvedLanguage ?? i18n.language);
-  const releaseFeed = releaseNotifications.data?.data;
+  const releaseFeed = releaseNotifications.data;
   void releaseNotificationStateVersion;
   const hasUnreadNotification = shouldShowUpgradeNudge(releaseFeed);
   const gatewayConfig = modelGatewayConfig.data?.data;

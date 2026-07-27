@@ -11,8 +11,8 @@ import {
   shouldAutoShowCurrentRelease,
   shouldShowUpgradeNudge,
   RELEASE_NOTIFICATIONS_MUTED_KEY,
-} from "@/lib/release-notification-state";
-import type { ReleaseFeed } from "@/lib/queries/release-notifications";
+  type ReleaseFeed,
+} from "@/modules/platform_release/public";
 
 const baseFeed: ReleaseFeed = {
     source: "mock",

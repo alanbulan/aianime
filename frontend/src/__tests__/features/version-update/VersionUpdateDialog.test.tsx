@@ -43,7 +43,7 @@ vi.mock("@/components/ui/button", () => ({
 
 import { VersionUpdateDialog } from "@/features/version-update/VersionUpdateDialog";
 import { openVersionUpdateDialog } from "@/features/version-update/version-update-events";
-import { RELEASE_NOTIFICATIONS_MUTED_KEY } from "@/lib/release-notification-state";
+import { RELEASE_NOTIFICATIONS_MUTED_KEY } from "@/modules/platform_release/public";
 
 const server = setupServer();
 

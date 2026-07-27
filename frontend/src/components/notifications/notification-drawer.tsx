@@ -5,12 +5,12 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Megaphone, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useReleaseNotifications } from "@/lib/queries/release-notifications";
-import type { ReleaseItem } from "@/lib/queries/release-notifications";
 import {
   markUpgradeSeen,
   markUpgradeSkipped,
-} from "@/lib/release-notification-state";
+  useReleaseNotifications,
+  type ReleaseItem,
+} from "@/modules/platform_release/public";
 
 type NotificationTone = "update" | "notice";
 
@@ -37,7 +37,7 @@ export function NotificationDrawer({
   const { t, i18n } = useTranslation();
   const locale = i18n.resolvedLanguage ?? i18n.language;
   const releaseNotifications = useReleaseNotifications(locale);
-  const feed = releaseNotifications.data?.data;
+  const feed = releaseNotifications.data;
   const [shouldRender, setShouldRender] = useState(open);
   const [visible, setVisible] = useState(false);
   const notifications = buildNotifications({

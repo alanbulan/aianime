@@ -13,7 +13,10 @@ vi.mock("@/shared/api/transport", () => ({
 }));
 
 import { queryKeys } from "@/lib/query-keys";
-import { fetchReleaseNotifications, useReleaseNotifications } from "@/lib/queries/release-notifications";
+import {
+  fetchReleaseNotifications,
+  useReleaseNotifications,
+} from "@/modules/platform_release/public";
 
 const server = setupServer();
 

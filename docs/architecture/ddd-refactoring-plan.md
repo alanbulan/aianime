@@ -1707,6 +1707,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 当前进度：进行中。第三百二十三批已建立后端 Platform Release domain/application/composition/public 边界，将发布通知 locale 归一规则迁入纯 domain，将当前 release feed 查询迁入 application 用例，并由 composition 注入既有 `ReleaseFeedPort`；HTTP route 只保留认证、query/header 输入和 `OkResponse` 映射，不再直接读取全局端口或持有 locale 规则。现有 mock/no-op feed、release notes 解析、请求路径和响应字段均保持不变，模块外生产代码只能通过 public API 调用，不保留旧 helper、转发壳或第二套查询；发布通知回归 11 项、应用工厂 5 项和完整后端分层门禁 92 项均通过，Python 编译、修改文件 Ruff 与 `git diff --check` 通过。
 
+第三百二十四批已建立前端 Platform Release domain/application/infrastructure/composition/public 边界，将发布 feed 契约、locale 归一与纯展示判定迁入 domain，将查询编排和 HTTP/localStorage 契约迁入 application ports，并由唯一 HTTP gateway 与浏览器存储适配器分别持有端点和持久化键；Header、通知抽屉和版本更新弹窗全部改经 public API，旧 `lib/queries/release-notifications.ts` 与 `lib/release-notification-state.ts` 直接删除，不保留 facade、re-export 或第二套查询/存储实现。请求路径、查询键、locale 回退、缓存与聚焦刷新策略、localStorage 键、通知展示和已读/跳过语义均保持不变；发布通知相关 4 个测试文件 10 项、前端完整分层门禁 209 项、`tsc -b --pretty false` 与 `git diff --check` 均通过。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

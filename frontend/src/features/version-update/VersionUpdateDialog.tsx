@@ -8,13 +8,11 @@ import { Button } from "@/components/ui/button";
 import { subscribeOpenVersionUpdateDialog } from "@/features/version-update/version-update-events";
 import {
   ensureReleaseNotifications,
-  normalizeReleaseLocale,
-  useReleaseNotifications,
-} from "@/lib/queries/release-notifications";
-import {
   markCurrentReleaseSeen,
+  normalizeReleaseLocale,
   shouldAutoShowCurrentRelease,
-} from "@/lib/release-notification-state";
+  useReleaseNotifications,
+} from "@/modules/platform_release/public";
 
 /** 更新弹窗顶部的头图视频。走 CDN 域名（OSS 默认域名会强制下载，播不了）。 */
 const UPDATE_HERO_VIDEO_URL = "/video/login-community-preview.mp4";
@@ -24,7 +22,7 @@ export function VersionUpdateDialog() {
   const queryClient = useQueryClient();
   const locale = normalizeReleaseLocale(i18n.resolvedLanguage ?? i18n.language);
   const releaseNotifications = useReleaseNotifications(locale);
-  const feed = releaseNotifications.data?.data;
+  const feed = releaseNotifications.data;
   const items = feed?.current_items ?? [];
   const [open, setOpen] = useState(false);
   const autoOpenedTagRef = useRef<string | null>(null);
