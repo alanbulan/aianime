@@ -1652,6 +1652,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百八十四批已将通用 blob 上传与 3D Viewer PNG 截图迁入 Creative Canvas media application port/use case、纯 domain 校验规则、唯一 Local 媒体存储/任务 ID 适配器和独立 media FastAPI 子 router；旧 `freezone.py` 中两个 handler、base64/文件写入实现、media tag、截图 schema 与仅服务上传的路径 helper 导入直接删除，不保留转发函数或第二套写入路径；项目 editor 鉴权、主节点错误上下文、文件名清洗、20 MiB 限制、PNG 错误文案、任务 ID、目录/静态 URL、标签回退、请求路径、OpenAPI tag/说明及响应 payload 均保持不变；media 定向回归 8 项、M06 完整合同 15 项和后端完整分层门禁 66 项均通过，8 条告警均为既有依赖弃用告警。
 
+第二百八十五批已将图片点击点或框选区域的局部标记检测迁入 Creative Canvas mark detection application port/use case、纯 domain 选择规则、项目静态 URL 解析适配器和唯一 Freezone Vision 适配器，并将既有 POST 端点收口到 image FastAPI 子 router；Vision 适配器继续委托唯一 `detect_freezone_mark` 实现，旧 `freezone.py` handler、请求/响应 schema 导入和检测实现导入直接删除，不保留转发函数或第二套检测链路；项目 editor 鉴权、主节点错误上下文、点选/框选规则、路径错误、检测失败文案、请求路径、OpenAPI tag/说明及响应 payload 均保持不变；标记检测定向回归 18 项、M06 完整合同 16 项和后端完整分层门禁 67 项均通过，8 条告警均为既有依赖弃用告警。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

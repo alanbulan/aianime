@@ -17,7 +17,15 @@ from ai_anime.modules.creative_canvas.application.media import (
     SaveCreativeCanvasScreenshotCommand,
     StoreCreativeCanvasUploadCommand,
 )
+from ai_anime.modules.creative_canvas.application.mark_detection import (
+    CreativeCanvasMarkDetectionFailed,
+    CreativeCanvasMarkDetectionResult,
+    CreativeCanvasMarkDetectionUseCases,
+    DetectCreativeCanvasMarkCommand,
+    InvalidCreativeCanvasMarkRequest,
+)
 from ai_anime.modules.creative_canvas.domain import (
+    CreativeCanvasMarkSelection,
     CreativeCanvasScreenshotTooLarge,
     InvalidCreativeCanvasPngScreenshot,
     canvas_actor_id,
@@ -48,22 +56,37 @@ def creative_canvas_media_use_cases() -> CreativeCanvasMediaUseCases:
     return build()
 
 
+def creative_canvas_mark_detection_use_cases() -> CreativeCanvasMarkDetectionUseCases:
+    from ai_anime.modules.creative_canvas.composition import (
+        creative_canvas_mark_detection_use_cases as build,
+    )
+
+    return build()
+
+
 __all__ = [
     "CreativeCanvasBootstrapBusy",
     "CreativeCanvasBootstrapCorrupt",
     "CreativeCanvasBootstrapResult",
     "CreativeCanvasBootstrapUseCases",
     "CreativeCanvasMediaUseCases",
+    "CreativeCanvasMarkDetectionFailed",
+    "CreativeCanvasMarkDetectionResult",
+    "CreativeCanvasMarkDetectionUseCases",
+    "CreativeCanvasMarkSelection",
     "CreativeCanvasScreenshotResult",
     "CreativeCanvasScreenshotTooLarge",
     "CreativeCanvasUploadResult",
     "GenerationCatalogQueries",
+    "DetectCreativeCanvasMarkCommand",
     "InvalidCreativeCanvasPngScreenshot",
+    "InvalidCreativeCanvasMarkRequest",
     "InitializeCreativeCanvasCommand",
     "SaveCreativeCanvasScreenshotCommand",
     "StoreCreativeCanvasUploadCommand",
     "canvas_actor_id",
     "creative_canvas_bootstrap_use_cases",
+    "creative_canvas_mark_detection_use_cases",
     "creative_canvas_media_use_cases",
     "generation_catalog_queries",
 ]

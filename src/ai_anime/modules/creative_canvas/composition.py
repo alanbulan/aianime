@@ -11,6 +11,9 @@ from ai_anime.modules.creative_canvas.application.generation_catalog import (
 from ai_anime.modules.creative_canvas.application.media import (
     CreativeCanvasMediaUseCases,
 )
+from ai_anime.modules.creative_canvas.application.mark_detection import (
+    CreativeCanvasMarkDetectionUseCases,
+)
 from ai_anime.modules.creative_canvas.infrastructure.bootstrap import (
     LocalCreativeCanvasBootstrapStorage,
 )
@@ -20,6 +23,10 @@ from ai_anime.modules.creative_canvas.infrastructure.generation_catalog import (
 from ai_anime.modules.creative_canvas.infrastructure.media import (
     FreezoneJobIdGenerator,
     LocalCreativeCanvasMediaStorage,
+)
+from ai_anime.modules.creative_canvas.infrastructure.mark_detection import (
+    FreezoneVisionMarkDetector,
+    ProjectCreativeCanvasImageSourceResolver,
 )
 
 
@@ -38,4 +45,12 @@ def creative_canvas_media_use_cases() -> CreativeCanvasMediaUseCases:
     return CreativeCanvasMediaUseCases(
         LocalCreativeCanvasMediaStorage(),
         FreezoneJobIdGenerator(),
+    )
+
+
+@lru_cache(maxsize=1)
+def creative_canvas_mark_detection_use_cases() -> CreativeCanvasMarkDetectionUseCases:
+    return CreativeCanvasMarkDetectionUseCases(
+        ProjectCreativeCanvasImageSourceResolver(),
+        FreezoneVisionMarkDetector(),
     )

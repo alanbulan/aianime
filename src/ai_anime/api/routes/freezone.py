@@ -48,8 +48,6 @@ from ai_anime.api.schemas import (
     FreezoneImageToVideoRequest,
     FreezoneJobAcceptedResponse,
     FreezoneKeyframeVideoRequest,
-    FreezoneMarkDetectRequest,
-    FreezoneMarkDetectResponse,
     FreezoneOutpaintRequest,
     FreezoneRedrawRequest,
     FreezoneRelightRequest,
@@ -107,7 +105,6 @@ from ai_anime.freezone.history import (
 from ai_anime.freezone.image_node import (
     reverse_prompt_from_image,
 )
-from ai_anime.freezone.mark_node import detect_freezone_mark
 from ai_anime.freezone.paths import (
     CANVAS_ID_RE,
     freezone_root,
@@ -6346,64 +6343,6 @@ def _start_freezone_image_reverse_prompt_task(
 # ============================================================
 # 视频处理：文生视频 / 运镜模板 / 角色库
 # ============================================================
-
-
-@router.post(
-    "/projects/{project}/freezone/marks/detect",
-    response_model=FreezoneMarkDetectResponse,
-    tags=[TAG_FREEZONE_IMAGE],
-)
-async def freezone_mark_detect(
-    project: str,
-    body: FreezoneMarkDetectRequest,
-    user: dict = Depends(get_api_user),
-):
-    """图片处理：识别单张图片中点击点或框选区域的局部元素标记。"""
-    _ctx, _username, _project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project, user
-    )
-    source_paths = _resolve_url_list(project_dir, [body.source_url])
-    if not source_paths:
-        raise HTTPException(400, "source_url is required")
-
-    has_point = body.point_x is not None and body.point_y is not None
-    has_box = all(
-        value is not None for value in [body.box_x, body.box_y, body.box_width, body.box_height]
-    )
-    if not (has_point or has_box):
-        raise HTTPException(400, "point or box selection is required")
-
-    try:
-        result = await detect_freezone_mark(
-            image_path=Path(source_paths[0]),
-            point_x=body.point_x,
-            point_y=body.point_y,
-            box_x=body.box_x,
-            box_y=body.box_y,
-            box_width=body.box_width,
-            box_height=body.box_height,
-        )
-    except Exception as exc:
-        raise HTTPException(500, f"mark detect failed: {exc}") from exc
-
-    return {
-        "ok": True,
-        "data": {
-            "mark": {
-                "label": result["label"],
-                "source_url": body.source_url,
-                "point_x": body.point_x,
-                "point_y": body.point_y,
-                "box_x": body.box_x,
-                "box_y": body.box_y,
-                "box_width": body.box_width,
-                "box_height": body.box_height,
-                "note": result.get("note", ""),
-            },
-            "provider": result["provider"],
-            "model": result["model"],
-        },
-    }
 
 
 @router.post(

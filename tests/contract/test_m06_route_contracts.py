@@ -220,8 +220,12 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.routes import freezone, ingest
     from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap
+    from ai_anime.api.routes.canvas import image as freezone_image
     from ai_anime.api.routes.canvas import media as freezone_media
     from ai_anime.freezone.paths import uploads_dir
+    from ai_anime.modules.creative_canvas.public import (
+        CreativeCanvasMarkDetectionResult,
+    )
     from ai_anime.utils.path_resolver import (
         canonical_beat_director_env_only_path,
         canonical_beat_selected_background_path,
@@ -294,6 +298,17 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         assert project_id == _PROJECT
         return ctx
 
+    class FakeMarkDetectionUseCases:
+        async def detect(self, command):
+            return CreativeCanvasMarkDetectionResult(
+                source_url=command.source_url,
+                selection=command.selection,
+                label="旧伞",
+                note="框选区域中的物体",
+                provider="newapi",
+                model="vision-model",
+            )
+
     async def make_store_for_context(_ctx):
         return store
 
@@ -318,6 +333,16 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         freezone_bootstrap,
         "resolve_project_scope",
         resolve_project_scope,
+    )
+    monkeypatch.setattr(
+        freezone_image,
+        "resolve_project_scope",
+        resolve_project_scope,
+    )
+    monkeypatch.setattr(
+        freezone_image,
+        "creative_canvas_mark_detection_use_cases",
+        lambda: FakeMarkDetectionUseCases(),
     )
     monkeypatch.setattr(
         freezone_media,
@@ -367,6 +392,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app = FastAPI()
         app.include_router(ingest.router, prefix="/api/v1")
         app.include_router(freezone_bootstrap.router, prefix="/api/v1")
+        app.include_router(freezone_image.router, prefix="/api/v1")
         app.include_router(freezone_media.router, prefix="/api/v1")
         app.include_router(freezone.router, prefix="/api/v1")
         user = {
@@ -378,6 +404,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app.dependency_overrides[api_auth.get_api_user] = lambda user=user: user
         app.dependency_overrides[ingest.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_bootstrap.get_api_user] = lambda user=user: user
+        app.dependency_overrides[freezone_image.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_media.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone.get_api_user] = lambda user=user: user
 
@@ -510,6 +537,39 @@ def test_m06_freezone_media_upload_and_screenshot(m06_client_factory):
         f"/static/projects/{_PROJECT_ID}/freezone/_outputs/three_d_viewer/"
     )
     assert screenshot_path.read_bytes() == png
+
+
+def test_m06_freezone_mark_detection_contract(m06_client_factory):
+    client, _backend, _task_manager, _project_dir, assets, _store = m06_client_factory(
+        "inline"
+    )
+
+    data = _assert_ok(
+        client.post(
+            f"/api/v1/projects/{_PROJECT}/freezone/marks/detect",
+            json={
+                "source_url": assets.image_url,
+                "point_x": 0.25,
+                "point_y": 0.75,
+            },
+        )
+    )["data"]
+
+    assert data == {
+        "mark": {
+            "label": "旧伞",
+            "source_url": assets.image_url,
+            "point_x": 0.25,
+            "point_y": 0.75,
+            "box_x": None,
+            "box_y": None,
+            "box_width": None,
+            "box_height": None,
+            "note": "框选区域中的物体",
+        },
+        "provider": "newapi",
+        "model": "vision-model",
+    }
 
 
 def test_m06_ingest_exposes_real_knowledge_graph_snapshot(m06_client_factory):
