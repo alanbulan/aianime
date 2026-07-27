@@ -69,11 +69,6 @@ from ai_anime.freezone.audio_node import (
 from ai_anime.freezone.canvas_lock import CanvasLockBusy
 from ai_anime.freezone.canvas_static_urls import (
     migrate_canvas_static_urls_in_memory,
-    sanitize_project_local_paths_in_memory,
-)
-from ai_anime.freezone.history import (
-    read_canvas_generation_history,
-    read_generation_history,
 )
 from ai_anime.freezone.paths import (
     CANVAS_ID_RE,
@@ -6308,23 +6303,6 @@ async def projection_status(
     }
 
 
-@router.get("/projects/{project}/freezone/canvases", tags=[TAG_FREEZONE_CANVAS])
-async def list_canvases(project: str, user: dict = Depends(get_api_user)):
-    ctx, _username, _project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project, user, required_role="viewer"
-    )
-    canvas_project_dir = _canvas_state_project_dir(ctx, project_dir)
-    try:
-        canvas_store.ensure_default_canvas(
-            canvas_project_dir,
-            project_id=ctx.project_id,
-            actor_id=canvas_actor_id(user),
-        )
-        return {"ok": True, "data": canvas_store.list_canvases(canvas_project_dir)}
-    except (canvas_store.CanvasStoreError, CanvasLockBusy) as exc:
-        _raise_canvas_store_http(exc)
-
-
 @router.get("/projects/{project}/freezone/canvases/{canvas_id}", tags=[TAG_FREEZONE_CANVAS])
 async def get_canvas(project: str, canvas_id: str, user: dict = Depends(get_api_user)):
     if not CANVAS_ID_RE.match(canvas_id):
@@ -6363,27 +6341,6 @@ async def get_canvas(project: str, canvas_id: str, user: dict = Depends(get_api_
         project_dir=project_dir,
     )
     return {"ok": True, "data": migrated_payload or {"nodes": [], "edges": []}}
-
-
-@router.get(
-    "/projects/{project}/freezone/canvases/{canvas_id}/history",
-    tags=[TAG_FREEZONE_CANVAS],
-)
-async def list_canvas_history(
-    project: str,
-    canvas_id: str,
-    user: dict = Depends(get_api_user),
-):
-    if not CANVAS_ID_RE.match(canvas_id):
-        raise HTTPException(400, "invalid canvas_id")
-    ctx, _username, _project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project, user, required_role="viewer"
-    )
-    canvas_project_dir = _canvas_state_project_dir(ctx, project_dir)
-    try:
-        return {"ok": True, "data": canvas_store.list_canvas_history(canvas_project_dir, canvas_id)}
-    except canvas_store.CanvasStoreError as exc:
-        _raise_canvas_store_http(exc)
 
 
 @router.post(
@@ -6456,103 +6413,6 @@ async def restore_canvas_history(
             "restored_from_revision": restored_from_revision,
         },
     }
-
-
-@router.get(
-    "/projects/{project}/freezone/canvases/{canvas_id}/nodes/{node_id}/generation-history",
-    tags=[TAG_FREEZONE_CANVAS],
-)
-async def get_node_generation_history(
-    project: str,
-    canvas_id: str,
-    node_id: str,
-    limit: int = Query(100, ge=1, le=500),
-    user: dict = Depends(get_api_user),
-):
-    """Return backend-side generation attempts recorded for one canvas node."""
-    if not CANVAS_ID_RE.match(canvas_id):
-        raise HTTPException(400, "invalid canvas_id")
-    ctx, _username, _project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project,
-        user,
-        required_role="viewer",
-    )
-    try:
-        records = read_generation_history(
-            project_dir=project_dir,
-            canvas_id=canvas_id,
-            node_id=node_id,
-            limit=limit,
-        )
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
-    records = [
-        sanitize_project_local_paths_in_memory(
-            migrate_canvas_static_urls_in_memory(
-                record,
-                project_id=ctx.project_id,
-                owner_username=ctx.owner_username,
-                project_name=ctx.project_name,
-                project_dir=project_dir,
-            )
-            or record,
-            project_id=ctx.project_id,
-            project_dir=project_dir,
-        )
-        or record
-        for record in records
-    ]
-    return {"ok": True, "data": {"records": records}}
-
-
-@router.get(
-    "/projects/{project}/freezone/canvases/{canvas_id}/generation-history",
-    tags=[TAG_FREEZONE_CANVAS],
-)
-async def get_canvas_generation_history(
-    project: str,
-    canvas_id: str,
-    limit: int = Query(500, ge=1, le=2000),
-    user: dict = Depends(get_api_user),
-):
-    """Return every node's recorded generation attempts for a whole canvas.
-
-    Aggregates across all nodes (newest first), including nodes that were deleted
-    from the canvas — their history files persist, so their past attempts stay
-    recoverable in the history browser.
-    """
-    if not CANVAS_ID_RE.match(canvas_id):
-        raise HTTPException(400, "invalid canvas_id")
-    ctx, _username, _project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project,
-        user,
-        required_role="viewer",
-    )
-    try:
-        records = read_canvas_generation_history(
-            project_dir=project_dir,
-            canvas_id=canvas_id,
-            limit=limit,
-        )
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
-    records = [
-        sanitize_project_local_paths_in_memory(
-            migrate_canvas_static_urls_in_memory(
-                record,
-                project_id=ctx.project_id,
-                owner_username=ctx.owner_username,
-                project_name=ctx.project_name,
-                project_dir=project_dir,
-            )
-            or record,
-            project_id=ctx.project_id,
-            project_dir=project_dir,
-        )
-        or record
-        for record in records
-    ]
-    return {"ok": True, "data": {"records": records}}
 
 
 @router.put("/projects/{project}/freezone/canvases/{canvas_id}", tags=[TAG_FREEZONE_CANVAS])

@@ -2,17 +2,25 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from ai_anime.api.deps import make_static_url_for_context
 from ai_anime.api.app import create_app
+from ai_anime.api.routes.canvas import documents as freezone_document_routes
 from ai_anime.api.routes.freezone import _asset_record_from_path
 from ai_anime.freezone.canvas_static_urls import (
     migrate_canvas_static_urls_in_memory,
     sanitize_project_local_paths_in_memory,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.modules.creative_canvas.application.canvas_documents import (
+    CreativeCanvasDocumentQueries,
+)
+from ai_anime.modules.creative_canvas.infrastructure.canvas_documents import (
+    LocalCreativeCanvasDocumentQueryGateway,
+)
 from ai_anime.shared.project_media import make_project_asset_url_builder
 
 
@@ -383,12 +391,10 @@ async def test_generation_history_static_urls_are_migrated_in_memory(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from ai_anime.api.routes import freezone as freezone_routes
-
     ctx = _ctx(tmp_path)
 
-    async def fake_resolve_freezone_project(*_args, **_kwargs):
-        return ctx, ctx.owner_username, ctx.project_name, Path(ctx.output_dir), str(ctx.output_dir)
+    async def fake_resolve_project_scope(*_args, **_kwargs):
+        return SimpleNamespace(ctx=ctx, project_dir=Path(ctx.output_dir))
 
     def fake_read_generation_history(*_args, **_kwargs):
         return [
@@ -412,14 +418,23 @@ async def test_generation_history_static_urls_are_migrated_in_memory(
             }
         ]
 
-    monkeypatch.setattr(
-        freezone_routes,
-        "_resolve_freezone_project",
-        fake_resolve_freezone_project,
+    queries = CreativeCanvasDocumentQueries(
+        LocalCreativeCanvasDocumentQueryGateway(
+            node_generation_history_reader=fake_read_generation_history,
+        )
     )
-    monkeypatch.setattr(freezone_routes, "read_generation_history", fake_read_generation_history)
+    monkeypatch.setattr(
+        freezone_document_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
+    monkeypatch.setattr(
+        freezone_document_routes,
+        "creative_canvas_document_queries",
+        lambda: queries,
+    )
 
-    response = await freezone_routes.get_node_generation_history(
+    response = await freezone_document_routes.get_node_generation_history(
         project=ctx.project_id,
         canvas_id="default",
         node_id="video_1",

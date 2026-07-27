@@ -904,6 +904,70 @@ def test_freezone_audio_library_routes_delegate_to_application() -> None:
     assert "LocalCreativeCanvasAudioLibraryGateway" in composition_source
 
 
+def test_freezone_canvas_document_queries_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "documents.py"
+    legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
+    application = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "application"
+        / "canvas_documents.py"
+    )
+    adapter = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "infrastructure"
+        / "canvas_documents.py"
+    )
+    source = route.read_text(encoding="utf-8")
+    legacy_source = legacy_route.read_text(encoding="utf-8")
+    api_router_source = api_router.read_text(encoding="utf-8")
+    application_source = application.read_text(encoding="utf-8")
+    adapter_source = adapter.read_text(encoding="utf-8")
+
+    for endpoint_path in (
+        '"/projects/{project}/freezone/canvases"',
+        '"/projects/{project}/freezone/canvases/{canvas_id}/history"',
+        '"/projects/{project}/freezone/canvases/{canvas_id}/nodes/{node_id}/generation-history"',
+        '"/projects/{project}/freezone/canvases/{canvas_id}/generation-history"',
+    ):
+        assert source.count(endpoint_path) == 1
+        assert endpoint_path not in legacy_source
+
+    assert source.count("creative_canvas_document_queries().") == 4
+    assert "freezone_documents.router" in api_router_source
+    for legacy_handler in (
+        "async def list_canvases(",
+        "async def list_canvas_history(",
+        "async def get_node_generation_history(",
+        "async def get_canvas_generation_history(",
+    ):
+        assert legacy_handler not in legacy_source
+    for migrated_dependency in (
+        "read_generation_history",
+        "read_canvas_generation_history",
+        "sanitize_project_local_paths_in_memory",
+    ):
+        assert migrated_dependency not in legacy_source
+    for implementation_detail in (
+        "canvas_store",
+        "read_generation_history",
+        "read_canvas_generation_history",
+        "migrate_canvas_static_urls_in_memory",
+        "sanitize_project_local_paths_in_memory",
+    ):
+        assert implementation_detail not in source
+
+    assert "fastapi" not in application_source
+    assert "ai_anime.api" not in application_source
+    assert "ai_anime.freezone" not in application_source
+    assert "fastapi" not in adapter_source
+    assert "ai_anime.api" not in adapter_source
+
+
 def test_freezone_text_processing_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "text.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"

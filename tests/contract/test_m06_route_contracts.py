@@ -221,6 +221,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api.routes import freezone, ingest
     from ai_anime.api.routes.canvas import audio as freezone_audio
     from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap
+    from ai_anime.api.routes.canvas import documents as freezone_documents
     from ai_anime.api.routes.canvas import image as freezone_image
     from ai_anime.api.routes.canvas import media as freezone_media
     from ai_anime.api.routes.canvas import text as freezone_text
@@ -395,6 +396,11 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     )
     monkeypatch.setattr(
         freezone_bootstrap,
+        "resolve_project_scope",
+        resolve_project_scope,
+    )
+    monkeypatch.setattr(
+        freezone_documents,
         "resolve_project_scope",
         resolve_project_scope,
     )
@@ -582,6 +588,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app.include_router(ingest.router, prefix="/api/v1")
         app.include_router(freezone_audio.router, prefix="/api/v1")
         app.include_router(freezone_bootstrap.router, prefix="/api/v1")
+        app.include_router(freezone_documents.router, prefix="/api/v1")
         app.include_router(freezone_image.router, prefix="/api/v1")
         app.include_router(freezone_media.router, prefix="/api/v1")
         app.include_router(freezone_text.router, prefix="/api/v1")

@@ -11,6 +11,9 @@ from ai_anime.modules.creative_canvas.application.audio_library import (
 from ai_anime.modules.creative_canvas.application.bootstrap import (
     CreativeCanvasBootstrapUseCases,
 )
+from ai_anime.modules.creative_canvas.application.canvas_documents import (
+    CreativeCanvasDocumentQueries,
+)
 from ai_anime.modules.creative_canvas.application.generation_catalog import (
     GenerationCatalogQueries,
 )
@@ -47,6 +50,9 @@ from ai_anime.modules.creative_canvas.application.video_asset_library import (
 from ai_anime.ports import get_task_backend
 from ai_anime.modules.creative_canvas.infrastructure.bootstrap import (
     LocalCreativeCanvasBootstrapStorage,
+)
+from ai_anime.modules.creative_canvas.infrastructure.canvas_documents import (
+    LocalCreativeCanvasDocumentQueryGateway,
 )
 from ai_anime.modules.creative_canvas.infrastructure.audio_library import (
     LocalCreativeCanvasAudioLibraryGateway,
@@ -92,6 +98,13 @@ from ai_anime.modules.creative_canvas.infrastructure.video_asset_library import 
 @lru_cache(maxsize=1)
 def creative_canvas_bootstrap_use_cases() -> CreativeCanvasBootstrapUseCases:
     return CreativeCanvasBootstrapUseCases(LocalCreativeCanvasBootstrapStorage())
+
+
+@lru_cache(maxsize=1)
+def creative_canvas_document_queries() -> CreativeCanvasDocumentQueries:
+    return CreativeCanvasDocumentQueries(
+        LocalCreativeCanvasDocumentQueryGateway(),
+    )
 
 
 @lru_cache(maxsize=1)

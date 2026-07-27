@@ -12,6 +12,7 @@ from PIL import Image
 
 from ai_anime.api.routes import freezone as freezone_routes
 from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap_routes
+from ai_anime.api.routes.canvas import documents as freezone_document_routes
 from ai_anime.api.routes.canvas import image as freezone_image_routes
 from ai_anime.api.routes.canvas import video as freezone_video_routes
 from ai_anime.api.routes.freezone import (
@@ -159,6 +160,11 @@ def _patch_freezone_project(
         return SimpleNamespace(ctx=ctx, project_dir=project_dir)
 
     monkeypatch.setattr(freezone_routes, "_resolve_freezone_project", fake_resolve_freezone_project)
+    monkeypatch.setattr(
+        freezone_document_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
     monkeypatch.setattr(
         freezone_image_routes,
         "resolve_project_scope",
@@ -1899,7 +1905,7 @@ async def test_canvas_history_list_and_restore(
         user={"username": "admin", "id": "owner_1"},
     )
 
-    history = await freezone_routes.list_canvas_history(
+    history = await freezone_document_routes.list_canvas_history(
         project="proj_freezone",
         canvas_id="default",
         user={"username": "admin", "id": "owner_1"},
@@ -1964,7 +1970,7 @@ async def test_delete_canvas_soft_deletes_and_hides_tombstone_from_list(
     assert len(deleted_files) == 1
     assert json.loads(deleted_files[0].read_text(encoding="utf-8")) == original
 
-    listed = await freezone_routes.list_canvases(
+    listed = await freezone_document_routes.list_canvases(
         project="proj_freezone",
         user={"username": "admin", "id": "owner_1"},
     )
@@ -2009,7 +2015,7 @@ async def test_delete_default_canvas_soft_deletes_without_recreating(
     assert not canvas_file.exists()
     assert canvas_file.with_name("default.deleted.json").exists()
 
-    listed = await freezone_routes.list_canvases(
+    listed = await freezone_document_routes.list_canvases(
         project="proj_freezone",
         user={"username": "admin", "id": "owner_1"},
     )
@@ -5867,16 +5873,16 @@ async def test_get_node_generation_history_uses_project_context_path(
         },
     )
 
-    async def fake_resolve_freezone_project(*_args, **_kwargs):
-        return ctx, "admin", "demo", project_dir, str(project_dir)
+    async def fake_resolve_project_scope(*_args, **_kwargs):
+        return SimpleNamespace(ctx=ctx, project_dir=project_dir)
 
-    def fail_get_project_dir(*_args, **_kwargs):
-        raise AssertionError("legacy project path should not be used")
+    monkeypatch.setattr(
+        freezone_document_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
 
-    monkeypatch.setattr(freezone_routes, "_resolve_freezone_project", fake_resolve_freezone_project)
-    monkeypatch.setattr(freezone_routes, "get_project_dir", fail_get_project_dir, raising=False)
-
-    result = await freezone_routes.get_node_generation_history(
+    result = await freezone_document_routes.get_node_generation_history(
         project="proj_freezone",
         canvas_id="canvas_a",
         node_id="node_a",

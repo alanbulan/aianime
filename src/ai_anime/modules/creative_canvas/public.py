@@ -21,6 +21,16 @@ from ai_anime.modules.creative_canvas.application.bootstrap import (
     CreativeCanvasBootstrapUseCases,
     InitializeCreativeCanvasCommand,
 )
+from ai_anime.modules.creative_canvas.application.canvas_documents import (
+    CreativeCanvasDocumentBusy,
+    CreativeCanvasDocumentCorrupt,
+    CreativeCanvasDocumentQueries,
+    InvalidCreativeCanvasDocumentQuery,
+    ListCreativeCanvasDocumentHistoryQuery,
+    ListCreativeCanvasDocumentsQuery,
+    ListCreativeCanvasGenerationHistoryQuery,
+    ListCreativeCanvasNodeGenerationHistoryQuery,
+)
 from ai_anime.modules.creative_canvas.application.generation_catalog import (
     GenerationCatalogQueries,
 )
@@ -152,6 +162,14 @@ from ai_anime.modules.creative_canvas.domain import (
 def creative_canvas_bootstrap_use_cases() -> CreativeCanvasBootstrapUseCases:
     from ai_anime.modules.creative_canvas.composition import (
         creative_canvas_bootstrap_use_cases as build,
+    )
+
+    return build()
+
+
+def creative_canvas_document_queries() -> CreativeCanvasDocumentQueries:
+    from ai_anime.modules.creative_canvas.composition import (
+        creative_canvas_document_queries as build,
     )
 
     return build()
@@ -292,6 +310,9 @@ __all__ = [
     "CreativeCanvasBootstrapCorrupt",
     "CreativeCanvasBootstrapResult",
     "CreativeCanvasBootstrapUseCases",
+    "CreativeCanvasDocumentBusy",
+    "CreativeCanvasDocumentCorrupt",
+    "CreativeCanvasDocumentQueries",
     "CreativeCanvasImageToThreeGsResult",
     "CreativeCanvasImageToThreeGsSourceMissing",
     "CreativeCanvasImageToThreeGsUseCases",
@@ -336,6 +357,7 @@ __all__ = [
     "InvalidCreativeCanvasPngScreenshot",
     "InvalidCreativeCanvasAudioGenerationRequest",
     "InvalidCreativeCanvasAudioLibraryRequest",
+    "InvalidCreativeCanvasDocumentQuery",
     "InvalidCreativeCanvasImageToThreeGsRequest",
     "InvalidCreativeCanvasImageEditingRequest",
     "InvalidCreativeCanvasImageGenerationRequest",
@@ -350,6 +372,10 @@ __all__ = [
     "InvalidCreativeCanvasVideoAssetRequest",
     "InitializeCreativeCanvasCommand",
     "ListCreativeCanvasAudioReferencesQuery",
+    "ListCreativeCanvasDocumentHistoryQuery",
+    "ListCreativeCanvasDocumentsQuery",
+    "ListCreativeCanvasGenerationHistoryQuery",
+    "ListCreativeCanvasNodeGenerationHistoryQuery",
     "SaveCreativeCanvasScreenshotCommand",
     "StoreCreativeCanvasUploadCommand",
     "StartCreativeCanvasMusicGenerationCommand",
@@ -386,6 +412,7 @@ __all__ = [
     "creative_canvas_audio_generation_use_cases",
     "creative_canvas_audio_library_use_cases",
     "creative_canvas_bootstrap_use_cases",
+    "creative_canvas_document_queries",
     "creative_canvas_mark_detection_use_cases",
     "creative_canvas_image_to_three_gs_use_cases",
     "creative_canvas_image_editing_use_cases",
