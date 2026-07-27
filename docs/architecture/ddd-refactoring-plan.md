@@ -1646,6 +1646,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百八十一批已将 pipeline-import 抽帧与镜头分析的 HTTP 提交、异步任务等待和结果解析从 `ExtractFramesDialog`/`VideoReferenceDialog` 迁入新增 `application/video-processing` 用例契约、唯一 `infrastructure/freezone-video-processing-gateway` 和 `composition` 装配层，两处 React 视图只保留上传、进度、错误和回调交互；最后两个 `submitFreezoneExtract`/`submitFreezoneAnalyze` 及其 transport DTO 随旧 `api/ops.ts` 整文件删除，不保留空壳、facade、re-export、双实现或死代码，`freezone/extract-frames` 与 `freezone/analyze-shots` 分别只有 pipeline gateway 一个生产所有者；视频 URL、最大帧数、场景阈值、OpenRouter provider、任务等待、字符串帧过滤、分析结果和分析失败降级语义均未改变；颜色字面量基线同步移除已删除文件，pipeline endpoint 门禁使用单次全树扫描；相关 1 个测试文件 2 项、架构门禁 208 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
 
+第二百八十二批已建立后端 Creative Canvas generation catalog application port、配置基础设施适配器、composition 与 public API，将图片相机/风格/模型和视频运镜/模型共 5 个只读目录端点从 1.1 万行 `freezone.py` 迁入独立 image/video FastAPI 子 router 并由 v1 入口直接装配；图片模型 transport 映射同步迁出 HTTP 层，旧主路由中的 5 个 handler、配置导入和目录 helper 导入直接删除，不保留转发函数或第二套路由；项目 viewer 鉴权、主节点错误上下文、请求路径、OpenAPI tag/说明和响应 payload 均保持不变；目录与项目解析定向回归 13 项、完整后端分层门禁 64 项及 Ruff 检查均通过，新增 Creative Canvas public 边界、router 所有权及目录副本隔离门禁。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

@@ -77,7 +77,6 @@ from ai_anime.api.schemas import (
     ProjectionStatusRequest,
     PushRequest,
 )
-from ai_anime.config import IMAGE_GENERATION_SELECTIONS, image_generation_selection_options
 from ai_anime.director_world import DirectorWorldService
 from ai_anime.director_world.staging_prop_ai import generate_ai_staging_prop
 from ai_anime.modules.asset_world.public import (
@@ -160,12 +159,6 @@ from ai_anime.freezone.route_helpers import (
     build_upscale_prompt as _build_upscale_prompt,
 )
 from ai_anime.freezone.route_helpers import (
-    get_freezone_image_camera_options as _get_freezone_image_camera_options,
-)
-from ai_anime.freezone.route_helpers import (
-    get_freezone_image_style_templates as _get_freezone_image_style_templates,
-)
-from ai_anime.freezone.route_helpers import (
     infer_scene_id_from_master_path as _infer_scene_id_from_master_path,
 )
 from ai_anime.freezone.route_helpers import (
@@ -229,9 +222,7 @@ from ai_anime.freezone.video_node import (
     build_freezone_omni_video_prompt,
     build_freezone_video_prompt,
     delete_video_character_library_item,
-    get_freezone_video_model_options,
     get_video_camera_template,
-    get_video_camera_templates,
     is_freezone_happyhorse_backend,
     is_freezone_seedance2_backend,
     load_video_character_library,
@@ -4681,26 +4672,6 @@ async def freezone_template_edit(
     )
 
 
-@router.get("/projects/{project}/freezone/image/camera-options", tags=[TAG_FREEZONE_IMAGE])
-async def freezone_image_camera_options(
-    project: str,
-    user: dict = Depends(get_api_user),
-):
-    """图片处理：返回摄像机参数选项列表。"""
-    await _resolve_freezone_project(project, user, required_role="viewer")
-    return {"ok": True, "data": _get_freezone_image_camera_options()}
-
-
-@router.get("/projects/{project}/freezone/image/style-templates", tags=[TAG_FREEZONE_IMAGE])
-async def freezone_image_style_templates(
-    project: str,
-    user: dict = Depends(get_api_user),
-):
-    """图片处理：返回内置风格模板列表。"""
-    await _resolve_freezone_project(project, user, required_role="viewer")
-    return {"ok": True, "data": _get_freezone_image_style_templates()}
-
-
 def _freezone_not_implemented(endpoint: str) -> None:
     raise HTTPException(
         status_code=501,
@@ -6458,50 +6429,6 @@ def _start_freezone_image_reverse_prompt_task(
 # ============================================================
 # 视频处理：文生视频 / 运镜模板 / 角色库
 # ============================================================
-
-
-@router.get("/projects/{project}/freezone/video/camera-templates", tags=[TAG_FREEZONE_VIDEO])
-async def freezone_video_camera_templates(
-    project: str,
-    user: dict = Depends(get_api_user),
-):
-    """视频处理：返回文生视频运镜模板库。"""
-    await _resolve_freezone_project(project, user, required_role="viewer")
-    return {"ok": True, "data": get_video_camera_templates()}
-
-
-@router.get("/projects/{project}/freezone/video/models", tags=[TAG_FREEZONE_VIDEO])
-async def freezone_video_models(
-    project: str,
-    user: dict = Depends(get_api_user),
-):
-    """视频处理：返回和 AI anime 视频模型下拉一致的可见模型。"""
-    await _resolve_freezone_project(project, user, required_role="viewer")
-    return {"ok": True, "data": get_freezone_video_model_options()}
-
-
-@router.get("/projects/{project}/freezone/image/models", tags=[TAG_FREEZONE_IMAGE])
-async def freezone_image_models(
-    project: str,
-    user: dict = Depends(get_api_user),
-):
-    """图片处理：返回和 AI anime 图片模型下拉一致的可见模型。"""
-    await _resolve_freezone_project(project, user, required_role="viewer")
-    options = image_generation_selection_options()
-    data = []
-    for key, label in options.items():
-        entry = IMAGE_GENERATION_SELECTIONS.get(key, {})
-        data.append(
-            {
-                "id": key,
-                "providerId": entry.get("provider", "newapi"),
-                "provider": entry.get("provider", "newapi"),
-                "apiModel": key,
-                "api_model": key,
-                "label": label,
-            }
-        )
-    return {"ok": True, "data": data}
 
 
 @router.post(

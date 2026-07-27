@@ -311,6 +311,59 @@ def test_production_callers_use_the_public_api() -> None:
     assert not failures, "\n".join(failures)
 
 
+def test_creative_canvas_callers_use_the_public_api() -> None:
+    creative_canvas_module = PACKAGE_ROOT / "modules" / "creative_canvas"
+    failures: list[str] = []
+
+    for path in _python_files(PACKAGE_ROOT):
+        if path.is_relative_to(creative_canvas_module):
+            continue
+        relative = _relative(path)
+        for imported in _imports(path):
+            if not imported.startswith("ai_anime.modules.creative_canvas."):
+                continue
+            if imported == "ai_anime.modules.creative_canvas.public":
+                continue
+            failures.append(f"{relative}: {imported}")
+
+    assert not failures, "\n".join(failures)
+
+
+def test_freezone_generation_catalog_routes_delegate_to_application() -> None:
+    image_route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "image.py"
+    video_route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "video.py"
+    legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
+    image_source = image_route.read_text(encoding="utf-8")
+    video_source = video_route.read_text(encoding="utf-8")
+    legacy_source = legacy_route.read_text(encoding="utf-8")
+    api_router_source = api_router.read_text(encoding="utf-8")
+
+    assert image_source.count("generation_catalog_queries().") == 3
+    assert video_source.count("generation_catalog_queries().") == 2
+    assert "freezone_image.router" in api_router_source
+    assert "freezone_video.router" in api_router_source
+    for handler_name in (
+        "freezone_image_camera_options",
+        "freezone_image_style_templates",
+        "freezone_image_models",
+        "freezone_video_camera_templates",
+        "freezone_video_models",
+    ):
+        assert f"async def {handler_name}(" not in legacy_source
+    for implementation_detail in (
+        "IMAGE_GENERATION_SELECTIONS",
+        "image_generation_selection_options",
+        "get_freezone_image_camera_options",
+        "get_freezone_image_style_templates",
+        "get_freezone_video_model_options",
+        "get_video_camera_templates",
+    ):
+        assert implementation_detail not in image_source
+        assert implementation_detail not in video_source
+        assert implementation_detail not in legacy_source
+
+
 def test_production_sketch_edit_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_sketch.py"
     source = route.read_text(encoding="utf-8")

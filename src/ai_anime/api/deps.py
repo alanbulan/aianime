@@ -47,6 +47,7 @@ async def resolve_project_scope(
     user: dict,
     *,
     required_role: str = "viewer",
+    operation: str = "resolve project files",
 ) -> ProjectResolution:
     """Resolve a route project_id to ProjectContext-backed local paths."""
     ctx = await resolve_project_context(
@@ -54,7 +55,7 @@ async def resolve_project_scope(
         project_id=project,
         required_role=required_role,
     )
-    require_project_home_node(ctx, operation="resolve project files")
+    require_project_home_node(ctx, operation=operation)
     return ProjectResolution(
         ctx=ctx,
         username=ctx.owner_username,

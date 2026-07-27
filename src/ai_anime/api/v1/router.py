@@ -37,6 +37,8 @@ from ai_anime.api.routes import (
     styles,
     tasks,
 )
+from ai_anime.api.routes.canvas import image as freezone_image
+from ai_anime.api.routes.canvas import video as freezone_video
 from ai_anime.shared import runtime_env
 
 OPENAPI_TAGS = [
@@ -105,6 +107,8 @@ def create_api_router(*, desktop_mode: bool | None = None) -> APIRouter:
         release_notifications.router,
         tags=["release-notifications"],
     )
+    router.include_router(freezone_image.router)
+    router.include_router(freezone_video.router)
     router.include_router(freezone.router)
 
     from ai_anime.verification.routes import router as verification_router

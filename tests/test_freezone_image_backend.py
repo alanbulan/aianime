@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from ai_anime.api.routes import freezone as freezone_routes
+from ai_anime.api.routes.canvas import image as freezone_image_routes
 from ai_anime.api.routes.freezone import (
     FREEZONE_DEFAULT_IMAGE_MODEL,
     _build_erase_prompt,
@@ -40,6 +41,7 @@ from ai_anime.freezone.skill_registry import (
     get_skill,
     list_skills,
 )
+from ai_anime.modules.creative_canvas.public import generation_catalog_queries
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.task_backend.limits import ProjectUserTaskLimitExceeded
 from ai_anime.task_state import get_task_manager
@@ -2192,7 +2194,7 @@ def test_camera_prompt_contains_camera_body_lens_focal_and_aperture() -> None:
 
 
 def test_image_style_templates_builtin_count_is_30() -> None:
-    data = freezone_routes._get_freezone_image_style_templates()
+    data = generation_catalog_queries().image_style_templates()
 
     assert len(data) == 30
     assert any(item["id"] == "three_oclock_2300" for item in data)
@@ -5731,12 +5733,18 @@ async def test_get_node_generation_history_uses_project_context_path(
 
 @pytest.mark.asyncio
 async def test_freezone_image_models_returns_selection_keys(
-    tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _patch_freezone_project(monkeypatch, tmp_path, project="58")
+    async def fake_resolve_project_scope(*_args, **_kwargs):
+        return object()
 
-    result = await freezone_routes.freezone_image_models(
+    monkeypatch.setattr(
+        freezone_image_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
+
+    result = await freezone_image_routes.freezone_image_models(
         project="58",
         user={"username": "admin"},
     )
