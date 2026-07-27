@@ -1634,6 +1634,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百七十五批已将音频声线引用查询和自定义声线上传的项目路径编码、响应容器兼容、snake_case 字段映射、multipart 文件/名称构造与错误处理从 `api/ops.ts` 迁入已有唯一 `freezoneAudioVoiceCatalogGateway` infrastructure 适配器，gateway 直接实现 Canvas application 持有的唯一 `CanvasAudioVoiceCatalogGateway` 契约，application 和视图继续只使用领域化声线引用；旧 `FreezoneAudioReferenceItem`、`FreezoneAudioReferencesResult`、`FreezoneAudioVoiceItem`、`CreateFreezoneAudioVoiceOptions`、`fetchFreezoneAudioReferences` 和 `createFreezoneAudioVoice` 直接删除，不保留 facade、re-export 或第二套 HTTP/DTO 映射，两个音频声线目录端点只有该 gateway 一个生产所有者，`api/ops.ts` 由 1,223 行降至 1,116 行；请求路径、数组及 `available`/`items`/`data` 容器兼容、字段投影、文件名、名称裁剪、关闭上传超时和错误透传语义均未改变；相关 1 个测试文件 3 项、架构门禁 206 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
 
+第二百七十六批已将通用媒体结果 URL、反向提示词和故事脚本结果的项目/任务类型/任务 ID 路径编码及响应读取从 `api/ops.ts` 迁入已有唯一 `freezoneGenerationTaskGateway` infrastructure 适配器，gateway 通过一个 `resultPath` 统一三类任务结果路径，并直接返回 application 持有的 `CanvasStoryScriptResult` 契约，L2 契约测试同步改走该唯一 gateway；旧 `FreezoneJobResult`、`FreezoneReversePromptResult`、`FreezoneStoryScriptRow`、`FreezoneStoryScriptResult` 及 3 个结果查询函数直接删除，不保留 facade、re-export 或第二套 HTTP/DTO 映射，通用任务结果端点只有该 gateway 一个生产所有者，`api/ops.ts` 由 1,116 行降至 1,025 行；任务列表和完成等待职责仍复用 `api/tasks`，请求路径、动态任务类型、媒体 URL、反向提示词和故事脚本结果语义均未改变；相关 2 个测试文件 9 项、架构门禁 207 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

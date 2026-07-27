@@ -10,9 +10,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { server } from "@/__mocks__/msw/server";
 import { apiCall } from "@/shared/api/client";
 import { freezoneCanvasStorageGateway } from "@/features/canvas/infrastructure/freezoneCanvasStorageGateway";
+import { freezoneGenerationTaskGateway } from "@/features/canvas/infrastructure/freezoneGenerationTaskGateway";
 import { freezoneImageGenerationGateway } from "@/features/canvas/infrastructure/freezoneImageGenerationGateway";
 import { httpFreezoneAssetCommitGateway } from "@/features/freezone/infrastructure/httpFreezoneAssetCommitGateway";
-import { fetchFreezoneJobResult } from "@/api/ops";
 import { createStreamClient } from "@/task-center/stream-client";
 import { useTaskStream } from "@/hooks/use-task-stream";
 import { useStartIngest } from "@/modules/story_intake/public";
@@ -321,10 +321,14 @@ describe("M06 frontend L2 contract", () => {
       canvasId: "default",
       nodeId: "n1",
     });
-    const jobResult = await fetchFreezoneJobResult("demo", job.task_type, job.job_id);
+    const jobResultUrl = await freezoneGenerationTaskGateway.fetchResultUrl(
+      "demo",
+      job.task_type,
+      job.job_id,
+    );
     const pushResult = await httpFreezoneAssetCommitGateway.commitAsset({
       projectId: "demo",
-      sourceUrl: jobResult.url,
+      sourceUrl: jobResultUrl,
       target: { kind: "frame", episode: 1, beat: 2 },
       markStale: true,
     });
@@ -339,10 +343,9 @@ describe("M06 frontend L2 contract", () => {
       job_id: "job-1",
       task_key: "freezone_gen:demo:job-1",
     });
-    expect(jobResult).toEqual({
-      url: "/static/projects/demo/freezone/_outputs/freezone_gen/job-1.png",
-      size: 2048,
-    });
+    expect(jobResultUrl).toBe(
+      "/static/projects/demo/freezone/_outputs/freezone_gen/job-1.png",
+    );
     expect(pushResult).toMatchObject({
       target_path: "episodes/1/beats/2/frame.png",
       stale_marked: 1,

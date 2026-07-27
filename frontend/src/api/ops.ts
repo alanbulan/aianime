@@ -909,66 +909,6 @@ export async function submitFreezoneAnalyze(
   );
 }
 
-// /freezone/jobs/{type}/{id}/result --------------------------------------- //
-
-export interface FreezoneJobResult {
-  url: string;
-  size: number;
-}
-
-export async function fetchFreezoneJobResult(
-  project: string,
-  taskType:
-    | "freezone_gen"
-    | "freezone_edit"
-    | "freezone_upscale"
-    | "freezone_extract"
-    | "freezone_analyze"
-    | "freezone_multi_view"
-    | "freezone_relight"
-    | "freezone_scene_360"
-    | "freezone_template_edit"
-    | "freezone_outpaint"
-    | "freezone_redraw"
-    | "freezone_video_gen"
-    | "freezone_video_omni_gen"
-    | "freezone_video_i2v"
-    | "freezone_video_erase"
-    | "freezone_video_compose"
-    | "freezone_video_upscale"
-    | "freezone_audio_separate"
-    | "freezone_audio_speech"
-    | "freezone_audio_eleven_music"
-    | "freezone_image_reverse_prompt"
-    | "freezone_text_translate"
-    | "freezone_story_script"
-    | "freezone_analyze_video_story"
-    | "stage_asset",
-  jobId: string,
-): Promise<FreezoneJobResult> {
-  return await apiCall<FreezoneJobResult>(
-    `projects/${encodeURIComponent(project)}/freezone/jobs/${encodeURIComponent(taskType)}/${encodeURIComponent(jobId)}/result`,
-  );
-}
-
-/**
- * `freezone_image_reverse_prompt` results aren't files — the dedicated job
- * result endpoint returns `{ prompt: "..." }` directly. SSE `task.result` only
- * carries `{ output_format: "json" }`, so the text must be fetched here.
- */
-export interface FreezoneReversePromptResult {
-  prompt: string;
-}
-
-export async function fetchFreezoneReversePromptResult(
-  project: string,
-  jobId: string,
-): Promise<FreezoneReversePromptResult> {
-  return await apiCall<FreezoneReversePromptResult>(
-    `projects/${encodeURIComponent(project)}/freezone/jobs/freezone_image_reverse_prompt/${encodeURIComponent(jobId)}/result`,
-  );
-}
-
 // /freezone/audio/references + /freezone/audio/speech -------------------- //
 
 /**
@@ -1062,7 +1002,7 @@ export interface FreezoneAudioMusicPayload {
 
 /**
  * 文本生成音乐。返回异步任务句柄，结果用
- * fetchFreezoneJobResult('freezone_audio_eleven_music') 取。
+ * 任务结果端点取。
  */
 export async function submitFreezoneAudioMusic(
   project: string,
@@ -1081,36 +1021,5 @@ export async function submitFreezoneAudioMusic(
         target_beat: payload.targetBeat,
       },
     },
-  );
-}
-
-export interface FreezoneStoryScriptRow {
-  shot_no?: string | number | null;
-  duration?: string | number | null;
-  visual_description?: string | null;
-  character?: string | null;
-  shot?: string | null;
-  action?: string | null;
-  emotion?: string | null;
-  scene_tags?: string | null;
-  lighting_mood?: string | null;
-  sound?: string | null;
-  dialogue?: string | null;
-  shot_prompt?: string | null;
-  video_motion_prompt?: string | null;
-  [key: string]: unknown;
-}
-
-export interface FreezoneStoryScriptResult {
-  title?: string | null;
-  rows: FreezoneStoryScriptRow[];
-}
-
-export async function fetchFreezoneStoryScriptResult(
-  project: string,
-  jobId: string,
-): Promise<FreezoneStoryScriptResult> {
-  return await apiCall<FreezoneStoryScriptResult>(
-    `projects/${encodeURIComponent(project)}/freezone/jobs/freezone_story_script/${encodeURIComponent(jobId)}/result`,
   );
 }

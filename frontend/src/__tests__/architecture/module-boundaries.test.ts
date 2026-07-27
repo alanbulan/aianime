@@ -10738,6 +10738,65 @@ describe("frontend architecture boundaries", () => {
     expect(legacyOpsSource).not.toContain("}/freezone/gen`");
   });
 
+  it("keeps Canvas generation result queries behind one shared gateway", () => {
+    const gatewayPath = resolve(
+      SRC_ROOT,
+      "features/canvas/infrastructure/freezoneGenerationTaskGateway.ts",
+    );
+    const portsPath = resolve(
+      SRC_ROOT,
+      "features/canvas/application/ports.ts",
+    );
+    const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
+    const gatewaySource = readFileSync(gatewayPath, "utf8");
+    const portsSource = readFileSync(portsPath, "utf8");
+    const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
+    const endpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          "}/freezone/jobs/${encodeURIComponent(taskType)}/${encodeURIComponent(jobId)}/result`",
+        ),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(new Set(importSpecifiers(gatewayPath))).toEqual(
+      new Set([
+        "@/api/tasks",
+        "@/shared/api/client",
+        "../application/ports",
+      ]),
+    );
+    expect(gatewaySource).toContain(
+      "freezoneGenerationTaskGateway: CanvasGenerationTaskGateway",
+    );
+    expect(gatewaySource).toContain(
+      "resultPath(projectId, 'freezone_image_reverse_prompt', jobId)",
+    );
+    expect(gatewaySource).toContain(
+      "resultPath(projectId, 'freezone_story_script', jobId)",
+    );
+    expect(portsSource).toContain(
+      "export interface CanvasStoryScriptResult",
+    );
+    expect(endpointOwners).toEqual([
+      "features/canvas/infrastructure/freezoneGenerationTaskGateway.ts",
+    ]);
+    for (const legacySymbol of [
+      "FreezoneJobResult",
+      "fetchFreezoneJobResult",
+      "FreezoneReversePromptResult",
+      "fetchFreezoneReversePromptResult",
+      "FreezoneStoryScriptRow",
+      "FreezoneStoryScriptResult",
+      "fetchFreezoneStoryScriptResult",
+    ]) {
+      expect(legacyOpsSource).not.toContain(legacySymbol);
+    }
+    expect(legacyOpsSource).not.toContain("}/freezone/jobs/");
+  });
+
   it("keeps Canvas video story analysis behind application", () => {
     const applicationPath = resolve(
       SRC_ROOT,
