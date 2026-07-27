@@ -56,7 +56,7 @@ import {
 import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
 import { inheritMainlineFields } from '@/features/canvas/domain/inheritMainlineFields';
 import { CreditCostPill } from '@/components/credits/credit-visual';
-import { useGenerationCreditCost } from '@/lib/queries/generation-credit-cost';
+import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import { NODE_CREDIT_PILL_FLAT_CLASS } from './nodeControlStyles';
 
 interface RedrawOverlayProps {

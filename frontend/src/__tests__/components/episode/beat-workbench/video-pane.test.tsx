@@ -657,7 +657,7 @@ vi.mock("@/modules/narrative_planning/public", () => ({
   }),
 }));
 
-vi.mock("@/lib/queries/generation-credit-cost", () => ({
+vi.mock("@/modules/model_usage/public", () => ({
   useGenerationCreditCosts: () => [],
   useGenerationCreditCost: (kind: string, value?: string) => ({
     data:

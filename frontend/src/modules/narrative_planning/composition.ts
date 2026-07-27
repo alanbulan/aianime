@@ -9,7 +9,7 @@ import {
   useScenes,
 } from "@/modules/asset_world/public";
 import { useNavigateToAsset } from "@/hooks/use-assets-deep-link";
-import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
+import { useGenerationCreditCost } from "@/modules/model_usage/public";
 import { useTasks } from "@/lib/queries/tasks";
 import { TASK_TYPES, isActiveStatus } from "@/lib/task-types";
 import {

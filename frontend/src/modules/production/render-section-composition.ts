@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
 import { ThreeDDirectorDialog } from "@/features/viewer-kit/three-d/ThreeDDirectorDialog";
 import { useNow } from "@/hooks/use-now";
-import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
+import { useGenerationCreditCost } from "@/modules/model_usage/public";
 import {
   useBeatBackgroundAnchors,
   useBeatDirectorStageManifest,

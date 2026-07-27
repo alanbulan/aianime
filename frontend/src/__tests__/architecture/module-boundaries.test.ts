@@ -7150,6 +7150,42 @@ describe("frontend architecture boundaries", () => {
     expect(transportFactories).toEqual(["shared/api/transport.ts"]);
   });
 
+  it("keeps Model Usage callers on its public API", () => {
+    const moduleRoot = resolve(SRC_ROOT, "modules/model_usage");
+    const externalSources = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.startsWith(moduleRoot))
+      .filter((path) => !relativeSource(path).startsWith("__tests__/"));
+    const internalImportFailures = externalSources.flatMap((path) =>
+      importSpecifiers(path)
+        .filter(
+          (specifier) =>
+            specifier.startsWith("@/modules/model_usage/") &&
+            specifier !== "@/modules/model_usage/public",
+        )
+        .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+    );
+    const endpointOwners = externalSources
+      .filter((path) =>
+        readFileSync(path, "utf8").includes("api/v1/generation-credit-cost"),
+      )
+      .map(relativeSource);
+
+    expect(
+      existsSync(resolve(SRC_ROOT, "lib/queries/generation-credit-cost.ts")),
+    ).toBe(false);
+    expect(internalImportFailures).toEqual([]);
+    expect(endpointOwners).toEqual([]);
+    expect(
+      readFileSync(
+        resolve(
+          moduleRoot,
+          "infrastructure/http-generation-credit-gateway.ts",
+        ),
+        "utf8",
+      ),
+    ).toContain("api/v1/generation-credit-cost");
+  });
+
   it("keeps Platform Release callers on its public API", () => {
     const moduleRoot = resolve(SRC_ROOT, "modules/platform_release");
     const externalSources = sourceFiles(SRC_ROOT)

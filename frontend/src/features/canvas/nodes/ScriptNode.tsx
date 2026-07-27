@@ -72,7 +72,7 @@ import {
 } from '@/features/canvas/ui/NodeGenerationHistory';
 import { readUrl } from '@/lib/url-params';
 import { CreditCostPill } from '@/components/credits/credit-visual';
-import { useGenerationCreditCost } from '@/lib/queries/generation-credit-cost';
+import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import {
   NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,

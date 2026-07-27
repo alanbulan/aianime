@@ -14,7 +14,7 @@ vi.mock("@/shared/api/transport", () => ({
 import {
   useGenerationCreditCost,
   useGenerationCreditCosts,
-} from "@/lib/queries/generation-credit-cost";
+} from "@/modules/model_usage/public";
 import { BillingRuleNotConfiguredError } from "@/shared/api/errors";
 
 const server = setupServer();

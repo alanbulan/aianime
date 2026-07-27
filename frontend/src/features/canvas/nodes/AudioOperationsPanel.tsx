@@ -43,7 +43,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { useGenerationCreditCost } from '@/lib/queries/generation-credit-cost';
+import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import { VoiceSelectionModal } from './VoiceSelectionModal';
 
 const PANEL_GAP_PX = 12;

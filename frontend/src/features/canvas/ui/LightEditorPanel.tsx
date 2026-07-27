@@ -14,7 +14,7 @@ import {
 import { CreditCostPill } from "@/components/credits/credit-visual";
 import { UiTextArea } from "@/components/ui";
 import { Slider } from "@/components/shadcn/slider";
-import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
+import { useGenerationCreditCost } from "@/modules/model_usage/public";
 import { useFreezoneImageModels } from "@/features/canvas/hooks/useFreezoneImageModels";
 import type { CanvasRelightKeyLightDirection } from "@/features/canvas/domain/relight";
 import {

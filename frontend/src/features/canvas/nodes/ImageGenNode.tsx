@@ -142,7 +142,7 @@ import {
   collectCandidateBindingsForNode,
 } from '@/features/freezone/context/mainlineContext';
 import { RegenerateButton } from '@/features/canvas/ui/RegenerateButton';
-import { useGenerationCreditCost } from '@/lib/queries/generation-credit-cost';
+import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import { CreditCostPill, formatCreditCost } from '@/components/credits/credit-visual';
 import {
   NODE_COUNT_POPOVER_CLASS,

@@ -96,7 +96,7 @@ vi.mock("@/modules/production/composition", () => ({
     useSketchPoseEditorDialogController: () => ({}),
 }));
 
-vi.mock("@/lib/queries/generation-credit-cost", () => ({
+vi.mock("@/modules/model_usage/public", () => ({
   useGenerationCreditCosts: () => [],
   useGenerationCreditCost: () => ({
     data: {

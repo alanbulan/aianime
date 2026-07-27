@@ -45,7 +45,7 @@ import { DEFAULT_SHARED_MODEL_ID } from '@/features/canvas/domain/modelDefaults'
 import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
 import { inheritMainlineFields } from '@/features/canvas/domain/inheritMainlineFields';
 import { CreditCostPill } from '@/components/credits/credit-visual';
-import { useGenerationCreditCost } from '@/lib/queries/generation-credit-cost';
+import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import { NODE_TOOLBAR_CLASS } from './nodeToolbarConfig';
 import { CANVAS_NODE_TOOLBAR_PILL_CLASS } from './nodeFrameStyles';
 import {

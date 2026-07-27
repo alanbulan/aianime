@@ -8,7 +8,7 @@ import { resolveMediaUrl } from "@/lib/media-url";
 import {
   useGenerationCreditCost,
   useGenerationCreditCosts,
-} from "@/lib/queries/generation-credit-cost";
+} from "@/modules/model_usage/public";
 import { useTasks } from "@/lib/queries/tasks";
 import type { Beat } from "@/modules/narrative_planning/public";
 import { useAppStore } from "@/stores/app-store";

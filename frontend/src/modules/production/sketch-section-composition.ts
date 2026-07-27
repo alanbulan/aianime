@@ -7,7 +7,7 @@ import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetPr
 import { ThreeDDirectorDialog } from "@/features/viewer-kit/three-d/ThreeDDirectorDialog";
 import { useNavigateToAsset } from "@/hooks/use-assets-deep-link";
 import { useNow } from "@/hooks/use-now";
-import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
+import { useGenerationCreditCost } from "@/modules/model_usage/public";
 import {
   useBeatBackgroundAnchors,
   useBeatDirectorStageManifest,

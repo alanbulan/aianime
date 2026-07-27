@@ -213,7 +213,7 @@ import {
   CreditCostPill,
   formatCreditCost,
 } from "@/components/credits/credit-visual";
-import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
+import { useGenerationCreditCost } from "@/modules/model_usage/public";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 type VideoNodeProps = NodeProps & {

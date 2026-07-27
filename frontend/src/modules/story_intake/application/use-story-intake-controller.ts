@@ -12,7 +12,7 @@ import {
   BillingRuleNotConfiguredError,
 } from "@/shared/api/errors";
 import { queryKeys } from "@/lib/query-keys";
-import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
+import { useGenerationCreditCost } from "@/modules/model_usage/public";
 import { useProject, useUpdateProject } from "@/modules/project_workspace/public";
 import { useStyles } from "@/modules/asset_world/public";
 import { useCancelTask, useTasks } from "@/lib/queries/tasks";

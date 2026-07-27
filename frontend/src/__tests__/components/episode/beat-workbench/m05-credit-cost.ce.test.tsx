@@ -233,7 +233,7 @@ describe("M05 CE generation credit cost gating", () => {
       "src/modules/narrative_planning/application/use-beats-page-controller.ts",
       "src/modules/narrative_planning/application/use-beats-sketch-plan-controller.ts",
       "src/modules/narrative_planning/presentation/BeatsPageView.tsx",
-      "src/lib/queries/generation-credit-cost.ts",
+      "src/modules/model_usage/application/query-hooks.ts",
     ];
 
     for (const relativePath of businessPaths) {

@@ -67,7 +67,7 @@ import {
 } from '@/features/canvas/ui/nodeControlStyles';
 import { useFreezoneVideoModels } from '@/features/canvas/hooks/useFreezoneVideoModels';
 import { CreditCostInline } from '@/components/credit-cost-inline';
-import { useGenerationCreditCost } from '@/lib/queries/generation-credit-cost';
+import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
 type TextAnnotationNodeProps = NodeProps & {
   id: string;

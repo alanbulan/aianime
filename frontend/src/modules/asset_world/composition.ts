@@ -6,7 +6,7 @@ import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetPr
 import { useAssetFocus } from "@/hooks/use-asset-focus";
 import { useNavigateToAsset } from "@/hooks/use-assets-deep-link";
 import { downloadBlobAsFile } from "@/lib/browserDownload";
-import { useGenerationCreditCost } from "@/lib/queries/generation-credit-cost";
+import { useGenerationCreditCost } from "@/modules/model_usage/public";
 import { isCeRuntime } from "@/lib/runtime-config";
 import { NarratorVoicePanel } from "@/modules/production/public";
 import { createBeatViewerQueryHooks } from "@/modules/asset_world/application/beat-viewer-query-hooks";

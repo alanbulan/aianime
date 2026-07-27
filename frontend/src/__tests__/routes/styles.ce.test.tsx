@@ -81,7 +81,7 @@ vi.mock("@/modules/asset_world/infrastructure/http-asset-world-gateway", () => (
   },
 }));
 
-vi.mock("@/lib/queries/generation-credit-cost", () => ({
+vi.mock("@/modules/model_usage/public", () => ({
   useGenerationCreditCost: () => ({ data: undefined, error: null }),
   useGenerationCreditCosts: () => [],
 }));

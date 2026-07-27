@@ -50,7 +50,7 @@ import {
 } from './nodeControlStyles';
 import { CreditCostPill } from '@/components/credits/credit-visual';
 import { useFreezoneImageModels } from '@/features/canvas/hooks/useFreezoneImageModels';
-import { useGenerationCreditCost } from '@/lib/queries/generation-credit-cost';
+import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
 interface EraseOverlayProps {
   node: CanvasNode;
