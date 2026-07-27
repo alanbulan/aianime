@@ -767,6 +767,93 @@ def test_freezone_reverse_prompt_route_delegates_to_application() -> None:
         assert implementation_detail not in source
 
 
+def test_freezone_text_processing_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "text.py"
+    legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
+    application = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "application"
+        / "text_processing.py"
+    )
+    adapter = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "infrastructure"
+        / "text_sources.py"
+    )
+    composition = PACKAGE_ROOT / "modules" / "creative_canvas" / "composition.py"
+    runner = PACKAGE_ROOT / "task_backend" / "runners" / "freezone.py"
+    source = route.read_text(encoding="utf-8")
+    legacy_source = legacy_route.read_text(encoding="utf-8")
+    api_router_source = api_router.read_text(encoding="utf-8")
+    application_source = application.read_text(encoding="utf-8")
+    adapter_source = adapter.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    runner_source = runner.read_text(encoding="utf-8")
+
+    endpoint_paths = (
+        '"/projects/{project}/freezone/text/translate"',
+        '"/projects/{project}/freezone/text/story-script"',
+    )
+    for endpoint_path in endpoint_paths:
+        assert source.count(endpoint_path) == 1
+        assert endpoint_path not in legacy_source
+
+    assert source.count("creative_canvas_text_processing_use_cases().") == 2
+    assert "StartCreativeCanvasTextTranslationCommand" in source
+    assert "StartCreativeCanvasStoryScriptCommand" in source
+    assert "freezone_text.router" in api_router_source
+    for legacy_handler in (
+        "async def freezone_text_translate(",
+        "async def freezone_story_script_generate(",
+        "def _start_freezone_text_translate_task(",
+        "def _start_freezone_story_script_task(",
+        "def _read_freezone_text_file(",
+        "def _freezone_history_preview(",
+        "def _record_freezone_node_history(",
+    ):
+        assert legacy_handler not in legacy_source
+    for legacy_schema in (
+        "FreezoneTextTranslateRequest",
+        "FreezoneStoryScriptGenerateRequest",
+        "TAG_FREEZONE_TEXT",
+    ):
+        assert legacy_schema not in legacy_source
+    for implementation_detail in (
+        "get_task_backend",
+        "resolve_static_url_to_path",
+        "asyncio.create_task",
+        "translate_freezone_text",
+        "generate_freezone_story_script",
+    ):
+        assert implementation_detail not in source
+
+    for layered_source in (application_source, adapter_source):
+        assert "fastapi" not in layered_source
+        assert "ai_anime.api" not in layered_source
+    assert "ai_anime.freezone" not in application_source
+    assert '("utf-8", "utf-8-sig", "gb18030")' in adapter_source
+    assert "translate_runtime_errors=False" in composition_source
+    assert (
+        runner_source.count(
+            'register_project_task_runner("freezone_text_translate", '
+            "run_freezone_text_translate)"
+        )
+        == 1
+    )
+    assert (
+        runner_source.count(
+            'register_project_task_runner("freezone_story_script", '
+            "run_freezone_story_script)"
+        )
+        == 1
+    )
+
+
 def test_freezone_image_to_three_gs_route_delegates_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "image.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"

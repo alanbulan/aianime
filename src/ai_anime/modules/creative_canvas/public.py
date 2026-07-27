@@ -54,6 +54,13 @@ from ai_anime.modules.creative_canvas.application.task_submission import (
     CreativeCanvasTaskReceipt,
     CreativeCanvasTaskStartFailed,
 )
+from ai_anime.modules.creative_canvas.application.text_processing import (
+    CreativeCanvasTextProcessingSourceMissing,
+    CreativeCanvasTextProcessingUseCases,
+    InvalidCreativeCanvasTextProcessingRequest,
+    StartCreativeCanvasStoryScriptCommand,
+    StartCreativeCanvasTextTranslationCommand,
+)
 from ai_anime.modules.creative_canvas.application.video_processing import (
     CreativeCanvasVideoCompositionItem,
     CreativeCanvasVideoCompositionTrack,
@@ -199,6 +206,14 @@ def creative_canvas_image_generation_use_cases() -> CreativeCanvasImageGeneratio
     return build()
 
 
+def creative_canvas_text_processing_use_cases() -> CreativeCanvasTextProcessingUseCases:
+    from ai_anime.modules.creative_canvas.composition import (
+        creative_canvas_text_processing_use_cases as build,
+    )
+
+    return build()
+
+
 def creative_canvas_video_processing_use_cases() -> CreativeCanvasVideoProcessingUseCases:
     from ai_anime.modules.creative_canvas.composition import (
         creative_canvas_video_processing_use_cases as build,
@@ -260,6 +275,8 @@ __all__ = [
     "CreativeCanvasReversePromptUseCases",
     "CreativeCanvasTaskReceipt",
     "CreativeCanvasTaskStartFailed",
+    "CreativeCanvasTextProcessingSourceMissing",
+    "CreativeCanvasTextProcessingUseCases",
     "CreativeCanvasOmniVideoReference",
     "CreativeCanvasVideoCharacterMissing",
     "CreativeCanvasVideoGenerationOptions",
@@ -288,6 +305,7 @@ __all__ = [
     "UnsupportedCreativeCanvasImageProvider",
     "InvalidCreativeCanvasMarkRequest",
     "InvalidCreativeCanvasReversePromptRequest",
+    "InvalidCreativeCanvasTextProcessingRequest",
     "InvalidCreativeCanvasVideoProcessingRequest",
     "InvalidCreativeCanvasVideoGenerationRequest",
     "InvalidCreativeCanvasVideoAssetRequest",
@@ -300,6 +318,8 @@ __all__ = [
     "StartCreativeCanvasImageEditingCommand",
     "StartCreativeCanvasReferenceImageEditingCommand",
     "StartCreativeCanvasImageGenerationCommand",
+    "StartCreativeCanvasStoryScriptCommand",
+    "StartCreativeCanvasTextTranslationCommand",
     "StartCreativeCanvasFrameExtractionCommand",
     "StartCreativeCanvasImageVideoCommand",
     "StartCreativeCanvasKeyframeVideoCommand",
@@ -327,6 +347,7 @@ __all__ = [
     "creative_canvas_image_editing_use_cases",
     "creative_canvas_reference_image_editing_use_cases",
     "creative_canvas_image_generation_use_cases",
+    "creative_canvas_text_processing_use_cases",
     "creative_canvas_video_processing_use_cases",
     "creative_canvas_video_generation_use_cases",
     "creative_canvas_video_asset_library_use_cases",

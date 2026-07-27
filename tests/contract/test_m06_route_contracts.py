@@ -222,6 +222,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap
     from ai_anime.api.routes.canvas import image as freezone_image
     from ai_anime.api.routes.canvas import media as freezone_media
+    from ai_anime.api.routes.canvas import text as freezone_text
     from ai_anime.api.routes.canvas import video as freezone_video
     from ai_anime.freezone.paths import uploads_dir
     from ai_anime.modules.creative_canvas.public import (
@@ -238,6 +239,9 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     )
     from ai_anime.modules.creative_canvas.application.reverse_prompt import (
         CreativeCanvasReversePromptUseCases,
+    )
+    from ai_anime.modules.creative_canvas.application.text_processing import (
+        CreativeCanvasTextProcessingUseCases,
     )
     from ai_anime.modules.creative_canvas.application.video_processing import (
         CreativeCanvasVideoProcessingUseCases,
@@ -273,6 +277,9 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     )
     from ai_anime.modules.creative_canvas.infrastructure.task_submission import (
         TaskBackendCreativeCanvasTaskScheduler,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.text_sources import (
+        LocalCreativeCanvasTextSourceReader,
     )
     from ai_anime.utils.path_resolver import (
         canonical_beat_director_env_only_path,
@@ -398,6 +405,11 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         resolve_project_scope,
     )
     monkeypatch.setattr(
+        freezone_text,
+        "resolve_project_scope",
+        resolve_project_scope,
+    )
+    monkeypatch.setattr(
         freezone_video,
         "resolve_project_scope",
         resolve_project_scope,
@@ -434,6 +446,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         prop=prop,
         ctx=ctx,
         freezone=freezone,
+        freezone_text=freezone_text,
     )
 
     def build(backend: str = "inline"):
@@ -467,6 +480,12 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         )
         video_processing_use_cases = CreativeCanvasVideoProcessingUseCases(
             ProjectCreativeCanvasMediaSourceResolver(),
+            FreezoneJobIdGenerator(),
+            task_scheduler,
+        )
+        text_processing_use_cases = CreativeCanvasTextProcessingUseCases(
+            ProjectCreativeCanvasMediaSourceResolver(),
+            LocalCreativeCanvasTextSourceReader(),
             FreezoneJobIdGenerator(),
             task_scheduler,
         )
@@ -524,6 +543,11 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             lambda use_cases=video_processing_use_cases: use_cases,
         )
         monkeypatch.setattr(
+            freezone_text,
+            "creative_canvas_text_processing_use_cases",
+            lambda use_cases=text_processing_use_cases: use_cases,
+        )
+        monkeypatch.setattr(
             freezone_video,
             "creative_canvas_video_asset_library_use_cases",
             lambda use_cases=video_asset_library_use_cases: use_cases,
@@ -541,6 +565,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app.include_router(freezone_bootstrap.router, prefix="/api/v1")
         app.include_router(freezone_image.router, prefix="/api/v1")
         app.include_router(freezone_media.router, prefix="/api/v1")
+        app.include_router(freezone_text.router, prefix="/api/v1")
         app.include_router(freezone_video.router, prefix="/api/v1")
         app.include_router(freezone.router, prefix="/api/v1")
         user = {
@@ -554,6 +579,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app.dependency_overrides[freezone_bootstrap.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_image.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_media.get_api_user] = lambda user=user: user
+        app.dependency_overrides[freezone_text.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_video.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone.get_api_user] = lambda user=user: user
 
@@ -594,17 +620,6 @@ def _assert_freezone_http_task_shape(payload: dict, *, task_type: str) -> dict:
     assert data["task_type"] == task_type
     assert data["job_id"]
     assert data["task_key"]
-    return data
-
-
-def _assert_helper_task_shape(payload: dict, *, backend: str, task_type: str) -> dict:
-    data = _task_data(payload)
-    assert data["task_type"] == task_type
-    assert data["job_id"]
-    assert data["task_key"]
-    assert data["backend"] == backend
-    assert data["queue"] == ("inline" if backend == "inline" else "default")
-    assert data.get("task_id")
     return data
 
 
@@ -1087,9 +1102,13 @@ def test_m06_freezone_task_backend_l1_helper_payloads_keep_backend_and_queue(
     from ai_anime.modules.creative_canvas.application.image_generation import (
         StartCreativeCanvasImageGenerationCommand,
     )
+    from ai_anime.modules.creative_canvas.application.text_processing import (
+        StartCreativeCanvasTextTranslationCommand,
+    )
 
     _client, _task_backend, _task_manager, project_dir, assets, _store = m06_client_factory(backend)
     freezone = assets.freezone
+    freezone_text = assets.freezone_text
 
     async def run_helpers():
         image = await freezone.creative_canvas_image_generation_use_cases().start(
@@ -1102,20 +1121,24 @@ def test_m06_freezone_task_backend_l1_helper_payloads_keep_backend_and_queue(
                 quality="medium",
             )
         )
-        text = await freezone._enqueue_freezone_background_job(
-            ctx=assets.ctx,
-            project_dir=project_dir,
-            task_type="freezone_text_translate",
-            job_id="l1-text",
-            payload={"text": "hello", "node_type": "text"},
+        text = await freezone_text.creative_canvas_text_processing_use_cases().start_translation(
+            StartCreativeCanvasTextTranslationCommand(
+                context=assets.ctx,
+                project_dir=project_dir,
+                text="hello",
+                node_type="text",
+            )
         )
         return image, text
 
-    image_receipt, text_payload = asyncio.run(run_helpers())
+    image_receipt, text_receipt = asyncio.run(run_helpers())
     assert image_receipt.task_type == "freezone_gen"
     assert image_receipt.backend == backend
     assert image_receipt.queue == ("inline" if backend == "inline" else "default")
-    _assert_helper_task_shape(text_payload, backend=backend, task_type="freezone_text_translate")
+    assert text_receipt.task_type == "freezone_text_translate"
+    assert text_receipt.backend == backend
+    assert text_receipt.queue == ("inline" if backend == "inline" else "default")
+    assert text_receipt.task_id
 
 
 def test_m06_freezone_job_result_reads_terminal_output(m06_client_factory):

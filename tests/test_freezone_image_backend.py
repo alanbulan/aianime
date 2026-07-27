@@ -2710,44 +2710,6 @@ async def test_freezone_celery_image_jobs_preserve_canvas_node_context(
 
 
 @pytest.mark.asyncio
-async def test_freezone_text_job_preserves_canvas_node_context_in_celery_payload(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    ctx = _project_ctx(tmp_path)
-    captured: dict = {}
-
-    async def fake_resolve_freezone_project(*_args, **_kwargs):
-        return ctx, "admin", "demo", ctx.output_dir, str(ctx.output_dir)
-
-    async def fake_enqueue_freezone_background_job(**kwargs):
-        captured.update(kwargs)
-        return {"ok": True, "data": {"task_key": "task_key"}}
-    monkeypatch.setattr(freezone_routes, "_resolve_freezone_project", fake_resolve_freezone_project)
-    monkeypatch.setattr(
-        freezone_routes,
-        "_enqueue_freezone_background_job",
-        fake_enqueue_freezone_background_job,
-    )
-    monkeypatch.setattr(freezone_routes, "_new_job_id", lambda: "job_text")
-
-    await freezone_routes.freezone_text_translate(
-        project="proj_freezone",
-        body=freezone_routes.FreezoneTextTranslateRequest(
-            text="你好",
-            node_type="text",
-            canvas_id="canvas_a",
-            node_id="node_text",
-        ),
-        user={"username": "admin"},
-    )
-
-    assert captured["task_type"] == "freezone_text_translate"
-    assert captured["payload"]["canvas_id"] == "canvas_a"
-    assert captured["payload"]["node_id"] == "node_text"
-
-
-@pytest.mark.asyncio
 async def test_sketch_from_context_uses_beat_db_and_routes_to_gen_without_source(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

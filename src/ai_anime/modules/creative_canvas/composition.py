@@ -26,6 +26,9 @@ from ai_anime.modules.creative_canvas.application.mark_detection import (
 from ai_anime.modules.creative_canvas.application.reverse_prompt import (
     CreativeCanvasReversePromptUseCases,
 )
+from ai_anime.modules.creative_canvas.application.text_processing import (
+    CreativeCanvasTextProcessingUseCases,
+)
 from ai_anime.modules.creative_canvas.application.video_processing import (
     CreativeCanvasVideoProcessingUseCases,
 )
@@ -62,6 +65,9 @@ from ai_anime.modules.creative_canvas.infrastructure.mark_detection import (
 )
 from ai_anime.modules.creative_canvas.infrastructure.task_submission import (
     TaskBackendCreativeCanvasTaskScheduler,
+)
+from ai_anime.modules.creative_canvas.infrastructure.text_sources import (
+    LocalCreativeCanvasTextSourceReader,
 )
 from ai_anime.modules.creative_canvas.infrastructure.video_generation import (
     ConfiguredCreativeCanvasVideoModelPolicy,
@@ -151,6 +157,19 @@ def creative_canvas_image_generation_use_cases() -> CreativeCanvasImageGeneratio
         ProjectCreativeCanvasMediaSourceResolver(),
         FreezoneCreativeCanvasImagePromptComposer(),
         FreezoneCreativeCanvasImageGenerationModelRouter(),
+        FreezoneJobIdGenerator(),
+        TaskBackendCreativeCanvasTaskScheduler(
+            get_task_backend,
+            translate_runtime_errors=False,
+        ),
+    )
+
+
+@lru_cache(maxsize=1)
+def creative_canvas_text_processing_use_cases() -> CreativeCanvasTextProcessingUseCases:
+    return CreativeCanvasTextProcessingUseCases(
+        ProjectCreativeCanvasMediaSourceResolver(),
+        LocalCreativeCanvasTextSourceReader(),
         FreezoneJobIdGenerator(),
         TaskBackendCreativeCanvasTaskScheduler(
             get_task_backend,

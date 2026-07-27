@@ -40,8 +40,6 @@ from ai_anime.api.schemas import (
     FreezoneScene360Request,
     FreezoneSketchFromContextRequest,
     FreezoneStageAssetAcceptedResponse,
-    FreezoneStoryScriptGenerateRequest,
-    FreezoneTextTranslateRequest,
     ImpactRequest,
     PresetCanvasRequest,
     ProjectionPresetCanvasRequest,
@@ -80,8 +78,6 @@ from ai_anime.freezone.canvas_static_urls import (
     sanitize_project_local_paths_in_memory,
 )
 from ai_anime.freezone.history import (
-    append_generation_history,
-    build_node_history_record,
     read_canvas_generation_history,
     read_generation_history,
 )
@@ -150,10 +146,6 @@ from ai_anime.freezone.slots import (
     sync_slot_after_write,
     validate_source_for_slot,
 )
-from ai_anime.freezone.text_node import (
-    generate_freezone_story_script,
-    translate_freezone_text,
-)
 from ai_anime.models import CharacterIdentity, beat_scene_id
 from ai_anime.project_config import (
     load_effective_narration_style_for_voice,
@@ -171,7 +163,6 @@ from ai_anime.task_identity import (
     project_task_state_key,
     selection_scope,
     task_config_scope,
-    task_state_key,
 )
 from ai_anime.task_state import get_task_manager
 from ai_anime.utils.background_anchor import copy_to_beat_selected_background
@@ -1546,7 +1537,6 @@ _agent_review_frame_reviewer: FrameReviewReviewer | None = None
 
 TAG_FREEZONE_AUDIO = "freezone-audio"
 TAG_FREEZONE_IMAGE = "freezone-image"
-TAG_FREEZONE_TEXT = "freezone-text"
 TAG_FREEZONE_CANVAS = "freezone-canvas"
 TAG_FREEZONE_ASSETS = "freezone-assets"
 
@@ -3955,239 +3945,6 @@ def _text_translate_output_path(project_dir: Path, job_id: str) -> Path:
     return outputs_dir(project_dir, "freezone_text_translate") / f"{job_id}.json"
 
 
-def _freezone_history_preview(text: str, limit: int = 240) -> str:
-    compact = " ".join(str(text or "").split())
-    if len(compact) <= limit:
-        return compact
-    return compact[: limit - 3] + "..."
-
-
-def _record_freezone_node_history(
-    *,
-    ctx: ProjectContext | None = None,
-    project_dir: Path,
-    canvas_id: str | None,
-    node_id: str | None,
-    task_type: str,
-    username: str,
-    project: str,
-    job_id: str,
-    status: str,
-    media_type: str,
-    result: dict | None = None,
-    error: str | None = None,
-    prompt: str | None = None,
-    **extra,
-) -> dict | None:
-    if not node_id:
-        return None
-    try:
-        task_key = (
-            project_task_state_key(task_type, ctx.project_id, 0, scope=job_id)
-            if ctx is not None
-            else task_state_key(task_type, username, project, episode=0, scope=job_id)
-        )
-        return append_generation_history(
-            project_dir=project_dir,
-            canvas_id=canvas_id or "default",
-            node_id=node_id,
-            record=build_node_history_record(
-                task_type=task_type,
-                job_id=job_id,
-                task_key=task_key,
-                status=status,
-                media_type=media_type,
-                result=result,
-                error=error,
-                prompt=prompt,
-                extra=extra,
-            ),
-        )
-    except Exception as exc:
-        logger.warning("failed to record freezone node history: %s", exc)
-        return None
-
-
-def _start_freezone_text_translate_task(
-    *,
-    username: str,
-    project: str,
-    project_dir: Path,
-    job_id: str,
-    text: str,
-    node_type: Literal["generic", "image", "video", "audio", "text"],
-    canvas_id: str | None = None,
-    node_id: str | None = None,
-) -> None:
-    task_type = "freezone_text_translate"
-    task_manager = get_task_manager()
-    metadata = {
-        "job_id": job_id,
-        "canvas_id": canvas_id or "",
-        "node_id": node_id or "",
-        "node_type": node_type,
-    }
-    task_manager.create_task(
-        task_type,
-        username,
-        project,
-        episode=0,
-        scope=job_id,
-        status="starting",
-        metadata=metadata,
-    )
-
-    async def _runner() -> None:
-        logs = ["开始翻译文本"]
-        try:
-            task_manager.update_progress(
-                task_type,
-                username,
-                project,
-                episode=0,
-                scope=job_id,
-                progress=0.1,
-                current_task="translating_text",
-                logs=logs,
-            )
-            translated_text, source_language, target_language = await translate_freezone_text(
-                text=text,
-                node_type=node_type,
-            )
-            payload = {
-                "translated_text": translated_text,
-                "source_language": source_language,
-                "target_language": target_language,
-                "node_type": node_type,
-            }
-            out = _text_translate_output_path(project_dir, job_id)
-            out.parent.mkdir(parents=True, exist_ok=True)
-            out.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-            history_record = _record_freezone_node_history(
-                project_dir=project_dir,
-                canvas_id=canvas_id,
-                node_id=node_id,
-                task_type=task_type,
-                username=username,
-                project=project,
-                job_id=job_id,
-                status="completed",
-                media_type="text",
-                node_type=node_type,
-                input_preview=_freezone_history_preview(text),
-                prompt=text,
-                result={"output_format": "json", **payload},
-            )
-            result = {"output_format": "json"}
-            if history_record:
-                result["generation_history_record"] = history_record
-            task_manager.complete_task(
-                task_type,
-                username,
-                project,
-                episode=0,
-                scope=job_id,
-                result=result,
-                current_task="completed",
-                logs=["文本翻译完成"],
-                metadata=metadata,
-            )
-        except Exception as exc:
-            _record_freezone_node_history(
-                project_dir=project_dir,
-                canvas_id=canvas_id,
-                node_id=node_id,
-                task_type=task_type,
-                username=username,
-                project=project,
-                job_id=job_id,
-                status="failed",
-                media_type="text",
-                node_type=node_type,
-                input_preview=_freezone_history_preview(text),
-                prompt=text,
-                error=str(exc),
-            )
-            task_manager.fail_task(
-                task_type,
-                username,
-                project,
-                episode=0,
-                scope=job_id,
-                error=str(exc),
-                current_task="failed",
-                logs=[f"错误: {exc}"],
-                metadata=metadata,
-            )
-
-    asyncio.create_task(_runner())
-
-
-@router.post(
-    "/projects/{project}/freezone/text/translate",
-    response_model=FreezoneJobAcceptedResponse,
-    tags=[TAG_FREEZONE_TEXT],
-)
-async def freezone_text_translate(
-    project: str,
-    body: FreezoneTextTranslateRequest,
-    user: dict = Depends(get_api_user),
-):
-    """文本工具：中英文互译，供各类节点编写提示词时直接调用。"""
-    ctx, username, project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project, user
-    )
-
-    if not body.text.strip():
-        raise HTTPException(400, "text is required")
-
-    try:
-        job_id = _new_job_id()
-        if ctx is not None:
-            return await _enqueue_freezone_background_job(
-                ctx=ctx,
-                project_dir=project_dir,
-                task_type="freezone_text_translate",
-                job_id=job_id,
-                payload={
-                    "text": body.text,
-                    "node_type": body.node_type,
-                    "canvas_id": body.canvas_id or "",
-                    "node_id": body.node_id or "",
-                },
-            )
-        _start_freezone_text_translate_task(
-            username=username,
-            project=project_name,
-            project_dir=project_dir,
-            job_id=job_id,
-            text=body.text,
-            node_type=body.node_type,
-            canvas_id=body.canvas_id or None,
-            node_id=body.node_id or None,
-        )
-    except RuntimeError as exc:
-        _handle_task_start_runtime_error("failed to start text translate task", exc)
-        raise HTTPException(503, f"failed to start text translate task: {exc}") from exc
-
-    return _accepted_job_response(
-        task_type="freezone_text_translate",
-        username=username,
-        project=project_name,
-        job_id=job_id,
-    )
-
-
-def _read_freezone_text_file(path: Path) -> str:
-    """读取 Freezone 文本节点的源文本文件。"""
-    for encoding in ("utf-8", "utf-8-sig", "gb18030"):
-        try:
-            return path.read_text(encoding=encoding)
-        except UnicodeDecodeError:
-            continue
-    raise HTTPException(400, f"unsupported text encoding: {path.name}")
-
-
 def _story_script_output_path(project_dir: Path, job_id: str) -> Path:
     return outputs_dir(project_dir, "freezone_story_script") / f"{job_id}.json"
 
@@ -4698,191 +4455,6 @@ async def get_freezone_audio_voice_media(
     except RuntimeError as exc:
         raise HTTPException(404, str(exc)) from exc
     return FileResponse(path=str(resolved.audio_path))
-
-
-def _start_freezone_story_script_task(
-    *,
-    username: str,
-    project: str,
-    project_dir: Path,
-    job_id: str,
-    source_text: str,
-    prompt: str,
-    model: str,
-    canvas_id: str | None = None,
-    node_id: str | None = None,
-) -> None:
-    task_type = "freezone_story_script"
-    task_manager = get_task_manager()
-    metadata = {
-        "job_id": job_id,
-        "canvas_id": canvas_id or "",
-        "node_id": node_id or "",
-        "model": model,
-    }
-    task_manager.create_task(
-        task_type,
-        username,
-        project,
-        episode=0,
-        scope=job_id,
-        status="starting",
-        metadata=metadata,
-    )
-
-    async def _runner() -> None:
-        logs = ["开始生成故事脚本"]
-        try:
-            task_manager.update_progress(
-                task_type,
-                username,
-                project,
-                episode=0,
-                scope=job_id,
-                progress=0.1,
-                current_task="generating_story_script",
-                logs=logs,
-            )
-            data = await generate_freezone_story_script(
-                source_text=source_text,
-                prompt=prompt,
-                model=model,
-            )
-            out = _story_script_output_path(project_dir, job_id)
-            out.parent.mkdir(parents=True, exist_ok=True)
-            out.write_text(
-                json.dumps(data.model_dump(), ensure_ascii=False, indent=2),
-                encoding="utf-8",
-            )
-            data_payload = data.model_dump()
-            history_record = _record_freezone_node_history(
-                project_dir=project_dir,
-                canvas_id=canvas_id,
-                node_id=node_id,
-                task_type=task_type,
-                username=username,
-                project=project,
-                job_id=job_id,
-                status="completed",
-                media_type="text",
-                model=model,
-                prompt=prompt,
-                source_text_preview=_freezone_history_preview(source_text),
-                row_count=len(data_payload.get("rows") or []),
-                result={"output_format": "json", **data_payload},
-            )
-            result = {"output_format": "json"}
-            if history_record:
-                result["generation_history_record"] = history_record
-            task_manager.complete_task(
-                task_type,
-                username,
-                project,
-                episode=0,
-                scope=job_id,
-                result=result,
-                current_task="completed",
-                logs=["故事脚本生成完成"],
-                metadata=metadata,
-            )
-        except Exception as exc:
-            _record_freezone_node_history(
-                project_dir=project_dir,
-                canvas_id=canvas_id,
-                node_id=node_id,
-                task_type=task_type,
-                username=username,
-                project=project,
-                job_id=job_id,
-                status="failed",
-                media_type="text",
-                model=model,
-                prompt=prompt,
-                source_text_preview=_freezone_history_preview(source_text),
-                error=str(exc),
-            )
-            task_manager.fail_task(
-                task_type,
-                username,
-                project,
-                episode=0,
-                scope=job_id,
-                error=str(exc),
-                current_task="failed",
-                logs=[f"错误: {exc}"],
-                metadata=metadata,
-            )
-
-    asyncio.create_task(_runner())
-
-
-@router.post(
-    "/projects/{project}/freezone/text/story-script",
-    response_model=FreezoneJobAcceptedResponse,
-    tags=[TAG_FREEZONE_TEXT],
-)
-async def freezone_story_script_generate(
-    project: str,
-    body: FreezoneStoryScriptGenerateRequest,
-    user: dict = Depends(get_api_user),
-):
-    """文本工具：根据上传剧本内容生成结构化故事脚本表。"""
-    ctx, username, project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project, user
-    )
-
-    source_text = body.source_text.strip()
-    if not source_text and body.source_url:
-        try:
-            source_path = resolve_static_url_to_path(body.source_url, project_dir)
-        except ValueError as exc:
-            raise HTTPException(400, str(exc)) from exc
-        if not source_path.exists():
-            raise HTTPException(404, f"source not found: {source_path}")
-        source_text = _read_freezone_text_file(source_path).strip()
-
-    if not source_text:
-        raise HTTPException(400, "source_text or source_url is required")
-
-    try:
-        job_id = _new_job_id()
-        if ctx is not None:
-            return await _enqueue_freezone_background_job(
-                ctx=ctx,
-                project_dir=project_dir,
-                task_type="freezone_story_script",
-                job_id=job_id,
-                payload={
-                    "source_text": source_text,
-                    "prompt": body.prompt,
-                    "model": body.model,
-                    "canvas_id": body.canvas_id or "",
-                    "node_id": body.node_id or "",
-                },
-            )
-        _start_freezone_story_script_task(
-            username=username,
-            project=project_name,
-            project_dir=project_dir,
-            job_id=job_id,
-            source_text=source_text,
-            prompt=body.prompt,
-            model=body.model,
-            canvas_id=body.canvas_id or None,
-            node_id=body.node_id or None,
-        )
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
-    except RuntimeError as exc:
-        _handle_task_start_runtime_error("failed to start story script task", exc)
-        raise HTTPException(503, f"failed to start story script task: {exc}") from exc
-
-    return _accepted_job_response(
-        task_type="freezone_story_script",
-        username=username,
-        project=project_name,
-        job_id=job_id,
-    )
 
 
 @router.post(

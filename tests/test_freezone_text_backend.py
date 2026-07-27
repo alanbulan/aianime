@@ -6,7 +6,6 @@ import json
 import pytest
 
 from ai_anime.api.routes import freezone as freezone_routes
-from ai_anime.api.schemas import FreezoneStoryScriptGenerateData, FreezoneStoryScriptRow
 from ai_anime.freezone.text_node import (
     FREEZONE_TRANSLATION_MODEL,
     FREEZONE_TRANSLATION_PROVIDER,
@@ -126,106 +125,6 @@ def test_build_freezone_story_script_task_mentions_required_columns() -> None:
     assert "最好严格按 6 段写" in task
     assert "第二段尽量直接使用或轻改角色描述1" in task
     assert "技术参数段尽量保留" in task
-
-
-@pytest.mark.asyncio
-async def test_freezone_text_translate_route_returns_task_id(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    project_dir = tmp_path / "project"
-    _patch_project_resolution(monkeypatch, project_dir)
-    captured: dict[str, object] = {}
-
-    def _fake_start_text_translate_task(**kwargs):
-        captured.update(kwargs)
-
-    monkeypatch.setattr(
-        freezone_routes, "_start_freezone_text_translate_task", _fake_start_text_translate_task
-    )
-
-    result = await freezone_routes.freezone_text_translate(
-        project="58",
-        body=freezone_routes.FreezoneTextTranslateRequest(
-            text="电影感特写，雨夜街头",
-            node_type="image",
-        ),
-        user={"username": "admin"},
-    )
-
-    assert result["ok"] is True
-    assert result["data"]["task_type"] == "freezone_text_translate"
-    assert captured["text"] == "电影感特写，雨夜街头"
-    assert captured["node_type"] == "image"
-
-
-@pytest.mark.asyncio
-async def test_freezone_story_script_route_uses_source_text(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    project_dir = tmp_path / "project"
-    _patch_project_resolution(monkeypatch, project_dir)
-    captured: dict[str, object] = {}
-
-    def _fake_start_story_script_task(**kwargs):
-        captured.update(kwargs)
-
-    monkeypatch.setattr(
-        freezone_routes, "_start_freezone_story_script_task", _fake_start_story_script_task
-    )
-
-    result = await freezone_routes.freezone_story_script_generate(
-        project="58",
-        body=freezone_routes.FreezoneStoryScriptGenerateRequest(
-            source_text="沈昭昭在深夜办公室醒来。"
-        ),
-        user={"username": "admin"},
-    )
-
-    assert result["ok"] is True
-    assert result["data"]["task_type"] == "freezone_story_script"
-    assert captured["source_text"] == "沈昭昭在深夜办公室醒来。"
-    assert captured["prompt"] == "根据我上传的剧本生成一个完整的故事脚本"
-    assert captured["model"] == "newapi_gemini_flash"
-
-
-@pytest.mark.asyncio
-async def test_freezone_story_script_route_reads_source_url_file(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    project_dir = tmp_path / "project"
-    source = project_dir / "freezone" / "_uploads" / "script.txt"
-    source.parent.mkdir(parents=True, exist_ok=True)
-    source.write_text("沈昭昭在深夜办公室醒来。", encoding="utf-8")
-
-    _patch_project_resolution(monkeypatch, project_dir)
-    monkeypatch.setattr(
-        freezone_routes,
-        "resolve_static_url_to_path",
-        lambda *_args, **_kwargs: source,
-    )
-    captured: dict[str, object] = {}
-
-    def _fake_start_story_script_task(**kwargs):
-        captured.update(kwargs)
-
-    monkeypatch.setattr(
-        freezone_routes, "_start_freezone_story_script_task", _fake_start_story_script_task
-    )
-
-    result = await freezone_routes.freezone_story_script_generate(
-        project="58",
-        body=freezone_routes.FreezoneStoryScriptGenerateRequest(
-            source_url="/static/admin/58/freezone/_uploads/script.txt"
-        ),
-        user={"username": "admin"},
-    )
-
-    assert result["ok"] is True
-    assert result["data"]["task_type"] == "freezone_story_script"
-    assert captured["source_text"] == "沈昭昭在深夜办公室醒来。"
 
 
 @pytest.mark.asyncio

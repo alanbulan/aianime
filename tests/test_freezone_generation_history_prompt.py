@@ -163,23 +163,19 @@ def test_builder_omits_blank_prompt_and_deepcopies_result() -> None:
     assert rec["result"]["nested"]["v"] == 1
 
 
-def test_api_route_helper_persists_prompt(tmp_path: Path) -> None:
-    """The API-route helper (_record_freezone_node_history) also stores prompt."""
-    from ai_anime.api.routes.freezone import _record_freezone_node_history
-
+def test_story_script_runner_history_persists_prompt(tmp_path: Path) -> None:
     project_dir = tmp_path / "proj"
-    rec = _record_freezone_node_history(
-        ctx=None,
+    rec = _append_node_history(
+        ctx=_ctx(tmp_path),
         project_dir=project_dir,
-        canvas_id="default",
-        node_id="story_1",
+        payload={
+            "canvas_id": "default",
+            "node_id": "story_1",
+            "prompt": "故事脚本提示词",
+        },
         task_type="freezone_story_script",
-        username="admin",
-        project="demo",
         job_id="job_s1",
-        status="completed",
         media_type="text",
-        prompt="故事脚本提示词",
         result={"output_format": "json"},
     )
     assert rec is not None
