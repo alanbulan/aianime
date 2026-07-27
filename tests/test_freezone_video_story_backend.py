@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from ai_anime.api.routes import freezone as freezone_routes
+from ai_anime.api.routes.canvas import jobs as freezone_job_routes
 from ai_anime.api.routes.canvas import video as freezone_video_routes
 from ai_anime.api.schemas import (
     FreezoneAnalyzeShotsRequest,
@@ -14,6 +14,13 @@ from ai_anime.api.schemas import (
 from ai_anime.freezone import vision_gateway
 from ai_anime.freezone.jobs import build_video_story_analysis_prompt
 from ai_anime.freezone.jobs import run_freezone_analyze_shots
+from ai_anime.modules.creative_canvas.application.job_results import (
+    CreativeCanvasJobResultQueries,
+    public_creative_canvas_video_story_result,
+)
+from ai_anime.modules.creative_canvas.infrastructure.job_results import (
+    LocalCreativeCanvasJobResultReader,
+)
 
 
 def _patch_project_resolution(
@@ -36,19 +43,35 @@ def _patch_project_resolution(
         assert operation == "access freezone project files"
         return SimpleNamespace(ctx=context, project_dir=project_dir)
 
-    async def _fake_legacy_resolve(
+    async def _fake_job_resolve(
         project: str,
         user: dict,
         *,
-        required_role: str = "editor",
+        required_role: str,
+        operation: str,
     ):
         assert user == {"username": username}
         assert required_role == "viewer"
-        return None, username, project, project_dir, str(project_dir)
+        assert operation == "access freezone project files"
+        return SimpleNamespace(ctx=context, project_dir=project_dir)
 
     monkeypatch.setattr(freezone_video_routes, "resolve_project_scope", _fake_resolve)
-    monkeypatch.setattr(freezone_routes, "_resolve_freezone_project", _fake_legacy_resolve)
+    monkeypatch.setattr(freezone_job_routes, "resolve_project_scope", _fake_job_resolve)
     return context
+
+
+def _patch_job_result_queries(
+    monkeypatch: pytest.MonkeyPatch,
+    task_manager: object,
+) -> None:
+    queries = CreativeCanvasJobResultQueries(
+        LocalCreativeCanvasJobResultReader(task_manager_factory=lambda: task_manager)
+    )
+    monkeypatch.setattr(
+        freezone_job_routes,
+        "creative_canvas_job_result_queries",
+        lambda: queries,
+    )
 
 
 def _receipt(task_type: str, job_id: str):
@@ -222,7 +245,7 @@ def test_public_video_story_result_excludes_local_paths() -> None:
         "video_story": {"shots": []},
     }
 
-    public = freezone_routes._public_freezone_video_story_result(result)
+    public = public_creative_canvas_video_story_result(result)
 
     assert "output_path" not in public
     assert "frame_paths" not in public
@@ -247,18 +270,16 @@ async def test_video_story_job_result_waits_until_task_completed(
         result = {"task_metadata": {"job_id": job_id}}
 
     class FakeManager:
-        def get_task(self, task_type, username_, project_, episode, scope=None):
+        def get_task_for_project(self, _ctx, task_type, episode, scope=None):
             assert task_type == "freezone_video_story"
-            assert username_ == username
-            assert project_ == project
             assert episode == 0
             assert scope == job_id
             return FakeTask()
 
     _patch_project_resolution(monkeypatch, tmp_path, username=username)
-    monkeypatch.setattr(freezone_routes, "get_task_manager", lambda: FakeManager())
+    _patch_job_result_queries(monkeypatch, FakeManager())
 
-    result = await freezone_routes.freezone_job_result(
+    result = await freezone_job_routes.freezone_job_result(
         project=project,
         task_type="freezone_video_story",
         job_id=job_id,

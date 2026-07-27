@@ -426,6 +426,79 @@ def test_freezone_staging_prop_route_delegates_to_application() -> None:
     assert "ai_anime.api" not in adapter_source
 
 
+def test_freezone_job_result_route_delegates_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "jobs.py"
+    legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    application = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "application"
+        / "job_results.py"
+    )
+    adapter = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "infrastructure"
+        / "job_results.py"
+    )
+    composition = PACKAGE_ROOT / "modules" / "creative_canvas" / "composition.py"
+    public = PACKAGE_ROOT / "modules" / "creative_canvas" / "public.py"
+    api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
+
+    route_source = route.read_text(encoding="utf-8")
+    legacy_source = legacy_route.read_text(encoding="utf-8")
+    application_source = application.read_text(encoding="utf-8")
+    adapter_source = adapter.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+    api_router_source = api_router.read_text(encoding="utf-8")
+
+    assert route_source.count("creative_canvas_job_result_queries().get_result(") == 1
+    assert "class CreativeCanvasJobResultQueries" in application_source
+    assert "class LocalCreativeCanvasJobResultReader" in adapter_source
+    assert "LocalCreativeCanvasJobResultReader()" in composition_source
+    assert "def creative_canvas_job_result_queries(" in public_source
+    assert "freezone_jobs.router" in api_router_source
+    assert '"/projects/{project}/freezone/jobs/{task_type}/{job_id}/result"' not in (
+        legacy_source
+    )
+    for legacy_implementation in (
+        "async def freezone_job_result(",
+        "def _text_translate_output_path(",
+        "def _story_script_output_path(",
+        "def _image_reverse_prompt_output_path(",
+        "def _video_compose_output_path(",
+        "def _video_erase_output_path(",
+        "def _video_upscale_output_path(",
+        "def _audio_separate_audio_output_path(",
+        "def _audio_separate_mute_video_output_path(",
+        "def _public_freezone_video_story_result(",
+        "migrate_canvas_static_urls_in_memory",
+        "freezone_audio_speech_output_path",
+        "freezone_audio_eleven_music_output_path",
+        "TAG_FREEZONE_JOBS",
+    ):
+        assert legacy_implementation not in legacy_source
+    for route_implementation_detail in (
+        "get_task_manager",
+        "output_path_for_job",
+        "outputs_dir",
+        "make_static_url_for_context",
+        "json.loads",
+        ".glob(",
+        ".stat(",
+    ):
+        assert route_implementation_detail not in route_source
+
+    assert "fastapi" not in application_source
+    assert "ai_anime.api" not in application_source
+    assert "ai_anime.freezone" not in application_source
+    assert "fastapi" not in adapter_source
+    assert "ai_anime.api" not in adapter_source
+
+
 def test_freezone_generation_catalog_routes_delegate_to_application() -> None:
     image_route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "image.py"
     video_route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "video.py"
@@ -481,6 +554,13 @@ def test_freezone_video_processing_routes_delegate_to_application() -> None:
         / "infrastructure"
         / "media_sources.py"
     )
+    job_result_adapter = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "infrastructure"
+        / "job_results.py"
+    )
     runner = PACKAGE_ROOT / "task_backend" / "runners" / "freezone.py"
     jobs = PACKAGE_ROOT / "freezone" / "jobs.py"
     source = route.read_text(encoding="utf-8")
@@ -488,6 +568,7 @@ def test_freezone_video_processing_routes_delegate_to_application() -> None:
     application_source = application.read_text(encoding="utf-8")
     domain_source = domain.read_text(encoding="utf-8")
     adapter_source = source_adapter.read_text(encoding="utf-8")
+    job_result_adapter_source = job_result_adapter.read_text(encoding="utf-8")
     runner_source = runner.read_text(encoding="utf-8")
     jobs_source = jobs.read_text(encoding="utf-8")
 
@@ -575,8 +656,8 @@ def test_freezone_video_processing_routes_delegate_to_application() -> None:
     )
     assert "box mode requires box_x, box_y, box_width and box_height" not in jobs_source
     assert "_enqueue_or_start_freezone_media_job" not in legacy_source
-    assert "def _video_compose_output_path(" in legacy_source
-    assert 'if task_type == "freezone_video_compose":' in legacy_source
+    assert "def _video_output_path(" in job_result_adapter_source
+    assert 'if task_type == "freezone_video_compose":' in job_result_adapter_source
     for rule_name in (
         "validate_video_composition_track_count",
         "validate_video_composition_source_range",

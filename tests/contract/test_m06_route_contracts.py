@@ -234,6 +234,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api.routes.canvas import commits as freezone_commits
     from ai_anime.api.routes.canvas import documents as freezone_documents
     from ai_anime.api.routes.canvas import image as freezone_image
+    from ai_anime.api.routes.canvas import jobs as freezone_jobs
     from ai_anime.api.routes.canvas import media as freezone_media
     from ai_anime.api.routes.canvas import presets as freezone_presets
     from ai_anime.api.routes.canvas import projections as freezone_projections
@@ -255,6 +256,9 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     )
     from ai_anime.modules.creative_canvas.application.image_generation import (
         CreativeCanvasImageGenerationUseCases,
+    )
+    from ai_anime.modules.creative_canvas.application.job_results import (
+        CreativeCanvasJobResultQueries,
     )
     from ai_anime.modules.creative_canvas.application.reverse_prompt import (
         CreativeCanvasReversePromptUseCases,
@@ -281,6 +285,9 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     )
     from ai_anime.modules.creative_canvas.infrastructure.media_sources import (
         ProjectCreativeCanvasMediaSourceResolver,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.job_results import (
+        LocalCreativeCanvasJobResultReader,
     )
     from ai_anime.modules.creative_canvas.infrastructure.video_generation import (
         ConfiguredCreativeCanvasVideoModelPolicy,
@@ -436,6 +443,11 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         resolve_project_scope,
     )
     monkeypatch.setattr(
+        freezone_jobs,
+        "resolve_project_scope",
+        resolve_project_scope,
+    )
+    monkeypatch.setattr(
         freezone_image,
         "creative_canvas_mark_detection_use_cases",
         lambda: FakeMarkDetectionUseCases(),
@@ -544,6 +556,12 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     def build(backend: str = "inline"):
         task_backend = _FakeTaskBackend(backend)
         task_manager = _FakeTaskManager()
+        job_result_queries = CreativeCanvasJobResultQueries(
+            LocalCreativeCanvasJobResultReader(
+                task_manager_factory=lambda: task_manager,
+                static_url_builder=static_url,
+            )
+        )
         task_scheduler = TaskBackendCreativeCanvasTaskScheduler(lambda: task_backend)
         audio_generation_use_cases = CreativeCanvasAudioGenerationUseCases(
             FreezoneJobIdGenerator(),
@@ -634,6 +652,11 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             lambda use_cases=image_generation_use_cases: use_cases,
         )
         monkeypatch.setattr(
+            freezone_jobs,
+            "creative_canvas_job_result_queries",
+            lambda queries=job_result_queries: queries,
+        )
+        monkeypatch.setattr(
             freezone,
             "creative_canvas_image_generation_use_cases",
             lambda use_cases=image_generation_use_cases: use_cases,
@@ -669,6 +692,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app.include_router(freezone_commits.router, prefix="/api/v1")
         app.include_router(freezone_documents.router, prefix="/api/v1")
         app.include_router(freezone_image.router, prefix="/api/v1")
+        app.include_router(freezone_jobs.router, prefix="/api/v1")
         app.include_router(freezone_media.router, prefix="/api/v1")
         app.include_router(freezone_presets.router, prefix="/api/v1")
         app.include_router(freezone_projections.router, prefix="/api/v1")
@@ -689,6 +713,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app.dependency_overrides[freezone_bootstrap.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_commits.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_image.get_api_user] = lambda user=user: user
+        app.dependency_overrides[freezone_jobs.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_media.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_presets.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_projections.get_api_user] = lambda user=user: user

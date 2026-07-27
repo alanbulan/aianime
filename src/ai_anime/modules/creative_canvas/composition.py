@@ -35,6 +35,9 @@ from ai_anime.modules.creative_canvas.application.canvas_writes import (
 from ai_anime.modules.creative_canvas.application.generation_catalog import (
     GenerationCatalogQueries,
 )
+from ai_anime.modules.creative_canvas.application.job_results import (
+    CreativeCanvasJobResultQueries,
+)
 from ai_anime.modules.creative_canvas.application.skill_catalog import (
     CreativeCanvasSkillCatalogQueries,
 )
@@ -105,6 +108,9 @@ from ai_anime.modules.creative_canvas.infrastructure.audio_library import (
 )
 from ai_anime.modules.creative_canvas.infrastructure.generation_catalog import (
     ConfiguredGenerationCatalogSource,
+)
+from ai_anime.modules.creative_canvas.infrastructure.job_results import (
+    LocalCreativeCanvasJobResultReader,
 )
 from ai_anime.modules.creative_canvas.infrastructure.media_sources import (
     ProjectCreativeCanvasMediaSourceResolver,
@@ -217,6 +223,11 @@ def creative_canvas_projection_use_cases() -> CreativeCanvasProjectionUseCases:
 @lru_cache(maxsize=1)
 def generation_catalog_queries() -> GenerationCatalogQueries:
     return GenerationCatalogQueries(ConfiguredGenerationCatalogSource())
+
+
+@lru_cache(maxsize=1)
+def creative_canvas_job_result_queries() -> CreativeCanvasJobResultQueries:
+    return CreativeCanvasJobResultQueries(LocalCreativeCanvasJobResultReader())
 
 
 @lru_cache(maxsize=1)

@@ -15,6 +15,7 @@ from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap_routes
 from ai_anime.api.routes.canvas import commits as freezone_commit_routes
 from ai_anime.api.routes.canvas import documents as freezone_document_routes
 from ai_anime.api.routes.canvas import image as freezone_image_routes
+from ai_anime.api.routes.canvas import jobs as freezone_job_routes
 from ai_anime.api.routes.canvas import presets as freezone_preset_routes
 from ai_anime.api.routes.canvas import skills as freezone_skill_routes
 from ai_anime.api.routes.canvas import video as freezone_video_routes
@@ -48,6 +49,7 @@ from ai_anime.freezone.route_helpers import build_camera_prompt as _build_camera
 from ai_anime.modules.creative_canvas.public import (
     SKILL_SCHEMA_VERSION,
     CanvasGraphPatch,
+    CreativeCanvasJobResultQueries,
     CreativeCanvasStagingPropUseCases,
     CreativeCanvasTaskStartFailed,
     SkillRunOutput,
@@ -70,6 +72,9 @@ from ai_anime.modules.creative_canvas.domain.image_editing_prompts import (
 )
 from ai_anime.modules.creative_canvas.infrastructure.canvas_documents import (
     LocalCreativeCanvasDocumentQueryGateway,
+)
+from ai_anime.modules.creative_canvas.infrastructure.job_results import (
+    LocalCreativeCanvasJobResultReader,
 )
 from ai_anime.modules.creative_canvas.infrastructure import canvas_commits, canvas_presets
 from ai_anime.modules.project_workspace.public import ProjectContext
@@ -186,6 +191,11 @@ def _patch_freezone_project(
         fake_resolve_project_scope,
     )
     monkeypatch.setattr(
+        freezone_job_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
+    monkeypatch.setattr(
         freezone_preset_routes,
         "resolve_project_scope",
         fake_resolve_project_scope,
@@ -201,6 +211,20 @@ def _patch_freezone_project(
         fake_resolve_project_scope,
     )
     return project_dir, output_dir
+
+
+def _patch_job_result_queries(
+    monkeypatch: pytest.MonkeyPatch,
+    task_manager: object,
+) -> None:
+    queries = CreativeCanvasJobResultQueries(
+        LocalCreativeCanvasJobResultReader(task_manager_factory=lambda: task_manager)
+    )
+    monkeypatch.setattr(
+        freezone_job_routes,
+        "creative_canvas_job_result_queries",
+        lambda: queries,
+    )
 
 
 def _canvas_state_dir(tmp_path: Path) -> Path:
@@ -6007,9 +6031,9 @@ async def test_freezone_job_result_returns_task_error_when_failed(
             assert scope == job_id
             return FakeTask()
 
-    monkeypatch.setattr(freezone_routes, "get_task_manager", lambda: FakeManager())
+    _patch_job_result_queries(monkeypatch, FakeManager())
 
-    result = await freezone_routes.freezone_job_result(
+    result = await freezone_job_routes.freezone_job_result(
         project=project,
         task_type="freezone_edit",
         job_id=job_id,
@@ -6055,9 +6079,9 @@ async def test_freezone_job_result_uses_info_while_running(
             assert scope == job_id
             return FakeTask()
 
-    monkeypatch.setattr(freezone_routes, "get_task_manager", lambda: FakeManager())
+    _patch_job_result_queries(monkeypatch, FakeManager())
 
-    result = await freezone_routes.freezone_job_result(
+    result = await freezone_job_routes.freezone_job_result(
         project=project,
         task_type="freezone_edit",
         job_id=job_id,

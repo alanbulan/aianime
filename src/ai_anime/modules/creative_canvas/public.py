@@ -93,6 +93,12 @@ from ai_anime.modules.creative_canvas.application.canvas_writes import (
 from ai_anime.modules.creative_canvas.application.generation_catalog import (
     GenerationCatalogQueries,
 )
+from ai_anime.modules.creative_canvas.application.job_results import (
+    CreativeCanvasJobResultQueries,
+    CreativeCanvasJobType,
+    GetCreativeCanvasJobResultQuery,
+    public_creative_canvas_video_story_result,
+)
 from ai_anime.modules.creative_canvas.application.skill_catalog import (
     SKILL_SCHEMA_VERSION,
     CanvasGraphPatch,
@@ -349,6 +355,14 @@ def generation_catalog_queries() -> GenerationCatalogQueries:
     return build()
 
 
+def creative_canvas_job_result_queries() -> CreativeCanvasJobResultQueries:
+    from ai_anime.modules.creative_canvas.composition import (
+        creative_canvas_job_result_queries as build,
+    )
+
+    return build()
+
+
 def creative_canvas_skill_catalog_queries() -> CreativeCanvasSkillCatalogQueries:
     from ai_anime.modules.creative_canvas.composition import (
         creative_canvas_skill_catalog_queries as build,
@@ -532,6 +546,8 @@ __all__ = [
     "CreativeCanvasImageEditingUseCases",
     "CreativeCanvasImageGenerationReferenceMissing",
     "CreativeCanvasImageGenerationUseCases",
+    "CreativeCanvasJobResultQueries",
+    "CreativeCanvasJobType",
     "CreativeCanvasMediaUseCases",
     "CreativeCanvasMarkDetectionFailed",
     "CreativeCanvasMarkDetectionResult",
@@ -566,6 +582,7 @@ __all__ = [
     "GenerationCatalogQueries",
     "GenerateCreativeCanvasStagingPropCommand",
     "GetCreativeCanvasDocumentQuery",
+    "GetCreativeCanvasJobResultQuery",
     "GetCreativeCanvasDirectorCaptureQuery",
     "GetCreativeCanvasProjectionStatusQuery",
     "GetCreativeCanvasSlotImpactQuery",
@@ -667,6 +684,7 @@ __all__ = [
     "creative_canvas_image_editing_use_cases",
     "creative_canvas_reference_image_editing_use_cases",
     "creative_canvas_image_generation_use_cases",
+    "creative_canvas_job_result_queries",
     "creative_canvas_text_processing_use_cases",
     "creative_canvas_video_processing_use_cases",
     "creative_canvas_video_generation_use_cases",
@@ -686,6 +704,7 @@ __all__ = [
     "preset_facts_signature",
     "preset_facts_signature_from_payload",
     "prepare_creative_canvas_payload_for_write",
+    "public_creative_canvas_video_story_result",
     "projection_facts_signature_from_payload",
     "projection_group_label",
     "normalize_video_aspect_ratio",

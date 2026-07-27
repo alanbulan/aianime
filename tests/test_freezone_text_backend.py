@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from pathlib import Path
 import json
+from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
-from ai_anime.api.routes import freezone as freezone_routes
+from ai_anime.api.routes.canvas import jobs as freezone_job_routes
 from ai_anime.freezone.text_node import (
     FREEZONE_TRANSLATION_MODEL,
     FREEZONE_TRANSLATION_PROVIDER,
@@ -14,19 +15,49 @@ from ai_anime.freezone.text_node import (
     build_freezone_translation_task,
     translate_freezone_text,
 )
+from ai_anime.modules.creative_canvas.application.job_results import (
+    CreativeCanvasJobResultQueries,
+)
+from ai_anime.modules.creative_canvas.infrastructure.job_results import (
+    LocalCreativeCanvasJobResultReader,
+)
 
 
 def _patch_project_resolution(
     monkeypatch: pytest.MonkeyPatch,
     project_dir: Path,
+    task_manager: object,
     *,
     username: str = "admin",
 ):
-    async def _fake_resolve(project: str, user: dict, *, required_role: str = "editor"):
-        del user, required_role
-        return None, username, project, project_dir, str(project_dir)
+    async def _fake_resolve(
+        project: str,
+        user: dict,
+        *,
+        required_role: str,
+        operation: str,
+    ):
+        assert user == {"username": username}
+        assert required_role == "viewer"
+        assert operation == "access freezone project files"
+        return SimpleNamespace(
+            ctx=SimpleNamespace(
+                project_id="proj_freezone",
+                owner_username=username,
+                project_name=project,
+            ),
+            project_dir=project_dir,
+        )
 
-    monkeypatch.setattr(freezone_routes, "_resolve_freezone_project", _fake_resolve)
+    queries = CreativeCanvasJobResultQueries(
+        LocalCreativeCanvasJobResultReader(task_manager_factory=lambda: task_manager)
+    )
+    monkeypatch.setattr(freezone_job_routes, "resolve_project_scope", _fake_resolve)
+    monkeypatch.setattr(
+        freezone_job_routes,
+        "creative_canvas_job_result_queries",
+        lambda: queries,
+    )
 
 
 def test_build_freezone_translation_task_mentions_languages_and_node_type() -> None:
@@ -162,13 +193,12 @@ async def test_freezone_story_script_job_result_returns_json_payload(
     out.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
 
     class FakeManager:
-        def get_task(self, *args, **kwargs):
+        def get_task_for_project(self, *args, **kwargs):
             return None
 
-    _patch_project_resolution(monkeypatch, project_dir)
-    monkeypatch.setattr(freezone_routes, "get_task_manager", lambda: FakeManager())
+    _patch_project_resolution(monkeypatch, project_dir, FakeManager())
 
-    result = await freezone_routes.freezone_job_result(
+    result = await freezone_job_routes.freezone_job_result(
         project="58",
         task_type="freezone_story_script",
         job_id=job_id,
@@ -198,13 +228,12 @@ async def test_freezone_text_translate_job_result_returns_json_payload(
     out.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
 
     class FakeManager:
-        def get_task(self, *args, **kwargs):
+        def get_task_for_project(self, *args, **kwargs):
             return None
 
-    _patch_project_resolution(monkeypatch, project_dir)
-    monkeypatch.setattr(freezone_routes, "get_task_manager", lambda: FakeManager())
+    _patch_project_resolution(monkeypatch, project_dir, FakeManager())
 
-    result = await freezone_routes.freezone_job_result(
+    result = await freezone_job_routes.freezone_job_result(
         project="58",
         task_type="freezone_text_translate",
         job_id=job_id,
@@ -231,13 +260,12 @@ async def test_freezone_image_reverse_prompt_job_result_returns_json_payload(
     out.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
 
     class FakeManager:
-        def get_task(self, *args, **kwargs):
+        def get_task_for_project(self, *args, **kwargs):
             return None
 
-    _patch_project_resolution(monkeypatch, project_dir)
-    monkeypatch.setattr(freezone_routes, "get_task_manager", lambda: FakeManager())
+    _patch_project_resolution(monkeypatch, project_dir, FakeManager())
 
-    result = await freezone_routes.freezone_job_result(
+    result = await freezone_job_routes.freezone_job_result(
         project="58",
         task_type="freezone_image_reverse_prompt",
         job_id=job_id,
