@@ -2,31 +2,23 @@
 
 from __future__ import annotations
 
-import inspect
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
 from ai_anime.freezone import canvas_store
 from ai_anime.freezone.canvas_lock import CanvasLockBusy
-from ai_anime.freezone.presets import (
-    build_asset_preset_context,
-    build_beat_preset_context,
-    build_canvas_payload_from_context,
-    build_episode_preset_context,
-    preset_key_for_request,
-)
 from ai_anime.modules.creative_canvas.application.canvas_projections import (
     CreativeCanvasProjectionBuild,
     CreativeCanvasProjectionCanvasNotFound,
     CreativeCanvasProjectionMutationResult,
-    CreativeCanvasProjectionSourceNotFound,
-    InvalidCreativeCanvasProjectionRequest,
     ProjectCreativeCanvasProjectionCommand,
     RemoveCreativeCanvasProjectionCommand,
 )
+from ai_anime.modules.creative_canvas.application.canvas_presets import (
+    CreativeCanvasPresetBuilder,
+)
 from ai_anime.modules.creative_canvas.domain import (
-    default_push_target_for_preset,
     merge_projected_preset_canvas,
     preset_facts_signature,
     prepare_creative_canvas_payload_for_write,
@@ -41,14 +33,8 @@ from ai_anime.modules.creative_canvas.infrastructure.canvas_writes import (
     translate_canvas_store_error,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.shared.infrastructure.project_stores import (
-    make_sqlite_store_for_context,
-)
 
 
-StoreFactory = Callable[[ProjectContext], Awaitable[Any]]
-PresetContextBuilder = Callable[..., Awaitable[dict[str, Any]]]
-CanvasPayloadBuilder = Callable[..., dict[str, Any]]
 SaveCanvas = Callable[..., canvas_store.CanvasSaveResult]
 ReadCanvas = Callable[[Path, str], dict | None]
 RequestHash = Callable[[dict], str]
@@ -58,22 +44,14 @@ UtcNow = Callable[[], str]
 class LocalCreativeCanvasProjectionGateway:
     def __init__(
         self,
+        preset_builder: CreativeCanvasPresetBuilder,
         *,
-        store_factory: StoreFactory | None = None,
-        episode_context_builder: PresetContextBuilder | None = None,
-        beat_context_builder: PresetContextBuilder | None = None,
-        asset_context_builder: PresetContextBuilder | None = None,
-        canvas_payload_builder: CanvasPayloadBuilder | None = None,
         save_canvas: SaveCanvas | None = None,
         read_canvas: ReadCanvas | None = None,
         request_hash: RequestHash | None = None,
         utc_now: UtcNow | None = None,
     ) -> None:
-        self._store_factory = store_factory
-        self._episode_context_builder = episode_context_builder
-        self._beat_context_builder = beat_context_builder
-        self._asset_context_builder = asset_context_builder
-        self._canvas_payload_builder = canvas_payload_builder
+        self._preset_builder = preset_builder
         self._save_canvas = save_canvas
         self._read_canvas = read_canvas
         self._request_hash = request_hash
@@ -87,26 +65,13 @@ class LocalCreativeCanvasProjectionGateway:
         request: Mapping[str, Any],
     ) -> CreativeCanvasProjectionBuild:
         projection_request = dict(request)
-        try:
-            preset_key = preset_key_for_request(
-                scope=str(projection_request["scope"]),
-                episode=projection_request.get("episode"),
-                beat=projection_request.get("beat"),
-                primary_slot=projection_request.get("primary_slot"),
-                asset_kind=projection_request.get("asset_kind"),
-                character=projection_request.get("character"),
-                identity_id=projection_request.get("identity_id"),
-                asset_id=projection_request.get("asset_id"),
-            )
-        except (KeyError, ValueError) as exc:
-            raise InvalidCreativeCanvasProjectionRequest(str(exc)) from exc
-
-        payload = await self._build_preset_payload(
+        plan = self._preset_builder.plan(projection_request)
+        preset = await self._preset_builder.build(
             context=context,
             project_dir=project_dir,
-            request=projection_request,
-            preset_key=preset_key,
+            plan=plan,
         )
+        payload = dict(preset.payload)
         projection_key = str(projection_request["projection_key"])
         stamp_projection_key(payload, projection_key)
         wrap_projection_payload_in_group(
@@ -118,7 +83,7 @@ class LocalCreativeCanvasProjectionGateway:
         stamp_projection_metadata(
             payload,
             projection_key=projection_key,
-            preset_key=preset_key,
+            preset_key=plan.preset_key,
             request=projection_request,
             facts_signature=facts_signature,
             last_synced_at=self._now(),
@@ -126,7 +91,7 @@ class LocalCreativeCanvasProjectionGateway:
         return CreativeCanvasProjectionBuild(
             payload=payload,
             request=projection_request,
-            preset_key=preset_key,
+            preset_key=plan.preset_key,
             facts_signature=facts_signature,
         )
 
@@ -366,118 +331,6 @@ class LocalCreativeCanvasProjectionGateway:
             )
         except (canvas_store.CanvasStoreError, CanvasLockBusy) as exc:
             raise translate_canvas_store_error(exc) from exc
-
-    async def _build_preset_payload(
-        self,
-        *,
-        context: ProjectContext,
-        project_dir: Path,
-        request: Mapping[str, Any],
-        preset_key: str,
-    ) -> dict[str, Any]:
-        scope = request["scope"]
-        if scope == "blank":
-            return {
-                "nodes": [],
-                "edges": [],
-                "viewport": None,
-                "metadata": {
-                    "preset": {
-                        "preset_key": preset_key,
-                        "scope": "blank",
-                        "created_at": self._now(),
-                    }
-                },
-            }
-        if scope == "episode" and request.get("episode") is None:
-            raise InvalidCreativeCanvasProjectionRequest(
-                "episode preset requires episode"
-            )
-        if scope == "beat" and (
-            request.get("episode") is None or request.get("beat") is None
-        ):
-            raise InvalidCreativeCanvasProjectionRequest(
-                "beat preset requires episode and beat"
-            )
-        if scope == "asset" and not request.get("asset_kind"):
-            raise InvalidCreativeCanvasProjectionRequest(
-                "asset preset requires asset_kind"
-            )
-
-        store = await (self._store_factory or make_sqlite_store_for_context)(context)
-        try:
-            if scope == "episode":
-                preset_context = await (
-                    self._episode_context_builder or build_episode_preset_context
-                )(
-                    project_id=context.project_id,
-                    username=context.owner_username,
-                    project=context.project_name,
-                    project_dir=project_dir,
-                    store=store,
-                    episode=request["episode"],
-                )
-            elif scope == "beat":
-                try:
-                    preset_context = await (
-                        self._beat_context_builder or build_beat_preset_context
-                    )(
-                        project_id=context.project_id,
-                        username=context.owner_username,
-                        project=context.project_name,
-                        project_dir=project_dir,
-                        store=store,
-                        episode=request["episode"],
-                        beat=request["beat"],
-                        primary_slot=request.get("primary_slot"),
-                    )
-                except ValueError as exc:
-                    raise CreativeCanvasProjectionSourceNotFound(str(exc)) from exc
-            elif scope == "asset":
-                try:
-                    preset_context = await (
-                        self._asset_context_builder or build_asset_preset_context
-                    )(
-                        project_id=context.project_id,
-                        username=context.owner_username,
-                        project=context.project_name,
-                        project_dir=project_dir,
-                        store=store,
-                        asset_kind=request.get("asset_kind"),
-                        character=request.get("character"),
-                        identity_id=request.get("identity_id"),
-                        asset_id=request.get("asset_id"),
-                    )
-                except ValueError as exc:
-                    raise InvalidCreativeCanvasProjectionRequest(str(exc)) from exc
-            else:
-                raise InvalidCreativeCanvasProjectionRequest(
-                    f"unsupported preset scope: {scope}"
-                )
-        finally:
-            close = getattr(store, "close", None)
-            if close:
-                closed = close()
-                if inspect.isawaitable(closed):
-                    await closed
-
-        payload = (self._canvas_payload_builder or build_canvas_payload_from_context)(
-            context=preset_context,
-            preset_key=preset_key,
-            default_push_target=default_push_target_for_preset(request),
-            created_at=self._now(),
-        )
-        if scope == "asset":
-            preset_meta = payload.setdefault("metadata", {}).setdefault("preset", {})
-            preset_meta.update(
-                {
-                    "asset_kind": request.get("asset_kind"),
-                    "character": request.get("character"),
-                    "identity_id": request.get("identity_id"),
-                    "asset_id": request.get("asset_id"),
-                }
-            )
-        return payload
 
     def _hash(self, payload: dict[str, Any]) -> str:
         return (self._request_hash or canvas_store.canvas_request_hash)(payload)

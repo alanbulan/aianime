@@ -224,6 +224,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api.routes.canvas import documents as freezone_documents
     from ai_anime.api.routes.canvas import image as freezone_image
     from ai_anime.api.routes.canvas import media as freezone_media
+    from ai_anime.api.routes.canvas import presets as freezone_presets
     from ai_anime.api.routes.canvas import projections as freezone_projections
     from ai_anime.api.routes.canvas import text as freezone_text
     from ai_anime.api.routes.canvas import video as freezone_video
@@ -252,7 +253,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.modules.creative_canvas.application.video_processing import (
         CreativeCanvasVideoProcessingUseCases,
     )
-    from ai_anime.modules.creative_canvas.infrastructure import canvas_projections
+    from ai_anime.modules.creative_canvas.infrastructure import canvas_presets
     from ai_anime.modules.creative_canvas.application.video_asset_library import (
         CreativeCanvasVideoAssetLibraryUseCases,
     )
@@ -422,6 +423,11 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         resolve_project_scope,
     )
     monkeypatch.setattr(
+        freezone_presets,
+        "resolve_project_scope",
+        resolve_project_scope,
+    )
+    monkeypatch.setattr(
         freezone_projections,
         "resolve_project_scope",
         resolve_project_scope,
@@ -444,12 +450,12 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(freezone, "compute_slot_impact", compute_impact)
     monkeypatch.setattr(freezone, "build_beat_preset_context", build_beat_context)
     monkeypatch.setattr(
-        canvas_projections,
+        canvas_presets,
         "make_sqlite_store_for_context",
         make_store_for_context,
     )
     monkeypatch.setattr(
-        canvas_projections,
+        canvas_presets,
         "build_beat_preset_context",
         build_beat_context,
     )
@@ -608,6 +614,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app.include_router(freezone_documents.router, prefix="/api/v1")
         app.include_router(freezone_image.router, prefix="/api/v1")
         app.include_router(freezone_media.router, prefix="/api/v1")
+        app.include_router(freezone_presets.router, prefix="/api/v1")
         app.include_router(freezone_projections.router, prefix="/api/v1")
         app.include_router(freezone_text.router, prefix="/api/v1")
         app.include_router(freezone_video.router, prefix="/api/v1")
@@ -624,6 +631,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app.dependency_overrides[freezone_bootstrap.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_image.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_media.get_api_user] = lambda user=user: user
+        app.dependency_overrides[freezone_presets.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_projections.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_text.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_video.get_api_user] = lambda user=user: user

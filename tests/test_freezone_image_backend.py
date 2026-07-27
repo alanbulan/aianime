@@ -14,6 +14,7 @@ from ai_anime.api.routes import freezone as freezone_routes
 from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap_routes
 from ai_anime.api.routes.canvas import documents as freezone_document_routes
 from ai_anime.api.routes.canvas import image as freezone_image_routes
+from ai_anime.api.routes.canvas import presets as freezone_preset_routes
 from ai_anime.api.routes.canvas import video as freezone_video_routes
 from ai_anime.api.routes.freezone import (
     FREEZONE_DEFAULT_IMAGE_MODEL,
@@ -64,6 +65,7 @@ from ai_anime.modules.creative_canvas.domain.image_editing_prompts import (
 from ai_anime.modules.creative_canvas.infrastructure.canvas_documents import (
     LocalCreativeCanvasDocumentQueryGateway,
 )
+from ai_anime.modules.creative_canvas.infrastructure import canvas_presets
 from ai_anime.modules.creative_canvas.public import (
     CreativeCanvasTaskStartFailed,
     generation_catalog_queries,
@@ -175,6 +177,11 @@ def _patch_freezone_project(
     )
     monkeypatch.setattr(
         freezone_image_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
+    monkeypatch.setattr(
+        freezone_preset_routes,
         "resolve_project_scope",
         fake_resolve_project_scope,
     )
@@ -849,7 +856,7 @@ async def test_create_episode_preset_canvas_writes_v2_metadata(
 ) -> None:
     _project_dir, _output_dir = _patch_freezone_project(monkeypatch, tmp_path)
 
-    result = await freezone_routes.create_canvas_from_preset(
+    result = await freezone_preset_routes.create_canvas_from_preset(
         project="proj_freezone",
         body=PresetCanvasRequest(scope="episode", episode=1),
         user={"username": "admin", "id": "owner_1"},
@@ -879,7 +886,7 @@ async def test_create_preset_canvas_noops_same_facts_before_revision_check(
 ) -> None:
     _project_dir, _output_dir = _patch_freezone_project(monkeypatch, tmp_path)
 
-    first = await freezone_routes.create_canvas_from_preset(
+    first = await freezone_preset_routes.create_canvas_from_preset(
         project="proj_freezone",
         body=PresetCanvasRequest(scope="episode", episode=1),
         user={"username": "admin", "id": "owner_1"},
@@ -889,7 +896,7 @@ async def test_create_preset_canvas_noops_same_facts_before_revision_check(
     canvas_file = state_dir / "freezone" / "canvases" / f"{canvas_id}.json"
     before = json.loads(canvas_file.read_text(encoding="utf-8"))
 
-    second = await freezone_routes.create_canvas_from_preset(
+    second = await freezone_preset_routes.create_canvas_from_preset(
         project="proj_freezone",
         body=PresetCanvasRequest(
             scope="episode",
@@ -915,7 +922,7 @@ async def test_create_preset_canvas_refreshes_when_facts_change(
 ) -> None:
     _project_dir, _output_dir = _patch_freezone_project(monkeypatch, tmp_path)
 
-    first = await freezone_routes.create_canvas_from_preset(
+    first = await freezone_preset_routes.create_canvas_from_preset(
         project="proj_freezone",
         body=PresetCanvasRequest(scope="episode", episode=1),
         user={"username": "admin", "id": "owner_1"},
@@ -924,7 +931,7 @@ async def test_create_preset_canvas_refreshes_when_facts_change(
     state_dir = _canvas_state_dir(tmp_path)
     canvas_file = state_dir / "freezone" / "canvases" / f"{canvas_id}.json"
     before = json.loads(canvas_file.read_text(encoding="utf-8"))
-    original_builder = freezone_routes.build_canvas_payload_from_context
+    original_builder = canvas_presets.build_canvas_payload_from_context
 
     def changed_builder(*args, **kwargs):
         payload = original_builder(*args, **kwargs)
@@ -940,9 +947,9 @@ async def test_create_preset_canvas_refreshes_when_facts_change(
         )
         return payload
 
-    monkeypatch.setattr(freezone_routes, "build_canvas_payload_from_context", changed_builder)
+    monkeypatch.setattr(canvas_presets, "build_canvas_payload_from_context", changed_builder)
 
-    second = await freezone_routes.create_canvas_from_preset(
+    second = await freezone_preset_routes.create_canvas_from_preset(
         project="proj_freezone",
         body=PresetCanvasRequest(
             scope="episode",
@@ -988,7 +995,7 @@ async def test_create_preset_canvas_overwrite_backs_up_existing_canvas(
     }
     canvas_file.write_text(json.dumps(original), encoding="utf-8")
 
-    result = await freezone_routes.create_canvas_from_preset(
+    result = await freezone_preset_routes.create_canvas_from_preset(
         project="proj_freezone",
         body=PresetCanvasRequest(
             scope="episode",
@@ -1032,8 +1039,8 @@ async def test_create_preset_canvas_overwrite_rejects_stale_base_revision(
     }
     canvas_file.write_text(json.dumps(original), encoding="utf-8")
 
-    with pytest.raises(freezone_routes.HTTPException) as exc:
-        await freezone_routes.create_canvas_from_preset(
+    with pytest.raises(HTTPException) as exc:
+        await freezone_preset_routes.create_canvas_from_preset(
             project="proj_freezone",
             body=PresetCanvasRequest(
                 scope="episode",
@@ -1079,8 +1086,8 @@ async def test_create_preset_canvas_overwrite_rejects_mismatched_preset_key(
     }
     canvas_file.write_text(json.dumps(original), encoding="utf-8")
 
-    with pytest.raises(freezone_routes.HTTPException) as exc:
-        await freezone_routes.create_canvas_from_preset(
+    with pytest.raises(HTTPException) as exc:
+        await freezone_preset_routes.create_canvas_from_preset(
             project="proj_freezone",
             body=PresetCanvasRequest(
                 scope="episode",

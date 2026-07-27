@@ -42,6 +42,7 @@ from ai_anime.api.routes.canvas import audio as freezone_audio
 from ai_anime.api.routes.canvas import documents as freezone_documents
 from ai_anime.api.routes.canvas import image as freezone_image
 from ai_anime.api.routes.canvas import media as freezone_media
+from ai_anime.api.routes.canvas import presets as freezone_presets
 from ai_anime.api.routes.canvas import projections as freezone_projections
 from ai_anime.api.routes.canvas import text as freezone_text
 from ai_anime.api.routes.canvas import video as freezone_video
@@ -118,6 +119,7 @@ def create_api_router(*, desktop_mode: bool | None = None) -> APIRouter:
     router.include_router(freezone_documents.router)
     router.include_router(freezone_image.router)
     router.include_router(freezone_media.router)
+    router.include_router(freezone_presets.router)
     router.include_router(freezone_projections.router)
     router.include_router(freezone_text.router)
     router.include_router(freezone_video.router)

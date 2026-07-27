@@ -22,7 +22,7 @@ from ai_anime.freezone.presets import canvas_id_for_preset
 @pytest.fixture()
 def preset_client(monkeypatch, tmp_path):
     from ai_anime.api.auth import get_api_user
-    from ai_anime.api.routes import freezone
+    from ai_anime.api.routes.canvas import presets
 
     project_dir = tmp_path / "project"
     project_dir.mkdir(parents=True, exist_ok=True)
@@ -37,21 +37,13 @@ def preset_client(monkeypatch, tmp_path):
         is_home_node=True,
     )
 
-    async def fake_resolve(project: str, user: dict, *, required_role: str = "editor"):
-        return ctx, "alice", "demo", project_dir, str(project_dir)
+    async def fake_resolve(project: str, user: dict):
+        return SimpleNamespace(ctx=ctx, project_dir=project_dir)
 
-    monkeypatch.setattr(freezone, "_resolve_freezone_project", fake_resolve)
-    # Event append touches additional state we don't care about here; the
-    # preset endpoint calls it after every success and conflict, so a stub
-    # keeps the test focused on the canvas file itself.
-    monkeypatch.setattr(
-        freezone,
-        "record_creative_canvas_event",
-        lambda **_kwargs: None,
-    )
+    monkeypatch.setattr(presets, "_resolve_editor_project", fake_resolve)
 
     app = FastAPI()
-    app.include_router(freezone.router, prefix="/api/v1")
+    app.include_router(presets.router, prefix="/api/v1")
     app.dependency_overrides[get_api_user] = lambda: {
         "id": "u-alice",
         "username": "alice",
@@ -157,7 +149,7 @@ def test_from_preset_scene_asset_includes_derived_base_master_input(
     preset_client,
     monkeypatch,
 ) -> None:
-    from ai_anime.api.routes import freezone
+    from ai_anime.modules.creative_canvas.infrastructure import canvas_presets
 
     client, project_dir = preset_client
     base_master_path = project_dir / "assets" / "scenes" / "城市街道" / "master.png"
@@ -191,7 +183,7 @@ def test_from_preset_scene_asset_includes_derived_base_master_input(
         return Store()
 
     monkeypatch.setattr(
-        freezone,
+        canvas_presets,
         "make_sqlite_store_for_context",
         fake_make_sqlite_store_for_context,
     )

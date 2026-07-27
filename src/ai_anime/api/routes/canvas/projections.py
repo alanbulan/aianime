@@ -17,9 +17,9 @@ from ai_anime.modules.creative_canvas.public import (
     CreativeCanvasDocumentCorrupt,
     CreativeCanvasDocumentWriteError,
     CreativeCanvasProjectionCanvasNotFound,
-    CreativeCanvasProjectionSourceNotFound,
+    CreativeCanvasPresetSourceNotFound,
     GetCreativeCanvasProjectionStatusQuery,
-    InvalidCreativeCanvasProjectionRequest,
+    InvalidCreativeCanvasPresetRequest,
     ProjectCreativeCanvasProjectionCommand,
     RemoveCreativeCanvasProjectionCommand,
     canvas_actor_id,
@@ -49,9 +49,9 @@ async def build_projection_from_preset(
                 request=_projection_request(body),
             )
         )
-    except InvalidCreativeCanvasProjectionRequest as exc:
+    except InvalidCreativeCanvasPresetRequest as exc:
         raise HTTPException(400, str(exc)) from exc
-    except CreativeCanvasProjectionSourceNotFound as exc:
+    except CreativeCanvasPresetSourceNotFound as exc:
         raise HTTPException(404, str(exc)) from exc
     return {"ok": True, "data": data}
 
@@ -82,9 +82,9 @@ async def project_canvas_from_preset(
                 event_actor=canvas_event_actor(user),
             )
         )
-    except InvalidCreativeCanvasProjectionRequest as exc:
+    except InvalidCreativeCanvasPresetRequest as exc:
         raise HTTPException(400, str(exc)) from exc
-    except CreativeCanvasProjectionSourceNotFound as exc:
+    except CreativeCanvasPresetSourceNotFound as exc:
         raise HTTPException(404, str(exc)) from exc
     except (
         CreativeCanvasDocumentWriteError,

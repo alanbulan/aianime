@@ -20,7 +20,6 @@ from urllib.parse import quote, unquote, urlencode, urlsplit
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 
 from ai_anime.api.auth import get_api_user
-from ai_anime.api.canvas_errors import raise_canvas_document_http_error
 from ai_anime.api.deps import (
     make_cognee_store_for_context,
     make_sqlite_store,
@@ -37,7 +36,6 @@ from ai_anime.api.schemas import (
     FreezoneSketchFromContextRequest,
     FreezoneStageAssetAcceptedResponse,
     ImpactRequest,
-    PresetCanvasRequest,
     PushRequest,
 )
 from ai_anime.director_world import DirectorWorldService
@@ -53,17 +51,10 @@ from ai_anime.modules.creative_canvas.public import (
     canvas_actor_id,
     canvas_event_actor,
     creative_canvas_image_generation_use_cases,
-    default_push_target_for_preset,
     detected_reference_ids_from_beat_context_data,
     first_text_value,
     is_preset_managed_canvas_node,
-    merge_restored_preset_canvas,
-    preset_facts_signature,
-    preset_facts_signature_from_payload,
-    prepare_creative_canvas_payload_for_write,
     record_creative_canvas_event,
-    stamp_preset_facts_signature,
-    translate_creative_canvas_document_write_error,
 )
 from ai_anime.modules.production.public import (
     production_generation_context_use_cases,
@@ -74,7 +65,6 @@ from ai_anime.freezone.audio_node import (
     freezone_audio_eleven_music_output_path,
     freezone_audio_speech_output_path,
 )
-from ai_anime.freezone.canvas_lock import CanvasLockBusy
 from ai_anime.freezone.canvas_static_urls import (
     migrate_canvas_static_urls_in_memory,
 )
@@ -86,12 +76,7 @@ from ai_anime.freezone.paths import (
     resolve_static_url_to_path,
 )
 from ai_anime.freezone.presets import (
-    build_asset_preset_context,
     build_beat_preset_context,
-    build_canvas_payload_from_context,
-    build_episode_preset_context,
-    canvas_id_for_preset,
-    preset_key_for_request,
 )
 from ai_anime.freezone.route_helpers import (
     FREEZONE_DEFAULT_IMAGE_MODEL,
@@ -1528,7 +1513,6 @@ FrameReviewReviewer = Callable[[str], str | Awaitable[str]]
 _agent_review_frame_reviewer: FrameReviewReviewer | None = None
 
 TAG_FREEZONE_IMAGE = "freezone-image"
-TAG_FREEZONE_CANVAS = "freezone-canvas"
 TAG_FREEZONE_ASSETS = "freezone-assets"
 
 TAG_FREEZONE_COMMIT = "freezone-commit"
@@ -4126,385 +4110,12 @@ async def freezone_skill_run_result(
 # ============================================================
 
 
-def _latest_preset_canvas(project_dir: Path, preset_key: str) -> str | None:
-    return canvas_store.latest_preset_canvas(project_dir, preset_key)
-
-
-def _canonical_preset_canvas(
-    project_dir: Path,
-    *,
-    preset_key: str,
-    canvas_id: str,
-) -> str | None:
-    payload = canvas_store.read_canvas(project_dir, canvas_id)
-    if not isinstance(payload, dict):
-        return None
-    preset = (payload.get("metadata") or {}).get("preset")
-    if isinstance(preset, dict) and preset.get("preset_key") == preset_key:
-        return canvas_id
-    return None
-
-
-def _preset_key_from_canvas_metadata(metadata: dict | None) -> str | None:
-    if not isinstance(metadata, dict):
-        return None
-    preset = metadata.get("preset")
-    if not isinstance(preset, dict):
-        return None
-    existing = preset.get("preset_key")
-    if isinstance(existing, str) and existing.strip():
-        return existing.strip()
-    scope = preset.get("scope")
-    if not isinstance(scope, str) or not scope:
-        return None
-    try:
-        return preset_key_for_request(
-            scope=scope,
-            episode=preset.get("episode") if isinstance(preset.get("episode"), int) else None,
-            beat=preset.get("beat") if isinstance(preset.get("beat"), int) else None,
-            primary_slot=(
-                preset.get("primary_slot") if isinstance(preset.get("primary_slot"), str) else None
-            ),
-            asset_kind=(
-                preset.get("asset_kind") if isinstance(preset.get("asset_kind"), str) else None
-            ),
-            character=(
-                preset.get("character") if isinstance(preset.get("character"), str) else None
-            ),
-            identity_id=(
-                preset.get("identity_id") if isinstance(preset.get("identity_id"), str) else None
-            ),
-            asset_id=(preset.get("asset_id") if isinstance(preset.get("asset_id"), str) else None),
-        )
-    except ValueError:
-        return None
-
-
 def _canvas_state_project_dir(ctx: ProjectContext | None, output_project_dir: Path) -> Path:
     if ctx is not None:
         return Path(ctx.state_dir)
     return output_project_dir
 
 
-
-
-@router.post("/projects/{project}/freezone/canvases:from-preset", tags=[TAG_FREEZONE_CANVAS])
-async def create_canvas_from_preset(
-    project: str,
-    body: PresetCanvasRequest,
-    user: dict = Depends(get_api_user),
-):
-    """根据项目上下文创建一个预填充画布。
-
-    这不是会话资源，而是一个无状态工厂接口。
-    如果项目里已有相同 preset 的画布，会复用最近更新的那张，避免同一主线入口
-    不断生成副本。
-    """
-    ctx, username, project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project, user
-    )
-    canvas_project_dir = _canvas_state_project_dir(ctx, project_dir)
-    preset_request = body.model_dump(exclude_none=True)
-
-    try:
-        preset_key = preset_key_for_request(
-            scope=body.scope,
-            episode=body.episode,
-            beat=body.beat,
-            primary_slot=body.primary_slot,
-            asset_kind=body.asset_kind,
-            character=body.character,
-            identity_id=body.identity_id,
-            asset_id=body.asset_id,
-        )
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
-
-    canonical_canvas_id = canvas_id_for_preset(preset_key)
-    overwrite_canvas_id = (
-        str(body.canvas_id or "").strip()
-        if body.overwrite_existing and str(body.canvas_id or "").strip()
-        else ""
-    )
-    existing = None
-    if not overwrite_canvas_id:
-        existing = _canonical_preset_canvas(
-            canvas_project_dir,
-            preset_key=preset_key,
-            canvas_id=canonical_canvas_id,
-        )
-        if existing is None:
-            existing = _latest_preset_canvas(canvas_project_dir, preset_key)
-    if existing:
-        return {
-            "ok": True,
-            "data": {
-                "canvas_id": existing,
-                "reused": True,
-                "url": f"/?p={project}&canvas={existing}",
-            },
-        }
-    if overwrite_canvas_id:
-        existing_payload = canvas_store.read_canvas(canvas_project_dir, overwrite_canvas_id)
-        if not isinstance(existing_payload, dict):
-            raise HTTPException(404, "canvas not found")
-        existing_preset_key = _preset_key_from_canvas_metadata(
-            existing_payload.get("metadata")
-            if isinstance(existing_payload.get("metadata"), dict)
-            else None
-        )
-        if existing_preset_key != preset_key:
-            raise HTTPException(
-                400,
-                "canvas preset_key does not match requested preset",
-            )
-
-    if body.scope == "blank":
-        payload = {
-            "nodes": [],
-            "edges": [],
-            "viewport": None,
-            "metadata": {
-                "preset": {
-                    "preset_key": preset_key,
-                    "scope": "blank",
-                    "created_at": canvas_store.utc_now_iso(),
-                }
-            },
-        }
-    elif body.scope == "episode":
-        if body.episode is None:
-            raise HTTPException(400, "episode preset requires episode")
-        store = (
-            await make_sqlite_store_for_context(ctx)
-            if ctx is not None
-            else await make_sqlite_store(username, project_name)
-        )
-        try:
-            context = await build_episode_preset_context(
-                project_id=ctx.project_id,
-                username=username,
-                project=project_name,
-                project_dir=project_dir,
-                store=store,
-                episode=body.episode,
-            )
-        finally:
-            close = getattr(store, "close", None)
-            if close:
-                await close()
-        payload = build_canvas_payload_from_context(
-            context=context,
-            preset_key=preset_key,
-            default_push_target=default_push_target_for_preset(preset_request),
-            created_at=canvas_store.utc_now_iso(),
-        )
-    elif body.scope == "beat":
-        if body.episode is None or body.beat is None:
-            raise HTTPException(400, "beat preset requires episode and beat")
-        store = (
-            await make_sqlite_store_for_context(ctx)
-            if ctx is not None
-            else await make_sqlite_store(username, project_name)
-        )
-        try:
-            context = await build_beat_preset_context(
-                project_id=ctx.project_id,
-                username=username,
-                project=project_name,
-                project_dir=project_dir,
-                store=store,
-                episode=body.episode,
-                beat=body.beat,
-                primary_slot=body.primary_slot,
-            )
-        except ValueError as exc:
-            raise HTTPException(404, str(exc)) from exc
-        finally:
-            close = getattr(store, "close", None)
-            if close:
-                await close()
-        payload = build_canvas_payload_from_context(
-            context=context,
-            preset_key=preset_key,
-            default_push_target=default_push_target_for_preset(preset_request),
-            created_at=canvas_store.utc_now_iso(),
-        )
-    elif body.scope == "asset":
-        if not body.asset_kind:
-            raise HTTPException(400, "asset preset requires asset_kind")
-        store = (
-            await make_sqlite_store_for_context(ctx)
-            if ctx is not None
-            else await make_sqlite_store(username, project_name)
-        )
-        try:
-            context = await build_asset_preset_context(
-                project_id=ctx.project_id,
-                username=username,
-                project=project_name,
-                project_dir=project_dir,
-                store=store,
-                asset_kind=body.asset_kind,
-                character=body.character,
-                identity_id=body.identity_id,
-                asset_id=body.asset_id,
-            )
-        except ValueError as exc:
-            raise HTTPException(400, str(exc)) from exc
-        finally:
-            close = getattr(store, "close", None)
-            if close:
-                await close()
-        payload = build_canvas_payload_from_context(
-            context=context,
-            preset_key=preset_key,
-            default_push_target=default_push_target_for_preset(preset_request),
-            created_at=canvas_store.utc_now_iso(),
-        )
-        preset_meta = payload.setdefault("metadata", {}).setdefault("preset", {})
-        preset_meta.update(
-            {
-                "asset_kind": body.asset_kind,
-                "character": body.character,
-                "identity_id": body.identity_id,
-                "asset_id": body.asset_id,
-            }
-        )
-    else:
-        raise HTTPException(400, f"unsupported preset scope: {body.scope}")
-
-    incoming_facts_signature = preset_facts_signature(payload)
-    stamp_preset_facts_signature(payload, incoming_facts_signature)
-    canvas_id = overwrite_canvas_id or canonical_canvas_id
-
-    def build_payload(existing_payload: dict | None) -> dict:
-        raw_payload = (
-            merge_restored_preset_canvas(payload, existing_payload)
-            if overwrite_canvas_id
-            else payload
-        )
-        stamp_preset_facts_signature(raw_payload, incoming_facts_signature)
-        return prepare_creative_canvas_payload_for_write(
-            project_id=project,
-            canvas_id=canvas_id,
-            incoming=raw_payload,
-            existing=existing_payload,
-            actor_id=canvas_actor_id(user),
-            updated_at=canvas_store.utc_now_iso(),
-        )
-
-    # Plan §10 — replays of the same preset request (network retry, double
-    # click) must not bump revision twice or duplicate history entries. Mint
-    # a stable client_save_id + request_hash from the preset inputs so the
-    # second call hits save_canvas's idempotency cache instead of producing
-    # a revision_conflict. We deliberately exclude volatile fields like
-    # ``metadata.preset.created_at`` — they're stamped per-call inside
-    # ``build_canvas_payload_from_context`` and would otherwise defeat the
-    # whole point of the key.
-    preset_stable_hash = canvas_store.canvas_request_hash(
-        {
-            "scope": body.scope,
-            "episode": body.episode,
-            "beat": body.beat,
-            "primary_slot": body.primary_slot,
-            "asset_kind": body.asset_kind,
-            "character": body.character,
-            "identity_id": body.identity_id,
-            "asset_id": body.asset_id,
-            "canvas_id": overwrite_canvas_id,
-            "base_revision": body.base_revision,
-        }
-    )
-    preset_client_save_id = f"from-preset:{canvas_id}:{preset_stable_hash}"
-
-    def skip_if_same_preset_facts(existing_payload: dict | None) -> dict | None:
-        if not overwrite_canvas_id:
-            return None
-        if preset_facts_signature_from_payload(existing_payload) != incoming_facts_signature:
-            return None
-        revision = existing_payload.get("revision") if isinstance(existing_payload, dict) else None
-        updated_at = (
-            existing_payload.get("updated_at") if isinstance(existing_payload, dict) else None
-        )
-        return {
-            "saved": False,
-            "revision": revision if isinstance(revision, int) else None,
-            "updated_at": updated_at if isinstance(updated_at, str) else None,
-            "client_save_id": None,
-            "noop_reason": "preset_facts_unchanged",
-        }
-
-    try:
-        saved_canvas = canvas_store.save_canvas(
-            canvas_project_dir,
-            canvas_id,
-            base_revision=body.base_revision,
-            client_save_id=preset_client_save_id,
-            request_hash=preset_stable_hash,
-            build_payload=build_payload,
-            skip_if=skip_if_same_preset_facts,
-            enforce_revision=True,
-            save_source="from_preset",
-            allow_empty_overwrite=True,
-        )
-    except (
-        canvas_store.CanvasBaseRevisionRequired,
-        canvas_store.CanvasRevisionConflict,
-    ) as exc:
-        record_creative_canvas_event(
-            project_dir=canvas_project_dir,
-            project_id=project,
-            canvas_id=canvas_id,
-            event_type="canvas.preset_refresh.conflict",
-            actor=canvas_event_actor(user),
-            payload={
-                "scope": body.scope,
-                "preset_key": preset_key,
-                "base_revision": body.base_revision,
-                "error": str(exc),
-            },
-        )
-        raise_canvas_document_http_error(
-            translate_creative_canvas_document_write_error(exc)
-        )
-    except (canvas_store.CanvasStoreError, CanvasLockBusy) as exc:
-        raise_canvas_document_http_error(
-            translate_creative_canvas_document_write_error(exc)
-        )
-    payload = saved_canvas.payload
-    record_creative_canvas_event(
-        project_dir=canvas_project_dir,
-        project_id=project,
-        canvas_id=canvas_id,
-        event_type="canvas.preset_emitted",
-        actor=canvas_event_actor(user),
-        payload={
-            "scope": body.scope,
-            "preset_key": preset_key,
-            "revision": payload.get("revision"),
-            "node_count": len(payload.get("nodes") or []),
-            "edge_count": len(payload.get("edges") or []),
-            "overwrote_existing": bool(overwrite_canvas_id),
-            "backup_path": (
-                canvas_store.relative_project_path(canvas_project_dir, saved_canvas.backup_path)
-                if saved_canvas.backup_path
-                else None
-            ),
-            "preset_facts_unchanged": (
-                isinstance(saved_canvas.response_cache, dict)
-                and saved_canvas.response_cache.get("noop_reason") == "preset_facts_unchanged"
-            ),
-        },
-    )
-    return {
-        "ok": True,
-        "data": {
-            "canvas_id": canvas_id,
-            "reused": False,
-            "url": f"/?p={project}&canvas={canvas_id}",
-        },
-    }
 
 
 # ============================================================

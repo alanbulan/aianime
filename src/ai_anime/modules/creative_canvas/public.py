@@ -43,12 +43,18 @@ from ai_anime.modules.creative_canvas.application.canvas_events import (
 from ai_anime.modules.creative_canvas.application.canvas_projections import (
     BuildCreativeCanvasProjectionQuery,
     CreativeCanvasProjectionCanvasNotFound,
-    CreativeCanvasProjectionSourceNotFound,
     CreativeCanvasProjectionUseCases,
     GetCreativeCanvasProjectionStatusQuery,
-    InvalidCreativeCanvasProjectionRequest,
     ProjectCreativeCanvasProjectionCommand,
     RemoveCreativeCanvasProjectionCommand,
+)
+from ai_anime.modules.creative_canvas.application.canvas_presets import (
+    CreateCreativeCanvasPresetCommand,
+    CreativeCanvasPresetCanvasNotFound,
+    CreativeCanvasPresetMismatch,
+    CreativeCanvasPresetSourceNotFound,
+    CreativeCanvasPresetUseCases,
+    InvalidCreativeCanvasPresetRequest,
 )
 from ai_anime.modules.creative_canvas.application.canvas_writes import (
     CreativeCanvasDocumentBaseRevisionRequired,
@@ -244,6 +250,14 @@ def creative_canvas_event_recorder() -> CreativeCanvasEventRecorder:
     return build()
 
 
+def creative_canvas_preset_use_cases() -> CreativeCanvasPresetUseCases:
+    from ai_anime.modules.creative_canvas.composition import (
+        creative_canvas_preset_use_cases as build,
+    )
+
+    return build()
+
+
 def creative_canvas_projection_use_cases() -> CreativeCanvasProjectionUseCases:
     from ai_anime.modules.creative_canvas.composition import (
         creative_canvas_projection_use_cases as build,
@@ -271,14 +285,6 @@ def record_creative_canvas_event(
             payload=payload,
         )
     )
-
-
-def translate_creative_canvas_document_write_error(exc: Exception) -> Exception:
-    from ai_anime.modules.creative_canvas.infrastructure.canvas_writes import (
-        translate_canvas_store_error,
-    )
-
-    return translate_canvas_store_error(exc)
 
 
 def generation_catalog_queries() -> GenerationCatalogQueries:
@@ -410,6 +416,7 @@ __all__ = [
     "CREATIVE_CANVAS_AUDIO_AGE_GROUP_LABELS",
     "DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL",
     "CreateCreativeCanvasAudioVoiceCommand",
+    "CreateCreativeCanvasPresetCommand",
     "CreativeCanvasAudioGenerationUseCases",
     "CreativeCanvasAudioLibraryUseCases",
     "CreativeCanvasAudioVoiceMissing",
@@ -430,8 +437,11 @@ __all__ = [
     "CreativeCanvasEventActor",
     "CreativeCanvasEventRecorder",
     "CreativeCanvasProjectionCanvasNotFound",
-    "CreativeCanvasProjectionSourceNotFound",
     "CreativeCanvasProjectionUseCases",
+    "CreativeCanvasPresetCanvasNotFound",
+    "CreativeCanvasPresetMismatch",
+    "CreativeCanvasPresetSourceNotFound",
+    "CreativeCanvasPresetUseCases",
     "CreativeCanvasImageToThreeGsResult",
     "CreativeCanvasImageToThreeGsSourceMissing",
     "CreativeCanvasImageToThreeGsUseCases",
@@ -478,7 +488,7 @@ __all__ = [
     "DangerousCreativeCanvasDocumentOverwrite",
     "DeleteCreativeCanvasDocumentCommand",
     "InvalidCreativeCanvasPngScreenshot",
-    "InvalidCreativeCanvasProjectionRequest",
+    "InvalidCreativeCanvasPresetRequest",
     "InvalidCreativeCanvasAudioGenerationRequest",
     "InvalidCreativeCanvasAudioLibraryRequest",
     "InvalidCreativeCanvasDocumentQuery",
@@ -546,6 +556,7 @@ __all__ = [
     "creative_canvas_document_commands",
     "creative_canvas_document_queries",
     "creative_canvas_event_recorder",
+    "creative_canvas_preset_use_cases",
     "creative_canvas_projection_use_cases",
     "creative_canvas_mark_detection_use_cases",
     "creative_canvas_image_to_three_gs_use_cases",
@@ -586,7 +597,6 @@ __all__ = [
     "stamp_projection_key",
     "stamp_projection_metadata",
     "sync_frame_context_reference_edges",
-    "translate_creative_canvas_document_write_error",
     "validate_omni_reference_limits",
     "validate_video_composition_media_item_count",
     "validate_video_composition_source_range",

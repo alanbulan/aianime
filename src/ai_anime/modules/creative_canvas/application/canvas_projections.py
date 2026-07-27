@@ -11,20 +11,16 @@ from ai_anime.modules.creative_canvas.application.canvas_events import (
     CreativeCanvasEventRecorder,
     RecordCreativeCanvasEventCommand,
 )
+from ai_anime.modules.creative_canvas.application.canvas_presets import (
+    InvalidCreativeCanvasPresetRequest,
+    normalize_creative_canvas_preset_request,
+)
 from ai_anime.modules.creative_canvas.application.canvas_writes import (
     CreativeCanvasDocumentBaseRevisionRequired,
     CreativeCanvasDocumentRevisionConflict,
 )
 from ai_anime.modules.creative_canvas.domain import CreativeCanvasEventActor
 from ai_anime.modules.project_workspace.public import ProjectContext
-
-
-class InvalidCreativeCanvasProjectionRequest(ValueError):
-    pass
-
-
-class CreativeCanvasProjectionSourceNotFound(LookupError):
-    pass
 
 
 class CreativeCanvasProjectionCanvasNotFound(LookupError):
@@ -322,39 +318,11 @@ class CreativeCanvasProjectionUseCases:
 def _normalize_projection_request(
     request: Mapping[str, Any],
 ) -> dict[str, Any]:
-    scope = request.get("scope", "beat")
-    if scope not in {"episode", "beat", "asset", "blank"}:
-        raise InvalidCreativeCanvasProjectionRequest(
-            f"unsupported preset scope: {scope}"
-        )
-
+    normalized = normalize_creative_canvas_preset_request(request)
     projection_key = request.get("projection_key")
     if not isinstance(projection_key, str) or not 1 <= len(projection_key) <= 160:
-        raise InvalidCreativeCanvasProjectionRequest("invalid projection_key")
-
-    primary_slot = request.get("primary_slot", "render")
-    if not isinstance(primary_slot, str):
-        raise InvalidCreativeCanvasProjectionRequest("invalid primary_slot")
-
-    normalized: dict[str, Any] = {
-        "scope": scope,
-        "primary_slot": primary_slot,
-        "projection_key": projection_key,
-    }
-    for key in ("episode", "beat"):
-        value = request.get(key)
-        if value is None:
-            continue
-        if not isinstance(value, int) or isinstance(value, bool):
-            raise InvalidCreativeCanvasProjectionRequest(f"invalid {key}")
-        normalized[key] = value
-    for key in ("asset_kind", "character", "identity_id", "asset_id"):
-        value = request.get(key)
-        if value is None:
-            continue
-        if not isinstance(value, str):
-            raise InvalidCreativeCanvasProjectionRequest(f"invalid {key}")
-        normalized[key] = value
+        raise InvalidCreativeCanvasPresetRequest("invalid projection_key")
+    normalized["projection_key"] = projection_key
     return normalized
 
 
@@ -364,10 +332,8 @@ __all__ = [
     "CreativeCanvasProjectionCanvasNotFound",
     "CreativeCanvasProjectionGateway",
     "CreativeCanvasProjectionMutationResult",
-    "CreativeCanvasProjectionSourceNotFound",
     "CreativeCanvasProjectionUseCases",
     "GetCreativeCanvasProjectionStatusQuery",
-    "InvalidCreativeCanvasProjectionRequest",
     "ProjectCreativeCanvasProjectionCommand",
     "RemoveCreativeCanvasProjectionCommand",
 ]

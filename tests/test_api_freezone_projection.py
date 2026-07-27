@@ -67,6 +67,27 @@ def _build_projection(client: TestClient, **body) -> tuple[int, dict]:
     return response.status_code, response.json()
 
 
+def _patch_preset_builder(monkeypatch, payload_builder) -> None:
+    from ai_anime.modules.creative_canvas.application.canvas_presets import (
+        CreativeCanvasPresetBuild,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.canvas_presets import (
+        LocalCreativeCanvasPresetBuilder,
+    )
+
+    async def build(builder, *, context, project_dir, plan):
+        payload = await payload_builder(
+            builder,
+            context=context,
+            project_dir=project_dir,
+            request=plan.request,
+            preset_key=plan.preset_key,
+        )
+        return CreativeCanvasPresetBuild(plan=plan, payload=payload)
+
+    monkeypatch.setattr(LocalCreativeCanvasPresetBuilder, "build", build)
+
+
 def test_projection_creates_target_canvas(projection_client) -> None:
     client, project_dir = projection_client
 
@@ -87,8 +108,6 @@ def test_build_projection_from_preset_does_not_write_canvas(
     projection_client,
     monkeypatch,
 ) -> None:
-    from ai_anime.modules.creative_canvas.infrastructure import canvas_projections
-
     client, project_dir = projection_client
 
     async def fake_build_preset_payload(_gateway, **_kwargs):
@@ -106,11 +125,7 @@ def test_build_projection_from_preset_does_not_write_canvas(
             "metadata": {},
         }
 
-    monkeypatch.setattr(
-        canvas_projections.LocalCreativeCanvasProjectionGateway,
-        "_build_preset_payload",
-        fake_build_preset_payload,
-    )
+    _patch_preset_builder(monkeypatch, fake_build_preset_payload)
 
     status, body = _build_projection(
         client,
@@ -143,7 +158,7 @@ def test_projection_scene_asset_includes_derived_base_master_input(
     projection_client,
     monkeypatch,
 ) -> None:
-    from ai_anime.modules.creative_canvas.infrastructure import canvas_projections
+    from ai_anime.modules.creative_canvas.infrastructure import canvas_presets
 
     client, project_dir = projection_client
     base_master_path = project_dir / "assets" / "scenes" / "城市街道" / "master.png"
@@ -177,7 +192,7 @@ def test_projection_scene_asset_includes_derived_base_master_input(
         return Store()
 
     monkeypatch.setattr(
-        canvas_projections,
+        canvas_presets,
         "make_sqlite_store_for_context",
         fake_make_sqlite_store_for_context,
     )
@@ -207,8 +222,6 @@ def test_projection_scene_asset_includes_derived_base_master_input(
 
 
 def test_projection_wraps_preset_nodes_in_group(projection_client, monkeypatch) -> None:
-    from ai_anime.modules.creative_canvas.infrastructure import canvas_projections
-
     client, project_dir = projection_client
 
     async def fake_build_preset_payload(_gateway, **_kwargs):
@@ -233,11 +246,7 @@ def test_projection_wraps_preset_nodes_in_group(projection_client, monkeypatch) 
             "metadata": {},
         }
 
-    monkeypatch.setattr(
-        canvas_projections.LocalCreativeCanvasProjectionGateway,
-        "_build_preset_payload",
-        fake_build_preset_payload,
-    )
+    _patch_preset_builder(monkeypatch, fake_build_preset_payload)
 
     status, body = _project(
         client,
@@ -287,8 +296,6 @@ def test_projection_changed_facts_bypass_idempotency_cache(
     projection_client,
     monkeypatch,
 ) -> None:
-    from ai_anime.modules.creative_canvas.infrastructure import canvas_projections
-
     client, project_dir = projection_client
     scene_prompt = {"value": "old scene prompt"}
 
@@ -309,11 +316,7 @@ def test_projection_changed_facts_bypass_idempotency_cache(
             "metadata": {},
         }
 
-    monkeypatch.setattr(
-        canvas_projections.LocalCreativeCanvasProjectionGateway,
-        "_build_preset_payload",
-        fake_build_preset_payload,
-    )
+    _patch_preset_builder(monkeypatch, fake_build_preset_payload)
 
     status, body = _project(
         client,
@@ -363,8 +366,6 @@ def test_projection_force_refresh_rewrites_dirty_projection_nodes(
     projection_client,
     monkeypatch,
 ) -> None:
-    from ai_anime.modules.creative_canvas.infrastructure import canvas_projections
-
     client, project_dir = projection_client
 
     async def fake_build_preset_payload(_gateway, **_kwargs):
@@ -384,11 +385,7 @@ def test_projection_force_refresh_rewrites_dirty_projection_nodes(
             "metadata": {},
         }
 
-    monkeypatch.setattr(
-        canvas_projections.LocalCreativeCanvasProjectionGateway,
-        "_build_preset_payload",
-        fake_build_preset_payload,
-    )
+    _patch_preset_builder(monkeypatch, fake_build_preset_payload)
 
     status, body = _project(
         client,
@@ -447,8 +444,6 @@ def test_projection_force_refresh_preserves_existing_group_position(
     projection_client,
     monkeypatch,
 ) -> None:
-    from ai_anime.modules.creative_canvas.infrastructure import canvas_projections
-
     client, project_dir = projection_client
     scene_prompt = {"value": "mainline scene prompt"}
 
@@ -470,11 +465,7 @@ def test_projection_force_refresh_preserves_existing_group_position(
             "metadata": {},
         }
 
-    monkeypatch.setattr(
-        canvas_projections.LocalCreativeCanvasProjectionGateway,
-        "_build_preset_payload",
-        fake_build_preset_payload,
-    )
+    _patch_preset_builder(monkeypatch, fake_build_preset_payload)
 
     status, body = _project(
         client,
@@ -518,8 +509,6 @@ def test_projection_force_refresh_preserves_existing_node_layout(
     projection_client,
     monkeypatch,
 ) -> None:
-    from ai_anime.modules.creative_canvas.infrastructure import canvas_projections
-
     client, project_dir = projection_client
     scene_prompt = {"value": "mainline scene prompt"}
 
@@ -541,11 +530,7 @@ def test_projection_force_refresh_preserves_existing_node_layout(
             "metadata": {},
         }
 
-    monkeypatch.setattr(
-        canvas_projections.LocalCreativeCanvasProjectionGateway,
-        "_build_preset_payload",
-        fake_build_preset_payload,
-    )
+    _patch_preset_builder(monkeypatch, fake_build_preset_payload)
 
     status, body = _project(
         client,
