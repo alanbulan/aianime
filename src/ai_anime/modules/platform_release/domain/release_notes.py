@@ -5,11 +5,10 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass
-from typing import Literal
 
 from packaging.version import InvalidVersion, Version
 
-Attention = Literal["low", "medium", "high"]
+from ai_anime.modules.platform_release.domain.release_feed import Attention
 
 _HIGHLIGHTS_RE = re.compile(r"^user-facing highlights(?:\s*\((zh|en)\))?$", re.I)
 _HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*#*\s*$")
@@ -42,7 +41,11 @@ class _Section:
 
 
 def _normalize_text(value: str) -> str:
-    return re.sub(r"\s+", " ", value.replace("\r\n", "\n").replace("\r", "\n")).strip()
+    return re.sub(
+        r"\s+",
+        " ",
+        value.replace("\r\n", "\n").replace("\r", "\n"),
+    ).strip()
 
 
 def _strip_trailing_heading_hashes(value: str) -> str:
@@ -50,7 +53,9 @@ def _strip_trailing_heading_hashes(value: str) -> str:
 
 
 def _front_matter(body: str) -> dict[str, str]:
-    match = _FRONT_MATTER_RE.match(body.replace("\r\n", "\n").replace("\r", "\n"))
+    match = _FRONT_MATTER_RE.match(
+        body.replace("\r\n", "\n").replace("\r", "\n")
+    )
     if not match:
         return {}
     out: dict[str, str] = {}
@@ -185,7 +190,7 @@ def _item_id(tag: str, title: str, body: str) -> str:
     return f"release:{tag}:{digest}"
 
 
-def parse(
+def parse_release_notes(
     body: str,
     tag: str | None,
     *,

@@ -5,13 +5,13 @@ from __future__ import annotations
 import os
 
 from ai_anime.modules.identity_access.public import build_local_identity_adapters
+from ai_anime.modules.platform_release.public import build_local_release_feed
 from ai_anime.modules.project_workspace.public import build_local_project_adapters
 from ai_anime.ports.local.audit import NoOpAuditSink
 from ai_anime.ports.local.credit_quote import LocalCreditQuote
 from ai_anime.ports.local.lifecycle import NoOpLifecycle
 from ai_anime.ports.local.mock_cloud import MockCloudAdapter
 from ai_anime.ports.local.mock_tasks import MockCloudTaskBackend
-from ai_anime.ports.local.release_feed import MockReleaseFeed, NoOpReleaseFeed
 from ai_anime.ports.local.tasks import InlineTaskBackend, InMemoryCancellationStore
 from ai_anime.ports.local.usage import NoOpProviderInstrumentation, NoOpUsageMeter
 from ai_anime.ports.registry import get_port, register_port
@@ -34,7 +34,7 @@ def register_local_ports() -> None:
     register_port("credit_quote", LocalCreditQuote())
     register_port(
         "release_feed",
-        MockReleaseFeed() if release_feed_name == "mock" else NoOpReleaseFeed(),
+        build_local_release_feed(release_feed_name),
     )
     if cloud_adapter is not None:
         register_port("cloud_adapter", cloud_adapter)

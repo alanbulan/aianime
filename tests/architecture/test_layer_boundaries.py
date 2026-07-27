@@ -368,6 +368,19 @@ def test_platform_release_callers_use_the_public_api() -> None:
     assert not failures, "\n".join(failures)
 
 
+def test_platform_release_owns_release_feed_contract_and_adapters() -> None:
+    composition = PACKAGE_ROOT / "modules" / "platform_release" / "composition.py"
+    local_ports = PACKAGE_ROOT / "ports" / "local" / "__init__.py"
+    composition_source = composition.read_text(encoding="utf-8")
+
+    assert not (PACKAGE_ROOT / "ports" / "release_feed.py").exists()
+    assert not (PACKAGE_ROOT / "ports" / "local" / "release_feed.py").exists()
+    assert not (PACKAGE_ROOT / "release_notes.py").exists()
+    assert composition_source.count('get_port("release_feed")') == 1
+    assert "get_release_feed_port" not in composition_source
+    assert "ai_anime.modules.platform_release.public" in _imports(local_ports)
+
+
 def test_release_notifications_route_delegates_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "release_notifications.py"
     source = route.read_text(encoding="utf-8")

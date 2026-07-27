@@ -7,10 +7,14 @@ import os
 from pathlib import Path
 from typing import Callable
 
-from packaging.version import InvalidVersion, Version
-
-from ai_anime.ports.release_feed import ReleaseFeed, ReleaseItem
-from ai_anime.release_notes import parse, validate_version_marker
+from ai_anime.modules.platform_release.domain import (
+    ReleaseFeed,
+    ReleaseItem,
+    ReleaseLocale,
+    is_newer_release,
+    parse_release_notes,
+    validate_version_marker,
+)
 
 PACKAGE_NAME = "ai-anime"
 DEFAULT_LATEST_VERSION = "1.2.0"
@@ -20,7 +24,7 @@ VersionReader = Callable[[], str]
 
 
 class NoOpReleaseFeed:
-    async def current(self, *, locale: str) -> ReleaseFeed:
+    async def current(self, *, locale: ReleaseLocale) -> ReleaseFeed:
         _ = locale
         return ReleaseFeed(source="none")
 
@@ -39,7 +43,7 @@ class MockReleaseFeed:
         )
         self._latest_version = latest_version
 
-    async def current(self, *, locale: str) -> ReleaseFeed:
+    async def current(self, *, locale: ReleaseLocale) -> ReleaseFeed:
         current_version = self._read_current_version()
         current_tag = f"v{current_version}" if current_version else None
         current_items = self._read_current_items(
@@ -55,7 +59,7 @@ class MockReleaseFeed:
             or DEFAULT_LATEST_VERSION
         )
         update_available = bool(
-            current_version and _is_newer(latest_version, current_version)
+            current_version and is_newer_release(latest_version, current_version)
         )
         latest_tag = f"v{latest_version}" if update_available else None
 
@@ -95,14 +99,14 @@ class MockReleaseFeed:
     def _notes_file(self) -> Path:
         if self._notes_path is not None:
             return self._notes_path
-        return Path(__file__).resolve().parents[2] / "release-notes.md"
+        return Path(__file__).resolve().parents[3] / "release-notes.md"
 
     def _read_current_items(
         self,
         *,
         current_version: str | None,
         current_tag: str | None,
-        locale: str,
+        locale: ReleaseLocale,
     ) -> list[ReleaseItem]:
         if not current_version or not current_tag:
             return []
@@ -111,7 +115,7 @@ class MockReleaseFeed:
             validate_version_marker(body, current_version)
         except (OSError, ValueError):
             return []
-        parsed = parse(body, current_tag, locale=locale)
+        parsed = parse_release_notes(body, current_tag, locale=locale)
         return [
             ReleaseItem(
                 id=item.id,
@@ -124,7 +128,7 @@ class MockReleaseFeed:
         ]
 
 
-def _mock_update_items(locale: str, tag: str | None) -> list[ReleaseItem]:
+def _mock_update_items(locale: ReleaseLocale, tag: str | None) -> list[ReleaseItem]:
     if not tag:
         return []
     if locale.lower().startswith("en"):
@@ -142,10 +146,3 @@ def _mock_update_items(locale: str, tag: str | None) -> list[ReleaseItem]:
             body=body,
         )
     ]
-
-
-def _is_newer(candidate: str, current: str) -> bool:
-    try:
-        return Version(candidate) > Version(current)
-    except InvalidVersion:
-        return candidate > current

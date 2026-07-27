@@ -3,6 +3,7 @@
 from ai_anime.modules.platform_release.application import (
     ProjectFileDelivery,
     ProjectFileQueries,
+    ReleaseFeedPort,
     ReleaseNotificationQueries,
     RuntimeConfigQueries,
 )
@@ -11,11 +12,22 @@ from ai_anime.modules.platform_release.domain import (
     ProjectFileAccessDenied,
     ProjectFileError,
     ProjectFileNotFound,
+    ReleaseFeed,
+    ReleaseItem,
     ReleaseLocale,
     RuntimeConfig,
     RuntimeEdition,
     normalize_release_locale,
 )
+
+
+def build_local_release_feed(adapter_name: str) -> ReleaseFeedPort:
+    from ai_anime.modules.platform_release.infrastructure import (
+        MockReleaseFeed,
+        NoOpReleaseFeed,
+    )
+
+    return MockReleaseFeed() if adapter_name == "mock" else NoOpReleaseFeed()
 
 
 def project_file_queries() -> ProjectFileQueries:
@@ -49,11 +61,15 @@ __all__ = [
     "ProjectFileError",
     "ProjectFileNotFound",
     "ProjectFileQueries",
+    "ReleaseFeed",
+    "ReleaseFeedPort",
+    "ReleaseItem",
     "ReleaseLocale",
     "ReleaseNotificationQueries",
     "RuntimeConfig",
     "RuntimeConfigQueries",
     "RuntimeEdition",
+    "build_local_release_feed",
     "normalize_release_locale",
     "project_file_queries",
     "release_notification_queries",

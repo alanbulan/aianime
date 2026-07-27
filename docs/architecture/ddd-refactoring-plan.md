@@ -1717,6 +1717,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百二十八批已将项目文件路径包含关系与 403/404 错误迁入 Platform Release domain，将交付 DTO、gateway port 与查询迁入 application，并由唯一 local/OSS infrastructure 适配器负责文件存在性、下载开关、预签名和异常回退；新增共享 API adapter 统一项目 viewer 解析、领域错误到 HTTP 文案映射及 `FileResponse`/`RedirectResponse` 构造，版本化 files/media route 与非 API `/static/projects` route 共同调用该 adapter。旧 route 内路径/OSS helper 和 `preview_project_media_file` 直接删除，`platform_routes -> api.routes.files` 路由间导入清零，不保留 facade、转发函数或第二套交付实现；路径遍历防护、项目/文件缺失状态码与文案、302 `no-store`、下载文件名、inline 响应、本地回退、请求路径与 OpenAPI 操作均保持不变。文件领域/媒体定向回归 5 项、应用工厂与静态媒体回归 17 项、M09 完整合同 7 项、完整后端分层门禁 94 项均通过，修改文件 Ruff、Python 编译与 `git diff --check` 通过，8 条告警均为既有依赖弃用告警。
 
+第三百二十九批已将发布 feed DTO、版本比较和 release notes 解析/版本标记规则迁入 Platform Release domain，将 `ReleaseFeedPort` 迁入 application，并由模块内唯一 mock/no-op infrastructure adapter 负责包版本、Markdown 文件和环境配置读取；CE bootstrap 改经 public factory 注册本地 adapter，composition 直接从通用注册表读取同名 `release_feed` port，保留 EE 后续注入远程实现的扩展点。旧 `ports/release_feed.py`、`ports/local/release_feed.py` 与根 `release_notes.py` 直接删除，不保留 facade、re-export 或第二套 DTO/解析规则；中英文 highlights、稳定 item ID、版本校验、默认打包 notes 路径、mock 最新版本/发布时间/URL 环境变量、no-op 空 feed、端口名和 API 响应均保持不变。发布 feed/notes/API 回归 12 项、CE 注册表与应用工厂回归 17 项、完整后端分层门禁 95 项均通过，修改文件 Ruff、Python 编译与 `git diff --check` 通过。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

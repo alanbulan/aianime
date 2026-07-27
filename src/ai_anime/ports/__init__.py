@@ -49,10 +49,6 @@ def get_lifecycle_port():
     return get_port("lifecycle")
 
 
-def get_release_feed_port():
-    return get_port("release_feed")
-
-
 __all__ = [
     "get_audit_sink",
     "get_cancellation_store",
@@ -60,7 +56,6 @@ __all__ = [
     "get_credit_quote",
     "get_lifecycle_port",
     "get_provider_instrumentation",
-    "get_release_feed_port",
     "get_task_backend",
     "get_usage_meter",
 ]

@@ -8,14 +8,20 @@ from fastapi.testclient import TestClient
 
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.routes import release_notifications
+from ai_anime.modules.platform_release.domain import (
+    parse_release_notes,
+    validate_version_marker,
+)
+from ai_anime.modules.platform_release.infrastructure import (
+    MockReleaseFeed,
+    NoOpReleaseFeed,
+)
 from ai_anime.modules.platform_release.public import (
+    ReleaseFeed,
     ReleaseNotificationQueries,
     normalize_release_locale,
 )
-from ai_anime.ports.release_feed import ReleaseFeed
-from ai_anime.ports.local.release_feed import MockReleaseFeed, NoOpReleaseFeed
 from ai_anime.ports.registry import _PORTS
-from ai_anime.release_notes import parse, validate_version_marker
 
 
 def test_release_notes_parse_localized_highlights() -> None:
@@ -33,8 +39,8 @@ attention: medium
 - **English title**: English body
 """
 
-    zh = parse(body, "v1.1.3", locale="zh")
-    en = parse(body, "v1.1.3", locale="en")
+    zh = parse_release_notes(body, "v1.1.3", locale="zh")
+    en = parse_release_notes(body, "v1.1.3", locale="en")
 
     assert zh.attention == "medium"
     assert [(item.title, item.body) for item in zh.items] == [
@@ -48,8 +54,8 @@ attention: medium
 def test_repository_release_notes_match_package_version() -> None:
     body = Path("src/ai_anime/release-notes.md").read_text(encoding="utf-8")
     validate_version_marker(body, "1.1.3")
-    assert parse(body, "v1.1.3", locale="zh").items
-    assert parse(body, "v1.1.3", locale="en").items
+    assert parse_release_notes(body, "v1.1.3", locale="zh").items
+    assert parse_release_notes(body, "v1.1.3", locale="en").items
 
 
 @pytest.mark.asyncio
@@ -85,6 +91,17 @@ async def test_mock_release_feed_hides_update_when_versions_match() -> None:
     assert feed.latest_tag is None
     assert feed.update_items == []
     assert feed.attention == "low"
+
+
+@pytest.mark.asyncio
+async def test_mock_release_feed_reads_packaged_notes_by_default() -> None:
+    feed = await MockReleaseFeed(
+        version_reader=lambda: "1.1.3",
+        latest_version="1.1.3",
+    ).current(locale="zh")
+
+    assert feed.current_tag == "v1.1.3"
+    assert feed.current_items
 
 
 @pytest.mark.asyncio

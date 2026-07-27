@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
-from ai_anime.modules.platform_release.domain import normalize_release_locale
-from ai_anime.ports.release_feed import ReleaseFeed, ReleaseFeedPort
+from ai_anime.modules.platform_release.application.ports import ReleaseFeedPort
+from ai_anime.modules.platform_release.domain import (
+    ReleaseFeed,
+    normalize_release_locale,
+)
 
 
 class ReleaseNotificationQueries:

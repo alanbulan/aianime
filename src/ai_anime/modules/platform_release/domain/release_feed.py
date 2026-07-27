@@ -1,9 +1,11 @@
-"""Release feed port shared by mock and future remote adapters."""
+"""Release feed values and version rules."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Literal, Protocol
+from typing import Literal
+
+from packaging.version import InvalidVersion, Version
 
 Attention = Literal["low", "medium", "high"]
 
@@ -32,5 +34,8 @@ class ReleaseFeed:
     latest_published_at: str | None = None
 
 
-class ReleaseFeedPort(Protocol):
-    async def current(self, *, locale: str) -> ReleaseFeed: ...
+def is_newer_release(candidate: str, current: str) -> bool:
+    try:
+        return Version(candidate) > Version(current)
+    except InvalidVersion:
+        return candidate > current

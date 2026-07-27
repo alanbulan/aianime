@@ -5,6 +5,7 @@ from ai_anime.modules.platform_release.application.project_files import (
     ProjectFileGateway,
     ProjectFileQueries,
 )
+from ai_anime.modules.platform_release.application.ports import ReleaseFeedPort
 from ai_anime.modules.platform_release.application.release_notifications import (
     ReleaseNotificationQueries,
 )
@@ -17,6 +18,7 @@ __all__ = [
     "ProjectFileDelivery",
     "ProjectFileGateway",
     "ProjectFileQueries",
+    "ReleaseFeedPort",
     "ReleaseNotificationQueries",
     "RuntimeConfigEnvironment",
     "RuntimeConfigQueries",
