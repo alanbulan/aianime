@@ -46,8 +46,6 @@ from ai_anime.api.schemas import (
     FreezoneImageToVideoRequest,
     FreezoneJobAcceptedResponse,
     FreezoneKeyframeVideoRequest,
-    FreezoneOutpaintRequest,
-    FreezoneRedrawRequest,
     FreezoneRelightRequest,
     FreezoneScene360Request,
     FreezoneSketchFromContextRequest,
@@ -74,7 +72,11 @@ from ai_anime.director_world.staging_prop_ai import generate_ai_staging_prop
 from ai_anime.modules.asset_world.public import (
     runtime_prop_menu_for_episode,
 )
-from ai_anime.modules.creative_canvas.public import canvas_actor_id
+from ai_anime.modules.creative_canvas.public import (
+    InvalidCreativeCanvasImageEditingRequest,
+    canvas_actor_id,
+    creative_canvas_image_editing_use_cases,
+)
 from ai_anime.modules.production.public import (
     production_generation_context_use_cases,
     production_image_settings_use_cases,
@@ -121,16 +123,7 @@ from ai_anime.freezone.route_helpers import (
     accepted_job_response as _accepted_job_response,
 )
 from ai_anime.freezone.route_helpers import (
-    build_erase_prompt as _build_erase_prompt,
-)
-from ai_anime.freezone.route_helpers import (
     build_multi_view_prompt as _build_multi_view_prompt,
-)
-from ai_anime.freezone.route_helpers import (
-    build_outpaint_prompt as _build_outpaint_prompt,
-)
-from ai_anime.freezone.route_helpers import (
-    build_redraw_prompt as _build_redraw_prompt,
 )
 from ai_anime.freezone.route_helpers import (
     build_relight_prompt as _build_relight_prompt,
@@ -154,13 +147,7 @@ from ai_anime.freezone.route_helpers import (
     new_freezone_job_id as _new_job_id,
 )
 from ai_anime.freezone.route_helpers import (
-    prepare_padded_outpaint_base as _prepare_padded_outpaint_base,
-)
-from ai_anime.freezone.route_helpers import (
     resolve_freezone_image_provider as _resolve_freezone_image_provider,
-)
-from ai_anime.freezone.route_helpers import (
-    resolve_outpaint_aspect_ratio as _resolve_outpaint_aspect_ratio,
 )
 from ai_anime.freezone.route_helpers import (
     resolve_url_list as _resolve_url_list,
@@ -1716,11 +1703,13 @@ async def _start_or_enqueue_freezone_edit_job(
     for path_text in extra_paths:
         if not Path(path_text).exists():
             raise HTTPException(404, f"reference file not found: {path_text}")
-    resolved_aspect_ratio = (
-        _resolve_outpaint_aspect_ratio(Path(base_paths[0]), "original")
-        if str(aspect_ratio or "").strip().lower() == "original"
-        else aspect_ratio
-    )
+    try:
+        resolved_aspect_ratio = creative_canvas_image_editing_use_cases().resolve_aspect_ratio(
+            Path(base_paths[0]),
+            aspect_ratio,
+        )
+    except InvalidCreativeCanvasImageEditingRequest as exc:
+        raise HTTPException(400, str(exc)) from exc
     job_id = _new_job_id()
     resolved_provider, resolved_model = _split_provider_and_model(provider, model)
     normalized_provider = _resolve_freezone_image_provider(resolved_provider)
@@ -1806,106 +1795,6 @@ def _project_job_response(
     if task_id:
         data["task_id"] = task_id
     return {"ok": True, "data": data}
-
-
-async def _start_or_enqueue_freezone_edit_path(
-    *,
-    ctx: ProjectContext | None,
-    username: str,
-    project: str,
-    project_dir: Path,
-    output_dir: str,
-    job_id: str,
-    prompt: str,
-    base_path: Path,
-    extra_reference_paths: list[str],
-    aspect_ratio: str,
-    image_size: str,
-    provider: str | None,
-    model: str | None,
-    quality: str | None,
-) -> dict:
-    task_type = "freezone_edit"
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type=task_type,
-            queue_kind="default",
-            episode=0,
-            scope=job_id,
-            payload={
-                "job_id": job_id,
-                "project_dir": str(project_dir),
-                "prompt": prompt,
-                "base_path": base_path.as_posix(),
-                "extra_reference_paths": extra_reference_paths,
-                "aspect_ratio": aspect_ratio,
-                "image_size": image_size,
-                "provider": provider,
-                "model": model,
-                "quality": quality,
-            },
-        )
-        return _project_job_response(
-            task_type=task_type,
-            ctx=ctx,
-            job_id=job_id,
-            backend=queued.backend,
-            queue=queued.queue,
-            task_id=queued.task_state.task_id,
-        )
-
-    _raise_project_context_required(task_type)
-
-
-async def _start_or_enqueue_freezone_mask_edit_path(
-    *,
-    ctx: ProjectContext | None,
-    username: str,
-    project: str,
-    project_dir: Path,
-    output_dir: str,
-    job_id: str,
-    base_path: Path,
-    mask_path: Path,
-    prompt: str,
-    aspect_ratio: str,
-    image_size: str,
-    quality: str,
-    provider: str,
-    model: str | None,
-) -> dict:
-    task_type = "freezone_mask_edit"
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type=task_type,
-            queue_kind="default",
-            episode=0,
-            scope=job_id,
-            payload={
-                "job_id": job_id,
-                "project_dir": str(project_dir),
-                "base_path": base_path.as_posix(),
-                "mask_path": mask_path.as_posix(),
-                "prompt": prompt,
-                "aspect_ratio": aspect_ratio,
-                "image_size": image_size,
-                "quality": quality,
-                "provider": provider,
-                "model": model,
-            },
-        )
-        return _project_job_response(
-            task_type=task_type,
-            ctx=ctx,
-            job_id=job_id,
-            backend=queued.backend,
-            queue=queued.queue,
-            task_id=queued.task_state.task_id,
-        )
-
-    _raise_project_context_required(task_type)
 
 
 async def _enqueue_or_start_freezone_video_analysis(
@@ -4541,168 +4430,6 @@ def _freezone_not_implemented(endpoint: str) -> None:
             "Keep using the existing image routes or frontend-local tools for now."
         ),
     )
-
-
-@router.post(
-    "/projects/{project}/freezone/outpaint",
-    response_model=FreezoneJobAcceptedResponse,
-    tags=[TAG_FREEZONE_IMAGE],
-)
-async def freezone_outpaint(
-    project: str,
-    body: FreezoneOutpaintRequest,
-    user: dict = Depends(get_api_user),
-):
-    """图片处理：扩图接口。
-
-    做法是先把原图补白到目标宽高比，再复用现有图片编辑任务，
-    让模型去生成新暴露出来的外部区域，而不是简单拉伸原图。
-    """
-    ctx, username, project_name, project_dir, output_dir = await _resolve_freezone_project(
-        project, user
-    )
-
-    try:
-        source_path = resolve_static_url_to_path(body.source_url, project_dir)
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
-    if not source_path.exists():
-        raise HTTPException(404, f"source not found: {source_path}")
-    if body.num_images != 1:
-        raise HTTPException(400, "outpaint currently supports only num_images = 1")
-
-    resolved_aspect_ratio = _resolve_outpaint_aspect_ratio(
-        source_path,
-        body.target_aspect_ratio,
-    )
-    padded_base_path = _prepare_padded_outpaint_base(
-        source_path=source_path,
-        project_dir=project_dir,
-        target_aspect_ratio=resolved_aspect_ratio,
-    )
-    job_id = _new_job_id()
-    resolved_provider, resolved_model = _split_provider_and_model(
-        None,
-        body.model or FREEZONE_DEFAULT_IMAGE_MODEL,
-    )
-    provider = _resolve_freezone_image_provider(resolved_provider, strict=False)
-
-    try:
-        return await _start_or_enqueue_freezone_edit_path(
-            ctx=ctx,
-            username=username,
-            project=project_name,
-            project_dir=project_dir,
-            output_dir=output_dir,
-            job_id=job_id,
-            prompt=_merge_prompt_with_style_and_camera(
-                _build_outpaint_prompt(), body.style, body.camera
-            ),
-            base_path=padded_base_path,
-            extra_reference_paths=[],
-            aspect_ratio=resolved_aspect_ratio,
-            image_size=body.image_size,
-            provider=provider,
-            model=resolved_model,
-            quality=body.quality or "medium",
-        )
-    except RuntimeError as e:
-        _handle_task_start_runtime_error("failed to start outpaint task", e)
-        raise HTTPException(503, f"failed to start outpaint task: {e}") from e
-
-
-@router.post(
-    "/projects/{project}/freezone/redraw",
-    response_model=FreezoneJobAcceptedResponse,
-    tags=[TAG_FREEZONE_IMAGE],
-)
-async def freezone_redraw(
-    project: str,
-    body: FreezoneRedrawRequest,
-    user: dict = Depends(get_api_user),
-):
-    """图片处理：重绘接口。"""
-    ctx, username, project_name, project_dir, output_dir = await _resolve_freezone_project(
-        project, user
-    )
-
-    try:
-        source_path = resolve_static_url_to_path(body.source_url, project_dir)
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
-    if not source_path.exists():
-        raise HTTPException(404, f"source not found: {source_path}")
-
-    if body.num_images != 1:
-        raise HTTPException(400, "num_images is currently limited to 1")
-
-    job_id = _new_job_id()
-    resolved_aspect_ratio = _resolve_outpaint_aspect_ratio(source_path, body.aspect_ratio)
-    resolved_provider, resolved_model = _split_provider_and_model(
-        None,
-        body.model or FREEZONE_DEFAULT_IMAGE_MODEL,
-    )
-    provider = _resolve_freezone_image_provider(resolved_provider, strict=False)
-
-    if body.mask_url:
-        try:
-            mask_path = resolve_static_url_to_path(body.mask_url, project_dir)
-        except ValueError as exc:
-            raise HTTPException(400, str(exc)) from exc
-        if not mask_path.exists():
-            raise HTTPException(404, f"mask not found: {mask_path}")
-
-        try:
-            return await _start_or_enqueue_freezone_mask_edit_path(
-                ctx=ctx,
-                username=username,
-                project=project_name,
-                project_dir=project_dir,
-                output_dir=output_dir,
-                job_id=job_id,
-                base_path=source_path,
-                mask_path=mask_path,
-                prompt=_merge_prompt_with_style_and_camera(
-                    (
-                        _build_redraw_prompt(body.prompt)
-                        if body.prompt.strip()
-                        else _build_erase_prompt()
-                    ),
-                    body.style,
-                    body.camera,
-                ),
-                aspect_ratio=resolved_aspect_ratio,
-                image_size=body.image_size,
-                quality=body.quality or "medium",
-                provider=provider,
-                model=resolved_model,
-            )
-        except RuntimeError as e:
-            _handle_task_start_runtime_error("failed to start masked redraw task", e)
-            raise HTTPException(503, f"failed to start masked redraw task: {e}") from e
-
-    try:
-        return await _start_or_enqueue_freezone_edit_path(
-            ctx=ctx,
-            username=username,
-            project=project_name,
-            project_dir=project_dir,
-            output_dir=output_dir,
-            job_id=job_id,
-            prompt=_merge_prompt_with_style_and_camera(
-                _build_redraw_prompt(body.prompt), body.style, body.camera
-            ),
-            base_path=source_path,
-            extra_reference_paths=[],
-            aspect_ratio=resolved_aspect_ratio,
-            image_size=body.image_size,
-            provider=provider,
-            model=resolved_model,
-            quality=body.quality or "medium",
-        )
-    except RuntimeError as e:
-        _handle_task_start_runtime_error("failed to start redraw task", e)
-        raise HTTPException(503, f"failed to start redraw task: {e}") from e
 
 
 # ============================================================

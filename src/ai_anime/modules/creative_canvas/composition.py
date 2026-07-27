@@ -11,8 +11,8 @@ from ai_anime.modules.creative_canvas.application.generation_catalog import (
 from ai_anime.modules.creative_canvas.application.image_to_3gs import (
     CreativeCanvasImageToThreeGsUseCases,
 )
-from ai_anime.modules.creative_canvas.application.image_upscale import (
-    CreativeCanvasImageUpscaleUseCases,
+from ai_anime.modules.creative_canvas.application.image_editing import (
+    CreativeCanvasImageEditingUseCases,
 )
 from ai_anime.modules.creative_canvas.application.media import (
     CreativeCanvasMediaUseCases,
@@ -33,10 +33,10 @@ from ai_anime.modules.creative_canvas.infrastructure.generation_catalog import (
 from ai_anime.modules.creative_canvas.infrastructure.image_sources import (
     ProjectCreativeCanvasImageSourceResolver,
 )
-from ai_anime.modules.creative_canvas.infrastructure.image_upscale import (
+from ai_anime.modules.creative_canvas.infrastructure.image_editing import (
+    FreezoneCreativeCanvasImageEditingPromptComposer,
     FreezoneCreativeCanvasImageModelRouter,
-    FreezoneCreativeCanvasImageUpscalePromptComposer,
-    PillowCreativeCanvasImageInspector,
+    PillowCreativeCanvasImageEditingStorage,
 )
 from ai_anime.modules.creative_canvas.infrastructure.media import (
     FreezoneJobIdGenerator,
@@ -95,11 +95,11 @@ def creative_canvas_image_to_three_gs_use_cases() -> CreativeCanvasImageToThreeG
 
 
 @lru_cache(maxsize=1)
-def creative_canvas_image_upscale_use_cases() -> CreativeCanvasImageUpscaleUseCases:
-    return CreativeCanvasImageUpscaleUseCases(
+def creative_canvas_image_editing_use_cases() -> CreativeCanvasImageEditingUseCases:
+    return CreativeCanvasImageEditingUseCases(
         ProjectCreativeCanvasImageSourceResolver(),
-        PillowCreativeCanvasImageInspector(),
-        FreezoneCreativeCanvasImageUpscalePromptComposer(),
+        PillowCreativeCanvasImageEditingStorage(),
+        FreezoneCreativeCanvasImageEditingPromptComposer(),
         FreezoneCreativeCanvasImageModelRouter(),
         FreezoneJobIdGenerator(),
         TaskBackendCreativeCanvasTaskScheduler(get_task_backend),

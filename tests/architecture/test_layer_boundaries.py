@@ -451,23 +451,63 @@ def test_freezone_image_to_three_gs_route_delegates_to_application() -> None:
         assert implementation_detail not in source
 
 
-def test_freezone_image_upscale_route_delegates_to_application() -> None:
+def test_freezone_image_editing_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "image.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    legacy_helpers = PACKAGE_ROOT / "freezone" / "route_helpers.py"
     runner = PACKAGE_ROOT / "task_backend" / "runners" / "freezone.py"
     source = route.read_text(encoding="utf-8")
     legacy_source = legacy_route.read_text(encoding="utf-8")
+    legacy_helper_source = legacy_helpers.read_text(encoding="utf-8")
     runner_source = runner.read_text(encoding="utf-8")
 
-    endpoint_path = '"/projects/{project}/freezone/upscale"'
-    assert source.count(endpoint_path) == 1
-    assert endpoint_path not in legacy_source
-    assert source.count("creative_canvas_image_upscale_use_cases().start(") == 1
-    assert "StartCreativeCanvasImageUpscaleCommand" in source
-    assert "async def freezone_upscale(" not in legacy_source
-    assert "FreezoneUpscaleRequest" not in legacy_source
+    endpoint_paths = (
+        '"/projects/{project}/freezone/upscale"',
+        '"/projects/{project}/freezone/outpaint"',
+        '"/projects/{project}/freezone/redraw"',
+    )
+    for endpoint_path in endpoint_paths:
+        assert source.count(endpoint_path) == 1
+        assert endpoint_path not in legacy_source
+
+    assert source.count("creative_canvas_image_editing_use_cases().start(") == 1
+    assert source.count("return await _start_image_editing(") == 3
+    assert "StartCreativeCanvasImageEditingCommand" in source
+    for legacy_handler in (
+        "async def freezone_upscale(",
+        "async def freezone_outpaint(",
+        "async def freezone_redraw(",
+        "def _start_or_enqueue_freezone_edit_path(",
+        "def _start_or_enqueue_freezone_mask_edit_path(",
+    ):
+        assert legacy_handler not in legacy_source
+    for legacy_schema in (
+        "FreezoneUpscaleRequest",
+        "FreezoneOutpaintRequest",
+        "FreezoneRedrawRequest",
+    ):
+        assert legacy_schema not in legacy_source
+    for legacy_rule in (
+        "parse_aspect_ratio",
+        "prepare_padded_outpaint_base",
+        "resolve_outpaint_aspect_ratio",
+        "build_outpaint_prompt",
+        "build_redraw_prompt",
+        "build_erase_prompt",
+    ):
+        assert legacy_rule not in legacy_helper_source
     assert "_build_upscale_prompt" not in legacy_source
     assert 'register_project_task_runner("freezone_edit", run_freezone_edit)' in runner_source
+    assert (
+        'register_project_task_runner("freezone_mask_edit", run_freezone_mask_edit)'
+        in runner_source
+    )
+    for legacy_module in (
+        PACKAGE_ROOT / "modules" / "creative_canvas" / "application" / "image_upscale.py",
+        PACKAGE_ROOT / "modules" / "creative_canvas" / "domain" / "image_upscale.py",
+        PACKAGE_ROOT / "modules" / "creative_canvas" / "infrastructure" / "image_upscale.py",
+    ):
+        assert not legacy_module.exists()
     for implementation_detail in (
         "get_task_backend",
         "project_task_state_key",

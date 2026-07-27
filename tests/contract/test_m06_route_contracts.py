@@ -229,8 +229,8 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.modules.creative_canvas.application.image_to_3gs import (
         CreativeCanvasImageToThreeGsUseCases,
     )
-    from ai_anime.modules.creative_canvas.application.image_upscale import (
-        CreativeCanvasImageUpscaleUseCases,
+    from ai_anime.modules.creative_canvas.application.image_editing import (
+        CreativeCanvasImageEditingUseCases,
     )
     from ai_anime.modules.creative_canvas.application.reverse_prompt import (
         CreativeCanvasReversePromptUseCases,
@@ -238,10 +238,10 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.modules.creative_canvas.infrastructure.image_sources import (
         ProjectCreativeCanvasImageSourceResolver,
     )
-    from ai_anime.modules.creative_canvas.infrastructure.image_upscale import (
+    from ai_anime.modules.creative_canvas.infrastructure.image_editing import (
+        FreezoneCreativeCanvasImageEditingPromptComposer,
         FreezoneCreativeCanvasImageModelRouter,
-        FreezoneCreativeCanvasImageUpscalePromptComposer,
-        PillowCreativeCanvasImageInspector,
+        PillowCreativeCanvasImageEditingStorage,
     )
     from ai_anime.modules.creative_canvas.infrastructure.media import (
         FreezoneJobIdGenerator,
@@ -420,10 +420,10 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             FreezoneJobIdGenerator(),
             task_scheduler,
         )
-        image_upscale_use_cases = CreativeCanvasImageUpscaleUseCases(
+        image_editing_use_cases = CreativeCanvasImageEditingUseCases(
             ProjectCreativeCanvasImageSourceResolver(),
-            PillowCreativeCanvasImageInspector(),
-            FreezoneCreativeCanvasImageUpscalePromptComposer(),
+            PillowCreativeCanvasImageEditingStorage(),
+            FreezoneCreativeCanvasImageEditingPromptComposer(),
             FreezoneCreativeCanvasImageModelRouter(),
             FreezoneJobIdGenerator(),
             task_scheduler,
@@ -440,8 +440,8 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         )
         monkeypatch.setattr(
             freezone_image,
-            "creative_canvas_image_upscale_use_cases",
-            lambda use_cases=image_upscale_use_cases: use_cases,
+            "creative_canvas_image_editing_use_cases",
+            lambda use_cases=image_editing_use_cases: use_cases,
         )
         monkeypatch.setattr(ingest, "get_task_backend", lambda tb=task_backend: tb)
         monkeypatch.setattr(freezone, "get_task_backend", lambda tb=task_backend: tb)

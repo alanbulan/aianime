@@ -15,19 +15,19 @@ from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap_routes
 from ai_anime.api.routes.canvas import image as freezone_image_routes
 from ai_anime.api.routes.freezone import (
     FREEZONE_DEFAULT_IMAGE_MODEL,
-    _build_erase_prompt,
     _build_scene_360_prompt,
     _build_template_edit_prompt,
     _infer_scene_id_from_master_path,
     _merge_restored_preset_canvas,
     _resolve_freezone_image_provider,
-    _resolve_outpaint_aspect_ratio,
     _split_provider_and_model,
     _template_edit_aspect_ratio,
 )
 from ai_anime.api.schemas import (
     CanvasPayload,
     FreezoneImageReversePromptRequest,
+    FreezoneOutpaintRequest,
+    FreezoneRedrawRequest,
     PresetCanvasRequest,
     PushRequest,
 )
@@ -46,6 +46,10 @@ from ai_anime.freezone.skill_registry import (
     SkillRunRequest,
     get_skill,
     list_skills,
+)
+from ai_anime.modules.creative_canvas.domain.image_editing import (
+    build_image_erase_prompt,
+    resolve_requested_image_aspect_ratio,
 )
 from ai_anime.modules.creative_canvas.public import generation_catalog_queries
 from ai_anime.modules.project_workspace.public import ProjectContext
@@ -256,16 +260,41 @@ async def test_freezone_image_edit_limit_exception_bubbles_to_global_handler(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    project_dir, _output_dir = _patch_freezone_project(monkeypatch, tmp_path)
-    source = project_dir / "freezone" / "_uploads" / "source.png"
+    context = _project_ctx(tmp_path)
+    source = context.output_dir / "freezone" / "_uploads" / "source.png"
     _write_image(source)
-    _patch_limit_exceeded_enqueue(monkeypatch, queue_kind="default")
+    failure = ProjectUserTaskLimitExceeded(
+        project_id=context.project_id,
+        requester_user_id=context.requester_user_id,
+        queue_kind="default",
+        limit=1,
+        active=1,
+    )
+
+    async def fake_resolve_project_scope(*_args, **_kwargs):
+        return SimpleNamespace(ctx=context, project_dir=context.output_dir)
+
+    class FailingUseCases:
+        async def start(self, command):
+            assert command.operation == "outpaint"
+            raise failure
+
+    monkeypatch.setattr(
+        freezone_image_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
+    monkeypatch.setattr(
+        freezone_image_routes,
+        "creative_canvas_image_editing_use_cases",
+        lambda: FailingUseCases(),
+    )
 
     with pytest.raises(ProjectUserTaskLimitExceeded) as exc:
-        await freezone_routes.freezone_outpaint(
+        await freezone_image_routes.freezone_outpaint(
             project="58",
-            body=freezone_routes.FreezoneOutpaintRequest(
-                source_url="/static/admin/58/freezone/_uploads/source.png",
+            body=FreezoneOutpaintRequest(
+                source_url="/static/admin/demo/freezone/_uploads/source.png",
             ),
             user={"username": "admin"},
         )
@@ -1029,19 +1058,13 @@ async def test_freezone_push_can_commit_beat_audio(
     assert result["data"]["target_path"] == str(target)
 
 
-def test_resolve_outpaint_aspect_ratio_supports_original(tmp_path: Path) -> None:
-    source = tmp_path / "source.png"
-    _write_image(source, size=(320, 180))
-
-    assert _resolve_outpaint_aspect_ratio(source, "original") == "16:9"
-    assert _resolve_outpaint_aspect_ratio(source, "16:9") == "16:9"
+def test_resolve_image_editing_aspect_ratio_supports_original() -> None:
+    assert resolve_requested_image_aspect_ratio(320, 180, "original") == "16:9"
+    assert resolve_requested_image_aspect_ratio(320, 180, "16:9") == "16:9"
 
 
-def test_resolve_outpaint_aspect_ratio_reduces_to_supported_ratio(tmp_path: Path) -> None:
-    source = tmp_path / "portrait.png"
-    _write_image(source, size=(1080, 1920))
-
-    assert _resolve_outpaint_aspect_ratio(source, "original") == "9:16"
+def test_resolve_image_editing_aspect_ratio_reduces_to_supported_ratio() -> None:
+    assert resolve_requested_image_aspect_ratio(1080, 1920, "original") == "9:16"
 
 
 def test_template_edit_aspect_ratio_maps_modes() -> None:
@@ -2129,7 +2152,7 @@ def test_freezone_defaults_to_newapi_gpt_image2() -> None:
 
 
 def test_erase_prompt_mentions_masked_region_and_cleanup() -> None:
-    prompt = _build_erase_prompt()
+    prompt = build_image_erase_prompt()
 
     assert "masked region" in prompt
     assert "Remove the content" in prompt
@@ -2141,22 +2164,70 @@ async def test_masked_redraw_uses_default_newapi_model(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    username = "admin"
-    project = "525"
-    project_dir, _output_dir = _patch_freezone_project(
-        monkeypatch, tmp_path, username=username, project=project
+    from ai_anime.modules.creative_canvas.application.image_editing import (
+        CreativeCanvasImageEditingUseCases,
     )
+    from ai_anime.modules.creative_canvas.infrastructure.image_editing import (
+        FreezoneCreativeCanvasImageEditingPromptComposer,
+        FreezoneCreativeCanvasImageModelRouter,
+        PillowCreativeCanvasImageEditingStorage,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.image_sources import (
+        ProjectCreativeCanvasImageSourceResolver,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.media import (
+        FreezoneJobIdGenerator,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.task_submission import (
+        TaskBackendCreativeCanvasTaskScheduler,
+    )
+
+    context = _project_ctx(tmp_path)
+    project_dir = context.output_dir
     source = project_dir / "assets" / "characters" / "陈默" / "portrait.png"
     mask = project_dir / "freezone" / "_uploads" / "mask.png"
     _write_image(source, size=(1024, 1024))
     _write_image(mask, size=(1024, 1024))
 
     captured: dict[str, object] = {}
-    _patch_celery_edit_enqueue(monkeypatch, captured)
 
-    body = freezone_routes.FreezoneRedrawRequest(
-        source_url="/static/admin/525/assets/characters/陈默/portrait.png",
-        mask_url="/static/admin/525/freezone/_uploads/mask.png",
+    async def fake_enqueue_project_task(_ctx: ProjectContext, **kwargs):
+        captured.update(kwargs.get("payload") or {})
+        captured["task_type"] = kwargs.get("task_type")
+        captured["queue_kind"] = kwargs.get("queue_kind")
+        return SimpleNamespace(
+            task_state=SimpleNamespace(task_id="task_edit"),
+            backend="celery",
+            queue="node.node_a.default",
+        )
+
+    task_backend = SimpleNamespace(enqueue_project_task=fake_enqueue_project_task)
+    use_cases = CreativeCanvasImageEditingUseCases(
+        ProjectCreativeCanvasImageSourceResolver(),
+        PillowCreativeCanvasImageEditingStorage(),
+        FreezoneCreativeCanvasImageEditingPromptComposer(),
+        FreezoneCreativeCanvasImageModelRouter(),
+        FreezoneJobIdGenerator(),
+        TaskBackendCreativeCanvasTaskScheduler(lambda: task_backend),
+    )
+
+    async def fake_resolve_project_scope(*_args, **_kwargs):
+        return SimpleNamespace(ctx=context, project_dir=project_dir)
+
+    monkeypatch.setattr(
+        freezone_image_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
+    monkeypatch.setattr(
+        freezone_image_routes,
+        "creative_canvas_image_editing_use_cases",
+        lambda: use_cases,
+    )
+
+    body = FreezoneRedrawRequest(
+        source_url="/static/admin/demo/assets/characters/陈默/portrait.png",
+        mask_url="/static/admin/demo/freezone/_uploads/mask.png",
         prompt="",
         aspect_ratio="16:9",
         num_images=1,
@@ -2164,10 +2235,10 @@ async def test_masked_redraw_uses_default_newapi_model(
         quality="low",
     )
 
-    result = await freezone_routes.freezone_redraw(
+    result = await freezone_image_routes.freezone_redraw(
         project="01KSEKPTTX43HEF7720SEVMW8Z",
         body=body,
-        user={"username": username},
+        user={"username": "admin"},
     )
 
     assert result["ok"] is True
@@ -5915,21 +5986,21 @@ async def test_freezone_job_result_uses_info_while_running(
 async def test_freezone_upscale_resolves_original_ratio_before_model_call(
     tmp_path: Path,
 ) -> None:
-    from ai_anime.modules.creative_canvas.application.image_upscale import (
-        CreativeCanvasImageUpscaleUseCases,
-        StartCreativeCanvasImageUpscaleCommand,
+    from ai_anime.modules.creative_canvas.application.image_editing import (
+        CreativeCanvasImageEditingUseCases,
+        StartCreativeCanvasImageEditingCommand,
     )
-    from ai_anime.modules.creative_canvas.domain.image_upscale import (
+    from ai_anime.modules.creative_canvas.domain.image_editing import (
         CreativeCanvasImageCameraConfig,
         CreativeCanvasImageStyleConfig,
     )
     from ai_anime.modules.creative_canvas.infrastructure.image_sources import (
         ProjectCreativeCanvasImageSourceResolver,
     )
-    from ai_anime.modules.creative_canvas.infrastructure.image_upscale import (
+    from ai_anime.modules.creative_canvas.infrastructure.image_editing import (
+        FreezoneCreativeCanvasImageEditingPromptComposer,
         FreezoneCreativeCanvasImageModelRouter,
-        FreezoneCreativeCanvasImageUpscalePromptComposer,
-        PillowCreativeCanvasImageInspector,
+        PillowCreativeCanvasImageEditingStorage,
     )
 
     context = _project_ctx(tmp_path)
@@ -5950,17 +6021,18 @@ async def test_freezone_upscale_resolves_original_ratio_before_model_call(
             return SimpleNamespace(job_id=task.job_id)
 
     scheduler = CapturingScheduler()
-    result = await CreativeCanvasImageUpscaleUseCases(
+    result = await CreativeCanvasImageEditingUseCases(
         ProjectCreativeCanvasImageSourceResolver(),
-        PillowCreativeCanvasImageInspector(),
-        FreezoneCreativeCanvasImageUpscalePromptComposer(),
+        PillowCreativeCanvasImageEditingStorage(),
+        FreezoneCreativeCanvasImageEditingPromptComposer(),
         FreezoneCreativeCanvasImageModelRouter(),
         FakeJobIds(),
         scheduler,
     ).start(
-        StartCreativeCanvasImageUpscaleCommand(
+        StartCreativeCanvasImageEditingCommand(
             context=context,
             project_dir=project_dir,
+            operation="upscale",
             source_url="/static/admin/demo/freezone/_uploads/sample.png",
             image_size="2K",
             quality="low",

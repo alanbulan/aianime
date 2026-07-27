@@ -1,6 +1,7 @@
 """Creative Canvas image endpoints."""
 
 import logging
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -8,10 +9,14 @@ from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import resolve_project_scope
 from ai_anime.api.schemas import (
     FreezoneImageTo3GSRequest,
+    FreezoneImageCameraConfig,
     FreezoneImageReversePromptRequest,
+    FreezoneImageStyleConfig,
     FreezoneJobAcceptedResponse,
     FreezoneMarkDetectRequest,
     FreezoneMarkDetectResponse,
+    FreezoneOutpaintRequest,
+    FreezoneRedrawRequest,
     FreezoneStageAssetAcceptedResponse,
     FreezoneUpscaleRequest,
 )
@@ -19,7 +24,7 @@ from ai_anime.modules.creative_canvas.public import (
     CreativeCanvasImageCameraConfig,
     CreativeCanvasImageStyleConfig,
     CreativeCanvasImageToThreeGsSourceMissing,
-    CreativeCanvasImageUpscaleSourceMissing,
+    CreativeCanvasImageEditingSourceMissing,
     CreativeCanvasMarkDetectionFailed,
     CreativeCanvasMarkSelection,
     CreativeCanvasReversePromptSourceMissing,
@@ -27,13 +32,13 @@ from ai_anime.modules.creative_canvas.public import (
     DetectCreativeCanvasMarkCommand,
     InvalidCreativeCanvasReversePromptRequest,
     InvalidCreativeCanvasImageToThreeGsRequest,
-    InvalidCreativeCanvasImageUpscaleRequest,
+    InvalidCreativeCanvasImageEditingRequest,
     InvalidCreativeCanvasMarkRequest,
     StartCreativeCanvasReversePromptCommand,
     StartCreativeCanvasImageToThreeGsCommand,
-    StartCreativeCanvasImageUpscaleCommand,
+    StartCreativeCanvasImageEditingCommand,
     creative_canvas_image_to_three_gs_use_cases,
-    creative_canvas_image_upscale_use_cases,
+    creative_canvas_image_editing_use_cases,
     creative_canvas_mark_detection_use_cases,
     creative_canvas_reverse_prompt_use_cases,
     generation_catalog_queries,
@@ -258,6 +263,95 @@ async def freezone_upscale(
     user: dict = Depends(get_api_user),
 ):
     """图片处理：高清放大接口。"""
+    return await _start_image_editing(
+        project=project,
+        user=user,
+        operation="upscale",
+        source_url=body.source_url,
+        image_size=body.image_size,
+        model=body.model,
+        quality=body.quality,
+        requested_aspect_ratio="original",
+        num_images=1,
+        camera=body.camera,
+        style=body.style,
+        failure_label="upscale",
+    )
+
+
+@router.post(
+    "/projects/{project}/freezone/outpaint",
+    response_model=FreezoneJobAcceptedResponse,
+    tags=["freezone-image"],
+)
+async def freezone_outpaint(
+    project: str,
+    body: FreezoneOutpaintRequest,
+    user: dict = Depends(get_api_user),
+):
+    """图片处理：向外补画并保留中心主体与原始构图。"""
+    return await _start_image_editing(
+        project=project,
+        user=user,
+        operation="outpaint",
+        source_url=body.source_url,
+        image_size=body.image_size,
+        model=body.model,
+        quality=body.quality,
+        requested_aspect_ratio=body.target_aspect_ratio,
+        num_images=body.num_images,
+        camera=body.camera,
+        style=body.style,
+        failure_label="outpaint",
+    )
+
+
+@router.post(
+    "/projects/{project}/freezone/redraw",
+    response_model=FreezoneJobAcceptedResponse,
+    tags=["freezone-image"],
+)
+async def freezone_redraw(
+    project: str,
+    body: FreezoneRedrawRequest,
+    user: dict = Depends(get_api_user),
+):
+    """图片处理：整体重绘或基于遮罩做局部重绘。"""
+    return await _start_image_editing(
+        project=project,
+        user=user,
+        operation="redraw",
+        source_url=body.source_url,
+        image_size=body.image_size,
+        model=body.model,
+        quality=body.quality,
+        requested_aspect_ratio=body.aspect_ratio,
+        num_images=body.num_images,
+        prompt=body.prompt,
+        mask_url=body.mask_url,
+        camera=body.camera,
+        style=body.style,
+        failure_label="masked redraw" if body.mask_url else "redraw",
+    )
+
+
+async def _start_image_editing(
+    *,
+    project: str,
+    user: dict,
+    operation: Literal["upscale", "outpaint", "redraw"],
+    source_url: str,
+    image_size: str,
+    model: str,
+    quality: str | None,
+    requested_aspect_ratio: str,
+    num_images: int,
+    failure_label: str,
+    prompt: str = "",
+    mask_url: str | None = None,
+    camera: FreezoneImageCameraConfig | None = None,
+    style: FreezoneImageStyleConfig | None = None,
+):
     resolved = await resolve_project_scope(
         project,
         user,
@@ -265,40 +359,43 @@ async def freezone_upscale(
         operation="access freezone project files",
     )
     try:
-        result = await creative_canvas_image_upscale_use_cases().start(
-            StartCreativeCanvasImageUpscaleCommand(
+        result = await creative_canvas_image_editing_use_cases().start(
+            StartCreativeCanvasImageEditingCommand(
                 context=resolved.ctx,
                 project_dir=resolved.project_dir,
-                source_url=body.source_url,
-                image_size=body.image_size,
-                model=body.model,
-                quality=body.quality,
+                operation=operation,
+                source_url=source_url,
+                image_size=image_size,
+                model=model,
+                quality=quality,
+                requested_aspect_ratio=requested_aspect_ratio,
+                prompt=prompt,
+                mask_url=mask_url,
+                num_images=num_images,
                 camera=(
                     CreativeCanvasImageCameraConfig(
-                        camera_body=body.camera.camera_body,
-                        lens=body.camera.lens,
-                        focal_length_mm=body.camera.focal_length_mm,
-                        aperture=body.camera.aperture,
+                        camera_body=camera.camera_body,
+                        lens=camera.lens,
+                        focal_length_mm=camera.focal_length_mm,
+                        aperture=camera.aperture,
                     )
-                    if body.camera
+                    if camera
                     else None
                 ),
                 style=(
-                    CreativeCanvasImageStyleConfig(
-                        template_id=body.style.template_id,
-                    )
-                    if body.style
+                    CreativeCanvasImageStyleConfig(template_id=style.template_id)
+                    if style
                     else None
                 ),
             )
         )
-    except InvalidCreativeCanvasImageUpscaleRequest as exc:
+    except InvalidCreativeCanvasImageEditingRequest as exc:
         raise HTTPException(400, str(exc)) from exc
-    except CreativeCanvasImageUpscaleSourceMissing as exc:
+    except CreativeCanvasImageEditingSourceMissing as exc:
         raise HTTPException(404, str(exc)) from exc
     except CreativeCanvasTaskStartFailed as exc:
-        logger.warning("failed to start upscale task: %s", exc, exc_info=True)
-        raise HTTPException(503, f"failed to start upscale task: {exc}") from exc
+        logger.warning("failed to start %s task: %s", failure_label, exc, exc_info=True)
+        raise HTTPException(503, f"failed to start {failure_label} task: {exc}") from exc
 
     data = {
         "task_type": result.task_type,

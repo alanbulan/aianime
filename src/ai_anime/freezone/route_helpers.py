@@ -20,11 +20,7 @@ from ai_anime.api.schemas import (
     FreezoneTemplateEditRequest,
 )
 from ai_anime.config import IMAGE_GENERATION_SELECTIONS
-from ai_anime.freezone.paths import resolve_static_url_to_path, safe_upload_filename, uploads_dir
-from ai_anime.modules.creative_canvas.public import (
-    InvalidCreativeCanvasImageSize,
-    resolve_original_image_aspect_ratio,
-)
+from ai_anime.freezone.paths import resolve_static_url_to_path
 from ai_anime.freezone.video_node import load_video_character_library
 from ai_anime.task_identity import task_state_key
 
@@ -803,103 +799,6 @@ def template_edit_aspect_ratio(mode: str) -> str:
         "image_projection_before_5s": "original",
     }
     return ratios.get(mode, "16:9")
-
-
-def parse_aspect_ratio(value: str) -> tuple[int, int]:
-    text = str(value or "").strip().replace("-", ":").replace(" ", "")
-    try:
-        w_text, h_text = text.split(":", 1)
-        w = int(w_text)
-        h = int(h_text)
-    except (AttributeError, TypeError, ValueError) as exc:
-        raise HTTPException(400, f"invalid aspect_ratio: {value!r}") from exc
-    if w <= 0 or h <= 0:
-        raise HTTPException(400, f"invalid aspect_ratio: {value!r}")
-    return w, h
-
-
-def prepare_padded_outpaint_base(
-    *,
-    source_path: Path,
-    project_dir: Path,
-    target_aspect_ratio: str,
-) -> Path:
-    """先给原图补白到更大的画布，再让基于 edit 的 outpaint 能向外扩展。"""
-    from PIL import Image
-
-    src = source_path
-    if not src.exists():
-        raise HTTPException(404, f"source not found: {src}")
-
-    target_w_ratio, target_h_ratio = parse_aspect_ratio(target_aspect_ratio)
-    with Image.open(src) as image:
-        image_rgba = image.convert("RGBA")
-        width, height = image_rgba.size
-        if width <= 0 or height <= 0:
-            raise HTTPException(400, f"invalid source image size: {src}")
-
-        current_ratio = width / height
-        target_ratio = target_w_ratio / target_h_ratio
-        if abs(current_ratio - target_ratio) < 1e-4:
-            return src
-
-        if current_ratio > target_ratio:
-            canvas_width = width
-            canvas_height = max(height, round(width / target_ratio))
-        else:
-            canvas_height = height
-            canvas_width = max(width, round(height * target_ratio))
-
-        canvas = Image.new("RGBA", (canvas_width, canvas_height), (255, 255, 255, 0))
-        offset_x = (canvas_width - width) // 2
-        offset_y = (canvas_height - height) // 2
-        canvas.alpha_composite(image_rgba, (offset_x, offset_y))
-
-        padded_name = safe_upload_filename(f"outpaint_base_{src.stem}.png")
-        padded_path = uploads_dir(project_dir) / padded_name
-        padded_path.parent.mkdir(parents=True, exist_ok=True)
-        canvas.save(padded_path, format="PNG")
-        return padded_path
-
-
-def resolve_outpaint_aspect_ratio(source_path: Path, target_aspect_ratio: str) -> str:
-    if str(target_aspect_ratio or "").strip().lower() != "original":
-        return target_aspect_ratio
-    from PIL import Image
-
-    with Image.open(source_path) as image:
-        width, height = image.size
-    try:
-        return resolve_original_image_aspect_ratio(width, height)
-    except InvalidCreativeCanvasImageSize:
-        raise HTTPException(400, f"invalid source image size: {source_path}")
-
-
-def build_outpaint_prompt() -> str:
-    return (
-        "Extend the existing image outward beyond its current borders. "
-        "Preserve the original composition, subject identity, style, and camera framing in the center. "
-        "Fill only the newly added outer canvas areas naturally and seamlessly. "
-        "Do not crop, stretch, or replace the original visible content."
-    )
-
-
-def build_redraw_prompt(prompt: str) -> str:
-    base = (prompt or "").strip()
-    prefix = (
-        "Redraw and refine the provided image while preserving the core composition, subject identity, "
-        "camera angle, and scene intent unless the prompt explicitly asks for changes."
-    )
-    return f"{prefix}\n\n{base}" if base else prefix
-
-
-def build_erase_prompt() -> str:
-    return (
-        "Remove the content inside the masked region and fill it in naturally. "
-        "Preserve the surrounding composition, subject identity, lighting, perspective, and image style. "
-        "The regenerated area must blend seamlessly with nearby pixels and should not leave obvious "
-        "repair traces, repeated textures, or artifacts."
-    )
 
 
 def resolve_upscale_dimensions(source_path: Path, scale_factor: int) -> tuple[int, int]:
