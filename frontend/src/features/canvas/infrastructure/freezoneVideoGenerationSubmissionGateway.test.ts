@@ -1,19 +1,9 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const submitFreezoneVideoEdit = vi.hoisted(() => vi.fn());
-const submitFreezoneVideoGen = vi.hoisted(() => vi.fn());
-const submitFreezoneVideoI2v = vi.hoisted(() => vi.fn());
-const submitFreezoneVideoKeyframes = vi.hoisted(() => vi.fn());
-const submitFreezoneVideoOmniGen = vi.hoisted(() => vi.fn());
+import { apiCall } from "@/shared/api/client";
 
-vi.mock("@/api/ops", () => ({
-  submitFreezoneVideoEdit,
-  submitFreezoneVideoGen,
-  submitFreezoneVideoI2v,
-  submitFreezoneVideoKeyframes,
-  submitFreezoneVideoOmniGen,
-}));
+vi.mock("@/shared/api/client", () => ({ apiCall: vi.fn() }));
 
 import { freezoneVideoGenerationSubmissionGateway } from "./freezoneVideoGenerationSubmissionGateway";
 
@@ -36,37 +26,51 @@ const common = {
   nodeId: "node-1",
 };
 
+const commonBody = {
+  prompt: "prompt",
+  camera_template_id: "camera-1",
+  marks: [],
+  aspect_ratio: "16:9",
+  resolution: "1080p",
+  duration_seconds: 8,
+  generate_audio: true,
+  model: "model-1",
+  model_id: "model-1",
+  gen_mode: "textToVideo",
+  canvas_id: "canvas-1",
+  node_id: "node-1",
+};
+
 beforeEach(() => {
-  for (const submit of [
-    submitFreezoneVideoEdit,
-    submitFreezoneVideoGen,
-    submitFreezoneVideoI2v,
-    submitFreezoneVideoKeyframes,
-    submitFreezoneVideoOmniGen,
-  ]) {
-    submit.mockReset();
-    submit.mockResolvedValue(task);
-  }
+  vi.mocked(apiCall).mockReset();
+  vi.mocked(apiCall).mockResolvedValue(task);
 });
 
 describe("freezoneVideoGenerationSubmissionGateway", () => {
   it("dispatches text generation", async () => {
-    await freezoneVideoGenerationSubmissionGateway.submit("project-1", {
+    await freezoneVideoGenerationSubmissionGateway.submit("project/1", {
       ...common,
       kind: "text",
       humanReview: true,
       sceneOptimize: "anime",
     });
 
-    expect(submitFreezoneVideoGen).toHaveBeenCalledWith("project-1", {
-      ...common,
-      humanReview: true,
-      sceneOptimize: "anime",
-    });
+    expect(apiCall).toHaveBeenCalledWith(
+      "projects/project%2F1/freezone/video/gen",
+      {
+        method: "POST",
+        json: {
+          ...commonBody,
+          character_ids: [],
+          human_review: true,
+          scene_optimize: "anime",
+        },
+      },
+    );
   });
 
   it("dispatches keyframe generation", async () => {
-    await freezoneVideoGenerationSubmissionGateway.submit("project-1", {
+    await freezoneVideoGenerationSubmissionGateway.submit("project/1", {
       ...common,
       kind: "keyframes",
       firstFrameUrl: "first.png",
@@ -75,17 +79,23 @@ describe("freezoneVideoGenerationSubmissionGateway", () => {
       sceneOptimize: null,
     });
 
-    expect(submitFreezoneVideoKeyframes).toHaveBeenCalledWith("project-1", {
-      ...common,
-      firstFrameUrl: "first.png",
-      lastFrameUrl: "last.png",
-      humanReview: false,
-      sceneOptimize: null,
-    });
+    expect(apiCall).toHaveBeenCalledWith(
+      "projects/project%2F1/freezone/video/keyframes",
+      {
+        method: "POST",
+        json: {
+          ...commonBody,
+          first_frame_url: "first.png",
+          last_frame_url: "last.png",
+          human_review: false,
+          scene_optimize: null,
+        },
+      },
+    );
   });
 
   it("dispatches image-reference generation", async () => {
-    await freezoneVideoGenerationSubmissionGateway.submit("project-1", {
+    await freezoneVideoGenerationSubmissionGateway.submit("project/1", {
       ...common,
       kind: "imageReferences",
       imageUrls: ["one.png", "two.png"],
@@ -93,35 +103,48 @@ describe("freezoneVideoGenerationSubmissionGateway", () => {
       sceneOptimize: "realistic",
     });
 
-    expect(submitFreezoneVideoI2v).toHaveBeenCalledWith("project-1", {
-      ...common,
-      imageUrls: ["one.png", "two.png"],
-      humanReview: true,
-      sceneOptimize: "realistic",
-    });
+    expect(apiCall).toHaveBeenCalledWith(
+      "projects/project%2F1/freezone/video/i2v",
+      {
+        method: "POST",
+        json: {
+          ...commonBody,
+          image_urls: ["one.png", "two.png"],
+          human_review: true,
+          scene_optimize: "realistic",
+        },
+      },
+    );
   });
 
   it("dispatches video editing with the existing automatic audio policy", async () => {
-    await freezoneVideoGenerationSubmissionGateway.submit("project-1", {
+    await freezoneVideoGenerationSubmissionGateway.submit("project/1", {
       ...common,
       kind: "videoEdit",
       videoUrl: "source.mp4",
       imageUrls: ["one.png"],
     });
 
-    expect(submitFreezoneVideoEdit).toHaveBeenCalledWith("project-1", {
-      ...common,
-      videoUrl: "source.mp4",
-      imageUrls: ["one.png"],
-      audioSetting: "auto",
-    });
+    expect(apiCall).toHaveBeenCalledWith(
+      "projects/project%2F1/freezone/video/video-edit",
+      {
+        method: "POST",
+        json: {
+          ...commonBody,
+          video_url: "source.mp4",
+          image_urls: ["one.png"],
+          audio_setting: "auto",
+          human_review: false,
+        },
+      },
+    );
   });
 
   it("dispatches mixed-reference generation", async () => {
     const references = [
       { type: "audio" as const, url: "music.mp3", role: "配乐参考" },
     ];
-    await freezoneVideoGenerationSubmissionGateway.submit("project-1", {
+    await freezoneVideoGenerationSubmissionGateway.submit("project/1", {
       ...common,
       kind: "allReferences",
       references,
@@ -129,16 +152,30 @@ describe("freezoneVideoGenerationSubmissionGateway", () => {
       sceneOptimize: null,
     });
 
-    expect(submitFreezoneVideoOmniGen).toHaveBeenCalledWith("project-1", {
-      ...common,
-      references,
-      humanReview: false,
-      sceneOptimize: null,
-    });
+    expect(apiCall).toHaveBeenCalledWith(
+      "projects/project%2F1/freezone/video/omni-gen",
+      {
+        method: "POST",
+        json: {
+          ...commonBody,
+          theme: "",
+          references: [
+            {
+              type: "audio",
+              url: "music.mp3",
+              role: "配乐参考",
+              label: "",
+            },
+          ],
+          human_review: false,
+          scene_optimize: null,
+        },
+      },
+    );
   });
 
   it("rejects an unexpected task type at the infrastructure boundary", async () => {
-    submitFreezoneVideoGen.mockResolvedValue({
+    vi.mocked(apiCall).mockResolvedValue({
       ...task,
       task_type: "freezone_gen",
     });

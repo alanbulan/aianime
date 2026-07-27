@@ -14667,6 +14667,10 @@ describe("frontend architecture boundaries", () => {
     const compositionSource = readFileSync(compositionPath, "utf8");
     const videoNode = readFileSync(videoNodePath, "utf8");
     const textNode = readFileSync(textNodePath, "utf8");
+    const legacyOpsSource = readFileSync(
+      resolve(SRC_ROOT, "api/ops.ts"),
+      "utf8",
+    );
     const declaration = [
       "export async function",
       "submitVideoGeneration(",
@@ -14675,13 +14679,22 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
       .map(relativeSource)
       .sort();
-    const directApiCalls = [
-      "submitFreezoneVideoEdit",
-      "submitFreezoneVideoGen",
-      "submitFreezoneVideoI2v",
-      "submitFreezoneVideoKeyframes",
-      "submitFreezoneVideoOmniGen",
+    const endpointNames = [
+      "gen",
+      "keyframes",
+      "i2v",
+      "video-edit",
+      "omni-gen",
     ];
+    const endpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          "}/freezone/video/${endpoint}`",
+        ),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
@@ -14698,7 +14711,10 @@ describe("frontend architecture boundaries", () => {
       "features/canvas/application/submitVideoGeneration.ts",
     ]);
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
-      new Set(["@/api/ops", "../application/submitVideoGeneration"]),
+      new Set([
+        "@/shared/api/client",
+        "../application/submitVideoGeneration",
+      ]),
     );
     expect(adapterSource).not.toContain("react");
     expect(adapterSource).not.toContain("@/stores/");
@@ -14707,17 +14723,34 @@ describe("frontend architecture boundaries", () => {
     );
     expect(videoNode.match(/submitVideoGeneration\(\{/g)).toHaveLength(5);
     expect(textNode.match(/submitVideoGeneration\(\{/g)).toHaveLength(1);
-    for (const apiCall of directApiCalls) {
-      const owners = sourceFiles(resolve(SRC_ROOT, "features/canvas"))
-        .filter((path) => !path.includes(".test."))
-        .filter((path) => readFileSync(path, "utf8").includes(`${apiCall}(`))
-        .map(relativeSource)
-        .sort();
-      expect(owners).toEqual([
-        "features/canvas/infrastructure/freezoneVideoGenerationSubmissionGateway.ts",
-      ]);
-      expect(adapterSource).toContain(`${apiCall}(`);
+    expect(endpointOwners).toEqual([
+      "features/canvas/infrastructure/freezoneVideoGenerationSubmissionGateway.ts",
+    ]);
+    for (const endpointName of endpointNames) {
+      expect(adapterSource).toContain(
+        `submitVideoGenerationRequest(projectId, "${endpointName}"`,
+      );
     }
+    for (const legacySymbol of [
+      "FreezoneVideoAspectRatio",
+      "FreezoneVideoResolution",
+      "FreezoneVideoMark",
+      "FreezoneVideoGenPayload",
+      "submitFreezoneVideoGen",
+      "FreezoneVideoKeyframesPayload",
+      "submitFreezoneVideoKeyframes",
+      "FreezoneVideoI2vPayload",
+      "submitFreezoneVideoI2v",
+      "FreezoneVideoEditPayload",
+      "submitFreezoneVideoEdit",
+      "FreezoneVideoReferenceType",
+      "FreezoneVideoReferenceItem",
+      "FreezoneVideoOmniGenPayload",
+      "submitFreezoneVideoOmniGen",
+    ]) {
+      expect(legacyOpsSource).not.toContain(legacySymbol);
+    }
+    expect(legacyOpsSource).not.toContain("}/freezone/video/");
   });
 
   it("keeps active video task completion in one application use case", () => {

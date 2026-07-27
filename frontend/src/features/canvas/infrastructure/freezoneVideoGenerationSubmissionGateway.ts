@@ -1,12 +1,5 @@
 // Copyright (c) 2026 AI anime
-import {
-  submitFreezoneVideoEdit,
-  submitFreezoneVideoGen,
-  submitFreezoneVideoI2v,
-  submitFreezoneVideoKeyframes,
-  submitFreezoneVideoOmniGen,
-  type FreezoneJobRef,
-} from "@/api/ops";
+import { apiCall } from "@/shared/api/client";
 
 import type {
   VideoGenerationSubmission,
@@ -14,7 +7,15 @@ import type {
   VideoGenerationTaskRef,
 } from "../application/submitVideoGeneration";
 
-function videoGenerationTask(task: FreezoneJobRef): VideoGenerationTaskRef {
+interface VideoGenerationTaskTransport {
+  readonly job_id: string;
+  readonly task_key: string;
+  readonly task_type: string;
+}
+
+function videoGenerationTask(
+  task: VideoGenerationTaskTransport,
+): VideoGenerationTaskRef {
   if (task.task_type !== "freezone_video_gen") {
     throw new Error(`Unexpected video generation task type: ${task.task_type}`);
   }
@@ -25,72 +26,89 @@ function videoGenerationTask(task: FreezoneJobRef): VideoGenerationTaskRef {
   };
 }
 
-function commonPayload(submission: VideoGenerationSubmission) {
+function nodeContextBody(submission: VideoGenerationSubmission) {
+  return {
+    ...(submission.canvasId ? { canvas_id: submission.canvasId } : {}),
+    ...(submission.nodeId ? { node_id: submission.nodeId } : {}),
+  };
+}
+
+function commonRequestBody(submission: VideoGenerationSubmission) {
   return {
     prompt: submission.prompt,
-    cameraTemplateId: submission.cameraTemplateId,
-    aspectRatio: submission.aspectRatio,
+    camera_template_id: submission.cameraTemplateId ?? null,
+    marks: [],
+    aspect_ratio: submission.aspectRatio ?? "16:9",
     resolution: submission.resolution,
-    durationSeconds: submission.durationSeconds,
-    generateAudio: submission.generateAudio,
-    model: submission.model,
-    genMode: submission.genMode,
-    canvasId: submission.canvasId,
-    nodeId: submission.nodeId,
+    duration_seconds: Math.max(submission.durationSeconds ?? 5, 1),
+    generate_audio: submission.generateAudio ?? false,
+    ...(submission.model
+      ? { model: submission.model, model_id: submission.model }
+      : {}),
+    ...(submission.genMode ? { gen_mode: submission.genMode } : {}),
+    ...nodeContextBody(submission),
   };
+}
+
+async function submitVideoGenerationRequest(
+  projectId: string,
+  endpoint: string,
+  json: unknown,
+): Promise<VideoGenerationTaskRef> {
+  const task = await apiCall<VideoGenerationTaskTransport>(
+    `projects/${encodeURIComponent(projectId)}/freezone/video/${endpoint}`,
+    { method: "POST", json },
+  );
+  return videoGenerationTask(task);
 }
 
 export const freezoneVideoGenerationSubmissionGateway: VideoGenerationSubmissionGateway = {
   async submit(projectId, submission) {
-    const common = commonPayload(submission);
+    const common = commonRequestBody(submission);
     switch (submission.kind) {
       case "text":
-        return videoGenerationTask(
-          await submitFreezoneVideoGen(projectId, {
-            ...common,
-            humanReview: submission.humanReview,
-            sceneOptimize: submission.sceneOptimize,
-          }),
-        );
+        return await submitVideoGenerationRequest(projectId, "gen", {
+          ...common,
+          character_ids: [],
+          human_review: submission.humanReview ?? false,
+          scene_optimize: submission.sceneOptimize ?? null,
+        });
       case "keyframes":
-        return videoGenerationTask(
-          await submitFreezoneVideoKeyframes(projectId, {
-            ...common,
-            firstFrameUrl: submission.firstFrameUrl,
-            lastFrameUrl: submission.lastFrameUrl,
-            humanReview: submission.humanReview,
-            sceneOptimize: submission.sceneOptimize,
-          }),
-        );
+        return await submitVideoGenerationRequest(projectId, "keyframes", {
+          ...common,
+          first_frame_url: submission.firstFrameUrl ?? null,
+          last_frame_url: submission.lastFrameUrl ?? null,
+          human_review: submission.humanReview ?? false,
+          scene_optimize: submission.sceneOptimize ?? null,
+        });
       case "imageReferences":
-        return videoGenerationTask(
-          await submitFreezoneVideoI2v(projectId, {
-            ...common,
-            imageUrls: [...submission.imageUrls],
-            humanReview: submission.humanReview,
-            sceneOptimize: submission.sceneOptimize,
-          }),
-        );
+        return await submitVideoGenerationRequest(projectId, "i2v", {
+          ...common,
+          image_urls: submission.imageUrls.slice(0, 9),
+          human_review: submission.humanReview ?? false,
+          scene_optimize: submission.sceneOptimize ?? null,
+        });
       case "videoEdit":
-        return videoGenerationTask(
-          await submitFreezoneVideoEdit(projectId, {
-            ...common,
-            videoUrl: submission.videoUrl,
-            imageUrls: [...submission.imageUrls],
-            audioSetting: "auto",
-          }),
-        );
+        return await submitVideoGenerationRequest(projectId, "video-edit", {
+          ...common,
+          video_url: submission.videoUrl,
+          image_urls: submission.imageUrls.slice(0, 5),
+          audio_setting: "auto",
+          human_review: false,
+        });
       case "allReferences":
-        return videoGenerationTask(
-          await submitFreezoneVideoOmniGen(projectId, {
-            ...common,
-            references: submission.references.map((reference) => ({
-              ...reference,
-            })),
-            humanReview: submission.humanReview,
-            sceneOptimize: submission.sceneOptimize,
-          }),
-        );
+        return await submitVideoGenerationRequest(projectId, "omni-gen", {
+          ...common,
+          theme: "",
+          references: submission.references.map((reference) => ({
+            type: reference.type,
+            url: reference.url,
+            role: reference.role ?? "",
+            label: reference.label ?? "",
+          })),
+          human_review: submission.humanReview ?? false,
+          scene_optimize: submission.sceneOptimize ?? null,
+        });
     }
   },
 };

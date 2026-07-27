@@ -1640,6 +1640,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百七十八批已将图片/视频模型、相机选项、风格模板和运镜模板的 5 个项目目录路径编码、响应读取与防御性归一从 `api/ops.ts` 迁入已有唯一 `freezoneGenerationCatalogGateway` infrastructure 适配器，gateway 直接输出 application 持有的模型/相机/风格 DTO 和 domain 持有的 `CameraMovementPreset`，不再建立 `Freezone*` 中间 DTO；旧目录类型、5 个查询函数及 `api/ops.ts` 对 Canvas 运镜领域类型的反向依赖直接删除，不保留 facade、re-export 或第二套 HTTP/DTO 映射，5 个目录端点分别只有该 gateway 一个生产所有者，`api/ops.ts` 由 910 行降至 511 行；数组及 `models`/`data`/`items`/provider map 容器兼容、provider 推断、字符串数值转换、分辨率/场景优化枚举过滤、运镜字段别名和空结果语义均未改变；相关 1 个测试文件 3 项、架构门禁 207 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
 
+第二百七十九批已将文生视频、首尾帧、图片参考、视频编辑和全参考视频生成的 5 个项目路径、POST method、公共参数及模式字段映射从 `api/ops.ts` 迁入已有唯一 `freezoneVideoGenerationSubmissionGateway` infrastructure 适配器，gateway 通过一个提交 helper 统一路径编码和 `freezone_video_gen` 回执校验，各模式分支只构造自己的引用字段；旧视频生成 transport 类型和 5 个提交函数直接删除，不保留 facade、re-export 或第二套 HTTP/DTO 映射，5 个视频提交 endpoint 只有该 gateway 一个生产所有者，`api/ops.ts` 由 511 行降至 168 行；空 marks/角色/主题、模型双字段、可选生成模式、图片引用 9/5 张截断、最小时长、节点上下文、人工审核、场景优化和自动音频策略均未改变；相关 1 个测试文件 6 项、架构门禁 207 项、前端 `tsc -b --pretty false` 及 `git diff --check` 均通过。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。
