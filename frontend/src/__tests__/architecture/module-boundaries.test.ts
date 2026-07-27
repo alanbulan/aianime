@@ -10626,17 +10626,17 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "features/canvas/nodes/ImageGenNode.tsx",
     );
+    const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const applicationSource = readFileSync(applicationPath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
     const legacyGatewaySource = readFileSync(legacyGatewayPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const nodeSource = readFileSync(nodePath, "utf8");
-    const productionCanvasSources = sourceFiles(
-      resolve(SRC_ROOT, "features/canvas"),
-    ).filter((path) => !path.includes(".test."));
-    const submitOwners = productionCanvasSources
+    const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
+    const endpointOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
       .filter((path) =>
-        readFileSync(path, "utf8").includes("submitFreezoneGen("),
+        readFileSync(path, "utf8").includes("}/freezone/gen`"),
       )
       .map(relativeSource)
       .sort();
@@ -10651,12 +10651,17 @@ describe("frontend architecture boundaries", () => {
       "completeCanvasMediaGenerationTask(",
     );
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
-      new Set(["@/api/ops", "../application/generateCanvasImage"]),
+      new Set([
+        "@/shared/api/client",
+        "../application/generateCanvasImage",
+        "../application/ports",
+        "./freezoneAssetGateway",
+      ]),
     );
     expect(adapterSource).toContain(
       "freezoneImageGenerationGateway: CanvasImageGenerationSubmissionGateway",
     );
-    expect(submitOwners).toEqual([
+    expect(endpointOwners).toEqual([
       "features/canvas/infrastructure/freezoneImageGenerationGateway.ts",
     ]);
     expect(importSpecifiers(legacyGatewayPath)).toContain(
@@ -10694,6 +10699,15 @@ describe("frontend architecture boundaries", () => {
     expect(nodeSource).not.toContain("fetchFreezoneJobResult");
     expect(nodeSource).not.toContain("awaitTaskCompletion");
     expect(nodeSource).not.toContain("resolveGenerationOutputUrl");
+    for (const legacySymbol of [
+      "FreezoneGenCamera",
+      "FreezoneGenStyle",
+      "FreezoneGenPayload",
+      "submitFreezoneGen",
+    ]) {
+      expect(legacyOpsSource).not.toContain(legacySymbol);
+    }
+    expect(legacyOpsSource).not.toContain("}/freezone/gen`");
   });
 
   it("keeps Canvas video story analysis behind application", () => {

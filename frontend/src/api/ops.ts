@@ -106,39 +106,6 @@ export type FreezoneProvider =
   | "huimeng"
   | "openai";
 
-export interface FreezoneGenCamera {
-  /** id from /freezone/image/camera-options.camera_bodies */
-  cameraBodyId?: string | null;
-  /** id from /freezone/image/camera-options.lenses */
-  lensId?: string | null;
-  focalLengthMm?: number | null;
-  aperture?: string | null;
-}
-
-export interface FreezoneGenStyle {
-  /** id from /freezone/image/style-templates */
-  templateId?: string | null;
-}
-
-export interface FreezoneGenPayload extends FreezoneNodeContext {
-  prompt: string;
-  aspectRatio?: string;
-  imageSize?: string;
-  referenceUrls?: string[];
-  camera?: FreezoneGenCamera | null;
-  style?: FreezoneGenStyle | null;
-  /** Override `NANOBANANA_PROVIDER` env default for the reference-image path. */
-  provider?: FreezoneProvider | null;
-  /** Override the provider's default model (e.g. "gpt-image-2"). */
-  model?: string | null;
-  /** 注册表模型 id（还原用；与 provider 拆分后的 model 串不同）。 */
-  modelId?: string | null;
-  /** 生成模式（还原用）：text_to_image / image_to_image / all_reference / image_reference。 */
-  genMode?: string | null;
-  /** Only honored by openai gpt-image-2 (low / medium / high / auto). */
-  quality?: string | null;
-}
-
 export interface FreezoneJobRef {
   task_type:
     | "freezone_gen"
@@ -505,50 +472,6 @@ export async function submitFreezoneVideoOmniGen(
         ...(payload.genMode ? { gen_mode: payload.genMode } : {}),
         human_review: payload.humanReview ?? false,
         scene_optimize: payload.sceneOptimize ?? null,
-        ...nodeContextBody(payload),
-      },
-    },
-  );
-}
-
-export async function submitFreezoneGen(
-  project: string,
-  payload: FreezoneGenPayload,
-): Promise<FreezoneJobRef> {
-  const camera = payload.camera
-    ? {
-        camera_body: payload.camera.cameraBodyId ?? "",
-        lens: payload.camera.lensId ?? "",
-        focal_length_mm: payload.camera.focalLengthMm ?? 0,
-        aperture: payload.camera.aperture ?? "",
-      }
-    : null;
-  const style = payload.style?.templateId
-    ? { template_id: payload.style.templateId }
-    : null;
-  // 后端只能按静态路径打开引用图：任何 `data:` base64 先上传换成上传 URL，
-  // 其余 http(s)/static 原样保留（仅剥掉 `?v=` 缓存串）。统一在此兜底，
-  // 避免各调用方漏做净化把 base64 塞进 reference_urls。
-  const referenceUrls = await ensureBackendImageUrls(
-    project,
-    payload.referenceUrls,
-  );
-  return await apiCall<FreezoneJobRef>(
-    `projects/${encodeURIComponent(project)}/freezone/gen`,
-    {
-      method: "POST",
-      json: {
-        prompt: payload.prompt,
-        aspect_ratio: payload.aspectRatio ?? "1:1",
-        image_size: payload.imageSize ?? "2K",
-        reference_urls: referenceUrls,
-        camera,
-        style,
-        provider: payload.provider ?? null,
-        model: payload.model ?? null,
-        ...(payload.modelId ? { model_id: payload.modelId } : {}),
-        ...(payload.genMode ? { gen_mode: payload.genMode } : {}),
-        quality: payload.quality ?? null,
         ...nodeContextBody(payload),
       },
     },

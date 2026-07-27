@@ -1,52 +1,88 @@
 // Copyright (c) 2026 AI anime
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const submitFreezoneGen = vi.hoisted(() => vi.fn());
+import { apiCall } from "@/shared/api/client";
+import { ensureBackendImageUrls } from "./freezoneAssetGateway";
 
-vi.mock("@/api/ops", () => ({ submitFreezoneGen }));
+vi.mock("@/shared/api/client", () => ({ apiCall: vi.fn() }));
+vi.mock("./freezoneAssetGateway", () => ({ ensureBackendImageUrls: vi.fn() }));
 
 import { freezoneImageGenerationGateway } from "./freezoneImageGenerationGateway";
 
+beforeEach(() => {
+  vi.mocked(apiCall).mockReset();
+  vi.mocked(ensureBackendImageUrls).mockReset();
+  vi.mocked(ensureBackendImageUrls).mockResolvedValue([]);
+});
+
 describe("freezoneImageGenerationGateway", () => {
-  it("maps the Canvas image command to the Freezone client", async () => {
+  it("normalizes references and maps the Canvas command to the encoded endpoint", async () => {
     const task = {
       job_id: "job-1",
       task_key: "task-1",
       task_type: "freezone_gen",
     };
-    submitFreezoneGen.mockResolvedValue(task);
+    vi.mocked(ensureBackendImageUrls).mockResolvedValue([
+      "/static/reference.png",
+    ]);
+    vi.mocked(apiCall).mockResolvedValue(task);
     const command = {
       prompt: "character portrait",
       aspectRatio: "16:9",
       imageSize: "2K",
-      referenceUrls: ["/static/reference.png"],
+      referenceUrls: ["data:image/png;base64,eA=="],
+      camera: {
+        cameraBodyId: "sony-a7",
+        lensId: "prime-50",
+        focalLengthMm: 50,
+        aperture: "f/1.8",
+      },
+      style: { templateId: "cinematic" },
+      provider: "openai" as const,
       model: "gpt-image-2",
+      modelId: "image-model",
+      genMode: "image_reference",
+      quality: "high",
       canvasId: "canvas-1",
       nodeId: "image-1",
     };
 
     await expect(
-      freezoneImageGenerationGateway.submit("project-1", command),
+      freezoneImageGenerationGateway.submit("project/1", command),
     ).resolves.toEqual(task);
-    expect(submitFreezoneGen).toHaveBeenCalledWith("project-1", {
-      prompt: "character portrait",
-      aspectRatio: "16:9",
-      imageSize: "2K",
-      referenceUrls: ["/static/reference.png"],
-      camera: undefined,
-      style: undefined,
-      provider: undefined,
-      model: "gpt-image-2",
-      modelId: undefined,
-      genMode: undefined,
-      quality: undefined,
-      canvasId: "canvas-1",
-      nodeId: "image-1",
-    });
+    expect(ensureBackendImageUrls).toHaveBeenCalledWith("project/1", [
+      "data:image/png;base64,eA==",
+    ]);
+    expect(apiCall).toHaveBeenCalledWith(
+      "projects/project%2F1/freezone/gen",
+      {
+        method: "POST",
+        json: {
+          prompt: "character portrait",
+          aspect_ratio: "16:9",
+          image_size: "2K",
+          reference_urls: ["/static/reference.png"],
+          camera: {
+            camera_body: "sony-a7",
+            lens: "prime-50",
+            focal_length_mm: 50,
+            aperture: "f/1.8",
+          },
+          style: { template_id: "cinematic" },
+          provider: "openai",
+          model: "gpt-image-2",
+          model_id: "image-model",
+          gen_mode: "image_reference",
+          quality: "high",
+          canvas_id: "canvas-1",
+          node_id: "image-1",
+        },
+      },
+    );
   });
 
   it("rejects an unexpected task type at the adapter boundary", async () => {
-    submitFreezoneGen.mockResolvedValue({
+    vi.mocked(apiCall).mockResolvedValue({
       job_id: "job-1",
       task_key: "task-1",
       task_type: "freezone_edit",

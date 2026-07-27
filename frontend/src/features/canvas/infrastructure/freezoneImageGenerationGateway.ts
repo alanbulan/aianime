@@ -1,25 +1,48 @@
 // Copyright (c) 2026 AI anime
-import { submitFreezoneGen } from "@/api/ops";
+import { apiCall } from "@/shared/api/client";
 
 import type { CanvasImageGenerationSubmissionGateway } from "../application/generateCanvasImage";
+import type { CanvasGenerationTaskRef } from "../application/ports";
+import { ensureBackendImageUrls } from "./freezoneAssetGateway";
 
 export const freezoneImageGenerationGateway: CanvasImageGenerationSubmissionGateway = {
   async submit(projectId, command) {
-    const task = await submitFreezoneGen(projectId, {
-      prompt: command.prompt,
-      aspectRatio: command.aspectRatio,
-      imageSize: command.imageSize,
-      referenceUrls: command.referenceUrls,
-      camera: command.camera,
-      style: command.style,
-      provider: command.provider,
-      model: command.model,
-      modelId: command.modelId,
-      genMode: command.genMode,
-      quality: command.quality,
-      canvasId: command.canvasId,
-      nodeId: command.nodeId,
-    });
+    const camera = command.camera
+      ? {
+          camera_body: command.camera.cameraBodyId ?? "",
+          lens: command.camera.lensId ?? "",
+          focal_length_mm: command.camera.focalLengthMm ?? 0,
+          aperture: command.camera.aperture ?? "",
+        }
+      : null;
+    const style = command.style?.templateId
+      ? { template_id: command.style.templateId }
+      : null;
+    const referenceUrls = await ensureBackendImageUrls(
+      projectId,
+      command.referenceUrls,
+    );
+    const task = await apiCall<CanvasGenerationTaskRef>(
+      `projects/${encodeURIComponent(projectId)}/freezone/gen`,
+      {
+        method: "POST",
+        json: {
+          prompt: command.prompt,
+          aspect_ratio: command.aspectRatio ?? "1:1",
+          image_size: command.imageSize ?? "2K",
+          reference_urls: referenceUrls,
+          camera,
+          style,
+          provider: command.provider ?? null,
+          model: command.model ?? null,
+          ...(command.modelId ? { model_id: command.modelId } : {}),
+          ...(command.genMode ? { gen_mode: command.genMode } : {}),
+          quality: command.quality ?? null,
+          ...(command.canvasId ? { canvas_id: command.canvasId } : {}),
+          ...(command.nodeId ? { node_id: command.nodeId } : {}),
+        },
+      },
+    );
     if (task.task_type !== "freezone_gen") {
       throw new Error(`Unexpected image generation task type: ${task.task_type}`);
     }
