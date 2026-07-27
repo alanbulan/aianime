@@ -8,26 +8,26 @@ import shutil
 
 from fastapi import APIRouter, Depends
 
-logger = logging.getLogger(__name__)
-
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import make_sqlite_store_for_context, resolve_project_scope
 from ai_anime.ports import get_task_backend
 from ai_anime.task_identity import project_task_state_key, task_config_scope
-
-from .consistency_verifier import ConsistencyVerifier
-from .continuity_verifier import ContinuityVerifier
-from .episode_reviewer import EpisodeReviewer
-from .frame_verifier import FrameVerifier
-from .image_verifier import ImageVerifier, resolve_verification_scene_context
-from .report_formatter import (
+from ai_anime.verification.consistency_verifier import ConsistencyVerifier
+from ai_anime.verification.continuity_verifier import ContinuityVerifier
+from ai_anime.verification.episode_reviewer import EpisodeReviewer
+from ai_anime.verification.frame_verifier import FrameVerifier
+from ai_anime.verification.image_verifier import (
+    ImageVerifier,
+    resolve_verification_scene_context,
+)
+from ai_anime.verification.report_formatter import (
     format_color_verify_report,
     format_consistency_report,
     format_episode_overview_report,
     format_verification_report,
     save_verify_report,
 )
-from .schemas import (
+from ai_anime.verification.schemas import (
     ColorVerifyRequest,
     CompareRequest,
     ConsistencyVerifyRequest,
@@ -38,14 +38,22 @@ from .schemas import (
     SketchSelectRequest,
     VerifyRequest,
 )
-from .sketch_color_verifier import verify_episode_sketch_colors
-from .sketch_comparer import SketchComparer
-from .sketch_edit_execute import resolve_labels_jsonl
-from .sketch_edit_label_validation import LabelsValidationError, validate_labels_jsonl
-from .sketch_scorer import SketchScorer
-from .similarity_detector import detect_similarity
-from .utils import find_frame_for_beat, find_sketch_for_beat, load_all_beats
+from ai_anime.verification.similarity_detector import detect_similarity
+from ai_anime.verification.sketch_color_verifier import verify_episode_sketch_colors
+from ai_anime.verification.sketch_comparer import SketchComparer
+from ai_anime.verification.sketch_edit_execute import resolve_labels_jsonl
+from ai_anime.verification.sketch_edit_label_validation import (
+    LabelsValidationError,
+    validate_labels_jsonl,
+)
+from ai_anime.verification.sketch_scorer import SketchScorer
+from ai_anime.verification.utils import (
+    find_frame_for_beat,
+    find_sketch_for_beat,
+    load_all_beats,
+)
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 

@@ -84,7 +84,7 @@ async def test_verification_routes_resolve_project_id_before_opening_project_dir
     monkeypatch,
     tmp_path,
 ):
-    from ai_anime.verification import routes
+    from ai_anime.api.routes import verification as routes
 
     ctx = SimpleNamespace(
         project_id="01PROJECTID",

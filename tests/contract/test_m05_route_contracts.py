@@ -277,6 +277,7 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         production_settings,
         production_sketch,
         scenes,
+        verification as verification_routes,
     )
     from ai_anime.modules.asset_world.infrastructure import (
         beat_viewer as beat_viewer_adapter,
@@ -289,8 +290,6 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.modules.project_workspace.public import ProjectContext
     from ai_anime.shared import project_media
     from ai_anime.shared.infrastructure import project_stores
-    from ai_anime.verification import routes as verification_routes
-
     store = _M05Store()
     project_dir = tmp_path / "output" / "alice" / _PROJECT
     state_dir = tmp_path / "state" / "alice" / _PROJECT

@@ -12,14 +12,12 @@ LEGACY_GENERATION_ROUTE = PACKAGE_ROOT / "api" / "routes" / "generation.py"
 LEGACY_FREEZONE_ROUTE = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
 LEGACY_FREEZONE_HELPERS = PACKAGE_ROOT / "freezone" / "route_helpers.py"
 LEGACY_FREEZONE_TEXT_NODE = PACKAGE_ROOT / "freezone" / "text_node.py"
+LEGACY_VERIFICATION_ROUTE = PACKAGE_ROOT / "verification" / "routes.py"
 COMPOSITION_ROOT_FILES = {"desktop_server.py"}
 
 # These are measured legacy dependencies, not approved architecture. Counts may
 # decrease during migration; any new file/module pair or count increase fails.
-LEGACY_REVERSE_API_IMPORT_MAX = {
-    ("verification/routes.py", "ai_anime.api.auth"): 1,
-    ("verification/routes.py", "ai_anime.api.deps"): 1,
-}
+LEGACY_REVERSE_API_IMPORT_MAX: dict[tuple[str, str], int] = {}
 
 LEGACY_ROUTE_IMPORT_MAX: dict[tuple[str, str], int] = {}
 
@@ -81,6 +79,18 @@ def test_non_api_code_does_not_add_reverse_api_dependencies() -> None:
                 actual[(relative, imported)] += 1
 
     _assert_ratchet(actual, LEGACY_REVERSE_API_IMPORT_MAX)
+
+
+def test_verification_http_adapter_lives_in_api_layer() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "verification.py"
+    api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
+
+    assert route.exists()
+    assert not LEGACY_VERIFICATION_ROUTE.exists()
+    assert "ai_anime.api.auth" in _imports(route)
+    assert "ai_anime.api.deps" in _imports(route)
+    assert "ai_anime.verification" in route.read_text(encoding="utf-8")
+    assert "verification.router" in api_router.read_text(encoding="utf-8")
 
 
 def test_route_modules_do_not_add_cross_route_dependencies() -> None:

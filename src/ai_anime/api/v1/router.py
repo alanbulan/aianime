@@ -35,6 +35,7 @@ from ai_anime.api.routes import (
     scripts,
     styles,
     tasks,
+    verification,
 )
 from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap
 from ai_anime.api.routes.canvas import assets as freezone_assets
@@ -130,8 +131,5 @@ def create_api_router(*, desktop_mode: bool | None = None) -> APIRouter:
     router.include_router(freezone_skills.router)
     router.include_router(freezone_text.router)
     router.include_router(freezone_video.router)
-
-    from ai_anime.verification.routes import router as verification_router
-
-    router.include_router(verification_router, tags=["verification"])
+    router.include_router(verification.router, tags=["verification"])
     return router

@@ -846,7 +846,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 - 后端路由改为每次 `create_app()` 构造独立路由图，消除 CE/EE 环境在首次导入后冻结的问题；非桌面 OpenAPI 不再暴露 `/auth/login` 和 `/auth/authorize`，桌面模式仍显式挂载两条路由。
 - 后端应用工厂、lifespan、桌面令牌、请求上限、静态媒体、SPA、异常映射和架构门禁定向测试通过。
 - ApplicationContainer 接入后，排除已记录的 CE OpenAPI 断言与默认排除的 EE 用例，后端契约 75 项全部通过。
-- 非 API 业务模块对 `ai_anime.api.*` 的反向导入由阶段 0 的 28 处降至 5 处；剩余项均保留在只减不增门禁中。
+- 非 API 业务模块对 `ai_anime.api.*` 的反向导入已由阶段 0 的 28 处降至 0，零基线由架构门禁持续锁定。
 - `project_context.py`、`ports/project.py`、`ports/local/project.py` 和 `_project_audit.py` 已删除；Project Workspace domain/application 不依赖 FastAPI，外部生产代码只能导入 `project_workspace.public`。
 - 本批分组验证通过：Project Workspace/API 21 项、Chat/Hermes 104 项、M08 5 项、生成接口 46 项、任务与契约 25 项、架构门禁 9 项；其余契约 50 项通过，M01 失败项修复后连同桌面认证和应用工厂共 14 项通过。
 - Story Intake 定向后端测试 22 项通过；外部模块只能导入 `story_intake.public`，任务 runner 通过 `IngestionTask` 统一解析 payload，前端仅 infrastructure gateway 持有导入端点。
@@ -1684,6 +1684,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百二十一批已将 `freezone/text_node.py` 中的模型选择、翻译任务和故事脚本任务构造迁入 Creative Canvas domain，将 PydanticAI Agent、私有结构化输出模型和执行逻辑迁入唯一 infrastructure 适配器，并由 composition/public 提供翻译、故事脚本生成和模型解析三个稳定入口；任务 runner、模型额度解析和运行时 Agent 缓存刷新全部改经新边界，故事脚本执行结果在适配器内转为普通字典，五个无端点引用的旧 API 输出 schema 与旧文本模块直接删除，不保留转发壳、公开基础设施模型或第二套实现。Creative Canvas 的反向 API 依赖归零，全仓非 API -> API 存量由 3 处降至 2 处；文本领域与执行回归 9 项、文本路由/应用回归 13 项、模型额度回归 26 项、模型网关回归 59 项、全部 Freezone 回归 300 项、M06 与项目解析合同 20 项、完整后端分层门禁 89 项均通过，Python 编译、修改文件 Ruff 与 `git diff --check` 通过，8 条告警均为既有依赖弃用告警。
 
+第三百二十二批已将误放在业务包中的 `verification/routes.py` 整体迁入 `api/routes/verification.py`，改由 API v1 组合根与其他 FastAPI 适配器并列装配；路由继续单向调用 Verification 业务实现，全部生产与测试导入同步切换，旧路径及其专用 Ruff 例外直接删除，不保留转发模块、兼容别名或第二套路由。Verification 自有 12 条 OpenAPI 路径全部注册且 method/path 未变，全仓非 API -> API 反向依赖由 2 处降至 0，阶段 0 建立的 28 处反向依赖基线完成清零；直接路由回归 3 项、M05 合同 11 项、应用工厂与项目路由回归 7 项、完整后端分层门禁 90 项均通过，Python 编译、修改文件 Ruff、冷启动 OpenAPI 核验与 `git diff --check` 通过，8 条告警均为既有依赖弃用告警。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。
@@ -1717,7 +1719,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
-2. 将后端非 API -> API 的反向依赖从阶段 0 的 28 处（当前 2 处）降为 0。
+2. 将后端非 API -> API 的反向依赖从阶段 0 的 28 处（当前 0 处）保持为 0。
 3. 清空前端 legacy 目录违规基线；跨模块只保留 public API。
 4. 更新 README、领域地图、运行架构和开发约束。
 5. 执行全量测试、类型检查、Ruff、桌面 typecheck、OpenAPI diff 和数据兼容验证。
@@ -1758,7 +1760,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 | 指标 | 当前 | 最终目标 |
 | --- | --- | --- |
-| 非 API 业务模块反向依赖 `ai_anime.api.*` | 2 处（阶段 0：28 处） | 0 |
+| 非 API 业务模块反向依赖 `ai_anime.api.*` | 0 处（阶段 0：28 处） | 0 |
 | route 互相导入私有实现 | 0 | 0 |
 | 后端超 1,000 逻辑行 route 模块 | 4 个 | 0；兼容 facade 不含实现 |
 | 前端 route 超 500 逻辑行 | 8/19 | 0；route 仅做适配 |
