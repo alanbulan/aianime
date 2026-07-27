@@ -42,7 +42,6 @@ from ai_anime.api.schemas import (
     FreezoneStageAssetAcceptedResponse,
     FreezoneStoryScriptGenerateRequest,
     FreezoneTextTranslateRequest,
-    FreezoneVideoComposeRequest,
     ImpactRequest,
     PresetCanvasRequest,
     ProjectionPresetCanvasRequest,
@@ -1511,46 +1510,6 @@ def _project_job_response(
     return {"ok": True, "data": data}
 
 
-async def _enqueue_or_start_freezone_media_job(
-    *,
-    ctx: ProjectContext | None,
-    username: str,
-    project: str,
-    project_dir: Path,
-    task_type: Literal[
-        "freezone_video_compose",
-        "freezone_audio_eleven_music",
-    ],
-    job_id: str,
-    payload: dict,
-    queue_kind: str = "ffmpeg",
-) -> dict:
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type=task_type,
-            queue_kind=queue_kind,
-            episode=0,
-            scope=job_id,
-            payload={"job_id": job_id, "project_dir": str(project_dir), **payload},
-        )
-        return _project_job_response(
-            task_type=task_type,
-            ctx=ctx,
-            job_id=job_id,
-            backend=queued.backend,
-            queue=queued.queue,
-            task_id=queued.task_state.task_id,
-        )
-
-    return _accepted_job_response(
-        task_type=task_type,
-        username=username,
-        project=project,
-        job_id=job_id,
-    )
-
-
 async def _enqueue_freezone_background_job(
     *,
     ctx: ProjectContext,
@@ -1587,7 +1546,6 @@ _agent_review_frame_reviewer: FrameReviewReviewer | None = None
 
 TAG_FREEZONE_AUDIO = "freezone-audio"
 TAG_FREEZONE_IMAGE = "freezone-image"
-TAG_FREEZONE_VIDEO = "freezone-video"
 TAG_FREEZONE_TEXT = "freezone-text"
 TAG_FREEZONE_CANVAS = "freezone-canvas"
 TAG_FREEZONE_ASSETS = "freezone-assets"
@@ -4318,71 +4276,6 @@ def _copy_image_matching_existing_target(source_path: Path, target: Path) -> dic
         }
 
 
-def _start_freezone_video_compose_task(
-    *,
-    username: str,
-    project: str,
-    project_dir: Path,
-    job_id: str,
-    body: FreezoneVideoComposeRequest,
-    resolved_tracks: list[dict],
-) -> None:
-    task_type = "freezone_video_compose"
-    task_manager = get_task_manager()
-    task_manager.create_task(
-        task_type, username, project, episode=0, scope=job_id, status="starting"
-    )
-
-    async def _runner() -> None:
-        try:
-            task_manager.update_progress(
-                task_type,
-                username,
-                project,
-                episode=0,
-                scope=job_id,
-                progress=0.05,
-                current_task="validating_timeline",
-                logs=["开始合成视频时间线"],
-            )
-            from ai_anime.freezone.jobs import run_freezone_video_compose
-
-            output_path = await run_freezone_video_compose(
-                project_dir=project_dir,
-                job_id=job_id,
-                title=body.title,
-                canvas_id=body.canvas_id,
-                resolution=body.resolution,
-                fps=body.fps,
-                background_color=body.background_color,
-                keep_original_audio=body.keep_original_audio,
-                tracks=resolved_tracks,
-            )
-            task_manager.complete_task(
-                task_type,
-                username,
-                project,
-                episode=0,
-                scope=job_id,
-                result={"output_format": "mp4", "output_path": str(output_path)},
-                current_task="completed",
-                logs=["视频合成完成"],
-            )
-        except Exception as exc:
-            task_manager.fail_task(
-                task_type,
-                username,
-                project,
-                episode=0,
-                scope=job_id,
-                error=str(exc),
-                current_task="failed",
-                logs=[f"错误: {exc}"],
-            )
-
-    asyncio.create_task(_runner())
-
-
 def _start_freezone_audio_speech_task(
     *,
     username: str,
@@ -5099,112 +4992,6 @@ async def freezone_audio_eleven_music(
 
     return _accepted_job_response(
         task_type="freezone_audio_eleven_music",
-        username=username,
-        project=project_name,
-        job_id=job_id,
-    )
-
-
-@router.post(
-    "/projects/{project}/freezone/video/compose",
-    response_model=FreezoneJobAcceptedResponse,
-    tags=[TAG_FREEZONE_VIDEO],
-)
-async def freezone_video_compose(
-    project: str,
-    body: FreezoneVideoComposeRequest,
-    user: dict = Depends(get_api_user),
-):
-    """视频处理：按时间线描述异步导出成片。
-
-    当前为 MVP 版本：
-    - 支持顺序视频片段裁剪与拼接
-    - 支持时间线空隙自动补黑场
-    - 支持附加音频轨混音
-    - 暂不支持重叠视频轨、转场和复杂特效
-    """
-    ctx, username, project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project, user
-    )
-
-    if not body.tracks:
-        raise HTTPException(400, "tracks is required")
-
-    resolved_tracks: list[dict] = []
-    has_video_item = False
-    for track in body.tracks:
-        if not track.items:
-            continue
-
-        resolved_items: list[dict] = []
-        for item in track.items:
-            if item.source_end <= item.source_start:
-                raise HTTPException(
-                    400,
-                    (
-                        f"compose item {item.item_id} has invalid source range: "
-                        "source_end must be > source_start"
-                    ),
-                )
-            try:
-                source_path = resolve_static_url_to_path(item.source_url, project_dir)
-            except ValueError as exc:
-                raise HTTPException(400, str(exc)) from exc
-            if not source_path.exists():
-                raise HTTPException(404, f"compose source not found: {source_path}")
-
-            resolved_item = item.model_dump()
-            resolved_item["source_path"] = str(source_path)
-            resolved_items.append(resolved_item)
-
-        if not resolved_items:
-            continue
-
-        if track.kind == "video":
-            has_video_item = True
-        resolved_track = track.model_dump()
-        resolved_track["items"] = resolved_items
-        resolved_tracks.append(resolved_track)
-
-    if not resolved_tracks:
-        raise HTTPException(400, "tracks must contain at least one media item")
-    if not has_video_item:
-        raise HTTPException(400, "video compose requires at least one video item")
-
-    try:
-        job_id = _new_job_id()
-        if ctx is not None:
-            return await _enqueue_or_start_freezone_media_job(
-                ctx=ctx,
-                username=username,
-                project=project_name,
-                project_dir=project_dir,
-                task_type="freezone_video_compose",
-                job_id=job_id,
-                payload={
-                    "title": body.title,
-                    "canvas_id": body.canvas_id,
-                    "resolution": body.resolution,
-                    "fps": body.fps,
-                    "background_color": body.background_color,
-                    "keep_original_audio": body.keep_original_audio,
-                    "tracks": resolved_tracks,
-                },
-            )
-        _start_freezone_video_compose_task(
-            username=username,
-            project=project_name,
-            project_dir=project_dir,
-            job_id=job_id,
-            body=body,
-            resolved_tracks=resolved_tracks,
-        )
-    except RuntimeError as exc:
-        _handle_task_start_runtime_error("failed to start freezone video compose task", exc)
-        raise HTTPException(503, f"failed to start freezone video compose task: {exc}") from exc
-
-    return _accepted_job_response(
-        task_type="freezone_video_compose",
         username=username,
         project=project_name,
         job_id=job_id,

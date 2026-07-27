@@ -17,6 +17,11 @@ from ai_anime.modules.creative_canvas.application.task_submission import (
 )
 from ai_anime.modules.creative_canvas.domain.video_processing import (
     CreativeCanvasVideoEraseMode,
+    InvalidCreativeCanvasVideoComposition,
+    validate_video_composition_media_item_count,
+    validate_video_composition_source_range,
+    validate_video_composition_track_count,
+    validate_video_composition_video_item_count,
     validate_video_erase_box,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
@@ -27,7 +32,9 @@ CREATIVE_CANVAS_VIDEO_STORY_TASK_TYPE = "freezone_video_story"
 CREATIVE_CANVAS_VIDEO_ERASE_TASK_TYPE = "freezone_video_erase"
 CREATIVE_CANVAS_VIDEO_UPSCALE_TASK_TYPE = "freezone_video_upscale"
 CREATIVE_CANVAS_AUDIO_SEPARATION_TASK_TYPE = "freezone_audio_separate"
+CREATIVE_CANVAS_VIDEO_COMPOSITION_TASK_TYPE = "freezone_video_compose"
 CreativeCanvasShotAnalysisMode = Literal["shots", "video_story"]
+CreativeCanvasVideoCompositionTrackKind = Literal["video", "audio"]
 
 
 class InvalidCreativeCanvasVideoProcessingRequest(ValueError):
@@ -98,6 +105,37 @@ class StartCreativeCanvasAudioSeparationCommand:
     source_url: str
     target_episode: int | None = None
     target_beat: int | None = None
+
+
+@dataclass(frozen=True)
+class CreativeCanvasVideoCompositionItem:
+    item_id: str
+    source_url: str
+    timeline_start: float
+    source_start: float
+    source_end: float
+    volume: float
+    muted: bool
+
+
+@dataclass(frozen=True)
+class CreativeCanvasVideoCompositionTrack:
+    track_id: str
+    kind: CreativeCanvasVideoCompositionTrackKind
+    items: tuple[CreativeCanvasVideoCompositionItem, ...]
+
+
+@dataclass(frozen=True)
+class StartCreativeCanvasVideoCompositionCommand:
+    context: ProjectContext
+    project_dir: Path
+    title: str
+    canvas_id: str
+    resolution: str
+    fps: int
+    background_color: str
+    keep_original_audio: bool
+    tracks: tuple[CreativeCanvasVideoCompositionTrack, ...]
 
 
 class CreativeCanvasVideoProcessingUseCases:
@@ -256,6 +294,81 @@ class CreativeCanvasVideoProcessingUseCases:
                 "source_path": source_path.as_posix(),
                 "target_episode": command.target_episode,
                 "target_beat": command.target_beat,
+            },
+        )
+
+    async def start_video_composition(
+        self,
+        command: StartCreativeCanvasVideoCompositionCommand,
+    ) -> CreativeCanvasTaskReceipt:
+        try:
+            validate_video_composition_track_count(len(command.tracks))
+        except InvalidCreativeCanvasVideoComposition as exc:
+            raise InvalidCreativeCanvasVideoProcessingRequest(str(exc)) from exc
+
+        resolved_tracks: list[dict[str, object]] = []
+        media_item_count = 0
+        video_item_count = 0
+        for track in command.tracks:
+            if not track.items:
+                continue
+            resolved_items: list[dict[str, object]] = []
+            for item in track.items:
+                try:
+                    validate_video_composition_source_range(
+                        item.item_id,
+                        item.source_start,
+                        item.source_end,
+                    )
+                except InvalidCreativeCanvasVideoComposition as exc:
+                    raise InvalidCreativeCanvasVideoProcessingRequest(str(exc)) from exc
+                source_path = self._resolve_existing_source(
+                    command.project_dir,
+                    item.source_url,
+                    field_name="compose source",
+                )
+                resolved_items.append(
+                    {
+                        "item_id": item.item_id,
+                        "source_url": item.source_url,
+                        "timeline_start": item.timeline_start,
+                        "source_start": item.source_start,
+                        "source_end": item.source_end,
+                        "volume": item.volume,
+                        "muted": item.muted,
+                        "source_path": str(source_path),
+                    }
+                )
+            media_item_count += len(resolved_items)
+            if track.kind == "video":
+                video_item_count += len(resolved_items)
+            resolved_tracks.append(
+                {
+                    "track_id": track.track_id,
+                    "kind": track.kind,
+                    "items": resolved_items,
+                }
+            )
+
+        try:
+            validate_video_composition_media_item_count(media_item_count)
+            validate_video_composition_video_item_count(video_item_count)
+        except InvalidCreativeCanvasVideoComposition as exc:
+            raise InvalidCreativeCanvasVideoProcessingRequest(str(exc)) from exc
+
+        return await self._enqueue(
+            context=command.context,
+            project_dir=command.project_dir,
+            task_type=CREATIVE_CANVAS_VIDEO_COMPOSITION_TASK_TYPE,
+            queue_kind="ffmpeg",
+            payload={
+                "title": command.title,
+                "canvas_id": command.canvas_id,
+                "resolution": command.resolution,
+                "fps": command.fps,
+                "background_color": command.background_color,
+                "keep_original_audio": command.keep_original_audio,
+                "tracks": resolved_tracks,
             },
         )
 

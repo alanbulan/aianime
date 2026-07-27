@@ -56,6 +56,10 @@ from ai_anime.modules.creative_canvas.domain.video_generation import (
 )
 from ai_anime.modules.creative_canvas.domain.video_processing import (
     CreativeCanvasVideoEraseMode,
+    validate_video_composition_media_item_count,
+    validate_video_composition_source_range,
+    validate_video_composition_track_count,
+    validate_video_composition_video_item_count,
     validate_video_erase_box,
 )
 from ai_anime.modules.creative_canvas.domain.video_asset_library import (
@@ -107,6 +111,10 @@ __all__ = [
     "get_video_camera_templates",
     "summarize_omni_reference_counts",
     "validate_omni_reference_limits",
+    "validate_video_composition_media_item_count",
+    "validate_video_composition_source_range",
+    "validate_video_composition_track_count",
+    "validate_video_composition_video_item_count",
     "validate_video_erase_box",
     "delete_video_asset_library_item",
     "upsert_video_asset_library_item",

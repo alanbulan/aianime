@@ -16,6 +16,7 @@ from ai_anime.api.schemas import (
     FreezoneJobAcceptedResponse,
     FreezoneKeyframeVideoRequest,
     FreezoneVideoCharacterLibraryItemRequest,
+    FreezoneVideoComposeRequest,
     FreezoneVideoEditRequest,
     FreezoneVideoEraseRequest,
     FreezoneVideoGenRequest,
@@ -30,6 +31,8 @@ from ai_anime.modules.creative_canvas.public import (
     CreativeCanvasTaskStartFailed,
     CreativeCanvasOmniVideoReference,
     CreativeCanvasVideoCharacterMissing,
+    CreativeCanvasVideoCompositionItem,
+    CreativeCanvasVideoCompositionTrack,
     CreativeCanvasVideoGenerationOptions,
     CreativeCanvasVideoGenerationResult,
     CreativeCanvasVideoProcessingSourceMissing,
@@ -44,6 +47,7 @@ from ai_anime.modules.creative_canvas.public import (
     StartCreativeCanvasShotAnalysisCommand,
     StartCreativeCanvasTextVideoCommand,
     StartCreativeCanvasVideoEditCommand,
+    StartCreativeCanvasVideoCompositionCommand,
     StartCreativeCanvasVideoEraseCommand,
     StartCreativeCanvasVideoUpscaleCommand,
     StartCreativeCanvasVideoStoryAnalysisCommand,
@@ -560,6 +564,76 @@ async def freezone_audio_separate(
         raise HTTPException(
             503,
             f"failed to start freezone audio separate task: {exc}",
+        ) from exc
+    return _video_processing_response(result)
+
+
+@router.post(
+    "/projects/{project}/freezone/video/compose",
+    response_model=FreezoneJobAcceptedResponse,
+    tags=["freezone-video"],
+)
+async def freezone_video_compose(
+    project: str,
+    body: FreezoneVideoComposeRequest,
+    user: dict = Depends(get_api_user),
+):
+    """视频处理：按时间线描述异步导出成片。
+
+    当前为 MVP 版本：
+    - 支持顺序视频片段裁剪与拼接
+    - 支持时间线空隙自动补黑场
+    - 支持附加音频轨混音
+    - 暂不支持重叠视频轨、转场和复杂特效
+    """
+    resolved = await _resolve_editor_project(project, user)
+    try:
+        result = await creative_canvas_video_processing_use_cases().start_video_composition(
+            StartCreativeCanvasVideoCompositionCommand(
+                context=resolved.ctx,
+                project_dir=resolved.project_dir,
+                title=body.title,
+                canvas_id=body.canvas_id,
+                resolution=body.resolution,
+                fps=body.fps,
+                background_color=body.background_color,
+                keep_original_audio=body.keep_original_audio,
+                tracks=tuple(
+                    CreativeCanvasVideoCompositionTrack(
+                        track_id=track.track_id,
+                        kind=track.kind,
+                        items=tuple(
+                            CreativeCanvasVideoCompositionItem(
+                                item_id=item.item_id,
+                                source_url=item.source_url,
+                                timeline_start=item.timeline_start,
+                                source_start=item.source_start,
+                                source_end=item.source_end,
+                                volume=item.volume,
+                                muted=item.muted,
+                            )
+                            for item in track.items
+                        ),
+                    )
+                    for track in body.tracks
+                ),
+            )
+        )
+    except InvalidCreativeCanvasVideoProcessingRequest as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except CreativeCanvasVideoProcessingSourceMissing as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except (ProjectTaskLimitExceeded, ProjectUserTaskLimitExceeded):
+        raise
+    except RuntimeError as exc:
+        logger.warning(
+            "failed to start freezone video compose task: %s",
+            exc,
+            exc_info=True,
+        )
+        raise HTTPException(
+            503,
+            f"failed to start freezone video compose task: {exc}",
         ) from exc
     return _video_processing_response(result)
 

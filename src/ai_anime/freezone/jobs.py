@@ -26,7 +26,11 @@ import numpy as np
 from PIL import Image
 
 from ai_anime.freezone.paths import output_path_for_job, outputs_dir
-from ai_anime.modules.creative_canvas.public import validate_video_erase_box
+from ai_anime.modules.creative_canvas.public import (
+    validate_video_composition_source_range,
+    validate_video_composition_video_item_count,
+    validate_video_erase_box,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -735,8 +739,10 @@ async def run_freezone_video_compose(
         if str(track.get("kind") or "") == "audio"
         for item in (track.get("items") or [])
     ]
-    if not video_items:
-        raise RuntimeError("video compose requires at least one video clip")
+    try:
+        validate_video_composition_video_item_count(len(video_items))
+    except ValueError as exc:
+        raise RuntimeError("video compose requires at least one video clip") from exc
 
     sorted_video_items = sorted(
         video_items,
@@ -754,11 +760,18 @@ async def run_freezone_video_compose(
             timeline_start = float(item.get("timeline_start", 0.0) or 0.0)
             source_start = float(item.get("source_start", 0.0) or 0.0)
             source_end = float(item.get("source_end", 0.0) or 0.0)
-            duration = source_end - source_start
-            if duration <= 0:
-                raise RuntimeError(
-                    f"compose item {item.get('item_id') or index} has invalid source range"
+            item_id = str(item.get("item_id") or index)
+            try:
+                validate_video_composition_source_range(
+                    item_id,
+                    source_start,
+                    source_end,
                 )
+            except ValueError as exc:
+                raise RuntimeError(
+                    f"compose item {item_id} has invalid source range"
+                ) from exc
+            duration = source_end - source_start
             if timeline_start < cursor - 1e-6:
                 raise RuntimeError("overlapping video clips are not supported in MVP compose")
             if timeline_start > cursor + 1e-6:

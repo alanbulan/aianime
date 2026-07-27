@@ -1678,6 +1678,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百九十七批已将音视频分离的源视频解析、存在性校验、可选主线推送目标 DTO 和 `freezone_audio_separate` 任务提交并入 Creative Canvas video-processing application，并将既有 POST 端点迁入 video FastAPI 子 router；生产项目解析始终提供 `ProjectContext` 且任务后端已有唯一 runner，因此旧 `freezone.py` handler、不可达的内联 `asyncio` 启动 helper 和共享媒体提交 helper 中的分离分支全部删除，不新增无业务规则的空壳 domain，不保留 facade、转发函数或第二套执行轨；项目 editor 鉴权、主节点错误上下文、路径越界和 `video source not found` 文案、`target_episode/target_beat` 独立可空语义、`freezone_audio_separate`/ffmpeg 队列/payload、项目级 task key、限流透传、503 日志与文案、请求路径、OpenAPI tag/说明、响应字段、纯音频/无声视频双产物路径与公开 URL、`pushable/slot_target` 元数据、结果查询和唯一 runner 均保持不变；视频上下文回归 53 项、大型 Freezone 回归 301 项、M06 完整合同 17 项、任务注册表 3 项和后端完整分层门禁 74 项均通过，4 条冷启动导入、Ruff 与 `git diff --check` 通过，8 条告警均为既有依赖弃用告警。
 
+第二百九十八批已将时间线合成的命令 DTO、轨道/媒体项校验、项目媒体解析、原生路径 payload 和 `freezone_video_compose` 任务提交并入 Creative Canvas video-processing domain/application，并将既有 POST 端点迁入 video FastAPI 子 router；轨道必填、媒体项存在、至少一个视频项和源裁剪区间规则成为唯一纯 domain 实现，application 仍按“轨道检查 -> 逐项区间检查与源文件解析 -> 媒体/视频项检查”的原顺序执行，既有 Freezone 合成任务同步复用区间和视频项规则并保留历史 RuntimeError 文案；旧 `freezone.py` handler、不可达的内联 `asyncio` 启动 helper、最后一个调用方消失的共享媒体提交 helper 和 video tag 全部删除，不保留 facade、转发函数、重复规则或第二套执行轨；项目 editor 鉴权、主节点错误上下文、400/404 校验优先级及文案、标题/画布/分辨率/帧率/背景色/原音开关/轨道 payload、`freezone_video_compose`/ffmpeg 队列、项目级 task key、限流透传、503 日志与文案、请求路径、OpenAPI tag/说明、响应字段、成片输出路径与公开 URL、结果查询和唯一 runner 均保持不变；视频处理与 runner 回归 61 项、大型 Freezone 回归 302 项、M06 完整合同 17 项、任务注册表 3 项和后端完整分层门禁 74 项均通过，4 条冷启动导入、Ruff 与 `git diff --check` 通过，8 条告警均为既有依赖弃用告警。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

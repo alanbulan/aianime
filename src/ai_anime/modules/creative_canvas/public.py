@@ -55,6 +55,8 @@ from ai_anime.modules.creative_canvas.application.task_submission import (
     CreativeCanvasTaskStartFailed,
 )
 from ai_anime.modules.creative_canvas.application.video_processing import (
+    CreativeCanvasVideoCompositionItem,
+    CreativeCanvasVideoCompositionTrack,
     CreativeCanvasVideoProcessingSourceMissing,
     CreativeCanvasVideoProcessingUseCases,
     InvalidCreativeCanvasVideoProcessingRequest,
@@ -62,6 +64,7 @@ from ai_anime.modules.creative_canvas.application.video_processing import (
     StartCreativeCanvasFrameExtractionCommand,
     StartCreativeCanvasShotAnalysisCommand,
     StartCreativeCanvasVideoEraseCommand,
+    StartCreativeCanvasVideoCompositionCommand,
     StartCreativeCanvasVideoUpscaleCommand,
     StartCreativeCanvasVideoStoryAnalysisCommand,
 )
@@ -116,6 +119,10 @@ from ai_anime.modules.creative_canvas.domain import (
     resolve_image_provider,
     summarize_omni_reference_counts,
     validate_omni_reference_limits,
+    validate_video_composition_media_item_count,
+    validate_video_composition_source_range,
+    validate_video_composition_track_count,
+    validate_video_composition_video_item_count,
     validate_video_erase_box,
 )
 
@@ -265,6 +272,8 @@ __all__ = [
     "CreativeCanvasVideoProcessingSourceMissing",
     "CreativeCanvasVideoProcessingUseCases",
     "CreativeCanvasVideoEraseMode",
+    "CreativeCanvasVideoCompositionItem",
+    "CreativeCanvasVideoCompositionTrack",
     "CreativeCanvasScreenshotResult",
     "CreativeCanvasScreenshotTooLarge",
     "CreativeCanvasUploadResult",
@@ -297,6 +306,7 @@ __all__ = [
     "StartCreativeCanvasOmniVideoCommand",
     "StartCreativeCanvasShotAnalysisCommand",
     "StartCreativeCanvasVideoEraseCommand",
+    "StartCreativeCanvasVideoCompositionCommand",
     "StartCreativeCanvasVideoUpscaleCommand",
     "StartCreativeCanvasTextVideoCommand",
     "StartCreativeCanvasVideoEditCommand",
@@ -333,5 +343,9 @@ __all__ = [
     "resolve_image_template_aspect_ratio",
     "summarize_omni_reference_counts",
     "validate_omni_reference_limits",
+    "validate_video_composition_media_item_count",
+    "validate_video_composition_source_range",
+    "validate_video_composition_track_count",
+    "validate_video_composition_video_item_count",
     "validate_video_erase_box",
 ]

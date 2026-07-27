@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Literal
 
 import pytest
 from fastapi import HTTPException
@@ -10,6 +12,7 @@ from ai_anime.api.routes.canvas import video as video_processing_routes
 from ai_anime.api.schemas import (
     FreezoneAudioSeparateRequest,
     FreezoneExtractFramesRequest,
+    FreezoneVideoComposeRequest,
     FreezoneVideoEraseRequest,
 )
 from ai_anime.modules.creative_canvas.application.task_submission import (
@@ -21,15 +24,19 @@ from ai_anime.modules.creative_canvas.application.video_processing import (
     CREATIVE_CANVAS_FRAME_EXTRACTION_TASK_TYPE,
     CREATIVE_CANVAS_SHOT_ANALYSIS_TASK_TYPE,
     CREATIVE_CANVAS_VIDEO_ERASE_TASK_TYPE,
+    CREATIVE_CANVAS_VIDEO_COMPOSITION_TASK_TYPE,
     CREATIVE_CANVAS_VIDEO_STORY_TASK_TYPE,
     CREATIVE_CANVAS_VIDEO_UPSCALE_TASK_TYPE,
     CreativeCanvasVideoProcessingSourceMissing,
     CreativeCanvasVideoProcessingUseCases,
+    CreativeCanvasVideoCompositionItem,
+    CreativeCanvasVideoCompositionTrack,
     InvalidCreativeCanvasVideoProcessingRequest,
     StartCreativeCanvasAudioSeparationCommand,
     StartCreativeCanvasFrameExtractionCommand,
     StartCreativeCanvasShotAnalysisCommand,
     StartCreativeCanvasVideoEraseCommand,
+    StartCreativeCanvasVideoCompositionCommand,
     StartCreativeCanvasVideoUpscaleCommand,
     StartCreativeCanvasVideoStoryAnalysisCommand,
 )
@@ -63,6 +70,51 @@ def _write_media(path: Path, contents: bytes = b"media") -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(contents)
     return path
+
+
+def _composition_item(
+    *,
+    source_url: str = "freezone/_uploads/clip.mp4",
+    source_start: float = 0.0,
+    source_end: float = 1.0,
+) -> CreativeCanvasVideoCompositionItem:
+    return CreativeCanvasVideoCompositionItem(
+        item_id="item-1",
+        source_url=source_url,
+        timeline_start=0.0,
+        source_start=source_start,
+        source_end=source_end,
+        volume=1.0,
+        muted=False,
+    )
+
+
+def _composition_track(
+    kind: Literal["video", "audio"],
+    items: tuple[CreativeCanvasVideoCompositionItem, ...],
+) -> CreativeCanvasVideoCompositionTrack:
+    return CreativeCanvasVideoCompositionTrack(
+        track_id=f"{kind}-track",
+        kind=kind,
+        items=items,
+    )
+
+
+def _composition_command(
+    context: ProjectContext,
+    tracks: tuple[CreativeCanvasVideoCompositionTrack, ...],
+) -> StartCreativeCanvasVideoCompositionCommand:
+    return StartCreativeCanvasVideoCompositionCommand(
+        context=context,
+        project_dir=context.output_dir,
+        title="",
+        canvas_id="",
+        resolution="1080p",
+        fps=30,
+        background_color="#000000",
+        keep_original_audio=True,
+        tracks=tracks,
+    )
 
 
 def _receipt(task_type: str, job_id: str) -> CreativeCanvasTaskReceipt:
@@ -108,6 +160,7 @@ async def test_video_processing_enqueues_exact_task_payloads(tmp_path: Path) -> 
     video = _write_media(project_dir / "freezone" / "_uploads" / "clip.mp4")
     frame_a = _write_media(project_dir / "freezone" / "_uploads" / "frame-a.png")
     frame_b = _write_media(project_dir / "freezone" / "_uploads" / "frame-b.png")
+    music = _write_media(project_dir / "freezone" / "_uploads" / "music.m4a")
     scheduler = _CapturingScheduler(context)
     use_cases = CreativeCanvasVideoProcessingUseCases(
         ProjectCreativeCanvasMediaSourceResolver(),
@@ -118,6 +171,7 @@ async def test_video_processing_enqueues_exact_task_payloads(tmp_path: Path) -> 
             "job-upscale",
             "job-erase",
             "job-audio",
+            "job-compose",
         ),
         scheduler,
     )
@@ -184,6 +238,50 @@ async def test_video_processing_enqueues_exact_task_payloads(tmp_path: Path) -> 
             target_beat=5,
         )
     )
+    compose = await use_cases.start_video_composition(
+        StartCreativeCanvasVideoCompositionCommand(
+            context=context,
+            project_dir=project_dir,
+            title="final cut",
+            canvas_id="canvas-1",
+            resolution="720p",
+            fps=24,
+            background_color="#101010",
+            keep_original_audio=False,
+            tracks=(
+                CreativeCanvasVideoCompositionTrack(
+                    track_id="video-track",
+                    kind="video",
+                    items=(
+                        CreativeCanvasVideoCompositionItem(
+                            item_id="video-item",
+                            source_url="freezone/_uploads/clip.mp4",
+                            timeline_start=0.5,
+                            source_start=1.0,
+                            source_end=3.5,
+                            volume=0.8,
+                            muted=True,
+                        ),
+                    ),
+                ),
+                CreativeCanvasVideoCompositionTrack(
+                    track_id="audio-track",
+                    kind="audio",
+                    items=(
+                        CreativeCanvasVideoCompositionItem(
+                            item_id="audio-item",
+                            source_url="freezone/_uploads/music.m4a",
+                            timeline_start=0.0,
+                            source_start=0.0,
+                            source_end=4.0,
+                            volume=1.2,
+                            muted=False,
+                        ),
+                    ),
+                ),
+            ),
+        )
+    )
 
     assert extract == _receipt(CREATIVE_CANVAS_FRAME_EXTRACTION_TASK_TYPE, "job-extract")
     assert analyze == _receipt(CREATIVE_CANVAS_SHOT_ANALYSIS_TASK_TYPE, "job-analyze")
@@ -191,6 +289,7 @@ async def test_video_processing_enqueues_exact_task_payloads(tmp_path: Path) -> 
     assert upscale == _receipt(CREATIVE_CANVAS_VIDEO_UPSCALE_TASK_TYPE, "job-upscale")
     assert erase == _receipt(CREATIVE_CANVAS_VIDEO_ERASE_TASK_TYPE, "job-erase")
     assert separate == _receipt(CREATIVE_CANVAS_AUDIO_SEPARATION_TASK_TYPE, "job-audio")
+    assert compose == _receipt(CREATIVE_CANVAS_VIDEO_COMPOSITION_TASK_TYPE, "job-compose")
     assert scheduler.tasks == [
         CreativeCanvasTaskSubmission(
             task_type=CREATIVE_CANVAS_FRAME_EXTRACTION_TASK_TYPE,
@@ -261,6 +360,54 @@ async def test_video_processing_enqueues_exact_task_payloads(tmp_path: Path) -> 
                 "source_path": video.as_posix(),
                 "target_episode": 3,
                 "target_beat": 5,
+            },
+        ),
+        CreativeCanvasTaskSubmission(
+            task_type=CREATIVE_CANVAS_VIDEO_COMPOSITION_TASK_TYPE,
+            queue_kind="ffmpeg",
+            job_id="job-compose",
+            project_dir=project_dir,
+            payload={
+                "title": "final cut",
+                "canvas_id": "canvas-1",
+                "resolution": "720p",
+                "fps": 24,
+                "background_color": "#101010",
+                "keep_original_audio": False,
+                "tracks": [
+                    {
+                        "track_id": "video-track",
+                        "kind": "video",
+                        "items": [
+                            {
+                                "item_id": "video-item",
+                                "source_url": "freezone/_uploads/clip.mp4",
+                                "timeline_start": 0.5,
+                                "source_start": 1.0,
+                                "source_end": 3.5,
+                                "volume": 0.8,
+                                "muted": True,
+                                "source_path": str(video),
+                            }
+                        ],
+                    },
+                    {
+                        "track_id": "audio-track",
+                        "kind": "audio",
+                        "items": [
+                            {
+                                "item_id": "audio-item",
+                                "source_url": "freezone/_uploads/music.m4a",
+                                "timeline_start": 0.0,
+                                "source_start": 0.0,
+                                "source_end": 4.0,
+                                "volume": 1.2,
+                                "muted": False,
+                                "source_path": str(music),
+                            }
+                        ],
+                    },
+                ],
             },
         ),
     ]
@@ -349,6 +496,18 @@ async def test_video_processing_preserves_source_error_contracts(tmp_path: Path)
     assert audio_exc.value.field_name == "video source"
 
     with pytest.raises(
+        CreativeCanvasVideoProcessingSourceMissing,
+        match="compose source not found: ",
+    ) as compose_exc:
+        await use_cases.start_video_composition(
+            _composition_command(
+                context,
+                (_composition_track("video", (_composition_item(),)),),
+            )
+        )
+    assert compose_exc.value.field_name == "compose source"
+
+    with pytest.raises(
         InvalidCreativeCanvasVideoProcessingRequest,
         match=r"frame_urls is required \(non-empty\)",
     ):
@@ -414,6 +573,63 @@ async def test_video_erase_requires_complete_box(
                 mode="box",
                 **box,
             )
+        )
+
+    assert scheduler.tasks == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("tracks", "source_exists", "detail"),
+    [
+        ((), False, "tracks is required"),
+        (
+            (_composition_track("video", ()),),
+            False,
+            "tracks must contain at least one media item",
+        ),
+        (
+            (_composition_track("audio", (_composition_item(),)),),
+            True,
+            "video compose requires at least one video item",
+        ),
+        (
+            (
+                _composition_track(
+                    "video",
+                    (_composition_item(source_start=1.0, source_end=1.0),),
+                ),
+            ),
+            False,
+            (
+                "compose item item-1 has invalid source range: "
+                "source_end must be > source_start"
+            ),
+        ),
+    ],
+)
+async def test_video_composition_preserves_validation_contracts(
+    tmp_path: Path,
+    tracks: tuple[CreativeCanvasVideoCompositionTrack, ...],
+    source_exists: bool,
+    detail: str,
+) -> None:
+    context = _project_context(tmp_path)
+    if source_exists:
+        _write_media(context.output_dir / "freezone" / "_uploads" / "clip.mp4")
+    scheduler = _CapturingScheduler(context)
+    use_cases = CreativeCanvasVideoProcessingUseCases(
+        ProjectCreativeCanvasMediaSourceResolver(),
+        _FixedJobIds("unused"),
+        scheduler,
+    )
+
+    with pytest.raises(
+        InvalidCreativeCanvasVideoProcessingRequest,
+        match=f"^{re.escape(detail)}$",
+    ):
+        await use_cases.start_video_composition(
+            _composition_command(context, tracks)
         )
 
     assert scheduler.tasks == []
@@ -509,19 +725,48 @@ async def test_video_processing_route_preserves_runtime_error(
         )
 
 
+_VIDEO_PROCESSING_ROUTE_FAILURE_CASES = (
+    (
+        "start_video_erase",
+        video_processing_routes.freezone_video_erase,
+        FreezoneVideoEraseRequest(source_url="video.mp4"),
+        "failed to start freezone video erase task",
+    ),
+    (
+        "start_audio_separation",
+        video_processing_routes.freezone_audio_separate,
+        FreezoneAudioSeparateRequest(source_url="video.mp4"),
+        "failed to start freezone audio separate task",
+    ),
+    (
+        "start_video_composition",
+        video_processing_routes.freezone_video_compose,
+        FreezoneVideoComposeRequest(),
+        "failed to start freezone video compose task",
+    ),
+)
+
+
 @pytest.mark.asyncio
-async def test_video_erase_route_maps_runtime_error(
+@pytest.mark.parametrize(
+    ("method_name", "handler", "body", "failure_message"),
+    _VIDEO_PROCESSING_ROUTE_FAILURE_CASES,
+)
+async def test_video_processing_job_route_maps_runtime_error(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    method_name: str,
+    handler,
+    body,
+    failure_message: str,
 ) -> None:
     context = _project_context(tmp_path)
 
     async def fake_resolve_project_scope(*_args, **_kwargs):
         return SimpleNamespace(ctx=context, project_dir=context.output_dir)
 
-    class FailingUseCases:
-        async def start_video_erase(self, _command):
-            raise RuntimeError("ffmpeg queue unavailable")
+    async def fail(_command):
+        raise RuntimeError("ffmpeg queue unavailable")
 
     monkeypatch.setattr(
         video_processing_routes,
@@ -531,26 +776,32 @@ async def test_video_erase_route_maps_runtime_error(
     monkeypatch.setattr(
         video_processing_routes,
         "creative_canvas_video_processing_use_cases",
-        lambda: FailingUseCases(),
+        lambda: SimpleNamespace(**{method_name: fail}),
     )
 
     with pytest.raises(HTTPException) as exc:
-        await video_processing_routes.freezone_video_erase(
+        await handler(
             project="project-1",
-            body=FreezoneVideoEraseRequest(source_url="video.mp4"),
+            body=body,
             user={"username": "alice"},
         )
 
     assert exc.value.status_code == 503
-    assert exc.value.detail == (
-        "failed to start freezone video erase task: ffmpeg queue unavailable"
-    )
+    assert exc.value.detail == f"{failure_message}: ffmpeg queue unavailable"
 
 
 @pytest.mark.asyncio
-async def test_video_erase_route_preserves_task_limit(
+@pytest.mark.parametrize(
+    ("method_name", "handler", "body", "_failure_message"),
+    _VIDEO_PROCESSING_ROUTE_FAILURE_CASES,
+)
+async def test_video_processing_job_route_preserves_task_limit(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    method_name: str,
+    handler,
+    body,
+    _failure_message: str,
 ) -> None:
     context = _project_context(tmp_path)
     limit = ProjectTaskLimitExceeded("project-1", "ffmpeg", 2, 2)
@@ -558,9 +809,8 @@ async def test_video_erase_route_preserves_task_limit(
     async def fake_resolve_project_scope(*_args, **_kwargs):
         return SimpleNamespace(ctx=context, project_dir=context.output_dir)
 
-    class FailingUseCases:
-        async def start_video_erase(self, _command):
-            raise limit
+    async def fail(_command):
+        raise limit
 
     monkeypatch.setattr(
         video_processing_routes,
@@ -570,87 +820,13 @@ async def test_video_erase_route_preserves_task_limit(
     monkeypatch.setattr(
         video_processing_routes,
         "creative_canvas_video_processing_use_cases",
-        lambda: FailingUseCases(),
+        lambda: SimpleNamespace(**{method_name: fail}),
     )
 
     with pytest.raises(ProjectTaskLimitExceeded) as exc:
-        await video_processing_routes.freezone_video_erase(
+        await handler(
             project="project-1",
-            body=FreezoneVideoEraseRequest(source_url="video.mp4"),
-            user={"username": "alice"},
-        )
-
-    assert exc.value is limit
-
-
-@pytest.mark.asyncio
-async def test_audio_separation_route_maps_runtime_error(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    context = _project_context(tmp_path)
-
-    async def fake_resolve_project_scope(*_args, **_kwargs):
-        return SimpleNamespace(ctx=context, project_dir=context.output_dir)
-
-    class FailingUseCases:
-        async def start_audio_separation(self, _command):
-            raise RuntimeError("ffmpeg queue unavailable")
-
-    monkeypatch.setattr(
-        video_processing_routes,
-        "resolve_project_scope",
-        fake_resolve_project_scope,
-    )
-    monkeypatch.setattr(
-        video_processing_routes,
-        "creative_canvas_video_processing_use_cases",
-        lambda: FailingUseCases(),
-    )
-
-    with pytest.raises(HTTPException) as exc:
-        await video_processing_routes.freezone_audio_separate(
-            project="project-1",
-            body=FreezoneAudioSeparateRequest(source_url="video.mp4"),
-            user={"username": "alice"},
-        )
-
-    assert exc.value.status_code == 503
-    assert exc.value.detail == (
-        "failed to start freezone audio separate task: ffmpeg queue unavailable"
-    )
-
-
-@pytest.mark.asyncio
-async def test_audio_separation_route_preserves_task_limit(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    context = _project_context(tmp_path)
-    limit = ProjectTaskLimitExceeded("project-1", "ffmpeg", 2, 2)
-
-    async def fake_resolve_project_scope(*_args, **_kwargs):
-        return SimpleNamespace(ctx=context, project_dir=context.output_dir)
-
-    class FailingUseCases:
-        async def start_audio_separation(self, _command):
-            raise limit
-
-    monkeypatch.setattr(
-        video_processing_routes,
-        "resolve_project_scope",
-        fake_resolve_project_scope,
-    )
-    monkeypatch.setattr(
-        video_processing_routes,
-        "creative_canvas_video_processing_use_cases",
-        lambda: FailingUseCases(),
-    )
-
-    with pytest.raises(ProjectTaskLimitExceeded) as exc:
-        await video_processing_routes.freezone_audio_separate(
-            project="project-1",
-            body=FreezoneAudioSeparateRequest(source_url="video.mp4"),
+            body=body,
             user={"username": "alice"},
         )
 
