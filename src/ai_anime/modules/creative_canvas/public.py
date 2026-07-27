@@ -1,5 +1,9 @@
 """Stable application API exposed by Creative Canvas."""
 
+from collections.abc import Mapping
+from pathlib import Path
+from typing import Any
+
 from ai_anime.modules.creative_canvas.application.audio_generation import (
     CreativeCanvasAudioGenerationUseCases,
     InvalidCreativeCanvasAudioGenerationRequest,
@@ -31,6 +35,10 @@ from ai_anime.modules.creative_canvas.application.canvas_documents import (
     ListCreativeCanvasDocumentsQuery,
     ListCreativeCanvasGenerationHistoryQuery,
     ListCreativeCanvasNodeGenerationHistoryQuery,
+)
+from ai_anime.modules.creative_canvas.application.canvas_events import (
+    CreativeCanvasEventRecorder,
+    RecordCreativeCanvasEventCommand,
 )
 from ai_anime.modules.creative_canvas.application.generation_catalog import (
     GenerationCatalogQueries,
@@ -128,6 +136,7 @@ from ai_anime.modules.creative_canvas.domain import (
     SUPPORTED_CREATIVE_CANVAS_IMAGE_PROVIDERS,
     CreativeCanvasImageCameraConfig,
     CreativeCanvasImageStyleConfig,
+    CreativeCanvasEventActor,
     CreativeCanvasMarkSelection,
     CreativeCanvasScreenshotTooLarge,
     CreativeCanvasVideoEraseMode,
@@ -136,6 +145,7 @@ from ai_anime.modules.creative_canvas.domain import (
     UnsupportedCreativeCanvasImageProvider,
     InvalidCreativeCanvasPngScreenshot,
     canvas_actor_id,
+    canvas_event_actor,
     build_image_multi_view_prompt,
     build_image_relight_prompt,
     build_image_template_edit_prompt,
@@ -180,6 +190,35 @@ def creative_canvas_document_queries() -> CreativeCanvasDocumentQueries:
     )
 
     return build()
+
+
+def creative_canvas_event_recorder() -> CreativeCanvasEventRecorder:
+    from ai_anime.modules.creative_canvas.composition import (
+        creative_canvas_event_recorder as build,
+    )
+
+    return build()
+
+
+def record_creative_canvas_event(
+    *,
+    project_dir: Path,
+    project_id: str,
+    canvas_id: str | None,
+    event_type: str,
+    actor: CreativeCanvasEventActor,
+    payload: Mapping[str, Any],
+) -> None:
+    creative_canvas_event_recorder().record(
+        RecordCreativeCanvasEventCommand(
+            project_dir=project_dir,
+            project_id=project_id,
+            canvas_id=canvas_id,
+            event_type=event_type,
+            actor=actor,
+            payload=payload,
+        )
+    )
 
 
 def generation_catalog_queries() -> GenerationCatalogQueries:
@@ -320,6 +359,8 @@ __all__ = [
     "CreativeCanvasDocumentBusy",
     "CreativeCanvasDocumentCorrupt",
     "CreativeCanvasDocumentQueries",
+    "CreativeCanvasEventActor",
+    "CreativeCanvasEventRecorder",
     "CreativeCanvasImageToThreeGsResult",
     "CreativeCanvasImageToThreeGsSourceMissing",
     "CreativeCanvasImageToThreeGsUseCases",
@@ -384,6 +425,7 @@ __all__ = [
     "ListCreativeCanvasDocumentsQuery",
     "ListCreativeCanvasGenerationHistoryQuery",
     "ListCreativeCanvasNodeGenerationHistoryQuery",
+    "RecordCreativeCanvasEventCommand",
     "SaveCreativeCanvasScreenshotCommand",
     "StoreCreativeCanvasUploadCommand",
     "StartCreativeCanvasMusicGenerationCommand",
@@ -410,6 +452,7 @@ __all__ = [
     "AddCreativeCanvasVideoAssetCommand",
     "SyncCreativeCanvasVideoAssetsCommand",
     "canvas_actor_id",
+    "canvas_event_actor",
     "build_image_multi_view_prompt",
     "build_image_relight_prompt",
     "build_image_template_edit_prompt",
@@ -421,6 +464,7 @@ __all__ = [
     "creative_canvas_audio_library_use_cases",
     "creative_canvas_bootstrap_use_cases",
     "creative_canvas_document_queries",
+    "creative_canvas_event_recorder",
     "creative_canvas_mark_detection_use_cases",
     "creative_canvas_image_to_three_gs_use_cases",
     "creative_canvas_image_editing_use_cases",
@@ -445,6 +489,7 @@ __all__ = [
     "resolve_original_image_aspect_ratio",
     "resolve_image_provider",
     "resolve_image_template_aspect_ratio",
+    "record_creative_canvas_event",
     "summarize_omni_reference_counts",
     "stamp_canvas_mainline_context_project_id",
     "sync_frame_context_reference_edges",

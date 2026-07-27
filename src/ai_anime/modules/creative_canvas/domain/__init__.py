@@ -11,6 +11,10 @@ from ai_anime.modules.creative_canvas.domain.canvas_documents import (
     stamp_canvas_mainline_context_project_id,
     sync_frame_context_reference_edges,
 )
+from ai_anime.modules.creative_canvas.domain.canvas_events import (
+    CreativeCanvasEventActor,
+    canvas_event_actor,
+)
 from ai_anime.modules.creative_canvas.domain.image_to_3gs import (
     CreativeCanvasImageToThreeGsPlan,
     CreativeCanvasImageToThreeGsSourceKind,
@@ -85,6 +89,7 @@ __all__ = [
     "CreativeCanvasImageToThreeGsSourceKind",
     "CreativeCanvasImageCameraConfig",
     "CreativeCanvasImageStyleConfig",
+    "CreativeCanvasEventActor",
     "SUPPORTED_CREATIVE_CANVAS_IMAGE_PROVIDERS",
     "CreativeCanvasScreenshotTooLarge",
     "CreativeCanvasMarkSelection",
@@ -108,6 +113,7 @@ __all__ = [
     "build_freezone_omni_video_prompt",
     "build_freezone_video_prompt",
     "canvas_actor_id",
+    "canvas_event_actor",
     "decode_png_screenshot",
     "detected_reference_ids_from_beat_context_data",
     "first_text_value",

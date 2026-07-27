@@ -1002,6 +1002,64 @@ def test_freezone_canvas_document_queries_delegate_to_application() -> None:
     assert "ai_anime.api" not in adapter_source
 
 
+def test_freezone_canvas_events_delegate_to_application() -> None:
+    legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    domain = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "domain"
+        / "canvas_events.py"
+    )
+    application = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "application"
+        / "canvas_events.py"
+    )
+    adapter = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "infrastructure"
+        / "canvas_events.py"
+    )
+    composition = PACKAGE_ROOT / "modules" / "creative_canvas" / "composition.py"
+    public = PACKAGE_ROOT / "modules" / "creative_canvas" / "public.py"
+    legacy_source = legacy_route.read_text(encoding="utf-8")
+    domain_source = domain.read_text(encoding="utf-8")
+    application_source = application.read_text(encoding="utf-8")
+    adapter_source = adapter.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+
+    assert legacy_source.count("record_creative_canvas_event(") == 16
+    assert legacy_source.count("canvas_event_actor(user)") == 16
+    for legacy_implementation in (
+        "CANVAS_EVENT_SCHEMA_VERSION",
+        "def _canvas_events_dir(",
+        "def _canvas_event_log_path(",
+        "def _canvas_event_actor(",
+        "def _append_canvas_event(",
+        'freezone_root(project_dir) / "_canvas_events"',
+    ):
+        assert legacy_implementation not in legacy_source
+
+    assert "class CreativeCanvasEventActor" in domain_source
+    assert "def canvas_event_actor(" in domain_source
+    assert "class CreativeCanvasEventRecorder" in application_source
+    assert "class LocalCreativeCanvasEventWriter" in adapter_source
+    assert "LocalCreativeCanvasEventWriter()" in composition_source
+    assert "def record_creative_canvas_event(" in public_source
+    assert "fastapi" not in domain_source
+    assert "ai_anime.freezone" not in domain_source
+    assert "fastapi" not in application_source
+    assert "ai_anime.api" not in application_source
+    assert "fastapi" not in adapter_source
+    assert "ai_anime.api" not in adapter_source
+
+
 def test_freezone_text_processing_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "text.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"

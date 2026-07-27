@@ -30,7 +30,11 @@ def projection_client(monkeypatch, tmp_path):
         return ctx, "alice", "demo", project_dir, str(project_dir)
 
     monkeypatch.setattr(freezone, "_resolve_freezone_project", fake_resolve)
-    monkeypatch.setattr(freezone, "_append_canvas_event", lambda **_kwargs: None)
+    monkeypatch.setattr(
+        freezone,
+        "record_creative_canvas_event",
+        lambda **_kwargs: None,
+    )
 
     app = FastAPI()
     app.include_router(freezone.router, prefix="/api/v1")

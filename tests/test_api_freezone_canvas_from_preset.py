@@ -44,7 +44,11 @@ def preset_client(monkeypatch, tmp_path):
     # Event append touches additional state we don't care about here; the
     # preset endpoint calls it after every success and conflict, so a stub
     # keeps the test focused on the canvas file itself.
-    monkeypatch.setattr(freezone, "_append_canvas_event", lambda **_kwargs: None)
+    monkeypatch.setattr(
+        freezone,
+        "record_creative_canvas_event",
+        lambda **_kwargs: None,
+    )
 
     app = FastAPI()
     app.include_router(freezone.router, prefix="/api/v1")

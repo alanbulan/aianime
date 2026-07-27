@@ -13,7 +13,6 @@ import logging
 import os
 import re
 import shutil
-import uuid
 from pathlib import Path
 from typing import Any, Awaitable, Callable, Literal, Optional
 from urllib.parse import quote, unquote, urlencode, urlsplit
@@ -55,11 +54,13 @@ from ai_anime.modules.creative_canvas.public import (
     InvalidCreativeCanvasImageGenerationRequest,
     StartCreativeCanvasImageGenerationCommand,
     canvas_actor_id,
+    canvas_event_actor,
     creative_canvas_image_generation_use_cases,
     detected_reference_ids_from_beat_context_data,
     first_text_value,
     is_preset_managed_canvas_node,
     merge_restored_preset_canvas,
+    record_creative_canvas_event,
     stamp_canvas_mainline_context_project_id,
     sync_frame_context_reference_edges,
 )
@@ -1533,57 +1534,11 @@ TAG_FREEZONE_COMMIT = "freezone-commit"
 TAG_FREEZONE_JOBS = "freezone-jobs"
 TAG_FREEZONE_SKILLS = "freezone-skills"
 
-CANVAS_EVENT_SCHEMA_VERSION = "canvas_event.v1"
 MAINLINE_SKETCH_IMAGE_SIZE = "1K"
 MAINLINE_SKETCH_IMAGE_QUALITY = "low"
 MAINLINE_FRAME_IMAGE_SIZE = "1K"
 MAINLINE_SCENE_360_IMAGE_SIZE = "2K"
 _SKILL_RUN_ID_RE = re.compile(r"^[a-zA-Z0-9_.:\-]{1,128}$")
-
-
-def _canvas_events_dir(project_dir: Path) -> Path:
-    return freezone_root(project_dir) / "_canvas_events"
-
-
-def _canvas_event_log_path(project_dir: Path, canvas_id: str | None) -> Path:
-    event_canvas_id = (canvas_id or "").strip() or "_project"
-    if not CANVAS_ID_RE.match(event_canvas_id):
-        digest = hashlib.sha256(event_canvas_id.encode("utf-8")).hexdigest()[:16]
-        event_canvas_id = f"canvas_{digest}"
-    return _canvas_events_dir(project_dir) / f"{event_canvas_id}.jsonl"
-
-
-def _canvas_event_actor(user: dict) -> dict:
-    return {
-        "kind": "user",
-        "id": str(user.get("id") or user.get("username") or "unknown"),
-        "username": str(user.get("username") or ""),
-    }
-
-
-def _append_canvas_event(
-    *,
-    project_dir: Path,
-    project_id: str,
-    canvas_id: str | None,
-    event_type: str,
-    actor: dict,
-    payload: dict,
-) -> None:
-    path = _canvas_event_log_path(project_dir, canvas_id)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    record = {
-        "schema_version": CANVAS_EVENT_SCHEMA_VERSION,
-        "event_id": uuid.uuid4().hex,
-        "project_id": project_id,
-        "canvas_id": (canvas_id or "").strip() or "_project",
-        "event_type": event_type,
-        "actor": actor,
-        "created_at": canvas_store.utc_now_iso(),
-        "payload": payload,
-    }
-    with path.open("a", encoding="utf-8") as fh:
-        fh.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
 
 
 def _skill_runs_dir(project_dir: Path) -> Path:
@@ -2643,12 +2598,12 @@ async def _run_set_selected_background_skill(
         },
     )
     response = SkillRunResponse(run_id=run_id, status="completed")
-    _append_canvas_event(
+    record_creative_canvas_event(
         project_dir=project_dir,
         project_id=project,
         canvas_id=body.canvas_id,
         event_type="skill.run_completed",
-        actor=_canvas_event_actor(user),
+        actor=canvas_event_actor(user),
         payload={
             "skill_id": skill.id,
             "skill_node_id": body.skill_node_id,
@@ -2777,12 +2732,12 @@ async def _run_set_director_combined_skill(
         },
     )
     response = SkillRunResponse(run_id=run_id, status="completed")
-    _append_canvas_event(
+    record_creative_canvas_event(
         project_dir=project_dir,
         project_id=project,
         canvas_id=body.canvas_id,
         event_type="skill.run_completed",
-        actor=_canvas_event_actor(user),
+        actor=canvas_event_actor(user),
         payload={
             "skill_id": skill.id,
             "skill_node_id": body.skill_node_id,
@@ -2892,12 +2847,12 @@ async def _finalize_skill_run_outputs(
                 item["backup"] = str(backup) if backup else None
                 item["image_adaptation"] = image_adaptation
                 changed = True
-                _append_canvas_event(
+                record_creative_canvas_event(
                     project_dir=project_dir,
                     project_id=project,
                     canvas_id=metadata.get("canvas_id"),
                     event_type="skill.output_committed",
-                    actor=_canvas_event_actor(user),
+                    actor=canvas_event_actor(user),
                     payload={
                         "skill_id": metadata.get("skill_id"),
                         "skill_node_id": metadata.get("skill_node_id"),
@@ -2923,12 +2878,12 @@ async def _finalize_skill_run_outputs(
         metadata["status"] = "completed"
         metadata["outputs"] = finalized
         _write_skill_run_metadata(project_dir, str(metadata.get("run_id") or ""), metadata)
-        _append_canvas_event(
+        record_creative_canvas_event(
             project_dir=project_dir,
             project_id=project,
             canvas_id=metadata.get("canvas_id"),
             event_type="skill.run_completed",
-            actor=_canvas_event_actor(user),
+            actor=canvas_event_actor(user),
             payload={
                 "skill_id": metadata.get("skill_id"),
                 "skill_node_id": metadata.get("skill_node_id"),
@@ -3550,12 +3505,12 @@ async def freezone_skill_run(
             },
         )
         response = SkillRunResponse(run_id=run_id, status="completed")
-        _append_canvas_event(
+        record_creative_canvas_event(
             project_dir=project_dir,
             project_id=project,
             canvas_id=body.canvas_id,
             event_type="skill.run_completed",
-            actor=_canvas_event_actor(user),
+            actor=canvas_event_actor(user),
             payload={
                 "skill_id": skill_id,
                 "skill_node_id": body.skill_node_id,
@@ -3628,12 +3583,12 @@ async def freezone_skill_run(
         task_type=task_type,
         job_id=job_id,
     )
-    _append_canvas_event(
+    record_creative_canvas_event(
         project_dir=project_dir,
         project_id=project,
         canvas_id=body.canvas_id,
         event_type="skill.run_requested",
-        actor=_canvas_event_actor(user),
+        actor=canvas_event_actor(user),
         payload={
             "skill_id": skill_id,
             "skill_node_id": body.skill_node_id,
@@ -5376,12 +5331,12 @@ async def create_canvas_from_preset(
         canvas_store.CanvasBaseRevisionRequired,
         canvas_store.CanvasRevisionConflict,
     ) as exc:
-        _append_canvas_event(
+        record_creative_canvas_event(
             project_dir=canvas_project_dir,
             project_id=project,
             canvas_id=canvas_id,
             event_type="canvas.preset_refresh.conflict",
-            actor=_canvas_event_actor(user),
+            actor=canvas_event_actor(user),
             payload={
                 "scope": body.scope,
                 "preset_key": preset_key,
@@ -5393,12 +5348,12 @@ async def create_canvas_from_preset(
     except (canvas_store.CanvasStoreError, CanvasLockBusy) as exc:
         _raise_canvas_store_http(exc)
     payload = saved_canvas.payload
-    _append_canvas_event(
+    record_creative_canvas_event(
         project_dir=canvas_project_dir,
         project_id=project,
         canvas_id=canvas_id,
         event_type="canvas.preset_emitted",
-        actor=_canvas_event_actor(user),
+        actor=canvas_event_actor(user),
         payload={
             "scope": body.scope,
             "preset_key": preset_key,
@@ -5563,12 +5518,12 @@ async def project_canvas_from_preset(
         canvas_store.CanvasBaseRevisionRequired,
         canvas_store.CanvasRevisionConflict,
     ) as exc:
-        _append_canvas_event(
+        record_creative_canvas_event(
             project_dir=canvas_project_dir,
             project_id=project,
             canvas_id=canvas_id,
             event_type="canvas.projection_refresh.conflict",
-            actor=_canvas_event_actor(user),
+            actor=canvas_event_actor(user),
             payload={
                 "scope": body.scope,
                 "preset_key": preset_key,
@@ -5588,12 +5543,12 @@ async def project_canvas_from_preset(
     revision = payload.get("revision")
     no_op = response_cache.get("noop_reason") == "projection_facts_unchanged"
     saved = response_cache.get("saved")
-    _append_canvas_event(
+    record_creative_canvas_event(
         project_dir=canvas_project_dir,
         project_id=project,
         canvas_id=canvas_id,
         event_type="canvas.projection_emitted",
-        actor=_canvas_event_actor(user),
+        actor=canvas_event_actor(user),
         payload={
             "scope": body.scope,
             "preset_key": preset_key,
@@ -5701,12 +5656,12 @@ async def remove_canvas_projection(
         canvas_store.CanvasBaseRevisionRequired,
         canvas_store.CanvasRevisionConflict,
     ) as exc:
-        _append_canvas_event(
+        record_creative_canvas_event(
             project_dir=canvas_project_dir,
             project_id=project,
             canvas_id=canvas_id,
             event_type="canvas.projection_remove.conflict",
-            actor=_canvas_event_actor(user),
+            actor=canvas_event_actor(user),
             payload={
                 "projection_key": body.projection_key,
                 "base_revision": body.base_revision,
@@ -5723,12 +5678,12 @@ async def remove_canvas_projection(
     )
     revision = payload.get("revision")
     no_op = response_cache.get("noop_reason") == "projection_missing"
-    _append_canvas_event(
+    record_creative_canvas_event(
         project_dir=canvas_project_dir,
         project_id=project,
         canvas_id=canvas_id,
         event_type="canvas.projection_removed",
-        actor=_canvas_event_actor(user),
+        actor=canvas_event_actor(user),
         payload={
             "projection_key": body.projection_key,
             "revision": revision,
@@ -5901,12 +5856,12 @@ async def restore_canvas_history(
         _raise_canvas_store_http(exc)
     payload = restored_canvas.payload
     restored_from_revision = restored_canvas.history_payload.get("revision")
-    _append_canvas_event(
+    record_creative_canvas_event(
         project_dir=canvas_project_dir,
         project_id=project,
         canvas_id=canvas_id,
         event_type="canvas.restored",
-        actor=_canvas_event_actor(user),
+        actor=canvas_event_actor(user),
         payload={
             "revision": payload.get("revision"),
             "base_revision": base_revision,
@@ -5975,12 +5930,12 @@ async def put_canvas(
         _raise_canvas_store_http(exc)
     payload = saved_canvas.payload
     if not saved_canvas.idempotent:
-        _append_canvas_event(
+        record_creative_canvas_event(
             project_dir=canvas_project_dir,
             project_id=project,
             canvas_id=canvas_id,
             event_type="canvas.saved",
-            actor=_canvas_event_actor(user),
+            actor=canvas_event_actor(user),
             payload={
                 "revision": payload.get("revision"),
                 "base_revision": body.base_revision,
@@ -6020,12 +5975,12 @@ async def delete_canvas(project: str, canvas_id: str, user: dict = Depends(get_a
     except (canvas_store.CanvasStoreError, CanvasLockBusy) as exc:
         _raise_canvas_store_http(exc)
     existing = deleted_canvas.existing
-    _append_canvas_event(
+    record_creative_canvas_event(
         project_dir=canvas_project_dir,
         project_id=project,
         canvas_id=canvas_id,
         event_type="canvas.deleted",
-        actor=_canvas_event_actor(user),
+        actor=canvas_event_actor(user),
         payload={
             "revision": existing.get("revision") if isinstance(existing, dict) else None,
             "deleted_path": canvas_store.relative_project_path(
@@ -6970,12 +6925,12 @@ async def freezone_push(project: str, body: PushRequest, user: dict = Depends(ge
             logger.warning("identity cognee sync best-effort failed: %s", exc)
 
     rel = target.relative_to(project_dir).as_posix()
-    _append_canvas_event(
+    record_creative_canvas_event(
         project_dir=project_dir,
         project_id=project,
         canvas_id=None,
         event_type="canvas.push_committed",
-        actor=_canvas_event_actor(user),
+        actor=canvas_event_actor(user),
         payload={
             "source_url": body.source_url,
             "target": body.target.model_dump(mode="json"),
