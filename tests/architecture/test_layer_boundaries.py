@@ -499,6 +499,101 @@ def test_freezone_job_result_route_delegates_to_application() -> None:
     assert "ai_anime.api" not in adapter_source
 
 
+def test_freezone_mainline_generation_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "skills.py"
+    legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    application = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "application"
+        / "mainline_generation.py"
+    )
+    domain = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "domain"
+        / "mainline_generation.py"
+    )
+    adapter = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "infrastructure"
+        / "mainline_generation.py"
+    )
+    composition = PACKAGE_ROOT / "modules" / "creative_canvas" / "composition.py"
+    public = PACKAGE_ROOT / "modules" / "creative_canvas" / "public.py"
+    route_helpers = PACKAGE_ROOT / "freezone" / "route_helpers.py"
+
+    route_source = route.read_text(encoding="utf-8")
+    legacy_source = legacy_route.read_text(encoding="utf-8")
+    application_source = application.read_text(encoding="utf-8")
+    domain_source = domain.read_text(encoding="utf-8")
+    adapter_source = adapter.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+    helper_source = route_helpers.read_text(encoding="utf-8")
+
+    for handler_name in (
+        "freezone_sketch_from_context",
+        "freezone_frame_from_context",
+        "freezone_scene_360",
+    ):
+        assert f"async def {handler_name}(" in route_source
+        assert f"async def {handler_name}(" not in legacy_source
+    for path in (
+        '"/projects/{project}/freezone/sketch-from-context"',
+        '"/projects/{project}/freezone/frame-from-context"',
+        '"/projects/{project}/freezone/scene-360"',
+    ):
+        assert path in route_source
+        assert path not in legacy_source
+    assert "class CreativeCanvasMainlineGenerationUseCases" in application_source
+    assert "class LocalCreativeCanvasMainlineGenerationConfigSource" in adapter_source
+    assert "def creative_canvas_mainline_generation_use_cases(" in composition_source
+    assert "def creative_canvas_mainline_generation_use_cases(" in public_source
+    assert "creative_canvas_mainline_generation_use_cases().start_" in legacy_source
+
+    for legacy_implementation in (
+        "def _load_freezone_beat_context(",
+        "def _mainline_single_beat_config(",
+        "def _start_or_enqueue_mainline_sketch_from_context_job(",
+        "def _start_or_enqueue_mainline_frame_from_context_job(",
+        "def _start_or_enqueue_standalone_frame_from_context_job(",
+        "def _start_or_enqueue_mainline_director_control_sketch_job(",
+        "def _start_or_enqueue_mainline_beat_sketch_task(",
+        "def _start_or_enqueue_mainline_scene_360_task(",
+        "def _project_job_response(",
+        "get_task_backend",
+    ):
+        assert legacy_implementation not in legacy_source
+    for moved_rule in (
+        "def infer_scene_id_from_master_path(",
+        "def build_scene_360_prompt(",
+    ):
+        assert moved_rule in domain_source
+        assert moved_rule not in helper_source
+    for route_implementation_detail in (
+        "make_sqlite_store_for_context",
+        "enqueue_project_task",
+        "production_generation_context_use_cases",
+        "load_project_config",
+        "outputs_dir",
+    ):
+        assert route_implementation_detail not in route_source
+
+    assert "fastapi" not in application_source
+    assert "ai_anime.api" not in application_source
+    assert "ai_anime.freezone" not in application_source
+    assert "fastapi" not in domain_source
+    assert "ai_anime.api" not in domain_source
+    assert "ai_anime.freezone" not in domain_source
+    assert "fastapi" not in adapter_source
+    assert "ai_anime.api" not in adapter_source
+
+
 def test_freezone_generation_catalog_routes_delegate_to_application() -> None:
     image_route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "image.py"
     video_route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "video.py"
@@ -2752,11 +2847,20 @@ def test_production_single_video_route_delegates_to_application() -> None:
 
 def test_production_generation_context_routes_delegate_to_application() -> None:
     freezone = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    mainline_adapter = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "infrastructure"
+        / "mainline_generation.py"
+    )
     asset_world_source = ASSET_WORLD_VIEWER_ROUTE.read_text(encoding="utf-8")
     freezone_source = freezone.read_text(encoding="utf-8")
+    mainline_adapter_source = mainline_adapter.read_text(encoding="utf-8")
 
     assert "production_generation_context_use_cases" not in asset_world_source
-    assert "production_generation_context_use_cases" in freezone_source
+    assert "production_generation_context_use_cases" not in freezone_source
+    assert "production_generation_context_use_cases" in mainline_adapter_source
     for legacy_helper in (
         "def _build_character_map(",
         "def _episode_from_store_or_none(",
@@ -2988,11 +3092,19 @@ def test_runtime_prop_menu_uses_one_asset_world_implementation() -> None:
         / "beat_viewer.py"
     )
     freezone_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    mainline_adapter = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "infrastructure"
+        / "mainline_generation.py"
+    )
     freezone_presets = PACKAGE_ROOT / "freezone" / "presets.py"
     route_source = route.read_text(encoding="utf-8")
     beat_viewer_source = beat_viewer.read_text(encoding="utf-8")
     beat_viewer_adapter_source = beat_viewer_adapter.read_text(encoding="utf-8")
     freezone_source = freezone_route.read_text(encoding="utf-8")
+    mainline_adapter_source = mainline_adapter.read_text(encoding="utf-8")
     presets_source = freezone_presets.read_text(encoding="utf-8")
 
     assert not (PACKAGE_ROOT / "services" / "prop_ref_service.py").exists()
@@ -3000,7 +3112,8 @@ def test_runtime_prop_menu_uses_one_asset_world_implementation() -> None:
     assert "runtime_prop_menu_for_episode" not in route_source
     assert "BeatViewerRuntimePropMenuSource" in beat_viewer_source
     assert "runtime_episode_prop_menu" in beat_viewer_adapter_source
-    assert "runtime_prop_menu_for_episode" in freezone_source
+    assert "runtime_prop_menu_for_episode" not in freezone_source
+    assert "runtime_prop_menu_for_episode" in mainline_adapter_source
     assert "_runtime_prop_menu_with_global_props," not in freezone_source
     assert "runtime_prop_menu_with_cached_global_props" in presets_source
     assert "ai_anime.services.prop_ref_service" not in presets_source

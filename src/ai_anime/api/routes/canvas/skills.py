@@ -4,14 +4,42 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import resolve_project_scope
+from ai_anime.api.schemas import (
+    FreezoneFrameFromContextRequest,
+    FreezoneJobAcceptedResponse,
+    FreezoneScene360Request,
+    FreezoneSketchFromContextRequest,
+)
 from ai_anime.modules.creative_canvas.public import (
+    CreativeCanvasMainlineBeatMissing,
+    CreativeCanvasMainlineMediaMissing,
     CreativeCanvasStagingPropRejected,
     GenerateCreativeCanvasStagingPropCommand,
+    GenerateCreativeCanvasFrameFromContextCommand,
+    GenerateCreativeCanvasScene360Command,
+    GenerateCreativeCanvasSketchFromContextCommand,
+    InvalidCreativeCanvasMainlineGeneration,
+    creative_canvas_mainline_generation_use_cases,
     creative_canvas_skill_catalog_queries,
     creative_canvas_staging_prop_use_cases,
 )
 
 router = APIRouter()
+
+
+def _mainline_job_response(receipt) -> dict:
+    return {"ok": True, "data": receipt.to_dict()}
+
+
+def _raise_mainline_generation_error(exc: Exception) -> None:
+    if isinstance(exc, InvalidCreativeCanvasMainlineGeneration):
+        raise HTTPException(400, str(exc)) from exc
+    if isinstance(
+        exc,
+        (CreativeCanvasMainlineBeatMissing, CreativeCanvasMainlineMediaMissing),
+    ):
+        raise HTTPException(404, str(exc)) from exc
+    raise exc
 
 
 @router.get("/freezone/skills", tags=["freezone-skills"])
@@ -42,3 +70,123 @@ async def freezone_ai_staging_prop(
     except CreativeCanvasStagingPropRejected as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     return {"ok": True, "data": result}
+
+
+@router.post(
+    "/projects/{project}/freezone/sketch-from-context",
+    response_model=FreezoneJobAcceptedResponse,
+    tags=["freezone-image"],
+)
+async def freezone_sketch_from_context(
+    project: str,
+    body: FreezoneSketchFromContextRequest,
+    user: dict = Depends(get_api_user),
+):
+    scope = await resolve_project_scope(
+        project,
+        user,
+        required_role="editor",
+        operation="access freezone project files",
+    )
+    try:
+        receipt = await creative_canvas_mainline_generation_use_cases().generate_sketch_from_context(
+            GenerateCreativeCanvasSketchFromContextCommand(
+                context=scope.ctx,
+                project_dir=scope.project_dir,
+                episode=body.episode,
+                beat=body.beat,
+                source_kind=body.source_kind,
+                source_url=body.source_url,
+                aspect_ratio=body.aspect_ratio,
+                canvas_id=body.canvas_id or None,
+                node_id=body.node_id or None,
+            )
+        )
+    except (
+        InvalidCreativeCanvasMainlineGeneration,
+        CreativeCanvasMainlineBeatMissing,
+        CreativeCanvasMainlineMediaMissing,
+    ) as exc:
+        _raise_mainline_generation_error(exc)
+    return _mainline_job_response(receipt)
+
+
+@router.post(
+    "/projects/{project}/freezone/frame-from-context",
+    response_model=FreezoneJobAcceptedResponse,
+    tags=["freezone-image"],
+)
+async def freezone_frame_from_context(
+    project: str,
+    body: FreezoneFrameFromContextRequest,
+    user: dict = Depends(get_api_user),
+):
+    scope = await resolve_project_scope(
+        project,
+        user,
+        required_role="editor",
+        operation="access freezone project files",
+    )
+    try:
+        receipt = await creative_canvas_mainline_generation_use_cases().generate_frame_from_context(
+            GenerateCreativeCanvasFrameFromContextCommand(
+                context=scope.ctx,
+                project_dir=scope.project_dir,
+                episode=body.episode,
+                beat=body.beat,
+                sketch_url=body.sketch_url,
+                background_url=body.background_url,
+                identity_urls=tuple(body.identity_urls),
+                prop_urls=tuple(body.prop_urls),
+                aspect_ratio=body.aspect_ratio,
+                quality=body.quality,
+                canvas_id=body.canvas_id or None,
+                node_id=body.node_id or None,
+            )
+        )
+    except (
+        InvalidCreativeCanvasMainlineGeneration,
+        CreativeCanvasMainlineBeatMissing,
+        CreativeCanvasMainlineMediaMissing,
+    ) as exc:
+        _raise_mainline_generation_error(exc)
+    return _mainline_job_response(receipt)
+
+
+@router.post(
+    "/projects/{project}/freezone/scene-360",
+    response_model=FreezoneJobAcceptedResponse,
+    tags=["freezone-image"],
+)
+async def freezone_scene_360(
+    project: str,
+    body: FreezoneScene360Request,
+    user: dict = Depends(get_api_user),
+):
+    scope = await resolve_project_scope(
+        project,
+        user,
+        required_role="editor",
+        operation="access freezone project files",
+    )
+    try:
+        receipt = await creative_canvas_mainline_generation_use_cases().generate_scene_360(
+            GenerateCreativeCanvasScene360Command(
+                context=scope.ctx,
+                project_dir=scope.project_dir,
+                reference_url=body.reference_url,
+                reverse_reference_url=body.reverse_reference_url,
+                mode=body.mode,
+                model=body.model,
+                quality=body.quality,
+                canvas_id=body.canvas_id or None,
+                node_id=body.node_id or None,
+            )
+        )
+    except (
+        InvalidCreativeCanvasMainlineGeneration,
+        CreativeCanvasMainlineBeatMissing,
+        CreativeCanvasMainlineMediaMissing,
+    ) as exc:
+        _raise_mainline_generation_error(exc)
+    return _mainline_job_response(receipt)

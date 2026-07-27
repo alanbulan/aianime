@@ -99,6 +99,21 @@ from ai_anime.modules.creative_canvas.application.job_results import (
     GetCreativeCanvasJobResultQuery,
     public_creative_canvas_video_story_result,
 )
+from ai_anime.modules.creative_canvas.application.mainline_generation import (
+    MAINLINE_SCENE_360_IMAGE_SIZE,
+    CreativeCanvasMainlineBeatMissing,
+    CreativeCanvasMainlineGenerationUseCases,
+    CreativeCanvasMainlineMediaMissing,
+    GenerateCreativeCanvasFrameFromContextCommand,
+    GenerateCreativeCanvasScene360Command,
+    GenerateCreativeCanvasSketchFromContextCommand,
+    InvalidCreativeCanvasMainlineGeneration,
+    StartCreativeCanvasBackgroundSketchCommand,
+    StartCreativeCanvasBeatSketchCommand,
+    StartCreativeCanvasDirectorSketchCommand,
+    StartCreativeCanvasFrameFromContextCommand,
+    StartCreativeCanvasScene360Command,
+)
 from ai_anime.modules.creative_canvas.application.skill_catalog import (
     SKILL_SCHEMA_VERSION,
     CanvasGraphPatch,
@@ -194,6 +209,17 @@ from ai_anime.modules.creative_canvas.application.video_generation import (
     StartCreativeCanvasOmniVideoCommand,
     StartCreativeCanvasTextVideoCommand,
     StartCreativeCanvasVideoEditCommand,
+)
+from ai_anime.modules.creative_canvas.domain.mainline_generation import (
+    beat_context_as_prompt_beat,
+    build_scene_360_prompt,
+    infer_scene_id_from_master_path,
+    is_standalone_beat_context,
+    normalize_mainline_aspect_ratio,
+    normalize_mainline_frame_quality,
+    standalone_character_map,
+    standalone_prop_marker_colors,
+    standalone_sketch_colors,
 )
 from ai_anime.modules.creative_canvas.application.video_asset_library import (
     AddCreativeCanvasVideoAssetCommand,
@@ -363,6 +389,16 @@ def creative_canvas_job_result_queries() -> CreativeCanvasJobResultQueries:
     return build()
 
 
+def creative_canvas_mainline_generation_use_cases() -> (
+    CreativeCanvasMainlineGenerationUseCases
+):
+    from ai_anime.modules.creative_canvas.composition import (
+        creative_canvas_mainline_generation_use_cases as build,
+    )
+
+    return build()
+
+
 def creative_canvas_skill_catalog_queries() -> CreativeCanvasSkillCatalogQueries:
     from ai_anime.modules.creative_canvas.composition import (
         creative_canvas_skill_catalog_queries as build,
@@ -496,6 +532,7 @@ def is_seedance2_video_backend(backend: str | None) -> bool:
 
 
 __all__ = [
+    "MAINLINE_SCENE_360_IMAGE_SIZE",
     "BuildCreativeCanvasProjectionQuery",
     "CREATIVE_CANVAS_AUDIO_AGE_GROUP_LABELS",
     "DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL",
@@ -548,6 +585,9 @@ __all__ = [
     "CreativeCanvasImageGenerationUseCases",
     "CreativeCanvasJobResultQueries",
     "CreativeCanvasJobType",
+    "CreativeCanvasMainlineBeatMissing",
+    "CreativeCanvasMainlineGenerationUseCases",
+    "CreativeCanvasMainlineMediaMissing",
     "CreativeCanvasMediaUseCases",
     "CreativeCanvasMarkDetectionFailed",
     "CreativeCanvasMarkDetectionResult",
@@ -580,6 +620,9 @@ __all__ = [
     "CreativeCanvasStagingPropUseCases",
     "CreativeCanvasUploadResult",
     "GenerationCatalogQueries",
+    "GenerateCreativeCanvasFrameFromContextCommand",
+    "GenerateCreativeCanvasScene360Command",
+    "GenerateCreativeCanvasSketchFromContextCommand",
     "GenerateCreativeCanvasStagingPropCommand",
     "GetCreativeCanvasDocumentQuery",
     "GetCreativeCanvasJobResultQuery",
@@ -602,6 +645,7 @@ __all__ = [
     "InvalidCreativeCanvasImageToThreeGsRequest",
     "InvalidCreativeCanvasImageEditingRequest",
     "InvalidCreativeCanvasImageGenerationRequest",
+    "InvalidCreativeCanvasMainlineGeneration",
     "InvalidCreativeCanvasImageSize",
     "InvalidCreativeCanvasImageTemplateMode",
     "UnsupportedCreativeCanvasImageProvider",
@@ -628,6 +672,11 @@ __all__ = [
     "SaveCreativeCanvasDocumentCommand",
     "StoreCreativeCanvasUploadCommand",
     "StartCreativeCanvasMusicGenerationCommand",
+    "StartCreativeCanvasBackgroundSketchCommand",
+    "StartCreativeCanvasBeatSketchCommand",
+    "StartCreativeCanvasDirectorSketchCommand",
+    "StartCreativeCanvasFrameFromContextCommand",
+    "StartCreativeCanvasScene360Command",
     "StartCreativeCanvasSpeechGenerationCommand",
     "StartCreativeCanvasAudioSeparationCommand",
     "StartCreativeCanvasReversePromptCommand",
@@ -661,6 +710,8 @@ __all__ = [
     "canvas_actor_id",
     "canvas_event_actor",
     "build_image_multi_view_prompt",
+    "beat_context_as_prompt_beat",
+    "build_scene_360_prompt",
     "build_image_relight_prompt",
     "build_image_template_edit_prompt",
     "build_freezone_image_to_video_prompt",
@@ -685,6 +736,7 @@ __all__ = [
     "creative_canvas_reference_image_editing_use_cases",
     "creative_canvas_image_generation_use_cases",
     "creative_canvas_job_result_queries",
+    "creative_canvas_mainline_generation_use_cases",
     "creative_canvas_text_processing_use_cases",
     "creative_canvas_video_processing_use_cases",
     "creative_canvas_video_generation_use_cases",
@@ -699,8 +751,12 @@ __all__ = [
     "get_video_camera_templates",
     "is_seedance2_video_backend",
     "is_preset_managed_canvas_node",
+    "infer_scene_id_from_master_path",
+    "is_standalone_beat_context",
     "merge_projected_preset_canvas",
     "merge_restored_preset_canvas",
+    "normalize_mainline_aspect_ratio",
+    "normalize_mainline_frame_quality",
     "preset_facts_signature",
     "preset_facts_signature_from_payload",
     "prepare_creative_canvas_payload_for_write",
@@ -714,6 +770,9 @@ __all__ = [
     "resolve_image_template_aspect_ratio",
     "remove_projected_preset_canvas",
     "record_creative_canvas_event",
+    "standalone_character_map",
+    "standalone_prop_marker_colors",
+    "standalone_sketch_colors",
     "summarize_omni_reference_counts",
     "stamp_canvas_mainline_context_project_id",
     "stamp_preset_facts_signature",

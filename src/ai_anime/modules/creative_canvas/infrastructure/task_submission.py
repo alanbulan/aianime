@@ -33,18 +33,27 @@ class TaskBackendCreativeCanvasTaskScheduler:
         context: ProjectContext,
         task: CreativeCanvasTaskSubmission,
     ) -> CreativeCanvasTaskReceipt:
+        scope = task.scope or task.job_id
+        payload = dict(task.payload)
+        if task.inject_job_context:
+            payload = {
+                "job_id": task.job_id,
+                "project_dir": str(task.project_dir),
+                **payload,
+            }
+        task_kwargs = {
+            "task_type": task.task_type,
+            "queue_kind": task.queue_kind,
+            "episode": task.episode,
+            "scope": scope,
+            "payload": payload,
+        }
+        if task.beat_num is not None:
+            task_kwargs["beat_num"] = task.beat_num
         try:
             queued = await self._task_backend_provider().enqueue_project_task(
                 context,
-                task_type=task.task_type,
-                queue_kind=task.queue_kind,
-                episode=0,
-                scope=task.job_id,
-                payload={
-                    **task.payload,
-                    "job_id": task.job_id,
-                    "project_dir": str(task.project_dir),
-                },
+                **task_kwargs,
             )
         except (ProjectTaskLimitExceeded, ProjectUserTaskLimitExceeded):
             raise
@@ -60,12 +69,14 @@ class TaskBackendCreativeCanvasTaskScheduler:
             task_key=project_task_state_key(
                 task.task_type,
                 context.project_id,
-                0,
-                scope=task.job_id,
+                task.episode,
+                beat_num=task.beat_num,
+                scope=scope,
             ),
-            task_episode=0,
-            task_scope=task.job_id,
+            task_episode=task.episode,
+            task_scope=scope,
             backend=str(queued.backend),
             queue=str(queued.queue) if queued.queue is not None else None,
             task_id=task_id,
+            task_beat_num=task.beat_num,
         )

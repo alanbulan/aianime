@@ -99,6 +99,61 @@ async def test_task_backend_scheduler_preserves_payload_and_receipt(
 
 
 @pytest.mark.asyncio
+async def test_task_backend_scheduler_supports_exact_mainline_envelope(
+    tmp_path: Path,
+) -> None:
+    context = _project_context(tmp_path)
+    captured: dict[str, object] = {}
+    task = CreativeCanvasTaskSubmission(
+        task_type="mainline_frame_from_context",
+        queue_kind="default",
+        job_id="job-mainline",
+        project_dir=tmp_path / "output",
+        episode=3,
+        beat_num=7,
+        scope="scope-mainline",
+        inject_job_context=False,
+        payload={"output_dir": str(tmp_path / "output"), "config": {"mode": "1x1"}},
+    )
+
+    class FakeBackend:
+        async def enqueue_project_task(self, received_context, **kwargs):
+            assert received_context is context
+            captured.update(kwargs)
+            return SimpleNamespace(
+                task_state=SimpleNamespace(task_id="task-mainline"),
+                backend="celery",
+                queue="node.local.default",
+            )
+
+    receipt = await TaskBackendCreativeCanvasTaskScheduler(
+        lambda: FakeBackend()
+    ).enqueue(context, task)
+
+    assert captured == {
+        "task_type": "mainline_frame_from_context",
+        "queue_kind": "default",
+        "episode": 3,
+        "beat_num": 7,
+        "scope": "scope-mainline",
+        "payload": task.payload,
+    }
+    assert receipt.to_dict() == {
+        "task_type": "mainline_frame_from_context",
+        "job_id": "job-mainline",
+        "task_key": (
+            "task:mainline_frame_from_context:project:project-1:3:7:scope-mainline"
+        ),
+        "task_episode": 3,
+        "task_scope": "scope-mainline",
+        "task_beat_num": 7,
+        "backend": "celery",
+        "queue": "node.local.default",
+        "task_id": "task-mainline",
+    }
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "failure",
     [

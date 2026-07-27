@@ -38,6 +38,9 @@ from ai_anime.modules.creative_canvas.application.generation_catalog import (
 from ai_anime.modules.creative_canvas.application.job_results import (
     CreativeCanvasJobResultQueries,
 )
+from ai_anime.modules.creative_canvas.application.mainline_generation import (
+    CreativeCanvasMainlineGenerationUseCases,
+)
 from ai_anime.modules.creative_canvas.application.skill_catalog import (
     CreativeCanvasSkillCatalogQueries,
 )
@@ -111,6 +114,11 @@ from ai_anime.modules.creative_canvas.infrastructure.generation_catalog import (
 )
 from ai_anime.modules.creative_canvas.infrastructure.job_results import (
     LocalCreativeCanvasJobResultReader,
+)
+from ai_anime.modules.creative_canvas.infrastructure.mainline_generation import (
+    LocalCreativeCanvasMainlineGenerationConfigSource,
+    LocalCreativeCanvasScene360Runtime,
+    PillowCreativeCanvasImageAspectReader,
 )
 from ai_anime.modules.creative_canvas.infrastructure.media_sources import (
     ProjectCreativeCanvasMediaSourceResolver,
@@ -228,6 +236,23 @@ def generation_catalog_queries() -> GenerationCatalogQueries:
 @lru_cache(maxsize=1)
 def creative_canvas_job_result_queries() -> CreativeCanvasJobResultQueries:
     return CreativeCanvasJobResultQueries(LocalCreativeCanvasJobResultReader())
+
+
+@lru_cache(maxsize=1)
+def creative_canvas_mainline_generation_use_cases() -> (
+    CreativeCanvasMainlineGenerationUseCases
+):
+    return CreativeCanvasMainlineGenerationUseCases(
+        ProjectCreativeCanvasMediaSourceResolver(),
+        LocalCreativeCanvasMainlineGenerationConfigSource(),
+        PillowCreativeCanvasImageAspectReader(),
+        LocalCreativeCanvasScene360Runtime(),
+        FreezoneJobIdGenerator(),
+        TaskBackendCreativeCanvasTaskScheduler(
+            get_task_backend,
+            translate_runtime_errors=False,
+        ),
+    )
 
 
 @lru_cache(maxsize=1)

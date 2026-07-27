@@ -260,6 +260,9 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.modules.creative_canvas.application.job_results import (
         CreativeCanvasJobResultQueries,
     )
+    from ai_anime.modules.creative_canvas.application.mainline_generation import (
+        CreativeCanvasMainlineGenerationUseCases,
+    )
     from ai_anime.modules.creative_canvas.application.reverse_prompt import (
         CreativeCanvasReversePromptUseCases,
     )
@@ -288,6 +291,11 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     )
     from ai_anime.modules.creative_canvas.infrastructure.job_results import (
         LocalCreativeCanvasJobResultReader,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.mainline_generation import (
+        LocalCreativeCanvasMainlineGenerationConfigSource,
+        LocalCreativeCanvasScene360Runtime,
+        PillowCreativeCanvasImageAspectReader,
     )
     from ai_anime.modules.creative_canvas.infrastructure.video_generation import (
         ConfiguredCreativeCanvasVideoModelPolicy,
@@ -468,6 +476,11 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         resolve_project_scope,
     )
     monkeypatch.setattr(
+        freezone_skills,
+        "resolve_project_scope",
+        resolve_project_scope,
+    )
+    monkeypatch.setattr(
         freezone_text,
         "resolve_project_scope",
         resolve_project_scope,
@@ -592,6 +605,16 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             FreezoneJobIdGenerator(),
             task_scheduler,
         )
+        mainline_generation_use_cases = CreativeCanvasMainlineGenerationUseCases(
+            ProjectCreativeCanvasMediaSourceResolver(),
+            LocalCreativeCanvasMainlineGenerationConfigSource(
+                store_factory=make_store_for_context
+            ),
+            PillowCreativeCanvasImageAspectReader(),
+            LocalCreativeCanvasScene360Runtime(),
+            FreezoneJobIdGenerator(),
+            task_scheduler,
+        )
         video_processing_use_cases = CreativeCanvasVideoProcessingUseCases(
             ProjectCreativeCanvasMediaSourceResolver(),
             FreezoneJobIdGenerator(),
@@ -662,6 +685,16 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             lambda use_cases=image_generation_use_cases: use_cases,
         )
         monkeypatch.setattr(
+            freezone,
+            "creative_canvas_mainline_generation_use_cases",
+            lambda use_cases=mainline_generation_use_cases: use_cases,
+        )
+        monkeypatch.setattr(
+            freezone_skills,
+            "creative_canvas_mainline_generation_use_cases",
+            lambda use_cases=mainline_generation_use_cases: use_cases,
+        )
+        monkeypatch.setattr(
             freezone_video,
             "creative_canvas_video_processing_use_cases",
             lambda use_cases=video_processing_use_cases: use_cases,
@@ -682,7 +715,6 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             lambda use_cases=video_generation_use_cases: use_cases,
         )
         monkeypatch.setattr(ingest, "get_task_backend", lambda tb=task_backend: tb)
-        monkeypatch.setattr(freezone, "get_task_backend", lambda tb=task_backend: tb)
         monkeypatch.setattr(freezone, "get_task_manager", lambda tm=task_manager: tm)
         app = FastAPI()
         app.include_router(ingest.router, prefix="/api/v1")

@@ -19,27 +19,21 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import (
-    make_sqlite_store,
     make_sqlite_store_for_context,
     make_static_url_for_context,
 )
 from ai_anime.api.schemas import (
-    FreezoneFrameFromContextRequest,
-    FreezoneImageCameraConfig,
-    FreezoneImageStyleConfig,
-    FreezoneJobAcceptedResponse,
-    FreezoneScene360Request,
-    FreezoneSketchFromContextRequest,
-    FreezoneStageAssetAcceptedResponse,
     PushRequest,
 )
-from ai_anime.modules.asset_world.public import (
-    runtime_prop_menu_for_episode,
-)
 from ai_anime.modules.creative_canvas.public import (
+    MAINLINE_SCENE_360_IMAGE_SIZE,
     CopyCreativeCanvasSlotCommand,
     CreativeCanvasImageGenerationReferenceMissing,
+    CreativeCanvasMainlineBeatMissing,
+    CreativeCanvasMainlineMediaMissing,
+    CreativeCanvasTaskReceipt,
     InvalidCreativeCanvasImageGenerationRequest,
+    InvalidCreativeCanvasMainlineGeneration,
     ResolvedSkillInput,
     SkillDefinition,
     SkillErrorEnvelope,
@@ -48,55 +42,45 @@ from ai_anime.modules.creative_canvas.public import (
     SkillRunRequest,
     SkillRunResponse,
     SkillRunResult,
+    StartCreativeCanvasBackgroundSketchCommand,
+    StartCreativeCanvasDirectorSketchCommand,
+    StartCreativeCanvasFrameFromContextCommand,
     StartCreativeCanvasImageGenerationCommand,
+    StartCreativeCanvasScene360Command,
+    beat_context_as_prompt_beat,
+    build_scene_360_prompt,
     canvas_actor_id,
     canvas_event_actor,
+    creative_canvas_mainline_generation_use_cases,
     creative_canvas_slot_commit_use_cases,
     creative_canvas_image_generation_use_cases,
     creative_canvas_skill_catalog_queries,
     detected_reference_ids_from_beat_context_data,
     first_text_value,
+    is_standalone_beat_context,
     is_preset_managed_canvas_node,
+    normalize_mainline_aspect_ratio,
+    normalize_mainline_frame_quality,
     record_creative_canvas_event,
-)
-from ai_anime.modules.production.public import (
-    production_generation_context_use_cases,
-    production_image_settings_use_cases,
+    standalone_character_map,
+    standalone_prop_marker_colors,
+    standalone_sketch_colors,
 )
 from ai_anime.freezone import canvas_store
 from ai_anime.freezone.paths import (
     CANVAS_ID_RE,
     freezone_root,
     output_path_for_job,
-    outputs_dir,
     resolve_static_url_to_path,
 )
 from ai_anime.freezone.route_helpers import (
     FREEZONE_DEFAULT_IMAGE_MODEL,
 )
 from ai_anime.freezone.route_helpers import (
-    accepted_job_response as _accepted_job_response,
-)
-from ai_anime.freezone.route_helpers import (
-    build_scene_360_prompt as _build_scene_360_prompt,
-)
-from ai_anime.freezone.route_helpers import (
-    infer_scene_id_from_master_path as _infer_scene_id_from_master_path,
-)
-from ai_anime.freezone.route_helpers import (
-    merge_prompt_with_style_and_camera as _merge_prompt_with_style_and_camera,
-)
-from ai_anime.freezone.route_helpers import (
     new_freezone_job_id as _new_job_id,
 )
 from ai_anime.freezone.route_helpers import (
-    resolve_freezone_image_provider as _resolve_freezone_image_provider,
-)
-from ai_anime.freezone.route_helpers import (
     resolve_url_list as _resolve_url_list,
-)
-from ai_anime.freezone.route_helpers import (
-    split_provider_and_model as _split_provider_and_model,
 )
 from ai_anime.freezone.slots import (
     SlotTarget,
@@ -108,23 +92,10 @@ from ai_anime.modules.project_workspace.public import (
     require_project_home_node,
     resolve_project_context,
 )
-from ai_anime.ports import get_task_backend
-from ai_anime.task_backend.limits import ProjectTaskLimitExceeded, ProjectUserTaskLimitExceeded
-from ai_anime.task_identity import (
-    project_task_state_key,
-    selection_scope,
-    task_config_scope,
-)
 from ai_anime.task_state import get_task_manager
 from ai_anime.utils.background_anchor import copy_to_beat_selected_background
 from ai_anime.utils.path_resolver import (
     PathResolver,
-    canonical_identity_path,
-    canonical_portrait_path,
-    canonical_prop_reference_path,
-    canonical_scene_360_path,
-    canonical_scene_master_path,
-    canonical_scene_reverse_master_path,
 )
 
 
@@ -141,330 +112,6 @@ async def _resolve_freezone_project(
     )
     require_project_home_node(ctx, operation="access freezone project files")
     return ctx, ctx.owner_username, ctx.project_name, Path(ctx.output_dir), str(ctx.output_dir)
-
-
-def _raise_project_context_required(task_type: str) -> None:
-    raise HTTPException(
-        503,
-        f"Project context required for {task_type}.",
-    )
-
-
-def _raise_if_task_limit_exception(exc: RuntimeError) -> None:
-    if isinstance(exc, (ProjectTaskLimitExceeded, ProjectUserTaskLimitExceeded)):
-        raise exc
-
-
-def _handle_task_start_runtime_error(message: str, exc: RuntimeError) -> None:
-    _raise_if_task_limit_exception(exc)
-    logger.warning("%s: %s", message, exc, exc_info=True)
-
-
-async def _load_freezone_beat_context(
-    *,
-    ctx: ProjectContext | None,
-    username: str,
-    project: str,
-    episode: int,
-    beat: int,
-) -> dict:
-    store = (
-        await make_sqlite_store_for_context(ctx)
-        if ctx is not None
-        else make_sqlite_store(username, project)
-    )
-    beats = await store.get_beats_as_dicts(int(episode))
-    for row in beats:
-        if int(row.get("beat_number") or 0) == int(beat):
-            return row
-    raise HTTPException(404, f"beat not found: ep={episode} beat={beat}")
-
-
-def _scene_ref_label(beat: dict) -> str:
-    scene_ref = beat.get("scene_ref")
-    if isinstance(scene_ref, dict):
-        return str(scene_ref.get("name") or scene_ref.get("scene_name") or "").strip()
-    if scene_ref:
-        return str(scene_ref).strip()
-    return ""
-
-
-async def _collect_mainline_typed_reference_urls(
-    *,
-    ctx: ProjectContext,
-    username: str,
-    project_name: str,
-    project_dir: Path,
-    beat: dict,
-    include_identities: bool = True,
-    include_props: bool = True,
-    include_scene_master: bool = False,
-    include_scene_reverse: bool = False,
-) -> list[str]:
-    """Auto-inject mainline-authoritative reference images for typed actions.
-
-    Design contract: mainline canvas projection = DB live mirror. Whatever
-    references this beat declares (detected_identities / detected_props /
-    scene_ref) should be passed to the LLM as visual references, not just
-    mentioned in the prompt text. Source of truth is the DB; this helper
-    derives URLs from canonical asset paths so the LLM "sees" the same set
-    of refs the canvas projects visually (identity nodes / prop nodes /
-    scene nodes connected to the mainline skill node).
-
-    Without this, prior behavior was:
-      - prompt text included "角色身份: A, B" but no PNG was uploaded,
-      - LLM had no visual anchor for identity / prop -> identity drift,
-      - users found this surprising ("我标了 detected_identities 为什么没用").
-    """
-    from ai_anime.freezone.presets import _identity_character, _identity_name
-
-    refs: list[str] = []
-
-    store = await make_sqlite_store_for_context(ctx)
-
-    if include_identities:
-        known_character_names: list[str] = []
-        character_age_by_name: dict[str, str] = {}
-        identity_age_by_id: dict[str, str] = {}
-        try:
-            characters = await store.list_characters()  # type: ignore[attr-defined]
-            for c in characters or []:
-                name = getattr(c, "name", None) or (c.get("name") if isinstance(c, dict) else None)
-                if not name:
-                    continue
-                name = str(name)
-                known_character_names.append(name)
-                # 记录 character 默认 age_group + 每个 identity 自己的 age_group,
-                # 用于判定 age variant(identity.age_group ≠ character.age_group 即变体)。
-                char_age = str(
-                    getattr(c, "age_group", "")
-                    or (c.get("age_group") if isinstance(c, dict) else "")
-                    or ""
-                ).strip()
-                if char_age:
-                    character_age_by_name[name] = char_age
-                identities_iter = (
-                    getattr(c, "identities", None)
-                    or (c.get("identities") if isinstance(c, dict) else None)
-                    or []
-                )
-                for ident in identities_iter:
-                    ident_id = str(
-                        getattr(ident, "identity_id", "")
-                        or (ident.get("identity_id") if isinstance(ident, dict) else "")
-                        or ""
-                    ).strip()
-                    ident_age = str(
-                        getattr(ident, "age_group", "")
-                        or (ident.get("age_group") if isinstance(ident, dict) else "")
-                        or ""
-                    ).strip()
-                    if ident_id and ident_age:
-                        identity_age_by_id[ident_id] = ident_age
-        except Exception:
-            pass
-
-        for identity_id in beat.get("detected_identities") or []:
-            identity_id = str(identity_id or "").strip()
-            if not identity_id:
-                continue
-            character = _identity_character(identity_id, known_character_names)
-            identity_name = _identity_name(identity_id, character)
-            path = canonical_identity_path(project_dir, character, identity_name)
-            if not path.exists() or not path.is_file():
-                # Age variant identity (identity.age_group ≠ character.age_group)
-                # 缺自己的 canonical 时,**不** fallback 到主 character portrait —
-                # 主 portrait 通常是 youth 形态,中年/老年变体拿它当 reference 会
-                # 触发 identity drift (LLM 看到 youth 脸 → 产出 youth-like)。
-                # 跟 presets.py:4229 age-variant fallback 规则保持一致。
-                identity_age = identity_age_by_id.get(identity_id, "")
-                char_age = character_age_by_name.get(character, "")
-                is_age_variant = bool(identity_age and identity_age != char_age)
-                if is_age_variant:
-                    continue  # 这次 inject 跳过这个 identity ref;LLM 靠 prompt 文字解析
-                # fallback to character portrait so LLM at least has a face
-                path = canonical_portrait_path(project_dir, character)
-            if path.exists() and path.is_file():
-                try:
-                    rel = path.relative_to(project_dir).as_posix()
-                except ValueError:
-                    continue
-                url = make_static_url_for_context(ctx, rel, local_path=path)
-                if url:
-                    refs.append(url)
-
-    if include_props:
-        for prop_id in beat.get("detected_props") or []:
-            prop_id = str(prop_id or "").strip()
-            if not prop_id:
-                continue
-            path = canonical_prop_reference_path(project_dir, prop_id)
-            if path.exists() and path.is_file():
-                try:
-                    rel = path.relative_to(project_dir).as_posix()
-                except ValueError:
-                    continue
-                url = make_static_url_for_context(ctx, rel, local_path=path)
-                if url:
-                    refs.append(url)
-
-    if include_scene_master or include_scene_reverse:
-        scene_name = ""
-        scene_ref = beat.get("scene_ref")
-        if isinstance(scene_ref, dict):
-            scene_name = str(
-                scene_ref.get("scene_id")
-                or scene_ref.get("name")
-                or scene_ref.get("scene_name")
-                or ""
-            ).strip()
-        elif scene_ref:
-            scene_name = str(scene_ref).strip()
-        if scene_name:
-            scene_paths: list[Path] = []
-            if include_scene_master:
-                scene_paths.append(canonical_scene_master_path(project_dir, scene_name))
-            if include_scene_reverse:
-                scene_paths.append(canonical_scene_reverse_master_path(project_dir, scene_name))
-            for p in scene_paths:
-                if p.exists() and p.is_file():
-                    try:
-                        rel = p.relative_to(project_dir).as_posix()
-                    except ValueError:
-                        continue
-                    url = make_static_url_for_context(ctx, rel, local_path=p)
-                    if url:
-                        refs.append(url)
-
-    return refs
-
-
-def _skill_beat_context_as_prompt_beat(input_item: ResolvedSkillInput | None) -> dict:
-    beat_context = (input_item.beat_context if input_item else None) or {}
-    scene_id = (
-        beat_context.get("scene_id")
-        or beat_context.get("sceneId")
-        or beat_context.get("scene_name")
-        or beat_context.get("sceneName")
-        or ""
-    )
-    scene_ref = {"scene_id": scene_id, "name": scene_id} if scene_id else None
-    visual_description = (
-        beat_context.get("visual_description")
-        or beat_context.get("visualDescription")
-        or beat_context.get("content")
-        or ""
-    )
-    detected_identities = (
-        beat_context.get("detected_identities") or beat_context.get("detectedIdentities") or []
-    )
-    if str(beat_context.get("source") or "").strip().lower() == "standalone":
-        visual_description = _standalone_beat_context_prompt_visual_description(
-            str(visual_description or ""), beat_context
-        )
-        identity_map = _standalone_beat_context_prompt_identity_map(beat_context)
-        detected_identities = [
-            identity_map.get(str(item).strip(), str(item).strip())
-            for item in detected_identities
-            if str(item).strip()
-        ]
-
-    return {
-        "episode_number": beat_context.get("episode") or beat_context.get("episode_number"),
-        "beat_number": beat_context.get("beat") or beat_context.get("beat_number"),
-        "scene_ref": scene_ref,
-        "visual_description": visual_description,
-        "narration_segment": (
-            beat_context.get("narration_segment") or beat_context.get("narrationSegment") or ""
-        ),
-        "detected_identities": detected_identities,
-        "detected_props": beat_context.get("detected_props")
-        or beat_context.get("detectedProps")
-        or [],
-    }
-
-
-def _is_standalone_beat_context_input(input_item: ResolvedSkillInput | None) -> bool:
-    beat_context = (input_item.beat_context if input_item else None) or {}
-    source = str(beat_context.get("source") or "").strip().lower()
-    return source == "standalone"
-
-
-def _list_text_values(value: object) -> list[str]:
-    if not isinstance(value, list):
-        return []
-    return [str(item).strip() for item in value if str(item).strip()]
-
-
-def _standalone_beat_context_sketch_colors(beat_context: dict) -> dict[str, str]:
-    value = beat_context.get("sketch_colors") or beat_context.get("sketchColors") or {}
-    return dict(value) if isinstance(value, dict) else {}
-
-
-def _standalone_beat_context_prop_marker_colors(beat_context: dict) -> dict[str, str]:
-    value = beat_context.get("prop_marker_colors") or beat_context.get("propMarkerColors") or {}
-    return dict(value) if isinstance(value, dict) else {}
-
-
-def _standalone_identity_prompt_parts(identity_name: str) -> tuple[str, str, str]:
-    identity_name = identity_name.strip()
-    if "_" in identity_name:
-        char_name, suffix = identity_name.split("_", 1)
-        char_name = char_name.strip()
-        suffix = suffix.strip()
-        if char_name and suffix:
-            return char_name, suffix, identity_name
-    return identity_name, identity_name, f"{identity_name}_{identity_name}"
-
-
-def _standalone_beat_context_prompt_identity_map(beat_context: dict) -> dict[str, str]:
-    identity_names = _list_text_values(
-        beat_context.get("detected_identities") or beat_context.get("detectedIdentities")
-    )
-    return {
-        identity_name: _standalone_identity_prompt_parts(identity_name)[2]
-        for identity_name in identity_names
-    }
-
-
-def _standalone_beat_context_prompt_visual_description(
-    visual_description: str, beat_context: dict
-) -> str:
-    identity_map = _standalone_beat_context_prompt_identity_map(beat_context)
-    if not identity_map:
-        return visual_description
-
-    def replace_marker(match: re.Match) -> str:
-        marker = str(match.group(1) or "").strip()
-        return "{{" + identity_map.get(marker, marker) + "}}"
-
-    return re.sub(r"\{\{([^}]+)\}\}", replace_marker, visual_description)
-
-
-def _standalone_beat_context_character_map(beat_context: dict) -> dict[str, dict]:
-    sketch_colors = _standalone_beat_context_sketch_colors(beat_context)
-    identity_names = _list_text_values(
-        beat_context.get("detected_identities") or beat_context.get("detectedIdentities")
-    )
-    character_map: dict[str, dict] = {}
-    for identity_name in identity_names:
-        char_name, suffix, _prompt_identity_id = _standalone_identity_prompt_parts(identity_name)
-        entry = character_map.setdefault(
-            char_name,
-            {
-                "base_prompt": char_name,
-                "reference_mode": "prompt_only",
-                "sketch_color": "",
-                "identity_appearances": {},
-                "identity_sketch_colors": {},
-            },
-        )
-        color = sketch_colors.get(identity_name) or sketch_colors.get(char_name) or ""
-        entry["identity_appearances"][suffix] = identity_name
-        if color:
-            entry["identity_sketch_colors"][suffix] = color
-            entry["sketch_color"] = entry["sketch_color"] or color
-    return character_map
 
 
 def _standalone_beat_context_unified_sketch_prompt(
@@ -485,7 +132,7 @@ def _standalone_beat_context_unified_sketch_prompt(
     from ai_anime.utils.asset_resolver import ResolvedAssetRef
 
     beat_context = (input_item.beat_context if input_item else None) or {}
-    beat_payload = dict(_skill_beat_context_as_prompt_beat(input_item))
+    beat_payload = dict(beat_context_as_prompt_beat(beat_context))
 
     is_director_combined = reference_role == "director_combined"
     scene_id = first_text_value(
@@ -504,79 +151,16 @@ def _standalone_beat_context_unified_sketch_prompt(
         beats=[beat_payload],
         rows=1,
         cols=1,
-        character_map=_standalone_beat_context_character_map(beat_context),
+        character_map=standalone_character_map(beat_context),
         aspect_ratio=aspect_ratio,
         scene_refs={1: [ref]},
-        sketch_colors=_standalone_beat_context_sketch_colors(beat_context),
-        prop_marker_colors=_standalone_beat_context_prop_marker_colors(beat_context),
+        sketch_colors=standalone_sketch_colors(beat_context),
+        prop_marker_colors=standalone_prop_marker_colors(beat_context),
         project_dir=str(project_dir),
         image_provider=provider or "",
         image_model=model or "",
     )
     return UnifiedPromptBuilder(ctx).build()
-
-
-def _beat_by_number(beats: list[dict], beat_number: int) -> dict:
-    for beat in beats:
-        try:
-            if int(beat.get("beat_number") or 0) == int(beat_number):
-                return beat
-        except (TypeError, ValueError):
-            continue
-    raise HTTPException(404, f"beat not found: {beat_number}")
-
-
-def _normalize_mainline_skill_aspect_ratio(value: object) -> str:
-    raw = str(value or "").strip()
-    if raw in {"16:9", "16-9", "landscape"}:
-        return "16:9"
-    if raw in {"", "2:3", "2-3", "portrait"}:
-        return "2:3"
-    _raise_skill_error(
-        422,
-        code="skill_parameter_aspect_ratio_invalid",
-        category="validation",
-        message="aspect_ratio must be '2:3' or '16:9'",
-        user_action_hint="Choose 2:3 or 16:9 before running the skill.",
-    )
-
-
-def _normalize_mainline_frame_quality(value: object) -> str:
-    raw = str(value or "").strip().lower()
-    if not raw:
-        return "medium"
-    if raw in {"low", "medium", "high"}:
-        return raw
-    _raise_skill_error(
-        422,
-        code="skill_parameter_quality_invalid",
-        category="validation",
-        message="quality must be low, medium, or high",
-        user_action_hint="Choose low, medium, or high before running the skill.",
-    )
-
-
-def _mainline_mode_key_for_aspect(aspect_ratio: object, *, is_sketch: bool) -> str:
-    normalized = _normalize_mainline_skill_aspect_ratio(aspect_ratio)
-    if normalized == "16:9":
-        return "1x1_16-9_sketch" if is_sketch else "1x1_16-9"
-    return "1x1_2-3_sketch" if is_sketch else "1x1_2-3"
-
-
-def _mainline_skill_aspect_ratio_from_image(path: str | Path) -> str:
-    from PIL import Image
-
-    try:
-        with Image.open(path) as image:
-            width, height = image.size
-    except Exception:
-        return "2:3"
-    if width <= 0 or height <= 0:
-        return "2:3"
-    ratio = width / height
-    portrait_delta = abs(ratio - (2 / 3))
-    landscape_delta = abs(ratio - (16 / 9))
-    return "16:9" if landscape_delta < portrait_delta else "2:3"
 
 
 def _skill_run_parameters(body: SkillRunRequest) -> dict[str, object]:
@@ -593,887 +177,6 @@ def _skill_background_reference_mode(parameters: dict[str, object]) -> str:
     return "material_only"
 
 
-async def _mainline_single_beat_config(
-    *,
-    ctx: ProjectContext,
-    username: str,
-    project_name: str,
-    episode: int,
-    beat: int,
-    mode_key: str,
-    aspect_ratio: str,
-    is_sketch: bool,
-) -> dict:
-    from ai_anime.project_config import load_project_config
-
-    store = await make_sqlite_store_for_context(ctx)
-    generation_context = production_generation_context_use_cases(store, username)
-    beats = await store.get_beats_as_dicts(int(episode))
-    if not beats:
-        raise HTTPException(404, f"No beats found for episode {episode}")
-    selected_beat = _beat_by_number(beats, int(beat))
-    project_config = load_project_config(username, project_name)
-    image_settings = production_image_settings_use_cases()
-    episode_obj = generation_context.episode_or_none(int(episode))
-    prop_menu = await runtime_prop_menu_for_episode(store, episode_obj, beats)
-    sketch_colors = (
-        store.get_sketch_colors(int(episode)) or {} if hasattr(store, "get_sketch_colors") else {}
-    )
-    if is_sketch:
-        character_map = (
-            await generation_context.build_character_map(
-                beats=beats,
-                project=project_name,
-                episode_num=int(episode),
-                use_detected_identities=False,
-            )
-            if hasattr(store, "get_all_characters")
-            else {}
-        )
-        image_selection = image_settings.resolve_sketch_selection(project_config)
-        return {
-            "beats": beats,
-            "character_map": character_map,
-            "style": project_config.get("visual_style", "chinese_period_drama"),
-            "ethnicity": project_config.get("ethnicity", "Chinese"),
-            "model": None,
-            "image_generation_selection": image_selection,
-            "sketch_colors": sketch_colors,
-            "prop_menu": prop_menu,
-            "direct_sketch_beats": True,
-            "beat_numbers": [int(beat)],
-            "mode_key": mode_key,
-            "aspect_ratio": aspect_ratio,
-        }
-
-    character_map = (
-        await generation_context.build_character_map(
-            beats=[selected_beat],
-            project=project_name,
-            episode_num=int(episode),
-            use_detected_identities=True,
-        )
-        if hasattr(store, "get_all_characters")
-        else {}
-    )
-    image_selection = image_settings.resolve_render_selection(project_config)
-    return {
-        "beats": beats,
-        "character_map": character_map,
-        "style": project_config.get("visual_style", "chinese_period_drama"),
-        "ethnicity": project_config.get("ethnicity", "Chinese"),
-        "model": None,
-        "image_generation_selection": image_selection,
-        "selected_beat_numbers": [int(beat)],
-        "sketch_colors": sketch_colors,
-        "prop_menu": prop_menu,
-        "sketch_aspect_padding": image_settings.resolve_sketch_aspect_padding(
-            project_config,
-            None,
-        ),
-        "mode_key": mode_key,
-        "aspect_ratio": aspect_ratio,
-    }
-
-
-async def _start_or_enqueue_mainline_sketch_from_context_job(
-    *,
-    ctx: ProjectContext,
-    username: str,
-    project_name: str,
-    project_dir: Path,
-    episode: int,
-    beat: int,
-    beat_payload: dict | None,
-    background_url: str,
-    aspect_ratio: str = "2:3",
-    canvas_id: str | None = None,
-    node_id: str | None = None,
-    task_display: dict[str, str] | None = None,
-) -> dict:
-    task_type = "mainline_sketch_from_context"
-    mode_key = _mainline_mode_key_for_aspect(aspect_ratio, is_sketch=True)
-    base_paths = _resolve_url_list(project_dir, [background_url])
-    if not base_paths:
-        raise HTTPException(400, "background_url is required")
-    for path_text in base_paths:
-        if not Path(path_text).exists():
-            raise HTTPException(404, f"base file not found: {path_text}")
-    config = await _mainline_single_beat_config(
-        ctx=ctx,
-        username=username,
-        project_name=project_name,
-        episode=int(episode),
-        beat=int(beat),
-        mode_key=mode_key,
-        aspect_ratio=_normalize_mainline_skill_aspect_ratio(aspect_ratio),
-        is_sketch=True,
-    )
-    effective_beat = dict(beat_payload or {})
-    if effective_beat:
-        effective_beat["episode_number"] = int(episode)
-        effective_beat["beat_number"] = int(beat)
-        config["beats"] = [effective_beat]
-    config["promote_direct_sketch"] = False
-    scene_ref = (effective_beat.get("scene_ref") or {}) if effective_beat else {}
-    scene_id = str(scene_ref.get("scene_id") or scene_ref.get("name") or "").strip()
-    config["canvas_scene_refs"] = [
-        {
-            "beat_number": int(beat),
-            "image_path": base_paths[0],
-            "base_id": scene_id or "canvas background",
-            "label": str((task_display or {}).get("source_label") or "背景"),
-            "source_level": "selected_background_image",
-        }
-    ]
-    job_id = _new_job_id()
-    display_payload = {
-        "task_family": "mainline_skill",
-        "task_label": "生成草图",
-        "display_name": "生成草图",
-        **(task_display or {}),
-    }
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type=task_type,
-            queue_kind="default",
-            episode=int(episode),
-            beat_num=int(beat),
-            scope=job_id,
-            payload={
-                "job_id": job_id,
-                "episode": int(episode),
-                "beat_num": int(beat),
-                "output_dir": str(project_dir),
-                "config": config,
-                "canvas_id": canvas_id or "",
-                "node_id": node_id or "",
-                **display_payload,
-            },
-        )
-        return _project_job_response(
-            task_type=task_type,
-            ctx=ctx,
-            job_id=job_id,
-            backend=queued.backend,
-            queue=queued.queue,
-            task_id=queued.task_state.task_id,
-            episode=int(episode),
-            beat_num=int(beat),
-            scope=job_id,
-        )
-
-    _raise_project_context_required(task_type)
-
-
-async def _start_or_enqueue_mainline_frame_from_context_job(
-    *,
-    ctx: ProjectContext,
-    username: str,
-    project_name: str,
-    project_dir: Path,
-    episode: int,
-    beat: int,
-    beat_payload: dict | None,
-    sketch_url: str,
-    reference_urls: list[str],
-    extra_reference_urls: list[str] | None = None,
-    identity_references: list[dict] | None = None,
-    prop_references: list[dict] | None = None,
-    aspect_ratio: str = "2:3",
-    quality: str = "medium",
-    background_reference_mode: str = "material_only",
-    canvas_id: str | None = None,
-    node_id: str | None = None,
-    task_display: dict[str, str] | None = None,
-) -> dict:
-    task_type = "mainline_frame_from_context"
-    sketch_paths = _resolve_url_list(project_dir, [sketch_url])
-    if not sketch_paths:
-        raise HTTPException(400, "sketch_url is required")
-    for path_text in sketch_paths:
-        if not Path(path_text).exists():
-            raise HTTPException(404, f"sketch file not found: {path_text}")
-    inferred_aspect_ratio = _mainline_skill_aspect_ratio_from_image(sketch_paths[0])
-    mode_key = _mainline_mode_key_for_aspect(inferred_aspect_ratio, is_sketch=False)
-    reference_paths = _resolve_url_list(project_dir, reference_urls)
-    extra_reference_paths = _resolve_url_list(project_dir, extra_reference_urls or [])
-    resolved_identity_refs: list[dict] = []
-    for item in identity_references or []:
-        image_paths = _resolve_url_list(project_dir, [str(item.get("image_url") or "")])
-        if image_paths:
-            resolved_identity_refs.append({**item, "image_path": image_paths[0]})
-    resolved_prop_refs: list[dict] = []
-    for item in prop_references or []:
-        image_paths = _resolve_url_list(project_dir, [str(item.get("image_url") or "")])
-        if image_paths:
-            resolved_prop_refs.append({**item, "image_path": image_paths[0]})
-    for path_text in [
-        *reference_paths,
-        *extra_reference_paths,
-        *[str(item["image_path"]) for item in resolved_identity_refs],
-        *[str(item["image_path"]) for item in resolved_prop_refs],
-    ]:
-        if not Path(path_text).exists():
-            raise HTTPException(404, f"reference file not found: {path_text}")
-    config = await _mainline_single_beat_config(
-        ctx=ctx,
-        username=username,
-        project_name=project_name,
-        episode=int(episode),
-        beat=int(beat),
-        mode_key=mode_key,
-        aspect_ratio=inferred_aspect_ratio,
-        is_sketch=False,
-    )
-    effective_beat = dict(beat_payload or {})
-    if effective_beat:
-        effective_beat["episode_number"] = int(episode)
-        effective_beat["beat_number"] = int(beat)
-        config["beats"] = [effective_beat]
-    config["promote_selected_regen"] = False
-    config["image_quality"] = _normalize_mainline_frame_quality(quality)
-    config["canvas_sketch_paths"] = {str(int(beat)): sketch_paths[0]}
-    canvas_refs: list[dict] = []
-    scene_ref = (effective_beat.get("scene_ref") or {}) if effective_beat else {}
-    scene_id = str(scene_ref.get("scene_id") or scene_ref.get("name") or "").strip()
-    if reference_paths:
-        background_ref = {
-            "beat_number": int(beat),
-            "image_path": reference_paths[0],
-            "base_id": scene_id or "canvas background",
-            "label": "背景",
-            "source_level": "selected_background_image",
-        }
-        if background_reference_mode == "material_only":
-            background_ref["reference_mode"] = "material_only"
-        canvas_refs.append(background_ref)
-    generic_ref_index = 1
-    for item in resolved_identity_refs:
-        identity_id = str(item.get("identity_id") or "").strip()
-        if identity_id:
-            config.setdefault("canvas_identity_refs", []).append(
-                {
-                    "beat_number": int(beat),
-                    "identity_id": identity_id,
-                    "image_path": item["image_path"],
-                    "reference_mode": (
-                        "portrait_only"
-                        if str(item.get("slot_kind") or "") == "portrait"
-                        else "composite"
-                    ),
-                }
-            )
-            continue
-        canvas_refs.append(
-            {
-                "beat_number": int(beat),
-                "image_path": item["image_path"],
-                "base_id": f"canvas reference {generic_ref_index}",
-                "label": f"画布参考 {generic_ref_index}",
-                "source_level": "canvas_reference_image",
-            }
-        )
-        generic_ref_index += 1
-    for item in resolved_prop_refs:
-        prop_id = str(item.get("prop_id") or "").strip()
-        if prop_id:
-            config.setdefault("canvas_prop_refs", []).append(
-                {
-                    "beat_number": int(beat),
-                    "prop_id": prop_id,
-                    "image_path": item["image_path"],
-                    "source_level": "canvas_prop_reference_image",
-                }
-            )
-            continue
-        canvas_refs.append(
-            {
-                "beat_number": int(beat),
-                "image_path": item["image_path"],
-                "base_id": f"canvas reference {generic_ref_index}",
-                "label": f"画布参考 {generic_ref_index}",
-                "source_level": "canvas_reference_image",
-            }
-        )
-        generic_ref_index += 1
-    for path_text in extra_reference_paths:
-        canvas_refs.append(
-            {
-                "beat_number": int(beat),
-                "image_path": path_text,
-                "base_id": f"canvas reference {generic_ref_index}",
-                "label": f"画布参考 {generic_ref_index}",
-                "source_level": "canvas_reference_image",
-            }
-        )
-        generic_ref_index += 1
-    if canvas_refs:
-        config["canvas_scene_refs"] = canvas_refs
-    job_id = _new_job_id()
-    display_payload = {
-        "task_family": "mainline_skill",
-        "task_label": "渲染分镜",
-        "display_name": "渲染分镜",
-        **(task_display or {}),
-    }
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type=task_type,
-            queue_kind="default",
-            episode=int(episode),
-            beat_num=int(beat),
-            scope=job_id,
-            payload={
-                "job_id": job_id,
-                "episode": int(episode),
-                "beat_num": int(beat),
-                "output_dir": str(project_dir),
-                "mode_key": mode_key,
-                "config": config,
-                "canvas_id": canvas_id or "",
-                "node_id": node_id or "",
-                **display_payload,
-            },
-        )
-        return _project_job_response(
-            task_type=task_type,
-            ctx=ctx,
-            job_id=job_id,
-            backend=queued.backend,
-            queue=queued.queue,
-            task_id=queued.task_state.task_id,
-            episode=int(episode),
-            beat_num=int(beat),
-            scope=job_id,
-        )
-
-    _raise_project_context_required(task_type)
-
-
-def _standalone_beat_context_frame_config(
-    *,
-    username: str,
-    project_name: str,
-    beat_payload: dict | None,
-    mode_key: str,
-    aspect_ratio: str,
-    quality: str,
-) -> dict:
-    from ai_anime.project_config import load_project_config
-
-    project_config = load_project_config(username, project_name)
-    image_settings = production_image_settings_use_cases()
-    beat = dict(beat_payload or {})
-    beat.pop("_source_beat_context", None)
-    if beat:
-        beat["episode_number"] = 0
-        beat["beat_number"] = 0
-        beat["panel_index"] = 0
-    return {
-        "standalone_beat_context": True,
-        "beats": [beat] if beat else [],
-        "character_map": _standalone_beat_context_character_map(
-            (beat_payload or {}).get("_source_beat_context") or {}
-        ),
-        "style": project_config.get("visual_style", "chinese_period_drama"),
-        "ethnicity": project_config.get("ethnicity", "Chinese"),
-        "model": None,
-        "image_generation_selection": image_settings.resolve_render_selection(
-            project_config
-        ),
-        "selected_panel_indices": [0],
-        "sketch_colors": _standalone_beat_context_sketch_colors(
-            (beat_payload or {}).get("_source_beat_context") or {}
-        ),
-        "prop_marker_colors": _standalone_beat_context_prop_marker_colors(
-            (beat_payload or {}).get("_source_beat_context") or {}
-        ),
-        "prop_menu": [
-            {"prop_id": prop_id, "name": prop_id}
-            for prop_id in _list_text_values(
-                ((beat_payload or {}).get("_source_beat_context") or {}).get("detected_props")
-            )
-        ],
-        "sketch_aspect_padding": image_settings.resolve_sketch_aspect_padding(
-            project_config,
-            None,
-        ),
-        "mode_key": mode_key,
-        "aspect_ratio": aspect_ratio,
-        "promote_selected_regen": False,
-        "image_quality": _normalize_mainline_frame_quality(quality),
-    }
-
-
-async def _start_or_enqueue_standalone_frame_from_context_job(
-    *,
-    ctx: ProjectContext,
-    username: str,
-    project_name: str,
-    project_dir: Path,
-    beat_input: ResolvedSkillInput,
-    sketch_url: str,
-    reference_urls: list[str],
-    extra_reference_urls: list[str] | None = None,
-    identity_references: list[dict] | None = None,
-    prop_references: list[dict] | None = None,
-    quality: str = "medium",
-    background_reference_mode: str = "material_only",
-    canvas_id: str | None = None,
-    node_id: str | None = None,
-    task_display: dict[str, str] | None = None,
-) -> dict:
-    task_type = "mainline_frame_from_context"
-    sketch_paths = _resolve_url_list(project_dir, [sketch_url])
-    if not sketch_paths:
-        raise HTTPException(400, "sketch_url is required")
-    for path_text in sketch_paths:
-        if not Path(path_text).exists():
-            raise HTTPException(404, f"sketch file not found: {path_text}")
-    inferred_aspect_ratio = _mainline_skill_aspect_ratio_from_image(sketch_paths[0])
-    mode_key = _mainline_mode_key_for_aspect(inferred_aspect_ratio, is_sketch=False)
-    reference_paths = _resolve_url_list(project_dir, reference_urls)
-    extra_reference_paths = _resolve_url_list(project_dir, extra_reference_urls or [])
-    resolved_identity_refs: list[dict] = []
-    for item in identity_references or []:
-        image_paths = _resolve_url_list(project_dir, [str(item.get("image_url") or "")])
-        if image_paths:
-            resolved_identity_refs.append({**item, "image_path": image_paths[0]})
-    resolved_prop_refs: list[dict] = []
-    for item in prop_references or []:
-        image_paths = _resolve_url_list(project_dir, [str(item.get("image_url") or "")])
-        if image_paths:
-            resolved_prop_refs.append({**item, "image_path": image_paths[0]})
-    for path_text in [
-        *reference_paths,
-        *extra_reference_paths,
-        *[str(item["image_path"]) for item in resolved_identity_refs],
-        *[str(item["image_path"]) for item in resolved_prop_refs],
-    ]:
-        if not Path(path_text).exists():
-            raise HTTPException(404, f"reference file not found: {path_text}")
-    source_beat_context = dict((beat_input.beat_context if beat_input else None) or {})
-    beat_payload = {
-        **_skill_beat_context_as_prompt_beat(beat_input),
-        "_source_beat_context": source_beat_context,
-    }
-    config = _standalone_beat_context_frame_config(
-        username=username,
-        project_name=project_name,
-        beat_payload=beat_payload,
-        mode_key=mode_key,
-        aspect_ratio=inferred_aspect_ratio,
-        quality=quality,
-    )
-    config["canvas_sketch_paths"] = {"0": sketch_paths[0]}
-    canvas_refs: list[dict] = []
-    scene_ref = beat_payload.get("scene_ref") or {}
-    scene_id = str(scene_ref.get("scene_id") or scene_ref.get("name") or "").strip()
-    if reference_paths:
-        background_ref = {
-            "panel_index": 0,
-            "image_path": reference_paths[0],
-            "base_id": scene_id or "canvas background",
-            "label": "背景",
-            "source_level": "selected_background_image",
-        }
-        if background_reference_mode == "material_only":
-            background_ref["reference_mode"] = "material_only"
-        canvas_refs.append(background_ref)
-    generic_ref_index = 1
-    for item in resolved_identity_refs:
-        identity_id = str(item.get("identity_id") or "").strip()
-        if identity_id:
-            config.setdefault("canvas_identity_refs", []).append(
-                {
-                    "panel_index": 0,
-                    "identity_id": identity_id,
-                    "image_path": item["image_path"],
-                    "reference_mode": (
-                        "portrait_only"
-                        if str(item.get("slot_kind") or "") == "portrait"
-                        else "composite"
-                    ),
-                }
-            )
-            continue
-        canvas_refs.append(
-            {
-                "panel_index": 0,
-                "image_path": item["image_path"],
-                "base_id": f"canvas reference {generic_ref_index}",
-                "label": f"画布参考 {generic_ref_index}",
-                "source_level": "canvas_reference_image",
-            }
-        )
-        generic_ref_index += 1
-    for item in resolved_prop_refs:
-        prop_id = str(item.get("prop_id") or "").strip()
-        if prop_id:
-            config.setdefault("canvas_prop_refs", []).append(
-                {
-                    "panel_index": 0,
-                    "prop_id": prop_id,
-                    "image_path": item["image_path"],
-                    "source_level": "canvas_prop_reference_image",
-                }
-            )
-            continue
-        canvas_refs.append(
-            {
-                "panel_index": 0,
-                "image_path": item["image_path"],
-                "base_id": f"canvas reference {generic_ref_index}",
-                "label": f"画布参考 {generic_ref_index}",
-                "source_level": "canvas_reference_image",
-            }
-        )
-        generic_ref_index += 1
-    for path_text in extra_reference_paths:
-        canvas_refs.append(
-            {
-                "panel_index": 0,
-                "image_path": path_text,
-                "base_id": f"canvas reference {generic_ref_index}",
-                "label": f"画布参考 {generic_ref_index}",
-                "source_level": "canvas_reference_image",
-            }
-        )
-        generic_ref_index += 1
-    if canvas_refs:
-        config["canvas_scene_refs"] = canvas_refs
-    job_id = _new_job_id()
-    display_payload = {
-        "task_family": "mainline_skill",
-        "task_label": "渲染分镜",
-        "display_name": "渲染分镜",
-        **(task_display or {}),
-    }
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type=task_type,
-            queue_kind="default",
-            episode=0,
-            scope=job_id,
-            payload={
-                "job_id": job_id,
-                "episode": 0,
-                "output_dir": str(project_dir),
-                "mode_key": mode_key,
-                "config": config,
-                "canvas_id": canvas_id or "",
-                "node_id": node_id or "",
-                **display_payload,
-            },
-        )
-        return _project_job_response(
-            task_type=task_type,
-            ctx=ctx,
-            job_id=job_id,
-            backend=queued.backend,
-            queue=queued.queue,
-            task_id=queued.task_state.task_id,
-            episode=0,
-            scope=job_id,
-        )
-
-    _raise_project_context_required(task_type)
-
-
-async def _start_or_enqueue_mainline_director_control_sketch_job(
-    *,
-    ctx: ProjectContext,
-    project_dir: Path,
-    episode: int,
-    beat: int,
-    director_combined_url: str,
-    aspect_ratio: str = "2:3",
-    canvas_id: str | None,
-    node_id: str | None,
-    task_display: dict[str, str] | None = None,
-) -> dict:
-    task_type = "mainline_director_control_sketch"
-    source_paths = _resolve_url_list(project_dir, [director_combined_url])
-    if not source_paths:
-        raise HTTPException(400, "director_combined_url is required")
-    source_path = Path(source_paths[0])
-    if not source_path.exists() or not source_path.is_file():
-        raise HTTPException(404, f"director combined file not found: {source_path}")
-    job_id = _new_job_id()
-    queued = await get_task_backend().enqueue_project_task(
-        ctx,
-        task_type=task_type,
-        queue_kind="default",
-        episode=int(episode),
-        beat_num=int(beat),
-        scope=job_id,
-        payload={
-            "job_id": job_id,
-            "episode": int(episode),
-            "beat_num": int(beat),
-            "project_dir": str(project_dir),
-            "state_dir": str(ctx.state_dir),
-            "control_frame_path": source_path.as_posix(),
-            "mode_key": _mainline_mode_key_for_aspect(aspect_ratio, is_sketch=True),
-            "aspect_ratio": _normalize_mainline_skill_aspect_ratio(aspect_ratio),
-            "canvas_id": canvas_id or "",
-            "node_id": node_id or "",
-            "task_family": "mainline_skill",
-            "task_label": "导演合成图转草图",
-            "display_name": f"导演合成图转草图 · EP{episode} / Beat {beat}",
-            "source_label": "导演合成图",
-            "target_label": "当前草图候选",
-            **(task_display or {}),
-        },
-    )
-    return _project_job_response(
-        task_type=task_type,
-        ctx=ctx,
-        job_id=job_id,
-        backend=queued.backend,
-        queue=queued.queue,
-        task_id=queued.task_state.task_id,
-        episode=int(episode),
-        beat_num=int(beat),
-        scope=job_id,
-    )
-
-
-async def _start_or_enqueue_mainline_beat_sketch_task(
-    *,
-    ctx: ProjectContext,
-    username: str,
-    project_name: str,
-    project_dir: Path,
-    episode: int,
-    beat: int,
-    canvas_id: str | None,
-    node_id: str | None,
-    task_display: dict[str, str] | None = None,
-) -> dict:
-    task_type = "sketch_generation"
-    mode_key = "1x1_2-3_sketch"
-    scope = selection_scope(mode_key, [int(beat)])
-    config = await _mainline_single_beat_config(
-        ctx=ctx,
-        username=username,
-        project_name=project_name,
-        episode=int(episode),
-        beat=int(beat),
-        mode_key=mode_key,
-        aspect_ratio="2:3",
-        is_sketch=True,
-    )
-    queued = await get_task_backend().enqueue_project_task(
-        ctx,
-        task_type=task_type,
-        queue_kind="default",
-        episode=int(episode),
-        scope=scope,
-        payload={
-            "episode": int(episode),
-            "output_dir": str(project_dir),
-            "config": config,
-            "canvas_id": canvas_id or "",
-            "node_id": node_id or "",
-            "task_family": "mainline_skill",
-            "task_label": "生成草图",
-            "display_name": f"生成草图 · EP{episode} / Beat {beat}",
-            "source_label": "Beat 上下文",
-            "target_label": "当前草图",
-            **(task_display or {}),
-        },
-    )
-    return _project_job_response(
-        task_type=task_type,
-        ctx=ctx,
-        job_id=scope,
-        backend=queued.backend,
-        queue=queued.queue,
-        task_id=queued.task_state.task_id,
-        episode=int(episode),
-        scope=scope,
-    )
-
-
-async def _start_or_enqueue_mainline_scene_360_candidate_job(
-    *,
-    ctx: ProjectContext,
-    project_dir: Path,
-    scene_id: str,
-    description: str | None,
-    master_url: str,
-    reverse_url: str | None,
-    model: str | None,
-    image_size: str | None,
-    quality: str | None,
-    canvas_id: str | None,
-    node_id: str | None,
-    task_display: dict[str, str] | None = None,
-) -> dict:
-    return await _start_or_enqueue_mainline_scene_360_task(
-        ctx=ctx,
-        project_dir=project_dir,
-        scene_id=scene_id,
-        description=description,
-        master_url=master_url,
-        reverse_url=reverse_url,
-        model=model,
-        image_size=image_size,
-        quality=quality,
-        canvas_id=canvas_id,
-        node_id=node_id,
-        auto_commit=False,
-        task_display=task_display,
-    )
-
-
-async def _start_or_enqueue_mainline_scene_360_task(
-    *,
-    ctx: ProjectContext,
-    project_dir: Path,
-    scene_id: str,
-    description: str | None = None,
-    master_url: str,
-    reverse_url: str | None,
-    model: str | None,
-    image_size: str | None,
-    quality: str | None,
-    canvas_id: str | None,
-    node_id: str | None,
-    auto_commit: bool = True,
-    task_display: dict[str, str] | None = None,
-) -> dict:
-    task_type = "stage_asset"
-    step = "pano_from_master"
-    master_paths = _resolve_url_list(project_dir, [master_url])
-    if not master_paths:
-        raise HTTPException(400, "master_url is required")
-    for path_text in master_paths:
-        if not Path(path_text).exists():
-            raise HTTPException(404, f"master file not found: {path_text}")
-    reverse_paths = _resolve_url_list(project_dir, [reverse_url] if reverse_url else [])
-    for path_text in reverse_paths:
-        if not Path(path_text).exists():
-            raise HTTPException(404, f"reverse master file not found: {path_text}")
-    job_id = (
-        task_config_scope("stage_asset", {"scene": scene_id, "step": step})
-        if auto_commit
-        else _new_job_id()
-    )
-    artifact_dir = outputs_dir(project_dir, "mainline_scene_360") / job_id
-    resolved_provider, resolved_model = _split_provider_and_model(
-        "newapi",
-        model or FREEZONE_DEFAULT_IMAGE_MODEL,
-    )
-    queued = await get_task_backend().enqueue_project_task(
-        ctx,
-        task_type=task_type,
-        queue_kind="world",
-        episode=0,
-        scope=job_id,
-        payload={
-            "scene_name": scene_id,
-            "step": step,
-            "params": {
-                "description": (description or "").strip() or _build_scene_360_prompt(scene_id),
-                "provider": resolved_provider or "newapi",
-                "model": resolved_model or model or FREEZONE_DEFAULT_IMAGE_MODEL,
-                "image_size": image_size or MAINLINE_SCENE_360_IMAGE_SIZE,
-                "quality": quality or "medium",
-                "master_path": master_paths[0],
-                "reverse_master_path": reverse_paths[0] if reverse_paths else "",
-                "artifact_dir": str(artifact_dir) if not auto_commit else "",
-                "update_manifest": auto_commit,
-            },
-            "project_dir": str(project_dir),
-            "canvas_id": canvas_id or "",
-            "node_id": node_id or "",
-            "task_family": "mainline_skill",
-            "task_label": "生成 360 全景",
-            "display_name": f"生成 360 全景 · {scene_id}",
-            "source_label": "场景 Master + Reverse",
-            "target_label": "360 全景",
-            **(task_display or {}),
-        },
-    )
-    return _project_job_response(
-        task_type=task_type,
-        ctx=ctx,
-        job_id=job_id,
-        backend=queued.backend,
-        queue=queued.queue,
-        task_id=queued.task_state.task_id,
-        scope=job_id,
-    )
-
-
-def _project_job_response(
-    *,
-    task_type: str,
-    ctx: ProjectContext,
-    job_id: str,
-    backend: str,
-    queue: str | None,
-    task_id: str | None,
-    episode: int = 0,
-    beat_num: int | None = None,
-    scope: str | None = None,
-) -> dict:
-    task_scope = scope or job_id
-    data = {
-        "task_type": task_type,
-        "job_id": job_id,
-        "task_key": project_task_state_key(
-            task_type,
-            ctx.project_id,
-            int(episode),
-            beat_num=beat_num,
-            scope=task_scope,
-        ),
-        "task_episode": int(episode),
-        "task_scope": task_scope,
-        "backend": backend,
-        "queue": queue,
-    }
-    if beat_num is not None:
-        data["task_beat_num"] = int(beat_num)
-    if task_id:
-        data["task_id"] = task_id
-    return {"ok": True, "data": data}
-
-
-async def _enqueue_freezone_background_job(
-    *,
-    ctx: ProjectContext,
-    project_dir: Path,
-    task_type: str,
-    job_id: str,
-    payload: dict,
-    queue_kind: str = "default",
-) -> dict:
-    queued = await get_task_backend().enqueue_project_task(
-        ctx,
-        task_type=task_type,
-        queue_kind=queue_kind,
-        episode=0,
-        scope=job_id,
-        payload={"job_id": job_id, "project_dir": str(project_dir), **payload},
-    )
-    return _project_job_response(
-        task_type=task_type,
-        ctx=ctx,
-        job_id=job_id,
-        backend=queued.backend,
-        queue=queued.queue,
-        task_id=queued.task_state.task_id,
-    )
-
-
 logger = logging.getLogger("ai_anime.api.freezone")
 
 router = APIRouter()
@@ -1481,14 +184,8 @@ router = APIRouter()
 FrameReviewReviewer = Callable[[str], str | Awaitable[str]]
 _agent_review_frame_reviewer: FrameReviewReviewer | None = None
 
-TAG_FREEZONE_IMAGE = "freezone-image"
-
 TAG_FREEZONE_SKILLS = "freezone-skills"
 
-MAINLINE_SKETCH_IMAGE_SIZE = "1K"
-MAINLINE_SKETCH_IMAGE_QUALITY = "low"
-MAINLINE_FRAME_IMAGE_SIZE = "1K"
-MAINLINE_SCENE_360_IMAGE_SIZE = "2K"
 _SKILL_RUN_ID_RE = re.compile(r"^[a-zA-Z0-9_.:\-]{1,128}$")
 
 
@@ -1551,6 +248,20 @@ def _raise_skill_error(
             user_action_hint=user_action_hint,
         ),
     )
+
+
+async def _start_mainline_skill_task(
+    task: Awaitable[CreativeCanvasTaskReceipt],
+) -> CreativeCanvasTaskReceipt:
+    try:
+        return await task
+    except InvalidCreativeCanvasMainlineGeneration as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except (
+        CreativeCanvasMainlineBeatMissing,
+        CreativeCanvasMainlineMediaMissing,
+    ) as exc:
+        raise HTTPException(404, str(exc)) from exc
 
 
 def _skill_run_idempotency_dir(project_dir: Path) -> Path:
@@ -2023,7 +734,9 @@ def _group_and_validate_skill_inputs(
             input_spec_role=spec.role,
             accepts=spec.accepts,
         )
-        if input_item.role == "beat_context" and not _is_standalone_beat_context_input(input_item):
+        if input_item.role == "beat_context" and not is_standalone_beat_context(
+            input_item.beat_context
+        ):
             _episode_and_beat_from_input(input_item)
         grouped.setdefault(input_item.role, []).append(input_item)
     for spec in skill.inputs:
@@ -2116,7 +829,7 @@ def _slot_target_from_inputs(grouped: dict[str, list[ResolvedSkillInput]]) -> di
     beat_target = _slot_target_for_input(beat_item)
     if beat_target:
         return beat_target
-    if beat_item and not _is_standalone_beat_context_input(beat_item):
+    if beat_item and not is_standalone_beat_context(beat_item.beat_context):
         episode, beat = _episode_and_beat_from_input(beat_item)
         return {"episode": episode, "beat": beat}
     for role in ("sketch", "frame", "scene_master", "background"):
@@ -2133,7 +846,7 @@ def _skill_output_slot_target(
     grouped: dict[str, list[ResolvedSkillInput]],
 ) -> dict | None:
     beat_item = _single_input(grouped, "beat_context")
-    if _is_standalone_beat_context_input(beat_item):
+    if is_standalone_beat_context(beat_item.beat_context if beat_item else None):
         return None
     if output_role == "current_sketch_candidate":
         if beat_item:
@@ -2448,8 +1161,10 @@ async def _run_set_selected_background_skill(
 ) -> SkillRunResponse:
     beat_input = _single_input(grouped, "beat_context")
     source = _single_input(grouped, "source_image")
-    is_standalone_beat_context = _is_standalone_beat_context_input(beat_input)
-    if is_standalone_beat_context:
+    standalone_context = is_standalone_beat_context(
+        beat_input.beat_context if beat_input else None
+    )
+    if standalone_context:
         auto_commit = False
         episode = beat = None
     else:
@@ -2587,8 +1302,10 @@ async def _run_set_director_combined_skill(
 ) -> SkillRunResponse:
     beat_input = _single_input(grouped, "beat_context")
     source = _single_input(grouped, "source_image")
-    is_standalone_beat_context = _is_standalone_beat_context_input(beat_input)
-    if is_standalone_beat_context:
+    standalone_context = is_standalone_beat_context(
+        beat_input.beat_context if beat_input else None
+    )
+    if standalone_context:
         auto_commit = False
         episode = beat = None
     else:
@@ -2655,7 +1372,7 @@ async def _run_set_director_combined_skill(
     output["label"] = skill.outputs[0].label
     if director_bundle:
         output["director_control_bundle"] = director_bundle
-    if not is_standalone_beat_context:
+    if not standalone_context:
         output["mainline_context"] = [
             {
                 "kind": "director_combined",
@@ -2811,7 +1528,7 @@ def _deterministic_frame_review(
     body: SkillRunRequest, grouped: dict[str, list[ResolvedSkillInput]]
 ) -> str:
     beat_input = _single_input(grouped, "beat_context")
-    if _is_standalone_beat_context_input(beat_input):
+    if is_standalone_beat_context(beat_input.beat_context if beat_input else None):
         episode = beat = None
     else:
         episode, beat = _episode_and_beat_from_input(beat_input)
@@ -2833,7 +1550,7 @@ def _build_frame_review_prompt(
     body: SkillRunRequest, grouped: dict[str, list[ResolvedSkillInput]]
 ) -> str:
     beat_input = _single_input(grouped, "beat_context")
-    if _is_standalone_beat_context_input(beat_input):
+    if is_standalone_beat_context(beat_input.beat_context if beat_input else None):
         episode = beat = None
     else:
         episode, beat = _episode_and_beat_from_input(beat_input)
@@ -2883,187 +1600,6 @@ async def _review_frame_text(
 
 
 @router.post(
-    "/projects/{project}/freezone/sketch-from-context",
-    response_model=FreezoneJobAcceptedResponse,
-    tags=[TAG_FREEZONE_IMAGE],
-)
-async def freezone_sketch_from_context(
-    project: str,
-    body: FreezoneSketchFromContextRequest,
-    user: dict = Depends(get_api_user),
-):
-    """主线上下文：从 Beat / 背景 / 导演合成图生成草图候选。"""
-    ctx, username, project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project, user
-    )
-    beat = await _load_freezone_beat_context(
-        ctx=ctx,
-        username=username,
-        project=project_name,
-        episode=body.episode,
-        beat=body.beat,
-    )
-    source_url = (body.source_url or "").strip()
-    source_label = {
-        "beat": "Beat 上下文",
-        "selected_background": "当前背景",
-        "director_combined": "导演合成图",
-        "background_candidate": "背景候选",
-    }.get(body.source_kind, "输入参考")
-    task_display = {
-        "task_family": "mainline_skill",
-        "task_label": "生成草图",
-        "display_name": f"生成草图 · EP{body.episode} / Beat {body.beat}",
-        "source_label": source_label,
-        "target_label": "当前草图",
-        "skill_id": "freezone.sketch_from_context",
-    }
-    if body.source_kind == "director_combined":
-        if not source_url:
-            raise HTTPException(400, "source_url is required for director_combined")
-        return await _start_or_enqueue_mainline_director_control_sketch_job(
-            ctx=ctx,
-            project_dir=project_dir,
-            episode=body.episode,
-            beat=body.beat,
-            director_combined_url=source_url,
-            aspect_ratio=body.aspect_ratio,
-            canvas_id=body.canvas_id or None,
-            node_id=body.node_id or None,
-            task_display={
-                **task_display,
-                "skill_id": "freezone.sketch_from_director_combined",
-                "source_label": "导演合成图",
-            },
-        )
-    if source_url:
-        return await _start_or_enqueue_mainline_sketch_from_context_job(
-            ctx=ctx,
-            username=username,
-            project_name=project_name,
-            project_dir=project_dir,
-            episode=body.episode,
-            beat=body.beat,
-            beat_payload=beat,
-            background_url=source_url,
-            aspect_ratio=body.aspect_ratio,
-            canvas_id=body.canvas_id or None,
-            node_id=body.node_id or None,
-            task_display=task_display,
-        )
-    return await _start_or_enqueue_mainline_beat_sketch_task(
-        ctx=ctx,
-        username=username,
-        project_name=project_name,
-        project_dir=project_dir,
-        episode=body.episode,
-        beat=body.beat,
-        canvas_id=body.canvas_id or None,
-        node_id=body.node_id or None,
-        task_display=task_display,
-    )
-
-
-@router.post(
-    "/projects/{project}/freezone/frame-from-context",
-    response_model=FreezoneJobAcceptedResponse,
-    tags=[TAG_FREEZONE_IMAGE],
-)
-async def freezone_frame_from_context(
-    project: str,
-    body: FreezoneFrameFromContextRequest,
-    user: dict = Depends(get_api_user),
-):
-    """主线上下文：从草图和可选背景生成分镜候选。"""
-    ctx, username, project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project, user
-    )
-    beat = await _load_freezone_beat_context(
-        ctx=ctx,
-        username=username,
-        project=project_name,
-        episode=body.episode,
-        beat=body.beat,
-    )
-    return await _start_or_enqueue_mainline_frame_from_context_job(
-        ctx=ctx,
-        username=username,
-        project_name=project_name,
-        project_dir=project_dir,
-        episode=body.episode,
-        beat=body.beat,
-        beat_payload=beat,
-        sketch_url=body.sketch_url,
-        reference_urls=[body.background_url] if body.background_url else [],
-        extra_reference_urls=[*body.identity_urls, *body.prop_urls],
-        identity_references=[],
-        prop_references=[],
-        aspect_ratio=body.aspect_ratio,
-        quality=body.quality,
-        canvas_id=body.canvas_id or None,
-        node_id=body.node_id or None,
-        task_display={
-            "task_family": "mainline_skill",
-            "task_label": "渲染分镜",
-            "display_name": f"渲染分镜 · EP{body.episode} / Beat {body.beat}",
-            "source_label": "草图 + 背景 + 身份/道具",
-            "target_label": "当前分镜",
-            "skill_id": "freezone.frame_from_context",
-        },
-    )
-
-
-@router.post(
-    "/projects/{project}/freezone/scene-360",
-    response_model=FreezoneJobAcceptedResponse,
-    tags=[TAG_FREEZONE_IMAGE],
-)
-async def freezone_scene_360(
-    project: str,
-    body: FreezoneScene360Request,
-    user: dict = Depends(get_api_user),
-):
-    """图片处理：基于场景 master 源图生成 2:1 的 360 全景候选图。"""
-    ctx, _username, _project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project, user
-    )
-    base_paths = _resolve_url_list(project_dir, [body.reference_url])
-    if not base_paths:
-        raise HTTPException(400, "reference_url is required")
-    base_path = Path(base_paths[0])
-    scene_id = _infer_scene_id_from_master_path(base_path, project_dir)
-    if not scene_id:
-        raise HTTPException(400, "could not infer scene_id from reference_url")
-    kwargs = {
-        "ctx": ctx,
-        "project_dir": project_dir,
-        "scene_id": scene_id,
-        "description": None,
-        "master_url": body.reference_url,
-        "reverse_url": body.reverse_reference_url,
-        "model": body.model or FREEZONE_DEFAULT_IMAGE_MODEL,
-        "image_size": MAINLINE_SCENE_360_IMAGE_SIZE,
-        "quality": body.quality,
-        "canvas_id": body.canvas_id or None,
-        "node_id": body.node_id or None,
-        "task_display": {
-            "task_family": "mainline_skill",
-            "task_label": "生成 360 全景",
-            "display_name": f"生成 360 全景 · {scene_id or '场景'}",
-            "source_label": "Master + Reverse",
-            "target_label": "360 全景",
-            "skill_id": "freezone.scene_360",
-        },
-    }
-    if body.mode == "commit":
-        return await _start_or_enqueue_mainline_scene_360_task(
-            **kwargs,
-            auto_commit=True,
-        )
-    return await _start_or_enqueue_mainline_scene_360_candidate_job(**kwargs)
-
-
-@router.post(
     "/projects/{project}/freezone/skills/{skill_id}/run",
     response_model=SkillRunResponse,
     tags=[TAG_FREEZONE_SKILLS],
@@ -3107,15 +1643,27 @@ async def freezone_skill_run(
         canvas_id=body.canvas_id,
         skill_node_id=body.skill_node_id,
     )
-    if _is_standalone_beat_context_input(_single_input(grouped, "beat_context")):
+    first_beat_input = _single_input(grouped, "beat_context")
+    if is_standalone_beat_context(
+        first_beat_input.beat_context if first_beat_input else None
+    ):
         auto_commit = False
 
     if skill_id in {"freezone.sketch_from_context", "freezone.sketch_from_director_combined"}:
         parameters = _skill_run_parameters(body)
-        aspect_ratio = _normalize_mainline_skill_aspect_ratio(parameters.get("aspect_ratio"))
+        try:
+            aspect_ratio = normalize_mainline_aspect_ratio(parameters.get("aspect_ratio"))
+        except ValueError as exc:
+            _raise_skill_error(
+                422,
+                code="skill_parameter_aspect_ratio_invalid",
+                category="validation",
+                message=str(exc),
+                user_action_hint="Choose 2:3 or 16:9 before running the skill.",
+            )
         beat_input = _required_input(grouped, "beat_context")
-        is_standalone_beat_context = _is_standalone_beat_context_input(beat_input)
-        if is_standalone_beat_context:
+        standalone_context = is_standalone_beat_context(beat_input.beat_context)
+        if standalone_context:
             if skill_id == "freezone.sketch_from_director_combined":
                 reference_role = "director_combined"
                 reference_input = _required_input(grouped, reference_role)
@@ -3161,68 +1709,76 @@ async def freezone_skill_run(
                 raise HTTPException(400, str(exc)) from exc
             except CreativeCanvasImageGenerationReferenceMissing as exc:
                 raise HTTPException(404, str(exc)) from exc
-            accepted = {
-                "ok": True,
-                "data": {
-                    "task_type": receipt.task_type,
-                    "job_id": receipt.job_id,
-                    "task_id": receipt.task_id,
-                    "task_key": receipt.task_key,
-                    "backend": receipt.backend,
-                    "queue": receipt.queue,
-                },
-            }
         else:
             episode, beat = _episode_and_beat_from_input(beat_input)
             if skill_id == "freezone.sketch_from_director_combined":
                 director_combined = _required_input(grouped, "director_combined")
-                accepted = await _start_or_enqueue_mainline_director_control_sketch_job(
-                    ctx=ctx,
-                    project_dir=project_dir,
-                    episode=episode,
-                    beat=beat,
-                    director_combined_url=_required_image_url(
-                        director_combined,
-                        "director_combined",
-                    ),
-                    aspect_ratio=aspect_ratio,
-                    canvas_id=body.canvas_id,
-                    node_id=body.skill_node_id,
-                    task_display={
-                        "task_family": "mainline_skill",
-                        "task_label": "导演合成图转草图",
-                        "display_name": f"导演合成图转草图 · EP{episode} / Beat {beat}",
-                        "source_label": "导演合成图",
-                        "target_label": "当前草图候选",
-                        "skill_id": skill_id,
-                    },
+                receipt = await _start_mainline_skill_task(
+                    creative_canvas_mainline_generation_use_cases().start_director_sketch(
+                        StartCreativeCanvasDirectorSketchCommand(
+                            context=ctx,
+                            project_dir=project_dir,
+                            episode=episode,
+                            beat=beat,
+                            director_combined_url=_required_image_url(
+                                director_combined,
+                                "director_combined",
+                            ),
+                            aspect_ratio=aspect_ratio,
+                            canvas_id=body.canvas_id,
+                            node_id=body.skill_node_id,
+                            task_display={
+                                "task_family": "mainline_skill",
+                                "task_label": "导演合成图转草图",
+                                "display_name": (
+                                    f"导演合成图转草图 · EP{episode} / Beat {beat}"
+                                ),
+                                "source_label": "导演合成图",
+                                "target_label": "当前草图候选",
+                                "skill_id": skill_id,
+                            },
+                        )
+                    )
                 )
             else:
                 background = _required_input(grouped, "background")
-                accepted = await _start_or_enqueue_mainline_sketch_from_context_job(
-                    ctx=ctx,
-                    username=username,
-                    project_name=project_name,
-                    project_dir=project_dir,
-                    episode=episode,
-                    beat=beat,
-                    beat_payload=_skill_beat_context_as_prompt_beat(beat_input),
-                    background_url=_required_image_url(background, "background"),
-                    aspect_ratio=aspect_ratio,
-                    canvas_id=body.canvas_id,
-                    node_id=body.skill_node_id,
-                    task_display={
-                        "task_family": "mainline_skill",
-                        "task_label": "生成草图",
-                        "display_name": f"生成草图 · EP{episode} / Beat {beat}",
-                        "source_label": "背景",
-                        "target_label": "当前草图",
-                        "skill_id": skill_id,
-                    },
+                receipt = await _start_mainline_skill_task(
+                    creative_canvas_mainline_generation_use_cases().start_background_sketch(
+                        StartCreativeCanvasBackgroundSketchCommand(
+                            context=ctx,
+                            project_dir=project_dir,
+                            episode=episode,
+                            beat=beat,
+                            beat_payload=beat_context_as_prompt_beat(
+                                beat_input.beat_context
+                            ),
+                            background_url=_required_image_url(background, "background"),
+                            aspect_ratio=aspect_ratio,
+                            canvas_id=body.canvas_id,
+                            node_id=body.skill_node_id,
+                            task_display={
+                                "task_family": "mainline_skill",
+                                "task_label": "生成草图",
+                                "display_name": f"生成草图 · EP{episode} / Beat {beat}",
+                                "source_label": "背景",
+                                "target_label": "当前草图",
+                                "skill_id": skill_id,
+                            },
+                        )
+                    )
                 )
     elif skill_id == "freezone.frame_from_context":
         parameters = _skill_run_parameters(body)
-        quality = _normalize_mainline_frame_quality(parameters.get("quality"))
+        try:
+            quality = normalize_mainline_frame_quality(parameters.get("quality"))
+        except ValueError as exc:
+            _raise_skill_error(
+                422,
+                code="skill_parameter_quality_invalid",
+                category="validation",
+                message=str(exc),
+                user_action_hint="Choose low, medium, or high before running the skill.",
+            )
         background_reference_mode = _skill_background_reference_mode(parameters)
         beat_input = _required_input(grouped, "beat_context")
         sketch = _required_input(grouped, "sketch")
@@ -3237,110 +1793,101 @@ async def freezone_skill_run(
             beat_input,
             "prop",
         )
-        if _is_standalone_beat_context_input(beat_input):
-            accepted = await _start_or_enqueue_standalone_frame_from_context_job(
-                ctx=ctx,
-                username=username,
-                project_name=project_name,
-                project_dir=project_dir,
-                beat_input=beat_input,
-                sketch_url=_required_image_url(sketch, "sketch"),
-                reference_urls=(
-                    [_required_image_url(background, "background")] if background else []
-                ),
-                extra_reference_urls=[],
-                identity_references=identity_references,
-                prop_references=prop_references,
-                quality=quality,
-                background_reference_mode=background_reference_mode,
-                canvas_id=body.canvas_id,
-                node_id=body.skill_node_id,
-                task_display={
-                    "task_family": "mainline_skill",
-                    "task_label": "渲染分镜",
-                    "display_name": "渲染分镜",
-                    "source_label": "草图 + 背景 + 身份/道具",
-                    "target_label": "分镜候选",
-                    "skill_id": "freezone.frame_from_context",
-                },
+        if is_standalone_beat_context(beat_input.beat_context):
+            receipt = await _start_mainline_skill_task(
+                creative_canvas_mainline_generation_use_cases().start_frame_from_context(
+                    StartCreativeCanvasFrameFromContextCommand(
+                        context=ctx,
+                        project_dir=project_dir,
+                        beat_payload=beat_context_as_prompt_beat(beat_input.beat_context),
+                        standalone_beat_context=beat_input.beat_context or {},
+                        sketch_url=_required_image_url(sketch, "sketch"),
+                        reference_urls=(
+                            (_required_image_url(background, "background"),)
+                            if background
+                            else ()
+                        ),
+                        identity_references=tuple(identity_references),
+                        prop_references=tuple(prop_references),
+                        quality=quality,
+                        background_reference_mode=background_reference_mode,
+                        canvas_id=body.canvas_id,
+                        node_id=body.skill_node_id,
+                        task_display={
+                            "task_family": "mainline_skill",
+                            "task_label": "渲染分镜",
+                            "display_name": "渲染分镜",
+                            "source_label": "草图 + 背景 + 身份/道具",
+                            "target_label": "分镜候选",
+                            "skill_id": "freezone.frame_from_context",
+                        },
+                    )
+                )
             )
         else:
             episode, beat = _episode_and_beat_from_input(beat_input)
-            accepted = await _start_or_enqueue_mainline_frame_from_context_job(
-                ctx=ctx,
-                username=username,
-                project_name=project_name,
-                project_dir=project_dir,
-                episode=episode,
-                beat=beat,
-                beat_payload=_skill_beat_context_as_prompt_beat(beat_input),
-                sketch_url=_required_image_url(sketch, "sketch"),
-                reference_urls=(
-                    [_required_image_url(background, "background")] if background else []
-                ),
-                extra_reference_urls=[],
-                identity_references=identity_references,
-                prop_references=prop_references,
-                quality=quality,
-                background_reference_mode=background_reference_mode,
-                canvas_id=body.canvas_id,
-                node_id=body.skill_node_id,
-                task_display={
-                    "task_family": "mainline_skill",
-                    "task_label": "渲染分镜",
-                    "display_name": f"渲染分镜 · EP{episode} / Beat {beat}",
-                    "source_label": "草图 + 背景 + 身份/道具",
-                    "target_label": "当前分镜",
-                    "skill_id": "freezone.frame_from_context",
-                },
+            receipt = await _start_mainline_skill_task(
+                creative_canvas_mainline_generation_use_cases().start_frame_from_context(
+                    StartCreativeCanvasFrameFromContextCommand(
+                        context=ctx,
+                        project_dir=project_dir,
+                        episode=episode,
+                        beat=beat,
+                        beat_payload=beat_context_as_prompt_beat(beat_input.beat_context),
+                        sketch_url=_required_image_url(sketch, "sketch"),
+                        reference_urls=(
+                            (_required_image_url(background, "background"),)
+                            if background
+                            else ()
+                        ),
+                        identity_references=tuple(identity_references),
+                        prop_references=tuple(prop_references),
+                        quality=quality,
+                        background_reference_mode=background_reference_mode,
+                        canvas_id=body.canvas_id,
+                        node_id=body.skill_node_id,
+                        task_display={
+                            "task_family": "mainline_skill",
+                            "task_label": "渲染分镜",
+                            "display_name": f"渲染分镜 · EP{episode} / Beat {beat}",
+                            "source_label": "草图 + 背景 + 身份/道具",
+                            "target_label": "当前分镜",
+                            "skill_id": "freezone.frame_from_context",
+                        },
+                    )
+                )
             )
     elif skill_id == "freezone.scene_360":
         scene_prompt = _scene_prompt_from_input(_single_input(grouped, "scene"))
         scene_master = _required_input(grouped, "scene_master")
         scene_reverse = _single_input(grouped, "scene_reverse_master")
         scene_id = _scene_id_from_scene_master_input(scene_master)
-        description = _build_scene_360_prompt(scene_id)
+        description = build_scene_360_prompt(scene_id)
         if scene_prompt:
             description = f"{description}\n\n场景提示词：{scene_prompt}"
-        if auto_commit:
-            accepted = await _start_or_enqueue_mainline_scene_360_task(
-                ctx=ctx,
-                project_dir=project_dir,
-                scene_id=scene_id,
-                description=description,
-                master_url=_required_image_url(scene_master, "scene_master"),
-                reverse_url=(
-                    _required_image_url(scene_reverse, "scene_reverse_master")
-                    if scene_reverse
-                    else None
-                ),
-                model=None,
-                image_size=MAINLINE_SCENE_360_IMAGE_SIZE,
-                quality=None,
-                canvas_id=body.canvas_id,
-                node_id=body.skill_node_id,
-                auto_commit=True,
-                task_display={"skill_id": "freezone.scene_360"},
+        receipt = await _start_mainline_skill_task(
+            creative_canvas_mainline_generation_use_cases().start_scene_360(
+                StartCreativeCanvasScene360Command(
+                    context=ctx,
+                    project_dir=project_dir,
+                    scene_id=str(scene_id),
+                    description=description,
+                    master_url=_required_image_url(scene_master, "scene_master"),
+                    reverse_url=(
+                        _required_image_url(scene_reverse, "scene_reverse_master")
+                        if scene_reverse
+                        else None
+                    ),
+                    model=None,
+                    image_size=MAINLINE_SCENE_360_IMAGE_SIZE,
+                    quality=None,
+                    canvas_id=body.canvas_id,
+                    node_id=body.skill_node_id,
+                    auto_commit=auto_commit,
+                    task_display={"skill_id": "freezone.scene_360"},
+                )
             )
-        else:
-            accepted = await _start_or_enqueue_mainline_scene_360_candidate_job(
-                ctx=ctx,
-                project_dir=project_dir,
-                scene_id=str(scene_id),
-                description=description,
-                master_url=_required_image_url(scene_master, "scene_master"),
-                reverse_url=(
-                    _required_image_url(scene_reverse, "scene_reverse_master")
-                    if scene_reverse
-                    else None
-                ),
-                model=None,
-                image_size=MAINLINE_SCENE_360_IMAGE_SIZE,
-                quality=None,
-                canvas_id=body.canvas_id,
-                node_id=body.skill_node_id,
-                task_display={"skill_id": "freezone.scene_360"},
-            )
+        )
     elif skill_id == "freezone.set_selected_background":
         return await _run_set_selected_background_skill(
             project=project,
@@ -3415,16 +1962,7 @@ async def freezone_skill_run(
             user_action_hint="Use a runnable skill provider or wait for its runtime integration.",
         )
 
-    data = accepted.get("data") if isinstance(accepted, dict) else None
-    if not isinstance(data, dict):
-        _raise_skill_error(
-            500,
-            code="skill_run_metadata_missing",
-            category="runtime",
-            message="skill run did not return task metadata",
-            retryable=True,
-            user_action_hint="Retry the skill run. If this repeats, inspect the skill dispatcher.",
-        )
+    data = receipt.to_dict()
     task_type = str(data.get("task_type") or "")
     job_id = str(data.get("job_id") or "")
     if not task_type or not job_id:
@@ -3485,16 +2023,6 @@ async def freezone_skill_run(
         response,
     )
     return response
-
-
-def _freezone_not_implemented(endpoint: str) -> None:
-    raise HTTPException(
-        status_code=501,
-        detail=(
-            f"{endpoint} is reserved in the API surface but not implemented yet. "
-            "Keep using the existing image routes or frontend-local tools for now."
-        ),
-    )
 
 
 @router.get(

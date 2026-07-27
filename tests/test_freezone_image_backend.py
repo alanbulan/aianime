@@ -19,19 +19,21 @@ from ai_anime.api.routes.canvas import jobs as freezone_job_routes
 from ai_anime.api.routes.canvas import presets as freezone_preset_routes
 from ai_anime.api.routes.canvas import skills as freezone_skill_routes
 from ai_anime.api.routes.canvas import video as freezone_video_routes
-from ai_anime.api.routes.freezone import (
+from ai_anime.freezone.route_helpers import (
     FREEZONE_DEFAULT_IMAGE_MODEL,
-    _build_scene_360_prompt,
-    _infer_scene_id_from_master_path,
-    _resolve_freezone_image_provider,
-    _split_provider_and_model,
+    resolve_freezone_image_provider as _resolve_freezone_image_provider,
+    split_provider_and_model as _split_provider_and_model,
 )
 from ai_anime.api.schemas import (
     CanvasPayload,
+    FreezoneFrameFromContextRequest,
     FreezoneGenRequest,
+    FreezoneImageCameraConfig,
     FreezoneImageReversePromptRequest,
     FreezoneOutpaintRequest,
     FreezoneRedrawRequest,
+    FreezoneScene360Request,
+    FreezoneSketchFromContextRequest,
     FreezoneTemplateEditRequest,
     FreezoneVideoOmniGenRequest,
     PresetCanvasRequest,
@@ -49,13 +51,18 @@ from ai_anime.freezone.route_helpers import build_camera_prompt as _build_camera
 from ai_anime.modules.creative_canvas.public import (
     SKILL_SCHEMA_VERSION,
     CanvasGraphPatch,
+    CreativeCanvasMainlineGenerationUseCases,
     CreativeCanvasJobResultQueries,
     CreativeCanvasStagingPropUseCases,
     CreativeCanvasTaskStartFailed,
     SkillRunOutput,
     SkillRunRequest,
+    beat_context_as_prompt_beat,
+    build_scene_360_prompt,
     creative_canvas_skill_catalog_queries,
     generation_catalog_queries,
+    infer_scene_id_from_master_path,
+    standalone_character_map,
     is_preset_managed_canvas_node as _is_preset_managed_canvas_node,
     merge_restored_preset_canvas as _merge_restored_preset_canvas,
 )
@@ -75,6 +82,17 @@ from ai_anime.modules.creative_canvas.infrastructure.canvas_documents import (
 )
 from ai_anime.modules.creative_canvas.infrastructure.job_results import (
     LocalCreativeCanvasJobResultReader,
+)
+from ai_anime.modules.creative_canvas.infrastructure.mainline_generation import (
+    LocalCreativeCanvasMainlineGenerationConfigSource,
+    LocalCreativeCanvasScene360Runtime,
+    PillowCreativeCanvasImageAspectReader,
+)
+from ai_anime.modules.creative_canvas.infrastructure.media_sources import (
+    ProjectCreativeCanvasMediaSourceResolver,
+)
+from ai_anime.modules.creative_canvas.infrastructure.task_submission import (
+    TaskBackendCreativeCanvasTaskScheduler,
 )
 from ai_anime.modules.creative_canvas.infrastructure import canvas_commits, canvas_presets
 from ai_anime.modules.project_workspace.public import ProjectContext
@@ -211,6 +229,40 @@ def _patch_freezone_project(
         fake_resolve_project_scope,
     )
     return project_dir, output_dir
+
+
+class _DelegatingFreezoneJobIds:
+    def new_id(self) -> str:
+        return freezone_routes._new_job_id()
+
+
+def _patch_mainline_generation(
+    monkeypatch: pytest.MonkeyPatch,
+    task_backend: object,
+) -> None:
+    use_cases = CreativeCanvasMainlineGenerationUseCases(
+        ProjectCreativeCanvasMediaSourceResolver(),
+        LocalCreativeCanvasMainlineGenerationConfigSource(
+            store_factory=lambda ctx: freezone_routes.make_sqlite_store_for_context(ctx)
+        ),
+        PillowCreativeCanvasImageAspectReader(),
+        LocalCreativeCanvasScene360Runtime(),
+        _DelegatingFreezoneJobIds(),
+        TaskBackendCreativeCanvasTaskScheduler(
+            lambda: task_backend,
+            translate_runtime_errors=False,
+        ),
+    )
+    monkeypatch.setattr(
+        freezone_routes,
+        "creative_canvas_mainline_generation_use_cases",
+        lambda: use_cases,
+    )
+    monkeypatch.setattr(
+        freezone_skill_routes,
+        "creative_canvas_mainline_generation_use_cases",
+        lambda: use_cases,
+    )
 
 
 def _patch_job_result_queries(
@@ -544,11 +596,11 @@ def test_infer_scene_id_from_master_path_uses_scene_folder(tmp_path: Path) -> No
     source = project_dir / "assets" / "scenes" / "小区" / "master.png"
     _write_image(source)
 
-    assert _infer_scene_id_from_master_path(source, project_dir) == "小区"
+    assert infer_scene_id_from_master_path(source, project_dir) == "小区"
 
 
 def test_build_scene_360_prompt_contains_scene_and_projection_rules() -> None:
-    prompt = _build_scene_360_prompt("小区")
+    prompt = build_scene_360_prompt("小区")
 
     assert "scene `小区`" in prompt
     assert "2:1 panorama" in prompt
@@ -2433,7 +2485,7 @@ async def test_mask_edit_job_uses_reference_edit_provider_routing(
 
 
 def test_camera_prompt_contains_camera_body_lens_focal_and_aperture() -> None:
-    camera = freezone_routes.FreezoneImageCameraConfig(
+    camera = FreezoneImageCameraConfig(
         camera_body="Panavision DXL2",
         lens="Arri Signature Prime",
         focal_length_mm=35,
@@ -2783,8 +2835,8 @@ async def test_sketch_from_context_uses_beat_db_and_routes_to_gen_without_source
     ctx = _project_ctx(tmp_path)
     captured: dict = {}
 
-    async def fake_resolve_freezone_project(*_args, **_kwargs):
-        return ctx, "admin", "demo", ctx.output_dir, str(ctx.output_dir)
+    async def fake_resolve_project_scope(*_args, **_kwargs):
+        return SimpleNamespace(ctx=ctx, project_dir=Path(ctx.output_dir))
 
     async def fake_make_sqlite_store_for_context(_ctx):
         return _FakeContextBeatStore()
@@ -2798,15 +2850,22 @@ async def test_sketch_from_context_uses_beat_db_and_routes_to_gen_without_source
             queue="node.node_a.default",
         )
 
-    monkeypatch.setattr(freezone_routes, "_resolve_freezone_project", fake_resolve_freezone_project)
+    monkeypatch.setattr(
+        freezone_skill_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
     monkeypatch.setattr(
         freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
     )
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
+    _patch_mainline_generation(
+        monkeypatch,
+        SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
+    )
 
-    result = await freezone_routes.freezone_sketch_from_context(
+    result = await freezone_skill_routes.freezone_sketch_from_context(
         project="proj_freezone",
-        body=freezone_routes.FreezoneSketchFromContextRequest(
+        body=FreezoneSketchFromContextRequest(
             episode=1,
             beat=8,
             source_kind="beat",
@@ -2832,8 +2891,8 @@ async def test_frame_from_context_uses_sketch_as_base_and_optional_background_re
     ctx = _project_ctx(tmp_path)
     captured: dict = {}
 
-    async def fake_resolve_freezone_project(*_args, **_kwargs):
-        return ctx, "admin", "demo", ctx.output_dir, str(ctx.output_dir)
+    async def fake_resolve_project_scope(*_args, **_kwargs):
+        return SimpleNamespace(ctx=ctx, project_dir=Path(ctx.output_dir))
 
     async def fake_make_sqlite_store_for_context(_ctx):
         return _FakeContextBeatStore()
@@ -2847,17 +2906,24 @@ async def test_frame_from_context_uses_sketch_as_base_and_optional_background_re
             queue="node.node_a.default",
         )
 
-    monkeypatch.setattr(freezone_routes, "_resolve_freezone_project", fake_resolve_freezone_project)
+    monkeypatch.setattr(
+        freezone_skill_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
     monkeypatch.setattr(
         freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
     )
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
+    _patch_mainline_generation(
+        monkeypatch,
+        SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
+    )
     _write_image(ctx.output_dir / "freezone" / "sketch.png")
     _write_image(ctx.output_dir / "freezone" / "bg.png")
 
-    result = await freezone_routes.freezone_frame_from_context(
+    result = await freezone_skill_routes.freezone_frame_from_context(
         project="proj_freezone",
-        body=freezone_routes.FreezoneFrameFromContextRequest(
+        body=FreezoneFrameFromContextRequest(
             episode=1,
             beat=8,
             sketch_url="/api/v1/projects/proj_freezone/media/freezone/sketch.png",
@@ -2889,8 +2955,8 @@ async def test_frame_from_context_infers_landscape_from_sketch_and_medium_qualit
     ctx = _project_ctx(tmp_path)
     captured: dict = {}
 
-    async def fake_resolve_freezone_project(*_args, **_kwargs):
-        return ctx, "admin", "demo", ctx.output_dir, str(ctx.output_dir)
+    async def fake_resolve_project_scope(*_args, **_kwargs):
+        return SimpleNamespace(ctx=ctx, project_dir=Path(ctx.output_dir))
 
     async def fake_make_sqlite_store_for_context(_ctx):
         return _FakeContextBeatStore()
@@ -2904,16 +2970,23 @@ async def test_frame_from_context_infers_landscape_from_sketch_and_medium_qualit
             queue="node.node_a.default",
         )
 
-    monkeypatch.setattr(freezone_routes, "_resolve_freezone_project", fake_resolve_freezone_project)
+    monkeypatch.setattr(
+        freezone_skill_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
     monkeypatch.setattr(
         freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
     )
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
+    _patch_mainline_generation(
+        monkeypatch,
+        SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
+    )
     _write_image(ctx.output_dir / "freezone" / "sketch.png", size=(1600, 900))
 
-    await freezone_routes.freezone_frame_from_context(
+    await freezone_skill_routes.freezone_frame_from_context(
         project="proj_freezone",
-        body=freezone_routes.FreezoneFrameFromContextRequest(
+        body=FreezoneFrameFromContextRequest(
             episode=1,
             beat=8,
             aspect_ratio="2:3",
@@ -2936,8 +3009,8 @@ async def test_scene_360_endpoint_caps_mainline_image_size_to_2k(
     ctx = _project_ctx(tmp_path)
     captured: dict = {}
 
-    async def fake_resolve_freezone_project(*_args, **_kwargs):
-        return ctx, "admin", "demo", ctx.output_dir, str(ctx.output_dir)
+    async def fake_resolve_project_scope(*_args, **_kwargs):
+        return SimpleNamespace(ctx=ctx, project_dir=Path(ctx.output_dir))
 
     async def fake_enqueue_project_task(_ctx: ProjectContext, **kwargs):
         captured.update(kwargs)
@@ -2948,13 +3021,20 @@ async def test_scene_360_endpoint_caps_mainline_image_size_to_2k(
             queue="node.node_a.world",
         )
 
-    monkeypatch.setattr(freezone_routes, "_resolve_freezone_project", fake_resolve_freezone_project)
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
+    monkeypatch.setattr(
+        freezone_skill_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
+    _patch_mainline_generation(
+        monkeypatch,
+        SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
+    )
     _write_image(ctx.output_dir / "assets" / "scenes" / "小区" / "master.png")
 
-    result = await freezone_routes.freezone_scene_360(
+    result = await freezone_skill_routes.freezone_scene_360(
         project="proj_freezone",
-        body=freezone_routes.FreezoneScene360Request(
+        body=FreezoneScene360Request(
             reference_url="/api/v1/projects/proj_freezone/media/assets/scenes/小区/master.png",
             image_size="4K",
             canvas_id="canvas_a",
@@ -3009,21 +3089,8 @@ def test_standalone_beat_context_normalizes_plain_identity_to_mainline_prompt_sh
         "sketch_colors": {"Kris": "#FF00FF"},
     }
 
-    prompt_beat = freezone_routes._skill_beat_context_as_prompt_beat(
-        SkillRunRequest(
-            resolved_inputs=[
-                {
-                    "role": "beat_context",
-                    "node_id": "standalone",
-                    "node_type": "beatContextNode",
-                    "beat_context": beat_context,
-                }
-            ]
-        ).resolved_inputs[0]
-    )
-    character_map = freezone_routes._standalone_beat_context_character_map(
-        beat_context
-    )
+    prompt_beat = beat_context_as_prompt_beat(beat_context)
+    character_map = standalone_character_map(beat_context)
 
     assert prompt_beat["visual_description"] == "{{Kris_Kris}}拿着[[雨伞]]。"
     assert prompt_beat["detected_identities"] == ["Kris_Kris"]
@@ -3039,7 +3106,7 @@ def test_standalone_beat_context_normalizes_plain_identity_to_mainline_prompt_sh
 
 
 def test_standalone_beat_context_character_map_uses_mainline_identity_suffix_shape() -> None:
-    character_map = freezone_routes._standalone_beat_context_character_map(
+    character_map = standalone_character_map(
         {
             "detected_identities": ["陆辰_青年时期"],
             "sketch_colors": {"陆辰_青年时期": "#00FFFF"},
@@ -3473,7 +3540,10 @@ async def test_skill_run_frame_accepts_plain_canvas_image_as_sketch_input(
     monkeypatch.setattr(
         freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
     )
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
+    _patch_mainline_generation(
+        monkeypatch,
+        SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
+    )
     _write_image(project_dir / "freezone" / "plain_sketch.png", size=(800, 1200))
 
     await freezone_routes.freezone_skill_run(
@@ -3615,7 +3685,10 @@ async def test_skill_run_normalizes_project_media_url_before_dispatch(
     monkeypatch.setattr(
         freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
     )
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
+    _patch_mainline_generation(
+        monkeypatch,
+        SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
+    )
     monkeypatch.setattr(freezone_routes, "_new_job_id", lambda: "job_media_url")
     _write_image(project_dir / "freezone" / "bg.png")
 
@@ -3668,7 +3741,10 @@ async def test_skill_run_background_sketch_accepts_landscape_aspect(
     monkeypatch.setattr(
         freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
     )
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
+    _patch_mainline_generation(
+        monkeypatch,
+        SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
+    )
     _write_image(project_dir / "freezone" / "bg.png")
 
     await freezone_routes.freezone_skill_run(
@@ -3716,7 +3792,10 @@ async def test_skill_run_accepts_project_static_url_for_dispatch(
     monkeypatch.setattr(
         freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
     )
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
+    _patch_mainline_generation(
+        monkeypatch,
+        SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
+    )
     _write_image(project_dir / "freezone" / "bg.png")
 
     await freezone_routes.freezone_skill_run(
@@ -3766,7 +3845,10 @@ async def test_skill_run_accepts_canonical_project_static_url_for_dispatch(
     monkeypatch.setattr(
         freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
     )
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
+    _patch_mainline_generation(
+        monkeypatch,
+        SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
+    )
     _write_image(project_dir / "freezone" / "bg.png")
 
     await freezone_routes.freezone_skill_run(
@@ -4083,7 +4165,10 @@ async def test_skill_run_standalone_frame_from_context_queues_candidate_without_
     monkeypatch.setattr(
         freezone_routes, "make_sqlite_store_for_context", fail_make_sqlite_store_for_context
     )
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
+    _patch_mainline_generation(
+        monkeypatch,
+        SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
+    )
     monkeypatch.setattr(freezone_routes, "_new_job_id", lambda: "job_standalone_frame")
     _write_image(project_dir / "freezone" / "sketch.png", size=(800, 1200))
     _write_image(project_dir / "freezone" / "background.png", size=(800, 1200))
@@ -4446,7 +4531,10 @@ async def test_skill_run_mainline_returns_run_id_and_result_outputs(
     monkeypatch.setattr(
         freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
     )
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
+    _patch_mainline_generation(
+        monkeypatch,
+        SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
+    )
     monkeypatch.setattr(freezone_routes, "_new_job_id", lambda: "job_skill")
     _write_image(project_dir / "freezone" / "bg.png")
 
@@ -4821,7 +4909,10 @@ async def test_skill_run_sketch_accepts_director_combined_background(
     monkeypatch.setattr(
         freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
     )
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
+    _patch_mainline_generation(
+        monkeypatch,
+        SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
+    )
     monkeypatch.setattr(freezone_routes, "_new_job_id", lambda: "job_director")
     _write_image(project_dir / "freezone" / "_uploads" / "combined.png")
 
@@ -4878,7 +4969,10 @@ async def test_skill_run_sketch_prefers_director_combined_over_background(
     monkeypatch.setattr(
         freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
     )
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
+    _patch_mainline_generation(
+        monkeypatch,
+        SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
+    )
     monkeypatch.setattr(freezone_routes, "_new_job_id", lambda: "job_director_preferred")
     _write_image(project_dir / "freezone" / "_uploads" / "combined.png")
 
@@ -4960,7 +5054,10 @@ async def test_skill_run_frame_uses_resolved_identity_and_prop_references(
     monkeypatch.setattr(
         freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
     )
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
+    _patch_mainline_generation(
+        monkeypatch,
+        SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
+    )
     import ai_anime.project_config as project_config
 
     monkeypatch.setattr(
@@ -5054,7 +5151,10 @@ async def test_skill_run_frame_filters_stale_canvas_identity_refs_by_beat_contex
     monkeypatch.setattr(
         freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
     )
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
+    _patch_mainline_generation(
+        monkeypatch,
+        SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
+    )
     _write_image(project_dir / "freezone" / "sketch.png", size=(800, 1200))
     _write_image(project_dir / "assets" / "identity_keep.png")
     _write_image(project_dir / "assets" / "identity_stale.png")
@@ -5128,7 +5228,10 @@ async def test_skill_run_frame_uses_sketch_aspect_ratio_and_quality(
     monkeypatch.setattr(
         freezone_routes, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
     )
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
+    _patch_mainline_generation(
+        monkeypatch,
+        SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
+    )
     _write_image(project_dir / "freezone" / "sketch.png", size=(1600, 900))
 
     await freezone_routes.freezone_skill_run(
@@ -5175,7 +5278,10 @@ async def test_skill_run_scene_360_uses_reverse_master_and_scene_slot_target(
             queue="node.node_a.world",
         )
 
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
+    _patch_mainline_generation(
+        monkeypatch,
+        SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
+    )
     monkeypatch.setattr(freezone_routes, "_new_job_id", lambda: "job_scene_360")
     master = project_dir / "assets" / "scenes" / "小区" / "master.png"
     reverse = project_dir / "assets" / "scenes" / "小区" / "reverse.png"
@@ -5275,7 +5381,10 @@ async def test_skill_run_scene_360_requires_scene_master_scene_id(
     async def fake_enqueue_project_task(_ctx: ProjectContext, **_kwargs):
         raise AssertionError("scene_360 must fail before dispatch without explicit scene_id")
 
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
+    _patch_mainline_generation(
+        monkeypatch,
+        SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
+    )
 
     with pytest.raises(freezone_routes.HTTPException) as exc:
         await freezone_routes.freezone_skill_run(
@@ -5316,7 +5425,10 @@ async def test_skill_run_scene_360_infers_scene_id_from_mainline_context(
             queue="node.node_a.world",
         )
 
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
+    _patch_mainline_generation(
+        monkeypatch,
+        SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
+    )
     monkeypatch.setattr(freezone_routes, "_new_job_id", lambda: "job_scene_360")
     master = project_dir / "assets" / "scenes" / "小区" / "master.png"
     _write_image(master)
@@ -5370,7 +5482,10 @@ async def test_preset_managed_scene_360_auto_commits_to_canonical_slot(
             queue="node.node_a.world",
         )
 
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
+    _patch_mainline_generation(
+        monkeypatch,
+        SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
+    )
     _write_canvas_with_node(
         tmp_path,
         "canvas_a",

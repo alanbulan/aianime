@@ -415,50 +415,6 @@ def notes_suffix(*, style: str, notes: str, user_prompt: str) -> str:
     return "\n".join(lines)
 
 
-def infer_scene_id_from_master_path(path: Path, project_dir: Path) -> str:
-    try:
-        rel_parts = path.relative_to(project_dir).parts
-    except ValueError:
-        rel_parts = path.parts
-    for index in range(len(rel_parts) - 1):
-        if rel_parts[index] == "scenes" and index + 1 < len(rel_parts):
-            return rel_parts[index + 1]
-    return path.parent.name or "the target scene"
-
-
-def build_scene_360_prompt(scene_id: str) -> str:
-    normalized_scene_id = (scene_id or "").strip() or "the target scene"
-    return (
-        f"Generate a 360-degree equirectangular panorama image in exact 2:1 "
-        f"aspect ratio for scene `{normalized_scene_id}`.\n\n"
-        "INPUT IMAGE ROLE:\n"
-        "- Reference image 1 = MASTER VISUAL BIBLE.\n"
-        "- It controls art style, material style, linework, color palette, lighting mood, and fixed scene design.\n"
-        "- Reference image 1 is NOT the final camera view.\n"
-        "- Do NOT copy its single frontal composition. Use it only as visual/style/material evidence while constructing a full 360-degree continuous environment.\n\n"
-        "LAYER MODE: FULL ENVIRONMENT\n"
-        "- Generate the complete environment and fixed fixtures only.\n"
-        "- No people, no characters, no story action, and no temporary story props.\n\n"
-        "PROJECTION REQUIREMENTS:\n"
-        "- Correct equirectangular spherical panorama projection.\n"
-        "- Output must be one continuous 2:1 panorama, suitable for a VR/360 panorama viewer.\n"
-        "- Camera is fixed at the center of the scene at normal human eye height.\n"
-        "- Full 360-degree environment around the camera.\n"
-        "- Left and right edges must connect seamlessly with no visible seam.\n"
-        "- Horizon must be level and centered.\n"
-        "- Use normal VR panorama projection: no single flat wide shot, no cubemap atlas, no borders, no multi-panel sheet.\n"
-        "- Geometry must remain stable after spherical wrapping.\n"
-        "- Ceiling and floor poles must be clean continuous surfaces, with no black holes, labels, mirrors, sliced objects, or heavy stretching.\n\n"
-        "NEGATIVE REQUIREMENTS:\n"
-        "- Not a normal wide-angle illustration.\n"
-        "- Not fisheye lens.\n"
-        "- Not cubemap faces.\n"
-        "- No labels, no UI, no watermark.\n"
-        "- No broken seam, no duplicated doorway at seam, no mirrored left/right halves.\n"
-        "- No photorealism drift if the reference is stylized."
-    )
-
-
 def resolve_upscale_dimensions(source_path: Path, scale_factor: int) -> tuple[int, int]:
     from PIL import Image
 
