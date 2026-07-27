@@ -40,6 +40,16 @@ from ai_anime.modules.creative_canvas.application.canvas_events import (
     CreativeCanvasEventRecorder,
     RecordCreativeCanvasEventCommand,
 )
+from ai_anime.modules.creative_canvas.application.canvas_commits import (
+    CommitCreativeCanvasSlotCommand,
+    CopyCreativeCanvasSlotCommand,
+    CreativeCanvasSlotBeatNotFound,
+    CreativeCanvasSlotCommitUseCases,
+    CreativeCanvasSlotCopyResult,
+    CreativeCanvasSlotSourceNotFound,
+    GetCreativeCanvasSlotImpactQuery,
+    InvalidCreativeCanvasSlotCommit,
+)
 from ai_anime.modules.creative_canvas.application.canvas_projections import (
     BuildCreativeCanvasProjectionQuery,
     CreativeCanvasProjectionCanvasNotFound,
@@ -250,6 +260,14 @@ def creative_canvas_event_recorder() -> CreativeCanvasEventRecorder:
     return build()
 
 
+def creative_canvas_slot_commit_use_cases() -> CreativeCanvasSlotCommitUseCases:
+    from ai_anime.modules.creative_canvas.composition import (
+        creative_canvas_slot_commit_use_cases as build,
+    )
+
+    return build()
+
+
 def creative_canvas_preset_use_cases() -> CreativeCanvasPresetUseCases:
     from ai_anime.modules.creative_canvas.composition import (
         creative_canvas_preset_use_cases as build,
@@ -415,6 +433,8 @@ __all__ = [
     "BuildCreativeCanvasProjectionQuery",
     "CREATIVE_CANVAS_AUDIO_AGE_GROUP_LABELS",
     "DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL",
+    "CommitCreativeCanvasSlotCommand",
+    "CopyCreativeCanvasSlotCommand",
     "CreateCreativeCanvasAudioVoiceCommand",
     "CreateCreativeCanvasPresetCommand",
     "CreativeCanvasAudioGenerationUseCases",
@@ -436,6 +456,10 @@ __all__ = [
     "CreativeCanvasDocumentWriteError",
     "CreativeCanvasEventActor",
     "CreativeCanvasEventRecorder",
+    "CreativeCanvasSlotBeatNotFound",
+    "CreativeCanvasSlotCommitUseCases",
+    "CreativeCanvasSlotCopyResult",
+    "CreativeCanvasSlotSourceNotFound",
     "CreativeCanvasProjectionCanvasNotFound",
     "CreativeCanvasProjectionUseCases",
     "CreativeCanvasPresetCanvasNotFound",
@@ -483,11 +507,13 @@ __all__ = [
     "GenerationCatalogQueries",
     "GetCreativeCanvasDocumentQuery",
     "GetCreativeCanvasProjectionStatusQuery",
+    "GetCreativeCanvasSlotImpactQuery",
     "GetCreativeCanvasAudioVoiceQuery",
     "DetectCreativeCanvasMarkCommand",
     "DangerousCreativeCanvasDocumentOverwrite",
     "DeleteCreativeCanvasDocumentCommand",
     "InvalidCreativeCanvasPngScreenshot",
+    "InvalidCreativeCanvasSlotCommit",
     "InvalidCreativeCanvasPresetRequest",
     "InvalidCreativeCanvasAudioGenerationRequest",
     "InvalidCreativeCanvasAudioLibraryRequest",
@@ -556,6 +582,7 @@ __all__ = [
     "creative_canvas_document_commands",
     "creative_canvas_document_queries",
     "creative_canvas_event_recorder",
+    "creative_canvas_slot_commit_use_cases",
     "creative_canvas_preset_use_cases",
     "creative_canvas_projection_use_cases",
     "creative_canvas_mark_detection_use_cases",

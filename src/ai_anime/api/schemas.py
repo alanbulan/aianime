@@ -6,7 +6,7 @@ from fastapi import HTTPException
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 
 from ai_anime.models import SceneRef
-from ai_anime.freezone.slots import PushTarget
+from ai_anime.freezone.slots import SlotTarget
 from ai_anime.modules.production.public import DEFAULT_VIDEO_BACKEND
 from ai_anime.api.story_intake_schemas import IngestStart as IngestStart
 
@@ -1742,12 +1742,12 @@ class ProjectionRemoveRequest(BaseModel):
 
 class PushRequest(BaseModel):
     source_url: str
-    target: PushTarget = Field(discriminator="kind")
+    target: SlotTarget = Field(discriminator="kind")
     mark_stale: bool = False
 
 
 class ImpactRequest(BaseModel):
-    target: PushTarget = Field(discriminator="kind")
+    target: SlotTarget = Field(discriminator="kind")
 
 
 class CreateIdentityAssetRequest(BaseModel):

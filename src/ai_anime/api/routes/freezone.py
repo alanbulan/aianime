@@ -21,7 +21,6 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Query
 
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import (
-    make_cognee_store_for_context,
     make_sqlite_store,
     make_sqlite_store_for_context,
     make_static_url_for_context,
@@ -35,7 +34,6 @@ from ai_anime.api.schemas import (
     FreezoneScene360Request,
     FreezoneSketchFromContextRequest,
     FreezoneStageAssetAcceptedResponse,
-    ImpactRequest,
     PushRequest,
 )
 from ai_anime.director_world import DirectorWorldService
@@ -45,11 +43,13 @@ from ai_anime.modules.asset_world.public import (
 )
 from ai_anime.modules.creative_canvas.public import (
     CREATIVE_CANVAS_AUDIO_AGE_GROUP_LABELS,
+    CopyCreativeCanvasSlotCommand,
     CreativeCanvasImageGenerationReferenceMissing,
     InvalidCreativeCanvasImageGenerationRequest,
     StartCreativeCanvasImageGenerationCommand,
     canvas_actor_id,
     canvas_event_actor,
+    creative_canvas_slot_commit_use_cases,
     creative_canvas_image_generation_use_cases,
     detected_reference_ids_from_beat_context_data,
     first_text_value,
@@ -119,14 +119,8 @@ from ai_anime.freezone.skill_registry import (
 )
 from ai_anime.freezone.slots import (
     IdentityTarget,
-    PushTarget,
-    backup_slot_if_exists,
-    compute_slot_impact,
-    is_global_asset_slot,
-    record_slot_stale_marks,
+    SlotTarget,
     slot_target_path,
-    sync_slot_after_write,
-    validate_source_for_slot,
 )
 from ai_anime.models import CharacterIdentity, beat_scene_id
 from ai_anime.modules.project_workspace.public import (
@@ -1515,7 +1509,6 @@ _agent_review_frame_reviewer: FrameReviewReviewer | None = None
 TAG_FREEZONE_IMAGE = "freezone-image"
 TAG_FREEZONE_ASSETS = "freezone-assets"
 
-TAG_FREEZONE_COMMIT = "freezone-commit"
 TAG_FREEZONE_JOBS = "freezone-jobs"
 TAG_FREEZONE_SKILLS = "freezone-skills"
 
@@ -2741,7 +2734,7 @@ async def _run_set_director_combined_skill(
     return response
 
 
-def _parse_skill_output_push_target(output: dict) -> PushTarget | None:
+def _parse_skill_output_push_target(output: dict) -> SlotTarget | None:
     if output.get("pushable") is not True:
         return None
     if output.get("auto_commit") is not True:
@@ -2754,48 +2747,6 @@ def _parse_skill_output_push_target(output: dict) -> PushTarget | None:
     except Exception as exc:
         logger.warning("invalid skill output slot_target ignored: %s", exc)
         return None
-
-
-def _copy_skill_output_to_slot(
-    *,
-    project_dir: Path,
-    ctx: ProjectContext,
-    source_path: Path,
-    target: PushTarget,
-) -> tuple[Path, str, Path | None, dict]:
-    validate_source_for_slot(source_path, target)
-    target_path = slot_target_path(project_dir, target)
-    if target.kind == "scene_3gs_custom_scene":
-        target_path = target_path.with_suffix(source_path.suffix.lower())
-    target_path.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        same_file = source_path.resolve() == target_path.resolve()
-    except OSError:
-        same_file = False
-
-    should_match_existing_size = (
-        target_path.exists()
-        and not same_file
-        and target.kind in {"frame", "sketch", "director_render"}
-        and source_path.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}
-        and target_path.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}
-    )
-    backup = None if same_file else backup_slot_if_exists(target_path)
-    if same_file:
-        image_adaptation = {"adapted": False, "same_file": True}
-    elif should_match_existing_size:
-        image_adaptation = _copy_image_matching_existing_target(source_path, target_path)
-    else:
-        image_adaptation = {"adapted": False}
-        shutil.copy2(source_path, target_path)
-    sync_slot_after_write(project_dir, target, target_path)
-    rel = target_path.relative_to(project_dir).as_posix()
-    return (
-        target_path,
-        make_static_url_for_context(ctx, rel, local_path=target_path),
-        backup,
-        image_adaptation,
-    )
 
 
 async def _finalize_skill_run_outputs(
@@ -2815,22 +2766,25 @@ async def _finalize_skill_run_outputs(
         image_url = str(item.get("image_url") or "").strip()
         if target is not None and image_url:
             try:
-                source_path = resolve_static_url_to_path(image_url, project_dir)
-                if not source_path.exists() or not source_path.is_file():
-                    raise FileNotFoundError(source_path)
-                target_path, target_url, backup, image_adaptation = _copy_skill_output_to_slot(
-                    project_dir=project_dir,
-                    ctx=ctx,
-                    source_path=source_path,
-                    target=target,
+                copied = creative_canvas_slot_commit_use_cases().copy(
+                    CopyCreativeCanvasSlotCommand(
+                        context=ctx,
+                        project_dir=project_dir,
+                        source_url=image_url,
+                        target=target.model_dump(mode="json"),
+                    )
                 )
+                target_path = copied.target_path
+                target_url = copied.target_url
                 item["image_url"] = target_url
                 item["pushable"] = False
                 item["committed"] = True
                 item["committed_slot_url"] = target_url
                 item["target_path"] = target_path.as_posix()
-                item["backup"] = str(backup) if backup else None
-                item["image_adaptation"] = image_adaptation
+                item["backup"] = (
+                    str(copied.backup_path) if copied.backup_path else None
+                )
+                item["image_adaptation"] = dict(copied.image_adaptation)
                 changed = True
                 record_creative_canvas_event(
                     project_dir=project_dir,
@@ -3644,60 +3598,6 @@ def _public_freezone_video_story_result(result: dict) -> dict:
     return {
         key: value for key, value in result.items() if key not in {"output_path", "frame_paths"}
     }
-
-
-def _copy_image_matching_existing_target(source_path: Path, target: Path) -> dict:
-    """Copy image to target, preserving the existing target canvas size when present.
-
-    Freezone outputs may use a model-friendly ratio such as 2:3, while legacy
-    AI anime beat sketches are often trimmed grid cells like 233x383.  On push
-    back, keep the whole source image and letterbox it into the existing target
-    dimensions instead of cropping.
-    """
-    if not target.exists():
-        shutil.copy2(source_path, target)
-        return {"adapted": False}
-
-    from PIL import Image, ImageOps
-
-    with Image.open(target) as target_img:
-        target_size = target_img.size
-        target_mode = target_img.mode
-    with Image.open(source_path) as source_img:
-        source = ImageOps.exif_transpose(source_img)
-        source_size = source.size
-        if source_size == target_size:
-            shutil.copy2(source_path, target)
-            return {
-                "adapted": False,
-                "source_size": list(source_size),
-                "target_size": list(target_size),
-            }
-
-        if target_mode in {"RGBA", "LA"}:
-            canvas_mode = "RGBA"
-            background = (255, 255, 255, 0)
-            source = source.convert("RGBA")
-        else:
-            canvas_mode = "RGB"
-            background = (255, 255, 255)
-            source = source.convert("RGB")
-
-        fitted = ImageOps.contain(source, target_size, Image.Resampling.LANCZOS)
-        canvas = Image.new(canvas_mode, target_size, background)
-        offset = (
-            (target_size[0] - fitted.size[0]) // 2,
-            (target_size[1] - fitted.size[1]) // 2,
-        )
-        canvas.paste(fitted, offset, fitted if fitted.mode == "RGBA" else None)
-        save_kwargs = {"format": "PNG"} if target.suffix.lower() == ".png" else {}
-        canvas.save(target, **save_kwargs)
-        return {
-            "adapted": True,
-            "source_size": list(source_size),
-            "target_size": list(target_size),
-            "fitted_size": list(fitted.size),
-        }
 
 
 @router.get(
@@ -4645,61 +4545,6 @@ async def _beat_for_capture(
     return target
 
 
-async def _persist_freezone_selected_background_scene_ref(
-    *,
-    ctx: ProjectContext,
-    episode: int,
-    beat: int,
-) -> None:
-    """Mark a Freezone-committed image as the Beat's render background slot."""
-    store = await make_sqlite_store_for_context(ctx)
-    try:
-        beats = await store.get_beats_as_dicts(int(episode))
-        target = next(
-            (item for item in beats if int(item.get("beat_number") or 0) == int(beat)),
-            None,
-        )
-        if not target:
-            raise HTTPException(404, f"beat not found: ep{episode} beat{beat}")
-
-        scene_ref = dict(target.get("scene_ref") or {})
-        scene_id = beat_scene_id(target)
-        if scene_id:
-            scene_ref["scene_id"] = scene_id
-        scene_ref["render_anchor_id"] = "selected_background"
-        scene_ref["render_anchor_source_id"] = "freezone_commit"
-        scene_ref.pop("render_anchor_path", None)
-        await store.update_beat_asset(
-            episode_number=int(episode),
-            beat_number=int(beat),
-            scene_ref=scene_ref,
-        )
-    finally:
-        close = getattr(store, "close", None)
-        if close:
-            await close()
-
-
-@router.post("/projects/{project}/freezone/impact", tags=[TAG_FREEZONE_COMMIT])
-async def freezone_impact(
-    project: str,
-    body: ImpactRequest,
-    user: dict = Depends(get_api_user),
-):
-    ctx, username, project_name, _project_dir, _output_dir = await _resolve_freezone_project(
-        project, user, required_role="viewer"
-    )
-    impacted = await compute_slot_impact(username, project_name, body.target)
-    return {
-        "ok": True,
-        "data": {
-            "target": body.target.model_dump(),
-            "affected_beats": impacted,
-            "affected_count": len(impacted),
-        },
-    }
-
-
 def _sync_env_only_to_selected_background(project_dir: Path, episode: int, beat: int) -> bool:
     """Lazy mirror env_only.png → selected_background.png if env_only is newer.
 
@@ -4944,138 +4789,6 @@ async def freezone_scene_assets_for_beat(
             "director_env_only_url": director_env_only_url,
             "pano_360_url": pano_360_url,
             "ply_url": ply_url,
-        },
-    }
-
-
-@router.post("/projects/{project}/freezone/push", tags=[TAG_FREEZONE_COMMIT])
-async def freezone_push(project: str, body: PushRequest, user: dict = Depends(get_api_user)):
-    """把 Freezone candidate 媒体写回主流程 canonical slot。
-
-    源文件通常来自 `freezone/_outputs/`，也允许来自同项目作用域内的其他静态资源。
-    写入前会自动备份已有目标文件。
-    """
-    ctx, username, project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project, user
-    )
-
-    try:
-        source_path = resolve_static_url_to_path(body.source_url, project_dir)
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
-    if not source_path.exists():
-        raise HTTPException(404, f"source file not found: {source_path}")
-    validate_source_for_slot(source_path, body.target)
-
-    target = slot_target_path(project_dir, body.target)
-    if body.target.kind == "scene_3gs_custom_scene":
-        target = target.with_suffix(source_path.suffix.lower())
-    target.parent.mkdir(parents=True, exist_ok=True)
-    same_file = False
-    try:
-        same_file = source_path.resolve() == target.resolve()
-    except OSError:
-        same_file = False
-    should_match_existing_size = (
-        target.exists()
-        and not same_file
-        and body.target.kind in {"frame", "sketch", "director_render"}
-        and source_path.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}
-        and target.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}
-    )
-    backup = None if same_file else backup_slot_if_exists(target)
-    if same_file:
-        image_adaptation = {"adapted": False, "same_file": True}
-    elif should_match_existing_size:
-        image_adaptation = _copy_image_matching_existing_target(source_path, target)
-    else:
-        image_adaptation = {"adapted": False}
-        shutil.copy2(source_path, target)
-    sync_slot_after_write(project_dir, body.target, target)
-    if body.target.kind == "selected_background":
-        await _persist_freezone_selected_background_scene_ref(
-            ctx=ctx,
-            episode=body.target.episode,
-            beat=body.target.beat,
-        )
-    impacted: list[dict] = []
-    stale_marked = 0
-    if body.mark_stale and is_global_asset_slot(body.target):
-        impacted = await compute_slot_impact(username, project_name, body.target)
-        stale_marked = record_slot_stale_marks(
-            project_dir,
-            target=body.target,
-            impacted=impacted,
-            source_url=body.source_url,
-        )
-
-    if body.target.kind in {"identity", "identity_costume", "identity_portrait"}:
-        # F5 收尾逻辑：尽量提示 cognee_store 刷新 identity 记录。
-        # 磁盘文件才是真正的数据源，这里只是 best-effort 同步。
-        try:
-            store = await make_cognee_store_for_context(ctx)
-            character = body.target.character
-            identity_id = body.target.identity_id
-            if body.target.kind == "identity_costume":
-                try:
-                    await store.update_character_identity(
-                        character,
-                        identity_id,
-                        costume_image=str(target),
-                    )
-                except AttributeError:
-                    logger.info(
-                        "cognee_store.update_character_identity not available; "
-                        "skipping costume metadata sync (file is updated)"
-                    )
-            if body.target.kind == "identity_portrait":
-                try:
-                    await store.update_character_identity(
-                        character,
-                        identity_id,
-                        portrait_image=str(target),
-                    )
-                except AttributeError:
-                    logger.info(
-                        "cognee_store.update_character_identity not available; "
-                        "skipping identity portrait metadata sync (file is updated)"
-                    )
-            try:
-                await store.touch_identity(character, identity_id)  # type: ignore[attr-defined]
-            except AttributeError:
-                logger.info(
-                    "cognee_store.touch_identity not available; "
-                    "skipping metadata sync (file is updated)"
-                )
-        except Exception as exc:
-            logger.warning("identity cognee sync best-effort failed: %s", exc)
-
-    rel = target.relative_to(project_dir).as_posix()
-    record_creative_canvas_event(
-        project_dir=project_dir,
-        project_id=project,
-        canvas_id=None,
-        event_type="canvas.push_committed",
-        actor=canvas_event_actor(user),
-        payload={
-            "source_url": body.source_url,
-            "target": body.target.model_dump(mode="json"),
-            "target_path": str(target),
-            "target_url": make_static_url_for_context(ctx, rel, local_path=target),
-            "backup": str(backup) if backup else None,
-            "stale_marked": stale_marked,
-            "affected_count": len(impacted),
-        },
-    )
-    return {
-        "ok": True,
-        "data": {
-            "target_path": str(target),
-            "target_url": make_static_url_for_context(ctx, rel, local_path=target),
-            "backup": str(backup) if backup else None,
-            "image_adaptation": image_adaptation,
-            "stale_marked": stale_marked,
-            "affected_count": len(impacted),
         },
     }
 

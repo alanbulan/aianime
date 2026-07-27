@@ -6,17 +6,13 @@ write target shared by the main pipeline and Freezone's Commit to Asset flow.
 
 from __future__ import annotations
 
-import json
 import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Literal, Optional, Union
 
-from fastapi import HTTPException
 from pydantic import BaseModel
 
-from ai_anime.shared.infrastructure.project_stores import make_sqlite_store
-from ai_anime.freezone.paths import freezone_root
 from ai_anime.utils.path_resolver import (
     PathResolver,
     canonical_beat_selected_background_path,
@@ -179,39 +175,6 @@ SlotTarget = Union[
     BeatAudioTarget,
 ]
 
-# Backwards-compatible alias for API route models.
-PushTarget = SlotTarget
-
-
-SCENE_ASSET_KINDS = {
-    "scene_master",
-    "scene_360",
-    "scene_reverse_master",
-    "scene_spatial_layout",
-    "scene_director_pano_360",
-    "scene_3gs_active_ply",
-    "scene_3gs_master_ply",
-    "scene_3gs_reverse_ply",
-    "scene_3gs_pano_ply",
-    "scene_3gs_custom_scene",
-    "scene_3gs_collision_glb",
-}
-GLOBAL_ASSET_KINDS = {
-    "identity",
-    "identity_costume",
-    "identity_portrait",
-    "portrait",
-    "prop_ref",
-    *SCENE_ASSET_KINDS,
-}
-BEAT_SCOPED_KINDS = {
-    "frame",
-    "sketch",
-    "director_render",
-    "selected_background",
-    "video",
-    "beat_audio",
-}
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
 VIDEO_SUFFIXES = {".mp4", ".mov", ".webm"}
 AUDIO_SUFFIXES = {".mp3", ".wav", ".m4a", ".aac", ".ogg", ".webm", ".flac", ".opus"}
@@ -227,14 +190,6 @@ SCENE_3GS_PLY_TARGETS = {
     "scene_3gs_pano_ply": ("pano", "pano_depth.sog"),
     "scene_3gs_custom_scene": ("custom", "custom.sog"),
 }
-
-
-def is_global_asset_slot(target: SlotTarget) -> bool:
-    return target.kind in GLOBAL_ASSET_KINDS
-
-
-def is_beat_scoped_slot(target: SlotTarget) -> bool:
-    return target.kind in BEAT_SCOPED_KINDS
 
 
 def slot_target_path(project_dir: Path, target: SlotTarget) -> Path:
@@ -291,7 +246,7 @@ def slot_target_path(project_dir: Path, target: SlotTarget) -> Path:
         return PathResolver(str(project_dir), target.episode).video(target.beat)
     if target.kind == "beat_audio":
         return PathResolver(str(project_dir), target.episode).audio(target.beat)
-    raise HTTPException(400, f"unknown slot target kind: {target}")
+    raise ValueError(f"unknown slot target kind: {target}")
 
 
 def validate_source_for_slot(source_path: Path, target: SlotTarget) -> None:
@@ -299,26 +254,26 @@ def validate_source_for_slot(source_path: Path, target: SlotTarget) -> None:
     suffix = source_path.suffix.lower()
     if target.kind == "video":
         if suffix not in VIDEO_SUFFIXES:
-            raise HTTPException(400, "video slot requires a video source file")
+            raise ValueError("video slot requires a video source file")
         return
     if target.kind == "beat_audio":
         if suffix not in AUDIO_SUFFIXES:
-            raise HTTPException(400, "beat_audio slot requires an audio source file")
+            raise ValueError("beat_audio slot requires an audio source file")
         return
     if target.kind in SCENE_3GS_PLY_TARGETS:
         if target.kind == "scene_3gs_custom_scene":
             if suffix not in SCENE_PACKAGE_SUFFIXES:
-                raise HTTPException(400, f"{target.kind} slot requires a 3GS package source file")
+                raise ValueError(f"{target.kind} slot requires a 3GS package source file")
             return
         if suffix not in SPLAT_PACKAGE_SUFFIXES:
-            raise HTTPException(400, f"{target.kind} slot requires a 3GS package source file")
+            raise ValueError(f"{target.kind} slot requires a 3GS package source file")
         return
     if target.kind == "scene_3gs_collision_glb":
         if suffix not in GLB_SUFFIXES:
-            raise HTTPException(400, "scene_3gs_collision_glb slot requires a GLB source file")
+            raise ValueError("scene_3gs_collision_glb slot requires a GLB source file")
         return
     if suffix not in IMAGE_SUFFIXES:
-        raise HTTPException(400, f"{target.kind} slot requires an image source file")
+        raise ValueError(f"{target.kind} slot requires an image source file")
 
 
 def backup_slot_if_exists(target: Path) -> Optional[Path]:
@@ -330,26 +285,6 @@ def backup_slot_if_exists(target: Path) -> Optional[Path]:
     backup = backup_dir / f"{target.name}.{ts}.bak"
     shutil.copy2(target, backup)
     return backup
-
-
-def slot_asset_key(target: SlotTarget) -> str | None:
-    if target.kind == "identity":
-        return f"identity:{target.character}:{target.identity_id}"
-    if target.kind == "identity_costume":
-        return f"identity_costume:{target.character}:{target.identity_id}"
-    if target.kind == "identity_portrait":
-        return f"identity_portrait:{target.character}:{target.identity_id}"
-    if target.kind == "portrait":
-        return f"portrait:{target.character}"
-    if target.kind == "scene_master":
-        return f"scene_master:{target.scene_id}"
-    if target.kind == "scene_360":
-        return f"scene_360:{target.scene_id}"
-    if target.kind in SCENE_ASSET_KINDS:
-        return f"{target.kind}:{target.scene_id}"
-    if target.kind == "prop_ref":
-        return f"prop_ref:{target.prop_id}"
-    return None
 
 
 def sync_slot_after_write(project_dir: Path, target: SlotTarget, target_path: Path) -> None:
@@ -394,115 +329,3 @@ def sync_slot_after_write(project_dir: Path, target: SlotTarget, target_path: Pa
     if ply_kind == "active":
         updates["ply_path"] = rel_name
     stage_manifest.update_manifest(project_dir, target.scene_id, **updates)
-
-
-async def compute_slot_impact(username: str, project: str, target: SlotTarget) -> list[dict]:
-    """Return beats affected by committing a global asset slot."""
-    if not is_global_asset_slot(target):
-        return []
-    store = await make_sqlite_store(username, project)
-    try:
-        beats = await store.list_visual_beats()
-    finally:
-        close = getattr(store, "close", None)
-        if close:
-            await close()
-
-    impacted: list[dict] = []
-    for beat in beats:
-        visual = str(getattr(beat, "visual_description", "") or "")
-        try:
-            detected = json.loads(getattr(beat, "detected_identities_json", "[]") or "[]")
-        except Exception:
-            detected = []
-        detected = [str(x) for x in detected if x]
-        hit = False
-        if target.kind in {"identity", "identity_costume", "identity_portrait"}:
-            hit = target.identity_id in visual or target.identity_id in detected
-        elif target.kind == "portrait":
-            hit = (
-                f"{{{{{target.character}_" in visual
-                or f"{{{{{target.character}}}}}" in visual
-                or any(
-                    x == target.character or x.startswith(f"{target.character}_") for x in detected
-                )
-            )
-        elif target.kind in SCENE_ASSET_KINDS:
-            hit = getattr(beat, "scene_id", "") == target.scene_id or target.scene_id in visual
-        elif target.kind == "prop_ref":
-            try:
-                detected_props = json.loads(getattr(beat, "detected_props_json", "[]") or "[]")
-            except Exception:
-                detected_props = []
-            detected_props = [str(x) for x in detected_props if x]
-            hit = target.prop_id in visual or target.prop_id in detected_props
-        if not hit:
-            continue
-        impacted.append(
-            {
-                "episode": int(getattr(beat, "episode_number", 0)),
-                "beat": int(getattr(beat, "beat_number", 0)),
-                "visual_description": visual,
-            }
-        )
-    impacted.sort(key=lambda x: (x["episode"], x["beat"]))
-    return impacted
-
-
-def stale_marks_path(project_dir: Path) -> Path:
-    return freezone_root(project_dir) / "stale_marks.json"
-
-
-def record_slot_stale_marks(
-    project_dir: Path,
-    *,
-    target: SlotTarget,
-    impacted: list[dict],
-    source_url: str,
-) -> int:
-    if not impacted:
-        return 0
-    path = stale_marks_path(project_dir)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        existing = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
-    except Exception:
-        existing = {}
-    marks = existing.get("marks") if isinstance(existing, dict) else None
-    if not isinstance(marks, list):
-        marks = []
-    asset_key = slot_asset_key(target) or target.kind
-    ts = datetime.now().isoformat()
-    before = {
-        (m.get("asset_key"), m.get("episode"), m.get("beat")) for m in marks if isinstance(m, dict)
-    }
-    added = 0
-    for item in impacted:
-        key = (asset_key, item.get("episode"), item.get("beat"))
-        payload = {
-            "asset_key": asset_key,
-            "target": target.model_dump(),
-            "episode": item.get("episode"),
-            "beat": item.get("beat"),
-            "reason": f"{asset_key} changed from Freezone",
-            "source_url": source_url,
-            "created_at": ts,
-        }
-        if key in before:
-            for idx, mark in enumerate(marks):
-                if (
-                    isinstance(mark, dict)
-                    and mark.get("asset_key") == key[0]
-                    and mark.get("episode") == key[1]
-                    and mark.get("beat") == key[2]
-                ):
-                    marks[idx] = payload
-                    break
-        else:
-            marks.append(payload)
-            added += 1
-    path.write_text(
-        json.dumps({"updated_at": ts, "marks": marks}, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-    return added

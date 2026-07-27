@@ -152,7 +152,16 @@ class _M06Store:
         }
 
     async def list_visual_beats(self):
-        return []
+        return [
+            SimpleNamespace(
+                episode_number=1,
+                beat_number=1,
+                visual_description="林昭在{{林昭_青年}}身旁撑起[[旧伞]]。",
+                scene_id=_SCENE,
+                detected_identities_json=f'["{_IDENTITY_ID}"]',
+                detected_props_json=f'["{_PROP}"]',
+            )
+        ]
 
     async def get_beats_as_dicts(self, episode: int):
         assert episode == 1
@@ -221,6 +230,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api.routes import freezone, ingest
     from ai_anime.api.routes.canvas import audio as freezone_audio
     from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap
+    from ai_anime.api.routes.canvas import commits as freezone_commits
     from ai_anime.api.routes.canvas import documents as freezone_documents
     from ai_anime.api.routes.canvas import image as freezone_image
     from ai_anime.api.routes.canvas import media as freezone_media
@@ -253,7 +263,10 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.modules.creative_canvas.application.video_processing import (
         CreativeCanvasVideoProcessingUseCases,
     )
-    from ai_anime.modules.creative_canvas.infrastructure import canvas_presets
+    from ai_anime.modules.creative_canvas.infrastructure import (
+        canvas_commits,
+        canvas_presets,
+    )
     from ai_anime.modules.creative_canvas.application.video_asset_library import (
         CreativeCanvasVideoAssetLibraryUseCases,
     )
@@ -378,9 +391,6 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     async def beat_for_capture(*_args, **_kwargs):
         return (await store.get_beats_as_dicts(1))[0]
 
-    async def compute_impact(_username, _project_name, target):
-        return [{"episode": 1, "beat": 1, "kind": target.kind}]
-
     async def build_beat_context(**_kwargs):
         return {
             "beat_data": (await store.get_beats_as_dicts(1))[0],
@@ -399,6 +409,11 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     )
     monkeypatch.setattr(
         freezone_bootstrap,
+        "resolve_project_scope",
+        resolve_project_scope,
+    )
+    monkeypatch.setattr(
+        freezone_commits,
         "resolve_project_scope",
         resolve_project_scope,
     )
@@ -444,10 +459,23 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     )
     monkeypatch.setattr(freezone, "resolve_project_context", resolve_project_context)
     monkeypatch.setattr(freezone, "make_sqlite_store_for_context", make_store_for_context)
-    monkeypatch.setattr(freezone, "make_cognee_store_for_context", make_store_for_context)
+    monkeypatch.setattr(
+        canvas_commits,
+        "make_sqlite_store_for_context",
+        make_store_for_context,
+    )
+    monkeypatch.setattr(
+        canvas_commits,
+        "make_cognee_store_for_context",
+        make_store_for_context,
+    )
+    monkeypatch.setattr(
+        canvas_commits,
+        "make_static_url_for_context",
+        static_url,
+    )
     monkeypatch.setattr(freezone, "make_static_url_for_context", static_url)
     monkeypatch.setattr(freezone, "_beat_for_capture", beat_for_capture)
-    monkeypatch.setattr(freezone, "compute_slot_impact", compute_impact)
     monkeypatch.setattr(freezone, "build_beat_preset_context", build_beat_context)
     monkeypatch.setattr(
         canvas_presets,
@@ -611,6 +639,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app.include_router(ingest.router, prefix="/api/v1")
         app.include_router(freezone_audio.router, prefix="/api/v1")
         app.include_router(freezone_bootstrap.router, prefix="/api/v1")
+        app.include_router(freezone_commits.router, prefix="/api/v1")
         app.include_router(freezone_documents.router, prefix="/api/v1")
         app.include_router(freezone_image.router, prefix="/api/v1")
         app.include_router(freezone_media.router, prefix="/api/v1")
@@ -629,6 +658,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app.dependency_overrides[ingest.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_audio.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_bootstrap.get_api_user] = lambda user=user: user
+        app.dependency_overrides[freezone_commits.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_image.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_media.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_presets.get_api_user] = lambda user=user: user

@@ -1173,6 +1173,102 @@ def test_freezone_canvas_preset_route_delegates_to_application() -> None:
     assert "ai_anime.api" not in adapter_source
 
 
+def test_freezone_canvas_commit_routes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "commits.py"
+    legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
+    legacy_slots = PACKAGE_ROOT / "freezone" / "slots.py"
+    application = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "application"
+        / "canvas_commits.py"
+    )
+    domain = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "domain"
+        / "canvas_commits.py"
+    )
+    adapter = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "infrastructure"
+        / "canvas_commits.py"
+    )
+    composition = PACKAGE_ROOT / "modules" / "creative_canvas" / "composition.py"
+    public = PACKAGE_ROOT / "modules" / "creative_canvas" / "public.py"
+    route_source = route.read_text(encoding="utf-8")
+    legacy_source = legacy_route.read_text(encoding="utf-8")
+    api_router_source = api_router.read_text(encoding="utf-8")
+    slots_source = legacy_slots.read_text(encoding="utf-8")
+    application_source = application.read_text(encoding="utf-8")
+    domain_source = domain.read_text(encoding="utf-8")
+    adapter_source = adapter.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+
+    impact_path = '"/projects/{project}/freezone/impact"'
+    push_path = '"/projects/{project}/freezone/push"'
+    assert route_source.count(impact_path) == 1
+    assert route_source.count(push_path) == 1
+    assert impact_path not in legacy_source
+    assert push_path not in legacy_source
+    for legacy_implementation in (
+        "async def freezone_impact(",
+        "async def freezone_push(",
+        "def _copy_skill_output_to_slot(",
+        "def _copy_image_matching_existing_target(",
+        "async def _persist_freezone_selected_background_scene_ref(",
+        "TAG_FREEZONE_COMMIT",
+    ):
+        assert legacy_implementation not in legacy_source
+    for removed_slot_implementation in (
+        "def is_global_asset_slot(",
+        "def is_beat_scoped_slot(",
+        "def slot_asset_key(",
+        "async def compute_slot_impact(",
+        "def stale_marks_path(",
+        "def record_slot_stale_marks(",
+    ):
+        assert removed_slot_implementation not in slots_source
+
+    assert "freezone_commits.router" in api_router_source
+    assert route_source.count("creative_canvas_slot_commit_use_cases().impact(") == 1
+    assert route_source.count("creative_canvas_slot_commit_use_cases().commit(") == 1
+    assert legacy_source.count("creative_canvas_slot_commit_use_cases().copy(") == 1
+    assert "class CreativeCanvasSlotCommitUseCases" in application_source
+    assert "canvas.push_committed" in application_source
+    assert "def compute_creative_canvas_slot_impact(" in domain_source
+    assert "def creative_canvas_slot_asset_key(" in domain_source
+    assert "class LocalCreativeCanvasSlotCommitGateway" in adapter_source
+    assert adapter_source.count("def _copy_image_matching_existing_target(") == 1
+    assert "LocalCreativeCanvasSlotCommitGateway()" in composition_source
+    assert "def creative_canvas_slot_commit_use_cases(" in public_source
+    for route_implementation_detail in (
+        "resolve_static_url_to_path",
+        "slot_target_path",
+        "backup_slot_if_exists",
+        "record_stale_marks",
+        "shutil",
+    ):
+        assert route_implementation_detail not in route_source
+
+    assert "from fastapi" not in slots_source
+    assert "fastapi" not in domain_source
+    assert "pydantic" not in domain_source
+    assert "ai_anime.api" not in domain_source
+    assert "ai_anime.freezone" not in domain_source
+    assert "fastapi" not in application_source
+    assert "ai_anime.api" not in application_source
+    assert "ai_anime.freezone" not in application_source
+    assert "fastapi" not in adapter_source
+    assert "ai_anime.api" not in adapter_source
+
+
 def test_freezone_canvas_projection_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "projections.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
@@ -1356,7 +1452,7 @@ def test_freezone_canvas_events_delegate_to_application() -> None:
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
 
-    assert legacy_source.count("record_creative_canvas_event(") == 7
+    assert legacy_source.count("record_creative_canvas_event(") == 6
     for event_type in (
         "canvas.projection_refresh.conflict",
         "canvas.projection_remove.conflict",
@@ -1367,7 +1463,7 @@ def test_freezone_canvas_events_delegate_to_application() -> None:
         "canvas.projection_removed",
     ):
         assert event_type in projection_adapter_source
-    assert legacy_source.count("canvas_event_actor(user)") == 7
+    assert legacy_source.count("canvas_event_actor(user)") == 6
     assert preset_route_source.count("canvas_event_actor(user)") == 1
     assert projection_route_source.count("canvas_event_actor(user)") == 2
     for legacy_implementation in (

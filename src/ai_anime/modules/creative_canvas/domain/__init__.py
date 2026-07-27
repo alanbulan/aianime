@@ -16,6 +16,14 @@ from ai_anime.modules.creative_canvas.domain.canvas_events import (
     CreativeCanvasEventActor,
     canvas_event_actor,
 )
+from ai_anime.modules.creative_canvas.domain.canvas_commits import (
+    CREATIVE_CANVAS_GLOBAL_SLOT_KINDS,
+    CREATIVE_CANVAS_SCENE_SLOT_KINDS,
+    CreativeCanvasImpactBeat,
+    compute_creative_canvas_slot_impact,
+    creative_canvas_slot_asset_key,
+    is_global_creative_canvas_slot,
+)
 from ai_anime.modules.creative_canvas.domain.canvas_projections import (
     default_push_target_for_preset,
     merge_projected_preset_canvas,
@@ -98,12 +106,15 @@ from ai_anime.modules.creative_canvas.domain.video_asset_library import (
 
 __all__ = [
     "CREATIVE_CANVAS_AUDIO_AGE_GROUP_LABELS",
+    "CREATIVE_CANVAS_GLOBAL_SLOT_KINDS",
+    "CREATIVE_CANVAS_SCENE_SLOT_KINDS",
     "DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL",
     "CreativeCanvasImageToThreeGsPlan",
     "CreativeCanvasImageToThreeGsSourceKind",
     "CreativeCanvasImageCameraConfig",
     "CreativeCanvasImageStyleConfig",
     "CreativeCanvasEventActor",
+    "CreativeCanvasImpactBeat",
     "SUPPORTED_CREATIVE_CANVAS_IMAGE_PROVIDERS",
     "CreativeCanvasScreenshotTooLarge",
     "CreativeCanvasMarkSelection",
@@ -128,12 +139,15 @@ __all__ = [
     "build_freezone_video_prompt",
     "canvas_actor_id",
     "canvas_event_actor",
+    "compute_creative_canvas_slot_impact",
+    "creative_canvas_slot_asset_key",
     "decode_png_screenshot",
     "default_push_target_for_preset",
     "detected_reference_ids_from_beat_context_data",
     "first_text_value",
     "infer_image_to_three_gs_scene_id",
     "is_preset_managed_canvas_node",
+    "is_global_creative_canvas_slot",
     "merge_projected_preset_canvas",
     "merge_restored_preset_canvas",
     "preset_facts_signature",

@@ -12,6 +12,7 @@ from PIL import Image
 
 from ai_anime.api.routes import freezone as freezone_routes
 from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap_routes
+from ai_anime.api.routes.canvas import commits as freezone_commit_routes
 from ai_anime.api.routes.canvas import documents as freezone_document_routes
 from ai_anime.api.routes.canvas import image as freezone_image_routes
 from ai_anime.api.routes.canvas import presets as freezone_preset_routes
@@ -65,7 +66,7 @@ from ai_anime.modules.creative_canvas.domain.image_editing_prompts import (
 from ai_anime.modules.creative_canvas.infrastructure.canvas_documents import (
     LocalCreativeCanvasDocumentQueryGateway,
 )
-from ai_anime.modules.creative_canvas.infrastructure import canvas_presets
+from ai_anime.modules.creative_canvas.infrastructure import canvas_commits, canvas_presets
 from ai_anime.modules.creative_canvas.public import (
     CreativeCanvasTaskStartFailed,
     generation_catalog_queries,
@@ -170,6 +171,11 @@ def _patch_freezone_project(
         return SimpleNamespace(ctx=ctx, project_dir=project_dir)
 
     monkeypatch.setattr(freezone_routes, "_resolve_freezone_project", fake_resolve_freezone_project)
+    monkeypatch.setattr(
+        freezone_commit_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
     monkeypatch.setattr(
         freezone_document_routes,
         "resolve_project_scope",
@@ -1117,12 +1123,12 @@ async def test_freezone_push_can_commit_selected_background_to_beat(
         return store
 
     monkeypatch.setattr(
-        freezone_routes,
+        canvas_commits,
         "make_sqlite_store_for_context",
         fake_make_store,
     )
 
-    result = await freezone_routes.freezone_push(
+    result = await freezone_commit_routes.freezone_push(
         project="proj_freezone",
         body=PushRequest(
             source_url="freezone/_outputs/edit/bg.png",
@@ -1159,7 +1165,7 @@ async def test_freezone_push_can_commit_beat_audio(
     source.parent.mkdir(parents=True)
     source.write_bytes(b"candidate-audio")
 
-    result = await freezone_routes.freezone_push(
+    result = await freezone_commit_routes.freezone_push(
         project="proj_freezone",
         body=PushRequest(
             source_url="freezone/_outputs/audio_speech/candidate.mp3",
