@@ -1664,6 +1664,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二百九十批已将文生图参考路径解析、存在性校验、提示词组合、严格 provider/model 路由、任务显示元数据和任务提交迁入 Creative Canvas image-generation application/adapter，并将 `/freezone/gen` POST 端点迁入 image FastAPI 子 router；standalone Beat Context 与导演合成图 Skill Run 同步改经同一 public 用例提交，旧 `freezone.py` gen handler 和 `_start_or_enqueue_freezone_gen_job` 整段删除，不保留 facade、转发函数或第二套提交链路；共享提示词适配器从 editing 专用命名收口为通用图片提示词组合器，图片 provider 归一规则下沉为唯一 domain 实现且旧 route helper 只保留 HTTP 错误映射，共享任务调度适配器增加显式 RuntimeError 翻译策略，使既有文生图未包装运行时错误语义保持不变；项目 editor 鉴权、主节点错误上下文、参考图空值跳过与 400/404 文案、默认 provider、模型选择、风格/相机提示词、`freezone_gen`/default 队列、payload、Canvas/Node/模型/模式字段、显示标签、项目级 task key、直达响应字段和 Skill Run 元数据均保持不变；image-generation 与调度器定向回归 13 项、历史集成回归 5 项、provider 与图片编辑回归 34 项、M06 完整合同 16 项、任务注册表 3 项和后端完整分层门禁 71 项均通过，4 条冷启动导入检查及 Ruff 检查通过，8 条告警均为既有依赖弃用告警。
 
+第二百九十一批已将多角度重构、重新打光、模板编辑和通用参考图编辑共 4 个 POST 端点统一收口到 Creative Canvas image-editing application/adapter 与 image FastAPI 子 router；多角度、打光、模板提示词及模板比例成为纯 domain 唯一规则，共享 reference-edit 用例统一承担基准图/额外参考图解析、原图比例读取、严格 provider/model 路由、风格/相机提示词组合、任务显示元数据和 `freezone_edit` 提交，图片默认模型同步下沉为领域常量；旧 `freezone.py` 中 4 个 handler 和 `_start_or_enqueue_freezone_edit_job`、旧 `route_helpers.py` 中提示词/比例规则及无调用的 gen/edit 启动壳和路径校验 helper 全部删除，不保留 facade、转发函数、兼容壳或第二套实现；项目 editor 鉴权、基准图/参考图 400/404 文案、明确比例不读取图片尺寸、`original` 源图比例、特殊端点默认模型与 medium 质量、通用 edit 显式 provider/model/quality、Canvas/Node/模型/模式字段、任务类型/default 队列/payload、显示标签、项目级 task key、限流与 RuntimeError 透传、请求路径和响应字段均保持不变；领域/用例/路由定向回归 37 项、历史图片后端相关回归 12 项、M06 完整合同 16 项、任务注册表 3 项和后端完整分层门禁 71 项均通过，4 条冷启动导入、Ruff 与 `git diff --check` 通过，8 条告警均为既有依赖弃用告警。
+
 后端：
 
 1. 将 71 个端点按 bootstrap、media、image、video、audio、text、canvas、assets、commit、jobs 拆 router。

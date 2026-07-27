@@ -6,11 +6,11 @@ from PIL import Image
 
 from ai_anime.freezone.paths import safe_upload_filename, uploads_dir
 from ai_anime.freezone.route_helpers import (
-    FREEZONE_DEFAULT_IMAGE_MODEL,
     merge_prompt_with_style_and_camera,
     split_provider_and_model,
 )
 from ai_anime.modules.creative_canvas.domain.image_editing import (
+    DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
     CreativeCanvasImageCameraConfig,
     CreativeCanvasImageStyleConfig,
     plan_outpaint_canvas,
@@ -68,9 +68,17 @@ class FreezoneCreativeCanvasImageModelRouter:
     def resolve(self, model: str) -> tuple[str, str | None]:
         provider, resolved_model = split_provider_and_model(
             None,
-            model or FREEZONE_DEFAULT_IMAGE_MODEL,
+            model or DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
         )
         return (
             resolve_image_provider(provider, strict=False),
             resolved_model,
         )
+
+    def resolve_reference_edit(
+        self,
+        provider: str | None,
+        model: str | None,
+    ) -> tuple[str, str | None]:
+        resolved_provider, resolved_model = split_provider_and_model(provider, model)
+        return resolve_image_provider(resolved_provider), resolved_model

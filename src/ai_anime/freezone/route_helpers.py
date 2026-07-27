@@ -13,23 +13,21 @@ from typing import Optional
 from fastapi import HTTPException
 
 from ai_anime.api.schemas import (
-    FreezoneCharacterMultiViewRequest,
     FreezoneImageCameraConfig,
     FreezoneImageStyleConfig,
-    FreezoneRelightRequest,
-    FreezoneTemplateEditRequest,
 )
 from ai_anime.config import IMAGE_GENERATION_SELECTIONS
 from ai_anime.freezone.paths import resolve_static_url_to_path
 from ai_anime.freezone.video_node import load_video_character_library
 from ai_anime.modules.creative_canvas.public import (
+    DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
     SUPPORTED_CREATIVE_CANVAS_IMAGE_PROVIDERS as SUPPORTED_FREEZONE_IMAGE_PROVIDERS,
     UnsupportedCreativeCanvasImageProvider,
     resolve_image_provider,
 )
 from ai_anime.task_identity import task_state_key
 
-FREEZONE_DEFAULT_IMAGE_SELECTION = "newapi_gpt_image2"
+FREEZONE_DEFAULT_IMAGE_SELECTION = DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL
 FREEZONE_DEFAULT_IMAGE_MODEL = FREEZONE_DEFAULT_IMAGE_SELECTION
 FREEZONE_IMAGE_CAMERA_OPTIONS = {
     "camera_bodies": [
@@ -285,14 +283,6 @@ def resolve_url_list(project_dir: Path, urls: list[str]) -> list[str]:
     return out
 
 
-def ensure_existing_paths(paths: list[str], *, field_name: str) -> None:
-    """Fail fast when request URLs resolve but files do not exist on disk."""
-    for path_text in paths:
-        path = Path(path_text)
-        if not path.exists():
-            raise HTTPException(404, f"{field_name} file not found: {path}")
-
-
 def accepted_job_response(
     *,
     task_type: str,
@@ -419,59 +409,6 @@ def split_provider_and_model(
     return provider, model_text or fallback_model
 
 
-def start_freezone_gen_job(
-    *,
-    username: str,
-    project: str,
-    project_dir: Path,
-    output_dir: Path,
-    prompt: str,
-    aspect_ratio: str,
-    image_size: str,
-    reference_urls: list[str],
-    camera: Optional[FreezoneImageCameraConfig],
-    style: Optional[FreezoneImageStyleConfig],
-    provider: Optional[str],
-    model: Optional[str],
-    quality: Optional[str],
-    canvas_id: Optional[str] = None,
-    node_id: Optional[str] = None,
-) -> dict:
-    reference_paths = resolve_url_list(project_dir, reference_urls)
-    ensure_existing_paths(reference_paths, field_name="reference")
-
-    raise HTTPException(503, "freezone gen task requires project task backend（当前 runner: Celery）")
-
-
-def start_freezone_edit_job(
-    *,
-    username: str,
-    project: str,
-    project_dir: Path,
-    output_dir: Path,
-    prompt: str,
-    base_url: str,
-    extra_reference_urls: list[str],
-    aspect_ratio: str,
-    image_size: str,
-    camera: Optional[FreezoneImageCameraConfig],
-    style: Optional[FreezoneImageStyleConfig],
-    provider: Optional[str],
-    model: Optional[str],
-    quality: Optional[str],
-    canvas_id: Optional[str] = None,
-    node_id: Optional[str] = None,
-) -> dict:
-    base_paths = resolve_url_list(project_dir, [base_url])
-    if not base_paths:
-        raise HTTPException(400, "base_url is required")
-    ensure_existing_paths(base_paths, field_name="base")
-    extra_paths = resolve_url_list(project_dir, extra_reference_urls)
-    ensure_existing_paths(extra_paths, field_name="reference")
-
-    raise HTTPException(503, "freezone edit task requires project task backend（当前 runner: Celery）")
-
-
 def notes_suffix(*, style: str, notes: str, user_prompt: str) -> str:
     lines = [f"Style: {style}."]
     if notes.strip():
@@ -532,268 +469,6 @@ def build_scene_360_prompt(scene_id: str) -> str:
         "- No broken seam, no duplicated doorway at seam, no mirrored left/right halves.\n"
         "- No photorealism drift if the reference is stylized."
     )
-
-
-def build_multi_view_prompt(body: FreezoneCharacterMultiViewRequest) -> str:
-    preset_map = {
-        "custom": "custom camera reposition",
-        "fisheye": "fisheye angle",
-        "oblique": "oblique angle",
-        "front": "front-facing shot",
-        "front_up": "front low-angle shot",
-        "full_body": "full-body shot",
-        "back": "back view shot",
-    }
-    shot_size_map = {
-        "extreme_close_up": "extreme close-up",
-        "close_up": "close-up",
-        "medium_close": "medium close-up",
-        "medium": "medium shot",
-        "full_body": "full-body shot",
-        "wide": "wide shot",
-        "extreme_wide": "extreme wide shot",
-    }
-    preset_text = preset_map.get(body.preset, "custom camera reposition")
-    shot_size_text = shot_size_map.get(body.shot_size, "medium shot")
-    user_block = f"\nUser prompt:\n{body.prompt.strip()}" if body.prompt.strip() else ""
-    return (
-        "Reframe the provided source image into a new camera angle while preserving the same scene, "
-        "same characters, same identities, same costume continuity, and same lighting logic unless explicitly changed.\n\n"
-        f"Preset target: {preset_text}.\n"
-        f"Horizontal rotation: {body.yaw_degrees:.1f} degrees.\n"
-        f"Vertical tilt: {body.pitch_degrees:.1f} degrees.\n"
-        f"Shot size: {shot_size_text}.\n"
-        f"{user_block}\n\n"
-        "Output requirements:\n"
-        "- Keep the image as one single final frame, not a contact sheet.\n"
-        "- Preserve facial identity and scene continuity.\n"
-        "- Infer plausible unseen content when the requested angle reveals new areas.\n"
-        "- Do not add text, UI, borders, watermark, or collage layout.\n"
-        "- Keep the result production-ready and visually coherent."
-    )
-
-
-def _describe_color_temperature(kelvin: int | None) -> str | None:
-    if kelvin is None:
-        return None
-    if kelvin < 2400:
-        tone = "very warm candlelight / firelight"
-    elif kelvin < 3500:
-        tone = "warm tungsten / amber practical light"
-    elif kelvin < 5000:
-        tone = "soft warm white light"
-    elif kelvin < 6200:
-        tone = "neutral daylight-balanced white light"
-    elif kelvin < 8000:
-        tone = "cool white daylight"
-    else:
-        tone = "very cool blue-hour / overcast light"
-    return f"{kelvin}K ({tone})"
-
-
-def build_relight_prompt(body: FreezoneRelightRequest) -> str:
-    base = (body.prompt or "").strip()
-    reference_block = (
-        "- Reference image 2 = lighting reference image.\n"
-        "- Use it to transfer the lighting mood, contrast, exposure logic, shadow behavior, and color temperature.\n"
-        if body.lighting_reference_url
-        else "- No lighting reference image is attached. Infer the lighting design from the requested controls.\n"
-    )
-    smart_block = "enabled" if body.smart_mode else "disabled"
-    rim_block = "enabled" if body.rim_light else "disabled"
-    color_temperature = _describe_color_temperature(body.color_temperature_kelvin)
-    color_temperature_control = (
-        f"\n- Color temperature: {color_temperature}." if color_temperature else ""
-    )
-    prefix = f"""Relight the provided source image.
-
-INPUT IMAGE ROLES:
-- Reference image 1 = source image to be relit.
-{reference_block}
-
-RELIGHT CONTROLS:
-- Scope: {body.scope}.
-- Smart mode: {smart_block}.
-- Brightness: {body.brightness}/100.
-- Key light color / overall color tone: {body.color_hex}.{color_temperature_control}
-- Key light direction: {body.key_light_direction}.
-- Rim light: {rim_block}.
-
-RELIGHTING CONTRACT:
-- Keep the same scene, same subjects, same camera framing, and same composition.
-- Preserve facial identity, costume continuity, and environment layout.
-- Transfer or infer only the lighting characteristics: light direction, softness/hardness, contrast ratio, color temperature, shadow density, highlight behavior, and overall mood.
-- Do not turn the image into a different scene.
-- Do not add text, watermark, UI, borders, or collage layout.
-- Keep the result production-ready and visually coherent."""
-    return f"{prefix}\n\n{base}" if base else prefix
-
-
-def build_template_edit_prompt(body: FreezoneTemplateEditRequest) -> str:
-    user_block = f"\n\nUser prompt:\n{body.prompt.strip()}" if body.prompt.strip() else ""
-    templates: dict[str, tuple[str, str]] = {
-        "multi_camera_nine_grid": (
-            "original",
-            "Generate a libtv-style 3x3 director multi-camera contact sheet from the source image.\n\n"
-            "Output requirements:\n"
-            "- Final output must be one readable 3x3 grid contact sheet, not nine separate images.\n"
-            "- Keep the same primary subject, same costume, same scene, same time moment, and same action.\n"
-            "- Do not add new characters, new dialogue, new story events, or unrelated props.\n"
-            "- Each cell must preserve the source image aspect ratio and orientation.\n"
-            "- Do not crop each camera view into a different ratio.\n"
-            "- Vary only camera coverage: shot size, camera height, lens distance, and angle.\n"
-            "- Each panel must look like a usable director coverage frame from the same shot setup.\n"
-            "- Add a small white label in the upper-left corner of every cell.\n"
-            "- Use exactly these nine labels and shot types in reading order:\n"
-            "  [KF1 | 3s | ELS] extreme long shot / full environment,\n"
-            "  [KF2 | 2s | LS] long shot / full body,\n"
-            "  [KF3 | 2s | MLS] medium long shot,\n"
-            "  [KF4 | 2s | MS] medium shot,\n"
-            "  [KF5 | 2s | MCU] medium close-up,\n"
-            "  [KF6 | 2s | CU] close-up,\n"
-            "  [KF7 | 1s | ECU] extreme close-up of the key hand/object/detail,\n"
-            "  [KF8 | 2s | High-Angle] high-angle view,\n"
-            "  [KF9 | 2s | Low-Angle] low-angle view.\n"
-            "- Use thin dark grid lines between cells; no large white gutters, no decorative border.\n"
-            "- Fill the whole output canvas; do not add black bars, letterboxing, UI, or watermark.\n"
-            "- Preserve identity, costume, lighting mood, color tone, and scene continuity across all cells.",
-        ),
-        "story_pitch_four_grid": (
-            "original",
-            "Generate a 2x2 story pitch board from the source image.\n\n"
-            "Output requirements:\n"
-            "- Create four consecutive pitch frames that expand the current story moment.\n"
-            "- Keep the same characters, scene, and dramatic context.\n"
-            "- Emphasize clear story progression and emotional beats.\n"
-            "- Each cell must preserve the source image aspect ratio and orientation.\n"
-            "- Do not crop each story frame into a different ratio.\n"
-            "- Arrange the four same-ratio frames in a clean 2x2 grid with thin dividers.\n"
-            "- Fill the whole output canvas; do not add black bars, letterboxing, UI, or watermark.",
-        ),
-        "character_face_three_view": (
-            "3:2",
-            "Generate a clean three-view face sheet from the source image.\n\n"
-            "Output requirements:\n"
-            "- Show front view, three-quarter view, and side view of the same face.\n"
-            "- Preserve facial identity, age, hairstyle, skin tone, and expression logic.\n"
-            "- Use a clean reference-sheet style.\n"
-            "- Final output must be a compact three-view face layout.",
-        ),
-        "product_three_view": (
-            "3:2",
-            "Generate a clean three-view product reference sheet from the source image.\n\n"
-            "Output requirements:\n"
-            "- Show front, side, and back/alternate view of the same product.\n"
-            "- Preserve materials, silhouette, proportions, and key details.\n"
-            "- Use a clean product reference layout with neutral presentation.\n"
-            "- Final output must be a three-view sheet.",
-        ),
-        "storyboard_25_grid": (
-            "original",
-            "Generate a libtv-style 5x5 cinematic storyboard shot sequence from the source image.\n\n"
-            "Output requirements:\n"
-            "- Final output must be one readable 5x5 storyboard contact sheet, not 25 separate images.\n"
-            "- Build a coherent shot progression around the same core event in the source image.\n"
-            "- Do not create random variants, unrelated future scenes, or a new ending.\n"
-            "- Preserve the visible subjects, identities, costumes/materials, environment, lighting mood, "
-            "and key objects from the source image.\n"
-            "- Adapt the sequence to the actual source content. Do not invent dialogue, extra characters, "
-            "paper, weapons, vehicles, or props that are not visible or strongly implied.\n"
-            "- Organize the 25 cells like an editable film sequence:\n"
-            "  1-3 establishing coverage of the location, subject placement, and spatial relationship,\n"
-            "  4-6 primary subject close-ups, detail views, or reaction shots when characters exist,\n"
-            "  7-10 alternate angles, over-the-shoulder or eye-line coverage only when applicable,\n"
-            "  11-15 step-by-step progression of the visible key action or the most plausible next micro-action,\n"
-            "  16-19 inserts and extreme close-ups of visible key details: hands, face, eyes, object, "
-            "texture, signage, machinery, landscape feature, or environment clue,\n"
-            "  20-22 pause, reaction, consequence, or atmospheric detail beats,\n"
-            "  23-25 restrained resolution frames that stay in the same scene and subject context.\n"
-            "- Mix shot types deliberately: wide, medium, close-up, extreme close-up, insert, reaction/detail. "
-            "Use OTS only when the source contains a valid over-shoulder relationship.\n"
-            "- Avoid repeating the same two-shot or portrait composition across many cells.\n"
-            "- Number each cell unobtrusively in the upper-left corner from 1 to 25.\n"
-            "- Each cell must preserve the source image aspect ratio and orientation.\n"
-            "- Do not crop each storyboard frame into a different ratio.\n"
-            "- Arrange the twenty-five same-ratio frames in a clean 5x5 grid with thin dividers.\n"
-            "- Fill the whole output canvas; do not add black bars, letterboxing, UI, or watermark.",
-        ),
-        "cinematic_light_correction": (
-            "original",
-            "Cinematically refine the source image lighting.\n\n"
-            "Output requirements:\n"
-            "- Improve light hierarchy, shadow structure, exposure balance, and atmosphere.\n"
-            "- Preserve the source image aspect ratio, canvas dimensions, and orientation exactly.\n"
-            "- Keep the same scene, same characters, and same camera framing.\n"
-            "- Do not turn the image into a different composition.\n"
-            "- Fill the whole existing canvas; do not add black bars, borders, or letterboxing.\n"
-            "- Final output must remain a single frame with no collage, UI, watermark, or text.",
-        ),
-        "character_three_view_generation": (
-            "16:9",
-            "Generate a clean character three-view sheet from the source image.\n\n"
-            "Output requirements:\n"
-            "- Show front, side, and back/full-figure view of the same character.\n"
-            "- Preserve face identity, body proportions, costume details, and style.\n"
-            "- Keep the presentation clean and reference-friendly.\n"
-            "- Final output must be a three-view character sheet.",
-        ),
-        "image_projection_after_3s": (
-            "original",
-            "Create a future keyframe from the source image, as if this is a libtv-style "
-            "frame projection 3 seconds later in a video.\n\n"
-            "Output requirements:\n"
-            "- Preserve character identity, costume, environment, art style, and story continuity.\n"
-            "- Preserve the source image aspect ratio, canvas dimensions, and orientation exactly.\n"
-            "- Fill the whole existing canvas; do not add black bars, borders, or letterboxing.\n"
-            "- Do not make a near-duplicate or simple retouch of the source image.\n"
-            "- Create a clear time jump: the subject must be in a different action phase, "
-            "body pose, walking position, hand position, gaze, and object placement.\n"
-            "- Within the same frame size, use plausible camera pan, tilt, push, pull, or subject "
-            "relocation to make the temporal change obvious.\n"
-            "- Allow doors, props, cloth, hair, shadows, and nearby environment details to change "
-            "according to the action, while keeping spatial continuity coherent.\n"
-            "- The projected moment should feel like a real adjacent video frame, not a retouched still.\n"
-            "- Final output must be one single frame with no collage, UI, watermark, or text.",
-        ),
-        "image_projection_before_5s": (
-            "original",
-            "Create a past keyframe from the source image, as if this is a libtv-style "
-            "frame projection 5 seconds before in a video.\n\n"
-            "Output requirements:\n"
-            "- Preserve character identity, costume, environment, art style, and story continuity.\n"
-            "- Preserve the source image aspect ratio, canvas dimensions, and orientation exactly.\n"
-            "- Fill the whole existing canvas; do not add black bars, borders, or letterboxing.\n"
-            "- Do not make a near-duplicate or simple retouch of the source image.\n"
-            "- Create a clear earlier setup: the subject must be in a different action phase, "
-            "body pose, walking position, hand position, gaze, and object placement.\n"
-            "- Within the same frame size, use plausible camera pan, tilt, push, pull, or subject "
-            "relocation to make the earlier moment obvious.\n"
-            "- Allow doors, props, cloth, hair, shadows, and nearby environment details to change "
-            "according to the preceding action, while keeping spatial continuity coherent.\n"
-            "- The projected moment should feel like a real adjacent video frame, not a retouched still.\n"
-            "- Final output must be one single frame with no collage, UI, watermark, or text.",
-        ),
-    }
-    template = templates.get(body.mode)
-    if not template:
-        raise HTTPException(400, f"unsupported template edit mode: {body.mode}")
-    _, prompt = template
-    return f"{prompt}{user_block}"
-
-
-def template_edit_aspect_ratio(mode: str) -> str:
-    ratios: dict[str, str] = {
-        "multi_camera_nine_grid": "original",
-        "story_pitch_four_grid": "original",
-        "character_face_three_view": "3:2",
-        "product_three_view": "3:2",
-        "storyboard_25_grid": "original",
-        "cinematic_light_correction": "original",
-        "character_three_view_generation": "16:9",
-        "image_projection_after_3s": "original",
-        "image_projection_before_5s": "original",
-    }
-    return ratios.get(mode, "16:9")
 
 
 def resolve_upscale_dimensions(source_path: Path, scale_factor: int) -> tuple[int, int]:

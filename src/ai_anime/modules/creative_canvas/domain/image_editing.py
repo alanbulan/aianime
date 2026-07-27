@@ -27,6 +27,7 @@ SUPPORTED_CREATIVE_CANVAS_IMAGE_ASPECT_RATIOS = frozenset(
 SUPPORTED_CREATIVE_CANVAS_IMAGE_PROVIDERS = frozenset(
     {"huimeng", "newapi", "openrouter", "openai"}
 )
+DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL = "newapi_gpt_image2"
 
 
 class InvalidCreativeCanvasImageSize(ValueError):

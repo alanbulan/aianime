@@ -458,6 +458,11 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         )
         monkeypatch.setattr(
             freezone_image,
+            "creative_canvas_reference_image_editing_use_cases",
+            lambda use_cases=image_editing_use_cases: use_cases,
+        )
+        monkeypatch.setattr(
+            freezone_image,
             "creative_canvas_image_generation_use_cases",
             lambda use_cases=image_generation_use_cases: use_cases,
         )

@@ -20,6 +20,7 @@ from ai_anime.modules.creative_canvas.application.image_editing import (
     CreativeCanvasImageEditingUseCases,
     InvalidCreativeCanvasImageEditingRequest,
     StartCreativeCanvasImageEditingCommand,
+    StartCreativeCanvasReferenceImageEditingCommand,
 )
 from ai_anime.modules.creative_canvas.application.task_submission import (
     CreativeCanvasTaskReceipt,
@@ -135,9 +136,18 @@ class _CapturingPrompts:
 class _FixedModels:
     def __init__(self) -> None:
         self.received: list[str] = []
+        self.reference_received: list[tuple[str | None, str | None]] = []
 
     def resolve(self, model: str) -> tuple[str, str]:
         self.received.append(model)
+        return "newapi", "gpt-image-2"
+
+    def resolve_reference_edit(
+        self,
+        provider: str | None,
+        model: str | None,
+    ) -> tuple[str, str]:
+        self.reference_received.append((provider, model))
         return "newapi", "gpt-image-2"
 
 
@@ -437,6 +447,150 @@ async def test_masked_redraw_uses_erase_prompt_and_mask_edit_payload(tmp_path: P
 
 
 @pytest.mark.asyncio
+async def test_reference_image_editing_enqueues_exact_payload(tmp_path: Path) -> None:
+    context = _project_context(tmp_path)
+    base = _write_image(
+        context.output_dir / "freezone" / "_uploads" / "base.png",
+        size=(180, 320),
+    )
+    reference = _write_image(
+        context.output_dir / "freezone" / "_uploads" / "reference.png"
+    )
+    camera = CreativeCanvasImageCameraConfig(camera_body="Panavision DXL2")
+    style = CreativeCanvasImageStyleConfig(template_id="three_oclock_2300")
+    use_cases, scheduler, prompts, models = _editing_use_cases(context)
+
+    result = await use_cases.start_reference_edit(
+        StartCreativeCanvasReferenceImageEditingCommand(
+            context=context,
+            project_dir=context.output_dir,
+            prompt="edit prompt",
+            base_url="freezone/_uploads/base.png",
+            extra_reference_urls=("freezone/_uploads/reference.png",),
+            aspect_ratio="original",
+            image_size="4K",
+            camera=camera,
+            style=style,
+            provider="newapi",
+            model="newapi_gpt_image2",
+            quality="high",
+            canvas_id="canvas-a",
+            node_id="node-a",
+            model_id="registry-model",
+            gen_mode="reference",
+        )
+    )
+
+    assert result == _receipt()
+    assert prompts.calls == [("edit prompt", style, camera)]
+    assert models.reference_received == [("newapi", "newapi_gpt_image2")]
+    assert scheduler.task == CreativeCanvasTaskSubmission(
+        task_type=CREATIVE_CANVAS_IMAGE_EDIT_TASK_TYPE,
+        queue_kind="default",
+        job_id="job-1",
+        project_dir=context.output_dir,
+        payload={
+            "prompt": "composed prompt",
+            "base_path": base.as_posix(),
+            "extra_reference_paths": [reference.as_posix()],
+            "aspect_ratio": "9:16",
+            "image_size": "4K",
+            "provider": "newapi",
+            "model": "gpt-image-2",
+            "quality": "high",
+            "canvas_id": "canvas-a",
+            "node_id": "node-a",
+            "model_id": "registry-model",
+            "gen_mode": "reference",
+            "task_family": "freezone_canvas",
+            "task_label": "编辑图片",
+            "display_name": "编辑图片",
+        },
+    )
+
+
+@pytest.mark.asyncio
+async def test_reference_image_editing_preserves_source_error_contracts(
+    tmp_path: Path,
+) -> None:
+    context = _project_context(tmp_path)
+    use_cases, scheduler, _prompts, _models = _editing_use_cases(context)
+
+    def command(
+        base_url: str,
+        *extra_reference_urls: str,
+    ) -> StartCreativeCanvasReferenceImageEditingCommand:
+        return StartCreativeCanvasReferenceImageEditingCommand(
+            context=context,
+            project_dir=context.output_dir,
+            prompt="edit",
+            base_url=base_url,
+            extra_reference_urls=extra_reference_urls,
+            aspect_ratio="16:9",
+            image_size="2K",
+        )
+
+    with pytest.raises(
+        InvalidCreativeCanvasImageEditingRequest,
+        match="base_url is required",
+    ):
+        await use_cases.start_reference_edit(command(""))
+
+    with pytest.raises(
+        CreativeCanvasImageEditingSourceMissing,
+        match="base file not found: ",
+    ) as base_exc:
+        await use_cases.start_reference_edit(command("freezone/_uploads/missing.png"))
+    assert base_exc.value.field_name == "base file"
+
+    _write_image(context.output_dir / "freezone" / "_uploads" / "base.png")
+    with pytest.raises(
+        CreativeCanvasImageEditingSourceMissing,
+        match="reference file not found: ",
+    ) as reference_exc:
+        await use_cases.start_reference_edit(
+            command(
+                "freezone/_uploads/base.png",
+                "freezone/_uploads/missing-reference.png",
+            )
+        )
+    assert reference_exc.value.field_name == "reference file"
+    assert scheduler.task is None
+
+
+@pytest.mark.asyncio
+async def test_reference_image_editing_rejects_unknown_provider(tmp_path: Path) -> None:
+    context = _project_context(tmp_path)
+    _write_image(context.output_dir / "freezone" / "_uploads" / "base.png")
+    scheduler = _CapturingScheduler(context)
+    use_cases = CreativeCanvasImageEditingUseCases(
+        ProjectCreativeCanvasImageSourceResolver(),
+        PillowCreativeCanvasImageEditingStorage(),
+        _CapturingPrompts(),
+        FreezoneCreativeCanvasImageModelRouter(),
+        _FixedJobIds(),
+        scheduler,
+    )
+
+    with pytest.raises(
+        InvalidCreativeCanvasImageEditingRequest,
+        match="unsupported freezone image provider",
+    ):
+        await use_cases.start_reference_edit(
+            StartCreativeCanvasReferenceImageEditingCommand(
+                context=context,
+                project_dir=context.output_dir,
+                prompt="edit",
+                base_url="freezone/_uploads/base.png",
+                aspect_ratio="16:9",
+                image_size="2K",
+                provider="unknown",
+            )
+        )
+    assert scheduler.task is None
+
+
+@pytest.mark.asyncio
 async def test_image_editing_maps_invalid_and_missing_source_paths(tmp_path: Path) -> None:
     context = _project_context(tmp_path)
     use_cases, scheduler, _prompts, _models = _editing_use_cases(context)
@@ -678,3 +832,124 @@ async def test_image_editing_routes_preserve_error_contracts(
 
     assert exc.value.status_code == status_code
     assert exc.value.detail == detail
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("failure", "status_code", "detail"),
+    [
+        (
+            InvalidCreativeCanvasImageEditingRequest("base_url is required"),
+            400,
+            "base_url is required",
+        ),
+        (
+            CreativeCanvasImageEditingSourceMissing(
+                Path("missing.png"),
+                field_name="base file",
+            ),
+            404,
+            "base file not found: missing.png",
+        ),
+        (
+            CreativeCanvasImageEditingSourceMissing(
+                Path("missing-reference.png"),
+                field_name="reference file",
+            ),
+            404,
+            "reference file not found: missing-reference.png",
+        ),
+    ],
+)
+async def test_reference_image_editing_route_preserves_error_contracts(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    failure: Exception,
+    status_code: int,
+    detail: str,
+) -> None:
+    context = _project_context(tmp_path)
+
+    async def fake_resolve_project_scope(*_args, **_kwargs):
+        return SimpleNamespace(ctx=context, project_dir=context.output_dir)
+
+    class FailingUseCases:
+        async def start_reference_edit(
+            self,
+            command: StartCreativeCanvasReferenceImageEditingCommand,
+        ):
+            assert command.context is context
+            assert command.project_dir == context.output_dir
+            raise failure
+
+    monkeypatch.setattr(
+        image_editing_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
+    monkeypatch.setattr(
+        image_editing_routes,
+        "creative_canvas_reference_image_editing_use_cases",
+        lambda: FailingUseCases(),
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        await image_editing_routes._start_reference_image_editing(
+            project="project-1",
+            user={"username": "alice"},
+            prompt="edit",
+            base_url="base.png",
+            extra_reference_urls=(),
+            aspect_ratio="16:9",
+            image_size="2K",
+            camera=None,
+            style=None,
+            provider=None,
+            model=None,
+            quality=None,
+        )
+
+    assert exc.value.status_code == status_code
+    assert exc.value.detail == detail
+
+
+@pytest.mark.asyncio
+async def test_reference_image_editing_route_preserves_runtime_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    context = _project_context(tmp_path)
+
+    async def fake_resolve_project_scope(*_args, **_kwargs):
+        return SimpleNamespace(ctx=context, project_dir=context.output_dir)
+
+    class FailingUseCases:
+        async def start_reference_edit(self, _command):
+            raise RuntimeError("broker unavailable")
+
+    monkeypatch.setattr(
+        image_editing_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
+    monkeypatch.setattr(
+        image_editing_routes,
+        "creative_canvas_reference_image_editing_use_cases",
+        lambda: FailingUseCases(),
+    )
+
+    with pytest.raises(RuntimeError, match="broker unavailable"):
+        await image_editing_routes._start_reference_image_editing(
+            project="project-1",
+            user={"username": "alice"},
+            prompt="edit",
+            base_url="base.png",
+            extra_reference_urls=(),
+            aspect_ratio="16:9",
+            image_size="2K",
+            camera=None,
+            style=None,
+            provider=None,
+            model=None,
+            quality=None,
+        )

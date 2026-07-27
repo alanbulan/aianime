@@ -1,7 +1,23 @@
 from pydantic import ValidationError
 
 from ai_anime.api.schemas import FreezoneRelightRequest
-from ai_anime.freezone.route_helpers import build_relight_prompt
+from ai_anime.modules.creative_canvas.domain.image_editing_prompts import (
+    build_image_relight_prompt,
+)
+
+
+def _build_prompt(body: FreezoneRelightRequest) -> str:
+    return build_image_relight_prompt(
+        has_lighting_reference=bool(body.lighting_reference_url),
+        scope=body.scope,
+        smart_mode=body.smart_mode,
+        brightness=body.brightness,
+        color_hex=body.color_hex,
+        color_temperature_kelvin=body.color_temperature_kelvin,
+        key_light_direction=body.key_light_direction,
+        rim_light=body.rim_light,
+        prompt=body.prompt,
+    )
 
 
 def test_relight_prompt_keeps_color_hex_and_color_temperature_kelvin() -> None:
@@ -12,7 +28,7 @@ def test_relight_prompt_keeps_color_hex_and_color_temperature_kelvin() -> None:
         color_temperature_kelvin=3200,
     )
 
-    prompt = build_relight_prompt(body)
+    prompt = _build_prompt(body)
 
     assert "Key light color / overall color tone: #FFB877." in prompt
     assert "Color temperature: 3200K (warm tungsten / amber practical light)." in prompt
@@ -24,7 +40,7 @@ def test_relight_prompt_keeps_legacy_color_hex_fallback() -> None:
         color_hex="#FFB877",
     )
 
-    prompt = build_relight_prompt(body)
+    prompt = _build_prompt(body)
 
     assert "Key light color / overall color tone: #FFB877." in prompt
     assert "Color temperature:" not in prompt

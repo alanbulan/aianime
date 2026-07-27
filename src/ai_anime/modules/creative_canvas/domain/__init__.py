@@ -8,6 +8,7 @@ from ai_anime.modules.creative_canvas.domain.image_to_3gs import (
     plan_image_to_three_gs,
 )
 from ai_anime.modules.creative_canvas.domain.image_editing import (
+    DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
     SUPPORTED_CREATIVE_CANVAS_IMAGE_PROVIDERS,
     CreativeCanvasImageCameraConfig,
     CreativeCanvasImageStyleConfig,
@@ -23,6 +24,13 @@ from ai_anime.modules.creative_canvas.domain.image_editing import (
     resolve_image_provider,
     resolve_requested_image_aspect_ratio,
 )
+from ai_anime.modules.creative_canvas.domain.image_editing_prompts import (
+    InvalidCreativeCanvasImageTemplateMode,
+    build_image_multi_view_prompt,
+    build_image_relight_prompt,
+    build_image_template_edit_prompt,
+    resolve_image_template_aspect_ratio,
+)
 from ai_anime.modules.creative_canvas.domain.media import (
     CreativeCanvasScreenshotTooLarge,
     InvalidCreativeCanvasPngScreenshot,
@@ -36,6 +44,7 @@ from ai_anime.modules.creative_canvas.domain.mark_detection import (
 from ai_anime.modules.creative_canvas.domain.principal import canvas_actor_id
 
 __all__ = [
+    "DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL",
     "CreativeCanvasImageToThreeGsPlan",
     "CreativeCanvasImageToThreeGsSourceKind",
     "CreativeCanvasImageCameraConfig",
@@ -48,10 +57,14 @@ __all__ = [
     "InvalidCreativeCanvasImageToThreeGsSource",
     "InvalidCreativeCanvasImageAspectRatio",
     "InvalidCreativeCanvasImageSize",
+    "InvalidCreativeCanvasImageTemplateMode",
     "UnsupportedCreativeCanvasImageProvider",
     "build_image_erase_prompt",
+    "build_image_multi_view_prompt",
     "build_image_outpaint_prompt",
+    "build_image_relight_prompt",
     "build_image_redraw_prompt",
+    "build_image_template_edit_prompt",
     "build_image_upscale_prompt",
     "canvas_actor_id",
     "decode_png_screenshot",
@@ -61,5 +74,6 @@ __all__ = [
     "plan_outpaint_canvas",
     "resolve_original_image_aspect_ratio",
     "resolve_image_provider",
+    "resolve_image_template_aspect_ratio",
     "resolve_requested_image_aspect_ratio",
 ]

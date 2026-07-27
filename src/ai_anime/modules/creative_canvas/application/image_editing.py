@@ -61,6 +61,26 @@ class StartCreativeCanvasImageEditingCommand:
     style: CreativeCanvasImageStyleConfig | None = None
 
 
+@dataclass(frozen=True)
+class StartCreativeCanvasReferenceImageEditingCommand:
+    context: ProjectContext
+    project_dir: Path
+    prompt: str
+    base_url: str
+    aspect_ratio: str
+    image_size: str
+    extra_reference_urls: tuple[str, ...] = ()
+    camera: CreativeCanvasImageCameraConfig | None = None
+    style: CreativeCanvasImageStyleConfig | None = None
+    provider: str | None = None
+    model: str | None = None
+    quality: str | None = None
+    canvas_id: str | None = None
+    node_id: str | None = None
+    model_id: str | None = None
+    gen_mode: str | None = None
+
+
 class CreativeCanvasImageEditingStorage(Protocol):
     def size(self, source_path: Path) -> tuple[int, int]: ...
 
@@ -84,6 +104,12 @@ class CreativeCanvasImageEditingPromptComposer(Protocol):
 
 class CreativeCanvasImageModelRouter(Protocol):
     def resolve(self, model: str) -> tuple[str, str | None]: ...
+
+    def resolve_reference_edit(
+        self,
+        provider: str | None,
+        model: str | None,
+    ) -> tuple[str, str | None]: ...
 
 
 class CreativeCanvasImageEditingUseCases:
@@ -199,6 +225,60 @@ class CreativeCanvasImageEditingUseCases:
             ),
         )
 
+    async def start_reference_edit(
+        self,
+        command: StartCreativeCanvasReferenceImageEditingCommand,
+    ) -> CreativeCanvasTaskReceipt:
+        if not command.base_url:
+            raise InvalidCreativeCanvasImageEditingRequest("base_url is required")
+        base_path = self._resolve_existing_source(
+            command.project_dir,
+            command.base_url,
+            field_name="base file",
+        )
+        extra_reference_paths = self._resolve_optional_references(
+            command.project_dir,
+            command.extra_reference_urls,
+        )
+        aspect_ratio = self.resolve_aspect_ratio(base_path, command.aspect_ratio)
+        job_id = self._job_ids.new_id()
+        try:
+            provider, model = self._models.resolve_reference_edit(
+                command.provider,
+                command.model,
+            )
+        except ValueError as exc:
+            raise InvalidCreativeCanvasImageEditingRequest(str(exc)) from exc
+        prompt = self._prompts.compose(command.prompt, command.style, command.camera)
+        return await self._scheduler.enqueue(
+            command.context,
+            CreativeCanvasTaskSubmission(
+                task_type=CREATIVE_CANVAS_IMAGE_EDIT_TASK_TYPE,
+                queue_kind="default",
+                job_id=job_id,
+                project_dir=command.project_dir,
+                payload={
+                    "prompt": prompt,
+                    "base_path": base_path.as_posix(),
+                    "extra_reference_paths": [
+                        path.as_posix() for path in extra_reference_paths
+                    ],
+                    "aspect_ratio": aspect_ratio,
+                    "image_size": command.image_size,
+                    "provider": provider,
+                    "model": model,
+                    "quality": command.quality,
+                    "canvas_id": command.canvas_id or "",
+                    "node_id": command.node_id or "",
+                    "model_id": command.model_id or "",
+                    "gen_mode": command.gen_mode or "",
+                    "task_family": "freezone_canvas",
+                    "task_label": "编辑图片",
+                    "display_name": "编辑图片",
+                },
+            ),
+        )
+
     def _resolve_existing_source(
         self,
         project_dir: Path,
@@ -216,6 +296,21 @@ class CreativeCanvasImageEditingUseCases:
                 field_name=field_name,
             )
         return source_path
+
+    def _resolve_optional_references(
+        self,
+        project_dir: Path,
+        reference_urls: tuple[str, ...],
+    ) -> list[Path]:
+        return [
+            self._resolve_existing_source(
+                project_dir,
+                reference_url,
+                field_name="reference file",
+            )
+            for reference_url in reference_urls
+            if reference_url
+        ]
 
     def _operation_prompt(self, command: StartCreativeCanvasImageEditingCommand) -> str:
         if command.operation == "upscale":

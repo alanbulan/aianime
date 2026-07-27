@@ -8,6 +8,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import resolve_project_scope
 from ai_anime.api.schemas import (
+    FreezoneCharacterMultiViewRequest,
+    FreezoneEditRequest,
     FreezoneGenRequest,
     FreezoneImageTo3GSRequest,
     FreezoneImageCameraConfig,
@@ -18,10 +20,13 @@ from ai_anime.api.schemas import (
     FreezoneMarkDetectResponse,
     FreezoneOutpaintRequest,
     FreezoneRedrawRequest,
+    FreezoneRelightRequest,
     FreezoneStageAssetAcceptedResponse,
+    FreezoneTemplateEditRequest,
     FreezoneUpscaleRequest,
 )
 from ai_anime.modules.creative_canvas.public import (
+    DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
     CreativeCanvasImageCameraConfig,
     CreativeCanvasImageStyleConfig,
     CreativeCanvasImageToThreeGsSourceMissing,
@@ -36,17 +41,24 @@ from ai_anime.modules.creative_canvas.public import (
     InvalidCreativeCanvasImageToThreeGsRequest,
     InvalidCreativeCanvasImageEditingRequest,
     InvalidCreativeCanvasImageGenerationRequest,
+    InvalidCreativeCanvasImageTemplateMode,
     InvalidCreativeCanvasMarkRequest,
     StartCreativeCanvasReversePromptCommand,
     StartCreativeCanvasImageToThreeGsCommand,
     StartCreativeCanvasImageEditingCommand,
     StartCreativeCanvasImageGenerationCommand,
+    StartCreativeCanvasReferenceImageEditingCommand,
+    build_image_multi_view_prompt,
+    build_image_relight_prompt,
+    build_image_template_edit_prompt,
     creative_canvas_image_to_three_gs_use_cases,
     creative_canvas_image_editing_use_cases,
     creative_canvas_image_generation_use_cases,
     creative_canvas_mark_detection_use_cases,
+    creative_canvas_reference_image_editing_use_cases,
     creative_canvas_reverse_prompt_use_cases,
     generation_catalog_queries,
+    resolve_image_template_aspect_ratio,
 )
 
 logger = logging.getLogger("ai_anime.api.freezone")
@@ -167,6 +179,140 @@ async def freezone_gen(
     if result.task_id:
         data["task_id"] = result.task_id
     return {"ok": True, "data": data}
+
+
+@router.post(
+    "/projects/{project}/freezone/multi-view",
+    response_model=FreezoneJobAcceptedResponse,
+    tags=["freezone-image"],
+)
+async def freezone_multi_view(
+    project: str,
+    body: FreezoneCharacterMultiViewRequest,
+    user: dict = Depends(get_api_user),
+):
+    """图片处理：基于单张源图做多角度重构 / 机位重定位。"""
+    return await _start_reference_image_editing(
+        project=project,
+        user=user,
+        prompt=build_image_multi_view_prompt(
+            preset=body.preset,
+            yaw_degrees=body.yaw_degrees,
+            pitch_degrees=body.pitch_degrees,
+            shot_size=body.shot_size,
+            prompt=body.prompt,
+        ),
+        base_url=body.source_url,
+        extra_reference_urls=(),
+        aspect_ratio="16:9",
+        image_size=body.image_size or "2K",
+        camera=body.camera,
+        style=body.style,
+        provider=None,
+        model=body.model or DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
+        quality=body.quality or "medium",
+    )
+
+
+@router.post(
+    "/projects/{project}/freezone/relight",
+    response_model=FreezoneJobAcceptedResponse,
+    tags=["freezone-image"],
+)
+async def freezone_relight(
+    project: str,
+    body: FreezoneRelightRequest,
+    user: dict = Depends(get_api_user),
+):
+    """图片处理：基于源图和打光参考图重塑光照。"""
+    return await _start_reference_image_editing(
+        project=project,
+        user=user,
+        prompt=build_image_relight_prompt(
+            has_lighting_reference=bool(body.lighting_reference_url),
+            scope=body.scope,
+            smart_mode=body.smart_mode,
+            brightness=body.brightness,
+            color_hex=body.color_hex,
+            color_temperature_kelvin=body.color_temperature_kelvin,
+            key_light_direction=body.key_light_direction,
+            rim_light=body.rim_light,
+            prompt=body.prompt,
+        ),
+        base_url=body.source_url,
+        extra_reference_urls=(
+            (body.lighting_reference_url,) if body.lighting_reference_url else ()
+        ),
+        aspect_ratio="16:9",
+        image_size=body.image_size or "2K",
+        camera=None,
+        style=None,
+        provider=None,
+        model=body.model or DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
+        quality=body.quality or "medium",
+    )
+
+
+@router.post(
+    "/projects/{project}/freezone/template-edit",
+    response_model=FreezoneJobAcceptedResponse,
+    tags=["freezone-image"],
+)
+async def freezone_template_edit(
+    project: str,
+    body: FreezoneTemplateEditRequest,
+    user: dict = Depends(get_api_user),
+):
+    """图片处理：九宫格下拉菜单统一编辑接口。"""
+    try:
+        prompt = build_image_template_edit_prompt(body.mode, body.prompt)
+    except InvalidCreativeCanvasImageTemplateMode as exc:
+        raise HTTPException(400, str(exc)) from exc
+    return await _start_reference_image_editing(
+        project=project,
+        user=user,
+        prompt=prompt,
+        base_url=body.source_url,
+        extra_reference_urls=(),
+        aspect_ratio=resolve_image_template_aspect_ratio(body.mode),
+        image_size=body.image_size or "2K",
+        camera=body.camera,
+        style=body.style,
+        provider=None,
+        model=body.model or DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
+        quality=body.quality or "medium",
+    )
+
+
+@router.post(
+    "/projects/{project}/freezone/edit",
+    response_model=FreezoneJobAcceptedResponse,
+    tags=["freezone-image"],
+)
+async def freezone_edit(
+    project: str,
+    body: FreezoneEditRequest,
+    user: dict = Depends(get_api_user),
+):
+    """图片处理：启动图生图 / 图编辑任务，返回 `task_key`。"""
+    return await _start_reference_image_editing(
+        project=project,
+        user=user,
+        prompt=body.prompt,
+        base_url=body.base_url,
+        extra_reference_urls=tuple(body.extra_reference_urls or []),
+        aspect_ratio=body.aspect_ratio,
+        image_size=body.image_size,
+        camera=body.camera,
+        style=body.style,
+        provider=body.provider,
+        model=body.model,
+        quality=body.quality,
+        canvas_id=body.canvas_id or None,
+        node_id=body.node_id or None,
+        model_id=body.model_id or None,
+        gen_mode=body.gen_mode or None,
+    )
 
 
 @router.post(
@@ -475,6 +621,82 @@ async def _start_image_editing(
         "task_key": result.task_key,
         "task_episode": result.task_episode,
         "task_scope": result.task_scope,
+        "backend": result.backend,
+        "queue": result.queue,
+    }
+    if result.task_id:
+        data["task_id"] = result.task_id
+    return {"ok": True, "data": data}
+
+
+async def _start_reference_image_editing(
+    *,
+    project: str,
+    user: dict,
+    prompt: str,
+    base_url: str,
+    extra_reference_urls: tuple[str, ...],
+    aspect_ratio: str,
+    image_size: str,
+    camera: FreezoneImageCameraConfig | None,
+    style: FreezoneImageStyleConfig | None,
+    provider: str | None,
+    model: str | None,
+    quality: str | None,
+    canvas_id: str | None = None,
+    node_id: str | None = None,
+    model_id: str | None = None,
+    gen_mode: str | None = None,
+):
+    resolved = await resolve_project_scope(
+        project,
+        user,
+        required_role="editor",
+        operation="access freezone project files",
+    )
+    try:
+        result = await creative_canvas_reference_image_editing_use_cases().start_reference_edit(
+            StartCreativeCanvasReferenceImageEditingCommand(
+                context=resolved.ctx,
+                project_dir=resolved.project_dir,
+                prompt=prompt,
+                base_url=base_url,
+                extra_reference_urls=extra_reference_urls,
+                aspect_ratio=aspect_ratio,
+                image_size=image_size,
+                camera=(
+                    CreativeCanvasImageCameraConfig(
+                        camera_body=camera.camera_body,
+                        lens=camera.lens,
+                        focal_length_mm=camera.focal_length_mm,
+                        aperture=camera.aperture,
+                    )
+                    if camera
+                    else None
+                ),
+                style=(
+                    CreativeCanvasImageStyleConfig(template_id=style.template_id)
+                    if style
+                    else None
+                ),
+                provider=provider,
+                model=model,
+                quality=quality,
+                canvas_id=canvas_id,
+                node_id=node_id,
+                model_id=model_id,
+                gen_mode=gen_mode,
+            )
+        )
+    except InvalidCreativeCanvasImageEditingRequest as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except CreativeCanvasImageEditingSourceMissing as exc:
+        raise HTTPException(404, str(exc)) from exc
+
+    data = {
+        "task_type": result.task_type,
+        "job_id": result.job_id,
+        "task_key": result.task_key,
         "backend": result.backend,
         "queue": result.queue,
     }

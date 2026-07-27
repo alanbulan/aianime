@@ -36,8 +36,6 @@ from ai_anime.api.schemas import (
     FreezoneAudioMusicRequest,
     FreezoneAudioSeparateRequest,
     FreezoneAudioSpeechRequest,
-    FreezoneCharacterMultiViewRequest,
-    FreezoneEditRequest,
     FreezoneExtractFramesRequest,
     FreezoneFrameFromContextRequest,
     FreezoneImageCameraConfig,
@@ -45,12 +43,10 @@ from ai_anime.api.schemas import (
     FreezoneImageToVideoRequest,
     FreezoneJobAcceptedResponse,
     FreezoneKeyframeVideoRequest,
-    FreezoneRelightRequest,
     FreezoneScene360Request,
     FreezoneSketchFromContextRequest,
     FreezoneStageAssetAcceptedResponse,
     FreezoneStoryScriptGenerateRequest,
-    FreezoneTemplateEditRequest,
     FreezoneTextTranslateRequest,
     FreezoneVideoCharacterLibraryItemRequest,
     FreezoneVideoComposeRequest,
@@ -73,11 +69,9 @@ from ai_anime.modules.asset_world.public import (
 )
 from ai_anime.modules.creative_canvas.public import (
     CreativeCanvasImageGenerationReferenceMissing,
-    InvalidCreativeCanvasImageEditingRequest,
     InvalidCreativeCanvasImageGenerationRequest,
     StartCreativeCanvasImageGenerationCommand,
     canvas_actor_id,
-    creative_canvas_image_editing_use_cases,
     creative_canvas_image_generation_use_cases,
 )
 from ai_anime.modules.production.public import (
@@ -126,16 +120,7 @@ from ai_anime.freezone.route_helpers import (
     accepted_job_response as _accepted_job_response,
 )
 from ai_anime.freezone.route_helpers import (
-    build_multi_view_prompt as _build_multi_view_prompt,
-)
-from ai_anime.freezone.route_helpers import (
-    build_relight_prompt as _build_relight_prompt,
-)
-from ai_anime.freezone.route_helpers import (
     build_scene_360_prompt as _build_scene_360_prompt,
-)
-from ai_anime.freezone.route_helpers import (
-    build_template_edit_prompt as _build_template_edit_prompt,
 )
 from ai_anime.freezone.route_helpers import (
     infer_scene_id_from_master_path as _infer_scene_id_from_master_path,
@@ -157,9 +142,6 @@ from ai_anime.freezone.route_helpers import (
 )
 from ai_anime.freezone.route_helpers import (
     split_provider_and_model as _split_provider_and_model,
-)
-from ai_anime.freezone.route_helpers import (
-    template_edit_aspect_ratio as _template_edit_aspect_ratio,
 )
 from ai_anime.freezone.skill_registry import (
     ResolvedSkillInput,
@@ -1596,98 +1578,6 @@ async def _start_or_enqueue_mainline_scene_360_task(
         task_id=queued.task_state.task_id,
         scope=job_id,
     )
-
-
-async def _start_or_enqueue_freezone_edit_job(
-    *,
-    ctx: ProjectContext | None,
-    username: str,
-    project: str,
-    project_dir: Path,
-    output_dir: str,
-    prompt: str,
-    base_url: str,
-    extra_reference_urls: list[str],
-    aspect_ratio: str,
-    image_size: str,
-    camera: FreezoneImageCameraConfig | None,
-    style: FreezoneImageStyleConfig | None,
-    provider: str | None,
-    model: str | None,
-    quality: str | None,
-    canvas_id: str | None = None,
-    node_id: str | None = None,
-    model_id: str | None = None,
-    gen_mode: str | None = None,
-    task_display: dict[str, str] | None = None,
-) -> dict:
-    base_paths = _resolve_url_list(project_dir, [base_url])
-    if not base_paths:
-        raise HTTPException(400, "base_url is required")
-    for path_text in base_paths:
-        if not Path(path_text).exists():
-            raise HTTPException(404, f"base file not found: {path_text}")
-    extra_paths = _resolve_url_list(project_dir, extra_reference_urls)
-    for path_text in extra_paths:
-        if not Path(path_text).exists():
-            raise HTTPException(404, f"reference file not found: {path_text}")
-    try:
-        resolved_aspect_ratio = creative_canvas_image_editing_use_cases().resolve_aspect_ratio(
-            Path(base_paths[0]),
-            aspect_ratio,
-        )
-    except InvalidCreativeCanvasImageEditingRequest as exc:
-        raise HTTPException(400, str(exc)) from exc
-    job_id = _new_job_id()
-    resolved_provider, resolved_model = _split_provider_and_model(provider, model)
-    normalized_provider = _resolve_freezone_image_provider(resolved_provider)
-    prompt_text = _merge_prompt_with_style_and_camera(prompt, style, camera)
-    display_payload = {
-        "task_family": "freezone_canvas",
-        "task_label": "编辑图片",
-        "display_name": "编辑图片",
-        **(task_display or {}),
-    }
-    if ctx is not None:
-        queued = await get_task_backend().enqueue_project_task(
-            ctx,
-            task_type="freezone_edit",
-            queue_kind="default",
-            episode=0,
-            scope=job_id,
-            payload={
-                "job_id": job_id,
-                "project_dir": str(project_dir),
-                "prompt": prompt_text,
-                "base_path": base_paths[0],
-                "extra_reference_paths": extra_paths,
-                "aspect_ratio": resolved_aspect_ratio,
-                "image_size": image_size,
-                "provider": normalized_provider,
-                "model": resolved_model,
-                "quality": quality,
-                "canvas_id": canvas_id or "",
-                "node_id": node_id or "",
-                "model_id": model_id or "",
-                "gen_mode": gen_mode or "",
-                **display_payload,
-            },
-        )
-        return {
-            "ok": True,
-            "data": {
-                "task_type": "freezone_edit",
-                "job_id": job_id,
-                "task_id": queued.task_state.task_id,
-                "task_key": project_task_state_key(
-                    "freezone_edit", ctx.project_id, 0, scope=job_id
-                ),
-                "backend": queued.backend,
-                "queue": queued.queue,
-            },
-        }
-
-    _raise_project_context_required("freezone_edit")
 
 
 def _project_job_response(
@@ -4227,105 +4117,6 @@ async def freezone_skill_run(
     return response
 
 
-@router.post(
-    "/projects/{project}/freezone/multi-view",
-    response_model=FreezoneJobAcceptedResponse,
-    tags=[TAG_FREEZONE_IMAGE],
-)
-async def freezone_multi_view(
-    project: str,
-    body: FreezoneCharacterMultiViewRequest,
-    user: dict = Depends(get_api_user),
-):
-    """图片处理：基于单张源图做多角度重构 / 机位重定位。"""
-    ctx, username, project_name, project_dir, output_dir = await _resolve_freezone_project(
-        project, user
-    )
-    return await _start_or_enqueue_freezone_edit_job(
-        ctx=ctx,
-        username=username,
-        project=project_name,
-        project_dir=project_dir,
-        output_dir=output_dir,
-        prompt=_build_multi_view_prompt(body),
-        base_url=body.source_url,
-        extra_reference_urls=[],
-        aspect_ratio="16:9",
-        image_size=body.image_size or "2K",
-        camera=body.camera,
-        style=body.style,
-        provider=None,
-        model=body.model or FREEZONE_DEFAULT_IMAGE_MODEL,
-        quality=body.quality or "medium",
-    )
-
-
-@router.post(
-    "/projects/{project}/freezone/relight",
-    response_model=FreezoneJobAcceptedResponse,
-    tags=[TAG_FREEZONE_IMAGE],
-)
-async def freezone_relight(
-    project: str,
-    body: FreezoneRelightRequest,
-    user: dict = Depends(get_api_user),
-):
-    """图片处理：打光。基于源图和打光参考图的光照重塑接口。"""
-    ctx, username, project_name, project_dir, output_dir = await _resolve_freezone_project(
-        project, user
-    )
-    return await _start_or_enqueue_freezone_edit_job(
-        ctx=ctx,
-        username=username,
-        project=project_name,
-        project_dir=project_dir,
-        output_dir=output_dir,
-        prompt=_build_relight_prompt(body),
-        base_url=body.source_url,
-        extra_reference_urls=[body.lighting_reference_url] if body.lighting_reference_url else [],
-        aspect_ratio="16:9",
-        image_size=body.image_size or "2K",
-        camera=None,
-        style=None,
-        provider=None,
-        model=body.model or FREEZONE_DEFAULT_IMAGE_MODEL,
-        quality=body.quality or "medium",
-    )
-
-
-@router.post(
-    "/projects/{project}/freezone/template-edit",
-    response_model=FreezoneJobAcceptedResponse,
-    tags=[TAG_FREEZONE_IMAGE],
-)
-async def freezone_template_edit(
-    project: str,
-    body: FreezoneTemplateEditRequest,
-    user: dict = Depends(get_api_user),
-):
-    """图片处理：九宫格下拉菜单统一编辑接口。"""
-    ctx, username, project_name, project_dir, output_dir = await _resolve_freezone_project(
-        project, user
-    )
-    return await _start_or_enqueue_freezone_edit_job(
-        ctx=ctx,
-        username=username,
-        project=project_name,
-        project_dir=project_dir,
-        output_dir=output_dir,
-        prompt=_build_template_edit_prompt(body),
-        base_url=body.source_url,
-        extra_reference_urls=[],
-        aspect_ratio=_template_edit_aspect_ratio(body.mode),
-        image_size=body.image_size or "2K",
-        camera=body.camera,
-        style=body.style,
-        provider=None,
-        model=body.model or FREEZONE_DEFAULT_IMAGE_MODEL,
-        quality=body.quality or "medium",
-    )
-
-
 def _freezone_not_implemented(endpoint: str) -> None:
     raise HTTPException(
         status_code=501,
@@ -6673,43 +6464,6 @@ async def freezone_video_compose(
         username=username,
         project=project_name,
         job_id=job_id,
-    )
-
-
-@router.post(
-    "/projects/{project}/freezone/edit",
-    response_model=FreezoneJobAcceptedResponse,
-    tags=[TAG_FREEZONE_IMAGE],
-)
-async def freezone_edit(
-    project: str,
-    body: FreezoneEditRequest,
-    user: dict = Depends(get_api_user),
-):
-    """图片处理：启动图生图 / 图编辑任务，返回 `task_key`。"""
-    ctx, username, project_name, project_dir, output_dir = await _resolve_freezone_project(
-        project, user
-    )
-    return await _start_or_enqueue_freezone_edit_job(
-        ctx=ctx,
-        username=username,
-        project=project_name,
-        project_dir=project_dir,
-        output_dir=output_dir,
-        prompt=body.prompt,
-        base_url=body.base_url,
-        extra_reference_urls=list(body.extra_reference_urls or []),
-        aspect_ratio=body.aspect_ratio,
-        image_size=body.image_size,
-        camera=body.camera,
-        style=body.style,
-        provider=body.provider,
-        model=body.model,
-        quality=body.quality,
-        canvas_id=body.canvas_id or None,
-        node_id=body.node_id or None,
-        model_id=body.model_id or None,
-        gen_mode=body.gen_mode or None,
     )
 
 

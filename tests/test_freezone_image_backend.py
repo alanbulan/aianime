@@ -16,12 +16,10 @@ from ai_anime.api.routes.canvas import image as freezone_image_routes
 from ai_anime.api.routes.freezone import (
     FREEZONE_DEFAULT_IMAGE_MODEL,
     _build_scene_360_prompt,
-    _build_template_edit_prompt,
     _infer_scene_id_from_master_path,
     _merge_restored_preset_canvas,
     _resolve_freezone_image_provider,
     _split_provider_and_model,
-    _template_edit_aspect_ratio,
 )
 from ai_anime.api.schemas import (
     CanvasPayload,
@@ -29,6 +27,7 @@ from ai_anime.api.schemas import (
     FreezoneImageReversePromptRequest,
     FreezoneOutpaintRequest,
     FreezoneRedrawRequest,
+    FreezoneTemplateEditRequest,
     PresetCanvasRequest,
     PushRequest,
 )
@@ -51,6 +50,10 @@ from ai_anime.freezone.skill_registry import (
 from ai_anime.modules.creative_canvas.domain.image_editing import (
     build_image_erase_prompt,
     resolve_requested_image_aspect_ratio,
+)
+from ai_anime.modules.creative_canvas.domain.image_editing_prompts import (
+    build_image_template_edit_prompt,
+    resolve_image_template_aspect_ratio,
 )
 from ai_anime.modules.creative_canvas.public import generation_catalog_queries
 from ai_anime.modules.project_workspace.public import ProjectContext
@@ -147,7 +150,15 @@ def _patch_freezone_project(
     async def fake_resolve_freezone_project(*_args, **_kwargs):
         return ctx, username, project, project_dir, str(output_dir)
 
+    async def fake_resolve_project_scope(*_args, **_kwargs):
+        return SimpleNamespace(ctx=ctx, project_dir=project_dir)
+
     monkeypatch.setattr(freezone_routes, "_resolve_freezone_project", fake_resolve_freezone_project)
+    monkeypatch.setattr(
+        freezone_image_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
     return project_dir, output_dir
 
 
@@ -170,6 +181,24 @@ def _patch_celery_edit_enqueue(
     *,
     task_id: str = "task_edit",
 ) -> None:
+    from ai_anime.modules.creative_canvas.application.image_editing import (
+        CreativeCanvasImageEditingUseCases,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.image_editing import (
+        FreezoneCreativeCanvasImageModelRouter,
+        FreezoneCreativeCanvasImagePromptComposer,
+        PillowCreativeCanvasImageEditingStorage,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.image_sources import (
+        ProjectCreativeCanvasImageSourceResolver,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.media import (
+        FreezoneJobIdGenerator,
+    )
+    from ai_anime.modules.creative_canvas.infrastructure.task_submission import (
+        TaskBackendCreativeCanvasTaskScheduler,
+    )
+
     async def fake_enqueue_project_task(_ctx: ProjectContext, **kwargs):
         captured.update(kwargs.get("payload") or {})
         captured["task_type"] = kwargs.get("task_type")
@@ -181,7 +210,24 @@ def _patch_celery_edit_enqueue(
             backend="celery",
             queue="node.node_a.default",
         )
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
+
+    task_backend = SimpleNamespace(enqueue_project_task=fake_enqueue_project_task)
+    use_cases = CreativeCanvasImageEditingUseCases(
+        ProjectCreativeCanvasImageSourceResolver(),
+        PillowCreativeCanvasImageEditingStorage(),
+        FreezoneCreativeCanvasImagePromptComposer(),
+        FreezoneCreativeCanvasImageModelRouter(),
+        FreezoneJobIdGenerator(),
+        TaskBackendCreativeCanvasTaskScheduler(
+            lambda: task_backend,
+            translate_runtime_errors=False,
+        ),
+    )
+    monkeypatch.setattr(
+        freezone_image_routes,
+        "creative_canvas_reference_image_editing_use_cases",
+        lambda: use_cases,
+    )
 
 
 def _patch_creative_canvas_image_generation(
@@ -1125,11 +1171,11 @@ def test_resolve_image_editing_aspect_ratio_reduces_to_supported_ratio() -> None
 
 
 def test_template_edit_aspect_ratio_maps_modes() -> None:
-    assert _template_edit_aspect_ratio("multi_camera_nine_grid") == "original"
-    assert _template_edit_aspect_ratio("story_pitch_four_grid") == "original"
-    assert _template_edit_aspect_ratio("character_face_three_view") == "3:2"
-    assert _template_edit_aspect_ratio("storyboard_25_grid") == "original"
-    assert _template_edit_aspect_ratio("cinematic_light_correction") == "original"
+    assert resolve_image_template_aspect_ratio("multi_camera_nine_grid") == "original"
+    assert resolve_image_template_aspect_ratio("story_pitch_four_grid") == "original"
+    assert resolve_image_template_aspect_ratio("character_face_three_view") == "3:2"
+    assert resolve_image_template_aspect_ratio("storyboard_25_grid") == "original"
+    assert resolve_image_template_aspect_ratio("cinematic_light_correction") == "original"
 
 
 @pytest.mark.asyncio
@@ -2121,16 +2167,11 @@ async def test_put_canvas_rejects_stale_base_revision(
     saved = json.loads(canvas_file.read_text(encoding="utf-8"))
     assert saved["revision"] == 3
     assert saved["nodes"] == []
-    assert _template_edit_aspect_ratio("image_projection_after_3s") == "original"
+    assert resolve_image_template_aspect_ratio("image_projection_after_3s") == "original"
 
 
 def test_multi_camera_prompt_uses_libtv_director_coverage_labels() -> None:
-    prompt = _build_template_edit_prompt(
-        freezone_routes.FreezoneTemplateEditRequest(
-            source_url="/static/admin/59/freezone/_uploads/source.png",
-            mode="multi_camera_nine_grid",
-        )
-    )
+    prompt = build_image_template_edit_prompt("multi_camera_nine_grid", "")
 
     assert "libtv-style 3x3 director multi-camera contact sheet" in prompt
     assert "Do not add new characters" in prompt
@@ -2142,12 +2183,7 @@ def test_multi_camera_prompt_uses_libtv_director_coverage_labels() -> None:
 
 
 def test_story_pitch_four_grid_prompt_preserves_cell_aspect_ratio() -> None:
-    prompt = _build_template_edit_prompt(
-        freezone_routes.FreezoneTemplateEditRequest(
-            source_url="/static/admin/59/freezone/_uploads/source.png",
-            mode="story_pitch_four_grid",
-        )
-    )
+    prompt = build_image_template_edit_prompt("story_pitch_four_grid", "")
 
     assert "Each cell must preserve the source image aspect ratio" in prompt
     assert "Do not crop each story frame into a different ratio" in prompt
@@ -2155,12 +2191,7 @@ def test_story_pitch_four_grid_prompt_preserves_cell_aspect_ratio() -> None:
 
 
 def test_storyboard_25_grid_prompt_preserves_cell_aspect_ratio() -> None:
-    prompt = _build_template_edit_prompt(
-        freezone_routes.FreezoneTemplateEditRequest(
-            source_url="/static/admin/59/freezone/_uploads/source.png",
-            mode="storyboard_25_grid",
-        )
-    )
+    prompt = build_image_template_edit_prompt("storyboard_25_grid", "")
 
     assert "Each cell must preserve the source image aspect ratio" in prompt
     assert "libtv-style 5x5 cinematic storyboard shot sequence" in prompt
@@ -2175,12 +2206,7 @@ def test_storyboard_25_grid_prompt_preserves_cell_aspect_ratio() -> None:
 
 
 def test_template_edit_projection_prompt_requires_visible_time_change() -> None:
-    prompt = _build_template_edit_prompt(
-        freezone_routes.FreezoneTemplateEditRequest(
-            source_url="/static/admin/59/freezone/_uploads/source.png",
-            mode="image_projection_after_3s",
-        )
-    )
+    prompt = build_image_template_edit_prompt("image_projection_after_3s", "")
 
     assert "libtv-style frame projection 3 seconds later" in prompt
     assert "Preserve the source image aspect ratio" in prompt
@@ -2597,14 +2623,19 @@ def test_freezone_image_to_3gs_runner_records_project_node_history(
 @pytest.mark.asyncio
 async def test_freezone_celery_image_jobs_preserve_canvas_node_context(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    from ai_anime.modules.creative_canvas.application.image_editing import (
+        CreativeCanvasImageEditingUseCases,
+        StartCreativeCanvasReferenceImageEditingCommand,
+    )
     from ai_anime.modules.creative_canvas.application.image_generation import (
         CreativeCanvasImageGenerationUseCases,
         StartCreativeCanvasImageGenerationCommand,
     )
     from ai_anime.modules.creative_canvas.infrastructure.image_editing import (
+        FreezoneCreativeCanvasImageModelRouter,
         FreezoneCreativeCanvasImagePromptComposer,
+        PillowCreativeCanvasImageEditingStorage,
     )
     from ai_anime.modules.creative_canvas.infrastructure.image_generation import (
         FreezoneCreativeCanvasImageGenerationModelRouter,
@@ -2635,8 +2666,6 @@ async def test_freezone_celery_image_jobs_preserve_canvas_node_context(
             return "job_123"
 
     task_backend = SimpleNamespace(enqueue_project_task=fake_enqueue_project_task)
-    monkeypatch.setattr(freezone_routes, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task))
-    monkeypatch.setattr(freezone_routes, "_new_job_id", lambda: "job_123")
 
     gen = await CreativeCanvasImageGenerationUseCases(
         ProjectCreativeCanvasImageSourceResolver(),
@@ -2657,28 +2686,32 @@ async def test_freezone_celery_image_jobs_preserve_canvas_node_context(
             node_id="node_gen",
         )
     )
-    edit = await freezone_routes._start_or_enqueue_freezone_edit_job(
-        ctx=ctx,
-        username="admin",
-        project="demo",
-        project_dir=project_dir,
-        output_dir=str(project_dir),
-        prompt="edit",
-        base_url=f"/static/admin/demo/{base.relative_to(project_dir).as_posix()}",
-        extra_reference_urls=[],
-        aspect_ratio="original",
-        image_size="2K",
-        camera=None,
-        style=None,
-        provider="newapi",
-        model="newapi_gpt_image2",
-        quality=None,
-        canvas_id="canvas_a",
-        node_id="node_edit",
+    edit = await CreativeCanvasImageEditingUseCases(
+        ProjectCreativeCanvasImageSourceResolver(),
+        PillowCreativeCanvasImageEditingStorage(),
+        FreezoneCreativeCanvasImagePromptComposer(),
+        FreezoneCreativeCanvasImageModelRouter(),
+        FixedJobIds(),
+        TaskBackendCreativeCanvasTaskScheduler(lambda: task_backend),
+    ).start_reference_edit(
+        StartCreativeCanvasReferenceImageEditingCommand(
+            context=ctx,
+            project_dir=project_dir,
+            prompt="edit",
+            base_url=f"/static/admin/demo/{base.relative_to(project_dir).as_posix()}",
+            extra_reference_urls=(),
+            aspect_ratio="original",
+            image_size="2K",
+            provider="newapi",
+            model="newapi_gpt_image2",
+            quality=None,
+            canvas_id="canvas_a",
+            node_id="node_edit",
+        )
     )
 
     assert gen.backend == "celery"
-    assert edit["data"]["backend"] == "celery"
+    assert edit.backend == "celery"
     assert calls[0]["payload"]["canvas_id"] == "canvas_a"
     assert calls[0]["payload"]["node_id"] == "node_gen"
     assert calls[1]["payload"]["canvas_id"] == "canvas_a"
@@ -4340,11 +4373,6 @@ async def test_skill_run_scene_360_rejects_beat_context_role(
     project_dir, _output_dir = _patch_freezone_project(monkeypatch, tmp_path)
     master = project_dir / "assets" / "scenes" / "小区" / "master.png"
     _write_image(master)
-
-    async def fake_start_edit_job(**_kwargs):
-        raise AssertionError("beat_context must fail before dispatch")
-
-    monkeypatch.setattr(freezone_routes, "_start_or_enqueue_freezone_edit_job", fake_start_edit_job)
 
     with pytest.raises(freezone_routes.HTTPException) as exc:
         await freezone_routes.freezone_skill_run(
@@ -6136,7 +6164,7 @@ async def test_template_edit_projection_preserves_source_aspect_ratio(
     captured: dict[str, object] = {}
     _patch_celery_edit_enqueue(monkeypatch, captured)
 
-    body = freezone_routes.FreezoneTemplateEditRequest(
+    body = FreezoneTemplateEditRequest(
         source_url="/static/admin/59/freezone/_uploads/portrait.png",
         mode="image_projection_after_3s",
         image_size="2K",
@@ -6144,7 +6172,7 @@ async def test_template_edit_projection_preserves_source_aspect_ratio(
         quality="high",
     )
 
-    result = await freezone_routes.freezone_template_edit(
+    result = await freezone_image_routes.freezone_template_edit(
         project=project,
         body=body,
         user={"username": username},
@@ -6176,14 +6204,14 @@ async def test_template_edit_light_correction_preserves_source_aspect_ratio(
     captured: dict[str, object] = {}
     _patch_celery_edit_enqueue(monkeypatch, captured)
 
-    body = freezone_routes.FreezoneTemplateEditRequest(
+    body = FreezoneTemplateEditRequest(
         source_url="/static/admin/59/freezone/_uploads/portrait.png",
         mode="cinematic_light_correction",
         image_size="2K",
         model=FREEZONE_DEFAULT_IMAGE_MODEL,
     )
 
-    result = await freezone_routes.freezone_template_edit(
+    result = await freezone_image_routes.freezone_template_edit(
         project=project,
         body=body,
         user={"username": username},
@@ -6211,14 +6239,14 @@ async def test_template_edit_story_pitch_four_grid_preserves_source_aspect_ratio
     captured: dict[str, object] = {}
     _patch_celery_edit_enqueue(monkeypatch, captured)
 
-    body = freezone_routes.FreezoneTemplateEditRequest(
+    body = FreezoneTemplateEditRequest(
         source_url="/static/admin/59/freezone/_uploads/portrait.png",
         mode="story_pitch_four_grid",
         image_size="2K",
         model=FREEZONE_DEFAULT_IMAGE_MODEL,
     )
 
-    result = await freezone_routes.freezone_template_edit(
+    result = await freezone_image_routes.freezone_template_edit(
         project=project,
         body=body,
         user={"username": username},
@@ -6245,14 +6273,14 @@ async def test_template_edit_multi_camera_grid_preserves_source_aspect_ratio(
     captured: dict[str, object] = {}
     _patch_celery_edit_enqueue(monkeypatch, captured)
 
-    body = freezone_routes.FreezoneTemplateEditRequest(
+    body = FreezoneTemplateEditRequest(
         source_url="/static/admin/59/freezone/_uploads/portrait.png",
         mode="multi_camera_nine_grid",
         image_size="2K",
         model=FREEZONE_DEFAULT_IMAGE_MODEL,
     )
 
-    result = await freezone_routes.freezone_template_edit(
+    result = await freezone_image_routes.freezone_template_edit(
         project=project,
         body=body,
         user={"username": username},
@@ -6279,14 +6307,14 @@ async def test_template_edit_storyboard_25_grid_preserves_source_aspect_ratio(
     captured: dict[str, object] = {}
     _patch_celery_edit_enqueue(monkeypatch, captured)
 
-    body = freezone_routes.FreezoneTemplateEditRequest(
+    body = FreezoneTemplateEditRequest(
         source_url="/static/admin/59/freezone/_uploads/portrait.png",
         mode="storyboard_25_grid",
         image_size="2K",
         model=FREEZONE_DEFAULT_IMAGE_MODEL,
     )
 
-    result = await freezone_routes.freezone_template_edit(
+    result = await freezone_image_routes.freezone_template_edit(
         project=project,
         body=body,
         user={"username": username},

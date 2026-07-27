@@ -455,13 +455,25 @@ def test_freezone_image_editing_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "image.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     legacy_helpers = PACKAGE_ROOT / "freezone" / "route_helpers.py"
+    prompt_rules = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "domain"
+        / "image_editing_prompts.py"
+    )
     runner = PACKAGE_ROOT / "task_backend" / "runners" / "freezone.py"
     source = route.read_text(encoding="utf-8")
     legacy_source = legacy_route.read_text(encoding="utf-8")
     legacy_helper_source = legacy_helpers.read_text(encoding="utf-8")
+    prompt_rule_source = prompt_rules.read_text(encoding="utf-8")
     runner_source = runner.read_text(encoding="utf-8")
 
     endpoint_paths = (
+        '"/projects/{project}/freezone/multi-view"',
+        '"/projects/{project}/freezone/relight"',
+        '"/projects/{project}/freezone/template-edit"',
+        '"/projects/{project}/freezone/edit"',
         '"/projects/{project}/freezone/upscale"',
         '"/projects/{project}/freezone/outpaint"',
         '"/projects/{project}/freezone/redraw"',
@@ -472,8 +484,21 @@ def test_freezone_image_editing_routes_delegate_to_application() -> None:
 
     assert source.count("creative_canvas_image_editing_use_cases().start(") == 1
     assert source.count("return await _start_image_editing(") == 3
+    assert (
+        source.count(
+            "creative_canvas_reference_image_editing_use_cases().start_reference_edit("
+        )
+        == 1
+    )
+    assert source.count("return await _start_reference_image_editing(") == 4
     assert "StartCreativeCanvasImageEditingCommand" in source
+    assert "StartCreativeCanvasReferenceImageEditingCommand" in source
     for legacy_handler in (
+        "async def freezone_multi_view(",
+        "async def freezone_relight(",
+        "async def freezone_template_edit(",
+        "async def freezone_edit(",
+        "async def _start_or_enqueue_freezone_edit_job(",
         "async def freezone_upscale(",
         "async def freezone_outpaint(",
         "async def freezone_redraw(",
@@ -482,6 +507,10 @@ def test_freezone_image_editing_routes_delegate_to_application() -> None:
     ):
         assert legacy_handler not in legacy_source
     for legacy_schema in (
+        "FreezoneCharacterMultiViewRequest",
+        "FreezoneEditRequest",
+        "FreezoneRelightRequest",
+        "FreezoneTemplateEditRequest",
         "FreezoneUpscaleRequest",
         "FreezoneOutpaintRequest",
         "FreezoneRedrawRequest",
@@ -494,10 +523,23 @@ def test_freezone_image_editing_routes_delegate_to_application() -> None:
         "build_outpaint_prompt",
         "build_redraw_prompt",
         "build_erase_prompt",
+        "def build_multi_view_prompt(",
+        "def _describe_color_temperature(",
+        "def build_relight_prompt(",
+        "def build_template_edit_prompt(",
+        "def template_edit_aspect_ratio(",
+        "def ensure_existing_paths(",
+        "def start_freezone_gen_job(",
+        "def start_freezone_edit_job(",
     ):
         assert legacy_rule not in legacy_helper_source
     assert "_build_upscale_prompt" not in legacy_source
-    assert 'register_project_task_runner("freezone_edit", run_freezone_edit)' in runner_source
+    assert (
+        runner_source.count(
+            'register_project_task_runner("freezone_edit", run_freezone_edit)'
+        )
+        == 1
+    )
     assert (
         'register_project_task_runner("freezone_mask_edit", run_freezone_mask_edit)'
         in runner_source
@@ -517,6 +559,8 @@ def test_freezone_image_editing_routes_delegate_to_application() -> None:
         "_resolve_freezone_image_provider",
     ):
         assert implementation_detail not in source
+    assert "fastapi" not in prompt_rule_source
+    assert "ai_anime.api" not in prompt_rule_source
 
 
 def test_freezone_image_generation_route_and_skill_delegate_to_application() -> None:

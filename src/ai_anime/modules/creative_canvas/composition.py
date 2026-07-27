@@ -113,6 +113,21 @@ def creative_canvas_image_editing_use_cases() -> CreativeCanvasImageEditingUseCa
 
 
 @lru_cache(maxsize=1)
+def creative_canvas_reference_image_editing_use_cases() -> CreativeCanvasImageEditingUseCases:
+    return CreativeCanvasImageEditingUseCases(
+        ProjectCreativeCanvasImageSourceResolver(),
+        PillowCreativeCanvasImageEditingStorage(),
+        FreezoneCreativeCanvasImagePromptComposer(),
+        FreezoneCreativeCanvasImageModelRouter(),
+        FreezoneJobIdGenerator(),
+        TaskBackendCreativeCanvasTaskScheduler(
+            get_task_backend,
+            translate_runtime_errors=False,
+        ),
+    )
+
+
+@lru_cache(maxsize=1)
 def creative_canvas_image_generation_use_cases() -> CreativeCanvasImageGenerationUseCases:
     return CreativeCanvasImageGenerationUseCases(
         ProjectCreativeCanvasImageSourceResolver(),
