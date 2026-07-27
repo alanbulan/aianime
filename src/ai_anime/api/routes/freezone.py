@@ -42,11 +42,20 @@ from ai_anime.modules.creative_canvas.public import (
     CopyCreativeCanvasSlotCommand,
     CreativeCanvasImageGenerationReferenceMissing,
     InvalidCreativeCanvasImageGenerationRequest,
+    ResolvedSkillInput,
+    SkillDefinition,
+    SkillErrorEnvelope,
+    SkillInputAcceptSpec,
+    SkillRunOutput,
+    SkillRunRequest,
+    SkillRunResponse,
+    SkillRunResult,
     StartCreativeCanvasImageGenerationCommand,
     canvas_actor_id,
     canvas_event_actor,
     creative_canvas_slot_commit_use_cases,
     creative_canvas_image_generation_use_cases,
+    creative_canvas_skill_catalog_queries,
     detected_reference_ids_from_beat_context_data,
     first_text_value,
     is_preset_managed_canvas_node,
@@ -97,18 +106,6 @@ from ai_anime.freezone.route_helpers import (
 )
 from ai_anime.freezone.route_helpers import (
     split_provider_and_model as _split_provider_and_model,
-)
-from ai_anime.freezone.skill_registry import (
-    ResolvedSkillInput,
-    SkillDefinition,
-    SkillErrorEnvelope,
-    SkillInputAcceptSpec,
-    SkillRunOutput,
-    SkillRunRequest,
-    SkillRunResponse,
-    SkillRunResult,
-    find_skill,
-    list_skills,
 )
 from ai_anime.freezone.slots import (
     SlotTarget,
@@ -2895,11 +2892,6 @@ async def _review_frame_text(
     return _deterministic_frame_review(body, grouped)
 
 
-@router.get("/freezone/skills", tags=[TAG_FREEZONE_SKILLS])
-async def freezone_skills(user: dict = Depends(get_api_user)):
-    return {"ok": True, "data": [skill.model_dump(mode="json") for skill in list_skills()]}
-
-
 @router.post(
     "/projects/{project}/freezone/sketch-from-context",
     response_model=FreezoneJobAcceptedResponse,
@@ -3120,7 +3112,7 @@ async def freezone_skill_run(
     body: SkillRunRequest,
     user: dict = Depends(get_api_user),
 ):
-    skill = find_skill(skill_id)
+    skill = creative_canvas_skill_catalog_queries().find_skill(skill_id)
     if skill is None:
         _raise_skill_error(
             404,

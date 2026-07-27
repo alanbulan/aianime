@@ -44,13 +44,16 @@ from ai_anime.freezone.presets import (
     preset_key_for_request,
 )
 from ai_anime.freezone.route_helpers import build_camera_prompt as _build_camera_prompt
-from ai_anime.freezone.skill_registry import (
+from ai_anime.modules.creative_canvas.public import (
     SKILL_SCHEMA_VERSION,
     CanvasGraphPatch,
+    CreativeCanvasTaskStartFailed,
     SkillRunOutput,
     SkillRunRequest,
-    get_skill,
-    list_skills,
+    creative_canvas_skill_catalog_queries,
+    generation_catalog_queries,
+    is_preset_managed_canvas_node as _is_preset_managed_canvas_node,
+    merge_restored_preset_canvas as _merge_restored_preset_canvas,
 )
 from ai_anime.modules.creative_canvas.application.canvas_documents import (
     CreativeCanvasDocumentQueries,
@@ -67,12 +70,6 @@ from ai_anime.modules.creative_canvas.infrastructure.canvas_documents import (
     LocalCreativeCanvasDocumentQueryGateway,
 )
 from ai_anime.modules.creative_canvas.infrastructure import canvas_commits, canvas_presets
-from ai_anime.modules.creative_canvas.public import (
-    CreativeCanvasTaskStartFailed,
-    generation_catalog_queries,
-    is_preset_managed_canvas_node as _is_preset_managed_canvas_node,
-    merge_restored_preset_canvas as _merge_restored_preset_canvas,
-)
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.task_backend.limits import ProjectUserTaskLimitExceeded
 from ai_anime.task_state import get_task_manager
@@ -3089,7 +3086,7 @@ def test_skill_contract_accepts_standalone_beat_context_for_every_beat_context_s
     ctx = _project_ctx(tmp_path)
     beat_context_skills = [
         skill
-        for skill in list_skills()
+        for skill in creative_canvas_skill_catalog_queries().list_skills()
         if skill.provider in {"freezone_mainline", "agent"}
         and any(spec.role == "beat_context" for spec in skill.inputs)
     ]
@@ -3202,7 +3199,8 @@ def test_skill_run_output_accepts_graph_patch_contract_stub() -> None:
 
 
 def test_skill_registry_returns_skills_with_providers_and_typed_contracts() -> None:
-    skills = list_skills()
+    catalog = creative_canvas_skill_catalog_queries()
+    skills = catalog.list_skills()
     by_id = {skill.id: skill for skill in skills}
 
     assert set(by_id) == {
@@ -3247,7 +3245,7 @@ def test_skill_registry_returns_skills_with_providers_and_typed_contracts() -> N
     assert by_id["workflow.plan_beat_graph"].capabilities.can_propose_canvas_patch is True
     assert by_id["workflow.plan_beat_graph"].capabilities.can_apply_canvas_patch is False
 
-    sketch = get_skill("freezone.sketch_from_context")
+    sketch = catalog.get_skill("freezone.sketch_from_context")
     assert sketch.parameters["aspect_ratio"]["default"] == "2:3"
     assert sketch.parameters["aspect_ratio"]["options"] == ["2:3", "16:9"]
     sketch_inputs = {item.role: item for item in sketch.inputs}
@@ -3262,7 +3260,7 @@ def test_skill_registry_returns_skills_with_providers_and_typed_contracts() -> N
         "background_candidate",
     }
 
-    director_sketch = get_skill("freezone.sketch_from_director_combined")
+    director_sketch = catalog.get_skill("freezone.sketch_from_director_combined")
     assert director_sketch.parameters["aspect_ratio"]["default"] == "2:3"
     assert director_sketch.parameters["aspect_ratio"]["options"] == ["2:3", "16:9"]
     director_inputs = {item.role: item for item in director_sketch.inputs}
@@ -3282,7 +3280,7 @@ def test_skill_registry_returns_skills_with_providers_and_typed_contracts() -> N
     assert sketch.outputs[0].node_type == "imageGenNode"
     assert sketch.outputs[0].pushable is True
 
-    frame = get_skill("freezone.frame_from_context")
+    frame = catalog.get_skill("freezone.frame_from_context")
     assert "aspect_ratio" not in frame.parameters
     assert frame.parameters["quality"]["default"] == "medium"
     assert frame.parameters["background_reference_mode"]["type"] == "enum"
@@ -3308,7 +3306,7 @@ def test_skill_registry_returns_skills_with_providers_and_typed_contracts() -> N
     assert frame.outputs[0].node_type == "imageGenNode"
     assert frame.outputs[0].pushable is True
 
-    set_background = get_skill("freezone.set_selected_background")
+    set_background = catalog.get_skill("freezone.set_selected_background")
     set_background_inputs = {item.role: item for item in set_background.inputs}
     assert list(set_background_inputs) == ["beat_context", "source_image"]
     assert set_background.display_name == "设为当前背景"
@@ -3326,7 +3324,7 @@ def test_skill_registry_returns_skills_with_providers_and_typed_contracts() -> N
     assert set_background.outputs[0].node_type == "imageGenNode"
     assert set_background.outputs[0].pushable is False
 
-    set_director = get_skill("freezone.set_director_combined")
+    set_director = catalog.get_skill("freezone.set_director_combined")
     set_director_inputs = {item.role: item for item in set_director.inputs}
     assert list(set_director_inputs) == ["beat_context", "source_image"]
     assert set_director.display_name == "设为导演合成图"
@@ -3342,7 +3340,7 @@ def test_skill_registry_returns_skills_with_providers_and_typed_contracts() -> N
     assert set_director.outputs[0].node_type == "imageGenNode"
     assert set_director.outputs[0].pushable is True
 
-    scene = get_skill("freezone.scene_360")
+    scene = catalog.get_skill("freezone.scene_360")
     scene_inputs = {item.role: item for item in scene.inputs}
     assert list(scene_inputs) == ["scene", "scene_master", "scene_reverse_master"]
     assert scene_inputs["scene"].required is False
@@ -3363,7 +3361,7 @@ def test_skill_registry_returns_skills_with_providers_and_typed_contracts() -> N
     assert scene.outputs[0].node_type == "imageGenNode"
     assert scene.outputs[0].pushable is True
 
-    review = get_skill("agent.review_frame")
+    review = catalog.get_skill("agent.review_frame")
     review_inputs = {item.role: item for item in review.inputs}
     assert list(review_inputs) == ["beat_context", "frame"]
     assert review_inputs["beat_context"].required is True
@@ -3375,7 +3373,7 @@ def test_skill_registry_returns_skills_with_providers_and_typed_contracts() -> N
     assert review.outputs[0].node_type == "textAnnotationNode"
     assert review.outputs[0].pushable is False
 
-    workflow = get_skill("workflow.plan_beat_graph")
+    workflow = catalog.get_skill("workflow.plan_beat_graph")
     workflow_inputs = {item.role: item for item in workflow.inputs}
     assert list(workflow_inputs) == ["beat_context"]
     assert workflow_inputs["beat_context"].required is True
@@ -6735,8 +6733,6 @@ def test_beat_preset_does_not_connect_no_prop_marker_as_skill_prop_input() -> No
 
 
 def test_beat_preset_skill_role_edges_match_skill_registry_inputs() -> None:
-    from ai_anime.freezone.skill_registry import get_skill
-
     payload = _beat_skill_emit_payload()
     skill_ids_by_node_id = {
         node["id"]: node["data"].get("skill_id")
@@ -6744,7 +6740,10 @@ def test_beat_preset_skill_role_edges_match_skill_registry_inputs() -> None:
         if node.get("type") == "skillNode"
     }
     inputs_by_skill_id = {
-        skill_id: {input_spec.role for input_spec in get_skill(skill_id).inputs}
+        skill_id: {
+            input_spec.role
+            for input_spec in creative_canvas_skill_catalog_queries().get_skill(skill_id).inputs
+        }
         for skill_id in skill_ids_by_node_id.values()
     }
 

@@ -237,6 +237,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api.routes.canvas import media as freezone_media
     from ai_anime.api.routes.canvas import presets as freezone_presets
     from ai_anime.api.routes.canvas import projections as freezone_projections
+    from ai_anime.api.routes.canvas import skills as freezone_skills
     from ai_anime.api.routes.canvas import text as freezone_text
     from ai_anime.api.routes.canvas import video as freezone_video
     from ai_anime.freezone.paths import uploads_dir
@@ -671,6 +672,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app.include_router(freezone_media.router, prefix="/api/v1")
         app.include_router(freezone_presets.router, prefix="/api/v1")
         app.include_router(freezone_projections.router, prefix="/api/v1")
+        app.include_router(freezone_skills.router, prefix="/api/v1")
         app.include_router(freezone_text.router, prefix="/api/v1")
         app.include_router(freezone_video.router, prefix="/api/v1")
         app.include_router(freezone.router, prefix="/api/v1")
@@ -690,6 +692,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app.dependency_overrides[freezone_media.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_presets.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_projections.get_api_user] = lambda user=user: user
+        app.dependency_overrides[freezone_skills.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_text.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_video.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone.get_api_user] = lambda user=user: user
@@ -740,6 +743,26 @@ def _assert_skill_task_shape(payload: dict, *, task_type: str):
     assert payload["job_id"]
     assert payload["task_key"]
     assert payload["run_id"] == f"{task_type}:{payload['job_id']}"
+
+
+def test_m06_freezone_skill_catalog_contract(m06_client_factory):
+    client, _backend, _task_manager, _project_dir, _assets, _store = m06_client_factory(
+        "inline"
+    )
+
+    skills = _assert_ok(client.get("/api/v1/freezone/skills"))["data"]
+
+    assert [skill["id"] for skill in skills] == [
+        "freezone.sketch_from_context",
+        "freezone.sketch_from_director_combined",
+        "freezone.frame_from_context",
+        "freezone.set_selected_background",
+        "freezone.set_director_combined",
+        "freezone.scene_360",
+        "agent.review_frame",
+        "workflow.plan_beat_graph",
+    ]
+    assert all(skill["schema_version"] == "skill.v1" for skill in skills)
 
 
 def test_m06_ingest_upload_preview_and_unsupported_format(m06_client_factory):

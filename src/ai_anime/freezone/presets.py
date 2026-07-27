@@ -19,7 +19,6 @@ from typing import Any, Iterable
 from PIL import Image
 
 from ai_anime.config import IMAGE_DEFAULT_STYLE as PROP_REF_DEFAULT_STYLE
-from ai_anime.freezone.skill_registry import SKILL_SCHEMA_VERSION
 from ai_anime.generators.nanobanana_prop import build_prop_reference_prompt
 from ai_anime.generators.scene_reference_images import build_scene_reference_prompt
 from ai_anime.models import (
@@ -29,6 +28,7 @@ from ai_anime.models import (
     build_prop_menu,
     build_scene_effective_prompt,
 )
+from ai_anime.modules.creative_canvas.public import SKILL_SCHEMA_VERSION
 from ai_anime.utils.path_resolver import (
     PathResolver,
     canonical_beat_director_env_only_path,

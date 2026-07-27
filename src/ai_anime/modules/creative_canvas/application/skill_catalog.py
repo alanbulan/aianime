@@ -1,4 +1,4 @@
-"""Freezone skill registry and run contract schemas."""
+"""Creative Canvas skill catalog and run contract models."""
 
 from __future__ import annotations
 
@@ -600,13 +600,12 @@ _REGISTRY: dict[str, SkillDefinition] = {
 }
 
 
-def list_skills() -> list[SkillDefinition]:
-    return list(_REGISTRY.values())
+class CreativeCanvasSkillCatalogQueries:
+    def list_skills(self) -> list[SkillDefinition]:
+        return list(_REGISTRY.values())
 
+    def get_skill(self, skill_id: str) -> SkillDefinition:
+        return _REGISTRY[skill_id]
 
-def get_skill(skill_id: str) -> SkillDefinition:
-    return _REGISTRY[skill_id]
-
-
-def find_skill(skill_id: str) -> SkillDefinition | None:
-    return _REGISTRY.get(skill_id)
+    def find_skill(self, skill_id: str) -> SkillDefinition | None:
+        return _REGISTRY.get(skill_id)

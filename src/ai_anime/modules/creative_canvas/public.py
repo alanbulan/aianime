@@ -93,6 +93,19 @@ from ai_anime.modules.creative_canvas.application.canvas_writes import (
 from ai_anime.modules.creative_canvas.application.generation_catalog import (
     GenerationCatalogQueries,
 )
+from ai_anime.modules.creative_canvas.application.skill_catalog import (
+    SKILL_SCHEMA_VERSION,
+    CanvasGraphPatch,
+    CreativeCanvasSkillCatalogQueries,
+    ResolvedSkillInput,
+    SkillDefinition,
+    SkillErrorEnvelope,
+    SkillInputAcceptSpec,
+    SkillRunOutput,
+    SkillRunRequest,
+    SkillRunResponse,
+    SkillRunResult,
+)
 from ai_anime.modules.creative_canvas.application.image_to_3gs import (
     CreativeCanvasImageToThreeGsResult,
     CreativeCanvasImageToThreeGsSourceMissing,
@@ -331,6 +344,14 @@ def generation_catalog_queries() -> GenerationCatalogQueries:
     return build()
 
 
+def creative_canvas_skill_catalog_queries() -> CreativeCanvasSkillCatalogQueries:
+    from ai_anime.modules.creative_canvas.composition import (
+        creative_canvas_skill_catalog_queries as build,
+    )
+
+    return build()
+
+
 def creative_canvas_media_use_cases() -> CreativeCanvasMediaUseCases:
     from ai_anime.modules.creative_canvas.composition import (
         creative_canvas_media_use_cases as build,
@@ -451,6 +472,8 @@ __all__ = [
     "BuildCreativeCanvasProjectionQuery",
     "CREATIVE_CANVAS_AUDIO_AGE_GROUP_LABELS",
     "DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL",
+    "SKILL_SCHEMA_VERSION",
+    "CanvasGraphPatch",
     "CommitCreativeCanvasSlotCommand",
     "CopyCreativeCanvasSlotCommand",
     "CreateCreativeCanvasAudioVoiceCommand",
@@ -523,6 +546,7 @@ __all__ = [
     "CreativeCanvasVideoCompositionTrack",
     "CreativeCanvasScreenshotResult",
     "CreativeCanvasScreenshotTooLarge",
+    "CreativeCanvasSkillCatalogQueries",
     "CreativeCanvasUploadResult",
     "GenerationCatalogQueries",
     "GetCreativeCanvasDocumentQuery",
@@ -563,6 +587,7 @@ __all__ = [
     "ListCreativeCanvasGenerationHistoryQuery",
     "ListCreativeCanvasNodeGenerationHistoryQuery",
     "RecordCreativeCanvasEventCommand",
+    "ResolvedSkillInput",
     "ProjectCreativeCanvasProjectionCommand",
     "RemoveCreativeCanvasProjectionCommand",
     "RestoreCreativeCanvasDocumentCommand",
@@ -590,6 +615,13 @@ __all__ = [
     "StartCreativeCanvasTextVideoCommand",
     "StartCreativeCanvasVideoEditCommand",
     "StartCreativeCanvasVideoStoryAnalysisCommand",
+    "SkillDefinition",
+    "SkillErrorEnvelope",
+    "SkillInputAcceptSpec",
+    "SkillRunOutput",
+    "SkillRunRequest",
+    "SkillRunResponse",
+    "SkillRunResult",
     "AddCreativeCanvasVideoAssetCommand",
     "SyncCreativeCanvasVideoAssetsCommand",
     "SyncCreativeCanvasDirectorBackgroundCommand",
@@ -610,6 +642,7 @@ __all__ = [
     "creative_canvas_document_queries",
     "creative_canvas_event_recorder",
     "creative_canvas_slot_commit_use_cases",
+    "creative_canvas_skill_catalog_queries",
     "creative_canvas_preset_use_cases",
     "creative_canvas_projection_use_cases",
     "creative_canvas_mark_detection_use_cases",

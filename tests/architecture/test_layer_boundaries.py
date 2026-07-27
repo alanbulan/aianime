@@ -329,6 +329,49 @@ def test_creative_canvas_callers_use_the_public_api() -> None:
     assert not failures, "\n".join(failures)
 
 
+def test_freezone_skill_catalog_route_delegates_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "skills.py"
+    legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    legacy_catalog = PACKAGE_ROOT / "freezone" / "skill_registry.py"
+    application = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "application"
+        / "skill_catalog.py"
+    )
+    composition = PACKAGE_ROOT / "modules" / "creative_canvas" / "composition.py"
+    public = PACKAGE_ROOT / "modules" / "creative_canvas" / "public.py"
+    presets = PACKAGE_ROOT / "freezone" / "presets.py"
+    api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
+
+    route_source = route.read_text(encoding="utf-8")
+    legacy_source = legacy_route.read_text(encoding="utf-8")
+    application_source = application.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+    presets_source = presets.read_text(encoding="utf-8")
+    api_router_source = api_router.read_text(encoding="utf-8")
+
+    assert route_source.count("creative_canvas_skill_catalog_queries().list_skills()") == 1
+    assert legacy_source.count("creative_canvas_skill_catalog_queries().find_skill(") == 1
+    assert '"/freezone/skills"' not in legacy_source
+    assert "async def freezone_skills(" not in legacy_source
+    assert "class CreativeCanvasSkillCatalogQueries" in application_source
+    assert "def creative_canvas_skill_catalog_queries(" in composition_source
+    assert "def creative_canvas_skill_catalog_queries(" in public_source
+    assert "from ai_anime.modules.creative_canvas.public import SKILL_SCHEMA_VERSION" in (
+        presets_source
+    )
+    assert "freezone_skills.router" in api_router_source
+    assert not legacy_catalog.exists()
+
+    assert "fastapi" not in application_source
+    assert "ai_anime.api" not in application_source
+    assert "ai_anime.freezone" not in application_source
+    assert "ai_anime.modules.creative_canvas.application" not in route_source
+
+
 def test_freezone_generation_catalog_routes_delegate_to_application() -> None:
     image_route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "image.py"
     video_route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "video.py"

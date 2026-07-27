@@ -35,6 +35,9 @@ from ai_anime.modules.creative_canvas.application.canvas_writes import (
 from ai_anime.modules.creative_canvas.application.generation_catalog import (
     GenerationCatalogQueries,
 )
+from ai_anime.modules.creative_canvas.application.skill_catalog import (
+    CreativeCanvasSkillCatalogQueries,
+)
 from ai_anime.modules.creative_canvas.application.image_to_3gs import (
     CreativeCanvasImageToThreeGsUseCases,
 )
@@ -208,6 +211,11 @@ def creative_canvas_projection_use_cases() -> CreativeCanvasProjectionUseCases:
 @lru_cache(maxsize=1)
 def generation_catalog_queries() -> GenerationCatalogQueries:
     return GenerationCatalogQueries(ConfiguredGenerationCatalogSource())
+
+
+@lru_cache(maxsize=1)
+def creative_canvas_skill_catalog_queries() -> CreativeCanvasSkillCatalogQueries:
+    return CreativeCanvasSkillCatalogQueries()
 
 
 @lru_cache(maxsize=1)
