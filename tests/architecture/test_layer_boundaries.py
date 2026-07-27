@@ -936,14 +936,15 @@ def test_freezone_canvas_document_queries_delegate_to_application() -> None:
     domain_source = domain.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
 
-    for endpoint_path in (
-        '"/projects/{project}/freezone/canvases"',
-        '"/projects/{project}/freezone/canvases/{canvas_id}"',
-        '"/projects/{project}/freezone/canvases/{canvas_id}/history"',
-        '"/projects/{project}/freezone/canvases/{canvas_id}/nodes/{node_id}/generation-history"',
-        '"/projects/{project}/freezone/canvases/{canvas_id}/generation-history"',
-    ):
-        assert source.count(endpoint_path) == 1
+    expected_endpoint_counts = {
+        '"/projects/{project}/freezone/canvases"': 1,
+        '"/projects/{project}/freezone/canvases/{canvas_id}"': 3,
+        '"/projects/{project}/freezone/canvases/{canvas_id}/history"': 1,
+        '"/projects/{project}/freezone/canvases/{canvas_id}/nodes/{node_id}/generation-history"': 1,
+        '"/projects/{project}/freezone/canvases/{canvas_id}/generation-history"': 1,
+    }
+    for endpoint_path, expected_count in expected_endpoint_counts.items():
+        assert source.count(endpoint_path) == expected_count
 
     for exclusive_endpoint_path in (
         '"/projects/{project}/freezone/canvases"',
@@ -988,6 +989,7 @@ def test_freezone_canvas_document_queries_delegate_to_application() -> None:
         "def sync_frame_context_reference_edges(",
         "def merge_restored_preset_canvas(",
         "def is_preset_managed_canvas_node(",
+        "def prepare_creative_canvas_payload_for_write(",
         "def stamp_canvas_mainline_context_project_id(",
     ):
         assert domain_source.count(domain_rule) == 1
@@ -995,6 +997,93 @@ def test_freezone_canvas_document_queries_delegate_to_application() -> None:
 
     assert "fastapi" not in domain_source
     assert "ai_anime.freezone" not in domain_source
+    assert "fastapi" not in application_source
+    assert "ai_anime.api" not in application_source
+    assert "ai_anime.freezone" not in application_source
+    assert "fastapi" not in adapter_source
+    assert "ai_anime.api" not in adapter_source
+
+
+def test_freezone_canvas_document_writes_delegate_to_application() -> None:
+    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "documents.py"
+    errors = PACKAGE_ROOT / "api" / "canvas_errors.py"
+    legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
+    application = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "application"
+        / "canvas_writes.py"
+    )
+    domain = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "domain"
+        / "canvas_documents.py"
+    )
+    adapter = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "infrastructure"
+        / "canvas_writes.py"
+    )
+    composition = PACKAGE_ROOT / "modules" / "creative_canvas" / "composition.py"
+    public = PACKAGE_ROOT / "modules" / "creative_canvas" / "public.py"
+    source = route.read_text(encoding="utf-8")
+    errors_source = errors.read_text(encoding="utf-8")
+    legacy_source = legacy_route.read_text(encoding="utf-8")
+    application_source = application.read_text(encoding="utf-8")
+    domain_source = domain.read_text(encoding="utf-8")
+    adapter_source = adapter.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+
+    assert (
+        source.count('"/projects/{project}/freezone/canvases/{canvas_id}"')
+        == 3
+    )
+    assert (
+        source.count(
+            '"/projects/{project}/freezone/canvases/{canvas_id}/restore"'
+        )
+        == 1
+    )
+    assert source.count("creative_canvas_document_commands().") == 3
+    for legacy_handler in (
+        "async def restore_canvas_history(",
+        "async def put_canvas(",
+        "async def delete_canvas(",
+    ):
+        assert legacy_handler not in legacy_source
+    for legacy_implementation in (
+        "def _canvas_scope_from_payload(",
+        "def _merge_canvas_metadata(",
+        "def _prepare_canvas_payload_for_write(",
+        "def _raise_canvas_store_http(",
+        "CanvasPayload",
+    ):
+        assert legacy_implementation not in legacy_source
+
+    assert domain_source.count("def prepare_creative_canvas_payload_for_write(") == 1
+    assert "class CreativeCanvasDocumentCommands" in application_source
+    assert "class LocalCreativeCanvasDocumentCommandGateway" in adapter_source
+    assert "def translate_canvas_store_error(" in adapter_source
+    assert "def raise_canvas_document_http_error(" in errors_source
+    assert "LocalCreativeCanvasDocumentCommandGateway()" in composition_source
+    assert "def creative_canvas_document_commands(" in public_source
+    assert (
+        legacy_source.count("translate_creative_canvas_document_write_error(exc)")
+        == 6
+    )
+    assert (
+        "def translate_creative_canvas_document_write_error(" in public_source
+    )
+    assert "canvas_store" not in source
+    assert "canvas_store" not in application_source
+    assert "canvas_store" not in domain_source
+    assert "canvas_store" not in errors_source
     assert "fastapi" not in application_source
     assert "ai_anime.api" not in application_source
     assert "ai_anime.freezone" not in application_source
@@ -1034,8 +1123,8 @@ def test_freezone_canvas_events_delegate_to_application() -> None:
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
 
-    assert legacy_source.count("record_creative_canvas_event(") == 16
-    assert legacy_source.count("canvas_event_actor(user)") == 16
+    assert legacy_source.count("record_creative_canvas_event(") == 13
+    assert legacy_source.count("canvas_event_actor(user)") == 13
     for legacy_implementation in (
         "CANVAS_EVENT_SCHEMA_VERSION",
         "def _canvas_events_dir(",

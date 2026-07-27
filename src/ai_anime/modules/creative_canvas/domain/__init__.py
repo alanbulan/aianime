@@ -8,6 +8,7 @@ from ai_anime.modules.creative_canvas.domain.canvas_documents import (
     first_text_value,
     is_preset_managed_canvas_node,
     merge_restored_preset_canvas,
+    prepare_creative_canvas_payload_for_write,
     stamp_canvas_mainline_context_project_id,
     sync_frame_context_reference_edges,
 )
@@ -120,6 +121,7 @@ __all__ = [
     "infer_image_to_three_gs_scene_id",
     "is_preset_managed_canvas_node",
     "merge_restored_preset_canvas",
+    "prepare_creative_canvas_payload_for_write",
     "normalize_screenshot_label",
     "normalize_video_aspect_ratio",
     "normalize_video_resolution",

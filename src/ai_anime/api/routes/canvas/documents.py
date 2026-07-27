@@ -1,20 +1,28 @@
-"""Creative Canvas document-query endpoints."""
+"""Creative Canvas document endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 
 from ai_anime.api.auth import get_api_user
+from ai_anime.api.canvas_errors import raise_canvas_document_http_error
 from ai_anime.api.deps import resolve_project_scope
+from ai_anime.api.schemas import CanvasPayload
 from ai_anime.freezone.paths import CANVAS_ID_RE
 from ai_anime.modules.creative_canvas.public import (
     CreativeCanvasDocumentBusy,
     CreativeCanvasDocumentCorrupt,
+    CreativeCanvasDocumentWriteError,
+    DeleteCreativeCanvasDocumentCommand,
     GetCreativeCanvasDocumentQuery,
     InvalidCreativeCanvasDocumentQuery,
     ListCreativeCanvasDocumentHistoryQuery,
     ListCreativeCanvasDocumentsQuery,
     ListCreativeCanvasGenerationHistoryQuery,
     ListCreativeCanvasNodeGenerationHistoryQuery,
+    RestoreCreativeCanvasDocumentCommand,
+    SaveCreativeCanvasDocumentCommand,
     canvas_actor_id,
+    canvas_event_actor,
+    creative_canvas_document_commands,
     creative_canvas_document_queries,
 )
 
@@ -37,14 +45,8 @@ async def list_canvases(
                 actor_id=canvas_actor_id(user),
             )
         )
-    except CreativeCanvasDocumentCorrupt as exc:
-        raise HTTPException(500, str(exc)) from exc
-    except CreativeCanvasDocumentBusy as exc:
-        raise HTTPException(
-            503,
-            {"code": "canvas_lock_busy", "canvas_id": exc.canvas_id},
-            headers={"Retry-After": "1"},
-        ) from exc
+    except (CreativeCanvasDocumentCorrupt, CreativeCanvasDocumentBusy) as exc:
+        raise_canvas_document_http_error(exc)
     return {"ok": True, "data": documents}
 
 
@@ -70,14 +72,8 @@ async def get_canvas(
         )
     except InvalidCreativeCanvasDocumentQuery as exc:
         raise HTTPException(400, str(exc)) from exc
-    except CreativeCanvasDocumentCorrupt as exc:
-        raise HTTPException(500, str(exc)) from exc
-    except CreativeCanvasDocumentBusy as exc:
-        raise HTTPException(
-            503,
-            {"code": "canvas_lock_busy", "canvas_id": exc.canvas_id},
-            headers={"Retry-After": "1"},
-        ) from exc
+    except (CreativeCanvasDocumentCorrupt, CreativeCanvasDocumentBusy) as exc:
+        raise_canvas_document_http_error(exc)
     return {"ok": True, "data": document}
 
 
@@ -102,7 +98,7 @@ async def list_canvas_history(
     except InvalidCreativeCanvasDocumentQuery as exc:
         raise HTTPException(400, str(exc)) from exc
     except CreativeCanvasDocumentCorrupt as exc:
-        raise HTTPException(500, str(exc)) from exc
+        raise_canvas_document_http_error(exc)
     return {"ok": True, "data": history}
 
 
@@ -162,6 +158,116 @@ async def get_canvas_generation_history(
     return {"ok": True, "data": {"records": records}}
 
 
+@router.post(
+    "/projects/{project}/freezone/canvases/{canvas_id}/restore",
+    tags=["freezone-canvas"],
+)
+async def restore_canvas_history(
+    project: str,
+    canvas_id: str,
+    body: dict = Body(...),
+    user: dict = Depends(get_api_user),
+):
+    _validate_canvas_id(canvas_id)
+    resolved = await _resolve_editor_project(project, user)
+    try:
+        response = creative_canvas_document_commands().restore(
+            RestoreCreativeCanvasDocumentCommand(
+                context=resolved.ctx,
+                project_id=project,
+                canvas_id=canvas_id,
+                history_id=str(body.get("history_id") or "").strip(),
+                base_revision=body.get("base_revision"),
+                actor_id=canvas_actor_id(user),
+                event_actor=canvas_event_actor(user),
+            )
+        )
+    except (
+        CreativeCanvasDocumentWriteError,
+        CreativeCanvasDocumentCorrupt,
+        CreativeCanvasDocumentBusy,
+    ) as exc:
+        raise_canvas_document_http_error(exc)
+    return {"ok": True, "data": response}
+
+
+@router.put(
+    "/projects/{project}/freezone/canvases/{canvas_id}",
+    tags=["freezone-canvas"],
+)
+async def put_canvas(
+    project: str,
+    canvas_id: str,
+    body: CanvasPayload,
+    user: dict = Depends(get_api_user),
+):
+    _validate_canvas_id(canvas_id)
+    resolved = await _resolve_editor_project(project, user)
+    try:
+        response = creative_canvas_document_commands().save(
+            SaveCreativeCanvasDocumentCommand(
+                context=resolved.ctx,
+                project_id=project,
+                canvas_id=canvas_id,
+                payload=body.model_dump(
+                    exclude={
+                        "base_revision",
+                        "client_save_id",
+                        "allow_empty_overwrite",
+                    },
+                    exclude_none=True,
+                ),
+                request_hash_payload=body.model_dump(
+                    exclude={"client_save_id"},
+                    exclude_none=True,
+                ),
+                base_revision=body.base_revision,
+                client_save_id=body.client_save_id,
+                save_source=body.save_source,
+                allow_empty_overwrite=body.allow_empty_overwrite,
+                actor_id=canvas_actor_id(user),
+                event_actor=canvas_event_actor(user),
+            )
+        )
+    except (
+        CreativeCanvasDocumentWriteError,
+        CreativeCanvasDocumentCorrupt,
+        CreativeCanvasDocumentBusy,
+    ) as exc:
+        raise_canvas_document_http_error(exc)
+    return {"ok": True, "data": response}
+
+
+@router.delete(
+    "/projects/{project}/freezone/canvases/{canvas_id}",
+    tags=["freezone-canvas"],
+)
+async def delete_canvas(
+    project: str,
+    canvas_id: str,
+    user: dict = Depends(get_api_user),
+):
+    _validate_canvas_id(canvas_id)
+    resolved = await _resolve_editor_project(project, user)
+    try:
+        response = creative_canvas_document_commands().delete(
+            DeleteCreativeCanvasDocumentCommand(
+                context=resolved.ctx,
+                project_id=project,
+                canvas_id=canvas_id,
+                actor_id=canvas_actor_id(user),
+                event_actor=canvas_event_actor(user),
+            )
+        )
+    except (
+        CreativeCanvasDocumentWriteError,
+        CreativeCanvasDocumentCorrupt,
+        CreativeCanvasDocumentBusy,
+    ) as exc:
+        raise_canvas_document_http_error(exc)
+    return {"ok": True, "data": response}
+
+
 def _validate_canvas_id(canvas_id: str) -> None:
     if not CANVAS_ID_RE.match(canvas_id):
         raise HTTPException(400, "invalid canvas_id")
@@ -172,6 +278,15 @@ async def _resolve_viewer_project(project: str, user: dict):
         project,
         user,
         required_role="viewer",
+        operation="access freezone project files",
+    )
+
+
+async def _resolve_editor_project(project: str, user: dict):
+    return await resolve_project_scope(
+        project,
+        user,
+        required_role="editor",
         operation="access freezone project files",
     )
 

@@ -17,6 +17,9 @@ from ai_anime.modules.creative_canvas.application.canvas_documents import (
 from ai_anime.modules.creative_canvas.application.canvas_events import (
     CreativeCanvasEventRecorder,
 )
+from ai_anime.modules.creative_canvas.application.canvas_writes import (
+    CreativeCanvasDocumentCommands,
+)
 from ai_anime.modules.creative_canvas.application.generation_catalog import (
     GenerationCatalogQueries,
 )
@@ -59,6 +62,9 @@ from ai_anime.modules.creative_canvas.infrastructure.canvas_documents import (
 )
 from ai_anime.modules.creative_canvas.infrastructure.canvas_events import (
     LocalCreativeCanvasEventWriter,
+)
+from ai_anime.modules.creative_canvas.infrastructure.canvas_writes import (
+    LocalCreativeCanvasDocumentCommandGateway,
 )
 from ai_anime.modules.creative_canvas.infrastructure.audio_library import (
     LocalCreativeCanvasAudioLibraryGateway,
@@ -116,6 +122,14 @@ def creative_canvas_document_queries() -> CreativeCanvasDocumentQueries:
 @lru_cache(maxsize=1)
 def creative_canvas_event_recorder() -> CreativeCanvasEventRecorder:
     return CreativeCanvasEventRecorder(LocalCreativeCanvasEventWriter())
+
+
+@lru_cache(maxsize=1)
+def creative_canvas_document_commands() -> CreativeCanvasDocumentCommands:
+    return CreativeCanvasDocumentCommands(
+        LocalCreativeCanvasDocumentCommandGateway(),
+        creative_canvas_event_recorder(),
+    )
 
 
 @lru_cache(maxsize=1)

@@ -34,7 +34,8 @@ from ai_anime.api.schemas import (
     PushRequest,
 )
 from ai_anime.config import NEWAPI_IMAGE_MODEL, OPENAI_IMAGE_MODEL
-from ai_anime.freezone import image_node
+from ai_anime.freezone import canvas_store, image_node
+from ai_anime.freezone.canvas_lock import CanvasLockBusy
 from ai_anime.freezone.presets import (
     build_canvas_payload_from_context,
     canvas_id_for_preset,
@@ -1203,7 +1204,7 @@ async def test_put_canvas_soft_upgrades_legacy_canvas_with_revision(
         encoding="utf-8",
     )
 
-    result = await freezone_routes.put_canvas(
+    result = await freezone_document_routes.put_canvas(
         project="proj_freezone",
         canvas_id="default",
         body=CanvasPayload(nodes=[{"id": "new"}], edges=[], metadata={"shotMetadata": {}}),
@@ -1251,7 +1252,7 @@ async def test_put_canvas_backs_up_previous_snapshot(
     }
     canvas_file.write_text(json.dumps(original), encoding="utf-8")
 
-    result = await freezone_routes.put_canvas(
+    result = await freezone_document_routes.put_canvas(
         project="proj_freezone",
         canvas_id="default",
         body=CanvasPayload(
@@ -1405,7 +1406,7 @@ async def test_put_canvas_prunes_stale_frame_identity_edges_from_beat_context(
         },
     ]
 
-    await freezone_routes.put_canvas(
+    await freezone_document_routes.put_canvas(
         project="proj_freezone",
         canvas_id="beat_canvas",
         body=CanvasPayload(nodes=nodes, edges=edges, metadata={}, base_revision=3),
@@ -1608,7 +1609,7 @@ async def test_put_canvas_idempotent_retry_does_not_write_again(
         encoding="utf-8",
     )
 
-    first = await freezone_routes.put_canvas(
+    first = await freezone_document_routes.put_canvas(
         project="proj_freezone",
         canvas_id="default",
         body=CanvasPayload(
@@ -1620,7 +1621,7 @@ async def test_put_canvas_idempotent_retry_does_not_write_again(
         ),
         user={"username": "admin", "id": "owner_1"},
     )
-    second = await freezone_routes.put_canvas(
+    second = await freezone_document_routes.put_canvas(
         project="proj_freezone",
         canvas_id="default",
         body=CanvasPayload(
@@ -1668,7 +1669,7 @@ async def test_put_canvas_rejects_reused_idempotency_key_with_different_payload(
         encoding="utf-8",
     )
 
-    await freezone_routes.put_canvas(
+    await freezone_document_routes.put_canvas(
         project="proj_freezone",
         canvas_id="default",
         body=CanvasPayload(
@@ -1681,8 +1682,8 @@ async def test_put_canvas_rejects_reused_idempotency_key_with_different_payload(
         user={"username": "admin", "id": "owner_1"},
     )
 
-    with pytest.raises(freezone_routes.HTTPException) as exc:
-        await freezone_routes.put_canvas(
+    with pytest.raises(HTTPException) as exc:
+        await freezone_document_routes.put_canvas(
             project="proj_freezone",
             canvas_id="default",
             body=CanvasPayload(
@@ -1726,8 +1727,8 @@ async def test_put_canvas_rejects_dangerous_empty_autosave(
         encoding="utf-8",
     )
 
-    with pytest.raises(freezone_routes.HTTPException) as exc:
-        await freezone_routes.put_canvas(
+    with pytest.raises(HTTPException) as exc:
+        await freezone_document_routes.put_canvas(
             project="proj_freezone",
             canvas_id="default",
             body=CanvasPayload(nodes=[], edges=[], metadata={}, base_revision=3),
@@ -1765,7 +1766,7 @@ async def test_put_canvas_saves_oversized_payload_with_warning(
         encoding="utf-8",
     )
 
-    result = await freezone_routes.put_canvas(
+    result = await freezone_document_routes.put_canvas(
         project="proj_freezone",
         canvas_id="default",
         body=CanvasPayload(
@@ -1821,8 +1822,8 @@ async def test_put_canvas_rejects_autosave_deleting_last_node(
         encoding="utf-8",
     )
 
-    with pytest.raises(freezone_routes.HTTPException) as exc:
-        await freezone_routes.put_canvas(
+    with pytest.raises(HTTPException) as exc:
+        await freezone_document_routes.put_canvas(
             project="proj_freezone",
             canvas_id="default",
             body=CanvasPayload(nodes=[], edges=[], base_revision=3),
@@ -1860,7 +1861,7 @@ async def test_put_canvas_allows_manual_clear_with_flag(
         encoding="utf-8",
     )
 
-    result = await freezone_routes.put_canvas(
+    result = await freezone_document_routes.put_canvas(
         project="proj_freezone",
         canvas_id="default",
         body=CanvasPayload(
@@ -1903,7 +1904,7 @@ async def test_canvas_history_list_and_restore(
         ),
         encoding="utf-8",
     )
-    await freezone_routes.put_canvas(
+    await freezone_document_routes.put_canvas(
         project="proj_freezone",
         canvas_id="default",
         body=CanvasPayload(
@@ -1924,7 +1925,7 @@ async def test_canvas_history_list_and_restore(
     assert history["data"][0]["revision"] == 1
     assert history["data"][0]["node_count"] == 1
 
-    restored = await freezone_routes.restore_canvas_history(
+    restored = await freezone_document_routes.restore_canvas_history(
         project="proj_freezone",
         canvas_id="default",
         body={"history_id": history["data"][0]["history_id"], "base_revision": 2},
@@ -1962,7 +1963,7 @@ async def test_delete_canvas_soft_deletes_and_hides_tombstone_from_list(
     }
     canvas_file.write_text(json.dumps(original), encoding="utf-8")
 
-    deleted = await freezone_routes.delete_canvas(
+    deleted = await freezone_document_routes.delete_canvas(
         project="proj_freezone",
         canvas_id="experiment",
         user={"username": "admin", "id": "owner_1"},
@@ -2015,7 +2016,7 @@ async def test_delete_default_canvas_soft_deletes_without_recreating(
         encoding="utf-8",
     )
 
-    deleted = await freezone_routes.delete_canvas(
+    deleted = await freezone_document_routes.delete_canvas(
         project="proj_freezone",
         canvas_id="default",
         user={"username": "admin", "id": "owner_1"},
@@ -2040,12 +2041,12 @@ async def test_put_canvas_lock_busy_returns_503(
     _patch_freezone_project(monkeypatch, tmp_path)
 
     def fake_save_canvas(*_args, **_kwargs):
-        raise freezone_routes.CanvasLockBusy("default")
+        raise CanvasLockBusy("default")
 
-    monkeypatch.setattr(freezone_routes.canvas_store, "save_canvas", fake_save_canvas)
+    monkeypatch.setattr(canvas_store, "save_canvas", fake_save_canvas)
 
-    with pytest.raises(freezone_routes.HTTPException) as exc:
-        await freezone_routes.put_canvas(
+    with pytest.raises(HTTPException) as exc:
+        await freezone_document_routes.put_canvas(
             project="proj_freezone",
             canvas_id="default",
             body=CanvasPayload(nodes=[], edges=[]),
@@ -2157,8 +2158,8 @@ async def test_put_canvas_rejects_stale_base_revision(
         encoding="utf-8",
     )
 
-    with pytest.raises(freezone_routes.HTTPException) as exc:
-        await freezone_routes.put_canvas(
+    with pytest.raises(HTTPException) as exc:
+        await freezone_document_routes.put_canvas(
             project="proj_freezone",
             canvas_id="default",
             body=CanvasPayload(

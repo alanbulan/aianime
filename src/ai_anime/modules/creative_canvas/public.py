@@ -40,6 +40,20 @@ from ai_anime.modules.creative_canvas.application.canvas_events import (
     CreativeCanvasEventRecorder,
     RecordCreativeCanvasEventCommand,
 )
+from ai_anime.modules.creative_canvas.application.canvas_writes import (
+    CreativeCanvasDocumentBaseRevisionRequired,
+    CreativeCanvasDocumentCommands,
+    CreativeCanvasDocumentHistoryNotFound,
+    CreativeCanvasDocumentIdempotencyConflict,
+    CreativeCanvasDocumentRevisionConflict,
+    CreativeCanvasDocumentStorageFailed,
+    CreativeCanvasDocumentWriteError,
+    DangerousCreativeCanvasDocumentOverwrite,
+    DeleteCreativeCanvasDocumentCommand,
+    InvalidCreativeCanvasDocumentHistoryId,
+    RestoreCreativeCanvasDocumentCommand,
+    SaveCreativeCanvasDocumentCommand,
+)
 from ai_anime.modules.creative_canvas.application.generation_catalog import (
     GenerationCatalogQueries,
 )
@@ -159,6 +173,7 @@ from ai_anime.modules.creative_canvas.domain import (
     get_video_camera_templates,
     is_preset_managed_canvas_node,
     merge_restored_preset_canvas,
+    prepare_creative_canvas_payload_for_write,
     normalize_video_aspect_ratio,
     normalize_video_resolution,
     resolve_image_template_aspect_ratio,
@@ -192,6 +207,14 @@ def creative_canvas_document_queries() -> CreativeCanvasDocumentQueries:
     return build()
 
 
+def creative_canvas_document_commands() -> CreativeCanvasDocumentCommands:
+    from ai_anime.modules.creative_canvas.composition import (
+        creative_canvas_document_commands as build,
+    )
+
+    return build()
+
+
 def creative_canvas_event_recorder() -> CreativeCanvasEventRecorder:
     from ai_anime.modules.creative_canvas.composition import (
         creative_canvas_event_recorder as build,
@@ -219,6 +242,14 @@ def record_creative_canvas_event(
             payload=payload,
         )
     )
+
+
+def translate_creative_canvas_document_write_error(exc: Exception) -> Exception:
+    from ai_anime.modules.creative_canvas.infrastructure.canvas_writes import (
+        translate_canvas_store_error,
+    )
+
+    return translate_canvas_store_error(exc)
 
 
 def generation_catalog_queries() -> GenerationCatalogQueries:
@@ -357,8 +388,15 @@ __all__ = [
     "CreativeCanvasBootstrapResult",
     "CreativeCanvasBootstrapUseCases",
     "CreativeCanvasDocumentBusy",
+    "CreativeCanvasDocumentBaseRevisionRequired",
+    "CreativeCanvasDocumentCommands",
     "CreativeCanvasDocumentCorrupt",
+    "CreativeCanvasDocumentHistoryNotFound",
+    "CreativeCanvasDocumentIdempotencyConflict",
     "CreativeCanvasDocumentQueries",
+    "CreativeCanvasDocumentRevisionConflict",
+    "CreativeCanvasDocumentStorageFailed",
+    "CreativeCanvasDocumentWriteError",
     "CreativeCanvasEventActor",
     "CreativeCanvasEventRecorder",
     "CreativeCanvasImageToThreeGsResult",
@@ -403,10 +441,13 @@ __all__ = [
     "GetCreativeCanvasDocumentQuery",
     "GetCreativeCanvasAudioVoiceQuery",
     "DetectCreativeCanvasMarkCommand",
+    "DangerousCreativeCanvasDocumentOverwrite",
+    "DeleteCreativeCanvasDocumentCommand",
     "InvalidCreativeCanvasPngScreenshot",
     "InvalidCreativeCanvasAudioGenerationRequest",
     "InvalidCreativeCanvasAudioLibraryRequest",
     "InvalidCreativeCanvasDocumentQuery",
+    "InvalidCreativeCanvasDocumentHistoryId",
     "InvalidCreativeCanvasImageToThreeGsRequest",
     "InvalidCreativeCanvasImageEditingRequest",
     "InvalidCreativeCanvasImageGenerationRequest",
@@ -426,7 +467,9 @@ __all__ = [
     "ListCreativeCanvasGenerationHistoryQuery",
     "ListCreativeCanvasNodeGenerationHistoryQuery",
     "RecordCreativeCanvasEventCommand",
+    "RestoreCreativeCanvasDocumentCommand",
     "SaveCreativeCanvasScreenshotCommand",
+    "SaveCreativeCanvasDocumentCommand",
     "StoreCreativeCanvasUploadCommand",
     "StartCreativeCanvasMusicGenerationCommand",
     "StartCreativeCanvasSpeechGenerationCommand",
@@ -463,6 +506,7 @@ __all__ = [
     "creative_canvas_audio_generation_use_cases",
     "creative_canvas_audio_library_use_cases",
     "creative_canvas_bootstrap_use_cases",
+    "creative_canvas_document_commands",
     "creative_canvas_document_queries",
     "creative_canvas_event_recorder",
     "creative_canvas_mark_detection_use_cases",
@@ -484,6 +528,7 @@ __all__ = [
     "is_seedance2_video_backend",
     "is_preset_managed_canvas_node",
     "merge_restored_preset_canvas",
+    "prepare_creative_canvas_payload_for_write",
     "normalize_video_aspect_ratio",
     "normalize_video_resolution",
     "resolve_original_image_aspect_ratio",
@@ -493,6 +538,7 @@ __all__ = [
     "summarize_omni_reference_counts",
     "stamp_canvas_mainline_context_project_id",
     "sync_frame_context_reference_edges",
+    "translate_creative_canvas_document_write_error",
     "validate_omni_reference_limits",
     "validate_video_composition_media_item_count",
     "validate_video_composition_source_range",

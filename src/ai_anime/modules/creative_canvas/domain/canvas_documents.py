@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Mapping
+from typing import Any
 
 
 def first_text_value(source: dict, keys: tuple[str, ...]) -> str:
@@ -377,11 +379,92 @@ def stamp_canvas_mainline_context_project_id(payload: dict, project_id: str) -> 
             stamp_contexts(data.get("mainline_context"))
 
 
+def prepare_creative_canvas_payload_for_write(
+    *,
+    project_id: str,
+    canvas_id: str,
+    incoming: Mapping[str, Any],
+    existing: Mapping[str, Any] | None,
+    actor_id: str,
+    updated_at: str,
+) -> dict[str, Any]:
+    payload = dict(incoming)
+    payload.setdefault("nodes", [])
+    payload.setdefault("edges", [])
+    payload.setdefault("viewport", None)
+    if "metadata" not in payload:
+        payload["metadata"] = None
+
+    existing_metadata = existing.get("metadata") if existing is not None else None
+    incoming_metadata = payload.get("metadata")
+    if isinstance(existing_metadata, dict) and isinstance(incoming_metadata, dict):
+        payload["metadata"] = {**existing_metadata, **incoming_metadata}
+    elif isinstance(existing_metadata, dict) and incoming_metadata is None:
+        payload["metadata"] = existing_metadata
+
+    sync_frame_context_reference_edges(payload)
+    current_revision = existing.get("revision") if existing is not None else None
+    if not isinstance(current_revision, int):
+        current_revision = None
+
+    raw_scope = payload.get("canvas_scope")
+    metadata = payload.get("metadata")
+    preset = metadata.get("preset") if isinstance(metadata, dict) else None
+    preset_scope = preset.get("scope") if isinstance(preset, dict) else None
+    canvas_scope = (
+        raw_scope
+        if raw_scope in {"default", "episode", "beat", "asset"}
+        else (
+            preset_scope
+            if preset_scope in {"episode", "beat", "asset"}
+            else "default"
+        )
+    )
+    existing_payload = existing or {}
+    payload["schema_version"] = 2
+    payload["canvas_id"] = canvas_id
+    payload["project_id"] = project_id
+    payload["canvas_scope"] = canvas_scope
+    payload["owner_principal_type"] = (
+        payload.get("owner_principal_type")
+        or existing_payload.get("owner_principal_type")
+        or "user"
+    )
+    payload["owner_principal_id"] = (
+        payload.get("owner_principal_id")
+        or existing_payload.get("owner_principal_id")
+        or actor_id
+    )
+    payload["access_model"] = (
+        payload.get("access_model")
+        or existing_payload.get("access_model")
+        or "project_role"
+    )
+    payload["min_project_role"] = (
+        payload.get("min_project_role")
+        or existing_payload.get("min_project_role")
+        or "editor"
+    )
+    payload["created_by"] = (
+        existing_payload.get("created_by") or payload.get("created_by") or actor_id
+    )
+    payload["created_at"] = (
+        existing_payload.get("created_at") or payload.get("created_at") or updated_at
+    )
+    payload["updated_by"] = actor_id
+    payload["updated_at"] = updated_at
+    payload["revision"] = current_revision + 1 if current_revision is not None else 1
+    payload.pop("base_revision", None)
+    stamp_canvas_mainline_context_project_id(payload, project_id)
+    return payload
+
+
 __all__ = [
     "detected_reference_ids_from_beat_context_data",
     "first_text_value",
     "is_preset_managed_canvas_node",
     "merge_restored_preset_canvas",
+    "prepare_creative_canvas_payload_for_write",
     "stamp_canvas_mainline_context_project_id",
     "sync_frame_context_reference_edges",
 ]

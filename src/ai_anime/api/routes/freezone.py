@@ -20,6 +20,7 @@ from urllib.parse import quote, unquote, urlencode, urlsplit
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 
 from ai_anime.api.auth import get_api_user
+from ai_anime.api.canvas_errors import raise_canvas_document_http_error
 from ai_anime.api.deps import (
     make_cognee_store_for_context,
     make_sqlite_store,
@@ -27,7 +28,6 @@ from ai_anime.api.deps import (
     make_static_url_for_context,
 )
 from ai_anime.api.schemas import (
-    CanvasPayload,
     CreateIdentityAssetRequest,
     FreezoneFrameFromContextRequest,
     FreezoneImageCameraConfig,
@@ -60,9 +60,9 @@ from ai_anime.modules.creative_canvas.public import (
     first_text_value,
     is_preset_managed_canvas_node,
     merge_restored_preset_canvas,
+    prepare_creative_canvas_payload_for_write,
     record_creative_canvas_event,
-    stamp_canvas_mainline_context_project_id,
-    sync_frame_context_reference_edges,
+    translate_creative_canvas_document_write_error,
 )
 from ai_anime.modules.production.public import (
     production_generation_context_use_cases,
@@ -4227,131 +4227,6 @@ def _canvas_state_project_dir(ctx: ProjectContext | None, output_project_dir: Pa
     return output_project_dir
 
 
-def _canvas_scope_from_payload(canvas_id: str, payload: dict) -> str:
-    raw_scope = payload.get("canvas_scope")
-    if raw_scope in {"default", "episode", "beat", "asset"}:
-        return raw_scope
-    preset = (payload.get("metadata") or {}).get("preset") if isinstance(payload, dict) else None
-    preset_scope = preset.get("scope") if isinstance(preset, dict) else None
-    if preset_scope in {"episode", "beat", "asset"}:
-        return preset_scope
-    return "default"
-
-
-def _merge_canvas_metadata(existing: dict | None, incoming: dict) -> None:
-    existing_meta = existing.get("metadata") if isinstance(existing, dict) else None
-    incoming_meta = incoming.get("metadata")
-    if isinstance(existing_meta, dict) and isinstance(incoming_meta, dict):
-        incoming["metadata"] = {**existing_meta, **incoming_meta}
-    elif isinstance(existing_meta, dict) and incoming_meta is None:
-        incoming["metadata"] = existing_meta
-
-
-def _prepare_canvas_payload_for_write(
-    *,
-    project_id: str,
-    canvas_id: str,
-    body: CanvasPayload | None,
-    raw_payload: dict | None = None,
-    existing: dict | None = None,
-    user: dict,
-) -> dict:
-    now = canvas_store.utc_now_iso()
-    actor_id = canvas_actor_id(user)
-    payload = (
-        body.model_dump(
-            exclude={"base_revision", "client_save_id", "allow_empty_overwrite"},
-            exclude_none=True,
-        )
-        if body is not None
-        else dict(raw_payload or {})
-    )
-    payload.setdefault("nodes", [])
-    payload.setdefault("edges", [])
-    payload.setdefault("viewport", None)
-    if "metadata" not in payload:
-        payload["metadata"] = None
-    _merge_canvas_metadata(existing, payload)
-    sync_frame_context_reference_edges(payload)
-
-    current_revision = existing.get("revision") if isinstance(existing, dict) else None
-    if not isinstance(current_revision, int):
-        current_revision = None
-    payload["schema_version"] = 2
-    payload["canvas_id"] = canvas_id
-    payload["project_id"] = project_id
-    payload["canvas_scope"] = _canvas_scope_from_payload(canvas_id, payload)
-    payload["owner_principal_type"] = (
-        payload.get("owner_principal_type")
-        or (existing or {}).get("owner_principal_type")
-        or "user"
-    )
-    payload["owner_principal_id"] = (
-        payload.get("owner_principal_id") or (existing or {}).get("owner_principal_id") or actor_id
-    )
-    payload["access_model"] = (
-        payload.get("access_model") or (existing or {}).get("access_model") or "project_role"
-    )
-    payload["min_project_role"] = (
-        payload.get("min_project_role") or (existing or {}).get("min_project_role") or "editor"
-    )
-    payload["created_by"] = (
-        (existing or {}).get("created_by") or payload.get("created_by") or actor_id
-    )
-    payload["created_at"] = (existing or {}).get("created_at") or payload.get("created_at") or now
-    payload["updated_by"] = actor_id
-    payload["updated_at"] = now
-    payload["revision"] = (current_revision + 1) if current_revision is not None else 1
-    payload.pop("base_revision", None)
-    return payload
-
-
-def _raise_canvas_store_http(exc: Exception) -> None:
-    if isinstance(exc, canvas_store.CanvasCorruptError):
-        raise HTTPException(500, str(exc)) from exc
-    if isinstance(exc, canvas_store.CanvasBaseRevisionRequired):
-        raise HTTPException(409, str(exc)) from exc
-    if isinstance(exc, canvas_store.CanvasRevisionConflict):
-        raise HTTPException(
-            409,
-            {
-                "code": "canvas_revision_conflict",
-                "error": "canvas revision conflict",
-                "current_revision": exc.current_revision,
-                "base_revision": exc.base_revision,
-            },
-        ) from exc
-    if isinstance(exc, canvas_store.CanvasIdempotencyConflict):
-        raise HTTPException(
-            409,
-            {
-                "code": "canvas_idempotency_conflict",
-                "client_save_id": exc.client_save_id,
-            },
-        ) from exc
-    if isinstance(exc, canvas_store.CanvasInvalidHistoryId):
-        raise HTTPException(400, str(exc)) from exc
-    if isinstance(exc, canvas_store.CanvasHistoryNotFound):
-        raise HTTPException(404, str(exc)) from exc
-    if isinstance(exc, canvas_store.DangerousEmptyCanvasOverwrite):
-        raise HTTPException(
-            400,
-            {
-                "code": "dangerous_empty_canvas_overwrite",
-                "old_nodes": exc.old_nodes,
-                "new_nodes": exc.new_nodes,
-                "save_source": exc.save_source,
-            },
-        ) from exc
-    if isinstance(exc, CanvasLockBusy):
-        raise HTTPException(
-            503,
-            {"code": "canvas_lock_busy", "canvas_id": exc.canvas_id},
-            headers={"Retry-After": "1"},
-        ) from exc
-    raise exc
-
-
 def _node_projection_key(node: dict) -> str | None:
     data = node.get("data") if isinstance(node.get("data"), dict) else {}
     value = data.get("projection_key")
@@ -5262,16 +5137,14 @@ async def create_canvas_from_preset(
             else payload
         )
         _stamp_preset_facts_signature(raw_payload, incoming_facts_signature)
-        prepared = _prepare_canvas_payload_for_write(
+        return prepare_creative_canvas_payload_for_write(
             project_id=project,
             canvas_id=canvas_id,
-            body=None,
-            raw_payload=raw_payload,
+            incoming=raw_payload,
             existing=existing_payload,
-            user=user,
+            actor_id=canvas_actor_id(user),
+            updated_at=canvas_store.utc_now_iso(),
         )
-        stamp_canvas_mainline_context_project_id(prepared, project)
-        return prepared
 
     # Plan §10 — replays of the same preset request (network retry, double
     # click) must not bump revision twice or duplicate history entries. Mint
@@ -5344,9 +5217,13 @@ async def create_canvas_from_preset(
                 "error": str(exc),
             },
         )
-        _raise_canvas_store_http(exc)
+        raise_canvas_document_http_error(
+            translate_creative_canvas_document_write_error(exc)
+        )
     except (canvas_store.CanvasStoreError, CanvasLockBusy) as exc:
-        _raise_canvas_store_http(exc)
+        raise_canvas_document_http_error(
+            translate_creative_canvas_document_write_error(exc)
+        )
     payload = saved_canvas.payload
     record_creative_canvas_event(
         project_dir=canvas_project_dir,
@@ -5472,16 +5349,14 @@ async def project_canvas_from_preset(
             body=body,
             facts_signature=incoming_facts_signature,
         )
-        prepared = _prepare_canvas_payload_for_write(
+        return prepare_creative_canvas_payload_for_write(
             project_id=project,
             canvas_id=canvas_id,
-            body=None,
-            raw_payload=raw_payload,
+            incoming=raw_payload,
             existing=existing_payload,
-            user=user,
+            actor_id=canvas_actor_id(user),
+            updated_at=canvas_store.utc_now_iso(),
         )
-        stamp_canvas_mainline_context_project_id(prepared, project)
-        return prepared
 
     projection_stable_hash = canvas_store.canvas_request_hash(
         {
@@ -5532,9 +5407,13 @@ async def project_canvas_from_preset(
                 "error": str(exc),
             },
         )
-        _raise_canvas_store_http(exc)
+        raise_canvas_document_http_error(
+            translate_creative_canvas_document_write_error(exc)
+        )
     except (canvas_store.CanvasStoreError, CanvasLockBusy) as exc:
-        _raise_canvas_store_http(exc)
+        raise_canvas_document_http_error(
+            translate_creative_canvas_document_write_error(exc)
+        )
 
     response_cache = (
         saved_canvas.response_cache if isinstance(saved_canvas.response_cache, dict) else {}
@@ -5619,16 +5498,14 @@ async def remove_canvas_projection(
             existing_payload=existing_payload,
             projection_key=body.projection_key,
         )
-        prepared = _prepare_canvas_payload_for_write(
+        return prepare_creative_canvas_payload_for_write(
             project_id=project,
             canvas_id=canvas_id,
-            body=None,
-            raw_payload=raw_payload,
+            incoming=raw_payload,
             existing=existing_payload,
-            user=user,
+            actor_id=canvas_actor_id(user),
+            updated_at=canvas_store.utc_now_iso(),
         )
-        stamp_canvas_mainline_context_project_id(prepared, project)
-        return prepared
 
     remove_stable_hash = canvas_store.canvas_request_hash(
         {
@@ -5668,9 +5545,13 @@ async def remove_canvas_projection(
                 "error": str(exc),
             },
         )
-        _raise_canvas_store_http(exc)
+        raise_canvas_document_http_error(
+            translate_creative_canvas_document_write_error(exc)
+        )
     except (canvas_store.CanvasStoreError, CanvasLockBusy) as exc:
-        _raise_canvas_store_http(exc)
+        raise_canvas_document_http_error(
+            translate_creative_canvas_document_write_error(exc)
+        )
 
     payload = saved_canvas.payload
     response_cache = (
@@ -5811,185 +5692,6 @@ async def projection_status(
             "projections": statuses,
         },
     }
-
-
-@router.post(
-    "/projects/{project}/freezone/canvases/{canvas_id}/restore",
-    tags=[TAG_FREEZONE_CANVAS],
-)
-async def restore_canvas_history(
-    project: str,
-    canvas_id: str,
-    body: dict = Body(...),
-    user: dict = Depends(get_api_user),
-):
-    if not CANVAS_ID_RE.match(canvas_id):
-        raise HTTPException(400, "invalid canvas_id")
-    history_id = str(body.get("history_id") or "").strip()
-    base_revision = body.get("base_revision")
-    ctx, _username, _project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project, user
-    )
-    canvas_project_dir = _canvas_state_project_dir(ctx, project_dir)
-
-    def build_payload(existing: dict | None, history_payload: dict) -> dict:
-        prepared = _prepare_canvas_payload_for_write(
-            project_id=project,
-            canvas_id=canvas_id,
-            body=None,
-            raw_payload=history_payload,
-            existing=existing,
-            user=user,
-        )
-        stamp_canvas_mainline_context_project_id(prepared, project)
-        return prepared
-
-    try:
-        restored_canvas = canvas_store.restore_canvas_version(
-            canvas_project_dir,
-            canvas_id,
-            history_id=history_id,
-            base_revision=base_revision,
-            build_payload=build_payload,
-        )
-    except (canvas_store.CanvasStoreError, CanvasLockBusy) as exc:
-        _raise_canvas_store_http(exc)
-    payload = restored_canvas.payload
-    restored_from_revision = restored_canvas.history_payload.get("revision")
-    record_creative_canvas_event(
-        project_dir=canvas_project_dir,
-        project_id=project,
-        canvas_id=canvas_id,
-        event_type="canvas.restored",
-        actor=canvas_event_actor(user),
-        payload={
-            "revision": payload.get("revision"),
-            "base_revision": base_revision,
-            "restored_from_revision": restored_from_revision,
-            "history_id": history_id,
-            "node_count": len(payload.get("nodes") or []),
-            "edge_count": len(payload.get("edges") or []),
-            "backup_path": canvas_store.relative_project_path(
-                canvas_project_dir,
-                restored_canvas.backup_path,
-            ),
-        },
-    )
-    return {
-        "ok": True,
-        "data": {
-            "restored": True,
-            "revision": payload["revision"],
-            "restored_from_revision": restored_from_revision,
-        },
-    }
-
-
-@router.put("/projects/{project}/freezone/canvases/{canvas_id}", tags=[TAG_FREEZONE_CANVAS])
-async def put_canvas(
-    project: str,
-    canvas_id: str,
-    body: CanvasPayload,
-    user: dict = Depends(get_api_user),
-):
-    if not CANVAS_ID_RE.match(canvas_id):
-        raise HTTPException(400, "invalid canvas_id")
-    ctx, _username, _project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project, user
-    )
-    canvas_project_dir = _canvas_state_project_dir(ctx, project_dir)
-
-    def build_payload(existing: dict | None) -> dict:
-        prepared = _prepare_canvas_payload_for_write(
-            project_id=project,
-            canvas_id=canvas_id,
-            body=body,
-            existing=existing,
-            user=user,
-        )
-        stamp_canvas_mainline_context_project_id(prepared, project)
-        return prepared
-
-    try:
-        saved_canvas = canvas_store.save_canvas(
-            canvas_project_dir,
-            canvas_id,
-            base_revision=body.base_revision,
-            build_payload=build_payload,
-            client_save_id=body.client_save_id,
-            request_hash=canvas_store.canvas_request_hash(
-                body.model_dump(
-                    exclude={"client_save_id"},
-                    exclude_none=True,
-                )
-            ),
-            save_source=body.save_source,
-            allow_empty_overwrite=body.allow_empty_overwrite,
-        )
-    except (canvas_store.CanvasStoreError, CanvasLockBusy) as exc:
-        _raise_canvas_store_http(exc)
-    payload = saved_canvas.payload
-    if not saved_canvas.idempotent:
-        record_creative_canvas_event(
-            project_dir=canvas_project_dir,
-            project_id=project,
-            canvas_id=canvas_id,
-            event_type="canvas.saved",
-            actor=canvas_event_actor(user),
-            payload={
-                "revision": payload.get("revision"),
-                "base_revision": body.base_revision,
-                "node_count": len(payload.get("nodes") or []),
-                "edge_count": len(payload.get("edges") or []),
-                "client_save_id": body.client_save_id,
-                "save_source": body.save_source,
-                "backup_path": canvas_store.relative_project_path(
-                    canvas_project_dir,
-                    saved_canvas.backup_path,
-                ),
-            },
-        )
-    response_data = saved_canvas.response_cache or {
-        "saved": True,
-        "revision": payload.get("revision"),
-        "updated_at": payload.get("updated_at"),
-        "client_save_id": body.client_save_id,
-    }
-    return {"ok": True, "data": response_data}
-
-
-@router.delete("/projects/{project}/freezone/canvases/{canvas_id}", tags=[TAG_FREEZONE_CANVAS])
-async def delete_canvas(project: str, canvas_id: str, user: dict = Depends(get_api_user)):
-    if not CANVAS_ID_RE.match(canvas_id):
-        raise HTTPException(400, "invalid canvas_id")
-    ctx, _username, _project_name, project_dir, _output_dir = await _resolve_freezone_project(
-        project, user
-    )
-    canvas_project_dir = _canvas_state_project_dir(ctx, project_dir)
-    try:
-        deleted_canvas = canvas_store.soft_delete_canvas(
-            canvas_project_dir,
-            canvas_id,
-            deleted_by=canvas_actor_id(user),
-        )
-    except (canvas_store.CanvasStoreError, CanvasLockBusy) as exc:
-        _raise_canvas_store_http(exc)
-    existing = deleted_canvas.existing
-    record_creative_canvas_event(
-        project_dir=canvas_project_dir,
-        project_id=project,
-        canvas_id=canvas_id,
-        event_type="canvas.deleted",
-        actor=canvas_event_actor(user),
-        payload={
-            "revision": existing.get("revision") if isinstance(existing, dict) else None,
-            "deleted_path": canvas_store.relative_project_path(
-                canvas_project_dir,
-                deleted_canvas.deleted_path,
-            ),
-        },
-    )
-    return {"ok": True, "data": {"deleted": True}}
 
 
 # ============================================================
