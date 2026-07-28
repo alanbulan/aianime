@@ -5108,6 +5108,13 @@ def test_production_grid_pool_persistence_models_have_one_owner() -> None:
     assert "ai_anime.modules.production.public" in _imports(pool_indexer)
 
 
+def test_legacy_models_do_not_keep_unused_graph_types() -> None:
+    source = (PACKAGE_ROOT / "models.py").read_text(encoding="utf-8")
+
+    for model_name in ("NodeType", "RelationType", "EpisodeNode", "GenreStyle"):
+        assert f"class {model_name}(" not in source
+
+
 def test_production_video_backend_catalog_has_one_owner() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_video.py"
     video_schemas = PACKAGE_ROOT / "api" / "production_video_schemas.py"

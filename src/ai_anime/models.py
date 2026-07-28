@@ -6,7 +6,6 @@
 import json
 import re
 from datetime import datetime
-from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -616,87 +615,6 @@ class StyleConfig(BaseModel):
             animation_subtype=data.get("animation_subtype", ""),
             is_preset=True,
         )
-
-
-# =============================================================================
-# 节点类型枚举
-# =============================================================================
-
-
-class NodeType(str, Enum):
-    """AI anime 节点类型。"""
-
-    # 核心实体
-    CHARACTER = "character"
-    LOCATION = "location"
-    PROP = "prop"
-    EVENT = "event"
-
-    # 小说结构
-    CHAPTER = "chapter"
-    EPISODE = "episode"
-
-    # 视频生成专用
-    CHARACTER_ASSET = "character_asset"
-
-    # 约束
-    WORLD_RULE = "world_rule"
-    GENRE_STYLE = "genre_style"
-
-
-class RelationType(str, Enum):
-    """关系类型。"""
-
-    # 角色关系
-    FAMILY_OF = "FAMILY_OF"
-    LOVER_OF = "LOVER_OF"
-    FRIEND_OF = "FRIEND_OF"
-    ENEMY_OF = "ENEMY_OF"
-    MENTOR_OF = "MENTOR_OF"
-    SUBORDINATE_OF = "SUBORDINATE_OF"
-
-    # 事件关系
-    PARTICIPATES_IN = "PARTICIPATES_IN"
-    CAUSES = "CAUSES"
-    HAPPENS_AT = "HAPPENS_AT"
-
-    # 结构关系
-    BELONGS_TO_CHAPTER = "BELONGS_TO_CHAPTER"
-    BELONGS_TO_EPISODE = "BELONGS_TO_EPISODE"
-
-    # 资产关系
-    HAS_ASSET = "HAS_ASSET"
-    REFERENCED_IN = "REFERENCED_IN"
-
-
-# =============================================================================
-# 剧集相关
-# =============================================================================
-
-
-class EpisodeNode(BaseModel):
-    """视频集节点。"""
-
-    number: int = Field(description="集数")
-    title: str = Field(default="", description="标题")
-
-    # 内容范围
-    chapter_start: int = Field(default=1, description="起始章节")
-    chapter_end: int = Field(default=1, description="结束章节")
-
-    # 核心内容
-    summary: str = Field(default="", description="内容摘要")
-    key_events: list[str] = Field(default_factory=list, description="关键事件")
-    characters: list[str] = Field(default_factory=list, description="出场角色")
-
-    # 悬念
-    cliffhanger: str = Field(default="", description="结尾悬念")
-
-    # 生成状态
-    script_generated: bool = Field(default=False)
-    images_generated: bool = Field(default=False)
-    audio_generated: bool = Field(default=False)
-    video_generated: bool = Field(default=False)
 
 
 class NarrationScript(BaseModel):
@@ -1469,35 +1387,3 @@ class NovelProp(BaseModel):
     owner: str = Field(default="", description="所属角色名")
     notes: str = Field(default="")
     updated_at: str = Field(default="", description="道具资产最后一次内容变化时间 ISO 字符串")
-
-
-# =============================================================================
-# 首帧生成上下文
-# =============================================================================
-
-
-# =============================================================================
-# 类型风格
-# =============================================================================
-
-
-class GenreStyle(BaseModel):
-    """类型风格定义。"""
-
-    genre: str = Field(description="类型，如'言情', '玄幻', '悬疑', '都市'")
-
-    # 视觉风格（默认：写实古装剧风格）
-    art_style: str = Field(
-        default="写实古装剧风格", description="画风，如'写实古装剧风格', '少女漫画风', '热血漫画风'"
-    )
-    color_palette: list[str] = Field(default_factory=list, description="主色调列表")
-
-    # 角色外貌默认风格
-    default_appearance_style: str = Field(default="精致写实")
-
-    # 场景风格
-    background_style: str = Field(default="古典宫廷")
-
-    # 叙事风格
-    narration_tone: str = Field(default="温柔抒情", description="解说语气")
-    pacing: str = Field(default="舒缓细腻", description="节奏")
