@@ -199,6 +199,18 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
                 "VideoPoolSelectRequest",
             ),
         ),
+        (
+            "production_render_schemas.py",
+            "routes/production_render.py",
+            (
+                "BeatsRegenerateRequest",
+                "GridRegenerateRequest",
+                "PlanEntryOut",
+                "RenderPlanExecuteRequest",
+                "RenderPlanRequest",
+                "SketchRegenerateRequest",
+            ),
+        ),
     )
 
     for schema_path, route_path, model_names in cases:

@@ -1940,6 +1940,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百三十四批已将 Production Pool route 独占的 `PoolSelectRequest`、`VideoPoolSelectRequest`、`GridCutRequest` 与 `GridSketchPreviewRequest` 从后端公共 `api/schemas.py` 迁入唯一 `api/production_pool_schemas.py` 入站适配器 schema，Production Pool route 及 `test_api_grid_upload_prompt.py`、`test_video_pool_static_urls.py` 的直接模型调用同步切换新入口，旧巨石定义直接删除，不保留 re-export facade、旧别名或重复模型。pool 选择与 force 默认值、grid 类型枚举、可选 mode/beat numbers、行列正整数约束及预览 beat 列表最小长度保持不变；统一 schema 所有权门禁加入 Production Pool 案例。Grid 上传/映射/切割与视频池静态 URL 回归 10 项及完整后端分层门禁 141 项通过，合计 151 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
+第四百三十五批已将 Production Render route 独占的 `GridRegenerateRequest`、`BeatsRegenerateRequest`、`SketchRegenerateRequest`、`RenderPlanRequest`、嵌套 `PlanEntryOut` 与 `RenderPlanExecuteRequest` 从后端公共 `api/schemas.py` 迁入唯一 `api/production_render_schemas.py` 入站适配器 schema，Production Render route 一次性切换全部模型并删除旧巨石定义，不保留 re-export facade、旧别名或重复模型。模型/模式默认值、分组与 padding 选项、beat 列表最小长度、策略枚举、aspect 描述、plan hash/fingerprint 及条目默认工厂保持不变；统一 schema 所有权门禁加入 Production Render 案例。再生成/Render Plan 映射与错误包络、宽高比规划、旧批处理边界回归 14 项及完整后端分层门禁 141 项通过，合计 155 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
