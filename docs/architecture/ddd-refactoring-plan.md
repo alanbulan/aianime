@@ -1922,6 +1922,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百二十五批已确认原名通用的 `OkResponse` 实际仅由 Release Notifications route 使用，并将其从后端公共 `api/schemas.py` 迁入唯一 `api/release_notifications_schemas.py` 出站 schema；release route 切换新入口并删除旧巨石定义，不保留 re-export facade、旧别名或重复模型。`ok: true` 默认值、任意 `data` 包络及 OpenAPI 组件类名保持不变；统一 schema 所有权门禁加入 Release Notifications 案例，锁定新所有者、route 导入和旧巨石零定义。完整 release feed 12 项与完整后端分层门禁 141 项通过，修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
+第四百二十六批已将 Styles route 独占的 `StylePreviewRequest` 从后端公共 `api/schemas.py` 迁入唯一 `api/styles_schemas.py` 入站适配器 schema，Styles route 切换新入口并删除旧巨石定义，不保留 re-export facade、旧别名或重复模型。可选 project、默认预览 prompt 与默认 `nanobanana` 模型保持不变；统一 schema 所有权门禁加入 Styles 案例，锁定新所有者、route 导入和旧巨石零定义。完整 Styles API 回归 17 项与完整后端分层门禁 141 项通过，修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

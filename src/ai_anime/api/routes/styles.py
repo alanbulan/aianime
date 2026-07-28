@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import ProjectResolution, resolve_project_scope
-from ai_anime.api.schemas import StylePreviewRequest
+from ai_anime.api.styles_schemas import StylePreviewRequest
 
 logger = logging.getLogger("ai_anime.api.styles")
 

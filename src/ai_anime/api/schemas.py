@@ -1845,10 +1845,3 @@ class RenderPlanExecuteRequest(BaseModel):
     beat_indices: list[int] = Field(..., min_length=1)
     image_generation_selection: Optional[str] = None
     sketch_aspect_padding: Optional[bool] = None
-# ── 风格预览 ─────────────────────────────────────────────────────────────────
-
-
-class StylePreviewRequest(BaseModel):
-    project: Optional[str] = None
-    prompt: str = "A beautiful woman standing in a garden"
-    model: str = "nanobanana"
