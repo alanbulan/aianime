@@ -95,6 +95,10 @@ class ChatHistory(Protocol):
     ) -> None: ...
 
 
+class JsonRenderErrors(Protocol):
+    def record(self, error: ValueError, body: str) -> None: ...
+
+
 class ChatRunLocks(Protocol):
     def acquire(self, username: str, project: str) -> str: ...
 

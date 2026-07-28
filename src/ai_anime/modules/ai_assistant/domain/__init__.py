@@ -14,6 +14,12 @@ from ai_anime.modules.ai_assistant.domain.chat_text import (
     text_with_attachment_context,
     tool_display_payload,
 )
+from ai_anime.modules.ai_assistant.domain.chat_presentation import (
+    dedupe_tool_ui_specs,
+    filter_tool_ui_specs_for_prompt,
+    json_loads_with_trailing_repair,
+    redact_local_filesystem_paths,
+)
 from ai_anime.modules.ai_assistant.domain.mcp_configuration import (
     codex_mcp_config_overrides,
 )
@@ -29,10 +35,14 @@ __all__ = [
     "codex_mcp_config_overrides",
     "completion_text_or_existing",
     "compose_agent_prompt",
+    "dedupe_tool_ui_specs",
+    "filter_tool_ui_specs_for_prompt",
     "is_hidden_chat_tool_event",
+    "json_loads_with_trailing_repair",
     "merge_stream_text",
     "message_content",
     "reingest_confirmation_reply",
+    "redact_local_filesystem_paths",
     "script_creation_guidance_prompt",
     "should_emit_final_text",
     "should_prewarm_scope",

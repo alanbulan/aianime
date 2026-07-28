@@ -417,6 +417,73 @@ def test_ai_assistant_owns_chat_text_projection_rules() -> None:
     assert "strip_replayed_chat_response" in public_source
 
 
+def test_ai_assistant_owns_chat_presentation_rules() -> None:
+    module = PACKAGE_ROOT / "modules" / "ai_assistant"
+    domain = module / "domain" / "chat_presentation.py"
+    application = module / "application" / "chat_presentation.py"
+    ports = module / "application" / "ports.py"
+    adapter = module / "infrastructure" / "json_render_errors.py"
+    composition = module / "composition.py"
+    public = module / "public.py"
+    service = PACKAGE_ROOT / "chat" / "service.py"
+    service_tests = REPO_ROOT / "tests" / "test_chat_service_user_agent_scope.py"
+    domain_source = domain.read_text(encoding="utf-8")
+    application_source = application.read_text(encoding="utf-8")
+    ports_source = ports.read_text(encoding="utf-8")
+    adapter_source = adapter.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+    service_source = service.read_text(encoding="utf-8")
+    service_test_source = service_tests.read_text(encoding="utf-8")
+
+    assert not {
+        imported
+        for imported in _imports(domain)
+        if imported == "os"
+        or imported == "sqlite3"
+        or imported == "fastapi"
+        or imported.startswith("ai_anime.chat")
+    }
+    assert "JsonRenderErrors" in ports_source
+    assert "JsonRenderErrors" in application_source
+    assert "FileJsonRenderErrors" in adapter_source
+    assert "JR_ERROR_LOG" in adapter_source
+    assert "_chat_presentation = ChatPresentation(FileJsonRenderErrors())" in (
+        composition_source
+    )
+    for operation in (
+        "append_tool_ui_specs",
+        "extract_tool_ui_specs",
+        "normalize_json_render_reply",
+        "redact_local_filesystem_paths",
+        "dedupe_tool_ui_specs",
+        "filter_tool_ui_specs_for_prompt",
+    ):
+        assert f"def {operation}(" in domain_source
+        assert operation in public_source
+        assert operation in service_source
+    for legacy_implementation in (
+        "def _json_loads_with_trailing_repair(",
+        "def _canonicalize_ui_spec(",
+        "def _log_json_render_error(",
+        "def _normalize_json_render_reply(",
+        "def _redact_local_filesystem_paths(",
+        "def _extract_tool_ui_specs(",
+        "def _append_tool_ui_specs(",
+        "def _split_ui_specs_from_text(",
+        "def _dedupe_tool_ui_specs(",
+        "def _filter_tool_ui_specs_for_prompt(",
+        "_UI_SPEC_BLOCK_RE =",
+        "_UI_SPEC_FENCE_RE =",
+        "_LOCAL_FILESYSTEM_PATH_RE =",
+        "_MERGEABLE_MEDIA_SPEC_TYPES =",
+        "JR_ERROR_LOG",
+    ):
+        assert legacy_implementation not in service_source
+    assert "chat_service._normalize_json_render_reply" not in service_test_source
+    assert "chat_service._append_tool_ui_specs" not in service_test_source
+
+
 def test_ai_assistant_owns_scoped_chat_history() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     scope = module / "domain" / "scope.py"

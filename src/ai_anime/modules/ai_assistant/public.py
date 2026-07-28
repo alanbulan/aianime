@@ -1,5 +1,7 @@
 """Stable application API exposed by AI Assistant."""
 
+from typing import Any
+
 from ai_anime.modules.ai_assistant.application import (
     AgentBackend,
     AgentWorkspace,
@@ -11,10 +13,14 @@ from ai_anime.modules.ai_assistant.application import (
 from ai_anime.modules.ai_assistant.domain import (
     ChatScope,
     completion_text_or_existing,
+    dedupe_tool_ui_specs,
+    filter_tool_ui_specs_for_prompt,
     is_hidden_chat_tool_event,
+    json_loads_with_trailing_repair,
     merge_stream_text,
     message_content,
     reingest_confirmation_reply,
+    redact_local_filesystem_paths,
     script_creation_guidance_prompt,
     should_emit_final_text,
     should_prewarm_scope,
@@ -25,6 +31,24 @@ from ai_anime.modules.ai_assistant.domain import (
     text_with_attachment_context,
     tool_display_payload,
 )
+
+
+def append_tool_ui_specs(content: str, specs: list[dict[str, Any]]) -> str:
+    from ai_anime.modules.ai_assistant.composition import get_chat_presentation
+
+    return get_chat_presentation().append_tool_ui_specs(content, specs)
+
+
+def extract_tool_ui_specs(value: Any) -> list[dict[str, Any]]:
+    from ai_anime.modules.ai_assistant.composition import get_chat_presentation
+
+    return get_chat_presentation().extract_tool_ui_specs(value)
+
+
+def normalize_json_render_reply(content: str) -> str:
+    from ai_anime.modules.ai_assistant.composition import get_chat_presentation
+
+    return get_chat_presentation().normalize_reply(content)
 
 
 def build_agent_prompt_context(username: str, project: str, prompt: str) -> str:
@@ -96,9 +120,13 @@ __all__ = [
     "ChatHistory",
     "ChatRunLocks",
     "ChatScope",
+    "append_tool_ui_specs",
     "build_agent_prompt_context",
     "completion_text_or_existing",
     "create_page_agent_session_token",
+    "dedupe_tool_ui_specs",
+    "extract_tool_ui_specs",
+    "filter_tool_ui_specs_for_prompt",
     "get_agent_backend",
     "get_agent_tool_configuration",
     "get_agent_workspace",
@@ -106,9 +134,12 @@ __all__ = [
     "get_chat_history",
     "get_chat_run_locks",
     "is_hidden_chat_tool_event",
+    "json_loads_with_trailing_repair",
     "merge_stream_text",
     "message_content",
+    "normalize_json_render_reply",
     "reingest_confirmation_reply",
+    "redact_local_filesystem_paths",
     "script_creation_guidance_prompt",
     "should_emit_final_text",
     "should_prewarm_scope",

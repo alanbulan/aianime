@@ -3,6 +3,9 @@
 from ai_anime.modules.ai_assistant.application.agent_backend import (
     AgentBackendService,
 )
+from ai_anime.modules.ai_assistant.application.chat_presentation import (
+    ChatPresentation,
+)
 from ai_anime.modules.ai_assistant.application.ports import (
     AgentBackend,
     AgentBackendRuntime,
@@ -11,6 +14,7 @@ from ai_anime.modules.ai_assistant.application.ports import (
     AgentToolConfiguration,
     ChatHistory,
     ChatRunLocks,
+    JsonRenderErrors,
     UserPreferences,
 )
 from ai_anime.modules.ai_assistant.application.page_agent_sessions import (
@@ -27,7 +31,9 @@ __all__ = [
     "AgentThreadSessions",
     "AgentToolConfiguration",
     "ChatHistory",
+    "ChatPresentation",
     "ChatRunLocks",
+    "JsonRenderErrors",
     "PageAgentSessions",
     "UserPreferences",
 ]
