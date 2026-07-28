@@ -7,7 +7,10 @@ import pytest
 from fastapi import HTTPException
 
 from ai_anime.api.routes.canvas import audio as audio_routes
-from ai_anime.api.schemas import FreezoneAudioMusicRequest, FreezoneAudioSpeechRequest
+from ai_anime.api.canvas_audio_schemas import (
+    FreezoneAudioMusicRequest,
+    FreezoneAudioSpeechRequest,
+)
 from ai_anime.modules.creative_canvas.application.audio_generation import (
     CREATIVE_CANVAS_MUSIC_GENERATION_TASK_TYPE,
     CREATIVE_CANVAS_SPEECH_GENERATION_TASK_TYPE,

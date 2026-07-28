@@ -290,6 +290,15 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
             "routes/canvas/text.py",
             ("FreezoneStoryScriptGenerateRequest", "FreezoneTextTranslateRequest"),
         ),
+        (
+            "canvas_audio_schemas.py",
+            "routes/canvas/audio.py",
+            (
+                "FreezoneAudioMusicRequest",
+                "FreezoneAudioSpeechRequest",
+                "FreezoneAudioVoiceRef",
+            ),
+        ),
     )
 
     for schema_path, route_path, model_names in cases:

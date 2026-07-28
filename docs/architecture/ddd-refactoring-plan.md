@@ -1956,6 +1956,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百四十二批已将 Canvas Text route 独占的 `FreezoneTextTranslateRequest` 与 `FreezoneStoryScriptGenerateRequest` 从后端公共 `api/schemas.py` 迁入唯一 `api/canvas_text_schemas.py` 入站适配器 schema，Text route 与 `test_creative_canvas_text_processing.py` 的直接模型调用同步切换新入口，route 一次性停止导入旧巨石，不保留 re-export facade、旧别名或重复模型。翻译文本、node type 枚举、canvas/node 上下文，故事源文本/URL、默认中文 prompt、默认模型及全部 OpenAPI 字段描述保持不变；统一 schema 所有权门禁加入 Canvas Text 案例。完整 Canvas Text 处理/路由回归展开 13 项及完整后端分层门禁 141 项通过，合计 154 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
+第四百四十三批已将 Canvas Audio route 独占的 `FreezoneAudioVoiceRef`、`FreezoneAudioSpeechRequest` 与 `FreezoneAudioMusicRequest` 从后端公共 `api/schemas.py` 迁入唯一 `api/canvas_audio_schemas.py` 入站适配器 schema，Audio route 与 `test_creative_canvas_audio_generation.py` 的直接模型调用同步切换新入口，route 一次性停止导入旧巨石，不保留 re-export facade、旧别名或重复模型。voice scope 枚举与标识示例、Speech 文本/情绪/主线推送目标、Music 模型/格式/时长边界/纯音乐与分段选项及全部 OpenAPI 描述保持不变；统一 schema 所有权门禁加入 Canvas Audio 案例。完整音频生成与声线库回归展开 14 项及完整后端分层门禁 141 项通过，合计 155 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
