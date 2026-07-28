@@ -1932,6 +1932,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百三十批已将 Creative Canvas Presets route 独占的 `PresetCanvasRequest` 从后端公共 `api/schemas.py` 迁入唯一 `api/canvas_presets_schemas.py` 入站适配器 schema，Preset route 与 `test_freezone_image_backend.py` 的 8 处直接模型调用同步切换新入口，旧巨石定义直接删除，不保留 re-export facade、旧别名或重复模型；相邻 Projection schema 未纳入本批。scope 枚举、episode/beat/asset 定位、主槽位、显式 canvas 覆盖与 base revision 字段及类级 OpenAPI 描述保持不变；统一 schema 所有权门禁加入 Canvas Presets 案例。Preset 真实 HTTP factory 3 项、幂等/刷新/覆盖冲突路由回归 6 项及完整后端分层门禁 141 项通过，修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
+第四百三十一批已将 Creative Canvas Commits route 独占的 `PushRequest` 与 `ImpactRequest` 从后端公共 `api/schemas.py` 迁入唯一 `api/canvas_commits_schemas.py` 入站适配器 schema，Commits route 与 `test_freezone_image_backend.py` 的两处直接 `PushRequest` 调用同步切换新入口，旧巨石定义和失去用途的 `SlotTarget` 导入直接删除，不保留 re-export facade、旧别名或重复模型。source URL、带 discriminator 的 canonical slot target 与 mark stale 默认值保持不变；统一 schema 所有权门禁加入 Canvas Commits 案例，锁定新所有者、route 导入和旧巨石零定义。背景与音频 canonical slot 提交 2 项、M06 push/impact 合同 1 项及完整后端分层门禁 141 项通过，合计 144 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

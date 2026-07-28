@@ -6,7 +6,6 @@ from fastapi import HTTPException
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 
 from ai_anime.models import SceneRef
-from ai_anime.freezone.slots import SlotTarget
 from ai_anime.modules.creative_canvas.public import (
     DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
 )
@@ -1593,16 +1592,6 @@ class ProjectionRemoveRequest(BaseModel):
 
     projection_key: str = Field(min_length=1, max_length=160)
     base_revision: int
-
-
-class PushRequest(BaseModel):
-    source_url: str
-    target: SlotTarget = Field(discriminator="kind")
-    mark_stale: bool = False
-
-
-class ImpactRequest(BaseModel):
-    target: SlotTarget = Field(discriminator="kind")
 
 
 class CharacterUpdate(BaseModel):
