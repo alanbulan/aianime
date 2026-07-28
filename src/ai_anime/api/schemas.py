@@ -90,15 +90,6 @@ class ProjectUpdate(BaseModel):
     sketch_aspect_padding: Optional[bool] = None
 
 
-class RenderSettingsUpdate(BaseModel):
-    render_image_selection: Optional[str] = None
-    sketch_aspect_padding: Optional[bool] = None
-
-
-class SketchSettingsUpdate(BaseModel):
-    sketch_image_selection: Optional[str] = None
-
-
 # ── 角色 ──────────────────────────────────────────────────────────────────────
 
 
@@ -234,24 +225,6 @@ class SketchRegenerateRequest(BaseModel):
     model: str = "nanobanana"
     mode_key: str = "1x1_2-3"
     image_generation_selection: Optional[str] = None
-
-
-class SketchRegenQueueItem(BaseModel):
-    id: str
-    modeKey: str
-    modeLabel: str
-    beatNumbers: list[int] = Field(default_factory=list)
-    sceneIds: list[str] = Field(default_factory=list)
-    createdAt: str
-    taskScope: Optional[str] = None
-
-
-class SketchRegenQueueUpdate(BaseModel):
-    items: list[SketchRegenQueueItem] = Field(default_factory=list)
-
-
-class OperatorPasswordVerifyRequest(BaseModel):
-    password: str = ""
 
 
 class InsertManualShotRequest(BaseModel):
