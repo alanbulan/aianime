@@ -209,6 +209,50 @@ describe("SuperChat boundaries", () => {
     expect(domain).not.toContain("readPipelineStatus");
   });
 
+  it("keeps ingest infrastructure calls outside the SuperChat panel", () => {
+    const gateway = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/ingest-automation-gateway.ts"),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/ingest-automation-gateway.test.ts",
+      ),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/ingest-automation-gateway";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/ingest-automation-gateway";',
+    );
+    for (const operation of [
+      "export async function uploadNovelForIngest(",
+      "export async function startNovelIngest(",
+      "export async function projectHasIngestedContent(",
+    ]) {
+      expect(gateway).toContain(operation);
+      expect(panel).not.toContain(operation);
+    }
+    for (const infrastructureCall of [
+      "uploadStoryDocument",
+      "startStoryIngestion",
+      "readPipelineStatus",
+    ]) {
+      expect(gateway).toContain(infrastructureCall);
+      expect(panel).not.toContain(infrastructureCall);
+    }
+    expect(gateway).not.toContain("toast.");
+    expect(gateway).not.toContain("TFunction");
+    expect(gateway).not.toContain("backendErrorToastMessage");
+  });
+
   it("keeps scope mapping and matching outside the controller hook", () => {
     const scope = readFileSync(
       resolve(SRC_ROOT, "features/superchat/scope.ts"),

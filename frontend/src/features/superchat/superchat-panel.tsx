@@ -47,7 +47,6 @@ import { useAuthStore } from "@/modules/identity_access/public";
 import { cn } from "@/lib/utils";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { backendErrorToastMessage } from "@/shared/api/errors";
-import { readPipelineStatus } from "@/modules/narrative_planning/public";
 import { useSuperChat } from "@/features/superchat/use-superchat";
 import { useAiAvatarUrl } from "@/features/superchat/ai-avatar";
 import { buildChatTaskLabel } from "@/features/superchat/task-notification-label";
@@ -75,10 +74,14 @@ import {
   isNovelAttachment,
   isOverwriteChoice,
   shouldReportUploadedFiles,
-  type AttachmentBlob,
   type PreparedIngestAttachment,
   type ReingestConfirmation,
 } from "@/features/superchat/ingest-automation-domain";
+import {
+  projectHasIngestedContent,
+  startNovelIngest,
+  uploadNovelForIngest,
+} from "@/features/superchat/ingest-automation-gateway";
 import { useEventBus } from "@/task-center/event-bus-context";
 import {
   extractStructuredBlocks,
@@ -90,13 +93,7 @@ import {
 import type { ChatMessage } from "@/features/superchat/types";
 import type { ApprovalRequest, ChatAttachment } from "@/features/superchat/types";
 import { FormatCheckDetailsDialog } from "@/components/ingest/FormatCheckDetailsDialog";
-import {
-  startStoryIngestion,
-  uploadStoryDocument,
-  type FormatCheck,
-  type StartedIngestion,
-  type UploadResult,
-} from "@/modules/story_intake/public";
+import type { FormatCheck } from "@/modules/story_intake/public";
 
 type SpecMediaDetailSection = {
   title: string;
@@ -2026,16 +2023,6 @@ function createSpeechRecognition(): SpeechRecognitionLike | null {
   return Ctor ? new Ctor() : null;
 }
 
-async function uploadNovelForIngest(
-  project: string,
-  file: AttachmentBlob,
-): Promise<UploadResult> {
-  return uploadStoryDocument(
-    project,
-    new File([file.blob], file.filename, { type: file.blob.type }),
-  );
-}
-
 // Surface non-blocking format warnings as a success+risk toast per file. Upload
 // already succeeded for these (warning never blocks), so we only notify and let
 // the user open the details dialog. Iterate every prepared file, not just the first.
@@ -2099,22 +2086,6 @@ async function uploadAttachmentsForIngest(
   }
 
   return prepared;
-}
-
-async function startNovelIngest(
-  project: string,
-  filename: string,
-  options: { rebuild?: boolean } = {},
-): Promise<StartedIngestion> {
-  return startStoryIngestion(project, {
-    filename,
-    rebuild: options.rebuild ?? false,
-  });
-}
-
-async function projectHasIngestedContent(project: string): Promise<boolean> {
-  const response = await readPipelineStatus(project);
-  return Boolean(response.data.global?.ingested);
 }
 
 type SuperChatPanelVariant = "default" | "freezone";
