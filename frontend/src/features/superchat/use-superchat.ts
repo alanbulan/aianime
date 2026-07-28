@@ -18,9 +18,6 @@ import {
 } from "@/features/superchat/message";
 import { api } from "@/shared/api/transport";
 import {
-  safeLocalStorageSet,
-} from "@/lib/localStorageQuota";
-import {
   activeTurnIsPending,
   clearActiveTurn,
   currentTurnIsLive,
@@ -32,29 +29,19 @@ import {
   pruneOldMessageCaches,
   saveCachedMessages,
 } from "@/features/superchat/message-cache";
+import {
+  loadScopedMessageIds,
+  loadSuperChatSettings,
+  saveScopedMessageIds,
+  saveSuperChatSettings,
+} from "@/features/superchat/preferences-storage";
 
-const SETTINGS_KEY = "superchat:settings";
 const EXECUTABLE_HIDDEN_TOOL_NAMES = new Set(["freezone_emit_canvas_command"]);
 
 type ChatNotificationResponse = {
   ok: boolean;
   data?: unknown;
 };
-
-function loadSettings(): SuperChatSettings {
-  try {
-    const raw = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}") as Partial<SuperChatSettings>;
-    return {
-      showToolEvents: raw.showToolEvents ?? false,
-      showStructuredSourceWhileStreaming: raw.showStructuredSourceWhileStreaming ?? true,
-    };
-  } catch {
-    return {
-      showToolEvents: false,
-      showStructuredSourceWhileStreaming: true,
-    };
-  }
-}
 
 function resolveChatWsUrl(): string {
   const explicit = import.meta.env.VITE_SUPERCHAT_WS_URL;
@@ -413,7 +400,7 @@ export function useSuperChat({
   const [modelsLoading, setModelsLoading] = useState(false);
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(() => new Set());
   const [deletedIds, setDeletedIds] = useState<Set<string>>(() => new Set());
-  const [settings, setSettingsState] = useState<SuperChatSettings>(() => loadSettings());
+  const [settings, setSettingsState] = useState<SuperChatSettings>(() => loadSuperChatSettings());
   const [busy, setBusy] = useState(() => Boolean(initialScopeSnapshot.activeTurnId));
   const [activeTurnId, setActiveTurnId] = useState<string | null>(initialScopeSnapshot.activeTurnId);
   const streamTextRef = useRef("");
@@ -462,7 +449,7 @@ export function useSuperChat({
   const setSettings = useCallback((patch: Partial<SuperChatSettings>) => {
     setSettingsState((current) => {
       const next = { ...current, ...patch };
-      safeLocalStorageSet(SETTINGS_KEY, JSON.stringify(next));
+      saveSuperChatSettings(next);
       return next;
     });
   }, []);
@@ -775,15 +762,9 @@ export function useSuperChat({
   }, [busy, messages, scopeKey]);
 
   useEffect(() => {
-    try {
-      const pinned = JSON.parse(localStorage.getItem(`superchat:pinned:${scopeKey}`) || "[]");
-      const deleted = JSON.parse(localStorage.getItem(`superchat:deleted:${scopeKey}`) || "[]");
-      setPinnedIds(new Set(Array.isArray(pinned) ? pinned : []));
-      setDeletedIds(new Set(Array.isArray(deleted) ? deleted : []));
-    } catch {
-      setPinnedIds(new Set());
-      setDeletedIds(new Set());
-    }
+    const scopedIds = loadScopedMessageIds(scopeKey);
+    setPinnedIds(scopedIds.pinnedIds);
+    setDeletedIds(scopedIds.deletedIds);
   }, [scopeKey]);
 
   useEffect(() => {
@@ -888,41 +869,37 @@ export function useSuperChat({
     // ai_anime's native chat endpoint does not expose external session-control commands.
   }, []);
 
-  const persistMessageSet = useCallback((kind: "pinned" | "deleted", next: Set<string>) => {
-    safeLocalStorageSet(`superchat:${kind}:${scopeKey}`, JSON.stringify([...next]));
-  }, [scopeKey]);
-
   const togglePin = useCallback((id: string) => {
     setPinnedIds((current) => {
       const next = new Set(current);
       if (next.has(id)) next.delete(id);
       else next.add(id);
-      persistMessageSet("pinned", next);
+      saveScopedMessageIds(scopeKey, "pinned", next);
       return next;
     });
-  }, [persistMessageSet]);
+  }, [scopeKey]);
 
   const deleteMessage = useCallback((id: string) => {
     setDeletedIds((current) => {
       const next = new Set(current);
       next.add(id);
-      persistMessageSet("deleted", next);
+      saveScopedMessageIds(scopeKey, "deleted", next);
       return next;
     });
     setPinnedIds((current) => {
       if (!current.has(id)) return current;
       const next = new Set(current);
       next.delete(id);
-      persistMessageSet("pinned", next);
+      saveScopedMessageIds(scopeKey, "pinned", next);
       return next;
     });
-  }, [persistMessageSet]);
+  }, [scopeKey]);
 
   const clearPinned = useCallback(() => {
     const next = new Set<string>();
     setPinnedIds(next);
-    persistMessageSet("pinned", next);
-  }, [persistMessageSet]);
+    saveScopedMessageIds(scopeKey, "pinned", next);
+  }, [scopeKey]);
 
   return {
     abort,

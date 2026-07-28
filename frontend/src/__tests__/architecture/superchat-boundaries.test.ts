@@ -75,4 +75,37 @@ describe("SuperChat boundaries", () => {
     expect(hook).not.toContain("ACTIVE_TURN_PREFIX");
     expect(hook).not.toContain("hasStructuredContent");
   });
+
+  it("keeps local preference persistence outside the controller hook", () => {
+    const storage = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/preferences-storage.ts"),
+      "utf8",
+    );
+    const hook = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/use-superchat.ts"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(SRC_ROOT, "__tests__/features/superchat/preferences-storage.test.ts"),
+      "utf8",
+    );
+
+    expect(hook).toContain('from "@/features/superchat/preferences-storage";');
+    expect(tests).toContain('from "@/features/superchat/preferences-storage";');
+    for (const ownedOperation of [
+      "function messageSetKey(",
+      "export function loadSuperChatSettings(",
+      "export function saveSuperChatSettings(",
+      "export function loadScopedMessageIds(",
+      "export function saveScopedMessageIds(",
+    ]) {
+      expect(storage).toContain(ownedOperation);
+      expect(hook).not.toContain(ownedOperation);
+    }
+    expect(storage).not.toContain("export function messageSetKey(");
+    expect(hook).not.toContain("SETTINGS_KEY");
+    expect(hook).not.toContain("safeLocalStorageSet");
+    expect(hook).not.toContain("localStorage.");
+    expect(hook).not.toContain("persistMessageSet");
+  });
 });

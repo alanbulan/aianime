@@ -1813,6 +1813,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百七十六批已拆分 SuperChat 活动回合状态：新增唯一 `features/superchat/active-turn.ts`，集中持有 scope 存储键、1 小时 TTL、快照读写与条件清理、用户消息存在判定、文本或结构化助手响应完成判定及待恢复回合筛选；`use-superchat.ts` 删除全部活动回合常量、类型和函数并直接调用该模块，文件由 1,031 行降至 960 行，`safeLocalStorageSet` 仍仅保留 settings 与 pin/delete 状态的现有调用，不保留 hook re-export、旧别名或第二套实现。新增 7 项独立特征测试覆盖持久化、空白 ID、空/畸形快照、TTL、旧回合条件清理、待处理状态、文本完成和结构化响应完成，并扩展 SuperChat 架构门禁禁止实现回流；SuperChat 全部特征测试 41 项、SuperChat 门禁 2 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
 
+第三百七十七批已拆分 SuperChat 本地偏好存储：新增唯一 `features/superchat/preferences-storage.ts`，集中持有全局显示设置默认值与读写、scope 级 pinned/deleted key、集合反序列化和配额安全写入，并保持任一集合 JSON 损坏时两组状态共同回退为空、非数组值仅单组回退为空的既有语义；`use-superchat.ts` 删除 `SETTINGS_KEY`、设置读取、直接 `localStorage`/配额工具调用及 `persistMessageSet` 包装，直接使用偏好 adapter，文件由 960 行降至 937 行，不保留旧 helper、re-export 或第二套实现。新增 6 项独立特征测试覆盖默认值、畸形设置、缺省字段、显式设置、集合去重、非数组/损坏数据和 scope/kind 隔离写入，并扩展架构门禁确保 controller 不再持有存储细节；SuperChat 全部特征测试 48 项、SuperChat 门禁 3 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。
