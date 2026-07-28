@@ -41,9 +41,8 @@ from ai_anime.models import (
     CharacterIdentity,
     NovelCharacter,
     NovelVisualBeat,
-    NovelScene,
 )
-from ai_anime.modules.asset_world.public import NovelProp
+from ai_anime.modules.asset_world.public import NovelProp, NovelScene
 from ai_anime.modules.narrative_planning.public import NovelEpisode as _NovelEpisode
 
 

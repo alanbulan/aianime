@@ -24,9 +24,8 @@ from ai_anime.generators.scene_reference_images import build_scene_reference_pro
 from ai_anime.models import (
     NO_CHARACTER_MARKER,
     NO_PROP_MARKER,
-    NovelScene,
-    build_scene_effective_prompt,
 )
+from ai_anime.modules.asset_world.public import NovelScene, build_scene_effective_prompt
 from ai_anime.modules.narrative_planning.public import build_prop_menu
 from ai_anime.modules.creative_canvas.public import (
     DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,

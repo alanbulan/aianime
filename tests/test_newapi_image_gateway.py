@@ -864,7 +864,7 @@ def test_newapi_character_portrait_raise_on_error_preserves_provider_detail(monk
 def test_newapi_scene_master_uses_text_only_nanobanana2(monkeypatch, tmp_path):
     _isolate_settings_db(monkeypatch, tmp_path)
     from ai_anime.generators import scene_reference_images
-    from ai_anime.models import NovelScene
+    from ai_anime.modules.asset_world.public import NovelScene
 
     captured = {}
 
@@ -919,7 +919,7 @@ def test_newapi_scene_master_uses_text_only_nanobanana2(monkeypatch, tmp_path):
 
 def test_newapi_scene_time_plate_master_injects_time_and_base_reference(monkeypatch, tmp_path):
     from ai_anime.generators import scene_reference_images
-    from ai_anime.models import NovelScene
+    from ai_anime.modules.asset_world.public import NovelScene
 
     captured = {}
 
@@ -968,7 +968,7 @@ def test_newapi_scene_time_plate_master_injects_time_and_base_reference(monkeypa
 
 def test_newapi_scene_variant_plate_master_keeps_described_lighting(monkeypatch, tmp_path):
     from ai_anime.generators import scene_reference_images
-    from ai_anime.models import NovelScene
+    from ai_anime.modules.asset_world.public import NovelScene
 
     captured = {}
 
@@ -1019,7 +1019,7 @@ def test_newapi_scene_variant_plate_master_keeps_described_lighting(monkeypatch,
 def test_newapi_reverse_master_uses_master_reference_nanobanana2(monkeypatch, tmp_path):
     _isolate_settings_db(monkeypatch, tmp_path)
     from ai_anime.generators import scene_reference_images
-    from ai_anime.models import NovelScene
+    from ai_anime.modules.asset_world.public import NovelScene
 
     captured = {}
 
@@ -1080,7 +1080,7 @@ def test_newapi_reverse_master_uses_master_reference_nanobanana2(monkeypatch, tm
 def test_newapi_reverse_master_can_use_gpt_image2_quality_low(monkeypatch, tmp_path):
     _isolate_settings_db(monkeypatch, tmp_path)
     from ai_anime.generators import scene_reference_images
-    from ai_anime.models import NovelScene
+    from ai_anime.modules.asset_world.public import NovelScene
 
     captured = {}
 

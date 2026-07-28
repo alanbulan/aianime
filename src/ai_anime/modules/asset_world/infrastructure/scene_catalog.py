@@ -8,8 +8,11 @@ from pathlib import Path
 from typing import Any
 
 from ai_anime.director_world import stage_manifest
-from ai_anime.models import NovelScene, build_scene_effective_prompt
 from ai_anime.modules.asset_world.application.dto import CreateSceneCommand
+from ai_anime.modules.asset_world.application.scene_models import (
+    NovelScene,
+    build_scene_effective_prompt,
+)
 from ai_anime.modules.asset_world.infrastructure.asset_metadata import (
     newest_updated_at,
     tree_updated_at,

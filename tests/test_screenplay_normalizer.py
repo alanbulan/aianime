@@ -280,7 +280,7 @@ async def test_normalize_screenplay_scenes_returns_empty_without_calling_agent()
 @pytest.mark.asyncio
 async def test_extract_scenes_from_script_prefers_ai_normalized_blocks(monkeypatch):
     from ai_anime.cognee import pipeline
-    from ai_anime.models import NovelScene
+    from ai_anime.modules.asset_world.public import NovelScene
 
     async def fake_normalize(_text: str):
         return [
@@ -346,7 +346,7 @@ async def test_extract_scenes_from_script_falls_back_when_ai_returns_partial_blo
     monkeypatch,
 ):
     from ai_anime.cognee import pipeline
-    from ai_anime.models import NovelScene
+    from ai_anime.modules.asset_world.public import NovelScene
 
     async def fake_normalize(_text: str):
         return [
@@ -426,7 +426,7 @@ async def test_extract_scenes_from_script_falls_back_when_ai_returns_partial_blo
 @pytest.mark.asyncio
 async def test_extract_scenes_from_script_falls_back_when_ai_returns_empty(monkeypatch):
     from ai_anime.cognee import pipeline
-    from ai_anime.models import NovelScene
+    from ai_anime.modules.asset_world.public import NovelScene
 
     async def fake_normalize(_text: str):
         return []
@@ -476,7 +476,7 @@ async def test_extract_scenes_from_script_falls_back_when_ai_merges_distinct_loc
     monkeypatch,
 ):
     from ai_anime.cognee import pipeline
-    from ai_anime.models import NovelScene
+    from ai_anime.modules.asset_world.public import NovelScene
 
     async def fake_normalize(_text: str):
         return [

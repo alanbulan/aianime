@@ -22,7 +22,6 @@ from .store import CogneeStore, create_cognee_store
 from ai_anime.models import (
     NovelCharacter,
     NovelVisualBeat,
-    NovelScene,
 )
 from .pipeline import (
     run_character_extraction_pipeline,
@@ -40,7 +39,6 @@ __all__ = [
     # 实体
     "NovelCharacter",
     "NovelVisualBeat",
-    "NovelScene",
 
     # Pipeline
     "run_character_extraction_pipeline",

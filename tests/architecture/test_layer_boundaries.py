@@ -5327,6 +5327,52 @@ def test_asset_world_prop_model_has_one_owner() -> None:
         assert "ai_anime.modules.asset_world.public" in _imports(caller)
 
 
+def test_asset_world_scene_model_has_one_owner() -> None:
+    legacy_models = PACKAGE_ROOT / "models.py"
+    scene_models = (
+        PACKAGE_ROOT
+        / "modules"
+        / "asset_world"
+        / "application"
+        / "scene_models.py"
+    )
+    scene_catalog = (
+        PACKAGE_ROOT
+        / "modules"
+        / "asset_world"
+        / "infrastructure"
+        / "scene_catalog.py"
+    )
+    public = PACKAGE_ROOT / "modules" / "asset_world" / "public.py"
+    cognee_package = PACKAGE_ROOT / "cognee" / "__init__.py"
+    callers = (
+        PACKAGE_ROOT / "agents" / "asset_compiler.py",
+        PACKAGE_ROOT / "cognee" / "pipeline.py",
+        PACKAGE_ROOT / "cognee" / "store.py",
+        PACKAGE_ROOT / "freezone" / "presets.py",
+        PACKAGE_ROOT / "generators" / "scene_reference_images.py",
+        PACKAGE_ROOT / "sqlite_store.py",
+        PACKAGE_ROOT / "utils" / "asset_resolver.py",
+    )
+    legacy_source = legacy_models.read_text(encoding="utf-8")
+    owner_source = scene_models.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+
+    assert "class NovelScene(" not in legacy_source
+    assert "def build_scene_effective_prompt(" not in legacy_source
+    assert "class NovelScene(BaseModel):" in owner_source
+    assert "def build_scene_effective_prompt(" in owner_source
+    assert "ai_anime.modules.asset_world.application.scene_models" in _imports(
+        scene_catalog
+    )
+    assert "ai_anime.modules.asset_world.application.scene_models" in _imports(public)
+    for symbol in ("NovelScene", "build_scene_effective_prompt"):
+        assert f'"{symbol}"' in public_source
+    assert "NovelScene" not in cognee_package.read_text(encoding="utf-8")
+    for caller in callers:
+        assert "ai_anime.modules.asset_world.public" in _imports(caller)
+
+
 def test_production_video_backend_catalog_has_one_owner() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_video.py"
     video_schemas = PACKAGE_ROOT / "api" / "production_video_schemas.py"

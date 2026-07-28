@@ -30,7 +30,7 @@ from ai_anime.generators.nanobanana_grid import (
     _call_openrouter_image_api,
 )
 from ai_anime.director_world.paths import safe_name
-from ai_anime.models import NovelScene, build_scene_effective_prompt
+from ai_anime.modules.asset_world.public import NovelScene, build_scene_effective_prompt
 
 SceneReferenceKind = Literal["master", "spatial_layout", "reverse_master"]
 

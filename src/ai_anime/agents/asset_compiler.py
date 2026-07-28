@@ -13,8 +13,7 @@ from ai_anime.config import (
     get_newapi_text_pydantic_model,
     get_newapi_text_pydantic_model_settings,
 )
-from ai_anime.models import NovelScene
-from ai_anime.modules.asset_world.public import NovelProp
+from ai_anime.modules.asset_world.public import NovelProp, NovelScene
 from ai_anime.cognee.screenplay_normalizer import normalize_time_of_day
 from ai_anime.utils.derived_scenes import compose_derived_scene_name
 from ai_anime.modules.narrative_planning.public import (

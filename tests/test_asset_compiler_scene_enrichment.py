@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from ai_anime.models import NovelScene
+from ai_anime.modules.asset_world.public import NovelScene
 
 ENRICHED_ENVIRONMENT_PROMPT = "正面：临街玻璃窗\n左侧：咖啡吧台\n右侧：木质书架\n背面：入口木门"
 

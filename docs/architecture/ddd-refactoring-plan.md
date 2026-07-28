@@ -1982,6 +1982,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百五十五批已将全局道具持久化与资产编排共用的 `NovelProp` 从后端公共 `models.py` 迁入唯一 Asset & World application `prop_models.py`，旧定义及无生产调用方的 `cognee` 包级转发直接删除，不保留 facade、别名或重复模型。Asset & World 内部道具目录 infrastructure 直连 application 模型，Asset Compiler、Cognee pipeline/store、SQLiteStore 与 Seedance 素材解析等模块外调用方统一经 Asset & World `public.py` 使用稳定入口；Pydantic JSON Schema 哈希 `faf1b136c821d77c2859e35c4f10acf3c4676454f8d31bd0f701f80a49e521c8` 与迁移前一致，新增默认序列化、可变默认值隔离和唯一所有权门禁。本批模型、M04/M06 合同、剧集详情与架构回归 185 项，道具 API、SQLite、Asset Compiler、Seedance 和 Prop Catalog 回归 122 项，最终完整架构门禁 149 项通过；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
+第四百五十六批已将 `NovelScene` 与唯一有效场景提示词组合函数 `build_scene_effective_prompt` 从后端公共 `models.py` 一并迁入唯一 Asset & World application `scene_models.py`，旧定义及无生产调用方的 `cognee` 包级转发直接删除，不保留 facade、别名或重复逻辑。Asset & World 内部 Scene Catalog infrastructure 直连 application 模型，Asset Compiler、Cognee pipeline/store、Freezone、场景参考图生成器、SQLiteStore 与 AssetResolver 等模块外调用方统一经 Asset & World `public.py` 使用稳定入口；Pydantic JSON Schema 哈希 `41287f2ff117c3217eebdb1d408f35eca55739620e5d5c41b2fc47f20efb5777` 与迁移前一致，新增默认序列化、结构化场景轴组合、历史融合 prompt 保留和唯一所有权门禁。本批模型、场景提示词、场景板解析、Asset Compiler、M05/M06 与架构回归 211 项，场景 API、SQLite、Cognee 场景提取、NewAPI、AssetResolver 与 Freezone 回归 156 项通过；最终完整架构门禁 150 项，修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

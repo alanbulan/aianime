@@ -164,7 +164,7 @@ async def test_ingest_novel_reuses_graph_based_build_steps(tmp_project, tmp_path
 @pytest.mark.asyncio
 async def test_build_scenes_from_graph_only_adds_missing_base_scenes(tmp_project, monkeypatch):
     from ai_anime.cognee import pipeline
-    from ai_anime.models import NovelScene
+    from ai_anime.modules.asset_world.public import NovelScene
 
     await tmp_project.sqlite_store.add_scene(
         NovelScene(
@@ -211,7 +211,7 @@ async def test_build_scenes_from_graph_only_adds_missing_base_scenes(tmp_project
 
 @pytest.mark.asyncio
 async def test_scene_round_trip_and_update_with_structured_scene_axes(tmp_path):
-    from ai_anime.models import NovelScene
+    from ai_anime.modules.asset_world.public import NovelScene
     from ai_anime.sqlite_store import SQLiteStore
 
     store = SQLiteStore(
@@ -260,7 +260,7 @@ async def test_scene_round_trip_and_update_with_structured_scene_axes(tmp_path):
 
 @pytest.mark.asyncio
 async def test_add_scene_is_idempotent_by_scene_name(tmp_path):
-    from ai_anime.models import NovelScene
+    from ai_anime.modules.asset_world.public import NovelScene
     from ai_anime.sqlite_store import SQLiteStore
 
     store = SQLiteStore(
@@ -298,7 +298,7 @@ async def test_add_scene_is_idempotent_by_scene_name(tmp_path):
 
 @pytest.mark.asyncio
 async def test_add_scene_concurrent_same_name_keeps_single_row(tmp_path):
-    from ai_anime.models import NovelScene
+    from ai_anime.modules.asset_world.public import NovelScene
     from ai_anime.sqlite_store import SQLiteStore
 
     store = SQLiteStore(

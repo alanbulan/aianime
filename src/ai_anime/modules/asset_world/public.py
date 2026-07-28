@@ -47,6 +47,10 @@ from ai_anime.modules.asset_world.application.prop_tasks import PropTaskUseCases
 from ai_anime.modules.asset_world.application.scene_catalog import (
     SceneCatalogUseCases,
 )
+from ai_anime.modules.asset_world.application.scene_models import (
+    NovelScene,
+    build_scene_effective_prompt,
+)
 from ai_anime.modules.asset_world.application.scene_media import SceneMediaUseCases
 from ai_anime.modules.asset_world.application.scene_tasks import SceneTaskUseCases
 from ai_anime.modules.asset_world.application.scene_viewer import SceneViewerUseCases
@@ -379,6 +383,7 @@ __all__ = [
     "InvalidPropInput",
     "InvalidStyleInput",
     "NovelProp",
+    "NovelScene",
     "PropAlreadyExists",
     "PropCatalogRejected",
     "PropCatalogUseCases",
@@ -415,6 +420,7 @@ __all__ = [
     "VOICE_SAMPLE_EXTENSIONS",
     "analyze_style",
     "beat_viewer_use_cases",
+    "build_scene_effective_prompt",
     "build_character_map_for_grid",
     "character_asset_history_use_cases",
     "character_asset_links",

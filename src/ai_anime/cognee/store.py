@@ -34,13 +34,12 @@ from ai_anime.models import (
     CharacterIdentity,
     NovelCharacter,
     NovelVisualBeat,
-    NovelScene,
     complete_detected_refs_from_visual_description,
     normalize_detected_identities,
     normalize_detected_props,
     sync_beat_asset_refs,
 )
-from ai_anime.modules.asset_world.public import NovelProp
+from ai_anime.modules.asset_world.public import NovelProp, NovelScene
 from ai_anime.modules.narrative_planning.public import (
     NovelEpisode,
     NovelEvent,

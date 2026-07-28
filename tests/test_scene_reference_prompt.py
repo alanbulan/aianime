@@ -1,5 +1,5 @@
 from ai_anime.generators.scene_reference_images import build_scene_reference_prompt
-from ai_anime.models import NovelScene
+from ai_anime.modules.asset_world.public import NovelScene
 
 
 def test_scene_reference_prompt_combines_base_prompt_for_variant_without_base_image():
