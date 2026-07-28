@@ -150,6 +150,65 @@ describe("SuperChat boundaries", () => {
     expect(panel).not.toContain("localStorage.");
   });
 
+  it("keeps ingest automation rules outside the SuperChat panel", () => {
+    const domain = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/ingest-automation-domain.ts"),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/ingest-automation-domain.test.ts",
+      ),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/ingest-automation-domain";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/ingest-automation-domain";',
+    );
+    for (const ownedOperation of [
+      "function extensionOf(",
+      "function dataUrlToText(",
+      "export function hasVideoCreationIntent(",
+      "export function shouldReportUploadedFiles(",
+      "export function isNovelAttachment(",
+      "export function isAllowedScriptUpload(",
+      "export function isAllowedScriptDragItem(",
+      "export function isOverwriteChoice(",
+      "export function isFinalOverwriteConfirmation(",
+      "export function dataUrlToAttachmentBlob(",
+      "export function buildUploadedFilesContext(",
+      "export function buildReingestConfirmationContext(",
+      "export function buildReingestCancelledContext(",
+      "export function buildAttachmentAnalysisContext(",
+      "export function appendIngestAutomationContext(",
+      "export function appendAttachmentAnalysisContext(",
+    ]) {
+      expect(domain).toContain(ownedOperation);
+      expect(panel).not.toContain(ownedOperation);
+    }
+    for (const ownedConstant of [
+      "VIDEO_CREATION_RE",
+      "UPLOADED_FILES_QUERY_RE",
+      "NOVEL_ATTACHMENT_EXTENSIONS",
+      "INLINE_TEXT_ATTACHMENT_LIMIT",
+    ]) {
+      expect(domain).toContain(ownedConstant);
+      expect(panel).not.toContain(ownedConstant);
+    }
+    expect(domain).not.toContain("toast.");
+    expect(domain).not.toContain("uploadStoryDocument");
+    expect(domain).not.toContain("startStoryIngestion");
+    expect(domain).not.toContain("readPipelineStatus");
+  });
+
   it("keeps scope mapping and matching outside the controller hook", () => {
     const scope = readFileSync(
       resolve(SRC_ROOT, "features/superchat/scope.ts"),
