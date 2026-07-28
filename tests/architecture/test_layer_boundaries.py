@@ -400,6 +400,42 @@ def test_chat_websocket_transport_stays_in_api_layer() -> None:
     assert "send_json_best_effort(" in route_source
 
 
+def test_chat_websocket_auth_stays_in_api_auth_adapter() -> None:
+    auth = PACKAGE_ROOT / "api" / "auth.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    contract_tests = REPO_ROOT / "tests" / "contract" / "test_m08_chat_agent.py"
+    auth_source = auth.read_text(encoding="utf-8")
+    route_source = route.read_text(encoding="utf-8")
+    contract_test_source = contract_tests.read_text(encoding="utf-8")
+
+    assert "ai_anime.modules.identity_access.public" in _imports(auth)
+    assert "ai_anime.api.auth" in _imports(route)
+    assert "async def get_websocket_user(" in auth_source
+    for owned_operation in (
+        'websocket.headers.get("Authorization", "").strip()',
+        'bearer.lower().startswith("bearer ")',
+        "await _verify_agent_bearer(token)",
+        "websocket.cookies.get(AUTH_COOKIE_NAME)",
+        "await _verify_browser_session(",
+    ):
+        assert owned_operation in auth_source
+        assert owned_operation not in route_source
+    for private_dependency in (
+        "AUTH_COOKIE_NAME",
+        "_verify_agent_bearer",
+        "_verify_browser_session",
+        "def _authenticate_ws(",
+    ):
+        assert private_dependency not in route_source
+    assert route_source.count("get_websocket_user(") == 1
+    assert 'monkeypatch.setattr(chat_routes, "_verify_browser_session"' not in (
+        contract_test_source
+    )
+    assert 'monkeypatch.setattr(api_auth, "_verify_browser_session"' in (
+        contract_test_source
+    )
+
+
 def test_chat_inbound_schemas_stay_in_api_adapter() -> None:
     schemas = PACKAGE_ROOT / "api" / "chat_schemas.py"
     route = PACKAGE_ROOT / "api" / "routes" / "chat.py"

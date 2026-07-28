@@ -15,7 +15,7 @@ import re
 from typing import Callable, Optional
 from urllib.parse import unquote
 
-from fastapi import Depends, HTTPException, Request
+from fastapi import Depends, HTTPException, Request, WebSocket
 
 from ai_anime.modules.identity_access.public import (
     AuthError,
@@ -114,6 +114,21 @@ async def get_api_user(
         raise HTTPException(status_code=401, detail="Missing session or agent token")
 
     return await _verify_browser_session(request.cookies.get(AUTH_COOKIE_NAME))
+
+
+async def get_websocket_user(websocket: WebSocket) -> dict:
+    """Verify Chat WebSocket browser or agent credentials."""
+    bearer = websocket.headers.get("Authorization", "").strip()
+    if bearer:
+        token = (
+            bearer.partition(" ")[2].strip()
+            if bearer.lower().startswith("bearer ")
+            else ""
+        )
+        if token:
+            return await _verify_agent_bearer(token)
+
+    return await _verify_browser_session(websocket.cookies.get(AUTH_COOKIE_NAME))
 
 
 async def get_api_user_or_query(

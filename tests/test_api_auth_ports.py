@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
@@ -68,6 +69,54 @@ async def test_bearer_path_without_registered_auth_session_port_returns_pinned_4
 
     assert exc.value.status_code == 401
     assert exc.value.detail == "Agent sessions require control plane"
+
+
+@pytest.mark.asyncio
+async def test_websocket_auth_prefers_valid_bearer(monkeypatch) -> None:
+    _registry, _ports, api_auth = _reset_modules()
+    seen = {}
+
+    async def verify_agent(token):
+        seen["token"] = token
+        return {"username": "agent"}
+
+    async def reject_browser(_cookie):
+        raise AssertionError("browser auth is not expected")
+
+    monkeypatch.setattr(api_auth, "_verify_agent_bearer", verify_agent)
+    monkeypatch.setattr(api_auth, "_verify_browser_session", reject_browser)
+
+    user = await api_auth.get_websocket_user(
+        SimpleNamespace(
+            headers={"Authorization": "  Bearer agent-token  "},
+            cookies={api_auth.AUTH_COOKIE_NAME: "browser-cookie"},
+        )
+    )
+
+    assert user == {"username": "agent"}
+    assert seen == {"token": "agent-token"}
+
+
+@pytest.mark.asyncio
+async def test_websocket_auth_falls_back_to_browser_cookie(monkeypatch) -> None:
+    _registry, _ports, api_auth = _reset_modules()
+    seen = {}
+
+    async def verify_browser(cookie):
+        seen["cookie"] = cookie
+        return {"username": "browser"}
+
+    monkeypatch.setattr(api_auth, "_verify_browser_session", verify_browser)
+
+    user = await api_auth.get_websocket_user(
+        SimpleNamespace(
+            headers={"Authorization": "Basic ignored"},
+            cookies={api_auth.AUTH_COOKIE_NAME: "browser-cookie"},
+        )
+    )
+
+    assert user == {"username": "browser"}
+    assert seen == {"cookie": "browser-cookie"}
 
 
 @pytest.mark.asyncio

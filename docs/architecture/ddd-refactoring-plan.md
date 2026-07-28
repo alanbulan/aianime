@@ -1795,6 +1795,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百六十七批已将 Chat 异常到 WebSocket 错误事件的投影迁入独立 API mapper：新增唯一 `api/chat_errors.py`，复用 Model Usage public 错误分类与 payload，统一保持 busy 文案优先、异常链计费规则缺失、异常链积分不足和通用 `str(error)` 回退顺序，并逐字段保留 `chat.busy`/`error` 事件合同。Chat route 删除 busy 字符串分支、两类计费异常查找、常量和 payload 组装，异常处理只调用一次 `chat_exception_event` 并发送，文件由 440 行降至 394 行；Model Usage 继续是错误类型和异常链识别的唯一实现，Chat mapper 不依赖 FastAPI，不保留旧分支、转发壳或第二套计费判断。Chat error mapper 4 项、Model Usage 错误链 3 项、Chat route 2 项、M08 Chat 合同 5 项及完整后端分层门禁 133 项均通过，修改文件 Ruff、Python 编译、新 mapper 格式检查与 `git diff --check` 通过。
 
+第三百六十八批已将 Chat WebSocket 凭据解析收口至现有 API auth adapter：`api.auth` 新增稳定 `get_websocket_user` 入口，统一保持有效 Bearer 优先、非 Bearer/空 token 回退浏览器 cookie、agent/browser 验证错误映射及既有 `ai_anime_session` cookie 语义。Chat route 删除 `_authenticate_ws`、cookie 常量和两个认证私有函数依赖，只调用公开认证入口并保留 unauthorized 事件与 1008 close 映射，文件由 394 行降至 374 行；M08 认证失败测试改在 `api.auth` 所有权边界注入，不通过 route 私有实现，不保留转发函数或第二套凭据解析。API auth 完整 7 项、Chat route 2 项、M08 Chat 合同 5 项及完整后端分层门禁 134 项均通过，修改文件 Ruff、Python 编译、增量代码格式检查与 `git diff --check` 通过。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

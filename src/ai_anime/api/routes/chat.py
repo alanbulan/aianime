@@ -12,12 +12,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 
-from ai_anime.api.auth import (
-    AUTH_COOKIE_NAME,
-    get_api_user,
-    _verify_agent_bearer,
-    _verify_browser_session,
-)
+from ai_anime.api.auth import get_api_user, get_websocket_user
 from ai_anime.api.chat_errors import chat_exception_event
 from ai_anime.api.chat_schemas import (
     ChatAttachmentIn,
@@ -121,21 +116,6 @@ async def append_chat_ui_event(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"ok": True, "data": event}
-
-
-async def _authenticate_ws(websocket: WebSocket) -> dict[str, Any]:
-    bearer = websocket.headers.get("Authorization", "").strip()
-    if bearer:
-        token = (
-            bearer.partition(" ")[2].strip()
-            if bearer.lower().startswith("bearer ")
-            else ""
-        )
-        if token:
-            return await _verify_agent_bearer(token)
-
-    cookie_value = websocket.cookies.get(AUTH_COOKIE_NAME)
-    return await _verify_browser_session(cookie_value)
 
 
 async def _project_context_for_scope(
@@ -289,7 +269,7 @@ async def _stream_home_turn(
 async def chat_ws(websocket: WebSocket) -> None:
     await websocket.accept()
     try:
-        user = await _authenticate_ws(websocket)
+        user = await get_websocket_user(websocket)
     except Exception:
         await websocket.send_json({"type": "error", "message": "unauthorized"})
         await websocket.close(code=1008)
