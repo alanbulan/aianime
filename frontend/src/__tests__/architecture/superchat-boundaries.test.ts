@@ -810,6 +810,47 @@ describe("SuperChat boundaries", () => {
     );
   });
 
+  it("keeps message-area scrolling orchestration outside the SuperChat panel", () => {
+    const controller = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/use-chat-scroll-controller.ts"),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/use-chat-scroll-controller.test.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/use-chat-scroll-controller";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/use-chat-scroll-controller";',
+    );
+    expect(controller).toContain("export function useChatScrollController(");
+    for (const ownedOperation of [
+      "const [showScrollToBottom, setShowScrollToBottom] = useState(false);",
+      "const scrollRef = useRef<HTMLDivElement | null>(null);",
+      "const messageListRef = useRef<HTMLDivElement | null>(null);",
+      "const shouldStickToBottomRef = useRef(true);",
+      "const historyScrollKeyRef = useRef<string | null>(null);",
+      "const scrollToChatBottom = useCallback(",
+      'element.addEventListener("scroll", updateStickiness',
+      "const observer = new ResizeObserver(",
+      "const firstTimeout = window.setTimeout(scrollToChatBottom, 120);",
+    ]) {
+      expect(controller).toContain(ownedOperation);
+      expect(panel).not.toContain(ownedOperation);
+    }
+    expect(controller).not.toContain("useSuperChat");
+  });
+
   it("keeps spec media modal presentation outside the SuperChat panel", () => {
     const modals = readFileSync(
       resolve(SRC_ROOT, "features/superchat/spec-media-modals.tsx"),

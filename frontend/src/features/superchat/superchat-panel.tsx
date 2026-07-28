@@ -9,7 +9,7 @@ import {
   Plus,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DragEvent as ReactDragEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "@tanstack/react-router";
@@ -42,6 +42,7 @@ import {
 import { useIngestAutomationController } from "@/features/superchat/use-ingest-automation-controller";
 import { useSpeechInputController } from "@/features/superchat/use-speech-input-controller";
 import { useTaskCompletionNotifications } from "@/features/superchat/use-task-completion-notifications";
+import { useChatScrollController } from "@/features/superchat/use-chat-scroll-controller";
 import {
   SpecMediaDetailModal,
   type SpecMediaDetail,
@@ -85,15 +86,10 @@ export function SuperChatPanel({
   const [selectedHistoryMessageIndex, setSelectedHistoryMessageIndex] = useState<number | null>(null);
   const [composerInputFocused, setComposerInputFocused] = useState(false);
   const [dragFileState, setDragFileState] = useState<"valid" | "invalid" | null>(null);
-  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const draftInputRef = useRef<HTMLTextAreaElement | null>(null);
   const restoreDraftFocusRef = useRef(false);
   const dragDepthRef = useRef(0);
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-  const messageListRef = useRef<HTMLDivElement | null>(null);
-  const shouldStickToBottomRef = useRef(true);
-  const historyScrollKeyRef = useRef<string | null>(null);
   const composerShellRef = useRef<HTMLDivElement | null>(null);
   const composerBeamRef = useRef<BorderBeamController | null>(null);
   const chat = useSuperChat({
@@ -167,71 +163,21 @@ export function SuperChatPanel({
       search,
     ],
   );
-
-  const scrollToChatBottom = useCallback((behavior: ScrollBehavior = "auto") => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const top = Math.max(0, el.scrollHeight - el.clientHeight);
-    el.scrollTo({ top, behavior });
-    shouldStickToBottomRef.current = true;
-    setShowScrollToBottom(false);
-  }, []);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const updateStickiness = () => {
-      const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-      shouldStickToBottomRef.current = distanceToBottom < 96;
-      setShowScrollToBottom(distanceToBottom > 180);
-    };
-    updateStickiness();
-    el.addEventListener("scroll", updateStickiness, { passive: true });
-    return () => el.removeEventListener("scroll", updateStickiness);
-  }, []);
-
-  useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      if (shouldStickToBottomRef.current || chat.busy) {
-        scrollToChatBottom();
-      }
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [chat.busy, chat.messages, chat.streamText, showWaitingIndicator, scrollToChatBottom]);
-
-  useEffect(() => {
-    const list = messageListRef.current;
-    if (!list || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(() => {
-      if (!shouldStickToBottomRef.current && !chat.busy) return;
-      window.requestAnimationFrame(() => scrollToChatBottom());
-    });
-    observer.observe(list);
-    return () => observer.disconnect();
-  }, [chat.busy, scrollToChatBottom]);
-
-  useEffect(() => {
-    if (!chat.historyReady) return;
-    const scrollKey = `${params.project ?? ""}:${activeMessageCount}:${lastActiveMessageId}`;
-    if (historyScrollKeyRef.current === scrollKey) return;
-    historyScrollKeyRef.current = scrollKey;
-    shouldStickToBottomRef.current = true;
-    let secondFrame = 0;
-    const firstTimeout = window.setTimeout(scrollToChatBottom, 120);
-    const secondTimeout = window.setTimeout(scrollToChatBottom, 360);
-    const thirdTimeout = window.setTimeout(scrollToChatBottom, 800);
-    const firstFrame = window.requestAnimationFrame(() => {
-      scrollToChatBottom();
-      secondFrame = window.requestAnimationFrame(() => scrollToChatBottom());
-    });
-    return () => {
-      window.cancelAnimationFrame(firstFrame);
-      if (secondFrame) window.cancelAnimationFrame(secondFrame);
-      window.clearTimeout(firstTimeout);
-      window.clearTimeout(secondTimeout);
-      window.clearTimeout(thirdTimeout);
-    };
-  }, [activeMessageCount, chat.historyReady, lastActiveMessageId, params.project, scrollToChatBottom]);
+  const {
+    messageListRef,
+    scrollRef,
+    scrollToChatBottom,
+    showScrollToBottom,
+  } = useChatScrollController({
+    activeMessageCount,
+    busy: chat.busy,
+    historyReady: chat.historyReady,
+    lastActiveMessageId,
+    messages: chat.messages,
+    project: params.project,
+    showWaitingIndicator,
+    streamText: chat.streamText,
+  });
 
   useEffect(() => {
     setQueuedMessages([]);
