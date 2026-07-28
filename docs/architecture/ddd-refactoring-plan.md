@@ -1980,6 +1980,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百五十四批已将 `SceneMenuItem`、`PropMenuItem`、`build_scene_menu` 与 `build_prop_menu` 四项剧集资产菜单模型及规范化逻辑从后端公共 `models.py` 迁入同一唯一 Narrative Planning application `episode_planning_models.py`，旧定义直接删除，不保留 facade、别名或重复实现；由此 `NovelEpisode` 不再依赖旧模型巨石。Asset Compiler、CogneeStore、Director World、Freezone、Production 网格、Asset & World 道具目录和 AssetResolver 等外部调用方统一经 Narrative Planning `public.py` 使用。两个 Pydantic JSON Schema 逐类比较保持等价，新增别名兼容、去重和菜单序列化行为测试及唯一所有权门禁。资产编译、存储与解析回归 85 项、Freezone/API 回归 87 项、M03/M05/M09 合同 25 项、完整后端分层门禁 148 项通过，合计 345 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
+第四百五十五批已将全局道具持久化与资产编排共用的 `NovelProp` 从后端公共 `models.py` 迁入唯一 Asset & World application `prop_models.py`，旧定义及无生产调用方的 `cognee` 包级转发直接删除，不保留 facade、别名或重复模型。Asset & World 内部道具目录 infrastructure 直连 application 模型，Asset Compiler、Cognee pipeline/store、SQLiteStore 与 Seedance 素材解析等模块外调用方统一经 Asset & World `public.py` 使用稳定入口；Pydantic JSON Schema 哈希 `faf1b136c821d77c2859e35c4f10acf3c4676454f8d31bd0f701f80a49e521c8` 与迁移前一致，新增默认序列化、可变默认值隔离和唯一所有权门禁。本批模型、M04/M06 合同、剧集详情与架构回归 185 项，道具 API、SQLite、Asset Compiler、Seedance 和 Prop Catalog 回归 122 项，最终完整架构门禁 149 项通过；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

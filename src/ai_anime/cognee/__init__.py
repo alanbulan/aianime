@@ -23,7 +23,6 @@ from ai_anime.models import (
     NovelCharacter,
     NovelVisualBeat,
     NovelScene,
-    NovelProp,
 )
 from .pipeline import (
     run_character_extraction_pipeline,
@@ -42,7 +41,6 @@ __all__ = [
     "NovelCharacter",
     "NovelVisualBeat",
     "NovelScene",
-    "NovelProp",
 
     # Pipeline
     "run_character_extraction_pipeline",

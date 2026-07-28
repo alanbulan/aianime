@@ -15,7 +15,8 @@ from ai_anime.api.scenes_schemas import (
     ScenePanoGenerateRequest,
     SceneUpdate,
 )
-from ai_anime.models import NovelProp, NovelScene, NovelVisualBeat
+from ai_anime.models import NovelScene, NovelVisualBeat
+from ai_anime.modules.asset_world.public import NovelProp
 from ai_anime.modules.narrative_planning.public import NovelEpisode
 
 

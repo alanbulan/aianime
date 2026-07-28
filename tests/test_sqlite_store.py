@@ -921,11 +921,8 @@ async def test_persist_narration_script(tmp_project):
 
 @pytest.mark.asyncio
 async def test_persist_narration_script_completes_detected_refs_from_markers(tmp_project):
-    from ai_anime.cognee.pipeline import (
-        CharacterIdentity,
-        NovelCharacter,
-        NovelProp,
-    )
+    from ai_anime.cognee.pipeline import CharacterIdentity, NovelCharacter
+    from ai_anime.modules.asset_world.public import NovelProp
 
     store = tmp_project
     await store._ensure_db()

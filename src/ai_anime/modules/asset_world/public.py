@@ -42,6 +42,7 @@ from ai_anime.modules.asset_world.application.image_settings import (
 from ai_anime.modules.asset_world.application.prop_catalog import (
     PropCatalogUseCases,
 )
+from ai_anime.modules.asset_world.application.prop_models import NovelProp
 from ai_anime.modules.asset_world.application.prop_tasks import PropTaskUseCases
 from ai_anime.modules.asset_world.application.scene_catalog import (
     SceneCatalogUseCases,
@@ -377,6 +378,7 @@ __all__ = [
     "InvalidImageSelection",
     "InvalidPropInput",
     "InvalidStyleInput",
+    "NovelProp",
     "PropAlreadyExists",
     "PropCatalogRejected",
     "PropCatalogUseCases",

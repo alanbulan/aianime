@@ -855,20 +855,3 @@ def build_scene_effective_prompt(scene: NovelScene, base_scene: NovelScene | Non
     if own_prompt and own_prompt != base_prompt and not variant_prompt:
         lines.extend(["", "[Stored Scene Prompt]", own_prompt])
     return "\n".join(part for part in lines if part is not None).strip()
-
-
-class NovelProp(BaseModel):
-    """道具实体 — 故事中的重要物件/武器/信物。"""
-
-    name: str = Field(description="道具名称，如 '七星剑'")
-    aliases: List[str] = Field(default_factory=list, description="别名")
-    prop_type: str = Field(
-        default="object", description="weapon/accessory/artifact/document/furniture"
-    )
-
-    visual_prompt: str = Field(default="", description="道具视觉 prompt（用于生成参考图）")
-    description: str = Field(default="", description="道具叙述性描述（材质、尺寸、用途）")
-
-    owner: str = Field(default="", description="所属角色名")
-    notes: str = Field(default="")
-    updated_at: str = Field(default="", description="道具资产最后一次内容变化时间 ISO 字符串")

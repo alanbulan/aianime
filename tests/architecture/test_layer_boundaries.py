@@ -5289,6 +5289,44 @@ def test_asset_world_style_config_has_one_owner() -> None:
     assert '"StyleConfig"' in public.read_text(encoding="utf-8")
 
 
+def test_asset_world_prop_model_has_one_owner() -> None:
+    legacy_models = PACKAGE_ROOT / "models.py"
+    prop_models = (
+        PACKAGE_ROOT
+        / "modules"
+        / "asset_world"
+        / "application"
+        / "prop_models.py"
+    )
+    prop_catalog = (
+        PACKAGE_ROOT
+        / "modules"
+        / "asset_world"
+        / "infrastructure"
+        / "prop_catalog.py"
+    )
+    public = PACKAGE_ROOT / "modules" / "asset_world" / "public.py"
+    cognee_package = PACKAGE_ROOT / "cognee" / "__init__.py"
+    callers = (
+        PACKAGE_ROOT / "agents" / "asset_compiler.py",
+        PACKAGE_ROOT / "cognee" / "pipeline.py",
+        PACKAGE_ROOT / "cognee" / "store.py",
+        PACKAGE_ROOT / "sqlite_store.py",
+        PACKAGE_ROOT / "seedance2_i2v" / "assets.py",
+    )
+
+    assert "class NovelProp(" not in legacy_models.read_text(encoding="utf-8")
+    assert "class NovelProp(BaseModel):" in prop_models.read_text(encoding="utf-8")
+    assert "ai_anime.modules.asset_world.application.prop_models" in _imports(
+        prop_catalog
+    )
+    assert "ai_anime.modules.asset_world.application.prop_models" in _imports(public)
+    assert '"NovelProp"' in public.read_text(encoding="utf-8")
+    assert "NovelProp" not in cognee_package.read_text(encoding="utf-8")
+    for caller in callers:
+        assert "ai_anime.modules.asset_world.public" in _imports(caller)
+
+
 def test_production_video_backend_catalog_has_one_owner() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_video.py"
     video_schemas = PACKAGE_ROOT / "api" / "production_video_schemas.py"
