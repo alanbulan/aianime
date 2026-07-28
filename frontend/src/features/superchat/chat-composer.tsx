@@ -28,7 +28,7 @@ type QueuedMessageItem = {
   attachments: ChatAttachment[];
 };
 
-type ChatComposerProps = {
+export type ChatComposerProps = {
   attachments: ChatAttachment[];
   busy: boolean;
   canSend: boolean;

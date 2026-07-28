@@ -630,6 +630,10 @@ describe("SuperChat boundaries", () => {
       resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
       "utf8",
     );
+    const panelView = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel-view.tsx"),
+      "utf8",
+    );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
@@ -638,7 +642,10 @@ describe("SuperChat boundaries", () => {
       "utf8",
     );
 
-    expect(panel).toContain(
+    expect(panelView).toContain(
+      'from "@/features/superchat/chat-panel-header";',
+    );
+    expect(panel).not.toContain(
       'from "@/features/superchat/chat-panel-header";',
     );
     expect(tests).toContain(
@@ -777,6 +784,10 @@ describe("SuperChat boundaries", () => {
       resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
       "utf8",
     );
+    const panelView = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel-view.tsx"),
+      "utf8",
+    );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
@@ -785,7 +796,10 @@ describe("SuperChat boundaries", () => {
       "utf8",
     );
 
-    expect(panel).toContain(
+    expect(panelView).toContain(
+      'from "@/features/superchat/chat-panel-context-views";',
+    );
+    expect(panel).not.toContain(
       'from "@/features/superchat/chat-panel-context-views";',
     );
     expect(tests).toContain(
@@ -1265,12 +1279,19 @@ describe("SuperChat boundaries", () => {
       resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
       "utf8",
     );
+    const panelView = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel-view.tsx"),
+      "utf8",
+    );
     const tests = readFileSync(
       resolve(SRC_ROOT, "__tests__/features/superchat/chat-composer.test.tsx"),
       "utf8",
     );
 
-    expect(panel).toContain(
+    expect(panelView).toContain(
+      'from "@/features/superchat/chat-composer";',
+    );
+    expect(panel).not.toContain(
       'from "@/features/superchat/chat-composer";',
     );
     expect(tests).toContain(
@@ -1313,12 +1334,19 @@ describe("SuperChat boundaries", () => {
       resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
       "utf8",
     );
+    const panelView = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel-view.tsx"),
+      "utf8",
+    );
     const tests = readFileSync(
       resolve(SRC_ROOT, "__tests__/features/superchat/chat-message-area.test.tsx"),
       "utf8",
     );
 
-    expect(panel).toContain(
+    expect(panelView).toContain(
+      'from "@/features/superchat/chat-message-area";',
+    );
+    expect(panel).not.toContain(
       'from "@/features/superchat/chat-message-area";',
     );
     expect(tests).toContain(
@@ -1405,6 +1433,10 @@ describe("SuperChat boundaries", () => {
       resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
       "utf8",
     );
+    const panelView = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel-view.tsx"),
+      "utf8",
+    );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
@@ -1413,7 +1445,10 @@ describe("SuperChat boundaries", () => {
       "utf8",
     );
 
-    expect(panel).toContain(
+    expect(panelView).toContain(
+      'from "@/features/superchat/chat-panel-detail-overlays";',
+    );
+    expect(panel).not.toContain(
       'from "@/features/superchat/chat-panel-detail-overlays";',
     );
     expect(tests).toContain(
@@ -1433,6 +1468,50 @@ describe("SuperChat boundaries", () => {
     }
     expect(detailOverlays).not.toContain("useSuperChat");
     expect(detailOverlays).not.toContain("ReturnType<");
+  });
+
+  it("keeps complete panel layout outside the SuperChat controller", () => {
+    const view = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel-view.tsx"),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/superchat-panel-view.test.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/superchat-panel-view";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/superchat-panel-view";',
+    );
+    expect(view).toContain("export type SuperChatPanelViewProps =");
+    expect(view).toContain("export function SuperChatPanelView(");
+    for (const ownedPresentation of [
+      "relative flex h-full min-h-0 overflow-hidden bg-background",
+      '<section className="relative z-10 flex min-w-0 flex-1 flex-col">',
+      "<ChatPanelHeader",
+      "<ChatPanelContextViews",
+      "<ChatMessageArea",
+      "<ChatComposer",
+      "<ChatPanelDetailOverlays",
+      'src="/images/bg-chat-buttom.png"',
+    ]) {
+      expect(view).toContain(ownedPresentation);
+      expect(panel).not.toContain(ownedPresentation);
+    }
+    expect(view).not.toContain("useSuperChat");
+    expect(view).not.toContain("useChatScrollController");
+    expect(view).not.toContain("ReturnType<");
+    expect(panel).not.toContain('from "@/lib/utils";');
   });
 
   it("keeps scope mapping and matching outside the controller hook", () => {

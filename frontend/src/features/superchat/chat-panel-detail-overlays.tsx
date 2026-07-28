@@ -8,7 +8,7 @@ import {
 import type { ChatMessage } from "@/features/superchat/types";
 import type { FormatCheck } from "@/modules/story_intake/public";
 
-type ChatPanelDetailOverlaysProps = {
+export type ChatPanelDetailOverlaysProps = {
   detailMessage: ChatMessage | null;
   formatCheck: FormatCheck | null;
   formatCheckFilename?: string;

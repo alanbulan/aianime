@@ -4,11 +4,8 @@ import { useTranslation } from "react-i18next";
 import { useParams } from "@tanstack/react-router";
 
 import { useAuthStore } from "@/modules/identity_access/public";
-import { cn } from "@/lib/utils";
 import { useSuperChat } from "@/features/superchat/use-superchat";
-import { ChatPanelHeader } from "@/features/superchat/chat-panel-header";
-import { ChatPanelContextViews } from "@/features/superchat/chat-panel-context-views";
-import { ChatPanelDetailOverlays } from "@/features/superchat/chat-panel-detail-overlays";
+import { SuperChatPanelView } from "@/features/superchat/superchat-panel-view";
 import { useIngestAutomationController } from "@/features/superchat/use-ingest-automation-controller";
 import { useSpeechInputController } from "@/features/superchat/use-speech-input-controller";
 import { useTaskCompletionNotifications } from "@/features/superchat/use-task-completion-notifications";
@@ -18,8 +15,6 @@ import { useComposerBorderBeam } from "@/features/superchat/use-composer-border-
 import { useComposerHistoryNavigation } from "@/features/superchat/use-composer-history-navigation";
 import { useComposerAttachmentsController } from "@/features/superchat/use-composer-attachments-controller";
 import { useComposerSubmitController } from "@/features/superchat/use-composer-submit-controller";
-import { ChatComposer } from "@/features/superchat/chat-composer";
-import { ChatMessageArea } from "@/features/superchat/chat-message-area";
 import type { SpecMediaDetail } from "@/features/superchat/spec-media-modals";
 import { projectPanelMessages } from "@/features/superchat/panel-message-projection";
 import type { ChatMessage } from "@/features/superchat/types";
@@ -186,107 +181,95 @@ export function SuperChatPanel({
   const isFreezoneLayout = variant === "freezone";
 
   return (
-    <div className={cn("relative flex h-full min-h-0 overflow-hidden bg-background", isFreezoneLayout && "bg-transparent")}>
-      <section className="relative z-10 flex min-w-0 flex-1 flex-col">
-        <ChatPanelHeader
-          chat={chat}
-          isFreezoneLayout={isFreezoneLayout}
-          onRequestClose={onRequestClose}
-          searchOpen={searchOpen}
-          onToggleSearch={() => setSearchOpen((value) => !value)}
-        />
-        <ChatPanelContextViews
-          approvals={chat.approvals}
-          error={chat.error}
-          pinnedMessages={pinnedMessages}
-          searchOpen={searchOpen}
-          searchQuery={search}
-          onClearPinned={chat.clearPinned}
-          onResolveApproval={chat.resolveApproval}
-          onSearchChange={setSearch}
-          onSearchClose={() => setSearchOpen(false)}
-          onTogglePin={chat.togglePin}
-        />
-
-        <ChatMessageArea
-          busy={chat.busy}
-          connected={chat.connected}
-          connecting={chat.connecting}
-          currentStreamingAssistantId={currentStreamingAssistantId}
-          deferStructuredRender={deferStructuredRender}
-          historyReady={chat.historyReady}
-          isFreezoneLayout={isFreezoneLayout}
-          messageListRef={messageListRef}
-          pinnedIds={chat.pinnedIds}
-          scrollRef={scrollRef}
-          showScrollToBottom={showScrollToBottom}
-          showWaitingIndicator={showWaitingIndicator}
-          streamText={chat.streamText}
-          streamTextAlreadyRendered={streamTextAlreadyRendered}
-          streamingAssistantId={streamingAssistantId}
-          totalMessageCount={chat.messages.length}
-          variant={variant}
-          visibleMessages={visibleMessages}
-          onDeleteMessage={chat.deleteMessage}
-          onOpenDetail={setDetailMessage}
-          onOpenMedia={setMediaDetail}
-          onScrollToBottom={scrollToChatBottom}
-          onTogglePin={chat.togglePin}
-        />
-
-        <ChatComposer
-          attachments={attachments}
-          busy={chat.busy}
-          canSend={canSend}
-          connected={chat.connected}
-          draft={draft}
-          draftInputRef={draftInputRef}
-          dragFileState={dragFileState}
-          fileInputRef={fileInputRef}
-          fileUploadEnabled={ENABLE_SUPERCHAT_FILE_UPLOAD}
-          isFreezoneLayout={isFreezoneLayout}
-          queuedMessages={queuedMessages}
-          recording={recording}
-          selectedHistoryMessageIndex={selectedHistoryMessageIndex}
-          selectedQueuedMessageId={selectedQueuedMessageId}
-          shellRef={composerShellRef}
-          showWaitingIndicator={showWaitingIndicator}
-          onAbort={chat.abort}
-          onAddFiles={addFiles}
-          onAttachmentRemove={removeAttachment}
-          onDragEnter={handleComposerDragEnter}
-          onDragLeave={handleComposerDragLeave}
-          onDragOver={handleComposerDragOver}
-          onDraftChange={setDraft}
-          onDraftFocusChange={setComposerInputFocused}
-          onDropFiles={handleComposerDrop}
-          onHistorySelect={selectHistoryMessage}
-          onOpenFilePicker={openFilePicker}
-          onQueueOffset={selectQueuedMessageByOffset}
-          onQueueRemove={removeQueuedMessage}
-          onQueueSelect={selectQueuedMessage}
-          onResetHistorySelection={resetHistorySelection}
-          onSubmit={submit}
-          onToggleSpeech={toggleSpeech}
-        />
-      </section>
-      <ChatPanelDetailOverlays
-        detailMessage={detailMessage}
-        formatCheck={formatCheckDetails?.formatCheck ?? null}
-        formatCheckFilename={formatCheckDetails?.filename}
-        formatCheckOpen={Boolean(formatCheckDetails)}
-        mediaDetail={mediaDetail}
-        onClearFormatCheckDetails={clearFormatCheckDetails}
-        onCloseDetail={() => setDetailMessage(null)}
-        onCloseMedia={() => setMediaDetail(null)}
-        onOpenMedia={setMediaDetail}
-      />
-      <img
-        src="/images/bg-chat-buttom.png"
-        alt=""
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 z-0 w-full max-w-none select-none"
-      />
-    </div>
+    <SuperChatPanelView
+      isFreezoneLayout={isFreezoneLayout}
+      header={{
+        chat,
+        onRequestClose,
+        searchOpen,
+        onToggleSearch: () => setSearchOpen((value) => !value),
+      }}
+      contextViews={{
+        approvals: chat.approvals,
+        error: chat.error,
+        pinnedMessages,
+        searchOpen,
+        searchQuery: search,
+        onClearPinned: chat.clearPinned,
+        onResolveApproval: chat.resolveApproval,
+        onSearchChange: setSearch,
+        onSearchClose: () => setSearchOpen(false),
+        onTogglePin: chat.togglePin,
+      }}
+      messageArea={{
+        busy: chat.busy,
+        connected: chat.connected,
+        connecting: chat.connecting,
+        currentStreamingAssistantId,
+        deferStructuredRender,
+        historyReady: chat.historyReady,
+        messageListRef,
+        pinnedIds: chat.pinnedIds,
+        scrollRef,
+        showScrollToBottom,
+        showWaitingIndicator,
+        streamText: chat.streamText,
+        streamTextAlreadyRendered,
+        streamingAssistantId,
+        totalMessageCount: chat.messages.length,
+        variant,
+        visibleMessages,
+        onDeleteMessage: chat.deleteMessage,
+        onOpenDetail: setDetailMessage,
+        onOpenMedia: setMediaDetail,
+        onScrollToBottom: scrollToChatBottom,
+        onTogglePin: chat.togglePin,
+      }}
+      composer={{
+        attachments,
+        busy: chat.busy,
+        canSend,
+        connected: chat.connected,
+        draft,
+        draftInputRef,
+        dragFileState,
+        fileInputRef,
+        fileUploadEnabled: ENABLE_SUPERCHAT_FILE_UPLOAD,
+        queuedMessages,
+        recording,
+        selectedHistoryMessageIndex,
+        selectedQueuedMessageId,
+        shellRef: composerShellRef,
+        showWaitingIndicator,
+        onAbort: chat.abort,
+        onAddFiles: addFiles,
+        onAttachmentRemove: removeAttachment,
+        onDragEnter: handleComposerDragEnter,
+        onDragLeave: handleComposerDragLeave,
+        onDragOver: handleComposerDragOver,
+        onDraftChange: setDraft,
+        onDraftFocusChange: setComposerInputFocused,
+        onDropFiles: handleComposerDrop,
+        onHistorySelect: selectHistoryMessage,
+        onOpenFilePicker: openFilePicker,
+        onQueueOffset: selectQueuedMessageByOffset,
+        onQueueRemove: removeQueuedMessage,
+        onQueueSelect: selectQueuedMessage,
+        onResetHistorySelection: resetHistorySelection,
+        onSubmit: submit,
+        onToggleSpeech: toggleSpeech,
+      }}
+      detailOverlays={{
+        detailMessage,
+        formatCheck: formatCheckDetails?.formatCheck ?? null,
+        formatCheckFilename: formatCheckDetails?.filename,
+        formatCheckOpen: Boolean(formatCheckDetails),
+        mediaDetail,
+        onClearFormatCheckDetails: clearFormatCheckDetails,
+        onCloseDetail: () => setDetailMessage(null),
+        onCloseMedia: () => setMediaDetail(null),
+        onOpenMedia: setMediaDetail,
+      }}
+    />
   );
 }

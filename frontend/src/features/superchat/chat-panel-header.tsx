@@ -10,7 +10,7 @@ import {
 } from "@/features/superchat/chat-control-bar";
 import { cn } from "@/lib/utils";
 
-type ChatPanelHeaderProps = {
+export type ChatPanelHeaderProps = {
   chat: ChatControlBarModel;
   isFreezoneLayout: boolean;
   onRequestClose?: () => void;

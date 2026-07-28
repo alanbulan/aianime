@@ -13,7 +13,7 @@ import type { SpecMediaDetail } from "@/features/superchat/spec-media-modals";
 import type { ChatMessage } from "@/features/superchat/types";
 import { cn } from "@/lib/utils";
 
-type ChatMessageAreaProps = {
+export type ChatMessageAreaProps = {
   busy: boolean;
   connected: boolean;
   connecting: boolean;

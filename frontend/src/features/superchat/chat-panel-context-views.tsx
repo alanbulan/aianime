@@ -9,7 +9,7 @@ import type {
 
 type ApprovalDecision = "allow-once" | "allow-always" | "deny";
 
-type ChatPanelContextViewsProps = {
+export type ChatPanelContextViewsProps = {
   approvals: ApprovalRequest[];
   error: string | null;
   pinnedMessages: ChatMessage[];
