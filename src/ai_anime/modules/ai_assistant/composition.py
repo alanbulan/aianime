@@ -12,6 +12,7 @@ from ai_anime.modules.ai_assistant.application import (
     ChatRunLocks,
     DisplayFallbacks,
     PageAgentSessions,
+    ProjectChatMessages,
     ProjectMedia,
 )
 from ai_anime.modules.ai_assistant.infrastructure import (
@@ -38,6 +39,7 @@ _chat_run_locks = FileChatRunLocks()
 _display_fallbacks = DisplayFallbacks(HttpDisplayFallbackGateway())
 _page_agent_sessions = PageAgentSessions()
 _project_media = ProjectMedia(LocalProjectMediaFiles())
+_project_chat_messages = ProjectChatMessages(_chat_history, _project_media)
 
 
 def get_agent_backend() -> AgentBackend:
@@ -82,3 +84,7 @@ def get_page_agent_sessions() -> PageAgentSessions:
 
 def get_project_media() -> ProjectMedia:
     return _project_media
+
+
+def get_project_chat_messages() -> ProjectChatMessages:
+    return _project_chat_messages

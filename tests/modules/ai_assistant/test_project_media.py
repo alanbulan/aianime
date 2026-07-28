@@ -1,9 +1,12 @@
+from ai_anime.modules.ai_assistant.application import ProjectMedia
+from ai_anime.modules.ai_assistant.domain.project_media import merge_project_media_items
+from ai_anime.modules.ai_assistant.infrastructure import LocalProjectMediaFiles
 from ai_anime.modules.ai_assistant.public import (
     extract_project_media,
     filter_markdown_duplicate_media,
-    merge_project_media_items,
-    normalize_project_media,
 )
+
+project_media = ProjectMedia(LocalProjectMediaFiles())
 
 
 def test_project_media_uses_project_id_url_and_explicit_project_dir(tmp_path):
@@ -118,7 +121,7 @@ def test_project_media_normalizes_path_only_items_and_deduplicates(tmp_path):
     image.parent.mkdir(parents=True)
     image.write_bytes(b"image")
 
-    media = normalize_project_media(
+    media = project_media.normalize(
         [
             {"path": "images/frame.png", "label": "Frame"},
             {

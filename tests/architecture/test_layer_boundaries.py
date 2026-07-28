@@ -634,6 +634,7 @@ def test_ai_assistant_owns_project_chat_media_projection() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     domain = module / "domain" / "project_media.py"
     application = module / "application" / "project_media.py"
+    message_application = module / "application" / "project_messages.py"
     ports = module / "application" / "ports.py"
     adapter = module / "infrastructure" / "project_media_files.py"
     composition = module / "composition.py"
@@ -642,6 +643,7 @@ def test_ai_assistant_owns_project_chat_media_projection() -> None:
     service_tests = REPO_ROOT / "tests" / "test_chat_service_user_agent_scope.py"
     domain_source = domain.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
+    message_application_source = message_application.read_text(encoding="utf-8")
     ports_source = ports.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
@@ -665,16 +667,18 @@ def test_ai_assistant_owns_project_chat_media_projection() -> None:
     assert "_project_media = ProjectMedia(LocalProjectMediaFiles())" in (
         composition_source
     )
-    for operation in ("extract_project_media", "normalize_project_media"):
-        assert f"def {operation}(" in public_source
-        assert operation in service_source
-    for operation in (
-        "merge_project_media_items",
-        "filter_markdown_duplicate_media",
-    ):
-        assert f"def {operation}(" in domain_source
-        assert operation in public_source
-        assert operation in service_source
+    assert "def extract_project_media(" in public_source
+    assert "extract_project_media" in service_source
+    assert "def normalize(" in application_source
+    assert "self._media.normalize(" in message_application_source
+    assert "def merge_project_media_items(" in domain_source
+    assert "merge_project_media_items" in message_application_source
+    assert "merge_project_media_items" not in public_source
+    assert "def filter_markdown_duplicate_media(" in domain_source
+    assert "filter_markdown_duplicate_media" in public_source
+    assert "filter_markdown_duplicate_media" in service_source
+    assert "filter_markdown_duplicate_media" in message_application_source
+    assert "def normalize_project_media(" not in public_source
     for legacy_implementation in (
         "_MEDIA_EXTENSIONS =",
         "_URL_RE =",
@@ -725,6 +729,9 @@ def test_ai_assistant_owns_scoped_chat_history() -> None:
 def test_ai_assistant_owns_project_chat_persistence() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     ports_source = (module / "application" / "ports.py").read_text(encoding="utf-8")
+    application_source = (
+        module / "application" / "project_messages.py"
+    ).read_text(encoding="utf-8")
     history_source = (
         module / "infrastructure" / "sqlite_chat_history.py"
     ).read_text(encoding="utf-8")
@@ -741,7 +748,8 @@ def test_ai_assistant_owns_project_chat_persistence() -> None:
     ):
         assert f"def {operation}(" in ports_source
         assert f"def {operation}(" in history_source
-        assert f"chat_history.{operation}(" in service_source
+        assert f"self._history.{operation}(" in application_source
+        assert f"chat_history.{operation}(" not in service_source
     for legacy_implementation in (
         "def _legacy_chat_db_path(",
         "def _migrate_legacy_chat_db(",
@@ -755,6 +763,62 @@ def test_ai_assistant_owns_project_chat_persistence() -> None:
         "FROM chat_messages",
     ):
         assert legacy_implementation not in service_source
+
+
+def test_ai_assistant_owns_project_chat_message_orchestration() -> None:
+    module = PACKAGE_ROOT / "modules" / "ai_assistant"
+    application = module / "application" / "project_messages.py"
+    composition = module / "composition.py"
+    public = module / "public.py"
+    service = PACKAGE_ROOT / "chat" / "service.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    service_tests = REPO_ROOT / "tests" / "test_chat_service_user_agent_scope.py"
+    application_source = application.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+    service_source = service.read_text(encoding="utf-8")
+    route_source = route.read_text(encoding="utf-8")
+    service_test_source = service_tests.read_text(encoding="utf-8")
+
+    assert "class ProjectChatMessages" in application_source
+    for operation in (
+        "list",
+        "assistant_contents",
+        "trace_contents",
+        "replace_traces",
+        "append_user",
+        "append_assistant",
+        "append_traces",
+    ):
+        assert f"def {operation}(" in application_source
+    assert (
+        "_project_chat_messages = ProjectChatMessages(_chat_history, _project_media)"
+        in composition_source
+    )
+    assert "def get_project_chat_messages(" in composition_source
+    assert "def get_project_chat_messages(" in public_source
+    assert "project_chat_messages = get_project_chat_messages()" in service_source
+    assert "project_chat_messages = get_project_chat_messages()" in route_source
+    for legacy_implementation in (
+        "def _assistant_history_contents(",
+        "def _trace_history_contents(",
+        "def list_messages(",
+        "def add_user_message(",
+        "def add_assistant_message(",
+        "def add_trace_message(",
+        "def add_trace_messages(",
+        "get_chat_history",
+        "chat_history =",
+    ):
+        assert legacy_implementation not in service_source
+    for legacy_route_call in (
+        "chat_service.add_assistant_message(",
+        "chat_service.add_user_message(",
+        "chat_service.list_messages(",
+    ):
+        assert legacy_route_call not in route_source
+    assert "chat_service.add_assistant_message" not in service_test_source
+    assert "chat_service.list_messages" not in service_test_source
 
 
 def test_ai_assistant_owns_chat_run_locks() -> None:

@@ -25,6 +25,9 @@ from ai_anime.modules.ai_assistant.application.page_agent_sessions import (
 )
 from ai_anime.modules.ai_assistant.application.prompt_context import AgentPromptContext
 from ai_anime.modules.ai_assistant.application.project_media import ProjectMedia
+from ai_anime.modules.ai_assistant.application.project_messages import (
+    ProjectChatMessages,
+)
 
 __all__ = [
     "AgentBackend",
@@ -43,5 +46,6 @@ __all__ = [
     "PageAgentSessions",
     "ProjectMedia",
     "ProjectMediaFiles",
+    "ProjectChatMessages",
     "UserPreferences",
 ]

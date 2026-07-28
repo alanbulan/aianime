@@ -10,6 +10,7 @@ from ai_anime.modules.ai_assistant.application import (
     AgentToolConfiguration,
     ChatHistory,
     ChatRunLocks,
+    ProjectChatMessages,
 )
 from ai_anime.modules.ai_assistant.domain import (
     ChatScope,
@@ -22,7 +23,6 @@ from ai_anime.modules.ai_assistant.domain import (
     infer_display_tool_call_from_text,
     is_display_tool_name,
     is_hidden_chat_tool_event,
-    merge_project_media_items,
     merge_stream_text,
     message_content,
     reingest_confirmation_reply,
@@ -113,23 +113,6 @@ def extract_project_media(
     )
 
 
-def normalize_project_media(
-    media: list[dict[str, Any]],
-    username: str,
-    project: str,
-    *,
-    project_dir: str | Path | None = None,
-) -> list[dict[str, str]]:
-    from ai_anime.modules.ai_assistant.composition import get_project_media
-
-    return get_project_media().normalize(
-        media,
-        username,
-        project,
-        project_dir=project_dir,
-    )
-
-
 def get_agent_backend() -> AgentBackend:
     from ai_anime.modules.ai_assistant.composition import get_agent_backend as resolve
 
@@ -170,6 +153,14 @@ def get_chat_run_locks() -> ChatRunLocks:
     return resolve()
 
 
+def get_project_chat_messages() -> ProjectChatMessages:
+    from ai_anime.modules.ai_assistant.composition import (
+        get_project_chat_messages as resolve,
+    )
+
+    return resolve()
+
+
 __all__ = [
     "AgentBackend",
     "AgentWorkspace",
@@ -177,6 +168,7 @@ __all__ = [
     "AgentToolConfiguration",
     "ChatHistory",
     "ChatRunLocks",
+    "ProjectChatMessages",
     "ChatScope",
     "append_tool_ui_specs",
     "build_agent_prompt_context",
@@ -196,14 +188,13 @@ __all__ = [
     "get_agent_thread_sessions",
     "get_chat_history",
     "get_chat_run_locks",
+    "get_project_chat_messages",
     "is_hidden_chat_tool_event",
     "infer_display_tool_call_from_text",
     "is_display_tool_name",
-    "merge_project_media_items",
     "merge_stream_text",
     "message_content",
     "normalize_json_render_reply",
-    "normalize_project_media",
     "reingest_confirmation_reply",
     "redact_local_filesystem_paths",
     "script_creation_guidance_prompt",

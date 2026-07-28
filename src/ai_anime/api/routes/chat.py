@@ -27,6 +27,7 @@ from ai_anime.modules.ai_assistant.public import (
     completion_text_or_existing,
     get_chat_history,
     get_chat_run_locks,
+    get_project_chat_messages,
     merge_stream_text,
     message_content,
     should_emit_final_text,
@@ -58,6 +59,7 @@ router = APIRouter()
 AI_ASSISTANT_CHAT_FEATURE_KEY = "ai_assistant_chat"
 chat_history = get_chat_history()
 chat_run_locks = get_chat_run_locks()
+project_chat_messages = get_project_chat_messages()
 
 
 @router.post("/chat/cancel")
@@ -142,7 +144,7 @@ async def append_chat_notification(
         project_ctx = await _project_context_for_scope(user, scope)
         if not scope.id:
             raise HTTPException(status_code=400, detail="project scope id is required")
-        message = chat_service.add_assistant_message(
+        message = project_chat_messages.append_assistant(
             username,
             str(scope.id),
             text,
@@ -248,7 +250,7 @@ async def _history(
     project_ctx: ProjectContext | None = None,
 ) -> list[dict[str, Any]]:
     if scope.kind == "project":
-        return chat_service.list_messages(
+        return project_chat_messages.list(
             username,
             str(scope.id),
             project_dir=project_ctx.output_dir if project_ctx is not None else None,
@@ -355,7 +357,7 @@ async def _stream_project_turn(
     project_state_dir = project_ctx.state_dir if project_ctx is not None else None
     attachment_payloads = _attachment_payloads(attachments)
     agent_text = text_with_attachment_context(text, attachment_payloads)
-    chat_service.add_user_message(
+    project_chat_messages.append_user(
         username,
         project,
         text,

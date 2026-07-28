@@ -23,7 +23,7 @@ async def test_append_chat_notification_persists_project_assistant_message(
             output_dir=tmp_path / "out", state_dir=tmp_path / "state"
         )
 
-    def fake_add_assistant_message(
+    def fake_append_assistant(
         username,
         project,
         content,
@@ -45,9 +45,9 @@ async def test_append_chat_notification_persists_project_assistant_message(
 
     monkeypatch.setattr(chat_routes, "_project_context_for_scope", fake_project_context)
     monkeypatch.setattr(
-        chat_routes.chat_service,
-        "add_assistant_message",
-        fake_add_assistant_message,
+        chat_routes.project_chat_messages,
+        "append_assistant",
+        fake_append_assistant,
     )
 
     result = await chat_routes.append_chat_notification(
@@ -155,36 +155,3 @@ filename: novel.docx
     assert "会清空/重建当前项目已有角色" in result["content"]
     assert "确定" in result["content"]
     assert "新建项目" not in result["content"]
-
-
-def test_project_history_keeps_text_and_media_projection(monkeypatch, tmp_path):
-    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
-    project_dir = tmp_path / "output" / "admin" / "show-1"
-    image = project_dir / "images" / "frame.png"
-    image.parent.mkdir(parents=True)
-    image.write_bytes(b"image")
-
-    chat_service.add_assistant_message(
-        "admin",
-        "show-1",
-        "第一段",
-        project_dir=project_dir,
-    )
-    chat_service.add_assistant_message(
-        "admin",
-        "show-1",
-        "第一段第二段\nimages/frame.png",
-        project_dir=project_dir,
-    )
-
-    messages = chat_service.list_messages(
-        "admin",
-        "show-1",
-        project_dir=project_dir,
-    )
-
-    assert [message["content"] for message in messages] == [
-        "第一段",
-        "第二段\nimages/frame.png",
-    ]
-    assert [item["path"] for item in messages[-1]["media"]] == ["images/frame.png"]

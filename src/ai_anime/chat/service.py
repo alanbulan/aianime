@@ -38,14 +38,12 @@ from ai_anime.modules.ai_assistant.public import (
     get_agent_thread_sessions,
     get_agent_tool_configuration,
     get_agent_workspace,
-    get_chat_history,
     get_chat_run_locks,
+    get_project_chat_messages,
     is_hidden_chat_tool_event,
     infer_display_tool_call_from_text,
-    merge_project_media_items,
     merge_stream_text,
     normalize_json_render_reply,
-    normalize_project_media,
     reingest_confirmation_reply,
     redact_local_filesystem_paths,
     script_creation_guidance_prompt,
@@ -60,8 +58,8 @@ agent_backend = get_agent_backend()
 agent_thread_sessions = get_agent_thread_sessions()
 agent_tool_configuration = get_agent_tool_configuration()
 agent_workspace = get_agent_workspace()
-chat_history = get_chat_history()
 chat_run_locks = get_chat_run_locks()
+project_chat_messages = get_project_chat_messages()
 
 _REINGEST_CANCELLED_BLOCK_RE = re.compile(
     r"\[AI_ANIME_REINGEST_CANCELLED\](.*?)\[/AI_ANIME_REINGEST_CANCELLED\]",
@@ -164,40 +162,6 @@ async def _emit_chat_event_best_effort(on_event, event: dict[str, Any]) -> bool:
         return True
     except Exception:
         return False
-
-
-def _assistant_history_contents(
-    username: str,
-    project: str,
-    *,
-    project_dir: str | Path | None = None,
-    project_state_dir: str | Path | None = None,
-) -> list[str]:
-    return [
-        str(message.get("content") or "")
-        for message in list_messages(
-            username,
-            project,
-            project_dir=project_dir,
-            project_state_dir=project_state_dir,
-        )
-        if message.get("role") == "assistant"
-    ]
-
-
-def _trace_history_contents(
-    username: str,
-    project: str,
-    *,
-    project_dir: str | Path | None = None,
-    project_state_dir: str | Path | None = None,
-) -> list[str]:
-    return chat_history.list_project_trace_contents(
-        username,
-        project,
-        project_dir=project_dir,
-        project_state_dir=project_state_dir,
-    )
 
 
 def _extract_codex_user_message_text(item: Any) -> str:
@@ -343,130 +307,10 @@ def _sync_codex_history_cache(
     ]
     if not history:
         return
-    chat_history.replace_project_trace_messages(
+    project_chat_messages.replace_traces(
         username,
         project,
         history,
-        project_dir=project_dir,
-        project_state_dir=project_state_dir,
-    )
-
-
-def list_messages(
-    username: str,
-    project: str,
-    *,
-    project_dir: str | Path | None = None,
-    project_state_dir: str | Path | None = None,
-    limit: int = 50,
-) -> list[dict[str, Any]]:
-    stored_messages = chat_history.list_project_messages(
-        username,
-        project,
-        project_dir=project_dir,
-        project_state_dir=project_state_dir,
-        limit=limit,
-    )
-    messages: list[dict[str, Any]] = []
-    previous_assistants: list[str] = []
-    for message in stored_messages:
-        content = str(message["content"])
-        role = str(message["role"])
-        if role == "assistant":
-            raw_content = content
-            content = strip_streamed_assistant_replay(content, previous_assistants)
-            previous_assistants.append(raw_content)
-        stored_media = normalize_project_media(
-            message.get("media") or [],
-            username,
-            project,
-            project_dir=project_dir,
-        )
-        extracted_media = extract_project_media(
-            content, username, project, project_dir=project_dir
-        )
-        merged_media = merge_project_media_items(stored_media, extracted_media)
-        messages.append(
-            {
-                "id": int(message["id"]),
-                "role": role,
-                "content": content,
-                "media": filter_markdown_duplicate_media(content, merged_media),
-                "created_at": str(message["created_at"]),
-            }
-        )
-    return messages
-
-
-def add_user_message(
-    username: str,
-    project: str,
-    content: str,
-    *,
-    project_dir: str | Path | None = None,
-    project_state_dir: str | Path | None = None,
-) -> dict[str, Any]:
-    return chat_history.append_project_message(
-        username,
-        project,
-        "user",
-        content,
-        project_dir=project_dir,
-        project_state_dir=project_state_dir,
-    )
-
-
-def add_assistant_message(
-    username: str,
-    project: str,
-    content: str,
-    media: list[dict[str, Any]] | None = None,
-    *,
-    project_dir: str | Path | None = None,
-    project_state_dir: str | Path | None = None,
-) -> dict[str, Any]:
-    content = redact_local_filesystem_paths(content)
-    return chat_history.append_project_message(
-        username,
-        project,
-        "assistant",
-        content,
-        media,
-        project_dir=project_dir,
-        project_state_dir=project_state_dir,
-    )
-
-
-def add_trace_message(
-    username: str,
-    project: str,
-    content: str,
-    *,
-    project_dir: str | Path | None = None,
-    project_state_dir: str | Path | None = None,
-) -> dict[str, Any]:
-    return chat_history.append_project_message(
-        username,
-        project,
-        "trace",
-        content,
-        project_dir=project_dir,
-        project_state_dir=project_state_dir,
-    )
-
-
-def add_trace_messages(
-    username: str,
-    project: str,
-    contents: list[str],
-    *,
-    project_dir: str | Path | None = None,
-    project_state_dir: str | Path | None = None,
-) -> list[dict[str, Any]]:
-    return chat_history.append_project_trace_messages(
-        username,
-        project,
-        contents,
         project_dir=project_dir,
         project_state_dir=project_state_dir,
     )
@@ -599,7 +443,7 @@ async def _stream_deterministic_assistant_reply(
     project_state_dir: str | Path | None = None,
 ) -> dict[str, Any]:
     content = redact_local_filesystem_paths(content)
-    message = add_assistant_message(
+    message = project_chat_messages.append_assistant(
         username,
         project,
         content,
@@ -661,7 +505,7 @@ async def _stream_assistant_reply_hermes(
         project_id=project or None,
     )
     previous_assistant = (
-        _assistant_history_contents(
+        project_chat_messages.assistant_contents(
             username,
             project,
             project_dir=project_dir,
@@ -671,7 +515,7 @@ async def _stream_assistant_reply_hermes(
         else []
     )
     previous_trace = (
-        _trace_history_contents(
+        project_chat_messages.trace_contents(
             username,
             project,
             project_dir=project_dir,
@@ -708,7 +552,7 @@ async def _stream_assistant_reply_hermes(
         final_text = normalize_json_render_reply(final_text)
         final_tool_text = strip_streamed_assistant_replay(tool_text, previous_trace)
         if final_tool_text.strip():
-            add_trace_messages(
+            project_chat_messages.append_traces(
                 username,
                 project,
                 split_trace_contents(final_tool_text),
@@ -721,7 +565,7 @@ async def _stream_assistant_reply_hermes(
             project,
             project_dir=project_dir,
         )
-        persisted_message = add_assistant_message(
+        persisted_message = project_chat_messages.append_assistant(
             username,
             project,
             final_text,
@@ -876,7 +720,7 @@ async def _stream_assistant_reply_hermes(
                 )
         result_message = persist_partial_reply()
         if result_message is None:
-            result_message = add_assistant_message(
+            result_message = project_chat_messages.append_assistant(
                 username,
                 project,
                 "(hermes returned no content)",
@@ -956,7 +800,7 @@ async def _stream_assistant_reply_claude(
         assistant_text = assistant_text.strip() or "已执行，但没有返回正文。"
         assistant_text = normalize_json_render_reply(assistant_text)
         if tool_text.strip():
-            add_trace_messages(
+            project_chat_messages.append_traces(
                 username,
                 project,
                 split_trace_contents(tool_text),
@@ -966,7 +810,7 @@ async def _stream_assistant_reply_claude(
         media = extract_project_media(
             assistant_text, username, project, project_dir=project_dir
         )
-        result_message = add_assistant_message(
+        result_message = project_chat_messages.append_assistant(
             username,
             project,
             assistant_text,
@@ -1034,7 +878,7 @@ async def _stream_assistant_reply_codex(
     assistant_text = assistant_text.strip() or "已执行，但没有返回正文。"
     assistant_text = normalize_json_render_reply(assistant_text)
     if tool_text.strip():
-        add_trace_messages(
+        project_chat_messages.append_traces(
             username,
             project,
             split_trace_contents(tool_text),
@@ -1047,7 +891,7 @@ async def _stream_assistant_reply_codex(
         project,
         project_dir=project_dir,
     )
-    result_message = add_assistant_message(
+    result_message = project_chat_messages.append_assistant(
         username,
         project,
         assistant_text,
