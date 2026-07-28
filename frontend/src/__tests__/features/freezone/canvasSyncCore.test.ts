@@ -11,7 +11,7 @@ import {
   MAX_NODES,
   sanitizePreviewImageUrls,
   type SaveSnapshot,
-} from "@/features/freezone/canvasSyncCore";
+} from "@/features/freezone/application/canvasSyncCore";
 import type { CanvasMutationSource } from "@/features/canvas/domain/canvasMutation";
 
 // Helper to build a snapshot with sensible defaults; tests override only what

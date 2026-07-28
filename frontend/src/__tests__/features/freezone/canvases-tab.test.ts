@@ -27,7 +27,7 @@ import {
   shouldAbortBestEffortPresetRefresh,
   shouldDeferPresetRefreshUntilReady,
   shouldFlushBeforePresetRefresh,
-} from "@/features/freezone/useCanvasSync";
+} from "@/features/freezone/hooks/useCanvasSync";
 import { BackendStatusError } from "@/shared/api/errors";
 
 function canvas(

@@ -13,7 +13,7 @@ import {
   HISTORY_PERSIST_MAX_STEPS,
   trimHistoryForStorage,
   useCanvasSync,
-} from "@/features/freezone/useCanvasSync";
+} from "@/features/freezone/hooks/useCanvasSync";
 import {
   readCanvasDraft,
   writeCanvasDraft,

@@ -1,8 +1,8 @@
 // Copyright (c) 2026 AI anime
 /**
- * Pure decision logic for the Freezone canvas save protocol. Extracted from
- * `useCanvasSync` so it can be exercised in isolation by `canvasSyncCore.test.ts`
- * without spinning up React / ReactFlow / a backend.
+ * Pure application decision logic for the Freezone canvas save protocol.
+ * Extracted from `useCanvasSync` so it can be exercised in isolation by
+ * `canvasSyncCore.test.ts` without spinning up React / ReactFlow / a backend.
  *
  * The hook collects a `SaveSnapshot` from the React refs + zustand stores, asks
  * `decideSaveAction` what to do, and — if the action is `"send"` — feeds the

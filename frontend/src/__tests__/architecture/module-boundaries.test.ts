@@ -1417,7 +1417,7 @@ describe("frontend architecture boundaries", () => {
     const migratedConsumerPaths = [
       "features/freezone/CanvasDebugPanel.tsx",
       "features/freezone/CanvasesTab.tsx",
-      "features/freezone/useCanvasSync.ts",
+      "features/freezone/hooks/useCanvasSync.ts",
     ];
 
     expect(existsSync(apiCanvasPath)).toBe(false);
@@ -1745,7 +1745,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasSync = readFileSync(
-      resolve(SRC_ROOT, "features/freezone/useCanvasSync.ts"),
+      resolve(SRC_ROOT, "features/freezone/hooks/useCanvasSync.ts"),
       "utf8",
     );
     const draftStorage = readFileSync(
@@ -2040,7 +2040,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasSyncCore = readFileSync(
-      resolve(SRC_ROOT, "features/freezone/canvasSyncCore.ts"),
+      resolve(SRC_ROOT, "features/freezone/application/canvasSyncCore.ts"),
       "utf8",
     );
     const draftStorage = readFileSync(
@@ -4904,7 +4904,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasSync = readFileSync(
-      resolve(SRC_ROOT, "features/freezone/useCanvasSync.ts"),
+      resolve(SRC_ROOT, "features/freezone/hooks/useCanvasSync.ts"),
       "utf8",
     );
 
@@ -4916,6 +4916,59 @@ describe("frontend architecture boundaries", () => {
       "const unsubscribeCanvas = useCanvasStore.subscribe((state, prev) =>",
     );
     expect(canvasSync).toContain("void scheduleSave({");
+  });
+
+  it("separates Freezone canvas sync decisions from its presentation hook", () => {
+    const legacyCorePath = resolve(
+      SRC_ROOT,
+      "features/freezone/canvasSyncCore.ts",
+    );
+    const legacyHookPath = resolve(
+      SRC_ROOT,
+      "features/freezone/useCanvasSync.ts",
+    );
+    const corePath = resolve(
+      SRC_ROOT,
+      "features/freezone/application/canvasSyncCore.ts",
+    );
+    const hookPath = resolve(
+      SRC_ROOT,
+      "features/freezone/hooks/useCanvasSync.ts",
+    );
+    const shellPath = resolve(SRC_ROOT, "features/freezone/FreezoneShell.tsx");
+    const coreSource = readFileSync(corePath, "utf8");
+    const forbiddenCoreImports = importSpecifiers(corePath).filter(
+      (specifier) =>
+        specifier === "react" ||
+        specifier.startsWith("react/") ||
+        specifier === "@xyflow/react" ||
+        specifier.startsWith("@xyflow/react/") ||
+        specifier === "zustand" ||
+        specifier.startsWith("zustand/") ||
+        specifier.startsWith("@/features/freezone/infrastructure/") ||
+        specifier === "@/features/freezone/composition" ||
+        specifier.startsWith("@/shared/api/"),
+    );
+    const decisionDeclaration = [
+      "export function",
+      "decideSaveAction(",
+    ].join(" ");
+    const decisionOwners = sourceFiles(SRC_ROOT)
+      .filter((path) => readFileSync(path, "utf8").includes(decisionDeclaration))
+      .map(relativeSource)
+      .sort();
+
+    expect(existsSync(legacyCorePath)).toBe(false);
+    expect(existsSync(legacyHookPath)).toBe(false);
+    expect(forbiddenCoreImports).toEqual([]);
+    expect(coreSource).not.toContain("window.");
+    expect(coreSource).not.toContain("document.");
+    expect(coreSource).not.toContain("localStorage");
+    expect(decisionOwners).toEqual([
+      "features/freezone/application/canvasSyncCore.ts",
+    ]);
+    expect(importSpecifiers(hookPath)).toContain("../application/canvasSyncCore");
+    expect(importSpecifiers(shellPath)).toContain("./hooks/useCanvasSync");
   });
 
   it("keeps Canvas asynchronous node task concurrency in one presentation hook", () => {

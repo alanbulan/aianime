@@ -32,23 +32,23 @@ import {
   MAX_BODY_BYTES,
   type SaveDecision,
   type SaveResponseOutcome,
-} from "./canvasSyncCore";
+} from "../application/canvasSyncCore";
 import {
   EMPTY_SHOT_METADATA,
   useShotMetadataStore,
   type ShotMetadata,
-} from "./shotMetadataStore";
-import { setFreezoneCanvasMetadata } from "./canvasMetadataContext";
+} from "../shotMetadataStore";
+import { setFreezoneCanvasMetadata } from "../canvasMetadataContext";
 import {
   consumeQueuedLocalFreezoneProjections,
   registerFreezoneCanvasRuntime,
-} from "./canvasSyncRuntime";
+} from "../canvasSyncRuntime";
 import {
   mergeProjectedCanvasWithLocalCanvas,
   mergeProjectionMetadata,
   removeProjectionFromLocalCanvas,
   removeProjectionMetadata,
-} from "./projections";
+} from "../projections";
 import {
   canvasDraftSignature,
   clearCanvasDraft,
@@ -56,7 +56,7 @@ import {
   readCanvasDraft,
   writeCanvasDraft,
   type StoredCanvasDraft,
-} from "./canvasDraftStorage";
+} from "../canvasDraftStorage";
 import { safeLocalStorageSet } from "@/lib/localStorageQuota";
 
 const DEBOUNCE_MS = 800;
