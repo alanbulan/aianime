@@ -1964,6 +1964,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百四十六批已将 Canvas Video route 独占的视频分析、资产库、文本/图片/首尾帧/全能参考生成、编辑、擦除、高清、音视频分离与时间线合成共 16 个请求及嵌套模型从后端公共 `api/schemas.py` 迁入唯一 `api/canvas_video_schemas.py` 入站适配器 schema，Video route 与 5 个直接模型测试同步切换新入口，旧巨石定义及失去用途的 `Field`、共享 Mark 导入和 forward-ref rebuild 直接删除，不保留 re-export facade、旧别名或重复模型。`FreezoneVideoMark` 的两个真实消费者收口为 Image/Video schema；16 个 Pydantic JSON Schema 逐类比较保持等价。统一 schema 所有权门禁加入 Canvas Video 案例，并将共享 Mark 消费关系改为锁定两个专属 schema。Canvas Video 定向回归 179 项、M06 视频资产库及 inline/celery 任务端点合同 3 项、完整后端分层门禁 141 项通过，合计 323 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
+第四百四十七批已删除后端公共 `api/schemas.py` 旧 facade：两个仍经旧入口导入 `IngestStart` 的测试改为直接依赖唯一 `api/story_intake_schemas.py` 所有者，零调用的 `TaskResponse`、`ErrorResponse`、Project Grant 三个模型、`StyleCreateRequest` 与 `ProjectStatus` 不再保留。统一 schema 所有权门禁收紧为要求旧文件不存在；Text、Production Video、Render Plan 及历史功能移除测试改为检查真实 schema 所有者或旧文件不存在，不再通过读取 facade 证明类已移除，并同步修正对早已删除的 `manual_shots.py` 的过期读取。Ingest/Spine 与历史功能移除回归 25 项、完整后端分层门禁 141 项通过，合计 166 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

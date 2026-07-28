@@ -3,15 +3,19 @@ from pathlib import Path
 
 def test_dead_grid_preview_backend_flow_is_removed() -> None:
     routes_root = Path("src/ai_anime/api/routes")
+    schemas_root = Path("src/ai_anime/api")
     routes_source = "\n".join(
         path.read_text(encoding="utf-8") for path in routes_root.glob("*.py")
     )
-    schemas_source = Path("src/ai_anime/api/schemas.py").read_text(encoding="utf-8")
+    schemas_source = "\n".join(
+        path.read_text(encoding="utf-8") for path in schemas_root.glob("*_schemas.py")
+    )
     task_identity_source = Path("src/ai_anime/task_identity.py").read_text(
         encoding="utf-8"
     )
 
     assert not (routes_root / "generation.py").exists()
+    assert not (schemas_root / "schemas.py").exists()
     assert '"/projects/{project}/episodes/{episode_num}/grids/generate"' not in routes_source
     assert "GridGenerateRequest" not in routes_source
     assert "GridGenerateRequest" not in schemas_source

@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi import UploadFile
 
-from ai_anime.api.schemas import IngestStart
+from ai_anime.api.story_intake_schemas import IngestStart
 from ai_anime.modules.project_workspace.public import ProjectContext
 
 pytestmark = pytest.mark.m03

@@ -107,7 +107,8 @@ def test_route_modules_do_not_add_cross_route_dependencies() -> None:
 
 def test_route_request_schemas_are_owned_by_their_adapters() -> None:
     root_schemas = PACKAGE_ROOT / "api" / "schemas.py"
-    root_source = root_schemas.read_text(encoding="utf-8")
+    assert not root_schemas.exists()
+    root_source = ""
     cases = (
         (
             "asset_world_viewer_schemas.py",
@@ -4463,7 +4464,7 @@ def test_freezone_text_processing_routes_delegate_to_application() -> None:
     composition = PACKAGE_ROOT / "modules" / "creative_canvas" / "composition.py"
     public = PACKAGE_ROOT / "modules" / "creative_canvas" / "public.py"
     runner = PACKAGE_ROOT / "task_backend" / "runners" / "freezone.py"
-    schemas = PACKAGE_ROOT / "api" / "schemas.py"
+    schemas = PACKAGE_ROOT / "api" / "canvas_text_schemas.py"
     source = route.read_text(encoding="utf-8")
     legacy_source = _removed_freezone_route_source(legacy_route)
     api_router_source = api_router.read_text(encoding="utf-8")
@@ -5090,7 +5091,6 @@ def test_production_grid_pool_routes_delegate_to_application() -> None:
 
 def test_production_video_backend_catalog_has_one_owner() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_video.py"
-    root_schemas = PACKAGE_ROOT / "api" / "schemas.py"
     video_schemas = PACKAGE_ROOT / "api" / "production_video_schemas.py"
     video_runner = PACKAGE_ROOT / "task_backend" / "runners" / "video.py"
     seedance_pipeline = PACKAGE_ROOT / "seedance2_i2v" / "pipeline.py"
@@ -5107,11 +5107,10 @@ def test_production_video_backend_catalog_has_one_owner() -> None:
         "VideoBackendOption",
     ):
         assert legacy_implementation not in source
-    root_schema_source = root_schemas.read_text(encoding="utf-8")
-    assert "class VideoGenerateRequest(" not in root_schema_source
-    assert "class VideoBackendOption(" not in root_schema_source
-    assert "DEFAULT_VIDEO_BACKEND" not in root_schema_source
-    assert "DEFAULT_VIDEO_BACKEND" in video_schemas.read_text(encoding="utf-8")
+    video_schema_source = video_schemas.read_text(encoding="utf-8")
+    assert "class VideoGenerateRequest(" not in video_schema_source
+    assert "class VideoBackendOption(" not in video_schema_source
+    assert "DEFAULT_VIDEO_BACKEND" in video_schema_source
     assert "is_seedance2_backend" in video_runner.read_text(encoding="utf-8")
     assert "is_huimeng_seedance2_backend" not in seedance_pipeline.read_text(
         encoding="utf-8"
@@ -5295,7 +5294,7 @@ def test_production_grid_regeneration_route_delegates_to_application() -> None:
 
 def test_production_render_plan_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_render.py"
-    schemas = PACKAGE_ROOT / "api" / "schemas.py"
+    schemas = PACKAGE_ROOT / "api" / "production_render_schemas.py"
     render_plan_package = PACKAGE_ROOT / "render_plan"
     source = route.read_text(encoding="utf-8")
     api_router_source = (PACKAGE_ROOT / "api" / "v1" / "router.py").read_text(
