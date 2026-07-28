@@ -432,6 +432,45 @@ describe("SuperChat boundaries", () => {
     expect(jsonView).not.toContain("useSuperChat");
   });
 
+  it("keeps spec media modal presentation outside the SuperChat panel", () => {
+    const modals = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/spec-media-modals.tsx"),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/spec-media-modals.test.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/spec-media-modals";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/spec-media-modals";',
+    );
+    for (const ownedOperation of [
+      "type SpecMediaDetailSection =",
+      "export type SpecMediaDetail =",
+      "function triggerDownload(",
+      "export function VideoDetailModal(",
+      "export function SpecMediaDetailModal(",
+    ]) {
+      expect(modals).toContain(ownedOperation);
+      expect(panel).not.toContain(ownedOperation);
+    }
+    expect(modals).toContain('from "@/components/ui/dialog";');
+    expect(modals).not.toContain("extractUnifiedMediaItems");
+    expect(modals).not.toContain("useSuperChat");
+    expect(panel).not.toContain('from "@/components/ui/dialog";');
+  });
+
   it("keeps scope mapping and matching outside the controller hook", () => {
     const scope = readFileSync(
       resolve(SRC_ROOT, "features/superchat/scope.ts"),
