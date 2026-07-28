@@ -21,6 +21,9 @@ from ai_anime.modules.ai_assistant.infrastructure.display_fallback_gateway impor
 from ai_anime.modules.ai_assistant.infrastructure.json_render_errors import (
     FileJsonRenderErrors,
 )
+from ai_anime.modules.ai_assistant.infrastructure.project_media_files import (
+    LocalProjectMediaFiles,
+)
 from ai_anime.modules.ai_assistant.infrastructure.sqlite_chat_history import (
     SQLiteChatHistory,
 )
@@ -37,5 +40,6 @@ __all__ = [
     "LocalAgentBackendRuntime",
     "LocalAgentToolConfiguration",
     "LocalAgentWorkspace",
+    "LocalProjectMediaFiles",
     "SQLiteChatHistory",
 ]

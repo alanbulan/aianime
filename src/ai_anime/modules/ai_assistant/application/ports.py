@@ -103,6 +103,24 @@ class DisplayFallbackGateway(Protocol):
     def get(self, path: str, token: str) -> dict[str, Any]: ...
 
 
+class ProjectMediaFiles(Protocol):
+    def resolve_project_dir(
+        self,
+        username: str,
+        project: str,
+        project_dir: str | Path | None = None,
+    ) -> Path: ...
+
+    def exists(self, project_dir: Path, relative_path: str) -> bool: ...
+
+    def static_url(
+        self,
+        project: str,
+        project_dir: Path,
+        relative_path: str,
+    ) -> str: ...
+
+
 class ChatRunLocks(Protocol):
     def acquire(self, username: str, project: str) -> str: ...
 

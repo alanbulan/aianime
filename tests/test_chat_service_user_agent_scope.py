@@ -157,67 +157,6 @@ filename: novel.docx
     assert "新建项目" not in result["content"]
 
 
-def test_project_media_uses_project_id_url_and_explicit_project_dir(tmp_path):
-    project_dir = tmp_path / "output" / "admin" / "demo"
-    image = project_dir / "frames" / "ep001" / "beat_01.png"
-    image.parent.mkdir(parents=True)
-    image.write_bytes(b"image")
-
-    media = chat_service._extract_media(
-        "use frames/ep001/beat_01.png",
-        "admin",
-        "01KS_PROJECT_ID",
-        project_dir=project_dir,
-    )
-
-    assert media == [
-        {
-            "kind": "image",
-            "url": f"/static/projects/01KS_PROJECT_ID/frames/ep001/beat_01.png?v={image.stat().st_mtime_ns}",
-            "path": "frames/ep001/beat_01.png",
-            "label": "beat_01.png",
-        }
-    ]
-
-
-def test_markdown_project_image_is_not_duplicated_as_media(tmp_path):
-    project_dir = tmp_path / "output" / "admin" / "demo"
-    image = project_dir / "frames" / "ep001" / "beat_01.png"
-    image.parent.mkdir(parents=True)
-    image.write_bytes(b"image")
-
-    media = chat_service._extract_media(
-        "![frame](/static/projects/01KS_PROJECT_ID/frames/ep001/beat_01.png)",
-        "admin",
-        "01KS_PROJECT_ID",
-        project_dir=project_dir,
-    )
-
-    assert media == []
-
-
-def test_markdown_project_image_filters_normalized_media_item(tmp_path):
-    project_dir = tmp_path / "output" / "admin" / "demo"
-    image = project_dir / "frames" / "ep001" / "beat_01.png"
-    image.parent.mkdir(parents=True)
-    image.write_bytes(b"image")
-    url = f"/static/projects/01KS_PROJECT_ID/frames/ep001/beat_01.png?v={image.stat().st_mtime_ns}"
-
-    media = chat_service._filter_markdown_duplicate_images(
-        "![frame](/static/projects/01KS_PROJECT_ID/frames/ep001/beat_01.png)",
-        [
-            {
-                "kind": "image",
-                "url": url,
-                "path": "frames/ep001/beat_01.png",
-                "label": "beat_01.png",
-            }
-        ],
-    )
-
-    assert media == []
-
-
 def test_project_history_keeps_text_and_media_projection(monkeypatch, tmp_path):
     monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
     project_dir = tmp_path / "output" / "admin" / "show-1"

@@ -630,6 +630,75 @@ def test_ai_assistant_owns_display_tool_fallbacks() -> None:
     assert "chat_service._fallback_display_tool_ui_specs" not in service_test_source
 
 
+def test_ai_assistant_owns_project_chat_media_projection() -> None:
+    module = PACKAGE_ROOT / "modules" / "ai_assistant"
+    domain = module / "domain" / "project_media.py"
+    application = module / "application" / "project_media.py"
+    ports = module / "application" / "ports.py"
+    adapter = module / "infrastructure" / "project_media_files.py"
+    composition = module / "composition.py"
+    public = module / "public.py"
+    service = PACKAGE_ROOT / "chat" / "service.py"
+    service_tests = REPO_ROOT / "tests" / "test_chat_service_user_agent_scope.py"
+    domain_source = domain.read_text(encoding="utf-8")
+    application_source = application.read_text(encoding="utf-8")
+    ports_source = ports.read_text(encoding="utf-8")
+    adapter_source = adapter.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+    service_source = service.read_text(encoding="utf-8")
+    service_test_source = service_tests.read_text(encoding="utf-8")
+
+    assert not {
+        imported
+        for imported in _imports(domain)
+        if imported == "os"
+        or imported == "sqlite3"
+        or imported == "fastapi"
+        or imported.startswith("ai_anime.chat")
+    }
+    assert "class ProjectMediaFiles(Protocol)" in ports_source
+    assert "class ProjectMedia" in application_source
+    assert "class LocalProjectMediaFiles" in adapter_source
+    assert "AI_ANIME_OUTPUT_DIR" in adapter_source
+    assert "project_static_url" in adapter_source
+    assert "_project_media = ProjectMedia(LocalProjectMediaFiles())" in (
+        composition_source
+    )
+    for operation in ("extract_project_media", "normalize_project_media"):
+        assert f"def {operation}(" in public_source
+        assert operation in service_source
+    for operation in (
+        "merge_project_media_items",
+        "filter_markdown_duplicate_media",
+    ):
+        assert f"def {operation}(" in domain_source
+        assert operation in public_source
+        assert operation in service_source
+    for legacy_implementation in (
+        "_MEDIA_EXTENSIONS =",
+        "_URL_RE =",
+        "_REL_PATH_RE =",
+        "_MARKDOWN_IMAGE_RE =",
+        "def _media_path_from_static_url(",
+        "def _canonical_project_static_media_url(",
+        "def _media_project_dir(",
+        "def _output_root(",
+        "def _project_dir(",
+        "def _extract_media(",
+        "def _collect_markdown_image_refs(",
+        "def _normalize_media_items(",
+        "def _merge_media_items(",
+        "def _filter_markdown_duplicate_images(",
+        "project_static_url",
+        "urlparse",
+        "unquote",
+    ):
+        assert legacy_implementation not in service_source
+    assert "chat_service._extract_media" not in service_test_source
+    assert "chat_service._filter_markdown_duplicate_images" not in service_test_source
+
+
 def test_ai_assistant_owns_scoped_chat_history() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     scope = module / "domain" / "scope.py"

@@ -1,5 +1,6 @@
 """Stable application API exposed by AI Assistant."""
 
+from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.ai_assistant.application import (
@@ -16,10 +17,12 @@ from ai_anime.modules.ai_assistant.domain import (
     dedupe_tool_ui_specs,
     display_tool_call_key,
     extract_display_tool_call,
+    filter_markdown_duplicate_media,
     filter_tool_ui_specs_for_prompt,
     infer_display_tool_call_from_text,
     is_display_tool_name,
     is_hidden_chat_tool_event,
+    merge_project_media_items,
     merge_stream_text,
     message_content,
     reingest_confirmation_reply,
@@ -93,6 +96,40 @@ async def fallback_display_tool_ui_specs(
     )
 
 
+def extract_project_media(
+    content: str,
+    username: str,
+    project: str,
+    *,
+    project_dir: str | Path | None = None,
+) -> list[dict[str, str]]:
+    from ai_anime.modules.ai_assistant.composition import get_project_media
+
+    return get_project_media().extract(
+        content,
+        username,
+        project,
+        project_dir=project_dir,
+    )
+
+
+def normalize_project_media(
+    media: list[dict[str, Any]],
+    username: str,
+    project: str,
+    *,
+    project_dir: str | Path | None = None,
+) -> list[dict[str, str]]:
+    from ai_anime.modules.ai_assistant.composition import get_project_media
+
+    return get_project_media().normalize(
+        media,
+        username,
+        project,
+        project_dir=project_dir,
+    )
+
+
 def get_agent_backend() -> AgentBackend:
     from ai_anime.modules.ai_assistant.composition import get_agent_backend as resolve
 
@@ -149,7 +186,9 @@ __all__ = [
     "display_tool_call_key",
     "extract_tool_ui_specs",
     "extract_display_tool_call",
+    "extract_project_media",
     "fallback_display_tool_ui_specs",
+    "filter_markdown_duplicate_media",
     "filter_tool_ui_specs_for_prompt",
     "get_agent_backend",
     "get_agent_tool_configuration",
@@ -160,9 +199,11 @@ __all__ = [
     "is_hidden_chat_tool_event",
     "infer_display_tool_call_from_text",
     "is_display_tool_name",
+    "merge_project_media_items",
     "merge_stream_text",
     "message_content",
     "normalize_json_render_reply",
+    "normalize_project_media",
     "reingest_confirmation_reply",
     "redact_local_filesystem_paths",
     "script_creation_guidance_prompt",

@@ -11,7 +11,6 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-from urllib.parse import unquote, urlparse
 
 from ai_anime.chat.backend_sdk import (
     ClaudeSdkClient,
@@ -30,8 +29,10 @@ from ai_anime.modules.ai_assistant.public import (
     dedupe_tool_ui_specs,
     display_tool_call_key,
     extract_display_tool_call,
+    extract_project_media,
     extract_tool_ui_specs,
     fallback_display_tool_ui_specs,
+    filter_markdown_duplicate_media,
     filter_tool_ui_specs_for_prompt,
     get_agent_backend,
     get_agent_thread_sessions,
@@ -41,8 +42,10 @@ from ai_anime.modules.ai_assistant.public import (
     get_chat_run_locks,
     is_hidden_chat_tool_event,
     infer_display_tool_call_from_text,
+    merge_project_media_items,
     merge_stream_text,
     normalize_json_render_reply,
+    normalize_project_media,
     reingest_confirmation_reply,
     redact_local_filesystem_paths,
     script_creation_guidance_prompt,
@@ -51,7 +54,6 @@ from ai_anime.modules.ai_assistant.public import (
     strip_streamed_assistant_replay,
     tool_chat_error,
 )
-from ai_anime.utils.static_urls import project_static_url
 
 logger = logging.getLogger("ai_anime.chat.service")
 agent_backend = get_agent_backend()
@@ -61,77 +63,14 @@ agent_workspace = get_agent_workspace()
 chat_history = get_chat_history()
 chat_run_locks = get_chat_run_locks()
 
-_MEDIA_EXTENSIONS = {
-    ".png": "image",
-    ".jpg": "image",
-    ".jpeg": "image",
-    ".webp": "image",
-    ".gif": "image",
-    ".mp4": "video",
-    ".mov": "video",
-    ".webm": "video",
-    ".wav": "audio",
-    ".mp3": "audio",
-    ".m4a": "audio",
-}
-_URL_RE = re.compile(r"(https?://[^\s)>\"]+|/static/[^\s)>\"]+)")
-_REL_PATH_RE = re.compile(
-    r"(?P<path>(?:assets|videos|audio|images|frames|sketches|grids|uploads|scripts)/[^\s)>\"]+\.(?:png|jpg|jpeg|webp|gif|mp4|mov|webm|wav|mp3|m4a))"
-)
-_MARKDOWN_IMAGE_RE = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
 _REINGEST_CANCELLED_BLOCK_RE = re.compile(
     r"\[AI_ANIME_REINGEST_CANCELLED\](.*?)\[/AI_ANIME_REINGEST_CANCELLED\]",
     re.DOTALL,
 )
 
 
-def _media_path_from_static_url(url: str) -> str | None:
-    parsed = urlparse(url)
-    path = parsed.path if parsed.scheme in {"http", "https"} else url.split("?", 1)[0]
-    if not path.startswith("/static/"):
-        return None
-    rel = path[len("/static/") :]
-    parts = rel.split("/", 2)
-    if len(parts) == 3:
-        return unquote(parts[2])
-    return unquote(rel)
-
-
-def _canonical_project_static_media_url(
-    project_id: str,
-    project_dir: Path,
-    url_or_path: str,
-) -> tuple[str, str] | None:
-    media_path = _media_path_from_static_url(url_or_path)
-    if media_path is None:
-        media_path = url_or_path.strip().split("?", 1)[0].lstrip("./")
-    if not media_path:
-        return None
-    local_path = project_dir / media_path
-    return project_static_url(project_id, media_path, local_path=local_path), media_path
-
-
-def _media_project_dir(
-    username: str,
-    project: str,
-    project_dir: str | Path | None = None,
-) -> Path:
-    return (
-        Path(project_dir)
-        if project_dir is not None
-        else _project_dir(username, project)
-    )
-
-
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
-
-
-def _output_root() -> Path:
-    configured = os.environ.get("AI_ANIME_OUTPUT_DIR", "").strip()
-    if configured:
-        return Path(configured).expanduser()
-    return _repo_root() / "output"
 
 
 def _state_root() -> Path:
@@ -143,23 +82,6 @@ def _state_root() -> Path:
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
-
-
-def _project_dir(username: str, project: str) -> Path:
-    base_dir = _output_root() / username / project
-    for path in (
-        base_dir,
-        base_dir / "graph",
-        base_dir / "assets",
-        base_dir / "assets" / "characters",
-        base_dir / "scripts",
-        base_dir / "images",
-        base_dir / "audio",
-        base_dir / "videos",
-        base_dir / "uploads",
-    ):
-        path.mkdir(parents=True, exist_ok=True)
-    return base_dir
 
 
 def _project_state_dir(username: str, project: str) -> Path:
@@ -369,9 +291,9 @@ def _load_codex_thread_history(username: str, project: str) -> list[dict[str, An
                             "id": turn_index * 1000 + item_index,
                             "role": "user",
                             "content": content,
-                            "media": _filter_markdown_duplicate_images(
+                            "media": filter_markdown_duplicate_media(
                                 content,
-                                _extract_media(content, username, project),
+                                extract_project_media(content, username, project),
                             ),
                             "created_at": created_at,
                         }
@@ -380,13 +302,13 @@ def _load_codex_thread_history(username: str, project: str) -> list[dict[str, An
             if isinstance(thread_item, AgentMessageThreadItem):
                 content = str(thread_item.text or "").strip()
                 if content:
-                    media = _extract_media(content, username, project)
+                    media = extract_project_media(content, username, project)
                     history.append(
                         {
                             "id": turn_index * 1000 + item_index,
                             "role": "assistant",
                             "content": content,
-                            "media": _filter_markdown_duplicate_images(content, media),
+                            "media": filter_markdown_duplicate_media(content, media),
                             "created_at": created_at,
                         }
                     )
@@ -454,22 +376,22 @@ def list_messages(
             raw_content = content
             content = strip_streamed_assistant_replay(content, previous_assistants)
             previous_assistants.append(raw_content)
-        stored_media = _normalize_media_items(
+        stored_media = normalize_project_media(
             message.get("media") or [],
             username,
             project,
             project_dir=project_dir,
         )
-        extracted_media = _extract_media(
+        extracted_media = extract_project_media(
             content, username, project, project_dir=project_dir
         )
-        merged_media = _merge_media_items(stored_media, extracted_media)
+        merged_media = merge_project_media_items(stored_media, extracted_media)
         messages.append(
             {
                 "id": int(message["id"]),
                 "role": role,
                 "content": content,
-                "media": _filter_markdown_duplicate_images(content, merged_media),
+                "media": filter_markdown_duplicate_media(content, merged_media),
                 "created_at": str(message["created_at"]),
             }
         )
@@ -548,219 +470,6 @@ def add_trace_messages(
         project_dir=project_dir,
         project_state_dir=project_state_dir,
     )
-
-
-def _extract_media(
-    content: str,
-    username: str,
-    project: str,
-    *,
-    project_dir: str | Path | None = None,
-) -> list[dict[str, str]]:
-    media_project_dir = _media_project_dir(username, project, project_dir)
-    items: list[dict[str, str]] = []
-    seen: set[str] = set()
-    markdown_images = _collect_markdown_image_refs(content)
-
-    def add_item(raw_url: str, path: str | None = None) -> None:
-        candidate = raw_url.strip(".,;)]}")
-        parsed = urlparse(candidate)
-        if parsed.scheme in {"http", "https"} and parsed.path.startswith("/static/"):
-            candidate = parsed.path
-        if candidate.startswith("/static/"):
-            canonical = _canonical_project_static_media_url(
-                project, media_project_dir, candidate
-            )
-            if canonical is None:
-                return
-            candidate, path = canonical
-        ext = Path(urlparse(candidate).path).suffix.lower()
-        kind = _MEDIA_EXTENSIONS.get(ext)
-        if not kind:
-            return
-        if kind == "image" and (
-            candidate in markdown_images
-            or (path and path in markdown_images)
-            or (path and path.lstrip("./") in markdown_images)
-        ):
-            return
-        effective_path = path or ""
-        if not effective_path:
-            effective_path = _media_path_from_static_url(candidate) or ""
-        key = f"{kind}:{effective_path or candidate}"
-        if key in seen:
-            return
-        seen.add(key)
-        items.append(
-            {
-                "kind": kind,
-                "url": candidate,
-                "path": effective_path,
-                "label": Path(effective_path or candidate).name,
-            }
-        )
-
-    for match in _URL_RE.finditer(content):
-        url = match.group(1)
-        if url.startswith("/static/"):
-            add_item(url)
-        else:
-            add_item(url)
-
-    for match in _REL_PATH_RE.finditer(content):
-        rel_path = match.group("path")
-        full_path = media_project_dir / rel_path
-        if full_path.exists():
-            static_url = project_static_url(project, rel_path, local_path=full_path)
-            add_item(static_url, rel_path)
-
-    return items
-
-
-def _collect_markdown_image_refs(content: str) -> set[str]:
-    refs: set[str] = set()
-
-    for match in _MARKDOWN_IMAGE_RE.finditer(content):
-        raw = (match.group(1) or "").strip().strip("<>").strip(".,;)]}")
-        if not raw:
-            continue
-        refs.add(raw)
-        parsed = urlparse(raw)
-        path = (
-            parsed.path if parsed.scheme in {"http", "https"} else raw.split("?", 1)[0]
-        )
-        if path:
-            refs.add(path)
-        static_path = _media_path_from_static_url(raw)
-        if static_path:
-            refs.add(static_path)
-            refs.add(static_path.lstrip("./"))
-        elif parsed.scheme in {"http", "https"} and parsed.path.startswith("/static/"):
-            refs.add(parsed.path)
-        elif raw.startswith("/static/"):
-            refs.add(raw.split("?", 1)[0])
-        else:
-            refs.add(path.lstrip("./") if path else raw.lstrip("./"))
-
-    return refs
-
-
-def _normalize_media_items(
-    media: list[dict[str, Any]],
-    username: str,
-    project: str,
-    *,
-    project_dir: str | Path | None = None,
-) -> list[dict[str, str]]:
-    normalized: list[dict[str, str]] = []
-    seen: set[str] = set()
-    media_project_dir = _media_project_dir(username, project, project_dir)
-
-    for item in media:
-        if not isinstance(item, dict):
-            continue
-
-        candidate = str(item.get("url", "") or "").strip()
-        path = str(item.get("path", "") or "").strip()
-        if not candidate and not path:
-            continue
-
-        if not candidate and path:
-            canonical = _canonical_project_static_media_url(
-                project, media_project_dir, path
-            )
-            if canonical is None:
-                continue
-            candidate, path = canonical
-
-        parsed = urlparse(candidate)
-        if parsed.scheme in {"http", "https"} and parsed.path.startswith("/static/"):
-            candidate = parsed.path
-        if candidate.startswith("/static/"):
-            canonical = _canonical_project_static_media_url(
-                project, media_project_dir, candidate
-            )
-            if canonical is None:
-                continue
-            candidate, path = canonical
-
-        ext = Path(urlparse(candidate).path).suffix.lower()
-        kind = _MEDIA_EXTENSIONS.get(ext)
-        if not kind:
-            continue
-
-        if not path:
-            path = _media_path_from_static_url(candidate) or ""
-
-        key = f"{kind}:{path or candidate}"
-        if key in seen:
-            continue
-        seen.add(key)
-
-        normalized.append(
-            {
-                "kind": kind,
-                "url": candidate,
-                "path": path,
-                "label": str(item.get("label", "") or Path(path or candidate).name),
-            }
-        )
-
-    return normalized
-
-
-def _merge_media_items(*groups: list[dict[str, str]]) -> list[dict[str, str]]:
-    merged: list[dict[str, str]] = []
-    seen: set[str] = set()
-
-    for group in groups:
-        for item in group:
-            kind = str(item.get("kind", "") or "").strip()
-            url = str(item.get("url", "") or "").strip()
-            path = str(item.get("path", "") or "").strip()
-            if not kind or not url:
-                continue
-            key = f"{kind}:{path or url}"
-            if key in seen:
-                continue
-            seen.add(key)
-            merged.append(
-                {
-                    "kind": kind,
-                    "url": url,
-                    "path": path,
-                    "label": str(item.get("label", "") or Path(path or url).name),
-                }
-            )
-
-    return merged
-
-
-def _filter_markdown_duplicate_images(
-    content: str, media: list[dict[str, str]]
-) -> list[dict[str, str]]:
-    markdown_images = _collect_markdown_image_refs(content)
-    if not markdown_images:
-        return media
-
-    filtered: list[dict[str, str]] = []
-    for item in media:
-        kind = str(item.get("kind", "") or "").strip()
-        if kind != "image":
-            filtered.append(item)
-            continue
-
-        url = str(item.get("url", "") or "").strip()
-        path = str(item.get("path", "") or "").strip()
-        if (
-            url in markdown_images
-            or (path and path in markdown_images)
-            or (path and path.lstrip("./") in markdown_images)
-        ):
-            continue
-        filtered.append(item)
-
-    return filtered
 
 
 def _build_claude_thread(username: str, project: str, agent_token: str):
@@ -1006,7 +715,12 @@ async def _stream_assistant_reply_hermes(
                 project_dir=project_dir,
                 project_state_dir=project_state_dir,
             )
-        media = _extract_media(final_text, username, project, project_dir=project_dir)
+        media = extract_project_media(
+            final_text,
+            username,
+            project,
+            project_dir=project_dir,
+        )
         persisted_message = add_assistant_message(
             username,
             project,
@@ -1249,7 +963,7 @@ async def _stream_assistant_reply_claude(
                 project_dir=project_dir,
                 project_state_dir=project_state_dir,
             )
-        media = _extract_media(
+        media = extract_project_media(
             assistant_text, username, project, project_dir=project_dir
         )
         result_message = add_assistant_message(
@@ -1327,7 +1041,12 @@ async def _stream_assistant_reply_codex(
             project_dir=project_dir,
             project_state_dir=project_state_dir,
         )
-    media = _extract_media(assistant_text, username, project, project_dir=project_dir)
+    media = extract_project_media(
+        assistant_text,
+        username,
+        project,
+        project_dir=project_dir,
+    )
     result_message = add_assistant_message(
         username,
         project,

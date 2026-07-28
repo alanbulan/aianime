@@ -17,12 +17,14 @@ from ai_anime.modules.ai_assistant.application.ports import (
     ChatRunLocks,
     DisplayFallbackGateway,
     JsonRenderErrors,
+    ProjectMediaFiles,
     UserPreferences,
 )
 from ai_anime.modules.ai_assistant.application.page_agent_sessions import (
     PageAgentSessions,
 )
 from ai_anime.modules.ai_assistant.application.prompt_context import AgentPromptContext
+from ai_anime.modules.ai_assistant.application.project_media import ProjectMedia
 
 __all__ = [
     "AgentBackend",
@@ -39,5 +41,7 @@ __all__ = [
     "DisplayFallbacks",
     "JsonRenderErrors",
     "PageAgentSessions",
+    "ProjectMedia",
+    "ProjectMediaFiles",
     "UserPreferences",
 ]
