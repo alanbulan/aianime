@@ -41,6 +41,7 @@ import {
   isAllowedScriptUpload,
 } from "@/features/superchat/ingest-automation-domain";
 import { useIngestAutomationController } from "@/features/superchat/use-ingest-automation-controller";
+import { useSpeechInputController } from "@/features/superchat/use-speech-input-controller";
 import { useEventBus } from "@/task-center/event-bus-context";
 import {
   SpecMediaDetailModal,
@@ -59,25 +60,6 @@ type QueuedSendItem = {
 };
 
 const ENABLE_SUPERCHAT_FILE_UPLOAD = false;
-
-type SpeechRecognitionLike = {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  start: () => void;
-  stop: () => void;
-  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string; isFinal?: boolean }>> }) => void) | null;
-  onend: (() => void) | null;
-};
-
-function createSpeechRecognition(): SpeechRecognitionLike | null {
-  const candidate = (window as unknown as {
-    SpeechRecognition?: new () => SpeechRecognitionLike;
-    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
-  });
-  const Ctor = candidate.SpeechRecognition ?? candidate.webkitSpeechRecognition;
-  return Ctor ? new Ctor() : null;
-}
 
 type SuperChatPanelVariant = "default" | "freezone";
 
@@ -103,14 +85,12 @@ export function SuperChatPanel({
   const [selectedQueuedMessageId, setSelectedQueuedMessageId] = useState<string | null>(null);
   const [selectedHistoryMessageIndex, setSelectedHistoryMessageIndex] = useState<number | null>(null);
   const [composerInputFocused, setComposerInputFocused] = useState(false);
-  const [recording, setRecording] = useState(false);
   const [dragFileState, setDragFileState] = useState<"valid" | "invalid" | null>(null);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const draftInputRef = useRef<HTMLTextAreaElement | null>(null);
   const restoreDraftFocusRef = useRef(false);
   const dragDepthRef = useRef(0);
-  const speechRef = useRef<SpeechRecognitionLike | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
   const shouldStickToBottomRef = useRef(true);
@@ -122,6 +102,9 @@ export function SuperChatPanel({
   const chat = useSuperChat({
     project: params.project,
     displayName: username || "AI anime",
+  });
+  const { recording, toggleSpeech } = useSpeechInputController({
+    onTranscript: setDraft,
   });
   const {
     clearFormatCheckDetails,
@@ -555,30 +538,6 @@ export function SuperChatPanel({
     dragDepthRef.current = 0;
     setDragFileState(null);
     addFiles(event.dataTransfer.files);
-  };
-
-  const toggleSpeech = () => {
-    if (recording) {
-      speechRef.current?.stop();
-      setRecording(false);
-      return;
-    }
-    const recognition = createSpeechRecognition();
-    if (!recognition) return;
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = "zh-CN";
-    recognition.onresult = (event) => {
-      let text = "";
-      for (let i = 0; i < event.results.length; i += 1) {
-        text += event.results[i][0]?.transcript ?? "";
-      }
-      setDraft(text);
-    };
-    recognition.onend = () => setRecording(false);
-    speechRef.current = recognition;
-    setRecording(true);
-    recognition.start();
   };
 
   const isFreezoneLayout = variant === "freezone";

@@ -665,6 +665,49 @@ describe("SuperChat boundaries", () => {
     );
   });
 
+  it("keeps browser speech recognition in a dedicated controller", () => {
+    const speechController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/superchat/use-speech-input-controller.ts",
+      ),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/use-speech-input-controller.test.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/use-speech-input-controller";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/use-speech-input-controller";',
+    );
+    for (const ownedOperation of [
+      "type SpeechRecognitionLike =",
+      "function createSpeechRecognition(",
+      "export function useSpeechInputController(",
+      "const speechRef = useRef<SpeechRecognitionLike | null>(null);",
+      "recognition.onresult =",
+      "recognition.onend =",
+    ]) {
+      expect(speechController).toContain(ownedOperation);
+      expect(panel).not.toContain(ownedOperation);
+    }
+    expect(speechController).not.toContain("useSuperChat");
+    expect(panel).not.toContain("SpeechRecognition");
+    expect(panel).not.toContain("speechRef");
+    expect(panel).not.toContain("setRecording");
+  });
+
   it("keeps spec media modal presentation outside the SuperChat panel", () => {
     const modals = readFileSync(
       resolve(SRC_ROOT, "features/superchat/spec-media-modals.tsx"),
