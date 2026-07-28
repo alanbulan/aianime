@@ -617,6 +617,54 @@ describe("SuperChat boundaries", () => {
     expect(approvalCard).not.toContain("useSuperChat");
   });
 
+  it("keeps secondary panel views outside the SuperChat panel", () => {
+    const searchBar = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/chat-search-bar.tsx"),
+      "utf8",
+    );
+    const pinnedPanel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/pinned-messages-panel.tsx"),
+      "utf8",
+    );
+    const detailPanel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/message-detail-panel.tsx"),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/panel-secondary-views.test.tsx",
+      ),
+      "utf8",
+    );
+
+    for (const [moduleSource, importPath, ownedOperation] of [
+      [searchBar, "chat-search-bar", "export function SearchBar("],
+      [pinnedPanel, "pinned-messages-panel", "export function PinnedPanel("],
+      [detailPanel, "message-detail-panel", "export function MessageDetailPanel("],
+    ]) {
+      expect(panel).toContain(
+        `from "@/features/superchat/${importPath}";`,
+      );
+      expect(tests).toContain(
+        `from "@/features/superchat/${importPath}";`,
+      );
+      expect(moduleSource).toContain(ownedOperation);
+      expect(panel).not.toContain(ownedOperation.replace("export ", ""));
+      expect(moduleSource).not.toContain("useSuperChat");
+    }
+    expect(detailPanel).toContain(
+      'from "@/features/superchat/chat-message-view";',
+    );
+    expect(detailPanel).toContain(
+      'from "@/features/superchat/spec-extract";',
+    );
+  });
+
   it("keeps spec media modal presentation outside the SuperChat panel", () => {
     const modals = readFileSync(
       resolve(SRC_ROOT, "features/superchat/spec-media-modals.tsx"),

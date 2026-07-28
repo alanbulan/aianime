@@ -7,8 +7,6 @@ import {
   Mic,
   MicOff,
   Plus,
-  Pin,
-  Search,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -19,8 +17,6 @@ import { attachBorderBeam, type BorderBeamController } from "border-beam-vanilla
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuthStore } from "@/modules/identity_access/public";
 import { cn } from "@/lib/utils";
@@ -31,20 +27,21 @@ import { ChatTimeline } from "@/features/superchat/chat-timeline";
 import {
   DotsIndicator,
   MessageBubble,
-  StructuredRenderer,
 } from "@/features/superchat/chat-message-view";
 import {
   ControlBar,
   HeaderControlPortal,
 } from "@/features/superchat/chat-control-bar";
 import { ApprovalCard } from "@/features/superchat/approval-card";
+import { SearchBar } from "@/features/superchat/chat-search-bar";
+import { PinnedPanel } from "@/features/superchat/pinned-messages-panel";
+import { MessageDetailPanel } from "@/features/superchat/message-detail-panel";
 import {
   isAllowedScriptDragItem,
   isAllowedScriptUpload,
 } from "@/features/superchat/ingest-automation-domain";
 import { useIngestAutomationController } from "@/features/superchat/use-ingest-automation-controller";
 import { useEventBus } from "@/task-center/event-bus-context";
-import { extractStructuredBlocks } from "@/features/superchat/spec-extract";
 import {
   SpecMediaDetailModal,
   type SpecMediaDetail,
@@ -62,135 +59,6 @@ type QueuedSendItem = {
 };
 
 const ENABLE_SUPERCHAT_FILE_UPLOAD = false;
-
-function SearchBar({
-  query,
-  onChange,
-  onClose,
-}: {
-  query: string;
-  onChange: (query: string) => void;
-  onClose: () => void;
-}) {
-  const { t } = useTranslation();
-  const inputRef = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
-  return (
-    <div className="flex items-center gap-2 border-b border-border bg-muted px-4 py-2">
-      <Search className="size-4 shrink-0 text-muted-foreground" />
-      <Input
-        ref={inputRef}
-        value={query}
-        onChange={(event) => onChange(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") onClose();
-        }}
-        placeholder={t("aiAssistant.search")}
-        className="h-7 border-0 bg-transparent text-sm shadow-none focus-visible:ring-0"
-      />
-      {query && (
-        <Button variant="ghost" size="icon" className="size-6" onClick={() => onChange("")}>
-          <X className="size-3" />
-        </Button>
-      )}
-      <Button variant="ghost" size="icon" className="size-6" onClick={onClose}>
-        <X className="size-4" />
-      </Button>
-    </div>
-  );
-}
-
-function PinnedPanel({
-  messages,
-  onClear,
-  onTogglePin,
-}: {
-  messages: ChatMessage[];
-  onClear: () => void;
-  onTogglePin: (id: string) => void;
-}) {
-  const { t } = useTranslation();
-  if (messages.length === 0) return null;
-
-  return (
-    <div className="border-b border-border bg-muted px-3 py-2">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 text-xs font-medium">
-          <Pin className="size-3.5" />
-          {t("aiAssistant.pinned")}
-        </div>
-        <Button variant="ghost" size="xs" onClick={onClear}>
-          {t("aiAssistant.clearPinned")}
-        </Button>
-      </div>
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {messages.map((message) => (
-          <button
-            key={message.id}
-            type="button"
-            onClick={() => onTogglePin(message.id)}
-            className="min-w-44 max-w-56 rounded-md border border-border bg-card px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
-          >
-            <div className="line-clamp-2">{message.text}</div>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function MessageDetailPanel({
-  message,
-  onClose,
-  onOpenMedia,
-}: {
-  message: ChatMessage | null;
-  onClose: () => void;
-  onOpenMedia: (detail: SpecMediaDetail) => void;
-}) {
-  const { t } = useTranslation();
-  if (!message) return null;
-  const { displayText, blocks } = extractStructuredBlocks(message);
-
-  return (
-    <aside className="hidden h-full w-72 shrink-0 flex-col border-l border-border/65 bg-background xl:flex">
-      <div className="flex h-11 shrink-0 items-center justify-between border-b border-border/65 px-3">
-        <div className="text-sm font-medium">{t("aiAssistant.messageDetail")}</div>
-        <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label={t("aiAssistant.closeDetail")}>
-          <X className="size-4" />
-        </Button>
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-3">
-        <div className="mb-3 flex items-center gap-2">
-          <Badge variant="outline" className="rounded-md uppercase">
-            {message.role}
-          </Badge>
-          <span className="text-xs text-muted-foreground">
-            {new Date(message.timestamp).toLocaleString()}
-          </span>
-        </div>
-        {displayText && (
-          <pre className="mb-3 whitespace-pre-wrap break-words rounded-md border border-border bg-muted p-2 text-xs leading-5">
-            {displayText}
-          </pre>
-        )}
-        <StructuredRenderer blocks={blocks} onOpenMedia={onOpenMedia} />
-        {message.raw !== undefined && (
-          <details className="mt-3">
-            <summary className="cursor-pointer text-xs text-muted-foreground">{t("aiAssistant.raw")}</summary>
-            <pre className="mt-2 whitespace-pre-wrap break-words rounded-md border border-border bg-muted p-2 text-[11px] leading-5">
-              {JSON.stringify(message.raw, null, 2)}
-            </pre>
-          </details>
-        )}
-      </div>
-    </aside>
-  );
-}
 
 type SpeechRecognitionLike = {
   continuous: boolean;
