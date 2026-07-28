@@ -16,11 +16,17 @@ import {
   buildLocalUserMessage,
   normalizeMessage,
 } from "@/features/superchat/message";
-import { hasStructuredContent } from "@/features/superchat/spec-extract";
 import { api } from "@/shared/api/transport";
 import {
   safeLocalStorageSet,
 } from "@/lib/localStorageQuota";
+import {
+  activeTurnIsPending,
+  clearActiveTurn,
+  currentTurnIsLive,
+  loadPendingActiveTurn,
+  saveActiveTurn,
+} from "@/features/superchat/active-turn";
 import {
   loadCachedMessages,
   pruneOldMessageCaches,
@@ -29,13 +35,6 @@ import {
 
 const SETTINGS_KEY = "superchat:settings";
 const EXECUTABLE_HIDDEN_TOOL_NAMES = new Set(["freezone_emit_canvas_command"]);
-const ACTIVE_TURN_PREFIX = "superchat:active-turn:";
-const ACTIVE_TURN_TTL_MS = 60 * 60 * 1000;
-
-type ActiveTurnSnapshot = {
-  turnId: string;
-  startedAt: number;
-};
 
 type ChatNotificationResponse = {
   ok: boolean;
@@ -75,76 +74,6 @@ function scopeForProject(project?: string): ChatScope {
 function scopeSessionKey(scope: ChatScope): string {
   if (scope.kind === "project" && scope.id) return `ai_anime:project:${scope.id}:main`;
   return "ai_anime:home:main";
-}
-
-function activeTurnKey(scopeKey: string): string {
-  return `${ACTIVE_TURN_PREFIX}${scopeKey}`;
-}
-
-function loadActiveTurn(scopeKey: string): ActiveTurnSnapshot | null {
-  try {
-    const raw = JSON.parse(localStorage.getItem(activeTurnKey(scopeKey)) || "null") as Partial<ActiveTurnSnapshot> | null;
-    if (!raw || typeof raw.turnId !== "string" || typeof raw.startedAt !== "number") return null;
-    if (!raw.turnId.trim() || Date.now() - raw.startedAt > ACTIVE_TURN_TTL_MS) {
-      localStorage.removeItem(activeTurnKey(scopeKey));
-      return null;
-    }
-    return {
-      turnId: raw.turnId,
-      startedAt: raw.startedAt,
-    };
-  } catch {
-    return null;
-  }
-}
-
-function saveActiveTurn(scopeKey: string, turnId: string) {
-  if (!turnId.trim()) return;
-  safeLocalStorageSet(
-    activeTurnKey(scopeKey),
-    JSON.stringify({ turnId, startedAt: Date.now() } satisfies ActiveTurnSnapshot),
-  );
-}
-
-function clearActiveTurn(scopeKey: string, turnId?: string | null) {
-  try {
-    const current = loadActiveTurn(scopeKey);
-    if (turnId && current?.turnId && current.turnId !== turnId) return;
-    localStorage.removeItem(activeTurnKey(scopeKey));
-  } catch {
-    // best-effort cleanup
-  }
-}
-
-function activeTurnIsPending(messages: ChatMessage[], turnId: string | null | undefined): boolean {
-  if (!turnId) return false;
-  const hasUserMessage = messages.some(
-    (message) => message.role === "user" && message.turnId === turnId,
-  );
-  if (!hasUserMessage) return false;
-
-  return !messages.some(
-    (message) =>
-      message.role === "assistant"
-      && message.turnId === turnId
-      && (message.text.trim().length > 0 || hasStructuredContent(message.raw)),
-  );
-}
-
-function loadPendingActiveTurn(scopeKey: string, messages: ChatMessage[]): ActiveTurnSnapshot | null {
-  const activeTurn = loadActiveTurn(scopeKey);
-  if (!activeTurn) return null;
-  if (activeTurnIsPending(messages, activeTurn.turnId)) return activeTurn;
-  clearActiveTurn(scopeKey, activeTurn.turnId);
-  return null;
-}
-
-function currentTurnIsLive(
-  turnId: string | null | undefined,
-  messages: ChatMessage[],
-): boolean {
-  if (!turnId) return false;
-  return activeTurnIsPending(messages, turnId);
 }
 
 function scopeMatches(a: ChatScope | undefined, b: ChatScope): boolean {

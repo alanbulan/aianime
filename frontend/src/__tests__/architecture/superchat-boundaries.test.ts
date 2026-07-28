@@ -40,4 +40,39 @@ describe("SuperChat boundaries", () => {
     expect(cache).toContain('const MESSAGE_CACHE_PREFIX = "superchat:messages:v2:";');
     expect(hook).not.toContain("MESSAGE_CACHE_PREFIX");
   });
+
+  it("keeps active turn persistence and status rules outside the controller hook", () => {
+    const activeTurn = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/active-turn.ts"),
+      "utf8",
+    );
+    const hook = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/use-superchat.ts"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(SRC_ROOT, "__tests__/features/superchat/active-turn.test.ts"),
+      "utf8",
+    );
+
+    expect(hook).toContain('from "@/features/superchat/active-turn";');
+    expect(tests).toContain('from "@/features/superchat/active-turn";');
+    for (const ownedOperation of [
+      "function activeTurnKey(",
+      "function loadActiveTurn(",
+      "export function saveActiveTurn(",
+      "export function clearActiveTurn(",
+      "export function activeTurnIsPending(",
+      "export function loadPendingActiveTurn(",
+      "export function currentTurnIsLive(",
+    ]) {
+      expect(activeTurn).toContain(ownedOperation);
+      expect(hook).not.toContain(ownedOperation);
+    }
+    expect(activeTurn).not.toContain("export function activeTurnKey(");
+    expect(activeTurn).not.toContain("export function loadActiveTurn(");
+    expect(activeTurn).toContain('const ACTIVE_TURN_PREFIX = "superchat:active-turn:";');
+    expect(hook).not.toContain("ACTIVE_TURN_PREFIX");
+    expect(hook).not.toContain("hasStructuredContent");
+  });
 });
