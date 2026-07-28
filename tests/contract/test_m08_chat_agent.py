@@ -114,7 +114,7 @@ def test_chat_ws_auth_failure_reports_unauthorized(monkeypatch) -> None:
 
 @pytest.mark.asyncio
 async def test_ce_chat_page_agent_session_uses_local_auth_session(monkeypatch) -> None:
-    from ai_anime.chat import service as chat_service
+    from ai_anime.modules.ai_assistant.public import create_page_agent_session_token
     from ai_anime.modules.identity_access.public import (
         revoke_agent_session,
         update_agent_session_scope,
@@ -127,7 +127,7 @@ async def test_ce_chat_page_agent_session_uses_local_auth_session(monkeypatch) -
     monkeypatch.setattr(registry, "_BOOTSTRAPPED", False)
     register_local_ports()
 
-    token_value = await chat_service._create_page_agent_session_token(
+    token_value = await create_page_agent_session_token(
         "local",
         "project-a",
         agent_kind="codex",

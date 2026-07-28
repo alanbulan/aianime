@@ -13,6 +13,9 @@ from ai_anime.modules.ai_assistant.application.ports import (
     ChatRunLocks,
     UserPreferences,
 )
+from ai_anime.modules.ai_assistant.application.page_agent_sessions import (
+    PageAgentSessions,
+)
 from ai_anime.modules.ai_assistant.application.prompt_context import AgentPromptContext
 
 __all__ = [
@@ -25,5 +28,6 @@ __all__ = [
     "AgentToolConfiguration",
     "ChatHistory",
     "ChatRunLocks",
+    "PageAgentSessions",
     "UserPreferences",
 ]

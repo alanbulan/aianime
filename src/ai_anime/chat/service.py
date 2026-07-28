@@ -29,6 +29,7 @@ from ai_anime.chat.runtime_config import load_api_url
 from ai_anime.modules.ai_assistant.public import (
     build_agent_prompt_context,
     completion_text_or_existing,
+    create_page_agent_session_token,
     get_agent_backend,
     get_agent_thread_sessions,
     get_agent_tool_configuration,
@@ -42,7 +43,6 @@ from ai_anime.modules.ai_assistant.public import (
     strip_replayed_chat_response,
     strip_streamed_assistant_replay,
 )
-from ai_anime.modules.identity_access.public import create_agent_session
 from ai_anime.sqlite_pragmas import configure_sqlite_connection
 from ai_anime.utils.error_redaction import redact_secrets
 from ai_anime.utils.static_urls import project_static_url
@@ -2186,36 +2186,6 @@ def add_trace_messages(
         conn.close()
 
 
-PAGE_AGENT_SCOPES = [
-    "projects:read",
-    "projects:write",
-    "tasks:submit",
-    "tasks:poll",
-    "media:read",
-    "assets:read",
-]
-PAGE_AGENT_SESSION_TTL_SECONDS = 24 * 3600
-
-
-async def _create_page_agent_session_token(
-    username: str,
-    project: str,
-    *,
-    agent_kind: str,
-) -> str:
-    token = await create_agent_session(
-        username=username,
-        scopes=PAGE_AGENT_SCOPES,
-        ttl_seconds=PAGE_AGENT_SESSION_TTL_SECONDS,
-        agent_kind=agent_kind,
-        worker_id=f"page-agent:{agent_kind}:{username}",
-        current_scope_kind="project" if project else "home",
-        current_project_id=project or None,
-        metadata={"source": "chat_service"},
-    )
-    return token.value
-
-
 def _extract_media(
     content: str,
     username: str,
@@ -2754,7 +2724,7 @@ async def _stream_assistant_reply_hermes(
                         else:
                             seen_display_calls.add(display_call_key)
                             if fallback_token is None:
-                                fallback_token = await _create_page_agent_session_token(
+                                fallback_token = await create_page_agent_session_token(
                                     username,
                                     project,
                                     agent_kind="hermes-display-fallback",
@@ -2810,7 +2780,7 @@ async def _stream_assistant_reply_hermes(
             if inferred_display_call is not None:
                 tool_name, tool_args = inferred_display_call
                 if fallback_token is None:
-                    fallback_token = await _create_page_agent_session_token(
+                    fallback_token = await create_page_agent_session_token(
                         username,
                         project,
                         agent_kind="hermes-display-fallback",
@@ -2860,7 +2830,7 @@ async def _stream_assistant_reply_claude(
     project_state_dir: str | Path | None = None,
 ) -> dict[str, Any]:
     try:
-        agent_token = await _create_page_agent_session_token(
+        agent_token = await create_page_agent_session_token(
             username,
             project,
             agent_kind="claude",
@@ -2942,7 +2912,7 @@ async def _stream_assistant_reply_codex(
 ) -> dict[str, Any]:
     assistant_text = ""
     tool_text = ""
-    agent_token = await _create_page_agent_session_token(
+    agent_token = await create_page_agent_session_token(
         username,
         project,
         agent_kind="codex",

@@ -9,6 +9,7 @@ from ai_anime.modules.ai_assistant.application import (
     AgentToolConfiguration,
     ChatHistory,
     ChatRunLocks,
+    PageAgentSessions,
 )
 from ai_anime.modules.ai_assistant.infrastructure import (
     FileAgentThreadSessions,
@@ -27,6 +28,7 @@ _agent_prompt_context = AgentPromptContext(FileUserPreferences())
 _agent_thread_sessions = FileAgentThreadSessions()
 _chat_history = SQLiteChatHistory()
 _chat_run_locks = FileChatRunLocks()
+_page_agent_sessions = PageAgentSessions()
 
 
 def get_agent_backend() -> AgentBackend:
@@ -55,3 +57,7 @@ def get_chat_history() -> ChatHistory:
 
 def get_chat_run_locks() -> ChatRunLocks:
     return _chat_run_locks
+
+
+def get_page_agent_sessions() -> PageAgentSessions:
+    return _page_agent_sessions

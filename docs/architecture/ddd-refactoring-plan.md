@@ -1749,6 +1749,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百四十四批已将页面 Agent 的 MCP 工具配置收口至 AI Assistant：domain 新增唯一纯 `codex_mcp_config_overrides`，负责 stdio 类型、command、args 校验及稳定 Codex override 编码；application 新增 `AgentToolConfiguration` 能力协议，唯一 `LocalAgentToolConfiguration` infrastructure adapter 持有当前 Python 解释器和 `ai_anime.chat.ai_anime_mcp` 本机命令，composition/public 提供同一进程实例。Codex 历史恢复和 thread 构建改为复用该能力，`service.py` 中 MCP server 构造、override 编码两个旧函数及 `sys` 依赖直接删除，不保留 facade、旧别名或第二套实现；`ai_anime` server 名称、stdio 类型、`-m` 参数、server 名排序、command JSON 编码、args 字符串化/紧凑编码、每个 server 的 command/args/enabled 输出顺序及原错误消息保持不变。Agent tool configuration 8 项、完整 Chat service 45 项、M08 相关合同 10 项及完整后端分层门禁 110 项均通过，修改文件 Ruff、Python 编译、新模块格式检查与 `git diff --check` 通过。
 
+第三百四十五批已将页面 Agent session 签发收口至 AI Assistant application：新增唯一 `PageAgentSessions` 应用服务，经 Identity Access public API 签发 token，composition 持有同一进程实例，AI Assistant public 提供稳定异步入口。Hermes 展示回退、Claude stream、Codex stream 共四个调用点全部改经 public API；`service.py` 中六项 scope、24 小时 TTL、Identity Access import 和私有签发函数直接删除，不保留 facade、旧别名或第二套实现。用户名、agent kind、`page-agent:{agent_kind}:{username}` worker ID、project/home scope、可空 project ID、`metadata.source=chat_service`、token value 返回值及 CE 本地认证的签发/更新 scope/撤销/失效语义保持不变。Page agent sessions 3 项、完整 Chat service 45 项、M08 相关合同 10 项及完整后端分层门禁 111 项均通过，修改文件 Ruff、Python 编译、新模块格式检查与 `git diff --check` 通过。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

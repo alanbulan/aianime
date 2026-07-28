@@ -33,6 +33,21 @@ def build_agent_prompt_context(username: str, project: str, prompt: str) -> str:
     return get_agent_prompt_context().build(username, project, prompt)
 
 
+async def create_page_agent_session_token(
+    username: str,
+    project: str,
+    *,
+    agent_kind: str,
+) -> str:
+    from ai_anime.modules.ai_assistant.composition import get_page_agent_sessions
+
+    return await get_page_agent_sessions().create_token(
+        username,
+        project,
+        agent_kind=agent_kind,
+    )
+
+
 def get_agent_backend() -> AgentBackend:
     from ai_anime.modules.ai_assistant.composition import get_agent_backend as resolve
 
@@ -83,6 +98,7 @@ __all__ = [
     "ChatScope",
     "build_agent_prompt_context",
     "completion_text_or_existing",
+    "create_page_agent_session_token",
     "get_agent_backend",
     "get_agent_tool_configuration",
     "get_agent_workspace",

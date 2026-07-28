@@ -668,6 +668,43 @@ def test_ai_assistant_owns_agent_tool_configuration() -> None:
     )
 
 
+def test_ai_assistant_owns_page_agent_session_issuance() -> None:
+    module = PACKAGE_ROOT / "modules" / "ai_assistant"
+    application = module / "application" / "page_agent_sessions.py"
+    composition = module / "composition.py"
+    public = module / "public.py"
+    service = PACKAGE_ROOT / "chat" / "service.py"
+    application_source = application.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+    service_source = service.read_text(encoding="utf-8")
+
+    assert "ai_anime.modules.identity_access.public" in _imports(application)
+    assert not {
+        imported
+        for imported in _imports(application)
+        if imported == "fastapi"
+        or imported.startswith("fastapi.")
+        or imported.startswith("ai_anime.api")
+        or imported.startswith("ai_anime.modules.ai_assistant.infrastructure")
+    }
+    assert "class PageAgentSessions:" in application_source
+    assert "PAGE_AGENT_SESSION_TTL_SECONDS = 24 * 3600" in application_source
+    assert "_page_agent_sessions = PageAgentSessions()" in composition_source
+    assert "def get_page_agent_sessions(" in composition_source
+    assert "async def create_page_agent_session_token(" in public_source
+    assert "PageAgentSessions" not in public_source
+    for legacy_name in (
+        "PAGE_AGENT_SCOPES",
+        "PAGE_AGENT_SESSION_TTL_SECONDS",
+        "def _create_page_agent_session_token(",
+        "ai_anime.modules.identity_access.public",
+        'metadata={"source": "chat_service"}',
+    ):
+        assert legacy_name not in service_source
+    assert service_source.count("create_page_agent_session_token(") == 4
+
+
 def test_ai_assistant_owns_agent_prompt_context() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     domain = module / "domain" / "prompt_context.py"
