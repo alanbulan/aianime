@@ -7,7 +7,6 @@ from ai_anime.modules.ai_assistant.infrastructure import LocalAgentBackendRuntim
 from ai_anime.modules.ai_assistant.infrastructure import (
     agent_backend_runtime as runtime_module,
 )
-from ai_anime.modules.ai_assistant.public import get_agent_backend
 
 
 class StubAgentBackendRuntime:
@@ -36,10 +35,6 @@ class StubAgentBackendRuntime:
 
     def claude_model(self) -> str | None:
         return "claude-model"
-
-
-def test_agent_backend_composition_returns_one_process_instance():
-    assert get_agent_backend() is get_agent_backend()
 
 
 @pytest.mark.parametrize("backend", ["hermes", "codex", "claude"])

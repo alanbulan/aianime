@@ -1,12 +1,10 @@
 """Runtime composition for AI Assistant."""
 
 from ai_anime.modules.ai_assistant.application import (
-    AgentBackend,
     AgentBackendPrewarmer,
     AgentBackendService,
     AgentPromptContext,
     AgentThreadReplies,
-    AgentThreadRuntime,
     ChatPresentation,
     ChatWorkerLifecycle,
     DisplayFallbacks,
@@ -89,20 +87,12 @@ _project_chat_turns = ProjectChatTurns(
 )
 
 
-def get_agent_backend() -> AgentBackend:
-    return _agent_backend
-
-
 def get_agent_backend_prewarmer() -> AgentBackendPrewarmer:
     return _agent_backend_prewarmer
 
 
 def get_agent_prompt_context() -> AgentPromptContext:
     return _agent_prompt_context
-
-
-def get_agent_thread_runtime() -> AgentThreadRuntime:
-    return _agent_thread_runtime
 
 
 def get_chat_presentation() -> ChatPresentation:
@@ -127,10 +117,6 @@ def get_page_agent_sessions() -> PageAgentSessions:
 
 def get_project_media() -> ProjectMedia:
     return _project_media
-
-
-def get_project_assistant_replies() -> ProjectAssistantReplies:
-    return _project_assistant_replies
 
 
 def get_project_chat_turns() -> ProjectChatTurns:

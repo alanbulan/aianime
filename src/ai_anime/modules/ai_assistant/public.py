@@ -4,12 +4,9 @@ from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.ai_assistant.application import (
-    AgentBackend,
     AgentBackendPrewarmer,
-    AgentThreadRuntime,
     ChatWorkerLifecycle,
     HermesHomeReplies,
-    ProjectAssistantReplies,
     ProjectChatTurns,
     ScopedChatMessages,
 )
@@ -100,23 +97,9 @@ def extract_project_media(
     )
 
 
-def get_agent_backend() -> AgentBackend:
-    from ai_anime.modules.ai_assistant.composition import get_agent_backend as resolve
-
-    return resolve()
-
-
 def get_agent_backend_prewarmer() -> AgentBackendPrewarmer:
     from ai_anime.modules.ai_assistant.composition import (
         get_agent_backend_prewarmer as resolve,
-    )
-
-    return resolve()
-
-
-def get_agent_thread_runtime() -> AgentThreadRuntime:
-    from ai_anime.modules.ai_assistant.composition import (
-        get_agent_thread_runtime as resolve,
     )
 
     return resolve()
@@ -133,14 +116,6 @@ def get_chat_worker_lifecycle() -> ChatWorkerLifecycle:
 def get_hermes_home_replies() -> HermesHomeReplies:
     from ai_anime.modules.ai_assistant.composition import (
         get_hermes_home_replies as resolve,
-    )
-
-    return resolve()
-
-
-def get_project_assistant_replies() -> ProjectAssistantReplies:
-    from ai_anime.modules.ai_assistant.composition import (
-        get_project_assistant_replies as resolve,
     )
 
     return resolve()
@@ -163,12 +138,9 @@ def get_scoped_chat_messages() -> ScopedChatMessages:
 
 
 __all__ = [
-    "AgentBackend",
     "AgentBackendPrewarmer",
-    "AgentThreadRuntime",
     "ChatWorkerLifecycle",
     "HermesHomeReplies",
-    "ProjectAssistantReplies",
     "ProjectChatTurns",
     "ScopedChatMessages",
     "ChatScope",
@@ -182,12 +154,9 @@ __all__ = [
     "extract_project_media",
     "fallback_display_tool_ui_specs",
     "filter_tool_ui_specs_for_prompt",
-    "get_agent_backend",
     "get_agent_backend_prewarmer",
-    "get_agent_thread_runtime",
     "get_chat_worker_lifecycle",
     "get_hermes_home_replies",
-    "get_project_assistant_replies",
     "get_project_chat_turns",
     "get_scoped_chat_messages",
     "infer_display_tool_call_from_text",

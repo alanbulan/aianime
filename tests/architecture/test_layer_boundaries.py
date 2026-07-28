@@ -785,8 +785,8 @@ def test_ai_assistant_owns_chat_text_projection_rules() -> None:
         or imported == "sqlite3"
         or imported.startswith("ai_anime.chat")
     }
-    for caller in (turn_adapter, service):
-        assert "ai_anime.modules.ai_assistant.public" in _imports(caller)
+    assert "ai_anime.modules.ai_assistant.public" in _imports(turn_adapter)
+    assert "ai_anime.modules.ai_assistant.public" not in _imports(service)
     for legacy_definition in (
         "def _completion_text_or_existing(",
         "def _merge_stream_text(",
@@ -1360,6 +1360,29 @@ def test_chat_service_has_no_unreachable_codex_history_cache() -> None:
         assert active_runtime_implementation in thread_runtime_source
 
 
+def test_chat_service_has_no_unreachable_assistant_entrypoints() -> None:
+    service = PACKAGE_ROOT / "chat" / "service.py"
+    service_source = service.read_text(encoding="utf-8")
+
+    assert "ai_anime.modules.ai_assistant.public" not in _imports(service)
+    for dead_entrypoint in (
+        "async def interrupt_chat_turn(",
+        "async def generate_assistant_reply(",
+        "agent_backend =",
+        "agent_thread_runtime =",
+        "project_assistant_replies =",
+        "_REINGEST_CANCELLED_BLOCK_RE",
+    ):
+        assert dead_entrypoint not in service_source
+    for retained_storage_helper in (
+        "def load_chat_input_history(",
+        "def save_chat_input_history(",
+        "def _get_setting(",
+        "def _set_setting(",
+    ):
+        assert retained_storage_helper in service_source
+
+
 def test_ai_assistant_owns_chat_run_locks() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     application = module / "application" / "project_assistant_replies.py"
@@ -1462,22 +1485,28 @@ def test_ai_assistant_owns_agent_thread_runtime() -> None:
     composition = module / "composition.py"
     public = module / "public.py"
     service = PACKAGE_ROOT / "chat" / "service.py"
+    runtime_tests = (
+        REPO_ROOT / "tests" / "modules" / "ai_assistant" / "test_agent_thread_runtime.py"
+    )
     ports_source = ports.read_text(encoding="utf-8")
     replies_source = replies.read_text(encoding="utf-8")
     runtime_source = runtime.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
     service_source = service.read_text(encoding="utf-8")
+    runtime_test_source = runtime_tests.read_text(encoding="utf-8")
 
     assert "class AgentThread(Protocol):" in ports_source
     assert "class AgentThreadRuntime(Protocol):" in ports_source
     assert "class LocalAgentThreadRuntime:" in runtime_source
     assert "ai_anime.chat.backend_sdk" in _imports(runtime)
     assert "LocalAgentThreadRuntime(" in composition_source
-    assert "def get_agent_thread_runtime(" in composition_source
-    assert "def get_agent_thread_runtime(" in public_source
+    assert "def get_agent_thread_runtime(" not in composition_source
+    assert "def get_agent_thread_runtime(" not in public_source
+    assert "AgentThreadRuntime" not in public_source
     assert "LocalAgentThreadRuntime" not in public_source
-    assert "agent_thread_runtime = get_agent_thread_runtime()" in service_source
+    assert "get_agent_thread_runtime" not in runtime_test_source
+    assert "agent_thread_runtime" not in service_source
     assert "ai_anime.chat.backend_sdk" not in _imports(service)
     for legacy_implementation in (
         "def _build_claude_thread(",
@@ -1493,7 +1522,7 @@ def test_ai_assistant_owns_agent_thread_runtime() -> None:
     assert replies_source.count("self._thread_runtime.remember(") == 2
     assert "agent_thread_runtime.open_" not in service_source
     assert "agent_thread_runtime.remember(" not in service_source
-    assert service_source.count("agent_thread_runtime.interrupt(") == 1
+    assert "def interrupt_chat_turn(" not in service_source
 
 
 def test_ai_assistant_owns_agent_thread_reply_orchestration() -> None:
@@ -1778,12 +1807,20 @@ def test_ai_assistant_owns_project_assistant_reply_dispatch() -> None:
     public = module / "public.py"
     service = PACKAGE_ROOT / "chat" / "service.py"
     route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    application_tests = (
+        REPO_ROOT
+        / "tests"
+        / "modules"
+        / "ai_assistant"
+        / "test_project_assistant_replies.py"
+    )
     application_source = application.read_text(encoding="utf-8")
     project_turns_source = project_turns.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
     service_source = service.read_text(encoding="utf-8")
     route_source = route.read_text(encoding="utf-8")
+    application_test_source = application_tests.read_text(encoding="utf-8")
 
     assert not {
         imported
@@ -1797,12 +1834,15 @@ def test_ai_assistant_owns_project_assistant_reply_dispatch() -> None:
     assert "_project_assistant_replies = ProjectAssistantReplies(" in (
         composition_source
     )
-    assert "def get_project_assistant_replies(" in composition_source
-    assert "def get_project_assistant_replies(" in public_source
+    assert "def get_project_assistant_replies(" not in composition_source
+    assert "def get_project_assistant_replies(" not in public_source
+    assert "ProjectAssistantReplies" not in public_source
+    assert "get_project_assistant_replies" not in application_test_source
     assert "project_assistant_replies" not in route_source
+    assert "project_assistant_replies" not in service_source
     assert project_turns_source.count("self._replies.stream(") == 1
     assert "def stream_assistant_reply(" not in service_source
-    assert service_source.count("project_assistant_replies.stream(") == 1
+    assert "def generate_assistant_reply(" not in service_source
     for owned_operation in (
         "self._run_locks.acquire(",
         "self._run_locks.maintain(",
@@ -1872,6 +1912,9 @@ def test_ai_assistant_owns_agent_backend_runtime() -> None:
     composition = module / "composition.py"
     public = module / "public.py"
     service = PACKAGE_ROOT / "chat" / "service.py"
+    backend_tests = (
+        REPO_ROOT / "tests" / "modules" / "ai_assistant" / "test_agent_backend.py"
+    )
     application_source = application.read_text(encoding="utf-8")
     ports_source = ports.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
@@ -1881,6 +1924,7 @@ def test_ai_assistant_owns_agent_backend_runtime() -> None:
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
     service_source = service.read_text(encoding="utf-8")
+    backend_test_source = backend_tests.read_text(encoding="utf-8")
 
     assert not {
         imported
@@ -1896,10 +1940,13 @@ def test_ai_assistant_owns_agent_backend_runtime() -> None:
     assert "class LocalAgentBackendRuntime:" in adapter_source
     assert "ai_anime.chat.hermes_pool" in adapter_source
     assert "AgentBackendService(LocalAgentBackendRuntime())" in composition_source
-    assert "def get_agent_backend(" in composition_source
-    assert "def get_agent_backend(" in public_source
+    assert "def get_agent_backend(" not in composition_source
+    assert "def get_agent_backend(" not in public_source
+    assert "    AgentBackend,\n" not in public_source
+    assert '"AgentBackend",' not in public_source
     assert "AgentBackendRuntime" not in public_source
     assert "AgentBackendService" not in public_source
+    assert "get_agent_backend" not in backend_test_source
     for legacy_name in (
         "def _chat_backend(",
         "def _claude_cli_path(",
@@ -1919,8 +1966,7 @@ def test_ai_assistant_owns_agent_backend_runtime() -> None:
         "CLAUDE_MODEL",
     ):
         assert legacy_name not in service_source
-    assert "agent_backend = get_agent_backend()" in service_source
-    assert service_source.count("agent_backend.name()") == 1
+    assert "agent_backend" not in service_source
     assert dispatcher_source.count("self._backend.name()") == 1
     assert prewarmer_source.count("self._backend.name()") == 1
     for runtime_setting in (

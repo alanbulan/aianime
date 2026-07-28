@@ -1,29 +1,12 @@
-"""AI chat service with project-scoped history and user-level agent sessions."""
+"""Project chat input history and settings storage helpers."""
 
 from __future__ import annotations
 
 import json
 import os
-import re
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
-
-from ai_anime.modules.ai_assistant.public import (
-    get_agent_backend,
-    get_agent_thread_runtime,
-    get_project_assistant_replies,
-)
-
-agent_backend = get_agent_backend()
-agent_thread_runtime = get_agent_thread_runtime()
-project_assistant_replies = get_project_assistant_replies()
-
-_REINGEST_CANCELLED_BLOCK_RE = re.compile(
-    r"\[AI_ANIME_REINGEST_CANCELLED\](.*?)\[/AI_ANIME_REINGEST_CANCELLED\]",
-    re.DOTALL,
-)
 
 
 def _repo_root() -> Path:
@@ -112,27 +95,3 @@ def _set_setting(conn: sqlite3.Connection, key: str, value: str) -> None:
         (key, value, _now_iso()),
     )
     conn.commit()
-
-
-async def interrupt_chat_turn(
-    username: str, project: str, thread_id: str, turn_id: str
-) -> bool:
-    return await agent_thread_runtime.interrupt(
-        agent_backend.name(),
-        thread_id,
-        turn_id,
-    )
-
-
-async def generate_assistant_reply(
-    username: str, project: str, prompt: str
-) -> dict[str, Any]:
-    async def _ignore(_event: dict[str, Any]) -> None:
-        return None
-
-    return await project_assistant_replies.stream(
-        username,
-        project,
-        prompt,
-        _ignore,
-    )

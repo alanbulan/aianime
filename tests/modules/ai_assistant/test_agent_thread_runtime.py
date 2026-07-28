@@ -6,7 +6,6 @@ from ai_anime.modules.ai_assistant.infrastructure import LocalAgentThreadRuntime
 from ai_anime.modules.ai_assistant.infrastructure import (
     agent_thread_runtime as runtime_module,
 )
-from ai_anime.modules.ai_assistant.public import get_agent_thread_runtime
 
 
 class StubBackend:
@@ -74,10 +73,6 @@ def _runtime(tmp_path: Path, sessions: StubSessions) -> LocalAgentThreadRuntime:
         StubWorkspace(tmp_path),
         StubToolConfiguration(),
     )
-
-
-def test_agent_thread_runtime_composition_returns_one_process_instance():
-    assert get_agent_thread_runtime() is get_agent_thread_runtime()
 
 
 def test_agent_thread_runtime_resumes_claude_session(monkeypatch, tmp_path):

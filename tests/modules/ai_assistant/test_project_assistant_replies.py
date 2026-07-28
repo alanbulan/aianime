@@ -3,7 +3,6 @@ import asyncio
 import pytest
 
 from ai_anime.modules.ai_assistant.application import ProjectAssistantReplies
-from ai_anime.modules.ai_assistant.public import get_project_assistant_replies
 
 
 class StubBackend:
@@ -134,10 +133,6 @@ def _build_replies(backend_name="hermes", *, hermes_error=None):
 
 async def _ignore_event(_event):
     return None
-
-
-def test_project_assistant_replies_composition_returns_one_process_instance():
-    assert get_project_assistant_replies() is get_project_assistant_replies()
 
 
 @pytest.mark.anyio
