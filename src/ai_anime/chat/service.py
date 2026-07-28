@@ -12,16 +12,14 @@ from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.ai_assistant.public import (
-    emit_chat_event_best_effort,
     get_agent_backend,
     get_agent_thread_replies,
     get_agent_thread_runtime,
     get_chat_run_locks,
+    get_deterministic_project_replies,
     get_hermes_project_replies,
     get_hermes_runtime,
-    get_project_chat_messages,
     reingest_confirmation_reply,
-    redact_local_filesystem_paths,
     script_creation_guidance_prompt,
 )
 
@@ -29,9 +27,9 @@ agent_backend = get_agent_backend()
 agent_thread_replies = get_agent_thread_replies()
 agent_thread_runtime = get_agent_thread_runtime()
 chat_run_locks = get_chat_run_locks()
+deterministic_project_replies = get_deterministic_project_replies()
 hermes_project_replies = get_hermes_project_replies()
 hermes_runtime = get_hermes_runtime()
-project_chat_messages = get_project_chat_messages()
 
 _REINGEST_CANCELLED_BLOCK_RE = re.compile(
     r"\[AI_ANIME_REINGEST_CANCELLED\](.*?)\[/AI_ANIME_REINGEST_CANCELLED\]",
@@ -153,7 +151,7 @@ async def stream_assistant_reply(
     try:
         deterministic = reingest_confirmation_reply(prompt)
         if deterministic is not None:
-            return await _stream_deterministic_assistant_reply(
+            return await deterministic_project_replies.stream(
                 username,
                 project,
                 deterministic,
@@ -200,31 +198,6 @@ async def stream_assistant_reply(
         except asyncio.CancelledError:
             pass
         chat_run_locks.release(username, project, run_lock_id)
-
-
-async def _stream_deterministic_assistant_reply(
-    username: str,
-    project: str,
-    content: str,
-    on_event,
-    *,
-    project_dir: str | Path | None = None,
-    project_state_dir: str | Path | None = None,
-) -> dict[str, Any]:
-    content = redact_local_filesystem_paths(content)
-    message = project_chat_messages.append_assistant(
-        username,
-        project,
-        content,
-        [],
-        project_dir=project_dir,
-        project_state_dir=project_state_dir,
-    )
-    await emit_chat_event_best_effort(
-        on_event, {"type": "assistant_delta", "text": content}
-    )
-    await emit_chat_event_best_effort(on_event, {"type": "done", "message": message})
-    return message
 
 
 async def prewarm_chat_backend(username: str, *, project: str | None = None) -> None:

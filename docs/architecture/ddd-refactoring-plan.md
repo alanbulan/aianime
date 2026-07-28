@@ -1775,6 +1775,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百五十七批已将 Hermes project chat 流式回复编排收口至 AI Assistant：application 新增唯一 `HermesProjectReplies`，组合 Hermes runtime、prompt context、project messages/media、chat presentation、page agent session 与 display fallback，统一负责历史回放抑制、正文/工具事件投影、隐藏工具过滤、工具错误去重、显式及文本漏调展示恢复、fallback token 复用、UI spec 去重过滤、trace/media 投影、消息持久化和异常时部分回复落盘；application 另新增唯一 `emit_chat_event_best_effort`，Hermes 与确定性回复共同复用，避免断线影响持久化。composition/public 提供唯一进程级 capability，`service.py` 删除 `_stream_assistant_reply_hermes` 全部实现、19 项展示/媒体/消息 public helper 依赖及重复事件发送 helper，后端分派直接调用 application stream，不保留 facade、旧别名或第二套编排，文件由 544 行降至 256 行。Hermes project replies 5 项、AI Assistant 模块 185 项、HermesPool 会话恢复 5 项、剩余 Chat/route 回归 4 项、Chat route prewarm 2 项、M08 Chat 合同 5 项及完整后端分层门禁 123 项均通过，修改文件 Ruff、Python 编译、模块格式检查与 `git diff --check` 通过。
 
+第三百五十八批已将重摄入确认的确定性项目回复收口至 AI Assistant：application 新增唯一 `DeterministicProjectReplies`，复用 `ProjectChatMessages`、本地路径脱敏规则和上一批唯一 best-effort 事件发送，统一负责 assistant 消息落盘及 delta/done 投影。composition/public 提供唯一进程级 capability，`service.py` 删除 `_stream_deterministic_assistant_reply`、project message 全局依赖及事件/脱敏 helper 依赖，重摄入确认命中后直接调用 application stream；原 service 私有入口特征测试迁入模块测试，并新增进程单例合同，不保留 facade、旧别名、测试专用 API 或第二套实现，文件由 256 行降至 229 行。Deterministic replies 2 项、AI Assistant 模块 187 项、剩余 Chat/route 回归 3 项、Chat route prewarm 2 项、M08 Chat 合同 5 项及完整后端分层门禁 124 项均通过，修改文件 Ruff、Python 编译、模块格式检查与 `git diff --check` 通过。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

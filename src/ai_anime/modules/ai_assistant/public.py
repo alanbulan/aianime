@@ -9,6 +9,7 @@ from ai_anime.modules.ai_assistant.application import (
     AgentThreadRuntime,
     ChatHistory,
     ChatRunLocks,
+    DeterministicProjectReplies,
     emit_chat_event_best_effort,
     HermesProjectReplies,
     HermesRuntime,
@@ -148,6 +149,14 @@ def get_chat_run_locks() -> ChatRunLocks:
     return resolve()
 
 
+def get_deterministic_project_replies() -> DeterministicProjectReplies:
+    from ai_anime.modules.ai_assistant.composition import (
+        get_deterministic_project_replies as resolve,
+    )
+
+    return resolve()
+
+
 def get_hermes_runtime() -> HermesRuntime:
     from ai_anime.modules.ai_assistant.composition import get_hermes_runtime as resolve
 
@@ -176,6 +185,7 @@ __all__ = [
     "AgentThreadRuntime",
     "ChatHistory",
     "ChatRunLocks",
+    "DeterministicProjectReplies",
     "emit_chat_event_best_effort",
     "HermesProjectReplies",
     "HermesRuntime",
@@ -197,6 +207,7 @@ __all__ = [
     "get_agent_thread_runtime",
     "get_chat_history",
     "get_chat_run_locks",
+    "get_deterministic_project_replies",
     "get_hermes_project_replies",
     "get_hermes_runtime",
     "get_project_chat_messages",

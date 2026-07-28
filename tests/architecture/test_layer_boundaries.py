@@ -430,6 +430,7 @@ def test_ai_assistant_owns_chat_presentation_rules() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     domain = module / "domain" / "chat_presentation.py"
     application = module / "application" / "chat_presentation.py"
+    deterministic_replies = module / "application" / "deterministic_replies.py"
     hermes_replies = module / "application" / "hermes_project_replies.py"
     ports = module / "application" / "ports.py"
     adapter = module / "infrastructure" / "json_render_errors.py"
@@ -439,6 +440,7 @@ def test_ai_assistant_owns_chat_presentation_rules() -> None:
     service_tests = REPO_ROOT / "tests" / "test_chat_service_user_agent_scope.py"
     domain_source = domain.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
+    deterministic_replies_source = deterministic_replies.read_text(encoding="utf-8")
     hermes_replies_source = hermes_replies.read_text(encoding="utf-8")
     ports_source = ports.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
@@ -472,7 +474,8 @@ def test_ai_assistant_owns_chat_presentation_rules() -> None:
     ):
         assert f"def {operation}(" in domain_source
         assert operation in public_source
-    assert "redact_local_filesystem_paths" in service_source
+    assert "redact_local_filesystem_paths" not in service_source
+    assert "redact_local_filesystem_paths" in deterministic_replies_source
     for migrated_operation in (
         "append_tool_ui_specs",
         "extract_tool_ui_specs",
@@ -808,12 +811,14 @@ def test_ai_assistant_owns_project_chat_persistence() -> None:
 def test_ai_assistant_owns_project_chat_message_orchestration() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     application = module / "application" / "project_messages.py"
+    deterministic_replies = module / "application" / "deterministic_replies.py"
     composition = module / "composition.py"
     public = module / "public.py"
     service = PACKAGE_ROOT / "chat" / "service.py"
     route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
     service_tests = REPO_ROOT / "tests" / "test_chat_service_user_agent_scope.py"
     application_source = application.read_text(encoding="utf-8")
+    deterministic_replies_source = deterministic_replies.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
     service_source = service.read_text(encoding="utf-8")
@@ -837,7 +842,8 @@ def test_ai_assistant_owns_project_chat_message_orchestration() -> None:
     )
     assert "def get_project_chat_messages(" in composition_source
     assert "def get_project_chat_messages(" in public_source
-    assert "project_chat_messages = get_project_chat_messages()" in service_source
+    assert "project_chat_messages" not in service_source
+    assert "self._project_messages.append_assistant(" in deterministic_replies_source
     assert "project_chat_messages = get_project_chat_messages()" in route_source
     for legacy_implementation in (
         "def _assistant_history_contents(",
@@ -1151,6 +1157,47 @@ def test_ai_assistant_owns_hermes_project_reply_orchestration() -> None:
         "self._project_messages.append_assistant(",
     ):
         assert owned_operation in application_source
+
+
+def test_ai_assistant_owns_deterministic_project_replies() -> None:
+    module = PACKAGE_ROOT / "modules" / "ai_assistant"
+    application = module / "application" / "deterministic_replies.py"
+    composition = module / "composition.py"
+    public = module / "public.py"
+    service = PACKAGE_ROOT / "chat" / "service.py"
+    service_tests = REPO_ROOT / "tests" / "test_chat_service_user_agent_scope.py"
+    application_source = application.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+    service_source = service.read_text(encoding="utf-8")
+    service_test_source = service_tests.read_text(encoding="utf-8")
+
+    assert not {
+        imported
+        for imported in _imports(application)
+        if imported == "fastapi"
+        or imported.startswith("fastapi.")
+        or imported.startswith("ai_anime.chat")
+        or imported.startswith("ai_anime.modules.ai_assistant.infrastructure")
+    }
+    assert "class DeterministicProjectReplies:" in application_source
+    assert "_deterministic_project_replies = DeterministicProjectReplies(" in (
+        composition_source
+    )
+    assert "def get_deterministic_project_replies(" in composition_source
+    assert "def get_deterministic_project_replies(" in public_source
+    assert (
+        "deterministic_project_replies = get_deterministic_project_replies()"
+        in service_source
+    )
+    assert service_source.count("deterministic_project_replies.stream(") == 1
+    assert "def _stream_deterministic_assistant_reply(" not in service_source
+    assert "chat_service._stream_deterministic_assistant_reply" not in (
+        service_test_source
+    )
+    assert "redact_local_filesystem_paths(" in application_source
+    assert "self._project_messages.append_assistant(" in application_source
+    assert application_source.count("emit_chat_event_best_effort(") == 2
 
 
 def test_ai_assistant_owns_agent_backend_runtime() -> None:

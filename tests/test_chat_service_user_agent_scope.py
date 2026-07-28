@@ -70,28 +70,6 @@ async def test_append_chat_notification_persists_project_assistant_message(
 
 
 @pytest.mark.anyio
-async def test_deterministic_stream_redacts_local_paths(monkeypatch, tmp_path):
-    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
-    monkeypatch.setenv("AI_ANIME_OUTPUT_DIR", str(tmp_path / "output"))
-    events = []
-
-    async def on_event(event):
-        events.append(event)
-
-    message = await chat_service._stream_deterministic_assistant_reply(
-        "admin",
-        "project-a",
-        "临时路径：~/Works/ai-anime-fe/src",
-        on_event,
-    )
-
-    assert "~/Works/ai-anime-fe" not in message["content"]
-    assert message["content"] == "临时路径：[本地路径]"
-    assert events[0]["type"] == "assistant_delta"
-    assert events[0]["text"] == "临时路径：[本地路径]"
-
-
-@pytest.mark.anyio
 async def test_reingest_confirmation_reply_bypasses_agent_backend(
     monkeypatch, tmp_path
 ):

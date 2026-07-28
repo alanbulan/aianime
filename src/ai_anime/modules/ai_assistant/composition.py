@@ -10,6 +10,7 @@ from ai_anime.modules.ai_assistant.application import (
     ChatPresentation,
     ChatRunLocks,
     DisplayFallbacks,
+    DeterministicProjectReplies,
     HermesProjectReplies,
     HermesRuntime,
     PageAgentSessions,
@@ -50,6 +51,7 @@ _display_fallbacks = DisplayFallbacks(HttpDisplayFallbackGateway())
 _page_agent_sessions = PageAgentSessions()
 _project_media = ProjectMedia(LocalProjectMediaFiles())
 _project_chat_messages = ProjectChatMessages(_chat_history, _project_media)
+_deterministic_project_replies = DeterministicProjectReplies(_project_chat_messages)
 _agent_thread_replies = AgentThreadReplies(
     _agent_thread_runtime,
     _agent_prompt_context,
@@ -107,6 +109,10 @@ def get_hermes_project_replies() -> HermesProjectReplies:
 
 def get_display_fallbacks() -> DisplayFallbacks:
     return _display_fallbacks
+
+
+def get_deterministic_project_replies() -> DeterministicProjectReplies:
+    return _deterministic_project_replies
 
 
 def get_page_agent_sessions() -> PageAgentSessions:

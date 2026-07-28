@@ -10,6 +10,9 @@ from ai_anime.modules.ai_assistant.application.chat_events import (
     emit_chat_event_best_effort,
 )
 from ai_anime.modules.ai_assistant.application.display_fallback import DisplayFallbacks
+from ai_anime.modules.ai_assistant.application.deterministic_replies import (
+    DeterministicProjectReplies,
+)
 from ai_anime.modules.ai_assistant.application.hermes_project_replies import (
     HermesProjectReplies,
 )
@@ -59,6 +62,7 @@ __all__ = [
     "ChatRunLocks",
     "DisplayFallbackGateway",
     "DisplayFallbacks",
+    "DeterministicProjectReplies",
     "HermesRuntime",
     "HermesThread",
     "HermesProjectReplies",
