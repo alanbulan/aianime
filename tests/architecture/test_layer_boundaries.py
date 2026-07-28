@@ -439,11 +439,13 @@ def test_chat_websocket_auth_stays_in_api_auth_adapter() -> None:
 def test_chat_access_checks_stay_in_api_acl_adapter() -> None:
     access = PACKAGE_ROOT / "api" / "chat_access.py"
     route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
-    route_tests = REPO_ROOT / "tests" / "test_chat_route_prewarm.py"
+    scope_adapter = PACKAGE_ROOT / "api" / "chat_scope.py"
+    access_tests = REPO_ROOT / "tests" / "test_chat_access.py"
     notification_tests = REPO_ROOT / "tests" / "test_chat_service_user_agent_scope.py"
     access_source = access.read_text(encoding="utf-8")
     route_source = route.read_text(encoding="utf-8")
-    route_test_source = route_tests.read_text(encoding="utf-8")
+    scope_source = scope_adapter.read_text(encoding="utf-8")
+    access_test_source = access_tests.read_text(encoding="utf-8")
     notification_test_source = notification_tests.read_text(encoding="utf-8")
 
     assert "fastapi" not in _imports(access)
@@ -451,6 +453,7 @@ def test_chat_access_checks_stay_in_api_acl_adapter() -> None:
     assert "ai_anime.modules.model_usage.public" in _imports(access)
     assert "ai_anime.modules.project_workspace.public" in _imports(access)
     assert "ai_anime.api.chat_access" in _imports(route)
+    assert "ai_anime.api.chat_access" in _imports(scope_adapter)
     for owned_rule in (
         '_AI_ASSISTANT_CHAT_FEATURE_KEY = "ai_assistant_chat"',
         "async def project_context_for_scope(",
@@ -469,10 +472,50 @@ def test_chat_access_checks_stay_in_api_acl_adapter() -> None:
         "def _require_ai_assistant_access(",
     ):
         assert removed_route_dependency not in route_source
-    assert route_source.count("chat_access.project_context_for_scope(") == 4
+    assert route_source.count("chat_access.project_context_for_scope(") == 3
+    assert scope_source.count("chat_access.project_context_for_scope(") == 1
     assert route_source.count("chat_access.require_ai_assistant_access(") == 1
-    assert "_require_ai_assistant_access" not in route_test_source
+    assert "_require_ai_assistant_access" not in access_test_source
     assert "_project_context_for_scope" not in notification_test_source
+
+
+def test_chat_scope_projection_stays_in_api_adapter() -> None:
+    scope_adapter = PACKAGE_ROOT / "api" / "chat_scope.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    scope_tests = REPO_ROOT / "tests" / "test_chat_scope.py"
+    legacy_route_tests = REPO_ROOT / "tests" / "test_chat_route_prewarm.py"
+    scope_source = scope_adapter.read_text(encoding="utf-8")
+    route_source = route.read_text(encoding="utf-8")
+
+    assert scope_tests.exists()
+    assert not legacy_route_tests.exists()
+    assert "fastapi" in _imports(scope_adapter)
+    assert "ai_anime.api.chat_access" in _imports(scope_adapter)
+    assert "ai_anime.api.chat_websocket" in _imports(scope_adapter)
+    assert "ai_anime.modules.ai_assistant.public" in _imports(scope_adapter)
+    assert "ai_anime.modules.project_workspace.public" in _imports(scope_adapter)
+    assert "ai_anime.api.chat_scope" in _imports(route)
+    for owned_operation in (
+        "async def _history(",
+        "async def send_scope_changed(",
+        "except ProjectNotFound:",
+        "scoped_chat_messages.list(",
+        "chat_worker_lifecycle.is_busy(",
+        '"type": "scope.changed"',
+        "项目不存在或已删除，已切回首页聊天。",
+    ):
+        assert owned_operation in scope_source
+        assert owned_operation not in route_source
+    for removed_route_dependency in (
+        "ProjectContext",
+        "ProjectNotFound",
+        "def _history(",
+        "def _send_scope_changed(",
+        "scoped_chat_messages.list(",
+        "chat_worker_lifecycle.is_busy(",
+    ):
+        assert removed_route_dependency not in route_source
+    assert route_source.count("chat_scope.send_scope_changed(") == 2
 
 
 def test_chat_inbound_schemas_stay_in_api_adapter() -> None:
@@ -1079,10 +1122,12 @@ def test_ai_assistant_owns_scoped_chat_message_orchestration() -> None:
     composition = module / "composition.py"
     public = module / "public.py"
     route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    scope_adapter = PACKAGE_ROOT / "api" / "chat_scope.py"
     application_source = application.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
     route_source = route.read_text(encoding="utf-8")
+    scope_source = scope_adapter.read_text(encoding="utf-8")
 
     assert not {
         imported
@@ -1104,12 +1149,14 @@ def test_ai_assistant_owns_scoped_chat_message_orchestration() -> None:
     assert "def get_scoped_chat_messages(" in composition_source
     assert "def get_scoped_chat_messages(" in public_source
     assert "scoped_chat_messages = get_scoped_chat_messages()" in route_source
+    assert "scoped_chat_messages = get_scoped_chat_messages()" in scope_source
     for route_call in (
         "scoped_chat_messages.append_notification(",
         "scoped_chat_messages.append_ui_event(",
-        "scoped_chat_messages.list(",
     ):
         assert route_call in route_source
+    assert "scoped_chat_messages.list(" in scope_source
+    assert "scoped_chat_messages.list(" not in route_source
 
 
 def test_chat_service_has_no_unreachable_codex_history_cache() -> None:
@@ -1382,10 +1429,12 @@ def test_ai_assistant_owns_chat_worker_lifecycle() -> None:
     composition = module / "composition.py"
     public = module / "public.py"
     route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    scope_adapter = PACKAGE_ROOT / "api" / "chat_scope.py"
     application_source = application.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
     route_source = route.read_text(encoding="utf-8")
+    scope_source = scope_adapter.read_text(encoding="utf-8")
 
     assert not {
         imported
@@ -1400,9 +1449,11 @@ def test_ai_assistant_owns_chat_worker_lifecycle() -> None:
     assert "def get_chat_worker_lifecycle(" in composition_source
     assert "def get_chat_worker_lifecycle(" in public_source
     assert "chat_worker_lifecycle = get_chat_worker_lifecycle()" in route_source
+    assert "chat_worker_lifecycle = get_chat_worker_lifecycle()" in scope_source
     assert route_source.count("chat_worker_lifecycle.cancel(") == 1
     assert route_source.count("chat_worker_lifecycle.sync_scope(") == 1
-    assert route_source.count("chat_worker_lifecycle.is_busy(") == 1
+    assert "chat_worker_lifecycle.is_busy(" not in route_source
+    assert scope_source.count("chat_worker_lifecycle.is_busy(") == 1
     assert "def _sync_running_agent_scope(" not in route_source
     assert application_source.count("self._runtime.close_user(") == 1
     assert application_source.count("self._runtime.set_scope_for_user(") == 1

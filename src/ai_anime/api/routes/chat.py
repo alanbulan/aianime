@@ -13,6 +13,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 
 import ai_anime.api.chat_access as chat_access
+import ai_anime.api.chat_scope as chat_scope
 from ai_anime.api.auth import get_api_user, get_websocket_user
 from ai_anime.api.chat_errors import chat_exception_event
 from ai_anime.api.chat_schemas import (
@@ -37,10 +38,6 @@ from ai_anime.modules.ai_assistant.public import (
     get_project_chat_turns,
     get_scoped_chat_messages,
     should_prewarm_scope,
-)
-from ai_anime.modules.project_workspace.public import (
-    ProjectContext,
-    ProjectNotFound,
 )
 
 router = APIRouter()
@@ -114,51 +111,6 @@ async def append_chat_ui_event(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"ok": True, "data": event}
-
-
-async def _history(
-    username: str,
-    scope: ChatScope,
-    *,
-    project_ctx: ProjectContext | None = None,
-) -> list[dict[str, Any]]:
-    return scoped_chat_messages.list(
-        username,
-        scope,
-        project_dir=project_ctx.output_dir if project_ctx is not None else None,
-        project_state_dir=project_ctx.state_dir if project_ctx is not None else None,
-    )
-
-
-async def _send_scope_changed(
-    websocket: WebSocket,
-    user: dict[str, Any],
-    username: str,
-    scope: ChatScope,
-) -> ChatScope | None:
-    try:
-        project_ctx = await chat_access.project_context_for_scope(user, scope)
-    except ProjectNotFound:
-        if scope.kind != "project":
-            raise
-        scope = ChatScope(kind="home")
-        project_ctx = None
-        if not await send_json_best_effort(
-            websocket,
-            {"type": "error", "message": "项目不存在或已删除，已切回首页聊天。"},
-        ):
-            return None
-    if not await send_json_best_effort(
-        websocket,
-        {
-            "type": "scope.changed",
-            "scope": scope.to_dict(),
-            "history": await _history(username, scope, project_ctx=project_ctx),
-            "busy": chat_worker_lifecycle.is_busy(username),
-        },
-    ):
-        return None
-    return scope
 
 
 async def _stream_project_turn(
@@ -237,7 +189,12 @@ async def chat_ws(websocket: WebSocket) -> None:
 
     username = str(user["username"])
     current_scope = ChatScope(kind="home")
-    current_scope = await _send_scope_changed(websocket, user, username, current_scope)
+    current_scope = await chat_scope.send_scope_changed(
+        websocket,
+        user,
+        username,
+        current_scope,
+    )
     if current_scope is None:
         return
     # Do not pre-warm the default home scope on connect. The React client often
@@ -261,7 +218,7 @@ async def chat_ws(websocket: WebSocket) -> None:
             if event_type == "scope.set":
                 msg = ScopeSetIn.model_validate(raw)
                 requested_scope = to_chat_scope(msg.scope)
-                current_scope = await _send_scope_changed(
+                current_scope = await chat_scope.send_scope_changed(
                     websocket, user, username, requested_scope
                 )
                 if current_scope is None:
