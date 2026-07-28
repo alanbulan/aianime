@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from ai_anime.models import NO_CHARACTER_MARKER
+from ai_anime.modules.production.public import NO_CHARACTER_MARKER
 from ai_anime.modules.production.application.render_planning import (
     RenderPlanGridTask,
     RenderPlanRejected,

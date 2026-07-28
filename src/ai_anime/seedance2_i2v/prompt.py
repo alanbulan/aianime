@@ -10,7 +10,10 @@ from typing import Any, Awaitable, Callable
 
 from pydantic import BaseModel, Field
 
-from ai_anime.models import real_detected_identities, real_detected_props
+from ai_anime.modules.production.public import (
+    real_detected_identities,
+    real_detected_props,
+)
 from ai_anime.modules.narrative_planning.public import beat_scene_ref
 from ai_anime.seedance2_i2v.models import Seedance2I2VMode
 from ai_anime.seedance2_i2v.spoken_dialogue import (

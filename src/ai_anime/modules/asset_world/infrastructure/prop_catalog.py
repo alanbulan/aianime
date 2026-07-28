@@ -6,7 +6,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from ai_anime.models import collect_prop_marker_ids_from_beat
+from ai_anime.modules.production.public import collect_prop_marker_ids_from_beat
 from ai_anime.modules.asset_world.application.prop_models import NovelProp
 from ai_anime.modules.narrative_planning.public import build_prop_menu
 from ai_anime.modules.asset_world.application.dto import CreatePropCommand

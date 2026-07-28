@@ -73,7 +73,7 @@ async def run_sketch_select(
         dict: {beat_results, needs_regeneration, no_candidates, all_disqualified, summary}
     """
     import re
-    from ai_anime.models import extract_char_identities_from_markers
+    from ai_anime.modules.production.public import extract_char_identities_from_markers
     from ai_anime.generators.sketch_color_detector import detect_sketch_colors as detect_colors
 
     grids_dir = project_dir / "grids" / f"ep{episode_num:03d}"

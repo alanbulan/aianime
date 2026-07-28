@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from ai_anime.models import real_detected_identities
+from ai_anime.modules.production.domain.detected_refs import real_detected_identities
 from ai_anime.modules.production.domain.sketch_pose import SKELETON_EDGES
 
 

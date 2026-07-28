@@ -1990,6 +1990,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百五十九批已将 `resolve_scene_record_name`、`resolve_scene_plate`、`resolve_scene_plate_from_records` 及其私有时间后缀解析辅助函数从后端公共 `models.py` 迁入现有唯一 Asset & World application `scene_models.py`，场景模型、有效 prompt 与场景记录/时间板解析由同一模块持有，不新建重复解析器，不保留 facade 或旧别名。Asset & World 内部 Scene Viewer 直连 application 模型，AssetResolver、Seedance 与模块外测试统一经 Asset & World `public.py` 使用稳定入口；原有派生名称、时间候选、历史后缀剥离、结构化记录优先级和 fallback 分支逐行保留，旧巨石中的 `compose_derived_scene_name` 与时间工具依赖同步删除。场景板解析、AssetResolver、Seedance、场景 API 与完整架构回归 251 项通过；最终完整架构门禁 151 项，修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
+第四百六十批已将显式无角色/无道具标记、检测结果规范化、真实引用过滤、视觉描述引用补全、角色/道具 marker 提取与 beat 道具 marker 收集等完整规则组从后端公共 `models.py` 迁入唯一 Production domain `detected_refs.py`，两个私有辅助函数同步迁移，旧定义直接删除，不保留 facade、别名或重复实现。Production 内部草图 marker 检测、颜色规则与姿态适配器直连 domain；Cognee/SQLite、API、Narrative Planning、Asset & World、Freezone、生成器、Seedance、验证器与任务 runner 等模块外调用方统一经 Production `public.py` 使用稳定入口。新增去重与空标记优先级、严格/宽松 marker 解析、字典/对象 beat 读取和唯一所有权门禁；Production 回归 230 项，跨领域与持久化回归 333 项通过、14 项按既有条件跳过，最终完整架构门禁 152 项通过；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

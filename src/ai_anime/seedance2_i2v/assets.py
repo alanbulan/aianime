@@ -11,8 +11,8 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
-from ai_anime.models import (
-    NovelCharacter,
+from ai_anime.models import NovelCharacter
+from ai_anime.modules.production.public import (
     collect_prop_marker_ids_from_beat,
     real_detected_identities,
     real_detected_props,

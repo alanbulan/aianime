@@ -1,5 +1,5 @@
 from ai_anime.generators.prompt_builder import PromptComponents
-from ai_anime.models import (
+from ai_anime.modules.production.public import (
     NO_CHARACTER_MARKER,
     NO_PROP_MARKER,
     complete_detected_refs_from_visual_description,

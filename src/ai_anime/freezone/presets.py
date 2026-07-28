@@ -21,7 +21,7 @@ from PIL import Image
 from ai_anime.config import IMAGE_DEFAULT_STYLE as PROP_REF_DEFAULT_STYLE
 from ai_anime.generators.nanobanana_prop import build_prop_reference_prompt
 from ai_anime.generators.scene_reference_images import build_scene_reference_prompt
-from ai_anime.models import (
+from ai_anime.modules.production.public import (
     NO_CHARACTER_MARKER,
     NO_PROP_MARKER,
 )

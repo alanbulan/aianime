@@ -178,7 +178,9 @@ def build_test_character_map(
                     if did.startswith(char_name + "_") and did not in identity_ids:
                         identity_ids.append(did)
         else:
-            from ai_anime.models import extract_char_identities_from_markers
+            from ai_anime.modules.production.public import (
+                extract_char_identities_from_markers,
+            )
             for beat in beats:
                 vd = beat.get("visual_description", "")
                 for name, iid in extract_char_identities_from_markers(vd, strict=False).items():

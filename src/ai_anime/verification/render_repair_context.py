@@ -7,7 +7,7 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
-from ai_anime.models import real_detected_identities
+from ai_anime.modules.production.public import real_detected_identities
 from ai_anime.task_identity import selection_scope
 
 from .episode_reviewer import _build_numbered_grid

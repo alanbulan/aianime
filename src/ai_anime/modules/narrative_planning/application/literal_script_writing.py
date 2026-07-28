@@ -12,7 +12,7 @@ from ai_anime.config import (
     get_newapi_text_pydantic_model,
     get_newapi_text_pydantic_model_settings,
 )
-from ai_anime.models import (
+from ai_anime.modules.production.public import (
     extract_char_identities_from_markers,
     extract_prop_ids_from_markers,
 )

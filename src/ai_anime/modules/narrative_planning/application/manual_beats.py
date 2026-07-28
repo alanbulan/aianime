@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from ai_anime.models import (
+from ai_anime.modules.production.public import (
     extract_char_identities_from_markers,
     extract_prop_ids_from_markers,
 )

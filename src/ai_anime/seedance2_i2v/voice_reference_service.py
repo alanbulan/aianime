@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from ai_anime.models import real_detected_identities
+from ai_anime.modules.production.public import real_detected_identities
 from ai_anime.project_config import (
     load_effective_narration_style_for_voice,
     load_narrator_reference_audio,

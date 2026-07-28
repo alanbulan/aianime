@@ -45,7 +45,9 @@ def compute_beat_content_hash(
         beat.get("time_of_day", "") or "",
     ]
     if sketch_colors:
-        from ai_anime.models import extract_char_identities_from_markers
+        from ai_anime.modules.production.public import (
+            extract_char_identities_from_markers,
+        )
 
         try:
             char_ids = extract_char_identities_from_markers(

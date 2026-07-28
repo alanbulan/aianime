@@ -54,14 +54,16 @@ from ai_anime.generators.prompt_builder import (
     create_prompt_context,
 )
 from ai_anime.generators.render_identity_guard import render_ai_detection_error
-from ai_anime.models import real_detected_identities
 from ai_anime.modules.narrative_planning.public import (
     beat_order_value,
     beat_scene_id,
     build_prop_menu,
 )
 from ai_anime.modules.asset_world.public import StyleService
-from ai_anime.modules.production.public import global_prop_marker_colors
+from ai_anime.modules.production.public import (
+    global_prop_marker_colors,
+    real_detected_identities,
+)
 from ai_anime.utils.asset_resolver import AssetResolver
 from ai_anime.image_request_usage import (
     infer_episode_from_path,
@@ -6258,7 +6260,9 @@ class NanoBananaGridGenerator:
             char_descriptions = []  # 角色描述列表
 
             vis = beat.get("visual_description", "")
-            from ai_anime.models import extract_char_identities_from_markers
+            from ai_anime.modules.production.public import (
+                extract_char_identities_from_markers,
+            )
 
             char_identities = extract_char_identities_from_markers(vis, strict=False)
             for char_name, info in character_map.items():

@@ -26,7 +26,10 @@ from typing import Any, Dict, List, Optional, TypeAlias
 from pypinyin import pinyin, Style
 
 from ai_anime.config import get_style_preset, IMAGE_DEFAULT_STYLE
-from ai_anime.models import real_detected_identities, real_detected_props
+from ai_anime.modules.production.public import (
+    real_detected_identities,
+    real_detected_props,
+)
 from ai_anime.modules.asset_world.public import StyleService
 from ai_anime.modules.narrative_planning.public import beat_scene_id
 
@@ -304,7 +307,9 @@ class PromptComponents:
                     name = marker.split("_", 1)[0] if "_" in marker else marker
                     result.setdefault(name, set()).add(marker)
             else:
-                from ai_anime.models import extract_char_identities_from_markers
+                from ai_anime.modules.production.public import (
+                    extract_char_identities_from_markers,
+                )
 
                 for name, identity_id in extract_char_identities_from_markers(
                     beat.get("visual_description", ""), strict=False
@@ -316,7 +321,7 @@ class PromptComponents:
     def _collect_prop_marker_ids(
         beats: List[dict],
     ) -> list[str]:
-        from ai_anime.models import collect_prop_marker_ids_from_beat
+        from ai_anime.modules.production.public import collect_prop_marker_ids_from_beat
 
         result: list[str] = []
         seen: set[str] = set()
@@ -3319,7 +3324,9 @@ LAYOUT (CRITICAL - MUST BE EXACT):
 
             # 兜底扫描 ctx.characters，替换残余的裸角色名
             if ctx.characters:
-                from ai_anime.models import extract_char_identities_from_markers
+                from ai_anime.modules.production.public import (
+                    extract_char_identities_from_markers,
+                )
 
                 char_identities = extract_char_identities_from_markers(
                     beat.get("visual_description", ""), strict=False
@@ -3455,7 +3462,9 @@ LAYOUT (CRITICAL - MUST BE EXACT):
         tag_panels: dict[str, list[int]] = {}
         prop_panels: dict[str, list[int]] = {}
         if ctx.characters or prop_label_map:
-            from ai_anime.models import extract_char_identities_from_markers
+            from ai_anime.modules.production.public import (
+                extract_char_identities_from_markers,
+            )
 
             for i, beat in enumerate(ctx.beats[:total_panels], start=1):
                 vd = beat.get("visual_description", "")

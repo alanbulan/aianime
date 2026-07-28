@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
-from ai_anime.models import (
+from ai_anime.modules.production.domain.detected_refs import (
     NO_CHARACTER_MARKER,
     NO_PROP_MARKER,
     collect_prop_marker_ids_from_beat,

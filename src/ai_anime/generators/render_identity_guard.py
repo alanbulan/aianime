@@ -3,7 +3,10 @@
 from collections.abc import Iterable
 from typing import Any
 
-from ai_anime.models import NO_CHARACTER_MARKER, real_detected_identities
+from ai_anime.modules.production.public import (
+    NO_CHARACTER_MARKER,
+    real_detected_identities,
+)
 
 
 def _beat_get(beat: Any, key: str, default: Any = None) -> Any:

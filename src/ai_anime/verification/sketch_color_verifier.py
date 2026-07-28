@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 
 from ai_anime.generators.sketch_color_detector import detect_sketch_colors
-from ai_anime.models import extract_char_identities_from_markers
+from ai_anime.modules.production.public import extract_char_identities_from_markers
 
 from .models import ColorMismatch, ColorVerifyBeatResult, ColorVerifyResult
 from .utils import find_sketch_for_beat

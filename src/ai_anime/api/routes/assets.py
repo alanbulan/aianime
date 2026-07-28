@@ -8,7 +8,10 @@ from fastapi import APIRouter, Depends
 
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import make_sqlite_store_for_context, resolve_project_scope
-from ai_anime.models import real_detected_identities, real_detected_props
+from ai_anime.modules.production.public import (
+    real_detected_identities,
+    real_detected_props,
+)
 from ai_anime.modules.narrative_planning.public import beat_scene_id
 
 router = APIRouter()

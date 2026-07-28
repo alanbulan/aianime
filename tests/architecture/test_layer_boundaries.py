@@ -5460,6 +5460,90 @@ def test_asset_world_scene_model_has_one_owner() -> None:
         assert "ai_anime.modules.asset_world.public" in _imports(caller)
 
 
+def test_production_detected_refs_have_one_owner() -> None:
+    legacy_models = PACKAGE_ROOT / "models.py"
+    owner = (
+        PACKAGE_ROOT
+        / "modules"
+        / "production"
+        / "domain"
+        / "detected_refs.py"
+    )
+    public = PACKAGE_ROOT / "modules" / "production" / "public.py"
+    internal_callers = (
+        PACKAGE_ROOT / "modules" / "production" / "domain" / "sketch_color.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "production"
+        / "domain"
+        / "sketch_marker_detection.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "production"
+        / "infrastructure"
+        / "sketch_pose.py",
+    )
+    external_callers = (
+        PACKAGE_ROOT / "api" / "routes" / "assets.py",
+        PACKAGE_ROOT / "cognee" / "store.py",
+        PACKAGE_ROOT / "sqlite_store.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "asset_world"
+        / "application"
+        / "scene_viewer.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "narrative_planning"
+        / "application"
+        / "literal_script_writing.py",
+        PACKAGE_ROOT / "generators" / "prompt_builder.py",
+    )
+    constants = ("NO_CHARACTER_MARKER", "NO_PROP_MARKER")
+    functions = (
+        "collect_prop_marker_ids_from_beat",
+        "complete_detected_refs_from_visual_description",
+        "extract_char_identities_from_markers",
+        "extract_prop_ids_from_markers",
+        "normalize_detected_identities",
+        "normalize_detected_props",
+        "real_detected_identities",
+        "real_detected_props",
+    )
+    legacy_source = legacy_models.read_text(encoding="utf-8")
+    owner_source = owner.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+
+    for constant in constants:
+        assert f"{constant} =" not in legacy_source
+        assert f"{constant} =" in owner_source
+        assert f'"{constant}"' in public_source
+    for function_name in functions:
+        assert f"def {function_name}(" not in legacy_source
+        assert f"def {function_name}(" in owner_source
+        assert f'"{function_name}"' in public_source
+    for helper_name in ("_dedupe_non_empty", "_extract_identity_marker_ids"):
+        assert f"def {helper_name}(" not in legacy_source
+        assert f"def {helper_name}(" in owner_source
+
+    for caller in internal_callers:
+        assert "ai_anime.modules.production.domain.detected_refs" in _imports(caller)
+    for caller in external_callers:
+        assert "ai_anime.modules.production.public" in _imports(caller)
+
+    legacy_imports: list[str] = []
+    target_names = set(constants + functions)
+    for path in _python_files(PACKAGE_ROOT):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ImportFrom) or node.module != "ai_anime.models":
+                continue
+            imported = target_names.intersection(alias.name for alias in node.names)
+            if imported:
+                legacy_imports.append(f"{_relative(path)}: {', '.join(sorted(imported))}")
+    assert not legacy_imports, "\n".join(legacy_imports)
+
+
 def test_production_video_backend_catalog_has_one_owner() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_video.py"
     video_schemas = PACKAGE_ROOT / "api" / "production_video_schemas.py"

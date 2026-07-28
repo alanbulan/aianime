@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from ai_anime.models import (
+from ai_anime.modules.production.domain.detected_refs import (
     collect_prop_marker_ids_from_beat,
     extract_char_identities_from_markers,
 )

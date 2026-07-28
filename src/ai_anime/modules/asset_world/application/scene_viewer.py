@@ -6,7 +6,7 @@ from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any, Literal
 
-from ai_anime.models import (
+from ai_anime.modules.production.public import (
     real_detected_identities,
     real_detected_props,
 )

@@ -42,7 +42,7 @@ def _identity_suffix(identity_id: str) -> str:
 
 
 def _primary_detected_identity_by_character(beats: list[dict]) -> dict[str, str]:
-    from ai_anime.models import real_detected_identities
+    from ai_anime.modules.production.public import real_detected_identities
 
     result: dict[str, str] = {}
     for beat in beats:

@@ -30,9 +30,8 @@ from ai_anime.official_defaults import DEFAULT_COGNEE_LLM_MODEL
 from ai_anime.sqlite_store import SQLiteStore
 from ai_anime.utils.document_parsers import load_novel_text
 
-from ai_anime.models import (
-    CharacterIdentity,
-    NovelCharacter,
+from ai_anime.models import CharacterIdentity, NovelCharacter
+from ai_anime.modules.production.public import (
     complete_detected_refs_from_visual_description,
     normalize_detected_identities,
     normalize_detected_props,

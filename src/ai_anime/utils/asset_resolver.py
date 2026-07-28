@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from ai_anime.director_world.paths import safe_name
-from ai_anime.models import (
+from ai_anime.modules.production.public import (
     extract_prop_ids_from_markers,
     real_detected_props,
 )

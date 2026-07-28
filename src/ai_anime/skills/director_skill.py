@@ -263,7 +263,7 @@ def _db_scene_id(row: dict) -> str:
 
 
 def _db_identity_ids(row: dict) -> list[str]:
-    from ai_anime.models import extract_char_identities_from_markers
+    from ai_anime.modules.production.public import extract_char_identities_from_markers
 
     explicit = _json_loads(row.get("detected_identities_json"), [])
     if not isinstance(explicit, list):
@@ -279,7 +279,7 @@ def _db_identity_ids(row: dict) -> list[str]:
 
 
 def _db_prop_markers(row: dict) -> list[dict]:
-    from ai_anime.models import extract_prop_ids_from_markers
+    from ai_anime.modules.production.public import extract_prop_ids_from_markers
 
     visual_description = str(row.get("visual_description") or "")
     seen: set[str] = set()
