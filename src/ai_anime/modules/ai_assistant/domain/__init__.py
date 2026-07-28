@@ -16,6 +16,10 @@ from ai_anime.modules.ai_assistant.domain.chat_text import (
 )
 from ai_anime.modules.ai_assistant.domain.scope import ChatScope
 from ai_anime.modules.ai_assistant.domain.prompt_context import compose_agent_prompt
+from ai_anime.modules.ai_assistant.domain.turn_guidance import (
+    reingest_confirmation_reply,
+    script_creation_guidance_prompt,
+)
 
 __all__ = [
     "ChatScope",
@@ -24,6 +28,8 @@ __all__ = [
     "is_hidden_chat_tool_event",
     "merge_stream_text",
     "message_content",
+    "reingest_confirmation_reply",
+    "script_creation_guidance_prompt",
     "should_emit_final_text",
     "should_prewarm_scope",
     "split_trace_contents",

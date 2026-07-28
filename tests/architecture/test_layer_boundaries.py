@@ -572,6 +572,43 @@ def test_ai_assistant_owns_agent_prompt_context() -> None:
     assert service_source.count("build_agent_prompt_context(") == 3
 
 
+def test_ai_assistant_owns_turn_guidance_rules() -> None:
+    module = PACKAGE_ROOT / "modules" / "ai_assistant"
+    domain = module / "domain" / "turn_guidance.py"
+    public = module / "public.py"
+    service = PACKAGE_ROOT / "chat" / "service.py"
+    domain_source = domain.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+    service_source = service.read_text(encoding="utf-8")
+
+    assert not {
+        imported
+        for imported in _imports(domain)
+        if imported in {"os", "pathlib", "fastapi"}
+        or imported.startswith("fastapi.")
+        or imported.startswith("ai_anime.chat")
+    }
+    assert "def reingest_confirmation_reply(" in domain_source
+    assert "def script_creation_guidance_prompt(" in domain_source
+    assert "reingest_confirmation_reply" in public_source
+    assert "script_creation_guidance_prompt" in public_source
+    for legacy_name in (
+        "_REINGEST_CONFIRMATION_BLOCK_RE",
+        "_CHAT_ATTACHMENTS_BLOCK_RE",
+        "_AI_ANIME_INGEST_AUTOMATION_RE",
+        "_SCRIPT_CREATION_REQUEST_RE",
+        "_STYLE_SHORT_DRAMA_REQUEST_RE",
+        "_CONTINUE_PIPELINE_RE",
+        "_AI_ANIME_SCRIPT_UPLOAD_MODEL_REPLY_INSTRUCTIONS",
+        "def _frontend_context_reply(",
+        "def _script_creation_model_reply_prompt(",
+        "[AI_ANIME_SCRIPT_UPLOAD_GUIDANCE]",
+    ):
+        assert legacy_name not in service_source
+    assert "reingest_confirmation_reply(prompt)" in service_source
+    assert "script_creation_guidance_prompt(prompt)" in service_source
+
+
 def test_platform_release_callers_use_the_public_api() -> None:
     platform_release_module = PACKAGE_ROOT / "modules" / "platform_release"
     failures: list[str] = []
