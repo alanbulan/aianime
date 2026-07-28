@@ -1737,6 +1737,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百三十八批已将 Chat 单用户运行锁收口至 AI Assistant：application 新增 `ChatRunLocks` 协议，唯一 `FileChatRunLocks` infrastructure adapter 持有排他锁文件、PID 存活探测、过期回收、原子心跳与强制释放，composition/public 提供同一进程实例；Chat route 直接经 public adapter 完成取消释放与 scope busy 投影，`service.py` 只在流式回合中 acquire/maintain/release，原 240 行锁实现、常量和私有入口全部删除，不保留 facade 或第二套流程。新增 `local_state_root()` 作为 AI Assistant 本地状态根目录的唯一实现，SQLite history 与运行锁共同复用；用户级而非项目级互斥、`chat_agent_locks` 目录、稳定摘要文件名、排他创建与三次重试、5 秒新空锁保护、10 分钟空闲过期、1 小时最长运行、30 秒心跳、旧 payload 解析、失效锁清理及取消/忙碌响应均保持不变，Windows 继续使用只读 `OpenProcess`/`GetExitCodeProcess`，不调用会终止进程的 Windows `os.kill(pid, 0)` 路径。运行锁 adapter 10 项、SQLite adapter 10 项、完整 Chat service 53 项、Chat route 2 项、M08 合同 5 项及完整后端分层门禁 104 项均通过，修改文件 Ruff、Python 编译、新模块格式检查与 `git diff --check` 通过。
 
+第三百三十九批已将 Claude/Codex 活跃 thread 状态收口至 AI Assistant：application 新增 `AgentThreadSessions` 协议，唯一 `FileAgentThreadSessions` infrastructure adapter 复用本地 state 根目录并持有 `agent_sessions.json` 读取、容错与原子写入，composition/public 提供同一进程实例。`service.py` 的历史同步、thread 构建和流式事件处理直接按用户与 `claude`/`codex` 后端调用端口，原路径/load/save、通用 getter/setter 及四个带未使用 project 参数的包装函数全部删除，不保留 facade 或第二套读写；状态实际为用户级而非项目级这一既有语义被显式化。`state/{username}/agent_sessions.json` 路径、单一活跃后端、切换后端即失效旧 thread、`backend/thread_id/updated_at` 字段、UTC ISO 时间、thread ID 去空白、空 ID 不覆盖、临时文件替换及缺失/损坏/非对象状态回退均保持不变。Agent thread adapter 8 项、完整 Chat service 52 项、M08 合同 5 项及完整后端分层门禁 105 项均通过，修改文件 Ruff、Python 编译、新模块格式检查与 `git diff --check` 通过。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

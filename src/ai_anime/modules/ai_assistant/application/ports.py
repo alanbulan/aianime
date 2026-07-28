@@ -7,6 +7,12 @@ from typing import Any, Protocol
 from ai_anime.modules.ai_assistant.domain import ChatScope
 
 
+class AgentThreadSessions(Protocol):
+    def get_active(self, username: str, backend: str) -> str | None: ...
+
+    def set_active(self, username: str, backend: str, thread_id: str) -> None: ...
+
+
 class ChatHistory(Protocol):
     def append_message(
         self,

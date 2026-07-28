@@ -30,6 +30,7 @@ from ai_anime.chat.backend_sdk import (
 from ai_anime.chat.runtime_config import load_api_url
 from ai_anime.modules.ai_assistant.public import (
     completion_text_or_existing,
+    get_agent_thread_sessions,
     get_chat_run_locks,
     is_hidden_chat_tool_event,
     merge_stream_text,
@@ -43,6 +44,7 @@ from ai_anime.utils.error_redaction import redact_secrets
 from ai_anime.utils.static_urls import project_static_url
 
 logger = logging.getLogger("ai_anime.chat.service")
+agent_thread_sessions = get_agent_thread_sessions()
 chat_run_locks = get_chat_run_locks()
 
 _MEDIA_EXTENSIONS = {
@@ -2222,7 +2224,7 @@ def _load_codex_thread_history(username: str, project: str) -> list[dict[str, An
         UserMessageThreadItem,
     )
 
-    thread_id = _get_codex_thread_id(username, project)
+    thread_id = agent_thread_sessions.get_active(username, "codex")
     if not thread_id:
         return []
 
@@ -2447,76 +2449,6 @@ def add_trace_messages(
         return messages
     finally:
         conn.close()
-
-
-def _agent_session_state_path(username: str) -> Path:
-    return _user_state_dir(username) / "agent_sessions.json"
-
-
-def _load_agent_session_state(username: str) -> dict[str, str]:
-    path = _agent_session_state_path(username)
-    if not path.exists():
-        return {}
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return {}
-    if not isinstance(payload, dict):
-        return {}
-    return {
-        str(key): str(value).strip()
-        for key, value in payload.items()
-        if str(value or "").strip()
-    }
-
-
-def _save_agent_session_state(username: str, payload: dict[str, str]) -> None:
-    path = _agent_session_state_path(username)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path = path.with_suffix(".tmp")
-    tmp_path.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    tmp_path.replace(path)
-
-
-def _get_active_agent_session_id(username: str, backend: str) -> str | None:
-    payload = _load_agent_session_state(username)
-    active_backend = str(payload.get("backend", "") or "").strip()
-    if active_backend != backend:
-        return None
-    return str(payload.get("thread_id", "") or "").strip() or None
-
-
-def _set_active_agent_session_id(username: str, backend: str, thread_id: str) -> None:
-    normalized = str(thread_id or "").strip()
-    if not normalized:
-        return
-    _save_agent_session_state(
-        username,
-        {
-            "backend": backend,
-            "thread_id": normalized,
-            "updated_at": _now_iso(),
-        },
-    )
-
-
-def _get_claude_session_id(username: str, project: str) -> str | None:
-    return _get_active_agent_session_id(username, "claude")
-
-
-def _set_claude_session_id(username: str, project: str, session_id: str) -> None:
-    _set_active_agent_session_id(username, "claude", session_id)
-
-
-def _get_codex_thread_id(username: str, project: str) -> str | None:
-    return _get_active_agent_session_id(username, "codex")
-
-
-def _set_codex_thread_id(username: str, project: str, thread_id: str) -> None:
-    _set_active_agent_session_id(username, "codex", thread_id)
 
 
 PAGE_AGENT_SCOPES = [
@@ -2836,7 +2768,7 @@ def _build_claude_thread(username: str, project: str, agent_token: str):
         env=_build_agent_env(username, project, agent_token),
         model=_claude_model(),
     )
-    session_id = _get_claude_session_id(username, project)
+    session_id = agent_thread_sessions.get_active(username, "claude")
     return client.thread_resume(session_id) if session_id else client.thread_start()
 
 
@@ -2884,7 +2816,7 @@ def _build_codex_thread(username: str, project: str, agent_token: str):
         model=_codex_model(),
         config_overrides=_codex_mcp_config_overrides(_ai_anime_mcp_servers()),
     )
-    thread_id = _get_codex_thread_id(username, project)
+    thread_id = agent_thread_sessions.get_active(username, "codex")
     return client.thread_resume(thread_id) if thread_id else client.thread_start()
 
 
@@ -3342,7 +3274,7 @@ async def _stream_assistant_reply_claude(
             if event.type == "thread_started":
                 thread_id = str(event.thread_id or "").strip() or None
                 if thread_id:
-                    _set_claude_session_id(username, project, thread_id)
+                    agent_thread_sessions.set_active(username, "claude", thread_id)
                 await on_event(
                     {
                         "type": "thread_started",
@@ -3368,7 +3300,7 @@ async def _stream_assistant_reply_claude(
             if event.type == "complete":
                 thread_id = str(event.thread_id or "").strip() or None
                 if thread_id:
-                    _set_claude_session_id(username, project, thread_id)
+                    agent_thread_sessions.set_active(username, "claude", thread_id)
                 assistant_text = completion_text_or_existing(
                     event.text, assistant_text
                 )
@@ -3422,7 +3354,7 @@ async def _stream_assistant_reply_codex(
         if event.type == "thread_started":
             thread_id = str(event.thread_id or "").strip() or None
             if thread_id:
-                _set_codex_thread_id(username, project, thread_id)
+                agent_thread_sessions.set_active(username, "codex", thread_id)
             await on_event(
                 {
                     "type": "thread_started",
@@ -3448,7 +3380,7 @@ async def _stream_assistant_reply_codex(
         if event.type == "complete":
             thread_id = str(event.thread_id or "").strip() or None
             if thread_id:
-                _set_codex_thread_id(username, project, thread_id)
+                agent_thread_sessions.set_active(username, "codex", thread_id)
             assistant_text = completion_text_or_existing(event.text, assistant_text)
 
     assistant_text = assistant_text.strip() or "已执行，但没有返回正文。"

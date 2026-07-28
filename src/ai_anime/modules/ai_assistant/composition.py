@@ -1,13 +1,23 @@
 """Runtime composition for AI Assistant."""
 
-from ai_anime.modules.ai_assistant.application import ChatHistory, ChatRunLocks
+from ai_anime.modules.ai_assistant.application import (
+    AgentThreadSessions,
+    ChatHistory,
+    ChatRunLocks,
+)
 from ai_anime.modules.ai_assistant.infrastructure import (
+    FileAgentThreadSessions,
     FileChatRunLocks,
     SQLiteChatHistory,
 )
 
+_agent_thread_sessions = FileAgentThreadSessions()
 _chat_history = SQLiteChatHistory()
 _chat_run_locks = FileChatRunLocks()
+
+
+def get_agent_thread_sessions() -> AgentThreadSessions:
+    return _agent_thread_sessions
 
 
 def get_chat_history() -> ChatHistory:

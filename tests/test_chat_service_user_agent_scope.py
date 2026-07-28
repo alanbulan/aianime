@@ -303,24 +303,6 @@ async def test_fallback_display_prefers_api_project_id(monkeypatch):
     )
 
 
-def test_claude_and_codex_sessions_are_scope_scoped(monkeypatch, tmp_path):
-    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
-    monkeypatch.setenv("AI_ANIME_OUTPUT_DIR", str(tmp_path / "output"))
-
-    chat_service._set_claude_session_id("admin", "project-a", "claude-session-1")
-    assert (
-        chat_service._get_claude_session_id("admin", "project-b") == "claude-session-1"
-    )
-    assert chat_service._get_codex_thread_id("admin", "project-b") is None
-
-    chat_service._set_codex_thread_id("admin", "project-a", "codex-thread-1")
-    assert chat_service._get_claude_session_id("admin", "project-b") is None
-    assert chat_service._get_codex_thread_id("admin", "project-b") == "codex-thread-1"
-
-    state_file = tmp_path / "state" / "admin" / "agent_sessions.json"
-    assert state_file.exists()
-
-
 def test_user_agent_workspace_is_not_project_workspace(monkeypatch, tmp_path):
     monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
     monkeypatch.setenv("AI_ANIME_OUTPUT_DIR", str(tmp_path / "output"))

@@ -486,6 +486,39 @@ def test_ai_assistant_owns_chat_run_locks() -> None:
     assert "chat_run_locks.is_active(" in route_source
 
 
+def test_ai_assistant_owns_agent_thread_sessions() -> None:
+    module = PACKAGE_ROOT / "modules" / "ai_assistant"
+    ports = module / "application" / "ports.py"
+    adapter = module / "infrastructure" / "agent_thread_sessions.py"
+    composition = module / "composition.py"
+    public = module / "public.py"
+    service = PACKAGE_ROOT / "chat" / "service.py"
+    adapter_source = adapter.read_text(encoding="utf-8")
+    service_source = service.read_text(encoding="utf-8")
+
+    assert "class AgentThreadSessions(Protocol):" in ports.read_text(encoding="utf-8")
+    assert "class FileAgentThreadSessions:" in adapter_source
+    assert "agent_sessions.json" in adapter_source
+    assert "local_state_root" in adapter_source
+    assert "def get_agent_thread_sessions(" in composition.read_text(encoding="utf-8")
+    assert "def get_agent_thread_sessions(" in public.read_text(encoding="utf-8")
+    for legacy_name in (
+        "def _agent_session_state_path(",
+        "def _load_agent_session_state(",
+        "def _save_agent_session_state(",
+        "def _get_active_agent_session_id(",
+        "def _set_active_agent_session_id(",
+        "def _get_claude_session_id(",
+        "def _set_claude_session_id(",
+        "def _get_codex_thread_id(",
+        "def _set_codex_thread_id(",
+    ):
+        assert legacy_name not in service_source
+    assert "agent_sessions.json" not in service_source
+    assert "agent_thread_sessions.get_active(" in service_source
+    assert "agent_thread_sessions.set_active(" in service_source
+
+
 def test_platform_release_callers_use_the_public_api() -> None:
     platform_release_module = PACKAGE_ROOT / "modules" / "platform_release"
     failures: list[str] = []

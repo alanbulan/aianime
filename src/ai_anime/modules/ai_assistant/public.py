@@ -1,6 +1,10 @@
 """Stable application API exposed by AI Assistant."""
 
-from ai_anime.modules.ai_assistant.application import ChatHistory, ChatRunLocks
+from ai_anime.modules.ai_assistant.application import (
+    AgentThreadSessions,
+    ChatHistory,
+    ChatRunLocks,
+)
 from ai_anime.modules.ai_assistant.domain import (
     ChatScope,
     completion_text_or_existing,
@@ -18,6 +22,14 @@ from ai_anime.modules.ai_assistant.domain import (
 )
 
 
+def get_agent_thread_sessions() -> AgentThreadSessions:
+    from ai_anime.modules.ai_assistant.composition import (
+        get_agent_thread_sessions as resolve,
+    )
+
+    return resolve()
+
+
 def get_chat_history() -> ChatHistory:
     from ai_anime.modules.ai_assistant.composition import get_chat_history as resolve
 
@@ -31,10 +43,12 @@ def get_chat_run_locks() -> ChatRunLocks:
 
 
 __all__ = [
+    "AgentThreadSessions",
     "ChatHistory",
     "ChatRunLocks",
     "ChatScope",
     "completion_text_or_existing",
+    "get_agent_thread_sessions",
     "get_chat_history",
     "get_chat_run_locks",
     "is_hidden_chat_tool_event",
