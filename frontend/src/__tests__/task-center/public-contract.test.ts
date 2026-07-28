@@ -10,10 +10,14 @@ describe("Task Center public contract", () => {
     expect(typeof taskCenter.useCancelTask).toBe("function");
     expect(typeof taskCenter.useClearCompleted).toBe("function");
     expect(typeof taskCenter.useDeleteTask).toBe("function");
+    expect(typeof taskCenter.listTasks).toBe("function");
+    expect(typeof taskCenter.awaitTaskCompletion).toBe("function");
+    expect(typeof taskCenter.TaskCompletionError).toBe("function");
   });
 
-  it("does not retain the legacy task query entry", () => {
+  it("does not retain legacy task entries", () => {
     expect(existsSync("src/lib/queries/tasks.ts")).toBe(false);
+    expect(existsSync("src/api/tasks.ts")).toBe(false);
   });
 
   it("keeps the active task stream adapter available", async () => {

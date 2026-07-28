@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { awaitTaskCompletion, listTasks } from '@/api/tasks';
+import { awaitTaskCompletion, listTasks } from '@/task-center/public';
 import { apiCall } from '@/shared/api/client';
 
 import type {

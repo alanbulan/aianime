@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from 'vitest';
 
-import { TaskCompletionError } from '@/api/tasks';
+import { TaskCompletionError } from '@/task-center/public';
 import {
   buildImageGenerationSuccessPatch,
   isStaleGenerationTask,

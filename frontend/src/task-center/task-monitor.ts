@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-// AI anime project-scoped task endpoints — read task state, subscribe to SSE.
+// Project-scoped task monitoring: read task state and subscribe to SSE.
 //
 // We use native EventSource because AI anime auth is cookie-based and
 // HttpOnly cookies are sent on the EventSource handshake automatically
@@ -9,7 +9,7 @@
 import { apiCall } from "@/shared/api/client";
 import { readUrl } from "@/lib/url-params";
 
-export type TaskStatus =
+export type TaskMonitorStatus =
   | "submitting"
   | "queued"
   | "running"
@@ -17,7 +17,7 @@ export type TaskStatus =
   | "failed"
   | "cancelled";
 
-export interface TaskState {
+export interface TaskMonitorState {
   task_type: string;
   task_key: string;
   project_id?: string;
@@ -26,7 +26,7 @@ export interface TaskState {
   episode: number;
   beat_num?: number | null;
   scope?: string | null;
-  status: TaskStatus;
+  status: TaskMonitorStatus;
   progress?: number | null;
   current_task?: string | null;
   result?: Record<string, unknown> | null;
@@ -40,7 +40,7 @@ export interface TaskState {
 export class TaskCompletionError extends Error {
   constructor(
     message: string,
-    public readonly status: TaskStatus,
+    public readonly status: TaskMonitorStatus,
     public readonly taskKey: string,
   ) {
     super(message);
@@ -56,9 +56,9 @@ function resolveTaskProjectId(projectId?: string): string {
   return resolved;
 }
 
-export async function listTasks(projectId?: string): Promise<TaskState[]> {
+export async function listTasks(projectId?: string): Promise<TaskMonitorState[]> {
   const resolved = resolveTaskProjectId(projectId);
-  return await apiCall<TaskState[]>(
+  return await apiCall<TaskMonitorState[]>(
     `projects/${encodeURIComponent(resolved)}/tasks`,
   );
 }
@@ -68,7 +68,7 @@ interface SseHandle {
 }
 
 interface TaskStreamHandler {
-  onTask: (task: TaskState) => void;
+  onTask: (task: TaskMonitorState) => void;
   onError?: (err: Event) => void;
   onAuthRevoked?: () => void;
   projectId?: string;
@@ -96,7 +96,7 @@ function openTaskStream(handler: TaskStreamHandler): SseHandle {
       attempt = 0;
       try {
         const data = JSON.parse((event as MessageEvent).data);
-        handler.onTask(data as TaskState);
+        handler.onTask(data as TaskMonitorState);
       } catch (err) {
         console.warn("[freezone] task_updated parse failed", err);
       }
@@ -132,7 +132,7 @@ function openTaskStream(handler: TaskStreamHandler): SseHandle {
 // and the underlying SSE stream resolves the promise on completion / failure.
 
 interface PendingResolver {
-  resolve: (task: TaskState) => void;
+  resolve: (task: TaskMonitorState) => void;
   reject: (err: Error) => void;
   projectId: string;
   expiresAt: number;
@@ -199,7 +199,7 @@ function maybeStopProjectMonitoring(projectId: string): void {
   }
 }
 
-function settleTask(task: TaskState): void {
+function settleTask(task: TaskMonitorState): void {
   const pending = pendingByTaskKey.get(task.task_key);
   if (!pending) return;
   if (task.status === "completed") {
@@ -300,11 +300,14 @@ function ensureProjectPoller(projectId: string): void {
   schedule();
 }
 
-export function awaitTaskCompletion(taskKey: string, projectId: string): Promise<TaskState> {
+export function awaitTaskCompletion(
+  taskKey: string,
+  projectId: string,
+): Promise<TaskMonitorState> {
   const resolved = resolveTaskProjectId(projectId);
   ensureSharedStream(resolved);
   ensureProjectPoller(resolved);
-  const promise = new Promise<TaskState>((resolve, reject) => {
+  const promise = new Promise<TaskMonitorState>((resolve, reject) => {
     pendingByTaskKey.set(taskKey, {
       resolve,
       reject,

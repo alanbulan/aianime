@@ -120,8 +120,9 @@ describe("frontend architecture boundaries", () => {
     expect(failures).toEqual([]);
   });
 
-  it("keeps task queries behind the Task Center public API", () => {
+  it("keeps task capabilities behind the Task Center public API", () => {
     const legacyQueryPath = resolve(SRC_ROOT, "lib/queries/tasks.ts");
+    const legacyMonitorPath = resolve(SRC_ROOT, "api/tasks.ts");
     const publicPath = resolve(SRC_ROOT, "task-center/public.ts");
     const bypasses = sourceFiles(SRC_ROOT)
       .filter((path) => !relativeSource(path).startsWith("__tests__/"))
@@ -130,13 +131,17 @@ describe("frontend architecture boundaries", () => {
           .filter(
             (specifier) =>
               specifier === "@/lib/queries/tasks" ||
-              specifier === "@/task-center/query-hooks",
+              specifier === "@/api/tasks" ||
+              specifier === "@/task-center/query-hooks" ||
+              specifier === "@/task-center/task-monitor",
           )
           .map((specifier) => `${relativeSource(path)}: ${specifier}`),
       );
 
     expect(existsSync(legacyQueryPath)).toBe(false);
+    expect(existsSync(legacyMonitorPath)).toBe(false);
     expect(importSpecifiers(publicPath)).toContain("./query-hooks");
+    expect(importSpecifiers(publicPath)).toContain("./task-monitor");
     expect(bypasses).toEqual([]);
   });
 
@@ -1023,7 +1028,7 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).not.toContain("@/api/");
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
       new Set([
-        "@/api/tasks",
+        "@/task-center/public",
         "@/shared/api/client",
         "../application/video-processing",
       ]),
@@ -11063,7 +11068,7 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(gatewayPath))).toEqual(
       new Set([
-        "@/api/tasks",
+        "@/task-center/public",
         "@/shared/api/client",
         "../application/ports",
       ]),

@@ -1,10 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { awaitTaskCompletion, listTasks } from "@/api/tasks";
+import { awaitTaskCompletion, listTasks } from "@/task-center/public";
 import { apiCall } from "@/shared/api/client";
 
-vi.mock("@/api/tasks", () => ({
+vi.mock("@/task-center/public", () => ({
   awaitTaskCompletion: vi.fn(),
   listTasks: vi.fn(),
 }));

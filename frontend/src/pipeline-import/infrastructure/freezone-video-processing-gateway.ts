@@ -1,5 +1,8 @@
 // Copyright (c) 2026 AI anime
-import { awaitTaskCompletion, type TaskState } from "@/api/tasks";
+import {
+  awaitTaskCompletion,
+  type TaskMonitorState,
+} from "@/task-center/public";
 import { apiCall } from "@/shared/api/client";
 
 import type {
@@ -11,14 +14,14 @@ interface PipelineTaskTransport {
   readonly task_key: string;
 }
 
-function frameUrls(task: TaskState): string[] {
+function frameUrls(task: TaskMonitorState): string[] {
   const urls = task.result?.["frame_urls"];
   return Array.isArray(urls)
     ? urls.filter((url): url is string => typeof url === "string")
     : [];
 }
 
-function shotAnalyses(task: TaskState): PipelineShotAnalysis[] {
+function shotAnalyses(task: TaskMonitorState): PipelineShotAnalysis[] {
   const analyses = task.result?.["analyses"];
   return Array.isArray(analyses)
     ? (analyses as PipelineShotAnalysis[])
