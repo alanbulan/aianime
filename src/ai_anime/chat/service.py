@@ -32,6 +32,7 @@ from ai_anime.modules.ai_assistant.public import (
     completion_text_or_existing,
     get_agent_backend,
     get_agent_thread_sessions,
+    get_agent_workspace,
     get_chat_run_locks,
     is_hidden_chat_tool_event,
     merge_stream_text,
@@ -49,6 +50,7 @@ from ai_anime.utils.static_urls import project_static_url
 logger = logging.getLogger("ai_anime.chat.service")
 agent_backend = get_agent_backend()
 agent_thread_sessions = get_agent_thread_sessions()
+agent_workspace = get_agent_workspace()
 chat_run_locks = get_chat_run_locks()
 
 _MEDIA_EXTENSIONS = {
@@ -148,43 +150,6 @@ def _json_render_error_log_path() -> Path:
     return _repo_root() / "jr_error.log"
 
 
-def _repo_skill_roots() -> list[Path]:
-    root = _repo_root()
-    return [
-        root / ".claude" / "skills",
-        root / ".codex" / "skills",
-    ]
-
-
-def _skill_sources() -> list[tuple[str, Path]]:
-    sources: dict[str, Path] = {}
-    for repo_skills_root in _repo_skill_roots():
-        if not repo_skills_root.exists():
-            continue
-        for child in sorted(repo_skills_root.iterdir()):
-            if child.is_dir() and (child / "SKILL.md").exists():
-                # Keep the first matching skill name so .claude/skills remains the default
-                # source when both locations expose the same skill.
-                sources.setdefault(child.name, child)
-
-    configured = (
-        os.environ.get("CLAUDE_AI_ANIME_SKILL_PATH")
-        or os.environ.get("CLAUDE_AI_ANIME_SKILL_PATH")
-        or ""
-    ).strip()
-    if configured:
-        sources["ai_anime"] = Path(configured).expanduser()
-
-    return [(name, path) for name, path in sorted(sources.items()) if path.exists()]
-
-
-def _sync_project_skills(skills_dir: Path) -> None:
-    for skill_name, src in _skill_sources():
-        dst = skills_dir / skill_name
-        if not dst.exists():
-            shutil.copytree(src, dst)
-
-
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -210,18 +175,6 @@ def _project_state_dir(username: str, project: str) -> Path:
     base_dir = _state_root() / username / project
     base_dir.mkdir(parents=True, exist_ok=True)
     return base_dir
-
-
-def _user_state_dir(username: str) -> Path:
-    base_dir = _state_root() / username
-    base_dir.mkdir(parents=True, exist_ok=True)
-    return base_dir
-
-
-def _user_agent_workspace(username: str) -> Path:
-    workspace = _user_state_dir(username) / ".chat_agents"
-    workspace.mkdir(parents=True, exist_ok=True)
-    return workspace
 
 
 def _legacy_chat_db_path(
@@ -2010,13 +1963,12 @@ def _load_codex_thread_history(username: str, project: str) -> list[dict[str, An
     if not thread_id:
         return []
 
-    ensure_user_codex_workspace(username, project)
-    workspace = _user_agent_workspace(username)
+    workspace = agent_workspace.ensure_codex(username)
     codex_bin = agent_backend.codex_bin_path()
     config = CodexConfig(
         codex_bin=str(codex_bin) if codex_bin is not None else None,
         cwd=str(workspace),
-        env=_build_agent_env(username, project),
+        env=agent_workspace.build_environment(username, project),
         config_overrides=_codex_mcp_config_overrides(_ai_anime_mcp_servers()),
     )
 
@@ -2263,71 +2215,6 @@ async def _create_page_agent_session_token(
     return token.value
 
 
-def _project_skill_settings_payload(
-    username: str,
-    project: str,
-    agent_token: str = "",
-) -> dict[str, Any]:
-    env = {
-        "AI_ANIME_USERNAME": username,
-        "AI_ANIME_AGENT_SCOPE": "user",
-        "AI_ANIME_API_URL": load_api_url(),
-        "AI_ANIME_AGENT_TOKEN": agent_token,
-    }
-    if project:
-        env["AI_ANIME_PROJECT_ID"] = project
-    return {"env": env}
-
-
-def _write_user_skill_settings(
-    username: str, project: str, agent_token: str = ""
-) -> None:
-    workspace = _user_agent_workspace(username)
-    claude_dir = workspace / ".claude"
-    claude_dir.mkdir(parents=True, exist_ok=True)
-    payload = _project_skill_settings_payload(username, project, agent_token)
-    (claude_dir / "settings.local.json").write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-
-
-def ensure_user_claude_workspace(
-    username: str, project: str, agent_token: str = ""
-) -> None:
-    workspace = _user_agent_workspace(username)
-    claude_dir = workspace / ".claude"
-    skills_dir = claude_dir / "skills"
-    claude_dir.mkdir(parents=True, exist_ok=True)
-    skills_dir.mkdir(parents=True, exist_ok=True)
-    _write_user_skill_settings(username, project, agent_token)
-    _sync_project_skills(skills_dir)
-
-
-def ensure_user_codex_workspace(
-    username: str, project: str, agent_token: str = ""
-) -> None:
-    workspace = _user_agent_workspace(username)
-    codex_dir = workspace / ".codex"
-    skills_dir = codex_dir / "skills"
-    codex_dir.mkdir(parents=True, exist_ok=True)
-    skills_dir.mkdir(parents=True, exist_ok=True)
-    _sync_project_skills(skills_dir)
-
-
-def _build_agent_env(
-    username: str, project: str, agent_token: str = ""
-) -> dict[str, str]:
-    env = os.environ.copy()
-    env["AI_ANIME_USERNAME"] = username
-    env["AI_ANIME_AGENT_SCOPE"] = "user"
-    if project:
-        env["AI_ANIME_PROJECT_ID"] = project
-    env["AI_ANIME_API_URL"] = load_api_url()
-    env["AI_ANIME_AGENT_TOKEN"] = agent_token
-    return env
-
-
 def _extract_media(
     content: str,
     username: str,
@@ -2542,12 +2429,11 @@ def _filter_markdown_duplicate_images(
 
 
 def _build_claude_thread(username: str, project: str, agent_token: str):
-    ensure_user_claude_workspace(username, project, agent_token)
-    workspace = _user_agent_workspace(username)
+    workspace = agent_workspace.ensure_claude(username, project, agent_token)
     client = ClaudeSdkClient(
         cli_path=agent_backend.claude_cli_path(),
         cwd=workspace,
-        env=_build_agent_env(username, project, agent_token),
+        env=agent_workspace.build_environment(username, project, agent_token),
         model=agent_backend.claude_model(),
     )
     session_id = agent_thread_sessions.get_active(username, "claude")
@@ -2589,12 +2475,11 @@ def _codex_mcp_config_overrides(
 
 
 def _build_codex_thread(username: str, project: str, agent_token: str):
-    ensure_user_codex_workspace(username, project, agent_token)
-    workspace = _user_agent_workspace(username)
+    workspace = agent_workspace.ensure_codex(username)
     client = CodexClient(
         codex_bin=agent_backend.codex_bin_path(),
         cwd=workspace,
-        env=_build_agent_env(username, project, agent_token),
+        env=agent_workspace.build_environment(username, project, agent_token),
         model=agent_backend.codex_model(),
         config_overrides=_codex_mcp_config_overrides(_ai_anime_mcp_servers()),
     )

@@ -6,6 +6,9 @@ from ai_anime.modules.ai_assistant.infrastructure.agent_backend_runtime import (
 from ai_anime.modules.ai_assistant.infrastructure.agent_thread_sessions import (
     FileAgentThreadSessions,
 )
+from ai_anime.modules.ai_assistant.infrastructure.agent_workspace import (
+    LocalAgentWorkspace,
+)
 from ai_anime.modules.ai_assistant.infrastructure.chat_run_locks import (
     FileChatRunLocks,
 )
@@ -21,5 +24,6 @@ __all__ = [
     "FileChatRunLocks",
     "FileUserPreferences",
     "LocalAgentBackendRuntime",
+    "LocalAgentWorkspace",
     "SQLiteChatHistory",
 ]

@@ -86,3 +86,21 @@ class AgentBackendRuntime(Protocol):
     def codex_model(self) -> str: ...
 
     def claude_model(self) -> str | None: ...
+
+
+class AgentWorkspace(Protocol):
+    def ensure_claude(
+        self,
+        username: str,
+        project: str,
+        agent_token: str = "",
+    ) -> Path: ...
+
+    def ensure_codex(self, username: str) -> Path: ...
+
+    def build_environment(
+        self,
+        username: str,
+        project: str,
+        agent_token: str = "",
+    ) -> dict[str, str]: ...

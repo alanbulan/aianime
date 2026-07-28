@@ -1745,6 +1745,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百四十二批已将 Agent 后端选择与本地运行时配置收口至 AI Assistant：application 新增稳定 `AgentBackend` 能力协议、所需 `AgentBackendRuntime` 端口和唯一 `AgentBackendService`，保留显式 Hermes/Codex/Claude 不静默回退、未知值优先 Codex 再 Claude 的选择策略及原错误消息；infrastructure 新增唯一 `LocalAgentBackendRuntime` adapter，持有后端环境变量、Claude CLI 路径、Codex 可选二进制、模型名、Python SDK 与 Hermes 延迟可用性探测；composition/public 提供同一进程 `get_agent_backend` 实例，不导出内部 runtime 端口或应用服务。`service.py` 的 Codex 历史恢复、Claude/Codex thread 构建、打断、流式分派和 Hermes 预热全部改用该能力，原 11 个选择/配置/探测入口及 `importlib` 依赖直接删除，不保留 facade、旧别名或第二套实现；环境变量名、默认 Hermes、`gpt-5.4` 默认模型、路径展开、显式二进制校验、SDK 缺失语义及非抛出可用性探测保持不变，迁移前后 32 种后端状态组合的返回值与完整异常消息逐项一致。Agent backend 模块 16 项、完整 Chat service 48 项、M08 相关合同 10 项及完整后端分层门禁 108 项均通过，修改文件 Ruff、Python 编译、新模块格式检查与 `git diff --check` 通过。
 
+第三百四十三批已将页面 Agent 的用户级工作区收口至 AI Assistant：application 新增稳定 `AgentWorkspace` 能力协议，唯一 `LocalAgentWorkspace` infrastructure adapter 持有 `state/{username}/.chat_agents` 目录、Claude/Codex skills 同步、Claude `settings.local.json` 和子进程环境构造，composition/public 提供同一进程实例。Codex 历史恢复与 thread 构建、Claude thread 构建全部直接取得 adapter 准备后的工作区并复用同一环境入口；`service.py` 中仓库 skill 根目录/来源/复制、用户 state/workspace、设置 payload/写入、Claude/Codex ensure 和环境构造共 10 个旧入口直接删除，不保留 facade、旧别名或第二套实现，Codex ensure 原本未使用的 project/token 参数也不再进入能力合同，明确其用户级语义。默认/自定义 state 路径、`.claude` 优先于 `.codex` 的同名 skill 来源、显式 `CLAUDE_AI_ANIME_SKILL_PATH` 覆盖、已有目标不覆盖、JSON 缩进与末尾换行、API URL/用户名/scope/project/token 字段及进程环境继承保持不变，迁移前后 project/home 与空/非空 token 的 4 种设置和环境状态逐项一致。Agent workspace adapter 7 项、完整 Chat service 47 项、M08 相关合同 10 项及完整后端分层门禁 109 项均通过，修改文件 Ruff、Python 编译、新模块格式检查与 `git diff --check` 通过。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

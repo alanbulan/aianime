@@ -3,6 +3,7 @@
 from ai_anime.modules.ai_assistant.application import (
     AgentBackend,
     AgentBackendService,
+    AgentWorkspace,
     AgentPromptContext,
     AgentThreadSessions,
     ChatHistory,
@@ -13,10 +14,12 @@ from ai_anime.modules.ai_assistant.infrastructure import (
     FileChatRunLocks,
     FileUserPreferences,
     LocalAgentBackendRuntime,
+    LocalAgentWorkspace,
     SQLiteChatHistory,
 )
 
 _agent_backend = AgentBackendService(LocalAgentBackendRuntime())
+_agent_workspace = LocalAgentWorkspace()
 _agent_prompt_context = AgentPromptContext(FileUserPreferences())
 _agent_thread_sessions = FileAgentThreadSessions()
 _chat_history = SQLiteChatHistory()
@@ -25,6 +28,10 @@ _chat_run_locks = FileChatRunLocks()
 
 def get_agent_backend() -> AgentBackend:
     return _agent_backend
+
+
+def get_agent_workspace() -> AgentWorkspace:
+    return _agent_workspace
 
 
 def get_agent_prompt_context() -> AgentPromptContext:

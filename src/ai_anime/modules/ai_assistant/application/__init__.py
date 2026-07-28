@@ -6,6 +6,7 @@ from ai_anime.modules.ai_assistant.application.agent_backend import (
 from ai_anime.modules.ai_assistant.application.ports import (
     AgentBackend,
     AgentBackendRuntime,
+    AgentWorkspace,
     AgentThreadSessions,
     ChatHistory,
     ChatRunLocks,
@@ -17,6 +18,7 @@ __all__ = [
     "AgentBackend",
     "AgentBackendRuntime",
     "AgentBackendService",
+    "AgentWorkspace",
     "AgentPromptContext",
     "AgentThreadSessions",
     "ChatHistory",

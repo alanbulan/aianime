@@ -303,24 +303,6 @@ async def test_fallback_display_prefers_api_project_id(monkeypatch):
     )
 
 
-def test_user_agent_workspace_is_not_project_workspace(monkeypatch, tmp_path):
-    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
-    monkeypatch.setenv("AI_ANIME_OUTPUT_DIR", str(tmp_path / "output"))
-
-    chat_service.ensure_user_claude_workspace("admin", "project-a")
-    chat_service.ensure_user_codex_workspace("admin", "project-a")
-
-    workspace = chat_service._user_agent_workspace("admin")
-    assert workspace == tmp_path / "state" / "admin" / ".chat_agents"
-    assert (workspace / ".claude" / "settings.local.json").exists()
-    assert (workspace / ".claude" / "skills").is_dir()
-    assert (workspace / ".codex" / "skills").is_dir()
-
-    project_workspace = Path(tmp_path / "output" / "admin" / "project-a")
-    assert not (project_workspace / ".claude").exists()
-    assert not (project_workspace / ".codex").exists()
-
-
 def test_ai_anime_mcp_server_config_is_agent_neutral():
     servers = chat_service._ai_anime_mcp_servers()
 

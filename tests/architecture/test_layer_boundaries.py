@@ -579,6 +579,51 @@ def test_ai_assistant_owns_agent_backend_runtime() -> None:
     assert service_source.count("agent_backend.claude_model()") == 1
 
 
+def test_ai_assistant_owns_agent_workspace() -> None:
+    module = PACKAGE_ROOT / "modules" / "ai_assistant"
+    ports = module / "application" / "ports.py"
+    adapter = module / "infrastructure" / "agent_workspace.py"
+    composition = module / "composition.py"
+    public = module / "public.py"
+    service = PACKAGE_ROOT / "chat" / "service.py"
+    ports_source = ports.read_text(encoding="utf-8")
+    adapter_source = adapter.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+    service_source = service.read_text(encoding="utf-8")
+
+    assert "class AgentWorkspace(Protocol):" in ports_source
+    assert "class LocalAgentWorkspace:" in adapter_source
+    assert "local_state_root" in adapter_source
+    assert "ai_anime.chat.runtime_config" in _imports(adapter)
+    assert "_agent_workspace = LocalAgentWorkspace()" in composition_source
+    assert "def get_agent_workspace(" in composition_source
+    assert "def get_agent_workspace(" in public_source
+    assert "LocalAgentWorkspace" not in public_source
+    for legacy_name in (
+        "def _repo_skill_roots(",
+        "def _skill_sources(",
+        "def _sync_project_skills(",
+        "def _user_state_dir(",
+        "def _user_agent_workspace(",
+        "def _project_skill_settings_payload(",
+        "def _write_user_skill_settings(",
+        "def ensure_user_claude_workspace(",
+        "def ensure_user_codex_workspace(",
+        "def _build_agent_env(",
+        '".chat_agents"',
+        '"settings.local.json"',
+        '"CLAUDE_AI_ANIME_SKILL_PATH"',
+        '"AI_ANIME_AGENT_SCOPE"',
+        '"AI_ANIME_AGENT_TOKEN"',
+    ):
+        assert legacy_name not in service_source
+    assert "agent_workspace = get_agent_workspace()" in service_source
+    assert service_source.count("agent_workspace.ensure_claude(") == 1
+    assert service_source.count("agent_workspace.ensure_codex(") == 2
+    assert service_source.count("agent_workspace.build_environment(") == 3
+
+
 def test_ai_assistant_owns_agent_prompt_context() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     domain = module / "domain" / "prompt_context.py"
