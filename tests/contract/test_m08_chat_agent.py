@@ -65,7 +65,7 @@ def test_ce_chat_http_routes_are_mounted_and_use_local_auth(monkeypatch) -> None
 
 def test_ce_chat_ws_accepts_missing_cookie_via_local_auth(monkeypatch) -> None:
     from ai_anime.api.app import create_app
-    from ai_anime.api.routes import chat as chat_routes
+    from ai_anime.api import chat_session
     from ai_anime.ports import registry
 
     class NoOpPrewarmer:
@@ -77,7 +77,7 @@ def test_ce_chat_ws_accepts_missing_cookie_via_local_auth(monkeypatch) -> None:
     monkeypatch.setenv("REDIS_URL", "")
     monkeypatch.setattr(registry, "_PORTS", {})
     monkeypatch.setattr(registry, "_BOOTSTRAPPED", False)
-    monkeypatch.setattr(chat_routes, "agent_backend_prewarmer", NoOpPrewarmer())
+    monkeypatch.setattr(chat_session, "agent_backend_prewarmer", NoOpPrewarmer())
 
     app = create_app()
     with TestClient(app) as client:
@@ -91,7 +91,7 @@ def test_ce_chat_ws_accepts_missing_cookie_via_local_auth(monkeypatch) -> None:
 def test_chat_ws_auth_failure_reports_unauthorized(monkeypatch) -> None:
     from ai_anime.api.app import create_app
     from ai_anime.api import auth as api_auth
-    from ai_anime.api.routes import chat as chat_routes
+    from ai_anime.api import chat_session
     from ai_anime.ports import registry
 
     async def _reject_browser_session(_raw_cookie: str | None) -> dict:
@@ -107,7 +107,7 @@ def test_chat_ws_auth_failure_reports_unauthorized(monkeypatch) -> None:
     monkeypatch.setattr(registry, "_PORTS", {})
     monkeypatch.setattr(registry, "_BOOTSTRAPPED", False)
     monkeypatch.setattr(api_auth, "_verify_browser_session", _reject_browser_session)
-    monkeypatch.setattr(chat_routes, "agent_backend_prewarmer", NoOpPrewarmer())
+    monkeypatch.setattr(chat_session, "agent_backend_prewarmer", NoOpPrewarmer())
 
     app = create_app()
     with TestClient(app) as client:
