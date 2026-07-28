@@ -10,6 +10,7 @@ export {
   useFreezoneBeatContext,
   useFreezoneProjectAssets,
 } from "@/features/freezone/composition";
+export { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
 export type {
   FreezoneAssetUploadOptions,
   FreezoneAssetUploadResult,

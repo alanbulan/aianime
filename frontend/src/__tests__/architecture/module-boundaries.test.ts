@@ -132,6 +132,24 @@ describe("frontend architecture boundaries", () => {
     expect(route).not.toContain("useMutation(");
   });
 
+  it("keeps the Creative Canvas route as an adapter", () => {
+    const routePath = resolve(
+      SRC_ROOT,
+      "routes/_app/projects.$project/freezone.lazy.tsx",
+    );
+    const route = readFileSync(routePath, "utf8");
+
+    expect(importSpecifiers(routePath)).toContain(
+      "@/features/freezone/routeComposition",
+    );
+    expect(route).toContain("<FreezoneProjectPage projectId={project} />");
+    expect(route).not.toContain("useState(");
+    expect(route).not.toContain("useEffect(");
+    expect(route).not.toContain("useQuery(");
+    expect(route).not.toContain("useRouterState(");
+    expect(route).not.toContain("FreezoneShell");
+  });
+
   it("keeps the Beat state read model in Production", () => {
     const publicPath = resolve(SRC_ROOT, "modules/production/public.ts");
     const legacyPaths = [
@@ -776,6 +794,17 @@ describe("frontend architecture boundaries", () => {
       )
       .map(relativeSource)
       .sort();
+    const modulePublicBypasses = sourceFiles(MODULES_ROOT)
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter(
+            (specifier) =>
+              specifier.startsWith("@/features/freezone/") &&
+              specifier !== "@/features/freezone/public",
+          )
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      )
+      .sort();
 
     expect(existsSync(legacyPath)).toBe(false);
     expect(importSpecifiers(contractPath)).toEqual([]);
@@ -785,6 +814,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(publicPath))).toEqual(
       new Set([
         "@/features/freezone/composition",
+        "@/features/freezone/openPresetProjection",
         "@/features/freezone/domain/assetCommit",
         "@/features/freezone/domain/assetUpload",
         "@/features/freezone/domain/beatContext",
@@ -797,6 +827,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(externalContractImportFailures).toEqual([]);
     expect(internalPublicConsumers).toEqual([]);
+    expect(modulePublicBypasses).toEqual([]);
     expect(importSpecifiers(nodeRegistryPath)).toContain(
       "@/features/freezone/public",
     );

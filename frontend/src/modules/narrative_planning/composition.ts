@@ -1,7 +1,7 @@
 import { createElement, type ReactNode } from "react";
 
 import { formatCreditCost } from "@/components/credits/credit-visual";
-import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
+import { openPresetProjectionInMyCanvas } from "@/features/freezone/public";
 import {
   useAssetWorkspaceNavigation,
   useCharacters,

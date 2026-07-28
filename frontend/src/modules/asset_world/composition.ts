@@ -2,7 +2,7 @@ import { createElement } from "react";
 
 import { CharacterImageSourceSelect } from "@/components/assets/character-image-source-select";
 import { TaskControllerProvider } from "@/components/episode/task-controller-provider";
-import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
+import { openPresetProjectionInMyCanvas } from "@/features/freezone/public";
 import { useAssetFocus } from "@/hooks/use-asset-focus";
 import { useNavigateToAsset } from "@/hooks/use-assets-deep-link";
 import { downloadBlobAsFile } from "@/lib/browserDownload";

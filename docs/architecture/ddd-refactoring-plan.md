@@ -2006,6 +2006,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百六十七批已清除 Freezone 内部 19 处对自身 `public.ts` 的反向消费：presentation 运行时函数直接依赖本领域 composition，领域类型直接依赖 `assetCommit`、`beatContext`、`canvasProjection` 或 `canvasStorage` 唯一 domain 所有者，测试 mock 同步改为真实 composition 边界。`public.ts` 保持原有外部合同但不再参与内部装配，不新增 facade 或重复实现；新增门禁禁止 Freezone 内部重新导入自身 public，并将投影、资产提交与查询门禁区分为内部 domain/composition 依赖和领域外 public 依赖。资产库 Beat Context 与个人画布投影回归 8 项、相关架构门禁 4 项及前端 TypeScript 全量检查通过，`git diff --check` 通过。
 
+第四百六十八批已将 Freezone lazy route 中项目查询、Canvas 参数订阅、加载/缺失状态、全局错误订阅和 Shell 装配迁入唯一 `FreezoneProjectPage`，route 经永久 `routeComposition.ts` 只传递项目参数，源码由 97 行降至 13 行。`openPresetProjectionInMyCanvas` 进入根 `public.ts`，Production 草图/渲染、Narrative Planning 与 Asset & World 四个领域调用方统一从 public 使用，不再穿透内部导航文件；Freezone UI 未静态导入根 public，避免形成 `Freezone public -> Shell -> Canvas -> Freezone public` 初始化环。新增 route adapter 与 modules 零内部路径穿透门禁。路由/公共 API/投影架构门禁 3 项、Freezone public 初始化、个人画布投影及 Production 草图/渲染回归 27 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

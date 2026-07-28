@@ -3,7 +3,7 @@ import { createElement, Fragment } from "react";
 import { useTranslation } from "react-i18next";
 
 import { withImageCacheBust } from "@/features/canvas/application/imageData";
-import { openPresetProjectionInMyCanvas } from "@/features/freezone/openPresetProjection";
+import { openPresetProjectionInMyCanvas } from "@/features/freezone/public";
 import { ThreeDDirectorDialog } from "@/features/viewer-kit/three-d/ThreeDDirectorDialog";
 import { useNavigateToAsset } from "@/hooks/use-assets-deep-link";
 import { useNow } from "@/hooks/use-now";
