@@ -9,12 +9,11 @@ from ai_anime.modules.ai_assistant.application import (
     AgentThreadRuntime,
     ChatHistory,
     ChatPresentation,
-    ChatRunLocks,
+    ChatWorkerLifecycle,
     DisplayFallbacks,
     DeterministicProjectReplies,
     HermesHomeReplies,
     HermesProjectReplies,
-    HermesRuntime,
     PageAgentSessions,
     ProjectAssistantReplies,
     ProjectChatTurns,
@@ -51,6 +50,7 @@ _chat_history = SQLiteChatHistory()
 _chat_presentation = ChatPresentation(FileJsonRenderErrors())
 _chat_run_locks = FileChatRunLocks()
 _hermes_runtime = LocalHermesRuntime()
+_chat_worker_lifecycle = ChatWorkerLifecycle(_hermes_runtime, _chat_run_locks)
 _agent_backend_prewarmer = AgentBackendPrewarmer(_agent_backend, _hermes_runtime)
 _display_fallbacks = DisplayFallbacks(HttpDisplayFallbackGateway())
 _page_agent_sessions = PageAgentSessions()
@@ -112,12 +112,8 @@ def get_chat_presentation() -> ChatPresentation:
     return _chat_presentation
 
 
-def get_chat_run_locks() -> ChatRunLocks:
-    return _chat_run_locks
-
-
-def get_hermes_runtime() -> HermesRuntime:
-    return _hermes_runtime
+def get_chat_worker_lifecycle() -> ChatWorkerLifecycle:
+    return _chat_worker_lifecycle
 
 
 def get_hermes_home_replies() -> HermesHomeReplies:

@@ -6,11 +6,6 @@ import pytest
 
 from ai_anime.modules.ai_assistant.infrastructure import FileChatRunLocks
 from ai_anime.modules.ai_assistant.infrastructure import chat_run_locks as lock_module
-from ai_anime.modules.ai_assistant.public import get_chat_run_locks
-
-
-def test_chat_run_lock_composition_returns_one_process_instance():
-    assert get_chat_run_locks() is get_chat_run_locks()
 
 
 def test_pid_liveness_probe_keeps_current_process_alive():

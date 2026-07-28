@@ -942,6 +942,7 @@ def test_chat_service_has_no_unreachable_codex_history_cache() -> None:
 def test_ai_assistant_owns_chat_run_locks() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     application = module / "application" / "project_assistant_replies.py"
+    lifecycle = module / "application" / "chat_worker_lifecycle.py"
     ports = module / "application" / "ports.py"
     adapter = module / "infrastructure" / "chat_run_locks.py"
     history_adapter = module / "infrastructure" / "sqlite_chat_history.py"
@@ -951,6 +952,7 @@ def test_ai_assistant_owns_chat_run_locks() -> None:
     service = PACKAGE_ROOT / "chat" / "service.py"
     route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
     application_source = application.read_text(encoding="utf-8")
+    lifecycle_source = lifecycle.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
     history_source = history_adapter.read_text(encoding="utf-8")
     local_state_source = local_state.read_text(encoding="utf-8")
@@ -966,8 +968,9 @@ def test_ai_assistant_owns_chat_run_locks() -> None:
     assert "local_state_root" in history_source
     assert "def _state_root(" not in adapter_source
     assert "def _state_root(" not in history_source
-    assert "def get_chat_run_locks(" in composition.read_text(encoding="utf-8")
-    assert "def get_chat_run_locks(" in public.read_text(encoding="utf-8")
+    assert "def get_chat_run_locks(" not in composition.read_text(encoding="utf-8")
+    assert "def get_chat_run_locks(" not in public.read_text(encoding="utf-8")
+    assert "ChatRunLocks" not in public.read_text(encoding="utf-8")
     for legacy_name in (
         "def _pid_is_alive(",
         "def _acquire_chat_run_lock(",
@@ -984,10 +987,11 @@ def test_ai_assistant_owns_chat_run_locks() -> None:
     assert "self._run_locks.acquire(" in application_source
     assert "self._run_locks.maintain(" in application_source
     assert "self._run_locks.release(" in application_source
+    assert "self._run_locks.force_release(" in lifecycle_source
+    assert "self._run_locks.is_active(" in lifecycle_source
     assert "chat_service.force_release_chat_run_lock" not in route_source
     assert "chat_service.chat_run_lock_is_active" not in route_source
-    assert "chat_run_locks.force_release(" in route_source
-    assert "chat_run_locks.is_active(" in route_source
+    assert "chat_run_locks" not in route_source
 
 
 def test_ai_assistant_owns_agent_thread_sessions() -> None:
@@ -1119,6 +1123,7 @@ def test_ai_assistant_owns_hermes_runtime() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     ports = module / "application" / "ports.py"
     prewarmer = module / "application" / "agent_backend_prewarm.py"
+    lifecycle = module / "application" / "chat_worker_lifecycle.py"
     home_replies = module / "application" / "hermes_home_replies.py"
     project_replies = module / "application" / "hermes_project_replies.py"
     adapter = module / "infrastructure" / "hermes_runtime.py"
@@ -1128,6 +1133,7 @@ def test_ai_assistant_owns_hermes_runtime() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
     ports_source = ports.read_text(encoding="utf-8")
     prewarmer_source = prewarmer.read_text(encoding="utf-8")
+    lifecycle_source = lifecycle.read_text(encoding="utf-8")
     home_replies_source = home_replies.read_text(encoding="utf-8")
     project_replies_source = project_replies.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
@@ -1141,8 +1147,9 @@ def test_ai_assistant_owns_hermes_runtime() -> None:
     assert "class LocalHermesRuntime:" in adapter_source
     assert "ai_anime.chat.hermes_pool" in _imports(adapter)
     assert "_hermes_runtime = LocalHermesRuntime()" in composition_source
-    assert "def get_hermes_runtime(" in composition_source
-    assert "def get_hermes_runtime(" in public_source
+    assert "def get_hermes_runtime(" not in composition_source
+    assert "def get_hermes_runtime(" not in public_source
+    assert "HermesRuntime" not in public_source
     assert "LocalHermesRuntime" not in public_source
     for caller in (service, route):
         assert "ai_anime.chat.hermes_pool" not in _imports(caller)
@@ -1151,9 +1158,43 @@ def test_ai_assistant_owns_hermes_runtime() -> None:
     assert project_replies_source.count("self._runtime.get_for_user(") == 1
     assert "hermes_runtime.prewarm(" not in service_source
     assert prewarmer_source.count("self._hermes_runtime.prewarm(") == 1
-    assert "hermes_runtime.get_for_user(" not in route_source
-    assert route_source.count("hermes_runtime.set_scope_for_user(") == 1
-    assert route_source.count("hermes_runtime.close_user(") == 1
+    assert "hermes_runtime" not in route_source
+    assert lifecycle_source.count("self._runtime.set_scope_for_user(") == 1
+    assert lifecycle_source.count("self._runtime.close_user(") == 1
+
+
+def test_ai_assistant_owns_chat_worker_lifecycle() -> None:
+    module = PACKAGE_ROOT / "modules" / "ai_assistant"
+    application = module / "application" / "chat_worker_lifecycle.py"
+    composition = module / "composition.py"
+    public = module / "public.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    application_source = application.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+    route_source = route.read_text(encoding="utf-8")
+
+    assert not {
+        imported
+        for imported in _imports(application)
+        if imported == "fastapi"
+        or imported.startswith("fastapi.")
+        or imported.startswith("ai_anime.chat")
+        or imported.startswith("ai_anime.modules.ai_assistant.infrastructure")
+    }
+    assert "class ChatWorkerLifecycle:" in application_source
+    assert "_chat_worker_lifecycle = ChatWorkerLifecycle(" in composition_source
+    assert "def get_chat_worker_lifecycle(" in composition_source
+    assert "def get_chat_worker_lifecycle(" in public_source
+    assert "chat_worker_lifecycle = get_chat_worker_lifecycle()" in route_source
+    assert route_source.count("chat_worker_lifecycle.cancel(") == 1
+    assert route_source.count("chat_worker_lifecycle.sync_scope(") == 1
+    assert route_source.count("chat_worker_lifecycle.is_busy(") == 1
+    assert "def _sync_running_agent_scope(" not in route_source
+    assert application_source.count("self._runtime.close_user(") == 1
+    assert application_source.count("self._runtime.set_scope_for_user(") == 1
+    assert application_source.count("self._run_locks.force_release(") == 1
+    assert application_source.count("self._run_locks.is_active(") == 1
 
 
 def test_ai_assistant_owns_hermes_home_reply_orchestration() -> None:

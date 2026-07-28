@@ -1,7 +1,6 @@
 import pytest
 
 from ai_anime.modules.ai_assistant.infrastructure import LocalHermesRuntime
-from ai_anime.modules.ai_assistant.public import get_hermes_runtime
 
 
 class StubHermesPool:
@@ -23,10 +22,6 @@ class StubHermesPool:
     async def close_user(self, username):
         self.calls.append(("close", username))
         return True
-
-
-def test_hermes_runtime_composition_returns_one_process_instance():
-    assert get_hermes_runtime() is get_hermes_runtime()
 
 
 @pytest.mark.anyio

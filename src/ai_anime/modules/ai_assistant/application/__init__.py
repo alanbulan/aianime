@@ -9,6 +9,9 @@ from ai_anime.modules.ai_assistant.application.agent_backend_prewarm import (
 from ai_anime.modules.ai_assistant.application.chat_presentation import (
     ChatPresentation,
 )
+from ai_anime.modules.ai_assistant.application.chat_worker_lifecycle import (
+    ChatWorkerLifecycle,
+)
 from ai_anime.modules.ai_assistant.application.chat_events import (
     emit_chat_event_best_effort,
 )
@@ -73,6 +76,7 @@ __all__ = [
     "emit_chat_event_best_effort",
     "ChatPresentation",
     "ChatRunLocks",
+    "ChatWorkerLifecycle",
     "DisplayFallbackGateway",
     "DisplayFallbacks",
     "DeterministicProjectReplies",

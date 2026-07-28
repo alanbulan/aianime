@@ -25,9 +25,8 @@ from ai_anime.modules.ai_assistant.public import (
     ChatScope,
     get_agent_backend_prewarmer,
     get_chat_history,
-    get_chat_run_locks,
+    get_chat_worker_lifecycle,
     get_hermes_home_replies,
-    get_hermes_runtime,
     get_project_chat_turns,
     get_project_chat_messages,
     should_prewarm_scope,
@@ -54,9 +53,8 @@ router = APIRouter()
 AI_ASSISTANT_CHAT_FEATURE_KEY = "ai_assistant_chat"
 agent_backend_prewarmer = get_agent_backend_prewarmer()
 chat_history = get_chat_history()
-chat_run_locks = get_chat_run_locks()
+chat_worker_lifecycle = get_chat_worker_lifecycle()
 hermes_home_replies = get_hermes_home_replies()
-hermes_runtime = get_hermes_runtime()
 project_chat_turns = get_project_chat_turns()
 project_chat_messages = get_project_chat_messages()
 
@@ -71,14 +69,7 @@ async def cancel_chat_turn(user: dict = Depends(get_api_user)) -> dict[str, Any]
     to interrupt long-running tool calls with the current Hermes ACP wrapper.
     """
     username = str(user["username"])
-    try:
-        cancelled = await hermes_runtime.close_user(username)
-    except Exception:
-        cancelled = False
-    try:
-        chat_run_locks.force_release(username, "")
-    except Exception:
-        pass
+    cancelled = await chat_worker_lifecycle.cancel(username)
     return {"ok": True, "data": {"cancelled": cancelled}}
 
 
@@ -282,7 +273,7 @@ async def _send_scope_changed(
             "type": "scope.changed",
             "scope": scope.to_dict(),
             "history": await _history(username, scope, project_ctx=project_ctx),
-            "busy": chat_run_locks.is_active(username),
+            "busy": chat_worker_lifecycle.is_busy(username),
         },
     ):
         return None
@@ -322,18 +313,6 @@ async def _chat_heartbeat(
         )
         if not sent:
             return
-
-
-async def _sync_running_agent_scope(username: str, scope: ChatScope) -> None:
-    try:
-        await hermes_runtime.set_scope_for_user(
-            username,
-            scope_kind=scope.kind,
-            project_id=scope.id if scope.kind == "project" else None,
-        )
-    except Exception:
-        # Scope switching should not spawn or break the UI if Hermes is absent.
-        return
 
 
 async def _stream_project_turn(
@@ -451,7 +430,7 @@ async def chat_ws(websocket: WebSocket) -> None:
                 )
                 if current_scope is None:
                     return
-                await _sync_running_agent_scope(username, current_scope)
+                await chat_worker_lifecycle.sync_scope(username, current_scope)
                 # Switching project rotates the worker; warm the new scope now so
                 # the first message in the project doesn't cold-start.
                 await agent_backend_prewarmer.prewarm(

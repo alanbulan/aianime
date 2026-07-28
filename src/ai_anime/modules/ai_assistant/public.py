@@ -8,9 +8,8 @@ from ai_anime.modules.ai_assistant.application import (
     AgentBackendPrewarmer,
     AgentThreadRuntime,
     ChatHistory,
-    ChatRunLocks,
+    ChatWorkerLifecycle,
     HermesHomeReplies,
-    HermesRuntime,
     ProjectAssistantReplies,
     ProjectChatTurns,
     ProjectChatMessages,
@@ -130,14 +129,10 @@ def get_chat_history() -> ChatHistory:
     return resolve()
 
 
-def get_chat_run_locks() -> ChatRunLocks:
-    from ai_anime.modules.ai_assistant.composition import get_chat_run_locks as resolve
-
-    return resolve()
-
-
-def get_hermes_runtime() -> HermesRuntime:
-    from ai_anime.modules.ai_assistant.composition import get_hermes_runtime as resolve
+def get_chat_worker_lifecycle() -> ChatWorkerLifecycle:
+    from ai_anime.modules.ai_assistant.composition import (
+        get_chat_worker_lifecycle as resolve,
+    )
 
     return resolve()
 
@@ -179,9 +174,8 @@ __all__ = [
     "AgentBackendPrewarmer",
     "AgentThreadRuntime",
     "ChatHistory",
-    "ChatRunLocks",
+    "ChatWorkerLifecycle",
     "HermesHomeReplies",
-    "HermesRuntime",
     "ProjectAssistantReplies",
     "ProjectChatTurns",
     "ProjectChatMessages",
@@ -200,9 +194,8 @@ __all__ = [
     "get_agent_backend_prewarmer",
     "get_agent_thread_runtime",
     "get_chat_history",
-    "get_chat_run_locks",
+    "get_chat_worker_lifecycle",
     "get_hermes_home_replies",
-    "get_hermes_runtime",
     "get_project_assistant_replies",
     "get_project_chat_turns",
     "get_project_chat_messages",
