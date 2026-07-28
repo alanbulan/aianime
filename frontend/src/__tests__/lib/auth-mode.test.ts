@@ -23,6 +23,10 @@ describe("application route authentication", () => {
   it("does not authenticate an empty auth-required runtime session", async () => {
     vi.stubEnv("VITE_AUTH_MODE", "cookie");
     runtimeState.authRequired = true;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: false, status: 401 })),
+    );
 
     expect(await ensureAuthenticatedForAppRoute()).toBe(false);
   });

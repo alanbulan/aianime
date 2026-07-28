@@ -6,6 +6,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+import ai_anime.ports.registry as port_registry
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.routes import release_notifications
 from ai_anime.modules.platform_release.domain import (
@@ -21,7 +22,6 @@ from ai_anime.modules.platform_release.public import (
     ReleaseNotificationQueries,
     normalize_release_locale,
 )
-from ai_anime.ports.registry import _PORTS
 
 
 def test_release_notes_parse_localized_highlights() -> None:
@@ -148,7 +148,7 @@ def test_release_notification_api_returns_mock_feed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setitem(
-        _PORTS,
+        port_registry._PORTS,
         "release_feed",
         MockReleaseFeed(
             notes_path=Path("src/ai_anime/release-notes.md"),
