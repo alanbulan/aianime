@@ -32,7 +32,11 @@ def _client(monkeypatch, tmp_path):
 
 def _seed_pool(grids_dir):
     from ai_anime.generators.pool_indexer import save_pool_index
-    from ai_anime.models import GridEntry, PoolImage, PoolIndex
+    from ai_anime.modules.production.public import (
+        GridEntry,
+        PoolImage,
+        PoolIndex,
+    )
 
     pool = PoolIndex(episode=1)
     pool.grids.append(

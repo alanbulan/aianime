@@ -192,6 +192,11 @@ from ai_anime.modules.production.domain.sketch_color import (
     marker_color_change_requires_sketch_clean,
 )
 from ai_anime.modules.production.domain.render_planning import RenderPlanGrid
+from ai_anime.modules.production.infrastructure.grid_pool_models import (
+    GridEntry,
+    PoolImage,
+    PoolIndex,
+)
 
 
 def episode_audio_use_cases() -> EpisodeAudioUseCases:
@@ -402,6 +407,7 @@ __all__ = [
     "GlobalVideoOptimizationSketchesMissing",
     "GlobalVideoOptimizationUseCases",
     "GridPoolCutRejected",
+    "GridEntry",
     "GridRegenerationRejected",
     "GridRegenerationUseCases",
     "GridPoolImageStale",
@@ -424,6 +430,8 @@ __all__ = [
     "ProductionImageSettingsRejected",
     "ProductionImageSettingsUseCases",
     "OptimizeEpisodeVideoCommand",
+    "PoolImage",
+    "PoolIndex",
     "PlannedRenderEpisode",
     "RegenerateGridCommand",
     "RegenerateSelectedBeatsCommand",

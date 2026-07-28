@@ -5089,6 +5089,25 @@ def test_production_grid_pool_routes_delegate_to_application() -> None:
         assert implementation_detail not in route_source
 
 
+def test_production_grid_pool_persistence_models_have_one_owner() -> None:
+    legacy_models = PACKAGE_ROOT / "models.py"
+    pool_models = (
+        PACKAGE_ROOT
+        / "modules"
+        / "production"
+        / "infrastructure"
+        / "grid_pool_models.py"
+    )
+    pool_indexer = PACKAGE_ROOT / "generators" / "pool_indexer.py"
+    legacy_source = legacy_models.read_text(encoding="utf-8")
+    pool_source = pool_models.read_text(encoding="utf-8")
+
+    for model_name in ("GridEntry", "PoolImage", "PoolIndex"):
+        assert f"class {model_name}(" not in legacy_source
+        assert f"class {model_name}(BaseModel):" in pool_source
+    assert "ai_anime.modules.production.public" in _imports(pool_indexer)
+
+
 def test_production_video_backend_catalog_has_one_owner() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production_video.py"
     video_schemas = PACKAGE_ROOT / "api" / "production_video_schemas.py"

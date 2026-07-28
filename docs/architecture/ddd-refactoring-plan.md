@@ -1966,6 +1966,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百四十七批已删除后端公共 `api/schemas.py` 旧 facade：两个仍经旧入口导入 `IngestStart` 的测试改为直接依赖唯一 `api/story_intake_schemas.py` 所有者，零调用的 `TaskResponse`、`ErrorResponse`、Project Grant 三个模型、`StyleCreateRequest` 与 `ProjectStatus` 不再保留。统一 schema 所有权门禁收紧为要求旧文件不存在；Text、Production Video、Render Plan 及历史功能移除测试改为检查真实 schema 所有者或旧文件不存在，不再通过读取 facade 证明类已移除，并同步修正对早已删除的 `manual_shots.py` 的过期读取。Ingest/Spine 与历史功能移除回归 25 项、完整后端分层门禁 141 项通过，合计 166 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
+第四百四十八批已将 `pool_index.json` 使用的 `GridEntry`、`PoolImage` 与 `PoolIndex` 三个 Pydantic 持久化模型从后端公共 `models.py` 迁入唯一 Production infrastructure `grid_pool_models.py`，旧定义直接删除，不在 `models.py` 保留 re-export 或别名。Production 内部 adapter 测试直连 infrastructure，外层 `generators/pool_indexer.py` 与 API/状态 sidecar 测试按模块边界经 Production `public.py` 使用稳定类型入口，三项基础实现仍保持唯一；3 个 Pydantic JSON Schema 逐类比较保持等价。新增所有权门禁锁定旧巨石零定义、新持久化所有者和外部 public API 依赖，并由既有 Production 调用方门禁禁止 infrastructure 穿透。网格池索引、旧 sidecar 迁移、上传/切割/渲染适配回归 56 项、M09 全部 22 个 Production HTTP 端点合同 1 项、完整后端分层门禁 142 项通过，合计 199 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

@@ -9,7 +9,6 @@ import pytest
 from PIL import Image
 
 from ai_anime.generators import pool_indexer
-from ai_anime.models import GridEntry, PoolImage, PoolIndex
 from ai_anime.modules.production.application.grid_pool import (
     BuildGridSketchPreviewCommand,
     GridPoolCutRejected,
@@ -23,6 +22,11 @@ from ai_anime.modules.production.application.grid_pool import (
     PersistGridImageCommand,
     SelectGridPoolImageCommand,
     UploadBeatPoolImageCommand,
+)
+from ai_anime.modules.production.infrastructure.grid_pool_models import (
+    GridEntry,
+    PoolImage,
+    PoolIndex,
 )
 from ai_anime.modules.production.infrastructure.grid_pool import LocalGridPoolGateway
 from ai_anime.modules.project_workspace.public import ProjectContext

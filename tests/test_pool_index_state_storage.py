@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from ai_anime.models import PoolIndex
+from ai_anime.modules.production.public import PoolIndex
 
 
 def _configure_roots(monkeypatch, tmp_path):
