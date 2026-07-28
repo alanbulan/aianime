@@ -6,6 +6,9 @@ from ai_anime.modules.ai_assistant.infrastructure.agent_backend_runtime import (
 from ai_anime.modules.ai_assistant.infrastructure.agent_thread_sessions import (
     FileAgentThreadSessions,
 )
+from ai_anime.modules.ai_assistant.infrastructure.agent_thread_runtime import (
+    LocalAgentThreadRuntime,
+)
 from ai_anime.modules.ai_assistant.infrastructure.agent_tool_configuration import (
     LocalAgentToolConfiguration,
 )
@@ -38,6 +41,7 @@ __all__ = [
     "FileUserPreferences",
     "HttpDisplayFallbackGateway",
     "LocalAgentBackendRuntime",
+    "LocalAgentThreadRuntime",
     "LocalAgentToolConfiguration",
     "LocalAgentWorkspace",
     "LocalProjectMediaFiles",

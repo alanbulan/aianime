@@ -1,16 +1,11 @@
 import json
 
 from ai_anime.modules.ai_assistant.infrastructure import LocalAgentWorkspace
-from ai_anime.modules.ai_assistant.public import get_agent_workspace
 
 
 def _write_skill(path, content):
     path.mkdir(parents=True)
     (path / "SKILL.md").write_text(content, encoding="utf-8")
-
-
-def test_agent_workspace_composition_returns_one_process_instance():
-    assert get_agent_workspace() is get_agent_workspace()
 
 
 def test_agent_workspace_is_user_scoped_and_writes_claude_settings(

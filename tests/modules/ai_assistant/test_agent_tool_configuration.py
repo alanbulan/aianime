@@ -7,11 +7,6 @@ import pytest
 from ai_anime.chat.backend_sdk import CodexClient
 from ai_anime.modules.ai_assistant.domain import codex_mcp_config_overrides
 from ai_anime.modules.ai_assistant.infrastructure import LocalAgentToolConfiguration
-from ai_anime.modules.ai_assistant.public import get_agent_tool_configuration
-
-
-def test_agent_tool_configuration_returns_one_process_instance():
-    assert get_agent_tool_configuration() is get_agent_tool_configuration()
 
 
 def test_local_agent_tool_configuration_uses_current_python_runtime():

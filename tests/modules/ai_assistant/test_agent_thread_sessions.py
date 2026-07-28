@@ -4,11 +4,6 @@ from datetime import datetime, timezone
 import pytest
 
 from ai_anime.modules.ai_assistant.infrastructure import FileAgentThreadSessions
-from ai_anime.modules.ai_assistant.public import get_agent_thread_sessions
-
-
-def test_agent_thread_session_composition_returns_one_process_instance():
-    assert get_agent_thread_sessions() is get_agent_thread_sessions()
 
 
 def test_active_thread_is_user_scoped_and_backend_specific(monkeypatch, tmp_path):

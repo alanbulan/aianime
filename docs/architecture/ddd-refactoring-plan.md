@@ -1767,6 +1767,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百五十三批已清理 Chat service 中不可达的 Codex 历史缓存链：仓库调用图确认 `_extract_codex_user_message_text`、`_extract_codex_history_trace`、`_load_codex_thread_history` 与 `_sync_codex_history_cache` 均只有定义、没有任何生产或测试调用方，因此直接删除而不迁移为新的 reader/adapter；其专用 `_codex_unwrap_item`、`_codex_item_started_trace`、`_codex_item_completed_trace` 导入同步移除。真实活跃的 `_build_codex_thread`、`CodexClient`、`_stream_assistant_reply_codex` 与 `interrupt_live_codex_turn` 路径保持不变，架构门禁新增不可达历史缓存链禁止回流约束；本批后只在 application 内使用的 `filter_markdown_duplicate_media` 同时从 public API 收回，模块测试直接验证 domain 唯一规则，不保留兼容入口、测试专用 API 或第二套实现。`service.py` 由 912 行降至 756 行。AI Assistant 模块 172 项、剩余 Chat/route 回归 4 项、Chat WebSocket 2 项、M08 Chat 合同 5 项及完整后端分层门禁 119 项均通过，修改文件 Ruff、Python 编译、模块格式检查与 `git diff --check` 通过。
 
+第三百五十四批已将 Claude/Codex 线程生命周期装配收口至 AI Assistant：application port 新增 `AgentThread` 与唯一 `AgentThreadRuntime` 合同，infrastructure 新增唯一 `LocalAgentThreadRuntime` adapter，组合现有 backend、thread session、workspace 与 tool configuration，统一负责 Claude/Codex client 参数装配、线程新建/恢复、活动线程记录及中断后的关闭流容错；现有 `chat/backend_sdk.py` 继续作为唯一 SDK 事件实现，本批未复制其解析逻辑。composition 只公开组装后的进程级 runtime，原 `get_agent_thread_sessions`、`get_agent_workspace`、`get_agent_tool_configuration` 低层 getter 从 composition/public 及对应 singleton 测试收回，避免测试专用 public API；`service.py` 删除 backend SDK 直接依赖、两个线程构建入口和两类中断实现，Claude/Codex 流式路径仅通过 public runtime 创建、记录和中断线程，不保留 facade、旧别名或第二套实现，文件由 756 行降至 702 行。Agent thread runtime 5 项、AI Assistant 模块 174 项、剩余 Chat/route 回归 4 项、Chat route prewarm 2 项、M08 Chat 合同 5 项及完整后端分层门禁 120 项均通过，修改文件 Ruff、Python 编译、模块格式检查与 `git diff --check` 通过。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

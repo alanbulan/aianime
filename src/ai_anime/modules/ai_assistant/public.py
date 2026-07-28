@@ -5,9 +5,7 @@ from typing import Any
 
 from ai_anime.modules.ai_assistant.application import (
     AgentBackend,
-    AgentWorkspace,
-    AgentThreadSessions,
-    AgentToolConfiguration,
+    AgentThreadRuntime,
     ChatHistory,
     ChatRunLocks,
     ProjectChatMessages,
@@ -118,23 +116,9 @@ def get_agent_backend() -> AgentBackend:
     return resolve()
 
 
-def get_agent_tool_configuration() -> AgentToolConfiguration:
+def get_agent_thread_runtime() -> AgentThreadRuntime:
     from ai_anime.modules.ai_assistant.composition import (
-        get_agent_tool_configuration as resolve,
-    )
-
-    return resolve()
-
-
-def get_agent_workspace() -> AgentWorkspace:
-    from ai_anime.modules.ai_assistant.composition import get_agent_workspace as resolve
-
-    return resolve()
-
-
-def get_agent_thread_sessions() -> AgentThreadSessions:
-    from ai_anime.modules.ai_assistant.composition import (
-        get_agent_thread_sessions as resolve,
+        get_agent_thread_runtime as resolve,
     )
 
     return resolve()
@@ -162,9 +146,7 @@ def get_project_chat_messages() -> ProjectChatMessages:
 
 __all__ = [
     "AgentBackend",
-    "AgentWorkspace",
-    "AgentThreadSessions",
-    "AgentToolConfiguration",
+    "AgentThreadRuntime",
     "ChatHistory",
     "ChatRunLocks",
     "ProjectChatMessages",
@@ -181,9 +163,7 @@ __all__ = [
     "fallback_display_tool_ui_specs",
     "filter_tool_ui_specs_for_prompt",
     "get_agent_backend",
-    "get_agent_tool_configuration",
-    "get_agent_workspace",
-    "get_agent_thread_sessions",
+    "get_agent_thread_runtime",
     "get_chat_history",
     "get_chat_run_locks",
     "get_project_chat_messages",

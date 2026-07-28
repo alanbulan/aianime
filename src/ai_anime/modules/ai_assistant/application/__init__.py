@@ -10,6 +10,8 @@ from ai_anime.modules.ai_assistant.application.display_fallback import DisplayFa
 from ai_anime.modules.ai_assistant.application.ports import (
     AgentBackend,
     AgentBackendRuntime,
+    AgentThread,
+    AgentThreadRuntime,
     AgentWorkspace,
     AgentThreadSessions,
     AgentToolConfiguration,
@@ -33,6 +35,8 @@ __all__ = [
     "AgentBackend",
     "AgentBackendRuntime",
     "AgentBackendService",
+    "AgentThread",
+    "AgentThreadRuntime",
     "AgentWorkspace",
     "AgentPromptContext",
     "AgentThreadSessions",

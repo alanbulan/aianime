@@ -822,6 +822,13 @@ def test_ai_assistant_owns_project_chat_message_orchestration() -> None:
 
 
 def test_chat_service_has_no_unreachable_codex_history_cache() -> None:
+    thread_runtime_source = (
+        PACKAGE_ROOT
+        / "modules"
+        / "ai_assistant"
+        / "infrastructure"
+        / "agent_thread_runtime.py"
+    ).read_text(encoding="utf-8")
     service_source = (PACKAGE_ROOT / "chat" / "service.py").read_text(
         encoding="utf-8"
     )
@@ -837,13 +844,13 @@ def test_chat_service_has_no_unreachable_codex_history_cache() -> None:
         "from openai_codex import Codex, CodexConfig",
     ):
         assert dead_implementation not in service_source
-    for active_implementation in (
-        "def _build_codex_thread(",
+    assert "def _stream_assistant_reply_codex(" in service_source
+    for active_runtime_implementation in (
+        "def open_codex(",
         "CodexClient(",
-        "def _stream_assistant_reply_codex(",
         "interrupt_live_codex_turn",
     ):
-        assert active_implementation in service_source
+        assert active_runtime_implementation in thread_runtime_source
 
 
 def test_ai_assistant_owns_chat_run_locks() -> None:
@@ -896,18 +903,25 @@ def test_ai_assistant_owns_agent_thread_sessions() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     ports = module / "application" / "ports.py"
     adapter = module / "infrastructure" / "agent_thread_sessions.py"
+    runtime = module / "infrastructure" / "agent_thread_runtime.py"
     composition = module / "composition.py"
     public = module / "public.py"
     service = PACKAGE_ROOT / "chat" / "service.py"
     adapter_source = adapter.read_text(encoding="utf-8")
+    runtime_source = runtime.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
     service_source = service.read_text(encoding="utf-8")
 
     assert "class AgentThreadSessions(Protocol):" in ports.read_text(encoding="utf-8")
     assert "class FileAgentThreadSessions:" in adapter_source
     assert "agent_sessions.json" in adapter_source
     assert "local_state_root" in adapter_source
-    assert "def get_agent_thread_sessions(" in composition.read_text(encoding="utf-8")
-    assert "def get_agent_thread_sessions(" in public.read_text(encoding="utf-8")
+    assert "_agent_thread_sessions = FileAgentThreadSessions()" in composition_source
+    assert "self._sessions.get_active(" in runtime_source
+    assert "self._sessions.set_active(" in runtime_source
+    assert "def get_agent_thread_sessions(" not in composition_source
+    assert "def get_agent_thread_sessions(" not in public_source
     for legacy_name in (
         "def _agent_session_state_path(",
         "def _load_agent_session_state(",
@@ -921,8 +935,45 @@ def test_ai_assistant_owns_agent_thread_sessions() -> None:
     ):
         assert legacy_name not in service_source
     assert "agent_sessions.json" not in service_source
-    assert "agent_thread_sessions.get_active(" in service_source
-    assert "agent_thread_sessions.set_active(" in service_source
+    assert "agent_thread_sessions" not in service_source
+
+
+def test_ai_assistant_owns_agent_thread_runtime() -> None:
+    module = PACKAGE_ROOT / "modules" / "ai_assistant"
+    ports = module / "application" / "ports.py"
+    runtime = module / "infrastructure" / "agent_thread_runtime.py"
+    composition = module / "composition.py"
+    public = module / "public.py"
+    service = PACKAGE_ROOT / "chat" / "service.py"
+    ports_source = ports.read_text(encoding="utf-8")
+    runtime_source = runtime.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+    service_source = service.read_text(encoding="utf-8")
+
+    assert "class AgentThread(Protocol):" in ports_source
+    assert "class AgentThreadRuntime(Protocol):" in ports_source
+    assert "class LocalAgentThreadRuntime:" in runtime_source
+    assert "ai_anime.chat.backend_sdk" in _imports(runtime)
+    assert "LocalAgentThreadRuntime(" in composition_source
+    assert "def get_agent_thread_runtime(" in composition_source
+    assert "def get_agent_thread_runtime(" in public_source
+    assert "LocalAgentThreadRuntime" not in public_source
+    assert "agent_thread_runtime = get_agent_thread_runtime()" in service_source
+    assert "ai_anime.chat.backend_sdk" not in _imports(service)
+    for legacy_implementation in (
+        "def _build_claude_thread(",
+        "def _build_codex_thread(",
+        "ClaudeSdkClient(",
+        "CodexClient(",
+        "interrupt_live_claude_client",
+        "interrupt_live_codex_turn",
+    ):
+        assert legacy_implementation not in service_source
+    assert service_source.count("agent_thread_runtime.open_claude(") == 1
+    assert service_source.count("agent_thread_runtime.open_codex(") == 1
+    assert service_source.count("agent_thread_runtime.remember(") == 4
+    assert service_source.count("agent_thread_runtime.interrupt(") == 1
 
 
 def test_ai_assistant_owns_agent_backend_runtime() -> None:
@@ -930,12 +981,14 @@ def test_ai_assistant_owns_agent_backend_runtime() -> None:
     application = module / "application" / "agent_backend.py"
     ports = module / "application" / "ports.py"
     adapter = module / "infrastructure" / "agent_backend_runtime.py"
+    thread_runtime = module / "infrastructure" / "agent_thread_runtime.py"
     composition = module / "composition.py"
     public = module / "public.py"
     service = PACKAGE_ROOT / "chat" / "service.py"
     application_source = application.read_text(encoding="utf-8")
     ports_source = ports.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
+    thread_runtime_source = thread_runtime.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
     service_source = service.read_text(encoding="utf-8")
@@ -979,21 +1032,27 @@ def test_ai_assistant_owns_agent_backend_runtime() -> None:
         assert legacy_name not in service_source
     assert "agent_backend = get_agent_backend()" in service_source
     assert service_source.count("agent_backend.name()") == 3
-    assert service_source.count("agent_backend.codex_bin_path()") == 1
-    assert service_source.count("agent_backend.codex_model()") == 1
-    assert service_source.count("agent_backend.claude_cli_path()") == 1
-    assert service_source.count("agent_backend.claude_model()") == 1
+    for runtime_setting in (
+        "self._backend.codex_bin_path()",
+        "self._backend.codex_model()",
+        "self._backend.claude_cli_path()",
+        "self._backend.claude_model()",
+    ):
+        assert thread_runtime_source.count(runtime_setting) == 1
+        assert runtime_setting.replace("self._backend", "agent_backend") not in service_source
 
 
 def test_ai_assistant_owns_agent_workspace() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     ports = module / "application" / "ports.py"
     adapter = module / "infrastructure" / "agent_workspace.py"
+    runtime = module / "infrastructure" / "agent_thread_runtime.py"
     composition = module / "composition.py"
     public = module / "public.py"
     service = PACKAGE_ROOT / "chat" / "service.py"
     ports_source = ports.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
+    runtime_source = runtime.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
     service_source = service.read_text(encoding="utf-8")
@@ -1003,8 +1062,8 @@ def test_ai_assistant_owns_agent_workspace() -> None:
     assert "local_state_root" in adapter_source
     assert "ai_anime.chat.runtime_config" in _imports(adapter)
     assert "_agent_workspace = LocalAgentWorkspace()" in composition_source
-    assert "def get_agent_workspace(" in composition_source
-    assert "def get_agent_workspace(" in public_source
+    assert "def get_agent_workspace(" not in composition_source
+    assert "def get_agent_workspace(" not in public_source
     assert "LocalAgentWorkspace" not in public_source
     for legacy_name in (
         "def _repo_skill_roots(",
@@ -1024,10 +1083,10 @@ def test_ai_assistant_owns_agent_workspace() -> None:
         '"AI_ANIME_AGENT_TOKEN"',
     ):
         assert legacy_name not in service_source
-    assert "agent_workspace = get_agent_workspace()" in service_source
-    assert service_source.count("agent_workspace.ensure_claude(") == 1
-    assert service_source.count("agent_workspace.ensure_codex(") == 1
-    assert service_source.count("agent_workspace.build_environment(") == 2
+    assert "agent_workspace" not in service_source
+    assert runtime_source.count("self._workspace.ensure_claude(") == 1
+    assert runtime_source.count("self._workspace.ensure_codex(") == 1
+    assert runtime_source.count("self._workspace.build_environment(") == 2
 
 
 def test_ai_assistant_owns_agent_tool_configuration() -> None:
@@ -1035,12 +1094,14 @@ def test_ai_assistant_owns_agent_tool_configuration() -> None:
     domain = module / "domain" / "mcp_configuration.py"
     ports = module / "application" / "ports.py"
     adapter = module / "infrastructure" / "agent_tool_configuration.py"
+    runtime = module / "infrastructure" / "agent_thread_runtime.py"
     composition = module / "composition.py"
     public = module / "public.py"
     service = PACKAGE_ROOT / "chat" / "service.py"
     domain_source = domain.read_text(encoding="utf-8")
     ports_source = ports.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
+    runtime_source = runtime.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
     service_source = service.read_text(encoding="utf-8")
@@ -1057,8 +1118,8 @@ def test_ai_assistant_owns_agent_tool_configuration() -> None:
     assert "class LocalAgentToolConfiguration:" in adapter_source
     assert "sys" in _imports(adapter)
     assert "_agent_tool_configuration = LocalAgentToolConfiguration()" in composition_source
-    assert "def get_agent_tool_configuration(" in composition_source
-    assert "def get_agent_tool_configuration(" in public_source
+    assert "def get_agent_tool_configuration(" not in composition_source
+    assert "def get_agent_tool_configuration(" not in public_source
     assert "LocalAgentToolConfiguration" not in public_source
     for legacy_name in (
         "def _ai_anime_mcp_servers(",
@@ -1067,11 +1128,10 @@ def test_ai_assistant_owns_agent_tool_configuration() -> None:
         "mcp_servers.ai_anime",
     ):
         assert legacy_name not in service_source
-    assert "agent_tool_configuration = get_agent_tool_configuration()" in service_source
-    assert (
-        service_source.count("agent_tool_configuration.codex_config_overrides()")
-        == 1
-    )
+    assert "agent_tool_configuration" not in service_source
+    assert runtime_source.count(
+        "self._tool_configuration.codex_config_overrides()"
+    ) == 1
 
 
 def test_ai_assistant_owns_page_agent_session_issuance() -> None:

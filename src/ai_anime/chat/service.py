@@ -12,12 +12,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from ai_anime.chat.backend_sdk import (
-    ClaudeSdkClient,
-    CodexClient,
-    interrupt_live_claude_client,
-    interrupt_live_codex_turn,
-)
 from ai_anime.modules.ai_assistant.public import (
     append_tool_ui_specs,
     build_agent_prompt_context,
@@ -31,9 +25,7 @@ from ai_anime.modules.ai_assistant.public import (
     fallback_display_tool_ui_specs,
     filter_tool_ui_specs_for_prompt,
     get_agent_backend,
-    get_agent_thread_sessions,
-    get_agent_tool_configuration,
-    get_agent_workspace,
+    get_agent_thread_runtime,
     get_chat_run_locks,
     get_project_chat_messages,
     is_hidden_chat_tool_event,
@@ -51,9 +43,7 @@ from ai_anime.modules.ai_assistant.public import (
 
 logger = logging.getLogger("ai_anime.chat.service")
 agent_backend = get_agent_backend()
-agent_thread_sessions = get_agent_thread_sessions()
-agent_tool_configuration = get_agent_tool_configuration()
-agent_workspace = get_agent_workspace()
+agent_thread_runtime = get_agent_thread_runtime()
 chat_run_locks = get_chat_run_locks()
 project_chat_messages = get_project_chat_messages()
 
@@ -160,58 +150,14 @@ async def _emit_chat_event_best_effort(on_event, event: dict[str, Any]) -> bool:
         return False
 
 
-def _build_claude_thread(username: str, project: str, agent_token: str):
-    workspace = agent_workspace.ensure_claude(username, project, agent_token)
-    client = ClaudeSdkClient(
-        cli_path=agent_backend.claude_cli_path(),
-        cwd=workspace,
-        env=agent_workspace.build_environment(username, project, agent_token),
-        model=agent_backend.claude_model(),
-    )
-    session_id = agent_thread_sessions.get_active(username, "claude")
-    return client.thread_resume(session_id) if session_id else client.thread_start()
-
-
-def _build_codex_thread(username: str, project: str, agent_token: str):
-    workspace = agent_workspace.ensure_codex(username)
-    client = CodexClient(
-        codex_bin=agent_backend.codex_bin_path(),
-        cwd=workspace,
-        env=agent_workspace.build_environment(username, project, agent_token),
-        model=agent_backend.codex_model(),
-        config_overrides=agent_tool_configuration.codex_config_overrides(),
-    )
-    thread_id = agent_thread_sessions.get_active(username, "codex")
-    return client.thread_resume(thread_id) if thread_id else client.thread_start()
-
-
 async def interrupt_chat_turn(
     username: str, project: str, thread_id: str, turn_id: str
 ) -> bool:
-    thread_id = str(thread_id or "").strip()
-    turn_id = str(turn_id or "").strip()
-    backend = agent_backend.name()
-    if backend == "claude":
-        if not thread_id:
-            return False
-        try:
-            return await interrupt_live_claude_client(thread_id)
-        except Exception as exc:
-            if "closed stdout" in str(exc):
-                return True
-            raise
-    if backend == "codex":
-        if not thread_id or not turn_id:
-            return False
-        try:
-            return await asyncio.to_thread(
-                interrupt_live_codex_turn, thread_id, turn_id
-            )
-        except Exception as exc:
-            if "app-server closed stdout" in str(exc):
-                return True
-            raise
-    return False
+    return await agent_thread_runtime.interrupt(
+        agent_backend.name(),
+        thread_id,
+        turn_id,
+    )
 
 
 async def stream_assistant_reply(
@@ -602,7 +548,7 @@ async def _stream_assistant_reply_claude(
             project,
             agent_kind="claude",
         )
-        thread = _build_claude_thread(username, project, agent_token)
+        thread = agent_thread_runtime.open_claude(username, project, agent_token)
         agent_prompt = build_agent_prompt_context(username, project, prompt)
         assistant_text = ""
         tool_text = ""
@@ -610,7 +556,7 @@ async def _stream_assistant_reply_claude(
             if event.type == "thread_started":
                 thread_id = str(event.thread_id or "").strip() or None
                 if thread_id:
-                    agent_thread_sessions.set_active(username, "claude", thread_id)
+                    agent_thread_runtime.remember(username, "claude", thread_id)
                 await on_event(
                     {
                         "type": "thread_started",
@@ -636,7 +582,7 @@ async def _stream_assistant_reply_claude(
             if event.type == "complete":
                 thread_id = str(event.thread_id or "").strip() or None
                 if thread_id:
-                    agent_thread_sessions.set_active(username, "claude", thread_id)
+                    agent_thread_runtime.remember(username, "claude", thread_id)
                 assistant_text = completion_text_or_existing(
                     event.text, assistant_text
                 )
@@ -684,13 +630,13 @@ async def _stream_assistant_reply_codex(
         project,
         agent_kind="codex",
     )
-    thread = _build_codex_thread(username, project, agent_token)
+    thread = agent_thread_runtime.open_codex(username, project, agent_token)
     agent_prompt = build_agent_prompt_context(username, project, prompt)
     async for event in thread.stream(agent_prompt):
         if event.type == "thread_started":
             thread_id = str(event.thread_id or "").strip() or None
             if thread_id:
-                agent_thread_sessions.set_active(username, "codex", thread_id)
+                agent_thread_runtime.remember(username, "codex", thread_id)
             await on_event(
                 {
                     "type": "thread_started",
@@ -716,7 +662,7 @@ async def _stream_assistant_reply_codex(
         if event.type == "complete":
             thread_id = str(event.thread_id or "").strip() or None
             if thread_id:
-                agent_thread_sessions.set_active(username, "codex", thread_id)
+                agent_thread_runtime.remember(username, "codex", thread_id)
             assistant_text = completion_text_or_existing(event.text, assistant_text)
 
     assistant_text = assistant_text.strip() or "已执行，但没有返回正文。"

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, AsyncIterator, Protocol
 
 from ai_anime.modules.ai_assistant.domain import ChatScope
 
@@ -12,6 +12,40 @@ class AgentThreadSessions(Protocol):
     def get_active(self, username: str, backend: str) -> str | None: ...
 
     def set_active(self, username: str, backend: str, thread_id: str) -> None: ...
+
+
+class AgentThread(Protocol):
+    def stream(self, prompt: str) -> AsyncIterator[Any]: ...
+
+
+class AgentThreadRuntime(Protocol):
+    def open_claude(
+        self,
+        username: str,
+        project: str,
+        agent_token: str,
+    ) -> AgentThread: ...
+
+    def open_codex(
+        self,
+        username: str,
+        project: str,
+        agent_token: str,
+    ) -> AgentThread: ...
+
+    def remember(
+        self,
+        username: str,
+        backend: str,
+        thread_id: str,
+    ) -> None: ...
+
+    async def interrupt(
+        self,
+        backend: str,
+        thread_id: str,
+        turn_id: str,
+    ) -> bool: ...
 
 
 class ChatHistory(Protocol):
