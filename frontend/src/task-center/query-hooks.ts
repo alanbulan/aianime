@@ -1,8 +1,9 @@
 // Copyright (c) 2026 AI anime
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+import { queryKeys } from "@/lib/query-keys";
 import { api } from "@/shared/api/transport";
 import { p } from "@/shared/api/path";
-import { queryKeys } from "@/lib/query-keys";
 import { useTaskCenterStore } from "@/task-center/store";
 import type { OkResponse } from "@/types/api";
 import type { Task } from "@/types/task";
@@ -15,8 +16,8 @@ interface UseTasksFilter {
 
 export function useTasks(filter?: UseTasksFilter) {
   const project = filter?.project;
-  const taskCenterProjectId = useTaskCenterStore((s) => s.projectId);
-  const streamHealth = useTaskCenterStore((s) => s.streamHealth);
+  const taskCenterProjectId = useTaskCenterStore((state) => state.projectId);
+  const streamHealth = useTaskCenterStore((state) => state.streamHealth);
   const taskCenterOwnsProject =
     !!project &&
     taskCenterProjectId === project &&
@@ -30,35 +31,31 @@ export function useTasks(filter?: UseTasksFilter) {
         .get(p`api/v1/projects/${project}/tasks`, { signal })
         .json<OkResponse<Task[]>>();
     },
-    // 2s when any task is active for near-real-time updates, 30s otherwise.
-    // When the global Task Center owns this project, it is already keeping the
-    // query cache fresh via SSE or its own polling fallback.
+    // When Task Center owns this project, its SSE/polling path already keeps
+    // the shared query cache fresh.
     refetchInterval: (query) => {
       if (taskCenterOwnsProject) return false;
       const tasks = query.state.data?.data;
       if (
         tasks?.some(
-          (t) =>
-            t.status === "submitting" ||
-            t.status === "queued" ||
-            t.status === "pending" ||
-            t.status === "starting" ||
-            t.status === "running",
+          (task) =>
+            task.status === "submitting" ||
+            task.status === "queued" ||
+            task.status === "pending" ||
+            task.status === "starting" ||
+            task.status === "running",
         )
       ) {
         return 2000;
       }
       return 30000;
     },
-    // Scoped consumers pass a filter so the 2s-5s poll doesn't cause them to
-    // re-derive on every unrelated task change. TanStack Query's structural
-    // sharing keeps the filtered output identity stable when the filtered
-    // slice hasn't actually changed.
     select: filter
-      ? (res) => ({
-          ...res,
-          data: res.data.filter(
-            (t) => filter.episode === undefined || t.episode === filter.episode,
+      ? (response) => ({
+          ...response,
+          data: response.data.filter(
+            (task) =>
+              filter.episode === undefined || task.episode === filter.episode,
           ),
         })
       : undefined,
@@ -66,7 +63,7 @@ export function useTasks(filter?: UseTasksFilter) {
 }
 
 export function useCancelTask() {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
       type,
@@ -78,9 +75,7 @@ export function useCancelTask() {
       type: string;
       project: string;
       episode: number;
-      /** Required for scoped tasks (`single_video`, `grid_regenerate`, etc.) — without it cancel lands on the wrong actor or finds nothing. */
       beatNum?: number;
-      /** Required for character/identity/sketch-regen scoped tasks. */
       scope?: string;
     }) => {
       const searchParams: Record<string, string> = {};
@@ -88,28 +83,35 @@ export function useCancelTask() {
       if (scope) searchParams.scope = scope;
       const path = p`api/v1/projects/${project}/tasks/${type}/${episode}`;
       return api
-        .delete(path, Object.keys(searchParams).length ? { searchParams } : undefined)
+        .delete(
+          path,
+          Object.keys(searchParams).length ? { searchParams } : undefined,
+        )
         .json<OkResponse<unknown>>();
     },
     onSuccess: (_data, variables) => {
-      qc.invalidateQueries({ queryKey: queryKeys.tasks(variables.project) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tasks(variables.project),
+      });
     },
   });
 }
 
 export function useClearCompleted(project: string) {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () =>
-      api.delete(p`api/v1/projects/${project}/tasks/completed`).json<OkResponse<unknown>>(),
+      api
+        .delete(p`api/v1/projects/${project}/tasks/completed`)
+        .json<OkResponse<unknown>>(),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.tasks(project) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks(project) });
     },
   });
 }
 
 export function useDeleteTask() {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
       type,
@@ -124,7 +126,9 @@ export function useDeleteTask() {
         .delete(p`api/v1/projects/${project}/tasks/${type}/${episode}`)
         .json<OkResponse<unknown>>(),
     onSuccess: (_data, variables) => {
-      qc.invalidateQueries({ queryKey: queryKeys.tasks(variables.project) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tasks(variables.project),
+      });
     },
   });
 }

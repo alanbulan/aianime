@@ -10,17 +10,21 @@ vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost:3000/" }),
 }));
 
-import { server } from "@/__mocks__/msw/server";
 import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
-import { useTasks } from "@/lib/queries/tasks";
+import { server } from "@/__mocks__/msw/server";
+import { useTasks } from "@/task-center/public";
 import { useTaskCenterStore } from "@/task-center/store";
 
 function wrapper({ children }: { children: ReactNode }) {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
 }
 
-describe("useTasks polling", () => {
+describe("Task Center query hooks", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     useTaskCenterStore.getState().reset();
@@ -31,7 +35,7 @@ describe("useTasks polling", () => {
     useTaskCenterStore.getState().reset();
   });
 
-  it("does not poll when the task center owns the same connected project", async () => {
+  it("does not poll when Task Center owns the same connected project", async () => {
     let requestCount = 0;
     server.use(
       http.get("*/api/v1/projects/demo/tasks", () => {
@@ -46,13 +50,12 @@ describe("useTasks polling", () => {
     renderHook(() => useTasks({ project: "demo" }), { wrapper });
 
     await vi.waitFor(() => expect(requestCount).toBe(1));
-
     await vi.advanceTimersByTimeAsync(6000);
 
     expect(requestCount).toBe(1);
   });
 
-  it("keeps polling active tasks when the task center owns a different project", async () => {
+  it("keeps polling active tasks when Task Center owns another project", async () => {
     let requestCount = 0;
     server.use(
       http.get("*/api/v1/projects/demo/tasks", () => {
@@ -70,7 +73,6 @@ describe("useTasks polling", () => {
     renderHook(() => useTasks({ project: "demo" }), { wrapper });
 
     await vi.waitFor(() => expect(requestCount).toBe(1));
-
     await vi.advanceTimersByTimeAsync(2500);
 
     expect(requestCount).toBeGreaterThan(1);

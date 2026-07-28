@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useEffect, useRef, useState } from "react";
 import type { QueryKey } from "@tanstack/react-query";
-import { useCancelTask, useTasks } from "@/lib/queries/tasks";
+import { useCancelTask, useTasks } from "@/task-center/public";
 import { useTaskStream } from "@/hooks/use-task-stream";
 import type { TaskStatus } from "@/types/task";
 

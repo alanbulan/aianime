@@ -28,7 +28,7 @@ const LEGACY_ROUTE_DATA_IMPORT_MAX: Record<string, number> = {
   "routes/_app/projects.$project/episodes.tsx": 0,
   "routes/_app/projects.$project/freezone.lazy.tsx": 2,
   "routes/_app/projects.$project/styles.tsx": 0,
-  "routes/_app/projects.$project/tasks.tsx": 1,
+  "routes/_app/projects.$project/tasks.tsx": 0,
 };
 
 function sourceFiles(root: string): string[] {
@@ -118,6 +118,26 @@ describe("frontend architecture boundaries", () => {
       if (count > allowed) failures.push(`${relativePath}: ${count} > ${allowed}`);
     }
     expect(failures).toEqual([]);
+  });
+
+  it("keeps task queries behind the Task Center public API", () => {
+    const legacyQueryPath = resolve(SRC_ROOT, "lib/queries/tasks.ts");
+    const publicPath = resolve(SRC_ROOT, "task-center/public.ts");
+    const bypasses = sourceFiles(SRC_ROOT)
+      .filter((path) => !relativeSource(path).startsWith("__tests__/"))
+      .flatMap((path) =>
+        importSpecifiers(path)
+          .filter(
+            (specifier) =>
+              specifier === "@/lib/queries/tasks" ||
+              specifier === "@/task-center/query-hooks",
+          )
+          .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+      );
+
+    expect(existsSync(legacyQueryPath)).toBe(false);
+    expect(importSpecifiers(publicPath)).toContain("./query-hooks");
+    expect(bypasses).toEqual([]);
   });
 
   it("keeps the migrated Story Intake route as an adapter", () => {

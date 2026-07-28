@@ -63,28 +63,11 @@ export async function listTasks(projectId?: string): Promise<TaskState[]> {
   );
 }
 
-export async function getTaskByKey(
-  task_type: string,
-  projectId: string,
-  episode: number = 0,
-): Promise<TaskState | null> {
-  // AI anime's per-task GET is keyed by (task_type, project_id, episode);
-  // for freezone we keep episode=0 and scope-search via the SSE stream
-  // for the specific job_id.
-  try {
-    return await apiCall<TaskState | null>(
-      `projects/${encodeURIComponent(projectId)}/tasks/${encodeURIComponent(task_type)}/${episode}`,
-    );
-  } catch {
-    return null;
-  }
-}
-
-export interface SseHandle {
+interface SseHandle {
   close(): void;
 }
 
-export interface TaskStreamHandler {
+interface TaskStreamHandler {
   onTask: (task: TaskState) => void;
   onError?: (err: Event) => void;
   onAuthRevoked?: () => void;
@@ -95,7 +78,7 @@ export interface TaskStreamHandler {
  * Open a project SSE stream that fans every `task_updated` event out to the
  * registered handler. Reconnects with exponential backoff on transient errors.
  */
-export function openTaskStream(handler: TaskStreamHandler): SseHandle {
+function openTaskStream(handler: TaskStreamHandler): SseHandle {
   const projectId = resolveTaskProjectId(handler.projectId);
   let es: EventSource | null = null;
   let closed = false;

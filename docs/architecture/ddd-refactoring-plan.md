@@ -1904,6 +1904,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百一十六批已删除无生产调用方的 `lib/queries/sketch-image-usage.ts` 及仅验证该死实现的 3 项自测，移除 `useSketchImageUsage`、图片生成 guard/password 两个 mutation、对应 DTO 和三条旧直连 HTTP 路径；由于仓库内已无该查询的观察者，同批删除孤立 `sketchImageUsage` query key，以及 BatchPanel、Beats sketch plan 和 episode image task invalidation 中三处无效果缓存失效，不保留文件壳、测试壳或废弃 key。Production 架构门禁改为直接锁定旧文件不得恢复；受影响 controller/hook 2 个测试文件 7 项、Production 定向边界门禁 1 项、全量 TypeScript typecheck 与 `git diff --check` 均通过，定向边界运行中其余 209 项明确跳过。
 
+第四百一十七批已将任务列表、取消、清理完成项和删除任务四个 React Query hook 从旧 `lib/queries/tasks.ts` 迁入唯一 `task-center/query-hooks.ts`，新增 `task-center/public.ts` 作为外部生产调用唯一入口，8 个生产调用方及 6 处测试导入/mock 同批切换，旧查询文件和旧路径测试直接删除，不保留 re-export facade。任务查询测试迁入 Task Center，原 backward compatibility 混合测试收敛为公共边界合同；任务页原始数据导入基线由 1 降至 0，架构门禁同时禁止旧查询路径和外部绕过 public 直连 query-hooks。`api/tasks.ts` 中零调用的 `getTaskByKey` 已删除，SSE handle/handler/open 函数收回文件内部，不再暴露无调用公共符号；请求路径、缓存键、轮询、筛选、取消与清理语义保持不变。受影响 6 个测试文件 73 项、任务公共边界定向门禁 2 项、全量 TypeScript typecheck 与 `git diff --check` 均通过，定向边界运行中其余 209 项明确跳过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

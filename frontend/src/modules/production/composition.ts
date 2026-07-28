@@ -9,7 +9,7 @@ import {
   useGenerationCreditCost,
   useGenerationCreditCosts,
 } from "@/modules/model_usage/public";
-import { useTasks } from "@/lib/queries/tasks";
+import { useTasks } from "@/task-center/public";
 import type { Beat } from "@/modules/narrative_planning/public";
 import { useAppStore } from "@/stores/app-store";
 import { useProjectAspectRatio } from "@/stores/aspect-ratio-store";

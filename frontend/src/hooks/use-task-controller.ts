@@ -14,7 +14,7 @@ import {
   type TaskStreamState,
 } from "@/components/episode/task-controller-provider";
 import { useTaskStream } from "@/hooks/use-task-stream";
-import { useCancelTask, useTasks } from "@/lib/queries/tasks";
+import { useCancelTask, useTasks } from "@/task-center/public";
 import { mergeTaskLogs } from "@/lib/script-feedback";
 
 /**

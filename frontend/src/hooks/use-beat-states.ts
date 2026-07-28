@@ -2,7 +2,7 @@
 import { useMemo } from "react";
 import { useEpisodeBeats } from "@/modules/narrative_planning/public";
 import { useProject } from "@/modules/project_workspace/public";
-import { useTasks } from "@/lib/queries/tasks";
+import { useTasks } from "@/task-center/public";
 import { deriveBeatStates } from "@/lib/derive-beat-states";
 import type { BeatStates, EpisodeCounts, StageCount } from "@/types/beat-state";
 import type { StageId } from "@/lib/episode-stage-registry";

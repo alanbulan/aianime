@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { Copy, Download, ExternalLink, XCircle } from "lucide-react";
 
-import { useCancelTask } from "@/lib/queries/tasks";
+import { useCancelTask } from "@/task-center/public";
 import { isActive, originDeepLink } from "@/task-center/derivations";
 import type { TaskState } from "@/task-center/types";
 import { Button } from "@/components/ui/button";

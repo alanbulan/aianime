@@ -293,7 +293,7 @@ vi.mock("@/modules/asset_world/public", async (importOriginal) => ({
   useCharacters: () => ({ data: { ok: true, data: [] } }),
 }));
 
-vi.mock("@/lib/queries/tasks", () => ({
+vi.mock("@/task-center/public", () => ({
   useCancelTask: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useTasks: () => ({
     data: { ok: true, data: mocks.ingestTasks },

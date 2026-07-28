@@ -19,7 +19,7 @@ import {
   useClearCompleted,
   useDeleteTask,
   useTasks,
-} from "@/lib/queries/tasks";
+} from "@/task-center/public";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";

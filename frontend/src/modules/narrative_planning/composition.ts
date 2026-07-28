@@ -10,7 +10,7 @@ import {
 } from "@/modules/asset_world/public";
 import { useNavigateToAsset } from "@/hooks/use-assets-deep-link";
 import { useGenerationCreditCost } from "@/modules/model_usage/public";
-import { useTasks } from "@/lib/queries/tasks";
+import { useTasks } from "@/task-center/public";
 import { TASK_TYPES, isActiveStatus } from "@/lib/task-types";
 import {
   createNarrativePlanningQueryHooks,

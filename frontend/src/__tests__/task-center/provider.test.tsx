@@ -19,7 +19,7 @@ vi.mock("@/shared/api/transport", () => ({
 import { server } from "@/__mocks__/msw/server";
 import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
 import { queryKeys } from "@/lib/query-keys";
-import { useTasks } from "@/lib/queries/tasks";
+import { useTasks } from "@/task-center/public";
 import { TaskCenterProvider } from "@/task-center/provider";
 import { useTaskCenterStore } from "@/task-center/store";
 import { useAppStore } from "@/stores/app-store";

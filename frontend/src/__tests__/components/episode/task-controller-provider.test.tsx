@@ -42,7 +42,7 @@ vi.mock("@/hooks/use-task-stream", () => ({
     useTaskStreamMock(opts),
 }));
 
-vi.mock("@/lib/queries/tasks", () => ({
+vi.mock("@/task-center/public", () => ({
   useTasks: () => ({ data: taskQueryMockState.data }),
   useCancelTask: () => ({
     mutateAsync: vi.fn().mockResolvedValue({ ok: true, data: null }),
