@@ -1078,14 +1078,16 @@ def test_ai_assistant_owns_agent_thread_reply_orchestration() -> None:
 def test_ai_assistant_owns_hermes_runtime() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     ports = module / "application" / "ports.py"
-    replies = module / "application" / "hermes_project_replies.py"
+    home_replies = module / "application" / "hermes_home_replies.py"
+    project_replies = module / "application" / "hermes_project_replies.py"
     adapter = module / "infrastructure" / "hermes_runtime.py"
     composition = module / "composition.py"
     public = module / "public.py"
     service = PACKAGE_ROOT / "chat" / "service.py"
     route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
     ports_source = ports.read_text(encoding="utf-8")
-    replies_source = replies.read_text(encoding="utf-8")
+    home_replies_source = home_replies.read_text(encoding="utf-8")
+    project_replies_source = project_replies.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
@@ -1103,11 +1105,58 @@ def test_ai_assistant_owns_hermes_runtime() -> None:
     for caller in (service, route):
         assert "ai_anime.chat.hermes_pool" not in _imports(caller)
     assert "hermes_runtime.get_for_user(" not in service_source
-    assert replies_source.count("self._runtime.get_for_user(") == 1
+    assert home_replies_source.count("self._runtime.get_for_user(") == 1
+    assert project_replies_source.count("self._runtime.get_for_user(") == 1
     assert service_source.count("hermes_runtime.prewarm(") == 1
-    assert route_source.count("hermes_runtime.get_for_user(") == 1
+    assert "hermes_runtime.get_for_user(" not in route_source
     assert route_source.count("hermes_runtime.set_scope_for_user(") == 1
     assert route_source.count("hermes_runtime.close_user(") == 1
+
+
+def test_ai_assistant_owns_hermes_home_reply_orchestration() -> None:
+    module = PACKAGE_ROOT / "modules" / "ai_assistant"
+    application = module / "application" / "hermes_home_replies.py"
+    composition = module / "composition.py"
+    public = module / "public.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    application_source = application.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+    route_source = route.read_text(encoding="utf-8")
+
+    assert not {
+        imported
+        for imported in _imports(application)
+        if imported == "fastapi"
+        or imported.startswith("fastapi.")
+        or imported.startswith("ai_anime.chat")
+        or imported.startswith("ai_anime.modules.ai_assistant.infrastructure")
+    }
+    assert "class HermesHomeReplies:" in application_source
+    assert "_hermes_home_replies = HermesHomeReplies(" in composition_source
+    assert "def get_hermes_home_replies(" in composition_source
+    assert "def get_hermes_home_replies(" in public_source
+    assert "hermes_home_replies = get_hermes_home_replies()" in route_source
+    assert route_source.count("hermes_home_replies.stream(") == 1
+    assert "async def _stream_home_turn(" in route_source
+    assert "await websocket.send_json(event)" in route_source
+    assert "websocket" not in application_source
+    for migrated_dependency in (
+        "completion_text_or_existing",
+        "merge_stream_text",
+        "strip_replayed_chat_response",
+        "list_project_workspaces",
+    ):
+        assert migrated_dependency not in route_source
+        assert migrated_dependency in application_source
+    for owned_operation in (
+        "self._runtime.get_for_user(",
+        "self._history.list_messages(",
+        "self._history.append_message(",
+        "text_with_attachment_context(",
+        "emit_chat_event_best_effort(",
+    ):
+        assert owned_operation in application_source
 
 
 def test_ai_assistant_owns_hermes_project_reply_orchestration() -> None:

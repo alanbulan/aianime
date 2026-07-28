@@ -13,6 +13,9 @@ from ai_anime.modules.ai_assistant.application.display_fallback import DisplayFa
 from ai_anime.modules.ai_assistant.application.deterministic_replies import (
     DeterministicProjectReplies,
 )
+from ai_anime.modules.ai_assistant.application.hermes_home_replies import (
+    HermesHomeReplies,
+)
 from ai_anime.modules.ai_assistant.application.hermes_project_replies import (
     HermesProjectReplies,
 )
@@ -63,6 +66,7 @@ __all__ = [
     "DisplayFallbackGateway",
     "DisplayFallbacks",
     "DeterministicProjectReplies",
+    "HermesHomeReplies",
     "HermesRuntime",
     "HermesThread",
     "HermesProjectReplies",

@@ -24,22 +24,19 @@ from ai_anime.api.auth import (
 from ai_anime.chat import service as chat_service
 from ai_anime.modules.ai_assistant.public import (
     ChatScope,
-    completion_text_or_existing,
     get_chat_history,
     get_chat_run_locks,
+    get_hermes_home_replies,
     get_hermes_runtime,
     get_project_chat_messages,
-    merge_stream_text,
     message_content,
     should_emit_final_text,
     should_prewarm_scope,
-    strip_replayed_chat_response,
     text_with_attachment_context,
     tool_display_payload,
 )
 from ai_anime.modules.project_workspace.public import (
     ProjectNotFound,
-    list_project_workspaces,
 )
 from ai_anime.modules.model_usage.public import get_usage_meter
 from ai_anime.modules.project_workspace.public import (
@@ -60,6 +57,7 @@ router = APIRouter()
 AI_ASSISTANT_CHAT_FEATURE_KEY = "ai_assistant_chat"
 chat_history = get_chat_history()
 chat_run_locks = get_chat_run_locks()
+hermes_home_replies = get_hermes_home_replies()
 hermes_runtime = get_hermes_runtime()
 project_chat_messages = get_project_chat_messages()
 
@@ -474,193 +472,29 @@ async def _stream_home_turn(
     attachments: list[ChatAttachmentIn],
     turn_id: str,
 ) -> None:
-    before_projects = {
-        project.name
-        for project in await list_project_workspaces({"username": username})
-    }
-    previous_assistant = next(
-        (
-            str(message.get("content") or "")
-            for message in reversed(chat_history.list_messages(username, scope))
-            if message.get("role") == "assistant"
-        ),
-        "",
-    )
     attachment_payloads = _attachment_payloads(attachments)
-    agent_text = text_with_attachment_context(text, attachment_payloads)
-    chat_history.append_message(
-        username,
-        scope,
-        "user",
-        text,
-        media=attachment_payloads,
-        turn_id=turn_id,
-    )
-    thread = await hermes_runtime.get_for_user(
-        username,
-        scope_kind="home",
-        project_id=None,
-    )
-
-    assistant_text = ""
-    assistant_sent_text = ""
-    tool_text = ""
-    tool_name = ""
-    persisted = False
     send_lock = asyncio.Lock()
     heartbeat_task = asyncio.create_task(
         _chat_heartbeat(websocket, scope=scope, turn_id=turn_id, send_lock=send_lock)
     )
-    done_sent = False
 
-    def persist_partial_reply() -> dict[str, Any] | None:
-        nonlocal persisted, assistant_text
-        if persisted:
-            return None
-        final_text = strip_replayed_chat_response(
-            assistant_text,
-            previous_assistant,
-            text,
-        ).strip()
-        if not final_text:
-            return None
-        message = chat_history.append_message(username, scope, "assistant", final_text)
-        persisted = True
-        return message
+    async def on_event(event: dict[str, Any]) -> None:
+        async with send_lock:
+            await websocket.send_json(event)
 
-    await _send_json_best_effort(
-        websocket,
-        {
-            "type": "thread.started",
-            "scope": scope.to_dict(),
-            "thread_id": getattr(thread, "id", None) or None,
-            "turn_id": turn_id,
-        },
-        send_lock,
-    )
     try:
-        async for event in thread.stream(agent_text, current_project=None):
-            if event.type == "thread_started":
-                await _send_json_best_effort(
-                    websocket,
-                    {
-                        "type": "thread.started",
-                        "scope": scope.to_dict(),
-                        "thread_id": str(event.thread_id or "").strip() or None,
-                        "turn_id": str(event.turn_id or "").strip() or turn_id,
-                    },
-                    send_lock,
-                )
-            elif event.type == "assistant_delta":
-                assistant_text = merge_stream_text(
-                    assistant_text, event.text
-                )
-                display_text = strip_replayed_chat_response(
-                    assistant_text,
-                    previous_assistant,
-                    text,
-                    suppress_partial_replay=True,
-                )
-                assistant_sent_text = display_text
-                await _send_json_best_effort(
-                    websocket,
-                    {
-                        "type": "assistant.delta",
-                        "text": display_text,
-                        "turn_id": turn_id,
-                        "accumulated": True,
-                    },
-                    send_lock,
-                )
-            elif event.type == "tool_update":
-                if event.name:
-                    tool_name = event.name
-                tool_text += str(event.text or "") + "\n"
-                display_name, display_body = tool_display_payload(tool_text, tool_name)
-                await _send_json_best_effort(
-                    websocket,
-                    {
-                        "type": "tool.result",
-                        "turn_id": turn_id,
-                        "name": display_name,
-                        "success": True,
-                        "result": {"text": display_body},
-                        "error": None,
-                    },
-                    send_lock,
-                )
-            elif event.type == "complete":
-                assistant_text = completion_text_or_existing(
-                    event.text, assistant_text
-                )
-
-        assistant_text = strip_replayed_chat_response(
-            assistant_text,
-            previous_assistant,
+        await hermes_home_replies.stream(
+            username,
+            scope,
             text,
-        )
-        assistant_text = assistant_text.strip() or "(agent returned no content)"
-        message = chat_history.append_message(
-            username, scope, "assistant", assistant_text
-        )
-        persisted = True
-        await _send_json_best_effort(
-            websocket,
-            {
-                "type": "assistant.message",
-                "turn_id": turn_id,
-                "message": message,
-            },
-            send_lock,
-        )
-        assistant_sent_text = message_content(message)
-        if should_emit_final_text(assistant_text, assistant_sent_text):
-            assistant_sent_text = assistant_text
-            await _send_json_best_effort(
-                websocket,
-                {
-                    "type": "assistant.delta",
-                    "text": assistant_text,
-                    "turn_id": turn_id,
-                    "accumulated": True,
-                },
-                send_lock,
-            )
-
-        after_projects = {
-            project.name
-            for project in await list_project_workspaces({"username": username})
-        }
-        for project in sorted(after_projects - before_projects):
-            project_scope = ChatScope(kind="project", id=project)
-            chat_history.append_message(
-                username,
-                project_scope,
-                "system",
-                f"Created from home conversation turn {turn_id}.",
-            )
-            await _send_json_best_effort(
-                websocket,
-                {"type": "project.created", "project": project},
-                send_lock,
-            )
-
-        done_sent = await _send_json_best_effort(
-            websocket,
-            {"type": "chat.done", "turn_id": turn_id, "scope": scope.to_dict()},
-            send_lock,
+            attachment_payloads,
+            turn_id,
+            on_event,
         )
     finally:
         heartbeat_task.cancel()
         with contextlib.suppress(asyncio.CancelledError):
             await heartbeat_task
-        persist_partial_reply()
-        if not done_sent:
-            await _send_json_best_effort(
-                websocket,
-                {"type": "chat.done", "turn_id": turn_id, "scope": scope.to_dict()},
-                send_lock,
-            )
 
 
 @router.websocket("/chat/ws")
