@@ -1962,6 +1962,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百四十五批已将 Canvas Image route 独占的图片生成、编辑、3GS、多视角、模板、放大、扩图、重绘、打光、标记识别、反推提示词与 stage asset 共 19 个请求/响应模型从后端公共 `api/schemas.py` 迁入唯一 `api/canvas_image_schemas.py` 入站适配器 schema，Image route 与 7 个直接模型测试同步切换新入口，旧巨石定义及失去用途的默认图片模型导入直接删除，不保留 re-export facade、旧别名或重复模型。Image/Video 共用的 `FreezoneVideoMark` 进入唯一 `api/canvas_mark_schemas.py`，Image schema 与尚待迁移的 Video 模型显式依赖该共享定义；20 个 Pydantic JSON Schema 逐类比较保持等价。统一 schema 所有权门禁加入 Canvas Image 案例，并锁定共享 Mark 的唯一类定义和两处消费关系。Canvas Image 定向回归 222 项、M06 标记识别及 inline/celery 任务端点合同 3 项、完整后端分层门禁 141 项通过，合计 366 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
+第四百四十六批已将 Canvas Video route 独占的视频分析、资产库、文本/图片/首尾帧/全能参考生成、编辑、擦除、高清、音视频分离与时间线合成共 16 个请求及嵌套模型从后端公共 `api/schemas.py` 迁入唯一 `api/canvas_video_schemas.py` 入站适配器 schema，Video route 与 5 个直接模型测试同步切换新入口，旧巨石定义及失去用途的 `Field`、共享 Mark 导入和 forward-ref rebuild 直接删除，不保留 re-export facade、旧别名或重复模型。`FreezoneVideoMark` 的两个真实消费者收口为 Image/Video schema；16 个 Pydantic JSON Schema 逐类比较保持等价。统一 schema 所有权门禁加入 Canvas Video 案例，并将共享 Mark 消费关系改为锁定两个专属 schema。Canvas Video 定向回归 179 项、M06 视频资产库及 inline/celery 任务端点合同 3 项、完整后端分层门禁 141 项通过，合计 323 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

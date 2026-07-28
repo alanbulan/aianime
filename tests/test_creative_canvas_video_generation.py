@@ -6,8 +6,8 @@ from typing import Mapping
 
 import pytest
 
+from ai_anime.api.canvas_video_schemas import FreezoneVideoGenRequest
 from ai_anime.api.routes.canvas import video as video_routes
-from ai_anime.api.schemas import FreezoneVideoGenRequest
 from ai_anime.modules.creative_canvas.application.task_submission import (
     CreativeCanvasTaskReceipt,
     CreativeCanvasTaskSubmission,

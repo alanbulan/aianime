@@ -26,6 +26,7 @@ from ai_anime.api.canvas_skills_schemas import (
     FreezoneScene360Request,
     FreezoneSketchFromContextRequest,
 )
+from ai_anime.api.canvas_video_schemas import FreezoneVideoOmniGenRequest
 from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap_routes
 from ai_anime.api.routes.canvas import commits as freezone_commit_routes
 from ai_anime.api.routes.canvas import documents as freezone_document_routes
@@ -34,7 +35,6 @@ from ai_anime.api.routes.canvas import jobs as freezone_job_routes
 from ai_anime.api.routes.canvas import presets as freezone_preset_routes
 from ai_anime.api.routes.canvas import skills as freezone_skill_routes
 from ai_anime.api.routes.canvas import video as freezone_video_routes
-from ai_anime.api.schemas import FreezoneVideoOmniGenRequest
 from ai_anime.config import NEWAPI_IMAGE_MODEL, OPENAI_IMAGE_MODEL
 from ai_anime.freezone import canvas_store, image_node
 from ai_anime.freezone.canvas_lock import CanvasLockBusy

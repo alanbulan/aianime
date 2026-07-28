@@ -5,12 +5,12 @@ from types import SimpleNamespace
 
 import pytest
 
-from ai_anime.api.routes.canvas import jobs as freezone_job_routes
-from ai_anime.api.routes.canvas import video as freezone_video_routes
-from ai_anime.api.schemas import (
+from ai_anime.api.canvas_video_schemas import (
     FreezoneAnalyzeShotsRequest,
     FreezoneAnalyzeVideoStoryRequest,
 )
+from ai_anime.api.routes.canvas import jobs as freezone_job_routes
+from ai_anime.api.routes.canvas import video as freezone_video_routes
 from ai_anime.freezone import vision_gateway
 from ai_anime.freezone.jobs import build_video_story_analysis_prompt
 from ai_anime.freezone.jobs import run_freezone_analyze_shots

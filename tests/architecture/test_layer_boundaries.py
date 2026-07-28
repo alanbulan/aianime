@@ -333,6 +333,28 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
                 "FreezoneUpscaleRequest",
             ),
         ),
+        (
+            "canvas_video_schemas.py",
+            "routes/canvas/video.py",
+            (
+                "FreezoneAnalyzeShotsRequest",
+                "FreezoneAnalyzeVideoStoryRequest",
+                "FreezoneAudioSeparateRequest",
+                "FreezoneExtractFramesRequest",
+                "FreezoneImageToVideoRequest",
+                "FreezoneKeyframeVideoRequest",
+                "FreezoneVideoCharacterLibraryItemRequest",
+                "FreezoneVideoComposeItem",
+                "FreezoneVideoComposeRequest",
+                "FreezoneVideoComposeTrack",
+                "FreezoneVideoEditRequest",
+                "FreezoneVideoEraseRequest",
+                "FreezoneVideoGenRequest",
+                "FreezoneVideoOmniGenRequest",
+                "FreezoneVideoReferenceItem",
+                "FreezoneVideoUpscaleRequest",
+            ),
+        ),
     )
 
     for schema_path, route_path, model_names in cases:
@@ -369,7 +391,7 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
     ).read_text(encoding="utf-8")
     assert "class FreezoneVideoMark(" not in root_source
     assert "class FreezoneVideoMark(BaseModel):" in canvas_mark_source
-    for schema_path in ("canvas_image_schemas.py", "schemas.py"):
+    for schema_path in ("canvas_image_schemas.py", "canvas_video_schemas.py"):
         schema = PACKAGE_ROOT / "api" / schema_path
         assert "ai_anime.api.canvas_mark_schemas" in _imports(schema)
 
