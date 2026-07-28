@@ -1960,6 +1960,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百四十四批已将 Canvas Skills route 独占的 `FreezoneSketchFromContextRequest`、`FreezoneFrameFromContextRequest` 与 `FreezoneScene360Request` 从后端公共 `api/schemas.py` 迁入唯一 `api/canvas_skills_schemas.py` 入站适配器 schema，Skills route 与 `test_freezone_image_backend.py` 的直接模型调用同步切换新入口，route 一次性停止导入旧巨石，不保留 re-export facade、旧别名或重复模型。跨 Canvas schema 使用的默认图片模型进入唯一 `api/canvas_schema_defaults.py`，旧巨石改为依赖该默认值并删除无调用方的 `FREEZONE_DEFAULT_IMAGE_SELECTION` 中间别名；episode/beat、source kind、参考素材默认工厂、candidate/commit 模式、画质字段与全部 OpenAPI 描述保持不变。统一 schema 所有权门禁加入 Canvas Skills 案例并锁定默认值唯一赋值位置。主线 Sketch/Frame/Scene360 定向回归 4 项、M06 inline 下 29 个任务端点 HTTP 合同 1 项及完整后端分层门禁 141 项通过，合计 146 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
+第四百四十五批已将 Canvas Image route 独占的图片生成、编辑、3GS、多视角、模板、放大、扩图、重绘、打光、标记识别、反推提示词与 stage asset 共 19 个请求/响应模型从后端公共 `api/schemas.py` 迁入唯一 `api/canvas_image_schemas.py` 入站适配器 schema，Image route 与 7 个直接模型测试同步切换新入口，旧巨石定义及失去用途的默认图片模型导入直接删除，不保留 re-export facade、旧别名或重复模型。Image/Video 共用的 `FreezoneVideoMark` 进入唯一 `api/canvas_mark_schemas.py`，Image schema 与尚待迁移的 Video 模型显式依赖该共享定义；20 个 Pydantic JSON Schema 逐类比较保持等价。统一 schema 所有权门禁加入 Canvas Image 案例，并锁定共享 Mark 的唯一类定义和两处消费关系。Canvas Image 定向回归 222 项、M06 标记识别及 inline/celery 任务端点合同 3 项、完整后端分层门禁 141 项通过，合计 366 项；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

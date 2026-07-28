@@ -6,8 +6,8 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
+from ai_anime.api.canvas_image_schemas import FreezoneImageTo3GSRequest
 from ai_anime.api.routes.canvas import image as image_to_three_gs_routes
-from ai_anime.api.schemas import FreezoneImageTo3GSRequest
 from ai_anime.modules.creative_canvas.application.image_to_3gs import (
     CREATIVE_CANVAS_IMAGE_TO_THREE_GS_TASK_TYPE,
     CreativeCanvasImageToThreeGsSourceMissing,

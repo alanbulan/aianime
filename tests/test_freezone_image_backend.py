@@ -13,6 +13,13 @@ from PIL import Image
 from ai_anime.api import canvas_documents_schemas
 from ai_anime.api.canvas_commits_schemas import PushRequest
 from ai_anime.api.canvas_documents_schemas import CanvasPayload
+from ai_anime.api.canvas_image_schemas import (
+    FreezoneGenRequest,
+    FreezoneImageReversePromptRequest,
+    FreezoneOutpaintRequest,
+    FreezoneRedrawRequest,
+    FreezoneTemplateEditRequest,
+)
 from ai_anime.api.canvas_presets_schemas import PresetCanvasRequest
 from ai_anime.api.canvas_skills_schemas import (
     FreezoneFrameFromContextRequest,
@@ -27,14 +34,7 @@ from ai_anime.api.routes.canvas import jobs as freezone_job_routes
 from ai_anime.api.routes.canvas import presets as freezone_preset_routes
 from ai_anime.api.routes.canvas import skills as freezone_skill_routes
 from ai_anime.api.routes.canvas import video as freezone_video_routes
-from ai_anime.api.schemas import (
-    FreezoneGenRequest,
-    FreezoneImageReversePromptRequest,
-    FreezoneOutpaintRequest,
-    FreezoneRedrawRequest,
-    FreezoneTemplateEditRequest,
-    FreezoneVideoOmniGenRequest,
-)
+from ai_anime.api.schemas import FreezoneVideoOmniGenRequest
 from ai_anime.config import NEWAPI_IMAGE_MODEL, OPENAI_IMAGE_MODEL
 from ai_anime.freezone import canvas_store, image_node
 from ai_anime.freezone.canvas_lock import CanvasLockBusy

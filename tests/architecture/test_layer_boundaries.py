@@ -308,6 +308,31 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
                 "FreezoneSketchFromContextRequest",
             ),
         ),
+        (
+            "canvas_image_schemas.py",
+            "routes/canvas/image.py",
+            (
+                "FreezoneCharacterMultiViewRequest",
+                "FreezoneEditRequest",
+                "FreezoneGenRequest",
+                "FreezoneImageCameraConfig",
+                "FreezoneImageReversePromptData",
+                "FreezoneImageReversePromptRequest",
+                "FreezoneImageReversePromptResponse",
+                "FreezoneImageStyleConfig",
+                "FreezoneImageTo3GSRequest",
+                "FreezoneMarkDetectData",
+                "FreezoneMarkDetectRequest",
+                "FreezoneMarkDetectResponse",
+                "FreezoneOutpaintRequest",
+                "FreezoneRedrawRequest",
+                "FreezoneRelightRequest",
+                "FreezoneStageAssetAcceptedData",
+                "FreezoneStageAssetAcceptedResponse",
+                "FreezoneTemplateEditRequest",
+                "FreezoneUpscaleRequest",
+            ),
+        ),
     )
 
     for schema_path, route_path, model_names in cases:
@@ -338,6 +363,15 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
     assert "FREEZONE_DEFAULT_IMAGE_SELECTION =" not in root_source
     assert "FREEZONE_DEFAULT_IMAGE_MODEL =" not in root_source
     assert "FREEZONE_DEFAULT_IMAGE_MODEL =" in canvas_defaults_source
+
+    canvas_mark_source = (
+        PACKAGE_ROOT / "api" / "canvas_mark_schemas.py"
+    ).read_text(encoding="utf-8")
+    assert "class FreezoneVideoMark(" not in root_source
+    assert "class FreezoneVideoMark(BaseModel):" in canvas_mark_source
+    for schema_path in ("canvas_image_schemas.py", "schemas.py"):
+        schema = PACKAGE_ROOT / "api" / schema_path
+        assert "ai_anime.api.canvas_mark_schemas" in _imports(schema)
 
     canvas_job_source = (PACKAGE_ROOT / "api" / "canvas_job_schemas.py").read_text(
         encoding="utf-8"

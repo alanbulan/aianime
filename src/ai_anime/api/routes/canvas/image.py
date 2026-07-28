@@ -6,16 +6,14 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException
 
 from ai_anime.api.auth import get_api_user
-from ai_anime.api.canvas_job_schemas import FreezoneJobAcceptedResponse
-from ai_anime.api.deps import resolve_project_scope
-from ai_anime.api.schemas import (
+from ai_anime.api.canvas_image_schemas import (
     FreezoneCharacterMultiViewRequest,
     FreezoneEditRequest,
     FreezoneGenRequest,
-    FreezoneImageTo3GSRequest,
     FreezoneImageCameraConfig,
     FreezoneImageReversePromptRequest,
     FreezoneImageStyleConfig,
+    FreezoneImageTo3GSRequest,
     FreezoneMarkDetectRequest,
     FreezoneMarkDetectResponse,
     FreezoneOutpaintRequest,
@@ -25,6 +23,8 @@ from ai_anime.api.schemas import (
     FreezoneTemplateEditRequest,
     FreezoneUpscaleRequest,
 )
+from ai_anime.api.canvas_job_schemas import FreezoneJobAcceptedResponse
+from ai_anime.api.deps import resolve_project_scope
 from ai_anime.modules.creative_canvas.public import (
     DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL,
     CreativeCanvasImageCameraConfig,

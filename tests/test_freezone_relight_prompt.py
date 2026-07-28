@@ -1,6 +1,6 @@
 from pydantic import ValidationError
 
-from ai_anime.api.schemas import FreezoneRelightRequest
+from ai_anime.api.canvas_image_schemas import FreezoneRelightRequest
 from ai_anime.modules.creative_canvas.domain.image_editing_prompts import (
     build_image_relight_prompt,
 )
