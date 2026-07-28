@@ -1869,6 +1869,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百零四批已拆分 SuperChat Composer 输入历史导航：新增唯一 `features/superchat/use-composer-history-navigation.ts`，集中持有历史索引、项目切换复位、首次向上选择最新消息、上下边界导航、越过最新项清空草稿，以及导航后的 textarea 聚焦与光标末尾恢复；项目切换继续只清除历史索引，不清空当前草稿。`superchat-panel.tsx` 删除历史 state、两个 ref、project effect、layout effect 和导航函数，只把 draft、历史投影与 setter 装配给 hook，文件由 773 行降至 741 行，并不再直接使用 `useEffect`/`useLayoutEffect`。新增 3 项 hook 特征测试覆盖双向边界导航、显式编辑与项目切换复位、草稿保持和焦点/光标恢复，并扩展架构门禁禁止历史状态机回流面板；SuperChat 特征测试 34 个文件 179 项、SuperChat 门禁 30 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
 
+第四百零五批已拆分 SuperChat 待发送消息队列视图：新增唯一 `features/superchat/queued-messages-panel.tsx`，通过显式消息列表、选中 ID 与选择/删除回调窄合同，集中呈现队列计数、文本、附件数、多项时的选中态和两个操作按钮；组件不导入 queue controller，也不持有队列状态。`superchat-panel.tsx` 删除完整队列 JSX 与相关翻译调用，只把 controller 模型和命令装配给视图，文件由 741 行降至 704 行，不保留第二套展示。新增 2 项视图特征测试覆盖空队列、计数与附件数、选中态和选择/删除转发，并扩展架构门禁禁止队列呈现回流面板；SuperChat 特征测试 35 个文件 181 项、SuperChat 门禁 31 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

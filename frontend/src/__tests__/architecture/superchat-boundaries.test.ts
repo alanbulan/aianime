@@ -970,6 +970,44 @@ describe("SuperChat boundaries", () => {
     expect(hook).not.toContain("useSuperChat");
   });
 
+  it("keeps queued-message presentation outside the SuperChat panel", () => {
+    const view = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/queued-messages-panel.tsx"),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/queued-messages-panel.test.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/queued-messages-panel";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/queued-messages-panel";',
+    );
+    expect(view).toContain("export function QueuedMessagesPanel(");
+    for (const ownedPresentation of [
+      't("aiAssistant.queuedCount"',
+      "const showSelectedState =",
+      'aria-label={t("aiAssistant.selectQueuedMessage")}',
+      't("aiAssistant.queuedAttachments"',
+      'aria-label={t("aiAssistant.removeQueuedMessage")}',
+    ]) {
+      expect(view).toContain(ownedPresentation);
+      expect(panel).not.toContain(ownedPresentation);
+    }
+    expect(view).not.toContain("useChatQueueController");
+    expect(view).not.toContain("setQueuedMessages");
+  });
+
   it("keeps spec media modal presentation outside the SuperChat panel", () => {
     const modals = readFileSync(
       resolve(SRC_ROOT, "features/superchat/spec-media-modals.tsx"),

@@ -45,6 +45,7 @@ import { useChatScrollController } from "@/features/superchat/use-chat-scroll-co
 import { useChatQueueController } from "@/features/superchat/use-chat-queue-controller";
 import { useComposerBorderBeam } from "@/features/superchat/use-composer-border-beam";
 import { useComposerHistoryNavigation } from "@/features/superchat/use-composer-history-navigation";
+import { QueuedMessagesPanel } from "@/features/superchat/queued-messages-panel";
 import {
   SpecMediaDetailModal,
   type SpecMediaDetail,
@@ -554,50 +555,12 @@ export function SuperChatPanel({
                 ))}
               </div>
             )}
-            {queuedMessages.length > 0 && (
-              <div className="border-t border-border px-4 py-2">
-                <div className="mb-1.5 text-xs font-normal text-muted-foreground">
-                  {t("aiAssistant.queuedCount", { count: queuedMessages.length })}
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {queuedMessages.map((message) => {
-                    const showSelectedState = queuedMessages.length > 1 && selectedQueuedMessageId === message.id;
-                    return (
-                      <div
-                        key={message.id}
-                        className={cn(
-                          "inline-flex max-w-full items-center overflow-hidden rounded-[6px] border border-border bg-muted text-xs text-foreground/70 transition-colors hover:bg-accent focus-within:border-primary/45",
-                          showSelectedState && "border-primary/35 bg-primary/[0.07] text-foreground/90 focus-within:border-primary/45",
-                        )}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => selectQueuedMessage(message.id)}
-                          className="flex min-w-0 items-center gap-1.5 px-2 py-1 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/50"
-                          aria-label={t("aiAssistant.selectQueuedMessage")}
-                          aria-pressed={showSelectedState}
-                        >
-                          <span className="max-w-56 truncate">{message.text}</span>
-                          {message.attachments.length > 0 && (
-                            <span className="shrink-0 text-muted-foreground">
-                              {t("aiAssistant.queuedAttachments", { count: message.attachments.length })}
-                            </span>
-                          )}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => removeQueuedMessage(message.id)}
-                          className="mr-0.5 flex size-5 shrink-0 items-center justify-center rounded-[4px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                          aria-label={t("aiAssistant.removeQueuedMessage")}
-                        >
-                          <X className="size-3" />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+            <QueuedMessagesPanel
+              messages={queuedMessages}
+              selectedMessageId={selectedQueuedMessageId}
+              onRemove={removeQueuedMessage}
+              onSelect={selectQueuedMessage}
+            />
             <Textarea
               ref={draftInputRef}
               value={draft}
