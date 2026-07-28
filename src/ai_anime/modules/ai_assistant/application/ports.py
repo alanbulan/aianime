@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any, AsyncIterator, Protocol
 
 from ai_anime.modules.ai_assistant.domain import ChatScope
+
+ChatEventSink = Callable[[dict[str, Any]], Awaitable[None]]
 
 
 class AgentThreadSessions(Protocol):

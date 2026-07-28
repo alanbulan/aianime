@@ -6,7 +6,13 @@ from ai_anime.modules.ai_assistant.application.agent_backend import (
 from ai_anime.modules.ai_assistant.application.chat_presentation import (
     ChatPresentation,
 )
+from ai_anime.modules.ai_assistant.application.chat_events import (
+    emit_chat_event_best_effort,
+)
 from ai_anime.modules.ai_assistant.application.display_fallback import DisplayFallbacks
+from ai_anime.modules.ai_assistant.application.hermes_project_replies import (
+    HermesProjectReplies,
+)
 from ai_anime.modules.ai_assistant.application.ports import (
     AgentBackend,
     AgentBackendRuntime,
@@ -48,12 +54,14 @@ __all__ = [
     "AgentThreadSessions",
     "AgentToolConfiguration",
     "ChatHistory",
+    "emit_chat_event_best_effort",
     "ChatPresentation",
     "ChatRunLocks",
     "DisplayFallbackGateway",
     "DisplayFallbacks",
     "HermesRuntime",
     "HermesThread",
+    "HermesProjectReplies",
     "JsonRenderErrors",
     "PageAgentSessions",
     "ProjectMedia",

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any, Literal
 
@@ -12,7 +11,10 @@ from ai_anime.modules.ai_assistant.application.chat_presentation import (
 from ai_anime.modules.ai_assistant.application.page_agent_sessions import (
     PageAgentSessions,
 )
-from ai_anime.modules.ai_assistant.application.ports import AgentThreadRuntime
+from ai_anime.modules.ai_assistant.application.ports import (
+    AgentThreadRuntime,
+    ChatEventSink,
+)
 from ai_anime.modules.ai_assistant.application.project_media import ProjectMedia
 from ai_anime.modules.ai_assistant.application.project_messages import (
     ProjectChatMessages,
@@ -26,7 +28,6 @@ from ai_anime.modules.ai_assistant.domain import (
 )
 
 AgentThreadBackend = Literal["claude", "codex"]
-ChatEventSink = Callable[[dict[str, Any]], Awaitable[None]]
 
 
 class AgentThreadReplies:
@@ -145,4 +146,4 @@ class AgentThreadReplies:
         return result_message
 
 
-__all__ = ["AgentThreadBackend", "AgentThreadReplies", "ChatEventSink"]
+__all__ = ["AgentThreadBackend", "AgentThreadReplies"]
