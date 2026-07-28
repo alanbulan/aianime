@@ -299,6 +299,15 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
                 "FreezoneAudioVoiceRef",
             ),
         ),
+        (
+            "canvas_skills_schemas.py",
+            "routes/canvas/skills.py",
+            (
+                "FreezoneFrameFromContextRequest",
+                "FreezoneScene360Request",
+                "FreezoneSketchFromContextRequest",
+            ),
+        ),
     )
 
     for schema_path, route_path, model_names in cases:
@@ -322,6 +331,13 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
     assert "CharacterAssetKind = Literal[" in characters_source
     assert "ProjectStatusFilter = Literal[" not in root_source
     assert "ProjectStatusFilter = Literal[" in projects_source
+
+    canvas_defaults_source = (
+        PACKAGE_ROOT / "api" / "canvas_schema_defaults.py"
+    ).read_text(encoding="utf-8")
+    assert "FREEZONE_DEFAULT_IMAGE_SELECTION =" not in root_source
+    assert "FREEZONE_DEFAULT_IMAGE_MODEL =" not in root_source
+    assert "FREEZONE_DEFAULT_IMAGE_MODEL =" in canvas_defaults_source
 
     canvas_job_source = (PACKAGE_ROOT / "api" / "canvas_job_schemas.py").read_text(
         encoding="utf-8"

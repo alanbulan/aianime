@@ -14,6 +14,11 @@ from ai_anime.api import canvas_documents_schemas
 from ai_anime.api.canvas_commits_schemas import PushRequest
 from ai_anime.api.canvas_documents_schemas import CanvasPayload
 from ai_anime.api.canvas_presets_schemas import PresetCanvasRequest
+from ai_anime.api.canvas_skills_schemas import (
+    FreezoneFrameFromContextRequest,
+    FreezoneScene360Request,
+    FreezoneSketchFromContextRequest,
+)
 from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap_routes
 from ai_anime.api.routes.canvas import commits as freezone_commit_routes
 from ai_anime.api.routes.canvas import documents as freezone_document_routes
@@ -23,13 +28,10 @@ from ai_anime.api.routes.canvas import presets as freezone_preset_routes
 from ai_anime.api.routes.canvas import skills as freezone_skill_routes
 from ai_anime.api.routes.canvas import video as freezone_video_routes
 from ai_anime.api.schemas import (
-    FreezoneFrameFromContextRequest,
     FreezoneGenRequest,
     FreezoneImageReversePromptRequest,
     FreezoneOutpaintRequest,
     FreezoneRedrawRequest,
-    FreezoneScene360Request,
-    FreezoneSketchFromContextRequest,
     FreezoneTemplateEditRequest,
     FreezoneVideoOmniGenRequest,
 )
