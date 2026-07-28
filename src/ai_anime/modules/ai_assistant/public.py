@@ -5,6 +5,7 @@ from typing import Any
 
 from ai_anime.modules.ai_assistant.application import (
     AgentBackend,
+    AgentThreadReplies,
     AgentThreadRuntime,
     ChatHistory,
     ChatRunLocks,
@@ -124,6 +125,14 @@ def get_agent_thread_runtime() -> AgentThreadRuntime:
     return resolve()
 
 
+def get_agent_thread_replies() -> AgentThreadReplies:
+    from ai_anime.modules.ai_assistant.composition import (
+        get_agent_thread_replies as resolve,
+    )
+
+    return resolve()
+
+
 def get_chat_history() -> ChatHistory:
     from ai_anime.modules.ai_assistant.composition import get_chat_history as resolve
 
@@ -146,6 +155,7 @@ def get_project_chat_messages() -> ProjectChatMessages:
 
 __all__ = [
     "AgentBackend",
+    "AgentThreadReplies",
     "AgentThreadRuntime",
     "ChatHistory",
     "ChatRunLocks",
@@ -163,6 +173,7 @@ __all__ = [
     "fallback_display_tool_ui_specs",
     "filter_tool_ui_specs_for_prompt",
     "get_agent_backend",
+    "get_agent_thread_replies",
     "get_agent_thread_runtime",
     "get_chat_history",
     "get_chat_run_locks",

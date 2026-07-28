@@ -25,6 +25,7 @@ from ai_anime.modules.ai_assistant.public import (
     fallback_display_tool_ui_specs,
     filter_tool_ui_specs_for_prompt,
     get_agent_backend,
+    get_agent_thread_replies,
     get_agent_thread_runtime,
     get_chat_run_locks,
     get_project_chat_messages,
@@ -43,6 +44,7 @@ from ai_anime.modules.ai_assistant.public import (
 
 logger = logging.getLogger("ai_anime.chat.service")
 agent_backend = get_agent_backend()
+agent_thread_replies = get_agent_thread_replies()
 agent_thread_runtime = get_agent_thread_runtime()
 chat_run_locks = get_chat_run_locks()
 project_chat_messages = get_project_chat_messages()
@@ -187,7 +189,8 @@ async def stream_assistant_reply(
         model_prompt = script_creation_guidance_prompt(prompt) or prompt
         backend = agent_backend.name()
         if backend == "codex":
-            return await _stream_assistant_reply_codex(
+            return await agent_thread_replies.stream(
+                "codex",
                 username,
                 project,
                 model_prompt,
@@ -206,7 +209,8 @@ async def stream_assistant_reply(
             )
         if backend != "claude":
             raise RuntimeError(f"Unsupported chat backend: {backend}")
-        return await _stream_assistant_reply_claude(
+        return await agent_thread_replies.stream(
+            "claude",
             username,
             project,
             model_prompt,
@@ -531,166 +535,6 @@ async def _stream_assistant_reply_hermes(
         raise
     finally:
         persist_partial_reply()
-
-
-async def _stream_assistant_reply_claude(
-    username: str,
-    project: str,
-    prompt: str,
-    on_event,
-    *,
-    project_dir: str | Path | None = None,
-    project_state_dir: str | Path | None = None,
-) -> dict[str, Any]:
-    try:
-        agent_token = await create_page_agent_session_token(
-            username,
-            project,
-            agent_kind="claude",
-        )
-        thread = agent_thread_runtime.open_claude(username, project, agent_token)
-        agent_prompt = build_agent_prompt_context(username, project, prompt)
-        assistant_text = ""
-        tool_text = ""
-        async for event in thread.stream(agent_prompt):
-            if event.type == "thread_started":
-                thread_id = str(event.thread_id or "").strip() or None
-                if thread_id:
-                    agent_thread_runtime.remember(username, "claude", thread_id)
-                await on_event(
-                    {
-                        "type": "thread_started",
-                        "thread_id": thread_id,
-                        "turn_id": str(event.turn_id or "").strip() or None,
-                    }
-                )
-                continue
-            if event.type == "assistant_delta":
-                assistant_text = merge_stream_text(assistant_text, event.text)
-                streamed_text = redact_local_filesystem_paths(assistant_text)
-                await on_event(
-                    {
-                        "type": "assistant_delta",
-                        "text": streamed_text,
-                    }
-                )
-                continue
-            if event.type == "tool_update":
-                tool_text = str(event.text or "")
-                await on_event({"type": "tool_update", "text": tool_text})
-                continue
-            if event.type == "complete":
-                thread_id = str(event.thread_id or "").strip() or None
-                if thread_id:
-                    agent_thread_runtime.remember(username, "claude", thread_id)
-                assistant_text = completion_text_or_existing(
-                    event.text, assistant_text
-                )
-
-        assistant_text = assistant_text.strip() or "已执行，但没有返回正文。"
-        assistant_text = normalize_json_render_reply(assistant_text)
-        if tool_text.strip():
-            project_chat_messages.append_traces(
-                username,
-                project,
-                split_trace_contents(tool_text),
-                project_dir=project_dir,
-                project_state_dir=project_state_dir,
-            )
-        media = extract_project_media(
-            assistant_text, username, project, project_dir=project_dir
-        )
-        result_message = project_chat_messages.append_assistant(
-            username,
-            project,
-            assistant_text,
-            media,
-            project_dir=project_dir,
-            project_state_dir=project_state_dir,
-        )
-        await on_event({"type": "done", "message": result_message})
-        return result_message
-    except Exception:
-        raise
-
-
-async def _stream_assistant_reply_codex(
-    username: str,
-    project: str,
-    prompt: str,
-    on_event,
-    *,
-    project_dir: str | Path | None = None,
-    project_state_dir: str | Path | None = None,
-) -> dict[str, Any]:
-    assistant_text = ""
-    tool_text = ""
-    agent_token = await create_page_agent_session_token(
-        username,
-        project,
-        agent_kind="codex",
-    )
-    thread = agent_thread_runtime.open_codex(username, project, agent_token)
-    agent_prompt = build_agent_prompt_context(username, project, prompt)
-    async for event in thread.stream(agent_prompt):
-        if event.type == "thread_started":
-            thread_id = str(event.thread_id or "").strip() or None
-            if thread_id:
-                agent_thread_runtime.remember(username, "codex", thread_id)
-            await on_event(
-                {
-                    "type": "thread_started",
-                    "thread_id": thread_id,
-                    "turn_id": str(event.turn_id or "").strip() or None,
-                }
-            )
-            continue
-        if event.type == "assistant_delta":
-            assistant_text = merge_stream_text(assistant_text, event.text)
-            streamed_text = redact_local_filesystem_paths(assistant_text)
-            await on_event(
-                {
-                    "type": "assistant_delta",
-                    "text": streamed_text,
-                }
-            )
-            continue
-        if event.type == "tool_update":
-            tool_text += str(event.text or "")
-            await on_event({"type": "tool_update", "text": tool_text})
-            continue
-        if event.type == "complete":
-            thread_id = str(event.thread_id or "").strip() or None
-            if thread_id:
-                agent_thread_runtime.remember(username, "codex", thread_id)
-            assistant_text = completion_text_or_existing(event.text, assistant_text)
-
-    assistant_text = assistant_text.strip() or "已执行，但没有返回正文。"
-    assistant_text = normalize_json_render_reply(assistant_text)
-    if tool_text.strip():
-        project_chat_messages.append_traces(
-            username,
-            project,
-            split_trace_contents(tool_text),
-            project_dir=project_dir,
-            project_state_dir=project_state_dir,
-        )
-    media = extract_project_media(
-        assistant_text,
-        username,
-        project,
-        project_dir=project_dir,
-    )
-    result_message = project_chat_messages.append_assistant(
-        username,
-        project,
-        assistant_text,
-        media,
-        project_dir=project_dir,
-        project_state_dir=project_state_dir,
-    )
-    await on_event({"type": "done", "message": result_message})
-    return result_message
 
 
 async def generate_assistant_reply(

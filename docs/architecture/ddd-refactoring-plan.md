@@ -1769,6 +1769,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百五十四批已将 Claude/Codex 线程生命周期装配收口至 AI Assistant：application port 新增 `AgentThread` 与唯一 `AgentThreadRuntime` 合同，infrastructure 新增唯一 `LocalAgentThreadRuntime` adapter，组合现有 backend、thread session、workspace 与 tool configuration，统一负责 Claude/Codex client 参数装配、线程新建/恢复、活动线程记录及中断后的关闭流容错；现有 `chat/backend_sdk.py` 继续作为唯一 SDK 事件实现，本批未复制其解析逻辑。composition 只公开组装后的进程级 runtime，原 `get_agent_thread_sessions`、`get_agent_workspace`、`get_agent_tool_configuration` 低层 getter 从 composition/public 及对应 singleton 测试收回，避免测试专用 public API；`service.py` 删除 backend SDK 直接依赖、两个线程构建入口和两类中断实现，Claude/Codex 流式路径仅通过 public runtime 创建、记录和中断线程，不保留 facade、旧别名或第二套实现，文件由 756 行降至 702 行。Agent thread runtime 5 项、AI Assistant 模块 174 项、剩余 Chat/route 回归 4 项、Chat route prewarm 2 项、M08 Chat 合同 5 项及完整后端分层门禁 120 项均通过，修改文件 Ruff、Python 编译、模块格式检查与 `git diff --check` 通过。
 
+第三百五十五批已将 Claude/Codex 流式回复应用编排收口至 AI Assistant：application 新增唯一 `AgentThreadReplies`，组合上一批 `AgentThreadRuntime` 与现有 prompt context、page agent session、project media、project messages 和 chat presentation，统一负责 token 签发、线程打开、prompt 构建、session 记录、正文增量、完成文本、JSON Render 归一、trace/media 投影、消息持久化及 done 事件；仅保留真实协议差异，即 Claude 工具事件采用最新快照、Codex 工具事件累加增量。composition/public 提供唯一进程级 capability，`service.py` 删除 `_stream_assistant_reply_claude` 与 `_stream_assistant_reply_codex` 两套实现，后端分派仅以 `claude`/`codex` 参数调用同一 application stream，不保留 facade、旧别名或第二套编排，文件由 702 行降至 546 行。Agent thread replies 4 项、AI Assistant 模块 178 项、剩余 Chat/route 回归 4 项、Chat route prewarm 2 项、M08 Chat 合同 5 项及完整后端分层门禁 121 项均通过，修改文件 Ruff、Python 编译、模块格式检查与 `git diff --check` 通过。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

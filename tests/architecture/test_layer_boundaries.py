@@ -822,6 +822,13 @@ def test_ai_assistant_owns_project_chat_message_orchestration() -> None:
 
 
 def test_chat_service_has_no_unreachable_codex_history_cache() -> None:
+    thread_replies_source = (
+        PACKAGE_ROOT
+        / "modules"
+        / "ai_assistant"
+        / "application"
+        / "thread_replies.py"
+    ).read_text(encoding="utf-8")
     thread_runtime_source = (
         PACKAGE_ROOT
         / "modules"
@@ -844,7 +851,8 @@ def test_chat_service_has_no_unreachable_codex_history_cache() -> None:
         "from openai_codex import Codex, CodexConfig",
     ):
         assert dead_implementation not in service_source
-    assert "def _stream_assistant_reply_codex(" in service_source
+    assert "def _stream_assistant_reply_codex(" not in service_source
+    assert "self._thread_runtime.open_codex(" in thread_replies_source
     for active_runtime_implementation in (
         "def open_codex(",
         "CodexClient(",
@@ -941,11 +949,13 @@ def test_ai_assistant_owns_agent_thread_sessions() -> None:
 def test_ai_assistant_owns_agent_thread_runtime() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     ports = module / "application" / "ports.py"
+    replies = module / "application" / "thread_replies.py"
     runtime = module / "infrastructure" / "agent_thread_runtime.py"
     composition = module / "composition.py"
     public = module / "public.py"
     service = PACKAGE_ROOT / "chat" / "service.py"
     ports_source = ports.read_text(encoding="utf-8")
+    replies_source = replies.read_text(encoding="utf-8")
     runtime_source = runtime.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
@@ -970,10 +980,53 @@ def test_ai_assistant_owns_agent_thread_runtime() -> None:
         "interrupt_live_codex_turn",
     ):
         assert legacy_implementation not in service_source
-    assert service_source.count("agent_thread_runtime.open_claude(") == 1
-    assert service_source.count("agent_thread_runtime.open_codex(") == 1
-    assert service_source.count("agent_thread_runtime.remember(") == 4
+    assert replies_source.count("self._thread_runtime.open_claude(") == 1
+    assert replies_source.count("self._thread_runtime.open_codex(") == 1
+    assert replies_source.count("self._thread_runtime.remember(") == 2
+    assert "agent_thread_runtime.open_" not in service_source
+    assert "agent_thread_runtime.remember(" not in service_source
     assert service_source.count("agent_thread_runtime.interrupt(") == 1
+
+
+def test_ai_assistant_owns_agent_thread_reply_orchestration() -> None:
+    module = PACKAGE_ROOT / "modules" / "ai_assistant"
+    application = module / "application" / "thread_replies.py"
+    composition = module / "composition.py"
+    public = module / "public.py"
+    service = PACKAGE_ROOT / "chat" / "service.py"
+    application_source = application.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+    service_source = service.read_text(encoding="utf-8")
+
+    assert not {
+        imported
+        for imported in _imports(application)
+        if imported == "fastapi"
+        or imported.startswith("fastapi.")
+        or imported.startswith("ai_anime.chat")
+        or imported.startswith("ai_anime.modules.ai_assistant.infrastructure")
+    }
+    assert "class AgentThreadReplies:" in application_source
+    assert "_agent_thread_replies = AgentThreadReplies(" in composition_source
+    assert "def get_agent_thread_replies(" in composition_source
+    assert "def get_agent_thread_replies(" in public_source
+    assert "agent_thread_replies = get_agent_thread_replies()" in service_source
+    assert service_source.count("agent_thread_replies.stream(") == 2
+    for removed_implementation in (
+        "def _stream_assistant_reply_claude(",
+        "def _stream_assistant_reply_codex(",
+    ):
+        assert removed_implementation not in service_source
+    for owned_operation in (
+        "self._page_sessions.create_token(",
+        "self._prompt_context.build(",
+        "self._presentation.normalize_reply(",
+        "self._project_messages.append_traces(",
+        "self._project_media.extract(",
+        "self._project_messages.append_assistant(",
+    ):
+        assert application_source.count(owned_operation) == 1
 
 
 def test_ai_assistant_owns_agent_backend_runtime() -> None:
@@ -1137,10 +1190,12 @@ def test_ai_assistant_owns_agent_tool_configuration() -> None:
 def test_ai_assistant_owns_page_agent_session_issuance() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     application = module / "application" / "page_agent_sessions.py"
+    thread_replies = module / "application" / "thread_replies.py"
     composition = module / "composition.py"
     public = module / "public.py"
     service = PACKAGE_ROOT / "chat" / "service.py"
     application_source = application.read_text(encoding="utf-8")
+    thread_replies_source = thread_replies.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
     service_source = service.read_text(encoding="utf-8")
@@ -1168,13 +1223,15 @@ def test_ai_assistant_owns_page_agent_session_issuance() -> None:
         'metadata={"source": "chat_service"}',
     ):
         assert legacy_name not in service_source
-    assert service_source.count("create_page_agent_session_token(") == 4
+    assert service_source.count("create_page_agent_session_token(") == 2
+    assert thread_replies_source.count("self._page_sessions.create_token(") == 1
 
 
 def test_ai_assistant_owns_agent_prompt_context() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     domain = module / "domain" / "prompt_context.py"
     application = module / "application" / "prompt_context.py"
+    thread_replies = module / "application" / "thread_replies.py"
     ports = module / "application" / "ports.py"
     adapter = module / "infrastructure" / "user_preferences.py"
     composition = module / "composition.py"
@@ -1182,6 +1239,7 @@ def test_ai_assistant_owns_agent_prompt_context() -> None:
     service = PACKAGE_ROOT / "chat" / "service.py"
     domain_source = domain.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
+    thread_replies_source = thread_replies.read_text(encoding="utf-8")
     ports_source = ports.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
@@ -1221,7 +1279,8 @@ def test_ai_assistant_owns_agent_prompt_context() -> None:
         if '"preferences.md"' in path.read_text(encoding="utf-8")
     ]
     assert preference_file_owners == [adapter]
-    assert service_source.count("build_agent_prompt_context(") == 3
+    assert service_source.count("build_agent_prompt_context(") == 1
+    assert thread_replies_source.count("self._prompt_context.build(") == 1
 
 
 def test_ai_assistant_owns_turn_guidance_rules() -> None:

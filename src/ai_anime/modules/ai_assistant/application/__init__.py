@@ -30,12 +30,16 @@ from ai_anime.modules.ai_assistant.application.project_media import ProjectMedia
 from ai_anime.modules.ai_assistant.application.project_messages import (
     ProjectChatMessages,
 )
+from ai_anime.modules.ai_assistant.application.thread_replies import (
+    AgentThreadReplies,
+)
 
 __all__ = [
     "AgentBackend",
     "AgentBackendRuntime",
     "AgentBackendService",
     "AgentThread",
+    "AgentThreadReplies",
     "AgentThreadRuntime",
     "AgentWorkspace",
     "AgentPromptContext",

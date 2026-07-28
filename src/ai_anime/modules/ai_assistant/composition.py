@@ -4,6 +4,7 @@ from ai_anime.modules.ai_assistant.application import (
     AgentBackend,
     AgentBackendService,
     AgentPromptContext,
+    AgentThreadReplies,
     AgentThreadRuntime,
     ChatHistory,
     ChatPresentation,
@@ -45,6 +46,14 @@ _display_fallbacks = DisplayFallbacks(HttpDisplayFallbackGateway())
 _page_agent_sessions = PageAgentSessions()
 _project_media = ProjectMedia(LocalProjectMediaFiles())
 _project_chat_messages = ProjectChatMessages(_chat_history, _project_media)
+_agent_thread_replies = AgentThreadReplies(
+    _agent_thread_runtime,
+    _agent_prompt_context,
+    _page_agent_sessions,
+    _project_media,
+    _project_chat_messages,
+    _chat_presentation,
+)
 
 
 def get_agent_backend() -> AgentBackend:
@@ -57,6 +66,10 @@ def get_agent_prompt_context() -> AgentPromptContext:
 
 def get_agent_thread_runtime() -> AgentThreadRuntime:
     return _agent_thread_runtime
+
+
+def get_agent_thread_replies() -> AgentThreadReplies:
+    return _agent_thread_replies
 
 
 def get_chat_history() -> ChatHistory:
