@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const listFreezoneBeatContext = vi.fn();
 const listFreezoneProjectAssets = vi.fn();
 
-vi.mock("@/features/freezone/public", async (importOriginal) => {
+vi.mock("@/features/freezone/composition", async (importOriginal) => {
   const { createFreezoneContextQueryHooks } = await import(
     "@/features/freezone/hooks/contextQueryHooks"
   );
@@ -18,7 +18,7 @@ vi.mock("@/features/freezone/public", async (importOriginal) => {
       listFreezoneProjectAssets(projectId, options),
   });
   return {
-    ...(await importOriginal<typeof import("@/features/freezone/public")>()),
+    ...(await importOriginal<typeof import("@/features/freezone/composition")>()),
     ...queryHooks,
   };
 });

@@ -20,7 +20,7 @@ import {
   deleteFreezoneCanvas,
   useFreezoneCanvases,
 } from "@/features/canvas/composition";
-import type { FreezoneCanvasSummary } from "@/features/freezone/public";
+import type { FreezoneCanvasSummary } from "@/features/freezone/domain/canvasStorage";
 import { ApiError } from "@/shared/api/errors";
 import { writeUrl } from "@/lib/url-params";
 import { useTranslation } from "react-i18next";

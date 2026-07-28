@@ -769,6 +769,13 @@ describe("frontend architecture boundaries", () => {
           )
           .map((specifier) => `${relativeSource(path)} -> ${specifier}`),
       );
+    const internalPublicConsumers = sourceFiles(freezoneRoot)
+      .filter((path) => path !== publicPath && !path.includes(".test."))
+      .filter((path) =>
+        importSpecifiers(path).includes("@/features/freezone/public"),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(existsSync(legacyPath)).toBe(false);
     expect(importSpecifiers(contractPath)).toEqual([]);
@@ -789,6 +796,7 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(externalContractImportFailures).toEqual([]);
+    expect(internalPublicConsumers).toEqual([]);
     expect(importSpecifiers(nodeRegistryPath)).toContain(
       "@/features/freezone/public",
     );
@@ -1000,6 +1008,12 @@ describe("frontend architecture boundaries", () => {
       "@/features/canvas/composition",
     );
     expect(importSpecifiers(assetLibraryPath)).toContain(
+      "@/features/freezone/composition",
+    );
+    expect(importSpecifiers(assetLibraryPath)).toContain(
+      "@/features/freezone/domain/beatContext",
+    );
+    expect(importSpecifiers(assetLibraryPath)).not.toContain(
       "@/features/freezone/public",
     );
     expect(canvasCompositionSource).toContain("createFreezoneCanvasQueryHooks(");
@@ -1336,11 +1350,6 @@ describe("frontend architecture boundaries", () => {
     );
     const compositionSource = readFileSync(compositionPath, "utf8");
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
-    const consumerPaths = [
-      "features/freezone/FreezoneShell.tsx",
-      "features/freezone/openPresetProjection.ts",
-      "features/freezone/projectionStatusStore.ts",
-    ];
     const buildEndpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
       .filter((path) =>
@@ -1376,9 +1385,26 @@ describe("frontend architecture boundaries", () => {
     expect(statusEndpointOwners).toEqual([
       "features/freezone/infrastructure/httpFreezoneCanvasProjectionGateway.ts",
     ]);
-    for (const consumerPath of consumerPaths) {
-      const imports = importSpecifiers(resolve(SRC_ROOT, consumerPath));
-      expect(imports).toContain("@/features/freezone/public");
+    const shellImports = importSpecifiers(
+      resolve(SRC_ROOT, "features/freezone/FreezoneShell.tsx"),
+    );
+    const openProjectionImports = importSpecifiers(
+      resolve(SRC_ROOT, "features/freezone/openPresetProjection.ts"),
+    );
+    const statusStoreImports = importSpecifiers(
+      resolve(SRC_ROOT, "features/freezone/projectionStatusStore.ts"),
+    );
+    expect(shellImports).toContain("@/features/freezone/composition");
+    expect(shellImports).toContain("@/features/freezone/domain/canvasStorage");
+    expect(openProjectionImports).toContain("@/features/freezone/composition");
+    expect(openProjectionImports).toContain(
+      "@/features/freezone/domain/canvasStorage",
+    );
+    expect(statusStoreImports).toContain(
+      "@/features/freezone/domain/canvasProjection",
+    );
+    for (const imports of [shellImports, openProjectionImports, statusStoreImports]) {
+      expect(imports).not.toContain("@/features/freezone/public");
       expect(imports).not.toContain("@/api/canvas");
     }
     expect(infrastructureSource).toContain('method: "POST"');
@@ -1432,7 +1458,7 @@ describe("frontend architecture boundaries", () => {
       )
       .map(relativeSource)
       .sort();
-    const publicConsumerPaths = [
+    const internalConsumerPaths = [
       "features/freezone/FreezoneShell.tsx",
       "features/freezone/AssetLibraryPanel.tsx",
       "features/freezone/commit/CommitDialog.tsx",
@@ -1441,6 +1467,8 @@ describe("frontend architecture boundaries", () => {
       "features/freezone/commit/sceneDirectorWorldCommit.ts",
       "features/freezone/commit/committedNodePatch.ts",
       "features/freezone/commit/pushTarget.ts",
+    ];
+    const publicConsumerPaths = [
       "features/canvas/domain/mainlineNodeTypes.ts",
       "modules/asset_world/infrastructure/http-prop-gateway.ts",
     ];
@@ -1464,6 +1492,12 @@ describe("frontend architecture boundaries", () => {
     expect(impactEndpointOwners).toEqual([
       "features/freezone/infrastructure/httpFreezoneAssetCommitGateway.ts",
     ]);
+    for (const consumerPath of internalConsumerPaths) {
+      const imports = importSpecifiers(resolve(SRC_ROOT, consumerPath));
+      expect(imports).toContain("@/features/freezone/domain/assetCommit");
+      expect(imports).not.toContain("@/features/freezone/public");
+      expect(imports).not.toContain("@/api/push");
+    }
     for (const consumerPath of publicConsumerPaths) {
       const imports = importSpecifiers(resolve(SRC_ROOT, consumerPath));
       expect(imports).toContain("@/features/freezone/public");

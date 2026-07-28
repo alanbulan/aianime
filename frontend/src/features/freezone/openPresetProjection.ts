@@ -1,8 +1,6 @@
 // Copyright (c) 2026 AI anime
-import {
-  buildProjectionFromPreset,
-  type FreezonePresetCanvasRequest,
-} from "@/features/freezone/public";
+import { buildProjectionFromPreset } from "@/features/freezone/composition";
+import type { FreezonePresetCanvasRequest } from "@/features/freezone/domain/canvasStorage";
 import { useAuthStore } from "@/modules/identity_access/public";
 import { getAppRouter } from "@/lib/app-router";
 import { writeUrl } from "@/lib/url-params";

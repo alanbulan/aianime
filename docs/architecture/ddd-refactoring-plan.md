@@ -2004,6 +2004,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百六十六批已将 Canvas application 对 `@xyflow/react` 的 3 处直接类型依赖归零：节点工厂与图端口改用 domain 唯一 `CanvasPosition` 坐标契约，书签动作改为 application 自有的最小 `CanvasViewportPort`，viewport runtime/edge-pan presentation 复用该端口，surface controller 显式组合聚焦与 `fitView` 能力，不再用完整 React Flow 实例掩盖实际依赖。测试中的 `as unknown as ReactFlowInstance` 同步删除；新增门禁禁止 Canvas application 重新导入 React Flow。视口 runtime、surface、edge-pan 与节点工厂回归 7 项及定向架构门禁 1 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
 
+第四百六十七批已清除 Freezone 内部 19 处对自身 `public.ts` 的反向消费：presentation 运行时函数直接依赖本领域 composition，领域类型直接依赖 `assetCommit`、`beatContext`、`canvasProjection` 或 `canvasStorage` 唯一 domain 所有者，测试 mock 同步改为真实 composition 边界。`public.ts` 保持原有外部合同但不再参与内部装配，不新增 facade 或重复实现；新增门禁禁止 Freezone 内部重新导入自身 public，并将投影、资产提交与查询门禁区分为内部 domain/composition 依赖和领域外 public 依赖。资产库 Beat Context 与个人画布投影回归 8 项、相关架构门禁 4 项及前端 TypeScript 全量检查通过，`git diff --check` 通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

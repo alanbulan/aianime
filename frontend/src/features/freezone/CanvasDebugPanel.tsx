@@ -26,7 +26,7 @@ import {
   extractHistoryId,
   type CanvasBackupStatus,
   type FreezoneCanvasHistoryEntry,
-} from "@/features/freezone/public";
+} from "@/features/freezone/domain/canvasStorage";
 import { ApiError } from "@/shared/api/errors";
 
 interface CanvasDebugPanelProps {

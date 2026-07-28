@@ -24,9 +24,11 @@ import {
   type FreezoneBeatContextBeat,
   type FreezoneBeatContextResponse,
   type FreezoneProjectAsset,
+} from "@/features/freezone/domain/beatContext";
+import {
   useFreezoneBeatContext,
   useFreezoneProjectAssets,
-} from "@/features/freezone/public";
+} from "@/features/freezone/composition";
 import { DEFAULT_NODE_WIDTH } from "@/features/canvas/domain/canvasNodes";
 import { withImageCacheBust } from "@/features/canvas/application/imageData";
 import {
@@ -41,7 +43,7 @@ import { useAssetDropStore, type DropMediaType } from "@/stores/assetDropStore";
 import { assetToPushTarget } from "@/features/freezone/commit/pushTarget";
 import { promoteToAsset } from "@/features/freezone/commit/promoteToAsset";
 import { commitDirectorRenderFromCanvasSource } from "@/features/freezone/commit/directorRenderCommit";
-import type { PushResult, PushTarget } from "@/features/freezone/public";
+import type { PushResult, PushTarget } from "@/features/freezone/domain/assetCommit";
 import type { MainlineContext } from "@/features/freezone/context/mainlineContext";
 import type { DirectorWorldSource } from "@/features/viewer-kit/three-d/directorManifest";
 

@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useSyncExternalStore } from "react";
 
-import type { FreezoneProjectionStatusItem } from "@/features/freezone/public";
+import type { FreezoneProjectionStatusItem } from "@/features/freezone/domain/canvasProjection";
 
 let currentProjectionStatuses = new Map<string, FreezoneProjectionStatusItem>();
 const listeners = new Set<() => void>();

@@ -17,7 +17,7 @@ import type {
   CanvasBackupStatus,
   CanvasSaveSource,
   FreezoneCanvasPayload,
-} from "@/features/freezone/public";
+} from "@/features/freezone/domain/canvasStorage";
 import type { CanvasMutationSource } from "@/features/canvas/domain/canvasMutation";
 
 /**

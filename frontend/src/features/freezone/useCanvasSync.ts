@@ -21,7 +21,7 @@ import type {
   FreezoneCanvasPayload,
   FreezoneCanvasSaveResult,
   FreezonePresetCanvasRequest,
-} from "@/features/freezone/public";
+} from "@/features/freezone/domain/canvasStorage";
 import { ApiError } from "@/shared/api/errors";
 import {
   buildSavePayload,

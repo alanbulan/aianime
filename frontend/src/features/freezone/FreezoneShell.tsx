@@ -8,8 +8,11 @@ import type { ProjectSummary } from "@/modules/project_workspace/public";
 import {
   buildProjectionFromPreset,
   getProjectionStatuses,
-  type FreezonePresetCanvasRequest,
-} from "@/features/freezone/public";
+} from "@/features/freezone/composition";
+import type {
+  CanvasBackupStatus,
+  FreezonePresetCanvasRequest,
+} from "@/features/freezone/domain/canvasStorage";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -39,7 +42,11 @@ import { CompareDialog } from "@/pipeline-import/CompareDialog";
 import { MaskEditor } from "@/pipeline-import/MaskEditor";
 import { AssetLibraryPanel } from "./AssetLibraryPanel";
 import { CanvasDebugPanel } from "./CanvasDebugPanel";
-import type { PushResult, PushTarget, PushTargetKind } from "@/features/freezone/public";
+import type {
+  PushResult,
+  PushTarget,
+  PushTargetKind,
+} from "@/features/freezone/domain/assetCommit";
 import { coerceSlotTarget } from "@/features/canvas/domain/mainlineNodeTypes";
 import { canvasEventBus } from "@/features/canvas/application/canvasServices";
 import { saveOpenDirectorWorldScene } from "@/features/canvas/domain/directorWorldSceneSaveRegistry";
@@ -1469,7 +1476,7 @@ function CanvasConflictOverlay({
 function BackupStatusIndicator({
   status,
 }: {
-  status: import("@/features/freezone/public").CanvasBackupStatus | null;
+  status: CanvasBackupStatus | null;
 }) {
   if (status !== "pending" && status !== "failed") {
     return null;
