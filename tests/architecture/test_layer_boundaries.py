@@ -440,6 +440,52 @@ def test_ai_assistant_owns_scoped_chat_history() -> None:
     assert "get_chat_history" in public.read_text(encoding="utf-8")
 
 
+def test_ai_assistant_owns_chat_run_locks() -> None:
+    module = PACKAGE_ROOT / "modules" / "ai_assistant"
+    ports = module / "application" / "ports.py"
+    adapter = module / "infrastructure" / "chat_run_locks.py"
+    history_adapter = module / "infrastructure" / "sqlite_chat_history.py"
+    local_state = module / "infrastructure" / "local_state.py"
+    composition = module / "composition.py"
+    public = module / "public.py"
+    service = PACKAGE_ROOT / "chat" / "service.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    adapter_source = adapter.read_text(encoding="utf-8")
+    history_source = history_adapter.read_text(encoding="utf-8")
+    local_state_source = local_state.read_text(encoding="utf-8")
+    service_source = service.read_text(encoding="utf-8")
+    route_source = route.read_text(encoding="utf-8")
+
+    assert "class ChatRunLocks(Protocol):" in ports.read_text(encoding="utf-8")
+    assert "class FileChatRunLocks:" in adapter_source
+    assert "OpenProcess" in adapter_source
+    assert "GetExitCodeProcess" in adapter_source
+    assert "def local_state_root(" in local_state_source
+    assert "local_state_root" in adapter_source
+    assert "local_state_root" in history_source
+    assert "def _state_root(" not in adapter_source
+    assert "def _state_root(" not in history_source
+    assert "def get_chat_run_locks(" in composition.read_text(encoding="utf-8")
+    assert "def get_chat_run_locks(" in public.read_text(encoding="utf-8")
+    for legacy_name in (
+        "def _pid_is_alive(",
+        "def _acquire_chat_run_lock(",
+        "def _release_chat_run_lock(",
+        "def _heartbeat_chat_run_lock(",
+        "def chat_run_lock_is_active(",
+        "def force_release_chat_run_lock(",
+        "def _chat_run_lock_heartbeat_loop(",
+    ):
+        assert legacy_name not in service_source
+    assert "chat_run_locks.acquire(" in service_source
+    assert "chat_run_locks.maintain(" in service_source
+    assert "chat_run_locks.release(" in service_source
+    assert "chat_service.force_release_chat_run_lock" not in route_source
+    assert "chat_service.chat_run_lock_is_active" not in route_source
+    assert "chat_run_locks.force_release(" in route_source
+    assert "chat_run_locks.is_active(" in route_source
+
+
 def test_platform_release_callers_use_the_public_api() -> None:
     platform_release_module = PACKAGE_ROOT / "modules" / "platform_release"
     failures: list[str] = []

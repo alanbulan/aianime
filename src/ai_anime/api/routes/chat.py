@@ -26,6 +26,7 @@ from ai_anime.modules.ai_assistant.public import (
     ChatScope,
     completion_text_or_existing,
     get_chat_history,
+    get_chat_run_locks,
     merge_stream_text,
     message_content,
     should_emit_final_text,
@@ -56,6 +57,7 @@ router = APIRouter()
 
 AI_ASSISTANT_CHAT_FEATURE_KEY = "ai_assistant_chat"
 chat_history = get_chat_history()
+chat_run_locks = get_chat_run_locks()
 
 
 @router.post("/chat/cancel")
@@ -75,7 +77,7 @@ async def cancel_chat_turn(user: dict = Depends(get_api_user)) -> dict[str, Any]
     except Exception:
         cancelled = False
     try:
-        chat_service.force_release_chat_run_lock(username, "")
+        chat_run_locks.force_release(username, "")
     except Exception:
         pass
     return {"ok": True, "data": {"cancelled": cancelled}}
@@ -281,7 +283,7 @@ async def _send_scope_changed(
             "type": "scope.changed",
             "scope": scope.to_dict(),
             "history": await _history(username, scope, project_ctx=project_ctx),
-            "busy": chat_service.chat_run_lock_is_active(username),
+            "busy": chat_run_locks.is_active(username),
         },
     ):
         return None

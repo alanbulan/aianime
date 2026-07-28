@@ -27,15 +27,19 @@ def test_ce_agent_key_routes_are_not_mounted(monkeypatch) -> None:
 
 def test_ce_chat_http_routes_are_mounted_and_use_local_auth(monkeypatch) -> None:
     from ai_anime.api.app import create_app
-    from ai_anime.chat import service as chat_service
+    from ai_anime.api.routes import chat as chat_routes
     from ai_anime.ports import registry
+
+    class NoOpChatRunLocks:
+        def force_release(self, *_args) -> None:
+            return None
 
     monkeypatch.setenv("AI_ANIME_EDITION", "ce")
     monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "")
     monkeypatch.setenv("REDIS_URL", "")
     monkeypatch.setattr(registry, "_PORTS", {})
     monkeypatch.setattr(registry, "_BOOTSTRAPPED", False)
-    monkeypatch.setattr(chat_service, "force_release_chat_run_lock", lambda *_args: None)
+    monkeypatch.setattr(chat_routes, "chat_run_locks", NoOpChatRunLocks())
 
     app = create_app()
     with TestClient(app) as client:

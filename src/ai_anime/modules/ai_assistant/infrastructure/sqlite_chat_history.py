@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,27 +12,19 @@ from ai_anime.modules.ai_assistant.domain import (
     ChatScope,
     strip_stored_assistant_replay,
 )
+from ai_anime.modules.ai_assistant.infrastructure.local_state import local_state_root
 from ai_anime.sqlite_pragmas import configure_sqlite_connection
-
-
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[5]
-
-
-def _state_root() -> Path:
-    configured = os.environ.get("AI_ANIME_STATE_DIR", "").strip()
-    if configured:
-        return Path(configured).expanduser()
-    return _repo_root() / "state"
 
 
 class SQLiteChatHistory:
     def db_for(self, username: str, scope: ChatScope) -> Path:
         if scope.kind == "home":
-            return _state_root() / username / "_home" / "chat.db"
+            return local_state_root() / username / "_home" / "chat.db"
         if scope.kind == "project":
-            return _state_root() / username / str(scope.id) / "chat.db"
-        return _state_root() / username / f"_{scope.kind}" / str(scope.id) / "chat.db"
+            return local_state_root() / username / str(scope.id) / "chat.db"
+        return (
+            local_state_root() / username / f"_{scope.kind}" / str(scope.id) / "chat.db"
+        )
 
     def connect(self, username: str, scope: ChatScope) -> sqlite3.Connection:
         db_path = self.db_for(username, scope)
