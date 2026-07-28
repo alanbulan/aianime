@@ -1801,6 +1801,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百七十批已将 Chat scope 快照与 WebSocket 投影迁入独立 API adapter：新增唯一 `api/chat_scope.py`，组合 Chat ACL、scope-aware messages、worker lifecycle 与 WebSocket transport，统一负责项目 viewer 上下文、项目不存在回退 home、原中文错误事件、授权目录下 history、busy 状态和 `scope.changed` 发送；断连继续返回 `None`，成功继续返回最终 scope。Chat route 删除 `_history`、`_send_scope_changed`、`ProjectContext`/`ProjectNotFound` 依赖及 history/busy 拼装，连接初始化与 `scope.set` 两处改经 adapter，文件由 334 行降至 291 行；worker scope 同步和 backend 预热仍在 route 按原时序执行，旧 route 专用测试文件删除并由 adapter 特征测试替代，不保留旧 helper 或第二套 scope 投影。Chat scope 3 项、通知回归 1 项、M08 Chat 合同 5 项及完整后端分层门禁 136 项均通过，修改文件 Ruff、Python 编译、新 adapter 格式检查与 `git diff --check` 通过。
 
+第三百七十一批已将 Chat 单回合分派与 WebSocket 投影迁入独立 API adapter：新增唯一 `api/chat_turns.py`，组合 Chat ACL、入站 DTO、错误映射、WebSocket transport 及 home/project 顶层用例，统一负责消息 scope 覆盖、回合 ID 清理或生成、空消息拒绝、额度门禁、项目授权目录解析、附件序列化、home/project 流式分派、未实现 scope 事件和异常事件发送。Chat route 删除 `_stream_project_turn`、`_stream_home_turn`、UUID、附件转换、两类用例实例及回合异常分支，消息循环只校验 DTO 后调用 adapter，文件由 291 行降至 178 行；空消息仍先于额度检查返回，非空未实现 scope 仍先执行额度门禁，项目回合仍在门禁后再次解析 viewer 上下文，发送锁、heartbeat、错误字段和异常隔离语义均保持不变，不保留旧 helper、转发壳或第二套分派。Chat turns 4 项、Chat access/error/schema/transport/scope/通知回归 26 项、M08 Chat 合同 5 项及完整后端分层门禁 137 项均通过，修改文件 Ruff、Python 编译、新 adapter 格式检查与 `git diff --check` 通过。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

@@ -370,12 +370,15 @@ def test_ai_assistant_callers_use_the_public_api() -> None:
 
 def test_chat_websocket_transport_stays_in_api_layer() -> None:
     transport = PACKAGE_ROOT / "api" / "chat_websocket.py"
+    turn_adapter = PACKAGE_ROOT / "api" / "chat_turns.py"
     route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
     transport_source = transport.read_text(encoding="utf-8")
+    turn_source = turn_adapter.read_text(encoding="utf-8")
     route_source = route.read_text(encoding="utf-8")
 
     assert "fastapi" in _imports(transport)
     assert "ai_anime.modules.ai_assistant.public" in _imports(transport)
+    assert "ai_anime.api.chat_websocket" in _imports(turn_adapter)
     assert "ai_anime.api.chat_websocket" in _imports(route)
     for owned_operation in (
         "async def send_json_best_effort(",
@@ -396,7 +399,10 @@ def test_chat_websocket_transport_stays_in_api_layer() -> None:
         "await websocket.send_json(event)",
     ):
         assert removed_route_implementation not in route_source
-    assert route_source.count("stream_chat_turn(") == 2
+        assert removed_route_implementation not in turn_source
+    assert turn_source.count("stream_chat_turn(") == 2
+    assert "stream_chat_turn(" not in route_source
+    assert "send_json_best_effort(" in turn_source
     assert "send_json_best_effort(" in route_source
 
 
@@ -440,11 +446,13 @@ def test_chat_access_checks_stay_in_api_acl_adapter() -> None:
     access = PACKAGE_ROOT / "api" / "chat_access.py"
     route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
     scope_adapter = PACKAGE_ROOT / "api" / "chat_scope.py"
+    turn_adapter = PACKAGE_ROOT / "api" / "chat_turns.py"
     access_tests = REPO_ROOT / "tests" / "test_chat_access.py"
     notification_tests = REPO_ROOT / "tests" / "test_chat_service_user_agent_scope.py"
     access_source = access.read_text(encoding="utf-8")
     route_source = route.read_text(encoding="utf-8")
     scope_source = scope_adapter.read_text(encoding="utf-8")
+    turn_source = turn_adapter.read_text(encoding="utf-8")
     access_test_source = access_tests.read_text(encoding="utf-8")
     notification_test_source = notification_tests.read_text(encoding="utf-8")
 
@@ -454,6 +462,7 @@ def test_chat_access_checks_stay_in_api_acl_adapter() -> None:
     assert "ai_anime.modules.project_workspace.public" in _imports(access)
     assert "ai_anime.api.chat_access" in _imports(route)
     assert "ai_anime.api.chat_access" in _imports(scope_adapter)
+    assert "ai_anime.api.chat_access" in _imports(turn_adapter)
     for owned_rule in (
         '_AI_ASSISTANT_CHAT_FEATURE_KEY = "ai_assistant_chat"',
         "async def project_context_for_scope(",
@@ -472,9 +481,11 @@ def test_chat_access_checks_stay_in_api_acl_adapter() -> None:
         "def _require_ai_assistant_access(",
     ):
         assert removed_route_dependency not in route_source
-    assert route_source.count("chat_access.project_context_for_scope(") == 3
+    assert route_source.count("chat_access.project_context_for_scope(") == 2
     assert scope_source.count("chat_access.project_context_for_scope(") == 1
-    assert route_source.count("chat_access.require_ai_assistant_access(") == 1
+    assert turn_source.count("chat_access.project_context_for_scope(") == 1
+    assert "chat_access.require_ai_assistant_access(" not in route_source
+    assert turn_source.count("chat_access.require_ai_assistant_access(") == 1
     assert "_require_ai_assistant_access" not in access_test_source
     assert "_project_context_for_scope" not in notification_test_source
 
@@ -520,12 +531,15 @@ def test_chat_scope_projection_stays_in_api_adapter() -> None:
 
 def test_chat_inbound_schemas_stay_in_api_adapter() -> None:
     schemas = PACKAGE_ROOT / "api" / "chat_schemas.py"
+    turn_adapter = PACKAGE_ROOT / "api" / "chat_turns.py"
     route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
     schemas_source = schemas.read_text(encoding="utf-8")
+    turn_source = turn_adapter.read_text(encoding="utf-8")
     route_source = route.read_text(encoding="utf-8")
 
     assert "pydantic" in _imports(schemas)
     assert "ai_anime.modules.ai_assistant.public" in _imports(schemas)
+    assert "ai_anime.api.chat_schemas" in _imports(turn_adapter)
     assert "ai_anime.api.chat_schemas" in _imports(route)
     for schema in (
         "ChatScopePayload",
@@ -544,20 +558,25 @@ def test_chat_inbound_schemas_stay_in_api_adapter() -> None:
     assert "model_dump(" not in route_source
     assert "def _scope_from_model(" not in route_source
     assert "def _attachment_payloads(" not in route_source
-    assert route_source.count("to_chat_scope(") == 4
-    assert route_source.count("attachment_payloads(") == 2
+    assert route_source.count("to_chat_scope(") == 3
+    assert turn_source.count("to_chat_scope(") == 1
+    assert "attachment_payloads(" not in route_source
+    assert turn_source.count("attachment_payloads(") == 2
 
 
 def test_chat_error_events_stay_in_api_adapter() -> None:
     errors = PACKAGE_ROOT / "api" / "chat_errors.py"
+    turn_adapter = PACKAGE_ROOT / "api" / "chat_turns.py"
     route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
     errors_source = errors.read_text(encoding="utf-8")
+    turn_source = turn_adapter.read_text(encoding="utf-8")
     route_source = route.read_text(encoding="utf-8")
 
     assert "fastapi" not in _imports(errors)
     assert "ai_anime.modules.ai_assistant.public" in _imports(errors)
     assert "ai_anime.modules.model_usage.public" in _imports(errors)
-    assert "ai_anime.api.chat_errors" in _imports(route)
+    assert "ai_anime.api.chat_errors" in _imports(turn_adapter)
+    assert "ai_anime.api.chat_errors" not in _imports(route)
     for owned_rule in (
         "def chat_exception_event(",
         "当前用户已有 AI 对话正在处理中",
@@ -577,7 +596,40 @@ def test_chat_error_events_stay_in_api_adapter() -> None:
         "insufficient_credits_payload",
     ):
         assert removed_route_dependency not in route_source
-    assert route_source.count("chat_exception_event(") == 1
+    assert turn_source.count("chat_exception_event(") == 1
+    assert "chat_exception_event(" not in route_source
+
+
+def test_chat_turn_dispatch_stays_in_api_adapter() -> None:
+    turn_adapter = PACKAGE_ROOT / "api" / "chat_turns.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    turn_tests = REPO_ROOT / "tests" / "test_chat_turns.py"
+    turn_source = turn_adapter.read_text(encoding="utf-8")
+    route_source = route.read_text(encoding="utf-8")
+
+    assert turn_tests.exists()
+    assert "fastapi" in _imports(turn_adapter)
+    assert "ai_anime.api.chat_access" in _imports(turn_adapter)
+    assert "ai_anime.api.chat_errors" in _imports(turn_adapter)
+    assert "ai_anime.api.chat_schemas" in _imports(turn_adapter)
+    assert "ai_anime.api.chat_websocket" in _imports(turn_adapter)
+    assert "ai_anime.modules.ai_assistant.public" in _imports(turn_adapter)
+    assert "ai_anime.api.chat_turns" in _imports(route)
+    for owned_operation in (
+        "async def dispatch_chat_turn(",
+        "async def _stream_project_turn(",
+        "async def _stream_home_turn(",
+        "uuid.uuid4().hex",
+        '"message": "empty message"',
+        '"message": f"scope not implemented: {scope.kind}"',
+        "chat_access.require_ai_assistant_access(",
+        "project_chat_turns.stream(",
+        "hermes_home_replies.stream(",
+        "chat_exception_event(",
+    ):
+        assert owned_operation in turn_source
+        assert owned_operation not in route_source
+    assert route_source.count("chat_turns.dispatch_chat_turn(") == 1
 
 
 def test_ai_assistant_owns_chat_text_projection_rules() -> None:
@@ -1466,10 +1518,12 @@ def test_ai_assistant_owns_hermes_home_reply_orchestration() -> None:
     application = module / "application" / "hermes_home_replies.py"
     composition = module / "composition.py"
     public = module / "public.py"
+    turn_adapter = PACKAGE_ROOT / "api" / "chat_turns.py"
     route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
     application_source = application.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
+    turn_source = turn_adapter.read_text(encoding="utf-8")
     route_source = route.read_text(encoding="utf-8")
 
     assert not {
@@ -1484,10 +1538,12 @@ def test_ai_assistant_owns_hermes_home_reply_orchestration() -> None:
     assert "_hermes_home_replies = HermesHomeReplies(" in composition_source
     assert "def get_hermes_home_replies(" in composition_source
     assert "def get_hermes_home_replies(" in public_source
-    assert "hermes_home_replies = get_hermes_home_replies()" in route_source
-    assert route_source.count("hermes_home_replies.stream(") == 1
-    assert "async def _stream_home_turn(" in route_source
-    assert "stream_chat_turn(" in route_source
+    assert "hermes_home_replies = get_hermes_home_replies()" in turn_source
+    assert turn_source.count("hermes_home_replies.stream(") == 1
+    assert "async def _stream_home_turn(" in turn_source
+    assert "stream_chat_turn(" in turn_source
+    assert "get_hermes_home_replies" not in route_source
+    assert "hermes_home_replies.stream(" not in route_source
     assert "websocket" not in application_source
     for migrated_dependency in (
         "completion_text_or_existing",
@@ -1647,10 +1703,12 @@ def test_ai_assistant_owns_project_chat_turn_orchestration() -> None:
     application = module / "application" / "project_chat_turns.py"
     composition = module / "composition.py"
     public = module / "public.py"
+    turn_adapter = PACKAGE_ROOT / "api" / "chat_turns.py"
     route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
     application_source = application.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
+    turn_source = turn_adapter.read_text(encoding="utf-8")
     route_source = route.read_text(encoding="utf-8")
 
     assert not {
@@ -1665,10 +1723,12 @@ def test_ai_assistant_owns_project_chat_turn_orchestration() -> None:
     assert "_project_chat_turns = ProjectChatTurns(" in composition_source
     assert "def get_project_chat_turns(" in composition_source
     assert "def get_project_chat_turns(" in public_source
-    assert "project_chat_turns = get_project_chat_turns()" in route_source
-    assert route_source.count("project_chat_turns.stream(") == 1
-    assert "async def _stream_project_turn(" in route_source
-    assert "stream_chat_turn(" in route_source
+    assert "project_chat_turns = get_project_chat_turns()" in turn_source
+    assert turn_source.count("project_chat_turns.stream(") == 1
+    assert "async def _stream_project_turn(" in turn_source
+    assert "stream_chat_turn(" in turn_source
+    assert "get_project_chat_turns" not in route_source
+    assert "project_chat_turns.stream(" not in route_source
     assert "websocket" not in application_source
     for owned_operation in (
         "self._messages.append_user(",

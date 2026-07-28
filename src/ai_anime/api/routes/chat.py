@@ -7,35 +7,26 @@ know whether the active backend is Hermes, Claude, or Codex.
 
 from __future__ import annotations
 
-import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 
 import ai_anime.api.chat_access as chat_access
 import ai_anime.api.chat_scope as chat_scope
+import ai_anime.api.chat_turns as chat_turns
 from ai_anime.api.auth import get_api_user, get_websocket_user
-from ai_anime.api.chat_errors import chat_exception_event
 from ai_anime.api.chat_schemas import (
-    ChatAttachmentIn,
     ChatMessageIn,
     ChatNotificationIn,
     ChatUiEventIn,
     ScopeSetIn,
-    attachment_payloads,
     to_chat_scope,
 )
-from ai_anime.api.chat_websocket import (
-    ChatEventSink,
-    send_json_best_effort,
-    stream_chat_turn,
-)
+from ai_anime.api.chat_websocket import send_json_best_effort
 from ai_anime.modules.ai_assistant.public import (
     ChatScope,
     get_agent_backend_prewarmer,
     get_chat_worker_lifecycle,
-    get_hermes_home_replies,
-    get_project_chat_turns,
     get_scoped_chat_messages,
     should_prewarm_scope,
 )
@@ -44,8 +35,6 @@ router = APIRouter()
 
 agent_backend_prewarmer = get_agent_backend_prewarmer()
 chat_worker_lifecycle = get_chat_worker_lifecycle()
-hermes_home_replies = get_hermes_home_replies()
-project_chat_turns = get_project_chat_turns()
 scoped_chat_messages = get_scoped_chat_messages()
 
 
@@ -113,70 +102,6 @@ async def append_chat_ui_event(
     return {"ok": True, "data": event}
 
 
-async def _stream_project_turn(
-    *,
-    websocket: WebSocket,
-    user: dict[str, Any],
-    username: str,
-    scope: ChatScope,
-    text: str,
-    attachments: list[ChatAttachmentIn],
-    turn_id: str,
-) -> None:
-    project_ctx = await chat_access.project_context_for_scope(user, scope)
-    project_dir = project_ctx.output_dir if project_ctx is not None else None
-    project_state_dir = project_ctx.state_dir if project_ctx is not None else None
-    serialized_attachments = attachment_payloads(attachments)
-
-    async def event_stream(on_event: ChatEventSink) -> None:
-        await project_chat_turns.stream(
-            username,
-            scope,
-            text,
-            serialized_attachments,
-            turn_id,
-            on_event,
-            project_dir=project_dir,
-            project_state_dir=project_state_dir,
-        )
-
-    await stream_chat_turn(
-        websocket,
-        scope=scope,
-        turn_id=turn_id,
-        event_stream=event_stream,
-    )
-
-
-async def _stream_home_turn(
-    *,
-    websocket: WebSocket,
-    username: str,
-    scope: ChatScope,
-    text: str,
-    attachments: list[ChatAttachmentIn],
-    turn_id: str,
-) -> None:
-    serialized_attachments = attachment_payloads(attachments)
-
-    async def event_stream(on_event: ChatEventSink) -> None:
-        await hermes_home_replies.stream(
-            username,
-            scope,
-            text,
-            serialized_attachments,
-            turn_id,
-            on_event,
-        )
-
-    await stream_chat_turn(
-        websocket,
-        scope=scope,
-        turn_id=turn_id,
-        event_stream=event_stream,
-    )
-
-
 @router.websocket("/chat/ws")
 async def chat_ws(websocket: WebSocket) -> None:
     await websocket.accept()
@@ -242,50 +167,12 @@ async def chat_ws(websocket: WebSocket) -> None:
                 continue
 
             msg = ChatMessageIn.model_validate(raw)
-            scope = to_chat_scope(msg.scope) if msg.scope else current_scope
-            turn_id = (msg.turn_id or "").strip() or uuid.uuid4().hex
-            text = msg.text.strip()
-            if not text:
-                await send_json_best_effort(
-                    websocket,
-                    {"type": "error", "turn_id": turn_id, "message": "empty message"},
-                )
-                continue
-
-            try:
-                await chat_access.require_ai_assistant_access(user=user, scope=scope)
-                if scope.kind == "project":
-                    await _stream_project_turn(
-                        websocket=websocket,
-                        user=user,
-                        username=username,
-                        scope=scope,
-                        text=text,
-                        attachments=msg.attachments,
-                        turn_id=turn_id,
-                    )
-                elif scope.kind == "home":
-                    await _stream_home_turn(
-                        websocket=websocket,
-                        username=username,
-                        scope=scope,
-                        text=text,
-                        attachments=msg.attachments,
-                        turn_id=turn_id,
-                    )
-                else:
-                    await send_json_best_effort(
-                        websocket,
-                        {
-                            "type": "error",
-                            "turn_id": turn_id,
-                            "message": f"scope not implemented: {scope.kind}",
-                        },
-                    )
-            except Exception as exc:  # noqa: BLE001
-                await send_json_best_effort(
-                    websocket,
-                    chat_exception_event(exc, turn_id=turn_id, scope=scope),
-                )
+            await chat_turns.dispatch_chat_turn(
+                websocket,
+                user=user,
+                username=username,
+                current_scope=current_scope,
+                message=msg,
+            )
     except WebSocketDisconnect:
         return
