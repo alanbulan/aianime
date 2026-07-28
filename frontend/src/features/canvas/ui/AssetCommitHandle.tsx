@@ -4,9 +4,9 @@ import { Replace } from 'lucide-react';
 import { Position } from '@xyflow/react';
 
 import {
-  deriveNodeDropInfo,
   useAssetDropStore,
-} from '@/stores/assetDropStore';
+} from '@/features/canvas/assetDropStore';
+import { deriveNodeDropInfo } from '@/features/canvas/domain/assetDropInfo';
 import type { CanvasNode } from '@/features/canvas/domain/canvasNodes';
 import {
   NODE_SIDE_ACTION_BUTTON_CLASS,

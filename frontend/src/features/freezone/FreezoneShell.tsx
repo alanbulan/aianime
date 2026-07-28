@@ -61,7 +61,7 @@ import {
   deriveNodeDropInfo,
   modelSourceUrlFromNodeData,
   type DropMediaType,
-} from "@/stores/assetDropStore";
+} from "@/features/canvas/domain/assetDropInfo";
 import { withImageCacheBust } from "@/features/canvas/application/imageData";
 import { queryKeys } from "@/lib/query-keys";
 import { useCanvasSync, type CanvasSyncStatus, type ConflictSnapshot } from "./useCanvasSync";

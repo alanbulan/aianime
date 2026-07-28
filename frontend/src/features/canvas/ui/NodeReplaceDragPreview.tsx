@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AudioLines, Box, Film, Replace } from 'lucide-react';
 
-import { useAssetDropStore } from '@/stores/assetDropStore';
+import { useAssetDropStore } from '@/features/canvas/assetDropStore';
 import { resolveMediaUrl } from '@/lib/media-url';
 
 /**

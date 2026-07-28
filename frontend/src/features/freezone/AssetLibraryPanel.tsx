@@ -39,7 +39,8 @@ import {
 import { hydrateAssetDragPayload } from "@/features/canvas/composition";
 import { directorSourceIdentityUrl } from "@/features/canvas/domain/directorWorldSources";
 import { useCanvasStore } from "@/features/canvas/canvasStore";
-import { useAssetDropStore, type DropMediaType } from "@/stores/assetDropStore";
+import { useAssetDropStore } from "@/features/canvas/assetDropStore";
+import type { DropMediaType } from "@/features/canvas/domain/assetDropInfo";
 import { assetToPushTarget } from "@/features/freezone/commit/pushTarget";
 import { promoteToAsset } from "@/features/freezone/commit/promoteToAsset";
 import { commitDirectorRenderFromCanvasSource } from "@/features/freezone/commit/directorRenderCommit";

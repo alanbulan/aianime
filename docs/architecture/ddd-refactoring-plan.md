@@ -2012,6 +2012,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百七十批已将 138 行的唯一 Zustand 组合根从全局 `stores/canvasStore.ts` 整体迁入 `features/canvas/canvasStore.ts`，64 个生产调用方、37 个测试调用方及架构路径夹具统一切换新所有者；旧文件直接删除，不保留 re-export、路径别名或第二个 Store。Store 仍只组合既有 11 个 infrastructure slice 与唯一 NodeFactory，状态字段、公开命令和运行时实例均未改变。新增门禁锁定旧路径不存在、`useCanvasStore` 声明唯一且旧 import 为零。Canvas Store 27 个测试文件、91 项用例与完整前端架构门禁 217 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
 
+第四百七十一批已将根级 175 行 `assetDropStore.ts` 的两类职责拆到 Creative Canvas 唯一所有者：节点媒体类型、3D 来源解析与可拖拽素材推导进入纯 domain `assetDropInfo.ts`，Zustand 拖拽会话、悬停与替换请求状态进入 `features/canvas/assetDropStore.ts`；6 个生产调用方与原行为测试分别依赖规则或状态，不再通过混合 Store 获取无关能力。旧根文件直接删除，不保留 re-export 或重复函数；新增 Store 行为测试和门禁锁定三项声明唯一、domain 仅依赖 Canvas 节点契约、Store 仅依赖 Zustand 与 domain。素材识别、拖拽状态、提交对话框和素材库回归 19 项及定向架构门禁 1 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

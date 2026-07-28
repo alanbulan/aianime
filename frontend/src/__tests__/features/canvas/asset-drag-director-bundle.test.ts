@@ -11,7 +11,7 @@ import {
 import { CANVAS_NODE_TYPES } from "@/features/canvas/domain/canvasNodes";
 import { usableDirectorWorldPreviewUrl } from "@/features/canvas/nodes/ThreeDWorldNode";
 import { directorControlBundleFromAssetSource } from "@/features/freezone/AssetLibraryPanel";
-import { deriveNodeDropInfo } from "@/stores/assetDropStore";
+import { deriveNodeDropInfo } from "@/features/canvas/domain/assetDropInfo";
 
 describe("director bundle canvas assets", () => {
   it("keeps director control bundle on nodes spawned from library assets", () => {

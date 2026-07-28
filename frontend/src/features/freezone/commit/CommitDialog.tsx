@@ -12,7 +12,7 @@ import type {
 import {
   modelSourceUrlFromNodeData,
   type DropMediaType,
-} from "@/stores/assetDropStore";
+} from "@/features/canvas/domain/assetDropInfo";
 import {
   listCharacterIdentities,
   listCharacters,

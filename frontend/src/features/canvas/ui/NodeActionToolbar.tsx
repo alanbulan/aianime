@@ -70,7 +70,7 @@ import {
   extractMainlineContextsFromNode,
   type MainlineContext,
 } from "@/features/freezone/context/mainlineContext";
-import { deriveNodeDropInfo } from "@/stores/assetDropStore";
+import { deriveNodeDropInfo } from "@/features/canvas/domain/assetDropInfo";
 
 import {
   NODE_TOOL_TYPES,

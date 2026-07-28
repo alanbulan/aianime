@@ -889,6 +889,46 @@ describe("frontend architecture boundaries", () => {
     expect(legacyImports).toEqual([]);
   });
 
+  it("separates Canvas asset-drop rules from interaction state", () => {
+    const domainPath = resolve(
+      SRC_ROOT,
+      "features/canvas/domain/assetDropInfo.ts",
+    );
+    const storePath = resolve(SRC_ROOT, "features/canvas/assetDropStore.ts");
+    const legacyPath = resolve(SRC_ROOT, "stores/assetDropStore.ts");
+    const declarations = [
+      ["export function", "deriveNodeDropInfo("].join(" "),
+      ["export function", "modelSourceUrlFromNodeData("].join(" "),
+      ["export const", "useAssetDropStore = create<"].join(" "),
+    ];
+    const owners = declarations.map((declaration) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) => !relativeSource(path).startsWith("__tests__/"))
+        .filter((path) => !path.includes(".test."))
+        .filter((path) => readFileSync(path, "utf8").includes(declaration))
+        .map(relativeSource)
+        .sort(),
+    );
+    const legacyImports = sourceFiles(SRC_ROOT)
+      .filter((path) =>
+        importSpecifiers(path).includes("@/stores/assetDropStore"),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(existsSync(legacyPath)).toBe(false);
+    expect(importSpecifiers(domainPath)).toEqual(["./canvasNodes"]);
+    expect(new Set(importSpecifiers(storePath))).toEqual(
+      new Set(["zustand", "./domain/assetDropInfo"]),
+    );
+    expect(owners).toEqual([
+      ["features/canvas/domain/assetDropInfo.ts"],
+      ["features/canvas/domain/assetDropInfo.ts"],
+      ["features/canvas/assetDropStore.ts"],
+    ]);
+    expect(legacyImports).toEqual([]);
+  });
+
   it("keeps Freezone canvas and Beat Context transport behind application ports", () => {
     const canvasContractPath = resolve(
       SRC_ROOT,
