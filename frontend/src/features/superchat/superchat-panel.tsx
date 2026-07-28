@@ -26,7 +26,6 @@ import type { DragEvent as ReactDragEvent, KeyboardEvent as ReactKeyboardEvent, 
 import { createPortal } from "react-dom";
 import ReactMarkdown from "react-markdown";
 import { useTranslation } from "react-i18next";
-import type { TFunction } from "i18next";
 import { useParams } from "@tanstack/react-router";
 import { attachBorderBeam, type BorderBeamController } from "border-beam-vanilla";
 import remarkBreaks from "remark-breaks";
@@ -46,42 +45,16 @@ import {
 import { useAuthStore } from "@/modules/identity_access/public";
 import { cn } from "@/lib/utils";
 import { resolveMediaUrl } from "@/lib/media-url";
-import { backendErrorToastMessage } from "@/shared/api/errors";
 import { useSuperChat } from "@/features/superchat/use-superchat";
 import { useAiAvatarUrl } from "@/features/superchat/ai-avatar";
 import { buildChatTaskLabel } from "@/features/superchat/task-notification-label";
 import { ComposerWaitingStatus } from "@/features/superchat/composer-waiting-status";
 import { calculateTimelineContextDelta } from "@/features/superchat/timeline-scroll";
 import {
-  loadUploadedIngestFiles,
-  mergeUploadedIngestFiles,
-  saveUploadedIngestFiles,
-  uploadedIngestFileFromUpload,
-  type UploadedIngestFile,
-} from "@/features/superchat/ingest-upload-storage";
-import {
-  appendAttachmentAnalysisContext,
-  appendIngestAutomationContext,
-  buildAttachmentAnalysisContext,
-  buildReingestCancelledContext,
-  buildReingestConfirmationContext,
-  buildUploadedFilesContext,
-  dataUrlToAttachmentBlob,
-  hasVideoCreationIntent,
   isAllowedScriptDragItem,
   isAllowedScriptUpload,
-  isFinalOverwriteConfirmation,
-  isNovelAttachment,
-  isOverwriteChoice,
-  shouldReportUploadedFiles,
-  type PreparedIngestAttachment,
-  type ReingestConfirmation,
 } from "@/features/superchat/ingest-automation-domain";
-import {
-  projectHasIngestedContent,
-  startNovelIngest,
-  uploadNovelForIngest,
-} from "@/features/superchat/ingest-automation-gateway";
+import { useIngestAutomationController } from "@/features/superchat/use-ingest-automation-controller";
 import { useEventBus } from "@/task-center/event-bus-context";
 import {
   extractStructuredBlocks,
@@ -93,7 +66,6 @@ import {
 import type { ChatMessage } from "@/features/superchat/types";
 import type { ApprovalRequest, ChatAttachment } from "@/features/superchat/types";
 import { FormatCheckDetailsDialog } from "@/components/ingest/FormatCheckDetailsDialog";
-import type { FormatCheck } from "@/modules/story_intake/public";
 
 type SpecMediaDetailSection = {
   title: string;
@@ -2023,71 +1995,6 @@ function createSpeechRecognition(): SpeechRecognitionLike | null {
   return Ctor ? new Ctor() : null;
 }
 
-// Surface non-blocking format warnings as a success+risk toast per file. Upload
-// already succeeded for these (warning never blocks), so we only notify and let
-// the user open the details dialog. Iterate every prepared file, not just the first.
-function surfaceFormatCheckWarnings(
-  prepared: PreparedIngestAttachment[],
-  t: TFunction,
-  onViewDetails: (fc: FormatCheck, filename: string) => void,
-): void {
-  for (const item of prepared) {
-    const fc = item.upload?.format_check;
-    if (!fc || fc.level !== "warning") continue;
-    const filename = item.upload?.filename || item.original.fileName || "";
-    toast.warning(fc.summary, {
-      action: {
-        label: t("aiAssistant.formatCheck.viewDetails"),
-        onClick: () => onViewDetails(fc, filename),
-      },
-    });
-  }
-}
-
-async function uploadAttachmentsForIngest(
-  project: string,
-  attachments: ChatAttachment[],
-  t: TFunction,
-): Promise<PreparedIngestAttachment[]> {
-  const prepared: PreparedIngestAttachment[] = [];
-
-  for (const attachment of attachments) {
-    const file = isNovelAttachment(attachment)
-      ? dataUrlToAttachmentBlob(attachment)
-      : null;
-
-    if (!file) {
-      prepared.push({ attachment, original: attachment });
-      continue;
-    }
-
-    try {
-      toast.info(t("aiAssistant.attachmentAnalysisUploading", { filename: file.filename }));
-      const upload = await uploadNovelForIngest(project, file);
-      const { content: _content, path: _path, url: _url, ...attachmentMetadata } = attachment;
-      prepared.push({
-        upload,
-        original: attachment,
-        attachment: {
-          ...attachmentMetadata,
-          fileName: upload.filename,
-          fileSize: upload.size,
-        },
-      });
-    } catch (error) {
-      const message = backendErrorToastMessage(error, t);
-      const { content: _content, ...attachmentMetadata } = attachment;
-      prepared.push({
-        original: attachment,
-        attachment: attachmentMetadata,
-        error: message,
-      });
-    }
-  }
-
-  return prepared;
-}
-
 type SuperChatPanelVariant = "default" | "freezone";
 
 interface SuperChatPanelProps {
@@ -2108,19 +2015,9 @@ export function SuperChatPanel({
   const [detailMessage, setDetailMessage] = useState<ChatMessage | null>(null);
   const [mediaDetail, setMediaDetail] = useState<SpecMediaDetail | null>(null);
   const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
-  const [uploadedIngestFiles, setUploadedIngestFiles] = useState<UploadedIngestFile[]>(() =>
-    loadUploadedIngestFiles(params.project?.trim()),
-  );
-  const [reingestConfirmation, setReingestConfirmation] =
-    useState<ReingestConfirmation | null>(null);
-  const [formatCheckDetails, setFormatCheckDetails] = useState<{
-    formatCheck: FormatCheck;
-    filename: string;
-  } | null>(null);
   const [queuedMessages, setQueuedMessages] = useState<QueuedSendItem[]>([]);
   const [selectedQueuedMessageId, setSelectedQueuedMessageId] = useState<string | null>(null);
   const [selectedHistoryMessageIndex, setSelectedHistoryMessageIndex] = useState<number | null>(null);
-  const [preparingSend, setPreparingSend] = useState(false);
   const [composerInputFocused, setComposerInputFocused] = useState(false);
   const [recording, setRecording] = useState(false);
   const [dragFileState, setDragFileState] = useState<"valid" | "invalid" | null>(null);
@@ -2141,6 +2038,16 @@ export function SuperChatPanel({
   const chat = useSuperChat({
     project: params.project,
     displayName: username || "AI anime",
+  });
+  const {
+    clearFormatCheckDetails,
+    formatCheckDetails,
+    preparingSend,
+    sendWithIngestAutomation,
+  } = useIngestAutomationController({
+    project: params.project,
+    sendChatMessage: chat.send,
+    t,
   });
   const isChatInitializing = !chat.historyReady && chat.messages.length === 0 && (chat.connecting || chat.connected);
 
@@ -2335,217 +2242,7 @@ export function SuperChatPanel({
     setQueuedMessages([]);
     setSelectedQueuedMessageId(null);
     setSelectedHistoryMessageIndex(null);
-    setUploadedIngestFiles(loadUploadedIngestFiles(params.project?.trim()));
-    setReingestConfirmation(null);
   }, [params.project]);
-
-  const recordUploadedFiles = useCallback(
-    (project: string | undefined, prepared: PreparedIngestAttachment[]): UploadedIngestFile[] => {
-      const additions = prepared
-        .map((item) =>
-          item.upload
-            ? uploadedIngestFileFromUpload(item.upload, item.original.fileName)
-            : null,
-        )
-        .filter((item): item is UploadedIngestFile => Boolean(item));
-      if (additions.length === 0) return uploadedIngestFiles;
-
-      const next = mergeUploadedIngestFiles(uploadedIngestFiles, additions);
-      setUploadedIngestFiles(next);
-      saveUploadedIngestFiles(project, next);
-      return next;
-    },
-    [uploadedIngestFiles],
-  );
-
-  const sendWithIngestAutomation = useCallback(
-    async (text: string, messageAttachments: ChatAttachment[]): Promise<boolean> => {
-      let nextText = text;
-      let transportAttachments = messageAttachments;
-      let contextUploadedFiles = uploadedIngestFiles;
-      const project = params.project?.trim();
-      const videoIntent = hasVideoCreationIntent(text);
-      const hasNovelAttachments = messageAttachments.some(isNovelAttachment);
-
-      if (reingestConfirmation) {
-        if (reingestConfirmation.stage === "choose_overwrite") {
-          if (!isOverwriteChoice(text)) {
-            const pending = reingestConfirmation;
-            setReingestConfirmation(null);
-            return chat.send(
-              text,
-              [],
-              appendAttachmentAnalysisContext(text, buildReingestCancelledContext(pending)),
-            );
-          }
-
-          const nextPending = {
-            ...reingestConfirmation,
-            stage: "confirm_clear" as const,
-          };
-          setReingestConfirmation(nextPending);
-          return chat.send(
-            text,
-            [],
-            appendAttachmentAnalysisContext(text, buildReingestConfirmationContext(nextPending)),
-          );
-        }
-
-        if (!isFinalOverwriteConfirmation(text)) {
-          const pending = reingestConfirmation;
-          setReingestConfirmation(null);
-          return chat.send(
-            text,
-            [],
-            appendAttachmentAnalysisContext(text, buildReingestCancelledContext(pending)),
-          );
-        }
-
-        setPreparingSend(true);
-        try {
-          const started = await startNovelIngest(
-            reingestConfirmation.project,
-            reingestConfirmation.filename,
-            { rebuild: true },
-          );
-          nextText = appendIngestAutomationContext(text, {
-            filename: reingestConfirmation.filename,
-            taskType: started.taskType,
-            taskKey: started.taskKey,
-            message: started.message,
-            rebuild: true,
-          });
-          toast.success(t("aiAssistant.ingestAutomationStarted", { filename: reingestConfirmation.filename }));
-          setReingestConfirmation(null);
-          return chat.send(text, [], nextText);
-        } catch (error) {
-          const message = backendErrorToastMessage(error, t);
-          toast.error(t("aiAssistant.ingestAutomationFailed", { message }));
-          return false;
-        } finally {
-          setPreparingSend(false);
-        }
-      }
-
-      if (videoIntent && hasNovelAttachments) {
-        const project = params.project?.trim();
-        if (!project) {
-          toast.error(t("aiAssistant.ingestAutomationNoProject"));
-          return false;
-        }
-
-        setPreparingSend(true);
-        try {
-          const prepared = await uploadAttachmentsForIngest(project, messageAttachments, t);
-          surfaceFormatCheckWarnings(prepared, t, (formatCheck, filename) =>
-            setFormatCheckDetails({ formatCheck, filename }),
-          );
-          transportAttachments = prepared.map((item) => item.attachment);
-          contextUploadedFiles = recordUploadedFiles(project, prepared);
-          const uploaded = prepared.find((item) => item.upload)?.upload;
-          if (!uploaded) {
-            const error = prepared.find((item) => item.error)?.error;
-            throw new Error(error || t("aiAssistant.ingestAutomationMissingFile"));
-          }
-          if (await projectHasIngestedContent(project)) {
-            const pending: ReingestConfirmation = {
-              stage: "choose_overwrite",
-              filename: uploaded.filename,
-              project,
-            };
-            setReingestConfirmation(pending);
-            nextText = appendAttachmentAnalysisContext(
-              text,
-              buildReingestConfirmationContext(pending),
-            );
-            return chat.send(text, transportAttachments, nextText);
-          }
-          const started = await startNovelIngest(project, uploaded.filename);
-          nextText = appendIngestAutomationContext(text, {
-            filename: uploaded.filename,
-            taskType: started.taskType,
-            taskKey: started.taskKey,
-            message: started.message,
-            rebuild: false,
-          });
-          toast.success(t("aiAssistant.ingestAutomationStarted", { filename: uploaded.filename }));
-        } catch (error) {
-          const message = backendErrorToastMessage(error, t);
-          toast.error(t("aiAssistant.ingestAutomationFailed", { message }));
-          return false;
-        } finally {
-          setPreparingSend(false);
-        }
-      } else if (videoIntent && !hasNovelAttachments && uploadedIngestFiles.length > 0) {
-        if (!project) {
-          toast.error(t("aiAssistant.ingestAutomationNoProject"));
-          return false;
-        }
-
-        setPreparingSend(true);
-        try {
-          const uploaded = uploadedIngestFiles[uploadedIngestFiles.length - 1];
-          if (await projectHasIngestedContent(project)) {
-            const pending: ReingestConfirmation = {
-              stage: "choose_overwrite",
-              filename: uploaded.filename,
-              project,
-            };
-            setReingestConfirmation(pending);
-            nextText = appendAttachmentAnalysisContext(
-              text,
-              buildReingestConfirmationContext(pending),
-            );
-            return chat.send(text, [], nextText);
-          }
-          const started = await startNovelIngest(project, uploaded.filename);
-          nextText = appendIngestAutomationContext(text, {
-            filename: uploaded.filename,
-            taskType: started.taskType,
-            taskKey: started.taskKey,
-            message: started.message,
-            rebuild: false,
-          });
-          toast.success(t("aiAssistant.ingestAutomationStarted", { filename: uploaded.filename }));
-        } catch (error) {
-          const message = backendErrorToastMessage(error, t);
-          toast.error(t("aiAssistant.ingestAutomationFailed", { message }));
-          return false;
-        } finally {
-          setPreparingSend(false);
-        }
-      } else if (messageAttachments.length > 0) {
-        setPreparingSend(true);
-        try {
-          const prepared = project
-            ? await uploadAttachmentsForIngest(project, messageAttachments, t)
-            : messageAttachments.map((attachment) => ({ attachment, original: attachment }));
-          surfaceFormatCheckWarnings(prepared, t, (formatCheck, filename) =>
-            setFormatCheckDetails({ formatCheck, filename }),
-          );
-          transportAttachments = prepared.map((item) => item.attachment);
-          contextUploadedFiles = recordUploadedFiles(project, prepared);
-          const context = buildAttachmentAnalysisContext(
-            project,
-            prepared,
-          );
-          nextText = appendAttachmentAnalysisContext(text, context);
-        } finally {
-          setPreparingSend(false);
-        }
-      }
-
-      if (shouldReportUploadedFiles(text)) {
-        nextText = appendAttachmentAnalysisContext(
-          nextText,
-          buildUploadedFilesContext(project, contextUploadedFiles),
-        );
-      }
-
-      return chat.send(text, transportAttachments, nextText);
-    },
-    [chat, params.project, recordUploadedFiles, reingestConfirmation, t, uploadedIngestFiles],
-  );
 
   useEffect(() => {
     const shell = composerShellRef.current;
@@ -3211,7 +2908,7 @@ export function SuperChatPanel({
         filename={formatCheckDetails?.filename}
         open={Boolean(formatCheckDetails)}
         onOpenChange={(next) => {
-          if (!next) setFormatCheckDetails(null);
+          if (!next) clearFormatCheckDetails();
         }}
       />
       <img

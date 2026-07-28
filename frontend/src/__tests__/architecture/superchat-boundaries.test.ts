@@ -118,6 +118,13 @@ describe("SuperChat boundaries", () => {
       resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
       "utf8",
     );
+    const controller = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/superchat/use-ingest-automation-controller.ts",
+      ),
+      "utf8",
+    );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
@@ -126,7 +133,7 @@ describe("SuperChat boundaries", () => {
       "utf8",
     );
 
-    expect(panel).toContain(
+    expect(controller).toContain(
       'from "@/features/superchat/ingest-upload-storage";',
     );
     expect(tests).toContain(
@@ -218,6 +225,13 @@ describe("SuperChat boundaries", () => {
       resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
       "utf8",
     );
+    const controller = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/superchat/use-ingest-automation-controller.ts",
+      ),
+      "utf8",
+    );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
@@ -226,7 +240,7 @@ describe("SuperChat boundaries", () => {
       "utf8",
     );
 
-    expect(panel).toContain(
+    expect(controller).toContain(
       'from "@/features/superchat/ingest-automation-gateway";',
     );
     expect(tests).toContain(
@@ -251,6 +265,55 @@ describe("SuperChat boundaries", () => {
     expect(gateway).not.toContain("toast.");
     expect(gateway).not.toContain("TFunction");
     expect(gateway).not.toContain("backendErrorToastMessage");
+  });
+
+  it("keeps ingest application orchestration outside the SuperChat panel", () => {
+    const controller = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/superchat/use-ingest-automation-controller.ts",
+      ),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/use-ingest-automation-controller.test.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/use-ingest-automation-controller";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/use-ingest-automation-controller";',
+    );
+    for (const ownedOperation of [
+      "function surfaceFormatCheckWarnings(",
+      "async function uploadAttachmentsForIngest(",
+      "export function useIngestAutomationController(",
+      "const recordUploadedFiles = useCallback(",
+    ]) {
+      expect(controller).toContain(ownedOperation);
+      expect(panel).not.toContain(ownedOperation);
+    }
+    expect(controller).toContain(
+      'from "@/features/superchat/ingest-automation-domain";',
+    );
+    expect(controller).toContain(
+      'from "@/features/superchat/ingest-automation-gateway";',
+    );
+    expect(controller).toContain(
+      'from "@/features/superchat/ingest-upload-storage";',
+    );
+    expect(panel).not.toContain("backendErrorToastMessage");
+    expect(panel).not.toContain("reingestConfirmation");
+    expect(panel).not.toContain("uploadedIngestFiles");
   });
 
   it("keeps scope mapping and matching outside the controller hook", () => {
