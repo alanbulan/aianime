@@ -708,6 +708,53 @@ describe("SuperChat boundaries", () => {
     expect(panel).not.toContain("setRecording");
   });
 
+  it("keeps panel message selection and render projection in a pure module", () => {
+    const projection = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/panel-message-projection.ts"),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/panel-message-projection.test.ts",
+      ),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/panel-message-projection";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/panel-message-projection";',
+    );
+    expect(projection).toContain("type PanelMessageProjectionOptions =");
+    expect(projection).toContain("export function projectPanelMessages(");
+    for (const ownedRule of [
+      "const searchQuery =",
+      "const lastConversationalMessage =",
+      "const activeTurnHasAssistantReply =",
+      "const lastUserHasAssistantReply =",
+      "const currentStreamingAssistantId =",
+      "const showWaitingIndicator =",
+    ]) {
+      expect(projection).toContain(ownedRule);
+      expect(panel).not.toContain(ownedRule);
+    }
+    expect(projection).toContain(
+      'from "@/features/superchat/message-presentation-rules";',
+    );
+    expect(panel).not.toContain(
+      'from "@/features/superchat/message-presentation-rules";',
+    );
+    expect(projection).not.toContain('from "react"');
+    expect(projection).not.toContain("document.");
+    expect(projection).not.toContain("window.");
+  });
+
   it("keeps spec media modal presentation outside the SuperChat panel", () => {
     const modals = readFileSync(
       resolve(SRC_ROOT, "features/superchat/spec-media-modals.tsx"),
@@ -863,6 +910,14 @@ describe("SuperChat boundaries", () => {
       resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
       "utf8",
     );
+    const messageView = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/chat-message-view.tsx"),
+      "utf8",
+    );
+    const panelProjection = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/panel-message-projection.ts"),
+      "utf8",
+    );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
@@ -871,7 +926,13 @@ describe("SuperChat boundaries", () => {
       "utf8",
     );
 
-    expect(panel).toContain(
+    expect(messageView).toContain(
+      'from "@/features/superchat/message-presentation-rules";',
+    );
+    expect(panelProjection).toContain(
+      'from "@/features/superchat/message-presentation-rules";',
+    );
+    expect(panel).not.toContain(
       'from "@/features/superchat/message-presentation-rules";',
     );
     expect(tests).toContain(

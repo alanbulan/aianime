@@ -47,7 +47,7 @@ import {
   SpecMediaDetailModal,
   type SpecMediaDetail,
 } from "@/features/superchat/spec-media-modals";
-import { isToolMessage } from "@/features/superchat/message-presentation-rules";
+import { projectPanelMessages } from "@/features/superchat/panel-message-projection";
 import type { ChatMessage } from "@/features/superchat/types";
 import type { ChatAttachment } from "@/features/superchat/types";
 import { FormatCheckDetailsDialog } from "@/components/ingest/FormatCheckDetailsDialog";
@@ -127,23 +127,43 @@ export function SuperChatPanel({
     && !chat.busy
     && !preparingSend
     && queuedMessages.length === 0;
-  const activeMessages = useMemo(
-    () =>
-      chat.messages.filter(
-        (message) => !chat.deletedIds.has(message.id) && (chat.settings.showToolEvents || !isToolMessage(message)),
-      ),
-    [chat.deletedIds, chat.messages, chat.settings.showToolEvents],
-  );
-  const userMessageHistory = useMemo(
-    () =>
-      activeMessages
-        .filter((message) => message.role === "user" && message.text.trim().length > 0)
-        .map((message) => message.text),
-    [activeMessages],
-  );
-  const pinnedMessages = useMemo(
-    () => activeMessages.filter((message) => chat.pinnedIds.has(message.id)),
-    [activeMessages, chat.pinnedIds],
+  const {
+    activeMessageCount,
+    currentStreamingAssistantId,
+    deferStructuredRender,
+    lastActiveMessageId,
+    pinnedMessages,
+    showWaitingIndicator,
+    streamingAssistantId,
+    streamTextAlreadyRendered,
+    userMessageHistory,
+    visibleMessages,
+  } = useMemo(
+    () => projectPanelMessages({
+      activeTurnId: chat.activeTurnId,
+      busy: chat.busy,
+      composerWaiting,
+      deletedIds: chat.deletedIds,
+      messages: chat.messages,
+      pinnedIds: chat.pinnedIds,
+      search,
+      showStructuredSourceWhileStreaming:
+        chat.settings.showStructuredSourceWhileStreaming,
+      showToolEvents: chat.settings.showToolEvents,
+      streamText: chat.streamText,
+    }),
+    [
+      chat.activeTurnId,
+      chat.busy,
+      chat.deletedIds,
+      chat.messages,
+      chat.pinnedIds,
+      chat.settings.showStructuredSourceWhileStreaming,
+      chat.settings.showToolEvents,
+      chat.streamText,
+      composerWaiting,
+      search,
+    ],
   );
 
   useEffect(() => {
@@ -167,79 +187,6 @@ export function SuperChatPanel({
     });
   }, [chat.appendNotification, params.project, t, taskEventBus]);
 
-  const searchQuery = search.trim().toLowerCase();
-  const visibleMessages = useMemo(
-    () =>
-      searchQuery
-        ? activeMessages.filter((message) => message.text.toLowerCase().includes(searchQuery))
-        : activeMessages,
-    [activeMessages, searchQuery],
-  );
-  const activeMessageCount = activeMessages.length;
-  const lastActiveMessageId = activeMessages[activeMessages.length - 1]?.id ?? "";
-  const deferStructuredRender =
-    chat.busy && !chat.settings.showStructuredSourceWhileStreaming;
-  const streamTextAlreadyRendered =
-    Boolean(chat.streamText)
-    && visibleMessages.some(
-      (message) => message.role === "assistant" && message.text === chat.streamText,
-    );
-  const lastConversationalMessage = [...activeMessages]
-    .reverse()
-    .find((message) => message.role === "user" || message.role === "assistant");
-  const lastUserMessage = [...activeMessages]
-    .reverse()
-    .find((message) => message.role === "user" && message.text.trim().length > 0);
-  const activeTurnUserMessage = chat.activeTurnId
-    ? activeMessages.find(
-      (message) =>
-        message.role === "user"
-        && message.turnId === chat.activeTurnId
-        && message.text.trim().length > 0,
-    )
-    : null;
-  const activeTurnHasAssistantReply = Boolean(
-    chat.activeTurnId
-    && activeMessages.some(
-      (message) =>
-        message.role === "assistant"
-        && message.turnId === chat.activeTurnId
-        && message.text.trim().length > 0,
-    ),
-  );
-  const lastUserHasAssistantReply = Boolean(
-    lastUserMessage?.turnId
-    && activeMessages.some(
-      (message) =>
-        message.role === "assistant"
-        && message.turnId === lastUserMessage.turnId
-        && message.text.trim().length > 0,
-    ),
-  );
-  const currentStreamingAssistantId =
-    deferStructuredRender && lastConversationalMessage?.role === "assistant"
-      ? lastConversationalMessage.id
-      : null;
-  const isCurrentStreamingAssistantMessage = (message: ChatMessage): boolean =>
-    message.role === "assistant" && message.id === currentStreamingAssistantId;
-  const isStreamingAssistantMessage = (message: ChatMessage): boolean =>
-    chat.busy
-    && message.role === "assistant"
-    && (
-      message.id === currentStreamingAssistantId
-      || (lastConversationalMessage?.role === "assistant" && message.id === lastConversationalMessage.id)
-    );
-  const showWaitingIndicator =
-    chat.busy
-    && !chat.streamText.trim()
-    && (
-      composerWaiting
-      || (
-        activeTurnUserMessage
-          ? !activeTurnHasAssistantReply
-          : (!lastUserMessage || !lastUserHasAssistantReply)
-      )
-    );
   const scrollToChatBottom = useCallback((behavior: ScrollBehavior = "auto") => {
     const el = scrollRef.current;
     if (!el) return;
@@ -667,8 +614,15 @@ export function SuperChatPanel({
                       pinned={chat.pinnedIds.has(message.id)}
                       onDelete={chat.deleteMessage}
                       onTogglePin={chat.togglePin}
-                      deferStructuredRender={deferStructuredRender && isCurrentStreamingAssistantMessage(message)}
-                      streaming={isStreamingAssistantMessage(message)}
+                      deferStructuredRender={
+                        deferStructuredRender
+                        && message.role === "assistant"
+                        && message.id === currentStreamingAssistantId
+                      }
+                      streaming={
+                        message.role === "assistant"
+                        && message.id === streamingAssistantId
+                      }
                     />
                   </div>
                 ))}

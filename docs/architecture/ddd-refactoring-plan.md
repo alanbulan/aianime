@@ -1857,6 +1857,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百九十八批已拆分 SuperChat 浏览器语音输入控制器：新增唯一 `features/superchat/use-speech-input-controller.ts`，集中持有标准/WebKit SpeechRecognition 构造器选择、实例 ref、录音状态、start/stop、zh-CN 连续临时结果配置、转写拼接和 onend 回收；`superchat-panel.tsx` 删除浏览器接口类型、构造函数、recording state/ref 和 toggle 状态机，只消费 `recording` 与 `toggleSpeech`，按钮视图保持不变，文件由 1,006 行降至 965 行，不保留旧实现或浏览器 API 直接依赖。新增 3 项 hook 特征测试覆盖不可用环境、WebKit fallback、转写累积、二次切换停止和结束回收，并扩展架构门禁禁止语音生命周期回流面板；SuperChat 特征测试 28 个文件 157 项、SuperChat 门禁 24 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
 
+第三百九十九批已拆分 SuperChat 面板消息投影：新增唯一无 React/DOM 的 `features/superchat/panel-message-projection.ts`，集中持有已删除消息与 tool envelope 过滤、用户输入历史、置顶消息、大小写无关搜索、结构化流式延迟、重复 streamText 抑制、当前流式 assistant ID，以及 active turn/最近用户回合的等待指示规则；`superchat-panel.tsx` 将三段 memo/派生逻辑收口为一次纯投影调用，只在 JSX 做角色与 ID 匹配，文件由 965 行降至 919 行，不保留旧规则或 presentation-rules 直接依赖。新增 5 项纯函数测试覆盖过滤/搜索/置顶/历史、工具事件开关、流式状态和两条等待路径，并扩展架构门禁确保投影保持纯净；SuperChat 特征测试 29 个文件 162 项、SuperChat 门禁 25 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。
