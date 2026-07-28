@@ -357,6 +357,46 @@ describe("SuperChat boundaries", () => {
     expect(panel).not.toContain("calculateTimelineContextDelta");
   });
 
+  it("keeps UiSpec media projection outside the SuperChat panel", () => {
+    const projection = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/spec-media-projection.ts"),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/spec-media-projection.test.ts",
+      ),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/spec-media-projection";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/spec-media-projection";',
+    );
+    for (const ownedOperation of [
+      "function elementProps(",
+      "function textProp(",
+      "function numberProp(",
+      "function specElementOrder(",
+      "export function extractUnifiedMediaItems(",
+      "export function extractKeyframeVideoPreviewItems(",
+      "export function extractPendingKeyframeVideoItem(",
+    ]) {
+      expect(projection).toContain(ownedOperation);
+      expect(panel).not.toContain(ownedOperation);
+    }
+    expect(projection).not.toContain('from "react"');
+    expect(projection).not.toContain("document.");
+    expect(projection).not.toContain("window.");
+  });
+
   it("keeps scope mapping and matching outside the controller hook", () => {
     const scope = readFileSync(
       resolve(SRC_ROOT, "features/superchat/scope.ts"),

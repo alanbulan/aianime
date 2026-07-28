@@ -1837,6 +1837,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百八十八批已拆分 SuperChat 消息时间轴视图：新增唯一 `features/superchat/chat-timeline.tsx`，组合既有 `timeline-scroll` 纯函数，集中持有用户回合投影、附件预览回退、当前回合跟踪、内部滚动边缘、节点定位和 hover portal；`superchat-panel.tsx` 删除 `TimelineTurn`、投影函数及完整时间轴组件，只保留 ref 与视图装配，文件由 2,922 行降至 2,697 行，不保留旧组件、re-export 或第二套交互。新增 3 项视图特征测试覆盖最小显示门槛、仅用户回合投影、图片/文件回退、点击定位和 portal 预览，并扩展架构门禁禁止时间轴实现回流；SuperChat 特征测试 18 个文件 114 项、SuperChat 门禁 14 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
 
+第三百八十九批已拆分 SuperChat UiSpec 媒体投影：新增唯一无 React/DOM 的 `features/superchat/spec-media-projection.ts`，集中持有元素 props 归一、root children 优先顺序、文本字段回退、进度数值解析与 0-100 钳制、统一 image/video/audio item、可播放关键帧和 pending 状态投影；`superchat-panel.tsx` 删除两类 item、四个私有归一函数及三个投影函数，只消费稳定视图模型，文件由 2,697 行降至 2,534 行，不保留旧实现、re-export 或测试专用 API。新增 5 项纯函数测试覆盖非媒体 spec 拒绝、顺序与字段映射、无效媒体过滤、关键帧提取、pending 状态和进度钳制，并扩展架构门禁禁止投影规则回流及 DOM 依赖进入纯模块；SuperChat 特征测试 19 个文件 119 项、SuperChat 门禁 15 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。
