@@ -135,6 +135,11 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
                 "SketchSettingsUpdate",
             ),
         ),
+        (
+            "production_audio_schemas.py",
+            "routes/production_audio.py",
+            ("TTSGenerateRequest", "TTSPreviewRequest"),
+        ),
     )
 
     for schema_path, route_path, model_names in cases:

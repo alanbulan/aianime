@@ -179,25 +179,6 @@ class VideoComposeRequest(BaseModel):
     resolution: str = "720x1280"
 
 
-# ── TTS ───────────────────────────────────────────────────────────────────────
-
-
-class TTSGenerateRequest(BaseModel):
-    provider: Optional[str] = None
-    voice: Optional[str] = None
-    model: Optional[str] = None
-    rate: Optional[str] = None
-    mode: Optional[str] = None
-    beat_numbers: Optional[list[int]] = None
-
-
-class TTSPreviewRequest(BaseModel):
-    text: str
-    provider: Optional[str] = None
-    voice: Optional[str] = None
-    model: Optional[str] = None
-
-
 # ── 再生 ──────────────────────────────────────────────────────────────────────
 
 

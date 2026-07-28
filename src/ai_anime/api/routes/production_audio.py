@@ -4,7 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from ai_anime.api.auth import get_api_user
 from ai_anime.api.deps import resolve_project_scope
-from ai_anime.api.schemas import TTSGenerateRequest, TTSPreviewRequest
+from ai_anime.api.production_audio_schemas import (
+    TTSGenerateRequest,
+    TTSPreviewRequest,
+)
 from ai_anime.modules.production.public import (
     AudioVoicePrerequisitesMissing,
     EpisodeAudioBeatMissing,

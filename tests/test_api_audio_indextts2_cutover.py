@@ -125,8 +125,8 @@ def _fake_enqueue(calls):
 
 @pytest.mark.asyncio
 async def test_audio_generate_route_dispatches_indextts2(monkeypatch, tmp_path):
+    from ai_anime.api.production_audio_schemas import TTSGenerateRequest
     from ai_anime.api.routes import production_audio
-    from ai_anime.api.schemas import TTSGenerateRequest
 
     calls = []
     ctx = _patch_audio_celery(monkeypatch, production_audio, tmp_path, _FakeStore())
@@ -237,8 +237,8 @@ async def test_single_beat_audio_route_dispatches_indextts2(monkeypatch, tmp_pat
 
 @pytest.mark.asyncio
 async def test_legacy_tts_generate_endpoint_is_gone():
+    from ai_anime.api.production_audio_schemas import TTSGenerateRequest
     from ai_anime.api.routes import production_audio
-    from ai_anime.api.schemas import TTSGenerateRequest
 
     with pytest.raises(HTTPException) as exc:
         await production_audio.generate_tts(
@@ -254,8 +254,8 @@ async def test_legacy_tts_generate_endpoint_is_gone():
 
 @pytest.mark.asyncio
 async def test_legacy_tts_preview_endpoint_is_gone():
+    from ai_anime.api.production_audio_schemas import TTSPreviewRequest
     from ai_anime.api.routes import production_audio
-    from ai_anime.api.schemas import TTSPreviewRequest
 
     with pytest.raises(HTTPException) as exc:
         await production_audio.preview_tts(
