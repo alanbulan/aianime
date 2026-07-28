@@ -1198,6 +1198,7 @@ describe("frontend architecture boundaries", () => {
     const retiredEndpointOwners = [
       "freezone/sketch-from-context",
       "freezone/frame-from-context",
+      "freezone/extract-frames",
       "freezone/analyze-shots",
     ].map((fragment) =>
       sourceFiles(SRC_ROOT)
@@ -1215,93 +1216,49 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(existsSync(opsPath)).toBe(false);
-    expect(retiredEndpointOwners).toEqual([
-      [],
-      [],
-      ["pipeline-import/infrastructure/freezone-video-processing-gateway.ts"],
-    ]);
+    expect(retiredEndpointOwners).toEqual([[], [], [], []]);
     expect(scenePanoEndpointOwners).toEqual([
       "modules/asset_world/infrastructure/http-scene-gateway.ts",
     ]);
   });
 
-  it("keeps pipeline video processing behind application-owned use cases", () => {
-    const applicationPath = resolve(
-      SRC_ROOT,
-      "pipeline-import/application/video-processing.ts",
+  it("keeps retired pipeline import code out of the Freezone boundary", () => {
+    const legacyRoot = resolve(SRC_ROOT, "pipeline-import");
+    const shellPath = resolve(SRC_ROOT, "features/freezone/FreezoneShell.tsx");
+    const dialogs = [
+      ["CompareDialog", "features/freezone/presentation/CompareDialog.tsx"],
+      [
+        "CreateIdentityDialog",
+        "features/freezone/presentation/CreateIdentityDialog.tsx",
+      ],
+      ["MaskEditor", "features/freezone/presentation/MaskEditor.tsx"],
+    ] as const;
+    const declarationOwners = dialogs.map(([name]) =>
+      sourceFiles(SRC_ROOT)
+        .filter((path) =>
+          readFileSync(path, "utf8").includes(`export function ${name}(`),
+        )
+        .map(relativeSource)
+        .sort(),
     );
-    const infrastructurePath = resolve(
-      SRC_ROOT,
-      "pipeline-import/infrastructure/freezone-video-processing-gateway.ts",
+    const legacyImports = sourceFiles(SRC_ROOT).flatMap((path) =>
+      importSpecifiers(path)
+        .filter(
+          (specifier) =>
+            specifier === "@/pipeline-import" ||
+            specifier.startsWith("@/pipeline-import/"),
+        )
+        .map((specifier) => `${relativeSource(path)}: ${specifier}`),
     );
-    const compositionPath = resolve(
-      SRC_ROOT,
-      "pipeline-import/composition.ts",
-    );
-    const viewPaths = [
-      resolve(SRC_ROOT, "pipeline-import/ExtractFramesDialog.tsx"),
-      resolve(SRC_ROOT, "pipeline-import/VideoReferenceDialog.tsx"),
-    ];
-    const applicationSource = readFileSync(applicationPath, "utf8");
-    const infrastructureSource = readFileSync(infrastructurePath, "utf8");
-    const compositionSource = readFileSync(compositionPath, "utf8");
-    const endpointFragments = [
-      "}/freezone/extract-frames`",
-      "}/freezone/analyze-shots`",
-    ];
-    const ownersByEndpoint = new Map(
-      endpointFragments.map((fragment) => [fragment, [] as string[]]),
-    );
-    for (const path of sourceFiles(SRC_ROOT).filter(
-      (sourcePath) => !sourcePath.includes(".test."),
-    )) {
-      const source = readFileSync(path, "utf8");
-      for (const endpointFragment of endpointFragments) {
-        if (source.includes(endpointFragment)) {
-          ownersByEndpoint.get(endpointFragment)?.push(relativeSource(path));
-        }
-      }
-    }
+    const shellImports = importSpecifiers(shellPath);
 
-    expect(importSpecifiers(applicationPath)).toEqual([]);
-    expect(applicationSource).toContain(
-      "export interface PipelineVideoProcessingGateway",
+    expect(existsSync(legacyRoot)).toBe(false);
+    expect(legacyImports).toEqual([]);
+    expect(declarationOwners).toEqual(
+      dialogs.map(([, path]) => [path]),
     );
-    expect(applicationSource).not.toContain("react");
-    expect(applicationSource).not.toContain("@/api/");
-    expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
-      new Set([
-        "@/task-center/public",
-        "@/shared/api/client",
-        "../application/video-processing",
-      ]),
-    );
-    expect(infrastructureSource).toContain(
-      "freezonePipelineVideoProcessingGateway: PipelineVideoProcessingGateway",
-    );
-    expect(new Set(importSpecifiers(compositionPath))).toEqual(
-      new Set([
-        "./application/video-processing",
-        "./infrastructure/freezone-video-processing-gateway",
-      ]),
-    );
-    expect(compositionSource).toContain(
-      "gateway: freezonePipelineVideoProcessingGateway",
-    );
-    for (const viewPath of viewPaths) {
-      const viewSource = readFileSync(viewPath, "utf8");
-      expect(importSpecifiers(viewPath)).toContain(
-        "@/pipeline-import/composition",
-      );
-      expect(importSpecifiers(viewPath)).not.toContain("@/api/ops");
-      expect(importSpecifiers(viewPath)).not.toContain("@/api/tasks");
-      expect(viewSource).not.toContain("awaitTaskCompletion");
-    }
-    for (const endpointFragment of endpointFragments) {
-      const owners = ownersByEndpoint.get(endpointFragment)?.sort() ?? [];
-      expect(owners).toEqual([
-        "pipeline-import/infrastructure/freezone-video-processing-gateway.ts",
-      ]);
+    for (const [name] of dialogs) {
+      expect(shellImports).toContain(`./presentation/${name}`);
     }
   });
 
@@ -1333,9 +1290,7 @@ describe("frontend architecture boundaries", () => {
       "modules/asset_world/infrastructure/http-prop-gateway.ts",
     );
     const pipelineConsumerPaths = [
-      "pipeline-import/ExtractFramesDialog.tsx",
-      "pipeline-import/MaskEditor.tsx",
-      "pipeline-import/VideoReferenceDialog.tsx",
+      "features/freezone/presentation/MaskEditor.tsx",
     ].map((path) => resolve(SRC_ROOT, path));
     const legacyOpsSource = readFileSync(legacyOpsPath, "utf8");
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
@@ -8267,7 +8222,6 @@ describe("frontend architecture boundaries", () => {
     const publicSource = readFileSync(publicPath, "utf8");
     const consumerPaths = [
       "features/freezone/commit/CommitDialog.tsx",
-      "pipeline-import/ImportPanel.tsx",
     ];
     const episodeListEndpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
@@ -8315,37 +8269,6 @@ describe("frontend architecture boundaries", () => {
     );
     expect(readFileSync(gatewayPath, "utf8")).toContain(
       "async getBeats(project, episode, signal)",
-    );
-  });
-
-  it("keeps pipeline import asset URL rules in its domain", () => {
-    const legacyApiPath = resolve(SRC_ROOT, "api/projects.ts");
-    const domainPath = resolve(
-      SRC_ROOT,
-      "pipeline-import/domain/asset-urls.ts",
-    );
-    const consumerPath = resolve(SRC_ROOT, "pipeline-import/ImportPanel.tsx");
-    const declarations = [
-      ["export function", "staticPrefixOf("].join(" "),
-      ["export function", "deriveSketchUrl("].join(" "),
-      ["export function", "deriveDirectorRenderUrl("].join(" "),
-    ];
-    const declarationOwners = declarations.map((declaration) =>
-      sourceFiles(SRC_ROOT)
-        .filter((path) => !path.includes(".test."))
-        .filter((path) => readFileSync(path, "utf8").includes(declaration))
-        .map(relativeSource)
-        .sort(),
-    );
-
-    expect(existsSync(legacyApiPath)).toBe(false);
-    expect(importSpecifiers(domainPath)).toEqual([]);
-    expect(importSpecifiers(consumerPath)).toContain(
-      "@/pipeline-import/domain/asset-urls",
-    );
-    expect(importSpecifiers(consumerPath)).not.toContain("@/api/projects");
-    expect(declarationOwners).toEqual(
-      declarations.map(() => ["pipeline-import/domain/asset-urls.ts"]),
     );
   });
 
@@ -8464,7 +8387,7 @@ describe("frontend architecture boundaries", () => {
     const publicPath = resolve(SRC_ROOT, "modules/asset_world/public.ts");
     const consumerPath = resolve(
       SRC_ROOT,
-      "pipeline-import/CreateIdentityDialog.tsx",
+      "features/freezone/presentation/CreateIdentityDialog.tsx",
     );
     const compositionSource = readFileSync(compositionPath, "utf8");
     const publicSource = readFileSync(publicPath, "utf8");
@@ -8528,8 +8451,7 @@ describe("frontend architecture boundaries", () => {
     const publicSource = readFileSync(publicPath, "utf8");
     const consumerPaths = [
       "features/freezone/commit/CommitDialog.tsx",
-      "pipeline-import/CreateIdentityDialog.tsx",
-      "pipeline-import/ImportPanel.tsx",
+      "features/freezone/presentation/CreateIdentityDialog.tsx",
     ];
     const characterListEndpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
@@ -12376,7 +12298,7 @@ describe("frontend architecture boundaries", () => {
     const opsPath = resolve(SRC_ROOT, "api/ops.ts");
     const pipelineEditorPath = resolve(
       SRC_ROOT,
-      "pipeline-import/MaskEditor.tsx",
+      "features/freezone/presentation/MaskEditor.tsx",
     );
     const domainSource = readFileSync(domainPath, "utf8");
     const applicationSource = readFileSync(applicationPath, "utf8");

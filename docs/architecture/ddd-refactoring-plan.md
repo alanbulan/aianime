@@ -2016,6 +2016,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百七十二批已删除全局 `settingsStore` 对 Freezone `canvasDraftStorage` 的副作用 import，将配额回收注册改为 `installFreezoneCanvasStorageReclaimer` 显式能力并由应用 bootstrap 在运行时初始化阶段经 Freezone public 装配；回收函数直接以稳定引用注册且返回注销函数，原 import-time 匿名注册整体删除。设置持久化使用的 GRSAI 档位与显示币种常量/类型同步经 Canvas public 暴露，`settingsStore` 不再穿透 Canvas pricing 内部路径。新增真实 QuotaExceeded 回收测试及门禁锁定 bootstrap 调用、settings public 依赖和无旧副作用注册。Canvas 草稿与通用 storage 回归 29 项、相关架构门禁 3 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
 
+第四百七十三批经全仓调用审计确认根级 `pipeline-import` 仅有 `CompareDialog`、`CreateIdentityDialog` 与 `MaskEditor` 三个生产可达组件，现已原样迁入 Freezone presentation 并由 `FreezoneShell` 直接消费；无调用方的抽帧、视频参考、导入面板、画布导入编排、视频处理 application/composition/gateway、素材 URL 规则及对应测试整体删除，旧根目录、转发入口、路径别名和第二套实现均不保留。架构门禁改为锁定旧目录与旧导入不存在、三个有效组件声明和归属唯一，并将抽帧、镜头分析等已失去前端入口的 Freezone 操作端点锁定为无前端所有者；颜色门禁同步迁移组件路径，并为此前未登记的六个 Canvas 业务/媒体绘制字面量补充精确上限，未修改颜色值。旧名称与旧路径生产检索零命中，定向架构门禁 2 项、UI 颜色门禁 1 项和完整前端架构门禁 218 项通过，前端 TypeScript 全量检查与 `git diff --check` 通过。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。

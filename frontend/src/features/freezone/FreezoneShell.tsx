@@ -37,9 +37,9 @@ import {
 } from "./commit/sceneDirectorWorldCommit";
 import { nodeDataAfterCommittedSlot } from "./commit/committedNodePatch";
 import { isCommitCandidateData } from "./commit/commitEligibility";
-import { CreateIdentityDialog } from "@/pipeline-import/CreateIdentityDialog";
-import { CompareDialog } from "@/pipeline-import/CompareDialog";
-import { MaskEditor } from "@/pipeline-import/MaskEditor";
+import { CreateIdentityDialog } from "./presentation/CreateIdentityDialog";
+import { CompareDialog } from "./presentation/CompareDialog";
+import { MaskEditor } from "./presentation/MaskEditor";
 import { AssetLibraryPanel } from "./AssetLibraryPanel";
 import { CanvasDebugPanel } from "./CanvasDebugPanel";
 import type {
