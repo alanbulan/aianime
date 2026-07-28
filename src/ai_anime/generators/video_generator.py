@@ -28,7 +28,7 @@ from ai_anime.video_request_usage import (
     record_video_request,
     update_video_request_status,
 )
-from ai_anime.shared.billing_errors import is_insufficient_credits_error
+from ai_anime.modules.model_usage.public import is_insufficient_credits_error
 from ai_anime.storage.media_relay import (
     IMAGE_TRANSFORM_AI_REFERENCE_JPEG,
     upload_image_bytes,

@@ -13,7 +13,7 @@ from ai_anime.audio_request_usage import (
     update_audio_generation_attempt,
 )
 from ai_anime.config import INDEXTTS2_RECORD_MODEL, INDEXTTS2_RECORD_PROVIDER
-from ai_anime.shared.billing_errors import is_insufficient_credits_error
+from ai_anime.modules.model_usage.public import is_insufficient_credits_error
 from ai_anime.project_config import (
     is_narrated_project,
     load_effective_narration_style_for_voice,

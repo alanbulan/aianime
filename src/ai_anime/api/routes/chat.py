@@ -32,7 +32,7 @@ from ai_anime.modules.project_workspace.public import (
     ProjectContext,
     resolve_project_context,
 )
-from ai_anime.shared.billing_errors import (
+from ai_anime.modules.model_usage.public import (
     BILLING_RULE_NOT_CONFIGURED_MESSAGE,
     INSUFFICIENT_CREDITS_MESSAGE,
     billing_rule_not_configured_payload,

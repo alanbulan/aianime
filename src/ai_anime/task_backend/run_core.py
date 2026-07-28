@@ -9,7 +9,7 @@ import time
 from typing import Any
 
 from ai_anime.ports import get_usage_meter
-from ai_anime.shared.billing_errors import (
+from ai_anime.modules.model_usage.public import (
     INSUFFICIENT_CREDITS_MESSAGE,
     insufficient_credits_payload,
     is_insufficient_credits_error,

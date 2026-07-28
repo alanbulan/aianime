@@ -1723,6 +1723,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百三十一批已建立后端 Model Usage domain/application/infrastructure/composition/public 边界，将生成费用类型、请求错误、报价 DTO、费用展示及参数归一/合并规则迁入 domain，将模型目录与 credit quote 定义为 application ports，并由唯一配置目录适配器解析既有图像选择、固定图像、视频后端、文本与音频模型；进程注册表 quote adapter 保持报价端口延迟解析和 EE 注入能力，本地零报价适配器改由 public factory 注册。`model_credits.py` 从 421 行收缩为 61 行 HTTP adapter，旧 `ports/credit_quote.py`、`ports/local/credit_quote.py` 和 `get_credit_quote` 直接删除，26 项 API 回归中的 7 处路由私有 helper patch 清零，不保留 facade、转发函数或第二套计费实现。请求路径、查询参数、模型/标签解析、Canvas 显式参数规则、默认图像参数、计费 kind、校验顺序、400 文案、字符计费字段及 `{ ok, data }` 响应均保持不变；生成费用 API 回归 26 项、CE 注册表与应用容器回归 14 项、完整后端分层门禁 97 项均通过，修改文件 Ruff、实现文件格式检查、Python 编译与 `git diff --check` 通过。
 
+第三百三十二批已将积分不足、计费规则缺失、生成计费单位、异常链识别和错误 payload 投影从共享工具迁入 Model Usage domain，并由 public API 暴露唯一错误类型与判定函数；API 异常处理、Chat、Cognee、图像/视频/TTS 生成器、任务执行及对应测试共 16 个调用文件全部改经 public API。旧 `shared/billing_errors.py` 直接删除，不保留 facade、re-export 或第二套错误分类；错误代码、中英文文案、异常属性、`BaseException` 业务停止信号、cause/context 遍历、字符串兼容识别和 payload 字段均保持不变。计费领域及受影响调用回归 75 项、应用工厂回归 5 项、完整后端分层门禁 98 项均通过，新增/迁移核心文件 Ruff 格式、修改文件 Ruff、Python 编译与 `git diff --check` 通过；Cognee 8 条告警均为既有依赖弃用告警。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

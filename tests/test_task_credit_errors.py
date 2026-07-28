@@ -3,7 +3,7 @@ import sys
 
 import pytest
 
-from ai_anime.shared.billing_errors import (
+from ai_anime.modules.model_usage.public import (
     INSUFFICIENT_CREDITS_CODE,
     INSUFFICIENT_CREDITS_MESSAGE,
     InsufficientCreditsStop,

@@ -415,6 +415,27 @@ def test_model_usage_owns_credit_quote_and_generation_cost() -> None:
     assert "ai_anime.modules.model_usage.public" in _imports(container)
 
 
+def test_model_usage_owns_billing_error_taxonomy() -> None:
+    billing_errors = (
+        PACKAGE_ROOT
+        / "modules"
+        / "model_usage"
+        / "domain"
+        / "billing_errors.py"
+    )
+    public = PACKAGE_ROOT / "modules" / "model_usage" / "public.py"
+    source = billing_errors.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+
+    assert not (PACKAGE_ROOT / "shared" / "billing_errors.py").exists()
+    assert "class InsufficientCreditsError(" in source
+    assert "class BillingRuleNotConfiguredError(" in source
+    assert "def insufficient_credits_payload(" in source
+    assert "def billing_rule_not_configured_payload(" in source
+    assert "InsufficientCreditsError" in public_source
+    assert "BillingRuleNotConfiguredError" in public_source
+
+
 def test_platform_release_owns_release_feed_contract_and_adapters() -> None:
     composition = PACKAGE_ROOT / "modules" / "platform_release" / "composition.py"
     local_ports = PACKAGE_ROOT / "ports" / "local" / "__init__.py"

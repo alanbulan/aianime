@@ -28,7 +28,7 @@ from ai_anime.config import (
     PROP_REF_IMAGE_PROVIDER,
     normalize_image_generation_selection,
 )
-from ai_anime.shared.billing_errors import is_insufficient_credits_error
+from ai_anime.modules.model_usage.public import is_insufficient_credits_error
 from ai_anime.generators.nanobanana_grid import (
     _call_newapi_image_api,
     _call_openai_image_api,

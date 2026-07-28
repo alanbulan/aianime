@@ -1,4 +1,4 @@
-"""Billing error taxonomy shared by EE shims and data-plane code."""
+"""Billing error taxonomy for model usage and data-plane callers."""
 
 from __future__ import annotations
 

@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from ai_anime.shared.billing_errors import InsufficientCreditsError
+from ai_anime.modules.model_usage.public import InsufficientCreditsError
 
 pytestmark = pytest.mark.m04
 

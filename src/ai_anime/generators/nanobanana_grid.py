@@ -36,7 +36,7 @@ from ai_anime.config import (
     get_style_preset,
 )
 from ai_anime.ports import get_usage_meter
-from ai_anime.shared.billing_errors import is_insufficient_credits_error
+from ai_anime.modules.model_usage.public import is_insufficient_credits_error
 from ai_anime.generators.huimengi import (
     HuimengTaskFailed,
     HuimengiTaskClient,

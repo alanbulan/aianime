@@ -1,5 +1,22 @@
 """Model usage domain rules."""
 
+from ai_anime.modules.model_usage.domain.billing_errors import (
+    BILLING_RULE_NOT_CONFIGURED_CODE,
+    BILLING_RULE_NOT_CONFIGURED_MESSAGE,
+    GENERATION_BILLING_UNITS,
+    INSUFFICIENT_CREDITS_CODE,
+    INSUFFICIENT_CREDITS_MESSAGE,
+    BillingRuleNotConfiguredError,
+    InsufficientCreditsError,
+    InsufficientCreditsStop,
+    billing_rule_not_configured_payload,
+    find_billing_rule_not_configured_error,
+    find_insufficient_credits_error,
+    find_insufficient_credits_stop,
+    insufficient_credits_payload,
+    is_insufficient_credits_error,
+    iter_exception_chain,
+)
 from ai_anime.modules.model_usage.domain.generation_credit import (
     CreditQuote,
     GenerationCreditCost,
@@ -17,11 +34,20 @@ from ai_anime.modules.model_usage.domain.generation_credit import (
 )
 
 __all__ = [
+    "BILLING_RULE_NOT_CONFIGURED_CODE",
+    "BILLING_RULE_NOT_CONFIGURED_MESSAGE",
+    "BillingRuleNotConfiguredError",
     "CreditQuote",
+    "GENERATION_BILLING_UNITS",
     "GenerationCreditCost",
     "GenerationCreditKind",
     "GenerationCreditSurface",
     "InvalidGenerationCreditRequest",
+    "INSUFFICIENT_CREDITS_CODE",
+    "INSUFFICIENT_CREDITS_MESSAGE",
+    "InsufficientCreditsError",
+    "InsufficientCreditsStop",
+    "billing_rule_not_configured_payload",
     "build_generation_credit_cost",
     "clean_query_value",
     "generation_billing_kind",
@@ -29,5 +55,11 @@ __all__ = [
     "merge_billing_params",
     "normalize_billing_params",
     "normalize_quantity",
+    "find_billing_rule_not_configured_error",
+    "find_insufficient_credits_error",
+    "find_insufficient_credits_stop",
+    "insufficient_credits_payload",
+    "is_insufficient_credits_error",
+    "iter_exception_chain",
     "resolve_labeled_value",
 ]

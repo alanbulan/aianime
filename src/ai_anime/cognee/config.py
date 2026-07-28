@@ -28,7 +28,7 @@ from ai_anime.official_defaults import (
     OFFICIAL_NEWAPI_BASE_URL,
 )
 from ai_anime.ports import get_usage_meter
-from ai_anime.shared.billing_errors import (
+from ai_anime.modules.model_usage.public import (
     InsufficientCreditsStop,
     find_insufficient_credits_error,
     find_insufficient_credits_stop,

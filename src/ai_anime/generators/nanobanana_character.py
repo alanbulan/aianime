@@ -29,7 +29,7 @@ from ai_anime.config import (
     get_style_preset,
     IMAGE_DEFAULT_STYLE,
 )
-from ai_anime.shared.billing_errors import is_insufficient_credits_error
+from ai_anime.modules.model_usage.public import is_insufficient_credits_error
 from ai_anime.image_request_usage import (
     record_image_request,
     update_image_request_status,
