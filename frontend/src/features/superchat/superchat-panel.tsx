@@ -9,8 +9,8 @@ import {
   Plus,
   X,
 } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
-import type { DragEvent as ReactDragEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useMemo, useState } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -34,10 +34,6 @@ import { ApprovalCard } from "@/features/superchat/approval-card";
 import { SearchBar } from "@/features/superchat/chat-search-bar";
 import { PinnedPanel } from "@/features/superchat/pinned-messages-panel";
 import { MessageDetailPanel } from "@/features/superchat/message-detail-panel";
-import {
-  isAllowedScriptDragItem,
-  isAllowedScriptUpload,
-} from "@/features/superchat/ingest-automation-domain";
 import { useIngestAutomationController } from "@/features/superchat/use-ingest-automation-controller";
 import { useSpeechInputController } from "@/features/superchat/use-speech-input-controller";
 import { useTaskCompletionNotifications } from "@/features/superchat/use-task-completion-notifications";
@@ -45,6 +41,7 @@ import { useChatScrollController } from "@/features/superchat/use-chat-scroll-co
 import { useChatQueueController } from "@/features/superchat/use-chat-queue-controller";
 import { useComposerBorderBeam } from "@/features/superchat/use-composer-border-beam";
 import { useComposerHistoryNavigation } from "@/features/superchat/use-composer-history-navigation";
+import { useComposerAttachmentsController } from "@/features/superchat/use-composer-attachments-controller";
 import { QueuedMessagesPanel } from "@/features/superchat/queued-messages-panel";
 import {
   SpecMediaDetailModal,
@@ -52,7 +49,6 @@ import {
 } from "@/features/superchat/spec-media-modals";
 import { projectPanelMessages } from "@/features/superchat/panel-message-projection";
 import type { ChatMessage } from "@/features/superchat/types";
-import type { ChatAttachment } from "@/features/superchat/types";
 import { FormatCheckDetailsDialog } from "@/components/ingest/FormatCheckDetailsDialog";
 
 const ENABLE_SUPERCHAT_FILE_UPLOAD = false;
@@ -76,11 +72,7 @@ export function SuperChatPanel({
   const [searchOpen, setSearchOpen] = useState(false);
   const [detailMessage, setDetailMessage] = useState<ChatMessage | null>(null);
   const [mediaDetail, setMediaDetail] = useState<SpecMediaDetail | null>(null);
-  const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
   const [composerInputFocused, setComposerInputFocused] = useState(false);
-  const [dragFileState, setDragFileState] = useState<"valid" | "invalid" | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const dragDepthRef = useRef(0);
   const chat = useSuperChat({
     project: params.project,
     displayName: username || "AI anime",
@@ -117,6 +109,19 @@ export function SuperChatPanel({
     project: params.project,
     sendMessage: sendWithIngestAutomation,
   });
+  const {
+    addFiles,
+    attachments,
+    clearAttachments,
+    dragFileState,
+    fileInputRef,
+    handleComposerDragEnter,
+    handleComposerDragLeave,
+    handleComposerDragOver,
+    handleComposerDrop,
+    openFilePicker,
+    removeAttachment,
+  } = useComposerAttachmentsController(ENABLE_SUPERCHAT_FILE_UPLOAD);
   const isChatInitializing = !chat.historyReady && chat.messages.length === 0 && (chat.connecting || chat.connected);
 
   const hasSendableContent = draft.trim().length > 0 || attachments.length > 0;
@@ -207,13 +212,13 @@ export function SuperChatPanel({
     if (chat.busy) {
       enqueueMessage(text, queuedAttachments);
       setDraft("");
-      setAttachments([]);
+      clearAttachments();
       return;
     }
     void sendWithIngestAutomation(text, queuedAttachments).then((sent) => {
       if (!sent) return;
       setDraft("");
-      setAttachments([]);
+      clearAttachments();
     });
   };
 
@@ -232,84 +237,10 @@ export function SuperChatPanel({
     submit();
   };
 
-  const addFiles = (files: FileList | null) => {
-    if (!files) return;
-    Array.from(files).forEach((file) => {
-      if (!isAllowedScriptUpload(file)) return;
-      const reader = new FileReader();
-      reader.addEventListener("load", () => {
-        const dataUrl = String(reader.result || "");
-        setAttachments((current) => [
-          ...current,
-          {
-            id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-            type: file.type.startsWith("image/") ? "image" : "file",
-            mimeType: file.type || "application/octet-stream",
-            fileName: file.name,
-            fileSize: file.size,
-            content: dataUrl,
-          },
-        ]);
-      });
-      reader.readAsDataURL(file);
-    });
-    if (fileInputRef.current) fileInputRef.current.value = "";
+  const restoreDraftFocus = () => {
     window.requestAnimationFrame(() => {
       draftInputRef.current?.focus({ preventScroll: true });
     });
-  };
-
-  const eventHasFiles = (event: ReactDragEvent<HTMLElement>): boolean =>
-    Array.from(event.dataTransfer.types).includes("Files");
-
-  const resolveDragFileState = (event: ReactDragEvent<HTMLElement>): "valid" | "invalid" => {
-    const items = Array.from(event.dataTransfer.items).filter((item) => item.kind === "file");
-    if (items.length === 0) return "valid";
-    return items.every((item) => {
-      const file = item.getAsFile();
-      if (file) return isAllowedScriptDragItem(file);
-      return isAllowedScriptDragItem({ type: item.type });
-    })
-      ? "valid"
-      : "invalid";
-  };
-
-  const handleComposerDragEnter = (event: ReactDragEvent<HTMLDivElement>) => {
-    if (!ENABLE_SUPERCHAT_FILE_UPLOAD) return;
-    if (!eventHasFiles(event)) return;
-    event.preventDefault();
-    event.stopPropagation();
-    dragDepthRef.current += 1;
-    setDragFileState(resolveDragFileState(event));
-  };
-
-  const handleComposerDragOver = (event: ReactDragEvent<HTMLDivElement>) => {
-    if (!ENABLE_SUPERCHAT_FILE_UPLOAD) return;
-    if (!eventHasFiles(event)) return;
-    event.preventDefault();
-    event.stopPropagation();
-    const nextState = resolveDragFileState(event);
-    setDragFileState(nextState);
-    event.dataTransfer.dropEffect = nextState === "valid" ? "copy" : "none";
-  };
-
-  const handleComposerDragLeave = (event: ReactDragEvent<HTMLDivElement>) => {
-    if (!ENABLE_SUPERCHAT_FILE_UPLOAD) return;
-    if (!eventHasFiles(event)) return;
-    event.preventDefault();
-    event.stopPropagation();
-    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
-    if (dragDepthRef.current === 0) setDragFileState(null);
-  };
-
-  const handleComposerDrop = (event: ReactDragEvent<HTMLDivElement>) => {
-    if (!ENABLE_SUPERCHAT_FILE_UPLOAD) return;
-    if (!eventHasFiles(event)) return;
-    event.preventDefault();
-    event.stopPropagation();
-    dragDepthRef.current = 0;
-    setDragFileState(null);
-    addFiles(event.dataTransfer.files);
   };
 
   const isFreezoneLayout = variant === "freezone";
@@ -511,7 +442,9 @@ export function SuperChatPanel({
             onDragEnter={handleComposerDragEnter}
             onDragOver={handleComposerDragOver}
             onDragLeave={handleComposerDragLeave}
-            onDrop={handleComposerDrop}
+            onDrop={(event) => {
+              if (handleComposerDrop(event)) restoreDraftFocus();
+            }}
             onKeyDown={handleComposerKeyDown}
           >
             {ENABLE_SUPERCHAT_FILE_UPLOAD && (
@@ -521,7 +454,12 @@ export function SuperChatPanel({
                 multiple
                 className="hidden"
                 accept=".txt,.md,.doc,.docx"
-                onChange={(event) => addFiles(event.target.files)}
+                onChange={(event) => {
+                  const files = event.target.files;
+                  if (!files) return;
+                  addFiles(files);
+                  restoreDraftFocus();
+                }}
               />
             )}
             {ENABLE_SUPERCHAT_FILE_UPLOAD && dragFileState && (
@@ -545,7 +483,7 @@ export function SuperChatPanel({
                     <span className="truncate">{attachment.fileName}</span>
                     <button
                       type="button"
-                      onClick={() => setAttachments((current) => current.filter((item) => item.id !== attachment.id))}
+                      onClick={() => removeAttachment(attachment.id)}
                       className="text-muted-foreground hover:text-foreground"
                       aria-label={t("aiAssistant.removeAttachment")}
                     >
@@ -619,7 +557,7 @@ export function SuperChatPanel({
                     size="icon"
                     className="size-8"
                     disabled={!chat.connected}
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={openFilePicker}
                     aria-label={t("aiAssistant.attach")}
                     title={t("aiAssistant.attach")}
                   >

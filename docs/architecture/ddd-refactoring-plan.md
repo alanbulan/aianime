@@ -1871,6 +1871,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百零五批已拆分 SuperChat 待发送消息队列视图：新增唯一 `features/superchat/queued-messages-panel.tsx`，通过显式消息列表、选中 ID 与选择/删除回调窄合同，集中呈现队列计数、文本、附件数、多项时的选中态和两个操作按钮；组件不导入 queue controller，也不持有队列状态。`superchat-panel.tsx` 删除完整队列 JSX 与相关翻译调用，只把 controller 模型和命令装配给视图，文件由 741 行降至 704 行，不保留第二套展示。新增 2 项视图特征测试覆盖空队列、计数与附件数、选中态和选择/删除转发，并扩展架构门禁禁止队列呈现回流面板；SuperChat 特征测试 35 个文件 181 项、SuperChat 门禁 31 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
 
+第四百零六批已拆分 SuperChat Composer 附件与拖拽控制器：新增唯一 `features/superchat/use-composer-attachments-controller.ts`，复用既有 ingest domain 文件规则，集中持有附件数组、文件 input ref、FileReader data URL 投影、附件 ID/类型/元数据、清空与删除命令、拖拽深度、合法性状态、dropEffect 和四类拖拽事件；禁用上传时继续不消费拖拽事件。`superchat-panel.tsx` 删除附件/拖拽 state 与 ref、FileReader、规则依赖和全部拖拽算法，只装配控制器模型、提交后清空命令及文件处理后的输入框聚焦，文件由 704 行降至 642 行，不保留第二套附件状态。新增 3 项 hook 特征测试覆盖允许文件读取与拒绝过滤、附件投影/删除/清空、禁用门禁、嵌套拖拽深度、合法/非法 dropEffect 和接受 drop，并同步更新原 ingest domain 门禁指向新的直接消费者；SuperChat 特征测试 36 个文件 184 项、SuperChat 门禁 32 项、前端全量 TypeScript typecheck 与 `git diff --check` 均通过，Canvas 颜色字面量历史问题未纳入本批。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

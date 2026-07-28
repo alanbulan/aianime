@@ -166,6 +166,13 @@ describe("SuperChat boundaries", () => {
       resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
       "utf8",
     );
+    const attachmentsController = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/superchat/use-composer-attachments-controller.ts",
+      ),
+      "utf8",
+    );
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
@@ -174,7 +181,10 @@ describe("SuperChat boundaries", () => {
       "utf8",
     );
 
-    expect(panel).toContain(
+    expect(attachmentsController).toContain(
+      'from "@/features/superchat/ingest-automation-domain";',
+    );
+    expect(panel).not.toContain(
       'from "@/features/superchat/ingest-automation-domain";',
     );
     expect(tests).toContain(
@@ -1006,6 +1016,59 @@ describe("SuperChat boundaries", () => {
     }
     expect(view).not.toContain("useChatQueueController");
     expect(view).not.toContain("setQueuedMessages");
+  });
+
+  it("keeps Composer attachment and drag state outside the SuperChat panel", () => {
+    const controller = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "features/superchat/use-composer-attachments-controller.ts",
+      ),
+      "utf8",
+    );
+    const panel = readFileSync(
+      resolve(SRC_ROOT, "features/superchat/superchat-panel.tsx"),
+      "utf8",
+    );
+    const tests = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "__tests__/features/superchat/use-composer-attachments-controller.test.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(panel).toContain(
+      'from "@/features/superchat/use-composer-attachments-controller";',
+    );
+    expect(tests).toContain(
+      'from "@/features/superchat/use-composer-attachments-controller";',
+    );
+    expect(controller).toContain(
+      "export function useComposerAttachmentsController(",
+    );
+    for (const ownedOperation of [
+      "function eventHasFiles(",
+      "function resolveDragFileState(",
+      "const [attachments, setAttachments] = useState<ChatAttachment[]>([]);",
+      "const [dragFileState, setDragFileState] = useState<DragFileState>(null);",
+      "const dragDepthRef = useRef(0);",
+      "const reader = new FileReader();",
+      "const handleComposerDragEnter = useCallback(",
+      "const handleComposerDragOver = useCallback(",
+      "const handleComposerDragLeave = useCallback(",
+      "const handleComposerDrop = useCallback(",
+    ]) {
+      expect(controller).toContain(ownedOperation);
+      expect(panel).not.toContain(ownedOperation);
+    }
+    expect(controller).toContain(
+      'from "@/features/superchat/ingest-automation-domain";',
+    );
+    expect(panel).not.toContain(
+      'from "@/features/superchat/ingest-automation-domain";',
+    );
+    expect(controller).not.toContain("useSuperChat");
   });
 
   it("keeps spec media modal presentation outside the SuperChat panel", () => {
