@@ -1,6 +1,7 @@
 export {
   AudioPaneContent,
   BatchBar,
+  EpisodeComposePage,
   NarratorVoicePanel,
   RenderPlanDialog,
   useAssignColors,
@@ -60,6 +61,7 @@ export {
 } from "@/modules/production/composition";
 export type {
   BatchBarProps,
+  EpisodeComposePageProps,
   NarratorVoicePanelProps,
   RenderPlanDialogProps,
 } from "@/modules/production/composition";

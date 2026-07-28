@@ -18,19 +18,6 @@ function readFileSync(path: string, encoding: "utf8"): string {
   return readFileSyncStrict(path, encoding);
 }
 
-// Existing routes are migrated context by context. Their direct data imports
-// may decrease, but no route may exceed this measured baseline.
-const LEGACY_ROUTE_DATA_IMPORT_MAX: Record<string, number> = {
-  "routes/_app/projects.$project/characters.lazy.tsx": 0,
-  "routes/_app/projects.$project/episodes.$episode/beats.lazy.tsx": 0,
-  "routes/_app/projects.$project/episodes.$episode/compose.lazy.tsx": 4,
-  "routes/_app/projects.$project/episodes.$episode/script.lazy.tsx": 0,
-  "routes/_app/projects.$project/episodes.tsx": 0,
-  "routes/_app/projects.$project/freezone.lazy.tsx": 2,
-  "routes/_app/projects.$project/styles.tsx": 0,
-  "routes/_app/projects.$project/tasks.tsx": 0,
-};
-
 function sourceFiles(root: string): string[] {
   const cached = sourceFilesCache.get(root);
   if (cached) return cached;
@@ -109,15 +96,29 @@ describe("frontend architecture boundaries", () => {
     expect(main).not.toContain("<RouterProvider");
   });
 
-  it("does not increase direct route-to-data-layer imports", () => {
+  it("keeps routes behind application and module data boundaries", () => {
     const failures: string[] = [];
     for (const path of sourceFiles(resolve(SRC_ROOT, "routes"))) {
       const relativePath = relativeSource(path);
       const count = importSpecifiers(path).filter(isRawDataImport).length;
-      const allowed = LEGACY_ROUTE_DATA_IMPORT_MAX[relativePath] ?? 0;
-      if (count > allowed) failures.push(`${relativePath}: ${count} > ${allowed}`);
+      if (count > 0) failures.push(`${relativePath}: ${count}`);
     }
     expect(failures).toEqual([]);
+  });
+
+  it("keeps the Production compose route as an adapter", () => {
+    const routePath = resolve(
+      SRC_ROOT,
+      "routes/_app/projects.$project/episodes.$episode/compose.lazy.tsx",
+    );
+    const route = readFileSync(routePath, "utf8");
+
+    expect(importSpecifiers(routePath)).toContain("@/modules/production/public");
+    expect(route).toContain("<EpisodeComposePage");
+    expect(route).not.toContain("useState(");
+    expect(route).not.toContain("useEffect(");
+    expect(route).not.toContain("useQuery(");
+    expect(route).not.toContain("useMutation(");
   });
 
   it("keeps task capabilities behind the Task Center public API", () => {

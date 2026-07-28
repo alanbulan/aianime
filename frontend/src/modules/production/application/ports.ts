@@ -3,6 +3,7 @@ import type { Beat } from "@/modules/narrative_planning/public";
 import type { GenerateAudioCommand } from "@/modules/production/domain/audio-generation";
 import type {
   ComposeEpisodeCommand,
+  EpisodeExportKind,
   FinalVideoData,
 } from "@/modules/production/domain/episode-compose";
 import type {
@@ -373,6 +374,11 @@ export interface ProductionVideoGateway {
     episode: number,
     command: ComposeEpisodeCommand,
   ): Promise<ProductionTaskResponse>;
+  exportEpisode(
+    project: string,
+    episode: number,
+    kind: EpisodeExportKind,
+  ): Promise<Blob>;
   getFinalVideo(
     project: string,
     episode: number,

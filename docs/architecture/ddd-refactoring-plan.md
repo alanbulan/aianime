@@ -445,8 +445,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 | 4. Identity / Workspace | 已完成 | 前后端 Identity / Project Workspace 已收敛到唯一 public 边界；前端 app guard、账户、项目首页和导航已迁移 |
 | 5. Narrative Planning | 已完成 | 后端领域/应用/适配器边界与前端 route/controller/view 已收敛到唯一模块 |
 | 6. Asset & World | 已完成 | 前后端资产边界已收敛，资产路由保持 HTTP 映射，文件与生成规则由 application/infrastructure 承担 |
-| 7. Production | 进行中 | 后端路由拆分与 `generation.py` 删除已完成；前端视频配置已进入 Production 边界，继续拆分 beat workbench 的 controller/view |
-| 8. Creative Canvas | 进行中 | 前后端 Canvas 分层与 Freezone 路由拆分已推进，继续清理 legacy 依赖 |
+| 7. Production | 进行中 | 合成页已收敛为 route adapter、application controller 与 presentation view；继续迁移 beat workbench 中仍直连 transport 的 Verify 能力 |
+| 8. Creative Canvas | 进行中 | Freezone route 已无数据层直连；继续将 `features/freezone`、`features/canvas` 的既有分层收敛到 Creative Canvas 唯一模块边界 |
 | 9. Supporting Contexts | 已完成 | Chat、Model Usage、Platform Release 已收敛到唯一公开边界并通过阶段合同 |
 | 10. 最终收敛 | 进行中 | 删除无调用兼容层并执行最终门禁 |
 
@@ -1994,6 +1994,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百六十一批已将互相依赖的 `CharacterIdentity` 与 `NovelCharacter` 从后端根级 `models.py` 整体迁入唯一 Asset & World application `character_models.py`，Asset & World 内部角色目录与身份适配器直连 application，Agent、Cognee/SQLite、Seedance 与模块外测试统一经 Asset & World `public.py` 使用稳定入口。旧 `models.py`、对应 Ruff 豁免、Cognee 包级 `NovelCharacter` 转发及 pipeline 中无业务用途的 `CharacterIdentity` 转发已删除，pipeline 仅用私有 `_NovelCharacter` 名称满足内部类型与构造，不保留公开兼容名；两项永久 skip 且仍引用已移除 `set_description`/`dump_set_description` API 的旧手工分镜测试同步删除。两个类的 AST 与迁移前逐项一致，Pydantic JSON Schema 哈希分别保持 `01f1fb44bda08d648e8f0f19694edd75994d02d2fa0a69e3c62abbc22edc9dea`、`a8472b1a10dda3d3333c78b7962603158464eb7d3bb8e4a3b51fa7cba0654c17`；角色模型与 API 回归 100 项，持久化/Cognee/语音回归 182 项通过、1 项按既有条件跳过，Asset & World 与角色 API 回归 187 项通过，最终完整架构门禁 153 项通过；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
+第四百六十二批已将前端 614 行的 Production 剧集合成 route 收敛为 32 行 route adapter、237 行 application controller 与 413 行 presentation view，分辨率/时长规则进入现有 `episode-compose` domain，视频/SRT/ZIP 导出请求进入唯一 Production gateway，浏览器 Blob 下载仅在 composition 装配。原 route 中查询、任务监听、偏好持久化、导出 HTTP 和 JSX 混合实现全部删除，不保留第二套入口；前端全部 19 个 route 已无数据层直连且均不超过 500 行，原 `LEGACY_ROUTE_DATA_IMPORT_MAX` 非零基线整体删除。合成领域、查询、controller、导出合同与完整前端架构门禁 224 项通过，前端 TypeScript 全量检查和 `git diff --check` 通过；阶段 7 剩余项已明确收窄为 `components/episode/beat-workbench/verify-chip.tsx` 的 transport 直连。
+
 任务：
 
 1. 删除已无调用方的旧 route、`api/schemas.py` re-export、`models.py` re-export 和 store facade。
@@ -2041,7 +2043,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 | 非 API 业务模块反向依赖 `ai_anime.api.*` | 0 处（阶段 0：28 处） | 0 |
 | route 互相导入私有实现 | 0 | 0 |
 | 后端超 1,000 逻辑行 route 模块 | 4 个 | 0；兼容 facade 不含实现 |
-| 前端 route 超 500 逻辑行 | 8/19 | 0；route 仅做适配 |
+| 前端 route 超 500 逻辑行 | 0/19 | 0；route 仅做适配 |
 | module 跨内部路径导入 | 尚无门禁 | 0；只允许 `public.ts` |
 | application 实例化 infrastructure | Canvas 已存在 | 0；仅 composition root 装配 |
 | 新增 UI chrome 颜色字面量 | 无门禁 | 0；业务颜色例外需 allowlist |

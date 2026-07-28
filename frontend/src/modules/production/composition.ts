@@ -3,14 +3,24 @@ import { createElement } from "react";
 
 import { formatCreditCost } from "@/components/credits/credit-visual";
 import { withImageCacheBust } from "@/features/canvas/application/imageData";
+import { useBeatStates } from "@/hooks/use-beat-states";
 import { useNow } from "@/hooks/use-now";
+import { useTaskController } from "@/hooks/use-task-controller";
 import { resolveMediaUrl } from "@/lib/media-url";
 import {
   useGenerationCreditCost,
   useGenerationCreditCosts,
 } from "@/modules/model_usage/public";
 import { useTasks } from "@/task-center/public";
-import type { Beat } from "@/modules/narrative_planning/public";
+import {
+  useEpisodeBeats,
+  useEpisodeDetail,
+  type Beat,
+} from "@/modules/narrative_planning/public";
+import {
+  useProject,
+  useUpdateProject,
+} from "@/modules/project_workspace/public";
 import { useAppStore } from "@/stores/app-store";
 import { useProjectAspectRatio } from "@/stores/aspect-ratio-store";
 import { createAudioGenerationQueryHooks } from "@/modules/production/application/audio-generation-query-hooks";
@@ -32,6 +42,7 @@ import { createUseAudioPaneController } from "@/modules/production/application/u
 import { createUseBatchBarController } from "@/modules/production/application/use-batch-bar-controller";
 import { createUseBatchPanelController } from "@/modules/production/application/use-batch-panel-controller";
 import { createUseBeatVideoGenerationController } from "@/modules/production/application/use-beat-video-generation-controller";
+import { createUseEpisodeComposePageController } from "@/modules/production/application/use-episode-compose-page-controller";
 import { createUseLegacyVideoPromptController } from "@/modules/production/application/use-legacy-video-prompt-controller";
 import { createUseNarratorVoicePanelController } from "@/modules/production/application/use-narrator-voice-panel-controller";
 import {
@@ -53,6 +64,7 @@ import { useSeedance2MentionController } from "@/modules/production/application/
 import { httpProductionVideoGateway } from "@/modules/production/infrastructure/http-production-video-gateway";
 import { promptLanguageFromLocale } from "@/modules/production/domain/video-generation";
 import { AudioPaneView } from "@/modules/production/presentation/AudioPaneView";
+import { EpisodeComposePageView } from "@/modules/production/presentation/EpisodeComposePageView";
 import type { VoiceConfigurationTarget } from "@/modules/production/domain/audio-prerequisite";
 import type { SketchAspectRatio } from "@/modules/production/domain/image-settings";
 import { BatchBarView } from "@/modules/production/presentation/BatchBarView";
@@ -109,6 +121,36 @@ const sketchMarkerQueries = createSketchMarkerQueryHooks(
 const narratorVoiceQueries = createNarratorVoiceQueryHooks(
   httpProductionVideoGateway,
 );
+const episodeComposeQueries = createEpisodeComposeQueryHooks(
+  httpProductionVideoGateway,
+);
+const downloadBlob = (blob: Blob, filename: string) => {
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 2_000);
+};
+const useEpisodeComposePageController =
+  createUseEpisodeComposePageController(
+    {
+      ...episodeComposeQueries,
+      useEpisodeBeats,
+      useEpisodeDetail,
+      useProject,
+      useUpdateProject,
+    },
+    {
+      downloadFile: downloadBlob,
+      exportEpisode: (...args) =>
+        httpProductionVideoGateway.exportEpisode(...args),
+      useBeatStates,
+      useTaskController,
+    },
+  );
 const gridBrowserCommands = {
   copyText: (text: string) => navigator.clipboard?.writeText(text),
   downloadFile: (url: string, filename: string) => {
@@ -309,7 +351,18 @@ export const {
   useRegenerateSketches,
 } = sketchGenerationQueries;
 export const { useComposeEpisode, useFinalVideo } =
-  createEpisodeComposeQueryHooks(httpProductionVideoGateway);
+  episodeComposeQueries;
+
+export interface EpisodeComposePageProps {
+  episode: number;
+  onOpenBeat(beatNumber: number): void;
+  project: string;
+}
+
+export function EpisodeComposePage(props: EpisodeComposePageProps) {
+  const controller = useEpisodeComposePageController(props);
+  return createElement(EpisodeComposePageView, { controller });
+}
 
 export interface BatchBarProps {
   beats: Beat[];

@@ -8,19 +8,24 @@ const read = (path: string) => readFileSync(resolve(root, path), "utf8");
 
 describe("compose export API alignment", () => {
   it("uses /export/video for final video and POST /export/zip for zip export", () => {
-    const compose = read(
-      "src/routes/_app/projects.$project/episodes.$episode/compose.lazy.tsx",
+    const gateway = read(
+      "src/modules/production/infrastructure/http-production-video-gateway.ts",
     );
 
-    expect(compose).toContain("/export/video");
-    expect(compose).toContain("api.post");
-    expect(compose).toContain("/export/zip");
-    expect(compose).not.toContain("export/${suffix}");
+    expect(gateway).toContain("/export/video");
+    expect(gateway).toContain('if (kind === "zip")');
+    expect(gateway).toContain("api");
+    expect(gateway).toContain(".post(");
+    expect(gateway).toContain("/export/zip");
+    expect(gateway).not.toContain("export/${kind}");
   });
 
   it("drops the BGM toggle but still sends add_bgm:false to /videos/compose", () => {
-    const compose = read(
-      "src/routes/_app/projects.$project/episodes.$episode/compose.lazy.tsx",
+    const controller = read(
+      "src/modules/production/application/use-episode-compose-page-controller.ts",
+    );
+    const view = read(
+      "src/modules/production/presentation/EpisodeComposePageView.tsx",
     );
     const gateway = read(
       "src/modules/production/infrastructure/http-production-video-gateway.ts",
@@ -28,37 +33,37 @@ describe("compose export API alignment", () => {
 
     // The 添加背景音乐 toggle was removed from the UI; the compose payload keeps
     // the flag explicitly off so the backend default never re-enables it.
-    expect(compose).toContain("addBgm: false");
+    expect(controller).toContain("addBgm: false");
     expect(gateway).toContain("add_bgm: command.addBgm");
-    expect(compose).not.toContain("setAddBgm");
-    expect(compose).not.toContain("video.addBgm");
+    expect(view).not.toContain("setAddBgm");
+    expect(view).not.toContain("video.addBgm");
   });
 
   it("hydrates and persists NiceGUI compose preferences from project config", () => {
-    const compose = read(
-      "src/routes/_app/projects.$project/episodes.$episode/compose.lazy.tsx",
+    const controller = read(
+      "src/modules/production/application/use-episode-compose-page-controller.ts",
     );
 
-    expect(compose).toContain("useProject(project)");
-    expect(compose).toContain("useUpdateProject(project)");
-    expect(compose).toContain("projectConfig?.video_resolution");
-    expect(compose).toContain("projectConfig?.add_subtitles");
-    expect(compose).toContain("video_resolution: next");
-    expect(compose).toContain("add_subtitles: next");
+    expect(controller).toContain("queries.useProject(project)");
+    expect(controller).toContain("queries.useUpdateProject(project)");
+    expect(controller).toContain("projectConfig?.video_resolution");
+    expect(controller).toContain("projectConfig?.add_subtitles");
+    expect(controller).toContain("video_resolution: next");
+    expect(controller).toContain("add_subtitles: next");
   });
 
   it("keeps compose blocker copy fully localized", () => {
-    const compose = read(
-      "src/routes/_app/projects.$project/episodes.$episode/compose.lazy.tsx",
+    const view = read(
+      "src/modules/production/presentation/EpisodeComposePageView.tsx",
     );
     const zh = read("public/locales/zh/translation.json");
     const en = read("public/locales/en/translation.json");
 
-    expect(compose).toContain('t("episode.compose.blockerCount"');
-    expect(compose).toContain('t("episode.compose.blockerSubtitle"');
-    expect(compose).toContain('t("episode.compose.missingItems"');
-    expect(compose).toContain('t("episode.compose.beatLabel")');
-    expect(compose).not.toContain(">Beat<");
+    expect(view).toContain('t("episode.compose.blockerCount"');
+    expect(view).toContain('t("episode.compose.blockerSubtitle"');
+    expect(view).toContain('t("episode.compose.missingItems"');
+    expect(view).toContain('t("episode.compose.beatLabel")');
+    expect(view).not.toContain(">Beat<");
 
     for (const locale of [zh, en]) {
       expect(locale).toContain('"blockerCount"');

@@ -853,6 +853,21 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
       })
       .json<ProductionTaskResponse>();
   },
+  async exportEpisode(project, episode, kind) {
+    if (kind === "zip") {
+      return api
+        .post(p`api/v1/projects/${project}/episodes/${episode}/export/zip`)
+        .blob();
+    }
+    if (kind === "srt") {
+      return api
+        .get(p`api/v1/projects/${project}/episodes/${episode}/export/srt`)
+        .blob();
+    }
+    return api
+      .get(p`api/v1/projects/${project}/episodes/${episode}/export/video`)
+      .blob();
+  },
   async getFinalVideo(project, episode, signal) {
     return api
       .get(p`api/v1/projects/${project}/episodes/${episode}/final`, { signal })
