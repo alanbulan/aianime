@@ -61,18 +61,19 @@ def test_ce_chat_http_routes_are_mounted_and_use_local_auth(monkeypatch) -> None
 
 def test_ce_chat_ws_accepts_missing_cookie_via_local_auth(monkeypatch) -> None:
     from ai_anime.api.app import create_app
-    from ai_anime.chat import service as chat_service
+    from ai_anime.api.routes import chat as chat_routes
     from ai_anime.ports import registry
 
-    async def _no_prewarm(*_args, **_kwargs) -> None:
-        return None
+    class NoOpPrewarmer:
+        async def prewarm(self, *_args, **_kwargs) -> None:
+            return None
 
     monkeypatch.setenv("AI_ANIME_EDITION", "ce")
     monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "")
     monkeypatch.setenv("REDIS_URL", "")
     monkeypatch.setattr(registry, "_PORTS", {})
     monkeypatch.setattr(registry, "_BOOTSTRAPPED", False)
-    monkeypatch.setattr(chat_service, "prewarm_chat_backend", _no_prewarm)
+    monkeypatch.setattr(chat_routes, "agent_backend_prewarmer", NoOpPrewarmer())
 
     app = create_app()
     with TestClient(app) as client:
@@ -86,14 +87,14 @@ def test_ce_chat_ws_accepts_missing_cookie_via_local_auth(monkeypatch) -> None:
 def test_chat_ws_auth_failure_reports_unauthorized(monkeypatch) -> None:
     from ai_anime.api.app import create_app
     from ai_anime.api.routes import chat as chat_routes
-    from ai_anime.chat import service as chat_service
     from ai_anime.ports import registry
 
     async def _reject_browser_session(_raw_cookie: str | None) -> dict:
         raise HTTPException(status_code=401, detail="Invalid session")
 
-    async def _no_prewarm(*_args, **_kwargs) -> None:
-        return None
+    class NoOpPrewarmer:
+        async def prewarm(self, *_args, **_kwargs) -> None:
+            return None
 
     monkeypatch.setenv("AI_ANIME_EDITION", "ce")
     monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "")
@@ -101,7 +102,7 @@ def test_chat_ws_auth_failure_reports_unauthorized(monkeypatch) -> None:
     monkeypatch.setattr(registry, "_PORTS", {})
     monkeypatch.setattr(registry, "_BOOTSTRAPPED", False)
     monkeypatch.setattr(chat_routes, "_verify_browser_session", _reject_browser_session)
-    monkeypatch.setattr(chat_service, "prewarm_chat_backend", _no_prewarm)
+    monkeypatch.setattr(chat_routes, "agent_backend_prewarmer", NoOpPrewarmer())
 
     app = create_app()
     with TestClient(app) as client:

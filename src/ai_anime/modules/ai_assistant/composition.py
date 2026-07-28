@@ -2,6 +2,7 @@
 
 from ai_anime.modules.ai_assistant.application import (
     AgentBackend,
+    AgentBackendPrewarmer,
     AgentBackendService,
     AgentPromptContext,
     AgentThreadReplies,
@@ -49,6 +50,7 @@ _chat_history = SQLiteChatHistory()
 _chat_presentation = ChatPresentation(FileJsonRenderErrors())
 _chat_run_locks = FileChatRunLocks()
 _hermes_runtime = LocalHermesRuntime()
+_agent_backend_prewarmer = AgentBackendPrewarmer(_agent_backend, _hermes_runtime)
 _display_fallbacks = DisplayFallbacks(HttpDisplayFallbackGateway())
 _page_agent_sessions = PageAgentSessions()
 _project_media = ProjectMedia(LocalProjectMediaFiles())
@@ -83,6 +85,10 @@ _project_assistant_replies = ProjectAssistantReplies(
 
 def get_agent_backend() -> AgentBackend:
     return _agent_backend
+
+
+def get_agent_backend_prewarmer() -> AgentBackendPrewarmer:
+    return _agent_backend_prewarmer
 
 
 def get_agent_prompt_context() -> AgentPromptContext:

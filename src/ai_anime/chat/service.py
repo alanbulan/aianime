@@ -13,13 +13,11 @@ from typing import Any
 from ai_anime.modules.ai_assistant.public import (
     get_agent_backend,
     get_agent_thread_runtime,
-    get_hermes_runtime,
     get_project_assistant_replies,
 )
 
 agent_backend = get_agent_backend()
 agent_thread_runtime = get_agent_thread_runtime()
-hermes_runtime = get_hermes_runtime()
 project_assistant_replies = get_project_assistant_replies()
 
 _REINGEST_CANCELLED_BLOCK_RE = re.compile(
@@ -124,26 +122,6 @@ async def interrupt_chat_turn(
         thread_id,
         turn_id,
     )
-
-
-async def prewarm_chat_backend(username: str, *, project: str | None = None) -> None:
-    """Best-effort pre-warm of the per-user agent worker.
-
-    Called when the user opens a chat / switches project so the first real
-    message doesn't pay the full cold-start (spawn → initialize → session/new
-    with startup probes). No-op unless the hermes backend is active; never
-    raises — pre-warming is purely an optimization.
-    """
-    try:
-        if agent_backend.name() != "hermes":
-            return
-        await hermes_runtime.prewarm(
-            username,
-            scope_kind="project" if project else "home",
-            project_id=project or None,
-        )
-    except Exception:
-        return
 
 
 async def generate_assistant_reply(

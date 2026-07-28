@@ -21,9 +21,9 @@ from ai_anime.api.auth import (
     _verify_agent_bearer,
     _verify_browser_session,
 )
-from ai_anime.chat import service as chat_service
 from ai_anime.modules.ai_assistant.public import (
     ChatScope,
+    get_agent_backend_prewarmer,
     get_chat_history,
     get_chat_run_locks,
     get_hermes_home_replies,
@@ -56,6 +56,7 @@ from ai_anime.modules.model_usage.public import (
 router = APIRouter()
 
 AI_ASSISTANT_CHAT_FEATURE_KEY = "ai_assistant_chat"
+agent_backend_prewarmer = get_agent_backend_prewarmer()
 chat_history = get_chat_history()
 chat_run_locks = get_chat_run_locks()
 hermes_home_replies = get_hermes_home_replies()
@@ -518,7 +519,7 @@ async def chat_ws(websocket: WebSocket) -> None:
     # immediately sends scope.set for the active project; warming home first
     # creates a worker that is then rotated and logs a noisy initialize timeout.
     if should_prewarm_scope(current_scope.kind):
-        await chat_service.prewarm_chat_backend(
+        await agent_backend_prewarmer.prewarm(
             username,
             project=current_scope.id if current_scope.kind == "project" else None,
         )
@@ -543,7 +544,7 @@ async def chat_ws(websocket: WebSocket) -> None:
                 await _sync_running_agent_scope(username, current_scope)
                 # Switching project rotates the worker; warm the new scope now so
                 # the first message in the project doesn't cold-start.
-                await chat_service.prewarm_chat_backend(
+                await agent_backend_prewarmer.prewarm(
                     username,
                     project=current_scope.id
                     if current_scope.kind == "project"

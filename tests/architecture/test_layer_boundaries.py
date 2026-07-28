@@ -1086,6 +1086,7 @@ def test_ai_assistant_owns_agent_thread_reply_orchestration() -> None:
 def test_ai_assistant_owns_hermes_runtime() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     ports = module / "application" / "ports.py"
+    prewarmer = module / "application" / "agent_backend_prewarm.py"
     home_replies = module / "application" / "hermes_home_replies.py"
     project_replies = module / "application" / "hermes_project_replies.py"
     adapter = module / "infrastructure" / "hermes_runtime.py"
@@ -1094,6 +1095,7 @@ def test_ai_assistant_owns_hermes_runtime() -> None:
     service = PACKAGE_ROOT / "chat" / "service.py"
     route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
     ports_source = ports.read_text(encoding="utf-8")
+    prewarmer_source = prewarmer.read_text(encoding="utf-8")
     home_replies_source = home_replies.read_text(encoding="utf-8")
     project_replies_source = project_replies.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
@@ -1115,7 +1117,8 @@ def test_ai_assistant_owns_hermes_runtime() -> None:
     assert "hermes_runtime.get_for_user(" not in service_source
     assert home_replies_source.count("self._runtime.get_for_user(") == 1
     assert project_replies_source.count("self._runtime.get_for_user(") == 1
-    assert service_source.count("hermes_runtime.prewarm(") == 1
+    assert "hermes_runtime.prewarm(" not in service_source
+    assert prewarmer_source.count("self._hermes_runtime.prewarm(") == 1
     assert "hermes_runtime.get_for_user(" not in route_source
     assert route_source.count("hermes_runtime.set_scope_for_user(") == 1
     assert route_source.count("hermes_runtime.close_user(") == 1
@@ -1309,6 +1312,7 @@ def test_ai_assistant_owns_agent_backend_runtime() -> None:
     adapter = module / "infrastructure" / "agent_backend_runtime.py"
     thread_runtime = module / "infrastructure" / "agent_thread_runtime.py"
     dispatcher = module / "application" / "project_assistant_replies.py"
+    prewarmer = module / "application" / "agent_backend_prewarm.py"
     composition = module / "composition.py"
     public = module / "public.py"
     service = PACKAGE_ROOT / "chat" / "service.py"
@@ -1317,6 +1321,7 @@ def test_ai_assistant_owns_agent_backend_runtime() -> None:
     adapter_source = adapter.read_text(encoding="utf-8")
     thread_runtime_source = thread_runtime.read_text(encoding="utf-8")
     dispatcher_source = dispatcher.read_text(encoding="utf-8")
+    prewarmer_source = prewarmer.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
     service_source = service.read_text(encoding="utf-8")
@@ -1359,8 +1364,9 @@ def test_ai_assistant_owns_agent_backend_runtime() -> None:
     ):
         assert legacy_name not in service_source
     assert "agent_backend = get_agent_backend()" in service_source
-    assert service_source.count("agent_backend.name()") == 2
+    assert service_source.count("agent_backend.name()") == 1
     assert dispatcher_source.count("self._backend.name()") == 1
+    assert prewarmer_source.count("self._backend.name()") == 1
     for runtime_setting in (
         "self._backend.codex_bin_path()",
         "self._backend.codex_model()",
@@ -1369,6 +1375,39 @@ def test_ai_assistant_owns_agent_backend_runtime() -> None:
     ):
         assert thread_runtime_source.count(runtime_setting) == 1
         assert runtime_setting.replace("self._backend", "agent_backend") not in service_source
+
+
+def test_ai_assistant_owns_agent_backend_prewarm() -> None:
+    module = PACKAGE_ROOT / "modules" / "ai_assistant"
+    application = module / "application" / "agent_backend_prewarm.py"
+    composition = module / "composition.py"
+    public = module / "public.py"
+    service = PACKAGE_ROOT / "chat" / "service.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    application_source = application.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+    service_source = service.read_text(encoding="utf-8")
+    route_source = route.read_text(encoding="utf-8")
+
+    assert not {
+        imported
+        for imported in _imports(application)
+        if imported == "fastapi"
+        or imported.startswith("fastapi.")
+        or imported.startswith("ai_anime.chat")
+        or imported.startswith("ai_anime.modules.ai_assistant.infrastructure")
+    }
+    assert "class AgentBackendPrewarmer:" in application_source
+    assert "_agent_backend_prewarmer = AgentBackendPrewarmer(" in composition_source
+    assert "def get_agent_backend_prewarmer(" in composition_source
+    assert "def get_agent_backend_prewarmer(" in public_source
+    assert "agent_backend_prewarmer = get_agent_backend_prewarmer()" in route_source
+    assert route_source.count("agent_backend_prewarmer.prewarm(") == 2
+    assert "def prewarm_chat_backend(" not in service_source
+    assert "ai_anime.chat" not in _imports(route)
+    assert application_source.count("self._backend.name()") == 1
+    assert application_source.count("self._hermes_runtime.prewarm(") == 1
 
 
 def test_ai_assistant_owns_agent_workspace() -> None:

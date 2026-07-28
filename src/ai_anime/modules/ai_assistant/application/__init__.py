@@ -3,6 +3,9 @@
 from ai_anime.modules.ai_assistant.application.agent_backend import (
     AgentBackendService,
 )
+from ai_anime.modules.ai_assistant.application.agent_backend_prewarm import (
+    AgentBackendPrewarmer,
+)
 from ai_anime.modules.ai_assistant.application.chat_presentation import (
     ChatPresentation,
 )
@@ -54,6 +57,7 @@ from ai_anime.modules.ai_assistant.application.thread_replies import (
 __all__ = [
     "AgentBackend",
     "AgentBackendRuntime",
+    "AgentBackendPrewarmer",
     "AgentBackendService",
     "AgentThread",
     "AgentThreadReplies",
