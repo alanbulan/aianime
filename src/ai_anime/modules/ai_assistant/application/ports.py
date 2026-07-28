@@ -48,6 +48,43 @@ class AgentThreadRuntime(Protocol):
     ) -> bool: ...
 
 
+class HermesThread(Protocol):
+    def stream(
+        self,
+        prompt: str,
+        *,
+        current_project: str | None = None,
+    ) -> AsyncIterator[Any]: ...
+
+
+class HermesRuntime(Protocol):
+    async def get_for_user(
+        self,
+        username: str,
+        *,
+        scope_kind: str,
+        project_id: str | None,
+    ) -> HermesThread: ...
+
+    async def prewarm(
+        self,
+        username: str,
+        *,
+        scope_kind: str,
+        project_id: str | None,
+    ) -> None: ...
+
+    async def set_scope_for_user(
+        self,
+        username: str,
+        *,
+        scope_kind: str,
+        project_id: str | None,
+    ) -> bool: ...
+
+    async def close_user(self, username: str) -> bool: ...
+
+
 class ChatHistory(Protocol):
     def append_message(
         self,

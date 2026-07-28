@@ -27,6 +27,7 @@ from ai_anime.modules.ai_assistant.public import (
     completion_text_or_existing,
     get_chat_history,
     get_chat_run_locks,
+    get_hermes_runtime,
     get_project_chat_messages,
     merge_stream_text,
     message_content,
@@ -59,6 +60,7 @@ router = APIRouter()
 AI_ASSISTANT_CHAT_FEATURE_KEY = "ai_assistant_chat"
 chat_history = get_chat_history()
 chat_run_locks = get_chat_run_locks()
+hermes_runtime = get_hermes_runtime()
 project_chat_messages = get_project_chat_messages()
 
 
@@ -73,9 +75,7 @@ async def cancel_chat_turn(user: dict = Depends(get_api_user)) -> dict[str, Any]
     """
     username = str(user["username"])
     try:
-        from ai_anime.chat.hermes_pool import pool as hermes_pool
-
-        cancelled = await hermes_pool.close_user(username)
+        cancelled = await hermes_runtime.close_user(username)
     except Exception:
         cancelled = False
     try:
@@ -329,9 +329,7 @@ async def _chat_heartbeat(
 
 async def _sync_running_agent_scope(username: str, scope: ChatScope) -> None:
     try:
-        from ai_anime.chat.hermes_pool import pool as hermes_pool
-
-        await hermes_pool.set_scope_for_user(
+        await hermes_runtime.set_scope_for_user(
             username,
             scope_kind=scope.kind,
             project_id=scope.id if scope.kind == "project" else None,
@@ -476,8 +474,6 @@ async def _stream_home_turn(
     attachments: list[ChatAttachmentIn],
     turn_id: str,
 ) -> None:
-    from ai_anime.chat.hermes_pool import pool as hermes_pool
-
     before_projects = {
         project.name
         for project in await list_project_workspaces({"username": username})
@@ -500,7 +496,7 @@ async def _stream_home_turn(
         media=attachment_payloads,
         turn_id=turn_id,
     )
-    thread = await hermes_pool.get_for_user(
+    thread = await hermes_runtime.get_for_user(
         username,
         scope_kind="home",
         project_id=None,

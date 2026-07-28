@@ -1771,6 +1771,8 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第三百五十五批已将 Claude/Codex 流式回复应用编排收口至 AI Assistant：application 新增唯一 `AgentThreadReplies`，组合上一批 `AgentThreadRuntime` 与现有 prompt context、page agent session、project media、project messages 和 chat presentation，统一负责 token 签发、线程打开、prompt 构建、session 记录、正文增量、完成文本、JSON Render 归一、trace/media 投影、消息持久化及 done 事件；仅保留真实协议差异，即 Claude 工具事件采用最新快照、Codex 工具事件累加增量。composition/public 提供唯一进程级 capability，`service.py` 删除 `_stream_assistant_reply_claude` 与 `_stream_assistant_reply_codex` 两套实现，后端分派仅以 `claude`/`codex` 参数调用同一 application stream，不保留 facade、旧别名或第二套编排，文件由 702 行降至 546 行。Agent thread replies 4 项、AI Assistant 模块 178 项、剩余 Chat/route 回归 4 项、Chat route prewarm 2 项、M08 Chat 合同 5 项及完整后端分层门禁 121 项均通过，修改文件 Ruff、Python 编译、模块格式检查与 `git diff --check` 通过。
 
+第三百五十六批已将 Hermes worker pool 运行时边界收口至 AI Assistant：application port 新增 `HermesThread` 与唯一 `HermesRuntime` 合同，infrastructure 新增唯一 `LocalHermesRuntime` adapter，继续委托现有进程级 `HermesPool` 唯一实现，统一提供线程获取、预热、运行中 scope 更新和用户 worker 关闭。composition/public 提供唯一进程级 runtime，Chat service 的 project stream/prewarm 及 Chat route 的 home stream/scope sync/cancel 共 5 个生产调用点全部改经该 capability，route/service 删除 `ai_anime.chat.hermes_pool` 直接导入，不复制 pool、session 或 token 生命周期逻辑；`service.py` 由 546 行降至 544 行。Hermes runtime 2 项、AI Assistant 模块 180 项、HermesPool 会话恢复 5 项、剩余 Chat/route 回归 4 项、Chat route prewarm 2 项、M08 Chat 合同 5 项及完整后端分层门禁 122 项均通过，修改文件 Ruff、Python 编译、模块格式检查与 `git diff --check` 通过。
+
 任务：
 
 1. 拆分 chat route/service 和前端 SuperChat controller/view。

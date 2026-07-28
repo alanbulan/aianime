@@ -10,6 +10,7 @@ from ai_anime.modules.ai_assistant.application import (
     ChatPresentation,
     ChatRunLocks,
     DisplayFallbacks,
+    HermesRuntime,
     PageAgentSessions,
     ProjectChatMessages,
     ProjectMedia,
@@ -24,6 +25,7 @@ from ai_anime.modules.ai_assistant.infrastructure import (
     LocalAgentThreadRuntime,
     LocalAgentToolConfiguration,
     LocalAgentWorkspace,
+    LocalHermesRuntime,
     LocalProjectMediaFiles,
     SQLiteChatHistory,
 )
@@ -42,6 +44,7 @@ _agent_thread_runtime = LocalAgentThreadRuntime(
 _chat_history = SQLiteChatHistory()
 _chat_presentation = ChatPresentation(FileJsonRenderErrors())
 _chat_run_locks = FileChatRunLocks()
+_hermes_runtime = LocalHermesRuntime()
 _display_fallbacks = DisplayFallbacks(HttpDisplayFallbackGateway())
 _page_agent_sessions = PageAgentSessions()
 _project_media = ProjectMedia(LocalProjectMediaFiles())
@@ -82,6 +85,10 @@ def get_chat_presentation() -> ChatPresentation:
 
 def get_chat_run_locks() -> ChatRunLocks:
     return _chat_run_locks
+
+
+def get_hermes_runtime() -> HermesRuntime:
+    return _hermes_runtime
 
 
 def get_display_fallbacks() -> DisplayFallbacks:

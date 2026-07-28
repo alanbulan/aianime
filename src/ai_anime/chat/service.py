@@ -28,6 +28,7 @@ from ai_anime.modules.ai_assistant.public import (
     get_agent_thread_replies,
     get_agent_thread_runtime,
     get_chat_run_locks,
+    get_hermes_runtime,
     get_project_chat_messages,
     is_hidden_chat_tool_event,
     infer_display_tool_call_from_text,
@@ -47,6 +48,7 @@ agent_backend = get_agent_backend()
 agent_thread_replies = get_agent_thread_replies()
 agent_thread_runtime = get_agent_thread_runtime()
 chat_run_locks = get_chat_run_locks()
+hermes_runtime = get_hermes_runtime()
 project_chat_messages = get_project_chat_messages()
 
 _REINGEST_CANCELLED_BLOCK_RE = re.compile(
@@ -263,9 +265,7 @@ async def prewarm_chat_backend(username: str, *, project: str | None = None) -> 
     try:
         if agent_backend.name() != "hermes":
             return
-        from ai_anime.chat.hermes_pool import pool as _hermes_pool
-
-        await _hermes_pool.prewarm(
+        await hermes_runtime.prewarm(
             username,
             scope_kind="project" if project else "home",
             project_id=project or None,
@@ -290,10 +290,8 @@ async def _stream_assistant_reply_hermes(
       as a prompt prefix via `current_project=project`.
     - No per-project chat.db session id; HermesPool owns the thread lifecycle.
     """
-    from ai_anime.chat.hermes_pool import pool as _hermes_pool
-
     agent_prompt = build_agent_prompt_context(username, project, prompt)
-    thread = await _hermes_pool.get_for_user(
+    thread = await hermes_runtime.get_for_user(
         username,
         scope_kind="project" if project else "home",
         project_id=project or None,

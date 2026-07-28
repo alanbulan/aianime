@@ -1029,6 +1029,38 @@ def test_ai_assistant_owns_agent_thread_reply_orchestration() -> None:
         assert application_source.count(owned_operation) == 1
 
 
+def test_ai_assistant_owns_hermes_runtime() -> None:
+    module = PACKAGE_ROOT / "modules" / "ai_assistant"
+    ports = module / "application" / "ports.py"
+    adapter = module / "infrastructure" / "hermes_runtime.py"
+    composition = module / "composition.py"
+    public = module / "public.py"
+    service = PACKAGE_ROOT / "chat" / "service.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    ports_source = ports.read_text(encoding="utf-8")
+    adapter_source = adapter.read_text(encoding="utf-8")
+    composition_source = composition.read_text(encoding="utf-8")
+    public_source = public.read_text(encoding="utf-8")
+    service_source = service.read_text(encoding="utf-8")
+    route_source = route.read_text(encoding="utf-8")
+
+    assert "class HermesThread(Protocol):" in ports_source
+    assert "class HermesRuntime(Protocol):" in ports_source
+    assert "class LocalHermesRuntime:" in adapter_source
+    assert "ai_anime.chat.hermes_pool" in _imports(adapter)
+    assert "_hermes_runtime = LocalHermesRuntime()" in composition_source
+    assert "def get_hermes_runtime(" in composition_source
+    assert "def get_hermes_runtime(" in public_source
+    assert "LocalHermesRuntime" not in public_source
+    for caller in (service, route):
+        assert "ai_anime.chat.hermes_pool" not in _imports(caller)
+    assert service_source.count("hermes_runtime.get_for_user(") == 1
+    assert service_source.count("hermes_runtime.prewarm(") == 1
+    assert route_source.count("hermes_runtime.get_for_user(") == 1
+    assert route_source.count("hermes_runtime.set_scope_for_user(") == 1
+    assert route_source.count("hermes_runtime.close_user(") == 1
+
+
 def test_ai_assistant_owns_agent_backend_runtime() -> None:
     module = PACKAGE_ROOT / "modules" / "ai_assistant"
     application = module / "application" / "agent_backend.py"

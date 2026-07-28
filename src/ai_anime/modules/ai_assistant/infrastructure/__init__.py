@@ -24,6 +24,9 @@ from ai_anime.modules.ai_assistant.infrastructure.display_fallback_gateway impor
 from ai_anime.modules.ai_assistant.infrastructure.json_render_errors import (
     FileJsonRenderErrors,
 )
+from ai_anime.modules.ai_assistant.infrastructure.hermes_runtime import (
+    LocalHermesRuntime,
+)
 from ai_anime.modules.ai_assistant.infrastructure.project_media_files import (
     LocalProjectMediaFiles,
 )
@@ -44,6 +47,7 @@ __all__ = [
     "LocalAgentThreadRuntime",
     "LocalAgentToolConfiguration",
     "LocalAgentWorkspace",
+    "LocalHermesRuntime",
     "LocalProjectMediaFiles",
     "SQLiteChatHistory",
 ]
